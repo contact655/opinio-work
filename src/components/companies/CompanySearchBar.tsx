@@ -363,62 +363,8 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
     g.prefectures.map((l) => ({ value: l, label: l, group: g.group })),
   );
 
-  // アクティブフィルターのリスト（サマリー行用）
-  const activeFilters: { key: string; label: string; color?: string; bg?: string; dot?: string; onRemove: () => void }[] = [];
-  if (searchParams.get("q")) {
-    activeFilters.push({
-      key: "q",
-      label: `"${searchParams.get("q")}"`,
-      onRemove: () => updateParam("q", null),
-    });
-  }
-  if (currentPhase) {
-    const phaseOpt = phaseOptions.find((o) => o.value === currentPhase);
-    activeFilters.push({
-      key: "phase",
-      label: phaseOpt?.label ?? currentPhase,
-      color: phaseOpt?.color,
-      bg: phaseOpt?.bg,
-      dot: phaseOpt?.dot,
-      onRemove: () => updateParam("phase", null),
-    });
-  }
-  if (currentIndustry) {
-    const industryGroup = industryOptions.find((d) => d.slug === currentIndustry);
-    activeFilters.push({
-      key: "industry",
-      label: industryGroup?.name ?? currentIndustry,
-      onRemove: () => updateParam("industry", null),
-    });
-  }
-  if (currentLocation) {
-    activeFilters.push({
-      key: "location",
-      label: `📍 ${currentLocation}`,
-      onRemove: () => updateParam("location", null),
-    });
-  }
-  if (currentHiring) {
-    activeFilters.push({
-      key: "hiring",
-      label: "募集あり",
-      onRemove: () => updateParam("hiring", null),
-    });
-  }
-  if (currentForeign) {
-    activeFilters.push({
-      key: "foreign",
-      label: "🌐 外資系",
-      onRemove: () => updateParam("foreign", null),
-    });
-  }
-  if (currentWorkStyle) {
-    activeFilters.push({
-      key: "workStyle",
-      label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle,
-      onRemove: () => updateParam("workStyle", null),
-    });
-  }
+  /* ⚠️ かつてここで `activeFilters`（「絞り込み中」行のチップ）を組み立てていた。
+        2026-09-06 に行ごと廃止したので消した。理由はこのファイル下部のコメント。 */
 
   return (
     <>
@@ -637,53 +583,12 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
           )}
         </div>
 
-        {/* ── アクティブフィルター サマリー行 ── */}
-        {activeFilters.length > 0 && (
-          <div
-            className="csb-active-filters"
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "7px 12px 9px",
-              overflowX: "auto",
-              scrollbarWidth: "none",
-              background: "var(--royal-50)",
-              borderRadius: 8,
-              borderLeft: "3px solid var(--royal)",
-              marginBottom: 4,
-            }}
-          >
-            <style>{`.csb-active-filters::-webkit-scrollbar { display: none; }`}</style>
-            <span style={{ fontSize: 12, color: "var(--royal)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
-              絞り込み中:
-            </span>
-            {activeFilters.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={f.onRemove}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px 3px 8px",
-                  borderRadius: 999,
-                  background: f.bg ?? "var(--royal-50)",
-                  color: f.color ?? "var(--royal)",
-                  border: `1px solid ${f.color ? f.color + "40" : "var(--royal-100)"}`,
-                  fontSize: 12, fontWeight: 600,
-                  cursor: "pointer", whiteSpace: "nowrap",
-                  fontFamily: "inherit",
-                  transition: "opacity 0.1s",
-                  flexShrink: 0,
-                }}
-              >
-                {f.dot && (
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: f.dot, flexShrink: 0 }} />
-                )}
-                {f.label}
-                <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 1 }}>✕</span>
-              </button>
-            ))}
-          </div>
-        )}
+        {/* ⚠️★**「絞り込み中」のサマリー行は廃止した**（2026-09-06 / 柴さんの判断）。
+               絞り込みはチップ自体が選択状態（濃紺 + ✕）で示すので、
+               同じことを2箇所に出していた。「なくても分かる」。
+            ⚠️ 復活させるなら、**チップに出ない絞り込みが画面から消えないか**を
+               先に確かめること（ここには `workStyle` も入っていた。
+               あれは `SHOW_WORK_STYLE_FILTER = false` でチップ自体が出ていない）。 */}
       </div>
     </>
   );

@@ -1212,94 +1212,30 @@ export default function JobsClient({
             </div>
           )}
 
-          {/* アクティブフィルター (optional row 4)
-              ⚠️★**`hasFilter` で出さないこと**（2026-09-06）。この行がチップにできるのは
-                 企業・職種・勤務形態・年収・雇用形態・地域の6つだけで、
-                 **フェーズ・事業領域・外資系はチップにならない。**
-                 `hasFilter` で出すと、外資系だけを選んだときに
-                 **「絞り込み中:」の見出しだけの空の行**になる
-                 （それまでは「すべてリセット」がぶら下がっていたので気づけなかった）。
-              ⚠️ チップを増やしたら、この条件にも足すこと。 */}
-          {(companyFilter || category || work_style || salary || empType || prefecture) && (
+          {/* ⚠️★**「絞り込み中」のサマリー行は廃止した**（2026-09-06 / 柴さんの判断）。
+                 職種・勤務形態・年収・雇用形態・地域は、**ピルとサイドバーが
+                 選択状態で示している**ので同じことを2箇所に出していた。
+
+              ⚠️★**企業（`?company=`）だけは残す。これにはピルが無い。**
+                 企業詳細の「N件すべての求人を見る」と `/u/[id]` の現職リンクから
+                 `/jobs?company=<slug>` で来る導線が生きており、消すと
+                 **なぜ2件しか出ていないのか画面のどこにも出ず、外す手段も無くなる。**
+                 「なくても分かる」が成り立たない唯一の絞り込み。 */}
+          {companyFilter && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 2, paddingBottom: 2, alignItems: "center" }}>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
-              {companyFilter && (
-                <button key="co" type="button" onClick={() => setParam("company", "")} title={companyFilterName} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4, maxWidth: "100%",
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  {/* ⚠️ minWidth:0 が無いと ellipsis が効かず親を押し広げる（375px で実測済みの罠） */}
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    企業: {companyFilterName}
-                  </span>
-                  <span style={{ fontSize: 12, opacity: 0.8, flexShrink: 0 }}>✕</span>
-                </button>
-              )}
-              {category && (() => {
-                const r = parentRoles.find(r => r.id === category);
-                const rc = ACTIVE_FILTER;
-                return r ? (
-                  <button key="cat" type="button" onClick={() => setParam("category", "")} style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 10px", borderRadius: 100,
-                    background: rc.bg, border: `1.5px solid ${rc.color}`,
-                    color: rc.color, fontSize: 12, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>
-                    職種: {r.name} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
-                  </button>
-                ) : null;
-              })()}
-              {work_style && (
-                <button key="ws" type="button" onClick={() => setParam("work_style", "")} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  勤務形態: {work_style} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
-                </button>
-              )}
-              {salary && (() => {
-                const tier = SALARY_PILL_TIERS.find(t => t.value === salary);
-                return tier ? (
-                  <button key="sal" type="button" onClick={() => setParam("salary", "")} style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    padding: "3px 10px", borderRadius: 100,
-                    background: "var(--royal-50)", border: "1.5px solid var(--royal)",
-                    color: "var(--royal)", fontSize: 12, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>
-                    年収: {tier.label} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
-                  </button>
-                ) : null;
-              })()}
-              {empType && (
-                <button key="emp" type="button" onClick={() => setParam("emp_type", "")} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  雇用形態: {empType} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
-                </button>
-              )}
-              {prefecture && (
-                <button key="pref" type="button" onClick={() => setParam("prefecture", "")} style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "3px 10px", borderRadius: 100,
-                  background: "var(--royal-50)", border: "1.5px solid var(--royal)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  地域: {prefecture} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
-                </button>
-              )}
+              <button key="co" type="button" onClick={() => setParam("company", "")} title={companyFilterName} style={{
+                display: "inline-flex", alignItems: "center", gap: 4, maxWidth: "100%",
+                padding: "3px 10px", borderRadius: 100,
+                background: "var(--royal-50)", border: "1.5px solid var(--royal)",
+                color: "var(--royal)", fontSize: 12, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+                {/* ⚠️ minWidth:0 が無いと ellipsis が効かず親を押し広げる（375px で実測済みの罠） */}
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  企業: {companyFilterName}
+                </span>
+                <span style={{ fontSize: 12, opacity: 0.8, flexShrink: 0 }}>✕</span>
+              </button>
             </div>
           )}
 
