@@ -71,7 +71,7 @@ export async function generateMetadata({
     : [
         `${article.company_name}の${typeLabel}。`,
         article.read_min ? `読了${article.read_min}分。` : "",
-        "IT/SaaS業界のリアルな働き方をOPINIOが取材。",
+        "IT業界のリアルな働き方をOPINIOが取材。",
       ].join("");
 
   const ogImageUrl = `/api/og?type=article&name=${encodeURIComponent(article.title)}&sub=${encodeURIComponent(article.company_name)}&badge=${encodeURIComponent(typeLabel)}&v=2`;

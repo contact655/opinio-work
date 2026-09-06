@@ -14,7 +14,7 @@ export const metadata: Metadata = {
           `template: "%s | OPINIO"`（app/layout.tsx）が後ろに足すので、
           素の `title` に書くと **「… | OPINIO | OPINIO」** になる。実測で3ページ該当した。 */
   title: { absolute: "投稿 | OPINIO" },
-  description: "IT/SaaS業界で働く人たちの投稿",
+  description: "IT業界で働く人たちの投稿",
 };
 
 // サイドバー用型

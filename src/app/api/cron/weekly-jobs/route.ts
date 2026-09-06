@@ -239,7 +239,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
     <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111827;background:#f9fafb">
       <div style="margin-bottom:24px">
         <span style="font-size:20px;font-weight:700;color:#002366">OPINIO</span>
-        <span style="font-size:11px;color:#6b7280;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
+        <span style="font-size:11px;color:#6b7280;margin-left:8px">IT業界のキャリアインフラ</span>
       </div>
 
       <!-- 今週の注目バナー -->
@@ -249,7 +249,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
           今週の注目求人 ${totalCount}選
         </div>
         <div style="font-size:13px;opacity:0.8;margin-top:6px">
-          IT/SaaS業界の最新キャリアチャンスをお届けします
+          IT業界の最新キャリアチャンスをお届けします
         </div>
       </div>
 
@@ -272,10 +272,10 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
 
       <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:24px">
         <p style="font-size:12px;color:#6b7280;margin-bottom:4px">
-          OPINIOは IT/SaaS業界専門のキャリアプラットフォームです
+          OPINIOは IT業界専門のキャリアプラットフォームです
         </p>
         <p style="font-size:11px;color:#94a3b8;line-height:1.6">
-          OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
+          OPINIO &middot; IT業界のキャリアインフラ<br>
           配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">プロフィール編集</a>から設定できます
         </p>
       </div>

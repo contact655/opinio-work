@@ -5,7 +5,7 @@ import ConversationsClient, { type Conversation } from "./ConversationsClient";
 import type { Metadata } from "next";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
-      「IT/SaaS業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
+      「IT業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
       見分けがつかない。2026-08-20 の実測で /mypage 配下の3ページが該当した。
    ⚠️ `absolute` にする（ルートの template が `| OPINIO` を足すため）。 */
 export const metadata: Metadata = {

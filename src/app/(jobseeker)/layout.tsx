@@ -8,7 +8,7 @@ import { OnboardingGuard } from "@/components/jobseeker/OnboardingGuard";
 
 export const metadata: Metadata = {
   title: {
-    default: "IT/SaaS業界の転職・求人情報",
+    default: "IT業界の転職・求人情報",
     template: "%s | OPINIO",
   },
   /*
@@ -29,18 +29,18 @@ export const metadata: Metadata = {
           正確な説明は LP の FAQ にある。
   */
   description:
-    "IT/SaaS業界特化のキャリアプラットフォーム。企業情報・求人・そこで働く人の経歴まで、登録なしで検索できます。完全無料・営業電話なし・登録はメールのみ。",
+    "IT業界特化のキャリアプラットフォーム。企業情報・求人・そこで働く人の経歴まで、登録なしで検索できます。完全無料・営業電話なし・登録はメールのみ。",
   openGraph: {
-    title: "OPINIO | IT/SaaS業界特化の転職・求人情報",
-    description: "IT/SaaS業界特化。企業情報と求人を、登録なしでまとめて探せるキャリアプラットフォーム。",
+    title: "OPINIO | IT業界特化の転職・求人情報",
+    description: "IT業界特化。企業情報と求人を、登録なしでまとめて探せるキャリアプラットフォーム。",
     type: "website",
     url: "https://opinio.jp",
     siteName: "OPINIO",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OPINIO | IT/SaaS転職・キャリア",
-    description: "IT/SaaS業界特化。企業情報と求人を、登録なしで。完全無料・営業電話なし。",
+    title: "OPINIO | IT転職・キャリア",
+    description: "IT業界特化。企業情報と求人を、登録なしで。完全無料・営業電話なし。",
   },
   alternates: {
     canonical: "https://opinio.jp",

@@ -50,7 +50,7 @@ const ROLE_MAP: Record<string, {
   eng: {
     label: "ソフトウェアエンジニア",
     labelEn: "Software Engineer",
-    description: "IT/SaaS企業の開発・インフラエンジニア経験者。技術スタック・開発文化・キャリアパスを直接確認できます。",
+    description: "IT企業の開発・インフラエンジニア経験者。技術スタック・開発文化・キャリアパスを直接確認できます。",
     icon: "⚙️",
     roleSlug: "engineer",
     salarySlug: "backend-engineer",
@@ -66,7 +66,7 @@ const ROLE_MAP: Record<string, {
   hr: {
     label: "人事・採用",
     labelEn: "HR / Talent Acquisition",
-    description: "IT/SaaS企業で採用・HRBPを経験した方。組織づくり・採用の内側・キャリアの広がりについて聞けます。",
+    description: "IT企業で採用・HRBPを経験した方。組織づくり・採用の内側・キャリアの広がりについて聞けます。",
     icon: "👥",
     roleSlug: "corporate",
     salarySlug: null,
@@ -87,7 +87,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!role) return { title: { absolute: "登録ユーザーを探す | OPINIO" } };
 
   const title = `${role.label}の経験者を探す | OPINIO`;
-  const description = `${role.description} IT/SaaS業界特化のキャリアプラットフォームOPINIO。`;
+  const description = `${role.description} IT業界特化のキャリアプラットフォームOPINIO。`;
 
   return {
     title: { absolute: title },

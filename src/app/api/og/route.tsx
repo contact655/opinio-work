@@ -186,7 +186,7 @@ function OgCard({ name, sub, badge, type }: CardProps) {
           OPINIO
         </span>
         <span style={{ fontSize: 18, color: "#94A3B8" }}>
-          IT/SaaS業界のキャリアインフラ
+          IT業界のキャリアインフラ
         </span>
       </div>
     </div>
@@ -221,7 +221,7 @@ export async function GET(req: NextRequest) {
         （落ちないので誰も気づかなかった）。呼び出し元は name / sub に揃えたが、
         次に誰かが直感的な名前で書いても静かに既定値へ落ちないよう両方受ける。 */
   const name = (searchParams.get("name") ?? searchParams.get("title") ?? "OPINIO").slice(0, 100);
-  const sub = (searchParams.get("sub") ?? searchParams.get("subtitle") ?? "IT/SaaS業界のキャリアインフラ").slice(0, 120);
+  const sub = (searchParams.get("sub") ?? searchParams.get("subtitle") ?? "IT業界のキャリアインフラ").slice(0, 120);
   const badge = (searchParams.get("badge") ?? "").slice(0, 50);
   const type = searchParams.get("type") ?? "default";
 

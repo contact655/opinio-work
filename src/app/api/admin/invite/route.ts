@@ -138,7 +138,7 @@ function buildInviteHtml(email: string, role: string, message: string, siteUrl: 
         <tr>
           <td style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:28px 40px">
             <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">OPINIO</span>
-            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT/SaaS業界のキャリアインフラ</span>
+            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT業界のキャリアインフラ</span>
           </td>
         </tr>
         <tr>
@@ -151,7 +151,7 @@ function buildInviteHtml(email: string, role: string, message: string, siteUrl: 
             </div>
 
             <p style="margin:0 0 8px;font-size:13px;color:#475569">
-              OPINIO は IT/SaaS 業界に特化したキャリアプラットフォームです。<br>
+              OPINIO は IT業界に特化したキャリアプラットフォームです。<br>
               ${roleLabel}として、下記ボタンからアカウントを作成してください。
             </p>
 

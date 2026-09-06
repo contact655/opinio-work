@@ -200,7 +200,7 @@ function buildWelcomeHtml(name: string): string {
         <tr>
           <td style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:28px 40px">
             <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">OPINIO</span>
-            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT/SaaS業界のキャリアインフラ</span>
+            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT業界のキャリアインフラ</span>
           </td>
         </tr>
         <tr>
@@ -211,8 +211,8 @@ function buildWelcomeHtml(name: string): string {
             <p style="margin:0 0 16px;color:#0f172a;font-weight:600">OPINIO でできること：</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
               ${[
-                ["🏢", "IT/SaaS 企業の情報閲覧・カジュアル面談申込"],
-                ["💼", "IT/SaaS 業界の求人に直接応募"],
+                ["🏢", "IT企業の情報閲覧・カジュアル面談申込"],
+                ["💼", "IT業界の求人に直接応募"],
                 ["🌟", "先輩メンターに30分の無料キャリア相談"],
               ].map(([icon, text]) => `
               <tr>

@@ -851,7 +851,7 @@ export default function JobsClient({
 
   return (
     <>
-      <h1 className="sr-only">IT/SaaS 募集を探す</h1>
+      <h1 className="sr-only">IT募集を探す</h1>
 
       {/* ── 検索バー + フィルターピル（sticky、企業ページと同構造） ── */}
       <div

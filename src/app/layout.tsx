@@ -39,7 +39,7 @@ const notoSerifJP = Noto_Serif_JP({
 export const metadata: Metadata = {
   metadataBase: new URL("https://opinio.jp"),
   title: {
-    default: "OPINIO | IT/SaaS業界の転職・求人情報",
+    default: "OPINIO | IT業界の転職・求人情報",
     template: "%s | OPINIO",
   },
   // サイト共通の説明文。掲載数のような変動する数字はここに置かない
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   //    ここでは触れず、正確な説明は LP の FAQ に置いている。
   //    営業電話が無いのは事実なのでそちらは残す。
   description:
-    "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
+    "IT業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
   keywords: [
     "IT転職",
     "SaaS転職",
@@ -68,9 +68,9 @@ export const metadata: Metadata = {
     locale: "ja_JP",
     url: "https://opinio.jp",
     siteName: "OPINIO",
-    title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
+    title: "OPINIO | IT業界特化のキャリアプラットフォーム",
     description:
-      "IT/SaaS業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
+      "IT業界の企業情報と求人を掲載。登録なしで全て読めます。完全無料・営業電話なし。",
     /* ⚠️★**`images` を書かないこと**（2026-09-06 に外した）。
           ここに書くとファイル規約の [opengraph-image.tsx](./opengraph-image.tsx) を
           上書きする。**実際に実在しない `/og-image.png` を指しており、本番で 404**
@@ -79,9 +79,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OPINIO | IT/SaaS業界特化のキャリアプラットフォーム",
+    title: "OPINIO | IT業界特化のキャリアプラットフォーム",
     description:
-      "IT/SaaS業界の企業情報と求人を、登録なしで。完全無料・営業電話なし。",
+      "IT業界の企業情報と求人を、登録なしで。完全無料・営業電話なし。",
     /* ⚠️ 同上。書くと opengraph-image.tsx が Twitter カードに使われなくなる。 */
   },
   robots: {
@@ -139,7 +139,7 @@ const jsonLd = {
       //    位置づけ直したため、外向きの説明にだけ旧方針の語が残っていた。
       //    LP の見出し「確かめてから、動く。」と同じ言い方に寄せている。
       description:
-        "IT/SaaS業界に特化したキャリアプラットフォーム。企業の今と、そこで働く人を確かめてから、自分で決める。完全無料・営業電話なし。",
+        "IT業界に特化したキャリアプラットフォーム。企業の今と、そこで働く人を確かめてから、自分で決める。完全無料・営業電話なし。",
       sameAs: [],
     },
     {
@@ -148,7 +148,7 @@ const jsonLd = {
       url: "https://opinio.jp",
       name: "OPINIO",
       description:
-        "IT/SaaS業界の企業情報・求人を、登録なしで全て読めるキャリアプラットフォーム。完全無料。",
+        "IT業界の企業情報・求人を、登録なしで全て読めるキャリアプラットフォーム。完全無料。",
       publisher: { "@id": "https://opinio.jp/#organization" },
       potentialAction: {
         "@type": "SearchAction",

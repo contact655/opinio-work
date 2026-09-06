@@ -33,14 +33,14 @@ export async function generateMetadata(): Promise<Metadata> {
   //    正確な説明は LP の FAQ に置いている。営業電話が無いのは事実なので残す。
   //    ここは LP の generateMetadata で、layout の既定値を上書きする。
   //    検索結果と SNS シェアに最も出るのはこの文言なので、方針変更時は真っ先に直すこと。
-  const description = `IT/SaaS業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。完全無料・営業電話なし。`;
+  const description = `IT業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。完全無料・営業電話なし。`;
 
   return {
     /* ⚠️ `absolute` にする。素の title だと「… | OPINIO」が足されて OPINIO が2回出る。 */
-    title: { absolute: "OPINIO — IT/SaaS業界の企業と求人を探す" },
+    title: { absolute: "OPINIO — IT業界の企業と求人を探す" },
     description,
     openGraph: {
-      title: "OPINIO — IT/SaaS業界の企業と求人を探す",
+      title: "OPINIO — IT業界の企業と求人を探す",
       description,
       url: "https://opinio.jp",
       siteName: "OPINIO",

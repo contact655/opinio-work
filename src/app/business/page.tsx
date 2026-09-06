@@ -31,7 +31,7 @@ export const revalidate = 600;
  *         （タイミー）が写り込んでいた。戻すなら撮り直しから。
  *
  * ⚠️ **次の主張を書き足さないこと。** どれも 2026-08-21 時点で実体が無い。
- *   ・候補者の質・量（IT/SaaS の職歴を持つ外部実ユーザーは1人）
+ *   ・候補者の質・量（IT の職歴を持つ外部実ユーザーは1人）
  *   ・応募が来ること（ow_job_applications は0行）
  *   ・スカウト（SCOUT_SENDING_ENABLED 未設定で停止中）
  *   ・カジュアル面談の実績（ow_casual_meetings は0行）
@@ -60,13 +60,13 @@ export const revalidate = 600;
  */
 
 export const metadata: Metadata = {
-  title: { absolute: "IT/SaaS採用プラットフォーム | OPINIO for Business" },
+  title: { absolute: "IT採用プラットフォーム | OPINIO for Business" },
   description:
-    "自社の組織のどこに、どんな形の空きがあるのか。条件を打ち込んで探すのではなく、そこに収まる人を OPINIO が指し示します。IT/SaaS業界に特化したキャリアプラットフォーム。",
+    "自社の組織のどこに、どんな形の空きがあるのか。条件を打ち込んで探すのではなく、そこに収まる人を OPINIO が指し示します。IT業界に特化したキャリアプラットフォーム。",
   alternates: { canonical: "/business" },
   openGraph: {
-    title: "IT/SaaS採用プラットフォーム | OPINIO for Business",
-    description: "足りないところに、ぴったり収まる人を。IT/SaaS業界に特化したキャリアプラットフォーム OPINIO の企業向けページ。",
+    title: "IT採用プラットフォーム | OPINIO for Business",
+    description: "足りないところに、ぴったり収まる人を。IT業界に特化したキャリアプラットフォーム OPINIO の企業向けページ。",
     type: "website",
     url: "https://opinio.jp/business",
     images: [{ url: "https://opinio.jp/api/og?name=OPINIO+for+Business&sub=%E6%8E%A1%E7%94%A8%E3%81%AF%E3%80%81%E6%A4%9C%E7%B4%A2%E3%81%8B%E3%82%89%E6%8F%90%E6%A1%88%E3%81%B8&v=2", width: 1200, height: 630 }],

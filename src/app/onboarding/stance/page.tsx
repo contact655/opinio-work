@@ -24,7 +24,7 @@ import StanceStepClient from "./StanceStepClient";
  *    先に置くと、登録直後の入口が2枚になる。
  */
 /* ⚠️ タイトルを付ける。付けないと LP の既定タイトル
-      （「OPINIO | IT/SaaS業界の転職・求人情報」）がタブに出て、
+      （「OPINIO | IT業界の転職・求人情報」）がタブに出て、
       **何を聞かれている画面なのかがタブから読めない。**
    ⚠️ 認証の内側なので `robots` は不要（middleware が未ログインを弾く）。 */
 /* ⚠️ `absolute` を使う。素の `title` に書くと、ルートの `template: "%s | OPINIO"` が

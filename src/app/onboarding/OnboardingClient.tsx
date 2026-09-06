@@ -384,7 +384,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>掲載中の企業を見てみる</div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>IT/SaaS企業の内側情報を確認する</div>
+                  <div style={{ fontSize: 12, opacity: 0.85 }}>IT企業の内側情報を確認する</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", opacity: 0.7, flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
@@ -1201,7 +1201,7 @@ function CompanyPicker({
       {/*
         ⚠️ ここを「候補が見つかりません」に戻さないこと（2026-08-13 変更）。
            「見つかりません」は検索の失敗＝自分のミスとして読まれ、
-           入力し直しか離脱を誘う。IT/SaaS 以外の企業では普通に起きる。
+           入力し直しか離脱を誘う。IT 以外の企業では普通に起きる。
            **まず「このまま進めて大丈夫」と言い切ること。**
 
         ⚠️ 「掲載」を持ち出さないこと（2026-08-14 変更）。

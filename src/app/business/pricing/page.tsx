@@ -278,9 +278,9 @@ export default function BusinessPricingPage() {
               </FaqItem>
 
               <FaqItem q="どのような業界・職種に対応していますか？">
-                IT/SaaS 業界に特化しています。掲載企業も IT/SaaS 業界に絞っており、
+                IT業界に特化しています。掲載企業も IT業界に絞っており、
                 職種は SaaS 営業・カスタマーサクセス・インサイドセールス・プロダクトマネージャー・
-                エンジニア・マーケターなどが中心です。IT/SaaS 以外の業界での採用には向いていません。
+                エンジニア・マーケターなどが中心です。IT 以外の業界での採用には向いていません。
               </FaqItem>
 
               <FaqItem q="営業電話はかかってきますか？">
@@ -310,7 +310,7 @@ export default function BusinessPricingPage() {
                        再開したらこの一文を直す。
                   */}
                   <CrossItem>候補者へのスカウト送信を主な手段にしたい（スカウト送信機能は現在ご利用いただけません）</CrossItem>
-                  <CrossItem>IT/SaaS 以外の業界での採用が中心</CrossItem>
+                  <CrossItem>IT 以外の業界での採用が中心</CrossItem>
                 </span>
               </FaqItem>
             </div>

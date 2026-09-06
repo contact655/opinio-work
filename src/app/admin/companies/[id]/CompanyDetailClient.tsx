@@ -1078,7 +1078,7 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
               </span>
             ) : (
               <span className="text-gray-500">
-                この業種では任意です。IT/SaaS でない企業に無理に設定しないでください。
+                この業種では任意です。IT でない企業に無理に設定しないでください。
               </span>
             )}
           </p>

@@ -65,7 +65,7 @@ export default async function Image() {
           <div>キャリアに、</div>
           <div>第三者の目を。</div>
         </div>
-        <div style={{ fontSize: 22, color: "#475569" }}>IT/SaaS業界のキャリアプラットフォーム</div>
+        <div style={{ fontSize: 22, color: "#475569" }}>IT業界のキャリアプラットフォーム</div>
       </div>
     ),
     { ...size }

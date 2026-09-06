@@ -16,15 +16,15 @@ import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 // 一覧ページなので基準は "content"＝求人と記事の合計が多い順。
 export async function generateMetadata(): Promise<Metadata> {
   const lead = await featuredCompanyPrefix("content");
-  const description = `${lead}IT/SaaS業界の企業情報・求人・組織文化をまとめて確認できます。`;
+  const description = `${lead}IT業界の企業情報・求人・組織文化をまとめて確認できます。`;
 
   return {
-    title: { absolute: "IT/SaaS企業を知る | OPINIO" },
+    title: { absolute: "IT企業を知る | OPINIO" },
     description,
     keywords: ["IT企業", "SaaS企業", "スタートアップ", "転職", "企業文化", "求人", "OPINIO"],
     alternates: { canonical: "/companies" },
     openGraph: {
-      title: "IT/SaaS企業を探す | OPINIO",
+      title: "IT企業を探す | OPINIO",
       description,
       type: "website",
       url: "/companies",

@@ -159,8 +159,8 @@ export async function generateMetadata({
         製品・業務領域なので、「開発者ツール業界」のように日本語として成立しない。 */
   const domainLabel = primaryBusinessDomain(company.business_domains)?.name ?? null;
 
-  /* ⚠️ **`?? "IT/SaaS"` のようなフォールバックを書かないこと。**
-        2026-08-25 まで `company.industry ?? "IT/SaaS"` と書いていたが、
+  /* ⚠️ **`?? "IT"` のようなフォールバックを書かないこと。**
+        2026-08-25 まで `company.industry ?? "IT"` と書いていたが、
         `mapCompany` が先に `?? ""` で潰しているため **一度も発火せず**、
         値が無い企業では「タグライン｜・約200名。」と**余った区切りだけ**が出ていた。
         `??` は null / undefined しか拾わない。**無いものは項目ごと落とす。** */
@@ -170,7 +170,7 @@ export async function generateMetadata({
     : `${company.name}の企業情報・求人・組織文化をOPINIOで確認。`;
 
   /* ⚠️ バッジが無いときは**空で渡す**（`/api/og` は空ならピルごと描かない）。
-        推測の「IT/SaaS」を入れない。 */
+        推測の「IT」を入れない。 */
   const ogImageUrl = `/api/og?type=company&name=${encodeURIComponent(company.name)}&sub=${encodeURIComponent(company.tagline ?? "")}&badge=${encodeURIComponent(domainLabel ?? "")}&v=2`;
 
   return {

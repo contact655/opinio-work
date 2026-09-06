@@ -5,7 +5,7 @@ import OpinioLogo from "@/components/common/OpinioLogo";
 
 export const metadata: Metadata = {
   title: { absolute: "採用担当者の方へ | OPINIO for Business" },
-  description: "IT/SaaS業界の優秀な人材と出会う。企業情報・求人を掲載して、求職者と対話を始めましょう。OPINIO Business は無料でご利用いただけます。",
+  description: "IT業界の優秀な人材と出会う。企業情報・求人を掲載して、求職者と対話を始めましょう。OPINIO Business は無料でご利用いただけます。",
   robots: { index: false, follow: false },
 };
 
@@ -26,7 +26,7 @@ const FEATURES: { icon: React.ReactNode; title: string; desc: string }[] = [
       </svg>
     ),
     title: "求人を掲載する",
-    desc: "IT/SaaS 業界に特化したプラットフォームで、経験者へ直接リーチ。求人票の作成・公開を無料で始められます。",
+    desc: "IT業界に特化したプラットフォームで、経験者へ直接リーチ。求人票の作成・公開を無料で始められます。",
   },
   {
     icon: (
@@ -163,7 +163,7 @@ export default function BizLandingPage() {
                 letterSpacing: "-0.02em",
                 color: "#fff",
               }}>
-                IT/SaaS業界の優秀な人材と、<br />
+                IT業界の優秀な人材と、<br />
                 対話から始める採用を。
               </h1>
               <p style={{ fontSize: 16, lineHeight: 1.8, color: "rgba(255,255,255,0.8)", margin: "0 0 36px" }}>
@@ -234,7 +234,7 @@ export default function BizLandingPage() {
               OPINIO でできること
             </h2>
             <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>
-              IT/SaaS 業界に特化した採用プラットフォームの機能をご紹介します。
+              IT業界に特化した採用プラットフォームの機能をご紹介します。
             </p>
           </div>
           <div className="biz-lp-features-grid" style={{

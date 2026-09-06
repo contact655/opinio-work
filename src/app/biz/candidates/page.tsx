@@ -405,7 +405,7 @@ export default async function CandidatesPage() {
         desiredRoleIds を持たせてある。クライアントは includes() で判定するだけ。
      ⚠️ is_it_saas = true の10件に絞る。非IT系の大分類7件（医療・介護・福祉 等）は
         **過去の職歴を書くために用意した葉**で子を持たず、
-        IT/SaaS の候補者サーチで「希望職種」として出しても選ばれない。 */
+        IT の候補者サーチで「希望職種」として出しても選ばれない。 */
   const { data: itSaasTopRows } = await adminClient
     .from("ow_roles").select("id").is("parent_id", null).eq("is_active", true).eq("is_it_saas", true);
   const itSaasTopIds = new Set((itSaasTopRows ?? []).map((r) => r.id as string));

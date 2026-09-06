@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
  * 判断を押し付ける形だったため。企業／求人の振り分けは /search が担当する。
  *
  * プレースホルダーは短くしないこと。見出しが英語になったので、
- * 「IT・SaaS 業界の」という対象範囲を日本語で示しているのはここだけ。
+ * 「IT業界の」という対象範囲を日本語で示しているのはここだけ。
  */
 export function HeroSearch({ navy, line, muted }: { navy: string; line: string; muted: string }) {
   const router = useRouter();
@@ -19,13 +19,19 @@ export function HeroSearch({ navy, line, muted }: { navy: string; line: string; 
 
   /*
     プレースホルダーは幅で出し分ける。
-    375px 幅だと長いほうは「IT・SaaS業界の会社名・」で切れてしまい、
-    説明としての役目を果たさない（見出しが英語なので、対象が IT・SaaS 業界だと
-    書いてあるのはここだけ）。CSS だけでは文言を変えられないので matchMedia で切り替える。
-    短いほうからも「IT・SaaS」は落とさないこと。
+    説明としての役目があるので（見出しが英語なので、対象が IT業界だと
+    書いてあるのはここだけ）、狭幅で切れないよう matchMedia で短いほうに替える。
+    CSS だけでは文言を変えられない。
+    ⚠️ 短いほうからも「IT業界」は落とさないこと。落とすと対象範囲が画面から消える。
+
+    ⚠️ 2026-09-06 に「IT/SaaS業界」→「IT業界」にしたぶん4文字短くなり、
+       375px でも長いほうが**収まるようになった**（実測: 入力可能幅 191px に対し
+       長いほう 181px）。それでも出し分けは残す —— 余裕が 10px しかなく、
+       和文は OS でフォントが変わる（macOS ヒラギノ / Windows 游ゴシック）ため。
+       ⚠️ 消すなら Windows で実測してから。
   */
-  const LONG = "IT・SaaS業界の会社名・職種で探す";
-  const SHORT = "IT・SaaSの会社名・職種";
+  const LONG = "IT業界の会社名・職種で探す";
+  const SHORT = "IT業界の会社名・職種";
   // SSR と初期描画は長いほうで揃える（hydration mismatch を避ける）
   const [placeholder, setPlaceholder] = useState(LONG);
 

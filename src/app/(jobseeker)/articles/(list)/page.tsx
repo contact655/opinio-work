@@ -17,7 +17,7 @@ export const revalidate = 300;
 // 記事ページなので基準は "articles"＝公開記事を持つ企業から採る。
 export async function generateMetadata(): Promise<Metadata> {
   const lead = await featuredCompanyPrefix("articles");
-  const description = `${lead}IT/SaaS業界のリアルな働き方。社員インタビュー・CEOインタビュー・組織レポートを届けます。`;
+  const description = `${lead}IT業界のリアルな働き方。社員インタビュー・CEOインタビュー・組織レポートを届けます。`;
 
   return {
     title: { absolute: "記事 | OPINIO" },
@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: ["IT業界インタビュー", "SaaS転職", "社員の声", "組織文化", "キャリア", "OPINIO"],
     alternates: { canonical: "/articles" },
     openGraph: {
-      title: "IT/SaaS業界の記事 | OPINIO",
+      title: "IT業界の記事 | OPINIO",
       description,
       type: "website",
       url: "/articles",

@@ -60,7 +60,7 @@ function htmlWrap(content: string): string {
             <img src="https://opinio.jp/brand/opinio-logo-horizontal-white@2x.png" alt="OPINIO"
                  width="111" height="29"
                  style="display:inline-block;border:0;outline:none;text-decoration:none;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em;vertical-align:middle">
-            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT/SaaS業界のキャリアインフラ</span>
+            <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT業界のキャリアインフラ</span>
           </td>
         </tr>
         <tr>

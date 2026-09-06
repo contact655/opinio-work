@@ -220,7 +220,7 @@ export async function generateMetadata(
   if (!school) return { title: { absolute: "学校 | OPINIO" } };
   return {
     title: { absolute: `${school.name} 出身者 | OPINIO` },
-    description: `${school.name}出身のIT/SaaS業界の現役社員・OB/OGのキャリアを見る。`,
+    description: `${school.name}出身のIT業界の現役社員・OB/OGのキャリアを見る。`,
     robots: { index: false, follow: false },
   };
 }

@@ -24,7 +24,7 @@ export async function JobseekerFooter() {
               <OpinioLogo height={28} />
             </div>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 260, marginBottom: 20 }}>
-              IT/SaaS業界の企業と求人を探せるプラットフォーム。<br />
+              IT業界の企業と求人を探せるプラットフォーム。<br />
               企業情報と求人が、ここに揃っています。
             </p>
           </div>
@@ -149,7 +149,7 @@ export async function JobseekerFooter() {
             </span>
           </div>
           <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
-            IT/SaaS業界特化のキャリアプラットフォーム
+            IT業界特化のキャリアプラットフォーム
           </span>
         </div>
       </div>

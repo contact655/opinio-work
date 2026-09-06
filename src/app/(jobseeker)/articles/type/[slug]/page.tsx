@@ -19,7 +19,7 @@ const ARTICLE_TYPE_MAP: Record<string, {
     type: "employee",
     label: "社員インタビュー",
     labelEn: "Employee Stories",
-    description: "IT/SaaS企業で実際に働く社員の声。仕事のやりがい・組織文化・日々の業務をリアルに語ってもらいました。",
+    description: "IT企業で実際に働く社員の声。仕事のやりがい・組織文化・日々の業務をリアルに語ってもらいました。",
     icon: "💬",
   },
   mentor: {
@@ -37,7 +37,7 @@ const ARTICLE_TYPE_MAP: Record<string, {
     type: "ceo",
     label: "CEO・経営陣インタビュー",
     labelEn: "CEO & Leadership",
-    description: "IT/SaaS企業の経営者・経営陣が語る事業ビジョン・組織づくり・業界の未来。意思決定の背景に迫ります。",
+    description: "IT企業の経営者・経営陣が語る事業ビジョン・組織づくり・業界の未来。意思決定の背景に迫ります。",
     icon: "👔",
   },
   report: {
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!cat) return { title: { absolute: "記事 | OPINIO" } };
 
   const title = `${cat.label} | OPINIO`;
-  const description = `${cat.description} IT/SaaS業界特化のキャリアメディアOPINIO。`;
+  const description = `${cat.description} IT業界特化のキャリアメディアOPINIO。`;
 
   return {
     title: { absolute: title },

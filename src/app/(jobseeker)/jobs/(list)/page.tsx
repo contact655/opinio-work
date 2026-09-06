@@ -41,15 +41,15 @@ export const dynamic = "force-dynamic";
 // 公開中かつ求人を持つ企業から引く（lib/seo/featuredCompanies.ts）。
 export async function generateMetadata(): Promise<Metadata> {
   const lead = await featuredCompanyPrefix("jobs");
-  const description = `${lead}IT/SaaS業界の最新募集情報。フルリモート・高年収・職種別に検索できます。`;
+  const description = `${lead}IT業界の最新募集情報。フルリモート・高年収・職種別に検索できます。`;
 
   return {
-    title: { absolute: "IT/SaaS募集を探す | OPINIO" },
+    title: { absolute: "IT募集を探す | OPINIO" },
     description,
     keywords: ["IT転職", "SaaS転職", "エンジニア転職", "PdM転職", "フルリモート", "高年収", "OPINIO"],
     alternates: { canonical: "/jobs" },
     openGraph: {
-      title: "IT/SaaS募集を探す | OPINIO",
+      title: "IT募集を探す | OPINIO",
       description,
       type: "website",
       url: "/jobs",

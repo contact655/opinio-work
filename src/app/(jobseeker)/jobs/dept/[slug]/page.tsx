@@ -23,15 +23,15 @@ export const revalidate = 60;
 // SEO 用の説明文だけ。マスタに無い分類をここで増やさないこと——
 // 語彙をコード側に作った結果が上記の破綻だった。
 const DEPT_SEO: Record<string, { labelEn: string; description: string }> = {
-  exec:      { labelEn: "Executive & CxO",        description: "IT/SaaS企業の経営・CxO・幹部候補の求人。" },
-  bizdev:    { labelEn: "Business Development",   description: "IT/SaaS企業の事業開発・アライアンス・BizDev求人。" },
-  sales:     { labelEn: "Sales",                  description: "IT/SaaS企業のフィールドセールス・インサイドセールス・SDR/BDR・セールスエンジニア・プリセールスの求人。" },
-  cs:        { labelEn: "Customer Success",       description: "IT/SaaS企業のカスタマーサクセス・カスタマーサポート・テクニカルサポート求人。" },
-  marketing: { labelEn: "Marketing",              description: "IT/SaaS企業のマーケティング・プロダクトマーケティング求人。" },
-  product:   { labelEn: "Product & Design",       description: "IT/SaaS企業のプロダクトマネージャー・デザイナーの求人。" },
-  "data-ai": { labelEn: "Data & AI",              description: "IT/SaaS企業のデータサイエンティスト・データアナリスト・機械学習エンジニア求人。" },
-  engineer:  { labelEn: "Software Engineer",      description: "IT/SaaS企業のバックエンド・フロントエンド・SRE・モバイルエンジニア求人。" },
-  corporate: { labelEn: "Corporate",              description: "IT/SaaS企業のHR・人事・財務・経理・法務・コーポレート求人。" },
+  exec:      { labelEn: "Executive & CxO",        description: "IT企業の経営・CxO・幹部候補の求人。" },
+  bizdev:    { labelEn: "Business Development",   description: "IT企業の事業開発・アライアンス・BizDev求人。" },
+  sales:     { labelEn: "Sales",                  description: "IT企業のフィールドセールス・インサイドセールス・SDR/BDR・セールスエンジニア・プリセールスの求人。" },
+  cs:        { labelEn: "Customer Success",       description: "IT企業のカスタマーサクセス・カスタマーサポート・テクニカルサポート求人。" },
+  marketing: { labelEn: "Marketing",              description: "IT企業のマーケティング・プロダクトマーケティング求人。" },
+  product:   { labelEn: "Product & Design",       description: "IT企業のプロダクトマネージャー・デザイナーの求人。" },
+  "data-ai": { labelEn: "Data & AI",              description: "IT企業のデータサイエンティスト・データアナリスト・機械学習エンジニア求人。" },
+  engineer:  { labelEn: "Software Engineer",      description: "IT企業のバックエンド・フロントエンド・SRE・モバイルエンジニア求人。" },
+  corporate: { labelEn: "Corporate",              description: "IT企業のHR・人事・財務・経理・法務・コーポレート求人。" },
 };
 
 /** ow_roles の9大分類を SEO 文言つきで取得する */
@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!cat) return { title: { absolute: "求人 | OPINIO" } };
 
   const title = `${cat.label}の求人 | OPINIO`;
-  const description = `${cat.description} IT/SaaS業界特化の転職プラットフォームOPINIOで探す。`;
+  const description = `${cat.description} IT業界特化の転職プラットフォームOPINIOで探す。`;
 
   /* ★求人が0件なら noindex（2026-08-30）。
      ⚠️ 実測（2026-08-30）で**9部門のうち8つが0件**なのに `index, follow` だった。

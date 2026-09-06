@@ -245,7 +245,7 @@ function generateWeeklyEmail(
     <body style="font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
       <div style="margin-bottom:24px">
         <span style="font-size:18px;font-weight:600;color:#002366">OPINIO</span>
-        <span style="font-size:11px;color:#6b7280;margin-left:8px">IT/SaaS業界のキャリアインフラ</span>
+        <span style="font-size:11px;color:#6b7280;margin-left:8px">IT業界のキャリアインフラ</span>
       </div>
       <h1 style="font-size:20px;font-weight:600;margin-bottom:4px">希望条件に合う求人が届いています</h1>
       <p style="color:#6b7280;font-size:14px;margin-bottom:20px">
@@ -260,7 +260,7 @@ function generateWeeklyEmail(
         </a>
       </div>
       <p style="font-size:11px;color:#94a3b8;margin-top:20px">
-        OPINIO &middot; IT/SaaS業界のキャリアインフラ<br>
+        OPINIO &middot; IT業界のキャリアインフラ<br>
         配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">プロフィール編集</a>から設定できます
       </p>
     </body>

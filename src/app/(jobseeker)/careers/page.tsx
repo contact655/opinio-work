@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: { absolute: "IT/SaaS転職ガイド | OPINIO" },
+  title: { absolute: "IT転職ガイド | OPINIO" },
   description:
     "外資系・SaaS企業への転職を考えているあなたへ。企業情報・求人・先輩の声を一気に比較できるOPINIOの転職ガイド。",
   keywords: ["IT転職", "SaaS転職", "外資転職", "転職ガイド", "キャリアチェンジ", "エンタープライズ営業 転職"],
   alternates: { canonical: "/careers" },
   openGraph: {
-    title: "IT/SaaS転職ガイド | OPINIO",
+    title: "IT転職ガイド | OPINIO",
     description: "外資系・SaaS企業への転職を考えているあなたへ。企業・求人・年収・先輩の声を一気に比較。",
     type: "website",
     url: "/careers",
@@ -128,7 +128,7 @@ export default function CareersPage() {
             IT / SaaS 転職ガイド
           </h1>
           <p style={{ fontSize: 15, color: "var(--ink-soft)", margin: "0 0 28px", lineHeight: 1.8, maxWidth: 540 }}>
-            外資系・IT・SaaS企業への転職を深く考えたい人のための情報ハブ。企業の実態・求人・年収・先輩の声を一か所で比較できます。
+            外資系・IT企業への転職を深く考えたい人のための情報ハブ。企業の実態・求人・年収・先輩の声を一か所で比較できます。
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link href="/companies" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>

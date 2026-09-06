@@ -352,7 +352,7 @@ export default async function MypagePage({
       .map((r) => ({ id: r.id, name: r.name, parent_id: r.parent_id, display_order: r.display_order ?? 0 }))
       .sort((a, b) => a.display_order - b.display_order);
 
-    /* 希望職種のピッカーは**母集団が違う**。IT/SaaS に絞る
+    /* 希望職種のピッカーは**母集団が違う**。IT に絞る
        （絞らないと、企業側のフィルタから永久に辿り着けない職種を選べてしまう）。
        ⚠️ 既に選んでいるものと、その親は必ず残す。 */
     const keepForDesired = new Set<string>(desiredRoleIds);
