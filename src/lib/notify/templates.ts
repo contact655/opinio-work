@@ -54,7 +54,12 @@ function htmlWrap(content: string): string {
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
         <tr>
           <td style="background:linear-gradient(135deg,#002366,#3B5FD9);padding:28px 40px">
-            <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">OPINIO</span>
+            <!-- ⚠️ メールに SVG を貼らない（Gmail は落とし、Outlook は描かない）。PNG を絶対URLで。
+                 ⚠️ alt を消さないこと。画像をブロックする受信者にはこれが唯一のロゴになる。
+                 ⚠️ width / height を属性で書く。Outlook は CSS のサイズを無視する。 -->
+            <img src="https://opinio.jp/brand/opinio-logo-horizontal-white@2x.png" alt="OPINIO"
+                 width="111" height="29"
+                 style="display:inline-block;border:0;outline:none;text-decoration:none;font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em;vertical-align:middle">
             <span style="font-size:11px;color:rgba(255,255,255,0.7);margin-left:12px">IT/SaaS業界のキャリアインフラ</span>
           </td>
         </tr>
