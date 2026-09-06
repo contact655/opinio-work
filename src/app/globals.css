@@ -1757,3 +1757,20 @@ body {
     overflow: visible !important;
   }
 }
+
+/* ── ヘッダーの「企業の管理画面」スイッチ ────────────────────────────────
+   ⚠️ 幅による出し分けをインライン style に書かないこと（CSS が負ける）。
+      詳細は .claude/rules/ui-debugging.md「インラインstyle と CSS の優先順位」。
+   ⚠️ アイコン列（`hidden md:flex`）の中にあるので、md 未満では親ごと出ない。
+      md〜lg は幅が足りないのでアイコンだけにし、lg 以上でラベルを出す。 */
+.header-biz-switch { width: 36px; padding: 0; }
+.header-biz-switch-label { display: none; }
+@media (min-width: 1024px) {
+  .header-biz-switch { width: auto; padding: 0 12px; }
+  .header-biz-switch-label {
+    display: inline;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}

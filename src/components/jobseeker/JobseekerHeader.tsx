@@ -323,19 +323,28 @@ export function JobseekerHeader() {
                     aria-label="企業の管理画面"
                     title="企業の管理画面"
                     style={{
-                      width: 36, height: 36,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      borderRadius: 8, border: "1px solid var(--line)",
-                      background: "#fff", color: "var(--ink-mute)",
+                      height: 36,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      borderRadius: 8, border: "1px solid var(--royal-100)",
+                      background: "var(--royal-50)", color: "var(--royal)",
                       flexShrink: 0, textDecoration: "none",
-                      transition: "border-color 0.15s, color 0.15s",
+                      transition: "border-color 0.15s, background 0.15s",
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--royal)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-mute)"; }}
+                    className="header-biz-switch"
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal-100)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--royal-100)"; (e.currentTarget as HTMLAnchorElement).style.background = "var(--royal-50)"; }}
                   >
                     {/* ⚠️ ビルのアイコンにしない。左ナビの「企業」（→ /companies・求職者向けの
                            企業一覧）と同じ絵になり、行き先を取り違える。 */}
                     <LayoutGrid size={16} strokeWidth={2.2} />
+                    {/* ⚠️★**文字を消さないこと**（2026-09-06）。アイコンだけだと
+                           検索・メッセージ・通知と**同じ 36px の四角が4つ並ぶ**ので
+                           見分けがつかない、と指摘を受けて足した。
+                        ⚠️ 文言はモバイルメニューと同じ「企業の管理画面」にする。
+                           画面ごとに呼び方を変えない。
+                        ⚠️ 幅の出し分けはインラインに書かない（CSS が効かなくなる）。
+                           `.header-biz-switch` の中で lg 未満はラベルを畳んでいる。 */}
+                    <span className="header-biz-switch-label">企業の管理画面</span>
                   </Link>
                 )}
                 <div style={{ position: "relative" }} ref={dropdownRef}>
