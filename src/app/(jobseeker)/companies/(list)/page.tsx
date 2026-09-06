@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { searchCompanies } from "@/lib/search/companies";
+import { fetchAvailableTargetIndustries, searchCompanies } from "@/lib/search/companies";
 import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
@@ -43,7 +43,11 @@ type SearchParams = {
   workStyle?: string;
   hiring?: string;
   location?: string;
+  /** 事業領域の slug（ai / infra / crm …）。⚠️ キーが `industry` なのは
+   *  2026-08-26 の移行で被リンクを切らないため。中身は事業領域。 */
   industry?: string;
+  /** 対象業界（軸2）の slug。⚠️ `industry` とは**別の軸**（誰に売っているか） */
+  target?: string;
   foreign?: string;
   view?: string;
   sort?: string;
@@ -110,10 +114,10 @@ function Pagination({
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, industry, foreign, view, sort } = searchParams;
+  const { q, phase, workStyle, hiring, location, industry, target, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   // foreign は並び替えモディファイア扱いのため hasFilter に含めない（ソートバーを維持するため）
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry);
+  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || target);
   /* 詳細リスト = view=list。★**これだけを名指しで判定する。** */
   const isListView  = !hasFilter && view === "list";
   /* 一覧（グリッド）= 既定。★**未知の値もここに落とす**（2026-08-28）。
@@ -131,10 +135,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ⚠️ 都道府県は**47件の固定リスト**になったので DB から引かない（2026-09-06）。
         該当0件の県も出す方針にしたため、実データを見る必要がなくなった。
         選択肢は lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS`。 */
-  const [industryFacets, companySuggestions, allCompaniesResult] = await Promise.all([
+  const [industryFacets, targetIndustryOptions, companySuggestions, allCompaniesResult] = await Promise.all([
+    /* 事業領域の選択肢（unstable_cache 300s）。⚠️ **掲載中が1社以上あるものだけ。** */
     /* 事業領域の選択肢（unstable_cache 300s）。⚠️ **掲載中が1社以上あるものだけ。**
           フェーズと同じ扱いで、0件の選択肢を出さない。 */
     getBusinessDomainFacets(),
+    /* 対象業界（軸2）の選択肢（unstable_cache 300s）。
+       ⚠️ **事業領域とは別の軸。** あちらは「何を作っているか」、こちらは「誰に売っているか」。 */
+    fetchAvailableTargetIndustries(),
     // 検索サジェスト用企業名リスト（unstable_cache 300s）
     fetchCompanySuggestions(),
     // グリッド/リスト: DB側ページネーション + count を1クエリで取得
@@ -157,7 +165,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar industryOptions={industryFacets} companySuggestions={companySuggestions} />
+            <CompanySearchBar industryOptions={industryFacets} targetIndustryOptions={targetIndustryOptions} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>
@@ -187,6 +195,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             hiring={hiring}
             location={location}
             industry={industry}
+            target={target}
             foreign={foreign}
           />
         ) : (

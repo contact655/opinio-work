@@ -33,7 +33,9 @@ export type CompanySearchParams = {
   workStyle?: WorkStyleValue;
   hiring?: boolean;
   location?: string;   // 都道府県フィルタ（例: "東京都", "大阪府"）
-  industry?: string;   // 業種フィルタ（例: "HR Tech", "FinTech/SaaS"）
+  industry?: string;   // 事業領域フィルタ（値は ow_business_domains.slug）
+  /** 対象業界（軸2）。値は `ow_industries.slug`。⚠️ `industry`（事業領域）とは別の軸。 */
+  targetIndustry?: string;
   foreign?: boolean;   // 外資系のみ表示
   sort?: string;       // "newest" | "employees" | "disclosure"（"jobs" は 2026-08-18・"salary" は 2026-08-25 に廃止）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
@@ -147,6 +149,38 @@ export async function searchCompanies(
     }
     const ids = Array.from(new Set((domainRows ?? []).map((r) => r.company_id as string)));
     domainCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
+  }
+
+  /* ── 対象業界（軸2）の絞り込み（2026-09-06 に求職者側へ出した）───────────────
+     ⚠️★**事業領域（`?industry=`）とは別の軸。** あちらは「何を作っているか」、
+        こちらは「誰に売っているか」。混ぜないこと。値は `ow_industries.slug`。
+     ⚠️ **祖先展開しない。** 業種の祖先展開は**本人側**に掛ける規則で（CLAUDE.md）、
+        企業の対象業界は展開しない。選んだ業種そのものだけに当てる。
+     ⚠️ `ow_industries` は埋め込んでよい（`industry_id` は単純FK）。
+        **`ow_companies` は埋め込めない** —— そちらは複合FKで PostgREST が解決できない。
+     ⚠️ 事業領域と同時に指定されたら **積集合**にする（両方の条件を満たすものだけ）。 */
+  let targetCompanyIds: string[] | null = null;
+  if (params.targetIndustry) {
+    const { data: targetRows, error: targetErr } = await supabase
+      .from("ow_company_target_industries")
+      .select("company_id, ow_industries!inner(slug)")
+      .eq("ow_industries.slug", params.targetIndustry);
+    if (targetErr) {
+      // ⚠️ 握りつぶさない。空にすると「該当0社」と「取得失敗」が区別できない
+      console.error("[getCompanies] 対象業界での絞り込みに失敗:", targetErr.message);
+    }
+    const ids = Array.from(new Set((targetRows ?? []).map((r) => r.company_id as string)));
+    targetCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
+  }
+
+  /* ⚠️ **空配列を `.in()` に渡さない。** PostgREST が「絞り込み無し」と解釈して全件返す。
+        積が空になるときはダミーの id を1件入れる。 */
+  if (targetCompanyIds) {
+    domainCompanyIds = domainCompanyIds
+      ? (domainCompanyIds.filter((id) => targetCompanyIds!.includes(id)).length > 0
+          ? domainCompanyIds.filter((id) => targetCompanyIds!.includes(id))
+          : ["00000000-0000-0000-0000-000000000000"])
+      : targetCompanyIds;
   }
 
   // ── Step 1: データ取得 + 総件数を1クエリで同時取得（count: "exact"）
@@ -422,6 +456,55 @@ const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_P
       DB を引く必要がなくなった（選択肢は lib/utils/location.ts）。
       ⚠️ `BRANCH_TO_PREF` は**残す。絞り込み側（PREF_TO_BRANCH_KEYS）が使う。**
          支社しかない県（福岡・広島など）を選んだときに拾うのはこの表。 */
+
+/**
+ * 掲載中の企業に**実際に設定されている**対象業界（軸2）だけを返す — 5分間キャッシュ。
+ *
+ * ⚠️ 0件の選択肢を出さない（「0件でも出す」例外は都道府県とフェーズだけ。CLAUDE.md）。
+ * ⚠️★**`ow_companies` を埋め込まないこと。** `ow_company_target_industries` から
+ *    `ow_companies` への FK は**複合FK**で、PostgREST は関係を解決できない
+ *    （`Could not find a relationship ...`）。2段に分けて `.in()` で引く。
+ *    `ow_industries` 側は単純FKなので埋め込んでよい。
+ * ⚠️ 並びは業種マスタの `display_order`。**件数順にしない**（親子の順序が崩れる）。
+ */
+export const fetchAvailableTargetIndustries = unstable_cache(
+  async (): Promise<{ slug: string; name: string }[]> => {
+    const supabase = createPublicClient();
+
+    // ① 掲載中の企業だけに絞るため、まず対象の company_id を取る
+    const { data: listed, error: listedErr } = await filterListedCompanies(
+      supabase.from("ow_companies").select("id")
+    );
+    if (listedErr) {
+      console.error("[fetchAvailableTargetIndustries] 企業の取得に失敗:", listedErr.message);
+      return [];
+    }
+    const listedIds = new Set((listed ?? []).map((r) => r.id as string));
+    if (listedIds.size === 0) return [];
+
+    // ② 明細 → 業種（ここは単純FKなので埋め込める）
+    const { data: rows, error } = await supabase
+      .from("ow_company_target_industries")
+      .select("company_id, ow_industries!inner(slug, name, display_order, is_active)");
+    if (error) {
+      console.error("[fetchAvailableTargetIndustries]", error.message);
+      return [];
+    }
+
+    const seen = new Map<string, { slug: string; name: string; order: number }>();
+    for (const r of (rows ?? []) as any[]) {
+      if (!listedIds.has(r.company_id)) continue;
+      const i = r.ow_industries as { slug: string; name: string; display_order: number; is_active: boolean } | null;
+      if (!i || !i.is_active) continue;
+      if (!seen.has(i.slug)) seen.set(i.slug, { slug: i.slug, name: i.name, order: i.display_order ?? 0 });
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => a.order - b.order)
+      .map(({ slug, name }) => ({ slug, name }));
+  },
+  ["available-target-industries"],
+  { revalidate: 300 }
+);
 
 /**
  * 検索サジェスト用の企業名リスト（id + name）— 5分間キャッシュ。

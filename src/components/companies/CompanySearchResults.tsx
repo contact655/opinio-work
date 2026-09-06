@@ -15,10 +15,12 @@ type Props = {
   hiring?: string;
   location?: string;
   industry?: string;
+  /** 対象業界（軸2）の slug。⚠️ `industry`（事業領域）とは別の軸 */
+  target?: string;
   foreign?: string;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, foreign }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
@@ -26,6 +28,7 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
     hiring: hiring === "1" ? true : undefined,
     location: location || undefined,
     industry: industry || undefined,
+    targetIndustry: target || undefined,
     foreign: foreign === "1" ? true : undefined,
   };
 

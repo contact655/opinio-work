@@ -25,6 +25,9 @@ type Props = {
   /** 事業領域の選択肢。⚠️ **マスタが唯一の出どころ。** ここに値を書かない。
    *  ⚠️ 実データに1社でもあるものだけをサーバ側が渡す（0件の選択肢を出さない）。 */
   industryOptions: BusinessDomainOption[];
+  /** 対象業界（軸2）の選択肢。⚠️ 事業領域とは**別の軸**（誰に売っているか）。
+   *  ⚠️ こちらも実データにあるものだけ。0件の選択肢を出さない。 */
+  targetIndustryOptions: { slug: string; name: string }[];
   companySuggestions?: { id: string; name: string }[];
 };
 
@@ -261,7 +264,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ industryOptions, companySuggestions = [] }: Props) {
+export function CompanySearchBar({ industryOptions, targetIndustryOptions, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -347,6 +350,7 @@ export function CompanySearchBar({ industryOptions, companySuggestions = [] }: P
   const currentPhase      = searchParams.get("phase") ?? "";
   const currentLocation   = searchParams.get("location") ?? "";
   const currentIndustry   = searchParams.get("industry") ?? "";
+  const currentTarget     = searchParams.get("target") ?? "";
   const currentHiring     = searchParams.get("hiring") === "1";
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
@@ -450,9 +454,15 @@ export function CompanySearchBar({ industryOptions, companySuggestions = [] }: P
             phaseStyle
           />
 
-          {/* 業種 */}
+          {/* 事業領域（何を作っているか）
+              ⚠️★**ラベルは「事業領域」。**「業種」に戻さないこと（2026-09-06）。
+                 中身は `ow_business_domains` で、`/jobs` も「事業領域」と呼んでいる。
+                 「業種」は `ow_industries`（IT・ソフトウェア／製造業…）に使う語で、
+                 **すぐ隣の「対象業界」チップがそちらのマスタ**。名前が衝突する。
+              ⚠️ URL のキーは `?industry=` のまま。2026-08-26 の移行で被リンクを
+                 切らないためで、**キーとラベルが一致していないのは承知のうえ。** */}
           <FilterChip
-            label="業種"
+            label="事業領域"
             value={currentIndustry}
             options={industryOptions.map((d) => ({ value: d.slug, label: d.name }))}
             onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
@@ -460,6 +470,23 @@ export function CompanySearchBar({ industryOptions, companySuggestions = [] }: P
             onToggle={() => toggleChip("industry")}
             listStyle
           />
+
+          {/* 対象業界（誰に売っているか＝軸2）
+              ⚠️★**事業領域と別の軸。** 統合しないこと。
+                 例: アンドパッドは 事業領域「プロジェクト管理」× 対象業界「建設」。
+              ⚠️ 実データにあるものだけを出す（サーバ側の `fetchAvailableTargetIndustries`）。
+                 該当が無ければチップごと出さない。 */}
+          {targetIndustryOptions.length > 0 && (
+            <FilterChip
+              label="対象業界"
+              value={currentTarget}
+              options={targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name }))}
+              onSelect={(v) => { updateParam("target", v); setOpenChip(null); }}
+              isOpen={openChip === "target"}
+              onToggle={() => toggleChip("target")}
+              listStyle
+            />
+          )}
 
           {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
           <FilterChip
