@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
+import { COMMON_PREFECTURES } from "@/lib/utils/location";
 
 /**
  * 勤務形態フィルターを出すか。
@@ -43,8 +44,10 @@ function FilterChip({
 }: {
   label: string;
   value: string;
-  /** ⚠️ フェーズは2段階。`parent` を持つものが子で、親の直後にインデントして並ぶ。 */
-  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string; parent?: string }[];
+  /** ⚠️ フェーズは2段階。`parent` を持つものが子で、親の直後にインデントして並ぶ。
+   *  ⚠️ 都道府県は `group`（「よく選ばれる」/「その他」）で見出しを挟む。
+   *     **並び順は渡された順のまま。ここで並べ替えないこと。** */
+  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string; parent?: string; group?: string }[];
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -189,11 +192,21 @@ function FilterChip({
               )}
               {options
                 .filter(o => !q || o.label.toLowerCase().includes(q.toLowerCase()))
-                .map((o) => {
+                .map((o, i, shown) => {
                   const sel = value === o.value;
+                  /* ⚠️ グループが変わるところにだけ見出しを出す。
+                        絞り込み入力で消えた結果、先頭が「その他」になることもあるので
+                        **1つ前と比べる**（固定の位置に置かない）。 */
+                  const head = o.group && o.group !== shown[i - 1]?.group ? o.group : null;
                   return (
+                    <div key={o.value}>
+                    {head && (
+                      <div style={{
+                        padding: "8px 16px 4px", fontSize: 11, fontWeight: 700,
+                        color: "var(--ink-mute)", letterSpacing: "0.06em",
+                      }}>{head}</div>
+                    )}
                     <button
-                      key={o.value}
                       type="button"
                       onClick={() => { onSelect(sel ? null : o.value); onToggle(); setQ(""); }}
                       style={{
@@ -211,6 +224,7 @@ function FilterChip({
                     >
                       {o.label}
                     </button>
+                    </div>
                   );
                 })
               }
@@ -334,7 +348,22 @@ export function CompanySearchBar({ locations, phaseOptions, industryOptions, com
     searchParams.get("q") || currentPhase || currentHiring || currentLocation || currentIndustry || currentForeign || currentWorkStyle
   );
 
-  const locationOptions = locations.map((l) => ({ value: l, label: l }));
+  /*
+    都道府県は「よく選ばれる」を先頭に出す。
+    ⚠️ **語彙は [lib/utils/location.ts](../../lib/utils/location.ts) の `COMMON_PREFECTURES` を使う。**
+       ここに東京・大阪…と書き足さないこと。職歴エディタとオンボーディングの
+       `<optgroup>` が同じ定数を見ており、割れると画面ごとに並びが変わる。
+    ⚠️ **`locations` は「掲載中の企業がある都道府県」だけ**（0件の選択肢を出さない規則）。
+       だから2つ目の見出しは「すべての都道府県」ではなく「その他」。
+       47件から選ぶ入力欄（職歴・オンボーディング）とは意味が違う。
+    ⚠️ よく選ばれる4県が1つも該当しないときは見出しごと出さない。
+  */
+  const commonLocations = (COMMON_PREFECTURES as readonly string[]).filter((p) => locations.includes(p));
+  const otherLocations = locations.filter((l) => !commonLocations.includes(l));
+  const locationOptions = [
+    ...commonLocations.map((l) => ({ value: l, label: l, group: "よく選ばれる" })),
+    ...otherLocations.map((l) => ({ value: l, label: l, group: commonLocations.length ? "その他" : undefined })),
+  ];
 
   // アクティブフィルターのリスト（サマリー行用）
   const activeFilters: { key: string; label: string; color?: string; bg?: string; dot?: string; onRemove: () => void }[] = [];

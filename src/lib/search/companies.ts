@@ -389,10 +389,24 @@ const BRANCH_TO_PREF: Record<string, string> = {
   "北海道": "北海道", "名古屋": "愛知県", "愛知": "愛知県",
 };
 
-// 都道府県名 → branch_locations で使われるキー群（複数ある場合）
-const PREF_TO_BRANCH_KEYS: Record<string, string[]> = {
-  "愛知県": ["愛知", "名古屋"],
-};
+/**
+ * 都道府県名 → `branch_locations` で使われるキー群（複数ありうる）。
+ *
+ * ⚠️★**手で書かない。`BRANCH_TO_PREF` から導出する**（2026-09-06）。
+ *    それまで手書きで **`愛知県` の1件しか無かった**ため、
+ *    「支社があるから選択肢には出るが、選ぶと必ず0件」という空振りが
+ *    **8つの選択肢のうち5つ**で起きていた（福岡県・埼玉県・神奈川県・京都府・広島県）。
+ *    選択肢を作るのは `BRANCH_TO_PREF`、絞り込むのはこちら、と
+ *    **逆向きの対応表が2つあって同期していなかった**のが原因。
+ *    → 片方から作れば、`BRANCH_TO_PREF` に足すだけで両方に効く。
+ */
+const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_PREF).reduce(
+  (acc, [branchKey, pref]) => {
+    (acc[pref] ??= []).push(branchKey);
+    return acc;
+  },
+  {} as Record<string, string[]>,
+);
 
 // 北から南順の都道府県リスト（表示順制御用）
 const PREFECTURE_ORDER = [
