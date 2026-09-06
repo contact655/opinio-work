@@ -66,7 +66,7 @@ import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
-import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
+import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -398,11 +398,11 @@ function Hero({
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 7,
                       padding: "10px 22px", borderRadius: 100, fontSize: 14, fontWeight: 800,
-                      background: MEETING_CTA_BG, color: "#fff",
+                      background: MEETING_CTA_BG, color: MEETING_CTA_FG,
                       textDecoration: "none",
                       boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
                     }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: MEETING_CTA_FG, animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
                     <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                   </Link>
                 )}
@@ -824,7 +824,7 @@ function JobsSection({
             <Link href={`/companies/${company.id}/casual-meeting`} style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-              background: MEETING_CTA_BG, color: "#fff",
+              background: MEETING_CTA_BG, color: MEETING_CTA_FG,
               textDecoration: "none", boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
             }}>
               カジュアル面談でまず話してみる
@@ -1345,7 +1345,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
             gap: "var(--space-2)",
             padding: "var(--space-3) 0",
             background: MEETING_CTA_BG,
-            color: "#fff",
+            color: MEETING_CTA_FG,
             borderRadius: 8,
             fontSize: "var(--text-base)",
             fontWeight: 700,
@@ -1483,7 +1483,7 @@ function Sidebar({
                     width: "100%",
                     padding: "14px 0",
                     background: MEETING_CTA_BG,
-                    color: "#fff",
+                    color: MEETING_CTA_FG,
                     borderRadius: 8,
                     fontSize: "var(--text-base)",
                     fontWeight: 700,
@@ -1993,7 +1993,7 @@ export default async function CompanyDetailPage({
                 <Link href={`/companies/${company.id}/casual-meeting`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
                   padding: "8px 18px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  background: MEETING_CTA_BG, color: "#fff",
+                  background: MEETING_CTA_BG, color: MEETING_CTA_FG,
                   textDecoration: "none", whiteSpace: "nowrap",
                   boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
                 }}>
@@ -2191,12 +2191,12 @@ export default async function CompanyDetailPage({
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                      background: MEETING_CTA_BG, color: "#fff",
+                      background: MEETING_CTA_BG, color: MEETING_CTA_FG,
                       textDecoration: "none",
                       boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
                     }}
                   >
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: MEETING_CTA_FG, animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
                     <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                   </Link>
                 </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PublicAmbassador } from "@/lib/supabase/queries";
-import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
+import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 
 /**
  * サイドバーの「💬 カジュアル面談OK」ウィジェット。
@@ -176,7 +176,7 @@ export default function AmbassadorWidget({
               fontSize: 12, fontWeight: 700, textDecoration: "none",
               /* ⚠️ 面談CTAの色は `MEETING_CTA_BG` に集約してある。ここに色を書かないこと。
                      旧: `var(--warm)`（白文字で 2.15・基準は 4.5）。2026-08-31 に移した。 */
-              background: MEETING_CTA_BG, color: "#fff", boxSizing: "border-box",
+              background: MEETING_CTA_BG, color: MEETING_CTA_FG, boxSizing: "border-box",
             }}>
               カジュアル面談を申し込む →
             </a>

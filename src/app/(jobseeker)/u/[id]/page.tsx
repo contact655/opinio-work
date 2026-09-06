@@ -39,7 +39,7 @@ import {
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
 import { ProfileHeader, shortCompanyName } from "@/components/profile/view/ProfileHeader";
-import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
+import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -672,7 +672,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
                     background: MEETING_CTA_BG,
-                    color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
+                    color: MEETING_CTA_FG, fontSize: "var(--text-sm)", fontWeight: 700,
                     textDecoration: "none", flexShrink: 0,
                     boxShadow: `0 4px 14px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
                     whiteSpace: "nowrap",
