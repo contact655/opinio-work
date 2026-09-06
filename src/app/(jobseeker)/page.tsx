@@ -46,6 +46,14 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "OPINIO",
       locale: "ja_JP",
       type: "website",
+      /* ⚠️★**`images` をここに書かないと OG 画像が1枚も出ない**（2026-09-06）。
+            子が `openGraph` を自分で定義すると、ファイル規約の
+            [opengraph-image.tsx](../opengraph-image.tsx) は**マージされない**
+            （自分で openGraph を持たない /privacy などには自動で付く）。
+            LP は最もシェアされるページなので、明示して既定画像を指す。
+         ⚠️ `/og-image.png` のような別ファイルを指さないこと。実在しないファイルを
+            指していたのが、既定 OG 画像が長らく出ていなかった原因。 */
+      images: ["/opengraph-image"],
     },
     alternates: { canonical: "https://opinio.jp" },
   };
