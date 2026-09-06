@@ -3450,6 +3450,64 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 
 ---
 
+## ⚠️ ロゴ（2026-09-06 に確定）
+
+**公式ロゴは `public/brand/` の12ファイルが原本。** シンボル（右下が斜めに欠けた四角）＋
+ワードマーク `OPiNiO`。色は **`#141414` の1色**と、その白版だけ。**それ以外の色は無い。**
+
+| 何を | どこ |
+|---|---|
+| 原本（納品物そのまま） | **`public/brand/*.svg`**（横組み・縦組み・ワードマーク・シンボル・アプリアイコン・タグライン入り、各白版） |
+| 画面で使う部品 | **[components/common/OpinioLogo.tsx](src/components/common/OpinioLogo.tsx)** |
+| OG 画像で使う data URI | **[lib/brand/ogLogo.ts](src/lib/brand/ogLogo.ts)** |
+| favicon / PWA アイコンの生成 | **`node scripts/gen-brand-icons.mjs`** |
+
+### ⚠️ 画面から `public/brand/*.svg` を直接読まない
+
+`OpinioLogo` を使う。**色は `currentColor`** なので、暗い背景では親に `color: "#fff"` を
+指定するだけでよい。**`*-white.svg` を別に読み込まないこと**（読み込み経路が2つになる）。
+
+⚠️ **`--brand-ink`（#141414）はロゴ専用。** 本文には `--ink`、主要導線には `--royal` を使う。
+   UI の色として流用すると、ロゴが改訂された日に本文まで動く。
+
+⚠️★**サイトの配色（`--royal` #002366）は変えていない。** ロゴだけが墨色で、
+   ボタン・リンク・PWA の `theme_color` は従来どおり濃紺。**「ロゴが黒いから」を理由に
+   `--royal` を置き換えないこと**（それはロゴの決定とは別の判断）。
+
+### ⚠️ パスデータは3箇所にある。手で編集しない
+
+`OpinioLogo.tsx` / `ogLogo.ts` / `gen-brand-icons.mjs` の3つが同じ形を持っている
+（それぞれ currentColor・data URI・ラスタライズと用途が違い、共有できない）。
+**ロゴを差し替えるときは `public/brand/` を入れ替えたうえで3つとも作り直す。**
+
+⚠️ `OpinioLogo.tsx` の値は原本から機械的に写し、**小数を2桁に丸めた**（11.5KB → 7.5KB）。
+   928×243 で描き比べて**画素差0**を確認済み。
+
+### ⚠️ アイコンを作り直したら `public/sw.js` の `CACHE_VERSION` を上げる
+
+画像は Service Worker が **CacheFirst + 30日 TTL** で持つ。上げないと
+**既存の利用者に最大30日ふるいロゴが出続ける。** 旧キャッシュを消すのはこの値の変更だけ。
+
+⚠️ `public/icons/pwa/generate-icons.html`（手作業の生成ページ）は**削除した**。
+   旧デザイン（Speech Bubble）を焼き込んでおり、開くと古いアイコンで上書きされる。
+   生成は `scripts/gen-brand-icons.mjs` に移した。
+
+### ✅ ついでに直した「静かに壊れていた」3件
+
+| 何が | 症状 |
+|---|---|
+| `layout.tsx` の `openGraph.images` | 実在しない **`/og-image.png`（本番で 404）** を指し、ファイル規約の `opengraph-image.tsx` を**上書きしていた**。＝サイト既定の OG 画像が一枚も出ていなかった |
+| `opengraph-image.tsx` | その裏で **satori が `Expected <div> to have explicit "display: flex"` で落ちていた**（`<br />` で子が3つになる）。`.arrayBuffer()` に変えて初めて 500 として表に出た |
+| `<link rel="mask-icon">` | **PNG を指していた。** Safari のピン留めタブは単色 SVG しか受けない＝一度も表示されていない |
+
+⚠️ **`metadata.openGraph.images` を書かないこと。** 書くと `opengraph-image.tsx` がまた死ぬ。
+
+⚠️ メール（`lib/notify/templates.ts`）のヘッダーは **PNG を絶対URLで**参照している。
+   **SVG を貼らない**（Gmail は落とし、Outlook は描かない）。**`alt="OPINIO"` を消さない**
+   ——画像をブロックする受信者にはそれが唯一のロゴになる。
+
+---
+
 ## 技術的注意事項
 
 ### 作業ディレクトリ
