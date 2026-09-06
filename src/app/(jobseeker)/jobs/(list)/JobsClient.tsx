@@ -1055,11 +1055,12 @@ export default function JobsClient({
                    面談の可否で絞りたくなったら、sort ではなくフィルタとして作ること。
               */}
 
-              {(hasFilter || q) && (
-                <button type="button" onClick={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); }}
-                  style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 2px", whiteSpace: "nowrap", fontFamily: "inherit", flexShrink: 0 }}
-                >✕ リセット</button>
-              )}
+              {/* ⚠️★**「✕ リセット」は廃止した**（2026-09-06 / 柴さんの判断・`/companies` と揃えた）。
+                     絞り込みが1つ付くたびに現れて右端の並びが動くうえ、**すべて個別に外せる**:
+                       各ピル → 開いて「すべて」／ 外資系 → もう一度押す（元からトグル）
+                       検索文字 → 入力欄の ✕ ／ 職種（サイドバー）→ もう一度押す
+                  ⚠️ サイドバーの「検索条件をリセットする」と、0件のときの
+                     「すべてリセット」は**残してある**（別の場所・別の役割）。 */}
             </div>
           </div>
         </div>
@@ -1211,8 +1212,15 @@ export default function JobsClient({
             </div>
           )}
 
-          {/* アクティブフィルター (optional row 4) */}
-          {hasFilter && (
+          {/* アクティブフィルター (optional row 4)
+              ⚠️★**`hasFilter` で出さないこと**（2026-09-06）。この行がチップにできるのは
+                 企業・職種・勤務形態・年収・雇用形態・地域の6つだけで、
+                 **フェーズ・事業領域・外資系はチップにならない。**
+                 `hasFilter` で出すと、外資系だけを選んだときに
+                 **「絞り込み中:」の見出しだけの空の行**になる
+                 （それまでは「すべてリセット」がぶら下がっていたので気づけなかった）。
+              ⚠️ チップを増やしたら、この条件にも足すこと。 */}
+          {(companyFilter || category || work_style || salary || empType || prefecture) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", paddingTop: 2, paddingBottom: 2, alignItems: "center" }}>
               <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap", fontWeight: 500 }}>絞り込み中:</span>
               {companyFilter && (
@@ -1292,13 +1300,6 @@ export default function JobsClient({
                   地域: {prefecture} <span style={{ fontSize: 12, opacity: 0.8 }}>✕</span>
                 </button>
               )}
-              <button type="button" onClick={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); }} style={{
-                fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none",
-                border: "none", cursor: "pointer", padding: "3px 4px",
-                fontFamily: "inherit", textDecoration: "underline",
-              }}>
-                すべてリセット
-              </button>
             </div>
           )}
 

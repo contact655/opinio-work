@@ -644,15 +644,11 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   }, [filtered, sort]);
 
-  /* ⚠️ `foreign` を必ず含めること（2026-08-15 修正）。
-        以前は両方から漏れており、**外資系だけを選ぶと「✕ すべてクリア」が出ず、
-        他の条件と一緒にクリアしても外資系だけ残っていた。**
-        絞り込みを1つ足したら、この2つにも足す。 */
-  const hasFilter = !!(keyword || role || foreign);
-
-  function clearAll() {
-    setKeyword(""); setRole(""); setForeign("");
-  }
+  /* ⚠️ かつてここに `hasFilter` と `clearAll` があった（「✕ すべてクリア」用）。
+        2026-09-06 にボタンごと廃止したので消した。
+        ⚠️ 復活させるなら **`foreign` を必ず含めること**。2026-08-15 まで両方から
+           漏れており、**外資系だけを選ぶとボタンが出ず、他の条件と一緒にクリアしても
+           外資系だけ残っていた。** 絞り込みを1つ足したら忘れずに足す。 */
 
   if (ambassadors.length === 0) {
     return (
@@ -905,14 +901,11 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               >
                 外資系{foreign === "yes" && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
               </button>
-              {hasFilter && (
-                <button type="button" onClick={clearAll} style={{ fontSize: 12, fontWeight: 500.5, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "5px 4px", whiteSpace: "nowrap", fontFamily: "inherit" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--ink-mute)"; }}
-                >
-                  ✕ すべてクリア
-                </button>
-              )}
+              {/* ⚠️★**「すべてクリア」は廃止した**（2026-09-06 / 柴さんの判断・`/companies` と揃えた）。
+                     絞り込みが1つ付くたびに現れて並びが動くうえ、**すべて個別に外せる**:
+                       検索文字 → 入力欄の ✕ ／ 職種 → チップの ✕ ／ 外資系 → もう一度押す
+                  ⚠️ 戻すなら、入力欄の ✕ と役割が重ならないようにすること
+                     （あちらは検索文字だけを消す）。 */}
             </div>
           </div>
         </div>
