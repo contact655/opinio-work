@@ -10,7 +10,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
 import type { BusinessDomainFacet } from "@/lib/companies/businessDomainsCached";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
-import { availablePhaseOptions, phaseMatches } from "@/lib/constants/phase";
+import { PHASE_OPTIONS, phaseMatches } from "@/lib/constants/phase";
 /**
  * 勤務形態フィルタの語。**DB の値ではなく「表示ラベルへの部分一致で使う語」。**
  * 求人側のラベルは フルリモート可 / ハイブリッド / 原則出社 の3種で、
@@ -517,8 +517,10 @@ export default function JobsClient({
         公開求人が付いている企業は listed と unicorn だけで、
         「スタートアップ」は必ず0件だった。逆に non_listed は選択肢が無く絞れなかった。 */
   const phaseOptions = useMemo(
-    () => availablePhaseOptions(allJobs.map((j) => companyMap.get(j.company_id)?.phase ?? null)),
-    [allJobs, companyMap],
+    /* ⚠️ 実データから絞らない。該当0件の段も出す（phase.ts のコメント参照）。
+          歯抜けの梯子（シード・シリーズA・シリーズC が無い）に見えるのを避ける。 */
+    () => PHASE_OPTIONS,
+    [],
   );
   const phaseKeys = useMemo(() => phaseOptions.map((o) => o.value), [phaseOptions]);
   const phaseLabels = useMemo(

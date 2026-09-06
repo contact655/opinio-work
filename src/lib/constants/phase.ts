@@ -104,25 +104,18 @@ export function phaseMatches(dbPhase: string | null | undefined, optionValue: st
   return (PHASE_FILTER_MAP[optionValue] ?? [optionValue]).includes(dbPhase);
 }
 
-/**
- * 実データにある phase から、**出してよい選択肢だけ**を返す。
- * 並びは PHASE_OPTIONS の順（親→その子）を保つので、そのまま描けば階層になる。
- *
- * ⚠️ 親は「自分の値を持つ行がある」か「子を持つ行がある」なら出す。
- *    子が0件でも親は出る（`listed` 56社に市場の内訳がまだ無い、のような状態）。
- * ⚠️ **親が出ない限り子も出さない。** 親無しで子だけ並ぶと階層が壊れる。
- *
- * @param dbPhases そのページが対象にしている行の phase（NULL 込みで渡してよい）
- */
-export function availablePhaseOptions(dbPhases: (string | null | undefined)[]): PhaseOption[] {
-  const present = new Set(dbPhases.filter(Boolean) as string[]);
-  const visible = new Set(
-    PHASE_OPTIONS.filter((o) => expandPhase(o.value).some((v) => present.has(v))).map((o) => o.value),
-  );
-  return PHASE_OPTIONS.filter(
-    (o) => visible.has(o.value) && (o.parent === undefined || visible.has(o.parent)),
-  );
-}
+/* ⚠️★**`availablePhaseOptions()` は削除した**（2026-09-06 / 柴さんの判断）。
+      実データにある段だけを出していたため、選択肢が
+      「スタートアップ / シリーズB / シリーズD以降 / ユニコーン / 上場企業 / 東証グロース / 非上場」
+      となり、**シード・シリーズA・シリーズC が抜けて梯子が歯抜けに見えていた。**
+      → 絞り込みは `PHASE_OPTIONS` を**そのまま全件**出す。該当0社の段も出す。
+
+   ⚠️ リポジトリの「0件の選択肢を出さない」とは逆向きの**例外**。
+      いまこの例外は **都道府県（PREFECTURE_FILTER_GROUPS）とフェーズの2つだけ。**
+      どちらも「段階の梯子」「47都道府県」のように**全体が決まっていて、
+      歯抜けだと不自然に見える**もの。
+      ⚠️ 事業領域・職種には広げないこと（あちらは全体像を見せる意味が薄く、
+         `getBusinessDomainFacets()` が0社のものを外している）。 */
 
 /**
  * `/biz/company` の `<select>` 用。

@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
 import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
+/* ⚠️ フェーズは**マスタ全件**を出す（該当0社の段も出す）。実データから絞らないこと
+      —— 段階の梯子が歯抜けに見える。経緯は lib/constants/phase.ts のコメント。 */
+import { PHASE_OPTIONS } from "@/lib/constants/phase";
 
 /**
  * 勤務形態フィルターを出すか。
@@ -14,15 +17,11 @@ import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
  *    充填率が上がったら true に戻す。ロジック側（searchCompanies）は無変更。
  */
 const SHOW_WORK_STYLE_FILTER = false;
-import type { PhaseOption } from "@/lib/constants/phase";
 import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 
 
 
 type Props = {
-  /** ⚠️ 実データに1社でもあるフェーズだけ。サーバ側の fetchAvailablePhases() が絞って渡す。
-   *     ここで PHASE_OPTIONS を全部出さないこと（0件の選択肢を出さない） */
-  phaseOptions: PhaseOption[];
   /** 事業領域の選択肢。⚠️ **マスタが唯一の出どころ。** ここに値を書かない。
    *  ⚠️ 実データに1社でもあるものだけをサーバ側が渡す（0件の選択肢を出さない）。 */
   industryOptions: BusinessDomainOption[];
@@ -262,7 +261,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ phaseOptions, industryOptions, companySuggestions = [] }: Props) {
+export function CompanySearchBar({ industryOptions, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -444,7 +443,7 @@ export function CompanySearchBar({ phaseOptions, industryOptions, companySuggest
           <FilterChip
             label="フェーズ"
             value={currentPhase}
-            options={phaseOptions}
+            options={PHASE_OPTIONS}
             onSelect={(v) => { updateParam("phase", v); setOpenChip(null); }}
             isOpen={openChip === "phase"}
             onToggle={() => toggleChip("phase")}

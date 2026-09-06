@@ -20,7 +20,7 @@ import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel, CompanyBusinessDomain } from "@/types/genre";
-import { PHASE_FILTER_MAP, availablePhaseOptions, type PhaseOption } from "@/lib/constants/phase";
+import { PHASE_FILTER_MAP } from "@/lib/constants/phase";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
@@ -408,29 +408,14 @@ const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_P
   {} as Record<string, string[]>,
 );
 
-/**
- * 公開企業に**実在する** phase から、出してよいフェーズ選択肢を返す — 5分間キャッシュ。
- *
- * ⚠️ 0件の選択肢を出さないため（2026-08-08）。以前は11段を固定で出しており、
- *    実データに1社も無い「プレシード」「ブートストラップ」「IPO準備中」等も並んでいた。
- *    逆に non_listed（4社）は選択肢が無く絞れなかった。
- */
-export const fetchAvailablePhases = unstable_cache(
-  async (): Promise<PhaseOption[]> => {
-    const supabase = createPublicClient();
-    const { data, error } = await filterListedCompanies(
-      supabase.from("ow_companies").select("phase")
-    );
-    if (error) {
-      console.error("[fetchAvailablePhases]", error.message);
-      return [];
-    }
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return availablePhaseOptions((data ?? []).map((r: any) => r.phase as string | null));
-  },
-  ["available-phases"],
-  { revalidate: 300 }
-);
+/* ⚠️★**`fetchAvailablePhases` は削除した**（2026-09-06）。
+      フェーズの選択肢を「実データにある段だけ」から**マスタ全件**に変えたので、
+      DB を引く必要がなくなった。選択肢は lib/constants/phase.ts の `PHASE_OPTIONS`。
+      ⚠️ 経緯: 2026-08-08 に「0件の選択肢を出さない」ために作った関数だが、
+         フェーズは**段階の梯子**なので歯抜けだと不自然だった
+         （シリーズB と シリーズD以降 はあるのに シード・A・C が無い、という並び）。
+         都道府県と同じ扱いにした。詳しくは phase.ts のコメント。 */
+
 
 /* ⚠️★**`fetchDistinctLocations` は削除した**（2026-09-06）。
       都道府県の選択肢を「実データにあるものだけ」から**47件固定**に変えたので、
