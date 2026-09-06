@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
-import { groupPrefectures } from "@/lib/utils/location";
+import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
 
 /**
  * 勤務形態フィルターを出すか。
@@ -20,7 +20,6 @@ import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 
 
 type Props = {
-  locations: string[];
   /** ⚠️ 実データに1社でもあるフェーズだけ。サーバ側の fetchAvailablePhases() が絞って渡す。
    *     ここで PHASE_OPTIONS を全部出さないこと（0件の選択肢を出さない） */
   phaseOptions: PhaseOption[];
@@ -263,7 +262,7 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ locations, phaseOptions, industryOptions, companySuggestions = [] }: Props) {
+export function CompanySearchBar({ phaseOptions, industryOptions, companySuggestions = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -349,14 +348,14 @@ export function CompanySearchBar({ locations, phaseOptions, industryOptions, com
   );
 
   /*
-    都道府県は「よく選ばれる」を先頭に出す。
+    都道府県は **47件すべて**を「よく選ばれる」→「すべての都道府県」の順で出す。
     ⚠️★**分け方も語彙も [lib/utils/location.ts](../../lib/utils/location.ts) の
-       `groupPrefectures` が唯一の出どころ。** `/jobs` のピルとサイドバーも同じ関数を使う。
+       `PREFECTURE_FILTER_GROUPS` が唯一の出どころ。** `/jobs` の2箇所も同じものを使う。
        ここで COMMON_PREFECTURES を展開し直さないこと（3箇所で並びが割れる）。
-    ⚠️ `locations` は「掲載中の企業がある都道府県」だけ（0件の選択肢を出さない規則）。
+    ⚠️ 該当0件の県も出す（都道府県だけの例外。経緯は location.ts のコメント）。
   */
-  const locationOptions = groupPrefectures(locations).flatMap((g) =>
-    g.prefectures.map((l) => ({ value: l, label: l, group: g.group ?? undefined })),
+  const locationOptions = PREFECTURE_FILTER_GROUPS.flatMap((g) =>
+    g.prefectures.map((l) => ({ value: l, label: l, group: g.group })),
   );
 
   // アクティブフィルターのリスト（サマリー行用）
@@ -512,18 +511,17 @@ export function CompanySearchBar({ locations, phaseOptions, industryOptions, com
             listStyle
           />
 
-          {/* 都道府県 */}
-          {locations.length > 0 && (
-            <FilterChip
-              label="都道府県"
-              value={currentLocation}
-              options={locationOptions}
-              onSelect={(v) => { updateParam("location", v); setOpenChip(null); }}
-              isOpen={openChip === "location"}
-              onToggle={() => toggleChip("location")}
-              listStyle
-            />
-          )}
+          {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
+          <FilterChip
+            label="都道府県"
+            value={currentLocation}
+            options={locationOptions}
+            onSelect={(v) => { updateParam("location", v); setOpenChip(null); }}
+            isOpen={openChip === "location"}
+            onToggle={() => toggleChip("location")}
+            listStyle
+            searchable
+          />
 
           {/* ③ 勤務形態フィルター
                  ⚠️ **2026-08-11 に UI から外した（ロジックは残してある）。**

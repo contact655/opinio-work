@@ -52,7 +52,7 @@ const SALARY_PILL_TIERS = [
   { value: "1500", label: "1500万〜" },
 ] as const;
 import type { Company } from "@/app/companies/mockCompanies";
-import { extractPrefecture, groupPrefectures, PREFECTURES } from "@/lib/utils/location";
+import { extractPrefecture, PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
 import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { fmtMan } from "@/lib/utils/salary";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
@@ -150,13 +150,12 @@ function computeMatchReason(
 */
 function SidebarFilters({
   parentRoles, category, prefecture,
-  availablePrefectures, setParam, hasFilter, q, onReset,
+  setParam, hasFilter, q, onReset,
   roleCounts,
   toggleParam: toggleParamFn,
 }: {
   parentRoles: { id: string; name: string }[];
   category: string; prefecture: string;
-  availablePrefectures: string[];
   setParam: (key: string, value: string) => void;
   hasFilter: boolean; q: string; onReset: () => void;
   roleCounts?: Map<string, number>;
@@ -164,8 +163,7 @@ function SidebarFilters({
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
-  /* ⚠️ 上のピル行と**同じ関数**で分ける。ここで独自に並べ替えないこと。 */
-  const prefectureGroups = useMemo(() => groupPrefectures(availablePrefectures), [availablePrefectures]);
+
 
   function toggleSection(key: string) {
     setCollapsed(prev => {
@@ -256,21 +254,22 @@ function SidebarFilters({
         )}
       </div>
 
-      {/* ── 2. 勤務地（実データに2県以上あるときだけ出す） ── */}
-      {availablePrefectures.length > 1 && (
+      {/* ── 2. 勤務地 ──
+             ⚠️ 以前は「実データに2県以上あるときだけ出す」ゲートがあったが、
+                都道府県を47件固定にしたので外した（2026-09-06）。
+                ピル側には元からこのゲートが無く、**同じ画面で食い違っていた。** */}
+      {(
         <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
           <SectionHeader label="勤務地" sectionKey="prefecture" hasActive={!!prefecture} />
           {!collapsed.has("prefecture") && (
             <div style={{ paddingBottom: 8, maxHeight: 180, overflowY: "auto" }}>
               {/* ⚠️ ピルのドロップダウンと**同じ並び**にする。片方だけ直さないこと。 */}
-              {prefectureGroups.map((g) => (
-                <div key={g.group ?? "flat"}>
-                  {g.group && (
-                    <div style={{
-                      padding: "8px 16px 2px", fontSize: 11, fontWeight: 700,
-                      color: "var(--ink-mute)", letterSpacing: "0.06em",
-                    }}>{g.group}</div>
-                  )}
+              {PREFECTURE_FILTER_GROUPS.map((g) => (
+                <div key={g.group}>
+                  <div style={{
+                    padding: "8px 16px 2px", fontSize: 11, fontWeight: 700,
+                    color: "var(--ink-mute)", letterSpacing: "0.06em",
+                  }}>{g.group}</div>
                   {g.prefectures.map((p) => (
                     <CheckItem key={p} label={p} active={prefecture === p}
                       onClick={() => setParam("prefecture", prefecture === p ? "" : p)} />
@@ -565,25 +564,12 @@ export default function JobsClient({
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
   }
 
-  // 実データに含まれる都道府県のみ (北から南順)
-  const availablePrefectures = useMemo(() => {
-    const prefSet = new Set<string>();
-    allJobs.forEach((j) => {
-      const p = extractPrefecture(j.location);
-      if (p) prefSet.add(p);
-    });
-    return PREFECTURES.filter((p) => prefSet.has(p));
-  }, [allJobs]);
-
-  /* 「よく選ばれる」を先頭に出す（/companies の絞り込みと同じ形）。
-     ⚠️ 語彙も分け方も lib/utils/location.ts の `groupPrefectures` が唯一の出どころ。
-        ここで COMMON_PREFECTURES を展開し直さないこと。
-     ⚠️ 1グループにしかならないときは見出しが付かない（`group` が null）。
-        いま公開求人は東京都だけなので、実際そうなる。 */
-  const prefectureGroups = useMemo(
-    () => groupPrefectures(availablePrefectures),
-    [availablePrefectures],
-  );
+  /* 都道府県は **47件すべて**を出す（柴さんの判断・2026-09-06）。
+     ⚠️★**実データから作らないこと。** 以前は求人にある都道府県だけを出しており、
+        公開求人が東京都の2件しか無いため**選択肢が「東京都」1つ**になっていた。
+        入力欄（職歴・オンボーディング）と同じ見た目に揃えるほうを優先する。
+     ⚠️ 分け方も見出しも lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS` が唯一の出どころ。
+     ⚠️ この例外は**都道府県だけ**。フェーズ・事業領域には広げないこと。 */
 
   const searchResult = useMemo(() => {
     let list = [...allJobs];
@@ -1335,7 +1321,6 @@ export default function JobsClient({
                 parentRoles={parentRoles}
                 category={category}
                 prefecture={prefecture}
-                availablePrefectures={availablePrefectures}
                 setParam={setParam}
                 hasFilter={hasFilter}
                 q={q}
@@ -1824,9 +1809,9 @@ export default function JobsClient({
           {openFilter === "prefecture" && (
             <>
               <button className={`jobs-pill-item${!prefecture ? " selected" : ""}`} onClick={() => { setParam("prefecture", ""); setOpenFilter(null); }}>すべて</button>
-              {prefectureGroups.map((g) => (
-                <div key={g.group ?? "flat"}>
-                  {g.group && <div className="jobs-pill-group">{g.group}</div>}
+              {PREFECTURE_FILTER_GROUPS.map((g) => (
+                <div key={g.group}>
+                  <div className="jobs-pill-group">{g.group}</div>
                   {g.prefectures.map((p) => (
                     <button key={p} className={`jobs-pill-item${prefecture === p ? " selected" : ""}`}
                       onClick={() => { setParam("prefecture", p); setOpenFilter(null); }}

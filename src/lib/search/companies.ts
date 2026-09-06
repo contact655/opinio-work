@@ -408,23 +408,6 @@ const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_P
   {} as Record<string, string[]>,
 );
 
-// 北から南順の都道府県リスト（表示順制御用）
-const PREFECTURE_ORDER = [
-  "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
-  "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
-  "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
-  "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
-  "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
-  "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
-  "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
-];
-
-function normalizePrefecture(loc: string): string {
-  // 東京都品川区 → 東京都 / 大阪府港区 → 大阪府 / 北海道札幌市 → 北海道
-  const m = loc.match(/^(東京都|大阪府|京都府|北海道|.+?[都道府県])/);
-  return m ? m[1] : loc;
-}
-
 /**
  * 公開企業に**実在する** phase から、出してよいフェーズ選択肢を返す — 5分間キャッシュ。
  *
@@ -449,32 +432,11 @@ export const fetchAvailablePhases = unstable_cache(
   { revalidate: 300 }
 );
 
-/** 公開企業の distinct location リスト（北から南順、branch_locations も含む） — 5分間キャッシュ */
-export const fetchDistinctLocations = unstable_cache(
-  async (): Promise<string[]> => {
-    const supabase = createPublicClient();
-    const { data } = await filterListedCompanies(
-      supabase.from("ow_companies").select("location, branch_locations")
-    );
-
-    const seen = new Set<string>();
-    for (const row of data ?? []) {
-      // メイン所在地
-      if (row.location) seen.add(normalizePrefecture(row.location));
-      // 支社・拠点
-      for (const branch of (row.branch_locations as string[] | null) ?? []) {
-        const pref = BRANCH_TO_PREF[branch] ?? (branch.match(/[都道府県]$/) ? branch : null);
-        if (pref) seen.add(pref);
-      }
-    }
-
-    const ordered = PREFECTURE_ORDER.filter((p) => seen.has(p));
-    seen.forEach((p) => { if (!PREFECTURE_ORDER.includes(p)) ordered.push(p); });
-    return ordered;
-  },
-  ["distinct-locations"],
-  { revalidate: 300 }
-);
+/* ⚠️★**`fetchDistinctLocations` は削除した**（2026-09-06）。
+      都道府県の選択肢を「実データにあるものだけ」から**47件固定**に変えたので、
+      DB を引く必要がなくなった（選択肢は lib/utils/location.ts）。
+      ⚠️ `BRANCH_TO_PREF` は**残す。絞り込み側（PREF_TO_BRANCH_KEYS）が使う。**
+         支社しかない県（福岡・広島など）を選んだときに拾うのはこの表。 */
 
 /**
  * 検索サジェスト用の企業名リスト（id + name）— 5分間キャッシュ。

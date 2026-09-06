@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { fetchAvailablePhases, fetchDistinctLocations, searchCompanies } from "@/lib/search/companies";
+import { fetchAvailablePhases, searchCompanies } from "@/lib/search/companies";
 import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
@@ -128,9 +128,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ── 全クエリを並列実行 ──────────────────────────────────────────────────
      ★2026-08-23 に**直列の2段目を無くした**。それまでは「表示中の企業IDが
        確定してから在籍メンバーを引く」形で、1往復ぶん余計に待っていた。 */
-  const [locations, phaseOptions, industryFacets, companySuggestions, allCompaniesResult] = await Promise.all([
-    // フィルターバー用ロケーション（unstable_cache 300s）
-    fetchDistinctLocations(),
+  /* ⚠️ 都道府県は**47件の固定リスト**になったので DB から引かない（2026-09-06）。
+        該当0件の県も出す方針にしたため、実データを見る必要がなくなった。
+        選択肢は lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS`。 */
+  const [phaseOptions, industryFacets, companySuggestions, allCompaniesResult] = await Promise.all([
     fetchAvailablePhases(),
     /* 事業領域の選択肢（unstable_cache 300s）。⚠️ **掲載中が1社以上あるものだけ。**
           フェーズと同じ扱いで、0件の選択肢を出さない。 */
@@ -157,7 +158,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar locations={locations} phaseOptions={phaseOptions} industryOptions={industryFacets} companySuggestions={companySuggestions} />
+            <CompanySearchBar phaseOptions={phaseOptions} industryOptions={industryFacets} companySuggestions={companySuggestions} />
           </Suspense>
         </div>
       </div>

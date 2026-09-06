@@ -55,33 +55,22 @@ export const OTHER_PREFECTURES = PREFECTURES.filter(
 );
 
 /**
- * 絞り込みに出す都道府県を「よく選ばれる」と「その他」に分ける。
+ * 絞り込みに出す都道府県。**47件すべて**を2グループで返す。
  *
- * ⚠️ **`/companies` と `/jobs` の3箇所（企業の一覧・求人のピル・求人のサイドバー）が
- *    これを使う。** 呼び出し側で `COMMON_PREFECTURES` を展開し直さないこと。
+ * ⚠️★**該当が0件の都道府県も出す**（柴さんの判断・2026-09-06）。
+ *    それまでは「実データにある都道府県だけ」を出しており、公開求人が
+ *    東京都の2件しか無い `/jobs` は**選択肢が「東京都」1つ**になっていた。
+ *    リポジトリの「0件の選択肢を出さない」とは逆向きだが、都道府県だけは
+ *    **入力欄（職歴・オンボーディング）と同じ見た目に揃える**ことを優先する。
+ *    ⚠️ この例外は**都道府県だけ**。フェーズ・事業領域・職種には広げないこと。
  *
- * ⚠️ **見出しは「その他」。「すべての都道府県」にしない。**
- *    絞り込みに出るのは**実データがある都道府県だけ**なので、47件から選ぶ入力欄
- *    （職歴エディタ・オンボーディングの `<optgroup>`）とは意味が違う。
+ * ⚠️ 見出しは入力欄の `<optgroup>` と**同じ文言**にする
+ *    （「よく選ばれる」「すべての都道府県」）。画面ごとに呼び方を変えない。
  *
- * ⚠️★**1グループにしかならないときは見出しを付けない。**
- *    見出しは2つを**見分けるため**にあるので、1つしかないなら邪魔なだけ。
- *    実際 `/jobs` は公開求人2件がどちらも東京都で、いま該当が1県しか無い ——
- *    そこに「よく選ばれる」とだけ書いても意味がない。
- *
- * @param available 実データに1件でもある都道府県（北から南の順で渡す）
+ * ⚠️ `/companies` と `/jobs`（ピル・サイドバーの2箇所）が同じこれを使う。
+ *    呼び出し側で `COMMON_PREFECTURES` を展開し直さないこと。
  */
-export function groupPrefectures(
-  available: readonly string[],
-): { group: string | null; prefectures: string[] }[] {
-  const common = (COMMON_PREFECTURES as readonly string[]).filter((p) => available.includes(p));
-  const others = available.filter((p) => !common.includes(p));
-
-  if (common.length === 0 || others.length === 0) {
-    return [{ group: null, prefectures: [...available] }];
-  }
-  return [
-    { group: "よく選ばれる", prefectures: common },
-    { group: "その他", prefectures: others },
-  ];
-}
+export const PREFECTURE_FILTER_GROUPS: { group: string; prefectures: readonly string[] }[] = [
+  { group: "よく選ばれる", prefectures: COMMON_PREFECTURES },
+  { group: "すべての都道府県", prefectures: OTHER_PREFECTURES },
+];
