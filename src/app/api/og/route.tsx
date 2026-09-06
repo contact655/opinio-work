@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { OPINIO_LOGO_DARK, OPINIO_LOGO_RATIO } from "@/lib/brand/ogLogo";
 
 export const runtime = "edge";
 
@@ -91,16 +92,13 @@ function OgCard({ name, sub, badge, type }: CardProps) {
           marginBottom: 40,
         }}
       >
-        <span
-          style={{
-            fontWeight: 800,
-            fontSize: 28,
-            color: "#002366",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          OPINIO
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={OPINIO_LOGO_DARK}
+          alt="OPINIO"
+          width={Math.round(32 * OPINIO_LOGO_RATIO)}
+          height={32}
+        />
         {type === "company" && (
           <span
             style={{
