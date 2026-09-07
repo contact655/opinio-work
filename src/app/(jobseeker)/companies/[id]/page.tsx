@@ -7,7 +7,7 @@ import type React from "react";
 import { permanentRedirect } from "next/navigation";
 import {
   getCompanyBySlugOrId,
-  getCompaniesForList,
+  getListedCompanyParams,
   getCompanyPhotosCached,
   getCompanyRecruitersCached,
   getArticlesByCompanyCached,
@@ -92,7 +92,7 @@ export const revalidate = 60;
 /**
  * ビルド時に事前生成する企業ページ ——**掲載中の全社**（2026-09-07 に 12社 → 全件へ）。
  *
- * ⚠️★**件数をハードコードしないこと。** 返すのは `getCompaniesForList()`（＝
+ * ⚠️★**件数をハードコードしないこと。** 返すのは `getListedCompanyParams()`（＝
  *    `filterListedCompanies`: `is_published` かつ `listing_status='listed'` かつ
  *    `is_test=false`）が引いた**そのままの件数**。企業は増減するので `.slice(0, N)` に戻さない。
  *
@@ -131,25 +131,20 @@ export const revalidate = 60;
  * ⚠️ **`generateStaticParams` 自体は消さないこと。** 2026-08-09 の実測で、
  *    この関数を持たない動的セグメントは **ISR が効かず毎回 MISS** だった。
  *
- * ⚠️★★**ここが返す一覧は「古い」ことがある（2026-09-07 に実際に踏んだ）。未解決。**
- *    `createAdminClient()` は `cache: "no-store"` を付けていないので、`getCompaniesForList()`
- *    の PostgREST GET は **Next の Data Cache（`.next/cache/fetch-cache`（ローカルの本番ビルドは `.next-prod` 側））に載る。**
- *    ビルドキャッシュが残っていると、**その古い応答がそのまま返る。**
- *    実測: ローカルで **83社のはずが 79社**しか返らず（欠けたのは 2026-09-04 に追加した
- *    建設テック4社）、並び順もその時点のものだった。`fetch-cache` を消したら 83社になった。
- *    ⚠️ **`tsc` も lint もビルドも通る。件数を数えるまで気づけない。**
- *    ⚠️ **Vercel もビルドキャッシュを復元する**ので、本番でも起こりうる
- *       （2026-09-07 のデプロイでは正しい先頭4社が事前生成されていたので、当たっていない）。
- *    ⚠️ 直すなら `createAdminClient` 側の話になり影響範囲が広いので、ここでは触っていない。
- *       **事前生成が想定より少ないときは、まずこれを疑うこと。**
+ * ⚠️★**「一覧が古くて事前生成が減る」問題は 2026-09-07 に解消した。**
+ *    `generateStaticParams` の fetch は Data Cache に**1年**載るため、以前は
+ *    **83社のはずが79社**（古いスナップショット）だった。専用の
+ *    `getListedCompanyParams()`（no-store・id と slug だけ）に切り替えて直してある。
+ *    ⚠️ **`getCompaniesForList()` に戻さないこと。** 戻すと同じ形で静かに減る。
+ *    ⚠️ 事前生成が想定より少ないときは、まずここを疑う（ビルドログの生成ページ数を見る）。
  */
 export async function generateStaticParams() {
   /* ⚠️ `getCompanies()` は使えない。内部で Cookie を読む `createClient()` を使っており、
         ビルド時（リクエスト外）に `cookies was called outside a request scope` で落ちる。
-        admin クライアントを使う `getCompaniesForList()` を通すこと。 */
-  const companies = await getCompaniesForList();
-  /* 並びは一覧と同じ（sort_order 昇順 → updated_at 降順）。全件返すので順序は
-     ビルドの生成順にしか影響しないが、踏まれやすいページから先に作られる形は残す。 */
+     ⚠️★**`getCompaniesForList()` も使わない**（2026-09-07）。あちらは `createAdminClient()`
+        なので、ここで呼ぶと応答が **Data Cache に1年載り、次のビルドが古い一覧を使う。**
+        理由と実測は `getListedCompanyParams` の注記に書いてある。 */
+  const companies = await getListedCompanyParams();
   return companies.map((c) => ({ id: c.slug ?? c.id }));
 }
 

@@ -566,6 +566,63 @@ export async function fetchTargetIndustriesByCompany(
   return out;
 }
 
+/**
+ * 事前生成（`companies/[id]` の `generateStaticParams`）専用。掲載中企業の **id と slug だけ**。
+ *
+ * ── なぜ `getCompaniesForList()` を使わないか（2026-09-07 に実際に踏んだ）────────
+ * ⚠️★**`generateStaticParams` の中の fetch は Next の Data Cache に `revalidate: 31536000`
+ *    （＝1年）で載る。** ページの描画中に出る fetch は、そのセグメントの `revalidate`
+ *    （60 / 120 / 300 / 3600）を引き継いで普通に期限切れになるが、**描画の外で走る
+ *    `generateStaticParams` の fetch にはセグメントが無いので、既定の1年が当たる。**
+ *
+ *    実測（`.next-prod/cache/fetch-cache` の全エントリを `revalidate` で数えた）:
+ *      60 … 159件 ／ 120 … 13件 ／ 300 … 95件 ／ 3600 … 8件 ／ **31536000 … 6件**
+ *    1年の6件は**ちょうど `getCompaniesForList()` が出す5本 ＋ `ow_industries`**。
+ *
+ *    結果、ビルドが**前のビルドの企業一覧を使い回した**。
+ *    実測: **83社のはずが79社**（欠けたのは 2026-09-04 に追加した建設テック4社）で、
+ *    並び順もその時点のもの。`fetch-cache` を消すと 83社になった。
+ *    ⚠️ **`tsc` も lint もビルドも通る。生成された企業ページを数えるまで気づけない。**
+ *
+ * ── なぜ `createAdminClient()` 全体に no-store を付けないか ────────────────────
+ * ⚠️★**`unstable_cache` の中で no-store を使うと、静的プリレンダリング時に
+ *    `DynamicServerError` になり、supabase-js は例外を投げないので
+ *    「その項目だけ黙って消えたページ」が生成される**（.claude/skills/nextjs-caching）。
+ *    実測（2026-09-07）: `createAdminClient()` は **146ファイル・240箇所**から呼ばれ、
+ *    **`unstable_cache` 21本のうち13本**がこれに到達する。局所的な問題に対して広すぎる。
+ *    ⚠️ `createNoStoreAdminClient()` は**`unstable_cache` の外でだけ**使う。ここは外側。
+ *
+ * ⚠️ 一覧に要るクエリは **5本 → 1本**になる（`getCompaniesForList()` は求人数・写真・
+ *    在籍者・事業領域も引くが、事前生成に要るのは slug だけ）。
+ *    ⚠️ **ただしビルド全体はほぼ変わらない。** 差は4本で、1ビルド約2,500本の中では誤差。
+ *       実測（2026-09-07・同条件）: **2,555件 → 2,546件**。速さのための変更ではない。
+ *
+ * ⚠️ 取得に失敗したら空を返す（＝何も事前生成しない）。ページは `dynamicParams` の既定で
+ *    都度生成されるので**壊れはしない**が、**静かに MISS だらけに戻る。**
+ *    気づく手段はビルドログの生成ページ数と、本番の `x-vercel-cache` の分布だけ。
+ */
+export async function getListedCompanyParams(): Promise<{ id: string; slug: string | null }[]> {
+  const supabase = createNoStoreAdminClient();
+
+  let query = supabase
+    .from("ow_companies")
+    .select("id, slug")
+    /* 並びは一覧と同じ（sort_order 昇順 → updated_at 降順）。生成順にしか影響しない */
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("updated_at", { ascending: false });
+  query = filterListedCompanies(query);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[getListedCompanyParams]", error.message);
+    return [];
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    slug: (r.slug as string | null) ?? null,
+  }));
+}
+
 export async function getCompaniesForList(): Promise<CompanyListRow[]> {
   const supabase = createAdminClient();
 
