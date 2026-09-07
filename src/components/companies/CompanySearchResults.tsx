@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { searchCompanies } from "@/lib/search/companies";
+import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import type { WorkStyleValue } from "@/lib/search/companies";
 import { CompanyCardList } from "./CompanyCardList";
 
@@ -33,6 +34,11 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
   };
 
   const { companies, totalCount } = await searchCompanies(params);
+
+  /* カードのタグに出す事業領域の slug。⚠️ 絞り込んでいなければ null（＝主のタグのまま）。
+     ⚠️ `searchCompanies` が絞り込みに使うのと**同じ変換**を通すこと。ここがズレると
+        「絞り込みには効いているのにタグは主のまま」という、直そうとした症状に逆戻りする。 */
+  const activeDomainSlug = industry ? resolveIndustryKey(industry) : null;
 
   return (
     <>
@@ -168,7 +174,12 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
       ) : (
         <div className="search-results-grid">
           {companies.map((company) => (
-            <CompanyCardList key={company.id} company={company} compact />
+            /* ⚠️★`activeDomainSlug` を渡す（2026-09-07）。渡さないとカードのタグは主のままで、
+                  従の事業領域でヒットした企業は「なぜ出たのか」が画面から分からない
+                  （絞り込みもファセットも全紐づけを見るため、主でない値でもヒットする）。
+               ⚠️ **`resolveIndustryKey` を通した値**を渡すこと。`?industry=fintech` は
+                  `finance` に読み替わってから絞り込まれるので、生の値だとタグが一致しない。 */
+            <CompanyCardList key={company.id} company={company} compact activeDomainSlug={activeDomainSlug} />
           ))}
         </div>
       )}

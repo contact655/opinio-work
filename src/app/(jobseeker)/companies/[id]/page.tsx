@@ -65,7 +65,9 @@ import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeCount, parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
-import { primaryBusinessDomain } from "@/types/genre";
+/* ⚠️ `primaryBusinessDomain` は meta・OGPバッジ・Hero が使う（1つに絞る場所）。
+      サイドバーだけ `orderedBusinessDomains` で**全部**出す。混同しないこと。 */
+import { primaryBusinessDomain, orderedBusinessDomains } from "@/types/genre";
 import type { CompanyTargetIndustry } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
@@ -1686,7 +1688,14 @@ function Sidebar({
             [
               /* ⚠️ 下の `.filter((item) => item.value)` が値の無い行を落とす。
                     ラベルは「業界」ではなく**事業領域**（何をやっている会社か）。 */
-              { key: "事業領域", value: primaryBusinessDomain(company.business_domains)?.name ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+              /* ⚠️★**紐づいている事業領域を全部出す**（2026-09-07）。主だけを出していたので、
+                    従でヒットした企業は「なぜ絞り込みに出たのか」が結果側で説明されていなかった
+                    （絞り込みもファセットも全紐づけを見る）。`orderedBusinessDomains` が主を先頭にする。
+                 ⚠️★**区切りは `／`。下の「顧客の業界」の `・` に揃えないこと。**
+                    事業領域の名前は「HR・人材」「AI・データ」のように**それ自体が `・` を含む**ので、
+                    `・` で繋ぐと「HR・人材・基幹業務システム」となり3件に読める。
+                    顧客の業界（「建設」「金融・保険」）とは事情が違う。 */
+              { key: "事業領域", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
               /* 顧客の業界（＝軸2「誰に売っているか」。内部の呼び名は「対象業界」）。
                  ⚠️★**事業領域のすぐ下に置く。** 2つ並んで初めて軸の違いが伝わる
                     （「プロジェクト管理 を 建設 に売っている会社」と1組で読める）。

@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { primaryBusinessDomain } from "@/types/genre";
+/* ⚠️ `primaryBusinessDomain` はもう直接呼ばない（`displayBusinessDomain` が内部で使う）。
+      戻すと「判定は絞り込み値・描画は主」の食い違いが再発する（下の cardDomain のコメント）。 */
+import { displayBusinessDomain } from "@/types/genre";
 import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { showToast } from "@/lib/toast";
@@ -23,9 +25,21 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 type Props = {
   company: CompanyForCarousel;
   compact?: boolean;  // compact=true: 縦カード（2列グリッド）/ false: 横カード（リスト）
+  /**
+   * ★いま `?industry=` で絞り込んでいる事業領域の slug（2026-09-07）。
+   * 渡すと、その企業が**その事業領域で紐づいていれば**タグをそれに差し替える。
+   * ＝「なぜこの会社が出たのか」がカード上で分かる。
+   *
+   * ⚠️ **`resolveIndustryKey()` を通した後の値**を渡すこと（`?industry=fintech` は
+   *    `finance` に読み替えてから渡す）。生の値だと一致せず主にフォールバックする。
+   * ⚠️ 絞り込み無しの一覧では渡さない（＝主のタグのまま）。
+   *    実際 `/companies` のグリッドは `hasFilter` が false のときしか描かれないので、
+   *    `?industry=` が効いているのは常に `CompanySearchResults` 側。
+   */
+  activeDomainSlug?: string | null;
 };
 
-export function CompanyCardList({ company, compact }: Props) {
+export function CompanyCardList({ company, compact, activeDomainSlug }: Props) {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
@@ -80,6 +94,12 @@ export function CompanyCardList({ company, compact }: Props) {
      ⚠️ compact=true のカードでは使っていない。使うのは compact=false の StatCol だけ。 */
   const memberCount = company.live_current_count ?? 0;
   const obogCount   = company.live_obog_count   ?? 0;
+  /* ★カードのタグに出す事業領域（compact のみ）。絞り込み中はその値、無ければ主。
+     ⚠️ **1箇所で計算して使い回す。** 表示の有無を判定する式と実際に描く式が別々に
+        `primaryBusinessDomain()` / `displayBusinessDomain()` を呼んでいると、
+        **片方だけ直したときに「絞り込んだ値で出す/出さないを決めて、主を描く」**という
+        食い違いが生まれる（実際にこの改修の途中で一度そうなった）。 */
+  const cardDomain = displayBusinessDomain(company.business_domains, activeDomainSlug);
   // company_features は現在非表示（culture tags 削除済み）
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
   const meetingBorder = "1px solid var(--line)";
@@ -227,7 +247,13 @@ export function CompanyCardList({ company, compact }: Props) {
                    `whiteSpace: nowrap` の1行なので複数出すと横幅が破綻する。
                 ⚠️ `company.industry`(text) は見ない（2026-08-26 に移行）。あれは
                    廃止予定で、新規企業には書かれないためタグが黙って消える。 */}
-            {primaryBusinessDomain(company.business_domains)?.name && (
+            {/* ⚠️★**絞り込み中はその事業領域を出す**（2026-09-07）。主だけを出していたので、
+                   従でヒットした企業はタグと絞り込み条件が食い違って見えていた
+                   （ワークデイが `?industry=erp` で出るのにタグは「HR・人材」）。
+                   絞り込んでいなければ従来どおり主。判定は `displayBusinessDomain`。
+                ⚠️ **1つのまま。2つ並べない** —— この行は `whiteSpace: nowrap` の1行なので、
+                   複数出すと横幅が破綻する（下の「主の事業領域を1件だけ出す」の理由と同じ）。 */}
+            {cardDomain?.name && (
               <span style={{
                 /* ⚠️ 12px 未満にしない（2026-08-30）。375px の実機で 12px でも切れ・はみ出し・横スクロールとも0件だった。 */
                 fontSize: 12, color: "var(--ink-soft)",
@@ -236,7 +262,7 @@ export function CompanyCardList({ company, compact }: Props) {
                       角丸が 0 になる。タグ用は `--radius-sm`（6px、globals.css:100）。 */
                 padding: "2px 8px", borderRadius: "var(--radius-sm)",
                 whiteSpace: "nowrap", flexShrink: 0,
-              }}>{primaryBusinessDomain(company.business_domains)!.name}</span>
+              }}>{cardDomain!.name}</span>
             )}
 
             {company.employee_count && (

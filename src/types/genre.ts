@@ -54,6 +54,44 @@ export function primaryBusinessDomain(
   return domains?.find((d) => d.is_primary) ?? null;
 }
 
+/**
+ * 表示順に並べた事業領域。**主を先頭**にし、残りは受け取った順（＝`display_order`）のまま。
+ *
+ * ⚠️ 呼び出し元（`fetchBusinessDomainsByCompany` / `searchCompanies`）は
+ *    **中間テーブルの `display_order`** で並べて渡してくる。多くの企業は主が 0 番なので
+ *    それだけで主が先頭に来るが、**保証はされていない**（従に 0 が付いている行が過去にあった）。
+ *    並びを主基準にしたいのは表示側の都合なので、DB の order には足さずここで担保する。
+ * ⚠️ `Array.prototype.sort` は安定なので、主以外の相対順は崩れない。
+ */
+export function orderedBusinessDomains(
+  domains: CompanyBusinessDomain[] | null | undefined,
+): CompanyBusinessDomain[] {
+  return [...(domains ?? [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+}
+
+/**
+ * カードに出す事業領域を1つ選ぶ。**絞り込み中の値があればそれを、無ければ主。**
+ *
+ * ⚠️★**「なぜこの会社が出たのか」を出すための関数。** 絞り込み（`searchCompanies`）と
+ *    ファセット（`getBusinessDomainFacets`）は**全紐づけ**を見るのに、カードは主だけを
+ *    出していたので、従でヒットした企業は理由が画面に出ていなかった
+ *    （2026-09-07 にワークデイが `?industry=erp` で出るのにタグは「HR・人材」だった）。
+ * ⚠️ **戻すのは1件。2つ並べない**（カードのタグ行は `nowrap` の1行で、
+ *    幅と下端の揃いに効く）。
+ * ⚠️ `activeSlug` は **`resolveIndustryKey()` を通した後の値**を渡すこと。
+ *    生の `?industry=fintech` を渡すと一致せず、主にフォールバックしてしまう。
+ */
+export function displayBusinessDomain(
+  domains: CompanyBusinessDomain[] | null | undefined,
+  activeSlug?: string | null,
+): CompanyBusinessDomain | null {
+  if (activeSlug) {
+    const hit = domains?.find((d) => d.slug === activeSlug);
+    if (hit) return hit;
+  }
+  return primaryBusinessDomain(domains);
+}
+
 export type CompanyForCarousel = {
   id: string;
   slug?: string | null;             // URL-safe slug（例: "salesforce"）。null の場合は id で代替
