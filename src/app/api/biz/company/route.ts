@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne, mutateAllowNone } from "@/lib/supabase/mutate";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
@@ -65,6 +66,8 @@ export async function PUT(req: Request) {
     target_id: companyId,
   });
 
+  /* ⚠️ ここは `draft_data` への下書き保存で、**公開ページの内容は変わらない**ので
+        revalidate しない。公開列に展開するのは下の PATCH（変更を公開する）。 */
   return NextResponse.json({ ok: true });
 }
 
@@ -346,6 +349,11 @@ export async function PATCH(req: Request) {
       console.error("[feed company_joined]", feedErr);
     }
   }
+
+  /* ⚠️★**2026-09-07 に追加。それまでこのファイルには revalidate が1つも無く、
+        企業が「変更を公開する」を押しても反映は `revalidate` の秒数任せだった。**
+     ⚠️ `unstable_cache` 側（写真300秒・ツール300秒など）はこれでは落ちない。 */
+  await revalidateCompanyPages(companyId);
 
   return NextResponse.json({ ok: true, publishedAt: body.isPublished ? now : null });
 }

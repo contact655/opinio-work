@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { revalidatePath } from "next/cache";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 
 export type ActionResult<T = null> =
   | { success: true; data: T }
@@ -51,6 +52,11 @@ export async function deleteStory(
     return { success: false, error: "削除に失敗しました" };
   }
 
+  /* ⚠️★2026-09-07 追加。それまで `/biz/posts` しか revalidate しておらず、
+        企業ストーリーを公開しても求職者側の企業ページは `revalidate` 待ちだった。
+     ⚠️ ストーリーは `getCompanyStoriesCached`（unstable_cache 60秒・タグなし）越しなので、
+        **これでも即時にはならない**（最大60秒古い）。 */
+  await revalidateCompanyPages(story.company_id as string);
   revalidatePath("/biz/posts");
   return { success: true, data: null };
 }

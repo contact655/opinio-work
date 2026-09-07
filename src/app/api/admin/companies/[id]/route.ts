@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
@@ -215,7 +216,7 @@ export async function PUT(
         `?industry=` の結果は `createPublicClient` の fetch キャッシュに載っており、
         あのクライアントは**意図して `no-store` にしていない**。
      ⚠️ **migration でデータを変えた場合はここを通らない**（sitemap と同じ穴）。 */
-  revalidatePath("/companies");
+  await revalidateCompanyPages(params.id);
   revalidateTag("business-domains");
 
   return NextResponse.json({ company: data });

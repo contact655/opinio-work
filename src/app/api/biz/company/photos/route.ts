@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -74,6 +75,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
+    /* ⚠️★2026-09-07 追加。それまで写真を足しても消しても revalidate は0件だった。
+          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒・タグなし）越しなので、
+             **これでも即時にはならない**（最大300秒古い）。 */
+    await revalidateCompanyPages(companyId);
     return Response.json({ data }, { status: 201 });
   } catch {
     return Response.json({ error: "Internal server error" }, { status: 500 });
@@ -120,6 +125,10 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
+    /* ⚠️★2026-09-07 追加。それまで写真を足しても消しても revalidate は0件だった。
+          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒・タグなし）越しなので、
+             **これでも即時にはならない**（最大300秒古い）。 */
+    await revalidateCompanyPages(companyId);
     return Response.json({ ok: true });
   } catch {
     return Response.json({ error: "Internal server error" }, { status: 500 });

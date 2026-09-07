@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdmin } from '@/lib/auth/isAdmin';
 import { createClient } from '@/lib/supabase/server';
@@ -63,6 +64,8 @@ export async function POST(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  /* ⚠️★2026-09-07 追加。それまで revalidate は0件だった。 */
+  await revalidateCompanyPages(params.id);
   return NextResponse.json({ success: true, added: genre_ids.length });
 }
 
@@ -108,5 +111,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  /* ⚠️★2026-09-07 追加。それまで revalidate は0件だった。 */
+  await revalidateCompanyPages(params.id);
   return NextResponse.json({ success: true, removed: genre_ids.length });
 }

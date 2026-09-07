@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildArticlePublishedRow } from "@/lib/feed/systemPosts";
 import { revalidatePath } from "next/cache";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 
 
 async function assertAdmin(): Promise<void> {
@@ -30,6 +31,14 @@ export async function toggleArticlePublished(
     updated_at: nowIso,
   }).eq("id", articleId);
   if (error) return { ok: false, error: "更新に失敗しました" };
+
+  /* ⚠️★2026-09-07 追加。記事は企業ページの「取材記事」に出るので、公開状態を変えたら
+        その企業のページも作り直す。⚠️ `getArticlesByCompanyCached`
+        （unstable_cache 60秒・タグなし）越しなので**即時にはならない**（最大60秒）。 */
+  {
+    const { data: a } = await admin.from("ow_articles").select("company_id").eq("id", articleId).maybeSingle();
+    if (a?.company_id) await revalidateCompanyPages(a.company_id as string);
+  }
 
   // Feed: article_published (公開時のみ、best-effort, 重複は 23505 で無視)
   if (!current) {
@@ -75,8 +84,14 @@ export async function linkArticleCompany(
   if (companyId !== null && !UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
   await assertAdmin();
   const admin = createAdminClient();
+  /* ⚠️ 付け替え前の企業も作り直す必要があるので、更新前に控える */
+  const { data: before } = await admin.from("ow_articles").select("company_id").eq("id", articleId).maybeSingle();
   const { error } = await admin.from("ow_articles").update({ company_id: companyId || null }).eq("id", articleId);
   if (error) return { ok: false, error: "更新に失敗しました" };
+  /* ⚠️★2026-09-07 追加。**外した側と付けた側の両方**を作り直す。片方だけだと
+        外したはずの企業ページに記事が残る（最大60秒だが、C で 3600 にすると1時間残る）。 */
+  if (before?.company_id) await revalidateCompanyPages(before.company_id as string);
+  if (companyId && companyId !== before?.company_id) await revalidateCompanyPages(companyId);
   revalidatePath("/admin/articles");
   return { ok: true };
 }

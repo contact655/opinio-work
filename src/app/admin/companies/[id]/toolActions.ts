@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -105,7 +106,11 @@ export async function addCompanyTool(
     return { error: error.message };
   }
   revalidatePath(`/admin/companies/${companyId}`);
-  revalidatePath(`/companies/${companyId}`);
+  /* ⚠️★ここは 2026-09-07 まで `revalidatePath(\`/companies/${companyId}\`)` だった。
+        **UUID なので当たっていなかった**（配信は slug パス）。slug 解決はヘルパーに集約。
+     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒・タグなし）越しなので、
+        **これでも即時にはならない**。タグを付けるかは別途判断（B-2 の報告参照）。 */
+  await revalidateCompanyPages(companyId);
   return {};
 }
 
@@ -123,7 +128,11 @@ export async function removeCompanyTool(
     .eq("company_id", companyId);
   if (error) return { error: error.message };
   revalidatePath(`/admin/companies/${companyId}`);
-  revalidatePath(`/companies/${companyId}`);
+  /* ⚠️★ここは 2026-09-07 まで `revalidatePath(\`/companies/${companyId}\`)` だった。
+        **UUID なので当たっていなかった**（配信は slug パス）。slug 解決はヘルパーに集約。
+     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒・タグなし）越しなので、
+        **これでも即時にはならない**。タグを付けるかは別途判断（B-2 の報告参照）。 */
+  await revalidateCompanyPages(companyId);
   return {};
 }
 
@@ -142,7 +151,11 @@ export async function updateCompanyToolNote(
     .eq("company_id", companyId);
   if (error) return { error: error.message };
   revalidatePath(`/admin/companies/${companyId}`);
-  revalidatePath(`/companies/${companyId}`);
+  /* ⚠️★ここは 2026-09-07 まで `revalidatePath(\`/companies/${companyId}\`)` だった。
+        **UUID なので当たっていなかった**（配信は slug パス）。slug 解決はヘルパーに集約。
+     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒・タグなし）越しなので、
+        **これでも即時にはならない**。タグを付けるかは別途判断（B-2 の報告参照）。 */
+  await revalidateCompanyPages(companyId);
   return {};
 }
 

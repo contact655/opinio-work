@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -199,6 +200,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
 
+  /* ⚠️★2026-09-07 追加。採用担当者は企業ページの「採用担当者」に出るので作り直す。
+        ⚠️ `getCompanyRecruitersCached`（unstable_cache 300秒・**タグなし**）越しなので
+           **これでも即時にはならない**（最大300秒）。タグを付けるかは判断待ち。 */
+  await revalidateCompanyPages(companyId);
   return NextResponse.json({ success: true });
 }
 
@@ -251,5 +256,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  /* ⚠️★2026-09-07 追加。採用担当者は企業ページの「採用担当者」に出るので作り直す。
+        ⚠️ `getCompanyRecruitersCached`（unstable_cache 300秒・**タグなし**）越しなので
+           **これでも即時にはならない**（最大300秒）。タグを付けるかは判断待ち。 */
+  await revalidateCompanyPages(companyId);
   return NextResponse.json({ success: true });
 }

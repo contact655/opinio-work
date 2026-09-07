@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { revalidatePath } from "next/cache";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 
@@ -69,6 +70,7 @@ export async function updateEngagementStatus(
     return { ok: false, error: toMessage(error) };
   }
   revalidatePath("/admin/companies");
+  await revalidateCompanyPages(companyId);
   return { ok: true };
 }
 
@@ -97,6 +99,7 @@ export async function updateAcceptingMeetings(companyId: string, newValue: boole
     return { ok: false, error: toMessage(error) };
   }
   revalidatePath("/admin/companies");
+  await revalidateCompanyPages(companyId);
   return { ok: true };
 }
 
@@ -149,6 +152,7 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
   }
 
   revalidatePath("/admin/companies");
+  await revalidateCompanyPages(companyId);
   return { ok: true };
 }
 
@@ -207,6 +211,7 @@ export async function updateListingStatus(
   if (newValue === "listed") await insertCompanyJoined(companyId);
 
   revalidatePath("/admin/companies");
+  await revalidateCompanyPages(companyId);
   return { ok: true };
 }
 
@@ -257,6 +262,7 @@ export async function updateApproval(companyId: string): Promise<ActionResult> {
     return { ok: false, error: toMessage(error) };
   }
   revalidatePath("/admin/companies");
+  await revalidateCompanyPages(companyId);
   return { ok: true };
 }
 
@@ -287,6 +293,8 @@ export async function updateSortOrder(items: { id: string; sort_order: number }[
   /* ⚠️ **`/companies` も再検証する。** 並び順を使っているのは公開の企業一覧で、
         `/admin/companies` だけ revalidate しても利用者の画面は変わらない。 */
   revalidatePath("/admin/companies");
+  /* ⚠️ 並び替えは**一覧の順序**だけを変える。詳細ページの中身は変わらないので
+        個社の revalidate は要らない（事前生成の順序には効くが、次のビルドの話）。 */
   revalidatePath("/companies");
   return { ok: true };
 }
@@ -326,5 +334,6 @@ export async function updateCompanyLogoUrl(
   }
 
   revalidatePath("/admin/companies");
+  await revalidateCompanyPages(companyId);
   return { ok: true };
 }

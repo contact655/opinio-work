@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/auth/isAdmin";
 import {
@@ -145,7 +146,7 @@ export async function PUT(
       **`searchCompanies` の絞り込みクエリには付いていない。** 両方呼ぶ。
      ⚠️ **migration でデータを変えた場合はここを通らない**（sitemap と同じ穴）。
       そのときはデプロイで直る、と割り切っている。 */
-  revalidatePath("/companies");
+  await revalidateCompanyPages(params.id);
   revalidateTag("business-domains");
 
   return NextResponse.json({ success: true, count: data ?? 0 });
