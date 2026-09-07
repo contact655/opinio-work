@@ -1137,10 +1137,26 @@ export const getJobs = unstable_cache(
     const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /* ★**第2キー（`id`）を必ず付ける**（2026-09-07。`/companies` の 4c4064ce と同じ理由）。
+          `updated_at` だけでは同値の順序が確定しない。
+       ⚠️ **`/jobs` は `.range()` を使っていないので、いまは重複も欠落も起きない。**
+          効くのは「表示順が毎回変わりうる」ことのほうと、**将来 `.range()` を入れた日**。
+          `/companies` は同じ形で **4社が一覧に一度も出てこない**状態になっていた
+          （掲載83社中79社が同一 `updated_at` に集まっており、ページ境界がその内側にあった）。
+       ⚠️ **下流の4つの並び替えすべてに効く。** `JobsClient` の
+          新着順 / 年収順 / 社員数順 / 開示充実順 はどれも `Array.prototype.sort`（安定）で、
+          **同値のときはこのDB順がそのまま残る。** ここが不定だと JS 側が安定でも結果は揺れる。
+          とくに既定の新着順は `updated_days_ago`（**日単位**）で比べるので、
+          同じ日に更新された求人はすべて同値になり、ここの順序に丸ごと依存する。
+       ⚠️ 実測（2026-09-07）: 公開求人は**2件**（同一 `updated_at` の1グループ）で、
+          全23件でも同値グループは2つ・最大5件。**この規模では揺れを観測できなかった**
+          （PostgREST を直接10回叩いても順序は不変）。**それでも足すのは、件数が増えた日に
+          必ず出るのと、`.range()` を入れた瞬間に `/companies` と同じ欠落になるため。** */
     let jobQuery: any = supabase
       .from("ow_jobs")
       .select(JOB_LIST_COLS)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false });
     if (process.env.NODE_ENV !== "development") {
       jobQuery = jobQuery.eq("status", "published").eq("is_test", false);
     }
