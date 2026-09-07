@@ -37,9 +37,31 @@ type Props = {
    *    `?industry=` が効いているのは常に `CompanySearchResults` 側。
    */
   activeDomainSlug?: string | null;
+  /**
+   * ★別タブで開くか（2026-09-07）。**既定は同タブ（false）。**
+   *
+   * ⚠️ それまで `target="_blank"` が**2箇所に直書き**されていた（compact / list の両方）。
+   *    外した理由は2つ:
+   *      ① **`<Link>` の prefetch を1バイトも使えていなかった。** prefetch は既定（AUTO）で
+   *         実際に発火しており（実測: ビューポートに入った15枚ぶんの `?_rsc=` が飛ぶ）、
+   *         1枚 60〜150KB を取得していたが、`target="_blank"` は必ず新規ドキュメント読み込みに
+   *         なるので**取得した RSC が使われず捨てられていた。**
+   *      ② **同じ画面で挙動が割れていた。** `?view=list` のカード面は別タブ、同じ行の
+   *         「詳細 →」ボタンは同タブ（`router.push`）、一覧下部の「最近見た企業」
+   *         （`RecentlyViewedSection`）は `target` 無しで同タブ。行き先は全部同じ URL。
+   *
+   * ⚠️ **`<div onClick>` に変えないこと。** `<Link>` のままにしてあるので、
+   *    ⌘クリック・中クリック・右クリック→新しいタブが今までどおり使える
+   *    （＝「別タブで見比べたい人」の逃げ道が残る）。加えて ♡ の `preventDefault()` が
+   *    意味を持ち続ける。`<div>` にすると `stopPropagation()` だけが頼りになる。
+   *
+   * ⚠️ true にするときは `rel="noopener noreferrer"` も一緒に付く（下の描画側）。
+   *    `target` だけ付けて `rel` を落とさないこと。
+   */
+  openInNewTab?: boolean;
 };
 
-export function CompanyCardList({ company, compact, activeDomainSlug }: Props) {
+export function CompanyCardList({ company, compact, activeDomainSlug, openInNewTab = false }: Props) {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
@@ -100,6 +122,13 @@ export function CompanyCardList({ company, compact, activeDomainSlug }: Props) {
         **片方だけ直したときに「絞り込んだ値で出す/出さないを決めて、主を描く」**という
         食い違いが生まれる（実際にこの改修の途中で一度そうなった）。 */
   const cardDomain = displayBusinessDomain(company.business_domains, activeDomainSlug);
+  /* ★遷移先とタブの扱い。**compact と list の両方が同じものを使う**（2026-09-07）。
+     ⚠️ 以前は `target="_blank"` が2箇所に直書きで、片方だけ直すと割れる形だった。
+        `href` も2箇所に同じ式が書かれていたのでここに寄せてある。
+     ⚠️ `rel` は `target` を出すときだけ付ける。`undefined` を渡すと属性ごと出ない。 */
+  const href = `/companies/${company.slug ?? company.id}`;
+  const linkTarget = openInNewTab ? "_blank" : undefined;
+  const linkRel = openInNewTab ? "noopener noreferrer" : undefined;
   // company_features は現在非表示（culture tags 削除済み）
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
   const meetingBorder = "1px solid var(--line)";
@@ -121,8 +150,9 @@ export function CompanyCardList({ company, compact, activeDomainSlug }: Props) {
           }
         `}</style>
         <Link
-          href={`/companies/${company.slug ?? company.id}`}
-          target="_blank"
+          href={href}
+          target={linkTarget}
+          rel={linkRel}
           className="clv-card"
           style={{
             /* ⚠️ 2026-08-11: 横並び（ロゴ｜テキスト）から縦積みに変更。
@@ -313,8 +343,9 @@ export function CompanyCardList({ company, compact, activeDomainSlug }: Props) {
         .company-list-card:hover .clc-name { color: var(--royal) !important; }
       `}</style>
       <Link
-        href={`/companies/${company.slug ?? company.id}`}
-        target="_blank"
+        href={href}
+        target={linkTarget}
+        rel={linkRel}
         className="company-list-card"
         style={{
           display: "flex",
@@ -434,7 +465,11 @@ export function CompanyCardList({ company, compact, activeDomainSlug }: Props) {
               cursor: "pointer", whiteSpace: "nowrap",
               boxShadow: company.job_count > 0 ? "0 2px 8px rgba(0,35,102,0.20)" : "none",
             }}
-            onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/companies/${company.slug ?? company.id}`); }}
+            /* ⚠️ ここだけ `router.push`＝**同タブ**のまま。カード面が別タブだった頃からの
+                  食い違いで、2026-09-07 にカード面を同タブへ揃えたので**行き先も挙動も
+                  カード面と完全に同じになった**（＝同じ行に同じ導線が2つ並んでいる）。
+                  片方を消すか `<Link>` にするかは product 判断待ち。ここでは触っていない。 */
+            onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(href); }}
           >
             詳細 →
           </button>

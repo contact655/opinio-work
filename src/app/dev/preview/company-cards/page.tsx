@@ -53,7 +53,7 @@ export default function CompanyCardsPreview() {
         note="⚠️★空の項目が「0名」「—」に化けないこと。カード高さが行内で揃うか（375px は1列なので揃わないのが既知）"
       >
         <Grid>
-          {COMPANY_CARDS_MISSING.map((c) => <CompanyCardList key={c.id} company={c} compact />)}
+          {COMPANY_CARDS_MISSING.map((c) => <CompanyCardList key={c.id} company={c} compact openInNewTab={false} />)}
         </Grid>
       </Variant>
 
@@ -69,25 +69,25 @@ export default function CompanyCardsPreview() {
         note="⚠️★横カードは 0 でも「0名 現役社員 / 0名 OB・OG / 0件 募集中」を出す。本番でも40件中37件がこの形"
       >
         <List>
-          {COMPANY_CARDS_MISSING.map((c) => <CompanyCardList key={`l-${c.id}`} company={c} />)}
+          {COMPANY_CARDS_MISSING.map((c) => <CompanyCardList key={`l-${c.id}`} company={c} openInNewTab={false} />)}
         </List>
       </Variant>
 
       <Variant label="グリッド：長い社名・長いタグライン・タグ6個" note="⚠️ 折り返しと省略。カードが横に伸びないか">
         <Grid>
-          {COMPANY_CARDS_LONG.map((c) => <CompanyCardList key={c.id} company={c} compact />)}
+          {COMPANY_CARDS_LONG.map((c) => <CompanyCardList key={c.id} company={c} compact openInNewTab={false} />)}
         </Grid>
       </Variant>
 
       <Variant label="リスト：長い社名・長いタグライン" note="⚠️ 1行に収まらないときの省略記号">
         <List>
-          {COMPANY_CARDS_LONG.map((c) => <CompanyCardList key={`l-${c.id}`} company={c} />)}
+          {COMPANY_CARDS_LONG.map((c) => <CompanyCardList key={`l-${c.id}`} company={c} openInNewTab={false} />)}
         </List>
       </Variant>
 
       <Variant label="グリッド：12社（1ページぶん）" note="⚠️ tagline あり・なしが混ざる。行ごとに高さが揃うか">
         <Grid>
-          {COMPANY_CARDS_12.map((c) => <CompanyCardList key={c.id} company={c} compact />)}
+          {COMPANY_CARDS_12.map((c) => <CompanyCardList key={c.id} company={c} compact openInNewTab={false} />)}
         </Grid>
       </Variant>
 
@@ -99,7 +99,7 @@ export default function CompanyCardsPreview() {
         note="⚠️★本番では 0/0/0 が 74社続く。右端の「0名 / 0名 / 0件」が並ぶ見え方をここで判断してください"
       >
         <List>
-          {COMPANY_CARDS_REAL_MIX.map((c) => <CompanyCardList key={c.id} company={c} />)}
+          {COMPANY_CARDS_REAL_MIX.map((c) => <CompanyCardList key={c.id} company={c} openInNewTab={false} />)}
         </List>
       </Variant>
 

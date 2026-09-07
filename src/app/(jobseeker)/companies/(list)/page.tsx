@@ -266,6 +266,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                   key={c.id}
                                   company={c}
                                   compact
+                                  /* ⚠️ **同タブ**（2026-09-07）。別タブに戻さないこと。
+                                        `target="_blank"` だと `<Link>` の prefetch が
+                                        使われず捨てられる（CompanyCardList の注記）。 */
+                                  openInNewTab={false}
                                 />
                               ))}
                             </div>
@@ -276,6 +280,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
                               <CompanyCardList
                                 key={c.id}
                                 company={c}
+                                /* ⚠️ グリッド側と同じ。**同タブ**（2026-09-07） */
+                                openInNewTab={false}
                               />
                             ))}
                           </div>

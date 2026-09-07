@@ -179,7 +179,15 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
                   （絞り込みもファセットも全紐づけを見るため、主でない値でもヒットする）。
                ⚠️ **`resolveIndustryKey` を通した値**を渡すこと。`?industry=fintech` は
                   `finance` に読み替わってから絞り込まれるので、生の値だとタグが一致しない。 */
-            <CompanyCardList key={company.id} company={company} compact activeDomainSlug={activeDomainSlug} />
+            <CompanyCardList
+              key={company.id}
+              company={company}
+              compact
+              activeDomainSlug={activeDomainSlug}
+              /* ⚠️ 絞り込み結果も**同タブ**（2026-09-07）。`/companies` の一覧と揃える。
+                    ここだけ別タブに戻すと、同じカード部品が画面によって挙動が変わる。 */
+              openInNewTab={false}
+            />
           ))}
         </div>
       )}
