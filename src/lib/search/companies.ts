@@ -204,7 +204,22 @@ export async function searchCompanies(
   );
   /* ⚠️ ディレクトリの絞り込みは lib/companies/visibility.ts の1本に寄せる。
         .eq("is_published", true) をここに直書きしない。 */
-  dataQuery = filterListedCompanies(dataQuery).order(orderCol, { ascending: orderAsc });
+  /* ★**第2キー（`id`）を必ず付ける**（2026-09-07）。`updated_at` だけでは順序が確定せず、
+        `.range()` の offset ページングと組み合わさると**同じ企業が2ページに出て、別の企業が
+        1ページも出なくなる。**
+     ⚠️ これは理屈の話ではなく実測。掲載83社のうち **79社が同一 `updated_at` のグループ**に
+        属しており（8グループ・最大21社）、**ページ境界（40件目/41件目）がそのグループの内側**にある。
+        修正前の実測: 3ページの合計83枚に対しユニークは **79社** ——
+        adobe / indeed / palantir / workday が重複し、
+        **braze / clickhouse / okta / qualcomm は一覧に一度も出てこなかった。**
+     ⚠️ `id` は uuid なので値の並びに意味は無い。**意味を持たせないこと**が目的で、
+        「同値のときに毎回同じ順になる」ことだけを担保している。
+     ⚠️ アプリ側ソート（`employees` / `disclosure`）にも効く。`Array.prototype.sort` は
+        安定なので、**同値の並びは前段のこのDB順がそのまま残る**。ここが不定だと
+        JS 側が安定でも結果は毎回変わる。 */
+  dataQuery = filterListedCompanies(dataQuery)
+    .order(orderCol, { ascending: orderAsc })
+    .order("id", { ascending: false });
 
   if (useDbPagination) {
     const offset = params.offset ?? 0;
@@ -402,9 +417,25 @@ export async function searchCompanies(
     filteredCompanies = [...filteredCompanies].sort((a, b) => disclosureScore(b) - disclosureScore(a));
   }
 
+  /* ★**DB 側で range を掛けなかった経路は、ここでページを切る**（2026-09-07）。
+        `useDbPagination` が false のとき（`hiring` / `foreign` / アプリ側ソート）は
+        **全件が入ったまま返っていた。** 呼び出し側（`companies/(list)/page.tsx`）は
+        戻り値をそのまま描くので、**3ページとも同じ83社が出ていた**（実測: 各ページ83枚）。
+     ⚠️ 欠落は起きない（全件持っているので）が、**ページ送りが無意味**になっていた。
+        重複ページングの調査中に見つけたもので、原因は別（片方は順序、こちらは切り忘れ）。
+     ⚠️ `totalCount` は**切る前の件数**。切ったあとの数を返すと総数が40になり、
+        ページ数の計算（`ceil(totalCount / PAGE_SIZE)`）が崩れる。
+     ⚠️ `limit` を渡さない呼び出し（`CompanySearchResults`）は全件が欲しいので切らない。 */
+  const resolvedTotal = useDbPagination ? totalCount : filteredCompanies.length;
+  const pageOffset = params.offset ?? 0;
+  const pagedCompanies =
+    !useDbPagination && params.limit !== undefined
+      ? filteredCompanies.slice(pageOffset, pageOffset + params.limit)
+      : filteredCompanies;
+
   return {
-    companies: filteredCompanies,
-    totalCount: useDbPagination ? totalCount : filteredCompanies.length,
+    companies: pagedCompanies,
+    totalCount: resolvedTotal,
     appliedFilters: params,
   };
 }
