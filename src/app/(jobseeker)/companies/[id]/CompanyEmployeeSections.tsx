@@ -13,7 +13,7 @@
  */
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useCompanyEmployees } from "@/lib/companies/useCompanyEmployees";
 import Link from "next/link";
 import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
@@ -838,7 +838,9 @@ function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: Compan
 
 // ─── 取得つきラッパー ─────────────────────────────────────────────────────────
 
-type EmployeesResponse = {
+/* ⚠️ `export` してある理由は `lib/companies/useCompanyEmployees.ts` が使うため（2026-09-07）。
+      取得をあちらに寄せたので、**この型がこのファイルの外から見える必要がある。** */
+export type EmployeesResponse = {
   authenticated: boolean;
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
@@ -849,6 +851,11 @@ type EmployeesResponse = {
   /* ⚠️ **閲覧者で絞られたもの**（未ログインには login_only の人が入らない）。
         サーバーから props で受け取らないこと。ISR の静的HTMLに焼かれる。 */
   ambassadors: { id: string; user_id: string }[];
+  /* ⚠️ **閲覧者に依らない総数**。「ログインすると N名」の N に使う（route.ts:118）。
+        ⚠️★この行は 2026-09-07 に足した。**API は最初から返していたのに型に無かった**
+           ——`r.json()` の戻りが `any` のまま `AmbassadorWidget` が読んでいたので、
+           tsc も lint も何も言わなかった。型を経由するようにして初めて出た。 */
+  totalAmbassadorCount: number;
   relation: ViewerRelation;
 };
 
@@ -872,22 +879,11 @@ export function CompanyEmployeeSections({
    *  申込リンクの出し分けだけに使う。**社員カードとバッジはこの値で消さない。** */
   acceptingMeetings: boolean;
 }) {
-  const [data, setData] = useState<EmployeesResponse | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetch(`/api/jobseeker/companies/${companyId}/employees`)
-      .then((r) => (r.ok ? r.json() : null))
-      /* ⚠️ 失敗しても throw しない。社員一覧は付加情報で、
-            出なくてもページ本体は成立する。 */
-      .catch(() => null)
-      .then((d: EmployeesResponse | null) => {
-        if (alive) setData(d);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [companyId]);
+  /* ⚠️★**素の `fetch` に戻さないこと**（2026-09-07）。サイドバーの `AmbassadorWidget` が
+        同じエンドポイントを叩いており、両方が素の fetch だったため**本番で毎回2回**
+        飛んでいた（実測: start 489ms / 490ms）。企業IDごとに1本へ束ねるのは
+        `useCompanyEmployees` の役目。失敗時のログもあちらが出す。 */
+  const data = useCompanyEmployees(companyId);
 
   if (!data) return null;
 

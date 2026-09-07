@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useCompanyEmployees } from "@/lib/companies/useCompanyEmployees";
 import type { PublicAmbassador } from "@/lib/supabase/queries";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 
@@ -55,28 +56,28 @@ export default function AmbassadorWidget({
      ⚠️ 取得前・未ログインはサーバーの数字を使う。未ログインはカードが無いので食い違わない。 */
   const [total, setTotal] = useState<number>(totalCount);
 
+  /* ⚠️★**素の `fetch` に戻さないこと**（2026-09-07）。本文の `CompanyEmployeeSections` が
+        同じエンドポイントを叩いており、両方が素の fetch だったため**本番で毎回2回**
+        飛んでいた（実測: start 489ms / 490ms）。企業IDごとに1本へ束ねる。
+     ⚠️ `hidden lg:flex` のサイドバーの中にあるが、`display:none` でもマウントはされるので
+        **この effect は幅に関係なく必ず走る。** 「デスクトップだけの話」ではない。 */
+  const data = useCompanyEmployees(companyId);
+
   useEffect(() => {
-    let alive = true;
-    fetch(`/api/jobseeker/companies/${companyId}/employees`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!alive || !d) return;
-        /* ⚠️ `?? []` で握り潰さない。API が形を変えたら気づけるようにする。 */
-        if (!Array.isArray(d.ambassadors)) {
-          console.error("[AmbassadorWidget] ambassadors が配列ではない", d?.ambassadors);
-          return;
-        }
-        setShown(d.ambassadors as PublicAmbassador[]);
-        /* ⚠️ カードと数字を**必ず同時に**更新する。片方だけ更新すると元の木阿弥。 */
-        if (typeof d.totalAmbassadorCount === "number") {
-          setTotal(d.totalAmbassadorCount);
-        } else {
-          console.error("[AmbassadorWidget] totalAmbassadorCount が数値ではない", d?.totalAmbassadorCount);
-        }
-      })
-      .catch((e) => console.error("[AmbassadorWidget]", e));
-    return () => { alive = false; };
-  }, [companyId]);
+    if (!data) return;
+    /* ⚠️ `?? []` で握り潰さない。API が形を変えたら気づけるようにする。 */
+    if (!Array.isArray(data.ambassadors)) {
+      console.error("[AmbassadorWidget] ambassadors が配列ではない", data.ambassadors);
+      return;
+    }
+    setShown(data.ambassadors as PublicAmbassador[]);
+    /* ⚠️ カードと数字を**必ず同時に**更新する。片方だけ更新すると元の木阿弥。 */
+    if (typeof data.totalAmbassadorCount === "number") {
+      setTotal(data.totalAmbassadorCount);
+    } else {
+      console.error("[AmbassadorWidget] totalAmbassadorCount が数値ではない", data.totalAmbassadorCount);
+    }
+  }, [data]);
 
   // 対応者が1人もいない企業ではウィジェットごと出さない（従来どおり）
   if (total === 0) return null;
