@@ -3,6 +3,7 @@ import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildJobPostedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
+import { revalidateJobPages } from "@/lib/companies/revalidate";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
@@ -190,6 +191,10 @@ export async function PUT(
     });
   }
 
+  /* ⚠️★2026-09-08 追加。このファイルには revalidate が1つも無く、企業が求人を
+        編集・公開・削除しても、`/jobs`・求人詳細・**その企業の企業ページ**は
+        ページの `revalidate` 待ちだった。slug の扱いは revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return NextResponse.json({ ok: true });
 }
 
@@ -343,6 +348,10 @@ export async function PATCH(
     }
   }
 
+  /* ⚠️★2026-09-08 追加。このファイルには revalidate が1つも無く、企業が求人を
+        編集・公開・削除しても、`/jobs`・求人詳細・**その企業の企業ページ**は
+        ページの `revalidate` 待ちだった。slug の扱いは revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return NextResponse.json({ ok: true });
 }
 
@@ -363,6 +372,11 @@ export async function DELETE(
   if (!ctx2) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   try { requireAdmin(ctx2.allMemberships, ctx2.companyId); } catch { return permissionDeniedResponse(); }
 
+  /* ⚠️★**削除する前に slug を控える**（2026-09-08）。消してから引いても行が無いので、
+        **消した求人のページ（`/jobs/<slug>`）がキャッシュに残り続ける。** */
+  const before = await supabase
+    .from("ow_jobs").select("slug").eq("id", jobId).eq("company_id", ctx2.companyId).maybeSingle();
+
   const { error } = await supabase
     .from("ow_jobs")
     .delete()
@@ -374,5 +388,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  /* ⚠️★2026-09-08 追加。このファイルには revalidate が1つも無く、企業が求人を
+        編集・公開・削除しても、`/jobs`・求人詳細・**その企業の企業ページ**は
+        ページの `revalidate` 待ちだった。 */
+  await revalidateJobPages(jobId, { slug: before.data?.slug ?? null, companyId: ctx2.companyId });
   return NextResponse.json({ ok: true });
 }

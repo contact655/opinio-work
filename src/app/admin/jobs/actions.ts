@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { revalidateJobPages } from "@/lib/companies/revalidate";
 
 async function assertAdmin(): Promise<void> {
   const supabase = createClient();
@@ -66,6 +67,10 @@ export async function approveJob(jobId: string): Promise<ActionResult> {
   if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
+  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
+        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
+        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return { ok: true };
 }
 
@@ -96,6 +101,10 @@ export async function rejectJob(
   if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
+  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
+        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
+        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return { ok: true };
 }
 
@@ -117,6 +126,10 @@ export async function privateJob(jobId: string): Promise<ActionResult> {
   if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
+  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
+        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
+        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return { ok: true };
 }
 
@@ -138,6 +151,10 @@ export async function republishJob(jobId: string): Promise<ActionResult> {
   if (!rowCheck.ok) return rowCheck;
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
+  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
+        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
+        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return { ok: true };
 }
 
@@ -202,8 +219,10 @@ export async function updateJobRoles(
 
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
-  revalidatePath("/jobs");
-  revalidatePath(`/jobs/${jobId}`);
+  /* ⚠️★ここは 2026-09-08 まで `revalidatePath(`/jobs/${jobId}`)` だった。
+        **UUID なので当たっていなかった**（求人詳細は slug で配信される）。
+        企業ページも落ちていなかった。両方まとめて revalidateJobPages に集約。 */
+  await revalidateJobPages(jobId);
   return { ok: true };
 }
 

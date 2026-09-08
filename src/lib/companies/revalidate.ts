@@ -84,3 +84,46 @@ export async function revalidateCompanyPages(
 
   for (const p of paths) revalidatePath(p);
 }
+
+/**
+ * 求人を書き換えたあとに、求人ページ・求人一覧・**その企業の企業ページ**を作り直させる。
+ *
+ * ⚠️★**企業ページも一緒に落とす。** 企業詳細は公開求人と「募集中 N件」を出しているので、
+ *    求人の公開・取り下げは企業ページの内容を変える。ここを繋がないと、
+ *    ページの `revalidate` の秒数ぶん（3600 にするなら最大1時間）古いまま残る。
+ *
+ * ⚠️★**`revalidatePath(`/jobs/${jobId}`)` と書かないこと。** 求人詳細も企業と同じで
+ *    **slug で配信される**（`/jobs/[id]` のリンクは `job.slug ?? job.id`。実測 2026-09-08:
+ *    23件中20件・**公開中の2件は両方**が slug を持つ）。UUID を渡すと当たらない。
+ *    2026-09-08 まで `updateJobRoles` がまさにその形だった。
+ *
+ * ⚠️ 求人が見つからないときも `/jobs`（一覧）だけは落とす。削除直後でも一覧は作り直したい。
+ */
+export async function revalidateJobPages(
+  jobId: string,
+  /** ⚠️★**削除のあとに呼ぶときは必ず渡す。** 行が消えていると引けないので、
+   *  そのままだと企業ページも `/jobs/<slug>` も落とせず、**消した求人のページが
+   *  キャッシュに残り続ける。** 削除前に控えた値をここへ。 */
+  known?: { slug?: string | null; companyId?: string | null },
+): Promise<void> {
+  let jobSlug = known?.slug ?? null;
+  let companyId = known?.companyId ?? null;
+
+  if (!jobSlug || !companyId) {
+    const { data, error } = await createNoStoreAdminClient()
+      .from("ow_jobs")
+      .select("slug, company_id")
+      .eq("id", jobId)
+      .maybeSingle();
+    /* ⚠️ 握り潰さない。ここが黙って失敗すると「反映されない」だけが残る。 */
+    if (error) console.error("[revalidateJobPages] 求人の解決に失敗", jobId, error.message);
+    jobSlug = jobSlug ?? ((data?.slug as string | null) ?? null);
+    companyId = companyId ?? ((data?.company_id as string | null) ?? null);
+  }
+
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${jobSlug ?? jobId}`);
+
+  /* 企業ページ（＋企業一覧）。⚠️ slug 解決はあちらに任せる。 */
+  if (companyId) await revalidateCompanyPages(companyId);
+}

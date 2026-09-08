@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { revalidateJobPages } from "@/lib/companies/revalidate";
 import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -254,6 +255,11 @@ export async function POST(req: Request) {
     rawName: body.companyRoleName,
     jobRoles,
   });
+
+  /* ⚠️★2026-09-08 追加。作った直後は `draft` なので公開ページには出ないが、
+        複製（既存求人のコピー）で `published` のまま作られる経路があるため落としておく。
+        ⚠️ 無駄打ちになっても害は無い。落とし忘れる方が高くつく。 */
+  await revalidateJobPages(newJob.id);
 
   return NextResponse.json({ id: newJob.id });
 }
