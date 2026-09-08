@@ -53,6 +53,12 @@ while IFS= read -r p; do [ -n "$p" ] && PAGES+=("$p"); done < <(pick "/companies
 while IFS= read -r p; do [ -n "$p" ] && PAGES+=("$p"); done < <(pick "/jobs"      "/jobs/[a-z0-9-]+"      2)
 while IFS= read -r p; do [ -n "$p" ] && PAGES+=("$p"); done < <(pick "/articles"  "/articles/[a-z0-9-]+"  2)
 
+# ★事業領域の入口（2026-09-09 追加）。`?industry=<slug>` は固有の title と
+#   **固有の OG 画像**（事業領域名を焼いたもの）を持つようになったので、点検の対象に含める。
+#   ⚠️ ここもフッターのリンクから拾う。キーを直書きすると、マスタを増やしたときに
+#      この台本だけ古くなる（上の pick と同じ理由）。
+while IFS= read -r p; do [ -n "$p" ] && PAGES+=("$p"); done < <(pick "/companies" '/companies\?industry=[a-z-]+' 2)
+
 printf '%s\n' "OGP チェック: $BASE"
 printf '%s\n' "成功条件: 200 かつ ${MIN_BYTES} バイト以上 かつ PNG マジックバイト"
 printf '%s\n' "──────────────────────────────────────────────────────────────────────"
