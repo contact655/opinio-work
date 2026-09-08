@@ -53,6 +53,15 @@ export function Toggle({
       title={checked ? `${label}（クリックでOFF）` : `${label}（クリックでON）`}
       onClick={onToggle}
       disabled={isDisabled}
+      /* ⚠️★`globals.css` の `button { min-height: 36px }` を外す（2026-09-09）。
+            付けないと **44×24 の指定が 44×36 で描画され**、縦長の角丸になる。
+            さらに中のつまみは `top: 3 / height: 18` の絶対配置なので、
+            **36px の中で上に寄って見える。**
+         ⚠️ インラインの `height: 24` では勝てない。`min-height` は別プロパティで
+            常に `height` に優先する（.claude/rules/ui-debugging.md「min-height は
+            height に勝つ」。2026-08-11 に /companies のハートで踏んだのと同じ罠）。
+         ⚠️ **消さないこと。** 消すと見た目が戻る。 */
+      className="btn-fixed-size"
       style={{
         width: 44,
         height: 24,
