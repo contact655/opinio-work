@@ -89,8 +89,11 @@ const PER_PAGE = 15;
       絞り込みの選択状態はこれ1つに揃える。
    ─────────────────────────────────────────────────────────────────────────── */
 
-/** 絞り込みの選択状態。**職種によらず常に同じ**（上のコメントを読むこと）。 */
-const ACTIVE_FILTER = { color: "var(--royal)", bg: "var(--royal-50)" } as const;
+/* ⚠️ 選択状態の色を持つ定数（ACTIVE_FILTER）は 2026-09-09 に削除した。
+      使っていたのはサイドバーとモバイルの職種ピルで、どちらも同日に消えている。
+      **上の「色分けは廃止した」という判断はそのまま生きている**ので、
+      職種ごとの色を作りたくなったらこのコメントの上を読むこと。
+      いまの選択状態は `.jobs-pill.active` と `.jobs-pill-item.selected` が持つ。 */
 
 
 
@@ -128,185 +131,15 @@ function computeMatchReason(
 
 
 
-// ─── Desktop Sidebar Filters ──────────────────────────────────────────────────
+/* ⚠️★デスクトップのサイドバー（SidebarFilters / SectionHeader / CheckItem）は
+      2026-09-09 に削除した。条件は「詳細検索」に集約している。**戻さないこと。**
+      ── 経緯 ──
+      2026-08-08 に6項目（業種 / 年収 / こだわり条件 / 企業ステージ / 業態 / 技術スタック）を
+      削除して2項目（職種 / 勤務地）まで減らしていたが、それでも上部のピル行と
+      2箇所に分かれており、勤務地は「2県以上あるときだけ出す」ゲートがピル側に無く
+      同じ画面で食い違っていた。**条件の置き場を1つにするのが目的。**
+      ⚠️ 職種は詳細検索のピルへ移した。勤務地は都道府県ピルと同じものだったので消した。 */
 
-/*
-  デスクトップのサイドバー。**上部のピル行と重複しない条件だけを置く。**
-
-  ── 2026-08-08 に6項目を削除した ────────────────────────────────────────────
-  業種 / 年収 / こだわり条件 / 企業ステージ / 業態 / 技術スタック を消し、
-  雇用形態は上部のピル行へ移した。理由は2つ。
-
-  ① 上部と二重になっていた。業種・年収・企業ステージは選択肢も URL パラメータも
-     上部と同一で、同じものが画面に2つある状態だった。
-     「こだわり条件」だけは上部の勤務形態と**値域が違い**（リモート可 が上部に無く、
-     上部の 出社 がこちらに無い。単一選択 vs 複数選択）、
-     単純な重複ではなかったので上部側を複数選択に変えてから消した。
-  ② 業態と技術スタックは**1件も絞れないフィルタ**だった
-     （2026-08-07 実測: business_model は product 18件のみ、tech_stack 非空 0件）。
-     絞り込みロジックごと消したので、URL パラメータでも到達できない。
-
-  ⚠️ ここに条件を足す前に、**上部のピル行に同じものが無いか**を必ず見ること。
-*/
-function SidebarFilters({
-  parentRoles, category, prefecture,
-  setParam, hasFilter, q, onReset,
-  roleCounts,
-  toggleParam: toggleParamFn,
-}: {
-  parentRoles: { id: string; name: string }[];
-  category: string; prefecture: string;
-  setParam: (key: string, value: string) => void;
-  hasFilter: boolean; q: string; onReset: () => void;
-  roleCounts?: Map<string, number>;
-  toggleParam: (key: string, value: string, current: string) => void;
-}) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["prefecture"]));
-  const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
-
-
-  function toggleSection(key: string) {
-    setCollapsed(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  }
-
-  function SectionHeader({ label, sectionKey, hasActive }: { label: string; sectionKey: string; hasActive?: boolean }) {
-    const isOpen = !collapsed.has(sectionKey);
-    return (
-      <button type="button" onClick={() => toggleSection(sectionKey)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: hasActive ? "var(--royal-50)" : "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 700, color: hasActive ? "var(--royal)" : "var(--ink)", letterSpacing: "0.01em", display: "flex", alignItems: "center", gap: 6 }}>
-          {hasActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />}
-          {label}
-        </span>
-        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transition: "transform 0.2s", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0 }}>
-          <path d="M1 1l4 4 4-4" stroke={hasActive ? "var(--royal)" : "var(--ink-mute)"} strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </button>
-    );
-  }
-
-  function CheckItem({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
-    return (
-      <label
-        onClick={(e) => { e.preventDefault(); onClick(); }}
-        style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 14px", cursor: "pointer", userSelect: "none" }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLLabelElement).style.background = "#f8fafc"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLLabelElement).style.background = "transparent"; }}
-      >
-        <span style={{
-          width: 17, height: 17, borderRadius: 4, border: `2px solid ${active ? "var(--royal)" : "#CBD5E1"}`,
-          background: active ? "var(--royal)" : "#fff",
-          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.1s",
-        }}>
-          {active && (
-            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-              <path d="M1 4l2.5 3L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          )}
-        </span>
-        <span style={{ fontSize: 13, color: active ? "var(--ink)" : "var(--ink-soft)", fontWeight: active ? 600 : 400, flex: 1 }}>
-          {label}
-        </span>
-        {count !== undefined && (
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>({count})</span>
-        )}
-      </label>
-    );
-  }
-
-  const { business, tech } = getVisibleRoles(parentRoles);
-  const sortedRoles = [
-    ...business.filter(r => r.name !== "その他"),
-    ...tech,
-    ...business.filter(r => r.name === "その他"),
-  ];
-
-  return (
-    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", overflow: "hidden", boxShadow: "0 1px 4px rgba(15,23,42,0.05)", display: "flex", flexDirection: "column" }}>
-
-      {/* ── 1. 職種 ── */}
-      <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-        <SectionHeader label="職種" sectionKey="category" hasActive={categorySet.size > 0} />
-        {!collapsed.has("category") && (
-          <div style={{ padding: "2px 4px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {sortedRoles.map((role) => {
-              const isActive = categorySet.has(role.id);
-              const rc = ACTIVE_FILTER;
-              return (
-                <button key={role.id} type="button" onClick={() => toggleParamFn("category", role.id, category)}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${isActive ? rc.color : "transparent"}`, background: isActive ? rc.bg : "transparent", cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "all 0.1s", width: "100%" }}
-                  onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: rc.color, flexShrink: 0, opacity: isActive ? 1 : 0.4 }} />
-                  <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? rc.color : "var(--ink)", flex: 1 }}>{role.name}</span>
-                  {roleCounts?.get(role.id) ? <span style={{ fontSize: 12, fontWeight: 500, color: isActive ? rc.color : "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>({roleCounts.get(role.id)})</span> : null}
-                  {isActive && <svg style={{ flexShrink: 0 }} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={rc.color} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── 2. 勤務地 ──
-             ⚠️ 以前は「実データに2県以上あるときだけ出す」ゲートがあったが、
-                都道府県を47件固定にしたので外した（2026-09-06）。
-                ピル側には元からこのゲートが無く、**同じ画面で食い違っていた。** */}
-      {(
-        <div style={{ borderBottom: "1px solid var(--line-soft)" }}>
-          <SectionHeader label="勤務地" sectionKey="prefecture" hasActive={!!prefecture} />
-          {!collapsed.has("prefecture") && (
-            <div style={{ paddingBottom: 8, maxHeight: 180, overflowY: "auto" }}>
-              {/* ⚠️ ピルのドロップダウンと**同じ並び**にする。片方だけ直さないこと。 */}
-              {PREFECTURE_FILTER_GROUPS.map((g) => (
-                <div key={g.group}>
-                  <div style={{
-                    padding: "8px 16px 2px", fontSize: 11, fontWeight: 700,
-                    color: "var(--ink-mute)", letterSpacing: "0.06em",
-                  }}>{g.group}</div>
-                  {g.prefectures.map((p) => (
-                    <CheckItem key={p} label={p} active={prefecture === p}
-                      onClick={() => setParam("prefecture", prefecture === p ? "" : p)} />
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── フッター: 検索する ── */}
-      <div style={{ padding: "12px 14px", background: "#fff" }}>
-        <button
-          type="button"
-          onClick={() => document.getElementById("jobs-results-top")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          style={{
-            width: "100%", padding: "11px 0", borderRadius: 8,
-            background: "var(--royal)", color: "#fff",
-            border: "none", fontSize: 14, fontWeight: 700,
-            cursor: "pointer", fontFamily: "inherit",
-            letterSpacing: "0.02em",
-          }}
-        >
-          検索する
-        </button>
-        {(hasFilter || q) && (
-          <button type="button" onClick={onReset}
-            style={{ display: "block", width: "100%", marginTop: 8, padding: "5px 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontFamily: "inherit", textAlign: "center" }}
-          >
-            検索条件をリセットする
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Main client component ─────────────────────────────────────────────────────
 
@@ -429,14 +262,10 @@ export default function JobsClient({
   const workStyleSet = useMemo(() => new Set(work_style ? work_style.split(",") : []), [work_style]);
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "updated");
-  // Desktop sidebar detection
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const check = () => setIsDesktop(window.innerWidth >= 1024);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
+  /* ⚠️ `isDesktop`（1024px 判定）は 2026-09-09 に削除した。サイドバーの列幅を
+        出し分けるためだけの state で、サイドバーごと無くなった。
+        ⚠️ 幅で挙動を変えたくなったら CSS のメディアクエリを使うこと。JS で幅を持つと
+           サーバー描画と初回描画がずれる（このコードも初期値 false から始まっていた）。 */
 
   // Local-only keyword search
   // LP のヒーロー検索から ?q= で飛んでくるため URL を初期値にする
@@ -445,6 +274,13 @@ export default function JobsClient({
   const searchBarRef = useRef<HTMLDivElement>(null);
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [pillAnchor, setPillAnchor] = useState<{ top: number; left: number } | null>(null);
+
+  /* ★「詳細検索」の開閉（2026-09-09。柴さんの要望）。
+     ⚠️★**既定は閉じている。** 条件が8つあり、常時出すと結果より条件のほうが高くなる。
+     ⚠️ 条件が1つでも効いていれば**選択中チップ**を外に出すので、閉じていても
+        「いま何で絞っているか」は分かる（`activeChips`）。ここを消さないこと
+        ——消すと、絞り込んだ結果を見ている最中に理由が画面から消える。 */
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const filterPillsRef = useRef<HTMLDivElement>(null);
 
   // サジェスト / フィルターピル外クリックで閉じる
@@ -532,6 +368,44 @@ export default function JobsClient({
     () => new Set(phaseKeys.filter((k) => companyStageSet.has(k))),
     [companyStageSet, phaseKeys],
   );
+
+  /** 職種 id → 名前。⚠️ `pillLabel` は Record を受ける（並びもこの順になる） */
+  const roleLabels = useMemo(
+    () => Object.fromEntries(parentRoles.map((r) => [r.id, r.name])) as Record<string, string>,
+    [parentRoles],
+  );
+
+  /* ★いま効いている条件のチップ（2026-09-09）。「詳細検索」を閉じていても外に出す。
+     ⚠️★**これを消さないこと。** 8条件を1つのパネルに畳んだので、これが無いと
+        「なぜこの件数なのか」が画面から消える。`/companies` で「顧客の業界」を
+        結果側に出したのと同じ理由（絞り込みにしか無い軸を作らない）。
+     ⚠️ **解除の手段はチップの ✕ だけにしない。** パネルを開けば元のピルからも外せる。
+        ここは近道であって唯一の入口ではない。
+     ⚠️ 並びは詳細検索パネルのピルの並びと**同じ順**にしてある。片方だけ変えないこと。 */
+  const activeChips = useMemo(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = [];
+    categorySet.forEach((id) => {
+      const name = parentRoles.find((r) => r.id === id)?.name;
+      /* ⚠️ 名前が引けない id は出さない（生の uuid を画面に出さないため） */
+      if (name) chips.push({ key: `category:${id}`, label: name, clear: () => toggleParam("category", id, category) });
+    });
+    phaseSet.forEach((k) => chips.push({ key: `phase:${k}`, label: phaseLabels[k] ?? k, clear: () => toggleStage(k) }));
+    if (industry) {
+      const name = industryOptions.find((g) => g.slug === industry)?.name;
+      if (name) chips.push({ key: "industry", label: name, clear: () => setParam("industry", "") });
+    }
+    if (prefecture) chips.push({ key: "prefecture", label: prefecture, clear: () => setParam("prefecture", "") });
+    workStyleSet.forEach((v) => chips.push({ key: `ws:${v}`, label: v, clear: () => toggleParam("work_style", v, work_style) }));
+    empTypeSet.forEach((v) => chips.push({ key: `et:${v}`, label: v, clear: () => toggleParam("emp_type", v, empType) }));
+    if (salary) {
+      const label = SALARY_PILL_TIERS.find((t) => t.value === salary)?.label;
+      if (label) chips.push({ key: "salary", label, clear: () => setParam("salary", "") });
+    }
+    if (companyStageSet.has("foreign")) chips.push({ key: "foreign", label: "外資系", clear: () => toggleStage("foreign") });
+    return chips;
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [categorySet, category, parentRoles, phaseSet, phaseLabels, industry, industryOptions,
+      prefecture, workStyleSet, work_style, empTypeSet, empType, salary, companyStageSet]);
 
   // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
   const suggestions = useMemo(() => {
@@ -950,8 +824,72 @@ export default function JobsClient({
               )}
             </div>
 
-            {/* フィルターピル群（企業ページと同じ位置・同じスタイル） */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" }}>
+            {/* ── ★詳細検索（2026-09-09。柴さんの要望）────────────────────────────
+                   条件が3箇所（上のピル行 / 左サイドバー / モバイルの職種ピル）に
+                   散っていたのを1つに畳んだ。**サイドバーは削除した**（職種はここへ、
+                   勤務地は削除）。
+                ⚠️★**閉じていても `activeChips` は外に出す。** 隠しきると
+                   「なぜこの件数なのか」が画面から消える。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                aria-expanded={showAdvanced}
+                onClick={() => setShowAdvanced((v) => !v)}
+                className={`jobs-pill${showAdvanced || activeChips.length > 0 ? " active" : ""}`}
+                style={{ flexShrink: 0, fontWeight: 700 }}
+              >
+                詳細検索
+                {activeChips.length > 0 && (
+                  <span style={{
+                    marginLeft: 6, fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                    background: "var(--royal)", color: "#fff",
+                    fontFamily: "var(--font-inter), var(--font-noto)",
+                  }}>{activeChips.length}</span>
+                )}
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"
+                  style={{ flexShrink: 0, opacity: 0.5, marginLeft: 6, transform: showAdvanced ? "rotate(180deg)" : undefined, transition: "transform .15s" }}>
+                  <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+
+              {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか） */}
+              {activeChips.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={c.clear}
+                  aria-label={`${c.label} の絞り込みを外す`}
+                  style={{
+                    flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6,
+                    height: 30, padding: "0 10px 0 12px", borderRadius: 999,
+                    fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    background: "var(--royal-50)", color: "var(--royal)",
+                    border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+                  }}
+                >
+                  {c.label}
+                  <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.75 }}>✕</span>
+                </button>
+              ))}
+            </div>
+
+            {/* フィルターピル群（企業ページと同じ位置・同じスタイル）。
+                ⚠️ 詳細検索を開いたときだけ出す。ドロップダウンは `position: fixed` の
+                   1枚（`jobs-pill-menu`）なので、ここを畳んでも切れない。 */}
+            {showAdvanced && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+
+              {/* ★職種 ピル（2026-09-09 にサイドバーから移した。複数選択） */}
+              <button type="button" className={`jobs-pill${categorySet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  if (openFilter === "category") { setOpenFilter(null); return; }
+                  setPillAnchor({ top: r.bottom + 6, left: r.left });
+                  setOpenFilter("category");
+                }}
+              >
+                {pillLabel(categorySet, "職種", roleLabels)} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
 
               {/* フェーズ ピル */}
               <button type="button"
@@ -1061,9 +999,10 @@ export default function JobsClient({
                      絞り込みが1つ付くたびに現れて右端の並びが動くうえ、**すべて個別に外せる**:
                        各ピル → 開いて「すべて」／ 外資系 → もう一度押す（元からトグル）
                        検索文字 → 入力欄の ✕ ／ 職種（サイドバー）→ もう一度押す
-                  ⚠️ サイドバーの「検索条件をリセットする」と、0件のときの
-                     「すべてリセット」は**残してある**（別の場所・別の役割）。 */}
+                  ⚠️ 0件のときの「すべてリセット」は**残してある**（別の場所・別の役割）。
+                  ⚠️ サイドバーは 2026-09-09 に削除したので、そこの「検索条件をリセットする」も無い。 */}
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -1166,32 +1105,8 @@ export default function JobsClient({
             </div>
           </div>
 
-          {/* ── 行3 (モバイルのみ): 職種クイックピル ── */}
-          <div className="jobs-mobile-role-pills" style={{ display: "none", gap: 6, overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch" }}>
-            {parentRoles.slice(0, 10).map((role) => {
-              const active = category === role.id;
-              const rc = ACTIVE_FILTER;
-              return (
-                <button
-                  key={role.id}
-                  type="button"
-                  onClick={() => setParam("category", active ? "" : role.id)}
-                  style={{
-                    flexShrink: 0, height: 30, padding: "0 12px", borderRadius: 999,
-                    fontSize: 12, fontWeight: active ? 700 : 500,
-                    border: `1.5px solid ${active ? rc.color : "#e2e8f0"}`,
-                    background: active ? rc.bg : "#fff",
-                    color: active ? rc.color : "var(--ink-soft)",
-                    cursor: "pointer", whiteSpace: "nowrap",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {role.name}
-                  {roleCounts.get(role.id) ? <span style={{ fontSize: 12, marginLeft: 4, opacity: 0.7 }}>({roleCounts.get(role.id)})</span> : null}
-                </button>
-              );
-            })}
-          </div>
+          {/* ⚠️ モバイルの職種クイックピル（上位10件）は 2026-09-09 に削除した。
+                 職種は「詳細検索」に集約したので、同じものが2箇所に出ていた。 */}
 
           {/* 企業が解決できなかったときの注記。⚠️ 黙って全件を出さない */}
           {companyNotFound && (
@@ -1250,25 +1165,12 @@ export default function JobsClient({
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-6 md:px-12 md:py-8"
         >
-          <div
-            className="jobs-layout"
-            style={isDesktop ? { gridTemplateColumns: "260px minmax(0,1fr)" } : undefined}
-          >
-            {/* ─ Desktop sidebar ─ */}
-            <aside className="jobs-sidebar">
-              <SidebarFilters
-                parentRoles={parentRoles}
-                category={category}
-                prefecture={prefecture}
-                setParam={setParam}
-                hasFilter={hasFilter}
-                q={q}
-                onReset={() => { setQ(""); setCompanyStage(""); router.replace("/jobs"); }}
-                roleCounts={roleCounts}
-                toggleParam={toggleParam}
-              />
-            </aside>
-
+          {/* ⚠️★サイドバーは 2026-09-09 に削除した（柴さんの要望）。職種は「詳細検索」へ移し、
+                 勤務地は消した。**戻さないこと** ——条件が2箇所に分かれると、片方だけ直す
+                 事故が起きる（勤務地は「2県以上あるときだけ出す」ゲートがピル側に無く、
+                 同じ画面で食い違っていた前例がある）。
+              ⚠️ 1カラムになったぶんの幅は分割ビュー（Stage 2）で使う。 */}
+          <div className="jobs-layout">
             {/* ─ Results column ─ */}
             <main id="jobs-results-top" style={{ minWidth: 0 }}>
 
@@ -1592,7 +1494,7 @@ export default function JobsClient({
           flex-direction: column;
           gap: 0;
         }
-        .jobs-sidebar { display: none; }
+        /* ⚠️ jobs-sidebar の指定は 2026-09-09 に削除した（サイドバーごと無い）。 */
         /* filter bar: always visible */
         .jobs-mobile-filterbar { display: block; position: sticky; top: 64px; }
         /* 縦リスト: 1カラム — 個別カード方式 */
@@ -1618,14 +1520,11 @@ export default function JobsClient({
 
         /* ── Desktop layout (≥1024px): サイドバー + 縦リスト [+ 詳細ペイン] ── */
         @media (min-width: 1024px) {
-          .jobs-layout {
-            display: grid;
-            grid-template-columns: 220px minmax(0, 1fr);
-            gap: 24px;
-            align-items: start;
-          }
-          .jobs-sidebar { display: block !important; }
-          /* デスクトップでは検索バーの勤務地selectをサイドバーで代替 */
+          /* ⚠️★2026-09-09 にサイドバーを削除したので**1カラムのまま**にする。
+                 ここに 220px の2カラム指定が残っていると、存在しない列にカードが
+                 押し込まれて幅 120px まで潰れる（実際に踏んだ）。
+                 ⚠️ ここは style タグのテンプレートリテラルの中。引用の記号を書かないこと。
+                 ⚠️ 空いた幅は分割ビュー（Stage 2）で使う。 */
           .jobs-location-select, .jobs-location-separator { display: none !important; }
         }
 
@@ -1678,6 +1577,31 @@ export default function JobsClient({
                 <button key={r.id} className={`jobs-pill-item${category === r.id ? " selected" : ""}`}
                   onClick={() => { setParam("category", r.id); setOpenFilter(null); }}
                 >{r.name}</button>
+              ))}
+            </>
+          )}
+          {/* ★職種（2026-09-09 にサイドバーから移した）。
+                 ⚠️ **複数選択。選んでも閉じない**（勤務形態・雇用形態・フェーズと同じ）。
+                 ⚠️ 件数（`roleCounts`）は**あるときだけ**出す。0 を出さない。
+                 ⚠️ 親職種だけを出す。子職種まで出すと 148件になり、この幅では選べない
+                    （2026-08-06 に職歴エディタで「105件を目視で探させる UI が機能していない」と
+                     分かっている）。 */}
+          {openFilter === "category" && (
+            <>
+              <button className={`jobs-pill-item${categorySet.size === 0 ? " selected" : ""}`}
+                onClick={() => setParam("category", "")}>すべて</button>
+              {parentRoles.map((role) => (
+                <button key={role.id}
+                  className={`jobs-pill-item${categorySet.has(role.id) ? " selected" : ""}`}
+                  onClick={() => toggleParam("category", role.id, category)}
+                >
+                  {role.name}
+                  {roleCounts.get(role.id) ? (
+                    <span style={{ marginLeft: 6, opacity: 0.6, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                      ({roleCounts.get(role.id)})
+                    </span>
+                  ) : null}
+                </button>
               ))}
             </>
           )}
