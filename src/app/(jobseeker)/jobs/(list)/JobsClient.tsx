@@ -868,8 +868,11 @@ export default function JobsClient({
                 </svg>
               </button>
 
-              {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか） */}
-              {activeChips.map((c) => (
+              {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか）
+                     ⚠️★**開いているときは出さない**（2026-09-09）。ピル自身が選択状態を
+                        持っているので、「事業開発 ✕」の隣に「事業開発 ⌄」が並んで
+                        **同じ語が2回**出ていた。閉じているときだけの近道にする。 */}
+              {!showAdvanced && activeChips.map((c) => (
                 <button
                   key={c.key}
                   type="button"
@@ -889,11 +892,19 @@ export default function JobsClient({
               ))}
             </div>
 
-            {/* フィルターピル群（企業ページと同じ位置・同じスタイル）。
-                ⚠️ 詳細検索を開いたときだけ出す。ドロップダウンは `position: fixed` の
-                   1枚（`jobs-pill-menu`）なので、ここを畳んでも切れない。 */}
+            {/* フィルターピル群。
+                ⚠️ 詳細検索を開いたときだけ出す。ドロップダウンは position: fixed の
+                   1枚（jobs-pill-menu）なので、ここを畳んでも切れない。
+                ⚠️★**検索窓と同じ行に並べないこと**（2026-09-09）。以前は
+                   検索窓・詳細検索・チップ・8ピルが**全部1行**に詰まり、
+                   どこまでが詳細検索の中身なのか読めなかった。
+                   `flexBasis: "100%"` で必ず行を折り、薄い面を敷いて塊として見せる。 */}
             {showAdvanced && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <div style={{
+              flexBasis: "100%", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+              background: "var(--bg-tint)", border: "1px solid var(--line)",
+              borderRadius: 12, padding: "10px 12px", marginBottom: 2,
+            }}>
 
               {/* ★職種 ピル（2026-09-09 にサイドバーから移した。複数選択） */}
               <button type="button" className={`jobs-pill${categorySet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
@@ -1603,16 +1614,11 @@ export default function JobsClient({
       {/* フィルターピル ドロップダウン (position: fixed でoverflow clipを回避) */}
       {openFilter && pillAnchor && (
         <div className="jobs-pill-menu" style={{ position: "fixed", top: pillAnchor.top, left: pillAnchor.left, zIndex: 1200 }}>
-          {openFilter === "category" && (
-            <>
-              <button className={`jobs-pill-item${!category ? " selected" : ""}`} onClick={() => { setParam("category", ""); setOpenFilter(null); }}>すべて</button>
-              {parentRoles.map((r) => (
-                <button key={r.id} className={`jobs-pill-item${category === r.id ? " selected" : ""}`}
-                  onClick={() => { setParam("category", r.id); setOpenFilter(null); }}
-                >{r.name}</button>
-              ))}
-            </>
-          )}
+          {/* ⚠️★**単一選択の職種ドロップダウンは 2026-09-09 に削除した。**
+                 同じ `openFilter === "category"` の分岐が2つ並んでおり、**両方描画されて**
+                 いた。古い方は1つ選ぶと `setParam` で置き換えて閉じるので、
+                 **複数選択が事実上できなかった**（実測: 2つ目を選んでも URL が変わらない）。
+                 ⚠️ 同じキーの分岐を2つ書かないこと。片方だけ直しても動きは変わらない。 */}
           {/* ★職種（2026-09-09 にサイドバーから移した）。
                  ⚠️ **複数選択。選んでも閉じない**（勤務形態・雇用形態・フェーズと同じ）。
                  ⚠️ 件数（`roleCounts`）は**あるときだけ**出す。0 を出さない。
