@@ -252,7 +252,19 @@ export default async function CompaniesPage({ searchParams }: Props) {
         （700px のコンテナに入れると壊れる。理由は CompanyPane の注記）。
      ⚠️ 見つからない slug は**黙って無視する**（ペインを出さないだけ）。
         一覧そのものは正しいので 404 にはしない。 */
-  const selectedSlug = searchParams.selected ?? null;
+  /* ★詳細表示は**先頭の企業を最初から開く**（2026-09-09。柴さんの要望）。
+     ⚠️★LinkedIn と同じ。詳細表示に切り替えた直後、右側が空のままだと
+        「分割ビューがある」ことに気づけない（実際、切り替えても全幅の一覧が出るだけだった）。
+     ⚠️ **`?selected=` は URL に足さない。** 足すには redirect が要り、共有された URL と
+        自動選択の区別も付かなくなる。**描画するだけ**にして、URL は利用者が選んだときだけ動く。
+     ⚠️ **一覧表示（グリッド）には掛けていない。** あちらは3列の全幅グリッドが既定の姿で、
+        いきなり1列のレールに畳むと「一覧」の意味が変わる。詳細表示だけの挙動。
+     ⚠️ 絞り込み中は `isListView` が false（結果は常にグリッド）なので対象外。
+     ⚠️ 1280px 未満では**ペインが CSS で消える**ので、この1社ぶんの取得は無駄になる。
+        サーバーはビューポートを知らないので避けられない。詳細表示のときだけなので許容した。 */
+  const autoSelected = isListView ? allCompaniesResult.companies[0] : undefined;
+  const selectedSlug =
+    searchParams.selected ?? (autoSelected ? (autoSelected.slug ?? autoSelected.id) : null);
   const selectedResult = selectedSlug ? await getCompanyBySlugOrId(selectedSlug) : null;
   const selectedTargets = selectedResult
     ? await getCompanyTargetIndustriesCached(selectedResult.resolvedId)

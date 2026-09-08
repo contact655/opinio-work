@@ -8,6 +8,7 @@ import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { formatEmployeeCountBand } from "@/lib/utils/employeeCount";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
+import { phaseLabel } from "@/lib/constants/phase";
 
 /**
  * 企業の**要約ビュー**。一覧の隣（分割ビューの右ペイン）に置くことを想定した部品。
@@ -61,6 +62,20 @@ export function CompanyPane({
   /* ⚠️ 主の事業領域を1件だけ。**カードと同じ規則**（`CompanyCardList` の cardDomain）。
         複数出すと狭いペインで行が破綻する。 */
   const domain = primaryBusinessDomain(company.business_domains);
+
+  /* ★フェーズ（2026-09-09 に追加）。
+     ⚠️★**絞り込みにしか無い軸を作らない。** 画面上部に「フェーズ」チップがあるのに、
+        企業を開いても結果側にフェーズが1文字も出ていなかった（実測: Salesforce の
+        ペイン全文に「上場 / スタートアップ / ユニコーン / シリーズ / 非上場」が0件）。
+        2026-09-07 に「顧客の業界」を企業ページへ足したときと同じ形。
+     ⚠️ **見比べるときに一番効く軸**でもある。掲載83社すべてに値があり
+        （NULL 0社。事業領域と並ぶ100%の2つ）、上場かスタートアップかは最初に知りたい。
+     ⚠️ **`CompanyInfoBox` には足さないこと。** あれは企業詳細ページのサイドバーと
+        共有しているので、触ると2画面が同時に変わる（前例 c97f7c49 は aside の
+        SHA-256 を突き合わせている）。ここはペイン専用のバッジ。
+     ⚠️ 未知の値（自由記述の残骸）は `phaseLabel` が null を返す。**そのときは出さない**
+        ——生の値をそのまま画面に出さないため。 */
+  const phase = phaseLabel(company.phase);
 
   /* 募集中の求人。⚠️ **上位3件だけ**。ペインは要約なので、全件は詳細ページに任せる。
      ⚠️ `detail.jobs` はカテゴリの配列なので平坦化してから数える。 */
@@ -125,6 +140,15 @@ export function CompanyPane({
               border: "1px solid var(--line)", padding: "2px 8px", borderRadius: "var(--radius-sm)",
               whiteSpace: "nowrap",
             }}>{domain.name}</span>
+          )}
+          {/* ⚠️ 色は neutral 固定。フェーズごとに色を変えないこと
+                 （オレンジはカジュアル面談専用、--royal は主要導線。ui-conventions） */}
+          {phase && (
+            <span style={{
+              fontSize: 12, color: "var(--ink-soft)", background: "var(--bg-tint)",
+              border: "1px solid var(--line)", padding: "2px 8px", borderRadius: "var(--radius-sm)",
+              whiteSpace: "nowrap",
+            }}>{phase}</span>
           )}
           {/* ⚠️ 値が無い項目は要素ごと出さない（「—」や「0名」で埋めない） */}
           {company.employee_count && (
