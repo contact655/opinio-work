@@ -7,7 +7,7 @@ import type { EmployeesResponse } from "@/app/(jobseeker)/companies/[id]/Company
  * 企業詳細ページの「閲覧者ごとに絞られた社員・面談対応者」をクライアント側で取る。
  *
  * ── なぜクライアントで取るか ──────────────────────────────────────────────────
- * `/companies/[id]` は `export const revalidate = 60` ＋ `generateStaticParams` の **ISR ページ**。
+ * `/companies/[id]` は `export const revalidate = 300` ＋ `generateStaticParams` の **ISR ページ**。
  * サーバーで `auth.getUser()` を読むと動的化してキャッシュが効かなくなるため、
  * 閲覧者依存のものは全部この API（`force-dynamic`）に追い出してある（2026-08-09）。
  *

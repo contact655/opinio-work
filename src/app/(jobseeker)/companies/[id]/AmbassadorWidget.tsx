@@ -10,7 +10,7 @@ import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
  *
  * ── なぜクライアント側なのか ────────────────────────────────────────────────
  * 面談対応者は実ユーザーが全員 `login_only` なので、**未ログインに顔と名前を出してはいけない**。
- * ところが `/companies/[id]` は `export const revalidate = 60` ＋ `generateStaticParams` の
+ * ところが `/companies/[id]` は `export const revalidate = 300` ＋ `generateStaticParams` の
  * **ISR ページ**で、サーバー側で `auth.getUser()` を読むと動的化してキャッシュが効かなくなる
  * （2026-08-09 に社員一覧をここから追い出したのと同じ理由。page.tsx にも
  *  「ここに `createClient()` や `auth.getUser()` を足さないこと」と書いてある）。

@@ -5,7 +5,7 @@
  * page.tsx から切り出してクライアント側に置いた（2026-08-09）。
  *
  * ⚠️ page.tsx がこれらをサーバーで描画していたため `auth.getUser()` が必要になり、
- *    ルートが動的化して `export const revalidate = 60` が効かなかった。
+ *    ルートが動的化して `export const revalidate = 60`（当時の宣言値。2026-09-08 に **300** へ）が効かなかった。
  *    ここへ追い出すことでページ本体を閲覧者非依存にし、ISR に載せる。
  *
  * ⚠️ **絞り込みはサーバー（/api/jobseeker/companies/[id]/employees）で行う。**
