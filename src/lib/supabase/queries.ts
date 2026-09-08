@@ -41,9 +41,39 @@ import { filterListedCompanies, filterVisibleCompanies, filterVisibleCompaniesSt
 const FALLBACK_GRADIENT = "linear-gradient(135deg, var(--royal), #3B5FD9)";
 
 
+/**
+ * ★**暦日**での経過日数（日本時間基準。2026-09-09 に経過時間から変更）。
+ *
+ * ⚠️★**経過時間の切り捨てにしないこと。** 以前は
+ * `Math.floor((Date.now() - t) / 86_400_000)` で、**24時間の区切り**を数えていた。
+ * その結果 `formatUpdated()` の「今日更新」が**暦の今日を指さなかった**。
+ *   実測（2026-09-09 00:32 JST）: 9/8 13:50 JST に更新された企業が
+ *   経過 10.7時間 → floor で 0 → **「今日更新」**（暦では昨日）。
+ * 「昨日更新」も同じ理由で 24〜48時間前を指し、暦では一昨日になりうる。
+ *
+ * ⚠️★**サーバーの時刻帯に依存させない。** Vercel の実行環境は UTC なので、
+ *    `new Date().getDate()` のようなローカル日付の比較を書くと
+ *    **UTC の日付境界（JST 9時）で切り替わる。** 日本時間の 0時 で切り替えたいので、
+ *    9時間ぶんずらしてから日数に落とす。
+ *
+ * ⚠️ 未来の日時（時計のずれ）で負にならないよう 0 で止める。
+ *    負のまま `formatUpdated()` に渡すと最後の分岐に落ち「-1週間前更新」になる。
+ *
+ * ⚠️ 粒度は今までどおり**日単位**。`/jobs` の既定の並び替え（新着順）は
+ *    この値で比較しており、同じ日の求人は同値になって DB 順に委ねられる。
+ *    その前提は変えていない。
+ */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function jstDayNumber(ms: number): number {
+  return Math.floor((ms + JST_OFFSET_MS) / 86_400_000);
+}
+
 function daysSince(iso: string | null | undefined): number {
   if (!iso) return 999;
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return 999;
+  return Math.max(0, jstDayNumber(Date.now()) - jstDayNumber(t));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
