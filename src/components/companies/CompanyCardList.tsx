@@ -502,11 +502,24 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
               cursor: "pointer", whiteSpace: "nowrap",
               boxShadow: company.job_count > 0 ? "0 2px 8px rgba(0,35,102,0.20)" : "none",
             }}
-            /* ⚠️ ここだけ `router.push`＝**同タブ**のまま。カード面が別タブだった頃からの
-                  食い違いで、2026-09-07 にカード面を同タブへ揃えたので**行き先も挙動も
-                  カード面と完全に同じになった**（＝同じ行に同じ導線が2つ並んでいる）。
-                  片方を消すか `<Link>` にするかは product 判断待ち。ここでは触っていない。 */
-            onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(href); }}
+            /* ⚠️★**`<Link>` にはできない。** このボタンは**カード全体の `<Link>` の内側**に
+                  あるので、アンカーの入れ子になる。だから `<button>` ＋ `router.push`。
+
+               ⚠️★**修飾キーと中クリックは素通しする**（2026-09-08）。素通しすると
+                  外側の `<Link>` にイベントが届き、ブラウザが「新しいタブで開く」を
+                  ふつうに行う。それまでは無条件に `preventDefault` していたため、
+                  **同じ行・同じ行き先なのに、カード面を⌘クリックすると新しいタブ、
+                  「詳細 →」を⌘クリックすると同じタブ**という割れ方をしていた
+                  （実測 2026-09-08: `?view=list` から `/companies/opinio` へ同タブ遷移）。
+                  ⚠️ `CompanySplitLinks` の素通し条件と**同じ考え方**。片方だけ直さないこと。
+
+               ⚠️ **行き先はカード面と完全に同じ**（2026-09-07 にカード面を同タブへ
+                  揃えた結果、同じ行に同じ導線が2つ並んでいる）。片方を消すかは
+                  product 判断待ちで、ここでは触っていない。 */
+            onClick={e => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+              e.preventDefault(); e.stopPropagation(); router.push(href);
+            }}
           >
             詳細 →
           </button>
