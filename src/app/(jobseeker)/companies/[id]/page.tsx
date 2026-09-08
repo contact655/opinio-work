@@ -79,7 +79,7 @@ const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
 
 
 /**
- * ISR の鮮度（2026-09-08 に 60秒 → 3600秒）。
+ * ISR の鮮度（2026-09-08 に 60秒 → **300秒**）。
  *
  * ── なぜ延ばしたか ────────────────────────────────────────────────────────
  * ⚠️★**60 は「開発中だから」という一時的な値だった。** `694b9242`（2026-06-10）が
@@ -94,21 +94,35 @@ const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
  *      ツール追加（`unstable_cache` 300秒越し）… **188ms**
  *    → **秒数は「保険」の役割に変わった。** 触っていない企業を何秒古くしてよいか、の値。
  *
+ * ⚠️ 300 は `694b9242` が下げる前の値でもある（「安定したら 300 に戻せ」と書かれていた）。
+ *    3600 まで伸ばさなかったのは、`getCompanyEmployeesCached`（社員）の編集経路
+ *    （本人の職歴編集）が配線されておらず、そこだけ最大1時間古くなるため。
+ *
  * ⚠️ 実データが動かないことも確かめてある（2026-09-07 実測 / 掲載83社）:
  *      `ow_companies` の updated_at … 24時間で **0社** / 7日で4社 / 30日で68社
  *      公開求人（2件）… 7日で0件 ／ 企業投稿・記事 … 30日で0件
  *
  * ⚠️★**巡回時の再生成が減るのが実利。** 83社すべてを事前生成しているので、
  *    クローラが全社を1周するたびに `60秒` だと **83ページ × 約26クエリ ≒ 2,160クエリ**の
- *    再生成が走りうる。3600 なら 1/60。ビルド1回より、こちらのほうが継続的な負荷。
+ *    再生成が走りうる。300 なら **1/5**。ビルド1回より、こちらのほうが継続的な負荷。
  *
  * ── 変えるときに一緒に見るもの ────────────────────────────────────────────
- * ⚠️ `queries.ts` の `unstable_cache`（写真・採用担当者・ツール・顧客の業界 300秒 /
- *    記事・ストーリー 60秒 / 社員 120秒）は**別レイヤーだが、揃える必要は無い。**
- *    ページが再生成されるときに期限切れなら引き直され、編集時は `revalidatePath` が
- *    まとめて落とす（2026-09-08 に実測）。**この値より短い限り、上限を決めるのはこちら。**
+ * ⚠️★★**この宣言値だけでは決まらない。描画中に使われた `unstable_cache` / fetch の
+ *    最小の `revalidate` が、そのままルートの値になる。**
+ *    Next のソース（`unstable-cache.js:79-85` / `patch-fetch.js:381,573`）が
+ *    `store.revalidate < options.revalidate` で短い方を残している。
  *
- * ⚠️★**`revalidatePath` を通らない変更は最大1時間古くなる。** 具体的には
+ *    ⚠️ **2026-09-08 に実際に踏んだ。** ここを 3600 にしたが、`queries.ts` 側に
+ *       60秒のものが3本（記事・ストーリー・面談対応者）残っていたため**実効は 60 のまま**で、
+ *       本番の `age` は 60前後で `STALE` に落ちていた（宣言 3600 のはずが変化なし＝no-op）。
+ *       → `queries.ts` の 60/120 を **300 に揃えて**から、ここを 300 にした。
+ *
+ *    ⚠️★**この値を変えるときは `queries.ts` の `unstable_cache` も一緒に見ること。**
+ *       1本でも短いものが残っていると、そちらが上限になる。
+ *       ⚠️ 宣言値ではなく**本番の `age` が伸びるか**で確かめる（CLAUDE.md
+ *          「`revalidate` を書いても効いているとは限らない」）。
+ *
+ * ⚠️★**`revalidatePath` を通らない変更は最大300秒古くなる。** 具体的には
  *    **migration や直接 SQL でのデータ投入**。CLAUDE.md「コード変更が1行も無い migration は
  *    デプロイのきっかけ自体が発生しない」と同じ話で、**データだけの migration でも
  *    commit / push してデプロイを走らせること**（デプロイすれば ISR ごと作り直される）。
@@ -118,7 +132,7 @@ const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
  *    ——運営が取り下げた瞬間に `revalidateCompanyPages()` が走る。
  *    ⚠️ 配線されていない経路を新しく作ったら、この値を延ばした判断ごと崩れる。
  */
-export const revalidate = 3600;
+export const revalidate = 300;
 
 /*
  * ⚠️ **これが無いと `revalidate` が効かない**（2026-08-09 実測。詳細は CLAUDE.md）。
@@ -1648,7 +1662,7 @@ function Sidebar({
 
       {/* カジュアル面談OKウィジェット
              ⚠️ **サーバーで人物を描かない。** 面談対応者は実ユーザーが全員 `login_only` で、
-                このページは ISR（`revalidate = 3600`）なので、ここで描くと
+                このページは ISR（`revalidate = 300`）なので、ここで描くと
                 **未ログインに配られる静的HTMLへ名前と顔が焼き付く**（2026-08-22 まで実際にそうだった）。
              ⚠️ かといってここで `auth.getUser()` を読むとページが動的化する（2026-08-09 の設計）。
                 → 数字だけ渡し、人物はクライアントが `/api/.../employees` 越しに出す。 */}
@@ -1707,7 +1721,7 @@ export default async function CompanyDetailPage({
   params: { id: string };
 }) {
   /* ⚠️ 認証はここで読まない（2026-08-09）。読むとルートが動的化して
-        `export const revalidate = 3600` が効かなくなる。
+        `export const revalidate = 300` が効かなくなる。
         閲覧者ごとに変わるもの（社員一覧・ブックマーク・フォロー）は
         すべてクライアント側の専用APIに移してある。
         ⚠️ ここに `createClient()` や `auth.getUser()` を足さないこと。 */
@@ -1969,7 +1983,7 @@ export default async function CompanyDetailPage({
             {/* 5. 社員・OB/OG（current-employees → alumni）
                 ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
                    ここでサーバーから渡すと `auth.getUser()` が要り、
-                   ページが動的化して `revalidate = 3600` が効かなくなる。
+                   ページが動的化して `revalidate = 300` が効かなくなる。
                    絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
             <CompanyEmployeeSections
               companyId={company.id}

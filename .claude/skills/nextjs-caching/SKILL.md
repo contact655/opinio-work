@@ -209,14 +209,14 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 |---|---|
 | `force-dynamic` | `/jobs`(一覧) `/people` `/people/role/[slug]` `/schools/[id]` `/mypage/*` |
 | 60秒 | `/jobs/[id]` `/companies/[id]/casual-meeting` `/jobs/dept/[slug]` |
-| 300秒 | `/`（LP） `/articles`(一覧) `/articles/[slug]` |
-| 3600秒 | **`/companies/[id]`**（2026-09-08〜） `/salary` `/salary/[slug]` `/articles/type/[slug]` |
+| 300秒 | `/`（LP） `/articles`(一覧) `/articles/[slug]` **`/companies/[id]`**（2026-09-08〜） |
+| 3600秒 | `/salary` `/salary/[slug]` `/articles/type/[slug]` |
 
 掲載状態（`is_published` / 求人の `status`）が出るページは60秒以下にすること。
 `/jobs/dept/[slug]` は当初3600秒だったが、求人を閉じた後も最大1時間流入し続けるため60秒に変更した。
 `/salary` 系は集計ページで掲載状態を直接出さないため3600秒のままでよい。
 
-### ⚠️★`/companies/[id]` だけ 3600 にした理由（2026-09-08）
+### ⚠️★`/companies/[id]` を 60 → 300 にした理由（2026-09-08）
 
 **上の「掲載状態が出るページは60秒以下」の例外。** 例外にできたのは、
 **編集経路から `revalidatePath` を呼ぶようにしたから**であって、値を緩めてよいと
@@ -231,12 +231,26 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 ⚠️★**`revalidatePath` は `unstable_cache` のエントリも落とす**（2026-09-08 実測）。
    ツールは `getCompanyToolsCached`（300秒）越しだが 188ms で出た。エントリは68秒前に
    作り直されており期限内だったので、TTL 切れでは説明できない。
-   → `queries.ts` 側の 60/120/300秒は**ページより短ければよく、揃える必要は無い。**
+
+### ⚠️★★ページの `revalidate` は「描画中に使われた最小値」に引きずられる（2026-09-08 に踏んだ）
+
+**`export const revalidate` に書いた値がそのままルートの値になるとは限らない。**
+`unstable_cache` や `fetch` に**より短い `revalidate`** があると、そちらが上限になる。
+Next のソースが `store.revalidate < options.revalidate` で短い方を残している
+（`unstable-cache.js:79-85` / `patch-fetch.js:381,573`）。
+
+実際に踏んだ: `/companies/[id]` を **3600 にしたのに実効は 60 のまま**だった。
+`queries.ts` に 60秒のものが3本（記事・ストーリー・面談対応者）残っていたため。
+本番の `age` は 60前後で `STALE` に落ち続け、**宣言だけ変えた no-op** になっていた。
+
+→ `queries.ts` の 60/120 を **300 に揃えて**から、ページを 300 にした。
+⚠️ **ページの秒数を変えるときは `queries.ts` の `unstable_cache` も一緒に見ること。**
+⚠️ **確かめるのは宣言値ではなく本番の `age`**（伸びるか）。
 
 ⚠️★**判別軸: `x-vercel-cache: REVALIDATED` かつ `age=0` だけが本物のオンデマンド再検証。**
    `REVALIDATED age=36` のような値も出る（Vercel のエッジ地域差）。`age` を見ずに判断しない。
 
-⚠️★**`revalidatePath` を通らない変更は最大1時間古くなる。** とくに
+⚠️★**`revalidatePath` を通らない変更は最大300秒古くなる。** とくに
    **migration や直接 SQL でのデータ投入**。CLAUDE.md「コード変更が1行も無い migration は
    デプロイのきっかけ自体が発生しない」と同じ話で、**データだけの migration でも
    commit / push してデプロイを走らせること**（デプロイすれば ISR ごと作り直される）。

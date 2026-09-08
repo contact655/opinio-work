@@ -1968,7 +1968,12 @@ export const getCompanyEmployeesCached = (companyId: string) =>
   unstable_cache(
     () => getCompanyEmployees(companyId),
     ["company-employees", companyId],
-    { revalidate: 120 }
+    /* ⚠️★300 に揃えた（2026-09-08）。理由は company-articles の注記と同じ。
+       ⚠️ **ここだけ編集経路が配線されていない。** 本人の職歴編集
+          （`/api/jobseeker/experiences`）は `revalidateCompanyPages()` を呼ばないので、
+          企業ページの社員一覧への反映は **120秒 → 最大300秒**に伸びる。
+          即時にしたければ、あの経路にも `revalidateCompanyPages()` を足すこと。 */
+    { revalidate: 300 }
   )();
 
 /*
@@ -1991,7 +1996,9 @@ export const getArticlesByCompanyCached = (companyId: string) =>
   unstable_cache(
     () => getArticlesByCompany(companyId),
     ["company-articles", companyId],
-    { revalidate: 60 }
+    /* ⚠️★300 に揃えた（2026-09-08）。**ページの `revalidate` はここの最小値に引きずられる**
+          ので、1本でも短いとページ全体がその値になる（Next: unstable-cache.js:79-85）。 */
+    { revalidate: 300 }
   )();
 
 /**
@@ -2037,7 +2044,9 @@ export const getCompanyStoriesCached = (companyId: string) =>
       return data ?? [];
     },
     ["company-stories", companyId],
-    { revalidate: 60 }
+    /* ⚠️★300 に揃えた（2026-09-08）。理由は company-articles の注記と同じ。
+          公開時は `revalidateCompanyPages()` がこの層ごと落とすので即時に出る（実測済み）。 */
+    { revalidate: 300 }
   )();
 
 /** 公開中のアンバサダー（本人同意 + 公開設定の両方が立っている人だけ）
@@ -2151,7 +2160,10 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
     },
     ["company-ambassadors", companyId],
     /* ⚠️ `tags` が無いと revalidateTag で捨てられない。60秒待つしかなくなる。 */
-    { revalidate: 60, tags: [companyAmbassadorsTag(companyId)] }
+    /* ⚠️★300 に揃えた（2026-09-08）。理由は company-articles の注記と同じ。
+          ⚠️ ここは**タグを持っている**ので、承認・解除は `revalidateTag` で即時のまま。
+             秒数が伸びても「触っていないときの上限」が変わるだけ。 */
+    { revalidate: 300, tags: [companyAmbassadorsTag(companyId)] }
   )();
 
 // ─── Company employee categories (ow_company_employee_categories) ─────────────
