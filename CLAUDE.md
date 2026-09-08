@@ -613,6 +613,58 @@ Datadog の「NYSE上場」は事実誤りだったので NASDAQ に訂正して
    `?industry=ai` はいずれも URL ごと復元される。
    ⚠️ **スクロール位置が復元されるかは未確認**（計測環境の制約で測れていない）。
 
+### ⑧★分割ビュー（`?selected=<slug>` / 1280px 以上）（2026-09-08）
+
+**1280px 以上でカードを押すと、全画面へ遷移せず右ペインに要約を出す。**
+
+| | 実体 |
+|---|---|
+| クリックの横取り | [CompanySplitLinks](src/components/companies/CompanySplitLinks.tsx)（上から拾って `preventDefault` するだけ） |
+| 骨組みと CSS | **[CompanySplitLayout](src/components/companies/CompanySplitLayout.tsx)** |
+| 右ペインの中身 | **[CompanyPane](src/components/companies/CompanyPane.tsx)**（要約。**企業詳細 2,134行は使い回さない**） |
+| しきい値 | [lib/constants/splitView.ts](src/lib/constants/splitView.ts) の `SPLIT_MIN_WIDTH` |
+
+⚠️★**しきい値 1280 は3箇所にある。** ①`CompanySplitLinks`（定数）②Sentry の帯（定数）
+   ③**`CompanySplitLayout` の `@media (min-width: 1280px)`** —— CSS からは定数を
+   参照できないので**手で合わせている**。①だけ変えると「**クリックは振り替わるのに
+   ペインが出ない**（＝押しても何も起きない）」という一番分かりにくい壊れ方になる。
+
+⚠️★**`CompanySplitLayout` を複製しないこと。** 一覧グリッドと**絞り込み結果**
+   （`CompanySearchResults`）の2つが同じ部品を使う。2026-09-08 に骨組みを一覧側へ
+   直書きしていたせいで、**絞り込んだ瞬間に分割ビューが消えていた**
+   （実測: 本番の `companies-split` が `/companies` 4件 / `?industry=ai` **0件**）。
+   ⑦の `target="_blank"` と同じ「同じ画面で挙動が割れる」形。
+
+⚠️ **レールの1列化 CSS はグリッドの class を名指ししている**
+   （`companies-grid4` / `search-results-grid`）。**3つ目のグリッドを載せるときは足すこと。**
+   足し忘れると、その画面だけレールが多列のまま1枚 130px に潰れる。
+
+⚠️★**ペインは `CompanySplitLinks` の外に置く。** 中に入れると、ペインの
+   「詳細を見る →」まで横取りされ**全画面へ行けなくなる**（自分を選び直すだけになる）。
+
+⚠️ **`<Link>` を壊さない。** カードは素の `<a>` のままなので、JS が落ちても遷移でき、
+   ⌘/中クリックは素通しされる（⑦の逃げ道が残る）。**`<div onClick>` にしないこと。**
+
+⚠️ **選択の判定は id で行う**（`getCompanyBySlugOrId` の `resolvedId`）。
+   `?selected=` は slug でも uuid でもありうるので、文字列で比べると
+   **uuid で直リンクされたときだけ印が付かない。**
+
+⚠️ **`?view=list` は対象外。** 1行が広く、レールに畳むと `.clc-stats` + `.clc-cta` の
+   337px が入らない（実測）。**絞り込み中は view を見ない**ので条件は
+   `isGridView || hasFilter`。
+
+⚠️ `router.push` の **`scroll: false` を外さないこと。** 外すと選ぶたび一覧が先頭へ飛び、
+   「見比べる」という目的が成立しない。
+
+⚠️ **選んだ企業が現在のページに居ないと印は付かない**（ペインだけ出る）。仕様どおり。
+
+実測（2026-09-08 / 本番 1440px）: `420px 968px` ／ レール1列 ／ はみ出し **0件** ／
+クリック→ペイン描画 411ms ／ 絞り込み中は `?industry=ai&selected=ubie` と**絞り込みが残る**。
+
+⚠️ **1280px 以上の利用者がどれだけ居るかは未確定。** Sentry のタグ `viewport` で
+   計測を始めたところ（`sentry.client.config.ts`。`/companies` だけ採取率100%）。
+   **数日ためてから見る。分かったら採取率を 10% に戻すこと。**
+
 ---
 
 ## ⚠️ 「開示スコア」を名乗る計算が4つある（2026-08-11 整理）
