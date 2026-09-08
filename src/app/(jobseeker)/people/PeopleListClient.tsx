@@ -843,16 +843,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       >
         <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {/* 検索インプット */}
-            <div style={{
+            {/* 検索インプット。
+                ⚠️★フォーカスの表示は `.search-shell:focus-within`（globals.css）。
+                   JS でインラインの style を書き換える形から寄せた（2026-09-09）。
+                   この殻は入力欄側の二重枠も止める（丸の中に四角が重なっていた）。 */}
+            <div className="search-shell" style={{
+              /* ⚠️ ここに残すのは**配置だけ**。枠と背景は `.search-shell`（globals.css）。 */
               position: "relative", flex: "1 1 220px", minWidth: 0,
-              display: "flex", alignItems: "center", gap: 8,
-              background: "#fff", border: "1.5px solid #e6e9ef", borderRadius: 999,
-              padding: "0 14px", transition: "border-color 0.15s, box-shadow 0.15s",
-            }}
-              onFocusCapture={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 3px rgba(0,35,102,0.08)"; }}
-              onBlurCapture={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e6e9ef"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
-            >
+            }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>

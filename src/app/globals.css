@@ -654,6 +654,43 @@ textarea:focus-visible {
   box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
 }
 
+/* ── ★検索バーは「丸い枠そのもの」が入力欄（2026-09-09）────────────────────
+   ⚠️★上の `input:focus-visible { outline: ... !important }` は**残す**。
+      キーボード操作で焦点が見えなくなるので、消してはいけない。
+      ただし検索バーだけは**外側の丸い枠が既にフォーカスを表している**ので、
+      入力欄にもう1つ枠が出ると**丸の中に四角**が重なる（3画面ともそうなっていた:
+      /companies /jobs /people）。
+   ⚠️ そこで**この殻の中でだけ**入力欄の枠を止める。焦点の表示は殻が担う
+      （`:focus-within` で枠の色と影が変わる）ので、**見えなくなるわけではない。**
+   ⚠️★**`input:focus-visible` の側を緩めないこと。** あちらを触ると
+      サイト中の入力欄から焦点表示が消える。ここは殻に閉じた上書き。
+   ⚠️ 殻の側の `:focus-within` を消さないこと。消すと今度は**どこにも**出なくなる。 */
+.search-shell {
+  /* ⚠️★枠と背景を**ここに置く**（2026-09-09）。インラインの style に残すと
+        `:focus-within` が勝てず、フォーカスしても枠の色が変わらない
+        （.claude/rules/ui-debugging.md「インラインstyle と CSS の優先順位」。
+        実際に一度そうなった: 殻の border が inline のままで focus 時も
+        rgb(230,233,239) から動かなかった）。
+     ⚠️ 呼び出し側に border / background / border-radius を書き戻さないこと。 */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1.5px solid #e6e9ef;
+  border-radius: 999px;
+  padding: 0 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-shell:focus-within {
+  border-color: var(--royal);
+  box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+}
+.search-shell input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
 /* ── Skip to main content (screen readers) ── */
 .skip-to-main {
   position: absolute;
@@ -1311,6 +1348,13 @@ body {
         .csb-search-wrap:focus-within {
           border-color: var(--royal);
           box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+        }
+        /* ⚠️ 入力欄側の枠は出さない（丸の中に四角が重なる）。理由は
+              globals.css 上部の `.search-shell` の注記。 */
+        .csb-search-wrap input:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+          border-color: transparent !important;
         }
         .csb-input {
           flex: 1;
