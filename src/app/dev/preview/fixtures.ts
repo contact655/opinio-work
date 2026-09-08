@@ -785,3 +785,137 @@ function empWithParent(i: number, parentIds: string[]): CompanyEmployee {
 /** 実在する親カテゴリ UUID を渡す。**色は職種で変わらない**（全員おなじ淡いグレー）。 */
 export const EMPLOYEES_COLOR_NOW: CompanyEmployee[] =
   Array.from({ length: 6 }, (_, i) => empWithParent(i, PARENT_ROLE_IDS));
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   企業ペイン（`CompanyPane`）用。⚠️ **カードの `CompanyForCarousel` とは別の型。**
+   ペインは詳細ページと同じ `Company` / `CompanyDetail` を受けるので、ここで作る。
+   ⚠️ 実データが薄い（CLAUDE.md「企業詳細の中身はほぼ Salesforce 1社しか埋まっていない」）
+      ので、**厚い側と薄い側の両方**を用意する。片方だけ見て「崩れない」と言わない。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const PANE_NUMBERS = {
+  avgAge: null, femaleRatio: null, avgOvertime: null, paidLeaveRate: null,
+  turnoverRate: null, midCareerRatio: null, avgTenure: null, remoteRatio: null,
+} as unknown as PaneCompanyDetail["numbers"];
+
+type PaneCompany = import("@/app/companies/mockCompanies").Company;
+type PaneCompanyDetail = import("@/app/companies/[id]/mockDetailData").CompanyDetail;
+
+function paneCompany(over: Partial<PaneCompany> = {}): PaneCompany {
+  return {
+    id: "pane-1",
+    slug: "preview-pane",
+    name: "検証ペイン株式会社",
+    name_en: "Preview Pane Inc.",
+    tagline: "現場の合意から、企業のDXを動かす",
+    industry: "",
+    business_domains: [
+      { id: "bd-1", name: "プロジェクト管理", slug: "project", is_primary: true },
+    ],
+    phase: "series_b",
+    employee_count: "約120名",
+    job_count: 2,
+    current_mentors: 0,
+    alumni_mentors: 0,
+    accepting_casual_meetings: true,
+    updated_days_ago: 3,
+    gradient: "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)",
+    genres: [],
+    logo_url: null,
+    logo_letter: "検",
+    ...over,
+  } as PaneCompany;
+}
+
+function paneDetail(over: Partial<PaneCompanyDetail> = {}): PaneCompanyDetail {
+  return {
+    id: "pane-1",
+    mission: "",
+    about: "",
+    established: "2016年",
+    ceo: "検証 太郎",
+    hq: "東京都渋谷区検証1-2-3 検証ビル 8F",
+    url: "https://example.com",
+    company_features: [],
+    freshness: [],
+    jobs: [],
+    current: [],
+    alumni: [],
+    interviews: [],
+    articles: [],
+    related: [],
+    mentor_avatars: [],
+    mentor_current: 0,
+    mentor_alumni: 0,
+    numbers: PANE_NUMBERS,
+    nearestStation: null,
+    workTimeSystem: null,
+    workstyleDescription: null,
+    benefits: null,
+    evaluationSystem: null,
+    fit_positives: null,
+    fit_negatives: null,
+    why_join: null,
+    numbersUpdatedAt: null,
+    orgTeams: [],
+    ...over,
+  } as PaneCompanyDetail;
+}
+
+const paneJob = (title: string, i: number) => ({
+  id: `pane-job-${i}`, slug: `preview-job-${i}`, title, tags: [], salary: "",
+});
+
+/** ★厚い側（Salesforce 相当）。値がひととおり埋まっていて求人も複数ある */
+export const PANE_RICH = {
+  company: paneCompany({
+    name: "検証エンタープライズソリューションホールディングス株式会社",
+    name_en: "Preview Enterprise Solution Holdings Corporation",
+    tagline: "現場の合意形成から、基幹システムの刷新までを一気通貫で支援するプラットフォーム",
+    employee_count: "約1,200名",
+    job_count: 5,
+  }),
+  detail: paneDetail({
+    jobs: [
+      { cat: "営業", total: 3, items: [
+        paneJob("エンタープライズセールス（西日本／新規開拓）", 1),
+        paneJob("カスタマーサクセスマネージャー", 2),
+        paneJob("インサイドセールス", 3),
+      ] },
+      { cat: "開発", total: 2, items: [
+        paneJob("バックエンドエンジニア", 4),
+        paneJob("SRE", 5),
+      ] },
+    ],
+  }),
+  targetIndustries: [
+    { id: "ti-1", name: "建設", slug: "construction", is_primary: true },
+  ] as import("@/types/genre").CompanyTargetIndustry[],
+};
+
+/** ★薄い側（フォトラクション相当）。求人0件・顧客の業界なし・任意項目が空 */
+export const PANE_THIN = {
+  company: paneCompany({
+    id: "pane-thin", slug: "preview-pane-thin",
+    name: "検証うすい株式会社", name_en: null,
+    tagline: "建設の写真・書類管理を自動化する",
+    employee_count: "51-200名",
+    job_count: 0,
+    accepting_casual_meetings: false,
+  }),
+  detail: paneDetail({ id: "pane-thin", established: null, ceo: null, hq: null, jobs: [] }),
+  targetIndustries: [] as import("@/types/genre").CompanyTargetIndustry[],
+};
+
+/** ★すべて空。⚠️「値が無い行は出さない」が守られているかを見るため */
+export const PANE_EMPTY = {
+  company: paneCompany({
+    id: "pane-empty", slug: "preview-pane-empty",
+    name: "検証からっぽ株式会社", name_en: null,
+    tagline: "", business_domains: [], employee_count: null, job_count: 0,
+    accepting_casual_meetings: false,
+  }),
+  detail: paneDetail({ id: "pane-empty", established: null, ceo: null, hq: null, url: "", jobs: [] }),
+  targetIndustries: [] as import("@/types/genre").CompanyTargetIndustry[],
+};

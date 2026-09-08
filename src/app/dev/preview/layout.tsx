@@ -20,6 +20,7 @@ const SECTIONS = [
   { href: "/dev/preview/teams",     label: "組織体制" },
   { href: "/dev/preview/products",  label: "製品・導入事例" },
   { href: "/dev/preview/company-cards", label: "企業カード" },
+  { href: "/dev/preview/company-pane", label: "企業ペイン" },
   { href: "/dev/preview/job-cards", label: "求人カード" },
   { href: "/dev/preview/timeline", label: "職歴タイムライン" },
   { href: "/dev/preview/benefits-editor", label: "福利厚生の入力" },

@@ -43,8 +43,20 @@ export function Variant({
   );
 }
 
-/** ページ冒頭の説明。**何を確認する画面か**を必ず書く */
-export function PreviewHeader({ title, children }: { title: string; children: React.ReactNode }) {
+/** ページ冒頭の説明。**何を確認する画面か**を必ず書く
+ *
+ * ⚠️★`widthNote` は「幅の確かめ方」の帯を差し替える（2026-09-08）。
+ *    既定は「ブラウザ自体をリサイズする（固定幅の箱に入れていない）」だが、
+ *    **`/dev/preview/company-pane` だけは逆**（`CompanyPane` はメディアクエリを持たず
+ *    幅がコンテナで決まるので、固定幅の箱に入れて見るのが正しい）。
+ *    帯が本文と食い違ったまま出ると、次に見る人が確実に誤読する。
+ */
+export function PreviewHeader({ title, children, widthNote }: {
+  title: string;
+  children: React.ReactNode;
+  /** 既定の「ブラウザをリサイズして」の帯を差し替える。省略時は既定のまま */
+  widthNote?: React.ReactNode;
+}) {
   return (
     <div style={{ marginBottom: 28 }}>
       <h1 style={{
@@ -57,8 +69,12 @@ export function PreviewHeader({ title, children }: { title: string; children: Re
         background: "var(--royal-50)", border: "1px solid var(--royal-100)",
         fontSize: 12, color: "var(--royal)", lineHeight: 1.7,
       }}>
-        幅の確認は<strong>ブラウザ自体をリサイズ</strong>してください（375 / 768 / 1300）。
-        固定幅の箱に入れていないので、全バリエーションが同時に追従します。
+        {widthNote ?? (
+          <>
+            幅の確認は<strong>ブラウザ自体をリサイズ</strong>してください（375 / 768 / 1300）。
+            固定幅の箱に入れていないので、全バリエーションが同時に追従します。
+          </>
+        )}
       </p>
       {/* ⚠️★2026-08-30 に実際に誤読しかけた。導入事例のカード高さを CLAUDE.md の
              実測値（1280px・企業ページ列幅 946px で 159px）と比べようとしたが、
