@@ -3,6 +3,7 @@ import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { parseReasonFields } from "@/lib/constants/careerReasons";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     salaryPatch.visibility_salary = (body.visibility_salary as boolean | undefined) ?? false;
   }
 
+  /* ⚠️★**更新前の company_id を控える**（2026-09-08）。所属先を訂正した場合、
+        **前の会社と後の会社の両方**の企業ページから社員一覧が変わる。
+        後だけ落とすと、前の会社のページにその人が残り続ける（最大300秒）。 */
+  const beforeRow = await supabase
+    .from("ow_experiences").select("company_id").eq("id", params.id).eq("user_id", owUser.id).maybeSingle();
+  const beforeCompanyId = (beforeRow.data?.company_id as string | null) ?? null;
+
   const { data: updated, error } = await supabase
     .from("ow_experiences")
     .update({
@@ -180,6 +188,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
   }
 
+  /* ⚠️★2026-09-08 追加。企業ページの社員・OB/OG は `getCompanyEmployeesCached`
+        （unstable_cache 300秒）越しに出るので、ここを落とさないと**最大300秒**古いままだった。
+        ⚠️ 自由入力の会社（`company_id` が null）は企業ページを持たないので何もしない。 */
+  const afterCompanyId = hasCompanyId ? (body.company_id as string) : null;
+  const targets = [beforeCompanyId, afterCompanyId].filter(
+    (v, i, a): v is string => !!v && a.indexOf(v) === i,
+  );
+  for (const cid of targets) await revalidateCompanyPages(cid);
+
   return NextResponse.json({ success: true });
 }
 
@@ -192,6 +209,12 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const { data: owUser } = await supabase.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
   if (!owUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+  /* ⚠️★**削除する前に company_id を控える**（2026-09-08）。消してから引いても行が無く、
+        その企業ページの社員一覧からその人が消えないまま残る（最大300秒）。 */
+  const beforeRow = await supabase
+    .from("ow_experiences").select("company_id").eq("id", params.id).eq("user_id", owUser.id).maybeSingle();
+  const beforeCompanyId = (beforeRow.data?.company_id as string | null) ?? null;
+
   const { error } = await supabase
     .from("ow_experiences")
     .delete()
@@ -202,6 +225,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     console.error("[DELETE /api/jobseeker/experiences/:id]", error.message);
     return NextResponse.json({ error: "削除に失敗しました" }, { status: 500 });
   }
+
+  if (beforeCompanyId) await revalidateCompanyPages(beforeCompanyId);
 
   return NextResponse.json({ success: true });
 }

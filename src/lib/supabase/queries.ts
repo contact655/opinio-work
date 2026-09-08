@@ -1969,10 +1969,11 @@ export const getCompanyEmployeesCached = (companyId: string) =>
     () => getCompanyEmployees(companyId),
     ["company-employees", companyId],
     /* ⚠️★300 に揃えた（2026-09-08）。理由は company-articles の注記と同じ。
-       ⚠️ **ここだけ編集経路が配線されていない。** 本人の職歴編集
-          （`/api/jobseeker/experiences`）は `revalidateCompanyPages()` を呼ばないので、
-          企業ページの社員一覧への反映は **120秒 → 最大300秒**に伸びる。
-          即時にしたければ、あの経路にも `revalidateCompanyPages()` を足すこと。 */
+       ⚠️★**2026-09-08 に編集経路も配線した**（`/api/jobseeker/experiences` の
+          POST / PUT / DELETE と `/api/admin/experiences/[id]` の計4箇所）。
+          職歴を足す・直す・消すと、その企業ページはその場で作り直される。
+          ⚠️ 所属先を**付け替えた**ときは前後2社とも落とす（片方だけだと前の会社の
+             ページにその人が残る）。削除では**消す前に** company_id を控える。 */
     { revalidate: 300 }
   )();
 

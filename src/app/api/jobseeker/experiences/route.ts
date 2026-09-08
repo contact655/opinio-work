@@ -6,6 +6,7 @@ import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MAX_ROLES_PER_EXPERIENCE } from "@/lib/constants/experienceRoles";
 import { NextResponse } from "next/server";
+import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 
 export const dynamic = "force-dynamic";
 
@@ -353,6 +354,11 @@ export async function POST(req: Request) {
       );
     }
   }
+
+  /* ⚠️★2026-09-08 追加。企業ページの社員・OB/OG は `getCompanyEmployeesCached`
+        （unstable_cache 300秒）越しに出るので、ここを落とさないと**最大300秒**古いままだった。
+     ⚠️ 自由入力の会社（`company_id` が null）は企業ページを持たないので何もしない。 */
+  if (hasCompanyId) await revalidateCompanyPages(body.company_id as string);
 
   return NextResponse.json({ id: newId }, { status: 201 });
 }
