@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 
 /**
  * 分割ビューのクリック横取り。**1280px 以上のときだけ**、一覧カードのクリックを
@@ -30,8 +31,6 @@ import { useRouter } from "next/navigation";
  *    （`CompanyCardList` の `handleBookmark`）。**`defaultPrevented` を見て降りる**ので
  *    ここでは二重に拾わない。
  */
-const SPLIT_MIN_WIDTH = 1280;
-
 /** `/companies/<slug>` だけに一致させる。配下（`/casual-meeting` など）は横取りしない */
 const COMPANY_DETAIL_HREF = /^\/companies\/([^/?#]+)$/;
 
