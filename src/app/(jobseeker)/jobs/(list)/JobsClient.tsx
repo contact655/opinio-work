@@ -1216,73 +1216,10 @@ export default function JobsClient({
             {/* ─ Results column ─ */}
             <main id="jobs-results-top" style={{ minWidth: 0 }}>
 
-          {/* ── パーソナライズ: あなたにおすすめの求人 ── */}
-          {!hasFilter && !q && recommendations.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>あなたへのおすすめ</span>
-                <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 600 }}>
-                  {recommendations.length}件
-                </span>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
-                {recommendations.slice(0, 6).map((job) => {
-                  const recCompany = companyMap.get(job.company_id);
-                  return (
-                    <a
-                      key={job.id}
-                      href={`/jobs/${job.slug ?? job.id}`}
-                      style={{
-                        padding: "12px 14px", borderRadius: 12,
-                        background: "#fff", color: "var(--ink)",
-                        border: "1.5px solid var(--line)",
-                        textDecoration: "none", display: "flex", alignItems: "flex-start", gap: 10,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-                        transition: "border-color .15s, box-shadow .15s",
-                      }}
-                    >
-                      <div style={{ flexShrink: 0, marginTop: 1 }}>
-                        {recCompany && (
-                          <CompanyLogo
-                            name={recCompany.name}
-                            logoUrl={recCompany.logo_url}
-                            logoLetter={recCompany.logo_letter}
-                            logoGradient={recCompany.gradient}
-                            size={36}
-                            borderRadius={8}
-                          />
-                        )}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {job.role}
-                        </div>
-                        {recCompany && (
-                          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {(recCompany as any).brand_name ?? recCompany.name}
-                          </div>
-                        )}
-                        {(job.salary_min ?? 0) > 0 && (
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                            {fmtMan(job.salary_min)}
-                            {job.salary_max && job.salary_max > job.salary_min! ? `〜${fmtMan(job.salary_max)}` : ""}万円
-                          </div>
-                        )}
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-              {recommendations.length > 4 && (
-                <div style={{ marginTop: 8, textAlign: "right" }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* ⚠️★「あなたへのおすすめ」は 2026-09-09 に**最下部へ移した**（柴さんの要望）。
+                 ここに戻さないこと —— 一覧を開いた人が最初に見るのは検索結果で、
+                 上に置くとおすすめ2件が結果より先に出て、本題が下へ押される。
+                 実体は `</main>` の直前。 */}
 
           {/* ⚠️ ここにあった「あなたの希望職種にマッチ」セクションは 2026-08-07 に削除した。
                  recommendations.length === 0 のときだけ出るフォールバックだったが、
@@ -1442,6 +1379,78 @@ export default function JobsClient({
 
             </>
           )}
+
+          {/* ── ★パーソナライズ: あなたへのおすすめ（2026-09-09 に最上部から移動）──
+                 ⚠️ 出す条件は変えていない（絞り込みも検索語も無く、推薦が1件以上あるとき）。
+                    絞り込み中に出すと「絞ったのに関係ない求人が出た」になる。
+                 ⚠️ `marginBottom` を `marginTop` に変えてある。最下部では上に間が要る。 */}
+          {!hasFilter && !q && recommendations.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>あなたへのおすすめ</span>
+                <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 600 }}>
+                  {recommendations.length}件
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+                {recommendations.slice(0, 6).map((job) => {
+                  const recCompany = companyMap.get(job.company_id);
+                  return (
+                    <a
+                      key={job.id}
+                      href={`/jobs/${job.slug ?? job.id}`}
+                      style={{
+                        padding: "12px 14px", borderRadius: 12,
+                        background: "#fff", color: "var(--ink)",
+                        border: "1.5px solid var(--line)",
+                        textDecoration: "none", display: "flex", alignItems: "flex-start", gap: 10,
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                        transition: "border-color .15s, box-shadow .15s",
+                      }}
+                    >
+                      <div style={{ flexShrink: 0, marginTop: 1 }}>
+                        {recCompany && (
+                          <CompanyLogo
+                            name={recCompany.name}
+                            logoUrl={recCompany.logo_url}
+                            logoLetter={recCompany.logo_letter}
+                            logoGradient={recCompany.gradient}
+                            size={36}
+                            borderRadius={8}
+                          />
+                        )}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {job.role}
+                        </div>
+                        {recCompany && (
+                          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {(recCompany as any).brand_name ?? recCompany.name}
+                          </div>
+                        )}
+                        {(job.salary_min ?? 0) > 0 && (
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                            {fmtMan(job.salary_min)}
+                            {job.salary_max && job.salary_max > job.salary_min! ? `〜${fmtMan(job.salary_max)}` : ""}万円
+                          </div>
+                        )}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+              {recommendations.length > 4 && (
+                <div style={{ marginTop: 8, textAlign: "right" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
+                </div>
+              )}
+            </div>
+          )}
+
             </main>
           </div>{/* jobs-layout end */}
         </div>
