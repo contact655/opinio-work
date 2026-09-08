@@ -59,9 +59,25 @@ type Props = {
    *    `target` だけ付けて `rel` を落とさないこと。
    */
   openInNewTab?: boolean;
+  /**
+   * ★分割ビューでいま右ペインに出している企業か（2026-09-08）。**既定は false。**
+   *
+   * ⚠️ **compact（縦カード）でだけ効く。** 分割ビューはグリッド表示にしか無いので、
+   *    `?view=list` の横カードには選択という状態が存在しない。
+   *    list 側に足すと「押しても何も変わらない選択状態」を作ることになる。
+   *
+   * ⚠️ **判定は id で行う。** URL の `?selected=` は slug でも uuid でもありうるので、
+   *    呼び出し側は `getCompanyBySlugOrId` が返した `resolvedId` と突き合わせること。
+   *    文字列のまま比べると、uuid で直リンクされたときに選択が付かない。
+   *
+   * ⚠️ 見せ方は**左の色帯 ＋ 薄い背景**にしてある。`outline` にしなかったのは、
+   *    フォーカスリングと区別が付かなくなるため（キーボード操作で「選択中の別カードに
+   *    フォーカスしている」状態が読めなくなる）。
+   */
+  selected?: boolean;
 };
 
-export function CompanyCardList({ company, compact, activeDomainSlug, openInNewTab = false }: Props) {
+export function CompanyCardList({ company, compact, activeDomainSlug, openInNewTab = false, selected = false }: Props) {
   const router = useRouter();
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
@@ -154,6 +170,9 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
           target={linkTarget}
           rel={linkRel}
           className="clv-card"
+          /* ⚠️ 選択は `aria-current` で示す。読み上げに「現在の項目」と伝わるのは
+                色帯ではなくこちら。⚠️ `undefined` を渡すと属性ごと出ない（狙いどおり）。 */
+          aria-current={selected ? "true" : undefined}
           style={{
             /* ⚠️ 2026-08-11: 横並び（ロゴ｜テキスト）から縦積みに変更。
                   タグラインをロゴの下まで全幅に回すため。
@@ -162,10 +181,13 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
             display: "flex",
             flexDirection: "column",
             gap: 10,
-            background: "#fff",
+            /* ⚠️ 選択中は薄く敷く。色帯だけだと 420px のレールでは弱い（実測して足した）。 */
+            background: selected ? "#f4f7fd" : "#fff",
             borderRadius: 12,
             minHeight: 142,
-            border: meetingBorder,
+            /* ⚠️ 枠の**太さは変えない**（1px のまま色だけ変える）。太くすると
+                  選択したカードだけ中身が 1px ずれて、レール全体が跳ねて見える。 */
+            border: selected ? "1px solid var(--royal)" : meetingBorder,
             boxShadow: meetingBoxShadow,
             textDecoration: "none",
             color: "inherit",
@@ -174,6 +196,21 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
             position: "relative",
           }}
         >
+          {/* ★選択中の色帯（2026-09-08）。⚠️ **絶対配置にして通常フローに入れない。**
+                幅を持つ要素として置くと、選択したカードだけ中身が右へずれる。
+                カード側は `position: relative` + `overflow: hidden` なので角丸で切られる。
+             ⚠️ `boxShadow` で描かないこと。hover のルールが `!important` 付きで
+                box-shadow を上書きするので、**カーソルを乗せた瞬間に帯が消える。** */}
+          {selected && (
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
+                background: "var(--royal)",
+              }}
+            />
+          )}
+
           {/* ── ヘッダー行: ロゴ ＋ 名前（ロゴと名前が同じ行にあるので基準線が1本になる）──
               ⚠️ 右に paddingRight を取ってあるのは、右上のハート（絶対配置）の下に
                  長い社名が潜り込まないようにするため。 */}

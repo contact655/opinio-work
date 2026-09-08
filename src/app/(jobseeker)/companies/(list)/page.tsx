@@ -337,6 +337,12 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                             `target="_blank"` だと `<Link>` の prefetch が
                                             使われず捨てられる（CompanyCardList の注記）。 */
                                       openInNewTab={false}
+                                      /* ★いま右ペインに出している企業に印を付ける（2026-09-08）。
+                                         ⚠️ **`selectedSlug` と比べないこと。** URL の値は slug でも
+                                            uuid でもありうるので、`getCompanyBySlugOrId` が解決した
+                                            `resolvedId` と id で突き合わせる。文字列比較にすると
+                                            uuid で直リンクされたときだけ印が付かない。 */
+                                      selected={c.id === selectedResult?.resolvedId}
                                     />
                                   ))}
                                 </div>
