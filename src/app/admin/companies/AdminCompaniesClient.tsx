@@ -24,17 +24,29 @@ function getCompanyGradient(str: string): string {
 type EngagementStatus = "none" | "verified" | "contracted";
 type ListingStatus = "draft" | "listed";
 
-const ENGAGEMENT_CONFIG: Record<EngagementStatus, { label: string; bg: string; color: string; border: string; dot: string }> = {
-  none:       { label: "未認証",         bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0", dot: "#94A3B8" },
-  verified:   { label: "ドメイン認証済", bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7", dot: "#3B5FD9" },
-  contracted: { label: "契約済み",       bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0", dot: "var(--success)" },
-};
 
+/* ⚠️★`engagement_status`（契約済み / ドメイン認証済 / 未認証）の表示は
+      2026-09-09 にこの画面から外した（柴さんの判断）。**戻さないこと。**
+
+      外した理由:
+        ・実測で **103社すべて `none`**、`verified_at` / `contracted_at` は全社 NULL。
+          KPI 3箱・タブ3つ・列1つの**7か所が同じ定数**を映していた。
+          タブは押すと 0件 / 0件 / 全件で、「押すと必ず0件」を自分で作っていた。
+        ・**何もゲートしていない。** 連動しているはずの `jobs_public` も
+          求職者側・企業側から読む場所が0件（型定義とこのファイルのコメントだけ）。
+        ・3値は**2つの別々の軸**（ドメイン認証 / 契約）を1列に詰めたもので、
+          契約の正は既に `ow_company_plans` に移っている。
+          CLAUDE.md「軸が2つあるなら列も2つ持つ」に照らすと、ここへは戻らない。
+
+      ⚠️ **DB の列は残してある。** DROP は別の判断（PL/pgSQL の本体は依存として
+         追跡されないので、関数の中まで検索してからでないと落とせない）。
+      ⚠️ **`/admin/biz-accounts` の表示は残してある。** 全部消すと「そんな概念があった」
+         こと自体が画面から消える。1画面だけ残して気づけるようにしている。
+      ⚠️ 書き込みの Server Action（`updateEngagementStatus`）も残してある
+         （「復活させるなら `jobs_public` を巻き添えにする1行を先に見直すこと」という
+         理由が書かれているため）。 */
 const STATUS_TABS = [
   { key: "all",        label: "すべて" },
-  { key: "contracted", label: "契約済み" },
-  { key: "verified",   label: "ドメイン認証済" },
-  { key: "none",       label: "未認証" },
   /* ★利用者が経歴入力から作った企業（2026-09-05）。
         ⚠️ この一覧に出さないと**誰も見つけられない**。作成は止めていないので、
            気づける経路は運営メールとこのタブだけ。
@@ -225,10 +237,6 @@ export default function AdminCompaniesClient(
   ).length;
 
   const filtered = companies.filter((c) => {
-    const es = c.engagement_status ?? "none";
-    if (activeTab === "contracted" && es !== "contracted") return false;
-    if (activeTab === "verified"   && es !== "verified")   return false;
-    if (activeTab === "none"       && es !== "none")       return false;
     /* ★利用者が作った未掲載の企業だけ。⚠️ 掲載に上げたものは外す（作業一覧なので） */
     if (activeTab === "user_draft" && !(c.source === "user" && c.listing_status !== "listed")) return false;
     if (searchQuery.trim()) {
@@ -243,9 +251,6 @@ export default function AdminCompaniesClient(
     return true;
   });
 
-  const contractedCount = companies.filter((c) => (c.engagement_status ?? "none") === "contracted").length;
-  const verifiedCount   = companies.filter((c) => (c.engagement_status ?? "none") === "verified").length;
-  const noneCount       = companies.filter((c) => (c.engagement_status ?? "none") === "none").length;
   /* ★運営が見るべき件数。⚠️ `is_test` は除外しない —— 検証用企業も
         「利用者が作った未掲載」であることに変わりはなく、ここは作業一覧なので
         隠すと自分で見えない状態を作る（CLAUDE.md「完全に隠さないこと」）。 */
@@ -263,19 +268,6 @@ export default function AdminCompaniesClient(
           <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
             企業の承認・掲載と、カジュアル面談CTAの出し分けを管理します
           </p>
-        </div>
-        {/* KPI バッジ */}
-        <div style={{ display: "flex", gap: 10 }}>
-          {[
-            { label: "契約済み",         count: contractedCount, bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0" },
-            { label: "ドメイン認証済",   count: verifiedCount,   bg: "#EFF3FC", color: "var(--royal)", border: "#DCE5F7" },
-            { label: "未認証",           count: noneCount,       bg: "#F1F5F9", color: "#6b7280", border: "#E2E8F0" },
-          ].map(({ label, count, bg, color, border }) => (
-            <div key={label} style={{ textAlign: "center", padding: "8px 16px", borderRadius: 10, background: bg, border: `1px solid ${border}` }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1.2 }}>{count}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color, marginTop: 2 }}>{label}</div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -360,9 +352,6 @@ export default function AdminCompaniesClient(
                 表引きにして、キーを足し忘れたら 0 ではなく undefined になるようにする。 */
           const COUNTS: Record<string, number> = {
             all: companies.length,
-            contracted: contractedCount,
-            verified: verifiedCount,
-            none: noneCount,
             user_draft: userDraftCount,
           };
           const count = COUNTS[tab.key];
@@ -406,7 +395,7 @@ export default function AdminCompaniesClient(
                 */}
                 {/* ⚠️ 2026-08-13 に「ページ公開」→「ページ」に変え、一覧掲載の後ろへ移した。
                        運営が日常的に押すのは「一覧掲載」だけなので、そちらを前に出す。 */}
-                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "一覧掲載", "ページ表示", "企業ステータス", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "一覧掲載", "ページ表示", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -420,9 +409,7 @@ export default function AdminCompaniesClient(
                 </td></tr>
               ) : (
                 filtered.map((c) => {
-                  const es = (c.engagement_status ?? "none") as EngagementStatus;
 
-                  const esCfg = ENGAGEMENT_CONFIG[es];
                   const isLoading = actionLoading === c.id;
                   const isDragOver = dragOverId === c.id;
                   return (
@@ -652,38 +639,6 @@ export default function AdminCompaniesClient(
                         )}
                       </td>
 
-                      {/*
-                        企業ステータス（engagement_status）— 表示のみ。
-                        ⚠️ 2026-08-05 に編集を止めた。この値は求職者側・biz側のどこからも
-                           参照されておらず、掲載や面談の可否を一切ゲートしていない。
-                           それでいて verified / none に変えると jobs_public を false に
-                           落とす副作用だけがあり、効かないものが害だけ持っている状態だった。
-                           （本番は85社すべて none。verified_at / contracted_at は全社 NULL）
-                        ⚠️ カラムは残してある。この概念を実装するなら、まず何をゲートするかを
-                           決めてから編集UIを戻すこと。
-                      */}
-                      <td style={{ padding: "10px 14px" }}>
-                        <span
-                          title="表示のみ。この値は掲載・面談の可否をゲートしていません"
-                          style={{
-                            display: "inline-block",
-                            fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 6,
-                            background: esCfg.bg, color: esCfg.color, border: `1px solid ${esCfg.border}`,
-                          }}
-                        >
-                          {esCfg.label}
-                        </span>
-                        {es === "verified" && c.verified_at && (
-                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                            認証: {new Date(c.verified_at).toLocaleDateString("ja-JP")}
-                          </div>
-                        )}
-                        {es === "contracted" && c.contracted_at && (
-                          <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 3, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                            契約: {new Date(c.contracted_at).toLocaleDateString("ja-JP")}
-                          </div>
-                        )}
-                      </td>
 
                       {/*
                         面談受付 (accepting_casual_meetings) — 面談の可否を決める唯一のフラグ。

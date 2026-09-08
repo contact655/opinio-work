@@ -149,7 +149,15 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-[240px] bg-[#1a1a1a] text-white flex-shrink-0 fixed top-0 left-0 bottom-0 z-40 overflow-y-auto">
+      {/* ⚠️★縦は flex で3段に割る（2026-09-09）。ヘッダー / スクロールするメニュー / 下段。
+             それまで下段が `absolute bottom-4` で、**スクロールしたメニューの上に重なって**
+             いた（実測: 「スカウト枠管理」「プラン管理」にメールと「サイトに戻る」が重なる）。
+             `overflow-y-auto` の要素の中で `absolute bottom` は**見えている枠の下端**に付くので、
+             中身が伸びるほど必ず重なる。
+          ⚠️ `overflow-y-auto` は `<aside>` ではなく **`<nav>`** に移した。
+             ⚠️ `min-h-0` を外さないこと。flex の子は既定で縮まないので、付けないと
+                nav がはみ出して下段が押し出される。 */}
+      <aside className="w-[240px] bg-[#1a1a1a] text-white flex-shrink-0 fixed top-0 left-0 bottom-0 z-40 flex flex-col">
         <div className="p-5 border-b border-white/10">
           <div className="flex items-center gap-2 mb-1">
             <Link href="/admin" className="text-lg font-bold">
@@ -161,7 +169,7 @@ export default async function AdminLayout({
           </div>
           <p className="text-xs text-gray-400">管理コンソール</p>
         </div>
-        <nav className="p-3">
+        <nav className="p-3 flex-1 min-h-0 overflow-y-auto">
           {NAV_GROUPS.map((group) => (
             <div key={group.label} className="mb-4">
               <p className="px-3 mb-1 text-[10px] font-bold tracking-widest uppercase text-gray-600">
@@ -182,7 +190,7 @@ export default async function AdminLayout({
             </div>
           ))}
         </nav>
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="shrink-0 px-4 pb-4 pt-3">
           <p className="text-[10px] text-gray-600 text-center mb-2">{user.email}</p>
           <Link
             href="/"
