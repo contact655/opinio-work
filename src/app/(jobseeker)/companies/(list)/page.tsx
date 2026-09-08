@@ -10,6 +10,9 @@ import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
+import { CompanySplitLinks } from "@/components/companies/CompanySplitLinks";
+import { CompanyPane } from "@/components/companies/CompanyPane";
+import { getCompanyBySlugOrId, getCompanyTargetIndustriesCached } from "@/lib/supabase/queries";
 
 
 // 企業名はベタ書きしない（理由は lib/seo/featuredCompanies.ts のコメント参照）。
@@ -52,6 +55,11 @@ type SearchParams = {
   view?: string;
   sort?: string;
   page?: string;
+  /** ★分割ビューで右ペインに出す企業の slug（2026-09-08）。
+   *  ⚠️ **1280px 以上でだけ意味を持つ。** 付ける主体は `CompanySplitLinks`
+   *     （クリックの瞬間に幅を見て振り替える）。狭い画面では付かないし、
+   *     直リンクで来ても CSS でペイン列ごと隠れる。 */
+  selected?: string;
 };
 
 type Props = {
@@ -154,6 +162,22 @@ export default async function CompaniesPage({ searchParams }: Props) {
       : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
     // 口コミ平均スコア
   ]);
+
+  /* ── ★分割ビュー（2026-09-08）─────────────────────────────────────────────
+     `?selected=<slug>` があるときだけ、右ペイン用の企業を引く。
+     ⚠️ **グリッド表示のときだけ**（`?view=list` と絞り込み中は対象外。
+        あちらは1行が広く、レールに畳むと `.clc-stats`+`.clc-cta` の 337px が
+        入らない —— フェーズ0で実測済み）。
+     ⚠️ ペインは要約なので `CompanyPane` を使う。**企業詳細ページは使い回さない**
+        （700px のコンテナに入れると壊れる。理由は CompanyPane の注記）。
+     ⚠️ 見つからない slug は**黙って無視する**（ペインを出さないだけ）。
+        一覧そのものは正しいので 404 にはしない。 */
+  const selectedSlug = isGridView ? (searchParams.selected ?? null) : null;
+  const selectedResult = selectedSlug ? await getCompanyBySlugOrId(selectedSlug) : null;
+  const selectedTargets = selectedResult
+    ? await getCompanyTargetIndustriesCached(selectedResult.resolvedId)
+    : [];
+  const showPane = selectedResult !== null;
 
   return (
     <>
@@ -259,19 +283,73 @@ export default async function CompaniesPage({ searchParams }: Props) {
                               @media (max-width: 600px) {
                                 .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
                               }
+
+                              /* ── ★分割ビュー（2026-09-08）──────────────────────────
+                                 ⚠️★1280px 未満ではペイン列ごと出さない。
+                                    狭い画面で右に畳むと、レールもペインも読めなくなる。
+                                    ?selected= を直リンクで開いても同じ（一覧だけが出る）。
+                                 ⚠️ カードのクリックを振り替えるのは CompanySplitLinks。
+                                    あちらも同じ 1280 を見ている。片方だけ変えないこと。
+                                 ⚠️★ここは style タグのテンプレートリテラルの中。2つ踏んだ:
+                                    (1) バッククォートを書くと文字列が途中で閉じる
+                                    (2) 山かっこ付きのタグ名を書くと、サーバーだけ実体参照に
+                                        エスケープされてハイドレーション不一致になる
+                                    どちらもコメントの文字だけで起きる。記号を書かないこと。 */
+                              .companies-split { display: block; }
+                              .companies-pane { display: none; }
+                              @media (min-width: 1280px) {
+                                .companies-split {
+                                  display: grid;
+                                  /* 左レール 420px。フェーズ0の実測で compact カードは
+                                     380px でも 40件中39件がクランプ無しに収まる。 */
+                                  grid-template-columns: 420px minmax(0, 1fr);
+                                  gap: 20px;
+                                  align-items: start;
+                                }
+                                /* ⚠️ レールでは必ず1列。3列のままだと1枚 130px になる */
+                                .companies-split .companies-grid4 {
+                                  grid-template-columns: minmax(0, 1fr);
+                                  gap: 10px;
+                                }
+                                .companies-pane {
+                                  display: block;
+                                  /* ⚠️ sticky はページ側の列に置く。CompanyPane の中には
+                                        置かない（あの部品は fixed/sticky を持たない約束）。
+                                     ⚠️ top はヘッダー(60) + 検索バー帯のぶん。実測で調整した。 */
+                                  position: sticky;
+                                  top: 150px;
+                                  max-height: calc(100vh - 170px);
+                                  overflow-y: auto;
+                                }
+                              }
                             `}</style>
-                            <div className="companies-grid4">
-                              {paged.map(c => (
-                                <CompanyCardList
-                                  key={c.id}
-                                  company={c}
-                                  compact
-                                  /* ⚠️ **同タブ**（2026-09-07）。別タブに戻さないこと。
-                                        `target="_blank"` だと `<Link>` の prefetch が
-                                        使われず捨てられる（CompanyCardList の注記）。 */
-                                  openInNewTab={false}
-                                />
-                              ))}
+                            <div className={showPane ? "companies-split" : undefined}>
+                              {/* ⚠️ クリック横取りは 1280px 以上でだけ働く。狭い画面では
+                                     カードは素の `<a>` として全画面へ遷移する。 */}
+                              <CompanySplitLinks>
+                                <div className="companies-grid4">
+                                  {paged.map(c => (
+                                    <CompanyCardList
+                                      key={c.id}
+                                      company={c}
+                                      compact
+                                      /* ⚠️ **同タブ**（2026-09-07）。別タブに戻さないこと。
+                                            `target="_blank"` だと `<Link>` の prefetch が
+                                            使われず捨てられる（CompanyCardList の注記）。 */
+                                      openInNewTab={false}
+                                    />
+                                  ))}
+                                </div>
+                              </CompanySplitLinks>
+                              {showPane && selectedResult && (
+                                <aside className="companies-pane" aria-label="選択した企業の概要">
+                                  <CompanyPane
+                                    company={selectedResult.company}
+                                    detail={selectedResult.detail}
+                                    targetIndustries={selectedTargets}
+                                  />
+                                </aside>
+                              )}
                             </div>
                           </>
                         ) : (
