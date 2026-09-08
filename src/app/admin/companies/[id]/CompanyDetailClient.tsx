@@ -553,6 +553,23 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
     { key: 'tools', label: 'ツール' },
   ];
 
+  /* ── 「保存する」を出すか ────────────────────────────────────────────────
+     ⚠️★**押した瞬間に確定するタブには出さない**（2026-09-08）。
+        `tools` はサーバーアクション（`toolActions.ts`）が、`admins` は
+        `DELETE /api/admin/companies/[id]/admins/[user_id]` が、その場で確定させる。
+        `handleSave` は `PUT /api/admin/companies/[id]` と 事業領域 / 対象業界 /
+        ジャンル しか送らないので、この2タブで押しても**何も起きない。**
+        害は無いが「押さないと保存されないのでは」と思わせるので出さない。
+
+     ⚠️★**opt-out（出さないタブを列挙）にしてある。逆にしないこと。**
+        「出すタブを列挙」にすると、新しいタブを足した人が書き忘れたときに
+        **保存ボタンが消えて編集が黙って保存されない**という危ない方向に倒れる。
+        こちらなら、書き忘れても「不要なボタンが出る」だけで済む。
+
+     ⚠️ `handleSave` に新しい保存先を足したら、そのタブをこの配列から**外す**こと。 */
+  const SELF_SAVING_TABS: TabKey[] = ['tools', 'admins'];
+  const showSaveBar = !SELF_SAVING_TABS.includes(activeTab);
+
   // ── 入力スタイル ──────────────────────────────────────────────────────
   const inputCls = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
   const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
@@ -1417,7 +1434,8 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
         />
       )}
 
-      {/* ── 保存ボタン（sticky） ──────────────────────────────────────────── */}
+      {/* ── 保存ボタン（sticky）。⚠️ `SELF_SAVING_TABS` では出さない ─────────── */}
+      {showSaveBar && (
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 px-8 py-4 flex justify-end gap-3 z-10">
         <button
           type="button"
@@ -1435,6 +1453,7 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
           {isSaving ? '保存中...' : '保存する'}
         </button>
       </div>
+      )}
 
       {/* ── アクセス管理タブ ──────────────────────────────────────────────── */}
       {activeTab === 'admins' && (
@@ -1537,8 +1556,8 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
         onCancel={() => setKickTarget(null)}
       />
 
-      {/* sticky button の余白 */}
-      <div className="h-20" />
+      {/* sticky button の余白。⚠️ バーと同じ条件にする（出ないタブで空白だけ残さない） */}
+      {showSaveBar && <div className="h-20" />}
     </div>
   );
 }
