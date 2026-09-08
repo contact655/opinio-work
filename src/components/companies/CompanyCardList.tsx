@@ -378,25 +378,61 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
         .company-list-card { transition: box-shadow 0.2s ease, transform 0.15s ease; }
         .company-list-card:hover { box-shadow: 0 6px 24px rgba(0,35,102,0.12) !important; transform: translateY(-1px); }
         .company-list-card:hover .clc-name { color: var(--royal) !important; }
+        /* 実数1列ぶんの左右余白。⚠️ インラインではなくここに置く（上書きしたいので） */
+        .clc-stat-col { padding: 0 18px; }
+
+        /* ── 分割ビューのレールに入ったときだけ詰める（2026-09-09）──────────
+           ⚠️ 幅で判定しない。**レールに入っているかどうか**が条件なので、
+              祖先の companies-split で絞る。メディアクエリにすると、
+              分割していない全幅の一覧まで詰まってしまう。
+           ⚠️ ここは style タグのテンプレートリテラルの中。引用の記号を書かないこと。 */
+        .companies-split .company-list-card .clc-title {
+          /* 正式社名が語中で折り返すのを止める。行の高さが揃う */
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        /* 実数3列の左右余白を詰めて、本文に幅を返す（18px から 10px へ。約48px 戻る）。
+           ⚠️★ここに不等号を書かないこと。**サーバーだけ実体参照にエスケープされて
+              ハイドレーション不一致になる**（2026-09-09 に、ここで矢印の代わりに
+              不等号を書いて実際に踏んだ）。タグ名でなくても、裸の記号1文字で起きる。 */
+        .companies-split .company-list-card .clc-stat-col { padding: 0 10px; }
       `}</style>
       <Link
         href={href}
         target={linkTarget}
         rel={linkRel}
         className="company-list-card"
+        /* ⚠️ compact 側と同じ。選択は aria-current で示す（色帯は読み上げに伝わらない） */
+        aria-current={selected ? "true" : undefined}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 18,
           padding: "18px 20px",
-          background: "#fff",
+          /* ⚠️ compact 側と**同じ色**にする（2026-09-09）。行とカードで選択の見え方が
+                違うと、表示形式を切り替えたときに別の状態に見える。 */
+          background: selected ? "#f4f7fd" : "#fff",
           borderRadius: 14,
-          border: meetingBorder,
+          /* ⚠️ 枠は太さを変えず色だけ。太くすると選択した行だけ中身が 1px ずれる。 */
+          border: selected ? "1px solid var(--royal)" : meetingBorder,
           boxShadow: meetingBoxShadow,
           textDecoration: "none",
           color: "inherit",
+          /* ⚠️ 色帯を絶対配置で載せるために必要。角丸で切るので overflow も要る。 */
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        {/* ★選択中の色帯。⚠️ compact 側と同じ理由で box-shadow では描かない
+               （hover のルールが !important 付きで box-shadow を上書きするため）。 */}
+        {selected && (
+          <span
+            aria-hidden="true"
+            style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--royal)" }}
+          />
+        )}
+
         {/* ── ロゴ ── */}
         <CompanyLogo
           name={company.name}
@@ -413,8 +449,11 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 4 }}>
           </div>
 
-          {/* 会社名 */}
-          <div style={{ marginBottom: 3 }}>
+          {/* 会社名。⚠️ `clc-title` は**分割ビューのレールで1行に詰めるため**の目印
+                 （2026-09-09）。レールでは本文が 241px しかなく、正式社名が
+                 「株式会社アンドパ / ッド」のように語中で折り返して行の高さが
+                 127〜175px にばらついていた。CSS は下の style タグ。 */}
+          <div className="clc-title" style={{ marginBottom: 3 }}>
             <span className="clc-name" style={{
               fontSize: 16, fontWeight: 800,
               color: "var(--ink)",
@@ -563,7 +602,10 @@ function JobCountStat({ count }: { count: number }) {
 
 function StatCol({ label, value, unit, highlight }: { label: string; value: number; unit: string; highlight?: boolean }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 2 }}>
+    /* ⚠️ padding は**インラインに書かない**（2026-09-09）。分割ビューのレールで
+          詰めたいので、CSS 側（`.clc-stat-col`）に置いてある。インラインだと
+          `!important` でしか上書きできず、ハウスルールに反する。 */
+    <div className="clc-stat-col" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
         <span style={{
           fontSize: 20, fontWeight: 700,

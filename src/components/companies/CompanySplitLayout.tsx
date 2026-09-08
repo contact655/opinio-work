@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CompanySplitLinks } from "./CompanySplitLinks";
 
 /**
@@ -35,10 +35,25 @@ export function CompanySplitLayout({
    *    どのカードが開いているかは `aria-current`（`CompanyCardList`）が伝える。
    */
   paneLabel = null,
+  /**
+   * ★左レールの幅（2026-09-09）。**表示形式で必要な幅が違う。**
+   *
+   * | 表示 | 幅 | 理由 |
+   * |---|---|---|
+   * | 一覧（compact カード） | **420** | フェーズ0の実測で 380px でも 40件中39件がクランプ無しに収まる |
+   * | 詳細（list 行） | **700** | 1行の固定部分が **499px**（padding 40 + gap 18×3 + ロゴ68 + 実数241 + ボタン96）。420 だと本文が 0 になる |
+   *
+   * ⚠️★**メディアクエリの中で使う変数として渡している。** 値そのものはインラインだが、
+   *    「分割するかどうか」は下の `@media (min-width: 1280px)` が握ったまま。
+   *    ⚠️ ここに `@media` を増やして幅を出し分けないこと。呼び出し側が知っている値なので、
+   *       CSS 側で表示形式を判定し直すと二重管理になる。
+   */
+  railWidth = 420,
 }: {
   children: ReactNode;
   pane: ReactNode;
   paneLabel?: string | null;
+  railWidth?: number;
 }) {
   return (
     <>
@@ -60,9 +75,11 @@ export function CompanySplitLayout({
         @media (min-width: 1280px) {
           .companies-split {
             display: grid;
-            /* 左レール 420px。フェーズ0の実測で compact カードは 380px でも
-               40件中39件がクランプ無しに収まる。 */
-            grid-template-columns: 420px minmax(0, 1fr);
+            /* 左レールの幅は --rail-w（呼び出し側が渡す。既定 420px）。
+               ⚠️ 一覧は 420、詳細（list 行）は 700。理由は railWidth の注記。
+               ⚠️ ここは style タグのテンプレートリテラルの中。**引用の記号を書かないこと**
+                  （2026-09-09 にこの行で実際に文字列が途中で閉じた）。 */
+            grid-template-columns: var(--rail-w, 420px) minmax(0, 1fr);
             gap: 20px;
             align-items: start;
           }
@@ -101,7 +118,12 @@ export function CompanySplitLayout({
       <div aria-live="polite" className="sr-only">
         {paneLabel ? `${paneLabel} の概要を表示しました` : ""}
       </div>
-      <div className={pane ? "companies-split" : undefined}>
+      <div
+        className={pane ? "companies-split" : undefined}
+        /* ⚠️ カスタムプロパティなので、分割しないとき（`companies-split` が付かないとき）は
+              誰も読まない。無害なので出し分けていない。 */
+        style={{ "--rail-w": `${railWidth}px` } as CSSProperties}
+      >
         {/* ⚠️ クリック横取りは 1280px 以上でだけ働く。狭い画面ではカードは
                素の a として全画面へ遷移する。 */}
         <CompanySplitLinks>{children}</CompanySplitLinks>

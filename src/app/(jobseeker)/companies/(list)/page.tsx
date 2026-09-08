@@ -102,6 +102,19 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 const PAGE_SIZE = 40;
 
+/**
+ * ★分割ビューの左レール幅（2026-09-09）。**表示形式で必要な幅が違う。**
+ *
+ * ⚠️ 詳細表示（list）の1行は**固定部分だけで 499px**（実測 1440px / dev）:
+ *      padding 40 ＋ gap 18×3 ＝ 94 ／ ロゴ 68 ／ 実数3列 241 ／ ボタン列 96
+ *    一覧と同じ 420px に畳むと**本文の幅が 0 になる**ので、700px 取っている
+ *    （本文に約 201px 残る）。
+ * ⚠️ 1280px（分割が始まる最小幅）では pane 側が 528px になる。`CompanyPane` は
+ *    380px から崩れないことを `/dev/preview/company-pane` で確認済み。
+ */
+const GRID_RAIL_WIDTH = 420;
+const LIST_RAIL_WIDTH = 700;
+
 type SearchParams = {
   q?: string;
   phase?: string;
@@ -232,14 +245,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
         （実測: 本番 HTML の `companies-split` が `/companies` は4件、
         `?industry=ai` は 0件）。同じカード部品が画面によって挙動を変えていた。
         ⚠️ 絞り込み後こそ見比べたい場面なので、ここを外さないこと。
-     ⚠️ **`?view=list` だけは対象外。** あちらは1行が広く、レールに畳むと
-        `.clc-stats`+`.clc-cta` の 337px が入らない（フェーズ0で実測済み）。
-        ⚠️ 絞り込み中は view を見ない（結果は常にグリッド）ので `hasFilter` を足す。
+     ⚠️★**`?view=list`（詳細表示）も対象**（2026-09-09 に追加。柴さんの要望）。
+        それまで外していた理由は「1行が広く、レールに畳むと `.clc-stats`+`.clc-cta` が
+        入らない」だったが、**レール幅を表示形式で変えれば入る**（下の `LIST_RAIL_WIDTH`）。
      ⚠️ ペインは要約なので `CompanyPane` を使う。**企業詳細ページは使い回さない**
         （700px のコンテナに入れると壊れる。理由は CompanyPane の注記）。
      ⚠️ 見つからない slug は**黙って無視する**（ペインを出さないだけ）。
         一覧そのものは正しいので 404 にはしない。 */
-  const selectedSlug = isGridView || hasFilter ? (searchParams.selected ?? null) : null;
+  const selectedSlug = searchParams.selected ?? null;
   const selectedResult = selectedSlug ? await getCompanyBySlugOrId(selectedSlug) : null;
   const selectedTargets = selectedResult
     ? await getCompanyTargetIndustriesCached(selectedResult.resolvedId)
@@ -375,7 +388,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                    ここに書き戻さないこと —— 絞り込み結果
                                    （CompanySearchResults）が同じものを使っているので、
                                    割れると片方の画面でだけペインが出なくなる。 */}
-                            <CompanySplitLayout pane={pane} paneLabel={paneLabel}>
+                            <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={GRID_RAIL_WIDTH}>
                               <div className="companies-grid4">
                                 {paged.map(c => (
                                   <CompanyCardList
@@ -398,16 +411,22 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             </CompanySplitLayout>
                           </>
                         ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
-                            {paged.map(c => (
-                              <CompanyCardList
-                                key={c.id}
-                                company={c}
-                                /* ⚠️ グリッド側と同じ。**同タブ**（2026-09-07） */
-                                openInNewTab={false}
-                              />
-                            ))}
-                          </div>
+                          /* ⚠️★詳細表示も分割ビューに載せる（2026-09-09）。**同じ部品**を使う
+                                 ——一覧グリッドと骨組みが割れると、片方だけペインが出なくなる。
+                             ⚠️ レール幅だけが違う（1行が広いため）。理由は LIST_RAIL_WIDTH。 */
+                          <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={LIST_RAIL_WIDTH}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
+                              {paged.map(c => (
+                                <CompanyCardList
+                                  key={c.id}
+                                  company={c}
+                                  /* ⚠️ グリッド側と同じ。**同タブ**（2026-09-07） */
+                                  openInNewTab={false}
+                                  selected={c.id === selectedCompanyId}
+                                />
+                              ))}
+                            </div>
+                          </CompanySplitLayout>
                         )}
                         {/* 下部ページネーション */}
                         <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />
