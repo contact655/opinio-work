@@ -219,7 +219,7 @@ function ArticleCard({ article }: { article: Article }) {
   );
 }
 
-// ─── Article List Row (リスト表示) ────────────────────────────────────────────
+// ─── Article List Row（表示モード list ＝画面では「詳細」）────────────────────────────────────────────
 
 function ArticleListRow({ article }: { article: Article }) {
   const badge = TYPE_BADGE[article.type];
@@ -349,7 +349,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
             </div>
           ) : (
             <>
-              {/* Featured article (グリッド表示時のみ) */}
+              {/* Featured article（表示モード grid ＝画面では「一覧」のときだけ） */}
               {viewParam !== "list" && !typeParam && filteredArticles.length > 0 && (() => {
                 const featured = filteredArticles[0];
                 const badge = TYPE_BADGE[featured.type];
@@ -491,7 +491,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                 </div>
               )}
 
-              {/* ── Pagination（グリッド表示のみ） ── */}
+              {/* ── Pagination（表示モード grid ＝画面では「一覧」のときだけ） ── */}
               {viewParam !== "list" && totalPages > 1 && (
                 <div style={{
                   display: "flex", justifyContent: "center", alignItems: "center",

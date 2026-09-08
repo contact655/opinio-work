@@ -152,21 +152,27 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                    企業一覧の「濃紺の塗り + 白文字」と違っていた。
                 ⚠️ ボタンのスタイルは globals.css の **`.view-btn`**（企業一覧と共有）。
                    ここに padding や font-size を書き足さないこと —— 2ページでまたズレる。
-                ⚠️ **ラベルは「グリッド / リスト」のまま。** 企業一覧の「一覧 / 詳細」に
-                   揃えないこと —— あちらの「詳細」は情報量の多い行を指すが、
-                   記事のリストは**逆に省スペースな行**で、意味が合わない。 */}
+                ⚠️★**ラベルは「一覧 / 詳細」**（2026-09-09 に柴さんの指示で変更）。
+                   それまでは「グリッド / リスト」で、2026-09-06 のコメントは
+                   「揃えないこと」と書いていた。理由は *`/companies` の「詳細」は
+                   情報量の多い行だが、記事のリストは逆に省スペースな行で意味が合わない*。
+                   ⚠️★**その理由は承知のうえで、語を揃える判断に変えた。**
+                      同じ位置・同じ意匠のトグルが、ページごとに違う語で出ているほうが
+                      迷う、という判断（柴さん）。**「グリッド / リスト」に戻さないこと。**
+                   ⚠️ 記事の「詳細」が省スペースな行である点は変わっていない。
+                      情報量を増やすかどうかは別の判断。 */}
             <div style={{
               display: "flex", gap: 2,
               background: "var(--line-soft)", borderRadius: 8, padding: 2,
             }}>
               {([
-                { mode: "grid", label: "グリッド", title: "グリッド表示", icon: (
+                { mode: "grid", label: "一覧", title: "一覧表示", icon: (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                     <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
                     <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
                   </svg>
                 )},
-                { mode: "list", label: "リスト", title: "リスト表示", icon: (
+                { mode: "list", label: "詳細", title: "詳細表示", icon: (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                     <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
                     <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
