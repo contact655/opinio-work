@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetadataRoute } from "next";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { getDeptJobs } from "@/lib/jobs/deptJobs";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 
 /**
  * ★1時間で作り直す（2026-08-30 に追加）。
@@ -53,6 +54,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ⚠️★**画面側と同じ `getDeptJobs()` を使う。** ここで数え直すと、
            「sitemap にはあるのに中身0件」「noindex なのに sitemap にある」が起きる。 */
   const deptJobs = await getDeptJobs();
+
+  /* ★事業領域の入口ページ（2026-09-09 に追加）。
+        ⚠️ **画面と同じ `getBusinessDomainFacets()` を使う。** ここで数え直すと
+           「sitemap にはあるのに0件」「フッターには無いのに sitemap にある」が起きる
+           （部門ページで `getDeptJobs()` を共有しているのと同じ理由）。
+        ⚠️ この関数は**0社の事業領域を返さない**ので、0件ページを載せる心配は無い。
+           **中身の無いページを自分から知らせない**という既存方針どおり。
+        ⚠️ 載せる URL は `?industry=<slug>` **単独**の形だけ。他の絞り込みと
+           組み合わせた URL は canonical を `/companies` に寄せてあるので載せない
+           （`companies/(list)/page.tsx` の `facetForMetadata` と対になっている）。 */
+  const domainFacets = await getBusinessDomainFacets();
 
   const baseUrl = "https://opinio.jp";
 
@@ -155,6 +167,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.65,
     })) ?? []),
+
+    // ── Dynamic: 事業領域の入口（?industry=<slug>）───────────────────────────
+    /* ⚠️ 企業ページ（0.65）より高くしない。あちらが実体で、こちらは入口。 */
+    ...domainFacets.map((facet) => ({
+      url: `${baseUrl}/companies?industry=${facet.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    })),
 
     // ── Dynamic: articles ────────────────────────────────────────────────────
     ...(articles?.map((article) => ({

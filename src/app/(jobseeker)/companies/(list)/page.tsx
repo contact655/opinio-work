@@ -10,14 +10,76 @@ import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
+import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
 import { CompanyPane } from "@/components/companies/CompanyPane";
 import { getCompanyBySlugOrId, getCompanyTargetIndustriesCached } from "@/lib/supabase/queries";
 
 
+/**
+ * ★`?industry=<slug>` を**単独で**指定したときだけ、その事業領域の「入口ページ」として扱う
+ * （2026-09-09）。それ以外は従来どおり `/companies` の複製として扱う。
+ *
+ * ── ⚠️★なぜ必要だったか ──────────────────────────────────────────────────
+ * 実測（2026-09-08 / 本番）: フッターから14件の `?industry=` が全ページに張られており、
+ * 各19〜2社の実体があるのに、**14件すべてが `<title>` 同一・`canonical` は `/companies`**
+ * だった。つまり検索エンジンには `/companies` の複製としか見えず、
+ * 「CRM 企業」「セキュリティ SaaS 企業」のような検索で出る余地が無かった。
+ * 一方リポジトリはこれらを**恒久的な入口として扱っている**
+ * （`?industry=` のキーは「被リンクを切らないため」に維持され、旧キーは
+ * `resolveIndustryKey()` が救済している）。**扱いと実装が食い違っていた。**
+ *
+ * ⚠️★**「単独のとき」だけに限る。** 他の絞り込み（`q` / `phase` / `workStyle` /
+ *    `hiring` / `location` / `target` / `foreign`）と組み合わさった URL は
+ *    組み合わせの数だけ増えるので、**`/companies` に寄せたまま**にする。
+ *    ⚠️ `page` / `view` / `selected` は**絞り込みではない**ので無視してよい
+ *       （`?industry=ai&selected=ubie` は `?industry=ai` に寄る）。
+ *
+ * ⚠️ 0社の事業領域は `getBusinessDomainFacets()` が返さないので、ここにも来ない。
+ *    **中身の無いページを自分から知らせない**（sitemap の既存方針と同じ）。
+ */
+async function facetForMetadata(searchParams: SearchParams) {
+  if (!searchParams.industry) return null;
+  const hasOtherFilter = Boolean(
+    searchParams.q || searchParams.phase || searchParams.workStyle ||
+    searchParams.hiring || searchParams.location || searchParams.target || searchParams.foreign
+  );
+  if (hasOtherFilter) return null;
+  const key = resolveIndustryKey(searchParams.industry);
+  const facets = await getBusinessDomainFacets();
+  return facets.find((f) => f.slug === key) ?? null;
+}
+
 // 企業名はベタ書きしない（理由は lib/seo/featuredCompanies.ts のコメント参照）。
 // 一覧ページなので基準は "content"＝求人と記事の合計が多い順。
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const facet = await facetForMetadata(searchParams);
+  if (facet) {
+    /* ⚠️ 件数は**そのとき数えた値**（`getBusinessDomainFacets` の count）。
+          固定値を書かない。⚠️ 「掲載中の企業数」であって求人数ではない。 */
+    const facetDescription =
+      `${facet.name}の領域で事業を行うIT企業${facet.count}社。企業情報・求人・組織文化をまとめて確認できます。`;
+    const ogUrl =
+      `/api/og?type=list&name=${encodeURIComponent(facet.name)}` +
+      `&sub=${encodeURIComponent("IT/SaaS業界の企業・求人")}&v=2`;
+    return {
+      title: { absolute: `${facet.name}のIT企業一覧 | OPINIO` },
+      description: facetDescription,
+      keywords: [facet.name, "IT企業", "SaaS企業", "転職", "求人", "OPINIO"],
+      /* ⚠️★**自己 canonical。** ここを `/companies` のままにすると、
+            固有の title を付けても検索エンジンは `/companies` に寄せてしまう。 */
+      alternates: { canonical: `/companies?industry=${facet.slug}` },
+      openGraph: {
+        title: `${facet.name}のIT企業を探す | OPINIO`,
+        description: facetDescription,
+        type: "website",
+        url: `/companies?industry=${facet.slug}`,
+        images: [{ url: ogUrl, width: 1200, height: 630 }],
+      },
+      twitter: { card: "summary_large_image", description: facetDescription },
+    };
+  }
+
   const lead = await featuredCompanyPrefix("content");
   const description = `${lead}IT業界の企業情報・求人・組織文化をまとめて確認できます。`;
 
