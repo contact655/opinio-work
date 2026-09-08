@@ -77,6 +77,23 @@ export function CompanyPane({
         ——生の値をそのまま画面に出さないため。 */
   const phase = phaseLabel(company.phase);
 
+  /* ★企業説明の冒頭（2026-09-09 に追加）。
+     ⚠️★**タグライン1行だけでは「何をしている会社か」が分からない。** 見比べるための
+        ペインなので、ここが一番効く。実測（掲載83社）でも **83社すべてに値がある**
+        （主な製品は16社、記事11社、導入事例3社。あちらは出ない企業のほうが多い）。
+     ⚠️★**最初の段落だけ。** `description` は markdown で、2026-08-26 に空行区切りへ
+        正規化してある（改行1つで区切っていた9社を直した）。全文を出すとペインが伸び、
+        「詳細を見る」「話を聞く」が `max-height` の外へ落ちる。
+     ⚠️ **markdown として描画しない。** `Markdown` 部品を持ち込むと見出しやリストが
+        ペインの中で開き、要約でなくなる。**素のテキストとして3行でクランプ**する。
+        ⚠️ 実測（2026-08-26）: 掲載企業で markdown 記法から始まる説明は **0件**。
+           それでも先頭の `#` と `>` は落としてから出す（生の記号を画面に出さないため）。
+     ⚠️ 全文は詳細ページの「企業について」にある。ここは要約。 */
+  const aboutLead = (detail.about ?? "")
+    .split(/\n\s*\n/)[0]
+    .replace(/^[#>\s]+/, "")
+    .trim();
+
   /* 募集中の求人。⚠️ **上位3件だけ**。ペインは要約なので、全件は詳細ページに任せる。
      ⚠️ `detail.jobs` はカテゴリの配列なので平坦化してから数える。 */
   const jobs = (detail.jobs ?? []).flatMap((c) => c.items ?? []);
@@ -132,6 +149,22 @@ export function CompanyPane({
           }}>{company.tagline}</p>
         )}
 
+        {/* 企業説明の冒頭。⚠️ タグラインと**同じ文が入っている企業もある**ので、
+               一致するときは出さない（同じ文が2行続くのを避ける）。 */}
+        {aboutLead && aboutLead !== company.tagline && (
+          <p style={{
+            margin: "var(--space-3) 0 0", fontSize: 13, lineHeight: 1.8,
+            color: "var(--ink-soft)", overflowWrap: "anywhere",
+            /* ⚠️ 3行で切る。行数を増やすとペインが伸びて CTA が画面外に落ちる。
+                  ⚠️ `-webkit-line-clamp` は主要ブラウザすべてで効く（仕様にも入っている）。
+                     効かない環境では**単に全文が出る**だけで、壊れはしない。 */
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 3,
+            overflow: "hidden",
+          }}>{aboutLead}</p>
+        )}
+
         {/* バッジ行。⚠️ `flexWrap: wrap` で幅に追随させる（メディアクエリを使わない） */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: "var(--space-4)" }}>
           {domain?.name && (
@@ -161,6 +194,36 @@ export function CompanyPane({
               fontSize: 12, fontWeight: 800, padding: "3px 9px", borderRadius: 100,
               background: "var(--royal)", color: "#fff", whiteSpace: "nowrap",
             }}>募集中 {company.job_count}件</span>
+          )}
+        </div>
+
+        {/* ★CTA はヘッダーの中に置く（2026-09-09 に末尾から移した）。
+            ⚠️★**末尾に置くと、内容の厚い企業では永久に見えない。** ペインは
+               `max-height: calc(100vh - 170px)` ＋ `overflow-y: auto` の**内部スクロール**なので、
+               ページをスクロールしても CTA は動かない。実測（1440x900 / Salesforce）:
+               ペイン 730px に対し中身 907px、CTA は y=1154 で、
+               **ページを 300px スクロールしても y=1154 のまま**だった。
+               スクロールバーの手がかりも無いので、到達手段が事実上無い。
+            ⚠️ LinkedIn も応募ボタンをヘッダー直下に置いている。参照どおりの形。
+            ⚠️ **末尾に戻さないこと。** 内容が薄い企業（Opinio）では末尾でも見えるので、
+               1社だけ見て「見えている」と判断すると同じ形に戻る。 */}
+        {/* ── CTA。⚠️ 「詳細を見る」は必ず出す（ここは要約であって詳細の置き換えではない） ── */}
+        {/* ⚠️ 余白は自前で持つ。外側の flex の gap には**もう乗っていない**（ヘッダーの中に入れたため） */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: "var(--space-5)" }}>
+          <Link href={detailHref} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+            background: "var(--royal)", color: "#fff", textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}>詳細を見る →</Link>
+          {/* ⚠️ 色は役割で固定（オレンジ＝カジュアル面談だけ。ui-conventions） */}
+          {company.accepting_casual_meetings && (
+            <Link href={`/companies/${company.id}/casual-meeting`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}>話を聞く</Link>
           )}
         </div>
       </div>
@@ -204,24 +267,6 @@ export function CompanyPane({
         </div>
       )}
 
-      {/* ── CTA。⚠️ 「詳細を見る」は必ず出す（ここは要約であって詳細の置き換えではない） ── */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Link href={detailHref} style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-          background: "var(--royal)", color: "#fff", textDecoration: "none",
-          whiteSpace: "nowrap",
-        }}>詳細を見る →</Link>
-        {/* ⚠️ 色は役割で固定（オレンジ＝カジュアル面談だけ。ui-conventions） */}
-        {company.accepting_casual_meetings && (
-          <Link href={`/companies/${company.id}/casual-meeting`} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-            background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none",
-            whiteSpace: "nowrap",
-          }}>話を聞く</Link>
-        )}
-      </div>
     </div>
   );
 }
