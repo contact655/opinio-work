@@ -846,7 +846,11 @@ export default function JobsClient({
                    勤務地は削除）。
                 ⚠️★**閉じていても `activeChips` は外に出す。** 隠しきると
                    「なぜこの件数なのか」が画面から消える。 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {/* ⚠️★ボタンだけを1つの flex item にする（2026-09-09）。
+                   チップを同じ item に入れていたら、**開くとチップが消えて検索窓が広がり、
+                   「詳細検索」ボタン自身が 98px 右へ動いていた**（実測）。
+                   押した控えが動くのは、押した本人には何が起きたか分からない。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <button
                 type="button"
                 aria-expanded={showAdvanced}
@@ -868,11 +872,17 @@ export default function JobsClient({
                 </svg>
               </button>
 
-              {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか）
-                     ⚠️★**開いているときは出さない**（2026-09-09）。ピル自身が選択状態を
-                        持っているので、「事業開発 ✕」の隣に「事業開発 ⌄」が並んで
-                        **同じ語が2回**出ていた。閉じているときだけの近道にする。 */}
-              {!showAdvanced && activeChips.map((c) => (
+            </div>
+
+            {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか）
+                   ⚠️★**開いているときは出さない**（2026-09-09）。ピル自身が選択状態を
+                      持っているので、「事業開発 ✕」の隣に「事業開発 ⌄」が並んで
+                      **同じ語が2回**出ていた。閉じているときだけの近道にする。
+                   ⚠️★**検索窓と同じ行に置かない。** 同じ行だと、開閉のたびに検索窓の幅が
+                      変わって「詳細検索」ボタンが左右に動く。`flexBasis: 100%` で必ず折る。 */}
+            {!showAdvanced && activeChips.length > 0 && (
+            <div style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              {activeChips.map((c) => (
                 <button
                   key={c.key}
                   type="button"
@@ -891,6 +901,7 @@ export default function JobsClient({
                 </button>
               ))}
             </div>
+            )}
 
             {/* フィルターピル群。
                 ⚠️ 詳細検索を開いたときだけ出す。ドロップダウンは position: fixed の
