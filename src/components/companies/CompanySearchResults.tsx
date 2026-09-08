@@ -2,12 +2,14 @@
 // 検索結果グリッド — Server Component
 // キーワード / フィルタが適用されているときのみ表示（カルーセルの代わり）
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { searchCompanies } from "@/lib/search/companies";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import type { WorkStyleValue } from "@/lib/search/companies";
 import { CompanyCardList } from "./CompanyCardList";
+import { CompanySplitLayout } from "./CompanySplitLayout";
 
 type Props = {
   q?: string;
@@ -19,9 +21,27 @@ type Props = {
   /** 対象業界（軸2）の slug。⚠️ `industry`（事業領域）とは別の軸 */
   target?: string;
   foreign?: string;
+  /**
+   * ★分割ビューの右ペイン（2026-09-08）。`null` なら従来どおりの多列グリッド。
+   *
+   * ⚠️★**ここで組み立てないこと。** ページ側が `?selected=` から引いたものを
+   *    そのまま受け取る。両方で組むと、片方だけ `targetIndustries` を渡し忘れる
+   *    形の食い違いが生まれる（CLAUDE.md「`mapCompany` の第4引数を省くと
+   *    『事業領域 —』になる」と同じ罠）。
+   *
+   * ⚠️ この分だけ**サーバー側の取得が1社ぶん増える**が、`?selected=` が
+   *    付いているときだけ。付いていなければ `null` が来る。
+   */
+  pane?: ReactNode;
+  /**
+   * ★いま右ペインに出している企業の id（2026-09-08）。カードに印を付ける。
+   * ⚠️ **id で渡すこと。** `?selected=` は slug でも uuid でもありうるので、
+   *    `getCompanyBySlugOrId` が解決した `resolvedId` を渡す。
+   */
+  selectedCompanyId?: string | null;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, pane = null, selectedCompanyId = null }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
@@ -172,6 +192,12 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           </div>
         </div>
       ) : (
+        /* ⚠️★分割ビューの骨組みは CompanySplitLayout（一覧グリッドと**同じ部品**）。
+              ここに CSS をコピーしないこと —— 割れると、絞り込んだときだけ
+              レールが多列のまま潰れる、といった形になる。
+           ⚠️ レールの1列化は向こうの CSS が `search-results-grid` を名指ししている。
+              このクラス名を変えるなら向こうも直すこと。 */
+        <CompanySplitLayout pane={pane}>
         <div className="search-results-grid">
           {companies.map((company) => (
             /* ⚠️★`activeDomainSlug` を渡す（2026-09-07）。渡さないとカードのタグは主のままで、
@@ -187,9 +213,13 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
               /* ⚠️ 絞り込み結果も**同タブ**（2026-09-07）。`/companies` の一覧と揃える。
                     ここだけ別タブに戻すと、同じカード部品が画面によって挙動が変わる。 */
               openInNewTab={false}
+              /* ★いま右ペインに出している企業に印を付ける（2026-09-08）。
+                 ⚠️ 一覧グリッド側と同じく **id で突き合わせる**。 */
+              selected={company.id === selectedCompanyId}
             />
           ))}
         </div>
+        </CompanySplitLayout>
       )}
     </>
   );

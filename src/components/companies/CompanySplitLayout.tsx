@@ -1,0 +1,92 @@
+import type { ReactNode } from "react";
+import { CompanySplitLinks } from "./CompanySplitLinks";
+
+/**
+ * 分割ビューの骨組み（2026-09-08）。**レール＋右ペインの2列**をここだけが持つ。
+ *
+ * ── ⚠️★なぜ部品にしたか ────────────────────────────────────────────────────
+ * 最初は `/companies` の一覧（`page.tsx`）に直書きしていたが、**絞り込みが
+ * 掛かると別のコンポーネント（`CompanySearchResults`）が描画される**ため、
+ * 絞り込んだ瞬間に分割ビューが消えていた（実測: 本番 HTML の `companies-split` が
+ * `/companies` は4件、`?industry=ai` は **0件**）。
+ * ＝ **同じ画面・同じカード部品なのに、絞り込みの有無で挙動が割れていた。**
+ * 2026-09-07 に `target="_blank"` を外したときと同じ形なので、
+ * **CSS ごと1箇所に集約して、2つの呼び出し元が同じものを使う**ようにした。
+ *
+ * ⚠️ **CSS を呼び出し側にコピーしないこと。** 割れたら、片方の画面でだけ
+ *    ペインが出ない（または出るのにレールが3列のまま）という形になる。
+ *
+ * ⚠️★**ペインは `CompanySplitLinks` の外に置く。** 中に入れると、ペインの
+ *    「詳細を見る →」まで横取りされて**全画面へ行けなくなる**（自分自身を
+ *    選び直すだけになる）。
+ */
+export function CompanySplitLayout({
+  /** レール側（カードのグリッド）。⚠️ グリッドの class は下の CSS に列挙が要る */
+  children,
+  /** 右ペイン。null なら分割せず、レールが元の多列グリッドのまま出る */
+  pane,
+}: {
+  children: ReactNode;
+  pane: ReactNode;
+}) {
+  return (
+    <>
+      <style>{`
+        /* ── 分割ビュー（2026-09-08）────────────────────────────────────
+           ⚠️★1280px 未満ではペイン列ごと出さない。狭い画面で右に畳むと、
+              レールもペインも読めなくなる。?selected= を直リンクで開いても同じ。
+           ⚠️ クリックを振り替えるのは CompanySplitLinks。あちらは
+              lib/constants/splitView.ts の SPLIT_MIN_WIDTH を見ている。
+              CSS からは定数を参照できないので、**この 1280 は手で合わせている。**
+              片方だけ変えると「クリックは振り替わるのにペインが出ない」になる。
+           ⚠️★ここは style タグのテンプレートリテラルの中。2つ踏んだ:
+              (1) バッククォートを書くと文字列が途中で閉じる
+              (2) 山かっこ付きのタグ名を書くと、サーバーだけ実体参照にエスケープ
+                  されてハイドレーション不一致になる
+              どちらもコメントの文字だけで起きる。記号を書かないこと。 */
+        .companies-split { display: block; }
+        .companies-pane { display: none; }
+        @media (min-width: 1280px) {
+          .companies-split {
+            display: grid;
+            /* 左レール 420px。フェーズ0の実測で compact カードは 380px でも
+               40件中39件がクランプ無しに収まる。 */
+            grid-template-columns: 420px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+          }
+          /* ⚠️★レールでは必ず1列。多列のままだと1枚 130px になる。
+                 ⚠️ **グリッドの class を列挙している。** 一覧は companies-grid4、
+                    絞り込み結果は search-results-grid と別名なので、
+                    3つ目のグリッドを分割ビューに載せるときはここに足すこと。
+                    足し忘れると、そのページだけレールが多列のまま潰れる。 */
+          .companies-split .companies-grid4,
+          .companies-split .search-results-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 10px;
+          }
+          .companies-pane {
+            display: block;
+            /* ⚠️ sticky はここ（ページ側の列）に置く。CompanyPane の中には置かない
+                  （あの部品は fixed/sticky を持たない約束）。
+               ⚠️ top はヘッダー(60) + 検索バー帯のぶん。実測で調整した。 */
+            position: sticky;
+            top: 150px;
+            max-height: calc(100vh - 170px);
+            overflow-y: auto;
+          }
+        }
+      `}</style>
+      <div className={pane ? "companies-split" : undefined}>
+        {/* ⚠️ クリック横取りは 1280px 以上でだけ働く。狭い画面ではカードは
+               素の a として全画面へ遷移する。 */}
+        <CompanySplitLinks>{children}</CompanySplitLinks>
+        {pane && (
+          <aside className="companies-pane" aria-label="選択した企業の概要">
+            {pane}
+          </aside>
+        )}
+      </div>
+    </>
+  );
+}

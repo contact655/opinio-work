@@ -10,7 +10,7 @@ import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
-import { CompanySplitLinks } from "@/components/companies/CompanySplitLinks";
+import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
 import { CompanyPane } from "@/components/companies/CompanyPane";
 import { getCompanyBySlugOrId, getCompanyTargetIndustriesCached } from "@/lib/supabase/queries";
 
@@ -165,19 +165,36 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
   /* ── ★分割ビュー（2026-09-08）─────────────────────────────────────────────
      `?selected=<slug>` があるときだけ、右ペイン用の企業を引く。
-     ⚠️ **グリッド表示のときだけ**（`?view=list` と絞り込み中は対象外。
-        あちらは1行が広く、レールに畳むと `.clc-stats`+`.clc-cta` の 337px が
-        入らない —— フェーズ0で実測済み）。
+     ⚠️★**絞り込み中も対象**（2026-09-08 に追加）。それまで一覧グリッドだけに
+        効いていたため、**絞り込んだ瞬間に分割ビューが消えていた**
+        （実測: 本番 HTML の `companies-split` が `/companies` は4件、
+        `?industry=ai` は 0件）。同じカード部品が画面によって挙動を変えていた。
+        ⚠️ 絞り込み後こそ見比べたい場面なので、ここを外さないこと。
+     ⚠️ **`?view=list` だけは対象外。** あちらは1行が広く、レールに畳むと
+        `.clc-stats`+`.clc-cta` の 337px が入らない（フェーズ0で実測済み）。
+        ⚠️ 絞り込み中は view を見ない（結果は常にグリッド）ので `hasFilter` を足す。
      ⚠️ ペインは要約なので `CompanyPane` を使う。**企業詳細ページは使い回さない**
         （700px のコンテナに入れると壊れる。理由は CompanyPane の注記）。
      ⚠️ 見つからない slug は**黙って無視する**（ペインを出さないだけ）。
         一覧そのものは正しいので 404 にはしない。 */
-  const selectedSlug = isGridView ? (searchParams.selected ?? null) : null;
+  const selectedSlug = isGridView || hasFilter ? (searchParams.selected ?? null) : null;
   const selectedResult = selectedSlug ? await getCompanyBySlugOrId(selectedSlug) : null;
   const selectedTargets = selectedResult
     ? await getCompanyTargetIndustriesCached(selectedResult.resolvedId)
     : [];
-  const showPane = selectedResult !== null;
+  /* ⚠️★ペインの実体は**ここで1つだけ**組み立てて、一覧グリッドと絞り込み結果の
+        **両方に同じものを渡す**。それぞれの描画側で組み立てると、片方だけ
+        `targetIndustries` を渡し忘れる形の食い違いが生まれる
+        （CLAUDE.md「`mapCompany` の第4引数を省くと『事業領域 —』になる」と同じ罠）。 */
+  const pane = selectedResult ? (
+    <CompanyPane
+      company={selectedResult.company}
+      detail={selectedResult.detail}
+      targetIndustries={selectedTargets}
+    />
+  ) : null;
+  /** ⚠️ カードの印は id で突き合わせる（`?selected=` は slug でも uuid でもありうる） */
+  const selectedCompanyId = selectedResult?.resolvedId ?? null;
 
   return (
     <>
@@ -221,6 +238,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
             industry={industry}
             target={target}
             foreign={foreign}
+            /* ★分割ビュー（2026-09-08）。一覧グリッドと**同じペイン**を渡す。
+               ⚠️ 渡さないと、絞り込んだ瞬間に分割ビューが消える（それが直前の状態）。 */
+            pane={pane}
+            selectedCompanyId={selectedCompanyId}
           />
         ) : (
           <div style={{ marginTop: 0 }}>
@@ -283,80 +304,32 @@ export default async function CompaniesPage({ searchParams }: Props) {
                               @media (max-width: 600px) {
                                 .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
                               }
-
-                              /* ── ★分割ビュー（2026-09-08）──────────────────────────
-                                 ⚠️★1280px 未満ではペイン列ごと出さない。
-                                    狭い画面で右に畳むと、レールもペインも読めなくなる。
-                                    ?selected= を直リンクで開いても同じ（一覧だけが出る）。
-                                 ⚠️ カードのクリックを振り替えるのは CompanySplitLinks。
-                                    あちらも同じ 1280 を見ている。片方だけ変えないこと。
-                                 ⚠️★ここは style タグのテンプレートリテラルの中。2つ踏んだ:
-                                    (1) バッククォートを書くと文字列が途中で閉じる
-                                    (2) 山かっこ付きのタグ名を書くと、サーバーだけ実体参照に
-                                        エスケープされてハイドレーション不一致になる
-                                    どちらもコメントの文字だけで起きる。記号を書かないこと。 */
-                              .companies-split { display: block; }
-                              .companies-pane { display: none; }
-                              @media (min-width: 1280px) {
-                                .companies-split {
-                                  display: grid;
-                                  /* 左レール 420px。フェーズ0の実測で compact カードは
-                                     380px でも 40件中39件がクランプ無しに収まる。 */
-                                  grid-template-columns: 420px minmax(0, 1fr);
-                                  gap: 20px;
-                                  align-items: start;
-                                }
-                                /* ⚠️ レールでは必ず1列。3列のままだと1枚 130px になる */
-                                .companies-split .companies-grid4 {
-                                  grid-template-columns: minmax(0, 1fr);
-                                  gap: 10px;
-                                }
-                                .companies-pane {
-                                  display: block;
-                                  /* ⚠️ sticky はページ側の列に置く。CompanyPane の中には
-                                        置かない（あの部品は fixed/sticky を持たない約束）。
-                                     ⚠️ top はヘッダー(60) + 検索バー帯のぶん。実測で調整した。 */
-                                  position: sticky;
-                                  top: 150px;
-                                  max-height: calc(100vh - 170px);
-                                  overflow-y: auto;
-                                }
-                              }
                             `}</style>
-                            <div className={showPane ? "companies-split" : undefined}>
-                              {/* ⚠️ クリック横取りは 1280px 以上でだけ働く。狭い画面では
-                                     カードは素の `<a>` として全画面へ遷移する。 */}
-                              <CompanySplitLinks>
-                                <div className="companies-grid4">
-                                  {paged.map(c => (
-                                    <CompanyCardList
-                                      key={c.id}
-                                      company={c}
-                                      compact
-                                      /* ⚠️ **同タブ**（2026-09-07）。別タブに戻さないこと。
-                                            `target="_blank"` だと `<Link>` の prefetch が
-                                            使われず捨てられる（CompanyCardList の注記）。 */
-                                      openInNewTab={false}
-                                      /* ★いま右ペインに出している企業に印を付ける（2026-09-08）。
-                                         ⚠️ **`selectedSlug` と比べないこと。** URL の値は slug でも
-                                            uuid でもありうるので、`getCompanyBySlugOrId` が解決した
-                                            `resolvedId` と id で突き合わせる。文字列比較にすると
-                                            uuid で直リンクされたときだけ印が付かない。 */
-                                      selected={c.id === selectedResult?.resolvedId}
-                                    />
-                                  ))}
-                                </div>
-                              </CompanySplitLinks>
-                              {showPane && selectedResult && (
-                                <aside className="companies-pane" aria-label="選択した企業の概要">
-                                  <CompanyPane
-                                    company={selectedResult.company}
-                                    detail={selectedResult.detail}
-                                    targetIndustries={selectedTargets}
+                            {/* ⚠️★分割ビューの骨組みと CSS は CompanySplitLayout が持つ。
+                                   ここに書き戻さないこと —— 絞り込み結果
+                                   （CompanySearchResults）が同じものを使っているので、
+                                   割れると片方の画面でだけペインが出なくなる。 */}
+                            <CompanySplitLayout pane={pane}>
+                              <div className="companies-grid4">
+                                {paged.map(c => (
+                                  <CompanyCardList
+                                    key={c.id}
+                                    company={c}
+                                    compact
+                                    /* ⚠️ **同タブ**（2026-09-07）。別タブに戻さないこと。
+                                          `target="_blank"` だと `<Link>` の prefetch が
+                                          使われず捨てられる（CompanyCardList の注記）。 */
+                                    openInNewTab={false}
+                                    /* ★いま右ペインに出している企業に印を付ける（2026-09-08）。
+                                       ⚠️ **`selectedSlug` と比べないこと。** URL の値は slug でも
+                                          uuid でもありうるので、`getCompanyBySlugOrId` が解決した
+                                          `resolvedId` と id で突き合わせる。文字列比較にすると
+                                          uuid で直リンクされたときだけ印が付かない。 */
+                                    selected={c.id === selectedCompanyId}
                                   />
-                                </aside>
-                              )}
-                            </div>
+                                ))}
+                              </div>
+                            </CompanySplitLayout>
                           </>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
