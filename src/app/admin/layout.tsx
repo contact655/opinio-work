@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -84,14 +85,65 @@ export default async function AdminLayout({
   // ── Auth guard ────────────────────────────────────────────────────────────
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  /* ⚠️ 戻り先は**いま開こうとしたページ**にする（2026-09-09）。
+        以前は `/auth?next=/admin` の**固定値**で、運営宛メールの
+        「管理画面で確認する →」（`/admin/companies/<id>`）を踏んでログインしても
+        **一覧のトップに着地して、その企業に辿り着けなかった。**
+     ⚠️ `x-pathname` は middleware が全経路で入れている（`/biz/layout.tsx` も同じものを読む）。
+        ⚠️ クエリ文字列は入っていない。`/admin` はパスで場所が決まるので足りている。 */
+  const pathname = headers().get("x-pathname") || "/admin";
+
   if (!user) {
-    redirect("/auth?next=/admin");
+    redirect(`/auth?next=${encodeURIComponent(pathname)}`);
   }
 
   // auth_is_admin() RPC — ow_user_roles に role='admin' の行があるか確認
   const { data: isAdmin } = await supabase.rpc("auth_is_admin");
   if (!isAdmin) {
-    redirect("/");
+    /* ⚠️★**`redirect("/")` に戻さないこと**（2026-09-09）。何が起きたか誰にも伝わらず、
+          しかも `/` は求職者側なので `OnboardingGuard` に捕まり、
+          **「転職について、いまの気持ちに近いものは？」に連れて行かれていた。**
+          実際に踏んだ経路（本番 / 2026-09-09 に報告）:
+            運営宛メールの「管理画面で確認する →」→ `/admin/companies/<id>`
+            → 管理者ではないセッションだったので `redirect("/")`
+            → `/` で `OnboardingGuard` が `career_stance` 未設定を見て
+              `/onboarding/stance?next=%2F` へ
+          **管理画面を開こうとした人に転職の意向を聞く**という、説明のしようがない画面になる。
+       ⚠️ 出すのは「権限が無い」という事実と、**別のアカウントで入り直す導線**だけ。
+          管理画面の中身（メニュー構成など）は出さない。
+       ⚠️ ログイン中のメールアドレスは**本人のもの**なので出してよい。
+          むしろ「入っているつもりのアカウントと違う」に気づく唯一の手がかり。 */
+    return (
+      <div style={{
+        minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 24, background: "#f0f4f8",
+      }}>
+        <div style={{
+          maxWidth: 480, width: "100%", background: "#fff", borderRadius: 16,
+          border: "1px solid var(--line)", padding: 32,
+        }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)" }}>
+            この画面は運営メンバーだけが開けます
+          </h1>
+          <p style={{ margin: "12px 0 0", fontSize: 13.5, lineHeight: 1.9, color: "var(--ink-soft)" }}>
+            いま <strong style={{ color: "var(--ink)" }}>{user.email}</strong> でログインしています。
+            このアカウントには管理画面の権限がありません。
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 24 }}>
+            <Link href={`/auth?next=${encodeURIComponent(pathname)}`} style={{
+              display: "inline-flex", alignItems: "center", padding: "11px 20px", borderRadius: 10,
+              fontSize: 13, fontWeight: 700, background: "var(--royal)", color: "#fff", textDecoration: "none",
+            }}>別のアカウントでログイン</Link>
+            <Link href="/" style={{
+              display: "inline-flex", alignItems: "center", padding: "11px 20px", borderRadius: 10,
+              fontSize: 13, fontWeight: 700, background: "#fff", color: "var(--royal)",
+              border: "1px solid var(--royal-100)", textDecoration: "none",
+            }}>トップへ</Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
