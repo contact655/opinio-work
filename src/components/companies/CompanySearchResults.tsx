@@ -33,6 +33,8 @@ type Props = {
    *    付いているときだけ。付いていなければ `null` が来る。
    */
   pane?: ReactNode;
+  /** ★読み上げ用の企業名（2026-09-08）。⚠️ 一覧グリッドと**同じものを渡す**こと */
+  paneLabel?: string | null;
   /**
    * ★いま右ペインに出している企業の id（2026-09-08）。カードに印を付ける。
    * ⚠️ **id で渡すこと。** `?selected=` は slug でも uuid でもありうるので、
@@ -41,7 +43,7 @@ type Props = {
   selectedCompanyId?: string | null;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, pane = null, selectedCompanyId = null }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, pane = null, paneLabel = null, selectedCompanyId = null }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
@@ -197,7 +199,7 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
               レールが多列のまま潰れる、といった形になる。
            ⚠️ レールの1列化は向こうの CSS が `search-results-grid` を名指ししている。
               このクラス名を変えるなら向こうも直すこと。 */
-        <CompanySplitLayout pane={pane}>
+        <CompanySplitLayout pane={pane} paneLabel={paneLabel}>
         <div className="search-results-grid">
           {companies.map((company) => (
             /* ⚠️★`activeDomainSlug` を渡す（2026-09-07）。渡さないとカードのタグは主のままで、

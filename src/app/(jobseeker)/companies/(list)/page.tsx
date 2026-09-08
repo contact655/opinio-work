@@ -195,6 +195,9 @@ export default async function CompaniesPage({ searchParams }: Props) {
   ) : null;
   /** ⚠️ カードの印は id で突き合わせる（`?selected=` は slug でも uuid でもありうる） */
   const selectedCompanyId = selectedResult?.resolvedId ?? null;
+  /** ⚠️ 読み上げ用。**正式名称をそのまま渡す**（`companyDisplayName` の省略形だと
+   *     「Salesforce」のように英名だけになり、聞いただけでは同定しにくい） */
+  const paneLabel = selectedResult?.company.name ?? null;
 
   return (
     <>
@@ -241,6 +244,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             /* ★分割ビュー（2026-09-08）。一覧グリッドと**同じペイン**を渡す。
                ⚠️ 渡さないと、絞り込んだ瞬間に分割ビューが消える（それが直前の状態）。 */
             pane={pane}
+            paneLabel={paneLabel}
             selectedCompanyId={selectedCompanyId}
           />
         ) : (
@@ -309,7 +313,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                    ここに書き戻さないこと —— 絞り込み結果
                                    （CompanySearchResults）が同じものを使っているので、
                                    割れると片方の画面でだけペインが出なくなる。 */}
-                            <CompanySplitLayout pane={pane}>
+                            <CompanySplitLayout pane={pane} paneLabel={paneLabel}>
                               <div className="companies-grid4">
                                 {paged.map(c => (
                                   <CompanyCardList
