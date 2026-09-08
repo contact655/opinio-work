@@ -223,9 +223,17 @@ export default async function AdminDashboard() {
       href: "/admin/biz-accounts",
     },
     {
-      label: "公開中の企業数",
+      /* ⚠️★ラベルを「ページが見える企業数」にした（2026-09-09）。
+            数えているのは `is_published = true` で、**一覧に出ている数ではない。**
+            実測（2026-09-09）: ページが見える 90 ／ そのうち一覧に出る 83
+            （差の7は「一覧に出さない企業6 ＋ 検証用2」。重複あり）。
+            「公開中」だと `/companies` の「83社」と食い違って読めるので、
+            **何を数えているかを言葉に出す。**
+         ⚠️ 数え方は変えていない。変えると `/admin/companies` の「すべて 103」とも
+            別の定義が増える。**言葉のほうを実態に合わせた。** */
+      label: "ページが見える企業数",
       sublabel: "Active Companies",
-      note: null,
+      note: "一覧に出るかは別（企業審査の「一覧掲載」）",
       value: stats.activeCompaniesCount,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -815,7 +823,11 @@ export default async function AdminDashboard() {
                 max: Math.max(stats.usersCount, 1),
               },
               {
-                label: "公開中の企業",
+                /* ⚠️ 上の KPI カードと**同じ言葉にする**（2026-09-09）。
+                      同じ値（`activeCompaniesCount` = `is_published`）を
+                      1画面で「ページが見える企業数」と「公開中の企業」の2つの語で
+                      出していた。数えているのは一覧掲載の数ではない。 */
+                label: "ページが見える企業",
                 value: stats.activeCompaniesCount,
                 color: "var(--success-ink)",
                 bar: stats.activeCompaniesCount,

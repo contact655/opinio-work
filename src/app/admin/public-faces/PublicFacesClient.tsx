@@ -88,7 +88,26 @@ export function PublicFacesClient({ faces }: { faces: PublicFace[] | null }) {
                         )}
                       </td>
                       <td style={{ padding: "8px 10px", color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" }}>
-                        {f.email ?? "—"}
+                        {/* ★メールで「ユーザー管理」を絞り込んで開く（2026-09-09 / 柴さんの指示）。
+                            ⚠️★**2つの画面は別の問いに答える。統合しない。**
+                               こちらは「訪問者に実際に見えている人は誰か」（監査）、
+                               `/admin/candidates` は「登録している人は誰か」（台帳）。
+                               1人が最大4か所に出るので台帳に混ぜると読めなくなり、
+                               こちらの判定は企業ごとに公開ページと同じ関数を呼ぶループなので
+                               台帳側に載せると毎回重くなる。**行き来だけを足す。**
+                            ⚠️ メールで絞る（`?q=`）。**id では絞れない**——検索は
+                               name / email / location にしか当たらない。
+                            ⚠️ メールが無い行はリンクにしない（絞り込めないので、
+                               押すと全件が出て「探せた」と誤解する）。 */}
+                        {f.email ? (
+                          <Link
+                            href={`/admin/candidates?q=${encodeURIComponent(f.email)}`}
+                            title="ユーザー管理でこの人を開く"
+                            style={{ color: "var(--ink-soft)", textDecoration: "none", borderBottom: "1px dotted var(--line)" }}
+                          >
+                            {f.email}
+                          </Link>
+                        ) : "—"}
                       </td>
                       <td style={{ padding: "8px 10px", color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                         {f.createdAt ? f.createdAt.slice(0, 10) : "—"}

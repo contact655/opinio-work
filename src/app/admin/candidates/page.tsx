@@ -7,7 +7,14 @@ async function getUsers(query?: string) {
   let q = admin
     .from("ow_users")
     // ⚠️ can_talk_to_candidates は選ばない（2026-08-05 に一覧から外した。カラムは残存）
-    .select("id, auth_id, name, email, is_mentor, location, birth_date, visibility, created_at")
+    /* ⚠️★`is_system` を除く（2026-09-09）。除かないと、ダッシュボードの
+          「登録ユーザー数」と**同じ言葉で違う数字**が出る（実測: ここ 43 / あちら 42）。
+          `is_system` は企業・求人・記事の告知を投稿する主体で、人ではない。
+       ⚠️ `is_test` は**あえて除かない**。運営画面はテストデータも見えるほうが正しい
+          （CLAUDE.md「完全に隠さないこと」）。ダッシュボードも同じ扱い。
+       ⚠️ フィードから `is_system` を除いてはいけない（投稿が消える）。**経路ごとに違う。** */
+    .select("id, auth_id, name, email, is_mentor, location, birth_date, visibility, created_at, is_system")
+    .eq("is_system", false)
     .order("created_at", { ascending: false });
 
   if (query) {
