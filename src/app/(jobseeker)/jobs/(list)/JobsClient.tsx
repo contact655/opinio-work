@@ -37,7 +37,11 @@ function pillLabel(selected: Set<string>, fallback: string, labels?: Record<stri
   if (selected.size === 0) return fallback;
   const order = labels ? Object.keys(labels).filter((k) => selected.has(k)) : Array.from(selected);
   const first = labels ? (labels[order[0]] ?? order[0]) : order[0];
-  return selected.size === 1 ? first : `${first} +${selected.size - 1}`;
+  const value = selected.size === 1 ? first : `${first} +${selected.size - 1}`;
+  /* ⚠️★**項目名を残す**（2026-09-09）。以前は値だけを出していたので、
+        選んだ瞬間に「フェーズ」が「ユニコーン」に変わり、**そのピルが何の条件なのか
+        分からなくなっていた**（8つ並ぶので特に読めない）。 */
+  return `${fallback}: ${value}`;
 }
 
 
@@ -952,7 +956,7 @@ export default function JobsClient({
                   setOpenFilter("industry");
                 }}
               >
-                {industryOptions.find((d) => d.slug === industry)?.name ?? "事業領域"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {industry ? `事業領域: ${industryOptions.find((d) => d.slug === industry)?.name ?? industry}` : "事業領域"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 都道府県 ピル */}
@@ -964,7 +968,7 @@ export default function JobsClient({
                   setOpenFilter("prefecture");
                 }}
               >
-                {prefecture || "都道府県"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {prefecture ? `都道府県: ${prefecture}` : "都道府県"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/*
@@ -1012,7 +1016,7 @@ export default function JobsClient({
                   setOpenFilter("salary");
                 }}
               >
-                {salary ? (SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? "年収") : "年収"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                {salary ? `年収: ${SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? salary}` : "年収"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
 
               {/* 外資系 トグルピル */}
@@ -1646,11 +1650,18 @@ export default function JobsClient({
                   onClick={() => toggleParam("category", role.id, category)}
                 >
                   {role.name}
-                  {roleCounts.get(role.id) ? (
-                    <span style={{ marginLeft: 6, opacity: 0.6, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                      ({roleCounts.get(role.id)})
-                    </span>
-                  ) : null}
+                  {/* ⚠️★**0 も出す**（2026-09-09）。以前は件数があるときだけ出しており、
+                         0件の職種は数字が無いので「不明」と区別が付かず、
+                         **押して初めて0件と分かる**状態だった。
+                      ⚠️ `/jobs` は「0件の選択肢を出さない」の例外にしてある（柴さんの判断・
+                         CLAUDE.md）。選択肢は消さずに、**押す前に0と分かるようにする**。
+                      ⚠️ 数えているのは公開求人（`allJobs`）。絞り込みの結果ではない。 */}
+                  <span style={{
+                    marginLeft: 6, opacity: roleCounts.get(role.id) ? 0.6 : 0.35,
+                    fontFamily: "var(--font-inter), var(--font-noto)",
+                  }}>
+                    ({roleCounts.get(role.id) ?? 0})
+                  </span>
                 </button>
               ))}
             </>
