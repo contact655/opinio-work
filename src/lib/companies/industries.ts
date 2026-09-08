@@ -107,16 +107,8 @@ export function flattenIndustryOptions(options: IndustryOption[]): IndustryOptio
   return out;
 }
 
-/** 親 id → 子の配列。⚠️ 子を持たない親はキーごと無い */
-export function groupIndustryChildren(options: IndustryOption[]): Map<string, IndustryOption[]> {
-  const ids = new Set(options.map((o) => o.id));
-  const map = new Map<string, IndustryOption[]>();
-  for (const o of options) {
-    if (o.parent_id && ids.has(o.parent_id)) {
-      const arr = map.get(o.parent_id) ?? [];
-      arr.push(o);
-      map.set(o.parent_id, arr);
-    }
-  }
-  return map;
-}
+/* ⚠️ `groupIndustryChildren`（親 id → 子の配列）は 2026-09-09 に削除した（参照0件）。
+      画面が使っているのは上の `flattenIndustryOptions`（親の直後に子を並べる）だけ。
+      ⚠️ 2階層マスタの並びは `display_order` が**親ごとの相対順**なので、
+         自前で組み直す前に CLAUDE.md「2階層マスタの display_order」を読むこと。 */
+

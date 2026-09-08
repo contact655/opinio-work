@@ -77,10 +77,9 @@ export const PHASE_OPTIONS: PhaseOption[] = [
 
 const BY_VALUE = new Map(PHASE_OPTIONS.map((o) => [o.value, o]));
 
-/** その選択肢が親（子を持ちうる側）か */
-export function isParentPhase(value: string): boolean {
-  return PHASE_OPTIONS.some((o) => o.parent === value);
-}
+/* ⚠️ `isParentPhase` は 2026-09-09 に削除した（参照0件）。
+      親子の判定が要るなら `PHASE_OPTIONS` の `parent` を直接見るか、
+      下の `expandPhase`（親を選んだら子も含める）で足りるはず。 */
 
 /** 親を選んだときに含める値（自分 + 子）。子なら自分だけ */
 export function expandPhase(value: string): string[] {
