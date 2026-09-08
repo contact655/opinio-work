@@ -108,8 +108,9 @@ export async function addCompanyTool(
   revalidatePath(`/admin/companies/${companyId}`);
   /* ⚠️★ここは 2026-09-07 まで `revalidatePath(\`/companies/${companyId}\`)` だった。
         **UUID なので当たっていなかった**（配信は slug パス）。slug 解決はヘルパーに集約。
-     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒・タグなし）越しなので、
-        **これでも即時にはならない**。タグを付けるかは別途判断（B-2 の報告参照）。 */
+     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒）越しだが、
+        **実測では即時に反映される**（2026-09-08 / 本番: 追加 188ms・削除も即時）。
+        `revalidatePath` は描画中に作られた `unstable_cache` のエントリも落とす。 */
   await revalidateCompanyPages(companyId);
   return {};
 }
@@ -130,8 +131,9 @@ export async function removeCompanyTool(
   revalidatePath(`/admin/companies/${companyId}`);
   /* ⚠️★ここは 2026-09-07 まで `revalidatePath(\`/companies/${companyId}\`)` だった。
         **UUID なので当たっていなかった**（配信は slug パス）。slug 解決はヘルパーに集約。
-     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒・タグなし）越しなので、
-        **これでも即時にはならない**。タグを付けるかは別途判断（B-2 の報告参照）。 */
+     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒）越しだが、
+        **実測では即時に反映される**（2026-09-08 / 本番: 追加 188ms・削除も即時）。
+        `revalidatePath` は描画中に作られた `unstable_cache` のエントリも落とす。 */
   await revalidateCompanyPages(companyId);
   return {};
 }
@@ -153,8 +155,9 @@ export async function updateCompanyToolNote(
   revalidatePath(`/admin/companies/${companyId}`);
   /* ⚠️★ここは 2026-09-07 まで `revalidatePath(\`/companies/${companyId}\`)` だった。
         **UUID なので当たっていなかった**（配信は slug パス）。slug 解決はヘルパーに集約。
-     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒・タグなし）越しなので、
-        **これでも即時にはならない**。タグを付けるかは別途判断（B-2 の報告参照）。 */
+     ⚠️ ツールは `getCompanyToolsCached`（unstable_cache 300秒）越しだが、
+        **実測では即時に反映される**（2026-09-08 / 本番: 追加 188ms・削除も即時）。
+        `revalidatePath` は描画中に作られた `unstable_cache` のエントリも落とす。 */
   await revalidateCompanyPages(companyId);
   return {};
 }

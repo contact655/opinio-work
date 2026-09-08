@@ -201,8 +201,8 @@ export async function PATCH(
   }
 
   /* ⚠️★2026-09-07 追加。採用担当者は企業ページの「採用担当者」に出るので作り直す。
-        ⚠️ `getCompanyRecruitersCached`（unstable_cache 300秒・**タグなし**）越しなので
-           **これでも即時にはならない**（最大300秒）。タグを付けるかは判断待ち。 */
+        ⚠️ `getCompanyRecruitersCached`（unstable_cache 300秒）越しだが、
+           **`revalidatePath` で一緒に落ちる**（2026-09-08 に本番でツールで実測）。 */
   await revalidateCompanyPages(companyId);
   return NextResponse.json({ success: true });
 }
@@ -257,8 +257,8 @@ export async function DELETE(
   }
 
   /* ⚠️★2026-09-07 追加。採用担当者は企業ページの「採用担当者」に出るので作り直す。
-        ⚠️ `getCompanyRecruitersCached`（unstable_cache 300秒・**タグなし**）越しなので
-           **これでも即時にはならない**（最大300秒）。タグを付けるかは判断待ち。 */
+        ⚠️ `getCompanyRecruitersCached`（unstable_cache 300秒）越しだが、
+           **`revalidatePath` で一緒に落ちる**（2026-09-08 に本番でツールで実測）。 */
   await revalidateCompanyPages(companyId);
   return NextResponse.json({ success: true });
 }

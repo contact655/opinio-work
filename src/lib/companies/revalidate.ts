@@ -23,13 +23,26 @@ import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
  * ⚠️★**各所に `revalidatePath` をコピーしないこと。** slug 解決を忘れた1箇所が
  *    「直したのに反映されない」に化ける（それがまさに `toolActions.ts` だった）。
  *
- * ⚠️★**これだけでは `unstable_cache` は消えない。**
- *    企業詳細が読むもののうち、写真・採用担当者・ツール・顧客の業界（300秒）、
- *    記事・ストーリー（60秒）、社員（120秒）は**別レイヤー**で、
- *    `revalidatePath` では落ちない。しかも**この7本にはタグが付いていない**ので
- *    `revalidateTag` も打てない（タグがあるのは面談対応者と business-domains だけ）。
- *    → **`ow_companies` 本体（tagline / description / 従業員数 など）は即時になるが、
- *       ツールや写真は最大300秒古いまま。** 実測は下の「B-3」を参照。
+ * ── ★`unstable_cache` も一緒に落ちる（2026-09-08 に本番で実測）──────────────
+ * ⚠️★**当初「`revalidatePath` は `unstable_cache` を消さない」と書いていたが、誤りだった。**
+ *    本番 `/companies/opinio` を2秒間隔でポーリングして計測した結果:
+ *
+ *      tagline（`unstable_cache` を通らない）… 保存 13:38:38.051 → 反映 13:38:38.442（**391ms**）
+ *      ツール追加（`getCompanyToolsCached` 300秒）… 追加 13:46:19.285 → 反映 13:46:19.473（**188ms**）
+ *      ツール削除（同上）… 14:01:51.633 に反映（bytes 188,653 → 183,108）
+ *
+ *    TTL 切れでは説明できない。ツールのエントリは 13:45:11 の再生成で作り直されており、
+ *    13:46:19 時点で**68秒＝期限内**だった。つまり `revalidatePath` が
+ *    `unstable_cache` のエントリも落としている（Next はページ描画中に作られた
+ *    キャッシュ実体にそのページのパスを暗黙のタグとして付ける）。
+ *    → **`revalidateTag` を足す案は撤回した。** 7本にタグを付ける必要は無い。
+ *
+ * ⚠️ ただし確かめたのは**そのページの描画中に作られたエントリ**だけ。
+ *    複数ページで共有されるエントリまで落ちるかは**未確認**。
+ *
+ * ⚠️★**判別軸: `x-vercel-cache: REVALIDATED` かつ `age=0` だけが本物のオンデマンド再検証。**
+ *    同じ日に `REVALIDATED age=36` / `age=5` が出てサーバーアクションの発火と誤読しかけた
+ *    （実体は Vercel のエッジ地域差）。**`age` を見ずに `REVALIDATED` だけで判断しない。**
  *
  * ⚠️ slug の解決に **no-store クライアントを使う**。`createAdminClient()` だと
  *    その問い合わせ自体が Data Cache に載り、**改名直後に古い slug を revalidate する。**

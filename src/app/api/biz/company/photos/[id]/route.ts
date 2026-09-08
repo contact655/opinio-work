@@ -64,8 +64,8 @@ export async function PATCH(
     }
 
     /* ⚠️★2026-09-07 追加。それまで写真を足しても消しても revalidate は0件だった。
-          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒・タグなし）越しなので、
-             **これでも即時にはならない**（最大300秒古い）。 */
+          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒）越しだが、
+             **`revalidatePath` で一緒に落ちる**（2026-09-08 に本番でツールで実測）。 */
     await revalidateCompanyPages(companyId);
     return Response.json({ data });
   } catch {
@@ -139,8 +139,8 @@ export async function DELETE(
     }
 
     /* ⚠️★2026-09-07 追加。それまで写真を足しても消しても revalidate は0件だった。
-          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒・タグなし）越しなので、
-             **これでも即時にはならない**（最大300秒古い）。 */
+          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒）越しだが、
+             **`revalidatePath` で一緒に落ちる**（2026-09-08 に本番でツールで実測）。 */
     await revalidateCompanyPages(companyId);
     return Response.json({ success: true });
   } catch {

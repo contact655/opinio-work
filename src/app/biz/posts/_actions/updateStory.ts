@@ -86,8 +86,8 @@ export async function updateStory(
 
   /* ⚠️★2026-09-07 追加。それまで `/biz/posts` しか revalidate しておらず、
         企業ストーリーを公開しても求職者側の企業ページは `revalidate` 待ちだった。
-     ⚠️ ストーリーは `getCompanyStoriesCached`（unstable_cache 60秒・タグなし）越しなので、
-        **これでも即時にはならない**（最大60秒古い）。 */
+     ⚠️ ストーリーは `getCompanyStoriesCached`（unstable_cache 60秒）越しだが、
+        **`revalidatePath` で一緒に落ちる**（2026-09-08 に本番でツールで実測）。 */
   await revalidateCompanyPages(existing.company_id as string);
   revalidatePath("/biz/posts");
   return { success: true, data: story as Record<string, unknown> };

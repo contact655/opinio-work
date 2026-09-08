@@ -34,7 +34,8 @@ export async function toggleArticlePublished(
 
   /* ⚠️★2026-09-07 追加。記事は企業ページの「取材記事」に出るので、公開状態を変えたら
         その企業のページも作り直す。⚠️ `getArticlesByCompanyCached`
-        （unstable_cache 60秒・タグなし）越しなので**即時にはならない**（最大60秒）。 */
+        （unstable_cache 60秒）越しだが、**`revalidatePath` で一緒に落ちる**
+        （2026-09-08 に本番でツールで実測）。 */
   {
     const { data: a } = await admin.from("ow_articles").select("company_id").eq("id", articleId).maybeSingle();
     if (a?.company_id) await revalidateCompanyPages(a.company_id as string);

@@ -352,7 +352,8 @@ export async function PATCH(req: Request) {
 
   /* ⚠️★**2026-09-07 に追加。それまでこのファイルには revalidate が1つも無く、
         企業が「変更を公開する」を押しても反映は `revalidate` の秒数任せだった。**
-     ⚠️ `unstable_cache` 側（写真300秒・ツール300秒など）はこれでは落ちない。 */
+     ⚠️ `unstable_cache` 側（写真300秒・ツール300秒など）も**一緒に落ちる**
+        （2026-09-08 に本番で実測。詳細は revalidate.ts の注記）。 */
   await revalidateCompanyPages(companyId);
 
   return NextResponse.json({ ok: true, publishedAt: body.isPublished ? now : null });
