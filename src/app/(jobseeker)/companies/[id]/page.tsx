@@ -78,8 +78,47 @@ const getCompanyBySlugOrIdCached = cache(getCompanyBySlugOrId);
 
 
 
-// 60秒 ISR キャッシュ
-export const revalidate = 60;
+/**
+ * ISR の鮮度（2026-09-08 に 60秒 → 3600秒）。
+ *
+ * ── なぜ延ばしたか ────────────────────────────────────────────────────────
+ * ⚠️★**60 は「開発中だから」という一時的な値だった。** `694b9242`（2026-06-10）が
+ *    300 → 60 に下げたときのコミットメッセージ自身がこう書いている:
+ *      "Faster cache refresh during active development.
+ *       After UI stabilizes, can be increased back to 300s for better CDN performance."
+ *
+ * ⚠️★**編集の即時反映は `revalidatePath` が担保するようになった**（2026-09-07〜08）。
+ *    運営・企業の編集経路から `revalidateCompanyPages()` / `revalidateJobPages()` を
+ *    呼んでいる。本番実測（`/companies/opinio` を2秒間隔でポーリング）:
+ *      tagline 変更 … 保存 → 反映 **391ms**
+ *      ツール追加（`unstable_cache` 300秒越し）… **188ms**
+ *    → **秒数は「保険」の役割に変わった。** 触っていない企業を何秒古くしてよいか、の値。
+ *
+ * ⚠️ 実データが動かないことも確かめてある（2026-09-07 実測 / 掲載83社）:
+ *      `ow_companies` の updated_at … 24時間で **0社** / 7日で4社 / 30日で68社
+ *      公開求人（2件）… 7日で0件 ／ 企業投稿・記事 … 30日で0件
+ *
+ * ⚠️★**巡回時の再生成が減るのが実利。** 83社すべてを事前生成しているので、
+ *    クローラが全社を1周するたびに `60秒` だと **83ページ × 約26クエリ ≒ 2,160クエリ**の
+ *    再生成が走りうる。3600 なら 1/60。ビルド1回より、こちらのほうが継続的な負荷。
+ *
+ * ── 変えるときに一緒に見るもの ────────────────────────────────────────────
+ * ⚠️ `queries.ts` の `unstable_cache`（写真・採用担当者・ツール・顧客の業界 300秒 /
+ *    記事・ストーリー 60秒 / 社員 120秒）は**別レイヤーだが、揃える必要は無い。**
+ *    ページが再生成されるときに期限切れなら引き直され、編集時は `revalidatePath` が
+ *    まとめて落とす（2026-09-08 に実測）。**この値より短い限り、上限を決めるのはこちら。**
+ *
+ * ⚠️★**`revalidatePath` を通らない変更は最大1時間古くなる。** 具体的には
+ *    **migration や直接 SQL でのデータ投入**。CLAUDE.md「コード変更が1行も無い migration は
+ *    デプロイのきっかけ自体が発生しない」と同じ話で、**データだけの migration でも
+ *    commit / push してデプロイを走らせること**（デプロイすれば ISR ごと作り直される）。
+ *
+ * ⚠️ 掲載状態（`is_published` / 求人の `status`）が絡むページなので、CLAUDE.md には
+ *    「60秒以下にすること」と書いてあった。**その前提は編集経路の配線で解消している**
+ *    ——運営が取り下げた瞬間に `revalidateCompanyPages()` が走る。
+ *    ⚠️ 配線されていない経路を新しく作ったら、この値を延ばした判断ごと崩れる。
+ */
+export const revalidate = 3600;
 
 /*
  * ⚠️ **これが無いと `revalidate` が効かない**（2026-08-09 実測。詳細は CLAUDE.md）。
@@ -1609,7 +1648,7 @@ function Sidebar({
 
       {/* カジュアル面談OKウィジェット
              ⚠️ **サーバーで人物を描かない。** 面談対応者は実ユーザーが全員 `login_only` で、
-                このページは ISR（`revalidate = 60`）なので、ここで描くと
+                このページは ISR（`revalidate = 3600`）なので、ここで描くと
                 **未ログインに配られる静的HTMLへ名前と顔が焼き付く**（2026-08-22 まで実際にそうだった）。
              ⚠️ かといってここで `auth.getUser()` を読むとページが動的化する（2026-08-09 の設計）。
                 → 数字だけ渡し、人物はクライアントが `/api/.../employees` 越しに出す。 */}
@@ -1668,7 +1707,7 @@ export default async function CompanyDetailPage({
   params: { id: string };
 }) {
   /* ⚠️ 認証はここで読まない（2026-08-09）。読むとルートが動的化して
-        `export const revalidate = 60` が効かなくなる。
+        `export const revalidate = 3600` が効かなくなる。
         閲覧者ごとに変わるもの（社員一覧・ブックマーク・フォロー）は
         すべてクライアント側の専用APIに移してある。
         ⚠️ ここに `createClient()` や `auth.getUser()` を足さないこと。 */
@@ -1696,7 +1735,8 @@ export default async function CompanyDetailPage({
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
           このページは認証を読むためルート単位では毎回再レンダリングされるが、
           企業単位の公開データは閲覧者によって変わらないのでキャッシュしてよい。
-          反映の遅れはページの `export const revalidate = 60` と同じ契約。 */
+          ⚠️ 反映の遅れはここの `revalidate`（60〜300秒）が上限。**ページの 3600 とは別。**
+             編集経路からは `revalidateCompanyPages()` がこの層ごと落とす（2026-09-08 実測）。 */
     getArticlesByCompanyCached(companyId),
     getCompanyEmployeesCached(companyId),
     getCompanyStoriesCached(companyId) as Promise<CompanyPost[]>,
@@ -1929,7 +1969,7 @@ export default async function CompanyDetailPage({
             {/* 5. 社員・OB/OG（current-employees → alumni）
                 ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
                    ここでサーバーから渡すと `auth.getUser()` が要り、
-                   ページが動的化して `revalidate = 60` が効かなくなる。
+                   ページが動的化して `revalidate = 3600` が効かなくなる。
                    絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
             <CompanyEmployeeSections
               companyId={company.id}

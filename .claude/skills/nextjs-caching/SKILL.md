@@ -208,18 +208,41 @@ curl -sS -o /dev/null -D - -L "https://opinio.jp/<ルート>" | grep -iE "cache-
 | 間隔 | ルート |
 |---|---|
 | `force-dynamic` | `/jobs`(一覧) `/people` `/people/role/[slug]` `/schools/[id]` `/mypage/*` |
-| 60秒 | `/companies/[id]` `/jobs/[id]` `/companies/[id]/casual-meeting` `/jobs/dept/[slug]` |
+| 60秒 | `/jobs/[id]` `/companies/[id]/casual-meeting` `/jobs/dept/[slug]` |
 | 300秒 | `/`（LP） `/articles`(一覧) `/articles/[slug]` |
-| 3600秒 | `/salary` `/salary/[slug]` `/articles/type/[slug]` |
+| 3600秒 | **`/companies/[id]`**（2026-09-08〜） `/salary` `/salary/[slug]` `/articles/type/[slug]` |
 
 掲載状態（`is_published` / 求人の `status`）が出るページは60秒以下にすること。
 `/jobs/dept/[slug]` は当初3600秒だったが、求人を閉じた後も最大1時間流入し続けるため60秒に変更した。
 `/salary` 系は集計ページで掲載状態を直接出さないため3600秒のままでよい。
 
-⚠️ `/companies/[id]` は動的なので、`queries.ts` 側で企業単位の公開データを
-`unstable_cache`（記事・ストーリー・アンバサダー60秒／ツール300秒）に載せている。
-60秒はこの宣言値に合わせたもの。**企業がストーリーを公開しても最大60秒遅れる。**
-`/biz/posts` の Server Action は `revalidatePath("/biz/posts")` しか呼ばないため。
+### ⚠️★`/companies/[id]` だけ 3600 にした理由（2026-09-08）
+
+**上の「掲載状態が出るページは60秒以下」の例外。** 例外にできたのは、
+**編集経路から `revalidatePath` を呼ぶようにしたから**であって、値を緩めてよいと
+判断したからではない。
+
+| | |
+|---|---|
+| 実体 | `lib/companies/revalidate.ts` の `revalidateCompanyPages()` / `revalidateJobPages()` |
+| 呼ぶ場所 | 運営・企業の編集経路 25箇所（企業情報・分類・写真・ツール・採用担当者・ストーリー・記事・**求人**） |
+| 本番実測 | tagline 変更 **391ms** ／ ツール追加 **188ms** で反映 |
+
+⚠️★**`revalidatePath` は `unstable_cache` のエントリも落とす**（2026-09-08 実測）。
+   ツールは `getCompanyToolsCached`（300秒）越しだが 188ms で出た。エントリは68秒前に
+   作り直されており期限内だったので、TTL 切れでは説明できない。
+   → `queries.ts` 側の 60/120/300秒は**ページより短ければよく、揃える必要は無い。**
+
+⚠️★**判別軸: `x-vercel-cache: REVALIDATED` かつ `age=0` だけが本物のオンデマンド再検証。**
+   `REVALIDATED age=36` のような値も出る（Vercel のエッジ地域差）。`age` を見ずに判断しない。
+
+⚠️★**`revalidatePath` を通らない変更は最大1時間古くなる。** とくに
+   **migration や直接 SQL でのデータ投入**。CLAUDE.md「コード変更が1行も無い migration は
+   デプロイのきっかけ自体が発生しない」と同じ話で、**データだけの migration でも
+   commit / push してデプロイを走らせること**（デプロイすれば ISR ごと作り直される）。
+
+⚠️ **配線されていない編集経路を新しく作ったら、この 3600 の判断ごと崩れる。**
+   企業ページに出るものを書き換える経路を足すときは、必ず上の2関数を呼ぶこと。
 
 ---
 

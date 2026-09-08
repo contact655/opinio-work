@@ -1977,11 +1977,13 @@ export const getCompanyEmployeesCached = (companyId: string) =>
  *    ここを都度DBに問い合わせていた。企業単位の公開データなので、
  *    閲覧者によって内容は変わらない＝キャッシュしてよい。
  *
- * ⚠️ **60秒はページの `export const revalidate = 60` に合わせている。**
- *    企業側でストーリーを公開しても、反映は最大60秒遅れる。
- *    `/biz/posts` の Server Action は `revalidatePath("/biz/posts")` しか
- *    呼んでおらず、公開ページのキャッシュを落とさないため。
- *    即時反映が要るようになったら、そちらに公開ページの revalidate を足すこと。
+ * ⚠️ 60秒はもともと**ページの `export const revalidate = 60` に合わせた**値だった。
+ *    ⚠️★**ページ側は 2026-09-08 に 3600 へ延ばしたが、ここは 60 のままでよい。**
+ *       この層はページより短ければよく、上限を決めるのはページ側。
+ *    ⚠️★**「最大60秒遅れる」も解消済み。** `/biz/posts` の Server Action は
+ *       2026-09-07 から `revalidateCompanyPages()` を呼んでおり、`revalidatePath` は
+ *       この `unstable_cache` のエントリも落とす（2026-09-08 に本番で実測。
+ *       ツール追加が 188ms で反映された）。**公開すればその場で出る。**
  */
 
 /** 企業に紐づく公開記事 */
