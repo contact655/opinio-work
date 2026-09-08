@@ -49,11 +49,14 @@ export function CompanySplitLayout({
    *       CSS 側で表示形式を判定し直すと二重管理になる。
    */
   railWidth = 420,
+  /** ★カードのリンクの土台（2026-09-09）。`/companies` と `/jobs` が同じ部品を使う */
+  basePath = "/companies",
 }: {
   children: ReactNode;
   pane: ReactNode;
   paneLabel?: string | null;
   railWidth?: number;
+  basePath?: string;
 }) {
   return (
     <>
@@ -93,6 +96,9 @@ export function CompanySplitLayout({
             grid-template-columns: minmax(0, 1fr);
             gap: 10px;
           }
+          /* ⚠️ 求人一覧（jobs-list-desktop）は元から縦1列の flex なので、
+                列を潰す必要は無い。行間だけカードの一覧と揃える。 */
+          .companies-split .jobs-list-desktop { gap: 10px; }
           .companies-pane {
             display: block;
             /* ⚠️ sticky はここ（ページ側の列）に置く。CompanyPane の中には置かない
@@ -126,7 +132,7 @@ export function CompanySplitLayout({
       >
         {/* ⚠️ クリック横取りは 1280px 以上でだけ働く。狭い画面ではカードは
                素の a として全画面へ遷移する。 */}
-        <CompanySplitLinks>{children}</CompanySplitLinks>
+        <CompanySplitLinks basePath={basePath}>{children}</CompanySplitLinks>
         {pane && (
           <aside className="companies-pane" aria-label="選択した企業の概要">
             {pane}

@@ -35,12 +35,19 @@ export function hasSalaryData(min: number | null, max: number | null): boolean {
 export function JobListItem({
   job, companyMap, initialBookmarked = false, isApplied = false,
   matchReason: _matchReason,
+  selected = false,
 }: {
   job: Job;
   companyMap: Map<string, Company>;
   initialBookmarked?: boolean;
   isApplied?: boolean;
   matchReason?: string | null;
+  /**
+   * ★分割ビューでいま右ペインに出している求人か（2026-09-09）。
+   * ⚠️ 見せ方は企業カードと**同じ**（左の色帯4px ＋ 薄い背景 ＋ 枠の色）。
+   *    画面ごとに選択の見え方が違うと、行き来したときに別の状態に見える。
+   */
+  selected?: boolean;
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [bookmarkAnim, setBookmarkAnim] = useState(false);
@@ -97,18 +104,37 @@ export function JobListItem({
       className="job-list-card"
       style={{
         borderRadius: 10,
-        border: "1.5px solid var(--line)",
+        /* ⚠️ 太さは変えない（1.5px のまま色だけ）。太くすると選択した行だけ中身がずれる */
+        border: `1.5px solid ${selected ? "var(--royal)" : "var(--line)"}`,
         boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
         overflow: "hidden",
         transition: "border-color 0.15s, box-shadow 0.15s",
         display: "flex",
-        background: "#fff",
+        background: selected ? "#f4f7fd" : "#fff",
+        /* 色帯を絶対配置で載せるため */
+        position: "relative",
       }}
     >
+      {/* ★選択中の色帯。⚠️ 企業カードと同じ理由で box-shadow では描かない
+             （hover のルールが box-shadow を上書きするため） */}
+      {selected && (
+        <span
+          aria-hidden="true"
+          style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--royal)", zIndex: 1 }}
+        />
+      )}
       <Link
         href={`/jobs/${job.slug ?? job.id}`}
-        target="_blank"
+        /* ⚠️★`target="_blank"` を外した（2026-09-09）。理由は企業カードで 2026-09-07 に
+              外したのと同じ:
+              ① 別タブは必ず新規ドキュメント読み込みになるので、**`prefetch` で取った
+                 RSC が1バイトも使われず捨てられていた**（この行は prefetch を明示している）。
+              ② **分割ビューのクリック横取りが効かない。** `CompanySplitLinks` は
+                 `target !== "_self"` のアンカーを素通しする仕様（別のリンクを
+                 横取りしないため）なので、`_blank` のままだとペインが開かない。
+           ⚠️ ⌘/中クリックでの別タブは今までどおり使える（`<Link>` のままなので）。 */
         prefetch
+        aria-current={selected ? "true" : undefined}
         className="job-list-item-link"
         style={{
           display: "flex",

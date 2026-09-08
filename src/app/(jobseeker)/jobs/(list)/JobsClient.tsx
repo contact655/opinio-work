@@ -56,6 +56,8 @@ import { extractPrefecture, PREFECTURE_FILTER_GROUPS } from "@/lib/utils/locatio
 import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { fmtMan } from "@/lib/utils/salary";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
+import { JobPane } from "@/components/jobs/JobPane";
+import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -702,6 +704,20 @@ export default function JobsClient({
   }, [filterKey]);
 
   const paged = filteredForDisplay.slice(0, displayCount);
+
+  /* ── ★分割ビュー（2026-09-09。柴さんの要望）──────────────────────────────
+     ⚠️★**サーバーへ取りに行かない。** 求人は既に全件クライアントに載っている
+        （`allJobs`）ので、`/companies` と違って追加のクエリが1本も要らない。
+     ⚠️ 先頭を自動で開く。`/companies` の詳細表示と同じ理由——右側が空のままだと
+        分割ビューがあることに気づけない。
+     ⚠️ **並び替え・絞り込みの結果に追随する**（`paged` の先頭を見る）。
+     ⚠️ 見つからない slug は黙って無視して先頭に落とす（一覧そのものは正しいので
+        404 にはしない）。 */
+  const selectedSlug = searchParams.get("selected");
+  const selectedJob =
+    (selectedSlug ? paged.find((j) => (j.slug ?? j.id) === selectedSlug) : undefined) ?? paged[0];
+  const selectedCompany = selectedJob ? companyMap.get(selectedJob.company_id) : undefined;
+
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
@@ -1309,7 +1325,18 @@ export default function JobsClient({
             </div>
           ) : (
             <>
-              {/* リスト表示（デスクトップ・モバイル共通） */}
+              {/* リスト表示（デスクトップ・モバイル共通）。
+                     ⚠️★骨組みと CSS は `/companies` と**同じ部品**（CompanySplitLayout）。
+                        ここに書き写さないこと——割れると片方の画面でだけペインが出なくなる。
+                     ⚠️ 部品名が `Company…` なのは歴史的な理由（CompanySplitLinks の注記）。
+                     ⚠️ レール幅 700 は企業の詳細表示と同じ。求人カードも横長の行で、
+                        420 では本文が入らない。 */}
+              <CompanySplitLayout
+                pane={selectedJob ? <JobPane job={selectedJob} company={selectedCompany} /> : null}
+                paneLabel={selectedJob ? selectedJob.role : null}
+                railWidth={700}
+                basePath="/jobs"
+              >
               <div className="jobs-list-desktop">
                 {(() => {
                   return paged.map((job) => {
@@ -1321,11 +1348,17 @@ export default function JobsClient({
                         initialBookmarked={bookmarkedIds.has(job.id)}
                         isApplied={appliedJobIds.has(job.id)}
                         matchReason={computeMatchReason(job, { category, dept, salary, prefecture, q }, parentRoles)}
+                        /* ★いま右ペインに出している求人に印を付ける（2026-09-09）。
+                           ⚠️ 判定は `selectedJob` と同じ式にしない。**同一オブジェクトで比べる**
+                              ——`?selected=` は slug でも id でもありうるので、文字列で比べると
+                              片方の形でだけ印が付かない（企業側で踏んだのと同じ罠）。 */
+                        selected={job === selectedJob}
                       />
                     );
                   });
                 })()}
               </div>
+              </CompanySplitLayout>
               {/* ⑦ プログレスバー + もっと見るボタン */}
               <div style={{ marginTop: 16, marginBottom: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>

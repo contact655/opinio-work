@@ -31,10 +31,27 @@ import { SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
  *    （`CompanyCardList` の `handleBookmark`）。**`defaultPrevented` を見て降りる**ので
  *    ここでは二重に拾わない。
  */
-/** `/companies/<slug>` だけに一致させる。配下（`/casual-meeting` など）は横取りしない */
-const COMPANY_DETAIL_HREF = /^\/companies\/([^/?#]+)$/;
+/**
+ * `<basePath>/<slug>` だけに一致させる。配下（`/casual-meeting` や `/apply`）は横取りしない。
+ * ⚠️ **正規表現をリテラルで持たない**（2026-09-09）。`/jobs` でも同じ部品を使うため。
+ */
+function detailHrefPattern(basePath: string): RegExp {
+  return new RegExp(`^${basePath}/([^/?#]+)$`);
+}
 
-export function CompanySplitLinks({ children }: { children: React.ReactNode }) {
+export function CompanySplitLinks({
+  children,
+  /**
+   * ★一覧のパス（2026-09-09 に追加）。`/companies` と `/jobs` が同じ部品を使う。
+   *
+   * ⚠️ **部品名は `Company…` のままにしてある。** `/jobs` から使うのは 2026-09-09 から。
+   *    改名すると CSS の class 名（`companies-split` / `companies-pane`）や
+   *    CLAUDE.md の記述まで芋づるで、取りこぼすと**片方の画面でだけレールが潰れる**。
+   *    このリポジトリには同じ形の前例がある（`?industry=` は事業領域、
+   *    `--font-noto` はシステムフォント）。**名前より、1箇所であることを優先している。**
+   */
+  basePath = "/companies",
+}: { children: React.ReactNode; basePath?: string }) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,7 +74,7 @@ export function CompanySplitLinks({ children }: { children: React.ReactNode }) {
       /* ⚠️ `target="_blank"` が付いた別のリンクを横取りしない */
       if (anchor.target && anchor.target !== "_self") return;
 
-      const matched = (anchor.getAttribute("href") ?? "").match(COMPANY_DETAIL_HREF);
+      const matched = (anchor.getAttribute("href") ?? "").match(detailHrefPattern(basePath));
       if (!matched) return;
 
       e.preventDefault();
@@ -65,12 +82,12 @@ export function CompanySplitLinks({ children }: { children: React.ReactNode }) {
             「見比べる」という分割ビューの目的が成立しない。 */
       const params = new URLSearchParams(window.location.search);
       params.set("selected", matched[1]);
-      router.push(`/companies?${params.toString()}`, { scroll: false });
+      router.push(`${basePath}?${params.toString()}`, { scroll: false });
     }
 
     el.addEventListener("click", onClick);
     return () => el.removeEventListener("click", onClick);
-  }, [router]);
+  }, [router, basePath]);
 
   return <div ref={ref}>{children}</div>;
 }
