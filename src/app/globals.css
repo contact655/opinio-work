@@ -691,6 +691,22 @@ textarea:focus-visible {
   border-color: transparent !important;
 }
 
+/* ── ★検索バーの「2つ目の形」: 入力欄そのものが丸い枠（2026-09-09）──────────
+   `.search-shell` は **殻 + 中の裸の入力欄** の形だが、こちらは**入力欄1枚**で
+   完結する形（`/articles` のフリーワード検索）。
+   ⚠️★上の `input:focus-visible` は **border(1.5px) の外側に outline(2px) を足す**ので、
+      同じ丸みの線が**2本並んで見える**。二重枠の見え方は3画面と同じだが、
+      **原因が違う**（あちらは「丸の中に四角」、こちらは「丸の外に丸」）。
+      `.search-shell` の打ち消しは殻の中の入力欄にしか効かないので、こちらには届かない。
+   ⚠️ 枠の色（`--royal`）と淡いリングは**残す**。焦点が見えなくなるわけではない。
+   ⚠️★呼び出し側のインライン style に `border` が残っていてよい（未入力時の
+      灰色を出しているのはそちら）。ここは `!important` で focus 時だけ上書きする。 */
+.search-pill:focus-visible {
+  outline: none !important;
+  border-color: var(--royal) !important;
+  box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
+}
+
 /* ── Skip to main content (screen readers) ── */
 .skip-to-main {
   position: absolute;

@@ -63,6 +63,12 @@ export default function ArticleFilterBar({ total }: { total: number }) {
               value={localQ}
               onChange={(e) => handleQueryChange(e.target.value)}
               aria-label="記事を検索"
+              /* ⚠️★フォーカス時の二重枠を止める（2026-09-09）。globals.css の
+                    `input:focus-visible` が border の外に outline を足すので、
+                    この入力欄のように**自分で丸い枠を持っている**と線が2本になる。
+                    `.search-pill` は outline だけを消し、枠の色と淡いリングは残す。
+                 ⚠️ 枠の色を変えたい場合も、ここに `outline` を書き戻さないこと。 */
+              className="search-pill"
               style={{
                 width: "100%", boxSizing: "border-box",
                 padding: "9px 28px 9px 30px",
