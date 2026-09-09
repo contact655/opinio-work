@@ -4556,6 +4556,23 @@ npm run dev → http://localhost:3000/dev/preview
   1つずつ入れたら通った。**人の操作では起きない**ので実装の問題ではないが、
   自動検証では**送信前に `select.value` が実際に入っていることを確かめる**こと。
 
+### ⚠️★`ow_users` の一覧・公開表示・人数カウントは `auth_id IS NULL` も除外する（2026-09-10）
+
+`is_test` / `is_system` に加えて、**本人が登録していない行**（`auth_id IS NULL`）も除外する。
+運営が履歴書などから先に作ったプロフィールがこれで、**本人は一度もログインしておらず、
+利用規約への同意も経ていない**（実測: `archive/154_add_users_narifuji_komatsu.sql` 由来の1件）。
+
+**判定は [lib/users/registered.ts](src/lib/users/registered.ts) の `isRegisteredUser()` 1本。**
+現在**7箇所**が呼ぶ:
+`/people` ／ `/companies` のカードの人数 ／ `/feed` の企業一覧の人数 ／ 求人の経験者 ／
+現役社員・OB/OG ／ 面談対応者 ／ `/u/[id]`（**404 にする**）。
+
+⚠️★**`auth_id` を SELECT に含めること。** 落とすと `undefined` になり、
+   **全員が除外されて一覧が丸ごと空になる**（型では気づけない）。
+⚠️★**個別の行を `private` にする対処を採らないこと。** 次に同じ経緯の行が生まれたときに効かない。
+⚠️ `is_test` / `is_system` の除外は**7箇所すべてインラインのまま**（集約は別タスク）。
+   同種の条件を足すときに**8箇所目を作らない**こと。
+
 → 各項目の計測スクリプトと実測値は [.claude/rules/ui-debugging.md](.claude/rules/ui-debugging.md)
    （`.tsx` / `.jsx` / `.css` を扱うとき自動で読み込まれる）
 

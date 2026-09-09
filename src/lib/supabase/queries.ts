@@ -7,6 +7,7 @@
  */
 
 import { unstable_cache, revalidateTag } from "next/cache";
+import { isRegisteredUser } from "@/lib/users/registered";
 import type { CompanyBusinessDomain, CompanyTargetIndustry } from "@/types/genre";
 import { cache } from "react";
 import { createClient } from "./server";
@@ -692,7 +693,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     // is_test=true ユーザーを除外するため ow_users を JOIN
     supabase
       .from("ow_experiences")
-      .select("company_id, user_id, ow_users!user_id(id, is_test)")
+      .select("company_id, user_id, ow_users!user_id(id, auth_id, is_test)")
       .eq("ow_users.is_test", false),
   ]);
 
@@ -717,6 +718,8 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const owUser = (e as any).ow_users;
     if (!owUser || owUser.is_test) continue;
+    /* ★本人が登録していない行（auth_id IS NULL）は人数に数えない。lib/users/registered.ts */
+    if (!isRegisteredUser(owUser)) continue;
     const cid = e.company_id as string;
     const uid = e.user_id as string;
     if (!memberCountMap.has(cid)) memberCountMap.set(cid, new Set());
@@ -1373,7 +1376,7 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
         CLAUDE.md「★403 は『0件』として静かに素通りする」参照。 */
   const { data: expRows, error: expError } = await supabase
     .from("ow_experiences")
-    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test)")
+    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, auth_id, name, avatar_color, avatar_url, visibility, is_test)")
     .in("role_category_id", roleIds);
   if (expError) console.error("[getJobPositionMembers] ow_experiences+ow_users:", expError.message);
 
@@ -1389,6 +1392,10 @@ export async function getJobPositionMembers(jobCategory: string): Promise<JobPos
     const user = exp.ow_users as Record<string, any> | null;
     if (!user || user.visibility !== "public") continue;
     if ((user.is_test as boolean | null) === true) continue;
+    /* ★本人が登録していない行は出さない。⚠️ 現時点では visibility==='public' が0人なので
+          no-op だが、**no-op であることは足さない理由ではなく足す理由**（誰かが public を
+          選んだ日に、気づかないまま出る）。lib/users/registered.ts */
+    if (!isRegisteredUser(user)) continue;
     const uid = user.id as string;
     if (seen.has(uid)) continue;
     seen.add(uid);
@@ -1767,7 +1774,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, ow_users!inner(id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
+    .select("id, role_title, role_category_id, ow_users!inner(id, auth_id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", true)
     .neq("visibility_company", "hidden");
@@ -1785,7 +1792,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let alumniQuery: any = supabase
     .from("ow_experiences")
-    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
+    .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, auth_id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", false)
     .neq("visibility_company", "hidden")
@@ -1878,8 +1885,11 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // 表示除外条件: is_test=true または visibility='private'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isSeedRow = (r: any) => {
-    const u = r.ow_users as { is_test?: boolean | null; visibility?: string | null } | null;
-    return u?.is_test === true || u?.visibility === "private";
+    const u = r.ow_users as { auth_id?: string | null; is_test?: boolean | null; visibility?: string | null } | null;
+    /* ★本人が登録していない行（auth_id IS NULL）も出さない。lib/users/registered.ts
+          ⚠️ `auth_id` を上の select に含めること。落とすと全員が除外され、
+             現役社員・OB/OG が丸ごと空になる。 */
+    return u?.is_test === true || u?.visibility === "private" || !isRegisteredUser(u);
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEmps = dedupeByUser((currentRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r)));
@@ -2139,7 +2149,7 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
     async (): Promise<PublicAmbassador[]> => {
       const { data, error } = await createAdminClient()
         .from("ow_company_members")
-        .select("id, user_id, role_title, ow_users!user_id(name, avatar_color, avatar_url, is_test, visibility)")
+        .select("id, user_id, role_title, ow_users!user_id(auth_id, name, avatar_color, avatar_url, is_test, visibility)")
         .eq("company_id", companyId)
         .eq("display_consent", true)
         .eq("is_public", true);
@@ -2175,12 +2185,14 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
       return (data ?? []).flatMap((r) => {
         const row = r as unknown as {
           id: string; user_id: string; role_title: string | null;
-          ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null;
+          ow_users: { auth_id: string | null; name: string | null; avatar_color: string | null; avatar_url: string | null;
                       is_test: boolean | null; visibility: string | null } | null;
         };
         const u = row.ow_users;
         if (!u) return [];
         if (u.is_test === true || u.visibility === "private") return [];
+        /* ★本人が登録していない行（auth_id IS NULL）は出さない。lib/users/registered.ts */
+        if (!isRegisteredUser(u)) return [];
         /* ★その企業に在籍中でなければ出さない（退職者が自動で降りる） */
         if (!currentUserIds.has(row.user_id)) return [];
         return [{

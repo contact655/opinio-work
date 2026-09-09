@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { talkableCompanyIds } from "@/lib/companyMembers/talkable";
 import { calcPublicScore } from "@/lib/profile/completion";
+import { isRegisteredUser } from "@/lib/users/registered";
 import {
   resolveExperienceCompanyLabel,
   EXPERIENCE_COMPANY_COLS,
@@ -256,7 +257,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     .from("ow_users")
     /* ⚠️ **birth_date は取らない**（2026-08-20）。一覧に年齢を出さない・年齢で絞り込まないため。
        ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
-    .select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at");
+    .select("id, auth_id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -265,6 +266,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
 
   type UserRow = {
     id: string; name: string | null; avatar_color: string | null; avatar_url: string | null;
+    auth_id: string | null;
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
     headline: string | null; about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
@@ -274,6 +276,9 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   const visible = ((userRows ?? []) as UserRow[]).filter((u) => {
     if (!u.name) return false;
     if (u.is_test || u.is_system) return false;
+    /* ★本人が登録していない行（auth_id IS NULL）は出さない。理由は
+       `lib/users/registered.ts`。⚠️ `auth_id` を select に含めること。 */
+    if (!isRegisteredUser(u)) return false;
     if (u.visibility === "private") return false;
     if (u.visibility === "login_only" && !isLoggedIn) return false;
     return true;

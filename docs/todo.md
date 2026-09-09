@@ -2957,3 +2957,34 @@ STEP 03「年収相場を把握する」が `/salary` 削除時に外され、**
       戻すときは数字を作り直さずそこから拾うこと。
    ⚠️ ただし実測（2026-09-10 / 実ユーザー11人）では **肩書きが11人中0人**なので、
       100点満点を分母にすると**到達不能**（最高89点）。分母の設計から必要。
+
+---
+
+## ⚠️ `is_test` / `is_system` の除外が7箇所にインラインで重複している（2026-09-10 記録）
+
+`ow_users` から人を出す経路は**7箇所**あり、`is_test` / `is_system` / `visibility` の
+除外が**すべてインラインの式**で書かれている。1箇所に定義されていない。
+
+| # | 場所 | 現在の式 |
+|---|---|---|
+| 1 | `lib/people/directory.ts` | `is_test \|\| is_system`（＋`visibility`） |
+| 2 | `lib/search/companies.ts` | `is_test === true \|\| visibility === "private"` |
+| 3 | `lib/supabase/queries.ts` `getCompaniesForList` | `is_test` のみ |
+| 4 | `lib/supabase/queries.ts` `getJobPositionMembers` | `is_test`（＋`visibility === "public"` 必須） |
+| 5 | `lib/supabase/queries.ts` `getCompanyEmployees` | `is_test === true \|\| visibility === "private"` |
+| 6 | `lib/supabase/queries.ts` 面談対応者 | `is_test === true \|\| visibility === "private"` |
+| 7 | `app/(jobseeker)/u/[id]/page.tsx` | 人の除外なし（RLS の `visibility` だけ） |
+
+⚠️★**式が7箇所で揃っていない。** 3 は `visibility` を見ておらず、4 は逆に
+`visibility === "public"` を要求している。**同じ「人を出さない」判断が7通りある。**
+
+⚠️ 2026-09-10 に `auth_id IS NULL` の除外を足したときは、
+**新しい条件だけを [lib/users/registered.ts](../src/lib/users/registered.ts) に定義**し、
+7箇所から呼ぶ形にした。**`is_test` の集約は今回やっていない。**
+
+⚠️★**次に同種の条件を足す人が8箇所目を作らないこと。** 足すなら
+`isRegisteredUser` と同じ形（1箇所に定義して7箇所から呼ぶ）にするか、
+このタスクで `is_test` ごと集約する。
+
+⚠️ 集約するときは**式を揃える判断が要る**（3 に `visibility` を足すのか、
+4 の `public` 限定を残すのか）。**機械的に統一すると表示が変わる。**

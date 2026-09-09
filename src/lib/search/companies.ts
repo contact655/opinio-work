@@ -1,5 +1,6 @@
 // src/lib/search/companies.ts
 import { resolveIndustryKey } from "./industryGroups";
+import { isRegisteredUser } from "@/lib/users/registered";
 import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 // 企業検索の抽象化レイヤー
 //
@@ -269,7 +270,7 @@ export async function searchCompanies(
       // login_only ユーザーも集計に含めるため adminSupabase を使用（RLS バイパス）
       createAdminClient()
         .from("ow_experiences")
-        .select("company_id, user_id, is_current, ow_users!inner(id, is_test, visibility)")
+        .select("company_id, user_id, is_current, ow_users!inner(id, auth_id, is_test, visibility)")
         .in("company_id", companyIds),
       /* 事業領域。⚠️ N+1 にしない（表示企業ぶんを1クエリで引く）。
             並び順は display_order（主が1番）なので、そのまま出せば主が先頭に来る。 */
@@ -299,8 +300,12 @@ export async function searchCompanies(
     const alumniSets   = new Map<string, Set<string>>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const e of (expResult.data ?? []) as any[]) {
-      const u = e.ow_users as { id: string; is_test: boolean | null; visibility: string | null } | null;
+      const u = e.ow_users as { id: string; auth_id: string | null; is_test: boolean | null; visibility: string | null } | null;
       if (!u || u.is_test === true || u.visibility === "private") continue;
+      /* ★本人が登録していない行（auth_id IS NULL）は人数に数えない。
+            ⚠️ 「現役社員 N名」は OPINIO が外向きに言う数字なので、
+               氏名が出ないカードでも母集合を一覧と揃える。理由は lib/users/registered.ts。 */
+      if (!isRegisteredUser(u)) continue;
       const cid = e.company_id as string;
       const uid = e.user_id as string;
       if (e.is_current) {

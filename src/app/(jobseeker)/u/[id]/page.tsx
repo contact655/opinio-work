@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isRegisteredUser } from "@/lib/users/registered";
 import { permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -148,6 +149,13 @@ export default async function UserProfilePage({ params }: { params: { id: string
   // visibility = 'login_only' → anon は null が返る → 404
   // visibility = 'private'   → 本人以外 null が返る → 404
   if (!user) notFound();
+
+  /* ★本人が登録していない行（auth_id IS NULL）は 404 にする（2026-09-10）。
+     ⚠️★**一覧から消すだけでは塞いだことにならない。** URL を直接開けば見えてしまう。
+     ⚠️ `auth_id` は既に上の select に入っている。**外さないこと。**
+     ⚠️ 閲覧者本人がこの行ということは起きない（閲覧者は必ず auth を持つ）。
+        理由は lib/users/registered.ts。 */
+  if (!isRegisteredUser(user as { auth_id?: string | null })) notFound();
 
   const owUser = user as OwUser;
 
