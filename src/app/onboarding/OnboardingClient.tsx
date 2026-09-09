@@ -150,9 +150,32 @@ async function postJson(
   label: string,
   failures: string[],
 ) {
+  return sendJson("POST", url, body, label, failures);
+}
+
+/**
+ * PUT 版。⚠️ 生年月日だけ **`ow_users`（別テーブル）** なので PUT の API を使う。
+ * ⚠️ `postJson` と同じく**握り潰さない**（`console.error` と画面表示の両方に出す）。
+ */
+async function putJson(
+  url: string,
+  body: Record<string, unknown>,
+  label: string,
+  failures: string[],
+) {
+  return sendJson("PUT", url, body, label, failures);
+}
+
+async function sendJson(
+  method: "POST" | "PUT",
+  url: string,
+  body: Record<string, unknown>,
+  label: string,
+  failures: string[],
+) {
   try {
     const res = await fetch(url, {
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
@@ -176,6 +199,11 @@ export type OnboardingRole = { id: string; name: string; parent_id: string | nul
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 51 }, (_, i) => CURRENT_YEAR - i);
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+/* 生年月日の選択肢。⚠️ `/profile/edit` の `ProfileTab` と同じ幅（101年 / 12ヶ月 / 31日）に揃える。
+   ⚠️ 日は31固定。月ごとの日数に合わせない —— 不正な組み合わせは
+      `PUT /api/jobseeker/profile` の `BIRTH_RE` と DB の DATE 型が弾く。 */
+const BIRTH_YEARS = Array.from({ length: 101 }, (_, i) => CURRENT_YEAR - i);
+const BIRTH_DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
 
 const selectStyle: React.CSSProperties = {
   flex: 1, minWidth: 0, padding: "10px 12px",
@@ -228,6 +256,17 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* ★部署名（2026-09-09 追加・任意）。同一社内の異動を読めるようにするために要る。
      ⚠️ 「これまでの職歴」側にも同じ欄がある。片方だけにしないこと。 */
   const [department, setDepartment] = useState("");
+  /* ★生年月日（2026-09-09 追加・任意）。
+     ⚠️★保存先は **`ow_users.birth_date` の1系統だけ**。
+        `ow_career_profiles.birth_year` には**書かない**（CLAUDE.md「生年は
+        `ow_users.birth_date` の1系統に決めた」）。生年情報が2箇所ある状態を増やさない。
+        ⚠️ 値が食い違う実ユーザーが1人いる件は本人確認が要る別件（docs/todo.md）。
+           ここから統合しにいかない。
+     ⚠️ 経歴（`ow_experiences`）ではなく**本人の属性**なので、現職のブロックの中に置かない
+        （あのブロックは会社を選ぶまで描画されず、会社を入れない人には一生出ない）。 */
+  const [birthYear, setBirthYear]   = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay]     = useState("");
   const [endedYear, setEndedYear] = useState<string>("");
   const [endedMonth, setEndedMonth] = useState<string>("");
   /* 勤務地・勤務形態（どちらも任意）。
@@ -369,6 +408,20 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           visibility_company: "real",
           visibility_company_profile: "real",
         }, "職歴", failures);
+      }
+
+      /* ★生年月日。⚠️ **経歴とは別のテーブル**（`ow_users`）なので別の API を呼ぶ。
+         ⚠️★`PUT /api/jobseeker/profile` は `.update()` に **`.select()` を付けていない**。
+            付けると PostgREST が全列を返そうとし、`birth_date` の SELECT 権限が
+            `authenticated` に無いため **403（42501）** になる
+            （CLAUDE.md「`PATCH` が 403 でも UPDATE が失敗したとは限らない」と同じ機構）。
+            **あちらに `.select()` を足さないこと。**
+         ⚠️ 3つ揃わなければ送らない。`BIRTH_RE` は `YYYY-MM-DD` を要求し、
+            外れると 400 になる（黙って null にはならない）。 */
+      if (birthYear && birthMonth && birthDay) {
+        await putJson("/api/jobseeker/profile", {
+          birth_date: `${birthYear}-${birthMonth}-${birthDay}`,
+        }, "生年月日", failures);
       }
 
       /* 学歴。⚠️ 必須は学校名だけ（API 側も同じ）。 */
@@ -1069,6 +1122,44 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
               {educations.length > 0 ? "学歴を追加" : "学歴を追加（任意）"}
             </button>
+          </div>
+
+          {/* ── 生年月日（任意）────────────────────────────────────────────
+              ★2026-09-09 追加。実ユーザー11人中7人が未入力で、あとから入れてもらうのが難しい。
+
+              ⚠️★**経歴ではなく本人の属性**なので、現職のブロックの外に置く。
+                 あのブロックは会社を選ぶまで描画されないので、中に入れると
+                 会社を入れない人には一生出ない。
+              ⚠️★保存は **`PUT /api/jobseeker/profile`**（`ow_users.birth_date`）。
+                 経歴の POST（`/api/jobseeker/experiences`）に相乗りさせない。
+              ⚠️★**`ow_career_profiles.birth_year` には書かない。** 生年情報を2箇所にしない。
+              ⚠️ 3つ揃わなければ送らない（`BIRTH_RE` が `YYYY-MM-DD` を要求する）。 */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+              生年月日<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>任意</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
+                <option value="">年</option>
+                {BIRTH_YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+              </select>
+              <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} style={selectStyle} aria-label="生月">
+                <option value="">月</option>
+                {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+              </select>
+              <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} style={selectStyle} aria-label="生日">
+                <option value="">日</option>
+                {BIRTH_DAYS.map((d) => <option key={d} value={d}>{Number(d)}日</option>)}
+              </select>
+            </div>
+            {/* ⚠️★**この一文を消さないこと。** 年齢は詳細ページにしか出さず、年齢での絞り込みも
+                   作らないという方針（CLAUDE.md「年齢は詳細だけ」／労働施策総合推進法9条）の
+                   説明がここにしか無い。
+                ⚠️★**「登録ユーザー一覧に表示されます」と書かないこと。** 実態と逆で、
+                   古い文言としてどこかに残っていた前例がある（2026-08-19）。 */}
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
+              ユーザー一覧には表示されません。年齢はプロフィールの詳細ページにだけ出ます。
+            </p>
           </div>
 
           {saveError && (
