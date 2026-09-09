@@ -44,6 +44,13 @@ type PastJob = {
   roleId: string;
   /** 部署名（任意）。⚠★同一社内の異動を読めるようにするために要る（下記 `groupPastJobs`）。 */
   department: string;
+  /**
+   * 会社名が「この会社に役割を追加」等で**自動で入った**行かどうか。
+   * ⚠️★これが無いと、自動で入った会社名だけで「入力しかけ」と判定してしまい、
+   *    **何も触っていない行にオレンジの警告が出る**（2026-09-09 に実際にそうなっていた）。
+   *    警告がエラーに見えるので、触っていない行には出さない。
+   */
+  prefilled: boolean;
   startYear: string;
   startMonth: string;
   endYear: string;
@@ -64,7 +71,7 @@ type EducationRow = {
 };
 
 const emptyPastJob = (key: number): PastJob => ({
-  key, company: null, companyText: "", roleId: "", department: "",
+  key, company: null, companyText: "", roleId: "", department: "", prefilled: false,
   startYear: "", startMonth: "", endYear: "", endMonth: "",
 });
 
@@ -81,6 +88,7 @@ const pastJobAtSameCompany = (key: number, from: PastJob): PastJob => ({
   ...emptyPastJob(key),
   company: from.company,
   companyText: from.companyText,
+  prefilled: true,
 });
 
 /**
@@ -704,6 +712,22 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                    規約側に書き足す案もあるが、**規約の改定になるので改定日の告知が要る。**
               */}
 
+              {/* ⚠️ 会社だけ埋めて職種・年月が空だと**保存されない**。
+                     黙って捨てると「入力させたのに保存しない」に戻る。
+                  ⚠️★**現職の欄のすぐ下に置くこと**（2026-09-09 に移した）。
+                     以前はフォームの一番下（学歴のさらに後ろ）にあり、
+                     **何の話をしているのか分からない位置**だった。実測で 375px 幅だと
+                     この欄から警告まで**3画面ぶん**離れていた。 */}
+              {!canSaveExperience && (
+                <p style={{ fontSize: 12, fontWeight: 500, color: "var(--warm-ink)", background: "var(--warm-soft)",
+                            border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginTop: 18, lineHeight: 1.7 }}>
+                  {isCurrent
+                    ? "職種と入社年月を選ぶと、経歴として保存されます。"
+                    : "職種・入社年月・退職年月を選ぶと、経歴として保存されます。"}
+                  このまま進めると会社名は保存されません（あとからプロフィール編集で登録できます）。
+                </p>
+              )}
+
               {/* ★★「この会社での前の役割を追加」（2026-09-09 / 柴さんの指摘で追加）。
                      ⚠️★これが無いと、**現職の会社で部署異動した人が会社名を打ち直すことになる。**
                         「これまでの職歴」の『＋ この会社に役割を追加』は過去の会社にしか無く、
@@ -719,10 +743,11 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                     ...emptyPastJob(rowKeyRef.current++),
                     company: selectedCompany,
                     companyText: selectedCompany ? selectedCompany.name : query.trim(),
+                    prefilled: true,
                   },
                   ...prev,
                 ])}
-                style={{ ...addBtnStyle, marginTop: 18, fontSize: 12, padding: "7px 13px" }}
+                style={{ ...subAddBtnStyle, marginTop: 14 }}
               >
                 <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社での前の役割を追加
               </button>
@@ -734,16 +759,19 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                  現職しか無い人にも「埋めるべき欄」に見えて入口が重くなる。
               ⚠️ 保存条件は現職と同じ3点（`pastJobReady`）。揃わない行は送らない。 */}
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>これまでの職歴</div>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
-            </div>
-            {/* ⚠️ 1行に収まる長さにする。「あとからプロフィール編集でも追加できます」を
-                   足していたが、カード上部の「任意入力です。あとから変更できます。」と
-                   同じことを言っており、2行目に「ます。」だけが落ちていた。 */}
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
-              過去に在籍した会社を追加できます。
-            </p>
+            {/* ★★0件のときは**見出しも説明も出さない**（2026-09-09）。ボタン1行だけにする。
+                   ⚠️ 見出し＋「任意」＋説明＋ボタンで**4行**あり、しかも説明はボタンの文言と
+                      同じことを言っていた。大半の人は職歴を足さずに進むので、
+                      その人たちには**4行ぶんの余計な高さ**にしかなっていない。
+                   ⚠️★**文言に「任意」を残すこと。** 見出しの横の「任意」バッジが消えるので、
+                      ボタン側で言わないと必須に見える。
+                   ⚠️ 行が1件でもあるときは見出しを出す（どこからどこまでが職歴か要る）。 */}
+            {pastJobs.length > 0 && (
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>これまでの職歴</div>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
+              </div>
+            )}
 
             {/* ★同じ会社の連続する行を1グループとして描く（2026-09-09）。
                    グループの中では**会社名を1回だけ**出し、役割を縦に並べる。
@@ -756,7 +784,12 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 <div key={head.key} style={rowCardStyle}>
                   {group.map((j, posIdx) => {
                     const ready = pastJobReady(j);
-                    const touched = !!j.company || !!j.companyText.trim() || !!j.roleId || !!j.startYear || !!j.startMonth;
+                    /* ⚠️★自動で入った会社名は「触った」に数えない（`prefilled`）。
+                          数えると、押した直後の空の行にいきなり警告が出て**エラーに見える。** */
+                    const touched =
+                      (!j.prefilled && (!!j.company || !!j.companyText.trim())) ||
+                      !!j.roleId || !!j.department.trim() ||
+                      !!j.startYear || !!j.startMonth || !!j.endYear || !!j.endMonth;
                     const isHead = posIdx === 0;
                     const upd = (patch: Partial<PastJob>) =>
                       setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, ...patch } : p));
@@ -892,7 +925,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
 
                         {/* ⚠️ 揃っていない行は保存されない。黙って捨てない。 */}
                         {touched && !ready && (
-                          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 10, lineHeight: 1.7 }}>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--warm-ink)", marginTop: 10, lineHeight: 1.7 }}>
                             会社名・職種・入社年月・退職年月がそろうと保存されます。
                           </p>
                         )}
@@ -915,7 +948,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                         next.splice(at + 1, 0, pastJobAtSameCompany(rowKeyRef.current++, last));
                         return next;
                       })}
-                      style={{ ...addBtnStyle, marginTop: 12, fontSize: 12, padding: "7px 13px" }}
+                      style={{ ...subAddBtnStyle, marginTop: 10 }}
                     >
                       <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社に役割を追加
                     </button>
@@ -929,19 +962,20 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               onClick={() => setPastJobs((prev) => [...prev, emptyPastJob(rowKeyRef.current++)])}
               style={addBtnStyle}
             >
-              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span> 別の会社の職歴を追加
+              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
+              {pastJobs.length > 0 ? "別の会社の職歴を追加" : "これまでの職歴を追加（任意）"}
             </button>
           </div>
 
           {/* ── 学歴（任意・複数）────────────────────────────────────────── */}
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>学歴</div>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
-            </div>
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 12, lineHeight: 1.7 }}>
-              学校名だけでも保存できます。
-            </p>
+            {/* ★★0件のときは見出しも説明も出さない（職歴と同じ。2026-09-09）。 */}
+            {educations.length > 0 && (
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>学歴</div>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
+              </div>
+            )}
 
             {educations.map((e, idx) => (
               <div key={e.key} style={rowCardStyle}>
@@ -1016,21 +1050,10 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               onClick={() => setEducations((prev) => [...prev, emptyEducation(rowKeyRef.current++)])}
               style={addBtnStyle}
             >
-              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span> 学歴を追加
+              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
+              {educations.length > 0 ? "学歴を追加" : "学歴を追加（任意）"}
             </button>
           </div>
-
-          {/* ⚠️ 会社だけ埋めて職種・年月が空だと**保存されない**。
-                 黙って捨てると、いま直したのと同じ「入力させたのに保存しない」に戻る。 */}
-          {hasCompany && !canSaveExperience && (
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", background: "var(--warm-soft)",
-                        border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginTop: 16, lineHeight: 1.7 }}>
-              {isCurrent
-                ? "職種と入社年月を選ぶと、経歴として保存されます。"
-                : "職種・入社年月・退職年月を選ぶと、経歴として保存されます。"}
-              このまま進めると会社名は保存されません（あとからプロフィール編集で登録できます）。
-            </p>
-          )}
 
           {saveError && (
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
@@ -1100,6 +1123,23 @@ const textInputStyle: React.CSSProperties = {
 const rowCardStyle: React.CSSProperties = {
   borderTop: "1px solid var(--line-soft)",
   paddingTop: 14, marginBottom: 14,
+};
+
+/**
+ * 「同じ会社の続き」を足すボタン。**枠を持たない文字のボタン**にしてある（2026-09-09）。
+ *
+ * ⚠️★`addBtnStyle`（破線の枠）と**見た目を分けること**。以前は4つとも同じ形で、
+ *    「この会社での前の役割」「この会社に役割」「別の会社の職歴」「学歴」が
+ *    **文言を読むまで見分けられなかった。**
+ *    枠あり＝新しい塊を作る／枠なし＝いまの塊の続き、という対応にしてある。
+ */
+const subAddBtnStyle: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 5,
+  padding: "6px 2px", borderRadius: 8,
+  border: "none", background: "none",
+  color: "var(--royal)", fontSize: 12, fontWeight: 700,
+  cursor: "pointer", fontFamily: "inherit",
+  whiteSpace: "nowrap",
 };
 
 const addBtnStyle: React.CSSProperties = {
