@@ -1166,22 +1166,30 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
           )}
 
-          <button
-            type="button"
-            onClick={finish}
-            disabled={saving}
-            style={{
-              marginTop: 20, width: "100%", padding: "13px 20px",
-              background: query.trim() || selectedCompany
-                ? "linear-gradient(135deg, var(--royal), #3B5FD9)"
-                : "var(--line)",
-              color: (query.trim() || selectedCompany) ? "#fff" : "var(--ink-mute)",
-              border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-              cursor: saving ? "wait" : "pointer", fontFamily: "inherit", transition: "all 0.2s",
-            }}
-          >
-            {saving ? "登録中..." : "登録して始める →"}
-          </button>
+          {/* ★主CTA。375px では**下端に貼る**（2026-09-09）。実体は globals.css の
+                 `.onb-cta-sticky`（メディアクエリが要るのでインラインに書けない）。
+              ⚠️★**「後で設定する」を一緒に貼らないこと。** 全項目が任意の画面で
+                 離脱ボタンが常時見える状態になる。あちらはカードの外・下のまま。
+              ⚠️ `marginTop` はこのラッパー側に移した。ボタンに残すと、貼ったときに
+                 白い帯の中に 20px の余白が入って厚くなる。 */}
+          <div className="onb-cta-sticky" style={{ marginTop: 20 }}>
+            <button
+              type="button"
+              onClick={finish}
+              disabled={saving}
+              style={{
+                width: "100%", padding: "13px 20px",
+                background: query.trim() || selectedCompany
+                  ? "linear-gradient(135deg, var(--royal), #3B5FD9)"
+                  : "var(--line)",
+                color: (query.trim() || selectedCompany) ? "#fff" : "var(--ink-mute)",
+                border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                cursor: saving ? "wait" : "pointer", fontFamily: "inherit", transition: "all 0.2s",
+              }}
+            >
+              {saving ? "登録中..." : "登録して始める →"}
+            </button>
+          </div>
         </div>
 
         {/* スキップ */}
