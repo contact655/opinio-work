@@ -6,8 +6,9 @@ import {
   type CompanyLookupResult,
 } from "@/components/companies/useCompanyLookup";
 import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { RolePicker } from "@/components/onboarding/RolePicker";
+import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
@@ -213,13 +214,20 @@ const selectStyle: React.CSSProperties = {
 
 function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const router = useRouter();
+  /* ★`?next=` を読む（2026-09-09 まで**読んでいなかった**。フェーズ0 の 0-4）。
+     ⚠️★`safeNext` を必ず通す。素の値を `router.replace` に渡すと、
+        `//evil.com` や `/\evil.com` で外部サイトへ飛ばせる（オープンリダイレクト）。
+     ⚠️ 既定は `DEFAULT_AFTER_ONBOARDING` の1箇所だけ。ここに文字列を直書きしない。
+     ⚠️ ここに入る値の主な出どころは `OnboardingGuard`（**利用者が見ようとしていたページ**）と
+        `postAuth` / `/auth`（認証後の行き先）。 */
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"), DEFAULT_AFTER_ONBOARDING);
 
   /* 会社の検索・候補・ドロップダウンの状態は `CompanyPicker` の中にある。
      ここが持つのは「何が選ばれたか」だけ。 */
   const [query, setQuery] = useState("");
   const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(null);
   const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
      ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
         2026-08-10 まではここで会社名だけ聞いて**捨てていた**。 */
@@ -450,97 +458,34 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
       }).catch(() => {});
     }
 
-    setSaving(false);
-    setDone(true);
+    /* ★★完了画面は経由せず、そのまま「転職について」へ送る（2026-09-09 / A案）。
+       ⚠️★以前は `setDone(true)` で完了画面（行き先を3つ選ばせる画面）を出していたが、
+          どれを押しても `OnboardingGuard` が直後に `/onboarding/stance` へ引き剥がしていた。
+          **行き先を選ばせておいて選ばせない**ので、経由すること自体が矛盾していた。
+       ⚠️ `next` は stance まで持ち回る。stance は答え終わってから `next` へ送る
+          （`stance/page.tsx`）。既に答えている人はそのまま素通りする。
+       ⚠️★`setSaving(false)` を戻さないこと。遷移までボタンは「登録中...」のままにする。
+          false に戻すと、遷移待ちのあいだ**もう一度押せてしまう。** */
+    router.replace(`/onboarding/stance?next=${encodeURIComponent(next)}`);
   };
 
-  // ── 完了画面 ──────────────────────────────────────────────────────────────
-  if (done) {
-    return (
-      <div style={pageWrap}>
-        <div style={{ width: "100%", maxWidth: 480 }}>
-          <LogoMark />
-          <div style={{
-            background: "#fff", border: "1px solid var(--line)",
-            borderRadius: 20, padding: "40px 36px", boxShadow: "var(--shadow-md)",
-          }}>
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: "50%",
-                background: "linear-gradient(135deg, var(--success), #34D399)",
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 6px 20px rgba(5,150,105,0.3)",
-              }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-            </div>
-            <h2 style={{
-              fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 700,
-              color: "var(--ink)", marginBottom: 10, textAlign: "center",
-            }}>
-              ようこそ、OPINIO へ！
-            </h2>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.85, marginBottom: 24, textAlign: "center" }}>
-              登録が完了しました。<br />まず何から始めますか？
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <a href="/companies" style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
-                background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                color: "#fff", borderRadius: 12, textDecoration: "none",
-              }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>掲載中の企業を見てみる</div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>IT企業の内側情報を確認する</div>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", opacity: 0.7, flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </a>
-              <a href="/mypage" style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "14px 18px",
-                background: "var(--bg-tint)", border: "1px solid var(--line)",
-                color: "var(--ink-soft)", borderRadius: 12, textDecoration: "none",
-              }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)" }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2, color: "var(--ink)" }}>プロフィールを設定する</div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>職歴・学歴をあとから追加できます</div>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }} aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </a>
-            </div>
+  /* ★★完了画面（「ようこそ、OPINIO へ！」＋行き先3つ）は**削除した**（2026-09-09 / A案）。
 
-            {/* 採用担当者・企業の方向け導線 */}
-            <a
-              href={query.trim() ? `/biz/auth?company=${encodeURIComponent(query.trim())}` : "/biz/auth"}
-              style={{
-                marginTop: 12,
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "13px 16px",
-                background: "var(--royal-50)",
-                border: "1px solid var(--royal-100)",
-                borderRadius: 10, textDecoration: "none",
-              }}
-            >
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                </svg>
-                <span style={{ fontSize: 14, color: "var(--royal)", fontWeight: 700 }}>採用担当者・企業の方はこちら</span>
-              </span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+     ── なぜ ──────────────────────────────────────────────────────────────────
+     行き先を3つ選ばせる画面なのに、どれを押しても `OnboardingGuard` が直後に
+     `/onboarding/stance` へ引き剥がしていた。**選ばせておいて選ばせない**ので、
+     経由すること自体が矛盾していた。いまは `finish()` から直接 stance へ送る。
+
+     ⚠️ 消えたリンクは3つ:
+        ・「掲載中の企業を見てみる」→ `/companies`  … `next` の既定が同じ役割を果たす
+        ・「プロフィールを設定する」→ `/mypage`     … ヘッダーのユーザーメニューから行ける
+        ・「採用担当者・企業の方はこちら」→ `/biz/auth`
+          ⚠️ **唯一の入口ではないことを確認済み**（2026-09-09）。求職者側ヘッダーの
+             「企業の方はこちら」（→ `/business`）とフッターから入れる。
+     ⚠️★戻すなら、`OnboardingGuard` が stance へ引き剥がす動きとどう両立させるかを
+        先に決めること。決めずに戻すと、また「押しても行けない画面」になる。 */
+
+
 
   // ── 現職会社入力画面 ──────────────────────────────────────────────────────
   return (

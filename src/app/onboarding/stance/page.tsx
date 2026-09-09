@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { safeNext } from "@/lib/auth/redirects";
+import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import StanceStepClient from "./StanceStepClient";
 
 /**
@@ -43,7 +43,8 @@ export default async function StancePage({
         ここだけに頼ると `loading.tsx` を足したときに 200 のまま素通りする。 */
   if (!user) redirect("/auth?next=/onboarding/stance");
 
-  const next = safeNext(searchParams?.next, "/companies");
+  /* ⚠️ 既定の行き先は `DEFAULT_AFTER_ONBOARDING` の1箇所だけに持つ。ここに直書きしない。 */
+  const next = safeNext(searchParams?.next, DEFAULT_AFTER_ONBOARDING);
 
   const { data: profile, error } = await createAdminClient()
     .from("ow_profiles")

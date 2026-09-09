@@ -10,6 +10,19 @@
  * オープンリダイレクト防止。
  * 同一オリジンの相対パスだけを通す。`//evil.com` は host 相対の絶対URLなので弾く。
  */
+/**
+ * オンボーディングの一連（`/onboarding` → `/onboarding/stance` → 行き先）で、
+ * `next` が無い／不正だったときの既定の行き先。
+ *
+ * ⚠️★**この定数を1箇所に保つこと。** 以前は `/onboarding/stance/page.tsx` に
+ *    `"/companies"` のリテラルが直書きされているだけで、`/onboarding` 側は
+ *    `next` を読んでもいなかった（2026-09-09 のフェーズ0 の 0-4）。
+ *    2箇所に書くと、片方だけ変えたときに**同じ導線の中で行き先が割れる。**
+ * ⚠️ `/auth` と `postAuth` は**それぞれ自前の既定**を持っている。あちらは
+ *    「認証後どこへ行くか」で関心が違うので、ここに寄せていない。
+ */
+export const DEFAULT_AFTER_ONBOARDING = "/companies";
+
 export function safeNext(raw: string | null | undefined, fallback: string): string {
   const v = raw ?? "";
   if (!v.startsWith("/")) return fallback;
