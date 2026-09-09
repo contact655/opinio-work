@@ -537,11 +537,9 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               ⚠️ ここまで埋めて初めて経歴として保存できる（3点が必須）。 */}
           {hasCompany && (
             <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                職種
-              </div>
-              <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} max={MAX_ROLES} />
-
+              {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
+                     大きいものから小さいものへ降りる順。⚠️ **職種を先に戻さないこと。**
+                     ⚠️「これまでの職歴」の各行も同じ並びにしてある。**片方だけ変えない。** */}
               {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
                      ⚠️★「これまでの職歴」の各行にも同じ欄がある。**片方だけにしないこと** ——
                         同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。 */}
@@ -559,7 +557,12 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 aria-label="部署名"
               />
 
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
+                職種
+              </div>
+              <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} max={MAX_ROLES} />
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
                 入社年月
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -700,6 +703,29 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 ⚠️★**戻すときは1文に縮めること。3文には戻さない**（2026-08-14 に一度縮めている）。
                    規約側に書き足す案もあるが、**規約の改定になるので改定日の告知が要る。**
               */}
+
+              {/* ★★「この会社での前の役割を追加」（2026-09-09 / 柴さんの指摘で追加）。
+                     ⚠️★これが無いと、**現職の会社で部署異動した人が会社名を打ち直すことになる。**
+                        「これまでの職歴」の『＋ この会社に役割を追加』は過去の会社にしか無く、
+                        いま勤めている会社の1つ前の役割を足す手段が無かった。
+                     ⚠️ 押すと「これまでの職歴」の**先頭**に、いまの会社を写した行が入る
+                        （時系列で現職のすぐ下に来るのが自然なため）。
+                     ⚠️ 役職・期間は引き継がない。異動なら必ず変わる。
+                     ⚠️ 会社は**値ごと写す**。参照で繋がない（`pastJobAtSameCompany` と同じ理由）。 */}
+              <button
+                type="button"
+                onClick={() => setPastJobs((prev) => [
+                  {
+                    ...emptyPastJob(rowKeyRef.current++),
+                    company: selectedCompany,
+                    companyText: selectedCompany ? selectedCompany.name : query.trim(),
+                  },
+                  ...prev,
+                ])}
+                style={{ ...addBtnStyle, marginTop: 18, fontSize: 12, padding: "7px 13px" }}
+              >
+                <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社での前の役割を追加
+              </button>
             </div>
           )}
 
@@ -789,10 +815,27 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                           />
                         ) : null}
 
+                        {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
+                               大きいものから小さいものへ降りる順。**職種を先に戻さないこと。**
+                               ⚠️ 現職の欄も同じ並びにしてある。**片方だけ変えない。** */}
+                        {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
+                               ⚠️★同じ職種のまま部署だけ変わる異動（営業部 → 人事部）は、
+                                  これが無いと**同じ行が2つ並ぶだけ**になり、何が変わったのか読めない。 */}
+                        <input
+                          type="text"
+                          value={j.department}
+                          onChange={(e) => upd({ department: e.target.value })}
+                          placeholder="部署名（任意）"
+                          disabled={saving}
+                          maxLength={100}
+                          style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
+                          aria-label={`職歴 ${gIdx + 1} の部署名`}
+                        />
+
                         <select
                           value={j.roleId}
                           onChange={(e) => upd({ roleId: e.target.value })}
-                          style={{ ...selectStyle, width: "100%", marginTop: isHead ? 8 : 0 }}
+                          style={{ ...selectStyle, width: "100%", marginTop: 8 }}
                           aria-label={`職歴 ${gIdx + 1} の職種`}
                         >
                           <option value="">職種</option>
@@ -805,20 +848,6 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                             )),
                           ])}
                         </select>
-
-                        {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
-                               ⚠️★同じ職種のまま部署だけ変わる異動（営業部 → 人事部）は、
-                                  これが無いと**同じ行が2つ並ぶだけ**になり、何が変わったのか読めない。 */}
-                        <input
-                          type="text"
-                          value={j.department}
-                          onChange={(e) => upd({ department: e.target.value })}
-                          placeholder="部署名（任意）"
-                          disabled={saving}
-                          maxLength={100}
-                          style={{ ...textInputStyle, marginTop: 8 }}
-                          aria-label={`職歴 ${gIdx + 1} の部署名`}
-                        />
 
                         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
                           <select
