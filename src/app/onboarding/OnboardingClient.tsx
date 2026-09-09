@@ -566,12 +566,12 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               />
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
-                職種
+                職種<span style={needLabelStyle}>保存に必要</span>
               </div>
               <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} max={MAX_ROLES} />
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-                入社年月
+                入社年月<span style={needLabelStyle}>保存に必要</span>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <select
@@ -711,22 +711,6 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 ⚠️★**戻すときは1文に縮めること。3文には戻さない**（2026-08-14 に一度縮めている）。
                    規約側に書き足す案もあるが、**規約の改定になるので改定日の告知が要る。**
               */}
-
-              {/* ⚠️ 会社だけ埋めて職種・年月が空だと**保存されない**。
-                     黙って捨てると「入力させたのに保存しない」に戻る。
-                  ⚠️★**現職の欄のすぐ下に置くこと**（2026-09-09 に移した）。
-                     以前はフォームの一番下（学歴のさらに後ろ）にあり、
-                     **何の話をしているのか分からない位置**だった。実測で 375px 幅だと
-                     この欄から警告まで**3画面ぶん**離れていた。 */}
-              {!canSaveExperience && (
-                <p style={{ fontSize: 12, fontWeight: 500, color: "var(--warm-ink)", background: "var(--warm-soft)",
-                            border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginTop: 18, lineHeight: 1.7 }}>
-                  {isCurrent
-                    ? "職種と入社年月を選ぶと、経歴として保存されます。"
-                    : "職種・入社年月・退職年月を選ぶと、経歴として保存されます。"}
-                  このまま進めると会社名は保存されません（あとからプロフィール編集で登録できます）。
-                </p>
-              )}
 
               {/* ★★「この会社での前の役割を追加」（2026-09-09 / 柴さんの指摘で追加）。
                      ⚠️★これが無いと、**現職の会社で部署異動した人が会社名を打ち直すことになる。**
@@ -1123,6 +1107,25 @@ const textInputStyle: React.CSSProperties = {
 const rowCardStyle: React.CSSProperties = {
   borderTop: "1px solid var(--line-soft)",
   paddingTop: 14, marginBottom: 14,
+};
+
+/**
+ * 「保存に必要」の小さな印。**黄色い警告バナーの置き換え**（2026-09-09 / 柴さんの指摘）。
+ *
+ * ── なぜ印を残すのか ────────────────────────────────────────────────────────
+ * ⚠️★**`ow_experiences.role_category_id` と `started_at` は NOT NULL**（実測で確認）。
+ *    会社名だけでは行を作れないので、埋めずに進むと**会社名は保存されない。**
+ *    黙って捨てると、このリポジトリが3回踏んでいる「入力させたのに保存しない」に戻る
+ *    （CLAUDE.md「エラーと失敗を握りつぶさない原則」の事例4・5・6）。
+ * ⚠️ そこで**伝える場所を変えた**。以前は2行の黄色い箱で、しかも「このまま進めると
+ *    会社名は保存されません」と**失敗の話から入っていた**のでエラーに見えていた。
+ *    いまは要件を**欄の隣に5文字**で置くだけ。
+ * ⚠️★**「必須」と書かないこと。** 空のままでも「登録して始める」は通る
+ *    （この画面は全項目が任意）。嘘になる。
+ * ⚠️ 隣の「（任意）」と対になる語にしてある。**片方だけ言い回しを変えないこと。**
+ */
+const needLabelStyle: React.CSSProperties = {
+  fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6,
 };
 
 /**
