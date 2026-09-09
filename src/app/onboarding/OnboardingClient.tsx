@@ -689,7 +689,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                     ])}
                   </select>
 
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
                     <select
                       value={j.startYear}
                       onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, startYear: e.target.value } : p))}
@@ -709,7 +709,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                       {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
                     </select>
                   </div>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
                     <select
                       value={j.endYear}
                       onChange={(e) => setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, endYear: e.target.value } : p))}
@@ -804,7 +804,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                   style={{ ...textInputStyle, marginTop: 8 }}
                   aria-label={`学歴 ${idx + 1} の学部・学科`}
                 />
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
                   <select
                     value={e.gradYear}
                     onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, gradYear: ev.target.value } : p))}
@@ -901,9 +901,21 @@ const textInputStyle: React.CSSProperties = {
   outline: "none", boxSizing: "border-box", background: "#fff",
 };
 
+/**
+ * 「これまでの職歴」「学歴」の1件ぶん。
+ *
+ * ⚠️★**左右に padding を持たせないこと**（2026-09-09 / 柴さんの指摘で直した）。
+ *    以前は `border: 1px` ＋ `padding: 14px` の色付きカードだったため、
+ *    **中の入力欄だけが 30px 狭く**なり、すぐ上の「直近のお勤め先」の欄と
+ *    幅が揃っていなかった（実測: 主 420px / 職歴 390px）。
+ *    幅が違うと、同じフォームなのに**別のUIが差し込まれたように見える。**
+ * ⚠️ 束ねているのは**上の細い罫線と「職歴 N」の見出し行**。これは
+ *    「直近のお勤め先」が見出し＋全幅の欄で構成されているのと同じ形。
+ *    ⚠️ **カード（枠・背景・角丸）に戻さないこと。** 戻すと幅がまた割れる。
+ */
 const rowCardStyle: React.CSSProperties = {
-  border: "1px solid var(--line)", borderRadius: 12,
-  padding: "14px 14px 16px", marginBottom: 10, background: "var(--bg-tint)",
+  borderTop: "1px solid var(--line-soft)",
+  paddingTop: 14, marginBottom: 14,
 };
 
 const addBtnStyle: React.CSSProperties = {
