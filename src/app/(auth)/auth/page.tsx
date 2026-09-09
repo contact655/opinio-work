@@ -528,7 +528,6 @@ function AuthPageInner() {
                     autoComplete="name"
                     enterKeyHint="done"
                   />
-                  <p style={s.hint}>本名でもニックネームでもOK。後から変更できます。</p>
                 </div>
 
 
@@ -540,7 +539,20 @@ function AuthPageInner() {
                   {loading ? "登録中..." : "無料で登録する"}
                 </button>
 
-                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 12 }}>
+                {/*
+                  ⚠️★**日本語は文字単位で折り返すので、放っておくと語の途中で割れる**
+                     （2026-09-09 に実測: 「同意したものとみな / します。」となり、
+                     2行目が「します。」だけの浮いた行になっていた）。
+                  ⚠️ `wordBreak: "keep-all"` は**連続する日本語を1かたまりとして扱う**ので、
+                     折れるのは `{" "}` を入れてある位置だけになる
+                     （「登録することで」「利用規約」「および」「プライバシーポリシー」
+                     「に同意したものとみなします。」の境目）。
+                  ⚠️★**`overflowWrap: "anywhere"` を消さないこと。** keep-all だけだと、
+                     幅が足りないときに**かたまりが箱からはみ出す**。これは
+                     「どうしても入らないときだけ途中で折る」逃げ道。
+                  ⚠️ `{" "}` を詰めると折り返せる場所が無くなる。**空白を消さないこと。**
+                */}
+                <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", lineHeight: 1.8, marginTop: 12, wordBreak: "keep-all", overflowWrap: "anywhere" }}>
                   登録することで{" "}
                   <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>
                     利用規約
@@ -953,13 +965,6 @@ const s = {
     borderRadius: 6,
     display: "flex",
     alignItems: "center",
-  } as React.CSSProperties,
-
-  hint: {
-    fontSize: 12,
-    color: "var(--ink-mute)",
-    marginTop: 5,
-    lineHeight: 1.6,
   } as React.CSSProperties,
 
   submitBtn: {
