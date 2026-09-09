@@ -90,6 +90,27 @@ export const CAREER_STANCES = [
 
 export type CareerStance = (typeof CAREER_STANCES)[number]["value"];
 
+/**
+ * 「企業の候補者検索に出る／スカウトが届く」状態か（2026-09-10）。
+ *
+ * ⚠️★**これは `can_send_scout()`（SQL）の条件1と同じ述語を UI 側に写したもの。**
+ *    あちらは
+ *      `career_stance is not null and career_stance <> 'no_contact'`
+ *    ⚠️ **同じ述語が SQL と TS の2箇所に分かれている。** 片方だけ変えると、
+ *       画面が「届きます」と言っているのに届かない（またはその逆）状態になる。
+ *       ⚠️ **`no_contact` の値を変える／条件を足すときは両方を直すこと。**
+ *       ⚠️ ここに条件を足さないこと（`can_send_scout()` には在籍企業・手動ブロック・
+ *          勧奨禁止期間の条件もあるが、それらは**相手企業ごとに変わる**ので
+ *          「自分がどの状態か」を本人に伝える用途では見ない）。
+ *
+ * ⚠️★**NULL と `no_contact` を1つに畳まないこと。** 前者は「まだ答えていない」、
+ *    後者は「答えた結果」。画面では別の文言・別の見た目にする（本人の選択を
+ *    不備のように見せない）。判定だけが同じ。
+ */
+export function isReachableByCompanies(careerStance: string | null | undefined): boolean {
+  return careerStance != null && careerStance !== "no_contact";
+}
+
 /** 値 → 表示ラベル。⚠️ DB に入りうる値をすべて含める */
 export const CAREER_STANCE_LABELS: Record<string, string> =
   Object.fromEntries(CAREER_STANCES.map((o) => [o.value, o.label]));

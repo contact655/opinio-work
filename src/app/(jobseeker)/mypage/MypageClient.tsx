@@ -244,8 +244,11 @@ export default function MypageClient({
     faculty: string | null; degree: string | null;
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[];
-  /* ⚠️ 2026-08-25 に**このコンポーネントでは使わなくなった**（促しカードの判定に使っていた）。
-        プロップは受け取るが本文では触らない。呼び出し側（page.tsx）はそのまま渡している。 */
+  /* ⚠️ 2026-08-25 に一度**使わなくなった**（促しカードの判定に使っていた）が、
+        ★2026-09-10 に**件数だけ再び使うようになった**（`IntentCard` の
+        `experienceCount`。職歴0件の案内の出し分け）。
+        ⚠️ 分割代入で取り出していない（`...editorProps` に入ったまま `ProfileEditor` へ
+           そのまま流れる必要があるため）。**ここで destructure しないこと。** */
   timelineCareers?: CareerEntry[];
   /* ⚠️ `companyBookmarks` / `jobBookmarks` / `casualMeetings` は 2026-08-16 に外した。
         SPA ビューごと消えたため。**取得も `page.tsx` から消してある。**
@@ -342,6 +345,10 @@ export default function MypageClient({
         desiredRoleOptions={intentProps.desiredRoleOptions}
         currentCompanies={currentCompanies}
         memberships={ambassadorMemberships}
+        /* ★職歴の件数（2026-09-10）。⚠️ `currentCompanies` で代用しないこと ——
+              あれは**在籍中かつ企業マスタに紐づく**会社だけで、自由入力の在籍先や
+              過去の職歴を数えない（実ユーザー11人中5人が自由入力）。 */
+        experienceCount={editorProps.timelineCareers?.length ?? 0}
       />
 
       {/* ⚠️★「公開まであと N つ」カードは 2026-08-25 に**撤去した**（柴さんの指示）。

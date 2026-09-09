@@ -12,7 +12,7 @@ import { memberState, type CompanyMemberRow } from "@/lib/constants/companyMembe
 import { companyDisplayName } from "@/lib/companies/displayName";
 import {
   DESIRED_WORK_STYLES, SALARY_MAX_MAN,
-  CAREER_STANCES, CAREER_STANCE_LABELS,
+  CAREER_STANCES, CAREER_STANCE_LABELS, isReachableByCompanies,
 } from "@/lib/constants/careerPreferences";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 
@@ -265,7 +265,7 @@ function SubLine({ children }: { children: React.ReactNode }) {
 
 export default function IntentCard({
   initialPrefs, stanceUpdatedAt, roles, roleAliases, desiredRoleOptions,
-  currentCompanies, memberships,
+  currentCompanies, memberships, experienceCount = 0,
 }: {
   initialPrefs: IntentPrefs;
   /** 「意思表示を最後に答えた日」。⚠️ `null` なら**最終更新の行ごと出さない** */
@@ -280,6 +280,10 @@ export default function IntentCard({
    *    ⚠️ **理由を画面に出す案は採らなかった**（利用者側では直せず、案内先が無い）。 */
   currentCompanies: { id: string; name: string }[];
   memberships: CompanyMemberRow[];
+  /** 職歴の件数（`ow_experiences`）。⚠️ `currentCompanies` で代用しないこと ——
+   *  あれは**在籍中かつ企業マスタに紐づく**会社だけで、自由入力の在籍先や過去の職歴を
+   *  数えない（実ユーザー11人中5人が自由入力）。0件のときだけ下の案内に使う。 */
+  experienceCount?: number;
 }) {
   const router = useRouter();
 
@@ -609,6 +613,73 @@ export default function IntentCard({
           {/* ⚠️ 値は**そのまま短く**出す。「設定済み」のような抽象語にしない。
                  未設定は「未設定」と出す（✎ から答えられる）。 */}
           <SubLine>{stanceText(saved.prefs.career_stance)}</SubLine>
+
+          {/* ★★いまどの状態かを1行で出す（2026-09-10）。
+              ── 設計の前提 ──────────────────────────────────────────────────
+              ⚠️★**％も「あと N 項目」も出さない。** 条件は2つしかなく、
+                 0/50/100 を％で見せるのは**精度を装うだけで情報が増えない**
+                 （思想⑦「マッチ度%・星評価を出さない」と同じ理由）。
+              ⚠️★**満たしている人には何も出さない。**「完了！」も出さない。
+                 達成の演出は情報を増やさない。
+              ⚠️★**新しいカードを作らないこと。** `/mypage` は 2026-08-16 に
+                 「プロフィールの入口を1つにする」で整理した画面で、別カードにすると
+                 **同じ設定への入口が2つ**になる（ui-debugging ⑧の再発）。
+                 このカードの役割が「設定＋通知」に広がるのは承知のうえ。
+
+              ── ★文言は実測で裏を取ってある（2026-09-10 / 本番）────────────────
+              ⚠️★**「企業から見えていません」とは書けない。** 企業アカウント
+                 （contact+08 / セールスフォース管理者）で実測すると、
+                 `career_stance` が NULL の人でも
+                   ・`/people` に**出る**（木村雅樹・鈴木 五郎）
+                   ・`/u/<id>` は **200 で氏名が出る**（4人とも）
+                   ・企業ページの現役社員・OB/OG に**出る**
+                 `career_stance` の NULL を弾いているのは
+                 **`can_send_scout()` と `/biz/candidates` の2箇所だけ**。
+                 だから**「候補者検索に出ない／スカウトが届かない」までに狭めてある。**
+                 ⚠️ 広げるなら、オンボーディングの公開範囲の一文と同じ基準で
+                    **実測してから**書くこと（推測で強い言葉を使わない）。 */}
+          {!isReachableByCompanies(saved.prefs.career_stance) && (
+            saved.prefs.career_stance == null ? (
+              /* ① まだ答えていない。⚠️ ②と**別の見た目・別の文言**にする。 */
+              <div style={{
+                marginTop: 8, padding: "9px 11px", borderRadius: 8,
+                background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                fontSize: 12.5, lineHeight: 1.75, color: "var(--warm-ink)",
+              }}>
+                <strong style={{ color: "var(--ink)" }}>
+                  いまは、企業の候補者検索に表示されていません
+                </strong>
+                <br />
+                「転職について」に答えると表示され、企業から声がかかるようになります。
+              </div>
+            ) : (
+              /* ② 本人が「今はいない」を選んだ状態。
+                 ⚠️★**①と同じ見た目にしないこと。** ①は「まだ答えていない」、
+                    ②は「答えた結果」。混ぜると**本人の選択を不備のように見せる。**
+                    だから警告色を使わず、事実だけを灰色で置く。 */
+              <div style={{
+                marginTop: 8, fontSize: 12.5, lineHeight: 1.75, color: "var(--ink-mute)",
+              }}>
+                あなたの選択で、企業の候補者検索には表示されていません。
+              </div>
+            )
+          )}
+
+          {/* ③ 声はかかる状態だが、職歴が無い。
+              ⚠️★**①②と同時に出さない。** 一度に2つ言うと、どちらを先にやればよいか
+                 分からなくなる。まず「表示される状態」にしてから職歴を促す。
+              ⚠️★公開範囲の言い回しは**オンボーディングと同じ文に揃える**
+                 （`OnboardingClient` の h2 直下）。別の言い回しを増やすと、
+                 同じことを2通りで説明することになる。 */}
+          {isReachableByCompanies(saved.prefs.career_stance) && experienceCount === 0 && (
+            <div style={{
+              marginTop: 8, fontSize: 12.5, lineHeight: 1.75, color: "var(--ink-soft)",
+            }}>
+              職歴を1件入れると、
+              <strong style={{ color: "var(--ink)" }}>その会社の企業ページに、あなたの名前が実名で表示されます</strong>
+              （見えるのは OPINIO にログインしている人だけです）。
+            </div>
+          )}
         </div>
 
         {/* ── 最終更新（2026-08-26 / フェーズ2）────────────────────────────────
