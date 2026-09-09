@@ -4539,6 +4539,18 @@ npm run dev → http://localhost:3000/dev/preview
 - **★dev のコンパイル中に取得すると部分応答が返る。** 同じページが **26KB** と **89KB** で返り、
   短いほうには目的の要素が入っていなかった（2026-08-23 に2回踏んだ）。
   **サイズが極端に違うときは取り直す。**
+- **★★企業サジェストの選択は `onMouseDown`。`.click()` では発火しない**（2026-09-09 追記）。
+  `CompanyPicker` の候補行は `onMouseDown={(e) => { e.preventDefault(); onSelect(c); ... }}`
+  なので、自動検証では **`new MouseEvent("mousedown", {bubbles:true, cancelable:true})` を
+  明示的に発火させる**。`element.click()` だと選択されず、**自由入力のまま**
+  `company_text` に落ちる。
+  ⚠️★**「マスタを選んだのに `company_id` が null」という誤った結論を、これで3回出しかけている**
+     （2026-08-12 の通し点検「面倒③」／2026-09-09 のフェーズ0調査で2回）。
+     **アプリのバグではなく計測方法の問題。**
+- **★選択できたかは `aria-label="選択を解除"` の有無で判定する**（2026-09-09 追記）。
+  入力欄の値や `input[type=text]` の有無で判定しない ——
+  **部署名の欄を拾って「選択できた」と誤判定した実例がある**（同日）。
+  選択が成立すると入力欄は消え、社名＋解除ボタンのカードに置き換わる。
 
 → 各項目の計測スクリプトと実測値は [.claude/rules/ui-debugging.md](.claude/rules/ui-debugging.md)
    （`.tsx` / `.jsx` / `.css` を扱うとき自動で読み込まれる）
