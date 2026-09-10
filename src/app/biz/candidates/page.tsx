@@ -9,6 +9,7 @@ import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
 import { canUse } from "@/lib/constants/plans";
+import { canSendScout } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
 
@@ -160,7 +161,14 @@ export default async function CandidatesPage() {
         スカウトは掲載側（月額プラン）の機能で、OPINIO はあっせんを行わない
         （掲載利用規約 第6条1項）。成功報酬の規約に同意させる理由が無い。
         API 側（POST /api/biz/scouts）からも同じ判定を外してある。 */
-  const scoutSendingEnabled = scoutSendingEnabledEnv;
+  /* ★★プランの判定は `canSendScout()` に寄せた（2026-09-10）。
+        ⚠️★**`canUse(..., "scoutSend")` をここに直接書かないこと。**
+           `POST /api/biz/scouts` も同じ関数を呼ぶ。経路ごとに条件を書き写すと必ずずれる
+           （2026-08-25 の掲載規約ゲートと同じ形。**3度目**）。
+        ⚠️ 上の `candidateSearch` のゲート（この画面に入れるか）とは**別の判定**。
+           あちらを通っても、スカウトを送れるとは限らない。
+        ⚠️ 軸は2つ。**env とプランの両方が真のときだけ送れる。** */
+  const scoutSendingEnabled = scoutSendingEnabledEnv && canSendScout(ctx.planType);
 
   const adminClient = createAdminClient();
 

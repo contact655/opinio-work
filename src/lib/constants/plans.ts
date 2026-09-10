@@ -57,13 +57,20 @@ export const PLAN_FEATURES = [
   "applicantContact",
   /** 「話せる人」（アンバサダー）を招待する */
   "ambassadorInvite",
+  /** ★スカウトを送る（2026-09-10 に復帰）。⚠️ `SCOUT_SENDING_ENABLED` とは**別の軸**。
+   *  フラグは「機能ごと止めているか」、これは「その企業に開いているか」。**両方が要る。** */
+  "scoutSend",
 ] as const;
 
-/* ⚠️ **`scoutSend` は 2026-08-23 に外した。**
-      スカウト送信は `SCOUT_SENDING_ENABLED` で停止中で、再開の判断もしていない。
-      売れないものを機能表に載せない。停止は環境変数だけで行う。
-      再開してプランに含めるなら、ここに戻したうえで
-      `POST /api/biz/scouts` の判定も同時に戻すこと。 */
+/* ⚠️ `scoutSend` は 2026-08-23 に一度外し、**2026-09-10 に戻した**（上の配列に復帰済み）。
+      外していた理由は「売れないものを機能表に載せない」だったが、
+      **`POST /api/biz/scouts` にサーバー側の判定が無く、`free` の企業から送信が通る**
+      ことが分かったため（2026-09-10 に dev で実証: 送信元プラン `free` で 200）。
+      ⚠️★**画面（`/biz/candidates:78`）だけのゲートは守りにならない。**
+         2026-08-25 に掲載規約で同じ形を踏んでいる（UI だけで `PATCH /api/biz/company` に
+         サーバー側チェックが無かった）。**3度目。**
+      ⚠️ 料金表（`/business/pricing`）に `scoutSend` を載せるかは別の判断。
+         **この配列に入れること＝料金表に出すこと、ではない。** */
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
 /**
@@ -74,8 +81,8 @@ export type PlanFeature = (typeof PLAN_FEATURES)[number];
  *    この表は「有料で開く機能」だけを扱う。
  */
 const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
-  free: { candidateSearch: false, applicantContact: false, ambassadorInvite: false },
-  paid: { candidateSearch: true,  applicantContact: true,  ambassadorInvite: true  },
+  free: { candidateSearch: false, applicantContact: false, ambassadorInvite: false, scoutSend: false },
+  paid: { candidateSearch: true,  applicantContact: true,  ambassadorInvite: true,  scoutSend: true  },
 };
 
 /**

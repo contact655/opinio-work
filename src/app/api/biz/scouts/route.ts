@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
+import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notify/email";
 import { unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
@@ -111,6 +112,22 @@ export async function POST(req: NextRequest) {
   if (!ctx.isPublished) {
     return NextResponse.json(
       { error: "運営審査が完了するまでスカウトを送信できません" },
+      { status: 403 }
+    );
+  }
+
+  /* ★★プランのゲート（2026-09-10 に追加）。
+     ⚠️★**これが無いあいだ、`free` の企業から送信が通っていた。**
+        ゲートは `/biz/candidates:78` の画面にしか無く、`candidate_id` を知っていれば
+        画面を通らずに送れた（dev で実証: 送信元プラン `free` で 200）。
+     ⚠️★**判定は `canSendScout()` の1本。** ここに `canUse(...)` を直接書かないこと。
+        画面（`/biz/candidates`）も同じ関数を呼ぶ。経路ごとに条件を書き写すと必ずずれる
+        （2026-08-25 の掲載規約ゲートと同じ形。**3度目**）。
+     ⚠️ 上の `SCOUT_SENDING_ENABLED`（503）とは**別の軸**。
+        あちらは機能ごと止めているか、こちらはその企業に開いているか。**両方が要る。** */
+  if (!canSendScout(ctx.planType)) {
+    return NextResponse.json(
+      { error: SCOUT_PLAN_BLOCKED_MESSAGE },
       { status: 403 }
     );
   }
