@@ -277,8 +277,14 @@ export default function PrivacySettings({
           </li>
         </ol>
 
+        {/* ⚠️★**「職歴の各行から変更できます」と書かないこと**（2026-09-10 に一度書いて、その日に訂正）。
+               会社名を伏せる設定（`visibility_company`）の**入力欄は 2026-08-16 に外されている。**
+               列とデータは残っているが、**本人が画面から変える手段は無い**（実測: 本番29件すべて `real`）。
+               ⚠️ 入力欄を戻すときに、この一文も戻すこと。 */}
         <p style={{ margin: "12px 0 0", fontSize: 12, lineHeight: 1.8, color: "var(--ink-mute)" }}>
-          会社名を伏せるかどうかは、職歴の各行から変更できます。
+          会社名を伏せたい場合は、
+          <a href="/contact" style={{ color: "var(--royal)", fontWeight: 700 }}>お問い合わせ</a>
+          からご連絡ください。いまは画面から設定を変更できません。
         </p>
       </FormSection>
       )}
