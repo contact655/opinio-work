@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PROFILE_VISIBILITY_OPTIONS, type ProfileVisibility } from "@/lib/constants/profileVisibility";
+import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
+import { MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { FormSection } from "@/components/profile/editor/formKit";
 
 /**
@@ -27,7 +29,19 @@ type Block = {
 
 type Suggestion = { id: string; name: string };
 
-export default function PrivacySettings({ initialVisibility }: { initialVisibility: ProfileVisibility }) {
+export default function PrivacySettings({
+  initialVisibility,
+  careerStance,
+  careerStanceKnown,
+}: {
+  initialVisibility: ProfileVisibility;
+  /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」 */
+  careerStance: string | null;
+  /** ⚠️★取得に成功したか。false のときは節ごと出さない ——
+   *  取れなかったのに「表示されています」と書くと嘘になる
+   *  （CLAUDE.md「取得に失敗したら『0件』と表示しない」と同じ形）。 */
+  careerStanceKnown: boolean;
+}) {
   /* ★保存済みの値だけを見る（ルール⑦） */
   const [saved, setSaved] = useState<ProfileVisibility>(initialVisibility);
   const [visibility, setVisibility] = useState<ProfileVisibility>(initialVisibility);
@@ -183,6 +197,91 @@ export default function PrivacySettings({ initialVisibility }: { initialVisibili
           {visError && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{visError}</span>}
         </div>
       </FormSection>
+
+      {/* ── ★企業の候補者検索での見え方（2026-09-10）──────────────────────
+             ⚠️★**「公開範囲」のすぐ下に置くこと。** あちらは「**誰に**見えるか」、
+                ここは「**何が**見えるか」。同じ軸の続きとして読ませるために隣に置いてある。
+                離すと、公開範囲を選ぶ人がここを読まない。
+             ⚠️★**新しいカードにしないこと。** `FormSection` を1つ足すだけ
+                （「ブロック中の企業」と同じ並び）。`/mypage` は 2026-08-16 に
+                「プロフィールの入口を1つにする」で整理した画面。
+             ⚠️★**`IntentCard` に書かないこと。** あそこは「答える／答えない」の
+                意思表示で、見え方の説明を混ぜると問いがぼやける（あちらの注記も
+                「一度に2つ言わない」）。導線だけを引いてある。
+
+             ── ★3層を必ず全部出す（2026-09-10 の調査）────────────────────────
+             企業に見えている範囲は3層ある。**1層目だけ出すと「思ったより少ない」と誤る。**
+               ① 一覧の行に出るもの
+               ② ★**画面に出ないが、絞り込みには使われるもの**
+               ③ 一覧から1クリックで開ける `/u/{id}`
+             ⚠️★**②を落とさないこと。本人にとって一番の新情報。**
+                「表示されていない＝使われていない」と読まれるのが一番まずい。
+             ⚠️★**③に年齢が出ることを書くこと。** 一覧には年齢を出さないし年齢で
+                絞り込ませないが（労働施策総合推進法9条。`birth_date` を取っていない）、
+                **`/u/` には出る**。方針は変えないが、事実は本人に伝える。
+
+             ── ★文言は既存のものを使う ──────────────────────────────────────
+             「非公開企業」＝ `MASKED_COMPANY_LABEL`、
+             「見えるのは OPINIO にログインしている人だけです」＝ オンボーディングと
+             `IntentCard` の一文、「企業の候補者検索に表示されていません」＝ `IntentCard`。
+             ⚠️ **同じことを2通りで説明しないこと。**
+
+             ⚠️★**未設定の人にも中身を見せること。** 隠すと「答えたら何が起きるか
+                分からないまま答える」ことになる。**答える前に知りたいのがまさにこれ。**
+                書き分けるのは前置きの1文だけ。 */}
+      {careerStanceKnown && (
+      <FormSection title="企業の候補者検索での見え方">
+        {/* 前置き。⚠️ 状態で変わるのはここだけ */}
+        <p style={{ margin: "0 0 12px", fontSize: 12.5, lineHeight: 1.8, color: "var(--ink-soft)" }}>
+          {careerStance == null ? (
+            <>
+              <strong style={{ color: "var(--ink)" }}>いまは、企業の候補者検索に表示されていません。</strong>
+              「転職について」に答えると、次のように表示されます。
+            </>
+          ) : !isReachableByCompanies(careerStance) ? (
+            <>
+              <strong style={{ color: "var(--ink)" }}>あなたの選択で、企業の候補者検索には表示されていません。</strong>
+              表示される場合は、次のようになります。
+            </>
+          ) : (
+            <>
+              <strong style={{ color: "var(--ink)" }}>いま、企業の候補者検索に表示されています。</strong>
+              企業からは次のように見えています。
+            </>
+          )}
+        </p>
+
+        <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* ① 一覧の行 */}
+          <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
+            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・現在の職種と会社名・
+            社会人年数・お住まいの地域・希望職種・希望勤務地が並びます。
+            {/* ⚠️ 「非公開企業」は既存の語彙。ここで別の言い方を作らない */}
+            職歴で会社名を伏せている場合は「{MASKED_COMPANY_LABEL}」と表示されます。
+          </li>
+
+          {/* ② ★絞り込み。**落とさないこと** */}
+          <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
+            <strong style={{ color: "var(--ink)" }}>一覧に出ていない項目も、企業が候補者を絞り込むときに使われます。</strong>
+            希望年収・雇用形態・希望の働き方がこれにあたります。
+            画面に表示されていなくても、これらの条件で探されています。
+          </li>
+
+          {/* ③ /u/ */}
+          <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
+            一覧から<strong style={{ color: "var(--ink)" }}>あなたのプロフィールページを開けます</strong>。
+            自己紹介・職歴・学歴・スキルのほか、
+            <strong style={{ color: "var(--ink)" }}>生年月日を登録している場合は年齢も表示されます</strong>。
+            {/* ⚠️ この一文はオンボーディングと IntentCard と同じ。揃えてある */}
+            見えるのは OPINIO にログインしている人だけです。
+          </li>
+        </ol>
+
+        <p style={{ margin: "12px 0 0", fontSize: 12, lineHeight: 1.8, color: "var(--ink-mute)" }}>
+          会社名を伏せるかどうかは、職歴の各行から変更できます。
+        </p>
+      </FormSection>
+      )}
 
       {/* ── ブロック中の企業 ───────────────────────────────────────────── */}
       <FormSection title="ブロック中の企業">

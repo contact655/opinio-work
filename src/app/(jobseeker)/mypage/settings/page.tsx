@@ -35,10 +35,25 @@ export default async function MypageSettingsPage() {
     .maybeSingle();
   if (owUserError) console.error("[mypage/settings] ow_users:", owUserError.message);
 
+  /* ★「企業の候補者検索での見え方」の前置きを書き分けるために要る（2026-09-10）。
+     ⚠️ `ow_profiles.user_id` は **auth 空間**（`ow_users.id` ではない）。
+     ⚠️ **null と `no_contact` を潰さないこと。** 前者は「まだ答えていない」、
+        後者は「答えた結果」で、出す文が違う（`IntentCard` と同じ区別）。
+     ⚠️ 取得に失敗しても画面は出す。⚠️★ただし**その節を出さない**——
+        取れなかったのに「表示されています」と書くと嘘になる。 */
+  const { data: prof, error: profError } = await admin
+    .from("ow_profiles")
+    .select("career_stance")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (profError) console.error("[mypage/settings] ow_profiles:", profError.message);
+
   return (
     <MypageLayout activeKey="settings">
       <PrivacySettings
         initialVisibility={((owUser?.visibility as ProfileVisibility | null) ?? "login_only")}
+        careerStance={(prof?.career_stance as string | null) ?? null}
+        careerStanceKnown={!profError}
       />
       <AccountSettings authEmail={user.email ?? ""} />
     </MypageLayout>

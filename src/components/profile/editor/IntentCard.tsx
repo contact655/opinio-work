@@ -15,6 +15,7 @@ import {
   CAREER_STANCES, CAREER_STANCE_LABELS, isReachableByCompanies,
 } from "@/lib/constants/careerPreferences";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
+import Link from "next/link";
 
 /**
  * 「意思表示」（`/mypage` 右カラム・**1枚だけ**）。
@@ -688,6 +689,18 @@ export default function IntentCard({
               （見えるのは OPINIO にログインしている人だけです）。
             </div>
           )}
+
+          {/* ★「企業に何が見えるか」への導線（2026-09-10）。
+                 ⚠️★**中身をここに書かないこと。** このカードは「答える／答えない」の
+                    意思表示で、見え方の説明を混ぜると問いがぼやける
+                    （上の③にも「一度に2つ言わない」と書いてある）。**リンク1本だけ。**
+                 ⚠️★**状態に関わらず常に出す。** 表示されていない人こそ
+                    「答えたら何が見えるのか」を先に知りたい。 */}
+          <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.7 }}>
+            <Link href="/mypage/settings" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>
+              企業の候補者検索での見え方を見る →
+            </Link>
+          </div>
         </div>
 
         {/* ── 最終更新（2026-08-26 / フェーズ2）────────────────────────────────
