@@ -284,7 +284,7 @@ async function sendScoutEmail(
           <hr style="margin:24px 0;border:none;border-top:1px solid #eee" />
           <p style="font-size:12px;color:#94a3b8">
             スカウトのお知らせが不要な場合は
-            <a href="${unsubscribeUrl(base)}" style="color:#94a3b8">プロフィール編集</a>
+            <a href="${unsubscribeUrl(base)}" style="color:#94a3b8">設定</a>
             から配信を停止できます。
           </p>
           <p style="font-size:12px;color:#94a3b8">OPINIO</p>

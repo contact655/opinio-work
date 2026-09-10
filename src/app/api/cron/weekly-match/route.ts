@@ -261,7 +261,7 @@ function generateWeeklyEmail(
       </div>
       <p style="font-size:11px;color:#94a3b8;margin-top:20px">
         OPINIO &middot; IT業界のキャリアインフラ<br>
-        配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">プロフィール編集</a>から設定できます
+        配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>から変更できます
       </p>
     </body>
     </html>

@@ -84,6 +84,11 @@ export async function getWeeklyRecipients(supabase: SupabaseClient<any, any, any
  *    実際の場所は `/mypage` の「設定」タブ（2026-08-16 に /profile/edit から移設）。
  *    **リンク先を変えるときは、そのタブが実在するか確かめること。**
  */
+/* ⚠️★**リンクの文言は「設定」。**「プロフィール編集」に戻さないこと（2026-09-10）。
+   2026-08-16 に設定を `/profile/edit` から `/mypage` の「設定」へ移した際、
+   ここの URL は直したが**呼び出し側3箇所の文言が「プロフィール編集」のまま残っていた**
+   （スカウト・週次求人・週次マッチ）。**画面にその名前の場所は無い。**
+   ⚠️ URL と文言は別の場所にあるので、片方だけ直すと必ずこの形になる。 */
 export function unsubscribeUrl(baseUrl: string): string {
   /* ⚠️ 2026-08-17 に `/mypage?tab=settings` から変えた（タブを畳んだため）。
      過去に送ったメールは `?tab=settings` のままなので、`/mypage` 側の転送も消さないこと。 */
