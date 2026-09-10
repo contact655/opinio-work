@@ -5268,6 +5268,10 @@ export type Database = {
           candidate_id: string | null
           company_id: string | null
           conversation_id: string | null
+          email_error: string | null
+          email_provider_id: string | null
+          email_sent_at: string | null
+          email_status: string
           id: string
           job_id: string | null
           message: string | null
@@ -5279,6 +5283,10 @@ export type Database = {
           candidate_id?: string | null
           company_id?: string | null
           conversation_id?: string | null
+          email_error?: string | null
+          email_provider_id?: string | null
+          email_sent_at?: string | null
+          email_status?: string
           id?: string
           job_id?: string | null
           message?: string | null
@@ -5290,6 +5298,10 @@ export type Database = {
           candidate_id?: string | null
           company_id?: string | null
           conversation_id?: string | null
+          email_error?: string | null
+          email_provider_id?: string | null
+          email_sent_at?: string | null
+          email_status?: string
           id?: string
           job_id?: string | null
           message?: string | null
