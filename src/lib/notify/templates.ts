@@ -3,6 +3,18 @@ import { unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
 /** 運営の宛先。⚠️ 新しい持ち方を作らない。既存の3テンプレートと同じこれを使う。 */
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 
+/* ★送信者情報（2026-09-10 に共通フッターへ入れた）。
+   ⚠️★**すべて「サイトに既出の表記」をそのまま写している。ここで書き起こさないこと。**
+        出どころ: content/legal/privacy-policy.md「1. 事業者情報」／ content/legal/legal-agency.md
+        変えるときは、まずそちらを直してからここを合わせる（逆をやると表記が割れる）。
+   ⚠️ 受信拒否の連絡先は `ADMIN_EMAIL` を使わない。あちらは環境変数で運営の作業用アドレスに
+      差し替えられるので、**公開している窓口と別のものになりうる。**
+   ⚠️ 有料職業紹介事業許可番号（13-ユ-316441）は**入れていない**。理由と要否の確認状況は
+      docs/scout-email-20260910.md を参照。 */
+const SENDER_NAME = "株式会社Opinio";
+const SENDER_ADDRESS = "東京都港区赤坂2-21-4 天翔赤坂ANNEXビル4階 404-C号室";
+const SENDER_CONTACT_EMAIL = "contact@opinio.co.jp";
+
 /**
  * ★企業に担当者がいないため運営に回ってきた通知に付ける印（2026-08-23）。
  *
@@ -44,6 +56,22 @@ const TD_LABEL = "padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;f
 const TD_VALUE = "padding:8px 12px;border:1px solid #e2e8f0;font-size:13px";
 const BTN     = "display:inline-block;background:#002366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
 
+/**
+ * ★送信者の表示（名称・住所・受信拒否の連絡先）。**消さないこと**（2026-09-10）。
+ *
+ * ⚠️★**`htmlWrap()` を通らないメールにも、これを末尾に付けること。**
+ *    共通ラッパーを通らない外部宛のメールが4本ある（招待・ウェルカム・週次2本）ので、
+ *    そちらは各ファイルでこの関数を呼んでいる。**新しくメールを足すときは
+ *    `htmlWrap()` を通すか、通さないならこれを付ける。**
+ */
+export function senderFooterHtml(): string {
+  return `<p style="margin:12px 0 0;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;line-height:1.7">
+      ${esc(SENDER_NAME)}<br>
+      ${esc(SENDER_ADDRESS)}<br>
+      受信拒否のご連絡: <a href="mailto:${SENDER_CONTACT_EMAIL}" style="color:#94a3b8">${SENDER_CONTACT_EMAIL}</a>
+    </p>`;
+}
+
 // ── 共通 HTML wrapper ──────────────────────────────────────────────────────────
 function htmlWrap(content: string): string {
   return `<!DOCTYPE html>
@@ -75,6 +103,7 @@ function htmlWrap(content: string): string {
               このメールは <a href="https://opinio.jp" style="color:#3B5FD9">opinio.jp</a> から自動送信されています。<br>
               心当たりのない場合は、このメールを無視してください。
             </p>
+            ${senderFooterHtml()}
           </td>
         </tr>
       </table>

@@ -5,6 +5,7 @@ import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipien
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
+import { senderFooterHtml } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -278,6 +279,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
           OPINIO &middot; IT業界のキャリアインフラ<br>
           配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>から変更できます
         </p>
+        ${senderFooterHtml()}
       </div>
     </body>
     </html>

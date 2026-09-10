@@ -4,6 +4,7 @@ import { addUserRole } from "@/lib/roles";
 import { notify } from "@/lib/notify/email";
 import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { senderFooterHtml } from "@/lib/notify/templates";
 
 /**
  * メールリンク / OAuth で認証が成立した直後の共通後処理。
@@ -239,6 +240,7 @@ function buildWelcomeHtml(name: string): string {
               このメールは <a href="https://opinio.jp" style="color:#3B5FD9">opinio.jp</a> から自動送信されています。<br>
               心当たりのない場合は、このメールを無視してください。
             </p>
+            ${senderFooterHtml()}
           </td>
         </tr>
       </table>

@@ -7,6 +7,7 @@ import { fmtMan } from "@/lib/utils/salary";
 import { getJobs } from "@/lib/supabase/queries";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
+import { senderFooterHtml } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -263,6 +264,7 @@ function generateWeeklyEmail(
         OPINIO &middot; IT業界のキャリアインフラ<br>
         配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>から変更できます
       </p>
+      ${senderFooterHtml()}
     </body>
     </html>
   `;

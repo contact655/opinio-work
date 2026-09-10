@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { notify } from "@/lib/notify/email";
 import { confirmRedirectTo } from "@/lib/auth/redirects";
+import { senderFooterHtml } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +171,7 @@ function buildInviteHtml(email: string, role: string, message: string, siteUrl: 
               このメールは <a href="https://opinio.jp" style="color:#3B5FD9">opinio.jp</a> の管理者から送信されました。<br>
               心当たりのない場合は、このメールを無視してください。
             </p>
+            ${senderFooterHtml()}
           </td>
         </tr>
       </table>
