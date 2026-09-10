@@ -3,6 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 import {
   isScoutEmailUndelivered,
   SCOUT_EMAIL_UNDELIVERED_NOTICE,
@@ -25,7 +26,7 @@ export default async function BizScoutsPage() {
         ⚠️ ここでは env だけを見る。人材紹介の同意（`placementAgreed`）は
            **送信の可否**の条件で、この画面が言いたい「機能自体がまだ開いていない」
            とは別の話。混ぜると「同意すれば送れる」と読めてしまう。 */
-  const scoutSendingEnabled = process.env.SCOUT_SENDING_ENABLED === "true";
+  const scoutSendingEnabled = isScoutSendingEnabled();
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 

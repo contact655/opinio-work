@@ -180,6 +180,7 @@ export default function LandingPage({
   schoolFacets,
   companies,
   jobs,
+  scoutSendingEnabled,
 }: {
   totals: LPTotals;
   industryFacets: LPFacet[];
@@ -187,6 +188,9 @@ export default function LandingPage({
   schoolFacets: LPFacet[];
   companies: LPCompanyCard[];
   jobs: LPJobCard[];
+  /** ★スカウト送信が開いているか。⚠️ ここで env を読まない（`isScoutSendingEnabled()` を
+   *  `page.tsx` が呼んで渡す）。判定を画面ごとに書き写さないため。 */
+  scoutSendingEnabled: boolean;
 }) {
   // font-family は globals.css の body と同じ順序にする。
   // 欧文・数字は Inter、和文は Noto Sans JP（Inter に和文グリフが無いので自動で振り分けられる）。
@@ -624,8 +628,12 @@ export default function LandingPage({
               //    ⚠️★**求職者に「準備中」と伝えているのは、いまここ1箇所だけ。**
               //       登録画面にもあったが 2026-09-09 に外した（`/onboarding/stance` は
               //       受け取りの条件は言うが、準備中には触れていない）。
-              //    ⚠️ **再開するときはこの一文を消すこと。**（`SCOUT_SENDING_ENABLED=true` と同時）
-              { q: "登録すると、スカウトが届きますか？", a: "登録しただけでは届きません。登録のあとに「転職について」を1問おたずねします。そこで「今はいない」を選ぶと、企業の候補者検索にあなたは表示されません。答えるまでのあいだも届きません。答えはマイページの「意思表示」からいつでも変えられます。営業電話はありません。なお、企業からのスカウト送信は現在準備中です。始まりましたらお知らせします。" },
+              // ★★2026-09-10: **手で消す形をやめ、フラグに連動させた。**
+              //    ⚠️ 「開けたら消す」は**消し忘れと消しすぎの両方**が起きる。
+              //       開けた日に自動で消え、戻した日に自動で戻る。
+              //    ⚠️ 判定は `isScoutSendingEnabled()` の1本。**ここで env を読まない。**
+              //    ⚠️ このページは ISR（`revalidate = 300`）なので、**最大5分は古い文言が出る。**
+              { q: "登録すると、スカウトが届きますか？", a: `登録しただけでは届きません。登録のあとに「転職について」を1問おたずねします。そこで「今はいない」を選ぶと、企業の候補者検索にあなたは表示されません。答えるまでのあいだも届きません。答えはマイページの「意思表示」からいつでも変えられます。営業電話はありません。${scoutSendingEnabled ? "" : "なお、企業からのスカウト送信は現在準備中です。始まりましたらお知らせします。"}` },
               { q: "掲載企業はどうやって選んでいますか？", a: "IT業界に絞ったうえで、OPINIO が選定した企業を掲載しています。web上の情報を自動で集めたものではありません。" },
               { q: "本当に無料で使えますか？", a: "はい。求職者側の費用は一切かかりません。" },
             ].map((item, i) => (

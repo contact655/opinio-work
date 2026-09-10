@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { PAID_PLAN_MONTHLY_FEE } from "@/lib/constants/plans";
+import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 
 export const revalidate = 600;
 
@@ -307,9 +308,17 @@ export default function BusinessPricingPage() {
                   {/*
                     ⚠️ 「スカウトを送りたい」を残さないこと。スカウト送信は
                        SCOUT_SENDING_ENABLED 未設定で停止中（2026-08-21）。
-                       再開したらこの一文を直す。
+                    ★★2026-09-10: **手で直す形をやめ、フラグに連動させた。**
+                       ⚠️ 「開けたら直す」は消し忘れと消しすぎの両方が起きる。
+                       ⚠️★**開けても行ごと消さない。** スカウトを「主な手段」にしたい会社に
+                          向いていないのは、開けたあとも変わらない（OPINIO は対話から始める設計）。
+                          変わるのは**使えるかどうか**の但し書きだけ。
+                       ⚠️ 判定は `isScoutSendingEnabled()` の1本。ここで env を読まない。
                   */}
-                  <CrossItem>候補者へのスカウト送信を主な手段にしたい（スカウト送信機能は現在ご利用いただけません）</CrossItem>
+                  <CrossItem>
+                    候補者へのスカウト送信を主な手段にしたい
+                    {isScoutSendingEnabled() ? "" : "（スカウト送信機能は現在ご利用いただけません）"}
+                  </CrossItem>
                   <CrossItem>IT 以外の業界での採用が中心</CrossItem>
                 </span>
               </FaqItem>

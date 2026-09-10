@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
+import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE, isScoutSendingEnabled } from "@/lib/business/scoutGate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasResendKey, sendEmailStrict } from "@/lib/notify/email";
 import { scoutTemplate } from "@/lib/notify/templates";
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
            効き始めるまで、母集合は小さいままになる。開ける前に件数を数えること。
 
      ⚠️ フラグを立てると `/biz/candidates` のボタンも同時に開く。片方だけ変えない。 */
-  if (process.env.SCOUT_SENDING_ENABLED !== "true") {
+  if (!isScoutSendingEnabled()) {
     return NextResponse.json(
       { error: "スカウト機能は現在準備中です。受信側の画面を用意してから再開します。" },
       { status: 503 }

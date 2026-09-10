@@ -11,6 +11,7 @@ import { pickLpCompanies } from "@/lib/lp/pickCompanies";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
+import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 
 /**
  * 掲載数は実データから出す。ハードコードすると外から見える説明文が古いまま腐るため。
@@ -280,6 +281,8 @@ export default async function HomePage() {
       schoolFacets={schoolFacets}
       companies={companies}
       jobs={jobs}
+      /* ⚠️ 判定はここで1回だけ。LP 側で env を読まない（サーバー専用のため） */
+      scoutSendingEnabled={isScoutSendingEnabled()}
     />
   );
 }

@@ -9,7 +9,7 @@ import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
 import { canUse } from "@/lib/constants/plans";
-import { canSendScout } from "@/lib/business/scoutGate";
+import { canSendScout, isScoutSendingEnabled } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
 
@@ -155,7 +155,7 @@ export default async function CandidatesPage() {
 
   /** スカウト送信が有効か。⚠️ API 側（POST /api/biz/scouts）と同じ判定にすること。
    *  片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。 */
-  const scoutSendingEnabledEnv = process.env.SCOUT_SENDING_ENABLED === "true";
+  const scoutSendingEnabledEnv = isScoutSendingEnabled();
 
   /* ⚠️★**人材紹介（成功報酬）の同意ゲートは外した**（2026-09-05）。**戻さないこと。**
         スカウトは掲載側（月額プラン）の機能で、OPINIO はあっせんを行わない

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import MypageLayout from "../_components/MypageLayout";
 import { ScoutsClient, type ScoutItem } from "./ScoutsClient";
+import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 
 export const metadata: Metadata = {
   /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
@@ -97,7 +98,7 @@ export default async function ScoutsPage() {
              片方だけ変えると「届かないのに理由が違う」案内になる。
           ⚠️ ここでは env だけを見る。本人の受け取り設定（`scout_enabled`）は
              **別の話**なので混ぜない（混ぜると「設定すれば届く」と読める）。 */}
-      <ScoutsClient scouts={scouts} sendingEnabled={process.env.SCOUT_SENDING_ENABLED === "true"} />
+      <ScoutsClient scouts={scouts} sendingEnabled={isScoutSendingEnabled()} />
     </MypageLayout>
   );
 }
