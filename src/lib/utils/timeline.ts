@@ -80,7 +80,10 @@ const PHASE_LABEL: Record<string, string> = {
  * 例: "SaaS（シリーズB・50名規模）"
  * company_anonymized が入力済みの場合はそちらを優先する。
  */
-function generateMaskedCompanyLabel(
+/* ⚠️★`export` にした（2026-09-11）。`/mypage/settings` の公開範囲の入力欄が、
+   **「伏せるとどう出るか」の実物**をその場で見せるために呼ぶ。
+   ⚠️ **同じ規則を設定画面に書き写さないこと。** 割れると、設定画面の例と実際の表示が食い違う。 */
+export function generateMaskedCompanyLabel(
   companyInfo: CompanyLogoInfo | undefined,
   companyAnonymized: string | null,
 ): string {

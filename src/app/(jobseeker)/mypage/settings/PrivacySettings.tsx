@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PROFILE_VISIBILITY_OPTIONS, type ProfileVisibility } from "@/lib/constants/profileVisibility";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
+import {
+  COMPANY_VISIBILITY_OPTIONS,
+  type CompanyVisibility,
+} from "@/lib/constants/companyVisibility";
 import { MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { FormSection } from "@/components/profile/editor/formKit";
 
@@ -33,6 +37,9 @@ export default function PrivacySettings({
   initialVisibility,
   careerStance,
   careerStanceKnown,
+  companyVisibility,
+  hasExperiences,
+  maskedSample,
 }: {
   initialVisibility: ProfileVisibility;
   /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」 */
@@ -41,6 +48,12 @@ export default function PrivacySettings({
    *  取れなかったのに「表示されています」と書くと嘘になる
    *  （CLAUDE.md「取得に失敗したら『0件』と表示しない」と同じ形）。 */
   careerStanceKnown: boolean;
+  /** ★職歴全体に効く「会社名の公開範囲」。⚠️ 行ごとの値の共通値（割れていれば強いほう） */
+  companyVisibility: CompanyVisibility;
+  /** ⚠️★職歴0件なら入力欄を出さない。設定する行が無く、保存しても0行更新になる */
+  hasExperiences: boolean;
+  /** 「伏せるとどう出るか」の実物。⚠️ 作れなければ null（推測で例を作らない） */
+  maskedSample: string | null;
 }) {
   /* ★保存済みの値だけを見る（ルール⑦） */
   const [saved, setSaved] = useState<ProfileVisibility>(initialVisibility);
@@ -48,6 +61,30 @@ export default function PrivacySettings({
   const [savingVis, setSavingVis] = useState(false);
   const [visError, setVisError] = useState<string | null>(null);
   const [visDone, setVisDone] = useState(false);
+
+  /* ★会社名の公開範囲（2026-09-11）。⚠️ 保存済みの値だけを見る（ルール⑦）。 */
+  const [savedVc, setSavedVc] = useState<CompanyVisibility>(companyVisibility);
+  const [vc, setVc] = useState<CompanyVisibility>(companyVisibility);
+  const [savingVc, setSavingVc] = useState(false);
+  const [vcError, setVcError] = useState<string | null>(null);
+  const [vcDone, setVcDone] = useState(false);
+
+  async function saveCompanyVisibility() {
+    setSavingVc(true); setVcError(null); setVcDone(false);
+    try {
+      const res = await fetch("/api/jobseeker/company-visibility", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ visibility_company: vc }),
+      });
+      if (!res.ok) throw new Error();
+      setSavedVc(vc); setVcDone(true);
+    } catch {
+      setVcError("保存できませんでした。");
+    } finally {
+      setSavingVc(false);
+    }
+  }
 
   const [blocks, setBlocks] = useState<Block[] | null>(null);
   const [blocksError, setBlocksError] = useState<string | null>(null);
@@ -256,8 +293,14 @@ export default function PrivacySettings({
           <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
             一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・現在の職種と会社名・
             社会人年数・お住まいの地域・希望職種・希望勤務地が並びます。
-            {/* ⚠️ 「非公開企業」は既存の語彙。ここで別の言い方を作らない */}
-            職歴で会社名を伏せている場合は「{MASKED_COMPANY_LABEL}」と表示されます。
+            {/* ★下の設定を変えると、ここの一文も変わる（2026-09-11）。
+                   ⚠️★**説明と設定が食い違わないようにするための連動。** 片方だけ直さないこと。
+                   ⚠️ 「非公開企業」は既存の語彙。ここで別の言い方を作らない。
+                   ⚠️ `hidden` も候補者検索では `masked` と同じ表示になる（2026-09-10 の判断）。
+                      ⚠️ **企業ページの現役社員・OB/OG からは `hidden` だけ消える。** そこは下の行で言う。 */}
+            {savedVc === "real"
+              ? <>会社名はそのまま表示されます。</>
+              : <>いまは会社名を伏せているので、会社名の代わりに「{MASKED_COMPANY_LABEL}」と表示されます。</>}
           </li>
 
           {/* ② ★絞り込み。**落とさないこと** */}
@@ -272,6 +315,12 @@ export default function PrivacySettings({
             一覧から<strong style={{ color: "var(--ink)" }}>あなたのプロフィールページを開けます</strong>。
             自己紹介・職歴・学歴・スキルのほか、
             <strong style={{ color: "var(--ink)" }}>生年月日を登録している場合は年齢も表示されます</strong>。
+            {savedVc === "masked" && maskedSample && (
+              <>そこでは会社名が「{maskedSample}」と表示されます。</>
+            )}
+            {savedVc === "hidden" && (
+              <>いまは職歴を出さない設定なので、<strong style={{ color: "var(--ink)" }}>職歴はそこにも企業ページにも出ません</strong>。</>
+            )}
             {/* ⚠️ この一文はオンボーディングと IntentCard と同じ。揃えてある */}
             見えるのは OPINIO にログインしている人だけです。
           </li>
@@ -281,11 +330,75 @@ export default function PrivacySettings({
                会社名を伏せる設定（`visibility_company`）の**入力欄は 2026-08-16 に外されている。**
                列とデータは残っているが、**本人が画面から変える手段は無い**（実測: 本番29件すべて `real`）。
                ⚠️ 入力欄を戻すときに、この一文も戻すこと。 */}
-        <p style={{ margin: "12px 0 0", fontSize: 12, lineHeight: 1.8, color: "var(--ink-mute)" }}>
-          会社名を伏せたい場合は、
-          <a href="/contact" style={{ color: "var(--royal)", fontWeight: 700 }}>お問い合わせ</a>
-          からご連絡ください。いまは画面から設定を変更できません。
-        </p>
+        {/* ★会社名の公開範囲（2026-09-11）。**3層の説明と同じ節に置く。**
+               ⚠️★**説明と設定を離さないこと。** 離すと、設定を変えたときに
+                  上の説明のどこが変わるのかが分からなくなる。
+               ⚠️★**職歴1件ずつの入力欄を復活させないこと**（`CareerHistoryEditor.tsx:1520`）。
+                  1件ずつだと**選び忘れが同意なき公開になる**。ここは職歴全体の1設定。
+               ⚠️★**既定は `real` のまま変えない。** 既存の状態を勝手に動かさない。
+               ⚠️ 職歴が0件なら出さない（設定する行が無い）。 */}
+        {hasExperiences && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>
+            <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+              会社名の公開範囲
+            </p>
+            <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.8, color: "var(--ink-mute)" }}>
+              すべての職歴にまとめて適用されます。あとから職歴を足したときも、この設定が引き継がれます。
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {COMPANY_VISIBILITY_OPTIONS.map((o) => (
+                <label key={o.value} style={{
+                  display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+                  border: `1.5px solid ${vc === o.value ? "var(--royal)" : "var(--line)"}`,
+                  background: vc === o.value ? "var(--royal-50)" : "#fff",
+                  borderRadius: 10, padding: "11px 13px",
+                }}>
+                  <input
+                    type="radio" name="visibility_company"
+                    checked={vc === o.value}
+                    onChange={() => setVc(o.value)}
+                    style={{ marginTop: 2, accentColor: "var(--royal)" }}
+                  />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{o.label}</span>
+                    <span style={{ display: "block", fontSize: 12, lineHeight: 1.7, color: "var(--ink-soft)", marginTop: 3 }}>
+                      {o.desc}
+                    </span>
+                    {/* ★「伏せるとどう出るか」の実物。⚠️ 面ごとに文字列が違うので**両方**出す。
+                           ⚠️ 規則をここに書き写さない（`generateMaskedCompanyLabel()` の結果をそのまま渡している）。 */}
+                    {o.value === "masked" && (
+                      <span style={{ display: "block", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)", marginTop: 5 }}>
+                        企業の候補者検索では「{MASKED_COMPANY_LABEL}」
+                        {maskedSample && <>、プロフィールでは「{maskedSample}」</>}
+                        と表示されます。
+                      </span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={() => void saveCompanyVisibility()}
+                disabled={savingVc || vc === savedVc}
+                className="tap-min-h"
+                style={{
+                  padding: "9px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                  border: "none", cursor: vc === savedVc ? "default" : "pointer",
+                  background: vc === savedVc ? "var(--line)" : "var(--royal)",
+                  color: vc === savedVc ? "var(--ink-mute)" : "#fff",
+                }}
+              >
+                {savingVc ? "保存中…" : "保存する"}
+              </button>
+              {vcDone && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)" }}>保存しました</span>}
+              {vcError && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{vcError}</span>}
+            </div>
+          </div>
+        )}
       </FormSection>
       )}
 

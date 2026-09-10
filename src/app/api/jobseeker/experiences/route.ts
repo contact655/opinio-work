@@ -256,7 +256,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
     }
   }
-  const visibilityCompany = isBlank(body.visibility_company) ? "real" : (body.visibility_company as string);
+  /* ★指定が無ければ**既存の職歴から引き継ぐ**（2026-09-11）。
+     ⚠️★**"real" に倒さないこと。** 会社名を伏せている人が職歴を1件足した瞬間に
+        **その1件だけ実名で出る**（`/mypage/settings` の設定は職歴全体に効く1設定なのに、
+        値は行ごとに持っているため）。`CareerHistoryEditor` の注記が言う
+        「選び忘れが同意なき公開になる」の、足す側の形。
+     ⚠️ 行ごとに値が割れている場合（過去の migration 由来）は**いちばん強いものに倒す**。
+        迷ったら狭いほうへ（CLAUDE.md「公開範囲の既定を広いほうにしない」）。 */
+  let visibilityCompany: string;
+  if (!isBlank(body.visibility_company)) {
+    visibilityCompany = body.visibility_company as string;
+  } else {
+    const { data: prevRows, error: prevErr } = await createAdminClient()
+      .from("ow_experiences").select("visibility_company").eq("user_id", owUserId);
+    if (prevErr) console.error("[POST /api/jobseeker/experiences] 既存の公開範囲:", prevErr.message);
+    const vals = new Set((prevRows ?? []).map((r) => (r.visibility_company as string) ?? "real"));
+    visibilityCompany = vals.has("hidden") ? "hidden" : vals.has("masked") ? "masked" : "real";
+  }
 
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);
