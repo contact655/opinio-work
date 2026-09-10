@@ -10,6 +10,19 @@ type EmailParams = {
   html: string;
 };
 
+/**
+ * ★メールの送信設定が入っているか（2026-09-10）。
+ *
+ * ⚠️★**値は返さない。真偽だけ。** `/api/health` からも呼ぶので、
+ *    キーそのものを応答に出す形にしないこと。
+ *
+ * ⚠️★**起動時に落とす形にしないこと。** メールと無関係なページまで巻き込んで
+ *    本番が丸ごと止まる。**送る直前に見て、その操作だけを断る。**
+ */
+export function hasResendKey(): boolean {
+  return Boolean(RESEND_API_KEY);
+}
+
 export async function sendEmail(params: EmailParams): Promise<void> {
   // dev / API キーなしの場合は console.log で代替 (mock パターン)
   if (!RESEND_API_KEY) {

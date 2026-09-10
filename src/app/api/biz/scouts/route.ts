@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmailStrict } from "@/lib/notify/email";
+import { hasResendKey, sendEmailStrict } from "@/lib/notify/email";
 import { scoutTemplate } from "@/lib/notify/templates";
 import {
   isScoutEmailUndelivered,
@@ -84,6 +84,21 @@ export async function POST(req: NextRequest) {
   if (process.env.SCOUT_SENDING_ENABLED !== "true") {
     return NextResponse.json(
       { error: "スカウト機能は現在準備中です。受信側の画面を用意してから再開します。" },
+      { status: 503 }
+    );
+  }
+
+  /* ★★メールの送信設定が入っていないまま本番でフラグが開く事故を、ここで止める（2026-09-10）。
+     ⚠️★**起動時に落とさない。** メールと無関係なページまで巻き込んで本番が丸ごと止まる。
+        **送る前に、この操作だけを断る。**
+     ⚠️★`RESEND_API_KEY` が無いと `sendEmail` は mock で**正常終了**する。
+        送ってから気づくのではなく、**送る前に止める**のが違い。
+     ⚠️ dev では止めない（`mocked` として記録され、それが正しい状態）。
+     ⚠️ 認証より前に見る。上の 503 と同じで、企業ごとの話ではなく設定の話。 */
+  if (process.env.NODE_ENV === "production" && !hasResendKey()) {
+    console.error("[POST /api/biz/scouts] RESEND_API_KEY が無い。送信を断った");
+    return NextResponse.json(
+      { error: "メール送信の設定が未完了のため、スカウトを送信できません。" },
       { status: 503 }
     );
   }

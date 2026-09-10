@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasResendKey } from "@/lib/notify/email";
 
 /**
  * デプロイの同一性を確認するためのエンドポイント。
@@ -13,8 +14,9 @@ import { NextResponse } from "next/server";
  *      curl -s https://opinio.jp/api/health
  *    返ってきた `commit` が push したコミットの先頭8桁と一致したら完了。
  *
- * ⚠️ **環境変数の中身は出さない。** 返すのはコミットの先頭8桁とビルド時刻だけ。
- *    認証は不要にしてある（公開情報しか含まないため）。
+ * ⚠️ **環境変数の中身は出さない。** 返すのはコミットの先頭8桁とビルド時刻、
+ *    それに**設定が入っているかの真偽**だけ。認証は不要にしてある。
+ *    ⚠️★真偽であっても、**入っているかどうか自体が秘密になるもの**は足さないこと。
  *
  * ⚠️ モジュールスコープで評価する。`force-dynamic` にすると `BUILT_AT` が
  *    ビルド時刻ではなくコールドスタート時刻になり、意味が変わる。
@@ -26,5 +28,9 @@ export async function GET() {
     /** Vercel のビルド環境変数。ローカルでは undefined なので null を返す */
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? null,
     builtAt: BUILT_AT,
+    /* ★メールの送信設定が入っているか（2026-09-10）。**値は出さない。**
+       ⚠️ これが false のまま `SCOUT_SENDING_ENABLED` を開けると、
+          メールは1通も届かないまま「送信しました」と出る。**開ける前にここを見る。** */
+    hasResendKey: hasResendKey(),
   });
 }
