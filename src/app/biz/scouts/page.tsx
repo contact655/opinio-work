@@ -3,6 +3,10 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import {
+  isScoutEmailUndelivered,
+  SCOUT_EMAIL_UNDELIVERED_NOTICE,
+} from "@/lib/constants/scoutEmail";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "スカウト管理 | OPINIO Business" } };
@@ -29,7 +33,7 @@ export default async function BizScoutsPage() {
 
   const { data: scouts } = await admin
     .from("ow_scouts")
-    .select("id, status, sent_at, replied_at, conversation_id, message, candidate_id, ow_jobs(id, title)")
+    .select("id, status, sent_at, replied_at, conversation_id, message, candidate_id, email_status, ow_jobs(id, title)")
     .eq("company_id", ctx.tenantId)
     .order("sent_at", { ascending: false });
 
@@ -51,6 +55,12 @@ export default async function BizScoutsPage() {
     jobTitle: (s.ow_jobs as any)?.title as string | null,
     jobId: (s.ow_jobs as any)?.id as string | null,
     candidate: userMap.get(s.candidate_id) as { id: string; name: string; avatar_color: string | null } | null,
+    /* ★通知メールが届かなかったか（2026-09-10）。
+       ⚠️★**`skipped` を含めないこと。** あれは「本人がメール通知を切っている」という
+          **本人の設定**で、企業に知らせるものではない（出すと、本人が企業に開示していない
+          設定が企業側に伝わる）。しかもアプリ内通知は届いているので未達ですらない。
+       ⚠️ 判定は `isScoutEmailUndelivered()` の1本。ここで値を並べ直さないこと。 */
+    emailUndelivered: isScoutEmailUndelivered(s.email_status as string | null),
   }));
 
   const interestedCount = rows.filter((r) => r.status === "interested").length;
@@ -209,6 +219,20 @@ export default async function BizScoutsPage() {
                     }}>
                       {row.message}
                     </p>
+
+                    {/* ★メールで通知できなかったとき（2026-09-10）。
+                           ⚠️★**括弧の中を消さないこと。** 無いと「候補者に何も届いていない」と読まれ、
+                              `/biz/candidates` から二重に送られる。**実際にはアプリ内に届いている。**
+                           ⚠️ `skipped` ではここに来ない（上の `emailUndelivered` を参照）。 */}
+                    {row.emailUndelivered && (
+                      <p style={{
+                        fontSize: 11, color: "var(--warm-ink)", background: "#FFFBEB",
+                        border: "1px solid #FDE68A", borderRadius: 8,
+                        padding: "6px 10px", margin: "0 0 10px",
+                      }}>
+                        {SCOUT_EMAIL_UNDELIVERED_NOTICE}
+                      </p>
+                    )}
 
                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
