@@ -3,7 +3,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/notify/email";
-import { unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
+import { scoutTemplate } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -260,37 +260,14 @@ async function sendScoutEmail(
       .maybeSingle();
     if (!owUser?.email) return;
 
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.jp";
-    const esc = (v: string) =>
-      v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    const company = esc(args.companyName);
-
-    await notify({
+    /* ⚠️★**本文は `templates.ts` の `scoutTemplate()` に置いてある。ここに書き戻さないこと。**
+       2026-09-10 まで HTML をこのファイルに直書きしており、共通レイアウト（`htmlWrap`）を
+       通っていなかった——**利用者に届くメールでスカウトだけがロゴも共通フッターも無い**別物だった。 */
+    await notify(scoutTemplate({
       to: owUser.email,
-      subject: `【OPINIO】${args.companyName} からスカウトが届きました`,
-      html: `
-        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#0F172A">
-          <p>${esc(owUser.name ?? "")} さん</p>
-          <p><strong>${company}</strong> からスカウトが届きました。</p>
-          <p style="margin:24px 0">
-            <a href="${base}/mypage/scouts"
-               style="background:#002366;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none">
-              内容を見る
-            </a>
-          </p>
-          <p style="font-size:13px;color:#475569;line-height:1.8">
-            返答するかどうかはご自身で決められます。見送っても相手に理由は伝わりません。
-          </p>
-          <hr style="margin:24px 0;border:none;border-top:1px solid #eee" />
-          <p style="font-size:12px;color:#94a3b8">
-            スカウトのお知らせが不要な場合は
-            <a href="${unsubscribeUrl(base)}" style="color:#94a3b8">設定</a>
-            から配信を停止できます。
-          </p>
-          <p style="font-size:12px;color:#94a3b8">OPINIO</p>
-        </div>
-      `,
-    });
+      userName: owUser.name ?? null,
+      companyName: args.companyName,
+    }));
   } catch (err) {
     console.error("[POST /api/biz/scouts] スカウトメールの送信に失敗（スカウトは送信済み）", err);
   }
