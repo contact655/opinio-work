@@ -59,7 +59,9 @@ export async function notify(params: EmailParams): Promise<void> {
  *    実際には送っていないので、成功として利用者に見せてよいのは dev だけ。
  */
 export type SendResult =
-  | { ok: true; mocked: boolean }
+  /** ⚠️ `providerId` は Resend の message id。**後から問い合わせるときの唯一の手がかり**なので、
+   *  記録する経路では必ず受け取ること（`mocked: true` のときは無い）。 */
+  | { ok: true; mocked: boolean; providerId?: string }
   | { ok: false; error: string };
 
 export async function sendEmailStrict(params: EmailParams): Promise<SendResult> {
@@ -70,7 +72,7 @@ export async function sendEmailStrict(params: EmailParams): Promise<SendResult> 
 
   try {
     const resend = new Resend(RESEND_API_KEY);
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [params.to],
       subject: params.subject,
@@ -80,7 +82,7 @@ export async function sendEmailStrict(params: EmailParams): Promise<SendResult> 
       console.error("[notify] sendEmailStrict error:", error);
       return { ok: false, error: error.message || String(error) };
     }
-    return { ok: true, mocked: false };
+    return { ok: true, mocked: false, providerId: data?.id };
   } catch (err) {
     console.error("[notify] sendEmailStrict threw:", err);
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

@@ -32,6 +32,10 @@ export type ScoutEmailStatus = (typeof SCOUT_EMAIL_STATUSES)[number];
  */
 export const SCOUT_EMAIL_UNDELIVERED: readonly ScoutEmailStatus[] = ["failed", "mocked"];
 
+/* ⚠️ `failed` は「Resend が失敗した」だけではない。**宛先が用意できなかった場合も含む**
+   （candidate に `auth_id` が無い / `ow_users.email` が空）。**本人の設定ではない**ので
+   `skipped` に入れない——運営の「要対応」に出て直せるほうがよい。 */
+
 export function isScoutEmailUndelivered(s: string | null | undefined): boolean {
   return s != null && (SCOUT_EMAIL_UNDELIVERED as readonly string[]).includes(s);
 }

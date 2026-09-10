@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notify } from "@/lib/notify/email";
+import { sendEmailStrict } from "@/lib/notify/email";
 import { scoutTemplate } from "@/lib/notify/templates";
+import {
+  isScoutEmailUndelivered,
+  type ScoutEmailStatus,
+} from "@/lib/constants/scoutEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -201,6 +205,8 @@ export async function POST(req: NextRequest) {
         ここでは API が受け取った `candidate_id`（= ow_users.id）をそのまま使う。
      ⚠️ 通知の失敗でスカウト送信自体を失敗させない（best-effort）。
         ただし握りつぶさずログは必ず出す。届かなかったことに気づけなくなるため。 */
+  let emailStatus: ScoutEmailStatus = "pending";
+
   if (inserted?.id) {
     const { error: notifErr } = await admin.from("ow_notifications").insert({
       recipient_user_id: candidate_id,
@@ -216,32 +222,81 @@ export async function POST(req: NextRequest) {
        ⚠️ 配信停止（`email_scout_enabled`）を必ず見る。**ここを外さないこと。**
           止められないメールを送ると、週次メールを止めた理由②に逆戻りする。
        ⚠️ `ow_profiles.user_id` は auth 空間なので `candidateUser.auth_id` で引く。 */
-    await sendScoutEmail(admin, {
+    emailStatus = await sendScoutEmail(admin, {
+      scoutId: inserted.id,
       candidateAuthId: candidateUser.auth_id,
       candidateOwUserId: candidate_id,
       companyName: ctx.tenantName,
     });
   }
 
-  return NextResponse.json({ ok: true });
+  /* ⚠️★**メールが落ちても 500 を返さない。** スカウトの行は既に入っていて、
+     アプリ内通知も届いているので、**送信自体は成功している**（2026-09-10 の判断）。
+     500 にすると企業は再送を試み、候補者に二重に届く。
+     扱いは「送信の失敗」ではなく「**通知手段のひとつが欠けた**」。
+     ⚠️ `skipped` は本人がメール通知を切っているだけなので `emailDelivered` は true 側に置く
+        ——企業に「届かなかった」と伝えるものではない（本人の設定を企業に渡さない）。 */
+  return NextResponse.json({
+    ok: true,
+    emailDelivered: !isScoutEmailUndelivered(emailStatus),
+  });
 }
 
 /**
- * スカウトが届いたことをメールで知らせる。
+ * スカウトが届いたことをメールで知らせ、**結果を `ow_scouts` に記録する**。
  *
  * ⚠️ **配信停止の判定をこの関数の中に置いてある。** 呼び出し側で判定すると、
  *    経路が増えたときに片方だけ忘れる（週次メール2本で実際に起きた）。
  *
- * ⚠️ best-effort。メールが送れなくてもスカウト送信は成功扱いにする。
- *    ただし握り潰さずログは出す。
+ * ── ★なぜ記録するようになったか（2026-09-10）─────────────────────────────
+ * それまで `notify()` を呼ぶだけで、**送れたかどうかがどこにも残っていなかった。**
+ * `notify()` が例外を飲み、`sendEmail()` は Resend の error を console に出すだけ、
+ * さらにこの関数の catch が受ける——**3重に握り潰していた。**
+ * 企業には常に `{ok:true}` が返るので、**届いていなくても「送信しました」と出る。**
+ * 本番で `RESEND_API_KEY` が外れていれば mock で正常終了し、誰も気づけない。
+ *
+ * ⚠️★**`notify()` / `sendEmail()` に戻さないこと。** どちらも成否を返さない。
+ *    ここは `sendEmailStrict()` を使う。
+ *
+ * ⚠️ 記録は best-effort（記録に失敗してもスカウト送信は成功扱い）。ただしログは必ず出す。
  */
 async function sendScoutEmail(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   admin: any,
-  args: { candidateAuthId: string | null; candidateOwUserId: string; companyName: string },
-) {
+  args: {
+    scoutId: string;
+    candidateAuthId: string | null;
+    candidateOwUserId: string;
+    companyName: string;
+  },
+): Promise<ScoutEmailStatus> {
+  /** 結果を1箇所で書く。⚠️ 分岐ごとに update を書き写さないこと（必ずどれかを書き忘れる）。 */
+  const record = async (
+    status: ScoutEmailStatus,
+    extra?: { error?: string; providerId?: string },
+  ): Promise<ScoutEmailStatus> => {
+    const { error } = await admin
+      .from("ow_scouts")
+      .update({
+        email_status: status,
+        email_sent_at: status === "sent" ? new Date().toISOString() : null,
+        email_error: extra?.error ?? null,
+        email_provider_id: extra?.providerId ?? null,
+      })
+      .eq("id", args.scoutId);
+    if (error) {
+      console.error("[POST /api/biz/scouts] 送信結果の記録に失敗", error.message);
+    }
+    return status;
+  };
+
   try {
-    if (!args.candidateAuthId) return;
+    /* ⚠️ 宛先が無い経路は `skipped` ではなく `failed`。**本人の設定ではない**ので、
+       運営の「要対応」に出て直せるほうがよい（スカウトを受け取れる人に
+       メールアドレスが無いのはデータ側の問題）。 */
+    if (!args.candidateAuthId) {
+      return await record("failed", { error: "candidate に auth_id が無い" });
+    }
 
     // ⚠️ ow_profiles.user_id は auth 空間
     const { data: prof } = await admin
@@ -250,25 +305,39 @@ async function sendScoutEmail(
       .eq("user_id", args.candidateAuthId)
       .maybeSingle();
 
-    // ⚠️ 明示的に true のときだけ送る（読めなかったときに送る向きにしない）
-    if (prof?.email_scout_enabled !== true) return;
+    /* ⚠️ 明示的に true のときだけ送る（読めなかったときに送る向きにしない）。
+       ⚠️★これは**本人の設定**なので `skipped`＝正常。**企業には知らせない。** */
+    if (prof?.email_scout_enabled !== true) return await record("skipped");
 
     const { data: owUser } = await admin
       .from("ow_users")
       .select("email, name")
       .eq("id", args.candidateOwUserId)
       .maybeSingle();
-    if (!owUser?.email) return;
+    if (!owUser?.email) {
+      return await record("failed", { error: "ow_users.email が空" });
+    }
 
     /* ⚠️★**本文は `templates.ts` の `scoutTemplate()` に置いてある。ここに書き戻さないこと。**
        2026-09-10 まで HTML をこのファイルに直書きしており、共通レイアウト（`htmlWrap`）を
        通っていなかった——**利用者に届くメールでスカウトだけがロゴも共通フッターも無い**別物だった。 */
-    await notify(scoutTemplate({
+    const result = await sendEmailStrict(scoutTemplate({
       to: owUser.email,
       userName: owUser.name ?? null,
       companyName: args.companyName,
     }));
+
+    if (!result.ok) return await record("failed", { error: result.error });
+
+    /* ⚠️★`mocked` は **RESEND_API_KEY が無い**という意味で、**送っていない。**
+       本番でこれが出たら設定事故なので、`sent` と一緒にしないこと。 */
+    if (result.mocked) return await record("mocked");
+
+    return await record("sent", { providerId: result.providerId });
   } catch (err) {
     console.error("[POST /api/biz/scouts] スカウトメールの送信に失敗（スカウトは送信済み）", err);
+    return await record("failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
