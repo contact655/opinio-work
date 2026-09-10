@@ -738,7 +738,12 @@ export function scoutTemplate(params: {
   companyName: string;
 }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  const greeting = `${esc(params.userName ?? "")} さん<br><br>`;
+  /* ⚠️★**名前が無ければ呼びかけの行ごと出さない。「 さん」だけを残さない**（2026-09-10）。
+     `ow_users.name` が空の実ユーザーは現在0人なので将来の備えだが、
+     氏名の欄は運営が作った行では空になりうる（`auth_id IS NULL` の件）。
+     ⚠️ 他のテンプレートは `${esc(params.userName)} さん` を無条件に出しており、同じ形が残っている。 */
+  const name = (params.userName ?? "").trim();
+  const greeting = name ? `${esc(name)} さん<br><br>` : "";
   return {
     to: params.to,
     subject: `【OPINIO】${esc(params.companyName)} からスカウトが届きました`,
