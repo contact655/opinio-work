@@ -3628,7 +3628,24 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 
 2026-08-09 に「送れるが受け取る手段が無い」ため送信を止めた。
 2026-08-10 に受信側を作ったので、**止めた理由は解消している**。
-再開は環境変数に `SCOUT_SENDING_ENABLED=true` を入れるだけ（下の前提を確認してから）。
+
+⚠️★**「環境変数に `SCOUT_SENDING_ENABLED=true` を入れるだけ」ではない**（2026-09-10 に訂正）。
+   ゲートは**2つ**あり、`ow_company_plans.plan_type = 'paid'` でないと**1通も送れない**
+   （実測 403。現在**有料は0社**）。開ける順序は **枠 → プラン → フラグ**。
+
+### ★解禁まわりの docs 4本（ここに書き写さない）
+
+| 何を | docs |
+|---|---|
+| ★**止め方（3段階）・開け方・1通目の確認項目** | **[scout-runbook.md](docs/scout-runbook.md)** |
+| 調査とチェックリスト（残っているものはここ） | [phase0-scout-enablement-20260910.md](docs/phase0-scout-enablement-20260910.md) |
+| 通知メールの文面と、企業の本文を載せない判断 | [scout-email-20260910.md](docs/scout-email-20260910.md) |
+| 送信結果の記録（`email_status` の5値） | [scout-delivery-record-20260910.md](docs/scout-delivery-record-20260910.md) |
+
+⚠️★**「準備中」の文言は手で消さない**（2026-09-10）。`isScoutSendingEnabled()` に連動しており、
+   **開けた日に自動で消え、戻した日に自動で戻る。** ⚠️ この関数は**サーバー専用**
+   （`SCOUT_SENDING_ENABLED` は `NEXT_PUBLIC_` ではないので、クライアントで呼ぶと
+   **常に false になり、しかもエラーにならない**）。クライアントには props で渡すこと。
 
 ### 受信側の構成（2026-08-10）
 
