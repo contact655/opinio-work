@@ -11,7 +11,7 @@ import { fmtMan } from "@/lib/utils/salary";
  * ⚠️ 2026-08-05 に外した（null）。LP に個人が特定できる情報を載せない方針のため。
  *
  * ── なぜマスク版に差し替えなかったか ───────────────────────────────────────
- * ow_experiences には visibility_company_profile（real / masked / hidden）があり、
+ * ow_experiences には visibility_company（real / masked / hidden。2026-09-11 に1本化）があり、
  * masked はプロダクトの正規機能。ただし**マスクが差し替えるのは会社名・ID・ロゴだけ**で、
  * 役職名・部署名・在籍月・説明文（実績値を含む）はそのまま残る（timeline.ts:208）。
  *   例: 「兵庫県明石店 ウェルスマネジメント課 / 法人・個人営業」2017-04〜2021-10

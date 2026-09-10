@@ -302,10 +302,11 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
        → その匿名経路も 2026-09-02 に撤去したので、いまは本当に手段が無い（意図どおり）。
 
        実測（2026-09-02 / 本番 24件）: `company_anonymized` **0件** ／
-       `visibility_company` / `visibility_company_profile` とも **全件 `real`**。
+       `visibility_company` **全件 `real`**（当時あった `visibility_company_profile` も同様。
+       ⚠️ あちらは 2026-09-11 に `visibility_company` へ一本化し【廃止】列にした）。
        **撤去した時点で誰も使っていなかった。**
 
-    ⚠️ 列（`company_anonymized` / `visibility_company` / `visibility_company_profile`）と
+    ⚠️ 列（`company_anonymized` / `visibility_company`）と
        描画側のフィルタは**残してある。消していない。**
        読み手が多く（`/people`・`/companies/[id]`・`/u/[id]`・`/schools/[id]`・検索・LP・
        `/biz/employees`）、消すと壊れる。**新しく書き込む経路を足さないこと。**
@@ -395,7 +396,6 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
           /* ⚠️ 既定は実名。伏せる選択肢は入口から外した（上のコメント参照）。 */
           visibility_company: "real",
-          visibility_company_profile: "real",
         }, "経歴", failures);
       }
 
@@ -414,7 +414,6 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ended_at: `${j.endYear}-${j.endMonth}`,
           is_current: false,
           visibility_company: "real",
-          visibility_company_profile: "real",
         }, "職歴", failures);
       }
 
@@ -538,8 +537,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             ⚠️★**会社を選ぶ前から出す（条件を付けない）。** 入力し終えてから知らせるのでは
                同意にならない。ここは入力の**前**にある唯一の位置。
             ⚠️★**1文にする。3文には戻さない**（2026-08-14 に一度3文→1文に縮めている）。
-            ⚠️ 実測（2026-09-09 / 保存後のDB値）: `visibility_company` /
-               `visibility_company_profile` とも **`real`** ＝**実名で出る**。
+            ⚠️ 実測（2026-09-09 / 保存後のDB値）: `visibility_company` は **`real`** ＝**実名で出る**。
                ここを「伏せられます」等に書き換えないこと。伏せる選択肢は入口から外してある。
             ⚠️ 「ログインしている人だけ」の側は利用規約 第7条とプライバシーポリシーにもあるが、
                **「企業ページに実名で載る」ほうはどこにも書いていない**（2026-09-09 に全文検索）。

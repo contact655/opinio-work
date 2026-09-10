@@ -59,7 +59,6 @@ export type Stint = {
        値が無い状態は「取得漏れ」以外にありえない。
   */
   visibilityCompany: "real" | "masked" | "hidden";
-  visibilityCompanyProfile: "real" | "masked" | "hidden";
   visibilityReason: boolean;
   /* ⚠️ visibility_salary は optional のまま。PUT が `"visibility_salary" in body` の
         ときだけ書き、エディタは送らないので往復の対象外（年収UIは 2026-08-06 に撤去）。 */
@@ -207,7 +206,6 @@ type StintDraft = {
   salaryStock: string;
   salaryMan: string;           // 自動計算 = salaryBase + salaryBonus + salaryStock
   visibilityCompany: "real" | "masked" | "hidden";
-  visibilityCompanyProfile: "real" | "masked" | "hidden";
   visibilitySalary: boolean;
   visibilityReason: boolean;
   prefecture: string;
@@ -285,7 +283,6 @@ const EMPTY_DRAFT: StintDraft = {
   salaryStock: "",
   salaryMan: "",
   visibilityCompany: "real",
-  visibilityCompanyProfile: "real",
   visibilitySalary: false,
   visibilityReason: true,
   prefecture: "",
@@ -1509,7 +1506,7 @@ function StintForm({
       */}
 
       {/* ⚠️ **「公開設定（この職歴を、どの画面に出すか）」の入力欄は 2026-08-16 に外した。**
-             `visibilityCompany` / `visibilityCompanyProfile` / `visibilityReason` の
+             `visibilityCompany` / `visibilityReason` の
              **列とデータは残している**。入力欄が無いので、保存時は
              `draft` が持つ既存値がそのまま送られる（年収の `visibility_salary` と同じ扱い）。
 
@@ -1643,7 +1640,6 @@ export default function CareerHistoryEditor({
           「本人の非公開設定が公開側に反転した」ことに誰も気づけない。
           Stint 側で必須にしてあるので、ここは素通しでよい。 */
     visibilityCompany: s.visibilityCompany,
-    visibilityCompanyProfile: s.visibilityCompanyProfile,
     visibilityReason: s.visibilityReason,
     visibilitySalary: s.visibilitySalary ?? false,
     /* ⚠️ ここで拾い忘れると、編集して保存した瞬間に値が消える
@@ -1682,7 +1678,6 @@ export default function CareerHistoryEditor({
     salaryStock: "",
     salaryMan: "",
     visibilityCompany: "real",
-    visibilityCompanyProfile: "real",
     visibilitySalary: false,
     visibilityReason: true,
     /* ⚠️ 同じ会社への追加ポジションでも勤務地・理由は引き継がない。
@@ -1739,7 +1734,6 @@ export default function CareerHistoryEditor({
         department: editDraft.department || null,
         rank: editDraft.rank || null,
         visibility_company: editDraft.visibilityCompany,
-        visibility_company_profile: editDraft.visibilityCompanyProfile,
         visibility_reason: editDraft.visibilityReason,
         ...buildReasonBody(editDraft),
       };
@@ -1771,7 +1765,6 @@ export default function CareerHistoryEditor({
                 department: editDraft.department || undefined,
                 rank: (editDraft.rank || null) as Stint["rank"],
                 visibilityCompany: editDraft.visibilityCompany,
-                visibilityCompanyProfile: editDraft.visibilityCompanyProfile,
                 visibilityReason: editDraft.visibilityReason,
                 ...optimisticReasonFields(editDraft),
               }
@@ -1816,7 +1809,6 @@ export default function CareerHistoryEditor({
         department: addDraft.department || null,
         rank: addDraft.rank || null,
         visibility_company: addDraft.visibilityCompany,
-        visibility_company_profile: addDraft.visibilityCompanyProfile,
         visibility_reason: addDraft.visibilityReason,
         ...buildReasonBody(addDraft),
       };
@@ -1845,7 +1837,6 @@ export default function CareerHistoryEditor({
         visibilityCompany: addDraft.visibilityCompany,
         department: addDraft.department || undefined,
         rank: (addDraft.rank || null) as Stint["rank"],
-        visibilityCompanyProfile: addDraft.visibilityCompanyProfile,
         visibilityReason: addDraft.visibilityReason,
         ...optimisticReasonFields(addDraft),
       };

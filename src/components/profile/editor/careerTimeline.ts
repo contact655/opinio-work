@@ -44,7 +44,7 @@ export function stintsToCareerEntries(
     description: s.description ?? null,
     join_reason: s.joinReason ?? null,
     employment_type: s.employmentType ?? null,
-    visibility_company_profile: s.visibilityCompanyProfile,
+    visibility_company: s.visibilityCompany,
   }));
   return buildTimelineCareerEntriesFromRaw(rows, roleMap, companyMap, true);
 }

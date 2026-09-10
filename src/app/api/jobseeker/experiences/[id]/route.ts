@@ -85,13 +85,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "INVALID_EMPLOYMENT_TYPE", message: "雇用形態の値が不正です。" }, { status: 400 });
   }
   const employmentType = isBlank(body.employment_type) ? null : (body.employment_type as string);
-  for (const k of ["visibility_company", "visibility_company_profile"] as const) {
+  for (const k of ["visibility_company"] as const) {
     if (!isBlank(body[k]) && !VALID_VISIBILITY.has(body[k] as string)) {
       return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
     }
   }
   const visibilityCompany = isBlank(body.visibility_company) ? "real" : (body.visibility_company as string);
-  const visibilityCompanyProfile = isBlank(body.visibility_company_profile) ? "real" : (body.visibility_company_profile as string);
 
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);
@@ -141,7 +140,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       join_reason: s(body.join_reason, 300),
       employment_type: employmentType,
       visibility_company: visibilityCompany,
-      visibility_company_profile: visibilityCompanyProfile,
       visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
       updated_at: new Date().toISOString(),
       ...salaryPatch,

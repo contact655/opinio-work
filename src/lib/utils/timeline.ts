@@ -50,7 +50,7 @@ const ANON_GRADIENT = "linear-gradient(135deg, #475569, #6b7280)";
  * buildTimelineCareerEntriesFromRaw の第3引数 Map<company_id, CompanyLogoInfo> として使用。
  *
  * ロゴフィールドは optional ではなく null 許容: DB から取得した値をそのまま格納する。
- * industry / phase / employee_count は visibility_company_profile='masked' 時の代替表示生成に使用。
+ * industry / phase / employee_count は visibility_company='masked' 時の代替表示生成に使用。
  */
 export type CompanyLogoInfo = {
   name: string;
@@ -76,7 +76,7 @@ const PHASE_LABEL: Record<string, string> = {
 };
 
 /**
- * visibility_company_profile='masked' のとき、会社マスタの情報から代替表示テキストを生成する。
+ * visibility_company='masked' のとき、会社マスタの情報から代替表示テキストを生成する。
  * 例: "SaaS（シリーズB・50名規模）"
  * company_anonymized が入力済みの場合はそちらを優先する。
  */
@@ -119,8 +119,11 @@ export type RawExperienceRow = {
    *  session クライアントで引く画面（/mypage）は SELECT に含めていない。 */
   join_reason?: string | null;
   employment_type: string | null;
-  /** プロフィールページでの企業名表示制御 */
-  visibility_company_profile?: "real" | "masked" | "hidden" | null;
+  /** ★会社名の公開範囲（2026-09-11 に `visibility_company_profile` から付け替えた）。
+   *  ⚠️★**`visibility_company_profile` は【廃止】列。読み書きしないこと。**
+   *     経緯: あちらは「キャリア軌跡ページ向け／プロフィールページ向け」で分けるために
+   *     足されたが、**キャリア軌跡ページが現存しない**（docs/visibility-company-two-columns-20260910.md）。 */
+  visibility_company?: "real" | "masked" | "hidden" | null;
   /** ★勤務地（都道府県）。**その職で実際に働いていた場所**で、会社の本社ではない（2026-08-29）。
    *  ⚠️ 任意 —— SELECT に含めない画面では undefined。`?? null` に倒さないこと
    *     （「未入力」と「取得していない」が区別できなくなる）。 */
@@ -145,7 +148,7 @@ export type RoleInfo = {
  * @param expRows         - ow_experiences SELECT 結果（is_current DESC, started_at DESC ソート済み）
  * @param roleInfoById    - Map<role_category_id, RoleInfo>（name + parent_name）
  * @param companyInfoById - Map<company_id, CompanyLogoInfo>（master 企業のみ。名前 + ロゴ + 業種/フェーズ）
- * @param isOwner         - true のときは visibility_company_profile を無視（本人は常に実名表示）
+ * @param isOwner         - true のときは visibility_company を無視（本人は常に実名表示）
  */
 export function buildTimelineCareerEntriesFromRaw(
   expRows: RawExperienceRow[],
@@ -154,8 +157,8 @@ export function buildTimelineCareerEntriesFromRaw(
   isOwner = false,
 ): CareerEntry[] {
   const results: (CareerEntry | null)[] = expRows.map((r) => {
-    // プロフィールページ表示制御（本人は常にスキップ）
-    const profileVis = r.visibility_company_profile ?? "real";
+    // 会社名の公開範囲（本人は常にスキップ）
+    const profileVis = r.visibility_company ?? "real";
     if (!isOwner && profileVis === "hidden") return null;
     // ロゴ情報: master 企業（company_id あり）のみ取得。custom / anon は null
     const companyInfo = r.company_id ? companyInfoById.get(r.company_id) : undefined;

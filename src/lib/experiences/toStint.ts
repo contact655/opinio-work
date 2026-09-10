@@ -53,7 +53,6 @@ export function rowsToStints(
       rank: (r.rank as Stint["rank"]) ?? null,
       /* ⚠️ 公開設定3列。DB は NOT NULL なので `?? 既定値` で埋めない。 */
       visibilityCompany: r.visibility_company as Stint["visibilityCompany"],
-      visibilityCompanyProfile: r.visibility_company_profile as Stint["visibilityCompanyProfile"],
       visibilityReason: r.visibility_reason as boolean,
       prefecture: (r.prefecture as string | null) ?? undefined,
       remoteWorkStatus: (r.remote_work_status as string | null) ?? undefined,

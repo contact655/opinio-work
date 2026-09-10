@@ -240,7 +240,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             tsc も lint も通り、その行だけ黙って消える）。`/mypage` 側は
             `EXPERIENCE_EDITOR_COLS` に元から入っている。
       */
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason, visibility_company_profile")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
@@ -405,7 +405,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   );
 
   // visibility_reason=false の場合のみ join_reason を除外（プロフィール・軌跡共通設定）
-  // visibility_company_profile は buildTimelineCareerEntriesFromRaw が isOwner で制御する
+  // visibility_company は buildTimelineCareerEntriesFromRaw が isOwner で制御する
   const processedExpRows = (expRows ?? []).map((r) => {
     const vr = (r as { visibility_reason?: boolean }).visibility_reason ?? true;
     return vr ? r : { ...r, join_reason: null };
@@ -445,7 +445,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   /* ★職歴から自動で出すスキル（2026-08-29）。⚠️ **保存していない。都度計算する。**
         ⚠️ `expRows`（生の行）から作る。`timelineCareers` は匿名化や
-           `visibility_company_profile` の処理を経ており、**会社が伏せられた行でも
+           `visibility_company` の処理を経ており、**会社が伏せられた行でも
            在籍した事実は変わらない**ので、集計は生の行で行う。
         ⚠️ 組み立ては `buildAutoSkills` に集約してある。**ここに書き写さないこと**
            （`/mypage` と食い違うと、同じ人が画面によって違うスキルを出す）。 */
@@ -459,7 +459,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
     "u/[id]",
   );
 
-  // MergedTimeline 用データ整形（isOwner=true なら visibility_company_profile を無視して実名表示）
+  // MergedTimeline 用データ整形（isOwner=true なら visibility_company を無視して実名表示）
   const timelineCareers = buildTimelineCareerEntriesFromRaw(
     processedExpRows as unknown as RawExperienceRow[],
     roleInfoById,

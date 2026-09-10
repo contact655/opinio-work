@@ -14,7 +14,7 @@
  *   2026-08-12  department / rank / visibility 3列 … **実際に消える状態だった**
  *
  * 3件目は department(7件) と rank(8件) が null になるだけでなく、
- * `visibility_company` / `visibility_company_profile` / `visibility_reason` が
+ * `visibility_company` / `visibility_reason` が
  * `?? "real"` / `?? true` の既定値に化けていた。
  * 「会社名を含めない」「入社理由を公開しない」を選んだ人の設定が、
  * 別項目を直して保存しただけで**公開側に反転する**状態だった（実データ8行が該当）。
@@ -49,4 +49,4 @@
      見た目より型が通ることを優先する。
 */
 export const EXPERIENCE_EDITOR_COLS =
-  "id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_company_profile, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons" as const;
+  "id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons" as const;
