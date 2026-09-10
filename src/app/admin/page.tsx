@@ -3,6 +3,7 @@ import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 /* ⚠️★件数も一覧も同じ関数を通す。条件を書き分けると
       「1件と出ているのに開くと空」が起きる（`fetchSelfListed` と同じ理由）。 */
 import { fetchOpenJoinRequests } from "@/lib/business/joinRequests";
+import { SCOUT_EMAIL_UNDELIVERED } from "@/lib/constants/scoutEmail";
 import Link from "next/link";
 
 async function getStats() {
@@ -134,7 +135,27 @@ async function getStats() {
     ? Math.max(...joinRequests.map((r) => Math.floor((Date.now() - Date.parse(r.sentAt)) / 86_400_000)))
     : null;
 
+  /* ★メールが届かなかったスカウト（2026-09-10）。**0件が正常な状態。**
+     ⚠️★`skipped`（本人がメール通知を切っている）を混ぜないこと。あれは正常。
+        数えるのは `failed` / `mocked` だけ（`SCOUT_EMAIL_UNDELIVERED`）。
+     ⚠️ 失敗を 0 に倒さない。取得できなかったときは要対応に1件として出す
+        （上の参加依頼と同じ理由。0 にすると壊れているのに要対応が消える）。
+     ⚠️ 運営にメールで知らせる形は採らない。**メールが落ちている状況で同じ理由で落ちる。** */
+  const undelivered = await admin
+    .from("ow_scouts")
+    .select("id, email_status, email_error, sent_at", { count: "exact" })
+    .in("email_status", SCOUT_EMAIL_UNDELIVERED as string[])
+    .order("sent_at", { ascending: false })
+    .limit(1);
+  if (undelivered.error) {
+    console.error("[admin] 未達スカウトの取得に失敗:", undelivered.error.message);
+  }
+
   return {
+    undeliveredScoutsCount: undelivered.error ? 0 : (undelivered.count ?? 0),
+    undeliveredScoutsFailed: Boolean(undelivered.error),
+    /** ⚠️ 直近1件の理由だけ出す。原因は `ow_scouts.email_error` に全件入っている */
+    undeliveredScoutsLastError: (undelivered.data?.[0]?.email_error as string | null) ?? null,
     joinRequestsCount: joinRequests?.length ?? 0,
     joinRequestsFailed: joinRequests === null,
     joinRequestsOldestDays,
@@ -182,7 +203,9 @@ export default async function AdminDashboard() {
     + stats.selfUnreviewedCount
     /* ⚠️ 取得に失敗したときは 1件として数える（下のカードが「失敗」を出すため）。
           0 にすると、壊れているのに要対応が消える。 */
-    + (stats.joinRequestsFailed ? 1 : stats.joinRequestsCount);
+    + (stats.joinRequestsFailed ? 1 : stats.joinRequestsCount)
+    /* ⚠️ 0件が正常。取得に失敗したときは 1件として数える（カードが「失敗」を出すため） */
+    + (stats.undeliveredScoutsFailed ? 1 : stats.undeliveredScoutsCount);
 
   const kpis = [
     {
@@ -601,6 +624,43 @@ export default async function AdminDashboard() {
                   </svg>
                 </div>
               </Link>
+            )}
+
+            {/* ★メールが届かなかったスカウト（2026-09-10）。**0件が正常な状態。**
+                   ⚠️★リンクは張っていない。一覧の画面がまだ無いため。原因は
+                      `ow_scouts.email_error` に全件入っている。**件数が増えるようなら
+                      一覧を作ること**（docs/todo.md）。
+                   ⚠️★`skipped`（本人がメール通知を切っている）はここに出さない。
+                      あれは正常で、しかも**本人の設定**なので運営の要対応でもない。 */}
+            {(stats.undeliveredScoutsCount > 0 || stats.undeliveredScoutsFailed) && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 14px", borderRadius: 10,
+                background: "#FEF2F2", border: "1px solid #FECACA",
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8,
+                  background: "#FEE2E2", color: "#B91C1C",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M4 4h16v16H4z"/><polyline points="4 7 12 13 20 7"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#B91C1C", margin: 0, marginBottom: 2 }}>
+                    {stats.undeliveredScoutsFailed
+                      ? "未達スカウトの判定に失敗しました（0件という意味ではありません）"
+                      : `メールが届かなかったスカウト ${stats.undeliveredScoutsCount}件`}
+                  </p>
+                  <p style={{ fontSize: 11, color: "#B91C1C", margin: 0 }}>
+                    {stats.undeliveredScoutsFailed
+                      ? "取得に失敗しています"
+                      : <>アプリ内通知は届いています ・ 原因は ow_scouts.email_error{stats.undeliveredScoutsLastError ? `（直近: ${stats.undeliveredScoutsLastError}）` : ""}</>}
+                  </p>
+                </div>
+              </div>
             )}
 
             {stats.selfUnreviewedCount > 0 && (
