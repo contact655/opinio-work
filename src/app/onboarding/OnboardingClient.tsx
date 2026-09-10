@@ -395,7 +395,9 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ...(prefecture ? { prefecture } : {}),
           ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
           /* ⚠️ 既定は実名。伏せる選択肢は入口から外した（上のコメント参照）。 */
-          visibility_company: "real",
+          /* ⚠️★**送らない**（2026-09-11）。API が「既存の職歴から引き継ぐ」。
+                職歴0件の人が最初の1件を作るので結果は `real` で変わらないが、
+                **値を明示すると引き継ぎが効かない形が残る**（職歴エディタで実際に踏んだ）。 */
         }, "経歴", failures);
       }
 
@@ -413,7 +415,9 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           started_at: `${j.startYear}-${j.startMonth}`,
           ended_at: `${j.endYear}-${j.endMonth}`,
           is_current: false,
-          visibility_company: "real",
+          /* ⚠️★**送らない**（2026-09-11）。API が「既存の職歴から引き継ぐ」。
+                職歴0件の人が最初の1件を作るので結果は `real` で変わらないが、
+                **値を明示すると引き継ぎが効かない形が残る**（職歴エディタで実際に踏んだ）。 */
         }, "職歴", failures);
       }
 

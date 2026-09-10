@@ -1808,7 +1808,11 @@ export default function CareerHistoryEditor({
               API は body にキーが無ければその列を更新しない作りにしてある。 */
         department: addDraft.department || null,
         rank: addDraft.rank || null,
-        visibility_company: addDraft.visibilityCompany,
+        /* ⚠️★**新規作成では `visibility_company` を送らない**（2026-09-11）。
+              送ると API 側の「既存の職歴から引き継ぐ」が効かず、
+              **会社名を伏せている人が職歴を1件足した瞬間、その1件だけ実名で出る。**
+              `EMPTY_DRAFT` は `"real"` なので、送れば必ず実名になる。
+              ⚠️ 編集（PUT）は既存値をそのまま送る。あちらは消さないこと。 */
         visibility_reason: addDraft.visibilityReason,
         ...buildReasonBody(addDraft),
       };
