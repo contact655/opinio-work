@@ -106,11 +106,11 @@ export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  /* ⚠️ **スカウトはプランで判定しない**（2026-08-23）。
-        送信は上の `SCOUT_SENDING_ENABLED` だけで止めている。
-        有料プランの機能表にも載せていない（売れないものを書かない）。
-        再開してプランに含めるなら、`lib/constants/plans.ts` の
-        `PLAN_FEATURES` に `scoutSend` を戻したうえでここにも判定を足すこと。 */
+  /* ⚠️ かつてここに「スカウトはプランで判定しない（2026-08-23）」と書いてあったが、
+        **2026-09-10 に方針を変えた**（下の `canSendScout` を参照）。
+        `PLAN_FEATURES` の `scoutSend` も戻してある。
+        ⚠️ 料金表（`/business/pricing`）には**出していない**。売り出す前の機能なので、
+           ゲートはあるが表には載せない、という状態を意図して作っている。 */
 
   /* ⚠️★**人材紹介利用規約の同意ゲートは外した**（2026-09-05）。**戻さないこと。**
 
