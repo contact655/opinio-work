@@ -28,7 +28,19 @@ export async function GET() {
       .from("ow_experiences")
       .select("user_id, role_title")
       .eq("company_id", companyId)
-      .eq("is_current", true);
+      .eq("is_current", true)
+      /* ★★本人が社名を伏せている人は出さない（2026-09-10）。
+         ⚠️★**`createAdminClient`（RLS バイパス）なので、条件を書かないと全件出る。**
+            ここは氏名を返す経路（オフィス写真に写っている人のタグ付け）なので、
+            伏せた人が**自分の勤務先の採用担当者の画面に名前で並ぶ**ことになる。
+            伏せた人が気にしているのは社名ではなく
+            **「転職を考えていると今の会社に知られること」**（2026-08-13 `/biz/employees`）。
+         ⚠️ `/biz/employees` と同じく `real` だけに絞る（**行ごと出さない**）。
+            候補者検索（`/biz/candidates`）は「非公開企業」に置き換える形にしてあるが、
+            あちらは**社名の欄**があり、こちらは**人を並べる**画面なので扱いが違う。
+         ⚠️ この上の `ow_company_admins` 由来（Source 1）はそのまま。
+            企業の管理者は企業が既に知っている人で、隠す対象ではない。 */
+      .eq("visibility_company", "real");
 
     // Build role map and unique user ID list
     const roleByUserId = new Map<string, string | null>();

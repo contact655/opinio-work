@@ -4,7 +4,7 @@ import { SCOUT_MONTHLY_LIMIT_DEFAULT, usedThisMonth as usedThisMonthOf } from "@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcTotalExperience } from "@/lib/profile/tenure";
 import CandidatesClient from "./CandidatesClient";
-import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
+import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS, MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
@@ -286,7 +286,8 @@ export default async function CandidatesPage() {
   const { data: currentExps } = userIds.length > 0
     ? await adminClient
         .from("ow_experiences")
-        .select(`user_id, role_title, role_category_id, employment_type, started_at, ${EXPERIENCE_COMPANY_COLS}`)
+        /* ★`visibility_company` を必ず取る（2026-09-10）。理由は下の置換のコメント。 */
+        .select(`user_id, role_title, role_category_id, employment_type, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
         .in("user_id", userIds)
         .eq("is_current", true)
     : { data: [] };
@@ -325,7 +326,29 @@ export default async function CandidatesPage() {
       // master（company_id → ow_companies.name）を最優先。
       // ここは以前 company_text だけを見ていたため、マスタ紐づけの職歴
       // （2026-08-03 時点で 18件中13件）が全て社名なしで表示されていた。
-      const company = resolveExperienceCompanyName(exp);
+      /* ★★本人が社名を伏せている行は、社名を出さない（2026-09-10）。
+         ⚠️★**`createAdminClient`（RLS バイパス）で引いているので、条件を書かないと
+            全件が実名で出る。** 2026-08-13 に `/biz/employees` で同じ問題を踏んでいる。
+            そのときのコメントがこの判断の根拠:
+              「伏せた人が気にしているのは**社名が出ること**ではなく
+               **転職を考えていると今の会社に知られること**なので、
+               ここに出るのはチェックボックスの文面から誰も予想できない」
+         ⚠️★**空欄にしないこと。** 空にすると企業側から「離職中」または「未入力」に見え、
+            社名が出るのとは別の不利益を本人に与える。**伏せてあることが分かる形にする。**
+         ⚠️★**`masked` と `hidden` で表示を分けない。** 候補者検索は「どの会社の人か」で
+            絞る画面なので、代替ラベル（「SaaS（シリーズB・50名規模）」）は絞り込みに使えず、
+            置いても企業側に**新しい状態が1つ増えるだけ**。`hidden` は `masked` より強い
+            意思なので、弱い表示にもできない。**どちらも同じ扱いにする。**
+         ⚠️★**文言は既存の語彙に揃えてある。** `generateMaskedCompanyLabel()`
+            （`lib/utils/timeline.ts`）のフォールバックと同じ文字列。新しく作らない。
+         ⚠️★**表示だけでなく絞り込みもこれで塞がる。** クライアント側の会社名フィルタと
+            フリーワードは**どちらもこの `currentCompany` を読む**ので、
+            ここで置き換えれば「表示は伏せたが検索では当たる」が起きない。
+            ⚠️ フィルタ側に社名の生値を渡す経路を新しく作らないこと。 */
+      const vis = (exp as { visibility_company?: string | null }).visibility_company ?? "real";
+      const company = vis === "real"
+        ? resolveExperienceCompanyName(exp)
+        : MASKED_COMPANY_LABEL;
       currentExpByUser.set(exp.user_id as string, {
         role_title: exp.role_title as string | null,
         role_category_id: exp.role_category_id as string | null,

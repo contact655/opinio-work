@@ -100,6 +100,22 @@ export function resolveExperienceCompanyLabel(
  *
  *   .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
  */
+/**
+ * 本人が社名を伏せているときに出す文字列。
+ *
+ * ⚠️★**新しい文言を作らないこと。** これは `lib/utils/timeline.ts` の
+ *    `generateMaskedCompanyLabel()` のフォールバックと**同じ文字列**で、
+ *    `/mypage/details` や `MergedTimeline` の判定でも同じ語が使われている。
+ *    増やすと「同じ状態に2つの表現」ができる。
+ *
+ * ⚠️★**空文字や null にしないこと。** 空にすると企業側から
+ *    「離職中」または「未入力」に見え、社名が出るのとは**別の不利益**を本人に与える。
+ *    **伏せてあることが分かる形にする。**
+ *
+ * ⚠️ `masked` と `hidden` で分けていない。理由は `/biz/candidates` の置換箇所のコメント。
+ */
+export const MASKED_COMPANY_LABEL = "非公開企業";
+
 export const EXPERIENCE_COMPANY_COLS =
   /* ⚠️ `name_en` も取る。表示名は `companyDisplayName` が name_en 優先で作るため、
         取り忘れると経歴だけ正式名称（「株式会社セールスフォース・ジャパン」）に戻る。 */
