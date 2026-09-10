@@ -123,3 +123,23 @@ Resend に渡る直前の文字列そのものを見た。
 | **配信停止を切ると何が止まるか** | **メールだけ。** `ow_notifications` の INSERT は `sendScoutEmail` より**前**にあり `email_scout_enabled` を見ない。ベルと `/mypage/scouts` には出る。設定画面の説明も「**メールで**お知らせします」なので記載と一致 |
 | **週次メールとの関係** | 送信基盤（`lib/notify/email.ts` / Resend / `RESEND_API_KEY` / 差出人 / `unsubscribeUrl`）は共有だが、**停止スイッチは独立**。週次は `WEEKLY_EMAIL_ENABLED` ＋ `vercel.json` の空 `crons` で止まっており、**スカウトを開けても週次は止まったままにできる** |
 | **失敗したとき** | ★**誰にも分からない。** 下の節を参照 |
+
+---
+
+## ★送信結果が記録されていない（事実の記録。対処は設計待ち）
+
+**解禁前に必須。** フラグを開けた瞬間に効いてくる。
+
+| # | 事実 |
+|---|---|
+| ① | `notify()` が例外を飲み、`sendEmail()` は Resend の `error` を `console.error` に出して `void` を返す。さらに `sendScoutEmail` の `catch` が受ける。**3重に握り潰している** |
+| ② | 企業には常に `{ok:true}` が返る。**送れていなくても「送信しました」と出る** |
+| ③ | 本番で `RESEND_API_KEY` が外れていると `[notify] sendEmail (mock)` をログに出して**何もせず正常終了**する |
+| ④ | `ow_scouts` に**送信結果を持つ列が無い**（`id/company_id/candidate_id/job_id/message/status/sent_at/conversation_id/replied_at`）。`status='sent'` は**スカウトの状態**であってメールの成否ではない |
+| ⑤ | **再送の手段が無い。** 後から「送れたのか」を確かめる方法も無い |
+
+⚠️★**アプリ内通知は別経路なので、メールが落ちても `/mypage/scouts` には出る。**
+   つまり「全く届かない」のではなく「**メールに気づかない人にだけ届かない**」。
+   ⚠️ ただし現状は**それすら区別できない。**
+
+⚠️ 成否を返せる `sendEmailStrict()` は既にあるが、**使っているのは企業問い合わせフォーム1箇所だけ**。
