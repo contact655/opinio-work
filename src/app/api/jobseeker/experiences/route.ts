@@ -183,7 +183,8 @@ export async function POST(req: Request) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  const VALID_VISIBILITY = new Set(["real", "masked", "hidden"]);
+  /* ⚠️ 公開範囲の検証はここに要らない。**作成時は body から読まない**（下を参照）。
+        更新（PUT）側には残っている。 */
   /* ⚠️ 許容値は src/lib/constants/careerOptions.ts の1箇所に置く。
         ここに Set を直書きすると UI の選択肢とずれる（2026-07-01 に実際にずれ、
         「派遣社員」「アルバイト・パート」が黙って null に落ちていた）。 */
@@ -251,11 +252,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "INVALID_EMPLOYMENT_TYPE", message: "雇用形態の値が不正です。" }, { status: 400 });
   }
   const employmentType = isBlank(body.employment_type) ? null : (body.employment_type as string);
-  for (const k of ["visibility_company"] as const) {
-    if (!isBlank(body[k]) && !VALID_VISIBILITY.has(body[k] as string)) {
-      return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
-    }
-  }
   /* ★指定が無ければ**既存の職歴から引き継ぐ**（2026-09-11）。
      ⚠️★**"real" に倒さないこと。** 会社名を伏せている人が職歴を1件足した瞬間に
         **その1件だけ実名で出る**（`/mypage/settings` の設定は職歴全体に効く1設定なのに、
@@ -263,16 +259,32 @@ export async function POST(req: Request) {
         「選び忘れが同意なき公開になる」の、足す側の形。
      ⚠️ 行ごとに値が割れている場合（過去の migration 由来）は**いちばん強いものに倒す**。
         迷ったら狭いほうへ（CLAUDE.md「公開範囲の既定を広いほうにしない」）。 */
-  let visibilityCompany: string;
-  if (!isBlank(body.visibility_company)) {
-    visibilityCompany = body.visibility_company as string;
-  } else {
-    const { data: prevRows, error: prevErr } = await createAdminClient()
-      .from("ow_experiences").select("visibility_company").eq("user_id", owUserId);
-    if (prevErr) console.error("[POST /api/jobseeker/experiences] 既存の公開範囲:", prevErr.message);
-    const vals = new Set((prevRows ?? []).map((r) => (r.visibility_company as string) ?? "real"));
-    visibilityCompany = vals.has("hidden") ? "hidden" : vals.has("masked") ? "masked" : "real";
+  /* ⚠️★**作成時は `body.visibility_company` を読まない**（2026-09-11）。値はここが決める。
+     ── なぜ受け取らないか ──────────────────────────────────────────────────
+     受け取る形にしていたら、**入口3つすべてが `"real"` を明示的に送っていて、
+     下の引き継ぎに一度も到達していなかった。** その結果
+     **会社名を伏せている人が職歴を1件足すと、その1件だけ実名で出る**状態だった。
+     ⚠️ 呼び出し側の型（`CreateExperienceBody`）からも外してある。**二重の守り。**
+     ⚠️ **更新（PUT）は受け取ってよい。** あちらは本人が公開範囲を変える経路。
+
+     ⚠️★**いまは 400 で弾かず、警告だけ出す。** デプロイ直後に古い JS を開いたままの
+        利用者が職歴を追加できなくなるため。**警告が0件だと確認できたら 400 に締めてよい**
+        （順序は A → B。docs/experience-create-defaults-20260911.md）。 */
+  if ("visibility_company" in body) {
+    console.warn(
+      "[POST /api/jobseeker/experiences] visibility_company が送られてきたので無視した。" +
+      "作成時の公開範囲は API が決める（CreateExperienceBody から外してある）",
+    );
   }
+
+  /* 既存の職歴から引き継ぐ。⚠️ 割れている場合はいちばん強いものに倒す。
+     迷ったら狭いほうへ（CLAUDE.md「公開範囲の既定を広いほうにしない」）。
+     ⚠️ 職歴0件なら `real`。**既定は変えていない。** */
+  const { data: prevRows, error: prevErr } = await createAdminClient()
+    .from("ow_experiences").select("visibility_company").eq("user_id", owUserId);
+  if (prevErr) console.error("[POST /api/jobseeker/experiences] 既存の公開範囲:", prevErr.message);
+  const prevVals = new Set((prevRows ?? []).map((r) => (r.visibility_company as string) ?? "real"));
+  const visibilityCompany = prevVals.has("hidden") ? "hidden" : prevVals.has("masked") ? "masked" : "real";
 
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);

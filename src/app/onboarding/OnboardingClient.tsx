@@ -19,6 +19,10 @@ import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { DEGREES, DEGREE_LABELS } from "@/lib/constants/careerOptions";
 /* ⚠️ 上限は API と同じ定数を見る。ここに数字を書かない。 */
 import { MAX_ROLES_PER_EXPERIENCE as MAX_ROLES } from "@/lib/constants/experienceRoles";
+import {
+  EXPERIENCE_CREATE_PATH,
+  type CreateExperienceBody,
+} from "@/lib/experiences/createExperience";
 
 /*
   勤務形態のチップ。**value は共有定数から取る**（ここに直書きすると DB の CHECK とずれる。
@@ -165,6 +169,21 @@ async function putJson(
   failures: string[],
 ) {
   return sendJson("PUT", url, body, label, failures);
+}
+
+/**
+ * ★職歴の作成だけは型のある body を通す（2026-09-11）。
+ * ⚠️★`postJson("/api/jobseeker/experiences", {...})` に戻さないこと。
+ *    あの形は `Record<string, unknown>` なので、`visibility_company` を直書きできてしまう
+ *    （実際にそれで「伏せている人の新しい職歴だけ実名で出る」を作った）。
+ * ⚠️ 失敗の扱いは他と同じ `sendJson` に乗せる（`failures` に積んで画面に出す）。
+ */
+async function postExperienceJson(
+  body: CreateExperienceBody,
+  label: string,
+  failures: string[],
+) {
+  return sendJson("POST", EXPERIENCE_CREATE_PATH, body as unknown as Record<string, unknown>, label, failures);
 }
 
 async function sendJson(
@@ -379,7 +398,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
          ⚠️ 失敗してもオンボーディング自体は完了させる（best-effort）。
             ただし握り潰さず、画面にも出してログにも残す。 */
       if (canSaveExperience) {
-        await postJson("/api/jobseeker/experiences", {
+        await postExperienceJson({
           // ⚠️ company_id / company_text は **XOR**。両方送ると 400
           ...(selectedCompany
             ? { company_id: selectedCompany.id }
@@ -407,7 +426,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             並列にしても速くならないうえ、失敗した行の特定が難しくなる。 */
       for (const j of pastJobs) {
         if (!pastJobReady(j)) continue;
-        await postJson("/api/jobseeker/experiences", {
+        await postExperienceJson({
           ...(j.company ? { company_id: j.company.id } : { company_text: j.companyText.trim() }),
           role_category_id: j.roleId,
           /* ⚠️ 空のときはキーごと送らない（他の任意項目と同じ扱い）。 */

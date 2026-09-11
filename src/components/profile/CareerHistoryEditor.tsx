@@ -21,6 +21,11 @@ import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
+import {
+  postExperience,
+  type ExperienceCompanyBody,
+  type ExperienceReasonBody,
+} from "@/lib/experiences/createExperience";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -315,7 +320,7 @@ export function hasLeftCompany(d: StintDraft): boolean {
  * ⚠️ 終了日が無い在籍には退職理由を送らない。画面にも出していないので、
  *    「現職に切り替えたら退職理由が残っていた」を作らない。
  */
-function buildReasonBody(d: StintDraft): Record<string, unknown> {
+function buildReasonBody(d: StintDraft): ExperienceReasonBody {
   return {
     prefecture: d.prefecture || null,
     remote_work_status: d.remoteWorkStatus || null,
@@ -343,7 +348,7 @@ function optimisticReasonFields(d: StintDraft): Partial<Stint> {
 /** 保存 body 用: company_id / company_text / company_anonymized の3者排他を保証 */
 function buildCompanyBody(
   draft: Pick<StintDraft, "isAnon" | "companyId" | "companyName">
-): Record<string, string> {
+): ExperienceCompanyBody {
   if (draft.isAnon) {
     return { company_anonymized: draft.companyName || "非公開企業" };
   } else if (draft.companyId) {
@@ -1793,7 +1798,12 @@ export default function CareerHistoryEditor({
   const saveAdd = useCallback(async () => {
     setAddSaving(true);
     try {
-      const body: Record<string, unknown> = {
+      /* ⚠️★**作成は `postExperience()` だけを通す。** `fetch("/api/jobseeker/experiences")` を
+            新しく書かないこと。⚠️★**オブジェクトリテラルを直接渡すこと**——
+            `Record<string, unknown>` を組み立ててから渡すと、型の余剰プロパティ検査が
+            素通りして `visibility_company` を直書きできてしまう（2026-09-11 にその形で踏んだ）。 */
+      const res = await postExperience({
+        ...buildCompanyBody(addDraft),
         role_category_id: addDraft.roleCategoryId,
         role_title: addDraft.roleTitle || undefined,
         started_at: draftStartedAt(addDraft),
@@ -1815,13 +1825,6 @@ export default function CareerHistoryEditor({
               ⚠️ 編集（PUT）は既存値をそのまま送る。あちらは消さないこと。 */
         visibility_reason: addDraft.visibilityReason,
         ...buildReasonBody(addDraft),
-      };
-      Object.assign(body, buildCompanyBody(addDraft));
-
-      const res = await fetch("/api/jobseeker/experiences", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error();
       const { id } = (await res.json()) as { id: string };
