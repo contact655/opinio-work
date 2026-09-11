@@ -54,6 +54,13 @@ type PastJob = {
   /** 部署名（任意）。⚠★同一社内の異動を読めるようにするために要る（下記 `groupPastJobs`）。 */
   department: string;
   /**
+   * 社内での呼び方（`ow_experiences.role_title`・任意。2026-09-11 追加）。
+   * ⚠️★**`rank`（役職）とは別の列。** 混ぜないこと。
+   * ⚠️★**現職の欄と揃えるために足した。** 片方にしかないと、
+   *    1画面目で入れた人が「これまでの職歴」でも入れようとして欄が無い、という形になる。
+   */
+  roleTitle: string;
+  /**
    * 会社名が「この会社に役割を追加」等で**自動で入った**行かどうか。
    * ⚠️★これが無いと、自動で入った会社名だけで「入力しかけ」と判定してしまい、
    *    **何も触っていない行にオレンジの警告が出る**（2026-09-09 に実際にそうなっていた）。
@@ -80,7 +87,7 @@ type EducationRow = {
 };
 
 const emptyPastJob = (key: number): PastJob => ({
-  key, company: null, companyText: "", roleId: "", department: "", prefilled: false,
+  key, company: null, companyText: "", roleId: "", department: "", roleTitle: "", prefilled: false,
   startYear: "", startMonth: "", endYear: "", endMonth: "",
 });
 
@@ -614,6 +621,7 @@ function OnboardingInner({
           role_category_id: j.roleId,
           /* ⚠️ 空のときはキーごと送らない（他の任意項目と同じ扱い）。 */
           ...(j.department.trim() ? { department: j.department.trim() } : {}),
+          ...(j.roleTitle.trim() ? { role_title: j.roleTitle.trim() } : {}),
           started_at: `${j.startYear}-${j.startMonth}`,
           ended_at: `${j.endYear}-${j.endMonth}`,
           is_current: false,
@@ -802,8 +810,12 @@ function OnboardingInner({
                         部署 → 役職名 → 職種 の順に主見出しへ繰り上げる）。
                      ⚠️ 1画面目は「保存に必要な3点」を主役にするので**既定で閉じる**。
                         既に値があるとき（2回目）は開いた状態で始める。
-                     ⚠️★「これまでの職歴」の各行にも同じ欄がある。**片方だけにしないこと** ——
+                     ⚠️★「これまでの職歴」の各行にも**同じ2つの欄がある**（2026-09-11 に
+                        社内での呼び方を足して揃えた）。**片方だけにしないこと** ——
                         同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。
+                        ⚠️ 並び（社内での呼び方 → 部署名）も揃えてある。**片方だけ入れ替えない。**
+                        ⚠️ ただし**畳んでいるのはここだけ**。あちらは繰り返し要素なので常に出す
+                           （畳むと開閉ボタンが行の数だけ並ぶ）。
                      ⚠️ `role_title` は絞り込みには使わない。`/biz/candidates` の
                         **フリーワード検索の対象には既に入っている**（2026-09-11 実測）。 */}
               {!showJobDetail ? (
@@ -1302,6 +1314,27 @@ function OnboardingInner({
                         {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
                                大きいものから小さいものへ降りる順。**職種を先に戻さないこと。**
                                ⚠️ 現職の欄も同じ並びにしてある。**片方だけ変えない。** */}
+                        {/* ★★社内での呼び方（`role_title`・2026-09-11 追加）。⚠️ 任意。
+                               ⚠️★**現職の欄と同じ並び**（社内での呼び方 → 部署名）にしてある。
+                                  **片方だけ並べ替えないこと。**
+                               ⚠️★**ここでは畳まない**（現職側は「＋ 社内での呼び方・部署名」で畳んでいる）。
+                                  理由は2つ。① この行は繰り返し要素なので、畳むと
+                                  **開閉ボタンが行の数だけ並ぶ**。② 隣の部署名は畳まずに出しており、
+                                  **隣り合う2つを別の操作段階に分けると、片方だけ見落とす。**
+                                  ⚠️ 現職側を畳んでいるのは、あちらが**入口**で「保存に必要な3点」を
+                                     主役にするため。この行は「＋ これまでの職歴を追加」を押した人しか見ない。
+                               ⚠️★`rank`（役職）とは別の列。混ぜないこと。 */}
+                        <input
+                          type="text"
+                          value={j.roleTitle}
+                          onChange={(e) => upd({ roleTitle: e.target.value })}
+                          placeholder="社内での呼び方（例：営業主任）"
+                          disabled={saving}
+                          maxLength={100}
+                          style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
+                          aria-label={`職歴 ${gIdx + 1} の社内での呼び方`}
+                        />
+
                         {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
                                ⚠️★同じ職種のまま部署だけ変わる異動（営業部 → 人事部）は、
                                   これが無いと**同じ行が2つ並ぶだけ**になり、何が変わったのか読めない。 */}
@@ -1312,7 +1345,7 @@ function OnboardingInner({
                           placeholder="部署名"
                           disabled={saving}
                           maxLength={100}
-                          style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
+                          style={{ ...textInputStyle, marginTop: 8 }}
                           aria-label={`職歴 ${gIdx + 1} の部署名`}
                         />
 
