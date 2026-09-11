@@ -183,13 +183,17 @@ async function postExperienceJson(
   label: string,
   failures: string[],
 ) {
-  return sendJson("POST", EXPERIENCE_CREATE_PATH, body as unknown as Record<string, unknown>, label, failures);
+  return sendJson("POST", EXPERIENCE_CREATE_PATH, body, label, failures);
 }
 
 async function sendJson(
   method: "POST" | "PUT",
   url: string,
-  body: Record<string, unknown>,
+  /* ⚠️ ここは `JSON.stringify` に渡すだけなので `unknown` でよい。
+        ⚠️★`Record<string, unknown>` にすると、型のある body を渡す側が
+           **キャストを書くことになり、せっかく置いた型がそこで無効になる**
+           （2026-09-11 に `as unknown as Record<string, unknown>` を書いて直した）。 */
+  body: unknown,
   label: string,
   failures: string[],
 ) {
@@ -414,9 +418,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ...(prefecture ? { prefecture } : {}),
           ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
           /* ⚠️ 既定は実名。伏せる選択肢は入口から外した（上のコメント参照）。 */
-          /* ⚠️★**送らない**（2026-09-11）。API が「既存の職歴から引き継ぐ」。
-                職歴0件の人が最初の1件を作るので結果は `real` で変わらないが、
-                **値を明示すると引き継ぎが効かない形が残る**（職歴エディタで実際に踏んだ）。 */
+          /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
+                作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。 */
         }, "経歴", failures);
       }
 
@@ -434,9 +437,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           started_at: `${j.startYear}-${j.startMonth}`,
           ended_at: `${j.endYear}-${j.endMonth}`,
           is_current: false,
-          /* ⚠️★**送らない**（2026-09-11）。API が「既存の職歴から引き継ぐ」。
-                職歴0件の人が最初の1件を作るので結果は `real` で変わらないが、
-                **値を明示すると引き継ぎが効かない形が残る**（職歴エディタで実際に踏んだ）。 */
+          /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
+                作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。 */
         }, "職歴", failures);
       }
 

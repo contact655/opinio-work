@@ -2444,7 +2444,7 @@ const prefRaw = pickFilled(row.preferred_skills, row.preferred);  // 空配列�
 |---|---|
 | ★**`POST /api/jobseeker/experiences` の `visibility_company`** | API に「既存の職歴から引き継ぐ」を入れたのに、**入口3つすべてが `"real"` を明示送信していて分岐に到達していなかった**。⇒ **会社名を伏せている人が職歴を1件足すと、その1件だけ実名で出る** |
 | ★**`PUT /api/jobseeker/experiences/[id]` の `visibility_company`** | `isBlank(...) ? "real"` だった。⇒ **`visibility_company` を送らない PUT が1つできた瞬間、伏せている人が実名に戻る。** 既定が**広いほうに倒れていた** |
-| `visibility_reason`（POST / PUT） | **まったく同じ構図**（入力欄が無いので常に `true` が送られ、API の既定が一度も効かない）。値が一致していたので**実害は出ていなかっただけ** |
+| `visibility_reason`（POST / PUT） | **まったく同じ構図**（入力欄が無いので常に `true` が送られ、API の既定が一度も効かない）。値が一致していたので**実害は出ていなかっただけ**。⚠️★**PUT だけ直した。POST は `?? true` のまま**（下） |
 
 **直し方は2つの向きがある。混同しないこと。**
 
@@ -2455,6 +2455,14 @@ const prefRaw = pickFilled(row.preferred_skills, row.preferred);  // 空配列�
 
 ⚠️★**「送られてこない」を「既定値にする」と読み替えないこと。** 公開範囲では
    **本人が選んだ設定を勝手に広げる**ことになる。
+
+⚠️★**ただし「引き継ぐ」も万能ではない**（2026-09-11 に一度入れて戻した）。
+   `visibility_reason` を「既存行から引き継ぐ」にしたところ、**一度でも入社理由を
+   非公開にした人の以後の職歴すべてが自動で非公開**になる形になった。
+   **安全側でも、本人の代わりに決めたことに変わりはない。**
+   ⇒ **引き継ぎを入れてよいのは「その設定が職歴全体に効く1設定」として
+      本人に見えている場合だけ**（`visibility_company` は `/mypage/settings` にある）。
+   ⚠️ `visibility_reason` は**入力欄が無い**ので、**まず入力欄の話が先**。
 
 ⚠️ 実害の無かったもの（**直していない。一覧に残す**）:
    `is_current`（本人の入力値なので送るのが正しい）／ `display_order`（意図どおり）／

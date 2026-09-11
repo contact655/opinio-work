@@ -18,8 +18,6 @@
  *    組み立ててから渡すと素通りする。**だからサーバー側も読まない**（二重の守り）。
  *    サーバー側の扱いは `POST /api/jobseeker/experiences` を参照。
  *
- * ⚠️ `visibility_reason`（入社理由の公開）も同じ理由で持たせていない。**同じ構図だった。**
- *
  * ⚠️ **更新（PUT）はこの型を使わない。** あちらは本人が公開範囲を変える経路なので、
  *    `visibility_company` を受け取ってよい。**作成時に受け付けないだけ。**
  */
@@ -48,7 +46,8 @@ export type ExperienceReasonBody = {
  * ★作成時に送ってよいもの。**`visibility_company` は入っていない（意図的）。**
  * ⚠️ ここに足す前に、上のコメントを読むこと。
  */
-export type CreateExperienceBody = ExperienceReasonBody & {
+/** 会社以外の項目。⚠️ `visibility_company` / `visibility_reason` は**意図的に無い**（上を参照）。 */
+type ExperienceCoreBody = ExperienceReasonBody & {
   role_category_id: string;
   /** 複数職種。⚠️ 1つだけのときは送らない（`role_category_id` と重複する） */
   role_category_ids?: string[];
@@ -64,7 +63,21 @@ export type CreateExperienceBody = ExperienceReasonBody & {
   display_order?: number;
   department?: string | null;
   rank?: string | null;
-} & Partial<ExperienceCompanyBody>;
+  /* ⚠️ `visibility_reason` は**残してある**。`visibility_company` と構図は同じだが、
+        引き継ぎにすると**本人の代わりに非公開を決める**ことになるので外していない
+        （2026-09-11 の判断）。 */
+  visibility_reason?: boolean;
+};
+
+/**
+ * ★作成時に送ってよいもの。
+ *
+ * ⚠️★**`& Partial<ExperienceCompanyBody>` にしないこと**（2026-09-11 に一度書いて直した）。
+ *    `Partial` を通すと union が潰れて**3つのキーが全部 optional になり、XOR の保証が消える。**
+ *    ⇒ **union のまま分配する**（`A & B | A & C | A & D`）。こうすると
+ *    `{ company_id, company_text }` の同時指定が**ビルドで落ちる。**
+ */
+export type CreateExperienceBody = ExperienceCoreBody & ExperienceCompanyBody;
 
 /**
  * 職歴を作る。⚠️★**作成はこの関数だけを通すこと。**
