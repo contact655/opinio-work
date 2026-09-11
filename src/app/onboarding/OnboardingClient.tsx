@@ -656,7 +656,15 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
             fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700,
             color: "var(--ink)", marginBottom: 6, lineHeight: 1.45,
           }}>
-            直近のお勤め先を教えてください
+            {/* ★★見出しは画面ごとに変える（2026-09-11）。
+                   ⚠️★**1画面目のまま据え置かないこと。** ステップを分けた直後は
+                      2画面目でも「直近のお勤め先を教えてください」と出ていた
+                      ——**入力欄は任意項目なのに、見出しは必須の話をしている**状態。
+                   ⚠️★**「任意」という語をここに書かないこと。** すぐ下のステップ表示が
+                      既に「あとは任意」と言っている。2行のあいだで同じ語を2回出すのは、
+                      2026-09-11 に「任意」を4回消したのと同じ形になる。
+                      **ここは語ではなく“結果”（入れなくても登録できる）を言う。** */}
+            {step === 1 ? "直近のお勤め先を教えてください" : "ここから先は、入れなくても登録できます"}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
             {/*
