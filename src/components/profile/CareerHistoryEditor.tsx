@@ -289,7 +289,10 @@ const EMPTY_DRAFT: StintDraft = {
   salaryMan: "",
   visibilityCompany: "real",
   visibilitySalary: false,
-  visibilityReason: true,
+  /* ⚠️★**既定は「出さない」**（2026-09-11 に `true` から変えた）。行ごとの設定なので、
+        **選び忘れが同意なき公開にならない向き**に倒す。DB の既定も同日 `false` にした。
+        ⚠️ **片方だけ戻さないこと**（CLAUDE.md「UI / API / DB を揃える」）。 */
+  visibilityReason: false,
   prefecture: "",
   remoteWorkStatus: "",
   joinReasons: [],
@@ -1305,11 +1308,43 @@ function StintForm({
           padding: "14px 16px",
         }}
       >
-        {/* ★バッジは囲みの先頭。見出しの横に置くと「この項目の注記」に見え、
-               囲み全体の公開範囲を表しているのか判別できない。 */}
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
-            公開プロフィールに表示
+        {/* ★バッジをトグルに置き換えた（2026-09-11）。**位置は囲みの先頭のまま。**
+               ⚠️★**囲み・間隔・直下の1行は変えていない。** 2026-08-27 に実測して決めた構造
+                  （外側の区切りが内側より狭いと「まだ続いている」と読まれる／緑バッジとは
+                  1,138px 離れていて同時に目に入らない）。**構造を触らずバッジだけ差し替える。**
+
+            ── なぜバッジをトグルにしたか ──────────────────────────────────
+            ⚠️★バッジは「**公開プロフィールに表示**」と**約束していた**が、
+               **描画する JSX が src 全体で0件**で、**一度も出ていなかった**
+               （2026-09-11 に判明。docs/todo.md）。描画を入れるにあたって、
+               **本人が選べる形にしてから出す。**
+
+            ⚠️★**既定は「出さない」。** 行ごとの設定なので、**選び忘れが同意なき公開に
+               ならない向き**に倒す（2026-08-16 に入力欄を外したときの理由そのもの）。
+               DB の既定も同日 `false` に変えてある。**片方だけ戻さないこと。**
+
+            ⚠️★**文言は「オフのときに出ないと分かる形」にする。**
+               「公開プロフィールに表示」のオン/オフだけだと、**オフが「まだ決めていない」に
+               見える。** だからトグルの右に**現在の状態を言い切る1行**を添えている。
+               **この1行を消さないこと。** */}
+        <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: isSaving ? "default" : "pointer" }}>
+            <input
+              type="checkbox"
+              checked={draft.visibilityReason}
+              onChange={(e) => set("visibilityReason", e.target.checked)}
+              disabled={isSaving}
+              style={{ accentColor: "var(--purple)" }}
+            />
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
+              公開プロフィールに表示
+            </span>
+          </label>
+          {/* ⚠️ 現在の状態を**言い切る**。オフを「未設定」に見せない。 */}
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+            {draft.visibilityReason
+              ? "いまはオン。この欄の内容があなたのプロフィールに出ます。"
+              : "いまはオフ。この欄の内容は誰にも表示されません。"}
           </span>
         </div>
         <label style={labelStyle()}>
@@ -1318,9 +1353,11 @@ function StintForm({
         {/* ⚠️ ★バッジだけでは足りない（2026-08-20 実測）。
                緑バッジ（この内容は公開されません）と紫バッジは **1,138px 離れており**、
                1280px の本文表示領域（688px）に**同時には入らない**。
-               入力する瞬間に「ここは公開される」と分かるよう、1行で言い直す。 */}
+               入力する瞬間に「ここは公開されうる」と分かるよう、1行で言い直す。
+            ⚠️★2026-09-11 にトグルを付けたので、**言い切りから「選べる」に変えた。**
+               **消さないこと**（上のトグルと役割が違う。あちらは現在の状態、ここは欄の性質）。 */}
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 6 }}>
-          上の選択肢と違い、この欄に書いた内容は公開プロフィールに出ます。
+          上の選択肢と違い、この欄は公開プロフィールに出すかどうかを選べます。
         </div>
         <textarea
           aria-label="選んだ理由を、自分の言葉で"
@@ -1684,7 +1721,8 @@ export default function CareerHistoryEditor({
     salaryMan: "",
     visibilityCompany: "real",
     visibilitySalary: false,
-    visibilityReason: true,
+    /* ⚠️ 既定は「出さない」（`EMPTY_DRAFT` と同じ。理由はあちらのコメント） */
+    visibilityReason: false,
     /* ⚠️ 同じ会社への追加ポジションでも勤務地・理由は引き継がない。
           異動で勤務地が変わることがあり、前の値を既定にすると
           「確認していない値」がそのまま保存される（CLAUDE.md「推測値を投入しない」）。 */
