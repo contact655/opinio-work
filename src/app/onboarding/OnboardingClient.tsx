@@ -214,17 +214,29 @@ async function sendJson(
       const j = await res.json().catch(() => ({}));
       console.error(`[onboarding] ${label}の保存に失敗`, res.status, j);
       failures.push(label);
+      return null;
     }
+    /* ★成功したら中身を返す（2026-09-11）。作成した職歴の `id` を覚えるのに要る。
+       ⚠️ JSON でなくても落とさない。呼び出し側は `id` が無ければ何もしない。 */
+    return (await res.json().catch(() => null)) as Record<string, unknown> | null;
   } catch (err) {
     console.error(`[onboarding] ${label}の保存に失敗`, err);
     failures.push(label);
   }
+  return null;
 }
 
 // ─── Inner component (needs useSearchParams → wrapped in Suspense) ────────────
 
 /** ⚠️ 2026-08-29 に `parent_id` を足した。親チップを押すと子だけを開くため。 */
 export type OnboardingRole = { id: string; name: string; parent_id: string | null };
+
+/**
+ * ★2回目に来た人の既存の現職（2026-09-11）。`EXPERIENCE_EDITOR_COLS` で引いた行。
+ * ⚠️ 使うのは1画面目に出す項目だけ。**他の列は触らない**（PUT は送られてこない列を
+ *    変更しないので、送らなければ既存値が残る）。
+ */
+export type ExistingExperience = Record<string, unknown>;
 
 /** 入社年の選択肢。⚠️ ビルド時ではなく描画時に現在年を取る */
 const CURRENT_YEAR = new Date().getFullYear();
@@ -242,7 +254,12 @@ const selectStyle: React.CSSProperties = {
   fontSize: 14, fontFamily: "inherit", background: "#fff", color: "var(--ink)",
 };
 
-function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; roleAliases: Record<string, string[]> }) {
+function OnboardingInner({ roles, roleAliases, currentExperience }: {
+  roles: OnboardingRole[];
+  roleAliases: Record<string, string[]>;
+  /** ★2回目に来た人の既存の現職（`is_current` のうち最新の1件）。無ければ null */
+  currentExperience: ExistingExperience | null;
+}) {
   const router = useRouter();
   /* ★`?next=` を読む（2026-09-09 まで**読んでいなかった**。フェーズ0 の 0-4）。
      ⚠️★`safeNext` を必ず通す。素の値を `router.replace` に渡すと、
@@ -253,10 +270,48 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"), DEFAULT_AFTER_ONBOARDING);
 
+  /* ★★ステップ（2026-09-11）。**URL に置く**（`?step=`）。
+     ⚠️★**`sessionStorage` に入れないこと。** `OnboardingGuard` で一度踏んでいる
+        （`false` を覚えると無限ループ／条件を足したらキーに `.v2`）。同じ罠を別の場所で作らない。
+     ⚠️ URL に置くのは**番号だけ**。会社名などの値は置かない（URL に出る）。
+     ⚠️ 値は親の state が持つ。**リロードで消える**が、1画面目は「次へ」で保存済みなので
+        失うのは2画面目の任意項目だけ。
+     ⚠️★**ステップの総数は `STEPS` から出す。** いまは2つで、
+        「これからについて」（`career_stance` ＋ 関心のある職種）を移してくると3つになる。
+        **数字を直書きしないこと。** */
+  const STEPS = ["直近のお勤め先", "あとは任意"] as const;
+  const rawStep = Number.parseInt(searchParams.get("step") ?? "1", 10);
+  const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= STEPS.length ? rawStep : 1;
+  const goStep = (n: number) => {
+    /* ⚠️ `push`。**`replace` にしないこと** —— ブラウザの戻るで1つ前の画面に戻れる必要がある。 */
+    router.push(`/onboarding?step=${n}&next=${encodeURIComponent(next)}`);
+    window.scrollTo({ top: 0 });
+  };
+
   /* 会社の検索・候補・ドロップダウンの状態は `CompanyPicker` の中にある。
      ここが持つのは「何が選ばれたか」だけ。 */
-  const [query, setQuery] = useState("");
-  const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(null);
+  /* ★★既存の現職があれば初期値にする（2026-09-11）。
+     ⚠️★**`useState` の初期値として読む。** `useEffect` で後から入れると、
+        利用者が打ち始めたあとに上書きする窓ができる。
+     ⚠️ 会社は `company_id` を持っていても**この画面では名前しか出せない**ので、
+        `company_text` が無いときは空にして選び直してもらう
+        （名前を別に引くと `CompanyPicker` の2実装を増やすことになる）。 */
+  const ex = currentExperience;
+  const exStr = (k: string): string => {
+    const v = ex?.[k];
+    return typeof v === "string" ? v : "";
+  };
+  /** 既存の行の id。⚠️ あれば PUT（更新）、無ければ POST（作成） */
+  const [experienceId, setExperienceId] = useState<string | null>(() => exStr("id") || null);
+
+  /** ★マスタ紐づけの会社（サーバーが `__company` として渡す）。⚠️ 無ければ null */
+  const exCompany = (ex?.__company ?? null) as CompanyLookupResult | null;
+  const [query, setQuery] = useState(() => exCompany?.name ?? exStr("company_text"));
+  const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(() => exCompany);
+  /** ★社内での呼び方（`role_title`）。⚠️ `rank`（役職）とは別の列。混ぜないこと（2026-09-11） */
+  const [roleTitle, setRoleTitle] = useState(() => exStr("role_title"));
+  /** 「＋ 社内での呼び方・部署名」を開いているか。⚠️ 既に値があれば開いた状態で始める */
+  const [showJobDetail, setShowJobDetail] = useState(() => !!exStr("role_title") || !!exStr("department"));
   const [saving, setSaving] = useState(false);
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
      ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
@@ -271,9 +326,9 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
         API が先頭をそこへ入れ、全部を `ow_experience_roles` に書く。
      ⚠️ 上限は API と同じ5件。ここだけ増やしても API が切り捨てる。 */
   /* ★職種は1つ（2026-09-11）。複数選択をやめた理由は下の `RoleSearchSelect` のコメント。 */
-  const [roleId, setRoleId] = useState<string>("");
-  const [startedYear, setStartedYear] = useState<string>("");
-  const [startedMonth, setStartedMonth] = useState<string>("");
+  const [roleId, setRoleId] = useState<string>(() => exStr("role_category_id"));
+  const [startedYear, setStartedYear] = useState<string>(() => exStr("started_at").slice(0, 4));
+  const [startedMonth, setStartedMonth] = useState<string>(() => exStr("started_at").slice(5, 7));
   /* 在籍中かどうか。**離職中の人もここを通る**（2026-08-14 追加）。
      ⚠️ 既定は在籍中。大半は在職中で、外すと全員に退職年月を聞くことになる。
      ⚠️ 在籍中でないときは退職年月を**必須**にする。`is_current = false` かつ
@@ -283,7 +338,7 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
   const [isCurrent, setIsCurrent] = useState(true);
   /* ★部署名（2026-09-09 追加・任意）。同一社内の異動を読めるようにするために要る。
      ⚠️ 「これまでの職歴」側にも同じ欄がある。片方だけにしないこと。 */
-  const [department, setDepartment] = useState("");
+  const [department, setDepartment] = useState(() => exStr("department"));
   /* ★生年月日（2026-09-09 追加・任意）。
      ⚠️★保存先は **`ow_users.birth_date` の1系統だけ**。
         `ow_career_profiles.birth_year` には**書かない**（CLAUDE.md「生年は
@@ -302,8 +357,8 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
         「フルリモートと書いてある会社に、実際にリモートで働いている人がいるか」を
         検証するための材料で、あとから思い出して埋めてもらえる性質のものではない。
      ⚠️ 任意のまま。空でも先に進める（入口の摩擦を増やさない）。 */
-  const [prefecture, setPrefecture] = useState<string>("");
-  const [remoteWorkStatus, setRemoteWorkStatus] = useState<string>("");
+  const [prefecture, setPrefecture] = useState<string>(() => exStr("prefecture"));
+  const [remoteWorkStatus, setRemoteWorkStatus] = useState<string>(() => exStr("remote_work_status"));
   /*
     ⚠️★**社名を伏せる機能は持たない**（2026-08-14 にこの画面から、
        2026-09-02 に職歴エディタから撤去。柴さんの判断）。**戻さないこと。**
@@ -389,12 +444,71 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
     return missing;
   })();
 
-  const finish = async () => {
-    /* ⚠️★確認は**1回だけ**。同じ状態でもう一度押したら進む（`experienceWarned`）。 */
+  /* ★★1画面目の保存（2026-09-11 / (c) を採った）。
+     ── なぜ1画面目だけ保存するか ──────────────────────────────────────────
+     失って困るのは1画面目だけ。2画面目は任意項目で、あとから `/mypage` で入れられる。
+     ⚠️★**職歴だけは入口で取れないと、そのあと誰も入れない**
+        （実測: 実ユーザー11人中、職歴があるのは4人）。
+     ⚠️★**`onboarding_completed` はここで立てない。** 最後に立てる。
+        いまは直列保存の**先頭**で立てていたので、途中で落ちた人が
+        「完了済み・データなし」になっていた（実データで4人）。順序を変えて起きなくする。
+        ⚠️ 既存4人のデータは**触らない**（本人の状態であり、直すと来訪時の挙動が変わる）。
+
+     ⚠️★**2回目は PUT（更新）。** `experienceId` があれば更新する。
+        POST にすると**同じ職歴が2件**できる。
+     ⚠️★**更新では `visibility_company` を送らない。** PUT は「送られてこない＝変更しない」
+        なので、送らなければ本人の設定が残る。**作成側の型を更新に流用しないこと。** */
+  const saveCurrentExperience = async (failures: string[]): Promise<void> => {
+    if (!canSaveExperience) return;
+    const company = selectedCompany
+      ? { company_id: selectedCompany.id }
+      : { company_text: query.trim() };
+    const common = {
+      role_category_id: roleId,
+      started_at: `${startedYear}-${startedMonth}`,
+      is_current: isCurrent,
+      ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
+      ...(department.trim() ? { department: department.trim() } : {}),
+      ...(roleTitle.trim() ? { role_title: roleTitle.trim() } : {}),
+      ...(prefecture ? { prefecture } : {}),
+      ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
+    };
+
+    if (experienceId) {
+      /* ⚠️ PUT は**送った列だけ**を書く。`visibility_company` は送らない。 */
+      await sendJson("PUT", `/api/jobseeker/experiences/${experienceId}`,
+        { ...company, ...common }, "経歴", failures);
+      return;
+    }
+
+    /* ⚠️ 作成は `postExperienceJson`（型に `visibility_company` が無い）を通す。 */
+    const res = await postExperienceJson({ ...company, ...common }, "経歴", failures);
+    /* 作成できたら id を覚える。⚠️ 覚えないと、戻って直したときに2件目ができる。 */
+    if (res && typeof res === "object" && "id" in res) {
+      setExperienceId((res as { id?: string }).id ?? null);
+    }
+  };
+
+  /** 1画面目の「次へ」。⚠️ ④の警告はここに移した（3画面に割っても同じ保証が要る）。 */
+  const goNextFromStep1 = async () => {
     if (missingForExperience && !experienceWarned) {
       setExperienceWarned(true);
       return;
     }
+    setSaving(true);
+    setSaveError(null);
+    const failures: string[] = [];
+    await saveCurrentExperience(failures);
+    if (failures.length > 0) {
+      setSaveError("経歴の保存に失敗しました。プロフィール編集からあとで登録できます。");
+    }
+    setSaving(false);
+    goStep(2);
+  };
+
+  const finish = async () => {
+    /* ⚠️★④の警告は**1画面目の「次へ」に移した**（2026-09-11）。ここには置かない。
+          現職の3点は1画面目で聞き終わっているので、この画面で止める理由が無い。 */
     setSaving(true);
     setSaveError(null);
     /* ⚠️ 失敗を握り潰さない。どれが落ちたかを画面にも出す（best-effort だが黙らない）。 */
@@ -403,51 +517,11 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      // ow_profiles に onboarding_completed を記録
-      const { data: existing } = await supabase
-        .from("ow_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from("ow_profiles")
-          .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
-          .eq("user_id", user.id);
-      } else {
-        await supabase.from("ow_profiles").insert({ user_id: user.id, onboarding_completed: true });
-      }
-
-      /* 経歴を1件作る。**ここが登録の入口**。
-         ⚠️ 2026-08-10 まで、会社名を入力させておきながら保存していなかった
-            （role_category_id が必須で解決できなかったため）。職種と入社年月を
-            聞くようにして解消した。
-         ⚠️ 3点が揃っていないときは何もしない。中途半端な行を作らない。
-         ⚠️ 失敗してもオンボーディング自体は完了させる（best-effort）。
-            ただし握り潰さず、画面にも出してログにも残す。 */
-      if (canSaveExperience) {
-        await postExperienceJson({
-          // ⚠️ company_id / company_text は **XOR**。両方送ると 400
-          ...(selectedCompany
-            ? { company_id: selectedCompany.id }
-            : { company_text: query.trim() }),
-          /* ⚠️ 職種は1つだけ送る。`role_category_ids`（複数）は送らない
-                （API 側は受け取れるが、オンボーディングでは1つに決めた。2026-09-11）。 */
-          role_category_id: roleId,
-          started_at: `${startedYear}-${startedMonth}`,
-          is_current: isCurrent,
-          ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
-          /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾くので、
-                "" を送ると登録の入口が落ちる。 */
-          ...(department.trim() ? { department: department.trim() } : {}),
-          ...(prefecture ? { prefecture } : {}),
-          ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
-          /* ⚠️ 既定は実名。伏せる選択肢は入口から外した（上のコメント参照）。 */
-          /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
-                作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。 */
-        }, "経歴", failures);
-      }
+      /* ★★現職（1画面目の3点）はここでは保存しない（2026-09-11 / (c)）。
+            「次へ」で既に保存済み。**ここで再度 POST すると2件目ができる。**
+         ⚠️ ただし2画面目で勤務地・勤務形態を足した場合は反映が要るので、
+            **`saveCurrentExperience` をもう一度呼ぶ**（`experienceId` があるので PUT になる）。 */
+      await saveCurrentExperience(failures);
 
       /* これまでの職歴。
          ⚠️ 3点が揃った行だけ送る。`pastJobReady` は現職と同じ条件。
@@ -498,6 +572,28 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
         setSaveError(
           `${Array.from(new Set(failures)).join("・")}の保存に失敗しました。プロフィール編集からあとで登録できます。`
         );
+      }
+
+      /* ★★`onboarding_completed` は**いちばん最後に立てる**（2026-09-11）。
+         ⚠️★以前は直列保存の**先頭**で立てていたので、途中で落ちた人が
+            「**完了済み・データなし**」になっていた。実データで4人がその状態
+            （`onboarding_completed = false` の4人は全員データ0件＝離脱者。
+             逆に「true なのに0件」の人が混ざる形だった）。
+         ⚠️ **順序を戻さないこと。** 立てた時点で `OnboardingGuard` が
+            `/onboarding` へ誘導しなくなる。 */
+      const { data: existing } = await supabase
+        .from("ow_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("ow_profiles")
+          .update({ onboarding_completed: true, updated_at: new Date().toISOString() })
+          .eq("user_id", user.id);
+      } else {
+        await supabase.from("ow_profiles").insert({ user_id: user.id, onboarding_completed: true });
       }
 
       // candidate ロールを付与
@@ -610,6 +706,13 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
             （見えるのは OPINIO にログインしている人だけです）。
           </p>
 
+          {/* ★ステップ表示（2026-09-11）。⚠️ **総数は `STEPS.length` から出す。**
+                 「これからについて」を移してくると自動で3になる。数字を直書きしない。 */}
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.04em" }}>
+            {step} / {STEPS.length}　{STEPS[step - 1]}
+          </div>
+
+          {step === 1 && (<>
           {/* 会社の検索・選択。
               ⚠️ 実装は `CompanyPicker` の1つだけにする。これまでの職歴の行も同じ部品を使う。
                  ここに inline で書き直すと、片方だけ直る形の不具合が生まれる。 */}
@@ -633,22 +736,55 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
               {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
                      大きいものから小さいものへ降りる順。⚠️ **職種を先に戻さないこと。**
                      ⚠️「これまでの職歴」の各行も同じ並びにしてある。**片方だけ変えない。** */}
-              {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
+              {/* ★★社内での呼び方（`role_title`）と部署名（`department`）を畳んだ（2026-09-11）。
+                     ⚠️★**`rank`（役職）と `department` を1つの欄に混ぜないこと。** 別の列で、
+                        タイムラインでも別に扱われる（`buildPositionLines` が
+                        部署 → 役職名 → 職種 の順に主見出しへ繰り上げる）。
+                     ⚠️ 1画面目は「保存に必要な3点」を主役にするので**既定で閉じる**。
+                        既に値があるとき（2回目）は開いた状態で始める。
                      ⚠️★「これまでの職歴」の各行にも同じ欄がある。**片方だけにしないこと** ——
-                        同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。 */}
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-                部署名
-              </div>
-              <input
-                type="text"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="例：営業部、第6営業部"
-                disabled={saving}
-                maxLength={100}
-                style={textInputStyle}
-                aria-label="部署名"
-              />
+                        同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。
+                     ⚠️ `role_title` は絞り込みには使わない。`/biz/candidates` の
+                        **フリーワード検索の対象には既に入っている**（2026-09-11 実測）。 */}
+              {!showJobDetail ? (
+                <button
+                  type="button"
+                  onClick={() => setShowJobDetail(true)}
+                  style={subAddBtnStyle}
+                >
+                  <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> 社内での呼び方・部署名
+                </button>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+                    社内での呼び方
+                  </div>
+                  <input
+                    type="text"
+                    value={roleTitle}
+                    onChange={(e) => setRoleTitle(e.target.value)}
+                    placeholder="例：アカウントエグゼクティブ、営業主任"
+                    disabled={saving}
+                    maxLength={100}
+                    style={textInputStyle}
+                    aria-label="社内での呼び方"
+                  />
+
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>
+                    部署名
+                  </div>
+                  <input
+                    type="text"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="例：営業部、第6営業部"
+                    disabled={saving}
+                    maxLength={100}
+                    style={textInputStyle}
+                    aria-label="部署名"
+                  />
+                </>
+              )}
 
               {/* ★★職種は `RoleSearchSelect` に統一した（2026-09-11 / 柴さんの指示）。
                      ⚠️★**この部品はプロダクト全体で7箇所が使っている**（求人・職歴エディタ・
@@ -752,6 +888,16 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
                 </>
               )}
 
+            </div>
+          )}
+          </>)}
+
+          {/* ── ★2画面目（`?step=2`）───────────────────────────────────────
+                 ⚠️★1画面目は「保存に必要な3点」だけ。ここから下は
+                    **押さなくても登録が終わる**もの。 */}
+          {step === 2 && (<>
+          {hasCompany && (
+            <div>
               {/*
                 勤務地・勤務形態（どちらも任意・2026-08-13 追加）
                 ⚠️ **後から追記してもらうのが最も難しいデータなので、入口で聞く。**
@@ -1245,6 +1391,7 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
           {saveError && (
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
           )}
+          </>)}
 
           {/* ★主CTA。375px では**下端に貼る**（2026-09-09）。実体は globals.css の
                  `.onb-cta-sticky`（メディアクエリが要るのでインラインに書けない）。
@@ -1278,9 +1425,11 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
                 もう一度押すとそのまま進みます。
               </p>
             )}
+            {/* ⚠️★ステップで役割が変わる。1画面目は**保存して次へ**、最後は**完了**。
+                   ⚠️ 1画面目の「次へ」でも保存する（(c)）。**押さずに閉じた人は残らない。** */}
             <button
               type="button"
-              onClick={finish}
+              onClick={step === 1 ? goNextFromStep1 : finish}
               disabled={saving}
               style={{
                 width: "100%", padding: "13px 20px",
@@ -1292,8 +1441,25 @@ function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; role
                 cursor: saving ? "wait" : "pointer", fontFamily: "inherit", transition: "all 0.2s",
               }}
             >
-              {saving ? "登録中..." : "登録して始める →"}
+              {saving ? "保存中..." : step === 1 ? "次へ →" : "登録して始める →"}
             </button>
+
+            {/* ⚠️ 2画面目からは戻れるようにする。`goStep` は `push` なのでブラウザの戻るでも戻れる。 */}
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => goStep(step - 1)}
+                disabled={saving}
+                style={{
+                  width: "100%", marginTop: 8, padding: "10px 20px",
+                  background: "none", border: "none", color: "var(--ink-soft)",
+                  fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+                  cursor: saving ? "wait" : "pointer",
+                }}
+              >
+                ← 戻る
+              </button>
+            )}
           </div>
         </div>
 
@@ -1742,14 +1908,18 @@ function LogoMark() {
 
 // ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
 
-export default function OnboardingPage({ roles, roleAliases }: { roles: OnboardingRole[]; roleAliases: Record<string, string[]> }) {
+export default function OnboardingPage({ roles, roleAliases, currentExperience }: {
+  roles: OnboardingRole[];
+  roleAliases: Record<string, string[]>;
+  currentExperience: ExistingExperience | null;
+}) {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-tint)" }}>
         <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid var(--royal-100)", borderTopColor: "var(--royal)", animation: "spin 0.8s linear infinite" }} />
       </div>
     }>
-      <OnboardingInner roles={roles} roleAliases={roleAliases} />
+      <OnboardingInner roles={roles} roleAliases={roleAliases} currentExperience={currentExperience} />
     </Suspense>
   );
 }
