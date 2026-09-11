@@ -152,6 +152,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
             **`?? 既定値` に戻さないこと。** 「送られてこない」を「既定値にする」と読み替えると、
             本人が選んだ公開範囲を勝手に広げることになる。 */
       visibility_company: visibilityCompany,
+      /* ⚠️ 更新では「送られてこない＝変更しない」。⚠️ 作成（POST）は同じ書き方でも意味が違い、
+            **DB の既定（2026-09-11 から `false`）が効く**。混同しないこと。 */
       visibility_reason: isBlank(body.visibility_reason)
         ? undefined
         : (body.visibility_reason as boolean),

@@ -329,12 +329,19 @@ export async function POST(req: Request) {
             「送られてきたら書く」形を残すと、権限を剥奪した意図と食い違う */
       visibility_company: visibilityCompany,
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
-      /* ⚠️★**`visibility_company` のような「既存から引き継ぐ」にはしていない**（2026-09-11）。
-            一度でも入社理由を非公開にした人の**以後の職歴すべてが自動で非公開**になり、
-            **本人が選んだこととは違う**（安全側でも、本人の代わりに決めたことに変わりはない）。
-         ⚠️ ただし「値が無いとき公開側に倒す」形はそのまま残っている。
-            この列がどこかに公開描画されているかを確かめてから決める（docs/todo.md）。 */
-      visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
+      /* ★「送られてこなければ列を書かない」（2026-09-11）。**`?? true` に戻さないこと。**
+         ⚠️★以前は `?? true` で、**値が無いときに公開側へ倒していた。**
+            DB の既定も 2026-09-11 に `false` へ変えたので、書かなければ**非公開で入る。**
+            片方だけ戻すと向きが食い違う（CLAUDE.md「UI / API / DB を揃える」）。
+         ⚠️ `undefined` は `JSON.stringify` がキーごと落とすので PostgREST にも送られず、
+            **DB の既定（false）が効く。**
+         ⚠️★**「既存の職歴から引き継ぐ」にはしていない。** 一度でも非公開にした人の
+            以後の職歴すべてが自動で非公開になり、**本人の代わりに決めた**ことになる
+            （2026-09-11 に一度入れて戻した）。`visibility_company` と扱いが違うのは、
+            あちらが「職歴全体の1設定」として本人に見えているため。 */
+      visibility_reason: isBlank(body.visibility_reason)
+        ? undefined
+        : (body.visibility_reason as boolean),
       /* ⚠️ 理由データは authenticated がテーブルレベルの INSERT を持つので
             セッションクライアントのまま書ける。SELECT 権限は無いが、
             .select("id") しか返さないので 403 にならない。 */
