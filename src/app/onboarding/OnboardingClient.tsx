@@ -12,6 +12,9 @@ import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
       `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
       なぜ入口が2つ要るかは、あの部品の冒頭に書いてある。 */
 import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
+/* ⚠️★一覧から辿って追加する2段セレクト。**ここに書き直さないこと**（共通部品）。
+      `IntentCard`（マイページの希望職種）と同じものを使う。 */
+import { TwoStepRolePicker } from "@/components/ui/TwoStepRolePicker";
 /* ⚠️★上限は定数1つ。**ここに 5 と書かないこと**（画面と API で食い違った前例がある）。 */
 import { MAX_DESIRED_ROLES } from "@/lib/constants/careerPreferences";
 import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
@@ -1038,7 +1041,14 @@ function OnboardingInner({
                 </div>
               )}
 
-              {/* 候補チップ。⚠️ 既に選んだものは出さない（同じ語が2箇所に並ぶため） */}
+              {/* 候補チップ。⚠️ 既に選んだものは出さない（同じ語が2箇所に並ぶため）
+                  ⚠️★**見出しを付ける**（2026-09-12）。付けないと
+                     「ここに出ているものから選ぶ欄」に見え、**ほかの分野を探せることが伝わらない。** */}
+              {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).length > 0 && (
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>
+                  いまの職種から
+                </div>
+              )}
               {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                   {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).map((id) => (
@@ -1082,6 +1092,29 @@ function OnboardingInner({
                   ? `関心のある職種は ${MAX_DESIRED_ROLES} 件までです`
                   : "ほかの職種を検索（例: 法人営業、AE）"}
               />
+
+              {/* ★★ほかの分野から辿って追加する（2026-09-12 / 柴さんの指摘）。
+                     ⚠️★**候補チップは「いまの職種」とその親・兄弟しか出さない。**
+                        それだけだと**同じ分野の中からしか選べないように見える。**
+                        「営業の人がカスタマーサクセスに興味を持つこともある」——
+                        分野をまたぐ導線がここにしか無い。**消さないこと。**
+                     ⚠️ 検索欄だけでは足りない。**名前を知らない分野には辿り着けない。**
+                     ⚠️★実装は共通部品（`IntentCard` と同じ）。**ここに書き直さないこと。**
+                     ⚠️ 上限に達したら消す（押せるのに追加されない状態を作らない）。 */}
+              {desiredRoleIds.length < MAX_DESIRED_ROLES && (
+                <div style={{ marginTop: 12 }}>
+                  <TwoStepRolePicker
+                    ariaLabelPrefix="関心のある職種"
+                    roles={roles}
+                    disabled={saving}
+                    onAdd={(id) => {
+                      if (desiredRoleIds.includes(id)) return;
+                      if (desiredRoleIds.length >= MAX_DESIRED_ROLES) return;
+                      setDesiredRoleIds([...desiredRoleIds, id]);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </>)}
 

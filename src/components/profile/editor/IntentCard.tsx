@@ -6,6 +6,9 @@ import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow, FormGroup, selectStyle, inputStyle } from "./formKit";
 import { PencilIcon } from "@/components/profile/view/RowActions";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
+/* ⚠️★**ここにローカル実装を戻さないこと**（2026-09-12 に共通部品へ出した）。
+      オンボーディングの「関心のある職種」でも同じものを使っている。 */
+import { TwoStepRolePicker } from "@/components/ui/TwoStepRolePicker";
 import { memberState, type CompanyMemberRow } from "@/lib/constants/companyMembers";
 /* ⚠️ 会社名は必ずここを通す。法人格（株式会社…）と末尾の " Japan" が落ちる。
       ⚠️ 正規表現をコピーして持ってこないこと。3箇所に割れていたのを集約した経緯がある。 */
@@ -124,65 +127,6 @@ function PickList({
  * ⚠️ **大分類だけでも追加できる。** 当てはまる小分類が無いことがあるため
  *    （求人フォームと同じ扱い）。
  */
-function TwoStepRolePicker({
-  roles, disabled, onAdd,
-}: {
-  roles: { id: string; name: string; parent_id: string | null }[];
-  disabled: boolean;
-  onAdd: (roleId: string) => void;
-}) {
-  const [parentId, setParentId] = useState("");
-  const [childId, setChildId] = useState("");
-  const parents = roles.filter((r) => !r.parent_id);
-  const children = roles.filter((r) => r.parent_id === parentId);
-  const picked = childId || parentId;
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-        <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>または一覧から選ぶ</span>
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <select
-          aria-label="希望職種（大分類）"
-          value={parentId}
-          disabled={disabled}
-          onChange={(e) => { setParentId(e.target.value); setChildId(""); }}
-          style={{ ...selectStyle(), flex: "1 1 140px" }}
-        >
-          <option value="">大分類を選ぶ</option>
-          {parents.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
-        <select
-          aria-label="希望職種（小分類）"
-          value={childId}
-          disabled={disabled || !parentId || children.length === 0}
-          onChange={(e) => setChildId(e.target.value)}
-          style={{ ...selectStyle(), flex: "1 1 140px" }}
-        >
-          <option value="">{!parentId ? "先に大分類を選ぶ" : children.length === 0 ? "小分類なし" : "小分類を選ぶ"}</option>
-          {children.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
-        <button
-          type="button"
-          disabled={disabled || !picked}
-          onClick={() => { onAdd(picked); setParentId(""); setChildId(""); }}
-          style={{
-            padding: "0 16px", borderRadius: 8, border: "none",
-            background: disabled || !picked ? "var(--line)" : "var(--royal)",
-            color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-            cursor: disabled || !picked ? "default" : "pointer", flexShrink: 0,
-          }}
-        >追加</button>
-      </div>
-      <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-        大分類だけでも追加できます。当てはまる小分類があるときだけ選んでください。
-      </p>
-    </div>
-  );
-}
-
 export type IntentPrefs = {
   /** ★「転職について」の意思表示（2026-08-26 / フェーズ2）。
    *  ⚠️ `null` は「まだ答えていない」。**既定値に倒さないこと。** */
@@ -829,6 +773,7 @@ export default function IntentCard({
                       「中間の子職種が1件も使われていない」偏りが出ていた。
                       名前を知っている人は検索、知らない人は一覧、の併用にする。 */}
             <TwoStepRolePicker
+              ariaLabelPrefix="希望職種"
               roles={desiredRoleOptions ?? roles}
               disabled={roleIds.length >= MAX_DESIRED_ROLES}
               onAdd={(roleId) => {
