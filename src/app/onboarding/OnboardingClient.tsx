@@ -883,13 +883,31 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 : (head.company ? head.company.name : head.companyText.trim()) || `職歴 ${gIdx + 1}`;
               return (
                 <div key={head.key} style={rowCardStyle}>
-                  {/* ⚠️ 見出しはグループの先頭に1回だけ。行ごとには出さない。 */}
+                  {/* ⚠️ 見出しはグループの先頭に1回だけ。行ごとには出さない。
+                      ⚠️★**削除ボタンをこの行に置く**（2026-09-11 に直した）。
+                         先頭行のラベルを空にしたとき、行ヘッダーが**× だけの行**として
+                         残り、見出しの下に意味の分からない × が浮いていた。 */}
                   <div style={{
-                    fontSize: 13, fontWeight: 700, marginBottom: 8,
-                    color: isSameAsCurrent ? "var(--ink-soft)" : "var(--ink)",
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 8, marginBottom: 8,
                   }}>
-                    {groupLabel}
+                    <div style={{
+                      fontSize: 13, fontWeight: 700, minWidth: 0,
+                      color: isSameAsCurrent ? "var(--ink-soft)" : "var(--ink)",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {groupLabel}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPastJobs((prev) => prev.filter((p) => p.key !== head.key))}
+                      aria-label={`${groupLabel} を削除`}
+                      className="btn-fixed-size"
+                      style={removeBtnStyle}
+                      disabled={saving}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                   </div>
                   {group.map((j, posIdx) => {
                     const ready = pastJobReady(j);
@@ -917,24 +935,25 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                         borderTop: "1px dashed var(--line)",
                         borderLeft: "2px solid var(--line)",
                       }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                          {/* ⚠️★先頭の行はラベルを出さない（2026-09-11）。**グループの見出しが
-                                 会社名を出している**ので、`職歴 N` を並べると同じ高さの見出しが
-                                 2行続き、どちらが上位か分からなくなる。
-                              ⚠️ 削除ボタンの `aria-label` には番号を残す（読み上げの手がかり）。 */}
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>
-                            {isHead ? "" : "この会社での別の役割"}
+                        {/* ⚠️★**行ヘッダーは2つ目以降の役割だけ。** 先頭行はグループの見出しが
+                               兼ねる（ラベルを空にすると **× だけの行**が残る。2026-09-11 に直した）。 */}
+                        {!isHead && (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>
+                              この会社での別の役割
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPastJobs((prev) => prev.filter((p) => p.key !== j.key))}
+                              aria-label={`${groupLabel} の役割を削除`}
+                              className="btn-fixed-size"
+                              style={removeBtnStyle}
+                              disabled={saving}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setPastJobs((prev) => prev.filter((p) => p.key !== j.key))}
-                            aria-label={isHead ? `職歴 ${gIdx + 1} を削除` : `職歴 ${gIdx + 1} の役割を削除`}
-                            className="btn-fixed-size"
-                            style={removeBtnStyle}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                          </button>
-                        </div>
+                        )}
 
                         {/* ⚠️ 会社を選ぶのは**グループの先頭だけ**。2つ目以降は同じ会社に固定する。
                                ここに `CompanyPicker` を出すと、同じ会社を2回選ばせることになる。 */}
