@@ -10,10 +10,11 @@ import { EMPLOYMENT_TYPES, RANKS, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constan
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 
-import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
+import { RoleAccordionSelect } from "@/components/ui/RoleAccordionPicker";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
+import { AddRoleLink } from "@/components/profile/view/RowActions";
 /* ★理由データの設問（2026-09-12 に職歴の編集モーダルから移した）。
       ⚠️ **設問をこのファイルに書き戻さないこと。** 入口が2つ（追加の直後 / カードのアイコン）
          あるので、割れると片方だけ直る形の不具合になる。 */
@@ -766,15 +767,12 @@ function StintForm({
   onDraftChange,
   isSaving,
   roles,
-  roleAliases,
   companyLocked = false,
 }: {
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
   isSaving: boolean;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  /** role_id → 別名。検索でヒットさせるために使う（ow_role_aliases） */
-  roleAliases?: Record<string, string[]>;
   companyLocked?: boolean;
 }) {
   const set = useCallback(
@@ -851,12 +849,18 @@ function StintForm({
       */}
       <div>
         <label style={labelStyle()}>職種<RequiredMark /></label>
-        <RoleSearchSelect
+        {/* ★★アコーディオン形式のプルダウンに置き換えた（2026-09-12 / 柴さんの指示）。
+               ⚠️★**部品は「関心のある職種」と共通**（`RoleAccordionPicker`）。
+                  `mode="single"` / `variant=dropdown` の違いだけ。2つ目の実装を書かないこと。
+               ⚠️ **大分類だけでも選べる仕様は残す**（行の右端の丸）。過去の非IT職は
+                  「営業」「販売・サービス」で十分で、子まで選ばせると入力が止まる。
+               ⚠️ 保存する値（職種ID）と必須判定は変えていない。
+               ⚠️★「所属・役職との違いは？」のような案内は付けない。**社内での呼び方が
+                  すぐ下にある**ので、並べて見れば分かる（2026-09-12 の指示）。 */}
+        <RoleAccordionSelect
           roles={roles}
-          aliases={roleAliases}
           value={draft.roleCategoryId}
           onSelect={(id) => set("roleCategoryId", id)}
-          selectableParent
           disabled={isSaving}
           ariaLabel="職種"
         />
@@ -1131,7 +1135,6 @@ function StintForm({
 export default function CareerHistoryEditor({
   initialExperiences = [],
   roles = [],
-  roleAliases = {},
   onSavedCountChange,
   onExperienceDeleted,
   openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, onClosed,
@@ -1139,7 +1142,6 @@ export default function CareerHistoryEditor({
 }: {
   initialExperiences?: Stint[];
   roles?: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  roleAliases?: Record<string, string[]>;
   /** 保存済みの職歴件数。**API が成功したときだけ**変わる（stints は楽観更新ではなく成功後に更新している）。
       親の完成度がこれを見る。渡さなくても動く。 */
   onSavedCountChange?: (count: number) => void;
@@ -1548,6 +1550,10 @@ export default function CareerHistoryEditor({
       setStints((prev) => prev.filter((s) => s.id !== deleteTarget.id));
       onExperienceDeleted?.(deleteTarget.id);
       setDeleteTarget(null);
+      /* ★モーダルの中から消したときは、その編集モーダルも閉じる（2026-09-12）。
+            閉じないと、消えた行を編集し続ける画面が残る。 */
+      setEditingId(null);
+      setEditDraft(EMPTY_DRAFT);
       showToast("職歴を削除しました");
       onClosedRef.current?.();
     } catch {
@@ -1616,6 +1622,14 @@ export default function CareerHistoryEditor({
         saving={careerIsEditing ? editSaving : addSaving}
         justSaved={careerIsEditing ? editJustSaved : addJustSaved}
         error={null}
+        /* ★削除はフッターの左端（2026-09-12）。一覧ページを畳んだので、行のゴミ箱の行き先がここ。
+              ⚠️ **編集のときだけ。** 追加のモーダルには消すものが無い。
+              ⚠️ 二段階の確認は下の `ConfirmDialog`。**1クリックで消さない。** */
+        dangerLabel={careerIsEditing ? "削除" : undefined}
+        onDanger={careerIsEditing ? () => {
+          const t = stints.find((x) => x.id === editingId);
+          if (t) setDeleteTarget(t);
+        } : undefined}
         onSave={() => { if (careerIsEditing) void saveEdit(); else void saveAdd(); }}
         onClose={() => { if (careerIsEditing) cancelEdit(); else cancelAdd(); }}
       >
@@ -1624,9 +1638,28 @@ export default function CareerHistoryEditor({
           onDraftChange={careerIsEditing ? setEditDraft : setAddDraft}
           isSaving={careerIsEditing ? editSaving : addSaving}
           roles={roles}
-          roleAliases={roleAliases}
           companyLocked={!careerIsEditing && addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
         />
+        {/* ★「＋ この会社に役割を追加」（2026-09-12）。一覧ページを畳んだので置き場をここにした。
+               ⚠️ **編集のときだけ。** 追加中に出すと、いま入力している会社の役割を
+                  さらに足すことになり、保存前の入力が捨てられる。
+               ⚠️ 押すと**編集を閉じて追加モーダルに切り替わる**（会社名は引き継ぐ）。
+                  未保存の変更があるときは `ProfileEditModal` の破棄の確認が先に出る。 */}
+        {careerIsEditing && (
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>
+            <AddRoleLink
+              careerId={editingId ?? ""}
+              onAddRole={(careerId) => {
+                const g = groups.find((gr) => gr.positions.some((p) => p.id === careerId));
+                if (!g) return;
+                setEditingId(null);
+                setEditDraft(EMPTY_DRAFT);
+                setAddDraft(draftFromGroup(g));
+                setAddingForCompanyKey(g.key);
+              }}
+            />
+          </div>
+        )}
       </ProfileEditModal>
 
       {/* ★理由モーダル（2026-09-12）。⚠️ **職歴の編集モーダルとは別**。

@@ -341,7 +341,6 @@ export default function MypageClient({
           desired_phase:       intentProps.initialProfilePrefs?.desired_phase ?? null,
         }}
         roles={intentProps.roles ?? []}
-        roleAliases={intentProps.roleAliases ?? {}}
         desiredRoleOptions={intentProps.desiredRoleOptions}
         currentCompanies={currentCompanies}
         memberships={ambassadorMemberships}

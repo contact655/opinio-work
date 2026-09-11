@@ -623,7 +623,6 @@ export default async function MypagePage({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialContentLinks={contentLinksRaw as any}
       roles={editorRoles}
-      roleAliases={roleAliasMap}
       desiredRoleOptions={desiredRoleOptions}
       initialDesiredRoleIds={desiredRoleIds}
       initialProfilePrefs={profilePrefs}

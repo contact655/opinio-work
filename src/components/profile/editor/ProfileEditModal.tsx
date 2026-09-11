@@ -51,6 +51,13 @@ export function ProfileEditModal({
          「あとで答える」は本人が捨てる意思を示した操作で、× とは役割が違う。 */
   secondaryLabel,
   onSecondary,
+  /** ★フッター**左端**の破壊的操作（2026-09-12 / 「削除」）。
+      ⚠️★**保存ボタンから離して置く。** 押し間違えると取り消せない操作なので、
+         右下の保存と隣り合わせにしない。二段階の確認は呼び出し側が出す
+         （`ConfirmDialog` は zIndex 3000 でこのモーダルの上に出る）。
+      ⚠️ 編集のときだけ渡すこと。追加のモーダルには消すものが無い。 */
+  dangerLabel,
+  onDanger,
 }: {
   open: boolean;
   title: string;
@@ -65,6 +72,8 @@ export function ProfileEditModal({
   primaryEnabled?: boolean;
   secondaryLabel?: string;
   onSecondary?: () => void;
+  dangerLabel?: string;
+  onDanger?: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -180,6 +189,21 @@ export function ProfileEditModal({
               <span role="alert" style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "var(--error)" }}>
                 {error}
               </span>
+            )}
+            {dangerLabel && onDanger && (
+              <button
+                type="button"
+                onClick={onDanger}
+                disabled={saving}
+                className="tap-min-h"
+                style={{
+                  marginRight: "auto", padding: "10px 4px", fontSize: "var(--text-sm)", fontWeight: 700,
+                  background: "none", border: "none", color: "var(--error)", fontFamily: "inherit",
+                  cursor: saving ? "default" : "pointer",
+                }}
+              >
+                {dangerLabel}
+              </button>
             )}
             {secondaryLabel && onSecondary && (
               <button

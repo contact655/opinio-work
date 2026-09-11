@@ -21,6 +21,10 @@ import Link from "next/link";
 export type RowActions = {
   /** 行の鉛筆。渡さなければ鉛筆を出さない */
   onEditRow?: (id: string) => void;
+  /** ★行のアイコンの大きさ（2026-09-12）。
+      `md` は職歴・学歴の行だけ（アイコン18px・当たり判定32px）。
+      ⚠️ **既定（`sm`）は変えていない。** 実績・受賞・メディア・発信コンテンツの行は従来どおり。 */
+  size?: "sm" | "md";
   /** 行のゴミ箱。渡さなければ削除を出さない */
   onDeleteRow?: (id: string) => void;
   /** 見出しの「追加」。★`/mypage` では同じページなのでリンクではなくボタンにする */
@@ -83,6 +87,17 @@ export function PencilIcon({ size = 13 }: { size?: number } = {}) {
 /** 行の右端に出す鉛筆とゴミ箱。⚠️ `<a>` の**外**に置くこと（アンカーの入れ子は不正） */
 export function RowActionButtons({ id, label, actions }: { id: string; label: string; actions: RowActions }) {
   if (!actions.onEditRow && !actions.onDeleteRow) return null;
+  /* ★`md` は職歴・学歴の行（2026-09-12）。見出しから ✎ を外して**行の鉛筆が唯一の入口**に
+     なったので、`sm`（15px / 当たり判定27px）では小さすぎる。
+     ⚠️ 767px 以下は `.tap-target` が 44px にするので、ここは下限。 */
+  const md = actions.size === "md";
+  const icon = md ? 18 : 15;
+  const box = md ? 32 : undefined;
+  const btnStyle: React.CSSProperties = {
+    background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)",
+    padding: md ? 0 : 6,
+    ...(md ? { width: box, height: box, display: "inline-flex", alignItems: "center", justifyContent: "center" } : null),
+  };
   return (
     /* ⚠️ `gap` は 767px 以下で 8px になる（`.tap-row`）。2px のままだと
           44px の当たり判定どうしが重なり、削除と編集を押し間違える */
@@ -92,9 +107,9 @@ export function RowActionButtons({ id, label, actions }: { id: string; label: st
           type="button" className="btn-fixed-size tap-target"
           onClick={() => actions.onEditRow!(id)}
           aria-label={`${label} を編集`} title="編集"
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
+          style={btnStyle}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width={icon} height={icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
           </svg>
         </button>
@@ -104,9 +119,9 @@ export function RowActionButtons({ id, label, actions }: { id: string; label: st
           type="button" className="btn-fixed-size tap-target"
           onClick={() => actions.onDeleteRow!(id)}
           aria-label={`${label} を削除`} title="削除"
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", padding: 6 }}
+          style={btnStyle}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <svg width={icon} height={icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
           </svg>
         </button>
@@ -155,6 +170,74 @@ export function AddRoleLink({ careerId, onAddRole }: { careerId: string; onAddRo
  *    年表に載らない行（入学年月が無い学歴など）は表示から落ちるので、
  *    件数で比べると「4件だから出さない」のに1件見えていない状態が作れる。
  */
+/**
+ * ★その場で展開する「すべて表示 ／ 閉じる」（2026-09-12）。
+ *
+ * ⚠️★**職歴・学歴は一覧ページへ送るのをやめた**（`/mypage/details/*` は `/mypage` へ転送）。
+ *    リンク（`SectionShowAll`）ではなくトグルにする。
+ * ⚠️ 判定は従来どおり「**画面に出した数 < 保存されている数**」。件数そのものではない。
+ */
+export function SectionShowAllToggle({ label, hiddenCount, expanded, onToggle }: {
+  label: string;
+  hiddenCount: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="tap-min-h"
+        aria-expanded={expanded}
+        aria-label={expanded ? `${label}を折りたたむ` : `${label}をすべて表示（他${hiddenCount}件）`}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6, padding: 0,
+          background: "none", border: "none", fontFamily: "inherit",
+          fontSize: 13, fontWeight: 600, color: "var(--royal)", cursor: "pointer",
+        }}
+      >
+        {expanded ? "閉じる" : "すべて表示"}
+        {!expanded && <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>（他{hiddenCount}件）</span>}
+        <span aria-hidden="true">{expanded ? "↑" : "↓"}</span>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * ★セクションの下に置く「＋ 〇〇を追加」（2026-09-12）。
+ *
+ * ⚠️★**0件でも1件以上でも常に出す。** 見出しから ＋ を外したので、
+ *    **これが唯一の追加の入口**（職歴・学歴）。丸い ＋（`SectionAddCircle`）と違い、
+ *    何を足すのかが読めるようにラベルを置く。
+ */
+export function SectionAddButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className="tap-min-h"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "9px 16px", borderRadius: 8,
+          border: "1.5px dashed var(--line)", background: "#fff",
+          color: "var(--royal)", fontSize: 13, fontWeight: 700,
+          cursor: "pointer", fontFamily: "inherit",
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        {label}
+      </button>
+    </div>
+  );
+}
+
 export function SectionShowAll({ href, label, hiddenCount }: {
   href: string;
   /** 「学歴」「職歴」など。読み上げ用の文に使う */

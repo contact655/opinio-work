@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import {
   useCompanyLookup,
   type CompanyLookupResult,
@@ -14,7 +14,7 @@ import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
 /* ⚠️★一覧から辿って追加する2段セレクト。**ここに書き直さないこと**（共通部品）。
       `IntentCard`（マイページの希望職種）と同じものを使う。 */
-import { TwoStepRolePicker } from "@/components/ui/TwoStepRolePicker";
+import { RoleAccordionPicker, SelectedRoleChips } from "@/components/ui/RoleAccordionPicker";
 /* ⚠️★上限は定数1つ。**ここに 5 と書かないこと**（画面と API で食い違った前例がある）。 */
 import { MAX_DESIRED_ROLES } from "@/lib/constants/careerPreferences";
 import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
@@ -517,16 +517,11 @@ function OnboardingInner({
     }
   };
 
-  /* ★★関心のある職種の候補（2026-09-11）。**1画面目で選んだ職種から出す。**
-     ⚠️★**ゼロから探させない。** 検索欄だけだと、何を入れてよいか分からない。
-     ⚠️ 並びは 自分 → 親 → 兄弟（`display_order` 順。`roles` の配列順がそれ）。
-        ⚠️★**人気順にはできない。** `ow_profile_desired_roles` は **6人が各1件**しか無く
-           （2026-09-11 実測）、順序を決める材料が無い。作り話の順にしない。
-           ⚠️ **データが増えたら見直す目印。** 同じクエリで分布を測り、
-              偏りが読めるようになったら「よく選ばれる順」に変えてよい。
-     ⚠️★**8件で打ち切る。** 兄弟は最大14件（エンジニア）・営業12件・コーポレート13件あり
-        （2026-09-11 実測）、全部出すと 375px でチップが5行を超えて、
-        下の4択より目立ってしまう。**残りは検索欄から入れられる。** */
+  /* ⚠️★「いまの職種から」の候補チップ（2026-09-11）は 2026-09-12 に削除した（柴さんの指示）。
+        大分類のアコーディオン1つに畳んだため。**戻さないこと。**
+        ⚠️ 当時の心配（「同じ分野の中からしか選べないように見える」）は、
+           **18の大分類がその場に全部並ぶ**ことで解消している。 */
+
   /* ★CTA を色付きにする条件。**ステップごとに違う。**
      ⚠️ 1画面目は会社が空でも**押せる**（灰色のまま進める）。2画面目だけ本当に押せない。
      ⚠️ 3画面目は全項目が任意なので常に進める。 */
@@ -534,26 +529,8 @@ function OnboardingInner({
     : step === 2 ? !!stance
     : true;
 
-  const CANDIDATE_LIMIT = 8;
-  const candidateRoleIds = useMemo(() => {
-    const self = roles.find((r) => r.id === roleId);
-    if (!self) return [];
-    const out: string[] = [self.id];
-    if (self.parent_id) out.push(self.parent_id);
-    /* 親を選んでいた人には**その子**を、子を選んでいた人には**同じ親の兄弟**を出す。 */
-    const groupId = self.parent_id ?? self.id;
-    for (const r of roles) {
-      if (out.length >= CANDIDATE_LIMIT) break;
-      if (r.parent_id === groupId && !out.includes(r.id)) out.push(r.id);
-    }
-    return out;
-  }, [roleId, roles]);
-
-  const roleNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const r of roles) m.set(r.id, r.name);
-    return m;
-  }, [roles]);
+  /** 上限（`MAX_DESIRED_ROLES`）に当たったことを伝える短い注記。次の操作で消える（2026-09-12） */
+  const [roleLimitNote, setRoleLimitNote] = useState(false);
 
   /** 2画面目の「次へ」。⚠️ `career_stance` は選ぶまで押せないので、ここでは null を想定しない。 */
   const goNextFromStep2 = async () => {
@@ -1000,121 +977,58 @@ function OnboardingInner({
           {step === 2 && (<>
             <StanceQuestion value={stance} onChange={setStance} disabled={saving} />
 
-            {/* ── 関心のある職種（任意）────────────────────────────────────
-                ⚠️★**候補を先に出す。** 1画面目で選んだ職種と、その親・兄弟。
-                   検索欄だけだと「何を入れる欄なのか」が伝わらない。
+            {/* ── ★★関心のある職種（任意）──────────────────────────────────
+                ⚠️★**大分類のアコーディオン1つに作り直した**（2026-09-12 / 柴さんの指示）。
+                   それまで「いまの職種からのおすすめチップ」「検索欄」「大分類・小分類の
+                   プルダウン＋追加ボタン」の**3通りが縦に並んで**いて、どれを使えばよいか
+                   読めなかった。**3つとも外した。戻さないこと。**
+                ⚠️★**部品は `/mypage` の「希望職種」と共通**（`RoleAccordionPicker`）。
+                   同じ値（`ow_profile_desired_roles`）を触る入口が2つあるので、
+                   片方だけ別の選び方にすると挙動が割れる。
                 ⚠️ 上限は `MAX_DESIRED_ROLES`。**数字を直書きしない。**
-                ⚠️ ここは**任意**。1つも選ばずに次へ進める。 */}
+                ⚠️ ここは**任意**。1つも選ばずに次へ進める。
+                ⚠️★補足文「いま見ている職種とは別でもかまいません。おすすめの求人に使います。」は
+                   2026-09-12 に削除した。戻さないこと。 */}
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
-                関心のある職種
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                  関心のある職種
+                </div>
+                {/* ⚠️ 上限とセットで出す。あと何件選べるかが読める */}
+                <span style={{
+                  fontSize: 12, fontWeight: 700,
+                  color: desiredRoleIds.length >= MAX_DESIRED_ROLES ? "var(--royal)" : "var(--ink-mute)",
+                }}>
+                  {desiredRoleIds.length} / {MAX_DESIRED_ROLES}
+                </span>
               </div>
-              <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-                いま見ている職種とは別でもかまいません。おすすめの求人に使います。
-              </p>
+
+              {/* ⚠️ 上限に当たったことを伝える短い注記。次の操作で消える。
+                     **押しても何も起きない状態にしない**（壊れているのか上限なのか分からない）。 */}
+              {roleLimitNote && (
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 10 }}>
+                  {MAX_DESIRED_ROLES}つまで選べます。ほかを選ぶには、上の選択中から外してください。
+                </div>
+              )}
 
               {/* 選んだもの。⚠️ 上に出す（何を選んだかが先に読めるように） */}
-              {desiredRoleIds.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-                  {desiredRoleIds.map((id) => (
-                    <span
-                      key={id}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6,
-                        padding: "6px 10px", borderRadius: 100,
-                        border: "1px solid var(--royal)", background: "var(--royal-50)",
-                        color: "var(--royal)", fontSize: 13, fontWeight: 700,
-                      }}
-                    >
-                      {roleNameById.get(id) ?? id}
-                      <button
-                        type="button"
-                        onClick={() => setDesiredRoleIds(desiredRoleIds.filter((r) => r !== id))}
-                        aria-label={`${roleNameById.get(id) ?? id} を外す`}
-                        style={{
-                          background: "none", border: "none", padding: 0, lineHeight: 1,
-                          color: "inherit", cursor: "pointer", fontSize: 14, fontFamily: "inherit",
-                        }}
-                      >×</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* 候補チップ。⚠️ 既に選んだものは出さない（同じ語が2箇所に並ぶため）
-                  ⚠️★**見出しを付ける**（2026-09-12）。付けないと
-                     「ここに出ているものから選ぶ欄」に見え、**ほかの分野を探せることが伝わらない。** */}
-              {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).length > 0 && (
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>
-                  いまの職種から
-                </div>
-              )}
-              {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-                  {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      disabled={desiredRoleIds.length >= MAX_DESIRED_ROLES}
-                      onClick={() => setDesiredRoleIds([...desiredRoleIds, id])}
-                      style={{
-                        padding: "7px 13px", borderRadius: 100,
-                        border: "1px dashed var(--line)", background: "#fff",
-                        color: "var(--ink-soft)", fontSize: 13, fontWeight: 500,
-                        cursor: desiredRoleIds.length >= MAX_DESIRED_ROLES ? "default" : "pointer",
-                        opacity: desiredRoleIds.length >= MAX_DESIRED_ROLES ? 0.5 : 1,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      ＋ {roleNameById.get(id) ?? id}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* ⚠️ `clearOnSelect` は「選んだら入力欄を空に戻す」＝追加用。
-                     ⚠️ この形のとき `RoleSearchSelect` は2段セレクトを出さない（追加ボタンが要るため）。
-                        ここは候補チップがその役目を果たしている。 */}
-              <RoleSearchSelect
+              <SelectedRoleChips
                 roles={roles}
-                aliases={roleAliases}
-                value=""
-                onSelect={(id) => {
-                  if (desiredRoleIds.includes(id)) return;
-                  if (desiredRoleIds.length >= MAX_DESIRED_ROLES) return;
-                  setDesiredRoleIds([...desiredRoleIds, id]);
-                }}
-                selectableParent
-                clearOnSelect
-                ariaLabel="関心のある職種を検索"
-                disabled={saving || desiredRoleIds.length >= MAX_DESIRED_ROLES}
-                placeholder={desiredRoleIds.length >= MAX_DESIRED_ROLES
-                  ? `関心のある職種は ${MAX_DESIRED_ROLES} 件までです`
-                  : "ほかの職種を検索（例: 法人営業、AE）"}
+                values={desiredRoleIds}
+                disabled={saving}
+                onRemove={(id) => { setRoleLimitNote(false); setDesiredRoleIds(desiredRoleIds.filter((r) => r !== id)); }}
               />
 
-              {/* ★★ほかの分野から辿って追加する（2026-09-12 / 柴さんの指摘）。
-                     ⚠️★**候補チップは「いまの職種」とその親・兄弟しか出さない。**
-                        それだけだと**同じ分野の中からしか選べないように見える。**
-                        「営業の人がカスタマーサクセスに興味を持つこともある」——
-                        分野をまたぐ導線がここにしか無い。**消さないこと。**
-                     ⚠️ 検索欄だけでは足りない。**名前を知らない分野には辿り着けない。**
-                     ⚠️★実装は共通部品（`IntentCard` と同じ）。**ここに書き直さないこと。**
-                     ⚠️ 上限に達したら消す（押せるのに追加されない状態を作らない）。 */}
-              {desiredRoleIds.length < MAX_DESIRED_ROLES && (
-                <div style={{ marginTop: 12 }}>
-                  <TwoStepRolePicker
-                    ariaLabelPrefix="関心のある職種"
-                    roles={roles}
-                    disabled={saving}
-                    onAdd={(id) => {
-                      if (desiredRoleIds.includes(id)) return;
-                      if (desiredRoleIds.length >= MAX_DESIRED_ROLES) return;
-                      setDesiredRoleIds([...desiredRoleIds, id]);
-                    }}
-                  />
-                </div>
-              )}
+              <RoleAccordionPicker
+                roles={roles}
+                values={desiredRoleIds}
+                mode="multi"
+                max={MAX_DESIRED_ROLES}
+                disabled={saving}
+                ariaLabelPrefix="関心のある職種"
+                onChange={(next) => { setRoleLimitNote(false); setDesiredRoleIds(next); }}
+                onLimitHit={() => setRoleLimitNote(true)}
+              />
             </div>
           </>)}
 

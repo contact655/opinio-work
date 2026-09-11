@@ -43,6 +43,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /* ★★職歴・学歴の一覧ページを `/mypage` へ転送する（2026-09-12 / 柴さんの指示）。
+     行ごとの編集を `/mypage` 本体のモーダルに戻したので、このページに行き先が無くなった。
+     ⚠️★**ページ側の `redirect()` では 307 にならない。** `/mypage/loading.tsx` が
+        Suspense 境界を作っているので、**HTTP は 200 のまま**シェルが流れる（実測）。
+        だから middleware で返す。
+     ⚠️ 他の section（achievements / awards / certifications / languages / skills /
+        media / content）の一覧ページは**そのまま**。あちらは本体から ✎ で送っている。
+     ⚠️ 過去のブックマークやメールから踏まれるので 404 にしない。 */
+  if (pathname === "/mypage/details/experience" || pathname === "/mypage/details/education") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mypage";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
   const needsAuth =
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||

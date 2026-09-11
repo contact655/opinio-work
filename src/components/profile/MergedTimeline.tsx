@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
-import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink, PlusIcon } from "./view/RowActions";
+import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
-import { rankLabel, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
+import { rankLabel } from "@/lib/constants/careerOptions";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { buildOverlapMap } from "@/lib/profile/parallel";
 
@@ -198,19 +198,12 @@ export interface MergedTimelineProps {
   isAuthenticated?: boolean;
   /** この件数を超えた経歴を折りたたむ（未指定の場合は折りたたみなし） */
   collapseAfter?: number;
-  /**
-   * 職歴1件ごとに、行の下へ差し込むもの（経歴ストーリーのアコーディオン）。
-   *
-   * ⚠️ **渡されなければ何も描かない。** 公開プロフィール（`/u/[id]`）は渡さないこと。
-   *    **「見ている人が本人か」で出し分けてはいけない。** それは「編集画面か」ではなく、
-   *    **本人が自分の公開ページを見たときも true** になる。
-   *
-   * ⚠️ 2026-08-16 の 2-6（職歴を年表に作り直した回）で、`CareerHistoryEditor` の
-   *    自前の一覧を差し替えたときに `<StoryAccordion>` が一緒に消え、
-   *    **「経歴ストーリー」の入口が1週間なくなっていた**（コミットメッセージに言及なし）。
-   *    親から渡す形にしてあるのは、次に一覧を作り直しても**渡し忘れれば型で気づける**ため。
-   */
-  renderCareerExtra?: (careerId: string) => React.ReactNode;
+  /* ⚠️★**`renderCareerExtra`（経歴ストーリーの差し込み口）は 2026-09-12 に削除した**
+        （柴さんの指示）。`StoryAccordion` を入口ごと畳んだので使い手がいなくなった。
+        ⚠️ **テーブル・列・データと API ルートは残してある**（`/api/jobseeker/experience-stories`
+           と `…-story-sections`）。作り直す可能性があるため。
+        ⚠️ 復活させるときは「渡した画面にだけ出す」形を守ること —— `/u/[id]` に
+           渡してはいけない（「見ている人が本人か」で出し分けない）。 */
   /**
    * ★職歴1件ごとに、行の**右端**へ差し込むもの（2026-09-12 / 理由モーダルの入口アイコン）。
    *
@@ -595,141 +588,11 @@ function EmploymentBadge({ value }: { value: string }) {
   );
 }
 
-/**
- * モーダルが開いたあと、雇用形態の項目まで送る。
- *
- * ⚠️ **開くだけでは足りない。** モーダルは会社名から順に上から表示されるので、
- *    開いた直後の雇用形態は**画面に出ない**（1300×900 のスクリーンショットで確認）。
- *    「押したのに何も起きていない」ように見える。
- *
- * ⚠️ **1回呼ぶだけでは届かない。** モーダルは
- *    ① React の状態で後から描かれ、② 開くあいだレイアウトが動く。
- *    要素を見つけた最初の1回で `scrollIntoView` しても**そのあと動いて画面外へ戻る**
- *    （実測: 1回だけの版では雇用形態が一度も画面に出なかった）。
- *
- * ⚠️ **`requestAnimationFrame` を使わない。** 前面にないタブでは発火せず、
- *    **一度も動かない**（実測で 90 フレーム分ゼロ回）。`setTimeout` にする。
- *
- * ── ★止まり方（4つ。どれか1つで必ず終わる）────────────────────────────────
- *   ① 落ち着いて画面に入った  … 位置が2回続けて同じ、かつビューポート内
- *   ② **利用者が自分で動かした** … wheel / touchmove / キー操作を拾ったら即やめる
- *   ③ **モーダルが閉じた**      … 一度見つけた要素が消えたらやめる
- *   ④ 時間切れ                  … **経過時間で 1.5秒**（回数で切らない）
- *
- * ⚠️ **②と③が無いと実害が出る。** ②が無いと、押した直後の約1.5秒は
- *    利用者がスクロールするたびに引き戻す（位置が動く＝まだ落ち着いていない、と読むため）。
- *    ③が無いと、閉じたあとも1.5秒ぶん空回りする。
- *
- * ⚠️ **④は回数ではなく経過時間で切る。** 前面にないタブでは `setTimeout` が
- *    **1秒に間引かれる**ので、「25回 × 60ms」のつもりが**25秒**回り続ける
- *    （.claude/rules/ui-debugging.md ⑪）。
- *
- * ⚠️ 見つからなくても何もしない。モーダル自体は開いているので、黙って諦めてよい。
- */
-function scrollToEmploymentField() {
-  const deadline = Date.now() + 1500;
-  let lastTop: number | null = null;
-  let seen = false;
-  let cancelled = false;
 
-  const events = ["wheel", "touchmove", "keydown"] as const;
-  const stopListening = () => {
-    for (const e of events) window.removeEventListener(e, cancel);
-  };
-  /* ★利用者が自分で動かしたら、こちらは手を引く。`passive` で邪魔しない */
-  function cancel() {
-    cancelled = true;
-    stopListening();
-  }
-  for (const e of events) window.addEventListener(e, cancel, { passive: true });
-
-  const tick = () => {
-    if (cancelled) return;
-    const el = document.getElementById(EMPLOYMENT_TYPE_FIELD_ID) as HTMLSelectElement | null;
-    if (el) {
-      if (!seen) {
-        seen = true;
-        el.focus({ preventScroll: true });
-      }
-      const r = el.getBoundingClientRect();
-      const settled = lastTop !== null && Math.abs(r.top - lastTop) < 1;
-      const visible = r.top >= 0 && r.bottom <= window.innerHeight;
-      if (settled && visible) return stopListening();   // ①
-      el.scrollIntoView({ block: "center" });
-      lastTop = el.getBoundingClientRect().top;
-    } else if (seen) {
-      return stopListening();                           // ③ 閉じた
-    }
-    if (Date.now() < deadline) setTimeout(tick, 60);    // ④
-    else stopListening();
-  };
-  setTimeout(tick, 0);
-}
-
-/**
- * 未設定のときの「＋ 雇用形態を追加」。
- *
- * ⚠️ **本人にしか出さない。** 判定は `careerActions.onEditRow` の有無。
- *    「本人が見ているか」ではなく「**その画面が編集モーダルを持っているか**」で決める。
- *    本人が自分の `/u/[id]` を見たときは編集できないので、出してはいけない。
- *    渡されなければ `null` を返す＝**他人の DOM は1バイトも変わらない。**
- *
- * ⚠️ 押すと `onEditRow` が開くのは**その経歴の編集モーダル**。行の鉛筆と同じ入口で、
- *    雇用形態のセレクトはそのモーダルの中にある。専用の口を作らない。
- *
- * ⚠️ 当たり判定は `.tap-min-h`（767px 以下で 44px）。**枠線は内側の span が持つ**ので、
- *    高さを足しても点線の箱が 44px に膨らまない。
- */
-function EmploymentAddCta({
-  careerId,
-  label,
-  onEdit,
-}: {
-  careerId: string;
-  label: string;
-  onEdit: (id: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="tap-min-h"
-      onClick={() => {
-        onEdit(careerId);
-        scrollToEmploymentField();
-      }}
-      aria-label={`${label} の雇用形態を追加`}
-      title="雇用形態を追加"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        background: "none",
-        border: "none",
-        padding: 0,
-        cursor: "pointer",
-        fontFamily: "inherit",
-      }}
-    >
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--ink-mute)",
-          border: "1px dashed var(--line)",
-          borderRadius: 4,
-          padding: "1px 6px",
-          lineHeight: 1.6,
-          whiteSpace: "nowrap",
-        }}
-      >
-        <PlusIcon />
-        雇用形態を追加
-      </span>
-    </button>
-  );
-}
+/* ⚠️★「＋ 雇用形態を追加」（`EmploymentAddCta`）は 2026-09-12 に削除した（柴さんの指示）。
+      雇用形態は**職歴の編集モーダルの入力欄**で入れる。行の上にもう1つ入口を置かない。
+      ⚠️ 出ていたのは `careerActions.onEditRow` を渡した画面だけだったが、
+         2026-09-12 に `/mypage` 本体へ行の鉛筆を戻したので、**そのままだと全行に出る**。 */
 
 /**
  * ★雇用形態の枠。**すべての経路がこれを呼ぶ。**
@@ -741,19 +604,13 @@ function EmploymentAddCta({
  */
 function EmploymentSlot({
   data,
-  actions,
   marginLeft,
 }: {
   data: CareerEntry;
-  actions?: CareerActions;
   /** 見出しの語に続けて置くときの左余白。★余白の span も「出すとき」しか作らない */
   marginLeft?: number;
 }) {
-  const inner = data.employment_type ? (
-    <EmploymentBadge value={data.employment_type} />
-  ) : actions?.onEditRow ? (
-    <EmploymentAddCta careerId={data.id} label={data.company_name} onEdit={actions.onEditRow} />
-  ) : null;
+  const inner = data.employment_type ? <EmploymentBadge value={data.employment_type} /> : null;
 
   /* ⚠️ **null のときはラッパーごと返さない。** 余白用の `<span>` だけ残すと、
         値が無い他人の `/u/[id]` に**空の span が増える**（実際に一度そうなった）。
@@ -1045,14 +902,11 @@ function CareerContent({
   data,
   parallelWith,
   isAuthenticated = true,
-  actions,
 }: {
   data: CareerEntry;
   /** 1ヶ月以上重なっている他社の名前。無ければ何も描かない */
   parallelWith?: string[];
   isAuthenticated?: boolean;
-  /** ★雇用形態が未設定のときの「＋ 雇用形態を追加」に使う。渡さなければ出さない */
-  actions?: CareerActions;
 }) {
   const duration = formatDuration(data.started_at, data.ended_at);
   const startLabel = formatYM(data.started_at);
@@ -1088,7 +942,7 @@ function CareerContent({
             {shortCompanyName(data.company_name)}
           </span>
         )}
-        <EmploymentSlot data={data} actions={actions} />
+        <EmploymentSlot data={data} />
         {data.is_current && <CurrentBadge />}
       </div>
 
@@ -1218,7 +1072,6 @@ function EducationContent({ data }: { data: EducationEntry }) {
 export default function MergedTimeline({
   careers,
   educations,
-  renderCareerExtra,
   renderCareerAside,
   educationActions,
   careerActions,
@@ -1278,11 +1131,10 @@ export default function MergedTimeline({
                 {careerActions || renderCareerAside ? (
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 4, minWidth: 0, flex: 1 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} actions={careerActions} />
+                      <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} />
                       {careerActions?.onAddRole && (
                         <AddRoleLink careerId={c.id} onAddRole={careerActions.onAddRole} />
                       )}
-                      {renderCareerExtra?.(c.id)}
                     </div>
                     {renderCareerAside?.(c.id)}
                     {careerActions && <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />}
@@ -1396,7 +1248,7 @@ export default function MergedTimeline({
                                       グループ代表を1つ出す形に戻さないこと。
                                    ⚠️ 余白は `marginLeft` で渡す。**ここで span で包まない**
                                       （値が無いとき空の span が残る）。 */}
-                            <EmploymentSlot data={c} actions={careerActions} marginLeft={6} />
+                            <EmploymentSlot data={c} marginLeft={6} />
                             {c.is_current && items.length > 1 && (
                               <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success-ink)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
                                 在籍中
@@ -1443,10 +1295,6 @@ export default function MergedTimeline({
                       );
                     })}
                   </div>
-                  {/* ⚠️ ポジションごとに1つずつ。会社単位ではない（ストーリーは職歴 id に紐づく） */}
-                  {renderCareerExtra && items.map((c) => (
-                    <div key={`story-${c.id}`}>{renderCareerExtra(c.id)}</div>
-                  ))}
                   {careerActions?.onAddRole && (
                     <AddRoleLink careerId={head.id} onAddRole={careerActions.onAddRole} />
                   )}

@@ -1,11 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
-import { rowsToStints } from "@/lib/experiences/toStint";
-import type { CompanyLogoInfo } from "@/lib/utils/timeline";
-import EducationDetails from "./EducationDetails";
-import CareerDetails from "./CareerDetails";
 import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDetails, SkillsDetails, MediaDetails, ContentDetails } from "./SimpleDetails";
 
 /**
@@ -23,7 +18,7 @@ import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDet
  * ⚠️ **存在しない `section` は 404。** 下の `SECTIONS` に無いものは
  *    `dynamicParams = false` によりレンダリングに入る前に落ちる。
  */
-const SECTIONS = ["experience", "education", "achievements", "awards", "certifications", "languages", "skills", "media", "content"] as const;
+const SECTIONS = ["achievements", "awards", "certifications", "languages", "skills", "media", "content"] as const;
 type Section = (typeof SECTIONS)[number];
 
 /**
@@ -62,122 +57,11 @@ export default async function ProfileDetailsPage({ params }: { params: { section
     .maybeSingle();
   if (!owUser) redirect("/mypage");
 
-  if (section === "education") {
-    const [{ data: edus }, { data: schools }] = await Promise.all([
-      supabase
-        .from("ow_user_educations")
-        .select("id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)")
-        .eq("user_id", owUser.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("ow_schools")
-        .select("id, name, name_kana, logo_letter, logo_gradient, logo_url, type")
-        .order("name", { ascending: true }),
-    ]);
-    return (
-      <EducationDetails
-        initialEducations={(edus ?? []).map((e) => ({
-          id: e.id as string,
-          school: e.school as string,
-          school_id: (e.school_id as string | null) ?? null,
-          school_master: (e.school_master as unknown as { id: string; name: string; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null } | null) ?? null,
-          faculty: (e.faculty as string | null) ?? null,
-          degree: (e.degree as string | null) ?? null,
-          enrolled_at: (e.enrolled_at as string | null) ?? null,
-          graduated_at: (e.graduated_at as string | null) ?? null,
-          is_current: e.is_current as boolean,
-          sort_order: e.sort_order as number,
-        }))}
-        schools={(schools ?? []) as never}
-      />
-    );
-  }
-
-  if (section === "experience") {
-    /* ⚠️ 職歴は **admin で引く**。session クライアントだと join_reason / 年収4列で
-          クエリごと 403 になり、職歴が丸ごと消える（画面は 200 のまま空になる）。
-       ⚠️ 列リストは `lib/experiences/columns.ts` の1箇所。ここに直書きしない。 */
-    const [{ data: expRows }, { data: allRoles }, { data: roleAliasRows }] = await Promise.all([
-      createAdminClient()
-        .from("ow_experiences")
-        .select(EXPERIENCE_EDITOR_COLS)
-        .eq("user_id", owUser.id)
-        .order("is_current", { ascending: false })
-        .order("started_at", { ascending: false }),
-      supabase.from("ow_roles").select("id, name, parent_id, display_order, is_active"),
-      supabase.from("ow_role_aliases").select("role_id, alias"),
-    ]);
-
-    const rows = (expRows ?? []) as unknown as Record<string, unknown>[];
-    const roleNameById = new Map((allRoles ?? []).map((r) => [r.id as string, r.name as string]));
-
-    /* 企業ロゴ。master 企業を持つ行のぶんだけ */
-    const companyIds = rows.filter((r) => r.company_id).map((r) => r.company_id as string);
-    const companyLogoInfo: ({ id: string } & CompanyLogoInfo)[] = [];
-    const companyNameById = new Map<string, string>();
-    if (companyIds.length > 0) {
-      /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。
-            捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
-            側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
-            ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
-      const { data: companies, error: companiesErr } = await supabase
-        .from("ow_companies")
-        .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
-        .in("id", companyIds);
-      if (companiesErr) console.error("[mypage/details/[section]] ow_companies:", companiesErr.message);
-      for (const c of companies ?? []) {
-        companyNameById.set(c.id as string, c.name as string);
-        companyLogoInfo.push({
-          id: c.id as string,
-          name: c.name as string,
-          logoUrl: (c.logo_url as string | null) ?? null,
-          logoLetter: (c.logo_letter as string | null) ?? null,
-          logoGradient: (c.logo_gradient as string | null) ?? null,
-          industry: (c.industry as string | null) ?? null,
-          phase: (c.phase as string | null) ?? null,
-          employee_count: (c.employee_count as number | null) ?? null,
-          /* ⚠️ 非公開企業には企業ページへのリンクを張らない（本番で404になるため） */
-          isPublished: (c.is_published as boolean) ?? false,
-        });
-      }
-    }
-
-    /* 入社前後のギャップ（別テーブル）。**非公開データ**なので admin で引く。 */
-    const gapsByExperience = new Map<string, { axis: string; rating: string }[]>();
-    const expIds = rows.map((r) => r.id as string);
-    if (expIds.length > 0) {
-      const { data: gapRows, error: gapErr } = await createAdminClient()
-        .from("ow_experience_gaps")
-        .select("experience_id, axis, rating")
-        .in("experience_id", expIds);
-      // ⚠️ 握り潰さない。空で描画すると、保存した瞬間に全消しになる
-      if (gapErr) console.error("[mypage/details] ow_experience_gaps", gapErr.message);
-      for (const g of gapRows ?? []) {
-        const key = g.experience_id as string;
-        if (!gapsByExperience.has(key)) gapsByExperience.set(key, []);
-        gapsByExperience.get(key)!.push({ axis: g.axis as string, rating: g.rating as string });
-      }
-    }
-
-    const aliasMap: Record<string, string[]> = {};
-    for (const a of roleAliasRows ?? []) {
-      const k = a.role_id as string;
-      (aliasMap[k] ??= []).push(a.alias as string);
-    }
-
-    return (
-      <CareerDetails
-        initialExperiences={rowsToStints(rows, companyNameById, roleNameById, gapsByExperience)}
-        roles={(allRoles ?? []).filter((r) => r.is_active).map((r) => ({
-          id: r.id as string, name: r.name as string,
-          parent_id: (r.parent_id as string | null) ?? null,
-          display_order: (r.display_order as number) ?? 0,
-        }))}
-        roleAliases={aliasMap}
-        companyLogoInfo={companyLogoInfo}
-      />
-    );
-  }
+  /* ⚠️★**職歴（experience）と学歴（education）はここには無い**（2026-09-12 / 柴さんの指示）。
+        `/mypage/details/experience` と `/mypage/details/education` は
+        **`src/middleware.ts` が `/mypage` へ転送する**。行ごとの編集は `/mypage` 本体の
+        行の鉛筆 → その場のモーダルに戻した。
+     ⚠️ 下の `SECTIONS` からも外してある。**戻すときは middleware の転送も外すこと。** */
 
   /* ── 残り6つ。表も形も同じなので取得だけ切り替える ────────────────────────── */
   /* ★資格（2026-08-24）。⚠️ **職歴に紐づかない**ので、下の実績・受賞のように

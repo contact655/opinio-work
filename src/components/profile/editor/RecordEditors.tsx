@@ -442,6 +442,8 @@ export function EducationEditor({
       if (!res.ok) throw new Error();
       setEducations((prev) => prev.filter((e) => e.id !== deleteTarget.id));
       setDeleteTarget(null);
+      /* ★モーダルの中から消したときは、その編集モーダルも閉じる（2026-09-12）。 */
+      cancelEdit();
       showToast("学歴を削除しました");
       onClosedRef.current?.();
     } catch {
@@ -449,7 +451,7 @@ export function EducationEditor({
     } finally {
       setDeleting(false);
     }
-  }, [deleteTarget, setEducations, showToast]);
+  }, [deleteTarget, setEducations, showToast, cancelEdit]);
 
   /* ★外（`MergedTimeline` の学歴の行にある鉛筆・ゴミ箱）から開く（2026-08-16 / 2-5）。
         id は行ごとに変わるので nonce ではなく id そのものを見る。 */
@@ -493,6 +495,10 @@ export function EducationEditor({
         saving={eduIsEditing ? editSaving : addSaving}
         justSaved={eduIsEditing ? editJustSaved : addJustSaved}
         error={null}
+        /* ★削除はフッターの左端（2026-09-12）。一覧ページを畳んだので、行のゴミ箱の行き先がここ。
+              ⚠️ **編集のときだけ。** 二段階の確認は下の `ConfirmDialog`。 */
+        dangerLabel={eduIsEditing ? "削除" : undefined}
+        onDanger={eduIsEditing ? () => { if (eduSavedRow) setDeleteTarget(eduSavedRow); } : undefined}
         onSave={() => { if (eduIsEditing) void saveEdit(); else void saveAdd(); }}
         onClose={() => { cancelEdit(); cancelAdd(); onClosedRef.current?.(); }}
       >

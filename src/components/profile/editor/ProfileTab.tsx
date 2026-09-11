@@ -56,7 +56,7 @@ import { ReasonEntryButton, hasReasonAnswers } from "@/components/profile/editor
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline, { limitCareersForDisplay } from "@/components/profile/MergedTimeline";
 import { stintsToCareerEntries } from "./careerTimeline";
-import { SectionShowAll, SectionAddCircle, PencilIcon } from "@/components/profile/view/RowActions";
+import { SectionShowAllToggle, SectionAddButton, RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
 import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow } from "./formKit";
@@ -555,7 +555,6 @@ export default function ProfileTab({
   owUser,
   settings,
   roles,
-  roleAliases = {},
   initialExperiences,
   initialEducations,
   schools,
@@ -611,7 +610,6 @@ export default function ProfileTab({
   /** 写真カードのプレビューに使う色。★保存済みの設定を親から受け取る */
   settings: SettingsState;
   roles: RoleItem[];
-  roleAliases?: Record<string, string[]>;
   initialExperiences: Stint[];
   initialEducations: Education[];
   /** 学校マスター。★親が1度だけ取得する（タブ側で取ると開くたびに走る） */
@@ -726,6 +724,11 @@ export default function ProfileTab({
   const [careerAddNonce, setCareerAddNonce] = useState(0);
   /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
+  /* ★★「すべて表示」はその場で展開する（2026-09-12）。一覧ページ（`/mypage/details/*`）を
+        `/mypage` へ畳んだので、行き先が無くなった。
+     ⚠️ 職歴・学歴だけ。実績・受賞・メディア・発信コンテンツは従来どおり一覧ページへ送る。 */
+  const [careerExpanded, setCareerExpanded] = useState(false);
+  const [eduExpanded, setEduExpanded] = useState(false);
   /* 職歴（2026-08-16 / 2-6）。表示は公開部品が描くので、保存済みの職歴を親でも持つ。
      ⚠️ **所有者は `CareerHistoryEditor` のまま**（保存の成否を知っているのは向こう）。
         ここは `onStintsChange` で受け取った控え。編集用モーダルは常にマウントしておく
@@ -758,7 +761,15 @@ export default function ProfileTab({
     [careerStints],
   );
   const shownCareers = useMemo(
-    () => limitCareersForDisplay(timelineCareers, ROWS_ON_PROFILE.experience),
+    () => careerExpanded
+      ? { careers: timelineCareers, hiddenUnits: 0 }
+      : limitCareersForDisplay(timelineCareers, ROWS_ON_PROFILE.experience),
+    [timelineCareers, careerExpanded],
+  );
+  /* ⚠️ 「すべて表示」を出すかの判定は**畳んだときの隠れ数**で決める。
+        展開中は `hiddenUnits` が 0 になるので、これが無いと「閉じる」が消える。 */
+  const careerHiddenUnits = useMemo(
+    () => limitCareersForDisplay(timelineCareers, ROWS_ON_PROFILE.experience).hiddenUnits,
     [timelineCareers],
   );
   const [eduAddNonce, setEduAddNonce] = useState(0);
@@ -783,13 +794,22 @@ export default function ProfileTab({
      ⚠️ 「すべて表示」の判定は**画面に出した数と保存されている数の差**で出す。
         件数だけで比べると、年表に落ちた行があるときに「4件だから出さない」のに
         1件見えていない状態が作れる。 */
-  const shownEducations = toTimelineEducationEntries(educations as RawEducation[])
+  /* ⚠️ `toTimelineEducationEntries` は**入学年月が無い行を落とす**（年表に置けない）。
+        落ちた行は下の `undatedEducations` が拾う。**片方だけ見ないこと。** */
+  const datedEducations = toTimelineEducationEntries(educations as RawEducation[])
     /* ⚠️ **新しい順に並べてから切る。** 元の並びは `sort_order`（古い順に入っていることが多い）で、
           そのまま切ると**いちばん新しい学歴が本体から消える**（実測で踏んだ）。
           年表は内部で新しい順に並べ替えるので、切る前の順序は年表の見た目に出てこない。 */
     .slice()
-    .sort((a, b) => b.enrolled_at.localeCompare(a.enrolled_at))
-    .slice(0, ROWS_ON_PROFILE.education);
+    .sort((a, b) => b.enrolled_at.localeCompare(a.enrolled_at));
+  const shownEducations = eduExpanded
+    ? datedEducations
+    : datedEducations.slice(0, ROWS_ON_PROFILE.education);
+  /* ★★入学年月が無い行（2026-09-12）。**年表に置けないので別枠で全件出す。**
+     ⚠️★ここでしか触れない。以前は `/mypage/details/education` が拾っていたが、
+        そのページは `/mypage` へ転送するようにした。**落とすとどの画面からも編集できなくなる。**
+     ⚠️ **本人の `/mypage` だけ。** `/u/[id]` の見え方は変えない。 */
+  const undatedEducations = educations.filter((e) => !e.enrolled_at);
   const [mediaAddNonce, setMediaAddNonce] = useState(0);
   /* 数値実績・受賞（2026-08-16 / 2-4）。表示⇄編集は 2-2/2-3 と同じ形 */
   /* 紐づけセレクトの選択肢。★職歴の表示名だけを渡す（実績側は職歴の中身を知らない）。
@@ -1394,20 +1414,16 @@ export default function ProfileTab({
                    集約していた（その入口は撤去した）。
                 ⚠️ **0件のときは ✎ を出さない。** 一覧ページに送っても空の画面に着くだけ。
                    1件でも入れば ＋ と ✎ の2つに戻る。 */}
-            {/* ⚠️★見出しの「＋」は 2026-09-12 に外した（柴さんの指示）。**戻さないこと。**
-                   追加の経路は残っている: 見出しの ✎ →『/mypage/details/experience』の
-                   「職歴を追加」／ 0件のときはカード下の丸い ＋（`SectionAddCircle`）。
-                ⚠️ `careerAddNonce` は**消していない**。0件のときの丸い ＋ が使う。 */}
+            {/* ⚠️★★見出しの「＋」と「✎」は**両方外した**（2026-09-12 / 柴さんの指示）。
+                   **戻さないこと。** 編集は**行の鉛筆からその場のモーダル**、追加は
+                   **セクション下の「＋ 職歴を追加」**。一覧ページ（`/mypage/details/experience`）は
+                   `/mypage` へ転送するようにしたので、見出しの ✎ には行き先が無い。
+                ⚠️ 前回（2026-09-12 午前）に入れた「✎ を大きくする」指定も、使い手が
+                   いなくなったので削除した。 */}
             <ProfileTimelineSection
               id="career"
               title="職歴"
               latin="CAREER"
-              /* ★行ごとの操作は一覧ページへ（2026-08-17 / フェーズ3） */
-              manageHref={careerStints.length > 0 ? "/mypage/details/experience" : undefined}
-              manageLabel="職歴を編集"
-              /* ★✎ を大きくする（2026-09-12）。「＋」が消えて**この1つだけ**になったので、
-                    小さいままだと押す場所が見つけにくい。アイコン 20px・当たり判定 40px 四方。 */
-              manageIconLarge
             >
               {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
                      「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
@@ -1427,23 +1443,24 @@ export default function ProfileTab({
                   （{formatYmLabel(oldestCareerStart)} から）
                 </p>
               )}
-              {/* ⚠️ 文中リンク（「職歴を追加する」）はやめた（2026-08-17）。
-                     読む文と押す物が同じ行に並んで区別しにくかった。
-                     **追加はカードの下の丸い ＋** に寄せる。 */}
               {careerStints.length === 0 && (
                 <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                   まだ職歴を登録していません。
                 </p>
               )}
-              {/* ★表示は公開プロフィールと同じ部品。**行の操作は渡さない**（2026-08-17 / フェーズ3）。
-                     1件ずつ触るのは `/mypage/details/experience` の仕事。
-                  ⚠️ `collapseAfter` は渡さない。あれは「その場で開く」畳み方で、
-                     ここは**一覧ページへ送る**畳み方にする。 */}
-              {/* ★職歴1件ごとの「理由」入口（2026-09-12）。**本人の /mypage だけ。**
+              {/* ★★行の鉛筆をここへ戻した（2026-09-12 / 柴さんの指示）。
+                     2026-08-17 のフェーズ3で「1件ずつ触るのは一覧ページの仕事」と決めたが、
+                     **その一覧ページを畳んだ**ので、行の操作が本体に戻る。
+                  ⚠️★**ゴミ箱（`onDeleteRow`）と「この会社に役割を追加」（`onAddRole`）は
+                     渡さない。** どちらも**編集モーダルの中**へ移した。行にアイコンを増やすと、
+                     行が増えるほど本文がアイコンで埋まる（フェーズ3の出発点）。
+                  ⚠️ `size: "md"` は職歴・学歴の行だけ。実績・受賞などの行は従来の大きさのまま。
+                  ⚠️ 「理由」アイコンは鉛筆の**左隣**に並ぶ（`renderCareerAside` が先に描かれる）。
                      ⚠️ `/u/[id]`・企業ページ・`/people` には渡さない（理由データは非公開）。 */}
               <MergedTimeline
                 careers={shownCareers.careers}
                 educations={[]}
+                careerActions={{ onEditRow: (id) => setEditingCareerId(id), size: "md" }}
                 renderCareerAside={(careerId) => {
                   const st = careerStints.find((x) => x.id === careerId);
                   if (!st) return null;
@@ -1455,16 +1472,17 @@ export default function ProfileTab({
                   );
                 }}
               />
-              {careerStints.length === 0 && (
-                <SectionAddCircle label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
-              )}
-              {shownCareers.hiddenUnits > 0 && (
-                <SectionShowAll
-                  href="/mypage/details/experience"
+              {/* ⚠️ 判定は畳んだときの隠れ数で見る（展開中は 0 になるため） */}
+              {careerHiddenUnits > 0 && (
+                <SectionShowAllToggle
                   label="職歴"
-                  hiddenCount={shownCareers.hiddenUnits}
+                  hiddenCount={careerHiddenUnits}
+                  expanded={careerExpanded}
+                  onToggle={() => setCareerExpanded((v) => !v)}
                 />
               )}
+              {/* ★★追加はここ1つ（2026-09-12）。**0件でも1件以上でも常に出す。** */}
+              <SectionAddButton label="＋ 職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
             </ProfileTimelineSection>
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
@@ -1481,7 +1499,6 @@ export default function ProfileTab({
               onStintsChange={setCareerStints}
               initialExperiences={initialExperiences}
               roles={roles}
-              roleAliases={roleAliases}
               onSavedCountChange={setSavedExperienceCount}
               /* ★職歴を消しても実績は消えない（ON DELETE SET NULL）。手元の state も
                     同じように null へ落とす。やらないと再読み込みするまで消えたように見える。 */
@@ -1494,45 +1511,76 @@ export default function ProfileTab({
             {/* ★2-5 では枠と見出しを `EditableSection` に持たせていたが、**判断が誤っていた**。
                    `/u/[id]` の「学歴」の見出しは元からあり、`page.tsx` に直接書かれていた
                    （＝切り出していなかっただけ）。2-6 で職歴とまとめて切り出して揃えた。 */}
-            {/* ★学歴も 0件で枠を出す（職歴と同じ理由）。✎ は1件以上のときだけ。 */}
+            {/* ★学歴も 0件で枠を出す（職歴と同じ理由）。
+                ⚠️★★見出しの「＋」と「✎」は**両方外した**（2026-09-12 / 柴さんの指示）。
+                   職歴と同じ形にする。編集は行の鉛筆、追加は下の「＋ 学歴を追加」。 */}
             <ProfileTimelineSection
               id="education"
               title="学歴"
               latin="EDUCATION"
-              onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
-              addLabel="学歴を追加"
-              /* ★行ごとの鉛筆・ゴミ箱は本体から外し、一覧ページに寄せた（2026-08-17 / フェーズ3） */
-              manageHref={educations.length > 0 ? "/mypage/details/education" : undefined}
-              manageLabel="学歴を編集"
-              emptyUsesPencil={educations.length === 0}
             >
-              {educations.length === 0 ? (
-                <>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                    まだ学歴を登録していません。
-                  </p>
-                  <SectionAddCircle label="学歴を追加" onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }} />
-                </>
-              ) : (
-                <>
-                  {/* ★表示は公開プロフィールと同じ部品。**行の操作は渡さない**（2026-08-17 / フェーズ3）。
-                         1件ずつ触るのは `/mypage/details/education` の仕事。 */}
-                  <MergedTimeline
-                    careers={[]}
-                    educations={shownEducations}
-                  />
-                  {/* ⚠️ 入学年月が無い行・N件を超えた行はここには出ない。
-                         **拾うのは `/mypage/details/education`**（下の「すべて表示」から行ける）。
-                         ここに戻すと本体が一覧ページと同じものになる。 */}
-                  {educations.length > shownEducations.length && (
-                    <SectionShowAll
-                      href="/mypage/details/education"
-                      label="学歴"
-                      hiddenCount={educations.length - shownEducations.length}
-                    />
-                  )}
-                </>
+              {educations.length === 0 && (
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                  まだ学歴を登録していません。
+                </p>
               )}
+              {shownEducations.length > 0 && (
+                /* ⚠️ `size: "md"` は職歴と揃える。ゴミ箱は渡さない（編集モーダルの中へ移した）。 */
+                <MergedTimeline
+                  careers={[]}
+                  educations={shownEducations}
+                  educationActions={{ onEditRow: (id) => setEditingEduId(id), size: "md" }}
+                />
+              )}
+              {/* ⚠️ 「すべて表示」の件数には**年月未設定の行を含めない**（あちらは常に全件出す）。
+                     判定は「年表に出した数 < 年表に載せられる数」。 */}
+              {datedEducations.length > shownEducations.length && (
+                <SectionShowAllToggle
+                  label="学歴"
+                  hiddenCount={datedEducations.length - shownEducations.length}
+                  expanded={eduExpanded}
+                  onToggle={() => setEduExpanded((v) => !v)}
+                />
+              )}
+              {/* ★★入学年月が無い行（2026-09-12）。**年表に置けないので別枠で全件出す。**
+                     ⚠️★以前は `/mypage/details/education` が拾っていたが、そのページは
+                        `/mypage` へ転送する。**ここを消すとどの画面からも編集できなくなる。**
+                     ⚠️ 0件なら小見出しごと出さない。
+                     ⚠️ **本人の `/mypage` だけ。** `/u/[id]` には出さない。 */}
+              {undatedEducations.length > 0 && (
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em", marginBottom: 10 }}>
+                    年月未設定
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {undatedEducations.map((e) => (
+                      <div key={e.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, overflowWrap: "anywhere" }}>
+                            {e.school}
+                          </div>
+                          {(e.faculty || e.degree) && (
+                            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 3, lineHeight: 1.45, overflowWrap: "anywhere" }}>
+                              {[e.faculty, e.degree].filter(Boolean).join(" / ")}
+                            </div>
+                          )}
+                          {/* ⚠️ 期間の代わりに**何が足りないか**を書く。「—」では何をすればよいか分からない。 */}
+                          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>
+                            入学年月が未設定です
+                          </div>
+                        </div>
+                        <RowActionButtons
+                          id={e.id}
+                          label={e.school}
+                          actions={{ onEditRow: (id) => setEditingEduId(id), size: "md" }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* ★★追加はここ1つ（2026-09-12）。**0件でも1件以上でも常に出す。** */}
+              <SectionAddButton label="＋ 学歴を追加" onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }} />
             </ProfileTimelineSection>
             {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダル）。
                    学校マスタへの追加リクエストのバナーもこの中から出る。 */}

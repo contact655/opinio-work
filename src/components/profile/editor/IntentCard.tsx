@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow, FormGroup, selectStyle, inputStyle } from "./formKit";
 import { PencilIcon } from "@/components/profile/view/RowActions";
-import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 /* ⚠️★**ここにローカル実装を戻さないこと**（2026-09-12 に共通部品へ出した）。
       オンボーディングの「関心のある職種」でも同じものを使っている。 */
-import { TwoStepRolePicker } from "@/components/ui/TwoStepRolePicker";
+import { RoleAccordionPicker, SelectedRoleChips } from "@/components/ui/RoleAccordionPicker";
 import { memberState, type CompanyMemberRow } from "@/lib/constants/companyMembers";
 /* ⚠️ 会社名は必ずここを通す。法人格（株式会社…）と末尾の " Japan" が落ちる。
       ⚠️ 正規表現をコピーして持ってこないこと。3箇所に割れていたのを集約した経緯がある。 */
@@ -206,14 +205,13 @@ function SubLine({ children }: { children: React.ReactNode }) {
 }
 
 export default function IntentCard({
-  initialPrefs, stanceUpdatedAt, roles, roleAliases, desiredRoleOptions,
+  initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions,
   currentCompanies, memberships, experienceCount = 0,
 }: {
   initialPrefs: IntentPrefs;
   /** 「意思表示を最後に答えた日」。⚠️ `null` なら**最終更新の行ごと出さない** */
   stanceUpdatedAt: string | null;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  roleAliases: Record<string, string[]>;
   desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
   /** 在籍中かつ企業マスタに紐づく会社。**0件なら「話を聞かれてもよい」の行ごと出ない**
    *
@@ -338,6 +336,8 @@ export default function IntentCard({
   /* 編集中の値 */
   const [stance, setStance] = useState<string | null>(saved.prefs.career_stance);
   const [roleIds, setRoleIds] = useState<string[]>(saved.prefs.desired_role_ids);
+  /** 上限（`MAX_DESIRED_ROLES`）に当たったことを伝える短い注記。次の操作で消える（2026-09-12） */
+  const [roleLimitNote, setRoleLimitNote] = useState(false);
   const [prefectures, setPrefectures] = useState<string[]>(saved.prefs.desired_prefectures ?? []);
   const [workStyles, setWorkStyles] = useState<string[]>(saved.prefs.desired_work_styles ?? []);
   const [timing, setTiming] = useState(saved.prefs.transfer_timing ?? "");
@@ -345,10 +345,6 @@ export default function IntentCard({
   const [salaryMax, setSalaryMax] = useState(saved.prefs.desired_salary_max?.toString() ?? "");
   const [phase, setPhase] = useState<string[]>(saved.prefs.desired_phase ?? []);
 
-  const roleNameById = useMemo(() => new Map(roles.map((r) => [r.id, r.name])), [roles]);
-
-  /* ⚠️ 選択肢から外した値を今持っている人には足し戻す。
-        出さないと画面から消えたまま保存され続け、別項目を保存した拍子に失われる。 */
   const workStyleOptions = useMemo<{ value: string; label: string }[]>(() => {
     const base = DESIRED_WORK_STYLES.map((o) => ({ value: o.value, label: o.label }));
     const known = new Set<string>(base.map((o) => o.value));
@@ -676,9 +672,12 @@ export default function IntentCard({
                その場合は次の「転職について」が先頭になる。
             ⚠️★**ラベルはカードのトグルと同じ語にすること**（2026-08-28 に揃えた）。
                カードを「話を聞かれてもよい」に変えたとき**ここだけ旧ラベルが残り**、
-               同じ設定が2つの名前で呼ばれていた。片方だけ変えないこと。 */}
+               同じ設定が2つの名前で呼ばれていた。片方だけ変えないこと。
+            ⚠️★**2026-09-12 に同じことを繰り返した。** カード側を「面談対応可能」に変えた
+               コミットで**ここだけ旧ラベルが残っていた**（同日中に直した）。
+               注記があっても防げていない。**次に語を変えるときは必ず両方を grep すること。** */}
         {memberRows.length > 0 && (
-          <CollapsibleRow first label="話を聞かれてもよい" state={
+          <CollapsibleRow first label="面談対応可能" state={
             memberRows.some(({ m }) => memberState(m) === "listed") ? "ON" : "OFF"
           }>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
@@ -720,7 +719,7 @@ export default function IntentCard({
           <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
             この答えで、<strong style={{ color: "var(--ink)" }}>企業の採用担当から声をかけられるかどうか</strong>が決まります。
             <br />
-            「今はいない」を選ぶと、企業からあなたに連絡は届きません。
+            「今は考えていない」を選ぶと、企業からあなたに連絡は届きません。
             答えていないあいだも届きません。
             <br />
             いま在籍している会社と、職歴に書いた会社からは、答えにかかわらず届きません。
@@ -745,58 +744,42 @@ export default function IntentCard({
           </div>
         </CollapsibleRow>
 
+        {/* ★★大分類アコーディオンに置き換えた（2026-09-12 / 柴さんの指示）。
+               検索欄（`RoleSearchSelect`）と2段セレクト＋追加ボタン（`TwoStepRolePicker`）を
+               やめ、**オンボーディングの「関心のある職種」と同じ部品**にした。
+               ⚠️★**同じ値（`ow_profile_desired_roles`）を触る入口が2つある**ので、
+                  片方だけ別の選び方にすると挙動が割れる。**必ず両方同じ部品を使うこと。**
+               ⚠️ 上限は `MAX_DESIRED_ROLES`（5件）。**画面と API の2層。数字を直書きしない。** */}
         <CollapsibleRow label="希望職種" state={roleIds.length > 0 ? `${roleIds.length}件` : "未設定"}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <RoleSearchSelect
-              roles={desiredRoleOptions ?? roles}
-              aliases={roleAliases}
-              value=""
-              onSelect={(roleId) => {
-                if (roleIds.includes(roleId)) return;
-                if (roleIds.length >= MAX_DESIRED_ROLES) return;
-                setRoleIds([...roleIds, roleId]);
-              }}
-              selectableParent
-              clearOnSelect
-              ariaLabel="希望職種を検索"
-              disabled={roleIds.length >= MAX_DESIRED_ROLES}
-              placeholder={roleIds.length >= MAX_DESIRED_ROLES
-                ? `希望職種は ${MAX_DESIRED_ROLES} 件までです`
-                : "職種名で検索（例: 法人営業、AE、営業）"}
-            />
-            {/* ★大分類 → 小分類 → 追加（2026-08-27 / 柴さんの指示）───────────────
-                   ⚠️ `RoleSearchSelect` は `clearOnSelect`（追加用）のとき2段セレクトを
-                      出さない。理由は「選んだ瞬間に追加されるのか、大分類を選んでから
-                      小分類を選ぶのかが決まらない（**追加ボタンが要る**）」で、
-                      あの部品の冒頭に書いてある。**その追加ボタンをここで用意した。**
-                   ⚠️ **検索欄は残す。** 2026-08-06 まで2段セレクトだけだった頃、
-                      「中間の子職種が1件も使われていない」偏りが出ていた。
-                      名前を知っている人は検索、知らない人は一覧、の併用にする。 */}
-            <TwoStepRolePicker
-              ariaLabelPrefix="希望職種"
-              roles={desiredRoleOptions ?? roles}
-              disabled={roleIds.length >= MAX_DESIRED_ROLES}
-              onAdd={(roleId) => {
-                if (roleIds.includes(roleId)) return;
-                if (roleIds.length >= MAX_DESIRED_ROLES) return;
-                setRoleIds([...roleIds, roleId]);
-              }}
-            />
-            {roleIds.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {roleIds.map((id) => (
-                  <span key={id} style={CHIP}>
-                    {roleNameById.get(id) ?? id}
-                    <button
-                      type="button"
-                      onClick={() => setRoleIds(roleIds.filter((r) => r !== id))}
-                      aria-label={`${roleNameById.get(id) ?? id} を外す`}
-                      style={CHIP_X}
-                    >×</button>
-                  </span>
-                ))}
+            {/* ⚠️ 選択中の数は**閉じていても分かる**よう `state` にも出しているが、
+                   開いたときは上限とセットで出す（あと何件選べるかが読める）。 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>選択中</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: roleIds.length >= MAX_DESIRED_ROLES ? "var(--royal)" : "var(--ink-mute)" }}>
+                {roleIds.length} / {MAX_DESIRED_ROLES}
+              </span>
+            </div>
+            {/* ⚠️ 上限に当たったことを伝える短い注記。次の操作で消える */}
+            {roleLimitNote && (
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                {MAX_DESIRED_ROLES}つまで選べます。ほかを選ぶには、上の選択中から外してください。
               </div>
             )}
+            <SelectedRoleChips
+              roles={desiredRoleOptions ?? roles}
+              values={roleIds}
+              onRemove={(id) => { setRoleLimitNote(false); setRoleIds(roleIds.filter((r) => r !== id)); }}
+            />
+            <RoleAccordionPicker
+              roles={desiredRoleOptions ?? roles}
+              values={roleIds}
+              mode="multi"
+              max={MAX_DESIRED_ROLES}
+              ariaLabelPrefix="希望職種"
+              onChange={(next) => { setRoleLimitNote(false); setRoleIds(next); }}
+              onLimitHit={() => setRoleLimitNote(true)}
+            />
           </div>
         </CollapsibleRow>
 

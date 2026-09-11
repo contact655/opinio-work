@@ -121,7 +121,6 @@ export default function ProfileEditor({
   initialExperiences,
   initialContentLinks,
   roles,
-  roleAliases = {},
   isWelcome = false,
   /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
         右カラムの IntentCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
@@ -163,7 +162,6 @@ export default function ProfileEditor({
   initialContentLinks: ContentLink[];
   roles: RoleItem[];
   /** role_id → 別名[]。職種の検索セレクトでヒットさせる（ow_role_aliases） */
-  roleAliases?: Record<string, string[]>;
   isWelcome?: boolean;
   initialScoutEnabled?: boolean | null;
   /** 希望職種（ow_profile_desired_roles）。本人が選んだ role_id（展開前） */
@@ -425,7 +423,6 @@ export default function ProfileEditor({
             owUser={owUser}
             settings={savedSettings}
             roles={roles}
-            roleAliases={roleAliases}
             initialExperiences={initialExperiences}
             initialEducations={initialEducations}
             schools={schools}
