@@ -124,71 +124,60 @@ export function SectionTitle({ title, latin }: { title: string; latin?: string }
   );
 }
 
-/** 自己紹介。⚠️ 空のときは本人にだけ「書きましょう」のカードを出す（元の挙動のまま） */
+/**
+ * 自己紹介。
+ *
+ * ⚠️★**空のときも他セクションと同じカードにする**（2026-09-12 / 柴さんの指示）。
+ *    それまで空のときだけ**グレーの背景＋点線の枠・見出しなし・中央に紺色のボタン**で、
+ *    同じページの中で自己紹介だけが別のデザインだった。
+ *    ⚠️ 空の文面は**アクティビティの空状態と同じ形**（太字1行＋補足1行）に揃えてある。
+ *       片方だけ変えないこと。
+ *    ⚠️ 「自己紹介を書く →」ボタンは**戻さない。** 入口は見出しの右端の ✎ 1つ。
+ *       同じ操作への入口を2つ作らない（`/mypage` のバナーが3回撤去されたのと同じ理由）。
+ *
+ * ⚠️★**`/u/[id]` の DOM は変わらない。** あちらは `viewerIsOwner={false}` を渡しており
+ *    （page.tsx で固定）、空のときは**何も描かない**。`onEdit` も渡らない。
+ */
 export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
   aboutMe: string | null;
   viewerIsOwner: boolean;
   /** ★本人の編集用（`/mypage`）。渡さなければ `/u/[id]` の DOM は1バイトも変わらない */
   onEdit?: () => void;
 }) {
+  if (!aboutMe && !viewerIsOwner) return null;
   return (
-    <>
+    <section id="about" style={{
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 14, padding: "24px 28px", marginBottom: 20,
+      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
+        <SectionTitle title="自己紹介" latin="ABOUT" />
+        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        {onEdit && (
+          <button type="button" className="tap-target tap-target-end" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
+            <PencilIcon />
+          </button>
+        )}
+      </div>
       {aboutMe ? (
-        <section id="about" style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
-            <SectionTitle title="自己紹介" latin="ABOUT" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            {onEdit && (
-              <button type="button" className="tap-target tap-target-end" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
-                <PencilIcon />
-              </button>
-            )}
-          </div>
-          <div style={{ paddingLeft: 20, borderLeft: "3px solid var(--accent)" }}>
-            <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
-              {aboutMe}
-            </p>
-          </div>
-        </section>
-      ) : viewerIsOwner ? (
-        <section style={{
-          background: "var(--bg-tint)", border: "1.5px dashed var(--line)",
-          borderRadius: 14, padding: "28px", marginBottom: 20,
-          textAlign: "center",
-        }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 10 }}>
-            <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-          </svg>
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", margin: "0 0 12px" }}>
-            自己紹介を書いて、あなたのことを伝えましょう
+        <div style={{ paddingLeft: 20, borderLeft: "3px solid var(--accent)" }}>
+          <p style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap", margin: 0 }}>
+            {aboutMe}
           </p>
-          {onEdit ? (
-            <button type="button" onClick={onEdit} className="tap-min-h" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 18px", borderRadius: 8, border: "none",
-              background: "var(--royal)", color: "#fff", cursor: "pointer",
-              fontSize: "var(--text-sm)", fontWeight: 600, fontFamily: "inherit",
-            }}>
-              自己紹介を書く →
-            </button>
-          ) : (
-            <Link href="/mypage" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 18px", borderRadius: 8,
-              background: "var(--royal)", color: "#fff",
-              fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
-            }}>
-              プロフィールを編集する →
-            </Link>
-          )}
-        </section>
-      ) : null}
-
-    </>
+        </div>
+      ) : (
+        /* ⚠️ 空の文面はアクティビティの空状態と同じ形。促す文にしない。 */
+        <>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.8 }}>
+            まだ自己紹介がありません
+          </p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+            ここに、あなたの自己紹介が表示されます。
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 

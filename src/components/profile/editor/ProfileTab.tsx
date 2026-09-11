@@ -1295,18 +1295,21 @@ export default function ProfileTab({
                     onClick={() => { setHeaderFocusSns(false); setEditingHeader(true); }}
                     aria-label="プロフィールを編集"
                     title="プロフィールを編集"
-                    /* ⚠️ 767px 以下では高さを 44px にする（既定は 40px） */
+                    /* ★「編集」の文字は 2026-09-12 に外した（柴さんの指示）。**戻さないこと。**
+                       ⚠️★**白い下地（枠と背景）は残す。** このボタンはカバー画像の上に乗るので、
+                          下地を外すと写真によって鉛筆が見えなくなる。
+                       ⚠️ 当たり判定は 40px 四方（767px 以下は `.tap-min-h` が 44px にする）。
+                          行の鉛筆と揃えてある。 */
                     className="tap-min-h"
                     style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "8px 14px", borderRadius: 8,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 40, height: 40, borderRadius: 8,
                       border: "1px solid var(--line)", background: "#fff",
-                      color: "var(--ink-soft)", fontSize: 13, fontWeight: 600,
+                      color: "var(--ink-soft)",
                       cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
-                    <PencilIcon />
-                    編集
+                    <PencilIcon size={18} />
                   </button>
                 }
               />

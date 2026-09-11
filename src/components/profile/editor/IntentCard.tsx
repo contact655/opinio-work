@@ -18,7 +18,6 @@ import {
   CAREER_STANCES, CAREER_STANCE_LABELS, isReachableByCompanies,
 } from "@/lib/constants/careerPreferences";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
-import Link from "next/link";
 
 /**
  * 「意思表示」（`/mypage` 右カラム・**1枚だけ**）。
@@ -487,8 +486,11 @@ export default function IntentCard({
           <PencilIcon />
         </button>
 
+        {/* ⚠️★見出しは 2026-09-12 に「意思表示」→「転職・面談の状況」に変えた（柴さんの指示）。
+               ⚠️ **`/mypage` のこのカードだけ。** `aria-label`（「意思表示を編集」）と
+                  コード内の呼び名（`IntentCard`・`career_stance`）は変えていない。 */}
         <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-          意思表示
+          転職・面談の状況
         </h2>
 
         {/* ── ② 話を聞かれてもよい（会社ごとではなく**1つ**）────────────────────
@@ -514,7 +516,7 @@ export default function IntentCard({
                 }}
               >
                 <span style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
-                  話を聞かれてもよい
+                  面談対応可能
                 </span>
                 <span style={{ fontSize: SUB_SIZE, fontWeight: 700, color: "var(--royal)", flexShrink: 0 }}>
                   確認する →
@@ -522,13 +524,20 @@ export default function IntentCard({
               </a>
             ) : (
               <ToggleRow
-                label="話を聞かれてもよい"
+                /* ⚠️★ラベルは 2026-09-12 に「話を聞かれてもよい」→「面談対応可能」に変えた
+                      （柴さんの指示）。**本人の `/mypage` のこのトグルだけ。**
+                   ⚠️★訪問者向けの「話を聞けます」（`/people` のバッジ・企業ページの社員カード・
+                      `/u/[id]` のピル）と「この会社の話を聞ける人」は**変えない**。
+                   ⚠️ 招待メール・`ambassador-invite` の着地ページは今回は変えていない。 */
+                label="面談対応可能"
                 on={talkOn}
                 busy={memberBusyId === TALK_BUSY_ID}
                 /* ⚠️ 在籍中の会社が1社も無いときは**ONにできない**（RLS の在籍チェックに
                       弾かれる）。OFF にする更新は通るので、ONのときだけ操作させる。 */
                 disabled={!talkOn && currentCompanies.length === 0}
-                ariaLabel="現職の話を聞かれてもよい"
+                /* ⚠️ 読み上げも画面と同じ語にする（2026-09-12）。片方だけ残すと
+                      スクリーンリーダーにだけ古い語が読まれる。 */
+                ariaLabel="現職で面談対応可能"
                 onToggle={() => { void runTalk(!talkOn); }}
               />
             )}
@@ -632,17 +641,8 @@ export default function IntentCard({
             </div>
           )}
 
-          {/* ★「企業に何が見えるか」への導線（2026-09-10）。
-                 ⚠️★**中身をここに書かないこと。** このカードは「答える／答えない」の
-                    意思表示で、見え方の説明を混ぜると問いがぼやける
-                    （上の③にも「一度に2つ言わない」と書いてある）。**リンク1本だけ。**
-                 ⚠️★**状態に関わらず常に出す。** 表示されていない人こそ
-                    「答えたら何が見えるのか」を先に知りたい。 */}
-          <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.7 }}>
-            <Link href="/mypage/settings" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>
-              企業の候補者検索での見え方を見る →
-            </Link>
-          </div>
+          {/* ⚠️★「企業の候補者検索での見え方を見る →」リンクは 2026-09-12 に外した
+                 （柴さんの指示）。行き先（`/mypage/settings`）は残っている。 */}
         </div>
 
         {/* ── 最終更新（2026-08-26 / フェーズ2）────────────────────────────────
