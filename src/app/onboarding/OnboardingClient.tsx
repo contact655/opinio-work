@@ -793,7 +793,13 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                    規約側に書き足す案もあるが、**規約の改定になるので改定日の告知が要る。**
               */}
 
-              {/* ★★「この会社での前の役割を追加」（2026-09-09 / 柴さんの指摘で追加）。
+              {/* ★★「この会社に役割を追加」（2026-09-09 / 柴さんの指摘で追加）。
+                     ⚠️★**語は2つだけ。エディタ側（`/mypage/details/experience`）に合わせてある**
+                        （2026-09-11 に統一）:
+                          **役割** … 同じ会社の中で足す（`この会社に役割を追加` / `この会社での別の役割`）
+                          **職歴** … 会社をまたいで足す（`職歴を追加`）
+                        ⚠️ **「前の役割」「別の会社の職歴」のような独自の言い方を戻さないこと。**
+                           4通りに増えていて、初見だと別々の機能に見えていた。
                      ⚠️★これが無いと、**現職の会社で部署異動した人が会社名を打ち直すことになる。**
                         「これまでの職歴」の『＋ この会社に役割を追加』は過去の会社にしか無く、
                         いま勤めている会社の1つ前の役割を足す手段が無かった。
@@ -814,7 +820,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 ])}
                 style={{ ...subAddBtnStyle, marginTop: 14 }}
               >
-                <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社での前の役割を追加
+                <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社に役割を追加
               </button>
             </div>
           )}
@@ -875,7 +881,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                       }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>
-                            {isHead ? `職歴 ${gIdx + 1}` : "同じ会社での別の役割"}
+                            {isHead ? `職歴 ${gIdx + 1}` : "この会社での別の役割"}
                           </div>
                           <button
                             type="button"
@@ -1028,7 +1034,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               style={addBtnStyle}
             >
               <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
-              {pastJobs.length > 0 ? "別の会社の職歴を追加" : "これまでの職歴を追加（任意）"}
+              {pastJobs.length > 0 ? "職歴を追加" : "これまでの職歴を追加（任意）"}
             </button>
           </div>
 
