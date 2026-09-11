@@ -15,6 +15,7 @@ import {
       取得もこのファイルに寄せる。**2ページで同じ行を別々に引かない。** */
 import { type Stint } from "@/components/profile/CareerHistoryEditor";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
+import { buildDesiredRoleOptions } from "@/lib/roles/desiredRoleOptions";
 import { rowsToStints } from "@/lib/experiences/toStint";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
@@ -352,17 +353,14 @@ export default async function MypagePage({
       .map((r) => ({ id: r.id, name: r.name, parent_id: r.parent_id, display_order: r.display_order ?? 0 }))
       .sort((a, b) => a.display_order - b.display_order);
 
-    /* 希望職種のピッカーは**母集団が違う**。IT に絞る
+    /* 希望職種のピッカーは**母集団が違う**。IT/SaaS に絞る
        （絞らないと、企業側のフィルタから永久に辿り着けない職種を選べてしまう）。
-       ⚠️ 既に選んでいるものと、その親は必ず残す。 */
-    const keepForDesired = new Set<string>(desiredRoleIds);
-    for (const id of desiredRoleIds) {
-      const parent = byId.get(id)?.parent_id;
-      if (parent) keepForDesired.add(parent);
-    }
-    desiredRoleOptions = editorRoles.filter(
-      (r) => (byId.get(r.id)?.is_active && byId.get(r.id)?.is_it_saas) || keepForDesired.has(r.id)
-    );
+       ⚠️★**条件は `lib/roles/desiredRoleOptions.ts` の1箇所**（2026-09-12）。
+          **オンボーディングの「関心のある職種」も同じ関数を通る。** ここに書き戻さないこと
+          —— 2026-09-12 まで `/mypage` だけが絞っており、オンボーディング18分類 /
+          `/mypage` 10分類と食い違っていた。
+       ⚠️ 既に選んでいるものと、その親は関数の中で必ず残す（足し戻し）。 */
+    desiredRoleOptions = buildDesiredRoleOptions(editorRoles, byId, desiredRoleIds);
 
     /* 入社前後のギャップ（別テーブル）。**非公開データ**なので admin で引く。 */
     const gapsByExperience = new Map<string, { axis: string; rating: string }[]>();

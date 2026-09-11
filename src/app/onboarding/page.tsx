@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import OnboardingClient from "./OnboardingClient";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
+import { buildDesiredRoleOptions } from "@/lib/roles/desiredRoleOptions";
 
 export default async function OnboardingPage() {
   const supabase = createClient();
@@ -35,7 +36,7 @@ export default async function OnboardingPage() {
         「105件を目視で探させるUIが機能していなかった」と分かっている。 */
   const { data: roleRows, error } = await createAdminClient()
     .from("ow_roles")
-    .select("id, name, parent_id, display_order, is_it_saas")
+    .select("id, name, parent_id, display_order, is_active, is_it_saas")
     .is("merged_into_id", null)
     .eq("is_active", true)
     .order("display_order", { ascending: true })
@@ -154,9 +155,32 @@ export default async function OnboardingPage() {
     initialDesiredRoleIds = (dRoles ?? []).map((r) => r.role_id as string);
   }
 
+  /* ★★「関心のある職種」の候補は **IT/SaaS に絞る**（2026-09-12 / 柴さんの指示・案B）。
+     ⚠️★**条件は `lib/roles/desiredRoleOptions.ts` の1箇所。`/mypage` の「希望職種」と同じ関数。**
+        ここに `is_it_saas` を直接書かないこと —— 2026-09-12 まで `/mypage` だけが絞っており、
+        **オンボーディング18分類 / `/mypage` 10分類**と食い違っていた。
+     ⚠️★**`roles`（1画面目・3画面目の職歴の職種）には掛けない。** あちらは
+        「これまでの経歴」なので**全職種**（非IT の8分類を含む18分類）のまま。
+     ⚠️ 既に選んでいる職種とその親は関数の中で必ず残す（足し戻し）。
+        オンボーディングをやり直した人が、対象外の職種を持っていても
+        **画面から消えて保存時に失われない**ようにするため。 */
+  const roleMasterById = new Map(
+    rows.map((r) => [
+      r.id as string,
+      {
+        id: r.id as string,
+        parent_id: (r.parent_id as string | null) ?? null,
+        is_active: (r.is_active as boolean | null) ?? null,
+        is_it_saas: (r.is_it_saas as boolean | null) ?? null,
+      },
+    ]),
+  );
+  const desiredRoleOptions = buildDesiredRoleOptions(roles, roleMasterById, initialDesiredRoleIds);
+
   return (
     <OnboardingClient
       roles={roles}
+      desiredRoleOptions={desiredRoleOptions}
       roleAliases={roleAliases}
       currentExperience={currentExperience}
       initialStance={initialStance}

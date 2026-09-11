@@ -271,9 +271,14 @@ const selectStyle: React.CSSProperties = {
 };
 
 function OnboardingInner({
-  roles, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
 }: {
+  /** ★職歴の職種に使う。**全職種**（非IT の8分類を含む18分類）。絞り込まない */
   roles: OnboardingRole[];
+  /** ★★「関心のある職種」に使う。**IT/SaaS に絞った候補**（2026-09-12 / 柴さんの指示）。
+      ⚠️★条件は `lib/roles/desiredRoleOptions.ts` の1箇所で、`/mypage` の「希望職種」と同じ。
+         **`roles` を代わりに渡さないこと** —— 2つの画面で選べる範囲が割れる。 */
+  desiredRoleOptions: OnboardingRole[];
   roleAliases: Record<string, string[]>;
   /** ★2回目に来た人の既存の現職（`is_current` のうち最新の1件）。無ければ null */
   currentExperience: ExistingExperience | null;
@@ -1013,14 +1018,14 @@ function OnboardingInner({
 
               {/* 選んだもの。⚠️ 上に出す（何を選んだかが先に読めるように） */}
               <SelectedRoleChips
-                roles={roles}
+                roles={desiredRoleOptions}
                 values={desiredRoleIds}
                 disabled={saving}
                 onRemove={(id) => { setRoleLimitNote(false); setDesiredRoleIds(desiredRoleIds.filter((r) => r !== id)); }}
               />
 
               <RoleAccordionPicker
-                roles={roles}
+                roles={desiredRoleOptions}
                 values={desiredRoleIds}
                 mode="multi"
                 max={MAX_DESIRED_ROLES}
@@ -2099,9 +2104,10 @@ function LogoMark() {
 // ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
 
 export default function OnboardingPage({
-  roles, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
 }: {
   roles: OnboardingRole[];
+  desiredRoleOptions: OnboardingRole[];
   roleAliases: Record<string, string[]>;
   currentExperience: ExistingExperience | null;
   initialStance: string | null;
@@ -2115,6 +2121,7 @@ export default function OnboardingPage({
     }>
       <OnboardingInner
         roles={roles}
+        desiredRoleOptions={desiredRoleOptions}
         roleAliases={roleAliases}
         currentExperience={currentExperience}
         initialStance={initialStance}
