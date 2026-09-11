@@ -90,7 +90,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
     }
   }
-  const visibilityCompany = isBlank(body.visibility_company) ? "real" : (body.visibility_company as string);
+  /* ★「送られてこない＝変更しない」（2026-09-11）。**`"real"` に倒さない。**
+     ⚠️★以前は `isBlank ? "real"` だった。いまは職歴エディタが既存値を持ち回るので
+        無事だったが、**`visibility_company` を送らない PUT が1つできた瞬間、
+        会社名を伏せている人が実名に戻る。** 既定が**広いほうに倒れていた**
+        （CLAUDE.md「公開範囲の既定を広いほうにしない」）。
+     ⚠️ `undefined` の列は下の update オブジェクトから落ちるので、DB の値がそのまま残る。 */
+  const visibilityCompany = isBlank(body.visibility_company)
+    ? undefined
+    : (body.visibility_company as string);
 
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);
@@ -139,8 +147,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       /* ⚠️ 300字。UI と POST と同じ値（2026-08-20） */
       join_reason: s(body.join_reason, 300),
       employment_type: employmentType,
+      /* ⚠️★`undefined` は **JSON.stringify がキーごと落とす**ので、PostgREST にも送られない
+            ＝**その列は触らない**（CLAUDE.md「キーが無いなら undefined を返して触らない」）。
+            **`?? 既定値` に戻さないこと。** 「送られてこない」を「既定値にする」と読み替えると、
+            本人が選んだ公開範囲を勝手に広げることになる。 */
       visibility_company: visibilityCompany,
-      visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
+      visibility_reason: isBlank(body.visibility_reason)
+        ? undefined
+        : (body.visibility_reason as boolean),
       updated_at: new Date().toISOString(),
       ...salaryPatch,
       ...reasons.patch,

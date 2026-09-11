@@ -281,10 +281,19 @@ export async function POST(req: Request) {
      迷ったら狭いほうへ（CLAUDE.md「公開範囲の既定を広いほうにしない」）。
      ⚠️ 職歴0件なら `real`。**既定は変えていない。** */
   const { data: prevRows, error: prevErr } = await createAdminClient()
-    .from("ow_experiences").select("visibility_company").eq("user_id", owUserId);
+    .from("ow_experiences")
+    .select("visibility_company, visibility_reason")
+    .eq("user_id", owUserId);
   if (prevErr) console.error("[POST /api/jobseeker/experiences] 既存の公開範囲:", prevErr.message);
   const prevVals = new Set((prevRows ?? []).map((r) => (r.visibility_company as string) ?? "real"));
   const visibilityCompany = prevVals.has("hidden") ? "hidden" : prevVals.has("masked") ? "masked" : "real";
+
+  /* ★入社理由の公開も同じ扱いに揃えた（2026-09-11）。
+     ⚠️ こちらも**入力欄が無い**（2026-08-16 に撤去）ので、呼び出し側は常に `true` を
+        送っていた＝サーバーの `?? true` が一度も発火しない、`visibility_company` と
+        **まったく同じ構図**だった。値が一致していたので実害は出ていなかっただけ。
+     ⚠️ 1件でも非公開なら非公開に倒す（迷ったら狭いほうへ）。職歴0件なら `true`（既定は変えない）。 */
+  const visibilityReason = (prevRows ?? []).some((r) => r.visibility_reason === false) ? false : true;
 
   const startedAt = normalizeYm(body.started_at);
   const endedAt = normalizeYm(body.ended_at);
@@ -326,7 +335,7 @@ export async function POST(req: Request) {
             「送られてきたら書く」形を残すと、権限を剥奪した意図と食い違う */
       visibility_company: visibilityCompany,
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
-      visibility_reason: (body.visibility_reason as boolean | undefined) ?? true,
+      visibility_reason: visibilityReason,
       /* ⚠️ 理由データは authenticated がテーブルレベルの INSERT を持つので
             セッションクライアントのまま書ける。SELECT 権限は無いが、
             .select("id") しか返さないので 403 にならない。 */

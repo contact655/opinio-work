@@ -1823,7 +1823,8 @@ export default function CareerHistoryEditor({
               **会社名を伏せている人が職歴を1件足した瞬間、その1件だけ実名で出る。**
               `EMPTY_DRAFT` は `"real"` なので、送れば必ず実名になる。
               ⚠️ 編集（PUT）は既存値をそのまま送る。あちらは消さないこと。 */
-        visibility_reason: addDraft.visibilityReason,
+        /* ⚠️★`visibility_reason` も送らない（2026-09-11）。`visibility_company` と同じ構図で、
+              入力欄が無いぶん常に `true` が送られ、API の既定が一度も効いていなかった。 */
         ...buildReasonBody(addDraft),
       });
       if (!res.ok) throw new Error();

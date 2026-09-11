@@ -18,6 +18,8 @@
  *    組み立ててから渡すと素通りする。**だからサーバー側も読まない**（二重の守り）。
  *    サーバー側の扱いは `POST /api/jobseeker/experiences` を参照。
  *
+ * ⚠️ `visibility_reason`（入社理由の公開）も同じ理由で持たせていない。**同じ構図だった。**
+ *
  * ⚠️ **更新（PUT）はこの型を使わない。** あちらは本人が公開範囲を変える経路なので、
  *    `visibility_company` を受け取ってよい。**作成時に受け付けないだけ。**
  */
@@ -62,7 +64,6 @@ export type CreateExperienceBody = ExperienceReasonBody & {
   display_order?: number;
   department?: string | null;
   rank?: string | null;
-  visibility_reason?: boolean;
 } & Partial<ExperienceCompanyBody>;
 
 /**
