@@ -801,8 +801,12 @@ function OnboardingInner({
               ⚠️ ここまで埋めて初めて経歴として保存できる（3点が必須）。 */}
           {hasCompany && (
             <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-              {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
-                     大きいものから小さいものへ降りる順。⚠️ **職種を先に戻さないこと。**
+              {/* ★★並びは **会社名 → 部署名 → 職種 → 社内での呼び方**
+                     （2026-09-09 の「大きいものから小さいものへ」に、2026-09-11 に
+                      社内での呼び方を末尾で足した形）。
+                     ⚠️ **職種を部署より先に戻さないこと。**
+                     ⚠️★**社内での呼び方は職種より後ろ。** 前に置くと何の呼び方か読めない
+                        （実際にそうなっていて、柴さんの指摘で直した）。
                      ⚠️「これまでの職歴」の各行も同じ並びにしてある。**片方だけ変えない。** */}
               {/* ★★社内での呼び方（`role_title`）と部署名（`department`）を畳んだ（2026-09-11）。
                      ⚠️★**`rank`（役職）と `department` を1つの欄に混ぜないこと。** 別の列で、
@@ -813,9 +817,11 @@ function OnboardingInner({
                      ⚠️★「これまでの職歴」の各行にも**同じ2つの欄がある**（2026-09-11 に
                         社内での呼び方を足して揃えた）。**片方だけにしないこと** ——
                         同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。
-                        ⚠️ 並び（社内での呼び方 → 部署名）も揃えてある。**片方だけ入れ替えない。**
+                        ⚠️ 並び（部署名 → 職種 → 社内での呼び方）も揃えてある。**片方だけ入れ替えない。**
                         ⚠️ ただし**畳んでいるのはここだけ**。あちらは繰り返し要素なので常に出す
                            （畳むと開閉ボタンが行の数だけ並ぶ）。
+                     ⚠️★**この `showJobDetail` は離れた2箇所を開く**（部署名はここ、
+                        社内での呼び方は職種の下）。ボタンは両方を名乗っている。**片方だけ動かさない。**
                      ⚠️ `role_title` は絞り込みには使わない。`/biz/candidates` の
                         **フリーワード検索の対象には既に入っている**（2026-09-11 実測）。 */}
               {!showJobDetail ? (
@@ -829,20 +835,6 @@ function OnboardingInner({
               ) : (
                 <>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-                    社内での呼び方
-                  </div>
-                  <input
-                    type="text"
-                    value={roleTitle}
-                    onChange={(e) => setRoleTitle(e.target.value)}
-                    placeholder="例：アカウントエグゼクティブ、営業主任"
-                    disabled={saving}
-                    maxLength={100}
-                    style={textInputStyle}
-                    aria-label="社内での呼び方"
-                  />
-
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>
                     部署名
                   </div>
                   <input
@@ -892,7 +884,38 @@ function OnboardingInner({
                 ariaLabel="職種"
               />
 
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+              {/* ★★社内での呼び方は**職種のすぐ下**に置く（2026-09-11 / 柴さんの指摘）。
+                     ⚠️★以前は会社名の直後（＝職種より**前**）にあり、
+                        **何の呼び方なのかが画面から読めなかった。**
+                        職種を選んだ直後に「この会社では何と呼ばれているか」を聞く並びにして、
+                        関係を位置で示す。**職種より前に戻さないこと。**
+                     ⚠️★**補足の1行を消さないこと。** 見出しだけでは伝わらない
+                        （職歴エディタには元から同じ補足がある）。
+                     ⚠️ 開閉は部署名と同じ `showJobDetail` の1つ。**離れた2箇所を1つで開く。**
+                        ボタンは「＋ 社内での呼び方・部署名」のまま両方を名乗る。
+                     ⚠️★`rank`（役職）とは別の列。混ぜないこと。 */}
+              {showJobDetail && (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
+                    社内での呼び方
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+                    上で選んだ職種を、社内では何と呼んでいますか。
+                  </div>
+                  <input
+                    type="text"
+                    value={roleTitle}
+                    onChange={(e) => setRoleTitle(e.target.value)}
+                    placeholder="例：アカウントエグゼクティブ、営業主任"
+                    disabled={saving}
+                    maxLength={100}
+                    style={textInputStyle}
+                    aria-label="社内での呼び方"
+                  />
+                </>
+              )}
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 10 }}>
                 入社年月<span style={needLabelStyle}>保存に必要</span>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1314,27 +1337,6 @@ function OnboardingInner({
                         {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
                                大きいものから小さいものへ降りる順。**職種を先に戻さないこと。**
                                ⚠️ 現職の欄も同じ並びにしてある。**片方だけ変えない。** */}
-                        {/* ★★社内での呼び方（`role_title`・2026-09-11 追加）。⚠️ 任意。
-                               ⚠️★**現職の欄と同じ並び**（社内での呼び方 → 部署名）にしてある。
-                                  **片方だけ並べ替えないこと。**
-                               ⚠️★**ここでは畳まない**（現職側は「＋ 社内での呼び方・部署名」で畳んでいる）。
-                                  理由は2つ。① この行は繰り返し要素なので、畳むと
-                                  **開閉ボタンが行の数だけ並ぶ**。② 隣の部署名は畳まずに出しており、
-                                  **隣り合う2つを別の操作段階に分けると、片方だけ見落とす。**
-                                  ⚠️ 現職側を畳んでいるのは、あちらが**入口**で「保存に必要な3点」を
-                                     主役にするため。この行は「＋ これまでの職歴を追加」を押した人しか見ない。
-                               ⚠️★`rank`（役職）とは別の列。混ぜないこと。 */}
-                        <input
-                          type="text"
-                          value={j.roleTitle}
-                          onChange={(e) => upd({ roleTitle: e.target.value })}
-                          placeholder="社内での呼び方（例：営業主任）"
-                          disabled={saving}
-                          maxLength={100}
-                          style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
-                          aria-label={`職歴 ${gIdx + 1} の社内での呼び方`}
-                        />
-
                         {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
                                ⚠️★同じ職種のまま部署だけ変わる異動（営業部 → 人事部）は、
                                   これが無いと**同じ行が2つ並ぶだけ**になり、何が変わったのか読めない。 */}
@@ -1345,7 +1347,7 @@ function OnboardingInner({
                           placeholder="部署名"
                           disabled={saving}
                           maxLength={100}
-                          style={{ ...textInputStyle, marginTop: 8 }}
+                          style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
                           aria-label={`職歴 ${gIdx + 1} の部署名`}
                         />
 
@@ -1365,6 +1367,27 @@ function OnboardingInner({
                             ariaLabel={`職歴 ${gIdx + 1} の職種`}
                           />
                         </div>
+
+                        {/* ★★社内での呼び方（`role_title`・2026-09-11 追加）。⚠️ 任意。
+                               ⚠️★**職種のすぐ下**に置く。現職の欄と同じ並びで、
+                                  **何の呼び方なのかを位置で示している。片方だけ並べ替えないこと。**
+                               ⚠️★**ここでは畳まない**（現職側は「＋ 社内での呼び方・部署名」で畳んでいる）。
+                                  理由は2つ。① この行は繰り返し要素なので、畳むと
+                                  **開閉ボタンが行の数だけ並ぶ**。② 隣の部署名は畳まずに出しており、
+                                  **隣り合う2つを別の操作段階に分けると、片方だけ見落とす。**
+                                  ⚠️ 現職側を畳んでいるのは、あちらが**入口**で「保存に必要な3点」を
+                                     主役にするため。この行は「＋ これまでの職歴を追加」を押した人しか見ない。
+                               ⚠️★`rank`（役職）とは別の列。混ぜないこと。 */}
+                        <input
+                          type="text"
+                          value={j.roleTitle}
+                          onChange={(e) => upd({ roleTitle: e.target.value })}
+                          placeholder="社内での呼び方（例：営業主任）"
+                          disabled={saving}
+                          maxLength={100}
+                          style={{ ...textInputStyle, marginTop: 8 }}
+                          aria-label={`職歴 ${gIdx + 1} の社内での呼び方`}
+                        />
 
                         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
                           <select
