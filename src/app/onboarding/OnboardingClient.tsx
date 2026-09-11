@@ -648,7 +648,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                      ⚠️★「これまでの職歴」の各行にも同じ欄がある。**片方だけにしないこと** ——
                         同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。 */}
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-                部署名（任意）
+                部署名
               </div>
               <input
                 type="text"
@@ -743,7 +743,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 ⚠️ どちらも1タップで終わる形にしている。項目を増やしすぎない。
               */}
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 20, marginBottom: 10 }}>
-                勤務地（任意）
+                勤務地
               </div>
               <select
                 value={prefecture}
@@ -764,7 +764,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               </select>
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>
-                勤務形態（任意）
+                勤務形態
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {REMOTE_CHIPS.map((o) => {
@@ -855,10 +855,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                       **任意であることは、押さなくても進めることと「後で設定する」で伝わる。**
                    ⚠️ 行が1件でもあるときは見出しを出す（どこからどこまでが職歴か要る）。 */}
             {pastJobs.length > 0 && (
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>これまでの職歴</div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
-              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>これまでの職歴</div>
             )}
 
             {/* ★同じ会社の連続する行を1グループとして描く（2026-09-09）。
@@ -990,7 +987,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                           type="text"
                           value={j.department}
                           onChange={(e) => upd({ department: e.target.value })}
-                          placeholder="部署名（任意）"
+                          placeholder="部署名"
                           disabled={saving}
                           maxLength={100}
                           style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
@@ -1106,10 +1103,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
             {/* ★★0件のときは見出しも説明も出さない（職歴と同じ。2026-09-09）。 */}
             {educations.length > 0 && (
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>学歴</div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>任意</span>
-              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>学歴</div>
             )}
 
             {educations.map((e, idx) => (
@@ -1144,14 +1138,14 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                   style={{ ...selectStyle, width: "100%", marginTop: 8 }}
                   aria-label={`学歴 ${idx + 1} の区分`}
                 >
-                  <option value="">区分（任意）</option>
+                  <option value="">区分</option>
                   {DEGREES.map((d) => <option key={d} value={d}>{DEGREE_LABELS[d]}</option>)}
                 </select>
                 <input
                   type="text"
                   value={e.faculty}
                   onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, faculty: ev.target.value } : p))}
-                  placeholder="学部・学科（任意）"
+                  placeholder="学部・学科"
                   disabled={saving}
                   maxLength={100}
                   style={{ ...textInputStyle, marginTop: 8 }}
@@ -1164,7 +1158,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                     style={selectStyle}
                     aria-label={`学歴 ${idx + 1} の卒業年`}
                   >
-                    <option value="">卒業年（任意）</option>
+                    <option value="">卒業年</option>
                     {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
                   </select>
                   <select

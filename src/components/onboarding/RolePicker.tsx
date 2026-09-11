@@ -128,7 +128,7 @@ export function RolePicker({
                      親チップと取り違える。ここは「どの親の話か」を示す見出し。 */}
               <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 7px", lineHeight: 1.6 }}>
                 <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>{p.name}</strong>
-                {" "}のなかで、さらに近いものがあれば（任意）
+                {" "}のなかで、さらに近いものがあれば
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {(childrenOf.get(p.id) ?? []).map((c) => {
