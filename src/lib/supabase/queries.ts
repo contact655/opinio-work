@@ -1885,14 +1885,26 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
-  // 表示除外条件: is_test=true または visibility='private'
+  /* 表示除外条件: visibility='private' または 本人が登録していない行。
+     ⚠️★**`is_test` はここでは除外しない**（2026-09-12 / 柴さんの指示）。
+        企業ページの現役社員・OB/OG に**検証用アカウントも並ぶ**。
+        ⚠️ セールスフォースの現役社員は 3名 → **11名**になる
+           （検証用7名を含む。2026-09-12 実測）。
+        ⚠️★**これは「実在企業のページに検証用の人が現役社員として出る」ことを承知のうえの判断。**
+           懸念（一般の利用者にも見える／2026-08-22 に `/biz/employees` で同じ状態を
+           直した経緯がある）を伝えたうえで、柴さんが本番に出すと決めた。
+           **勝手に戻さないこと。戻すなら柴さんに確認する。**
+        ⚠️ 未ログインには**従来どおり出ない**。検証用アカウントは全員 `login_only` で、
+           呼び出し側（`/api/jobseeker/companies/[id]/employees`）が
+           未ログインには `visibility === "public"` だけを渡すため。
+        ⚠️★**他の46箇所の `is_test` 除外はそのまま。** ここだけの例外にしてある
+           （`/people`・`/companies` のカードの人数・求人の経験者などは従来どおり除外）。
+     ⚠️ `auth_id` を上の select に含めること。落とすと全員が除外され、
+        現役社員・OB/OG が丸ごと空になる（`lib/users/registered.ts`）。 */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isSeedRow = (r: any) => {
     const u = r.ow_users as { auth_id?: string | null; is_test?: boolean | null; visibility?: string | null } | null;
-    /* ★本人が登録していない行（auth_id IS NULL）も出さない。lib/users/registered.ts
-          ⚠️ `auth_id` を上の select に含めること。落とすと全員が除外され、
-             現役社員・OB/OG が丸ごと空になる。 */
-    return u?.is_test === true || u?.visibility === "private" || !isRegisteredUser(u);
+    return u?.visibility === "private" || !isRegisteredUser(u);
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEmps = dedupeByUser((currentRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r)));
