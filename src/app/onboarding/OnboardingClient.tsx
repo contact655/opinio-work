@@ -581,7 +581,13 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                  下の「その企業のページに『現役社員』として表示されます」と正面から矛盾していた。
                  どこに出るかの説明は、実際に表示先が決まる下のブロックに一本化する。
             */}
-            任意入力です。あとから変更できます。
+            {/* ⚠️★**「任意入力です。」を戻さないこと**（2026-09-11 / 柴さんの指示で削除）。
+                   最初の画面だけで「任意」が**4回**出ていた（ここ・職歴のボタン・学歴のボタン・
+                   生年月日のバッジ）。同じことの繰り返しで、読む量が増えるだけだった。
+                ⚠️ 「任意である」ことは**押さなくても進めること**と、下の「後で設定する」で伝わる。
+                   ⚠️ 逆に「保存に必要」は**残す**。あちらは positive な印で、
+                      印の無いものが任意だと分かる形にしてある。 */}
+            あとから変更できます。
           </p>
 
           {/*
@@ -843,8 +849,10 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                    ⚠️ 見出し＋「任意」＋説明＋ボタンで**4行**あり、しかも説明はボタンの文言と
                       同じことを言っていた。大半の人は職歴を足さずに進むので、
                       その人たちには**4行ぶんの余計な高さ**にしかなっていない。
-                   ⚠️★**文言に「任意」を残すこと。** 見出しの横の「任意」バッジが消えるので、
-                      ボタン側で言わないと必須に見える。
+                   ⚠️★~~文言に「任意」を残すこと~~ → **2026-09-11 に削除した。**
+                      最初の画面で「任意」が4回出ており、繰り返しになっていた
+                      （ページ冒頭の一文・職歴のボタン・学歴のボタン・生年月日のバッジ）。
+                      **任意であることは、押さなくても進めることと「後で設定する」で伝わる。**
                    ⚠️ 行が1件でもあるときは見出しを出す（どこからどこまでが職歴か要る）。 */}
             {pastJobs.length > 0 && (
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
@@ -1068,7 +1076,10 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               style={addBtnStyle}
             >
               <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
-              {pastJobs.length > 0 ? "職歴を追加" : "これまでの職歴を追加（任意）"}
+              {/* ⚠️★**「（任意）」を戻さないこと**（2026-09-11）。2026-09-09 に
+                     「0件のときは見出しの『任意』バッジが消えるので文言に残す」と決めたが、
+                     **その後の画面では「任意」が4回出ていた**ので削った。 */}
+              {pastJobs.length > 0 ? "職歴を追加" : "これまでの職歴を追加"}
             </button>
           </div>
 
@@ -1156,7 +1167,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               style={addBtnStyle}
             >
               <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
-              {educations.length > 0 ? "学歴を追加" : "学歴を追加（任意）"}
+              {/* ⚠️ 「（任意）」を削ったので0件でも同じ文言。三項に戻さないこと（2026-09-11） */}
+              学歴を追加
             </button>
           </div>
 
@@ -1172,7 +1184,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               ⚠️ 3つ揃わなければ送らない（`BIRTH_RE` が `YYYY-MM-DD` を要求する）。 */}
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-              生年月日<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>任意</span>
+              {/* ⚠️ 「任意」バッジは 2026-09-11 に削除。戻さないこと。 */}
+              生年月日
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
