@@ -50,6 +50,8 @@ import {
   type UserSkill,
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
+/* ★職歴カードの「理由」入口（2026-09-12）。⚠️ **本人の /mypage だけに出す。** */
+import { ReasonEntryButton, hasReasonAnswers } from "@/components/profile/editor/ExperienceReasonModal";
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline, { limitCareersForDisplay } from "@/components/profile/MergedTimeline";
@@ -719,8 +721,11 @@ export default function ProfileTab({
   const [editingAbout,  setEditingAbout]  = useState(false);
   const [aboutSaving,    setAboutSaving]    = useState(false);
   const [aboutJustSaved, setAboutJustSaved] = useState(false);
-  /* 職歴カードの見出し「＋」→ 追加モーダルを開く合図。値が変わるたびに開く */
+  /* 職歴カードの「＋」→ 追加モーダルを開く合図。値が変わるたびに開く。
+     ⚠️ 見出しの「＋」は 2026-09-12 に外した。いま使うのは**0件のときの丸い ＋** だけ。 */
   const [careerAddNonce, setCareerAddNonce] = useState(0);
+  /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
+  const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
   /* 職歴（2026-08-16 / 2-6）。表示は公開部品が描くので、保存済みの職歴を親でも持つ。
      ⚠️ **所有者は `CareerHistoryEditor` のまま**（保存の成否を知っているのは向こう）。
         ここは `onStintsChange` で受け取った控え。編集用モーダルは常にマウントしておく
@@ -1386,17 +1391,20 @@ export default function ProfileTab({
                    集約していた（その入口は撤去した）。
                 ⚠️ **0件のときは ✎ を出さない。** 一覧ページに送っても空の画面に着くだけ。
                    1件でも入れば ＋ と ✎ の2つに戻る。 */}
+            {/* ⚠️★見出しの「＋」は 2026-09-12 に外した（柴さんの指示）。**戻さないこと。**
+                   追加の経路は残っている: 見出しの ✎ →『/mypage/details/experience』の
+                   「職歴を追加」／ 0件のときはカード下の丸い ＋（`SectionAddCircle`）。
+                ⚠️ `careerAddNonce` は**消していない**。0件のときの丸い ＋ が使う。 */}
             <ProfileTimelineSection
               id="career"
               title="職歴"
               latin="CAREER"
-              onAdd={() => setCareerAddNonce((n) => n + 1)}
-              addLabel="職歴を追加"
               /* ★行ごとの操作は一覧ページへ（2026-08-17 / フェーズ3） */
               manageHref={careerStints.length > 0 ? "/mypage/details/experience" : undefined}
               manageLabel="職歴を編集"
-              /* ★0件のときは鉛筆1つにする（記号を「転職の希望」ボックスと揃える） */
-              emptyUsesPencil={careerStints.length === 0}
+              /* ★✎ を大きくする（2026-09-12）。「＋」が消えて**この1つだけ**になったので、
+                    小さいままだと押す場所が見つけにくい。アイコン 20px・当たり判定 40px 四方。 */
+              manageIconLarge
             >
               {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
                      「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
@@ -1428,9 +1436,21 @@ export default function ProfileTab({
                      1件ずつ触るのは `/mypage/details/experience` の仕事。
                   ⚠️ `collapseAfter` は渡さない。あれは「その場で開く」畳み方で、
                      ここは**一覧ページへ送る**畳み方にする。 */}
+              {/* ★職歴1件ごとの「理由」入口（2026-09-12）。**本人の /mypage だけ。**
+                     ⚠️ `/u/[id]`・企業ページ・`/people` には渡さない（理由データは非公開）。 */}
               <MergedTimeline
                 careers={shownCareers.careers}
                 educations={[]}
+                renderCareerAside={(careerId) => {
+                  const st = careerStints.find((x) => x.id === careerId);
+                  if (!st) return null;
+                  return (
+                    <ReasonEntryButton
+                      answered={hasReasonAnswers(st)}
+                      onClick={() => setReasonCareerId(careerId)}
+                    />
+                  );
+                }}
               />
               {careerStints.length === 0 && (
                 <SectionAddCircle label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
@@ -1453,7 +1473,8 @@ export default function ProfileTab({
               openEditId={editingCareerId}
               openDeleteId={deleteCareerId}
               openAddRoleForCareerId={addRoleForId}
-              onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); }}
+              openReasonId={reasonCareerId}
+              onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); setReasonCareerId(null); }}
               onStintsChange={setCareerStints}
               initialExperiences={initialExperiences}
               roles={roles}

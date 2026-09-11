@@ -209,13 +209,24 @@ const VALID_PREFECTURES = new Set<string>(PREFECTURES);
 
 export type GapInput = { axis: string; rating: string };
 
-/** ow_experiences に書き込む値。undefined の列は触らない。 */
+/**
+ * ow_experiences に書き込む値。**`undefined` の列は触らない。**
+ *
+ * ⚠️★**「キーが無い」と「キーはあるが空」を分ける**（2026-09-12）。
+ *    それまでは両方 `null` に潰しており、**理由を送らない PUT が1つできた瞬間に
+ *    既存の回答が全部消える**状態だった。実際 2026-09-12 に理由の設問を
+ *    職歴の編集モーダルから外したので、その PUT がまさに該当した。
+ *      キーが無い   → `undefined`（列に触らない）
+ *      キーはあるが空 → `null`（本人が外した＝消す）
+ *    ⚠️ `JSON.stringify` が `undefined` のキーを落とすので PostgREST にも送られない
+ *       （CLAUDE.md「キーが無いなら undefined を返して触らない」）。
+ */
 export type ReasonFieldsPatch = {
-  prefecture: string | null;
-  remote_work_status: string | null;
-  join_reasons: string[] | null;
-  join_reason_primary: string | null;
-  leave_reasons: string[] | null;
+  prefecture?: string | null;
+  remote_work_status?: string | null;
+  join_reasons?: string[] | null;
+  join_reason_primary?: string | null;
+  leave_reasons?: string[] | null;
 };
 
 export type ParseReasonFieldsResult =
@@ -275,7 +286,9 @@ function parseSlugArray(
  */
 export function parseReasonFields(body: Record<string, unknown>): ParseReasonFieldsResult {
   // ── 勤務地
-  let prefecture: string | null = null;
+  /* ⚠️★キーが無ければ触らない（2026-09-12）。`in` で見ること —— `isBlankish` だけだと
+        「送っていない」と「空にした」が同じになる。 */
+  let prefecture: string | null | undefined = "prefecture" in body ? null : undefined;
   if (!isBlankish(body.prefecture)) {
     const v = body.prefecture;
     if (typeof v !== "string" || !VALID_PREFECTURES.has(v)) {
@@ -284,7 +297,7 @@ export function parseReasonFields(body: Record<string, unknown>): ParseReasonFie
     prefecture = v;
   }
 
-  let remoteWorkStatus: string | null = null;
+  let remoteWorkStatus: string | null | undefined = "remote_work_status" in body ? null : undefined;
   if (!isBlankish(body.remote_work_status)) {
     const v = body.remote_work_status;
     if (typeof v !== "string" || !VALID_REMOTE_WORK_STATUSES.has(v)) {
@@ -294,10 +307,15 @@ export function parseReasonFields(body: Record<string, unknown>): ParseReasonFie
   }
 
   // ── 入社理由
+  const hasJoin = "join_reasons" in body;
   const join = parseSlugArray(body.join_reasons, VALID_JOIN_REASONS, "入社理由");
   if (!join.ok) return { ok: false, error: "INVALID_JOIN_REASONS", message: join.message };
 
-  let joinPrimary: string | null = null;
+  /* ⚠️★**`join_reasons` を書くときは `join_reason_primary` も必ず書く**（2026-09-12）。
+        DB の CHECK（`ow_experiences_join_reason_primary_check`）が
+        「決め手は選んだ理由の中の1つ」を要求する。理由だけ差し替えて決め手を残すと、
+        古い決め手が新しい配列に含まれず **23514** になる。 */
+  let joinPrimary: string | null | undefined = hasJoin || "join_reason_primary" in body ? null : undefined;
   if (!isBlankish(body.join_reason_primary)) {
     const v = body.join_reason_primary;
     if (typeof v !== "string" || !VALID_JOIN_REASONS.has(v)) {
@@ -354,9 +372,9 @@ export function parseReasonFields(body: Record<string, unknown>): ParseReasonFie
     patch: {
       prefecture,
       remote_work_status: remoteWorkStatus,
-      join_reasons: join.value,
+      join_reasons: hasJoin ? join.value : undefined,
       join_reason_primary: joinPrimary,
-      leave_reasons: leave.value,
+      leave_reasons: "leave_reasons" in body ? leave.value : undefined,
     },
     gaps,
   };

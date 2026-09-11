@@ -56,34 +56,15 @@ function shortCompanyName(name: string): string {
       ここに定数を置くと CSS と二重管理になり、片方だけ直る形になる。
 ──────────────────────────────────────────────────────────────────────────── */
 
-/**
- * ★「この会社を選んだ理由」（`join_reason`）— 2026-09-11 に**初めて描画した**。
- *
- * ⚠️★**それまで一度も出ていなかった。** 入力画面は紫バッジで「公開プロフィールに表示」と
- *    約束していたのに、**描画する JSX が src 全体で0件**だった（2026-09-11 に判明）。
- *    値は `RawExperienceRow` → `CareerEntry` を**通り抜けているだけ**だった。
- *
- * ⚠️★**公開の可否は `/u/[id]` 側で既に落としてある**（`visibility_reason = false` なら
- *    `join_reason` を `null` にする）。**ここで再判定しない。** 二重に書くと片方だけ直る。
- *
- * ⚠️ 未ログインには出さない。**`description` と同じ扱い**（あちらは `DescriptionGate`）。
- *    ⚠️ ゲートの箱を2つ並べない。1枚のカードに1つで足りる。
- *
- * ⚠️ 業務内容（`description`）と見分けがつく必要があるので、**短いラベルを添える。**
- *    ⚠️ クランプしない。300字上限なので畳む必要が無い。
- */
-function JoinReasonNote({ text }: { text: string }) {
-  return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--purple)", marginBottom: 3 }}>
-        この会社を選んだ理由
-      </div>
-      <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
-        {text}
-      </p>
-    </div>
-  );
-}
+/* ⚠️★**`join_reason`（「この会社を選んだ理由」自由記述）の描画は 2026-09-12 に止めた**
+      （柴さんの指示）。同日に職歴モーダルの入力欄（「選んだ理由を、自分の言葉で」）と
+      公開トグル（`visibility_reason`）も外している。
+      **入力欄が無い以上、本人が直せない値を公開し続けない**というのが理由。
+
+   ⚠️ **列とデータは消していない**（migration を作っていない）。`CareerEntry.join_reason` も
+      型として残してある（`timeline.ts` / `careerTimeline.ts` が通す）。
+      ⚠️ 描画を戻すなら、**入力欄と公開トグルを同時に戻すこと。**
+         片方だけだと「出るのに直せない」に戻る。 */
 
 function ExpandableDesc({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -230,6 +211,18 @@ export interface MergedTimelineProps {
    *    親から渡す形にしてあるのは、次に一覧を作り直しても**渡し忘れれば型で気づける**ため。
    */
   renderCareerExtra?: (careerId: string) => React.ReactNode;
+  /**
+   * ★職歴1件ごとに、行の**右端**へ差し込むもの（2026-09-12 / 理由モーダルの入口アイコン）。
+   *
+   * ⚠️★**渡されなければ何も描かない。** `renderCareerExtra` と同じ理由で、
+   *    公開プロフィール（`/u/[id]`）・企業ページ・`/people` には**渡さない**。
+   *    「見ている人が本人か」で出し分けない ——本人が自分の公開ページを見ても true になる。
+   *
+   * ⚠️ `careerActions`（鉛筆・ゴミ箱）とは**独立**。`/mypage` の職歴カードは
+   *    行ごとの操作を渡していない（1件ずつ触るのは `/mypage/details/experience`）ので、
+   *    あちらに相乗りさせると出せない。
+   */
+  renderCareerAside?: (careerId: string) => React.ReactNode;
 }
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
@@ -1135,7 +1128,6 @@ function CareerContent({
       )}
 
       {/* ⚠️ 公開の可否は `/u/[id]` が落としている。ここで再判定しない。 */}
-      {isAuthenticated && data.join_reason && <JoinReasonNote text={data.join_reason} />}
     </div>
   );
 }
@@ -1227,6 +1219,7 @@ export default function MergedTimeline({
   careers,
   educations,
   renderCareerExtra,
+  renderCareerAside,
   educationActions,
   careerActions,
   isAuthenticated = true,
@@ -1282,16 +1275,17 @@ export default function MergedTimeline({
                 {/* ⚠️ `.tl-row` は2列グリッド。鉛筆・ゴミ箱を3つ目の子として置くと
                        次の行の1列目（アイコン列の下）に回り込む。**同じセルに入れる。**
                     ⚠️ 渡されなければ `CareerContent` を裸で置く＝他人の DOM は不変 */}
-                {careerActions ? (
+                {careerActions || renderCareerAside ? (
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 4, minWidth: 0, flex: 1 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} actions={careerActions} />
-                      {careerActions.onAddRole && (
+                      {careerActions?.onAddRole && (
                         <AddRoleLink careerId={c.id} onAddRole={careerActions.onAddRole} />
                       )}
                       {renderCareerExtra?.(c.id)}
                     </div>
-                    <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />
+                    {renderCareerAside?.(c.id)}
+                    {careerActions && <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />}
                   </div>
                 ) : (
                   <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} />
@@ -1387,9 +1381,12 @@ export default function MergedTimeline({
                           {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる
                               ⚠️ 3経路のうちの3つ目。**会社名の見出しではなくポジション行に置く**
                                  （会社の見出しは id を持たない） */}
-                          {careerActions && (
-                            <span style={{ float: "right", marginLeft: 8 }}>
-                              <RowActionButtons id={c.id} label={`${head.company_name}（${lines.heading}）`} actions={careerActions} />
+                          {(careerActions || renderCareerAside) && (
+                            <span style={{ float: "right", marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                              {renderCareerAside?.(c.id)}
+                              {careerActions && (
+                                <RowActionButtons id={c.id} label={`${head.company_name}（${lines.heading}）`} actions={careerActions} />
+                              )}
                             </span>
                           )}
                           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35, overflowWrap: "anywhere" }}>
@@ -1442,9 +1439,6 @@ export default function MergedTimeline({
                             )
                           )}
 
-                          {/* ⚠️ 単独カード側と**同じ条件**にする。片方だけ出すと、
-                                 同じ職歴がグループに入った途端に消える。 */}
-                          {isAuthenticated && c.join_reason && <JoinReasonNote text={c.join_reason} />}
                         </div>
                       );
                     })}

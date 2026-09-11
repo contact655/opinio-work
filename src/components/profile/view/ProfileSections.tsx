@@ -1285,7 +1285,7 @@ export function ProfileSocialLinks({ socialLinks }: { socialLinks: Partial<Recor
  * ⚠️ 中身（年表）は `MergedTimeline` が描く。ここは枠・見出し・アンカーだけ。
  * ⚠️ `onAdd` を渡さなければ DOM は `page.tsx` にあったものと1バイトも変わらない。
  */
-export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, manageHref, manageLabel, emptyUsesPencil = false, children }: {
+export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, manageHref, manageLabel, emptyUsesPencil = false, manageIconLarge = false, children }: {
   /** アンカー（`#career` / `#education`）。ページ内ナビが指す */
   id: string;
   title: string;
@@ -1304,6 +1304,11 @@ export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, mana
          「転職の希望」ボックスは常に ✎ なので、そこと揃わない。
       ⚠️ 一覧ページへは送らない。行が無いので空の画面に着くだけ。 */
   emptyUsesPencil?: boolean;
+  /** ★見出しの「✎」を大きくする（2026-09-12 / 職歴だけ）。
+      アイコン 20px・当たり判定 40px 四方。
+      ⚠️ **既定は false。** 他の節は今までどおり 13px のまま（同じ見出し行に
+         大きさの違う ✎ が並ばないよう、渡すのは職歴セクションだけ）。 */
+  manageIconLarge?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -1325,8 +1330,18 @@ export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, mana
           </button>
         )}
         {manageHref && (
-          <Link href={manageHref} className="tap-target tap-target-end" aria-label={manageLabel ?? `${title}を編集`} title={manageLabel ?? `${title}を編集`} style={sectionAddBtn}>
-            <PencilIcon />
+          <Link
+            href={manageHref}
+            className="tap-target tap-target-end"
+            aria-label={manageLabel ?? `${title}を編集`}
+            title={manageLabel ?? `${title}を編集`}
+            style={manageIconLarge
+              /* ⚠️ 当たり判定は 40px 四方。`sectionAddBtn` の `padding: 0` を上書きする
+                    （767px 以下は `.tap-target` が 44px にするので、こちらは下限） */
+              ? { ...sectionAddBtn, width: 40, height: 40, justifyContent: "center" }
+              : sectionAddBtn}
+          >
+            <PencilIcon size={manageIconLarge ? 20 : 13} />
           </Link>
         )}
       </div>

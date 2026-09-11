@@ -144,8 +144,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,
       description: s(body.description, 5000),
-      /* ⚠️ 300字。UI と POST と同じ値（2026-08-20） */
-      join_reason: s(body.join_reason, 300),
+      /* ⚠️ 300字。UI と POST と同じ値（2026-08-20）
+         ⚠️★**キーが無ければ触らない**（2026-09-12）。自由記述の入力欄
+            （「選んだ理由を、自分の言葉で」）を職歴モーダルから外したので、
+            以降この列は送られてこない。`s(undefined)` は `null` を返すため、
+            そのままだと**保存するたびに既存の本文が消える**。
+            ⚠️ **列とデータは残してある**（migration を作っていない）。 */
+      join_reason: "join_reason" in body ? s(body.join_reason, 300) : undefined,
       employment_type: employmentType,
       /* ⚠️★`undefined` は **JSON.stringify がキーごと落とす**ので、PostgREST にも送られない
             ＝**その列は触らない**（CLAUDE.md「キーが無いなら undefined を返して触らない」）。

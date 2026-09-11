@@ -69,10 +69,12 @@ export function PlusIcon() {
   );
 }
 
-/** 見出しの鉛筆（セクションまるごとの編集）。行の鉛筆と同じ絵 */
-export function PencilIcon() {
+/** 見出しの鉛筆（セクションまるごとの編集）。行の鉛筆と同じ絵。
+    ⚠️ `size` は 2026-09-12 に足した。**既定（13）は変えていない** ——
+       大きくしているのは職歴の見出しだけで、他の節は今までどおり。 */
+export function PencilIcon({ size = 13 }: { size?: number } = {}) {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
   );

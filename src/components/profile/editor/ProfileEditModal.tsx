@@ -43,6 +43,14 @@ export function ProfileEditModal({
   children,
   /** 保存ボタンの文言。既定は「保存」 */
   saveLabel = "保存",
+  /** ★未入力でも主ボタンを押せるようにする（2026-09-12 / 理由モーダルの「次へ」）。
+      ⚠️ 既定は今までどおり `!dirty` で止める。**渡された画面だけ**が外れる。 */
+  primaryEnabled = false,
+  /** ★フッター左の副ボタン（2026-09-12 / 「あとで答える」）。
+      ⚠️ **`onClose` を直接呼ぶ**。破棄の確認を挟まない ——
+         「あとで答える」は本人が捨てる意思を示した操作で、× とは役割が違う。 */
+  secondaryLabel,
+  onSecondary,
 }: {
   open: boolean;
   title: string;
@@ -54,6 +62,9 @@ export function ProfileEditModal({
   onClose: () => void;
   children: React.ReactNode;
   saveLabel?: string;
+  primaryEnabled?: boolean;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -112,7 +123,7 @@ export function ProfileEditModal({
   if (!open) return null;
 
   const titleId = `profile-edit-modal-${title}`;
-  const saveLocked = !dirty || saving || justSaved;
+  const saveLocked = (!dirty && !primaryEnabled) || saving || justSaved;
 
   return (
     <>
@@ -169,6 +180,21 @@ export function ProfileEditModal({
               <span role="alert" style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "var(--error)" }}>
                 {error}
               </span>
+            )}
+            {secondaryLabel && onSecondary && (
+              <button
+                type="button"
+                onClick={onSecondary}
+                disabled={saving}
+                className="tap-min-h"
+                style={{
+                  marginRight: "auto", padding: "10px 4px", fontSize: "var(--text-sm)", fontWeight: 600,
+                  background: "none", border: "none", color: "var(--ink-mute)", fontFamily: "inherit",
+                  cursor: saving ? "default" : "pointer", textDecoration: "underline", textUnderlineOffset: 3,
+                }}
+              >
+                {secondaryLabel}
+              </button>
             )}
             <button
               type="button"

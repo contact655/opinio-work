@@ -854,11 +854,9 @@ export type EmployeesResponse = {
  */
 export function CompanyEmployeeSections({
   companyId,
-  companyName,
   acceptingMeetings,
 }: {
   companyId: string;
-  companyName: string;
   /** ★企業が申込を受け付けているか（`isCasualMeetingOpen()` 通過後の値）。
    *  申込リンクの出し分けだけに使う。**社員カードとバッジはこの値で消さない。** */
   acceptingMeetings: boolean;
@@ -880,17 +878,21 @@ export function CompanyEmployeeSections({
   );
 
   const showAlumni = data.alumni.length > 0 || data.hiddenAlumniCount > 0;
+  /* ⚠️★`data.relation.kind === "affiliated"` は 2026-09-12 に外した。
+        あれは掲載設定パネル（`ListingStatusPanel`）を「社員が0名でも出す」ための条件で、
+        パネルを外した今そのまま残すと、**在籍者本人にだけ「現役社員 0名」の空カード**が出る。 */
   const showAny =
     data.current.length > 0 ||
     data.alumni.length > 0 ||
     data.hiddenCurrentCount > 0 ||
-    data.hiddenAlumniCount > 0 ||
-    data.relation.kind === "affiliated";
+    data.hiddenAlumniCount > 0;
   if (!showAny) return null;
 
   return (
     <>
-      <ListingStatusPanel relation={data.relation} companyName={companyName} />
+      {/* ⚠️★掲載設定パネル（`ListingStatusPanel`）は 2026-09-12 に企業詳細から外した（柴さんの指示）。
+             **部品と型は消していない** ——`/dev/preview/listing-status` が3状態を描くのに使う。
+             戻すときはここに1行足すだけでよい。 */}
       <CurrentEmployeesSection
         employees={data.current}
         hiddenCount={data.hiddenCurrentCount}

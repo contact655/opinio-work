@@ -9,18 +9,19 @@ import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog"
 import { EMPLOYMENT_TYPES, RANKS, EMPLOYMENT_TYPE_FIELD_ID } from "@/lib/constants/careerOptions";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
-import {
-  JOIN_REASONS,
-  LEAVE_REASONS,
-  GAP_AXES,
-  GAP_RATINGS,
-  REASON_MAX,
-  groupReasonsByAxis,
-} from "@/lib/constants/careerReasons";
+
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Toast from "@/components/ui/Toast";
 import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
+/* ★理由データの設問（2026-09-12 に職歴の編集モーダルから移した）。
+      ⚠️ **設問をこのファイルに書き戻さないこと。** 入口が2つ（追加の直後 / カードのアイコン）
+         あるので、割れると片方だけ直る形の不具合になる。 */
+import {
+  ExperienceReasonModal,
+  reasonAnswersFrom,
+  type ReasonAnswers,
+} from "@/components/profile/editor/ExperienceReasonModal";
 import {
   postExperience,
   type ExperienceCompanyBody,
@@ -317,32 +318,54 @@ export function hasLeftCompany(d: StintDraft): boolean {
 }
 
 /**
- * 保存 body 用。**編集と追加で同じ関数を使う。**
+ * 保存 body 用（勤務地）。**編集と追加で同じ関数を使う。**
  * 片方にだけ書くと「追加時は保存されるが編集すると消える」が起きる。
  *
- * ⚠️ 終了日が無い在籍には退職理由を送らない。画面にも出していないので、
- *    「現職に切り替えたら退職理由が残っていた」を作らない。
+ * ⚠️★**理由データ（入社理由・決め手・離れた理由・ギャップ）はここに入れない**（2026-09-12）。
+ *    設問は `ExperienceReasonModal` へ移した。職歴の編集保存から理由を送ると、
+ *    **モーダルに入力欄が無いのに空で上書きする**ことになる。
+ *    ⚠️ サーバー側も「キーが無ければ触らない」にしてある（二重の守り）。
  */
-function buildReasonBody(d: StintDraft): ExperienceReasonBody {
+function buildLocationBody(d: StintDraft): ExperienceReasonBody {
   return {
     prefecture: d.prefecture || null,
     remote_work_status: d.remoteWorkStatus || null,
-    join_reasons: d.joinReasons,
-    join_reason_primary: d.joinReasonPrimary || null,
-    leave_reasons: hasLeftCompany(d) ? d.leaveReasons : [],
-    gaps: Object.entries(d.gaps).map(([axis, rating]) => ({ axis, rating })),
   };
 }
 
-/** 楽観的更新用。buildReasonBody と同じ値を Stint の形にする */
-function optimisticReasonFields(d: StintDraft): Partial<Stint> {
+/**
+ * 保存 body 用（理由データ）。**`ExperienceReasonModal` の答えだけを送る。**
+ *
+ * ⚠️ 終了日が無い在籍には退職理由を送らない。画面にも出していないので、
+ *    「現職に切り替えたら退職理由が残っていた」を作らない。
+ * ⚠️★**`join_reasons` を送るときは `join_reason_primary` も必ず一緒に送る。**
+ *    DB の CHECK（`ow_experiences_join_reason_primary_check`）が
+ *    「決め手は選んだ理由の中の1つ」を要求するので、片方だけ更新すると 23514 になる。
+ */
+function buildReasonAnswerBody(a: ReasonAnswers, showLeave: boolean): ExperienceReasonBody {
+  return {
+    join_reasons: a.joinReasons,
+    join_reason_primary: a.joinReasonPrimary || null,
+    leave_reasons: showLeave ? a.leaveReasons : [],
+    gaps: Object.entries(a.gaps).map(([axis, rating]) => ({ axis, rating })),
+  };
+}
+
+/** 楽観的更新用。buildLocationBody と同じ値を Stint の形にする */
+function optimisticLocationFields(d: StintDraft): Partial<Stint> {
   return {
     prefecture: d.prefecture || undefined,
     remoteWorkStatus: d.remoteWorkStatus || undefined,
-    joinReasons: d.joinReasons,
-    joinReasonPrimary: d.joinReasonPrimary || undefined,
-    leaveReasons: hasLeftCompany(d) ? d.leaveReasons : [],
-    gaps: Object.entries(d.gaps).map(([axis, rating]) => ({ axis, rating })),
+  };
+}
+
+/** 楽観的更新用。buildReasonAnswerBody と同じ値を Stint の形にする */
+function optimisticReasonAnswers(a: ReasonAnswers, showLeave: boolean): Partial<Stint> {
+  return {
+    joinReasons: a.joinReasons,
+    joinReasonPrimary: a.joinReasonPrimary || undefined,
+    leaveReasons: showLeave ? a.leaveReasons : [],
+    gaps: Object.entries(a.gaps).map(([axis, rating]) => ({ axis, rating })),
   };
 }
 
@@ -440,62 +463,8 @@ function RequiredMark() {
  * ⚠️ 自由記述にしない。理由データは集計するために作った箱で、
  *    自由記述だと集計できず、書く側の負担も大きい。
  */
-function ReasonChip({
-  label,
-  active,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active}
-      /* ⚠️★**タップ領域を 44px にする**（2026-08-28）。
-            直す前は **36px**（実測）で、44px の推奨タップ領域を満たしていなかった。
-            375px の職歴モーダルにこのチップが46個並ぶ。
-
-         ── ★`::after` で当たり判定だけ広げる案は捨てた（実測で動かなかった）──
-         `position: absolute` の `::after` を上下 -4.5px で重ねたが、
-         `elementFromPoint` で**拾えなかった**。`z-index: 0` を足しても、
-         親の `gap` を 6 → 9px に広げても**下側が当たらないまま**だった。
-         **疑似要素のヒットテストは当てにしない。**
-
-         → **`min-height: 44px` で実体を大きくする。** 上下の余白は増えるが、
-            `border-radius: 100` と背景色は変わらないので**見た目の印象は保たれる**。
-         ⚠️ 46個並ぶので縦に伸びる。それでも**押せないより押せるほうがよい**。
-
-         ⚠️ `reason-chip` に**当たる CSS は無い**。ブラウザで高さを測るための目印
-            （`document.querySelectorAll(".reason-chip")`）。消すと再計測できなくなる。 */
-      className="reason-chip"
-      style={{
-        minHeight: 44,
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "7px 14px",
-        borderRadius: 100,
-        border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
-        background: active ? "var(--royal-50)" : "#fff",
-        color: active ? "var(--royal)" : "var(--ink-soft)",
-        fontSize: 13,
-        fontWeight: active ? 700 : 500,
-        fontFamily: "inherit",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        lineHeight: 1.4,
-        transition: "border-color 0.12s, background 0.12s, color 0.12s",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
+/* ⚠️★`ReasonChip` は 2026-09-12 に `ExperienceReasonModal` へ移した。
+      **ここに書き戻さないこと**（同じチップが2つに割れる）。 */
 
 // ── IconButton ────────────────────────────────────────────────────────────────
 
@@ -770,20 +739,6 @@ function CompanySearch({
         />
       )}
 
-      {/* ── 選んだのかどうかを必ず出す ────────────────────────────────────
-          ⚠️ 「変わらないこと」でしか失敗に気づけない状態を作らない。 */}
-      {isMaster && (
-        <p style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          {/* ⚠️★「掲載中の」と言い切らない（2026-09-05 に修正）。
-                 2026-09-04 に未掲載の企業も選べるようにしたので、鹿島建設を選ぶと
-                 **上のチップが「OPINIOに未掲載」、この行が「掲載中」**と矛盾していた。
-                 既存レコードを開いた直後は `selectedMeta` が無く掲載状態が分からないので、
-                 **どちらの場合も正しい言い方**にする。掲載しているかどうかは
-                 チップ側の「OPINIOに未掲載」で示す。 */}
-          OPINIOの企業と連携します
-        </p>
-      )}
       {!isMaster && freeConfirmed && (
         <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8 }}>
           OPINIO 未掲載の企業として、この名前のまま記録します（企業ページには紐づきません）
@@ -828,56 +783,9 @@ function StintForm({
   roleAliases?: Record<string, string[]>;
   companyLocked?: boolean;
 }) {
-  /** 上限（`REASON_MAX`）に当たったことを伝える短い注記。次の操作で消える（2026-08-19）。 */
-  const [limitNote, setLimitNote] = useState<null | "join" | "leave">(null);
-
   const set = useCallback(
     (key: keyof StintDraft, val: string | boolean) =>
       onDraftChange({ ...draft, [key]: val }),
-    [draft, onDraftChange]
-  );
-
-  /* 入社理由・退職理由のチェック切り替え。
-     ⚠️ 入社理由を外したら「決め手」も一緒に外す。DB の CHECK
-        （ow_experiences_join_reason_primary_check）が「決め手は選んだ理由の中の1つ」を
-        要求しており、揃っていないと保存が 400 になるため、UI 側で常に整合させる。
-        ⚠️ 黙って捨てているのではない。ラジオの選択が画面上で消えるので本人に見える。 */
-  const toggleReason = useCallback(
-    (key: "joinReasons" | "leaveReasons", value: string) => {
-      const cur = draft[key];
-      /* ⚠️ 上限に達していたら**選ばせない**（2026-08-19）。
-            既存の選択を押し出す形にすると、利用者が選んだものが黙って消える。
-            代わりに短い注記を出す。注記は次の操作で消える。
-            ⚠️ 同じ上限を API（parseReasonFields）と DB の CHECK でも見ている。
-               ここだけ直すと「選べないのに保存はできる」形になる。 */
-      if (!cur.includes(value) && cur.length >= REASON_MAX) {
-        setLimitNote(key === "joinReasons" ? "join" : "leave");
-        return;
-      }
-      setLimitNote(null);
-      const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
-      if (key === "joinReasons") {
-        const primary =
-          draft.joinReasonPrimary && next.includes(draft.joinReasonPrimary)
-            ? draft.joinReasonPrimary
-            : "";
-        onDraftChange({ ...draft, joinReasons: next, joinReasonPrimary: primary });
-      } else {
-        onDraftChange({ ...draft, leaveReasons: next });
-      }
-    },
-    [draft, onDraftChange]
-  );
-
-  /* ギャップ。同じ選択肢をもう一度押すと未回答（キーごと削除）に戻す。
-     ⚠️ "未回答" という値を作らない。未回答は行が無いことで表す。 */
-  const setGap = useCallback(
-    (axis: string, rating: string) => {
-      const next = { ...draft.gaps };
-      if (next[axis] === rating) delete next[axis];
-      else next[axis] = rating;
-      onDraftChange({ ...draft, gaps: next });
-    },
     [draft, onDraftChange]
   );
 
@@ -895,19 +803,6 @@ function StintForm({
   // 期間バリデーション: ended_at が入力済みかつ現職フラグなし の場合のみ started_at <= ended_at を検証
   // YYYY-MM 文字列の辞書順比較で正しく動作（例: "2024-04" > "2023-04"）
   const periodInvalid = !draft.isCurrent && !!endedAt && !!startedAt && startedAt > endedAt;
-  /*
-    勤務地は**直近（現職）だけ**入力を求める。それ以前は任意。
-    ⚠️ 必須にしているのはこの UI 層だけ。DB は NOT NULL にしておらず、API も必須にしていない。
-       オンボーディングが勤務地なしで is_current=true の行を作るため、
-       そちらを 400 で落とさないようにしている（登録の入口の摩擦を増やさない）。
-    ⚠️ 既存の現職レコードを編集すると、勤務地が未入力なのでここで止まる。これは意図どおり。
-       追記を促す形にするために必須にしている。
-  */
-  const locationMissing = draft.isCurrent && (!draft.prefecture || !draft.remoteWorkStatus);
-  /* ⚠️ `locationMissing` は**案内を出すためだけ**に使う。保存は止めない（2026-08-13）。
-        必須にしていた頃は、勤務地と無関係な編集（役職を直すだけ等）まで保存できず、
-        オンボーディング直後の人が全員そこで詰まっていた。
-        行き止まりを作っても入力は増えない。通してから誘う。 */
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/*
@@ -998,6 +893,39 @@ function StintForm({
       </div>
 
 
+
+      {/* ★★社内での呼び方は 2026-09-12 に**職種の直下**へ移した（柴さんの指示）。
+             職種（マスタの分類）→ 社内での呼び方（その会社での呼称）と並べる。
+             それまでは雇用形態の下にあり、何の呼び方か読めなかった。
+          ⚠️ **表示順を変えただけ。** 送信内容・必須判定・バリデーションには触っていない。 */}
+      {/*
+        社内での呼び方（ow_experiences.role_title）
+
+        ⚠️ 2026-08-06 に定義を「社内での呼び方」に一本化した。
+           それまでの説明文は「M2、シニアアソシエイトなど社内で規定されているグレード・等級名」で、
+           等級を入れさせる文面だった。等級は隣の役職セレクト（rank）の守備範囲であり、
+           2つの軸が1つの欄に混ざっていた。実データでも部署名が混入している
+           （例:「金融営業本部 営業第1部 / 法人営業（アカウント営業）」）。
+        ⚠️ 保存先カラム（role_title）は変えていない。既存データの移行もしていない。
+           定義を先に正して、これから入る値をきれいにするのが目的。
+        ⚠️ この欄はフェーズ2で「会社独自の呼称」を集める入口になる。
+           ow_company_job_roles（company_id + name + standard_role_id）が受け皿。
+      */}
+      <div>
+        <label style={labelStyle()}>社内での呼び方</label>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
+          社内で使われている呼称を入力してください（例: アカウントエグゼクティブ、CXデザイナー）
+        </div>
+        <input
+          type="text"
+          value={draft.roleTitle}
+          onChange={(e) => set("roleTitle", e.target.value)}
+          placeholder="例: アカウントエグゼクティブ"
+          disabled={isSaving}
+          style={fieldStyle()}
+        />
+      </div>
+
       {/* Period — 年/月 separate selects */}
       <div>
         <label style={labelStyle()}>入社年月<RequiredMark /></label>
@@ -1065,316 +993,18 @@ function StintForm({
         )}
       </div>
 
-      {/*
-        入社・退職の背景（選択式）
+      {/* ⚠️★**理由ブロック（入社理由・いちばんの決め手・離れた理由・ギャップ）は
+             2026-09-12 にここから外した（柴さんの指示）。戻さないこと。**
+             置き場所は `ExperienceReasonModal`（新規追加の保存直後 ＋ 職歴カードのアイコン）。
+             設問・選択肢・上限・スラッグは1文字も変えていない。
 
-        ⚠️ **すべて非公開。** 本人と集計にしか使わない。公開トグルは出さない。
-
-        ⚠️ **位置は「会社・職種・期間」の直下**（2026-08-19 に自由記述の上から移した）。
-           それまではフォームの下から2番目にあり、追加モーダルでは本文 2,105px
-           （1280px 幅）のうち **1,086px 目**＝約2画面ぶん下だった。実データが0件
-           だった主因はここだと判断している。**チップは入力負荷が軽いので、
-           重い自由記述（業務内容・なぜこの会社を選んだか）より前に置く。**
-
-        ⚠️ **見出しに「任意」と書かない。** 任意と書かれた項目は飛ばされる。
-           代わりに「答えると何が起きるか」を1行で書く。
-
-        ⚠️ 軸（仕事の中身・裁量・役割…）は**小見出しとして置くだけ**。
-           押して降りる階層にしない。**タップ対象は選択肢だけ**にする。
-
-        ⚠️ 選べるのは `REASON_MAX`（3つ）まで。**同じ上限を API と DB の CHECK でも見る**
-           （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
-      */}
-      <div
-        style={{
-          background: "var(--bg-tint)",
-          border: "1px solid var(--line)",
-          borderRadius: 10,
-          padding: "14px 16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", letterSpacing: "0.04em" }}>
-              この会社を選んだ理由と、離れた理由
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--success-ink)",
-                background: "var(--success-soft)",
-                padding: "2px 8px",
-                borderRadius: 100,
-                letterSpacing: "0.03em",
-              }}
-            >
-              この内容は公開されません
-            </span>
-          </div>
-          {/* ⚠️ **まだ無い機能を約束しない**（2026-08-20）。
-                 一度「同じ選び方をした人や会社が見つかるようになります」と書いたが、
-                 サジェストは未実装で、集計も閾値（退職5件・入社3件）を満たす企業が
-                 **現時点で0社**。最初に入力してくれた人の信用を落とすので差し替えた。
-              ⚠️ **サジェストが実際に動いたら、ここを書き換える。**
-                 そのときは「何ができるようになるか」を書いてよい。 */}
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-            あなた以外には表示されません。企業ごとの傾向を集計するために使います。
-          </p>
-        </div>
-
-        {/* 入社理由（軸ごと・3つまで） */}
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-            この会社に入った理由
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10 }}>
-            {REASON_MAX}つまで選べます（{draft.joinReasons.length} / {REASON_MAX}）
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {groupReasonsByAxis(JOIN_REASONS).map((g) => (
-              /* ⚠️ 軸のラベルとチップを横並びにしない。狭い画面でラベルを固定幅にすると
-                    はみ出しの原因になる（CLAUDE.md「横はみ出しは flex-shrink: 0 を疑う」）。 */
-              <div key={g.axis} style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
-                  {g.axisLabel}
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 9, minWidth: 0 }}  /* ⚠️ チップは minHeight 44px。隣接しすぎると押し間違えるので gap は 9 */>
-                  {g.options.map((o) => (
-                    <ReasonChip
-                      key={o.value}
-                      label={o.label}
-                      active={draft.joinReasons.includes(o.value)}
-                      disabled={isSaving}
-                      onClick={() => toggleReason("joinReasons", o.value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          {limitNote === "join" && (
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 8 }}>
-              {REASON_MAX}つまでです。ほかを外してから選んでください。
-            </div>
-          )}
-        </div>
-
-        {/* 決め手（選んだ理由の中から1つ） */}
-        {draft.joinReasons.length > 0 && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-              その中で、いちばんの決め手は
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}  /* ⚠️ 上と同じ理由で 9 */>
-              {JOIN_REASONS.filter((o) => draft.joinReasons.includes(o.value)).map((o) => (
-                <ReasonChip
-                  key={o.value}
-                  label={o.label}
-                  active={draft.joinReasonPrimary === o.value}
-                  disabled={isSaving}
-                  /* もう一度押すと未選択に戻す */
-                  onClick={() => set("joinReasonPrimary", draft.joinReasonPrimary === o.value ? "" : o.value)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 退職理由 — ★終了日がある在籍にだけ出す（現職・終了日未入力には出さない） */}
-        {hasLeftCompany(draft) && (
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-              この会社を離れた理由
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10 }}>
-              {REASON_MAX}つまで選べます（{draft.leaveReasons.length} / {REASON_MAX}）
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {groupReasonsByAxis(LEAVE_REASONS).map((g) => (
-                <div key={g.axis} style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
-                    {g.axisLabel}
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 9, minWidth: 0 }}  /* ⚠️ チップは minHeight 44px。隣接しすぎると押し間違えるので gap は 9 */>
-                    {g.options.map((o) => (
-                      <ReasonChip
-                        key={o.value}
-                        label={o.label}
-                        active={draft.leaveReasons.includes(o.value)}
-                        disabled={isSaving}
-                        onClick={() => toggleReason("leaveReasons", o.value)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {limitNote === "leave" && (
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 8 }}>
-                {REASON_MAX}つまでです。ほかを外してから選んでください。
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 入社前後のギャップ（6軸 × 3択。未回答可） */}
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
-            入る前の想像と、実際のギャップ
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 10, lineHeight: 1.6 }}>
-            答えたい項目だけで大丈夫です。選んだものをもう一度押すと未回答に戻ります。
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {GAP_AXES.map((axis) => (
-              /* ⚠️ ラベルとチップを横並びにしない。狭い画面でラベルを固定幅にすると
-                    はみ出しの原因になる（CLAUDE.md「横はみ出しは flex-shrink: 0 を疑う」）。
-                    縦積みなら幅の取り合いが起きない。 */
-              <div key={axis.value} style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 5 }}>
-                  {axis.label}
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 9, minWidth: 0 }}  /* ⚠️ チップは minHeight 44px。隣接しすぎると押し間違えるので gap は 9 */>
-                  {GAP_RATINGS.map((r) => (
-                    <ReasonChip
-                      key={r.value}
-                      label={r.label}
-                      active={draft.gaps[axis.value] === r.value}
-                      disabled={isSaving}
-                      onClick={() => setGap(axis.value, r.value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ★「選んだ理由を、自分の言葉で」— 2026-08-20 にここへ移した。
-             それまではフォームの最下部にあり、上の理由チップと**同じことを2回聞く**形だった。
-             理由ブロックの直下に置いて、チップの補足であることを位置で示す。
-
-          ⚠️ **ラベルを「補足」にしない。** 何の補足か分からず、結局チップと同じ内容が書かれる。
-             「自分の言葉で」＝チップでは表せない具体的な経緯を書く欄だと分かる言い方にする。
-
-          ⚠️ ★**紫バッジ「公開プロフィールに表示」は必ず残す。**
-             すぐ上のチップ群は緑バッジ「この内容は公開されません」で、
-             **公開範囲が正反対のものが隣り合っている。**
-             バッジを外すと、非公開のつもりで公開の欄に書かれる。
-             ⚠️ **「2つのバッジが同時に目に入る」ことは期待できない**（2026-08-27 に実測）。
-                実際には 1,138px（1280px）/ 1,430px（375px）離れており、
-                入力する時点で緑バッジは画面の外にある。
-                **同時視認をあてにせず、囲み・間隔・直下の1行の3つで伝える。** */}
-      {/* ★公開側の囲み（2026-08-27）。すぐ上の非公開ブロックと**対比**させる。
-             ⚠️ 構造は変えていない。**この div は元からあった**もので、
-                背景・枠・余白を足しただけ。中身の並び（ラベル→注記→入力欄→字数）も
-                バッジの位置以外そのまま。
-
-          ── なぜ囲みが要るか（2026-08-27 実測）─────────────────────────────
-          自由記述欄は**もともと非公開ブロックの外**にあり、DOM も見た目もそうなっていた。
-          それでも「同じブロックの中にある」と読まれた原因は**余白の付き方**だった。
-
-            フォームの**ブロック間** gap … **14px**（この上の親 div）
-            非公開ブロックの**内側**  gap … **16px**
-
-          **外側の区切りのほうが内側より狭い。** これだと近接の原則が逆に働き、
-          「囲みが終わった」ことより「まだ続いている」ことのほうが強く見える。
-          しかも緑バッジと紫バッジは **1,138px（1280px）/ 1,430px（375px）離れている**ので、
-          入力する瞬間に緑バッジは画面外にある。
-
-          → **囲みで所属を示し、間隔を内側より広げて切れ目を作る。**
-
-          ⚠️ **間隔は 28px**（親の gap 14px ＋ ここの marginTop 14px）。
-             内側の 16px より広く、かつ 14px の刻みを崩さない最小の値として選んだ。
-             **16px より広いことが要件**で、28 という数字自体に意味は無い。
-
-          ⚠️ **背景は白のまま、枠だけ紫にする。** 面を `--purple-soft` で塗ると、
-             同じ色を背景に持つ「公開プロフィールに表示」バッジが**囲みに溶けて消える。**
-             非公開側が「グレーの塗り＋グレーの枠」なので、
-             「白＋紫の枠」との対比で十分に分かれる。
-
-          ⚠️ **緑バッジ側には一切触っていない。** あちらは現に効いている表示。 */}
-      <div
-        style={{
-          marginTop: 14,
-          background: "#fff",
-          border: "1px solid var(--purple-soft)",
-          borderRadius: 10,
-          padding: "14px 16px",
-        }}
-      >
-        {/* ★バッジをトグルに置き換えた（2026-09-11）。**位置は囲みの先頭のまま。**
-               ⚠️★**囲み・間隔・直下の1行は変えていない。** 2026-08-27 に実測して決めた構造
-                  （外側の区切りが内側より狭いと「まだ続いている」と読まれる／緑バッジとは
-                  1,138px 離れていて同時に目に入らない）。**構造を触らずバッジだけ差し替える。**
-
-            ── なぜバッジをトグルにしたか ──────────────────────────────────
-            ⚠️★バッジは「**公開プロフィールに表示**」と**約束していた**が、
-               **描画する JSX が src 全体で0件**で、**一度も出ていなかった**
-               （2026-09-11 に判明。docs/todo.md）。描画を入れるにあたって、
-               **本人が選べる形にしてから出す。**
-
-            ⚠️★**既定は「出さない」。** 行ごとの設定なので、**選び忘れが同意なき公開に
-               ならない向き**に倒す（2026-08-16 に入力欄を外したときの理由そのもの）。
-               DB の既定も同日 `false` に変えてある。**片方だけ戻さないこと。**
-
-            ⚠️★**文言は「オフのときに出ないと分かる形」にする。**
-               「公開プロフィールに表示」のオン/オフだけだと、**オフが「まだ決めていない」に
-               見える。** だからトグルの右に**現在の状態を言い切る1行**を添えている。
-               **この1行を消さないこと。** */}
-        <div style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: isSaving ? "default" : "pointer" }}>
-            <input
-              type="checkbox"
-              checked={draft.visibilityReason}
-              onChange={(e) => set("visibilityReason", e.target.checked)}
-              disabled={isSaving}
-              style={{ accentColor: "var(--purple)" }}
-            />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--purple)", background: "var(--purple-soft)", padding: "1px 7px", borderRadius: 100, letterSpacing: "0.04em" }}>
-              公開プロフィールに表示
-            </span>
-          </label>
-          {/* ⚠️ 現在の状態を**言い切る**。オフを「未設定」に見せない。 */}
-          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-            {draft.visibilityReason
-              ? "いまはオン。この欄の内容があなたのプロフィールに出ます。"
-              : "いまはオフ。この欄の内容は誰にも表示されません。"}
-          </span>
-        </div>
-        <label style={labelStyle()}>
-          <span>選んだ理由を、自分の言葉で（任意）</span>
-        </label>
-        {/* ⚠️ ★バッジだけでは足りない（2026-08-20 実測）。
-               緑バッジ（この内容は公開されません）と紫バッジは **1,138px 離れており**、
-               1280px の本文表示領域（688px）に**同時には入らない**。
-               入力する瞬間に「ここは公開されうる」と分かるよう、1行で言い直す。
-            ⚠️★2026-09-11 にトグルを付けたので、**言い切りから「選べる」に変えた。**
-               **消さないこと**（上のトグルと役割が違う。あちらは現在の状態、ここは欄の性質）。 */}
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 6 }}>
-          上の選択肢と違い、この欄は公開プロフィールに出すかどうかを選べます。
-        </div>
-        <textarea
-          aria-label="選んだ理由を、自分の言葉で"
-          value={draft.joinReason}
-          onChange={(e) => set("joinReason", e.target.value)}
-          placeholder="例: 面接の帰り道に、ここでならあと10年やれると思った"
-          disabled={isSaving}
-          rows={2}
-          style={{ ...fieldStyle(), resize: "vertical", lineHeight: 1.7, borderColor: "var(--purple-soft)" }}
-        />
-        {/* ⚠️ 300字は UI / POST / PUT の3つで揃えている（2026-08-20）。
-               以前は UI 300 / PUT 2000 / POST 5000 と3つとも違い、
-               画面の警告を無視すれば黙って長い文が保存できた。 */}
-        <div style={{ fontSize: 12, fontWeight: 600, color: draft.joinReason.length > 300 ? "var(--error)" : "var(--ink-mute)", textAlign: "right", marginTop: 2, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-          {draft.joinReason.length > 300 ? `${draft.joinReason.length - 300} 文字超過` : `残り ${300 - draft.joinReason.length} 文字`}
-        </div>
-      </div>
+          ⚠️★**「選んだ理由を、自分の言葉で（任意）」（`join_reason`）と
+             「公開プロフィールに表示」トグル（`visibility_reason`）も同日に外した。**
+             列とデータは残してある（migration は作っていない）。
+             ⚠️ **編集の保存でこの2列を送らない。** サーバー側が「キーが無ければ触らない」
+                なので、送らなければ既存の値が残る（`PUT /api/jobseeker/experiences/[id]`）。
+             ⚠️ 描画も止めた（`MergedTimeline` の `JoinReasonNote`）。
+                入力欄が無い以上、本人が直せない値を公開し続けないため。 */}
 
       {/* ★役職 / 雇用形態 / 社内での呼び方 / 部署名 は、
             2026-08-20 に「この会社を選んだ理由と、離れた理由」の**下**へ移した。
@@ -1412,37 +1042,9 @@ function StintForm({
         </select>
       </div>
 
-      {/*
-        社内での呼び方（ow_experiences.role_title）
-
-        ⚠️ 2026-08-06 に定義を「社内での呼び方」に一本化した。
-           それまでの説明文は「M2、シニアアソシエイトなど社内で規定されているグレード・等級名」で、
-           等級を入れさせる文面だった。等級は隣の役職セレクト（rank）の守備範囲であり、
-           2つの軸が1つの欄に混ざっていた。実データでも部署名が混入している
-           （例:「金融営業本部 営業第1部 / 法人営業（アカウント営業）」）。
-        ⚠️ 保存先カラム（role_title）は変えていない。既存データの移行もしていない。
-           定義を先に正して、これから入る値をきれいにするのが目的。
-        ⚠️ この欄はフェーズ2で「会社独自の呼称」を集める入口になる。
-           ow_company_job_roles（company_id + name + standard_role_id）が受け皿。
-      */}
-      <div>
-        <label style={labelStyle()}>社内での呼び方（任意）</label>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
-          社内で使われている呼称を入力してください（例: アカウントエグゼクティブ、CXデザイナー）
-        </div>
-        <input
-          type="text"
-          value={draft.roleTitle}
-          onChange={(e) => set("roleTitle", e.target.value)}
-          placeholder="例: アカウントエグゼクティブ"
-          disabled={isSaving}
-          style={fieldStyle()}
-        />
-      </div>
-
       {/* 部署名 */}
       <div>
-        <label style={labelStyle()}>部署名（任意）</label>
+        <label style={labelStyle()}>部署名</label>
         <input
           type="text"
           value={draft.department}
@@ -1466,10 +1068,7 @@ function StintForm({
                入れてほしいのは**本人が実際に働いていた場所**。東京の会社に京都から
                リモートで勤めていたなら「京都府 ＋ フルリモート」になる。
             ⚠ 2軸あるので**どちらか一方を選ばせない。** 説明文をここから消さないこと。 */}
-        <label style={labelStyle()}>
-          勤務地
-          <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>（任意）</span>
-        </label>
+        <label style={labelStyle()}>勤務地</label>
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -2, marginBottom: 6, lineHeight: 1.5 }}>
           会社の所在地ではなく、<strong style={{ fontWeight: 700 }}>あなたが実際に働いていた場所</strong>を選んでください。
           東京の会社に京都から在宅で勤めていたなら「京都府 ＋ フルリモート」です。
@@ -1502,22 +1101,10 @@ function StintForm({
             {REMOTE_WORK_STATUSES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
-        {locationMissing && (
-          /* ⚠️ **目立つが、操作は止めない。** 保存ボタンは有効なまま。
-                何のために要るのかを書く（「入力してください」だけでは動機にならない）。
-                既存レコードを編集した人にとっては新しく増えた項目なので、咎める語調にしない。 */
-          <div style={{
-            display: "flex", alignItems: "flex-start", gap: 7,
-            fontSize: 12, fontWeight: 600, color: "var(--warm-ink)",
-            background: "var(--warm-soft)", border: "1px solid #FDE68A",
-            borderRadius: 8, padding: "9px 11px", marginTop: 8, lineHeight: 1.65,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
-              <circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" />
-            </svg>
-            <span>現職の勤務地と勤務形態を入れると、同じ条件で働く人を探せるようになります。</span>
-          </div>
-        )}
+        {/* ⚠️★黄色い案内バー（「現職の勤務地と勤務形態を入れると…」）は
+               2026-09-12 に外した（柴さんの指示）。**入力欄はそのまま。**
+               ⚠️ 勤務地は**どの経歴でも任意**という方針は変えていない（2026-08-13）。
+                  保存は元から止めていないので、外しても保存の挙動は変わらない。 */}
       </div>
 
       {/* Description (業務内容) */}
@@ -1572,7 +1159,7 @@ export default function CareerHistoryEditor({
   roleAliases = {},
   onSavedCountChange,
   onExperienceDeleted,
-  openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, onClosed,
+  openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, onClosed,
   onStintsChange,
 }: {
   initialExperiences?: Stint[];
@@ -1594,6 +1181,9 @@ export default function CareerHistoryEditor({
   openDeleteId?: string | null;
   /** ★外（会社グループの「この会社に役割を追加」）から開く。値はその会社の職歴の**どれか1件の id** */
   openAddRoleForCareerId?: string | null;
+  /** ★外（職歴カードの吹き出しアイコン）から「理由」モーダルを開く行の id（2026-09-12）。
+      ⚠️ 新規追加の保存直後は**この部品が自分で開く**（外から渡さなくてよい）。 */
+  openReasonId?: string | null;
   /** モーダルが閉じたことを親へ知らせる */
   onClosed?: () => void;
   /** ★保存済みの職歴そのもの。**親が表示（`MergedTimeline`）に使う。**
@@ -1636,6 +1226,16 @@ export default function CareerHistoryEditor({
   const [addDraft,     setAddDraft]     = useState<StintDraft>(EMPTY_DRAFT);
   const [addSaving,    setAddSaving]    = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
+
+  /* ★理由モーダル（2026-09-12）。入口は2つ:
+        ① 新規追加の保存直後（この部品が自分で開く）
+        ② 職歴カードの吹き出しアイコン（`openReasonId`）
+     ⚠️ **編集の保存後には開かない。** 既存の職歴を直すたびに設問が出ると、
+        2026-08-19 に編集モーダルへ置いていたときと同じ形に戻る。 */
+  const [reasonId, setReasonId] = useState<string | null>(null);
+  const [reasonSaving, setReasonSaving] = useState(false);
+  const [reasonJustSaved, setReasonJustSaved] = useState(false);
+  const [reasonError, setReasonError] = useState<string | null>(null);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Stint | null>(null);
@@ -1751,6 +1351,12 @@ export default function CareerHistoryEditor({
     const t = stints.find((s) => s.id === openDeleteId);
     if (t) setDeleteTarget(t);
   }, [openDeleteId, stints]);
+  /* ★職歴カードの吹き出しアイコンから開く（2026-09-12） */
+  useEffect(() => {
+    if (!openReasonId) return;
+    setReasonError(null);
+    setReasonId(openReasonId);
+  }, [openReasonId]);
 
   const cancelEdit = useCallback(() => {
     setEditingId(null);
@@ -1758,29 +1364,44 @@ export default function CareerHistoryEditor({
     onClosedRef.current?.();
   }, []);
 
+  /**
+   * PUT の本体（理由データ以外）。**編集モーダルと理由モーダルが同じ関数を通る。**
+   *
+   * ⚠️★**理由モーダルからの保存でもこれを必ず一緒に送る。** `PUT` は
+   *    `role_title` / `department` / `rank` / `description` / `employment_type` を
+   *    **キーの有無に関わらず上書きする**（`s(body.x)` は undefined を null にする）ので、
+   *    理由だけの最小 body を送ると**それらが全部消える。**
+   */
+  const buildPutCoreBody = useCallback((d: StintDraft): Record<string, unknown> => {
+    const body: Record<string, unknown> = {
+      role_category_id: d.roleCategoryId,
+      role_title: d.roleTitle || undefined,
+      started_at: draftStartedAt(d),
+      ended_at: d.isCurrent ? undefined : draftEndedAt(d) || undefined,
+      is_current: d.isCurrent,
+      description: d.description || undefined,
+      /* ⚠️★`join_reason`（自由記述）と `visibility_reason` は送らない（2026-09-12）。
+            入力欄を外したので、送ると**空で上書きする**。
+            サーバーは「キーが無ければ触らない」ので、既存の値が残る。
+            **列とデータは消していない**（migration を作っていない）。 */
+      employment_type: d.employmentType || undefined,
+      /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
+            送ると API 側で null に潰れ、既存の salary_man が消える。
+            API は body にキーが無ければその列を更新しない作りにしてある。 */
+      department: d.department || null,
+      rank: d.rank || null,
+      visibility_company: d.visibilityCompany,
+      ...buildLocationBody(d),
+    };
+    Object.assign(body, buildCompanyBody(d));
+    return body;
+  }, []);
+
   const saveEdit = useCallback(async () => {
     if (!editingId) return;
     setEditSaving(true);
     try {
-      const body: Record<string, unknown> = {
-        role_category_id: editDraft.roleCategoryId,
-        role_title: editDraft.roleTitle || undefined,
-        started_at: draftStartedAt(editDraft),
-        ended_at: editDraft.isCurrent ? undefined : draftEndedAt(editDraft) || undefined,
-        is_current: editDraft.isCurrent,
-        description: editDraft.description || undefined,
-        join_reason: editDraft.joinReason || undefined,
-        employment_type: editDraft.employmentType || undefined,
-        /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
-              送ると API 側で null に潰れ、既存の salary_man が消える。
-              API は body にキーが無ければその列を更新しない作りにしてある。 */
-        department: editDraft.department || null,
-        rank: editDraft.rank || null,
-        visibility_company: editDraft.visibilityCompany,
-        visibility_reason: editDraft.visibilityReason,
-        ...buildReasonBody(editDraft),
-      };
-      Object.assign(body, buildCompanyBody(editDraft));
+      const body = buildPutCoreBody(editDraft);
 
       const res = await fetch(`/api/jobseeker/experiences/${editingId}`, {
         method: "PUT",
@@ -1803,13 +1424,11 @@ export default function CareerHistoryEditor({
                 endedAt: editDraft.isCurrent ? undefined : draftEndedAt(editDraft) || undefined,
                 isCurrent: editDraft.isCurrent,
                 description: editDraft.description || undefined,
-                joinReason: editDraft.joinReason || undefined,
                 employmentType: editDraft.employmentType || undefined,
                 department: editDraft.department || undefined,
                 rank: (editDraft.rank || null) as Stint["rank"],
                 visibilityCompany: editDraft.visibilityCompany,
-                visibilityReason: editDraft.visibilityReason,
-                ...optimisticReasonFields(editDraft),
+                ...optimisticLocationFields(editDraft),
               }
             : s
         ))
@@ -1824,7 +1443,7 @@ export default function CareerHistoryEditor({
     } finally {
       setEditSaving(false);
     }
-  }, [editingId, editDraft, cancelEdit, showToast]);
+  }, [editingId, editDraft, cancelEdit, showToast, buildPutCoreBody]);
 
   // ── Add handlers ─────────────────────────────────────────────────────────────
   const cancelAdd = useCallback(() => {
@@ -1848,7 +1467,8 @@ export default function CareerHistoryEditor({
         ended_at: addDraft.isCurrent ? undefined : draftEndedAt(addDraft) || undefined,
         is_current: addDraft.isCurrent,
         description: addDraft.description || undefined,
-        join_reason: addDraft.joinReason || undefined,
+        /* ⚠️★`join_reason` と `visibility_reason` は送らない（2026-09-12）。入力欄を外した。
+              送らなければ DB の既定（null / false）で入る。 */
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
         /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
@@ -1859,8 +1479,7 @@ export default function CareerHistoryEditor({
         /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
               作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。
               ⚠️ 編集（PUT）は既存値をそのまま送る。あちらは消さないこと。 */
-        visibility_reason: addDraft.visibilityReason,
-        ...buildReasonBody(addDraft),
+        ...buildLocationBody(addDraft),
       });
       if (!res.ok) throw new Error();
       const { id } = (await res.json()) as { id: string };
@@ -1875,13 +1494,12 @@ export default function CareerHistoryEditor({
         endedAt: addDraft.isCurrent ? undefined : draftEndedAt(addDraft) || undefined,
         isCurrent: addDraft.isCurrent,
         description: addDraft.description || undefined,
-        joinReason: addDraft.joinReason || undefined,
         employmentType: addDraft.employmentType || undefined,
         visibilityCompany: addDraft.visibilityCompany,
         department: addDraft.department || undefined,
         rank: (addDraft.rank || null) as Stint["rank"],
         visibilityReason: addDraft.visibilityReason,
-        ...optimisticReasonFields(addDraft),
+        ...optimisticLocationFields(addDraft),
       };
 
       setStints((prev) => sortStints([...prev, newStint]));
@@ -1890,12 +1508,56 @@ export default function CareerHistoryEditor({
       await new Promise((r) => setTimeout(r, 800));
       cancelAdd();
       setAddJustSaved(false);
+      /* ★保存できた**新規追加のときだけ**、理由を聞く別ステップを出す（2026-09-12）。
+         ⚠️ **編集では出さない。** ⚠️ 失敗したときも出さない（この行は try の中）。 */
+      setReasonError(null);
+      setReasonId(id);
     } catch {
       showToast("追加に失敗しました。もう一度お試しください。", "error");
     } finally {
       setAddSaving(false);
     }
   }, [addDraft, stints.length, cancelAdd, showToast]);
+
+  // ── 理由データの保存 ────────────────────────────────────────────────────────
+  /**
+   * ⚠️★**コア body を必ず一緒に送る。** `PUT` は役職・部署・業務内容などを
+   *    キーの有無に関わらず上書きするので、理由だけの最小 body だと全部消える。
+   * ⚠️ 既存の API・検証関数（`parseReasonFields`）・DB の CHECK をそのまま使う。
+   *    選択肢・上限3つ・スラッグは変えていない。
+   */
+  const saveReasons = useCallback(async (answers: ReasonAnswers) => {
+    const target = stints.find((x) => x.id === reasonId);
+    if (!target) return;
+    const d = draftFromStint(target);
+    const showLeave = hasLeftCompany(d);
+    setReasonSaving(true);
+    setReasonError(null);
+    try {
+      const res = await fetch(`/api/jobseeker/experiences/${target.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...buildPutCoreBody(d),
+          ...buildReasonAnswerBody(answers, showLeave),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setStints((prev) => prev.map((x) =>
+        x.id === target.id ? { ...x, ...optimisticReasonAnswers(answers, showLeave) } : x
+      ));
+      showToast("回答を保存しました");
+      setReasonJustSaved(true);
+      await new Promise((r) => setTimeout(r, 800));
+      setReasonId(null);
+      setReasonJustSaved(false);
+      onClosedRef.current?.();
+    } catch {
+      setReasonError("保存に失敗しました。もう一度お試しください。");
+    } finally {
+      setReasonSaving(false);
+    }
+  }, [reasonId, stints, draftFromStint, buildPutCoreBody, showToast]);
 
   /* ⚠️ Esc の処理は `ProfileEditModal` が持つ（2026-08-17）。**ここに置かない。**
         自前のモーダルをやめたあとも残っていて、**未保存でも確認を出さずに閉じていた**
@@ -1957,6 +1619,9 @@ export default function CareerHistoryEditor({
   const careerDirty = canSaveStint(careerDraft)
     && JSON.stringify(careerDraft) !== JSON.stringify(careerBase);
 
+  /* ★理由モーダルの対象。⚠️ 行が消えた（削除された）ら開かない */
+  const reasonStint = reasonId ? stints.find((x) => x.id === reasonId) ?? null : null;
+
   return (
     <div>
       <style>{`
@@ -1990,6 +1655,25 @@ export default function CareerHistoryEditor({
           companyLocked={!careerIsEditing && addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
         />
       </ProfileEditModal>
+
+      {/* ★理由モーダル（2026-09-12）。⚠️ **職歴の編集モーダルとは別**。
+             `key` で作り直すのは、開くたびに「ステップ1から・その行の既存の答えで」
+             始めるため（回答済みなら復元した状態で開く）。 */}
+      {reasonStint && (
+        <ExperienceReasonModal
+          key={reasonStint.id}
+          open
+          companyName={reasonStint.displayCompanyName}
+          showLeave={hasLeftCompany(draftFromStint(reasonStint))}
+          initial={reasonAnswersFrom(reasonStint)}
+          saving={reasonSaving}
+          justSaved={reasonJustSaved}
+          error={reasonError}
+          onSave={(a) => { void saveReasons(a); }}
+          /* ⚠️ 「あとで答える」と ×。**何も保存しない**（仕様） */
+          onClose={() => { setReasonId(null); setReasonError(null); onClosedRef.current?.(); }}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <ConfirmDialog

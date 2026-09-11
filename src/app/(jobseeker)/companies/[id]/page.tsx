@@ -2010,7 +2010,6 @@ export default async function CompanyDetailPage({
                    絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
             <CompanyEmployeeSections
               companyId={company.id}
-              companyName={company.name}
               /* ⚠️ 申込リンクの出し分けだけに使う。社員カードは消さない（方針D）。 */
               acceptingMeetings={company.accepting_casual_meetings === true}
             />
