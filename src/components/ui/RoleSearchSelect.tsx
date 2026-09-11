@@ -394,77 +394,81 @@ export function RoleSearchSelect({
         </div>
       )}
 
-      {/* ★大分類 → 小分類 の2段セレクト（検索の代わりではなく**併用**）
-          ⚠️ `clearOnSelect`（追加用）のときは出さない。理由は冒頭のメモ。
+      {/* ★大分類 → 小分類 の2段セレクト（検索の代わりではなく**併用**）。
+          **状態によって出すものが変わる。**
 
-          ★★**選んだあとは出さない**（2026-09-11 / 柴さんの指摘）。
-          ⚠️★理由: 選んだあとは**同じ語が画面に2回出る**。検索欄に「営業」、
-             すぐ下の大分類セレクトにも「営業」と並び、**職種の欄が2つあるように見える。**
-             実際は同じ値を書く1つの欄で、入口が2つあるだけ。
-          ⚠️★**未選択のうちは必ず両方出す。** 2段セレクトの役割は
-             「名前を知らない人が大分類から辿る」ことなので、**効くのは選ぶ前だけ。**
-             選んだあとに残しても、言い換えが2つ並ぶだけになる。
-          ⚠️ 選び直す手段は残っている ——入力欄を押せば一覧が開く（大分類ごとに畳まれた形）。
+            ① 未選択            … 見出し「または一覧から選ぶ」＋ 大分類 ＋ 小分類
+            ② 大分類だけ選んだ  … **小分類だけ**（「◯◯ の中から選ぶ」）
+            ③ 小分類まで選んだ  … 何も出さない
+            ④ 子のいない大分類  … 何も出さない（もう絞り込めない）
 
-          ⚠️★**「まだ絞り込める途中」だけは残すこと。** 条件を
-             「選ばれていたら隠す」だけにすると、`selectableParent`
-             （オンボーディング・職歴エディタ）で**大分類を選んだ瞬間に確定して枠ごと消え、
-             小分類セレクトが永久に押せなくなる**（＝ 2026-08-26 に足した
-             「大分類18件から辿る」経路が死ぬ）。
-
-             残すのは次を**すべて**満たすときだけ:
-               ・`pickedParentId !== null`  … いまこのセレクトで操作している
-               ・`!selected.parent_id`      … 選ばれているのは大分類
-               ・子がいる                    … まだ絞り込める
-             つまり隠れるのは **①検索から選んだ ②小分類まで選んだ ③値を持って画面を開いた**。
-          ⚠️★**`!clearOnSelect` の条件を外さないこと。** 追加用の欄では元から出していない。 */}
-      {!clearOnSelect
-        && (!selected
-            || (pickedParentId !== null && !selected.parent_id && twoStepChildren.length > 0))
-        && (
+          ⚠️★**②で大分類セレクトを出さないこと**（2026-09-11）。検索欄に「営業」、
+             すぐ下の大分類セレクトにも「営業」と**同じ語が2箇所に出て、
+             職種の欄が2つあるように見える**（柴さんの指摘）。
+          ⚠️★**②を消して「選んだら全部隠す」にしないこと**（2026-09-12 / 柴さんの指摘）。
+             大分類を選んだ時点で一覧ごと消えると、**小分類への導線が画面から無くなり、
+             大分類のまま終わる。** 実際にそうなっていて直した経緯がある。
+             ＝ 2026-08-26 に足した「大分類18件から辿る」経路が死ぬのと同じこと。
+          ⚠️ 検索欄を消して一覧だけに戻さないこと（2026-08-06 の失敗に戻る）。
+          ⚠️ `clearOnSelect`（追加用）のときは出さない。理由は冒頭のメモ。 */}
+      {!clearOnSelect && !selected?.parent_id && !(selected && twoStepChildren.length === 0) && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-              または一覧から選ぶ
-            </span>
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-          </div>
+          {/* ①のときだけ見出しと大分類セレクトを出す */}
+          {!selected && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+                または一覧から選ぶ
+              </span>
+              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            </div>
+          )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {/* 大分類 */}
-            <select
-              aria-label={`${ariaLabel}（大分類）`}
-              disabled={disabled}
-              value={twoStepParentId}
-              onChange={(e) => {
-                const pid = e.target.value;
-                setPickedParentId(pid || null);
-                setQuery("");
-                setOpen(false);
-                if (!pid) {
-                  onSelect("");
-                  return;
-                }
-                /* ⚠️ 大分類だけで確定してよいのは `selectableParent` のときだけ。
-                      求人側（false）は小分類を選ぶまで確定させない。
-                   ⚠️ 子が無い大分類は、選べる側なら即確定でよい。 */
-                if (selectableParent) onSelect(pid);
-                else onSelect("");
-              }}
-              style={selectStyle(disabled)}
-            >
-              <option value="">大分類を選ぶ</option>
-              {roots.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
+          {/* ②の見出し。⚠️★**「（任意）」だけで済ませないこと。**
+                 何を選ぶ欄なのかを、選んだ大分類の名前を入れて言う。
+                 ⚠️ ここが弱いと大分類のまま終わる（2026-09-12 に実際にそうなっていた）。 */}
+          {selected && (
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+              {selected.name} の中から、近いものを選べます
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr" : "1fr 1fr", gap: 8 }}>
+            {/* 大分類。⚠️ ②では出さない（同じ語が2箇所に出るため） */}
+            {!selected && (
+              <select
+                aria-label={`${ariaLabel}（大分類）`}
+                disabled={disabled}
+                value={twoStepParentId}
+                onChange={(e) => {
+                  const pid = e.target.value;
+                  setPickedParentId(pid || null);
+                  setQuery("");
+                  setOpen(false);
+                  if (!pid) {
+                    onSelect("");
+                    return;
+                  }
+                  /* ⚠️ 大分類だけで確定してよいのは `selectableParent` のときだけ。
+                        求人側（false）は小分類を選ぶまで確定させない。
+                     ⚠️ 子が無い大分類は、選べる側なら即確定でよい。 */
+                  if (selectableParent) onSelect(pid);
+                  else onSelect("");
+                }}
+                style={selectStyle(disabled)}
+              >
+                <option value="">大分類を選ぶ</option>
+                {roots.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            )}
 
             {/* 小分類 */}
             <select
               aria-label={`${ariaLabel}（小分類）`}
               disabled={disabled || twoStepChildren.length === 0}
-              value={selected?.parent_id ? selected.id : ""}
+              value=""
               onChange={(e) => {
                 const cid = e.target.value;
                 setQuery("");
@@ -480,7 +484,7 @@ export function RoleSearchSelect({
                   ? "先に大分類を選ぶ"
                   : twoStepChildren.length === 0
                     ? "小分類なし"
-                    : selectableParent ? "小分類を選ぶ（任意）" : "小分類を選ぶ"}
+                    : selected ? "選ぶ" : selectableParent ? "小分類を選ぶ（任意）" : "小分類を選ぶ"}
               </option>
               {twoStepChildren.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -492,11 +496,14 @@ export function RoleSearchSelect({
                  小分類が必須だと思われて、当てはまる子が無い人が止まる。 */}
           {selectableParent && (
             <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-              大分類だけでも保存できます。当てはまる小分類があるときだけ選んでください。
+              {selected
+                ? "当てはまるものが無ければ、このままで保存できます。"
+                : "大分類だけでも保存できます。当てはまる小分類があるときだけ選んでください。"}
             </p>
           )}
         </div>
       )}
+
     </div>
   );
 }
