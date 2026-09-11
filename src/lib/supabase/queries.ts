@@ -856,7 +856,7 @@ export async function getCompanies(): Promise<Company[]> {
  */
 const getCompanyById = cache(async function getCompanyById(
   id: string
-): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[] } | null> {
+): Promise<{ company: Company; detail: CompanyDetail } | null> {
   const supabase = createAdminClient();
 
   let companyQuery = supabase
@@ -872,8 +872,8 @@ const getCompanyById = cache(async function getCompanyById(
     return null;
   }
 
-  // Fetch jobs + roles + employee categories + genres in parallel
-  const [{ data: jobRows }, roleRows, employeeCategories, { data: genreRows }] = await Promise.all([
+  // Fetch jobs + roles + genres in parallel
+  const [{ data: jobRows }, roleRows, { data: genreRows }] = await Promise.all([
     /* ⚠️ status で必ず絞る（2026-08-11）。ここに絞りが無く、**draft の求人が
           公開中の企業ページに並んでいた**。/companies/opinio に
           「opinio-test-…」が2件出ており、`getJobById` は draft を返さないので
@@ -889,7 +889,10 @@ const getCompanyById = cache(async function getCompanyById(
           （異なるクエリは2種類だけ＝83倍の重複）。本番の企業ページ表示でも
           1枚あたり3回引いていた。詳細は `getAllRoleRows` の注意書き。 */
     getAllRoleRowsCached(),
-    getCompanyEmployeeCategories(id),
+    /* ⚠️★**`getCompanyEmployeeCategories(id)` を引くのをやめた**（2026-09-12）。
+          企業ページの社員グループは**本人が登録した職種から作る**ようになったので、
+          この表を読む必要が無い。企業ページ1枚あたりのクエリが1本減る。
+          ⚠️ 表・API・関数は残してある。使い始めるなら先に企業側の設定UIを作ること。 */
     supabase
       .from("ow_company_genres")
       .select("ow_genres(id, name, display_order)")
@@ -926,7 +929,7 @@ const getCompanyById = cache(async function getCompanyById(
     company.accepting_casual_meetings,
   );
 
-  return { company, detail, employeeCategories };
+  return { company, detail };
 });
 
 /**
@@ -935,7 +938,7 @@ const getCompanyById = cache(async function getCompanyById(
  */
 export async function getCompanyBySlugOrId(
   slugOrId: string
-): Promise<{ company: Company; detail: CompanyDetail; employeeCategories: CompanyEmployeeCategoryItem[]; resolvedId: string; slug: string | null; listingStatus: string | null } | null> {
+): Promise<{ company: Company; detail: CompanyDetail; resolvedId: string; slug: string | null; listingStatus: string | null } | null> {
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
   const supabase = createAdminClient();
 
@@ -2212,7 +2215,14 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
     { revalidate: 300, tags: [companyAmbassadorsTag(companyId)] }
   )();
 
-// ─── Company employee categories (ow_company_employee_categories) ─────────────
+/* ─── Company employee categories (ow_company_employee_categories) ─────────────
+   ⚠️★**2026-09-12 時点で、この表を読む画面は無い。**
+      企業ページの社員グループは**本人が登録した職種から作る**ようになった
+      （`CompanyEmployeeSections`）。理由:
+        ① 89社中1社しか行が無かった
+        ② 設定するUIがアプリに無い（API はあるが呼ぶ画面が0件）
+      ⚠️ 表・API・この関数は**残してある**。使い始めるなら、先に企業側の設定UIを作ること。
+         UI が無いまま表示だけ戻すと「設定できないのに表示が変わる」状態に戻る。 */
 
 /** Phase Q: 各企業のカテゴリ表示設定 (display_order 順) */
 export type CompanyEmployeeCategoryItem = {

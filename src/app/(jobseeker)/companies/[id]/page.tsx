@@ -1754,7 +1754,7 @@ export default async function CompanyDetailPage({
 
   if (!companyResult) return notFound();
 
-  const { company, detail, employeeCategories, resolvedId, slug: companySlug } = companyResult;
+  const { company, detail, resolvedId, slug: companySlug } = companyResult;
 
   // UUID が渡されてスラッグがある場合は 308 リダイレクト
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
@@ -2011,7 +2011,6 @@ export default async function CompanyDetailPage({
             <CompanyEmployeeSections
               companyId={company.id}
               companyName={company.name}
-              categories={employeeCategories}
               /* ⚠️ 申込リンクの出し分けだけに使う。社員カードは消さない（方針D）。 */
               acceptingMeetings={company.accepting_casual_meetings === true}
             />

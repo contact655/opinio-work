@@ -149,6 +149,37 @@ export const EMPLOYEES_3 = [emp(1), emp(2), emp(3)];
 /** ⚠️ 12名。3列グリッドが縦に伸びるだけか、折り返しが崩れないか */
 export const EMPLOYEES_12 = Array.from({ length: 12 }, (_, i) => emp(i + 1));
 
+/* ★★職種でグループ分けした現役社員（2026-09-12）。
+   ⚠️★**本番に該当する企業が無い。** 現役社員が3名の企業が1社、1名が4社だけで、
+      分割表示（5名以上＋職種2種類以上）に入る企業は存在しない。
+      **この fixture が、グループ表示を描画できる唯一の場所。**
+   ⚠️ わざと混ぜてある:
+        ・親のまま登録した人（子見出しを付けずに親の直下へ出るか）
+        ・同じ親の中に子が2種類（子見出しが並ぶか）
+        ・職種が無い人（「その他」に落ちて**消えないか**）
+        ・1名だけの親（見出し＋1枚になる見え方） */
+const ENG = PARENT_ROLE_IDS[0];
+const SALES = PARENT_ROLE_IDS[3];
+const CS = PARENT_ROLE_IDS[4];
+export const EMPLOYEES_GROUPED: CompanyEmployee[] = [
+  emp(1, { roleParentId: SALES, roleParentName: "営業", roleCategoryId: "role-fs", roleCategoryName: "フィールドセールス" }),
+  emp(2, { roleParentId: SALES, roleParentName: "営業", roleCategoryId: "role-fs", roleCategoryName: "フィールドセールス" }),
+  emp(3, { roleParentId: SALES, roleParentName: "営業", roleCategoryId: "role-is", roleCategoryName: "インサイドセールス" }),
+  /* 親のまま登録した人（`roleCategoryId` が親と同じ＝子を選んでいない） */
+  emp(4, { roleParentId: null, roleParentName: null, roleCategoryId: SALES, roleCategoryName: "営業" }),
+  emp(5, { roleParentId: ENG, roleParentName: "エンジニア", roleCategoryId: "role-be", roleCategoryName: "バックエンドエンジニア" }),
+  emp(6, { roleParentId: ENG, roleParentName: "エンジニア", roleCategoryId: "role-be", roleCategoryName: "バックエンドエンジニア" }),
+  emp(7, { roleParentId: ENG, roleParentName: "エンジニア", roleCategoryId: "role-sre", roleCategoryName: "SRE・インフラエンジニア" }),
+  emp(8, { roleParentId: CS, roleParentName: "カスタマーサクセス", roleCategoryId: "role-csm", roleCategoryName: "カスタマーサクセスマネージャー（CSM）" }),
+  /* ⚠️ 職種が無い人。**「その他」に出る。落ちたら不具合。** */
+  emp(9, { roleParentId: null, roleParentName: null, roleCategoryId: null, roleCategoryName: null, roleTitle: null }),
+];
+
+/** ⚠️ 5名だがすべて同じ職種。**分割されない**ことを確かめる側 */
+export const EMPLOYEES_SAME_ROLE: CompanyEmployee[] = Array.from({ length: 5 }, (_, i) =>
+  emp(i + 1, { roleParentId: PARENT_ROLE_IDS[3], roleParentName: "営業", roleCategoryId: "role-fs", roleCategoryName: "フィールドセールス" }),
+);
+
 /** ⚠️ 退職者。`endedAt` と「退職後の現在のキャリア」が入る */
 export const ALUMNI_3: CompanyEmployee[] = [
   emp(21, {

@@ -27,6 +27,8 @@ import { devOnly } from "./guard";
 const ITEMS = [
   { href: "/dev/preview/benefits",  label: "福利厚生",
     desc: "カテゴリ分けの境界（3カテゴリ目と4カテゴリ目）と、緑にしてよい項目" },
+  { href: "/dev/preview/company-employees", label: "現役社員（企業ページ）",
+    desc: "⚠️ 職種ごとに分かれる側は本番に該当企業が無い。5名以上＋職種2種類以上でしか出ない" },
   { href: "/dev/preview/employees", label: "現役社員 / OB・OG",
     desc: "0件の空状態、1件、3件、12件。長い氏名・役職での折り返し" },
   { href: "/dev/preview/tools",     label: "ツール",

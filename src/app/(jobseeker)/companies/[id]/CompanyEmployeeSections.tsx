@@ -18,7 +18,7 @@ import Link from "next/link";
 import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
-import type { CompanyEmployee, CompanyEmployeeCategoryItem } from "@/lib/supabase/queries";
+import type { CompanyEmployee } from "@/lib/supabase/queries";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 
 type AmbassadorInfo = { memberId: string };
@@ -230,11 +230,13 @@ const EMPLOYEE_GRID_CSS = `
 `;
 
 
-function CurrentEmployeesSection({
+/* ⚠️★**`export` を外さないこと**（2026-09-12）。`/dev/preview/company-employees` が
+      この関数を直接描画している。**職種でグループ分けする側は本番に該当企業が無く、
+      そこでしか見られない**（CLAUDE.md「データが薄い画面は /dev/preview で見る」）。 */
+export function CurrentEmployeesSection({
   employees,
   hiddenCount = 0,
   totalCount,
-  categories,
   ambassadorMap,
   companyId,
   acceptingMeetings,
@@ -242,7 +244,6 @@ function CurrentEmployeesSection({
   employees: CompanyEmployee[];
   hiddenCount?: number;
   totalCount?: number;
-  categories: CompanyEmployeeCategoryItem[];
   ambassadorMap: Map<string, { memberId: string }>;
   companyId: string;
   /** ★申込リンクの出し分けだけに使う（方針D）。社員カードはこの値で消さない。 */
@@ -250,46 +251,68 @@ function CurrentEmployeesSection({
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
 
-  // ── カテゴリ別社員マップ (roleId → employees) ──────────────────────────────
-  const empsByCategory = new Map<string, CompanyEmployee[]>();
-  for (const emp of employees) {
-    if (!emp.roleCategoryId) continue;
-    // 既存: 子UUID（または子なし親UUID）→ 社員
-    if (!empsByCategory.has(emp.roleCategoryId)) empsByCategory.set(emp.roleCategoryId, []);
-    empsByCategory.get(emp.roleCategoryId)!.push(emp);
-    // 追加: 親UUID → 社員（親カテゴリ登録時の集約用）
-    if (emp.roleParentId) {
-      if (!empsByCategory.has(emp.roleParentId)) empsByCategory.set(emp.roleParentId, []);
-      empsByCategory.get(emp.roleParentId)!.push(emp);
-    }
-  }
+  /* ── ★★グループは**本人が登録した職種から作る**（2026-09-12 / 柴さんの指示）────
+     ⚠️★**企業ごとの設定テーブル（`ow_company_employee_categories`）を読むのをやめた。**
+        理由は2つ。
+          ① **89社中1社しか行が無く、その1社はこの表を使う画面を持っていない。**
+             ＝ ほぼ全社で「素のグリッド」にしかならず、機能が存在しないのと同じだった。
+          ② **設定するUIがアプリに無い**（API は `/api/biz/company/employee-categories` に
+             あるが、呼んでいる画面が0件）。企業が自分で直せない設定に表示を依存させない。
+        ⚠️ 表・API・`getCompanyEmployeeCategories` は**残してある**（消していない）。
+           使い始めるなら、先に企業側の設定UIを作ること。
 
-  // ── 親グループ化 (display_order 順を保持) ─────────────────────────────────
-  type Group = {
-    groupKey: string;
-    parentName: string;
-    isParentDirect: boolean; // parent_id が null = 親直カテゴリ
-    children: CompanyEmployeeCategoryItem[];
+     ⚠️★**親は `roleParentId`、子は `roleCategoryId`。** 本人が大分類のまま登録した人は
+        子を持たないので、親の直下（見出し無し）に並べる。
+        ＝ CLAUDE.md「`role_category_id` には親カテゴリの UUID をそのまま入れてよい」に対応する。
+     ⚠️ 職種が無い人は「その他」。**落とさないこと**（載っている人が消える）。 */
+  type RoleGroup = {
+    key: string;
+    name: string;
+    /** 親そのものを職種にしている人（子見出しを付けない） */
+    direct: CompanyEmployee[];
+    children: { key: string; name: string; emps: CompanyEmployee[] }[];
+    total: number;
   };
-  const groups: Group[] = [];
-  const groupMap = new Map<string, Group>();
-  for (const cat of categories) {
-    const groupKey = cat.parentId ?? cat.roleId ?? cat.id;
-    if (!groupMap.has(groupKey)) {
-      const g: Group = {
-        groupKey,
-        parentName: cat.parentId ? (cat.parentName ?? cat.roleName) : cat.roleName,
-        isParentDirect: !cat.parentId,
-        children: [],
-      };
-      groups.push(g);
-      groupMap.set(groupKey, g);
+  const OTHER_KEY = "__other__";
+  const groupMap = new Map<string, RoleGroup>();
+  for (const emp of employees) {
+    const key = emp.roleParentId ?? emp.roleCategoryId ?? OTHER_KEY;
+    const name = emp.roleParentName ?? emp.roleCategoryName ?? "その他";
+    let g = groupMap.get(key);
+    if (!g) {
+      g = { key, name, direct: [], children: [], total: 0 };
+      groupMap.set(key, g);
     }
-    groupMap.get(groupKey)!.children.push(cat);
+    g.total += 1;
+    if (emp.roleParentId && emp.roleCategoryId) {
+      const ck = emp.roleCategoryId;
+      let c = g.children.find((x) => x.key === ck);
+      if (!c) {
+        c = { key: ck, name: emp.roleCategoryName ?? "その他", emps: [] };
+        g.children.push(c);
+      }
+      c.emps.push(emp);
+    } else {
+      g.direct.push(emp);
+    }
   }
+  /* 並びは**人数の多い順**。⚠️ `display_order` はここに来ていないので使えない
+     （API が返すのは職種の id と名前だけ）。同数は名前順で安定させる。
+     ⚠️「その他」は必ず最後。 */
+  const byCountThenName = <T extends { name: string }>(n: (t: T) => number) =>
+    (a: T, b: T) => n(b) - n(a) || a.name.localeCompare(b.name, "ja");
+  const groups = Array.from(groupMap.values())
+    .sort((a, b) => (a.key === OTHER_KEY ? 1 : 0) - (b.key === OTHER_KEY ? 1 : 0)
+      || byCountThenName<RoleGroup>((g) => g.total)(a, b));
+  for (const g of groups) g.children.sort(byCountThenName<{ name: string; emps: CompanyEmployee[] }>((c) => c.emps.length));
 
-  // カテゴリ未割り当て社員 (roleCategoryId が null の場合)
-  const uncategorized = employees.filter((e) => !e.roleCategoryId);
+  /* ★★小さい会社では分けない（2026-09-12）。
+     ⚠️★3名を3グループに割ると「1名ずつ」が並ぶだけで、**分けないほうが読みやすい。**
+        実測（2026-09-12 / 本番）: 現役社員が3名の企業が1社、1名の企業が4社。
+        いま分割が効く企業は存在しない。**人が増えたら自動で切り替わる。**
+     ⚠️ しきい値を下げるなら、実データで「1名だけのグループ」が何割になるかを見てから。 */
+  const GROUP_MIN_EMPLOYEES = 5;
+  const useGroups = employees.length >= GROUP_MIN_EMPLOYEES && groups.length >= 2;
 
   const SECTION_ICON = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -335,8 +358,12 @@ function CurrentEmployeesSection({
 
       </div>
       <div style={{ padding: "var(--space-6)" }}>
-      {/* ── Role composition bar (3名以上 + カテゴリあり) ───────────────────── */}
-      {employees.length >= 3 && categories.length > 0 && (() => {
+      {/* ── ★職種の構成バー（3名以上 ＋ 職種が2種類以上）──────────────────────
+             ⚠️★**分割表示（`useGroups`）より条件をゆるくしてある。** 3名でも
+                「どんな職種の人が載っているか」は一目で分かるほうがよく、
+                バーは1行なので場所を取らない。**分割と同じしきい値にしないこと。**
+             ⚠️ ラベルは親職種。親が無い人は子、どちらも無ければ「その他」。 */}
+      {employees.length >= 3 && groups.length >= 2 && (() => {
         const catCounts = new Map<string, number>();
         for (const emp of employees) {
           const label = emp.roleParentName ?? emp.roleCategoryName ?? "その他";
@@ -401,130 +428,89 @@ function CurrentEmployeesSection({
             </>
           )}
         </div>
-      ) : categories.length === 0 ? (
-        // カテゴリ設定なし → レスポンシブ列
+      ) : !useGroups ? (
+        // 小さい会社・職種が1種類 → 素のグリッド
         <div className="employee-grid">
           {employees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
           ))}
         </div>
       ) : (
-        // カテゴリ設定あり → 階層表示
+        // ★職種ごとに分けて表示（本人が登録した職種から導出）
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-          {groups.map((group) => {
-            const totalInGroup = group.children.reduce(
-              (sum, cat) => sum + (empsByCategory.get(cat.roleId ?? "")?.length ?? 0),
-              0
-            );
-            if (totalInGroup === 0) return null; // 0 名カテゴリは非表示
-
-            return (
-              <div key={group.groupKey}>
-                {/* 親カテゴリ見出し */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 6,
-                    marginBottom: "var(--space-3)",
-                    paddingBottom: "var(--space-2)",
-                    borderBottom: "1px solid var(--line-soft)",
-                  }}
-                >
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
-                    {group.parentName}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-inter), var(--font-noto)",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 400,
-                      color: "var(--ink-mute)",
-                    }}
-                  >
-                    {totalInGroup}名
-                  </span>
-                </div>
-
-                {group.isParentDirect ? (
-                  // 親直: 子見出しなしでグリッドを直接表示
-                  <div className="employee-grid">
-                    {(empsByCategory.get(group.children[0].roleId ?? "") ?? []).map((emp) => (
-                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
-                    ))}
-                  </div>
-                ) : (
-                  // 子カテゴリあり: 子見出し + グリッド
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                    {group.children.map((cat) => {
-                      const empsInCat = empsByCategory.get(cat.roleId ?? "") ?? [];
-                      if (empsInCat.length === 0) return null;
-                      return (
-                        <div key={cat.roleId ?? cat.id}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "baseline",
-                              gap: 5,
-                              marginBottom: "var(--space-2)",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: "var(--text-xs)",
-                                fontWeight: 600,
-                                color: "var(--ink-soft)",
-                              }}
-                            >
-                              {cat.roleName}
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-inter), var(--font-noto)",
-                                fontSize: "var(--text-xs)",
-                                fontWeight: 400,
-                                color: "var(--ink-mute)",
-                              }}
-                            >
-                              {empsInCat.length}名
-                            </span>
-                          </div>
-                          <div className="employee-grid">
-                            {empsInCat.map((emp) => (
-                              <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* カテゴリ未割り当て社員 */}
-          {uncategorized.length > 0 && (
-            <div>
+          {groups.map((group) => (
+            <div key={group.key}>
+              {/* 親職種の見出し */}
               <div
                 style={{
-                  fontSize: "var(--text-sm)",
-                  fontWeight: 700,
-                  color: "var(--ink)",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 6,
                   marginBottom: "var(--space-3)",
                   paddingBottom: "var(--space-2)",
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
-                その他
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
+                  {group.name}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-inter), var(--font-noto)",
+                    fontSize: "var(--text-xs)",
+                    fontWeight: 400,
+                    color: "var(--ink-mute)",
+                  }}
+                >
+                  {group.total}名
+                </span>
               </div>
-              <div className="employee-grid">
-                {uncategorized.map((emp) => (
-                  <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                {/* ⚠️★大分類のまま登録した人は**子見出しを付けずに**親の直下へ。
+                       「営業 > 営業」のような見出しを作らない。 */}
+                {group.direct.length > 0 && (
+                  <div className="employee-grid">
+                    {group.direct.map((emp) => (
+                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
+                    ))}
+                  </div>
+                )}
+
+                {group.children.map((cat) => (
+                  <div key={cat.key}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: 5,
+                        marginBottom: "var(--space-2)",
+                      }}
+                    >
+                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--ink-soft)" }}>
+                        {cat.name}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-inter), var(--font-noto)",
+                          fontSize: "var(--text-xs)",
+                          fontWeight: 400,
+                          color: "var(--ink-mute)",
+                        }}
+                      >
+                        {cat.emps.length}名
+                      </span>
+                    </div>
+                    <div className="employee-grid">
+                      {cat.emps.map((emp) => (
+                        <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
+          ))}
         </div>
       )}
 
@@ -868,12 +854,10 @@ export type EmployeesResponse = {
  */
 export function CompanyEmployeeSections({
   companyId,
-  categories,
   companyName,
   acceptingMeetings,
 }: {
   companyId: string;
-  categories: CompanyEmployeeCategoryItem[];
   companyName: string;
   /** ★企業が申込を受け付けているか（`isCasualMeetingOpen()` 通過後の値）。
    *  申込リンクの出し分けだけに使う。**社員カードとバッジはこの値で消さない。** */
@@ -911,7 +895,6 @@ export function CompanyEmployeeSections({
         employees={data.current}
         hiddenCount={data.hiddenCurrentCount}
         totalCount={data.totalCurrentCount}
-        categories={categories}
         ambassadorMap={ambassadorMap}
         companyId={companyId}
         acceptingMeetings={acceptingMeetings}
