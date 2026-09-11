@@ -56,6 +56,35 @@ function shortCompanyName(name: string): string {
       ここに定数を置くと CSS と二重管理になり、片方だけ直る形になる。
 ──────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * ★「この会社を選んだ理由」（`join_reason`）— 2026-09-11 に**初めて描画した**。
+ *
+ * ⚠️★**それまで一度も出ていなかった。** 入力画面は紫バッジで「公開プロフィールに表示」と
+ *    約束していたのに、**描画する JSX が src 全体で0件**だった（2026-09-11 に判明）。
+ *    値は `RawExperienceRow` → `CareerEntry` を**通り抜けているだけ**だった。
+ *
+ * ⚠️★**公開の可否は `/u/[id]` 側で既に落としてある**（`visibility_reason = false` なら
+ *    `join_reason` を `null` にする）。**ここで再判定しない。** 二重に書くと片方だけ直る。
+ *
+ * ⚠️ 未ログインには出さない。**`description` と同じ扱い**（あちらは `DescriptionGate`）。
+ *    ⚠️ ゲートの箱を2つ並べない。1枚のカードに1つで足りる。
+ *
+ * ⚠️ 業務内容（`description`）と見分けがつく必要があるので、**短いラベルを添える。**
+ *    ⚠️ クランプしない。300字上限なので畳む必要が無い。
+ */
+function JoinReasonNote({ text }: { text: string }) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--purple)", marginBottom: 3 }}>
+        この会社を選んだ理由
+      </div>
+      <p style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" }}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
 function ExpandableDesc({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
@@ -1104,6 +1133,9 @@ function CareerContent({
           <DescriptionGate />
         )
       )}
+
+      {/* ⚠️ 公開の可否は `/u/[id]` が落としている。ここで再判定しない。 */}
+      {isAuthenticated && data.join_reason && <JoinReasonNote text={data.join_reason} />}
     </div>
   );
 }
@@ -1409,6 +1441,10 @@ export default function MergedTimeline({
                               <DescriptionGate />
                             )
                           )}
+
+                          {/* ⚠️ 単独カード側と**同じ条件**にする。片方だけ出すと、
+                                 同じ職歴がグループに入った途端に消える。 */}
+                          {isAuthenticated && c.join_reason && <JoinReasonNote text={c.join_reason} />}
                         </div>
                       );
                     })}
