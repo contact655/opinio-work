@@ -105,6 +105,15 @@ const pastJobGroupKey = (j: PastJob): string =>
   j.company ? `m:${j.company.id}` : (j.companyText.trim() ? `c:${j.companyText.trim()}` : "");
 
 /**
+ * ★現職ブロックの会社を、`pastJobGroupKey` と**同じ形のキー**にする（2026-09-11）。
+ *
+ * ⚠️★**規則をここに書き写さない。** `pastJobGroupKey` に `PastJob` の形で渡して導く。
+ *    2つに割れると、「同じ会社なのに別グループ」または逆が起きる。
+ */
+const currentCompanyKey = (company: CompanyLookupResult | null, text: string): string =>
+  pastJobGroupKey({ ...emptyPastJob(-1), company, companyText: company ? company.name : text.trim() });
+
+/**
  * 連続する同じ会社の行を1グループにまとめる。
  *
  * ⚠️★**連続するものだけ**をまとめる。出戻り（A → B → A）は別グループのままにする。
@@ -851,8 +860,29 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
             {groupPastJobs(pastJobs).map((group, gIdx) => {
               const head = group[0];
               const headKey = pastJobGroupKey(head);
+              /* ★★グループの見出し（2026-09-11）。
+                     ⚠️★**番号ではなく会社名を出す。** スクロール中に目に入るのが
+                        「職歴 2」ではなく社名になるので、**どのブロックにいるか**が分かる。
+                        保存後の `MergedTimeline`（会社名1回・役割ごとに期間）とも形が揃う。
+                     ⚠️★**現職と同じ会社なら会社名を出さない。** 出すと**同じ社名の見出しが
+                        2つ並び**、いまより分かりにくくなる（`この会社に役割を追加` で作った行は
+                        現職と同じ会社なので必ずこうなる）。代わりに関係を言う。
+                     ⚠️★文言は②の語法から外さない（**役割＝同じ会社の中**）。
+                     ⚠️ 会社が未入力のグループは番号のまま（社名が無いので出しようがない）。 */
+              const isSameAsCurrent = !!headKey && headKey === currentCompanyKey(selectedCompany, query);
+              const groupLabel = isSameAsCurrent
+                ? "この会社での前の役割"
+                : (head.company ? head.company.name : head.companyText.trim()) || `職歴 ${gIdx + 1}`;
               return (
                 <div key={head.key} style={rowCardStyle}>
+                  {/* ⚠️ 見出しはグループの先頭に1回だけ。行ごとには出さない。 */}
+                  <div style={{
+                    fontSize: 13, fontWeight: 700, marginBottom: 8,
+                    color: isSameAsCurrent ? "var(--ink-soft)" : "var(--ink)",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {groupLabel}
+                  </div>
                   {group.map((j, posIdx) => {
                     const ready = pastJobReady(j);
                     /* ⚠️★自動で入った会社名は「触った」に数えない（`prefilled`）。
@@ -880,8 +910,12 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                         borderLeft: "2px solid var(--line)",
                       }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>
-                            {isHead ? `職歴 ${gIdx + 1}` : "この会社での別の役割"}
+                          {/* ⚠️★先頭の行はラベルを出さない（2026-09-11）。**グループの見出しが
+                                 会社名を出している**ので、`職歴 N` を並べると同じ高さの見出しが
+                                 2行続き、どちらが上位か分からなくなる。
+                              ⚠️ 削除ボタンの `aria-label` には番号を残す（読み上げの手がかり）。 */}
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>
+                            {isHead ? "" : "この会社での別の役割"}
                           </div>
                           <button
                             type="button"
@@ -1262,9 +1296,22 @@ const textInputStyle: React.CSSProperties = {
  *    「直近のお勤め先」が見出し＋全幅の欄で構成されているのと同じ形。
  *    ⚠️ **カード（枠・背景・角丸）に戻さないこと。** 戻すと幅がまた割れる。
  */
+/**
+ * 「これまでの職歴」の1グループ（＝1社）。
+ *
+ * ★入れ子を1段ぶん見せる（2026-09-11）。⚠️★**入力欄の幅を削らない。**
+ *    2段目の役割と**同じやり方**で、`paddingLeft` のぶんを `marginLeft` の負値で
+ *    外側のカードの padding（28px）へ逃がしてある。
+ *    ⇒ 罫線とインデントは**カードの余白の側**に出て、中の入力欄の x は動かない。
+ *    ⚠️ 逃がさずに `paddingLeft` だけ足すと、その 12px ぶん入力欄が狭くなる
+ *       （2段目でその失敗をして直したばかり: 実測 422 → 408）。
+ * ⚠️ 入れ子のカード（枠・背景）にしないこと。カードの中にカードが並ぶと、
+ *    どちらが親か分からなくなる。
+ */
 const rowCardStyle: React.CSSProperties = {
   borderTop: "1px solid var(--line-soft)",
-  paddingTop: 14, marginBottom: 14,
+  borderLeft: "2px solid var(--line-soft)",
+  paddingTop: 14, paddingLeft: 12, marginLeft: -14, marginBottom: 14,
 };
 
 /**
