@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import {
   useCompanyLookup,
   type CompanyLookupResult,
@@ -8,6 +8,12 @@ import {
 import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
+/* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
+      `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
+      なぜ入口が2つ要るかは、あの部品の冒頭に書いてある。 */
+import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
+/* ⚠️★上限は定数1つ。**ここに 5 と書かないこと**（画面と API で食い違った前例がある）。 */
+import { MAX_DESIRED_ROLES } from "@/lib/constants/careerPreferences";
 import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
@@ -254,11 +260,16 @@ const selectStyle: React.CSSProperties = {
   fontSize: 14, fontFamily: "inherit", background: "#fff", color: "var(--ink)",
 };
 
-function OnboardingInner({ roles, roleAliases, currentExperience }: {
+function OnboardingInner({
+  roles, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+}: {
   roles: OnboardingRole[];
   roleAliases: Record<string, string[]>;
   /** ★2回目に来た人の既存の現職（`is_current` のうち最新の1件）。無ければ null */
   currentExperience: ExistingExperience | null;
+  /** ★2画面目の初期値。⚠️ 既に答えている人に空を見せないため（1画面目と同じ扱い） */
+  initialStance: string | null;
+  initialDesiredRoleIds: string[];
 }) {
   const router = useRouter();
   /* ★`?next=` を読む（2026-09-09 まで**読んでいなかった**。フェーズ0 の 0-4）。
@@ -276,10 +287,8 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
      ⚠️ URL に置くのは**番号だけ**。会社名などの値は置かない（URL に出る）。
      ⚠️ 値は親の state が持つ。**リロードで消える**が、1画面目は「次へ」で保存済みなので
         失うのは2画面目の任意項目だけ。
-     ⚠️★**ステップの総数は `STEPS` から出す。** いまは2つで、
-        「これからについて」（`career_stance` ＋ 関心のある職種）を移してくると3つになる。
-        **数字を直書きしないこと。** */
-  const STEPS = ["直近のお勤め先", "あとは任意"] as const;
+     ⚠️★**ステップの総数は `STEPS` から出す。数字を直書きしないこと。** */
+  const STEPS = ["直近のお勤め先", "転職について", "あとは任意"] as const;
   const rawStep = Number.parseInt(searchParams.get("step") ?? "1", 10);
   const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= STEPS.length ? rawStep : 1;
   const goStep = (n: number) => {
@@ -327,6 +336,15 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
      ⚠️ 上限は API と同じ5件。ここだけ増やしても API が切り捨てる。 */
   /* ★職種は1つ（2026-09-11）。複数選択をやめた理由は下の `RoleSearchSelect` のコメント。 */
   const [roleId, setRoleId] = useState<string>(() => exStr("role_category_id"));
+
+  /* ★★2画面目（2026-09-11）。**「転職について」＋「関心のある職種」。**
+     ⚠️★`career_stance` は**答えるまで先へ進めない**（`/onboarding/stance` の方針を引き継ぐ）。
+        既定値で埋めないことがこの列の要件で、未設定のままだと候補者検索にも出ない。
+        ⚠️ 「答えない自由」は**4つ目の選択肢**（「今はいない」）が担保している。
+           スキップは置かない。
+     ⚠️ 関心のある職種は**任意**。上限は `MAX_DESIRED_ROLES`（定数1つ。ここに数字を書かない）。 */
+  const [stance, setStance] = useState<string | null>(initialStance);
+  const [desiredRoleIds, setDesiredRoleIds] = useState<string[]>(initialDesiredRoleIds);
   const [startedYear, setStartedYear] = useState<string>(() => exStr("started_at").slice(0, 4));
   const [startedMonth, setStartedMonth] = useState<string>(() => exStr("started_at").slice(5, 7));
   /* 在籍中かどうか。**離職中の人もここを通る**（2026-08-14 追加）。
@@ -489,6 +507,68 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
     }
   };
 
+  /* ★★関心のある職種の候補（2026-09-11）。**1画面目で選んだ職種から出す。**
+     ⚠️★**ゼロから探させない。** 検索欄だけだと、何を入れてよいか分からない。
+     ⚠️ 並びは 自分 → 親 → 兄弟（`display_order` 順。`roles` の配列順がそれ）。
+        ⚠️★**人気順にはできない。** `ow_profile_desired_roles` は **6人が各1件**しか無く
+           （2026-09-11 実測）、順序を決める材料が無い。作り話の順にしない。
+           ⚠️ **データが増えたら見直す目印。** 同じクエリで分布を測り、
+              偏りが読めるようになったら「よく選ばれる順」に変えてよい。
+     ⚠️★**8件で打ち切る。** 兄弟は最大14件（エンジニア）・営業12件・コーポレート13件あり
+        （2026-09-11 実測）、全部出すと 375px でチップが5行を超えて、
+        下の4択より目立ってしまう。**残りは検索欄から入れられる。** */
+  /* ★CTA を色付きにする条件。**ステップごとに違う。**
+     ⚠️ 1画面目は会社が空でも**押せる**（灰色のまま進める）。2画面目だけ本当に押せない。
+     ⚠️ 3画面目は全項目が任意なので常に進める。 */
+  const ctaReady = step === 1 ? !!(query.trim() || selectedCompany)
+    : step === 2 ? !!stance
+    : true;
+
+  const CANDIDATE_LIMIT = 8;
+  const candidateRoleIds = useMemo(() => {
+    const self = roles.find((r) => r.id === roleId);
+    if (!self) return [];
+    const out: string[] = [self.id];
+    if (self.parent_id) out.push(self.parent_id);
+    /* 親を選んでいた人には**その子**を、子を選んでいた人には**同じ親の兄弟**を出す。 */
+    const groupId = self.parent_id ?? self.id;
+    for (const r of roles) {
+      if (out.length >= CANDIDATE_LIMIT) break;
+      if (r.parent_id === groupId && !out.includes(r.id)) out.push(r.id);
+    }
+    return out;
+  }, [roleId, roles]);
+
+  const roleNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of roles) m.set(r.id, r.name);
+    return m;
+  }, [roles]);
+
+  /** 2画面目の「次へ」。⚠️ `career_stance` は選ぶまで押せないので、ここでは null を想定しない。 */
+  const goNextFromStep2 = async () => {
+    if (!stance) return;
+    setSaving(true);
+    setSaveError(null);
+    const failures: string[] = [];
+    /* ⚠️★保存は `PUT /api/jobseeker/career-preferences`。**新しいルートを作らない**
+          （同じ列を書く経路が2つになる）。`/onboarding/stance` も `/mypage` も同じ経路。
+       ⚠️ `desired_role_ids` は**毎回送る**。キーが無いと API は「変更なし」と読むので、
+          全部外した人の変更が保存されない。 */
+    await putJson("/api/jobseeker/career-preferences", {
+      career_stance: stance,
+      desired_role_ids: desiredRoleIds,
+    }, "転職について", failures);
+    if (failures.length > 0) {
+      /* ⚠️★**ここで止めない。** 保存に失敗しても `career_stance` は空のままなので、
+            登録を終えた直後に `OnboardingGuard` が `/onboarding/stance` へ送る
+            （＝聞かれないままにはならない）。足止めより先へ通すほうが害が小さい。 */
+      setSaveError("転職についての保存に失敗しました。あとでマイページから設定できます。");
+    }
+    setSaving(false);
+    goStep(3);
+  };
+
   /** 1画面目の「次へ」。⚠️ ④の警告はここに移した（3画面に割っても同じ保証が要る）。 */
   const goNextFromStep1 = async () => {
     if (missingForExperience && !experienceWarned) {
@@ -604,15 +684,16 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
       }).catch(() => {});
     }
 
-    /* ★★完了画面は経由せず、そのまま「転職について」へ送る（2026-09-09 / A案）。
-       ⚠️★以前は `setDone(true)` で完了画面（行き先を3つ選ばせる画面）を出していたが、
-          どれを押しても `OnboardingGuard` が直後に `/onboarding/stance` へ引き剥がしていた。
-          **行き先を選ばせておいて選ばせない**ので、経由すること自体が矛盾していた。
-       ⚠️ `next` は stance まで持ち回る。stance は答え終わってから `next` へ送る
-          （`stance/page.tsx`）。既に答えている人はそのまま素通りする。
+    /* ★★そのまま `next` へ送る（2026-09-11）。
+       ⚠️★以前はここから `/onboarding/stance` へ送っていたが、**stance は2画面目に入った**ので
+          経由すると同じことを2回聞くことになる。
+       ⚠️ 2画面目を飛ばした人（1画面目で「後で設定する」を押した人）は `career_stance` が
+          空のままだが、**着地した先で `OnboardingGuard` が `/onboarding/stance` へ送る。**
+          ＝「答えていない人は必ず聞かれる」は保たれている。**その出口を消さないこと。**
+       ⚠️ 完了画面（行き先を3つ選ばせる画面）は 2026-09-09 に削除済み。下のコメントを参照。
        ⚠️★`setSaving(false)` を戻さないこと。遷移までボタンは「登録中...」のままにする。
           false に戻すと、遷移待ちのあいだ**もう一度押せてしまう。** */
-    router.replace(`/onboarding/stance?next=${encodeURIComponent(next)}`);
+    router.replace(next);
   };
 
   /* ★★完了画面（「ようこそ、OPINIO へ！」＋行き先3つ）は**削除した**（2026-09-09 / A案）。
@@ -664,7 +745,9 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
                       既に「あとは任意」と言っている。2行のあいだで同じ語を2回出すのは、
                       2026-09-11 に「任意」を4回消したのと同じ形になる。
                       **ここは語ではなく“結果”（入れなくても登録できる）を言う。** */}
-            {step === 1 ? "直近のお勤め先を教えてください" : "ここから先は、入れなくても登録できます"}
+            {step === 1 ? "直近のお勤め先を教えてください"
+              : step === 2 ? "転職について"
+              : "ここから先は、入れなくても登録できます"}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
             {/*
@@ -869,10 +952,108 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
           )}
           </>)}
 
-          {/* ── ★2画面目（`?step=2`）───────────────────────────────────────
+          {/* ── ★★2画面目（`?step=2`）＝「転職について」＋「関心のある職種」──────
+                 ⚠️★**この画面だけ「次へ」が押せない状態がある**（`career_stance` 未選択）。
+                    1・3画面目は全項目が任意で素通りできるので、ここだけ性質が違う。
+                    ⚠️ だから**この画面では「後で設定する」を出さない**（下のCTAを参照）。
+                       出すと、押せないようにした意味がその場で消える。
+                 ⚠️★**`career_stance` はスカウトと候補者検索の唯一の必須条件。**
+                    未設定のままだと本人にも企業にも何も起きない。他の任意項目と性質が違う。 */}
+          {step === 2 && (<>
+            <StanceQuestion value={stance} onChange={setStance} disabled={saving} />
+
+            {/* ── 関心のある職種（任意）────────────────────────────────────
+                ⚠️★**候補を先に出す。** 1画面目で選んだ職種と、その親・兄弟。
+                   検索欄だけだと「何を入れる欄なのか」が伝わらない。
+                ⚠️ 上限は `MAX_DESIRED_ROLES`。**数字を直書きしない。**
+                ⚠️ ここは**任意**。1つも選ばずに次へ進める。 */}
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+                関心のある職種
+              </div>
+              <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
+                いま見ている職種とは別でもかまいません。おすすめの求人に使います。
+              </p>
+
+              {/* 選んだもの。⚠️ 上に出す（何を選んだかが先に読めるように） */}
+              {desiredRoleIds.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                  {desiredRoleIds.map((id) => (
+                    <span
+                      key={id}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "6px 10px", borderRadius: 100,
+                        border: "1px solid var(--royal)", background: "var(--royal-50)",
+                        color: "var(--royal)", fontSize: 13, fontWeight: 700,
+                      }}
+                    >
+                      {roleNameById.get(id) ?? id}
+                      <button
+                        type="button"
+                        onClick={() => setDesiredRoleIds(desiredRoleIds.filter((r) => r !== id))}
+                        aria-label={`${roleNameById.get(id) ?? id} を外す`}
+                        style={{
+                          background: "none", border: "none", padding: 0, lineHeight: 1,
+                          color: "inherit", cursor: "pointer", fontSize: 14, fontFamily: "inherit",
+                        }}
+                      >×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* 候補チップ。⚠️ 既に選んだものは出さない（同じ語が2箇所に並ぶため） */}
+              {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                  {candidateRoleIds.filter((id) => !desiredRoleIds.includes(id)).map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={desiredRoleIds.length >= MAX_DESIRED_ROLES}
+                      onClick={() => setDesiredRoleIds([...desiredRoleIds, id])}
+                      style={{
+                        padding: "7px 13px", borderRadius: 100,
+                        border: "1px dashed var(--line)", background: "#fff",
+                        color: "var(--ink-soft)", fontSize: 13, fontWeight: 500,
+                        cursor: desiredRoleIds.length >= MAX_DESIRED_ROLES ? "default" : "pointer",
+                        opacity: desiredRoleIds.length >= MAX_DESIRED_ROLES ? 0.5 : 1,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      ＋ {roleNameById.get(id) ?? id}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ⚠️ `clearOnSelect` は「選んだら入力欄を空に戻す」＝追加用。
+                     ⚠️ この形のとき `RoleSearchSelect` は2段セレクトを出さない（追加ボタンが要るため）。
+                        ここは候補チップがその役目を果たしている。 */}
+              <RoleSearchSelect
+                roles={roles}
+                aliases={roleAliases}
+                value=""
+                onSelect={(id) => {
+                  if (desiredRoleIds.includes(id)) return;
+                  if (desiredRoleIds.length >= MAX_DESIRED_ROLES) return;
+                  setDesiredRoleIds([...desiredRoleIds, id]);
+                }}
+                selectableParent
+                clearOnSelect
+                ariaLabel="関心のある職種を検索"
+                disabled={saving || desiredRoleIds.length >= MAX_DESIRED_ROLES}
+                placeholder={desiredRoleIds.length >= MAX_DESIRED_ROLES
+                  ? `関心のある職種は ${MAX_DESIRED_ROLES} 件までです`
+                  : "ほかの職種を検索（例: 法人営業、AE）"}
+              />
+            </div>
+          </>)}
+
+          {/* ── ★3画面目（`?step=3`）───────────────────────────────────────
                  ⚠️★1画面目は「保存に必要な3点」だけ。ここから下は
                     **押さなくても登録が終わる**もの。 */}
-          {step === 2 && (<>
+          {step === 3 && (<>
           {hasCompany && (
             <div>
               {/*
@@ -1439,23 +1620,35 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
                 もう一度押すとそのまま進みます。
               </p>
             )}
-            {/* ⚠️★ステップで役割が変わる。1画面目は**保存して次へ**、最後は**完了**。
-                   ⚠️ 1画面目の「次へ」でも保存する（(c)）。**押さずに閉じた人は残らない。** */}
+            {/* ★★2画面目だけ、選ぶまで押せない（2026-09-11）。
+                   ⚠️★**押せない理由を必ず添える。** 灰色のボタンだけだと、
+                      1・3画面目の「未入力でも押せる灰色」と見分けが付かない
+                      （1画面目は会社が空でも押せる）。 */}
+            {step === 2 && !stance && (
+              <p style={{ margin: "0 0 8px", fontSize: 12.5, fontWeight: 600, color: "var(--ink-mute)", textAlign: "center" }}>
+                どれか1つ選ぶと、次へ進めます
+              </p>
+            )}
+            {/* ⚠️★ステップで役割が変わる。1・2画面目は**保存して次へ**、最後は**完了**。
+                   ⚠️ 1画面目の「次へ」でも保存する（(c)）。**押さずに閉じた人は残らない。**
+                   ⚠️★**2画面目だけ `disabled`。** `career_stance` は既定値で埋めないことが
+                      要件なので、選ばせずに通さない（`/onboarding/stance` と同じ）。 */}
             <button
               type="button"
-              onClick={step === 1 ? goNextFromStep1 : finish}
-              disabled={saving}
+              onClick={step === 1 ? goNextFromStep1 : step === 2 ? goNextFromStep2 : finish}
+              disabled={saving || (step === 2 && !stance)}
               style={{
                 width: "100%", padding: "13px 20px",
-                background: query.trim() || selectedCompany
+                background: ctaReady
                   ? "linear-gradient(135deg, var(--royal), #3B5FD9)"
                   : "var(--line)",
-                color: (query.trim() || selectedCompany) ? "#fff" : "var(--ink-mute)",
+                color: ctaReady ? "#fff" : "var(--ink-mute)",
                 border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                cursor: saving ? "wait" : "pointer", fontFamily: "inherit", transition: "all 0.2s",
+                cursor: saving ? "wait" : (step === 2 && !stance) ? "default" : "pointer",
+                fontFamily: "inherit", transition: "all 0.2s",
               }}
             >
-              {saving ? "保存中..." : step === 1 ? "次へ →" : "登録して始める →"}
+              {saving ? "保存中..." : step === STEPS.length ? "登録して始める →" : "次へ →"}
             </button>
 
             {/* ⚠️ 2画面目からは戻れるようにする。`goStep` は `push` なのでブラウザの戻るでも戻れる。 */}
@@ -1477,7 +1670,13 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
           </div>
         </div>
 
-        {/* スキップ */}
+        {/* スキップ。
+            ⚠️★**2画面目には出さない**（2026-09-11）。あの画面は `career_stance` を
+               選ぶまで進めない作りなので、ここに離脱口があると**その場で無効になる。**
+            ⚠️ 1・3画面目には残す（全項目が任意で、押さずに閉じた人を作らないため）。
+            ⚠️ 1画面目で押した人は `career_stance` が空のまま完了するが、
+               直後に `OnboardingGuard` が `/onboarding/stance` へ送るので**聞かれないままにはならない。** */}
+        {step !== 2 && (
         <div style={{ display: "flex", justifyContent: "center" }}>
           <button
             type="button"
@@ -1494,6 +1693,7 @@ function OnboardingInner({ roles, roleAliases, currentExperience }: {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
+        )}
       </div>
     </div>
   );
@@ -1922,10 +2122,14 @@ function LogoMark() {
 
 // ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
 
-export default function OnboardingPage({ roles, roleAliases, currentExperience }: {
+export default function OnboardingPage({
+  roles, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+}: {
   roles: OnboardingRole[];
   roleAliases: Record<string, string[]>;
   currentExperience: ExistingExperience | null;
+  initialStance: string | null;
+  initialDesiredRoleIds: string[];
 }) {
   return (
     <Suspense fallback={
@@ -1933,7 +2137,13 @@ export default function OnboardingPage({ roles, roleAliases, currentExperience }
         <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid var(--royal-100)", borderTopColor: "var(--royal)", animation: "spin 0.8s linear infinite" }} />
       </div>
     }>
-      <OnboardingInner roles={roles} roleAliases={roleAliases} currentExperience={currentExperience} />
+      <OnboardingInner
+        roles={roles}
+        roleAliases={roleAliases}
+        currentExperience={currentExperience}
+        initialStance={initialStance}
+        initialDesiredRoleIds={initialDesiredRoleIds}
+      />
     </Suspense>
   );
 }

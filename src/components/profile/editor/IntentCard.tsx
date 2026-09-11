@@ -11,7 +11,7 @@ import { memberState, type CompanyMemberRow } from "@/lib/constants/companyMembe
       ⚠️ 正規表現をコピーして持ってこないこと。3箇所に割れていたのを集約した経緯がある。 */
 import { companyDisplayName } from "@/lib/companies/displayName";
 import {
-  DESIRED_WORK_STYLES, SALARY_MAX_MAN,
+  DESIRED_WORK_STYLES, SALARY_MAX_MAN, MAX_DESIRED_ROLES,
   CAREER_STANCES, CAREER_STANCE_LABELS, isReachableByCompanies,
 } from "@/lib/constants/careerPreferences";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
@@ -195,8 +195,6 @@ export type IntentPrefs = {
   desired_salary_max: number | null;
   desired_phase: string[] | null;
 };
-
-const MAX_DESIRED_ROLES = 5;
 
 /* ── 見た目の値。★1箇所に置く（行ごとに書き写さない）────────────────────────── */
 const LABEL_SIZE = 14;   // 行のラベル

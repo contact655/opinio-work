@@ -134,11 +134,33 @@ export default async function OnboardingPage() {
     }
   }
 
+  /* ★★2画面目（転職について・関心のある職種）の初期値（2026-09-11）。
+     ⚠️★**2回目に来た人に空を見せないため。** 1画面目と同じ扱いにする。
+     ⚠️ `ow_profiles.user_id` と `ow_profile_desired_roles.user_id` は
+        どちらも **auth.users.id**（`ow_users.id` ではない）。混ぜると常に0件になる。
+     ⚠️ 取得に失敗したら null / 空で進める（**誘導であって同意の記録ではない**）。
+        ただし握り潰さずログに出す。 */
+  let initialStance: string | null = null;
+  let initialDesiredRoleIds: string[] = [];
+  {
+    const admin = createAdminClient();
+    const [{ data: prof, error: profErr }, { data: dRoles, error: dErr }] = await Promise.all([
+      admin.from("ow_profiles").select("career_stance").eq("user_id", user.id).maybeSingle(),
+      admin.from("ow_profile_desired_roles").select("role_id").eq("user_id", user.id),
+    ]);
+    if (profErr) console.error("[onboarding] ow_profiles", profErr.message);
+    if (dErr) console.error("[onboarding] ow_profile_desired_roles", dErr.message);
+    initialStance = (prof?.career_stance as string | null) ?? null;
+    initialDesiredRoleIds = (dRoles ?? []).map((r) => r.role_id as string);
+  }
+
   return (
     <OnboardingClient
       roles={roles}
       roleAliases={roleAliases}
       currentExperience={currentExperience}
+      initialStance={initialStance}
+      initialDesiredRoleIds={initialDesiredRoleIds}
     />
   );
 }

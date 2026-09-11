@@ -148,8 +148,17 @@ export const VALID_DESIRED_PHASES = new Set<string>(DESIRED_PHASES);
 export const SALARY_MAX_MAN = 9999;
 
 /**
- * 希望職種の上限件数。
+ * 希望職種の上限件数。**画面・API の両方がここだけを見る。**
+ *
+ * ⚠️★**ローカル定数を作らないこと。** 2026-09-11 まで `IntentCard.tsx` が
+ *    自前で `const MAX_DESIRED_ROLES = 5` を持っており、**この定数は 10** だった。
+ *    画面は5件で止めるのに **API は10件まで受け付ける**状態で、
+ *    画面を直した人は API 側に気づけない（逆も同じ）。
+ *    実データは6人が各1件で、5に下げても壊れる人は0人だったので **5 に揃えた。**
+ *
  * ⚠️ 幅を表現させるのが目的なので緩めにする。
  *    上限そのものは「配列に何千件も投げられる」ことへの歯止め。
+ * ⚠️ これは**濃度**の制約なので DB の CHECK は置かない
+ *    （CLAUDE.md「この規約の適用範囲 —— 値の集合の制約だけ」）。
  */
-export const MAX_DESIRED_ROLES = 10;
+export const MAX_DESIRED_ROLES = 5;
