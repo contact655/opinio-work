@@ -6,6 +6,7 @@ import { orderedBusinessDomains } from "@/types/genre";
 import { CAPITAL_TYPE_LABELS } from "@/lib/constants/capitalType";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
+import { splitParenTail } from "@/lib/utils/parenSuffix";
 
 /**
  * 「企業情報」ボックス。**サイドバー（デスクトップ）と本文（モバイル）の両方が使う。**
@@ -32,6 +33,29 @@ import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
  *    **`gridTemplateColumns` をレスポンシブで変えたくなってもインラインに書かないこと**
  *    （インラインはメディアクエリに勝つ。CLAUDE.md / ui-debugging）。
  */
+/**
+ * 末尾の `（補足）` を**塊のまま**折り返す。
+ *
+ * ⚠️★**日本語は文字単位で折り返すので、放っておくと括弧の途中で切れる**（2026-09-12 に指摘）。
+ *    実際に「従業員数（世／界）」「約73,000名（2024年1月期／末）」と割れていた。
+ *    括弧の直前に改行機会を置き、括弧の中では折り返さないようにする。
+ *
+ * ⚠️ **長い補足には掛けない。** `nowrap` は列からはみ出す側に倒れるので、
+ *    値カラム（サイドバーで実測172px）に収まらない長さのものは素のまま折り返させる。
+ */
+const PAREN_NOWRAP_MAX = 12;
+
+function ParenAwareText({ text }: { text: string }) {
+  const parts = splitParenTail(text);
+  if (!parts || parts[1].length > PAREN_NOWRAP_MAX) return <>{text}</>;
+  return (
+    <>
+      {parts[0]}
+      <span style={{ whiteSpace: "nowrap" }}>{parts[1]}</span>
+    </>
+  );
+}
+
 export function CompanyInfoBox({
   company,
   detail,
@@ -178,8 +202,13 @@ export function CompanyInfoBox({
                 borderBottom: "1px solid var(--line-soft)",
               }}
             >
+              {/* ⚠️ ラベルは flex。**テキストは1つの span にまとめる** ——
+                     `{icon}{key}` のままだと key が匿名 flex アイテムになり、
+                     `ParenAwareText` が作る2つの span が**別々の flex アイテムに割れて
+                     横並びのままはみ出す**。`minWidth: 0` は span を縮ませて中で折り返させるため。 */}
               <span style={{ color: "var(--ink-soft)", fontSize: "var(--text-xs)", fontWeight: 600, paddingTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
-                {icon}{key}
+                {icon}
+                <span style={{ minWidth: 0 }}><ParenAwareText text={key} /></span>
               </span>
               {isLink ? (
                 <a
@@ -212,7 +241,7 @@ export function CompanyInfoBox({
                 </a>
               ) : (
                 <div>
-                  <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}>{value}</span>
+                  <span style={{ color: "var(--ink)", fontWeight: 600, fontSize: "var(--text-sm)" }}><ParenAwareText text={value} /></span>
                   {subText && <p style={{ margin: "3px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6 }}>{subText}</p>}
                 </div>
               )}

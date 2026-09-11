@@ -25,3 +25,16 @@ export function splitParenSuffix(raw: string): { name: string; sub: string | nul
   if (han) return { name: han[1].trim(), sub: han[2].trim() };
   return { name: raw, sub: null };
 }
+
+/**
+ * `名前（補足）` を、**括弧記号を保ったまま** `[名前, （補足）]` に分ける。
+ * 分解できなければ `null`。
+ *
+ * ⚠️ `splitParenSuffix` との違いは**括弧を落とさないこと**だけ。用途が違う。
+ *    あちらは「名前と補足を別々に描く」ため、こちらは**折り返し位置を括弧の前に寄せる**ため。
+ *    半角括弧の値を全角に書き換えてしまわないよう、記号は原文のまま返す。
+ */
+export function splitParenTail(raw: string): [string, string] | null {
+  const m = raw.match(/^(.+?)(（.+?）|\(.+?\))\s*$/);
+  return m ? [m[1], m[2]] : null;
+}

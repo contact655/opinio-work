@@ -23,9 +23,11 @@ export async function JobseekerFooter() {
             <div style={{ color: "#fff", marginBottom: 12 }}>
               <OpinioLogo height={28} />
             </div>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 260, marginBottom: 20 }}>
-              IT業界の企業と求人を探せるプラットフォーム。<br />
-              企業情報と求人が、ここに揃っています。
+            {/* ⚠️ maxWidth は 300。**260 だと「プラットフォー／ム。」で割れる**（13px × 全角20文字 ≒ 274px）。
+                   縮めるときは、2行とも文の途中で折り返さないことを確かめること。 */}
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 300, marginBottom: 20 }}>
+              IT企業の求人と人を探せるプラットフォーム。<br />
+              企業/求人/人の情報が、ここに揃っています。
             </p>
           </div>
 
