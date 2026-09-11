@@ -42,11 +42,27 @@ export default async function OnboardingPage() {
 
   if (error) console.error("[onboarding] ow_roles", error.message);
 
+  /* ★職種の別名（2026-09-11）。**検索で当てるために要る。**
+     ⚠️ 「法人営業」で フィールドセールス に当たらないと、標準職種の名前を知らない人が
+        辿り着けない（`RoleSearchSelect` の冒頭コメント）。**全件渡す。**
+     ⚠️ `/mypage` も同じ取り方をしている。片方だけ落とすと、同じ検索欄なのに
+        オンボーディングだけ別名が効かない形になる。 */
+  const { data: aliasRows, error: aliasErr } = await createAdminClient()
+    .from("ow_role_aliases")
+    .select("role_id, alias");
+  if (aliasErr) console.error("[onboarding] ow_role_aliases", aliasErr.message);
+
+  const roleAliases: Record<string, string[]> = {};
+  for (const r of (aliasRows ?? []) as { role_id: string; alias: string }[]) {
+    if (!roleAliases[r.role_id]) roleAliases[r.role_id] = [];
+    roleAliases[r.role_id].push(r.alias);
+  }
+
   const roles = (roleRows ?? []).map((r) => ({
     id: r.id as string,
     name: r.name as string,
     parent_id: (r.parent_id as string | null) ?? null,
   }));
 
-  return <OnboardingClient roles={roles} />;
+  return <OnboardingClient roles={roles} roleAliases={roleAliases} />;
 }

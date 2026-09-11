@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import {
   useCompanyLookup,
   type CompanyLookupResult,
 } from "@/components/companies/useCompanyLookup";
 import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
 import { useRouter, useSearchParams } from "next/navigation";
-import { RolePicker } from "@/components/onboarding/RolePicker";
+import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
@@ -17,8 +17,6 @@ import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 /* ⚠️ 学歴の区分もここに直書きしない。API（educations POST）が `DEGREES` で検証しており、
       別の語彙を送ると 400 になる（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
 import { DEGREES, DEGREE_LABELS } from "@/lib/constants/careerOptions";
-/* ⚠️ 上限は API と同じ定数を見る。ここに数字を書かない。 */
-import { MAX_ROLES_PER_EXPERIENCE as MAX_ROLES } from "@/lib/constants/experienceRoles";
 import {
   EXPERIENCE_CREATE_PATH,
   type CreateExperienceBody,
@@ -244,7 +242,7 @@ const selectStyle: React.CSSProperties = {
   fontSize: 14, fontFamily: "inherit", background: "#fff", color: "var(--ink)",
 };
 
-function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
+function OnboardingInner({ roles, roleAliases }: { roles: OnboardingRole[]; roleAliases: Record<string, string[]> }) {
   const router = useRouter();
   /* ★`?next=` を読む（2026-09-09 まで**読んでいなかった**。フェーズ0 の 0-4）。
      ⚠️★`safeNext` を必ず通す。素の値を `router.replace` に渡すと、
@@ -263,27 +261,17 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
      ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
         2026-08-10 まではここで会社名だけ聞いて**捨てていた**。 */
-  /* ★親と子を分ける（2026-08-29）。**154件をフラットに並べない。**
-        親チップを押すと、その親の子だけが下に開く。子を選ばず親のまま進んでもよい。
-     ⚠️ 職歴から出す「職種 × 年数」は**子だけを集計する**ので、子まで選んでもらえると
-        プロフィールに職種スキルが出る。選ばなくても保存は通る（摩擦を増やさない）。 */
-  const topRoles = useMemo(() => roles.filter((r) => !r.parent_id), [roles]);
-  const childrenOf = useMemo(() => {
-    const m = new Map<string, OnboardingRole[]>();
-    for (const r of roles) {
-      if (!r.parent_id) continue;
-      const arr = m.get(r.parent_id) ?? [];
-      arr.push(r);
-      m.set(r.parent_id, arr);
-    }
-    return m;
-  }, [roles]);
+  /* ⚠️★親子を自前で分ける処理は削除した（2026-09-11）。`RoleSearchSelect` が
+        グループ化も検索も別名も持っている。**ここで階層を組み直さないこと。**
+     ⚠️ 「子まで選んでもらえると職種スキルが出る」（2026-08-29）は今も同じ。
+        `selectableParent` を true にしてあるので、親のままでも保存は通る。 */
 
   /* 職種は複数選べる（2026-08-14）。
      ⚠️ 先頭が主職種になる。`ow_experiences.role_category_id` は1つしか持てないので、
         API が先頭をそこへ入れ、全部を `ow_experience_roles` に書く。
      ⚠️ 上限は API と同じ5件。ここだけ増やしても API が切り捨てる。 */
-  const [roleIds, setRoleIds] = useState<string[]>([]);
+  /* ★職種は1つ（2026-09-11）。複数選択をやめた理由は下の `RoleSearchSelect` のコメント。 */
+  const [roleId, setRoleId] = useState<string>("");
   const [startedYear, setStartedYear] = useState<string>("");
   const [startedMonth, setStartedMonth] = useState<string>("");
   /* 在籍中かどうか。**離職中の人もここを通る**（2026-08-14 追加）。
@@ -378,7 +366,7 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const hasCompany = !!selectedCompany || query.trim().length > 0;
   const hasEnded = !!endedYear && !!endedMonth;
   const canSaveExperience =
-    hasCompany && roleIds.length > 0 && !!startedYear && !!startedMonth && (isCurrent || hasEnded);
+    hasCompany && !!roleId && !!startedYear && !!startedMonth && (isCurrent || hasEnded);
 
   /* ★★「入れたつもり」で終わらせない（2026-09-11）。
      ── 何が起きていたか（実測）──────────────────────────────────────────────
@@ -390,11 +378,11 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
         素通りする人の邪魔をしない。止めるのは**途中まで入れた人だけ。**
      ⚠️★**2回目は必ず進める。** 進ませないのは「任意」と矛盾する。 */
   const missingForExperience = (() => {
-    const touched = hasCompany || roleIds.length > 0 || !!startedYear || !!startedMonth;
+    const touched = hasCompany || !!roleId || !!startedYear || !!startedMonth;
     if (!touched || canSaveExperience) return null;
     const missing: string[] = [];
     if (!hasCompany) missing.push("会社名");
-    if (roleIds.length === 0) missing.push("職種");
+    if (!roleId) missing.push("職種");
     if (!startedYear || !startedMonth) missing.push("入社年月");
     /* ⚠️ 「現職ではない」を選んだのに退職年月が無い場合も揃っていない */
     if (!isCurrent && !hasEnded) missing.push("退職年月");
@@ -444,8 +432,9 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
           ...(selectedCompany
             ? { company_id: selectedCompany.id }
             : { company_text: query.trim() }),
-          role_category_id: roleIds[0],
-          ...(roleIds.length > 1 ? { role_category_ids: roleIds } : {}),
+          /* ⚠️ 職種は1つだけ送る。`role_category_ids`（複数）は送らない
+                （API 側は受け取れるが、オンボーディングでは1つに決めた。2026-09-11）。 */
+          role_category_id: roleId,
           started_at: `${startedYear}-${startedMonth}`,
           is_current: isCurrent,
           ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
@@ -661,10 +650,39 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                 aria-label="部署名"
               />
 
+              {/* ★★職種は `RoleSearchSelect` に統一した（2026-09-11 / 柴さんの指示）。
+                     ⚠️★**この部品はプロダクト全体で7箇所が使っている**（求人・職歴エディタ・
+                        希望職種・運営の求人・企業の組織図）。**オンボーディングだけが
+                        独自の入力を2つ持っていた**（現職＝親チップ＋子チップ、
+                        これまでの職歴＝フラットな `<select>`）。1画面に3通りあった。
+
+                  ── なぜこの形が正しいか（記録済みの経緯）────────────────────────
+                  ⚠️ 2026-08-06: 2段 `<select>` だけだったころ、**求人20件が大分類と孫に偏り、
+                     中間の子職種が1件も使われていなかった**。「105件から目視で探させる UI は
+                     機能していない」と判断して**検索を足した**。
+                  ⚠️ 2026-08-26: 柴さんの指示で**2段セレクトを併設**。
+                     名前を知っている人は検索、知らない人は大分類18件から辿る。
+                  ⇒ **検索欄を消して一覧だけに戻さないこと。** どちらの失敗も記録がある。
+
+                  ⚠️★**複数選択をやめて1つにした**（2026-09-11）。`RoleSearchSelect` の
+                     2段セレクトは**値が1つの欄でしか出せない**（複数追加式だと
+                     「選んだ瞬間に追加」なのか「大分類→小分類」なのかが決まらない）。
+                     入口は1つで足り、**あとから職歴エディタで増やせる**。
+                     ⚠️ `MAX_ROLES_PER_EXPERIENCE` は API と職歴エディタが使うので残っている。
+                  ⚠️ `selectableParent` は **true**。大分類のままでも保存できる
+                     （職歴エディタと同じ。子まで選ばせると入力が止まる）。 */}
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
                 職種<span style={needLabelStyle}>保存に必要</span>
               </div>
-              <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} max={MAX_ROLES} />
+              <RoleSearchSelect
+                roles={roles}
+                aliases={roleAliases}
+                value={roleId}
+                onSelect={setRoleId}
+                selectableParent
+                disabled={saving}
+                ariaLabel="職種"
+              />
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
                 入社年月<span style={needLabelStyle}>保存に必要</span>
@@ -994,22 +1012,22 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
                           aria-label={`職歴 ${gIdx + 1} の部署名`}
                         />
 
-                        <select
-                          value={j.roleId}
-                          onChange={(e) => upd({ roleId: e.target.value })}
-                          style={{ ...selectStyle, width: "100%", marginTop: 8 }}
-                          aria-label={`職歴 ${gIdx + 1} の職種`}
-                        >
-                          <option value="">職種</option>
-                          {/* ⚠️ 親の下に子をぶら下げる。`optgroup` は入れ子にできないので
-                                 全角スペースで階層を示す（2026-08-29） */}
-                          {topRoles.map((p) => [
-                            <option key={p.id} value={p.id}>{p.name}</option>,
-                            ...(childrenOf.get(p.id) ?? []).map((c) => (
-                              <option key={c.id} value={c.id}>{`　${c.name}`}</option>
-                            )),
-                          ])}
-                        </select>
+                        {/* ★★現職と同じ `RoleSearchSelect` に揃えた（2026-09-11）。
+                               ⚠️★それまでは**フラットな `<select>`（親＋子で148件）**で、
+                                  同じ「職種」を1画面で2通りの操作で聞いていた。
+                               ⚠️ 148件を1つのリストに並べるのは 2026-08-06 に
+                                  「機能していない」と判明した形そのもの。**戻さないこと。** */}
+                        <div style={{ marginTop: 8 }}>
+                          <RoleSearchSelect
+                            roles={roles}
+                            aliases={roleAliases}
+                            value={j.roleId}
+                            onSelect={(id) => upd({ roleId: id })}
+                            selectableParent
+                            disabled={saving}
+                            ariaLabel={`職歴 ${gIdx + 1} の職種`}
+                          />
+                        </div>
 
                         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
                           <select
@@ -1724,14 +1742,14 @@ function LogoMark() {
 
 // ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
 
-export default function OnboardingPage({ roles }: { roles: OnboardingRole[] }) {
+export default function OnboardingPage({ roles, roleAliases }: { roles: OnboardingRole[]; roleAliases: Record<string, string[]> }) {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-tint)" }}>
         <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid var(--royal-100)", borderTopColor: "var(--royal)", animation: "spin 0.8s linear infinite" }} />
       </div>
     }>
-      <OnboardingInner roles={roles} />
+      <OnboardingInner roles={roles} roleAliases={roleAliases} />
     </Suspense>
   );
 }
