@@ -182,7 +182,6 @@ function groupStints(stints: Stint[]): StintGroup[] {
 type StintDraft = {
   companyName: string;
   companyId: string | null;  // 候補選択時のみ非null、＋登録・自由入力時は null
-  isAnon: boolean;
   roleCategoryId: string;
   roleTitle: string;
   department: string;
@@ -271,7 +270,6 @@ const EMPLOYMENT_TYPE_OPTIONS = [
 const EMPTY_DRAFT: StintDraft = {
   companyName: "",
   companyId: null,
-  isAnon: false,
   roleCategoryId: "",
   roleTitle: "",
   department: "",
@@ -371,13 +369,17 @@ function optimisticReasonAnswers(a: ReasonAnswers, showLeave: boolean): Partial<
 
 // ── Company body helpers ──────────────────────────────────────────────────────
 
-/** 保存 body 用: company_id / company_text / company_anonymized の3者排他を保証 */
+/**
+ * 保存 body 用: company_id / company_text の排他を保証する。
+ *
+ * ⚠️★**`company_anonymized` は書かない**（2026-09-12 に入力経路ごと削除）。
+ *    API の XOR 検証は3者のまま残してあるが、**このクライアントが送るのは2者だけ**。
+ *    理由と実測は上の会社名欄のコメントを参照。
+ */
 function buildCompanyBody(
-  draft: Pick<StintDraft, "isAnon" | "companyId" | "companyName">
+  draft: Pick<StintDraft, "companyId" | "companyName">
 ): ExperienceCompanyBody {
-  if (draft.isAnon) {
-    return { company_anonymized: draft.companyName || "非公開企業" };
-  } else if (draft.companyId) {
+  if (draft.companyId) {
     // null も "" も falsy → company_text 経路へ
     return { company_id: draft.companyId };
   } else {
@@ -387,17 +389,9 @@ function buildCompanyBody(
 
 /** 楽観的更新用: StintDraft から Stint の会社名フィールドを組み立てる */
 function optimisticCompanyFields(
-  draft: Pick<StintDraft, "isAnon" | "companyId" | "companyName">
+  draft: Pick<StintDraft, "companyId" | "companyName">
 ): Pick<Stint, "displayCompanyName" | "companyType" | "companyId" | "companyText" | "companyAnonymized"> {
-  if (draft.isAnon) {
-    return {
-      displayCompanyName: draft.companyName || "非公開企業",
-      companyType: "anon",
-      companyId: undefined,
-      companyText: undefined,
-      companyAnonymized: draft.companyName || "非公開企業",
-    };
-  } else if (draft.companyId) {
+  if (draft.companyId) {
     return {
       displayCompanyName: draft.companyName,
       companyType: "master",
@@ -817,36 +811,32 @@ function StintForm({
            実測（2026-09-02 / 本番 24件）: `company_anonymized` は **0件**で、
            撤去した時点で誰も使っていなかった。
 
-        ⚠️ **`draft.isAnon` と下の分岐は残してある。** 既存の匿名行（本番0件）を編集したとき、
-           `CompanySearch` に流し込んで保存すると **`company_text` へ黙って変わる**。
-           「値が無い」ではなく「別の値に化ける」形なので、経路ごと消さずに読み書きを保つ。
-           ⚠️ **新しく `isAnon` を true にする経路を足さないこと。** 選ぶ手段が無いのが今の仕様。
+        ⚠️★**匿名企業（`company_anonymized`）の入力経路は 2026-09-12 に削除した**
+           （柴さんの指示）。OPINIO に「非公開企業」という概念が無いため。
+           実測（2026-09-12 / 本番 34件）: `company_anonymized` を持つ行は **0件**
+           （実ユーザーも0件）。**化ける行が1つも無い**状態で外している。
+           ⚠️★これは**2026-09-02 の「経路ごと消さずに読み書きを保つ」を置き換えた判断**。
+              当時の心配は「既存の匿名行を編集すると `company_text` へ黙って変わる」で、
+              **その行が0件であることを実測して**外した。CLAUDE.md も同日に直してある。
+           ⚠️ **列・データ・API の XOR 検証は残してある。** 消したのは入力欄と
+              クライアント側の分岐だけ。表示側（`toStint` / `timeline.ts` /
+              `companyName.ts`）は触っていない。
+           ⚠️★**新しく `company_anonymized` を書く経路を足さないこと。** 足した瞬間に、
+              その行を編集したときへ化ける問題が戻る。
       */}
       <div>
         <div style={{ marginBottom: 6 }}>
           <label style={labelStyle()}>会社名<RequiredMark /></label>
         </div>
-        {draft.isAnon ? (
-          /* 匿名経路: company_anonymized に保存 → プレーン input のまま */
-          <input
-            type="text"
-            value={draft.companyName}
-            onChange={(e) => set("companyName", e.target.value)}
-            placeholder="非公開企業（任意）"
-            disabled={isSaving || companyLocked}
-            style={fieldStyle()}
-          />
-        ) : (
-          /* マスタ/カスタム経路: company_id or company_text に保存 */
-          <CompanySearch
-            value={draft.companyName}
-            companyId={draft.companyId}
-            disabled={isSaving || companyLocked}
-            onChange={(id, name) =>
-              onDraftChange({ ...draft, companyId: id, companyName: name })
-            }
-          />
-        )}
+        {/* マスタ/カスタム経路: company_id or company_text に保存 */}
+        <CompanySearch
+          value={draft.companyName}
+          companyId={draft.companyId}
+          disabled={isSaving || companyLocked}
+          onChange={(id, name) =>
+            onDraftChange({ ...draft, companyId: id, companyName: name })
+          }
+        />
       </div>
 
       {/*
@@ -870,26 +860,11 @@ function StintForm({
           disabled={isSaving}
           ariaLabel="職種"
         />
-        {/* ★大分類のままなら、より細かい職種を選べることを伝える（2026-08-30）
-            ⚠️★**これは「直せ」ではない。** `selectableParent` は意図して true で、
-               過去の非IT職は「営業」「販売・サービス」で十分（上のコメント）。
-               **止めない・赤くしない・保存もできる。**
-            ⚠️ **現職のときだけ出す。** 過去の職歴まで促すと上の方針と衝突する。
-               実測（2026-08-30）: 大分類のままの職歴10件のうち**現職が8件**。
-            ⚠️ 効果は2つ。①「職種×年数」の自動集計は**子職種だけを見る**ので、
-               親のままだとスキルとして出ない。②求人との突き合わせが具体的になる。
-               **理由を書かずに促さない。**
-            ⚠️ バナーにしない。/mypage のバナーは3回とも「同じ操作への入口が2つ」に
-               なって撤去されている（MypageClient のコメント）。**入口はここ1つ。** */}
-        {draft.isCurrent && draft.roleCategoryId
-          && roles.some((r) => r.parent_id === draft.roleCategoryId) && (
-          <p style={{
-            margin: "6px 0 0", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)",
-            fontFamily: "var(--font-inter), var(--font-noto)",
-          }}>
-            大分類のままです。より近い職種を選ぶと、スキルの年数や求人との一致が具体的になります（任意）。
-          </p>
-        )}
+        {/* ⚠️★「大分類のままです。より近い職種を選ぶと…（任意）」の案内文は
+               2026-09-12 に削除した（柴さんの指示）。**戻さないこと。**
+               ⚠️ `selectableParent` は**意図して true のまま**。過去の非IT職は
+                  「営業」「販売・サービス」で十分で、子まで選ばせると入力が止まる。
+                  案内文を消しただけで、大分類を選べる仕様は変えていない。 */}
       </div>
 
 
@@ -1260,7 +1235,6 @@ export default function CareerHistoryEditor({
   const draftFromStint = useCallback((s: Stint): StintDraft => ({
     companyName: s.companyType === "anon" ? (s.companyAnonymized ?? "非公開企業") : s.displayCompanyName,
     companyId: s.companyType === "master" ? (s.companyId ?? null) : null,
-    isAnon: s.companyType === "anon",
     roleCategoryId: s.roleCategoryId,
     roleTitle: s.roleTitle ?? "",
     department: s.department ?? "",
@@ -1300,7 +1274,6 @@ export default function CareerHistoryEditor({
       ? (group.companyAnonymized ?? "非公開企業")
       : group.displayCompanyName,
     companyId: group.companyType === "master" ? (group.companyId ?? null) : null,
-    isAnon: group.companyType === "anon",
     roleCategoryId: "",
     roleTitle: "",
     department: "",
