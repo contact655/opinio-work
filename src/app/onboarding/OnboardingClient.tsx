@@ -337,6 +337,8 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   /* これまでの職歴・学歴（どちらも任意・既定は0件）。
      ⚠️ 既定で行を1つ出さない。出すと「埋めなければいけない」に見えて入口が重くなる。 */
   const [pastJobs, setPastJobs] = useState<PastJob[]>([]);
+  /** ★「揃っていません」を出したか。⚠️ 1回だけ止めて、2回目は進める（2026-09-11） */
+  const [experienceWarned, setExperienceWarned] = useState(false);
   const [educations, setEducations] = useState<EducationRow[]>([]);
   const rowKeyRef = useRef(1);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -369,7 +371,33 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
   const canSaveExperience =
     hasCompany && roleIds.length > 0 && !!startedYear && !!startedMonth && (isCurrent || hasEnded);
 
+  /* ★★「入れたつもり」で終わらせない（2026-09-11）。
+     ── 何が起きていたか（実測）──────────────────────────────────────────────
+     会社だけ選んで「登録して始める」を押すと、**エラーも警告も出ずに次へ進み、
+     `ow_experiences` は0件**だった（3つ揃った行だけ送る作りのため）。
+     ⚠️ 入力欄の「保存に必要」は**押す前**に気づかせるもので、**押した後は何も言わなかった。**
+
+     ⚠️★**3つとも触っていない人は止めない。**「任意入力です」と言っている以上、
+        素通りする人の邪魔をしない。止めるのは**途中まで入れた人だけ。**
+     ⚠️★**2回目は必ず進める。** 進ませないのは「任意」と矛盾する。 */
+  const missingForExperience = (() => {
+    const touched = hasCompany || roleIds.length > 0 || !!startedYear || !!startedMonth;
+    if (!touched || canSaveExperience) return null;
+    const missing: string[] = [];
+    if (!hasCompany) missing.push("会社名");
+    if (roleIds.length === 0) missing.push("職種");
+    if (!startedYear || !startedMonth) missing.push("入社年月");
+    /* ⚠️ 「現職ではない」を選んだのに退職年月が無い場合も揃っていない */
+    if (!isCurrent && !hasEnded) missing.push("退職年月");
+    return missing;
+  })();
+
   const finish = async () => {
+    /* ⚠️★確認は**1回だけ**。同じ状態でもう一度押したら進む（`experienceWarned`）。 */
+    if (missingForExperience && !experienceWarned) {
+      setExperienceWarned(true);
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     /* ⚠️ 失敗を握り潰さない。どれが落ちたかを画面にも出す（best-effort だが黙らない）。 */
@@ -1141,6 +1169,31 @@ function OnboardingInner({ roles }: { roles: OnboardingRole[] }) {
               ⚠️ `marginTop` はこのラッパー側に移した。ボタンに残すと、貼ったときに
                  白い帯の中に 20px の余白が入って厚くなる。 */}
           <div className="onb-cta-sticky" style={{ marginTop: 20 }}>
+            {/* ★★押した人にだけ出す（2026-09-11）。⚠️ **ボタンの直上**に置く ——
+                   375px でも**伝えた内容とボタンが同時に見える**必要がある
+                   （sticky の帯の中なので、スクロール位置に関わらず一緒に見える）。
+                ⚠️★**モーダルにしない。** 375px で本文が隠れ、何を直せばよいか分からなくなる。
+                ⚠️★**何が足りないかを名指しする。** 「入力が不十分です」では直せない。
+                ⚠️★**「このまま進むと会社名は保存されない」まで言う。** これを落とすと、
+                   「警告は出たが、何が失われるか分からない」で終わる。
+                ⚠️ もう一度押せば進む（`experienceWarned`）。**進ませないのは「任意」と矛盾する。** */}
+            {experienceWarned && missingForExperience && (
+              <p
+                role="alert"
+                style={{
+                  margin: "0 0 10px", padding: "10px 12px", borderRadius: 8,
+                  background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                  fontSize: 12.5, lineHeight: 1.75, color: "var(--warm-ink)",
+                }}
+              >
+                <strong style={{ color: "var(--ink)" }}>
+                  {missingForExperience.join("・")}が未入力です。
+                </strong>
+                <br />
+                このまま進むと、直近のお勤め先は職歴として保存されません。
+                もう一度押すとそのまま進みます。
+              </p>
+            )}
             <button
               type="button"
               onClick={finish}
