@@ -21,7 +21,7 @@
  *    （`careerReasons.ts` の「公開範囲」を参照）。緑バッジと補足文を消さないこと。
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProfileEditModal } from "./ProfileEditModal";
 import {
   JOIN_REASONS,
@@ -159,6 +159,9 @@ export function ExperienceReasonModal({
   saving,
   justSaved,
   error,
+  companyId,
+  remaining,
+  onNext,
   onSave,
   onClose,
 }: {
@@ -169,11 +172,24 @@ export function ExperienceReasonModal({
   saving: boolean;
   justSaved: boolean;
   error: string | null;
-  onSave: (answers: ReasonAnswers) => void;
+  /** ★保存後の「見返り」を引くための会社（2026-09-12）。
+      ⚠️ **自由入力の会社では `null`。** その場合は在籍者数の行を**出さない**
+         （代替の文言も置かない。CLAUDE.md「値が無いことを、ある値に置き換えない」）。 */
+  companyId: string | null;
+  /** この職歴を保存したあとに残っている未回答の件数。0 なら「次の職歴」を出さない */
+  remaining: number;
+  /** 次の未回答へ進む。⚠️ `remaining === 0` のときは渡らない */
+  onNext: (() => void) | null;
+  /** ★保存できたら true を返すこと。true のときだけ「見返り」の画面へ進む */
+  onSave: (answers: ReasonAnswers) => Promise<boolean>;
   /** ⚠️ 「あとで答える」と ×。**何も保存せず閉じる** */
   onClose: () => void;
 }) {
-  const [step, setStep] = useState<1 | 2>(1);
+  /* ★`"done"` は保存後の「見返り」（2026-09-12 / 2-6）。
+     ⚠️ ステップ表記の分母（1 / 2）はこの画面に出さない。**設問ではない。** */
+  const [step, setStep] = useState<1 | 2 | "done">(1);
+  /** 在籍者数・元在籍者数。⚠️ 取れなかったら `null` のまま＝行ごと出さない */
+  const [peers, setPeers] = useState<{ current: number; alumni: number } | null>(null);
   const [answers, setAnswers] = useState<ReasonAnswers>(initial);
   /** 上限（`REASON_MAX`）に当たったことを伝える短い注記。次の操作で消える（2026-08-19） */
   const [limitNote, setLimitNote] = useState<null | "join" | "leave">(null);
@@ -182,6 +198,36 @@ export function ExperienceReasonModal({
     () => JSON.stringify(answers) !== JSON.stringify(initial),
     [answers, initial],
   );
+
+  /** 全ステップを通して1つでも選んでいるか。⚠️ **「保存」を出すかの判定はこれだけ。** */
+  const hasAnySelection =
+    answers.joinReasons.length > 0 ||
+    (showLeave && answers.leaveReasons.length > 0) ||
+    Object.keys(answers.gaps).length > 0;
+
+  /* ★保存後に「在籍している人／過去に在籍していた人」を引く（2026-09-12 / 2-6）。
+     ⚠️ **既存の企業ページ用ルートをそのまま使う。** 数のために別ルートを作らない。
+     ⚠️ 失敗しても画面にエラーを出さない ——**設問の保存はもう終わっている**ので、
+        ここで赤い枠を出すと「保存できなかった」と読まれる。行が出ないだけにする。 */
+  useEffect(() => {
+    if (step !== "done" || !companyId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/jobseeker/companies/${companyId}/employees`);
+        if (!res.ok) throw new Error(String(res.status));
+        const j = (await res.json()) as { totalCurrentCount?: number; totalAlumniCount?: number };
+        if (!alive) return;
+        if (typeof j.totalCurrentCount === "number" && typeof j.totalAlumniCount === "number") {
+          setPeers({ current: j.totalCurrentCount, alumni: j.totalAlumniCount });
+        }
+      } catch (e) {
+        // ⚠️ 握り潰さない。画面には出さないが、落ちたことは残す
+        console.error("[reason-modal] employees:", (e as Error).message);
+      }
+    })();
+    return () => { alive = false; };
+  }, [step, companyId]);
 
   /* 入社理由・退職理由のチェック切り替え。
      ⚠️ 入社理由を外したら「決め手」も一緒に外す。DB の CHECK
@@ -220,41 +266,56 @@ export function ExperienceReasonModal({
   return (
     <ProfileEditModal
       open={open}
-      title="この会社を選んだ理由と、離れた理由"
-      dirty={dirty}
+      /* ★題は現職かどうかで変える（2026-09-12 / 2-5）。**判定は `showLeave` に揃える**
+            （呼び出し側の `hasLeftCompany` が唯一の実装）。現職の人に
+            「離れた理由」と書いた題を見せない。 */
+      title={showLeave ? "この会社を選んだ理由と、離れた理由" : "この会社を選んだ理由"}
+      dirty={step === "done" ? false : dirty}
       saving={saving}
       justSaved={justSaved}
       error={error}
-      saveLabel={step === 1 ? "次へ" : "保存"}
-      /* ⚠️★**未入力でも進める / 保存できる。** `dirty` と連動させない。
-            答えないまま「次へ」が押せないと、ギャップだけ答えたい人が進めない。 */
+      saveLabel={step === 1 ? "次へ" : step === 2 ? "保存" : onNext ? `次の職歴に答える（残り${remaining}件）` : "閉じる"}
+      /* ⚠️★**未入力でも「次へ」は押せる。** `dirty` と連動させない。
+            答えないまま「次へ」が押せないと、ギャップだけ答えたい人が進めない。
+         ⚠️★**0件で「次へ」を許すのは意図的**（ギャップだけ回答する経路）。
+            **「保存」だけは全ステップ0件のとき出さない**（2026-09-12 / 柴さんの判断。
+            不活性のボタンは置かない）。両方の意図があるので、片方だけ変えないこと。 */
       primaryEnabled
+      hidePrimary={step === 2 && !hasAnySelection}
       /* ⚠️ 「あとで答える」は**確認を挟まずそのまま閉じる**（何も保存しない）。
             × と背景クリックは `dirty` のとき破棄の確認が出る。役割が違う。 */
-      secondaryLabel="あとで答える"
+      secondaryLabel={step === "done" ? (onNext ? "閉じる" : undefined) : "あとで答える"}
       onSecondary={onClose}
-      onSave={() => { if (step === 1) setStep(2); else onSave(answers); }}
+      onSave={() => {
+        if (step === 1) { setStep(2); return; }
+        if (step === "done") { if (onNext) onNext(); else onClose(); return; }
+        /* ★保存できたときだけ「見返り」へ進む（2026-09-12 / 2-6）。
+              失敗したらこの画面に留まり、`error` を出したまま押し直せる。 */
+        void onSave(answers).then((ok) => { if (ok) setStep("done"); });
+      }}
       onClose={onClose}
     >
       {/* ⚠️ 緑バッジと補足文は**編集モーダルにあったものをそのまま移した**。消さないこと。 */}
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "var(--success-ink)",
-              background: "var(--success-soft)",
-              padding: "2px 8px",
-              borderRadius: 100,
-              letterSpacing: "0.03em",
-            }}
-          >
-            この内容は公開されません
-          </span>
-        </div>
-        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-          あなた以外には表示されません。企業ごとの傾向を集計するために使います。
+      {/* ⚠️★**バッジと一文は同じ行に置く**（2026-09-12 / 柴さんの指示）。
+             2行に分けていたときは「あなた以外には表示されません」がバッジの言い換えになっていた。
+             ⚠️ 狭い画面では折り返す（`flexWrap`）。**固定幅にしないこと。** */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 18, minWidth: 0 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--success-ink)",
+            background: "var(--success-soft)",
+            padding: "2px 8px",
+            borderRadius: 100,
+            letterSpacing: "0.03em",
+            flexShrink: 0,
+          }}
+        >
+          この内容は公開されません
+        </span>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)", minWidth: 0 }}>
+          企業ごとの傾向の集計にだけ使います
         </p>
       </div>
 
@@ -364,7 +425,7 @@ export function ExperienceReasonModal({
             </div>
           )}
         </div>
-      ) : (
+      ) : step === 2 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <div style={stepLabelStyle}>ステップ 2 / 2</div>
@@ -397,6 +458,30 @@ export function ExperienceReasonModal({
               ))}
             </div>
           </div>
+        </div>
+      ) : (
+        /* ★保存後の「見返り」（2026-09-12 / 2-6）。
+           ⚠️★**出すのは在籍者数という事実だけ。** 集計値・推定値・退職理由の分布は出さない。
+           ⚠️★**自由入力の会社（`companyId` が無い）では行ごと出さない。**
+              「まだ登録されていません」のような代替文も置かない。 */
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5, overflowWrap: "anywhere" }}>
+            回答を保存しました
+          </div>
+          {peers && (
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, overflowWrap: "anywhere" }}>
+              {companyName} には、いま在籍している人が
+              <span style={{ fontWeight: 700, color: "var(--ink)", margin: "0 3px" }}>{peers.current}</span>
+              人、過去に在籍していた人が
+              <span style={{ fontWeight: 700, color: "var(--ink)", margin: "0 3px" }}>{peers.alumni}</span>
+              人います。
+            </div>
+          )}
+          {remaining > 0 && (
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+              まだ答えていない職歴が {remaining} 件あります。
+            </div>
+          )}
         </div>
       )}
     </ProfileEditModal>

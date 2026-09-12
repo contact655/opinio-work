@@ -19,6 +19,7 @@ import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
          あるので、割れると片方だけ直る形の不具合になる。 */
 import {
   ExperienceReasonModal,
+  hasReasonAnswers,
   reasonAnswersFrom,
   type ReasonAnswers,
 } from "@/components/profile/editor/ExperienceReasonModal";
@@ -1236,7 +1237,8 @@ export default function CareerHistoryEditor({
   roles = [],
   onSavedCountChange,
   onExperienceDeleted,
-  openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId, onClosed,
+  openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
+  openReasonBatchNonce, onClosed,
   onStintsChange,
 }: {
   initialExperiences?: Stint[];
@@ -1264,6 +1266,10 @@ export default function CareerHistoryEditor({
       値はその会社の役割の**どれか1件の id**（`openAddRoleForCareerId` と同じ規約）。
       ⚠️ 編集できるのは**会社名だけ**。雇用形態は役割の項目なので役割のモーダルから。 */
   openEditCompanyId?: string | null;
+  /** ★「まとめて答える」の合図（2026-09-12 / 2-5）。値が変わるたびに、
+      **未回答の職歴を古い順に1件ずつ**開く。⚠️ 順番の決め方はこの部品が持つ
+      （親は件数しか見ない）。 */
+  openReasonBatchNonce?: number;
   /** モーダルが閉じたことを親へ知らせる */
   onClosed?: () => void;
   /** ★保存済みの職歴そのもの。**親が表示（`MergedTimeline`）に使う。**
@@ -1328,8 +1334,11 @@ export default function CareerHistoryEditor({
         2026-08-19 に編集モーダルへ置いていたときと同じ形に戻る。 */
   const [reasonId, setReasonId] = useState<string | null>(null);
   const [reasonSaving, setReasonSaving] = useState(false);
-  const [reasonJustSaved, setReasonJustSaved] = useState(false);
   const [reasonError, setReasonError] = useState<string | null>(null);
+  /* ⚠️★**「✓ 保存しました」のボタン表示は使わない**（2026-09-12 / 2-6）。
+        保存できたらモーダル自身が「見返り」の画面へ切り替わるので、
+        フッターのボタンは**次の操作**（次の職歴 / 閉じる）に変わる。
+        ここで `justSaved` を立てるとそのボタンが押せなくなる。 */
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Stint | null>(null);
@@ -1466,6 +1475,30 @@ export default function CareerHistoryEditor({
     setReasonError(null);
     setReasonId(openReasonId);
   }, [openReasonId]);
+  /* ★まとめて答える（2026-09-12 / 2-5）。**古い順**に並べた未回答の職歴。
+     ⚠️ 判定は `hasReasonAnswers`（入社理由 / 離れた理由 / ギャップのどれか）。
+        画面のドットと**同じ関数**を見る。割れると「ドットは付いているのに
+        まとめ入口が拾わない」が起きる。 */
+  const unansweredIds = useMemo(
+    () =>
+      stints
+        .filter((x) => !hasReasonAnswers(x))
+        .slice()
+        .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+        .map((x) => x.id),
+    [stints],
+  );
+  /* ⚠️ **nonce は値が変わったときだけ発火させる**（`.claude/rules/ui-debugging.md` ⑭）。
+        ref の初期値を現在値にしてあるので、マウントでは開かない。 */
+  const lastReasonBatchNonce = useRef(openReasonBatchNonce);
+  useEffect(() => {
+    if (openReasonBatchNonce === undefined || openReasonBatchNonce === lastReasonBatchNonce.current) return;
+    lastReasonBatchNonce.current = openReasonBatchNonce;
+    const first = unansweredIds[0];
+    if (!first) return;
+    setReasonError(null);
+    setReasonId(first);
+  }, [openReasonBatchNonce, unansweredIds]);
   /* ★会社の行の鉛筆から開く（2026-09-12）。渡ってくるのはその会社の役割のどれか1件の id。
         ⚠️ draft は**開いた時点の保存済みの値**で始める（ルール⑦。開いた直後は保存を押せない）。 */
   useEffect(() => {
@@ -1671,9 +1704,9 @@ export default function CareerHistoryEditor({
    * ⚠️ 既存の API・検証関数（`parseReasonFields`）・DB の CHECK をそのまま使う。
    *    選択肢・上限3つ・スラッグは変えていない。
    */
-  const saveReasons = useCallback(async (answers: ReasonAnswers) => {
+  const saveReasons = useCallback(async (answers: ReasonAnswers): Promise<boolean> => {
     const target = stints.find((x) => x.id === reasonId);
-    if (!target) return;
+    if (!target) return false;
     const d = draftFromStint(target);
     const showLeave = hasLeftCompany(d);
     setReasonSaving(true);
@@ -1692,13 +1725,13 @@ export default function CareerHistoryEditor({
         x.id === target.id ? { ...x, ...optimisticReasonAnswers(answers, showLeave) } : x
       ));
       showToast("回答を保存しました");
-      setReasonJustSaved(true);
-      await new Promise((r) => setTimeout(r, 800));
-      setReasonId(null);
-      setReasonJustSaved(false);
-      onClosedRef.current?.();
+      /* ⚠️★**ここで閉じない**（2026-09-12 / 2-6）。保存できたことはモーダルの
+            「見返り」の画面が示し、閉じるか次へ進むかは本人が選ぶ。
+            ⚠️ まとめて回している途中で閉じても、**ここまでの保存はもう済んでいる。** */
+      return true;
     } catch {
       setReasonError("保存に失敗しました。もう一度お試しください。");
+      return false;
     } finally {
       setReasonSaving(false);
     }
@@ -1966,10 +1999,24 @@ export default function CareerHistoryEditor({
           showLeave={hasLeftCompany(draftFromStint(reasonStint))}
           initial={reasonAnswersFrom(reasonStint)}
           saving={reasonSaving}
-          justSaved={reasonJustSaved}
+          /* ⚠️ 保存できたら「見返り」の画面に切り替わる。ボタンを
+                「✓ 保存しました」で止めない（2026-09-12 / 2-6） */
+          justSaved={false}
           error={reasonError}
-          onSave={(a) => { void saveReasons(a); }}
-          /* ⚠️ 「あとで答える」と ×。**何も保存しない**（仕様） */
+          /* ⚠️★自由入力の会社は `undefined` なので `null` に落とす。
+                **在籍者数の行ごと出さない**（代替文も置かない）。 */
+          companyId={reasonStint.companyId ?? null}
+          /* ⚠️ 保存後に再計算される値。楽観更新でこの行は回答済みになるので、
+                残りにはこの職歴が含まれない。 */
+          remaining={unansweredIds.length}
+          onNext={
+            unansweredIds.length > 0
+              ? () => { setReasonError(null); setReasonId(unansweredIds[0]); }
+              : null
+          }
+          onSave={saveReasons}
+          /* ⚠️ 「あとで答える」と ×。**何も保存しない**（仕様）。
+                ★まとめて回している途中で閉じても、**保存済みのぶんは残る。** */
           onClose={() => { setReasonId(null); setReasonError(null); onClosedRef.current?.(); }}
         />
       )}

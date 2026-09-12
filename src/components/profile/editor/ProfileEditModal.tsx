@@ -58,6 +58,10 @@ export function ProfileEditModal({
       ⚠️ 編集のときだけ渡すこと。追加のモーダルには消すものが無い。 */
   dangerLabel,
   onDanger,
+  /** ★主ボタンごと出さない（2026-09-12 / 理由モーダルの「保存」）。
+      ⚠️ **不活性のボタンを置く代わりではない。** 押しても意味が無い状態のときは
+         **ボタンを出さない**（柴さんの判断）。既定は今までどおり必ず出す。 */
+  hidePrimary = false,
 }: {
   open: boolean;
   title: string;
@@ -74,6 +78,7 @@ export function ProfileEditModal({
   onSecondary?: () => void;
   dangerLabel?: string;
   onDanger?: () => void;
+  hidePrimary?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -220,20 +225,22 @@ export function ProfileEditModal({
                 {secondaryLabel}
               </button>
             )}
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={saveLocked}
-              className="tap-min-h"
-              style={{
-                padding: "10px 28px", fontSize: "var(--text-sm)", fontWeight: 700, minWidth: 120,
-                background: justSaved ? "var(--success)" : saveLocked ? "var(--ink-mute)" : "var(--royal)",
-                color: "#fff", border: "none", borderRadius: 999, fontFamily: "inherit",
-                cursor: saveLocked ? "default" : "pointer", transition: "background 0.2s",
-              }}
-            >
-              {saving ? "保存中…" : justSaved ? "✓ 保存しました" : saveLabel}
-            </button>
+            {!hidePrimary && (
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saveLocked}
+                className="tap-min-h"
+                style={{
+                  padding: "10px 28px", fontSize: "var(--text-sm)", fontWeight: 700, minWidth: 120,
+                  background: justSaved ? "var(--success)" : saveLocked ? "var(--ink-mute)" : "var(--royal)",
+                  color: "#fff", border: "none", borderRadius: 999, fontFamily: "inherit",
+                  cursor: saveLocked ? "default" : "pointer", transition: "background 0.2s",
+                }}
+              >
+                {saving ? "保存中…" : justSaved ? "✓ 保存しました" : saveLabel}
+              </button>
+            )}
           </div>
         </div>
       </div>

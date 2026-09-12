@@ -726,6 +726,10 @@ export default function ProfileTab({
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
   /* ★会社名だけを直すモーダルを開く行の id（2026-09-12）。値はその会社の役割のどれか1件 */
   const [editCompanyForId, setEditCompanyForId] = useState<string | null>(null);
+  /* ★「まとめて答える」の合図（2026-09-12 / 2-5）。値が変わるたびに、
+        `CareerHistoryEditor` が未回答の職歴を**古い順**に1件ずつ開く。
+     ⚠️ **順番はここで決めない。** 件数だけをこの画面が数え、並べ方は向こうが持つ。 */
+  const [reasonBatchNonce, setReasonBatchNonce] = useState(0);
   /* ★★「すべて表示」はその場で展開する（2026-09-12）。一覧ページ（`/mypage/details/*`）を
         `/mypage` へ畳んだので、行き先が無くなった。
      ⚠️ 職歴・学歴だけ。実績・受賞・メディア・発信コンテンツは従来どおり一覧ページへ送る。 */
@@ -736,6 +740,14 @@ export default function ProfileTab({
         ここは `onStintsChange` で受け取った控え。編集用モーダルは常にマウントしておく
         （アンマウントすると控えが初期値に巻き戻る）。 */
   const [careerStints, setCareerStints] = useState<Stint[]>(initialExperiences);
+  /* ★未回答の職歴の件数（2026-09-12 / 2-5）。
+     ⚠️ **追加の取得は要らない。** 理由データ3種（入社理由 / 離れた理由 / ギャップ）は
+        `/mypage/page.tsx` が職歴と一緒に読んで `careerStints` に載せている。
+     ⚠️ 判定は `hasReasonAnswers`。行のドットと**同じ関数**を見る。 */
+  const unansweredReasonCount = useMemo(
+    () => careerStints.filter((s) => !hasReasonAnswers(s)).length,
+    [careerStints],
+  );
   const [editingCareerId, setEditingCareerId] = useState<string | null>(null);
   const [deleteCareerId,  setDeleteCareerId]  = useState<string | null>(null);
   const [addRoleForId,    setAddRoleForId]    = useState<string | null>(null);
@@ -1450,6 +1462,55 @@ export default function ProfileTab({
                   まだ職歴を登録していません。
                 </p>
               )}
+              {/* ★「まとめて答える」の入口（2026-09-12 / 2-5）。
+                     ⚠️ **未回答が0件のときは行ごと出さない。**「すべて回答済みです」とも書かない。
+                     ⚠️★**行のドット（`ReasonEntryButton`）は残す。** この行を読み飛ばした人と、
+                        1件だけ直したい人の経路。片方だけにしないこと。
+                     ⚠️ 公開範囲の一文を消さないこと ——**非公開であることが答える前提。** */}
+              {unansweredReasonCount > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    minWidth: 0,
+                    padding: "10px 14px",
+                    marginBottom: 14,
+                    borderRadius: 10,
+                    background: "var(--royal-50)",
+                    border: "1px solid var(--line)",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.6 }}>
+                      {unansweredReasonCount}件の職歴が未回答です
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                      選んだ理由と離れた理由は、あなた以外には表示されません
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReasonBatchNonce((n) => n + 1)}
+                    className="tap-min-h"
+                    style={{
+                      flexShrink: 0,
+                      padding: "8px 18px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#fff",
+                      background: "var(--royal)",
+                      border: "none",
+                      borderRadius: 999,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    まとめて答える
+                  </button>
+                </div>
+              )}
               {/* ★★行の鉛筆をここへ戻した（2026-09-12 / 柴さんの指示）。
                      2026-08-17 のフェーズ3で「1件ずつ触るのは一覧ページの仕事」と決めたが、
                      **その一覧ページを畳んだ**ので、行の操作が本体に戻る。
@@ -1507,6 +1568,7 @@ export default function ProfileTab({
               openAddRoleForCareerId={addRoleForId}
               openReasonId={reasonCareerId}
               openEditCompanyId={editCompanyForId}
+              openReasonBatchNonce={reasonBatchNonce}
               onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); setReasonCareerId(null); setEditCompanyForId(null); }}
               onStintsChange={setCareerStints}
               initialExperiences={initialExperiences}
