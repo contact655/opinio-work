@@ -119,4 +119,13 @@ export const MASKED_COMPANY_LABEL = "非公開企業";
 export const EXPERIENCE_COMPANY_COLS =
   /* ⚠️ `name_en` も取る。表示名は `companyDisplayName` が name_en 優先で作るため、
         取り忘れると経歴だけ正式名称（「株式会社セールスフォース・ジャパン」）に戻る。 */
-  "company_id, company_text, company_anonymized, ow_companies(name, name_en)";
+  /* ⚠️★★**`!company_id` を必ず書く**（2026-09-12 に本番で踏んだ）。
+        `ow_experiences` は `company_id` と **`secondment_company_id`（出向先）** の
+        2本の外部キーで `ow_companies` を指しているので、`ow_companies(...)` と
+        書くと PostgREST が**どちらか決められず `PGRST201` / HTTP 300** を返す。
+        ⚠️ 呼び出し側が `error` を捨てていると `data` が null になるだけなので、
+           画面上は**「会社名が無い人」**にしか見えない。実際に本番で
+           **ユーザー一覧から3人が消え、候補者一覧の会社名が全員空**になった。
+        ⚠️ 出向先を引きたいときは `ow_companies!secondment_company_id(...)`。
+           **無印に戻さないこと。** */
+  "company_id, company_text, company_anonymized, ow_companies!company_id(name, name_en)";

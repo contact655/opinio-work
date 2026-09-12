@@ -20,7 +20,8 @@ export async function GET(
     admin.from("ow_users").select("id, name, email").eq("id", params.userId).maybeSingle(),
     admin
       .from("ow_experiences")
-      .select("id, company_id, company_text, company_anonymized, role_title, started_at, ended_at, is_current, ow_companies(name)")
+      /* ⚠️★`!company_id` を外さない（2026-09-12。出向先の FK が増えて曖昧になった） */
+      .select("id, company_id, company_text, company_anonymized, role_title, started_at, ended_at, is_current, ow_companies!company_id(name)")
       .eq("user_id", params.userId)
       .order("started_at", { ascending: false }),
     admin

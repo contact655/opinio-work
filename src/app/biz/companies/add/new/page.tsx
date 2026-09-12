@@ -63,12 +63,15 @@ export default async function CreateCompanyPage() {
         .maybeSingle();
       if (owUser) {
         // 2a. 求職者プロフィールの現職企業
-        const { data: exp } = await admin
+        /* ⚠️★`!company_id` を外さない（2026-09-12）。出向先の FK が増えて曖昧になり、
+              PGRST201 で初期値が入らなくなる。 */
+        const { data: exp, error: expErr } = await admin
           .from("ow_experiences")
-          .select("company_text, company_id, ow_companies(name)")
+          .select("company_text, company_id, ow_companies!company_id(name)")
           .eq("user_id", owUser.id)
           .eq("is_current", true)
           .maybeSingle();
+        if (expErr) console.error("[biz/companies/add/new] ow_experiences:", expErr.message);
         if (exp) {
           prefilledCompanyName = (exp.ow_companies as unknown as { name: string } | null)?.name ?? exp.company_text ?? null;
           prefilledCompanyId = (exp.company_id as string | null) ?? null;

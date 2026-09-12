@@ -66,11 +66,13 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
   const userIds = Array.from(new Set(posts.map((p) => p.user?.id).filter(Boolean) as string[]));
   const map = new Map<string, { roleTitle: string | null; company: string | null }>();
   if (userIds.length === 0) return map;
-  const { data: exps } = await admin
+  const { data: exps, error: expsErr } = await admin
     .from("ow_experiences")
     .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
     .in("user_id", userIds)
     .eq("is_current", true);
+  // ⚠️ error を捨てない（2026-09-12）。捨てると埋め込みの失敗が「会社名なし」に化ける
+  if (expsErr) console.error("[api/jobseeker/posts] ow_experiences:", expsErr.message);
   for (const exp of exps ?? []) {
     if (!map.has(exp.user_id)) {
       map.set(exp.user_id, {

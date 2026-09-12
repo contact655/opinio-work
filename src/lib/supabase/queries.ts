@@ -1919,7 +1919,9 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     const alumniUserIds = alumniEmps.map((e) => e.userId);
     const { data: currentExpRows, error: currentExpRowsErr } = await supabase
       .from("ow_experiences")
-      .select("user_id, role_title, company_text, ow_companies(name, brand_name)")
+      /* ⚠️★`!company_id` を外さない（2026-09-12）。出向先の FK が増えて曖昧になり、
+            PGRST201 で**この節が丸ごと空**になる。 */
+      .select("user_id, role_title, company_text, ow_companies!company_id(name, brand_name)")
       .in("user_id", alumniUserIds)
       .eq("is_current", true);
     if (currentExpRowsErr) console.error("[supabase/queries] ow_experiences:", currentExpRowsErr.message);

@@ -110,7 +110,7 @@ export default async function FeedPage() {
           .eq("is_current", true)
           .limit(1)
           .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     adminSupabase
     .from("ow_posts_visible")
     .select(`
@@ -130,6 +130,8 @@ export default async function FeedPage() {
 
   /* ⚠️ 型を狭めない。resolveExperienceCompanyName は会社名の解決に
         EXPERIENCE_COMPANY_COLS 一式を見る。 */
+  // ⚠️ error を捨てない（2026-09-12）。埋め込みの失敗が「会社名なし」に化ける
+  if (myExpResult.error) console.error("[feed/(list)] ow_experiences(me):", myExpResult.error.message);
   const myExp = myExpResult.data;
   if (myExp) {
     myRoleTitle = myExp.role_title ?? null;
@@ -169,7 +171,7 @@ export default async function FeedPage() {
       ? adminSupabase.from("ow_experiences")
           .select(`user_id, role_title, ${EXPERIENCE_COMPANY_COLS}`)
           .in("user_id", userIds).eq("is_current", true)
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     visibleIds.length > 0
       ? adminSupabase.from("ow_post_likes")
           .select("post_id, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
@@ -182,6 +184,7 @@ export default async function FeedPage() {
   {
     /* ⚠️ 型を狭めない。resolveExperienceCompanyName が会社名の解決に
           EXPERIENCE_COMPANY_COLS 一式を見る。 */
+    if (expsResult.error) console.error("[feed/(list)] ow_experiences:", expsResult.error.message);
     const exps = expsResult.data;
     for (const exp of exps ?? []) {
       if (!expByUser.has(exp.user_id)) {

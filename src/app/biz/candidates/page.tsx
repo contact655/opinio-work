@@ -283,14 +283,17 @@ export default async function CandidatesPage() {
   );
 
   // 現職情報 + 在籍期間（employment_type・started_at 追加）
-  const { data: currentExps } = userIds.length > 0
+  /* ⚠️★`error` を捨てない（2026-09-12）。捨てていたせいで、出向先の FK が増えて
+        埋め込みが PGRST201 になったことに**24時間気づけなかった**（会社名が全員空になった）。 */
+  const { data: currentExps, error: currentExpsErr } = userIds.length > 0
     ? await adminClient
         .from("ow_experiences")
         /* ★`visibility_company` を必ず取る（2026-09-10）。理由は下の置換のコメント。 */
         .select(`user_id, role_title, role_category_id, employment_type, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
         .in("user_id", userIds)
         .eq("is_current", true)
-    : { data: [] };
+    : { data: [], error: null };
+  if (currentExpsErr) console.error("[biz/candidates] ow_experiences:", currentExpsErr.message);
 
   /* ★社会人年数の元データ（2026-08-20）。
      ⚠️ 上の `currentExps` は `is_current=true` だけなので使えない。

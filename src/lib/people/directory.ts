@@ -329,6 +329,10 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     return m;
   };
 
+  /* ⚠️★`error` を捨てない（2026-09-12）。ここが落ちると所属が付かず、
+        `affiliation.kind === "none"` の人が一覧から**丸ごと消える**
+        （実際に PGRST201 で実ユーザー3人が消えた）。 */
+  if (expRes.error) console.error("[people/directory] ow_experiences:", expRes.error.message);
   const exps    = byUser((expRes.data ?? []) as unknown as ExpRow[]);
   const edus    = byUser((eduRes.data ?? []) as { user_id: string; school: string | null }[]);
   const links   = byUser((linkRes.data ?? []) as { user_id: string }[]);

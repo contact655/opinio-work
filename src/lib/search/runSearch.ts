@@ -480,6 +480,8 @@ export async function searchPersonHits(
   }
 
   const expsByUser = new Map<string, ExpRow[]>();
+  // ⚠️ error を捨てない（2026-09-12）。落ちると「職歴を持たない人」として静かに素通りする
+  if (expRes.error) console.error("[runSearch] ow_experiences:", expRes.error.message);
   for (const e of (expRes.data ?? []) as unknown as ExpRow[]) {
     expsByUser.set(e.user_id, [...(expsByUser.get(e.user_id) ?? []), e]);
   }

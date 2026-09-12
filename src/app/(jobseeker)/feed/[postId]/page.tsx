@@ -151,13 +151,14 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   let roleTitle: string | null = null;
   let company: string | null = null;
   if (p.user?.id) {
-    const { data: exp } = await adminSupabase
+    const { data: exp, error: expErr } = await adminSupabase
       .from("ow_experiences")
       .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
       .eq("user_id", p.user.id)
       .eq("is_current", true)
       .limit(1)
       .maybeSingle();
+    if (expErr) console.error("[feed/[postId]] ow_experiences:", expErr.message);
     if (exp) {
       roleTitle = exp.role_title ?? null;
       company = resolveExperienceCompanyName(exp);
