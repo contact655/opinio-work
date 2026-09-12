@@ -724,6 +724,8 @@ export default function ProfileTab({
   const [careerAddNonce, setCareerAddNonce] = useState(0);
   /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
+  /* ★会社名だけを直すモーダルを開く行の id（2026-09-12）。値はその会社の役割のどれか1件 */
+  const [editCompanyForId, setEditCompanyForId] = useState<string | null>(null);
   /* ★★「すべて表示」はその場で展開する（2026-09-12）。一覧ページ（`/mypage/details/*`）を
         `/mypage` へ畳んだので、行き先が無くなった。
      ⚠️ 職歴・学歴だけ。実績・受賞・メディア・発信コンテンツは従来どおり一覧ページへ送る。 */
@@ -1460,7 +1462,16 @@ export default function ProfileTab({
               <MergedTimeline
                 careers={shownCareers.careers}
                 educations={[]}
-                careerActions={{ onEditRow: (id) => setEditingCareerId(id), size: "md" }}
+                careerActions={{
+                  onEditRow: (id) => setEditingCareerId(id),
+                  /* ★会社の行の鉛筆（2026-09-12）。会社名だけを直す */
+                  onEditCompany: (id) => setEditCompanyForId(id),
+                  /* ★★「＋ この会社での異動・昇進を追加」を**本体に出した**（2026-09-12 /
+                        柴さんの指示）。それまでは編集モーダルの中にあり、鉛筆を押して
+                        モーダルを開かないと辿り着けなかった。 */
+                  onAddRole: (id) => setAddRoleForId(id),
+                  size: "md",
+                }}
                 renderCareerAside={(careerId) => {
                   const st = careerStints.find((x) => x.id === careerId);
                   if (!st) return null;
@@ -1495,7 +1506,8 @@ export default function ProfileTab({
               openDeleteId={deleteCareerId}
               openAddRoleForCareerId={addRoleForId}
               openReasonId={reasonCareerId}
-              onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); setReasonCareerId(null); }}
+              openEditCompanyId={editCompanyForId}
+              onClosed={() => { setEditingCareerId(null); setDeleteCareerId(null); setAddRoleForId(null); setReasonCareerId(null); setEditCompanyForId(null); }}
               onStintsChange={setCareerStints}
               initialExperiences={initialExperiences}
               roles={roles}

@@ -141,6 +141,10 @@ export function RowActionButtons({ id, label, actions }: { id: string; label: st
  */
 export type CareerActions = RowActions & {
   onAddRole?: (careerId: string) => void;
+  /** ★会社の行の鉛筆（2026-09-12）。引数はその会社の役割のうち**どれか1件の id**。
+      受け側がそこから会社を引き当てる（`onAddRole` と同じ規約）。
+      ⚠️ 編集できるのは**会社名だけ**。雇用形態は役割の項目なので役割の鉛筆から。 */
+  onEditCompany?: (careerId: string) => void;
 };
 
 /** 「＋ この会社に役割を追加」。会社グループの末尾に出す */
@@ -149,15 +153,20 @@ export function AddRoleLink({ careerId, onAddRole }: { careerId: string; onAddRo
     <button
       type="button"
       onClick={() => onAddRole(careerId)}
+      /* ⚠️★767px 以下で 44px にする（2026-09-12）。モーダルの中の補助リンクだった頃は
+            36px でよかったが、本体に出して**役割を足す唯一の入口**になったので下限を満たす。 */
+      className="tap-min-h"
       style={{
         marginTop: 10, display: "inline-flex", alignItems: "center", gap: 4,
-        padding: "5px 10px", background: "transparent", border: "1px dashed var(--line)",
+        padding: "8px 12px", background: "transparent", border: "1px dashed var(--line)",
         borderRadius: 8, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
         cursor: "pointer", fontFamily: "inherit",
       }}
     >
       <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
-      この会社に役割を追加
+      {/* ⚠️★文言は「この会社での異動・昇進を追加」（2026-09-12 / 柴さんの指示）。
+             「役割を追加」だと何を足すのか読めなかった。 */}
+      この会社での異動・昇進を追加
     </button>
   );
 }

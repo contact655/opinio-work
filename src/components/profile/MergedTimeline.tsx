@@ -397,6 +397,58 @@ function getCompanyKey(c: CareerEntry): string {
 }
 
 /**
+ * ★会社の在籍期間を、その会社の役割の期間から出す（2026-09-12）。
+ *
+ * ⚠️★**列は無い。役割（`ow_experiences` の行）の期間から毎回その場で出す。**
+ *    会社を別テーブルに切り出していないので、これが唯一の出どころ。
+ *
+ *   開始 … その会社の役割のうち**いちばん古い開始年月**
+ *   終了 … 現職の役割が1つでもあれば **null（＝「現在」）**、なければ**いちばん新しい終了年月**
+ *
+ * ⚠️ **期間の重なりや空白は埋めない。** 端から端まで（最も古い開始 → 最も新しい終了）で出す。
+ *    途中に空白がある人（一度辞めて戻った人）は `groupSameCompanyEntries` が
+ *    **別のまとまり**にするので、ここでは考えなくてよい（連続する同社だけが1つになる）。
+ *
+ * ⚠️★**表示だけでなく判定にも使う。** 会社の行のバッジ（在籍中）も同じ関数を見る。
+ *    別々に書くと「在籍中と出ているのに期間が止まっている」が起きる。
+ */
+export function companyTenure(items: readonly CareerEntry[]): {
+  startedAt: string;
+  endedAt: string | null;
+  isCurrent: boolean;
+} {
+  const isCurrent = items.some((c) => c.is_current);
+  const startedAt = items.reduce(
+    (earliest, c) => (c.started_at < earliest ? c.started_at : earliest),
+    items[0].started_at,
+  );
+  const endedAt = isCurrent
+    ? null
+    : items.reduce<string | null>((latest, c) => {
+        if (!c.ended_at) return latest;
+        return !latest || c.ended_at > latest ? c.ended_at : latest;
+      }, null);
+  return { startedAt, endedAt, isCurrent };
+}
+
+/**
+ * ★会社の行に雇用形態を出してよいか（2026-09-12）。
+ *
+ * ⚠️★**全役割が同じ値のときだけ会社の行に出す。** 違うなら会社の行には出さず、
+ *    役割の行にそれぞれ出す。2026-08-26 に「グループ代表を1つ出すと、同じ会社で
+ *    正社員 → 業務委託 に変わった人が全部『正社員』に見える」として役割ごとにした判断を、
+ *    **崩さないための条件**。
+ * ⚠️ 未入力（null）も1つの値として数える。「正社員」と未入力が混ざっていたら**混在**。
+ */
+export function uniformEmploymentType(items: readonly CareerEntry[]): string | null {
+  const first = items[0]?.employment_type ?? null;
+  for (const c of items) {
+    if ((c.employment_type ?? null) !== first) return null;
+  }
+  return first;
+}
+
+/**
  * RenderEntry[] を走査し、連続する同一会社の単独 career エントリを
  * "career-same-company" バリアントにまとめた RenderEntry[] を返す。
  *
@@ -434,11 +486,12 @@ function groupSameCompanyEntries(entries: RenderEntry[]): RenderEntry[] {
       }
     }
 
-    if (group.length >= 2) {
-      result.push({ kind: "career-same-company", items: group, companyKey: key });
-    } else {
-      result.push(entry);
-    }
+    /* ⚠️★**役割が1つの会社も同じ形にする**（2026-09-12 / 柴さんの指示）。
+          それまでは1件だけ `kind: "career"`（会社名も期間も1枚のカードに入る形）で、
+          **同じページに2つの構造が混ざっていた**。会社は1回だけ出して、
+          その下に役割を並べる形に統一する。
+       ⚠️ `/u/[id]` の DOM も全員ぶん変わる（承知のうえの変更）。 */
+    result.push({ kind: "career-same-company", items: group, companyKey: key });
     i = j;
   }
   return result;
@@ -898,93 +951,11 @@ function DescriptionGate() {
 
 // ─── Content sub-components ───────────────────────────────────────────────────
 
-function CareerContent({
-  data,
-  parallelWith,
-  isAuthenticated = true,
-}: {
-  data: CareerEntry;
-  /** 1ヶ月以上重なっている他社の名前。無ければ何も描かない */
-  parallelWith?: string[];
-  isAuthenticated?: boolean;
-}) {
-  const duration = formatDuration(data.started_at, data.ended_at);
-  const startLabel = formatYM(data.started_at);
-  const endLabel = data.is_current ? "現在" : data.ended_at ? formatYM(data.ended_at) : "";
-  const hasDesc = !!data.description;
+/* ⚠️★`CareerContent`（単独カードの中身）は 2026-09-12 に削除した。
+      会社を1回だけ出してその下に役割を並べる形に統一したので、使い手が無くなった。
+      **書き戻さないこと** —— 同じページに「会社名がカードの中にある形」と
+      「会社の行の下に役割が並ぶ形」の2つが混ざる。 */
 
-  /* 主見出しとサブ行。同社グループ（career-same-company）と**同じ組み立てを使う**。
-     1社1行の人と複数在籍の人とで、部署・役職の出方が変わらないようにするため。 */
-  const lines = buildPositionLines(data);
-
-  return (
-    <div className="tl-content" style={{ paddingTop: 10, paddingBottom: 22 }}>
-      {/* 会社名 + 雇用形態 + バッジ */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6, lineHeight: 1.35 }}>
-        {/* モバイル専用のインラインロゴ。デスクトップは左のロゴ列が出すので CSS で隠す */}
-        <span className="tl-inline-logo">
-          <CompanyLogoIcon
-            isCurrent={data.is_current}
-            logo_url={data.logo_url}
-            logo_letter={data.logo_letter}
-            logo_gradient={data.logo_gradient}
-            company_name={data.company_name}
-            size={28}
-          />
-        </span>
-        {data.company_id ? (
-          <Link href={`/companies/${data.company_id}`} className="company-name-link"
-            style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
-            {shortCompanyName(data.company_name)}
-          </Link>
-        ) : (
-          <span style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>
-            {shortCompanyName(data.company_name)}
-          </span>
-        )}
-        <EmploymentSlot data={data} />
-        {data.is_current && <CurrentBadge />}
-      </div>
-
-      {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 2, lineHeight: 1.4, overflowWrap: "anywhere" }}>
-        {lines.heading}
-      </div>
-
-      {/* 役職ランク → 役職名 → 職種。空の行は出さない */}
-      {lines.sub.map((line, i) => (
-        <div key={i} style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.45, overflowWrap: "anywhere" }}>
-          {line}
-        </div>
-      ))}
-
-      {/* 期間 */}
-      <PeriodLine start={startLabel} end={endLabel} duration={duration} marginBottom={4} />
-      <WorkPlaceLine prefecture={data.prefecture} remoteWorkStatus={data.remote_work_status}
-                     marginBottom={hasDesc ? 12 : 0} />
-      {/* ★並行は期間の下に1行。バッジではなく言葉で示す（フェーズ2-2） */}
-      <ParallelNote companies={parallelWith} />
-
-      {/* 業務内容
-          ⚠️ **固定の maxWidth を戻さないこと（2026-08-15 に 560px を撤去）。**
-             サイドバー撤去で本文カラムが 728→1020px に広がったのに、この 560px が
-             取り残されて **1440px 実測で 882px 中 560px しか使わず 322px（37%）が空いていた**
-             （1行 40字。同じページの自己紹介は 63字で組んでいる）。
-             行長の上限はページ外枠の maxWidth 1060 が担う。ここに2つ目の上限を置かない。
-          ⚠️ ui-debugging.md「レスポンシブで変えたい値をインラインstyleに書かない」の
-             対象そのもの（width / maxWidth）。狭幅で縮められなくなる。 */}
-      {data.description && (
-        isAuthenticated ? (
-          <ExpandableDesc text={data.description} />
-        ) : (
-          <DescriptionGate />
-        )
-      )}
-
-      {/* ⚠️ 公開の可否は `/u/[id]` が落としている。ここで再判定しない。 */}
-    </div>
-  );
-}
 
 function EducationContent({ data }: { data: EducationEntry }) {
   /* ⚠️★**卒業年月も「在学中」も無い行がある**（2026-08-28 実測: 学歴12件中1件）。
@@ -1106,65 +1077,26 @@ export default function MergedTimeline({
 
       <div className="merged-timeline">
         {visibleEntries.map((entry, _idx) => {
-          if (entry.kind === "career") {
-            const c = entry.data;
-
-            return (
-              <div key={`career-${c.id}`} className={["tl-row", c.is_current && "tl-row-current"].filter(Boolean).join(" ")}>
-                <div
-                  className="tl-icon-cell"
-                  style={{
-                    paddingTop: 8,
-                  }}
-                >
-                  <CompanyLogoIcon
-                    isCurrent={c.is_current}
-                    logo_url={c.logo_url}
-                    logo_letter={c.logo_letter}
-                    logo_gradient={c.logo_gradient}
-                    company_name={c.company_name}
-                  />
-                </div>
-                {/* ⚠️ `.tl-row` は2列グリッド。鉛筆・ゴミ箱を3つ目の子として置くと
-                       次の行の1列目（アイコン列の下）に回り込む。**同じセルに入れる。**
-                    ⚠️ 渡されなければ `CareerContent` を裸で置く＝他人の DOM は不変 */}
-                {careerActions || renderCareerAside ? (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 4, minWidth: 0, flex: 1 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} />
-                      {careerActions?.onAddRole && (
-                        <AddRoleLink careerId={c.id} onAddRole={careerActions.onAddRole} />
-                      )}
-                    </div>
-                    {renderCareerAside?.(c.id)}
-                    {careerActions && <RowActionButtons id={c.id} label={c.company_name} actions={careerActions} />}
-                  </div>
-                ) : (
-                  <CareerContent data={c} parallelWith={overlapMap.get(c.id)} isAuthenticated={isAuthenticated} />
-                )}
-              </div>
-            );
-          }
+          /* ⚠️★単独 `career` の描画ブランチは 2026-09-12 に削除した。
+                `groupSameCompanyEntries` が**役割1件でも `career-same-company` を返す**ので
+                到達しない。**書き戻さないこと**（同じページに2つの構造が混ざる）。 */
 
           if (entry.kind === "career-same-company") {
             const items = entry.items;
             const head = items[0];
-            const anyIsCurrent = items.some((c) => c.is_current);
-
-            const earliestStart = items.reduce((earliest, c) =>
-              c.started_at < earliest ? c.started_at : earliest, items[0].started_at);
-            const latestEnd = anyIsCurrent
-              ? null
-              : items.reduce<string | null>((latest, c) => {
-                  if (!c.ended_at) return latest;
-                  return !latest || c.ended_at > latest ? c.ended_at : latest;
-                }, null);
-
-            const duration = formatDuration(earliestStart, latestEnd);
-            /* ⚠️ **会社の見出しには雇用形態を出さない**（2026-08-26 / フェーズ1-2）。
-                  それまでは「グループ全体から最初の非 NULL を1つ」代表として出しており、
-                  **同じ会社で正社員 → 業務委託 に変わった人が全部『正社員』に見えていた。**
-                  いまは役割ごとの行が自分の値を出す（下の `EmploymentSlot`）。 */
+            /* ★在籍期間は共通関数から。**ここで計算し直さないこと**（2026-09-12） */
+            const tenure = companyTenure(items);
+            const anyIsCurrent = tenure.isCurrent;
+            const duration = formatDuration(tenure.startedAt, tenure.endedAt);
+            /* ★雇用形態は**全役割が同じときだけ**会社の行に出す（2026-09-12）。
+               ⚠️★混在しているときは会社の行に出さず、役割の行にそれぞれ出す。
+                  2026-08-26 に「グループ代表を1つ出すと、同じ会社で正社員 → 業務委託 に
+                  変わった人が全部『正社員』に見える」として役割ごとにした判断を崩さない。
+               ⚠️ 実データでも混在している（2026-09-12 実測: 同社複数役割3グループ中2つ）。 */
+            const groupEmployment = uniformEmploymentType(items);
+            /* ★役割が1つの会社は、会社の行と役割の行の間隔を詰める（2026-09-12）。
+                  1役割の人の見た目が急に間延びしないため。 */
+            const single = items.length === 1;
 
             return (
               <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
@@ -1179,7 +1111,7 @@ export default function MergedTimeline({
                 </div>
                 <div className="tl-content" style={{ paddingTop: 10, paddingBottom: 28 }}>
                   {/* 会社名ヘッダー */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap", lineHeight: 1.3 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap", lineHeight: 1.3 }}>
                     <span className="tl-inline-logo">
                       <CompanyLogoIcon
                         isCurrent={anyIsCurrent}
@@ -1200,9 +1132,33 @@ export default function MergedTimeline({
                         {shortCompanyName(head.company_name)}
                       </span>
                     )}
-                    {/* ⚠️ 期間の行と**同じピル**を使う。同じ値なので見た目を揃える */}
-                    {duration && <DurationPill>{duration}</DurationPill>}
+                    {/* ★全役割が同じ雇用形態のときだけ会社の行に出す（2026-09-12） */}
+                    {groupEmployment && <EmploymentBadge value={groupEmployment} />}
                     {anyIsCurrent && <CurrentBadge />}
+                    {/* ★会社に属する情報の編集（2026-09-12）。**会社名だけ。**
+                           ⚠️ 雇用形態は役割の項目なのでここには置かない（柴さんの判断・案B）。
+                           ⚠️ 渡されなければ描かない＝`/u/[id]` の DOM は変わらない。 */}
+                    {careerActions?.onEditCompany && (
+                      <span style={{ marginLeft: "auto" }}>
+                        <RowActionButtons
+                          id={head.id}
+                          label={head.company_name}
+                          actions={{ onEditRow: careerActions.onEditCompany, size: "md" }}
+                        />
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ★★在籍期間（2026-09-12）。**役割の期間から自動で出す。**
+                         ⚠️ 開始はいちばん古い開始年月、終了は現職があれば「現在」、
+                            なければいちばん新しい終了年月。`companyTenure` の1箇所で決める。
+                         ⚠️ 書式は役割の行・学歴と同じ `PeriodLine`。ここで書き分けない。 */}
+                  <div style={{ marginTop: -8, marginBottom: single ? 8 : 14 }}>
+                    <PeriodLine
+                      start={formatYM(tenure.startedAt)}
+                      end={tenure.isCurrent ? "現在" : tenure.endedAt ? formatYM(tenure.endedAt) : ""}
+                      duration={duration}
+                    />
                   </div>
 
                   {/* ポジションリスト — LinkedIn スタイル（縦線＋ドット） */}
@@ -1248,7 +1204,8 @@ export default function MergedTimeline({
                                       グループ代表を1つ出す形に戻さないこと。
                                    ⚠️ 余白は `marginLeft` で渡す。**ここで span で包まない**
                                       （値が無いとき空の span が残る）。 */}
-                            <EmploymentSlot data={c} marginLeft={6} />
+                            {/* ⚠️ 会社の行に出したときは役割の行に出さない（同じ値を2度出さない） */}
+                            {!groupEmployment && <EmploymentSlot data={c} marginLeft={6} />}
                             {c.is_current && items.length > 1 && (
                               <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 700, color: "var(--success-ink)", background: "var(--success-soft)", border: "1px solid #6ee7b7", borderRadius: 4, padding: "1px 6px", verticalAlign: "middle", lineHeight: 1.6 }}>
                                 在籍中
