@@ -2925,6 +2925,8 @@ export type Database = {
           salary_bonus: number | null
           salary_man: number | null
           salary_stock: number | null
+          secondment_company_id: string | null
+          secondment_company_text: string | null
           started_at: string
           turning_point: string | null
           updated_at: string
@@ -2962,6 +2964,8 @@ export type Database = {
           salary_bonus?: number | null
           salary_man?: number | null
           salary_stock?: number | null
+          secondment_company_id?: string | null
+          secondment_company_text?: string | null
           started_at: string
           turning_point?: string | null
           updated_at?: string
@@ -2999,6 +3003,8 @@ export type Database = {
           salary_bonus?: number | null
           salary_man?: number | null
           salary_stock?: number | null
+          secondment_company_id?: string | null
+          secondment_company_text?: string | null
           started_at?: string
           turning_point?: string | null
           updated_at?: string
@@ -3042,6 +3048,27 @@ export type Database = {
             columns: ["role_category_id"]
             isOneToOne: false
             referencedRelation: "ow_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_experiences_secondment_company_id_fkey"
+            columns: ["secondment_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_experiences_secondment_company_id_fkey"
+            columns: ["secondment_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_experiences_secondment_company_id_fkey"
+            columns: ["secondment_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
           {

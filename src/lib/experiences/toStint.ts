@@ -56,6 +56,13 @@ export function rowsToStints(
       visibilityReason: r.visibility_reason as boolean,
       prefecture: (r.prefecture as string | null) ?? undefined,
       remoteWorkStatus: (r.remote_work_status as string | null) ?? undefined,
+      /* ★出向先（2026-09-12）。⚠️ 拾い忘れると、別の項目を直して保存しただけで消える。
+            ⚠️ 名前はマスタ（`companyNameById`）→ 自由入力の順。どちらも無ければ undefined。 */
+      secondmentCompanyId: (r.secondment_company_id as string | null) ?? undefined,
+      secondmentCompanyName:
+        (r.secondment_company_id ? companyNameById.get(r.secondment_company_id as string) : undefined)
+        ?? (r.secondment_company_text as string | null)
+        ?? undefined,
       joinReasons: (r.join_reasons as string[] | null) ?? [],
       joinReasonPrimary: (r.join_reason_primary as string | null) ?? undefined,
       leaveReasons: (r.leave_reasons as string[] | null) ?? [],

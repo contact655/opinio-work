@@ -240,7 +240,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             tsc も lint も通り、その行だけ黙って消える）。`/mypage` 側は
             `EXPERIENCE_EDITOR_COLS` に元から入っている。
       */
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason, secondment_company_id, secondment_company_text")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),
@@ -412,8 +412,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
   });
 
   // Resolve company info for ALL master entries（masked 時も業種・フェーズを使って代替テキスト生成する）
+  /* ⚠️★**出向先の会社IDも入れる**（2026-09-12）。落とすと「〇〇へ出向」の会社名が
+        引けず、マスタから選んだ出向先が画面に出ない。 */
   const allCompanyIds = Array.from(
-    new Set(processedExpRows.filter((r) => r.company_id).map((r) => r.company_id as string))
+    new Set(processedExpRows
+      .flatMap((r) => [r.company_id, (r as Record<string, unknown>).secondment_company_id])
+      .filter((v): v is string => typeof v === "string" && !!v))
   );
 
   const companyInfoById = new Map<string, CompanyLogoInfo>();

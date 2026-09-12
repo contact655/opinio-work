@@ -245,9 +245,11 @@ export default async function MypagePage({
     autoSkills = await buildAutoSkills(supabase, (expRows ?? []), roleNameById, "mypage");
 
     // master 企業の会社名 + ロゴ 3 フィールドを二次取得（A-1: logo_url / logo_letter / logo_gradient 追加）
-    const masterCompanyIds = (expRows ?? [])
-      .filter((r) => r.company_id)
-      .map((r) => r.company_id as string);
+    /* ⚠️★**出向先の会社IDも入れる**（2026-09-12）。落とすと「〇〇へ出向」の会社名が
+          引けず、マスタから選んだ出向先が画面に出ない（自由入力だけ出る形になる）。 */
+    const masterCompanyIds = Array.from(new Set((expRows ?? [])
+      .flatMap((r) => [r.company_id, (r as Record<string, unknown>).secondment_company_id])
+      .filter((v): v is string => typeof v === "string" && !!v)));
     const companyInfoById = new Map<string, CompanyLogoInfo>();
     if (masterCompanyIds.length > 0) {
       /* ⚠️ ここから下、Supabase の呼び出しは `error` を必ず受けてログに出す（2026-08-29）。

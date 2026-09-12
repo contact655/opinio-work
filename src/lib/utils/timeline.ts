@@ -134,6 +134,12 @@ export type RawExperienceRow = {
   /** ★勤務形態の**生値**（full_remote / hybrid / on_site）。表示は必ずラベルに変換する。
    *  ⚠️ 任意。上と同じ理由で `?? null` に倒さない。 */
   remote_work_status?: string | null;
+  /** ★出向先（2026-09-12）。**役割の属性**で、会社そのものではない。
+   *  ⚠️★`company_id` に混ぜないこと。企業ページの社員抽出が `company_id` を見ているので、
+   *     混ぜた瞬間に**出向先の企業ページに社員として出る**（出さないのが要件）。
+   *  ⚠️ 任意。SELECT に含めない画面では undefined。`?? null` に倒さない。 */
+  secondment_company_id?: string | null;
+  secondment_company_text?: string | null;
 };
 
 /** ow_roles の id → 名前 + 親カテゴリ名 の Map value 型 */
@@ -249,6 +255,12 @@ export function buildTimelineCareerEntriesFromRaw(
             SELECT に無い画面では **undefined のまま**渡して表示側で落とす。 */
       prefecture:         r.prefecture,
       remote_work_status: r.remote_work_status,
+      /* ★出向先の表示名（2026-09-12）。マスタなら会社名、自由入力ならその文字列。
+         ⚠️ どちらも無ければ undefined（**null に倒さない**。表示側が行ごと落とす）。 */
+      secondment_company_name:
+        (r.secondment_company_id ? companyInfoById.get(r.secondment_company_id)?.name : null)
+        ?? r.secondment_company_text
+        ?? undefined,
     };
   });
   return results.filter((e): e is CareerEntry => e !== null);

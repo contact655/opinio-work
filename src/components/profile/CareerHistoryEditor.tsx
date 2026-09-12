@@ -72,6 +72,12 @@ export type Stint = {
   // ── 勤務地（表示する）
   prefecture?: string;
   remoteWorkStatus?: string;
+  /* ★出向先（2026-09-12）。**役割の属性**。会社そのものではない。
+     ⚠️★`companyId` / `companyText` に混ぜないこと。企業ページの社員抽出が
+        `company_id` を見ているので、混ぜると出向先の企業ページに社員として出る。 */
+  secondmentCompanyId?: string;
+  /** マスタなら会社名、自由入力ならその文字列。**表示に使う値** */
+  secondmentCompanyName?: string;
   /* ── 理由データ（**非公開**。本人と集計のみ）
         ⚠️ 公開向けの型・クエリには絶対に入れないこと。
            /u/[id] /people 企業詳細 スカウト /biz/candidates のどこにも出さない。 */
@@ -239,6 +245,9 @@ type StintDraft = {
   visibilityReason: boolean;
   prefecture: string;
   remoteWorkStatus: string;
+  /** 出向先（2026-09-12）。マスタを選べば id、自由入力なら名前だけが入る */
+  secondmentCompanyId: string | null;
+  secondmentCompanyName: string;
   joinReasons: string[];
   joinReasonPrimary: string;
   leaveReasons: string[];
@@ -318,6 +327,8 @@ const EMPTY_DRAFT: StintDraft = {
   visibilityReason: false,
   prefecture: "",
   remoteWorkStatus: "",
+  secondmentCompanyId: null,
+  secondmentCompanyName: "",
   joinReasons: [],
   joinReasonPrimary: "",
   leaveReasons: [],
@@ -373,11 +384,30 @@ function buildReasonAnswerBody(a: ReasonAnswers, showLeave: boolean): Experience
   };
 }
 
+/**
+ * 保存 body 用（出向先）。
+ * ⚠️★**常に両方のキーを送る。** 片方だけ送ると、外したときに古い値が残る
+ *    （サーバーは「キーが無ければ触らない」）。
+ * ⚠️ マスタを選んだら id、自由入力なら名前。両方は入らない（DB の CHECK と同じ）。
+ */
+function buildSecondmentBody(d: StintDraft): {
+  secondment_company_id: string | null;
+  secondment_company_text: string | null;
+} {
+  const name = d.secondmentCompanyName.trim();
+  return {
+    secondment_company_id: d.secondmentCompanyId || null,
+    secondment_company_text: d.secondmentCompanyId ? null : (name || null),
+  };
+}
+
 /** 楽観的更新用。buildLocationBody と同じ値を Stint の形にする */
 function optimisticLocationFields(d: StintDraft): Partial<Stint> {
   return {
     prefecture: d.prefecture || undefined,
     remoteWorkStatus: d.remoteWorkStatus || undefined,
+    secondmentCompanyId: d.secondmentCompanyId || undefined,
+    secondmentCompanyName: d.secondmentCompanyName.trim() || undefined,
   };
 }
 
@@ -389,6 +419,20 @@ function optimisticReasonAnswers(a: ReasonAnswers, showLeave: boolean): Partial<
     leaveReasons: showLeave ? a.leaveReasons : [],
     gaps: Object.entries(a.gaps).map(([axis, rating]) => ({ axis, rating })),
   };
+}
+
+/**
+ * ★API が返したメッセージを取り出す（2026-09-12）。
+ * ⚠️ 無ければ空文字。呼び出し側が既定の文言に落とす。
+ * ⚠️ `res.json()` は1回しか読めないので、**ここで読み切る**。
+ */
+async function apiMessage(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as { message?: string; error?: string } | null;
+    return j?.message ?? "";
+  } catch {
+    return "";
+  }
 }
 
 // ── Company body helpers ──────────────────────────────────────────────────────
@@ -1059,6 +1103,38 @@ function StintForm({
       </div>
 
       {/*
+        ★★出向先（2026-09-12 / 柴さんの指示）
+
+        ⚠️★**置き場所は会社名の近くではなく、部署・役職のまとまりの中。**
+           出向は**役割の属性**（この期間だけ出向していた）であって、会社そのものではない。
+           会社名の隣に置くと「どちらが自分の会社か」が読めなくなる。
+
+        ⚠️★**籍は上の会社名のまま。** 出向先を入れても、出向先の企業ページに
+           社員として出ることはない（企業ページの社員抽出は `company_id` を見ている）。
+           **`company_id` に混ぜないこと。**
+
+        ⚠️ 出向から戻ったら、**出向先を空にした役割を足す**（「この会社での異動・昇進を追加」）。
+           復帰の専用導線は作らない。
+        ⚠️ 雇用形態の選択肢に「出向」は足さない。籍はA社のままなので正社員などのまま。
+        ⚠️ 自社は選べない（保存時に API が弾く）。
+      */}
+      <div>
+        <label style={labelStyle()}>出向先</label>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.5 }}>
+          籍は上の会社のまま、別の会社で働いていた期間だけ入れてください。
+          <strong style={{ fontWeight: 700 }}>出向先の企業ページに社員として出ることはありません。</strong>
+        </div>
+        <CompanySearch
+          value={draft.secondmentCompanyName}
+          companyId={draft.secondmentCompanyId}
+          disabled={isSaving}
+          onChange={(id, name) =>
+            onDraftChange({ ...draft, secondmentCompanyId: id, secondmentCompanyName: name })
+          }
+        />
+      </div>
+
+      {/*
         勤務地・勤務形態
         ⚠️ 本人の**居住地**（ow_users.location）とは別物。ここは「その期間どこで働いたか」。
         ⚠️ **どの経歴でも任意。** 現職も含めて必須にしない（2026-08-13 に方針変更）。
@@ -1306,6 +1382,9 @@ export default function CareerHistoryEditor({
           サーバー側（mypage/page.tsx・2026-08-16 に移設）の SELECT と対で見ること。 */
     prefecture: s.prefecture ?? "",
     remoteWorkStatus: s.remoteWorkStatus ?? "",
+    /* ⚠️ 拾い忘れると、編集して保存した瞬間に出向先が消える（`prefecture` と同じ形）。 */
+    secondmentCompanyId: s.secondmentCompanyId ?? null,
+    secondmentCompanyName: s.secondmentCompanyName ?? "",
     joinReasons: s.joinReasons ?? [],
     joinReasonPrimary: s.joinReasonPrimary ?? "",
     leaveReasons: s.leaveReasons ?? [],
@@ -1337,6 +1416,10 @@ export default function CareerHistoryEditor({
     // 終了年月は空から（新しい役割なので）
     endedYear: "",
     endedMonth: "",
+    /* ⚠️ 出向先は引き継がない。異動・昇進で出向が続くとは限らない
+          （出向から戻るのは「出向先を空にした役割を足す」で表す）。 */
+    secondmentCompanyId: null,
+    secondmentCompanyName: "",
     isCurrent: false,
     description: "",
     joinReason: "",
@@ -1431,6 +1514,8 @@ export default function CareerHistoryEditor({
       department: d.department || null,
       rank: d.rank || null,
       visibility_company: d.visibilityCompany,
+      /* ★出向先（2026-09-12）。⚠️ **役割の属性**。会社の3列には混ぜない。 */
+      ...buildSecondmentBody(d),
       ...buildLocationBody(d),
     };
     Object.assign(body, buildCompanyBody(d));
@@ -1448,7 +1533,7 @@ export default function CareerHistoryEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await apiMessage(res));
 
       // Optimistic update + re-sort
       setStints((prev) =>
@@ -1478,8 +1563,10 @@ export default function CareerHistoryEditor({
       await new Promise((r) => setTimeout(r, 800));
       cancelEdit();
       setEditJustSaved(false);
-    } catch {
-      showToast("保存に失敗しました。もう一度お試しください。", "error");
+    } catch (e) {
+      /* ⚠️★**API が返した理由をそのまま出す**（2026-09-12）。「保存に失敗しました」だけだと、
+            出向先に自社を選んだ人が**何を直せばよいか分からない**。 */
+      showToast((e as Error).message || "保存に失敗しました。もう一度お試しください。", "error");
     } finally {
       setEditSaving(false);
     }
@@ -1536,9 +1623,10 @@ export default function CareerHistoryEditor({
         /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
               作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。
               ⚠️ 編集（PUT）は既存値をそのまま送る。あちらは消さないこと。 */
+        ...buildSecondmentBody(addDraft),
         ...buildLocationBody(addDraft),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await apiMessage(res));
       const { id } = (await res.json()) as { id: string };
 
       const newStint: Stint = {
@@ -1569,8 +1657,8 @@ export default function CareerHistoryEditor({
          ⚠️ **編集では出さない。** ⚠️ 失敗したときも出さない（この行は try の中）。 */
       setReasonError(null);
       setReasonId(id);
-    } catch {
-      showToast("追加に失敗しました。もう一度お試しください。", "error");
+    } catch (e) {
+      showToast((e as Error).message || "追加に失敗しました。もう一度お試しください。", "error");
     } finally {
       setAddSaving(false);
     }

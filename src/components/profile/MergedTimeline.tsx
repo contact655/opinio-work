@@ -149,6 +149,9 @@ export interface CareerEntry {
   description?: string | null;
   /** なぜこの会社を選んだか（任意） */
   join_reason?: string | null;
+  /** ★出向先の表示名（2026-09-12）。マスタなら会社名、自由入力ならその文字列。
+   *  ⚠️ 無ければ undefined。**行ごと出さない**（「出向なし」とは書かない）。 */
+  secondment_company_name?: string;
   employment_type?: string | null;
 }
 
@@ -816,6 +819,26 @@ function CompanyLogoIcon({
       年齢を出したくなったら**別の置き場所**を決めること。ここに戻すと年チップも一緒に戻る。 */
 
 /**
+ * ★「〇〇へ出向」の1行（2026-09-12）。
+ *
+ * ⚠️★**値が無ければ何も描かない。** ラッパーの span も作らない
+ *    （値が無い人の `/u/[id]` に空の要素が増える。`EmploymentSlot` と同じ約束）。
+ * ⚠️ 会社名の見出しより小さく、役職・職種と同じ列に置く —— **役割の属性**だから。
+ * ⚠️ 出向先の企業ページへはリンクしない。**籍はこの会社**で、出向先の社員ではない。
+ */
+function SecondmentLine({ name }: { name?: string }) {
+  if (!name) return null;
+  return (
+    <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.45, overflowWrap: "anywhere", display: "flex", alignItems: "center", gap: 4 }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
+      <span>{shortCompanyName(name)} へ出向</span>
+    </div>
+  );
+}
+
+/**
  * ★在籍期間を示す1行（2026-08-29）。
  *
  * ── なぜ部品にしたか ────────────────────────────────────────────────────────
@@ -1213,12 +1236,16 @@ export default function MergedTimeline({
                             )}
                           </div>
 
-                          {/* 役職ランク → 役職名 → 職種。空の行は出さない */}
+                          {/* 役職ランク → 職種。空の行は出さない */}
                           {lines.sub.map((line, i) => (
                             <div key={i} style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.45, overflowWrap: "anywhere" }}>
                               {line}
                             </div>
                           ))}
+                          {/* ★★出向先（2026-09-12）。⚠️ **値が無ければ行ごと出さない。**
+                                 「出向なし」とは書かない（出向は例外的な状態で、無いのが既定）。
+                              ⚠️ 本人以外にも出す（`/u/[id]`）。出向は経歴の事実。 */}
+                          <SecondmentLine name={c.secondment_company_name} />
 
                           {/* 期間 */}
                           <PeriodLine

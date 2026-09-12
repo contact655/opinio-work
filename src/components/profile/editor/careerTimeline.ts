@@ -45,6 +45,12 @@ export function stintsToCareerEntries(
     join_reason: s.joinReason ?? null,
     employment_type: s.employmentType ?? null,
     visibility_company: s.visibilityCompany,
+    /* ★出向先（2026-09-12）。⚠️ 落とすと、保存した直後だけ「〇〇へ出向」が消える
+          （再読み込みで戻る形の分かりにくい不具合になる）。
+       ⚠️ ここは `Stint`（名前を持っている）→ `RawExperienceRow`（id と text）の変換。
+          マスタの id は下の `companyMap` で名前に戻るので、**id があれば id を渡す**。 */
+    secondment_company_id: s.secondmentCompanyId ?? null,
+    secondment_company_text: s.secondmentCompanyId ? null : (s.secondmentCompanyName ?? null),
   }));
   return buildTimelineCareerEntriesFromRaw(rows, roleMap, companyMap, true);
 }

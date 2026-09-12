@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { parseReasonFields } from "@/lib/constants/careerReasons";
+import { parseSecondment } from "@/lib/experiences/secondment";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -307,6 +308,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: reasons.error, message: reasons.message }, { status: 400 });
   }
 
+  /* ★出向先（2026-09-12）。⚠️ PUT と**同じ関数**で検証する。 */
+  const secondment = parseSecondment(body, hasCompanyId ? (body.company_id as string) : null);
+  if (!secondment.ok) {
+    return NextResponse.json({ error: secondment.error, message: secondment.message }, { status: 400 });
+  }
+
   const { data: inserted, error } = await supabase
     .from("ow_experiences")
     .insert({
@@ -327,6 +334,7 @@ export async function POST(req: Request) {
       display_order: (body.display_order as number | undefined) ?? 0,
       /* ⚠️ 年収は新規作成時も書かない。入力UIが無いので常に null になるが、
             「送られてきたら書く」形を残すと、権限を剥奪した意図と食い違う */
+      ...secondment.patch,
       visibility_company: visibilityCompany,
       visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
       /* ★「送られてこなければ列を書かない」（2026-09-11）。**`?? true` に戻さないこと。**

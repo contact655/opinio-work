@@ -49,4 +49,4 @@
      見た目より型が通ることを優先する。
 */
 export const EXPERIENCE_EDITOR_COLS =
-  "id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons" as const;
+  "id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons, secondment_company_id, secondment_company_text" as const;

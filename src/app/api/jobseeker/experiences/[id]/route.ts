@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { parseReasonFields } from "@/lib/constants/careerReasons";
+import { parseSecondment } from "@/lib/experiences/secondment";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
@@ -109,6 +110,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "started_at required" }, { status: 400 });
   }
 
+  /* ★出向先（2026-09-12）。⚠️ POST と**同じ関数**で検証する。片方にだけ書かないこと。 */
+  const secondment = parseSecondment(body, hasCompanyId ? (body.company_id as string) : null);
+  if (!secondment.ok) {
+    return NextResponse.json({ error: secondment.error, message: secondment.message }, { status: 400 });
+  }
+
   /* ⚠️ POST と**同じ関数**で検証する。片方にだけ書かないこと。 */
   const reasons = parseReasonFields(body);
   if (!reasons.ok) {
@@ -164,6 +171,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         : (body.visibility_reason as boolean),
       updated_at: new Date().toISOString(),
       ...salaryPatch,
+      ...secondment.patch,
       ...reasons.patch,
     })
     .eq("id", params.id)
