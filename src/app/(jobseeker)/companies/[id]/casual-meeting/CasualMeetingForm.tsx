@@ -49,18 +49,28 @@ function SuccessScreen({ companyName, contactEmail }: { companyName: string; con
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 8 }}>
           <strong style={{ color: "var(--ink)" }}>{companyName}</strong> へのカジュアル面談申し込みが完了しました。
         </p>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 32 }}>
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 8 }}>
           通常 <strong>3営業日以内</strong> に、<strong>{contactEmail}</strong> 宛てに企業から連絡が来ます。
         </p>
+        {/* ★状況の追い方を書く（2026-09-13）。⚠️ メールだけを案内にしない。
+               申込の状態はマイページ側でも変わる。 */}
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 32 }}>
+          申し込みの状況は、マイページの「応募・面談」で確認できます。
+        </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          {/* ⚠️★**行き先は `/mypage` ではなく `/mypage/applications`**（2026-09-13 に直した）。
+                 それまで `/mypage` を指していたが、**そこにカジュアル面談は1件も出ていなかった**
+                 （`ow_casual_meetings` の取得は 2026-08-16 に削除済み）。
+                 「確認する」と書いておいて確認できない状態だった。
+              ⚠️ リンク先を変えるときは、**そこに本当に出ているか**を画面で確かめること。 */}
           <Link
-            href="/mypage"
+            href="/mypage/applications"
             style={{
               padding: "10px 24px", background: "var(--royal)", color: "#fff",
               borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
             }}
           >
-            マイページで確認する →
+            申し込み状況を見る →
           </Link>
           <Link
             href="/companies"

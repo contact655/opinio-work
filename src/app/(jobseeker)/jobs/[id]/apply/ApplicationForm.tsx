@@ -78,7 +78,7 @@ export default function ApplicationForm({
         </div>
         <div style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 32 }}>
           {companyName}の採用担当者があなたの応募を確認します。<br />
-          選考状況は「マイページ」の「応募管理」からご確認いただけます。
+          選考状況は「マイページ」の「応募・面談」からご確認いただけます。
         </div>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <button

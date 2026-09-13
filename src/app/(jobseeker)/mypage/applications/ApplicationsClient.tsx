@@ -3,68 +3,63 @@
 import { useState } from "react";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
+import { SuggestionsSection } from "@/components/mypage/SuggestionsSection";
+import type { SuggestedCompany, SuggestedJob } from "@/components/mypage/SuggestionsSection";
+import { ApplicationEntryCard } from "@/components/mypage/ApplicationEntryCard";
+import type { Entry } from "@/components/mypage/ApplicationEntryCard";
 
-export type Application = {
-  id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  ow_jobs: {
-    id: string;
-    slug?: string | null;
-    title: string;
-    job_category: string | null;
-    salary_min: number | null;
-    salary_max: number | null;
-    location: string | null;
-    ow_companies: {
-      id: string;
-      name: string;
-      logo_url: string | null;
-      ow_company_office_photos: { image_url: string; caption: string | null }[];
-    };
-  };
-};
+/* ⚠️ 型と部品の実体は `components/mypage/` 側。ここは `page.tsx` へ通すだけ
+      （`/dev/preview` から同じ部品を import するため）。 */
+export type { SuggestedCompany, SuggestedJob, Entry };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  applied: { label: "応募済み", color: "text-blue-600", bgColor: "bg-blue-100" },
-  doc_review: { label: "書類選考中", color: "text-yellow-700", bgColor: "bg-yellow-100" },
-  interview1: { label: "1次面接", color: "text-purple-600", bgColor: "bg-purple-100" },
-  interview_final: { label: "最終面接", color: "text-indigo-600", bgColor: "bg-indigo-100" },
-  offered: { label: "内定", color: "text-primary", bgColor: "bg-primary-light" },
-  accepted: { label: "内定承諾", color: "text-green-700", bgColor: "bg-green-100" },
-  rejected: { label: "不合格", color: "text-gray-500", bgColor: "bg-gray-100" },
-};
-
-const PROCESS_STEPS = ["応募", "書類選考", "1次面接", "最終面接", "内定"];
-
-const STATUS_TO_STEP: Record<string, number> = {
-  applied: 0, doc_review: 1, interview1: 2, interview_final: 3,
-  offered: 4, accepted: 4, rejected: -1,
-};
+/**
+ * ── 絞り込みは「状態」の1軸だけ（2026-09-13）────────────────────────────────
+ *
+ * ⚠️★**種別（応募／面談）と状態を同じ行に混ぜないこと。** 以前のタブは
+ *    すべて / 書類選考中 / 面接中 / 内定 で、ここに「カジュアル面談」を足すと
+ *    **粒度の違うものが同列に並ぶ**（CLAUDE.md「『成長ステージ』のようなバケットを、
+ *    個別の段と同列に並べない」と同じ形）。種別は**各行のバッジ**で示す。
+ *
+ * ⚠️ 「内定」は求人応募にしか起きない。**それでよい** —— 状態の軸に、
+ *    片方の種別にしか現れない値があるだけ。
+ */
+const OPEN_STATUSES = [
+  "pending", "company_contacted", "scheduling", "scheduled",   // 面談
+  "applied", "doc_review", "interview1", "interview_final",    // 応募
+];
+const OFFERED_STATUSES = ["offered", "accepted"];
+const CLOSED_STATUSES = ["completed", "declined", "rejected"];
 
 const FILTER_TABS = [
-  { key: "all", label: "すべて" },
-  { key: "doc_review", label: "書類選考中" },
-  { key: "interview", label: "面接中" },
+  { key: "all",     label: "すべて" },
+  { key: "open",    label: "進行中" },
   { key: "offered", label: "内定" },
+  { key: "closed",  label: "終了" },
 ];
 
-export default function ApplicationsClient({ initialApplications }: { initialApplications: Application[] }) {
+export default function ApplicationsClient({
+  initialEntries,
+  suggestedJobs,
+  suggestedCompanies,
+}: {
+  initialEntries: Entry[];
+  suggestedJobs: SuggestedJob[];
+  suggestedCompanies: SuggestedCompany[];
+}) {
   const [activeFilter, setActiveFilter] = useState("all");
 
-  const filtered = initialApplications.filter((a) => {
-    if (activeFilter === "doc_review") return a.status === "doc_review";
-    if (activeFilter === "interview") return ["interview1", "interview_final"].includes(a.status);
-    if (activeFilter === "offered") return ["offered", "accepted"].includes(a.status);
+  const filtered = initialEntries.filter((e) => {
+    if (activeFilter === "open") return OPEN_STATUSES.includes(e.status);
+    if (activeFilter === "offered") return OFFERED_STATUSES.includes(e.status);
+    if (activeFilter === "closed") return CLOSED_STATUSES.includes(e.status);
     return true;
   });
 
   const counts = {
-    doc_review: initialApplications.filter((a) => a.status === "doc_review").length,
-    interview: initialApplications.filter((a) => ["interview1", "interview_final"].includes(a.status)).length,
-    offered: initialApplications.filter((a) => ["offered", "accepted"].includes(a.status)).length,
-    total: initialApplications.length,
+    meeting: initialEntries.filter((e) => e.kind === "meeting").length,
+    job: initialEntries.filter((e) => e.kind === "job").length,
+    open: initialEntries.filter((e) => OPEN_STATUSES.includes(e.status)).length,
+    offered: initialEntries.filter((e) => OFFERED_STATUSES.includes(e.status)).length,
   };
 
   return (
@@ -73,7 +68,7 @@ export default function ApplicationsClient({ initialApplications }: { initialApp
         <h1 style={{
           fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700,
           color: "var(--ink)", marginBottom: 24,
-        }}>応募管理</h1>
+        }}>応募・面談</h1>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* ★4つとも同じ色にした（2026-09-01）。理由は3つ。
@@ -82,19 +77,14 @@ export default function ApplicationsClient({ initialApplications }: { initialApp
                 ② **`text-purple-600` は紫。** `.claude/skills/ui-conventions`「色の役割」は
                    **紫は使わない**と定めている。globals.css の但し書き
                    「①②③（運営・企業側の状態表示）は当面残す」は**求職者側には適用されない。**
-                ③ ★**凡例が無く、色が何も伝えていない。** 黄=書類 / 紫=面接 / 濃紺=内定 /
-                   灰=応募済み を読み手が解釈する手がかりがどこにも無い。
+                ③ ★**凡例が無く、色が何も伝えていない。**
                    ここで情報を運んでいるのは**数字の下のラベル**であって、色ではない。
-                   `lib/utils/chipVariant.ts`「凡例なしで意味が伝わらないなら neutral にして
-                   文言側で説明する」と、`MergedTimeline` の EMPLOYMENT_BADGE で
-                   「全値とも同じ見た目にする」とした前例に合わせる。
-             ⚠️ 1つだけ色を残す案は採らない。**どれかが上位だという序列**になる
-                （EMPLOYMENT_BADGE で「正社員だけ色を残す案」を退けたのと同じ理由）。 */}
+             ⚠️ 1つだけ色を残す案は採らない。**どれかが上位だという序列**になる。 */}
           {[
-            { label: "書類選考中", count: counts.doc_review },
-            { label: "面接中", count: counts.interview },
+            { label: "カジュアル面談", count: counts.meeting },
+            { label: "求人応募", count: counts.job },
+            { label: "進行中", count: counts.open },
             { label: "内定", count: counts.offered },
-            { label: "応募済み", count: counts.total },
           ].map((card) => (
             <div key={card.label} className="bg-white rounded-card p-4 border border-card-border text-center">
               <p className="text-2xl font-bold" style={{ color: "var(--ink)" }}>{card.count}</p>
@@ -103,7 +93,7 @@ export default function ApplicationsClient({ initialApplications }: { initialApp
           ))}
         </div>
 
-        <div className="flex gap-2 mb-6" role="tablist" aria-label="応募ステータスで絞り込み">
+        <div className="flex gap-2 mb-6" role="tablist" aria-label="状態で絞り込み">
           {FILTER_TABS.map((tab) => (
             <button
               type="button"
@@ -123,111 +113,66 @@ export default function ApplicationsClient({ initialApplications }: { initialApp
         </div>
 
         {filtered.length === 0 ? (
-          <div style={{
-            textAlign: "center", padding: "64px 24px",
-            background: "#fff", borderRadius: 16, border: "1px solid var(--line)",
-          }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: "50%",
-              background: "var(--royal-50)", display: "flex",
-              alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="9" y1="13" x2="15" y2="13"/>
-                <line x1="9" y1="17" x2="12" y2="17"/>
-              </svg>
-            </div>
-            <p style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
-              まだ応募がありません
-            </p>
-            <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
-              気になる企業にカジュアル面談や求人応募をしてみましょう
-            </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/companies" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                background: "var(--royal)", color: "#fff", textDecoration: "none",
-              }}>
-                企業を探す →
-              </Link>
-              <Link href="/jobs" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: "1px solid var(--line)", color: "var(--ink-soft)", textDecoration: "none", background: "#fff",
-              }}>
-                求人を見る
-              </Link>
-            </div>
-          </div>
+          <EmptyState hasAny={initialEntries.length > 0} />
         ) : (
           <div className="space-y-4">
-            {filtered.map((app) => {
-              const job = app.ow_jobs;
-              const company = job?.ow_companies;
-              const photos = company?.ow_company_office_photos || [];
-              const statusConf = STATUS_CONFIG[app.status] || STATUS_CONFIG.applied;
-              const currentStep = STATUS_TO_STEP[app.status] ?? 0;
-
-              return (
-                <div key={app.id} className="bg-white rounded-card border border-card-border overflow-hidden">
-                  <div className="flex">
-                    <div className="w-[100px] flex-shrink-0">
-                      {photos.length > 0 ? (
-                        <div
-                          className="w-full h-full bg-gray-200 bg-cover bg-center min-h-[140px]"
-                          style={{ backgroundImage: `url(${photos[0].image_url})` }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center min-h-[140px]">
-                          <span className="text-2xl font-bold text-gray-500">{company?.name?.[0]}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <Link href={`/jobs/${job?.slug ?? job?.id}`} className="font-medium hover:text-primary transition-colors">
-                            {job?.title}
-                          </Link>
-                          <p className="text-xs text-gray-600 mt-0.5">{company?.name}</p>
-                        </div>
-                        <span className={`px-2.5 py-0.5 text-xs rounded-full font-medium ${statusConf.bgColor} ${statusConf.color}`}>
-                          {statusConf.label}
-                        </span>
-                      </div>
-
-                      {app.status !== "rejected" && (
-                        <div className="flex items-center gap-1 my-3">
-                          {PROCESS_STEPS.map((step, i) => (
-                            <div key={step} className="flex items-center flex-1">
-                              <div className="flex flex-col items-center flex-1">
-                                <div className={`w-full h-1 rounded-full ${i <= currentStep ? "bg-primary" : "bg-gray-200"}`} />
-                                <span className={`text-[10px] mt-1 ${i <= currentStep ? "text-primary font-medium" : "text-gray-600"}`}>
-                                  {step}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between text-xs text-gray-600">
-                        <span>応募日: {new Date(app.created_at).toLocaleDateString("ja-JP")}</span>
-                        {app.status === "offered" && (
-                          <span className="text-red-500 font-medium">要返答</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filtered.map((e) => <ApplicationEntryCard key={`${e.kind}-${e.id}`} entry={e} />)}
           </div>
         )}
+
+        {/* ★おすすめ（2026-09-13）。⚠️ 出せるものが無ければ部品側が null を返す。 */}
+        <SuggestionsSection jobs={suggestedJobs} companies={suggestedCompanies} />
       </div>
     </MypageLayout>
+  );
+}
+
+/* ── 0件のとき ─────────────────────────────────────────────────────────────── */
+
+function EmptyState({ hasAny }: { hasAny: boolean }) {
+  return (
+    <div style={{
+      textAlign: "center", padding: "64px 24px",
+      background: "#fff", borderRadius: 16, border: "1px solid var(--line)",
+    }}>
+      <div style={{
+        width: 64, height: 64, borderRadius: "50%",
+        background: "var(--royal-50)", display: "flex",
+        alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="12" y2="17"/>
+        </svg>
+      </div>
+      <p style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
+        {hasAny ? "この状態のものはありません" : "まだ申し込みがありません"}
+      </p>
+      {!hasAny && (
+        <>
+          <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
+            気になる企業にカジュアル面談を申し込むと、ここで状況が追えます
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/companies" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: "var(--royal)", color: "#fff", textDecoration: "none",
+            }}>
+              企業を探す →
+            </Link>
+            <Link href="/jobs" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+              border: "1px solid var(--line)", color: "var(--ink-soft)", textDecoration: "none", background: "#fff",
+            }}>
+              募集を見る
+            </Link>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

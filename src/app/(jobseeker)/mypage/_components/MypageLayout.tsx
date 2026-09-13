@@ -164,7 +164,7 @@ export default function MypageLayout({
         <div style={{ display: "flex", padding: "0 4px" }}>
           {[
             { key: "dashboard",      label: "ホーム",        href: "/mypage",               icon: Icons.dashboard },
-            { key: "applications",   label: "応募管理",      href: "/mypage/applications",  icon: Icons.application },
+            { key: "applications",   label: "応募・面談",    href: "/mypage/applications",  icon: Icons.application },
             { key: "scouts",         label: "スカウト",      href: "/mypage/scouts",        icon: Icons.inbox },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
@@ -260,7 +260,7 @@ export default function MypageLayout({
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
-            <SidebarItem icon={Icons.application} label="応募管理"      active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
+            <SidebarItem icon={Icons.application} label="応募・面談"    active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
             <SidebarItem icon={Icons.inbox}       label="スカウト"      active={activeKey === "scouts"}         badge={scoutsBadge}         href="/mypage/scouts" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
