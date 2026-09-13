@@ -55,6 +55,8 @@ const ITEMS = [
     desc: "掲載中 / ログイン限定 / 非掲載 の3状態。実データで出せるのは1つだけ" },
   { href: "/dev/preview/industry-match", label: "◯◯の経験が活きる会社（/mypage）",
     desc: "0ブロックで何も出ないこと。長い社名が右カラム320pxではみ出さないこと。ログインの内側なので実画面では確かめにくい" },
+  { href: "/dev/preview/applications", label: "応募・面談（/mypage/applications）",
+    desc: "★本番は応募0件・面談0件。カードも進捗バーもおすすめも、実画面では一度も描画されない" },
   { href: "/dev/preview/meeting-cta", label: "カジュアル面談CTA の色（決着済み・案B）",
     desc: "現行は白文字 on #F59E0B で 2.15（必要 4.5）。橙を保ったまま直す3案を実寸で並べる" },
 ];
