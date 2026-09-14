@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PROFILE_VISIBILITY_OPTIONS, type ProfileVisibility } from "@/lib/constants/profileVisibility";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/constants/companyVisibility";
 import { MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { FormSection } from "@/components/profile/editor/formKit";
+import { useCompanyLookup, type CompanyLookupResult } from "@/components/companies/useCompanyLookup";
 
 /**
  * `/mypage/settings` の「公開範囲」と「ブロック中の企業」（2026-08-20 / B-2）。
@@ -31,7 +32,14 @@ type Block = {
   block_reason: "experience" | "manual";
 };
 
-type Suggestion = { id: string; name: string };
+/* ⚠️★取得は `/api/companies/lookup`（**マスタの軸**）。
+      `/api/companies/search` に戻さないこと ——あちらは**ディレクトリの軸**
+      （`filterListedCompanies`）で、掲載中の企業しか返さない。
+      2026-09-14 に61社を非掲載にしたとき、**88社中66社をブロックできない**状態になった。
+   ⚠️★ブロックの目的は「**いまの勤務先に見られたくない**」。掲載の有無は無関係。
+      実例（2026-09-14 実測）: 実ユーザー1名が在籍中の 海光電業株式会社 は非掲載で、
+      **本人が自分の勤務先をブロックできなかった。** */
+type Suggestion = CompanyLookupResult;
 
 export default function PrivacySettings({
   initialVisibility,
@@ -90,9 +98,12 @@ export default function PrivacySettings({
   const [blocksError, setBlocksError] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [busyCompanyId, setBusyCompanyId] = useState<string | null>(null);
-  const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* ⚠️ **デバウンスの 250ms は変えない**（差し替え前の値をそのまま渡す）。
+     ⚠️ フックに寄せたことで**古い応答で新しい候補を上書きしない**ようになった
+        （自前の実装には連番の判定が無く、速く打つと1文字前の候補が残りえた）。 */
+  const { results: suggestions, search: searchCompanies, clear: clearSuggestions } =
+    useCompanyLookup({ debounceMs: 250 });
 
   const loadBlocks = useCallback(async () => {
     try {
@@ -133,18 +144,10 @@ export default function PrivacySettings({
 
   function onQueryChange(v: string) {
     setQ(v);
-    if (qTimer.current) clearTimeout(qTimer.current);
-    if (v.trim().length < 2) { setSuggestions([]); return; }
-    qTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/companies/search?q=${encodeURIComponent(v.trim())}&limit=8`);
-        if (!res.ok) throw new Error();
-        const data = (await res.json()) as { results?: Suggestion[] };
-        setSuggestions(data.results ?? []);
-      } catch {
-        setSuggestions([]);
-      }
-    }, 250);
+    /* ⚠️ 2文字未満では投げない。`/api/companies/lookup` も `MIN_QUERY_LENGTH = 2` で
+          空を返すが、**手前で止めて無駄な往復を作らない**（差し替え前と同じ挙動）。 */
+    if (v.trim().length < 2) { clearSuggestions(); return; }
+    searchCompanies(v);
   }
 
   async function addBlock(c: Suggestion) {
@@ -156,7 +159,7 @@ export default function PrivacySettings({
         body: JSON.stringify({ company_id: c.id }),
       });
       if (!res.ok) throw new Error();
-      setQ(""); setSuggestions([]);
+      setQ(""); clearSuggestions();
       await loadBlocks();
     } catch {
       setBlocksError("追加できませんでした。");

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { companyDisplayName } from "@/lib/companies/displayName";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,41 @@ export async function GET() {
     if (row.company_id) manualBlockIdMap.set(row.company_id as string, row.id as string);
   }
 
+  /* ★社名は**表示名に畳んでから返す**（2026-09-14）。
+        ⚠️ RPC が返すのは `ow_companies.name`（＝「アドビ株式会社」）だが、
+           求職者側の画面はどこも表示名（「Adobe」）で出している。
+           候補のピッカーは `/api/companies/lookup` 経由で畳まれているので、
+           **ここを生のままにすると同じ画面で社名が食い違う。**
+        ⚠️ `companyDisplayName` には `name_en` が要るが RPC は返さないので、
+           **id でまとめて1回引く**（N+1 にしない）。
+        ⚠️ 引けなかったら RPC の `name` に倒す。**「不明な企業」にしない** ——
+           社名は取れているのに、畳む材料が無いだけ。 */
+  const blockCompanyIds = Array.from(new Set(
+    (blockedResult.data ?? []).map((b: any) => b.company_id as string | null).filter(Boolean) as string[]
+  ));
+  const nameById = new Map<string, string>();
+  if (blockCompanyIds.length > 0) {
+    const { data: nameRows, error: nameErr } = await admin
+      .from("ow_companies")
+      .select("id, name, name_en")
+      .in("id", blockCompanyIds);
+    // ⚠️ 握りつぶさない。失敗しても RPC の名前で出せるので、一覧は消さない
+    if (nameErr) console.error("[scout-settings] 社名の解決に失敗:", nameErr.message);
+    for (const r of nameRows ?? []) {
+      nameById.set(
+        r.id as string,
+        companyDisplayName(r.name as string, r.name_en as string | null).displayName,
+      );
+    }
+  }
+
   const blocks = (blockedResult.data ?? []).map((b: any) => ({
     id: b.block_reason === "manual" && b.company_id ? (manualBlockIdMap.get(b.company_id as string) ?? null) : null,
     company_id: (b.company_id as string | null) ?? null,
-    company_name: (b.company_name as string) ?? "不明な企業",
+    company_name:
+      (b.company_id ? nameById.get(b.company_id as string) : null)
+      ?? (b.company_name as string)
+      ?? "不明な企業",
     block_reason: (b.block_reason as "experience" | "manual"),
   }));
 
