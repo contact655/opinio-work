@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { mutateOne } from "@/lib/supabase/mutate";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,18 @@ export async function GET() {
 }
 
 
-// POST: add a manual block
+/**
+ * POST: 手動のブロックを1件足す。
+ *
+ * ⚠️★**戻り値を捨てない**（2026-09-14 に修正）。それまで
+ *    `await admin.from(...).upsert(...)` と書いて**結果を丸ごと捨てていた**ので、
+ *    FK 違反（実在しない `company_id`）でも不正な uuid でも **`{ok:true}` を返していた。**
+ *    画面は「追加できませんでした」を出さず、一覧に出てこないだけになる。
+ *    ⚠️ `try/catch` では捕まらない —— supabase-js はエラーを**戻り値**で返す。
+ *
+ * ⚠️ `ow_scout_blocks` は **UNIQUE (candidate_id, company_id)** を持つので、
+ *    `onConflict` 付きの upsert は**必ず1行**（挿入か更新）になる。だから `mutateOne`。
+ */
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -98,12 +110,28 @@ export async function POST(req: NextRequest) {
   if (!company_id) return NextResponse.json({ error: "company_id required" }, { status: 400 });
 
   const admin = createAdminClient();
-  await admin.from("ow_scout_blocks").upsert({ candidate_id: user.id, company_id }, { onConflict: "candidate_id,company_id" });
+  const r = await mutateOne(
+    admin
+      .from("ow_scout_blocks")
+      .upsert({ candidate_id: user.id, company_id }, { onConflict: "candidate_id,company_id" }),
+    "スカウトのブロック追加",
+  );
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
 
   return NextResponse.json({ ok: true });
 }
 
-// DELETE: remove a manual block
+/**
+ * DELETE: 手動のブロックを1件外す。
+ *
+ * ⚠️★**戻り値を捨てない**（2026-09-14 に修正）。POST と同じ理由。
+ *    加えてここは `.eq("candidate_id", user.id)` が**他人の行を消させない唯一の壁**で、
+ *    捨てていると「**他人の id を渡して 0行 → `{ok:true}`**」になっていた
+ *    （実際には消えていないので害は無いが、**弾いたことが誰にも分からない**）。
+ *
+ * ⚠️ 0行は 404（`mutateOne`）。二重クリックでは `busyCompanyId` が止めるので、
+ *    404 が出るのは**本当に対象が無いとき**だけ。
+ */
 export async function DELETE(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -114,7 +142,11 @@ export async function DELETE(req: NextRequest) {
   if (!blockId) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   const admin = createAdminClient();
-  await admin.from("ow_scout_blocks").delete().eq("id", blockId).eq("candidate_id", user.id);
+  const r = await mutateOne(
+    admin.from("ow_scout_blocks").delete().eq("id", blockId).eq("candidate_id", user.id),
+    "スカウトのブロック解除",
+  );
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
 
   return NextResponse.json({ ok: true });
 }
