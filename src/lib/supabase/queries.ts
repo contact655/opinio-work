@@ -1885,26 +1885,40 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     });
   };
 
-  /* 表示除外条件: visibility='private' または 本人が登録していない行。
-     ⚠️★**`is_test` はここでは除外しない**（2026-09-12 / 柴さんの指示）。
-        企業ページの現役社員・OB/OG に**検証用アカウントも並ぶ**。
-        ⚠️ セールスフォースの現役社員は 3名 → **11名**になる
-           （検証用7名を含む。2026-09-12 実測）。
-        ⚠️★**これは「実在企業のページに検証用の人が現役社員として出る」ことを承知のうえの判断。**
-           懸念（一般の利用者にも見える／2026-08-22 に `/biz/employees` で同じ状態を
-           直した経緯がある）を伝えたうえで、柴さんが本番に出すと決めた。
-           **勝手に戻さないこと。戻すなら柴さんに確認する。**
-        ⚠️ 未ログインには**従来どおり出ない**。検証用アカウントは全員 `login_only` で、
-           呼び出し側（`/api/jobseeker/companies/[id]/employees`）が
-           未ログインには `visibility === "public"` だけを渡すため。
-        ⚠️★**他の46箇所の `is_test` 除外はそのまま。** ここだけの例外にしてある
-           （`/people`・`/companies` のカードの人数・求人の経験者などは従来どおり除外）。
+  /* 表示除外条件: visibility='private' / 本人が登録していない行 / **検証用アカウント**。
+
+     ── ⚠️★★`is_test` の扱いは2026-09-14 に戻した（柴さんの指示）────────────────
+     2026-09-12 から 2026-09-14 まで、**ここだけ `is_test` を除外していなかった**
+     （`26e85303`。職種ごとの分割表示と構成バーを実データで動かして確認するため、
+      柴さんが承知のうえで本番に出した例外）。
+     ⇒ **2026-09-14 に除外を戻した。** 同日に自社ドメインの検証用アカウント5件を
+        `is_test = true` にしたところ、**セールスフォースの現役社員11名が全員検証用**になり、
+        実在企業のページに検証用アカウントだけが並ぶ状態になったため。
+
+     ⚠️★**この1行を外さないこと。** 外すと「実在企業のページに検証用の人が
+        現役社員として出る」状態に戻る。**他の46箇所と同じ扱いに揃っている。**
+
+     ⚠️ 戻した結果（2026-09-14 実測 / 本番）:
+          セールスフォース … 現役 11名 → **0名** ／ OB・OG 2名 → 1名
+          Box Japan        … 現役 1名 → **0名**
+          株式会社Opinio   … OB・OG 1名 → **0名**
+          伊藤忠テクノソリューションズ / 日本HP / 海光電業 / Archi Village … **変わらない**
+        ⚠️★**つまり職種ごとの分割表示と構成バーは、実データでは描かれなくなる。**
+           例外を入れたときの目的がこれだった。見た目を確かめたいときは
+           **`/dev/preview` を使う**（本番のデータを検証用で膨らませない）。
+
+     ⚠️ 未ログインの見え方は前から変わらない。検証用アカウントは全員 `login_only` で、
+        呼び出し側（`/api/jobseeker/companies/[id]/employees`）が未ログインには
+        `visibility === "public"` だけを渡すため。**変わるのは件数の表示。**
+
      ⚠️ `auth_id` を上の select に含めること。落とすと全員が除外され、
-        現役社員・OB/OG が丸ごと空になる（`lib/users/registered.ts`）。 */
+        現役社員・OB/OG が丸ごと空になる（`lib/users/registered.ts`）。
+     ⚠️ `is_test` も同様。select から落とすと `undefined` になり、
+        **除外が静かに効かなくなる**（型では気づけない）。 */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isSeedRow = (r: any) => {
     const u = r.ow_users as { auth_id?: string | null; is_test?: boolean | null; visibility?: string | null } | null;
-    return u?.visibility === "private" || !isRegisteredUser(u);
+    return u?.visibility === "private" || u?.is_test === true || !isRegisteredUser(u);
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEmps = dedupeByUser((currentRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r)));
