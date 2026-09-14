@@ -6339,7 +6339,12 @@ export type Database = {
           cover_photo_url: string | null
           created_at: string
           email: string
+          family_name: string | null
+          family_name_kana: string | null
           future_aspirations: string | null
+          gender: string | null
+          given_name: string | null
+          given_name_kana: string | null
           headline: string | null
           id: string
           is_active_mentor: boolean
@@ -6350,6 +6355,7 @@ export type Database = {
           location: string | null
           mentor_registered_at: string | null
           name: string
+          phone: string | null
           profile_setup_at: string | null
           social_links: Json | null
           statistics_opt_out: boolean
@@ -6373,7 +6379,12 @@ export type Database = {
           cover_photo_url?: string | null
           created_at?: string
           email: string
+          family_name?: string | null
+          family_name_kana?: string | null
           future_aspirations?: string | null
+          gender?: string | null
+          given_name?: string | null
+          given_name_kana?: string | null
           headline?: string | null
           id?: string
           is_active_mentor?: boolean
@@ -6384,6 +6395,7 @@ export type Database = {
           location?: string | null
           mentor_registered_at?: string | null
           name: string
+          phone?: string | null
           profile_setup_at?: string | null
           social_links?: Json | null
           statistics_opt_out?: boolean
@@ -6407,7 +6419,12 @@ export type Database = {
           cover_photo_url?: string | null
           created_at?: string
           email?: string
+          family_name?: string | null
+          family_name_kana?: string | null
           future_aspirations?: string | null
+          gender?: string | null
+          given_name?: string | null
+          given_name_kana?: string | null
           headline?: string | null
           id?: string
           is_active_mentor?: boolean
@@ -6418,6 +6435,7 @@ export type Database = {
           location?: string | null
           mentor_registered_at?: string | null
           name?: string
+          phone?: string | null
           profile_setup_at?: string | null
           social_links?: Json | null
           statistics_opt_out?: boolean
