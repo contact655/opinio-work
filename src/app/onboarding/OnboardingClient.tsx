@@ -303,7 +303,12 @@ function OnboardingInner({
      ⚠️ 値は親の state が持つ。**リロードで消える**が、1画面目は「次へ」で保存済みなので
         失うのは2画面目の任意項目だけ。
      ⚠️★**ステップの総数は `STEPS` から出す。数字を直書きしないこと。** */
-  const STEPS = ["直近のお勤め先", "転職について", "あとは任意"] as const;
+  /* ★★2026-09-14 に「あなたのこと」を**先頭**に足した（柴さんの指示）。
+        ⚠️★**番号を直書きしないこと。** 画面を1つ挟むだけで `step === 1` の意味が全部ずれる。
+           下の `STEP` を使う。 */
+  const STEPS = ["あなたのこと", "直近のお勤め先", "転職について", "あとは任意"] as const;
+  /** ⚠️ 並びを変えたらここも変える。`STEPS` の添字 +1（`?step=` は1始まり）。 */
+  const STEP = { YOU: 1, COMPANY: 2, STANCE: 3, OPTIONAL: 4 } as const;
   const rawStep = Number.parseInt(searchParams.get("step") ?? "1", 10);
   const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= STEPS.length ? rawStep : 1;
   const goStep = (n: number) => {
@@ -383,6 +388,21 @@ function OnboardingInner({
   const [birthYear, setBirthYear]   = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay]     = useState("");
+
+  /* ★★氏名とふりがな（2026-09-14 / 柴さんの指示で1画面目に足した）。
+     ⚠️★**`ow_users.name` は消さない。** 表示の正は今も `name`（NOT NULL）で、
+        姓名は**入力の形**。`name` は「姓＋名」として API 側で一緒に書かれる
+        （`lib/constants/personName.ts` の `buildDisplayName`）。
+     ⚠️★**既存の利用者の値を初期値に入れていない。** `ow_users` の
+        `family_name` などは **SELECT の GRANT を配っていない**ので、
+        サーバーページのセッションクライアントで select すると**クエリが丸ごと 403**になり、
+        `ow_users.id` まで取れなくなる（CLAUDE.md「403 は『0件』として静かに素通りする」）。
+        初期値を入れるなら **admin クライアントで別途引く**こと。
+     ⚠️ リロードで消えるのは他の項目と同じ（値は URL に置かない）。 */
+  const [familyName, setFamilyName]         = useState("");
+  const [givenName, setGivenName]           = useState("");
+  const [familyNameKana, setFamilyNameKana] = useState("");
+  const [givenNameKana, setGivenNameKana]   = useState("");
   const [endedYear, setEndedYear] = useState<string>("");
   const [endedMonth, setEndedMonth] = useState<string>("");
   /* 勤務地・勤務形態（どちらも任意）。
@@ -527,11 +547,46 @@ function OnboardingInner({
         ⚠️ 当時の心配（「同じ分野の中からしか選べないように見える」）は、
            **18の大分類がその場に全部並ぶ**ことで解消している。 */
 
+  /* ★★1画面目は**5項目すべて必須**（2026-09-14 / 柴さんの指示）。
+        ⚠️★この画面だけ「後で設定する」を出していない。出すと必須にならない。
+        ⚠️ 生年月日は3つ揃って初めて日付になる（`YYYY-MM-DD`）。1つでも空なら未入力。 */
+  const youReady = !!(
+    familyName.trim() && givenName.trim() &&
+    familyNameKana.trim() && givenNameKana.trim() &&
+    birthYear && birthMonth && birthDay
+  );
+
+  /** 1画面目の「次へ」。⚠️ `ow_users` への保存なので `PUT /api/jobseeker/profile` を呼ぶ。 */
+  const goNextFromYou = async () => {
+    if (!youReady) return;
+    setSaving(true);
+    setSaveError(null);
+    const failures: string[] = [];
+    /* ⚠️★姓と名は**対で送る**（API が片方だけを 400 で弾く）。
+          `ow_users.name` はこの経路で一緒に書かれる。**別経路で書かないこと。** */
+    await putJson("/api/jobseeker/profile", {
+      family_name: familyName.trim(),
+      given_name: givenName.trim(),
+      family_name_kana: familyNameKana.trim(),
+      given_name_kana: givenNameKana.trim(),
+      birth_date: `${birthYear}-${birthMonth}-${birthDay}`,
+    }, "お名前と生年月日", failures);
+    setSaving(false);
+    /* ⚠️★失敗したら**進めない**。ここは必須項目なので、黙って次へ行くと
+          「入力させたのに保存されていない」になる（他の画面は任意なので best-effort）。 */
+    if (failures.length > 0) {
+      setSaveError("保存に失敗しました。通信環境を確かめて、もう一度お試しください。");
+      return;
+    }
+    goStep(STEP.COMPANY);
+  };
+
   /* ★CTA を色付きにする条件。**ステップごとに違う。**
      ⚠️ 1画面目は会社が空でも**押せる**（灰色のまま進める）。2画面目だけ本当に押せない。
      ⚠️ 3画面目は全項目が任意なので常に進める。 */
-  const ctaReady = step === 1 ? !!(query.trim() || selectedCompany)
-    : step === 2 ? !!stance
+  const ctaReady = step === STEP.YOU ? youReady
+    : step === STEP.COMPANY ? !!(query.trim() || selectedCompany)
+    : step === STEP.STANCE ? !!stance
     : true;
 
   /** 上限（`MAX_DESIRED_ROLES`）に当たったことを伝える短い注記。次の操作で消える（2026-09-12） */
@@ -575,7 +630,7 @@ function OnboardingInner({
       setSaveError("経歴の保存に失敗しました。プロフィール編集からあとで登録できます。");
     }
     setSaving(false);
-    goStep(2);
+    goStep(STEP.STANCE);
   };
 
   const finish = async () => {
@@ -738,8 +793,9 @@ function OnboardingInner({
                       既に「あとは任意」と言っている。2行のあいだで同じ語を2回出すのは、
                       2026-09-11 に「任意」を4回消したのと同じ形になる。
                       **ここは語ではなく“結果”（入れなくても登録できる）を言う。** */}
-            {step === 1 ? "直近のお勤め先を教えてください"
-              : step === 2 ? "転職について"
+            {step === STEP.YOU ? "あなたのことを教えてください"
+              : step === STEP.COMPANY ? "直近のお勤め先を教えてください"
+              : step === STEP.STANCE ? "転職について"
               : "ここから先は、入れなくても登録できます"}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
@@ -765,7 +821,109 @@ function OnboardingInner({
             {step} / {STEPS.length}　{STEPS[step - 1]}
           </div>
 
-          {step === 1 && (<>
+          {/* ══ ★★1画面目（`?step=1`）＝「あなたのこと」（2026-09-14 / 柴さんの指示）══
+              **氏名・ふりがな・生年月日を冒頭で必須にする。**
+
+              ── なぜ冒頭か ──────────────────────────────────────────────────
+              ⚠️ それまで生年月日は**最後の画面の末尾**、しかも見出しが「あとは任意」で、
+                 実測（2026-09-14）で **12人中3人**しか入っていなかった。
+              ⚠️ 氏名も登録フォームでは**任意・いちばん下**で、省略すると
+                 `email.split("@")[0]` が `ow_users.name` に入る。実測で **12人中1人**が
+                 その状態のまま `/people` などに出ていた。
+
+              ⚠️★**摩擦は増えていない。** 会社を検索して職種を選ぶ次の画面より軽い
+                 （打つだけ）。項目を足したのではなく、順番を変えたのが主。
+
+              ⚠️★**この画面には「後で設定する」を出していない**（下の footer を参照）。
+                 出すと必須にならない。
+
+              ⚠️★**姓と名を分けている。** ふりがなを足すなら実質必然で、
+                 あとから分けることはできない。表示は今までどおり `ow_users.name`
+                 （「姓＋名」の派生値）で、**画面側で姓名を組み立てないこと。** */}
+          {step === STEP.YOU && (<>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+              <div>
+                <label htmlFor="ob-family-name" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                  姓<span style={needLabelStyle}>保存に必要</span>
+                </label>
+                <input id="ob-family-name" type="text" value={familyName} autoComplete="family-name"
+                  onChange={(e) => setFamilyName(e.target.value)} placeholder="山田" style={textInputStyle} />
+              </div>
+              <div>
+                <label htmlFor="ob-given-name" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                  名<span style={needLabelStyle}>保存に必要</span>
+                </label>
+                <input id="ob-given-name" type="text" value={givenName} autoComplete="given-name"
+                  onChange={(e) => setGivenName(e.target.value)} placeholder="太郎" style={textInputStyle} />
+              </div>
+              <div>
+                <label htmlFor="ob-family-kana" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                  せい<span style={needLabelStyle}>保存に必要</span>
+                </label>
+                <input id="ob-family-kana" type="text" value={familyNameKana}
+                  onChange={(e) => setFamilyNameKana(e.target.value)} placeholder="やまだ" style={textInputStyle} />
+              </div>
+              <div>
+                <label htmlFor="ob-given-kana" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                  めい<span style={needLabelStyle}>保存に必要</span>
+                </label>
+                <input id="ob-given-kana" type="text" value={givenNameKana}
+                  onChange={(e) => setGivenNameKana(e.target.value)} placeholder="たろう" style={textInputStyle} />
+              </div>
+            </div>
+
+          {/* ── 生年月日（★2026-09-14 から**必須**。1画面目へ移した）─────────────
+              ★2026-09-09 追加。実ユーザー11人中7人が未入力で、あとから入れてもらうのが難しい。
+
+              ⚠️★**経歴ではなく本人の属性**なので、現職のブロックの外に置く。
+                 あのブロックは会社を選ぶまで描画されないので、中に入れると
+                 会社を入れない人には一生出ない。
+              ⚠️★保存は **`PUT /api/jobseeker/profile`**（`ow_users.birth_date`）。
+                 経歴の POST（`/api/jobseeker/experiences`）に相乗りさせない。
+              ⚠️★**`ow_career_profiles.birth_year` には書かない。** 生年情報を2箇所にしない。
+              ⚠️ 3つ揃わなければ送らない（`BIRTH_RE` が `YYYY-MM-DD` を要求する）。 */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+              {/* ⚠️ 「任意」バッジは 2026-09-11 に削除。戻さないこと。 */}
+              生年月日<span style={needLabelStyle}>保存に必要</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
+                <option value="">年</option>
+                {BIRTH_YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+              </select>
+              <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} style={selectStyle} aria-label="生月">
+                <option value="">月</option>
+                {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
+              </select>
+              <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} style={selectStyle} aria-label="生日">
+                <option value="">日</option>
+                {BIRTH_DAYS.map((d) => <option key={d} value={d}>{Number(d)}日</option>)}
+              </select>
+            </div>
+            {/* ⚠️★**この一文を消さないこと。** 年齢は詳細ページにしか出さず、年齢での絞り込みも
+                   作らないという方針（CLAUDE.md「年齢は詳細だけ」／労働施策総合推進法9条）の
+                   説明がここにしか無い。
+                ⚠️★**「登録ユーザー一覧に表示されます」と書かないこと。** 実態と逆で、
+                   古い文言としてどこかに残っていた前例がある（2026-08-19）。 */}
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
+              ユーザー一覧には表示されません。年齢はプロフィールの詳細ページにだけ出ます。
+            </p>
+          </div>
+
+            {/* ⚠️★**この一文を消さないこと。** 本名を求める理由がここにしか無い。
+                   ⚠️ 「企業に見られます」と書かないこと —— 実際に企業へ渡るのは
+                      応募・面談を**本人が申し込んだとき**だけで、一覧に並ぶわけではない。 */}
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 14, lineHeight: 1.7 }}>
+              お名前は、あなたのプロフィールに表示されます。ふりがなは企業には表示されません。
+            </p>
+
+            {saveError && (
+              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
+            )}
+          </>)}
+
+          {step === STEP.COMPANY && (<>
           {/* 会社の検索・選択。
               ⚠️ 実装は `CompanyPicker` の1つだけにする。これまでの職歴の行も同じ部品を使う。
                  ここに inline で書き直すと、片方だけ直る形の不具合が生まれる。 */}
@@ -979,7 +1137,7 @@ function OnboardingInner({
                        出すと、押せないようにした意味がその場で消える。
                  ⚠️★**`career_stance` はスカウトと候補者検索の唯一の必須条件。**
                     未設定のままだと本人にも企業にも何も起きない。他の任意項目と性質が違う。 */}
-          {step === 2 && (<>
+          {step === STEP.STANCE && (<>
             <StanceQuestion value={stance} onChange={setStance} disabled={saving} />
 
             {/* ── ★★関心のある職種（任意）──────────────────────────────────
@@ -1040,7 +1198,7 @@ function OnboardingInner({
           {/* ── ★3画面目（`?step=3`）───────────────────────────────────────
                  ⚠️★1画面目は「保存に必要な3点」だけ。ここから下は
                     **押さなくても登録が終わる**もの。 */}
-          {step === 3 && (<>
+          {step === STEP.OPTIONAL && (<>
           {hasCompany && (
             <div>
               {/*
@@ -1515,44 +1673,6 @@ function OnboardingInner({
             </button>
           </div>
 
-          {/* ── 生年月日（任意）────────────────────────────────────────────
-              ★2026-09-09 追加。実ユーザー11人中7人が未入力で、あとから入れてもらうのが難しい。
-
-              ⚠️★**経歴ではなく本人の属性**なので、現職のブロックの外に置く。
-                 あのブロックは会社を選ぶまで描画されないので、中に入れると
-                 会社を入れない人には一生出ない。
-              ⚠️★保存は **`PUT /api/jobseeker/profile`**（`ow_users.birth_date`）。
-                 経歴の POST（`/api/jobseeker/experiences`）に相乗りさせない。
-              ⚠️★**`ow_career_profiles.birth_year` には書かない。** 生年情報を2箇所にしない。
-              ⚠️ 3つ揃わなければ送らない（`BIRTH_RE` が `YYYY-MM-DD` を要求する）。 */}
-          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-              {/* ⚠️ 「任意」バッジは 2026-09-11 に削除。戻さないこと。 */}
-              生年月日
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
-                <option value="">年</option>
-                {BIRTH_YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
-              </select>
-              <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} style={selectStyle} aria-label="生月">
-                <option value="">月</option>
-                {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
-              </select>
-              <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} style={selectStyle} aria-label="生日">
-                <option value="">日</option>
-                {BIRTH_DAYS.map((d) => <option key={d} value={d}>{Number(d)}日</option>)}
-              </select>
-            </div>
-            {/* ⚠️★**この一文を消さないこと。** 年齢は詳細ページにしか出さず、年齢での絞り込みも
-                   作らないという方針（CLAUDE.md「年齢は詳細だけ」／労働施策総合推進法9条）の
-                   説明がここにしか無い。
-                ⚠️★**「登録ユーザー一覧に表示されます」と書かないこと。** 実態と逆で、
-                   古い文言としてどこかに残っていた前例がある（2026-08-19）。 */}
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
-              ユーザー一覧には表示されません。年齢はプロフィールの詳細ページにだけ出ます。
-            </p>
-          </div>
 
           {saveError && (
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
@@ -1610,7 +1730,7 @@ function OnboardingInner({
                    ⚠️★**押せない理由を必ず添える。** 灰色のボタンだけだと、
                       1・3画面目の「未入力でも押せる灰色」と見分けが付かない
                       （1画面目は会社が空でも押せる）。 */}
-            {step === 2 && !stance && (
+            {step === STEP.STANCE && !stance && (
               <p style={{ margin: "0 0 8px", fontSize: 12.5, fontWeight: 600, color: "var(--ink-mute)", textAlign: "center" }}>
                 どれか1つ選ぶと、次へ進めます
               </p>
@@ -1621,8 +1741,11 @@ function OnboardingInner({
                       要件なので、選ばせずに通さない（`/onboarding/stance` と同じ）。 */}
             <button
               type="button"
-              onClick={step === 1 ? goNextFromStep1 : step === 2 ? goNextFromStep2 : finish}
-              disabled={saving || (step === 2 && !stance)}
+              onClick={step === STEP.YOU ? goNextFromYou
+                : step === STEP.COMPANY ? goNextFromStep1
+                : step === STEP.STANCE ? goNextFromStep2
+                : finish}
+              disabled={saving || !ctaReady}
               style={{
                 width: "100%", padding: "13px 20px",
                 background: ctaReady
@@ -1630,7 +1753,7 @@ function OnboardingInner({
                   : "var(--line)",
                 color: ctaReady ? "#fff" : "var(--ink-mute)",
                 border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                cursor: saving ? "wait" : (step === 2 && !stance) ? "default" : "pointer",
+                cursor: saving ? "wait" : !ctaReady ? "default" : "pointer",
                 fontFamily: "inherit", transition: "all 0.2s",
               }}
             >
@@ -1662,7 +1785,9 @@ function OnboardingInner({
             ⚠️ 1・3画面目には残す（全項目が任意で、押さずに閉じた人を作らないため）。
             ⚠️ 1画面目で押した人は `career_stance` が空のまま完了するが、
                直後に `OnboardingGuard` が `/onboarding/stance` へ送るので**聞かれないままにはならない。** */}
-        {step !== 2 && (
+        {/* ⚠️★**1画面目にも出さない**（2026-09-14）。あの画面の5項目は**必須**なので、
+               ここに離脱口があると必須にならない（柴さんの指示で生年月日を必須にした）。 */}
+        {step !== STEP.STANCE && step !== STEP.YOU && (
         <div style={{ display: "flex", justifyContent: "center" }}>
           <button
             type="button"
