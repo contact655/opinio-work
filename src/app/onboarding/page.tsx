@@ -99,8 +99,34 @@ export default async function OnboardingPage() {
               ⚠️ 並び順に決定的なタイブレークが無くて順序が揺れる問題は 2026-08 に踏んでいる。
         ⚠️ 並行在籍のもう1件は**触らない**。読み込んだ1件だけを更新する。
      ⚠️ `EXPERIENCE_EDITOR_COLS` を使う（列を足したときに4箇所を揃える規約）。 */
+  /* ★姓名・ふりがな・生年月日も引く（2026-09-14）。1画面目の初期値にする。
+     ⚠️★**admin クライアントだから引ける。** `family_name` などは
+        `authenticated` に SELECT を配っていない（`ow_users` の RLS は
+        「ログインしていれば他人の行も読める」ため）。
+        **session クライアントに移すとクエリが丸ごと 403 になり、
+        `id` まで取れなくなる**（CLAUDE.md「403 は『0件』として静かに素通りする」）。
+     ⚠️ **オンボーディングを途中で抜けた人が戻ってきたときのため**。
+        1画面目は必須なので、空のままだと**毎回5項目を打ち直す**ことになる。
+        実測（2026-09-14）: 実ユーザー7人のうち**2人（29%）が未完了**。 */
   const { data: owUser } = await createAdminClient()
-    .from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+    .from("ow_users")
+    .select("id, family_name, given_name, family_name_kana, given_name_kana, birth_date")
+    .eq("auth_id", user.id).maybeSingle();
+
+  /* ⚠️ 生年月日は `YYYY-MM-DD`。画面は年/月/日の3つの `<select>` で、
+        **月と日は0埋め**（`option value="07"`）、年は0埋めなし。
+        ずれると `<select>` の `value` が**空のまま**になり、
+        選んだことにならない（`.claude/rules/ui-debugging.md` ②）。 */
+  const bd = (owUser?.birth_date as string | null) ?? null;
+  const initialPerson = {
+    familyName: (owUser?.family_name as string | null) ?? "",
+    givenName: (owUser?.given_name as string | null) ?? "",
+    familyNameKana: (owUser?.family_name_kana as string | null) ?? "",
+    givenNameKana: (owUser?.given_name_kana as string | null) ?? "",
+    birthYear: bd ? bd.slice(0, 4) : "",
+    birthMonth: bd ? bd.slice(5, 7) : "",
+    birthDay: bd ? bd.slice(8, 10) : "",
+  };
 
   let currentExperience: Record<string, unknown> | null = null;
   if (owUser?.id) {
@@ -185,6 +211,7 @@ export default async function OnboardingPage() {
       currentExperience={currentExperience}
       initialStance={initialStance}
       initialDesiredRoleIds={initialDesiredRoleIds}
+      initialPerson={initialPerson}
     />
   );
 }

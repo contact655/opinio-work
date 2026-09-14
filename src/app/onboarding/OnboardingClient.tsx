@@ -271,8 +271,28 @@ const selectStyle: React.CSSProperties = {
   fontSize: 14, fontFamily: "inherit", background: "#fff", color: "var(--ink)",
 };
 
+/**
+ * ★オンボーディング1画面目の初期値（2026-09-14）。
+ *
+ * ⚠️★**サーバーページが admin クライアントで引いて渡す。**
+ *    `family_name` などは `authenticated` に SELECT を配っていないので、
+ *    クライアントから引き直せない。
+ * ⚠️ 空文字は「未入力」。null を渡さない（`<input value>` が uncontrolled になる）。
+ */
+export type OnboardingInitialPerson = {
+  familyName: string;
+  givenName: string;
+  familyNameKana: string;
+  givenNameKana: string;
+  /** ⚠★月と日は**0埋め**（`<option value="07">`）。年は0埋めなし */
+  birthYear: string;
+  birthMonth: string;
+  birthDay: string;
+};
+
 function OnboardingInner({
   roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  initialPerson,
 }: {
   /** ★職歴の職種に使う。**全職種**（非IT の8分類を含む18分類）。絞り込まない */
   roles: OnboardingRole[];
@@ -286,6 +306,8 @@ function OnboardingInner({
   /** ★2画面目の初期値。⚠️ 既に答えている人に空を見せないため（1画面目と同じ扱い） */
   initialStance: string | null;
   initialDesiredRoleIds: string[];
+  /** ★1画面目の初期値。⚠️ 2回目に来た人に空を見せないため（`initialStance` と同じ扱い） */
+  initialPerson: OnboardingInitialPerson;
 }) {
   const router = useRouter();
   /* ★`?next=` を読む（2026-09-09 まで**読んでいなかった**。フェーズ0 の 0-4）。
@@ -390,24 +412,28 @@ function OnboardingInner({
            ここから統合しにいかない。
      ⚠️ 経歴（`ow_experiences`）ではなく**本人の属性**なので、現職のブロックの中に置かない
         （あのブロックは会社を選ぶまで描画されず、会社を入れない人には一生出ない）。 */
-  const [birthYear, setBirthYear]   = useState("");
-  const [birthMonth, setBirthMonth] = useState("");
-  const [birthDay, setBirthDay]     = useState("");
+  /* ⚠️★**`useState` の初期値として読む。** `useEffect` で後から入れると、
+        利用者が打ち始めたあとに上書きする窓ができる（他の項目と同じ扱い）。 */
+  const [birthYear, setBirthYear]   = useState(() => initialPerson.birthYear);
+  const [birthMonth, setBirthMonth] = useState(() => initialPerson.birthMonth);
+  const [birthDay, setBirthDay]     = useState(() => initialPerson.birthDay);
 
   /* ★★氏名とふりがな（2026-09-14 / 柴さんの指示で1画面目に足した）。
      ⚠️★**`ow_users.name` は消さない。** 表示の正は今も `name`（NOT NULL）で、
         姓名は**入力の形**。`name` は「姓＋名」として API 側で一緒に書かれる
         （`lib/constants/personName.ts` の `buildDisplayName`）。
-     ⚠️★**既存の利用者の値を初期値に入れていない。** `ow_users` の
-        `family_name` などは **SELECT の GRANT を配っていない**ので、
-        サーバーページのセッションクライアントで select すると**クエリが丸ごと 403**になり、
-        `ow_users.id` まで取れなくなる（CLAUDE.md「403 は『0件』として静かに素通りする」）。
-        初期値を入れるなら **admin クライアントで別途引く**こと。
-     ⚠️ リロードで消えるのは他の項目と同じ（値は URL に置かない）。 */
-  const [familyName, setFamilyName]         = useState("");
-  const [givenName, setGivenName]           = useState("");
-  const [familyNameKana, setFamilyNameKana] = useState("");
-  const [givenNameKana, setGivenNameKana]   = useState("");
+     ★既存の値は **サーバーページが admin クライアントで引いて** `initialPerson` で渡す
+        （2026-09-14）。⚠️★**クライアントから引き直さないこと** —— `family_name` などは
+        `authenticated` に SELECT を配っていないので、session クライアントだと
+        **クエリが丸ごと 403** になる（CLAUDE.md「403 は『0件』として静かに素通りする」）。
+     ⚠️ **途中で抜けた人が戻ってきたときのため。** 1画面目は必須なので、
+        空のままだと**毎回5項目を打ち直す**ことになる（実測で2人/7人が未完了）。
+     ⚠️ リロードで消えるのは他の項目と同じ（値は URL に置かない）。
+        ⚠️ ただし**一度保存した値はこの初期値で戻る**。 */
+  const [familyName, setFamilyName]         = useState(() => initialPerson.familyName);
+  const [givenName, setGivenName]           = useState(() => initialPerson.givenName);
+  const [familyNameKana, setFamilyNameKana] = useState(() => initialPerson.familyNameKana);
+  const [givenNameKana, setGivenNameKana]   = useState(() => initialPerson.givenNameKana);
   const [endedYear, setEndedYear] = useState<string>("");
   const [endedMonth, setEndedMonth] = useState<string>("");
   /* 勤務地・勤務形態（どちらも任意）。
@@ -2224,6 +2250,7 @@ function LogoMark() {
 
 export default function OnboardingPage({
   roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  initialPerson,
 }: {
   roles: OnboardingRole[];
   desiredRoleOptions: OnboardingRole[];
@@ -2231,6 +2258,7 @@ export default function OnboardingPage({
   currentExperience: ExistingExperience | null;
   initialStance: string | null;
   initialDesiredRoleIds: string[];
+  initialPerson: OnboardingInitialPerson;
 }) {
   return (
     <Suspense fallback={
@@ -2245,6 +2273,7 @@ export default function OnboardingPage({
         currentExperience={currentExperience}
         initialStance={initialStance}
         initialDesiredRoleIds={initialDesiredRoleIds}
+        initialPerson={initialPerson}
       />
     </Suspense>
   );
