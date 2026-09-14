@@ -21,8 +21,9 @@ export type SocialLinks = {
   note?: string;
 };
 
-export const LOCATIONS = [
-  "東京都", "神奈川県", "埼玉県", "千葉県", "大阪府", "京都府",
-  "愛知県", "福岡県", "北海道", "海外", "非公開",
-];
+/* ⚠️★`LOCATIONS`（9都道府県＋海外＋非公開の11件）は **2026-09-15 に削除した。**
+      `/mypage` の「所在地」だけがこれを見ており、`/mypage/settings` の「居住地」は
+      47件の側を見ていて、**同じ `ow_users.location` に別の語彙を書いていた。**
+      いまの正は [lib/utils/location.ts](../utils/location.ts) の `RESIDENCE_OPTION_GROUPS`
+      （47都道府県＋「海外」「非公開」）**1箇所だけ**。⚠️ ここに書き戻さないこと。 */
 

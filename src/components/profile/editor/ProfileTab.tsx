@@ -80,7 +80,7 @@ import {
   ProfileTimelineSection,
   ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
-import { LOCATIONS } from "@/lib/profile/mockProfileData";
+import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
 import type { Json } from "@/lib/supabase/types";
 import {
   SocialIcon,
@@ -1210,8 +1210,18 @@ export default function ProfileTab({
                     style={selectStyle()}
                   >
                     <option value="">選択してください</option>
-                    {LOCATIONS.map((loc) => (
-                      <option key={loc} value={loc}>{loc}</option>
+                    {/* ⚠️★選択肢は `RESIDENCE_OPTION_GROUPS` の1箇所だけ（2026-09-15）。
+                           ここで展開し直さない —— `/mypage/settings` の「居住地」と
+                           **同じ `ow_users.location`** に書くので、割れると片方で選んだ値が
+                           もう片方で空欄に見え、保存した瞬間に消える。
+                        ⚠️ 直す前はここが `mockProfileData.ts` の `LOCATIONS`（11件）で、
+                           実際に割れていた。 */}
+                    {RESIDENCE_OPTION_GROUPS.map((g) => (
+                      <optgroup key={g.group} label={g.group}>
+                        {g.prefectures.map((loc) => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>

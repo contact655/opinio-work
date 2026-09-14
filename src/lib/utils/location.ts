@@ -74,3 +74,31 @@ export const PREFECTURE_FILTER_GROUPS: { group: string; prefectures: readonly st
   { group: "よく選ばれる", prefectures: COMMON_PREFECTURES },
   { group: "すべての都道府県", prefectures: OTHER_PREFECTURES },
 ];
+
+/** 本人が住まいとして選べる「都道府県以外」の値。⚠️ 絞り込みには出さない（下記）。 */
+export const RESIDENCE_EXTRA_OPTIONS = ["海外", "非公開"] as const;
+
+/**
+ * ★本人が**自分の居住地を選ぶ**ときの選択肢（2026-09-15）。
+ *
+ * **47都道府県 ＋「海外」「非公開」。** `PREFECTURE_FILTER_GROUPS` から**導出する**。
+ * ⚠️★**2つ目の一覧を手で書かないこと。** これを足した理由がまさにそれで、
+ *    `/mypage` の「所在地」が `lib/profile/mockProfileData.ts` の `LOCATIONS`（**11件**）、
+ *    `/mypage/settings` の「居住地」が `PREFECTURE_FILTER_GROUPS`（**47件**）を見ており、
+ *    **同じ `ow_users.location` に別の語彙を書いていた**（2026-09-15 に発見）。
+ *    38県は片方でしか選べず、「海外」「非公開」はもう片方でしか選べない。
+ *    ⚠️ 前者を選ぶと `/mypage/settings` では**一致する option が無く空欄に見え**、
+ *       そこで保存すると値が消える。**実害0件だったのは、実ユーザー3人の値が
+ *       たまたま両方に入っている 東京都・埼玉県 だったから**（2026-09-15 実測）。
+ *
+ * ⚠️★**絞り込み（`/companies` `/jobs`）には使わないこと。** あちらは
+ *    `PREFECTURE_FILTER_GROUPS` のまま。「非公開」は本人の意思表示であって
+ *    企業の所在地ではなく、**検索条件として意味を持たない。**
+ *
+ * ⚠️ DB に CHECK は張っていない（自由記述の履歴がある。実測: `京都府京都市` が1件＝検証用）。
+ *    ＝**UI の2層だけが担保**なので、**3つ目の入力欄を作らないこと。**
+ */
+export const RESIDENCE_OPTION_GROUPS: { group: string; prefectures: readonly string[] }[] = [
+  ...PREFECTURE_FILTER_GROUPS,
+  { group: "その他", prefectures: RESIDENCE_EXTRA_OPTIONS },
+];

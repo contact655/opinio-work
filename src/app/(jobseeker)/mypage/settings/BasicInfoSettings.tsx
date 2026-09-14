@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FormSection } from "@/components/profile/editor/formKit";
 import { GENDER_OPTIONS, type Gender } from "@/lib/constants/gender";
 import { PHONE_MAX, isValidPhone } from "@/lib/constants/personName";
-import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
+import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
 
 /**
  * `/mypage/settings` の「基本情報」（2026-09-14 / 柴さんの指示）。
@@ -50,7 +50,7 @@ export default function BasicInfoSettings({
   const [error, setError] = useState<string | null>(null);
 
   /* ⚠️ dirty は**保存済みの値**と比べる（CLAUDE.md「保存済みの値を、唯一の基準にする」）。
-        マウント時に控えた値やプロップを基準にすると、開き直したときに food い違う。 */
+        マウント時に控えた値やプロップを基準にすると、開き直したときに 食い違う。 */
   const dirty = location !== saved.location || gender !== saved.gender || phone !== saved.phone;
 
   async function save() {
@@ -92,12 +92,15 @@ export default function BasicInfoSettings({
     <FormSection title="基本情報" desc="どれも任意です。あとから変更できます。">
       <div style={{ display: "grid", gap: 18 }}>
         <div>
-          <label htmlFor="bi-location" style={labelStyle}>お住まいの都道府県</label>
+          <label htmlFor="bi-location" style={labelStyle}>お住まい</label>
           <select id="bi-location" value={location} onChange={(e) => setLocation(e.target.value)} style={inputStyle}>
             <option value="">選択しない</option>
-            {/* ⚠️★選択肢は `PREFECTURE_FILTER_GROUPS` の1箇所だけ。ここで展開し直さない
-                   （並びが割れる。CLAUDE.md）。見出しも同じ文言を使う。 */}
-            {PREFECTURE_FILTER_GROUPS.map((g) => (
+            {/* ⚠️★選択肢は `RESIDENCE_OPTION_GROUPS` の1箇所だけ。ここで展開し直さない
+                   （並びが割れる。CLAUDE.md）。見出しも同じ文言を使う。
+                ⚠️★**絞り込み用の `PREFECTURE_FILTER_GROUPS` に戻さないこと**（2026-09-15）。
+                   あれは47件で「海外」「非公開」を持たない。戻すと `/mypage` の
+                   「所在地」で選べる2つがここで**空欄に見え、保存で消える。** */}
+            {RESIDENCE_OPTION_GROUPS.map((g) => (
               <optgroup key={g.group} label={g.group}>
                 {g.prefectures.map((p) => <option key={p} value={p}>{p}</option>)}
               </optgroup>
