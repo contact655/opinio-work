@@ -22,7 +22,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel, CompanyBusinessDomain } from "@/types/genre";
 import { PHASE_FILTER_MAP } from "@/lib/constants/phase";
-import { filterListedCompanies } from "@/lib/companies/visibility";
+import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
@@ -494,9 +494,24 @@ const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_P
          支社しかない県（福岡・広島など）を選んだときに拾うのはこの表。 */
 
 /**
- * 掲載中の企業に**実際に設定されている**対象業界（軸2）だけを返す — 5分間キャッシュ。
+ * 「顧客の業界」（軸2）の選択肢 — 5分間キャッシュ。
  *
- * ⚠️ 0件の選択肢を出さない（「0件でも出す」例外は都道府県とフェーズだけ。CLAUDE.md）。
+ * ★母集団は**「企業ページが見える企業」**（`is_published` かつ非 `is_test`）で、
+ *   **ディレクトリ掲載中（`listing_status='listed'`）に絞らない**（2026-09-14）。
+ *
+ * ⚠️★**`filterListedCompanies` に戻さないこと。** 戻すと、企業を一覧から外すたびに
+ *    **選択肢が静かに減る。** 実際、2026-09-14 に61社をディレクトリから外したとき、
+ *    掲載中に絞ったままだと **6件 → 1件**（建設・金融・保険・小売・流通・
+ *    医療・ヘルスケア・製造業 が消え、残るのは自社の IT・ソフトウェアだけ）になっていた。
+ *    柴さんの判断で「企業を落としても選択肢は残す」（A案 / 2026-09-14）。
+ *
+ * ⚠️ **したがって選んだ結果が0件になりうる。** 絞り込み側（`searchCompanies`）は
+ *    掲載中しか返さないため。**これは承知のうえ**（都道府県・フェーズ・事業領域と同じ扱い）。
+ *
+ * ⚠️ **マスタ全件にはしない。** `ow_industries` の有効な業種は22件（親18＋子4）あるが、
+ *    ここが出すのは**どこかの企業に実際に設定されている業種だけ**。
+ *    マスタ全件にすると、一度も使われていない業種まで並ぶ。
+ *
  * ⚠️★**`ow_companies` を埋め込まないこと。** `ow_company_target_industries` から
  *    `ow_companies` への FK は**複合FK**で、PostgREST は関係を解決できない
  *    （`Could not find a relationship ...`）。2段に分けて `.in()` で引く。
@@ -507,16 +522,17 @@ export const fetchAvailableTargetIndustries = unstable_cache(
   async (): Promise<{ slug: string; name: string }[]> => {
     const supabase = createPublicClient();
 
-    // ① 掲載中の企業だけに絞るため、まず対象の company_id を取る
-    const { data: listed, error: listedErr } = await filterListedCompanies(
+    /* ① まず対象の company_id を取る。⚠️ **ディレクトリ掲載ではなく「ページが見えるか」**
+          で絞る（上の JSDoc 参照）。検証用企業（`is_test`）は除く。 */
+    const { data: visible, error: visibleErr } = await filterVisibleCompaniesStrict(
       supabase.from("ow_companies").select("id")
     );
-    if (listedErr) {
-      console.error("[fetchAvailableTargetIndustries] 企業の取得に失敗:", listedErr.message);
+    if (visibleErr) {
+      console.error("[fetchAvailableTargetIndustries] 企業の取得に失敗:", visibleErr.message);
       return [];
     }
-    const listedIds = new Set((listed ?? []).map((r) => r.id as string));
-    if (listedIds.size === 0) return [];
+    const visibleIds = new Set((visible ?? []).map((r) => r.id as string));
+    if (visibleIds.size === 0) return [];
 
     // ② 明細 → 業種（ここは単純FKなので埋め込める）
     const { data: rows, error } = await supabase
@@ -529,7 +545,7 @@ export const fetchAvailableTargetIndustries = unstable_cache(
 
     const seen = new Map<string, { slug: string; name: string; order: number }>();
     for (const r of (rows ?? []) as any[]) {
-      if (!listedIds.has(r.company_id)) continue;
+      if (!visibleIds.has(r.company_id)) continue;
       const i = r.ow_industries as { slug: string; name: string; display_order: number; is_active: boolean } | null;
       if (!i || !i.is_active) continue;
       if (!seen.has(i.slug)) seen.set(i.slug, { slug: i.slug, name: i.name, order: i.display_order ?? 0 });

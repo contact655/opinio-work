@@ -9,7 +9,7 @@ import { GridSortBar } from "@/components/companies/GridSortBar";
 import { CompanyCardList } from "@/components/companies/CompanyCardList";
 import { CompanyAdminDndOverlay } from "@/components/companies/CompanyAdminDndOverlay";
 import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
-import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
+import { getBusinessDomainFacets, getBusinessDomainOptions } from "@/lib/companies/businessDomainsCached";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
 import { CompanyPane } from "@/components/companies/CompanyPane";
@@ -219,10 +219,22 @@ export default async function CompaniesPage({ searchParams }: Props) {
         該当0件の県も出す方針にしたため、実データを見る必要がなくなった。
         選択肢は lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS`。 */
   const [industryFacets, targetIndustryOptions, companySuggestions, allCompaniesResult] = await Promise.all([
-    /* 事業領域の選択肢（unstable_cache 300s）。⚠️ **掲載中が1社以上あるものだけ。** */
-    /* 事業領域の選択肢（unstable_cache 300s）。⚠️ **掲載中が1社以上あるものだけ。**
-          フェーズと同じ扱いで、0件の選択肢を出さない。 */
-    getBusinessDomainFacets(),
+    /* ★事業領域の選択肢は**マスタ全件**（有効な14件）。**該当0社のものも出す**（2026-09-14）。
+          ⚠️★**`getBusinessDomainFacets()` に戻さないこと。** あちらは0社のものを落とすので、
+             企業を一覧から外すたびに**チップの項目が静かに減る。**
+             実際、2026-09-14 に61社をディレクトリから外したとき、この関数のままだと
+             ハードウェア・半導体／マーケットプレイス／基幹業務システム の3つが消えていた。
+          ⚠️★これは「0件の選択肢を出さない」の**例外を3つ目に増やした**もの
+             （既存の例外は都道府県とフェーズ。CLAUDE.md）。柴さんの判断（A案 / 2026-09-14）。
+             ⚠️ **事業領域だけ。職種には広げないこと。**
+          ⚠️★**チップ以外には広げないこと。** `getBusinessDomainFacets()` は
+             sitemap（`app/sitemap.ts`）・LP のファセット・フッターの「事業領域から探す」・
+             このページの `facetForMetadata`（`?industry=` 単独時の title/canonical）でも
+             使われている。そちらは**0件を出してはいけない**
+             ——「中身の無いページを自分から知らせない」（sitemap の既存方針）に反する。
+          ⚠️ 件数は使わない（`CompanySearchBar` は slug と name しか読まない）。
+             だから件数を数えない `getBusinessDomainOptions()` で足りる。 */
+    getBusinessDomainOptions(),
     /* 対象業界（軸2）の選択肢（unstable_cache 300s）。
        ⚠️ **事業領域とは別の軸。** あちらは「何を作っているか」、こちらは「誰に売っているか」。 */
     fetchAvailableTargetIndustries(),
