@@ -1,13 +1,37 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
-import { filterListedCompanies } from "@/lib/companies/visibility";
 
 /**
- * GET /api/companies/search
+ * GET /api/companies/search — **企業マスタの照会。`/biz` の企業登録専用。**
  *
- * 企業名サジェスト（認証不要・公開エンドポイント）
- * Phase 2 Sprint 1 — 経歴登録時 / 企業作成時の重複チェック用
+ * ⚠️★**ディレクトリの軸ではない**（2026-09-14 に変えた）。
+ *    答えるのは「**この会社はマスタに既にあるか**」で、「掲載中か」ではない。
+ *
+ * ── なぜ変えたか ────────────────────────────────────────────────────────────
+ * `filterListedCompanies`（掲載中だけ）で引いていたため、**掲載していない企業の
+ * 重複を検出できなかった。** 2026-09-14 に61社を `listing_status='draft'` にしたので
+ * **88社中66社が候補に出なくなり**、例えばアドビの担当者が登録しに来ても
+ * 「すでにあります／あなたは2人目の担当者です」が出ず、**重複行を作る**状態になった。
+ * ⚠️ 外した61社は大手外資に偏っており、**登録しに来る確率が高い側**だった。
+ *
+ * ── ★利用者は1つだけ ────────────────────────────────────────────────────────
+ * **`/biz/companies/add/new` の4箇所だけ**（2026-09-14 実測。他はすべてコメント）。
+ *   ・ヘッダーのサジェスト … **`/api/search/suggest`**（別ルート。ここではない）
+ *   ・職歴の企業ピッカー   … `/api/companies/lookup`
+ *   ・スカウトのブロック   … 2026-09-14 に `lookup` へ移した
+ * ⚠️ CLAUDE.md には長らく「ヘッダーのサジェストが乗っている」と書かれていたが**誤り**。
+ *
+ * ⚠️★**新しい利用者を足すときは軸を確かめること。** 求職者に見せる一覧・検索・
+ *    サジェストは**ディレクトリの軸**なので、ここではなく `filterListedCompanies` を使う。
+ *
+ * ── ⚠️ 認証を必須にした（2026-09-14。それまで公開だった）────────────────────
+ * 掲載していない企業まで返すようになったので、**未ログインには開けない。**
+ * 「掲載していない」という状態そのものが運営の情報（`/api/companies/lookup` と同じ理由）。
+ * ⚠️ **`/biz` ロールでは絞れない。** `company` ロールは存在せず、初めて企業を作る人は
+ *    `ow_company_admins` の行をまだ持たない。**ログイン必須が上限。**
+ *
+ * Phase 2 Sprint 1 — 企業作成時の重複チェック用
  *
  * クエリパラメータ:
  *   q     - 検索文字列（2文字以上推奨）
@@ -23,27 +47,36 @@ export async function GET(req: NextRequest) {
   const limitRaw = parseInt(searchParams.get("limit") ?? "10", 10);
   const limit = Math.min(Math.max(1, isNaN(limitRaw) ? 10 : limitRaw), 50);
 
+  /* ⚠️★**認証必須**（2026-09-14 に追加。それまで公開だった）。理由は上の JSDoc。
+        ⚠️ 短すぎる/空のときの早期 return より**前**に置く。後ろに置くと
+           「空クエリなら未ログインでも 200」という穴が残る。 */
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+  }
+
   if (q.length === 0 && domain.length === 0) {
     return NextResponse.json({ results: [] });
   }
 
-  const supabase = createClient();
-
-  // is_published = true のみ返す（RLS + 明示フィルター）
-  // ⚠️ サジェストはディレクトリの軸。listing_status='draft' は出さない
-  let query = filterListedCompanies(
-    supabase
-      .from("ow_companies")
-      /* ⚠️ サブテキストは **業種（`ow_industries.name`）**。`industry`(text) は
-            廃止予定（新規企業には書かれない）なので読まない。
-         ⚠️ **ここだけ事業領域ではなく業種を出している。** 理由は「必ず値がある」こと：
-            この API は掲載中の企業しか返さず、**公開ゲートが掲載の条件として
-            `industry_id` を必須にしている**（lib/companies/publishable.ts）。
-            事業領域は業種によっては任意（`requires_business_domain = false`）なので、
-            将来この絞り込みを緩めて下書き企業まで出すようになると**空になりうる。**
-            ここは見分けが目的なので、欠けない側を選ぶ。 */
-      .select("id, name, brand_name, logo_url, industry_id, employee_count, url, ow_industries(name)")
-  )
+  /* ⚠️★**admin クライアントで引く**（2026-09-14）。`ow_companies` の SELECT ポリシーは
+        `is_published = true` なので、**未公開の企業はセッションのクライアントからは
+        そもそも読めない**（`/api/companies/lookup` と同じ理由）。
+        重複検出では未公開の行こそ当てたい —— 例えば大成建設は
+        `is_published = false` で入っており、本人が登録しに来たら**それに合流させたい**。
+     ⚠️ 絞り込みは `is_test = false` **だけ**。検証用企業は候補に出さない。 */
+  let query = createAdminClient()
+    .from("ow_companies")
+    /* ⚠️ サブテキストは **業種（`ow_industries.name`）**。`industry`(text) は
+          廃止予定（新規企業には書かれない）なので読まない。
+       ⚠️★**null になりうる**（2026-09-14）。それまでは「掲載中しか返さないので
+          公開ゲートが `industry_id` を必須にしている＝必ず値がある」と書いてあったが、
+          **掲載で絞るのをやめたのでその前提は消えた。**
+          受け手（`/biz/companies/add/new`）は `?? null` で受けており、
+          業種の行が出ないだけ。**既定値で埋めないこと。** */
+    .select("id, name, brand_name, logo_url, industry_id, employee_count, url, ow_industries(name)")
+    .eq("is_test", false)
     .order("name")
     .limit(limit);
 
