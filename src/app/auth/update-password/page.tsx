@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import OpinioLogo from "@/components/common/OpinioLogo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -116,19 +117,16 @@ export default function UpdatePasswordPage() {
       <div style={{ width: "100%", maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "var(--royal)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--royal)" }}>
-              OPINIO
-            </span>
+          {/* ⚠️★**ロゴを手書きしないこと**（2026-09-14 に差し替え）。
+                 それまで旧ロゴ（濃紺の角丸＋吹き出し＋明朝の OPINIO）を書いており、
+                 2026-09-06 のロゴ改訂から取り残されていた。
+              ⚠️ 色は `currentColor`。親の `color`（`--brand-ink`）がそのまま塗りになる。 */}
+          <Link
+            href="/"
+            aria-label="OPINIO トップへ"
+            style={{ textDecoration: "none", display: "inline-flex", color: "var(--brand-ink)" }}
+          >
+            <OpinioLogo height={24} label={null} />
           </Link>
         </div>
 

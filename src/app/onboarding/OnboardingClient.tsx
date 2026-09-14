@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import OpinioLogo from "@/components/common/OpinioLogo";
 import {
   useCompanyLookup,
   type CompanyLookupResult,
@@ -339,8 +340,12 @@ function OnboardingInner({
   const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(() => exCompany);
   /** ★社内での呼び方（`role_title`）。⚠️ `rank`（役職）とは別の列。混ぜないこと（2026-09-11） */
   const [roleTitle, setRoleTitle] = useState(() => exStr("role_title"));
-  /** 「＋ 社内での呼び方・部署名」を開いているか。⚠️ 既に値があれば開いた状態で始める */
-  const [showJobDetail, setShowJobDetail] = useState(() => !!exStr("role_title") || !!exStr("department"));
+  /* ⚠️★**部署名と社内での呼び方は「＋」で畳まない**（2026-09-14 / 柴さんの指示で常時表示）。
+        それまで既定で閉じており（2026-09-11 の判断）、理由は
+        「保存に必要な3点を主役にする」だったが、**押さずに素通りする人が多そう**と
+        いう指摘で覆した。押さないと**存在に気づけない**のが決め手。
+        ⚠️★「これまでの職歴」の各行は**元から常時表示**だった。これで2箇所が揃った。
+           **片方だけ畳み直さないこと。** */
   const [saving, setSaving] = useState(false);
   /* 経歴として保存するために必要な3点のうち、会社以外の2つ。
      ⚠️ `ow_experiences` は company / role_category_id / started_at が必須。
@@ -955,43 +960,29 @@ function OnboardingInner({
                      ⚠️★**`rank`（役職）と `department` を1つの欄に混ぜないこと。** 別の列で、
                         タイムラインでも別に扱われる（`buildPositionLines` が
                         部署 → 役職名 → 職種 の順に主見出しへ繰り上げる）。
-                     ⚠️ 1画面目は「保存に必要な3点」を主役にするので**既定で閉じる**。
-                        既に値があるとき（2回目）は開いた状態で始める。
+                     ⚠️★**2026-09-14 に畳むのをやめた（常時表示）。戻さないこと。**
                      ⚠️★「これまでの職歴」の各行にも**同じ2つの欄がある**（2026-09-11 に
                         社内での呼び方を足して揃えた）。**片方だけにしないこと** ——
                         同一社内の異動（営業部 → 人事部）は、前後の両方に部署が入って初めて読める。
                         ⚠️ 並び（部署名 → 職種 → 社内での呼び方）も揃えてある。**片方だけ入れ替えない。**
-                        ⚠️ ただし**畳んでいるのはここだけ**。あちらは繰り返し要素なので常に出す
-                           （畳むと開閉ボタンが行の数だけ並ぶ）。
-                     ⚠️★**この `showJobDetail` は離れた2箇所を開く**（部署名はここ、
-                        社内での呼び方は職種の下）。ボタンは両方を名乗っている。**片方だけ動かさない。**
+                        ⚠️ 2026-09-14 に**こちらも常時表示にしたので2箇所が同じ形になった。**
+                     ⚠️★部署名はここ、**社内での呼び方は職種の下**
+                        （並びは 部署名 → 職種 → 社内での呼び方）。**片方だけ動かさない。**
                      ⚠️ `role_title` は絞り込みには使わない。`/biz/candidates` の
                         **フリーワード検索の対象には既に入っている**（2026-09-11 実測）。 */}
-              {!showJobDetail ? (
-                <button
-                  type="button"
-                  onClick={() => setShowJobDetail(true)}
-                  style={subAddBtnStyle}
-                >
-                  <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> 社内での呼び方・部署名
-                </button>
-              ) : (
-                <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-                    部署名
-                  </div>
-                  <input
-                    type="text"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="例：営業部、第6営業部"
-                    disabled={saving}
-                    maxLength={100}
-                    style={textInputStyle}
-                    aria-label="部署名"
-                  />
-                </>
-              )}
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+                部署名
+              </div>
+              <input
+                type="text"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                placeholder="例：営業部、第6営業部"
+                disabled={saving}
+                maxLength={100}
+                style={textInputStyle}
+                aria-label="部署名"
+              />
 
               {/* ★★職種は `RoleSearchSelect` に統一した（2026-09-11 / 柴さんの指示）。
                      ⚠️★**この部品はプロダクト全体で7箇所が使っている**（求人・職歴エディタ・
@@ -1034,29 +1025,23 @@ function OnboardingInner({
                         関係を位置で示す。**職種より前に戻さないこと。**
                      ⚠️★**補足の1行を消さないこと。** 見出しだけでは伝わらない
                         （職歴エディタには元から同じ補足がある）。
-                     ⚠️ 開閉は部署名と同じ `showJobDetail` の1つ。**離れた2箇所を1つで開く。**
-                        ボタンは「＋ 社内での呼び方・部署名」のまま両方を名乗る。
                      ⚠️★`rank`（役職）とは別の列。混ぜないこと。 */}
-              {showJobDetail && (
-                <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
-                    社内での呼び方
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
-                    上で選んだ職種を、社内では何と呼んでいますか。
-                  </div>
-                  <input
-                    type="text"
-                    value={roleTitle}
-                    onChange={(e) => setRoleTitle(e.target.value)}
-                    placeholder="例：アカウントエグゼクティブ、営業主任"
-                    disabled={saving}
-                    maxLength={100}
-                    style={textInputStyle}
-                    aria-label="社内での呼び方"
-                  />
-                </>
-              )}
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
+                社内での呼び方
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+                上で選んだ職種を、社内では何と呼んでいますか。
+              </div>
+              <input
+                type="text"
+                value={roleTitle}
+                onChange={(e) => setRoleTitle(e.target.value)}
+                placeholder="例：アカウントエグゼクティブ、営業主任"
+                disabled={saving}
+                maxLength={100}
+                style={textInputStyle}
+                aria-label="社内での呼び方"
+              />
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 10 }}>
                 入社年月<span style={needLabelStyle}>保存に必要</span>
@@ -2206,21 +2191,25 @@ const pageWrap: React.CSSProperties = {
   background: "var(--bg-tint)",
 };
 
+/**
+ * ⚠️★**2026-09-14 に公式ロゴへ差し替えた。** それまでこの関数は
+ *    「濃紺の角丸に吹き出しアイコン ＋ 明朝の OPINIO」を**手書き**しており、
+ *    2026-09-06 のロゴ改訂から取り残されていた（`/auth` などは当時直っている）。
+ *
+ * ⚠️★**ロゴを手書きしないこと。** 実体は `components/common/OpinioLogo.tsx` の1箇所で、
+ *    パスは `public/brand/*.svg` から機械的に写してある。
+ * ⚠️ 色は `currentColor`。親の `color`（`--brand-ink`）がそのまま塗りになる。
+ *    ⚠️ `--brand-ink` はロゴ専用。本文やボタンに流用しないこと（CLAUDE.md）。
+ */
 function LogoMark() {
   return (
     <div style={{ textAlign: "center", marginBottom: 32 }}>
-      <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, background: "var(--royal)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </div>
-        <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--royal)" }}>
-          OPINIO
-        </span>
+      <a
+        href="/"
+        aria-label="OPINIO トップへ"
+        style={{ display: "inline-flex", color: "var(--brand-ink)", textDecoration: "none" }}
+      >
+        <OpinioLogo height={24} label={null} />
       </a>
     </div>
   );
