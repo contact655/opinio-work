@@ -81,6 +81,7 @@ import {
   ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
 import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
+import { NAME_PART_MAX, buildDisplayName } from "@/lib/constants/personName";
 import type { Json } from "@/lib/supabase/types";
 import {
   SocialIcon,
@@ -103,7 +104,12 @@ type SocialLinks = Partial<Record<SocialPlatform, string>>;
 
 type OwUser = {
   id: string;
+  /** 表示名。★**姓＋名の派生値**。`/mypage` から admin で引いている（下の4列も同じ） */
   name: string;
+  family_name: string | null;
+  given_name: string | null;
+  family_name_kana: string | null;
+  given_name_kana: string | null;
   avatar_color: string | null;
   avatar_url: string | null;
   cover_color: string | null;
@@ -120,7 +126,20 @@ type OwUser = {
 /* ⚠️ `ContentLink` 型・`PLATFORM_OPTIONS`・`detectPlatform` は 2026-08-17 に
       `ContentLinksEditor.tsx` へ移した（一覧ページと共有するため）。ここに戻さない。 */
 type BasicInfo = {
-  name: string;
+  /* ★★氏名は姓・名・ふりがなの4つで持つ（2026-09-15）。**`name` は持たない。**
+        ⚠️★`ow_users.name` は「姓＋名」の**派生値**で、書くのは API
+           （`lib/constants/personName.ts` の `buildDisplayName`）。
+           **画面側で組み立てて送らないこと** —— 正と派生が2箇所で作られる。
+        ⚠️★**単独の「名前」欄に戻さないこと。** 2026-09-15 まではそれで、
+           オンボーディング1画面目（姓・名）と**同じ列を別々に書いていた**。
+           先に保存したほうが後勝ちで、`name` と `family_name`/`given_name` が
+           食い違う（実害0件だったのは、まだ誰も姓名を持っていなかったから）。
+        ⚠️ 既存の利用者は姓・名が空で `name` だけ持つ。**空のまま保存してよい**
+           （その場合キーごと送らないので `name` は動かない）。 */
+  familyName: string;
+  givenName: string;
+  familyNameKana: string;
+  givenNameKana: string;
   /** 肩書き1行（40字）。⚠️ 上限は DB の CHECK と API と UI の3つに置く */
   headline: string;
   location: string;
@@ -680,7 +699,10 @@ export default function ProfileTab({
   const initialParsed = parseBirthDate(owUser?.birth_date ?? null);
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name:             owUser?.name      ?? "",
+    familyName:       owUser?.family_name      ?? "",
+    givenName:        owUser?.given_name       ?? "",
+    familyNameKana:   owUser?.family_name_kana ?? "",
+    givenNameKana:    owUser?.given_name_kana  ?? "",
     headline:         owUser?.headline  ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
@@ -692,12 +714,27 @@ export default function ProfileTab({
 
   // 変更検知用の初期値（保存成功時に更新）
   const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
-    name:             owUser?.name      ?? "",
+    familyName:       owUser?.family_name      ?? "",
+    givenName:        owUser?.given_name       ?? "",
+    familyNameKana:   owUser?.family_name_kana ?? "",
+    givenNameKana:    owUser?.given_name_kana  ?? "",
     headline:         owUser?.headline  ?? "",
     location:         owUser?.location  ?? "",
     aboutMe:          owUser?.about_me  ?? "",
     username:         owUser?.username  ?? "",
   });
+  /* ★表示名は**導出する。state に持たない**（2026-09-15）。
+        ⚠️★姓・名が両方そろっているときだけ派生させ、そうでなければ
+           **保存済みの `ow_users.name` に倒す**。既存の利用者は姓・名が空なので、
+           ここを派生だけにするとアバターの頭文字と完成度が空になる。
+        ⚠️ 組み立ては `buildDisplayName` の1箇所。ここで `+ " " +` を書かないこと。 */
+  const deriveDisplayName = (b: BasicInfo) =>
+    b.familyName.trim() && b.givenName.trim()
+      ? buildDisplayName(b.familyName.trim(), b.givenName.trim())
+      : (owUser?.name ?? "");
+  const displayName = deriveDisplayName(basicInfo);
+  const initialDisplayName = deriveDisplayName(initialBasicInfo);
+
   const [initialBirthYear,  setInitialBirthYear]  = useState<string>(initialParsed.year);
   const [initialBirthMonth, setInitialBirthMonth] = useState<string>(initialParsed.month);
   const [initialBirthDay,   setInitialBirthDay]   = useState<string>(initialParsed.day);
@@ -943,6 +980,17 @@ export default function ProfileTab({
         **1回の PUT** で送る。自己紹介（`about_me`）は送らない。
      ⚠️ API は `"キー" in body` でしか列を触らないので、送らない列は動かない。 */
   const handleSaveHeader = useCallback(async () => {
+    /* ⚠️★片方だけ入っている状態を**送る前に止める**。送っても API が 400 を返して
+          同じ文言が出るが、往復する意味が無いのと、**姓だけ入れて閉じた人の
+          ふりがなまで保存されない**のを避ける（1回の PUT なので全部落ちる）。 */
+    const fam = basicInfo.familyName.trim(), giv = basicInfo.givenName.trim();
+    if (!!fam !== !!giv) {
+      setBasicToastVariant("error");
+      setBasicToastMsg("姓と名は両方入力してください。");
+      notifyGlobalSave("error");
+      return;
+    }
+    const nameFilled = !!fam && !!giv;
     setBasicSaving(true);
     setSocialSaving(true);
     notifyGlobalSave("saving");
@@ -955,7 +1003,18 @@ export default function ProfileTab({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:         basicInfo.name,
+          /* ★★姓・名は**両方そろったときだけ送る**（2026-09-15）。
+                ⚠️★API は「片方だけ」を 400 で弾き、空文字も弾く（`requiredText`）。
+                   既存の利用者は姓・名が空のまま肩書きだけ直すことがあるので、
+                   **空なら列ごと触らない**（`undefined` は `JSON.stringify` が落とす）。
+                ⚠️★`name` は送らない。API が姓＋名から作る。ここで組み立てると
+                   正と派生が2箇所で作られる。 */
+          family_name:      nameFilled ? basicInfo.familyName.trim() : undefined,
+          given_name:       nameFilled ? basicInfo.givenName.trim()  : undefined,
+          /* ⚠️ ふりがなは姓名と違い**独立**でよい（`name` を作る材料ではない）。
+                空文字を送れば API が null に畳む＝「消した」が効く。 */
+          family_name_kana: basicInfo.familyNameKana.trim(),
+          given_name_kana:  basicInfo.givenNameKana.trim(),
           headline:     basicInfo.headline,
           location:     basicInfo.location,
           username:     basicInfo.username,
@@ -977,7 +1036,15 @@ export default function ProfileTab({
         throw new Error();
       }
       /* ⚠️ 自己紹介は送っていないので、控えも触らない（送った列だけ進める） */
-      setInitialBasicInfo((prev) => ({ ...prev, name: basicInfo.name, headline: basicInfo.headline, location: basicInfo.location, username: basicInfo.username }));
+      /* ⚠️ 送った列だけ控えを進める。⚠️★姓・名は**送ったときだけ**
+            （空のまま保存したのに「保存済み」に倒すと、次に開いたとき dirty が狂う）。 */
+      setInitialBasicInfo((prev) => ({
+        ...prev,
+        ...(nameFilled ? { familyName: fam, givenName: giv } : {}),
+        familyNameKana: basicInfo.familyNameKana.trim(),
+        givenNameKana:  basicInfo.givenNameKana.trim(),
+        headline: basicInfo.headline, location: basicInfo.location, username: basicInfo.username,
+      }));
       setInitialBirthYear(birthYear);
       setInitialBirthMonth(birthMonth);
       setInitialBirthDay(birthDay);
@@ -1034,7 +1101,7 @@ export default function ProfileTab({
   /* ── 親へ返す（★保存済みの値だけ）───────────────────────────────────── */
   useEffect(() => {
     onSavedChange({
-      name:      initialBasicInfo.name,
+      name:      initialDisplayName,
       headline:  initialBasicInfo.headline,
       aboutMe:   initialBasicInfo.aboutMe,
       location:  initialBasicInfo.location,
@@ -1129,7 +1196,7 @@ export default function ProfileTab({
                 >
                   <ProfilePhotoUploader
                     owUser={owUser}
-                    basicInfoName={basicInfo.name}
+                    basicInfoName={displayName}
                     settings={settings}
                     onAvatarSaved={setSavedAvatarUrl}
                     onCoverSaved={setSavedCoverPhotoUrl}
@@ -1137,16 +1204,49 @@ export default function ProfileTab({
                     savedCoverPhotoUrl={savedCoverPhotoUrl}
                   />
                 </CollapsibleRow>
-              <FormGroup label="名前" htmlFor="pe-name">
-                <input
-                  id="pe-name"
-                  type="text"
-                  value={basicInfo.name}
-                  autoComplete="name"
-                  onChange={(e) => setBasicInfo((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="例：山田 太郎"
-                  style={inputStyle()}
-                />
+              {/* ★★氏名は4欄（2026-09-15）。**オンボーディング1画面目と同じ形。**
+                     ⚠️★**1欄の「名前」に戻さないこと。** 戻すと `ow_users.name` を
+                        書く経路が2つになり、姓・名と食い違う（`BasicInfo` 型の注記）。
+                     ⚠️ ここは**任意**。オンボーディングでは必須だが、既存の利用者は
+                        姓・名を持たないまま `name` だけあるので、肩書きだけ直したい人を
+                        止めてしまう。**空のまま保存でき、そのとき `name` は動かない。**
+                     ⚠️ 姓・名は**対**。片方だけは保存前に止める（`handleSaveHeader`）。 */}
+              <FormGroup
+                label="氏名"
+                hint={
+                  basicInfo.familyName.trim() || basicInfo.givenName.trim()
+                    ? "姓と名は両方入力してください。表示名は「姓 名」になります。"
+                    /* ⚠️★既存の利用者には**いまの表示名**を見せる。4欄が空なので、
+                          出さないと「名前が消えた」と読まれる。 */
+                    : `いまの表示名は「${owUser?.name ?? ""}」です。姓・名を入れると置き換わります。`
+                }
+              >
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+                  <input
+                    id="pe-family-name" type="text" aria-label="姓"
+                    value={basicInfo.familyName} autoComplete="family-name" maxLength={NAME_PART_MAX}
+                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, familyName: e.target.value }))}
+                    placeholder="姓（山田）" style={inputStyle()}
+                  />
+                  <input
+                    id="pe-given-name" type="text" aria-label="名"
+                    value={basicInfo.givenName} autoComplete="given-name" maxLength={NAME_PART_MAX}
+                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, givenName: e.target.value }))}
+                    placeholder="名（太郎）" style={inputStyle()}
+                  />
+                  <input
+                    id="pe-family-kana" type="text" aria-label="せい"
+                    value={basicInfo.familyNameKana} maxLength={NAME_PART_MAX}
+                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, familyNameKana: e.target.value }))}
+                    placeholder="せい（やまだ）" style={inputStyle()}
+                  />
+                  <input
+                    id="pe-given-kana" type="text" aria-label="めい"
+                    value={basicInfo.givenNameKana} maxLength={NAME_PART_MAX}
+                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, givenNameKana: e.target.value }))}
+                    placeholder="めい（たろう）" style={inputStyle()}
+                  />
+                </div>
               </FormGroup>
 
               {/* ⚠️ 肩書きは名前の直下（モックのとおり）。40字の上限は
@@ -1201,7 +1301,7 @@ export default function ProfileTab({
                 </div>
               </FormGroup>
 
-              <FormGroup label="所在地" hint="現在お住まいの都道府県を選択してください。" htmlFor="pe-location">
+              <FormGroup label="所在地" hint="現在お住まいの都道府県。「海外」「非公開」も選べます。" htmlFor="pe-location">
                 <div style={{ position: "relative" }}>
                   <select
                     id="pe-location"
@@ -1296,9 +1396,11 @@ export default function ProfileTab({
             </ProfileEditModal>
 
             <ProfileHeader
-                name={initialBasicInfo.name}
+                /* ⚠️ ヘッダーは**保存済みの表示名**（`.claude/rules/ui-debugging.md` ⑦）。
+                      編集中の `displayName` を渡すと、保存前の入力が公開側の見た目に出る。 */
+                name={initialDisplayName}
                 headline={initialBasicInfo.headline}
-                initial={initialBasicInfo.name.charAt(0) || "?"}
+                initial={initialDisplayName.charAt(0) || "?"}
                 avatarUrl={savedAvatarUrl}
                 avatarColor={settings.avatarColor}
                 coverPhotoUrl={savedCoverPhotoUrl}

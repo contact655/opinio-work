@@ -50,7 +50,13 @@ export default async function MypagePage({
     /* ⚠️ 列は「ダッシュボードの表示」と「プロフィール編集」の**両方**をまかなう。
           編集側だけが使う cover_photo_url / visibility を落とすと、
           写真カードと公開範囲が空で初期化され、保存した瞬間に消える。 */
-    .select("id, name, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, headline, about_me, birth_date, location, social_links, profile_setup_at, username")
+    /* ★姓・名・ふりがなも引く（2026-09-15）。**プロフィール編集の「名前」欄がこれを出す。**
+          ⚠️★`birth_date` と同じで **authenticated に SELECT を配っていない**
+             （実測 2026-09-15: 6列とも SELECT false / UPDATE true）。
+             session クライアントに混ぜるとクエリごと 403 になる。**admin のままにすること。**
+          ⚠️ `gender` / `phone` はここに足さないこと。あの2つを読むのは
+             `/mypage/settings` だけで、ダッシュボードにも編集モーダルにも読み手が無い。 */
+    .select("id, name, family_name, given_name, family_name_kana, given_name_kana, avatar_color, avatar_url, cover_color, cover_photo_url, visibility, headline, about_me, birth_date, location, social_links, profile_setup_at, username")
     .eq("auth_id", user.id)
     .maybeSingle();
 

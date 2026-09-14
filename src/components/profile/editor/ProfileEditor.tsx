@@ -71,7 +71,12 @@ type ContentLink = {
 
 type OwUser = {
   id: string;
+  /** 表示名。★姓＋名の派生値（`ProfileTab` が4欄で編集する） */
   name: string;
+  family_name: string | null;
+  given_name: string | null;
+  family_name_kana: string | null;
+  given_name_kana: string | null;
   avatar_color: string | null;
   avatar_url: string | null;
   cover_color: string | null;
