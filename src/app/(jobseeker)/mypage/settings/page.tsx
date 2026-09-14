@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
+import BasicInfoSettings from "./BasicInfoSettings";
+import type { Gender } from "@/lib/constants/gender";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProfileVisibility } from "@/lib/constants/profileVisibility";
 import type { CompanyVisibility } from "@/lib/constants/companyVisibility";
@@ -32,7 +34,10 @@ export default async function MypageSettingsPage() {
   const admin = createAdminClient();
   const { data: owUser, error: owUserError } = await admin
     .from("ow_users")
-    .select("id, visibility")
+    /* ⚠️ 2026-09-14 に `location, gender, phone` を足した。**admin で引いているので通る。**
+          ⚠️★`gender` / `phone` は authenticated に SELECT を配っていない（`ow_users` の RLS は
+             「ログインしていれば他人の行も読める」ため）。**session クライアントに移さないこと。** */
+    .select("id, visibility, location, gender, phone")
     .eq("auth_id", user.id)
     .maybeSingle();
   if (owUserError) console.error("[mypage/settings] ow_users:", owUserError.message);
@@ -86,6 +91,15 @@ export default async function MypageSettingsPage() {
 
   return (
     <MypageLayout activeKey="settings">
+      {/* ★基本情報（2026-09-14）。⚠️ **性別・電話番号は SELECT の GRANT を配っていない**ので、
+             ここ（admin クライアント）で引いて初期値として渡す。
+             ⚠️★セッションのクライアントで select しないこと —— **クエリが丸ごと 403** になり、
+                `visibility` まで取れなくなる（CLAUDE.md「403 は『0件』として静かに素通りする」）。 */}
+      <BasicInfoSettings
+        initialLocation={(owUser?.location as string | null) ?? null}
+        initialGender={(owUser?.gender as Gender | null) ?? null}
+        initialPhone={(owUser?.phone as string | null) ?? null}
+      />
       <PrivacySettings
         initialVisibility={((owUser?.visibility as ProfileVisibility | null) ?? "login_only")}
         careerStance={(prof?.career_stance as string | null) ?? null}
