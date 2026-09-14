@@ -68,7 +68,18 @@ export async function GET(req: NextRequest) {
       `brand_name.ilike.%${safeQ}%,slug.ilike.%${safeQ}%,` +
       `search_aliases.ilike.%${safeQ}%`
     )
-    /* 掲載中を先に出す。⚠️ 未掲載が上に来ると「掲載されている会社が無い」ように見える */
+    /* ★掲載中 → ページはあるが非掲載 → ページも無い、の順（2026-09-14 に修正）。
+          ⚠️★**`is_published` だけで並べない。** 2026-09-14 に61社を
+             `listing_status='draft'` にしたので、**`is_published=true` は
+             もう「掲載中」を意味しない**（88社中66社が非掲載）。
+             それまでは相関していたので気づけなかった。
+          ⚠️ 効くのは `MAX_RESULTS` で切られるときだけ。実測（2026-09-14 / 本番）:
+             「ジャパン」13件・「合同会社」19件・「株式会社」80件が上限を超えており、
+             修正前は**株式会社セールスフォース・ジャパンが10件目から押し出されて
+             一度も出てこなかった**（listed 3社のうち1社が見えない状態）。
+          ⚠️ 画面に掲載の有無は**出していない**（注記は 2026-09-14 に削除）。
+             ここが決めているのは「上限10件に何が残るか」だけ。 */
+    .order("listing_status", { ascending: false })
     .order("is_published", { ascending: false })
     .order("name")
     .limit(MAX_RESULTS);
