@@ -154,7 +154,11 @@ function AuthPageInner() {
         email,
         password,
         options: {
-          data: { name: name.trim() || email.split("@")[0] },
+          /* ⚠️★**`|| email.split("@")[0]` を戻さないこと**（2026-09-14 に削除）。
+                メールのローカル部を表示名にすると、**本人が入力していない個人情報が
+                `/people` に出る**（`/people` は `ow_users` 起点なので職歴が無い人も出る）。
+             ⚠️ 入力欄を `required` にしたので、ここは空にならない。 */
+          data: { name: name.trim() },
           emailRedirectTo: confirmRedirectTo(location.origin, nextUrl),
         },
       });
@@ -512,11 +516,20 @@ function AuthPageInner() {
                   <PwStrength password={password} />
                 </div>
 
-                {/* ③ お名前は最後（省略可） */}
+                {/* ★お名前は**必須**（2026-09-14 / 柴さんの判断）。
+                    ⚠️★**「省略可」に戻さないこと。** 省略されると
+                       `email.split("@")[0]` が `ow_users.name` に入り、
+                       **メールアドレスのローカル部が表示名として `/people` に出る**。
+                       実測（2026-09-14）: 実ユーザー7人中1人がその状態だった。
+                    ⚠️ 位置は最後のまま。メールとパスワードがアカウントの核なので、
+                       そちらを先に聞く並びは変えていない（必須かどうかと並びは別の話）。
+                    ⚠️ オンボーディング1画面目が**姓/名を別々に**聞き直す。
+                       ここは自由記述の表示名で、**オンボーディングを通ると上書きされる**。
+                       ⚠️★それでもここが要るのは、**オンボーディングを完了しない人がいる**ため
+                          （実測 2026-09-14: 7人中**2人が未完了**）。その人たちの名前はここしか入り口が無い。 */}
                 <div style={s.formGroup}>
                   <label style={s.label} htmlFor="signup-name">
-                    お名前
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>省略可</span>
+                    お名前 <span style={s.required}>*</span>
                   </label>
                   <input
                     id="signup-name"
@@ -527,6 +540,7 @@ function AuthPageInner() {
                     onChange={(e) => setName(e.target.value)}
                     autoComplete="name"
                     enterKeyHint="done"
+                    required
                   />
                 </div>
 

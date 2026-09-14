@@ -93,9 +93,17 @@ export async function resolveOrLinkOwUser(params: {
     }
   }
 
-  // ── 3. 新規作成 ────────────────────────────────────────────────
-  const displayName =
-    (name?.trim() || rawEmail.split("@")[0] || "ユーザー").slice(0, 100);
+  /* ── 3. 新規作成 ────────────────────────────────────────────────
+     ⚠️★**`rawEmail.split("@")[0]` を戻さないこと**（2026-09-14 に削除）。
+        `ow_users.name` は `/people`・企業ページ・`/u/[id]`・フィードにそのまま出るので、
+        メールのローカル部を入れると**本人が入力していない個人情報を公開する**ことになる。
+        ⚠️ `/people` は `ow_users` 起点で、**職歴が無い人も出る**。
+     ⚠️ ここに落ちるのは `user_metadata` に名前が無い経路だけ
+        （マジックリンク・招待など）。パスワード登録は入力欄が `required`、
+        Google は `full_name` が入るので、通常はここまで来ない。
+     ⚠️ 「ユーザー」は**プレースホルダと読める値**。オンボーディング1画面目（必須）で
+        姓名を聞き、`name` はそこで上書きされる。 */
+  const displayName = (name?.trim() || "ユーザー").slice(0, 100);
 
   const { data: created, error: insertError } = await admin
     .from("ow_users")
