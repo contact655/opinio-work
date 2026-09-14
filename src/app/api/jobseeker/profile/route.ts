@@ -4,6 +4,8 @@ import type { Json } from "@/lib/supabase/types";
 /* ⚠️ 空入力の扱いは1箇所に寄せる。ここに if を書き足さないこと（lib/api/normalize.ts の冒頭を参照）。 */
 import { optionalText, optionalUrlMap, requiredText, InvalidInputError } from "@/lib/api/normalize";
 import { normalizeUsername, validateUsername, USERNAME_ERROR_MESSAGE } from "@/lib/constants/username";
+import { isGender } from "@/lib/constants/gender";
+import { NAME_PART_MAX, PHONE_MAX, buildDisplayName, isValidPhone } from "@/lib/constants/personName";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,14 @@ export async function PUT(req: Request) {
     profile_setup_at?: string | null;
     updated_at: string;
     username?: string | null;
+    /* ★本人の属性（2026-09-14）。⚠️ SELECT の GRANT は配っていないので、
+          この経路は**書くだけ**。読むのはサーバー側の admin クライアント。 */
+    family_name?: string | null;
+    given_name?: string | null;
+    family_name_kana?: string | null;
+    given_name_kana?: string | null;
+    gender?: string | null;
+    phone?: string | null;
   } = { updated_at: new Date().toISOString() };
 
   /* ⚠️ 空は正常系（任意項目は null）、不正は異常系（400）。混同しない。
@@ -48,6 +58,58 @@ export async function PUT(req: Request) {
           他項目だけを保存したときに名前が消える。 */
     if ("name" in body) {
       patch.name = requiredText(body.name, "ow_users.name", "お名前を入力してください", 100);
+    }
+
+    /* ★★姓・名（2026-09-14）。**対で送る。片方だけは 400。**
+          ⚠️★`ow_users.name`（表示の正）を**ここで一緒に書く**。別経路で書くと
+             「正と派生が食い違う」事故になる（`role_category_id` と同じ形）。
+          ⚠️ だから「片方だけ」を許さない —— 許すと `name` を何から作るか決まらない。
+          ⚠️ 上の `"name" in body` と**同時に送らないこと**。送られたらこちらが後勝ちになる。 */
+    const hasFamily = "family_name" in body;
+    const hasGiven = "given_name" in body;
+    if (hasFamily !== hasGiven) {
+      return NextResponse.json(
+        { error: "INVALID_NAME_PARTS", message: "姓と名は両方まとめて送ってください。" },
+        { status: 400 },
+      );
+    }
+    if (hasFamily && hasGiven) {
+      const fam = requiredText(body.family_name, "ow_users.family_name", "姓を入力してください", NAME_PART_MAX);
+      const giv = requiredText(body.given_name, "ow_users.given_name", "名を入力してください", NAME_PART_MAX);
+      patch.family_name = fam;
+      patch.given_name = giv;
+      // ⚠️ `name` は NOT NULL。派生が空にならないことは requiredText が保証している
+      patch.name = buildDisplayName(fam, giv);
+    }
+
+    /* ふりがな。⚠️ 姓名と違い**独立**でよい（`name` を作る材料ではないため）。 */
+    if ("family_name_kana" in body) patch.family_name_kana = optionalText(body.family_name_kana, NAME_PART_MAX);
+    if ("given_name_kana" in body) patch.given_name_kana = optionalText(body.given_name_kana, NAME_PART_MAX);
+
+    /* ★性別。⚠️ 語彙は `lib/constants/gender.ts` の1箇所。ここに集合を書かない。
+          ⚠️ 空は「未回答」で正常（null）。不正値は**黙って null にせず 400**。 */
+    if ("gender" in body) {
+      const g = optionalText(body.gender, 32);
+      if (g !== null && !isGender(g)) {
+        return NextResponse.json(
+          { error: "INVALID_GENDER", message: "性別の値が不正です。" },
+          { status: 400 },
+        );
+      }
+      patch.gender = g;
+    }
+
+    /* ★電話番号。⚠️★**企業には出さない。本人と運営だけ**（`gender.ts` と同じ方針）。
+          ⚠️ 形式はゆるく見る。厳しくすると本物を拒む（`personName.ts` を参照）。 */
+    if ("phone" in body) {
+      const ph = optionalText(body.phone, PHONE_MAX);
+      if (ph !== null && !isValidPhone(ph)) {
+        return NextResponse.json(
+          { error: "INVALID_PHONE", message: "電話番号の形式が正しくありません。" },
+          { status: 400 },
+        );
+      }
+      patch.phone = ph;
     }
     /* 肩書き1行。⚠️ 上限は DB の CHECK（ow_users_headline_length）と同じ 40。
           超過は **切らずに 400**。切ると「入力したのに途中で消えた」になる。 */
