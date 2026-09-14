@@ -13,7 +13,14 @@ async function getUsers(query?: string) {
        ⚠️ `is_test` は**あえて除かない**。運営画面はテストデータも見えるほうが正しい
           （CLAUDE.md「完全に隠さないこと」）。ダッシュボードも同じ扱い。
        ⚠️ フィードから `is_system` を除いてはいけない（投稿が消える）。**経路ごとに違う。** */
-    .select("id, auth_id, name, email, is_mentor, location, birth_date, visibility, created_at, is_system")
+    /* ★本人の属性（2026-09-14 に追加）。
+          ⚠️★**電話番号はここが唯一の読み手**。登録画面で
+             「企業には表示されません。OPINIO の運営から連絡するときに使います」と
+             約束しているので、**この列を落とすと約束が守られなくなる**。
+          ⚠️ ここは admin クライアントなので引ける。`gender` / `phone` / ふりがなは
+             `authenticated` に SELECT を配っていない（`ow_users` の RLS は
+             「ログインしていれば他人の行も読める」ため）。**session クライアントに移さないこと。** */
+    .select("id, auth_id, name, email, is_mentor, location, birth_date, visibility, created_at, is_system, family_name_kana, given_name_kana, gender, phone")
     .eq("is_system", false)
     .order("created_at", { ascending: false });
 

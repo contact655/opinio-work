@@ -1,6 +1,7 @@
 "use client";
 
 import { getUserAge } from "@/lib/age";
+import { GENDER_OPTIONS } from "@/lib/constants/gender";
 
 import { useState, useTransition } from "react";
 import { bulkSetVisibility, bulkDeleteUsers } from "./actions";
@@ -14,6 +15,13 @@ type User = {
   /** 一覧には出さない（2026-08-05）。検索の対象としては使っている */
   location: string | null;
   birth_date: string | null;
+  /* ★本人の属性（2026-09-14）。⚠️★**求職者側・企業側の型には持たせないこと**
+        （`PeopleCard` / `CompanyEmployee` / `biz/candidates` の `Candidate`）。
+        型に無ければ表示も絞り込みも**書けない** —— 年齢と同じ守り方。 */
+  family_name_kana: string | null;
+  given_name_kana: string | null;
+  gender: string | null;
+  phone: string | null;
   visibility: string | null;
   created_at: string;
   lastLogin: string | null;
@@ -145,7 +153,9 @@ export function CandidatesClient({ users }: { users: User[] }) {
                      ⚠️ **列は残してある。** 復活させないこと。運営が個別に指定する手段は
                         意図して廃止した（/admin/ambassador-requests で代理承認する）。
               */}
-              {["名前", "メール", "年代", "BIZ", "公開設定", "最終ログイン", "登録日", "経歴"].map((h) => (
+              {/* ⚠️ 列を増減させたら **td 側も必ず一緒に**直す。
+                     ★「電話番号」は 2026-09-14 に追加（運営が連絡するための唯一の読み手）。 */}
+              {["名前", "メール", "電話番号", "年代", "BIZ", "公開設定", "最終ログイン", "登録日", "経歴"].map((h) => (
                 <th
                   key={h}
                   scope="col"
@@ -203,14 +213,43 @@ export function CandidatesClient({ users }: { users: User[] }) {
                         }}>
                           {u.name?.[0]?.toUpperCase() || "?"}
                         </div>
-                        <span style={{ fontWeight: 600, color: "var(--royal)" }}>{u.name || "未入力"}</span>
+                        <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.35 }}>
+                          <span style={{ fontWeight: 600, color: "var(--royal)" }}>{u.name || "未入力"}</span>
+                          {/* ★ふりがな（2026-09-14）。⚠️ **無ければ行ごと出さない**。
+                                空の行や「—」を置かない（CLAUDE.md「値が無いことを、ある値に置き換えない」）。 */}
+                          {(u.family_name_kana || u.given_name_kana) && (
+                            <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 500 }}>
+                              {[u.family_name_kana, u.given_name_kana].filter(Boolean).join(" ")}
+                            </span>
+                          )}
+                        </span>
                       </a>
                     </td>
                     {/* メール */}
                     <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontSize: 12 }}>{u.email}</td>
-                    {/* 年代 */}
-                    <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                      {u.birth_date ? `${getUserAge(u.birth_date)}歳` : <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                    {/* ★電話番号（2026-09-14）。⚠️★**ここが唯一の読み手**。外すと
+                        登録画面の「運営から連絡するときに使います」が守られなくなる。
+                        ⚠️ **企業側（`/biz`）には出さない。** */}
+                    <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontSize: 12, whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                      {u.phone || <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                    </td>
+                    {/* 年代（＋性別）
+                        ⚠️★**求職者側・企業側には出さない／絞り込ませない**（年齢は労働施策総合推進法9条、
+                           性別は男女雇用機会均等法5条）。**運営の作業一覧だから出している。** */}
+                    <td style={{ padding: "11px 14px", color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)", whiteSpace: "nowrap" }}>
+                      {/* ⚠️★**区切りを先に書かない。ある項目だけ集めて join する**
+                             （CLAUDE.md「`?? ""` を挿んだ後のフォールバック」と同じ罠）。
+                          ⚠️ 2026-09-14 に実際に踏んだ —— 生年月日が無く性別だけある人が
+                             **「—回答しない」**と繋がって出ていた。 */}
+                      {(() => {
+                        const parts = [
+                          u.birth_date ? `${getUserAge(u.birth_date)}歳` : null,
+                          u.gender ? (GENDER_OPTIONS.find((g) => g.value === u.gender)?.label ?? u.gender) : null,
+                        ].filter(Boolean);
+                        return parts.length > 0
+                          ? parts.join(" / ")
+                          : <span style={{ color: "var(--ink-mute)" }}>—</span>;
+                      })()}
                     </td>
                     {/* BIZ */}
                     <td style={{ padding: "11px 14px" }}>
