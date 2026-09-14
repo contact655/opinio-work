@@ -568,8 +568,9 @@ function CompanySearch({
         **デバウンスの 250ms は変えない** —— 揃えるとこの画面の挙動が変わる。 */
   const { results, loading, search, clear: clearResults } = useCompanyLookup({ debounceMs: 250 });
   const [open, setOpen] = useState(false);
-  /** 選んだ企業の付随情報（業種など）。既存レコードを開いた直後は無いので名前だけ出す */
-  const [selectedMeta, setSelectedMeta] = useState<CompanyLookupResult | null>(null);
+  /* ⚠️ `selectedMeta`（選んだ企業の付随情報）は 2026-09-14 に削除した。
+        読み手は「OPINIOに未掲載」の注記1箇所だけで、それを消したので使い道が無くなった。
+        ⚠️ 付随情報を出したくなったら、**何を出すかを決めてから**足すこと。 */
   /* ⚠️ 「自由入力で確定した」ことを覚えておく。`companyId === null` だけでは
         「まだ入力している途中」と区別がつかず、確定前から未掲載の案内が出てしまう。
         既存レコードを開いたときは確定済みとして扱う（value があって id が無い＝自由入力）。 */
@@ -600,7 +601,6 @@ function CompanySearch({
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value;
     onChange(null, q); // companyId をキーストローク毎にリセット
-    setSelectedMeta(null);
     setFreeConfirmed(false);
     setCreating(false);
     setOpen(true);
@@ -613,7 +613,6 @@ function CompanySearch({
 
   function handleSelect(c: CompanyLookupResult) {
     onChange(c.id, c.name);
-    setSelectedMeta(c);
     setFreeConfirmed(false);
     clearResults();
     setOpen(false);
@@ -621,7 +620,6 @@ function CompanySearch({
 
   function handleNew() {
     onChange(null, value); // companyId=null、companyName=入力テキストで確定
-    setSelectedMeta(null);
     setFreeConfirmed(true);
     clearResults();
     setOpen(false);
@@ -629,7 +627,6 @@ function CompanySearch({
 
   function clearSelection() {
     onChange(null, "");
-    setSelectedMeta(null);
     setFreeConfirmed(false);
     clearResults();
     setOpen(false);
@@ -656,13 +653,15 @@ function CompanySearch({
             <div style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {value}
             </div>
-            {/* ★選んだのが未掲載の企業なら、その旨をここでも出す。
-                   ⚠️ 候補の行だけに出すと、選んだあとに消えて「掲載中を選んだ」と誤解される。 */}
-            {selectedMeta && !selectedMeta.isListed && (
-              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                OPINIOに未掲載（企業ページはありません）
-              </div>
-            )}
+            {/* ⚠️★**「OPINIOに未掲載（企業ページはありません）」を戻さないこと**
+                   （2026-09-14 / 柴さんの指示で削除。オンボーディング側は 2026-09-12 に
+                    同じ理由で先に消えており、こちらが取り残されていた）。
+                ⚠️ 会社を選ぶ人にとって**掲載の有無は関係ない**。自分の勤務先を選ぶだけで、
+                   掲載されているかどうかで選択が変わることはない。
+                ⚠️★そのうえ**事実としても違う。** ディレクトリ非掲載（`listing_status='draft'`）
+                   でも `is_published` なら**企業ページは存在する**。2026-09-14 に61社を
+                   一覧から外したとき、この文言は66社ぶん嘘になるところだった。
+                ⚠️ 候補の行にも同じ注記があったが、そちらも同時に削除した。**片方だけ戻さない。** */}
           </div>
           {!disabled && (
             <button
@@ -729,13 +728,8 @@ function CompanySearch({
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
-                  {/* ★掲載中と未掲載を区別して出す。⚠️ 未掲載でも**選べる**（company_id で繋がる）。
-                         「選べない」と誤解される表現にしないこと。 */}
-                  {!c.isListed && (
-                    <div style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>
-                      OPINIOに未掲載（企業ページはありません）
-                    </div>
-                  )}
+                  {/* ⚠️★**掲載の有無をここに出さないこと**（2026-09-14 に削除）。
+                         理由は上の選択済みカードのコメントと同じ。**片方だけ戻さない。** */}
                 </div>
               </div>
             );

@@ -188,7 +188,6 @@ export function CompanyCreateDialog({
                   }}>
                     {c.name}
                   </span>
-                  {/* ⚠️ lookup と同じ文言にする。ここだけ別の言い方にしない */}
                   {/* ★なぜ候補に出たか。⚠️ 名前で一致したときは出さない
                          （見れば分かるので、当たり前のことを説明する行が増えるだけ）。 */}
                   {companyMatchLabelForUser(c.matchedOn ?? null) && (
@@ -196,11 +195,11 @@ export function CompanyCreateDialog({
                       {companyMatchLabelForUser(c.matchedOn ?? null)}
                     </span>
                   )}
-                  {!c.isListed && (
-                    <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 1 }}>
-                      OPINIOに未掲載（企業ページはありません）
-                    </span>
-                  )}
+                  {/* ⚠️★**「OPINIOに未掲載（企業ページはありません）」を戻さないこと**
+                         （2026-09-14 / 柴さんの指示で削除）。理由は
+                         `CareerHistoryEditor` の選択済みカードのコメントに書いてある。
+                      ⚠️ このダイアログは**職歴エディタとオンボーディングの両方**から使われる。
+                         **3箇所とも消してあるので、ここだけ戻さない。** */}
                 </button>
               </li>
             ))}
