@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { MASKED_COMPANY_LABEL, UNKNOWN_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AchievementsDetails, AwardsDetails, CertificationsDetails, LanguagesDetails, SkillsDetails, MediaDetails, ContentDetails } from "./SimpleDetails";
@@ -168,8 +169,8 @@ export default async function ProfileDetailsPage({ params }: { params: { section
   }
   const experienceOptions = (expRows ?? []).map((r) => {
     const label = r.company_id
-      ? (nameById.get(r.company_id as string) ?? "不明な企業")
-      : (r.company_text as string | null) ?? (r.company_anonymized as string | null) ?? "非公開企業";
+      ? (nameById.get(r.company_id as string) ?? UNKNOWN_COMPANY_LABEL)
+      : (r.company_text as string | null) ?? (r.company_anonymized as string | null) ?? MASKED_COMPANY_LABEL;
     const from = r.started_at ? (r.started_at as string).slice(0, 7) : "";
     const to = r.is_current ? "現在" : (r.ended_at ? (r.ended_at as string).slice(0, 7) : "");
     return { id: r.id as string, label: `${label}（${from}〜${to}）` };

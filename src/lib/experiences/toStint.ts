@@ -1,4 +1,5 @@
 import type { Stint } from "@/components/profile/CareerHistoryEditor";
+import { MASKED_COMPANY_LABEL, UNKNOWN_COMPANY_LABEL } from "@/lib/experiences/companyName";
 
 /**
  * `ow_experiences` の行 → 編集フォームの `Stint`（2026-08-17 に切り出した）。
@@ -22,13 +23,13 @@ export function rowsToStints(
     let displayCompanyName: string;
     if (r.company_id) {
       companyType = "master";
-      displayCompanyName = companyNameById.get(r.company_id as string) ?? "不明な企業";
+      displayCompanyName = companyNameById.get(r.company_id as string) ?? UNKNOWN_COMPANY_LABEL;
     } else if (r.company_text) {
       companyType = "custom";
       displayCompanyName = r.company_text as string;
     } else {
       companyType = "anon";
-      displayCompanyName = (r.company_anonymized as string) ?? "非公開企業";
+      displayCompanyName = (r.company_anonymized as string) ?? MASKED_COMPANY_LABEL;
     }
     const roleUuid = r.role_category_id as string;
     return {

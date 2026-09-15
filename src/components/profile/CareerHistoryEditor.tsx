@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import {
   useCompanyLookup,
   type CompanyLookupResult,
@@ -1355,7 +1356,7 @@ export default function CareerHistoryEditor({
 
   // ── Draft from stint ─────────────────────────────────────────────────────────
   const draftFromStint = useCallback((s: Stint): StintDraft => ({
-    companyName: s.companyType === "anon" ? (s.companyAnonymized ?? "非公開企業") : s.displayCompanyName,
+    companyName: s.companyType === "anon" ? (s.companyAnonymized ?? MASKED_COMPANY_LABEL) : s.displayCompanyName,
     companyId: s.companyType === "master" ? (s.companyId ?? null) : null,
     roleCategoryId: s.roleCategoryId,
     roleTitle: s.roleTitle ?? "",
@@ -1396,7 +1397,7 @@ export default function CareerHistoryEditor({
 
   const draftFromGroup = useCallback((group: StintGroup): StintDraft => ({
     companyName: group.companyType === "anon"
-      ? (group.companyAnonymized ?? "非公開企業")
+      ? (group.companyAnonymized ?? MASKED_COMPANY_LABEL)
       : group.displayCompanyName,
     companyId: group.companyType === "master" ? (group.companyId ?? null) : null,
     roleCategoryId: "",

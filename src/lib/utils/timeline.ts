@@ -11,6 +11,7 @@
  * - enrolled_at が NULL の学歴エントリは除外（MergedTimeline.EducationEntry は必須）
  */
 
+import { ANON_COMPANY_LABEL, MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import type {
   CareerEntry,
   EducationEntry,
@@ -88,12 +89,12 @@ export function generateMaskedCompanyLabel(
   companyAnonymized: string | null,
 ): string {
   if (companyAnonymized) return companyAnonymized;
-  if (!companyInfo) return "非公開企業";
+  if (!companyInfo) return MASKED_COMPANY_LABEL;
   const { industry, phase, employee_count } = companyInfo;
   const phaseLabel = phase ? (PHASE_LABEL[phase] ?? null) : null;
   const sizeLabel = employee_count ? `${employee_count}名規模` : null;
   const suffix = [phaseLabel, sizeLabel].filter(Boolean).join("・");
-  if (!industry && !suffix) return "非公開企業";
+  if (!industry && !suffix) return MASKED_COMPANY_LABEL;
   if (!suffix) return industry!;
   if (!industry) return suffix;
   return `${industry}（${suffix}）`;
@@ -183,8 +184,15 @@ export function buildTimelineCareerEntriesFromRaw(
       company_name = r.company_text;
     } else {
       // 非公開（company_id が解決しなかった場合も含む）
-      company_name = r.company_anonymized ?? "非公開";
+      company_name = r.company_anonymized ?? ANON_COMPANY_LABEL;
     }
+
+    /* ★★この行の会社名が「社名」ではなく**代替表示**か（2026-09-15）。
+          ⚠️★**表示文字列を比較して判定しないこと。** 直す前は `MergedTimeline` と
+             `ProfileHeader` が `=== "非公開企業"` で見ており、**定数を改名すると
+             静かに崩れる**状態だった（`isPlaceholderCompanyName` の注記）。
+          ⚠️ master でも custom でもない行＝社名が無い行。下で masked のときも立てる。 */
+    let isPlaceholderCompany = !(r.company_id && companyInfo) && !r.company_text;
 
     // ow_roles.name は日本語表示ラベルそのものなので変換不要
     const roleInfo = roleInfoById.get(r.role_category_id);
@@ -228,12 +236,16 @@ export function buildTimelineCareerEntriesFromRaw(
       effectiveLogoUrl     = null;
       effectiveLogoLetter  = "非";
       effectiveLogoGradient = ANON_GRADIENT;
+      /* ⚠️★伏せた行は、**代替表示に何が入っていても**社名ではない
+            （「SaaS企業（101-500名）」のように**中身のある文字列**になることがある）。 */
+      isPlaceholderCompany = true;
     }
 
     return {
       id:              r.id,
       company_id:      effectiveCompanyId,
       company_name:    effectiveCompanyName,
+      is_placeholder_company: isPlaceholderCompany,
       logo_url:        effectiveLogoUrl,
       logo_letter:     effectiveLogoLetter,
       logo_gradient:   effectiveLogoGradient,

@@ -3,6 +3,7 @@ import { FollowCounts } from "@/components/profile/FollowCounts";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { ProfileSocialLinks } from "./ProfileSections";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
+import { isPlaceholderCompanyName } from "@/lib/experiences/companyName";
 import type { FollowCounts as Counts } from "@/lib/people/followCounts";
 
 /** 会社名から法人格プレフィックス・サフィックスを除去して短縮名を返す。
@@ -235,12 +236,12 @@ export function ProfileHeader({
         {/* ★在籍企業（2026-08-23）。LinkedIn と同じく**ロゴ＋社名**を右側に置く。
                ⚠️ 会社名はここが唯一の置き場。役職行には戻さない（上のコメント）。
                ⚠️ マスタに無い企業（自由入力）はリンクにしない。ロゴも出ない。
-               ⚠️ 「不明な企業」「非公開企業」「非公開」は**社名ではない**ので出さない。
-                  以前から役職行で除外していた条件をそのまま持ってきている。 */}
+               ⚠️ 代替表示（「不明な企業」「非公開企業」「非公開」）は**社名ではない**ので出さない。
+                  以前から役職行で除外していた条件をそのまま持ってきている。
+               ⚠️★**文字列を並べて比較しないこと**（2026-09-15 にやめた）。判定は
+                  `isPlaceholderCompanyName()` の1箇所。定数を改名しても追従する。 */}
         {currentCareer?.company_name &&
-          currentCareer.company_name !== "不明な企業" &&
-          currentCareer.company_name !== "非公開企業" &&
-          currentCareer.company_name !== "非公開" && (
+          !(currentCareer.is_placeholder_company ?? isPlaceholderCompanyName(currentCareer.company_name)) && (
           <div className="profile-company-block" style={{
             display: "flex", alignItems: "center", gap: 10,
             flexShrink: 0, minWidth: 0,

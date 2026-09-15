@@ -3364,24 +3364,34 @@ ow_roles … 生の並びの先頭10件が**全部子**
 ⚠️ ④は本文では既に「非上場」と書かれている（`LandingPage.tsx` も「非上場」）。
    **紛らわしいのは読む人の頭の中だけで、文字列としては衝突していない。**
 
-#### ⚠️★★`MASKED_COMPANY_LABEL` を改名すると、静かに壊れる
+#### ✅★★表示文字列を sentinel にするのをやめた（2026-09-15）
 
-**`"非公開企業"` は表示文字列であると同時に、コードで「匿名企業かどうか」の
-判定に使われている。** 実測（2026-09-15 / `grep '"非公開企業"' src`）: **9ファイルに直書き**、
-うち**3箇所が比較**。
+**`"非公開企業"` は表示文字列であると同時に「匿名企業か」の判定に使われていた。**
+`MASKED_COMPANY_LABEL` を改名しても比較側が追従せず、`tsc` も lint も通ったまま
+**会社のグループ化が静かに崩れる**（同じ会社の役割が別々の会社として並ぶ）状態だった。
 
-```
-components/profile/MergedTimeline.tsx:398  if (c.company_name === "非公開企業") return `a:${c.id}`;  ← 会社のグループ化キー
-components/profile/MergedTimeline.tsx:765  isAnonymous = company_name === "非公開企業" || "非公開" || "不明な企業"
-components/profile/view/ProfileHeader.tsx:242  currentCareer.company_name !== "非公開企業" && …
-```
+| 何を | どうしたか |
+|---|---|
+| **判定の正** | **`CareerEntry.is_placeholder_company`**（`buildTimelineCareerEntriesFromRaw` が立てる）。**文字列を見ない** |
+| 後段の保険 | **[`isPlaceholderCompanyName()`](src/lib/experiences/companyName.ts)** の1箇所。別経路で作られた行（`?? "不明な企業"` で埋めた行など）だけここに落ちる |
+| 代替表示の語彙 | `MASKED_COMPANY_LABEL`（非公開企業）／ `ANON_COMPANY_LABEL`（非公開）／ `UNKNOWN_COMPANY_LABEL`（不明な企業）の**3定数** |
 
-⚠️★**定数を書き換えても比較側は追従しない。** `tsc` も lint も通り、
-   **会社のグループ化が静かに崩れる**（同じ会社の役割が別々の会社として並ぶ）。
-⚠️★**表示名を sentinel に使わない。** 直すなら「文字列の比較をやめて
-   `company_anonymized` の有無で判定する」が先で、**改名はその後。**
-⚠️ いま実害は出ていない —— `company_anonymized` を持つ行は**本番0件**（2026-09-12 実測）で、
-   ①も畳んだため。**ただし直っていない。触る前にここを読むこと。**
+⚠️★**`=== "非公開企業"` を書き戻さないこと。** 消したのは3箇所
+   （`MergedTimeline` のグループ化キーとロゴ判定、`ProfileHeader` の社名表示可否）。
+
+⚠️★**判定を1つ広げた。** グループ化キーは以前 `"非公開企業"` の行だけを個別扱いに
+   していたが、いまは**代替表示の行すべて**。代替表示は「SaaS企業（101-500名）」のように
+   **別々の会社が同じ文字列**になりうるので、文字列一致で束ねると**別の会社が1社に統合される**。
+   ⚠️ 実データへの影響は無い（該当行は本番0件）。
+
+⚠️ **ラベルを作る側も定数に寄せた**（`toStint` / `CareerHistoryEditor` /
+   `mypage/details` / `scout-settings`）。**`?? "非公開企業"` と書かないこと。**
+   ⚠️★**1箇所だけ直書きが残っている** —— `api/jobseeker/experiences/route.ts`（2箇所）。
+      **別セッションが同じファイルを編集中だったため触っていない。**
+      改名するなら**ここを先に直す**こと（改名して grep すれば出る）。
+
+⚠️ 確かめ方: **定数を実際に改名して `grep '"非公開企業"' src` を打つ。**
+   動作に使っている箇所が残っていれば出る（2026-09-15 の実測では上の1ファイルだけ）。
 
 ## visibility_company の適用範囲（2026-08-02 確立）
 

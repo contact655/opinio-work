@@ -116,6 +116,30 @@ export function resolveExperienceCompanyLabel(
  */
 export const MASKED_COMPANY_LABEL = "非公開企業";
 
+/** 社名を解決できなかった行の代替（company_anonymized も無い）。 */
+export const ANON_COMPANY_LABEL = "非公開";
+
+/** `company_id` は付いているのに企業を引けなかった行の代替。⚠️ 匿名とは意味が違う（取得の失敗）。 */
+export const UNKNOWN_COMPANY_LABEL = "不明な企業";
+
+/**
+ * ★その文字列が**社名ではなく代替表示か**（2026-09-15）。
+ *
+ * ⚠️★**ここが唯一の判定。** 画面側に `=== "非公開企業"` を書き写さないこと。
+ *    直す前は `MergedTimeline`（2箇所）と `ProfileHeader`（1箇所）が
+ *    **表示文字列を sentinel にして**「匿名企業か」を判定しており、
+ *    **`MASKED_COMPANY_LABEL` を改名すると比較側が追従せず、`tsc` も lint も通ったまま
+ *    会社のグループ化が静かに崩れる**（同じ会社の役割が別々の会社として並ぶ）状態だった。
+ *
+ * ⚠️★**これは後段の保険。** 本筋は `CareerEntry.is_placeholder_company`
+ *    （`buildTimelineCareerEntriesFromRaw` が立てるフラグ）で、そちらは文字列を見ない。
+ *    この関数が要るのは、**別の経路で作られた行**（`?? "不明な企業"` で埋めた行など）が
+ *    同じ画面に来るため。**フラグが無い行だけここに落ちる。**
+ */
+export function isPlaceholderCompanyName(name: string | null | undefined): boolean {
+  return name === MASKED_COMPANY_LABEL || name === ANON_COMPANY_LABEL || name === UNKNOWN_COMPANY_LABEL;
+}
+
 export const EXPERIENCE_COMPANY_COLS =
   /* ⚠️ `name_en` も取る。表示名は `companyDisplayName` が name_en 優先で作るため、
         取り忘れると経歴だけ正式名称（「株式会社セールスフォース・ジャパン」）に戻る。 */

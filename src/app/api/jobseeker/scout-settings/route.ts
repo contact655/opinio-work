@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { UNKNOWN_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
@@ -80,7 +81,7 @@ export async function GET() {
     company_name:
       (b.company_id ? nameById.get(b.company_id as string) : null)
       ?? (b.company_name as string)
-      ?? "不明な企業",
+      ?? UNKNOWN_COMPANY_LABEL,
     block_reason: (b.block_reason as "experience" | "manual"),
   }));
 

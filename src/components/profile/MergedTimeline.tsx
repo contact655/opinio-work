@@ -5,6 +5,7 @@ import Link from "next/link";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
 import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
+import { isPlaceholderCompanyName } from "@/lib/experiences/companyName";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
@@ -116,6 +117,16 @@ export interface CareerEntry {
   company_id?: string | null;
   /** 表示用企業名（匿名化済みの場合は "非公開" 等） */
   company_name: string;
+  /**
+   * ★この `company_name` が**社名ではなく代替表示**か（2026-09-15）。
+   *
+   * ⚠️★**文字列比較の代わり。** 直す前はこのファイルと `ProfileHeader` が
+   *    `company_name === "非公開企業"` で判定しており、**定数を改名すると
+   *    追従せず、`tsc` も lint も通ったまま壊れる**状態だった。
+   * ⚠️ `buildTimelineCareerEntriesFromRaw` が立てる。**別経路で作った行では
+   *    undefined** なので、受け側は `isPlaceholderCompanyName()` に落とす。
+   */
+  is_placeholder_company?: boolean;
   /** 企業ロゴ画像 URL（ow_companies.logo_url）。null = 未登録 */
   logo_url?: string | null;
   /** 企業ロゴイニシャル文字（ow_companies.logo_letter）。フォールバック表示に使用 */
@@ -388,14 +399,19 @@ function buildTimeline(
  *
  * - master 企業（company_id あり）: `m:${company_id}` で確実に同一企業を識別
  * - custom 企業（company_id なし、company_text あり）: `c:${company_name}` で文字列一致
- * - anon 企業（company_anonymized）: `a:${id}` で個別扱い（"非公開企業"の誤統合を防ぐ）
+ * - 代替表示の行: `a:${id}` で**個別扱い**（別々の会社が1社に統合されるのを防ぐ）
  *
  * CareerHistoryEditor の groupStints と同じ規約。
  */
 function getCompanyKey(c: CareerEntry): string {
   if (c.company_id) return `m:${c.company_id}`;
-  // company_id なし & "非公開企業" 表記 = 匿名企業（XOR 制約により company_anonymized が NOT NULL）
-  if (c.company_name === "非公開企業") return `a:${c.id}`;
+  /* ⚠️★**文字列で判定しないこと**（2026-09-15 に `=== "非公開企業"` をやめた）。
+        代替表示は「SaaS企業（101-500名）」のように**別々の会社が同じ文字列**に
+        なりうるので、**文字列一致で束ねると別の会社が1社に統合される。**
+     ⚠️ 判定は広がった: 以前は `"非公開企業"` の行だけだったが、いまは
+        **代替表示の行すべて**（`"非公開"` や伏せた行も含む）を個別扱いにする。
+        ⚠️ 実データへの影響は無い（該当行は本番0件）。 */
+  if (c.is_placeholder_company ?? isPlaceholderCompanyName(c.company_name)) return `a:${c.id}`;
   return `c:${c.company_name}`;
 }
 
@@ -760,10 +776,11 @@ function CompanyLogoIcon({
     justifyContent: "center",
   };
 
-  // ステップ 0: 非公開企業 → 鍵アイコン（logo_letter/gradient より先に判定）
-  // timeline.ts が anon 企業に logo_letter="非" を設定するため、先に isAnonymous をチェックする
-  const isAnonymous = company_name === "非公開企業" || company_name === "非公開" || company_name === "不明な企業";
-  if (isAnonymous) {
+  // ステップ 0: 代替表示 → 鍵アイコン（logo_letter/gradient より先に判定）
+  // timeline.ts が代替表示の行に logo_letter="非" を設定するため、先にここで判定する
+  /* ⚠️★`=== "非公開企業"` を書き戻さないこと（2026-09-15）。判定は
+        `isPlaceholderCompanyName()` の1箇所に集約してある。 */
+  if (isPlaceholderCompanyName(company_name)) {
     return (
       <div style={{ ...wrapStyle, background: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)" }}>
         <svg width={iconPx} height={iconPx} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
