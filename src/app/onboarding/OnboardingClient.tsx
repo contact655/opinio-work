@@ -22,11 +22,8 @@ import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
-import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
-import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 /* ⚠️ 学歴の区分もここに直書きしない。API（educations POST）が `DEGREES` で検証しており、
       別の語彙を送ると 400 になる（CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
-import { DEGREES, DEGREE_LABELS } from "@/lib/constants/careerOptions";
 import {
   EXPERIENCE_CREATE_PATH,
   type CreateExperienceBody,
@@ -37,63 +34,16 @@ import {
   2026-08-07 に JobEditForm が日本語ラベルを送って保存が落ちた前例がある）。
   ラベルだけ入口用に短くし、並びは「出社 → フルリモート」にしている。
 */
-const REMOTE_SHORT_LABEL: Record<string, string> = {
-  on_site: "出社",
-  hybrid: "ハイブリッド",
-  full_remote: "フルリモート",
-};
-const REMOTE_CHIPS = REMOTE_WORK_STATUSES
-  .map((o) => ({ value: o.value as string, label: REMOTE_SHORT_LABEL[o.value] ?? o.label }))
-  .reverse();
 
 
 /* これまでの職歴（任意・複数）。
    ⚠️ 現職と同じく **会社・職種・開始年月の3点が揃った行だけ** を保存する。
       中途半端な行を作らない（2026-08-10 の方針をそのまま適用する）。 */
-type PastJob = {
-  key: number;
-  company: CompanyLookupResult | null;
-  companyText: string;
-  roleId: string;
-  /** 部署名（任意）。⚠★同一社内の異動を読めるようにするために要る（下記 `groupPastJobs`）。 */
-  department: string;
-  /**
-   * 社内での呼び方（`ow_experiences.role_title`・任意。2026-09-11 追加）。
-   * ⚠️★**`rank`（役職）とは別の列。** 混ぜないこと。
-   * ⚠️★**現職の欄と揃えるために足した。** 片方にしかないと、
-   *    1画面目で入れた人が「これまでの職歴」でも入れようとして欄が無い、という形になる。
-   */
-  roleTitle: string;
-  /**
-   * 会社名が「この会社に役割を追加」等で**自動で入った**行かどうか。
-   * ⚠️★これが無いと、自動で入った会社名だけで「入力しかけ」と判定してしまい、
-   *    **何も触っていない行にオレンジの警告が出る**（2026-09-09 に実際にそうなっていた）。
-   *    警告がエラーに見えるので、触っていない行には出さない。
-   */
-  prefilled: boolean;
-  startYear: string;
-  startMonth: string;
-  endYear: string;
-  endMonth: string;
-};
 
 /* 学歴（任意・複数）。
    ⚠️ API が必須にしているのは `school` だけ。卒業年月は任意なので必須にしない
       （思い出せない人をここで止めない）。 */
-type EducationRow = {
-  key: number;
-  school: string;
-  /** `DEGREES` の値。空は未選択（API は空なら null にする）。 */
-  degree: string;
-  faculty: string;
-  gradYear: string;
-  gradMonth: string;
-};
 
-const emptyPastJob = (key: number): PastJob => ({
-  key, company: null, companyText: "", roleId: "", department: "", roleTitle: "", prefilled: false,
-  startYear: "", startMonth: "", endYear: "", endMonth: "",
-});
 
 /**
  * 「この会社に役割を追加」で作る行。**会社を値ごと写す**（参照で繋がない）。
@@ -104,20 +54,12 @@ const emptyPastJob = (key: number): PastJob => ({
  * ⚠️ 役職・期間は引き継がない。異動なら必ず変わるので、埋めると誤りが残る
  *    （`CareerHistoryEditor` の「同じ会社への追加ポジションでも引き継がない」と同じ）。
  */
-const pastJobAtSameCompany = (key: number, from: PastJob): PastJob => ({
-  ...emptyPastJob(key),
-  company: from.company,
-  companyText: from.companyText,
-  prefilled: true,
-});
 
 /**
  * 会社が同じかを判定するキー。**空文字は「まだ決まっていない」＝まとめない。**
  * ⚠️ `CareerHistoryEditor` の `groupKey` と同じ規約にしてある。割れると、
  *    入力中の見え方と保存後のタイムラインの見え方が食い違う。
  */
-const pastJobGroupKey = (j: PastJob): string =>
-  j.company ? `m:${j.company.id}` : (j.companyText.trim() ? `c:${j.companyText.trim()}` : "");
 
 /**
  * ★現職ブロックの会社を、`pastJobGroupKey` と**同じ形のキー**にする（2026-09-11）。
@@ -125,8 +67,6 @@ const pastJobGroupKey = (j: PastJob): string =>
  * ⚠️★**規則をここに書き写さない。** `pastJobGroupKey` に `PastJob` の形で渡して導く。
  *    2つに割れると、「同じ会社なのに別グループ」または逆が起きる。
  */
-const currentCompanyKey = (company: CompanyLookupResult | null, text: string): string =>
-  pastJobGroupKey({ ...emptyPastJob(-1), company, companyText: company ? company.name : text.trim() });
 
 /**
  * 連続する同じ会社の行を1グループにまとめる。
@@ -137,19 +77,6 @@ const currentCompanyKey = (company: CompanyLookupResult | null, text: string): s
  * ⚠️ 会社が空の行は単独グループ。空同士をまとめると、新しく足した空行が
  *    直前の空行に吸い込まれる。
  */
-function groupPastJobs(jobs: PastJob[]): PastJob[][] {
-  const groups: PastJob[][] = [];
-  for (const j of jobs) {
-    const key = pastJobGroupKey(j);
-    const last = groups[groups.length - 1];
-    if (key && last && pastJobGroupKey(last[0]) === key) last.push(j);
-    else groups.push([j]);
-  }
-  return groups;
-}
-const emptyEducation = (key: number): EducationRow => ({
-  key, school: "", degree: "", faculty: "", gradYear: "", gradMonth: "",
-});
 
 /**
  * 保存できる過去の職歴か。
@@ -164,23 +91,12 @@ const emptyEducation = (key: number): EducationRow => ({
       ここで組み立てない（2箇所で組むと片方だけ直る形になる）。 */
 const companyLabel = (c: CompanyLookupResult) => c.name;
 
-const pastJobReady = (j: PastJob) =>
-  (!!j.company || j.companyText.trim().length > 0) &&
-  !!j.roleId && !!j.startYear && !!j.startMonth && !!j.endYear && !!j.endMonth;
 
 /**
  * POST して、落ちたら `failures` に積む。
  * ⚠️ 握り潰さない。`console.error` と画面表示の両方に出す
  *    （CLAUDE.md「エラーと失敗を握りつぶさない原則」）。
  */
-async function postJson(
-  url: string,
-  body: Record<string, unknown>,
-  label: string,
-  failures: string[],
-) {
-  return sendJson("POST", url, body, label, failures);
-}
 
 /**
  * PUT 版。⚠️ 生年月日だけ **`ow_users`（別テーブル）** なので PUT の API を使う。
@@ -329,11 +245,18 @@ function OnboardingInner({
   /* ★★2026-09-14 に「あなたのこと」を**先頭**に足した（柴さんの指示）。
         ⚠️★**番号を直書きしないこと。** 画面を1つ挟むだけで `step === 1` の意味が全部ずれる。
            下の `STEP` を使う。 */
-  const STEPS = ["あなたのこと", "直近のお勤め先", "転職について", "あとは任意"] as const;
+  /* ⚠️★**3画面**（2026-09-15 に「あとは任意」を削除）。増やすときは `STEP` も一緒に足す。 */
+  const STEPS = ["あなたのこと", "直近のお勤め先", "転職について"] as const;
   /** ⚠️ 並びを変えたらここも変える。`STEPS` の添字 +1（`?step=` は1始まり）。 */
-  const STEP = { YOU: 1, COMPANY: 2, STANCE: 3, OPTIONAL: 4 } as const;
+  const STEP = { YOU: 1, COMPANY: 2, STANCE: 3 } as const;
   const rawStep = Number.parseInt(searchParams.get("step") ?? "1", 10);
-  const step = Number.isInteger(rawStep) && rawStep >= 1 && rawStep <= STEPS.length ? rawStep : 1;
+  /* ⚠️★**範囲外の大きい値は「最後の画面」に寄せる**（2026-09-15）。
+        画面を減らすと、**それまで開いていた `?step=4` が一斉に範囲外になる。**
+        1 に落とすと、保存済みの人まで最初からやり直しに見える。
+     ⚠️ 不正な値（数字でない・0以下）は従来どおり 1。 */
+  const step = !Number.isInteger(rawStep) || rawStep < 1
+    ? 1
+    : Math.min(rawStep, STEPS.length);
   const goStep = (n: number) => {
     /* ⚠️ `push`。**`replace` にしないこと** —— ブラウザの戻るで1つ前の画面に戻れる必要がある。 */
     router.push(`/onboarding?step=${n}&next=${encodeURIComponent(next)}`);
@@ -441,8 +364,6 @@ function OnboardingInner({
         「フルリモートと書いてある会社に、実際にリモートで働いている人がいるか」を
         検証するための材料で、あとから思い出して埋めてもらえる性質のものではない。
      ⚠️ 任意のまま。空でも先に進める（入口の摩擦を増やさない）。 */
-  const [prefecture, setPrefecture] = useState<string>(() => exStr("prefecture"));
-  const [remoteWorkStatus, setRemoteWorkStatus] = useState<string>(() => exStr("remote_work_status"));
   /*
     ⚠️★**社名を伏せる機能は持たない**（2026-08-14 にこの画面から、
        2026-09-02 に職歴エディタから撤去。柴さんの判断）。**戻さないこと。**
@@ -472,11 +393,8 @@ function OnboardingInner({
   */
   /* これまでの職歴・学歴（どちらも任意・既定は0件）。
      ⚠️ 既定で行を1つ出さない。出すと「埋めなければいけない」に見えて入口が重くなる。 */
-  const [pastJobs, setPastJobs] = useState<PastJob[]>([]);
   /** ★「揃っていません」を出したか。⚠️ 1回だけ止めて、2回目は進める（2026-09-11） */
   const [experienceWarned, setExperienceWarned] = useState(false);
-  const [educations, setEducations] = useState<EducationRow[]>([]);
-  const rowKeyRef = useRef(1);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Auth guard + 完了済みチェック
@@ -554,8 +472,9 @@ function OnboardingInner({
       ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
       ...(department.trim() ? { department: department.trim() } : {}),
       ...(roleTitle.trim() ? { role_title: roleTitle.trim() } : {}),
-      ...(prefecture ? { prefecture } : {}),
-      ...(remoteWorkStatus ? { remote_work_status: remoteWorkStatus } : {}),
+      /* ⚠️★勤務地・勤務形態は **2026-09-15 に聞くのをやめた**（4画面目ごと削除）。
+            ここに足し戻さないこと ——聞く画面が無いので常に空になる。
+            入れてもらうのは `/mypage` の職歴の編集モーダル。 */
     };
 
     if (experienceId) {
@@ -612,9 +531,12 @@ function OnboardingInner({
     goStep(STEP.COMPANY);
   };
 
-  /* ★CTA を色付きにする条件。**ステップごとに違う。**
-     ⚠️ 1画面目は会社が空でも**押せる**（灰色のまま進める）。2画面目だけ本当に押せない。
-     ⚠️ 3画面目は全項目が任意なので常に進める。 */
+  /* ★CTA を押せる条件。**画面ごとに違う。**
+     ⚠️★**「N画面目」で書かないこと**（2026-09-15 に直した。番号がずれる）。`STEP` で書く。
+       YOU     … 必須5項目が埋まるまで押せない（`youReady`）
+       COMPANY … 会社を入れるまで押せない。⚠️ 抜け道は**「後で設定する」**（完了して
+                 `/onboarding/stance` へ行く）。押せないままにはならない
+       STANCE  … `career_stance` を選ぶまで押せない。⚠️★既定値で埋めない要件があるため */
   const ctaReady = step === STEP.YOU ? youReady
     : step === STEP.COMPANY ? !!(query.trim() || selectedCompany)
     : step === STEP.STANCE ? !!stance
@@ -647,11 +569,11 @@ function OnboardingInner({
       setSaveError("転職についての保存に失敗しました。あとでマイページから設定できます。");
     }
     setSaving(false);
-    /* ⚠️★★**`goStep(3)` と直書きしてあり、この画面（STANCE=3）に戻っていた**
-          （2026-09-15 に本番で発覚。2026-09-14 に1画面目を挟んだときの取り残し）。
-          **「次へ」を押しても進まない**＝オンボーディングがここで詰まる。
-       ⚠️★**数字を書かないこと。** `STEP` を使う。画面を1つ挟むだけで全部ずれる。 */
-    goStep(STEP.OPTIONAL);
+    /* ★★**この画面が最後**（2026-09-15 に「あとは任意」を削除）。進むのではなく完了する。
+       ⚠️★**`goStep(数字)` と書かないこと。** 2026-09-14 に画面を1つ挟んだとき
+          `goStep(3)` が残り、**この画面自身に戻って**オンボーディングが詰まった
+          （2026-09-15 に本番で発覚）。押しても何も起きないので tsc でも lint でも出ない。 */
+    await finish();
   };
 
   /** ★COMPANY（2画面目）の「次へ」。⚠️ ④の警告はここに移した（画面を割っても同じ保証が要る）。
@@ -689,25 +611,8 @@ function OnboardingInner({
             **`saveCurrentExperience` をもう一度呼ぶ**（`experienceId` があるので PUT になる）。 */
       await saveCurrentExperience(failures);
 
-      /* これまでの職歴。
-         ⚠️ 3点が揃った行だけ送る。`pastJobReady` は現職と同じ条件。
-         ⚠️ **直列で送る**。experiences の POST は毎回 ow_users を引き直すので、
-            並列にしても速くならないうえ、失敗した行の特定が難しくなる。 */
-      for (const j of pastJobs) {
-        if (!pastJobReady(j)) continue;
-        await postExperienceJson({
-          ...(j.company ? { company_id: j.company.id } : { company_text: j.companyText.trim() }),
-          role_category_id: j.roleId,
-          /* ⚠️ 空のときはキーごと送らない（他の任意項目と同じ扱い）。 */
-          ...(j.department.trim() ? { department: j.department.trim() } : {}),
-          ...(j.roleTitle.trim() ? { role_title: j.roleTitle.trim() } : {}),
-          started_at: `${j.startYear}-${j.startMonth}`,
-          ended_at: `${j.endYear}-${j.endMonth}`,
-          is_current: false,
-          /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
-                作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。 */
-        }, "職歴", failures);
-      }
+      /* ⚠️★**これまでの職歴の一括登録は 2026-09-15 にやめた**（4画面目ごと削除）。
+            足し戻すなら画面も一緒に。`/mypage` の「＋ 職歴を追加」が入口。 */
 
       /* ★生年月日。⚠️ **経歴とは別のテーブル**（`ow_users`）なので別の API を呼ぶ。
          ⚠️★`PUT /api/jobseeker/profile` は `.update()` に **`.select()` を付けていない**。
@@ -723,17 +628,7 @@ function OnboardingInner({
         }, "生年月日", failures);
       }
 
-      /* 学歴。⚠️ 必須は学校名だけ（API 側も同じ）。 */
-      for (const e of educations) {
-        if (!e.school.trim()) continue;
-        await postJson("/api/jobseeker/educations", {
-          school: e.school.trim(),
-          /* ⚠️ 空のときはキーごと送らない。API は不正値を 400 で弾く。 */
-          ...(e.degree ? { degree: e.degree } : {}),
-          ...(e.faculty.trim() ? { faculty: e.faculty.trim() } : {}),
-          ...(e.gradYear && e.gradMonth ? { graduated_at: `${e.gradYear}-${e.gradMonth}` } : {}),
-        }, "学歴", failures);
-      }
+      /* ⚠️★**学歴の一括登録も 2026-09-15 にやめた**（同上）。`/mypage` の「＋ 学歴を追加」が入口。 */
 
       if (failures.length > 0) {
         setSaveError(
@@ -828,14 +723,12 @@ function OnboardingInner({
                    ⚠️★**1画面目のまま据え置かないこと。** ステップを分けた直後は
                       2画面目でも「直近のお勤め先を教えてください」と出ていた
                       ——**入力欄は任意項目なのに、見出しは必須の話をしている**状態。
-                   ⚠️★**「任意」という語をここに書かないこと。** すぐ下のステップ表示が
-                      既に「あとは任意」と言っている。2行のあいだで同じ語を2回出すのは、
-                      2026-09-11 に「任意」を4回消したのと同じ形になる。
-                      **ここは語ではなく“結果”（入れなくても登録できる）を言う。** */}
+                   ⚠️★**「任意」という語をここに書かないこと**（2026-09-11 に4回消した）。
+                      ⚠️ 「あとは任意」の画面は 2026-09-15 に削除したので、この見出しの
+                         **4つ目（「ここから先は、入れなくても登録できます」）も一緒に外した。** */}
             {step === STEP.YOU ? "あなたのことを教えてください"
               : step === STEP.COMPANY ? "直近のお勤め先を教えてください"
-              : step === STEP.STANCE ? "転職について"
-              : "ここから先は、入れなくても登録できます"}
+              : "転職について"}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
             {/*
@@ -1222,486 +1115,24 @@ function OnboardingInner({
           {/* ── ★3画面目（`?step=3`）───────────────────────────────────────
                  ⚠️★1画面目は「保存に必要な3点」だけ。ここから下は
                     **押さなくても登録が終わる**もの。 */}
-          {step === STEP.OPTIONAL && (<>
-          {hasCompany && (
-            <div>
-              {/*
-                勤務地・勤務形態（どちらも任意・2026-08-13 追加）
-                ⚠️ **後から追記してもらうのが最も難しいデータなので、入口で聞く。**
-                   「フルリモートと書いてある会社に、実際にリモートで働いている人がいるか」の
-                   検証材料。編集画面に追いやると、実際には誰も戻ってこない。
-                ⚠️ 任意。**空でも先に進める**（編集フォーム側の必須ゲートも同日に外した）。
-                ⚠️ どちらも1タップで終わる形にしている。項目を増やしすぎない。
-              */}
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 20, marginBottom: 10 }}>
-                勤務地
-              </div>
-              <select
-                value={prefecture}
-                onChange={(e) => setPrefecture(e.target.value)}
-                style={{ ...selectStyle, width: "100%" }}
-                aria-label="勤務地（都道府県）"
-              >
-                <option value="">都道府県</option>
-                {/* ⚠️ よく選ばれる4件を先頭に出す。47件を北から南に並べると
-                       東京都は13番目・大阪府は27番目で、毎回スクロールが要る。
-                    ⚠️ 二重に出さないため下は `OTHER_PREFECTURES`（43件）。 */}
-                <optgroup label="よく選ばれる">
-                  {COMMON_PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </optgroup>
-                <optgroup label="すべての都道府県">
-                  {OTHER_PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </optgroup>
-              </select>
+          {/* ★★4画面目「あとは任意」は **2026-09-15 に削除した**（柴さんの判断）。
+                 ⚠️★**戻さないこと。** 戻すなら、下の実測を覆す根拠を先に用意すること。
 
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 16, marginBottom: 10 }}>
-                勤務形態
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {REMOTE_CHIPS.map((o) => {
-                  const active = remoteWorkStatus === o.value;
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setRemoteWorkStatus(active ? "" : o.value)}
-                      style={{
-                        padding: "7px 13px", borderRadius: 100,
-                        border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-                        background: active ? "var(--royal-50)" : "#fff",
-                        color: active ? "var(--royal)" : "var(--ink-soft)",
-                        fontSize: 13, fontWeight: active ? 700 : 500,
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
-                    >
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
+                 消した中身は 勤務地 / 勤務形態 / この会社に役割を追加 / これまでの職歴 / 学歴。
+                 **どれも `/mypage` で入れられる**ので、失われた機能は無い（聞く場所を移しただけ）。
 
-              {/*
-                ★★「その企業のページに『現役社員』として表示されます。見えるのは OPINIO に
-                   ログインしている人だけです。」は**外した**（2026-09-09 / 柴さんの判断）。
-                   理由は入力欄のあいだに説明文が挟まって読みにくいこと。
+                 ── なぜ消したか（2026-09-15 実測 / 実ユーザー）────────────────────
+                 ⚠️★**ここには「後から追記してもらうのが最も難しいデータなので入口で聞く。
+                    編集画面に追いやると実際には誰も戻ってこない」と書いてあったが、
+                    どちらも実測で支持されなかった。**
+                      ・入口で聞いても **勤務地・勤務形態は12行中1行**しか埋まっていない
+                        （2026-08-13 に追加して約1か月）
+                      ・**あとから戻って足している人はいる**（学歴・職歴とも、登録の
+                        1日以上あとに足された行が複数）
+                 ⚠️ 加えて**画面が読みにくかった** ——「これまでの職歴」を開くと
+                    「**この会社での前の役割**」が現職の会社名で prefill され、
+                    過去の勤務先を足したい人が別のものを聞かれる形だった。 */}
 
-                ⚠️★**外した結果、こうなっていることを承知しておくこと:**
-                     ・「見えるのはログイン中の人だけ」→ **利用規約 第7条**と
-                       プライバシーポリシーがカバーしている（初期設定「ログインユーザーのみ」）。
-                     ・「**登録した会社の企業ページに『現役社員』として名前が出る**」
-                       → **どこにも書いていない。** 規約・プライバシーポリシー・
-                          アプリ内の本人向け画面のいずれにも無い（2026-09-09 に全文検索して確認）。
-                   ⚠️ 2026-08-14 に「会社名は伏せる」チェックを外したとき、
-                      ここが唯一の告知になった、という経緯がある。
-
-                ⚠️★**戻すときは1文に縮めること。3文には戻さない**（2026-08-14 に一度縮めている）。
-                   規約側に書き足す案もあるが、**規約の改定になるので改定日の告知が要る。**
-              */}
-
-              {/* ★★「この会社に役割を追加」（2026-09-09 / 柴さんの指摘で追加）。
-                     ⚠️★**語は2つだけ。エディタ側（`/mypage/details/experience`）に合わせてある**
-                        （2026-09-11 に統一）:
-                          **役割** … 同じ会社の中で足す（`この会社に役割を追加` / `この会社での別の役割`）
-                          **職歴** … 会社をまたいで足す（`職歴を追加`）
-                        ⚠️ **「前の役割」「別の会社の職歴」のような独自の言い方を戻さないこと。**
-                           4通りに増えていて、初見だと別々の機能に見えていた。
-                     ⚠️★これが無いと、**現職の会社で部署異動した人が会社名を打ち直すことになる。**
-                        「これまでの職歴」の『＋ この会社に役割を追加』は過去の会社にしか無く、
-                        いま勤めている会社の1つ前の役割を足す手段が無かった。
-                     ⚠️ 押すと「これまでの職歴」の**先頭**に、いまの会社を写した行が入る
-                        （時系列で現職のすぐ下に来るのが自然なため）。
-                     ⚠️ 役職・期間は引き継がない。異動なら必ず変わる。
-                     ⚠️ 会社は**値ごと写す**。参照で繋がない（`pastJobAtSameCompany` と同じ理由）。 */}
-              <button
-                type="button"
-                onClick={() => setPastJobs((prev) => [
-                  {
-                    ...emptyPastJob(rowKeyRef.current++),
-                    company: selectedCompany,
-                    companyText: selectedCompany ? selectedCompany.name : query.trim(),
-                    prefilled: true,
-                  },
-                  ...prev,
-                ])}
-                style={{ ...subAddBtnStyle, marginTop: 14 }}
-              >
-                <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社に役割を追加
-              </button>
-            </div>
-          )}
-
-          {/* ── これまでの職歴（任意・複数）────────────────────────────────
-              ⚠️ 既定では「＋ 職歴を追加」だけを出す。行を最初から出すと、
-                 現職しか無い人にも「埋めるべき欄」に見えて入口が重くなる。
-              ⚠️ 保存条件は現職と同じ3点（`pastJobReady`）。揃わない行は送らない。 */}
-          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-            {/* ★★0件のときは**見出しも説明も出さない**（2026-09-09）。ボタン1行だけにする。
-                   ⚠️ 見出し＋「任意」＋説明＋ボタンで**4行**あり、しかも説明はボタンの文言と
-                      同じことを言っていた。大半の人は職歴を足さずに進むので、
-                      その人たちには**4行ぶんの余計な高さ**にしかなっていない。
-                   ⚠️★~~文言に「任意」を残すこと~~ → **2026-09-11 に削除した。**
-                      最初の画面で「任意」が4回出ており、繰り返しになっていた
-                      （ページ冒頭の一文・職歴のボタン・学歴のボタン・生年月日のバッジ）。
-                      **任意であることは、押さなくても進めることと「後で設定する」で伝わる。**
-                   ⚠️ 行が1件でもあるときは見出しを出す（どこからどこまでが職歴か要る）。 */}
-            {pastJobs.length > 0 && (
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>これまでの職歴</div>
-            )}
-
-            {/* ★同じ会社の連続する行を1グループとして描く（2026-09-09）。
-                   グループの中では**会社名を1回だけ**出し、役割を縦に並べる。
-                   保存後の `MergedTimeline`（会社名1回・役割ごとに期間）と同じ形。
-                ⚠️ まとまりは `groupPastJobs` が**行の値から導く**。行に親子を持たせない。 */}
-            {groupPastJobs(pastJobs).map((group, gIdx) => {
-              const head = group[0];
-              const headKey = pastJobGroupKey(head);
-              /* ★★グループの見出し（2026-09-11）。
-                     ⚠️★**番号ではなく会社名を出す。** スクロール中に目に入るのが
-                        「職歴 2」ではなく社名になるので、**どのブロックにいるか**が分かる。
-                        保存後の `MergedTimeline`（会社名1回・役割ごとに期間）とも形が揃う。
-                     ⚠️★**現職と同じ会社なら会社名を出さない。** 出すと**同じ社名の見出しが
-                        2つ並び**、いまより分かりにくくなる（`この会社に役割を追加` で作った行は
-                        現職と同じ会社なので必ずこうなる）。代わりに関係を言う。
-                     ⚠️★文言は②の語法から外さない（**役割＝同じ会社の中**）。
-                     ⚠️ 会社が未入力のグループは番号のまま（社名が無いので出しようがない）。 */
-              const isSameAsCurrent = !!headKey && headKey === currentCompanyKey(selectedCompany, query);
-              const groupLabel = isSameAsCurrent
-                ? "この会社での前の役割"
-                : (head.company ? head.company.name : head.companyText.trim()) || `職歴 ${gIdx + 1}`;
-              return (
-                <div key={head.key} style={rowCardStyle}>
-                  {/* ⚠️ 見出しはグループの先頭に1回だけ。行ごとには出さない。
-                      ⚠️★**削除ボタンをこの行に置く**（2026-09-11 に直した）。
-                         先頭行のラベルを空にしたとき、行ヘッダーが**× だけの行**として
-                         残り、見出しの下に意味の分からない × が浮いていた。 */}
-                  <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    gap: 8, marginBottom: 8,
-                  }}>
-                    <div style={{
-                      fontSize: 13, fontWeight: 700, minWidth: 0,
-                      color: isSameAsCurrent ? "var(--ink-soft)" : "var(--ink)",
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>
-                      {groupLabel}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setPastJobs((prev) => prev.filter((p) => p.key !== head.key))}
-                      aria-label={`${groupLabel} を削除`}
-                      className="btn-fixed-size"
-                      style={removeBtnStyle}
-                      disabled={saving}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                  </div>
-                  {group.map((j, posIdx) => {
-                    const ready = pastJobReady(j);
-                    /* ⚠️★自動で入った会社名は「触った」に数えない（`prefilled`）。
-                          数えると、押した直後の空の行にいきなり警告が出て**エラーに見える。** */
-                    const touched =
-                      (!j.prefilled && (!!j.company || !!j.companyText.trim())) ||
-                      !!j.roleId || !!j.department.trim() ||
-                      !!j.startYear || !!j.startMonth || !!j.endYear || !!j.endMonth;
-                    const isHead = posIdx === 0;
-                    const upd = (patch: Partial<PastJob>) =>
-                      setPastJobs((prev) => prev.map((p) => p.key === j.key ? { ...p, ...patch } : p));
-                    return (
-                      <div key={j.key} style={isHead ? undefined : {
-                        /* 2つ目以降の役割。左の罫線で「同じ会社の続き」を示す。
-                           ⚠️★**罫線ぶんを `marginLeft` の負値で外へ逃がしてある。**
-                              逃がさないと `borderLeft + paddingLeft` の 14px だけ
-                              **中の入力欄が狭くなる**（実測 422 → 408）。
-                              2026-09-09 に「幅が揃っていない」を直したばかりなので、
-                              階層を示すためにまた幅を割ってはいけない。
-                           ⚠️ 逃がす先は外側の白いカードの padding（28px）の内側。
-                              負値を大きくすると罫線がカードからはみ出す。
-                           ⚠️ 入れ子のカード（枠・背景）にしないこと。同じ理由。 */
-                        marginTop: 14, paddingTop: 12, paddingLeft: 12, marginLeft: -14,
-                        borderTop: "1px dashed var(--line)",
-                        borderLeft: "2px solid var(--line)",
-                      }}>
-                        {/* ⚠️★**行ヘッダーは2つ目以降の役割だけ。** 先頭行はグループの見出しが
-                               兼ねる（ラベルを空にすると **× だけの行**が残る。2026-09-11 に直した）。 */}
-                        {!isHead && (
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>
-                              この会社での別の役割
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setPastJobs((prev) => prev.filter((p) => p.key !== j.key))}
-                              aria-label={`${groupLabel} の役割を削除`}
-                              className="btn-fixed-size"
-                              style={removeBtnStyle}
-                              disabled={saving}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            </button>
-                          </div>
-                        )}
-
-                        {/* ⚠️ 会社を選ぶのは**グループの先頭だけ**。2つ目以降は同じ会社に固定する。
-                               ここに `CompanyPicker` を出すと、同じ会社を2回選ばせることになる。 */}
-                        {isHead ? (
-                          <CompanyPicker
-                            text={j.companyText}
-                            selected={j.company}
-                            disabled={saving}
-                            placeholder="会社名"
-                            onTextChange={(v) => {
-                              /* ⚠★会社を書き換えたら、**同じグループの後続も一緒に**書き換える。
-                                    先頭だけ変えると、後続が古い会社のまま別グループへ分かれてしまう。 */
-                              const keys = new Set(group.map((g) => g.key));
-                              setPastJobs((prev) => prev.map((p) => keys.has(p.key) ? { ...p, companyText: v, company: null } : p));
-                            }}
-                            onSelect={(c) => {
-                              const keys = new Set(group.map((g) => g.key));
-                              setPastJobs((prev) => prev.map((p) => keys.has(p.key) ? { ...p, company: c, companyText: c.name } : p));
-                            }}
-                            onClear={() => {
-                              const keys = new Set(group.map((g) => g.key));
-                              setPastJobs((prev) => prev.map((p) => keys.has(p.key) ? { ...p, company: null, companyText: "" } : p));
-                            }}
-                          />
-                        ) : null}
-
-                        {/* ★★並びは **会社名 → 部署 → 職種**（2026-09-09 / 柴さんの指示）。
-                               大きいものから小さいものへ降りる順。**職種を先に戻さないこと。**
-                               ⚠️ 現職の欄も同じ並びにしてある。**片方だけ変えない。** */}
-                        {/* ★部署名（2026-09-09 追加）。⚠️ 任意。
-                               ⚠️★同じ職種のまま部署だけ変わる異動（営業部 → 人事部）は、
-                                  これが無いと**同じ行が2つ並ぶだけ**になり、何が変わったのか読めない。 */}
-                        <input
-                          type="text"
-                          value={j.department}
-                          onChange={(e) => upd({ department: e.target.value })}
-                          placeholder="部署名"
-                          disabled={saving}
-                          maxLength={100}
-                          style={{ ...textInputStyle, marginTop: isHead ? 8 : 0 }}
-                          aria-label={`職歴 ${gIdx + 1} の部署名`}
-                        />
-
-                        {/* ★★現職と同じ `RoleSearchSelect` に揃えた（2026-09-11）。
-                               ⚠️★それまでは**フラットな `<select>`（親＋子で148件）**で、
-                                  同じ「職種」を1画面で2通りの操作で聞いていた。
-                               ⚠️ 148件を1つのリストに並べるのは 2026-08-06 に
-                                  「機能していない」と判明した形そのもの。**戻さないこと。** */}
-                        <div style={{ marginTop: 8 }}>
-                          <RoleSearchSelect
-                            roles={roles}
-                            aliases={roleAliases}
-                            value={j.roleId}
-                            onSelect={(id) => upd({ roleId: id })}
-                            selectableParent
-                            disabled={saving}
-                            ariaLabel={`職歴 ${gIdx + 1} の職種`}
-                          />
-                        </div>
-
-                        {/* ★★社内での呼び方（`role_title`・2026-09-11 追加）。⚠️ 任意。
-                               ⚠️★**職種のすぐ下**に置く。現職の欄と同じ並びで、
-                                  **何の呼び方なのかを位置で示している。片方だけ並べ替えないこと。**
-                               ⚠️★**ここでは畳まない**（現職側は「＋ 社内での呼び方・部署名」で畳んでいる）。
-                                  理由は2つ。① この行は繰り返し要素なので、畳むと
-                                  **開閉ボタンが行の数だけ並ぶ**。② 隣の部署名は畳まずに出しており、
-                                  **隣り合う2つを別の操作段階に分けると、片方だけ見落とす。**
-                                  ⚠️ 現職側を畳んでいるのは、あちらが**入口**で「保存に必要な3点」を
-                                     主役にするため。この行は「＋ これまでの職歴を追加」を押した人しか見ない。
-                               ⚠️★`rank`（役職）とは別の列。混ぜないこと。 */}
-                        <input
-                          type="text"
-                          value={j.roleTitle}
-                          onChange={(e) => upd({ roleTitle: e.target.value })}
-                          placeholder="社内での呼び方（例：営業主任）"
-                          disabled={saving}
-                          maxLength={100}
-                          style={{ ...textInputStyle, marginTop: 8 }}
-                          aria-label={`職歴 ${gIdx + 1} の社内での呼び方`}
-                        />
-
-                        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-                          <select
-                            value={j.startYear}
-                            onChange={(e) => upd({ startYear: e.target.value })}
-                            style={selectStyle}
-                            aria-label={`職歴 ${gIdx + 1} の入社年`}
-                          >
-                            <option value="">{isHead ? "入社年" : "開始年"}</option>
-                            {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
-                          </select>
-                          <select
-                            value={j.startMonth}
-                            onChange={(e) => upd({ startMonth: e.target.value })}
-                            style={selectStyle}
-                            aria-label={`職歴 ${gIdx + 1} の入社月`}
-                          >
-                            <option value="">月</option>
-                            {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
-                          </select>
-                        </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-                          <select
-                            value={j.endYear}
-                            onChange={(e) => upd({ endYear: e.target.value })}
-                            style={selectStyle}
-                            aria-label={`職歴 ${gIdx + 1} の退職年`}
-                          >
-                            <option value="">{isHead ? "退職年" : "終了年"}</option>
-                            {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
-                          </select>
-                          <select
-                            value={j.endMonth}
-                            onChange={(e) => upd({ endMonth: e.target.value })}
-                            style={selectStyle}
-                            aria-label={`職歴 ${gIdx + 1} の退職月`}
-                          >
-                            <option value="">月</option>
-                            {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
-                          </select>
-                        </div>
-
-                        {/* ⚠️ 揃っていない行は保存されない。黙って捨てない。 */}
-                        {touched && !ready && (
-                          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--warm-ink)", marginTop: 10, lineHeight: 1.7 }}>
-                            会社名・職種・入社年月・退職年月がそろうと保存されます。
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* ★この会社に役割を追加（2026-09-09）。
-                      ⚠️★会社が決まるまで出さない。空の行を複製しても意味が無い。
-                      ⚠️ 既定では出さず、**押した人にだけ**役割が増える。入口の摩擦を増やさないため
-                         （この画面は「会社を選ぶまで職種を出さない」等、一貫してそうしている）。
-                      ⚠️ 挿入位置は**そのグループの直後**。末尾に足すと別グループに分かれる。 */}
-                  {headKey && (
-                    <button
-                      type="button"
-                      onClick={() => setPastJobs((prev) => {
-                        const last = group[group.length - 1];
-                        const at = prev.findIndex((p) => p.key === last.key);
-                        const next = [...prev];
-                        next.splice(at + 1, 0, pastJobAtSameCompany(rowKeyRef.current++, last));
-                        return next;
-                      })}
-                      style={{ ...subAddBtnStyle, marginTop: 10 }}
-                    >
-                      <span style={{ fontSize: 15, lineHeight: 1 }}>＋</span> この会社に役割を追加
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-
-            <button
-              type="button"
-              onClick={() => setPastJobs((prev) => [...prev, emptyPastJob(rowKeyRef.current++)])}
-              style={addBtnStyle}
-            >
-              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
-              {/* ⚠️★**「（任意）」を戻さないこと**（2026-09-11）。2026-09-09 に
-                     「0件のときは見出しの『任意』バッジが消えるので文言に残す」と決めたが、
-                     **その後の画面では「任意」が4回出ていた**ので削った。 */}
-              {pastJobs.length > 0 ? "職歴を追加" : "これまでの職歴を追加"}
-            </button>
-          </div>
-
-          {/* ── 学歴（任意・複数）────────────────────────────────────────── */}
-          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
-            {/* ★★0件のときは見出しも説明も出さない（職歴と同じ。2026-09-09）。 */}
-            {educations.length > 0 && (
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>学歴</div>
-            )}
-
-            {educations.map((e, idx) => (
-              <div key={e.key} style={rowCardStyle}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>学歴 {idx + 1}</div>
-                  <button
-                    type="button"
-                    onClick={() => setEducations((prev) => prev.filter((p) => p.key !== e.key))}
-                    aria-label={`学歴 ${idx + 1} を削除`}
-                    className="btn-fixed-size"
-                    style={removeBtnStyle}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={e.school}
-                  onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, school: ev.target.value } : p))}
-                  placeholder="学校名"
-                  disabled={saving}
-                  maxLength={100}
-                  style={textInputStyle}
-                  aria-label={`学歴 ${idx + 1} の学校名`}
-                />
-                {/* 学校区分。⚠️ 値は `DEGREES`（API の検証と同じ定数）、表示は `DEGREE_LABELS`。
-                       小学校・中学校・高等学校・専門学校・短期大学・大学・大学院まで選べる。 */}
-                <select
-                  value={e.degree}
-                  onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, degree: ev.target.value } : p))}
-                  style={{ ...selectStyle, width: "100%", marginTop: 8 }}
-                  aria-label={`学歴 ${idx + 1} の区分`}
-                >
-                  <option value="">区分</option>
-                  {DEGREES.map((d) => <option key={d} value={d}>{DEGREE_LABELS[d]}</option>)}
-                </select>
-                <input
-                  type="text"
-                  value={e.faculty}
-                  onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, faculty: ev.target.value } : p))}
-                  placeholder="学部・学科"
-                  disabled={saving}
-                  maxLength={100}
-                  style={{ ...textInputStyle, marginTop: 8 }}
-                  aria-label={`学歴 ${idx + 1} の学部・学科`}
-                />
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-                  <select
-                    value={e.gradYear}
-                    onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, gradYear: ev.target.value } : p))}
-                    style={selectStyle}
-                    aria-label={`学歴 ${idx + 1} の卒業年`}
-                  >
-                    <option value="">卒業年</option>
-                    {YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
-                  </select>
-                  <select
-                    value={e.gradMonth}
-                    onChange={(ev) => setEducations((prev) => prev.map((p) => p.key === e.key ? { ...p, gradMonth: ev.target.value } : p))}
-                    style={selectStyle}
-                    aria-label={`学歴 ${idx + 1} の卒業月`}
-                  >
-                    <option value="">月</option>
-                    {MONTHS.map((m) => <option key={m} value={m}>{Number(m)}月</option>)}
-                  </select>
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setEducations((prev) => [...prev, emptyEducation(rowKeyRef.current++)])}
-              style={addBtnStyle}
-            >
-              <span style={{ fontSize: 16, lineHeight: 1 }}>＋</span>{" "}
-              {/* ⚠️ 「（任意）」を削ったので0件でも同じ文言。三項に戻さないこと（2026-09-11） */}
-              学歴を追加
-            </button>
-          </div>
-
-
-          {saveError && (
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>
-          )}
-          </>)}
 
           {/* ★主CTA。375px では**下端に貼る**（2026-09-09）。実体は globals.css の
                  `.onb-cta-sticky`（メディアクエリが要るのでインラインに書けない）。
@@ -1765,10 +1196,12 @@ function OnboardingInner({
                       要件なので、選ばせずに通さない（`/onboarding/stance` と同じ）。 */}
             <button
               type="button"
+              /* ⚠️★最後の画面（STANCE）は `goNextFromStance` が**保存したうえで
+                    `finish()` を呼ぶ**。ここで `finish` を直に繋がないこと
+                    ——`career_stance` の保存が飛ぶ。 */
               onClick={step === STEP.YOU ? goNextFromYou
                 : step === STEP.COMPANY ? goNextFromCompany
-                : step === STEP.STANCE ? goNextFromStance
-                : finish}
+                : goNextFromStance}
               disabled={saving || !ctaReady}
               style={{
                 width: "100%", padding: "13px 20px",
@@ -1867,11 +1300,6 @@ const textInputStyle: React.CSSProperties = {
  * ⚠️ 入れ子のカード（枠・背景）にしないこと。カードの中にカードが並ぶと、
  *    どちらが親か分からなくなる。
  */
-const rowCardStyle: React.CSSProperties = {
-  borderTop: "1px solid var(--line-soft)",
-  borderLeft: "2px solid var(--line-soft)",
-  paddingTop: 14, paddingLeft: 12, marginLeft: -14, marginBottom: 14,
-};
 
 /**
  * 「保存に必要」の小さな印。**黄色い警告バナーの置き換え**（2026-09-09 / 柴さんの指摘）。
@@ -1900,23 +1328,7 @@ const needLabelStyle: React.CSSProperties = {
  *    **文言を読むまで見分けられなかった。**
  *    枠あり＝新しい塊を作る／枠なし＝いまの塊の続き、という対応にしてある。
  */
-const subAddBtnStyle: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 5,
-  padding: "6px 2px", borderRadius: 8,
-  border: "none", background: "none",
-  color: "var(--royal)", fontSize: 12, fontWeight: 700,
-  cursor: "pointer", fontFamily: "inherit",
-  whiteSpace: "nowrap",
-};
 
-const addBtnStyle: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 6,
-  padding: "9px 16px", borderRadius: 10,
-  border: "1px dashed var(--line)", background: "#fff",
-  color: "var(--royal)", fontSize: 13, fontWeight: 700,
-  cursor: "pointer", fontFamily: "inherit",
-  whiteSpace: "nowrap",
-};
 
 /* ⚠️ `.btn-fixed-size` を付けて `globals.css` の `min-height: 36px` を外す。
       付けないと 26×26 のつもりが 26×36 の縦長になる
