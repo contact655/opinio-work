@@ -187,9 +187,58 @@ export async function filterCompaniesWithRecipients(
   companyIds: string[],
   source: string,
 ): Promise<Set<string>> {
+  /* ★③を含めた結論を返す（＝取得に成功すれば全社）。CTA の出し分け用。
+        ⚠️★**「企業側に宛先があるか」を知りたいときはこれを使わないこと。**
+           ③のせいで**必ず全社が入る**。そちらは `filterCompaniesWithOwnRecipients`。
+           2026-09-15 に `/admin/companies` でこれを取り違えて「宛先なし0社」と出した。 */
+  const r = await resolveOwnRecipients(companyIds, source);
+  if (r === null) return new Set<string>();   // 取得失敗 → 宛先なしに倒す（従来どおり）
+  /* ★③ 運営フォールバック（2026-08-23）。企業に宛先が無くても運営が受け取るので
+        「宛先あり」に数える。**単体版（getCompanyNotificationTarget）と同じ結論**にすること。
+     ⚠️★**`existing` に限ること。** 実在しない company_id まで「宛先あり」にすると、
+        CTA が開いてしまう。直す前の実装は `ow_companies` の行を回していたので
+        **実在する企業しか入らなかった**。そこを変えない。 */
+  return r.existing;
+}
+
+/**
+ * ★**企業側に**通知の宛先があるか（①notification_emails ／ ②有効な管理者）を返す（2026-09-15）。
+ *
+ * ⚠️★**③の運営フォールバックは足さない。** 「運営が受け取れるか」ではなく
+ *    「**企業に受け取る人が居るか**」を知りたいときのための関数。
+ *    `/admin/companies` の「通知の宛先なし N社」がこれを使う。運営は 2026-09-15 に
+ *    **取り次がないと決めた**ので、居ない企業には担当者登録を案内する必要がある
+ *    （docs/ops-fallback-20260915.md）。
+ *
+ * ⚠️★**取得に失敗したら `null`。** 空集合（＝全社に宛先なし）と区別すること。
+ *    区別しないと、クエリが落ちた日に「全社が要対応」と出て運営を消耗させる
+ *    （`findPublishBlockers` と同じ形）。
+ *
+ * ⚠️ 判定規則（①②）は `getCompanyNotificationTarget` と**同じもの**。
+ *    ここに条件を書き写さないこと。
+ */
+export async function filterCompaniesWithOwnRecipients(
+  companyIds: string[],
+  source: string,
+): Promise<Set<string> | null> {
+  const r = await resolveOwnRecipients(companyIds, source);
+  return r === null ? null : r.own;
+}
+
+/**
+ * ①② を1回だけ引いて、**実在する企業**と**企業側に宛先がある企業**の2つを返す。
+ *
+ * ⚠️★**規則の置き場はここだけ。** 上の2つの公開関数はこれを呼び分けるだけにする
+ *    （③を足すか足さないかの違いしかない）。条件を2箇所に書くと必ずズレる。
+ */
+async function resolveOwnRecipients(
+  companyIds: string[],
+  source: string,
+): Promise<{ existing: Set<string>; own: Set<string> } | null> {
+  const existing = new Set<string>();
   const withRecipient = new Set<string>();
   const ids = Array.from(new Set(companyIds.filter(Boolean)));
-  if (ids.length === 0) return withRecipient;
+  if (ids.length === 0) return { existing, own: withRecipient };
 
   const admin = createAdminClient();
 
@@ -206,7 +255,8 @@ export async function filterCompaniesWithRecipients(
 
   if (cErr) console.error(`[notify-recipients:${source}] ow_companies`, cErr.message);
   if (aErr) console.error(`[notify-recipients:${source}] ow_company_admins`, aErr.message);
-  if (cErr || aErr) return withRecipient;
+  // ⚠️ 空集合ではなく null。呼び出し側が「失敗」と「0件」を区別できるようにする
+  if (cErr || aErr) return null;
 
   type AdminRow = { company_id: string; ow_users: { email: string | null } | null };
   const hasAdmin = new Set(
@@ -217,15 +267,12 @@ export async function filterCompaniesWithRecipients(
 
   for (const c of companies ?? []) {
     const overrides = normalizeEmails(c.notification_emails);
+    /* ⚠️★**ここに③を足さないこと。** ③は呼び出し元の
+          `filterCompaniesWithRecipients` が足す。混ぜると「企業側に居るか」が分からなくなる。 */
+    existing.add(c.id as string);
     if (overrides.length > 0 || hasAdmin.has(c.id as string)) {
-      withRecipient.add(c.id as string);
-    } else {
-      /* ★③ 運営フォールバック（2026-08-23）。企業に宛先が無くても運営が受け取るので
-            「宛先あり」に数える。**単体版（getCompanyNotificationTarget）と同じ結論**にすること。
-         ⚠️ ここを揃えないと、一覧では応募CTAが出ないのに詳細では出る（またはその逆）になる。
-            この関数は一覧用の別実装なので、③を片方だけに入れると必ずズレる。 */
       withRecipient.add(c.id as string);
     }
   }
-  return withRecipient;
+  return { existing, own: withRecipient };
 }

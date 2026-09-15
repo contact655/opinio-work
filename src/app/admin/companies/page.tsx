@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminCompaniesClient, { type Company, type CompanyAdmin } from "./AdminCompaniesClient";
 import { findPublishBlockers } from "@/lib/companies/publishable";
+import { filterCompaniesWithOwnRecipients } from "@/lib/notify/recipients";
 
 /**
  * 企業審査（運営）。
@@ -91,12 +92,39 @@ export default async function AdminCompaniesPage() {
   // ⚠️ null は取得失敗。空 Map（＝違反0件）と区別して、画面にもそう出す
   const blockersFailed = blockers === null;
 
+  /* ★★通知の宛先が無い掲載企業（2026-09-15）。**運営が担当者登録を案内する対象。**
+        ⚠️★なぜ要るか: 2026-09-15 に「運営は通知を受け取るが**取り次がない**」と決めた
+           （docs/ops-fallback-20260915.md）。案内する運用なのに、**どの企業か先回りで
+           見る画面が無かった** ——`/admin/ambassador-requests` と `/admin/applications` は
+           **依頼や応募が来た企業しか出さない**。実測（2026-09-15）で応募・面談とも0件なので、
+           あの2画面では**1社も見えない**。
+        ⚠️★**判定を書かないこと。** ①②（notification_emails ／有効な管理者）の規則は
+           `lib/notify/recipients.ts` の1箇所にあり、通知側と同じもの。ここで条件を
+           書き写すと「一覧では宛先ありなのに通知は届かない」が起きる。
+        ⚠️★**`filterCompaniesWithRecipients` を使わないこと**（2026-09-15 に取り違えた）。
+           あちらは**③の運営フォールバックを含めた結論**で、取得に成功すれば**必ず全社**が
+           「宛先あり」になる（CTA の出し分け用）。実際それで「宛先なし0社」と出した。
+           ここで要るのは `filterCompaniesWithOwnRecipients`（①②だけを見る）。
+        ⚠️ 対象は**掲載中**かつ**検証用でない**企業だけ。下書きは案内する段階に無いし、
+           検証用を混ぜると消えない警告になる（`/admin/companies` の要対応と同じ方針）。 */
+  const listedIds = ((companyRows ?? []) as unknown as Company[])
+    .filter((c) => c.listing_status === "listed" && c.is_test !== true)
+    .map((c) => c.id);
+  const ownRecipient = await filterCompaniesWithOwnRecipients(listedIds, "admin-companies");
+  /* ⚠️★**null は取得失敗。空集合（＝全社に宛先なし）と区別する。**
+        区別しないと、クエリが落ちた日に「全社が要対応」と出る（`findPublishBlockers` と同じ形）。 */
+  const recipientsFailed = ownRecipient === null;
+  const noRecipientIds = new Set(
+    recipientsFailed ? [] : listedIds.filter((id) => !ownRecipient!.has(id)),
+  );
+
   const companies: Company[] = ((companyRows ?? []) as unknown as Company[]).map((c) => ({
     ...c,
     job_count: jobCountMap.get(c.id) ?? 0,
     admins: adminMap.get(c.id) ?? [],
     publish_blockers: blockers?.get(c.id) ?? [],
+    no_recipient: noRecipientIds.has(c.id),
   }));
 
-  return <AdminCompaniesClient initialCompanies={companies} blockersFailed={blockersFailed} />;
+  return <AdminCompaniesClient initialCompanies={companies} blockersFailed={blockersFailed} recipientsFailed={recipientsFailed} />;
 }

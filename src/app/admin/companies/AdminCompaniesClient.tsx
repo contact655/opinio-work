@@ -85,6 +85,12 @@ export type Company = {
    *  ⚠️ 判定は `lib/companies/publishable.ts` の `findPublishBlockers`。
    *     ここで条件を組み立て直さないこと（ゲートと食い違う）。 */
   publish_blockers?: string[];
+  /** ★通知の宛先（①notification_emails ／ ②有効な管理者）が**企業側に**無い（2026-09-15）。
+   *  ⚠️ 判定は `lib/notify/recipients.ts` の `filterCompaniesWithRecipients`（通知と同じ規則）。
+   *     ここで組み立て直さないこと ——一覧と通知が食い違う。
+   *  ⚠️★③の運営フォールバック（`ADMIN_EMAIL`）は**数に入らない**。欲しいのは
+   *     「企業側に受け取る人が居ない」なので、それが正しい。 */
+  no_recipient?: boolean;
   /** 対象業界（軸2）の3値。⚠️ null は「未確認」で、"horizontal"（業界を問わない）とは別物 */
   target_industry_scope?: "vertical" | "horizontal" | "consumer" | null;
   /** ⚠️ 未確認の件数から検証用企業を外すために要る（`/admin/companies` の「要対応」と揃える） */
@@ -97,8 +103,8 @@ export type Company = {
       求人数と担当者の列が実際より少なく出ていた
       （運営ポリシー auth_is_admin を持つのは ow_companies だけ）。 */
 export default function AdminCompaniesClient(
-  { initialCompanies, blockersFailed = false }:
-  { initialCompanies: Company[]; blockersFailed?: boolean },
+  { initialCompanies, blockersFailed = false, recipientsFailed = false }:
+  { initialCompanies: Company[]; blockersFailed?: boolean; recipientsFailed?: boolean },
 ) {
   const [companies, setCompanies] = useState<Company[]>(initialCompanies);
   const [activeTab, setActiveTab] = useState("all");
@@ -230,6 +236,11 @@ export default function AdminCompaniesClient(
    *     下書きやテスト企業まで数えると、いつまでも0にならない数字になる。
    *  ⚠️★`horizontal`（業界を問わない）は**未確認に数えない。** あれは運営が調べた結果で、
    *     埋まっている状態。ここを混ぜると、作業一覧から「見るべきもの」が消える。 */
+  /** ★通知の宛先が企業側に無い掲載企業の数（2026-09-15）。**担当者登録を案内する対象。**
+   *  ⚠️ サーバー側で掲載中・検証用でないものに絞ってあるので、ここでは数えるだけ。
+   *  ⚠️ タブや検索で絞っても全体の数を出す（上の2つと同じ理由）。 */
+  const noRecipientCount = companies.filter((c) => c.no_recipient === true).length;
+
   const targetUnknownCount = companies.filter(
     (c) => c.listing_status === "listed"
       && c.is_test !== true
@@ -328,6 +339,28 @@ export default function AdminCompaniesClient(
           「誰に売っているか」をまだ調べていないものです。企業詳細の「対象業界」タブで
           <strong>特定の業界に張っている / 業界を問わない</strong> のどちらかを記録してください。
           <span style={{ color: "var(--ink-mute)" }}>（掲載の条件ではありません。いまは求職者側に何も出ません）</span>
+        </div>
+      )}
+
+      {/* ★通知の宛先が無い掲載企業（2026-09-15）。
+             ⚠️★**これは「掲載条件の違反」ではない**ので、上の琥珀の警告と色を分ける。
+             ⚠️★**消さないこと。** 2026-09-15 に「運営は受け取るが取り次がない」と決めた
+                （docs/ops-fallback-20260915.md）ので、**案内する相手を知る唯一の一覧**がここ。
+                `/admin/ambassador-requests` と `/admin/applications` は
+                **依頼や応募が来た企業しか出さない。** */}
+      {/* ⚠️★**取得に失敗したら「0社」と出さない。** 壊れているのに正常に見える
+             （CLAUDE.md「取得に失敗したら『0件』と表示しない」）。 */}
+      {recipientsFailed ? (
+        <div role="status" style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--warm-ink)", lineHeight: 1.7 }}>
+          <strong>通知の宛先を判定できませんでした</strong> —— <strong>0社という意味ではありません。</strong>
+        </div>
+      ) : noRecipientCount > 0 && (
+        <div role="status" style={{ background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--royal)", lineHeight: 1.7 }}>
+          <strong>通知の宛先なし {noRecipientCount}社</strong> — 掲載中ですが、
+          応募・面談の通知を<strong>受け取る担当者が企業側にいません</strong>。
+          いまは通知が運営に届きますが、<strong>運営は取り次ぎません</strong>。
+          企業に <strong>/biz の担当者登録</strong> を案内してください。
+          <span style={{ color: "var(--ink-mute)" }}>（掲載の条件ではありません）</span>
         </div>
       )}
 
@@ -461,6 +494,21 @@ export default function AdminCompaniesClient(
                                 }}
                               >
                                 ⚠️ 要対応
+                              </div>
+                            )}
+                            {/* ★通知の宛先が企業側に無い（2026-09-15）。⚠️ 掲載条件の違反では
+                                   ないので、上の琥珀とは色を分ける。 */}
+                            {c.no_recipient === true && (
+                              <div
+                                title="応募・面談の通知を受け取る担当者が企業側にいません。運営は取り次がないので、/biz の担当者登録を案内してください。"
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4,
+                                  padding: "2px 7px", borderRadius: 100,
+                                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                                  fontSize: 10.5, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap",
+                                }}
+                              >
+                                宛先なし
                               </div>
                             )}
                           </div>
