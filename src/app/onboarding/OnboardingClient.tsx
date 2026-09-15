@@ -623,8 +623,11 @@ function OnboardingInner({
   /** 上限（`MAX_DESIRED_ROLES`）に当たったことを伝える短い注記。次の操作で消える（2026-09-12） */
   const [roleLimitNote, setRoleLimitNote] = useState(false);
 
-  /** 2画面目の「次へ」。⚠️ `career_stance` は選ぶまで押せないので、ここでは null を想定しない。 */
-  const goNextFromStep2 = async () => {
+  /** ★STANCE（3画面目）の「次へ」。⚠️ `career_stance` は選ぶまで押せないので null を想定しない。
+   *  ⚠️★**名前に画面番号を入れないこと。** 2026-09-15 まで `goNextFromStep2` だったが、
+   *     2026-09-14 に画面を1つ挟んで**3画面目**になっており、名前と実体がずれていた。
+   *     そのズレが `goStep(3)`（自分自身へ戻る）の見落としを助けた。 */
+  const goNextFromStance = async () => {
     if (!stance) return;
     setSaving(true);
     setSaveError(null);
@@ -644,11 +647,16 @@ function OnboardingInner({
       setSaveError("転職についての保存に失敗しました。あとでマイページから設定できます。");
     }
     setSaving(false);
-    goStep(3);
+    /* ⚠️★★**`goStep(3)` と直書きしてあり、この画面（STANCE=3）に戻っていた**
+          （2026-09-15 に本番で発覚。2026-09-14 に1画面目を挟んだときの取り残し）。
+          **「次へ」を押しても進まない**＝オンボーディングがここで詰まる。
+       ⚠️★**数字を書かないこと。** `STEP` を使う。画面を1つ挟むだけで全部ずれる。 */
+    goStep(STEP.OPTIONAL);
   };
 
-  /** 1画面目の「次へ」。⚠️ ④の警告はここに移した（3画面に割っても同じ保証が要る）。 */
-  const goNextFromStep1 = async () => {
+  /** ★COMPANY（2画面目）の「次へ」。⚠️ ④の警告はここに移した（画面を割っても同じ保証が要る）。
+   *  ⚠️★**名前に画面番号を入れないこと**（上と同じ理由。旧名 `goNextFromStep1`）。 */
+  const goNextFromCompany = async () => {
     if (missingForExperience && !experienceWarned) {
       setExperienceWarned(true);
       return;
@@ -1758,8 +1766,8 @@ function OnboardingInner({
             <button
               type="button"
               onClick={step === STEP.YOU ? goNextFromYou
-                : step === STEP.COMPANY ? goNextFromStep1
-                : step === STEP.STANCE ? goNextFromStep2
+                : step === STEP.COMPANY ? goNextFromCompany
+                : step === STEP.STANCE ? goNextFromStance
                 : finish}
               disabled={saving || !ctaReady}
               style={{
