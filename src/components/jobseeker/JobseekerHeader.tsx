@@ -284,26 +284,24 @@ export function JobseekerHeader() {
               user ? (
                 /* ── Logged-in: message icon + bell + avatar button + dropdown ── */
                 <>
-                {/* メッセージアイコン — 🔍と🔔の間 */}
-                <Link
-                  href="/mypage/conversations"
-                  aria-label="メッセージ"
-                  style={{
-                    width: 36, height: 36,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    borderRadius: 8, border: `1px solid ${pathname === "/mypage/conversations" ? "var(--royal)" : "var(--line)"}`,
-                    background: pathname === "/mypage/conversations" ? "var(--royal-50)" : "#fff",
-                    color: pathname === "/mypage/conversations" ? "var(--royal)" : "var(--ink-mute)",
-                    flexShrink: 0, textDecoration: "none",
-                    transition: "border-color 0.15s, color 0.15s, background 0.15s",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--royal)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--royal)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = pathname === "/mypage/conversations" ? "var(--royal)" : "var(--line)"; (e.currentTarget as HTMLAnchorElement).style.color = pathname === "/mypage/conversations" ? "var(--royal)" : "var(--ink-mute)"; }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                </Link>
+                {/* ★★メッセージのアイコンは **2026-09-15 に外した**（柴さんの判断）。
+                       ⚠️★**戻さないこと。** 戻すなら「未読バッジ」を一緒に作ること
+                          ——それが無いと同じ状態に戻る。
+
+                       ── なぜ外したか（2026-09-15 実測）────────────────────────────
+                       ・`ow_conversation_messages` が **0件**（会話3件はメッセージ0のまま）
+                       ・⚠️★**バッジが無く、届いたことを伝えられない。**
+                         しかも**メッセージ受信で通知も作っていない**
+                         （`ow_notifications` への insert が0件）＝**ベルでも気づけない**
+                       ・**入口は残っている** ——`/mypage` のサイドバーに文字で「メッセージ」
+
+                       ＝「**空のページへ行く、文字のない二つ目の入口**」だった。
+                       ⚠️ アイコンの絵柄の問題ではない。**押す理由が無い**のが問題だった。
+
+                       ⚠️ 材料は揃っている（`ow_conversation_participants.last_read_at` と
+                          `ow_conversation_messages.sent_at`）ので、**列の追加なしで未読は出せる。**
+                          ただし順序としては**受信通知（ベル＋メール）のほうが先に効く。** */}
+
                 <NotificationBell />
                 {/* ⚠️★**企業担当者の常設スイッチ**（2026-09-05）。ベルとアバターの間。
                        畳んだドロップダウンの中だと、企業側と求職者側を行き来する人が
@@ -338,8 +336,9 @@ export function JobseekerHeader() {
                            企業一覧）と同じ絵になり、行き先を取り違える。 */}
                     <LayoutGrid size={16} strokeWidth={2.2} />
                     {/* ⚠️★**文字を消さないこと**（2026-09-06）。アイコンだけだと
-                           検索・メッセージ・通知と**同じ 36px の四角が4つ並ぶ**ので
-                           見分けがつかない、と指摘を受けて足した。
+                           同じ 36px の四角がいくつも並ぶので見分けがつかない、と
+                           指摘を受けて足した。⚠️ 2026-09-15 にメッセージのアイコンを
+                           外したので、いま並ぶのは**検索・通知**の2つ。
                         ⚠️ 文言はモバイルメニューと同じ「企業の管理画面」にする。
                            画面ごとに呼び方を変えない。
                         ⚠️ 幅の出し分けはインラインに書かない（CSS が効かなくなる）。
