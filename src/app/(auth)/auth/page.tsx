@@ -788,8 +788,14 @@ function AuthPageInner() {
 const s = {
   formSide: {
     /* ⚠️ 上下の余白は**対称**にする（2026-08-20）。
-          以前は `72px 28px 0` で上だけ厚く、下が 0 だった。 */
-    padding: "40px 28px",
+          以前は `72px 28px 0` で上だけ厚く、下が 0 だった。
+       ⚠️★**64px を 40px に戻さないこと**（2026-09-15）。右上の
+          「採用担当者・企業の方はこちら」は `position: fixed`（top 16 / 高さ36 ＝ **下端52**）
+          で本文の上に浮いている。40px だと本文が y=40 から始まり、
+          **375px でロゴがこの帯に潜り込む**（実測: ロゴ 145〜230 × 帯 138〜355 で重なる）。
+          ⚠️ ロゴを中央に寄せた日に出た。左寄せのときは横がずれていて当たらなかっただけで、
+             **帯が本文に重なること自体は前からあった。** */
+    padding: "64px 28px",
     display: "flex",
     flexDirection: "column",
     background: "#fff",
@@ -813,6 +819,8 @@ const s = {
 
   logoRow: {
     display: "flex",
+    /* ⚠️ ロゴは中央（2026-09-15 / 柴さんの指示）。左寄せに戻さないこと。 */
+    justifyContent: "center",
     marginBottom: 20,
     paddingBottom: 16,
     borderBottom: "1px solid var(--line)",
