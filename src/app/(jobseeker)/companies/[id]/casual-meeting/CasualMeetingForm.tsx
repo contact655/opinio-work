@@ -49,8 +49,21 @@ function SuccessScreen({ companyName, contactEmail }: { companyName: string; con
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 8 }}>
           <strong style={{ color: "var(--ink)" }}>{companyName}</strong> へのカジュアル面談申し込みが完了しました。
         </p>
+        {/* ⚠️★★**「通常3営業日以内に企業から連絡が来ます」と書かないこと**（2026-09-15 に外した）。
+               ① **期限を約束していた。** 返答の速さは企業次第で、OPINIO は担保していない。
+               ② ★**担当者が登録されていない企業では、そもそも企業が知らない。**
+                  通知は運営に回る（`getCompanyNotificationTarget` の③）。運営は
+                  **取り次がない**と決めた（2026-09-15 / docs/ops-fallback-20260915.md）ので、
+                  **「企業から連絡が来ます」は事実にならない。**
+                  ⚠️ 実測（2026-09-15）: 掲載22社中20社が宛先0件。
+               ⚠️★**同じ形を一度直している** ——`companies/[id]/page.tsx` の
+                  「人事担当者が直接対応します」は**全社で事実と違った**。ここが取り残されていた。
+               ⚠️ 企業ごとに文言を出し分けないこと。**企業の状態を候補者に見せる**ことになる。
+               → いまは「**どこに届くか**」だけを書く。これは OPINIO が保証できる事実。
+               ⚠️★**「連絡は届きます」もだめ**（一度書いて直した）。**連絡が来ること自体**を
+                  含意する。**「ある場合は」を外さないこと。** */}
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 8 }}>
-          通常 <strong>3営業日以内</strong> に、<strong>{contactEmail}</strong> 宛てに企業から連絡が来ます。
+          企業から連絡がある場合は、<strong>{contactEmail}</strong> 宛てに届きます。
         </p>
         {/* ★状況の追い方を書く（2026-09-13）。⚠️ メールだけを案内にしない。
                申込の状態はマイページ側でも変わる。 */}

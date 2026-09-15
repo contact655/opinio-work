@@ -76,8 +76,19 @@ export default function ApplicationForm({
         <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
           応募が完了しました
         </div>
+        {/* ⚠️★★**「{企業名}の採用担当者があなたの応募を確認します」と書かないこと**
+               （2026-09-15 に外した）。**担当者が登録されていない企業では、確認する人がいない。**
+               通知は運営に回り（`getCompanyNotificationTarget` の③）、運営は**取り次がない**と
+               決めた（2026-09-15 / docs/ops-fallback-20260915.md）。
+               ⚠️ 実測（2026-09-15）: 掲載22社中20社が宛先0件。
+               ⚠️ 企業ごとに出し分けないこと。**企業の状態を候補者に見せる**ことになる。
+               ⚠️★**「送信されました」もだめ**（一度書いて直した）。担当者が未登録の企業へは
+                  **送信されていない**（運営に回っている）。**OPINIO が受け付けたこと**だけが
+                  全社で確実に真になる。
+               → 応募が残っていること（`ow_job_applications` の行）と、
+                  **どこで追えるか**だけを書く。どちらも OPINIO が保証できる。 */}
         <div style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 32 }}>
-          {companyName}の採用担当者があなたの応募を確認します。<br />
+          {companyName}への応募を受け付けました。<br />
           選考状況は「マイページ」の「応募・面談」からご確認いただけます。
         </div>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
