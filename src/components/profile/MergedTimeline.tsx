@@ -1139,7 +1139,15 @@ export default function MergedTimeline({
             const single = items.length === 1;
 
             return (
-              <div key={`same-company-${entry.companyKey}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
+              /* ⚠️★**key に `companyKey` だけを使わないこと**（2026-09-15 に直した）。
+                    `groupSameCompanyEntries` は**出戻り**（連続しない同じ会社）を
+                    **意図して別グループにする**ので、同じ `companyKey` のグループが
+                    2つ並ぶ。`companyKey` だけだと React の key が重複し、
+                    「Encountered two children with the same key」が出る。
+                 ⚠️ 実害は React に任せた挙動（子の重複・省略）で、**画面では気づきにくい。**
+                    プレビューの fixture が出戻りを持っていたので表に出た。
+                 ⚠️ 先頭の役割の id を足して一意にする。**id はこのグループで安定。** */
+              <div key={`same-company-${entry.companyKey}-${items[0].id}`} className={`tl-row${anyIsCurrent ? " tl-row-current" : ""}`}>
                 <div className="tl-icon-cell" style={{ paddingTop: 8 }}>
                   <CompanyLogoIcon
                     isCurrent={anyIsCurrent}
