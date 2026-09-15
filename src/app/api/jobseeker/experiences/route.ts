@@ -6,6 +6,9 @@ import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MAX_ROLES_PER_EXPERIENCE } from "@/lib/constants/experienceRoles";
+/* ⚠️★代替表示は定数を使う（2026-09-15）。`?? "非公開企業"` と直書きしないこと ——
+      `MASKED_COMPANY_LABEL` を改名したときに、ここだけ旧文字列を作り続ける。 */
+import { MASKED_COMPANY_LABEL, UNKNOWN_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { NextResponse } from "next/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 
@@ -120,13 +123,13 @@ export async function GET() {
     let displayCompanyName: string;
     if (r.company_id) {
       companyType = "master";
-      displayCompanyName = companyNameMap.get(r.company_id as string) ?? "不明な企業";
+      displayCompanyName = companyNameMap.get(r.company_id as string) ?? UNKNOWN_COMPANY_LABEL;
     } else if (r.company_text) {
       companyType = "custom";
       displayCompanyName = r.company_text as string;
     } else {
       companyType = "anon";
-      displayCompanyName = (r.company_anonymized as string) ?? "非公開企業";
+      displayCompanyName = (r.company_anonymized as string) ?? MASKED_COMPANY_LABEL;
     }
 
     const roleUuid = r.role_category_id as string;
