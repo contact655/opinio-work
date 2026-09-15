@@ -21,7 +21,33 @@
  * ⚠️ `/auth` と `postAuth` は**それぞれ自前の既定**を持っている。あちらは
  *    「認証後どこへ行くか」で関心が違うので、ここに寄せていない。
  */
-export const DEFAULT_AFTER_ONBOARDING = "/companies";
+export const DEFAULT_AFTER_ONBOARDING = "/mypage";
+
+/**
+ * ★`next` が「本人の意図」ではなく**呼び出し側が既定で付けただけ**の値（2026-09-15）。
+ *
+ * ⚠️★`/companies` は3箇所が**意図の有無に関わらず付ける**:
+ *    `/auth` の登録（`nextUrl || "/companies"`）／ メールテンプレートの
+ *    `next=%2Fcompanies`（**リポジトリの外**・Supabase ダッシュボード）／ `/auth/confirm`。
+ *    そのため `DEFAULT_AFTER_ONBOARDING` を変えても**素通りしてしまう**。
+ */
+const GENERIC_NEXT = "/companies";
+
+/**
+ * ★オンボーディングを終えた人の行き先（2026-09-15）。
+ *
+ * ⚠️★**中断された人は元の場所へ戻す。** `OnboardingGuard` や `postAuth` が付ける `next` は
+ *    「その人が開こうとしていたURL」なので、勝手に変えない。
+ * ⚠️ ただし `next` が `GENERIC_NEXT` のときは**意図とみなさず**既定へ寄せる。
+ *    2026-09-15 に4画面目（職歴・学歴・勤務地）を削除したので、
+ *    続きを入れる場所（`/mypage`）に着地させないと**誰もたどり着かない**。
+ * ⚠️ 代償: `/companies` を見ていて中断された人も `/mypage` に着く。
+ *    **意図を1つ取りこぼす**が、ヘッダーから1クリックで戻れるほうを採った。
+ */
+export function afterOnboarding(raw: string | null | undefined): string {
+  const v = safeNext(raw, DEFAULT_AFTER_ONBOARDING);
+  return v === GENERIC_NEXT ? DEFAULT_AFTER_ONBOARDING : v;
+}
 
 export function safeNext(raw: string | null | undefined, fallback: string): string {
   const v = raw ?? "";

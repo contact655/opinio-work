@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { confirmRedirectTo, safeNext } from "@/lib/auth/redirects";
+import { confirmRedirectTo, safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { AUTH_ERROR_DISPLAY, toAuthErrorCode, type AuthErrorCode } from "@/lib/constants/authErrors";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -190,7 +190,10 @@ function AuthPageInner() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role: "candidate" }),
         }).catch(() => {});
-        const dest = nextUrl || "/companies";
+        /* ⚠️★**"/companies" と直書きしないこと**（2026-09-15）。ここは
+              「オンボーディングを終えたあとどこへ行くか」なので、既定は
+              `DEFAULT_AFTER_ONBOARDING` の1箇所に持つ。 */
+        const dest = nextUrl || DEFAULT_AFTER_ONBOARDING;
         /* ★ログインと同じ理由でフルナビゲーション（2026-08-16）。
               `/onboarding` は `getUser()` で弾いて `/auth?next=/onboarding` に戻すので、
               書きたてのセッションが通らないと**この画面に戻ってきて固まる**。 */

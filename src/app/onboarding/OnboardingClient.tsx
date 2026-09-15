@@ -18,7 +18,7 @@ import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
 import { RoleAccordionPicker, SelectedRoleChips } from "@/components/ui/RoleAccordionPicker";
 /* ⚠️★上限は定数1つ。**ここに 5 と書かないこと**（画面と API で食い違った前例がある）。 */
 import { MAX_DESIRED_ROLES } from "@/lib/constants/careerPreferences";
-import { safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
+import { afterOnboarding } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
@@ -233,7 +233,7 @@ function OnboardingInner({
      ⚠️ ここに入る値の主な出どころは `OnboardingGuard`（**利用者が見ようとしていたページ**）と
         `postAuth` / `/auth`（認証後の行き先）。 */
   const searchParams = useSearchParams();
-  const next = safeNext(searchParams.get("next"), DEFAULT_AFTER_ONBOARDING);
+  const next = afterOnboarding(searchParams.get("next"));
 
   /* ★★ステップ（2026-09-11）。**URL に置く**（`?step=`）。
      ⚠️★**`sessionStorage` に入れないこと。** `OnboardingGuard` で一度踏んでいる
