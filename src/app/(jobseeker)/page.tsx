@@ -12,36 +12,45 @@ import { filterListedCompanies } from "@/lib/companies/visibility";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
 import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
+import { companyDisplayName } from "@/lib/companies/displayName";
 
 /**
- * 掲載数は実データから出す。ハードコードすると外から見える説明文が古いまま腐るため。
- * サイト共通の layout.tsx 側には数字を置かない（全ページの既定値で気づけないため）。
+ * ★件数を **metadata と OGP から外した**（2026-09-16）。
+ *
+ * それまで「掲載企業22社・求人2件。」と実数を出していた。実データから出していたので
+ * 嘘ではないが、**検索結果と SNS シェアに最も出るのはこの文言**で、
+ * 在庫の薄さを一番強い場所で自分から見せる形になっていた。
+ * 同じ理由で画面からも件数を外している（業種タイル / 「N社すべて見る」 / 募集セクション）。
+ *
+ * ⚠️★**件数を書き戻すなら、画面側の3箇所と一緒に判断すること。** ここだけ戻すと
+ *    「検索結果には数字が出るのに、開くとどこにも無い」というちぐはぐな形になる。
+ *
+ * ⚠️ 数える必要が無くなったので **count クエリ2本を削除した**（LP の描画で使う
+ *    `totals` は `HomePage` 側が別に取っている。あちらは募集セクションの
+ *    しきい値判定に要る）。
+ *
+ * ⚠️ サイト共通の layout.tsx 側には数字を置かない（全ページの既定値で気づけないため）。
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const db = createAdminClient();
-  const [{ count: companyCount }, { count: jobCount }] = await Promise.all([
-    filterListedCompanies(db.from("ow_companies").select("id", { count: "exact", head: true })),
-    db.from("ow_jobs").select("id", { count: "exact", head: true }).eq("status", "published").eq("is_test", false),
-  ]);
-
-  const scale =
-    companyCount && jobCount
-      ? `掲載企業${companyCount.toLocaleString("ja-JP")}社・求人${jobCount.toLocaleString("ja-JP")}件。`
-      : "";
   // ⚠️ 2026-08-03: 「スカウトも営業電話もありません」を削除した。事実と異なっていたため。
   //    スカウト機能は実装済みで（ow_scouts / can_send_scout）、受け取る設定にした場合に
   //    だけ届く（初期設定はオフ）。この但し書きは description に収まらないので触れず、
   //    正確な説明は LP の FAQ に置いている。営業電話が無いのは事実なので残す。
   //    ここは LP の generateMetadata で、layout の既定値を上書きする。
   //    検索結果と SNS シェアに最も出るのはこの文言なので、方針変更時は真っ先に直すこと。
-  const description = `IT業界の企業情報と求人を、ひとつの場所に。${scale}登録なしで全て読めます。完全無料・営業電話なし。`;
+  /* ⚠️★FV の見出し・サブコピーと同じ趣旨に揃えてある（2026-09-16）。
+        **片方だけ直さないこと。** 実測の裏取りは
+        docs/phase0-top-page-20260916.md にある。
+     ⚠️ 「組織体制・働き方まで」と書かないこと（掲載22社中いずれも1社しか無い）。 */
+  const description =
+    "募集の有無にかかわらず、IT企業の事業内容をまとめています。登録なしで読めます。登録すると、そこで働く人の経歴も見られます。完全無料・営業電話なし。";
 
   return {
     /* ⚠️ `absolute` にする。素の title だと「… | OPINIO」が足されて OPINIO が2回出る。 */
-    title: { absolute: "OPINIO — IT業界の企業と求人を探す" },
+    title: { absolute: "OPINIO — IT業界の企業を、募集が出る前から調べる" },
     description,
     openGraph: {
-      title: "OPINIO — IT業界の企業と求人を探す",
+      title: "OPINIO — IT業界の企業を、募集が出る前から調べる",
       description,
       url: "https://opinio.jp",
       siteName: "OPINIO",
@@ -140,13 +149,14 @@ export default async function HomePage() {
     href: `/companies?industry=${d.slug}`,
   }));
 
-  // フェーズはDB値が英語・日本語混在。実データは listed / unicorn / non_listed / series_d が確認済み
-  // （2026-08-03）。シリーズ表記は今後 A〜E が入りうるので全て「成長ステージ」に寄せる。
+  /* ⚠️ フェーズのラベルは LandingPage 側で `phaseLabel()`（lib/constants/phase.ts）に
+        寄せてある（2026-09-16）。**ここでは何も変換しない。** */
 
   // ── 企業カードの付帯件数 ────────────────────────────────────────
   // プレビュー12社ぶんだけを対象にするので、件数が増えても負荷は一定。
   const companyRows = companyRowsRaw as unknown as {
-    id: string; slug: string | null; name: string; brand_name: string | null; industry: string | null;
+    id: string; slug: string | null; name: string; brand_name: string | null;
+    name_en: string | null; industry: string | null;
     phase: string | null; logo_url: string | null; logo_letter: string | null;
     logo_gradient: string | null; url: string | null;
   }[];
@@ -155,11 +165,15 @@ export default async function HomePage() {
   /* ⚠️ カードのラベルは**事業領域**。`industry`(text) は廃止予定で新規企業では空になる。 */
   const previewDomains = await fetchBusinessDomainsByCompany(db, previewIds, "LP companies");
 
-  const tally = async (table: string, col: string, filter?: [string, string]) => {
+  /* ⚠️ `filters` は複数受ける。求人は `status` だけでなく **`is_test` も外す**
+        （2026-09-16）。総件数（`jobCountP`）と `pickLpCompanies` は元から
+        `is_test=false` を付けており、**ここだけ条件が割れていた。**
+        いま該当は0件なので実害は無いが、検証用の求人を公開した日に数字が食い違う。 */
+  const tally = async (table: string, col: string, filters: [string, string][] = []) => {
     const map = new Map<string, number>();
     if (previewIds.length === 0) return map;
     let q = db.from(table).select(col).in(col, previewIds);
-    if (filter) q = q.eq(filter[0], filter[1]);
+    for (const [k, v] of filters) q = q.eq(k, v);
     const { data, error } = await q;
     if (error) { console.error(`[HomePage] ${table} tally failed:`, error.message); return map; }
     for (const row of (data ?? []) as unknown as Record<string, string>[]) {
@@ -172,14 +186,25 @@ export default async function HomePage() {
   // ⚠️ ow_company_members は数えていない。2026-08-05 にカードから「社員」を外したため。
   //    理由は src/lib/lp/pickCompanies.ts のコメントを参照。
   const [articleByCompany, jobByCompany] = await Promise.all([
-    tally("ow_articles", "company_id", ["is_published", "true"]),
-    tally("ow_jobs", "company_id", ["status", "published"]),
+    tally("ow_articles", "company_id", [["is_published", "true"]]),
+    tally("ow_jobs", "company_id", [["status", "published"], ["is_test", "false"]]),
   ]);
 
+  /* ★表示名は `companyDisplayName()` に寄せた（2026-09-16）。
+        ⚠️★**`brand_name ?? name` に戻さないこと。** 2つ壊れていた:
+          ① **`brand_name` に空文字の行がある**（株式会社Opinio）。`??` は空文字を拾わないので
+             **カードの社名が空のまま**出ていた。しかも `updated_at` が最新で**必ず先頭**だった
+          ② `/companies` `/search` `/companies/[id]` はすべて
+             `companyDisplayName(name, name_en)` を通るのに **LP だけ別ルール**で、
+             「HubSpot」「Sansan株式会社」「HPE」「CTC」が同じ一覧に混在していた
+        ⚠️ `displayName.ts` の冒頭にも「新しく企業名を表示する箇所を作るときは必ずここを通すこと」
+           と書いてある。**LP はそれを通っていない唯一の画面だった。**
+        ⚠️ 副作用: 伊藤忠テクノソリューションズが「CTC」→「ITOCHU Techno-Solutions」になる。
+           `/companies` と一致する側に揃えた（柴さんの判断）。 */
   const companies: LPCompanyCard[] = companyRows.map((c) => ({
     id: c.id,
     slug: c.slug,
-    name: c.brand_name ?? c.name,
+    name: companyDisplayName(c.name, c.name_en).displayName,
     businessDomain: primaryBusinessDomain(previewDomains.get(c.id))?.name ?? null,
     phase: c.phase,
     logoUrl: c.logo_url,
@@ -202,13 +227,15 @@ export default async function HomePage() {
   const jobCompanyIds = Array.from(new Set(jobRows.map((j) => j.company_id).filter(Boolean)));
   const companyNameById = new Map<string, string>();
   if (jobCompanyIds.length > 0) {
+    /* ⚠️ 表示名は企業カードと同じ `companyDisplayName()` を通す（2026-09-16）。
+          同じページの中で社名の作り方を2つ持たない。 */
     const { data, error } = await db
       .from("ow_companies")
-      .select("id, name, brand_name")
+      .select("id, name, name_en")
       .in("id", jobCompanyIds);
     if (error) console.error("[HomePage] job companies fetch failed:", error.message);
-    for (const c of (data ?? []) as { id: string; name: string; brand_name: string | null }[]) {
-      companyNameById.set(c.id, c.brand_name ?? c.name);
+    for (const c of (data ?? []) as { id: string; name: string; name_en: string | null }[]) {
+      companyNameById.set(c.id, companyDisplayName(c.name, c.name_en).displayName);
     }
   }
 
