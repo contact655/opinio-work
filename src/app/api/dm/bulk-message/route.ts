@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
+import { notifyNewMessage } from "@/lib/notify/messageNotification";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,11 @@ export async function POST(request: NextRequest) {
       results.push({ conversationId, ok: false, error: "送信に失敗しました" });
       continue;
     }
+
+    /* ★受信者の通知に積む（2026-09-16）。⚠️★**1通ごとに呼ぶ。**
+          まとめて最後に1回にすると、途中で失敗した会話ぶんまで通知が飛ぶ。
+          ⚠️ 条件は `notifyNewMessage` の1箇所。ここに書き写さない。 */
+    await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/bulk-message" });
 
     /* ⚠️ 一覧の並び替えに使う。失敗しても本文は入っているので、送信自体は成功扱い。 */
     const { error: touchErr } = await admin

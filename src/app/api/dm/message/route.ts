@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
+import { notifyNewMessage } from "@/lib/notify/messageNotification";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -74,6 +75,10 @@ export async function POST(request: NextRequest) {
 
   /* ⚠️ `last_message_at` はここで書かない。`trg_update_last_message_at`
         （ow_conversation_messages の AFTER INSERT）が `sent_at` で更新する。 */
+
+  /* ★受信者の通知に積む（2026-09-16）。⚠️ best-effort ——失敗しても送信は成功のまま。
+        ⚠️★**条件をここに書かないこと。** 宛先の決め方は `notifyNewMessage` の1箇所。 */
+  await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/message" });
 
   return NextResponse.json({ ok: true });
 }

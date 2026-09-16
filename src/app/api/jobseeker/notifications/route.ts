@@ -31,7 +31,7 @@ export async function GET() {
   const { data: rows, error } = await adminSupabase
     .from("ow_notifications")
     .select(`
-      id, type, post_id, comment_id, is_read, created_at, scout_id,
+      id, type, post_id, comment_id, is_read, created_at, scout_id, conversation_id,
       actor:ow_users!actor_user_id(id, name, avatar_color, avatar_url),
       actorCompany:ow_companies!actor_company_id(id, name, slug, logo_letter, logo_gradient)
     `)
@@ -76,18 +76,31 @@ export async function GET() {
     is_read: boolean;
     created_at: string;
     scout_id: string | null;
+    conversation_id: string | null;
     // Supabase の !fk JOIN は配列で返る
     actor: { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[] | null;
     actorCompany: RawCompany[] | null;
   };
 
-  // ⚠️ ビューに無い投稿（参照先が消えたもの）の通知は丸ごと落とす。
-  //    リンク先の /feed/[postId] が 404 になるため。行は消さない。
+  /* ⚠️★★**種別ごとに「何がぶら下がっていれば出すか」を書く。**
+        既定（`default`）は投稿の存在を求めるので、**投稿にぶら下がらない種別を
+        ここに足し忘れると、その種別が丸ごと静かに消える。**
+        ⚠️ 実際に2回とも危なかった: スカウト（`post_id` が null）と
+           メッセージ（2026-09-16。`post_id` も `scout_id` も無い）。
+        ⚠️★**`ow_notifications_type_check` に値を足す migration を書いたら、
+           同じコミットでここにも `case` を足すこと。**
+        ⚠️ 既定を「素通し」にしない。ビューに無い投稿（参照先が消えたもの）の通知は
+           押すと `/feed/[postId]` が 404 になるので落とす（行そのものは消さない）。 */
+  const survives = (r: RawRow): boolean => {
+    switch (r.type) {
+      case "scout": return !!r.scout_id;
+      case "message": return !!r.conversation_id;
+      default: return !!r.post_id && postPreviews.has(r.post_id);
+    }
+  };
+
   const notifications = (rows ?? [])
-    /* ⚠️ スカウト通知は投稿にぶら下がらないので、この絞り込みから除外する。
-          ここを `postPreviews.has(r.post_id)` だけにすると
-          **スカウト通知が丸ごと落ちる**（post_id が null のため）。 */
-    .filter((r: RawRow) => (r.type === "scout" ? !!r.scout_id : !!r.post_id && postPreviews.has(r.post_id)))
+    .filter(survives)
     .map((r: RawRow) => {
     const actorRaw = Array.isArray(r.actor) ? r.actor[0] ?? null : r.actor ?? null;
     const companyRaw = Array.isArray(r.actorCompany) ? r.actorCompany[0] ?? null : r.actorCompany ?? null;
@@ -97,6 +110,7 @@ export async function GET() {
       postId: r.post_id,
       postPreview: r.post_id ? postPreviews.get(r.post_id) ?? null : null,
       scoutId: r.scout_id,
+      conversationId: r.conversation_id,
       actorCompany: companyRaw
         ? {
             id: companyRaw.id,

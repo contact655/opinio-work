@@ -6,12 +6,14 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "scout";
-  /** ⚠️ スカウトの通知には投稿が無いので null になる */
+  type: "like" | "comment" | "scout" | "message";
+  /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
   /** スカウトのときだけ入る */
   scoutId: string | null;
+  /** メッセージのときだけ入る（2026-09-16） */
+  conversationId: string | null;
   isRead: boolean;
   createdAt: string;
   /** いいね・コメントの送り主（ユーザー） */
@@ -34,12 +36,21 @@ type NotificationItem = {
 /** 通知を押したときの遷移先。⚠️ 種別ごとに違う */
 function notifHref(notif: NotificationItem): string {
   if (notif.type === "scout") return "/mypage/scouts";
+  /* ⚠️ 会話の詳細は参加者しか開けない（page.tsx が `ow_conversation_participants` を
+        照合して notFound する）ので、id をそのまま渡してよい。 */
+  if (notif.type === "message") return `/mypage/conversations/${notif.conversationId}`;
   return `/feed/${notif.postId}`;
 }
 
 function notifText(notif: NotificationItem): { who: string; what: string } {
   if (notif.type === "scout") {
     return { who: notif.actorCompany?.name ?? "企業", what: " からスカウトが届きました" };
+  }
+  /* ⚠️★**本文を出さないこと**（2026-09-16）。ベルはヘッダーに常設で、
+        通知だけが開いたままの画面に本文の冒頭を出すと、肩越しに読まれる。
+        誰から来たかと、押せば読めることだけを伝える。 */
+  if (notif.type === "message") {
+    return { who: notif.actor?.name ?? "誰か", what: " からメッセージが届きました" };
   }
   return {
     who: notif.actor?.name ?? "誰か",

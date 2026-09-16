@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { insertActivity } from "@/lib/business/activities";
+import { notifyNewMessage } from "@/lib/notify/messageNotification";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -112,6 +113,16 @@ export async function POST(
   } catch (e) {
     console.warn("[conversations/messages POST] last_message_at update threw:", e);
   }
+
+  /* ── 受信者のベルに積む（best-effort。2026-09-16） ────────────────────────
+        ⚠️★**宛先の判定をここに書かないこと。** 4本の送信経路が同じ関数を通る
+           （`lib/notify/messageNotification.ts`）。書き写すと経路ごとに割れる。
+        ⚠️ 渡すのは **`ow_users.id`**（`user.id` は auth 空間なので渡さない）。 */
+  await notifyNewMessage({
+    conversationId,
+    senderOwUserId: owUser.id as string,
+    source: "biz/conversations/messages",
+  });
 
   // ── Activity: message_sent / message_received (best-effort) ─────────────
   /* participant.role: "company_admin" = biz側が送信 / "candidate" = 求職者が送信

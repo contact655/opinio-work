@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
+import { notifyNewMessage } from "@/lib/notify/messageNotification";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -177,6 +178,9 @@ export async function POST(request: NextRequest) {
       console.error("[dm/start] message insert error:", msgErr.message);
       return NextResponse.json({ error: "メッセージの送信に失敗しました" }, { status: 500 });
     }
+    /* ★受信者の通知に積む（2026-09-16）。⚠️★**`if (message?.trim())` の内側に置く。**
+          本文が無いとき（会話だけ作るとき）は通知しない ——何も届いていないので。 */
+    await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/start" });
   }
 
   return NextResponse.json({ conversationId }, { status: isNew ? 201 : 200 });
