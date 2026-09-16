@@ -2911,6 +2911,64 @@ flex_time / side_job_ok について（2026-07-28 記録）:
   ・登録フォームの「お名前」が**任意・いちばん下**で、省略すると
     `ow_users.name` に `email.split("@")[0]` が入る経路があった（同日に必須化して塞いだ）
 
+⚠️★★**2026-09-14 に塞いだのは「アプリ側だけ」だった**（2026-09-17 に発覚し、同日に塞いだ）。
+   メールアドレスの一部を名前にする経路は**3つ**あり、当時直したのは①②だけ。
+
+   | # | どこ | 2026-09-14 | 2026-09-17 |
+   |---|---|---|---|
+   | ① | `/auth` の `signUp`（`\|\| email.split("@")[0]`） | ✅ 塞いだ | — |
+   | ② | `lib/auth/linkOwUser.ts`（`rawEmail.split("@")[0]`） | ✅ 塞いだ | — |
+   | ③ | ★**DB トリガー `handle_new_ow_user`**（`split_part(NEW.email,'@',1)`） | ❌ **残っていた** | ✅ **塞いだ**（`20260917090000`） |
+   | ④ | ★**ウェルカムメールの宛名**（`postAuth.ts`） | ❌ **残っていた** | ✅ **塞いだ** |
+
+   ⚠️★**③が本命だった。** `ow_users` の行は**アプリではなく DB トリガーが作る**
+      （`on_auth_user_created` / AFTER INSERT ON `auth.users`）。②の INSERT には
+      **ほぼ到達しない**ので、①②を塞いでも③が生きていれば意味が無い。
+   ⚠️★**実際に踏むのは「招待」と「マジックリンク」。** `inviteUserByEmail` は
+      `data: { invited_role, invited_by }` しか渡さず、マジックリンクは metadata が空。
+      **声かけで人を増やす経路が、まさにそこに落ちる。**
+   ⚠️ 実害は出ていなかった（`name = split_part(email,'@',1)` は 2026-09-17 実測で
+      **1件のみ・`is_test`**。実ユーザーは0人）。登録フォームが名前必須なので主経路では起きない。
+
+   ⚠️★**フォールバックは `'ユーザー'`。NULL にはできない**
+      （`ow_users.name` は **NOT NULL・既定値なし**。NULL を入れると INSERT が落ち、
+      例外がそのまま上がって **`auth.users` の INSERT ごと失敗＝サインアップが止まる**）。
+      値は `lib/auth/linkOwUser.ts` と揃えてある。**片方を変えるときはもう片方も変える。**
+
+   ⚠️★**④は `'ユーザー'` も宛名にしない。** あれはプレースホルダで人の名前ではない。
+      名前が無ければ**呼びかけの行ごと出さない**（`buildScoutHtml` と同じ形）。
+      ⚠️★**その7箇所も同日に揃えた**（`applicationStatusTemplate` /
+         `ambassadorInviteTemplate` / `joinRequestTemplate`（宛名と件名）/
+         `joinRequestApprovedTemplate` / `ambassadorApprovedTemplate` /
+         `ambassadorDismissedTemplate`）。
+
+⚠️★**宛名の判定は [lib/constants/personName.ts](src/lib/constants/personName.ts) の
+   `greetingName()` 1箇所。** 空・空白だけ・`PLACEHOLDER_USER_NAME`（`'ユーザー'`）を弾いて
+   `null` を返すだけで、**フォールバックの文字列を作らない**（「ご担当者」なども足さない）。
+   出す形は `templates.ts` の `greet(name, "h2" | "line" | "inline")`。
+   ⚠️★**新しいメールを足すときは必ずここを通すこと。**
+      `${esc(params.userName)} さん` と素で書くと、名前が無い人に「 さん」が出る。
+
+⚠️★**「第三者への言及」には使わない。**「◯◯さんが参加を希望しています」のような文は
+   宛名ではないので、消すと文が成り立たない。`joinRequestTemplate` は
+   **名前が使えないときだけ別の言い回し**にしてある（件名は名前を外し、本文は
+   メールアドレスで示す）。**機械的に「行ごと消す」を当てないこと。**
+
+⚠️ **画面側（`.tsx`）の「◯◯さん」17箇所は今回は直していない。** ほとんどが
+   第三者への言及（「◯◯さんにスカウトを送る」「◯◯さんとの対話」など）で、
+   `ow_users.name` は NOT NULL なので空にはならない。
+   ただし `'ユーザー'` の人には**「ユーザー さん」**と出る。**未修正。**
+
+⚠️★**`handle_new_ow_user` を定義する migration は5本ある**（後のものが勝つ）。
+   `20260727000000_baseline` → `20260802155842` → `20260803163809`（visibility を外した）
+   → `20260804143145`（`ow_profiles` を作るようにした）→ `20260917090000`（本件）。
+   ⚠️★**`DROP FUNCTION` を使わないこと。** `on_auth_user_created` が依存しているので
+      CASCADE で落とすと**トリガーごと消え、サインアップで `ow_users` が作られなくなる。**
+      **常に `CREATE OR REPLACE`。**
+   ⚠️ `prosrc` を検査するときは**行コメントを落としてから**照合する
+      （`regexp_replace(prosrc, '--[^' || chr(10) || ']*', '', 'g')`）。
+      注意書きの文字列そのものが LIKE に当たる。`20260804143145` が一度これで転けている。
+
 ⚠️★**「氏名も 1/12 がメールのローカル部だった」と最初に書いたが、これは誤りだった**（同日訂正）。
    正しく `name = split_part(email,'@',1)` で数えると **全46行中1行**しかなく、
    それは検証用の `contact+01`（`is_test = true`）。**実ユーザーは0人**で、
