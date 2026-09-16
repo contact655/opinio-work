@@ -1,5 +1,6 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { filterListedCompanies } from "@/lib/companies/visibility";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 /**
  * LP のピックアップ企業を選ぶ。
@@ -29,6 +30,23 @@ import { filterListedCompanies } from "@/lib/companies/visibility";
  *      ・メンバーを持つ「公開」企業が十分に増えていること
  *        （2026-08-05 時点では、メンバー4名の所属先3社が is_published=false）
  *      ・未ログインで経歴に到達できるかが整理されていること
+ *
+ * ── ★運営会社（OPINIO）は出さない（2026-09-16 / 柴さんの判断）──────────────
+ * **自社が先頭に出ていた。** 理由は選定条件そのもの:
+ *   ・記事を1件持っているので①に入る
+ *   ・並びが `updated_at DESC` で、**自社のレコードは運営が一番よく触る**
+ * ＝「たまたま」ではなく、この2つが揃っている限り**ほぼ常に先頭**になる。
+ *
+ * 運営会社が自社を一番目立つ枠に置く形は、中立なプラットフォームという印象を損なう。
+ *
+ * ⚠️★**外すのはここ（トップのピックアップ）だけ。**
+ *    `/companies` `/search` `/companies/[id]` フッターの事業領域などからは外さない。
+ *    掲載企業としては普通に出る。**「自社を隠す」仕組みではない。**
+ * ⚠️★**id を直書きしないこと。** 判定は [lib/companies/ownCompany.ts](../companies/ownCompany.ts)
+ *    の `getOwnCompanyId()`（slug `opinio` から引く）。
+ *    `/mypage` の「◯◯の経験が活きる会社」が 2026-09-04 から使っていたものを切り出した。
+ * ⚠️ 自社のレコードが見つからないときは `null` が返り、**除外は効かない**
+ *    （`console.error` は出る）。ここで例外を投げてトップページを落とさない。
  *
  * ⚠️ 並びが updated_at DESC であることに注意。
  *    企業情報を更新するたびに顔ぶれが入れ替わる。「ピックアップ」と言いながら
@@ -67,17 +85,23 @@ export async function pickLpCompanies(
 ): Promise<PickedCompanyRow[]> {
   // 中身のある企業ID。コンテンツ量に比例する小さな集合なので、
   // 企業数が増えても取得コストは増えない。
-  const [jobCoRes, articleCoRes] = await Promise.all([
+  const [jobCoRes, articleCoRes, ownCompanyId] = await Promise.all([
     db.from("ow_jobs").select("company_id").eq("status", "published").eq("is_test", false),
     db.from("ow_articles").select("company_id").eq("is_published", true).not("company_id", "is", null),
+    /* ★運営会社。並列で引く（直列にすると1段増える）。
+       ⚠️ `unstable_cache` 済みなので、実際にはほぼ問い合わせが出ない。 */
+    getOwnCompanyId(),
   ]);
   if (jobCoRes.error) console.error("[pickLpCompanies] jobs:", jobCoRes.error.message);
   if (articleCoRes.error) console.error("[pickLpCompanies] articles:", articleCoRes.error.message);
 
+  /* ⚠️★自社は①の母集合の時点で落とす。**後段の `.neq()` にしないこと** ——
+        ①で12枠が埋まるときに、自社が枠を1つ食ったまま結果から消えて
+        「11社しか出ない」形になる。 */
   const withContentIds = Array.from(new Set([
     ...((jobCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
     ...((articleCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
-  ].filter(Boolean) as string[]));
+  ].filter(Boolean) as string[])).filter((id) => id !== ownCompanyId);
 
   let rows: PickedCompanyRow[] = [];
   if (withContentIds.length > 0) {
@@ -90,7 +114,9 @@ export async function pickLpCompanies(
 
   // 枠が埋まらない場合だけ、更新の新しい企業で補う
   if (rows.length < limit) {
-    const exclude = rows.map((c) => c.id);
+    /* ⚠️★②の補充でも自社を除く。①で落としただけでは、**枠が余ったときに
+          ここから入ってくる**（実際いまは①が4社・②が8社なので、必ず通る経路）。 */
+    const exclude = [...rows.map((c) => c.id), ...(ownCompanyId ? [ownCompanyId] : [])];
     let fill = filterListedCompanies(db.from("ow_companies").select(COMPANY_COLS))
       .order("updated_at", { ascending: false }).limit(limit - rows.length);
     if (exclude.length > 0) fill = fill.not("id", "in", `(${exclude.join(",")})`);

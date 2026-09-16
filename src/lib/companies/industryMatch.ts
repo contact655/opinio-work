@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { unstable_cache } from "next/cache";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import {
   buildIndustryTree,
@@ -28,52 +28,10 @@ import {
  * ⚠️★**数えるのは除いた後**。先に数えると「2社ある」と判定してから1社になる。
  */
 
-/**
- * 自社の企業レコードの slug。
- *
- * ⚠️★**自社を「あなたの業界の経験が活きる会社」として出さないため。**
- *    IT出身者に対して IT 向けサービスとして自社が並ぶのは、推薦として成立しない。
- *
- * ⚠️ URL（`NEXT_PUBLIC_SITE_URL` とのホスト一致）で判定する案は**採らなかった**
- *    （2026-09-04 / 柴さん）。自社の `url` が変わったときに
- *    **エラーにならず静かに除外が外れる**ため。このリポジトリで繰り返している形。
- *
- * ⚠️ この slug の企業が存在しないと、除外は**無言で効かなくなる**。
- *    `getOwnCompanyId()` が見つからないときに `console.error` を出す。
- */
-export const OWN_COMPANY_SLUG = "opinio";
-
-/**
- * 自社の企業 id。**見つからなければ `null` を返し、必ずログを出す。**
- *
- * ⚠️ `unstable_cache` に載せてある。毎リクエストで1問い合わせ増やさないため
- *    （自社のレコードはほぼ変わらない）。
- */
-export const getOwnCompanyId = unstable_cache(
-  async (): Promise<string | null> => {
-    const { data, error } = await createAdminClient()
-      .from("ow_companies")
-      .select("id")
-      .eq("slug", OWN_COMPANY_SLUG)
-      .maybeSingle();
-
-    if (error) {
-      console.error(`[industryMatch] 自社(${OWN_COMPANY_SLUG})の取得に失敗:`, error.message);
-      return null;
-    }
-    if (!data) {
-      /* ⚠️★ここが出たら**除外が効いていない**。slug を変えたか、行を消したか。 */
-      console.error(
-        `[industryMatch] 自社の企業レコードが見つからない（slug=${OWN_COMPANY_SLUG}）。` +
-        `「あなたの業界の経験が活きる会社」から自社を除外できていない`,
-      );
-      return null;
-    }
-    return data.id as string;
-  },
-  ["own-company-id"],
-  { revalidate: 3600, tags: ["own-company"] },
-);
+/* ★自社（OPINIO）の slug と id は [ownCompany.ts](./ownCompany.ts) に切り出した
+      （2026-09-16）。**ここに書き戻さないこと。**
+      トップのピックアップ企業（`lib/lp/pickCompanies.ts`）も同じ除外が要るようになり、
+      使い手が2つになったため。 */
 
 /** 一致した「企業側の対象業界」の名前。⚠️ 見出しではなく**理由文**に使う */
 export type IndustryMatchCompany = {
