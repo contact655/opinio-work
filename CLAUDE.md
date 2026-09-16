@@ -2112,6 +2112,34 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 - 経歴タイムライン → `CompanyLogoInfo.isPublished` を渡す。
   `timeline.ts:161` がこれを見て `company_id` を null に落とし、会社名をテキスト表示にする
 
+### ⚠️★在籍者の職歴に出る社名は、`is_published` で隠さない（2026-09-12 確立）
+
+**`ow_companies` の SELECT は `ow_companies_published_read USING (is_published = true)`。**
+セッションのクライアントで会社名を引くと、**非公開の企業だけ名前が取れず**、
+`?? "不明な企業"` / `?? "非公開"` / `?? "—"` が**その0件を既定値で埋める**。
+
+**社名を出す3経路は全部 `createAdminClient` で引く。**
+
+| どこ | いつから |
+|---|---|
+| `/u/[id]`（公開プロフィール） | 以前から |
+| `lib/people/directory.ts`（`/people`） | 以前から |
+| **`/mypage`（本人）** | **2026-09-12**（それまで本人にだけ社名が出ていなかった） |
+
+⚠️★**`is_published` が守っているのは「詳細ページが見えるか（404ゲート）」**（列の COMMENT）。
+   **在籍者の職歴に出る社名ではない。** リンクは別で、`timeline.ts` が
+   `isPublished === false` のとき `company_id` を落として**テキスト表示**にする（変えない）。
+
+⚠️★**RLS を広げて解決しないこと。** `ow_companies` の SELECT はテーブルレベル GRANT
+   （実測 2026-09-12: anon / authenticated とも **153/153列**）なので、ポリシーを1本足すと
+   `draft_data` や通知先メールまで PostgREST から読める。2026-09-05 に
+   「第2の公開ゲート」を塞いだ向きとも逆になる。
+
+⚠️ admin で引く以上、**`.in()` の絞り込みが唯一の防波堤**。`/mypage` は
+   「本人の職歴（と出向先）が参照する company_id」だけを渡し、**返す列も9つに限定**している。
+
+→ 調査と実測は [docs/hidden-company-name-20260912.md](docs/hidden-company-name-20260912.md)
+
 ⚠️ 2026-08-05 時点で `/mypage` だけこの `isPublished` を渡し忘れており、
 **ページ非公開の企業**（`is_published = false`）に在籍する人の職歴が、本番で 404 に飛ぶリンクになっていた。
 新しく企業リンクを作るときは、上のどちらかの経路に乗せること。
@@ -4364,6 +4392,46 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 
 ⚠️ `/biz/scouts`（スカウト管理）の「返信率」は
 `readOrMore === 0` のとき `null` になりタブごと出ない実装なので触っていない。
+
+---
+
+## ⚠️★メッセージが届いたことをベルに出す（2026-09-16 実装）
+
+**2026-09-16 まで、DM は4経路とも受信者に何も知らせていなかった**（通知0・メール0）。
+`/u/[id]` の「メッセージ」から**ログインしていれば誰でも送れる**のに、受け取った側は
+`/mypage/conversations` を自分で開くまで気づけない。2026-09-15 にヘッダーの
+メッセージアイコンも外したので、**気づく手段が0**になっていた。
+→ `ow_notifications` に **`type = 'message'`** を足し、ベルに出す。
+
+| | 実体 |
+|---|---|
+| 宛先の判定 | **[lib/notify/messageNotification.ts](src/lib/notify/messageNotification.ts) の `notifyNewMessage` の1箇所** |
+| スキーマ | `20260916170500_message_notifications.sql`（`conversation_id` 追加・`type` と `target_check` を張り替え） |
+| 出す場所 | `components/notifications/NotificationBell.tsx`。押すと `/mypage/conversations/[id]` |
+
+⚠️★**送信経路は4本ある。** `api/dm/message` / `api/dm/bulk-message`（会話ごとにループの内側）/
+   `api/dm/start`（`if (message?.trim())` の内側）/ `api/biz/conversations/[id]/messages`。
+   **経路を足したら `notifyNewMessage` を呼ぶこと。条件を呼び出し側に書き写さない。**
+   ⚠️ 渡すのは **`ow_users.id`**（`auth.uid()` ではない）。参加者も通知も `ow_users` 空間。
+
+⚠️★★**`GET /api/jobseeker/notifications` の `survives()` に `case` を足し忘れると、
+   その種別が丸ごと静かに消える。** 既定は**投稿の存在**を求めるので、投稿に
+   ぶら下がらない種別（スカウト・メッセージ）は必ず自分の `case` が要る。
+   **`ow_notifications_type_check` を広げる migration を書いたら、同じコミットでここも直す。**
+
+⚠️★**ベルに本文を出さない。** 誰から来たかと、押せば読めることだけ。ヘッダーに常設で
+   開いたままになるので、本文の冒頭を出すと肩越しに読まれる。
+
+⚠️ **メールはまだ送っていない。** `ow_profiles` の `email_*_enabled` と対にする必要がある
+   （週次・スカウトと同じ形）。**未読バッジもまだ**（会話一覧の側の話）。
+
+⚠️ 通知は **1メッセージにつき1行**。まとめない（何件届いたかが消え、既読で古い通知まで消える）。
+
+実測（2026-09-16 / dev・`is_test` の2アカウント）: `dm/start` と `dm/message` から
+各1行が**受信者にだけ**入り（送信者には入らない）、API が `unreadCount: 1` を返し、
+ベルに「◯◯ からメッセージが届きました」が出て、押すと会話が開くところまで確認した。
+**検証で作った行（通知3・会話1・参加者2・メッセージ3）は全部消し、4表とも作業前の件数に戻した。**
+⚠️ `bulk-message` と `biz/conversations/[id]/messages` は**呼び出しの配線だけ確認**（未実行）。
 
 ---
 
