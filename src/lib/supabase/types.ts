@@ -4203,6 +4203,7 @@ export type Database = {
           actor_company_id: string | null
           actor_user_id: string | null
           comment_id: string | null
+          conversation_id: string | null
           created_at: string
           id: string
           is_read: boolean
@@ -4215,6 +4216,7 @@ export type Database = {
           actor_company_id?: string | null
           actor_user_id?: string | null
           comment_id?: string | null
+          conversation_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -4227,6 +4229,7 @@ export type Database = {
           actor_company_id?: string | null
           actor_user_id?: string | null
           comment_id?: string | null
+          conversation_id?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -4269,6 +4272,13 @@ export type Database = {
             columns: ["comment_id"]
             isOneToOne: false
             referencedRelation: "ow_post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
             referencedColumns: ["id"]
           },
           {
@@ -6357,6 +6367,7 @@ export type Database = {
           name: string
           phone: string | null
           profile_setup_at: string | null
+          signup_ref: string | null
           social_links: Json | null
           statistics_opt_out: boolean
           updated_at: string
@@ -6397,6 +6408,7 @@ export type Database = {
           name: string
           phone?: string | null
           profile_setup_at?: string | null
+          signup_ref?: string | null
           social_links?: Json | null
           statistics_opt_out?: boolean
           updated_at?: string
@@ -6437,6 +6449,7 @@ export type Database = {
           name?: string
           phone?: string | null
           profile_setup_at?: string | null
+          signup_ref?: string | null
           social_links?: Json | null
           statistics_opt_out?: boolean
           updated_at?: string

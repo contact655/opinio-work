@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import {
+  SIGNUP_REF_COOKIE,
+  SIGNUP_REF_COOKIE_MAX_AGE,
+  SIGNUP_REF_QUERY_KEY,
+  parseSignupRef,
+} from "@/lib/constants/signupRef";
 
 /**
  * /biz/ 配下のアクセス制御
@@ -21,6 +27,36 @@ const AGENT_PUBLIC_PATHS = ["/agent/auth"];
 // 申し込み系。ログイン必須。リダイレクト先は他と同じ /auth?next=...
 const CASUAL_MEETING_RE = /^\/companies\/[^/]+\/casual-meeting\/?$/;
 const APPLY_RE = /^\/jobs\/[^/]+\/apply\/?$/;
+
+/**
+ * ★登録経路の計測（`?ref=`）。**cookie に控えるだけ。DB には触らない。**
+ *
+ * ⚠️★**ここで DB に書かないこと。** middleware はほぼ全ページに掛かるので、
+ *    1リクエストごとに書き込みが増える。書くのは
+ *    `POST /api/jobseeker/signup-ref` が**認証後に1回だけ**。
+ *
+ * ⚠️★**形式が通らない値は cookie を立てない**（黙って捨てる）。
+ *    URL の値をそのまま持ち回らない。
+ * ⚠️★**既にあれば上書きしない。** 最初の声かけを勝ちにする
+ *    （列側の「1回だけ・以後は上書きしない」と向きを揃える）。
+ * ⚠️ HttpOnly。JS から読む必要はなく、読めると別の用途に流用されうる。
+ */
+function attachSignupRef(request: NextRequest, response: NextResponse): NextResponse {
+  const raw = request.nextUrl.searchParams.get(SIGNUP_REF_QUERY_KEY);
+  if (!raw) return response;
+  if (request.cookies.has(SIGNUP_REF_COOKIE)) return response;
+  const ref = parseSignupRef(raw);
+  if (!ref) return response;
+
+  response.cookies.set(SIGNUP_REF_COOKIE, ref, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SIGNUP_REF_COOKIE_MAX_AGE,
+  });
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -107,7 +143,9 @@ export async function middleware(request: NextRequest) {
   if (!needsAuth && !hasSessionCookie) {
     const h = new Headers(request.headers);
     h.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers: h } });
+    /* ⚠️ `?ref=` は**未ログインの公開ページ**で踏まれるのが普通なので、
+          この早期 return にも付ける。付け忘れると主経路で記録できない。 */
+    return attachSignupRef(request, NextResponse.next({ request: { headers: h } }));
   }
 
   // セッション同期（ログイン中ユーザー or 認証が必要なパスのみ）
@@ -136,7 +174,7 @@ export async function middleware(request: NextRequest) {
 
   // BIZ_MOCK_MODE=true の場合は /biz/ 認証チェックをスキップ（dev 専用）
   if (process.env.NODE_ENV === "development" && process.env.BIZ_MOCK_MODE === "true") {
-    return finalResponse;
+    return attachSignupRef(request, finalResponse);
   }
 
   if (needsAuth && !sessionUser) {
@@ -155,7 +193,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return finalResponse;
+  return attachSignupRef(request, finalResponse);
 }
 
 export const config = {

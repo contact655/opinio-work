@@ -13,6 +13,42 @@ function completedKey(userId: string): string {
 }
 
 /**
+ * ★登録経路（`?ref=`）を1回だけ記録するための、タブ内の目印。
+ * ⚠️ `completedKey` と**別のキーにする**。あちらは「オンボーディングが済んだか」で、
+ *    早期 return するので、済んだ人にはこの処理が回ってこない。
+ */
+function signupRefKey(userId: string): string {
+  return `opinio.signupref.v1.${userId}`;
+}
+
+/**
+ * ★登録経路を `ow_users.signup_ref` に記録させる（**タブにつき1回**）。
+ *
+ * ⚠️★**呼び出し元をここ以外に増やさないこと。** 認証後に必ず1回通る
+ *    クライアント側の共通処理はここしかない。サーバー側（`postAuth`）は
+ *    `/auth/confirm` と `/auth/callback` しか通らず、**パスワード登録を取りこぼす。**
+ *
+ * ⚠️★**応答を見ない。失敗しても何もしない。** これは計測であって機能ではない。
+ *    ここで待ったり画面を止めたりすると、計測のために体験を損なう。
+ * ⚠️ ref の cookie は HttpOnly なのでクライアントからは見えない。
+ *    **だから毎回1回は投げる。** cookie が無ければサーバー側が即座に返し、
+ *    DB にも認証にも触らない。
+ * ⚠️ 目印は**投げる前**に立てる（同じタブで二重に投げないため）。
+ *    失敗したぶんは cookie（30日）が残っているので、次のタブで拾える。
+ */
+function recordSignupRefOnce(userId: string): void {
+  try {
+    if (sessionStorage.getItem(signupRefKey(userId)) === "1") return;
+    sessionStorage.setItem(signupRefKey(userId), "1");
+  } catch {
+    // sessionStorage が使えない環境。毎回投げる（サーバー側が冪等なので害は無い）
+  }
+  void fetch("/api/jobseeker/signup-ref", { method: "POST" }).catch(() => {
+    // 計測なので握りつぶす。サーバー側が console.error を出す
+  });
+}
+
+/**
  * ★戻り先の URL。**クエリ文字列まで含める。**
  *
  * ⚠️ `usePathname()` は**クエリ文字列を含まない**。それを `next=` に入れていたため、
@@ -80,6 +116,11 @@ export function OnboardingGuard() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const user = session?.user;
       if (!user) return;
+
+      /* ★登録経路の記録。**下のキャッシュ判定より前に置くこと。**
+            あとに置くと、オンボーディング済みの人（＝ `sessionStorage` が "1"）には
+            一度も回ってこない。 */
+      recordSignupRefOnce(user.id);
 
       /* ⚠️ キャッシュのキーは「2つとも済んでいる」を意味する。
             条件を足したので、**古いキーを使い回さない**（`.v2` を付けた）。
