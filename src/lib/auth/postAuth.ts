@@ -130,11 +130,25 @@ export async function jobseekerDestination(params: {
     if (claimError) {
       console.error(`${logPrefix} welcome claim failed:`, claimError.message);
     } else if (claimed) {
-      const userName: string =
+      /* ★宛名（2026-09-17 に直した）。
+         ⚠️★**`email.split("@")[0]` に落とさないこと。** 名前を渡さない経路
+            （招待 `inviteUserByEmail` / マジックリンク）では metadata に名前が無く、
+            **「contact+16 さん、ようこそ」**という宛名で届いていた。
+            本人にしか届かないので漏れではないが、**本人が入力していない文字列**を
+            本人の名前として扱っている。同じ日に DB トリガー側も塞いだ。
+         ⚠️★**`?? "さん"` にも戻さないこと。**「さん さん」になる
+            （元のコードは `email` が null のときだけそこへ落ちる形で、実際には到達しない）。
+         ⚠️★**`'ユーザー'` も宛名にしない。** DB トリガーと `linkOwUser.ts` が
+            使うプレースホルダで、**人の名前ではない。**「ユーザー さん」になる。
+         ⇒ 名前が無ければ**呼びかけの行ごと出さない**（`buildWelcomeHtml` が null を受ける）。
+            `buildScoutHtml`（templates.ts:775）が 2026-09-10 から同じ形。**揃えてある。** */
+      const rawName =
         session.user.user_metadata?.name
         ?? session.user.user_metadata?.full_name
-        ?? session.user.email.split("@")[0]
-        ?? "さん";
+        ?? null;
+      const userName = typeof rawName === "string" && rawName.trim() && rawName.trim() !== "ユーザー"
+        ? rawName.trim()
+        : null;
       await notify({
         to: session.user.email,
         subject: "【OPINIO】ようこそ！OPINIO へ登録完了しました",
@@ -189,7 +203,11 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-function buildWelcomeHtml(name: string): string {
+/**
+ * ⚠️★`name` は **null を受ける**（2026-09-17）。名前が無ければ**呼びかけの行ごと出さない。**
+ *    「 さん」「ユーザー さん」を作らないため。`buildScoutHtml` と同じ形。
+ */
+function buildWelcomeHtml(name: string | null): string {
   const btn = "display:inline-block;background:#002366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -207,7 +225,7 @@ function buildWelcomeHtml(name: string): string {
         <tr>
           <td style="padding:32px 40px;color:#0f172a;line-height:1.7;font-size:14px">
             <h2 style="margin:0 0 8px;font-size:20px;color:#002366">ようこそ、OPINIO へ！</h2>
-            <p style="margin:0 0 20px;color:#475569">${esc(name)} さん、登録ありがとうございます。</p>
+            <p style="margin:0 0 20px;color:#475569">${name ? `${esc(name)} さん、` : ""}登録ありがとうございます。</p>
 
             <p style="margin:0 0 16px;color:#0f172a;font-weight:600">OPINIO でできること：</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">

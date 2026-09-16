@@ -1,5 +1,6 @@
 import { companyMatchLabelForAdmin } from "@/lib/companies/matchedOn";
 import { unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
+import { greetingName } from "@/lib/constants/personName";
 /** 運営の宛先。⚠️ 新しい持ち方を作らない。既存の3テンプレートと同じこれを使う。 */
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
 
@@ -41,6 +42,38 @@ export function opsSubject(subject: string, viaOps: boolean): string {
 }
 
 // HTML escape — prevents injection of user-supplied strings into email bodies
+/**
+ * ★メールの呼びかけ（宛名）。**名前が使えないときは空文字＝行ごと出さない。**
+ *
+ * ⚠️★**「 さん」「ユーザー さん」を作らないこと。** 判定は
+ *    [`greetingName`](@/lib/constants/personName) の1箇所に置いてある
+ *    （空・空白だけ・`ユーザー`（`PLACEHOLDER_USER_NAME`）を弾く）。
+ *    `ユーザー` は `ow_users.name` のプレースホルダで、**人の名前ではない**
+ *    （DB トリガー `handle_new_ow_user` と `lib/auth/linkOwUser.ts` が入れる）。
+ *
+ * ⚠️★**「ご担当者」などのフォールバックを足さないこと。** 本人が入れていない呼び方を
+ *    本人の名前として使うことになる。**出さないほうがよい。**
+ *
+ * ── 形（`as`）──────────────────────────────────────────────────────────────
+ *   `h2`     … 見出しとして単独で置く      → `<h2>◯◯ さん</h2>`
+ *   `line`   … 段落として単独で置く        → `<p>◯◯ さん、</p>`
+ *   `inline` … 段落の先頭に差し込む        → `◯◯ さん<br><br>`
+ *
+ * ⚠️★**新しいメールを足すときは必ずここを通すこと。**
+ *    `${esc(params.userName)} さん` と素で書くと、名前が無い人に「 さん」が出る。
+ *
+ * ⚠️★**第三者への言及（「◯◯さんが〜しています」）には使わない。**
+ *    あれは宛名ではないので、消すと文が成り立たない。
+ *    `joinRequestTemplate` のように、**名前が無いときの別の言い回し**を用意すること。
+ */
+function greet(raw: string | null | undefined, as: "h2" | "line" | "inline"): string {
+  const name = greetingName(raw);
+  if (!name) return "";
+  if (as === "h2") return `<h2>${esc(name)} さん</h2>`;
+  if (as === "line") return `<p>${esc(name)} さん、</p>`;
+  return `${esc(name)} さん<br><br>`;
+}
+
 function esc(s: string | null | undefined): string {
   if (!s) return "";
   return s
@@ -319,7 +352,7 @@ export function applicationStatusTemplate(params: {
     subject: subjects[params.status],
     html: htmlWrap(`
       <h2>${esc(subjects[params.status].replace("【opinio.jp】", ""))}</h2>
-      <p>${esc(params.name)} さん、</p>
+      ${greet(params.name, "line")}
       <p>${esc(messages[params.status])}</p>
       <p style="font-size: 13px; color: #888;">応募求人: ${esc(params.companyName)} / ${esc(params.jobTitle)}</p>
       <p><a href="https://opinio.jp/mypage/applications">選考状況を確認する →</a></p>
@@ -471,8 +504,7 @@ export function ambassadorInviteTemplate(params: {
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞かれてもよいか、確認させてください</h2>
       <p style="margin:0 0 20px;color:#475569">
-        ${esc(params.userName)} さん<br><br>
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
+        ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
         あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
@@ -549,11 +581,21 @@ export function joinRequestTemplate(params: {
 }) {
   return {
     to: params.to,
-    subject: opsSubject(`[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」への参加を希望しています`, params.viaOps === true),
+    /* ⚠️★件名と本文の「◯◯さんが」は**宛名ではなく第三者への言及**なので、
+          「行ごと出さない」は当てられない（文が成り立たなくなる）。
+          名前が使えないときは**メールアドレスだけで示す**。 */
+    subject: opsSubject(
+      greetingName(params.requesterName)
+        ? `[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」への参加を希望しています`
+        : `[OPINIO] 「${esc(params.companyName)}」への参加の希望が届いています`,
+      params.viaOps === true,
+    ),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2>${esc(params.adminName)} さん</h2>
+      ${greet(params.adminName, "h2")}
       <p>
-        <strong>${esc(params.requesterName)}</strong>（${esc(params.requesterEmail)}）さんが
+        ${greetingName(params.requesterName)
+          ? `<strong>${esc(params.requesterName)}</strong>（${esc(params.requesterEmail)}）さんが`
+          : `<strong>${esc(params.requesterEmail)}</strong> の方が`}
         「${esc(params.companyName)}」への参加を希望しています。
       </p>
       <p>メンバー管理画面からメールアドレスを入力して招待を完了してください。</p>
@@ -586,7 +628,7 @@ export function joinRequestApprovedTemplate(params: {
     to: params.to,
     subject: `[OPINIO] 「${esc(params.companyName)}」の担当者として登録されました`,
     html: htmlWrap(`
-      <h2>${esc(params.requesterName)} さん</h2>
+      ${greet(params.requesterName, "h2")}
       <p>
         「<strong>${esc(params.companyName)}</strong>」の採用担当者として登録されました。
         企業情報の編集や求人の掲載ができます。
@@ -685,8 +727,7 @@ export function ambassadorApprovedTemplate(params: {
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞く相手として掲載されました</h2>
       <p style="margin:0 0 20px;color:#475569">
-        ${esc(params.userName)} さん<br><br>
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong>のページに、
+        ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>のページに、
         「話を聞かれてもよい」の登録が掲載されました。
       </p>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
@@ -726,8 +767,7 @@ export function ambassadorDismissedTemplate(params: {
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">会社のページに出なくなりました</h2>
       <p style="margin:0 0 20px;color:#475569">
-        ${esc(params.userName)} さん<br><br>
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong>のページでの
+        ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>のページでの
         「話を聞かれてもよい」の登録が取り消され、ページに出なくなりました。
       </p>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
@@ -771,8 +811,9 @@ export function scoutTemplate(params: {
      `ow_users.name` が空の実ユーザーは現在0人なので将来の備えだが、
      氏名の欄は運営が作った行では空になりうる（`auth_id IS NULL` の件）。
      ⚠️ 他のテンプレートは `${esc(params.userName)} さん` を無条件に出しており、同じ形が残っている。 */
-  const name = (params.userName ?? "").trim();
-  const greeting = name ? `${esc(name)} さん<br><br>` : "";
+  /* ⚠️ 判定は `greetingName`（`lib/constants/personName.ts`）の1箇所。
+        2026-09-17 に他の7箇所へ広げたときに、ここも同じ関数へ寄せた。 */
+  const greeting = greet(params.userName, "inline");
   return {
     to: params.to,
     subject: `【OPINIO】${esc(params.companyName)} からスカウトが届きました`,
