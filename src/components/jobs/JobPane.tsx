@@ -93,7 +93,7 @@ export function JobPane({
       <div style={{
         position: "sticky", top: 0, zIndex: 2,
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
-        padding: "var(--space-4) var(--space-5)", minWidth: 0,
+        padding: "var(--space-4) var(--space-6)", minWidth: 0,
         display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap",
         boxShadow: "0 2px 10px rgba(15,23,42,0.06)",
       }}>
@@ -134,9 +134,20 @@ export function JobPane({
         </div>
       </div>
 
+      {/* ── ★ここから下は「1枚の白い面」（2026-09-17）────────────────────────
+             それまで区画ごとに白いカードで、ペインの中に**枠付きの箱が22個・
+             全幅の白いカードが6枚**積み上がっていた。左レールもカードなので
+             画面全体が箱のモザイクになり、読みづらかった（柴さんの指摘）。
+
+          ⚠️★**区画に枠を戻さないこと。** 区切りは `.jp-block + .jp-block` の
+             上罫線だけ。CSS は globals.css にある（`/dev/preview/job-pane` にも効かせるため）。
+          ⚠️ 帯（上）はこの面の**外**に置いたまま。sticky で止まったときに
+             下の内容と地続きだと、どこまでが帯か分からなくなる。 */}
+      <div className="jp-sheet">
+
       {/* ── 年収・勤務地・勤務形態・雇用形態 ── */}
       {(hasSalaryData(job.salary_min, job.salary_max) || badges.length > 0) && (
-        <PaneCard>
+        <PaneBlock>
           {hasSalaryData(job.salary_min, job.salary_max) && (
             <div style={{
               fontSize: 16, fontWeight: 800,
@@ -160,21 +171,31 @@ export function JobPane({
               ))}
             </div>
           )}
-        </PaneCard>
+        </PaneBlock>
       )}
 
       {/* ── 仕事内容。⚠️★全文（2026-09-17 に3行クランプと「最初の段落だけ」をやめた）──
              ⚠️ `Markdown` で描く。詳細ページと同じ（入力欄が markdown なので合わせてある）。
                 素のテキストとして出すと `##` などが記号のまま出る。 */}
       {job.overview && (
-        <PaneCard title="仕事内容">
-          <Markdown>{job.overview}</Markdown>
-        </PaneCard>
+        <PaneBlock title="仕事内容">
+          {/* ★1行の長さを抑える（2026-09-17）。ペインを 884px にしたとき、本文は
+                 **1行 59文字**あった（882px ÷ 15px）。日本語は 35〜45字が目安。
+              ⚠️ `em` はこの要素の font-size 基準。**`px` で書かないこと** ——
+                 本文の級数を変えたときに一緒に動かない。
+              ⚠️ 1280px のときペインは 724px なので、この上限はほとんど効かない
+                 （もともと45字程度）。**効くのは広い画面だけ。**
+              ⚠️ 制限するのは**散文だけ**。ピル・カード・条件の並びは全幅のままにする
+                 （横に並ぶものを狭めると、逆に折り返しが増える）。 */}
+          <div style={{ maxWidth: "44em" }}>
+            <Markdown>{job.overview}</Markdown>
+          </div>
+        </PaneBlock>
       )}
 
       {/* ── メイン業務 ── */}
       {job.main_tasks?.length > 0 && (
-        <PaneCard title="メイン業務">
+        <PaneBlock title="メイン業務">
           <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0 }}>
             {job.main_tasks.map((task, i) => (
               <li key={i} style={{
@@ -192,28 +213,28 @@ export function JobPane({
               </li>
             ))}
           </ul>
-        </PaneCard>
+        </PaneBlock>
       )}
 
       {/* ── 必須スキル / 歓迎スキル。⚠️★全件（上位5件の制限をやめた）──
              ⚠️ 見出しは詳細ページと同じ「必須スキル / 歓迎スキル」。
              ⚠️★色は必須も歓迎も royal。片方だけ変えないこと（2026-08-30 の判断）。 */}
       {(required.length > 0 || preferred.length > 0) && (
-        <PaneCard title="必須スキル / 歓迎スキル">
+        <PaneBlock title="必須スキル / 歓迎スキル">
           {required.length > 0 && <SkillGroup label="必須スキル" items={required} />}
           {preferred.length > 0 && (
             <div style={{ marginTop: required.length > 0 ? "var(--space-4)" : 0 }}>
               <SkillGroup label="歓迎スキル" items={preferred} />
             </div>
           )}
-        </PaneCard>
+        </PaneBlock>
       )}
 
       {/* ── 勤務条件。⚠️★`ConditionRow` をそのまま使う（詳細ページと同じラベル・同じ出し分け）。
              ⚠️ 値が無い行は `ConditionRow` 自身が null を返す。ここで分岐を書かないこと。
              ⚠️ 行を足すときは詳細ページと `/dev/preview/job-conditions` にも足す。 */}
       {(job.location || job.work_style || job.employment_type || job.roleLabel || job.work_hours || job.holidays || job.probation_period) && (
-        <PaneCard title="勤務条件">
+        <PaneBlock title="勤務条件">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
             <ConditionRow label="勤務地" value={job.location} icon={
               <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>
@@ -237,14 +258,14 @@ export function JobPane({
               <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></>
             } />
           </div>
-        </PaneCard>
+        </PaneBlock>
       )}
 
       {/* ── 選考フロー ──
              ⚠️★**`step.step` を出さないこと。** `mapJob` が `String(i + 1)` を入れているだけで、
                 左の番号と**まったく同じ数字が2つ並ぶ**（詳細ページで 2026-09-02 に削除した）。 */}
       {job.selection_flow?.length > 0 && (
-        <PaneCard title="選考フロー">
+        <PaneBlock title="選考フロー">
           <ol style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0 }}>
             {job.selection_flow.map((step, i) => (
               <li key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -272,7 +293,7 @@ export function JobPane({
               borderLeft: "3px solid var(--royal-100)",
             }}>{job.selection_note}</p>
           )}
-        </PaneCard>
+        </PaneBlock>
       )}
 
       {/* ── 企業について（1〜2行）＋ 企業ページへのリンク ──
@@ -281,7 +302,7 @@ export function JobPane({
                 求人の話より会社の話が長いペインになる。深く読む先は企業ページ。
              ⚠️ ページ非公開の企業には飛ばさない（本番で 404 になる。カードと同じ判定）。 */}
       {company && (company.tagline || company.is_published) && (
-        <PaneCard title="企業について">
+        <PaneBlock title="企業について">
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
             <CompanyLogo
               name={company.name}
@@ -309,8 +330,10 @@ export function JobPane({
               )}
             </div>
           </div>
-        </PaneCard>
+        </PaneBlock>
       )}
+
+      </div>{/* jp-sheet end */}
 
       {/* ── 末尾の導線。⚠️★**残すこと。** ここに無いもの（福利厚生・ツール・拠点・
              在籍者・採用担当者・関連記事）は詳細ページにしかない。
@@ -326,13 +349,23 @@ export function JobPane({
   );
 }
 
-/** ペインの1枚。⚠️ 見出しが無ければ `title` を渡さない（空の見出し行を作らない）。 */
-function PaneCard({ title, children }: { title?: string; children: React.ReactNode }) {
+/**
+ * ペインの1区画。**枠も背景も持たない。** 外側の1枚の面（`jp-sheet`）の中に並ぶ。
+ *
+ * ⚠️★**ここに border / borderRadius / background を足さないこと**（2026-09-17）。
+ *    以前は区画ごとに白いカードだった。その結果ペインの中に
+ *    **枠付きの箱が22個・全幅の白いカードが6枚**積み上がり、
+ *    「グレーの面 → 白いカード → グレーの小箱」の**3重の入れ子**になっていた。
+ *    区切りは**上の罫線だけ**（呼び出し側が2つ目以降に付ける）。
+ *
+ * ⚠️ 見出しが無ければ `title` を渡さない（空の見出し行を作らない）。
+ */
+function PaneBlock({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <section style={{
-      background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
-      padding: "var(--space-5)", minWidth: 0,
-    }}>
+    /* ⚠️★区切りの罫線は CSS の `.jp-block + .jp-block`（globals.css）。
+          **ここで `borderTop` を出し分けないこと** ——区画は条件付きで消えるので、
+          「何番目か」を JS で数えると欠けた日にずれる。隣接セレクタなら自動で合う。 */
+    <section className="jp-block">
       {title && (
         <h3 style={{
           margin: "0 0 var(--space-3)", fontSize: 13.5, fontWeight: 800, color: "var(--ink)",

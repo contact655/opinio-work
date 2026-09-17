@@ -603,6 +603,40 @@ p, .description, .desc {
   .companies-split .job-list-card > .job-list-item-link { padding-right: 52px; }
 }
 
+/* ── ★求人ペイン（分割ビューの右側）の面と区画（2026-09-17）──────────────────
+   それまで区画ごとに白いカードで、ペインの中に**枠付きの箱が22個・全幅の白いカードが
+   6枚**積み上がっていた。左レールもカードなので画面全体が箱のモザイクになり、
+   読みづらかった（柴さんの指摘）。**1枚の面に、罫線で区切る**形にしてある。
+
+   ⚠️★**.jp-block に border / background を足さないこと。** 箱の入れ子に戻る。
+      区切りは隣接セレクタの上罫線だけ。**区画は条件付きで消える**ので、
+      JSX 側で「何番目か」を数えて出し分けないこと（欠けた日にずれる）。
+   ⚠️ globals.css に置いてあるのは /dev/preview/job-pane にも効かせるため。
+   ⚠️★padding に var(--space-5) を使わないこと。**このリポジトリに --space-5 は無い**
+      （未定義の var() は宣言ごと無効になり、padding が 0 に化ける。2026-09-17 に実際に踏んだ）。 */
+.jp-sheet {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  min-width: 0;
+}
+.jp-block {
+  padding: 20px 24px;
+  min-width: 0;
+}
+.jp-block + .jp-block {
+  border-top: 1px solid var(--line);
+}
+/* ⚠️★中身が1つも無い求人では、枠だけの**高さ2px の箱**が残る（実測 2026-09-17）。
+      下書き13件は本文も選考フローもスキルも空なので、公開された日に必ず踏む。
+   ⚠️★空白のテキストノードが1つでも入ると :empty は外れる。
+      **jp-sheet の中に直接テキストを書かないこと**（区画はすべて .jp-block に入れる）。
+   ⚠️ 確かめるのは /dev/preview/job-pane の「薄い側」。実データでは踏めない。 */
+.jp-sheet:empty {
+  display: none;
+}
+
 /* ── Article card hover ── */
 .article-card:hover {
   border-color: var(--royal-100) !important;
