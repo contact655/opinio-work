@@ -281,10 +281,21 @@ export function JobListItem({
         gap: 5,
         padding: "12px 8px",
       }}>
-        {/* 詳細を見る */}
+        {/* 詳細を見る。
+            ⚠️★**`target="_blank"` を外した（2026-09-17）。** カード面は 2026-09-09 に
+               外していたのに**このボタンだけ残っており**、同じ行・同じ URL なのに
+                 カード面 → 右ペイン（`CompanySplitLinks` が横取り）
+                 このボタン → 新しいタブで全画面
+               と挙動が2つに割れていた（`CompanySplitLinks` は
+               `target !== "_self"` のアンカーを**素通しする**ため）。
+               加えて、別タブは必ず新規ドキュメント読み込みになるので
+               カード面の `prefetch` が無駄になっていた（企業カードで 2026-09-07 に
+               外したのと同じ理由）。
+            ⚠️ ⌘/中クリックでの別タブは今までどおり使える（素の `<a>` のまま）。
+            ⚠️ 分割表示ではこのボタン列ごと畳まれる（**globals.css** の
+               `.companies-split .job-list-card > .job-list-actions`）。 */}
         <a
           href={`/jobs/${job.slug ?? job.id}`}
-          target="_blank"
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
             padding: "8px 6px", borderRadius: 7,
