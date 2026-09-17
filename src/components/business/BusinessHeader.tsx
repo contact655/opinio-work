@@ -29,9 +29,20 @@ import OpinioLogo from "@/components/common/OpinioLogo";
 const BUSINESS_TOP = "/business";
 
 const NAV_LINKS: { href: string; label: string }[] = [
-  { href: `${BUSINESS_TOP}#how`, label: "提案のしくみ" },
-  { href: "/business/pricing",   label: "料金" },
+  { href: `${BUSINESS_TOP}#people`,   label: "人で伝わること" },
+  { href: `${BUSINESS_TOP}#onpage`,   label: "企業ページ" },
+  { href: `${BUSINESS_TOP}#proposal`, label: "提案のしくみ" },
+  { href: "/business/pricing",        label: "料金" },
 ];
+
+/*
+ * ⚠️★**ナビと「個人の方へ」「ログイン」を隠す境目は 860px**（2026-09-17）。
+ *    Tailwind の `md:`（768px）ではナビ4項目が入りきらない。
+ *    tailwind.config.ts に screens を足していないので、ここは素の CSS で持つ。
+ *    ⚠️ **ハンバーガーの出る幅と必ず同じ値にすること。** ずらすと
+ *       「ナビも無い・ハンバーガーも無い」幅ができる（＝どこへも行けない）。
+ *    ⚠️ 「企業を新規登録」は狭い幅でも残す（ここが主導線）。
+ */
 
 export function BusinessHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -66,7 +77,19 @@ export function BusinessHeader() {
       WebkitBackdropFilter: "blur(12px)",
       borderBottom: "1px solid var(--line)",
     }}>
-      <div style={{
+      <style>{`
+        /* 境目は 860px。⚠️ 上の NAV_LINKS の注記を読むこと */
+        .bizhdr-wide { display: none; }
+        .bizhdr-burger { display: flex; }
+        @media (min-width: 860px) {
+          .bizhdr-wide { display: flex; }
+          .bizhdr-burger { display: none; }
+          .bizhdr-drawer { display: none; }
+        }
+        /* ⚠️ 48px の左右余白は狭い画面では広すぎる（ロゴと登録ボタンがぶつかる） */
+        @media (max-width: 640px) { .bizhdr-bar { padding: 0 16px; gap: 12px; } }
+      `}</style>
+      <div className="bizhdr-bar" style={{
         maxWidth: "var(--max-w-page)",
         margin: "0 auto",
         padding: "0 48px",
@@ -93,7 +116,7 @@ export function BusinessHeader() {
         </Link>
 
         {/* ── Desktop Nav ── */}
-        <nav aria-label="ビジネスページナビゲーション" style={{ gap: 24, flex: 1 }} className="hidden md:flex">
+        <nav aria-label="ビジネスページナビゲーション" style={{ gap: 22, flex: 1 }} className="bizhdr-wide">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
@@ -115,7 +138,7 @@ export function BusinessHeader() {
         </nav>
 
         {/* ── Desktop Auth ── */}
-        <div style={{ gap: 8, alignItems: "center", flexShrink: 0 }} className="hidden md:flex">
+        <div style={{ gap: 8, alignItems: "center", flexShrink: 0 }} className="bizhdr-wide">
           <Link
             href="/"
             style={{
@@ -180,7 +203,7 @@ export function BusinessHeader() {
             color: "var(--ink-soft)",
             alignItems: "center",
           }}
-          className="flex md:hidden"
+          className="bizhdr-burger"
           aria-label="メニュー"
         >
           {menuOpen ? <X size={22} strokeWidth={2} /> : <Menu size={22} strokeWidth={2} />}
@@ -191,7 +214,7 @@ export function BusinessHeader() {
       {/* ── Mobile drawer ── */}
       {menuOpen && (
         <div
-          className="md:hidden"
+          className="bizhdr-drawer"
           style={{
             background: "#fff",
             borderTop: "1px solid var(--line-soft)",
