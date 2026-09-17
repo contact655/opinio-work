@@ -170,10 +170,18 @@ export function JobListItem({
 
           {/* 行1: 求人タイトル + 面談受付中バッジ */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
-            <span className="job-title-clamp" style={{
+            {/* ⚠️★`maxWidth: calc(100% - 110px)` を外した（2026-09-17）。
+                   **いまは存在しない「面談受付中バッジ」のために 110px を空け続けていた**
+                   （同じ行のコメントに名前だけ残っているが、JSX は無い）。
+                   分割ビューのレールを 440px にすると中央カラムは 329px で、
+                   110px を引くと**求人名が 219px しか出ない**。700px の従来幅でも
+                   1件目は既に 55px 欠けていた（実測）。
+                ⚠️★**`title` を外さないこと。** 2行クランプにしても3行目が落ちる求人は出る。
+                   それまでホバーでも読めなかったので、ここで全文を持たせている。
+                ⚠️ クランプの定義は globals.css の `.job-title-clamp` 1箇所。 */}
+            <span className="job-title-clamp" title={job.role} style={{
               fontSize: 17, fontWeight: 800, color: "var(--ink)",
               lineHeight: 1.4, letterSpacing: "-0.025em",
-              maxWidth: "calc(100% - 110px)",
             }}>
               {job.role}
             </span>

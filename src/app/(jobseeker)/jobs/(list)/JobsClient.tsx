@@ -67,6 +67,25 @@ import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
 
 const PER_PAGE = 15;
 
+/**
+ * ★分割ビューの左レールの幅（2026-09-17。それまで 700）。
+ *
+ * ⚠️★**値はここ1箇所。** `CompanySplitLayout` には props で渡す
+ *    （`/companies` は 420 と 700 を使っており、**共有の既定値にしてはいけない**）。
+ *
+ * 440 にした根拠（2026-09-17 / 1440x900 の実測）:
+ *   ・中央カラムが 329px になり、**メタ行（勤務地・勤務形態・年収）が1行に収まる**
+ *     （420 以下だと2行になり、カードが 25px 高くなる）
+ *   ・右ペインは 1280px で 464 → **724**、1440px で 624 → **884**
+ *     （左右比 60:40 → 38:62 ／ 53:47 → 33:67）
+ *
+ * ⚠️★**440 は「カードのボタン列を畳み、求人名を2行クランプにした」前提の値。**
+ *    どちらかを戻すと求人名が 115px しか出なくなる（ボタン列 104px ＋
+ *    `maxWidth: calc(100% - 110px)` が中央カラムを食っていた）。
+ * ⚠️ 実データの公開求人は2件だけ。長い求人名・年収なしは `/dev/preview/job-cards` で見ること。
+ */
+const RAIL_WIDTH = 440;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -1326,7 +1345,7 @@ export default function JobsClient({
               <CompanySplitLayout
                 pane={selectedJob ? <JobPane job={selectedJob} company={selectedCompany} /> : null}
                 paneLabel={selectedJob ? selectedJob.role : null}
-                railWidth={700}
+                railWidth={RAIL_WIDTH}
                 basePath="/jobs"
               >
               <div className="jobs-list-desktop">
@@ -1665,14 +1684,10 @@ export default function JobsClient({
           .jobs-mobile-role-pills { display: flex !important; }
         }
 
-        /* タイトル1行クランプ */
-        .job-title-clamp {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          display: block;
-          max-width: 100%;
-        }
+        /* ⚠️★.job-title-clamp の定義は globals.css に1本化した（2026-09-17）。
+               ここに複製が残っていたせいで、globals.css 側のモバイル2行クランプが
+               **一度も効いていなかった**（body の style タグが後から当たるため）。
+               **書き戻さないこと。** */
 
         /* company name hover */
         .company-name-link:hover {

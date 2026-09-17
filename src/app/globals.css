@@ -530,22 +530,25 @@ p, .description, .desc {
   transform: translateY(-1px);
 }
 
-/* Job title: desktop=1行nowrap / mobile=2行折り返し */
+/* ── 求人カードのタイトル（★2026-09-17 に全幅で2行クランプへ）──────────────
+   それまでは「デスクトップ=1行nowrap / モバイル=2行」だったが、**モバイルの2行は
+   一度も効いていなかった**。`JobsClient.tsx` の style タグに同名の定義が複製されており、
+   body 側があとから当たって `white-space: nowrap` / `display: block` が勝っていたため。
+
+   ⚠️★**定義はこの1箇所だけ。`JobsClient.tsx` に書き戻さないこと**（2026-09-17 に削除した）。
+      複製すると、どちらが勝つかが「head か body か」で決まる**読んでも分からない形**に戻る。
+   ⚠️★**2行にしたのは分割ビューのレールが 440px になったから**（2026-09-17）。
+      1行 nowrap のままだと、その幅では求人名がほとんど出ない。
+   ⚠️ 欠けた分はホバーで読めるように、`JobListItem` が `title` 属性に全文を入れている。
+      **`title` を外さないこと。** */
 .job-title-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-@media (max-width: 767px) {
-  .job-title-clamp {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    white-space: normal;
-    text-overflow: unset;
-    max-width: 100% !important;
-  }
+  white-space: normal;
+  max-width: 100%;
 }
 
 /* ── Article card hover ── */
