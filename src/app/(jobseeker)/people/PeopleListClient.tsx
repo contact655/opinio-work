@@ -10,6 +10,7 @@ import type { DirectoryPerson } from "@/lib/people/directory";
 import type { SearchAlias } from "@/lib/supabase/queries";
 import { FollowUserButton } from "../u/[id]/FollowUserButton";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
+import { SortSelect } from "@/components/common/SortSelect";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -932,28 +933,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               display: "flex", alignItems: "center", gap: 12, rowGap: 8,
               flexWrap: "wrap", minWidth: 0, marginLeft: "auto",
             }}>
-          {/* 並び替え */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>並び替え</span>
-            <div style={{ width: 1, height: 18, background: "var(--line)" }} />
-            <div style={{ display: "flex", gap: 6 }}>
-              {SORT_OPTIONS.map((o) => {
-                const active = sort === o.value;
-                return (
-                  <button key={o.value} type="button" onClick={() => setSort(o.value)} style={{
-                    padding: "5px 13px", borderRadius: 100, fontSize: 12, fontWeight: active ? 700 : 500,
-                    cursor: "pointer", border: active ? "none" : "1.5px solid var(--line)",
-                    background: active ? "var(--royal)" : "#fff",
-                    color: active ? "#fff" : "var(--ink-soft)",
-                    transition: "all 0.15s", fontFamily: "inherit",
-                    boxShadow: active ? "0 2px 8px rgba(0,35,102,0.25)" : "none",
-                  }}>
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {/* ★並び替え（2026-09-17 にドロップダウンへ）。実体は components/common/SortSelect。
+                 `/jobs`・`/companies` と**同じ部品**。⚠️ ここに直書きしないこと。
+
+              ⚠️★**選択肢は2つしかないので、1クリックが2クリックになる。** 承知のうえで
+                 揃えた（柴さんの指示）。**3つの一覧で同じ操作が同じ見た目であること**を
+                 優先している —— ビュートグルを 2026-08-27 に揃えたのと同じ理由。
+              ⚠️ 3つ目の選択肢を足す日が来ても、ここは変えなくてよい（SORT_OPTIONS に足すだけ）。 */}
+          <SortSelect value={sort} options={SORT_OPTIONS} onChange={setSort} />
           {/* 表示モードと件数。
               ★意匠は `/companies` のビュートグル（`components/companies/GridSortBar.tsx`）と
                 揃えてある（2026-08-27）。**同じ操作が2つの一覧で別の見た目だったため。**
