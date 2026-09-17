@@ -1195,6 +1195,19 @@ const JOB_LIST_COLS = [
   "description", "what_youll_do_intro",
   /* ⚠️ 並び替え「開示充実順」が `required_skills` を見るので一覧でも要る。 */
   "required_skills",
+  /* ★分割ビューの右ペイン（`JobPane`）が読む列（2026-09-17 追加）。
+     ⚠️★**ここに無い列は、ペインでその節が「見出しごと」消える。**
+        `mapJob` は取得しなかった列を `?? []` / `?? null` で埋めるので、
+        **「値が無い」と「取得していない」が画面上で区別できない**
+        （CLAUDE.md「COLS 定数と mapper を突き合わせる」）。
+        2026-09-17 に実際に踏んだ —— 歓迎スキルと選考フローを出す実装を入れたのに、
+        **公開求人2件はどちらも `selection_steps` を6件持っているのに1件も出なかった。**
+     ⚠️ `main_tasks` は足していない。**DB に列が無く、`mapJob` が常に `[]` を返す**
+        （詳細ページでも同じで、あちらでも一度も描画されていない）。
+     ⚠️ 一覧の応答に載る列が増える。公開求人は2件なので実質ゼロだが、
+        **件数が増えたら測り直すこと。** */
+  "preferred_skills", "selection_steps", "message_to_candidates",
+  "salary_note", "work_hours", "holidays", "probation_period",
 ].join(", ");
 
 const JOB_DETAIL_COLS = [
