@@ -207,8 +207,15 @@ export function JobListItem({
                 ⚠️★**`title` を外さないこと。** 2行クランプにしても3行目が落ちる求人は出る。
                    それまでホバーでも読めなかったので、ここで全文を持たせている。
                 ⚠️ クランプの定義は globals.css の `.job-title-clamp` 1箇所。 */}
+            {/* ⚠️★字の大きさは `/companies` のカードに揃えてある（2026-09-17）。
+                   それまで **17px / 800** で、企業カード（15px / 800）と
+                   記事の行（14px / 700）より大きく、**同じ一覧の並びで求人だけ太って見えた**
+                   （実測: カードの高さ 185px / 企業カードは 163px。レールは 440px と
+                   企業カードの 459px より狭いのに、こちらのほうが高かった）。
+                ⚠️ **これ以上小さくしないこと。** ここは一覧の主役（求人名）で、
+                   企業カードの主役（会社名）と同じ 15px が下限。 */}
             <span className="job-title-clamp" title={job.role} style={{
-              fontSize: 17, fontWeight: 800, color: "var(--ink)",
+              fontSize: 15, fontWeight: 800, color: "var(--ink)",
               lineHeight: 1.4, letterSpacing: "-0.025em",
             }}>
               {job.role}
@@ -230,7 +237,9 @@ export function JobListItem({
                     ⚠️ ellipsis を効かせるには minWidth: 0 が要る（既定の auto では縮まない）。 */
               title={(company as any).brand_name ?? company.name}
               style={{
-                fontSize: 14, color: "var(--royal)", fontWeight: 700, cursor: "pointer",
+                /* ⚠️ 13px は求人名（15px）より一段小さい。会社名はここでは**脇役**
+                      （主役は求人名）。⚠️ 12px まで落とさない —— 押せるリンクなので。 */
+                fontSize: 13, color: "var(--royal)", fontWeight: 700, cursor: "pointer",
                 minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}
             >

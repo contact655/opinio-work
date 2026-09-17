@@ -559,7 +559,11 @@ p, .description, .desc {
       （JobsClient の style タグはあのページには出ない）。 */
 /* カード面のリンク。⚠️ padding は JobListItem のインライン style ではなくここ
    （分割表示で右を広げる上書きが効かなくなるため）。 */
-.job-list-item-link { padding: 16px; }
+/* ⚠️ 上下を 16 -> 14 に詰めた（2026-09-17）。左右は 16 のまま。
+      `/companies` のカード（padding: 14px 16px）に揃えてある。
+   ⚠️★**インラインに書き戻さないこと。** 分割表示では♡のぶん右を空ける
+      （下の padding-right: 52px）ので、インラインだと CSS が負ける。 */
+.job-list-item-link { padding: 14px 16px; }
 
 .job-list-actions {
   flex-shrink: 0;
