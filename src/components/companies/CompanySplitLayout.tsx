@@ -51,12 +51,29 @@ export function CompanySplitLayout({
   railWidth = 420,
   /** ★カードのリンクの土台（2026-09-09）。`/companies` と `/jobs` が同じ部品を使う */
   basePath = "/companies",
+  /**
+   * ★スクロールの持ち主（2026-09-17）。**既定は "page"（従来の挙動そのまま）。**
+   *
+   * | 値 | 形 |
+   * |---|---|
+   * | `"page"` | ペインが `sticky`（top 150 / max-height 100vh-170）。**ページ全体がスクロールする** |
+   * | `"panes"` | レールとペインが**それぞれ独立してスクロールする**。2つで画面の高さを埋める |
+   *
+   * ⚠️★**`/companies` の3経路は既定のまま。** この部品は4箇所から呼ばれており、
+   *    うち3つが `/companies`（一覧グリッド / `?view=list` / 絞り込み結果）。
+   *    **複製せずに props で分けている**のはそのため。既定値を変えないこと。
+   *
+   * ⚠️★`"panes"` では高さの起点が要る。呼び出し側が `--split-top` を渡す
+   *    （ヘッダー＋ツールバー＋上余白）。渡さないと 162px で描く。
+   */
+  scrollMode = "page",
 }: {
   children: ReactNode;
   pane: ReactNode;
   paneLabel?: string | null;
   railWidth?: number;
   basePath?: string;
+  scrollMode?: "page" | "panes";
 }) {
   return (
     <>
@@ -99,6 +116,39 @@ export function CompanySplitLayout({
           /* ⚠️ 求人一覧（jobs-list-desktop）は元から縦1列の flex なので、
                 列を潰す必要は無い。行間だけカードの一覧と揃える。 */
           .companies-split .jobs-list-desktop { gap: 10px; }
+          /* ── ★scrollMode は panes のとき（2026-09-17）──────────────────────
+             レールとペインが**それぞれ独立してスクロールする**。
+             ⚠️★**この class が付くのは呼び出し側が明示したときだけ。**
+                companies の3経路は下の sticky のまま。
+             ⚠️★ここは style タグのテンプレートリテラルの中。**書けない記号が3つある**
+                （2026-09-17 に3つとも踏んだ）:
+                  バッククォート … 文字列がその場で閉じる
+                  二重引用符     … サーバーだけ実体参照になりハイドレーション不一致
+                  不等号         … 同上。**だから子結合子が使えず、子孫セレクタにしてある**
+                ⚠️ companies-rail はこの中に1つしか無いので、子孫セレクタで同じ意味になる。
+             ⚠️★**min-height: 0 を外さないこと。** grid の子は既定が min-height auto で、
+                中身より小さくならない。外すと**レールが中身の高さまで伸びて
+                ページごとスクロールする**（＝独立スクロールが効かない）。
+             ⚠️★**overscroll-behavior: contain を足さないこと。** 足すと
+                レールを下まで送ってもページに伝わらず、**フッターに辿り着けなくなる。**
+                職業安定法の明示事項・利用規約・プライバシーポリシーは
+                フッターにしか無い（2026-09-17 実測）。 */
+          .companies-split--panes {
+            height: calc(100vh - var(--split-top, 162px));
+            align-items: stretch;
+          }
+          .companies-split--panes .companies-rail {
+            min-height: 0;
+            height: 100%;
+            overflow-y: auto;
+          }
+          .companies-split--panes .companies-pane {
+            position: static;
+            min-height: 0;
+            height: 100%;
+            max-height: none;
+            overflow-y: auto;
+          }
           .companies-pane {
             display: block;
             /* ⚠️ sticky はここ（ページ側の列）に置く。CompanyPane の中には置かない
@@ -125,7 +175,11 @@ export function CompanySplitLayout({
         {paneLabel ? `${paneLabel} の概要を表示しました` : ""}
       </div>
       <div
-        className={pane ? "companies-split" : undefined}
+        className={
+          pane
+            ? `companies-split${scrollMode === "panes" ? " companies-split--panes" : ""}`
+            : undefined
+        }
         /* ⚠️ カスタムプロパティなので、分割しないとき（`companies-split` が付かないとき）は
               誰も読まない。無害なので出し分けていない。 */
         style={{ "--rail-w": `${railWidth}px` } as CSSProperties}

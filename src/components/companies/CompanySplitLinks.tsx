@@ -89,5 +89,9 @@ export function CompanySplitLinks({
     return () => el.removeEventListener("click", onClick);
   }, [router, basePath]);
 
-  return <div ref={ref}>{children}</div>;
+  /* ⚠️★`companies-rail` は**目印だけ**。既定ではスタイルを1つも持たない。
+        `CompanySplitLayout` の scrollMode="panes" のときだけ、この class を
+        名指しして「レール自身をスクロールさせる」CSS が当たる。
+     ⚠️ ここに style を足さないこと。`/companies` の3画面も通る。 */
+  return <div ref={ref} className="companies-rail">{children}</div>;
 }

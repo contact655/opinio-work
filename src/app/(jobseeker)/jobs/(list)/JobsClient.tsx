@@ -744,6 +744,30 @@ export default function JobsClient({
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
+  /* ★2ペインの高さの起点（2026-09-17）。ヘッダー ＋ ツールバー ＋ 本文の上余白。
+     ⚠️★**即値で書かない。** ツールバーは「詳細検索」を開くと 69px から 140px に伸び、
+        注記の帯が出る日もある。固定値にすると、開いた瞬間にペインの下端が
+        画面の外へ 71px はみ出す。
+     ⚠️ `resize` ではなく `ResizeObserver` で測る。ツールバーの高さは
+        ウィンドウ幅を変えなくても（開閉だけで）変わる。
+     ⚠️ 分割しない幅では誰もこの変数を読まない（CSS が `@media` の中にある）ので、
+        測っておくだけで害は無い。 */
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [splitTop, setSplitTop] = useState(162);
+  useEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    const read = () => {
+      const header = document.querySelector("header");
+      /* 本文の上余白は md:py-8 = 32px。⚠️ ここを変えたら合わせること */
+      setSplitTop((header?.offsetHeight ?? 61) + el.offsetHeight + 32);
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = sentinelRef.current;
@@ -796,6 +820,7 @@ export default function JobsClient({
              6ファイルに直書きされている**（`--header-h` のような変数が無い）。
              変数に寄せるなら5画面まとめて直すこと。ここだけ変えると段差になる。 */}
       <div
+        ref={toolbarRef}
         style={{
           background: "#fff",
           borderBottom: "1px solid var(--line)",
@@ -1260,7 +1285,10 @@ export default function JobsClient({
                  事故が起きる（勤務地は「2県以上あるときだけ出す」ゲートがピル側に無く、
                  同じ画面で食い違っていた前例がある）。
               ⚠️ 1カラムになったぶんの幅は分割ビュー（Stage 2）で使う。 */}
-          <div className="jobs-layout">
+          {/* ⚠️ `--split-top` は `CompanySplitLayout` の scrollMode="panes" だけが読む。
+                 ここに置いているのは、ツールバーの高さを知っているのがこの画面だからで、
+                 部品側に測らせない（`/companies` はツールバーの形が違う）。 */}
+          <div className="jobs-layout" style={{ "--split-top": `${splitTop}px` } as React.CSSProperties}>
             {/* ─ Results column ─ */}
             <main id="jobs-results-top" style={{ minWidth: 0 }}>
 
@@ -1347,6 +1375,10 @@ export default function JobsClient({
                 paneLabel={selectedJob ? selectedJob.role : null}
                 railWidth={RAIL_WIDTH}
                 basePath="/jobs"
+                /* ★2ペインを独立スクロールにする（2026-09-17）。
+                   ⚠️★**`/companies` は既定（"page"）のまま。** 同じ部品を4箇所が使っており、
+                      うち3つが `/companies`。複製せず props で分けている。 */
+                scrollMode="panes"
               >
               <div className="jobs-list-desktop">
                 {(() => {
@@ -1369,7 +1401,14 @@ export default function JobsClient({
                   });
                 })()}
               </div>
-              </CompanySplitLayout>
+              {/* ★進捗・もっと見る・センチネルは**レールの中**（2026-09-17）。
+                     scrollMode="panes" ではレールが自分でスクロールするので、
+                     **外に置くと一覧の続きが2ペインの下（＝画面の外）に落ちる。**
+                  ⚠️ 無限スクロールの IntersectionObserver は root を指定していない
+                     （＝ビューポート基準）。**祖先のスクロール領域によるクリップは効く**ので
+                     レールが独立スクロールでも動く。root をレールに変えないこと ——
+                     分割しない幅ではレールがスクローラではなく、
+                     **常に交差して無限に読み込む**。 */}
               {/* ⑦ プログレスバー + もっと見るボタン */}
               <div style={{ marginTop: 16, marginBottom: 4 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -1424,6 +1463,7 @@ export default function JobsClient({
                 </button>
               )}
               {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
+              </CompanySplitLayout>
 
             </>
           )}
