@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { Fragment, useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -1122,6 +1122,83 @@ const MORE_LINK_STYLE: React.CSSProperties = {
   textDecoration: "none",
 };
 
+/**
+ * 未ログインの人に出す登録パネル。
+ *
+ * ⚠️★**2箇所から呼ぶ。実体は必ずここ1つにしておくこと**（2026-09-17）。
+ *    ① 右サイドバー（`FeedSidebar`）── 768px 以上でしか描画されない
+ *    ② 中央カラムの投稿リストの途中 ── ①が出ない幅のときだけ
+ *
+ * ── なぜ②が要るか ──────────────────────────────────────────────────────────
+ * **サイドバーは丸ごと `isDesktop`（768px 以上）で出し分けている。**
+ * そのため 375px では右レールごと消え、**スマホの未ログイン利用者には
+ * この登録訴求が一度も出ていなかった**（2026-09-17 に実測して判明）。
+ *
+ * ⚠️★**サイドバー全体をモバイルに出す形にはしない。** あの中身は
+ *    「面談OKな人」「掲載中の企業」「フォロー中」…と縦に長く、
+ *    本文の下に丸ごと積むと投稿を読み終えた人しか到達しない。出すのはこの1枚だけ。
+ *
+ * ⚠️★**末尾に置かないこと。** フィードは `IntersectionObserver` の無限スクロールで、
+ *    **下端は読むほど遠ざかる**（＝実質たどり着かない）。だから投稿の「途中」に差し込む。
+ *
+ * ⚠️★**上端にも置かないこと。** 中央カラムの先頭には既に
+ *    「ログインすると投稿・いいね・コメントができます」＋ログインボタンがあり、
+ *    **行き先が同じ `/auth` の箱が2つ隣り合う**。2026-09-17 にナビの出し分けを
+ *    戻したのと同じ形（同じ画面に同じ行き先が重なって見える）になる。
+ */
+function GuestSignupPanel({ style }: { style?: React.CSSProperties }) {
+  return (
+    <div style={{ ...PANEL_STYLE, ...style }}>
+      {/* ⚠️ **トラスト行（✓完全無料 / ✓営業電話なし / ✓メール登録のみ）は 2026-08-23 に削除した。**
+             `/auth` は 2026-08-20 に、フッター（JobseekerFooter）は 2026-08-23 に
+             同じ3点を落としており、**画面に出す場所はもう無い**（柴さんの判断）。
+          ⚠️ **ここに書き戻さないこと。** このコメントは以前
+             「フッターと同じ3点に揃える」と書いていたが、揃え先ごと無くなっている。
+          ⚠️ SEO の description（`layout.tsx` など8箇所）には同じ文言が残っている。
+             あちらは検索結果の説明文で、画面には出ない。**別物として扱う。** */}
+      {/* ⚠️★2026-09-17 に LP（FinalCta / AuthAwareCta）と同じ基準へ揃えた。
+             **登録して実際に使えるものだけを書く。**
+
+             削除したもの（どちらも実測で事実でなかった）:
+               ・「新しい求人が出たときの**通知**も受け取れます」
+                 週次メールは二重に停止中（vercel.json の crons が空 ＋
+                 WEEKLY_EMAIL_ENABLED 未設定）。ow_notifications_type_check も
+                 like / comment / scout / message の4値で**求人の種別が無い**。
+                 ⚠️ 再開しても勝手に書き戻さないこと（再開は env と crons の両方が要る）。
+               ・「保存して**比べられます**」
+                 比較画面は存在しない。しかも /companies の分割ビューは
+                 **未ログインでも使える**ので、比べることは登録の理由になっていない。
+
+             ⚠️★文言は LP と**同じ**にしてある。片方だけ直さないこと
+                （実体は FinalCta.tsx のガイド側 と AuthAwareCta の guest）。 */}
+      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
+      <p style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
+        登録すると、在籍している方・していた方の経歴を読めます。気になる企業と募集は、保存しておけます。
+      </p>
+      <a
+        href="/auth"
+        style={{
+          display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 8,
+          background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
+          textDecoration: "none",
+        }}
+      >
+        {/* ⚠️★「メールアドレスで」を外した（2026-09-17）。**Google でも登録できる。**
+               実測: /auth の登録は「Googleで続ける」（推奨バッジ付き・主）と
+               「メールアドレスで登録」の2つ。片方だけ書くと、もう片方が見えない。
+            ⚠️ LP のボタン（FinalCta / AuthAwareCta の guest）と**同じ文言**。 */}
+        無料登録して経歴を見る
+      </a>
+    </div>
+  );
+}
+
+/**
+ * モバイルで登録パネルを差し込む位置（この件数の投稿の「後ろ」）。
+ * ⚠️ 投稿がこれより少ないときは最後の投稿の後ろに出す（`Math.min` で潰している）。
+ */
+const GUEST_PANEL_AFTER_POSTS = 3;
+
 function formatSalary(min: number | null, max: number | null): string {
   const hasMn = min != null && min > 0;
   const hasMx = max != null && max > 0;
@@ -1485,48 +1562,10 @@ function FeedSidebar({
       )}
 
       {myUserId === null ? (
-        <div style={PANEL_STYLE}>
-          {/* ⚠️ **トラスト行（✓完全無料 / ✓営業電話なし / ✓メール登録のみ）は 2026-08-23 に削除した。**
-                 `/auth` は 2026-08-20 に、フッター（JobseekerFooter）は 2026-08-23 に
-                 同じ3点を落としており、**画面に出す場所はもう無い**（柴さんの判断）。
-              ⚠️ **ここに書き戻さないこと。** このコメントは以前
-                 「フッターと同じ3点に揃える」と書いていたが、揃え先ごと無くなっている。
-              ⚠️ SEO の description（`layout.tsx` など8箇所）には同じ文言が残っている。
-                 あちらは検索結果の説明文で、画面には出ない。**別物として扱う。** */}
-          {/* ⚠️★2026-09-17 に LP（FinalCta / AuthAwareCta）と同じ基準へ揃えた。
-                 **登録して実際に使えるものだけを書く。**
-
-                 削除したもの（どちらも実測で事実でなかった）:
-                   ・「新しい求人が出たときの**通知**も受け取れます」
-                     週次メールは二重に停止中（vercel.json の crons が空 ＋
-                     WEEKLY_EMAIL_ENABLED 未設定）。ow_notifications_type_check も
-                     like / comment / scout / message の4値で**求人の種別が無い**。
-                     ⚠️ 再開しても勝手に書き戻さないこと（再開は env と crons の両方が要る）。
-                   ・「保存して**比べられます**」
-                     比較画面は存在しない。しかも /companies の分割ビューは
-                     **未ログインでも使える**ので、比べることは登録の理由になっていない。
-
-                 ⚠️★文言は LP と**同じ**にしてある。片方だけ直さないこと
-                    （実体は FinalCta.tsx のガイド側 と AuthAwareCta の guest）。 */}
-          <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
-          <p style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
-            登録すると、在籍している方・していた方の経歴を読めます。気になる企業と募集は、保存しておけます。
-          </p>
-          <a
-            href="/auth"
-            style={{
-              display: "block", textAlign: "center", padding: "10px 16px", borderRadius: 8,
-              background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
-              textDecoration: "none",
-            }}
-          >
-            {/* ⚠️★「メールアドレスで」を外した（2026-09-17）。**Google でも登録できる。**
-                   実測: /auth の登録は「Googleで続ける」（推奨バッジ付き・主）と
-                   「メールアドレスで登録」の2つ。片方だけ書くと、もう片方が見えない。
-                ⚠️ LP のボタン（FinalCta / AuthAwareCta の guest）と**同じ文言**。 */}
-            無料登録して経歴を見る
-          </a>
-        </div>
+        /* ⚠️★実体は [GuestSignupPanel](本ファイル上部) の1つだけ。
+              **ここに文言を書き戻さないこと。** モバイル版（中央カラム）と
+              割れて、**片方だけ直る**形になる。 */
+        <GuestSignupPanel />
       ) : (
       <>
       {/* (a) フォロー中の企業
@@ -2724,17 +2763,31 @@ export default function FeedClient({
            ⚠️ カードを分けるのはサイトの慣習に合わせたもの（/u/[id] の投稿一覧、
               /people のユーザーカード、企業ページのツール等はすべて独立カード）。 */
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
-          {activePosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              myUserId={myUserId}
-              myName={myName}
-              myAvatarColor={myAvatarColor}
-              myAvatarUrl={myAvatarUrl}
-              onDelete={handleDelete}
-              onLikeToggle={handleLikeToggle}
-            />
+          {activePosts.map((post, i) => (
+            <Fragment key={post.id}>
+              <PostCard
+                post={post}
+                myUserId={myUserId}
+                myName={myName}
+                myAvatarColor={myAvatarColor}
+                myAvatarUrl={myAvatarUrl}
+                onDelete={handleDelete}
+                onLikeToggle={handleLikeToggle}
+              />
+              {/* ★登録パネルを投稿の途中に差し込む（2026-09-17）。
+                     **出すのは `!isDesktop` のときだけ** —— 768px 以上では
+                     右サイドバーに同じものが出ているので、両方出すと
+                     **同じ画面に同じ箱が2つ並ぶ**。
+                  ⚠️★**`isDesktop` のしきい値（768）をここと右レールで別々に書かないこと。**
+                     食い違うと「どちらにも出ない幅」か「2つ出る幅」ができる。
+                  ⚠️ 投稿が `GUEST_PANEL_AFTER_POSTS` より少ないときは最後の投稿の後ろに出る。
+                  ⚠️ `marginBottom` を 0 に潰す。パネル自身が 12 を持っており、
+                     このリストは `gap: 10` なので、そのままだとここだけ行間が広くなる。 */}
+              {!isDesktop && myUserId === null
+                && i === Math.min(GUEST_PANEL_AFTER_POSTS, activePosts.length) - 1 && (
+                <GuestSignupPanel style={{ marginBottom: 0 }} />
+              )}
+            </Fragment>
           ))}
         </div>
       )}
