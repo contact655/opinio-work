@@ -838,7 +838,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           background: "#fff",
           borderBottom: "1px solid var(--line)",
           boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-          padding: "20px 0 0",
+          /* ⚠️ 帯が1本になったぶん詰めた（20px -> 12px）。詰めすぎると検索窓が
+                ヘッダーに貼り付いて見える。12 が下限（`/jobs` `/companies` と同じ）。 */
+          padding: "12px 0 0",
         }}
       >
         <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
@@ -905,18 +907,31 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                   ⚠️ 戻すなら、入力欄の ✕ と役割が重ならないようにすること
                      （あちらは検索文字だけを消す）。 */}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ── 並び替えバー ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-      <div className="ppl-wrap" style={{ margin: "0 auto", padding: "12px 24px" }}>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-          background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
-          padding: "10px 16px", boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-        }}>
+            {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
+                   それまで sticky な帯が2本あり、一覧が始まるのは 275px 前後だった。
+                   `/jobs`（162px）・`/companies`（164px）を同日に1本にしたのと同じ形に揃えた。
+
+                ⚠️★**白いカードの装飾（枠・影・角丸）は外した。** 帯が1本になったので、
+                   同じ行の中にもう1枚カードを置くと「窓の中の窓」になり、
+                   行の高さが跳ね上がる（`/companies` で実測 62px → ツールバー 121px）。
+
+                ⚠️★**`/companies` と違い、チップは畳んでいない。** あちらは6つあって
+                   1行に収まらなかったが、ここは**職種と外資系の2つだけ**で収まる。
+                   畳むと、**唯一の絞り込みをクリックの奥に隠す**ことになる。
+                   ⚠️ 3つ目のチップを足して収まらなくなったら、そのときに
+                      `/companies` と同じ「詳細検索」の形にすること
+                      （**選択中の条件を外に出す**のもセット）。
+
+                ⚠️ 件数を右端に寄せるのは `marginLeft: auto`。**行を折ったときだけ効く。** */}
+            {/* ⚠️★`flexShrink: 0` にしないこと（2026-09-17 に入れて 375px で実際にはみ出した）。
+                   この群の intrinsic は **383px** で、375px のときの親は **327px**。
+                   縮めないと親を 56px 超える。`flexWrap` で中を折り、`minWidth: 0` で縮めさせる。
+                ⚠️ `marginLeft: auto` は**行を折ったときだけ効く**（1行のときは余白が無いので 0）。 */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12, rowGap: 8,
+              flexWrap: "wrap", minWidth: 0, marginLeft: "auto",
+            }}>
           {/* 並び替え */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>並び替え</span>
@@ -939,7 +954,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               })}
             </div>
           </div>
-
           {/* 表示モードと件数。
               ★意匠は `/companies` のビュートグル（`components/companies/GridSortBar.tsx`）と
                 揃えてある（2026-08-27）。**同じ操作が2つの一覧で別の見た目だったため。**
@@ -997,8 +1011,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               </strong> 名
             </span>
           </div>
+            </div>
+          </div>
         </div>
-      </div>
       </div>
 
       {/* ── コンテンツ ── */}
