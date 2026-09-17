@@ -123,6 +123,32 @@ export function JobListItem({
           style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--royal)", zIndex: 1 }}
         />
       )}
+      {/* ── ★分割表示のときだけ出る♡（2026-09-17）────────────────────────────
+             アクションパネルを畳むと保存の手段が消えるので、カードの右上に重ねる。
+
+          ⚠️★**`<Link>` の外（`.job-list-card` の直接の子）に置く。** 中に入れると
+             `<a>` の中に `<button>` が入って**対話的要素の入れ子**になる。
+          ⚠️★**`handleBookmark` が `preventDefault` ＋ `stopPropagation` する**ので、
+             押してもカードの選択は起きない（`CompanySplitLinks` は
+             `e.defaultPrevented` を見て降りる）。**この2つを外さないこと。**
+          ⚠️ 既定では `display: none`。出すのは **globals.css** の
+             `.companies-split .job-list-card > .job-list-heart` だけ。 */}
+      <button
+        type="button"
+        className="job-list-heart"
+        onClick={handleBookmark}
+        aria-label={bookmarked ? "ブックマーク解除" : "保存する"}
+        aria-pressed={bookmarked}
+        style={{
+          background: bookmarked ? "var(--royal-50)" : "#fff",
+          border: `1.5px solid ${bookmarked ? "var(--royal-100)" : "#E2E8F0"}`,
+          transform: bookmarkAnim ? "scale(1.12)" : "scale(1)",
+          transition: "all 0.2s",
+        }}
+      >
+        <Heart size={15} strokeWidth={2} style={{ color: bookmarked ? "var(--royal)" : "var(--ink-mute)", fill: bookmarked ? "currentColor" : "none" }} />
+      </button>
+
       <Link
         href={`/jobs/${job.slug ?? job.id}`}
         /* ⚠️★`target="_blank"` を外した（2026-09-09）。理由は企業カードで 2026-09-07 に
@@ -136,11 +162,13 @@ export function JobListItem({
         prefetch
         aria-current={selected ? "true" : undefined}
         className="job-list-item-link"
+        /* ⚠️★**padding をインラインに書かない**（2026-09-17）。分割表示では♡のぶん
+              右を空ける（padding-right: 52px）ので、インラインに書くと CSS が負けて
+              **求人名の1行目が♡の下に潜る**。値は globals.css の .job-list-item-link。 */
         style={{
           display: "flex",
           alignItems: "center",
           gap: 14,
-          padding: "16px 16px",
           flex: 1,
           minWidth: 0,
           minHeight: 80,
@@ -276,18 +304,25 @@ export function JobListItem({
 
       </Link>
 
-      {/* ── 右端: アクションパネル ── */}
-      <div style={{
-        flexShrink: 0,
-        width: 104,
+      {/* ── 右端: アクションパネル ──
+             ⚠️★**分割表示（1280px 以上でレールに入ったとき）はこの列ごと畳む。**
+                CSS は **globals.css** にある
+                （`.companies-split .job-list-card > .job-list-actions`）。
+                ⚠️ **幅で判定していない。レールに入っているかどうかが条件**なので、
+                   祖先の `.companies-split` で絞る。`CompanyCardList` が
+                   2026-09-09 に同じ形にしてある。
+             ⚠️ 畳んだときの保存は、下の `.job-list-heart`（カードの右上に重ねた♡）が
+                受け持つ。**状態（`bookmarked`）と `handleBookmark` は共通**で、
+                DOM が2つあるだけ。片方だけ直さないこと。 */}
+      {/* ⚠️★**`display` をインラインに書かないこと**（2026-09-17 にここで実際に踏んだ）。
+             インライン style は CSS に勝つので、分割表示で畳む
+             globals.css の .companies-split .job-list-card > .job-list-actions が
+             **一度も効かず、ボタン列と♡が同時に出た**。
+             レイアウト（display / flex-direction / gap / width …）は
+             globals.css の `.job-list-actions` にある。ここには**色と枠だけ**残す。 */}
+      <div className="job-list-actions" style={{
         borderLeft: "1px solid var(--line-soft)",
         background: "var(--bg-tint)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "stretch",
-        justifyContent: "flex-start",
-        gap: 5,
-        padding: "12px 8px",
       }}>
         {/* 詳細を見る。
             ⚠️★**`target="_blank"` を外した（2026-09-17）。** カード面は 2026-09-09 に

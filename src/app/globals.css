@@ -551,6 +551,58 @@ p, .description, .desc {
   max-width: 100%;
 }
 
+/* ── ★求人カードの右端のボタン列と、分割表示で重ねる♡（2026-09-17）──────────
+   ⚠️★**レイアウトはここ。JobListItem のインライン style に display を書かないこと。**
+      インラインは CSS に勝つので、下の .companies-split の上書きが効かなくなる
+      （2026-09-17 に実際に踏み、ボタン列と♡が同時に出た）。
+   ⚠️ globals.css に置いてあるのは、/dev/preview/job-cards にも効かせるため
+      （JobsClient の style タグはあのページには出ない）。 */
+/* カード面のリンク。⚠️ padding は JobListItem のインライン style ではなくここ
+   （分割表示で右を広げる上書きが効かなくなるため）。 */
+.job-list-item-link { padding: 16px; }
+
+.job-list-actions {
+  flex-shrink: 0;
+  width: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 12px 8px;
+}
+
+/* カードに重ねる♡。分割表示のときだけ出す（既定は非表示）。 */
+.job-list-heart {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+/* ── 分割表示（レールに入ったカード）────────────────────────────────────
+   ⚠️★**幅では判定しない。レールに入っているかどうかが条件**なので祖先の
+      .companies-split で絞る（CompanyCardList が 2026-09-09 に同じ形にしてある）。
+      メディアクエリだけにすると、分割していない全幅の一覧まで畳まれる。
+   ⚠️★1280 は lib/constants/splitView.ts の SPLIT_MIN_WIDTH と同じ値を手で書いている。
+      CSS からは定数を参照できない。**変えるときは両方。**
+      ここだけ変えると「ペインは出るのにボタン列が残る」になる。 */
+@media (min-width: 1280px) {
+  .companies-split .job-list-card > .job-list-actions { display: none; }
+  .companies-split .job-list-card > .job-list-heart { display: inline-flex; }
+  /* ♡ のぶんだけ本文の右を空ける。空けないと長い求人名が♡の下に潜る。 */
+  .companies-split .job-list-card > .job-list-item-link { padding-right: 52px; }
+}
+
 /* ── Article card hover ── */
 .article-card:hover {
   border-color: var(--royal-100) !important;

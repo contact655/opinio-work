@@ -1684,6 +1684,15 @@ export default function JobsClient({
           .jobs-mobile-role-pills { display: flex !important; }
         }
 
+        /* ⚠️★分割表示でボタン列を畳む CSS と、カードに重ねる♡の CSS は
+               **globals.css に置いてある**（2026-09-17）。ここではない理由:
+                 ① ボタン列の display は JobListItem の**インライン style**にあり、
+                    インラインは CSS に勝つ。**インラインから display を外す**必要があり、
+                    外したら /dev/preview/job-cards でも効く場所に基本ルールが要る
+                    （この style タグはあのページには出ない）。
+                 ② 基本ルールと分割時の上書きが別のファイルに分かれると、
+                    片方だけ直す事故になる。**3つとも globals.css にまとめてある。** */
+
         /* ⚠️★.job-title-clamp の定義は globals.css に1本化した（2026-09-17）。
                ここに複製が残っていたせいで、globals.css 側のモバイル2行クランプが
                **一度も効いていなかった**（body の style タグが後から当たるため）。
