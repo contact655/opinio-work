@@ -542,9 +542,6 @@ function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string,
 export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds }: Props) {
   const [role, setRole] = useState("");
 
-  /* 外資系。⚠️ **これまでの職歴に1社でもあればヒット**（現職に限らない）。
-     判定は directory.ts の `hasForeignExperience` に集約している。 */
-  const [foreign, setForeign] = useState("");
   /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
   const [sort, setSort] = useState("newest");
 
@@ -566,7 +563,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   };
   const [keyword, setKeyword] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -607,7 +603,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchRole(a, role, roleSlugToId)) return false;
-      if (foreign === "yes" && !a.hasForeignExperience) return false;
       if (!q) return true;
       // 検索対象。学歴の人は学校名で引けるようにする
       const aff = a.affiliation;
@@ -628,7 +623,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       const byAlias = !!keywordRoleIds && (a.roleIds ?? []).some((id) => keywordRoleIds.has(id));
       return byText || byAlias;
     });
-  }, [ambassadors, role, foreign, keyword, roleSlugToId, keywordRoleIds]);
+  }, [ambassadors, role, keyword, roleSlugToId, keywordRoleIds]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -647,9 +642,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
 
   /* ⚠️ かつてここに `hasFilter` と `clearAll` があった（「✕ すべてクリア」用）。
         2026-09-06 にボタンごと廃止したので消した。
-        ⚠️ 復活させるなら **`foreign` を必ず含めること**。2026-08-15 まで両方から
-           漏れており、**外資系だけを選ぶとボタンが出ず、他の条件と一緒にクリアしても
-           外資系だけ残っていた。** 絞り込みを1つ足したら忘れずに足す。 */
+        ⚠️ 復活させるなら **絞り込みを全部含めること**。2026-08-15 まで漏れがあり、
+           「他の条件と一緒にクリアしても1つだけ残る」という壊れ方をしていた。
+           絞り込みを1つ足したら忘れずに足す。 */
 
   if (ambassadors.length === 0) {
     return (
@@ -810,22 +805,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           box-shadow: 0 2px 10px rgba(0,35,102,0.25);
         }
 
-        /* モバイル: フィルタ折りたたみ */
+        /* ★絞り込みのチップ（2026-09-17 に「絞り込む」で畳むのをやめた）。
+           ⚠️ display: contents なので、チップは**ツールバーの行の直接の子として**並ぶ。
+              ここを block などに変えると、行の中に箱がもう1つできて高さが跳ねる。
+           ⚠️ 2つ目の絞り込みを足して狭い画面で収まらなくなったら、
+              畳む仕掛けを戻すのではなく、企業一覧と同じ「詳細検索」にすること。
+              ⚠️ ここは style タグのテンプレートリテラルの中。**バッククォートを書かないこと**
+                 （文字列がその場で閉じる。2026-09-17 にこの行で実際に踏んだ）。 */
         .ppl-filter-chips { display: contents; }
-        .ppl-filter-toggle { display: none; }
-        @media (max-width: 767px) {
-          .ppl-filter-toggle {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 12.5px; color: var(--ink-soft); cursor: pointer;
-            white-space: nowrap; border: 1.5px solid #e2e8f0;
-            border-radius: 999px; padding: 6px 12px;
-            background: #fff; font-family: inherit; font-weight: 500;
-            transition: border-color 0.15s, background 0.15s; flex-shrink: 0;
-          }
-          .ppl-filter-toggle.active { border-color: var(--royal); background: var(--royal-50); color: var(--royal); font-weight: 700; }
-          .ppl-filter-chips { display: none; flex-wrap: wrap; gap: 6px; padding: 4px 0; width: 100%; }
-          .ppl-filter-chips.expanded { display: flex; }
-        }
       `}</style>
 
       <h1 className="sr-only">登録ユーザーを探す</h1>
@@ -871,40 +858,24 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               )}
             </div>
 
-            {/* モバイル: フィルタトグル */}
-            <button
-              type="button"
-              className={`ppl-filter-toggle${(role || foreign) ? " active" : ""}`}
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
-              </svg>
-              絞り込む{filtersExpanded ? " ▴" : " ▾"}
-            </button>
+            {/* ★絞り込みは「職種」だけ（2026-09-17 に外資系を外した / 柴さんの指示）。
+                ⚠️★**モバイルの「絞り込む」トグルも一緒に外した。** 畳む相手が1つしか
+                   無くなり、**トグル自身がチップとほぼ同じ幅**なので、隠す意味が消えた
+                   （押す手間が増えるだけになる）。`ppl-filter-toggle` / `filtersExpanded` も削除。
+                ⚠️ 2つ目の絞り込みを足して1行に収まらなくなったら、そのときは
+                   `/companies` と同じ「詳細検索」の形にすること
+                   （**選択中の条件を外に出す**のもセット）。
 
-            {/* フィルタチップ */}
-            <div className={`ppl-filter-chips${filtersExpanded ? " expanded" : ""}`}>
+                ⚠️★**外資系の経験は画面から消していない。** 1列表示（詳細）の
+                   「外資系の経験あり」バッジは残してある —— あれは
+                   **1列表示の存在理由**（カードより情報が多いこと）そのもので、
+                   消すと 2026-08-04 に「一覧/詳細」を撤去したときの状態に戻る。
+                   `directory.ts` の `hasForeignExperience` も残す。 */}
+            <div className="ppl-filter-chips">
               <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
-              {/* ⚠️ 並びは 職種 → 年齢 → 外資系。
-                  外資系は **押すだけのトグル**。`/companies` と同じ `.foreign-toggle` を使う。
-                  ⚠️ FilterChip（ドロップダウン）に戻さないこと。2026-08-15 まで
-                     選択肢が「外資系の経験あり」1つだけのドロップダウンで、
-                     開く → 選ぶ の2手が要り、同じ意味のフィルタなのに
-                     `/companies` と操作も見た目も違っていた。
-                  ⚠️ 見た目を変えるときは globals.css の `.foreign-toggle` を直す。
-                     ここに個別のスタイルを書くと2ページでまたズレる。 */}
-              <button
-                type="button"
-                className={`foreign-toggle${foreign === "yes" ? " active" : ""}`}
-                onClick={() => { setForeign(foreign === "yes" ? "" : "yes"); setOpenChip(null); }}
-                aria-pressed={foreign === "yes"}
-              >
-                外資系{foreign === "yes" && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-              </button>
               {/* ⚠️★**「すべてクリア」は廃止した**（2026-09-06 / 柴さんの判断・`/companies` と揃えた）。
                      絞り込みが1つ付くたびに現れて並びが動くうえ、**すべて個別に外せる**:
-                       検索文字 → 入力欄の ✕ ／ 職種 → チップの ✕ ／ 外資系 → もう一度押す
+                       検索文字 → 入力欄の ✕ ／ 職種 → チップの ✕
                   ⚠️ 戻すなら、入力欄の ✕ と役割が重ならないようにすること
                      （あちらは検索文字だけを消す）。 */}
             </div>
@@ -918,9 +889,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                    行の高さが跳ね上がる（`/companies` で実測 62px → ツールバー 121px）。
 
                 ⚠️★**`/companies` と違い、チップは畳んでいない。** あちらは6つあって
-                   1行に収まらなかったが、ここは**職種と外資系の2つだけ**で収まる。
-                   畳むと、**唯一の絞り込みをクリックの奥に隠す**ことになる。
-                   ⚠️ 3つ目のチップを足して収まらなくなったら、そのときに
+                   1行に収まらなかったが、ここは**職種の1つだけ**（2026-09-17 に
+                   外資系を外した）。畳むと、**唯一の絞り込みをクリックの奥に隠す**ことになる。
+                   ⚠️ 2つ目のチップを足して収まらなくなったら、そのときに
                       `/companies` と同じ「詳細検索」の形にすること
                       （**選択中の条件を外に出す**のもセット）。
 
