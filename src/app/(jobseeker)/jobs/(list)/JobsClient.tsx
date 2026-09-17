@@ -742,6 +742,10 @@ export default function JobsClient({
         解決できなかったことは companyNotFound の注記で別に伝える。 */
   const hasFilter = !!(category || dept || work_style || salary || industry || prefecture || empType || companyStage || bizOnly || companyFilter);
 
+  /* ★注記の帯を出すか（2026-09-17）。⚠️ 3つの条件は帯の中身と**同じ順**に並べてある。
+        片方だけ足すと「帯は出るのに中身が無い」か「中身があるのに帯が出ない」になる。 */
+  const hasNotices = ignoredTerms.length > 0 || companyNotFound || !!companyFilter;
+
 
   const roleCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -758,12 +762,27 @@ export default function JobsClient({
     <>
       <h1 className="sr-only">IT募集を探す</h1>
 
-      {/* ── 検索バー + フィルターピル（sticky、企業ページと同構造） ── */}
+      {/* ── ★ツールバー（2026-09-17 に検索帯と並び替え帯を1つにした）──────────────
+             それまで **sticky な帯が2本**あり、一覧が始まるのは 267px（本番 1440px 実測）だった。
+               ヘッダー 61 ＋ 検索帯 91 ＋ 並び替え帯 83 ＋ 余白 32
+             並び替え・件数を検索窓と同じ行に入れて帯を1本にしてある。
+
+          ⚠️★**1行に収まるのは分割表示の幅だけ。** 実測の intrinsic は
+             検索窓 220（flex-basis の下限）＋ 詳細検索 103 ＋ 並び替え 455 ＋ 件数 90
+             ＝ **約 908px** で、内側の幅は 1280px で 1,184 / 1440px で 1,344。
+             それより狭い画面では `.jobs-toolbar-sort` が `flex-basis: 100%` で
+             **自分から行を折る**（＝従来どおりの2行）。下の CSS を参照。
+
+          ⚠️ `top: 60` はヘッダー（実高 61px）に貼り付けるための即値。**このリポジトリでは
+             6ファイルに直書きされている**（`--header-h` のような変数が無い）。
+             変数に寄せるなら5画面まとめて直すこと。ここだけ変えると段差になる。 */}
       <div
         style={{
           background: "#fff",
           borderBottom: "1px solid var(--line)",
-          padding: "20px 0 0",
+          /* ⚠️ 上下を 20/14 から 12/12 に詰めた。帯が1本になったぶん、
+                詰めすぎると検索窓がヘッダーに貼り付いて見える。12 が下限。 */
+          padding: "12px 0 0",
           boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
           position: "sticky",
           top: 60,
@@ -772,8 +791,8 @@ export default function JobsClient({
       >
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
 
-          {/* 検索バー行（企業ページ .csb-bar と同等） */}
-          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 0 14px" }}>
+          {/* ツールバー本体（企業ページ .csb-bar と同等） */}
+          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "0 0 12px" }}>
 
             {/* 検索インプット */}
             <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
@@ -875,6 +894,71 @@ export default function JobsClient({
                 </svg>
               </button>
 
+            </div>
+
+            {/* ── ★並び替え＋件数（2026-09-17 に下の帯からここへ移した）──────────
+                   ⚠️★**白いカードの装飾（枠・影・角丸）は外した。** 帯が1本になったので、
+                      同じ行の中にもう1枚カードを置くと「窓の中の窓」になる。
+                      区切りは縦罫だけにしてある。
+                   ⚠️★**折り返しの制御は `.jobs-toolbar-sort` の `flex-basis` 1箇所だけ。**
+                      分割しない幅では 100% で**自分から行を折る**（＝従来どおりの2行）。
+                      分割表示の幅でだけ `auto` になって検索窓と同じ行に収まる。
+                   ⚠️ 中身・ハンドラ・`jobs-sort-btn` の見た目は移す前と1文字も変えていない。
+                   ⚠️★件数の塊に `marginLeft: auto` が要る。**行を折ったときだけ効く**
+                      （1行のときは余白が無いので 0）。外すと、折れた行で件数が
+                      ピルの直後に寄って右端が空く。 */}
+            <div className="jobs-toolbar-sort">
+              <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--ink-soft)", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M7 12h10M11 18h2"/>
+                </svg>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>並び替え</span>
+              </div>
+              <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
+              <div className="jobs-toolbar-sortpills">
+                {([
+                  { value: "updated",     label: "新着順",     icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> },
+                  { value: "salary",      label: "年収順",     icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+                  { value: "employees",   label: "社員数順",   icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+                  { value: "disclosure",  label: "開示充実順", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> },
+                ] as const).map((opt) => {
+                  const active = sort === opt.value;
+                  return (
+                    <button key={opt.value} type="button" onClick={() => setSort(opt.value)}
+                      className={`jobs-sort-btn${active ? " active" : ""}`}
+                    >
+                      {active ? <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> : opt.icon}
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
+              {maxPerCompany > 3 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setGroupByCompany(v => !v); setDisplayCount(PER_PAGE); }}
+                    className={`jobs-sort-btn${groupByCompany ? " active" : ""}`}
+                    title="同一企業の求人を1社あたり3件に絞る"
+                  >
+                    {groupByCompany ? "✓ " : ""}1社3件まで
+                  </button>
+                  {groupByCompany && hiddenByGrouping > 0 && (
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
+                      {hiddenByGrouping}件非表示
+                      <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
+                    </span>
+                  )}
+                </>
+              )}
+              <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
+              <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
+                <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
+                <span style={{ marginLeft: 2 }}>件</span>
+                {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
+              </span>
+              </div>
             </div>
 
             {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか）
@@ -1048,7 +1132,16 @@ export default function JobsClient({
         </div>
       </div>
 
-      {/* ── ソートバー ── */}
+      {/* ── ★注記の帯（2026-09-17）────────────────────────────────────────────
+             並び替えと件数は上のツールバーへ移したので、ここに残るのは
+             **注記3種だけ**（解釈できなかった検索語 / 企業が見つからない / 企業で絞り込み中）。
+
+          ⚠️★**中身が無いときは帯ごと出さない。** 出すと `py-3` と下罫だけの
+             白い帯が 25px 残り、ツールバーとの間に意味の無い段差ができる。
+          ⚠️★**sticky を外した**（以前は `top: 64px`）。上のツールバーが `top: 60` で
+             高さ 68px あるので、64 に貼り付けると**ツールバーの裏に隠れる**
+             （ツールバーは z:30、こちらは z:auto）。注記は流れてよい情報なので静的にする。 */}
+      {hasNotices && (
       <div
         ref={filterBarRef}
         className="jobs-mobile-filterbar"
@@ -1081,70 +1174,6 @@ export default function JobsClient({
               )}
             </div>
           )}
-
-          {/* 並び替えバー */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-            background: "#fff", borderRadius: 12, border: "1px solid var(--line)",
-            padding: "10px 16px", boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-          }}>
-            {/* 左: 並び替えピル */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--ink-soft)", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 6h18M7 12h10M11 18h2"/>
-                </svg>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>並び替え</span>
-              </div>
-              <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
-              <div style={{ display: "flex", gap: 6, alignItems: "center", overflowX: "auto", scrollbarWidth: "none" }}>
-                {([
-                  { value: "updated",     label: "新着順",     icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> },
-                  { value: "salary",      label: "年収順",     icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
-                  { value: "employees",   label: "社員数順",   icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-                  { value: "disclosure",  label: "開示充実順", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> },
-                ] as const).map((opt) => {
-                  const active = sort === opt.value;
-                  return (
-                    <button key={opt.value} type="button" onClick={() => setSort(opt.value)}
-                      className={`jobs-sort-btn${active ? " active" : ""}`}
-                    >
-                      {active ? <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> : opt.icon}
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 右: グルーピング + 件数 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              {maxPerCompany > 3 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => { setGroupByCompany(v => !v); setDisplayCount(PER_PAGE); }}
-                    className={`jobs-sort-btn${groupByCompany ? " active" : ""}`}
-                    title="同一企業の求人を1社あたり3件に絞る"
-                  >
-                    {groupByCompany ? "✓ " : ""}1社3件まで
-                  </button>
-                  {groupByCompany && hiddenByGrouping > 0 && (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#C2410C", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap" }}>
-                      {hiddenByGrouping}件非表示
-                      <button type="button" onClick={() => setGroupByCompany(false)} style={{ background: "none", border: "none", color: "#C2410C", fontWeight: 700, fontSize: 12, cursor: "pointer", padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>全表示</button>
-                    </span>
-                  )}
-                </>
-              )}
-              <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-              <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-                <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
-                <span style={{ marginLeft: 2 }}>件</span>
-                {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
-              </span>
-            </div>
-          </div>
 
           {/* ⚠️ モバイルの職種クイックピル（上位10件）は 2026-09-09 に削除した。
                  職種は「詳細検索」に集約したので、同じものが2箇所に出ていた。 */}
@@ -1199,6 +1228,7 @@ export default function JobsClient({
 
         </div>
       </div>
+      )}
 
       {/* Main content */}
       <div style={{ background: "#F5F7FA" }}>
@@ -1562,8 +1592,41 @@ export default function JobsClient({
           gap: 0;
         }
         /* ⚠️ jobs-sidebar の指定は 2026-09-09 に削除した（サイドバーごと無い）。 */
-        /* filter bar: always visible */
-        .jobs-mobile-filterbar { display: block; position: sticky; top: 64px; }
+        /* 注記の帯。⚠️★sticky を外した（2026-09-17）。理由は JSX 側の注記。 */
+        .jobs-mobile-filterbar { display: block; }
+
+        /* ── ★ツールバーの並び替え群（2026-09-17）────────────────────────────
+           ⚠️★**ここが「1行にするか2行にするか」の唯一の制御。**
+              既定は flex-basis 100% ＝ 自分から行を折る（従来どおりの2行）。
+              分割表示の幅でだけ auto にして検索窓と同じ行へ入れる。
+           ⚠️★**1280 は lib/constants/splitView.ts の SPLIT_MIN_WIDTH と同じ値を
+              手で書いている。** CSS からは定数を参照できない（CompanySplitLayout と同じ事情）。
+              **変えるときは両方**。ここだけ変えると「分割は出るのにツールバーが2行」になる。
+           ⚠️★ここは style タグのテンプレートリテラルの中。**バッククォートを書かないこと**
+              （2026-09-17 にこの行で実際に文字列が途中で閉じ、tsc が 60件のエラーを出した）。 */
+        .jobs-toolbar-sort {
+          flex-basis: 100%;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+        .jobs-toolbar-sortpills {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          overflow-x: auto;
+          scrollbar-width: none;
+          min-width: 0;
+        }
+        .jobs-toolbar-sortpills::-webkit-scrollbar { display: none; }
+        @media (min-width: 1280px) {
+          .jobs-toolbar-sort { flex-basis: auto; flex-shrink: 0; }
+          /* ⚠️ 1行のときはピルを縮めない。縮むと検索窓が伸びたぶんだけ
+                 ピルが横スクロールに化け、押せる選択肢が隠れる。
+                 先に縮むのは検索窓（flex 1 1 220px）。 */
+          .jobs-toolbar-sortpills { flex-shrink: 0; overflow-x: visible; }
+        }
         /* 縦リスト: 1カラム — 個別カード方式 */
         .jobs-list-desktop {
           display: flex;
