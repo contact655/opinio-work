@@ -1933,7 +1933,10 @@ export default async function CompanyDetailPage({
                    （`MobileBottomCTA` が 768〜1023px でまさにそれを起こしていた。2026-08-13）。
                 ⚠️ 見出しだけ `SecTitle` を渡して隣のセクションに揃える。
                    渡さないとサイドバー用の小さい見出しが出る（既定はデスクトップ向け）。 */}
-            <div className="lg:hidden" style={{ marginBottom: "var(--space-7)" }}>
+            {/* ⚠️★`var(--space-7)`（**未定義＝0**）で、次のセクションと接していた
+                   （2026-09-17 に直した）。スケールに 28 は無いので、
+                   セクション間の値 32px（`--space-8`）に寄せる。 */}
+            <div className="lg:hidden" style={{ marginBottom: "var(--space-8)" }}>
               <CompanyInfoBox
                 company={company}
                 detail={detail}

@@ -104,7 +104,11 @@ export function CompanyPane({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "var(--space-5)",
+        /* ⚠️★`var(--space-5)` から直した（2026-09-17）。**--space-5 はこのリポジトリに無く、
+              未定義の `var()` は宣言ごと無効**になるので、**この gap は 0 だった。**
+              スケールは 4/8/12/16/24/32… と刻んでおり 20 と 28 は**意図的に無い**。
+              近い実在の値に寄せてある（`JobPane` の面と同じ密度）。 */
+        gap: "var(--space-4)",
         /* ⚠️ 幅を指定しない。**置かれたコンテナに従う**のがこの部品の前提。 */
         minWidth: 0,
       }}
@@ -209,7 +213,8 @@ export function CompanyPane({
                1社だけ見て「見えている」と判断すると同じ形に戻る。 */}
         {/* ── CTA。⚠️ 「詳細を見る」は必ず出す（ここは要約であって詳細の置き換えではない） ── */}
         {/* ⚠️ 余白は自前で持つ。外側の flex の gap には**もう乗っていない**（ヘッダーの中に入れたため） */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: "var(--space-5)" }}>
+        {/* ⚠️★`var(--space-5)`（未定義＝0）から直した（2026-09-17）。上の注記と同じ理由。 */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: "var(--space-4)" }}>
           <Link href={detailHref} style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,

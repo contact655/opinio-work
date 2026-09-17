@@ -169,7 +169,9 @@ function SubjectCard({ subject }: { subject: ArticleSubject }) {
 function ThemesSection({ themes }: { themes: ThemeItem[] }) {
   if (!themes.length) return null;
   return (
-    <div style={{ marginTop: 40, padding: "var(--space-5) var(--space-6)", background: "var(--bg-tint)", borderRadius: 12 }}>
+    /* ⚠️★上下が `var(--space-5)`（未定義＝0）で、**中身が箱の上下に接していた**
+          （2026-09-17 に直した）。左右と同じ 24px に揃える。 */
+    <div style={{ marginTop: 40, padding: "var(--space-6)", background: "var(--bg-tint)", borderRadius: 12 }}>
       <div style={{
         fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
         color: INK_MUTE, letterSpacing: "0.15em", marginBottom: "var(--space-4)",

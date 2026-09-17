@@ -707,9 +707,12 @@ export async function JobDetailView({
                 }>
                   必須スキル / 歓迎スキル
                 </SecTitle>
-                {/* 必須スキル — pill tags */}
+                {/* 必須スキル — pill tags
+                    ⚠️★下の余白は `var(--space-5)`（**未定義＝0**）だった（2026-09-17 に直した）。
+                       **必須スキルと歓迎スキルが隙間なく接していた。**
+                       `JobPane` の同じ場所と同じ値にしてある。 */}
                 {job.required_skills.length > 0 && (
-                <div style={{ marginBottom: job.preferred_skills.length > 0 ? "var(--space-5)" : 0 }}>
+                <div style={{ marginBottom: job.preferred_skills.length > 0 ? "var(--space-4)" : 0 }}>
                   {/* ⚠★オレンジにしない（2026-08-29）。**オレンジはカジュアル面談だけの色**
                          （.claude/skills/ui-conventions「色の役割」）。必須スキルの見出しに使うと、
                          同じページのカジュアル面談 CTA と同じ色が別の意味を持つ。
@@ -1370,7 +1373,9 @@ export async function JobDetailView({
                   </div>
                 </div>
 
-                <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                {/* ⚠️★左右が `var(--space-5)`（未定義＝0）で、**CTA が枠にぴったり接していた**
+                       （2026-09-17 に直した）。上下と同じ 16px に揃える。 */}
+                <div style={{ padding: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {/* ③ Primary: カジュアル面談 — warm orange, OPINIO思想に合わせてトップに */}
                   {/* ⚠️ companyHref が null（非公開企業）ならCTAごと出さない */}
                   {company.accepting_casual_meetings && companyHref && (
