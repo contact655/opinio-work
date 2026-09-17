@@ -19,22 +19,28 @@ import OpinioLogo from "@/components/common/OpinioLogo";
       （`88fae279` で `SecTitle` の未使用の色の選択肢を塞いだのと同じ）。
    ⚠️ ナビを強調したくなったら、**濃紺（主要な遷移）か太さ**で示す。 */
 /**
- * ⚠️★`authOnly` は「**未ログインで押すとログイン画面に飛ばされる**」という意味。
- *    見た目の好みではなく、`src/middleware.ts` の `needsAuth` と1対1にすること。
+ * ⚠️★★**ログイン状態でナビを出し分けないこと**（2026-09-17 に入れて、同日に戻した）。
  *
- * 実測（2026-09-17 / 本番・未ログイン）:
- *   /companies 200 ／ /jobs 200 ／ /feed 200 ／ /articles 200
- *   ★/people は **307 → /auth?next=%2Fpeople**
+ * `/people` は未ログインだと **307 → /auth?next=%2Fpeople** なので、
+ * 「押しても飛ばされるだけなら出さない」として一度**未ログインから隠した。**
+ * ⇒ **同日に戻した**（柴さんの判断）。理由は2つ。
  *
- * ⚠️★**`/feed` を authOnly にしないこと。** 未ログインでも中身が出る
- *    （企業の投稿が並び、投稿・いいねだけがログイン誘導になる）。飛ばされない。
- * ⚠️ `needsAuth` に追加した画面をここへ足すときは、**実測してから**にする
- *    （ページ側の `redirect()` は 200 のまま返ることがある。CLAUDE.md「ソフト200」）。
+ *   ① **同じ画面の中に、同じ行き先のリンクが残っていた。**
+ *      `/feed` の左サイドバー（マイページ / ブックマーク / フォロー中）と
+ *      右サイドバー（ユーザー一覧を見る →）は**4本とも 307**。
+ *      ヘッダーのタブだけ消すと、**外し方が中途半端**になる。
+ *   ② **「ユーザーという機能が無くなった」ように見える。**
+ *      `/feed` は未ログインにも中身を見せ、画面の中で
+ *      「ログインすると投稿・いいね・コメントができます」と誘っている。
+ *      ヘッダーからだけ消すと、その設計と逆を向く。
+ *
+ * ⚠️★**もう一度隠す案を出すときは、本文側（`/feed` のサイドバーなど）と
+ *    まとめて判断すること。** ナビだけ触ると①に戻る。
  */
-const NAV_LINKS: { href: string; label: string; authOnly?: boolean }[] = [
+const NAV_LINKS = [
   { href: "/companies", label: "企業" },
   { href: "/jobs", label: "募集" },
-  { href: "/people", label: "ユーザー", authOnly: true },
+  { href: "/people", label: "ユーザー" },
   { href: "/feed", label: "フィード" },
   { href: "/articles", label: "記事" },
 ];
@@ -142,15 +148,6 @@ export function JobseekerHeader() {
     };
   }, []);
 
-  /* ★未ログインには `authOnly` のリンクを出さない（2026-09-17）。
-        押すと `/auth?next=…` に飛ばされるだけなので、出しておく意味が無い。
-
-     ⚠️★**既定は「出さない」。** `loading`（判定前）も未ログイン側に倒す。
-        先に出して消すと**ちらつく**（出てから消える）。逆向きにする。
-        `AuthAwareCta` / `FinalCta` と同じ倒し方。
-     ⚠️ デスクトップのナビとモバイルメニューの**両方**がこれを使う。片方だけにしない。 */
-  const visibleNav = NAV_LINKS.filter((l) => !l.authOnly || (!loading && !!user));
-
   // Search auto-focus + Escape close
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
@@ -243,7 +240,7 @@ export function JobseekerHeader() {
 
           {/* Nav — desktop only */}
           <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 8, flex: 1, alignItems: "center" }}>
-            {visibleNav.map(({ href, label }) => {
+            {NAV_LINKS.map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
               const active = hrefTab
@@ -724,7 +721,7 @@ export function JobseekerHeader() {
 
         {/* Nav links */}
         <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
-          {visibleNav.map(({ href, label }) => {
+          {NAV_LINKS.map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab
