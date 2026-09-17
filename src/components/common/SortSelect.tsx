@@ -80,6 +80,9 @@ export function SortSelect({
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
+        /* ⚠️★狭い画面ではラベルの語を隠す（下）ので、**読み上げ名はここで固定する**。
+              付けないと、隠れたときに「新着順」としか読まれず何の操作か分からない。 */
+        aria-label={label}
         className="sort-select-btn"
         onClick={() => {
           if (open) { setOpen(false); return; }
@@ -92,8 +95,14 @@ export function SortSelect({
              strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M3 6h18M7 12h10M11 18h2" />
         </svg>
-        {/* ⚠️★現在値を必ず出す。出さないと「いま何順か」が画面から消える */}
-        <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>{label}</span>
+        {/* ⚠️★現在値（下の strong）を必ず出す。出さないと「いま何順か」が画面から消える。
+            ⚠️★**語のほう（「並び替え」）は 767px 以下で隠れる**（globals.css の
+               `.sort-select-label`）。狭い画面では 158px の横幅が収まらず、
+               ツールバーが1行ぶん増えていた（`/articles` で実測 204px -> 160px）。
+               隠れても**アイコンと現在値は残る**し、読み上げ名は上の `aria-label` が持つ。
+            ⚠️ ここに `display` をインラインで書かないこと —— インラインは CSS に勝つので、
+               メディアクエリが効かなくなる（このリポジトリで何度も踏んでいる形）。 */}
+        <span className="sort-select-label" style={{ color: "var(--ink-mute)", fontWeight: 500 }}>{label}</span>
         <strong style={{ fontWeight: 700 }}>{current?.label}</strong>
         <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"
              style={{ opacity: 0.5, transform: open ? "rotate(180deg)" : undefined, transition: "transform .15s" }}>

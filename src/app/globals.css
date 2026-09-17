@@ -677,6 +677,14 @@ p, .description, .desc {
   transition: border-color 0.15s, background 0.15s;
 }
 .sort-select-btn:hover { border-color: var(--royal-100); background: var(--royal-50); }
+/* ★狭い画面では「並び替え」の語を落とし、アイコン＋現在値だけにする（2026-09-17）。
+   ⚠️ 4つの一覧すべてに効く（/jobs /companies /people /articles）。**片方だけ変えない。**
+   ⚠️★読み上げ名は `SortSelect` の `aria-label` が持つ。**あちらを消さないこと** ——
+      消すと、隠れた画面では「新着順」としか読まれず何の操作か分からなくなる。
+   ⚠️ 767px は `.view-btn` などモバイル扱いの他の指定と同じ境目。 */
+@media (max-width: 767px) {
+  .sort-select-label { display: none; }
+}
 
 .sort-select-menu {
   min-width: 180px;

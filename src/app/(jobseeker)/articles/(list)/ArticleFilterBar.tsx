@@ -3,10 +3,20 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState, useRef, useCallback } from "react";
 import { ARTICLE_TYPES } from "@/app/articles/mockArticleData";
+import { SortSelect } from "@/components/common/SortSelect";
 
 const LINE = "var(--line)";
 const INK_SOFT = "var(--ink-soft)";
 const INK_MUTE = "var(--ink-mute)";
+
+/* ★並び替えの選択肢（2026-09-17 に定数へ出した）。描画は components/common/SortSelect。
+   ⚠️ `value` は URL の `?sort=` に入る値そのもの。ラベルだけ変えないこと。
+   ⚠️★既定は `latest`。`updateParam` が **"latest" を消す**（`?sort=` を付けない）ので、
+      ここに既定値を増やすなら向こうの条件も見ること。 */
+const ARTICLE_SORT_OPTIONS = [
+  { value: "latest",  label: "新着順" },
+  { value: "popular", label: "読了時間順" },
+] as const;
 
 export default function ArticleFilterBar({ total }: { total: number }) {
   const router = useRouter();
@@ -46,12 +56,34 @@ export default function ArticleFilterBar({ total }: { total: number }) {
       background: "#fff",
       borderBottom: `1px solid ${LINE}`,
       boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-      padding: "20px 0 0",
+      /* ⚠️ 帯が1本になったぶん詰めた（20px -> 12px）。詰めすぎると検索窓がヘッダーに
+            貼り付いて見える。12 が下限（`/jobs` `/companies` `/people` と同じ）。
+         ⚠️★★**`padding` の一括指定に戻さないこと**（2026-09-17 に直した）。
+            この要素は `px-5 md:px-12` で左右の余白を持つ約束だが、
+            **インラインの一括指定が左右を 0 で上書きしていて、一度も効いていなかった**
+            （実測: 本番も dev も `padding-left: 0px`）。CLAUDE.md の
+            「インライン style と CSS の優先順位」をそのまま踏んでいた形。
+            ⚠️ 症状は**記事一覧とツールバーの左端がズレる**こと（1440px で 0 と 48）。
+               375px では検索窓が画面の端に貼り付き、件数が右端をはみ出していた。
+            → 縦だけを指定する（`paddingTop`）。左右はクラスに任せる。 */
+      paddingTop: 12,
     }} className="px-5 md:px-12">
-      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8, padding: "12px 0 14px" }}>
+      {/* ⚠️ ここも一括指定にしない（上と同じ理由）。左右は親のクラスが持つ。 */}
+      <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", paddingBottom: 14 }}>
 
-        {/* ── 行1: 検索バー + カテゴリタブ + [right: 表示切替] ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
+        {/* ── ★ツールバーは1行（2026-09-17 に2本の帯を1本にした）────────────────
+               それまで「検索＋カテゴリ」と「並び順＋表示形式＋件数」で帯が2段あり、
+               記事一覧が始まるのは **213px**（本番実測 / 1440px）だった。
+               `/jobs`（162）・`/companies`（164）・`/people`（164）と同じ形に揃えた。
+
+            ⚠️★**カテゴリタブは畳んでいない。** `/companies` の6つは「詳細検索」に畳んだが、
+               こちらは**絞り込みではなく記事の主たる目次**（`role="tablist"`）。
+               畳むと、このページの入口をクリックの奥に隠すことになる。
+               ⚠️ 代わりに**タブ列だけが横スクロールする**（下の overflowX）。
+                  以前は行そのものがスクロール容器だったので、検索窓ごと流れていた。
+
+            ⚠️ 右端に寄せるのは `marginLeft: auto`。**行を折ったときだけ効く。** */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {/* Keyword search */}
           <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={INK_MUTE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
@@ -90,8 +122,15 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             )}
           </div>
 
-          {/* Type filter pills */}
-          <div role="tablist" aria-label="記事タイプで絞り込み" style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
+          {/* Type filter pills
+              ⚠️★**スクロール容器はこの列自身**（2026-09-17）。以前は行そのものが
+                 `overflowX: auto` で、狭い画面では**検索窓ごと横に流れていた**。
+              ⚠️ `minWidth: 0` を外さないこと。外すと flex アイテムが縮まず、
+                 タブ5つぶんの幅を親に要求してはみ出す。 */}
+          <div role="tablist" aria-label="記事タイプで絞り込み" style={{
+            display: "flex", gap: 6, flexWrap: "nowrap",
+            minWidth: 0, overflowX: "auto", scrollbarWidth: "none",
+          } as React.CSSProperties}>
           {ARTICLE_TYPES.map(({ value, label }) => {
             const active = currentType === value;
             return (
@@ -122,91 +161,80 @@ export default function ArticleFilterBar({ total }: { total: number }) {
           })}
           </div>
 
-        </div>
+          {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
+              ⚠️★`flexShrink: 0` にしないこと。375px で親を超える（`/people` で実際に踏んだ）。
+                 `flexWrap` で中を折り、`minWidth: 0` で縮めさせる。 */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12, rowGap: 8,
+            flexWrap: "wrap", minWidth: 0, marginLeft: "auto",
+          }}>
+            {/* ★並び替え（2026-09-17 にドロップダウンへ）。実体は components/common/SortSelect。
+                `/jobs`・`/companies`・`/people` と**同じ部品**。⚠️ ここに直書きしないこと。
+                ⚠️ ラベルは部品の既定の「並び替え」。**以前の「並び順:」に戻さないこと**
+                   —— 同じ操作が4画面で違う語になる。
+                ⚠️ `updateParam` が "latest" を消すので、既定に戻すと `?sort=` が落ちる（意図どおり）。 */}
+            <SortSelect
+              value={currentSort}
+              options={ARTICLE_SORT_OPTIONS}
+              onChange={(v) => updateParam("sort", v)}
+            />
 
-        {/* ── 行2: 並び順 + 表示切替 + 件数 ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 2 }}>
-          <span style={{ fontSize: 12, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500, marginRight: 4 }}>並び順:</span>
-          {([
-            { value: "latest",  label: "新着順" },
-            { value: "popular", label: "読了時間順" },
-          ] as const).map(({ value, label }) => {
-            const active = currentSort === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => updateParam("sort", value === "latest" ? null : value)}
-                style={{
-                  height: 32, padding: "0 14px", borderRadius: 8, fontSize: 12,
-                  fontWeight: active ? 700 : 500,
-                  border: `1px solid ${active ? "var(--royal)" : LINE}`,
-                  background: active ? "var(--royal)" : "#fff",
-                  color: active ? "#fff" : INK_MUTE,
-                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-
-          {/* View toggle + 件数 — 行2 右端 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flexShrink: 0 }}>
-            {/* ⚠️★**表示切替は `/companies` の `GridSortBar` と同じ見た目にする**（2026-09-06）。
-                   それまでは articles だけ「白い箱 + 影 + royal の文字」で、
-                   企業一覧の「濃紺の塗り + 白文字」と違っていた。
-                ⚠️ ボタンのスタイルは globals.css の **`.view-btn`**（企業一覧と共有）。
-                   ここに padding や font-size を書き足さないこと —— 2ページでまたズレる。
-                ⚠️★**ラベルは「一覧 / 詳細」**（2026-09-09 に柴さんの指示で変更）。
-                   それまでは「グリッド / リスト」で、2026-09-06 のコメントは
-                   「揃えないこと」と書いていた。理由は *`/companies` の「詳細」は
-                   情報量の多い行だが、記事のリストは逆に省スペースな行で意味が合わない*。
-                   ⚠️★**その理由は承知のうえで、語を揃える判断に変えた。**
-                      同じ位置・同じ意匠のトグルが、ページごとに違う語で出ているほうが
-                      迷う、という判断（柴さん）。**「グリッド / リスト」に戻さないこと。**
-                   ⚠️ 記事の「詳細」が省スペースな行である点は変わっていない。
-                      情報量を増やすかどうかは別の判断。 */}
-            <div style={{
-              display: "flex", gap: 2,
-              background: "var(--line-soft)", borderRadius: 8, padding: 2,
-            }}>
-              {([
-                { mode: "grid", label: "一覧", title: "一覧表示", icon: (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                  </svg>
-                )},
-                { mode: "list", label: "詳細", title: "詳細表示", icon: (
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                    <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-                    <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
-                  </svg>
-                )},
-              ] as const).map(({ mode, label, title, icon }) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => updateParam("view", mode === "list" ? null : mode)}
-                  className="view-btn"
-                  title={title}
-                  style={{
-                    background: currentView === mode ? "var(--royal)" : "transparent",
-                    color: currentView === mode ? "#fff" : "var(--ink-mute)",
-                  }}
-                >
-                  {icon}
-                  {label}
-                </button>
-              ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              {/* ⚠️★**表示切替は `/companies` の `GridSortBar` と同じ見た目にする**（2026-09-06）。
+                     それまでは articles だけ「白い箱 + 影 + royal の文字」で、
+                     企業一覧の「濃紺の塗り + 白文字」と違っていた。
+                  ⚠️ ボタンのスタイルは globals.css の **`.view-btn`**（企業一覧と共有）。
+                     ここに padding や font-size を書き足さないこと —— 2ページでまたズレる。
+                  ⚠️★**ラベルは「一覧 / 詳細」**（2026-09-09 に柴さんの指示で変更）。
+                     それまでは「グリッド / リスト」で、2026-09-06 のコメントは
+                     「揃えないこと」と書いていた。理由は *`/companies` の「詳細」は
+                     情報量の多い行だが、記事のリストは逆に省スペースな行で意味が合わない*。
+                     ⚠️★**その理由は承知のうえで、語を揃える判断に変えた。**
+                        同じ位置・同じ意匠のトグルが、ページごとに違う語で出ているほうが
+                        迷う、という判断（柴さん）。**「グリッド / リスト」に戻さないこと。**
+                     ⚠️ 記事の「詳細」が省スペースな行である点は変わっていない。
+                        情報量を増やすかどうかは別の判断。 */}
+              <div style={{
+                display: "flex", gap: 2,
+                background: "var(--line-soft)", borderRadius: 8, padding: 2,
+              }}>
+                {([
+                  { mode: "grid", label: "一覧", title: "一覧表示", icon: (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                  )},
+                  { mode: "list", label: "詳細", title: "詳細表示", icon: (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                      <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
+                      <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+                      <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+                    </svg>
+                  )},
+                ] as const).map(({ mode, label, title, icon }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => updateParam("view", mode === "list" ? null : mode)}
+                    className="view-btn"
+                    title={title}
+                    style={{
+                      background: currentView === mode ? "var(--royal)" : "transparent",
+                      color: currentView === mode ? "#fff" : "var(--ink-mute)",
+                    }}
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+              <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
+                <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>{total}</strong> 本
+              </span>
             </div>
-            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-            <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
-              <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>{total}</strong> 本
-            </span>
           </div>
         </div>
 
