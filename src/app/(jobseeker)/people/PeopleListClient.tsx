@@ -13,6 +13,7 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar, MeetingOkNotice } from "@/components/people/PeopleSidebar";
+import { FilterChip } from "@/components/common/FilterChip";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 
 /**
@@ -64,7 +65,25 @@ const ROLE_OPTIONS = [
   { value: "exec",      label: "経営・CxO" },
 ];
 
-/* ★年齢の選択肢（AGE_OPTIONS）と「年齢」フィルタは 2026-08-20 に撤去した。
+/**
+ * ★年代の選択肢（2026-09-18 に柴さんの判断で戻した）。
+ *
+ * ⚠️★**0人の年代も出す**（柴さんの指示）。実データから作らないこと ——
+ *    歯抜けの梯子になる（`/companies` のフェーズ・都道府県と同じ扱い）。
+ * ⚠️ 値は `directory.ts` の `ageBand` と同じ形（`20s` 〜 `70s`）。**片方だけ変えないこと。**
+ * ⚠️ 生年月日が無い人は `ageBand` が null で、**年代で絞り込んだときだけ**落ちる。
+ *    実測（2026-09-18 / 本番）: 実ユーザー7人中3人しか生年月日を持っていない。
+ */
+const AGE_OPTIONS = [
+  { value: "20s", label: "20代" },
+  { value: "30s", label: "30代" },
+  { value: "40s", label: "40代" },
+  { value: "50s", label: "50代" },
+  { value: "60s", label: "60代" },
+  { value: "70s", label: "70代" },
+];
+
+/* ★旧「年齢」フィルタは 2026-08-20 に撤去されていた。
    ⚠️ **一覧に年齢を出さないだけでなく、年齢で絞り込ませない。**
       カードの表示は 2026-08-18 に外していたが、フィルタだけが残っていた。
       `PeopleCard` の型からも `age` を落としてあるので、書こうとしても書けない。 */
@@ -81,81 +100,10 @@ const SORT_OPTIONS = [
   { value: "updated", label: "更新順" },
 ];
 
-// ── FilterChip ────────────────────────────────────────────────────────
-function FilterChip({
-  label, value, options, onSelect, isOpen, onToggle,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onSelect: (v: string | null) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-}) {
-  const activeOpt = options.find((o) => o.value === value);
-  const isActive = !!value;
-
-  return (
-    <div style={{ position: "relative", flexShrink: 0 }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`ppl-chip${isActive ? " active" : ""}`}
-      >
-        {isActive && (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        )}
-        {isActive ? activeOpt?.label : label}
-        {isActive ? (
-          <span
-            onClick={(e) => { e.stopPropagation(); onSelect(null); }}
-            style={{ fontSize: 12, marginLeft: 1, opacity: 0.75 }}
-            aria-label="クリア"
-          >✕</span>
-        ) : (
-          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        )}
-      </button>
-
-      {isOpen && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200,
-          background: "#fff", border: "1.5px solid var(--royal)",
-          borderRadius: 12, padding: "8px 0",
-          boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: 180, maxHeight: 320, overflowY: "auto",
-        }}>
-          {options.map((o) => {
-            const sel = value === o.value;
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => { onSelect(sel ? null : o.value); onToggle(); }}
-                style={{
-                  display: "block", width: "100%", textAlign: "left",
-                  padding: "9px 16px",
-                  background: sel ? "var(--royal-50)" : "none",
-                  color: sel ? "var(--royal)" : "var(--ink)",
-                  fontSize: 13.5, fontWeight: sel ? 700 : 400,
-                  cursor: "pointer", border: "none", fontFamily: "inherit",
-                }}
-                onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
-                onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLElement).style.background = "none"; }}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+// ★FilterChip は 2026-09-18 に `components/common/FilterChip.tsx` へ寄せた。
+//    ⚠️ `/companies` と**同じ部品**。ここに書き戻すと、また同じ名前の別実装が2つになる。
+//    ⚠️ 旧実装にあった `:hover` と active の box-shadow は引き継いでいない
+//       （`/companies` の見た目を変えないことを優先した）。
 
 // ── Avatar ────────────────────────────────────────────────────────────
 function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
@@ -536,6 +484,30 @@ function ListRow({ card, myUserId, followedUserIds }: {
   );
 }
 
+/**
+ * 選択中の条件のチップ（2026-09-18）。
+ *
+ * ⚠️★**詳細検索を畳んだときに、いま効いている条件を外に出すためのもの。消さないこと。**
+ *    8条件を畳んだ `/jobs` と同じ理由で、無いと「絞り込んだ結果を見ている最中に
+ *    理由が画面から消える」。
+ */
+function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      padding: "4px 10px", borderRadius: 999,
+      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+      color: "var(--royal)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+    }}>
+      {label}
+      <button type="button" onClick={onRemove} aria-label={`${label} を外す`}
+        style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 12, lineHeight: 1 }}>
+        ✕
+      </button>
+    </span>
+  );
+}
+
 // ── フィルタ判定 ─────────────────────────────────────────────────────
 /**
  * 職種。**`slugs` は ow_roles の slug の配列**（2026-09-18 に単一選択から複数選択へ）。
@@ -572,6 +544,13 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   );
   const rel = searchParams.get("rel") ?? "";
   const meetingOnly = searchParams.get("meeting") === "1";
+  /* ★詳細検索の条件（2026-09-18）。**すべて URL**。共有・リロード・戻るで同じ結果になる。
+     ⚠️ 同じ項目の中は OR、項目どうしは AND（`/companies` と同じ約束）。 */
+  const ages = useMemo(
+    () => (searchParams.get("age") ?? "").split(",").map((v) => v.trim()).filter(Boolean),
+    [searchParams],
+  );
+  const foreignOnly = searchParams.get("foreign") === "1";
 
   /** URL のパラメータを1つ書き換える。⚠️ 空文字は**キーごと消す**（`?role=` を残さない） */
   const setParam = (patch: Record<string, string>) => {
@@ -584,6 +563,15 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     router.replace(`${pathname}${next.toString() ? `?${next.toString()}` : ""}`, { scroll: false });
   };
   const setRoles = (v: string[]) => setParam({ role: v.join(",") });
+  const setAges = (v: string[]) => setParam({ age: v.join(",") });
+  /** 複数選択の1件を入れ替える。⚠️ 同じ項目の中は OR なので、単に足し引きするだけ */
+  const toggleIn = (arr: string[], v: string) => arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+
+  /* ★詳細検索パネルの開閉。⚠️ URL には入れない（条件ではなく画面の状態）。
+        ⚠️ 条件が付いているときは**開いた状態で始める**。閉じたまま結果だけ絞られていると
+           理由が画面から読めない（`/jobs` で 2026-09-09 に同じ判断をしている）。 */
+  const activeFilterCount = roles.length + ages.length + (foreignOnly ? 1 : 0) + (meetingOnly ? 1 : 0);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
   const [sort, setSort] = useState("newest");
@@ -656,6 +644,15 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       /* ★面談OK。⚠️ 判定は directory.ts の `canTalk`（lib/companyMembers/talkable.ts）。
             ここで display_consent 等の条件を書き直さないこと。 */
       if (meetingOnly && !a.canTalk) return false;
+      /* ★外資。⚠️ 判定は directory.ts の `hasForeignExperience`（`ow_companies.is_foreign`）。
+            `/companies` の「外資系」と同じ元データ。会社名から推測しない。
+         ⚠️ マスタに紐付いていない職歴（自由入力の社名）の人は false になり、
+            **外資で絞り込んだときだけ**落ちる。 */
+      if (foreignOnly && !a.hasForeignExperience) return false;
+      /* ★年代。⚠️ 生年月日が無い人（ageBand === null）は**ここで絞ったときだけ**落ちる。
+            ⚠️ 帯は `directory.ts` が10年刻みに畳んだもの。ここで実年齢を計算しないこと
+               （2つ目の計算を作らない。`lib/age.ts` の `getUserAge()` が唯一） */
+      if (ages.length > 0 && !(a.ageBand && ages.includes(a.ageBand))) return false;
       /* ★関係の絞り込み（2026-09-18）。⚠️ 自分は常に対象外（自分をフォローはできない） */
       if (rel === "following" && !followedUserIds.includes(a.userId)) return false;
       if (rel === "followers" && !followerUserIds.includes(a.userId)) return false;
@@ -685,7 +682,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       return byText || byAlias;
     });
   }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
-      meetingOnly, rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet]);
+      meetingOnly, rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet,
+      foreignOnly, ages]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -874,10 +872,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           transition: all 0.12s; font-family: inherit; flex-shrink: 0;
         }
         .ppl-chip:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+        /* ⚠️★active の見た目は components/common/FilterChip と揃えてある（2026-09-18）。
+              同じ行に「詳細検索 / 外資 / 面談OK」（このクラス）と
+              「職種 / 年代」（FilterChip）が並ぶので、ずれると2種類のチップに見える。
+           ⚠️ 以前あった box-shadow と font-weight:700 はそのために外した。片方だけ戻さないこと。
+           ⚠️ ここは style タグのテンプレートリテラルの中。バッククォートを書かないこと。 */
         .ppl-chip.active {
           border-color: var(--royal); background: var(--royal);
-          color: #fff; font-weight: 700;
-          box-shadow: 0 2px 10px rgba(0,35,102,0.25);
+          color: #fff; font-weight: 600;
         }
 
         /* ★絞り込みのチップ（2026-09-17 に「絞り込む」で畳むのをやめた）。
@@ -933,27 +935,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               )}
             </div>
 
-            {/* ★絞り込みは「職種」だけ（2026-09-17 に外資系を外した / 柴さんの指示）。
-                ⚠️★**モバイルの「絞り込む」トグルも一緒に外した。** 畳む相手が1つしか
-                   無くなり、**トグル自身がチップとほぼ同じ幅**なので、隠す意味が消えた
-                   （押す手間が増えるだけになる）。`ppl-filter-toggle` / `filtersExpanded` も削除。
-                ⚠️ 2つ目の絞り込みを足して1行に収まらなくなったら、そのときは
-                   `/companies` と同じ「詳細検索」の形にすること
-                   （**選択中の条件を外に出す**のもセット）。
-
-                ⚠️★**外資系の経験は画面から消していない。** 1列表示（詳細）の
-                   「外資系の経験あり」バッジは残してある —— あれは
-                   **1列表示の存在理由**（カードより情報が多いこと）そのもので、
-                   消すと 2026-08-04 に「一覧/詳細」を撤去したときの状態に戻る。
-                   `directory.ts` の `hasForeignExperience` も残す。 */}
-            <div className="ppl-filter-chips">
-              <FilterChip label="職種" value={roles[0] ?? ""} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRoles(v ? [v] : []); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
-              {/* ⚠️★**「すべてクリア」は廃止した**（2026-09-06 / 柴さんの判断・`/companies` と揃えた）。
-                     絞り込みが1つ付くたびに現れて並びが動くうえ、**すべて個別に外せる**:
-                       検索文字 → 入力欄の ✕ ／ 職種 → チップの ✕
-                  ⚠️ 戻すなら、入力欄の ✕ と役割が重ならないようにすること
-                     （あちらは検索文字だけを消す）。 */}
-            </div>
+            {/* ★「詳細検索」（2026-09-18）。**`/companies` と同じ形**にした。
+                   ⚠️ 2026-09-17 の注記が「2つ目の絞り込みを足して1行に収まらなくなったら
+                      `/companies` と同じ『詳細検索』にすること（**選択中の条件を外に出す**のも
+                      セット）」と予告していた形そのもの。予告どおり両方やっている。
+                ⚠️★**職種はここへ移した。** 上部に単独で出さないこと（入口が2つになる）。 */}
+            <button
+              type="button"
+              onClick={() => setDetailOpen(!detailOpen)}
+              className={`ppl-chip${detailOpen || activeFilterCount > 0 ? " active" : ""}`}
+              aria-expanded={detailOpen}
+            >
+              詳細検索{activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}
+            </button>
 
             {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
                    それまで sticky な帯が2本あり、一覧が始まるのは 275px 前後だった。
@@ -1046,6 +1040,61 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           </div>
             </div>
           </div>
+
+            {/* ── ★詳細検索のパネル（2026-09-18）。押すと下に1行で開く ──────────────
+                   ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。
+                   ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる。**
+                      現職なし → 職種のときだけ／生年月日なし → 年代のときだけ／
+                      マスタ紐付きの職歴なし → 外資のときだけ。他の条件では落とさない。 */}
+            {detailOpen && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, rowGap: 8,
+                flexWrap: "wrap", minWidth: 0, paddingTop: 10,
+              }}>
+                <FilterChip
+                  label="職種" value="" values={roles}
+                  options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                  onSelect={() => setRoles([])}
+                  onToggleValue={(v) => setRoles(toggleIn(roles, v))}
+                  isOpen={openChip === "role"} onToggle={() => toggleChip("role")}
+                />
+                {/* ⚠️ 0人の年代も出す（AGE_OPTIONS の注記）。実データから作らないこと */}
+                <FilterChip
+                  label="年代" value="" values={ages} options={AGE_OPTIONS}
+                  onSelect={() => setAges([])}
+                  onToggleValue={(v) => setAges(toggleIn(ages, v))}
+                  isOpen={openChip === "age"} onToggle={() => toggleChip("age")}
+                />
+                {/* ON/OFF は選択肢が2つしか無いのでチップにしない（開く意味が無い） */}
+                <button type="button" className={`ppl-chip${foreignOnly ? " active" : ""}`}
+                  onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
+                  外資
+                </button>
+                <button type="button" className={`ppl-chip${meetingOnly ? " active" : ""}`}
+                  onClick={() => setParam({ meeting: meetingOnly ? "" : "1" })} aria-pressed={meetingOnly}>
+                  面談OK
+                </button>
+              </div>
+            )}
+
+            {/* ── ★選択中の条件（2026-09-18）。**閉じていても出す。消さないこと。**
+                   8条件を畳んだ `/jobs` と同じ理由 —— これが無いと、絞り込んだ結果を
+                   見ている最中に理由が画面から消える。
+                ⚠️ ✕ は近道であって唯一の入口ではない（パネルを開けばチップからも外せる）。 */}
+            {!detailOpen && activeFilterCount > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, rowGap: 6, flexWrap: "wrap", paddingTop: 8 }}>
+                {roles.map((v) => (
+                  <ActiveChip key={`r-${v}`} label={ROLE_OPTIONS.find((o) => o.value === v)?.label ?? v}
+                    onRemove={() => setRoles(roles.filter((x) => x !== v))} />
+                ))}
+                {ages.map((v) => (
+                  <ActiveChip key={`a-${v}`} label={AGE_OPTIONS.find((o) => o.value === v)?.label ?? v}
+                    onRemove={() => setAges(ages.filter((x) => x !== v))} />
+                ))}
+                {foreignOnly && <ActiveChip label="外資" onRemove={() => setParam({ foreign: "" })} />}
+                {meetingOnly && <ActiveChip label="面談OK" onRemove={() => setParam({ meeting: "" })} />}
+              </div>
+            )}
         </div>
       </div>
 

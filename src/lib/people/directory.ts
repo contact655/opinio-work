@@ -8,6 +8,7 @@ import {
   EXPERIENCE_COMPANY_COLS,
 } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
+import { getUserAge } from "@/lib/age";
 import { resolveTopRole, expandWithAncestors } from "@/lib/roles/jobRoles";
 
 /**
@@ -156,11 +157,23 @@ export type DirectoryPerson = {
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
   experienceMonths: number | null;
-  /* ★`age` は 2026-08-20 に落とした。**戻さないこと。**
-        `/people` は一覧であり、一覧に年齢は出さない・年齢で絞り込ませない方針。
-        型に無ければ表示も絞り込みも書けない（コメントでの禁止は守られていない実績がある）。
-        年齢を出してよいのは詳細ページ（`/u/[id]`）だけで、そこは `lib/age.ts` の
-        `getUserAge()` を通す。 */
+  /**
+   * ★年代（`20s` 〜 `70s`）。**2026-09-18 に柴さんの判断で年代の絞り込みを入れたため足した。**
+   *
+   * ⚠️★**`age`（実年齢）は入れないこと。** ここに入るのは**10年刻みの帯だけ**。
+   *    絞り込みに要るのは帯までで、実年齢はクライアントへ送る必要がない。
+   *    ⚠️ 帯をカードに**表示しない**。使うのは絞り込みだけ（一覧に年齢は出さない）。
+   *
+   * ⚠️ 経緯（残す）: 2026-08-20 に `age` を型ごと落として「一覧に年齢を出さない・
+   *    年齢で絞り込ませない」を型で担保していた。2026-09-18 に**絞り込みだけ**を戻した。
+   *    **「型に無ければ書けない」という担保は、表示側については `age` を置かないことで
+   *    維持している。**
+   *
+   * ⚠️ 生年月日が無い人は `null`。**推測で埋めないこと。**
+   *    `null` の人は「年代で絞り込んだときだけ」落ちる（他の条件では落とさない）。
+   *    実測（2026-09-18 / 本番）: 実ユーザー7人中 **3人**しか生年月日を持っていない。
+   */
+  ageBand: string | null;
   createdAt: string | null;
   /**
    * プロフィールを最後に更新した日時（`ow_users.updated_at`）。「更新順」の並べ替えに使う。
@@ -265,9 +278,12 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
 
   const { data: userRows, error } = await db
     .from("ow_users")
-    /* ⚠️ **birth_date は取らない**（2026-08-20）。一覧に年齢を出さない・年齢で絞り込まないため。
-       ここは createAdminClient なので取れる（/u/[id] も同じ理由で admin に切り替えている）。 */
-    .select("id, auth_id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, created_at, updated_at");
+    /* ★`birth_date` は 2026-09-18 に取り直した（年代の絞り込みのため）。
+       ⚠️★**この値をそのまま返さないこと。** 下で10年刻みの `ageBand` に畳んでから返す。
+          クライアントへ実年齢や生年月日を送る必要はない。
+       ⚠️ `authenticated` には SELECT を配っていない列なので、セッションクライアントだと
+          クエリごと 403 になる。ここは createAdminClient なので取れる。 */
+    .select("id, auth_id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, birth_date, created_at, updated_at");
 
   if (error) {
     console.error("[people] ow_users fetch error:", error.message);
@@ -281,6 +297,8 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     headline: string | null; about_me: string | null; location: string | null;
     social_links: Record<string, unknown> | null; created_at: string | null;
     updated_at: string | null;
+    /* ⚠️★**この値を DirectoryPerson に載せないこと。** 10年刻みの `ageBand` に畳んで返す */
+    birth_date: string | null;
   };
 
   const visible = ((userRows ?? []) as UserRow[]).filter((u) => {
@@ -488,6 +506,16 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
         (m) => talkableIds.includes(m.company_id) && m.ow_companies?.accepting_casual_meetings === true,
       ),
       publicScore,
+      /* ★年代だけに畳む。⚠️ 実年齢を返さないこと（型のコメント参照）。
+            判定は `lib/age.ts` の `getUserAge()` に一本化してある（2つ目の計算を作らない）。 */
+      ageBand: (() => {
+        const age = getUserAge(u.birth_date as string | null);
+        if (age == null) return null;
+        /* ⚠️ 20歳未満と80歳以上は帯を持たせない（選択肢に無いので絞り込みの対象外）。
+              ここで 20s / 70s に丸めると、実データと違う帯に入れることになる。 */
+        if (age < 20 || age >= 80) return null;
+        return `${Math.floor(age / 10) * 10}s`;
+      })(),
       experienceMonths,
       createdAt: u.created_at,
       updatedAt: u.updated_at,
