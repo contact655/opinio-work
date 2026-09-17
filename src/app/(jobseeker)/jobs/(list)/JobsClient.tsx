@@ -741,6 +741,44 @@ export default function JobsClient({
     (selectedSlug ? paged.find((j) => (j.slug ?? j.id) === selectedSlug) : undefined) ?? paged[0];
   const selectedCompany = selectedJob ? companyMap.get(selectedJob.company_id) : undefined;
 
+  /* ★選んだ求人のカードを、レールの見える位置まで送る（2026-09-17）。
+     `?selected=` の直リンク・リロード・戻るで来たとき、その求人が一覧の下のほうに
+     あると**右ペインには出ているのに、左では見えない**（どれが開いているのか分からない）。
+
+     ⚠️★**「レールの外に出ているときだけ」動かす。** これが唯一の条件で、
+        「直リンクのときだけ」のような分岐を書かなくて済む:
+          ・カードを押したとき … そのカードは見えているので**何も起きない**
+          ・直リンク・戻る     … 見えていなければ送る
+        ⚠️ 「初回だけ」にすると、戻る・進むで選択が変わったときに動かない。
+
+     ⚠️★**`scrollIntoView` を使わない。** あれは**祖先を全部**スクロールするので、
+        レールだけでなく**ページごと動く**（2ペインを独立スクロールにした意味が消える）。
+        レールの `scrollTop` を自分で計算して動かす。
+
+     ⚠️★**分割しない幅でも安全。** そのときレールはスクローラではなく
+        `clientHeight` が中身の高さと等しいので、どのカードも「中に入っている」ことになり
+        **この処理は何もしない。** 幅の判定を書かなくてよいのはそのため。
+
+     ⚠️ `getBoundingClientRect` は**2つの矩形の差**にだけ使っている（.claude/rules の⑪-2で
+        「相対比較にだけ使う」とされている使い方）。絶対座標としては使わない。
+
+     ⚠️ `html { scroll-behavior: smooth }` は効かない。あれは継承しないので、
+        レールの `scrollTop` 代入は即座に反映される。 */
+  useEffect(() => {
+    if (!selectedJob) return;
+    const rail = document.querySelector<HTMLElement>(".companies-rail");
+    const card = rail
+      ?.querySelector<HTMLElement>('[aria-current="true"]')
+      ?.closest<HTMLElement>(".job-list-card");
+    if (!rail || !card) return;
+    /* 上下に少しだけ余白を残す。端にぴったり付けると「続きがある」ことが見えない */
+    const MARGIN = 12;
+    const r = rail.getBoundingClientRect();
+    const c = card.getBoundingClientRect();
+    if (c.top < r.top + MARGIN) rail.scrollTop += c.top - r.top - MARGIN;
+    else if (c.bottom > r.bottom - MARGIN) rail.scrollTop += c.bottom - r.bottom + MARGIN;
+  }, [selectedJob]);
+
   const hasMore = displayCount < filteredForDisplay.length;
   const remainingCount = filteredForDisplay.length - displayCount;
 
