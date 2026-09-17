@@ -6,13 +6,23 @@ import { ARTICLE_TYPES } from "@/app/articles/mockArticleData";
 import { SortSelect } from "@/components/common/SortSelect";
 
 const LINE = "var(--line)";
-const INK_SOFT = "var(--ink-soft)";
 const INK_MUTE = "var(--ink-mute)";
 
 /* ★並び替えの選択肢（2026-09-17 に定数へ出した）。描画は components/common/SortSelect。
    ⚠️ `value` は URL の `?sort=` に入る値そのもの。ラベルだけ変えないこと。
    ⚠️★既定は `latest`。`updateParam` が **"latest" を消す**（`?sort=` を付けない）ので、
       ここに既定値を増やすなら向こうの条件も見ること。 */
+/* ★カテゴリの選択肢（2026-09-17）。**既定の「すべて」だけ言い換えている。**
+   ⚠️★理由は狭い画面。`.sort-select-label` は 767px 以下で「カテゴリ」の語を落とすので、
+      そのまま「すべて」だけが残ると**何の「すべて」か画面から消える**。
+      「すべての記事」なら語が無くても通る（並び替えの「新着順」と同じ性質）。
+   ⚠️ `ARTICLE_TYPES`（mockArticleData）は**書き換えないこと**。
+      あれは他の画面も読む共有の語彙で、ここは表示だけの言い換え。
+   ⚠️ `value` は URL の `?type=` に入る値そのもの。**触らない。** */
+const ARTICLE_TYPE_OPTIONS = ARTICLE_TYPES.map((t) =>
+  t.value === "all" ? { ...t, label: "すべての記事" } : t,
+);
+
 const ARTICLE_SORT_OPTIONS = [
   { value: "latest",  label: "新着順" },
   { value: "popular", label: "読了時間順" },
@@ -122,44 +132,24 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             )}
           </div>
 
-          {/* Type filter pills
-              ⚠️★**スクロール容器はこの列自身**（2026-09-17）。以前は行そのものが
-                 `overflowX: auto` で、狭い画面では**検索窓ごと横に流れていた**。
-              ⚠️ `minWidth: 0` を外さないこと。外すと flex アイテムが縮まず、
-                 タブ5つぶんの幅を親に要求してはみ出す。 */}
-          <div role="tablist" aria-label="記事タイプで絞り込み" style={{
-            display: "flex", gap: 6, flexWrap: "nowrap",
-            minWidth: 0, overflowX: "auto", scrollbarWidth: "none",
-          } as React.CSSProperties}>
-          {ARTICLE_TYPES.map(({ value, label }) => {
-            const active = currentType === value;
-            return (
-              <button
-                type="button"
-                key={value}
-                role="tab"
-                aria-selected={active}
-                onClick={() => updateParam("type", value === "all" ? null : value)}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "7px 14px", borderRadius: 999, fontSize: 13, fontWeight: 500,
-                  border: active ? "1.5px solid var(--royal)" : `1.5px solid ${LINE}`,
-                  background: active ? "var(--royal-50)" : "#fff",
-                  color: active ? "var(--royal)" : INK_SOFT,
-                  cursor: "pointer", whiteSpace: "nowrap",
-                  transition: "all 0.15s", flexShrink: 0,
-                }}
-              >
-                {label}
-                {active && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-          </div>
+          {/* ★カテゴリ（2026-09-17 にピル5つからドロップダウンへ / 柴さんの指示）。
+                 実体は components/common/SortSelect —— 並び替えと**同じ部品**。
+                 ⚠️ ここに直書きしないこと。
+
+              ⚠️★**畳んだぶん、カテゴリはクリックの奥に入った。** 承知のうえ。
+                 その代わり**いま何で絞っているかは閉じていても見える**（ボタンに現在値が出る）
+                 ので、`/companies` の絞り込みチップのように
+                 「選択中の条件」を別に外へ出す必要はない。
+              ⚠️ 直前まで `role="tablist"` だった。**戻さないこと** ——
+                 ピル5つで約560pxを使っており、検索窓が 422px まで痩せていた。
+
+              ⚠️ `updateParam` が "all" を消すので、「すべて」に戻すと `?type=` が落ちる（意図どおり）。 */}
+          <SortSelect
+            label="カテゴリ"
+            value={currentType}
+            options={ARTICLE_TYPE_OPTIONS}
+            onChange={(v) => updateParam("type", v)}
+          />
 
           {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
               ⚠️★`flexShrink: 0` にしないこと。375px で親を超える（`/people` で実際に踏んだ）。
