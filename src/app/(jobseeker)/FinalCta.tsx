@@ -108,7 +108,11 @@ export function FinalCta({ navy }: { navy: string }) {
         ) : (
           <>
             <Link href="/companies" style={solid}>企業を探す</Link>
-            <Link href="/auth" style={ghost}>メールアドレスで無料登録</Link>
+            {/* ⚠️★「メールアドレスで」を外した（2026-09-17）。**Google でも登録できる。**
+                   実測: `/auth` の登録は「Googleで続ける」（推奨バッジ付き・主）と
+                   「メールアドレスで登録」の2つ。片方だけ書くと、もう片方が見えない。
+                ⚠️ FV のボタン（`AuthAwareCta` の guest）と**同じ文言**。片方だけ変えないこと。 */}
+            <Link href="/auth" style={ghost}>無料登録して経歴を見る</Link>
           </>
         )}
       </div>

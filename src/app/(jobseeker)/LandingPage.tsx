@@ -216,6 +216,8 @@ export default function LandingPage({
         .lp-wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
         .lp-section { padding: 72px 0; }
         .lp-h2 { font-size: clamp(22px, 2.4vw, 30px); font-weight: 800; line-height: 1.45; color: ${C.navy}; letter-spacing: -0.01em; }
+        /* 見出しの中で塊を作って折り返しを固定する。⚠️ 使うのは span を置いた見出しだけ。 */
+        .lp-h2 span { display: inline-block; }
         .lp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; color: ${C.blue}; margin-bottom: 10px; }
         .lp-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
 
@@ -226,7 +228,13 @@ export default function LandingPage({
         .lp-facet:hover { border-color: ${C.blue}; }
 
         .lp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        .lp-card { background: #fff; border: 1px solid ${C.line}; border-radius: 12px; padding: 20px; text-decoration: none; display: block; }
+        /* ★カードの高さを行内で揃える（2026-09-17）。
+           ⚠️ min-height ではなく Grid の行内 stretch で揃える。
+              /companies のカードと同じやり方（CLAUDE.md ④「下端が揃う仕組みは minHeight ではない」）。
+              固定値を置くと、事業領域の名前が長い企業だけ溢れる。
+           ⚠️ align-items を center や start にしないこと。stretch（既定）で揃う。
+           ⚠️★この style タグの中にバッククォートを書かないこと（同日2回踏んだ）。 */
+        .lp-card { background: #fff; border: 1px solid ${C.line}; border-radius: 12px; padding: 20px; text-decoration: none; display: block; height: 100%; }
         .lp-card:hover { border-color: ${C.blue}; box-shadow: 0 6px 20px rgba(14,33,72,.07); }
 
         .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
@@ -241,6 +249,10 @@ export default function LandingPage({
         .lp-hero-sub { font-size: 15.5px; line-height: 1.7; color: ${C.muted};
                        margin: 0 0 26px; max-width: 900px; }
         .lp-hero-sub span { display: inline-block; }
+        /* 見出しも句の境目で折る。⚠️ 理由はすぐ上の lp-hero-sub span と同じ。
+           ⚠️★この style タグの中にバッククォートを書かないこと。テンプレートリテラルが
+              その場で閉じる（.claude/rules/ui-debugging.md ⑲①。2026-09-17 に実際に踏んだ）。 */
+        .lp-hero-h1 span { display: inline-block; }
 
         /* 検索窓の下のボタン。⚠️ 窓（1000px）の中で中央に置く。
            ⚠️ flex-wrap を外さないこと。375px では2段になる。 */
@@ -346,8 +358,12 @@ export default function LandingPage({
                   375〜1060px の範囲ではこの値が効いている（3.2vw が 34px を超えるのは
                   約1063px から）。
           */}
-          <h1 style={{ fontSize: "clamp(30px, 3.0vw, 42px)", fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 14 }}>
-            求人が出る前から、IT企業を調べておく。
+          {/* ⚠️ span は inline-block（`.lp-hero-h1 span`）。**折り返しを句の境目に固定するため。**
+                 375px では1行に収まらないので、必ず「会社を、／そこで働く人から知る。」で折る。
+                 ⚠️ 読点で切っただけでは足りない —— 塊にしないと「そこで働く人から知／る。」になる。 */}
+          <h1 className="lp-hero-h1" style={{ fontSize: "clamp(30px, 3.0vw, 42px)", fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 14 }}>
+            <span>会社を、</span>
+            <span>そこで働く人から知る。</span>
           </h1>
 
           {/*
@@ -365,31 +381,30 @@ export default function LandingPage({
                嘘ではないが、FV は一番強い場所なので可視性の整理が済んだら見直すこと。
           */}
           {/*
-            ★2文とも実測で裏を取ってある（2026-09-16）。**数字を書かずに事実だけを言う。**
+            ★2文とも実測で裏を取ってある（2026-09-17 に再確認）。**数字を書かずに事実だけを言う。**
 
-            1文目「募集の有無にかかわらず」
-              掲載22社のうち**公開求人を持つのは1社だけ**（21社は募集なし）。
-              「事業内容をまとめています」までにしてある ——
-              ⚠️★**「組織体制・働き方まで」と書かないこと。**
-                 実測では 組織体制 1社 / 働き方（remote_work_status）1社 / 福利厚生 1社 で、
-                 2026-09-16 まで出ていた「事業内容・組織体制・働き方まで揃えています」は
-                 ほぼ事実でなかった。`description` だけが 22/22 ある。
+            1文目「IT企業の事業と、…経歴をまとめています」
+              ⚠️★**「事業」までにしてある。**「組織体制・働き方まで」と書かないこと。
+                 実測（掲載22社）では `description` 22社に対し、
+                 組織体制 1社 / 働き方（`remote_work_status`）1社 / 福利厚生 1社しかない。
 
-            2文目「登録すると、そこで働く人の経歴も見られます」
-              実測: ログイン済みの一般アカウントで企業ページの社員セクションから
-              `/u/[id]` を開き、会社・部署・役職・在籍期間・説明まで読めることを確認した。
-              ⚠️ ただし**掲載22社のうち3社・実人数4名**しかいない。薄い。
+            2文目「経歴は登録すると読めます」
+              実測（2026-09-17 / 本番）: 公開企業のうち**5社**に、
+              ログイン後に読める在籍者・元在籍者が**5名**いる（掲載中に限ると3社）。
+              ログイン済みの一般アカウントで企業ページの社員セクションから `/u/[id]` を開き、
+              会社・部署・役職・在籍期間・説明まで読めることを確認済み。
               ⚠️★**未ログインでは1行も見えない**（`/u/` `/people` は middleware で 307）。
                  だから「登録すると」を落とさないこと。落とすと嘘になる。
+              ⚠️ **人数は薄い。** 数を書かないのはそのためでもある。
           */}
           <p className="lp-hero-sub">
             {/* ⚠️ span は inline-block。**折り返しを句の境目に固定するため**で、
                    読点で折るためではない（CLAUDE.md「2文字だけが2行目に落ちる事故」）。
                    3つ目を分けていないと、375px で「見られ／ます。」と割れる（実測）。 */}
-            <span>募集の有無にかかわらず、</span>
-            <span>IT企業の事業内容をまとめています。</span>
-            <span>登録すると、</span>
-            <span>そこで働く人の経歴も見られます。</span>
+            <span>IT企業の事業と、</span>
+            <span>在籍している方・していた方の</span>
+            <span>経歴をまとめています。</span>
+            <span>経歴は登録すると読めます。</span>
           </p>
 
           <HeroSearch navy={C.navy} line={C.line} muted={C.muted} paper2={C.paper2} />
@@ -412,7 +427,8 @@ export default function LandingPage({
                    済んでいる人には左の「企業から見る」だけで足りる。 */}
             <AuthAwareCta
               className="lp-hero-btn lp-hero-btn-ghost"
-              guest={{ href: "/auth", label: "無料登録して経歴も見る" }}
+              /* ⚠️ 最終CTA（`FinalCta`）と**同じ文言**にしてある。片方だけ変えないこと。 */
+              guest={{ href: "/auth", label: "無料登録して経歴を見る" }}
               member={null}
             />
           </div>
@@ -425,7 +441,13 @@ export default function LandingPage({
           <div className="lp-sec-head">
             <div>
               <div className="lp-eyebrow">BROWSE</div>
-              <h2 className="lp-h2">業種から探す</h2>
+              {/* ⚠️★2026-09-17: 「業種から探す」から言い直した。
+                     `/companies` の絞り込みチップは **2026-09-06 から「事業領域」**で、
+                     「業種」は同ページに1件も出ていない（実測）。
+                     ⚠️ 「業種」は `ow_industries` に使う語で、**別のマスタ**。混ぜないこと
+                        （CLAUDE.md「事業領域と対象業界」）。
+                     ⚠️ フッターの「事業領域から探す」とも揃った。**あちらは変えていない。** */}
+              <h2 className="lp-h2">事業領域から探す</h2>
             </div>
             <Link href="/companies" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
               すべての条件で絞り込む →
@@ -495,33 +517,19 @@ export default function LandingPage({
                   </div>
                 </div>
                 {/*
-                  ⚠️ 0 の項目は出さない（2026-08-05 変更）。「—」も出さない。
-                     以前は「件数が増えたときに伸びが見える」ことを理由に 0 を出していたが、
-                     実データでは12社中 求人0が5社・記事0が4社で、
-                     最も目立つ場所に 0 が並ぶ状態になっていた。
-                     値が無いものを出さない、という既存方針に揃える。
-                  ⚠️ 2項目とも 0 なら行ごと出さない。現データでは該当0社だが、
-                     在庫が増えると発生しうるので分岐は残す。
+                  ⚠️★カード下段（区切り線と「記事 N」「求人 N」）は **2026-09-17 に外した。**
+
+                     ・**12枚中5枚にしか出ていなかった**（残り7枚は2項目とも0で行ごと消える）。
+                       出る枚数のほうが少ないので、揃っていないことのほうが目に付いていた
+                     ・**カードの高さが不揃いになる原因**でもあった（行の有無で約37px 差）
+                     ・そもそも件数は 2026-09-16 にファセット・見出し・metadata から外した。
+                       ここだけ残っているのがちぐはぐだった
+
+                  ⚠️★**`articleCount` / `jobCount` は残してある。** `LPCompanyCard` の型にも
+                     `page.tsx` の集計にもある。戻すならここに1ブロック足すだけでよい。
+                     ⚠️ 戻すときは「0 は出さない」を守ること（2026-08-05 の判断）。
                   ⚠️ 「社員」は 2026-08-05 に外した。理由は pickCompanies.ts のコメント参照。
-                  ラベルは 600 / 数字は 700 + navy。
                 */}
-                {(() => {
-                  const facts = [
-                    { label: "記事", n: c.articleCount },
-                    { label: "求人", n: c.jobCount },
-                  ].filter((m) => m.n > 0);
-                  if (facts.length === 0) return null;
-                  return (
-                    <div style={{ display: "flex", gap: 14, paddingTop: 13, borderTop: `1px solid ${C.paper2}`, fontSize: 12.5, fontWeight: 600, color: C.muted }}>
-                      {facts.map((m) => (
-                        <span key={m.label}>
-                          {m.label}{" "}
-                          <strong style={{ fontFamily: 'var(--font-inter), sans-serif', fontWeight: 700, color: C.navy }}>{m.n}</strong>
-                        </span>
-                      ))}
-                    </div>
-                  );
-                })()}
               </Link>
             ))}
           </div>
@@ -654,7 +662,10 @@ export default function LandingPage({
               //    518px表示用の切り出しなので295pxでは成果の数字が潰れる。
               //    ここに画像を戻すなら、もっと寄った別の切り出しが要る。
               {
-                title: "企業情報を独自に作成している",
+                /* ⚠️ 見出しは 2026-09-17 に「企業情報を独自に作成している」から言い直した。
+                      本文が「公開情報をもとに整理しています」なので、見出しの
+                      「独自に作成」と食い違っていた。**本文は変えていない。** */
+                title: "公開情報をもとに整理している",
                 /* ⚠️★2026-09-16: 末尾の「**事業内容・組織体制・働き方まで揃えています**」を
                       削除した。実測（掲載22社）で `description` 22社に対し、
                       **組織体制 1社 / 働き方 1社 / 福利厚生 1社**しか無く、ほぼ事実でなかった。
@@ -768,8 +779,12 @@ export default function LandingPage({
       <section className="lp-section">
         <div className="lp-wrap" style={{ maxWidth: 880 }}>
           <div className="lp-eyebrow">FOR MEMBERS</div>
+          {/* ⚠️ span は inline-block（`.lp-h2 span`）。**「ます」だけが2行目に落ちていた**
+                 （2026-09-17 実測）。句の境目で折る。 */}
           <h2 className="lp-h2" style={{ marginBottom: 12 }}>
-            転職を考えていなくても、あなたの経歴は誰かの判断材料になります
+            <span>転職を考えていなくても、</span>
+            <span>あなたの経歴は</span>
+            <span>誰かの判断材料になります</span>
           </h2>
           <p style={{ fontSize: 15, color: C.muted, lineHeight: 1.8, margin: "0 0 26px" }}>
             どこから来て、なぜいまの会社を選んだか。その事実が、次に同じ道で迷う人の助けになります。
@@ -856,7 +871,24 @@ export default function LandingPage({
               //       開けた日に自動で消え、戻した日に自動で戻る。
               //    ⚠️ 判定は `isScoutSendingEnabled()` の1本。**ここで env を読まない。**
               //    ⚠️ このページは ISR（`revalidate = 300`）なので、**最大5分は古い文言が出る。**
-              { q: "登録すると、スカウトが届きますか？", a: `登録しただけでは届きません。登録のあとに「転職について」を1問おたずねします。そこで「今は考えていない」を選ぶと、企業の候補者検索にあなたは表示されません。答えるまでのあいだも届きません。答えはマイページの「意思表示」からいつでも変えられます。営業電話はありません。${scoutSendingEnabled ? "" : "なお、企業からのスカウト送信は現在準備中です。始まりましたらお知らせします。"}` },
+              /* ★2026-09-17 に2箇所直した。
+      ① 「マイページの**意思表示**」→「**転職・面談の状況**」。
+         カードの見出しは 2026-09-12 に変わっており、**画面に「意思表示」はもう無い**
+         （PC・375px の両方で実画面を確認）。
+         ⚠️★利用規約の改定後条文（2026-09-27 効力発生）にも同じ古い名前が残っている。
+            **規約は別セッションと共有中なので、このセッションでは触っていない。**
+      ② 「いま在籍している会社の採用担当には、そもそも表示されません」を足した。
+         `can_send_scout()` の条件2・2b（自由入力の社名も `normalize_company_name` で一致）。
+         **いちばん気にされる点なのに書かれていなかった。**
+   ⚠️★**「始まりましたらお知らせします」は外した。**
+      **知らせる手段が実装されていない**（2026-09-17 実測）:
+        ・お知らせ／ニュースのテーブルが無い
+        ・`ow_notifications` の種別は like / comment / scout / message の4つだけ
+        ・`/admin` に一斉配信の画面が無い（`invite` は招待メール）
+        ・週次メールは `vercel.json` の crons が空で二重に停止中（そもそも用途が違う）
+        ・`dm/bulk-message` は**既存の会話にしか送れない**
+      ⚠️ 作ったら書き戻してよい。**作る前に書かないこと。** */
+              { q: "登録すると、スカウトが届きますか？", a: `登録しただけでは届きません。登録のあとに「転職について」を1問おたずねします。そこで「今は考えていない」を選ぶと、企業の候補者検索にあなたは表示されません。答えるまでのあいだも届きません。答えはマイページの「転職・面談の状況」からいつでも変えられます。いま在籍している会社の採用担当には、そもそも表示されません。営業電話はありません。${scoutSendingEnabled ? "" : "なお、企業からのスカウト送信は現在準備中です。"}` },
               /* ⚠️ 実測（2026-09-16）: 掲載22社とも `industry_id` が IT・ソフトウェア。
                     クローラ・スクレイパは存在しない（`open-graph-scraper` は
                     利用者が貼った URL の OGP 取得用で、企業データには使っていない）。 */
