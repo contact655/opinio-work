@@ -1,5 +1,6 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
+import { SortSelect } from "@/components/common/SortSelect";
 
 type Props = { totalCount: number };
 
@@ -77,46 +78,19 @@ export function GridSortBar({ totalCount }: Props) {
         gap: 12,
       }}>
 
-        {/* 左: ソートボタン群 */}
-        <div className="sort-bar-left" style={{ alignItems: "center", gap: 8, minWidth: 0 }}>
-          {/* ⚠️ display はインラインで書かないこと。
-                 インラインスタイルはメディアクエリより強く、
-                 狭幅で隠す指定（.sort-bar-label { display:none }）が効かなくなる。 */}
-          <div className="sort-bar-label" style={{
-            alignItems: "center", gap: 5,
-            color: "var(--ink-soft)", fontSize: 12, fontWeight: 600,
-            flexShrink: 0,
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18M7 12h10M11 18h2"/>
-            </svg>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>並び替え</span>
-          </div>
-
-          <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
-
-          <div className="sort-scroll">
-            {SORT_OPTIONS.map((o) => {
-              const active = current === o.value;
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => setSort(o.value)}
-                  className={`sort-btn${active ? " active" : ""}`}
-                >
-                  {active ? (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    </svg>
-                  ) : o.icon}
-                  {o.label}
-                </button>
-              );
-            })}
-
-          </div>
-        </div>
+        {/* ★ピル3つ（**約345px**）から畳んだ（2026-09-17 / 柴さんの要望）。約140px になる。
+               ⚠️★**いま何順かは閉じていても見える**（ボタンに現在値が出る）。
+                  隠れるのは他の選択肢だけ。絞り込みのチップとは事情が違う。
+               ⚠️ 選択肢はこのファイルの `SORT_OPTIONS`（外した2つの理由もそこにある）。
+                  **部品側に選択肢を持たせないこと。**
+               ⚠️★`icon` は使わなくなったが `SORT_OPTIONS` から消していない。
+                  **あの定数のコメントに「なぜ2つ外したか」が書いてある**ので、
+                  形を崩さずそのまま残す。 */}
+        <SortSelect
+          value={current}
+          onChange={setSort}
+          options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        />
 
         {/* 右: ビュートグル + 件数 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
