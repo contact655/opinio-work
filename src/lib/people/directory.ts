@@ -118,6 +118,16 @@ export type DirectoryPerson = {
    *    外資かどうかを判定できないので false になる（推測しない）。
    */
   hasForeignExperience: boolean;
+  /**
+   * ★これまでに在籍した企業の id（現職・過去の両方）。**「同じ会社にいた人」の突き合わせ用**（2026-09-18）。
+   *
+   * ⚠️ マスタと紐づいた経歴（`company_id`）だけ。自由入力の社名は入らない
+   *    （表記ゆれで別会社を同じ会社と見なしてしまうため。`hasForeignExperience` と同じ方針）。
+   * ⚠️ **`visibility_company` で伏せた経歴も入る。** ここは突き合わせにしか使わず、
+   *    社名を画面に出さないため。⚠️★**この配列を画面に出さないこと。**
+   *    出すと、本人が伏せた勤務先が id 経由で漏れる。
+   */
+  companyIds: string[];
   /** ★「この会社の話を聞ける人」か（`lib/companyMembers/talkable.ts`）。
    *  ⚠️ 旧 `canCasualMeeting`（`ow_users.can_casual_meeting`）から 2026-08-23 に置き換えた。
    *     **名前ごと変えてある。** 同じ名前で意味だけ変えると、次に読む人が
@@ -467,6 +477,8 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
       /* 職種辞書の照合用。⚠️ 祖先まで展開する（型のコメント参照） */
       roleIds: expandWithAncestors(roleTree, roleSource?.role_category_id ? [roleSource.role_category_id] : []),
       hasForeignExperience,
+      /* ★在籍した企業の id（「同じ会社にいた人」用）。⚠️ 画面に出さない（型のコメント参照） */
+      companyIds: Array.from(new Set(myExps.flatMap((e) => (e.company_id ? [e.company_id] : [])))),
       /* ★「話を聞ける人」の判定（2026-08-23 / B-1）。
             ⚠️ 判定は `lib/companyMembers/talkable.ts` に置いてある。ここに書き直さないこと。
             ⚠️ 企業の受付状態は見ない（方針D）。人の表示は本人の同意で決まる。 */
@@ -482,20 +494,23 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     };
   });
 
-  // ── 下限: 所属があること ────────────────────────────────────────────────
-  //    カードは「直近の所属企業 + 職種」に統一したので、所属が無い人は
-  //    名前だけのカードになる。それは出さない。
-  //
-  //    ⚠️ 経緯: 2026-08-04 の途中まで「スキル3件以上」→「自己紹介」も条件に入れ、
-  //       所属の無い人には自己紹介の1行を出していた。
-  //       自由記述は人によって品質がばらつくため、カードから外した。
-  //       条件も所属だけに揃えている（出す情報と出す条件を一致させる）。
-  //       現職が無くても直近の退職済み（kind: "past"）や
-  //       最終学歴（kind: "education"）があれば出る。
-  const shown = people.filter((p) => p.affiliation.kind !== "none");
+  /* ── ★下限は無くした（2026-09-18 / 柴さんの指示）────────────────────────────
+     それまでは `affiliation.kind !== "none"`（所属があること）で絞っており、
+     **職歴も学歴も持たない人が一覧から丸ごと消えていた。**
+     実測（2026-09-18 / 本番）: 対象7人のうち **2人**がこれで落ちていた。
+
+     ⚠️★**この filter を書き戻さないこと。** 登録しただけの人が
+        「自分が一覧に居ない」状態になるのを避けるのが目的。
+
+     ⚠️ 経緯（残す）: 2026-08-04 の途中まで「スキル3件以上」→「自己紹介」も条件に入れ、
+        所属の無い人には自己紹介の1行を出していた。自由記述は品質がばらつくため
+        カードから外し、条件も所属だけに揃えた——という順で今の形になっていた。
+        **自己紹介をカードに戻したわけではない。** 所属が無いカードは
+        名前と職種だけになり、高さは CSS 側（`.ppl-grid-card`）で揃える。
+        ⚠️ **空欄を「未登録」等の文字で埋めないこと**（データ表示の原則）。 */
 
   // 既定は完成度の高い順。同点は新しい登録順
-  return shown.sort(
+  return people.sort(
     (a, b) => b.publicScore - a.publicScore || (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
   );
 }

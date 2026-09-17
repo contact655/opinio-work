@@ -11,6 +11,9 @@ import type { SearchAlias } from "@/lib/supabase/queries";
 import { FollowUserButton } from "../u/[id]/FollowUserButton";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { SortSelect } from "@/components/common/SortSelect";
+import { useSearchParams, usePathname } from "next/navigation";
+import { PeopleSidebar, MeetingOkNotice } from "@/components/people/PeopleSidebar";
+import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -33,6 +36,10 @@ type Props = {
   myUserId: string | null;
   /** 閲覧者が既にフォローしている ow_users.id */
   followedUserIds: string[];
+  /** ★閲覧者を**フォローしている** ow_users.id（2026-09-18）。サイドバーの「フォロワー」用 */
+  followerUserIds: string[];
+  /** ★左サイドバーの中身（2026-09-18）。未ログイン・自分の行が無いときは null */
+  sidebar: PeopleSidebarData | null;
 };
 
 // ── フィルタ・ソート定数 ────────────────────────────────────────────
@@ -530,17 +537,53 @@ function ListRow({ card, myUserId, followedUserIds }: {
 }
 
 // ── フィルタ判定 ─────────────────────────────────────────────────────
-/** v は ow_roles の slug。roleSlugToId は page 側で解決して渡す */
-function matchRole(card: AmbassadorCard, v: string, roleSlugToId: Record<string, string>): boolean {
-  if (!v) return true;
-  const id = roleSlugToId[v];
-  if (!id) return true;          // slug が解決できない = 絞り込まない（黙って0件にしない）
-  return card.topRoleId === id;
+/**
+ * 職種。**`slugs` は ow_roles の slug の配列**（2026-09-18 に単一選択から複数選択へ）。
+ * roleSlugToId は page 側で解決して渡す。
+ *
+ * ⚠️ 同じ項目の中は **OR**（企業一覧と同じ挙動）。
+ * ⚠️ slug が1つも解決できないときは絞り込まない（黙って0件にしない）。
+ * ⚠️★**現職が無い人は、職種で絞り込んだときだけ落ちる。**`topRoleId` は
+ *    現職→直近の順で解決されるので（directory.ts の roleSource）、
+ *    職歴が1件も無い人だけが null になる。
+ */
+function matchRole(card: AmbassadorCard, slugs: string[], roleSlugToId: Record<string, string>): boolean {
+  if (slugs.length === 0) return true;
+  const ids = slugs.map((v) => roleSlugToId[v]).filter(Boolean);
+  if (ids.length === 0) return true;
+  return !!card.topRoleId && ids.includes(card.topRoleId);
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds }: Props) {
-  const [role, setRole] = useState("");
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar }: Props) {
+  /* ★絞り込みは URL に持つ（2026-09-18）。共有リンク・リロード・戻るで同じ結果になる。
+     ⚠️★**`?view=` は使えない。** `/companies?view=list` は**表示形式**の意味で、
+        同じ語を `/people` で「関係の絞り込み」に使うと、隣り合うページで1語が2つの意味を持つ。
+        関係は **`?rel=`**（following / followers / coworkers）にしてある。
+     ⚠️ 表示形式（grid / list）は URL に入れず localStorage のまま。
+        あれは**人ごとの好み**で、共有したい状態ではない。 */
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const roles = useMemo(
+    () => (searchParams.get("role") ?? "").split(",").map((v) => v.trim()).filter(Boolean),
+    [searchParams],
+  );
+  const rel = searchParams.get("rel") ?? "";
+  const meetingOnly = searchParams.get("meeting") === "1";
+
+  /** URL のパラメータを1つ書き換える。⚠️ 空文字は**キーごと消す**（`?role=` を残さない） */
+  const setParam = (patch: Record<string, string>) => {
+    const next = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(patch)) {
+      if (v) next.set(k, v); else next.delete(k);
+    }
+    /* ⚠️ `scroll: false` を外さないこと。絞り込むたびに先頭へ飛ぶと、
+          「条件を足しながら見比べる」という目的が成立しない（/companies と同じ）。 */
+    router.replace(`${pathname}${next.toString() ? `?${next.toString()}` : ""}`, { scroll: false });
+  };
+  const setRoles = (v: string[]) => setParam({ role: v.join(",") });
 
   /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
   const [sort, setSort] = useState("newest");
@@ -599,10 +642,28 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     return new Set(hits.flatMap((a) => a.roleIds).filter(Boolean));
   }, [keyword, roleAliases]);
 
+  /* 「同じ会社にいた人」用。⚠️ id の集合で突き合わせる（社名の文字列で比べない）。
+        表記ゆれで別会社を同じと見なすし、本人が伏せた社名を復元することにもなる。 */
+  const myCompanyIdSet = useMemo(
+    () => new Set(sidebar?.myCompanyIds ?? []),
+    [sidebar],
+  );
+
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
-      if (!matchRole(a, role, roleSlugToId)) return false;
+      if (!matchRole(a, roles, roleSlugToId)) return false;
+      /* ★面談OK。⚠️ 判定は directory.ts の `canTalk`（lib/companyMembers/talkable.ts）。
+            ここで display_consent 等の条件を書き直さないこと。 */
+      if (meetingOnly && !a.canTalk) return false;
+      /* ★関係の絞り込み（2026-09-18）。⚠️ 自分は常に対象外（自分をフォローはできない） */
+      if (rel === "following" && !followedUserIds.includes(a.userId)) return false;
+      if (rel === "followers" && !followerUserIds.includes(a.userId)) return false;
+      if (rel === "coworkers") {
+        if (a.userId === myUserId) return false;
+        /* ⚠️ マスタ紐付きの経歴だけが対象。自由入力の社名は突き合わせない（推測しない） */
+        if (!(a.companyIds ?? []).some((id) => myCompanyIdSet.has(id))) return false;
+      }
       if (!q) return true;
       // 検索対象。学歴の人は学校名で引けるようにする
       const aff = a.affiliation;
@@ -623,7 +684,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       const byAlias = !!keywordRoleIds && (a.roleIds ?? []).some((id) => keywordRoleIds.has(id));
       return byText || byAlias;
     });
-  }, [ambassadors, role, keyword, roleSlugToId, keywordRoleIds]);
+  }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
+      meetingOnly, rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -682,12 +744,25 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         /* ⚠️ 基底ルールを先に書くこと。同じ詳細度なので、後に書いたほうが勝つ。
               .ppl-grid の4列指定をメディアクエリより後ろに置くと 5列が効かない。 */
         .ppl-wrap { max-width: 1100px; }
-        .ppl-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+        /* ★左サイドバー（240px）が入ったぶん、列を1つ減らした（2026-09-18）。
+           ⚠️★**実測して決めた値。** 1440px では wrap 1300 − 左右padding 48 − サイドバー 240
+              − gap 24 = 988px を4列で割って **1枚 235px**。
+              これは 2026-08-04 に「職種が2行に折り返さない下限」として実測した幅と同じ。
+           ⚠️ 900〜1439px は wrap 1100 なので 3列（1枚 252px）。ここを4列に増やすと
+              1枚 185px になり、カード内の「プロフィール」+「+フォロー」の横並びが割れる。 */
+        .ppl-layout { display: flex; gap: 24px; align-items: flex-start; }
+        .ppl-main { flex: 1; min-width: 0; }
+        .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
         @media (min-width: 1440px) {
           .ppl-wrap { max-width: 1300px; }
-          .ppl-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+          .ppl-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
-        @media (max-width: 1024px) { .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+        /* ⚠️ 899px 未満はサイドバーが一覧の上に畳まれる（横に並ばない）ので、
+              本文が全幅に戻る。**サイドバーを display:none にしていない**（中身ごと消さない）。 */
+        @media (max-width: 899px) {
+          .ppl-layout { display: block; }
+          .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        }
         @media (max-width: 768px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
         /* ⚠️ 1列に落とすのは 560px。420px にすると 421〜560px の帯で
               2列 × 180〜250px になり、5列時（235px）より細いカードが出てしまう。
@@ -872,7 +947,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                    消すと 2026-08-04 に「一覧/詳細」を撤去したときの状態に戻る。
                    `directory.ts` の `hasForeignExperience` も残す。 */}
             <div className="ppl-filter-chips">
-              <FilterChip label="職種" value={role} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRole(v ?? ""); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
+              <FilterChip label="職種" value={roles[0] ?? ""} options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onSelect={(v) => { setRoles(v ? [v] : []); setOpenChip(null); }} isOpen={openChip === "role"} onToggle={() => toggleChip("role")} />
               {/* ⚠️★**「すべてクリア」は廃止した**（2026-09-06 / 柴さんの判断・`/companies` と揃えた）。
                      絞り込みが1つ付くたびに現れて並びが動くうえ、**すべて個別に外せる**:
                        検索文字 → 入力欄の ✕ ／ 職種 → チップの ✕
@@ -976,6 +1051,26 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
 
       {/* ── コンテンツ ── */}
       <div className="ppl-wrap" style={{ margin: "0 auto", padding: "16px 24px 80px" }}>
+       <div className="ppl-layout">
+        {/* ⚠️ `sidebar` が null なのは未ログイン（middleware で入れないはず）か
+               自分の行が引けなかったとき。そのときは出さず、面談OKの注意書きだけ下で補う。 */}
+        {sidebar && (
+          <PeopleSidebar
+            me={sidebar.me}
+            counts={sidebar.counts}
+            nextStep={sidebar.nextStep}
+            meetingOk={sidebar.meetingOk}
+            rel={rel}
+            onRel={(v) => setParam({ rel: v })}
+            meetingFilter={meetingOnly}
+            onMeetingFilter={(v) => setParam({ meeting: v ? "1" : "" })}
+            myRole={sidebar.myRole}
+            roleFilter={roles}
+            onRole={setRoles}
+            hasCompanyHistory={sidebar.myCompanyIds.length > 0}
+          />
+        )}
+        <div className="ppl-main">
         {sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
             該当する方が見つかりません
@@ -1004,13 +1099,16 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
-          {/* ⚠️ バッジを「面談可」に一本化した以上（2026-08-23）、
-                 **申込可否がここでしか伝わらない。** この2行を消さないこと。
-                 実測では、バッジが出る4名のうち会社が受付中なのは1社だけ。 */}
-          ※ <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>面談可</strong> は、いま在籍している会社について話を聞かれてもよいと登録している方です。<br />
-          <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>実際に申し込めるかどうかは会社ごとに異なります。</strong>企業ページでご確認ください。<br />
+          {/* ★面談OKの注意書きは 2026-09-18 にサイドバー（「面談OKだけ見る」の隣）へ移した。
+                 ⚠️ サイドバーが出せないときだけ、ここで補う。**文言を書き写さないこと**
+                    （実体は `MeetingOkNotice`）。 */}
+          {!sidebar && (<>※ <MeetingOkNotice /><br /></>)}
+          {/* ⚠️★この1行はサイドバーへ移していない。面談OKの話ではなく
+                 **一覧全体にかかる但し書き**（在籍確認をしていないこと）だから。 */}
           所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。
         </div>
+        </div>
+       </div>
       </div>
     </>
   );

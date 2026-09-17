@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
+import { getPeopleSidebarData } from "@/lib/people/sidebarData";
 import { PeopleListClient } from "./PeopleListClient";
 
 /**
@@ -44,17 +45,25 @@ export default async function PeoplePage() {
   //    ここで null を前提にしないこと（ゲート漏れが起きても壊れないようにする）。
   let myUserId: string | null = null;
   let followedUserIds: string[] = [];
+  /* ★自分をフォローしている人（2026-09-18）。サイドバーの「フォロワー」を押したときの絞り込みに使う。
+     ⚠️ 件数は `getFollowCounts` が別に数えている。**ここは id の一覧**で、用途が違う。 */
+  let followerUserIds: string[] = [];
+  let sidebar: Awaited<ReturnType<typeof getPeopleSidebarData>> = null;
   if (user) {
     const admin = createAdminClient();
     const { data: me } = await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const { data: fRows, error } = await admin
-        .from("ow_user_follows")
-        .select("target_user_id")
-        .eq("follower_user_id", myUserId);
-      if (error) console.error("[people followedUserIds]", error.message);
-      followedUserIds = (fRows ?? []).map((r: { target_user_id: string }) => r.target_user_id);
+      const [outRes, inRes, sidebarData] = await Promise.all([
+        admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
+        admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
+        getPeopleSidebarData(myUserId),
+      ]);
+      if (outRes.error) console.error("[people followedUserIds]", outRes.error.message);
+      if (inRes.error) console.error("[people followerUserIds]", inRes.error.message);
+      followedUserIds = (outRes.data ?? []).map((r: { target_user_id: string }) => r.target_user_id);
+      followerUserIds = (inRes.data ?? []).map((r: { follower_user_id: string }) => r.follower_user_id);
+      sidebar = sidebarData;
     }
   }
 
@@ -65,7 +74,15 @@ export default async function PeoplePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <PeopleListClient ambassadors={people} roleSlugToId={roleSlugToId} roleAliases={roleAliases} myUserId={myUserId} followedUserIds={followedUserIds} />
+      <PeopleListClient
+        ambassadors={people}
+        roleSlugToId={roleSlugToId}
+        roleAliases={roleAliases}
+        myUserId={myUserId}
+        followedUserIds={followedUserIds}
+        followerUserIds={followerUserIds}
+        sidebar={sidebar}
+      />
     </div>
   );
 }
