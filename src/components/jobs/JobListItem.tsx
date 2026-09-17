@@ -260,17 +260,18 @@ export function JobListItem({
             )}
           </div>
 
-          {/* キャッチコピー1行 — LinkedIn の job summary 相当 */}
-          {job.highlight && (
-            <div style={{
-              fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.5,
-              marginBottom: 5,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {job.highlight}
-            </div>
-          )}
+          {/* ⚠️★キャッチコピー（`job.highlight`）の行は **2026-09-17 に落とした**（柴さんの指示）。
+                 カードを縮めるのに残っていた手がこれだけだった（実測 174px -> 151px）。
+                 ロゴを 54 -> 44px にしても高さが変わらなかったのは、**高さを決めているのが
+                 テキストの列**だったため —— 行を減らす以外に縮める方法が無い。
 
+              ⚠️★**`job.highlight` 自体は消していない。** 出る場所が変わっただけ:
+                   `/jobs/[id]`（全画面の詳細）… 出る
+                   分割表示の右ペイン（`JobPane`）… ★**出ない**（元から持っていない）
+                 ＝ 分割表示で見ているあいだは、この一文はどこにも出なくなった。
+                 ⚠️ 戻すならカードではなく**ペインに足す**こと。カードに戻すと高さが元に戻る。
+
+              ⚠️ ここに1行足すと **23px** 増える。**行を足す前にこの注記を読むこと。** */}
 
           {/* 行4: 勤務地 · 勤務形態 · 年収 */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
