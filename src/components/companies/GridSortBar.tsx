@@ -66,17 +66,15 @@ export function GridSortBar({ totalCount }: Props) {
   return (
     <>
 
+      {/* ⚠️★**白いカードの装飾（枠・影・角丸・余白）を外した**（2026-09-17）。
+             この行は検索窓と同じツールバーの中に入ったので、装飾を残すと
+             「窓の中の窓」になり、**行の高さが 62px になってツールバー全体が
+             121px に膨らむ**（実測）。`/jobs` で同じ理由で外したのと同じ。
+          ⚠️ 区切りは中の縦罫だけ。**背景も枠も足さないこと。** */}
       <div className="sort-bar-row" style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
         gap: 12,
-        marginBottom: 16,
-        background: "#fff",
-        borderRadius: 12,
-        border: "1px solid var(--line)",
-        padding: "10px 16px",
-        boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
       }}>
 
         {/* 左: ソートボタン群 */}

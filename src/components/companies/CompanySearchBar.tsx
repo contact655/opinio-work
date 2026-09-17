@@ -280,7 +280,22 @@ function FilterChip({
 }
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
-export function CompanySearchBar({ industryOptions, targetIndustryOptions, companySuggestions = [] }: Props) {
+export function CompanySearchBar({
+  industryOptions,
+  targetIndustryOptions,
+  companySuggestions = [],
+  /**
+   * ★並び替え・表示形式・件数（2026-09-17）。**同じ行に入れるために受け取る。**
+   *
+   * それまで `/companies` の上部は**帯が2本**（検索 95px ＋ 並び替え 103px）で、
+   * 一覧が始まるのは **275px**（本番 1440px 実測）だった。/jobs を 2026-09-17 に
+   * 1本（69px / 162px）にしたのと同じ形に揃えた（柴さんの要望）。
+   *
+   * ⚠️★**ここで `GridSortBar` を import しないこと。** 出すかどうか（`!hasFilter &&
+   *    needsGrid`）と件数はページが持っている。**判定を2箇所に増やさない。**
+   */
+  sortBar = null,
+}: Props & { sortBar?: React.ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -382,8 +397,31 @@ export function CompanySearchBar({ industryOptions, targetIndustryOptions, compa
     g.prefectures.map((l) => ({ value: l, label: l, group: g.group })),
   );
 
+  /* ★いま効いている条件のチップ（2026-09-17）。**「絞り込む」を閉じていても外に出す。**
+     ⚠️★**消さないこと。** 6つのチップを畳んだので、これが無いと
+        **絞り込んだ結果を見ている最中に理由が画面から消える**
+        （/jobs の `activeChips` と同じ判断）。
+     ⚠️ 並びは下のチップの並びと**同じ順**にしてある。片方だけ変えないこと。
+     ⚠️ ✕ は近道であって唯一の入口ではない。「絞り込む」を開けば元のチップからも外せる。
+     ⚠️ 検索語（`q`）は入れない。入力欄に出ていて、そこの ✕ で消せる。 */
+  const activeChips: { key: string; label: string; clear: () => void }[] = [];
+
+  const labelOf = (opts: { value: string; label: string }[], v: string) =>
+    opts.find((o) => o.value === v)?.label ?? v;
+
+  if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
+  if (currentIndustry) activeChips.push({ key: "industry", label: labelOf(industryOptions.map((d) => ({ value: d.slug, label: d.name })), currentIndustry), clear: () => updateParam("industry", null) });
+  if (currentTarget) activeChips.push({ key: "target", label: labelOf(targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name })), currentTarget), clear: () => updateParam("target", null) });
+  if (currentLocation) activeChips.push({ key: "location", label: currentLocation, clear: () => updateParam("location", null) });
+  if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
+  if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
+  if (currentHiring) activeChips.push({ key: "hiring", label: "募集あり", clear: () => updateParam("hiring", null) });
+
   /* ⚠️ かつてここで `activeFilters`（「絞り込み中」行のチップ）を組み立てていた。
-        2026-09-06 に行ごと廃止したので消した。理由はこのファイル下部のコメント。 */
+        2026-09-06 に行ごと廃止したので消した。理由はこのファイル下部のコメント。
+        ⚠️★2026-09-17 に**別の理由で**戻した（上の `activeChips`）。あちらは
+           「同じことを2箇所に出していた」ので消したが、今回は**チップを畳んだので
+           理由が画面から消える**のを防ぐため。**目的が違う。** */
 
   return (
     <>
@@ -441,10 +479,12 @@ export function CompanySearchBar({ industryOptions, targetIndustryOptions, compa
             )}
           </div>
 
-          {/* モバイル用フィルタートグルボタン */}
+          {/* ★絞り込みのトグル（2026-09-17 に**全幅**で出すようにした）。
+                 文言は `/jobs` と揃えて「詳細検索」。**片方だけ変えないこと。**
+              ⚠️ 選択中の数をバッジで出す（閉じていても効いている件数が分かる）。 */}
           <button
             type="button"
-            className={`csb-filter-toggle${filtersExpanded ? " active" : ""}`}
+            className={`csb-filter-toggle${filtersExpanded || activeChips.length > 0 ? " active" : ""}`}
             onClick={() => setFiltersExpanded(!filtersExpanded)}
             aria-expanded={filtersExpanded}
           >
@@ -453,8 +493,40 @@ export function CompanySearchBar({ industryOptions, targetIndustryOptions, compa
               <line x1="8" y1="12" x2="16" y2="12"/>
               <line x1="11" y1="18" x2="13" y2="18"/>
             </svg>
-            絞り込む{filtersExpanded ? " ▴" : " ▾"}
+            詳細検索
+            {activeChips.length > 0 && (
+              <span style={{
+                fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                background: "var(--royal)", color: "#fff",
+                fontFamily: "var(--font-inter), var(--font-noto)",
+              }}>{activeChips.length}</span>
+            )}
+            <span aria-hidden="true" style={{ opacity: 0.5 }}>{filtersExpanded ? "▴" : "▾"}</span>
           </button>
+
+          {/* ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）。
+                 ⚠️ 出すかどうかと件数はページが決める。ここは置き場所だけ。 */}
+          {sortBar}
+
+          {/* ★選択中の条件。⚠️★**閉じているときだけ出す。** 開いているときは
+                 ピル自身が選択状態を持っているので、同じ語が2回並ぶ
+                 （/jobs で 2026-09-09 に同じ判断をしている）。 */}
+          {!filtersExpanded && activeChips.length > 0 && (
+            <div className="csb-active-chips">
+              {activeChips.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  className="csb-active-chip"
+                  onClick={c.clear}
+                  aria-label={`${c.label} の絞り込みを外す`}
+                >
+                  {c.label}
+                  <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.75 }}>✕</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* フィルターチップ群（モバイルで折りたたみ） */}
           <div className={`csb-filter-chips${filtersExpanded ? " expanded" : ""}`}>

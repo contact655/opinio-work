@@ -304,26 +304,33 @@ export default async function CompaniesPage({ searchParams }: Props) {
       <h1 className="sr-only">企業を知る</h1>
 
 
-      {/* ── Search bar panel (sticky) ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "20px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
+      {/* ── ★ツールバー（2026-09-17 に検索帯と並び替え帯を1つにした）──────────────
+             それまで sticky な帯が2本あり、一覧が始まるのは **275px**
+             （本番 1440px 実測 / ヘッダー61 ＋ 検索帯95 ＋ 並び替え帯103 ＋ 余白16）。
+             `/jobs` を同日に1本にしたのと同じ形に揃えた（柴さんの要望）。
+
+          ⚠️★**並び替えを出すかどうか（`!hasFilter && needsGrid`）と件数はここが決める。**
+             `CompanySearchBar` は置き場所を貸すだけ。**判定を2箇所に増やさないこと。**
+          ⚠️ 上の余白を 20px から 12px に詰めた。詰めすぎると検索窓がヘッダーに貼り付く。 */}
+      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="max-w-[1440px] mx-auto px-4">
           <Suspense>
-            <CompanySearchBar industryOptions={industryFacets} targetIndustryOptions={targetIndustryOptions} companySuggestions={companySuggestions} />
+            <CompanySearchBar
+              industryOptions={industryFacets}
+              targetIndustryOptions={targetIndustryOptions}
+              companySuggestions={companySuggestions}
+              sortBar={
+                !hasFilter && needsGrid ? (
+                  <Suspense fallback={null}>
+                    <GridSortBar totalCount={allCompaniesResult.totalCount} />
+                  </Suspense>
+                ) : null
+              }
+            />
           </Suspense>
         </div>
       </div>
     </div>
-
-    {/* ── 並び替えバー（白ゾーン、フィルター非適用時のみ） ── */}
-    {!hasFilter && needsGrid && (
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-        <div className="max-w-[1440px] mx-auto px-4 py-3">
-          <Suspense fallback={null}>
-            <GridSortBar totalCount={allCompaniesResult.totalCount} />
-          </Suspense>
-        </div>
-      </div>
-    )}
 
     <div style={{ background: "#f0f4f8" }}>
       <div className="max-w-[1440px] mx-auto px-4 pt-4 pb-8">
