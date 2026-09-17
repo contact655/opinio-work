@@ -178,15 +178,22 @@ export function JobListItem({
         }}
       >
         {/* ── 左端: 企業ロゴ ── */}
-        <div style={{ flexShrink: 0, padding: company.logo_url ? 3 : 0, background: company.logo_url ? "#fff" : "transparent", borderRadius: 13, boxShadow: company.logo_url ? "0 1px 5px rgba(0,0,0,0.10)" : "none", border: company.logo_url ? "1px solid var(--line)" : "none" }}>
+        {/* ⚠️★ロゴは **44px**（2026-09-17 に 54 から）。**企業カードの 54px とわざと違う。**
+               揃えないのは**入れ物の幅が違う**から —— レールは 440px で、企業カードの
+               459px より狭いうえ、♡のぶん右を 52px 空けている。
+               10px 詰めたぶんは**求人名に回る**（実測: 293px -> 303px）。
+            ⚠️ 角丸も比率で詰めてある（外枠 13 -> 11 / 中 10 -> 9）。
+               ⚠️ **サイズだけ変えて角丸を据え置かないこと。** 小さくすると相対的に丸くなり、
+                  他社のロゴ（正方形アイコン）と形が揃わなくなる。 */}
+        <div style={{ flexShrink: 0, padding: company.logo_url ? 3 : 0, background: company.logo_url ? "#fff" : "transparent", borderRadius: 11, boxShadow: company.logo_url ? "0 1px 5px rgba(0,0,0,0.10)" : "none", border: company.logo_url ? "1px solid var(--line)" : "none" }}>
           <CompanyLogo
             name={company.name}
             logoUrl={company.logo_url}
             logoLetter={company.logo_letter}
             logoGradient={company.gradient}
             companyUrl={company.url}
-            size={54}
-            borderRadius={10}
+            size={44}
+            borderRadius={9}
             style={{ boxShadow: company.logo_url ? "none" : "0 2px 6px rgba(0,0,0,0.12)" }}
           />
         </div>
