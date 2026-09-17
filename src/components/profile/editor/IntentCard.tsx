@@ -470,8 +470,12 @@ export default function IntentCard({
           type="button"
           className="tap-target tap-target-end"
           onClick={() => { resetToSaved(); setOpen(true); }}
-          aria-label="意思表示を編集"
-          title="意思表示を編集"
+          aria-label="転職・面談の状況を編集"
+          /* ⚠️ 見出しは 2026-09-12 に「意思表示」→「転職・面談の状況」に変えた。
+                aria-label と title だけ古いままだったので 2026-09-17 に揃えた。
+             ⚠️★**画面の見出しと同じ語にすること。** 目で見える語と読み上げの語が違うと、
+                音声で操作する人は「意思表示」を探して見つけられない。 */
+          title="転職・面談の状況を編集"
           style={{
             position: "absolute", top: 12, right: 14,
             color: "var(--royal)", background: "none", border: "none",
@@ -659,7 +663,7 @@ export default function IntentCard({
                 ここにあるのは「その設定が何をするか」の説明だけ。 */}
       <ProfileEditModal
         open={open}
-        title="意思表示"
+        title="転職・面談の状況"
         dirty={dirty}
         saving={saving}
         justSaved={justSaved}
