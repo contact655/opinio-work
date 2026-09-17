@@ -1493,9 +1493,24 @@ function FeedSidebar({
                  「フッターと同じ3点に揃える」と書いていたが、揃え先ごと無くなっている。
               ⚠️ SEO の description（`layout.tsx` など8箇所）には同じ文言が残っている。
                  あちらは検索結果の説明文で、画面には出ない。**別物として扱う。** */}
+          {/* ⚠️★2026-09-17 に LP（FinalCta / AuthAwareCta）と同じ基準へ揃えた。
+                 **登録して実際に使えるものだけを書く。**
+
+                 削除したもの（どちらも実測で事実でなかった）:
+                   ・「新しい求人が出たときの**通知**も受け取れます」
+                     週次メールは二重に停止中（vercel.json の crons が空 ＋
+                     WEEKLY_EMAIL_ENABLED 未設定）。ow_notifications_type_check も
+                     like / comment / scout / message の4値で**求人の種別が無い**。
+                     ⚠️ 再開しても勝手に書き戻さないこと（再開は env と crons の両方が要る）。
+                   ・「保存して**比べられます**」
+                     比較画面は存在しない。しかも /companies の分割ビューは
+                     **未ログインでも使える**ので、比べることは登録の理由になっていない。
+
+                 ⚠️★文言は LP と**同じ**にしてある。片方だけ直さないこと
+                    （実体は FinalCta.tsx のガイド側 と AuthAwareCta の guest）。 */}
           <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>まず、調べるところから。</p>
           <p style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "2px 0 12px" }}>
-            登録すると、気になる企業を保存して比べられます。新しい求人が出たときの通知も受け取れます。
+            登録すると、在籍している方・していた方の経歴を読めます。気になる企業と募集は、保存しておけます。
           </p>
           <a
             href="/auth"
@@ -1505,7 +1520,11 @@ function FeedSidebar({
               textDecoration: "none",
             }}
           >
-            メールアドレスで無料登録
+            {/* ⚠️★「メールアドレスで」を外した（2026-09-17）。**Google でも登録できる。**
+                   実測: /auth の登録は「Googleで続ける」（推奨バッジ付き・主）と
+                   「メールアドレスで登録」の2つ。片方だけ書くと、もう片方が見えない。
+                ⚠️ LP のボタン（FinalCta / AuthAwareCta の guest）と**同じ文言**。 */}
+            無料登録して経歴を見る
           </a>
         </div>
       ) : (

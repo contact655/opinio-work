@@ -78,7 +78,7 @@ export function FinalCta({ navy }: { navy: string }) {
             → 「保存できます」までにしてある。
 
         ⚠️ ログイン済み側の文も同じ基準で直した。**片方だけ直さないこと。**
-        ⚠️ 文言は LP の FV のボタンと揃えてある（「無料登録して経歴も見る」）。
+        ⚠️ 文言は LP の FV のボタン・/feed の登録パネルと揃えてある（「無料登録して経歴を見る」）。
       */}
       <p style={{ color: "#B9C6DE", fontSize: 15.5, lineHeight: 1.8, marginBottom: 26 }}>
         {state === "member" ? (
