@@ -637,6 +637,23 @@ p, .description, .desc {
   display: none;
 }
 
+/* ★帯（求人名・企業名・応募・保存）を止めるラッパー（2026-09-17）。
+   ⚠️★**sticky はここ。中の白いカードではない。** カード自身を sticky にすると、
+      カードと面のあいだの隙間が**透明**になり、スクロールで帯の裏をくぐった中身が
+      **帯のすぐ下に半分だけ露出して横に切れる**（柴さんの指摘で直した）。
+   ⚠️★**background を外さないこと。** 透明だと上と同じ状態に戻る。
+      色は --bg-tint（ページ背景）。**別の灰色を直書きしないこと。**
+   ⚠️ padding-bottom がそのまま「帯と面の間隔」になる。ルート側の gap は外してある
+      （両方あると二重になる）。 */
+.jp-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-tint);
+  padding-bottom: var(--space-4);
+  min-width: 0;
+}
+
 /* ── Article card hover ── */
 .article-card:hover {
   border-color: var(--royal-100) !important;

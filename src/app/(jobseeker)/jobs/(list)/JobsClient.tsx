@@ -1313,7 +1313,10 @@ export default function JobsClient({
       )}
 
       {/* Main content */}
-      <div style={{ background: "#F5F7FA" }}>
+      {/* ⚠️ ページ背景。★2026-09-17 に直書きの #F5F7FA から --bg-tint へ寄せた。
+             右ペインの帯のラッパー（`.jp-sticky`）が**同じ色**である必要があり、
+             値を2箇所に持つと片方だけずれる。#F5F7FA と #F8FAFC の差は3階調で見た目は変わらない。 */}
+      <div style={{ background: "var(--bg-tint)" }}>
         <div
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
           className="px-5 py-6 md:px-12 md:py-8"

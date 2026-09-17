@@ -78,7 +78,9 @@ export function JobPane({
   const applyOpen = !!company?.application_open;
 
   return (
-    <div ref={rootRef} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", minWidth: 0 }}>
+    /* ⚠️ `gap` を使わない（2026-09-17）。帯のラッパーが**自分の下に不透明な余白**を持つので、
+          `gap` と二重になる。間隔はそれぞれの要素が持つ。 */
+    <div ref={rootRef} style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
 
       {/* ── ★スクロールしても残る帯（2026-09-17）──────────────────────────────
              求人名・企業名・応募・保存**だけ**。
@@ -90,8 +92,13 @@ export function JobPane({
           ⚠️★**不透明な背景を外さないこと。** 外すと下の本文が帯の裏に透ける。
           ⚠️ 見出し・CTA が1つしかないので、以前の「CTA はヘッダーの中に置く」という
              約束（末尾に置くと内部スクロールの奥へ落ちる）は**この形で自動的に満たされる**。 */}
+      {/* ⚠️★**sticky はこの外側のラッパー（`jp-sticky`）。白いカードではない**（2026-09-17）。
+             ラッパーが**ページ背景色**で、下に 16px の余白を持つ。これが無いと、
+             スクロールで帯の裏をくぐった中身が**帯のすぐ下に半分だけ露出して横に切れる**
+             （柴さんの指摘）。カード自身を sticky にすると、その隙間が透明になる。
+          ⚠️ 色は `--bg-tint`。ページ背景と同じものを指すこと。**別の灰色を直書きしない。** */}
+      <div className="jp-sticky">
       <div style={{
-        position: "sticky", top: 0, zIndex: 2,
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
         padding: "var(--space-4) var(--space-6)", minWidth: 0,
         display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap",
@@ -133,6 +140,7 @@ export function JobPane({
           <BookmarkButton targetType="job" targetId={job.id} label={job.role} />
         </div>
       </div>
+      </div>{/* jp-sticky end */}
 
       {/* ── ★ここから下は「1枚の白い面」（2026-09-17）────────────────────────
              それまで区画ごとに白いカードで、ペインの中に**枠付きの箱が22個・
@@ -341,6 +349,8 @@ export function JobPane({
                 ——カード面と挙動が割れる（2026-09-17 に `JobListItem` の「詳細」でも外した）。 */}
       <Link href={href} style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        /* ⚠️ ルートの `gap` を外したので、間隔はここが持つ */
+        marginTop: "var(--space-4)",
         padding: "12px 20px", borderRadius: 12, fontSize: 13, fontWeight: 700,
         background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
         textDecoration: "none",
