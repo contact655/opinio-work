@@ -57,7 +57,7 @@ export default function EmployeesPreview() {
         />
       </Variant>
 
-      <Variant label="現役 3件（うち2名が面談可）" note="⚠️ CTA が出る人と出ない人が混ざる。カードの高さが揃うか">
+      <Variant label="現役 3件（うち2名が面談OK）" note="⚠️ CTA が出る人と出ない人が混ざる。カードの高さが揃うか">
         <JobEmployeesSection
           current={EMPLOYEES_3} alumni={[]} companyId={COMPANY_ID}
           casualHref={CASUAL} talkableIds={talkableSome}
@@ -65,7 +65,7 @@ export default function EmployeesPreview() {
         />
       </Variant>
 
-      <Variant label="現役 12件（全員 面談可）" note="⚠️ CTA が12個並ぶ。オレンジが多すぎないか">
+      <Variant label="現役 12件（全員 面談OK）" note="⚠️ CTA が12個並ぶ。オレンジが多すぎないか">
         <JobEmployeesSection
           current={EMPLOYEES_12} alumni={[]} companyId={COMPANY_ID}
           casualHref={CASUAL} talkableIds={talkableAll}

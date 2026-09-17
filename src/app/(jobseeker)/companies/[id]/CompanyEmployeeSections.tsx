@@ -133,7 +133,7 @@ function EmployeeCard({
              企業の受付状態では出し分けない。
           ⚠️ 申込導線は別で、受付中のときだけ出す。
           ⚠️ 文言は /people・`/u/[id]` のバッジと揃える。 */}
-      💬 面談可</span>
+      💬 面談OK</span>
   ) : undefined;
 
   if (isAmbassador && companyId) {

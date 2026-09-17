@@ -25,7 +25,7 @@ export function TalkableBadge() {
       border: "1px solid #FED7AA", whiteSpace: "nowrap",
     }}>
       <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-      面談可
+      面談OK
     </span>
   );
 }

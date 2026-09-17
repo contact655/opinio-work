@@ -8,6 +8,8 @@ import { canUserPost } from "@/lib/feed/canPost";
 import { getCompaniesForList } from "@/lib/supabase/queries";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
+import { getPeopleSidebarData } from "@/lib/people/sidebarData";
+import type { ProfileCardProps } from "@/components/common/ProfileCard";
 
 export const metadata: Metadata = {
   /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
@@ -95,22 +97,16 @@ export default async function FeedPage() {
 
   /* ★自分の現職と投稿一覧は**互いに依存しない**ので並列に引く（2026-08-23）。
         直列だと1往復ぶん余計に待つ。 */
-  let myRoleTitle: string | null = null;
-  let myCompany: string | null = null;
+  /* ★ミニプロフィールカードの中身。**`/people` の左サイドバーと同じ `getPeopleSidebarData`**（2026-09-18）。
+        ⚠️★`ow_experiences.role_title`（自由入力）を直に読む形に戻さないこと。
+           それが `/people`（会社 ／ ow_roles名）と食い違っていた原因。 */
+  let profileCard: ProfileCardProps | null = null;
 
   // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
   // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
   //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
-  const [myExpResult, rawPostsResult] = await Promise.all([
-    myOwUserId
-      ? adminSupabase
-          .from("ow_experiences")
-          .select(`role_title, ${EXPERIENCE_COMPANY_COLS}`)
-          .eq("user_id", myOwUserId)
-          .eq("is_current", true)
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+  const [sidebarResult, rawPostsResult] = await Promise.all([
+    myOwUserId ? getPeopleSidebarData(myOwUserId) : Promise.resolve(null),
     adminSupabase
     .from("ow_posts_visible")
     .select(`
@@ -128,14 +124,10 @@ export default async function FeedPage() {
     .limit(20),
   ]);
 
-  /* ⚠️ 型を狭めない。resolveExperienceCompanyName は会社名の解決に
-        EXPERIENCE_COMPANY_COLS 一式を見る。 */
-  // ⚠️ error を捨てない（2026-09-12）。埋め込みの失敗が「会社名なし」に化ける
-  if (myExpResult.error) console.error("[feed/(list)] ow_experiences(me):", myExpResult.error.message);
-  const myExp = myExpResult.data;
-  if (myExp) {
-    myRoleTitle = myExp.role_title ?? null;
-    myCompany = resolveExperienceCompanyName(myExp);
+  /* ⚠️ 取得に失敗したら null のまま（カードごと出さない）。
+        `getPeopleSidebarData` の中で列ごとに console.error を出している。 */
+  if (sidebarResult) {
+    profileCard = { me: sidebarResult.me, counts: sidebarResult.counts, nextStep: sidebarResult.nextStep };
   }
 
   const posts = (rawPostsResult.data ?? []) as unknown as RawPost[];
@@ -401,8 +393,7 @@ export default async function FeedPage() {
       myName={owUser?.name ?? null}
       myAvatarColor={owUser?.avatar_color ?? null}
       myAvatarUrl={owUser?.avatar_url ?? null}
-      myRoleTitle={myRoleTitle}
-      myCompany={myCompany}
+      profileCard={profileCard}
       myLikedPostIds={Array.from(likedPostIds)}
       sidebarFollows={sidebarFollows}
       sidebarUserFollows={sidebarUserFollows}

@@ -322,7 +322,7 @@ function GridCard({ card, myUserId, followedUserIds }: {
                  実測（2026-08-23）でバッジが出る4名のうち会社が受付中なのは1社だけ。
                  画面下の注釈で「申込可否は会社ごとに異なる」ことを必ず書いておくこと。
               ⚠️ 文言は企業ページ・`/u/[id]` のバッジと揃える（出所が同じ）。 */}
-          面談可
+          面談OK
         </span>
       )}
 
@@ -441,7 +441,7 @@ function ListRow({ card, myUserId, followedUserIds }: {
             }}>
               <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
               {/* ⚠️ 文言はカード・企業ページ・/u/[id] と揃える（出所が同じ） */}
-              面談可
+              面談OK
             </span>
           )}
         </div>

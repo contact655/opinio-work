@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { ProfileCard, type ProfileCardData } from "@/components/common/ProfileCard";
 
 /*
  * `/people` の左サイドバー（2026-09-18）。
@@ -40,15 +41,8 @@ import Link from "next/link";
  */
 
 export type PeopleSidebarProps = {
-  me: {
-    userId: string;
-    name: string;
-    avatarUrl: string | null;
-    gradient: string;
-    initial: string;
-    /** 「会社 ／ 職種」。⚠️ 出どころは `ow_companies.brand_name` と `ow_roles.name`（2026-09-18 に統一） */
-    affiliation: string | null;
-  } | null;
+  /** ⚠️ 中身は `components/common/ProfileCard` が描く。ここで組み立て直さないこと */
+  me: ProfileCardData["me"];
   counts: { following: number; followers: number; companies: number };
   /** 次に埋めるとよい項目。**1件だけ**。無ければ null（「完了！」は出さない） */
   nextStep: { label: string; href: string } | null;
@@ -145,47 +139,8 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
         }
       `}</style>
 
-      {/* ── ①② いつも畳む側 ───────────────────────────────────────────── */}
-      <div className={`pps-collapsible${open ? " is-open" : ""}`}>
-        {p.me && (
-          <div className="pps-card" style={{ textAlign: "center" }}>
-            {p.me.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.me.avatarUrl} alt="" width={44} height={44}
-                style={{ borderRadius: "50%", objectFit: "cover", display: "block", margin: "0 auto" }} />
-            ) : (
-              <div aria-hidden style={{
-                width: 44, height: 44, borderRadius: "50%", background: p.me.gradient,
-                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 17, fontWeight: 700, margin: "0 auto",
-              }}>{p.me.initial}</div>
-            )}
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginTop: 8, overflowWrap: "anywhere" }}>
-              {p.me.name}
-            </div>
-            {/* ⚠️ 値が無ければ行ごと出さない（「未登録」等で埋めない） */}
-            {p.me.affiliation && (
-              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6, overflowWrap: "anywhere" }}>
-                {p.me.affiliation}
-              </div>
-            )}
-            <Link href={`/u/${p.me.userId}`} className="pps-link" style={{ display: "inline-block", marginTop: 10 }}>
-              プロフィールを見る
-            </Link>
-          </div>
-        )}
-
-        {/* ② ⚠️ %も件数も出さない（冒頭の注記）。無ければブロックごと出さない */}
-        {p.nextStep && (
-          <div className="pps-card">
-            <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 8 }}>
-              入力すると他のユーザーに経歴が伝わります。
-            </div>
-            <Link href={p.nextStep.href} className="pps-link">{p.nextStep.label}</Link>
-          </div>
-        )}
-      </div>
-
+      {/* ── ①② いつも畳む側。⚠️ カード本体は `components/common/ProfileCard`
+             （フィードの左カラムと**同じ部品**）。ここに描き直さないこと。 */}
       {/* ── 狭い画面の開閉。⚠️ 広い画面では display:none ── */}
       <button type="button" className="pps-toggle" onClick={() => setOpen(!open)} aria-expanded={open}
         style={{ marginBottom: 10 }}>
@@ -193,17 +148,12 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
         <span aria-hidden>{open ? "閉じる" : "開く"}</span>
       </button>
 
-      {/* ── ③ 畳まない（狭い画面でも見える） ─────────────────────────────── */}
-      <div className="pps-card">
-        {/* ⚠️ 0 でも「0人」と出す（冒頭の注記） */}
-        <Row label="フォロー中" active={p.rel === "following"} onClick={() => p.onRel(p.rel === "following" ? "" : "following")} right={`${p.counts.following}人`} />
-        <Row label="フォロワー" active={p.rel === "followers"} onClick={() => p.onRel(p.rel === "followers" ? "" : "followers")} right={`${p.counts.followers}人`} />
-        {/* ⚠️ 企業は `/people` では絞り込めない（人の一覧なので）。既存の一覧ページへ送る */}
-        <Link href="/mypage/follows" className="pps-row" style={{ textDecoration: "none" }}>
-          <span className="pps-row-label">フォロー中の企業</span>
-          <span className="pps-row-right">{p.counts.companies}社</span>
-        </Link>
-      </div>
+      {/* ⚠️ 畳むのは**ミニプロフィールと「次に埋める1件」だけ**。
+             数字（フォロー中／フォロワー）は `topClassName` の外なので畳まれない。 */}
+      <ProfileCard
+        me={p.me} counts={p.counts} nextStep={p.nextStep} activeRel={p.rel}
+        topClassName={`pps-collapsible${open ? " is-open" : ""}`}
+      />
 
       {/* ── ④ 畳まない ────────────────────────────────────────────────── */}
       <div className="pps-card">

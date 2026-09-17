@@ -4,6 +4,7 @@ import { Fragment, useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ProfileCard, type ProfileCardProps } from "@/components/common/ProfileCard";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
@@ -151,8 +152,9 @@ type Props = {
   myName: string | null;
   myAvatarColor: string | null;
   myAvatarUrl: string | null;
-  myRoleTitle?: string | null;
-  myCompany?: string | null;
+  /** ★ミニプロフィールカードの中身（2026-09-18）。**`/people` と同じ `getPeopleSidebarData`**。
+   *  ⚠️ `myRoleTitle` / `myCompany` に戻さないこと。`/people` と表示が食い違う。 */
+  profileCard?: ProfileCardProps | null;
   myLikedPostIds: string[];
   sidebarFollows: SidebarFollow[];
   sidebarUserFollows: SidebarUserFollow[];
@@ -1218,19 +1220,12 @@ function formatSalary(min: number | null, max: number | null): string {
 // ─── 左カラム: ミニプロフィール + ナビ ────────────────────────────────────────
 
 function FeedLeftPanel({
-  myUserId,
-  myName,
-  myAvatarColor,
-  myAvatarUrl,
-  myRoleTitle,
-  myCompany,
+  profileCard,
 }: {
-  myUserId: string | null;
-  myName: string | null;
-  myAvatarColor: string | null;
-  myAvatarUrl: string | null;
-  myRoleTitle?: string | null;
-  myCompany?: string | null;
+  /** ★ミニプロフィールカードの中身（2026-09-18）。**`/people` と同じ `getPeopleSidebarData`**。
+   *  ⚠️ `myRoleTitle` / `myCompany` に戻さないこと。`/people` と表示が食い違う。
+   *  ⚠️ 氏名・アバターもこの中に入っている。**別々に渡さないこと**（出どころが2つに割れる）。 */
+  profileCard?: ProfileCardProps | null;
 }) {
   const NAV_ITEMS = [
     {
@@ -1257,113 +1252,24 @@ function FeedLeftPanel({
         </svg>
       ),
     },
-    {
-      // ⚠️ フィードの絞り込みタブではなく、フォロー中の一覧ページへ。
-      //    企業と人をタブで見られる（/mypage/follows）
-      href: "/mypage/follows",
-      label: "フォロー中",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      ),
-    },
+    /* ★「フォロー中」は 2026-09-18 に外した（柴さんの指示）。
+          ⚠️ 上のプロフィールカードの「フォロー中 0人 / フォロワー 0人」と**役割が重なる**ため。
+             戻すなら、あちらの数字を消すかどうかを先に決めること（入口が2つに戻る）。
+          ⚠️ 行き先（`/mypage/follows`）は消えていない。プロフィールカードの
+             「フォロー中の企業」がそこへ送る。 */
   ];
-
-  const tagline = myRoleTitle ?? myCompany ?? null;
 
   return (
     <div style={{ width: 320, flexShrink: 0 }}>
-      {/* ミニプロフィールカード */}
-      <div style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        overflow: "hidden",
-        marginBottom: 10,
-        boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-      }}>
-        {/* カバー帯 */}
-        <div style={{
-          height: 44,
-          background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-        }} />
-        {/* アバター + 名前 */}
-        <div style={{ padding: "0 14px 14px", textAlign: "center" }}>
-          <div style={{ marginTop: -20, display: "flex", justifyContent: "center" }}>
-            <div style={{ border: "2.5px solid #fff", borderRadius: "50%", display: "inline-block" }}>
-              <Avatar
-                user={{ name: myName, avatar_color: myAvatarColor, avatar_url: myAvatarUrl }}
-                size={36}
-              />
-            </div>
-          </div>
-          <div style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontWeight: 500,
-            fontSize: 14,
-            color: "var(--ink)",
-            marginTop: 6,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>
-            {myName ?? "ゲスト"}
-          </div>
-          {tagline && (
-            <div style={{
-              fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 12, fontWeight: 500,
-              color: "var(--ink-soft)",
-              marginTop: 2,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}>
-              {tagline}
-            </div>
-          )}
-          {myUserId && (
-            <Link
-              href={`/u/${myUserId}`}
-              style={{
-                display: "inline-block",
-                marginTop: 10,
-                fontSize: 12,
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontWeight: 600,
-                color: "var(--royal)",
-                textDecoration: "none",
-                padding: "4px 12px",
-                border: "1px solid var(--royal-100)",
-                borderRadius: 100,
-                background: "var(--royal-50)",
-              }}
-            >
-              プロフィールを見る
-            </Link>
-          )}
-          {!myUserId && (
-            <Link
-              href="/auth"
-              style={{
-                display: "inline-block",
-                marginTop: 10,
-                fontSize: 12,
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontWeight: 600,
-                color: "#fff",
-                textDecoration: "none",
-                padding: "4px 12px",
-                borderRadius: 100,
-                background: "var(--royal)",
-              }}
-            >
-              ログイン
-            </Link>
-          )}
-        </div>
-      </div>
+      {/* ★ミニプロフィール＋つながりの数。**`/people` の左サイドバーと同じ部品**（2026-09-18）。
+             ⚠️ ここに描き直さないこと。`components/common/ProfileCard` が唯一の実体。
+             ⚠️★肩書きの出どころも `lib/people/sidebarData.ts` に揃えた。それまで
+                **フィードだけ `ow_experiences.role_title`（本人の自由入力）**を出していて、
+                同じ人が `/people` では「Salesforce／新規事業開発」、ここでは「AE」に
+                分かれて見えていた（2026-09-18 実測。同じ行の別々の列を読んでいた）。
+             ⚠️ 未ログイン（profileCard が null）のときは出さない。
+                以前あった「ログイン」ボタンはヘッダーが持っている。 */}
+      {profileCard && <ProfileCard {...profileCard} />}
 
       {/* ナビカード */}
       <div style={{
@@ -2475,8 +2381,7 @@ export default function FeedClient({
   myName,
   myAvatarColor,
   myAvatarUrl,
-  myRoleTitle,
-  myCompany,
+  profileCard,
   myLikedPostIds: _myLikedPostIds,
   sidebarFollows,
   sidebarUserFollows,
@@ -2612,14 +2517,7 @@ export default function FeedClient({
       {/* 左カラム: ミニプロフィール + ナビ (≥1024px) */}
       {isWide && (
         <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
-          <FeedLeftPanel
-            myUserId={myUserId}
-            myName={myName}
-            myAvatarColor={myAvatarColor}
-            myAvatarUrl={myAvatarUrl}
-            myRoleTitle={myRoleTitle}
-            myCompany={myCompany}
-          />
+          <FeedLeftPanel profileCard={profileCard} />
         </div>
       )}
 
