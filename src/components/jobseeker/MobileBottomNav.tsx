@@ -2,8 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useIsLoggedIn } from "@/lib/auth/useIsLoggedIn";
 
-const TABS = [
+/**
+ * ⚠️★`authOnly` は「**未ログインで押すとログイン画面に飛ばされる**」という意味。
+ *    見た目の好みではなく、`src/middleware.ts` の `needsAuth` と1対1にすること。
+ *
+ * 実測（2026-09-17 / 本番・未ログイン）:
+ *   /companies 200 ／ /jobs 200 ／ /feed 200
+ *   ★/people 307 → /auth?next=%2Fpeople ／ ★/mypage も `needsAuth` に入っている
+ *
+ * ⚠️★**未ログインでは3タブになる。** それでよい ——押しても入れないタブを
+ *    2つ並べるより、入れるものだけを出す。
+ *    ⚠️ 入口が消えるわけではない。ヘッダーに「ログイン」「無料登録」が出る。
+ * ⚠️ `/feed` は未ログインでも中身が出る（飛ばされない）。**authOnly にしないこと。**
+ */
+const TABS: { href: string; label: string; authOnly?: boolean; icon: (active: boolean) => React.ReactNode }[] = [
   {
     href: "/companies",
     label: "企業",
@@ -36,6 +50,7 @@ const TABS = [
   {
     href: "/people",
     label: "ユーザー",
+    authOnly: true,
     icon: (active: boolean) => (
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" fill={active ? "currentColor" : "none"}/>
@@ -47,6 +62,7 @@ const TABS = [
   {
     href: "/mypage",
     label: "マイページ",
+    authOnly: true,
     icon: (active: boolean) => (
       <svg width="21" height="21" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -58,6 +74,9 @@ const TABS = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  /* ⚠️ 判定は `useIsLoggedIn` の1箇所。**ここに getSession を書かないこと。**
+        ヘッダーのナビ・`AuthAwareCta` と同じフックを使う。 */
+  const login = useIsLoggedIn();
 
   // biz・admin・profile・onboarding ページでは非表示
   if (
@@ -92,7 +111,11 @@ export function MobileBottomNav() {
           boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
         }}
       >
-        {TABS.map((tab) => {
+        {/* ★未ログインには authOnly のタブを出さない（2026-09-17）。
+               ⚠️★**判定前（loading）も出さない側に倒す。** 先に出して消すと
+                  ちらつく（出てから消える）。`AuthAwareCta` と同じ倒し方。
+               ⚠️ タブ数が変わるので `flex: 1` のまま（固定幅にしないこと）。 */}
+        {TABS.filter((t) => !t.authOnly || login === "member").map((tab) => {
           const active = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
           return (
             <Link

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useIsLoggedIn } from "@/lib/auth/useIsLoggedIn";
 
 /**
  * ログイン状態で行き先と文言が変わるボタン。**LP の FV と在籍者向けセクションが使う。**
@@ -27,8 +26,6 @@ import { createClient } from "@/lib/supabase/client";
  *
  * ⚠️ JS 無効の環境は永久に `loading` に留まるので、`noscript` で未ログイン版を出す。
  */
-type State = "loading" | "guest" | "member";
-
 export type CtaTarget = { href: string; label: string };
 
 export function AuthAwareCta({
@@ -43,27 +40,9 @@ export function AuthAwareCta({
   className: string;
   minHeight?: number;
 }) {
-  const [state, setState] = useState<State>("loading");
-
-  useEffect(() => {
-    const supabase = createClient();
-    let active = true;
-
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (active) setState(session?.user ? "member" : "guest");
-      })
-      /* 判定できないときは未ログイン扱い。`FinalCta` と同じ倒し方に揃える
-         （登録済みの人に登録を勧めるより、未登録の人に導線が出ないほうが損失が大きい）。 */
-      .catch(() => { if (active) setState("guest"); });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (active) setState(session?.user ? "member" : "guest");
-    });
-
-    return () => { active = false; subscription.unsubscribe(); };
-  }, []);
+  /* ⚠️ 判定は [useIsLoggedIn](@/lib/auth/useIsLoggedIn) の1箇所（2026-09-17 に切り出した）。
+        ヘッダーのナビと下部タブも同じフックを使う。**ここに getSession を書き戻さないこと。** */
+  const state = useIsLoggedIn();
 
   if (state === "loading") {
     return (

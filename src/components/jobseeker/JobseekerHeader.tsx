@@ -18,10 +18,23 @@ import OpinioLogo from "@/components/common/OpinioLogo";
       「使われていないから無害」ではなく、**選べる状態にしないこと**が対処
       （`88fae279` で `SecTitle` の未使用の色の選択肢を塞いだのと同じ）。
    ⚠️ ナビを強調したくなったら、**濃紺（主要な遷移）か太さ**で示す。 */
-const NAV_LINKS = [
+/**
+ * ⚠️★`authOnly` は「**未ログインで押すとログイン画面に飛ばされる**」という意味。
+ *    見た目の好みではなく、`src/middleware.ts` の `needsAuth` と1対1にすること。
+ *
+ * 実測（2026-09-17 / 本番・未ログイン）:
+ *   /companies 200 ／ /jobs 200 ／ /feed 200 ／ /articles 200
+ *   ★/people は **307 → /auth?next=%2Fpeople**
+ *
+ * ⚠️★**`/feed` を authOnly にしないこと。** 未ログインでも中身が出る
+ *    （企業の投稿が並び、投稿・いいねだけがログイン誘導になる）。飛ばされない。
+ * ⚠️ `needsAuth` に追加した画面をここへ足すときは、**実測してから**にする
+ *    （ページ側の `redirect()` は 200 のまま返ることがある。CLAUDE.md「ソフト200」）。
+ */
+const NAV_LINKS: { href: string; label: string; authOnly?: boolean }[] = [
   { href: "/companies", label: "企業" },
   { href: "/jobs", label: "募集" },
-  { href: "/people", label: "ユーザー" },
+  { href: "/people", label: "ユーザー", authOnly: true },
   { href: "/feed", label: "フィード" },
   { href: "/articles", label: "記事" },
 ];
@@ -129,6 +142,15 @@ export function JobseekerHeader() {
     };
   }, []);
 
+  /* ★未ログインには `authOnly` のリンクを出さない（2026-09-17）。
+        押すと `/auth?next=…` に飛ばされるだけなので、出しておく意味が無い。
+
+     ⚠️★**既定は「出さない」。** `loading`（判定前）も未ログイン側に倒す。
+        先に出して消すと**ちらつく**（出てから消える）。逆向きにする。
+        `AuthAwareCta` / `FinalCta` と同じ倒し方。
+     ⚠️ デスクトップのナビとモバイルメニューの**両方**がこれを使う。片方だけにしない。 */
+  const visibleNav = NAV_LINKS.filter((l) => !l.authOnly || (!loading && !!user));
+
   // Search auto-focus + Escape close
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
@@ -221,7 +243,7 @@ export function JobseekerHeader() {
 
           {/* Nav — desktop only */}
           <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 8, flex: 1, alignItems: "center" }}>
-            {NAV_LINKS.map(({ href, label }) => {
+            {visibleNav.map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
               const active = hrefTab
@@ -702,7 +724,7 @@ export function JobseekerHeader() {
 
         {/* Nav links */}
         <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
-          {NAV_LINKS.map(({ href, label }) => {
+          {visibleNav.map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab
