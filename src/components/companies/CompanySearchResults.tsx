@@ -40,10 +40,12 @@ type Props = {
    * ⚠️ **id で渡すこと。** `?selected=` は slug でも uuid でもありうるので、
    *    `getCompanyBySlugOrId` が解決した `resolvedId` を渡す。
    */
-  selectedCompanyId?: string | null;
+  /** ★選択中の `?selected=` の値。⚠️ **slug でも uuid でもありうる**ので両方と突き合わせる
+   *  （2026-09-18。解決済み id で比べていたときは、そのためにページ先頭で await が必要だった） */
+  selectedKey?: string | null;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, pane = null, paneLabel = null, selectedCompanyId = null }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, pane = null, paneLabel = null, selectedKey = null }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
@@ -194,12 +196,13 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           </div>
         </div>
       ) : (
-        /* ⚠️★分割ビューの骨組みは CompanySplitLayout（一覧グリッドと**同じ部品**）。
+        /* ⚠️ scrollMode は一覧グリッド・詳細表示と揃える（2026-09-18）。片方だけ外さないこと。
+           ⚠️★分割ビューの骨組みは CompanySplitLayout（一覧グリッドと**同じ部品**）。
               ここに CSS をコピーしないこと —— 割れると、絞り込んだときだけ
               レールが多列のまま潰れる、といった形になる。
            ⚠️ レールの1列化は向こうの CSS が `search-results-grid` を名指ししている。
               このクラス名を変えるなら向こうも直すこと。 */
-        <CompanySplitLayout pane={pane} paneLabel={paneLabel}>
+        <CompanySplitLayout pane={pane} paneLabel={paneLabel} scrollMode="panes">
         <div className="search-results-grid">
           {companies.map((company) => (
             /* ⚠️★`activeDomainSlug` を渡す（2026-09-07）。渡さないとカードのタグは主のままで、
@@ -217,7 +220,7 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
               openInNewTab={false}
               /* ★いま右ペインに出している企業に印を付ける（2026-09-08）。
                  ⚠️ 一覧グリッド側と同じく **id で突き合わせる**。 */
-              selected={company.id === selectedCompanyId}
+              selected={company.id === selectedKey || company.slug === selectedKey}
             />
           ))}
         </div>

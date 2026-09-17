@@ -12,8 +12,8 @@ import { featuredCompanyPrefix } from "@/lib/seo/featuredCompanies";
 import { getBusinessDomainFacets, getBusinessDomainOptions } from "@/lib/companies/businessDomainsCached";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
-import { CompanyPane } from "@/components/companies/CompanyPane";
-import { getCompanyBySlugOrId, getCompanyTargetIndustriesCached } from "@/lib/supabase/queries";
+import { CompanyPaneLoader } from "@/components/companies/CompanyPaneLoader";
+import { CompanyPaneSkeleton } from "@/components/companies/CompanyPaneSkeleton";
 
 
 /**
@@ -277,26 +277,23 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const autoSelected = isListView ? allCompaniesResult.companies[0] : undefined;
   const selectedSlug =
     searchParams.selected ?? (autoSelected ? (autoSelected.slug ?? autoSelected.id) : null);
-  const selectedResult = selectedSlug ? await getCompanyBySlugOrId(selectedSlug) : null;
-  const selectedTargets = selectedResult
-    ? await getCompanyTargetIndustriesCached(selectedResult.resolvedId)
-    : [];
-  /* ⚠️★ペインの実体は**ここで1つだけ**組み立てて、一覧グリッドと絞り込み結果の
-        **両方に同じものを渡す**。それぞれの描画側で組み立てると、片方だけ
-        `targetIndustries` を渡し忘れる形の食い違いが生まれる
-        （CLAUDE.md「`mapCompany` の第4引数を省くと『事業領域 —』になる」と同じ罠）。 */
-  const pane = selectedResult ? (
-    <CompanyPane
-      company={selectedResult.company}
-      detail={selectedResult.detail}
-      targetIndustries={selectedTargets}
-    />
+  /* ★ペインは Suspense の中で取る（2026-09-18）。
+     ⚠️★**ここで await しないこと。** await するとページ全体がその1社の取得を待ち、
+        **新しい RSC が届くまで前の企業の内容が出たまま残る**（実測 約400ms）。
+        `key` を `?selected=` にしてあるので、企業が変わるたびにスケルトンへ戻る。
+     ⚠️★**`key` を外さないこと。** 外すと境界が再生成されず、2社目以降で
+        スケルトンが出ない（1社目だけ出て直ったように見える）。 */
+  const pane = selectedSlug ? (
+    <Suspense key={selectedSlug} fallback={<CompanyPaneSkeleton />}>
+      <CompanyPaneLoader slugOrId={selectedSlug} />
+    </Suspense>
   ) : null;
-  /** ⚠️ カードの印は id で突き合わせる（`?selected=` は slug でも uuid でもありうる） */
-  const selectedCompanyId = selectedResult?.resolvedId ?? null;
-  /** ⚠️ 読み上げ用。**正式名称をそのまま渡す**（`companyDisplayName` の省略形だと
-   *     「Salesforce」のように英名だけになり、聞いただけでは同定しにくい） */
-  const paneLabel = selectedResult?.company.name ?? null;
+  /** ★カードの印。⚠️ `?selected=` は **slug でも uuid でもありうる**ので両方と突き合わせる。
+   *  ⚠️ 以前は解決済みの id で比べていたが、そのためにページ先頭で await が必要だった
+   *     （＝スケルトンが出せない）。id と slug の**両方**を見れば解決は要らない。 */
+  const selectedKey = selectedSlug;
+  /** ⚠️ 読み上げはペインの中でやる（中身と一緒に届かないと、古い社名を読み上げる） */
+  const paneLabel = null;
 
   return (
     <>
@@ -351,7 +348,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                ⚠️ 渡さないと、絞り込んだ瞬間に分割ビューが消える（それが直前の状態）。 */
             pane={pane}
             paneLabel={paneLabel}
-            selectedCompanyId={selectedCompanyId}
+            selectedKey={selectedKey}
           />
         ) : (
           <div style={{ marginTop: 0 }}>
@@ -419,7 +416,14 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                    ここに書き戻さないこと —— 絞り込み結果
                                    （CompanySearchResults）が同じものを使っているので、
                                    割れると片方の画面でだけペインが出なくなる。 */}
-                            <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={GRID_RAIL_WIDTH}>
+                            {/* ★scrollMode="panes"（2026-09-18）。左の一覧と右のペインが**それぞれ独立してスクロール**する。
+                                   ⚠️★3経路すべてに掛けている（一覧グリッド / ?view=list / 絞り込み結果）。 一覧グリッド / ?view=list / 絞り込み結果。
+                                      同じ画面でビューを切り替えたときにスクロールの挙動が割れないようにするため。
+                                      1つだけ外さないこと。
+                                   ⚠️ `--split-top` は渡していない。ツールバーの高さがほぼ一定で、
+                                      部品側の既定（162px）と実測がほぼ一致するため。/jobs は詳細検索の
+                                      開閉で高さが変わるので、あちらだけ ResizeObserver で測っている。 */}
+                                <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={GRID_RAIL_WIDTH} scrollMode="panes">
                               <div className="companies-grid4">
                                 {paged.map(c => (
                                   <CompanyCardList
@@ -435,7 +439,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                           uuid でもありうるので、`getCompanyBySlugOrId` が解決した
                                           `resolvedId` と id で突き合わせる。文字列比較にすると
                                           uuid で直リンクされたときだけ印が付かない。 */
-                                    selected={c.id === selectedCompanyId}
+                                    selected={c.id === selectedKey || c.slug === selectedKey}
                                   />
                                 ))}
                               </div>
@@ -445,7 +449,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                           /* ⚠️★詳細表示も分割ビューに載せる（2026-09-09）。**同じ部品**を使う
                                  ——一覧グリッドと骨組みが割れると、片方だけペインが出なくなる。
                              ⚠️ レール幅だけが違う（1行が広いため）。理由は LIST_RAIL_WIDTH。 */
-                          <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={LIST_RAIL_WIDTH}>
+                          <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={LIST_RAIL_WIDTH} scrollMode="panes">
                             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
                               {paged.map(c => (
                                 <CompanyCardList
@@ -453,7 +457,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                   company={c}
                                   /* ⚠️ グリッド側と同じ。**同タブ**（2026-09-07） */
                                   openInNewTab={false}
-                                  selected={c.id === selectedCompanyId}
+                                  selected={c.id === selectedKey || c.slug === selectedKey}
                                 />
                               ))}
                             </div>

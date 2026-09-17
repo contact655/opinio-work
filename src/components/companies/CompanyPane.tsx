@@ -9,6 +9,9 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { formatEmployeeCountBand } from "@/lib/utils/employeeCount";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 import { phaseLabel } from "@/lib/constants/phase";
+import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
+import { CompanyPaneEmployees } from "@/components/companies/CompanyPaneEmployees";
+import { splitParenSuffix } from "@/lib/utils/parenSuffix";
 
 /**
  * 企業の**要約ビュー**。一覧の隣（分割ビューの右ペイン）に置くことを想定した部品。
@@ -47,12 +50,15 @@ export function CompanyPane({
   company,
   detail,
   targetIndustries = [],
-  /** 「詳細を見る」の遷移先。省略時は slug（無ければ id）から組む */
+  activity = [],
   href,
 }: {
   company: Company;
   detail: CompanyDetail;
   targetIndustries?: CompanyTargetIndustry[];
+  /** ★記事・投稿（2026-09-18）。**上位数件だけ**。無ければ見出しごと出さない */
+  activity?: { id: string; title: string; href: string; kind: string }[];
+  /** 「詳細を見る」の遷移先。省略時は slug（無ければ id）から組む */
   href?: string;
 }) {
   const { displayName, isEnName } = companyDisplayName(company.name, company.name_en);
@@ -98,6 +104,8 @@ export function CompanyPane({
      ⚠️ `detail.jobs` はカテゴリの配列なので平坦化してから数える。 */
   const jobs = (detail.jobs ?? []).flatMap((c) => c.items ?? []);
   const topJobs = jobs.slice(0, 3);
+  /* 事業・製品。⚠️ 値が無い企業のほうが多い（実測: 主な製品は16社）。無ければ見出しごと出さない */
+  const products = (detail.main_products ?? []) as string[];
 
   return (
     <div
@@ -113,6 +121,15 @@ export function CompanyPane({
         minWidth: 0,
       }}
     >
+      {/* ── ★固定ヘッダー（2026-09-18）。ロゴ・社名・CTA・♡ ────────────────────
+             ⚠️★**`sticky` はこのラッパー（`.jp-sticky`）。白いカードではない。**
+                器（`.companies-pane`）が `overflow-y: auto` なのでペインの中で止まる。
+                `position: fixed` にすると画面に貼り付く。**JobPane と同じ形。**
+             ⚠️★**ラッパーの背景はページ背景（`--bg-tint`）。** 透明にすると、
+                スクロールで帯の裏をくぐった中身が帯のすぐ下に半分だけ露出する。
+             ⚠️★**ここに項目を足さないこと。** 帯が高くなるほど本文を読む面が削れる。
+                帯の高さはペインの中で常に失われる高さ。 */}
+      <div className="jp-sticky">
       {/* ── ヘッダー（ロゴ・社名・タグライン・タグ） ── */}
       <div style={{
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
@@ -230,8 +247,12 @@ export function CompanyPane({
               whiteSpace: "nowrap",
             }}>話を聞く</Link>
           )}
+          {/* ★♡（2026-09-18）。⚠️ **自分で取りに行く設計**なので props を渡さない
+                 （詳細ページ・JobPane と同じ使い方）。ここだけ別経路にしないこと。 */}
+          <BookmarkButton targetType="company" targetId={company.id} label={displayName} />
         </div>
       </div>
+      </div>{/* jp-sticky end */}
 
       {/* ── 企業情報。⚠️ サイドバー／モバイル本文と**同じ部品**を使う ──
              メディアクエリを持たず `minmax` と `minWidth: 0` で組まれているので、
@@ -271,6 +292,83 @@ export function CompanyPane({
           )}
         </div>
       )}
+
+      {/* ── ★社員・OB/OG、面談OKの人（2026-09-18）──────────────────────────────
+             ⚠️ 閲覧者で中身が変わるのでクライアントで取る。取得は `useCompanyEmployees`
+                （企業IDごとに1本だけ飛ばす仕組み）。**素の fetch を書かないこと。** */}
+      <CompanyPaneEmployees companyId={company.id} detailHref={detailHref} />
+
+      {/* ── ★事業・製品（2026-09-18）────────────────────────────────────────────
+             ⚠️★**詳細ページの製品グリッド（`products-grid` / 5列）を持ち込まないこと。**
+                ペイン幅では1枚 115px に潰れる（2026-09-08 の実測がこの部品を作った理由）。
+                ここはピルで縦に流す。
+             ⚠️ 書式は `製品名（説明）`。分解は `lib/utils/parenSuffix` の1箇所
+                （同じ正規表現を書き写さない）。
+             ⚠️ 中身が無ければ見出しごと出さない。 */}
+      {products.length > 0 && (
+        <div style={{
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+          padding: "var(--space-6)", minWidth: 0,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: "var(--space-3)" }}>
+            事業・製品
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {products.slice(0, 5).map((raw, i) => {
+              const { name, sub } = splitParenSuffix(raw);
+              return (
+                <div key={`${name}-${i}`} style={{
+                  padding: "8px 12px", borderRadius: 10,
+                  border: "1px solid var(--line)", background: "var(--bg-tint)", minWidth: 0,
+                }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>{name}</div>
+                  {/* ⚠️ 括弧の中を捨てないこと（2026-08-12 に一度捨てていた） */}
+                  {sub && (
+                    <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2, overflowWrap: "anywhere" }}>{sub}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {products.length > 5 && (
+            <div style={{ marginTop: "var(--space-3)", fontSize: 12, color: "var(--ink-mute)" }}>
+              ほか {products.length - 5} 件は詳細ページに
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ★記事・投稿（2026-09-18）。⚠️ 無ければ見出しごと出さない ── */}
+      {activity.length > 0 && (
+        <div style={{
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+          padding: "var(--space-6)", minWidth: 0,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: "var(--space-3)" }}>
+            記事・投稿
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {activity.map((a) => (
+              <Link key={a.id} href={a.href} style={{
+                display: "block", padding: "10px 12px", borderRadius: 10,
+                border: "1px solid var(--line)", background: "var(--bg-tint)",
+                textDecoration: "none", color: "var(--ink)", fontSize: 12.5,
+                fontWeight: 600, lineHeight: 1.6, overflowWrap: "anywhere",
+              }}>{a.title}</Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── ★末尾（2026-09-18）。⚠️ ここは要約なので、必ず詳細への出口を置く。
+             ⚠️ ヘッダーの「詳細を見る」と重複して見えるが、**役割が違う**。
+                あちらは読む前の入口、こちらは読み終えた人の出口。
+                長い企業ではヘッダーは帯に隠れている（同じものが2つあるようには見えない）。 */}
+      <Link href={detailHref} style={{
+        display: "block", textAlign: "center", padding: "12px 16px",
+        borderRadius: 10, border: "1px solid var(--line)", background: "#fff",
+        color: "var(--royal)", textDecoration: "none", fontSize: 13, fontWeight: 700,
+      }}>詳細ページですべて見る →</Link>
 
     </div>
   );
