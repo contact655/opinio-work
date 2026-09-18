@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/proposals", label: "根拠つき提案（②⑨）",
+    note: "実データは n=1 が最大。比率を出す分岐はここでしか見られない" },
   { href: "/dev/preview/benefits",  label: "福利厚生",
     desc: "カテゴリ分けの境界（3カテゴリ目と4カテゴリ目）と、緑にしてよい項目" },
   { href: "/dev/preview/company-employees", label: "現役社員（企業ページ）",

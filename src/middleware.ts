@@ -117,6 +117,10 @@ export async function middleware(request: NextRequest) {
     /* ⚠️ オンボーディングも認証の内側（2026-08-27）。`/onboarding/stance` は
           `ow_profiles` を読んでから出し分けるので、未ログインで開かせない。 */
     pathname === "/onboarding" || pathname.startsWith("/onboarding/") ||
+    /* ⚠️★根拠つき提案（②）も認証の内側（2026-09-18）。本人宛の提案しか出さない。
+          ページ側にも `redirect()` を置いてあるが、**それだけに頼らない**
+          （上の `/mypage` と同じソフト200になる）。 */
+    pathname === "/proposals" || pathname.startsWith("/proposals/") ||
     // ⚠️ 申し込み系はページ側でも redirect しているが、middleware でも弾く。
     //    ページ側の redirect() だけだと HTTP は 200 のまま（Suspense 境界の内側で
     //    起きるため）で、ステータスを見る側からは「誰でも開ける」ように見える。
