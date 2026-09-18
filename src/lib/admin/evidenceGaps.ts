@@ -13,8 +13,11 @@
  * あれは導出テーブルで**洗い替えが手動**（2026-09-18 時点で最終 2026-08-26 / 以後
  * 職歴が増えている）。読むと**実態より少なく出る。**
  * `ow_experiences` が正なので、隣接ペアを**その場で組む**。
- * ⚠️ 組み方は `rebuild_ow_transitions()` と同じ（会社の同一性キーは
- *    `company_id` → 正規化した `company_text` の順）。**片方だけ変えないこと。**
+ * ⚠️★**組み立ては [lib/evidence/transitions.ts](../evidence/transitions.ts) に集約した**
+ *    （2026-09-18）。②⑨（`lib/evidence/fetch.ts`）と**同じ関数**を通るので、
+ *    数字は「揃える」のではなく**ずれようがない**。
+ *    ⚠️ ここで隣接を組み直さないこと。割れた瞬間に同じ不具合に戻る
+ *       （実測: セールスフォースへの経路が 棚卸し2 / 提案1 で食い違っていた）。
  *
  * ⚠️ 除外は `getCompanyEmployees` の `isSeedRow` と同じ集合
  *    （`is_test` / `is_system` / `visibility='private'` / `auth_id IS NULL`）。
@@ -25,6 +28,7 @@ import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
+import { buildMoves, countMovesInto } from "@/lib/evidence/transitions";
 
 /** 「話せる人」が立つ最低人数。⚠️ 経路・決め手（3）とは別の基準 */
 export const TALKABLE_TARGET = 1;
@@ -83,10 +87,8 @@ function visible(u: ExpRow["ow_users"]): boolean {
   return u.auth_id != null && u.is_test !== true && u.is_system !== true && u.visibility !== "private";
 }
 
-/** 会社の同一性キー。⚠️ `rebuild_ow_transitions()` と同じ規則 */
-function ckey(r: { company_id: string | null; company_text: string | null }, id: string): string {
-  return r.company_id ?? (r.company_text ? r.company_text.trim().toLowerCase() : `anon:${id}`);
-}
+/* ⚠️ 会社の同一性キーは `lib/evidence/transitions.ts` の `companyKey`。
+      ここに書き写さないこと（②⑨と割れる）。 */
 
 export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   const db = createAdminClient();
@@ -116,33 +118,22 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   if (memErr) console.error("[evidenceGaps] ow_company_members:", memErr.message);
   if (jobErr) console.error("[evidenceGaps] ow_jobs:", jobErr.message);
 
-  // ── 経路: 隣接ペアを組んで「この会社へ移ってきた人」を数える ────────────────
-  const byUser = new Map<string, ExpRow[]>();
-  for (const e of exps) {
-    if (!byUser.has(e.user_id)) byUser.set(e.user_id, []);
-    byUser.get(e.user_id)!.push(e);
-  }
-  /** company_id → 移ってきた user の集合（在籍中 / 出身者に分ける） */
-  const pathCur = new Map<string, Set<string>>();
-  const pathAlu = new Map<string, Set<string>>();
-  /* ⚠️ `for (const x of map)` にしないこと。tsconfig の target では TS2802。設定は触らない */
-  for (const [uid, rows] of Array.from(byUser.entries())) {
-    const sorted = [...rows].sort((a, b) =>
-      a.started_at === b.started_at
-        ? (a.ended_at ?? "9999-12-31").localeCompare(b.ended_at ?? "9999-12-31")
-        : a.started_at.localeCompare(b.started_at),
-    );
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1], cur = sorted[i];
-      /* 会社が変わったときだけ「移った」と数える */
-      if (ckey(prev, `${uid}:${i - 1}`) === ckey(cur, `${uid}:${i}`)) continue;
-      const to = cur.company_id;
-      if (!to || !listedIds.has(to)) continue;
-      const bucket = cur.is_current ? pathCur : pathAlu;
-      if (!bucket.has(to)) bucket.set(to, new Set());
-      bucket.get(to)!.add(uid);
-    }
-  }
+  // ── 経路: 隣接ペアを組む（★②⑨と同じ関数を通す）────────────────────────
+  const moves = buildMoves(
+    exps.map((e, i) => ({
+      /* ⚠️ `id` は同一性キーの最後の砦（社名が無い職歴を行ごとに別会社にする）。
+            select に含めていないので添字で代用する。**同じユーザーの中で
+            一意であれば足りる**（`companyKey` はユーザーをまたがない）。 */
+      id: `${e.user_id}:${i}`,
+      user_id: e.user_id,
+      company_id: e.company_id,
+      company_text: e.company_text,
+      role_category_id: null, // ★棚卸しでは職種で絞らないので要らない
+      started_at: e.started_at,
+      ended_at: e.ended_at,
+      is_current: e.is_current,
+    })),
+  );
 
   // ── 決め手 / 話せる人 / 求人 ────────────────────────────────────────────────
   const motiveCur = new Map<string, number>(), motiveAlu = new Map<string, number>();
@@ -166,10 +157,12 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
 
   // ── 組み立て ────────────────────────────────────────────────────────────────
   const companies: CompanyGap[] = listed.map((c) => {
-    const pc = pathCur.get(c.id)?.size ?? 0, pa = pathAlu.get(c.id)?.size ?? 0;
+    const mv = countMovesInto(moves, c.id);
+    const pc = mv.current, pa = mv.alumni;
     const mc = motiveCur.get(c.id) ?? 0, ma = motiveAlu.get(c.id) ?? 0;
     const tk = talkable.get(c.id) ?? 0;
-    const path = pc + pa, motive = mc + ma;
+    /* ⚠️ `pc + pa` にしないこと。出戻り（同じ人が2回）が2人に見える */
+    const path = mv.total, motive = mc + ma;
 
     const standing =
       (path >= MIN_AGGREGATE_COUNT ? 1 : 0) +
@@ -227,7 +220,13 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   if (uErr) console.error("[evidenceGaps] ow_users:", uErr.message);
   const userById = new Map(((users ?? []) as { id: string; name: string; email: string | null; auth_id: string | null }[]).map((u) => [u.id, u]));
 
-  for (const [uid, rows] of Array.from(byUser.entries())) {
+  /* 人ごとに畳む。⚠️ `buildMoves` は移動しか返さないので、ここは職歴そのものを見る */
+  const expsByUser = new Map<string, ExpRow[]>();
+  for (const e of exps) {
+    if (!expsByUser.has(e.user_id)) expsByUser.set(e.user_id, []);
+    expsByUser.get(e.user_id)!.push(e);
+  }
+  for (const [uid, rows] of Array.from(expsByUser.entries())) {
     /* ⚠️ 1件でも答えていれば「未回答」に出さない（全件回答を求める画面ではない） */
     if (rows.some((r: ExpRow) => (r.join_reasons?.length ?? 0) > 0)) continue;
     const u = userById.get(uid);

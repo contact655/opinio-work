@@ -22,6 +22,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { JOIN_REASON_LABELS } from "@/lib/constants/careerReasons";
 import { matchCompanyPreference } from "@/lib/matching/scoreJob";
 import { getRoleNameMap } from "@/lib/supabase/queries";
+import { buildMoves, countMovesInto, type Move } from "./transitions";
 import type {
   CounterFacts,
   EvidenceFacts,
@@ -112,15 +113,50 @@ export async function gatherCompanyFacts(
     .in("id", ids);
   if (coErr) console.error("[evidence/fetch] ow_companies:", coErr.message);
 
-  // ── 2. 遷移（same_path）──────────────────────────────────────────────────
-  /* ⚠️ `ow_transitions` は**導出テーブルで、洗い替えが手動**。
-        古いままだと件数が実態より少なく出る（2026-09-18 時点で最終 2026-08-26）。
-        ここでは「あるものを数える」だけ。鮮度は運用の話。 */
-  const { data: transitions, error: trErr } = await db
-    .from("ow_transitions")
-    .select("user_id, to_company_id, from_role_category_id, from_industry, ow_users!user_id(id, auth_id, is_test, is_system, visibility)")
-    .in("to_company_id", ids);
-  if (trErr) console.error("[evidence/fetch] ow_transitions:", trErr.message);
+  // ── 2. 遷移（same_path）★`ow_transitions` を読まない ──────────────────────
+  /* ⚠️★**導出テーブル（`ow_transitions`）を読むのをやめた**（2026-09-18）。
+        洗い替えが手動で、`/admin/evidence-gaps`（`ow_experiences` から算出）と
+        **同じ数字が食い違っていた**（セールスフォースへの経路が 棚卸し2 / 提案1）。
+        ⚠️ **洗い替えを自動化しても窓は消えない。** 正である `ow_experiences` から
+           両方が**同じ関数**で組む形にした（`lib/evidence/transitions.ts`）。
+        ⚠️ `ow_transitions` 自体は残してある（SQL 用・`age_at_move` などを持つ）。
+           鮮度は `/api/cron/rebuild-transitions` が保つ。**製品の画面からは読まない。** */
+  const { data: allExpRows, error: allExpErr } = await db
+    .from("ow_experiences")
+    .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility)");
+  if (allExpErr) console.error("[evidence/fetch] 全職歴（遷移用）:", allExpErr.message);
+  const moves: Move[] = buildMoves(
+    (allExpRows ?? [])
+      .filter((e) => isVisibleUser(e.ow_users as unknown as UserRow) && e.visibility_company !== "hidden")
+      .map((e) => ({
+        id: e.id as string,
+        user_id: e.user_id as string,
+        company_id: (e.company_id as string | null) ?? null,
+        company_text: (e.company_text as string | null) ?? null,
+        role_category_id: (e.role_category_id as string | null) ?? null,
+        started_at: e.started_at as string,
+        ended_at: (e.ended_at as string | null) ?? null,
+        is_current: e.is_current as boolean,
+      })),
+  );
+
+  /* 移る前の会社の業種名。★`ow_transitions.from_industry` の代わり */
+  const fromCompanyIds = Array.from(
+    new Set(moves.map((m) => m.fromCompanyId).filter(Boolean) as string[]),
+  );
+  const industryByCompany = new Map<string, string>();
+  if (fromCompanyIds.length > 0) {
+    const { data: indRows, error: indErr } = await db
+      .from("ow_companies")
+      /* ⚠️ 単純FKなので埋め込んでよい（対象業界の複合FKとは違う） */
+      .select("id, ow_industries!industry_id(name)")
+      .in("id", fromCompanyIds);
+    if (indErr) console.error("[evidence/fetch] ow_industries:", indErr.message);
+    for (const r of indRows ?? []) {
+      const n = (r.ow_industries as { name?: string } | null)?.name;
+      if (n) industryByCompany.set(r.id as string, n);
+    }
+  }
 
   // ── 3. 在籍者の職歴（shared_motive / talkable / short_tenure）─────────────
   const { data: exps, error: expErr } = await db
@@ -169,26 +205,22 @@ export async function gatherCompanyFacts(
     const cid = co.id as string;
     const { displayName } = companyDisplayName(co.name as string, co.name_en as string | null);
 
-    /* ① same_path … 候補者と同じ職種から、この会社へ移った人 */
-    const rows = (transitions ?? []).filter(
-      (t) =>
-        t.to_company_id === cid &&
-        isVisibleUser(t.ow_users as unknown as UserRow) &&
-        (myRoleIds.size === 0 ||
-          (t.from_role_category_id != null && myRoleIds.has(t.from_role_category_id as string))),
+    /* ① same_path … 候補者と同じ職種から、この会社へ移った人
+          ★`/admin/evidence-gaps` と**同じ関数**で数える（数字がずれない） */
+    const mv = countMovesInto(moves, cid, myRoleIds.size > 0 ? { onlyRoleIds: myRoleIds } : undefined);
+    /* 文に出す「どこから」は、該当した移動の1件目から取る。
+       ⚠️ 解決できなければ null のまま。「営業」などの既定値で埋めない
+          （engine 側が null を見て文を変える）。 */
+    const hit = moves.find(
+      (m) =>
+        m.toCompanyId === cid &&
+        (myRoleIds.size === 0 || (m.fromRoleCategoryId != null && myRoleIds.has(m.fromRoleCategoryId))),
     );
-    const samePathUsers = new Set(rows.map((t) => t.user_id as string));
-    /* ⚠️ 職種名は `getRoleNameMap()` で解決する。**解決できなければ null のまま。**
-          「営業」などの既定値で埋めないこと（engine 側が null を見て文を変える）。 */
-    const fromRoleId = rows[0]?.from_role_category_id as string | null | undefined;
-    const samePath =
-      rows.length > 0
-        ? {
-            n: samePathUsers.size,
-            fromRoleName: (fromRoleId ? roleMap.get(fromRoleId)?.name : null) ?? null,
-            fromIndustryName: (rows[0].from_industry as string | null) ?? null,
-          }
-        : { n: 0, fromRoleName: null, fromIndustryName: null };
+    const samePath = {
+      n: mv.total,
+      fromRoleName: (hit?.fromRoleCategoryId ? roleMap.get(hit.fromRoleCategoryId)?.name : null) ?? null,
+      fromIndustryName: (hit?.fromCompanyId ? industryByCompany.get(hit.fromCompanyId) : null) ?? null,
+    };
 
     /* ② shared_motive … 在籍者が挙げた決め手と、候補者が挙げた決め手の一致 */
     const withReasons = visibleExps.filter(
