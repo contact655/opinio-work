@@ -78,6 +78,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "FORBIDDEN", message: "この経歴は自社に属していません。" }, { status: 403 });
   }
 
+  /* ★既に企業ページから外れている経歴は報告できない（2026-09-18 / C-9 の後）。
+     ⚠️ 画面にはボタンが出ない（非表示の行は `HiddenCard` になる）が、
+        **API が受け付けると「処理しようのない報告」が運営のキューに積める。**
+        画面で出していない操作は API でも断る。 */
+  const { data: hiddenRow, error: hiddenErr } = await admin
+    .from("ow_company_hidden_experiences")
+    .select("experience_id")
+    .eq("company_id", ctx.companyId)
+    .eq("experience_id", experienceId)
+    .maybeSingle();
+  if (hiddenErr) {
+    console.error("[POST /api/biz/member-reports] hidden lookup:", hiddenErr.message);
+    return NextResponse.json({ error: "LOOKUP_FAILED", message: "対象を確認できませんでした。" }, { status: 500 });
+  }
+  if (hiddenRow) {
+    return NextResponse.json(
+      { error: "ALREADY_HIDDEN", message: "この方は既に企業ページから外れています。" },
+      { status: 400 },
+    );
+  }
+
   /* 報告した担当者（`ow_company_admins.id`）。⚠️ 取れなくても報告は残す。 */
   const { data: adminRecord } = await admin
     .from("ow_company_admins")
