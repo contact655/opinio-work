@@ -2406,9 +2406,25 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 | | |
 |---|---|
 | 洗い替え | `select public.rebuild_ow_transitions();`（**冪等**。戻り値は行数） |
-| 実行 | **いまは手動のみ。** cron もトリガーも張っていない |
+| 実行 | ★**日次の cron**（`/api/cron/rebuild-transitions` / `vercel.json` の `crons`。2026-09-18〜）。トリガーは張っていない |
 | 権限 | **anon / authenticated に GRANT しない。** 読むのは admin クライアントだけ |
 | RLS | 有効。**ポリシーは1本も無い**（誰にも開いていないので書くべきものが無い） |
+
+⚠️★★**製品の画面はこの表を読まない**（2026-09-18）。②⑨ と `/admin/evidence-gaps` は
+   **正である `ow_experiences` から** [lib/evidence/transitions.ts](src/lib/evidence/transitions.ts)
+   の同じ関数で組む。この表を読んでいたのは②⑨で、**洗い替えとのあいだの窓のせいで
+   同じ数字が食い違っていた**（実測: セールスフォースへの経路が 棚卸し2 / 提案1）。
+   ⚠️★**洗い替えを自動化しても窓は消えない。** cron は「SQL で見るときの鮮度」を保つだけ。
+      **画面をこの表に戻さないこと。**
+   ⚠️ 表は消さない。`age_at_move` / `years_of_experience_at_move` / `role_change` /
+      `industry_change` を持っており、TS 側の関数は持たない。
+   ⚠️★**同一性の規則（`company_id` → 正規化した社名 → 行ごと）は SQL と TS の2箇所にある。**
+      片方だけ変えると、SQL の集計と画面の数字がまた割れる。
+
+⚠️★**`vercel.json` の `crons` に載っているのはこの1本だけ。** あそこが長く空だったのは
+   **週次メールを止めるため**で、この行を足しても週次メールは動かない
+   （`weekly-jobs` / `weekly-match` は `crons` に無く、ルート側も
+   `WEEKLY_EMAIL_ENABLED` で止まっている。**二重。どちらも外さないこと**）。
 
 ⚠️ **トリガーにしない。** 遷移は隣接ペアなので職歴を1行足すと前後も作り直しになり、
    `age_at_move` は `birth_date` 依存（職歴と無関係に後から入る）で拾えない。
