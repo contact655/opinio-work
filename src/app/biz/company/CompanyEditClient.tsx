@@ -515,7 +515,7 @@ export function CompanyEditClient({
     if (!termsChecked || isRecordingAgreement) return;
     setIsRecordingAgreement(true);
     try {
-      await fetch("/api/biz/terms-agreement", {
+      const res = await fetch("/api/biz/terms-agreement", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -526,8 +526,21 @@ export function CompanyEditClient({
           termsVersion: TERMS_VERSION,
         }),
       });
+      /* ⚠️★**結果を見ずに「記録しました」と出さないこと**（2026-09-18）。
+            API は 2026-09-18 まで**失敗しても 200 `{ok:true}`** を返しており、
+            記録が残らないまま「同意しました ✓」と出ていた。API 側は直したので、
+            ここで結果を見れば利用者に伝わる。
+         ⚠️ `setTermsAgreed(true)` を先に呼ばないこと。押した人は同意したつもりのまま
+            「変更を公開する」で 400 に当たることになる。 */
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        showError(d?.message ?? "同意を記録できませんでした。時間をおいてもう一度お試しください。");
+        return;
+      }
       setTermsAgreed(true);
       showToast("掲載利用規約への同意を記録しました ✓", "default");
+    } catch {
+      showError("同意を記録できませんでした。通信状況をご確認ください。");
     } finally {
       setIsRecordingAgreement(false);
     }
