@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { EMPLOYMENT_TYPES, isRankValue } from "@/lib/constants/careerOptions";
 import { parseReasonFields } from "@/lib/constants/careerReasons";
 import { parseSecondment } from "@/lib/experiences/secondment";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
@@ -109,6 +109,12 @@ export async function GET() {
     .map((r) => r.company_id as string);
   const companyNameMap = new Map<string, string>();
   if (companyIds.length > 0) {
+    /* ⚠️★**ここは `/mypage` と同じ形で落ちる**（2026-09-12 に調査）。セッションの
+          クライアントなので、RLS が `is_published = false` の企業を落とし、
+          下の `?? "不明な企業"` がその0件を埋める。**`/mypage` 側は admin に替えて直した。**
+       ⚠️ この GET を呼んでいる箇所は **src に0件**（実測 2026-09-12）なので今回は触っていない。
+          **使い始めるときに `/mypage` と同じ形（`createAdminClient` ＋ 本人の行に限定）へ揃えること。**
+          → 経緯は docs/hidden-company-name-20260912.md */
     const { data: companies } = await supabase
       .from("ow_companies")
       .select("id, name")
@@ -256,6 +262,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "INVALID_EMPLOYMENT_TYPE", message: "雇用形態の値が不正です。" }, { status: 400 });
   }
   const employmentType = isBlank(body.employment_type) ? null : (body.employment_type as string);
+
+  /* ★役職ランク（2026-09-18）。⚠️★許容リストは `careerOptions.ts` から導出する。
+        ⚠️ **DB の `ow_experiences_rank_check` は baseline からある。** ここで弾かないと
+           不正値が 23514 に化け、**職歴の保存が丸ごと 500 になる**（原因が画面から見えない）。
+        ⚠️ 空は「未入力」なので null。不正値だけ 400 にする。 */
+  if (!isBlank(body.rank) && !isRankValue(body.rank)) {
+    return NextResponse.json({ error: "INVALID_RANK", message: "役職の値が不正です。" }, { status: 400 });
+  }
+  const rank = isBlank(body.rank) ? null : (body.rank as string);
   /* ★指定が無ければ**既存の職歴から引き継ぐ**（2026-09-11）。
      ⚠️★**"real" に倒さないこと。** 会社名を伏せている人が職歴を1件足した瞬間に
         **その1件だけ実名で出る**（`/mypage/settings` の設定は職歴全体に効く1設定なのに、
@@ -327,7 +342,7 @@ export async function POST(req: Request) {
       role_category_id: roleId,
       role_title: roleTitle,
       department,
-      rank: typeof body.rank === "string" ? body.rank.slice(0, 50) : null,
+      rank,
       started_at: startedAt,
       ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,

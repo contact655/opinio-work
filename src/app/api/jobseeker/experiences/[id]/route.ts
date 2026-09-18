@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { EMPLOYMENT_TYPES, isRankValue } from "@/lib/constants/careerOptions";
 import { parseReasonFields } from "@/lib/constants/careerReasons";
 import { parseSecondment } from "@/lib/experiences/secondment";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
@@ -86,6 +86,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "INVALID_EMPLOYMENT_TYPE", message: "雇用形態の値が不正です。" }, { status: 400 });
   }
   const employmentType = isBlank(body.employment_type) ? null : (body.employment_type as string);
+
+  /* ★役職ランク（2026-09-18）。⚠️ POST と**同じ関数**で検証する。
+        ⚠️ それまで POST は 50字 / ここは 100字で切るだけで、**長さすら食い違っていた。** */
+  if (!isBlank(body.rank) && !isRankValue(body.rank)) {
+    return NextResponse.json({ error: "INVALID_RANK", message: "役職の値が不正です。" }, { status: 400 });
+  }
+  const rank = isBlank(body.rank) ? null : (body.rank as string);
   for (const k of ["visibility_company"] as const) {
     if (!isBlank(body[k]) && !VALID_VISIBILITY.has(body[k] as string)) {
       return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開設定の値が不正です。" }, { status: 400 });
@@ -146,7 +153,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       role_category_id: roleId,
       role_title: s(body.role_title, 100),
       department: s(body.department, 100),
-      rank: s(body.rank, 100),
+      rank,
       started_at: startedAt,
       ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,

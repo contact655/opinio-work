@@ -67,10 +67,17 @@ export const VALID_JOB_EMPLOYMENT_TYPES = new Set<string>(JOB_EMPLOYMENT_TYPES);
  * ⚠️ 実データ（2026-08-15）は none / leader / manager / NULL の4種のみ。
  *    general_manager と executive は選べるが未使用。
  *
- * ⚠️ API 側は現在この一覧で検証していない
- *    （`rank: s(body.rank, 100)` で長さだけ切っている）。
- *    検証を足すときは **DB の CHECK も同時に**張ること
- *    （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。
+ * ⚠️★**3層は 2026-09-18 に揃った。** それまで API だけが検証しておらず、
+ *    **POST は 50字 / PUT は 100字で切るだけ**（しかも長さが食い違っていた）。
+ *
+ *    ⚠️ ただし症状は `phase` / `remote_work_status` とは**違った**。
+ *       **DB の CHECK は baseline からある**（`ow_experiences_rank_check`）ので、
+ *       「選べるのに保存できない」ではなく **23514 で職歴の保存が丸ごと 500 になる**
+ *       形だった（`degree` の小中学校卒で 2026-05-30〜08-07 に踏んだのと同じ）。
+ *       UI が英字の value を送るので**実害は出ていなかった**。
+ *
+ *    ⚠️★**許容リストを route に書き写さないこと。** 下の `isRankValue()` を使う。
+ *       書き写した瞬間に UI と割れる（CLAUDE.md「許容値は1箇所に置く」）。
  */
 export const RANKS = [
   { value: "none",            label: "役職なし" },
@@ -83,6 +90,20 @@ export const RANKS = [
 export const RANK_LABELS: Record<string, string> = Object.fromEntries(
   RANKS.map((r) => [r.value, r.label])
 );
+
+/**
+ * `ow_experiences.rank` に入れてよい値か（2026-09-18 追加）。
+ *
+ * ⚠️★**API（POST / PUT）の許容値はここから導出する。** `phase.ts` の
+ *    `isPhaseValue()` と同じ形。
+ * ⚠️★**DB の `ow_experiences_rank_check` と同じ集合であること。**
+ *    値を足す日は**ここ（UI/API）と CHECK の両方**を同じコミットで広げる。
+ * ⚠️ 空・null は「未入力」なので**ここでは false**。呼び出し側が先に分けること
+ *    （空文字と不正値を区別する ——CLAUDE.md「弾き方」）。
+ */
+export function isRankValue(value: unknown): value is string {
+  return typeof value === "string" && RANK_LABELS[value] !== undefined;
+}
 
 /**
  * 表示用の役職ラベル。出すものが無ければ null。
