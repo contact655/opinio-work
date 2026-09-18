@@ -330,7 +330,8 @@ export async function POST(req: NextRequest) {
     link_image_url?: unknown;
     link_description?: unknown;
     link_domain?: unknown;
-    visibility?: unknown;
+    /* ⚠️★`visibility` は**受け取らない**（2026-09-18）。下の注記を参照。
+          ここに戻すと、呼び出し側が公開範囲を決められる形に逆戻りする。 */
   };
   try {
     body = await req.json();
@@ -376,9 +377,25 @@ export async function POST(req: NextRequest) {
     ? body.link_domain.slice(0, 253)
     : null;
 
-  // 公開範囲。⚠️ 既定は login_only。不正値は既定に落とす（黙って public にしない）。
-  //    判定の優先順位は lib/feed/visibility を参照。
-  const visibility = body.visibility === "public" ? "public" : "login_only";
+  /* ── 公開範囲は `login_only` 固定（2026-09-18 / 柴さんの判断）──────────────
+     選択肢（フィードの投稿欄の「公開範囲」）を**画面ごと外した。**
+
+     ⚠️★**呼び出し側に決めさせない。** body の `visibility` は読まない。
+        型からも外してある（`experiences` の `visibility_company` で
+        「入口3つが既定を明示送信していて API 側の分岐に到達していなかった」
+        のと同じ形を作らないため。docs/experience-create-defaults-20260911.md）。
+
+     ⚠️★**`public` を書ける経路をここ以外に作らないこと。** 実ユーザーは全員
+        `ow_users.visibility = 'login_only'`（氏名・経歴はログイン必須）なので、
+        投稿だけ開くと**本人が選んでいないのに未ログインへ出る**ことになる。
+
+     ⚠️ 列と CHECK と `isPostVisibleTo` の優先順位3（投稿が public なら未ログインにも出す）は
+        **残してある。** 開け直すときはここを戻せばよい。**消さないこと。** */
+  const visibility = "login_only";
+  if ((body as Record<string, unknown>).visibility !== undefined) {
+    /* ⚠️ 握り潰さない。送ってくる経路が増えたことに気づけるようにする */
+    console.warn("[jobseeker/posts] visibility は受け取らない（login_only 固定）。送信元を確認すること");
+  }
 
   const { data: inserted, error } = await supabase
     .from("ow_posts")

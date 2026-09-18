@@ -347,9 +347,9 @@ function PostComposer({
   type OgpPreview = { linkUrl: string; linkTitle: string | null; linkImageUrl: string | null; linkDescription: string | null; linkDomain: string | null };
   const [ogpPreview, setOgpPreview] = useState<OgpPreview | null>(null);
   const [ogpFetching, setOgpFetching] = useState(false);
-  // 公開範囲。⚠️ 既定は login_only。ここを public にすると、
-  //    本人が選んでいないのに未ログインへ開くことになる。
-  const [visibility, setVisibility] = useState<"public" | "login_only">("login_only");
+  /* ⚠️★公開範囲の選択肢は 2026-09-18 に外した（柴さんの判断）。投稿は `login_only` 固定。
+        ⚠️ **state を戻さないこと。** 決めるのはサーバー（`POST /api/jobseeker/posts`）で、
+           body の `visibility` は**読まれない**。ここで送っても効かない。 */
   const ogpFetchedUrl = useRef<string | null>(null);
 
   // 本文からhttpsのURLを1つ抽出
@@ -461,7 +461,8 @@ function PostComposer({
       const res = await fetch("/api/jobseeker/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: content.trim(), image_url: imageUrl, visibility, ...linkPayload }),
+        /* ⚠️ `visibility` を送らない。サーバーが login_only 固定で決める */
+        body: JSON.stringify({ content: content.trim(), image_url: imageUrl, ...linkPayload }),
       });
       if (!res.ok) {
         const j = await res.json();
@@ -470,7 +471,6 @@ function PostComposer({
       const { post } = await res.json();
       onPostCreated({
         ...post,
-        visibility,
         user: { id: myUserId, name: myName ?? "自分", avatar_color: myAvatarColor, avatar_url: myAvatarUrl },
         like_count: 0,
         comment_count: 0,
@@ -740,32 +740,19 @@ function PostComposer({
               gap: 8,
             }}
           >
-            {/* 公開範囲。⚠️ 既定は「ログインした人だけ」。
-                「全体公開」を選んだときに何が起きるかを事実として1行で出す（煽らない）。 */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: "auto" }}>
-              <label htmlFor="post-visibility" style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
-                公開範囲
-              </label>
-              <select
-                id="post-visibility"
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value === "public" ? "public" : "login_only")}
-                style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                  fontSize: 13, fontWeight: 600, color: "var(--ink)",
-                  border: "1px solid var(--line)", borderRadius: 8,
-                  padding: "5px 8px", background: "#fff", cursor: "pointer",
-                }}
-              >
-                <option value="login_only">ログインした人だけ</option>
-                <option value="public">全体公開</option>
-              </select>
-              {visibility === "public" && (
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink-soft)" }}>
-                  ログインしていない人にも表示されます
-                </span>
-              )}
-            </div>
+            {/* ⚠️★公開範囲の選択肢は 2026-09-18 に外した（`login_only` 固定）。
+                   ⚠️★**この一文は消さないこと。** 選択肢を消したぶん、
+                      どこまで出るかを**書いて伝える責任のほうが増える**
+                      （カジュアル面談の「プロフィールを共有する」チェックを
+                       外したときと同じ判断。CLAUDE.md）。 */}
+            <span
+              style={{
+                fontFamily: "var(--font-inter), var(--font-noto)",
+                fontSize: 12, color: "var(--ink-mute)", marginRight: "auto",
+              }}
+            >
+              ログインした人だけに表示されます
+            </span>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {/* 文字数カウンター: 円形プログレスリング */}
@@ -1828,16 +1815,11 @@ function PostCard({
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
                 · {relativeTime(post.created_at)}
               </span>
-              {/* 公開範囲。⚠️ 本人にだけ出す。他人に「この人は限定公開にしている」と
-                  伝える必要は無いし、伝えると設定を詮索されるため。 */}
-              {isOwner && (
-                <span
-                  title={post.visibility === "public" ? "全体公開" : "ログインした人だけに表示"}
-                  style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}
-                >
-                  · {post.visibility === "public" ? "全体公開" : "ログイン限定"}
-                </span>
-              )}
+              {/* ⚠️★投稿ごとの公開範囲バッジは 2026-09-18 に外した。
+                     選択肢が無くなり**全投稿が同じ値**になったので、出すと毎行に
+                     同じ文字が並ぶだけになる。どこまで出るかは投稿欄の一文で伝える。
+                     ⚠️ 選択肢を戻すときは、このバッジも一緒に戻すこと
+                        （`post.visibility` は型にも API の戻り値にも残してある）。 */}
             </div>
             {/* 役職タグライン: roleTitle があれば役職、なければ会社名 */}
             {actor.kind === "user" && (post.user.roleTitle || post.user.company) && (
