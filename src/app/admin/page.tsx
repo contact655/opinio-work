@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 /* ⚠️★件数も一覧も同じ関数を通す。条件を書き分けると
       「1件と出ているのに開くと空」が起きる（`fetchSelfListed` と同じ理由）。 */
@@ -215,6 +216,14 @@ const AVATAR_GRADIENTS = [
 ];
 
 export default async function AdminDashboard() {
+  /* ★★運営権限をページ本体でも確かめる（2026-09-18）。**消さないこと。**
+        レイアウトのガードだけでは、ページが実行されて props が RSC フライトデータ
+        として HTML に載り、権限の無い人に読まれる。理由と実測値は
+        `lib/auth/adminPageGuard.ts` に書いてある。
+     ⚠️ DB を引く前に返すこと。 */
+  if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
+
+
   const stats = await getStats();
   /* ⚠️ 口コミ承認待ちは 2026-08-07 に外した。参照していた ow_company_reviews が
         このプロジェクトに存在せず、常に0件を足していただけだったため。 */

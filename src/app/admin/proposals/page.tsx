@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import ProposalsAdminClient from "./ProposalsAdminClient";
@@ -32,9 +32,9 @@ export const dynamic = "force-dynamic";
  *    （⑨の匿名化と同じ考え方）。
  */
 export default async function AdminProposalsPage() {
-  /* ★★ここを消さないこと。消すと上の漏れに戻る。 */
-  const { data: isAdmin } = await createClient().rpc("auth_is_admin");
-  if (!isAdmin) return null; // 画面はレイアウトの「権限がありません」が出す
+  /* ★★ここを消さないこと。消すと上の漏れに戻る。
+        判定は `lib/auth/adminPageGuard.ts` に集約した（/admin の5ページと共有）。 */
+  if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
 
   const db = createAdminClient();
 

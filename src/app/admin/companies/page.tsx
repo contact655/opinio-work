@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import AdminCompaniesClient, { type Company, type CompanyAdmin } from "./AdminCompaniesClient";
 import { findPublishBlockers } from "@/lib/companies/publishable";
 import { filterCompaniesWithOwnRecipients } from "@/lib/notify/recipients";
@@ -15,6 +16,14 @@ import { filterCompaniesWithOwnRecipients } from "@/lib/notify/recipients";
  * ⚠️ /admin/layout.tsx が cookies() を呼ぶのでこのページは自動的に動的。
  */
 export default async function AdminCompaniesPage() {
+  /* ★★運営権限をページ本体でも確かめる（2026-09-18）。**消さないこと。**
+        レイアウトのガードだけでは、ページが実行されて props が RSC フライトデータ
+        として HTML に載り、権限の無い人に読まれる。理由と実測値は
+        `lib/auth/adminPageGuard.ts` に書いてある。
+     ⚠️ DB を引く前に返すこと。 */
+  if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
+
+
   const supabase = createAdminClient();
 
   const [

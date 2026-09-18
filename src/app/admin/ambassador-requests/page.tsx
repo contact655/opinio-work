@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { fetchSelfListed } from "@/lib/companyMembers/selfListed";
 import { RequestsClient, type AmbassadorRequest } from "./RequestsClient";
 
@@ -91,6 +92,14 @@ async function getRequests(): Promise<AmbassadorRequest[]> {
 }
 
 export default async function AmbassadorRequestsPage() {
+  /* ★★運営権限をページ本体でも確かめる（2026-09-18）。**消さないこと。**
+        レイアウトのガードだけでは、ページが実行されて props が RSC フライトデータ
+        として HTML に載り、権限の無い人に読まれる。理由と実測値は
+        `lib/auth/adminPageGuard.ts` に書いてある。
+     ⚠️ DB を引く前に返すこと。 */
+  if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
+
+
   const requests = await getRequests();
 
   return (

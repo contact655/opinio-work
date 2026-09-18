@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import PlacementsClient from "./PlacementsClient";
 
@@ -10,6 +11,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PlacementsPage() {
+  /* ★★運営権限をページ本体でも確かめる（2026-09-18）。**消さないこと。**
+        レイアウトのガードだけでは、ページが実行されて props が RSC フライトデータ
+        として HTML に載り、権限の無い人に読まれる。理由と実測値は
+        `lib/auth/adminPageGuard.ts` に書いてある。
+     ⚠️ DB を引く前に返すこと。 */
+  if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
+
+
   const admin = createAdminClient();
 
   const [{ data: placements }, { data: users }, { data: companies }, { data: jobs }] = await Promise.all([
