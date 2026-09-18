@@ -145,16 +145,35 @@ export default async function EmployeesPage() {
         これが無いと**辞めた人が「面談OK」のまま**出る。
      ⚠️ 企業の受付状態（`accepting_casual_meetings`）は**見ない**。
         人が出るかは本人の同意で決まり、申込導線が出るかは企業の受付で決まる。 */
-  /* ★運営に報告済みの経歴（2026-09-18 / B7）。ボタンを「報告済み」に変えるために引く。
-     ⚠️ 未対応（`resolved_at is null`）だけを「報告済み」とする。運営が対応を終えた行まで
-        含めると、**同じ人をもう一度報告できなくなる**（退職 → 再入社 → また退職、はありうる）。 */
+  /* ★報告の状態（2026-09-18 / B7 → C-9 で結果まで持つようにした）。
+     ⚠️ **1つの経歴に複数行ありうる**（却下されたあとの再報告は新しい行になる。
+        一意なのは「未対応の行」だけ ——`uq_company_member_reports_open`）。
+        だから**未対応の集合**と**直近の対応済み**を分けて持つ。
+     ⚠️ 順に並べて最後を採る。`.limit(1)` を経歴ごとに投げない（N+1 になる）。 */
   const { data: reportRows, error: reportErr } = await admin
     .from("ow_company_member_reports")
-    .select("experience_id")
+    .select("experience_id, resolved_at, resolution, resolution_note")
     .eq("company_id", ctx.tenantId)
-    .is("resolved_at", null);
+    .order("reported_at", { ascending: true });
   if (reportErr) console.error("[biz/employees] reports fetch failed:", reportErr.message);
-  const reportedExperienceIds = (reportRows ?? []).map((r: any) => r.experience_id as string);
+
+  const reportedExperienceIds: string[] = [];
+  const latestResolved = new Map<string, { resolution: string; note: string | null }>();
+  for (const r of (reportRows ?? []) as any[]) {
+    const expId = r.experience_id as string;
+    if (r.resolved_at === null) {
+      reportedExperienceIds.push(expId);
+    } else if (typeof r.resolution === "string") {
+      /* 後から来た行で上書きする（`reported_at` 昇順なので最後が直近） */
+      latestResolved.set(expId, { resolution: r.resolution, note: (r.resolution_note as string | null) ?? null });
+    }
+  }
+  /* ★却下の経歴だけを企業に伝える（2026-09-18 / C-9）。
+     ⚠️ `hidden` の行は下の `hiddenExperienceIds` が担当するので、ここでは出さない
+        （運営が外した → 戻した場合は、どちらにも入らず通常表示に戻る＝再報告できる）。 */
+  const rejectedExperiences = Array.from(latestResolved.entries())
+    .filter(([, v]) => v.resolution === "rejected")
+    .map(([experienceId, v]) => ({ experienceId, note: v.note }));
 
   const { data: memberRows, error: memberErr } = await admin
     .from("ow_company_members")
@@ -214,6 +233,7 @@ export default async function EmployeesPage() {
         alumni={alumni}
         hiddenExperienceIds={hiddenExperienceIds}
         reportedExperienceIds={reportedExperienceIds}
+        rejectedExperiences={rejectedExperiences}
         companyName={ctx.tenantName ?? ""}
       />
     </BusinessLayout>

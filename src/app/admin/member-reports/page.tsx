@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { memberReportReasonLabel } from "@/lib/constants/memberReports";
+import { memberReportReasonLabel, type MemberReportResolution } from "@/lib/constants/memberReports";
 import { ReportsClient, type MemberReportRow } from "./ReportsClient";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export default async function MemberReportsPage() {
         B6 で埋め込みが曖昧になる形を踏んでいるので、素直に2段で引く。 */
   const { data: reports, error } = await admin
     .from("ow_company_member_reports")
-    .select("id, company_id, experience_id, reason, note, reported_at, resolved_at, ow_companies(name, slug, is_test)")
+    .select("id, company_id, experience_id, reason, note, reported_at, resolved_at, resolution, resolution_note, ow_companies(name, slug, is_test)")
     .order("resolved_at", { ascending: true, nullsFirst: true })
     .order("reported_at", { ascending: true });
 
@@ -106,6 +106,9 @@ export default async function MemberReportsPage() {
       note: (r.note as string | null) ?? null,
       reportedAt: r.reported_at as string,
       resolvedAt: (r.resolved_at as string | null) ?? null,
+      /* ⚠️ `resolved_at` と必ず対になる（DB の CHECK）。既定値に倒さない */
+      resolution: (r.resolution as MemberReportResolution | null) ?? null,
+      resolutionNote: (r.resolution_note as string | null) ?? null,
       hidden: hiddenIds.has(r.experience_id as string),
     };
   });

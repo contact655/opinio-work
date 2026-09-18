@@ -2030,6 +2030,8 @@ export type Database = {
           reason: string
           reported_at: string
           reported_by: string | null
+          resolution: string | null
+          resolution_note: string | null
           resolved_at: string | null
           resolved_by: string | null
         }
@@ -2041,6 +2043,8 @@ export type Database = {
           reason: string
           reported_at?: string
           reported_by?: string | null
+          resolution?: string | null
+          resolution_note?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
         }
@@ -2052,6 +2056,8 @@ export type Database = {
           reason?: string
           reported_at?: string
           reported_by?: string | null
+          resolution?: string | null
+          resolution_note?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
         }

@@ -12,8 +12,10 @@ type Props = {
   alumni: BizEmployee[];
   /** 運営が企業ページから外した経歴。**それぞれのタブの中に混ぜて出す** */
   hiddenExperienceIds: string[];
-  /** 運営に報告済み（未対応）の経歴。ボタンを「報告済み」にする */
+  /** 運営に報告済み（未対応）の経歴。ボタンを「確認中」にする */
   reportedExperienceIds: string[];
+  /** ★直近の対応が「却下」だった経歴と、運営が残した理由（2026-09-18 / C-9） */
+  rejectedExperiences: { experienceId: string; note: string | null }[];
   companyName: string;
 };
 
@@ -103,12 +105,15 @@ function EmployeeCard({
   onReport,
   isPending,
   reported,
+  rejectedNote,
 }: {
   emp: BizEmployee;
   onReport: (experienceId: string, reason: MemberReportReason, note: string) => void;
   isPending: boolean;
   /** 既に運営へ報告済み（未対応）か */
   reported: boolean;
+  /** ★直近の対応が「却下」だったなら、その理由（理由なしなら null）。却下でなければ undefined */
+  rejectedNote?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<MemberReportReason | "">("");
@@ -188,13 +193,16 @@ function EmployeeCard({
       {/* ⚠️★`data-state` は**検証で状態を読むためだけ**の属性（2026-09-18）。
              ボタンの文言で状態を判定すると、「対応済みにする」が「対応済み」に
              部分一致して読み違える（実際に踏んだ）。**装飾には使わない。** */}
-      <div data-state={reported ? "reported" : "reportable"} style={{ flexShrink: 0, marginLeft: 8 }}>
+      <div
+        data-state={reported ? "reported" : rejectedNote !== undefined ? "rejected" : "reportable"}
+        style={{ flexShrink: 0, marginLeft: 8 }}
+      >
         {reported ? (
           <span style={{
             fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
             whiteSpace: "nowrap",
           }}>
-            運営に報告済み
+            運営に報告済み（確認中）
           </span>
         ) : (
           <button
@@ -212,6 +220,24 @@ function EmployeeCard({
         )}
       </div>
       </div>
+
+      {/* ★却下の結果を企業に伝える（2026-09-18 / C-9）。
+             ⚠️★**報告した企業が結果を確認できないのは、フローとして成立していない。**
+                「報告した」と「外れた」と「外さなかった」は別の状態。
+             ⚠️ 再報告できる（新しい報告を出すと上の表示が「確認中」に変わる）。 */}
+      {rejectedNote !== undefined && !reported && (
+        <div style={{
+          marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-soft)",
+          fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8,
+        }}>
+          運営で確認しましたが、企業ページからは外していません。
+          {rejectedNote && (
+            <div style={{ marginTop: 6, padding: "8px 10px", background: "var(--bg-tint)", borderRadius: 6, whiteSpace: "pre-wrap" }}>
+              {rejectedNote}
+            </div>
+          )}
+        </div>
+      )}
 
       {open && !reported && (
         <div style={{
@@ -350,7 +376,7 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-export function EmployeesClient({ current, alumni, hiddenExperienceIds, reportedExperienceIds, companyName }: Props) {
+export function EmployeesClient({ current, alumni, hiddenExperienceIds, reportedExperienceIds, rejectedExperiences, companyName }: Props) {
   const [tab, setTab] = useState<Tab>("current");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -360,6 +386,9 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, reported
         サーバーから来た集合にローカルぶんを足して持つ。 */
   const [justReported, setJustReported] = useState<string[]>([]);
   const reportedIds = new Set([...reportedExperienceIds, ...justReported]);
+  /* ⚠️ `Map` にする。「却下された」と「理由が無い却下」を区別するため
+        （`has` で前者、値の null で後者）。配列の `find` で毎回引かない。 */
+  const rejectedMap = new Map(rejectedExperiences.map((r) => [r.experienceId, r.note]));
 
   const handleReport = (experienceId: string, reason: MemberReportReason, note: string) => {
     setError(null);
@@ -464,6 +493,8 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, reported
                 onReport={handleReport}
                 isPending={isPending}
                 reported={reportedIds.has(emp.experienceId)}
+                /* ⚠️ `undefined`（却下ではない）と `null`（却下・理由なし）を分ける */
+                rejectedNote={rejectedMap.has(emp.experienceId) ? rejectedMap.get(emp.experienceId) ?? null : undefined}
               />
             )
           ))}

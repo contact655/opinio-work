@@ -46,3 +46,38 @@ export function memberReportReasonLabel(value: string | null | undefined): strin
  *    「濃度は自動的に3層の対象にはならない」）。**定数は1つ。画面に直書きしない。**
  */
 export const MEMBER_REPORT_NOTE_MAX = 500;
+
+/**
+ * ★運営が出した結果（2026-09-18 / C-9）。
+ *
+ * ⚠️★**3層を揃える**: ここ / `/admin/member-reports` のサーバーアクション /
+ *    DB の `ow_company_member_reports_resolution_check`。
+ * ⚠️★**`resolved_at` と必ず同時に入る**（DB の
+ *    `CHECK ((resolved_at is null) = (resolution is null))`）。片方だけ書かないこと。
+ */
+export const MEMBER_REPORT_RESOLUTIONS = [
+  {
+    value: "hidden",
+    label: "企業ページから外した",
+    /** 運営画面のボタン文言 */
+    action: "外して対応済みにする",
+  },
+  {
+    value: "rejected",
+    label: "確認したが外さなかった",
+    action: "外さずに却下する",
+  },
+] as const;
+
+export type MemberReportResolution = (typeof MEMBER_REPORT_RESOLUTIONS)[number]["value"];
+
+export const VALID_MEMBER_REPORT_RESOLUTIONS = new Set<string>(
+  MEMBER_REPORT_RESOLUTIONS.map((r) => r.value),
+);
+
+/**
+ * 却下の理由の上限。
+ * ⚠️★**この文面は企業の画面に出る**（運営メモではない）。入力欄にもそう書くこと。
+ * ⚠️ 濃度の制約なので UI と API の2層（CLAUDE.md）。**定数は1つ。画面に直書きしない。**
+ */
+export const MEMBER_REPORT_RESOLUTION_NOTE_MAX = 300;

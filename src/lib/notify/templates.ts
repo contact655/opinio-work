@@ -185,6 +185,51 @@ export function casualMeetingAdminTemplate(params: {
   };
 }
 
+/**
+ * ★企業からの「在籍していない人」報告を運営に知らせる（2026-09-18 / C-7）。
+ *
+ * ⚠️★**宛先は `ADMIN_EMAIL`。** 上の3本（新規企業・カジュアル面談・応募）と同じ持ち方に
+ *    揃える。**新しい宛先の持ち方を作らない。**
+ * ⚠️★**週次メールの停止（`WEEKLY_EMAIL_ENABLED` / `vercel.json` の `crons`）とは無関係。**
+ *    止まっているのは cron の2本で、`sendEmail` 自体は動いている（上の3本は今も送る）。
+ *    停止の理由（マッチ度の根拠なし・配信停止が無い・宛先にバウンス・時限式）は
+ *    **運営宛の単発通知には1つも当てはまらない。**
+ * ⚠️ 再報告のたびに送る。却下後に状況が変わって再報告されるのは、運営が知りたい場面。
+ *    ⚠️ 企業が押し直しても**未対応の行は1つしか作れない**ので、同じ報告で何通も飛ばない。
+ */
+export function memberReportAdminTemplate(params: {
+  companyName: string;
+  /** 対象者の氏名。⚠️ 取れないことがある（経歴が消えた等）ので null を許す */
+  personName: string | null;
+  /** 「在籍したことがない」などのラベル。⚠️ 生値（never_employed）を入れないこと */
+  reasonLabel: string | null;
+  /** 企業が書いた補足（任意） */
+  note: string | null;
+  reportedAt: string;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【在籍報告】${params.companyName} から「在籍していない人」の報告がありました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">在籍していない人の報告</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong> から、自社ページに出ている人について報告がありました。
+        <strong>この報告だけでは何も変わりません。</strong>外すかどうかは運営が判断します。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        ${/* ⚠️ 値が無ければ行ごと出さない（「不明」で埋めない） */""}
+        ${params.personName ? `<tr><td style="${TD_LABEL}">対象者</td><td style="${TD_VALUE}">${esc(params.personName)}</td></tr>` : ""}
+        ${params.reasonLabel ? `<tr><td style="${TD_LABEL}">理由</td><td style="${TD_VALUE}">${esc(params.reasonLabel)}</td></tr>` : ""}
+        ${params.note ? `<tr><td style="${TD_LABEL}">補足</td><td style="${TD_VALUE}">${esc(params.note)}</td></tr>` : ""}
+        <tr><td style="${TD_LABEL}">報告日時</td><td style="${TD_VALUE}">${new Date(params.reportedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</td></tr>
+      </table>
+      <a href="${siteUrl}/admin/member-reports" style="${BTN}">運営画面で確認する →</a>
+    `),
+  };
+}
+
 // T3 申込者宛
 export function casualMeetingUserTemplate(params: {
   to: string;

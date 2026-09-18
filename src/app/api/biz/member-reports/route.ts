@@ -4,7 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
-import { VALID_MEMBER_REPORT_REASONS, MEMBER_REPORT_NOTE_MAX } from "@/lib/constants/memberReports";
+import { VALID_MEMBER_REPORT_REASONS, MEMBER_REPORT_NOTE_MAX, memberReportReasonLabel } from "@/lib/constants/memberReports";
+import { sendEmail } from "@/lib/notify/email";
+import { memberReportAdminTemplate } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +103,42 @@ export async function POST(req: NextRequest) {
     console.error("[POST /api/biz/member-reports] insert:", error.message);
     return NextResponse.json({ error: "SAVE_FAILED", message: "報告を記録できませんでした。" }, { status: 500 });
   }
+  const alreadyReported = error?.code === "23505";
 
-  return NextResponse.json({ ok: true, alreadyReported: error?.code === "23505" });
+  /* ★運営への通知（2026-09-18 / C-7）。**best-effort**。
+     ⚠️★**INSERT のあとに置く。** メールが飛ばないせいで報告が失われない形にする。
+        失敗は握り潰さずログに出す（`sendEmail` は Resend の error も console に出す）。
+     ⚠️ 既に未対応の報告がある（23505）ときは送らない。**同じ報告で何通も飛ばさない。**
+        却下後の再報告は新しい行になるので、そのときは送られる。
+     ⚠️ 新しい送信経路を作らない。`newCompanyAdminTemplate` と同じ形。 */
+  if (!alreadyReported) {
+    try {
+      /* ⚠️ 氏名は取れないことがある（経歴が消えた等）。**既定値で埋めない** */
+      const { data: person } = await admin
+        .from("ow_experiences")
+        .select("ow_users!user_id(name)")
+        .eq("id", experienceId)
+        .maybeSingle();
+      const { data: company } = await admin
+        .from("ow_companies")
+        .select("name")
+        .eq("id", ctx.companyId)
+        .maybeSingle();
+
+      await sendEmail(
+        memberReportAdminTemplate({
+          companyName: (company?.name as string | null) ?? "（企業名不明）",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          personName: ((person as any)?.ow_users?.name as string | null) ?? null,
+          reasonLabel: memberReportReasonLabel(reason),
+          note,
+          reportedAt: new Date().toISOString(),
+        }),
+      );
+    } catch (err) {
+      console.error("[POST /api/biz/member-reports] admin notify failed:", err);
+    }
+  }
+
+  return NextResponse.json({ ok: true, alreadyReported });
 }
