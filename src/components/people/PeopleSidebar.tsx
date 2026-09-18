@@ -72,21 +72,9 @@ function Row({
   );
 }
 
-/**
- * 面談OK の注意書き。**文言はここ1箇所**（2026-09-18 に一覧の最下部から移した）。
- *
- * ⚠️★**消さないこと。** バッジを1種類に一本化してあるので、
- *    「実際に申し込めるかは会社ごとに違う」がここでしか伝わらない。
- * ⚠️ サイドバーが出せないとき（未ログイン等）は一覧側がこれを出す。**2箇所に書き写さないこと。**
- */
-export function MeetingOkNotice() {
-  return (
-    <>
-      面談OK は、いま在籍している会社について話を聞かれることを受け入れている方です。
-      実際に申し込めるかどうかは会社ごとに異なります。
-    </>
-  );
-}
+/* ⚠️ 面談OK の注意書き（`MeetingOkNotice`）は 2026-09-18 に削除した（柴さんの指示）。
+      ⚠️★**書き戻すなら1箇所に。** 以前はサイドバーと一覧の2箇所から同じ部品を呼んでいた。
+         文言を各所に直書きすると割れる。 */
 
 export function PeopleSidebar(p: PeopleSidebarProps) {
   /* 狭い画面の畳み。⚠️ 既定は閉じる。③④は畳みの外に出してあるので、閉じていても見える */
@@ -167,11 +155,6 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
             <Link href="/mypage" className="pps-link" style={{ fontSize: 11.5 }}>設定</Link>
           </div>
         )}
-        {/* ⚠️★この注記を消さないこと。一覧の最下部から 2026-09-18 にここへ移した。
-               申込可否はここでしか伝わらない（バッジを1種類に一本化しているため）。 */}
-        <p className="pps-note" style={{ marginTop: 6, paddingLeft: 8, paddingRight: 8 }}>
-          <MeetingOkNotice />
-        </p>
       </div>
 
       {/* ── ⑤ 近い人。⚠️ 自分の職種・職歴が無ければ、その行ごと出さない ── */}

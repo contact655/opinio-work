@@ -12,7 +12,7 @@ import { FollowUserButton } from "../u/[id]/FollowUserButton";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
-import { PeopleSidebar, MeetingOkNotice } from "@/components/people/PeopleSidebar";
+import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 
@@ -1148,10 +1148,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           background: "var(--bg-tint)", border: "1px solid var(--line)",
           borderRadius: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.8,
         }}>
-          {/* ★面談OKの注意書きは 2026-09-18 にサイドバー（「面談OKだけ見る」の隣）へ移した。
-                 ⚠️ サイドバーが出せないときだけ、ここで補う。**文言を書き写さないこと**
-                    （実体は `MeetingOkNotice`）。 */}
-          {!sidebar && (<>※ <MeetingOkNotice /><br /></>)}
+          {/* ⚠️ 面談OK の注意書きは 2026-09-18 に削除した（柴さんの指示）。
+                 下の1行は**別物**（一覧全体にかかる在籍確認の但し書き）。消さないこと。 */}
           {/* ⚠️★この1行はサイドバーへ移していない。面談OKの話ではなく
                  **一覧全体にかかる但し書き**（在籍確認をしていないこと）だから。 */}
           所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。
