@@ -29,6 +29,8 @@ const ITEMS = [
     desc: "カテゴリ分けの境界（3カテゴリ目と4カテゴリ目）と、緑にしてよい項目" },
   { href: "/dev/preview/company-employees", label: "現役社員（企業ページ）",
     desc: "⚠️ 職種ごとに分かれる側は本番に該当企業が無い。5名以上＋職種2種類以上でしか出ない" },
+  { href: "/dev/preview/biz-employees", label: "社員管理（/biz/employees）",
+    desc: "⚠️ 管理者バッジ・面談OKバッジ・職種の併記は、ログインできるどの企業にも該当者が居ない。ここでしか見られない" },
   { href: "/dev/preview/employees", label: "現役社員 / OB・OG",
     desc: "0件の空状態、1件、3件、12件。長い氏名・役職での折り返し" },
   { href: "/dev/preview/tools",     label: "ツール",

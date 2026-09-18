@@ -3,18 +3,25 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { BizEmployee, BizTeamMember } from "./page";
+import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
+import type { BizEmployee } from "./page";
 
 type Props = {
   current: BizEmployee[];
   alumni: BizEmployee[];
-  hidden: BizEmployee[];
-  /** 管理アカウント（チーム管理と同じ人たち）。⚠️ 社員管理はチーム管理を内包する。 */
-  teamMembers: BizTeamMember[];
+  /** 企業ページから非表示にしている経歴。**それぞれのタブの中に混ぜて出す** */
+  hiddenExperienceIds: string[];
   companyName: string;
 };
 
-type Tab = "current" | "alumni" | "hidden" | "team";
+/* ⚠️★**タブは2つだけ**（2026-09-18）。「非表示中」と「管理アカウント」を消した。
+      ・管理アカウント … `/biz/members`（チーム管理）と同じ人たちで、
+        **見るだけの一覧が二重**だった。
+        経歴を持つ管理者には現役社員カードに「管理者」バッジを出す形に替えた。
+      ・非表示中 … 件数が常に0で、タブだけが常設されていた。非表示の行は
+        それぞれのタブの中に「非表示中」として出す（解除もそこから）。
+   ⚠️ タブを足すときは、**その件数が普段0にならないか**を先に実データで見ること。 */
+type Tab = "current" | "alumni";
 
 function formatPeriod(startedAt: string, endedAt: string | null, isCurrent: boolean): string {
   const start = startedAt.slice(0, 7).replace("-", ".");
@@ -59,6 +66,35 @@ function AvatarCircle({ name, avatarUrl, size = 44 }: { name: string | null; ava
   );
 }
 
+/**
+ * 職種の行。★**マスタ名（`ow_roles`）が主で、社内での呼び方は小さく併記する。**
+ *
+ * ⚠️★**どちらも無ければ行ごと出さない。**「未設定」と書かない
+ *    （CLAUDE.md「値が無いことを、ある値に置き換えない」）。
+ * ⚠️ 併記の順序を逆にしないこと。`role_title` は自由入力なので
+ *    「AE」「第6営業部」のように**社外の人には読めない値**が入る。
+ *    企業の画面では本人の呼び方も要るが、**主にするのはマスタ名**。
+ */
+function RoleLine({ roleName, roleTitle }: { roleName: string | null; roleTitle: string | null }) {
+  if (!roleName && !roleTitle) return null;
+  const clamp = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } as const;
+  return (
+    <div style={{ marginBottom: 4, minWidth: 0 }}>
+      {roleName && (
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", ...clamp }}>{roleName}</div>
+      )}
+      {roleTitle && (
+        <div
+          style={{ fontSize: 11, color: "var(--ink-mute)", ...clamp }}
+          title={roleTitle}
+        >
+          {roleTitle}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmployeeCard({
   emp,
   onHide,
@@ -83,10 +119,24 @@ function EmployeeCard({
         <AvatarCircle name={emp.name} avatarUrl={emp.avatarUrl} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
               {emp.name ?? "名前未設定"}
             </span>
+            {/* ★管理者バッジ（2026-09-18）。「管理アカウント」タブを消した代わり。
+                ⚠️ これは**権限の表示**であって、企業ページに出るかどうかとは無関係。 */}
+            {emp.isAdmin && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, color: "var(--royal)",
+                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
+                borderRadius: 4, padding: "1px 6px",
+              }}>
+                管理者
+              </span>
+            )}
+            {/* ★面談OK（2026-09-18）。⚠️ 部品を複製しないこと。色と文言は
+                `/people`・企業ページ・`/u/[id]` と同じ1箇所から来ている。 */}
+            {emp.isTalkable && <TalkableBadge size="sm" />}
             {emp.isMentor && (
               <span style={{
                 fontSize: 10, fontWeight: 700, color: "var(--royal)",
@@ -97,11 +147,7 @@ function EmployeeCard({
               </span>
             )}
           </div>
-          {emp.roleTitle && (
-            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {emp.roleTitle}
-            </div>
-          )}
+          <RoleLine roleName={emp.roleName} roleTitle={emp.roleTitle} />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 11, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {formatPeriod(emp.startedAt, emp.endedAt, emp.isCurrent)}
@@ -208,11 +254,7 @@ function HiddenCard({
             非表示中
           </span>
         </div>
-        {emp.roleTitle && (
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {emp.roleTitle}
-          </div>
-        )}
+        <RoleLine roleName={emp.roleName} roleTitle={emp.roleTitle} />
       </div>
 
       <button
@@ -247,10 +289,11 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-export function EmployeesClient({ current, alumni, hidden, teamMembers, companyName }: Props) {
+export function EmployeesClient({ current, alumni, hiddenExperienceIds, companyName }: Props) {
   const [tab, setTab] = useState<Tab>("current");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const hiddenIds = new Set(hiddenExperienceIds);
 
   const handleHide = (experienceId: string) => {
     startTransition(async () => {
@@ -272,7 +315,7 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
     });
   };
 
-  const list = tab === "current" ? current : tab === "alumni" ? alumni : tab === "hidden" ? hidden : [];
+  const list = tab === "current" ? current : alumni;
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 32px 80px" }}>
@@ -282,25 +325,20 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
         <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
           社員管理
         </h1>
+        {/* ⚠️★「管理アカウント」「非表示」の説明は 2026-09-18 に外した。
+               タブが無くなったので、指していた先が画面に無い文になる。 */}
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          {companyName}に関係する人の一覧です。<br />
-          <strong style={{ color: "var(--ink)" }}>現役社員・OB/OG</strong> は、本人がプロフィールの経歴でこの企業を選ぶと自動で反映されます。
-          <strong style={{ color: "var(--ink)" }}>管理アカウント</strong> は、この管理画面を使えるメンバー（チーム管理と同じ）です。
+          {companyName}の企業ページに出ている人の一覧です。<br />
+          本人がプロフィールの経歴でこの企業を選ぶと自動で反映されます。
+          <strong style={{ color: "var(--ink)" }}>企業側から追加することはできません。</strong>
         </p>
-        {hidden.length > 0 && (
-          <div style={{ marginTop: 10, padding: "8px 12px", background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "var(--warm-ink)" }}>
-            企業ページから非表示中のメンバー: {hidden.length}名 — 「非表示中」タブから解除できます
-          </div>
-        )}
       </div>
 
-      {/* タブ */}
+      {/* タブ（★2つだけ） */}
       <div style={{ display: "flex", gap: 0, borderBottom: "2px solid var(--line)", marginBottom: 20 }}>
         {[
           { key: "current" as const, label: "現役社員", count: current.length },
           { key: "alumni" as const, label: "OB・OG社員", count: alumni.length },
-          { key: "hidden" as const, label: "非表示中", count: hidden.length },
-          { key: "team" as const, label: "管理アカウント", count: teamMembers.length },
         ].map(({ key, label, count }) => (
           <button
             key={key}
@@ -308,10 +346,10 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
             onClick={() => setTab(key)}
             style={{
               padding: "10px 20px", background: "none", border: "none",
-              borderBottom: `2px solid ${tab === key ? (key === "hidden" ? "#D97706" : "var(--royal)") : "transparent"}`,
+              borderBottom: `2px solid ${tab === key ? "var(--royal)" : "transparent"}`,
               marginBottom: -2,
               fontSize: 13, fontWeight: tab === key ? 700 : 500,
-              color: tab === key ? (key === "hidden" ? "#D97706" : "var(--royal)") : "var(--ink-mute)",
+              color: tab === key ? "var(--royal)" : "var(--ink-mute)",
               cursor: "pointer", fontFamily: "inherit",
               display: "flex", alignItems: "center", gap: 6,
             }}
@@ -321,8 +359,8 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
               <span style={{
                 fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700,
                 padding: "1px 6px", borderRadius: 10,
-                background: tab === key ? (key === "hidden" ? "#FEF3C7" : "var(--royal-50)") : "var(--line-soft)",
-                color: tab === key ? (key === "hidden" ? "var(--warm-ink)" : "var(--royal)") : "var(--ink-mute)",
+                background: tab === key ? "var(--royal-50)" : "var(--line-soft)",
+                color: tab === key ? "var(--royal)" : "var(--ink-mute)",
               }}>
                 {count}
               </span>
@@ -331,101 +369,31 @@ export function EmployeesClient({ current, alumni, hidden, teamMembers, companyN
         ))}
       </div>
 
-      {/* 非表示タブの説明 */}
-      {tab === "hidden" && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, fontSize: 12, color: "var(--warm-ink)", lineHeight: 1.7 }}>
-          企業ページ（公開面）から非表示にしたメンバーです。<br />
-          ユーザー自身のプロフィール（/u/...）には変わらず表示されます。「表示に戻す」で解除できます。
-        </div>
-      )}
-
       {/* リスト */}
-      {tab === "team" ? (
-        <>
-          <div style={{ marginBottom: 16, padding: "10px 14px", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-            この管理画面を使えるメンバーです。追加・削除は「チーム管理」から行います。<br />
-            ⚠️ ここに出ることと、企業ページに「現役社員」として出ることは別です。
-            公開側に出すには、本人がプロフィールの経歴でこの企業を選ぶ必要があります。
-          </div>
-          {teamMembers.length === 0 ? (
-            <div style={{ padding: "48px 24px", textAlign: "center", background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>管理アカウントがありません</div>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {teamMembers.map((m) => (
-                <div key={m.userId} style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "14px 16px", background: "#fff",
-                  border: "1px solid var(--line)", borderRadius: 12,
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 14, fontWeight: 700,
-                  }}>
-                    {(m.name ?? m.email ?? "?").charAt(0)}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {m.name ?? m.email ?? "—"}
-                    </div>
-                    {m.email && (
-                      <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</div>
-                    )}
-                  </div>
-                  {m.permission && (
-                    <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", padding: "2px 8px", borderRadius: 100 }}>
-                      {m.permission === "admin" ? "管理者" : m.permission}
-                    </span>
-                  )}
-                  <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: m.hasExperience ? "var(--success-ink)" : "var(--ink-mute)" }}>
-                    {m.hasExperience ? "経歴も登録済み" : "経歴は未登録"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      ) : tab === "hidden" ? (
-        list.length === 0 ? (
-          <div style={{ padding: "48px 24px", textAlign: "center", background: "var(--bg-tint)",
-            border: "1px dashed var(--line)", borderRadius: 12 }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-              非表示中のメンバーはいません
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(list as BizEmployee[]).map((emp) => (
+      {list.length === 0 ? (
+        <EmptyState
+          label={tab === "current" ? "現役社員の登録がありません" : "OB・OG社員の登録がありません"}
+        />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {list.map((emp) => (
+            hiddenIds.has(emp.experienceId) ? (
               <HiddenCard
                 key={emp.experienceId}
                 emp={emp}
                 onUnhide={handleUnhide}
                 isPending={isPending}
               />
-            ))}
-          </div>
-        )
-      ) : (
-        list.length === 0 ? (
-          <EmptyState
-            label={tab === "current" ? "現役社員の登録がありません" : "OB・OG社員の登録がありません"}
-          />
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(list as BizEmployee[]).map((emp) => (
+            ) : (
               <EmployeeCard
                 key={emp.experienceId}
                 emp={emp}
                 onHide={handleHide}
                 isPending={isPending}
               />
-            ))}
-          </div>
-        )
+            )
+          ))}
+        </div>
       )}
     </div>
   );

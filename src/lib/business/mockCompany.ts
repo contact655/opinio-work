@@ -128,6 +128,12 @@ export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];
       [lib/constants/workStyle.ts](../constants/workStyle.ts) の
       `COMPANY_REMOTE_WORK_STATUSES`。 */
 
+/* ⚠️★**`work_time_system` は DB に CHECK が無く、語彙が保証されていない**（2026-09-18 に確認）。
+      ここは日本語をそのまま value として送るが、自由記述列なので保存は落ちない
+      （勤務形態 `remote_work_status` は CHECK があったため、同じ形で保存が丸ごと失敗していた）。
+   ⚠️★**絞り込み・集計に使うなら、先に CHECK と定数を用意すること。**
+      いまのまま絞り込むと、綴りの違う値が静かに結果から漏れる
+      （CLAUDE.md「選択肢が決まっている値は UI / API / DB の CHECK を3つ揃える」）。 */
 export const WORK_SCHEDULE_OPTIONS = [
   "固定時間制",
   "フレックスタイム制",
