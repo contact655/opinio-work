@@ -23,11 +23,15 @@ import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 // ⚠️ 雇用形態はここに直書きしない。API の検証と DB の CHECK と同じ定数を見る
 const DURATION_OPTIONS = ["応相談", "1ヶ月以内", "3ヶ月以内", "半年以内"];
 
-const MOCK_TEAM = [
-  { id: "member-1", name: "山田 太郎（あなた）", role: "人事部 採用マネージャー · Admin", gradient: "linear-gradient(135deg, var(--royal), var(--accent))", initial: "山" },
-  { id: "member-2", name: "鈴木 花子", role: "人事部 採用担当 · Member", gradient: "linear-gradient(135deg, #FBBF24, #D97706)", initial: "鈴" },
-  { id: "member-3", name: "中村 一郎", role: "プロダクト部 マネージャー · Member", gradient: "linear-gradient(135deg, #34D399, var(--success))", initial: "中" },
-];
+/* ⚠️★**`MOCK_TEAM`（架空の3人）は 2026-09-18 に削除した。戻さないこと。**
+      `teamMembers ?? MOCK_TEAM` というフォールバックだったが、
+      **`??` は `[]` では発火しない**ので実際には一度も出ていなかった。
+      ⚠️★**出ていたら、そのほうが悪かった。** id が `member-1`〜`3` の実在しない人で、
+         保存側（`POST/PUT /api/biz/jobs`）は
+         `assigneeIds.filter((uid) => validIds.has(uid))` で**黙って捨てる**。
+         企業は担当者を選べたつもりで、**何も保存されない**
+         （CLAUDE.md「入力させたのに保存しない UI を作らない」）。
+      → 0件のときは**架空の人ではなく空状態**を出し、チーム管理へ送る。 */
 
 const SECTION_DEFS = [
   { id: "basic",        label: "基本情報",       showStatus: true },
@@ -114,7 +118,11 @@ function jobToForm(job: BizJob | null): FormState {
     selectionSteps: [...job.selectionSteps],
     selectionDuration: job.selectionDuration ?? "",
     startDatePreference: job.startDatePreference ?? "応相談",
-    assigneeIds: job.assigneeNames.map((_, i) => MOCK_TEAM[i]?.id ?? `member-${i + 1}`),
+    /* ⚠️ `job.assigneeNames` は `lib/business/jobs.ts` が**常に `[]`** を入れる
+          （実体は `initialAssigneeIds` で別途渡ってきて、下の `useState` が上書きする）。
+          2026-09-18 まで MOCK_TEAM の並び順から偽の id を作っていたが、
+          **`assigneeNames` が空なので結果は常に `[]`** で、死んだコードだった。 */
+    assigneeIds: [],
     urgency: job.urgency ?? "open",
     /* ⚠️ 2026-09-02 まで `as unknown as { why_hire?: string }` で**スネークケースの
           プロパティを読もうとしており、`BizJob` には存在しないので常に undefined** だった。
@@ -370,7 +378,9 @@ export function JobEditForm({
     setErrorMessage(msg);
     setTimeout(() => setErrorMessage(null), 5000);
   };
-  const effectiveTeam = teamMembers ?? MOCK_TEAM;
+  /* ⚠️ `?? []` にしない。`teamMembers` が `[]` のときは**空状態を出す**（下）。
+        既定値で埋めると「担当者がいない」と「取得に失敗した」が同じ見た目になる。 */
+  const effectiveTeam = teamMembers ?? [];
 
   // 実際の保存処理。useAutoSave の onSave に渡す。
   // useCallback で最新の form/currentJobId を閉じる。useAutoSave 側で ref 経由で
@@ -1100,6 +1110,18 @@ export function JobEditForm({
             <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>採用担当者</h1>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>この求人の採用担当者を選択してください。複数選択可能。</p>
             <FormSection title="担当者選択" desc="チームメンバーから、この求人の担当者を選んでください。">
+              {/* ★0件のときは架空の人を出さず、行き先を示す（2026-09-18）。 */}
+              {effectiveTeam.length === 0 && (
+                <div style={{
+                  padding: "20px 18px", borderRadius: 10, textAlign: "center",
+                  background: "var(--bg-tint)", border: "1px dashed var(--line)",
+                  fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9,
+                }}>
+                  選べる担当者がいません。<br />
+                  <a href="/biz/members" style={{ color: "var(--royal)", fontWeight: 600 }}>チーム管理</a>
+                  {" "}でメンバーを追加すると、ここから選べるようになります。
+                </div>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {effectiveTeam.map((member) => {
                   const isActive = form.assigneeIds.includes(member.id);

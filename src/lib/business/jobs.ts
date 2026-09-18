@@ -421,13 +421,33 @@ export async function fetchTeamMembers(
   supabase: SupabaseClient,
   tenantId: string
 ): Promise<TeamMember[]> {
+  /* ⚠️★★**`!user_id` を落とさないこと**（2026-09-18 に本番で踏んだ）。
+        2026-09-18 まで `ow_users!inner(...)` と書いており、**採用担当者が1人も出なかった。**
+
+     ⚠️★**`!inner` は結合の指定であって、FK の名指しではない。** 目で見ると
+        「ヒントが付いている」ように見えるのが、1年以上気づかれなかった理由。
+        `ow_company_admins` → `ow_users` は経路が複数あるので、名指ししないと
+        `Could not embed because more than one relationship was found` で
+        **クエリごと失敗する。**
+
+     ⚠️ 失敗しても `if (error || !length) return []` で `[]` になり、画面は
+        「担当者がまだいない会社」にしか見えなかった。**同じ企業のダッシュボードの
+        「チームメンバー」には出ていた**（`lib/business/team.ts` は名指ししている）ので、
+        画面の中で食い違っていた。 */
   const { data: memberships, error } = await supabase
     .from("ow_company_admins")
-    .select("permission, ow_users!inner(id, name, avatar_color)")
+    .select("permission, ow_users!user_id!inner(id, name, avatar_color)")
     .eq("company_id", tenantId)
     .eq("is_active", true);
 
-  if (error || !memberships?.length) return [];
+  /* ⚠️★**握り潰さない**（2026-09-18 に追加）。0件が「担当者がいない」なのか
+        「取得に失敗した」なのかを、ログだけでも区別できるようにする。
+        ここが黙っていたことが、上の不具合が残り続けた直接の理由。 */
+  if (error) {
+    console.error("[fetchTeamMembers] ow_company_admins+ow_users:", error.message);
+    return [];
+  }
+  if (!memberships?.length) return [];
 
   return memberships
     .map((m) => {
