@@ -145,6 +145,50 @@ export function scoreJob(
   return { score, reasonParts };
 }
 
+// ─── 企業だけで突き合わせる（求人が無いとき）─────────────────────────────
+
+/**
+ * ★求人を介さず、**企業の属性だけ**を希望条件と突き合わせて理由文を返す（2026-09-18）。
+ *
+ * ── なぜ要るか ──────────────────────────────────────────────────────────────
+ * 根拠エンジン（`lib/evidence/`）は「候補者 × 企業」の組を扱う。
+ * `scoreJob()` は `Job` を要求するので、**公開求人が無い企業では呼べない。**
+ * 掲載22社のうち公開求人があるのは1社だけ（2026-09-18 実測）なので、
+ * 求人が無い前提で動く経路が要る。
+ *
+ * ⚠️★**スコアは返さない。理由文（reasonParts）だけ。**
+ *    根拠エンジンは件数で並べるのでスコアを使わない（Hisato 思想⑦）。
+ *
+ * ⚠️★**判定は `scoreJob()` の 3・4 と同じ `normPhase` / `normWorkStyle` を通す。**
+ *    正規化を書き写さないこと。写すと「ハイブリッド」と「hybrid」の扱いが
+ *    片方だけ変わる。
+ *
+ * ⚠️ 職種と年収はここでは見ない。どちらも**求人に付く属性**で、企業には無い。
+ */
+export function matchCompanyPreference(
+  companyPhase: string | null | undefined,
+  companyWorkStyle: string | null | undefined,
+  profile: Pick<ScoringProfile, "desired_phase" | "desired_work_styles">,
+): string[] {
+  const reasonParts: string[] = [];
+
+  if (profile.desired_phase?.length && companyPhase) {
+    const normCompany = normPhase(companyPhase);
+    if (profile.desired_phase.some((p) => normPhase(p) === normCompany)) {
+      reasonParts.push(`希望フェーズ（${companyPhase}）にマッチ`);
+    }
+  }
+
+  if (profile.desired_work_styles?.length && companyWorkStyle) {
+    const cw = normWorkStyle(companyWorkStyle);
+    if (profile.desired_work_styles.some((w) => normWorkStyle(w) === cw)) {
+      reasonParts.push(`勤務形態（${companyWorkStyle}）が希望と一致`);
+    }
+  }
+
+  return reasonParts;
+}
+
 // ─── 全求人をスコアリングしてソート ───────────────────────────────────────
 
 export function computeRecommendations(

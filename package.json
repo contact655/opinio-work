@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "node --test 'src/lib/**/*.test.mjs'",
     "gen:types": "supabase gen types typescript --linked > src/lib/supabase/types.ts"
   },
   "dependencies": {
