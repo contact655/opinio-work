@@ -70,15 +70,15 @@ export default function BizEmployeesPreview() {
       </PreviewHeader>
 
       <Variant label="現役7件（管理者・面談OK・職種の3パターン）" note="⚠️ 5人目は職種の行が丸ごと無いこと。6人目は小さい方だけ出ること">
-        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={[]} companyName="株式会社サンプル" />
+        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={[]} reportedExperienceIds={[]} companyName="株式会社サンプル" />
       </Variant>
 
-      <Variant label="非表示にした行が混ざる" note="⚠️★「非表示中」タブを消したので、解除はタブの中から行う。1件でも残っていれば戻せること">
-        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={["e3", "e5"]} companyName="株式会社サンプル" />
+      <Variant label="非表示（運営）と報告済みが混ざる" note="⚠️★非表示の行は表示だけ残し、操作は出さない（戻すのは運営）。1人目は「運営に報告済み」でボタンが消えていること">
+        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={["e3", "e5"]} reportedExperienceIds={["e1"]} companyName="株式会社サンプル" />
       </Variant>
 
       <Variant label="0件（空状態）" note="⚠️ 企業側から追加できないことが文面で伝わるか">
-        <EmployeesClient current={[]} alumni={[]} hiddenExperienceIds={[]} companyName="株式会社サンプル" />
+        <EmployeesClient current={[]} alumni={[]} hiddenExperienceIds={[]} reportedExperienceIds={[]} companyName="株式会社サンプル" />
       </Variant>
     </div>
   );

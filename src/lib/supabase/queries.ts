@@ -2218,9 +2218,10 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
       const userIds = Array.from(new Set((data ?? []).map((r) => (r as { user_id: string }).user_id)));
       const currentUserIds = new Set<string>();
       if (userIds.length > 0) {
+        /* ⚠️★`id` を落とさないこと（2026-09-18）。下で非表示の経歴を除くのに要る。 */
         const { data: expRows, error: expErr } = await createAdminClient()
           .from("ow_experiences")
-          .select("user_id")
+          .select("id, user_id")
           .eq("company_id", companyId)
           .eq("is_current", true)
           .in("user_id", userIds);
@@ -2229,7 +2230,25 @@ export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmb
           console.error("[getPublicAmbassadorsCached] ow_experiences:", expErr.message);
           return [];
         }
-        for (const e of (expRows ?? []) as { user_id: string }[]) currentUserIds.add(e.user_id);
+        /* ★運営が企業ページから外した経歴は「在籍中」に数えない（2026-09-18 に追加）。
+           ⚠️★**面談対応者だけが外れずに残っていた。** 企業ページの社員一覧
+              （`getCompanyEmployees`）は 2026-08-02 から非表示を見ているのに、
+              **同じページの「この会社の話を聞ける人」は見ていなかった**
+              ——外したはずの人が、別のセクションに出たままになる。
+           ⚠️ 握り潰さない。失敗したら「非表示は0件」として数えることになる。 */
+        const { data: hiddenRows, error: hiddenErr } = await createAdminClient()
+          .from("ow_company_hidden_experiences")
+          .select("experience_id")
+          .eq("company_id", companyId);
+        if (hiddenErr) {
+          console.error("[getPublicAmbassadorsCached] hidden:", hiddenErr.message);
+          return [];
+        }
+        const hiddenIds = new Set((hiddenRows ?? []).map((r) => (r as { experience_id: string }).experience_id));
+        for (const e of (expRows ?? []) as { id: string; user_id: string }[]) {
+          if (hiddenIds.has(e.id)) continue;
+          currentUserIds.add(e.user_id);
+        }
       }
 
       /* 除外条件は getCompanyEmployees と同じ形にしてある（上のコメント）。

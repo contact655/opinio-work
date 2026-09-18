@@ -151,7 +151,29 @@ async function getStats() {
     console.error("[admin] 未達スカウトの取得に失敗:", undelivered.error.message);
   }
 
+  /* ★企業からの「在籍していない人」報告（2026-09-18 / B7）。**0件が正常な状態。**
+     ⚠️ 未対応（`resolved_at is null`）だけを数える。
+     ⚠️ 失敗を 0 に倒さない。取得できなかったときは要対応に1件として出す
+        （参加依頼・未達スカウトと同じ理由。0 にすると壊れているのに要対応が消える）。 */
+  const memberReports = await admin
+    .from("ow_company_member_reports")
+    .select("id, reported_at", { count: "exact" })
+    .is("resolved_at", null)
+    .order("reported_at", { ascending: true })
+    .limit(1);
+  if (memberReports.error) {
+    console.error("[admin] 在籍報告の取得に失敗:", memberReports.error.message);
+  }
+  /* ⚠️ 最も古い未対応の経過日数。0件なら null（0 ではない）。
+        件数だけだと「放置されている」ことが読み取れない（面談対応者の未確認と同じ形）。 */
+  const memberReportsOldestDays = memberReports.data?.[0]?.reported_at
+    ? Math.floor((Date.now() - Date.parse(memberReports.data[0].reported_at as string)) / 86_400_000)
+    : null;
+
   return {
+    memberReportsCount: memberReports.error ? 0 : (memberReports.count ?? 0),
+    memberReportsFailed: Boolean(memberReports.error),
+    memberReportsOldestDays,
     undeliveredScoutsCount: undelivered.error ? 0 : (undelivered.count ?? 0),
     undeliveredScoutsFailed: Boolean(undelivered.error),
     /** ⚠️ 直近1件の理由だけ出す。原因は `ow_scouts.email_error` に全件入っている */
@@ -205,7 +227,9 @@ export default async function AdminDashboard() {
           0 にすると、壊れているのに要対応が消える。 */
     + (stats.joinRequestsFailed ? 1 : stats.joinRequestsCount)
     /* ⚠️ 0件が正常。取得に失敗したときは 1件として数える（カードが「失敗」を出すため） */
-    + (stats.undeliveredScoutsFailed ? 1 : stats.undeliveredScoutsCount);
+    + (stats.undeliveredScoutsFailed ? 1 : stats.undeliveredScoutsCount)
+    /* ★在籍していない人の報告（2026-09-18）。0件が正常。失敗は1件として数える */
+    + (stats.memberReportsFailed ? 1 : stats.memberReportsCount);
 
   const kpis = [
     {
@@ -661,6 +685,43 @@ export default async function AdminDashboard() {
                   </p>
                 </div>
               </div>
+            )}
+
+            {/* ★企業からの「在籍していない人」報告（2026-09-18 / B7）。
+                   ⚠️ 取得に失敗したときも出す（0件に化けさせない）。 */}
+            {(stats.memberReportsCount > 0 || stats.memberReportsFailed) && (
+              <Link href="/admin/member-reports" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  transition: "background 0.15s", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "var(--warm-ink)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
+                      {stats.memberReportsFailed
+                        ? "在籍報告の取得に失敗しました（0件という意味ではありません）"
+                        : `在籍していない人の報告 ${stats.memberReportsCount}件`}
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
+                      {stats.memberReportsFailed
+                        ? "取得に失敗しています"
+                        : <>企業からの報告です ・ 外すかどうかは運営が判断します{stats.memberReportsOldestDays !== null ? ` ・ 最も古い報告から ${stats.memberReportsOldestDays}日` : ""}</>}
+                    </p>
+                  </div>
+                </div>
+              </Link>
             )}
 
             {stats.selfUnreviewedCount > 0 && (

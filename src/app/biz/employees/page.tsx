@@ -145,6 +145,17 @@ export default async function EmployeesPage() {
         これが無いと**辞めた人が「面談OK」のまま**出る。
      ⚠️ 企業の受付状態（`accepting_casual_meetings`）は**見ない**。
         人が出るかは本人の同意で決まり、申込導線が出るかは企業の受付で決まる。 */
+  /* ★運営に報告済みの経歴（2026-09-18 / B7）。ボタンを「報告済み」に変えるために引く。
+     ⚠️ 未対応（`resolved_at is null`）だけを「報告済み」とする。運営が対応を終えた行まで
+        含めると、**同じ人をもう一度報告できなくなる**（退職 → 再入社 → また退職、はありうる）。 */
+  const { data: reportRows, error: reportErr } = await admin
+    .from("ow_company_member_reports")
+    .select("experience_id")
+    .eq("company_id", ctx.tenantId)
+    .is("resolved_at", null);
+  if (reportErr) console.error("[biz/employees] reports fetch failed:", reportErr.message);
+  const reportedExperienceIds = (reportRows ?? []).map((r: any) => r.experience_id as string);
+
   const { data: memberRows, error: memberErr } = await admin
     .from("ow_company_members")
     .select("user_id, display_consent, is_public")
@@ -202,6 +213,7 @@ export default async function EmployeesPage() {
         current={current}
         alumni={alumni}
         hiddenExperienceIds={hiddenExperienceIds}
+        reportedExperienceIds={reportedExperienceIds}
         companyName={ctx.tenantName ?? ""}
       />
     </BusinessLayout>

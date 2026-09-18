@@ -256,7 +256,7 @@ export async function searchCompanies(
   const liveObogCountMap: Record<string, number> = {};
 
   if (companyIds.length > 0) {
-    const [activeJobsResult, articlesResult, expResult, domainsResult] = await Promise.all([
+    const [activeJobsResult, articlesResult, expResult, hiddenResult, domainsResult] = await Promise.all([
       supabase
         .from("ow_jobs")
         .select("company_id, title, salary_min, salary_max")
@@ -268,9 +268,22 @@ export async function searchCompanies(
         .in("company_id", companyIds)
         .eq("is_published", true),
       // login_only ユーザーも集計に含めるため adminSupabase を使用（RLS バイパス）
+      /* ⚠️★`id`（経歴の id）を落とさないこと（2026-09-18 に追加）。
+            下で `ow_company_hidden_experiences` と突き合わせるのに要る。 */
       createAdminClient()
         .from("ow_experiences")
-        .select("company_id, user_id, is_current, ow_users!inner(id, auth_id, is_test, visibility)")
+        .select("id, company_id, user_id, is_current, ow_users!inner(id, auth_id, is_test, visibility)")
+        .in("company_id", companyIds),
+      /* ★運営が企業ページから外した経歴（2026-09-18 に追加）。
+         ⚠️★**これを見ないと、企業ページから外した人がカードの「現役社員 N名」に
+            残り続ける。** 企業ページ本体（`getCompanyEmployees`）は 2026-08-02 から
+            見ているのに、**一覧のカードだけが見ていなかった**
+            ——同じ人数が画面によって違う、という形の食い違い。
+         ⚠️ 実データは 2026-09-18 時点で **0行**なので、いまは結果が変わらない。
+            **0件だから足さない、ではない**（1行入った日に静かにズレる）。 */
+      createAdminClient()
+        .from("ow_company_hidden_experiences")
+        .select("experience_id")
         .in("company_id", companyIds),
       /* 事業領域。⚠️ N+1 にしない（表示企業ぶんを1クエリで引く）。
             並び順は display_order（主が1番）なので、そのまま出せば主が先頭に来る。 */
@@ -295,6 +308,16 @@ export async function searchCompanies(
       domainsMap[cid].push({ id: d.id, name: d.name, slug: d.slug, is_primary: !!row.is_primary });
     }
 
+    /* ⚠️ 握り潰さない。取得に失敗したら「非表示は0件」として数えることになり、
+          外したはずの人が人数に戻る。 */
+    if (hiddenResult.error) {
+      console.error("[getCompanies] 非表示経歴の取得に失敗:", hiddenResult.error.message);
+    }
+    const hiddenExperienceIds = new Set(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((hiddenResult.data ?? []) as any[]).map((r) => r.experience_id as string),
+    );
+
     // 集計: 企業ごとに現役 user_id セット / OB候補 user_id セットを構築
     const currentSets  = new Map<string, Set<string>>();
     const alumniSets   = new Map<string, Set<string>>();
@@ -302,6 +325,9 @@ export async function searchCompanies(
     for (const e of (expResult.data ?? []) as any[]) {
       const u = e.ow_users as { id: string; auth_id: string | null; is_test: boolean | null; visibility: string | null } | null;
       if (!u || u.is_test === true || u.visibility === "private") continue;
+      /* ★運営が外した経歴は数えない。⚠️ 人単位ではなく**経歴単位**で外す
+            （同じ人が同じ会社に複数の在籍期間を持つことがある）。 */
+      if (hiddenExperienceIds.has(e.id as string)) continue;
       /* ★本人が登録していない行（auth_id IS NULL）は人数に数えない。
             ⚠️ 「現役社員 N名」は OPINIO が外向きに言う数字なので、
                氏名が出ないカードでも母集合を一覧と揃える。理由は lib/users/registered.ts。 */

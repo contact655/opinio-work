@@ -149,8 +149,11 @@ export default function BusinessPricingPage() {
                     "企業ページの作成・公開",
                     "求人掲載（件数の上限なし）",
                     /* ⚠️ 「社員の登録」と書かない。企業は社員を登録できない。
-                          求職者が職歴にその企業を入れると自動で載り、企業側は
-                          非表示にできるだけ（/api/biz/hidden-experiences）。
+                          求職者が職歴にその企業を入れると自動で載る。
+                          ⚠️★**企業は自分で外すこともできない**（2026-09-18 / B7）。
+                             在籍していない人は運営に**報告**するだけで
+                             （POST /api/biz/member-reports）、外すかどうかは運営が判断する。
+                             それまでは `/api/biz/hidden-experiences` で企業が直接消せた。
                           企業が招くのは「話せる人」だけ（/api/biz/ambassador/invite）。 */
                     "社員・OB/OGの掲載（人数の上限なし）",
                     "応募の受付",

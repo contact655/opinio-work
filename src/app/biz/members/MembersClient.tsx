@@ -1390,7 +1390,13 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               letterSpacing: "-0.02em",
               margin: 0,
             }}>
-              チームメンバー
+              {/* ⚠️★**表示名は「チーム管理」に統一する**（2026-09-18）。
+                     サイドバー・`metadata.title` と同じ語にした。
+                     ここだけ「チームメンバー」で、3つの呼び名がずれていた。
+                  ⚠️★**URL は `/biz/members` のまま。変えない**（既存リンクが切れる）。
+                     コードの中で場所を指すときは `/biz/members`、
+                     画面に出す語は「チーム管理」。 */}
+              チーム管理
             </h1>
             <span style={{
               fontSize: 13, fontWeight: 600, letterSpacing: "0.08em",

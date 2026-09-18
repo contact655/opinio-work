@@ -2021,6 +2021,85 @@ export type Database = {
           },
         ]
       }
+      ow_company_member_reports: {
+        Row: {
+          company_id: string
+          experience_id: string
+          id: string
+          note: string | null
+          reason: string
+          reported_at: string
+          reported_by: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          company_id: string
+          experience_id: string
+          id?: string
+          note?: string | null
+          reason: string
+          reported_at?: string
+          reported_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          experience_id?: string
+          id?: string
+          note?: string | null
+          reason?: string
+          reported_at?: string
+          reported_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_member_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_member_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_company_member_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_member_reports_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_member_reports_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "ow_company_admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_member_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_members: {
         Row: {
           approved_at: string | null

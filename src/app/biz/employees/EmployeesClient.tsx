@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
+import { MEMBER_REPORT_REASONS, MEMBER_REPORT_NOTE_MAX, type MemberReportReason } from "@/lib/constants/memberReports";
 import type { BizEmployee } from "./page";
 
 type Props = {
   current: BizEmployee[];
   alumni: BizEmployee[];
-  /** 企業ページから非表示にしている経歴。**それぞれのタブの中に混ぜて出す** */
+  /** 運営が企業ページから外した経歴。**それぞれのタブの中に混ぜて出す** */
   hiddenExperienceIds: string[];
+  /** 運営に報告済み（未対応）の経歴。ボタンを「報告済み」にする */
+  reportedExperienceIds: string[];
   companyName: string;
 };
 
@@ -97,23 +100,29 @@ function RoleLine({ roleName, roleTitle }: { roleName: string | null; roleTitle:
 
 function EmployeeCard({
   emp,
-  onHide,
+  onReport,
   isPending,
+  reported,
 }: {
   emp: BizEmployee;
-  onHide: (experienceId: string) => void;
+  onReport: (experienceId: string, reason: MemberReportReason, note: string) => void;
   isPending: boolean;
+  /** 既に運営へ報告済み（未対応）か */
+  reported: boolean;
 }) {
-  const [confirming, setConfirming] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<MemberReportReason | "">("");
+  const [note, setNote] = useState("");
 
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 14,
+      display: "flex", flexDirection: "column",
       padding: "14px 18px",
       background: "#fff",
       border: "1px solid var(--line)",
       borderRadius: 10,
     }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
       {/* プロフィールリンク */}
       <Link href={`/u/${emp.userId}`} target="_blank" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
         <AvatarCircle name={emp.name} avatarUrl={emp.avatarUrl} />
@@ -173,39 +182,21 @@ function EmployeeCard({
         </svg>
       </Link>
 
-      {/* 非表示ボタン */}
+      {/* ★報告ボタン（2026-09-18 / B7）。
+          ⚠️★**押しても企業ページからは消えない。** 外すのは運営の判断。
+             2026-09-18 まではここが「非表示」で、企業が直接消していた。 */}
       <div style={{ flexShrink: 0, marginLeft: 8 }}>
-        {confirming ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>企業ページから非表示にしますか？</span>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => { onHide(emp.experienceId); setConfirming(false); }}
-              style={{
-                fontSize: 11, fontWeight: 700, padding: "4px 10px",
-                background: "var(--error)", color: "#fff",
-                border: "none", borderRadius: 6, cursor: "pointer",
-              }}
-            >
-              {isPending ? "処理中..." : "非表示にする"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              style={{
-                fontSize: 11, padding: "4px 10px",
-                background: "none", color: "var(--ink-soft)",
-                border: "1px solid var(--line)", borderRadius: 6, cursor: "pointer",
-              }}
-            >
-              キャンセル
-            </button>
-          </div>
+        {reported ? (
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
+            whiteSpace: "nowrap",
+          }}>
+            運営に報告済み
+          </span>
         ) : (
           <button
             type="button"
-            onClick={() => setConfirming(true)}
+            onClick={() => setOpen((v) => !v)}
             style={{
               fontSize: 11, fontWeight: 600, padding: "5px 10px",
               background: "none", color: "var(--ink-mute)",
@@ -213,23 +204,100 @@ function EmployeeCard({
               whiteSpace: "nowrap",
             }}
           >
-            非表示
+            {open ? "閉じる" : "在籍していない人として報告"}
           </button>
         )}
       </div>
+      </div>
+
+      {open && !reported && (
+        <div style={{
+          marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line-soft)",
+          display: "flex", flexDirection: "column", gap: 10,
+        }}>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            運営に報告します。<strong style={{ color: "var(--ink)" }}>この操作で企業ページからすぐに消えるわけではありません。</strong>
+            運営が確認のうえ判断します。本人のプロフィールは変わりません。
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {MEMBER_REPORT_REASONS.map((r) => (
+              <label key={r.value} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--ink)", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name={`report-reason-${emp.experienceId}`}
+                  checked={reason === r.value}
+                  onChange={() => setReason(r.value)}
+                  style={{ marginTop: 2, flexShrink: 0 }}
+                />
+                <span>
+                  {r.label}
+                  <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)" }}>{r.desc}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div>
+            <label htmlFor={`report-note-${emp.experienceId}`} style={{ display: "block", fontSize: 11, color: "var(--ink-soft)", marginBottom: 4 }}>
+              補足（任意・{MEMBER_REPORT_NOTE_MAX}文字まで）
+            </label>
+            <textarea
+              id={`report-note-${emp.experienceId}`}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={MEMBER_REPORT_NOTE_MAX}
+              rows={2}
+              placeholder="例: 2024年3月に退職しています／同姓同名の別の方のようです"
+              style={{
+                width: "100%", padding: "8px 10px", fontSize: 12, fontFamily: "inherit",
+                border: "1px solid var(--line)", borderRadius: 6, resize: "vertical",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              type="button"
+              disabled={isPending || reason === ""}
+              onClick={() => { if (reason !== "") { onReport(emp.experienceId, reason, note); setOpen(false); } }}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "6px 14px",
+                background: reason === "" ? "var(--line-soft)" : "var(--royal)",
+                color: reason === "" ? "var(--ink-mute)" : "#fff",
+                border: "none", borderRadius: 6,
+                cursor: reason === "" ? "not-allowed" : "pointer",
+              }}
+            >
+              {isPending ? "送信中..." : "報告する"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              style={{
+                fontSize: 12, padding: "6px 12px",
+                background: "none", color: "var(--ink-soft)",
+                border: "1px solid var(--line)", borderRadius: 6, cursor: "pointer",
+              }}
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function HiddenCard({
-  emp,
-  onUnhide,
-  isPending,
-}: {
-  emp: BizEmployee;
-  onUnhide: (experienceId: string) => void;
-  isPending: boolean;
-}) {
+/**
+ * 運営が企業ページから外した経歴。
+ *
+ * ⚠️★**表示は残し、操作だけ外す**（2026-09-18 / B7）。行ごと消すと、報告を出した企業が
+ *    **結果を確認できない**（「報告した」と「実際に外れた」は別の状態）。
+ * ⚠️★**「表示に戻す」を戻さないこと。** 企業側の書き込み経路は削除済みで、
+ *    押しても 404 になる。戻すのは運営の判断。
+ */
+function HiddenCard({ emp }: { emp: BizEmployee }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 14,
@@ -242,7 +310,7 @@ function HiddenCard({
       <AvatarCircle name={emp.name} avatarUrl={emp.avatarUrl} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)" }}>
             {emp.name ?? "名前未設定"}
           </span>
@@ -251,25 +319,15 @@ function HiddenCard({
             color: "var(--warm-ink)", background: "#FEF3C7", border: "1px solid #FDE68A",
             borderRadius: 4, padding: "1px 6px", fontFamily: "var(--font-inter), var(--font-noto)",
           }}>
-            非表示中
+            非表示中（運営）
           </span>
         </div>
         <RoleLine roleName={emp.roleName} roleTitle={emp.roleTitle} />
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          運営が企業ページから外しています。本人のプロフィールには変わらず表示されます。
+          戻すには <Link href="/business/contact" style={{ color: "var(--royal)", fontWeight: 600 }}>お問い合わせ</Link> ください。
+        </p>
       </div>
-
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={() => onUnhide(emp.experienceId)}
-        style={{
-          fontSize: 11, fontWeight: 600, padding: "5px 12px",
-          background: "#fff", color: "var(--success-ink)",
-          border: "1px solid #A7F3D0", borderRadius: 6, cursor: "pointer",
-          whiteSpace: "nowrap", flexShrink: 0,
-        }}
-      >
-        {isPending ? "処理中..." : "表示に戻す"}
-      </button>
     </div>
   );
 }
@@ -289,28 +347,33 @@ function EmptyState({ label }: { label: string }) {
   );
 }
 
-export function EmployeesClient({ current, alumni, hiddenExperienceIds, companyName }: Props) {
+export function EmployeesClient({ current, alumni, hiddenExperienceIds, reportedExperienceIds, companyName }: Props) {
   const [tab, setTab] = useState<Tab>("current");
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const hiddenIds = new Set(hiddenExperienceIds);
+  /* ⚠️ 送信直後は `router.refresh()` を待たずにボタンを「報告済み」にしたいので、
+        サーバーから来た集合にローカルぶんを足して持つ。 */
+  const [justReported, setJustReported] = useState<string[]>([]);
+  const reportedIds = new Set([...reportedExperienceIds, ...justReported]);
 
-  const handleHide = (experienceId: string) => {
+  const handleReport = (experienceId: string, reason: MemberReportReason, note: string) => {
+    setError(null);
     startTransition(async () => {
-      await fetch("/api/biz/hidden-experiences", {
+      const res = await fetch("/api/biz/member-reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ experience_id: experienceId }),
+        body: JSON.stringify({ experience_id: experienceId, reason, note }),
       });
-      router.refresh();
-    });
-  };
-
-  const handleUnhide = (experienceId: string) => {
-    startTransition(async () => {
-      await fetch(`/api/biz/hidden-experiences?experience_id=${experienceId}`, {
-        method: "DELETE",
-      });
+      /* ⚠️★**`res.ok` を見てから「報告済み」にすること。** 見ないと、失敗しても
+            画面だけが成功したように見える（2026-09-18 に規約同意で同じ形を直した）。 */
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.message ?? "報告を記録できませんでした。時間をおいて試してください。");
+        return;
+      }
+      setJustReported((prev) => [...prev, experienceId]);
       router.refresh();
     });
   };
@@ -330,9 +393,19 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, companyN
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
           {companyName}の企業ページに出ている人の一覧です。<br />
           本人がプロフィールの経歴でこの企業を選ぶと自動で反映されます。
-          <strong style={{ color: "var(--ink)" }}>企業側から追加することはできません。</strong>
+          <strong style={{ color: "var(--ink)" }}>企業側から追加・削除することはできません。</strong>
+          在籍していない人が出ている場合は、その行から運営に報告してください。
         </p>
       </div>
+
+      {error && (
+        <div role="alert" style={{
+          marginBottom: 16, padding: "10px 14px", background: "var(--error-soft, #FEF2F2)",
+          border: "1px solid #FECACA", borderRadius: 8, fontSize: 12, color: "var(--error, #B91C1C)",
+        }}>
+          {error}
+        </div>
+      )}
 
       {/* タブ（★2つだけ） */}
       <div style={{ display: "flex", gap: 0, borderBottom: "2px solid var(--line)", marginBottom: 20 }}>
@@ -378,18 +451,14 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, companyN
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {list.map((emp) => (
             hiddenIds.has(emp.experienceId) ? (
-              <HiddenCard
-                key={emp.experienceId}
-                emp={emp}
-                onUnhide={handleUnhide}
-                isPending={isPending}
-              />
+              <HiddenCard key={emp.experienceId} emp={emp} />
             ) : (
               <EmployeeCard
                 key={emp.experienceId}
                 emp={emp}
-                onHide={handleHide}
+                onReport={handleReport}
                 isPending={isPending}
+                reported={reportedIds.has(emp.experienceId)}
               />
             )
           ))}
