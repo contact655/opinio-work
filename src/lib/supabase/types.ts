@@ -4998,6 +4998,132 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_proposal_declines: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          proposal_id: string
+          reason: string
+          side: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          proposal_id: string
+          reason: string
+          side: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          proposal_id?: string
+          reason?: string
+          side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_proposal_declines_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ow_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_proposals: {
+        Row: {
+          candidate_responded_at: string | null
+          candidate_response: string | null
+          candidate_user_id: string
+          company_id: string
+          company_responded_at: string | null
+          company_response: string | null
+          computed_at: string
+          counter_evidence: Json
+          created_at: string
+          evidence: Json
+          id: string
+          job_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_responded_at?: string | null
+          candidate_response?: string | null
+          candidate_user_id: string
+          company_id: string
+          company_responded_at?: string | null
+          company_response?: string | null
+          computed_at?: string
+          counter_evidence: Json
+          created_at?: string
+          evidence: Json
+          id?: string
+          job_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_responded_at?: string | null
+          candidate_response?: string | null
+          candidate_user_id?: string
+          company_id?: string
+          company_responded_at?: string | null
+          company_response?: string | null
+          computed_at?: string
+          counter_evidence?: Json
+          created_at?: string
+          evidence?: Json
+          id?: string
+          job_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_proposals_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_proposals_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_job_performance"
+            referencedColumns: ["job_id"]
+          },
+          {
+            foreignKeyName: "ow_proposals_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_role_aliases: {
         Row: {
           alias: string
