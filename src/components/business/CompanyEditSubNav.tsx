@@ -8,6 +8,12 @@ export type CompanySubNavSection = {
   label: string;
   showStatus: boolean;
   hasDraft?: boolean;
+  /**
+   * ★そのタブに「対応が要ること」があるか（2026-09-18）。いまは掲載規約の未同意だけ。
+   * ⚠️ 下書きの有無（`hasDraft`）とは**別物**。あちらは「保存したが未公開」、
+   *    こちらは「このままだと公開できない」。**同じ印にしないこと。**
+   */
+  needsAttention?: boolean;
 };
 
 type Props = {
@@ -85,6 +91,18 @@ export function CompanyEditSubNav({
             )}
           </div>
         )}
+        {/* ★未同意のときだけ、どこへ行けばよいかを出す（2026-09-18）。
+               ⚠️★**同意済みの企業には出さない。** 常時出すとただのノイズになる。
+               ⚠️ 規約パネルは「設定」タブの奥にあるので、**タブ名まで書く。** */}
+        {isAdmin && !termsAgreed && (
+          <div style={{
+            padding: "8px 10px", borderRadius: 7,
+            background: "var(--warm-soft)", border: "1px solid #FDE68A",
+            fontSize: 11, lineHeight: 1.7, color: "var(--warm-ink)",
+          }}>
+            公開には掲載利用規約への同意が必要です（<strong>設定</strong>タブ）
+          </div>
+        )}
         {/* 変更を公開 */}
         {isAdmin && termsAgreed && (
           <button
@@ -142,6 +160,10 @@ export function CompanyEditSubNav({
               key={s.id}
               type="button"
               onClick={() => onSectionClick(s.id)}
+              /* ⚠️ 検証で状態を読むための属性。ラベル（「設定」など）で判定しない */
+              data-tab={s.id}
+              data-state={isActive ? "active" : "inactive"}
+              data-attention={s.needsAttention ? "true" : "false"}
               style={{
                 padding: "9px 20px",
                 fontSize: 12,
@@ -169,7 +191,22 @@ export function CompanyEditSubNav({
                 if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
               }}
             >
-              <span>{s.label}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {s.label}
+                {/* ★未対応の印（2026-09-18）。いまは掲載規約の未同意だけが立てる。
+                    ⚠️ 色だけで伝えない。`aria-label` と `title` を必ず付ける。 */}
+                {s.needsAttention && (
+                  <span
+                    role="img"
+                    aria-label="対応が必要です"
+                    title="対応が必要です"
+                    style={{
+                      width: 7, height: 7, borderRadius: "50%",
+                      background: "var(--warm-ink)", flexShrink: 0,
+                    }}
+                  />
+                )}
+              </span>
               {s.showStatus && s.hasDraft && (
                 <span style={{
                   fontFamily: "var(--font-inter), var(--font-noto)",

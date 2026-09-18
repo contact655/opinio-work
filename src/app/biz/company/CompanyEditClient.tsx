@@ -611,6 +611,11 @@ export function CompanyEditClient({
   const subNavSections: CompanySubNavSection[] = COMPANY_SECTIONS.map((s) => ({
     ...s,
     hasDraft: hasDraftChanges && s.showStatus,
+    /* ★掲載規約が未同意なら「設定」タブに●を出す（2026-09-18）。
+       ⚠️ 規約パネルをこのタブへ移したので、**印が無いと存在に気づけない**
+          （それまでは基本情報＝最初のタブに出ていた）。
+       ⚠️ 管理者以外は同意の操作ができないので出さない（押せない印を出さない）。 */
+    needsAttention: s.id === "settings" && isAdmin && !termsAgreed,
   }));
 
   const saveStatusText =
@@ -641,8 +646,23 @@ export function CompanyEditClient({
 
   // ── セクションレンダラー ──────────────────────────────────────────────────
 
+  /* ★タブを5つに畳んだので（2026-09-18）、**中身の単位はそのまま**残し、
+        タブ側で束ねる。`logo` は基本情報に、`workstyle` は数字・働き方に入る。
+     ⚠️ 中身ごと1つの case に貼り合わせない。**差分が読めなくなる**し、
+        将来また分けるときに戻せない。 */
+  type PanelId = CompanySectionId | "logo" | "workstyle";
+
   function renderSection() {
     switch (activeSection) {
+      /* ⚠️ 並び順が画面の並び。ロゴは基本情報の**後ろ**（会社名より先に出さない） */
+      case "basic": return <>{renderPanel("basic")}{renderPanel("logo")}</>;
+      case "data":  return <>{renderPanel("data")}{renderPanel("workstyle")}</>;
+      default:      return renderPanel(activeSection);
+    }
+  }
+
+  function renderPanel(panel: PanelId) {
+    switch (panel) {
 
       case "logo":
         return (
@@ -789,76 +809,6 @@ export function CompanyEditClient({
               </FormGroup>
             </SectionCard>
 
-            {/* 規約同意 */}
-            {!termsAgreed ? (
-              <div style={{
-                marginTop: 24, padding: "24px 28px",
-                background: "var(--warm-soft)", border: "1px solid #FDE68A",
-                borderRadius: 12,
-              }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-                  掲載利用規約への同意
-                </p>
-                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.8 }}>
-                  OPINIOに企業情報を掲載するには、
-                  <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
-                    掲載利用規約
-                  </a>
-                  への同意が必要です。規約の全文を確認の上、同意してください。
-                  {/* ⚠️★**成功報酬（人材紹介）の案内は外した**（2026-09-05）。**戻さないこと。**
-                         「スカウト・紹介機能を使うときに人材紹介利用規約への同意をお願いします」と
-                         書いていたが、**その同意はもう求めていない**（同日にスカウト側の
-                         ゲートを外した）。事実でなくなるので消した。
-
-                      ⚠️ OPINIO は職安法4条6項の募集情報等提供に該当するサービスで、
-                         あっせんを行わない（掲載利用規約 第6条1項）。月額プランのみで、
-                         成功報酬は発生しない。会社（株式会社Opinio）は人材紹介事業も
-                         行っているが、**それは別契約で、このプロダクトの対象外**。 */}
-                </p>
-                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 16 }}>
-                  <input
-                    type="checkbox"
-                    checked={termsChecked}
-                    onChange={(e) => setTermsChecked(e.target.checked)}
-                    style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer" }}
-                  />
-                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
-                    <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載利用規約</a>
-                    の全文を読み、内容に同意します。
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAgreeAndContinue}
-                  disabled={!termsChecked || isRecordingAgreement}
-                  style={{
-                    background: termsChecked ? "var(--royal)" : "var(--line)",
-                    color: termsChecked ? "#fff" : "var(--ink-mute)",
-                    border: "none", borderRadius: 8,
-                    padding: "10px 20px", fontSize: 14, fontWeight: 600,
-                    cursor: termsChecked ? "pointer" : "not-allowed",
-                  }}
-                >
-                  {isRecordingAgreement ? "記録中..." : "同意して続ける"}
-                </button>
-              </div>
-            ) : (
-              <div style={{
-                marginTop: 16, padding: "12px 16px",
-                background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                borderRadius: 10, display: "flex", alignItems: "center", gap: 10,
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span style={{ fontSize: 13, color: "var(--success-ink)", fontWeight: 600 }}>
-                  掲載利用規約に同意済み
-                </span>
-                <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-soft)", textDecoration: "underline" }}>
-                  規約全文を確認する →
-                </a>
-              </div>
-            )}
           </>
         );
 
@@ -959,7 +909,7 @@ export function CompanyEditClient({
         return (
           <>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.9 }}>
-              求職者側の「数値で見る企業」セクションに表示されます。入力後「数値を保存・公開する」ボタンを押すと、求職者側に更新日時が表示されます。
+              求職者側の「数値で見る企業」セクションに表示されます。
             </p>
             {/* 回答状態バー */}
             <div style={{
@@ -994,9 +944,17 @@ export function CompanyEditClient({
                   opacity: isRegisteringNumbers ? 0.6 : 1,
                 }}
               >
-                {isRegisteringNumbers ? "登録中..." : "数値を保存・公開する"}
+                {isRegisteringNumbers ? "更新中..." : "数値を最新として公開する"}
               </button>
             </div>
+            {/* ⚠️★このボタンは**数値を保存しない。** 保存は他の項目と同じ自動保存で、
+                   ここが押すのは `PATCH { action: "update_numbers_timestamp" }` ——
+                   **更新日時のスタンプだけ**。だから文言を「保存・公開」から
+                   「最新として公開」に変えた（2026-09-18）。
+                ⚠️ 「保存」に戻さないこと。押さないと保存されないと読まれる。 */}
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "-14px 0 24px", lineHeight: 1.8 }}>
+              求職者側に更新日時が表示されます。
+            </p>
             <SectionCard title="基本情報">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
@@ -1045,20 +1003,9 @@ export function CompanyEditClient({
                 </FormHint>
               </FormGroup>
             </SectionCard>
-            <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                onClick={handleRegisterNumbers}
-                disabled={isRegisteringNumbers}
-                style={{
-                  padding: "10px 24px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-                  background: "var(--royal)", color: "#fff", border: "none", cursor: "pointer",
-                  opacity: isRegisteringNumbers ? 0.6 : 1,
-                }}
-              >
-                {isRegisteringNumbers ? "登録中..." : "✓ 数値を保存・公開する"}
-              </button>
-            </div>
+            {/* ⚠️★ここにあった2つ目の「数値を保存・公開する」は 2026-09-18 に削除した。
+                   **上の回答状態バーのボタンと同じ `handleRegisterNumbers` を呼ぶ複製**で、
+                   同じ画面に同じ操作が2つある状態だった。**戻さないこと。** */}
           </>
         );
 
@@ -1110,6 +1057,84 @@ export function CompanyEditClient({
       case "settings":
         return (
           <>
+            {/* ★掲載規約の同意は 2026-09-18 にここへ移した（基本情報タブから）。
+                   ⚠️★**未同意だと「変更を公開する」がそもそも描画されない**
+                      （`CompanyEditSubNav` が `termsAgreed` で出し分ける）。
+                      タブの奥に移した以上、**気づける導線が3つ要る**:
+                        ① サブナビの「設定」に未同意バッジ（●）
+                        ② 「変更を公開する」の近くの一言（未同意のときだけ）
+                        ③ 右上の固定バナー（押すとこのタブへ来る）
+                      **どれかを消すなら、残りで気づけるかを確かめてから。** */}
+            {/* 規約同意 */}
+            {!termsAgreed ? (
+              <div style={{
+                marginTop: 24, padding: "24px 28px",
+                background: "var(--warm-soft)", border: "1px solid #FDE68A",
+                borderRadius: 12,
+              }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+                  掲載利用規約への同意
+                </p>
+                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.8 }}>
+                  OPINIOに企業情報を掲載するには、
+                  <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
+                    掲載利用規約
+                  </a>
+                  への同意が必要です。規約の全文を確認の上、同意してください。
+                  {/* ⚠️★**成功報酬（人材紹介）の案内は外した**（2026-09-05）。**戻さないこと。**
+                         「スカウト・紹介機能を使うときに人材紹介利用規約への同意をお願いします」と
+                         書いていたが、**その同意はもう求めていない**（同日にスカウト側の
+                         ゲートを外した）。事実でなくなるので消した。
+
+                      ⚠️ OPINIO は職安法4条6項の募集情報等提供に該当するサービスで、
+                         あっせんを行わない（掲載利用規約 第6条1項）。月額プランのみで、
+                         成功報酬は発生しない。会社（株式会社Opinio）は人材紹介事業も
+                         行っているが、**それは別契約で、このプロダクトの対象外**。 */}
+                </p>
+                <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 16 }}>
+                  <input
+                    type="checkbox"
+                    checked={termsChecked}
+                    onChange={(e) => setTermsChecked(e.target.checked)}
+                    style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer" }}
+                  />
+                  <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
+                    <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline" }}>掲載利用規約</a>
+                    の全文を読み、内容に同意します。
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAgreeAndContinue}
+                  disabled={!termsChecked || isRecordingAgreement}
+                  style={{
+                    background: termsChecked ? "var(--royal)" : "var(--line)",
+                    color: termsChecked ? "#fff" : "var(--ink-mute)",
+                    border: "none", borderRadius: 8,
+                    padding: "10px 20px", fontSize: 14, fontWeight: 600,
+                    cursor: termsChecked ? "pointer" : "not-allowed",
+                  }}
+                >
+                  {isRecordingAgreement ? "記録中..." : "同意して続ける"}
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                marginTop: 16, padding: "12px 16px",
+                background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                borderRadius: 10, display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span style={{ fontSize: 13, color: "var(--success-ink)", fontWeight: 600 }}>
+                  掲載利用規約に同意済み
+                </span>
+                <a href="/terms/listing" target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-soft)", textDecoration: "underline" }}>
+                  規約全文を確認する →
+                </a>
+              </div>
+            )}
             <SectionCard title="掲載状態">
               {/* ★★企業側の掲載スイッチは 2026-09-18 に撤去した（柴さんの指示）。
                      **状態の表示だけ**にしてある。
@@ -1256,7 +1281,8 @@ export function CompanyEditClient({
       {isAdmin && !termsAgreed && (
         <button
           type="button"
-          onClick={() => setActiveSection("basic")}
+          /* ⚠️ 規約同意は 2026-09-18 に「設定」タブへ移した。ここも同時に変えること */
+          onClick={() => setActiveSection("settings")}
           style={{
             position: "fixed",
             top: 16,

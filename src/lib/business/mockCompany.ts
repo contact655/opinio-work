@@ -84,15 +84,22 @@ export type BizCompany = {
 };
 
 
-// セクション定義
+/* セクション定義。★**2026-09-18 に 7 → 5 に畳んだ**（柴さんの指示）。
+      ・ロゴ設定 → **基本情報**に統合（1項目しか無く、タブを1つ占めていた）
+      ・働き方   → **数字・働き方**に統合（どちらも「数字で見る企業」に出る）
+      ・公開設定 → **設定**に改名し、掲載規約の同意をここへ移した
+
+   ⚠️★**`id` は変えていない。** 画面のラベルだけ変えた。id を変えると
+      `CompanySectionId` を持つ全箇所（サブナビ・完成度スコアの導線）が芋づるになる。
+      ⚠️ 消した `logo` / `workstyle` は**表示の単位としては残っている**
+         （`CompanyEditClient` の `renderPanel` が内部の id として使う）。
+   ⚠️ タブの deep link は無い（`activeSection` はローカル state）。 */
 export const COMPANY_SECTIONS = [
-  { id: "basic",     label: "基本情報",     showStatus: true },
-  { id: "logo",      label: "ロゴ設定",     showStatus: true },
-  { id: "about",     label: "About",        showStatus: true },
-  { id: "data",      label: "数値データ",   showStatus: true },
-  { id: "workstyle", label: "働き方",       showStatus: true },
-{ id: "photos",    label: "オフィス写真", showStatus: true },
-  { id: "settings",  label: "公開設定",     showStatus: false },
+  { id: "basic",    label: "基本情報",   showStatus: true },
+  { id: "about",    label: "会社紹介",   showStatus: true },
+  { id: "data",     label: "数字・働き方", showStatus: true },
+  { id: "photos",   label: "写真",       showStatus: true },
+  { id: "settings", label: "設定",       showStatus: false },
 ] as const;
 
 export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];

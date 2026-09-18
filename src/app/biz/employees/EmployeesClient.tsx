@@ -185,7 +185,10 @@ function EmployeeCard({
       {/* ★報告ボタン（2026-09-18 / B7）。
           ⚠️★**押しても企業ページからは消えない。** 外すのは運営の判断。
              2026-09-18 まではここが「非表示」で、企業が直接消していた。 */}
-      <div style={{ flexShrink: 0, marginLeft: 8 }}>
+      {/* ⚠️★`data-state` は**検証で状態を読むためだけ**の属性（2026-09-18）。
+             ボタンの文言で状態を判定すると、「対応済みにする」が「対応済み」に
+             部分一致して読み違える（実際に踏んだ）。**装飾には使わない。** */}
+      <div data-state={reported ? "reported" : "reportable"} style={{ flexShrink: 0, marginLeft: 8 }}>
         {reported ? (
           <span style={{
             fontSize: 11, fontWeight: 600, color: "var(--ink-mute)",
@@ -299,7 +302,7 @@ function EmployeeCard({
  */
 function HiddenCard({ emp }: { emp: BizEmployee }) {
   return (
-    <div style={{
+    <div data-state="hidden-by-ops" style={{
       display: "flex", alignItems: "center", gap: 14,
       padding: "14px 18px",
       background: "var(--bg-tint)",
@@ -416,6 +419,8 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, reported
           <button
             key={key}
             type="button"
+            data-tab={key}
+            data-state={tab === key ? "active" : "inactive"}
             onClick={() => setTab(key)}
             style={{
               padding: "10px 20px", background: "none", border: "none",

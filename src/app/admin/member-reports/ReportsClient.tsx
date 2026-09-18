@@ -87,7 +87,14 @@ export function ReportsClient({ rows }: { rows: MemberReportRow[] }) {
         {rows.map((r) => {
           const open = r.resolvedAt === null;
           return (
-            <div key={r.id} style={{
+            /* ⚠️★`data-*` は検証で状態を読むためだけの属性（2026-09-18）。
+                  ボタン名（「対応済みにする」）への部分一致で判定すると読み違える。 */
+            <div
+              key={r.id}
+              data-report-id={r.id}
+              data-state={open ? "open" : "resolved"}
+              data-hidden={r.hidden ? "true" : "false"}
+              style={{
               padding: "14px 16px", borderRadius: 10, background: "#fff",
               border: `1px solid ${open ? "#FDE68A" : "var(--line)"}`,
               opacity: open ? 1 : 0.7,
