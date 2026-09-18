@@ -107,7 +107,7 @@ export default async function AmbassadorRequestsPage() {
              文言を狭くすると「自分がONにした人だけの一覧」と読まれ、
              **残り4名を誰も見に来なくなる。** */}
       <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)" }}>企業ページに「話を聞けます」と出ている人</strong>のうち、
+        <strong style={{ color: "var(--ink)" }}>企業ページに「面談OK」と出ている人</strong>のうち、
         <strong style={{ color: "var(--ink)" }}>企業も運営も確認した記録が無い人</strong>です。
         （企業の掲載・求人の掲載とは別物）<strong style={{ color: "var(--ink)" }}>未確認が上に並びます。</strong>
       </p>

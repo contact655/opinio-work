@@ -516,7 +516,7 @@ export default function IntentCard({
                 }}
               >
                 <span style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
-                  面談対応可能
+                  面談OK
                 </span>
                 <span style={{ fontSize: SUB_SIZE, fontWeight: 700, color: "var(--royal)", flexShrink: 0 }}>
                   確認する →
@@ -524,12 +524,17 @@ export default function IntentCard({
               </a>
             ) : (
               <ToggleRow
-                /* ⚠️★ラベルは 2026-09-12 に「話を聞かれてもよい」→「面談対応可能」に変えた
-                      （柴さんの指示）。**本人の `/mypage` のこのトグルだけ。**
-                   ⚠️★訪問者向けの「話を聞けます」（`/people` のバッジ・企業ページの社員カード・
-                      `/u/[id]` のピル）と「この会社の話を聞ける人」は**変えない**。
-                   ⚠️ 招待メール・`ambassador-invite` の着地ページは今回は変えていない。 */
-                label="面談対応可能"
+                /* ⚠️★ラベルは **2026-09-18 に「面談OK」へ統一した**（柴さんの指示）。
+                      経緯: 「話を聞かれてもよい」→ 2026-09-12「面談対応可能」→ 2026-09-18「面談OK」。
+                   ⚠️★**今度は全部そろえてある。** 本人の `/mypage`・訪問者向けのバッジ・
+                      企業ページの社員カード・`/u/[id]`・招待メール・`ambassador-invite` の
+                      着地ページ・`/biz/members`・`/admin` のすべてが「面談OK」。
+                      **一部だけ別の語に戻さないこと。**
+                   ⚠️ 語を変えるときは `面談OK` を grep して**画面に出る全箇所**を数えること
+                      （過去2回、片方だけ残して同じ設定が2つの名前で呼ばれた）。
+                   ⚠️ **「話を聞く（カジュアル面談）」は動作なので変えていない。**
+                      あれは申し込むボタンで、状態のラベルではない。 */
+                label="面談OK"
                 on={talkOn}
                 busy={memberBusyId === TALK_BUSY_ID}
                 /* ⚠️ 在籍中の会社が1社も無いときは**ONにできない**（RLS の在籍チェックに
@@ -537,7 +542,7 @@ export default function IntentCard({
                 disabled={!talkOn && currentCompanies.length === 0}
                 /* ⚠️ 読み上げも画面と同じ語にする（2026-09-12）。片方だけ残すと
                       スクリーンリーダーにだけ古い語が読まれる。 */
-                ariaLabel="現職で面談対応可能"
+                ariaLabel="現職で面談OK"
                 onToggle={() => { void runTalk(!talkOn); }}
               />
             )}
@@ -675,18 +680,18 @@ export default function IntentCard({
                「話を聞かれてもよい」は在籍中の会社が無い人には出ないので、
                その場合は次の「転職について」が先頭になる。
             ⚠️★**ラベルはカードのトグルと同じ語にすること**（2026-08-28 に揃えた）。
-               カードを「話を聞かれてもよい」に変えたとき**ここだけ旧ラベルが残り**、
-               同じ設定が2つの名前で呼ばれていた。片方だけ変えないこと。
-            ⚠️★**2026-09-12 に同じことを繰り返した。** カード側を「面談対応可能」に変えた
-               コミットで**ここだけ旧ラベルが残っていた**（同日中に直した）。
-               注記があっても防げていない。**次に語を変えるときは必ず両方を grep すること。** */}
+               カードを変えたとき**ここだけ旧ラベルが残り**、同じ設定が2つの名前で
+               呼ばれていた。片方だけ変えないこと。
+            ⚠️★**2026-09-12 に同じことを繰り返した**（カード側だけ変えて、ここが残った）。
+               **2026-09-18 に「面談OK」へ統一したときは両方直してある。**
+               注記があっても2回防げていない。**次に語を変えるときは必ず両方を grep すること。** */}
         {memberRows.length > 0 && (
-          <CollapsibleRow first label="面談対応可能" state={
+          <CollapsibleRow first label="面談OK" state={
             memberRows.some(({ m }) => memberState(m) === "listed") ? "ON" : "OFF"
           }>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
               ONにすると、<strong style={{ color: "var(--ink)" }}>在籍している会社すべて</strong>のページに
-              「話を聞ける人」として出ます。
+              「面談OK」として出ます。
               仕事の内容や社内の様子について、転職を考えている人から聞かれる側になります。
               選考の面談ではありません。
               <br />

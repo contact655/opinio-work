@@ -100,7 +100,7 @@ export default function AmbassadorWidget({
              ⚠️ 社員カードのバッジ（CompanyEmployeeSections）と揃えること。出所は同じ。
              ⚠️ 文言は暫定。確定はこれから。 */}
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
-        💬 この会社の話を聞ける人
+        💬 この会社で面談OKの人
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 10 }}>

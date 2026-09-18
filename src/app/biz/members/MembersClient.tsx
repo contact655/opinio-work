@@ -1674,7 +1674,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             </div>
             {/* ⚠️ 在籍確認をしていないことを企業にも書く。**画面ごとに言い方を変えない。** */}
             <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-              本人が「話を聞かれてもよい」をONにすると、貴社のページに掲載されます。
+              本人が「面談OK」をONにすると、貴社のページに掲載されます。
               在籍は本人の申告で、OPINIO は在籍確認を行っていません。
               <strong style={{ color: "var(--ink)" }}>掲載を止めたいときは公開トグルを切ってください。</strong>
             </p>

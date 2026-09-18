@@ -216,14 +216,14 @@ export default function MeetingCtaPreview() {
       ))}
 
       <div style={{ marginTop: 8, padding: "16px 18px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>参考 ── 同じ画面に出る「話を聞けます」バッジ</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>参考 ── 同じ画面に出る「面談OK」バッジ</div>
         <span style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           fontSize: 13, fontWeight: 700, padding: "4px 11px", borderRadius: 100,
           background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA", whiteSpace: "nowrap",
         }}>
           <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-          話を聞けます
+          面談OK
         </span>
         <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.9 }}>
           こちらは <strong style={{ color: "var(--ink)" }}>#C2410C on #FFF7ED = 4.88</strong> で基準を満たしています。

@@ -484,10 +484,12 @@ export function newCompanyAdminTemplate(params: {
   };
 }
 
-// ── 「話を聞かれてもよい」への招待（本人宛）───────────────────────────────────
+// ── 「面談OK」への招待（本人宛）─────────────────────────────────────────────
 /* ⚠️ 本人が受け取る文面なので、/mypage・/people と同じ語彙にする（2026-08-23 / B-1）。
       「面談対応者」は**企業・運営向けの語**。本人宛には出さない。
-   ⚠️ /biz・/admin 側の「面談対応者」「面談受付中」は変えないこと（確定済み）。 */
+   ⚠️ /biz・/admin 側の「面談対応者」「面談受付中」は変えないこと（確定済み）。
+   ⚠️★**状態のラベルは 2026-09-18 に「面談OK」へ統一した。**
+      本人宛・企業宛・運営画面のすべてが同じ語。**一部だけ戻さないこと。** */
 export function ambassadorInviteTemplate(params: {
   to: string;
   userName: string;
@@ -502,10 +504,10 @@ export function ambassadorInviteTemplate(params: {
     to: params.to,
     subject: `【OPINIO】${esc(params.companyName)} の話を聞く相手として招待されています`,
     html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞かれてもよいか、確認させてください</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談OKとして掲載してよいか、確認させてください</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
-        あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
+        あなたを「この会社で面談OKの人」として掲載したいという申請がありました。
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">企業名</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
@@ -513,7 +515,7 @@ export function ambassadorInviteTemplate(params: {
       </table>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         掲載されると:<br>
-        ・OPINIOに「この会社の話を聞ける人」としてプロフィールが表示されます<br>
+        ・OPINIOに「この会社で面談OKの人」としてプロフィールが表示されます<br>
         ・転職を検討している方から、カジュアル面談の申込みが届きます<br>
         ・あなたの氏名・役職・所属企業が公開されます
       </p>
@@ -672,11 +674,11 @@ export function ambassadorRequestTemplate(params: {
           ⚠️ 企業がすることは「外したい場合に外す」だけ。だから件名も本文も
              お願いではなく**お知らせ**にしてある。 */
     subject: opsSubject(
-      `【OPINIO】${esc(params.companyName)}の社員の方が「話を聞かれてもよい」を有効にしました`,
+      `【OPINIO】${esc(params.companyName)}の社員の方が「面談OK」を有効にしました`,
       params.viaOps === true,
     ),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">「話を聞かれてもよい」が有効になりました</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">「面談OK」が有効になりました</h2>
       <p style="margin:0 0 20px;color:#475569">
         <strong style="color:#0f172a">${esc(params.companyName)}</strong> に在籍していると申告している方が、
         転職を検討している方の相談に応じてもよい、と設定しました。
@@ -728,7 +730,7 @@ export function ambassadorApprovedTemplate(params: {
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞く相手として掲載されました</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>のページに、
-        「話を聞かれてもよい」の登録が掲載されました。
+        「面談OK」の登録が掲載されました。
       </p>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         これから起きること:<br>
@@ -768,7 +770,7 @@ export function ambassadorDismissedTemplate(params: {
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">会社のページに出なくなりました</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>のページでの
-        「話を聞かれてもよい」の登録が取り消され、ページに出なくなりました。
+        「面談OK」の登録が取り消され、ページに出なくなりました。
       </p>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         取り消しは会社または OPINIO の判断によるもので、
