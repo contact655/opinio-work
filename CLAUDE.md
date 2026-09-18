@@ -4175,50 +4175,44 @@ END IF;
 ⚠️ **CLAUDE.md に警告があっても防げなかった**（`can_send_scout` が1本すり抜けた）。
    **文章では防げない。** 実データで数えること。
 
-### ★実例: `guard_member_consent` は本人を弾いている（2026-08-23 実測）
+### ⚠️★スナップショットに入れてよいのは**事実だけ**。人称・敬称・呼びかけは画面側が持つ（2026-09-18 確立）
 
-**トリガーにも同じ取り違えがある。関数だけを探しても見つからない。**
+**保存した文面は、誰に見せるかを選べない。**
 
-`ow_company_members` の `guard_member_consent`（BEFORE UPDATE）は
-「同意を変えられるのは本人だけ」を意図しているが、比較が
+`ow_proposals.evidence`（根拠つき提案②⑨）は**作成時のスナップショット**で、
+1つしか保存できない。当初これを「あなたと同じ職種から」（求職者向け）で作っていたため、
+**同じ行を読む企業側の画面に「あなたと同じ職種から」と表示されていた。**
 
-```sql
-if new.user_id <> auth.uid() then   -- ow_users.id  <>  auth.users.id
-```
+→ **ラベルから人称を外した。** 事実に人称は無い
+   （「アカウントエグゼクティブから、A社へ 3人が移っています」）。
+   **誰の話かは画面側の見出しと導入文が担う。**
 
-で、**空間が違うので決して一致しない**（FK で確認: `ow_company_members.user_id`
-→ `ow_users.id` / `ow_user_roles.user_id` → `auth.users.id`）。
-結果、**運営admin だけが通り、本人は自分の同意を変えられない。**
+⚠️★**同じ間違いは⑤⑨⑥でも起きる。** 保存する文面を作るときは、
+   「この文は両方の読み手に出しても成り立つか」を先に確かめること。
+   成り立たないなら、**保存するのは事実（数値と ID）だけにして、文は読む側で組む。**
 
-実測（本人のセッションで `display_consent` を true にしようとした）:
+⚠️ 「表示のたびに再計算しない」と矛盾しない。**固定するのは数値**であって、
+   その数値から文を組み直すのは再計算ではない。
 
-```
-エラー P0003: 面談対応者の公開同意は、本人のみが変更できます
-```
+### ✅ かつてここにあった「既知の不具合」2件は、どちらも修正済み（2026-09-18 に確認）
 
-⚠️ **RLS は正しい**（`own_member_consent` は `user_id = auth_ow_user_id()`）。
-   ポリシーを読んで「本人は書ける」と判断すると誤る。**トリガーまで見ること。**
+**この節には 2026-08-23 から次の2件が「未修正の実例」として載っていたが、
+実測したところ**どちらも既に直っていた**ので記述を削除した。**
 
-⚠️ いま実害が出ていないのは、この分岐に到達する生きた経路が無いため。
-   `POST /api/biz/ambassador/self-register` の Step 2 が唯一の呼び出し元だが、
-   **Step 1 の INSERT が先に落ちる**（下記）。
-   ⚠️ **本人が同意する経路を新しく作ると、その日に踏む。** 直すのは別タスク。
+| 何 | いまの状態 |
+|---|---|
+| `guard_member_consent` が `auth.uid()`（auth 空間）と `ow_company_members.user_id`（ow_users 空間）を比べていて**本人を弾く** | ✅ **直っている。** 本番の関数定義は `public.auth_ow_user_id()` と比較しており空間が揃っている。`service_role` の素通しと運営 admin の例外も入っている |
+| `POST /api/biz/ambassador/self-register` が `display_consent:false, is_public:true` を入れようとして `check_public_requires_consent` に弾かれ**必ず 500** | ✅ **直っている**（`330f6d20`）。いまは `display_consent: true, is_public: true` を入れる。経緯のコメントもルートに残っている |
 
-### ★実例: `/api/biz/ambassador/self-register` は CHECK 制約で必ず 500（2026-08-23 実測）
+⚠️★**「この2件はセットで直す必要がある」という記述も無効。** 両方とも直っている。
 
-企業の管理者が「自分も面談対応者になる」を押すと**必ず失敗する**。
+⚠️ **教訓のほうは消していない。** 上の①〜③（引数名で空間を示す／実行時に落とす／
+   1つの関数で両方の空間を混ぜない）と、下の④（関数を消す前に本文まで検索する）は
+   そのまま生きている。**消したのは「いま壊れている」という事実の記述だけ。**
 
-```
-[ambassador self-register] insert: new row for relation "ow_company_members"
-  violates check constraint "check_public_requires_consent"
-```
-
-INSERT が `display_consent: false, is_public: true` を入れようとするが、
-`check_public_requires_consent` は `is_public = false OR display_consent = true` を要求する。
-**RLS の「INSERT は display_consent=false のみ許可」に合わせた実装が、CHECK と矛盾している。**
-
-⚠️ 行は残らない（INSERT ごと落ちる）ので、データは汚れていない。
-⚠️ 上のトリガーの件と**別の不具合**。混同しないこと。修正は別タスク。
+⚠️★**記述が実装より古くなる**のはこのファイルで繰り返し起きている
+   （オンボーディングの画面数を2回、`main_products` の説明文を1回）。
+   **「既知の不具合」を読んだら、直しに行く前にまず現物を確かめること。**
 
 ### ④ 関数を消す前に、**本文まで検索する**
 
