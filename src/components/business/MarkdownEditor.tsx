@@ -158,21 +158,10 @@ export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }
         />
       </div>
 
-      {/* ヘルプ */}
-      <div style={{
-        padding: "8px 16px",
-        background: "var(--bg-tint)",
-        borderTop: "1px solid var(--line)",
-        fontSize: 10,
-        color: "var(--ink-mute)",
-        lineHeight: 1.6,
-      }}>
-        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>##</code>{" "}
-        見出し2 ·{" "}
-        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>**太字**</code> ·{" "}
-        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>- リスト</code> ·{" "}
-        <code style={{ fontFamily: "var(--font-inter), var(--font-noto)", background: "#fff", padding: "1px 6px", borderRadius: 3, border: "1px solid var(--line)", color: "var(--royal)", fontWeight: 600 }}>&gt; 引用</code>
-      </div>
+      {/* ★下部の記法ヒントは 2026-09-18 に削除した（柴さんの指示）。
+             ⚠️★**戻さないこと。** 上部のツールバー（TOOLBAR）は**実際に記法を挿入する**ので、
+                同じことを2通りで案内していた。ヒントは押せないぶん役割が弱い。
+             ⚠️ 保存形式（Markdown）は変えていない。求職者側の表示も変わらない。 */}
     </div>
   );
 }
