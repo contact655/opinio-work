@@ -1,12 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne, mutateAllowNone } from "@/lib/supabase/mutate";
-import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
-import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { isValidIndustry } from "@/lib/search/industryGroups";
@@ -71,19 +68,38 @@ export async function PUT(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
-// PATCH /api/biz/company — 「変更を公開する」（draft_data → 本番カラム展開 + is_published=true）
-// または { action: "update_numbers_timestamp" } で numbers_updated_at を now() に更新
+// PATCH /api/biz/company
+//   { action: "publish_draft" }             … draft_data を本番カラムへ展開する（「変更を公開する」）
+//   { action: "update_numbers_timestamp" }  … numbers_updated_at を now() に更新
+//
+// ⚠️★**掲載（is_published / listing_status）はここでは動かない**（2026-09-18 に分離）。
+//    それまでは `{ isPublished: true }` の**1リクエストが両方**を駆動していた。
+//    掲載の管理は運営（/admin/companies の updateIsPublished / updateListingStatus）だけ。
 export async function PATCH(req: Request) {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { isPublished?: boolean; action?: string };
+  let body: { action?: string; isPublished?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  /* ★★掲載の切り替えは企業側から取り上げた（2026-09-18 / 柴さんの指示）。
+     ⚠️★**`isPublished` を受け付けない。** 掲載（`is_published` / `listing_status`）の
+        管理は運営（`/admin/companies`）だけが行う。
+     ⚠️★**黙って無視しないこと。** 無視すると「押したのに変わらない」になり、
+        呼び出し側が気づけない。**400 で明示的に断る。**
+     ⚠️★**このチェックを消して `isPublished` を復活させないこと。** 復活させるなら
+        `checkPublishable`（掲載規約の同意を含む）を必ず通す形に戻すこと。 */
+  if ("isPublished" in body) {
+    return NextResponse.json(
+      { error: "PUBLISH_NOT_ALLOWED", message: "掲載の切り替えは運営が行います。" },
+      { status: 400 },
+    );
   }
 
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
@@ -123,8 +139,8 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  // 未承認の企業は公開不可
-  if (body.isPublished && !currentRow?.is_approved) {
+  // 未承認の企業は下書きを公開できない
+  if (!currentRow?.is_approved) {
     return NextResponse.json({ error: "Not approved by admin yet" }, { status: 403 });
   }
 
@@ -152,7 +168,10 @@ export async function PATCH(req: Request) {
         これまで掲載規約のゲートは `CompanyEditSubNav` のボタン出し分け（UI）だけで、
         API を直接叩けば未同意でも公開できていた。
      ⚠️ 取り下げ（isPublished=false）は常に通す。 */
-  if (body.isPublished) {
+  /* ⚠️★**このゲートを消さないこと**（2026-09-18 に条件だけ付け替えた）。
+        分離前は `isPublished` に掛かっていた。いまは**下書きを本番列へ展開する一手**に掛ける
+        —— 掲載中の企業でも、ここを通ると求職者に見える内容が変わるため。 */
+  {
     const gate = await checkPublishable(companyId, { kind: "company", authUserId: user.id });
     if (!gate.ok) {
       return NextResponse.json({ error: publishBlockedMessage(gate.missing) }, { status: 400 });
@@ -242,12 +261,10 @@ export async function PATCH(req: Request) {
       careers_url:              s(d.careers_url),
       funding_total:            s(d.funding_total),
       work_time_system:         s(d.work_time_system),
-      is_published:             body.isPublished ?? false,
-      /* ⚠️ 企業側の「公開する」は**2軸を同時に**動かす。
-            2026-08-12 に is_published（詳細ページ）と listing_status（ディレクトリ）を
-            分離したが、**企業側の体験と意味は変えない**。
-            ディレクトリだけ下ろすのは運営の操作（/admin/companies）に限る。 */
-      listing_status:           body.isPublished ? "listed" : "draft",
+      /* ⚠️★**`is_published` / `listing_status` をここに書き戻さないこと**（2026-09-18）。
+            分離前は企業側の「公開する」が2軸を同時に動かしていた。いまは
+            **下書きの展開だけ**を行い、掲載の状態は運営の操作でしか変わらない。
+         ⚠️ 書き戻すと、掲載規約に未同意のまま掲載を立てる経路が企業側に復活する。 */
       /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
             2026-08-12 まで `body.isPublished ? now : null` と書いており、
             **公開中に再保存するたび初回公開日を上書きし、非公開に戻すと消していた。**
@@ -260,7 +277,8 @@ export async function PATCH(req: Request) {
          ⚠️ 入力欄が撤去済みの項目（評価制度・残業時間・有給取得率・働き方の補足・
             面談可能日時）も足さないこと。`transformFormToDb` は今もキーを吐くので、
             足すと**古い空値で上書きする**ことになる。 */
-      ...publishedAtPatch(currentRow?.published_at, !!body.isPublished, now),
+      /* ⚠️ `published_at` も触らない。「最初に公開した日時」は掲載を立てた運営の操作で決まる
+            （規則は lib/companies/publishedAt.ts）。ここは下書きの展開しかしていない。 */
       updated_at:               now,
       draft_data:               null,
     })
@@ -327,28 +345,10 @@ export async function PATCH(req: Request) {
     console.error("[company PATCH] ow_company_genres sync failed:", genreErr);
   }
 
-  /* Feed: company_joined（**ディレクトリ掲載時のみ**, best-effort, 重複は 23505 で無視）
-     ⚠️ 2026-08-13 に条件を is_published から listing_status に移した。
-        ページは作られた時点で存在するようになったので、「参加しました」の
-        お知らせはディレクトリに迎え入れたことに対して出す。
-        この経路は2軸を同時に動かすため body.isPublished が listed と一致する。 */
-  if (body.isPublished) {
-    try {
-      const adminSupabase = createAdminClient();
-      const { data: co } = await adminSupabase.from("ow_companies").select("name, brand_name, tagline").eq("id", companyId).maybeSingle();
-      if (co) {
-        // ⚠️ 本文と ref_* の埋め方は lib/feed/systemPosts に集約している。ここで組み立てない。
-        const { error: feedErr } = await adminSupabase.from("ow_posts").insert(
-          buildCompanyJoinedRow(companyId, co),
-        );
-        if (feedErr && feedErr.code !== "23505") {
-          console.error("[feed company_joined]", feedErr.message);
-        }
-      }
-    } catch (feedErr) {
-      console.error("[feed company_joined]", feedErr);
-    }
-  }
+  /* ⚠️★**`company_joined` の投稿をこの経路に戻さないこと**（2026-09-18 に削除）。
+        あれは「ディレクトリに迎え入れた」ことのお知らせで、**掲載を立てた操作**に対して出す。
+        いまその操作は運営側（/admin/companies）にしかない。
+        ⚠️ ここで作ると、掲載中の企業が下書きを公開するたびに「参加しました」が流れる。 */
 
   /* ⚠️★**2026-09-07 に追加。それまでこのファイルには revalidate が1つも無く、
         企業が「変更を公開する」を押しても反映は `revalidate` の秒数任せだった。**
@@ -356,5 +356,7 @@ export async function PATCH(req: Request) {
         （2026-09-08 に本番で実測。詳細は revalidate.ts の注記）。 */
   await revalidateCompanyPages(companyId);
 
-  return NextResponse.json({ ok: true, publishedAt: body.isPublished ? now : null });
+  /* ⚠️ `publishedAt` は返さない（2026-09-18）。この経路は掲載を立てないので、
+        「最初に公開した日時」は変わらない。呼び出し側も使っていない。 */
+  return NextResponse.json({ ok: true, publishedAt: null });
 }

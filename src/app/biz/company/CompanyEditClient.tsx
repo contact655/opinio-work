@@ -542,20 +542,24 @@ export function CompanyEditClient({
       const res = await fetch("/api/biz/company", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublished: true }),
+        /* ★下書きを本番列へ展開するだけ（2026-09-18 に分離）。
+           ⚠️★**`isPublished` を送らないこと。** API は 400 で断る。掲載
+              （`is_published` / `listing_status`）の管理は運営が行う。 */
+        body: JSON.stringify({ action: "publish_draft" }),
       });
       if (!res.ok) {
         showError("公開に失敗しました。再度お試しください。");
         return;
       }
-      const { publishedAt } = await res.json() as { publishedAt: string };
-      const now = new Date(publishedAt);
+      /* ⚠️ サーバーは `publishedAt` を返さなくなった（掲載日は動かないため）。
+            表示用の「最終公開」はクライアントの現在時刻で出す。 */
+      const now = new Date();
       const lastPublishedAt = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
       // 公開後に form 変化が autosave を再トリガーして draft_data が即座に再投入されるのを防ぐ
       hasInteracted.current = false;
+      /* ⚠️★`isPublished` をここで true にしないこと。掲載の状態はこの操作では変わらない */
       setForm((prev) => ({
         ...prev,
-        isPublished: true,
         lastPublishedAt,
         lastPublishedAgo: "今",
       }));
@@ -1077,18 +1081,39 @@ export function CompanyEditClient({
       case "settings":
         return (
           <>
-            <SectionCard title="公開状態">
+            <SectionCard title="掲載状態">
+              {/* ★★企業側の掲載スイッチは 2026-09-18 に撤去した（柴さんの指示）。
+                     **状態の表示だけ**にしてある。
+                  ⚠️★**スイッチを戻さないこと。** 掲載の管理は運営が行う
+                     （`/admin/companies` の `updateIsPublished` / `updateListingStatus`）。
+                     ⚠️ UI を戻すだけでは足りない。`PATCH /api/biz/company` は
+                        `isPublished` を **400 で断る**ようにしてある。
+                  ⚠️ 「変更を公開する」（下書きの展開）とは**別物**。あちらは企業側に残す。 */}
               <FormGroup>
-                <FormLabel>企業情報の公開</FormLabel>
-                <FormSelect
-                  value={form.isPublished ? "public" : "private"}
-                  onChange={(v) => update("isPublished", v === "public")}
-                  options={[{ value: "public", label: "公開中" }, { value: "private", label: "非公開" }]}
-                />
+                <FormLabel>掲載状態</FormLabel>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "10px 12px", borderRadius: 8,
+                  border: "1px solid var(--line)", background: "var(--bg-tint)",
+                  fontSize: 13, fontWeight: 700,
+                  color: form.isPublished ? "var(--royal)" : "var(--ink-mute)",
+                }}>
+                  <span aria-hidden style={{
+                    width: 7, height: 7, borderRadius: "50%",
+                    background: form.isPublished ? "var(--royal)" : "var(--ink-mute)",
+                  }} />
+                  {form.isPublished ? "掲載中" : "未掲載"}
+                </div>
                 <FormHint>
-                  {form.isPublished
-                    ? "現在、求職者側に企業詳細ページが表示されています。"
-                    : "現在、非公開です。求職者には表示されません。"}
+                  {form.isPublished ? (
+                    "掲載の管理は運営が行います。"
+                  ) : (
+                    <>
+                      掲載をご希望の場合は{" "}
+                      <a href="/business/contact" style={{ color: "var(--royal)", fontWeight: 600 }}>運営までご連絡ください</a>
+                      。
+                    </>
+                  )}
                 </FormHint>
               </FormGroup>
               <FormGroup>
