@@ -79,6 +79,13 @@ const NAV_GROUPS = [
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
       { label: "スカウト枠管理",      href: "/admin/scout-quotas",     icon: <Send         size={16} strokeWidth={2} /> },
+      /* ★2026-09-18 追加（②⑨）。提案を作る側と、材料の棚卸し。
+            ⚠️ 2つは**別の問い**。「提案を作る」は候補者1人ぶんを作る操作、
+               「根拠の棚卸し」は**企業ごとにあと何が足りないか**。統合しないこと。
+            ⚠️ 提案は根拠が2本そろった組み合わせしか作られないので、
+               棚卸しを見てから作るほうが空振りが少ない。 */
+      { label: "提案を作る",          href: "/admin/proposals",        icon: <Send         size={16} strokeWidth={2} /> },
+      { label: "根拠の棚卸し",        href: "/admin/evidence-gaps",    icon: <ClipboardCheck size={16} strokeWidth={2} /> },
       { label: "プラン管理",          href: "/admin/plans",            icon: <CreditCard   size={16} strokeWidth={2} /> },
     ],
   },
