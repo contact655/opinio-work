@@ -18,6 +18,7 @@ import {
   type TargetIndustryScope,
 } from '@/lib/companies/targetIndustries';
 import { IndustrySelectOptions } from '@/components/companies/IndustrySelectOptions';
+import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -829,11 +830,15 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
                   onChange={(e) => update('remote_work_status', e.target.value)}
                   className={inputCls}
                 >
-                  <option value="">選択してください</option>
-                  <option value="フルリモート">フルリモート</option>
-                  <option value="ハイブリッド">ハイブリッド</option>
-                  <option value="出社">出社</option>
-                  <option value="一部リモート">一部リモート</option>
+                  {/* ⚠️★**日本語を value にしないこと**（2026-09-18 に直した）。
+                         ここは「フルリモート / ハイブリッド / 出社 / 一部リモート」を
+                         value として送っており、DB の CHECK（英字4値）に1つも通らなかった。
+                         しかも下の API が不正な enum を**黙って捨てる**ので、
+                         運営には保存できたように見えていた（保存後は空欄に戻る）。
+                         ⚠️ 「一部リモート」は DB にも定数にも無い**5つ目の語彙**だった。 */}
+                  {COMPANY_REMOTE_WORK_SELECT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.value === "" ? "選択してください" : o.label}</option>
+                  ))}
                 </select>
               </div>
 

@@ -8,6 +8,7 @@ import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { isValidIndustry } from "@/lib/search/industryGroups";
 import { isPhaseValue } from "@/lib/constants/phase";
+import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import type { BizCompany } from "@/lib/business/mockCompany";
 import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/companies/benefits";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
@@ -176,6 +177,22 @@ export async function PATCH(req: Request) {
   if (typeof d.phase === "string" && d.phase.trim() && !isPhaseValue(d.phase.trim())) {
     return NextResponse.json(
       { error: "INVALID_PHASE", message: "事業ステージの値が不正です。" },
+      { status: 400 }
+    );
+  }
+
+  /* 勤務形態も同じ形で弾く（2026-09-18）。
+     ⚠️★**この列は 2026-09-18 まで実際に壊れていた。** `/biz/company` のセレクトが
+        日本語ラベルを value として送っており、DB の CHECK（英字4値）に1つも通らず、
+        **勤務形態を選ぶと企業情報の保存が丸ごと失敗していた**（実測: 4値とも 23514）。
+        入力側は `COMPANY_REMOTE_WORK_STATUSES` に揃えたので、ここは最後の砦。
+     ⚠️★**許容リストを書き写さないこと。** `workStyle.ts` から導出している。 */
+  if (
+    typeof d.remote_work_status === "string" && d.remote_work_status.trim() &&
+    !VALID_COMPANY_REMOTE_WORK_STATUSES.has(d.remote_work_status.trim())
+  ) {
+    return NextResponse.json(
+      { error: "INVALID_REMOTE_WORK_STATUS", message: "リモートワーク状況の値が不正です。" },
       { status: 400 }
     );
   }

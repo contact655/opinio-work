@@ -117,12 +117,16 @@ export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];
 
       選択肢の唯一の出どころは [lib/constants/phase.ts](../constants/phase.ts)。 */
 
-export const REMOTE_OPTIONS = [
-  "フルリモート可",
-  "ハイブリッド（週2-3日出社）",
-  "原則出社",
-  "その他",
-];
+/* ⚠️★**`REMOTE_OPTIONS` をここに戻さないこと**（2026-09-18 に削除）。
+      `PHASE_OPTIONS` を 2026-09-06 に外したのと**まったく同じ形**だった ——
+      4件とも**日本語を value にしていた**ため、DB の
+      `ow_companies_remote_work_status_check`（英字4値）に1つも通らず、
+      **企業が勤務形態を選ぶと企業情報の保存が丸ごと失敗していた**
+      （`ow_companies` は UPDATE が列単位 GRANT）。
+
+      選択肢の唯一の出どころは
+      [lib/constants/workStyle.ts](../constants/workStyle.ts) の
+      `COMPANY_REMOTE_WORK_STATUSES`。 */
 
 export const WORK_SCHEDULE_OPTIONS = [
   "固定時間制",

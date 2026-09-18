@@ -27,9 +27,23 @@ export const WORK_STYLE_LABELS: Record<string, string> = {
   full_remote: "フルリモート",
   hybrid: "ハイブリッド",
   on_site: "フル出社",
+  /* ⚠️★`other` は **`ow_companies` にしかない**（求人・職歴の CHECK は3値）。
+        ここに無いと `WORK_STYLE_LABELS[raw] ?? raw` が**生の "other" を画面に出す**
+        （`queries.ts` のカードのタグ・`/admin/jobs` の一覧がこの形）。
+        2026-09-18 に追加。**消さないこと。** */
+  other: "その他",
 };
 
-/** 絞り込みの選択肢。順番はそのまま画面に出る */
+/**
+ * 絞り込みの選択肢。順番はそのまま画面に出る。
+ *
+ * ⚠️★**`other` を足さないこと**（2026-09-18）。理由は2つ:
+ *    ① 実測（2026-09-18 / 全104社）で **`other` は0社**。このリポジトリの
+ *       「0件の選択肢を出さない」に反する（例外は 都道府県 / フェーズ /
+ *       事業領域チップ / `/people` の年代 の4つだけ）。
+ *    ② 「その他」で絞りたい求職者はいない。表示（上の LABELS）と
+ *       絞り込み（ここ）は**別の用途**なので、集合が違ってよい。
+ */
 export const WORK_STYLE_OPTIONS = [
   { value: "full_remote", label: WORK_STYLE_LABELS.full_remote },
   { value: "hybrid", label: WORK_STYLE_LABELS.hybrid },
@@ -57,3 +71,45 @@ export const VALID_REMOTE_WORK_STATUSES = new Set<string>(
   REMOTE_WORK_STATUSES.map((o) => o.value),
 );
 
+
+/**
+ * ★企業フォーム（`/biz/company`）の勤務形態セレクト。**value は英字・label は日本語。**
+ *
+ * ⚠️★**2026-09-18 まで、ここが `lib/business/mockCompany.ts` の `REMOTE_OPTIONS`
+ *    （日本語を value にした4件）だった。** DB の CHECK は英字なので、
+ *    **企業が勤務形態を選ぶと `ow_companies` の UPDATE が 23514 で丸ごと失敗していた**
+ *    （列単位 GRANT なので1列でも弾かれると PATCH 全体が落ちる）。
+ *    実測（2026-09-18）: 4つの日本語ラベルすべてが 23514。`hybrid` だけ通る。
+ *    **`phase` で 2026-09-06 に直したのと同じ形が、この列で残っていた。**
+ *
+ * ⚠️★**求人の `REMOTE_WORK_STATUSES`（3値）と value の集合が違う。統合しないこと。**
+ *    DB がそうなっている ——`ow_companies` だけ4値で、`ow_jobs` と
+ *    `ow_experiences` は3値（`other` が無い）。
+ *    `EMPLOYMENT_TYPES` と `JOB_EMPLOYMENT_TYPES` を分けてあるのと同じ形。
+ *    ⚠️ **分けてよいが、離して置かない。** 値を足す日は DB の CHECK も同時に広げる。
+ *
+ * ⚠️ ラベルの文言は 2026-09-18 以前の `REMOTE_OPTIONS` から**変えていない**
+ *    （「フルリモート可」「原則出社」は上の LABELS と少し違うが、
+ *    入力時は「可」「原則」が付いたほうが選びやすいので維持）。
+ */
+export const COMPANY_REMOTE_WORK_STATUSES: { value: string; label: string }[] = [
+  { value: "full_remote", label: "フルリモート可" },
+  { value: "hybrid", label: "ハイブリッド（週2-3日出社）" },
+  { value: "on_site", label: "原則出社" },
+  { value: "other", label: "その他" },
+];
+
+/** `/biz/company` と `/admin/companies/[id]` のセレクトに渡す（未選択を含む） */
+export const COMPANY_REMOTE_WORK_SELECT_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "未選択" },
+  ...COMPANY_REMOTE_WORK_STATUSES,
+];
+
+/**
+ * API の許容値（`ow_companies.remote_work_status`）。
+ * ⚠️★**呼び出し側に配列を書き写さないこと。** `/admin` は 2026-09-18 まで
+ *    `new Set([...])` を手書きしており、**5つ目の語彙**になっていた。
+ */
+export const VALID_COMPANY_REMOTE_WORK_STATUSES = new Set<string>(
+  COMPANY_REMOTE_WORK_STATUSES.map((o) => o.value),
+);

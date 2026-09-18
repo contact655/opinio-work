@@ -9,9 +9,9 @@ import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { BenefitsEditor } from "@/components/business/BenefitsEditor";
 import { TERMS_VERSION } from "@/lib/constants/terms";
 import { PHASE_SELECT_OPTIONS } from "@/lib/constants/phase";
+import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
 import {
   COMPANY_SECTIONS,
-  REMOTE_OPTIONS,
   WORK_SCHEDULE_OPTIONS,
   type BizCompany,
   type CompanySectionId,
@@ -1078,8 +1078,13 @@ export function CompanyEditClient({
             <SectionCard title="働き方">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
-                  <FormLabel>リモートワーク状況</FormLabel>
-                  <FormSelect value={form.remoteWorkStatus} onChange={(v) => update("remoteWorkStatus", v)} options={REMOTE_OPTIONS} />
+                  <FormLabel htmlFor="ce-remote">リモートワーク状況</FormLabel>
+                  {/* ⚠️★**日本語を value にした選択肢を渡さないこと**（2026-09-18）。
+                         2026-09-18 まで `REMOTE_OPTIONS`（日本語4件）を渡しており、
+                         DB の CHECK に1つも通らず**企業情報の保存が丸ごと失敗していた**。
+                         事業ステージで 2026-09-06 に直したのと同じ形。
+                         選択肢の唯一の出どころは `lib/constants/workStyle.ts`。 */}
+                  <FormSelect id="ce-remote" value={form.remoteWorkStatus} onChange={(v) => update("remoteWorkStatus", v)} options={COMPANY_REMOTE_WORK_SELECT_OPTIONS} />
                 </FormGroup>
                 <FormGroup>
                   <FormLabel>勤務時間制度</FormLabel>

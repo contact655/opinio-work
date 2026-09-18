@@ -6,6 +6,7 @@ import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
 import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publishable';
+import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 
 // PUT /api/admin/companies/[id] — 企業情報全フィールド更新
 // service_role を使用（ow_companies の UPDATE RLS は owner only のため）
@@ -85,8 +86,11 @@ export async function PUT(
   // URL フィールド: https:// のみ許可
   const URL_FIELDS = new Set(["url", "logo_url", "recruiter_avatar_url", "casual_interview_url"]);
 
+  /* ⚠️★**許容値を手書きしないこと**（2026-09-18 に定数へ寄せた）。
+        ここに `new Set([...])` を置いていたため、勤務形態の語彙が**5つ**に割れていた
+        （DB の CHECK / ここ / workStyle.ts / `/biz` の日本語 / このページのセレクト）。 */
   const ENUM_FIELDS: Record<string, Set<string>> = {
-    remote_work_status: new Set(["full_remote", "hybrid", "on_site", "other"]),
+    remote_work_status: VALID_COMPANY_REMOTE_WORK_STATUSES,
   };
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -96,8 +100,11 @@ export async function PUT(
       if (ENUM_FIELDS[key]) {
         if (typeof val === "string" && ENUM_FIELDS[key].has(val)) {
           updates[key] = val;
+        } else if (val !== "" && val !== null && val !== undefined) {
+          /* ⚠️ 黙って捨てない（2026-09-18）。運営には保存できたように見え、
+                開き直すと空欄に戻る、という一番分かりにくい形になっていた。 */
+          console.warn(`[admin/companies] ${key} は選択肢の外の値なので保存しませんでした: ${String(val).slice(0, 40)}`);
         }
-        // skip invalid enum values
       } else if (typeof val === "string" && FIELD_LIMITS[key]) {
         const sliced = val.slice(0, FIELD_LIMITS[key]);
         /* ⚠️ 黙って捨てているところにログを出す（挙動は変えない）。
