@@ -23,7 +23,38 @@ export function hasResendKey(): boolean {
   return Boolean(RESEND_API_KEY);
 }
 
+/**
+ * ★ローカル（dev）では送らない（2026-09-18）。
+ *
+ * ── なぜ ────────────────────────────────────────────────────────────────────
+ * `.env.local` に `RESEND_API_KEY` が入っているので、**ローカルの dev でも本物が飛ぶ。**
+ * 2026-09-18 に検証で運営宛に3通飛ばした。**「毎回キーを外す」は忘れる。**
+ *
+ * ── ★向きに注意（ここを逆にしない）────────────────────────────────────────
+ * **「送信を有効にするフラグ」にしないこと。** `SCOUT_SENDING_ENABLED` と同じ形にすると、
+ * **設定漏れで本番のメールが全部止まる**（応募・面談・招待・スカウト返信が13ファイルから
+ * 呼んでいる）。しかも止まっても誰も気づけない。
+ * → **既定で本番は必ず送る。ローカルだけ明示的に opt-in しないと送らない。**
+ *
+ * ⚠️★**`next start` は `NODE_ENV=production` なので送る。** dev とは違う。
+ *    ローカル本番ビルドの検証では本番同等に飛ぶので、混同しないこと。
+ * ⚠️ Vercel のプレビューデプロイも `NODE_ENV=production` なので**送る**（2026-09-18 時点で
+ *    そのまま。厳密にするなら `VERCEL_ENV === "production"` を見る形になる）。
+ * ⚠️ 呼び出しのたびに読む（モジュール読み込み時に固定しない）。検証で環境を変えて
+ *    起動し直したときに、古い値が残らないようにするため。
+ */
+function skipInDev(subject: string): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  if (process.env.EMAIL_SEND_IN_DEV === "true") return false;
+  /* ⚠️ キーが無いときの mock とは**別の文言**にしてある。
+        「dev だから止めた」と「キーが無いから送れなかった」は原因が違う。 */
+  console.log("[notify] dev のため送信していない（EMAIL_SEND_IN_DEV=true で送る）:", subject);
+  return true;
+}
+
 export async function sendEmail(params: EmailParams): Promise<void> {
+  if (skipInDev(params.subject)) return;
+
   // dev / API キーなしの場合は console.log で代替 (mock パターン)
   if (!RESEND_API_KEY) {
     console.log("[notify] sendEmail (mock):", {
@@ -78,6 +109,10 @@ export type SendResult =
   | { ok: false; error: string };
 
 export async function sendEmailStrict(params: EmailParams): Promise<SendResult> {
+  /* ⚠️ こちらも同じ扱い。**`mocked: true` を返す**（「送っていない」という意味は同じ）。
+        ⚠️ `ok: false` にしないこと。問い合わせフォームが dev で失敗表示になる。 */
+  if (skipInDev(params.subject)) return { ok: true, mocked: true };
+
   if (!RESEND_API_KEY) {
     console.warn("[notify] sendEmailStrict: RESEND_API_KEY が無いため送信していない:", params.subject);
     return { ok: true, mocked: true };

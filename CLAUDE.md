@@ -83,8 +83,27 @@ RESEND_API_KEY= npm run dev     # ← このプロセスだけキーを空にす
 ```
 
 ⚠️ `/api/health` の `hasResendKey` で、いまのプロセスが送る状態かを確認できる。
-⚠️★**「気をつける」では毎回は守れない。** `NODE_ENV` を見て dev では送らない形にするかは
-   未決（2026-09-18 時点）。**入れるまでは、通す前に上のコマンドで起動し直すこと。**
+
+#### ✅★**dev では送らないようにした**（2026-09-18 に実装）
+
+`lib/notify/email.ts` の `skipInDev()` が、**`NODE_ENV !== "production"` なら送信を飛ばす**
+（`sendEmail` / `sendEmailStrict` の両方）。ログに
+`[notify] dev のため送信していない` が出る。
+
+```bash
+EMAIL_SEND_IN_DEV=true npm run dev   # dev でも実際に送りたいときだけ
+```
+
+⚠️★**「送信を有効にするフラグ」に作り替えないこと。** `SCOUT_SENDING_ENABLED` と同じ形に
+   すると、**設定漏れで本番のメールが全部止まる**（13ファイルが `lib/notify/email.ts` を
+   呼んでいる）。しかも止まっても誰も気づけない。**既定で本番は送る**向きを守る。
+
+⚠️★**`next start` は `NODE_ENV=production` なので送る。dev とは違う。**
+   ローカル本番ビルドの検証（`.next-prod`）では**本番と同じように飛ぶ**ので、
+   「ローカルだから安全」と読み替えないこと。
+⚠️ Vercel の**プレビューデプロイも送る**（`NODE_ENV=production` のため）。
+   厳密にするなら `VERCEL_ENV === "production"` を見る形になるが、2026-09-18 時点では
+   そのままにしてある（プレビューでメールを飛ばす場面がどれだけあるか未確認）。
 
 ---
 
