@@ -305,9 +305,11 @@ export async function POST(req: Request) {
   if (genreSlugs.length > 0) {
     try {
       // slug → genre_id の解決
+      // ⚠️ `is_active = true` で絞る（2026-09-18）。理由は PATCH /api/biz/company と同じ。
       const { data: genreRecords } = await admin
         .from("ow_genres")
         .select("id, slug")
+        .eq("is_active", true)
         .in("slug", genreSlugs);
 
       // 不正な slug の警告ログ

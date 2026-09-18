@@ -893,11 +893,20 @@ const getCompanyById = cache(async function getCompanyById(
           企業ページの社員グループは**本人が登録した職種から作る**ようになったので、
           この表を読む必要が無い。企業ページ1枚あたりのクエリが1本減る。
           ⚠️ 表・API・関数は残してある。使い始めるなら先に企業側の設定UIを作ること。 */
+    /* ⚠️★**`is_active = true` を必ず付ける**（2026-09-18）。
+          `ow_genres` の RLS は `USING (is_active = true)` だが、ここは
+          **`createAdminClient` なので RLS を素通りする。** 付けないと、運営が
+          無効化したジャンルが**その企業のページにだけ出続ける**
+          （選択肢からは消えているので、企業側は外すことすらできない）。
+       ⚠️ 埋め込みに条件を掛けるので **`!inner` が要る。** 外すと
+          「ジャンル行は返るが中身が null」になり、`.filter(g => g !== null)` で
+          **静かに0件**になる。 */
     supabase
       .from("ow_company_genres")
-      .select("ow_genres(id, name, display_order)")
+      .select("ow_genres!inner(id, name, display_order)")
       .eq("company_id", id)
-      .eq("is_human_approved", true),
+      .eq("is_human_approved", true)
+      .eq("ow_genres.is_active", true),
   ]);
 
   // ジャンルを display_order 順に並べて { id, name } に正規化

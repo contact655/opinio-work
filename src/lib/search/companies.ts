@@ -73,7 +73,7 @@ export async function searchCompanies(
         text列の辞書順**で、`約800名` が1位・`約10000名` が下位という並びだった
         （実測。この列は自由記述で、純粋な数値は79社中2社しかない）。 */
   const clientSideSort = params.sort === "disclosure" || params.sort === "employees";
-  const useDbPagination = !params.hiring && !params.foreign && params.phase !== "外資系" && !clientSideSort && params.limit !== undefined;
+  const useDbPagination = !params.hiring && !params.foreign && !clientSideSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -101,7 +101,7 @@ export async function searchCompanies(
         );
       }
     }
-    if (params.phase && params.phase !== "外資系") {
+    if (params.phase) {
       const dbValues = PHASE_FILTER_MAP[params.phase] ?? [params.phase];
       q = q.in("phase", dbValues);
     }
@@ -367,9 +367,15 @@ export async function searchCompanies(
       live_obog_count: liveObogCountMap[c.id] ?? 0,
     }));
 
-  // client-side: 外資系フィルター（is_foreign カラムを使用）
+  /* client-side: 外資系フィルター（`ow_companies.is_foreign` を使う）。
+     ⚠️★**「外資系」はフェーズではない。** 2026-09-18 まで `params.phase === "外資系"` を
+        見る分岐がこことクエリ組み立ての2箇所にあったが、`phase` に入る値は
+        `lib/constants/phase.ts` の英字スラッグだけで、**この文字列には決して一致しない**
+        （選択肢は `PHASE_OPTIONS` から作られ、DB の CHECK も英字しか許さない）。
+        入口の `?foreign=1` は別に生きているので、消しても絞り込みは変わらない。
+        **フェーズの語彙に「外資系」を足さないこと**（資本区分は `capital_type`）。 */
   let filteredCompanies = companies;
-  if (params.foreign || params.phase === "外資系") {
+  if (params.foreign) {
     filteredCompanies = filteredCompanies.filter((c) => {
       return (c as { is_foreign?: boolean }).is_foreign === true;
     });

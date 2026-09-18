@@ -7,6 +7,7 @@ import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { isValidIndustry } from "@/lib/search/industryGroups";
+import { isPhaseValue } from "@/lib/constants/phase";
 import type { BizCompany } from "@/lib/business/mockCompany";
 import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/companies/benefits";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
@@ -163,6 +164,21 @@ export async function PATCH(req: Request) {
       { status: 400 }
     );
   }
+
+  /* 事業ステージも同じ形で弾く（2026-09-18）。
+     ⚠️★**ここを素通しすると、DB の `ow_companies_phase_check` に落ちる。**
+        `ow_companies` は UPDATE が列単位 GRANT なので、**1列が弾かれると
+        PATCH が丸ごと失敗する** ——企業から見ると「事業ステージを選んだら
+        企業情報が何も保存できなくなった」という壊れ方になる（2026-09-06 に実際に起きた形）。
+     ⚠️★**許容値をここに書き写さないこと。** `isPhaseValue` は `PHASE_OPTIONS` から
+        導出している。手書きの配列を置くと4つ目の語彙ができる。
+     ⚠️ 空文字は「未設定」なので通す（下の `s()` が null にする）。弾くのは不正値だけ。 */
+  if (typeof d.phase === "string" && d.phase.trim() && !isPhaseValue(d.phase.trim())) {
+    return NextResponse.json(
+      { error: "INVALID_PHASE", message: "事業ステージの値が不正です。" },
+      { status: 400 }
+    );
+  }
   /* ⚠️ 公開ゲート。条件はここに書かず `checkPublishable` を呼ぶ（4経路あるので
         書き写すと必ず漏れる）。**企業経路なので掲載規約の同意も要る。**
         これまで掲載規約のゲートは `CompanyEditSubNav` のボタン出し分け（UI）だけで、
@@ -296,9 +312,13 @@ export async function PATCH(req: Request) {
   // ── ow_company_genres の反映（パターンX: 全置換）─────────────────────────
   try {
     // 1. slug → genre_id の解決
+    /* ⚠️★**`is_active = true` で絞る**（2026-09-18）。選択肢から外したジャンルを
+          API 直叩きで付け直せると、**画面から外せないタグ**ができる。
+          外れた slug は下の `missingSlugs` に落ちて `console.warn` に出る。 */
     const { data: genreRecords, error: genreQueryErr } = await supabase
       .from("ow_genres")
       .select("id, slug")
+      .eq("is_active", true)
       .in("slug", genreSlugs.length > 0 ? genreSlugs : ["__no_match__"]);
 
     if (genreQueryErr) throw genreQueryErr;

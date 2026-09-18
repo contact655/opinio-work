@@ -60,6 +60,15 @@ export const PHASE_OPTIONS: PhaseOption[] = [
         だからスタートアップの子に置いている。ラウンド（シリーズ〇）とは別の切り口だが、
         `phase` は1社1値なので、両方分かっている企業には**情報量の多いほう**を入れる。 */
   { value: "unicorn", parent: "startup", label: "ユニコーン", desc: "評価額10億ドル超の未上場企業", ...CHILD_STYLE },
+  /* ★2026-09-18 に追加（柴さんの指示）。ジャンルから段階の語を外し、こちらへ寄せた。
+     ⚠️★**どちらも `startup` の子**。未上場なので「上場企業」の下ではないし、
+        親の無い値にすると `expandPhase("startup")` から漏れて、
+        **「スタートアップ」で絞ったときにこの2つの企業が出てこない。**
+     ⚠️★**DB の CHECK（`ow_companies_phase_check`）も同時に広げること。**
+        広げずにここだけ足すと、企業が選んだ瞬間に `ow_companies` の UPDATE が
+        **丸ごと失敗する**（列単位 GRANT のため。2026-09-06 に同じ形の事故）。 */
+  { value: "mega_venture", parent: "startup", label: "メガベンチャー", desc: "未上場で大規模化した企業", ...CHILD_STYLE },
+  { value: "ipo_ready", parent: "startup", label: "IPO準備中", desc: "上場申請・準備の段階", ...CHILD_STYLE },
 
   // ── 上場企業 ──────────────────────────────────────────────────────────
   { value: "listed", label: "上場企業", desc: "株式を公開している", ...PARENT_STYLE },
@@ -76,6 +85,21 @@ export const PHASE_OPTIONS: PhaseOption[] = [
 ];
 
 const BY_VALUE = new Map(PHASE_OPTIONS.map((o) => [o.value, o]));
+
+/**
+ * `ow_companies.phase` に入れてよい値か（2026-09-18 追加）。
+ *
+ * ⚠️★**API の許容値をここから導出する。** `PATCH /api/biz/company` に
+ *    手書きの配列を置くと **4つ目の語彙**ができ、2026-09-06 に直したのと
+ *    同じ「選べるのに保存できない」形が戻る。
+ * ⚠️★**DB の `ow_companies_phase_check` と同じ集合であること。**
+ *    値を足す日は **ここ（UI/API）と CHECK の両方**を同じコミットで広げる。
+ * ⚠️ 空・null は「未設定」なので**ここでは false**。呼び出し側が先に分けること
+ *    （空文字と不正値を区別する ——CLAUDE.md「弾き方」）。
+ */
+export function isPhaseValue(value: unknown): value is string {
+  return typeof value === "string" && BY_VALUE.has(value);
+}
 
 /* ⚠️ `isParentPhase` は 2026-09-09 に削除した（参照0件）。
       親子の判定が要るなら `PHASE_OPTIONS` の `parent` を直接見るか、
