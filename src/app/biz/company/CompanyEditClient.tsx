@@ -230,18 +230,29 @@ function EmailTagInput({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
+/**
+ * このページのプルダウン。**見た目はここ1箇所**。
+ *
+ * ⚠️★**素の `<select>` を各所に書かないこと**（2026-09-18）。業種だけが素の select で、
+ *    ブラウザ標準の見た目のまま他のプルダウンと揃っていなかった。
+ * ⚠️ `children` は `<optgroup>` が要るとき用の口（業種は2階層）。
+ *    ⚠️ `options` と同時に渡さないこと。渡すと `children` が勝つ。
+ */
 function FormSelect({
   value,
   onChange,
   options,
   id,
+  children,
 }: {
   value: string;
   onChange: (v: string) => void;
-  options: string[] | { value: string; label: string }[];
+  options?: string[] | { value: string; label: string }[];
   id?: string;
+  /** `<optgroup>` などを自前で出すとき。⚠️ `options` の代わりに使う */
+  children?: React.ReactNode;
 }) {
-  const normalized = (options as (string | { value: string; label: string })[]).map((o) =>
+  const normalized = ((options ?? []) as (string | { value: string; label: string })[]).map((o) =>
     typeof o === "string" ? { value: o, label: o } : o
   );
   return (
@@ -275,7 +286,8 @@ function FormSelect({
         (e.target as HTMLSelectElement).style.boxShadow = "none";
       }}
     >
-      {normalized.map((o) => (
+      {/* ⚠️ `children` が来たらそちらを出す（`<optgroup>` が要る業種用） */}
+      {children ?? normalized.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </select>
@@ -729,17 +741,16 @@ export function CompanyEditClient({
               <FormGroup>
                 <FormLabel required htmlFor="ce-industry">業種</FormLabel>
                 {industries.length > 0 ? (
-                  <select
-                    id="ce-industry"
-                    value={form.industryId}
-                    onChange={(e) => update("industryId", e.target.value)}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, background: "#fff" }}
-                  >
+                  /* ★2026-09-18 に素の `<select>` から `FormSelect` に揃えた。
+                        ⚠️★**素の select に戻さないこと。** ここだけブラウザ標準の見た目で、
+                           隣の「事業ステージ」など他のプルダウンと揃っていなかった。
+                        ⚠️ 選択肢・保存先（`industryId`）・必須は変えていない。 */
+                  <FormSelect id="ce-industry" value={form.industryId} onChange={(v) => update("industryId", v)}>
                     <option value="">選択してください</option>
                     {/* ⚠️ 2階層（製造業）を出す。**親も選べる**（2026-09-05）。
                            フラットに map すると親子が混ざるので、必ずこの部品を通すこと。 */}
                     <IndustrySelectOptions options={industries} />
-                  </select>
+                  </FormSelect>
                 ) : (
                   <FormHint>業種の一覧を取得できませんでした。時間をおいて再読み込みしてください。</FormHint>
                 )}
