@@ -319,9 +319,19 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   // ⚠️ 希望条件（ow_profiles）は引かない。公開されない情報を並び順に混ぜないため
   //    （src/lib/profile/completion.ts の PUBLIC_KEYS を参照）。
   const [expRes, eduRes, linkRes, achRes, awdRes, medRes, foreignRes, memberRes, roleTree] = await Promise.all([
+    /* ⚠️★**並び順を指定すること**（2026-09-18）。下の `myExps.find((e) => e.is_current)`
+          （所属）と `find((e) => e.is_current && e.role_category_id)`（職種）は
+          **配列の先頭の現職**を採るので、順序を空けると**並行在籍の人のカードが
+          リロードのたびに別の会社・別の職種になりうる。**
+       ⚠️ 過去の職歴側は元から `ended_at` で明示的に並べ替えている。
+          **現職側だけが空いていた。**
+       ⚠️★**`id` のタイブレーカーを外さないこと**（同着は実在する）。
+          `sidebarData.ts` と**同じ並び**にしてある。片方だけ変えない。 */
     db.from("ow_experiences")
       .select(`user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
-      .in("user_id", ids),
+      .in("user_id", ids)
+      .order("started_at", { ascending: false })
+      .order("id", { ascending: true }),
     // sort_order 昇順の先頭が最終学歴（/profile/edit の入力順がそうなっている）。
     // graduated_at は欠けている行があるので並べ替えの主キーにしない。
     db.from("ow_user_educations").select("user_id, school, sort_order").in("user_id", ids).order("sort_order"),

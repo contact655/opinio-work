@@ -71,9 +71,20 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
 
   const [userRes, expRes, eduRes, memberRes, companyFollowRes, counts, roleTree] = await Promise.all([
     db.from("ow_users").select("id, name, avatar_url, avatar_color, headline, about_me").eq("id", owUserId).maybeSingle(),
+    /* ⚠️★**並び順を指定すること**（2026-09-18）。下で `find(is_current)` が
+          **配列の先頭の現職**を代表に採るので、順序を空けると
+          **並行在籍（現職が2件以上）の人の所属行と「同じ職種の人」が、
+          リロードのたびに入れ替わりうる。**
+       ⚠️★**`id` のタイブレーカーを外さないこと。** 同着は実在する
+          （検証用アカウントに `started_at` が同日の現職が2件ある）。
+          CLAUDE.md の「開始日が同着の2社が実行ごとに入れ替わる」と同じ形。
+       ⚠️ `directory.ts`（一覧のカード）も**同じ並びにしてある**。片方だけ変えると、
+          自分のサイドバーと自分のカードで所属が食い違う。 */
     db.from("ow_experiences")
       .select(`id, is_current, started_at, ended_at, role_category_id, ${EXPERIENCE_COMPANY_COLS}`)
-      .eq("user_id", owUserId),
+      .eq("user_id", owUserId)
+      .order("started_at", { ascending: false })
+      .order("id", { ascending: true }),
     db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owUserId),
     db.from("ow_company_members").select("id, is_public, display_consent").eq("user_id", owUserId),
     db.from("ow_company_follows").select("id", { count: "exact", head: true }).eq("follower_user_id", owUserId),
