@@ -103,12 +103,20 @@ export type SearchResults = {
 /** 一覧に出す上限。**超えた分は total に出す**（黙って切らない） */
 const HIT_LIMIT = 24;
 
-/**
+/*
  * ★集計を出してよい下限（未ログインの人検索）。
- * n=1 や n=2 の「1人います」は本人の特定に繋がるため、件数すら出さない。
- * ⚠️ 遷移データの集計方針と同じしきい値。片方だけ動かさないこと。
+ *
+ * ⚠️★**実体は [lib/constants/aggregate.ts](../constants/aggregate.ts) に移した**
+ *    （2026-09-18）。このファイルは `createAdminClient` を import しているので、
+ *    定数1つのために Supabase 一式を引き込む形になっており、
+ *    DB に触らない根拠エンジン（`lib/evidence/`）から読めなかった。
+ *
+ * ⚠️ **ここは再エクスポート。値は変えていない。**
+ *    `import { MIN_AGGREGATE_COUNT } from "@/lib/search/runSearch"` は
+ *    従来どおり動く（`/search` の5箇所がその形）。
+ *    ⚠️ **この行を消さないこと。** 消すと `/search` が丸ごと落ちる。
  */
-export const MIN_AGGREGATE_COUNT = 3;
+export { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
