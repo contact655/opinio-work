@@ -57,11 +57,23 @@ export async function PUT(req: Request) {
     transfer_timing_updated_at?: string | null;
     /** 「転職について」の意思表示（2026-08-26 / フェーズ2）。⚠️ null は「まだ答えていない」 */
     career_stance?: string | null;
+    /** ★転職意欲の更新日時（2026-09-19）。**本人からは受け取らない。**サーバーが打つ */
+    career_stance_updated_at?: string | null;
     /** ★「意思表示を最後に答えた日」。⚠️ 希望条件の保存では動かさない（下記） */
     stance_updated_at?: string | null;
     desired_phase?: string[] | null;
     updated_at?: string | null;
   } = {};
+
+  /* ⚠️★更新日時の列は**本人から受け取らない**。サーバーが「値が変わったとき」だけ打つ。
+        `patch` は下でキーを明示的にコピーする形なので**body から入る経路は無い**が、
+        送ってくる呼び出し側ができたら気づけるようにしておく
+        （CLAUDE.md「保存の API でも同じことが起きる」。`visibility_company` と同じ形）。 */
+  for (const k of ["career_stance_updated_at", "stance_updated_at", "transfer_timing_updated_at"] as const) {
+    if (k in body) {
+      console.warn(`[PUT /api/jobseeker/career-preferences] ${k} は受け取らない（サーバーが打つ）。送信元を確認すること`);
+    }
+  }
 
   // 旧・単数の項目は受け付けない。黙って無視すると
   //「保存したのに反映されない」になるので 400 で落とす。
@@ -244,9 +256,20 @@ export async function PUT(req: Request) {
         「昨日答えた人」と区別がつかなくなる。
      ⚠️ 「話を聞かれてもよい」の保存でも同じ列を打つ（`lib/profile/stance.ts`）。
         こちらと同じ意味の列なので、書き方を割らないこと。 */
+  /* ★★転職意欲そのものの更新日時（2026-09-19）。**企業側の候補者検索で読む。**
+     ⚠️★**`stance_updated_at` とは別の列。** あちらは「転職・面談の状況カードの最終更新」で、
+        **面談OK の登録・公開切替でも打たれる**（`lib/profile/stance.ts`）。
+        企業の「転職意欲の更新時期」にあちらを使うと、**面談OK を触っただけの人が当たる。**
+     ⚠️★**打つのはここだけ。** `career_stance` を書く経路はこのルート1本しか無い
+        （2026-09-19 実測。オンボーディング3画面目もここを呼ぶ）。
+        経路を足したら、この行も一緒に足すこと。
+     ⚠️ 同じ値を選び直しても更新しない（上の2つと同じ考え方）。 */
   if ("career_stance" in patch) {
     const before = existing?.career_stance ?? null;
-    if (patch.career_stance !== before) patch.stance_updated_at = now;
+    if (patch.career_stance !== before) {
+      patch.stance_updated_at = now;
+      patch.career_stance_updated_at = now;
+    }
   }
 
   if (existing) {

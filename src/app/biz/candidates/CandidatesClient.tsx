@@ -1,7 +1,34 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { DESIRED_WORK_STYLE_LABELS } from "@/lib/constants/careerPreferences";
+import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
+
+/**
+ * ★転職意欲の選択肢（2026-09-19 / 柴さんの指示）。
+ *
+ * ⚠️★**ラベルを書き写さないこと。** 正は `lib/constants/careerPreferences.ts` の
+ *    `CAREER_STANCES` で、オンボーディングと `/mypage` も同じ定数を見る。
+ * ⚠️★**`no_contact` は出さない。** 母集合（page.tsx）が既に落としているので、
+ *    選択肢に出すと**必ず0件になる条件**を並べることになる。
+ *    ⚠️ 母集合の条件を変えるときは、ここも一緒に見ること。
+ */
+const CAREER_STANCE_FILTER_OPTIONS = CAREER_STANCES.filter((o) => o.value !== "no_contact");
+
+/**
+ * ★転職意欲の更新時期の帯（2026-09-19 / 柴さんの指示）。
+ *
+ * ⚠️★**読むのは `career_stance_updated_at`。`stance_updated_at` ではない。**
+ *    あちらは「転職・面談の状況カードの最終更新」で、**面談OK の登録・公開切替でも打たれる**。
+ *    使うと「面談OK を触っただけの人」が「転職意欲を更新した人」として当たる。
+ * ⚠️ 3ヶ月を入れてあるのは、プロフィールの鮮度判定（`lib/profile/freshness.ts` の
+ *    `STALE_AFTER_MONTHS = 3`）と同じ区切りがこのプロダクトに既にあるため。
+ */
+const STANCE_FRESHNESS_BANDS = [
+  { value: "1d",  label: "24時間以内", days: 1 },
+  { value: "1w",  label: "1週間以内",  days: 7 },
+  { value: "1m",  label: "1ヶ月以内",  days: 30 },
+  { value: "3m",  label: "3ヶ月以内",  days: 90 },
+] as const;
 
 /**
  * 社会人年数の帯（2026-08-20）。**年齢の帯の置き換え。**
@@ -33,6 +60,13 @@ type Candidate = {
    *  ⚠️ 旧名 `isOpenToWork` は `ow_users.is_open_to_work`（boolean）由来だった。
    *     列を移したので名前も合わせる。**列名で grep したときに残らないようにする。** */
   isActivelyLooking: boolean;
+  /** ★転職意欲そのもの（2026-09-19）。⚠️ 母集合が `no_contact` と未設定を落としているので、
+   *  ここに来るのは `active` / `open` / `researching` のいずれか */
+  careerStance: string | null;
+  /** ★転職意欲を最後に変えた日時（2026-09-19）。
+   *  ⚠️★**null は「未更新」。「古い」ではない。** 列を入れたのが 2026-09-19 なので、
+   *     それ以前に答えた人は全員 null から始まる。**日付を作って埋めないこと。** */
+  careerStanceUpdatedAt: string | null;
   /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
   tenureMonths: number | null;
   currentRole: string | null;
@@ -201,6 +235,14 @@ export default function CandidatesClient({
   const [tenureBand, setTenureBand] = useState("");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
 
+  /* ── ★転職意欲と、その更新時期（2026-09-19 / 柴さんの指示）────────────────
+     ⚠️★**この2つは対で使う。** 更新時期だけだと「意欲は問わないが最近更新した人」に
+        なり、単独では使いどころが限られる（YOUTRUST も2つ並べている）。
+     ⚠️ 年齢・性別と違い、**本人が自分で選んで公開している項目**なので絞り込みに出してよい
+        （年齢を出さない理由は労働施策総合推進法9条、性別は均等法5条。**軸が違う**）。 */
+  const [careerStance, setCareerStance] = useState("");
+  const [stanceFreshness, setStanceFreshness] = useState("");
+
   // ── その他 ──────────────────────────────────────────────────────────
   const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
 
@@ -324,6 +366,33 @@ export default function CandidatesClient({
       }
     }
 
+    /* ★転職意欲（2026-09-19）。単一選択。
+       ⚠️ 母集合が `no_contact` と未設定を落としているので、ここで null は出てこない。
+          それでも `=== ` で比べる（null が来ても落ちるだけで、既定値に倒さない）。 */
+    if (careerStance) {
+      list = list.filter((c) => c.careerStance === careerStance);
+    }
+
+    /* ★転職意欲の更新時期（2026-09-19）。
+       ⚠️★**未更新（null）は落とす。** 「最近更新した人」を探す条件なので、
+          いつ更新したか分からない人を通すと条件の意味が無くなる。
+          ⚠️ これは `/people` の年代と同じ扱い（値を持たない人は**その項目で絞ったときだけ**
+             落ちる）。社会人年数（`tenureBand`）が未算出を**通す**のとは逆で、
+             **わざと揃えていない** ——あちらは「経験の長さ」で、未算出でも候補ではある。
+       ⚠️★**落とした人数は画面に出す**（下の `droppedNoStanceTs`）。黙って減らすと
+          「絞り込んだ瞬間に0件」の理由が読めない。 */
+    if (stanceFreshness) {
+      const band = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness);
+      if (band) {
+        const since = Date.now() - band.days * 24 * 60 * 60 * 1000;
+        list = list.filter((c) => {
+          if (!c.careerStanceUpdatedAt) return false;
+          const t = new Date(c.careerStanceUpdatedAt).getTime();
+          return Number.isFinite(t) && t >= since;
+        });
+      }
+    }
+
     // 居住地（OR・前方一致）
     if (selectedPrefectures.length > 0) {
       list = list.filter((c) =>
@@ -345,8 +414,17 @@ export default function CandidatesClient({
     candidates, q, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
     hideAlreadyScouted,
     tenureBand, selectedPrefectures,
+    careerStance, stanceFreshness,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
+
+  /* ★「更新時期」で絞ったときに、更新日時が無くて落ちた人数（2026-09-19）。
+        ⚠️ `filtered` の**後**では数えられない（既に落ちている）ので、母集合から数える。
+        ⚠️ 0 のときは注記を出さない（出すと常に注記が居座る）。 */
+  const droppedNoStanceTs = useMemo(
+    () => (stanceFreshness ? candidates.filter((c) => !c.careerStanceUpdatedAt).length : 0),
+    [candidates, stanceFreshness]
+  );
 
   /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
   const unknownTenureCount = useMemo(
@@ -364,6 +442,8 @@ export default function CandidatesClient({
     selectedEmploymentTypes.length ? "x" : "",
     hideAlreadyScouted ? "x" : "",
     tenureBand ? "x" : "",
+    careerStance ? "x" : "",
+    stanceFreshness ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
@@ -378,6 +458,8 @@ export default function CandidatesClient({
     setSelectedEmploymentTypes([]);
     setHideAlreadyScouted(false);
     setTenureBand("");
+    setCareerStance("");
+    setStanceFreshness("");
     setSelectedPrefectures([]);
     setSalaryMin(0);
     setIncludeNoSalary(true);
@@ -573,6 +655,49 @@ export default function CandidatesClient({
             </span>
           </label>
         )}
+      </div>
+
+      {/* ── ★転職意欲（2026-09-19 / 柴さんの指示）────────────────────────────
+             ⚠️★**2つは対。片方だけ外さないこと。** 更新時期だけ残すと
+                「意欲は問わないが最近更新した人」になり、条件として成立しない。
+             ⚠️ 「希望条件」ではなく**本人の意思表示**なので、希望条件のブロックに
+                混ぜず独立させてある。 */}
+      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
+        <SidebarLabel>転職意欲</SidebarLabel>
+        <select
+          value={careerStance}
+          onChange={(e) => setCareerStance(e.target.value)}
+          style={{ width: "100%", height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
+        >
+          <option value="">すべて</option>
+          {/* ⚠️ ラベルは careerPreferences.ts の1箇所で決める。ここに直書きしない。 */}
+          {CAREER_STANCE_FILTER_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        <div style={{ marginTop: 10 }}>
+          <SidebarLabel>転職意欲の更新時期</SidebarLabel>
+          <select
+            value={stanceFreshness}
+            onChange={(e) => setStanceFreshness(e.target.value)}
+            style={{ width: "100%", height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
+          >
+            <option value="">指定なし</option>
+            {STANCE_FRESHNESS_BANDS.map((b) => (
+              <option key={b.value} value={b.value}>{b.label}</option>
+            ))}
+          </select>
+          {stanceFreshness && droppedNoStanceTs > 0 && (
+            /* ⚠️★黙って減らさない。**何名が対象外になったか**と、**その理由**を出す。
+                  ⚠️ 「古い人」ではなく「記録が無い人」。2026-09-19 より前に答えた人は
+                     更新日時を持っていない（遡って埋められない列）。 */
+            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.5, color: "var(--ink-mute)" }}>
+              更新日時が記録されていない {droppedNoStanceTs} 名は含みません。
+              この記録は 2026-09-19 から取り始めたため、それ以前に答えた方は対象外です。
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── 属性 ──────────────────────────────────────────────────────── */}

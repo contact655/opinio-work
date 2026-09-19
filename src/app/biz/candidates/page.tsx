@@ -127,6 +127,8 @@ export default async function CandidatesPage() {
                 "職種（大分類・小分類）", "現在の会社名", "現在の役職",
                 "雇用形態", "社会人年数", "希望勤務地", "希望年収",
                 "希望する職種", "働き方",
+                /* ★2026-09-19 追加。⚠️ 絞り込み（CandidatesClient）と必ず一致させること。 */
+                "転職意欲", "転職意欲の更新時期",
               ].map((t) => (
                 <span key={t} style={{
                   fontSize: 12, padding: "5px 11px", borderRadius: 100,
@@ -180,7 +182,11 @@ export default async function CandidatesPage() {
             同日に本人側の入力欄を消したので、企業に見せると
             「本人が直せない値で絞り込む／表示する」ことになる。
             ⚠️ **列と値は残っている。** 入力欄を戻すならここも戻すこと。 */
-      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, career_stance")
+      /* ★`career_stance_updated_at` も引く（2026-09-19）。「転職意欲の更新時期」で絞るため。
+            ⚠️★**`stance_updated_at` を使わないこと。** あちらは「転職・面談の状況カードの
+               最終更新」で、**面談OK の登録・公開切替でも打たれる**。使うと
+               「面談OK を触っただけの人」が「転職意欲を更新した人」として当たる。 */
+      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, career_stance, career_stance_updated_at")
       /* ★母集合を `scout_enabled` から `career_stance` に付け替えた（2026-08-27 / フェーズ3）。
          ⚠️★**未設定（null）は入れない。** 本人が一度も答えていない状態を
             「受け取る」と読み替えて企業に開示することになる。
@@ -249,6 +255,8 @@ export default async function CandidatesPage() {
     desired_salary_max: number | null;
     /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」（2026-08-26 / フェーズ2） */
     career_stance: string | null;
+    /** ★転職意欲を最後に変えた日時（2026-09-19）。⚠️ `stance_updated_at` とは別の列 */
+    career_stance_updated_at: string | null;
   }>();
   for (const p of profileRows) {
     profilesByAuthId.set(p.user_id as string, p as any);
@@ -401,6 +409,17 @@ export default async function CandidatesPage() {
            ⚠️ `open`（いい話があれば聞きたい）でバッジを出すかは**別の判断**。
               広げると「検討中」の意味が変わるので、決めてから足すこと。 */
         isActivelyLooking: profile?.career_stance === "active",
+        /* ★★転職意欲そのものと、その更新日時（2026-09-19 / 柴さんの指示）。
+              ⚠️ 母集合は既に `no_contact` と未設定を落としてあるので、ここに来るのは
+                 `active` / `open` / `researching` の3値のいずれか。
+              ⚠️★**更新日時は `career_stance_updated_at`。** `stance_updated_at` は
+                 面談OK の操作でも動くので使わない（select のコメント参照）。
+              ⚠️ **NULL を「古い」に倒さない。** 2026-09-19 に入れた列なので、
+                 それ以前に答えた人は NULL のまま（実測: 実ユーザー9人中、
+                 `stance_updated_at` があるのは4人だが、新しい列は全員 NULL から始まる）。
+                 絞り込み側は NULL を**落とすだけ**で、日付を作らない。 */
+        careerStance: (profile?.career_stance as string | null) ?? null,
+        careerStanceUpdatedAt: (profile?.career_stance_updated_at as string | null) ?? null,
         /* ⚠️ 職歴が0件なら `calcTotalExperience` が null を返す。**0年で埋めない**
               （新卒と未登録が同じになる。CLAUDE.md「値が無いことを、ある値に置き換えない」）。
               絞り込み側は null を落とさず、そのまま表示する。 */

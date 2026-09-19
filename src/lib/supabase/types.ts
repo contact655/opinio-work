@@ -4915,6 +4915,7 @@ export type Database = {
         Row: {
           bio: string | null
           career_stance: string | null
+          career_stance_updated_at: string | null
           created_at: string | null
           desired_phase: string[] | null
           desired_prefectures: string[] | null
@@ -4943,6 +4944,7 @@ export type Database = {
         Insert: {
           bio?: string | null
           career_stance?: string | null
+          career_stance_updated_at?: string | null
           created_at?: string | null
           desired_phase?: string[] | null
           desired_prefectures?: string[] | null
@@ -4971,6 +4973,7 @@ export type Database = {
         Update: {
           bio?: string | null
           career_stance?: string | null
+          career_stance_updated_at?: string | null
           created_at?: string | null
           desired_phase?: string[] | null
           desired_prefectures?: string[] | null
