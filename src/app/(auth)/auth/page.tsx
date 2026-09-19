@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { confirmRedirectTo, safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { AUTH_ERROR_DISPLAY, toAuthErrorCode, type AuthErrorCode } from "@/lib/constants/authErrors";
 import OpinioLogo from "@/components/common/OpinioLogo";
+import { buildDisplayName, NAME_PART_MAX } from "@/lib/constants/personName";
 
 // ─── SVG Components ─────────────────────────────────────────────────────────
 const GoogleLogo = () => (
@@ -108,7 +109,10 @@ function AuthPageInner() {
     });
   }, [nextUrl, router]);
 
-  const [name, setName] = useState("");
+  /* ★姓と名を別々に聞く（2026-09-19 / 柴さんの判断）。**1欄の「お名前」に戻さないこと。**
+        理由は下の入力欄のコメント。 */
+  const [familyName, setFamilyName] = useState("");
+  const [givenName, setGivenName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -158,7 +162,9 @@ function AuthPageInner() {
                 メールのローカル部を表示名にすると、**本人が入力していない個人情報が
                 `/people` に出る**（`/people` は `ow_users` 起点なので職歴が無い人も出る）。
              ⚠️ 入力欄を `required` にしたので、ここは空にならない。 */
-          data: { name: name.trim() },
+          /* ★`name` は姓＋名の派生値。**組み立ては `buildDisplayName` の1箇所**で、
+                ここで `${a} ${b}` と書かない（区切りが割れる）。 */
+          data: { name: buildDisplayName(familyName, givenName) },
           emailRedirectTo: confirmRedirectTo(location.origin, nextUrl),
         },
       });
@@ -540,21 +546,61 @@ function AuthPageInner() {
                        ここは自由記述の表示名で、**オンボーディングを通ると上書きされる**。
                        ⚠️★それでもここが要るのは、**オンボーディングを完了しない人がいる**ため
                           （実測 2026-09-14: 7人中**2人が未完了**）。その人たちの名前はここしか入り口が無い。 */}
+                {/* ★★2欄に分けた（2026-09-19 / 柴さんの判断）。**1欄に戻さないこと。**
+
+                    ── なぜ分けたか ──────────────────────────────────────────
+                    1欄だと、オンボーディング1画面目（姓/名を別々に聞く）へ
+                    **機械的にしか引き継げない。** 空白で分かれない名前
+                    （「木村雅樹」。実測 2026-09-19 で実ユーザー9人中5人）は
+                    分けようがなく、そこだけ初期値が空になっていた。
+                    ここで分けて聞けば、**メール経由の人は必ず正しく引き継がれる。**
+
+                    ⚠️★**Google 経由はこのフォームを通らない。** しかも Google は
+                       `given_name` / `family_name` を渡してこない（2026-09-19 実測:
+                       identity_data のキーは avatar_url / email / full_name / name ほか）。
+                       **`splitDisplayName` とヒントの仕組みは消さないこと** ——
+                       実ユーザー9人中4人が Google 経由で、そちらは今も空白頼り。
+
+                    ⚠️★**姓名は列に保存していない。** ここが送るのは `name`（姓＋名）だけで、
+                       `family_name` / `given_name` はオンボーディング1画面目で
+                       本人が確認して「次へ」を押したときに入る。
+                       ⚠️ 列へ保存する形にするなら、**DBトリガー `handle_new_ow_user` と
+                          `linkOwUser.ts` の両方**を変えることになる（保留にした）。
+
+                    ⚠️ **必須なのは変えていない。** 省略できるようにすると
+                       オンボーディング未完了の人（実測 7人中2人）の名前が入らなくなる。
+                    ⚠️ 位置も最後のまま。メールとパスワードを先に聞く並びは変えていない。 */}
                 <div style={s.formGroup}>
-                  <label style={s.label} htmlFor="signup-name">
+                  <label style={s.label} htmlFor="signup-family-name">
                     お名前 <span style={s.required}>*</span>
                   </label>
-                  <input
-                    id="signup-name"
-                    type="text"
-                    style={s.input}
-                    placeholder="山田 太郎"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                    enterKeyHint="done"
-                    required
-                  />
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+                    <input
+                      id="signup-family-name"
+                      type="text"
+                      aria-label="姓"
+                      style={s.input}
+                      placeholder="姓（山田）"
+                      value={familyName}
+                      onChange={(e) => setFamilyName(e.target.value)}
+                      autoComplete="family-name"
+                      maxLength={NAME_PART_MAX}
+                      required
+                    />
+                    <input
+                      id="signup-given-name"
+                      type="text"
+                      aria-label="名"
+                      style={s.input}
+                      placeholder="名（太郎）"
+                      value={givenName}
+                      onChange={(e) => setGivenName(e.target.value)}
+                      autoComplete="given-name"
+                      maxLength={NAME_PART_MAX}
+                      enterKeyHint="done"
+                      required
+                    />
+                  </div>
                 </div>
 
 
