@@ -39,7 +39,10 @@ export default async function OrganizationPage({
 
     supabase
       .from("ow_company_job_roles")
-      .select("id, name, standard_role_id, display_order")
+      /* ★`parent_id` も引く（2026-09-19 に職種を階層にした）。
+            ⚠️★落とすと `flattenTree` が全行を最上位として並べ、**階層が消える**
+               （型では気づけない。`?? null` で埋まるため）。 */
+      .select("id, parent_id, name, standard_role_id, display_order")
       .eq("company_id", ctx.tenantId)
       .is("deleted_at", null)
       .order("display_order", { ascending: true })

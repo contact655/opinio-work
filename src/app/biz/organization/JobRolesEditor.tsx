@@ -2,9 +2,14 @@
 
 import { useState, useTransition, useRef, useEffect, useMemo } from "react";
 import { buildRoleTree } from "@/lib/roles/jobRoles";
+import { MAX_ORG_DEPTH, flattenTree } from "@/lib/business/orgTree";
 
 export type CompanyJobRole = {
   id: string;
+  /** ★親の自社職種。NULL は最上位（2026-09-19 / 柴さんの指示で階層にした）。
+   *  ⚠️★**標準職種（`standard_role_id`）の親子とは別物。** あちらは OPINIO のマスタで、
+   *     こちらは自社の組織の形。混ぜないこと。 */
+  parent_id: string | null;
   name: string;
   standard_role_id: string | null;
   display_order: number;
@@ -312,6 +317,12 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
   const [addingNew, setAddingNew] = useState(false);
   const [newName, setNewName] = useState("");
   const [newStdRoleId, setNewStdRoleId] = useState("");
+  /* ★追加欄の階層（2026-09-19）。⚠️★**部門タブとまったく同じ規則**
+     （`lib/business/orgTree.ts`）。人事担当者は部門から作る人も職種から作る人も
+     いるので、片方だけ挙動が違う状態を作らない。 */
+  const [pendingParentId, setPendingParentId] = useState<string | null>(null);
+  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
+  const newNameRef = useRef<HTMLInputElement>(null);
 
   // 行編集
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -321,27 +332,72 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
   // 削除確認
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  /** 追加欄の「いまどこに足すか」。画面に出して迷わせないため */
+  function draftPath(): string[] {
+    const path: string[] = [];
+    let cur = pendingParentId;
+    for (let guard = 0; guard < MAX_ORG_DEPTH + 1; guard++) {
+      if (!cur) break;
+      const node = roles.find((r) => r.id === cur);
+      if (!node) break;
+      path.unshift(node.name);
+      cur = node.parent_id;
+    }
+    return path;
+  }
+  const draftDepth = draftPath().length + 1;
+
   async function handleAdd() {
     if (!newName.trim()) return;
     setError(null);
-    const maxOrder = roles.reduce((m, r) => Math.max(m, r.display_order), -1);
+    /* ⚠️ 並び順は**同じ親の中**で数える。全体の最大から採ると、
+          子を足すたびに番号が飛んで親ごとの並びが崩れる。 */
+    const maxOrder = roles
+      .filter((r) => r.parent_id === pendingParentId)
+      .reduce((m, r) => Math.max(m, r.display_order), -1);
     const res = await fetch("/api/biz/job-roles", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: newName,
+        parent_id: pendingParentId,
         standard_role_id: newStdRoleId || null,
         display_order: maxOrder + 1,
       }),
     });
     const data = await res.json();
-    if (!res.ok) { setError(data.error ?? "追加に失敗しました"); return; }
+    if (!res.ok) {
+      /* ⚠️ 制約は `(company_id, name, parent_id)`。**同じ階層の同名**だけが重複する。 */
+      setError(res.status === 409 ? "同じ名前の職種が、この階層にすでにあります" : (data.error ?? "追加に失敗しました"));
+      return;
+    }
     startTransition(() => {
       setRoles((prev) => [...prev, data.jobRole]);
     });
     setNewName("");
     setNewStdRoleId("");
+    setLastCreatedId(data.jobRole.id as string);
+    /* ⚠️★**欄を閉じない。** 続けて打てることがこの欄の目的（部門タブと同じ）。 */
+    newNameRef.current?.focus();
+  }
+
+  function indentDraft() {
+    if (!lastCreatedId) return;
+    if (draftDepth >= MAX_ORG_DEPTH) return;
+    setPendingParentId(lastCreatedId);
+  }
+  function outdentDraft() {
+    if (!pendingParentId) return;
+    const parent = roles.find((r) => r.id === pendingParentId);
+    setPendingParentId(parent?.parent_id ?? null);
+    setLastCreatedId(null);
+  }
+  function closeDraft() {
     setAddingNew(false);
+    setNewName("");
+    setNewStdRoleId("");
+    setPendingParentId(null);
+    setLastCreatedId(null);
   }
 
   function startEdit(role: CompanyJobRole) {
@@ -384,7 +440,18 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
     const res = await fetch(`/api/biz/job-roles/${id}`, { method: "DELETE" });
     if (!res.ok) { setError("削除に失敗しました"); return; }
     startTransition(() => {
-      setRoles((prev) => prev.filter((r) => r.id !== id));
+      setRoles((prev) => {
+        /* ⚠️★**子孫も消す。** サーバー側（DELETE /api/biz/job-roles/[id]）が
+              まとめて論理削除するので、画面だけ残すと**消えたはずの行が居座る。** */
+        const toRemove = new Set<string>();
+        const collect = (rid: string) => {
+          if (toRemove.has(rid)) return;
+          toRemove.add(rid);
+          prev.filter((r) => r.parent_id === rid).forEach((c) => collect(c.id));
+        };
+        collect(id);
+        return prev.filter((r) => !toRemove.has(r.id));
+      });
     });
     setConfirmDeleteId(null);
   }
@@ -417,7 +484,12 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
               <span style={{ width: 120 }} />
             </div>
 
-            {roles.map((role, idx) => (
+            {/* ★木の順（親 → その子 → 次の親）で並べる（2026-09-19）。
+                   ⚠️★**`flattenTree` を通すこと。** 素の配列順で出すと、
+                      子が親から離れて並び、階層が読めない。
+                   ⚠️ 孤児（親が消えた行）も必ず出る作りにしてある。
+                      出さないと**画面から消えて直せなくなる。** */}
+            {flattenTree(roles).map(({ node: role, depth }, idx) => (
               <div
                 key={role.id}
                 style={{
@@ -429,6 +501,8 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
                   background: editingId === role.id ? "var(--royal-50)" : "#fff",
                 }}
               >
+                {/* 字下げ。⚠️ 幅は部門タブ（DeptNode の indentLeft）と同じ 20px */}
+                {depth > 1 && <span style={{ width: (depth - 1) * 20, flexShrink: 0 }} />}
                 {/* 職種名（編集 or 表示） */}
                 {editingId === role.id ? (
                   <input
@@ -549,12 +623,28 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
       {addingNew ? (
         <div style={{ background: "#fff", border: "1px solid var(--accent)", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+            {/* 字下げで深さを目で見せる（部門タブと同じ） */}
+            <span style={{ width: (draftDepth - 1) * 20, flexShrink: 0 }} />
             <input
+              ref={newNameRef}
               autoFocus
-              placeholder="例：FS、フィールドセールス、AE..."
+              placeholder="職種名を入力して Enter"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") { setAddingNew(false); setNewName(""); setNewStdRoleId(""); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleAdd(); return; }
+                /* ⚠️★**Tab は既定だとフォーカスが飛ぶ。** preventDefault が要る。
+                      ⚠️ ただしこの欄には**標準職種のコンボボックスが隣にある**ので、
+                         Tab を潰すとそちらへキーボードで移れない。
+                         **Esc で閉じられること**と、コンボボックスはマウス／
+                         クリックで開けることを下の行に書いてある。 */
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  if (e.shiftKey) outdentDraft(); else indentDraft();
+                  return;
+                }
+                if (e.key === "Escape") { e.preventDefault(); closeDraft(); }
+              }}
               style={{
                 flex: 1,
                 minWidth: 160,
@@ -583,11 +673,23 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => { setAddingNew(false); setNewName(""); setNewStdRoleId(""); }}
+              onClick={closeDraft}
               style={{ padding: "7px 12px", fontSize: 13, border: "1px solid var(--line)", borderRadius: 7, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
             >
-              キャンセル
+              閉じる
             </button>
+          </div>
+
+          {/* ★いまどこに足すか＋キーの説明（部門タブと同じ形） */}
+          <div style={{ marginTop: 10, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+            <span style={{ fontWeight: 700, color: "var(--royal)" }}>{draftDepth}階層目に追加</span>
+            {draftPath().length > 0 && <span>　{draftPath().join(" › ")} の下</span>}
+            <br />
+            Enter で追加して続けて入力／Tab で直前の職種の下へ（{MAX_ORG_DEPTH}階層まで）／
+            Shift+Tab で一段戻る／Esc で閉じる
+            {lastCreatedId === null && pendingParentId === null && (
+              <span>　※ Tab は1件目を追加したあとから使えます</span>
+            )}
           </div>
         </div>
       ) : (
@@ -623,10 +725,11 @@ export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
       <div style={{ marginTop: 8, padding: "12px 16px", background: "var(--royal-50)", borderRadius: 10, border: "1px solid var(--royal-100)" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 6 }}>使い方のヒント</div>
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+          <li>「職種を追加する」を開くと、<b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上。最大{MAX_ORG_DEPTH}階層）</li>
           <li>「自社の呼び方」は社内で使っている職種名を自由に入力してください（例：FS, AE, IC など略称も可）</li>
           <li>「標準職種」と紐づけると、OPINIOの求人検索・マッチングで正しく分類されます</li>
           <li>職種名をダブルクリックするとインライン編集できます</li>
-          <li>削除しても、その職種に紐づいた求人の記録は残ります</li>
+          <li>削除すると<b>その下の職種も一緒に削除されます</b>。紐づいた求人の記録は残ります</li>
         </ul>
       </div>
     </div>

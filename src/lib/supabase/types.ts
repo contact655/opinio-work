@@ -1880,6 +1880,7 @@ export type Database = {
           display_order: number
           id: string
           name: string
+          parent_id: string | null
           standard_role_id: string | null
         }
         Insert: {
@@ -1889,6 +1890,7 @@ export type Database = {
           display_order?: number
           id?: string
           name: string
+          parent_id?: string | null
           standard_role_id?: string | null
         }
         Update: {
@@ -1898,6 +1900,7 @@ export type Database = {
           display_order?: number
           id?: string
           name?: string
+          parent_id?: string | null
           standard_role_id?: string | null
         }
         Relationships: [
@@ -1920,6 +1923,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_job_roles_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ow_company_job_roles"
             referencedColumns: ["id"]
           },
           {

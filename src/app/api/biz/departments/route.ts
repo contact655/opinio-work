@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/business/dashboard";
+import { MAX_ORG_DEPTH, wouldExceedDepth, type OrgNodeLike } from "@/lib/business/orgTree";
 
 export async function GET() {
   const ctx = await getTenantContext();
@@ -28,16 +29,32 @@ export async function POST(req: Request) {
 
   const supabase = createClient();
 
-  // 3階層目を拒否: parent_id の親が存在する場合は400
+  /* ★深さの判定（2026-09-19 に 2階層 → MAX_ORG_DEPTH 階層へ）。
+     ⚠️★**規則は `lib/business/orgTree.ts` の1箇所。** 職種側（/api/biz/job-roles）も
+        同じ関数を通す。ここに数字や判定を書き写さないこと。
+     ⚠️ 以前は「親の親が居たら400」という**2階層専用の書き方**だった。
+        深さが変わるたびに書き直す形なので、木を辿る形に替えてある。
+     ⚠️★**同じ会社の行だけを渡す。** 他社の行を混ぜると、他社の木の深さで
+        判定してしまう（`company_id` の絞り込みを外さないこと）。 */
   if (parent_id) {
-    const { data: parentRow } = await supabase
+    const { data: all, error: treeErr } = await supabase
       .from("ow_company_departments")
-      .select("parent_id")
-      .eq("id", parent_id)
-      .is("deleted_at", null)
-      .single();
-    if (parentRow?.parent_id) {
-      return NextResponse.json({ error: "部門は2階層まで（親 > 子）しか作成できません" }, { status: 400 });
+      .select("id, parent_id")
+      .eq("company_id", ctx.tenantId)
+      .is("deleted_at", null);
+    if (treeErr) {
+      console.error("[POST /api/biz/departments] tree", treeErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    const byId = new Map<string, OrgNodeLike>((all ?? []).map((d) => [d.id as string, d as OrgNodeLike]));
+    if (!byId.has(parent_id)) {
+      return NextResponse.json({ error: "親の部門が見つかりません" }, { status: 400 });
+    }
+    if (wouldExceedDepth(parent_id, byId)) {
+      return NextResponse.json(
+        { error: `部門は${MAX_ORG_DEPTH}階層までしか作成できません` },
+        { status: 400 },
+      );
     }
   }
 

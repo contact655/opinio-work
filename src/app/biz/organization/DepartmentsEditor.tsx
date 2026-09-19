@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
+import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
 
 export type Department = {
   id: string;
@@ -15,52 +16,12 @@ type Props = {
 
 type TreeNode = Department & { children: TreeNode[] };
 
-// ── テンプレート ─────────────────────────────────────────────────────────────
-
-type TemplateEntry = { name: string; children?: string[] };
-
-const DEPT_TEMPLATES: { key: string; label: string; items: TemplateEntry[] }[] = [
-  {
-    key: "saas",
-    label: "SaaS（営業・CS）",
-    items: [
-      { name: "営業", children: ["インサイドセールス", "フィールドセールス", "エンタープライズ営業"] },
-      { name: "カスタマーサクセス", children: ["オンボーディング", "リニューアル・拡大"] },
-      { name: "マーケティング", children: ["フィールドマーケ", "プロダクトマーケ"] },
-      { name: "プロダクト・開発", children: ["エンジニアリング", "プロダクトマネジメント"] },
-      { name: "コーポレート" },
-    ],
-  },
-  {
-    key: "sier",
-    label: "SIer（受託開発）",
-    items: [
-      { name: "開発本部", children: ["アプリケーション開発", "インフラ・SRE"] },
-      { name: "営業・PMO", children: ["営業", "プロジェクトマネジメント"] },
-      { name: "デリバリー・CS", children: ["導入支援", "カスタマーサポート"] },
-      { name: "コーポレート" },
-    ],
-  },
-  {
-    key: "hr",
-    label: "人材（HR）",
-    items: [
-      { name: "事業部", children: ["コンサルティング", "リクルーティング", "採用代行"] },
-      { name: "プロダクト・テクノロジー" },
-      { name: "マーケティング" },
-      { name: "コーポレート" },
-    ],
-  },
-  {
-    key: "general",
-    label: "一般（汎用）",
-    items: [
-      { name: "プロダクト", children: ["エンジニアリング", "デザイン"] },
-      { name: "ビジネス", children: ["営業", "マーケティング"] },
-      { name: "コーポレート" },
-    ],
-  },
-];
+const kbdStyle: React.CSSProperties = {
+  display: "inline-block", padding: "1px 5px", margin: "0 2px",
+  fontSize: 10, fontFamily: "inherit", fontWeight: 700,
+  border: "1px solid var(--line)", borderRadius: 4,
+  background: "#fff", color: "var(--ink-soft)",
+};
 
 // ── ツリー構築 ────────────────────────────────────────────────────────────────
 
@@ -104,7 +65,13 @@ function DeptNode({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const indentLeft = depth * 20;
-  const canNest = depth < 1;
+  /* ★何階層まで入れ子にできるか（2026-09-19 に 2階層 → MAX_ORG_DEPTH 階層へ）。
+        ⚠️★**数字を直書きしないこと。** 規則は `lib/business/orgTree.ts` の1箇所で、
+           API（/api/biz/departments）も同じ定数を見る。
+           深さは DB で縛っていないので、**定数が1つであることが唯一の担保。**
+        ⚠️ `depth` はここでは0起点（最上位が0）。`orgTree.ts` の `depthOf` は
+           1起点なので、**そのまま比べないこと。** */
+  const canNest = depth < MAX_ORG_DEPTH - 1;
 
   async function handleAddChild() {
     if (!childName.trim()) return;
@@ -282,120 +249,41 @@ function DeptNode({
   );
 }
 
-// ── テンプレートモーダル ──────────────────────────────────────────────────────
-
-function TemplateModal({
-  onApply,
-  onClose,
-}: {
-  onApply: (items: TemplateEntry[]) => void;
-  onClose: () => void;
-}) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const template = DEPT_TEMPLATES.find((t) => t.key === selected);
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 1000,
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
-        background: "#fff", borderRadius: 14, padding: 28, width: 500, maxWidth: "90vw",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-      }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>テンプレートから追加</div>
-        <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 20 }}>
-          業種に合ったテンプレートを選択してください。既存の部門に追加されます。
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
-          {DEPT_TEMPLATES.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setSelected(t.key)}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 8,
-                border: selected === t.key ? "2px solid var(--royal)" : "1px solid var(--line)",
-                background: selected === t.key ? "var(--royal-50)" : "#fff",
-                color: selected === t.key ? "var(--royal)" : "var(--ink)",
-                fontFamily: "inherit",
-                fontSize: 13,
-                fontWeight: selected === t.key ? 700 : 500,
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {template && (
-          <div style={{ marginBottom: 20, padding: "12px 14px", background: "var(--bg-tint)", borderRadius: 8, border: "1px solid var(--line)" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>追加される部門</div>
-            {template.items.map((item) => (
-              <div key={item.name} style={{ marginBottom: 4 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>▸ {item.name}</div>
-                {item.children?.map((c) => (
-                  <div key={c} style={{ fontSize: 12, color: "var(--ink-soft)", paddingLeft: 20, lineHeight: 1.8 }}>  {c}</div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ padding: "8px 16px", fontSize: 13, border: "1px solid var(--line)", borderRadius: 8, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}
-          >
-            キャンセル
-          </button>
-          <button
-            type="button"
-            disabled={!template}
-            onClick={() => template && onApply(template.items)}
-            style={{
-              padding: "8px 20px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8,
-              background: template ? "var(--royal)" : "var(--line)",
-              color: template ? "#fff" : "var(--ink-mute)",
-              cursor: template ? "pointer" : "not-allowed",
-              fontFamily: "inherit",
-            }}
-          >
-            このテンプレートを追加
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── DepartmentsEditor ─────────────────────────────────────────────────────────
 
 export function DepartmentsEditor({ initialDepartments }: Props) {
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
   const [isPending, startTransition] = useTransition();
-  const [newRootName, setNewRootName] = useState("");
-  const [addingRoot, setAddingRoot] = useState(false);
+  /* ── ★キーボードで続けて打てる追加欄（2026-09-19 / 柴さんの指示）──────────
+     人事担当者が組織図を**上から順に打ち込める**ようにするためのもの。
+     テンプレートを外した代わりがこれ。
+
+       Enter      … いまの階層に1件作って、欄はそのまま次の入力を待つ
+       Tab        … **直前に作った行の下**へ入る（一段深くなる）
+       Shift+Tab  … 一段浅くなる
+       Esc        … 閉じる
+
+     ⚠️★**階層は「作る前」に決める。** 作ってから親を付け替える形にしなかったのは、
+        付け替えには循環の判定（`wouldCycle`）と移動の API が要るため。
+        ここでは**常に既存の行の下に足すだけ**なので、循環は原理的に起きない。
+     ⚠️ `pendingParentId` は「次に作る行の親」。`lastCreatedId` は「直前に作った行」。
+        **Tab は後者を親にする**ので、1件も作っていないときは効かない。 */
+  const [draftName, setDraftName] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [pendingParentId, setPendingParentId] = useState<string | null>(null);
+  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
+  const draftRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [templateProgress, setTemplateProgress] = useState<string | null>(null);
 
   const tree = buildTree(departments);
 
   async function handleAdd(parentId: string | null, name: string, displayOrder?: number) {
     setError(null);
-    // displayOrder が未指定のとき（単体追加）は state から計算する。
-    // テンプレート適用時は呼び出し元で事前計算した値を渡す
-    // （useTransition のバッチ遅延で state が更新されないため）。
+    /* displayOrder が未指定のときは state から計算する。
+       ⚠️ 呼び出し側が渡せる口を残してあるのは、**続けて何件も足すとき**に
+          `startTransition` のバッチ遅延で state が更新されず、全部同じ値になるため。
+          （テンプレート機能が使っていた口。2026-09-19 にテンプレートは削除したが、
+          連続入力で同じ問題を踏みうるので口は残してある。） */
     const order = displayOrder !== undefined
       ? displayOrder
       : departments
@@ -409,8 +297,16 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
     });
     const data = await res.json();
     if (!res.ok) {
-      // 重複はスキップ（テンプレート適用時）
-      if (res.status === 409) return null;
+      /* ⚠️★**409 を黙って飲み込まないこと**（2026-09-19 に直した）。
+            テンプレートが同じ名前を何度も投げる作りだったので握り潰していたが、
+            テンプレートを消した今は「**打って Enter を押したのに何も起きない**」に
+            なる。理由を画面に出す。
+         ⚠️ 制約は `(company_id, name, parent_id)` なので、**同じ階層の同名**だけが重複。
+            別の親の下なら同じ名前を作れる（営業 > マネージャー と CS > マネージャー）。 */
+      if (res.status === 409) {
+        setError("同じ名前の部門が、この階層にすでにあります");
+        return null;
+      }
       setError(data.error ?? "追加に失敗しました");
       return null;
     }
@@ -450,61 +346,60 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
     });
   }
 
-  async function handleAddRoot() {
-    if (!newRootName.trim()) return;
-    await handleAdd(null, newRootName);
-    setNewRootName("");
-    setAddingRoot(false);
+  /** 追加欄の「いまどこに足すか」を組み立てる。画面に出して迷わせないため */
+  function draftPath(): string[] {
+    const path: string[] = [];
+    let cur = pendingParentId;
+    for (let guard = 0; guard < MAX_ORG_DEPTH + 1; guard++) {
+      if (!cur) break;
+      const node = departments.find((d) => d.id === cur);
+      if (!node) break;
+      path.unshift(node.name);
+      cur = node.parent_id;
+    }
+    return path;
   }
 
-  async function applyTemplate(items: TemplateEntry[]) {
-    setShowTemplateModal(false);
-    setTemplateProgress("テンプレートを追加中...");
-    // ループ前に現在の最大 display_order を確定させる
-    // （ループ中は useTransition バッチで state が更新されないため、
-    //   都度 state から計算すると全件 0 になる）
-    const rootBase = departments
-      .filter((d) => d.parent_id === null)
-      .reduce((m, d) => Math.max(m, d.display_order), -1) + 1;
+  /** いま追加欄が居る階層（最上位＝1）。上限に達したら Tab を効かせない */
+  const draftDepth = draftPath().length + 1;
 
-    for (let i = 0; i < items.length; i++) {
-      const parent = await handleAdd(null, items[i].name, rootBase + i);
-      if (parent && items[i].children) {
-        for (let j = 0; j < items[i].children!.length; j++) {
-          await handleAdd(parent.id, items[i].children![j], j);
-        }
-      }
-    }
-    setTemplateProgress(null);
+  async function commitDraft() {
+    const name = draftName.trim();
+    if (!name) return;
+    const created = await handleAdd(pendingParentId, name);
+    if (!created) return;               // 失敗時は入力を残す（打ち直さずに済む）
+    setDraftName("");
+    setLastCreatedId(created.id);
+    /* ⚠️ 欄は閉じない。**続けて打てることがこの機能の主目的。** */
+    draftRef.current?.focus();
+  }
+
+  /** Tab: 直前に作った行の下へ入る */
+  function indentDraft() {
+    if (!lastCreatedId) return;
+    if (draftDepth >= MAX_ORG_DEPTH) return;
+    setPendingParentId(lastCreatedId);
+  }
+
+  /** Shift+Tab: 一段浅くする */
+  function outdentDraft() {
+    if (!pendingParentId) return;
+    const parent = departments.find((d) => d.id === pendingParentId);
+    setPendingParentId(parent?.parent_id ?? null);
+    /* ⚠️ 浅くしたら「直前に作った行」はもう親候補ではない。**消しておく**
+          （残すと Tab で元の深さに戻ってしまい、行き来が噛み合わない）。 */
+    setLastCreatedId(null);
+  }
+
+  function closeDraft() {
+    setAdding(false);
+    setDraftName("");
+    setPendingParentId(null);
+    setLastCreatedId(null);
   }
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 32px 80px" }}>
-      {/* テンプレートボタン（右上） */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
-        <button
-          type="button"
-          onClick={() => setShowTemplateModal(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "7px 14px", fontSize: 12, fontWeight: 600,
-            border: "1px solid var(--royal-100)", borderRadius: 7,
-            background: "var(--royal-50)", color: "var(--royal)",
-            cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          テンプレート
-        </button>
-      </div>
-
-
-      {/* テンプレート進捗 */}
-      {templateProgress && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--royal-50)", border: "1px solid var(--royal-100)", fontSize: 13, color: "var(--royal)", fontWeight: 600 }}>
-          {templateProgress}
-        </div>
-      )}
 
       {/* エラー */}
       {error && (
@@ -521,19 +416,6 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
             <div style={{ fontSize: 32, marginBottom: 8 }}>🏢</div>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>部門がまだ登録されていません</div>
             <div style={{ marginBottom: 16 }}>「部門を追加する」から最初の部門を登録してください</div>
-            <button
-              type="button"
-              onClick={() => setShowTemplateModal(true)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", fontSize: 12, fontWeight: 600,
-                border: "1px solid var(--royal-100)", borderRadius: 7,
-                background: "var(--royal-50)", color: "var(--royal)",
-                cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              テンプレートから始める →
-            </button>
           </div>
         ) : (
           <div style={{ padding: "8px 16px" }}>
@@ -553,45 +435,77 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
         )}
       </div>
 
-      {/* ルート部門追加 */}
-      {addingRoot ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid var(--accent)", borderRadius: 10, padding: "10px 14px" }}>
-          <input
-            autoFocus
-            placeholder="例：営業部、エンジニアリング部、コーポレート..."
-            value={newRootName}
-            onChange={(e) => setNewRootName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleAddRoot(); if (e.key === "Escape") { setAddingRoot(false); setNewRootName(""); } }}
-            style={{
-              flex: 1,
-              fontSize: 14,
-              fontFamily: "inherit",
-              border: "none",
-              outline: "none",
-              color: "var(--ink)",
-              background: "transparent",
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleAddRoot}
-            disabled={!newRootName.trim() || isPending}
-            style={{ padding: "6px 16px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 7, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
-          >
-            追加
-          </button>
-          <button
-            type="button"
-            onClick={() => { setAddingRoot(false); setNewRootName(""); }}
-            style={{ padding: "6px 12px", fontSize: 13, border: "1px solid var(--line)", borderRadius: 7, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
-          >
-            キャンセル
-          </button>
+      {/* ★キーボードで続けて打てる追加欄（2026-09-19）────────────────────────
+             ⚠️★**「追加して閉じる」に戻さないこと。** 組織図を上から順に打ち込めることが
+                この欄の目的で、1件ごとに開き直す形だと元の使い勝手に戻る。 */}
+      {adding ? (
+        <div style={{ background: "#fff", border: "1px solid var(--accent)", borderRadius: 10, padding: "10px 14px" }}>
+          {/* いまどこに足すか。⚠️ 出さないと**打ち込んだ先が分からなくなる** */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 700, color: "var(--royal)" }}>{draftDepth}階層目に追加</span>
+            {draftPath().length > 0 && (
+              <span>{draftPath().join(" › ")} の下</span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* 字下げで深さを目で見せる。⚠️ 幅は DeptNode の indentLeft（20px）と揃える */}
+            <span style={{ width: (draftDepth - 1) * 20, flexShrink: 0 }} />
+            <input
+              ref={draftRef}
+              autoFocus
+              placeholder="部門名を入力して Enter"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commitDraft(); return; }
+                /* ⚠️★**Tab は既定だとフォーカスが飛ぶ。** preventDefault が要る。
+                      ⚠️ そのぶん**この欄からキーボードだけで出られなくなる**ので、
+                         Esc で閉じられることを下の行に書いてある。 */
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  if (e.shiftKey) outdentDraft(); else indentDraft();
+                  return;
+                }
+                if (e.key === "Escape") { e.preventDefault(); closeDraft(); }
+              }}
+              style={{
+                flex: 1, fontSize: 14, fontFamily: "inherit", border: "none",
+                outline: "none", color: "var(--ink)", background: "transparent",
+              }}
+            />
+            <button
+              type="button"
+              onClick={commitDraft}
+              disabled={!draftName.trim() || isPending}
+              style={{ padding: "6px 16px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 7, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, opacity: !draftName.trim() || isPending ? 0.5 : 1 }}
+            >
+              追加
+            </button>
+            <button
+              type="button"
+              onClick={closeDraft}
+              style={{ padding: "6px 12px", fontSize: 13, border: "1px solid var(--line)", borderRadius: 7, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+            >
+              閉じる
+            </button>
+          </div>
+
+          {/* ⚠️ キーの説明は欄の中に置く。ヒント欄まで読みに行かせない */}
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+            <kbd style={kbdStyle}>Enter</kbd> で追加して続けて入力／
+            <kbd style={kbdStyle}>Tab</kbd> で直前の部門の下へ（{MAX_ORG_DEPTH}階層まで）／
+            <kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>Tab</kbd> で一段戻る／
+            <kbd style={kbdStyle}>Esc</kbd> で閉じる
+            {lastCreatedId === null && pendingParentId === null && (
+              <span>　※ Tab は1件目を追加したあとから使えます</span>
+            )}
+          </div>
         </div>
       ) : (
         <button
           type="button"
-          onClick={() => setAddingRoot(true)}
+          onClick={() => setAdding(true)}
           style={{
             display: "flex",
             alignItems: "center",
@@ -620,20 +534,17 @@ export function DepartmentsEditor({ initialDepartments }: Props) {
       <div style={{ marginTop: 24, padding: "12px 16px", background: "var(--royal-50)", borderRadius: 10, border: "1px solid var(--royal-100)" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 6 }}>使い方のヒント</div>
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+          <li>「部門を追加する」を開くと、<b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上）</li>
           <li>部門名をダブルクリックすると名前を変更できます</li>
-          <li>「+ サブ」ボタンでその部門の下に子部門を追加（最大2階層まで）</li>
-          <li>部門を削除しても、紐づいている求人・社員の記録は残ります</li>
-          <li>ここで登録した部門は、求人作成・社員登録の「所属部門」セレクトボックスに表示されます</li>
+          <li>「+ サブ」ボタンでもその部門の下に追加できます（{/* ⚠️ 数字を直書きしない */}
+            最大{MAX_ORG_DEPTH}階層まで）</li>
+          <li>部門を削除すると<b>その下の部門も一緒に削除されます</b>。紐づいている求人・社員の記録は残ります</li>
+          {/* ⚠️★2026-09-19 に「社員登録」を外した。社員登録の「部署」は**自由入力**で、
+                 部門マスタと繋がっていない。**守れない約束を画面に出さない。**
+                 社員登録をマスタから選ぶ形にするなら、ここも戻すこと。 */}
+          <li>ここで登録した部門は、求人作成の「所属部門」から選べます</li>
         </ul>
       </div>
-
-      {/* テンプレートモーダル */}
-      {showTemplateModal && (
-        <TemplateModal
-          onApply={applyTemplate}
-          onClose={() => setShowTemplateModal(false)}
-        />
-      )}
     </div>
   );
 }

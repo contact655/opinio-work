@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { mutateOne } from "@/lib/supabase/mutate";
+import { mutateMany, mutateOne } from "@/lib/supabase/mutate";
 import { getTenantContext } from "@/lib/business/dashboard";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -31,9 +31,38 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createClient();
-  const res = await mutateOne(
+
+  /* ★★子の職種も一緒に論理削除する（2026-09-19 / 階層に変えたので必要になった）。
+     ⚠️★**部門（/api/biz/departments/[id]）とまったく同じ形。** 片方だけ残すと、
+        親を消したのに子が残り、**親の消えた行が画面から消えて直せなくなる**
+        （`flattenTree` が孤児を拾うようにしてあるのは、この事故の保険）。
+     ⚠️ DB の FK は `ON DELETE CASCADE` だが、**ここは論理削除なので効かない。**
+        行を物理削除していないので、自分で辿る必要がある。 */
+  const { data: allRoles, error: treeErr } = await supabase
+    .from("ow_company_job_roles")
+    .select("id, parent_id")
+    .eq("company_id", ctx.tenantId)
+    .is("deleted_at", null);
+  if (treeErr) {
+    console.error("[DELETE /api/biz/job-roles/[id]] tree", treeErr.message);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+  const toDelete: string[] = [];
+  const seen = new Set<string>();
+  function collect(id: string) {
+    /* ⚠️ 壊れたデータ（循環）で返らなくならないように、1度見た id は辿らない。 */
+    if (seen.has(id)) return;
+    seen.add(id);
+    toDelete.push(id);
+    (allRoles ?? []).filter((r) => r.parent_id === id).forEach((c) => collect(c.id as string));
+  }
+  collect(params.id);
+
+  /* ⚠️ 1件以上（本体は必ず消える）。0件はエラー＝対象が無いか RLS 拒否 */
+  const res = await mutateMany(
     supabase.from("ow_company_job_roles").update({ deleted_at: new Date().toISOString() })
-      .eq("id", params.id).eq("company_id", ctx.tenantId),
+      .in("id", toDelete).eq("company_id", ctx.tenantId),
     "job-roles DELETE",
   );
   const error = res.ok ? null : { message: res.error };

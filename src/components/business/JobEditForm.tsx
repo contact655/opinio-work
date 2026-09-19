@@ -17,6 +17,7 @@ import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
+import { flattenTree } from "@/lib/business/orgTree";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
 
@@ -629,15 +630,20 @@ export function JobEditForm({
                         onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
                       >
                         <option value="">部門を選択（任意）</option>
-                        {departments.filter((d) => !d.parent_id).map((parent) => (
-                          <optgroup key={parent.id} label={parent.name}>
-                            <option value={parent.id}>{parent.name}（全体）</option>
-                            {departments.filter((d) => d.parent_id === parent.id).map((child) => (
-                              <option key={child.id} value={child.id}>　└ {child.name}</option>
-                            ))}
-                          </optgroup>
+                        {/* ★★`<optgroup>` をやめて、字下げした `<option>` を並べる（2026-09-19）。
+                               ⚠️★**`<optgroup>` は入れ子にできない。** 部門が2階層までだった頃は
+                                  「親＝optgroup / 子＝option」で足りていたが、5階層に広げた時点で
+                                  **3階層目以降がこの select から出せなくなる**
+                                  （保存はできるのに選べない、という一番分かりにくい壊れ方）。
+                               ⚠️★**並べ替えは `flattenTree` を通すこと。** 素の配列順だと
+                                  子が親から離れて並び、字下げだけ残って意味が読めない。
+                               ⚠️ 字下げに全角スペースを使っているのは、`<option>` に
+                                  padding が効かないため（ブラウザ依存）。 */}
+                        {flattenTree(departments).map(({ node, depth }) => (
+                          <option key={node.id} value={node.id}>
+                            {"　".repeat(depth - 1)}{depth > 1 ? "└ " : ""}{node.name}
+                          </option>
                         ))}
-                        {departments.filter((d) => !d.parent_id && !departments.some((c) => c.parent_id === d.id)).length === 0 && null}
                       </select>
                       <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
                         部門マスタは <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> から管理できます
