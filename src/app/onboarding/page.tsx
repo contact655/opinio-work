@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import OnboardingClient from "./OnboardingClient";
 import { EXPERIENCE_EDITOR_COLS } from "@/lib/experiences/columns";
 import { buildDesiredRoleOptions } from "@/lib/roles/desiredRoleOptions";
+import { splitDisplayName } from "@/lib/constants/personName";
 
 export default async function OnboardingPage() {
   const supabase = createClient();
@@ -110,7 +111,7 @@ export default async function OnboardingPage() {
         実測（2026-09-14）: 実ユーザー7人のうち**2人（29%）が未完了**。 */
   const { data: owUser } = await createAdminClient()
     .from("ow_users")
-    .select("id, family_name, given_name, family_name_kana, given_name_kana, birth_date")
+    .select("id, name, family_name, given_name, family_name_kana, given_name_kana, birth_date")
     .eq("auth_id", user.id).maybeSingle();
 
   /* ⚠️ 生年月日は `YYYY-MM-DD`。画面は年/月/日の3つの `<select>` で、
@@ -118,9 +119,34 @@ export default async function OnboardingPage() {
         ずれると `<select>` の `value` が**空のまま**になり、
         選んだことにならない（`.claude/rules/ui-debugging.md` ②）。 */
   const bd = (owUser?.birth_date as string | null) ?? null;
+
+  /* ★★新規登録の「お名前」を1画面目の初期値に引き継ぐ（2026-09-19 / 柴さんの指摘）。
+     ── 何が起きていたか ──────────────────────────────────────────────────────
+     `/auth` の「お名前」は `ow_users.name` に保存されるのに、ここは
+     `family_name` / `given_name` だけを見ていた。**新規登録直後は必ず両方 null** なので、
+     1画面目はいつも空で、登録した名前をもう一度打つことになっていた。
+     ⚠️★さらに、空の必須欄に `autoComplete="family-name"` が付いているので、
+        **ブラウザが保存済みの別人の名前を入れてくる**（実際に「問 / 合せ対応」が
+        入った状態のスクリーンショットが出た）。値が入っていれば Chrome は埋めない。
+
+     ⚠️★**分けられるときだけ分ける。** 判定は `splitDisplayName` の1箇所で、
+        空白なし（「木村雅樹」）は `null` を返す ——姓へ丸ごと入れると
+        「木村雅樹 雅樹」を作る余地が残るため。分けられない人には
+        代わりに `displayName` をヒントで見せる（画面側）。
+     ⚠️★**列には書かない。ここは画面の初期値だけ。** 本人が1画面目で見て直し、
+        「次へ」を押して初めて保存される。**バックフィルの migration を書かないこと。**
+     ⚠️ 既に `family_name` / `given_name` を持っている人（2回目に来た人）には掛けない。
+        片方でも入っていれば、そちらが正。 */
+  const storedFamily = ((owUser?.family_name as string | null) ?? "").trim();
+  const storedGiven = ((owUser?.given_name as string | null) ?? "").trim();
+  const fromDisplayName =
+    storedFamily || storedGiven ? null : splitDisplayName(owUser?.name as string | null);
+
   const initialPerson = {
-    familyName: (owUser?.family_name as string | null) ?? "",
-    givenName: (owUser?.given_name as string | null) ?? "",
+    familyName: storedFamily || fromDisplayName?.familyName || "",
+    givenName: storedGiven || fromDisplayName?.givenName || "",
+    /* ★分けられなかったときにヒントで見せる登録名。**入力欄には入れない。** */
+    displayName: ((owUser?.name as string | null) ?? "").trim(),
     familyNameKana: (owUser?.family_name_kana as string | null) ?? "",
     givenNameKana: (owUser?.given_name_kana as string | null) ?? "",
     birthYear: bd ? bd.slice(0, 4) : "",

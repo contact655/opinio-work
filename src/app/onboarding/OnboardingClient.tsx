@@ -198,6 +198,15 @@ const selectStyle: React.CSSProperties = {
 export type OnboardingInitialPerson = {
   familyName: string;
   givenName: string;
+  /**
+   * ★`ow_users.name`（新規登録の「お名前」）。**入力欄には入れない。**
+   *
+   * 姓と名に分けられなかったとき（「木村雅樹」のように空白が無い名前）だけ、
+   * ヒントとして見せるために使う。分割の判定は `splitDisplayName` が持っており、
+   * 分けられた人はここを読まない（入力欄に値が入っているため）。
+   * ⚠️★**この値を姓へ丸ごと入れないこと**（理由は `splitDisplayName` の注記）。
+   */
+  displayName: string;
   familyNameKana: string;
   givenNameKana: string;
   /** ⚠★月と日は**0埋め**（`<option value="07">`）。年は0埋めなし */
@@ -809,6 +818,23 @@ function OnboardingInner({
                   onChange={(e) => setGivenNameKana(e.target.value)} placeholder="たろう" style={textInputStyle} />
               </div>
             </div>
+
+            {/* ★★登録名を姓と名に分けられなかった人へのヒント（2026-09-19 / 柴さんの判断）。
+                   新規登録の「お名前」は `ow_users.name` に入っているので、
+                   **空白で2つに分かれる人は上の欄に入った状態で来る**（page.tsx）。
+                   ここに落ちるのは「木村雅樹」「Hina」のように分けられない名前。
+
+                ⚠️★**姓へ丸ごと入れる案は採らなかった。** 姓＝木村雅樹 のまま名だけ足すと
+                   「木村雅樹 雅樹」になり、初期値が正しそうに見えるぶん気づかれにくい。
+                   実測（2026-09-19 / 実ユーザー9人）: 空白なしが5人＝過半数。
+                ⚠️ 文言は `/mypage` の編集モーダル（ProfileTab の「氏名」）と揃えてある。
+                   同じことを2つの画面で別の言い方にしない。
+                ⚠️ 入力を始めたら消す（片方でも埋まれば役目が終わる）。 */}
+            {initialPerson.displayName && !familyName.trim() && !givenName.trim() && (
+              <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
+                登録時のお名前は「{initialPerson.displayName}」です。姓と名に分けて入力してください。
+              </p>
+            )}
 
           {/* ── 生年月日（★2026-09-14 から**必須**。1画面目へ移した）─────────────
               ★2026-09-09 追加。実ユーザー11人中7人が未入力で、あとから入れてもらうのが難しい。

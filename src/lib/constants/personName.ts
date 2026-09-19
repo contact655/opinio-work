@@ -38,6 +38,37 @@ export function buildDisplayName(familyName: string, givenName: string): string 
 }
 
 /**
+ * 表示名（`ow_users.name`）を姓と名に**分ける候補**を返す。分けられなければ `null`。
+ *
+ * ⚠️★★**これは「画面の初期値」を作るための関数。列へ直接書く用途に使わないこと。**
+ *    CLAUDE.md の「既存の `name` から姓・名を機械的に分割しないこと」は
+ *    **本人が見ないまま列に入れる**ことを禁じている。ここは本人が次の画面で
+ *    目にして直せる前提なので、その禁止とは向きが違う。
+ *    ⚠️ 本人の確認を挟まない経路（バックフィルの migration・API の既定値）で
+ *       呼び出すなら、それは推測値の投入。**やらないこと。**
+ *
+ * ⚠️★**ちょうど2つに分かれるときだけ返す。** 3つ以上は姓と名の境が決まらない
+ *    （「John Michael Smith」をどこで切るかは決められない）。**それらしく切らない。**
+ * ⚠️ 空白なし（「木村雅樹」）も `null`。日本語は空白なしでも正しい書き方なので、
+ *    **姓へ丸ごと入れない** ——「木村雅樹」が姓に入ったまま名を足すと
+ *    「木村雅樹 雅樹」になり、しかも初期値が正しそうに見えるぶん気づかれにくい
+ *    （2026-09-19 / 柴さんの判断）。呼び出し側は代わりに**登録名をヒントで見せる**。
+ * ⚠️ `PLACEHOLDER_USER_NAME`（「ユーザー」）は人の名前ではないので `null`。
+ *
+ * 実測（2026-09-19 / 実ユーザー9人）: 空白あり4人（分けられる）／空白なし5人（`null`）。
+ */
+export function splitDisplayName(
+  raw: string | null | undefined,
+): { familyName: string; givenName: string } | null {
+  const v = greetingName(raw);
+  if (!v) return null;
+  /* ⚠️ 全角スペース（\u3000）も区切りとして見る。`\s` は全角を含まない。 */
+  const parts = v.split(/[\s\u3000]+/).filter(Boolean);
+  if (parts.length !== 2) return null;
+  return { familyName: parts[0], givenName: parts[1] };
+}
+
+/**
  * 電話番号の形式。**ゆるく見る。**
  *
  * ⚠️★**厳しくしないこと。** 国際番号・内線・ハイフンの有無で書き方が割れるので、
