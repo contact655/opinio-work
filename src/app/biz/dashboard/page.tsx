@@ -12,6 +12,7 @@ import { fetchCompanyForTenant } from "@/lib/business/company";
 import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, DISCLOSURE_MAX, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasPublicCompanyPage } from "@/lib/companies/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -198,6 +199,9 @@ export default async function BizDashboardPage({
 
       {/* ── Company card ── */}
       <CompanyCard
+        /* ★公開ページが無いなら「公開ページを見る」を出さない（2026-09-20）。
+              判定は `hasPublicCompanyPage` の1箇所。ここに条件を書かない。 */
+        hasPublicPage={hasPublicCompanyPage({ isPublished: ctx.isPublished })}
         tenantId={ctx.tenantId}
         tenantName={ctx.tenantName}
         logoGradient={ctx.logoGradient}

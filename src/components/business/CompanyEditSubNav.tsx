@@ -23,6 +23,19 @@ type Props = {
   bizScore: number;
   interviewScore: number;
   hasDraftChanges: boolean;
+  /**
+   * ★公開ページ（`/companies/[id]`）が存在するか（2026-09-20 / 柴さんの指示）。
+   *
+   * ⚠️★**このファイルには同じURLを開くボタンが2つある**（「公開ページを見る」と
+   *    「プレビュー」）。**両方ともこれで出し分ける。** 片方だけ直すと、
+   *    もう片方から 404 に飛べる状態が残る。
+   * ⚠️★**`lastPublishedAt` で判定しないこと**（2026-09-20 まではそうだった）。
+   *    あれは `published_at` 由来で、取り下げても消えない列。実測では
+   *    **79社が `is_published=true` なのに `published_at` が null** で、
+   *    「見えるのにボタンが出ない」状態だった。
+   * ⚠️ 判定の本体は `lib/companies/visibility.ts` の `hasPublicCompanyPage`。
+   */
+  hasPublicPage?: boolean;
   lastPublishedAt?: string;
   lastPublishedAgo?: string;
   onViewPublicPage?: () => void;
@@ -45,6 +58,7 @@ export function CompanyEditSubNav({
   bizScore,
   interviewScore,
   hasDraftChanges,
+  hasPublicPage = false,
   lastPublishedAt,
   lastPublishedAgo,
   onViewPublicPage,
@@ -115,7 +129,14 @@ export function CompanyEditSubNav({
             {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
           </button>
         )}
-        {/* プレビュー */}
+        {/* プレビュー
+               ⚠️★**公開ページが無いときは出さない**（2026-09-20）。行き先は
+                  「公開ページを見る」と同じ `/companies/[id]` なので、
+                  未公開だと **404 に飛ぶ**。「プレビュー」という名前から
+                  「公開前に見られるもの」と読めてしまうぶん、むしろ紛らわしい。
+               ⚠️ dev では `/companies/[id]` が `is_published` で絞らないので
+                  **開発中は気づけない**。本番でしか再現しない。 */}
+        {hasPublicPage && (
         <button
           type="button"
           onClick={onPreview}
@@ -126,6 +147,7 @@ export function CompanyEditSubNav({
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           プレビュー
         </button>
+        )}
       </div>
 
       {/* 公開ステータス */}
@@ -226,8 +248,13 @@ export function CompanyEditSubNav({
         })}
       </nav>
 
-      {/* 公開情報カード */}
-      {lastPublishedAt && (
+      {/* 公開情報カード
+             ⚠️★**出す条件を2つにしてある**（2026-09-20）。
+                ・`lastPublishedAt` … 「最終公開」の履歴を見せるため
+                ・`hasPublicPage`   … **公開中なのに `published_at` が無い79社**でも
+                                      「公開ページを見る」を出すため
+                片方だけにすると、どちらかの企業でボタンが消える。 */}
+      {(lastPublishedAt || hasPublicPage) && (
         <div style={{
           margin: "0 16px 12px",
           padding: 14,
@@ -235,12 +262,18 @@ export function CompanyEditSubNav({
           border: "1px solid var(--line)",
           borderRadius: 10,
         }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
-            最終公開
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 4 }}>
-            {lastPublishedAt} に公開
-          </div>
+          {/* ⚠️ 日付が無いなら「最終公開」の行ごと出さない。
+                 「—」や推測の日付を出さない（記録が無いという事実を残す）。 */}
+          {lastPublishedAt && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
+                最終公開
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 4 }}>
+                {lastPublishedAt} に公開
+              </div>
+            </>
+          )}
           {lastPublishedAgo && (
             <div style={{
               fontFamily: "var(--font-inter), var(--font-noto)",
@@ -251,6 +284,7 @@ export function CompanyEditSubNav({
               {lastPublishedAgo}
             </div>
           )}
+          {hasPublicPage && (
           <button
             type="button"
             onClick={onViewPublicPage}
@@ -288,6 +322,7 @@ export function CompanyEditSubNav({
             </svg>
             公開ページを見る
           </button>
+          )}
         </div>
       )}
 

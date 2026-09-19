@@ -78,6 +78,38 @@ export function filterVisibleCompanies<T>(query: T): T {
 }
 
 /**
+ * ★**その企業の公開ページ（`/companies/[id]`）が存在するか。**
+ *
+ * ── なぜ1箇所に置くか（2026-09-20 / 柴さんの指示）────────────────────────────
+ * `/biz` 側に「公開ページを見る」が**3箇所**あり、**3つとも別の信号**を見ていた。
+ *
+ *   | どこ | 前の条件 | 実測（2026-09-20 / 実企業103社） |
+ *   |---|---|---|
+ *   | `CompanyCard`（/biz/dashboard） | **無条件** | **15社**で押すと 404（株式会社ZAP ほか） |
+ *   | `CompanyEditSubNav`（/biz/company） | `published_at` の有無 | **79社**が「見えるのにボタンが出ない」 |
+ *   | `JobListCard` | 求人の公開ページ | **別物。対象外** |
+ *
+ * ⚠️★**`is_approved`（「運営審査中」バナーの条件）で判定しないこと。**
+ *    バナーと404は**別の列**を見ている。実測で
+ *    **`approved=false` かつ `published=true` が2社**（アサヒビール・エージェント）あり、
+ *    承認で隠すと**見えるページへの導線を消す**ことになる。
+ *
+ * ⚠️★**`published_at` で判定しないこと。** あれは「最初に公開した日時」で、
+ *    取り下げても**消さない**列（CLAUDE.md）。いま見えるかどうかを表さない。
+ *
+ * ⚠️★**dev では `/companies/[id]` が `is_published` で絞らない**ので、
+ *    この不具合は**本番でしか再現しない**（`filterVisibleCompanies` の注記と同じ理由）。
+ *    それでもここは env で分岐しない —— **本番で404になるものを出さない**のが目的で、
+ *    `filterVisibleCompaniesStrict` と同じ向き。
+ *
+ * ⚠️ `is_test` は見ない。企業側の管理画面は自社の行しか扱わず、
+ *    検証用企業の担当者には自社の公開ページを見せてよい。
+ */
+export function hasPublicCompanyPage(company: { isPublished: boolean }): boolean {
+  return company.isPublished === true;
+}
+
+/**
  * 詳細ページが見える企業だけに絞る（**dev でも絞る**）。
  * リンク生成のように「本番で404になるものを出してはいけない」箇所で使う。
  */

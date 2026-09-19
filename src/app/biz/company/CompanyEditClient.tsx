@@ -22,6 +22,7 @@ import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector
 import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
+import { hasPublicCompanyPage } from "@/lib/companies/visibility";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -1240,6 +1241,9 @@ export function CompanyEditClient({
             bizScore={disclosureScore.biz}
             interviewScore={initialInterviewScore}
             hasDraftChanges={hasDraftChanges}
+            /* ★公開ページが無いなら「公開ページを見る」も「プレビュー」も出さない
+                  （2026-09-20）。判定は `hasPublicCompanyPage` の1箇所。 */
+            hasPublicPage={hasPublicCompanyPage({ isPublished: form.isPublished })}
             lastPublishedAt={form.lastPublishedAt}
             lastPublishedAgo={form.lastPublishedAgo}
             onViewPublicPage={() => router.push(`/companies/${companyId}`)}

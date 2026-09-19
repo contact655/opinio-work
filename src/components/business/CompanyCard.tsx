@@ -3,6 +3,16 @@ import Link from "next/link";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 
 type Props = {
+  /**
+   * ★公開ページ（`/companies/[id]`）が存在するか（2026-09-20 / 柴さんの指示）。
+   *
+   * ⚠️★**渡さないと「公開ページを見る」を出さない**（既定 false）。
+   *    2026-09-20 までこのボタンは**無条件**に出ており、**実企業15社**で
+   *    押すと必ず 404 になっていた（「運営審査中です」のバナーが出ている企業）。
+   * ⚠️★**判定は `lib/companies/visibility.ts` の `hasPublicCompanyPage` の1箇所。**
+   *    ここで `is_approved` や `published_at` を見ないこと（理由は同関数の注記）。
+   */
+  hasPublicPage?: boolean;
   tenantId: string;
   tenantName: string;
   logoGradient?: string | null;
@@ -20,6 +30,7 @@ export function CompanyCard({
   industry,
   employeeCount,
   memberCount,
+  hasPublicPage = false,
 }: Props) {
   const gradient = logoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
   const letter = logoLetter || tenantName.trim().charAt(0).toUpperCase();
@@ -74,6 +85,12 @@ export function CompanyCard({
 
       {/* Actions */}
       <div className="biz-company-card-actions" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        {/* ★公開ページが無いときは**出さない**（2026-09-20）。
+               ⚠️ disabled にして残す案も検討したが、ここは横並びの2ボタンで、
+                  消しても「企業情報を編集」が残って見栄えが崩れないため非表示にした。
+               ⚠️★**公開されたら自動で戻る。** 状態で出し分けているので、
+                  運営が承認・公開した瞬間にボタンが現れる（ハードコードしない）。 */}
+        {hasPublicPage && (
         <Link
           href={`/companies/${tenantId}`}
           target="_blank"
@@ -102,6 +119,7 @@ export function CompanyCard({
           </svg>
           公開ページを見る
         </Link>
+        )}
         <Link
           href="/biz/company"
           style={{
