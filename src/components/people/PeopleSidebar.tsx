@@ -43,7 +43,8 @@ import { ProfileCard, type ProfileCardData } from "@/components/common/ProfileCa
 export type PeopleSidebarProps = {
   /** ⚠️ 中身は `components/common/ProfileCard` が描く。ここで組み立て直さないこと */
   me: ProfileCardData["me"];
-  counts: { following: number; followers: number; companies: number };
+  /** ⚠️★型は `ProfileCard` に集約している。ここで作り直さないこと（割れると片方だけ直る） */
+  counts: ProfileCardData["counts"];
   /** 次に埋めるとよい項目。**1件だけ**。無ければ null（「完了！」は出さない） */
   nextStep: { label: string; href: string } | null;
   /** 自分の面談OK。**`null` は「行が無い」＝この行ごと出さない** */

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
@@ -27,7 +28,8 @@ export type PeopleSidebarData = {
     initial: string;
     affiliation: string | null;
   };
-  counts: { following: number; followers: number; companies: number };
+  /** ⚠️★型は `ProfileCard` に集約している。ここで作り直さないこと（割れると片方だけ直る） */
+  counts: ProfileCardData["counts"];
   nextStep: { label: string; href: string } | null;
   /** ⚠️ `null` は「`ow_company_members` の行が無い」＝サイドバーに行ごと出さない */
   meetingOk: boolean | null;
@@ -69,7 +71,7 @@ function pickNextStep(d: {
 export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSidebarData | null> {
   const db = createAdminClient();
 
-  const [userRes, expRes, eduRes, memberRes, companyFollowRes, counts, roleTree] = await Promise.all([
+  const [userRes, expRes, eduRes, memberRes, companyFollowRes, savedJobRes, counts, roleTree] = await Promise.all([
     db.from("ow_users").select("id, name, avatar_url, avatar_color, headline, about_me").eq("id", owUserId).maybeSingle(),
     /* ⚠️★**並び順を指定すること**（2026-09-18）。下で `find(is_current)` が
           **配列の先頭の現職**を代表に採るので、順序を空けると
@@ -88,6 +90,12 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
     db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owUserId),
     db.from("ow_company_members").select("id, is_public, display_consent").eq("user_id", owUserId),
     db.from("ow_company_follows").select("id", { count: "exact", head: true }).eq("follower_user_id", owUserId),
+    /* ★保存した募集（♡）。⚠️ **フォローではない。** 募集に「フォロー」は存在せず、
+          `ow_bookmarks` の `target_type='job'` が唯一の実体（2026-09-18 に確認）。
+       ⚠️ `posts/route.ts` の `followedJobIds` は「**フォロー中の企業の求人**」の意味で別物。
+          ここと混ぜないこと。 */
+    db.from("ow_bookmarks").select("id", { count: "exact", head: true })
+      .eq("user_id", owUserId).eq("target_type", "job"),
     getFollowCounts(owUserId),
     getRoleTree(),
   ]);
@@ -98,6 +106,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
   if (eduRes.error) console.error("[peopleSidebar ow_user_educations]", eduRes.error.message);
   if (memberRes.error) console.error("[peopleSidebar ow_company_members]", memberRes.error.message);
   if (companyFollowRes.error) console.error("[peopleSidebar ow_company_follows]", companyFollowRes.error.message);
+  if (savedJobRes.error) console.error("[peopleSidebar ow_bookmarks]", savedJobRes.error.message);
 
   const u = userRes.data;
   if (!u?.name) return null;
@@ -135,6 +144,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       following: counts.following,
       followers: counts.followers,
       companies: companyFollowRes.count ?? 0,
+      savedJobs: savedJobRes.count ?? 0,
     },
     nextStep: pickNextStep({
       experienceCount: exps.length,

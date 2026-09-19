@@ -34,7 +34,12 @@ export type ProfileCardData = {
     /** 「会社 ／ 職種」。⚠️ 値が無ければ行ごと出さない */
     affiliation: string | null;
   };
-  counts: { following: number; followers: number; companies: number };
+  /**
+   * ⚠️★`savedJobs` は**フォローではなく「保存」**（募集カードの♡ ＝ `ow_bookmarks`）。
+   *    募集に「フォロー」は存在しないので、**ラベルに「フォロー中の募集」と書かないこと**
+   *    （本物のフォローを作った日に名前が衝突する。`?industry=` と同じ形）。
+   */
+  counts: { following: number; followers: number; companies: number; savedJobs: number };
   nextStep: { label: string; href: string } | null;
 };
 
@@ -132,6 +137,12 @@ export function ProfileCard({ me, counts, nextStep, activeRel, variant = "card",
         {/* ⚠️ 企業は `/people`（人の一覧）では絞り込めない。既存の一覧ページへ送る */}
         <Link href="/mypage/follows" className="pc-count">
           <span>フォロー中の企業</span><span className="pc-count-n">{counts.companies}社</span>
+        </Link>
+        {/* ★保存した募集（2026-09-18 追加）。⚠️ 上3つと**動詞が違う**のは、
+               実際に別の操作だから（♡＝保存）。「フォロー中の募集」にしないこと。
+            ⚠️ 0 でも出す（上3つと同じ扱い）。 */}
+        <Link href="/mypage/bookmarks" className="pc-count">
+          <span>保存した募集</span><span className="pc-count-n">{counts.savedJobs}件</span>
         </Link>
       </div>
     </div>
