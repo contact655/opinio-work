@@ -13,6 +13,24 @@ import { fetchIndustryOptions } from "@/lib/companies/industries";
  *    `is_active = true` の読み取りポリシーがある）。
  *    ただし**企業データではない**ので、ここから企業の情報は一切返さない。
  */
+/**
+ * ★★キャッシュしない（2026-09-20 に追加）。
+ *
+ * ⚠️★**宣言が無いと Next 14 は GET のルートハンドラをキャッシュする。**
+ *    2026-09-20 に業種の小分類を29件足したとき、**DB には53行あるのに
+ *    この API は古い22行を返し続けた**（`Cache-Control: no-cache` を付けたときだけ
+ *    51行が返って気づいた）。
+ *    ⚠️ その状態だと、小分類を足しても**画面には出ない**。運営が業種マスタを
+ *       足す日にコード変更が無ければ、デプロイのきっかけも無い
+ *       （CLAUDE.md「コード変更が1行も無い migration はデプロイのきっかけ自体が発生しない」）。
+ *
+ * ⚠️ `revalidate` の秒数ではなく `force-dynamic` にしたのは、
+ *    **業種マスタが変わるのは運営が足した瞬間だけ**で、頻度が極端に低いから。
+ *    キャッシュで守るほどのアクセスが無い（選択肢は1画面でしか使わない）。
+ * ⚠️★**この宣言を外さないこと。** 外すと「足したのに出ない」に戻る。
+ */
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const industries = await fetchIndustryOptions(createAdminClient(), "api/industries");
   /* ⚠️ 空で返ってきたら、それは取得失敗の可能性がある（`fetchIndustryOptions` は

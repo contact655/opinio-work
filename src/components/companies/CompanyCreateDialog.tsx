@@ -47,6 +47,16 @@ export function CompanyCreateDialog({
   const [industryId, setIndustryId] = useState<string>("");
   const [industries, setIndustries] = useState<IndustryOption[] | null>(null);
   const [industriesFailed, setIndustriesFailed] = useState(false);
+  /* ★★小分類の開閉（2026-09-20 / 柴さんの指示）。**初期は全部閉じる。**
+     ⚠️★**「選択」と「開閉」を同じタップにしない。**
+        行そのものを押す＝その大分類を選ぶ（分からない人は親のままで進める。
+        この仕様は 2026-09-05 から変えていない）。
+        右端の ∨ を押す＝開閉。同じ場所を押して意味が2つあると、
+        「選んだつもりが開いただけ」になる。
+     ⚠️ 小分類を持たない大分類には ∨ を出さない（押せない印を出さない）。
+     ⚠️ **選択済みの小分類がある大分類は開いた状態で描く**（下の `openParents`）。
+        選んだものが畳まれて見えないと、何を選んだか分からなくなる。 */
+  const [openParents, setOpenParents] = useState<Set<string>>(new Set());
   /* ★候補には「なぜ出たか」を添える（2026-09-05）。照合が brand_name / name_en /
         search_aliases まで広がったので、**名前が似ていない候補が出る**
         （「ANDPAD」→「株式会社アンドパッド」）。理由が無いと押してよいか分からない。 */
@@ -227,22 +237,39 @@ export function CompanyCreateDialog({
               ⚠️ 子は左に余白を付け、親の名前を小さく添える。チップだけだと
                  「製造業」と「電機・機械」が対等に見える。 */
         <div style={{ display: "grid", gap: 6 }}>
-          {flattenIndustryOptions(industries).map((i) => {
+          {(() => {
+            /* ★選んだ小分類の親は開いておく（2026-09-20）。
+                  ⚠️ state を触らずここで足す。state に書くと「閉じたのに
+                     再描画で開き直す」形になり、閉じられなくなる。 */
+            const selected = industries.find((o) => o.id === industryId);
+            const forceOpen = selected?.parent_id ?? null;
+            const isOpen = (parentId: string) =>
+              openParents.has(parentId) || forceOpen === parentId;
+            const hasChildren = (parentId: string) =>
+              industries.some((o) => o.parent_id === parentId);
+
+            return flattenIndustryOptions(industries)
+              /* ★閉じている親の子は描かない。**これがアコーディオンの本体。**
+                    ⚠️ 実測（2026-09-20 / 375px）: 全部出すと業種リストだけで
+                       **1,305px＝画面1.6枚分**、小分類を足した後は約4枚分になる。
+                       畳まないと選ぶ前にスクロールで力尽きる。 */
+              .filter((i) => !i.parent_id || isOpen(i.parent_id))
+              .map((i) => {
             const active = industryId === i.id;
+            const showToggle = !i.parent_id && hasChildren(i.id);
             return (
+              <div key={i.id} style={{ display: "flex", alignItems: "stretch", gap: 6,
+                marginLeft: i.parent_id ? 16 : 0 }}>
               <button
-                key={i.id}
                 type="button"
                 aria-pressed={active}
                 onClick={() => setIndustryId(i.id)}
                 style={{
+                  flex: 1, minWidth: 0,
                   textAlign: "left", cursor: "pointer", fontFamily: "inherit",
                   padding: "9px 12px", borderRadius: 8,
                   border: active ? "2px solid var(--royal)" : "1px solid var(--line)",
                   background: active ? "var(--royal-50)" : "#fff",
-                  /* ★子は左に寄せて親との関係を出す */
-                  marginLeft: i.parent_id ? 16 : 0,
-                  width: i.parent_id ? "calc(100% - 16px)" : "100%",
                 }}
               >
                 {i.parent_id && (
@@ -264,8 +291,40 @@ export function CompanyCreateDialog({
                   </span>
                 )}
               </button>
+
+              {/* ★開閉（2026-09-20）。⚠️★**行の選択とは別のボタンにする。**
+                     ⚠️ 小分類が無い大分類には出さない（押せない印を出さない）。
+                     ⚠️ `aria-expanded` を付ける。読み上げで「開いているか」が分かる。 */}
+              {showToggle && (
+                <button
+                  type="button"
+                  aria-expanded={isOpen(i.id)}
+                  aria-label={`${i.name}の小分類を${isOpen(i.id) ? "閉じる" : "開く"}`}
+                  onClick={() => setOpenParents((prev) => {
+                    const next = new Set(prev);
+                    /* ⚠️ `forceOpen`（選択中の親）を閉じられるようにするため、
+                          「開いている集合」ではなく**この親の状態**で分岐する。 */
+                    if (isOpen(i.id)) next.delete(i.id); else next.add(i.id);
+                    return next;
+                  })}
+                  style={{
+                    flexShrink: 0, width: 40, cursor: "pointer", fontFamily: "inherit",
+                    borderRadius: 8, border: "1px solid var(--line)", background: "#fff",
+                    color: "var(--ink-mute)", display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                    style={{ transform: isOpen(i.id) ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
+              </div>
             );
-          })}
+              });
+          })()}
         </div>
       )}
 
