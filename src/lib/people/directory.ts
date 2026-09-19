@@ -120,6 +120,18 @@ export type DirectoryPerson = {
    */
   hasForeignExperience: boolean;
   /**
+   * ★新卒入社（職歴のいちばん古い行）の業種と、現在（いちばん新しい行）の業種（2026-09-18）。
+   *
+   * ⚠️ 出どころは `ow_companies.industry_id` → `ow_industries.name`。**事業領域ではなく業種**
+   *    （匿名化した職歴の会社ラベルと同じ粒度。粗いほうが勤務先を推測されにくい）。
+   * ⚠️ マスタと紐づいた経歴（`company_id`）だけが対象。自由入力の社名は業種が引けないので
+   *    `null` になる（推測しない）。`hasForeignExperience` と同じ方針。
+   * ⚠️ 社名を出さない経歴（`visibility_company === "hidden"`）は判定から外す。
+   * ⚠️★**「不明」「その他」などで埋めないこと。** 引けなければ画面から行ごと落とす。
+   */
+  firstIndustry: string | null;
+  currentIndustry: string | null;
+  /**
    * ★これまでに在籍した企業の id（現職・過去の両方）。**「同じ会社にいた人」の突き合わせ用**（2026-09-18）。
    *
    * ⚠️ マスタと紐づいた経歴（`company_id`）だけ。自由入力の社名は入らない
@@ -318,7 +330,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   // 完成度と所属の材料をまとめて引く。
   // ⚠️ 希望条件（ow_profiles）は引かない。公開されない情報を並び順に混ぜないため
   //    （src/lib/profile/completion.ts の PUBLIC_KEYS を参照）。
-  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, foreignRes, memberRes, roleTree] = await Promise.all([
+  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, foreignRes, industryRes, memberRes, roleTree] = await Promise.all([
     /* ⚠️★**並び順を指定すること**（2026-09-18）。下の `myExps.find((e) => e.is_current)`
           （所属）と `find((e) => e.is_current && e.role_category_id)`（職種）は
           **配列の先頭の現職**を採るので、順序を空けると**並行在籍の人のカードが
@@ -344,6 +356,12 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
        （EXPERIENCE_COMPANY_COLS）を触ることになるので、ここだけ別に引く。
        企業数は79件（2026-08-14）なので1回引いても軽い。 */
     db.from("ow_companies").select("id").eq("is_foreign", true),
+    /* ★会社 → 業種。⚠️ 外資系と同じ理由で**ここだけ別に引く**
+          （経歴側の JOIN に足すと共有定数 EXPERIENCE_COMPANY_COLS を触ることになる）。
+       ⚠️ `ow_industries` への FK は1本なので埋め込んでよい
+          （複合FKの `ow_company_target_industries` とは違う）。
+       ⚠️ 企業数は105件（2026-09-18）なので1回引いても軽い。 */
+    db.from("ow_companies").select("id, ow_industries!industry_id(name)"),
     db.from("ow_company_members")
       .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, logo_url, logo_gradient, logo_letter, phase, accepting_casual_meetings)")
       .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
@@ -353,7 +371,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   for (const [label, res] of Object.entries({
     experiences: expRes, educations: eduRes, links: linkRes,
     achievements: achRes, awards: awdRes, media: medRes,
-    members: memberRes, foreignCompanies: foreignRes,
+    members: memberRes, foreignCompanies: foreignRes, companyIndustries: industryRes,
   })) {
     if (res.error) console.error(`[people] ${label} fetch error:`, res.error.message);
   }
@@ -382,6 +400,17 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   const members = byUser((memberRes.data ?? []) as unknown as MemberRow[]);
   const foreignCompanyIds = new Set(((foreignRes.data ?? []) as { id: string }[]).map((c) => c.id));
 
+  /* ★会社 → 業種名。業種が未設定の企業は入れない（下で null になり、行ごと出なくなる）。 */
+  const industryByCompany = new Map<string, string>();
+  /* ⚠️ supabase-js は埋め込みを配列型として推論するが、単純FKなので**実体はオブジェクト**
+        （2026-09-18 に実データで確認）。両方受けられる形にしてある。 */
+  type IndustryRow = { id: string; ow_industries: { name: string | null } | { name: string | null }[] | null };
+  for (const row of (industryRes.data ?? []) as unknown as IndustryRow[]) {
+    const embedded = Array.isArray(row.ow_industries) ? row.ow_industries[0] : row.ow_industries;
+    const name = embedded?.name?.trim();
+    if (name) industryByCompany.set(row.id, name);
+  }
+
   const now = new Date();
 
   const people = visible.map((u): DirectoryPerson => {
@@ -393,6 +422,19 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     const hasForeignExperience = myExps.some(
       (e) => e.visibility_company !== "hidden" && e.company_id && foreignCompanyIds.has(e.company_id)
     );
+    /* ── ★新卒入社の業種 → 現在の業種（2026-09-18）─────────────────────────
+          `myExps` は `started_at DESC, id ASC` で並んでいるので、
+          **先頭がいちばん新しい職歴・末尾がいちばん古い職歴**。
+          ⚠️★**並び順に依存している。** 上の `.order()` を外さないこと。
+          ⚠️ 業種を引けない経歴（自由入力の会社・業種未設定の企業）と、
+             社名を出さない経歴（hidden）は候補から外す。**推測で埋めない。** */
+    const industryPath = myExps
+      .filter((e) => e.visibility_company !== "hidden" && e.company_id)
+      .map((e) => industryByCompany.get(e.company_id!))
+      .filter((n): n is string => Boolean(n));
+    const currentIndustry = industryPath[0] ?? null;
+    const firstIndustry   = industryPath[industryPath.length - 1] ?? null;
+
     const myMembers = members.get(u.id) ?? [];
 
     // ── 所属。企業側の掲載 > 現職 > 直近の退職済み > なし ────────────────
@@ -505,6 +547,9 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
       /* 職種辞書の照合用。⚠️ 祖先まで展開する（型のコメント参照） */
       roleIds: expandWithAncestors(roleTree, roleSource?.role_category_id ? [roleSource.role_category_id] : []),
       hasForeignExperience,
+      /* ★新卒入社の業種 → 現在の業種。⚠️ 引けなければ null（型のコメント参照） */
+      firstIndustry,
+      currentIndustry,
       /* ★在籍した企業の id（「同じ会社にいた人」用）。⚠️ 画面に出さない（型のコメント参照） */
       companyIds: Array.from(new Set(myExps.flatMap((e) => (e.company_id ? [e.company_id] : [])))),
       /* ★「話を聞ける人」の判定（2026-08-23 / B-1）。

@@ -2,7 +2,6 @@
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { formatMonths } from "@/lib/profile/tenure";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -345,8 +344,10 @@ function GridCard({ card, myUserId, followedUserIds }: {
  *
  * ⚠️ **カードより情報を増やすこと。** 2026-08-04 に「一覧/詳細」トグルを撤去した理由が
  *    「詳細ビューのほうが情報量が少なく、一覧との差が利用者に伝わらない」だった。
- *    横に広い行なので、カードに入らなかった**社会人年数**と**外資系経験**を足してある。
- *    ここを削って見た目だけ変えると、同じ理由でまた撤去することになる。
+ *    横に広い行なので、カードに入らない**業種の移り変わり**（新卒入社 → 現在）を足してある。
+ *    ⚠️★**2026-09-18 まで「社会人年数」と「外資系経験」だった**（柴さんの指示で差し替え）。
+ *       差し替えであって削除ではない。**ここを空にしないこと** ——
+ *       カードと同じ情報量になると、同じ理由でまた撤去することになる。
  *
  * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
  */
@@ -356,14 +357,19 @@ function ListRow({ card, myUserId, followedUserIds }: {
   followedUserIds: string[];
 }) {
   const router = useRouter();
-  const months = card.experienceMonths;
-  const hasTenure = months !== null && months > 0;
-  const tenure = hasTenure ? formatMonths(months) : null;
-  /* スタット列は「大きい数字 ＋ 小さい単位」の形（企業一覧の StatCol と同じ）。
-     ⚠️ 端数の月を捨てて「N年」に丸めないこと。単位側に寄せて全部出す
-        （1年未満の人は月数を数字側に出す）。 */
-  const tenureYears = hasTenure ? Math.floor(months / 12) : 0;
-  const tenureRest  = hasTenure ? months % 12 : 0;
+  /* ★新卒入社（職歴のいちばん古い行）の業種 → 現在（いちばん新しい行）の業種
+        （2026-09-18 / 柴さんの提案）。値は `lib/people/directory.ts` が
+        `ow_companies.industry_id` から作る。ここで組み立て直さないこと。
+     ⚠️★**同じ業種なら矢印を出さず1つだけ出す。** 職歴1件の人もここに落ちる。
+        「IT・ソフトウェア → IT・ソフトウェア」は読む価値が無い。
+     ⚠️★**引けなければ行ごと出さない。** 自由入力の会社・業種未設定の企業・職歴0件が
+        該当する。「不明」や推測で埋めないこと。 */
+  const industryPath =
+    card.firstIndustry && card.currentIndustry
+      ? (card.firstIndustry === card.currentIndustry
+          ? card.currentIndustry
+          : `${card.firstIndustry} → ${card.currentIndustry}`)
+      : null;
 
   return (
     <div
@@ -377,7 +383,10 @@ function ListRow({ card, myUserId, followedUserIds }: {
         <Avatar card={card} size={68} />
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* ⚠️★`flex: 1` にしないこと（2026-09-18）。伸ばすと、内容が短い人の行で
+             **名前の塊と CTA のあいだに死んだ余白**ができる（実データは1〜2行しかない）。
+             伸びない代わりに `.ppl-row-cta` の `margin-left: auto` が CTA を右へ送る。 */}
+      <div style={{ flex: "0 1 auto", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span className="ppl-row-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", transition: "color 0.15s" }}>{card.name}</span>
           {card.canTalk && (
@@ -394,57 +403,31 @@ function ListRow({ card, myUserId, followedUserIds }: {
           )}
         </div>
 
-        {/* 会社 → 職種。カードと同じ並び（どこの人かが先に読めるほうが探しやすい）。
-            ⚠️ 所属は会社とは限らない（学校・元所属もある）。自前で組み立てず
-               `AffiliationBlock` を通す。型がユニオンなので `companyName` を
-               直接読むと学校の分岐で落ちる。 */}
+        {/* ★会社 → 職種 → 業種の移り変わりを**1行に畳んである**（2026-09-18）。
+               カードと同じ並び（どこの人かが先に読めるほうが探しやすい）。
+               ⚠️ 以前は項目ごとに別の行へ分けており、内容の少ない人の行が
+                  縦にも横にも空いて見えていた。**別行に戻さないこと。**
+               ⚠️ 所属は会社とは限らない（学校・元所属もある）。自前で組み立てず
+                  `AffiliationBlock` を通す。型がユニオンなので `companyName` を
+                  直接読むと学校の分岐で落ちる。 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
           <AffiliationBlock card={card} />
           {card.roleName && (
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{card.roleName}</span>
           )}
+          {/* ★業種の移り変わり（2026-09-18）。
+                 ⚠️★**社会人歴と「外資系の経験あり」はここから外した**（柴さんの指示）。
+                    戻すと1行に4つ並ぶ。
+                 ⚠️ **外資系の絞り込みは残してある**（`hasForeignExperience`）。
+                    消えたのは行の表示だけで、詳細検索のチップは動いている。 */}
+          {industryPath && (
+            <span style={{ fontSize: 13, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+              {industryPath}
+            </span>
+          )}
         </div>
 
-        {/* ★ここが1列表示の存在理由。カードには入らない情報を出す。
-            外資系は企業一覧のメタ行の業種タグと同じ意匠にしてある。 */}
-        {card.hasForeignExperience && (
-          <div style={{ marginTop: 6 }}>
-            <span style={{
-              fontSize: 11, color: "var(--ink-soft)",
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              padding: "2px 8px", borderRadius: "var(--radius-sm)",
-              whiteSpace: "nowrap",
-            }}>外資系の経験あり</span>
-          </div>
-        )}
-
-        {/* 社会人年数（狭幅用）。
-            ⚠️ 企業一覧はスタット列を 767px 以下で丸ごと隠すが、こちらは**1列表示の
-               存在理由**なので消さない。列を隠すかわりにここへテキストで出す。 */}
-        {tenure && (
-          <div className="ppl-row-tenure-inline" style={{ marginTop: 4, fontSize: 12, color: "var(--ink-mute)" }}>
-            社会人 {tenure}
-          </div>
-        )}
       </div>
-
-      {/* ── スタット列（企業一覧の StatCol と同じ組み） ──
-          ⚠️ 値が無い人は列ごと出さない。「0年」で埋めない。 */}
-      {hasTenure && (
-        <div className="ppl-row-stats" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 18px", gap: 2 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-              <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--ink)" }}>
-                {tenureYears > 0 ? tenureYears : tenureRest}
-              </span>
-              <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-                {tenureYears > 0 ? (tenureRest > 0 ? `年${tenureRest}ヶ月` : "年") : "ヶ月"}
-              </span>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>社会人歴</div>
-          </div>
-        </div>
-      )}
 
       {/* ── CTA（縦積み）──
           ⚠️ 幅は `minWidth` で固定する。「フォロー」→「フォロー中」で列幅が動くため
@@ -579,7 +562,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   /* ★表示モード（2026-08-23）。既定はグリッド。
      ⚠️ **2026-08-04 に撤去した「一覧/詳細」トグルとは別物。**
         あのときの理由は「詳細ビューのほうが情報量が少なく、差が伝わらない」だった。
-        今回の1列表示は**カードより情報が増える**（社会人年数・外資系経験を足す）ので、
+        今回の1列表示は**カードより情報が増える**（業種の移り変わりを足す）ので、
         同じ理由には当たらない。**情報が減る切り替えを作らないこと。**
      ⚠️ localStorage は**マウント後**に読む。初期値に使うとサーバーと食い違って
         hydration mismatch になる。 */
@@ -834,19 +817,23 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         }
         /* CTA は縦積み。⚠️ 幅は min-width で固定する。「フォロー」→「フォロー中」で
            列幅が動くため（企業一覧の「保存」→「保存済」と同じ理由。実測 102px → 115px）。 */
+        /* ⚠️★margin-left: auto が CTA を右端へ送る（2026-09-18）。
+              本文側の flex:1 を外したので、**これが唯一の押し出し**。
+              片方だけ戻すと、本文と CTA がくっつくか、余白が中央に戻る。
+           ⚠️ この style はテンプレートリテラルの中。**バッククォートを書かないこと**
+              （文字列が終わって規則ごと壊れる。2026-09-18 に実際に壊した）。 */
         .ppl-row-cta {
           flex-shrink: 0; display: flex; flex-direction: column;
-          align-items: stretch; gap: 8px; min-width: 124px;
+          align-items: stretch; gap: 8px; min-width: 124px; margin-left: auto;
         }
         .ppl-list-row:hover { box-shadow: 0 4px 24px rgba(0,35,102,0.12); border-color: #d0daf5; }
         .ppl-list-row:hover .ppl-row-name { color: var(--royal); }
-        /* 社会人年数は、広い画面ではスタット列・狭い画面では本文のテキストで出す。
-           ⚠️ 両方同時に出さないこと（同じ値が2回出る）。 */
-        .ppl-row-tenure-inline { display: none; }
-        @media (max-width: 767px) {
-          .ppl-row-stats { display: none !important; }
-          .ppl-row-tenure-inline { display: block !important; }
-        }
+        /* ⚠️★大きな数字のスタット列は 2026-09-18 にやめた。**メタ行のテキストに一本化した。**
+              以前は「広い画面＝大きい数字の列／狭い画面＝テキスト」の2通りを
+              .ppl-row-stats と .ppl-row-tenure-inline で切り替えていたが、
+              行の中身が短い人で**本文と数字のあいだに大きな空白**ができていた。
+           ⚠️ 2通りに戻さないこと。戻すなら「両方同時に出ない」ことを必ず確かめる
+              （同じ値が2回並ぶ）。 */
         /* ⚠️ 企業一覧は 767px 以下で CTA を丸ごと隠すが、こちらは**隠さない**。
               企業カードは全体が Link なので消しても導線が残るが、
               フォローは他に押す場所が無い。折り返して全幅の1行に落とす。 */
@@ -989,7 +976,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
 
               ⚠️ ラベルを「一覧 / 詳細」にしたが、**2026-08-04 に撤去した同名のトグルとは別物。**
                  あれは詳細ビューのほうが**情報量が少なく**、差が伝わらないので外した。
-                 いまの1列表示は**カードより情報が増える**（社会人年数・外資系経験）ので、
+                 いまの1列表示は**カードより情報が増える**（業種の移り変わり）ので、
                  「詳細」という語が実態と合っている。
                  ⚠️ **情報が減る切り替えを作らないこと**（この制約は変わっていない）。
 
@@ -1143,17 +1130,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           )
         )}
 
-        <div style={{
-          marginTop: 24, padding: "14px 18px",
-          background: "var(--bg-tint)", border: "1px solid var(--line)",
-          borderRadius: 10, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.8,
-        }}>
-          {/* ⚠️ 面談OK の注意書きは 2026-09-18 に削除した（柴さんの指示）。
-                 下の1行は**別物**（一覧全体にかかる在籍確認の但し書き）。消さないこと。 */}
-          {/* ⚠️★この1行はサイドバーへ移していない。面談OKの話ではなく
-                 **一覧全体にかかる但し書き**（在籍確認をしていないこと）だから。 */}
-          所属・職種・経歴はご本人の登録内容です。OPINIO は在籍確認を行っていません。
-        </div>
+        {/* ⚠️★一覧下部の但し書きは 2026-09-18 に**2つとも**削除した（柴さんの指示）。
+               ① 面談OK の説明（実際に申し込めるかは会社ごとに異なる）
+               ② 在籍確認をしていないこと（所属・職種・経歴は本人の登録内容）
+            ⚠️ ②は CLAUDE.md で「なりすましは3つで受ける」の③として挙げていたもの。
+               **`/people` では出さなくなった。** 同じ趣旨の文言は企業ページ
+               （`CompanyEmployeeSections`）・`/biz/members`・`/admin` の2画面・
+               通知メールに**別の言い回しで残っている**（そちらは指示の対象外）。
+            ⚠️ 枠ごと消してある。中身が無い `<div>` を残さないこと。 */}
         </div>
        </div>
       </div>
