@@ -7,6 +7,18 @@ import { Breadcrumb, type Crumb } from "@/components/ui/Breadcrumb";
 // ─── SidebarItem ──────────────────────────────────────────────────────────────
 // href を受け取り <Link> でレンダリングすることで Next.js の自動 prefetch を利用する
 
+/**
+ * バッジに出す数字。**3桁以上は「99+」に畳む。**
+ *
+ * ⚠️★**2箇所（左サイドバーとモバイルの下タブ）が同じものを出す。**
+ *    片方だけ畳むと、同じ未読数が画面幅で違う数字に見える。
+ * ⚠️ 0 は呼び出し側が描画ごと落とす（`badge > 0`）。ここでは扱わない
+ *    —— `badge &&` にすると React が `0` を描いてしまう罠が既にある（下の注記）。
+ */
+function formatBadgeCount(n: number): string {
+  return n > 99 ? "99+" : String(n);
+}
+
 function SidebarItem({
   icon, label, active, badge, href, onClick,
 }: {
@@ -38,11 +50,14 @@ function SidebarItem({
       </div>
       {badge !== undefined && badge > 0 && (
         <span style={{
-          background: "var(--royal)", color: "#fff",
+          /* ⚠️★2026-09-20 に紺（--royal）から赤（--error）へ。
+                **モバイルの下タブが最初から赤**で、同じ数字が画面幅で色違いに見えていた。
+                未読は「気づいてほしいもの」なので、目立つ側（赤）に揃える。 */
+          background: "var(--error)", color: "#fff",
           fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
           padding: "1px 7px", borderRadius: 100, minWidth: 18, textAlign: "center",
         }}>
-          {badge}
+          {formatBadgeCount(badge)}
         </span>
       )}
     </>
@@ -223,7 +238,7 @@ export default function MypageLayout({
                       background: "var(--error)", color: "#fff",
                       borderRadius: 100, fontSize: 10, fontWeight: 700,
                       padding: "0 4px", fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: "14px",
-                    }}>{badge}</span>
+                    }}>{formatBadgeCount(badge)}</span>
                   )}
                 </span>
                 {item.label}

@@ -20,6 +20,7 @@ import { rowsToStints } from "@/lib/experiences/toStint";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
+import { countUnreadConversations } from "@/lib/conversations/unread";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -262,7 +263,26 @@ export default async function MypagePage({
             捨てると **RLS も GRANT も 400 も、すべて「0件」に化ける**。`?? []` で受けている
             側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
             ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
-      const { data: companies, error: companiesErr } = await supabase
+      /* ★★`createAdminClient` で引く（2026-09-12）。**本人に自分の勤務先の名前を見せるため。**
+            ⚠️ 直す前はセッションのクライアントで引いていたので、RLS
+               （`ow_companies_published_read USING (is_published = true)`）が
+               **`is_published = false` の企業を落としていた**。その結果、
+               本人が企業ピッカーから自分で登録した会社が、本人の画面でだけ
+               「非公開」（タイムライン）「不明な企業」（編集・理由モーダル）
+               「—」（転職・面談の状況）になっていた。実測（2026-09-12 / 本番）:
+               実ユーザー1人・3件が該当し、その人は**職歴3件すべて**がこの状態だった。
+         ⚠️★**他人の見え方は変えていない。** `/u/[id]` と `lib/people/directory.ts` は
+               **同じ理由で既に admin で引いている**（どちらもコメントあり）。ここは3箇所目。
+         ⚠️★**RLS を広げる案は採らなかった。** `ow_companies` の SELECT は
+               テーブルレベル GRANT（実測: anon / authenticated とも 153/153列）なので、
+               ポリシーを1本足すと `draft_data` や通知先メールまで PostgREST から
+               読めるようになる。2026-09-05 に第2の公開ゲートを塞いだ向きとも逆になる。
+         ⚠️★**この `.in(masterCompanyIds)` が唯一の防波堤。** RLS を迂回しているので、
+               **条件を外すと全社が返る**。`masterCompanyIds` は**本人の職歴（と出向先）**
+               から作った id だけであること（上のブロック）を崩さないこと。
+         ⚠️★**列を増やさないこと。** ここで返すのは表示に要る9列だけ。
+               `*` にすると153列が RSC ペイロードに載って画面の HTML に焼かれる。 */
+      const { data: companies, error: companiesErr } = await createAdminClient()
         .from("ow_companies")
         .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
         .in("id", masterCompanyIds);
@@ -481,7 +501,11 @@ export default async function MypagePage({
   let applicationsBadge = 0;
   let scoutsBadge = 0;
   if (owUser) {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    /* ⚠️★2026-09-20 に「7日以内に動きがあった会話数」→「**未読のある会話数**」に変えた。
+          判定は `lib/conversations/unread.ts` の1箇所で、**一覧のドットと同じ式**。
+          ⚠️ 旧実装は `last_message_at > 7日前` で、**読んでいても数え、8日前の未読は
+             数えなかった**。バッジの数字を信じて開いた人が何も見つけられない形。
+          ⚠️ `sevenDaysAgo` はもう使わない（応募・スカウトは別の条件で数えている）。 */
     /* ⚠️ **存在しない列で数えない。** 2026-08-20 まで `company_user_id` と `updated_at` で
           引いており、`ow_conversations` にはどちらも無いため **毎回 400**
           （本番ログで24時間に19件）。`count` は null になり `?? 0` が受けるので、
@@ -499,12 +523,9 @@ export default async function MypagePage({
           先に「その会話が一覧に出るか」を満たすこと。
        ⚠️ ここはまだ「未読数」ではなく「7日以内に動きがあった会話数」。
           未読で数えるのは既読フェーズの範囲。 */
-    const [{ count: convCount, error: convError }, { count: appCount, error: appError }, { count: scoutCount, error: scoutError }] = await Promise.all([
-      supabase
-        .from("ow_conversations")
-        .select("id, ow_conversation_participants!inner(user_id)", { count: "exact", head: true })
-        .eq("ow_conversation_participants.user_id", owUser.id)
-        .gt("last_message_at", sevenDaysAgo),
+    const [unreadConvCount, { count: appCount, error: appError }, { count: scoutCount, error: scoutError }] = await Promise.all([
+      /* ★未読のある会話の数。⚠️ 述語を書き写さないこと（`unread.ts` の1箇所） */
+      countUnreadConversations(owUser.id),
       supabase
         .from("ow_job_applications")
         .select("id", { count: "exact", head: true })
@@ -520,10 +541,11 @@ export default async function MypagePage({
         .eq("candidate_id", user.id)
         .eq("status", "sent"),
     ]);
-    if (convError)  console.error("[mypage] 会話バッジ:", convError.message);
+    /* ⚠️ 会話は `countUnreadConversations` の中で error をログに出し、
+          失敗時は 0 を返す（バッジは主役ではないのでページを落とさない）。 */
     if (appError)   console.error("[mypage] 応募バッジ:", appError.message);
     if (scoutError) console.error("[mypage] スカウトバッジ:", scoutError.message);
-    conversationsBadge = convCount ?? 0;
+    conversationsBadge = unreadConvCount;
     applicationsBadge = appCount ?? 0;
     scoutsBadge = scoutCount ?? 0;
   }

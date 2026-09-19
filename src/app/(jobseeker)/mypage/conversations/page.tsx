@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import ConversationsClient, { type Conversation } from "./ConversationsClient";
 import type { Metadata } from "next";
+import { isUnreadMessage, type MessageLike } from "@/lib/conversations/unread";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
       「IT業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
@@ -112,11 +113,15 @@ export default async function ConversationsPage({
   const conversationsWithUnread = conversations.map((conv) => {
     const myPart = participantMap.get(conv.id);
     if (!myPart) return { ...conv, hasUnread: false };
-    const hasUnread = (messages ?? []).some(
-      (m: { conversation_id: string; sender_participant_id: string | null; sent_at: string }) =>
-        m.conversation_id === conv.id &&
-        m.sender_participant_id !== myPart.id &&
-        (!myPart.last_read_at || new Date(m.sent_at) > new Date(myPart.last_read_at))
+    /* ★判定は `lib/conversations/unread.ts` の1箇所（2026-09-20）。
+          ⚠️★**ここに式を書き戻さないこと。** サイドバーのバッジが同じ関数を呼ぶので、
+             割れると「バッジは1なのにドットが付いていない」が起きる。 */
+    const hasUnread = (messages ?? []).some((m: MessageLike) =>
+      isUnreadMessage(m, {
+        participantId: myPart.id,
+        conversationId: conv.id,
+        lastReadAt: myPart.last_read_at,
+      }),
     );
     return { ...conv, hasUnread };
   });
