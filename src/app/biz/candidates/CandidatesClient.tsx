@@ -126,20 +126,23 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 
-const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, var(--royal), #3B5FD9)",
-  "linear-gradient(135deg, var(--success), #10b981)",
-  "linear-gradient(135deg, #7C3AED, #a78bfa)",
-  "linear-gradient(135deg, #d97706, #f59e0b)",
-  "linear-gradient(135deg, #dc2626, #f87171)",
-  "linear-gradient(135deg, #0891b2, #22d3ee)",
-];
+/* ⚠️★**アバターに色を割り当てないこと**（2026-09-21 に撤去）。
+      それまでは `id` のハッシュから6色を引いて、アバターの丸と
+      カード左端の 4px のバーに同じ色を敷いていた。**意味は無かった。**
 
-function getGradient(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
-}
+      外した理由は「無意味だから」ではなく、**意味があるものとして読まれたから** ——
+      柴さんが実画面を見て「この色はなんの色？」と聞いた時点で、
+      緑の人と赤の人に違いがあると読めていた。
+
+      ⚠️ しかも6色には役割の決まっている色が混ざっていた（ui-conventions「色の役割」）:
+        緑 `--success` … **金銭的にプラスの条件のみ**（年収・退職金・SO）
+        紫 #7C3AED     … **使わないと決めている色**
+        赤 #dc2626     … エラー・警告
+      **1色が2つ以上の意味を持たないようにする**のがあの規約の目的で、
+      ここは条件を満たしていない人にまで緑や赤を配っていた。
+
+      ⚠️ 同じ形が `/biz/applications` と `/biz/employees` にも残っている
+         （`AVATAR_GRADIENTS` / `colors` の配列）。**新しく足さないこと。** */
 
 
 
@@ -872,7 +875,6 @@ export default function CandidatesClient({
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
               {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
-                const grad = getGradient(c.id);
                 return (
                   <div key={c.id}
                     style={{
@@ -887,14 +889,18 @@ export default function CandidatesClient({
                     onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,35,102,0.09)")}
                     onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
                   >
-                    {/* 左アクセントバー */}
-                    <div style={{ width: 4, flexShrink: 0, background: grad }} />
+                    {/* ⚠️ 左のアクセントバーは撤去した（上の注記）。戻さないこと。 */}
 
                     {/* カード本体 */}
                     <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", minWidth: 0 }}>
 
-                      {/* アバター */}
-                      <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: grad, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700 }}>
+                      {/* アバター。⚠️ 人によって色を変えない（上の注記）。 */}
+                      <div style={{
+                        width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
+                        background: "var(--bg-tint)", border: "1px solid var(--line)",
+                        color: "var(--ink-soft)", display: "flex", alignItems: "center",
+                        justifyContent: "center", fontSize: 18, fontWeight: 700,
+                      }}>
                         {c.name.charAt(0) || "?"}
                       </div>
 
