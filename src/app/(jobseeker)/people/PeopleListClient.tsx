@@ -313,11 +313,14 @@ function GridCard({ card, myUserId, followedUserIds }: {
             onClick={(e) => e.stopPropagation()}
             style={{ display: "flex", flexShrink: 0 }}
           >
+            {/* ⚠️★`refreshOnChange` を外さないこと。外すとサイドバーの「フォロー中 N人」と
+                   `?rel=following` の絞り込みがサーバーの値のまま取り残される。 */}
             <FollowUserButton
               targetUserId={card.userId}
               initialFollowed={followedUserIds.includes(card.userId)}
               isAuthenticated
               compact
+              refreshOnChange
             />
           </div>
         )}
@@ -442,10 +445,12 @@ function ListRow({ card, myUserId, followedUserIds }: {
                 **幅が違って左に寄る**。column なら交差軸が横になり、
                 既定の align-items: stretch で列幅いっぱいに伸びる。 */
           <div className="ppl-row-follow" onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+            {/* ⚠️★グリッド側と同じ理由で `refreshOnChange` が要る（上の注記）。 */}
             <FollowUserButton
               targetUserId={card.userId}
               initialFollowed={followedUserIds.includes(card.userId)}
               isAuthenticated
+              refreshOnChange
             />
           </div>
         )}

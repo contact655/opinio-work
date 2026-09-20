@@ -720,11 +720,14 @@ export default async function UserProfilePage({ params }: { params: { id: string
                        主要な順に左から。フォローは最も軽い操作なので末尾。 */}
                 {/* フォローボタン。オーナー本人には出さない。
                     未ログインでも押せるが、押すと /auth に飛ばす（企業フォローと同じ挙動） */}
+                {/* ⚠️★`refreshOnChange` を外さないこと。この画面にはこの人の
+                       フォロワー数が出ているので、外すと押しても数字が動かない。 */}
                 {!viewerIsOwner && (
                   <FollowUserButton
                     targetUserId={owUser.id}
                     initialFollowed={isFollowingUser}
                     isAuthenticated={!!authUser}
+                    refreshOnChange
                   />
                 )}
 
