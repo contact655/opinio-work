@@ -48,10 +48,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     /* ⚠️ `absolute` にする。素の title だと「… | OPINIO」が足されて OPINIO が2回出る。 */
-    title: { absolute: "OPINIO — 会社を、そこで働く人から知る" },
+    title: { absolute: "OPINIO — 求人票の向こうにいる現役社員" },
     description,
     openGraph: {
-      title: "OPINIO — 会社を、そこで働く人から知る",
+      title: "OPINIO — 求人票の向こうにいる現役社員",
       description,
       url: "https://opinio.jp",
       siteName: "OPINIO",
