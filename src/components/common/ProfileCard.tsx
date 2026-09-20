@@ -113,12 +113,12 @@ export function ProfileCard({ me, counts, nextStep, activeRel, variant = "card",
         </Link>
       </div>
 
-      {/* ⚠️ %も件数も出さない（冒頭の注記）。埋まっていればブロックごと出ない */}
+      {/* ⚠️ %も件数も出さない（冒頭の注記）。埋まっていればブロックごと出ない
+          ⚠️★説明文（「入力すると他のユーザーに経歴が伝わります。」）は
+             2026-09-20 に柴さんの指示で削除した。**戻さないこと。**
+             出すのは**次の1件のリンクだけ**。 */}
       {nextStep && (
         <div style={{ ...box, marginBottom: 10 }}>
-          <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 8 }}>
-            入力すると他のユーザーに経歴が伝わります。
-          </div>
           <Link href={nextStep.href} className="pc-link">{nextStep.label}</Link>
         </div>
       )}
