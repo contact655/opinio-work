@@ -5,6 +5,7 @@ import LandingPage, {
   type LPJobCard,
   type LPFacet,
   type LPTotals,
+  type LPArticleCard,
 } from "./LandingPage";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { pickLpCompanies } from "@/lib/lp/pickCompanies";
@@ -13,6 +14,12 @@ import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
 import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 import { companyDisplayName } from "@/lib/companies/displayName";
+/* ★記事セクション（2026-09-20）。⚠️★**`/articles` と同じ取得経路を使う。**
+      `getArticles()` は `published_at DESC`（新着順）で、`unstable_cache` 済み。
+      ⚠️ ダミーデータを作らないこと（`mockArticleData` の `MOCK_ARTICLES` は
+         2026-08-13 に削除済み。あそこに書き戻さない）。 */
+import { getArticles } from "@/lib/supabase/queries";
+import { LP_ARTICLES_COUNT } from "@/lib/constants/landing";
 
 /**
  * ★件数を **metadata と OGP から外した**（2026-09-16）。
@@ -118,8 +125,12 @@ export default async function HomePage() {
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(PREVIEW_JOBS);
 
-  const [companyCountRes, jobCountRes, jobsRes, schoolRes, industryFacetList] =
-    await Promise.all([companyCountP, jobCountP, jobsP, schoolRowsP, industryFacetsP]);
+  /* ★記事（2026-09-20）。⚠️ `/articles` と同じ `getArticles()`。新着順で返る。
+        ⚠️ 並列の Promise.all に混ぜる（直列にすると段が1つ増える）。 */
+  const articlesP = getArticles();
+
+  const [companyCountRes, jobCountRes, jobsRes, schoolRes, industryFacetList, allArticles] =
+    await Promise.all([companyCountP, jobCountP, jobsP, schoolRowsP, industryFacetsP, articlesP]);
 
   // ── ピックアップ企業の選定 ──────────────────────────────────────
   // ⚠️ 基準は src/lib/lp/pickCompanies.ts に切り出してある。
@@ -302,8 +313,62 @@ export default async function HomePage() {
       ? allSchoolFacets
       : [];
 
+  /* ── ★記事カード4枚（2026-09-20）──────────────────────────────────────
+     ⚠️★**日付と読了時間は渡さない**（柴さんの指示）。
+        日付は「最新が 2026-03-01 なので、出すと更新が止まって見える」ため、
+        読了時間は測っていない記事があるため（`read_min` は `number | null`）。
+        **型に入れていないので、表示側で出すこともできない。**
+     ⚠️ ロゴは `Article` が持っていないので、企業から別に引く。
+        `/articles` のカードは頭文字のアバターだが、**LP は企業セクションが
+        実ロゴを出しているので揃える**（同じ画面で2つの出し方を混ぜない）。 */
+  const lpArticles = allArticles.slice(0, LP_ARTICLES_COUNT);
+  /* ⚠️★★**`Article.company_id` に入っているのは UUID ではなく slug。**
+        `queries.ts` の `mapDbArticle` が `company_id: row.company_slug` を詰めている
+        （「company_id is used in URL fragments」というコメント付き）。**名前が実態と違う。**
+        ⚠️ `.in("id", ...)` で引くと**黙って0件**になり、ロゴだけが出ない
+           （実際にそうなった。企業セクションは img 12枚、記事セクションは 0枚）。
+        ⚠️ 型は `string` なので tsc では気づけない。 */
+  const articleCompanySlugs = Array.from(
+    new Set(lpArticles.map((a) => a.company_id).filter((v): v is string => !!v)),
+  );
+  const { data: articleCompanyRows, error: articleCompanyErr } = articleCompanySlugs.length > 0
+    ? await db
+        .from("ow_companies")
+        .select("slug, name, name_en, logo_url, logo_letter, logo_gradient, url")
+        .in("slug", articleCompanySlugs)
+    : { data: [], error: null };
+  /* ⚠️ error を捨てない。捨てるとロゴと社名が黙って空になる（CLAUDE.md） */
+  if (articleCompanyErr) console.error("[LP articles companies]", articleCompanyErr.message);
+  const articleCompanyBySlug = new Map(
+    (articleCompanyRows ?? []).map((c) => [c.slug as string, c]),
+  );
+
+  const articles: LPArticleCard[] = lpArticles.map((a) => {
+    const c = articleCompanyBySlug.get(a.company_id);   // ⚠️ 中身は slug（上の注記）
+    const subject = a.subject ?? a.subjects?.[0] ?? null;
+    return {
+      slug: a.slug,
+      type: a.type,
+      title: a.title,
+      /* ⚠️★社名は `companyDisplayName()` を通す。**`brand_name` を直接読まない** ——
+            株式会社Opinio は `brand_name` が空文字で、`brand_name ?? name` だと
+            **空文字を拾って社名が消える**（docs/phase0-top-page-20260916.md ★2）。
+         ⚠️ 企業セクション（上の `companies`）も同じ関数を通している。揃えること。 */
+      companyName: c
+        ? companyDisplayName(c.name as string, c.name_en as string | null).displayName
+        : a.company_name,
+      logoUrl: (c?.logo_url as string | null) ?? null,
+      logoLetter: (c?.logo_letter as string | null) ?? null,
+      logoGradient: (c?.logo_gradient as string | null) ?? null,
+      companyUrl: (c?.url as string | null) ?? null,
+      /* 話し手の職種。⚠️ 無ければ null（「—」で埋めない） */
+      speakerRole: subject?.role_at_interview ?? null,
+    };
+  });
+
   return (
     <LandingPage
+      articles={articles}
       totals={totals}
       industryFacets={industryFacets}
       schoolFacets={schoolFacets}

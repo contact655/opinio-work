@@ -5,7 +5,11 @@ import { FinalCta } from "./FinalCta";
 import { AuthAwareCta } from "./AuthAwareCta";
 import { fmtMan } from "@/lib/utils/salary";
 import { phaseLabel } from "@/lib/constants/phase";
-import { LP_JOBS_MIN_TO_SHOW } from "@/lib/constants/landing";
+import { LP_JOBS_MIN_TO_SHOW, LP_ARTICLES_COPY } from "@/lib/constants/landing";
+/* ⚠️★カテゴリのラベルと色は `TYPE_BADGE` の1箇所から引く。**ここに書き写さないこと**
+      —— `/articles` の一覧・記事詳細も同じ定数を見ており、割れると同じ記事が
+      画面によって違うカテゴリ名で出る。 */
+import { TYPE_BADGE, type ArticleType } from "@/app/articles/mockArticleData";
 
 /**
  * DATA セクション「経歴が構造化されている」に添えていた実画面。
@@ -98,6 +102,28 @@ import { LP_JOBS_MIN_TO_SHOW } from "@/lib/constants/landing";
 export type LPTotals = { companies: number; jobs: number };
 export type LPFacet = { key: string; label: string; count: number; href: string };
 
+/**
+ * ★記事カード（2026-09-20 / 柴さんの指示で新設）。
+ *
+ * ⚠️★**公開日と読了時間を入れないこと。** 型に無いので表示側で出すこともできない。
+ *    日付 … 最新が 2026-03-01 で、出すと**更新が止まって見える**
+ *    読了時間 … 測っていない記事がある（`ow_articles.read_min` は `number | null`）
+ *    ⚠️ `/articles` のカードは**どちらも出している**。**揃っていないのは意図的。**
+ */
+export type LPArticleCard = {
+  slug: string;
+  /** カテゴリ。ラベルと色は `TYPE_BADGE`（`mockArticleData.ts`）の1箇所から引く */
+  type: ArticleType;
+  title: string;
+  companyName: string;
+  logoUrl: string | null;
+  logoLetter: string | null;
+  logoGradient: string | null;
+  companyUrl: string | null;
+  /** 話し手の職種（例: シニアPdM）。⚠️ 無ければ null。「—」で埋めない */
+  speakerRole: string | null;
+};
+
 export type LPCompanyCard = {
   id: string;
   /** リンク用。⚠️ `id`(UUID) で組むと 308 を1回挟む。`slug ?? id` で組むこと */
@@ -189,6 +215,7 @@ function salaryText(min: number | null, max: number | null): string | null {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function LandingPage({
+  articles,
   totals,
   industryFacets,
   schoolFacets,
@@ -196,6 +223,8 @@ export default function LandingPage({
   jobs,
   scoutSendingEnabled,
 }: {
+  /** 新着順4本。⚠️ 取得は `page.tsx`（`/articles` と同じ `getArticles()`） */
+  articles: LPArticleCard[];
   totals: LPTotals;
   industryFacets: LPFacet[];
   /** 出身校。出身業界は前職のマスタ紐付けが必要で現状ほぼ取れないため未実装 */
@@ -239,7 +268,19 @@ export default function LandingPage({
 
         .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
-        /* 在籍者向けの2枚。⚠️ 3枚に増やさないこと（裏が取れているのは2つだけ） */
+        /* ★記事の4枚（2026-09-20）。
+           ⚠️★**.lp-cards（3列）を流用しないこと。** 4本だと 3+1 で割れる。
+              カードの見た目（.lp-card）は企業セクションと同じものを使い、**列数だけ別**。
+           ⚠️ 下のメディアクエリで 900px 以下は1列にしてある。
+           ⚠️ この style タグの中にバッククォート・引用符・大なり小なりを書かないこと。 */
+        .lp-articles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        /* セクションのリード文。⚠️ 見出しの直下・カードの上に置く */
+        .lp-lead { font-size: 14.5px; line-height: 1.85; color: ${C.muted}; margin: -14px 0 24px; }
+
+        /* ⚠️★ .lp-trust 系と .lp-member-points は **2026-09-20 に使い手が0**になった
+              （DATA と FOR MEMBERS のセクションを削除したため）。
+              **消さずに残してある** —— 戻すときの手がかりになるので。
+              ⚠️ 下のメディアクエリにも同じクラス名が残っている。片方だけ消さないこと。 */
         .lp-member-points { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 
         /* FV のサブコピー。検索窓（1000px）より内側に収める。
@@ -291,11 +332,17 @@ export default function LandingPage({
            実体参照にエスケープされ、raw text 要素なのでブラウザが復元しないため。
            この style タグの中には引用符・大なり・小なりを書かないこと。 */
 
+        /* ⚠️ 4列は 1100px 未満だと1枚 240px を切って見出しが3行で溢れる。
+              中間の幅では2列（2x2）にする —— 指示にある「または 2x2」がこれ。 */
+        @media (max-width: 1100px) {
+          .lp-articles { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 900px) {
           .lp-section { padding: 52px 0; }
           .lp-wrap { padding: 0 18px; }
           .lp-facets { grid-template-columns: repeat(2, 1fr); }
-          .lp-cards, .lp-jobs, .lp-trust, .lp-member-points { grid-template-columns: 1fr; }
+          .lp-cards, .lp-jobs, .lp-trust, .lp-member-points, .lp-articles { grid-template-columns: 1fr; }
+          .lp-lead { margin: -8px 0 20px; }
           /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
              620px までは wide の切り出しのまま。ここでは表示幅が 600px 前後あり、
              縮小率 0.85 で本文が読める。 */
@@ -646,179 +693,103 @@ export default function LandingPage({
           他社が言えない内容を持つ DATA セクションを残すほうが筋が通る。
           ここにあった実画面2枚のうち1枚は FV の検索窓の直下に移した（FV_SHOT）。 */}
 
-      {/* ══ データの出どころ ══════════════════════════════════════════════════ */}
+      {/* ══ 記事 ═════════════════════════════════════════════════════════════
+          ★2026-09-20 に新設（柴さんの指示）。**ここには DATA と FOR MEMBERS があった。**
+
+          ── 消した2つ（戻すなら理由ごと読むこと）─────────────────────────
+          ① DATA「このデータは、どこから来ているか」（3カード）
+             ⚠️ 中身の1つ「事業内容・組織体制・働き方まで揃えています」は**ほぼ事実でなかった**
+                （掲載22社のうち 組織体制1社 / 働き方1社 / 福利厚生1社。
+                 docs/phase0-top-page-20260916.md ★4）。
+          ② FOR MEMBERS「転職を考えていなくても、あなたの経歴は誰かの判断材料になります」
+             （2カード＋「経歴を載せる」ボタン）
+             ⚠️★**訴求は FAQ が引き受けている**（「いまの会社に、登録していることが
+                知られませんか？」ほか2項目）。**FAQ を消すとこの訴求がサイトから消える。**
+
+          ── なぜ募集セクションではなく記事か ───────────────────────────────
+          ⚠️ 公開求人は**2件・1社**（株式会社セールスフォース・ジャパン）。
+             セクションに立てると在庫の薄さが最も目立つ場所に出る。
+             **求人が20〜30件を超えたら再検討する**（柴さんの指示）。
+             既存の `LP_JOBS_MIN_TO_SHOW`（10件）とは別の基準なので、
+             **戻すときはしきい値も一緒に見直すこと。** */}
       <section className="lp-section">
         <div className="lp-wrap">
           <div className="lp-sec-head">
             <div>
-              <div className="lp-eyebrow">DATA</div>
-              <h2 className="lp-h2">このデータは、どこから来ているか</h2>
+              <div className="lp-eyebrow">{LP_ARTICLES_COPY.eyebrow}</div>
+              <h2 className="lp-h2">{LP_ARTICLES_COPY.heading}</h2>
             </div>
+            <Link href="/articles" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
+              記事をもっと読む →
+            </Link>
           </div>
-          <div className="lp-trust">
-            {[
-              // ⚠️ 「企業情報を独自に作成している」に実画面を添えていたが 2026-08-04 に外した。
-              //    カード幅342px・画像292pxでは、文字が読める切り出し幅の上限が380pxしかなく、
-              //    導入事例1件の左半分（読める数字は1つ）しか入らないため。
-              //    2026-08-05 に再検証しても同じで、既存の preview-company-v2.webp は
-              //    518px表示用の切り出しなので295pxでは成果の数字が潰れる。
-              //    ここに画像を戻すなら、もっと寄った別の切り出しが要る。
-              {
-                /* ⚠️ 見出しは 2026-09-17 に「企業情報を独自に作成している」から言い直した。
-                      本文が「公開情報をもとに整理しています」なので、見出しの
-                      「独自に作成」と食い違っていた。**本文は変えていない。** */
-                title: "公開情報をもとに整理している",
-                /* ⚠️★2026-09-16: 末尾の「**事業内容・組織体制・働き方まで揃えています**」を
-                      削除した。実測（掲載22社）で `description` 22社に対し、
-                      **組織体制 1社 / 働き方 1社 / 福利厚生 1社**しか無く、ほぼ事実でなかった。
+          <p className="lp-lead">{LP_ARTICLES_COPY.lead}</p>
 
-                   ⚠️★2026-09-16: 前半も直した。以前は「**web から自動で集めたものではなく**」
-                      だったが、**言い切れない。** 企業データの一部は公開情報から
-                      機械的に埋めている（CLAUDE.md「capital_type / branch_locations は
-                      公開情報から機械投入であり、取材データではない」）。
-                      → 「**公開情報をもとに整理している**」という事実の範囲に寄せた。
+          {/* ⚠️★カードの見た目は企業セクションと同じ `.lp-card`。**列数だけ `.lp-articles`**
+                 （`.lp-cards` は3列なので、4本だと 3+1 で割れる）。 */}
+          <div className="lp-articles">
+            {articles.map((a) => {
+              const badge = TYPE_BADGE[a.type];
+              return (
+                <Link key={a.slug} href={`/articles/${a.slug}`} className="lp-card">
+                  {/* カテゴリ。⚠️ ラベルも色も `TYPE_BADGE` から。直書きしない */}
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", padding: "3px 9px",
+                    borderRadius: 100, background: badge.bg, color: badge.color,
+                    fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", marginBottom: 12,
+                  }}>
+                    {badge.label}
+                  </span>
 
-                   ⚠️ 「OPINIO が整理しています」の裏取り（2026-09-16 / migration と scripts を確認）:
-                        ・**テキストデータを取得するスクリプトは存在しない。**
-                          `scripts/` で `ow_companies` を触るのはロゴ画像の移行と
-                          テスト企業の location 分散だけ。`open-graph-scraper` は
-                          利用者が貼った URL の OGP 取得用で、企業データには使っていない
-                        ・一括投入の migration はあるが、いずれも**1社ずつ値を明示列挙**した形
-                          （例: `20260728065124` は57社の資本関係を id + 親会社名 + 国で列挙し、
-                          「個社調査が必要」な項目は**意図的に外している**）
-                        ・`20260906130000` は「**1社ずつ調べた値だけを入れている**」と書き、
-                          証券コード・上場日・リリース日まで残したうえで、
-                          ラウンドが特定できない社には親（`startup`）を入れている
-                        ・**確認なしの一括投入は、見つかった分は除去済み**
-                          （`remote_work_status='hybrid'` 64社 → `20260727182605` で NULL、
-                          `avg_salary` → `20260811172511` で NULL）
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
+                    <CompanyLogo
+                      name={a.companyName}
+                      logoUrl={a.logoUrl}
+                      logoLetter={a.logoLetter}
+                      logoGradient={a.logoGradient}
+                      companyUrl={a.companyUrl}
+                      size="sm"
+                    />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {a.companyName}
+                    </span>
+                  </div>
 
-                   ⚠️★後半は**一度「出典は項目ごとに記録しています」と書いて、同日に直した。**
-                      仕組み（`ow_company_data_sources` / `lib/constants/companySources.ts` /
-                      `/admin/companies/coverage`）は実在するが、**記録があるのは2項目だけ**。
-                      実測（2026-09-16 / 掲載22社）:
+                  <h3 style={{
+                    fontFamily: "var(--font-noto-serif)",
+                    fontSize: 15, fontWeight: 700, lineHeight: 1.55, color: C.navy,
+                    margin: 0,
+                    display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  } as React.CSSProperties}>
+                    {a.title}
+                  </h3>
 
-                        headquarters_address … 21/21（値のある全社。うち1社は source_kind=unknown）
-                        phase                … 1/22
-                        他13項目（description / employee_count / founded_year / tagline /
-                                  url / capital_type / parent_company_name / main_products /
-                                  ceo_name / nearest_station / branch_locations /
-                                  customer_cases / main_customers）… **すべて 0件**
+                  {/* 話し手の職種。⚠️ 無ければ行ごと出さない（「—」で埋めない） */}
+                  {a.speakerRole && (
+                    <small style={{ display: "block", marginTop: 8, fontSize: 12, fontWeight: 600, color: C.muted }}>
+                      {a.speakerRole}
+                    </small>
+                  )}
 
-                      画面に出す項目×社の「埋まっているマス」227 に対し、出典があるのは **22**（約1割）。
-                      ⚠️★**したがって「出典は項目ごとに記録しています」と書かないこと。**
-                         一度書いて同日に外した。
-                      ⚠️★**出典記録の進み具合も本文に書かない**（2026-09-16 / 柴さんの判断）。
-                         運営の作業の進捗であって、訪問者向けの情報ではない。
-                         実測値はこのコメントに残してあるので、次に触る人は数え直さずに済む。
-                   ⚠️★**項目名を書き足さないこと。** 足すなら先に充填率を数え直す。 */
-                body: "掲載企業の情報は、公式サイトや登記などの公開情報をもとに、OPINIO が整理しています。",
-              },
-              // ⚠️ 2026-08-04 まで「所属が認証されている / 本人が名乗っているのではなく
-              //    企業側が在籍を確認しています」と書いていたが、事実と正反対だったため差し替えた。
-              //    実測: 公開中の所属4件はすべて invited_at / invited_by が空で、
-              //    企業側の招待フローを通っていない（運営が直接作った行）。
-              //    ドメイン認証済みの企業も 85社中0社。所属は自己申告である。
-              //    企業側の確認フローが実際に回り始めるまで、認証を主張しないこと。
-              /* ⚠️ 実測（2026-09-16）: 掲載22社のうち**公開求人を持つのは1社だけ**。前半は事実。
-                    ⚠️★末尾の「事業や**組織**を先に調べておけます」から「組織」を外した。
-                       `org_teams` を持つのは掲載22社中 **1社**で、上のカードから
-                       「組織体制まで揃えています」を削除したのと同じ理由。 */
-              { title: "募集を出していない企業も載っている", body: "求人の有無にかかわらず企業ページを作っています。いま募集がない会社も、どんな事業をしているのかを先に調べておけます。" },
-              /* ⚠️★3枚目（「経歴が構造化されている」）は 2026-09-16 に削除した。
-                    理由は上の CAREER_CARD 跡のコメント。**戻さないこと。**
-                    代わりに「登録すると何が読めるか」を FAQ と在籍者向けセクションで言う。 */
-              {
-                title: "登録した人の経歴が載っている",
-                /* ⚠️★実測（2026-09-16）で裏を取った範囲だけを書く。
-                      ログイン済みの一般アカウントで企業ページの社員セクションから
-                      `/u/[id]` を開き、会社・部署・役職・在籍期間・説明まで読めることを確認。
-                   ⚠️ **件数を書かないこと。** 掲載22社のうち3社・実人数4名しかいない。
-                   ⚠️★**「辿れます」「分析できます」と書かないこと。**
-                      束ねて見る画面は無い（1人ずつ読む）。 */
-                body: "在籍している方・在籍していた方が、自分で職歴を登録しています。ログインすると、その会社で誰がどんな仕事をしてきたかを読めます。",
-              },
-            ].map((t) => (
-              <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 24, display: "flex", flexDirection: "column" }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.navy, marginBottom: 9 }}>{t.title}</h3>
-                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{t.body}</p>
-              </div>
-            ))}
+                  {/* ⚠️★**公開日と読了時間は出さない**（型にも入れていない）。
+                         日付は最新が 2026-03-01 で、出すと更新が止まって見えるため。
+                         読了時間は測っていない記事があるため。 */}
+                </Link>
+              );
+            })}
           </div>
 
-          {/* ⚠️★経歴カードに実画面を添える全幅の行（`CAREER_SHOT`）は
-                 **2026-09-16 に削除した。** 本文にしていた `CAREER_CARD` を消したため、
-                 参照だけが残って `tsc` が落ちる状態になっていた。
-                 戻すときの手順は `CAREER_SHOT` 跡のコメントと `.lp-trust-wide` を読むこと
-                 （CSS・画像ファイル・`.lp-career-*` は残してある）。 */}
-        </div>
-      </section>
-
-
-      {/* ══ 在籍者向け ═══════════════════════════════════════════════════════
-          ★経歴を「載せる側」に向けた唯一のセクション（2026-09-16 追加）。
-            それまで LP は探す人にしか語りかけておらず、**経歴が集まらないと
-            上の「登録した人の経歴が載っている」が育たない**という構造だった。
-
-          ⚠️★**項目は2つだけ。** 3つ目の案「話すかどうかも自分で決められる」は
-             **削除した。裏が取れなかったため。**
-             `POST /api/dm/start` が見るのは `ow_users.visibility` **だけ**で、
-             `career_stance`（転職についての意思表示）も面談対応可の設定も参照していない。
-             `/u/[id]` の「メッセージ」ボタンは**ログイン済みの非オーナー全員**に出る。
-             ＝ 本人の意思表示に関わらず DM は届く。
-             ⚠️ 論点としては docs/todo.md に残してある。**実装より先に文言を書かないこと。**
-
-          ⚠️ 2つとも実測の裏がある:
-             ① 公開範囲 … `ow_users.visibility` の3択（公開 / ログインユーザーのみ / 非公開）。
-                          `/mypage/settings` にラジオが実在。文言の出どころは
-                          `lib/constants/profileVisibility.ts` の1箇所
-             ② 勤め先 … `can_send_scout()` の条件2（company_id 一致）と条件2b
-                        （**自由入力の社名も `normalize_company_name` で一致**）。
-                        `/biz/candidates` は `canSendResults[i] === true` で
-                        **一覧そのもの**を絞るので、候補者として出てこない
-          ⚠️★②は「**採用担当の候補者検索**」に限った話。**言い切りを広げないこと。**
-             その企業の**企業ページの現役社員**には出る（そちらは本人の公開範囲で決まる）。 */}
-      <section className="lp-section">
-        <div className="lp-wrap" style={{ maxWidth: 880 }}>
-          <div className="lp-eyebrow">FOR MEMBERS</div>
-          {/* ⚠️ span は inline-block（`.lp-h2 span`）。**「ます」だけが2行目に落ちていた**
-                 （2026-09-17 実測）。句の境目で折る。 */}
-          <h2 className="lp-h2" style={{ marginBottom: 12 }}>
-            <span>転職を考えていなくても、</span>
-            <span>あなたの経歴は</span>
-            <span>誰かの判断材料になります</span>
-          </h2>
-          <p style={{ fontSize: 15, color: C.muted, lineHeight: 1.8, margin: "0 0 26px" }}>
-            どこから来て、なぜいまの会社を選んだか。その事実が、次に同じ道で迷う人の助けになります。
-          </p>
-
-          <div className="lp-member-points">
-            {[
-              {
-                title: "公開する範囲は自分で決められる",
-                body: "「公開」「ログインユーザーのみ」「非公開」から選べます。初期設定はログインユーザーのみで、検索エンジンには出ません。",
-              },
-              {
-                title: "いまの勤め先の採用担当の候補者検索には表示されない",
-                body: "在籍中として登録した会社からは、あなたを候補者として見つけられません。会社名を自由入力で書いた場合も同じです。",
-              },
-            ].map((t) => (
-              <div key={t.title} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: 22 }}>
-                <h3 style={{ fontSize: 15.5, fontWeight: 700, color: C.navy, marginBottom: 8, lineHeight: 1.5 }}>{t.title}</h3>
-                <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.75, margin: 0 }}>{t.body}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* ⚠️★ログイン済みの人には `/auth` を出さない。職歴を足す場所は `/mypage`
-                 （職歴・学歴は行の鉛筆で編集する。2026-09-12 に一覧ページを畳んだ）。
-              ⚠️ `/mypage/details/experience` を指さないこと。**middleware が `/mypage` へ転送する。** */}
-          <div style={{ marginTop: 24 }}>
-            <AuthAwareCta
-              className="lp-hero-btn lp-hero-btn-solid"
-              guest={{ href: "/auth", label: "経歴を載せる" }}
-              member={{ href: "/mypage", label: "経歴を追加する" }}
-            />
+          {/* ★募集への導線（2026-09-20）。⚠️★**外さないこと。**
+                 実測（2026-09-20 / 未ログイン）で、**本文から `/jobs` へ行く導線は0本**だった
+                 —— `LandingPage` の「募集をすべて見る」は `LP_JOBS_MIN_TO_SHOW`（10件）
+                 未満で**セクションごと非表示**、`FinalCta` の「新着の募集を見る」は
+                 **ログイン済みにしか出ない**。
+              ⚠️ 募集カードを並べるセクションは作らないこと（上の注記の理由）。 */}
+          <div style={{ marginTop: 22, textAlign: "center" }}>
+            <Link href="/jobs" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4 }}>
+              募集を探す →
+            </Link>
           </div>
         </div>
       </section>
