@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { generateProposals, deleteProposal, deleteProposalsForCandidate, type ActionResult } from "./actions";
+import { CAREER_STANCE_LABELS, isReachableByCompanies } from "@/lib/constants/careerPreferences";
 
-type Candidate = { id: string; name: string; isTest: boolean };
+type Candidate = { id: string; name: string; isTest: boolean; stance: string | null };
 type Row = {
   id: string; candidateName: string; companyName: string;
   evidenceCount: number; counterCount: number; hasJob: boolean; computedAt: string;
@@ -50,7 +51,12 @@ export default function ProposalsAdminClient({
           <option value="">候補者を選ぶ…</option>
           {candidates.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}{c.isTest ? "（検証用アカウント）" : ""}
+              {c.name}
+              {c.isTest ? "（検証用アカウント）" : ""}
+              {/* ★受け取らない設定の人は選べるが、押しても作られない。先に見せる（2026-09-21） */}
+              {!isReachableByCompanies(c.stance)
+                ? `（${c.stance ? CAREER_STANCE_LABELS[c.stance] ?? c.stance : "転職について未回答"}・提案は作れません）`
+                : ""}
             </option>
           ))}
         </select>
@@ -82,7 +88,22 @@ export default function ProposalsAdminClient({
             border: `1px solid ${msg.ok ? "#CFE3CF" : "#F0C7C7"}`,
           }}
         >
-          {msg.ok && msg.kind === "delete" ? (
+          {msg.ok && msg.kind === "generate" && msg.result.blockedByStance ? (
+            /* ★本人が企業からの連絡を受け取らない設定。**黙って0件にしない**（2026-09-21） */
+            <>
+              <strong>提案は作りませんでした。</strong><br />
+              この方は「転職について」を
+              <strong>
+                {msg.result.blockedByStance.stance
+                  ? `「${CAREER_STANCE_LABELS[msg.result.blockedByStance.stance] ?? msg.result.blockedByStance.stance}」`
+                  : "まだ回答していません"}
+              </strong>
+              {msg.result.blockedByStance.stance ? "と答えています。" : "。"}
+              <br />
+              スカウトが届かないのと同じ条件です（<code>isReachableByCompanies</code>）。
+              本人が設定を変えるまで、提案も作りません。
+            </>
+          ) : msg.ok && msg.kind === "delete" ? (
             /* ★削除は削除として書く。「作成しました」と出さない（2026-09-21） */
             <>
               <strong>{msg.deleted} 件消しました。</strong><br />

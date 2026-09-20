@@ -40,6 +40,7 @@ import {
   MIN_EVIDENCE_FOR_PROPOSAL,
 } from "./engine";
 import { companiesToExclude, evidenceOptions, gatherCompanyFacts } from "./fetch";
+import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { notifyProposalsCreated } from "@/lib/notify/proposalNotification";
 
 export type GenerateResult = {
@@ -53,6 +54,11 @@ export type GenerateResult = {
   skipped: number;
   /** ★根拠が2件未満で落ちた数。画面に出すこと（黙って消さない） */
   belowThreshold: number;
+  /**
+   * ★本人が企業からの連絡を受け取らない設定だったので、1件も作らなかった（2026-09-21）。
+   * ⚠️ **黙って0件にしない。** 運営が「なぜこの人に提案が出ないのか」を追えるようにする。
+   */
+  blockedByStance?: { stance: string | null };
 };
 
 /**
@@ -63,6 +69,33 @@ export async function generateProposalsForCandidate(
   candidateOwUserId: string,
 ): Promise<GenerateResult> {
   const db = createAdminClient();
+
+  /* ── ★本人が企業からの連絡を受け取る設定か（2026-09-21 に追加）──────────
+     ⚠️★**スカウトと同じ述語を使う。** `can_send_scout()`（SQL）の条件1を
+        TS に写したのが `isReachableByCompanies()`。**ここに条件を書き写さない。**
+     ⚠️★**2026-09-21 まで提案はこれを一切見ていなかった。** 実測では実ユーザー10人中
+        4人（`no_contact` 2 / 未設定 2）が「スカウトは届かないのに提案は出る」状態で、
+        押せば氏名が企業に渡った。**設定の意味を後から拡大しない**（CLAUDE.md）。
+     ⚠️ `ow_profiles.user_id` は **auth 空間**。`ow_users.id` で引くと常に0件になる。
+     ⚠️ 既に作られた提案は消さない（送信済みのスカウトを消さないのと同じ）。
+        ただし開示には本人が「興味がある」を押す必要があるので、勝手には渡らない。 */
+  const { data: me, error: meErr } = await db
+    .from("ow_users").select("auth_id").eq("id", candidateOwUserId).maybeSingle();
+  if (meErr) console.error("[evidence/generate] ow_users:", meErr.message);
+  const authId = (me?.auth_id as string | null) ?? null;
+
+  const { data: prof, error: profErr } = authId
+    ? await db.from("ow_profiles").select("career_stance").eq("user_id", authId).maybeSingle()
+    : { data: null, error: null };
+  if (profErr) console.error("[evidence/generate] ow_profiles:", profErr.message);
+
+  const stance = (prof?.career_stance as string | null) ?? null;
+  if (!isReachableByCompanies(stance)) {
+    return {
+      examined: 0, proposable: 0, created: 0, skipped: 0, belowThreshold: 0,
+      blockedByStance: { stance },
+    };
+  }
 
   // ── 掲載中の企業だけを母数にする ──────────────────────────────────────────
   /* ⚠️ `.eq("listing_status","listed")` を直書きしないこと（CLAUDE.md）。

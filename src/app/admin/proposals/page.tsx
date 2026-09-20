@@ -46,6 +46,19 @@ export default async function AdminProposalsPage() {
     .order("name");
   if (uErr) console.error("[admin/proposals] ow_users:", uErr.message);
 
+  /* ★本人が企業からの連絡を受け取る設定か（2026-09-21）。
+        ⚠️ `ow_profiles.user_id` は **auth 空間**。`ow_users.id` では引けない。
+        ⚠️ 受け取らない人を**一覧から消さない**。消すと運営が
+           「なぜこの人が居ないのか」を追えない（黙って消さない）。ラベルで示す。 */
+  const authIds = (users ?? []).map((u) => u.auth_id as string | null).filter(Boolean) as string[];
+  const { data: profs, error: prErr } = authIds.length
+    ? await db.from("ow_profiles").select("user_id, career_stance").in("user_id", authIds)
+    : { data: [], error: null };
+  if (prErr) console.error("[admin/proposals] ow_profiles:", prErr.message);
+  const stanceByAuthId = new Map(
+    (profs ?? []).map((p) => [p.user_id as string, (p.career_stance as string | null) ?? null]),
+  );
+
   const candidates = (users ?? [])
     .filter((u) => isRegisteredUser(u) && u.is_system !== true)
     .map((u) => ({
@@ -54,6 +67,7 @@ export default async function AdminProposalsPage() {
       /* ⚠️ `is_test` を**隠さない。ラベルを付けて区別だけ示す**
             （`/admin/ambassador-requests` と同じ方針。検証で使うので消さない） */
       isTest: u.is_test === true,
+      stance: stanceByAuthId.get(u.auth_id as string) ?? null,
     }));
 
   const { data: proposals, error: pErr } = await db
