@@ -7,7 +7,7 @@ import { fmtMan } from "@/lib/utils/salary";
 import { getJobs } from "@/lib/supabase/queries";
 import { computeRecommendations, type RecommendedJob } from "@/lib/matching/scoreJob";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
-import { senderFooterHtml } from "@/lib/notify/templates";
+import { senderFooterHtml, MAIL_SUCCESS_FILL } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -232,7 +232,7 @@ function generateWeeklyEmail(
           <strong>選んだ理由：</strong>${escapeHtml(reasonText)}
         </div>
         <a href="${BASE_URL}/jobs/${job.id}"
-           style="display:inline-block;background:#059669;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none">
+           style="display:inline-block;background:${MAIL_SUCCESS_FILL};color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;text-decoration:none">
           詳細を見る →
         </a>
       </div>

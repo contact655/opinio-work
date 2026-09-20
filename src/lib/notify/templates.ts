@@ -90,6 +90,22 @@ const TD_VALUE = "padding:8px 12px;border:1px solid #e2e8f0;font-size:13px";
 const BTN     = "display:inline-block;background:#002366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px";
 
 /**
+ * ★メールで**白文字を載せる緑の塗り**（2026-09-21 に追加）。
+ *
+ * ⚠️★**globals.css の `--success-strong` と同値。片方だけ変えないこと。**
+ *    メールHTMLでは CSS 変数が効かないので hex を直書きするしかなく、二重管理になっている
+ *    （globals.css が挙げている「hex で書いてよい例外」がここ）。
+ *
+ * ⚠️★**`#059669`（= `--success`）に戻さないこと。** あれに白文字は **3.77** で、
+ *    13px の文字に必要な 4.5 に届かない（白 on #047857 = **5.48**）。
+ *    ⚠️ `--success` のままでよいのは**アイコン・図形**（WCAG 1.4.11 の 3.0）だけ。
+ *
+ * ⚠️ 色だけを定数にしてある。週次2本で padding と font-weight が違うので、
+ *    `BTN` のように1本の style 文字列に畳むと**見た目が変わる。**
+ */
+export const MAIL_SUCCESS_FILL = "#047857";
+
+/**
  * ★送信者の表示（名称・住所・受信拒否の連絡先）。**消さないこと**（2026-09-10）。
  *
  * ⚠️★**`htmlWrap()` を通らないメールにも、これを末尾に付けること。**

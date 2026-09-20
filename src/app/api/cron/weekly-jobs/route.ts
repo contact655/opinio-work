@@ -5,7 +5,7 @@ import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipien
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
-import { senderFooterHtml } from "@/lib/notify/templates";
+import { senderFooterHtml, MAIL_SUCCESS_FILL } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -217,7 +217,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         <div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">${escapeHtml(j.title ?? "")}</div>
         <div style="font-size:12px;color:#6b7280;margin-bottom:12px">${meta}</div>
         <a href="${BASE_URL}/jobs/${j.id}"
-           style="display:inline-block;background:#059669;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
+           style="display:inline-block;background:${MAIL_SUCCESS_FILL};color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:500">
           詳細を見る →
         </a>
       </div>`;
