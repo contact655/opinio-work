@@ -321,7 +321,39 @@ export default async function HomePage() {
      ⚠️ ロゴは `Article` が持っていないので、企業から別に引く。
         `/articles` のカードは頭文字のアバターだが、**LP は企業セクションが
         実ロゴを出しているので揃える**（同じ画面で2つの出し方を混ぜない）。 */
-  const lpArticles = allArticles.slice(0, LP_ARTICLES_COUNT);
+  /* ── ★4本の選び方（2026-09-20 / 柴さんの指示で「新着順」から変更）──────
+       ① 直上の「ピックアップ企業」に載っている企業の記事を**優先**する
+       ② **1社1本**。同じ企業に複数あれば**新しい方**
+       ③ それでも足りなければ、残りを新着順で埋める
+
+     ⚠️★**ハードコードしないこと。** 企業の選定（`pickLpCompanies`）が変われば
+        ここも自動で変わる。**期待する4本を固定で書かない。**
+     ⚠️ `allArticles` は `published_at DESC` なので、**上から拾えば各社の最新**になる。
+        並べ替えを足さないこと（足すと「新しい方」の保証が壊れる）。
+     ⚠️★**②は③にも掛けている。** 埋める側で同じ企業が2本目に出ると、
+        直上のカードと社名が重複して「同じ会社の話ばかり」に見える。
+     ⚠️ `a.company_id` の中身は **slug**（下の注記）。`companies` の `slug` と突き合わせる。
+
+     実測（2026-09-20 / 本番）: ピックアップ12社のうち記事を持つのは
+     hubspot / sansan / smarthr / salesforce の**4社**で、①だけで4本埋まる。
+     SmartHR は2本あるため新しい方（2025-09-30 の社員インタビュー）を採る。 */
+  const pickedSlugs = new Set(
+    companies.map((c) => c.slug).filter((v): v is string => !!v),
+  );
+  const lpArticles: typeof allArticles = [];
+  const usedCompany = new Set<string>();
+  const take = (onlyPicked: boolean) => {
+    for (const a of allArticles) {
+      if (lpArticles.length >= LP_ARTICLES_COUNT) return;
+      const slug = a.company_id || null;
+      if (onlyPicked && !(slug && pickedSlugs.has(slug))) continue;
+      if (slug && usedCompany.has(slug)) continue;   // ⚠️ 1社1本
+      if (slug) usedCompany.add(slug);
+      lpArticles.push(a);
+    }
+  };
+  take(true);    // ① ピックアップ企業ぶん
+  take(false);   // ③ 残りを新着順で
   /* ⚠️★★**`Article.company_id` に入っているのは UUID ではなく slug。**
         `queries.ts` の `mapDbArticle` が `company_id: row.company_slug` を詰めている
         （「company_id is used in URL fragments」というコメント付き）。**名前が実態と違う。**
