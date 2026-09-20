@@ -1,3 +1,5 @@
+import { BusinessLayout } from "@/components/business/BusinessLayout";
+import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
@@ -22,7 +24,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function BizProposalsPage() {
   const ctx = await getTenantContext();
-  if (!ctx) return null; // middleware が /biz を弾くのでここには来ない
+  /* ⚠️ 他の /biz と同じ形にする。`null` を返すと**真っ白な画面**になる */
+  if (!ctx) return <BizNoTenantPage />;
 
   const db = createAdminClient();
   const { data: rows, error } = await db
@@ -46,5 +49,20 @@ export default async function BizProposalsPage() {
     computedAt: (p.computed_at as string).slice(0, 10),
   }));
 
-  return <BizProposalsClient proposals={proposals} loadFailed={!!error} />;
+  /* ⚠️★**`BusinessLayout` で包む。** 2026-09-21 にナビへ「提案」を足すまで
+        このページには**どこからもリンクが無く**、包み忘れに気づけなかった。
+        包まないと**ナビが出ず、開いた人が戻れない**（求職者側の `/proposals` が
+        `MypageLayout` の外にあったのと同じ形）。 */
+  return (
+    <BusinessLayout
+      userName={ctx.userName}
+      tenantName={ctx.tenantName}
+      tenantLogoGradient={ctx.logoGradient}
+      tenantLogoLetter={ctx.logoLetter}
+      memberships={ctx.allCompanies}
+      currentTenantId={ctx.tenantId}
+    >
+      <BizProposalsClient proposals={proposals} loadFailed={!!error} />
+    </BusinessLayout>
+  );
 }
