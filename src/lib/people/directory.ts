@@ -50,11 +50,11 @@ export type Affiliation =
       companyId: string;
       companyName: string;
       roleTitle: string | null;
-      /* ⚠️★企業ロゴ（logoUrl / logoGradient / logoLetter）は 2026-09-20 に落とした。
-            カードから外した（柴さんの指示）ので読み手が0になり、
-            人数ぶんクライアントへ運ぶだけになっていたため。
-            **足し戻さないこと** —— 足すとカードに画像を出す口が復活する。 */
-      phase: string | null;
+      /* ⚠️★企業ロゴ（logoUrl / logoGradient / logoLetter）と `phase` は
+            2026-09-20 に落とした。カードからロゴを外した（柴さんの指示）ので
+            読み手が0になり、人数ぶんクライアントへ運ぶだけになっていたため。
+            `phase` はそれ以前から読み手が0件だった。
+            **足し戻さないこと** —— ロゴは足すとカードに画像を出す口が復活する。 */
     }
   | {
       kind: "self";
@@ -241,7 +241,6 @@ type MemberRow = {
   company_id: string;
   ow_companies: {
     id: string; name: string | null; brand_name: string | null;
-    phase: string | null;
     /** バッジの文言の出し分けにだけ使う。**`canTalk` の判定には混ぜない**（下記） */
     accepting_casual_meetings: boolean | null;
   } | null;
@@ -364,7 +363,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
        ⚠️ 企業数は105件（2026-09-18）なので1回引いても軽い。 */
     db.from("ow_companies").select("id, ow_industries!industry_id(name)"),
     db.from("ow_company_members")
-      .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, phase, accepting_casual_meetings)")
+      .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, accepting_casual_meetings)")
       .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
     getRoleTree(),
   ]);
@@ -450,7 +449,6 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
         companyId: c.id,
         companyName: c.brand_name ?? c.name ?? "",
         roleTitle: shortenRoleTitle(verified.role_title),
-        phase: c.phase,
       };
     } else {
       const current = myExps.find((e) => e.is_current);
