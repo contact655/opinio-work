@@ -2428,6 +2428,39 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 
 ---
 
+## ★根拠つき提案（②⑨④）と、③双方合意 ── docs 3本の索引
+
+**実装済みは②⑨④まで。③は状態の列を持つだけで、UI も副作用も無い。**
+個別の理由は各 docs にある。**ここに書き写さない。**
+
+| 何を | docs |
+|---|---|
+| ②⑨④で何を作ったか（根拠4種・反証3種・決めごとの守り先） | [proposals-20260918.md](docs/proposals-20260918.md) |
+| 根拠がそろわない理由（**「入力UIが無いから0件」ではなかった**） | [evidence-gaps-20260918.md](docs/evidence-gaps-20260918.md) |
+| ★**③（双方合意）を何から作るか** | [proposals-mutual-20260921.md](docs/proposals-mutual-20260921.md) |
+
+⚠️★**③は「状態を持つだけ」。`proposalStage()` の使用箇所は0件**（2026-09-21 実測）。
+   `mutual` になっても**何も起きない**。実装するとき、**この関数を使わずに
+   新しい判定を書かないこと。**
+
+⚠️★**段（`stage`）の列を足さないこと。** `candidate_response` / `company_response` の
+   2列から導出する（[proposalResponses.ts](src/lib/constants/proposalResponses.ts)）。
+   別の列で持つと、2つの返答と食い違う余地ができる。
+
+⚠️★**候補者は匿名。担保は「`ow_users` を select しないこと」だけ**
+   （[biz/proposals/page.tsx](src/app/biz/proposals/page.tsx)）。1列足した瞬間に匿名でなくなる。
+   ⚠️★画面には「**双方が会いたいと答えたときに初めてお互いが分かります**」と**既に書いてある**。
+      後半は未実装（`share_profile` と同じ「守れない約束」の形）。
+      **実装が追いつく前にこの一文を消さないこと** ——消すと③が何の話だったか分からなくなる。
+
+⚠️★**これはスカウトではない。** `ow_scouts` にも3ゲート（`SCOUT_SENDING_ENABLED` /
+   有料プラン / `can_send_scout`）にも無関係。**ここから送信機能を生やさないこと。**
+
+⚠️ `ow_proposals` に行を入れる経路は **`/admin/proposals` だけ**（手動。**cron にしない**判断）。
+   ⚠️ 求職者側 `/proposals` への導線は**まだ無い**（`/mypage` のサイドバーにも通知にも出ない）。
+
+---
+
 ## ⚠️ ow_transitions は導出テーブル。直接 INSERT しない（2026-08-20 追加）
 
 「会社が変わった隣接ペア」を WHERE 句で引けるようにするための表。
