@@ -2439,6 +2439,7 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 | ②⑨④で何を作ったか（根拠4種・反証3種・決めごとの守り先） | [proposals-20260918.md](docs/proposals-20260918.md) |
 | 根拠がそろわない理由（**「入力UIが無いから0件」ではなかった**） | [evidence-gaps-20260918.md](docs/evidence-gaps-20260918.md) |
 | ★**③（双方合意）を何から作るか** | [proposals-mutual-20260921.md](docs/proposals-mutual-20260921.md) |
+| ★**②⑨が動かない残りは運用**（決め手1人 / 実在の担当者は自社1社） | [proposals-ops-20260921.md](docs/proposals-ops-20260921.md) |
 
 ⚠️★**mutual の判定と紹介は [introduce.ts](src/lib/evidence/introduce.ts) の
    `introduceIfMutual()` の1箇所。** 入口は [respond.ts](src/lib/evidence/respond.ts) だけで、
@@ -2527,6 +2528,10 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
    ⚠️ 恒久的な状態ではない。担当者が登録されれば**その日から対象に戻る。**
    ⚠️★**この結果、2026-09-21 時点では提案が1件も作れない。それが正しい状態。**
       出せるようにしたいなら**企業の担当者を増やすのが先**で、コードの問題ではない。
+   ⚠️★**実在の担当者がログインできる掲載企業は、自社を除くと0社**（2026-09-21 に測り直した。
+      セールスフォースの管理者2人は**両方 `is_test`**）。⚠️ `generate.ts` は `is_test` を
+      見ていないので**いまも対象に入る** ——間違いではない（検証用アカウントは実際に答えられる）が、
+      **実在の企業が答えることにはならない。**
 
 ⚠️★★**提案は本人の意思表示（`career_stance`）を尊重する**（2026-09-21）。
    判定は**スカウトと同じ述語** [`isReachableByCompanies()`](src/lib/constants/careerPreferences.ts)
