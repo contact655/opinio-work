@@ -56,9 +56,16 @@
 ⚠️★**ただしこのゲートは画面だけ。`POST /api/biz/scouts` にプランの判定は無い。**
    `candidate_id` を知っていれば free の企業でも送れる（§6 で実証。送信元はプラン `free`）。
 
-### ③掲載の審査ゲート
+### ③審査のゲート
 
-`route.ts:111` — `if (!ctx.isPublished) return 403`「運営審査が完了するまでスカウトを送信できません」。
+⚠️★**2026-09-20 に見ている列が変わった。この節は `is_published` と書いたまま古くなっていた**
+（2026-09-21 に訂正）。**`is_published` を根拠に「この企業は送れない」と判断しないこと。**
+
+いまは `if (!isCompanyReviewed(ctx)) return 403` で、見ているのは **`is_approved`**。
+`is_published` は**ページの取り下げ用**で審査とは別のスイッチであり、
+**承認済みなのにページを下げている企業**が審査待ち扱いになっていた（実測 2026-09-20: 該当2社）。
+
+⚠️ 判定は `/biz/candidates` と**同じ関数**（`lib/business/scoutGate.ts` の `isCompanyReviewed`）。
 
 ### 止めた経緯
 

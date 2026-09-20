@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
       ここに似た実装を作らないこと ——`FilterChip` は 2026-09-18 に
@@ -8,6 +8,16 @@ import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/caree
 import { FilterChip } from "@/components/common/FilterChip";
 import { SortSelect } from "@/components/common/SortSelect";
 import { neutralAvatarStyle } from "@/lib/avatarColor";
+/* ★保存した条件（2026-09-21）。⚠️ 型・既定値・上限は
+      [lib/business/savedSearch.ts](../../../lib/business/savedSearch.ts) の1箇所。
+      **画面にローカル定数を書かないこと**（上限が画面と API で食い違った前例がある）。 */
+import {
+  EMPTY_SAVED_FILTERS,
+  isEmptyFilters,
+  MAX_SAVED_SEARCH_NAME,
+  type SavedCandidateFilters,
+  type SavedSearch,
+} from "@/lib/business/savedSearch";
 
 /**
  * ★転職意欲の選択肢（2026-09-19 / 柴さんの指示）。
@@ -527,22 +537,129 @@ export default function CandidatesClient({
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
       workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures, hideAlreadyScouted]);
 
+  /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
+     ⚠️★**この表がこの機能の歯止め。** マップ型なので、
+        `SavedCandidateFilters` にキーを足すと**ここが型エラーになる。**
+        ＝ 条件を1つ足したときに「保存だけ対応を忘れる」ことができない。
+        **`Record<string, ...>` に緩めないこと**（緩めた瞬間に歯止めが消える）。
+     ⚠️ `sort` も入れてある。並び替えまで戻さないと「その画面」の再現にならない。 */
+  const FILTER_SETTERS: { [K in keyof SavedCandidateFilters]: (v: SavedCandidateFilters[K]) => void } = {
+    q: setQ,
+    excludeQuery: setExcludeQuery,
+    roleQuery: setRoleQuery,
+    companyQuery: setCompanyQuery,
+    topRoleId: setTopRoleId,
+    childRoleId: setChildRoleId,
+    employmentTypes: setSelectedEmploymentTypes,
+    workStyle: setWorkStyle,
+    salaryMin: setSalaryMin,
+    includeNoSalary: setIncludeNoSalary,
+    tenureBand: setTenureBand,
+    prefectures: setSelectedPrefectures,
+    careerStance: setCareerStance,
+    stanceFreshness: setStanceFreshness,
+    hideAlreadyScouted: setHideAlreadyScouted,
+    sort: setSort,
+  };
+
+  /** いま効いている条件。⚠️ 保存もクリアも比較も、すべてこの形を通す */
+  const currentFilters: SavedCandidateFilters = useMemo(() => ({
+    q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
+    employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
+    tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness,
+    hideAlreadyScouted, sort,
+  }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
+       selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
+       tenureBand, selectedPrefectures, careerStance, stanceFreshness,
+       hideAlreadyScouted, sort]);
+
+  const applyFilters = useCallback((f: SavedCandidateFilters) => {
+    /* ⚠️ キーを列挙せず表から回す。列挙すると、ここだけ足し忘れる余地が戻る。 */
+    (Object.keys(FILTER_SETTERS) as (keyof SavedCandidateFilters)[]).forEach((k) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (FILTER_SETTERS[k] as (v: any) => void)(f[k]);
+    });
+    /* ⚠️ 開いているチップは閉じる。開いたまま中身が変わると、
+          どの条件のメニューを見ているのか分からなくなる。 */
+    setOpenChip(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ⚠️★「クリア」も同じ経路。**空の定義を2つ持たない**
+        （持つと「クリアしたのに1つだけ残る」が起きる）。 */
   function clearAllFilters() {
-    setQ("");
-    setExcludeQuery("");
-    setRoleQuery("");
-    setCompanyQuery("");
-    setWorkStyle("");
-    setTopRoleId(null);
-    setChildRoleId(null);
-    setSelectedEmploymentTypes([]);
-    setHideAlreadyScouted(false);
-    setTenureBand("");
-    setCareerStance("");
-    setStanceFreshness("");
-    setSelectedPrefectures([]);
-    setSalaryMin(0);
-    setIncludeNoSalary(true);
+    applyFilters(EMPTY_SAVED_FILTERS);
+  }
+
+  /* ── ★保存した条件の読み書き ────────────────────────────────────────────
+     ⚠️★**`null` は「まだ取っていない」。`[]`（0件）と区別する。**
+        混ぜると、取得に失敗したときに「保存が無い」と表示してしまう
+        （CLAUDE.md「0件を読むときは、起きなかった0か起こせなかった0かを分ける」）。 */
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[] | null>(null);
+  const [savedError, setSavedError] = useState<string | null>(null);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [saveFormOpen, setSaveFormOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const refreshSaved = useCallback(async () => {
+    try {
+      const res = await fetch("/api/biz/saved-searches");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "取得に失敗しました");
+      setSavedSearches(json.searches ?? []);
+      setSavedError(null);
+    } catch (e) {
+      /* ⚠️ 握り潰さない。取れなかったことを画面に出す。 */
+      console.error("[saved-searches] GET:", e);
+      setSavedError(e instanceof Error ? e.message : "取得に失敗しました");
+    }
+  }, []);
+
+  useEffect(() => { void refreshSaved(); }, [refreshSaved]);
+
+  const canSaveCurrent = !isEmptyFilters(currentFilters);
+  /* ⚠️ 同じ名前は上書き（サーバーの UNIQUE と揃えてある）。押す前に分かるよう文言を変える */
+  const willOverwrite = (savedSearches ?? []).some((v) => v.name === saveName.trim());
+
+  async function saveCurrentSearch() {
+    const name = saveName.trim();
+    if (!name || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/biz/saved-searches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, filters: currentFilters }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "保存に失敗しました");
+      setSaveFormOpen(false);
+      setSaveName("");
+      setSavedError(null);
+      await refreshSaved();
+    } catch (e) {
+      console.error("[saved-searches] POST:", e);
+      setSavedError(e instanceof Error ? e.message : "保存に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteSavedSearch(id: string) {
+    try {
+      const res = await fetch(`/api/biz/saved-searches/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.error ?? "削除に失敗しました");
+      }
+      /* ⚠️ 画面から先に消さない。**サーバーが消せたことを確かめてから**引き直す
+            （0行削除を成功にしない、と同じ向き）。 */
+      await refreshSaved();
+    } catch (e) {
+      console.error("[saved-searches] DELETE:", e);
+      setSavedError(e instanceof Error ? e.message : "削除に失敗しました");
+    }
   }
 
   function toggleMulti<T>(arr: T[], val: T): T[] {
@@ -795,10 +912,165 @@ export default function CandidatesClient({
 
         <SortSelect value={sort} options={SORT_OPTIONS} onChange={setSort} />
 
+        {/* ── ★保存した条件（2026-09-21）────────────────────────────────
+               ⚠️★**「詳細検索」の中に入れないこと。** 畳まれている中にあると、
+                  保存したこと自体を忘れる。条件そのものではなく
+                  「条件の出し入れ」なので、検索窓と同じ高さの行に置く。
+               ⚠️ 一覧と保存フォームで**2つのポップオーバーが同時に開かない**ようにしてある
+                  （`/companies` のチップと同じ約束）。 */}
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => { setSavedOpen((v) => !v); setSaveFormOpen(false); }}
+            aria-expanded={savedOpen}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 38, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+              border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
+            }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            保存した条件
+            {/* ⚠️ 未取得（null）のあいだは件数を出さない。0件と区別する */}
+            {savedSearches !== null && savedSearches.length > 0 && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999,
+                background: "var(--line-soft)", color: "var(--ink-mute)", fontSize: 12, fontWeight: 700,
+              }}>{savedSearches.length}</span>
+            )}
+          </button>
+
+          {savedOpen && (
+            <>
+              {/* 外側を押したら閉じる */}
+              <button type="button" aria-label="閉じる" onClick={() => setSavedOpen(false)}
+                style={{ position: "fixed", inset: 0, background: "transparent", border: "none", cursor: "default", zIndex: 40 }} />
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 41,
+                minWidth: 260, maxWidth: 340, maxHeight: 320, overflowY: "auto",
+                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                boxShadow: "0 8px 28px rgba(0,35,102,0.12)", padding: 6,
+              }}>
+                {savedSearches === null ? (
+                  <p style={{ margin: 0, padding: "12px 10px", fontSize: 12.5, color: "var(--ink-mute)" }}>読み込み中…</p>
+                ) : savedSearches.length === 0 ? (
+                  /* ⚠️ 「条件を保存」の場所まで書く。空の箱だけ出しても次に何をするか分からない */
+                  <p style={{ margin: 0, padding: "12px 10px", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                    まだありません。<br />絞り込んでから「条件を保存」を押すと、ここに並びます。
+                  </p>
+                ) : (
+                  savedSearches.map((v) => (
+                    <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => { applyFilters(v.filters); setSavedOpen(false); }}
+                        style={{
+                          flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
+                          padding: "9px 10px", borderRadius: 8,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}
+                        title={v.name}>
+                        {v.name}
+                      </button>
+                      <button
+                        type="button" onClick={() => void deleteSavedSearch(v.id)}
+                        aria-label={`${v.name} を削除`}
+                        style={{
+                          flexShrink: 0, background: "none", border: "none", cursor: "pointer",
+                          color: "var(--ink-mute)", fontSize: 13, lineHeight: 1, padding: "8px 8px",
+                        }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* 条件を保存。⚠️ 何も絞っていないときは押せない（空の条件を保存しても意味が無い） */}
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => { setSaveFormOpen((v) => !v); setSavedOpen(false); }}
+            disabled={!canSaveCurrent}
+            aria-expanded={saveFormOpen}
+            title={canSaveCurrent ? undefined : "絞り込んでから保存できます"}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 38, padding: "0 14px", borderRadius: 999,
+              cursor: canSaveCurrent ? "pointer" : "default",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 500,
+              border: "1px solid var(--line)", background: "#fff",
+              color: canSaveCurrent ? "var(--ink-soft)" : "var(--ink-mute)",
+              opacity: canSaveCurrent ? 1 : 0.55,
+            }}>
+            条件を保存
+          </button>
+
+          {saveFormOpen && (
+            <>
+              <button type="button" aria-label="閉じる" onClick={() => setSaveFormOpen(false)}
+                style={{ position: "fixed", inset: 0, background: "transparent", border: "none", cursor: "default", zIndex: 40 }} />
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 41, width: 280,
+                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                boxShadow: "0 8px 28px rgba(0,35,102,0.12)", padding: 12,
+              }}>
+                <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  名前を付けて保存
+                </label>
+                <input
+                  type="text" value={saveName} maxLength={MAX_SAVED_SEARCH_NAME}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void saveCurrentSearch(); }}
+                  placeholder="例：AE・東京・積極的"
+                  autoFocus
+                  style={{
+                    width: "100%", height: 34, padding: "0 10px", boxSizing: "border-box",
+                    border: "1px solid var(--line)", borderRadius: 8, fontSize: 13,
+                    fontFamily: "inherit", color: "var(--ink)", outline: "none",
+                  }}
+                />
+                {/* ⚠️ 上書きになることは**押す前に**伝える。黙って上書きしない */}
+                {willOverwrite && (
+                  <p style={{ margin: "6px 0 0", fontSize: 11.5, fontWeight: 600, color: "var(--warm-ink)" }}>
+                    同じ名前があります。上書きされます
+                  </p>
+                )}
+                <button
+                  type="button" onClick={() => void saveCurrentSearch()}
+                  disabled={!saveName.trim() || saving}
+                  className="btn-fixed-size"
+                  style={{
+                    marginTop: 10, width: "100%", height: 34, borderRadius: 8, border: "none",
+                    background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
+                    fontFamily: "inherit", cursor: !saveName.trim() || saving ? "default" : "pointer",
+                    opacity: !saveName.trim() || saving ? 0.6 : 1,
+                  }}>
+                  {saving ? "保存中…" : willOverwrite ? "上書きする" : "保存する"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         <span style={{ fontSize: 13, color: "var(--ink-soft)", flexShrink: 0, marginLeft: "auto" }}>
           <strong style={{ fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--royal)" }}>{filtered.length}</strong>
           {" "}名 / 全{candidates.length}名
         </span>
+
+        {/* ⚠️ 取得・保存・削除の失敗を画面に出す。握り潰さない（CLAUDE.md） */}
+        {savedError && (
+          <p style={{ flexBasis: "100%", margin: 0, fontSize: 12.5, color: "var(--error)" }}>
+            保存した条件：{savedError}
+          </p>
+        )}
 
         {/* ⚠️★**開いているときは出さない**（チップ自身が選択状態を持つので、
                同じ語が2回並ぶ）。⚠️ `flexBasis: 100%` で必ず行を折る

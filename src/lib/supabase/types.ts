@@ -5256,6 +5256,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_saved_candidate_searches: {
+        Row: {
+          company_id: string
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          filters: Json
+          id?: string
+          name: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_saved_candidate_searches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_monthly_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_saved_candidate_searches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_todo_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ow_saved_candidate_searches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_saved_candidate_searches_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_saved_companies: {
         Row: {
           company_id: string | null
