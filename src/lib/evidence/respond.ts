@@ -3,6 +3,9 @@
  *
  * ⚠️★**②と⑨で別実装にしないこと。** 違うのは「どちらの side か」だけ。
  *
+ * ⚠️★**③（双方合意の紹介）もここから呼ぶ。** 返答を保存したあとに
+ *    [`introduceIfMutual()`](./introduce.ts) を通す。**route 側に書かないこと。**
+ *
  * ⚠️★**求職者の見送り理由は企業に渡さない。企業の理由は要約のみ求職者に渡す。**
  *    2026-09-18 時点では**どちらも相手に渡していない**（保存までしか作っていない）。
  *    担保は `ow_proposal_declines` を別表にして RLS で side を絞っていること。
@@ -10,6 +13,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { introduceIfMutual } from "./introduce";
 import { mutateOne } from "@/lib/supabase/mutate";
 import {
   DECLINE_NOTE_MAX,
@@ -78,6 +82,16 @@ export async function saveProposalResponse(input: RespondInput): Promise<Respond
       console.error("[evidence/respond] declines:", error.message);
       return { ok: false, status: 500, error: "見送り理由の保存に失敗しました" };
     }
+  }
+
+  /* ── ③ 双方合意の紹介 ──────────────────────────────────────────────────
+     ⚠️★**ここが唯一の入口。** ②の route と⑨の route に条件を書き写さないこと。
+        どちらが「最後に答えたほう」でも同じ経路を通る。
+     ⚠️ best-effort。紹介に失敗しても返答は取り消さない（中は握りつぶさずログを出す）。
+     ⚠️ 見送りのときは呼ばない —— `proposalStage()` が `closed` を返すので
+        呼んでも no-op だが、**無駄な往復を1本減らす**。 */
+  if (!isDecline) {
+    await introduceIfMutual(db, proposalId);
   }
 
   return { ok: true };

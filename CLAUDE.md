@@ -2430,7 +2430,8 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 
 ## ★根拠つき提案（②⑨④）と、③双方合意 ── docs 3本の索引
 
-**実装済みは②⑨④まで。③は状態の列を持つだけで、UI も副作用も無い。**
+**②⑨④に加えて、③の「mutual になったら会話を1本作る」まで動く（2026-09-21）。
+UI と通知はまだ無い。**
 個別の理由は各 docs にある。**ここに書き写さない。**
 
 | 何を | docs |
@@ -2439,9 +2440,24 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 | 根拠がそろわない理由（**「入力UIが無いから0件」ではなかった**） | [evidence-gaps-20260918.md](docs/evidence-gaps-20260918.md) |
 | ★**③（双方合意）を何から作るか** | [proposals-mutual-20260921.md](docs/proposals-mutual-20260921.md) |
 
-⚠️★**③は「状態を持つだけ」。`proposalStage()` の使用箇所は0件**（2026-09-21 実測）。
-   `mutual` になっても**何も起きない**。実装するとき、**この関数を使わずに
-   新しい判定を書かないこと。**
+⚠️★**mutual の判定と紹介は [introduce.ts](src/lib/evidence/introduce.ts) の
+   `introduceIfMutual()` の1箇所。** 入口は [respond.ts](src/lib/evidence/respond.ts) だけで、
+   ②の route と⑨の route には**条件を書き写さない**（どちらが最後に答えても同じ経路）。
+   ⚠️ 判定は `proposalStage()` を通す。**別の判定を書かないこと。**
+
+⚠️★**`create_conversation` RPC は service_role だけ「候補者本人か」の確認を素通しする**
+   （`20260921170000`）。③の紹介は**サーバーが作る**ので、これが無いと
+   **両方向とも 42501 で落ちる**（service_role では `auth.uid()` が誰でもないため）。
+   ⚠️★**`current_user` で判定しないこと。** SECURITY DEFINER の中では所有者に化ける。
+      見るのは **`auth.role()`**。
+   ⚠️★**`DROP FUNCTION` を使わない**（スカウト・応募・面談が依存）。`CREATE OR REPLACE`。
+
+⚠️★**紹介したかの正は `ow_proposals.introduced_at`。** `conversation_id` は
+   `ON DELETE SET NULL` で消えうるので判定に使わない。**2列に CHECK を張らないこと**
+   （会話を消した日にその DELETE が落ちる）。
+
+⚠️★**紹介しても通知は飛ばない**（2026-09-21 時点）。会話にメッセージが無いので
+   `notifyNewMessage` が発火しない。**当事者は会話一覧を開くまで気づけない。**
 
 ⚠️★**段（`stage`）の列を足さないこと。** `candidate_response` / `company_response` の
    2列から導出する（[proposalResponses.ts](src/lib/constants/proposalResponses.ts)）。

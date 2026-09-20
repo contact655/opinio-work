@@ -35,10 +35,10 @@
 
 | 何 | 実測 |
 |---|---|
-| ★**`proposalStage()` の使用箇所** | **0件**。`mutual` になっても**何も起きない** |
+| ~~★`proposalStage()` の使用箇所~~ | ✅ **2026-09-21 に配線した**（[introduce.ts](../src/lib/evidence/introduce.ts)）。下の §9 |
 | ★**`/proposals` への導線** | **0**。`middleware.ts` の認証判定に名前が出るだけ。`/mypage` のサイドバーにも無い |
 | ★**提案の通知** | **0**。`ow_notifications_type_check` は `like` / `comment` / `scout` / `message` の4値で、`proposal` が無い |
-| 提案から会話・面談を作る経路 | **0件** |
+| ~~提案から会話・面談を作る経路~~ | ✅ **2026-09-21 に足した**（mutual → 会話1本）。下の §9 |
 
 ### 1-3. 実データ
 
@@ -125,7 +125,18 @@ ow_transitions                                                     10 行（日�
 
 ---
 
-## 4. ★実装の前に決着が要る1件 — `create_conversation` が企業側からは通らない
+## 4. ✅★`create_conversation` の素通し（2026-09-21 に解決）
+
+⚠️★**当初この節は「企業側からは通らない ＝ 半分のケースで失敗する」と書いていた。
+   実測して訂正する。実際は「両方向とも必ず失敗する」だった。**
+   理由は `saveProposalResponse()` が **admin クライアント（service_role）** を使うから。
+   実測（2026-09-21 / 本番）: service_role で `auth_ow_user_id()` は **null**、
+   `auth_is_admin()` は **false**。＝ `auth.uid()` が誰でもないので、
+   **どちらが最後に答えても** `NOT EXISTS(...)` が真になり 42501 になる。
+   ⚠️ 「半分」は、scout の返答のように**利用者クライアントを渡す**設計を前提にした話。
+      ③は②と⑨で共用する1関数なので、**その設計は採れない。**
+
+### 何が問題だったか
 
 `create_conversation` は **SECURITY DEFINER** で、冒頭でこう要求する。
 
@@ -153,8 +164,31 @@ THEN RAISE EXCEPTION 'unauthorized: ...' USING ERRCODE = '42501';
 | B | 求職者が最後のときだけ作る | ★**採らない。** 非対称で、企業が最後の組み合わせが永久に紹介されない |
 | C | 自前で `ow_conversations` に INSERT | ★**採らない。** 2026-08-25 まで `stage` を間違えて**必ず500**だった経路 |
 
-⚠️ A を当てたら **anon / 非admin / admin の3者で実測する**（CLAUDE.md）。
-「求職者本人以外が他人の会話を作れる」向きに広げていないことを確かめること。
+### ✅ A を採った（`20260921170000_mutual_introduction.sql`）
+
+```sql
+IF coalesce(auth.role(), '') <> 'service_role' THEN
+  IF NOT EXISTS (SELECT 1 FROM ow_users WHERE id = p_candidate_user_id AND auth_id = auth.uid())
+  THEN RAISE EXCEPTION ... USING ERRCODE = '42501'; END IF;
+END IF;
+```
+
+⚠️★**飛ばすのは「候補者本人か」の確認だけ。** 引数の整合性チェック・`stage` の決定・
+   ON CONFLICT は service_role でも**そのまま通る**。
+
+⚠️★**`current_user` ではなく `auth.role()`。** SECURITY DEFINER の中では
+   `current_user` が所有者に化ける。利用者は JWT を偽造できないので、
+   authenticated から `'service_role'` にはならない。
+
+**後退テスト（2026-09-21 実測 / 本番）:**
+
+| 誰が | 何を | 結果 |
+|---|---|---|
+| 利用者（contact+01） | **他人**のぶんの会話を作る | ✅ **42501 で拒否**（`does not match auth.uid()`） |
+| 利用者（contact+01） | 本人のぶんの会話を作る | ✅ 通る（既存を返す・`created=false`） |
+| **anon** | 会話を作る | ✅ **42501 で拒否** |
+
+＝ **素通しは service_role にだけ効いている。**
 
 ### 開始メッセージを入れるか
 
@@ -168,6 +202,96 @@ THEN RAISE EXCEPTION 'unauthorized: ...' USING ERRCODE = '42501';
   企業は `/biz/conversations` で見て `join` する既存の形でよいか要確認
 
 ---
+
+## 4-B. ✅ 実装したもの（2026-09-21・両方向で通した）
+
+| 何 | 実体 |
+|---|---|
+| 素通し ＋ 紹介の記録2列 | `20260921170000_mutual_introduction.sql` |
+| 紹介そのもの | **[lib/evidence/introduce.ts](../src/lib/evidence/introduce.ts)** の `introduceIfMutual()` |
+| 呼ぶ場所 | **[respond.ts](../src/lib/evidence/respond.ts) の1箇所だけ**（見送りのときは呼ばない） |
+
+⚠️★**route に条件を書き写していない。** ②の route と⑨の route は
+`saveProposalResponse()` を呼ぶだけで、どちらが最後でも同じ経路を通る。
+
+### 冪等性は2段で持つ
+
+| # | どこ | 何を止めるか |
+|---|---|---|
+| ① | `introduced_at` が入っていたら即 return | 通知とメールの二重送信（**会話の重複は RPC 側が止める**） |
+| ② | UPDATE に `.is("introduced_at", null)` | 両側の返答がほぼ同時に入ったときの競り |
+
+### 実測（2026-09-21 / localhost:3000 → 本番 DB / `is_test` のみ）
+
+検証用に 株式会社データプール（`is_test`）宛の提案を2件作り、実セッションで HTTP を通した。
+
+| 向き | 返答の順 | 結果 |
+|---|---|---|
+| 1 | 求職者 `interested` → **企業** `want_to_meet` | ✅ `introduced_at` が入り、会話が1本できた |
+| 2 | 企業 `want_to_meet` → **求職者** `interested` | ✅ 同上 |
+
+- 会話は `kind=company` / `stage=active` / 正しい `company_id` と `candidate_user_id`
+- 参加者は**候補者だけ**（企業は `/biz/conversations` から `join` する既存の形）
+- 同じ返答をもう一度押しても `introduced_at` は**変わらない**
+- ★**通知は0件のまま**（下記）
+
+⚠️ **検証で作った行はすべて消し、6表とも作業前の件数に戻した**
+   （提案0 / 見送り理由0 / 会話3 / 参加者3 / メッセージ0 / 通知1）。
+
+### ★まだ無いもの ——「紹介したのに誰も気づかない」
+
+**会話は作るが、当事者に通知が飛ばない。** `notifyNewMessage` は**送信者を要求する**ので、
+メッセージが1件も無い会話では発火しない。実測でも `ow_notifications` は増えなかった。
+
+⚠️★**いまは両者とも会話一覧を自分で開くまで気づけない。** ③を「使える」状態にするには、
+   §3-0 の導線と合わせて**気づく手段**が要る。案は2つ:
+
+| 案 | 中身 | 注意 |
+|---|---|---|
+| a | `ow_notifications` に `type='proposal'`（または `introduction`）を足す | ⚠️ `type_check` と `target_check` の**両方** ＋ `survives()` の `case`。忘れると種別ごと静かに消える |
+| b | 開始メッセージを1件入れて `notifyNewMessage` に乗せる | ⚠️ **送信者を誰にするか**を決める必要がある。`sender_participant_id` を null で入れないこと |
+
+⚠️ **紹介の失敗は best-effort でログに出すだけ。** 返答は取り消さない。
+   ただし**失敗すると mutual のまま紹介されない行が残り、再試行の経路が無い**
+   （両側とも答え終わっているので、もう誰も押さない）。**運営が直す導線が要る。**
+
+## 4-C. ★★作業中に見つかった穴 —— 匿名が PostgREST から破れる（未修正）
+
+**`/biz/proposals` が `ow_users` を select しないことで匿名を担保している**が、
+**DB はそれを要求していない。** 企業の管理者が PostgREST を直接叩けば、
+**mutual の前でも候補者の氏名に到達できる。**
+
+```sql
+-- ow_proposals の SELECT ポリシー
+ow_proposals_select_company  USING (auth_is_company_admin(company_id))
+-- ＋ authenticated には**テーブルレベル**の SELECT がある（列単位ではない）
+```
+
+**実測（2026-09-21 / 本番 / `is_test` の企業と候補者で1行だけ作って確認し、直後に削除）:**
+
+| 誰が | 何を | 結果 |
+|---|---|---|
+| **企業の管理者** | `ow_proposals.candidate_user_id` を読む | ★**読めた** |
+| **企業の管理者** | その uuid で `ow_users.name` を読む | ★**読めた**（氏名まで到達） |
+| 無関係な利用者 | 同じ行を読む | ✅ 0行 |
+| anon | 同じ行を読む | ✅ 42501 |
+
+⚠️★**これは「画面は正しいのに PostgREST だけ漏れている」という、
+   CLAUDE.md が繰り返し挙げている形そのもの。**
+
+### 直し方（**未実施。判断が要る**）
+
+`/biz/proposals` も `/proposals` も **`createAdminClient()` で読んでいる**ので、
+`authenticated` 向けのポリシーは**今のところ誰も使っていない**。
+
+| 案 | 中身 |
+|---|---|
+| A | **`ow_proposals_select_company` を落とす**（企業向けの読みは admin クライアントだけにする） |
+| B | `candidate_user_id` の列単位 SELECT を `authenticated` から剥がす |
+
+⚠️ A のほうが素直（「誰に読ませるか」は RLS、という原則に沿う）。
+⚠️★どちらも **anon / 非admin / 企業管理者 / 本人 / 運営**で実測してから当てること。
+⚠️ `ow_proposals_select_own`（本人）は残す。
 
 ## 5. 先に決めること（コードより前）
 

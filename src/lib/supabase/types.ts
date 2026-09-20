@@ -5055,10 +5055,12 @@ export type Database = {
           company_responded_at: string | null
           company_response: string | null
           computed_at: string
+          conversation_id: string | null
           counter_evidence: Json
           created_at: string
           evidence: Json
           id: string
+          introduced_at: string | null
           job_id: string | null
           updated_at: string
         }
@@ -5070,10 +5072,12 @@ export type Database = {
           company_responded_at?: string | null
           company_response?: string | null
           computed_at?: string
+          conversation_id?: string | null
           counter_evidence: Json
           created_at?: string
           evidence: Json
           id?: string
+          introduced_at?: string | null
           job_id?: string | null
           updated_at?: string
         }
@@ -5085,10 +5089,12 @@ export type Database = {
           company_responded_at?: string | null
           company_response?: string | null
           computed_at?: string
+          conversation_id?: string | null
           counter_evidence?: Json
           created_at?: string
           evidence?: Json
           id?: string
+          introduced_at?: string | null
           job_id?: string | null
           updated_at?: string
         }
@@ -5119,6 +5125,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_proposals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
             referencedColumns: ["id"]
           },
           {
