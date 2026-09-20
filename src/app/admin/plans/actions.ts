@@ -25,11 +25,24 @@ async function assertAdmin(): Promise<void> {
  *
  * ⚠️ 1社に active が2本ある状態を作らないこと。
  *    先に閉じてから入れる。順序を逆にしない。
+ *
+ * ── ★月額（`monthlyFee`）について（2026-09-21 に画面から受け取る形へ変えた）───
+ * **`lib/constants/plans.ts` の `PAID_PLAN_MONTHLY_FEE` は「定価」で、
+ * `ow_company_plans.monthly_fee` は「その企業と実際に結んだ額」。別のもの。**
+ * 企業ごとに違う額で契約することがあるので、運営が画面で打てるようにした。
+ *
+ * ⚠️★**したがって LP の定価と DB の記録は食い違いうる。** それは不具合ではない。
+ *    ⚠️ 画面側は定価を初期値に入れ、**違う額を打つと注意書きを出す**
+ *       （`PlansClient`）。**その注意書きを消さないこと** —— 打ち間違いと
+ *       個別契約を見分ける手段がこれしか無い。
+ * ⚠️ **省略されたら定価を入れる。** 呼び出し側が渡し忘れたときに 0 で記録されると、
+ *    有料契約が無料として残る。
  */
 export async function changePlan(
   companyId: string,
   planType: string,
   billingCycle: string,
+  monthlyFee?: number,
 ): Promise<ActionResult> {
   await assertAdmin();
 
@@ -41,6 +54,15 @@ export async function changePlan(
   }
   if (!(BILLING_CYCLES as readonly string[]).includes(billingCycle)) {
     return { ok: false, error: `不正な支払い周期です: ${billingCycle}` };
+  }
+
+  /* ⚠️ 列は `integer`。小数・負数・桁の打ち間違いをここで止める。
+        ⚠️★DB 側に CHECK は無い（金額に「正しい範囲」を決められないため）。
+           **この検証が唯一の歯止め。** 上限は桁の打ち間違い（0 を1つ多く打つ）を
+           捕まえるためだけの値で、意味のある上限ではない。 */
+  const fee = monthlyFee ?? PLAN_MONTHLY_FEE[planType as PlanType];
+  if (!Number.isInteger(fee) || fee < 0 || fee > 100_000_000) {
+    return { ok: false, error: `不正な月額です: ${monthlyFee}` };
   }
 
   const admin = createAdminClient();
@@ -72,11 +94,10 @@ export async function changePlan(
       company_id: companyId,
       plan_type: planType as PlanType,
       billing_cycle: billingCycle as BillingCycle,
-      /* ⚠️ 月額は**定数から入れる。画面から受け取らない。**
-            運営が手で打つと、表示（LP）と記録（DB）が食い違う。
-            金額を変えるときは `lib/constants/plans.ts` の
-            `PAID_PLAN_MONTHLY_FEE` を直す。 */
-      monthly_fee: PLAN_MONTHLY_FEE[planType as PlanType],
+      /* ⚠️ 記録するのは**その企業と結んだ額**（上の注記）。
+            LP に出す定価を変えるなら `lib/constants/plans.ts` の
+            `PAID_PLAN_MONTHLY_FEE` を直す。**ここを直しても定価は変わらない。** */
+      monthly_fee: fee,
       started_at: now,
       ended_at: null,
       status: "active",

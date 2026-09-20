@@ -39,19 +39,37 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
 
   const [planType, setPlanType] = useState<PlanType>("free");
   const [cycle, setCycle] = useState<string>("monthly");
+  /** 月額（税別・円）。入力中は空にできるので文字列で持つ */
+  const [fee, setFee] = useState<string>("0");
 
   function openEditor(row: CompanyPlanRow) {
+    const p = (row.current?.planType ?? "free") as PlanType;
     setEditing(row.companyId);
-    setPlanType(((row.current?.planType ?? "free") as PlanType));
+    setPlanType(p);
     setCycle(row.current?.billingCycle ?? "monthly");
+    /* ⚠️★初期値は**いま記録されている額**。定数に戻さない。
+          個別の額で契約している企業の周期だけ直したいときに、
+          定価へ黙って戻ると請求額が変わる。記録が無いときだけ定価を入れる。 */
+    setFee(String(row.current?.monthlyFee ?? PLAN_MONTHLY_FEE[p]));
     setMessage(null);
   }
 
+  /* ⚠️ プランを変えたら定価に入れ直す。前のプランの額が残ると、
+        フリーに落としたのに 80,000円 が記録される。 */
+  function selectPlanType(p: PlanType) {
+    setPlanType(p);
+    setFee(String(PLAN_MONTHLY_FEE[p]));
+  }
+
   function save(companyId: string) {
-    /* ⚠️ 月額は送らない。**サーバー側が定数から入れる。**
-          画面で打たせると、LPの表示と DB の記録が食い違う。 */
+    /* ⚠️ 列は integer。空・小数・負数をここで止める（サーバー側でも同じ検証をする）。
+          ⚠️★`Number("")` は 0 なので、**桁の検査だけに頼らない。** */
+    if (!/^\d+$/.test(fee.trim())) {
+      setMessage({ kind: "error", text: "月額は 0 以上の整数で入力してください" });
+      return;
+    }
     startTransition(async () => {
-      const res = await changePlan(companyId, planType, cycle);
+      const res = await changePlan(companyId, planType, cycle, Number(fee.trim()));
       if (res.ok) {
         setMessage({ kind: "ok", text: "プランを変更しました" });
         setEditing(null);
@@ -150,7 +168,7 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
               }}>
                 <label style={{ fontSize: 12, color: "var(--ink-soft)" }}>
                   プラン<br />
-                  <select value={planType} onChange={(e) => setPlanType(e.target.value as PlanType)}
+                  <select value={planType} onChange={(e) => selectPlanType(e.target.value as PlanType)}
                     style={{ marginTop: 4, padding: "8px 10px", fontSize: 13, borderRadius: 8, border: "1px solid var(--line)" }}>
                     {PLAN_TYPES.map((p) => <option key={p} value={p}>{PLAN_LABELS[p]}</option>)}
                   </select>
@@ -162,18 +180,26 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
                     {BILLING_CYCLES.map((c) => <option key={c} value={c}>{CYCLE_LABELS[c]}</option>)}
                   </select>
                 </label>
-                {/* ⚠️ 月額は入力させない。プランを選べば定数から決まる。 */}
-                <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                  月額（自動）<br />
-                  <div style={{
-                    marginTop: 4, padding: "8px 12px", fontSize: 13, borderRadius: 8,
-                    background: "var(--bg-tint)", border: "1px solid var(--line)",
-                    color: "var(--ink)", fontWeight: 700, minWidth: 120,
-                  }}>
-                    {PLAN_MONTHLY_FEE[planType].toLocaleString()}円
-                    <span style={{ fontSize: 11, fontWeight: 400, color: "var(--ink-mute)" }}>（税別）</span>
-                  </div>
-                </div>
+                {/* ★月額は入力できる（2026-09-21）。定価は初期値であって上限ではない。
+                      ⚠️ ここに入るのは**その企業と結んだ額**で、LP に出る定価とは別物。 */}
+                <label style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                  月額（税別・円）<br />
+                  <input
+                    type="number" min={0} step={1} inputMode="numeric"
+                    value={fee} onChange={(e) => setFee(e.target.value)}
+                    style={{
+                      marginTop: 4, padding: "8px 10px", fontSize: 13, borderRadius: 8,
+                      border: "1px solid var(--line)", width: 130, fontWeight: 700, color: "var(--ink)",
+                    }}
+                  />
+                  {/* ⚠️★定価と違うときだけ注意書きを出す。**消さないこと** ——
+                        打ち間違いと個別契約を見分ける手段がこれしか無い。 */}
+                  {fee.trim() !== String(PLAN_MONTHLY_FEE[planType]) && (
+                    <span style={{ display: "block", marginTop: 4, fontSize: 11, fontWeight: 600, color: "var(--warm-ink)" }}>
+                      定価 {PLAN_MONTHLY_FEE[planType].toLocaleString()}円 と違います
+                    </span>
+                  )}
+                </label>
                 <button type="button" onClick={() => save(row.companyId)} disabled={isPending}
                   className="btn-fixed-size"
                   style={{
