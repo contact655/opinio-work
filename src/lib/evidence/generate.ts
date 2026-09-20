@@ -59,6 +59,11 @@ export type GenerateResult = {
    * ⚠️ **黙って0件にしない。** 運営が「なぜこの人に提案が出ないのか」を追えるようにする。
    */
   blockedByStance?: { stance: string | null };
+  /**
+   * ★**`/biz` にログインできる人が1人もいないので外した企業の数**（2026-09-21）。
+   * ⚠️ **黙って消さない。** 画面に出すこと。
+   */
+  withoutBizAccount: number;
 };
 
 /**
@@ -93,6 +98,7 @@ export async function generateProposalsForCandidate(
   if (!isReachableByCompanies(stance)) {
     return {
       examined: 0, proposable: 0, created: 0, skipped: 0, belowThreshold: 0,
+      withoutBizAccount: 0,
       blockedByStance: { stance },
     };
   }
@@ -108,13 +114,36 @@ export async function generateProposalsForCandidate(
     throw new Error(`掲載企業の取得に失敗しました: ${coErr.message}`);
   }
 
+  /* ── ★答えられる企業だけに絞る（2026-09-21 / 柴さんの判断）─────────────
+     `/biz` の入口は `ow_company_admins`（`is_active = true`）だけ。
+     ⚠️★**実測（2026-09-21）: 掲載22社のうち、ログインできる人がいるのは 2社。**
+        残り20社は提案を出しても**「会いたい」を押せる人が存在しない**ので、
+        候補者が「興味がある」を押しても**永久に無回答＝行き止まり**になる。
+     ⚠️★**メールを足しても解決しない。** 押す画面に入れないため
+        （`docs/ops-fallback-20260915.md`「コードは『受け取る』までしかしない」）。
+     ⚠️ これは恒久的な状態ではない。企業の担当者が `/biz/auth` から登録すれば
+        `ow_company_admins` に行ができ、**その日から対象に戻る。**
+     ⚠️★**`notification_emails` では代用しないこと。** あれは通知の宛先であって、
+        **返答できるかどうかとは別**（実測でも掲載22社中0社）。 */
+  const { data: adminRows, error: adErr } = await db
+    .from("ow_company_admins").select("company_id").eq("is_active", true);
+  if (adErr) {
+    console.error("[evidence/generate] ow_company_admins:", adErr.message);
+    throw new Error(`企業の担当者の取得に失敗しました: ${adErr.message}`);
+  }
+  const respondable = new Set((adminRows ?? []).map((r) => r.company_id as string));
+
   const exclude = await companiesToExclude(candidateOwUserId);
-  const targets = (companyRows ?? [])
+  const listedNotMine = (companyRows ?? [])
     .map((c) => c.id as string)
     /* ★自分が在籍した（している）会社は提案しない。
        ⚠️ スカウトの `can_send_scout` は現職だけを止めるが、提案は**過去も外す**
           （既に知っている会社を「根拠つき」で薦める意味が無い）。 */
     .filter((id) => !exclude.has(id));
+
+  /* ★答えられる企業だけを母数にする（上の注記を読むこと） */
+  const targets = listedNotMine.filter((id) => respondable.has(id));
+  const withoutBizAccount = listedNotMine.length - targets.length;
 
   const facts = await gatherCompanyFacts(candidateOwUserId, targets);
   /* ⚠️★ラベルに人称が入らないので、②と⑨で同じスナップショットを共有できる。
@@ -177,6 +206,7 @@ export async function generateProposalsForCandidate(
     created,
     skipped: rows.length - created,
     belowThreshold,
+    withoutBizAccount,
   };
 }
 

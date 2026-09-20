@@ -29,6 +29,8 @@ export default function ProposalsAdminClient({
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7 }}>
         候補者を1人選ぶと、掲載中の企業ぶんの提案を作ります。根拠が {minEvidence} 件以上そろった
         組み合わせだけが行になります。<br />
+        ★<strong>OPINIO にログインできる担当者がいない企業は対象外です</strong>
+        （提案を出しても「会いたい」を押せる人がいないため）。<br />
         根拠は<strong>作った時点のスナップショット</strong>で、表示のたびに作り直しません。
         すでにある提案は上書きしません（作り直すには先に消してください）。
       </p>
@@ -119,6 +121,17 @@ export default function ProposalsAdminClient({
               <br />
               {/* ★黙って消さない。落ちた数を必ず出す */}
               根拠が{minEvidence}件に満たず提案にしなかった企業: <strong>{msg.result.belowThreshold} 社</strong>
+              {/* ★★答えられる企業が居ないぶんも出す（2026-09-21）。
+                     これを出さないと「なぜ母数が22社より少ないのか」が追えない。 */}
+              {msg.result.withoutBizAccount > 0 && (
+                <>
+                  <br />
+                  <strong>{msg.result.withoutBizAccount} 社</strong>は、
+                  OPINIO にログインできる担当者が登録されていないため<strong>対象から外しました</strong>
+                  （提案を出しても「会いたい」を押せる人がいないため）。
+                  担当者が登録されれば、その日から対象に戻ります。
+                </>
+              )}
             </>
           ) : (
             <><strong>失敗しました。</strong><br />{msg.error}</>
