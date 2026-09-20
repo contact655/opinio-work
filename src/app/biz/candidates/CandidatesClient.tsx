@@ -112,6 +112,9 @@ export type Candidate = {
   onboardingCompleted: boolean;
   alreadyScouted: boolean;
   createdAt: string;
+  /** ★「できること」（職種 × 年数）。2026-09-20。**職歴からの計算**で、本人の入力ではない。
+   *  ⚠️ 事業領域は入らない（社名を伏せた職歴から漏れるため。`buildRoleAutoSkills` の注記）。 */
+  autoSkills?: { label: string; band: string }[];
 };
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
@@ -192,6 +195,10 @@ export default function CandidatesClient({
   const [q, setQ] = useState("");
   const [roleQuery, setRoleQuery] = useState("");
   const [companyQuery, setCompanyQuery] = useState("");
+  /* ★除外ワード（2026-09-20）。⚠️ フリーワードと**同じ対象**を見て、当たったら落とす。
+     ⚠️ スペース区切りは **OR**（1つでも当たれば落とす）。フリーワードの AND とは逆だが、
+        「除外」は1つ当たれば除外したいのが自然なのでこうしてある。 */
+  const [excludeQuery, setExcludeQuery] = useState("");
 
   // ── 経歴・雇用形態 ──────────────────────────────────────────────────
   const [topRoleId, setTopRoleId] = useState<string | null>(null);
@@ -316,6 +323,20 @@ export default function CandidatesClient({
       );
     }
 
+    /* ★除外ワード（2026-09-20）。⚠️ 判定の対象はフリーワードと**同じ**。
+          片方だけ対象を足すと「検索では当たるのに除外できない」語ができる。 */
+    if (excludeQuery.trim()) {
+      const ng = excludeQuery.toLowerCase().split(/\s+/).filter(Boolean);
+      list = list.filter((c) => !ng.some((t) =>
+        c.name.toLowerCase().includes(t) ||
+        (c.currentRole ?? "").toLowerCase().includes(t) ||
+        (c.currentCompany ?? "").toLowerCase().includes(t) ||
+        (c.location ?? "").includes(t) ||
+        (c.roleName ?? "").toLowerCase().includes(t) ||
+        (c.topRoleName ?? "").toLowerCase().includes(t)
+      ));
+    }
+
     // 職種タイトル
     if (roleQuery.trim()) {
       const r = roleQuery.toLowerCase();
@@ -400,7 +421,7 @@ export default function CandidatesClient({
 
     return list;
   }, [
-    candidates, q, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
+    candidates, q, excludeQuery, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
     hideAlreadyScouted,
     tenureBand, selectedPrefectures,
     careerStance, stanceFreshness,
@@ -451,6 +472,7 @@ export default function CandidatesClient({
   const jobTypeFilterActive = topRoleId !== null;
   const activeFilterCount = [
     q.trim() ? "x" : "",
+    excludeQuery.trim() ? "x" : "",
     roleQuery.trim() ? "x" : "",
     companyQuery.trim() ? "x" : "",
     workStyle,
@@ -471,6 +493,7 @@ export default function CandidatesClient({
      ⚠️ 並びは詳細検索パネルの並びと**同じ順**にする。片方だけ変えないこと。 */
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
+    if (excludeQuery.trim()) chips.push({ key: "exclude", label: `除外: ${excludeQuery}`, clear: () => setExcludeQuery("") });
     if (roleQuery.trim()) chips.push({ key: "roleQuery", label: `役職: ${roleQuery}`, clear: () => setRoleQuery("") });
     if (companyQuery.trim()) chips.push({ key: "companyQuery", label: `会社: ${companyQuery}`, clear: () => setCompanyQuery("") });
     const wantRole = childRoleId ?? topRoleId;
@@ -510,11 +533,12 @@ export default function CandidatesClient({
     }));
     if (hideAlreadyScouted) chips.push({ key: "scouted", label: "スカウト済みを除く", clear: () => setHideAlreadyScouted(false) });
     return chips;
-  }, [roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
+  }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
       workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures, hideAlreadyScouted]);
 
   function clearAllFilters() {
     setQ("");
+    setExcludeQuery("");
     setRoleQuery("");
     setCompanyQuery("");
     setWorkStyle("");
@@ -562,6 +586,18 @@ export default function CandidatesClient({
         style={{
           height: 34, flex: "1 1 200px", minWidth: 0, padding: "0 10px",
           border: `1px solid ${roleQuery ? "var(--royal)" : "var(--line)"}`, borderRadius: 999,
+          fontSize: 12.5, outline: "none", fontFamily: "inherit", color: "var(--ink)",
+          background: "#fff", boxSizing: "border-box",
+        }}
+      />
+      {/* ★除外ワード（2026-09-20）。⚠️ 「絞る」ではなく「落とす」なので、
+             他のチップと見分けが付くよう**赤系の枠**にしてある。 */}
+      <input
+        type="text" value={excludeQuery} onChange={(e) => setExcludeQuery(e.target.value)}
+        placeholder="除外するワード（スペース区切り）"
+        style={{
+          height: 34, flex: "1 1 200px", minWidth: 0, padding: "0 10px",
+          border: `1px solid ${excludeQuery ? "#FCA5A5" : "var(--line)"}`, borderRadius: 999,
           fontSize: 12.5, outline: "none", fontFamily: "inherit", color: "var(--ink)",
           background: "#fff", boxSizing: "border-box",
         }}
@@ -906,6 +942,27 @@ export default function CandidatesClient({
                           </div>
                         )}
 
+                        {/* ★できること（職種 × 年数）。2026-09-20。
+                               ⚠️ **本人が選んだスキルではなく職歴からの計算。**
+                                  ラベルは付けない（`/u/[id]` も手動スキルと混ぜて出す）。
+                               ⚠️ 空なら行ごと出さない。「なし」と書かない。
+                               ⚠️★事業領域は入っていない（社名を伏せた職歴から
+                                  企業側へ漏れるため。`buildRoleAutoSkills` の注記）。 */}
+                        {c.autoSkills && c.autoSkills.length > 0 && (
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+                            {c.autoSkills.map((sk) => (
+                              <span key={sk.label} style={{
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                fontSize: 12, fontWeight: 600, padding: "2px 9px", borderRadius: 100,
+                                background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
+                              }}>
+                                {sk.label}
+                                <span style={{ fontWeight: 500, color: "var(--ink-mute)" }}>{sk.band}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         {/* 希望勤務地。⚠️ 表示のみ（絞り込みは別タスク）。
                             ⚠️ 空なら行ごと出さない。「未設定」とも書かない。 */}
                         {c.desiredPrefectures && c.desiredPrefectures.length > 0 && (
@@ -925,9 +982,15 @@ export default function CandidatesClient({
                             以前は自由記述のスキルタグを検索対象にしていたが、
                             表記揺れで絞り込みの精度が出ないためマスタの職種に置き換えた。
                             旧スキルタグはカードに表示していなかったので、ここは新規表示。 */}
-                        {(c.roleName || c.location) && (
+                        {/* ⚠️★職種チップは「できること」に**同じ名前が無いときだけ**出す
+                               （2026-09-20）。出し分けないと、同じカードに
+                               「アカウントエグゼクティブ 10年以上」と
+                               「アカウントエグゼクティブ」が並んで**同じ語が2回**出る。
+                            ⚠️ 消してしまわないのは、職歴に開始日が無いなどで
+                               「できること」が空になる人がいるため（現職の職種は出したい）。 */}
+                        {((c.roleName && !(c.autoSkills ?? []).some((sk) => sk.label === c.roleName)) || c.location) && (
                           <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
-                            {c.roleName && (
+                            {c.roleName && !(c.autoSkills ?? []).some((sk) => sk.label === c.roleName) && (
                               <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)" }}>
                                 {c.roleName}
                               </span>

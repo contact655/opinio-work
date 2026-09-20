@@ -42,7 +42,7 @@ function cand(over: Partial<Candidate> & { id: string; name: string }): Candidat
     desiredRoleIds: [], desiredRoleNames: [], workStyles: null,
     desiredPrefectures: null, desiredSalaryMin: null, desiredSalaryMax: null,
     onboardingCompleted: true, alreadyScouted: false,
-    createdAt: "2026-09-01T00:00:00Z",
+    createdAt: "2026-09-01T00:00:00Z", autoSkills: [],
     ...over,
   };
 }
@@ -59,6 +59,16 @@ const FULL: Candidate[] = [
     workStyles: ["hybrid"], desiredPrefectures: ["東京都", "神奈川県"],
     desiredSalaryMin: 900, desiredSalaryMax: 1200,
     createdAt: "2026-09-19T00:00:00Z",
+    /* ★できること。⚠️ 帯の文言は `lib/profile/autoSkills.ts` の BANDS と同じもの。
+          ⚠️★**上限の4件ちょうど**を入れてある（実画面はサーバーで `.slice(0, 4)`）。
+             ここで5件に増やしても実画面とは一致しない —— 切るのはサーバー側なので、
+             **このプレビューで上限そのものは検証できない。** */
+    autoSkills: [
+      { label: "アカウントエグゼクティブ", band: "10年以上" },
+      { label: "営業", band: "10年以上" },
+      { label: "インサイドセールス", band: "3年以上" },
+      { label: "マネジメント", band: "1年以上" },
+    ],
   }),
   cand({
     id: "c2", name: "安藤 誠司", location: "大阪府大阪市",
@@ -69,6 +79,10 @@ const FULL: Candidate[] = [
     desiredRoleIds: ["r-sales", "r-fs"], desiredRoleNames: ["フィールドセールス"],
     workStyles: ["remote"], desiredSalaryMin: 600,
     alreadyScouted: true, createdAt: "2026-09-10T00:00:00Z",
+    autoSkills: [
+      { label: "フィールドセールス", band: "3年以上" },
+      { label: "営業", band: "3年以上" },
+    ],
   }),
   cand({
     /* ⚠️ 社会人年数が未算出（職歴0件）。**「0年」と出ないこと**／
@@ -106,7 +120,9 @@ export default function CandidatesPreview() {
         <br />
         見るところ：条件が<strong>上部の「詳細検索」1つ</strong>に畳まれていること／
         閉じると<strong>選択中の条件がチップで外に出る</strong>こと／並び替えがあること／
-        <strong>「転職検討中」が緑でない</strong>・<strong>「メンター」バッジが出ない</strong>こと。
+        <strong>「転職検討中」が緑でない</strong>・<strong>「メンター」バッジが出ない</strong>こと／
+        <strong>「できること」（職種 × 年数）</strong>が出ること（YOUTRUST を参考にした。
+        ⚠️ 本人の入力ではなく<strong>職歴からの計算</strong>）。
       </PreviewHeader>
 
       <Variant

@@ -51,3 +51,38 @@ export async function buildAutoSkills(
   });
   return computeAutoSkills(input);
 }
+
+/**
+ * ★職種ぶんだけを出す版（2026-09-20 / `/biz/candidates` のカード用）。
+ *
+ * ── ⚠️★なぜ事業領域を出さないか ───────────────────────────────────────────
+ * 事業領域は **`company_id` から引く**ので、**本人が社名を伏せた職歴**
+ * （`visibility_company` が `masked` / `hidden`）についても
+ * 「AI・データ：3年以上」のような形で**隠した会社の属性が企業側に漏れる。**
+ * 2026-09-10 に `/biz` 向けの3画面で同じ漏れを直したばかりなので、
+ * **企業に見せる面では職種だけにする。**
+ * ⚠️★**`domainName` を渡す形に変えないこと。** 渡すと上の漏れが復活する。
+ *
+ * ⚠️ `/u/[id]` と `/mypage`（本人と公開プロフィール）は `buildAutoSkills` のまま。
+ *    **同じ人でも面によって出る内容が違う**が、これは意図した差。
+ *
+ * ⚠️ DB を引かないので**同期**。候補者N人ぶんをループで呼んでよい
+ *    （`buildAutoSkills` は企業の事業領域を引くため N+1 になる）。
+ */
+export function buildRoleAutoSkills(
+  rows: AutoSkillSourceRow[],
+  roleInfoById: Map<string, RoleInfo>,
+): AutoSkill[] {
+  const input: AutoSkillExperience[] = rows.map((r) => {
+    const role = r.role_category_id ? roleInfoById.get(r.role_category_id) : undefined;
+    return {
+      started_at: r.started_at ?? null,
+      ended_at: r.ended_at ?? null,
+      roleName: role?.name ?? null,
+      roleParentName: role?.parent_name ?? null,
+      /* ⚠️★ここを埋めないこと（上の注記）。 */
+      domainName: null,
+    };
+  });
+  return computeAutoSkills(input);
+}

@@ -8,6 +8,9 @@ import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS, MASKED_COMPANY_L
 import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
+/* ★「できること」（職種 × 年数）。⚠️★**職種だけの版を使う**——事業領域は
+      `company_id` から引くので、社名を伏せた職歴から企業側へ漏れる（関数の注記）。 */
+import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse } from "@/lib/constants/plans";
 import { canSendScout, isScoutSendingEnabled, isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
@@ -314,20 +317,29 @@ export default async function CandidatesPage() {
      ⚠️ **その都度計算する。列にもトリガーにもしない。**
         職歴を1件足した瞬間に変わる値なので、保存すると必ず古くなる
         （`ow_profiles.experience_years` を自動計算に置き換えた 2026-08-07 と同じ理由）。 */
-  const { data: allExpStarts } = userIds.length > 0
+  /* ★`ended_at` と `role_category_id` も取る（2026-09-20）。「できること」の材料。
+     ⚠️★**`company_id` は取らない。** 取ると事業領域が引けてしまい、
+        社名を伏せた職歴の属性が企業側に漏れる（`buildRoleAutoSkills` の注記）。 */
+  const { data: allExpStarts, error: allExpErr } = userIds.length > 0
     ? await adminClient
         .from("ow_experiences")
-        .select("user_id, started_at")
+        .select("user_id, started_at, ended_at, role_category_id")
         .in("user_id", userIds)
-    : { data: [] };
+    : { data: [], error: null };
+  /* ⚠️ error を捨てない。捨てると社会人年数も「できること」も黙って空になる。 */
+  if (allExpErr) console.error("[biz/candidates] ow_experiences(all):", allExpErr.message);
 
   const startedAtsByUser = new Map<string, string[]>();
+  /** ★「できること」の材料。⚠️ 現職だけでなく**全職歴**を足して年数にする */
+  const expRowsByUser = new Map<string, { started_at: string | null; ended_at: string | null; role_category_id: string | null }[]>();
   for (const e of allExpStarts ?? []) {
     const uid = (e as { user_id: string }).user_id;
-    const st = (e as { started_at: string | null }).started_at;
-    if (!st) continue;
+    const row = e as { started_at: string | null; ended_at: string | null; role_category_id: string | null };
+    if (!expRowsByUser.has(uid)) expRowsByUser.set(uid, []);
+    expRowsByUser.get(uid)!.push(row);
+    if (!row.started_at) continue;
     if (!startedAtsByUser.has(uid)) startedAtsByUser.set(uid, []);
-    startedAtsByUser.get(uid)!.push(st);
+    startedAtsByUser.get(uid)!.push(row.started_at);
   }
 
   const currentExpByUser = new Map<string, {
@@ -380,6 +392,16 @@ export default async function CandidatesPage() {
   //    表記揺れがあり絞り込みの精度が出ないため、マスタに紐づいた職種に置き換えた。
   //    子階層があれば子（フィールドセールス）、無ければ大分類（営業）を出す。
   const roleTree = await getRoleTree();
+
+  /* ★「できること」用の職種マスタ（2026-09-20）。名前＋親の名前。
+     ⚠️ 親の名前は「子職種を親名でも当てる」ために要る（`computeAutoSkills` の規則）。
+     ⚠️★**ここで帯の規則を書かないこと。** 年数の帯は `lib/profile/autoSkills.ts` の
+        `BANDS`（YOUTRUST 相当の5段階／2026-08-29 に柴さんが指定）が唯一の正。 */
+  const roleInfoById = new Map<string, { name: string; parent_name: string | null }>();
+  roleTree.byId.forEach((node, id) => {
+    const parent = node.parentId ? roleTree.byId.get(node.parentId) : undefined;
+    roleInfoById.set(id, { name: node.name, parent_name: parent?.name ?? null });
+  });
 
   // 希望職種（ow_profile_desired_roles）。auth.users.id 引き
   const desiredByAuthId = await getDesiredRolesFor(
@@ -455,6 +477,12 @@ export default async function CandidatesPage() {
         onboardingCompleted: profile?.onboarding_completed || false,
         alreadyScouted,
         createdAt: u.created_at as string,
+        /* ★「できること」（職種 × 年数）。2026-09-20。
+           ⚠️ 本人が選んだスキルではなく**職歴からの計算**。保存しない（都度計算）。
+           ⚠️★カードが狭いので**上位4件まで**。全部見るのはプロフィール側。 */
+        autoSkills: buildRoleAutoSkills(expRowsByUser.get(u.id as string) ?? [], roleInfoById)
+          .slice(0, 4)
+          .map((sk) => ({ label: sk.label, band: sk.band })),
       };
     });
 
