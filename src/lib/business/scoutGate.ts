@@ -60,3 +60,36 @@ export const SCOUT_PLAN_BLOCKED_MESSAGE =
 export function isScoutSendingEnabled(): boolean {
   return process.env.SCOUT_SENDING_ENABLED === "true";
 }
+
+/**
+ * ★「運営の審査が終わっているか」（2026-09-20）。
+ *
+ * ⚠️★**`is_published` を見ないこと。** 2026-09-20 まで
+ *    `/biz/candidates` と `POST /api/biz/scouts` が **`ctx.isPublished`** で門を作り、
+ *    画面には「運営審査が完了するまでお待ちください」と出していた。**列と文言が別物。**
+ *    実際に踏んだ（柴さん）:
+ *      株式会社Third Box は `is_approved = true`（＝運営が承認済み）なのに、
+ *      `is_published = false`（ページを下げている）だけで**審査待ち扱い**されていた。
+ *
+ * ⚠️★3つのスイッチの意味は CLAUDE.md「企業ページの3つのスイッチ」にある。
+ *      `is_approved`     … 運営が内容を確認した   ← **審査はこれ**
+ *      `is_published`    … 詳細ページが見えるか（**取り下げ用**の404ゲート）
+ *      `listing_status`  … ディレクトリに載るか
+ *    `/admin/companies` の説明文にも「ページ表示は取り下げ用です（通常は触りません）」
+ *    と書いてある。**取り下げスイッチを審査の代わりに読まない。**
+ *
+ * ⚠️ 実測（2026-09-20 / 本番・検証用を除く103社）: 承認済みだがページ非表示は **2社**
+ *    （KOSKA・ZAP。どちらも `source='user'` ＝利用者が作った企業で、
+ *    `POST /api/biz/companies` が `is_published = false` で作るため）。
+ *    **利用者が自分で企業を作った経路は、承認されてもここで止まっていた。**
+ *
+ * ⚠️★**画面と API の両方がここを呼ぶこと。** 片方だけ直すと、画面では探せるのに
+ *    送信だけ 403、という形になる（このファイルの冒頭にある「3度目」と同じ形）。
+ */
+export function isCompanyReviewed(ctx: { isApproved: boolean }): boolean {
+  return ctx.isApproved;
+}
+
+/** 審査が済んでいないときの文言。⚠️ 経路ごとに書き分けないこと。 */
+export const COMPANY_REVIEW_BLOCKED_MESSAGE =
+  "運営審査が完了するまでお待ちください";

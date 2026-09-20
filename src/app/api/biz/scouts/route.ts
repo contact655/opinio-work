@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE, isScoutSendingEnabled } from "@/lib/business/scoutGate";
+import { canSendScout, SCOUT_PLAN_BLOCKED_MESSAGE, isScoutSendingEnabled, isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasResendKey, sendEmailStrict } from "@/lib/notify/email";
 import { scoutTemplate } from "@/lib/notify/templates";
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         あっせんを行わないので、成功報酬の規約に同意させる理由が無い。
 
         ⚠️ 外す前は `hasAgreedTerms(user, "placement")` を要求していた。
-           人材紹介利用規約 第8条は「理論年収 × 15%（最低50万円）」を定めており、
+           人材紹介利用規約 第8条は成功報酬を定めており、
            **月額プランの機能を使うために成功報酬の規約へ同意させる**形になっていた。
            `SCOUT_SENDING_ENABLED` が未設定で眠っていたため実害は0件だったが、
            **スカウトを開けた日に全社が踏む**状態だった。
@@ -128,9 +128,16 @@ export async function POST(req: NextRequest) {
            プロダクトはその対象外**。切り分けは掲載利用規約 第6条2項・3項が持つ。
            ここに紹介側の判定を混ぜないこと。 */
 
-  if (!ctx.isPublished) {
+  /* ★審査のゲート。⚠️★**`ctx.isPublished` に戻さないこと**（2026-09-20 に直した）。
+        `is_published` は**ページの取り下げ用**で、審査とは別のスイッチ。
+        見ていた列と文言（「運営審査が完了するまで」）が食い違っており、
+        **承認済みなのにページを下げている企業**が審査待ち扱いになっていた
+        （実測 2026-09-20: 該当2社。どちらも利用者が自分で作った企業）。
+     ⚠️★判定は `/biz/candidates` と**同じ関数**（`isCompanyReviewed`）。
+        片方だけ直すと「画面では探せるのに送信だけ 403」になる。 */
+  if (!isCompanyReviewed(ctx)) {
     return NextResponse.json(
-      { error: "運営審査が完了するまでスカウトを送信できません" },
+      { error: `${COMPANY_REVIEW_BLOCKED_MESSAGE}（スカウトを送信できません）` },
       { status: 403 }
     );
   }

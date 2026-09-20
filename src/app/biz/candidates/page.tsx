@@ -9,7 +9,7 @@ import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
 import { canUse } from "@/lib/constants/plans";
-import { canSendScout, isScoutSendingEnabled } from "@/lib/business/scoutGate";
+import { canSendScout, isScoutSendingEnabled, isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +34,13 @@ export default async function CandidatesPage() {
     );
   }
 
-  // 未承認企業は候補者検索不可
-  if (!ctx.isPublished) {
+  /* 未承認企業は候補者検索不可。
+     ⚠️★**`ctx.isPublished` に戻さないこと**（2026-09-20 に直した）。
+        `is_published` は**ページの取り下げ用**で、審査とは別のスイッチ。
+        見ていた列と画面の文言（「運営審査が完了するまで」）が食い違っており、
+        **承認済みなのにページを下げている企業が審査待ち扱い**になっていた。
+        判定は `isCompanyReviewed` の1箇所（`lib/business/scoutGate.ts`）。 */
+  if (!isCompanyReviewed(ctx)) {
     return (
       <BusinessLayout {...{
         userName: ctx.userName,
@@ -59,7 +64,7 @@ export default async function CandidatesPage() {
             </svg>
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-            運営審査が完了するまでお待ちください
+            {COMPANY_REVIEW_BLOCKED_MESSAGE}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 0 }}>
             候補者検索・スカウト送信は、運営による企業審査が完了した後にご利用いただけます。<br />
