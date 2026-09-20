@@ -462,7 +462,7 @@ export default function MypageClient({
               }}>
                 <div style={{
                   width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                  background: "var(--success)", color: "#fff",
+                  background: "var(--success-strong)", color: "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 12, fontWeight: 800,
                 }}>

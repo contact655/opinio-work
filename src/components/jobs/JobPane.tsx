@@ -279,7 +279,7 @@ export function JobPane({
               <li key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                 <span style={{
                   width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                  background: i === job.selection_flow.length - 1 ? "var(--success)" : "var(--royal-50)",
+                  background: i === job.selection_flow.length - 1 ? "var(--success-strong)" : "var(--royal-50)",
                   color: i === job.selection_flow.length - 1 ? "#fff" : "var(--royal)",
                   border: i === job.selection_flow.length - 1 ? "none" : "1px solid var(--royal-100)",
                   display: "flex", alignItems: "center", justifyContent: "center",

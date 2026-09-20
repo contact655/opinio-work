@@ -380,7 +380,7 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
                               disabled={actionLoading === j.id}
                               style={{
                                 padding: "5px 12px", borderRadius: 6,
-                                background: "var(--success)", border: "none",
+                                background: "var(--success-strong)", border: "none",
                                 color: "#fff", fontSize: 12, fontWeight: 600,
                                 cursor: "pointer", whiteSpace: "nowrap",
                                 opacity: actionLoading === j.id ? 0.5 : 1,

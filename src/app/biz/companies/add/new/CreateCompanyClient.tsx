@@ -768,7 +768,7 @@ export function CreateCompanyClient({
                   disabled={joinRequestLoading}
                   style={{
                     padding: "8px 16px",
-                    background: isAmber ? "var(--warm-ink)" : "var(--royal)",
+                    background: isAmber ? "var(--warm-strong)" : "var(--royal)",
                     color: "#fff",
                     border: "none", borderRadius: 8,
                     fontSize: 12, fontWeight: 600,

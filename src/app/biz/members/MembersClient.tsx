@@ -863,10 +863,13 @@ function PendingInvitesSection({
             padding: "0px 6px",
             borderRadius: 100,
             /* ⚠️ 白文字 on `--warm`(#F59E0B) は **2.15**（11px には 4.5 が要る）。
-                  塗りを `--warm-ink`(#B45309) にすると白で 5.02。
+                  塗りを `--warm-strong`(#92400E) にすると白で **7.09**。
+               ⚠️★**2026-09-21 まで、ここは `--warm-ink`(#B45309) と書いてあった。**
+                  `--warm-ink` は 2026-09-02 に #B45309 → #92400E へ変わっており、
+                  **コメントだけが古い値のまま残っていた**（5.02 は #B45309 のときの比）。
                ⚠️ これは「文字色の移行」とは別の系統（白文字を塗りに載せている側）。
-                  同じ形が `/companies/[id]` の掲載設定バナーなどに残っている（docs/todo.md）。 */
-            background: "var(--warm-ink)",
+                  塗り用のトークンは `--warm-strong` / `--success-strong`（globals.css）。 */
+            background: "var(--warm-strong)",
             color: "#fff",
           }}>
             {invites.length}

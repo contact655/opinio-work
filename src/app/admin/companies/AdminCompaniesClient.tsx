@@ -611,7 +611,7 @@ export default function AdminCompaniesClient(
                             title="運営として掲載を承認します。取り消しはできません（掲載は別操作）"
                             style={{
                               fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
-                              background: "var(--warm-ink)", color: "#fff", border: "none", whiteSpace: "nowrap",
+                              background: "var(--warm-strong)", color: "#fff", border: "none", whiteSpace: "nowrap",
                               opacity: isLoading ? 0.5 : 1,
                             }}>
                             承認する

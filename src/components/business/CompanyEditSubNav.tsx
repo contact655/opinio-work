@@ -123,7 +123,7 @@ export function CompanyEditSubNav({
             type="button"
             onClick={onPublish}
             disabled={isPublishing || !hasDraftChanges}
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, borderRadius: 7, cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer", background: hasDraftChanges ? "var(--success)" : "var(--line)", color: hasDraftChanges ? "#fff" : "var(--ink-mute)", border: "none", transition: "background 0.2s", opacity: isPublishing ? 0.7 : 1 }}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, borderRadius: 7, cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer", background: hasDraftChanges ? "var(--success-strong)" : "var(--line)", color: hasDraftChanges ? "#fff" : "var(--ink-mute)", border: "none", transition: "background 0.2s", opacity: isPublishing ? 0.7 : 1 }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}

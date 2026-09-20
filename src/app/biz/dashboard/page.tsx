@@ -239,7 +239,7 @@ export default async function BizDashboardPage({
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "9px 16px", borderRadius: 8, flexShrink: 0,
               fontSize: 12, fontWeight: 700,
-              background: "#F59E0B", color: "#fff", textDecoration: "none",
+              background: "var(--warm-strong)", color: "#fff", textDecoration: "none",
               whiteSpace: "nowrap",
             }}
           >

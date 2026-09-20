@@ -233,7 +233,7 @@ export function ProfileEditModal({
                 className="tap-min-h"
                 style={{
                   padding: "10px 28px", fontSize: "var(--text-sm)", fontWeight: 700, minWidth: 120,
-                  background: justSaved ? "var(--success)" : saveLocked ? "var(--ink-mute)" : "var(--royal)",
+                  background: justSaved ? "var(--success-strong)" : saveLocked ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff", border: "none", borderRadius: 999, fontFamily: "inherit",
                   cursor: saveLocked ? "default" : "pointer", transition: "background 0.2s",
                 }}
