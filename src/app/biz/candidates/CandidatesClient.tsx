@@ -7,6 +7,7 @@ import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/caree
       「同じ名前の別実装が2つあった」のを1つに畳んだもので、**3つ目を作らない**。 */
 import { FilterChip } from "@/components/common/FilterChip";
 import { SortSelect } from "@/components/common/SortSelect";
+import { neutralAvatarStyle } from "@/lib/avatarColor";
 
 /**
  * ★転職意欲の選択肢（2026-09-19 / 柴さんの指示）。
@@ -126,24 +127,11 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 
-/* ⚠️★**アバターに色を割り当てないこと**（2026-09-21 に撤去）。
+/* ⚠️★**アバターに人ごとの色を割り当てないこと**（2026-09-21 に撤去）。
+      理由と語彙は [lib/avatarColor.ts](../../../lib/avatarColor.ts)
+      に集約してある。**ここに色の配列を書き戻さないこと。**
       それまでは `id` のハッシュから6色を引いて、アバターの丸と
-      カード左端の 4px のバーに同じ色を敷いていた。**意味は無かった。**
-
-      外した理由は「無意味だから」ではなく、**意味があるものとして読まれたから** ——
-      柴さんが実画面を見て「この色はなんの色？」と聞いた時点で、
-      緑の人と赤の人に違いがあると読めていた。
-
-      ⚠️ しかも6色には役割の決まっている色が混ざっていた（ui-conventions「色の役割」）:
-        緑 `--success` … **金銭的にプラスの条件のみ**（年収・退職金・SO）
-        紫 #7C3AED     … **使わないと決めている色**
-        赤 #dc2626     … エラー・警告
-      **1色が2つ以上の意味を持たないようにする**のがあの規約の目的で、
-      ここは条件を満たしていない人にまで緑や赤を配っていた。
-
-      ⚠️ 同じ形が `/biz/applications` と `/biz/employees` にも残っている
-         （`AVATAR_GRADIENTS` / `colors` の配列）。**新しく足さないこと。** */
-
+      カード左端の 4px のバーに同じ色を敷いていた。 */
 
 
 // 都道府県を location 文字列から抽出（先頭の都道府県部分）
@@ -895,12 +883,7 @@ export default function CandidatesClient({
                     <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", minWidth: 0 }}>
 
                       {/* アバター。⚠️ 人によって色を変えない（上の注記）。 */}
-                      <div style={{
-                        width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
-                        background: "var(--bg-tint)", border: "1px solid var(--line)",
-                        color: "var(--ink-soft)", display: "flex", alignItems: "center",
-                        justifyContent: "center", fontSize: 18, fontWeight: 700,
-                      }}>
+                      <div style={neutralAvatarStyle(48, 18)}>
                         {c.name.charAt(0) || "?"}
                       </div>
 

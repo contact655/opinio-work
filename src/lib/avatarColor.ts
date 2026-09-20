@@ -36,3 +36,47 @@ export const AVATAR_COLOR: AvatarColor = {
   bg: "var(--line-soft)",
   text: "var(--ink-mute)",
 };
+
+/**
+ * 頭文字アバターの共通スタイル（2026-09-21 に追加・`/biz` の3画面をここへ寄せた）。
+ *
+ * ── なぜ `/biz` も同じ色にしたか ────────────────────────────────────
+ * `/biz` の3画面（候補者を探す・応募管理・社員管理）は、**それぞれ別の配列**で
+ * 「id や名前のハッシュから色を引く」実装を持っていた。配列の中身も色数も違うので、
+ * **同じ人が画面によって違う色で出ていた**（求職者側で 2026-08-31 に直したのと同じ形）。
+ *
+ * ⚠️★外したのは「無意味だから」ではなく、**意味があるものとして読まれたから。**
+ *    柴さんが `/biz/candidates` を見て「この色はなんの色？」と聞いた時点で、
+ *    緑の人と赤の人に違いがあると読めていた。
+ *
+ * ⚠️★しかも各配列には**役割の決まっている色**が混ざっていた
+ *    （`.claude/skills/ui-conventions`「色の役割」）:
+ *      緑 `--success` … **金銭的にプラスの条件のみ**（年収・退職金・SO）
+ *      紫 #7C3AED     … **使わないと決めている色**
+ *      赤 / ピンク     … エラー・警告
+ *    条件を満たしていない人にまで緑や赤を配っていた。
+ *
+ * ⚠️★**人ごとに色を振る実装を新しく作らないこと。** 見分けが必要なら
+ *    色ではなく**文字（氏名）**で示す。色は意味を持つものに取っておく。
+ *
+ * ⚠️ 本人が設定したアバター画像（`avatar_url`）はこの限りではない。
+ *    **本人の選んだ画像**で、こちらが人に色を割り当てているのとは別の話。
+ *
+ * ⚠️ サイズと文字の大きさは画面ごとに違う（40 / 44 / 48 / 60px）ので引数で受ける。
+ *    **色だけを共通にするのが目的**で、寸法まで統一する意図は無い。
+ */
+export function neutralAvatarStyle(size: number, fontSize: number): React.CSSProperties {
+  return {
+    width: size,
+    height: size,
+    borderRadius: "50%",
+    flexShrink: 0,
+    background: AVATAR_COLOR.bg,
+    color: AVATAR_COLOR.text,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize,
+    fontWeight: 700,
+  };
+}

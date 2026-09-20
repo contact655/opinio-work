@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { BizApplication, ApplicationStatus, ApplicationStatusTab } from "@/lib/business/applications";
 import { APPLICATION_STATUS_TABS, countByStatus, VALID_APPLICATION_STATUSES } from "@/lib/business/applications";
 import { StatusPill } from "@/components/common/StatusPill";
+import { neutralAvatarStyle } from "@/lib/avatarColor";
 
 // 応募ドメイン固有のラベル（StatusPill のデフォルトと異なるため children で上書き）
 const APP_STATUS_LABEL: Record<ApplicationStatus, string> = {
@@ -30,19 +31,8 @@ function nameInitial(name: string): string {
   return name.trim().charAt(0) || "?";
 }
 
-const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, var(--royal), var(--accent))",
-  "linear-gradient(135deg, #FBBF24, #D97706)",
-  "linear-gradient(135deg, #34D399, var(--success))",
-  "linear-gradient(135deg, #A78BFA, #7C3AED)",
-  "linear-gradient(135deg, #DB2777, #9D174D)",
-  "linear-gradient(135deg, #0EA5E9, #0369A1)",
-];
-
-function avatarGradient(id: string): string {
-  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
-}
+/* ⚠️★アバターに人ごとの色を振らない。理由は `lib/avatarColor.ts` に集約。
+      ここには 2026-09-21 まで `AVATAR_GRADIENTS`（6色・id のハッシュ）があった。 */
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
@@ -323,13 +313,12 @@ export function ApplicationsClient({ applications: initialApplications, hasPubli
                     textAlign: "left", transition: "background .12s",
                   }}
                 >
-                  {/* Avatar — 40px */}
+                  {/* Avatar — 40px。⚠️ 人によって色を変えない */}
                   <div style={{
-                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                    background: avatarGradient(app.id),
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 800, fontSize: 15,
+                    ...neutralAvatarStyle(40, 15),
                     fontFamily: "var(--font-inter), var(--font-noto)",
+                    /* ⚠️ 選択中を示すリングは残す。**これは状態を表す色**で、
+                          人ごとの色分けとは別物（`--royal` ＝ 主要な導線）。 */
                     boxShadow: isSelected ? "0 0 0 2px #fff, 0 0 0 4px var(--royal)" : "none",
                     transition: "box-shadow .12s",
                   }}>
@@ -434,12 +423,9 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
         justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 0 }}>
-          {/* Large avatar with ring */}
+          {/* Large avatar with ring。⚠️ 人によって色を変えない */}
           <div style={{
-            width: 60, height: 60, borderRadius: "50%", flexShrink: 0,
-            background: avatarGradient(app.id),
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontWeight: 800, fontSize: 22,
+            ...neutralAvatarStyle(60, 22),
             fontFamily: "var(--font-inter), var(--font-noto)",
             boxShadow: "0 0 0 3px #fff, 0 0 0 5px var(--royal-100)",
           }}>

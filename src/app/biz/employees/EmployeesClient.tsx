@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
 import { MEMBER_REPORT_REASONS, MEMBER_REPORT_NOTE_MAX, type MemberReportReason } from "@/lib/constants/memberReports";
 import type { BizEmployee } from "./page";
+import { neutralAvatarStyle } from "@/lib/avatarColor";
 
 type Props = {
   current: BizEmployee[];
@@ -45,10 +46,17 @@ function calcDuration(startedAt: string, endedAt: string | null, isCurrent: bool
   return m > 0 ? `${y}年${m}ヶ月` : `${y}年`;
 }
 
+/**
+ * 頭文字のアバター。
+ *
+ * ⚠️★**名前から色を引かないこと**（2026-09-21 に撤去）。理由は
+ *    [lib/avatarColor.ts](../../../lib/avatarColor.ts) に集約。
+ *    ここには紺・青・緑・紫・橙の5色があり、`name.charCodeAt(0) % 5` で振っていた。
+ *
+ * ⚠️ 本人が設定した画像（`avatarUrl`）はそのまま出す。**こちらが色を割り当てるのとは別の話。**
+ */
 function AvatarCircle({ name, avatarUrl, size = 44 }: { name: string | null; avatarUrl: string | null; size?: number }) {
   const initial = (name ?? "?").trim().charAt(0).toUpperCase();
-  const colors = ["#002366", "#3B5FD9", "#059669", "#7C3AED", "#D97706"];
-  const colorIdx = (name ?? "").charCodeAt(0) % colors.length;
 
   if (avatarUrl) {
     return (
@@ -61,10 +69,8 @@ function AvatarCircle({ name, avatarUrl, size = 44 }: { name: string | null; ava
   }
   return (
     <div style={{
-      width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      background: `linear-gradient(135deg, ${colors[colorIdx]}, ${colors[(colorIdx + 1) % colors.length]})`,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: size * 0.38, fontWeight: 700, color: "#fff",
+      ...neutralAvatarStyle(size, size * 0.38),
+      fontFamily: "var(--font-inter), var(--font-noto)",
     }}>
       {initial}
     </div>
