@@ -216,7 +216,19 @@
 
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden; /* prevent horizontal scroll on mobile */
+  /* ★★横スクロール止め。⚠️★**2行セット。`clip` だけにしないこと**（2026-09-20）。
+       `overflow-x: hidden` は `overflow-y` の使用値を `auto` に変え、
+       **その要素をスクロールコンテナにする。** その結果
+       **`position: sticky` がサイト全体で効いていなかった。**
+       実測（2026-09-20 / 本番 opinio.jp / 390px）: ヘッダーは `position: sticky`
+       `top: 0` なのに、スクロールすると**消える**。DevTools で `clip` に変えた瞬間、
+       同じページで**残るようになった**（原因の特定はこの実験による）。
+       `overflow-x: clip` はスクロールコンテナを作らないので sticky が生きる。
+     ⚠️ 古いブラウザ（Safari 16 未満など）は `clip` を解釈できず**この行を捨てる**ので、
+        上の `hidden` が残って横スクロール止めとして効く（sticky は今までどおり効かない）。
+        **順番を入れ替えないこと。** `clip` を先に書くと `hidden` が勝つ。 */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -247,7 +259,9 @@ body {
   /* 和文は字面が詰まるので、欧文向けの 1.5〜1.6 では窮屈になる */
   line-height: 1.7;
 
+  /* ⚠️ html と同じ2行セット（理由は上）。片方だけ直すと sticky は効かないまま。 */
   overflow-x: hidden; /* belt-and-suspenders against any wide child */
+  overflow-x: clip;
 }
 
 /* 見出し・ラベル・チップの和文詰め（プロポーショナルメトリクス）。

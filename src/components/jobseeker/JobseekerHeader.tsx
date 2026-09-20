@@ -477,7 +477,29 @@ export function JobseekerHeader() {
           </div>
 
           {/* Mobile: avatar (if logged in) + hamburger */}
-          <div className="flex md:hidden" style={{ alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <div className="flex md:hidden" style={{ alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {/* ★★未ログインのときは「無料登録」をヘッダーに**常に出す**（2026-09-20 / 柴さんの指摘）。
+                   ⚠️★**ハンバーガーの中に戻さないこと。** それまでモバイルの
+                      ヘッダーに出ていた登録の入口は**0個**で（実測 2026-09-20 / 390px:
+                      ヘッダー内の可視な `/auth` リンクが 0、メニュー内のものは left:411 と
+                      画面の外）、LP でも **y=577 の次が y=3462** ——
+                      **約2,900px（3.4画面ぶん）スクロールしても登録の入口が出てこなかった。**
+                   ⚠️ デスクトップのヘッダーには元から「ログイン／無料登録」が出ている。
+                      ここは**その差を埋めただけ**で、新しい判断をしたわけではない。
+                   ⚠️ ログインの入口はハンバーガーの中のまま。ヘッダーに2つ並べると
+                      狭い画面で検索アイコンごと押し込むので、**外に出すのは登録だけ。** */}
+            {!loading && !user && (
+              <Link
+                href="/auth?mode=signup"
+                style={{
+                  fontSize: 13, fontWeight: 700, color: "#fff", background: "var(--royal)",
+                  textDecoration: "none", padding: "7px 13px", borderRadius: 8,
+                  whiteSpace: "nowrap", flexShrink: 0,
+                }}
+              >
+                無料登録
+              </Link>
+            )}
             {!loading && user && (
               <InitialAvatar name={user.name || user.email} size={30} />
             )}
