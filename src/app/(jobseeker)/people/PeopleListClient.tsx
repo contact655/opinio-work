@@ -8,7 +8,6 @@ import Image from "next/image";
 import type { DirectoryPerson } from "@/lib/people/directory";
 import type { SearchAlias } from "@/lib/supabase/queries";
 import { FollowUserButton } from "../u/[id]/FollowUserButton";
-import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
@@ -134,21 +133,11 @@ function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
   );
 }
 
-function companyInitial(name: string, letter: string | null): string {
-  if (letter) return letter;
-  return (
-    name
-      .replace(/^(株式会社|合同会社|有限会社|一般社団法人|一般財団法人|公益社団法人)\s*/, "")
-      .replace(/\s*(株式会社|合同会社|有限会社)$/, "")
-      .charAt(0) || name.charAt(0) || "社"
-  );
-}
-
 /**
  * 所属の表示。出どころで見た目を変える。
  *
- *   verified … ow_company_members 由来。企業ロゴ付き
- *   self     … ow_experiences の現職。ロゴなしのテキストのみ
+ *   verified … ow_company_members 由来。社名のテキストのみ
+ *   self     … ow_experiences の現職。verified と同じ見た目
  *   past      … 現職が無い人の直近の所属。「元 Salesforce」の形
  *   education … 職歴がまだ無い人の最終学歴。学帽アイコン + 学校名
  *   none      … 何も出さない（この人はそもそも一覧に出ない）
@@ -191,29 +180,27 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
   }
 
   if (a.kind === "self") {
+    /* ⚠️★verified と**同じ見た目**にしてある（2026-09-20）。
+          それまで self だけ弱く出していたが、区別の担い手はロゴだった
+          （CSS に「企業ロゴを付けない = 承認済みと区別が付く」と書いてあった）。
+          ロゴを外した以上、**文字の太さだけが違う**状態は読み手に解読できない。
+       ⚠️ そもそも verified は「企業が在籍を確認した」という意味ではない（冒頭の注記）。
+          **弱く出し直さないこと。** */
     return (
-      <div className="ppl-company ppl-company-self">
+      <div className="ppl-company">
         <span>{a.companyName}</span>
       </div>
     );
   }
 
-  // ⚠️ 死んでいると分かっている配信元（Clearbit）は null に潰れる。
-  //    判定は lib/utils/companyLogo の usableLogoUrl 1箇所に集約している。
-  const logoSrc = usableLogoUrl(a.logoUrl);
+  /* verified。⚠️★**企業ロゴを出さないこと**（2026-09-20 / 柴さんの指示）。
+        それまでは社名の左に 22px のロゴ（画像が無い企業は「K」「A」の文字四角）を
+        置いていたが、**文字四角は隣の社名と同じ情報しか運んでいない**うえ、
+        実ロゴを持つ企業（HPE・CTC）と持たない企業（KOSKA・Archi Village）で
+        **同じ一覧の中に「アイコン付きの行」と「テキストだけの行」が混在**していた。
+        LinkedIn の「つながりの提案」も社名はテキストだけ。**画像を足し戻さない。** */
   return (
     <div className="ppl-company">
-      {logoSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoSrc} alt="" className="ppl-company-logo" />
-      ) : (
-        <span
-          className="ppl-company-logo ppl-company-logo-fallback"
-          style={{ background: a.logoGradient ?? "linear-gradient(135deg, #001233, #002366)" }}
-        >
-          {companyInitial(a.companyName, a.logoLetter)}
-        </span>
-      )}
       <span>{a.companyName}</span>
     </div>
   );
@@ -778,16 +765,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35;
           margin-bottom: 6px; overflow-wrap: anywhere;
         }
-        /* 自己申告の所属。企業ロゴを付けない = 承認済みと区別が付く */
+        /* 元所属（元◯◯）と学校名。現職の社名より弱く出す。
+           ⚠️★**現職（verified / self）には付けない。** 2026-09-20 に企業ロゴを外すまで、
+              この弱い見た目は「ロゴが無い＝自己申告」の補助だった。ロゴが無くなった今は
+              「現職の社名」と「それ以外」を分けるためだけに使う。
+           ⚠️★.ppl-company-logo と .ppl-company-logo-fallback は同日に削除した。
+              （この style はテンプレートリテラルなので、コメントにバッククォートを書かない）
+              **社名の横に画像や文字四角を足し戻さないこと。** */
         .ppl-company-self { font-weight: 500; color: var(--ink-soft); }
-        .ppl-company-logo {
-          width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0;
-          object-fit: contain; background: #fff; border: 1px solid var(--line);
-        }
-        .ppl-company-logo-fallback {
-          display: flex; align-items: center; justify-content: center;
-          border: none; font-size: 12px; font-weight: 800; color: #fff;
-        }
         /* 職歴がまだ無い人の学校名。企業と取り違えないようアイコンで分ける */
         .ppl-edu-icon { flex-shrink: 0; color: var(--ink-mute); }
         /* 現職が無い人の「元」。社名より弱く出す */
