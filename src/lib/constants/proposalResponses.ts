@@ -35,20 +35,38 @@ export function isCompanyResponse(v: string): v is CompanyResponse {
 }
 
 /**
- * ③の双方合意の段。**今回は状態を持つだけで、UI は作っていない。**
+ * ③の双方合意の段。
+ *
+ * ⚠️★**2026-09-21 に配線した。** `mutual` になると
+ *    [introduceIfMutual()](../evidence/introduce.ts) が会話を1本作り、通知を出す。
+ *    （この注記は「状態を持つだけで UI は作っていない」のまま古くなっていた）
  *
  * ⚠️ 列は増やしていない。`candidate_response` と `company_response` から**導出**する。
  *    ★状態を別の列で持つと、2つの返答と食い違う余地ができる。
  */
 export type ProposalStage = "proposed" | "candidate_only" | "company_only" | "mutual" | "closed";
 
+/**
+ * ★`mutual` の条件。**SQL で数えるときもここを見る**（2026-09-21）。
+ *
+ * ⚠️★**`proposalStage()` と同じ値を2箇所に書かないため。** `/admin` のダッシュボードが
+ *    「双方合意なのに紹介できていない提案」を SQL の `count` で数えるので、
+ *    TS の判定と SQL の述語が**割れる余地**ができた。片方だけ変えると、
+ *    要対応の件数と画面の「紹介」列が食い違う。
+ */
+export const MUTUAL_RESPONSES = {
+  candidate: "interested",
+  company: "want_to_meet",
+} as const;
+
 export function proposalStage(
   candidate: string | null,
   company: string | null,
 ): ProposalStage {
   if (candidate === "declined" || company === "declined") return "closed";
-  const c = candidate === "interested";
-  const k = company === "want_to_meet";
+  /* ★値は `MUTUAL_RESPONSES` の1箇所から。SQL 側（/admin）も同じものを見る */
+  const c = candidate === MUTUAL_RESPONSES.candidate;
+  const k = company === MUTUAL_RESPONSES.company;
   if (c && k) return "mutual";
   if (c) return "candidate_only";
   if (k) return "company_only";

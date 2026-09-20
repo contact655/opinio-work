@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateProposalsForCandidate, type GenerateResult } from "@/lib/evidence/generate";
 import { mutateOne } from "@/lib/supabase/mutate";
+import { introduceIfMutual } from "@/lib/evidence/introduce";
 
 /**
  * ⚠️★**削除の結果を「作成」の型に押し込まないこと**（2026-09-21 に直した）。
@@ -15,6 +16,7 @@ import { mutateOne } from "@/lib/supabase/mutate";
 export type ActionResult =
   | { ok: true; kind: "generate"; result: GenerateResult }
   | { ok: true; kind: "delete"; deleted: number }
+  | { ok: true; kind: "retry"; introduced: boolean; reason?: string }
   | { ok: false; error: string };
 
 /**
@@ -108,4 +110,32 @@ export async function deleteProposal(proposalId: string): Promise<ActionResult> 
 
   revalidatePath("/admin/proposals");
   return { ok: true, kind: "delete", deleted: 1 };
+}
+
+/**
+ * ★双方合意しているのに会話が作られていない提案を、もう一度紹介する（2026-09-21）。
+ *
+ * ── なぜ要るか ─────────────────────────────────────────────────────────────
+ * `introduceIfMutual()` は **best-effort**。返答そのものを取り消さないために、
+ * 会話の作成に失敗してもログを出すだけで通す。
+ * ⚠️★**その結果、`mutual` なのに `introduced_at` が null の行が残りうる。**
+ *    **両側とも答え終わっているので、もう誰も押さない**＝再試行のきっかけが無い。
+ *    2026-09-21 まで、この行を救う手段が1つも無かった。
+ *
+ * ⚠️ 冪等。既に紹介済みなら `introduceIfMutual()` が `already` を返して何もしない。
+ * ⚠️ mutual でない行に押しても `not_mutual` で何も起きない（画面には出さない想定）。
+ */
+export async function retryIntroduction(proposalId: string): Promise<ActionResult> {
+  const supabase = createClient();
+  const { data: isAdmin, error: adminErr } = await supabase.rpc("auth_is_admin");
+  if (adminErr) console.error("[admin/proposals] auth_is_admin:", adminErr.message);
+  if (!isAdmin) return { ok: false, error: "運営権限がありません" };
+
+  if (!proposalId) return { ok: false, error: "提案が指定されていません" };
+
+  const out = await introduceIfMutual(createAdminClient(), proposalId);
+  revalidatePath("/admin/proposals");
+  return out.introduced
+    ? { ok: true, kind: "retry", introduced: true }
+    : { ok: true, kind: "retry", introduced: false, reason: out.reason };
 }

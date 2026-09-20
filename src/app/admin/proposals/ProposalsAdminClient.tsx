@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { generateProposals, deleteProposal, deleteProposalsForCandidate, type ActionResult } from "./actions";
+import { generateProposals, deleteProposal, deleteProposalsForCandidate, retryIntroduction, type ActionResult } from "./actions";
 import { CAREER_STANCE_LABELS, isReachableByCompanies } from "@/lib/constants/careerPreferences";
 
 type Candidate = { id: string; name: string; isTest: boolean; stance: string | null };
@@ -9,6 +9,10 @@ type Row = {
   id: string; candidateName: string; companyName: string;
   evidenceCount: number; counterCount: number; hasJob: boolean; computedAt: string;
   candidateResponse: string | null; companyResponse: string | null;
+  /** `proposalStage()` が2つの返答から導出した段。⚠️ 列では持たない */
+  stage: string;
+  /** 紹介済みか（正は `introduced_at`） */
+  introduced: boolean;
 };
 
 export default function ProposalsAdminClient({
@@ -90,7 +94,24 @@ export default function ProposalsAdminClient({
             border: `1px solid ${msg.ok ? "#CFE3CF" : "#F0C7C7"}`,
           }}
         >
-          {msg.ok && msg.kind === "generate" && msg.result.blockedByStance ? (
+          {msg.ok && msg.kind === "retry" ? (
+            /* ★紹介の再試行（2026-09-21） */
+            <>
+              {msg.introduced ? (
+                <>
+                  <strong>紹介しました。</strong><br />
+                  会話が作られ、候補者のベルに通知が出ます。
+                </>
+              ) : (
+                <>
+                  <strong>紹介しませんでした。</strong><br />
+                  {msg.reason === "already" ? "すでに紹介済みです（二重には作りません）。"
+                    : msg.reason === "not_mutual" ? "双方が「会いたい」と答えていません。"
+                    : "会話の作成に失敗しました。サーバーのログを見てください。"}
+                </>
+              )}
+            </>
+          ) : msg.ok && msg.kind === "generate" && msg.result.blockedByStance ? (
             /* ★本人が企業からの連絡を受け取らない設定。**黙って0件にしない**（2026-09-21） */
             <>
               <strong>提案は作りませんでした。</strong><br />
@@ -152,6 +173,7 @@ export default function ProposalsAdminClient({
               <th style={{ padding: 8 }}>根拠</th><th style={{ padding: 8 }}>反証</th>
               <th style={{ padding: 8 }}>求人</th><th style={{ padding: 8 }}>作成日</th>
               <th style={{ padding: 8 }}>求職者</th><th style={{ padding: 8 }}>企業</th>
+              <th style={{ padding: 8 }}>紹介</th>
               <th style={{ padding: 8 }} />
             </tr>
           </thead>
@@ -167,6 +189,25 @@ export default function ProposalsAdminClient({
                 {/* ⚠️ null は「まだ答えていない」。「見送り」と読ませない */}
                 <td style={{ padding: 8 }}>{r.candidateResponse ?? "未回答"}</td>
                 <td style={{ padding: 8 }}>{r.companyResponse ?? "未回答"}</td>
+                {/* ★★双方合意しているのに会話が作られていない行を見つけるための列（2026-09-21）。
+                       `introduceIfMutual()` は best-effort なので、失敗するとここに残る。
+                       ⚠️ **両側とも答え終わっているので、もう誰も押さない**＝
+                          運営が押さないと永久に救われない。 */}
+                <td style={{ padding: 8 }}>
+                  {r.stage !== "mutual" ? (
+                    <span style={{ color: "var(--ink-mute)" }}>—</span>
+                  ) : r.introduced ? (
+                    <span style={{ color: "var(--success-ink)", fontWeight: 600 }}>済</span>
+                  ) : (
+                    <button
+                      onClick={() => run(() => retryIntroduction(r.id))}
+                      disabled={pending}
+                      style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #FDE68A", background: "#FFFBEB", color: "var(--warm-ink)", fontSize: 12, fontWeight: 600, cursor: pending ? "default" : "pointer", opacity: pending ? 0.5 : 1 }}
+                    >
+                      ⚠️ 未紹介・再試行
+                    </button>
+                  )}
+                </td>
                 {/* ★この1件だけ消す（2026-09-21）。
                        ⚠️ 見送り理由も一緒に消えるので、必ず警告してから。 */}
                 <td style={{ padding: 8 }}>

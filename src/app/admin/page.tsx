@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { MUTUAL_RESPONSES } from "@/lib/constants/proposalResponses";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 /* ⚠️★件数も一覧も同じ関数を通す。条件を書き分けると
@@ -171,7 +172,25 @@ async function getStats() {
     ? Math.floor((Date.now() - Date.parse(memberReports.data[0].reported_at as string)) / 86_400_000)
     : null;
 
+  /* ★双方合意しているのに会話が作られていない提案（2026-09-21）。**0件が正常な状態。**
+     `introduceIfMutual()` は best-effort なので、会話の作成に失敗するとここに残る。
+     ⚠️★**両側とも答え終わっているので、もう誰も押さない。** 運営が
+        `/admin/proposals` の「再試行」を押さないと**永久に救われない。**
+     ⚠️ 述語は `MUTUAL_RESPONSES` の1箇所から（TS の `proposalStage()` と同じ値）。
+     ⚠️ 失敗を 0 に倒さない（参加依頼・未達スカウト・在籍報告と同じ理由）。 */
+  const stuckIntros = await admin
+    .from("ow_proposals")
+    .select("id", { count: "exact", head: true })
+    .eq("candidate_response", MUTUAL_RESPONSES.candidate)
+    .eq("company_response", MUTUAL_RESPONSES.company)
+    .is("introduced_at", null);
+  if (stuckIntros.error) {
+    console.error("[admin] 未紹介の提案の取得に失敗:", stuckIntros.error.message);
+  }
+
   return {
+    stuckIntrosCount: stuckIntros.error ? 0 : (stuckIntros.count ?? 0),
+    stuckIntrosFailed: Boolean(stuckIntros.error),
     memberReportsCount: memberReports.error ? 0 : (memberReports.count ?? 0),
     memberReportsFailed: Boolean(memberReports.error),
     memberReportsOldestDays,
@@ -238,7 +257,9 @@ export default async function AdminDashboard() {
     /* ⚠️ 0件が正常。取得に失敗したときは 1件として数える（カードが「失敗」を出すため） */
     + (stats.undeliveredScoutsFailed ? 1 : stats.undeliveredScoutsCount)
     /* ★在籍していない人の報告（2026-09-18）。0件が正常。失敗は1件として数える */
-    + (stats.memberReportsFailed ? 1 : stats.memberReportsCount);
+    + (stats.memberReportsFailed ? 1 : stats.memberReportsCount)
+    /* ★未紹介の提案（2026-09-21）。0件が正常。失敗は1件として数える */
+    + (stats.stuckIntrosFailed ? 1 : stats.stuckIntrosCount);
 
   const kpis = [
     {
@@ -694,6 +715,44 @@ export default async function AdminDashboard() {
                   </p>
                 </div>
               </div>
+            )}
+
+            {/* ★★双方合意なのに紹介できていない提案（2026-09-21）。
+                   ⚠️ 両側とも答え終わっているので、運営が押さないと永久に残る。
+                   ⚠️ 取得に失敗したときも出す（0件に化けさせない）。 */}
+            {(stats.stuckIntrosCount > 0 || stats.stuckIntrosFailed) && (
+              <Link href="/admin/proposals" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A",
+                  transition: "background 0.15s", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "var(--warm-ink)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
+                      {stats.stuckIntrosFailed
+                        ? "未紹介の提案の取得に失敗しました（0件という意味ではありません）"
+                        : `双方が会いたいのに紹介できていない提案 ${stats.stuckIntrosCount}件`}
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
+                      {stats.stuckIntrosFailed
+                        ? "取得に失敗しています"
+                        : "両者とも答え終わっているので、運営が再試行しないと動きません"}
+                    </p>
+                  </div>
+                </div>
+              </Link>
             )}
 
             {/* ★企業からの「在籍していない人」報告（2026-09-18 / B7）。

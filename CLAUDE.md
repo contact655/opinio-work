@@ -2452,6 +2452,14 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
       見るのは **`auth.role()`**。
    ⚠️★**`DROP FUNCTION` を使わない**（スカウト・応募・面談が依存）。`CREATE OR REPLACE`。
 
+⚠️★**紹介に失敗した行は運営が救う**（2026-09-21）。`introduceIfMutual()` は best-effort
+   なので、**`mutual` なのに `introduced_at` が null の行**が残りうる。
+   ⚠️★**両側とも答え終わっているので、もう誰も押さない。** 自動では直らない。
+   → **`/admin` の要対応**（「双方が会いたいのに紹介できていない提案 N件」・0件が正常）と
+     **`/admin/proposals` の「紹介」列**（`retryIntroduction`）で救う。
+   ⚠️★**`mutual` の述語は [`MUTUAL_RESPONSES`](src/lib/constants/proposalResponses.ts) の1箇所。**
+      要対応は SQL の `count`、画面は TS の `proposalStage()` で、**値が2箇所に割れる**ところだった。
+
 ⚠️★**紹介したかの正は `ow_proposals.introduced_at`。** `conversation_id` は
    `ON DELETE SET NULL` で消えうるので判定に使わない。**2列に CHECK を張らないこと**
    （会話を消した日にその DELETE が落ちる）。

@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
+import { proposalStage } from "@/lib/constants/proposalResponses";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import ProposalsAdminClient from "./ProposalsAdminClient";
@@ -72,7 +73,7 @@ export default async function AdminProposalsPage() {
 
   const { data: proposals, error: pErr } = await db
     .from("ow_proposals")
-    .select("id, candidate_user_id, company_id, job_id, evidence, counter_evidence, computed_at, candidate_response, company_response, ow_companies(name)")
+    .select("id, candidate_user_id, company_id, job_id, evidence, counter_evidence, computed_at, candidate_response, company_response, introduced_at, ow_companies(name)")
     .order("created_at", { ascending: false })
     .limit(200);
   if (pErr) console.error("[admin/proposals] ow_proposals:", pErr.message);
@@ -89,6 +90,13 @@ export default async function AdminProposalsPage() {
     computedAt: (p.computed_at as string).slice(0, 10),
     candidateResponse: (p.candidate_response as string | null) ?? null,
     companyResponse: (p.company_response as string | null) ?? null,
+    /* ★段は2つの返答から導出する。列で持たない（CLAUDE.md） */
+    stage: proposalStage(
+      (p.candidate_response as string | null) ?? null,
+      (p.company_response as string | null) ?? null,
+    ),
+    /* ⚠️ 「紹介したか」の正は `introduced_at`（`conversation_id` は消えうる） */
+    introduced: p.introduced_at != null,
   }));
 
   return (
