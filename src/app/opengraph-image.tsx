@@ -45,11 +45,22 @@ export default async function Image() {
           height={44}
           style={{ marginBottom: 44 }}
         />
-        {/* ⚠️ satori は「子が2つ以上ある div」に `display: flex` を要求する。
-               `キャリアに、<br />第三者の目を。` はテキスト+br+テキストで3つになり、
+        {/* ★★2026-09-20 に文言を**タイトルと同じ**にした（柴さんの判断）。
+               それまで**「キャリアに、第三者の目を。」**で、**サイトのどこにも無い文言**だった
+               （実測: `src` 全体で `opengraph-image.tsx` の2行だけ）。
+               シェアされたとき、**画像と見出しが別のことを言っている**状態だった。
+            ⚠️★**4箇所と完全一致させること。片方だけ変えない:**
+                 `page.tsx` の `title` と `openGraph.title` ／
+                 `layout.tsx` の `openGraph.title` と `twitter.title` ／ ここ。
+            ⚠️★**LP の h1（「求人票の向こうにいる現役社員」）とは別。連動させない。**
+               h1 は言い換える前提のコピーで、こちらはサービスの説明。
+               一度 h1 に揃えたが、同日に「タイトルで統一する」判断に変わった。
+
+            ⚠️ satori は「子が2つ以上ある div」に `display: flex` を要求する。
+               `<br />` を挟むとテキスト+br+テキストで子が3つになり、
                **`Expected <div> to have explicit "display: flex"` で落ちる。**
                ⚠️ これは 2026-09-06 まで実際に落ちていた（`/og-image.png` に
-                  上書きされていたので誰も踏まなかっただけ）。行ごとに div を分ける。 */}
+                  上書きされていたので誰も踏まなかっただけ）。**行ごとに div を分ける。** */}
         <div
           style={{
             display: "flex",
@@ -62,10 +73,13 @@ export default async function Image() {
             letterSpacing: "-0.02em",
           }}
         >
-          <div>キャリアに、</div>
-          <div>第三者の目を。</div>
+          <div>IT業界特化の</div>
+          <div>キャリアプラットフォーム</div>
         </div>
-        <div style={{ fontSize: 22, color: "#475569" }}>IT業界のキャリアプラットフォーム</div>
+        {/* ⚠️★小さい行「IT業界のキャリアプラットフォーム」は **2026-09-20 に削除した。**
+               本文がそれ自体になったので、**同じことを2回言う**形だった。
+            ⚠️ 「IT業界」は本文に入っているので、対象範囲はシェア面から消えていない
+               （LP の FV からは今日サブコピーと placeholder ごと消えている）。 */}
       </div>
     ),
     { ...size }

@@ -54,11 +54,19 @@ export async function generateMetadata(): Promise<Metadata> {
     "IT企業の事業と、在籍している方・していた方の経歴をまとめています。企業情報と募集は登録なしで読めます。経歴は登録すると読めます。完全無料・営業電話なし。";
 
   return {
-    /* ⚠️ `absolute` にする。素の title だと「… | OPINIO」が足されて OPINIO が2回出る。 */
-    title: { absolute: "OPINIO — 求人票の向こうにいる現役社員" },
+    /* ⚠️ `absolute` にする。素の title だと「… | OPINIO」が足されて OPINIO が2回出る。
+       ★★2026-09-20 に「OPINIO — 求人票の向こうにいる現役社員」から戻した（柴さんの判断）。
+          ⚠️★**4箇所すべて同じ文字列にしてある。片方だけ変えないこと:**
+               ① ここ（`<title>` ＝ 検索結果・タブ）
+               ② すぐ下の `openGraph.title`（LINE・Facebook のカード）
+               ③ `layout.tsx` の `twitter.title`（X。**ここでは上書きしていない**ので既定が効く）
+               ④ `opengraph-image.tsx` の**画像の中の文字**
+          ⚠️ LP の h1（「求人票の向こうにいる現役社員」）とは**わざと別**。
+             h1 は言い換える前提のコピーで、こちらはサービスの説明。**連動させない。** */
+    title: { absolute: "OPINIO | IT業界特化のキャリアプラットフォーム" },
     description,
     openGraph: {
-      title: "OPINIO — 求人票の向こうにいる現役社員",
+      title: "OPINIO | IT業界特化のキャリアプラットフォーム",   // ⚠️ 上の注記の②
       description,
       url: "https://opinio.jp",
       siteName: "OPINIO",

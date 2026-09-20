@@ -30,8 +30,18 @@ export const metadata: Metadata = {
   */
   description:
     "IT業界特化のキャリアプラットフォーム。企業情報・求人・そこで働く人の経歴まで、登録なしで検索できます。完全無料・営業電話なし・登録はメールのみ。",
+  /* ⚠️★**タイトルは1つの文字列に統一してある**（2026-09-20 / 柴さんの判断）。
+        「OPINIO | IT業界特化のキャリアプラットフォーム」。**片方だけ変えないこと:**
+          ① ここの `openGraph.title`   ② すぐ下の `twitter.title`
+          ③ ルートの `layout.tsx`（同じ2つ）  ④ トップの `page.tsx`（`title` と `openGraph.title`）
+          ⑤ `opengraph-image.tsx` の**画像の中の文字**
+        ⚠️ それまで ①は「IT業界特化の転職・求人情報」、②は「IT転職・キャリア」で、
+           **ルートの既定とも、トップのタイトルとも違っていた**（X でシェアしたときだけ
+           別の見出しが出ていた）。
+        ⚠️★LP の h1（「求人票の向こうにいる現役社員」）とは**わざと別**。
+           h1 は言い換える前提のコピーで、こちらはサービスの説明。**連動させない。** */
   openGraph: {
-    title: "OPINIO | IT業界特化の転職・求人情報",
+    title: "OPINIO | IT業界特化のキャリアプラットフォーム",
     description: "IT業界特化。企業情報と求人を、登録なしでまとめて探せるキャリアプラットフォーム。",
     type: "website",
     url: "https://opinio.jp",
@@ -39,7 +49,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OPINIO | IT転職・キャリア",
+    title: "OPINIO | IT業界特化のキャリアプラットフォーム",
     description: "IT業界特化。企業情報と求人を、登録なしで。完全無料・営業電話なし。",
   },
   alternates: {
