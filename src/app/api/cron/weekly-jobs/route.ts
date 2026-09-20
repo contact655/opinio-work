@@ -5,7 +5,7 @@ import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipien
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
-import { senderFooterHtml, MAIL_SUCCESS_FILL } from "@/lib/notify/templates";
+import { senderFooterHtml, MAIL_SUCCESS_FILL, MAIL_WARM_GRADIENT } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -266,7 +266,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
           気になる企業のプロフィールページから、在籍ユーザーにDMを送れます
         </div>
         <a href="${BASE_URL}/companies"
-           style="display:inline-block;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;padding:10px 28px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:700;box-shadow:0 2px 8px rgba(245,158,11,0.3)">
+           style="display:inline-block;background:${MAIL_WARM_GRADIENT};color:#fff;padding:10px 28px;border-radius:8px;font-size:14px;text-decoration:none;font-weight:700;box-shadow:0 2px 8px rgba(245,158,11,0.3)">
           企業一覧を見る →
         </a>
       </div>

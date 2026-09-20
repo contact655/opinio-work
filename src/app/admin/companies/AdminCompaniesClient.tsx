@@ -408,7 +408,7 @@ export default function AdminCompaniesClient(
       {isDndActive && (
         <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
           {isSavingOrder
-            ? <><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--warm)", display: "inline-block", animation: "pulse 1s infinite" }} /> 順序を保存中...</>
+            ? <><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--warm-strong)", display: "inline-block", animation: "pulse 1s infinite" }} /> 順序を保存中...</>
             : <><span>⠿</span> 行をドラッグして並び替えできます（「すべて」タブ・検索なし時）</>
           }
         </div>

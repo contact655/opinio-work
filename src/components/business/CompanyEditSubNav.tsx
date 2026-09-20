@@ -158,7 +158,7 @@ export function CompanyEditSubNav({
             padding: "6px 10px", borderRadius: 6,
             background: "var(--warm-soft)", border: "1px solid #FDE68A",
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm)", flexShrink: 0 }} />
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm-strong)", flexShrink: 0 }} />
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>未公開の変更あり</span>
           </div>
         ) : (
@@ -224,7 +224,7 @@ export function CompanyEditSubNav({
                     title="対応が必要です"
                     style={{
                       width: 7, height: 7, borderRadius: "50%",
-                      background: "var(--warm-ink)", flexShrink: 0,
+                      background: "var(--warm-strong)", flexShrink: 0,
                     }}
                   />
                 )}

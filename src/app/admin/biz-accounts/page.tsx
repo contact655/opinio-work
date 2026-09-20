@@ -358,7 +358,7 @@ export default async function AdminBizAccountsPage({
                           display: "inline-flex", alignItems: "center", gap: 5,
                         }}>
                           <span style={{
-                            width: 6, height: 6, borderRadius: "50%", background: "#F59E0B",
+                            width: 6, height: 6, borderRadius: "50%", background: "var(--warm-strong)",
                             boxShadow: "0 0 0 2px rgba(245,158,11,0.3)",
                           }} />
                           未ログイン

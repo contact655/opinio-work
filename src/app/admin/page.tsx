@@ -379,7 +379,7 @@ export default async function AdminDashboard() {
           }}>
             <div style={{
               width: 8, height: 8, borderRadius: "50%",
-              background: "#F59E0B",
+              background: "var(--warm-strong)",
               boxShadow: "0 0 0 3px rgba(245,158,11,0.25)",
             }} />
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)" }}>
