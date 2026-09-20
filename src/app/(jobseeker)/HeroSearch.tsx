@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 /**
  * LP ヒーローの検索。
@@ -21,33 +21,24 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  /*
-    プレースホルダーは幅で出し分ける。
-    説明としての役目があるので、狭幅で切れないよう matchMedia で短いほうに替える。
-    CSS だけでは文言を変えられない。
-    ⚠️ 短いほうからも「IT業界」は落とさないこと。落とすと対象範囲が画面から消える。
+  /* ★★プレースホルダーは **2026-09-20 に柴さんの指示で削除した。** 入力欄は空のまま。
+        ⚠️★**戻さないこと。** 書き戻すときは下を読んでから。
 
-    ⚠️ 2026-09-06 に「IT/SaaS業界」→「IT業界」にしたぶん4文字短くなり、
-       375px でも長いほうが**収まるようになった**（実測: 入力可能幅 191px に対し
-       長いほう 181px）。それでも出し分けは残す —— 余裕が 10px しかなく、
-       和文は OS でフォントが変わる（macOS ヒラギノ / Windows 游ゴシック）ため。
-       ⚠️ 消すなら Windows で実測してから。
-  */
-  /* ⚠️ 2026-09-16: 文章でも探せることを示す。チップだけだと、
-        自分で文を書いてよいと伝わらない（チップを押す以外の使い方が見えない）。
-     ⚠️ 「IT業界」を落とさないこと。対象範囲を言っているのは見出しとここだけ。 */
-  const LONG = "IT業界の会社名・職種、または「外資系のセキュリティ企業」のように文章で";
-  const SHORT = "IT業界の会社名・職種";
-  // SSR と初期描画は長いほうで揃える（hydration mismatch を避ける）
-  const [placeholder, setPlaceholder] = useState(LONG);
+     ── 消したもの（経緯を残す）─────────────────────────────────────────────
+     幅で2つを出し分けていた（`matchMedia("(max-width: 560px)")`）:
+       560px 以上 … 「IT業界の会社名・職種、または『外資系のセキュリティ企業』のように文章で」
+       560px 未満 … 「IT業界の会社名・職種」
+     出し分けていたのは、375px の入力可能幅 191px に対し長いほうが 181px で、
+     **余裕が 10px しか無かった**ため（和文は OS でフォントが変わる）。
+     CSS だけでは文言を変えられないので JS で持っていた。
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 560px)");
-    const apply = () => setPlaceholder(mq.matches ? SHORT : LONG);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
+     ⚠️★**これで FV から「IT業界」の文字が消えた。** 対象範囲を言っていたのは
+        見出しとここの2箇所だったが、見出しも同日に
+        「求人票の向こうにいる現役社員」へ変わっている。
+        **IT に絞っていることは、FV のどこにも書かれていない。**
+     ⚠️ 「文章でも探せる」ことを伝える手段も無くなった。2026-09-16 に例文チップを
+        足し、2026-09-20 にチップを消してこの placeholder に役目を移し、同日ここも消した、
+        という順。**書き戻すならチップではなく placeholder 側が候補。** */
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,17 +51,10 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
     // ⚠️ 幅はインラインに書かないこと（CLAUDE.md「インラインstyle と CSS の優先順位」）。
     //    max-width は .hero-search-form にある。
     <form onSubmit={submit} className="hero-search-form">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "stretch",
-          background: "#fff",
-          border: `1px solid ${line}`,
-          borderRadius: 12,
-          boxShadow: "0 8px 28px rgba(14,33,72,.08)",
-          overflow: "hidden",
-        }}
-      >
+      {/* ⚠️★枠・背景・角丸は**インラインに書かないこと**（2026-09-20 に CSS へ移した）。
+             インラインだと `:focus-within` が勝てず、**フォーカスしても殻の色が変わらない**
+             （globals.css の `.search-shell` に同じ注記がある。あちらも一度そうなった）。 */}
+      <div className="hero-search-shell">
         <span style={{ display: "grid", placeItems: "center", padding: "0 4px 0 18px", flexShrink: 0 }}>
           <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true" style={{ display: "block", color: muted }}>
             <circle cx="10.6" cy="10.6" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -81,7 +65,6 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={placeholder}
           aria-label="IT業界の企業・求人を検索"
           className="hero-search-input"
           style={{
@@ -135,9 +118,40 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
            ⚠️ .lp-wrap の内側は 1064px（1120 − 28×2）なので、これ以上広げると
               左右の余白が消える。 */
         .hero-search-form { width: 100%; max-width: 1000px; }
+
+        /* ★★殻（枠そのものが入力欄に見える形）。2026-09-20 にインラインから移した。
+           ⚠️★**overflow: hidden を外さないこと。** 右端の「検索」ボタンの角を
+              殻の角丸で切っているのはこれ。 */
+        .hero-search-shell {
+          display: flex; align-items: stretch; background: #fff;
+          border: 1px solid ${line}; border-radius: 12px;
+          box-shadow: 0 8px 28px rgba(14,33,72,.08);
+          overflow: hidden;
+          transition: border-color .15s, box-shadow .15s;
+        }
+        /* 焦点は**殻が出す**。⚠️ 消すとどこにも出なくなる（キーボード操作で行方不明になる） */
+        .hero-search-shell:focus-within {
+          border-color: ${navy};
+          box-shadow: 0 8px 28px rgba(14,33,72,.08), 0 0 0 3px rgba(0,35,102,0.08);
+        }
+        /* ★★中の入力欄の焦点リングを止める（2026-09-20 / 柴さんの指摘）。
+           ⚠️ globals.css の input:focus-visible が 2px の outline を出すが、
+              この殻は overflow: hidden なので **outline の上下だけが切られ、
+              左右が黒い縦線として残っていた。**
+           ⚠️★**globals.css 側を緩めないこと。** あちらを触るとサイト中の入力欄から
+              焦点表示が消える。ここは**この殻の中だけ**の上書き。
+              同じ形の打ち消しが .search-shell と .search-pill にもある
+              （殻の形が3つあり、これが3つ目）。 */
+        .hero-search-shell input:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+          border-color: transparent !important;
+        }
         .hero-search-input { font-size: 16px; padding: 18px 12px; }
         /* プレースホルダーは薄くしすぎると読めない。
            日本語ゴシックは同じ色でも欧文より細く見えるため 500 を当てる。 */
+        /* ⚠️ placeholder は 2026-09-20 に削除したので**使い手が0**。
+              書き戻すときのために残してある（上の注記を読むこと）。 */
         .hero-search-input::placeholder { color: ${muted}; font-weight: 500; opacity: 1; }
         /* 例文チップ。検索窓の直下に左寄せで置く（窓の左端に揃える）。
            ⚠️ 中央寄せにしないこと。親（FV）が text-align:center なので
