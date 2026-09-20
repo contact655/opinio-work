@@ -89,16 +89,20 @@ export default async function OrganizationPage({
         <OrganizationTabs activeTab={activeTab} />
       </div>
 
-      {activeTab === "departments" ? (
-        <DepartmentsEditor
-          initialDepartments={(deptResult.data ?? []) as Department[]}
-        />
-      ) : (
-        <JobRolesEditor
-          initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
-          standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
-        />
-      )}
+      {/* ⚠️★外側の余白はここが持つ。`OrgTreeEditor` 側に書き戻さないこと
+             （`/dev/preview/org-tree` に置いたときに余白が入り込む）。 */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 32px 80px" }}>
+        {activeTab === "departments" ? (
+          <DepartmentsEditor
+            initialDepartments={(deptResult.data ?? []) as Department[]}
+          />
+        ) : (
+          <JobRolesEditor
+            initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
+            standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
+          />
+        )}
+      </div>
     </BusinessLayout>
   );
 }

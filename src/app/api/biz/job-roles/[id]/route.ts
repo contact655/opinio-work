@@ -2,18 +2,39 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { mutateMany, mutateOne } from "@/lib/supabase/mutate";
 import { getTenantContext } from "@/lib/business/dashboard";
+import { validateMove, type OrgNodeLike } from "@/lib/business/orgTree";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const patch: { name?: string; standard_role_id?: string | null; display_order?: number } = {};
+  const patch: { name?: string; standard_role_id?: string | null; display_order?: number; parent_id?: string | null } = {};
   if (body.name !== undefined) patch.name = String(body.name).trim();
   if (body.standard_role_id !== undefined) patch.standard_role_id = typeof body.standard_role_id === "string" ? body.standard_role_id : null;
   if (body.display_order !== undefined) patch.display_order = Number(body.display_order);
 
   const supabase = createClient();
+
+  /* ★親の付け替え（2026-09-20）。⚠️★**部門（/api/biz/departments/[id]）と同じ関数**
+        （`validateMove`）を通す。片方だけ条件を足さないこと。
+     ⚠️ ここで動かすのは**自社職種の親子**。`standard_role_id`（OPINIO のマスタ）とは別物。 */
+  if (body.parent_id !== undefined) {
+    const newParentId = typeof body.parent_id === "string" && body.parent_id ? body.parent_id : null;
+    const { data: rows, error: treeErr } = await supabase
+      .from("ow_company_job_roles")
+      .select("id, parent_id")
+      .eq("company_id", ctx.tenantId)
+      .is("deleted_at", null);
+    if (treeErr) {
+      console.error("[PATCH /api/biz/job-roles/[id]] tree", treeErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    const reason = validateMove(params.id, newParentId, (rows ?? []) as OrgNodeLike[], "職種");
+    if (reason) return NextResponse.json({ error: reason }, { status: 400 });
+    patch.parent_id = newParentId;
+  }
+
   const res = await mutateOne(
     supabase.from("ow_company_job_roles").update(patch)
       .eq("id", params.id).eq("company_id", ctx.tenantId)

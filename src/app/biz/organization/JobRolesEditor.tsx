@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { buildRoleTree } from "@/lib/roles/jobRoles";
-import { MAX_ORG_DEPTH, flattenTree } from "@/lib/business/orgTree";
+import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
+import { OrgTreeEditor } from "@/components/business/OrgTreeEditor";
 
 export type CompanyJobRole = {
   id: string;
@@ -308,430 +309,42 @@ function StandardRoleCombobox({
   );
 }
 
+/**
+ * 職種タブ。**中身は部門タブと同じ部品**（`components/business/OrgTreeEditor.tsx`）。
+ *
+ * ⚠️★**ここに木の描画や追加欄を書き戻さないこと**（2026-09-20 にまとめた）。
+ *    部門との違いは**「標準職種」の1列だけ**で、それを `extra` で渡している。
+ *    振る舞いを変えたくなったら、この列ではなく部品側の props を足すこと。
+ *
+ * ⚠️★`standard_role_id`（OPINIO のマスタ）と `parent_id`（自社の組織の形）は**別物**。
+ *    前者は求人検索・マッチングの分類、後者は画面の階層。混ぜないこと。
+ */
 export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
-  const [roles, setRoles] = useState<CompanyJobRole[]>(initialRoles);
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  // 追加フォーム
-  const [addingNew, setAddingNew] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newStdRoleId, setNewStdRoleId] = useState("");
-  /* ★追加欄の階層（2026-09-19）。⚠️★**部門タブとまったく同じ規則**
-     （`lib/business/orgTree.ts`）。人事担当者は部門から作る人も職種から作る人も
-     いるので、片方だけ挙動が違う状態を作らない。 */
-  const [pendingParentId, setPendingParentId] = useState<string | null>(null);
-  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
-  const newNameRef = useRef<HTMLInputElement>(null);
-
-  // 行編集
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editStdRoleId, setEditStdRoleId] = useState("");
-
-  // 削除確認
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-
-  /** 追加欄の「いまどこに足すか」。画面に出して迷わせないため */
-  function draftPath(): string[] {
-    const path: string[] = [];
-    let cur = pendingParentId;
-    for (let guard = 0; guard < MAX_ORG_DEPTH + 1; guard++) {
-      if (!cur) break;
-      const node = roles.find((r) => r.id === cur);
-      if (!node) break;
-      path.unshift(node.name);
-      cur = node.parent_id;
-    }
-    return path;
-  }
-  const draftDepth = draftPath().length + 1;
-
-  async function handleAdd() {
-    if (!newName.trim()) return;
-    setError(null);
-    /* ⚠️ 並び順は**同じ親の中**で数える。全体の最大から採ると、
-          子を足すたびに番号が飛んで親ごとの並びが崩れる。 */
-    const maxOrder = roles
-      .filter((r) => r.parent_id === pendingParentId)
-      .reduce((m, r) => Math.max(m, r.display_order), -1);
-    const res = await fetch("/api/biz/job-roles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newName,
-        parent_id: pendingParentId,
-        standard_role_id: newStdRoleId || null,
-        display_order: maxOrder + 1,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      /* ⚠️ 制約は `(company_id, name, parent_id)`。**同じ階層の同名**だけが重複する。 */
-      setError(res.status === 409 ? "同じ名前の職種が、この階層にすでにあります" : (data.error ?? "追加に失敗しました"));
-      return;
-    }
-    startTransition(() => {
-      setRoles((prev) => [...prev, data.jobRole]);
-    });
-    setNewName("");
-    setNewStdRoleId("");
-    setLastCreatedId(data.jobRole.id as string);
-    /* ⚠️★**欄を閉じない。** 続けて打てることがこの欄の目的（部門タブと同じ）。 */
-    newNameRef.current?.focus();
-  }
-
-  function indentDraft() {
-    if (!lastCreatedId) return;
-    if (draftDepth >= MAX_ORG_DEPTH) return;
-    setPendingParentId(lastCreatedId);
-  }
-  function outdentDraft() {
-    if (!pendingParentId) return;
-    const parent = roles.find((r) => r.id === pendingParentId);
-    setPendingParentId(parent?.parent_id ?? null);
-    setLastCreatedId(null);
-  }
-  function closeDraft() {
-    setAddingNew(false);
-    setNewName("");
-    setNewStdRoleId("");
-    setPendingParentId(null);
-    setLastCreatedId(null);
-  }
-
-  function startEdit(role: CompanyJobRole) {
-    setEditingId(role.id);
-    setEditName(role.name);
-    setEditStdRoleId(role.standard_role_id ?? "");
-    setConfirmDeleteId(null);
-  }
-
-  async function handleSaveEdit() {
-    if (!editingId || !editName.trim()) { setEditingId(null); return; }
-    setError(null);
-    const res = await fetch(`/api/biz/job-roles/${editingId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: editName,
-        standard_role_id: editStdRoleId || null,
-      }),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "更新に失敗しました");
-      return;
-    }
-    startTransition(() => {
-      setRoles((prev) =>
-        prev.map((r) =>
-          r.id === editingId
-            ? { ...r, name: editName, standard_role_id: editStdRoleId || null }
-            : r
-        )
-      );
-    });
-    setEditingId(null);
-  }
-
-  async function handleDelete(id: string) {
-    setError(null);
-    const res = await fetch(`/api/biz/job-roles/${id}`, { method: "DELETE" });
-    if (!res.ok) { setError("削除に失敗しました"); return; }
-    startTransition(() => {
-      setRoles((prev) => {
-        /* ⚠️★**子孫も消す。** サーバー側（DELETE /api/biz/job-roles/[id]）が
-              まとめて論理削除するので、画面だけ残すと**消えたはずの行が居座る。** */
-        const toRemove = new Set<string>();
-        const collect = (rid: string) => {
-          if (toRemove.has(rid)) return;
-          toRemove.add(rid);
-          prev.filter((r) => r.parent_id === rid).forEach((c) => collect(c.id));
-        };
-        collect(id);
-        return prev.filter((r) => !toRemove.has(r.id));
-      });
-    });
-    setConfirmDeleteId(null);
-  }
-
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 32px 80px" }}>
-
-      {/* エラー */}
-      {error && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--error-soft)", border: "1px solid #FCA5A5", fontSize: 13, color: "var(--error-ink)", fontWeight: 600 }}>
-          {error}
-          <button type="button" onClick={() => setError(null)} style={{ marginLeft: 12, fontSize: 11, color: "var(--error)", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>✕</button>
-        </div>
-      )}
-
-      {/* 職種リスト */}
-      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
-        {roles.length === 0 ? (
-          <div style={{ padding: "40px 24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13 }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>💼</div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>職種がまだ登録されていません</div>
-            <div>「職種を追加する」から自社の職種を登録してください</div>
-          </div>
-        ) : (
-          <div>
-            {/* テーブルヘッダー */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 16px", borderBottom: "1px solid var(--line-soft)", background: "var(--bg-tint)" }}>
-              <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.05em" }}>自社の呼び方</span>
-              <span style={{ width: 200, fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.05em" }}>標準職種（マッチング用）</span>
-              <span style={{ width: 120 }} />
-            </div>
-
-            {/* ★木の順（親 → その子 → 次の親）で並べる（2026-09-19）。
-                   ⚠️★**`flattenTree` を通すこと。** 素の配列順で出すと、
-                      子が親から離れて並び、階層が読めない。
-                   ⚠️ 孤児（親が消えた行）も必ず出る作りにしてある。
-                      出さないと**画面から消えて直せなくなる。** */}
-            {flattenTree(roles).map(({ node: role, depth }, idx) => (
-              <div
-                key={role.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 16px",
-                  borderTop: idx > 0 ? "1px solid var(--line-soft)" : "none",
-                  background: editingId === role.id ? "var(--royal-50)" : "#fff",
-                }}
-              >
-                {/* 字下げ。⚠️ 幅は部門タブ（DeptNode の indentLeft）と同じ 20px */}
-                {depth > 1 && <span style={{ width: (depth - 1) * 20, flexShrink: 0 }} />}
-                {/* 職種名（編集 or 表示） */}
-                {editingId === role.id ? (
-                  <input
-                    autoFocus
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveEdit();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    style={{
-                      flex: 1,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      fontFamily: "inherit",
-                      border: "1px solid var(--accent)",
-                      borderRadius: 5,
-                      padding: "4px 10px",
-                      outline: "none",
-                      color: "var(--ink)",
-                    }}
-                  />
-                ) : (
-                  <span
-                    style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--ink)", cursor: "default" }}
-                    onDoubleClick={() => startEdit(role)}
-                    title="ダブルクリックで編集"
-                  >
-                    {role.name}
-                  </span>
-                )}
-
-                {/* 標準職種（編集 or バッジ） */}
-                {editingId === role.id ? (
-                  <div style={{ width: 200 }}>
-                    <StandardRoleCombobox
-                      value={editStdRoleId}
-                      onChange={setEditStdRoleId}
-                      roles={standardRoles}
-                    />
-                  </div>
-                ) : (
-                  <div style={{ width: 200 }}>
-                    {role.standard_role_id
-                      ? <StandardRoleBadge roleId={role.standard_role_id} roles={standardRoles} />
-                      : <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>未設定</span>
-                    }
-                  </div>
-                )}
-
-                {/* アクション */}
-                <div style={{ width: 120, display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                  {editingId === role.id ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleSaveEdit}
-                        disabled={!editName.trim() || isPending}
-                        style={{ padding: "3px 10px", fontSize: 11, fontWeight: 700, border: "none", borderRadius: 5, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        保存
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(null)}
-                        style={{ padding: "3px 8px", fontSize: 11, border: "1px solid var(--line)", borderRadius: 5, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        キャンセル
-                      </button>
-                    </>
-                  ) : confirmDeleteId === role.id ? (
-                    <>
-                      <span style={{ fontSize: 11, color: "var(--error)", fontWeight: 600 }}>削除?</span>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => handleDelete(role.id)}
-                        style={{ padding: "3px 8px", fontSize: 11, fontWeight: 700, border: "none", borderRadius: 5, background: "var(--error)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        削除
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteId(null)}
-                        style={{ padding: "3px 6px", fontSize: 11, border: "1px solid var(--line)", borderRadius: 5, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        キャンセル
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => { startEdit(role); }}
-                        style={{ padding: "3px 8px", fontSize: 11, border: "1px solid var(--line)", borderRadius: 5, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        編集
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => { setConfirmDeleteId(role.id); setEditingId(null); }}
-                        style={{ padding: "3px 6px", fontSize: 11, border: "1px solid #FCA5A5", borderRadius: 5, background: "#FEF2F2", color: "var(--error)", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        削除
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 追加フォーム */}
-      {addingNew ? (
-        <div style={{ background: "#fff", border: "1px solid var(--accent)", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
-            {/* 字下げで深さを目で見せる（部門タブと同じ） */}
-            <span style={{ width: (draftDepth - 1) * 20, flexShrink: 0 }} />
-            <input
-              ref={newNameRef}
-              autoFocus
-              placeholder="職種名を入力して Enter"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); handleAdd(); return; }
-                /* ⚠️★**Tab は既定だとフォーカスが飛ぶ。** preventDefault が要る。
-                      ⚠️ ただしこの欄には**標準職種のコンボボックスが隣にある**ので、
-                         Tab を潰すとそちらへキーボードで移れない。
-                         **Esc で閉じられること**と、コンボボックスはマウス／
-                         クリックで開けることを下の行に書いてある。 */
-                if (e.key === "Tab") {
-                  e.preventDefault();
-                  if (e.shiftKey) outdentDraft(); else indentDraft();
-                  return;
-                }
-                if (e.key === "Escape") { e.preventDefault(); closeDraft(); }
-              }}
-              style={{
-                flex: 1,
-                minWidth: 160,
-                fontSize: 14,
-                fontFamily: "inherit",
-                border: "1px solid var(--line)",
-                borderRadius: 7,
-                padding: "7px 12px",
-                outline: "none",
-                color: "var(--ink)",
-              }}
-            />
-            <StandardRoleCombobox
-              value={newStdRoleId}
-              onChange={setNewStdRoleId}
-              roles={standardRoles}
-              placeholder="標準職種に紐づける（任意）"
-            />
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={!newName.trim() || isPending}
-              style={{ padding: "7px 18px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 7, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
-            >
-              追加
-            </button>
-            <button
-              type="button"
-              onClick={closeDraft}
-              style={{ padding: "7px 12px", fontSize: 13, border: "1px solid var(--line)", borderRadius: 7, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
-            >
-              閉じる
-            </button>
-          </div>
-
-          {/* ★いまどこに足すか＋キーの説明（部門タブと同じ形） */}
-          <div style={{ marginTop: 10, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-            <span style={{ fontWeight: 700, color: "var(--royal)" }}>{draftDepth}階層目に追加</span>
-            {draftPath().length > 0 && <span>　{draftPath().join(" › ")} の下</span>}
-            <br />
-            Enter で追加して続けて入力／Tab で直前の職種の下へ（{MAX_ORG_DEPTH}階層まで）／
-            Shift+Tab で一段戻る／Esc で閉じる
-            {lastCreatedId === null && pendingParentId === null && (
-              <span>　※ Tab は1件目を追加したあとから使えます</span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAddingNew(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            border: "2px dashed var(--line)",
-            borderRadius: 10,
-            background: "transparent",
-            color: "var(--ink-soft)",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            width: "100%",
-            marginBottom: 16,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal-100)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-soft)"; }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          職種を追加する
-        </button>
-      )}
-
-      {/* ヒント */}
-      <div style={{ marginTop: 8, padding: "12px 16px", background: "var(--royal-50)", borderRadius: 10, border: "1px solid var(--royal-100)" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 6 }}>使い方のヒント</div>
-        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-          <li>「職種を追加する」を開くと、<b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上。最大{MAX_ORG_DEPTH}階層）</li>
-          <li>「自社の呼び方」は社内で使っている職種名を自由に入力してください（例：FS, AE, IC など略称も可）</li>
-          <li>「標準職種」と紐づけると、OPINIOの求人検索・マッチングで正しく分類されます</li>
-          <li>職種名をダブルクリックするとインライン編集できます</li>
-          <li>削除すると<b>その下の職種も一緒に削除されます</b>。紐づいた求人の記録は残ります</li>
-        </ul>
-      </div>
-    </div>
+    <OrgTreeEditor<CompanyJobRole>
+      unit="職種"
+      endpoint="/api/biz/job-roles"
+      createdKey="jobRole"
+      initialRows={initialRoles}
+      example="フィールドセールス"
+      extra={{
+        view: (row) => <StandardRoleBadge roleId={row.standard_role_id} roles={standardRoles} />,
+        input: (value, onChange) => (
+          <StandardRoleCombobox value={value} onChange={onChange} roles={standardRoles} />
+        ),
+        valueOf: (row) => row.standard_role_id ?? "",
+        /* ⚠️ 空文字は「紐づけなし」。**null で送る**（"" のまま送ると
+              uuid の列に空文字が入って 400 になる）。 */
+        toBody: (value) => ({ standard_role_id: value || null }),
+      }}
+      hints={[
+        <>下の入力欄は <b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上。最大{MAX_ORG_DEPTH}階層）</>,
+        <>行の <b>↑ ↓</b> で並べ替え、<b>← →</b> で階層を変えられます</>,
+        <>職種名は社内で使っている呼び方で構いません（例：FS, AE, IC などの略称も可）</>,
+        <><b>標準職種</b>と紐づけると、OPINIO の求人検索・マッチングで正しく分類されます</>,
+        <>職種名をダブルクリックすると名前を変更できます</>,
+        <>削除すると<b>その下の職種も一緒に削除されます</b>。紐づいた求人の記録は残ります</>,
+      ]}
+    />
   );
 }

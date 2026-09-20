@@ -113,3 +113,73 @@ export function flattenTree<T extends OrgNodeLike>(nodes: T[]): { node: T; depth
   }
   return out;
 }
+
+/**
+ * `nodeId` を根とする部分木の高さ（自分だけなら 1）。
+ *
+ * ⚠️★**移動のときはこれが要る。** 動かすのは1行ではなく**その下にぶら下がる全部**で、
+ *    「自分が上限内か」ではなく「**いちばん深い子孫が上限内か**」で判定しないと、
+ *    孫が 6階層目に落ちる。
+ */
+export function subtreeHeight(nodeId: string, byId: Map<string, OrgNodeLike>): number {
+  const childrenOf = new Map<string | null, string[]>();
+  byId.forEach((n) => {
+    const key = n.parent_id ?? null;
+    const arr = childrenOf.get(key);
+    if (arr) arr.push(n.id); else childrenOf.set(key, [n.id]);
+  });
+  let height = 1;
+  /* ⚠️ 壊れたデータ（循環）で返らなくならないように、見た id は辿らない。 */
+  const seen = new Set<string>();
+  const walk = (id: string, depth: number) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    if (depth > height) height = depth;
+    for (const child of childrenOf.get(id) ?? []) walk(child, depth + 1);
+  };
+  walk(nodeId, 1);
+  return height;
+}
+
+/**
+ * `nodeId`（とその子孫）を `newParentId` の下へ移したとき、上限を超えるか。
+ *
+ * ⚠️★**`wouldExceedDepth` と混同しないこと。** あちらは「1件足す」用で、
+ *    移動に使うと**子孫のぶんを数え落とす。**
+ */
+export function wouldExceedDepthOnMove(
+  nodeId: string,
+  newParentId: string | null,
+  byId: Map<string, OrgNodeLike>,
+): boolean {
+  const base = newParentId ? depthOf(newParentId, byId) : 0;
+  return base + subtreeHeight(nodeId, byId) > MAX_ORG_DEPTH;
+}
+
+/**
+ * 「この行を、この親の下へ動かしてよいか」。**理由の文字列**を返す（null なら通す）。
+ *
+ * ⚠️★**部門と職種の両方の API がこれを呼ぶ。** 片方に条件を書き足さないこと。
+ *    循環（`wouldCycle`）と深さ（`wouldExceedDepthOnMove`）は**どちらも要る**
+ *    ——循環だけ見ると孫が上限を超え、深さだけ見ると自分の子の下へ入れてしまう。
+ *
+ * @param unit 画面に出す語（「部門」「職種」）
+ */
+export function validateMove(
+  nodeId: string,
+  newParentId: string | null,
+  rows: OrgNodeLike[],
+  unit: string,
+): string | null {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  if (!byId.has(nodeId)) return `${unit}が見つかりません`;
+  if (newParentId !== null && !byId.has(newParentId)) return `移動先の${unit}が見つかりません`;
+  if (newParentId === nodeId) return `自分自身の下には移動できません`;
+  if (newParentId !== null && wouldCycle(nodeId, newParentId, byId)) {
+    return `自分の下の${unit}へは移動できません`;
+  }
+  if (wouldExceedDepthOnMove(nodeId, newParentId, byId)) {
+    return `${unit}は${MAX_ORG_DEPTH}階層までです`;
+  }
+  return null;
+}

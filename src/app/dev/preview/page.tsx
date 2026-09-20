@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/org-tree", label: "組織体制の編集（/biz/organization）",
+    desc: "部門・職種の木。0件／5階層ちょうど／長い名前。移動ボタンが押せる・押せない境界はここでしか見られない" },
   { href: "/dev/preview/evidence-gaps", label: "根拠の棚卸し（/admin）",
     note: "運営権限が無いと実画面を開けないので、状態はここで見る" },
   { href: "/dev/preview/proposals", label: "根拠つき提案（②⑨）",
