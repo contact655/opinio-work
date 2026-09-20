@@ -78,7 +78,8 @@ export function FinalCta({ navy }: { navy: string }) {
             → 「保存できます」までにしてある。
 
         ⚠️ ログイン済み側の文も同じ基準で直した。**片方だけ直さないこと。**
-        ⚠️ 文言は LP の FV のボタン・/feed の登録パネルと揃えてある（「無料登録して経歴を見る」）。
+        ⚠️ 文言は LP の FV のボタン・/feed の登録パネルと揃えてある（「無料登録」）。
+           ⚠️★2026-09-20 に「無料登録して経歴を見る」から短くした（柴さんの指示）。3箇所同時に変えている。
       */}
       <p style={{ color: "#B9C6DE", fontSize: 15.5, lineHeight: 1.8, marginBottom: 26 }}>
         {state === "member" ? (
@@ -111,8 +112,9 @@ export function FinalCta({ navy }: { navy: string }) {
             {/* ⚠️★「メールアドレスで」を外した（2026-09-17）。**Google でも登録できる。**
                    実測: `/auth` の登録は「Googleで続ける」（推奨バッジ付き・主）と
                    「メールアドレスで登録」の2つ。片方だけ書くと、もう片方が見えない。
-                ⚠️ FV のボタン（`AuthAwareCta` の guest）と**同じ文言**。片方だけ変えないこと。 */}
-            <Link href="/auth" style={ghost}>無料登録して経歴を見る</Link>
+                ⚠️ FV のボタン（`AuthAwareCta` の guest）と**同じ文言**。片方だけ変えないこと。
+                ⚠️★2026-09-20 に「無料登録して経歴を見る」→「無料登録」。3箇所同時に変えた。 */}
+            <Link href="/auth" style={ghost}>無料登録</Link>
           </>
         )}
       </div>

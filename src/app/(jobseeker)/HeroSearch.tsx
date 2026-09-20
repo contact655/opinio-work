@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { HERO_SEARCH_EXAMPLES } from "@/lib/constants/landing";
 
 /**
  * LP ヒーローの検索。
@@ -11,8 +10,8 @@ import { HERO_SEARCH_EXAMPLES } from "@/lib/constants/landing";
  * 検索前にスコープを選ばせるのは、まだ何があるか分かっていない利用者に
  * 判断を押し付ける形だったため。企業／求人の振り分けは /search が担当する。
  *
- * 2026-09-16: 検索窓の直下に例文チップ（「たとえば」）を足した。
- * 文は `lib/constants/landing.ts` の `HERO_SEARCH_EXAMPLES`。**ここに書かない。**
+ * ⚠️ 2026-09-16 に足した例文チップ（「たとえば」）は **2026-09-20 に削除した**
+ *    （柴さんの指示）。文は `lib/constants/landing.ts` の `HERO_SEARCH_EXAMPLES` に残っている。
  *
  * ⚠️ プレースホルダーから「IT業界」を落とさないこと。
  *    対象範囲を言っているのは見出しとここだけ。
@@ -119,30 +118,14 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
         </button>
       </div>
 
-      {/*
-        ★「たとえば」＋例文チップ（2026-09-16）。
-
-        ⚠️★**押しても遷移しない。検索窓に文が入るだけ。**
-           何を書けば何が返るかを見せるのが目的で、勝手に結果へ飛ばさない。
-           押したあと入力欄にフォーカスを移すので、その場で書き換えられる。
-        ⚠️★**文は [lib/constants/landing.ts](../../lib/constants/landing.ts) の
-           `HERO_SEARCH_EXAMPLES` にある。ここに書き足さないこと。**
-           あちらに「実測日と件数」を残してある。0件の文を載せると、
-           押した人が必ず空振りする（実測した反例もあちらに書いてある）。
-      */}
-      <div className="hero-ex">
-        <span className="hero-ex-label">たとえば</span>
-        {HERO_SEARCH_EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            type="button"
-            className="hero-ex-chip"
-            onClick={() => { setQ(ex); inputRef.current?.focus(); }}
-          >
-            {ex}
-          </button>
-        ))}
-      </div>
+      {/* ⚠️★「たとえば」＋例文チップ（AI・データの企業／外資系のセキュリティ企業／
+             日系のHR企業）は **2026-09-20 に柴さんの指示で削除した。** 戻さないこと。
+          ⚠️ 文の実体は `lib/constants/landing.ts` の `HERO_SEARCH_EXAMPLES` に**残してある**
+             （実測日と件数の注記つき）。書き戻すならそこから取ること。**ここに直接書かない。**
+          ⚠️ チップは押しても遷移せず、検索窓に文が入るだけの作りだった。
+             「何を書けば何が返るか」を見せるのが目的だったので、
+             代わりを作るなら placeholder でその役割を担うことになる
+             （いまの placeholder が「…のように文章で」と書いているのはそのため）。 */}
 
       <style>{`
         /* 検索窓は FV の主役。見出しより幅が広いこと（2026-08-05）。
@@ -159,6 +142,9 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
         /* 例文チップ。検索窓の直下に左寄せで置く（窓の左端に揃える）。
            ⚠️ 中央寄せにしないこと。親（FV）が text-align:center なので
               指定しないと真ん中に集まり、窓との関係が読めなくなる。 */
+        /* ⚠️ .hero-ex 系は 2026-09-20 にチップごと削除したので**使い手が0**。
+              書き戻すときのために残してある。⚠️ style のテンプレートリテラルの中なので、
+              コメントにバッククォートと不等号を書かないこと。 */
         .hero-ex { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
                    margin-top: 14px; text-align: left; }
         .hero-ex-label { font-size: 12.5px; font-weight: 700; color: ${muted}; }

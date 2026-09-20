@@ -1181,8 +1181,9 @@ function GuestSignupPanel({ style }: { style?: React.CSSProperties }) {
         {/* ⚠️★「メールアドレスで」を外した（2026-09-17）。**Google でも登録できる。**
                実測: /auth の登録は「Googleで続ける」（推奨バッジ付き・主）と
                「メールアドレスで登録」の2つ。片方だけ書くと、もう片方が見えない。
-            ⚠️ LP のボタン（FinalCta / AuthAwareCta の guest）と**同じ文言**。 */}
-        無料登録して経歴を見る
+            ⚠️ LP のボタン（FinalCta / AuthAwareCta の guest）と**同じ文言**。
+            ⚠️★2026-09-20 に「無料登録して経歴を見る」→「無料登録」。3箇所同時に変えた。 */}
+        無料登録
       </a>
     </div>
   );
