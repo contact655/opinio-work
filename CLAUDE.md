@@ -2479,11 +2479,22 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
    2列から導出する（[proposalResponses.ts](src/lib/constants/proposalResponses.ts)）。
    別の列で持つと、2つの返答と食い違う余地ができる。
 
-⚠️★**候補者は匿名。担保は「`ow_users` を select しないこと」だけ**
+⚠️★**候補者は匿名。** 画面側の担保は「`ow_users` を select しないこと」
    （[biz/proposals/page.tsx](src/app/biz/proposals/page.tsx)）。1列足した瞬間に匿名でなくなる。
-   ⚠️★画面には「**双方が会いたいと答えたときに初めてお互いが分かります**」と**既に書いてある**。
-      後半は未実装（`share_profile` と同じ「守れない約束」の形）。
-      **実装が追いつく前にこの一文を消さないこと** ——消すと③が何の話だったか分からなくなる。
+   ⚠️★**DB 側は「読みは admin クライアントだけ」で塞いである**（`20260921230000`）。
+      `ow_proposals` / `ow_proposal_declines` は **RLS 有効・ポリシー0本・
+      anon/authenticated に GRANT 無し**（`ow_transitions` と同じ形）。
+      2026-09-21 まで `authenticated` に SELECT を配っていて、
+      **企業の管理者が PostgREST から `candidate_user_id` → `ow_users.name` に
+      到達できた**（画面は正しいのに経路だけ漏れている、いつもの形）。
+   ⚠️★**セッションのクライアントで読む経路を足すならポリシーを書き直すこと。**
+      落とした6本は migration に原文で記録してある。**そのまま戻さない**
+      —— `ow_proposal_declines` の2本は親（`ow_proposals`）の RLS に引っかかる。
+   ⚠️★画面の「**双方が会いたいと答えたときに初めてお互いが分かります**」は、
+      2026-09-21 まで**後半が未実装**（`share_profile` と同じ「守れない約束」の形）だった。
+      ✅ いまは mutual で会話が1本できて通知も出る。**この一文を消さないこと。**
+      ⚠️ ただし**「お互いが分かる」の中身＝何を開示するかはまだ決めていない**
+         （docs の §5(a)）。決めたら、この一文に**何が渡るか**を書き足すこと。
 
 ⚠️★**これはスカウトではない。** `ow_scouts` にも3ゲート（`SCOUT_SENDING_ENABLED` /
    有料プラン / `can_send_scout`）にも無関係。**ここから送信機能を生やさないこと。**

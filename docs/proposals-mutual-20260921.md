@@ -247,7 +247,7 @@ END IF;
    ただし**失敗すると mutual のまま紹介されない行が残り、再試行の経路が無い**
    （両側とも答え終わっているので、もう誰も押さない）。**運営が直す導線が要る。**
 
-## 4-C. ★★作業中に見つかった穴 —— 匿名が PostgREST から破れる（未修正）
+## 4-C. ✅★★匿名が PostgREST から破れていた（2026-09-21 に塞いだ）
 
 **`/biz/proposals` が `ow_users` を select しないことで匿名を担保している**が、
 **DB はそれを要求していない。** 企業の管理者が PostgREST を直接叩けば、
@@ -271,19 +271,49 @@ ow_proposals_select_company  USING (auth_is_company_admin(company_id))
 ⚠️★**これは「画面は正しいのに PostgREST だけ漏れている」という、
    CLAUDE.md が繰り返し挙げている形そのもの。**
 
-### 直し方（**未実施。判断が要る**）
+### ★当初の2案は**どちらも採れなかった**
 
-`/biz/proposals` も `/proposals` も **`createAdminClient()` で読んでいる**ので、
-`authenticated` 向けのポリシーは**今のところ誰も使っていない**。
-
-| 案 | 中身 |
+| 案 | なぜ採れないか |
 |---|---|
-| A | **`ow_proposals_select_company` を落とす**（企業向けの読みは admin クライアントだけにする） |
-| B | `candidate_user_id` の列単位 SELECT を `authenticated` から剥がす |
+| A「`ow_proposals_select_company` だけ落とす」 | ★**`ow_proposal_declines_select_company` が道連れ**になる。あちらは `EXISTS (SELECT 1 FROM ow_proposals p …)` で親を引いており、**ポリシー式の中の副問い合わせにも RLS が掛かる**ので、企業が**自分で書いた見送り理由まで読めなくなる**（静かに0件） |
+| B「`candidate_user_id` の列単位 SELECT を剥がす」 | ★**`ow_proposal_declines_select_own` がその列を参照している。** 剥がすと**候補者が自分の見送り理由を読めなくなる**（CLAUDE.md「ポリシー式は実行ユーザーの権限で評価される」） |
 
-⚠️ A のほうが素直（「誰に読ませるか」は RLS、という原則に沿う）。
-⚠️★どちらも **anon / 非admin / 企業管理者 / 本人 / 運営**で実測してから当てること。
-⚠️ `ow_proposals_select_own`（本人）は残す。
+### ✅ 採った形 —— 設計メモどおり「読みは admin だけ」に戻す
+
+設計メモ（[phase0-9screens-20260918.md](phase0-9screens-20260918.md) §4-4）は
+**「RLS 有効 / anon・authenticated に GRANT を配らない / 読み書きは admin クライアントだけ。
+本人に見せる経路を後から足すときに初めてポリシーを書く」**と書いてあった。
+**実装はそこから外れて SELECT を配り、ポリシーを3本先に書いていた。** 戻した。
+
+形は **`ow_transitions` と同じ**（RLS 有効・ポリシー0本・GRANT 無し）。
+migration は `20260921230000_proposals_admin_only_read.sql`。
+
+⚠️ **アプリは1行も壊れない。** 実測（`src` 全体）: この2表を読む**11箇所すべてが
+   `createAdminClient()`**。セッションのクライアントで読んでいる箇所は**0件**。
+
+**実測（2026-09-21 / 本番 / `is_test` の行で前後を測った）:**
+
+| 誰が | 前 | 後 |
+|---|---|---|
+| **企業の管理者** → `ow_proposals` | ★**候補者IDが読めた** | ✅ **42501** |
+| 本人 → `ow_proposals` | 1行 | ✅ 42501 |
+| 無関係な利用者 | 0行 | ✅ 42501 |
+| anon | 42501 | ✅ 42501 |
+| 企業の管理者 → `ow_proposal_declines` | 自分の理由1行 | ✅ 42501 |
+| 本人 → `ow_proposal_declines` | 自分の理由1行 | ✅ 42501 |
+| ★**service_role（admin クライアント）** | 読める | ✅ **読めたまま** |
+
+画面も前後で変わらない（`/mypage/proposals` と `/biz/proposals` に根拠が出て、
+**企業側の HTML に候補者の氏名は出ない**）。返答 API も 200 のまま。
+
+⚠️★**セッションのクライアントで読む経路を足す日は、ポリシーを書き直すこと。**
+   落とした6本は migration の中に原文で記録してある。
+   ⚠️ **そのまま戻さない。** `ow_proposal_declines` の2本は親の RLS に引っかかるので、
+      **SECURITY DEFINER の関数に逃がす**か、親のポリシーと同時に設計する。
+
+⚠️ **`ow_users` 側は変えていない。** ログインした利用者が uuid を知っていれば
+   氏名を引けるのは従来どおり（`login_only` の設計）。塞いだのは
+   **提案から候補者の uuid を手に入れる経路**。
 
 ## 4-D. ✅ 通知と導線（2026-09-21）
 
