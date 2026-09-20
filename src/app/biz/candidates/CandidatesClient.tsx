@@ -2,6 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
+/* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
+      ここに似た実装を作らないこと ——`FilterChip` は 2026-09-18 に
+      「同じ名前の別実装が2つあった」のを1つに畳んだもので、**3つ目を作らない**。 */
+import { FilterChip } from "@/components/common/FilterChip";
+import { SortSelect } from "@/components/common/SortSelect";
 
 /**
  * ★転職意欲の選択肢（2026-09-19 / 柴さんの指示）。
@@ -23,6 +28,23 @@ const CAREER_STANCE_FILTER_OPTIONS = CAREER_STANCES.filter((o) => o.value !== "n
  * ⚠️ 3ヶ月を入れてあるのは、プロフィールの鮮度判定（`lib/profile/freshness.ts` の
  *    `STALE_AFTER_MONTHS = 3`）と同じ区切りがこのプロダクトに既にあるため。
  */
+/**
+ * ★並び替え（2026-09-20 / 柴さんの指示）。**他の3画面と同じ `SortSelect` を使う。**
+ *
+ * ⚠️★**年齢・性別に関わる軸を足さないこと。** この画面は企業が直接絞る場所で、
+ *    年齢は労働施策総合推進法9条、性別は均等法5条の話になる（CLAUDE.md）。
+ * ⚠️ 既定は「新着順」。それまで並び替えが無く `created_at DESC` 固定だった。
+ */
+const SORT_OPTIONS = [
+  { value: "new",     label: "新着順" },
+  /* ⚠️★読むのは `careerStanceUpdatedAt`。`stance_updated_at` ではない
+        （あちらは面談OK の切り替えでも打たれる。冒頭の注記と同じ理由）。
+     ⚠️ 記録が無い人（2026-09-19 より前に答えた人）は**末尾に置く**。
+        0 扱いにして先頭へ来ると「最近更新した人」として誤って読める。 */
+  { value: "stance",  label: "転職意欲の更新が新しい順" },
+  { value: "tenure",  label: "社会人年数が長い順" },
+] as const;
+
 const STANCE_FRESHNESS_BANDS = [
   { value: "1d",  label: "24時間以内", days: 1 },
   { value: "1w",  label: "1週間以内",  days: 7 },
@@ -51,7 +73,9 @@ function formatTenure(months: number | null): string | null {
   return `社会人${Math.floor(months / 12)}年`;
 }
 
-type Candidate = {
+/* ⚠️ `/dev/preview/candidates` が固定データを作るために export している。
+      **この画面は有料プラン0社で誰も実物を見られない**ので、確認はプレビューで行う。 */
+export type Candidate = {
   id: string;
   name: string;
   location: string | null;
@@ -132,50 +156,6 @@ function extractPrefecture(location: string | null): string | null {
 }
 
 
-// サイドバー内セクションラベル
-function SidebarLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
-      textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 7,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-// 汎用ピルボタン
-function Pill({
-  active, onClick, color = "royal", children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  color?: "royal" | "warm" | "purple";
-  children: React.ReactNode;
-}) {
-  const palette = {
-    royal:  { bg: "var(--royal-50)",   border: "var(--royal)",   text: "var(--royal)" },
-    warm:   { bg: "var(--warm-soft)",  border: "#F59E0B",        text: "var(--warm-ink)" },
-    purple: { bg: "var(--purple-soft)", border: "var(--purple)", text: "var(--purple)" },
-  }[color];
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "4px 10px", borderRadius: 999, fontSize: 11, cursor: "pointer",
-        fontFamily: "inherit", whiteSpace: "nowrap" as const, transition: "all 0.12s",
-        fontWeight: active ? 700 : 400,
-        border: active ? `1.5px solid ${palette.border}` : "1px solid var(--line)",
-        background: active ? palette.bg : "#fff",
-        color: active ? palette.text : "var(--ink-soft)",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 type ScoutQuota = {
   monthlyLimit: number;
   bonusCredits: number;
@@ -184,6 +164,12 @@ type ScoutQuota = {
 };
 
 type JobOption = { id: string; title: string };
+
+/* ⚠️★`SidebarLabel` と `Pill` は 2026-09-20 に削除した（サイドバーをやめたため）。
+      **戻さないこと。** 絞り込みのチップは `components/common/FilterChip.tsx` を使う
+      —— `/companies` と `/people` が同じものを使っており、3つ目の実装を作らない。
+   ⚠️ `Pill` は `purple` のパレットを持っていたが、ui-conventions は**紫を使わない**
+      と決めている。復活させるときに一緒に戻さないこと。 */
 
 export default function CandidatesClient({
   candidates,
@@ -246,8 +232,16 @@ export default function CandidatesClient({
   // ── その他 ──────────────────────────────────────────────────────────
   const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
 
-  // ── モバイル サイドバー開閉 ─────────────────────────────────────────
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  /* ── ★詳細検索の開閉（2026-09-20）───────────────────────────────────
+     ⚠️★**280px の常時開きサイドバーに戻さないこと。** 条件12個を縦に並べていたが、
+        `/jobs` が 2026-09-09 に同じ形を畳んでおり、この画面だけ旧型で残っていた。
+     ⚠️★**閉じていても `activeChips` を外に出す。** 消すと
+        「絞り込んだ結果を見ている最中に、絞った理由が画面から消える」。 */
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sort, setSort] = useState<string>("new");
+  /* ⚠️ 開いているチップは1つだけ。**チップごとに開閉 state を持たせないこと**
+        （`/companies` と同じ形）。2つ同時に開くとメニューが重なる。 */
+  const [openChip, setOpenChip] = useState<string | null>(null);
 
   // ── Scout modal ─────────────────────────────────────────────────────
   const [scoutTarget, setScoutTarget] = useState<Candidate | null>(null);
@@ -287,11 +281,6 @@ export default function CandidatesClient({
     } finally {
       setScoutSending(false);
     }
-  }
-
-  function selectTopRole(id: string | null) {
-    setTopRoleId(id);
-    setChildRoleId(null);
   }
 
   // ── 都道府県・スキルタグを candidates から動的生成 ───────────────────
@@ -432,6 +421,33 @@ export default function CandidatesClient({
     [filtered]
   );
 
+  /* ★並び替え（2026-09-20）。⚠️ `filtered` を**破壊しない**（`[...]` でコピーする）。 */
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    if (sort === "stance") {
+      /* ⚠️★記録の無い人は**末尾**。先頭に来ると「最近更新した人」と誤読される。 */
+      return list.sort((a, b) => {
+        if (!a.careerStanceUpdatedAt && !b.careerStanceUpdatedAt) return 0;
+        if (!a.careerStanceUpdatedAt) return 1;
+        if (!b.careerStanceUpdatedAt) return -1;
+        return b.careerStanceUpdatedAt.localeCompare(a.careerStanceUpdatedAt);
+      });
+    }
+    if (sort === "tenure") {
+      /* ⚠️★未算出（職歴0件）は末尾。**0 にしない**（「社会人0年」と同義になる）。
+            絞り込み側が未算出を**落とさない**のと揃えてある。 */
+      return list.sort((a, b) => {
+        if (a.tenureMonths == null && b.tenureMonths == null) return 0;
+        if (a.tenureMonths == null) return 1;
+        if (b.tenureMonths == null) return -1;
+        return b.tenureMonths - a.tenureMonths;
+      });
+    }
+    /* 新着順。⚠️ サーバーが既に `created_at DESC` で返しているが、
+          **ここでも明示する**（他の順から戻したときに元の並びへ戻すため）。 */
+    return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [filtered, sort]);
+
   const jobTypeFilterActive = topRoleId !== null;
   const activeFilterCount = [
     q.trim() ? "x" : "",
@@ -447,6 +463,55 @@ export default function CandidatesClient({
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
+
+  /* ★いま効いている条件のチップ（2026-09-20）。**詳細検索を閉じていても外に出す。**
+     ⚠️★**消さないこと。** 12条件を1つのパネルに畳んだので、これが無いと
+        「なぜこの件数なのか」が画面から消える（`/jobs` と同じ理由）。
+     ⚠️ 解除の手段をチップの ✕ だけにしない。パネルを開けば元のチップからも外せる。
+     ⚠️ 並びは詳細検索パネルの並びと**同じ順**にする。片方だけ変えないこと。 */
+  const activeChips = useMemo(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = [];
+    if (roleQuery.trim()) chips.push({ key: "roleQuery", label: `役職: ${roleQuery}`, clear: () => setRoleQuery("") });
+    if (companyQuery.trim()) chips.push({ key: "companyQuery", label: `会社: ${companyQuery}`, clear: () => setCompanyQuery("") });
+    const wantRole = childRoleId ?? topRoleId;
+    if (wantRole) {
+      /* ⚠️ 名前が引けない id は出さない（生の uuid を画面に出さないため） */
+      const name = childRoleId
+        ? roleFilterTree.flatMap((t) => t.children).find((c) => c.id === childRoleId)?.name
+        : roleFilterTree.find((t) => t.id === topRoleId)?.name;
+      if (name) chips.push({ key: "role", label: name, clear: () => { setTopRoleId(null); setChildRoleId(null); } });
+    }
+    selectedEmploymentTypes.forEach((v) => chips.push({
+      key: `et:${v}`,
+      label: EMPLOYMENT_TYPE_LABELS[v] ?? v,
+      clear: () => setSelectedEmploymentTypes(selectedEmploymentTypes.filter((x) => x !== v)),
+    }));
+    if (workStyle) chips.push({
+      key: "ws",
+      label: (DESIRED_WORK_STYLE_LABELS as Record<string, string>)[workStyle] ?? workStyle,
+      clear: () => setWorkStyle(""),
+    });
+    if (salaryMin > 0) chips.push({ key: "salary", label: `${salaryMin}万〜`, clear: () => setSalaryMin(0) });
+    if (careerStance) {
+      const label = CAREER_STANCE_FILTER_OPTIONS.find((o) => o.value === careerStance)?.label;
+      if (label) chips.push({ key: "stance", label, clear: () => setCareerStance("") });
+    }
+    if (stanceFreshness) {
+      const label = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness)?.label;
+      if (label) chips.push({ key: "fresh", label: `更新 ${label}`, clear: () => setStanceFreshness("") });
+    }
+    if (tenureBand) {
+      const label = TENURE_BANDS.find((b) => b.value === tenureBand)?.label;
+      if (label) chips.push({ key: "tenure", label: `社会人 ${label}`, clear: () => setTenureBand("") });
+    }
+    selectedPrefectures.forEach((pref) => chips.push({
+      key: `pref:${pref}`, label: pref,
+      clear: () => setSelectedPrefectures(selectedPrefectures.filter((x) => x !== pref)),
+    }));
+    if (hideAlreadyScouted) chips.push({ key: "scouted", label: "スカウト済みを除く", clear: () => setHideAlreadyScouted(false) });
+    return chips;
+  }, [roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
+      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures, hideAlreadyScouted]);
 
   function clearAllFilters() {
     setQ("");
@@ -469,304 +534,156 @@ export default function CandidatesClient({
     return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
   }
 
-  const selectedTop = roleFilterTree.find((t) => t.id === topRoleId);
   const alreadyScoutedCount = candidates.filter((c) => c.alreadyScouted).length;
   const showQuota = scoutQuota && scoutQuota.usedThisMonth > 0;
 
-  // ── サイドバーの中身（デスクトップ・モバイル共用） ────────────────────
-  const sidebarContent = (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+  /* ── ★詳細検索パネルの中身（2026-09-20 にサイドバーから移した）──────────
+     ⚠️★**チップは `components/common/FilterChip.tsx` を使う。** `/companies` と
+        `/people` が同じものを使っており、**同じ名前の別実装を作らない**（3つ目を作らない）。
+     ⚠️★**並びは `activeChips` の並びと同じ順**にしてある。片方だけ変えないこと。
+     ⚠️ 自由入力（役職・会社名）だけはチップにできないので、先頭に小さな欄として置く。 */
+  const roleChipOptions = roleFilterTree.flatMap((top) => [
+    { value: top.id, label: top.name },
+    /* ⚠️ 子は `parent` を付けて親の直下にぶら下げる（フェーズと同じ形）。
+          **18の親チップ＋子パネル**という旧実装に戻さないこと。 */
+    ...top.children.map((child) => ({ value: child.id, label: child.name, parent: top.id })),
+  ]);
 
-      {/* ── フリーワード ─────────────────────────────────────────────── */}
-      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>フリーワード</SidebarLabel>
-        <div style={{ position: "relative" }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社"
-            style={{
-              width: "100%", height: 34, padding: "0 28px 0 28px",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 12, outline: "none", fontFamily: "inherit",
-              color: "var(--ink)", boxSizing: "border-box" as const,
-            }}
-          />
-          {q && (
-            <button type="button" onClick={() => setQ("")}
-              style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, padding: 2 }}>
-              ×
-            </button>
-          )}
-        </div>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.5 }}>
-          スペース区切りでAND検索
-        </div>
-      </div>
+  const advancedPanel = (
+    <div style={{
+      flexBasis: "100%", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+      background: "var(--bg-tint)", border: "1px solid var(--line)",
+      borderRadius: 12, padding: "10px 12px",
+    }}>
+      {/* 自由入力の2つ。⚠️ フリーワードとは別物（あちらは名前・職種・会社を横断） */}
+      <input
+        type="text" value={roleQuery} onChange={(e) => setRoleQuery(e.target.value)}
+        placeholder="現在の役職（例：営業マネージャー）"
+        style={{
+          height: 34, flex: "1 1 200px", minWidth: 0, padding: "0 10px",
+          border: `1px solid ${roleQuery ? "var(--royal)" : "var(--line)"}`, borderRadius: 999,
+          fontSize: 12.5, outline: "none", fontFamily: "inherit", color: "var(--ink)",
+          background: "#fff", boxSizing: "border-box",
+        }}
+      />
+      <input
+        type="text" value={companyQuery} onChange={(e) => setCompanyQuery(e.target.value)}
+        placeholder="現在の会社名（例：Salesforce）"
+        style={{
+          height: 34, flex: "1 1 200px", minWidth: 0, padding: "0 10px",
+          border: `1px solid ${companyQuery ? "var(--royal)" : "var(--line)"}`, borderRadius: 999,
+          fontSize: 12.5, outline: "none", fontFamily: "inherit", color: "var(--ink)",
+          background: "#fff", boxSizing: "border-box",
+        }}
+      />
 
-      {/* ── 経歴・職種 ────────────────────────────────────────────────── */}
-      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>現在の職種タイトル</SidebarLabel>
-        <div style={{ position: "relative", marginBottom: 10 }}>
-          <input
-            type="text"
-            value={roleQuery}
-            onChange={(e) => setRoleQuery(e.target.value)}
-            placeholder="例：営業マネージャー、エンジニア"
-            style={{
-              width: "100%", height: 34, padding: roleQuery ? "0 28px 0 10px" : "0 10px",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 12, outline: "none", fontFamily: "inherit",
-              color: "var(--ink)", boxSizing: "border-box" as const,
-            }}
-          />
-          {roleQuery && (
-            <button type="button" onClick={() => setRoleQuery("")}
-              style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, padding: 2 }}>×</button>
-          )}
-        </div>
+      <FilterChip
+        label="職種" value={childRoleId ?? topRoleId ?? ""}
+        options={roleChipOptions} searchable
+        onSelect={(v) => {
+          if (!v) { setTopRoleId(null); setChildRoleId(null); return; }
+          const parent = roleFilterTree.find((t) => t.id === v);
+          if (parent) { setTopRoleId(v); setChildRoleId(null); return; }
+          /* 子を選んだら、親も一緒に立てる。⚠️ 絞り込みは `childRoleId ?? topRoleId` を見るので
+                親を立てなくても効くが、**チップの表示と解除の経路を1つにする**ため揃える。 */
+          const owner = roleFilterTree.find((t) => t.children.some((c) => c.id === v));
+          setTopRoleId(owner?.id ?? null); setChildRoleId(v);
+        }}
+        isOpen={openChip === "role"} onToggle={() => setOpenChip(openChip === "role" ? null : "role")}
+      />
 
-        <SidebarLabel>現在の会社名</SidebarLabel>
-        <div style={{ position: "relative", marginBottom: 10 }}>
-          <input
-            type="text"
-            value={companyQuery}
-            onChange={(e) => setCompanyQuery(e.target.value)}
-            placeholder="例：株式会社○○、Salesforce"
-            style={{
-              width: "100%", height: 34, padding: companyQuery ? "0 28px 0 10px" : "0 10px",
-              border: "1px solid var(--line)", borderRadius: 8,
-              fontSize: 12, outline: "none", fontFamily: "inherit",
-              color: "var(--ink)", boxSizing: "border-box" as const,
-            }}
-          />
-          {companyQuery && (
-            <button type="button" onClick={() => setCompanyQuery("")}
-              style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 14, lineHeight: 1, padding: 2 }}>×</button>
-          )}
-        </div>
+      <FilterChip
+        label="雇用形態" value="" values={selectedEmploymentTypes}
+        options={Object.entries(EMPLOYMENT_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+        onSelect={() => {}}
+        onToggleValue={(v) => setSelectedEmploymentTypes(toggleMulti(selectedEmploymentTypes, v))}
+        isOpen={openChip === "emp"} onToggle={() => setOpenChip(openChip === "emp" ? null : "emp")}
+      />
 
-        <SidebarLabel>職種カテゴリ</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
-          {roleFilterTree.map((top) => (
-            <button key={top.id} type="button"
-              aria-pressed={topRoleId === top.id}
-              onClick={() => selectTopRole(topRoleId === top.id ? null : top.id)}
-              style={{
-                padding: "4px 9px", borderRadius: 999, fontSize: 11, cursor: "pointer",
-                fontFamily: "inherit", whiteSpace: "nowrap" as const,
-                fontWeight: topRoleId === top.id ? 700 : 400,
-                border: topRoleId === top.id ? "1.5px solid var(--royal)" : "1px solid var(--line)",
-                background: topRoleId === top.id ? "var(--royal-50)" : "#fff",
-                color: topRoleId === top.id ? "var(--royal)" : "var(--ink-soft)",
-              }}>
-              {top.name}
-            </button>
-          ))}
-        </div>
-        {selectedTop && selectedTop.children.length > 0 && (
-          <div style={{ padding: "8px 10px", background: "var(--royal-50)", borderRadius: 8, border: "1px solid var(--royal-100)", marginBottom: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)", marginBottom: 6 }}>
-              {selectedTop.name} の職種
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {selectedTop.children.map((child) => (
-                <button key={child.id} type="button"
-                  aria-pressed={childRoleId === child.id}
-                  onClick={() => setChildRoleId(childRoleId === child.id ? null : child.id)}
-                  style={{
-                    padding: "3px 8px", borderRadius: 999, fontSize: 10, cursor: "pointer",
-                    fontFamily: "inherit",
-                    fontWeight: childRoleId === child.id ? 700 : 400,
-                    border: childRoleId === child.id ? "1.5px solid var(--accent)" : "1px solid var(--line)",
-                    background: childRoleId === child.id ? "#fff" : "var(--bg-tint)",
-                    color: childRoleId === child.id ? "var(--accent)" : "var(--ink-soft)",
-                  }}>
-                  {child.name}
-                </button>
-              ))}
-            </div>
-            <button type="button" onClick={() => selectTopRole(null)}
-              style={{ marginTop: 6, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
-              ✕ カテゴリを解除
-            </button>
-          </div>
-        )}
+      <FilterChip
+        label="働き方" value={workStyle}
+        /* ⚠️ ラベルは careerPreferences.ts の1箇所で決める。ここに直書きしない。
+              求人の勤務形態（workStyle.ts）とは意味が違うので混ぜない。 */
+        options={Object.entries(DESIRED_WORK_STYLE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+        onSelect={(v) => setWorkStyle(v ?? "")}
+        isOpen={openChip === "ws"} onToggle={() => setOpenChip(openChip === "ws" ? null : "ws")}
+      />
 
-        <SidebarLabel>雇用形態</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([v, l]) => (
-            <Pill key={v} active={selectedEmploymentTypes.includes(v)} color="royal"
-              onClick={() => setSelectedEmploymentTypes(toggleMulti(selectedEmploymentTypes, v))}>
-              {l}
-            </Pill>
-          ))}
-        </div>
-      </div>
+      <FilterChip
+        label="希望年収" value={salaryMin > 0 ? String(salaryMin) : ""}
+        options={[400, 600, 800, 1000, 1200].map((v) => ({ value: String(v), label: `${v}万〜` }))}
+        onSelect={(v) => setSalaryMin(v ? Number(v) : 0)}
+        isOpen={openChip === "salary"} onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
+      />
 
-      {/* ── 希望条件 ──────────────────────────────────────────────────── */}
-      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>勤務スタイル</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-          <Pill active={workStyle === ""} onClick={() => setWorkStyle("")}>全て</Pill>
-          {/* ⚠️ ラベルは careerPreferences.ts の1箇所で決める。ここに直書きしない。
-              求人の勤務形態（workStyle.ts）とは意味が違うので混ぜない。 */}
-          {Object.entries(DESIRED_WORK_STYLE_LABELS).map(([v, l]) => (
-            <Pill key={v} active={workStyle === v} onClick={() => setWorkStyle(workStyle === v ? "" : v)}>{l}</Pill>
-          ))}
-        </div>
+      {/* ★転職意欲と更新時期。⚠️★**2つは対。片方だけ外さないこと**（更新時期だけだと
+             「意欲は問わないが最近更新した人」になり、条件として成立しない）。 */}
+      <FilterChip
+        label="転職意欲" value={careerStance}
+        options={CAREER_STANCE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        onSelect={(v) => setCareerStance(v ?? "")}
+        isOpen={openChip === "stance"} onToggle={() => setOpenChip(openChip === "stance" ? null : "stance")}
+      />
+      <FilterChip
+        label="意欲の更新" value={stanceFreshness}
+        options={STANCE_FRESHNESS_BANDS.map((b) => ({ value: b.value, label: b.label }))}
+        onSelect={(v) => setStanceFreshness(v ?? "")}
+        isOpen={openChip === "fresh"} onToggle={() => setOpenChip(openChip === "fresh" ? null : "fresh")}
+      />
 
-        {/* ⚠️★「希望企業フェーズ」の絞り込みは 2026-08-27 に削除した。
-               ⚠️ **同日に本人側の入力欄を消した**ので、残すと
-                  「本人が直せない値で企業が絞り込む」ことになる。
-               ⚠️ 入力欄を戻すなら、ここも一緒に戻すこと。 */}
+      <FilterChip
+        label="社会人年数" value={tenureBand}
+        options={TENURE_BANDS.map((b) => ({ value: b.value, label: b.label }))}
+        onSelect={(v) => setTenureBand(v ?? "")}
+        isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}
+      />
 
-        <SidebarLabel>希望年収（下限）</SidebarLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          {([
-            { value: 0,    label: "指定なし" },
-            { value: 400,  label: "400万〜" },
-            { value: 600,  label: "600万〜" },
-            { value: 800,  label: "800万〜" },
-            { value: 1000, label: "1000万〜" },
-            { value: 1200, label: "1200万〜" },
-          ] as const).map(({ value, label }) => (
-            <Pill key={value} active={salaryMin === value} color="royal"
-              onClick={() => setSalaryMin(value)}>
-              {label}
-            </Pill>
-          ))}
-        </div>
-        {salaryMin > 0 && (
-          <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={includeNoSalary}
-              onChange={(e) => setIncludeNoSalary(e.target.checked)}
-              style={{ width: 13, height: 13, accentColor: "var(--royal)", cursor: "pointer" }}
-            />
-            <span style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.4 }}>
-              年収未設定の候補者も含む
-            </span>
-          </label>
-        )}
-      </div>
+      {uniquePrefectures.length > 0 && (
+        <FilterChip
+          label="居住地" value="" values={selectedPrefectures}
+          options={uniquePrefectures.map((pref) => ({ value: pref, label: pref }))}
+          onSelect={() => {}}
+          onToggleValue={(v) => setSelectedPrefectures(toggleMulti(selectedPrefectures, v))}
+          isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}
+        />
+      )}
 
-      {/* ── ★転職意欲（2026-09-19 / 柴さんの指示）────────────────────────────
-             ⚠️★**2つは対。片方だけ外さないこと。** 更新時期だけ残すと
-                「意欲は問わないが最近更新した人」になり、条件として成立しない。
-             ⚠️ 「希望条件」ではなく**本人の意思表示**なので、希望条件のブロックに
-                混ぜず独立させてある。 */}
-      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>転職意欲</SidebarLabel>
-        <select
-          value={careerStance}
-          onChange={(e) => setCareerStance(e.target.value)}
-          style={{ width: "100%", height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
-        >
-          <option value="">すべて</option>
-          {/* ⚠️ ラベルは careerPreferences.ts の1箇所で決める。ここに直書きしない。 */}
-          {CAREER_STANCE_FILTER_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-
-        <div style={{ marginTop: 10 }}>
-          <SidebarLabel>転職意欲の更新時期</SidebarLabel>
-          <select
-            value={stanceFreshness}
-            onChange={(e) => setStanceFreshness(e.target.value)}
-            style={{ width: "100%", height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
-          >
-            <option value="">指定なし</option>
-            {STANCE_FRESHNESS_BANDS.map((b) => (
-              <option key={b.value} value={b.value}>{b.label}</option>
-            ))}
-          </select>
-          {stanceFreshness && droppedNoStanceTs > 0 && (
-            /* ⚠️★黙って減らさない。**何名が対象外になったか**と、**その理由**を出す。
-                  ⚠️ 「古い人」ではなく「記録が無い人」。2026-09-19 より前に答えた人は
-                     更新日時を持っていない（遡って埋められない列）。 */
-            <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.5, color: "var(--ink-mute)" }}>
-              更新日時が記録されていない {droppedNoStanceTs} 名は含みません。
-              この記録は 2026-09-19 から取り始めたため、それ以前に答えた方は対象外です。
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── 属性 ──────────────────────────────────────────────────────── */}
-      <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-        <SidebarLabel>社会人年数</SidebarLabel>
-        <select
-          value={tenureBand}
-          onChange={(e) => setTenureBand(e.target.value)}
-          style={{ width: "100%", height: 32, padding: "0 6px", border: "1px solid var(--line)", borderRadius: 6, fontSize: 12, fontFamily: "inherit", background: "#fff", color: "var(--ink)" }}
-        >
-          <option value="">指定なし</option>
-          {TENURE_BANDS.map((b) => (
-            <option key={b.value} value={b.value}>{b.label}</option>
-          ))}
-        </select>
-        {tenureBand && unknownTenureCount > 0 && (
-          /* ⚠️ 黙って減らさない・黙って混ぜない。**何名が年数不明のまま残っているか**を出す。 */
-          <div style={{ marginTop: 6, fontSize: 11, lineHeight: 1.5, color: "var(--ink-mute)" }}>
-            職歴が未登録の {unknownTenureCount} 名は年数を算出できないため、そのまま表示しています。
-          </div>
-        )}
-
-        {uniquePrefectures.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            <SidebarLabel>居住地</SidebarLabel>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {uniquePrefectures.map((p) => (
-                <Pill key={p} active={selectedPrefectures.includes(p)}
-                  onClick={() => setSelectedPrefectures(toggleMulti(selectedPrefectures, p))}>
-                  {p}
-                </Pill>
-              ))}
-            </div>
-            {selectedPrefectures.length > 0 && (
-              <button type="button" onClick={() => setSelectedPrefectures([])}
-                style={{ marginTop: 4, fontSize: 10, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
-                クリア
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── その他 ────────────────────────────────────────────────────── */}
       {alreadyScoutedCount > 0 && (
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 12 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", height: 34, padding: "0 12px", borderRadius: 999, background: "#fff", border: `1px solid ${hideAlreadyScouted ? "var(--royal)" : "var(--line)"}` }}>
           <input
-            type="checkbox"
-            checked={hideAlreadyScouted}
+            type="checkbox" checked={hideAlreadyScouted}
             onChange={(e) => setHideAlreadyScouted(e.target.checked)}
             style={{ width: 14, height: 14, accentColor: "var(--royal)", cursor: "pointer" }}
           />
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+          <span style={{ fontSize: 12.5, fontWeight: hideAlreadyScouted ? 700 : 500, color: hideAlreadyScouted ? "var(--royal)" : "var(--ink-soft)" }}>
             スカウト済みを除く（{alreadyScoutedCount}人）
           </span>
         </label>
       )}
 
-      {/* フィルタークリア */}
       {activeFilterCount > 0 && (
         <button type="button" onClick={clearAllFilters}
           style={{
-            width: "100%", padding: "8px 0", borderRadius: 8,
-            border: "1px solid var(--line)", background: "#fff",
-            fontSize: 12, color: "var(--ink-soft)", cursor: "pointer",
-            fontFamily: "inherit", fontWeight: 600,
+            height: 34, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)",
+            background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer",
+            fontFamily: "inherit", fontWeight: 600, flexShrink: 0,
           }}>
-          フィルターをクリア（{activeFilterCount}件）
+          条件をすべて外す（{activeFilterCount}）
         </button>
+      )}
+
+      {/* ⚠️★黙って減らさない／黙って混ぜない。**理由と人数を画面に出す。**
+             ⚠️ 2つは向きが逆（更新時期は落とす・社会人年数は通す）。**揃えていないのは意図的。** */}
+      {stanceFreshness && droppedNoStanceTs > 0 && (
+        <div style={{ flexBasis: "100%", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+          更新日時が記録されていない {droppedNoStanceTs} 名は含みません。
+          この記録は 2026-09-19 から取り始めたため、それ以前に答えた方は対象外です。
+        </div>
+      )}
+      {tenureBand && unknownTenureCount > 0 && (
+        <div style={{ flexBasis: "100%", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+          職歴が未登録の {unknownTenureCount} 名は年数を算出できないため、そのまま表示しています。
+        </div>
       )}
     </div>
   );
@@ -793,67 +710,101 @@ export default function CandidatesClient({
         )}
       </div>
 
-      {/* ── モバイル：フィルタートグルボタン ─────────────────────────── */}
-      <div className="candidates-mobile-toggle" style={{ marginBottom: 12 }}>
-        <button type="button" onClick={() => setSidebarOpen((v) => !v)}
+      {/* ── ★ツールバー（2026-09-20）─────────────────────────────────────────
+             `/companies`・`/jobs`・`/people` と同じ並び：
+               検索窓 → 詳細検索 → 並び替え → 件数
+             ⚠️★**280px のサイドバーに戻さないこと。** 条件12個を常時開きで縦に
+                並べていたのを畳んだ（`/jobs` が 2026-09-09 にやったのと同じ）。 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        {/* フリーワード */}
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="search" value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="名前・職種・会社で検索（スペース区切りでAND）"
+            style={{
+              width: "100%", height: 38, padding: "0 32px 0 34px",
+              border: "1px solid var(--line)", borderRadius: 999,
+              fontSize: 13, outline: "none", fontFamily: "inherit",
+              color: "var(--ink)", background: "#fff", boxSizing: "border-box",
+            }}
+          />
+          {q && (
+            <button type="button" onClick={() => setQ("")} aria-label="検索語を消す"
+              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 15, lineHeight: 1, padding: 2 }}>
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* 詳細検索。⚠️ 効いている条件の数をボタンに出す（閉じていても分かるように） */}
+        <button
+          type="button" onClick={() => setShowAdvanced((v) => !v)}
+          aria-expanded={showAdvanced}
           style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "9px 16px", borderRadius: 10, cursor: "pointer",
-            border: activeFilterCount > 0 ? "1.5px solid var(--royal)" : "1px solid var(--line)",
-            background: activeFilterCount > 0 ? "var(--royal-50)" : "#fff",
-            color: activeFilterCount > 0 ? "var(--royal)" : "var(--ink-soft)",
-            fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+            display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+            height: 38, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+            fontFamily: "inherit", fontSize: 13,
+            fontWeight: showAdvanced || activeChips.length > 0 ? 700 : 500,
+            border: `1px solid ${showAdvanced || activeChips.length > 0 ? "var(--royal)" : "var(--line)"}`,
+            background: showAdvanced || activeChips.length > 0 ? "var(--royal-50)" : "#fff",
+            color: showAdvanced || activeChips.length > 0 ? "var(--royal)" : "var(--ink-soft)",
           }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
           </svg>
-          フィルター{activeFilterCount > 0 ? ` (${activeFilterCount}件)` : ""}
-          <span style={{ marginLeft: "auto", fontSize: 10, opacity: 0.7 }}>{sidebarOpen ? "▲" : "▼"}</span>
+          詳細検索
+          {activeChips.length > 0 && (
+            <span style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999,
+              background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 800,
+            }}>{activeChips.length}</span>
+          )}
         </button>
-        {sidebarOpen && (
-          <div style={{
-            marginTop: 8, padding: 16, background: "#fff",
-            border: "1px solid var(--line)", borderRadius: 12,
-          }}>
-            {sidebarContent}
+
+        <SortSelect value={sort} options={SORT_OPTIONS} onChange={setSort} />
+
+        <span style={{ fontSize: 13, color: "var(--ink-soft)", flexShrink: 0, marginLeft: "auto" }}>
+          <strong style={{ fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--royal)" }}>{filtered.length}</strong>
+          {" "}名 / 全{candidates.length}名
+        </span>
+
+        {/* ⚠️★**開いているときは出さない**（チップ自身が選択状態を持つので、
+               同じ語が2回並ぶ）。⚠️ `flexBasis: 100%` で必ず行を折る
+               ——同じ行に置くと開閉のたびに「詳細検索」ボタンが左右に動く。 */}
+        {!showAdvanced && activeChips.length > 0 && (
+          <div style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {activeChips.map((c) => (
+              <button
+                key={c.key} type="button" onClick={c.clear}
+                aria-label={`${c.label} の絞り込みを外す`}
+                style={{
+                  flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6,
+                  height: 30, padding: "0 10px 0 12px", borderRadius: 999,
+                  fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                  background: "var(--royal-50)", color: "var(--royal)",
+                  border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
+                }}>
+                {c.label}
+                <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.75 }}>✕</span>
+              </button>
+            ))}
           </div>
         )}
+
+        {showAdvanced && advancedPanel}
       </div>
 
-      {/* ── 2カラムレイアウト ──────────────────────────────────────────── */}
-      <div className="candidates-layout" style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-
-        {/* ── サイドバー（デスクトップのみ） ───────────────────────────── */}
-        <aside className="candidates-sidebar" style={{
-          width: 280, flexShrink: 0,
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 12, padding: "18px 16px",
-          position: "sticky", top: 80,
-        }}>
-          {sidebarContent}
-        </aside>
-
-        {/* ── メインカラム ─────────────────────────────────────────────── */}
-        <main style={{ flex: 1, minWidth: 0 }}>
-
-          {/* 件数バー */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-              <strong style={{ fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--royal)" }}>{filtered.length}</strong>
-              {" "}件 / 全{candidates.length}件
-            </span>
-            {/* アクティブフィルターチップ */}
-            {selectedPrefectures.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                {selectedPrefectures.map((p) => (
-                  <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: 999, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)", fontSize: 11, fontWeight: 700 }}>
-                    {p}
-                    <button type="button" onClick={() => setSelectedPrefectures(selectedPrefectures.filter((v) => v !== p))} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* ── 一覧 ──────────────────────────────────────────────────────── */}
+      <div>
+        <main style={{ minWidth: 0 }}>
+          {/* ⚠️★件数と「選択中の条件」は**ツールバーへ移した**（2026-09-20）。
+                 ここに戻さないこと ——以前は件数バーの横に**都道府県のチップだけ**が出ており、
+                 残り11条件は選んでも画面のどこにも出ていなかった。 */}
 
           {/* 候補者リスト */}
           {filtered.length === 0 ? (
@@ -866,7 +817,11 @@ export default function CandidatesClient({
               <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>条件に合う候補者が見つかりませんでした</p>
               <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
                 {candidates.length === 0
-                  ? "現在、スカウトを受け取る設定をしている求職者はいません"
+                  /* ⚠️★文言を母集合と合わせる（2026-09-20 に直した）。
+                        2026-08-27 に母集合を `scout_enabled` から `career_stance` へ
+                        付け替えたのに、**文言だけ古いまま**だった。
+                        いまの条件は「転職について」に答えていて `no_contact` でないこと。 */
+                  ? "「転職について」に答えている求職者がまだいません"
                   : "フィルター条件を変えてみてください"}
               </p>
               {activeFilterCount > 0 && (
@@ -878,7 +833,8 @@ export default function CandidatesClient({
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {filtered.map((c) => {
+              {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
+              {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
                 const grad = getGradient(c.id);
                 return (
@@ -916,14 +872,22 @@ export default function CandidatesClient({
                           {tenure && (
                             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>
                           )}
+                          {/* ⚠️★**緑にしないこと**（2026-09-20 に直した）。ui-conventions の
+                                 「色の役割」で**緑は金銭的にプラスの条件のみ**と決まっている
+                                 （年収レンジ・退職金・SO/RSU）。状態のバッジには使わない。 */}
                           {c.isActivelyLooking && (
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success-ink)", border: "1px solid #6EE7B7" }}>転職検討中</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>転職検討中</span>
                           )}
-                          {c.isMentor && (
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--purple-soft)", color: "var(--purple)", border: "1px solid #DDD6FE" }}>メンター</span>
-                          )}
+                          {/* ⚠️★「メンター」バッジは 2026-09-20 に削除した。**戻さないこと。**
+                                 ① ui-conventions は**紫を使わない**と決めている
+                                 ② **メンター機能そのものが無い**（`ow_mentors` は migration 140 で
+                                    DROP 済み。CLAUDE.md「メンター機能自体が無い」）
+                                 ③ 実測（2026-09-20）: `is_mentor = true` は**全51人中0人**
+                                    ＝ このバッジは一度も出たことがない
+                                 ⚠️ `isMentor` は型にも `ow_users.is_mentor` にも残っている。
+                                    **新しい参照を足さないこと。** */}
                           {c.alreadyScouted && (
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>送信済み</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>送信済み</span>
                           )}
                         </div>
 
@@ -1067,7 +1031,7 @@ export default function CandidatesClient({
                     rows={6}
                     style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" as const }}
                   />
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)", textAlign: "right", marginTop: 4 }}>{scoutMessage.length} / 2000</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", textAlign: "right", marginTop: 4 }}>{scoutMessage.length} / 2000</div>
                 </label>
                 {scoutError && (
                   <div style={{ background: "var(--error-soft)", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--error-ink)", marginBottom: 16 }}>
@@ -1095,15 +1059,9 @@ export default function CandidatesClient({
         </div>
       )}
 
-      {/* モバイル/デスクトップ切り替えCSS */}
-      <style>{`
-        @media (min-width: 768px) {
-          .candidates-mobile-toggle { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          .candidates-sidebar { display: none !important; }
-        }
-      `}</style>
+      {/* ⚠️★2026-09-20 に `.candidates-sidebar` / `.candidates-mobile-toggle` を削除した。
+             サイドバーをやめ、条件は上部の「詳細検索」に畳んである。
+             ⚠️ ツールバーは flex-wrap で折り返すので、狭い画面用の出し分け CSS は要らない。 */}
     </div>
   );
 }
