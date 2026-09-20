@@ -31,7 +31,7 @@ export async function GET() {
   const { data: rows, error } = await adminSupabase
     .from("ow_notifications")
     .select(`
-      id, type, post_id, comment_id, is_read, created_at, scout_id, conversation_id,
+      id, type, post_id, comment_id, is_read, created_at, scout_id, conversation_id, proposal_id,
       actor:ow_users!actor_user_id(id, name, avatar_color, avatar_url),
       actorCompany:ow_companies!actor_company_id(id, name, slug, logo_letter, logo_gradient)
     `)
@@ -77,6 +77,7 @@ export async function GET() {
     created_at: string;
     scout_id: string | null;
     conversation_id: string | null;
+    proposal_id: string | null;
     // Supabase の !fk JOIN は配列で返る
     actor: { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[] | null;
     actorCompany: RawCompany[] | null;
@@ -95,6 +96,10 @@ export async function GET() {
     switch (r.type) {
       case "scout": return !!r.scout_id;
       case "message": return !!r.conversation_id;
+      /* ★②の提案。投稿にぶら下がらないので自分の case が要る（2026-09-21） */
+      case "proposal": return !!r.proposal_id;
+      /* ★③の紹介。押すと会話へ飛ぶので conversation_id が要る */
+      case "introduction": return !!r.conversation_id;
       default: return !!r.post_id && postPreviews.has(r.post_id);
     }
   };
@@ -111,6 +116,7 @@ export async function GET() {
       postPreview: r.post_id ? postPreviews.get(r.post_id) ?? null : null,
       scoutId: r.scout_id,
       conversationId: r.conversation_id,
+      proposalId: r.proposal_id,
       actorCompany: companyRaw
         ? {
             id: companyRaw.id,

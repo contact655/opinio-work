@@ -16,17 +16,17 @@
  *    **それ以前は、最後に答えたのが企業だと 42501 で落ちていた**
  *    （mutual は「最後に答えたほう」で成立するので半分が失敗する）。
  *
- * ⚠️ 通知は**まだ出していない**。会話にメッセージが1件も無いので
- *    `notifyNewMessage` は発火しない（あれは送信者を要求する）。
- *    ＝ **いまは当事者が会話一覧を開くまで気づけない。**
- *    足すときは `ow_notifications` の type を広げる話になる
- *    （CLAUDE.md: `survives()` の case も同時に足すこと）。
+ * ⚠️★**`notifyNewMessage` は使えない。** あれは送信者を要求するが、紹介の会話には
+ *    メッセージが1件も無い。そこで専用の種別 `introduction` を足した（2026-09-21）。
+ *    ⚠️ 種別を足したら `survives()`（`GET /api/jobseeker/notifications`）にも
+ *       `case` を足すこと。忘れるとその種別が丸ごと静かに消える。
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createConversation } from "@/lib/conversations/createConversation";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { proposalStage } from "@/lib/constants/proposalResponses";
+import { notifyIntroduction } from "@/lib/notify/proposalNotification";
 
 export type IntroduceOutcome =
   | { introduced: false; reason: "not_mutual" | "already" | "failed" }
@@ -99,6 +99,17 @@ export async function introduceIfMutual(
     console.error("[evidence/introduce] 記録に失敗:", saved.error);
     return { introduced: false, reason: "failed" };
   }
+
+  /* ★知らせる。⚠️ **記録（`introduced_at`）を書いたあとに呼ぶ。**
+        先に呼ぶと、記録に失敗したときに通知だけが二重に出る。
+     ⚠️ 候補者にしか出ない（`/biz` に通知の面が無い）。企業は「会いたい」を
+        押した本人なので、次に何が起きるかは知っている。 */
+  await notifyIntroduction({
+    proposalId,
+    candidateUserId: row.candidate_user_id as string,
+    companyId: row.company_id as string,
+    conversationId,
+  });
 
   console.log(`[evidence/introduce] 紹介した proposal=${proposalId} conversation=${conversationId}`);
   return { introduced: true, conversationId };

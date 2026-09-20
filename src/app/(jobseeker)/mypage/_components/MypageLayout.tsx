@@ -98,6 +98,8 @@ const Icons = {
   message:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   bookmark:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
   inbox:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
+  /* ★提案（②）。既存のどれとも読み違えない形にする（受信箱＝スカウトと紛れない） */
+  proposal:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>,
   salary:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
   check:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01 9 11.01"/></svg>,
   calendar:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
@@ -119,6 +121,7 @@ export type MypageActiveKey =
   | "conversations"
   | "applications"
   | "scouts"
+  | "proposals"
   // プロフィール編集ページ (/profile/edit)
   // ν-8 段階1: "settings" → "profile" に役割再定義。"settings" は過渡期互換のため残す。
   | "profile"
@@ -135,6 +138,7 @@ export default function MypageLayout({
   conversationsBadge,
   applicationsBadge,
   scoutsBadge,
+  proposalsBadge,
   children,
   rightColumn,
   rightColumnCollapse = "stack",
@@ -145,6 +149,12 @@ export default function MypageLayout({
   applicationsBadge?: number;
   /** 未返答のスカウト件数。0 のときは出さない */
   scoutsBadge?: number;
+  /**
+   * ★未回答の提案件数（②）。0 のときは出さない。
+   * ⚠️ 取得に失敗したときは **0 ではなく undefined** を渡すこと
+   *    （0 を渡すと描画ごと落ちて「未回答は無い」と嘘になる）。
+   */
+  proposalsBadge?: number;
   children: React.ReactNode;
   rightColumn?: React.ReactNode;
   /**
@@ -180,7 +190,20 @@ export default function MypageLayout({
           {[
             { key: "dashboard",      label: "ホーム",        href: "/mypage",               icon: Icons.dashboard },
             { key: "applications",   label: "応募・面談",    href: "/mypage/applications",  icon: Icons.application },
-            { key: "scouts",         label: "スカウト",      href: "/mypage/scouts",        icon: Icons.inbox },
+            /* ★★提案（2026-09-21）。**「スカウト」と入れ替えた**（柴さんの判断）。
+                  ⚠️★**7項目にしないこと。** 375px で1項目の枠が 49.6px に落ち、
+                     実測で **応募・面談 −0.4 / メッセージ −0.4 / ブックマーク −9.6** と
+                     3つ溢れる。実画面では「メッセージ」と「ブックマーク」が
+                     **くっついて1語に見えた**。
+                  ⚠️ 下の「代案はどれも採らない」に挙がっている『項目を5つに』を、
+                     今回**6つのまま入れ替える**形で採った。理由は、
+                     スカウトが `SCOUT_SENDING_ENABLED` で送信を止めていて本番0件であること、
+                     ベルの通知（`type='scout'`）から `/mypage/scouts` へ飛べること。
+                  ⚠️★**スカウトを再開する日は、ここをどうするか決め直すこと。**
+                     いまモバイルにスカウトの入口は**ベルだけ**で、
+                     未返答バッジ（`scoutsBadge`）も出なくなっている。
+                  ⚠️ **PC のサイドバーには両方ある**（縦並びなので幅の問題が無い）。 */
+            { key: "proposals",      label: "提案",          href: "/mypage/proposals",     icon: Icons.proposal },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
             /* ★設定（2026-08-17 / フェーズ4-1）。
@@ -193,7 +216,11 @@ export default function MypageLayout({
             const badge =
               item.key === "applications" ? applicationsBadge
               : item.key === "conversations" ? conversationsBadge
+              /* ⚠️ `scouts` はいまモバイルの配列に無いので**この枝は通らない**。
+                    消さずに残しているのは、スカウトを戻したときに
+                    **バッジだけ静かに出なくなる**のを防ぐため。 */
               : item.key === "scouts" ? scoutsBadge
+              : item.key === "proposals" ? proposalsBadge
               : undefined;
             return (
               <a
@@ -276,6 +303,7 @@ export default function MypageLayout({
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
             <SidebarItem icon={Icons.application} label="応募・面談"    active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
+            <SidebarItem icon={Icons.proposal}    label="提案"          active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
             <SidebarItem icon={Icons.inbox}       label="スカウト"      active={activeKey === "scouts"}         badge={scoutsBadge}         href="/mypage/scouts" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />

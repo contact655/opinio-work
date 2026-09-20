@@ -94,6 +94,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /* ★旧 `/proposals` → `/mypage/proposals`（2026-09-21 に移した）。
+     ⚠️ 移した理由は**サイドバーの中に入れるため**。`/mypage` 配下でないと
+        `MypageLayout` が付かず、スカウト（`/mypage/scouts`）と置き場所が割れる。
+     ⚠️ 移した時点で導線もリンクも0件だったので、踏む人は居ないはず。
+        それでも 404 にしないのは、手元のブックマークを殺さないため。 */
+  if (pathname === "/proposals" || pathname.startsWith("/proposals/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mypage/proposals";
+    return NextResponse.redirect(url);
+  }
+
   // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
   const needsAuth =
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
@@ -118,9 +129,9 @@ export async function middleware(request: NextRequest) {
           `ow_profiles` を読んでから出し分けるので、未ログインで開かせない。 */
     pathname === "/onboarding" || pathname.startsWith("/onboarding/") ||
     /* ⚠️★根拠つき提案（②）も認証の内側（2026-09-18）。本人宛の提案しか出さない。
-          ページ側にも `redirect()` を置いてあるが、**それだけに頼らない**
-          （上の `/mypage` と同じソフト200になる）。 */
-    pathname === "/proposals" || pathname.startsWith("/proposals/") ||
+          ⚠️ 2026-09-21 に `/proposals` → **`/mypage/proposals`** へ移したので、
+             すぐ上の `/mypage` の行がそのまま効く。**ここに行を足さない。**
+             旧 URL は下の転送で受ける。 */
     // ⚠️ 申し込み系はページ側でも redirect しているが、middleware でも弾く。
     //    ページ側の redirect() だけだと HTTP は 200 のまま（Suspense 境界の内側で
     //    起きるため）で、ステータスを見る側からは「誰でも開ける」ように見える。

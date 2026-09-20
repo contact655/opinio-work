@@ -6,14 +6,16 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "scout" | "message";
+  type: "like" | "comment" | "scout" | "message" | "proposal" | "introduction";
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
   /** スカウトのときだけ入る */
   scoutId: string | null;
-  /** メッセージのときだけ入る（2026-09-16） */
+  /** メッセージ・紹介のときだけ入る（2026-09-16 / 2026-09-21） */
   conversationId: string | null;
+  /** 提案・紹介のときだけ入る（2026-09-21） */
+  proposalId: string | null;
   isRead: boolean;
   createdAt: string;
   /** いいね・コメントの送り主（ユーザー） */
@@ -39,6 +41,11 @@ function notifHref(notif: NotificationItem): string {
   /* ⚠️ 会話の詳細は参加者しか開けない（page.tsx が `ow_conversation_participants` を
         照合して notFound する）ので、id をそのまま渡してよい。 */
   if (notif.type === "message") return `/mypage/conversations/${notif.conversationId}`;
+  /* ★②の提案は一覧へ。⚠️ 提案ごとの詳細ページは無い */
+  if (notif.type === "proposal") return "/mypage/proposals";
+  /* ★③の紹介は会話そのものへ。⚠️ 提案一覧に戻さない —— 双方が答え終わっていて、
+        そこでできることはもう無い。 */
+  if (notif.type === "introduction") return `/mypage/conversations/${notif.conversationId}`;
   return `/feed/${notif.postId}`;
 }
 
@@ -51,6 +58,17 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
         誰から来たかと、押せば読めることだけを伝える。 */
   if (notif.type === "message") {
     return { who: notif.actor?.name ?? "誰か", what: " からメッセージが届きました" };
+  }
+  /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
+        「◯◯から3人が移っています」まで出すと肩越しに読まれる。
+        スカウト・メッセージと同じで、**誰からと、押せば読めることだけ。** */
+  if (notif.type === "proposal") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " への提案が届きました" };
+  }
+  /* ★③。⚠️ 「双方が会いたいと答えた」と書かない —— 相手が何を押したかは
+        相手の情報。**自分に何ができるようになったか**だけを伝える。 */
+  if (notif.type === "introduction") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " と話せるようになりました" };
   }
   return {
     who: notif.actor?.name ?? "誰か",
@@ -68,16 +86,16 @@ function timeAgo(iso: string): string {
 
 function ActorAvatar({ notif }: { notif: NotificationItem }) {
   const FALLBACK = "linear-gradient(135deg, #002366, #3B5FD9)";
-  const isScout = notif.type === "scout";
+  /* ⚠️ 送り主が**企業**の種別。ユーザーのアバターは入っていない（2026-09-21 に2つ足した） */
+  const isCompanyActor = notif.type === "scout" || notif.type === "proposal" || notif.type === "introduction";
   const actor = notif.actor;
   const company = notif.actorCompany;
 
-  // ⚠️ スカウトの送り主は企業。ユーザーのアバターは入っていない
-  const name = (isScout ? company?.name : actor?.name) ?? "?";
-  const initial = (isScout && company?.logoLetter) || name.charAt(0).toUpperCase();
-  const rawGradient = isScout ? company?.logoGradient : actor?.avatarColor;
+  const name = (isCompanyActor ? company?.name : actor?.name) ?? "?";
+  const initial = (isCompanyActor && company?.logoLetter) || name.charAt(0).toUpperCase();
+  const rawGradient = isCompanyActor ? company?.logoGradient : actor?.avatarColor;
   const gradient = rawGradient?.startsWith("linear-gradient") ? rawGradient : FALLBACK;
-  const avatarUrl = isScout ? null : actor?.avatarUrl ?? null;
+  const avatarUrl = isCompanyActor ? null : actor?.avatarUrl ?? null;
 
   return (
     <div
@@ -85,7 +103,7 @@ function ActorAvatar({ notif }: { notif: NotificationItem }) {
         width: 32,
         height: 32,
         background: avatarUrl ? undefined : gradient,
-        borderRadius: isScout ? 8 : "50%", // 企業は角丸、人は円で見分ける
+        borderRadius: isCompanyActor ? 8 : "50%", // 企業は角丸、人は円で見分ける
         flexShrink: 0,
         overflow: "hidden",
         display: "flex",

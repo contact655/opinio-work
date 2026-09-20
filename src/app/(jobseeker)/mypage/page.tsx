@@ -500,6 +500,7 @@ export default async function MypagePage({
   let conversationsBadge = 0;
   let applicationsBadge = 0;
   let scoutsBadge = 0;
+  let proposalsBadge = 0;
   if (owUser) {
     /* ⚠️★2026-09-20 に「7日以内に動きがあった会話数」→「**未読のある会話数**」に変えた。
           判定は `lib/conversations/unread.ts` の1箇所で、**一覧のドットと同じ式**。
@@ -523,7 +524,12 @@ export default async function MypagePage({
           先に「その会話が一覧に出るか」を満たすこと。
        ⚠️ ここはまだ「未読数」ではなく「7日以内に動きがあった会話数」。
           未読で数えるのは既読フェーズの範囲。 */
-    const [unreadConvCount, { count: appCount, error: appError }, { count: scoutCount, error: scoutError }] = await Promise.all([
+    const [
+      unreadConvCount,
+      { count: appCount, error: appError },
+      { count: scoutCount, error: scoutError },
+      { count: proposalCount, error: proposalError },
+    ] = await Promise.all([
       /* ★未読のある会話の数。⚠️ 述語を書き写さないこと（`unread.ts` の1箇所） */
       countUnreadConversations(owUser.id),
       supabase
@@ -540,14 +546,28 @@ export default async function MypagePage({
         .select("id", { count: "exact", head: true })
         .eq("candidate_id", user.id)
         .eq("status", "sent"),
+      /* ★未回答の提案（②）。
+         ⚠️ `ow_proposals.candidate_user_id` は **ow_users 空間**（スカウトと逆）。
+            `user.id`（auth 空間）で引くと常に0件になる。
+         ⚠️ `candidate_response is null` ＝ **まだ答えていない**。
+            「見送った」を数えない（CLAUDE.md「null を『見送り』と読ませない」）。
+         ⚠️ `authenticated` に `ow_proposals` の SELECT はあるが、admin で引く
+            （RLS のポリシーに依存させない。スカウトと同じ形）。 */
+      createAdminClient()
+        .from("ow_proposals")
+        .select("id", { count: "exact", head: true })
+        .eq("candidate_user_id", owUser.id)
+        .is("candidate_response", null),
     ]);
     /* ⚠️ 会話は `countUnreadConversations` の中で error をログに出し、
           失敗時は 0 を返す（バッジは主役ではないのでページを落とさない）。 */
     if (appError)   console.error("[mypage] 応募バッジ:", appError.message);
     if (scoutError) console.error("[mypage] スカウトバッジ:", scoutError.message);
+    if (proposalError) console.error("[mypage] 提案バッジ:", proposalError.message);
     conversationsBadge = unreadConvCount;
     applicationsBadge = appCount ?? 0;
     scoutsBadge = scoutCount ?? 0;
+    proposalsBadge = proposalCount ?? 0;
   }
 
   // Fetch ambassador memberships (面談対応者として登録されているか)
@@ -627,6 +647,7 @@ export default async function MypagePage({
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       scoutsBadge={scoutsBadge}
+      proposalsBadge={proposalsBadge}
       isNewUser={isNewUser}
       ambassadorMemberships={ambassadorMemberships}
       schoolPeerCounts={schoolPeerCounts}

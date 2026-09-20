@@ -3,12 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
+import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "あなたへの提案 | OPINIO",
+  /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
+        `template: "%s | OPINIO"` が後ろに足すので、素の `title` だと
+        「… | OPINIO | OPINIO」になる。 */
+  title: { absolute: "あなたへの提案 | OPINIO" },
   /* ⚠️ 本人にしか出ない画面。検索結果に出す意味が無い */
   robots: { index: false, follow: false },
 };
@@ -26,13 +30,13 @@ export const metadata = {
 export default async function ProposalsPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth?next=%2Fproposals");
+  if (!user) redirect("/auth?next=%2Fmypage%2Fproposals");
 
   const db = createAdminClient();
   const { data: me, error: meErr } = await db
     .from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
   if (meErr) console.error("[proposals] ow_users:", meErr.message);
-  if (!me) redirect("/auth?next=%2Fproposals");
+  if (!me) redirect("/auth?next=%2Fmypage%2Fproposals");
 
   const { data: rows, error } = await db
     .from("ow_proposals")
@@ -63,13 +67,19 @@ export default async function ProposalsPage() {
     };
   });
 
+  /* ⚠️ **取得に失敗したときはバッジを出さない。** 0 を渡すと
+        `badge > 0` で描画ごと落ちる＝「未回答は無い」と嘘をつくことになる。 */
+  const unanswered = error ? undefined : proposals.filter((p) => !p.response).length;
+
   return (
-    <ProposalsClient
-      proposals={proposals}
-      minEvidence={MIN_EVIDENCE_FOR_PROPOSAL}
-      /* ⚠️ 取得に失敗したときに「0社でした」と言わない。CLAUDE.md
-            「取得に失敗したら『0件』と表示しない」 */
-      loadFailed={!!error}
-    />
+    <MypageLayout activeKey="proposals" proposalsBadge={unanswered}>
+      <ProposalsClient
+        proposals={proposals}
+        minEvidence={MIN_EVIDENCE_FOR_PROPOSAL}
+        /* ⚠️ 取得に失敗したときに「0社でした」と言わない。CLAUDE.md
+              「取得に失敗したら『0件』と表示しない」 */
+        loadFailed={!!error}
+      />
+    </MypageLayout>
   );
 }

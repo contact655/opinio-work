@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar, Sparkles } from "lucide-react";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
@@ -70,6 +70,18 @@ const NAV_ITEMS: NavItem[] = [
     href: "/biz/jobs",
     label: "求人管理",
     icon: <Briefcase size={16} strokeWidth={2.2} />,
+  },
+  /* ★根拠つき提案（⑨）。2026-09-21 まで**ここに行が無く、画面へ辿り着く手段が
+        1つも無かった**（求職者側の `/proposals` も同じ状態だった）。
+     ⚠️★**「スカウト履歴」と並べない。** 提案はスカウトではなく、
+        `ow_scouts` にも3ゲートにも無関係（`/biz/proposals/page.tsx` の注記）。
+        候補者まわりの入口として「候補者を探す」の隣に置く。
+     ⚠️ バッジ（未回答の件数）は付けていない。`NAV_ITEMS` が静的な定数で、
+        件数を配る仕組みがこのレイアウトに無いため。**付けるなら別の作業。** */
+  {
+    href: "/biz/proposals",
+    label: "提案",
+    icon: <Sparkles size={16} strokeWidth={2.2} />,
   },
   {
     href: "/biz/candidates",

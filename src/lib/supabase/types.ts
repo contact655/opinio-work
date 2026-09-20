@@ -4303,6 +4303,7 @@ export type Database = {
           id: string
           is_read: boolean
           post_id: string | null
+          proposal_id: string | null
           recipient_user_id: string
           scout_id: string | null
           type: string
@@ -4316,6 +4317,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           post_id?: string | null
+          proposal_id?: string | null
           recipient_user_id: string
           scout_id?: string | null
           type: string
@@ -4329,6 +4331,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           post_id?: string | null
+          proposal_id?: string | null
           recipient_user_id?: string
           scout_id?: string | null
           type?: string
@@ -4388,6 +4391,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "ow_posts_visible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "ow_proposals"
             referencedColumns: ["id"]
           },
           {

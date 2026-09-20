@@ -223,6 +223,7 @@ export default function MypageClient({
   conversationsBadge,
   applicationsBadge,
   scoutsBadge,
+  proposalsBadge,
   isNewUser = false,
   ambassadorMemberships = [],
   currentCompanies = [],
@@ -256,6 +257,8 @@ export default function MypageClient({
   conversationsBadge?: number;
   applicationsBadge?: number;
   scoutsBadge?: number;
+  /** 未回答の提案件数（②）。0 のときは出さない */
+  proposalsBadge?: number;
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   currentCompanies?: { id: string; name: string }[];
@@ -410,6 +413,7 @@ export default function MypageClient({
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       scoutsBadge={scoutsBadge}
+      proposalsBadge={proposalsBadge}
       rightColumn={dashboardRightColumn}
     >
       {/* ウェルカムバナー（新規登録直後） */}

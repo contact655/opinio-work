@@ -2431,7 +2431,7 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 ## ★根拠つき提案（②⑨④）と、③双方合意 ── docs 3本の索引
 
 **②⑨④に加えて、③の「mutual になったら会話を1本作る」まで動く（2026-09-21）。
-UI と通知はまだ無い。**
+導線（`/mypage/proposals` と `/biz` のナビ）と、候補者側の通知も入っている。**
 個別の理由は各 docs にある。**ここに書き写さない。**
 
 | 何を | docs |
@@ -2456,8 +2456,24 @@ UI と通知はまだ無い。**
    `ON DELETE SET NULL` で消えうるので判定に使わない。**2列に CHECK を張らないこと**
    （会話を消した日にその DELETE が落ちる）。
 
-⚠️★**紹介しても通知は飛ばない**（2026-09-21 時点）。会話にメッセージが無いので
-   `notifyNewMessage` が発火しない。**当事者は会話一覧を開くまで気づけない。**
+⚠️★**通知は2種別。混ぜない**（`20260921210000`）。
+   `proposal`（提案が届いた → `/mypage/proposals`）と
+   `introduction`（双方合意 → 会話へ）で**押したときの行き先が違う**。
+   実体は [proposalNotification.ts](src/lib/notify/proposalNotification.ts)。
+   ⚠️★**`notifyNewMessage` は使えない** ——送信者を要求するが、紹介の会話にはメッセージが無い。
+   ⚠️★**`ow_notifications_type_check` を広げたら `survives()` にも `case` を足すこと**
+      （`GET /api/jobseeker/notifications`）。忘れるとその種別が丸ごと静かに消える。
+
+⚠️★**企業側には通知を出していない。** `/biz` に通知の面が1つも無いため、
+   ナビの「提案」から見に行く形にした。
+   ⚠️★**ここからメールを生やさないこと** ——掲載22社のうち宛先を持つのは**2社**で、
+      残りは運営フォールバックで `ADMIN_EMAIL` に落ちる（＝運営に大量に届く）。
+
+⚠️★**`/proposals` は `/mypage/proposals` へ移した**（旧 URL は middleware が 307）。
+   ⚠️★**モバイルのタブバーは「スカウト」と入れ替えてある**（7項目にすると
+      375px で「メッセージ」と「ブックマーク」がくっつく。実測）。
+      **スカウトを再開する日は、ここを決め直すこと** ——いまモバイルからスカウトへ行く手段は
+      ベルだけで、未返答バッジも出ない。
 
 ⚠️★**段（`stage`）の列を足さないこと。** `candidate_response` / `company_response` の
    2列から導出する（[proposalResponses.ts](src/lib/constants/proposalResponses.ts)）。

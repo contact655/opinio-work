@@ -21,6 +21,7 @@ import {
   MIN_EVIDENCE_FOR_PROPOSAL,
 } from "./engine";
 import { companiesToExclude, evidenceOptions, gatherCompanyFacts } from "./fetch";
+import { notifyProposalsCreated } from "@/lib/notify/proposalNotification";
 
 export type GenerateResult = {
   /** 掲載中で、候補者が在籍していない企業の数（＝突き合わせた母数） */
@@ -99,12 +100,23 @@ export async function generateProposalsForCandidate(
         onConflict: "candidate_user_id,company_id,job_id",
         ignoreDuplicates: true,
       })
-      .select("id");
+      .select("id, candidate_user_id, company_id");
     if (error) {
       console.error("[evidence/generate] ow_proposals upsert:", error.message);
       throw new Error(`提案の作成に失敗しました: ${error.message}`);
     }
     created = (data ?? []).length;
+
+    /* ★届いたことを知らせる。⚠️ `ignoreDuplicates` なので `data` に返るのは
+          **新規の行だけ** ——既存の提案を作り直したときに二重に知らせない。
+       ⚠️ best-effort。通知に失敗しても提案の作成は成功のままにする。 */
+    await notifyProposalsCreated(
+      (data ?? []).map((r) => ({
+        id: r.id as string,
+        candidateUserId: r.candidate_user_id as string,
+        companyId: r.company_id as string,
+      })),
+    );
   }
 
   return {
