@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { generateProposals, deleteProposalsForCandidate, type ActionResult } from "./actions";
+import { generateProposals, deleteProposal, deleteProposalsForCandidate, type ActionResult } from "./actions";
 
 type Candidate = { id: string; name: string; isTest: boolean };
 type Row = {
@@ -30,6 +30,15 @@ export default function ProposalsAdminClient({
         組み合わせだけが行になります。<br />
         根拠は<strong>作った時点のスナップショット</strong>で、表示のたびに作り直しません。
         すでにある提案は上書きしません（作り直すには先に消してください）。
+      </p>
+      {/* ★★「一度きり」は意図した仕様。ここに書いておかないと、
+             運営が「なぜこの会社が出てこないのか」を追えない（2026-09-21）。 */}
+      <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7, background: "#F5F7FD", border: "1px solid #DCE3F5", borderRadius: 8, padding: "10px 12px" }}>
+        <strong>提案は「候補者 × 企業 × 求人」につき一度きりです。</strong>
+        一度出した組み合わせは、見送られても<strong>もう提案に出てきません</strong>
+        （見送り理由を④の材料として残すため、作り直しでは上書きしない設計）。<br />
+        もう一度出したいときは、下の表でその1件を消してから作り直してください。
+        <strong>期間や理由による自動の再提案は、まだ作っていません。</strong>
       </p>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
@@ -73,7 +82,14 @@ export default function ProposalsAdminClient({
             border: `1px solid ${msg.ok ? "#CFE3CF" : "#F0C7C7"}`,
           }}
         >
-          {msg.ok ? (
+          {msg.ok && msg.kind === "delete" ? (
+            /* ★削除は削除として書く。「作成しました」と出さない（2026-09-21） */
+            <>
+              <strong>{msg.deleted} 件消しました。</strong><br />
+              返答と見送り理由も一緒に消えています。この組み合わせは、次に「提案を作る」を
+              押したときにまた出てくるようになりました。
+            </>
+          ) : msg.ok ? (
             <>
               <strong>作成しました。</strong><br />
               突き合わせた企業 {msg.result.examined} 社 ／ 根拠{minEvidence}件以上 {msg.result.proposable} 社 ／
@@ -102,6 +118,7 @@ export default function ProposalsAdminClient({
               <th style={{ padding: 8 }}>根拠</th><th style={{ padding: 8 }}>反証</th>
               <th style={{ padding: 8 }}>求人</th><th style={{ padding: 8 }}>作成日</th>
               <th style={{ padding: 8 }}>求職者</th><th style={{ padding: 8 }}>企業</th>
+              <th style={{ padding: 8 }} />
             </tr>
           </thead>
           <tbody>
@@ -116,6 +133,20 @@ export default function ProposalsAdminClient({
                 {/* ⚠️ null は「まだ答えていない」。「見送り」と読ませない */}
                 <td style={{ padding: 8 }}>{r.candidateResponse ?? "未回答"}</td>
                 <td style={{ padding: 8 }}>{r.companyResponse ?? "未回答"}</td>
+                {/* ★この1件だけ消す（2026-09-21）。
+                       ⚠️ 見送り理由も一緒に消えるので、必ず警告してから。 */}
+                <td style={{ padding: 8 }}>
+                  <button
+                    onClick={() => {
+                      if (!confirm(`「${r.candidateName} × ${r.companyName}」の提案を1件消します。\n返答と見送り理由も一緒に消えます。もう一度提案に出せるようになります。\nよろしいですか？`)) return;
+                      run(() => deleteProposal(r.id));
+                    }}
+                    disabled={pending}
+                    style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff", fontSize: 12, cursor: pending ? "default" : "pointer", opacity: pending ? 0.5 : 1 }}
+                  >
+                    消す
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
