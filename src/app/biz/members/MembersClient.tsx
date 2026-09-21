@@ -1110,6 +1110,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
   // 面談対応者セクション state
   const [ambassadors, setAmbassadors] = useState(initialAmbassadors);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
+  /* ★依頼の前の確認（2026-09-21）。押すと相手にメールが届くので、送る前に必ず伝える */
+  const [confirmInviteUserId, setConfirmInviteUserId] = useState<string | null>(null);
   const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
   /* ⚠️ 「見送る」の確認（`dismissConfirmId`）は 2026-08-24 に**申請の区分ごと削除した**。
         会社の事前承認を廃止したので、見送る対象（未承認の申請）が存在しない。
@@ -1386,11 +1388,9 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
         <div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
             <h1 style={{
-              fontFamily: "var(--font-noto-serif)",
               fontWeight: 700,
-              fontSize: 22,
+              fontSize: 18,
               color: "var(--ink)",
-              letterSpacing: "-0.02em",
               margin: 0,
             }}>
               {/* ⚠️★**表示名は「チーム管理」に統一する**（2026-09-18）。
@@ -1401,24 +1401,22 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                      画面に出す語は「チーム管理」。 */}
               チーム管理
             </h1>
-            <span style={{
-              fontSize: 13, fontWeight: 600, letterSpacing: "0.08em",
-              color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)",
-              textTransform: "uppercase",
-            }}>
-              Members
-            </span>
           </div>
-          <p style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6, margin: 0 }}>
-            採用担当メンバーを管理・招待します。現在 {activeMembers.length} 名がアクティブです。
+          {/* ★3つのタブぜんぶの説明にした（2026-09-21。それまで採用担当のことしか書いていなかった） */}
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>
+            採用担当のメンバーと、候補者との面談に対応する社員を管理します。
           </p>
         </div>
         {isAdmin && (
           <button
             type="button"
             onClick={() => {
+              /* ⚠️ メールの招待欄は「面談対応者」タブの中にしか無い。
+                    「面談を依頼できる社員」タブで押したときは、そのタブへ移ってから開く
+                    （2026-09-21 まで、そのタブでは押しても何も起きなかった） */
               if (activeSection === "field" || activeSection === "employees") {
-                setEmailInviteOpen((v) => !v);
+                setActiveSection("field");
+                setEmailInviteOpen(activeSection === "employees" ? true : (v) => !v);
               } else {
                 setAddDialogPermission("member");
                 setAddError(null);
@@ -1433,13 +1431,15 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               boxShadow: "0 2px 6px rgba(0,35,102,0.2)",
             }}
           >
-            + メールで招待
+            {/* ★タブごとに中身どおりの名前にした（2026-09-21）。同じ「メールで招待」が
+                   タブによって別のことをしていた */}
+            {activeSection === "staff" ? "+ 採用担当を追加" : "+ 面談対応者を招待"}
           </button>
         )}
       </div>
 
       {/* ── タブ バー ─────────────────────────────────────────── */}
-      <div role="tablist" aria-label="チームセクション" style={{
+      <div role="tablist" aria-label="チーム管理の区分" style={{
         display: "flex", gap: 0, marginBottom: 20,
         borderBottom: "1px solid var(--line)",
       }}>
@@ -1447,8 +1447,10 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           { key: "staff" as const, label: "採用担当", count: activeMembers.length },
           /* ⚠️ display_consent で数えると**本人からの申請（未承認）が混ざる**。
              このタブには3区分すべてが出るので、出ている件数（＝全件）を出す。 */
-          { key: "field" as const, label: "現場", count: ambassadors.length },
-          { key: "employees" as const, label: "社員", count: ambassadorCandidates.length },
+          /* ★2026-09-21 に「現場」「社員」から改名。中身を表していなかったうえ、
+                「社員」はサイドバーの「社員管理」とぶつかっていた */
+          { key: "field" as const, label: "面談対応者", count: ambassadors.length },
+          { key: "employees" as const, label: "面談を依頼できる社員", count: ambassadorCandidates.length },
         ]).map((tab) => {
           const isSelected = activeSection === tab.key;
           return (
@@ -1878,38 +1880,42 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                     <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{c.name}</div>
                     {c.role_title && <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{c.role_title}</div>}
                   </div>
-                  {isAdmin && (
+                  {/* ★スイッチの見た目をやめ、「面談を依頼する」ボタンにした（2026-09-21）。
+                         ⚠️ それまでは ON/OFF のスイッチに見えたが、押すと**本人に招待メールが届く**
+                            （本人の同意が要る「お願い」で、会社側で切り替えるものではない）。
+                         ⚠️ 送る前に、メールが届くことを必ず伝える */}
+                  {isAdmin && (confirmInviteUserId === c.user_id ? (
+                    <div role="alertdialog" aria-label="面談の依頼" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+                        {c.name}さんに依頼のメールが届きます
+                      </span>
+                      <button type="button"
+                        onClick={() => { setConfirmInviteUserId(null); void handleInviteAmbassador(c.user_id); }}
+                        style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                        送る
+                      </button>
+                      <button type="button" onClick={() => setConfirmInviteUserId(null)}
+                        style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        やめる
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => handleInviteAmbassador(c.user_id)}
+                      onClick={() => setConfirmInviteUserId(c.user_id)}
                       disabled={invitingUserId === c.user_id || !canInviteAmbassador}
-                      title={canInviteAmbassador
-                        ? "ONにすると現場タブに移動します"
-                        : "「話せる人」の招待は有料プランの機能です"}
+                      title={canInviteAmbassador ? undefined : "面談対応者の依頼は有料プランの機能です"}
                       style={{
-                        display: "flex", alignItems: "center", gap: 7, flexShrink: 0,
-                        background: "none", border: "none", cursor: invitingUserId === c.user_id ? "default" : "pointer",
-                        padding: "4px 0",
+                        flexShrink: 0, padding: "6px 14px", borderRadius: 8,
+                        border: "1px solid var(--royal-100)", background: "var(--royal-50)", color: "var(--royal)",
+                        fontSize: 12, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap",
+                        cursor: invitingUserId === c.user_id || !canInviteAmbassador ? "default" : "pointer",
+                        opacity: !canInviteAmbassador ? 0.55 : 1,
                       }}
                     >
-                      {/* トグルスイッチ（OFF状態） */}
-                      <div style={{
-                        width: 36, height: 20, borderRadius: 10, position: "relative", flexShrink: 0,
-                        background: invitingUserId === c.user_id ? "var(--royal-100)" : "var(--line)",
-                        transition: "background 0.2s",
-                      }}>
-                        <div style={{
-                          position: "absolute", top: 3, left: 3,
-                          width: 14, height: 14, borderRadius: "50%", background: "#fff",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                          transition: "left 0.2s",
-                        }} />
-                      </div>
-                      <span style={{ fontSize: 12, color: invitingUserId === c.user_id ? "var(--royal)" : "var(--ink-mute)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                        {invitingUserId === c.user_id ? "追加中..." : "面談対応可"}
-                      </span>
+                      {invitingUserId === c.user_id ? "送信中..." : "面談を依頼する"}
                     </button>
-                  )}
+                  ))}
                 </div>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/bus
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
 import { canUse } from "@/lib/constants/plans";
+import { isRegisteredUser } from "@/lib/users/registered";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +15,23 @@ export const metadata = {
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
+/* ★企業ページ（`getCompanyEmployees` の `isSeedRow`）と**同じ条件**で人を外す（2026-09-21）。
+      それまで「現場」「社員」の2タブは何も外しておらず、セールスフォースでは
+      現場4件が**全員**、社員11件のうち**10件**が企業ページに出ない人（検証用・本人未登録）だった。
+      「掲載中」と表示しながら企業ページには出ていない、という状態になっていた。
+   ⚠️★`is_test` / `visibility` / `auth_id` を select から落とさないこと。落とすと undefined になり、
+      `isRegisteredUser` が全員を外して**一覧が丸ごと空になる**（型では気づけない）。 */
+type PersonFlags = { is_test?: boolean | null; visibility?: string | null; auth_id?: string | null } | null | undefined;
+function isHiddenFromCompanyPage(u: PersonFlags): boolean {
+  return !u || u.is_test === true || u.visibility === "private" || !isRegisteredUser(u);
+}
+
 async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> {
   const adminSupabase = createAdminClient();
   const { data, error } = await adminSupabase
     .from("ow_company_members")
     /* ⚠️ created_via も取る。無いと「本人からの申請」と「企業が招待した行」を区別できない。 */
-    .select("id, user_id, role_title, display_consent, is_public, created_via, approved_at, consent_at, invited_at, ow_users!user_id(name, avatar_color, avatar_url)")
+    .select("id, user_id, role_title, display_consent, is_public, created_via, approved_at, consent_at, invited_at, ow_users!user_id(name, avatar_color, avatar_url, is_test, visibility, auth_id)")
     .eq("company_id", companyId)
     .order("invited_at", { ascending: false });
 
@@ -58,10 +70,10 @@ async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> 
     consent_at: string | null;
     created_via: string | null;
     invited_at: string | null;
-    ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
+    ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null; is_test: boolean | null; visibility: string | null; auth_id: string | null } | null;
   };
 
-  return (data ?? []).map((row) => {
+  return (data ?? []).filter((row) => !isHiddenFromCompanyPage((row as unknown as Row).ow_users)).map((row) => {
     const r = row as unknown as Row;
     const gradient = r.ow_users?.avatar_color?.startsWith("linear-gradient")
       ? r.ow_users.avatar_color
@@ -94,9 +106,13 @@ async function fetchAmbassadorCandidates(
   // ow_experiences.company_id = companyId AND is_current = true
   const { data: exps, error } = await adminSupabase
     .from("ow_experiences")
-    .select("user_id, role_title, ow_users!user_id(id, name, avatar_color, avatar_url)")
+    .select("user_id, role_title, ow_users!user_id(id, name, avatar_color, avatar_url, is_test, visibility, auth_id)")
     .eq("company_id", companyId)
-    .eq("is_current", true);
+    .eq("is_current", true)
+    /* ⚠️★勤務先を伏せた人を出さない（CLAUDE.md「createAdminClient で ow_experiences を引く
+          企業側の画面は visibility_company を必ず見る」。過去に3回漏れている）。
+          2026-09-21 までこの条件が無かった。 */
+    .eq("visibility_company", "real");
 
   if (error) {
     console.error("[ambassador candidates] fetch error:", error.message);
@@ -106,7 +122,7 @@ async function fetchAmbassadorCandidates(
   type ExpRow = {
     user_id: string;
     role_title: string | null;
-    ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
+    ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; is_test: boolean | null; visibility: string | null; auth_id: string | null } | null;
   };
 
   const seen = new Set<string>();
@@ -114,6 +130,7 @@ async function fetchAmbassadorCandidates(
 
   for (const row of (exps ?? []) as unknown as ExpRow[]) {
     if (!row.ow_users || seen.has(row.user_id)) continue;
+    if (isHiddenFromCompanyPage(row.ow_users)) continue;
     if (existingUserIds.includes(row.user_id)) continue;
     seen.add(row.user_id);
 
