@@ -5,13 +5,8 @@ import { AlertTriangle } from "lucide-react";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JobStatusBadge } from "./JobStatusBadge";
 
-const LEFT_BORDER: Record<BizJob["status"], string> = {
-  rejected:       "4px solid var(--error)",
-  draft:          "4px solid var(--warm)",
-  pending_review: "4px solid var(--purple)",
-  published:      "4px solid var(--success)",
-  private:        "none",
-};
+/* ★左の色帯は外した（2026-09-22）。状態はバッジが言っており、同じことを2回言っていた。
+      ⚠️ しかも公開中が緑だった（緑はお金の条件だけ） */
 
 type Props = {
   job: BizJob;
@@ -128,8 +123,8 @@ function renderActions(
         <>
           <ActionBtn label="公開ページを見る" onClick={viewPublic} />
           <ActionBtn label="複製" onClick={dup} />
-          <IconBtn title="非公開にする"
-            onClick={onStatusChange ? () => onStatusChange(job.id, "private") : undefined} />
+          {/* ★目のアイコンだけでは何のボタンか分からなかった（2026-09-22）。文字で出す */}
+          <ActionBtn label="非公開にする" onClick={onStatusChange ? () => onStatusChange(job.id, "private") : undefined} />
           <ActionBtn label="編集" primary onClick={edit} />
         </>
       );
@@ -197,7 +192,8 @@ function renderDateMeta(job: BizJob) {
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
           {clockIcon}申請 <strong>{job.submittedAt}</strong>
-          <span style={{ color: "var(--ink-mute)" }}>· 2-3営業日で完了予定</span>
+          {/* ⚠️ 期限を書かない（2026-09-22 まで「2-3営業日で完了予定」。審査は運営の手作業で、守れる裏付けが無い） */}
+          <span style={{ color: "var(--ink-mute)" }}>· 運営が内容を確認しています</span>
         </span>
       );
     case "rejected":
@@ -210,7 +206,9 @@ function renderDateMeta(job: BizJob) {
     case "private":
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          {clockIcon}非公開化 <strong>{job.publishedAt}</strong>
+          {/* ⚠️★2026-09-22 まで「非公開化 <公開日>」と出していた（公開した日を非公開にした日として見せていた）。
+                 非公開にした日時は記録していないので、記録している最終更新を出す */}
+          {clockIcon}最終更新 <strong>{job.lastEditedAt}</strong>
         </span>
       );
   }
@@ -224,7 +222,6 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
     <div style={{
       background: "#fff",
       border: "1px solid var(--line)",
-      borderLeft: LEFT_BORDER[job.status],
       borderRadius: 12,
       padding: "18px 22px",
       transition: "all 0.15s",
@@ -233,15 +230,12 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.borderColor = "var(--royal-100)";
         (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 14px rgba(15,23,42,0.06)";
-        // Preserve left border
-        (e.currentTarget as HTMLDivElement).style.borderLeft = LEFT_BORDER[job.status];
         // Prefetch edit page on hover for faster navigation
         router.prefetch(`/biz/jobs/${job.id}/edit`);
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLDivElement).style.borderColor = "var(--line)";
         (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-        (e.currentTarget as HTMLDivElement).style.borderLeft = LEFT_BORDER[job.status];
       }}
     >
       {/* 上段 */}
@@ -389,7 +383,8 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
             </span>
             <span style={{
               display: "flex", alignItems: "center", gap: 5,
-              color: job.applicationCount > 0 ? "var(--success-ink)" : "var(--ink-mute)",
+              /* ⚠️ 緑にしない（面談の件数と同じ青に揃えた。2026-09-22） */
+              color: job.applicationCount > 0 ? "var(--royal)" : "var(--ink-mute)",
               fontWeight: job.applicationCount > 0 ? 600 : 400,
             }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -399,7 +394,7 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
               <strong style={{
                 fontFamily: "var(--font-inter), var(--font-noto)",
                 fontSize: job.applicationCount > 0 ? 13 : 11,
-                color: job.applicationCount > 0 ? "var(--success-ink)" : "var(--ink-mute)",
+                color: job.applicationCount > 0 ? "var(--royal)" : "var(--ink-mute)",
               }}>
                 {job.applicationCount}
               </strong>
@@ -410,10 +405,11 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
 
         {/* 下書き完成度 */}
         {job.status === "draft" && (
-          <span style={{ color: job.completionPercent === 100 ? "var(--success-ink)" : "var(--warm-ink)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+          /* ⚠️ 項目数は出さない（割合から逆算した「◯/10項目」は実際の項目数ではなかった。2026-09-22） */
+          <span style={{ color: job.completionPercent === 100 ? "var(--ink-soft)" : "var(--warm-ink)", display: "inline-flex", alignItems: "center", gap: 3 }}>
             {job.completionPercent === 100
-              ? `✓ 全項目入力済み`
-              : <><AlertTriangle size={12} style={{ flexShrink: 0 }} />{Math.round((100 - job.completionPercent) / 10)}/{10}項目が未入力</>
+              ? "全項目入力済み"
+              : <><AlertTriangle size={12} style={{ flexShrink: 0 }} />未入力の項目があります</>
             }
           </span>
         )}
