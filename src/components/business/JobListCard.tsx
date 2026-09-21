@@ -105,7 +105,14 @@ function renderActions(
   const del = onDelete ? () => onDelete(job.id) : undefined;
   const dup = onDuplicate ? () => onDuplicate(job.id) : undefined;
   const edit = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/edit`) : undefined;
+  /* ★公開申請は編集画面の「公開設定」から（2026-09-21）。
+        ⚠️★**カードの上で `pending_review` にしないこと。** それまで「修正して再申請」
+           「編集 / 公開申請」「公開を再開」は**編集画面を開かずに即申請**しており、
+           掲載ガイドラインへの同意の一文（公開設定にだけある）を通らずに申請できた。 */
+  const toPublish = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/edit?section=settings`) : undefined;
   const viewPublic = onNavigate ? () => onNavigate(`/jobs/${job.id}`) : undefined;
+  /* ★審査中の「プレビュー」。2026-09-21 まで onClick が無く、押しても何も起きなかった */
+  const preview = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/preview`) : undefined;
 
   switch (job.status) {
     case "rejected":
@@ -113,8 +120,7 @@ function renderActions(
         <>
           <ActionBtn label="複製" onClick={dup} />
           <IconBtn title="削除" isDelete onClick={del} />
-          <ActionBtn label="修正して再申請" primary
-            onClick={onStatusChange ? () => onStatusChange(job.id, "pending_review") : undefined} />
+          <ActionBtn label="修正して再申請" primary onClick={edit} />
         </>
       );
     case "published":
@@ -130,7 +136,7 @@ function renderActions(
     case "pending_review":
       return (
         <>
-          <ActionBtn label="プレビュー" />
+          <ActionBtn label="プレビュー" onClick={preview} />
           <ActionBtn label="申請を取り下げる"
             onClick={onStatusChange ? () => onStatusChange(job.id, "draft") : undefined} />
         </>
@@ -141,8 +147,8 @@ function renderActions(
           <>
             <ActionBtn label="複製" onClick={dup} />
             <IconBtn title="削除" isDelete onClick={del} />
-            <ActionBtn label="編集 / 公開申請" primary
-              onClick={onStatusChange ? () => onStatusChange(job.id, "pending_review") : undefined} />
+            <ActionBtn label="編集" onClick={edit} />
+            <ActionBtn label="公開申請へ" primary onClick={toPublish} />
           </>
         );
       }
@@ -158,8 +164,7 @@ function renderActions(
         <>
           <ActionBtn label="複製" onClick={dup} />
           <IconBtn title="削除" isDelete onClick={del} />
-          <ActionBtn label="公開を再開" primary
-            onClick={onStatusChange ? () => onStatusChange(job.id, "pending_review") : undefined} />
+          <ActionBtn label="再公開を申請へ" primary onClick={toPublish} />
         </>
       );
   }

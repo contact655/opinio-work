@@ -7,6 +7,7 @@ import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JOB_STATUS_TABS, countByStatus } from "@/lib/business/mockJobs";
 import { JobListCard } from "@/components/business/JobListCard";
 import { JobsEmptyState } from "@/components/business/JobsEmptyState";
+import { FilterChip } from "@/components/common/FilterChip";
 
 type Props = {
   jobs: BizJob[];
@@ -15,65 +16,19 @@ type Props = {
   initialStatus?: JobStatus | "all";
 };
 
-const CHEVRON_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`;
-
-const SALARY_OPTIONS = [
-  { label: "指定なし", min: 0, max: 0 },
-  { label: "〜500万円", min: 0, max: 500 },
-  { label: "500〜800万円", min: 500, max: 800 },
-  { label: "800〜1000万円", min: 800, max: 1000 },
-  { label: "1000〜1500万円", min: 1000, max: 1500 },
-  { label: "1500万円〜", min: 1500, max: 0 },
-];
-
-function SidebarSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: "1px solid var(--line)" }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function FilterSelect({ value, onChange, options, placeholder }: {
-  value: string; onChange: (v: string) => void;
-  options: string[]; placeholder: string;
-}) {
-  const active = !!value;
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={{
-        width: "100%", height: 34, padding: "0 28px 0 10px",
-        border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-        borderRadius: 8, fontFamily: "inherit", fontSize: 12,
-        color: active ? "var(--royal)" : "var(--ink-soft)",
-        fontWeight: active ? 700 : 400,
-        background: active ? "var(--royal-50)" : "#fff",
-        outline: "none", cursor: "pointer",
-        appearance: "none" as const,
-        backgroundImage: CHEVRON_SVG,
-        backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center",
-      }}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
-  );
-}
+/* ★2026-09-21 に左の絞り込み欄（部門・職種・雇用形態・年収）をやめた（柴さん）。
+      自社の求人は数件で、常時開きの欄は大きすぎた。残したのは状態のタブ・検索・職種の3つ。
+   ⚠️ 部門はフリーワード検索に含めてある（部門名でも当たる）。
+   ⚠️ 年収の絞り込みは**万円の値を円（×10000）と比べていて一度も正しく効いていなかった**。
+      戻すなら単位を揃えること（`salaryMin` / `salaryMax` は万円）。 */
 
 export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all" }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStatus | "all">(initialStatus);
   const [searchQuery, setSearchQuery] = useState("");
-  const [deptFilter, setDeptFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [empTypeFilter, setEmpTypeFilter] = useState("");
-  const [salaryRange, setSalaryRange] = useState(0); // index into SALARY_OPTIONS
+  const [openChip, setOpenChip] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -124,15 +79,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
 
   const counts = useMemo(() => countByStatus(jobs), [jobs]);
 
-  const deptOptions = useMemo(() => {
-    const set = new Set<string>();
-    jobs.forEach((j) => {
-      if (j.departmentName) set.add(j.departmentName);
-      else if (j.department) set.add(j.department);
-    });
-    return Array.from(set).sort();
-  }, [jobs]);
-
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
     jobs.forEach((j) => {
@@ -142,29 +88,15 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
     return Array.from(set).sort();
   }, [jobs]);
 
-  const empTypeOptions = useMemo(() => {
-    const set = new Set<string>();
-    jobs.forEach((j) => { if (j.employmentType) set.add(j.employmentType); });
-    return Array.from(set).sort();
-  }, [jobs]);
-
   const filtered = useMemo(() => {
-    const sal = SALARY_OPTIONS[salaryRange];
     return jobs.filter((j) => {
       if (activeStatus !== "all" && j.status !== activeStatus) return false;
-      if (deptFilter) {
-        const dept = j.departmentName ?? j.department ?? "";
-        if (dept !== deptFilter) return false;
-      }
       if (categoryFilter) {
         const roles = j.jobRoleNames ?? [];
         const matchesRole = roles.includes(categoryFilter);
         const matchesCategory = j.jobCategory === categoryFilter;
         if (!matchesRole && !matchesCategory) return false;
       }
-      if (empTypeFilter && j.employmentType !== empTypeFilter) return false;
-      if (sal.min > 0 && (j.salaryMax ?? 0) < sal.min * 10000) return false;
-      if (sal.max > 0 && (j.salaryMin ?? 0) > sal.max * 10000) return false;
       const q = searchQuery.toLowerCase().trim();
       if (!q) return true;
       return (
@@ -174,17 +106,14 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
         (j.jobRoleNames ?? []).some((n) => n.toLowerCase().includes(q))
       );
     });
-  }, [jobs, activeStatus, searchQuery, deptFilter, categoryFilter, empTypeFilter, salaryRange]);
+  }, [jobs, activeStatus, searchQuery, categoryFilter]);
 
-  const hasFilters = activeStatus !== "all" || !!searchQuery.trim() || !!deptFilter || !!categoryFilter || !!empTypeFilter || salaryRange > 0;
-
-  function clearAll() {
-    setActiveStatus("all");
+  const hasFilters = activeStatus !== "all" || !!searchQuery.trim() || !!categoryFilter;
+  /* 検索と職種だけ外す（状態のタブは画面の主軸なので残す） */
+  const hasNarrowing = !!searchQuery.trim() || !!categoryFilter;
+  function clearNarrowing() {
     setSearchQuery("");
-    setDeptFilter("");
     setCategoryFilter("");
-    setEmpTypeFilter("");
-    setSalaryRange(0);
   }
 
   return (
@@ -210,10 +139,26 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
         </div>
       )}
 
-      {/* 上部バー: ステータスタブ + 検索 + ボタン */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-        {/* ステータスタブ */}
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+      {/* ★見出し（2026-09-21）。それまでページに見出しが無かった */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>求人管理</h1>
+        {isAdmin && (
+          <Link href="/biz/jobs/new" className="btn-fixed-size" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            height: 36, padding: "0 16px", background: "var(--royal)", color: "#fff",
+            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
+            flexShrink: 0, whiteSpace: "nowrap",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            新規求人を作成
+          </Link>
+        )}
+      </div>
+
+      {/* 状態のタブ */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
           {JOB_STATUS_TABS.map((tab) => {
             const isActive = activeStatus === tab.status;
             const isRejected = tab.status === "rejected";
@@ -241,12 +186,12 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
           })}
         </div>
 
-        <div style={{ flex: 1 }} />
 
-        {/* 検索ボックス */}
-        <div style={{ position: "relative" }}>
-          <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--ink-mute)", pointerEvents: "none" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      {/* 検索と職種。⚠️ チップは components/common/FilterChip（候補者検索と同じもの） */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 0, maxWidth: 420 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-mute)", pointerEvents: "none", display: "flex" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
             </svg>
           </span>
@@ -254,15 +199,14 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="求人タイトルで検索..."
+            placeholder="タイトル・職種・部門で検索"
             aria-label="求人を検索"
             style={{
-              padding: searchQuery ? "7px 32px 7px 32px" : "7px 12px 7px 32px",
-              border: "1px solid var(--line)", borderRadius: 8, fontFamily: "inherit",
-              fontSize: 12, background: "#fff", width: 220, outline: "none",
+              width: "100%", height: 36, boxSizing: "border-box",
+              padding: "0 32px 0 32px",
+              border: "1px solid var(--line)", borderRadius: 999, fontFamily: "inherit",
+              fontSize: 13, background: "#fff", outline: "none",
             }}
-            onFocus={(e) => (e.target.style.borderColor = "var(--royal)")}
-            onBlur={(e) => (e.target.style.borderColor = "var(--line)")}
           />
           {searchQuery && (
             <button type="button" onClick={() => setSearchQuery("")} aria-label="検索をクリア"
@@ -270,105 +214,31 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
           )}
         </div>
 
-        {/* 新規求人作成ボタン */}
-        {isAdmin && (
-          <Link href="/biz/jobs/new" style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 16px", background: "var(--royal)", color: "#fff",
-            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
-            flexShrink: 0, whiteSpace: "nowrap",
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            新規求人を作成
-          </Link>
+        {/* ⚠️ 職種が1つも無い会社ではチップごと出さない（押しても選べるものが無い） */}
+        {categoryOptions.length > 0 && (
+          <FilterChip
+            label="職種" value={categoryFilter}
+            options={categoryOptions.map((c) => ({ value: c, label: c }))}
+            onSelect={(v) => setCategoryFilter(v ?? "")}
+            isOpen={openChip === "category"} onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
+          />
         )}
+
+        {hasNarrowing && (
+          <button type="button" onClick={clearNarrowing}
+            style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+            条件を外す
+          </button>
+        )}
+
+        <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--ink-soft)" }}>
+          <strong style={{ fontSize: 15, color: "var(--royal)" }}>{filtered.length}</strong> 件
+        </span>
       </div>
 
-      {/* サイドバー + メインコンテンツ */}
-      <div className="biz-2col" style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
-
-        {/* 左サイドバー */}
-        <aside style={{
-          background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
-          padding: "16px 0", position: "sticky", top: 16,
-        }}>
-          <div style={{ padding: "0 14px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>絞り込み</span>
-            {hasFilters && (
-              <button type="button" onClick={clearAll}
-                style={{ fontSize: 11, color: "var(--royal)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                リセット
-              </button>
-            )}
-          </div>
-
-          <div style={{ padding: "0 14px" }}>
-            {/* 部門 */}
-            <SidebarSection title="部門">
-              <FilterSelect value={deptFilter} onChange={setDeptFilter} options={deptOptions} placeholder="すべての部門" />
-            </SidebarSection>
-
-            {/* 職種 */}
-            <SidebarSection title="職種">
-              <FilterSelect value={categoryFilter} onChange={setCategoryFilter} options={categoryOptions} placeholder="すべての職種" />
-            </SidebarSection>
-
-            {/* 雇用形態 */}
-            <SidebarSection title="雇用形態">
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {empTypeOptions.map((t) => (
-                  <label key={t} onClick={(e) => { e.preventDefault(); setEmpTypeFilter(empTypeFilter === t ? "" : t); }}
-                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", cursor: "pointer", userSelect: "none" }}>
-                    <span style={{
-                      width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                      border: `2px solid ${empTypeFilter === t ? "var(--royal)" : "#CBD5E1"}`,
-                      background: empTypeFilter === t ? "var(--royal)" : "#fff",
-                      display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.1s",
-                    }}>
-                      {empTypeFilter === t && (
-                        <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
-                          <path d="M1 4l2.5 3L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </span>
-                    <span style={{ fontSize: 12, color: empTypeFilter === t ? "var(--ink)" : "var(--ink-soft)", fontWeight: empTypeFilter === t ? 600 : 400 }}>{t}</span>
-                  </label>
-                ))}
-              </div>
-            </SidebarSection>
-
-            {/* 年収 */}
-            <div style={{ paddingBottom: 4 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-mute)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>年収</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {SALARY_OPTIONS.map((o, i) => (
-                  <label key={i} onClick={(e) => { e.preventDefault(); setSalaryRange(salaryRange === i ? 0 : i); }}
-                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", cursor: "pointer", userSelect: "none" }}>
-                    <span style={{
-                      width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
-                      border: `2px solid ${salaryRange === i ? "var(--royal)" : "#CBD5E1"}`,
-                      background: salaryRange === i ? "var(--royal)" : "#fff",
-                      display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.1s",
-                    }}>
-                      {salaryRange === i && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", display: "block" }} />}
-                    </span>
-                    <span style={{ fontSize: 12, color: salaryRange === i ? "var(--ink)" : "var(--ink-soft)", fontWeight: salaryRange === i ? 600 : 400 }}>{o.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </aside>
-
+      <div>
         {/* 求人リスト */}
-        <main>
-          {hasFilters && filtered.length > 0 && (
-            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, textAlign: "right" }}>
-              {filtered.length} 件
-            </div>
-          )}
+        <div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filtered.length === 0 ? (
               <JobsEmptyState hasFilters={hasFilters} />
@@ -404,7 +274,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
               ))
             )}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { fetchJobById, fetchTeamMembers } from "@/lib/business/jobs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import type { RoleItem, DeptItem } from "@/components/business/JobEditForm";
+import { JOB_EDIT_SECTIONS } from "@/lib/business/jobEditSections";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,14 @@ export function generateMetadata() {
 }
 
 
-export default async function JobEditPage({ params }: { params: { id: string } }) {
+export default async function JobEditPage({
+  params,
+  searchParams,
+}: { params: { id: string }; searchParams?: { section?: string } }) {
+  /* ★`?section=settings` で公開設定から開く（2026-09-21。求人管理のカードの「公開申請へ」）。
+        ⚠️ 知らない値は basic に落とす（URL の値をそのまま state に入れない） */
+  const rawSection = searchParams?.section ?? "";
+  const initialSection = (JOB_EDIT_SECTIONS as readonly string[]).includes(rawSection) ? rawSection : "basic";
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -126,6 +134,7 @@ export default async function JobEditPage({ params }: { params: { id: string } }
         departments={departments}
         initialDepartmentId={initialDepartmentId}
         initialCompanyRoleName={initialCompanyRoleName}
+        initialSection={initialSection}
       />
     </BusinessLayout>
   );

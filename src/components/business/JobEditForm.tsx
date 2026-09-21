@@ -281,6 +281,13 @@ type SelectedRole = { roleId: string; isPrimary: boolean };
 export type DeptItem = { id: string; parent_id: string | null; name: string };
 
 type Props = {
+  /**
+   * ★最初に開く節（2026-09-21）。求人管理のカードの「公開申請へ」などが `settings` を渡す。
+   * ⚠️ 公開申請は**この画面の「公開設定」からだけ**行う。掲載ガイドラインへの同意の一文が
+   *    ここにしか無いので、カードの上から直接申請する経路を作らないこと。
+   * ⚠️ 値の検証は呼ぶ側（edit/page.tsx）で `lib/business/jobEditSections.ts` と突き合わせる。
+   */
+  initialSection?: string;
   mode: FormMode;
   initialJob?: BizJob | null;
   initialAssigneeIds?: string[];
@@ -308,6 +315,7 @@ export function JobEditForm({
   departments = [],
   initialDepartmentId = null,
   initialCompanyRoleName = "",
+  initialSection = "basic",
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
@@ -316,7 +324,7 @@ export function JobEditForm({
     return base;
   });
   const [departmentId, setDepartmentId] = useState<string>(initialDepartmentId ?? "");
-  const [activeSection, setActiveSection] = useState("basic");
+  const [activeSection, setActiveSection] = useState(initialSection);
   const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
