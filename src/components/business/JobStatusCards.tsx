@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import type { JobStatusCounts } from "@/lib/business/dashboard";
+import { DashboardCardHeading } from "./DashboardCardHeading";
 
 /**
  * ★**すべての状態を数える**（2026-08-31 に `rejected` / `private` を足した）。
@@ -17,7 +18,6 @@ type Props = { counts: JobStatusCounts };
 
 type Card = {
   label: string;
-  subLabel: string;
   count: number;
   color: string;
   bg: string;
@@ -28,7 +28,6 @@ export function JobStatusCards({ counts }: Props) {
   const cards: Card[] = [
     {
       label: "公開中",
-      subLabel: "Active",
       count: counts.active,
       color: "var(--success-ink)",
       bg: "var(--success-soft)",
@@ -39,7 +38,6 @@ export function JobStatusCards({ counts }: Props) {
     },
     {
       label: "審査中",
-      subLabel: "In Review",
       count: counts.review,
       /* ⚠️ 数字は 28px なので基準は 3.0 だが、`--warm` は白の上で **2.15** で届かない。
             塗り（`bg`）は `--warm-soft` のままで、**文字だけ** `--warm-ink`(5.02)。 */
@@ -49,7 +47,6 @@ export function JobStatusCards({ counts }: Props) {
     },
     {
       label: "下書き",
-      subLabel: "Draft",
       count: counts.draft,
       color: "var(--ink-mute)",
       bg: "var(--line-soft)",
@@ -66,7 +63,6 @@ export function JobStatusCards({ counts }: Props) {
              （出したり消したりすると「なぜ増えたのか」が分からなくなる）。 */
     {
       label: "差し戻し",
-      subLabel: "Rejected",
       count: counts.rejected,
       color: "var(--error-ink)",
       bg: "var(--error-soft)",
@@ -74,7 +70,6 @@ export function JobStatusCards({ counts }: Props) {
     },
     {
       label: "非公開",
-      subLabel: "Unlisted",
       count: counts.private,
       color: "var(--ink)",
       bg: "var(--line-soft)",
@@ -89,19 +84,7 @@ export function JobStatusCards({ counts }: Props) {
       borderRadius: 14,
       padding: "22px 26px",
     }}>
-      <div style={{
-        fontFamily: "var(--font-noto-serif)",
-        fontSize: 15, fontWeight: 600, color: "var(--ink)",
-        display: "flex", alignItems: "baseline", gap: 8,
-        marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
-      }}>
-        求人ステータス
-        <span style={{
-          fontFamily: "var(--font-inter), var(--font-noto)",
-          fontSize: 9, fontWeight: 700,
-          color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
-        }}>Job Status</span>
-      </div>
+      <DashboardCardHeading title="求人" link={{ href: "/biz/jobs", label: "求人管理" }} />
 
       {totalJobs(counts) === 0 ? (
         <div style={{ textAlign: "center", padding: "28px 16px" }}>
@@ -166,13 +149,6 @@ export function JobStatusCards({ counts }: Props) {
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>
               {c.label}
-            </div>
-            <div style={{
-              fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 9, fontWeight: 700,
-              color: "var(--ink-mute)", letterSpacing: "0.12em", textTransform: "uppercase",
-            }}>
-              {c.subLabel}
             </div>
           </Link>
         ))}

@@ -45,3 +45,32 @@ async function countOpenProposals(companyId: string): Promise<number> {
   }
   return count ?? 0;
 }
+
+/**
+ * ★ダッシュボードの「やること」（2026-09-21）。
+ * ⚠️★メッセージと提案は**サイドバーのバッジと同じ関数**で数える。数字が食い違わないように。
+ * ⚠️ 差し戻された求人はページ側が既に持っている件数（`getJobStatusCounts`）を使う。ここでは数えない。
+ */
+export type BizTodoCounts = BizNavBadges & { meetings: number };
+
+export async function getBizTodoCounts(params: { owUserId: string; companyId: string }): Promise<BizTodoCounts> {
+  const [badges, meetings] = await Promise.all([getBizNavBadges(params), countUnreadMeetings(params.companyId)]);
+  return { ...badges, meetings };
+}
+
+/**
+ * 企業がまだ開いていない面談申込。`/biz/meetings` の未読（`company_read_at` が null）と同じ条件。
+ * ⚠️ 失敗したら 0（ログは出す）。
+ */
+async function countUnreadMeetings(companyId: string): Promise<number> {
+  const { count, error } = await createAdminClient()
+    .from("ow_casual_meetings")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .is("company_read_at", null);
+  if (error) {
+    console.error("[navBadges] 面談申込の件数を取得できませんでした:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}

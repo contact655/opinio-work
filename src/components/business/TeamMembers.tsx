@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { DashboardCardHeading } from "./DashboardCardHeading";
 
 export type TeamMember = {
   id: string;
@@ -35,26 +35,7 @@ export function TeamMembers({ members }: Props) {
       borderRadius: 14,
       padding: "22px 26px",
     }}>
-      <div style={{
-        display: "flex", alignItems: "baseline", justifyContent: "space-between",
-        marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
-      }}>
-        <div style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: 15, fontWeight: 600, color: "var(--ink)",
-          display: "flex", alignItems: "baseline", gap: 8,
-        }}>
-          チームメンバー
-          <span style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontSize: 9, fontWeight: 700,
-            color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
-          }}>Team</span>
-        </div>
-        <Link href="/biz/members" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-          管理 →
-        </Link>
-      </div>
+      <DashboardCardHeading title="チーム" link={{ href: "/biz/members", label: "管理" }} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {visible.map((m) => {

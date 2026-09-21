@@ -45,17 +45,39 @@ export type ScoreBreakdown = {
   total: number;
   biz: number;       // /45
   interview: number; // /50
+  /**
+   * ★第1区分（企業が自分で入れられる項目）のうち、まだ点になっていないもの（2026-09-21）。
+   * ダッシュボードが「まだ入れていない項目」として出す。
+   * ⚠️ 並びは下の点数計算と同じ順。**条件を別の場所に書き写さないこと**
+   *    （ここと計算式が割れると「入れたのに残る」が起きる）。
+   * ⚠️ 取材の項目（第2区分）は入れない。企業が自分では埋められない。
+   */
+  bizMissing: BizScoreItem[];
+};
+
+export type BizScoreItem = "tagline" | "description" | "photo" | "benefits" | "job" | "story";
+
+export const BIZ_SCORE_ITEM_LABELS: Record<BizScoreItem, string> = {
+  tagline: "キャッチコピー",
+  description: "会社紹介",
+  photo: "オフィス写真",
+  benefits: "福利厚生",
+  job: "公開中の求人",
+  story: "企業ストーリー",
 };
 
 export function calcDisclosureScore(input: ScoreInput): ScoreBreakdown {
-  // 第1区分
-  const biz =
-    (input.tagline ? 5 : 0) +
-    (input.description ? 15 : 0) +
-    (input.photoCount && input.photoCount >= 1 ? 10 : 0) +
-    (input.benefitsCount && input.benefitsCount >= 1 ? 5 : 0) +
-    (input.hasPublishedJob ? 5 : 0) +
-    (input.hasPublishedStory ? 5 : 0);
+  // 第1区分。⚠️ 判定は1箇所（ここ）。点数と bizMissing の両方がこの表を見る
+  const bizItems: { key: BizScoreItem; ok: boolean; pt: number }[] = [
+    { key: "tagline", ok: !!input.tagline, pt: 5 },
+    { key: "description", ok: !!input.description, pt: 15 },
+    { key: "photo", ok: !!(input.photoCount && input.photoCount >= 1), pt: 10 },
+    { key: "benefits", ok: !!(input.benefitsCount && input.benefitsCount >= 1), pt: 5 },
+    { key: "job", ok: !!input.hasPublishedJob, pt: 5 },
+    { key: "story", ok: !!input.hasPublishedStory, pt: 5 },
+  ];
+  const biz = bizItems.reduce((sum, i) => sum + (i.ok ? i.pt : 0), 0);
+  const bizMissing = bizItems.filter((i) => !i.ok).map((i) => i.key);
 
   // 第2区分
   const interview =
@@ -67,7 +89,7 @@ export function calcDisclosureScore(input: ScoreInput): ScoreBreakdown {
     (input.orgTeams && input.orgTeams.length > 0 ? 5 : 0) +
     (input.toolCount && input.toolCount >= 1 ? 5 : 0);
 
-  return { total: biz + interview, biz, interview };
+  return { total: biz + interview, biz, interview, bizMissing };
 }
 
 export function scoreLabel(total: number): string {

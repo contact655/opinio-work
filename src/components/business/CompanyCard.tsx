@@ -20,6 +20,11 @@ type Props = {
   industry?: string | null;
   employeeCount?: number | null;
   memberCount?: number | null;
+  /**
+   * ★カードの下段（2026-09-21）。ダッシュボードが開示充実度を入れる。
+   * それまで企業カードと開示充実度は別のカードで、どちらも「自社の企業ページ」の話だった。
+   */
+  children?: React.ReactNode;
 };
 
 export function CompanyCard({
@@ -31,6 +36,7 @@ export function CompanyCard({
   employeeCount,
   memberCount,
   hasPublicPage = false,
+  children,
 }: Props) {
   const gradient = logoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
   const letter = logoLetter || tenantName.trim().charAt(0).toUpperCase();
@@ -144,6 +150,13 @@ export function CompanyCard({
           企業ページを編集
         </Link>
       </div>
+
+      {/* ⚠️ 全列にまたがらせる（狭い画面は 48px 1fr の2列になるので -1 で指定） */}
+      {children && (
+        <div style={{ gridColumn: "1 / -1", borderTop: "1px solid var(--line-soft)", paddingTop: 16, minWidth: 0 }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

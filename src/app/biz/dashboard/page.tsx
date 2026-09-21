@@ -9,7 +9,9 @@ import {
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
 import { fetchCompanyForTenant } from "@/lib/business/company";
-import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, DISCLOSURE_MAX, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
+import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, DISCLOSURE_MAX, BIZ_SCORE_ITEM_LABELS, type BizScoreItem } from "@/lib/utils/disclosureScore";
+import { getBizTodoCounts } from "@/lib/business/navBadges";
+import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
@@ -61,6 +63,16 @@ async function NoTenantPage() {
   );
 }
 
+/** ★「まだ入れていない項目」の行き先（2026-09-21）。ラベルは disclosureScore.ts の1箇所 */
+const BIZ_SCORE_ITEM_HREF: Record<BizScoreItem, string> = {
+  tagline: "/biz/company",
+  description: "/biz/company",
+  photo: "/biz/company",
+  benefits: "/biz/company",
+  job: "/biz/jobs",
+  story: "/biz/posts",
+};
+
 export default async function BizDashboardPage({
   searchParams,
 }: {
@@ -75,7 +87,7 @@ export default async function BizDashboardPage({
 
   const supabase = createClient();
   const adminSupabase = createAdminClient();
-  const [jobStatusCounts, teamMembers, companyRaw, scoreData] = await Promise.all([
+  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
@@ -97,7 +109,19 @@ export default async function BizDashboardPage({
         toolCount: toolCnt.count ?? 0,
       };
     })(),
+    /* ★「やること」。メッセージと提案はサイドバーのバッジと同じ関数で数える */
+    getBizTodoCounts({ owUserId: ctx.currentOwnId, companyId: ctx.tenantId }),
   ]);
+
+  /* ★やること（2026-09-21）。**件数が1以上のものだけ**出す。
+        ⚠️ 並びは「相手を待たせているもの」から。差し戻しは運営からの指摘なので最後。
+        ⚠️ 「審査中の求人」は入れない —— 運営の対応待ちで、企業側にできることが無い。 */
+  const todoItems = [
+    { key: "messages", label: "未読のメッセージ", count: todo.messages, href: "/biz/conversations" },
+    { key: "proposals", label: "答えていない提案", count: todo.proposals, href: "/biz/proposals" },
+    { key: "meetings", label: "未確認の面談申込", count: todo.meetings, href: "/biz/meetings" },
+    { key: "rejected", label: "差し戻された求人", count: jobStatusCounts.rejected ?? 0, href: "/biz/jobs?status=rejected" },
+  ].filter((t) => t.count > 0);
 
   const disclosureScore = companyRaw ? calcDisclosureScore({
     tagline: companyRaw.tagline,
@@ -197,7 +221,41 @@ export default async function BizDashboardPage({
         </div>
       )}
 
-      {/* ── Company card ── */}
+      {/* ── ★やること（2026-09-21）── */}
+      <section data-state={todoItems.length > 0 ? "has-todo" : "empty"} style={{
+        background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
+        padding: "18px 22px", marginBottom: 16,
+      }}>
+        <DashboardCardHeading title="やること" />
+        {todoItems.length === 0 ? (
+          /* ⚠️ 0件でもカードは消さない。「確かめた結果、無い」ことを伝える */
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>
+            今すぐ対応が必要なものはありません
+          </p>
+        ) : (
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column" }}>
+            {todoItems.map((t, i) => (
+              <li key={t.key}>
+                <Link href={t.href} className="biz-todo-row" style={{ borderTop: i > 0 ? "1px solid var(--line-soft)" : "none" }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>{t.label}</span>
+                  <span style={{
+                    minWidth: 22, height: 22, padding: "0 7px", borderRadius: 100,
+                    background: "var(--error)", color: "#fff",
+                    fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  }}>{t.count > 99 ? "99+" : t.count}</span>
+                  <span aria-hidden="true" style={{ color: "var(--ink-mute)" }}>→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <style>{`
+          .biz-todo-row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; }
+          .biz-todo-row:hover { background: var(--bg-tint); }
+        `}</style>
+      </section>
+
+      {/* ── 企業ページ（企業カード＋開示充実度を1枚に。2026-09-21）── */}
       <CompanyCard
         /* ★公開ページが無いなら「公開ページを見る」を出さない（2026-09-20）。
               判定は `hasPublicCompanyPage` の1箇所。ここに条件を書かない。 */
@@ -206,7 +264,49 @@ export default async function BizDashboardPage({
         tenantName={ctx.tenantName}
         logoGradient={ctx.logoGradient}
         logoLetter={ctx.logoLetter}
-      />
+      >
+        {disclosureScore && (
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div aria-hidden="true" style={{
+              width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+              background: `conic-gradient(${scoreColor(disclosureScore.total)} ${disclosureScore.total * (360 / DISCLOSURE_MAX)}deg, var(--line) 0deg)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800, color: scoreTextColor(disclosureScore.total) }}>
+                  {disclosureScore.total}
+                </span>
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>開示充実度 {disclosureScore.total}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, color: scoreTextColor(disclosureScore.total), background: "var(--bg-tint)", border: `1px solid ${scoreColor(disclosureScore.total)}` }}>
+                  {scoreLabel(disclosureScore.total)}
+                </span>
+              </div>
+              {/* ★企業が自分で入れられる項目のうち、まだのものだけを出す（2026-09-21）。
+                     ⚠️ 取材で埋まる項目は出さない。企業には動かせない数字で、
+                        「50/50」「0/50」を見せても次の行動にならない。 */}
+              {disclosureScore.bizMissing.length === 0 ? (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
+              ) : (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+                  まだ入れていない項目（{disclosureScore.bizMissing.length}）：
+                  {disclosureScore.bizMissing.map((k, i) => (
+                    <span key={k}>
+                      {i > 0 && "・"}
+                      <Link href={BIZ_SCORE_ITEM_HREF[k]} style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                        {BIZ_SCORE_ITEM_LABELS[k]}
+                      </Link>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </CompanyCard>
 
       {/* ── ロゴ未設定バナー ── */}
       {companyRaw && !companyRaw.logoUrl && ctx.isPublished && (
@@ -244,45 +344,6 @@ export default async function BizDashboardPage({
             }}
           >
             ロゴを設定する →
-          </Link>
-        </div>
-      )}
-
-      {/* ── 開示充実度スコア ── */}
-      {disclosureScore && (
-        <div style={{
-          background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
-          padding: "18px 22px", marginTop: 16,
-          display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
-        }}>
-          <div style={{ flex: "0 0 auto" }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: "50%",
-              background: `conic-gradient(${scoreColor(disclosureScore.total)} ${disclosureScore.total * (360 / DISCLOSURE_MAX)}deg, var(--line) 0deg)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              position: "relative",
-            }}>
-              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 18, fontWeight: 800, color: scoreTextColor(disclosureScore.total) }}>
-                  {disclosureScore.total}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div style={{ flex: 1, minWidth: 140 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>開示充実度スコア</span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100, color: scoreTextColor(disclosureScore.total), background: "var(--bg-tint)", border: `1px solid ${scoreColor(disclosureScore.total)}` }}>
-                {scoreLabel(disclosureScore.total)}
-              </span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "var(--ink-soft)" }}>
-              <span>あなたが入力できる項目　{disclosureScore.biz} / {DISCLOSURE_BIZ_MAX}</span>
-              <span>取材で埋まる項目　{disclosureScore.interview} / {DISCLOSURE_INTERVIEW_MAX}</span>
-            </div>
-          </div>
-          <Link href="/biz/company" style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
-            {disclosureScore.total < 80 ? "開示を充実させる →" : "企業情報を確認 →"}
           </Link>
         </div>
       )}
@@ -343,35 +404,6 @@ export default async function BizDashboardPage({
         <TeamMembers members={teamMembers} />
       </div>
 
-      {/* ── Job performance ── */}
-      <section style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "22px 26px",
-        marginTop: 16,
-      }}>
-        <div style={{
-          display: "flex", alignItems: "baseline", justifyContent: "space-between",
-          marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--line)",
-        }}>
-          <div style={{
-            fontFamily: "var(--font-noto-serif)",
-            fontSize: 15, fontWeight: 600, color: "var(--ink)",
-            display: "flex", alignItems: "baseline", gap: 8,
-          }}>
-            求人パフォーマンス
-            <span style={{
-              fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 9, fontWeight: 700,
-              color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase",
-            }}>Job Performance</span>
-          </div>
-          <Link href="/biz/jobs" style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-            求人管理へ →
-          </Link>
-        </div>
-      </section>
     </BusinessLayout>
   );
 }
