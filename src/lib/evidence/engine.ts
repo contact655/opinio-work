@@ -223,7 +223,11 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
             根拠の本数で行う**（sortByEvidenceCount）ので実害は無いが、
             ここを人数として読まないこと。 */
       n: labels.length,
-      label: `希望条件と ${labels.join("・")} が一致しています`,
+      /* ⚠️★matchCompanyPreference が返すのは「一致した項目」で、文ではない。
+            「希望条件と ◯◯ が一致しています」に埋めると**二重の文**になる
+            （2026-09-21 まで「希望条件と 希望フェーズ（listed）にマッチ が一致しています」
+            と画面に出ていた）。**文はここで組む。** */
+      label: `${labels.join("・")}に合っています`,
       sourceQuery: "scoreJob(reasonParts)",
     });
   }

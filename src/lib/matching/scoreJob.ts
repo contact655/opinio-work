@@ -1,3 +1,4 @@
+import { phaseLabel } from "@/lib/constants/phase";
 import type { Job } from "@/app/jobs/mockJobData";
 
 // ─── ユーザープロフィール（ow_profiles）──────────────────────────────────
@@ -129,7 +130,10 @@ export function scoreJob(
     const hit = profile.desired_phase.some((p) => normPhase(p) === normCompany);
     if (hit) {
       score += WEIGHTS.PHASE;
-      reasonParts.push(`希望フェーズ（${companyPhase}）にマッチ`);
+      /* ⚠️★phaseLabel を通す。生値だと「希望フェーズ（listed）にマッチ」と
+            **英語のまま利用者に出る**（2026-09-21 に提案の画面で実際に出ていた）。
+         ⚠️ 引けないときだけ生値に落とす。**既定のラベルで埋めない。** */
+      reasonParts.push(`希望フェーズ（${phaseLabel(companyPhase) ?? companyPhase}）にマッチ`);
     }
   }
 
@@ -164,6 +168,13 @@ export function scoreJob(
  *    片方だけ変わる。
  *
  * ⚠️ 職種と年収はここでは見ない。どちらも**求人に付く属性**で、企業には無い。
+ *
+ * ⚠️★★**返すのは「一致した項目」であって、文ではない**（2026-09-21 に変更）。
+ *    それまで「希望フェーズ（listed）にマッチ」という**完成した文**を返しており、
+ *    呼び出し側（evidence/engine.ts）が「希望条件と ◯◯ が一致しています」に
+ *    埋め込んでいたため、**「希望条件と 希望フェーズ（listed）にマッチ が一致しています」**
+ *    という二重の文が**求職者の画面に実際に出ていた。**
+ *    ⚠️★**ここに文末（「にマッチ」「が一致」）を戻さないこと。文は読む側が組む。**
  */
 export function matchCompanyPreference(
   companyPhase: string | null | undefined,
@@ -175,14 +186,14 @@ export function matchCompanyPreference(
   if (profile.desired_phase?.length && companyPhase) {
     const normCompany = normPhase(companyPhase);
     if (profile.desired_phase.some((p) => normPhase(p) === normCompany)) {
-      reasonParts.push(`希望フェーズ（${companyPhase}）にマッチ`);
+      reasonParts.push(`希望フェーズ（${phaseLabel(companyPhase) ?? companyPhase}）`);
     }
   }
 
   if (profile.desired_work_styles?.length && companyWorkStyle) {
     const cw = normWorkStyle(companyWorkStyle);
     if (profile.desired_work_styles.some((w) => normWorkStyle(w) === cw)) {
-      reasonParts.push(`勤務形態（${companyWorkStyle}）が希望と一致`);
+      reasonParts.push(`希望の勤務形態（${companyWorkStyle}）`);
     }
   }
 
