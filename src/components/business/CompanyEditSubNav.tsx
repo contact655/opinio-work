@@ -1,7 +1,6 @@
 "use client";
 
 import type { CompanySectionId } from "@/lib/business/mockCompany";
-import { DISCLOSURE_INTERVIEW_MAX } from "@/lib/utils/disclosureScore";
 
 export type CompanySubNavSection = {
   id: CompanySectionId;
@@ -20,15 +19,12 @@ type Props = {
   sections: CompanySubNavSection[];
   activeSection: string;
   onSectionClick: (id: string) => void;
-  bizScore: number;
-  interviewScore: number;
   hasDraftChanges: boolean;
   /**
    * ★公開ページ（`/companies/[id]`）が存在するか（2026-09-20 / 柴さんの指示）。
    *
-   * ⚠️★**このファイルには同じURLを開くボタンが2つある**（「公開ページを見る」と
-   *    「プレビュー」）。**両方ともこれで出し分ける。** 片方だけ直すと、
-   *    もう片方から 404 に飛べる状態が残る。
+   * ⚠️ 2026-09-21 まで同じURLを開く「プレビュー」もあった（編集中の内容ではなく
+   *    **公開済みのページ**を開いていた）。外したので、いまは「公開ページを見る」1つ。
    * ⚠️★**`lastPublishedAt` で判定しないこと**（2026-09-20 まではそうだった）。
    *    あれは `published_at` 由来で、取り下げても消えない列。実測では
    *    **79社が `is_published=true` なのに `published_at` が null** で、
@@ -37,144 +33,109 @@ type Props = {
    */
   hasPublicPage?: boolean;
   lastPublishedAt?: string;
-  lastPublishedAgo?: string;
   onViewPublicPage?: () => void;
-  // アクションボタン（旧サブトップバーから移動）
-  onPreview?: () => void;
   onPublish?: () => void;
   isPublishing?: boolean;
   isAdmin?: boolean;
   termsAgreed?: boolean;
-  onShowTermsSection?: () => void;
   saveState?: "idle" | "saving" | "saved" | "error";
   saveStatusText?: string;
   onRetrySave?: () => void;
 };
 
+/**
+ * ★企業ページ編集の上部（2026-09-21 / 柴さん）。
+ *
+ * それまでは**サイドバーの右にもう1本の縦の列**（公開ボタン・タブ・「公開ページを見る」・
+ * 開示充実度）があり、入力欄が右へ押し出されていた。いまは
+ *   見出し＋公開の状態＋操作 → 横並びのタブ
+ * の2段にして、入力欄は幅いっぱいを使う。
+ *
+ * ⚠️★「プレビュー」は戻さないこと。**公開済みのページ**を開いていて、編集中の内容は
+ *    見えなかった（変更してから押すと古いページが出る）。下書きの本物のプレビューを作るなら別の作業。
+ * ⚠️ 開示充実度はダッシュボードに出している（「まだ入れていない項目」付き）。ここに戻さない。
+ * ⚠️ 名前は `CompanyEditSubNav` のまま（呼び出し側と検証の data 属性を変えないため）。
+ */
 export function CompanyEditSubNav({
   sections,
   activeSection,
   onSectionClick,
-  bizScore,
-  interviewScore,
   hasDraftChanges,
   hasPublicPage = false,
   lastPublishedAt,
-  lastPublishedAgo,
   onViewPublicPage,
-  onPreview,
   onPublish,
   isPublishing,
   isAdmin,
   termsAgreed,
-  onShowTermsSection: _onShowTermsSection,
   saveState,
   saveStatusText,
   onRetrySave,
 }: Props) {
   return (
-    <aside style={{
-      background: "var(--bg-tint)",
-      borderRight: "1px solid var(--line)",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-    }}>
-      {/* アクションボタン */}
-      <div style={{
-        padding: "12px 16px",
-        borderBottom: "1px solid var(--line)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}>
+    <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
+      {/* 1段目: 見出し・状態・操作 */}
+      {/* ⚠️ 左右の余白はインラインに書かない（狭い画面で詰めるため。下の style タグ） */}
+      <div className="biz-company-head" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業ページ</h1>
+
+        {/* 公開の状態。⚠️ 色だけで伝えない（文言で言う） */}
+        {hasDraftChanges ? (
+          <span data-state="draft" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 100, background: "var(--warm-soft)", border: "1px solid #FDE68A", fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>
+            <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm-strong)" }} />
+            未公開の変更あり
+          </span>
+        ) : (
+          <span data-state="published" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 100, background: "var(--success-soft)", border: "1px solid #A7F3D0", fontSize: 12, fontWeight: 600, color: "var(--success-ink)" }}>
+            公開済み・最新
+          </span>
+        )}
+        {/* ⚠️ 日付が無いなら出さない（推測の日付を出さない） */}
+        {lastPublishedAt && (
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>最終公開 {lastPublishedAt}</span>
+        )}
+
         {/* 保存状態 */}
         {saveState && saveState !== "idle" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: saveState === "error" ? "var(--error)" : "var(--ink-mute)", fontWeight: 500 }}>
-            {saveState === "saving" && (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-              </svg>
-            )}
-            {saveState === "saved" && (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            )}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: saveState === "error" ? "var(--error)" : "var(--ink-mute)", fontWeight: 500 }}>
             {saveStatusText}
             {saveState === "error" && onRetrySave && (
               <button type="button" onClick={onRetrySave} style={{ marginLeft: 4, fontSize: 12, fontWeight: 600, color: "var(--error)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>再試行</button>
             )}
-          </div>
+          </span>
         )}
-        {/* ★未同意のときだけ、どこへ行けばよいかを出す（2026-09-18）。
-               ⚠️★**同意済みの企業には出さない。** 常時出すとただのノイズになる。
-               ⚠️ 規約パネルは「設定」タブの奥にあるので、**タブ名まで書く。** */}
+
+        <div style={{ flex: 1 }} />
+
+        {/* ★公開ページが無いときは出さない（押すと 404）。判定は hasPublicCompanyPage */}
+        {hasPublicPage && (
+          <button type="button" onClick={onViewPublicPage} className="btn-fixed-size"
+            style={{ height: 34, padding: "0 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            公開ページを見る
+          </button>
+        )}
+        {/* ★未同意のときは公開ボタンの代わりに、どこで同意するかを出す（2026-09-18 の方針のまま）。
+               ⚠️ それまで同じ案内がウィンドウ右上にも固定で出ていたが、ヘッダーの
+                  「ヘルプ」とアカウントメニューに重なるので 2026-09-21 にここへ一本化した */}
         {isAdmin && !termsAgreed && (
-          <div style={{
-            padding: "8px 10px", borderRadius: 7,
-            background: "var(--warm-soft)", border: "1px solid #FDE68A",
-            fontSize: 11, lineHeight: 1.7, color: "var(--warm-ink)",
-          }}>
-            公開には掲載利用規約への同意が必要です（<strong>設定</strong>タブ）
-          </div>
+          <button type="button" onClick={() => onSectionClick("settings")}
+            style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "1px solid #FDE68A", background: "var(--warm-soft)", color: "var(--warm-ink)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            公開には掲載利用規約への同意が必要です（設定タブ）
+          </button>
         )}
-        {/* 変更を公開 */}
         {isAdmin && termsAgreed && (
-          <button
-            type="button"
-            onClick={onPublish}
-            disabled={isPublishing || !hasDraftChanges}
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, borderRadius: 7, cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer", background: hasDraftChanges ? "var(--success-strong)" : "var(--line)", color: hasDraftChanges ? "#fff" : "var(--ink-mute)", border: "none", transition: "background 0.2s", opacity: isPublishing ? 0.7 : 1 }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <button type="button" onClick={onPublish} disabled={isPublishing || !hasDraftChanges} className="btn-fixed-size"
+            style={{ height: 34, padding: "0 16px", borderRadius: 8, border: "none", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit",
+              cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer",
+              background: hasDraftChanges ? "var(--royal)" : "var(--line)", color: hasDraftChanges ? "#fff" : "var(--ink-mute)",
+              opacity: isPublishing ? 0.7 : 1 }}>
             {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
           </button>
         )}
-        {/* プレビュー
-               ⚠️★**公開ページが無いときは出さない**（2026-09-20）。行き先は
-                  「公開ページを見る」と同じ `/companies/[id]` なので、
-                  未公開だと **404 に飛ぶ**。「プレビュー」という名前から
-                  「公開前に見られるもの」と読めてしまうぶん、むしろ紛らわしい。
-               ⚠️ dev では `/companies/[id]` が `is_published` で絞らないので
-                  **開発中は気づけない**。本番でしか再現しない。 */}
-        {hasPublicPage && (
-        <button
-          type="button"
-          onClick={onPreview}
-          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 12px", fontFamily: "inherit", fontSize: 12, fontWeight: 600, borderRadius: 7, cursor: "pointer", border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", transition: "all 0.15s" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal-100)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-soft)"; }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          プレビュー
-        </button>
-        )}
       </div>
 
-      {/* 公開ステータス */}
-      <div style={{ padding: "8px 16px 4px" }}>
-        {hasDraftChanges ? (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "6px 10px", borderRadius: 6,
-            background: "var(--warm-soft)", border: "1px solid #FDE68A",
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm-strong)", flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>未公開の変更あり</span>
-          </div>
-        ) : (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "6px 10px", borderRadius: 6,
-            background: "var(--success-soft)", border: "1px solid #A7F3D0",
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success-ink)" }}>公開済み・最新</span>
-          </div>
-        )}
-      </div>
-
-      {/* セクションナビ */}
-      <nav style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
+      {/* 2段目: タブ */}
+      <nav aria-label="企業ページの項目" className="biz-company-tabs" style={{ display: "flex", gap: 2, overflowX: "auto", scrollbarWidth: "none" }}>
         {sections.map((s) => {
           const isActive = s.id === activeSection;
           return (
@@ -186,178 +147,40 @@ export function CompanyEditSubNav({
               data-tab={s.id}
               data-state={isActive ? "active" : "inactive"}
               data-attention={s.needsAttention ? "true" : "false"}
+              aria-current={isActive ? "page" : undefined}
               style={{
-                padding: "9px 20px",
-                fontSize: 12,
-                fontWeight: isActive ? 700 : 500,
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 12px", marginBottom: -1,
+                fontSize: 13, fontWeight: isActive ? 700 : 500,
                 color: isActive ? "var(--royal)" : "var(--ink-soft)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                borderLeft: `3px solid ${isActive ? "var(--royal)" : "transparent"}`,
-                borderTop: "none",
-                borderRight: "none",
-                borderBottom: "none",
-                justifyContent: "space-between",
-                transition: "all 0.15s",
-                background: isActive ? "#fff" : "transparent",
-                fontFamily: "inherit",
-                textAlign: "left",
-                width: "100%",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                background: "none", border: "none",
+                borderBottom: `2px solid ${isActive ? "var(--royal)" : "transparent"}`,
+                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
               }}
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                {s.label}
-                {/* ★未対応の印（2026-09-18）。いまは掲載規約の未同意だけが立てる。
-                    ⚠️ 色だけで伝えない。`aria-label` と `title` を必ず付ける。 */}
-                {s.needsAttention && (
-                  <span
-                    role="img"
-                    aria-label="対応が必要です"
-                    title="対応が必要です"
-                    style={{
-                      width: 7, height: 7, borderRadius: "50%",
-                      background: "var(--warm-strong)", flexShrink: 0,
-                    }}
-                  />
-                )}
-              </span>
-              {s.showStatus && s.hasDraft && (
-                <span style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "var(--warm-ink)",
-                  background: "var(--warm-soft)",
-                  padding: "1px 6px",
-                  borderRadius: 4,
-                  flexShrink: 0,
-                }}>
-                  下書きあり
-                </span>
+              {s.label}
+              {/* ★未対応の印。いまは掲載規約の未同意だけが立てる。
+                  ⚠️ 色だけで伝えない。`aria-label` と `title` を必ず付ける。 */}
+              {s.needsAttention && (
+                <span role="img" aria-label="対応が必要です" title="対応が必要です"
+                  style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--warm-strong)", flexShrink: 0 }} />
               )}
+              {/* ⚠️ タブごとの「下書きあり」は 2026-09-21 に外した。未公開の変更があると
+                     4タブ全部に同時に付き、どのタブの話か分からなかった。状態は1段目に1つだけ出す */}
             </button>
           );
         })}
       </nav>
-
-      {/* 公開情報カード
-             ⚠️★**出す条件を2つにしてある**（2026-09-20）。
-                ・`lastPublishedAt` … 「最終公開」の履歴を見せるため
-                ・`hasPublicPage`   … **公開中なのに `published_at` が無い79社**でも
-                                      「公開ページを見る」を出すため
-                片方だけにすると、どちらかの企業でボタンが消える。 */}
-      {(lastPublishedAt || hasPublicPage) && (
-        <div style={{
-          margin: "0 16px 12px",
-          padding: 14,
-          background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 10,
-        }}>
-          {/* ⚠️ 日付が無いなら「最終公開」の行ごと出さない。
-                 「—」や推測の日付を出さない（記録が無いという事実を残す）。 */}
-          {lastPublishedAt && (
-            <>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
-                最終公開
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 4 }}>
-                {lastPublishedAt} に公開
-              </div>
-            </>
-          )}
-          {lastPublishedAgo && (
-            <div style={{
-              fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 12, fontWeight: 500,
-              color: "var(--ink-mute)",
-              marginBottom: 8,
-            }}>
-              {lastPublishedAgo}
-            </div>
-          )}
-          {hasPublicPage && (
-          <button
-            type="button"
-            onClick={onViewPublicPage}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: "6px 10px",
-              background: "#fff",
-              border: "1px solid var(--line)",
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--ink)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--royal-100)";
-              (e.currentTarget as HTMLButtonElement).style.background = "var(--royal-50)";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)";
-              (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--ink)";
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            公開ページを見る
-          </button>
-          )}
-        </div>
-      )}
-
-      {/* 開示充実度スコア */}
-      <div style={{
-        margin: "0 16px 16px",
-        padding: 14,
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 10,
-      }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-          開示充実度
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
-              <span>あなたが入力できる項目</span>
-              <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--royal)" }}>{bizScore} / 45</span>
-            </div>
-            <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.round(bizScore / 45 * 100)}%`, background: "linear-gradient(to right, var(--royal), var(--accent))", borderRadius: 100, transition: "width 0.3s ease" }} />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4 }}>
-              <span>取材・投稿で埋まる項目</span>
-              <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--ink-mute)" }}>{interviewScore} / {DISCLOSURE_INTERVIEW_MAX}</span>
-            </div>
-            <div style={{ height: 4, background: "var(--bg-tint)", borderRadius: 100, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.round(interviewScore / DISCLOSURE_INTERVIEW_MAX * 100)}%`, background: "var(--ink-mute)", borderRadius: 100, transition: "width 0.3s ease" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
+      <style>{`
+        .biz-company-head { padding: 16px 32px 10px; }
+        .biz-company-tabs { padding: 0 24px; }
+        .biz-company-body { padding: 28px 32px 60px; }
+        @media (max-width: 768px) {
+          .biz-company-head { padding: 12px 12px 8px; }
+          .biz-company-tabs { padding: 0 4px; }
+          .biz-company-body { padding: 16px 0 48px; }
+        }
+      `}</style>
+    </div>
   );
 }

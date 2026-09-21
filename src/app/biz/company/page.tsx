@@ -7,12 +7,11 @@ import { CompanyEditClient } from "./CompanyEditClient";
 import type { Genre } from "@/components/ui/GenreChipSelector";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
-import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "企業情報編集 | OPINIO Business" },
+  title: { absolute: "企業ページ | OPINIO Business" },
 };
 
 export default async function BizCompanyPage() {
@@ -33,7 +32,7 @@ export default async function BizCompanyPage() {
   /* ⚠️ `ow_saas_categories` の取得は 2026-08-25 に外した。SaaSカテゴリの入力欄を
         撤去したので誰も使わない（列と値は残してある）。事業領域の入力欄を作る日に
         `ow_business_domains` を取りに行く。 */
-  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, jobCntResult, storyCntResult, interviewScoreData] = await Promise.all([
+  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
     adminClient
       .from("ow_genres")
@@ -56,27 +55,11 @@ export default async function BizCompanyPage() {
       .select("id, name, slug, display_order, parent_id")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
-    adminClient.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("status", "published"),
-    adminClient.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId).eq("is_published", true),
-    // 取材項目スコア用フィールドを一括取得
-    adminClient.from("ow_companies").select("description, culture_description, customer_cases, market_customer_size, capital_type, branch_locations, org_teams").eq("id", ctx.tenantId).maybeSingle(),
+    /* ⚠️ 開示充実度の計算に使っていた4本（公開求人数・公開ストーリー数・取材項目・ツール数）は
+          2026-09-21 に外した。この画面から開示充実度を外したため（ダッシュボードに出している） */
   ]);
 
   if (!companyRaw) redirect("/biz/dashboard");
-
-  // 取材項目スコアを計算（サーバー側で完結させる）
-  const iFields = interviewScoreData.data;
-  const { count: toolCount } = await adminClient
-    .from("ow_company_tools").select("*", { count: "exact", head: true }).eq("company_id", ctx.tenantId);
-  const interviewScore = calcDisclosureScore({
-    cultureDescription: iFields?.culture_description ?? null,
-    customerCases: Array.isArray(iFields?.customer_cases) ? iFields.customer_cases : null,
-    marketCustomerSize: iFields?.market_customer_size as string[] | null ?? null,
-    capitalType: iFields?.capital_type ?? null,
-    branchLocations: iFields?.branch_locations as string[] | null ?? null,
-    orgTeams: Array.isArray(iFields?.org_teams) ? iFields.org_teams : null,
-    toolCount: toolCount ?? 0,
-  }).interview;
 
   // 公開済みジャンルの slug 配列（draft_data.genres がない企業の初期値として使用）
   const publishedGenreSlugs: string[] = ((publishedGenresResult.data ?? []) as Record<string, unknown>[])
@@ -110,10 +93,6 @@ export default async function BizCompanyPage() {
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
       industries={industries}
-      initialPublishedJobCount={jobCntResult.count ?? 0}
-      initialPublishedStoryCount={storyCntResult.count ?? 0}
-      initialInterviewScore={interviewScore}
-      initialDescription={iFields?.description ?? null}
     />
   );
 }

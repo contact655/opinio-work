@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
@@ -19,7 +19,6 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
-import { calcDisclosureScore } from "@/lib/utils/disclosureScore";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
@@ -50,10 +49,6 @@ type Props = {
   /** ⚠️ `parent_id` は必須。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05） */
   industries?: { id: string; name: string; slug: string; display_order: number; parent_id: string | null }[];
   /** スコア計算用（サーバー側で取得した静的カウント） */
-  initialPublishedJobCount?: number;
-  initialPublishedStoryCount?: number;
-  initialInterviewScore?: number;
-  initialDescription?: string | null;
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -387,10 +382,6 @@ export function CompanyEditClient({
   initialTermsAgreed = false,
   userId = "",
   industries = [],
-  initialPublishedJobCount = 0,
-  initialPublishedStoryCount = 0,
-  initialInterviewScore = 0,
-  initialDescription = null,
 }: Props) {
   const router = useRouter();
 
@@ -598,16 +589,6 @@ export function CompanyEditClient({
       setIsPublishing(false);
     }
   }
-
-  // ── 開示スコア計算 ─────────────────────────────────────────────────────────
-  const disclosureScore = useMemo(() => calcDisclosureScore({
-    tagline: form.tagline,
-    description: initialDescription,
-    photoCount: photos.length,
-    benefitsCount: form.benefitsTags.length,
-    hasPublishedJob: initialPublishedJobCount > 0,
-    hasPublishedStory: initialPublishedStoryCount > 0,
-  }), [form.tagline, initialDescription, photos.length, form.benefitsTags.length, initialPublishedJobCount, initialPublishedStoryCount]);
 
   const subNavSections: CompanySubNavSection[] = COMPANY_SECTIONS.map((s) => ({
     ...s,
@@ -1227,42 +1208,32 @@ export function CompanyEditClient({
         height: "calc(100vh - 57px)",
       }}>
 
-        {/* 2カラム本体 */}
-        <div className="biz-2col" style={{
-          display: "grid",
-          gridTemplateColumns: "240px 1fr",
-          flex: 1,
-          overflow: "hidden",
-        }}>
+        {/* ★上部（見出し・状態・操作・タブ）＋本文の1列（2026-09-21）。
+               それまでは 240px の縦の列を左に持つ2カラムで、サイドバーと合わせて左に列が2本あった。 */}
           <CompanyEditSubNav
             sections={subNavSections}
             activeSection={activeSection}
             onSectionClick={(id) => setActiveSection(id as CompanySectionId)}
-            bizScore={disclosureScore.biz}
-            interviewScore={initialInterviewScore}
             hasDraftChanges={hasDraftChanges}
-            /* ★公開ページが無いなら「公開ページを見る」も「プレビュー」も出さない
-                  （2026-09-20）。判定は `hasPublicCompanyPage` の1箇所。 */
+            /* ★公開ページが無いなら「公開ページを見る」を出さない（2026-09-20）。
+                  判定は `hasPublicCompanyPage` の1箇所。 */
             hasPublicPage={hasPublicCompanyPage({ isPublished: form.isPublished })}
             lastPublishedAt={form.lastPublishedAt}
-            lastPublishedAgo={form.lastPublishedAgo}
             onViewPublicPage={() => router.push(`/companies/${companyId}`)}
-            onPreview={() => window.open(`/companies/${companyId}`, "_blank", "noopener,noreferrer")}
             onPublish={handlePublish}
             isPublishing={isPublishing}
             isAdmin={isAdmin}
             termsAgreed={termsAgreed}
-            onShowTermsSection={() => setActiveSection("basic")}
             saveState={saveState}
             saveStatusText={saveStatusText}
             onRetrySave={handleRetrySave}
           />
 
-          <main style={{
+          <div className="biz-company-body" style={{
+            flex: 1,
             overflowY: "auto",
-            padding: "32px 40px 60px",
-            maxWidth: 900,
           }}>
+          <div style={{ maxWidth: 900 }}>
             {errorMessage && (
               <div role="alert" aria-live="polite" style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1278,39 +1249,9 @@ export function CompanyEditClient({
               </div>
             )}
             {renderSection()}
-          </main>
-        </div>
+          </div>
+          </div>
       </div>
-      {/* 規約同意バナー — 右上固定 */}
-      {isAdmin && !termsAgreed && (
-        <button
-          type="button"
-          /* ⚠️ 規約同意は 2026-09-18 に「設定」タブへ移した。ここも同時に変えること */
-          onClick={() => setActiveSection("settings")}
-          style={{
-            position: "fixed",
-            top: 16,
-            right: 24,
-            zIndex: 50,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "7px 14px",
-            borderRadius: 8,
-            background: "#FFFBEB",
-            color: "var(--warm-ink)",
-            border: "none",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            whiteSpace: "nowrap",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-          }}
-        >
-          ⚠ 規約に同意してから公開できます
-        </button>
-      )}
     </BusinessLayout>
   );
 }
