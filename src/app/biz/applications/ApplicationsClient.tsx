@@ -12,14 +12,16 @@ const APP_STATUS_LABEL: Record<ApplicationStatus, string> = {
   pending:   "新着",
   reviewing: "確認中",
   interview: "面接中",
-  accepted:  "採用",
+  accepted:  "内定",
   rejected:  "不採用",
   hired:     "採用確定",
 };
 
 function AppStatusPill({ status }: { status: ApplicationStatus }) {
+  /* ⚠️ 内定・採用確定を緑にしない（StatusPill の既定は緑。緑はお金の条件だけ。2026-09-22） */
+  const variant = status === "accepted" || status === "hired" ? "confirming" : status;
   return (
-    <StatusPill variant={status}>
+    <StatusPill variant={variant}>
       {APP_STATUS_LABEL[status]}
     </StatusPill>
   );
@@ -407,7 +409,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
     { value: "pending",   label: "新着" },
     { value: "reviewing", label: "確認中" },
     { value: "interview", label: "面接中" },
-    { value: "accepted",  label: "採用（オファー済）" },
+    { value: "accepted",  label: "内定（オファー済み）" },
     { value: "rejected",  label: "不採用" },
   ];
 
@@ -597,40 +599,41 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
       {/* ── 採用確定セクション ── */}
       {app.status === "hired" ? (
         /* 採用確定済みバナー */
+        /* ⚠️ 緑にしない（2026-09-22 に青系へ。緑はお金の条件だけ） */
         <div style={{
           marginTop: 8,
-          background: "#D1FAE5", border: "1.5px solid #6EE7B7",
+          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
           borderRadius: 12, padding: "16px 20px",
           display: "flex", alignItems: "center", gap: 12,
         }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定済み</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--royal)" }}>採用確定済み</div>
             {/* ⚠️ 「請求書をお送りします」を戻さないこと（2026-08-23 に削除）。
                    掲載サービスの成功報酬は廃止済みで、この報告に費用は伴わない。 */}
-            <div style={{ fontSize: 12, color: "#047857", marginTop: 2 }}>選考の記録として保存されています。</div>
+            <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>選考の記録として保存されています。</div>
           </div>
         </div>
       ) : (app.status === "accepted") && (
         /* 採用確定ボタン */
         <div style={{
           marginTop: 8,
-          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-          border: "1.5px solid #6EE7B7",
+          background: "var(--bg-tint)",
+          border: "1px solid var(--line)",
           borderRadius: 12, padding: "20px",
         }}>
           {!showHireForm ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46", marginBottom: 4 }}>
-                  🎉 採用が決まりましたか？
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                  採用が決まりましたか？
                 </div>
                 {/* ⚠️ **費用の案内を書かないこと**（2026-08-23）。
                        掲載サービスの成功報酬は廃止済み。この報告は記録のためのもの。
                     ⚠️ 「入社から2年間スカウトが送られない」とも書かないこと。
                        その実装は無く、転職勧奨の禁止は**当社が紹介した**求職者への
                        義務であって、企業が自分で採用した人には及ばない。 */}
-                <div style={{ fontSize: 12, color: "#047857", lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                   ご報告いただくと、選考の記録として保存されます。費用は発生しません。
                 </div>
               </div>
@@ -638,10 +641,9 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                 onClick={() => setShowHireForm(true)}
                 style={{
                   padding: "10px 20px", borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--success), #047857)",
+                  background: "var(--royal)",
                   color: "#fff", fontSize: 13, fontWeight: 700,
                   border: "none", cursor: "pointer", flexShrink: 0,
-                  boxShadow: "0 2px 8px rgba(5,150,105,0.35)",
                 }}
               >
                 採用確定を報告する →
@@ -649,11 +651,11 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#065F46" }}>採用確定の報告</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>採用確定の報告</div>
 
               {/* 年収入力 */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#047857", display: "block", marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>
                   採用者の年収（万円）<span style={{ fontWeight: 400, color: "#6B7280" }}>（任意）</span>
                 </label>
                 {/* ⚠️ **任意と書いた以上、空欄で送信できること。** 下の送信条件も同じ。 */}
@@ -670,12 +672,12 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                     max={5000}
                     style={{
                       width: 140, padding: "9px 12px", borderRadius: 8,
-                      border: "1.5px solid #6EE7B7", fontSize: 14,
+                      border: "1.5px solid var(--line)", fontSize: 14,
                       fontFamily: "var(--font-inter), var(--font-noto)", outline: "none",
                       background: "#fff",
                     }}
                   />
-                  <span style={{ fontSize: 13, color: "#047857" }}>万円</span>
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
                   {/* ⚠️ ここに請求額を計算して出していた（年収 × 0.1）。
                          2026-08-23 に削除。**戻さないこと。** */}
                 </div>
@@ -703,7 +705,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                     padding: "10px 24px", borderRadius: 8,
                     background: (hireSubmitting || (hiredSalary.trim() !== "" && !(Number(hiredSalary) >= 100 && Number(hiredSalary) <= 5000)))
                       ? "#94a3b8"
-                      : "linear-gradient(135deg, var(--success), #047857)",
+                      : "var(--royal)",
                     color: "#fff", fontSize: 13, fontWeight: 700,
                     border: "none", cursor: hireSubmitting ? "not-allowed" : "pointer",
                   }}
@@ -714,16 +716,19 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
                   onClick={() => { setShowHireForm(false); setHiredSalary(""); }}
                   style={{
                     padding: "10px 16px", borderRadius: 8,
-                    background: "transparent", color: "#047857",
-                    border: "1px solid #6EE7B7", fontSize: 13, fontWeight: 600,
+                    background: "#fff", color: "var(--ink-soft)",
+                    border: "1px solid var(--line)", fontSize: 13, fontWeight: 600,
                     cursor: "pointer",
                   }}
                 >
                   キャンセル
                 </button>
               </div>
-              <div style={{ fontSize: 11, color: "#6B7280", lineHeight: 1.6 }}>
-                ※ 報告後にOPINIOより請求書メールをお送りします（請求書番号・振込先は別途ご案内）。
+              {/* ⚠️★2026-09-22 まで、ここに「※ 報告後にOPINIOより請求書メールをお送りします」と書いてあった。
+                     成功報酬は 2026-08-21 に廃止済みで、API も請求書を送らない（運営への通知だけ）。
+                     すぐ上の「費用は発生しません」と矛盾していた。**戻さないこと。** */}
+              <div style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                ご報告に費用は発生しません。選考の記録として保存されます。
               </div>
             </div>
           )}

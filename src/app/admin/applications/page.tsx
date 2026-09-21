@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; 
   pending:   { label: "新着",     bg: "#FEF3C7", color: "var(--warm-ink)",       border: "#FDE68A" },
   reviewing: { label: "確認中",   bg: "#EFF3FC", color: "var(--royal)",  border: "#DCE5F7" },
   interview: { label: "面接中",   bg: "#F3E8FF", color: "#7C3AED",       border: "#E9D5FF" },
-  accepted:  { label: "採用",     bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0" },
+  accepted:  { label: "内定",     bg: "#ECFDF5", color: "var(--success-ink)", border: "#A7F3D0" },
   rejected:  { label: "不採用",   bg: "#FEE2E2", color: "var(--error-ink)",       border: "#FECACA" },
   hired:     { label: "採用確定", bg: "var(--success)", color: "#fff",   border: "var(--success)" },
 };

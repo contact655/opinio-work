@@ -26,9 +26,11 @@ export const APPLICATION_STATUS_TABS: ApplicationStatusTab[] = [
   { status: "pending",   label: "New",        labelJa: "新着",       color: "var(--warm-ink)" },
   { status: "reviewing", label: "Reviewing",  labelJa: "確認中",     color: "var(--accent)" },
   { status: "interview", label: "Interview",  labelJa: "面接中",     color: "var(--purple)" },
-  { status: "accepted",  label: "Accepted",   labelJa: "採用",       color: "var(--success-ink)" },
+  /* ★accepted は「内定」（2026-09-22）。それまで「採用」で、隣の「採用確定」（hired）と区別しにくかった。
+        分析の「内定」と揃えた。⚠️ 緑にしない（緑はお金の条件だけ） */
+  { status: "accepted",  label: "Accepted",   labelJa: "内定",       color: "var(--royal)" },
   { status: "rejected",  label: "Rejected",   labelJa: "不採用",     color: "var(--error)" },
-  { status: "hired",     label: "Hired",      labelJa: "採用確定",   color: "var(--success-ink)" },
+  { status: "hired",     label: "Hired",      labelJa: "採用確定",   color: "var(--royal)" },
 ];
 
 export type ApplicationStatusCounts = Record<ApplicationStatus | "all", number>;

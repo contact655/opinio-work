@@ -27,6 +27,8 @@ import { devOnly } from "./guard";
 const ITEMS = [
   { href: "/dev/preview/candidates", label: "候補者を探す（/biz/organization の隣）",
     note: "★実画面は有料プラン0社で誰も開けない。ゲートの内側はここでしか見られない" },
+  { href: "/dev/preview/biz-applications", label: "応募一覧（企業側）",
+    desc: "本番は0件。内定・採用確定の表示と、採用確定の報告フォームはここで見る" },
   { href: "/dev/preview/scouts", label: "スカウト履歴（/biz/scouts）",
     desc: "本番は0件・送信停止中。状態のバッジ・全文表示・引けない候補者はここで見る" },
   { href: "/dev/preview/stories", label: "企業ストーリー（/biz/posts と企業ページ）",
