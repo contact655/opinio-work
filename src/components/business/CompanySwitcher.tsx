@@ -11,9 +11,16 @@ type Company = {
 type Props = {
   currentCompany: { id: string; name: string; logoGradient?: string | null; logoLetter?: string | null };
   memberships: Company[];
+  /**
+   * ★置き場所（2026-09-21）。`sidebar` はサイドバーの最上段に幅いっぱいで置く形
+   * （YOUTRUST / LinkedIn と同じ）。⚠️ 狭い画面ではサイドバーが横スクロールの列になるので、
+   * そこではヘッダー側（`header`）を出す。**出し分けは BusinessLayout の CSS。**
+   */
+  placement?: "header" | "sidebar";
 };
 
-export function CompanySwitcher({ currentCompany, memberships }: Props) {
+export function CompanySwitcher({ currentCompany, memberships, placement = "header" }: Props) {
+  const inSidebar = placement === "sidebar";
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +64,9 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
 
   // Phase 4: 1 社でもドロップダウンを表示（「新しい企業を作成」のため）
   return (
-    <div ref={ref} style={{ position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)" }}>
+    <div ref={ref} style={inSidebar
+      ? { position: "relative" }
+      : { position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)" }}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -65,8 +74,10 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
         aria-expanded={open}
         style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: "transparent", border: "none", cursor: "pointer",
-          padding: "4px 6px 4px 0", borderRadius: 6,
+          background: "transparent", cursor: "pointer",
+          ...(inSidebar
+            ? { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", textAlign: "left" as const }
+            : { padding: "4px 6px 4px 0", borderRadius: 6, border: "none" }),
           transition: "background 0.12s",
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
@@ -80,7 +91,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
         }}>
           {logoLetter}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", maxWidth: inSidebar ? undefined : 160, flex: inSidebar ? 1 : undefined, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {currentCompany.name}
         </span>
         {/* Chevron */}
@@ -93,7 +104,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
         <div
           role="menu"
           style={{
-            position: "absolute", left: 0, top: 40,
+            position: "absolute", left: 0, top: inSidebar ? 48 : 40,
             minWidth: 240, maxWidth: 320,
             background: "#fff",
             borderRadius: 10,
@@ -225,7 +236,7 @@ export function CompanySwitcher({ currentCompany, memberships }: Props) {
                   <path d="M4.5 6.5h4M8.5 4.5l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </span>
-              企業情報を設定
+              企業ページを設定
             </a>
           </div>
         </div>

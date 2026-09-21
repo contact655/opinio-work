@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect";
@@ -130,8 +131,14 @@ export async function getBizUserName(): Promise<string> {
 /**
  * 現在ログイン中ユーザーの企業ロール (tenant_id) と企業情報を取得。
  * 企業ロールが無い場合は null を返す。
+ *
+ * ★React の `cache` で包んである（2026-09-21）。`app/biz/layout.tsx` がサイドバー用に
+ *   呼び、各ページも呼ぶので、**同じリクエストの中では1回だけ引く**ようにしている。
+ *   ⚠️ 外すとサイドバーのぶん問い合わせが倍になる。
  */
-export async function getTenantContext(): Promise<TenantContext | null> {
+export const getTenantContext = cache(loadTenantContext);
+
+async function loadTenantContext(): Promise<TenantContext | null> {
   const supabase = createClient();
   try {
     const { data: { user } } = await supabase.auth.getUser();

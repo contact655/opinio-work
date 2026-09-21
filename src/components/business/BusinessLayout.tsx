@@ -6,7 +6,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar, Sparkles } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar, Sparkles, ExternalLink } from "lucide-react";
+import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
@@ -45,78 +46,61 @@ type NavItem = {
   children?: { href: string; label: string }[];
 };
 
-const NAV_ITEMS: NavItem[] = [
+/* ★2026-09-21 にグループ分けした（柴さん。YOUTRUST / LinkedIn Recruiter / ビズリーチを参考）。
+      それまでは「採用活動」の見出し1つに13項目が平たく並び、候補者まわり
+      （探す・提案・選考・メッセージ）と自社の見せ方（企業ページ・組織・社員・投稿）が
+      交互に出ていた。
+   ⚠️★**並びは採用の流れの順**（出会う → やり取り・選考 → 会社を伝える → 管理）。
+      ビズリーチの「探す → 声をかける → 選考」と同じ向き。**五十音やよく使う順に並べ替えないこと。**
+   ⚠️ 見出しは狭い画面（≤768px）では隠れる（横スクロールの列に混ぜない）。
+      だから**見出しが無くても意味が通るラベル**にしておくこと。 */
+const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
-    href: "/biz/dashboard",
-    label: "ホーム",
-    icon: <LayoutGrid size={16} strokeWidth={2.2} />,
+    heading: null,
+    items: [
+      { href: "/biz/dashboard", label: "ホーム", icon: <LayoutGrid size={16} strokeWidth={2.2} /> },
+    ],
   },
   {
-    href: "/biz/company",
-    label: "企業情報",
-    icon: <Building2 size={16} strokeWidth={2.2} />,
+    heading: "候補者と出会う",
+    items: [
+      { href: "/biz/candidates", label: "候補者を探す", icon: <Search size={16} strokeWidth={2.2} /> },
+      /* ★根拠つき提案（⑨）。2026-09-21 まで**ここに行が無く、画面へ辿り着く手段が
+            1つも無かった**。
+         ⚠️★提案はスカウトではない（`ow_scouts` にも3ゲートにも無関係。
+            `/biz/proposals/page.tsx` の注記）。同じグループに置くのは
+            「候補者と出会う入口」だからで、同じ機能だからではない。
+         ⚠️ バッジ（未回答の件数）は付けていない。件数を配る仕組みが
+            このレイアウトに無いため。**付けるなら別の作業。** */
+      { href: "/biz/proposals", label: "提案", icon: <Sparkles size={16} strokeWidth={2.2} /> },
+      { href: "/biz/scouts", label: "スカウト履歴", icon: <Send size={16} strokeWidth={2.2} /> },
+    ],
   },
   {
-    href: "/biz/organization",
-    label: "組織体制",
-    icon: <Layers size={16} strokeWidth={2.2} />,
+    heading: "やり取り・選考",
+    items: [
+      { href: "/biz/conversations", label: "メッセージ", icon: <Inbox size={16} strokeWidth={2.2} /> },
+      { href: "/biz/meetings", label: "選考管理", icon: <Calendar size={16} strokeWidth={2.2} /> },
+    ],
   },
   {
-    href: "/biz/employees",
-    label: "社員管理",
-    icon: <UsersRound size={16} strokeWidth={2.2} />,
+    heading: "会社を伝える",
+    items: [
+      { href: "/biz/jobs", label: "求人管理", icon: <Briefcase size={16} strokeWidth={2.2} /> },
+      /* ⚠️ 2026-09-21 に「企業情報」から改名。求職者に見える**公開ページの編集**だと
+            分かるようにするため。パスは `/biz/company` のまま（変えていない）。 */
+      { href: "/biz/company", label: "企業ページ", icon: <Building2 size={16} strokeWidth={2.2} /> },
+      { href: "/biz/organization", label: "組織体制", icon: <Layers size={16} strokeWidth={2.2} /> },
+      { href: "/biz/employees", label: "社員管理", icon: <UsersRound size={16} strokeWidth={2.2} /> },
+      { href: "/biz/posts", label: "投稿・発信", icon: <Newspaper size={16} strokeWidth={2.2} /> },
+    ],
   },
   {
-    href: "/biz/jobs",
-    label: "求人管理",
-    icon: <Briefcase size={16} strokeWidth={2.2} />,
-  },
-  /* ★根拠つき提案（⑨）。2026-09-21 まで**ここに行が無く、画面へ辿り着く手段が
-        1つも無かった**（求職者側の `/proposals` も同じ状態だった）。
-     ⚠️★**「スカウト履歴」と並べない。** 提案はスカウトではなく、
-        `ow_scouts` にも3ゲートにも無関係（`/biz/proposals/page.tsx` の注記）。
-        候補者まわりの入口として「候補者を探す」の隣に置く。
-     ⚠️ バッジ（未回答の件数）は付けていない。`NAV_ITEMS` が静的な定数で、
-        件数を配る仕組みがこのレイアウトに無いため。**付けるなら別の作業。** */
-  {
-    href: "/biz/proposals",
-    label: "提案",
-    icon: <Sparkles size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/candidates",
-    label: "候補者を探す",
-    icon: <Search size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/meetings",
-    label: "選考管理",
-    icon: <Calendar size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/scouts",
-    label: "スカウト履歴",
-    icon: <Send size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/conversations",
-    label: "メッセージ",
-    icon: <Inbox size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/posts",
-    label: "投稿・発信",
-    icon: <Newspaper size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/members",
-    label: "チーム管理",
-    icon: <Users size={16} strokeWidth={2.2} />,
-  },
-  {
-    href: "/biz/analytics",
-    label: "分析",
-    icon: <BarChart2 size={16} strokeWidth={2.2} />,
+    heading: "管理",
+    items: [
+      { href: "/biz/analytics", label: "分析", icon: <BarChart2 size={16} strokeWidth={2.2} /> },
+      { href: "/biz/members", label: "チーム管理", icon: <Users size={16} strokeWidth={2.2} /> },
+    ],
   },
 ];
 
@@ -134,6 +118,7 @@ export function BusinessLayout({
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+  const shell = useBizShell();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -204,7 +189,7 @@ export function BusinessLayout({
         {/* Company identifier / switcher */}
         {tenantName && (
           memberships && currentTenantId ? (
-            <div className="biz-header-company" style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <div className="biz-header-company biz-header-company-switch" style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <CompanySwitcher
                 currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
                 memberships={memberships}
@@ -316,7 +301,7 @@ export function BusinessLayout({
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
               >
-                企業情報を編集
+                企業ページを編集
               </Link>
               <button
                 type="button"
@@ -358,18 +343,36 @@ export function BusinessLayout({
           overflowY: "auto",
           outline: "none",
         }}>
-          {/* ⚠️ 狭い画面では隠す（横スクロールの列に見出しを混ぜない）。クラスは CSS 側で使う */}
-          <div className="biz-nav-heading" style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
-            letterSpacing: "0.1em", textTransform: "uppercase",
-            padding: "0 20px 8px",
-          }}>
-            採用活動
-          </div>
+          {/* ★企業の切り替えをサイドバーの最上段へ（2026-09-21。YOUTRUST / LinkedIn と同じ位置）。
+                 ⚠️ 狭い画面ではサイドバーが横スクロールの列になるので、ここは隠して
+                    ヘッダー側を出す（CSS の `.biz-sidebar-company` / `.biz-header-company-switch`）。
+                    **どちらか一方しか見えない**ようにしてある。 */}
+          {tenantName && memberships && currentTenantId && (
+            <div className="biz-sidebar-company" style={{ padding: "0 12px 14px", marginBottom: 6, borderBottom: "1px solid var(--line-soft)" }}>
+              <CompanySwitcher
+                placement="sidebar"
+                currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
+                memberships={memberships}
+              />
+            </div>
+          )}
 
           <nav>
-            {NAV_ITEMS.map((item) => {
+            {NAV_GROUPS.map((group, gi) => (
+            <React.Fragment key={group.heading ?? `g${gi}`}>
+            {/* ⚠️ 狭い画面では隠す（横スクロールの列に見出しを混ぜない）。
+                   ⚠️ 見出しと項目は **nav の直下に兄弟として**並べる。グループを div で包むと、
+                      狭い画面の横並び（nav が flex）で1グループが1かたまりになり崩れる。 */}
+            {group.heading && (
+              <div className="biz-nav-heading" style={{
+                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
+                letterSpacing: "0.04em",
+                padding: "16px 20px 6px",
+              }}>
+                {group.heading}
+              </div>
+            )}
+            {group.items.map((item) => {
               const active = isActive(item.href);
               // 子リンクのどれかが active かどうか
               const childActive = item.children?.some(
@@ -473,7 +476,34 @@ export function BusinessLayout({
                 </div>
               );
             })}
+            </React.Fragment>
+            ))}
           </nav>
+
+          {/* ★公開ページを見る（2026-09-21）。求職者から自社がどう見えるかをすぐ確かめる導線。
+                 ⚠️★**公開ページが無いときは出さない**（押すと 404）。判定は layout が
+                    `hasPublicCompanyPage` で決めて `BizShellContext` に入れている。
+                    **ここで条件を書き直さないこと。**
+                 ⚠️ 狭い画面では隠す（ダッシュボードの企業カードに同じボタンがある）。 */}
+          {shell.hasPublicPage && shell.tenantId && (
+            <div className="biz-sidebar-footer" style={{ margin: "14px 12px 0", paddingTop: 12, borderTop: "1px solid var(--line-soft)" }}>
+              <a
+                href={`/companies/${shell.tenantId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 8px", borderRadius: 8,
+                  fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; e.currentTarget.style.color = "var(--ink)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-soft)"; }}
+              >
+                <ExternalLink size={16} strokeWidth={2.2} style={{ color: "var(--ink-mute)", flexShrink: 0 }} />
+                公開ページを見る
+              </a>
+            </div>
+          )}
 
         </aside>
         )}
@@ -498,6 +528,16 @@ export function BusinessLayout({
         /* ── ヘッダー（2026-08-31 追加）──────────────────────────────────
            ⚠️ 段階を2つに分ける。768px では詰めるだけ、480px で要素を落とす。
               いきなり落とすとタブレットで情報が減りすぎる。 */
+        /* ★企業の切り替えは広い画面ではサイドバー、狭い画面ではヘッダー（2026-09-21）。
+              ⚠️ 境界は下のサイドバー横並び化と**同じ 768px**。ずらすと両方消える帯ができる。 */
+        @media (min-width: 769px) {
+          .biz-header-company-switch { display: none !important; }
+        }
+        @media (max-width: 768px) {
+          .biz-sidebar-company { display: none !important; }
+          .biz-sidebar-footer { display: none !important; }
+        }
+
         @media (max-width: 768px) {
           .biz-header { padding: 10px 14px !important; gap: 10px !important; }
           .biz-header-company { padding-left: 10px !important; }
@@ -539,7 +579,7 @@ export function BusinessLayout({
           .biz-layout-sidebar nav::-webkit-scrollbar { display: none; }
           .biz-nav-item { flex: 0 0 auto; }
           .biz-layout-sidebar nav a { white-space: nowrap; }
-          /* ⚠️ 見出し（採用活動）と、開いている項目の子リンクは畳む。
+          /* ⚠️ グループの見出しと、開いている項目の子リンクは畳む。
                 横スクロールの列に混ぜると、親と子の区別が付かなくなる。 */
           .biz-nav-heading { display: none !important; }
           .biz-nav-child { display: none !important; }
