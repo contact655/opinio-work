@@ -8,7 +8,8 @@ import { unreadConversationIds } from "@/lib/conversations/unread";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "対話管理 | OPINIO Business" },
+  /* ★サイドバーの名前に揃えた（2026-09-21）。それまで「対話管理」だった */
+  title: { absolute: "メッセージ | OPINIO Business" },
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -29,6 +30,8 @@ export type ConversationRow = {
   candidate: CandidateInfo | null;
   /** ★未読があるか。サイドバーのバッジと**同じ関数**で決める（2026-09-21） */
   isUnread: boolean;
+  /** ★自分がこの会話に参加しているか（2026-09-21）。参加していないとメッセージを読めない（RLS） */
+  isParticipant: boolean;
 };
 
 // ── No-tenant fallback ────────────────────────────────────────────────────────
@@ -61,6 +64,17 @@ export default async function BizConversationsPage() {
            25時間前の未読には出なかった**。バッジの数字とドットの数が食い違わないように揃えた。 */
   const unread = await unreadConversationIds(ctx.currentOwnId, { companyId: ctx.tenantId });
 
+  /* ★自分が参加している会話（2026-09-21）。一覧で「未参加」を見分けるため。
+        ⚠️ 失敗したら「全部参加している」に倒す（「未参加」と誤って出すと、
+           参加済みの人に「参加する」を促すことになる）。ログは出す。 */
+  const { data: myParts, error: partErr } = await supabase
+    .from("ow_conversation_participants")
+    .select("conversation_id")
+    .eq("user_id", ctx.currentOwnId)
+    .is("left_at", null);
+  if (partErr) console.error("[BizConversationsPage] participants:", partErr.message);
+  const joined = new Set((myParts ?? []).map((p) => p.conversation_id as string));
+
   // Normalise: Supabase may return a single object or an array for the join
   const convList: ConversationRow[] = (rawRows ?? []).map((c: any) => ({
     id: c.id,
@@ -73,6 +87,7 @@ export default async function BizConversationsPage() {
       ? (c.candidate[0] ?? null)
       : c.candidate ?? null,
     isUnread: unread.has(c.id),
+    isParticipant: partErr ? true : joined.has(c.id),
   }));
 
   /* ★空状態の文言を分けるためだけに数える（2026-08-31）。件数は使わず**あるか無いか**だけ。

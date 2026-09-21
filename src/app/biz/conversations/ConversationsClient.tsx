@@ -20,41 +20,10 @@ function formatRelativeTime(dateStr: string | null): string {
   return `${months}ヶ月前`;
 }
 
-const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  active:   { label: "進行中",   color: "var(--accent)",   bg: "var(--royal-50)" },
-  mediated: { label: "調整中",   color: "var(--purple)",   bg: "var(--purple-soft)" },
-  direct:   { label: "直接対話", color: "var(--success-ink)",  bg: "var(--success-soft)" },
-  archived: { label: "クローズ", color: "var(--ink-mute)", bg: "var(--bg-tint)" },
-};
-
-const STAGE_FILTER_TABS: { key: string; label: string }[] = [
-  { key: "all",      label: "すべて" },
-  { key: "active",   label: "進行中" },
-  { key: "mediated", label: "調整中" },
-  { key: "direct",   label: "直接対話" },
-  { key: "archived", label: "クローズ" },
-];
-
-function StageTag({ stage }: { stage: string | null }) {
-  if (!stage) return null;
-  const cfg = STAGE_CONFIG[stage] ?? { label: stage, color: "var(--ink-soft)", bg: "var(--line-soft)" };
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      padding: "2px 8px",
-      borderRadius: 100,
-      fontSize: 11,
-      fontWeight: 600,
-      fontFamily: "var(--font-inter), var(--font-noto)",
-      color: cfg.color,
-      background: cfg.bg,
-      flexShrink: 0,
-    }}>
-      {cfg.label}
-    </span>
-  );
-}
+/* ★状態（stage）のタブと印は 2026-09-21 に外した。
+      本番の会話は全部「進行中（active）」で、「調整中」「直接対話」を書く処理は無く
+      （2026-08-25 以降）、「クローズ（archived）」は stage の CHECK に無いので**入れられない**。
+      押しても意味の無いタブが4つ並んでいた。**戻すなら、先に状態を変える操作を作ること。** */
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -63,36 +32,31 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
   /** 空状態の文言に使う。⚠️ 既定 false（fail-closed） */
   hasPublishedJobs?: boolean;
 }) {
-  const [activeStage, setActiveStage] = useState<string>("all");
+  /* ★「すべて / 未読」（2026-09-21）。未読はサイドバーのバッジと同じ式（サーバーで決める） */
+  const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Count by stage
-  const stageCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const c of conversations) {
-      const s = c.stage ?? "unknown";
-      counts[s] = (counts[s] ?? 0) + 1;
-    }
-    return counts;
-  }, [conversations]);
+  const unreadCount = useMemo(() => conversations.filter((c) => c.isUnread).length, [conversations]);
 
 
   const filtered = useMemo(() => {
     return conversations.filter((c) => {
-      if (activeStage !== "all" && c.stage !== activeStage) return false;
+      if (activeFilter === "unread" && !c.isUnread) return false;
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
       const name = c.candidate?.name ?? "";
       return name.toLowerCase().includes(q);
     });
-  }, [conversations, activeStage, searchQuery]);
+  }, [conversations, activeFilter, searchQuery]);
 
   return (
     <div>
-      {/* ── Stage filter tabs ── */}
+      {/* ★見出し（2026-09-21）。サイドバーの「メッセージ」と同じ名前 */}
+      <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "0 0 14px" }}>メッセージ</h1>
+
+      {/* ── すべて / 未読 ── */}
       <div
         role="tablist"
-        aria-label="対話ステージフィルター"
+        aria-label="メッセージの絞り込み"
         style={{
           display: "flex",
           gap: 4,
@@ -100,16 +64,19 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
           borderBottom: "1px solid var(--line)",
           flexWrap: "wrap",
         }}>
-        {STAGE_FILTER_TABS.map((tab) => {
-          const count = tab.key === "all" ? conversations.length : (stageCounts[tab.key] ?? 0);
-          const isActive = activeStage === tab.key;
+        {([
+          { key: "all", label: "すべて", count: conversations.length },
+          { key: "unread", label: "未読", count: unreadCount },
+        ] as const).map((tab) => {
+          const count = tab.count;
+          const isActive = activeFilter === tab.key;
           return (
             <button
               key={tab.key}
               type="button"
               role="tab"
               aria-selected={isActive}
-              onClick={() => setActiveStage(tab.key)}
+              onClick={() => setActiveFilter(tab.key)}
               style={{
                 padding: "10px 14px",
                 background: "none",
@@ -203,14 +170,14 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
-              対話がありません
+              メッセージはまだありません
             </div>
             <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
               {/* ⚠️ 公開求人があるのに「公開すると〜」と言わない（2026-08-31）。
                      実測で公開求人2件の企業にこの文が出ていた。 */}
               {hasPublishedJobs
                 ? <>公開中の求人やカジュアル面談から問い合わせが届くと、<br />ここに表示されます。</>
-                : <>求人を公開すると、候補者からの問い合わせがここに表示されます。<br />カジュアル面談申込みも対話として管理できます。</>}
+                : <>求人を公開すると、候補者からの問い合わせがここに表示されます。<br />カジュアル面談の申込みもここでやり取りできます。</>}
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/biz/jobs" style={{
@@ -244,8 +211,8 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
           fontSize: 13,
         }}>
           {searchQuery.trim()
-            ? `「${searchQuery}」に一致する対話が見つかりません`
-            : "このステージの対話はありません"}
+            ? `「${searchQuery}」に一致するメッセージが見つかりません`
+            : "未読のメッセージはありません"}
         </div>
       )}
 
@@ -322,14 +289,20 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
                     }}>
                       {candidateName}
                     </span>
-                    <StageTag stage={conv.stage} />
+                    {/* ★未参加（2026-09-21）。参加するまでメッセージを読めない（RLS）。
+                           開くと「参加する」ボタンがある */}
+                    {!conv.isParticipant && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 100, color: "var(--ink-soft)", background: "var(--bg-tint)", border: "1px solid var(--line)", flexShrink: 0 }}>
+                        未参加
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
                     {timeLabel}
                   </div>
                 </div>
 
-                {/* Recent activity dot — shown for non-closed conversations with activity in last 24h */}
+                {/* 未読のドット（サイドバーのバッジと同じ判定） */}
                 {showUnread && (
                   <div style={{
                     width: 8,

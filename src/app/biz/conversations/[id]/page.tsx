@@ -11,6 +11,11 @@ import { JoinButton } from "./JoinButton";
 
 export const dynamic = "force-dynamic";
 
+/* ★タブの題（2026-09-21）。それまで指定が無く、サイト全体の題になっていた */
+export const metadata = {
+  title: { absolute: "メッセージ | OPINIO Business" },
+};
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type CandidateInfo = {
@@ -53,12 +58,7 @@ type MessageRow = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const STAGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  active:   { label: "進行中",   color: "var(--accent)",   bg: "var(--royal-50)" },
-  mediated: { label: "調整中",   color: "var(--purple)",   bg: "var(--purple-soft)" },
-  direct:   { label: "直接対話", color: "var(--success-ink)",  bg: "var(--success-soft)" },
-  archived: { label: "クローズ", color: "var(--ink-mute)", bg: "var(--bg-tint)" },
-};
+/* ★状態（stage）の印は 2026-09-21 に外した（一覧と同じ理由。全部「進行中」で、変える操作が無い） */
 
 function formatDateTime(dateStr: string): { date: string; time: string } {
   const d = new Date(dateStr);
@@ -122,9 +122,6 @@ export default async function BizConversationDetailPage({
   const candidateAvatarColor =
     candidate?.avatar_color ?? "linear-gradient(135deg, #6b7280, #475569)";
 
-  const stageCfg = conv.stage
-    ? (STAGE_CONFIG[conv.stage] ?? { label: conv.stage, color: "var(--ink-soft)", bg: "var(--line-soft)" })
-    : null;
 
   // ── [2] Participants ───────────────────────────────────────────────────────
   const { data: rawParticipants } = await supabase
@@ -232,7 +229,7 @@ export default async function BizConversationDetailPage({
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          対話一覧に戻る
+          メッセージに戻る
         </Link>
 
         {/* Conversation title */}
@@ -262,24 +259,8 @@ export default async function BizConversationDetailPage({
               color: "var(--ink)",
               margin: 0,
             }}>
-              {candidateName} さんとの対話
+              {candidateName} さんとのメッセージ
             </h1>
-            {stageCfg && (
-              <span style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "2px 8px",
-                borderRadius: 100,
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                color: stageCfg.color,
-                background: stageCfg.bg,
-                marginTop: 4,
-              }}>
-                {stageCfg.label}
-              </span>
-            )}
           </div>
 
           {/* Participant status badge */}
@@ -351,7 +332,7 @@ export default async function BizConversationDetailPage({
               }}>
                 {isParticipant
                   ? "まだメッセージはありません"
-                  : "この対話のメッセージを閲覧するには、参加が必要です"}
+                  : "この会話のメッセージを読むには、参加が必要です"}
               </div>
             ) : (
               messages.map((msg) => {

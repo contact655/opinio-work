@@ -51,7 +51,7 @@ export function JoinButton({ conversationId }: Props) {
         margin: 0,
         textAlign: "center",
       }}>
-        担当者としてこの対話に参加すると、メッセージの送受信ができます。
+        担当者としてこの会話に参加すると、メッセージの送受信ができます。
       </p>
 
       <button
@@ -110,7 +110,7 @@ export function JoinButton({ conversationId }: Props) {
                 d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
               />
             </svg>
-            この対話に参加する
+            この会話に参加する
           </>
         )}
       </button>
