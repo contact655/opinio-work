@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
 
@@ -181,6 +181,16 @@ export function MeetingDetailPanel({
   onNext,
 }: Props) {
   const [declineConfirming, setDeclineConfirming] = useState(false);
+  /* ★「日程が決まった」の確認（2026-09-21）。`scheduled` にすると候補者へ
+        「日程が確定しました」のメールが届くので、押す前に必ず伝える。 */
+  const [scheduleConfirming, setScheduleConfirming] = useState(false);
+  /* ⚠️ 別の候補者を選んだら確認を閉じる。開いたままだと、別の人に対して
+        「確定する」「見送る」を押せてしまう */
+  const selectedMeetingId = m?.id;
+  useEffect(() => {
+    setScheduleConfirming(false);
+    setDeclineConfirming(false);
+  }, [selectedMeetingId]);
 
   if (!m) {
     return (
@@ -277,6 +287,36 @@ export function MeetingDetailPanel({
           </svg>
           日程を調整する
         </ActionBtn>
+        {/* ★日程の確定は別のボタン（2026-09-21）。確定前の状態のときだけ出す */}
+        {(m.status === "pending" || m.status === "company_contacted") && (
+          scheduleConfirming ? (
+            <div role="alertdialog" aria-label="日程の確定" style={{
+              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+              padding: "6px 12px", background: "var(--royal-50)",
+              border: "1px solid var(--royal-100)", borderRadius: 8,
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
+                候補者に「日程が確定しました」とメールが届きます
+              </span>
+              <button type="button"
+                onClick={() => { setScheduleConfirming(false); onStatusChange?.("scheduled"); }}
+                style={{ padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, borderRadius: 6, cursor: "pointer", border: "none", background: "var(--royal)", color: "#fff", whiteSpace: "nowrap" }}>
+                確定する
+              </button>
+              <button type="button" onClick={() => setScheduleConfirming(false)}
+                style={{ padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 600, borderRadius: 6, cursor: "pointer", border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+                やめる
+              </button>
+            </div>
+          ) : (
+            <ActionBtn onClick={() => setScheduleConfirming(true)}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M9 15l2 2 4-4"/>
+              </svg>
+              日程が決まった
+            </ActionBtn>
+          )
+        )}
         <ActionBtn onClick={onProfileDetail}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
@@ -299,7 +339,7 @@ export function MeetingDetailPanel({
             borderRadius: 8,
           }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", whiteSpace: "nowrap" }}>
-              本当に見送りますか？
+              見送りますか？候補者にお知らせのメールが届きます
             </span>
             <button
               type="button"

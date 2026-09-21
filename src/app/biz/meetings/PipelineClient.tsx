@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import type { BizApplication } from "@/lib/business/applications";
 import { MeetingsClient } from "./MeetingsClient";
@@ -25,23 +26,34 @@ type Props = {
 
 export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings", hasPublishedJobs = false }: Props) {
   const [tab, setTab] = useState<"meetings" | "applications">(initialTab);
+  const router = useRouter();
+  /* ★タブを URL（?tab=）に合わせる（2026-09-21）。それまでは切り替えても URL が変わらず、
+        再読み込みすると必ず「カジュアル面談」に戻っていた。
+        ⚠️ push ではなく replace（タブの切り替えで履歴を積まない）。scroll も動かさない */
+  function switchTab(next: "meetings" | "applications") {
+    setTab(next);
+    router.replace(next === "applications" ? "/biz/meetings?tab=applications" : "/biz/meetings", { scroll: false });
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
 
       {/* タブ切り替え */}
       <div style={{
-        display: "flex", gap: 0,
+        display: "flex", gap: 0, alignItems: "center",
         background: "#fff", borderBottom: "1px solid var(--line)",
         padding: "0 24px",
       }}>
+        {/* ★見出し（2026-09-21）。サイドバーの「選考管理」と同じ名前にする */}
+        <h1 style={{ margin: "0 20px 0 0", fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>選考管理</h1>
         {[
           { key: "meetings" as const, label: "カジュアル面談", count: meetings.length },
           { key: "applications" as const, label: "選考・応募", count: applications.length },
         ].map(t => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            type="button"
+            onClick={() => switchTab(t.key)}
             style={{
               padding: "12px 20px", border: "none", background: "none", cursor: "pointer",
               fontSize: 14, fontWeight: tab === t.key ? 700 : 500,

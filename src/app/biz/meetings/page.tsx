@@ -11,7 +11,9 @@ import { canUse } from "@/lib/constants/plans";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "採用パイプライン | OPINIO Business" },
+  /* ★サイドバーの名前に揃えた（2026-09-21）。それまで「採用パイプライン」で、
+        同じ画面がサイドバー・タイトル・タブで3つの名前を持っていた */
+  title: { absolute: "選考管理 | OPINIO Business" },
 };
 
 export default async function BizMeetingsPage({
@@ -35,8 +37,13 @@ export default async function BizMeetingsPage({
     fetchApplicationsForCompany(supabase, ctx.tenantId, canUse(ctx.planType, "applicantContact")),
   ]);
 
-  // conversationId を applications に付与
-  const userIds = Array.from(new Set(applications.map((a) => a.userId).filter(Boolean)));
+  // conversationId を applications と meetings に付与
+  /* ★面談にも付ける（2026-09-21）。「返信する」「日程を調整する」がその人との会話を直接開く。
+        ⚠️ どちらも ow_users.id（applications.userId / meetings.applicantUserId） */
+  const userIds = Array.from(new Set([
+    ...applications.map((a) => a.userId),
+    ...meetings.map((m) => m.applicantUserId ?? ""),
+  ].filter(Boolean)));
   const convMap = new Map<string, string>();
   if (userIds.length > 0) {
     const { data: convs } = await supabase
@@ -51,6 +58,10 @@ export default async function BizMeetingsPage({
   const appsWithConv = applications.map((a) => ({
     ...a,
     conversationId: convMap.get(a.userId) ?? undefined,
+  }));
+  const meetingsWithConv = meetings.map((m) => ({
+    ...m,
+    conversationId: m.applicantUserId ? convMap.get(m.applicantUserId) : undefined,
   }));
 
   /* ★空状態の文言を分けるためだけに数える（2026-08-31）。
@@ -78,7 +89,7 @@ export default async function BizMeetingsPage({
       currentTenantId={ctx.tenantId}
     >
       <PipelineClient
-        meetings={meetings}
+        meetings={meetingsWithConv}
         applications={appsWithConv}
         tenantName={ctx.tenantName}
         currentUser={{

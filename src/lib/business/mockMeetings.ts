@@ -20,6 +20,9 @@ export type MeetingApplication = {
   id: string;
   // 申込者
   applicantUserId: string | null; // ow_users.id — 公開プロフィールリンク用
+  /** ★この候補者との会話（2026-09-21）。「返信する」「日程を調整する」で直接開く。
+   *  ⚠️ 面談の申込時に作られる（`/api/casual-meetings`）。見つからなければ undefined */
+  conversationId?: string;
   applicantName: string;
   applicantInitial: string;
   applicantGradient: string;

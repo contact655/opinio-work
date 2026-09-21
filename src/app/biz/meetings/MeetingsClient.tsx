@@ -211,15 +211,19 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
     handleMemoChange(selectedId, text);
   }, [selectedId, handleMemoChange]);
 
-  const handleReply = useCallback(() => {
-    // 対話（会話）ページへ誘導
-    router.push("/biz/conversations");
-  }, [router]);
+  /* ★その候補者との会話を直接開く（2026-09-21）。見つからないときだけ一覧へ。
+        それまでは常に一覧（/biz/conversations）へ着いていた。 */
+  const openConversation = useCallback(() => {
+    const convId = meetings.find((m) => m.id === selectedId)?.conversationId;
+    router.push(convId ? `/biz/conversations/${convId}` : "/biz/conversations");
+  }, [router, meetings, selectedId]);
+  const handleReply = openConversation;
 
-  const handleScheduleAdjust = useCallback(() => {
-    if (!selectedId) return;
-    handleStatusChange(selectedId, "scheduled");
-  }, [selectedId, handleStatusChange]);
+  /* ★「日程を調整する」は会話を開くだけ。**状態は変えない**（2026-09-21）。
+        ⚠️★それまでは押した瞬間に `scheduled` にしており、API が候補者へ
+           「日程が確定しました」とメールを送っていた（決まっていないのに）。
+        確定は詳細パネルの「日程が決まった」から、確認を挟んで行う。 */
+  const handleScheduleAdjust = openConversation;
 
   // ── Keyboard navigation ─────────────────────────────────────
   useEffect(() => {
@@ -265,67 +269,18 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
 
   const listPanel = (
     <>
-      {/* パネルヘッダ */}
-      <div style={{
-        padding: "16px 20px 12px",
-        borderBottom: "1px solid var(--line)",
-        flexShrink: 0,
-        position: "relative",
-      }}>
-        {/* Royal gradient accent line on left edge */}
-        <div style={{
-          position: "absolute",
-          left: 0, top: 0, bottom: 0,
-          width: 3,
-          background: "linear-gradient(180deg, var(--royal) 0%, var(--accent) 100%)",
-          borderRadius: "0 0 0 0",
-        }} />
-
-        <div style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: 16, fontWeight: 600, color: "var(--ink)",
-          display: "flex", alignItems: "center", gap: 8,
-          marginLeft: 8,
-        }}>
-          カジュアル面談
-          <span style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontSize: 9, fontWeight: 700, letterSpacing: "0.15em",
-            textTransform: "uppercase", color: "var(--ink-mute)",
-            opacity: 0.7,
-          }}>MEETINGS</span>
-        </div>
-
-        {/* Stats bar */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          marginTop: 8, marginLeft: 8,
-        }}>
-          <span style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontSize: 11, color: "var(--ink-mute)",
-          }}>
+      {/* パネルヘッダ。★2026-09-21 に明朝＋英語の小見出し・左の飾り線・点滅する印をやめた
+             （ほかの /biz の画面と形を揃えた） */}
+      <div style={{ padding: "14px 20px 10px", borderBottom: "1px solid var(--line)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>カジュアル面談</span>
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
             合計 <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{totalCount}</strong> 件
           </span>
           {pendingCount > 0 && (
-            <>
-              <span style={{ color: "var(--line)", fontSize: 11 }}>·</span>
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "2px 8px", borderRadius: 100,
-                background: "#FEF3C7",
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontSize: 11, fontWeight: 700,
-                color: "var(--warm-ink)",
-              }}>
-                <span style={{
-                  width: 5, height: 5, borderRadius: "50%",
-                  background: "#D97706", display: "inline-block",
-                  animation: "pulseDot 1.8s ease-in-out infinite",
-                }} />
-                未対応 {pendingCount} 件
-              </span>
-            </>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--warm-ink)" }}>
+              未対応 {pendingCount} 件
+            </span>
           )}
         </div>
       </div>
