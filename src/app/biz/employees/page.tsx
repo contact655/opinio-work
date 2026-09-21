@@ -3,6 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EmployeesClient } from "./EmployeesClient";
+import { isRegisteredUser } from "@/lib/users/registered";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +92,9 @@ export default async function EmployeesPage() {
         name,
         avatar_url,
         is_mentor,
-        is_test
+        is_test,
+        visibility,
+        auth_id
       ),
       ow_roles!role_category_id (
         name
@@ -187,7 +190,12 @@ export default async function EmployeesPage() {
   const employees: BizEmployee[] = (rows ?? []).flatMap((row: any) => {
     const user = row.ow_users;
     if (!user) return [];
-    if (user.is_test === true) return [];
+    /* ★企業ページ（`getCompanyEmployees` の `isSeedRow`）と**同じ条件**で外す（2026-09-21）。
+          それまで `is_test` しか見ておらず、**本人が登録していない人**（運営が履歴書から
+          作ったプロフィール）や非公開の人まで「企業ページに出ている人」として並んでいた。
+       ⚠️★`auth_id` と `visibility` を select から落とさないこと。落とすと undefined になり、
+          `isRegisteredUser` が全員を外して**一覧が丸ごと空になる**（型では気づけない）。 */
+    if (user.is_test === true || user.visibility === "private" || !isRegisteredUser(user)) return [];
     const userId = user.id as string;
     const isCurrent = row.is_current as boolean;
     return [{
@@ -215,8 +223,24 @@ export default async function EmployeesPage() {
         1行でも入った瞬間に「画面から消えて戻せない」形になる。
      ⚠️ 企業ページ（公開面）から外れていること自体は変わらない。
         カード側で「非表示中」と示し、「表示に戻す」を出す。 */
-  const current = employees.filter((e) => e.isCurrent);
-  const alumni = employees.filter((e) => !e.isCurrent);
+  /* ★1人1行にまとめる（2026-09-21）。企業ページ（`getCompanyEmployees`）と同じ形:
+        ・同じ人の職歴が複数あれば、いちばん新しいものだけ出す
+        ・今も在籍している人は OB・OG に出さない
+     ⚠️ それまでは職歴の数だけ並び、企業ページと件数が合わなかった
+        （実測 2026-09-21 / セールスフォース: この画面 現役2・OB 5 ／ 企業ページ 現役1・OB 2）。 */
+  const firstPerUser = (list: BizEmployee[]): BizEmployee[] => {
+    const seen = new Set<string>();
+    return list.filter((e) => (seen.has(e.userId) ? false : (seen.add(e.userId), true)));
+  };
+  // 取得は started_at の新しい順なので、現役は先頭がいちばん新しい職歴
+  const current = firstPerUser(employees.filter((e) => e.isCurrent));
+  const currentUserIds = new Set(current.map((e) => e.userId));
+  // OB・OG は辞めた日の新しい順に並べてから1人1行にする
+  const alumni = firstPerUser(
+    employees
+      .filter((e) => !e.isCurrent && !currentUserIds.has(e.userId))
+      .sort((a, b) => (b.endedAt ?? "").localeCompare(a.endedAt ?? "")),
+  );
   const hiddenExperienceIds = Array.from(hiddenIds);
 
   return (

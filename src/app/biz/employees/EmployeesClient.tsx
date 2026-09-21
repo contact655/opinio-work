@@ -419,11 +419,12 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, reported
   const list = tab === "current" ? current : alumni;
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 32px 80px" }}>
+    /* ⚠️ 外側の余白は BusinessLayout の main が持つ（2026-09-21 まで二重だった） */
+    <div style={{ maxWidth: 1100 }}>
 
       {/* ページヘッダー */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-noto-serif)" }}>
+        <h1 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
           社員管理
         </h1>
         {/* ⚠️★「管理アカウント」「非表示」の説明は 2026-09-18 に外した。

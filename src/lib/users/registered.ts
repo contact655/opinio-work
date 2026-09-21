@@ -21,7 +21,7 @@
  * ⚠️ `auth_id` は anon / authenticated とも SELECT できる（2026-09-10 実測）。
  *    列単位 GRANT に弾かれる心配は無い。
  *
- * ── 使っている場所（2026-09-10 時点で7箇所）────────────────────────────────
+ * ── 使っている場所（2026-09-21 時点で8箇所）────────────────────────────────
  *   1. `lib/people/directory.ts`            … `/people` の一覧
  *   2. `lib/search/companies.ts`            … `/companies` のカードの「現役社員 N名」
  *   3. `lib/supabase/queries.ts`            … `getCompaniesForList`（`/feed` の企業一覧の人数）
@@ -29,9 +29,11 @@
  *   5. `lib/supabase/queries.ts`            … `getCompanyEmployees`（現役社員 / OB・OG）
  *   6. `lib/supabase/queries.ts`            … 面談対応者（ambassadors）
  *   7. `app/(jobseeker)/u/[id]/page.tsx`    … 公開プロフィール（**404 にする**）
+ *   8. `app/biz/employees/page.tsx`         … 企業側の「社員管理」（2026-09-21 追加。
+ *      企業ページに出ている人の一覧なので、企業ページと同じ条件にした）
  *
- * ⚠️★**8箇所目を作らないこと。** `ow_users` から人を出す経路を新しく足すときは、
- *    ここを呼ぶ。呼ばないと、登録していない人がその画面にだけ出る。
+ * ⚠️★`ow_users` から人を出す経路を新しく足すときは、必ずここを呼ぶ。
+ *    呼ばないと、登録していない人がその画面にだけ出る（8. はまさにその形で漏れていた）。
  *
  * ⚠️ **`is_test` / `is_system` の除外は集約していない**（7箇所すべてインラインの式のまま）。
  *    今回はこの新しい条件だけを関数にした。集約は別タスク（docs/todo.md）。
