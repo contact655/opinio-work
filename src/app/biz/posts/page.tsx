@@ -7,7 +7,7 @@ import { PostsClient } from "./PostsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "投稿・発信管理 | OPINIO Business" },
+  title: { absolute: "企業ストーリー | OPINIO Business" },
 };
 
 
@@ -17,22 +17,13 @@ export default async function BizPostsPage() {
 
   const supabase = createClient();
 
-  const [{ data: externalLinks, error: linksErr }, { data: stories, error: storiesErr }] = await Promise.all([
-    supabase
-      .from("ow_company_external_links")
-      .select("*")
-      .eq("company_id", ctx.tenantId)
-      .order("published_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false }),
-
-    supabase
-      .from("ow_company_posts")
-      .select("*")
-      .eq("company_id", ctx.tenantId)
-      .order("created_at", { ascending: false }),
-  ]);
-
-  if (linksErr) console.error("[biz/posts] external_links fetch error:", linksErr.message);
+  /* ⚠️ 外部リンク（ow_company_external_links）は 2026-09-21 から取らない。
+        どこにも表示されない入力欄だったので外した（PostsClient の注記） */
+  const { data: stories, error: storiesErr } = await supabase
+    .from("ow_company_posts")
+    .select("*")
+    .eq("company_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
   if (storiesErr) console.error("[biz/posts] stories fetch error:", storiesErr.message);
 
   return (
@@ -47,7 +38,6 @@ export default async function BizPostsPage() {
       <PostsClient
         companyId={ctx.tenantId}
         companyName={ctx.tenantName}
-        initialPosts={externalLinks ?? []}
         initialStories={stories ?? []}
       />
     </BusinessLayout>

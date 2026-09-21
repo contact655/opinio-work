@@ -98,7 +98,8 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
             分かるようにするため。パスは `/biz/company` のまま（変えていない）。 */
       { href: "/biz/company", label: "企業ページ", icon: <Building2 size={16} strokeWidth={2.2} /> },
       { href: "/biz/employees", label: "社員管理", icon: <UsersRound size={16} strokeWidth={2.2} /> },
-      { href: "/biz/posts", label: "投稿・発信", icon: <Newspaper size={16} strokeWidth={2.2} /> },
+      /* ★2026-09-21 に「投稿・発信」から改名（外部リンクのタブを外し、中身がストーリーだけになった） */
+      { href: "/biz/posts", label: "企業ストーリー", icon: <Newspaper size={16} strokeWidth={2.2} /> },
     ],
   },
   {
