@@ -15,7 +15,8 @@ import { greetingName } from "@/lib/constants/personName";
  * テーブル/ビューが未存在でもダッシュボードがクラッシュしないようガードする。
  */
 
-export const INDUSTRY_AVG_CONVERSION_RATE = 4.1; // %
+/* ⚠️ `INDUSTRY_AVG_CONVERSION_RATE`（業界平均の応募率 4.1%）は 2026-09-22 に削除した。
+      根拠の無い固定値で、比べる相手（閲覧数・応募数）も記録されていなかった。 */
 
 // ─── Types ────────────────────────────────────────────
 
@@ -62,50 +63,6 @@ export type JobStatusCounts = {
   rejected: number;
   private: number;
 };
-
-export type TodoCounts = {
-  reply_overdue: number;
-  new_applications: number;
-  interviews_today: number;
-};
-
-export type MonthlyStats = {
-  applications: number;
-  scouts: number;
-  interviews: number;
-  offers: number;
-};
-
-export type MonthlyStatsWithDelta = {
-  current: MonthlyStats;
-  previous: MonthlyStats;
-  delta: { applications: number; scouts: number; interviews: number; offers: number };
-};
-
-export type JobPerformance = {
-  job_id: string;
-  title: string;
-  status: string | null;
-  created_at: string;
-  view_count: number;
-  application_count: number;
-  conversion_rate_pct: number;
-  isUnderperforming: boolean;
-};
-
-// ─── Helpers ──────────────────────────────────────────
-
-/** 当月の YYYY-MM-01 を ISO 文字列で返す */
-function monthStart(d = new Date()): string {
-  const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  return start.toISOString().slice(0, 10);
-}
-function previousMonthStart(d = new Date()): string {
-  const start = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-  return start.toISOString().slice(0, 10);
-}
-
-const ZERO_STATS: MonthlyStats = { applications: 0, scouts: 0, interviews: 0, offers: 0 };
 
 // ─── Tenant Context ───────────────────────────────────
 
@@ -227,83 +184,6 @@ async function loadTenantContext(): Promise<TenantContext | null> {
   }
 }
 
-// ─── To-Do Counts ─────────────────────────────────────
-
-export async function getTodoCounts(tenantId: string): Promise<TodoCounts> {
-  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
-        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
-        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
-        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
-     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
-        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
-     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
-        **呼び出し側で検証していない id をここに渡さないこと。** */
-  const supabase = createAdminClient();
-  try {
-    const { data } = await supabase
-      .from("ow_business_todo_counts")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-    return {
-      reply_overdue: data?.reply_overdue ?? 0,
-      new_applications: data?.new_applications ?? 0,
-      interviews_today: data?.interviews_today ?? 0,
-    };
-  } catch {
-    return { reply_overdue: 0, new_applications: 0, interviews_today: 0 };
-  }
-}
-
-// ─── Monthly Stats ────────────────────────────────────
-
-export async function getMonthlyStats(tenantId: string): Promise<MonthlyStatsWithDelta> {
-  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
-        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
-        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
-        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
-     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
-        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
-     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
-        **呼び出し側で検証していない id をここに渡さないこと。** */
-  const supabase = createAdminClient();
-  const cur = monthStart();
-  const prev = previousMonthStart();
-  try {
-    const { data } = await supabase
-      .from("ow_business_monthly_stats")
-      .select("month, applications, scouts, interviews, offers")
-      .eq("tenant_id", tenantId)
-      .in("month", [cur, prev]);
-
-    const rows = (data || []) as any[];
-    const current = rows.find((r) => r.month === cur) || ZERO_STATS;
-    const previous = rows.find((r) => r.month === prev) || ZERO_STATS;
-    return {
-      current: {
-        applications: current.applications ?? 0,
-        scouts: current.scouts ?? 0,
-        interviews: current.interviews ?? 0,
-        offers: current.offers ?? 0,
-      },
-      previous: {
-        applications: previous.applications ?? 0,
-        scouts: previous.scouts ?? 0,
-        interviews: previous.interviews ?? 0,
-        offers: previous.offers ?? 0,
-      },
-      delta: {
-        applications: (current.applications ?? 0) - (previous.applications ?? 0),
-        scouts: (current.scouts ?? 0) - (previous.scouts ?? 0),
-        interviews: (current.interviews ?? 0) - (previous.interviews ?? 0),
-        offers: (current.offers ?? 0) - (previous.offers ?? 0),
-      },
-    };
-  } catch {
-    return { current: ZERO_STATS, previous: ZERO_STATS, delta: { applications: 0, scouts: 0, interviews: 0, offers: 0 } };
-  }
-}
-
 // ─── Job Status Counts ────────────────────────────────
 
 export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCounts> {
@@ -335,38 +215,9 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
   }
 }
 
-// ─── Job Performance ──────────────────────────────────
+// ⚠️ getTodoCounts / getMonthlyStats / getJobPerformance は 2026-09-22 に削除した。
+//    読んでいた `ow_business_*` ビュー3つが、アプリの書かない表（`ow_applications` /
+//    `ow_job_views`）を数えていて常に0だったため。ビューも同日に DROP した
+//    （`20260922010000_drop_unused_business_views.sql`）。
+//    月次の数字を作り直すなら `ow_job_applications` と `ow_casual_meetings` から数えること。
 
-export async function getJobPerformance(tenantId: string, limit = 10): Promise<JobPerformance[]> {
-  /* ⚠️★`ow_business_*` ビューは **service_role でしか読めない**（2026-08-29 / `20260829110000`）。
-        ビューは `OWNER TO postgres` で `security_invoker` ではないため RLS を迂回し、
-        **anon にまで `GRANT ALL` されていた**（baseline 由来）。実測で
-        **未ログインから他社の非公開求人タイトル15件・閲覧数・応募数**が取れていた。
-     ⚠️ したがってここは `createAdminClient()` を使う。**`createClient()` に戻さないこと。**
-        戻すと権限が無く 401 になり、`?? 0` で受けている側では**全部 0 に見える**。
-     ⚠️ 絞り込みの `tenantId` は `getTenantContext()` が所属を検証済みの値。
-        **呼び出し側で検証していない id をここに渡さないこと。** */
-  const supabase = createAdminClient();
-  try {
-    const { data } = await supabase
-      .from("ow_business_job_performance")
-      .select("job_id, title, status, created_at, view_count, application_count, conversion_rate_pct")
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    return (data || []).map((r: any) => ({
-      job_id: r.job_id,
-      title: r.title,
-      status: r.status,
-      created_at: r.created_at,
-      view_count: r.view_count ?? 0,
-      application_count: r.application_count ?? 0,
-      conversion_rate_pct: Number(r.conversion_rate_pct ?? 0),
-      isUnderperforming:
-        (r.view_count ?? 0) >= 50 && // 母数が一定以上のときだけ警告
-        Number(r.conversion_rate_pct ?? 0) < INDUSTRY_AVG_CONVERSION_RATE,
-    }));
-  } catch {
-    return [];
-  }
-}

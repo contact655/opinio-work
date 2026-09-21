@@ -129,7 +129,8 @@ export default async function AnalyticsPage() {
         の3つのビューは**`ow_applications`（アプリが一度も書かない表）**と
         **`ow_job_views`（同じく書き込み0件）**を数えており、アプリが応募を記録する
         `ow_job_applications` を見ていなかった。「スカウト」はビューに 0 と直書き。
-     ⚠️★これらのビューを**読み直さないこと。** 月次の推移を戻すなら
+     ⚠️ 3つのビューは 2026-09-22 に DROP した（`20260922010000_drop_unused_business_views.sql`）。
+        月次の推移を戻すなら
         `ow_job_applications` と `ow_casual_meetings` から数え直す（ビューは別作業で扱う）。
      ⚠️ 求人ごとの数字は、求人管理と**同じ関数**（`fetchJobsForCompany`）から取る。 */
   const [jobs, meetings, selection] = await Promise.all([

@@ -65,8 +65,9 @@ export default async function ApplicationsPage() {
                  状態を確認できず、完了画面の「マイページで確認する →」は何も無い
                  `/mypage` を指していた。
               ⚠️ 埋め込みは `ow_companies!company_id` と**FK を明示する**。
-                 この列は `ow_companies` のほかに集計ビュー2つへも張られている
-                 （`ow_business_monthly_stats` / `ow_business_todo_counts`）。
+                 この列は `ow_companies` のほかに集計ビュー2つへも張られていた
+                 （`ow_business_monthly_stats` / `ow_business_todo_counts`。2026-09-22 に DROP 済み）。
+                 ビューが増えればまた曖昧になるので、明示は外さないこと。
                  `ec60b5a0` で職歴側が同じ形で壊れている。 */
         admin
           .from("ow_casual_meetings")

@@ -57,20 +57,6 @@ export type Database = {
             foreignKeyName: "ow_activities_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_activities_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_activities_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -105,20 +91,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_agent_agencies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_agent_agencies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_agent_agencies_company_id_fkey"
             columns: ["company_id"]
@@ -191,13 +163,6 @@ export type Database = {
             foreignKeyName: "ow_agent_jobs_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "ow_agent_jobs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
             referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
@@ -247,13 +212,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_applications_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
           {
             foreignKeyName: "ow_applications_job_id_fkey"
             columns: ["job_id"]
@@ -355,20 +313,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_articles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_articles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_articles_company_id_fkey"
             columns: ["company_id"]
@@ -620,20 +564,6 @@ export type Database = {
             foreignKeyName: "ow_casual_meetings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_casual_meetings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_casual_meetings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -643,13 +573,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_conversations"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_casual_meetings_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_casual_meetings_job_id_fkey"
@@ -1145,20 +1068,6 @@ export type Database = {
             foreignKeyName: "ow_companies_canonical_fkey"
             columns: ["canonical_company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_companies_canonical_fkey"
-            columns: ["canonical_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_companies_canonical_fkey"
-            columns: ["canonical_company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1253,20 +1162,6 @@ export type Database = {
             foreignKeyName: "ow_company_admins_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_admins_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_admins_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1313,20 +1208,6 @@ export type Database = {
             foreignKeyName: "ow_company_business_domains_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_business_domains_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_business_domains_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1359,20 +1240,6 @@ export type Database = {
           tag_value?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_culture_tags_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_culture_tags_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_culture_tags_company_id_fkey"
             columns: ["company_id"]
@@ -1418,20 +1285,6 @@ export type Database = {
             foreignKeyName: "ow_company_data_sources_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_data_sources_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_data_sources_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1466,20 +1319,6 @@ export type Database = {
           parent_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_departments_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_departments_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_departments_company_id_fkey"
             columns: ["company_id"]
@@ -1532,20 +1371,6 @@ export type Database = {
             foreignKeyName: "ow_company_domain_verifications_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_domain_verifications_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_domain_verifications_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1580,20 +1405,6 @@ export type Database = {
           role_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_employee_categories_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_employee_categories_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_employee_categories_company_id_fkey"
             columns: ["company_id"]
@@ -1674,20 +1485,6 @@ export type Database = {
             foreignKeyName: "ow_company_external_links_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_external_links_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_external_links_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1713,20 +1510,6 @@ export type Database = {
           id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_follows_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_follows_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_follows_company_id_fkey"
             columns: ["company_id"]
@@ -1786,20 +1569,6 @@ export type Database = {
             foreignKeyName: "ow_company_genres_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_genres_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_genres_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -1835,20 +1604,6 @@ export type Database = {
           id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_hidden_experiences_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_hidden_experiences_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_hidden_experiences_company_id_fkey"
             columns: ["company_id"]
@@ -1904,20 +1659,6 @@ export type Database = {
           standard_role_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_job_roles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_job_roles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_job_roles_company_id_fkey"
             columns: ["company_id"]
@@ -2005,20 +1746,6 @@ export type Database = {
             foreignKeyName: "ow_company_join_requests_target_company_id_fkey"
             columns: ["target_company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_join_requests_target_company_id_fkey"
-            columns: ["target_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_join_requests_target_company_id_fkey"
-            columns: ["target_company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -2072,20 +1799,6 @@ export type Database = {
           resolved_by?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_member_reports_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_member_reports_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_member_reports_company_id_fkey"
             columns: ["company_id"]
@@ -2173,20 +1886,6 @@ export type Database = {
             foreignKeyName: "ow_company_members_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_members_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_members_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -2231,20 +1930,6 @@ export type Database = {
           tagged_user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_office_photos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_office_photos_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_office_photos_company_id_fkey"
             columns: ["company_id"]
@@ -2297,20 +1982,6 @@ export type Database = {
             foreignKeyName: "ow_company_perspectives_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_perspectives_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_perspectives_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -2351,20 +2022,6 @@ export type Database = {
           status?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_plans_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_plans_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_plans_company_id_fkey"
             columns: ["company_id"]
@@ -2426,20 +2083,6 @@ export type Database = {
             foreignKeyName: "ow_company_posts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_posts_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_posts_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -2477,20 +2120,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_company_segments_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_segments_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_company_segments_company_id_fkey"
             columns: ["company_id"]
@@ -2572,20 +2201,6 @@ export type Database = {
             foreignKeyName: "ow_company_tools_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_tools_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_company_tools_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -2630,20 +2245,6 @@ export type Database = {
           metadata?: Json | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_contact_logs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_contact_logs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_contact_logs_company_id_fkey"
             columns: ["company_id"]
@@ -2823,20 +2424,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_users"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_conversations_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_conversations_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ow_conversations_company_id_fkey"
@@ -3114,20 +2701,6 @@ export type Database = {
             foreignKeyName: "ow_experiences_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_experiences_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_experiences_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -3144,20 +2717,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_roles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_experiences_secondment_company_id_fkey"
-            columns: ["secondment_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_experiences_secondment_company_id_fkey"
-            columns: ["secondment_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ow_experiences_secondment_company_id_fkey"
@@ -3315,29 +2874,8 @@ export type Database = {
             foreignKeyName: "ow_invoices_related_job_id_fkey"
             columns: ["related_job_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "ow_invoices_related_job_id_fkey"
-            columns: ["related_job_id"]
-            isOneToOne: false
             referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_invoices_tenant_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_invoices_tenant_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ow_invoices_tenant_id_fkey"
@@ -3449,13 +2987,6 @@ export type Database = {
             foreignKeyName: "ow_job_applications_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "ow_job_applications_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
             referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
@@ -3499,13 +3030,6 @@ export type Database = {
             foreignKeyName: "ow_job_assignees_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "ow_job_assignees_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
             referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
@@ -3542,13 +3066,6 @@ export type Database = {
             foreignKeyName: "ow_job_favorites_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "ow_job_favorites_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
             referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
@@ -3574,13 +3091,6 @@ export type Database = {
           tag_value?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_job_matching_tags_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
           {
             foreignKeyName: "ow_job_matching_tags_job_id_fkey"
             columns: ["job_id"]
@@ -3617,13 +3127,6 @@ export type Database = {
             foreignKeyName: "ow_job_requirements_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
-          {
-            foreignKeyName: "ow_job_requirements_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
             referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
@@ -3646,13 +3149,6 @@ export type Database = {
           role_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_job_roles_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
           {
             foreignKeyName: "ow_job_roles_job_id_fkey"
             columns: ["job_id"]
@@ -3689,13 +3185,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_job_views_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
           {
             foreignKeyName: "ow_job_views_job_id_fkey"
             columns: ["job_id"]
@@ -3927,20 +3416,6 @@ export type Database = {
             foreignKeyName: "ow_jobs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_jobs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_jobs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -4075,29 +3550,8 @@ export type Database = {
             foreignKeyName: "ow_matches_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_matches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_matches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_matches_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_matches_job_id_fkey"
@@ -4341,20 +3795,6 @@ export type Database = {
             foreignKeyName: "ow_notifications_actor_company_id_fkey"
             columns: ["actor_company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_notifications_actor_company_id_fkey"
-            columns: ["actor_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_notifications_actor_company_id_fkey"
-            columns: ["actor_company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -4482,20 +3922,6 @@ export type Database = {
             foreignKeyName: "ow_pipeline_stages_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_pipeline_stages_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_pipeline_stages_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -4564,20 +3990,6 @@ export type Database = {
             foreignKeyName: "ow_placements_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_placements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_placements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -4587,13 +3999,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_roles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_placements_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_placements_job_id_fkey"
@@ -4707,20 +4112,6 @@ export type Database = {
           would_recommend?: boolean | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_post_hire_reports_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_post_hire_reports_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_post_hire_reports_company_id_fkey"
             columns: ["company_id"]
@@ -4852,29 +4243,8 @@ export type Database = {
             foreignKeyName: "ow_posts_ref_company_id_fkey"
             columns: ["ref_company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_posts_ref_company_id_fkey"
-            columns: ["ref_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_posts_ref_company_id_fkey"
-            columns: ["ref_company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_posts_ref_job_id_fkey"
-            columns: ["ref_job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_posts_ref_job_id_fkey"
@@ -5120,20 +4490,6 @@ export type Database = {
             foreignKeyName: "ow_proposals_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_proposals_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_proposals_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -5143,13 +4499,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_conversations"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_proposals_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_proposals_job_id_fkey"
@@ -5312,20 +4661,6 @@ export type Database = {
             foreignKeyName: "ow_saved_candidate_searches_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_saved_candidate_searches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_saved_candidate_searches_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -5362,20 +4697,6 @@ export type Database = {
             foreignKeyName: "ow_saved_companies_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_saved_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_saved_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -5401,13 +4722,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_saved_jobs_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
-          },
           {
             foreignKeyName: "ow_saved_jobs_job_id_fkey"
             columns: ["job_id"]
@@ -5538,20 +4852,6 @@ export type Database = {
             foreignKeyName: "ow_scout_blocks_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_scout_blocks_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_scout_blocks_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -5583,20 +4883,6 @@ export type Database = {
           used_this_month?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "ow_scout_quotas_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_scout_quotas_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
           {
             foreignKeyName: "ow_scout_quotas_company_id_fkey"
             columns: ["company_id"]
@@ -5657,20 +4943,6 @@ export type Database = {
             foreignKeyName: "ow_scouts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_scouts_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_scouts_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -5680,13 +4952,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_conversations"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_scouts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_scouts_job_id_fkey"
@@ -5868,20 +5133,6 @@ export type Database = {
             foreignKeyName: "ow_terms_agreements_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_terms_agreements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_terms_agreements_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -6019,20 +5270,6 @@ export type Database = {
             foreignKeyName: "ow_transitions_from_company_id_fkey"
             columns: ["from_company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_transitions_from_company_id_fkey"
-            columns: ["from_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_transitions_from_company_id_fkey"
-            columns: ["from_company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -6042,20 +5279,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ow_roles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_transitions_to_company_id_fkey"
-            columns: ["to_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_transitions_to_company_id_fkey"
-            columns: ["to_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ow_transitions_to_company_id_fkey"
@@ -6584,20 +5807,6 @@ export type Database = {
             foreignKeyName: "ow_user_roles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_user_roles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_user_roles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
@@ -6767,62 +5976,6 @@ export type Database = {
       }
     }
     Views: {
-      ow_business_job_performance: {
-        Row: {
-          application_count: number | null
-          conversion_rate_pct: number | null
-          created_at: string | null
-          job_id: string | null
-          status: string | null
-          tenant_id: string | null
-          title: string | null
-          view_count: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_jobs_company_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_jobs_company_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_jobs_company_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ow_business_monthly_stats: {
-        Row: {
-          applications: number | null
-          interviews: number | null
-          month: string | null
-          offers: number | null
-          scouts: number | null
-          tenant_id: string | null
-        }
-        Relationships: []
-      }
-      ow_business_todo_counts: {
-        Row: {
-          interviews_today: number | null
-          new_applications: number | null
-          reply_overdue: number | null
-          scout_replies: number | null
-          tenant_id: string | null
-        }
-        Relationships: []
-      }
       ow_follows_v: {
         Row: {
           created_at: string | null
@@ -6912,29 +6065,8 @@ export type Database = {
             foreignKeyName: "ow_posts_ref_company_id_fkey"
             columns: ["ref_company_id"]
             isOneToOne: false
-            referencedRelation: "ow_business_monthly_stats"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_posts_ref_company_id_fkey"
-            columns: ["ref_company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_todo_counts"
-            referencedColumns: ["tenant_id"]
-          },
-          {
-            foreignKeyName: "ow_posts_ref_company_id_fkey"
-            columns: ["ref_company_id"]
-            isOneToOne: false
             referencedRelation: "ow_companies"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_posts_ref_job_id_fkey"
-            columns: ["ref_job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_business_job_performance"
-            referencedColumns: ["job_id"]
           },
           {
             foreignKeyName: "ow_posts_ref_job_id_fkey"
