@@ -86,22 +86,20 @@ function AvatarCircle({ name, avatarUrl, size = 44 }: { name: string | null; ava
  *    「AE」「第6営業部」のように**社外の人には読めない値**が入る。
  *    企業の画面では本人の呼び方も要るが、**主にするのはマスタ名**。
  */
+/**
+ * 職種を1行で出す（2026-09-22）。それまで標準の職種と本人の書いた呼び方が
+ * 見出し無しの2行に分かれていて、どちらが何か分からなかった。
+ * ⚠️ 呼び方が職種名と同じなら括弧を付けない（同じ語を2回出さない）
+ */
 function RoleLine({ roleName, roleTitle }: { roleName: string | null; roleTitle: string | null }) {
   if (!roleName && !roleTitle) return null;
-  const clamp = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } as const;
+  const title = roleTitle && roleTitle !== roleName ? roleTitle : null;
+  const text = roleName
+    ? `${roleName}${title ? `（社内での呼び方: ${title}）` : ""}`
+    : `社内での呼び方: ${title}`;
   return (
-    <div style={{ marginBottom: 4, minWidth: 0 }}>
-      {roleName && (
-        <div style={{ fontSize: 12, color: "var(--ink-soft)", ...clamp }}>{roleName}</div>
-      )}
-      {roleTitle && (
-        <div
-          style={{ fontSize: 11, color: "var(--ink-mute)", ...clamp }}
-          title={roleTitle}
-        >
-          {roleTitle}
-        </div>
-      )}
+    <div title={text} style={{ marginBottom: 4, minWidth: 0, fontSize: 12, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      {text}
     </div>
   );
 }
@@ -174,9 +172,8 @@ function EmployeeCard({
             </span>
             <span style={{
               fontSize: 10, fontWeight: 600,
-              color: emp.isCurrent ? "var(--success-ink)" : "var(--ink-mute)",
-              background: emp.isCurrent ? "var(--success-soft)" : "var(--line-soft)",
-              border: `1px solid ${emp.isCurrent ? "#A7F3D0" : "var(--line)"}`,
+              /* ⚠️ 緑にしない（緑はお金の条件だけ。2026-09-22 に現役も灰色へ） */
+              color: "var(--ink-mute)", background: "var(--line-soft)", border: "1px solid var(--line)",
               borderRadius: 4, padding: "1px 6px", fontFamily: "var(--font-inter), var(--font-noto)",
             }}>
               {calcDuration(emp.startedAt, emp.endedAt, emp.isCurrent)}
@@ -221,7 +218,8 @@ function EmployeeCard({
               whiteSpace: "nowrap",
             }}
           >
-            {open ? "閉じる" : "在籍していない人として報告"}
+            {/* ★「在籍していない人として」は OB・OG の行で意味が通らなかった（2026-09-22） */}
+            {open ? "閉じる" : "この人について報告"}
           </button>
         )}
       </div>
@@ -256,7 +254,9 @@ function EmployeeCard({
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {MEMBER_REPORT_REASONS.map((r) => (
+            {/* ★OB・OG の行には「すでに退職している」を出さない（2026-09-22）。もう退職済みとして出ているため。
+                   ⚠️ 理由の語彙は変えていない。出し分けだけ */}
+            {MEMBER_REPORT_REASONS.filter((r) => emp.isCurrent || r.value !== "left").map((r) => (
               <label key={r.value} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "var(--ink)", cursor: "pointer" }}>
                 <input
                   type="radio"
