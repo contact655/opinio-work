@@ -35,7 +35,7 @@ export default async function OrganizationPage({
   const supabase = createClient();
   const adminSupabase = createAdminClient();
 
-  const [deptResult, jobRolesResult, stdRolesResult] = await Promise.all([
+  const [deptResult, jobRolesResult, stdRolesResult, jobsResult] = await Promise.all([
     supabase
       .from("ow_company_departments")
       .select("id, parent_id, name, display_order")
@@ -75,7 +75,25 @@ export default async function OrganizationPage({
       .eq("is_active", true)
       .order("display_order", { ascending: true })
       .order("name", { ascending: true }),
+
+    /* ★行ごとの「求人 N件」（2026-09-22）。取るのは紐付けの2列だけ。
+          ⚠️ admin で引く（下書きの求人も数えるため）ので、company_id の絞り込みを外さないこと。
+          ⚠️ 状態は問わない（下書きでも、その部門・職種を使っていることに変わりはない）。 */
+    adminSupabase
+      .from("ow_jobs")
+      .select("department_id, company_job_role_id")
+      .eq("company_id", ctx.tenantId),
   ]);
+
+  if (jobsResult.error) console.error("[biz/organization] 求人の件数を取得できませんでした:", jobsResult.error.message);
+  /* ⚠️ 失敗したら件数を出さない（空の集計＝「どこにも使われていない」に見せない） */
+  const deptUsage: Record<string, number> = {};
+  const roleUsage: Record<string, number> = {};
+  for (const j of jobsResult.data ?? []) {
+    if (j.department_id) deptUsage[j.department_id] = (deptUsage[j.department_id] ?? 0) + 1;
+    if (j.company_job_role_id) roleUsage[j.company_job_role_id] = (roleUsage[j.company_job_role_id] ?? 0) + 1;
+  }
+  const usageOk = !jobsResult.error;
 
   return (
     <BusinessLayout
@@ -108,12 +126,14 @@ export default async function OrganizationPage({
           <DepartmentsEditor
             initialDepartments={(deptResult.data ?? []) as Department[]}
             readOnly={!isAdmin}
+            usage={usageOk ? deptUsage : undefined}
           />
         ) : (
           <JobRolesEditor
             initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
             standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
             readOnly={!isAdmin}
+            usage={usageOk ? roleUsage : undefined}
           />
         )}
       </div>

@@ -73,6 +73,12 @@ type Props<T extends OrgRow> = {
    * RLS の英語のエラーがそのまま画面に出ていた。
    */
   readOnly?: boolean;
+  /**
+   * ★行ごとに「求人 N件」を出す（2026-09-22）。どの部門・職種が実際に使われているかが
+   * 一覧で分かるようにする。削除の確認にも出す（消すと求人の選択が外れて見えるため）。
+   * ⚠️ 数えるのはその行を直接指す求人だけ。子の分は足さない。
+   */
+  usage?: { counts: Record<string, number>; noun: string };
 };
 
 const INDENT = 22;
@@ -116,7 +122,7 @@ function buildTree<T extends OrgRow>(rows: T[]): TreeNode<T>[] {
 function Row<T extends OrgRow>({
   node, depth, unit, extra, pending,
   collapsedIds, onToggleCollapse,
-  onAddChild, onRename, onDelete, onMove, canMove, readOnly}: {
+  onAddChild, onRename, onDelete, onMove, canMove, readOnly, usage}: {
   node: TreeNode<T>;
   depth: number;
   unit: string;
@@ -132,6 +138,7 @@ function Row<T extends OrgRow>({
   onMove: (id: string, dir: "up" | "down" | "left" | "right") => Promise<void>;
   canMove: (id: string, dir: "up" | "down" | "left" | "right") => boolean;
   readOnly?: boolean;
+  usage?: { counts: Record<string, number>; noun: string };
 }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(node.name);
@@ -141,6 +148,7 @@ function Row<T extends OrgRow>({
 
   const hasChildren = node.children.length > 0;
   const collapsed = collapsedIds.has(node.id);
+  const used = usage?.counts[node.id] ?? 0;
 
   async function commitRename() {
     const name = editName.trim();
@@ -158,7 +166,7 @@ function Row<T extends OrgRow>({
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         onFocus={() => setHover(true)}
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 7 }}
+        style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 46, padding: "6px 12px", borderRadius: 8 }}
       >
         {/* 開閉。⚠️ 子が無い行でも**同じ幅を空ける**（名前の左端が階層ごとに揃う） */}
         {hasChildren ? (
@@ -194,21 +202,21 @@ function Row<T extends OrgRow>({
                 if (e.key === "Escape") { setEditing(false); setEditName(node.name); }
               }}
               style={{
-                flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-                border: "1px solid var(--accent)", borderRadius: 6, padding: "3px 8px",
+                flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                border: "1px solid var(--line)", borderRadius: 8, padding: "7px 10px",
                 outline: "none", color: "var(--ink)",
               }}
             />
             {extra && extra.input(editExtra, setEditExtra)}
             <button
               type="button" onClick={commitRename} disabled={pending}
-              style={{ padding: "3px 12px", fontSize: 12, fontWeight: 700, border: "none", borderRadius: 6, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+              style={{ padding: "7px 14px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
             >
               保存
             </button>
             <button
               type="button" onClick={() => { setEditing(false); setEditName(node.name); setEditExtra(extra ? extra.valueOf(node) : ""); }}
-              style={{ padding: "3px 8px", fontSize: 12, border: "none", borderRadius: 6, background: "transparent", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+              style={{ padding: "7px 10px", fontSize: 13, border: "none", borderRadius: 8, background: "transparent", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
             >
               やめる
             </button>
@@ -219,7 +227,7 @@ function Row<T extends OrgRow>({
               onDoubleClick={readOnly ? undefined : () => { setEditing(true); setConfirmDelete(false); }}
               title={readOnly ? undefined : "ダブルクリックで名前を変更"}
               style={{
-                flex: 1, minWidth: 0, fontSize: 13,
+                flex: 1, minWidth: 0, fontSize: 14, lineHeight: 1.5,
                 fontWeight: depth === 0 ? 700 : 500,
                 color: depth === 0 ? "var(--ink)" : "var(--ink-soft)",
                 cursor: readOnly ? "default" : "text", overflowWrap: "anywhere",
@@ -228,8 +236,15 @@ function Row<T extends OrgRow>({
               {node.name}
               {/* ⚠️ 畳んでいるときだけ件数を出す。中身が見えているときは数えるまでもない */}
               {collapsed && hasChildren && (
-                <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: "var(--ink-mute)" }}>
-                  {node.children.length}
+                <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+                  （下に{node.children.length}件）
+                </span>
+              )}
+              {/* ★使われている数。名前のすぐ横に置く（右端だと、hover で出る操作ぶんの空白を挟んで
+                    行の真ん中に浮いて見える）。⚠️ 0件は出さない（全行に「0件」が並ぶと読むところが無くなる） */}
+              {used > 0 && (
+                <span style={{ marginLeft: 10, verticalAlign: "1px", fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 999, padding: "1px 9px", whiteSpace: "nowrap" }}>
+                  {usage?.noun} {used}件
                 </span>
               )}
             </span>
@@ -249,13 +264,13 @@ function Row<T extends OrgRow>({
             }}
           >
             {confirmDelete ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--error-soft)", border: "1px solid #FCA5A5", borderRadius: 7, padding: "2px 8px" }}>
-                <span style={{ fontSize: 11, color: "var(--error)" }}>
-                  {hasChildren ? `下の${unit}も一緒に消えます` : "削除しますか？"}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--error-soft)", border: "1px solid #FCA5A5", borderRadius: 8, padding: "4px 10px" }}>
+                <span style={{ fontSize: 12, color: "var(--error)" }}>
+                  {hasChildren ? `下の${unit}も一緒に消えます` : used > 0 ? `${usage?.noun}${used}件で使われています。削除しますか？` : "削除しますか？"}
                 </span>
                 <button
                   type="button" disabled={pending} onClick={() => onDelete(node.id)}
-                  style={{ padding: "2px 8px", fontSize: 11, fontWeight: 700, border: "none", borderRadius: 5, background: "var(--error)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}
+                  style={{ padding: "4px 12px", fontSize: 12, fontWeight: 700, border: "none", borderRadius: 6, background: "var(--error)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}
                 >
                   削除
                 </button>
@@ -306,6 +321,7 @@ function Row<T extends OrgRow>({
               onRename={onRename}
               onDelete={onDelete}
               readOnly={readOnly}
+              usage={usage}
               onMove={onMove}
               canMove={canMove}
             />
@@ -324,13 +340,13 @@ function IconButton({ label, onClick, disabled, danger, children }: {
       type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label}
       className="btn-fixed-size org-icon-btn"
       style={{
-        width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
-        border: "1px solid var(--line)", borderRadius: 6, background: "#fff",
+        width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+        border: "1px solid var(--line)", borderRadius: 8, background: "#fff",
         color: danger ? "var(--error)" : "var(--ink-mute)",
         cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.35 : 1, padding: 0, flexShrink: 0,
       }}
     >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         {children}
       </svg>
@@ -358,7 +374,7 @@ function MoveButton({ dir, label, disabled, onClick }: {
 // ── 本体 ──────────────────────────────────────────────────────────────────────
 
 export function OrgTreeEditor<T extends OrgRow>({
-  unit, endpoint, createdKey, initialRows, example, extra, hints, readOnly = false,
+  unit, endpoint, createdKey, initialRows, example, extra, hints, readOnly = false, usage,
 }: Props<T>) {
   const [rows, setRows] = useState<T[]>(initialRows);
   const [isPending, startTransition] = useTransition();
@@ -582,14 +598,40 @@ export function OrgTreeEditor<T extends OrgRow>({
 
   const empty = rows.length === 0;
 
+  const hasParents = tree.some((n) => n.children.length > 0);
+  const allCollapsed = hasParents && rows.filter((r) => rows.some((c) => c.parent_id === r.id)).every((r) => collapsedIds.has(r.id));
+
+  function toggleAll() {
+    if (allCollapsed) { setCollapsedIds(new Set()); return; }
+    setCollapsedIds(new Set(rows.filter((r) => rows.some((c) => c.parent_id === r.id)).map((r) => r.id)));
+  }
+
+  function openDraftTop() {
+    setAdding(true);
+    setPendingParentId(null);
+    setLastCreatedId(null);
+    setTimeout(() => draftRef.current?.focus(), 0);
+  }
+
   /* ⚠️★**外側の余白（maxWidth / padding）はここに書かない。** ページ側が持つ。
-        書くと `/dev/preview` に置いたときに 80px の余白が入り込む。 */
+        書くと `/dev/preview` に置いたときに 80px の余白が入り込む。
+     ★1枚のカードにまとめた（2026-09-22）。見出し（件数と追加ボタン）→ 木 → 追加欄 → 注意書き。
+       それまでは木と追加欄が別の箱で、追加欄は青枠の中にさらに入力欄の焦点枠が出て二重になっていた。 */
   return (
     <div>
       <style>{`
         .org-row:hover { background: var(--bg-tint); }
         .org-icon-btn:hover:not(:disabled) { border-color: var(--royal-100); color: var(--royal); }
         .org-actions:focus-within { visibility: visible !important; }
+        .org-primary-btn:hover:not(:disabled) { filter: brightness(1.12); }
+        .org-ghost-btn:hover { background: var(--bg-tint); color: var(--ink); }
+        /* ★追加欄は「枠そのもの」が入力欄。検索バーの .search-shell と同じ考え方で、
+              中の入力欄には焦点枠を出さず、外側の枠の色で焦点を示す（丸の中に四角を作らない） */
+        .org-draft-shell { display: flex; align-items: center; gap: 8px; min-height: 44px;
+          background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 6px 0 14px;
+          transition: border-color 0.15s, box-shadow 0.15s; }
+        .org-draft-shell:focus-within { border-color: var(--royal); box-shadow: 0 0 0 3px rgba(0,35,102,0.08); }
+        .org-draft-shell input:focus-visible { outline: none !important; box-shadow: none !important; border-color: transparent !important; }
         /* ⚠️★狭い画面では操作を**常に出して、名前の下に折り返す**（2026-09-20）。
               理由は2つあり、どちらも外せない:
                 ① 390px では操作の列（ボタン7つ）が親より 23px はみ出していた
@@ -599,139 +641,157 @@ export function OrgTreeEditor<T extends OrgRow>({
         @media (max-width: 720px) {
           .org-row { flex-wrap: wrap; }
           .org-actions { visibility: visible !important; width: 100%; justify-content: flex-end; }
+          .org-card-head { flex-wrap: wrap; }
+          .org-draft-row { flex-wrap: wrap; }
+          /* 触る画面には Tab キーが無い。4行ぶん場所を取るだけなので出さない */
+          .org-kbd-hints { display: none; }
         }
       `}</style>
 
       {error && (
-        <div role="alert" style={{ marginBottom: 12, padding: "9px 14px", borderRadius: 8, background: "var(--error-soft)", border: "1px solid #FCA5A5", fontSize: 13, color: "var(--error-ink)", fontWeight: 600 }}>
+        <div role="alert" style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: "var(--error-soft)", border: "1px solid #FCA5A5", fontSize: 13, color: "var(--error-ink)", fontWeight: 600 }}>
           {error}
           <button type="button" onClick={() => setError(null)} style={{ marginLeft: 12, fontSize: 11, color: "var(--error)", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>✕</button>
         </div>
       )}
 
-      {/* 木。⚠️★**空のときに大きな箱を出さない**（2026-09-20）。
-             以前は「まだ登録されていません」の箱・追加ボタン・ヒントの3段で
-             画面がほぼ埋まっていた。いまは下の追加欄が最初から開いている。 */}
-      {!empty && (
-        <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "8px 12px", marginBottom: 12 }}>
-          {tree.map((node) => (
-            <Row
-              key={node.id}
-              node={node}
-              depth={0}
-              unit={unit}
-              extra={extra}
-              pending={isPending}
-              collapsedIds={collapsedIds}
-              onToggleCollapse={(id) => setCollapsedIds((prev) => {
-                const next = new Set(prev);
-                if (next.has(id)) next.delete(id); else next.add(id);
-                return next;
-              })}
-              onAddChild={openDraftUnder}
-              onRename={handleRename}
-              onDelete={handleDelete}
-              readOnly={readOnly}
-              onMove={handleMove}
-              canMove={canMove}
-            />
-          ))}
-        </div>
-      )}
-
-      {readOnly ? (
-        /* ★閲覧だけの人への案内（2026-09-22）。何ができないかと、誰に頼めばよいかを書く */
-        <div style={{ background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          {empty && <>まだ{unit}は登録されていません。</>}
-          {unit}の追加・変更は、この会社の管理者だけができます。必要なときは管理者に依頼してください。
-        </div>
-      ) : adding ? (
-        <div style={{ background: "#fff", border: "1px solid var(--accent)", borderRadius: 10, padding: "10px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
-            {/* ⚠️ いまどこに足すか。出さないと**打ち込んだ先が分からなくなる** */}
-            <span style={{ fontWeight: 700, color: "var(--royal)" }}>{draftDepth}階層目に追加</span>
-            {draftPath().length > 0 && <span>{draftPath().join(" › ")} の下</span>}
+      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
+        {/* 見出し。件数と、いちばん使う操作（追加）をここに置く */}
+        <div className="org-card-head" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: "1px solid var(--line)" }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{unit}一覧</span>
+            <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>{rows.length}件</span>
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* 字下げで深さを目で見せる。⚠️ 幅は行の INDENT と揃える */}
-            <span aria-hidden style={{ width: (draftDepth - 1) * INDENT, flexShrink: 0 }} />
-            <input
-              ref={draftRef}
-              autoFocus
-              placeholder={`${unit}名を入力して Enter（例：${example}）`}
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); commitDraft(); return; }
-                /* ⚠️★**Tab は既定だとフォーカスが飛ぶ。** preventDefault が要る。
-                      そのぶんキーボードだけで欄から出られないので、Esc を下に書いてある。 */
-                if (e.key === "Tab") {
-                  e.preventDefault();
-                  if (e.shiftKey) {
-                    if (!pendingParentId) return;
-                    setPendingParentId(byId.get(pendingParentId)?.parent_id ?? null);
-                    /* ⚠️ 浅くしたら「直前に作った行」はもう親候補ではない。**消す**
-                          （残すと Tab で元の深さに戻り、行き来が噛み合わない）。 */
-                    setLastCreatedId(null);
-                  } else {
-                    if (!lastCreatedId || draftDepth >= MAX_ORG_DEPTH) return;
-                    setPendingParentId(lastCreatedId);
-                  }
-                  return;
-                }
-                if (e.key === "Escape") { e.preventDefault(); closeDraft(); }
-              }}
-              style={{
-                flex: 1, minWidth: 0, fontSize: 14, fontFamily: "inherit", border: "none",
-                outline: "none", color: "var(--ink)", background: "transparent",
-              }}
-            />
-            {extra && extra.input(draftExtra, setDraftExtra)}
-            <button
-              type="button" onClick={commitDraft} disabled={!draftName.trim() || isPending}
-              style={{ padding: "6px 16px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 7, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, opacity: !draftName.trim() || isPending ? 0.5 : 1 }}
-            >
-              追加
+          {hasParents && (
+            <button type="button" onClick={toggleAll} className="org-ghost-btn"
+              style={{ padding: "7px 12px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 8, background: "transparent", color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit" }}>
+              {allCollapsed ? "すべて開く" : "すべて畳む"}
             </button>
-            {/* ⚠️ 1件も無いうちは閉じる先が無い（空の箱に戻るだけ）ので出さない */}
-            {!empty && (
-              <button
-                type="button" onClick={closeDraft}
-                style={{ padding: "6px 12px", fontSize: 13, border: "1px solid var(--line)", borderRadius: 7, background: "#fff", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
-              >
-                閉じる
-              </button>
-            )}
-          </div>
-
-          {/* ⚠️ キーの説明は欄の中に置く。**下のヒントまで読みに行かせない** */}
-          <div style={{ marginTop: 8, fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-            <kbd style={kbd}>Enter</kbd> で追加して続けて入力／
-            <kbd style={kbd}>Tab</kbd> で直前の{unit}の下へ（{MAX_ORG_DEPTH}階層まで）／
-            <kbd style={kbd}>Shift</kbd>+<kbd style={kbd}>Tab</kbd> で一段戻る
-            {!empty && <>／<kbd style={kbd}>Esc</kbd> で閉じる</>}
-            {lastCreatedId === null && pendingParentId === null && (
-              <span>　※ Tab は1件目を追加したあとから使えます</span>
-            )}
-          </div>
+          )}
+          {!readOnly && !adding && (
+            <button type="button" onClick={openDraftTop} className="org-primary-btn"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+              {unit}を追加
+            </button>
+          )}
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => { setAdding(true); setPendingParentId(null); setLastCreatedId(null); }}
-          className="org-add-btn"
-          style={{
-            display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
-            fontSize: 13, fontWeight: 600, border: "2px dashed var(--line)", borderRadius: 10,
-            background: "transparent", color: "var(--ink-soft)", cursor: "pointer",
-            fontFamily: "inherit", width: "100%", transition: "all 0.15s",
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-          {unit}を追加する
-        </button>
-      )}
+
+        {/* 木。⚠️ 最上位の塊ごとに罫線で区切る（どこまでが1つの部門か目で追える） */}
+        {!empty ? (
+          <div style={{ padding: "6px 8px" }}>
+            {tree.map((node, i) => (
+              <div key={node.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--line)", padding: "4px 0" }}>
+                <Row
+                  node={node}
+                  depth={0}
+                  unit={unit}
+                  extra={extra}
+                  pending={isPending}
+                  collapsedIds={collapsedIds}
+                  onToggleCollapse={(id) => setCollapsedIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(id)) next.delete(id); else next.add(id);
+                    return next;
+                  })}
+                  onAddChild={openDraftUnder}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                  readOnly={readOnly}
+                  usage={usage}
+                  onMove={handleMove}
+                  canMove={canMove}
+                />
+              </div>
+            ))}
+          </div>
+        ) : readOnly || !adding ? (
+          <div style={{ padding: "28px 20px", textAlign: "center", fontSize: 13, color: "var(--ink-mute)" }}>
+            まだ{unit}は登録されていません。
+          </div>
+        ) : null}
+
+        {readOnly ? (
+          /* ★閲覧だけの人への案内（2026-09-22）。何ができないかと、誰に頼めばよいかを書く */
+          <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg-tint)", padding: "12px 20px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            {unit}の追加・変更は、この会社の管理者だけができます。必要なときは管理者に依頼してください。
+          </div>
+        ) : adding ? (
+          <div style={{ borderTop: empty ? "none" : "1px solid var(--line)", background: "var(--bg-tint)", padding: "16px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 12, color: "var(--ink-mute)", flexWrap: "wrap" }}>
+              {/* ⚠️ いまどこに足すか。出さないと**打ち込んだ先が分からなくなる** */}
+              <span style={{ fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", borderRadius: 999, padding: "2px 10px" }}>{draftDepth}階層目に追加</span>
+              {draftPath().length > 0 && <span>{draftPath().join(" › ")} の下</span>}
+            </div>
+
+            <div className="org-draft-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {/* 字下げで深さを目で見せる。⚠️ 幅は行の INDENT と揃える */}
+              <span aria-hidden style={{ width: (draftDepth - 1) * INDENT, flexShrink: 0 }} />
+              <div className="org-draft-shell" style={{ flex: 1, minWidth: 0 }}>
+                <input
+                  ref={draftRef}
+                  autoFocus
+                  placeholder={`${unit}名を入力して Enter（例：${example}）`}
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); commitDraft(); return; }
+                    /* ⚠️★**Tab は既定だとフォーカスが飛ぶ。** preventDefault が要る。
+                          そのぶんキーボードだけで欄から出られないので、Esc を下に書いてある。 */
+                    if (e.key === "Tab") {
+                      e.preventDefault();
+                      if (e.shiftKey) {
+                        if (!pendingParentId) return;
+                        setPendingParentId(byId.get(pendingParentId)?.parent_id ?? null);
+                        /* ⚠️ 浅くしたら「直前に作った行」はもう親候補ではない。**消す**
+                              （残すと Tab で元の深さに戻り、行き来が噛み合わない）。 */
+                        setLastCreatedId(null);
+                      } else {
+                        if (!lastCreatedId || draftDepth >= MAX_ORG_DEPTH) return;
+                        setPendingParentId(lastCreatedId);
+                      }
+                      return;
+                    }
+                    if (e.key === "Escape") { e.preventDefault(); closeDraft(); }
+                  }}
+                  style={{
+                    flex: 1, minWidth: 0, height: 40, fontSize: 14, fontFamily: "inherit", border: "none",
+                    outline: "none", color: "var(--ink)", background: "transparent", padding: 0,
+                  }}
+                />
+                {extra && extra.input(draftExtra, setDraftExtra)}
+                <button
+                  type="button" onClick={commitDraft} disabled={!draftName.trim() || isPending}
+                  className="org-primary-btn"
+                  style={{ padding: "7px 18px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, opacity: !draftName.trim() || isPending ? 0.45 : 1 }}
+                >
+                  追加
+                </button>
+              </div>
+              {/* ⚠️ 1件も無いうちは閉じる先が無い（空の箱に戻るだけ）ので出さない */}
+              {!empty && (
+                <button
+                  type="button" onClick={closeDraft} className="org-ghost-btn"
+                  style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 8, background: "transparent", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+                >
+                  閉じる
+                </button>
+              )}
+            </div>
+
+            {/* ⚠️ キーの説明は欄の中に置く。**下のヒントまで読みに行かせない** */}
+            <div className="org-kbd-hints" style={{ marginTop: 10, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              <kbd style={kbd}>Enter</kbd> で追加して続けて入力／
+              <kbd style={kbd}>Tab</kbd> で直前の{unit}の下へ（{MAX_ORG_DEPTH}階層まで）／
+              <kbd style={kbd}>Shift</kbd>+<kbd style={kbd}>Tab</kbd> で一段戻る
+              {!empty && <>／<kbd style={kbd}>Esc</kbd> で閉じる</>}
+              {lastCreatedId === null && pendingParentId === null && (
+                <span>　※ Tab は1件目を追加したあとから使えます</span>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       {/* ★使い方は畳んでおく（2026-09-20）。⚠️★**常設に戻さないこと。**
              追加欄の中に同じキー説明があり、以前は**同じことを2箇所で言っていた。**

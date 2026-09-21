@@ -80,10 +80,11 @@ export default function OrgTreePreview() {
 
       <Variant
         label="2階層（よくある形）"
-        note="⚠️ 子の左に縦の罫線があること。子を持たない行も名前の左端が揃っていること"
+        note="⚠️ 子の左に縦の罫線があること。子を持たない行も名前の左端が揃っていること。求人のある行（第1営業部・カスタマーサクセス部・人事部）にだけ件数が出ること"
       >
         <OrgTreeEditor unit="部門" endpoint="/api/biz/departments" createdKey="department"
           initialRows={SHALLOW} example="営業部"
+          usage={{ counts: { a1: 3, b: 1, c1: 12 }, noun: "求人" }}
           hints={[<>行の ↑ ↓ で並べ替え、← → で階層を変えられます</>]} />
       </Variant>
 
