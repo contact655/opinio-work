@@ -1627,6 +1627,49 @@ export type Database = {
           },
         ]
       }
+      ow_company_job_role_departments: {
+        Row: {
+          company_id: string
+          created_at: string
+          department_id: string
+          job_role_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          department_id: string
+          job_role_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          department_id?: string
+          job_role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_job_role_departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_job_role_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ow_company_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_job_role_departments_job_role_id_fkey"
+            columns: ["job_role_id"]
+            isOneToOne: false
+            referencedRelation: "ow_company_job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_job_roles: {
         Row: {
           company_id: string

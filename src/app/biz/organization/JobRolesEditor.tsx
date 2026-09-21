@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { buildRoleTree } from "@/lib/roles/jobRoles";
 import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
 import { OrgTreeEditor } from "@/components/business/OrgTreeEditor";
+import { RoleDepartmentsField } from "./RoleDepartmentsField";
+import type { Department } from "./DepartmentsEditor";
 
 export type CompanyJobRole = {
   id: string;
@@ -31,6 +33,9 @@ type Props = {
   readOnly?: boolean;
   /** ★行ごとの求人の件数（2026-09-22）。id → 件数 */
   usage?: Record<string, number>;
+  /** ★部門の一覧と、職種ごとの所属部門（2026-09-22）。紐付けが読めなかったときは roleDepartments が undefined */
+  departments?: Department[];
+  roleDepartments?: Record<string, string[]>;
 };
 
 function StandardRoleBadge({ roleId, roles }: { roleId: string | null; roles: StandardRole[] }) {
@@ -323,10 +328,15 @@ function StandardRoleCombobox({
  * ⚠️★`standard_role_id`（OPINIO のマスタ）と `parent_id`（自社の組織の形）は**別物**。
  *    前者は求人検索・マッチングの分類、後者は画面の階層。混ぜないこと。
  */
-export function JobRolesEditor({ initialRoles, standardRoles, readOnly = false, usage }: Props) {
+export function JobRolesEditor({ initialRoles, standardRoles, readOnly = false, usage, departments = [], roleDepartments }: Props) {
   return (
     <OrgTreeEditor<CompanyJobRole>
       unit="職種"
+      /* ★所属する部門（2026-09-22）。⚠️ 紐付けが読めなかったときは出さない
+            （「どこにも所属していない」と見せて、上書きで消させないため） */
+      rowAddon={roleDepartments ? (row) => (
+        <RoleDepartmentsField roleId={row.id} departments={departments} initial={roleDepartments[row.id] ?? []} readOnly={readOnly} />
+      ) : undefined}
       readOnly={readOnly}
       usage={usage ? { counts: usage, noun: "求人" } : undefined}
       endpoint="/api/biz/job-roles"

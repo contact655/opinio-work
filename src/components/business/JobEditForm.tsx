@@ -433,18 +433,29 @@ export function JobEditForm({
     自社での呼び方のサジェスト。既存 GET /api/biz/job-roles をそのまま使う。
     ⚠️ 新しい API は作らない。/biz/organization の登録UIと同じ受け皿を共有する。
   */
-  const [companyRoleSuggestions, setCompanyRoleSuggestions] = useState<string[]>([]);
+  const [companyRoles, setCompanyRoles] = useState<{ name: string; departmentIds: string[] }[]>([]);
   useEffect(() => {
     let alive = true;
     fetch("/api/biz/job-roles")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!alive || !d?.jobRoles) return;
-        setCompanyRoleSuggestions((d.jobRoles as { name: string }[]).map((x) => x.name));
+        setCompanyRoles((d.jobRoles as { name: string; departmentIds?: string[] }[])
+          .map((x) => ({ name: x.name, departmentIds: x.departmentIds ?? [] })));
       })
       .catch((e) => console.error("[JobEditForm] job-roles fetch", e));
     return () => { alive = false; };
   }, []);
+
+  /* ★選んだ部門の職種を先に並べる（2026-09-22）。紐付けは /biz/organization の職種タブで付ける。
+        ⚠️ 並べ替えるだけで、他の職種も選べるまま（絞り込まない） */
+  const deptRoleNames = departmentId
+    ? companyRoles.filter((r) => r.departmentIds.includes(departmentId)).map((r) => r.name)
+    : [];
+  const companyRoleSuggestions = [
+    ...deptRoleNames,
+    ...companyRoles.map((r) => r.name).filter((n) => !deptRoleNames.includes(n)),
+  ];
 
   // selectedRoles が変わるたびに自動保存トリガー
   useEffect(() => {
@@ -737,6 +748,25 @@ export function JobEditForm({
                   <datalist id="jef-company-role-suggestions">
                     {companyRoleSuggestions.map((n) => <option key={n} value={n} />)}
                   </datalist>
+                  {/* ★選んだ部門に紐付いた職種をすぐ選べるように出す（2026-09-22） */}
+                  {deptRoleNames.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>この部門の職種：</span>
+                      {deptRoleNames.map((n) => {
+                        const active = form.companyRoleName === n;
+                        return (
+                          <button key={n} type="button" onClick={() => updateForm("companyRoleName", n)} aria-pressed={active}
+                            style={{
+                              fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+                              border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                              background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)",
+                            }}>
+                            {n}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>
                     求人ページにはこの呼び方が出ます。検索や絞り込みは上で選んだ標準職種のままです。
                   </p>

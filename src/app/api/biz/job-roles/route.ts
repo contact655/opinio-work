@@ -1,23 +1,40 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/business/dashboard";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { MAX_ORG_DEPTH, wouldExceedDepth, type OrgNodeLike } from "@/lib/business/orgTree";
 
 export async function GET() {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("ow_company_job_roles")
-    .select("id, parent_id, name, standard_role_id, display_order")
-    .eq("company_id", ctx.tenantId)
-    .is("deleted_at", null)
-    .order("display_order", { ascending: true })
-    .order("name", { ascending: true });
+  /* ★admin クライアントで読む（2026-09-22）。`ow_company_job_roles` の RLS は管理者しか通さないので、
+        セッションで読むと**メンバーの求人フォームで候補が0件**になっていた。
+        ⚠️ この会社に属していることは `getTenantContext` で確かめてある。`company_id` の絞り込みを外さないこと */
+  const db = createAdminClient();
+  const [{ data, error }, links] = await Promise.all([
+    db
+      .from("ow_company_job_roles")
+      .select("id, parent_id, name, standard_role_id, display_order")
+      .eq("company_id", ctx.tenantId)
+      .is("deleted_at", null)
+      .order("display_order", { ascending: true })
+      .order("name", { ascending: true }),
+    /* ★所属する部門（2026-09-22）。求人フォームで、選んだ部門の職種を先に出すのに使う */
+    db
+      .from("ow_company_job_role_departments")
+      .select("job_role_id, department_id")
+      .eq("company_id", ctx.tenantId),
+  ]);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ jobRoles: data ?? [] });
+  /* ⚠️ 紐付けが読めなくても職種の一覧は返す（候補の並びが変わらないだけ）。ログは出す */
+  if (links.error) console.error("[GET /api/biz/job-roles] links", links.error.message);
+  const byRole = new Map<string, string[]>();
+  for (const l of links.data ?? []) byRole.set(l.job_role_id, [...(byRole.get(l.job_role_id) ?? []), l.department_id]);
+  return NextResponse.json({
+    jobRoles: (data ?? []).map((r) => ({ ...r, departmentIds: byRole.get(r.id) ?? [] })),
+  });
 }
 
 export async function POST(req: Request) {

@@ -79,6 +79,12 @@ type Props<T extends OrgRow> = {
    * ⚠️ 数えるのはその行を直接指す求人だけ。子の分は足さない。
    */
   usage?: { counts: Record<string, number>; noun: string };
+  /**
+   * ★行の下に1行足す（2026-09-22）。職種タブの「所属する部門」、部門タブの「この部門の職種」。
+   * ⚠️★**タブごとの分岐をこの部品に書かないこと**（冒頭の注記と同じ）。中身は呼び出し側が持つ。
+   * ⚠️ 名前を編集している間は出さない。
+   */
+  rowAddon?: (row: T) => React.ReactNode;
 };
 
 const INDENT = 22;
@@ -122,7 +128,7 @@ function buildTree<T extends OrgRow>(rows: T[]): TreeNode<T>[] {
 function Row<T extends OrgRow>({
   node, depth, unit, extra, pending,
   collapsedIds, onToggleCollapse,
-  onAddChild, onRename, onDelete, onMove, canMove, readOnly, usage}: {
+  onAddChild, onRename, onDelete, onMove, canMove, readOnly, usage, rowAddon}: {
   node: TreeNode<T>;
   depth: number;
   unit: string;
@@ -139,6 +145,7 @@ function Row<T extends OrgRow>({
   canMove: (id: string, dir: "up" | "down" | "left" | "right") => boolean;
   readOnly?: boolean;
   usage?: { counts: Record<string, number>; noun: string };
+  rowAddon?: (row: T) => React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(node.name);
@@ -303,6 +310,12 @@ function Row<T extends OrgRow>({
         )}
       </div>
 
+      {/* ⚠️ 左端は名前の左端に揃える（行の左余白12 + 開閉18 + 間10 = 40） */}
+      {rowAddon && !editing && (() => {
+        const addon = rowAddon(node);
+        return addon ? <div style={{ padding: "0 12px 8px 40px" }}>{addon}</div> : null;
+      })()}
+
       {/* 子。⚠️★縦の罫線はこの容器の border-left。**行ごとに引かないこと**
              （深い階層で線が途切れて親子が追えなくなる）。 */}
       {hasChildren && !collapsed && (
@@ -322,6 +335,7 @@ function Row<T extends OrgRow>({
               onDelete={onDelete}
               readOnly={readOnly}
               usage={usage}
+              rowAddon={rowAddon}
               onMove={onMove}
               canMove={canMove}
             />
@@ -374,7 +388,7 @@ function MoveButton({ dir, label, disabled, onClick }: {
 // ── 本体 ──────────────────────────────────────────────────────────────────────
 
 export function OrgTreeEditor<T extends OrgRow>({
-  unit, endpoint, createdKey, initialRows, example, extra, hints, readOnly = false, usage,
+  unit, endpoint, createdKey, initialRows, example, extra, hints, readOnly = false, usage, rowAddon,
 }: Props<T>) {
   const [rows, setRows] = useState<T[]>(initialRows);
   const [isPending, startTransition] = useTransition();
@@ -699,6 +713,7 @@ export function OrgTreeEditor<T extends OrgRow>({
                   onDelete={handleDelete}
                   readOnly={readOnly}
                   usage={usage}
+                  rowAddon={rowAddon}
                   onMove={handleMove}
                   canMove={canMove}
                 />

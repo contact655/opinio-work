@@ -18,10 +18,33 @@ export type Department = {
  *    実際にヒントの文面が揃っていなかった。**違いは「行に1列足すか」だけ。**
  *    部門には足す列が無いので `extra` を渡していない。
  */
-export function DepartmentsEditor({ initialDepartments, readOnly = false, usage }: { initialDepartments: Department[]; readOnly?: boolean; usage?: Record<string, number> }) {
+export function DepartmentsEditor({ initialDepartments, readOnly = false, usage, roleDepartments, jobRoles = [] }: {
+  initialDepartments: Department[];
+  readOnly?: boolean;
+  usage?: Record<string, number>;
+  /** ★職種ごとの所属部門（2026-09-22）。部門の行に「この部門の職種」を出す。編集は職種タブで行う */
+  roleDepartments?: Record<string, string[]>;
+  jobRoles?: { id: string; name: string }[];
+}) {
+  const rolesByDept = new Map<string, string[]>();
+  if (roleDepartments) {
+    for (const r of jobRoles) {
+      for (const d of roleDepartments[r.id] ?? []) rolesByDept.set(d, [...(rolesByDept.get(d) ?? []), r.name]);
+    }
+  }
   return (
     <OrgTreeEditor<Department>
       unit="部門"
+      /* ⚠️ 部門の側では読むだけ。付け外しは職種タブの1箇所にする（2箇所で編集させない） */
+      rowAddon={(row) => {
+        const names = rolesByDept.get(row.id);
+        if (!names?.length) return null;
+        return (
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", overflowWrap: "anywhere" }}>
+            この部門の職種：<span style={{ color: "var(--ink-soft)" }}>{names.join("、")}</span>
+          </div>
+        );
+      }}
       endpoint="/api/biz/departments"
       createdKey="department"
       initialRows={initialDepartments}

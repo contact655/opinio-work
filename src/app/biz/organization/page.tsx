@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { DepartmentsEditor } from "./DepartmentsEditor";
@@ -32,11 +31,16 @@ export default async function OrganizationPage({
 
   const activeTab = searchParams?.tab === "roles" ? "roles" : "departments";
 
-  const supabase = createClient();
   const adminSupabase = createAdminClient();
 
-  const [deptResult, jobRolesResult, stdRolesResult, jobsResult] = await Promise.all([
-    supabase
+  /* ★部門・職種は admin クライアントで読む（2026-09-22）。
+        ⚠️ `ow_company_job_roles` の RLS は管理者しか通さず（`auth_is_company_admin`）、
+           部門も「管理者」か「企業ページ公開中」しか通さない。セッションのクライアントで読むと
+           **メンバーには職種が1件も出ず、閲覧だけの画面が空になっていた。**
+        ⚠️ この会社に属していることは上の `getTenantContext` で確かめてある。
+           **`company_id` の絞り込みが唯一の防波堤**なので外さないこと。 */
+  const [deptResult, jobRolesResult, stdRolesResult, jobsResult, linksResult] = await Promise.all([
+    adminSupabase
       .from("ow_company_departments")
       .select("id, parent_id, name, display_order")
       .eq("company_id", ctx.tenantId)
@@ -44,7 +48,7 @@ export default async function OrganizationPage({
       .order("display_order", { ascending: true })
       .order("name", { ascending: true }),
 
-    supabase
+    adminSupabase
       .from("ow_company_job_roles")
       /* ★`parent_id` も引く（2026-09-19 に職種を階層にした）。
             ⚠️★落とすと `flattenTree` が全行を最上位として並べ、**階層が消える**
@@ -83,7 +87,23 @@ export default async function OrganizationPage({
       .from("ow_jobs")
       .select("department_id, company_job_role_id")
       .eq("company_id", ctx.tenantId),
+
+    /* ★職種と部門の紐付け（2026-09-22）。admin でしか読めない表 */
+    adminSupabase
+      .from("ow_company_job_role_departments")
+      .select("job_role_id, department_id")
+      .eq("company_id", ctx.tenantId),
   ]);
+  if (linksResult.error) console.error("[biz/organization] 職種と部門の紐付け:", linksResult.error.message);
+  /* ⚠️ 削除済みの部門・職種を指す紐付けは落とす（部門・職種は論理削除なので行が残る） */
+  const liveDeptIds = new Set((deptResult.data ?? []).map((d) => d.id as string));
+  const liveRoleIds = new Set((jobRolesResult.data ?? []).map((r) => r.id as string));
+  const roleDepartments: Record<string, string[]> = {};
+  for (const l of linksResult.data ?? []) {
+    if (!liveDeptIds.has(l.department_id) || !liveRoleIds.has(l.job_role_id)) continue;
+    (roleDepartments[l.job_role_id] ??= []).push(l.department_id);
+  }
+  const linksOk = !linksResult.error;
 
   if (jobsResult.error) console.error("[biz/organization] 求人の件数を取得できませんでした:", jobsResult.error.message);
   /* ⚠️ 失敗したら件数を出さない（空の集計＝「どこにも使われていない」に見せない） */
@@ -127,6 +147,8 @@ export default async function OrganizationPage({
             initialDepartments={(deptResult.data ?? []) as Department[]}
             readOnly={!isAdmin}
             usage={usageOk ? deptUsage : undefined}
+            roleDepartments={linksOk ? roleDepartments : undefined}
+            jobRoles={(jobRolesResult.data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }))}
           />
         ) : (
           <JobRolesEditor
@@ -134,6 +156,8 @@ export default async function OrganizationPage({
             standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
             readOnly={!isAdmin}
             usage={usageOk ? roleUsage : undefined}
+            departments={(deptResult.data ?? []) as Department[]}
+            roleDepartments={linksOk ? roleDepartments : undefined}
           />
         )}
       </div>

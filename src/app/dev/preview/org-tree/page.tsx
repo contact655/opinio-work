@@ -4,6 +4,8 @@ import { OrgTreeEditor } from "@/components/business/OrgTreeEditor";
 import type { OrgRow } from "@/components/business/OrgTreeEditor";
 import { Variant, PreviewHeader } from "../Variant";
 import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
+import { JobRolesEditor } from "@/app/biz/organization/JobRolesEditor";
+import { DepartmentsEditor } from "@/app/biz/organization/DepartmentsEditor";
 
 /**
  * 組織体制の編集（/biz/organization）のプレビュー（2026-09-20）。
@@ -103,6 +105,49 @@ export default function OrgTreePreview() {
         <OrgTreeEditor unit="職種" endpoint="/api/biz/job-roles" createdKey="jobRole"
           initialRows={LONG} example="フィールドセールス"
           hints={[<>職種名は社内の呼び方で構いません</>]} />
+      </Variant>
+
+      <Variant
+        label="職種と部門の紐付け：職種タブ"
+        note="⚠️ 各行の下に「所属する部門」。インサイドセールスは2部門。チェックを付け外しすると、この画面では未ログインで保存に失敗し、選択が元に戻って理由が出るのが正しい"
+      >
+        <JobRolesEditor
+          initialRoles={[
+            { id: "r1", parent_id: null, name: "インサイドセールス", standard_role_id: null, display_order: 0 },
+            { id: "r2", parent_id: null, name: "フィールドセールス", standard_role_id: null, display_order: 1 },
+            { id: "r3", parent_id: null, name: "バックエンドエンジニア", standard_role_id: null, display_order: 2 },
+          ]}
+          standardRoles={[]}
+          departments={SHALLOW}
+          roleDepartments={{ r1: ["a1", "b"], r2: ["a2"] }}
+        />
+      </Variant>
+
+      <Variant
+        label="職種と部門の紐付け：部門タブ（読むだけ）"
+        note="⚠️ 紐付いた部門の行にだけ「この部門の職種：…」。部門タブでは付け外しできない"
+      >
+        <DepartmentsEditor
+          initialDepartments={SHALLOW}
+          roleDepartments={{ r1: ["a1", "b"], r2: ["a2"] }}
+          jobRoles={[{ id: "r1", name: "インサイドセールス" }, { id: "r2", name: "フィールドセールス" }]}
+        />
+      </Variant>
+
+      <Variant
+        label="職種と部門の紐付け：閲覧だけ"
+        note="⚠️ 付いている部門だけ出る。「＋ 部門を選ぶ」も ✕ も出ない。何も付いていない職種には行が出ない"
+      >
+        <JobRolesEditor
+          initialRoles={[
+            { id: "r1", parent_id: null, name: "インサイドセールス", standard_role_id: null, display_order: 0 },
+            { id: "r3", parent_id: null, name: "バックエンドエンジニア", standard_role_id: null, display_order: 1 },
+          ]}
+          standardRoles={[]}
+          departments={SHALLOW}
+          roleDepartments={{ r1: ["a1", "b"] }}
+          readOnly
+        />
       </Variant>
 
       <Variant
