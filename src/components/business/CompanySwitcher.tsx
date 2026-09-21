@@ -91,7 +91,8 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
         }}>
           {logoLetter}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", maxWidth: inSidebar ? undefined : 160, flex: inSidebar ? 1 : undefined, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {/* ⚠️ 幅の上限はインラインに書かない（狭い画面で縮めるため。下の style タグの中） */}
+        <span className={inSidebar ? undefined : "company-switcher-name"} style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flex: inSidebar ? 1 : undefined, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {currentCompany.name}
         </span>
         {/* Chevron */}
@@ -242,7 +243,11 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
         </div>
       )}
 
-      <style>{`@keyframes biz-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes biz-spin { to { transform: rotate(360deg); } }
+        .company-switcher-name { max-width: 160px; }
+        @media (max-width: 480px) { .company-switcher-name { max-width: 96px; } }
+      `}</style>
     </div>
   );
 }

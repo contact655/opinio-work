@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { getCompanyContext } from "@/lib/business/company";
 import { PLAN_LABELS, type PlanType } from "@/lib/constants/plans";
+import { greetingName } from "@/lib/constants/personName";
 
 /**
  * Opinio Business — Dashboard data layer
@@ -166,7 +167,7 @@ async function loadTenantContext(): Promise<TenantContext | null> {
         .select("id, name, logo_gradient, logo_letter, is_published, is_approved")
         .in("id", allMembershipIds),
       admin.from("ow_users")
-        .select("avatar_color")
+        .select("avatar_color, name")
         .eq("id", owUserId)
         .maybeSingle(),
     ]);
@@ -185,11 +186,17 @@ async function loadTenantContext(): Promise<TenantContext | null> {
 
     const planType: PlanType | null = ctx.planType;
 
-    const userName =
-      (user.user_metadata as any)?.name ||
-      (user.email ? user.email.split("@")[0] : "ご担当者");
-
     const owUser = owUserRes.data;
+
+    /* ★表示名は `ow_users.name`（プロフィールの氏名）を正にする（2026-09-21）。
+          それまでは auth の metadata か**メールアドレスの @ より前**を使っており、
+          チーム管理（`ow_users.name`）と食い違っていた（CLAUDE.md「name 表示の二重経路問題」）。
+       ⚠️ `'ユーザー'`（プレースホルダ）は名前として出さない（`greetingName` が弾く）。
+       ⚠️★**メールアドレスの一部を名前にしないこと。** 最後は「ご担当者」に倒す。 */
+    const userName =
+      greetingName(owUser?.name as string | null | undefined) ??
+      greetingName((user.user_metadata as any)?.name) ??
+      "ご担当者";
     const currentOwnerGradient =
       (owUser?.avatar_color && owUser.avatar_color.startsWith("linear-gradient"))
         ? owUser.avatar_color

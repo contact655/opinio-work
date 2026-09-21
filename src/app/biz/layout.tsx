@@ -56,6 +56,10 @@ export default async function BizLayout({ children }: { children: React.ReactNod
     <BizShellProvider value={{
       tenantId: tenant?.tenantId ?? null,
       hasPublicPage: tenant ? hasPublicCompanyPage({ isPublished: tenant.isPublished }) : false,
+      /* ★ヘッダーの名前と権限もここから（2026-09-21）。`loading.tsx` は `userName=""` を
+            渡しているので、props だけだと**読み込み中はヘッダーの名前が空になる**。 */
+      userName: tenant?.userName ?? null,
+      permission: tenant?.currentPermission ?? null,
     }}>
       {children}
     </BizShellProvider>

@@ -23,11 +23,17 @@ import { createContext, useContext } from "react";
 export type BizShell = {
   tenantId: string | null;
   hasPublicPage: boolean;
+  /** ★ヘッダーの表示名（`ow_users.name`。2026-09-21）。`null` なら各ページの `userName` を使う */
+  userName: string | null;
+  /** ★ヘッダーの権限表示（2026-09-21）。それまでは全員に「Admin」と直書きしていた */
+  permission: "admin" | "member" | null;
 };
 
 const BizShellContext = createContext<BizShell>({
   tenantId: null,
   hasPublicPage: false,
+  userName: null,
+  permission: null,
 });
 
 export function BizShellProvider({ value, children }: { value: BizShell; children: React.ReactNode }) {

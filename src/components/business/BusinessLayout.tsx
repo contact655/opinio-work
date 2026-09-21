@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar, Sparkles, ExternalLink } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar, Sparkles, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -151,7 +151,11 @@ export function BusinessLayout({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [avatarOpen]);
 
-  const userInitial = userName.trim().charAt(0).toUpperCase() || null;
+  /* ★名前と権限は `BizShellContext`（layout が `getTenantContext` から入れる）を正にする。
+        props の `userName` は Provider の外（企業が無い画面など）だけの逃げ道。 */
+  const displayName = shell.userName ?? userName;
+  const roleLabel = shell.permission === "admin" ? "管理者" : shell.permission === "member" ? "メンバー" : null;
+  const userInitial = displayName.trim().charAt(0).toUpperCase() || null;
   const logoLetter = tenantLogoLetter || (tenantName || "?").trim().charAt(0).toUpperCase();
   const logoGradient = tenantLogoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
 
@@ -239,11 +243,28 @@ export function BusinessLayout({
 
         <div style={{ flex: 1 }} />
 
+        {/* ★右側の導線（2026-09-21 / 柴さん。YOUTRUST・LinkedIn の管理画面を参考）。
+               ⚠️ 通知のベルは置かない —— 企業側に届く通知が1種類も無く、空のベルになる。
+               ⚠️ 狭い画面では文字を落としてアイコンだけにする（押せる場所は残す）。 */}
+        <nav aria-label="補助メニュー" className="biz-header-links" style={{ alignItems: "center", gap: 4, flexShrink: 0 }}>
+          {/* ⚠️ 採用担当者は求職者としても使う人が多い。行き先は自分のプロフィール */}
+          <Link href="/mypage" className="biz-header-link" title="求職者画面へ">
+            <ArrowLeftRight size={15} strokeWidth={2.2} aria-hidden />
+            <span className="biz-header-link-label">求職者画面へ</span>
+          </Link>
+          {/* ⚠️ ヘルプページはまだ無い。問い合わせ先のメールにしてある（作ったら差し替える） */}
+          <a href="mailto:contact@opinio.co.jp" className="biz-header-link" title="ヘルプ・お問い合わせ">
+            <HelpCircle size={15} strokeWidth={2.2} aria-hidden />
+            <span className="biz-header-link-label">ヘルプ</span>
+          </a>
+        </nav>
+
         {/* User menu */}
         <div className="relative biz-header-user" ref={avatarRef} style={{ flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => setAvatarOpen(!avatarOpen)}
+            className="biz-header-avatar-btn"
             aria-label="アカウントメニュー"
             aria-expanded={avatarOpen}
             style={{
@@ -268,10 +289,12 @@ export function BusinessLayout({
             {/* ⚠️ 狭い画面ではこの2行を隠す（アバターとシェブロンは残す）。
                    隠さないと押せる領域ごと画面外へ出る。 */}
             <div className="biz-header-username" style={{ textAlign: "left", minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {userName}
+              <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>
+                {displayName}
               </div>
-              <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>Admin</div>
+              {/* ★権限（2026-09-21）。それまで全員に「Admin」と直書きしていた。
+                     ⚠️ 分からないときは出さない（「メンバー」に倒さない） */}
+              {roleLabel && <div style={{ fontSize: 10, color: "var(--ink-mute)", fontWeight: 400 }}>{roleLabel}</div>}
             </div>
             <ChevronDown
               size={14}
@@ -285,56 +308,48 @@ export function BusinessLayout({
           </button>
 
           {avatarOpen && (
-            <div style={{
+            <div role="menu" style={{
               position: "absolute", right: 0, top: 48,
-              minWidth: 200, background: "#fff",
+              minWidth: 240, background: "#fff",
               borderRadius: 10,
               boxShadow: "0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
               overflow: "hidden", zIndex: 200,
             }}>
               <div style={{ padding: "12px 16px", borderBottom: "0.5px solid var(--line-soft)" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{userName}</div>
-                {tenantName && <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>{tenantName}</div>}
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{displayName}</div>
+                {(tenantName || roleLabel) && (
+                  <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 2 }}>
+                    {[tenantName, roleLabel].filter(Boolean).join(" ・ ")}
+                  </div>
+                )}
               </div>
-              <Link
-                href="/mypage"
-                onClick={() => setAvatarOpen(false)}
-                style={{
-                  display: "block", padding: "10px 16px",
-                  fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
-                  textDecoration: "none",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-              >
-                個人プロフィール編集
+              {/* ★「あなた」と「この会社」で分けた（2026-09-21）。
+                     ⚠️ 「企業ページを編集」はサイドバーの「企業ページ」と同じ行き先なので外した。
+                        **サイドバーにある入口をここに足さないこと**（同じ場所に着く入口を増やさない）。 */}
+              <div className="biz-menu-heading">あなた</div>
+              <Link href="/mypage" role="menuitem" className="biz-menu-item" onClick={() => setAvatarOpen(false)}>
+                <User size={15} strokeWidth={2.2} aria-hidden />個人プロフィール
               </Link>
-              <Link
-                href="/biz/company"
-                onClick={() => setAvatarOpen(false)}
-                style={{
-                  display: "block", padding: "10px 16px",
-                  fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
-                  textDecoration: "none",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
-              >
-                企業ページを編集
-              </Link>
+              {hasCompany && (
+                <>
+                  <div className="biz-menu-heading">この会社</div>
+                  <Link href="/biz/members" role="menuitem" className="biz-menu-item" onClick={() => setAvatarOpen(false)}>
+                    <Users size={15} strokeWidth={2.2} aria-hidden />チーム管理
+                  </Link>
+                </>
+              )}
+              {/* ⚠️ ヘッダー右の「ヘルプ」と同じ行き先。狭い画面ではヘッダー側が消えるので、ここが入口になる */}
+              <a href="mailto:contact@opinio.co.jp" role="menuitem" className="biz-menu-item" style={{ borderTop: "0.5px solid var(--line-soft)", marginTop: 6 }} onClick={() => setAvatarOpen(false)}>
+                <HelpCircle size={15} strokeWidth={2.2} aria-hidden />ヘルプ・お問い合わせ
+              </a>
               <button
                 type="button"
+                role="menuitem"
                 onClick={handleLogout}
-                style={{
-                  width: "100%", textAlign: "left",
-                  padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500,
-                  background: "transparent", border: "none", cursor: "pointer",
-                  borderTop: "0.5px solid var(--line-soft)",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                className="biz-menu-item"
+                style={{ borderTop: "0.5px solid var(--line-soft)", marginTop: 6 }}
               >
-                ログアウト
+                <LogOut size={15} strokeWidth={2.2} aria-hidden />ログアウト
               </button>
             </div>
           )}
@@ -548,6 +563,39 @@ export function BusinessLayout({
         /* ── ヘッダー（2026-08-31 追加）──────────────────────────────────
            ⚠️ 段階を2つに分ける。768px では詰めるだけ、480px で要素を落とす。
               いきなり落とすとタブレットで情報が減りすぎる。 */
+        /* ★ヘッダー右の導線とアカウントメニュー（2026-09-21）。
+              ⚠️ 色・余白をここに寄せている。hover をインラインの onMouseEnter で書かない。 */
+        /* ⚠️ display はインラインに書かない（480px 以下で消すため） */
+        .biz-header-links { display: flex; }
+        .biz-header-link {
+          display: inline-flex; align-items: center; gap: 6px;
+          height: 32px; padding: 0 10px; border-radius: 8px;
+          font-size: 12.5px; font-weight: 500; color: var(--ink-soft); text-decoration: none;
+          white-space: nowrap;
+        }
+        .biz-header-link:hover { background: var(--bg-tint); color: var(--ink); }
+        .biz-menu-heading {
+          padding: 10px 16px 4px; font-size: 10.5px; font-weight: 700; color: var(--ink-mute);
+        }
+        .biz-menu-item {
+          display: flex; align-items: center; gap: 10px; width: 100%;
+          padding: 9px 16px; font-size: 13px; font-weight: 500; color: var(--ink-soft);
+          text-decoration: none; text-align: left; background: transparent; border: none; cursor: pointer;
+          font-family: inherit;
+        }
+        .biz-menu-item:hover { background: var(--bg-tint); color: var(--ink); }
+        .biz-menu-item svg { color: var(--ink-mute); flex-shrink: 0; }
+        @media (max-width: 768px) {
+          .biz-header-link-label { display: none; }
+          .biz-header-link { padding: 0 8px; }
+        }
+        /* ⚠️ 480px 以下は右の導線をアカウントメニューの中へ移す（企業名とぶつかるため）。
+              メニューの「個人プロフィール」は「求職者画面へ」と同じ行き先で、
+              ヘルプはメニュー側にも常にある。 */
+        @media (max-width: 480px) {
+          .biz-header-links { display: none; }
+        }
+
         /* ★企業の切り替えは広い画面ではサイドバー、狭い画面ではヘッダー（2026-09-21）。
               ⚠️ 境界は下のサイドバー横並び化と**同じ 768px**。ずらすと両方消える帯ができる。 */
         @media (min-width: 769px) {
@@ -568,7 +616,9 @@ export function BusinessLayout({
           /* ⚠️ 氏名と Admin は落とす。**アバターとシェブロンは残す**
                 （押せる場所が消えるとメニューを開けなくなる） */
           .biz-header-username { display: none !important; }
-          .biz-header-user button { padding: 6px !important; gap: 0 !important; }
+          /* ⚠️ アバターのボタンだけ。ボタン全般にするとメニューのログアウトまで潰れる
+                （2026-09-21 に実際に踏んだ）。子の結合子の記号はここに書かないこと */
+          .biz-header-avatar-btn { padding: 6px !important; gap: 0 !important; }
         }
 
         @media (max-width: 768px) {
