@@ -103,6 +103,24 @@ export default function OrgTreePreview() {
           initialRows={LONG} example="フィールドセールス"
           hints={[<>職種名は社内の呼び方で構いません</>]} />
       </Variant>
+
+      <Variant
+        label="閲覧だけ（管理者でないメンバー）"
+        note="⚠️ 追加欄・「＋ 追加する」・行の操作・使い方が出ないこと。ダブルクリックでも名前が編集にならないこと。案内の一文が出ること"
+      >
+        <OrgTreeEditor unit="部門" endpoint="/api/biz/departments" createdKey="department"
+          initialRows={SHALLOW} example="営業部" readOnly
+          hints={[<>ここは出ないはず</>]} />
+      </Variant>
+
+      <Variant
+        label="閲覧だけ × 0件"
+        note="⚠️ 入力欄が自動で開かないこと（0件のとき管理者には開く）"
+      >
+        <OrgTreeEditor unit="職種" endpoint="/api/biz/job-roles" createdKey="jobRole"
+          initialRows={[]} example="フィールドセールス" readOnly
+          hints={[<>ここは出ないはず</>]} />
+      </Variant>
     </div>
   );
 }

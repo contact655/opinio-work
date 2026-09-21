@@ -18,13 +18,14 @@ export type Department = {
  *    実際にヒントの文面が揃っていなかった。**違いは「行に1列足すか」だけ。**
  *    部門には足す列が無いので `extra` を渡していない。
  */
-export function DepartmentsEditor({ initialDepartments }: { initialDepartments: Department[] }) {
+export function DepartmentsEditor({ initialDepartments, readOnly = false }: { initialDepartments: Department[]; readOnly?: boolean }) {
   return (
     <OrgTreeEditor<Department>
       unit="部門"
       endpoint="/api/biz/departments"
       createdKey="department"
       initialRows={initialDepartments}
+      readOnly={readOnly}
       example="営業部"
       hints={[
         <>下の入力欄は <b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上。最大{MAX_ORG_DEPTH}階層）</>,

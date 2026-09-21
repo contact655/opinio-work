@@ -7,6 +7,12 @@ import { validateMove, type OrgNodeLike } from "@/lib/business/orgTree";
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  /* ★書き込みは管理者だけ（2026-09-22）。DB の RLS（auth_is_company_admin）も同じ条件で、
+        それまではメンバーが押すと RLS の英語のエラーがそのまま画面に出ていた。
+        ⚠️ ここで先に日本語の 403 を返す。RLS は外さない（二重に守る） */
+  if (ctx.currentPermission !== "admin") {
+    return NextResponse.json({ error: "部門・職種の編集は管理者だけができます" }, { status: 403 });
+  }
 
   const body = await req.json();
   const patch: { name?: string; standard_role_id?: string | null; display_order?: number; parent_id?: string | null } = {};
@@ -50,6 +56,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  /* ★書き込みは管理者だけ（2026-09-22）。DB の RLS（auth_is_company_admin）も同じ条件で、
+        それまではメンバーが押すと RLS の英語のエラーがそのまま画面に出ていた。
+        ⚠️ ここで先に日本語の 403 を返す。RLS は外さない（二重に守る） */
+  if (ctx.currentPermission !== "admin") {
+    return NextResponse.json({ error: "部門・職種の編集は管理者だけができます" }, { status: 403 });
+  }
 
   const supabase = createClient();
 

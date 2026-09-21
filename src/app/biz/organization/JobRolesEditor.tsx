@@ -27,6 +27,8 @@ export type StandardRole = {
 type Props = {
   initialRoles: CompanyJobRole[];
   standardRoles: StandardRole[];
+  /** ★管理者でない人は閲覧だけ（2026-09-22）。`OrgTreeEditor` の readOnly を読む */
+  readOnly?: boolean;
 };
 
 function StandardRoleBadge({ roleId, roles }: { roleId: string | null; roles: StandardRole[] }) {
@@ -319,10 +321,11 @@ function StandardRoleCombobox({
  * ⚠️★`standard_role_id`（OPINIO のマスタ）と `parent_id`（自社の組織の形）は**別物**。
  *    前者は求人検索・マッチングの分類、後者は画面の階層。混ぜないこと。
  */
-export function JobRolesEditor({ initialRoles, standardRoles }: Props) {
+export function JobRolesEditor({ initialRoles, standardRoles, readOnly = false }: Props) {
   return (
     <OrgTreeEditor<CompanyJobRole>
       unit="職種"
+      readOnly={readOnly}
       endpoint="/api/biz/job-roles"
       createdKey="jobRole"
       initialRows={initialRoles}

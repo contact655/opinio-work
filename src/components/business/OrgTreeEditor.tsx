@@ -66,6 +66,13 @@ type Props<T extends OrgRow> = {
   extra?: OrgExtra<T>;
   /** 「使い方」を開いたときに出す行 */
   hints: React.ReactNode[];
+  /**
+   * ★閲覧だけ（2026-09-22）。メンバー（管理者でない人）に渡す。
+   * 書き込みは RLS（auth_is_company_admin）と API の両方が管理者に限っているので、
+   * 追加欄・名前変更・並べ替え・削除を出さない。それまでは出していて、押すと必ず失敗し、
+   * RLS の英語のエラーがそのまま画面に出ていた。
+   */
+  readOnly?: boolean;
 };
 
 const INDENT = 22;
@@ -109,8 +116,7 @@ function buildTree<T extends OrgRow>(rows: T[]): TreeNode<T>[] {
 function Row<T extends OrgRow>({
   node, depth, unit, extra, pending,
   collapsedIds, onToggleCollapse,
-  onAddChild, onRename, onDelete, onMove, canMove,
-}: {
+  onAddChild, onRename, onDelete, onMove, canMove, readOnly}: {
   node: TreeNode<T>;
   depth: number;
   unit: string;
@@ -125,6 +131,7 @@ function Row<T extends OrgRow>({
   onDelete: (id: string) => Promise<void>;
   onMove: (id: string, dir: "up" | "down" | "left" | "right") => Promise<void>;
   canMove: (id: string, dir: "up" | "down" | "left" | "right") => boolean;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(node.name);
@@ -209,13 +216,13 @@ function Row<T extends OrgRow>({
         ) : (
           <>
             <span
-              onDoubleClick={() => { setEditing(true); setConfirmDelete(false); }}
-              title="ダブルクリックで名前を変更"
+              onDoubleClick={readOnly ? undefined : () => { setEditing(true); setConfirmDelete(false); }}
+              title={readOnly ? undefined : "ダブルクリックで名前を変更"}
               style={{
                 flex: 1, minWidth: 0, fontSize: 13,
                 fontWeight: depth === 0 ? 700 : 500,
                 color: depth === 0 ? "var(--ink)" : "var(--ink-soft)",
-                cursor: "text", overflowWrap: "anywhere",
+                cursor: readOnly ? "default" : "text", overflowWrap: "anywhere",
               }}
             >
               {node.name}
@@ -233,7 +240,7 @@ function Row<T extends OrgRow>({
         {/* 操作。⚠️★**hover と focus のときだけ出す。** 常時出していた頃は、
                行が増えるほど名前より記号のほうが目立っていた。
             ⚠️ `visibility` で消す（`display:none` にすると Tab で辿れなくなる）。 */}
-        {!editing && (
+        {!editing && !readOnly && (
           <div
             className="org-actions"
             style={{
@@ -298,6 +305,7 @@ function Row<T extends OrgRow>({
               onAddChild={onAddChild}
               onRename={onRename}
               onDelete={onDelete}
+              readOnly={readOnly}
               onMove={onMove}
               canMove={canMove}
             />
@@ -350,7 +358,7 @@ function MoveButton({ dir, label, disabled, onClick }: {
 // ── 本体 ──────────────────────────────────────────────────────────────────────
 
 export function OrgTreeEditor<T extends OrgRow>({
-  unit, endpoint, createdKey, initialRows, example, extra, hints,
+  unit, endpoint, createdKey, initialRows, example, extra, hints, readOnly = false,
 }: Props<T>) {
   const [rows, setRows] = useState<T[]>(initialRows);
   const [isPending, startTransition] = useTransition();
@@ -361,7 +369,7 @@ export function OrgTreeEditor<T extends OrgRow>({
   /* ★追加欄。⚠️★**何も無いときは最初から開いておく**（2026-09-20）。
         それまでは空状態の箱と「追加する」ボタンとヒントで画面が埋まり、
         **最初の1件を打ち始めるまでにクリックが1回要った。** */
-  const [adding, setAdding] = useState(initialRows.length === 0);
+  const [adding, setAdding] = useState(!readOnly && initialRows.length === 0);
   const [draftName, setDraftName] = useState("");
   const [draftExtra, setDraftExtra] = useState("");
   const [pendingParentId, setPendingParentId] = useState<string | null>(null);
@@ -623,6 +631,7 @@ export function OrgTreeEditor<T extends OrgRow>({
               onAddChild={openDraftUnder}
               onRename={handleRename}
               onDelete={handleDelete}
+              readOnly={readOnly}
               onMove={handleMove}
               canMove={canMove}
             />
@@ -630,7 +639,13 @@ export function OrgTreeEditor<T extends OrgRow>({
         </div>
       )}
 
-      {adding ? (
+      {readOnly ? (
+        /* ★閲覧だけの人への案内（2026-09-22）。何ができないかと、誰に頼めばよいかを書く */
+        <div style={{ background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+          {empty && <>まだ{unit}は登録されていません。</>}
+          {unit}の追加・変更は、この会社の管理者だけができます。必要なときは管理者に依頼してください。
+        </div>
+      ) : adding ? (
         <div style={{ background: "#fff", border: "1px solid var(--accent)", borderRadius: 10, padding: "10px 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 11, color: "var(--ink-mute)", flexWrap: "wrap" }}>
             {/* ⚠️ いまどこに足すか。出さないと**打ち込んだ先が分からなくなる** */}
@@ -721,6 +736,8 @@ export function OrgTreeEditor<T extends OrgRow>({
       {/* ★使い方は畳んでおく（2026-09-20）。⚠️★**常設に戻さないこと。**
              追加欄の中に同じキー説明があり、以前は**同じことを2箇所で言っていた。**
              10件作ったあとも5行の説明が残り続ける状態でもあった。 */}
+      {/* ⚠️ 使い方は編集の説明なので、閲覧だけの人には出さない */}
+      {!readOnly && (
       <div style={{ marginTop: 14 }}>
         <button
           type="button"
@@ -744,6 +761,7 @@ export function OrgTreeEditor<T extends OrgRow>({
           </ul>
         )}
       </div>
+      )}
     </div>
   );
 }

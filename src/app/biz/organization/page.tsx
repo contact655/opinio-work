@@ -26,6 +26,9 @@ export default async function OrganizationPage({
 }) {
   const ctx = await getTenantContext();
   if (!ctx) redirect("/biz/dashboard");
+  /* ★書き込みは管理者だけ（RLS の auth_is_company_admin と API が同じ条件）。
+        メンバーには一覧だけ見せる（2026-09-22） */
+  const isAdmin = ctx.currentPermission === "admin";
 
   const activeTab = searchParams?.tab === "roles" ? "roles" : "departments";
 
@@ -104,11 +107,13 @@ export default async function OrganizationPage({
         {activeTab === "departments" ? (
           <DepartmentsEditor
             initialDepartments={(deptResult.data ?? []) as Department[]}
+            readOnly={!isAdmin}
           />
         ) : (
           <JobRolesEditor
             initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
             standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
+            readOnly={!isAdmin}
           />
         )}
       </div>
