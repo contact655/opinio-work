@@ -6,7 +6,7 @@ import { useState, useTransition, useRef, useCallback, useMemo } from "react";
 import { MAX_ORG_DEPTH, depthOf, subtreeHeight } from "@/lib/business/orgTree";
 
 /**
- * 組織体制（部門 / 自社職種）の木の編集。**部門タブと職種タブが同じ部品を使う。**
+ * 部門・職種（部門 / 自社職種）の木の編集。**部門タブと職種タブが同じ部品を使う。**
  *
  * ── なぜ1つにまとめたか（2026-09-20 / 柴さんの指示）─────────────────────────
  * それまで `DepartmentsEditor`(550行) と `JobRolesEditor`(737行) が

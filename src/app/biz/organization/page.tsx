@@ -12,7 +12,11 @@ import type { CompanyJobRole, StandardRole } from "./JobRolesEditor";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "組織マスタ | OPINIO Business" },
+  /* ★2026-09-21 に「部門・職種」へ改名（サイドバー・見出しと揃えた）。
+        それまでタブの題は「組織マスタ」、見出しは「組織体制」で、しかも
+        **求職者向け企業ページの「組織体制」（取材で埋めるチーム構成 org_teams）と同じ名前**だった。
+        この画面を編集しても、あちらは変わらない。 */
+  title: { absolute: "部門・職種 | OPINIO Business" },
 };
 
 export default async function OrganizationPage({
@@ -79,19 +83,24 @@ export default async function OrganizationPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 32px 0" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px", fontFamily: "var(--font-noto-serif)" }}>
-          組織体制
+      {/* ⚠️ 外側の余白は BusinessLayout の main が持つ。ここで中央寄せ・余白を足さない
+             （2026-09-21 まで二重に付いていて、ほかの画面より右下にずれていた） */}
+      <div style={{ maxWidth: 1100 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>
+          部門・職種
         </h1>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 24px" }}>
-          求人・社員登録で使用する部門と職種の定義を管理します。
+        {/* ⚠️★「社員登録」と書かないこと。社員登録の部署は自由入力で、ここと繋がっていない
+               （部門タブのヒントからは 2026-09-19 に外していたのに、この一文だけ残っていた）。
+            ⚠️ 求職者向けのページ（企業ページ・求人ページ）には出ない。2026-09-21 に確認 */}
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 20px" }}>
+          求人を作るときに選ぶ部門と職種を登録します。求職者向けのページには表示されません。
         </p>
         <OrganizationTabs activeTab={activeTab} />
       </div>
 
       {/* ⚠️★外側の余白はここが持つ。`OrgTreeEditor` 側に書き戻さないこと
              （`/dev/preview/org-tree` に置いたときに余白が入り込む）。 */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 32px 80px" }}>
+      <div style={{ maxWidth: 1100, paddingTop: 20 }}>
         {activeTab === "departments" ? (
           <DepartmentsEditor
             initialDepartments={(deptResult.data ?? []) as Department[]}

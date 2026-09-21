@@ -89,10 +89,14 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "会社を伝える",
     items: [
       { href: "/biz/jobs", label: "求人管理", icon: <Briefcase size={16} strokeWidth={2.2} /> },
+      /* ★2026-09-21 に「組織体制」から改名し、求人管理の直下へ移した。
+            ここで登録する部門・職種は**求人作成の選択肢としてだけ**使われる（社員登録・
+            求職者向けのページには出ない）。旧名は企業ページの「組織体制」欄と同じ名前だった。
+         ⚠️ パスは /biz/organization のまま（変えていない） */
+      { href: "/biz/organization", label: "部門・職種", icon: <Layers size={16} strokeWidth={2.2} /> },
       /* ⚠️ 2026-09-21 に「企業情報」から改名。求職者に見える**公開ページの編集**だと
             分かるようにするため。パスは `/biz/company` のまま（変えていない）。 */
       { href: "/biz/company", label: "企業ページ", icon: <Building2 size={16} strokeWidth={2.2} /> },
-      { href: "/biz/organization", label: "組織体制", icon: <Layers size={16} strokeWidth={2.2} /> },
       { href: "/biz/employees", label: "社員管理", icon: <UsersRound size={16} strokeWidth={2.2} /> },
       { href: "/biz/posts", label: "投稿・発信", icon: <Newspaper size={16} strokeWidth={2.2} /> },
     ],

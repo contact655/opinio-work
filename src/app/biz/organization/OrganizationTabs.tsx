@@ -15,7 +15,7 @@ export function OrganizationTabs({ activeTab }: { activeTab: Tab }) {
   return (
     <div
       role="tablist"
-      aria-label="組織マスタ"
+      aria-label="部門・職種"
       style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--line)" }}
     >
       {TABS.map((tab) => {

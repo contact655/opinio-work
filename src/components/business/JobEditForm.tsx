@@ -654,14 +654,14 @@ export function JobEditForm({
                         ))}
                       </select>
                       <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
-                        部門マスタは <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> から管理できます
+                        部門マスタは <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> から管理できます
                       </p>
                     </div>
                   ) : (
                     <div>
                       <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
                       <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
-                        <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>組織体制</a> で部門マスタを登録すると、ここでセレクトできるようになります
+                        <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> で部門マスタを登録すると、ここでセレクトできるようになります
                       </p>
                     </div>
                   )}
