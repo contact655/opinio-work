@@ -25,6 +25,28 @@ function isOpen(p: BizProposalView): boolean {
   return !p.response && !p.candidateDeclined;
 }
 
+/** "2026-09-21" → "2026年9月21日"。⚠️ 形が違えばそのまま返す（推測で直さない） */
+function formatJaDate(ymd: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  return m ? `${m[1]}年${Number(m[2])}月${Number(m[3])}日` : ymd;
+}
+
+/* ★候補者の答えは3つとも同じ形のバッジで出す（2026-09-22）。
+      それまで「興味がある」だけバッジで、「まだ回答していません」は地の文だった。
+   ⚠️ null を「見送り」と読ませない（まだ答えていないだけ） */
+function CandidateBadge({ p }: { p: BizProposalView }) {
+  const [label, bg, color, border] = p.candidateInterested
+    ? ["候補者：興味あり", "var(--royal-50)", "var(--royal)", "var(--royal-100)"]
+    : p.candidateDeclined
+      ? ["候補者：見送り", "var(--line-soft)", "var(--ink-mute)", "var(--line)"]
+      : ["候補者：まだ回答していません", "#fff", "var(--ink-soft)", "var(--line)"];
+  return (
+    <span style={{ fontSize: 12, fontWeight: 600, color, background: bg, border: `1px solid ${border}`, borderRadius: 999, padding: "2px 10px", whiteSpace: "nowrap" }}>
+      {label}
+    </span>
+  );
+}
+
 export default function BizProposalsClient({
   proposals, loadFailed,
 }: { proposals: BizProposalView[]; loadFailed: boolean }) {
@@ -33,6 +55,12 @@ export default function BizProposalsClient({
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<"open" | "done">("open");
+
+  /* ★未回答は「候補者が興味あり」を先に出す（2026-09-22）。いちばん会える見込みが高いものを埋もれさせない。
+        ⚠️ 並べ替えは安定なので、同じ区分の中はサーバーの並び（新しい順）のまま */
+  const visible = items
+    .filter((x) => (tab === "open" ? isOpen(x) : !isOpen(x)))
+    .sort((a, b) => (tab === "open" ? Number(b.candidateInterested) - Number(a.candidateInterested) : 0));
 
   async function respond(id: string, response: string, reason?: string, note?: string) {
     setPending(true); setErr(null);
@@ -61,25 +89,27 @@ export default function BizProposalsClient({
       {/* ★名前はサイドバーと同じ「提案」（それまで「候補者の提案」） */}
       <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>提案</h1>
 
-      {/* ★★スカウトではないことを明示。消さないこと */}
-      <p
+      {/* ★2つの注意書きを1つの枠にまとめた（2026-09-22）。**文言はそのまま。**
+             ⚠️★「これはスカウトではありません」は消さないこと。
+             ⚠️★何が・いつ見えるようになるかは、求職者側（`ProposalsClient`）と**同じ事実**を
+                向きだけ変えて書いている。**片方だけ直さないこと。** */}
+      <div
         style={{
           fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)",
           background: "#F5F7FD", border: "1px solid #DCE3F5",
-          borderRadius: 8, padding: "10px 12px", margin: "0 0 8px",
+          borderRadius: 8, padding: "10px 14px", margin: "0 0 20px",
         }}
       >
-        <strong>これはスカウトではありません。</strong>
-        OPINIO が根拠をそろえてお出ししている提案で、送信枠も消費しません。
-      </p>
-      {/* ⚠️★**何が・いつ見えるようになるかを書く**（2026-09-21 に実測して書き直した）。
-             求職者側（`ProposalsClient`）と**同じ事実**を、向きだけ変えて書いている。
-             **片方だけ直さないこと。** */}
-      <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 0 20px" }}>
-        候補者は匿名です。<strong>お名前・顔写真・現在の勤務先はお渡ししていません。</strong>
-        <strong>双方が「会いたい」と答えるとメッセージが1本開き</strong>、そこから候補者の
-        公開プロフィール（お名前・顔写真・見出し・職歴の勤務先と在籍期間）をご覧いただけます。
-      </p>
+        <p style={{ margin: 0 }}>
+          <strong>これはスカウトではありません。</strong>
+          OPINIO が根拠をそろえてお出ししている提案で、送信枠も消費しません。
+        </p>
+        <p style={{ margin: "4px 0 0" }}>
+          候補者は匿名です。<strong>お名前・顔写真・現在の勤務先はお渡ししていません。</strong>
+          <strong>双方が「会いたい」と答えるとメッセージが1本開き</strong>、そこから候補者の
+          公開プロフィール（お名前・顔写真・見出し・職歴の勤務先と在籍期間）をご覧いただけます。
+        </p>
+      </div>
 
       {err && (
         <p role="alert" style={{ fontSize: 13, color: "#B3261E", background: "#FDF2F2", border: "1px solid #F0C7C7", borderRadius: 8, padding: "10px 12px", marginBottom: 16 }}>
@@ -115,42 +145,31 @@ export default function BizProposalsClient({
             </button>
           ))}
         </div>
-        {items.filter((x) => (tab === "open" ? isOpen(x) : !isOpen(x))).length === 0 && (
+        {visible.length === 0 && (
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "8px 0" }}>
             {tab === "open" ? "答えていない提案はありません。" : "回答済みの提案はまだありません。"}
           </p>
         )}
         <div style={{ display: "grid", gap: 14 }}>
-          {items.filter((x) => (tab === "open" ? isOpen(x) : !isOpen(x))).map((p) => (
+          {visible.map((p) => (
             <article key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "16px 16px 14px" }}>
-              <header style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                {/* ★匿名。名前の代わりに出すのは「提案」という事実だけ */}
-                <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>候補者（匿名）</h2>
-                {p.jobTitle && (
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{p.jobTitle} の提案</span>
-                )}
-                {/* ★相手が既に答えているかで表示を変える */}
-                {p.candidateInterested && (
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 999, padding: "2px 10px" }}>
-                    この方は「興味がある」と答えています
-                  </span>
-                )}
-                {p.candidateDeclined && (
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)", background: "#F4F4F5", borderRadius: 999, padding: "2px 10px" }}>
-                    この方は見送りました
-                  </span>
-                )}
-                {!p.candidateInterested && !p.candidateDeclined && (
-                  /* ⚠️ null を「見送り」と読ませない */
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>まだ回答していません</span>
-                )}
+              {/* ★見出しは求人名（2026-09-22）。それまでは全カードが「候補者（匿名）」で見分けがつかなかった。
+                     ⚠️★匿名。名前の代わりに出すのは「提案」という事実だけ */}
+              <header style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--ink)" }}>
+                    {/* ⚠️ 求人名が無いとき、求人を指定していないのか取れなかったのかは区別できないので「提案」とだけ書く */}
+                    {p.jobTitle ? `${p.jobTitle} への提案` : "提案"}
+                  </h2>
+                  <CandidateBadge p={p} />
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
+                  候補者（匿名）・{formatJaDate(p.computedAt)}時点の情報にもとづく提案
+                </div>
               </header>
 
               <EvidenceList evidence={p.evidence} counter={p.counter} />
 
-              <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "10px 0 0" }}>
-                {p.computedAt} 時点の情報にもとづく提案です
-              </p>
 
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                 {p.response ? (
@@ -188,6 +207,13 @@ export default function BizProposalsClient({
                     >
                       見送る
                     </button>
+                    {/* ★押す前に、押すと何が起きるかを書く（2026-09-22）。
+                           候補者が既に興味ありなら、「会いたい」で双方合意になりメッセージが開く */}
+                    {p.candidateInterested && (
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)", alignSelf: "center" }}>
+                        「会いたい」と答えるとすぐにメッセージが開き、候補者の公開プロフィールが見られるようになります
+                      </span>
+                    )}
                   </>
                 )}
               </div>
