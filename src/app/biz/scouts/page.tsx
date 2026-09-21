@@ -10,16 +10,38 @@ import {
 } from "@/lib/constants/scoutEmail";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: { absolute: "スカウト管理 | OPINIO Business" } };
+/* ★名前はサイドバーの「スカウト履歴」に揃えた（2026-09-21。それまで「スカウト管理」） */
+export const metadata = { title: { absolute: "スカウト履歴 | OPINIO Business" } };
+
+/* ★絞り込みのタブ（2026-09-21）。それまでは丸いタブの見た目の div で、押せなかった。
+      URL（?status=）で切り替え、サーバーで絞る。⚠️ 知らない値は「すべて」に落とす */
+const FILTER_TABS = [
+  { key: "all", label: "すべて" },
+  { key: "pending", label: "返答待ち" },
+  { key: "interested", label: "興味あり" },
+  { key: "declined", label: "辞退" },
+] as const;
+type FilterKey = (typeof FILTER_TABS)[number]["key"];
+function matchesFilter(status: string, f: FilterKey): boolean {
+  if (f === "all") return true;
+  if (f === "pending") return status === "sent" || status === "read";
+  return status === f;
+}
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   sent:       { label: "未読",     color: "var(--royal)",    bg: "var(--royal-50)",     border: "var(--royal-100)" },
   read:       { label: "既読",     color: "var(--ink-soft)", bg: "var(--bg-tint)",      border: "var(--line)" },
-  interested: { label: "興味あり", color: "var(--success-ink)",  bg: "var(--success-soft)", border: "#6EE7B7" },
+  /* ⚠️ 緑にしない（緑はお金の条件だけ。2026-09-21 に青系へ） */
+  interested: { label: "興味あり", color: "var(--royal)",    bg: "var(--royal-50)",     border: "var(--royal-100)" },
   declined:   { label: "辞退",     color: "var(--ink-mute)", bg: "#F1F5F9",             border: "var(--line)" },
 };
 
-export default async function BizScoutsPage() {
+export default async function BizScoutsPage({
+  searchParams,
+}: { searchParams?: { status?: string } }) {
+  const filter: FilterKey = (FILTER_TABS.some((t) => t.key === searchParams?.status)
+    ? searchParams?.status
+    : "all") as FilterKey;
   /* ★スカウト送信が止まっているかを見る（2026-09-01）。
         ⚠️ `/biz/candidates` と `POST /api/biz/scouts` と**同じ判定**にすること。
            片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。
@@ -64,16 +86,10 @@ export default async function BizScoutsPage() {
     emailUndelivered: isScoutEmailUndelivered(s.email_status as string | null),
   }));
 
-  const interestedCount = rows.filter((r) => r.status === "interested").length;
-  const readOrMore = rows.filter((r) => r.status !== "sent").length; // read + interested + declined
-  const replyRate = readOrMore > 0 ? Math.round((interestedCount / readOrMore) * 100) : null;
-
-  const counts = {
-    total: rows.length,
-    interested: interestedCount,
-    pending: rows.filter((r) => r.status === "sent" || r.status === "read").length,
-    replyRate,
-  };
+  /* ★「返信率」は 2026-09-21 に外した。「興味あり」だけを返信と数えていて（辞退も返信なのに）、
+        名前と式が合っていなかった。件数はタブに出ている */
+  const countOf = (f: FilterKey) => rows.filter((r) => matchesFilter(r.status, f)).length;
+  const visibleRows = rows.filter((r) => matchesFilter(r.status, filter));
 
   return (
     <BusinessLayout
@@ -84,50 +100,38 @@ export default async function BizScoutsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <div style={{ maxWidth: 860, margin: "0 auto" }}>
-        {/* 上部バー: ステータスタブ + ボタン */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-          {/* ステータスタブ */}
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {[
-              { label: "すべて", count: counts.total, active: true },
-              { label: "返答待ち", count: counts.pending, active: false },
-              { label: "興味あり", count: counts.interested, active: false, success: true },
-              ...(counts.replyRate !== null ? [{ label: `返信率 ${counts.replyRate}%`, count: null, active: false, purple: true }] : []),
-            ].map((tab) => (
-              <div key={tab.label} style={{
-                padding: "7px 13px",
-                background: tab.active ? "var(--royal)" : "#fff",
-                border: `1px solid ${tab.active ? "var(--royal)" : (tab as any).success ? "#6EE7B7" : (tab as any).purple ? "#C4B5FD" : "var(--line)"}`,
-                borderRadius: 100, fontSize: 12, fontWeight: 600,
-                color: tab.active ? "#fff" : (tab as any).success ? "var(--success-ink)" : (tab as any).purple ? "#7C3AED" : "var(--ink-soft)",
-                display: "flex", alignItems: "center", gap: 5,
-              }}>
-                {tab.label}
-                {tab.count !== null && (
-                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
-                    {tab.count}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          {/* 候補者を探すボタン */}
-          <Link href="/biz/candidates" style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 16px", background: "var(--royal)", color: "#fff",
-            borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
-            flexShrink: 0, whiteSpace: "nowrap",
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
-            </svg>
-            候補者を探す
-          </Link>
+      <div style={{ maxWidth: 860 }}>
+        {/* 見出し（2026-09-21） */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>スカウト履歴</h1>
+          {/* ★送信が有効なときだけ出す（2026-09-21）。止めている間は行き先の候補者検索も
+                 閉じており（有料プラン）、押すと行き止まりだった。0件の案内と同じ扱い */}
+          {scoutSendingEnabled && (
+            <Link href="/biz/candidates" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "8px 16px", background: "var(--royal)", color: "#fff",
+              borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
+              flexShrink: 0, whiteSpace: "nowrap",
+            }}>
+              候補者を探す
+            </Link>
+          )}
         </div>
+
+        {rows.length > 0 && (
+          <div role="tablist" aria-label="スカウトの絞り込み" style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--line)", marginBottom: 16 }}>
+            {FILTER_TABS.map((t) => {
+              const active = filter === t.key;
+              return (
+                <Link key={t.key} role="tab" aria-selected={active} data-state={active ? "active" : "inactive"}
+                  href={t.key === "all" ? "/biz/scouts" : `/biz/scouts?status=${t.key}`} scroll={false}
+                  style={{ padding: "9px 14px", marginBottom: -1, borderBottom: `2px solid ${active ? "var(--royal)" : "transparent"}`, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? "var(--royal)" : "var(--ink-mute)", textDecoration: "none" }}>
+                  {t.label} {countOf(t.key)}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* Table */}
         {rows.length === 0 ? (
@@ -143,7 +147,6 @@ export default async function BizScoutsPage() {
                       押すと「有料プランの機能です」に着く**行き止まり**だった。
                    ⚠️ CLAUDE.md「0件を読むときは、起きなかった0か起こせなかった0かを分ける」。
                       画面に出す0も同じ。**区別が付く文言にする。** */}
-            <div style={{ fontSize: 36, marginBottom: 12 }}>📤</div>
             {scoutSendingEnabled ? (
               <>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
@@ -174,7 +177,10 @@ export default async function BizScoutsPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {rows.map((row) => {
+            {visibleRows.length === 0 && (
+              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "8px 0" }}>この条件のスカウトはありません。</p>
+            )}
+            {visibleRows.map((row) => {
               const st = STATUS_CONFIG[row.status] ?? STATUS_CONFIG.sent;
               return (
                 <div key={row.id} style={{
@@ -256,8 +262,8 @@ export default async function BizScoutsPage() {
                           href={`/biz/conversations/${row.conversationId}`}
                           style={{
                             fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 6,
-                            background: "var(--success-soft)", color: "var(--success-ink)",
-                            border: "1px solid #6EE7B7", textDecoration: "none",
+                            background: "var(--royal-50)", color: "var(--royal)",
+                            border: "1px solid var(--royal-100)", textDecoration: "none",
                           }}
                         >
                           会話を見る →
