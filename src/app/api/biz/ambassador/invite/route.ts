@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
      ⚠️ 金額は書かない（有料プランは未実装）。 */
   if (!canUse(ctx.planType, "ambassadorInvite")) {
     return NextResponse.json(
-      { error: "「話せる人」の招待は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。" },
+      { error: "面談対応者の招待は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。" },
       { status: 403 }
     );
   }

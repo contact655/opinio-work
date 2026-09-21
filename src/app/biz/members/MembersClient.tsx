@@ -10,6 +10,23 @@ import { memberState, MEMBER_CREATED_VIA, MEMBER_STATE_BIZ_LABEL, type MemberSta
 const LISTED_STATES: MemberState[] = ["listed", "unlisted", "paused"];
 
 type ActionType = "permission" | "deactivate" | "reactivate";
+
+/**
+ * ★権限の呼び名（2026-09-22）。**画面ではこの1箇所だけを使う。**
+ * ⚠️ それまでこの画面だけ member を「人事」と呼び、ヘッダー・企業の切り替え・確認ダイアログの
+ *    「メンバー」と食い違っていた（メニューは「人事に変更」、確認は「メンバーに変更」）。
+ */
+const PERMISSION_LABEL: Record<"admin" | "member", string> = { admin: "管理者", member: "メンバー" };
+/**
+ * 権限でできることの違い（2026-09-22 に画面から数えた）。
+ * 管理者だけのもの: 求人の新規作成（/biz/jobs）・企業ページの公開（/biz/company）・
+ *                  チーム管理（この画面）・部門と職種の編集（/biz/organization）。
+ * ⚠️ 出し分けを足したり外したりしたら、ここも直すこと
+ */
+const PERMISSION_HINT: Record<"admin" | "member", string> = {
+  admin: "すべての操作ができます。求人の新規作成・企業ページの公開・チーム管理・部門と職種の編集は管理者だけです",
+  member: "候補者・メッセージ・選考など日々の採用業務を扱えます",
+};
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
 /**
@@ -119,13 +136,16 @@ function DropdownMenu({
   }, []);
 
   const newPerm = member.permission === "admin" ? "member" : "admin";
-  const newPermLabel = member.permission === "admin" ? "人事" : "管理者";
+  const newPermLabel = PERMISSION_LABEL[newPerm];
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-label={`${member.name ?? "メンバー"} の操作`}
+        aria-expanded={open}
+        className="btn-fixed-size"
         style={{
           width: 28,
           height: 28,
@@ -181,9 +201,13 @@ function DropdownMenu({
               >
                 役職・部署を編集
               </button>
+              {/* ★自分の行では権限の変更と無効化を出さない（2026-09-22）。
+                     それまでは「（自分は変更不可）」と灰色で並べていた。押せないものを並べない。
+                     ⚠️ API 側も自分を拒む。ここは見た目だけ */}
+              {!isSelf && (<>
               <button
                 type="button"
-                disabled={isSelf}
+                
                 onClick={() => {
                   setOpen(false);
                   onAction(member.id, "permission", newPerm);
@@ -197,17 +221,16 @@ function DropdownMenu({
                   border: "none",
                   fontFamily: "inherit",
                   fontSize: 13,
-                  color: isSelf ? "var(--ink-mute)" : "var(--ink)",
-                  cursor: isSelf ? "not-allowed" : "pointer",
+                  color: "var(--ink)",
+                  cursor: "pointer",
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
                 権限を「{newPermLabel}」に変更
-                {isSelf && <span style={{ fontSize: 10, marginLeft: 6, color: "var(--ink-mute)" }}>（自分は変更不可）</span>}
               </button>
               <button
                 type="button"
-                disabled={isSelf}
+                
                 onClick={() => {
                   setOpen(false);
                   onAction(member.id, "deactivate");
@@ -221,13 +244,13 @@ function DropdownMenu({
                   border: "none",
                   fontFamily: "inherit",
                   fontSize: 13,
-                  color: isSelf ? "var(--ink-mute)" : "var(--error)",
-                  cursor: isSelf ? "not-allowed" : "pointer",
+                  color: "var(--error)",
+                  cursor: "pointer",
                 }}
               >
                 無効化
-                {isSelf && <span style={{ fontSize: 10, marginLeft: 6, color: "var(--ink-mute)" }}>（自分は無効化不可）</span>}
               </button>
+              </>)}
             </>
           ) : (
             <button
@@ -290,7 +313,7 @@ function ConfirmDialog({
   let confirmColor = "var(--royal)";
 
   if (actionType === "permission") {
-    const label = actionValue === "admin" ? "管理者" : "メンバー";
+    const label = PERMISSION_LABEL[actionValue === "admin" ? "admin" : "member"];
     title = "権限を変更";
     body = `${member.name}さんの権限を「${label}」に変更しますか？`;
     confirmLabel = "変更する";
@@ -686,10 +709,8 @@ function AddMemberDialog({
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {(["member", "admin"] as const).map((p) => {
               const isSelected = permission === p;
-              const label = p === "admin" ? "管理者" : "人事";
-              const desc = p === "admin"
-                ? "メンバーの追加・削除や権限変更ができます"
-                : "チームメンバーとして採用管理画面にアクセスできます";
+              const label = PERMISSION_LABEL[p];
+              const desc = PERMISSION_HINT[p];
               return (
                 <label
                   key={p}
@@ -831,7 +852,7 @@ function PendingInvitesSection({
     }
   }
 
-  const PERM_LABELS: Record<"admin" | "member", string> = { admin: "管理者", member: "人事" };
+  const PERM_LABELS = PERMISSION_LABEL;
 
   return (
     <div style={{ marginTop: 28 }}>
@@ -1439,9 +1460,10 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       </div>
 
       {/* ── タブ バー ─────────────────────────────────────────── */}
+      {/* ⚠️ 狭い画面ではタブを折り返さず横に流す（2026-09-22。375px で「面談 / 対応 / 者」と3行に割れていた） */}
       <div role="tablist" aria-label="チーム管理の区分" style={{
         display: "flex", gap: 0, marginBottom: 20,
-        borderBottom: "1px solid var(--line)",
+        borderBottom: "1px solid var(--line)", overflowX: "auto",
       }}>
         {([
           { key: "staff" as const, label: "採用担当", count: activeMembers.length },
@@ -1468,6 +1490,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
                 fontWeight: isSelected ? 700 : 400,
                 color: isSelected ? "var(--royal)" : "var(--ink-mute)",
                 cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+                whiteSpace: "nowrap", flexShrink: 0,
                 marginBottom: -1, transition: "all 0.15s",
               }}
             >
@@ -1493,50 +1516,57 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               採用担当メンバーがいません
             </div>
           ) : (
-            <div className="biz-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
-              {activeMembers.map((member) => {
+            /* ★カードの格子をやめ、1人1行の一覧にした（2026-09-22）。
+                  カードはメールと日付しか載っておらず、3列の格子だと空白ばかりだった。
+                  他の /biz の一覧（求人・候補者）と同じ読み方にする。 */
+            <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
+              <style>{`
+                .mem-row:hover { background: var(--bg-tint); }
+                @media (max-width: 720px) {
+                  .mem-row { flex-wrap: wrap; }
+                  .mem-row-meta { width: 100%; padding-left: 50px; }
+                }
+              `}</style>
+              {activeMembers.map((member, idx) => {
                 const isSelf = member.user_id === currentUserId;
-                const isAdminMember = member.permission === "admin";
+                const perm = member.permission === "admin" ? "admin" : "member";
                 return (
-                  <div key={member.id} style={{
-                    background: isSelf ? "var(--royal-50)" : "#fff",
-                    border: `1px solid ${isSelf ? "var(--royal-100)" : "var(--line)"}`,
-                    borderRadius: 12,
-                    padding: "16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
+                  <div key={member.id} className="mem-row" style={{
+                    display: "flex", alignItems: "center", gap: 14, padding: "14px 20px",
+                    borderTop: idx === 0 ? "none" : "1px solid var(--line-soft)",
                   }}>
-                    {/* アバター + 名前 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                        {member.initial}
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: member.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                      {member.initial}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{member.name}</span>
+                        {isSelf && <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>}
                       </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{member.name}</span>
-                          {isSelf && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>あなた</span>}
-                          {isAdminMember && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>管理者</span>}
-                        </div>
-                        {(member.role_title || member.department) && (
-                          <div style={{ fontSize: 11, color: "var(--ink-soft)", marginTop: 1 }}>
-                            {[member.role_title, member.department].filter(Boolean).join(" · ")}
-                          </div>
-                        )}
+                      <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {/* ⚠️ 役職・部署が無いときは「未設定」で埋めない（行ごと出さず、メールだけ） */}
+                        {[member.role_title, member.department].filter(Boolean).join(" · ")}
+                        {(member.role_title || member.department) && " ・ "}
+                        {member.email}
+                        <button type="button" onClick={() => handleCopyEmail(member.email)} aria-label={`${member.name} のメールアドレスをコピー`} title="コピー"
+                          className="btn-fixed-size"
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", verticalAlign: "-1px", color: copiedEmail === member.email ? "var(--success-ink)" : "var(--ink-mute)" }}>
+                          {copiedEmail === member.email
+                            ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
+                        </button>
                       </div>
                     </div>
-                    {/* メール */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{member.email}</span>
-                      <button type="button" onClick={() => handleCopyEmail(member.email)} title="コピー" style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 3px", borderRadius: 4, color: copiedEmail === member.email ? "var(--success-ink)" : "var(--ink-mute)", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
-                        {copiedEmail === member.email
-                          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                          : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
-                      </button>
-                    </div>
-                    {/* フッター */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
-                      <span style={{ fontSize: 10, color: "var(--ink-mute)" }}>{formatDate(member.created_at)} 追加</span>
+                    <div className="mem-row-meta" style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                      <span title={PERMISSION_HINT[perm]} style={{
+                        fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 100, whiteSpace: "nowrap",
+                        background: perm === "admin" ? "var(--royal-50)" : "var(--line-soft)",
+                        color: perm === "admin" ? "var(--royal)" : "var(--ink-soft)",
+                        border: `1px solid ${perm === "admin" ? "var(--royal-100)" : "var(--line)"}`,
+                      }}>
+                        {PERMISSION_LABEL[perm]}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap", minWidth: 110 }}>{formatDate(member.created_at)} 追加</span>
                       {isAdmin && <DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />}
                     </div>
                   </div>
@@ -1544,6 +1574,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               })}
             </div>
           )}
+          {/* ★招待が無いときは出さない（2026-09-22）。「招待中 0」と空の箱が常に出ていた */}
+          {pendingInvites.length > 0 && (
           <PendingInvitesSection
             invites={pendingInvites}
             onCancelled={(id) => {
@@ -1552,12 +1584,19 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             }}
             onToast={setToastMessage}
           />
+          )}
         </>
       )}
 
       {/* ── 現場 タブ ── */}
       {activeSection === "field" && (
         <>
+          {/* ⚠️ 「面談を依頼できる社員」タブと同じ案内。メールの招待も同じ API で止まる */}
+          {isAdmin && !canInviteAmbassador && (
+            <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              面談対応者の招待・依頼は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。
+            </div>
+          )}
 
         {/* メールアドレス招待フォーム */}
         {isAdmin && emailInviteOpen && (
@@ -1846,7 +1885,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
           }}>
             まだ面談対応者がいません。<br />
-            「メールで招待」ボタンからOPINIO登録済みの社員を招待できます。
+            {/* ⚠️ ボタンの名前と揃える（2026-09-22 まで実在しない「メールで招待」ボタンを指していた） */}
+            右上の「＋ 面談対応者を招待」から、OPINIOに登録済みの社員をメールで招待できます。
           </div>
         )}
         </>
@@ -1855,6 +1895,14 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
       {/* ── 社員 タブ ── */}
       {activeSection === "employees" && (
         <>
+          {/* ★面談対応者の招待が有料プランの機能であることを、押す前に出す（2026-09-22）。
+                 それまでは「面談を依頼する」が灰色になるだけで、理由は hover の title にしか無かった。
+                 ⚠️ ゲートの本体は POST /api/biz/ambassador/invite（メールの招待も同じ API） */}
+          {isAdmin && !canInviteAmbassador && (
+            <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              面談対応者の招待・依頼は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。
+            </div>
+          )}
           {ambassadorCandidates.length === 0 ? (
             <div style={{
               background: "var(--bg-tint)", border: "1px dashed var(--line)",
