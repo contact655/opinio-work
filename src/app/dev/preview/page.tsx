@@ -27,6 +27,8 @@ import { devOnly } from "./guard";
 const ITEMS = [
   { href: "/dev/preview/candidates", label: "候補者を探す（/biz/organization の隣）",
     note: "★実画面は有料プラン0社で誰も開けない。ゲートの内側はここでしか見られない" },
+  { href: "/dev/preview/stories", label: "企業ストーリー（/biz/posts と企業ページ）",
+    desc: "公開・下書き・長文・カバー画像あり／なし。実データは検証用の1件だけ" },
   { href: "/dev/preview/org-tree", label: "組織体制の編集（/biz/organization）",
     desc: "部門・職種の木。0件／5階層ちょうど／長い名前。移動ボタンが押せる・押せない境界はここでしか見られない" },
   { href: "/dev/preview/evidence-gaps", label: "根拠の棚卸し（/admin）",

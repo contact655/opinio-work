@@ -28,7 +28,6 @@ import { getStageCfg } from "@/lib/utils/stageCfg";
 import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
-import { truncateAtBoundary } from "@/lib/utils/truncate";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -70,6 +69,7 @@ import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
 import type { CompanyTargetIndustry } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
+import { ExpandableStoryBody } from "./ExpandableStoryBody";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
@@ -1120,8 +1120,10 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
       <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: 12 }}>
         {posts.map((post) => {
           const catLabel = post.category ? (POST_CATEGORY_LABEL[post.category] ?? post.category) : null;
-          const cleanedBody = post.body ? post.body.replace(/[#*`>\-]/g, "").trim() : null;
-          const bodyPreview = cleanedBody ? truncateAtBoundary(cleanedBody, 120) : null;
+          /* ★全文を出す（2026-09-22）。それまでは冒頭120字の抜粋だけで、続きを読む手段が無かった。
+                ⚠️ 長いものだけ畳む。目安は120字（それまでの抜粋の長さ）。改行が多いものも畳む */
+          const body = post.body?.trim() ?? "";
+          const long = body.length > 120 || body.split("\n").length > 5;
           return (
             <div key={post.id} style={{
               border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
@@ -1150,11 +1152,13 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
                 <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.5, fontFamily: "var(--font-noto-serif)" }}>
                   {post.title}
                 </h3>
-                {bodyPreview && (
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
-                    {bodyPreview}
-                  </p>
-                )}
+                {body && (long ? (
+                  <ExpandableStoryBody title={post.title}>
+                    <Markdown>{body}</Markdown>
+                  </ExpandableStoryBody>
+                ) : (
+                  <Markdown>{body}</Markdown>
+                ))}
                 {post.published_at && (
                   <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     {new Date(post.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
