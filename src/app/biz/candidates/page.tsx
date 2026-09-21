@@ -520,22 +520,19 @@ export default async function CandidatesPage() {
 
   return (
     <BusinessLayout {...layoutProps}>
-      {/* ⚠️ スカウト送信は停止中（2026-08-09）。受信側の画面が無く、送っても
-             求職者に届かないため。再開は SCOUT_SENDING_ENABLED=true
-             （詳細は CLAUDE.md「スカウトは送れるが、受け取る手段が無い」）。
-             候補者検索そのものは使えるのでページは残す。 */}
+      {/* ⚠️ スカウト送信は停止中。`isScoutSendingEnabled()` に連動し、開けた日に自動で消える
+             （手で消さないこと。docs/scout-runbook.md）。
+          ★文言は 2026-09-21 に直した。それまで「求職者側の受信画面を用意している最中」と
+             書いていたが、**受信画面は 2026-08-10 に完成している**（事実と違っていた）。
+             止めている理由（有料プラン・送信フラグ）は企業に説明する話ではないので書かない。
+          ⚠️ 黄色（警告）にしない。企業側に対応してもらうことが無いので、控えめな案内にする。 */}
       {!scoutSendingEnabledEnv && (
-        <div style={{
-          background: "var(--warm-soft)", border: "1px solid #FDE68A",
-          borderRadius: 10, padding: "14px 18px", marginBottom: 20,
+        <div role="status" style={{
+          background: "var(--bg-tint)", border: "1px solid var(--line)",
+          borderRadius: 10, padding: "10px 16px", marginBottom: 16,
+          fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
         }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 4 }}>
-            スカウト送信は現在準備中です
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--warm-ink)", lineHeight: 1.75 }}>
-            求職者側の受信画面を用意している最中のため、送信を一時的に停止しています。
-            候補者の検索・閲覧はそのままご利用いただけます。
-          </div>
+          スカウト送信はまだ始まっていません。候補者の検索・閲覧はご利用いただけます。
         </div>
       )}
       <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} roleFilterTree={roleFilterTree} scoutSendingEnabled={scoutSendingEnabled} />

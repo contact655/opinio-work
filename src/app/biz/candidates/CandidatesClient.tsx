@@ -598,7 +598,6 @@ export default function CandidatesClient({
   const [savedSearches, setSavedSearches] = useState<SavedSearch[] | null>(null);
   const [savedError, setSavedError] = useState<string | null>(null);
   const [savedOpen, setSavedOpen] = useState(false);
-  const [saveFormOpen, setSaveFormOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -634,7 +633,6 @@ export default function CandidatesClient({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "保存に失敗しました");
-      setSaveFormOpen(false);
       setSaveName("");
       setSavedError(null);
       await refreshSaved();
@@ -930,7 +928,7 @@ export default function CandidatesClient({
         <div style={{ position: "relative", flexShrink: 0 }}>
           <button
             type="button"
-            onClick={() => { setSavedOpen((v) => !v); setSaveFormOpen(false); }}
+            onClick={() => setSavedOpen((v) => !v)}
             aria-expanded={savedOpen}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -950,6 +948,9 @@ export default function CandidatesClient({
                 background: "var(--line-soft)", color: "var(--ink-mute)", fontSize: 12, fontWeight: 700,
               }}>{savedSearches.length}</span>
             )}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden style={{ transform: savedOpen ? "rotate(180deg)" : "none" }}>
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
           </button>
 
           {savedOpen && (
@@ -963,12 +964,57 @@ export default function CandidatesClient({
                 background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
                 boxShadow: "0 8px 28px rgba(0,35,102,0.12)", padding: 6,
               }}>
+                {/* ★今の条件を保存（2026-09-21 に「条件を保存」ボタンから移した）。
+                       ⚠️ 何も絞っていないときは入力欄を出さず、理由を出す（空の条件を保存しても意味が無い） */}
+                <div style={{ padding: "8px 8px 10px", borderBottom: "1px solid var(--line-soft)", marginBottom: 4 }}>
+                  {canSaveCurrent ? (
+                    <>
+                <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
+                  今の条件を名前を付けて保存
+                </label>
+                <input
+                  type="text" value={saveName} maxLength={MAX_SAVED_SEARCH_NAME}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void saveCurrentSearch(); }}
+                  placeholder="例：AE・東京・積極的"
+                  style={{
+                    width: "100%", height: 34, padding: "0 10px", boxSizing: "border-box",
+                    border: "1px solid var(--line)", borderRadius: 8, fontSize: 13,
+                    fontFamily: "inherit", color: "var(--ink)", outline: "none",
+                  }}
+                />
+                {/* ⚠️ 上書きになることは**押す前に**伝える。黙って上書きしない */}
+                {willOverwrite && (
+                  <p style={{ margin: "6px 0 0", fontSize: 11.5, fontWeight: 600, color: "var(--warm-ink)" }}>
+                    同じ名前があります。上書きされます
+                  </p>
+                )}
+                <button
+                  type="button" onClick={() => void saveCurrentSearch()}
+                  disabled={!saveName.trim() || saving}
+                  className="btn-fixed-size"
+                  style={{
+                    marginTop: 10, width: "100%", height: 34, borderRadius: 8, border: "none",
+                    background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
+                    fontFamily: "inherit", cursor: !saveName.trim() || saving ? "default" : "pointer",
+                    opacity: !saveName.trim() || saving ? 0.6 : 1,
+                  }}>
+                  {saving ? "保存中…" : willOverwrite ? "上書きする" : "保存する"}
+                </button>
+                    </>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                      絞り込むと、今の条件をここから保存できます
+                    </p>
+                  )}
+                </div>
                 {savedSearches === null ? (
-                  <p style={{ margin: 0, padding: "12px 10px", fontSize: 12.5, color: "var(--ink-mute)" }}>読み込み中…</p>
+                  /* ⚠️ 取得に失敗したときは「読み込み中…」のまま止めない（エラーはツールバーの下に出る） */
+                  <p style={{ margin: 0, padding: "12px 10px", fontSize: 12.5, color: "var(--ink-mute)" }}>{savedError ? "保存した条件を読み込めませんでした" : "読み込み中…"}</p>
                 ) : savedSearches.length === 0 ? (
-                  /* ⚠️ 「条件を保存」の場所まで書く。空の箱だけ出しても次に何をするか分からない */
+                  /* ⚠️ 保存の入口はこの上（同じポップオーバーの中）にあるので、ここは事実だけ書く */
                   <p style={{ margin: 0, padding: "12px 10px", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                    まだありません。<br />絞り込んでから「条件を保存」を押すと、ここに並びます。
+                    保存した条件はまだありません。
                   </p>
                 ) : (
                   savedSearches.map((v) => (
@@ -997,73 +1043,6 @@ export default function CandidatesClient({
                     </div>
                   ))
                 )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* 条件を保存。⚠️ 何も絞っていないときは押せない（空の条件を保存しても意味が無い） */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <button
-            type="button"
-            onClick={() => { setSaveFormOpen((v) => !v); setSavedOpen(false); }}
-            disabled={!canSaveCurrent}
-            aria-expanded={saveFormOpen}
-            title={canSaveCurrent ? undefined : "絞り込んでから保存できます"}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              height: 38, padding: "0 14px", borderRadius: 999,
-              cursor: canSaveCurrent ? "pointer" : "default",
-              fontFamily: "inherit", fontSize: 13, fontWeight: 500,
-              border: "1px solid var(--line)", background: "#fff",
-              color: canSaveCurrent ? "var(--ink-soft)" : "var(--ink-mute)",
-              opacity: canSaveCurrent ? 1 : 0.55,
-            }}>
-            条件を保存
-          </button>
-
-          {saveFormOpen && (
-            <>
-              <button type="button" aria-label="閉じる" onClick={() => setSaveFormOpen(false)}
-                style={{ position: "fixed", inset: 0, background: "transparent", border: "none", cursor: "default", zIndex: 40 }} />
-              <div style={{
-                position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 41, width: 280,
-                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                boxShadow: "0 8px 28px rgba(0,35,102,0.12)", padding: 12,
-              }}>
-                <label style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginBottom: 6 }}>
-                  名前を付けて保存
-                </label>
-                <input
-                  type="text" value={saveName} maxLength={MAX_SAVED_SEARCH_NAME}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void saveCurrentSearch(); }}
-                  placeholder="例：AE・東京・積極的"
-                  autoFocus
-                  style={{
-                    width: "100%", height: 34, padding: "0 10px", boxSizing: "border-box",
-                    border: "1px solid var(--line)", borderRadius: 8, fontSize: 13,
-                    fontFamily: "inherit", color: "var(--ink)", outline: "none",
-                  }}
-                />
-                {/* ⚠️ 上書きになることは**押す前に**伝える。黙って上書きしない */}
-                {willOverwrite && (
-                  <p style={{ margin: "6px 0 0", fontSize: 11.5, fontWeight: 600, color: "var(--warm-ink)" }}>
-                    同じ名前があります。上書きされます
-                  </p>
-                )}
-                <button
-                  type="button" onClick={() => void saveCurrentSearch()}
-                  disabled={!saveName.trim() || saving}
-                  className="btn-fixed-size"
-                  style={{
-                    marginTop: 10, width: "100%", height: 34, borderRadius: 8, border: "none",
-                    background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700,
-                    fontFamily: "inherit", cursor: !saveName.trim() || saving ? "default" : "pointer",
-                    opacity: !saveName.trim() || saving ? 0.6 : 1,
-                  }}>
-                  {saving ? "保存中…" : willOverwrite ? "上書きする" : "保存する"}
-                </button>
               </div>
             </>
           )}
@@ -1109,7 +1088,7 @@ export default function CandidatesClient({
 
       {/* ── 一覧 ──────────────────────────────────────────────────────── */}
       <div>
-        <main style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0 }}>
           {/* ⚠️★件数と「選択中の条件」は**ツールバーへ移した**（2026-09-20）。
                  ここに戻さないこと ——以前は件数バーの横に**都道府県のチップだけ**が出ており、
                  残り11条件は選んでも画面のどこにも出ていなかった。 */}
@@ -1294,19 +1273,16 @@ export default function CandidatesClient({
                           }}>
                           {c.alreadyScouted ? "再スカウト" : "スカウトを送る"}
                         </button>
-                        ) : (
-                          <span style={{
-                            fontSize: 12, padding: "7px 14px", borderRadius: 7, fontWeight: 700,
-                            background: "var(--bg-tint)", color: "var(--ink-mute)",
-                            whiteSpace: "nowrap" as const, border: "1px solid var(--line)",
-                          }}>
-                            スカウト準備中
-                          </span>
-                        )}
+                        ) : null}
+                        {/* ★送れない間は「スカウト準備中」を出さない（2026-09-21）。
+                               ページ上部の案内と同じことを**人数ぶん繰り返していた**。
+                               送れない間のカードの操作はこれ1つになるので、ボタンの形にしてある。 */}
                         <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }}
+                          style={scoutSendingEnabled
+                            ? { fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }
+                            : { fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}
                           onClick={(e) => e.stopPropagation()}>
-                          プロフィール
+                          {scoutSendingEnabled ? "プロフィール" : "プロフィールを見る"}
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         </a>
                       </div>
@@ -1317,7 +1293,7 @@ export default function CandidatesClient({
             </div>
           )}
 
-        </main>
+        </div>
       </div>
 
       {/* ── Scout modal ─────────────────────────────────────────────── */}
