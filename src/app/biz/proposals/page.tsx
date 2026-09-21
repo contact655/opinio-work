@@ -6,6 +6,12 @@ import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
 
 export const dynamic = "force-dynamic";
 
+/* ★タブの題（2026-09-21）。それまで指定が無く、サイト全体の題が出ていた。
+      サイドバーの「提案」と同じ名前にする */
+export const metadata = {
+  title: { absolute: "提案 | OPINIO Business" },
+};
+
 /**
  * ⑨ 企業への候補者提案（②の裏返し）。
  *
@@ -32,7 +38,9 @@ export default async function BizProposalsPage() {
     .from("ow_proposals")
     /* ★★候補者を特定できる列を1つも取らない。
           取るのは id（操作に要る）と、提案そのものの中身だけ。 */
-    .select("id, evidence, counter_evidence, candidate_response, company_response, computed_at, job_id, ow_jobs(title)")
+    /* ★`introduced_at` / `conversation_id` も取る（2026-09-21）。双方合意のカードから
+          その会話を直接開くため。⚠️ どちらも候補者を特定できる列ではない（会話の id） */
+    .select("id, evidence, counter_evidence, candidate_response, company_response, computed_at, job_id, introduced_at, conversation_id, ow_jobs(title)")
     .eq("company_id", ctx.tenantId)
     .order("created_at", { ascending: false });
   if (error) console.error("[biz/proposals] ow_proposals:", error.message);
@@ -47,6 +55,9 @@ export default async function BizProposalsPage() {
     response: (p.company_response as string | null) ?? null,
     jobTitle: ((p.ow_jobs as { title?: string } | null)?.title as string | undefined) ?? null,
     computedAt: (p.computed_at as string).slice(0, 10),
+    /* ⚠️ 紹介したかの正は `introduced_at`（CLAUDE.md）。`conversation_id` は会話を消すと
+          null になりうるので、両方あるときだけリンクを出す */
+    conversationId: p.introduced_at && p.conversation_id ? (p.conversation_id as string) : null,
   }));
 
   /* ⚠️★**`BusinessLayout` で包む。** 2026-09-21 にナビへ「提案」を足すまで

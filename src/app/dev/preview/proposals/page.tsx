@@ -10,6 +10,7 @@ import {
   type EvidenceFacts,
 } from "@/lib/evidence/engine";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
+import BizProposalsClient, { type BizProposalView } from "@/app/biz/proposals/BizProposalsClient";
 
 /**
  * 根拠つき提案（②⑨）の見え方。2026-09-18 追加。
@@ -135,6 +136,38 @@ export default function Page() {
           counter={COUNTER_NONE}
         />
       </Variant>
+
+      {/* ★企業側の一覧（2026-09-21 追加）。本番は提案0件なので、状態ごとの見え方はここでしか見られない。
+             ⚠️ ボタン（会いたい・見送る）は本物の API を呼ぶ。ここでは押さないこと。 */}
+      <Variant
+        label="企業側の一覧（/biz/proposals）"
+        note="未回答タブ: 未回答2件（うち1件は候補者が興味あり）。回答済みタブ: 双方合意（メッセージを開く）／候補者が見送り（ボタンなし）"
+      >
+        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} />
+      </Variant>
     </div>
   );
 }
+
+function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
+  return {
+    id,
+    evidence: buildEvidence(facts(3), OPTS),
+    counter: buildCounterEvidence(COUNTER_FULL, OPTS),
+    candidateInterested: false,
+    candidateDeclined: false,
+    response: null,
+    jobTitle: "アカウントエグゼクティブ",
+    computedAt: "2026-09-21",
+    conversationId: null,
+    ...over,
+  };
+}
+
+const BIZ_SAMPLE: BizProposalView[] = [
+  bizItem("p-open-1", {}),
+  bizItem("p-open-2", { candidateInterested: true }),
+  bizItem("p-mutual", { candidateInterested: true, response: "want_to_meet", conversationId: "00000000-0000-0000-0000-000000000000" }),
+  bizItem("p-cand-declined", { candidateDeclined: true, jobTitle: null }),
+];
+

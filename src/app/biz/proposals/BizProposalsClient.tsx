@@ -14,7 +14,16 @@ export type BizProposalView = {
   response: string | null;
   jobTitle: string | null;
   computedAt: string;
+  /** ★双方合意で紹介済みなら、その会話の id（2026-09-21）。未紹介は null */
+  conversationId: string | null;
 };
+
+/* ★「未回答」＝企業がまだ答えておらず、候補者も見送っていないもの。
+      サイドバーのバッジ（`lib/business/navBadges.ts`）と同じ条件にしてある。
+      ⚠️ 候補者が見送った提案は答えても何も起きないので「回答済み」側に入れ、ボタンを出さない */
+function isOpen(p: BizProposalView): boolean {
+  return !p.response && !p.candidateDeclined;
+}
 
 export default function BizProposalsClient({
   proposals, loadFailed,
@@ -23,6 +32,7 @@ export default function BizProposalsClient({
   const [declining, setDeclining] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [tab, setTab] = useState<"open" | "done">("open");
 
   async function respond(id: string, response: string, reason?: string, note?: string) {
     setPending(true); setErr(null);
@@ -45,8 +55,11 @@ export default function BizProposalsClient({
   }
 
   return (
-    <main style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 64px" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 6px" }}>候補者の提案</h1>
+    /* ⚠️ `<main>` にしない（BusinessLayout の main の中に入る）。中央寄せ・余白も足さない
+          （2026-09-21 まで二重で、ほかの画面とずれていた） */
+    <div style={{ maxWidth: 760 }}>
+      {/* ★名前はサイドバーと同じ「提案」（それまで「候補者の提案」） */}
+      <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>提案</h1>
 
       {/* ★★スカウトではないことを明示。消さないこと */}
       <p
@@ -88,8 +101,27 @@ export default function BizProposalsClient({
           </p>
         </div>
       ) : (
+        <>
+        {/* ★未回答 / 回答済み（2026-09-21）。それまでは新しい順に混ざって並び、答えるべきものが埋もれた */}
+        <div role="tablist" aria-label="提案の区分" style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--line)", marginBottom: 14 }}>
+          {([
+            { key: "open" as const, label: "未回答", count: items.filter(isOpen).length },
+            { key: "done" as const, label: "回答済み", count: items.filter((x) => !isOpen(x)).length },
+          ]).map((t) => (
+            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} data-state={tab === t.key ? "active" : "inactive"}
+              onClick={() => setTab(t.key)}
+              style={{ padding: "9px 14px", marginBottom: -1, background: "none", border: "none", borderBottom: `2px solid ${tab === t.key ? "var(--royal)" : "transparent"}`, fontFamily: "inherit", fontSize: 13, fontWeight: tab === t.key ? 700 : 500, color: tab === t.key ? "var(--royal)" : "var(--ink-mute)", cursor: "pointer" }}>
+              {t.label} {t.count}
+            </button>
+          ))}
+        </div>
+        {items.filter((x) => (tab === "open" ? isOpen(x) : !isOpen(x))).length === 0 && (
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "8px 0" }}>
+            {tab === "open" ? "答えていない提案はありません。" : "回答済みの提案はまだありません。"}
+          </p>
+        )}
         <div style={{ display: "grid", gap: 14 }}>
-          {items.map((p) => (
+          {items.filter((x) => (tab === "open" ? isOpen(x) : !isOpen(x))).map((p) => (
             <article key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "16px 16px 14px" }}>
               <header style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 {/* ★匿名。名前の代わりに出すのは「提案」という事実だけ */}
@@ -99,7 +131,7 @@ export default function BizProposalsClient({
                 )}
                 {/* ★相手が既に答えているかで表示を変える */}
                 {p.candidateInterested && (
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#1E7A4B", background: "#EAF6EF", border: "1px solid #C9E6D5", borderRadius: 999, padding: "2px 10px" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 999, padding: "2px 10px" }}>
                     この方は「興味がある」と答えています
                   </span>
                 )}
@@ -122,8 +154,23 @@ export default function BizProposalsClient({
 
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                 {p.response ? (
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", padding: "9px 0" }}>
-                    「{COMPANY_RESPONSE_LABELS[p.response as "want_to_meet" | "declined"]}」と答えました
+                  <>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", padding: "9px 0" }}>
+                      「{COMPANY_RESPONSE_LABELS[p.response as "want_to_meet" | "declined"]}」と答えました
+                    </span>
+                    {/* ★双方合意なら、その会話を直接開く（2026-09-21）。
+                           それまでは会話ができていても、この画面から辿る手段が無かった */}
+                    {p.conversationId && (
+                      <a href={`/biz/conversations/${p.conversationId}`}
+                        style={{ padding: "9px 16px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontWeight: 600, fontSize: 13, textDecoration: "none" }}>
+                        メッセージを開く
+                      </a>
+                    )}
+                  </>
+                ) : p.candidateDeclined ? (
+                  /* ⚠️ 候補者が見送った提案には答えても何も起きない。ボタンを出さない */
+                  <span style={{ fontSize: 13, color: "var(--ink-soft)", padding: "9px 0" }}>
+                    この方が見送ったため、回答は不要です
                   </span>
                 ) : (
                   <>
@@ -147,6 +194,7 @@ export default function BizProposalsClient({
             </article>
           ))}
         </div>
+        </>
       )}
 
       {declining && (
@@ -157,6 +205,6 @@ export default function BizProposalsClient({
           onSubmit={(reason, note) => respond(declining, "declined", reason, note)}
         />
       )}
-    </main>
+    </div>
   );
 }
