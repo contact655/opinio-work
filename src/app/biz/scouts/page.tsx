@@ -3,11 +3,9 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { ScoutList, type ScoutRow } from "./ScoutList";
 import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
-import {
-  isScoutEmailUndelivered,
-  SCOUT_EMAIL_UNDELIVERED_NOTICE,
-} from "@/lib/constants/scoutEmail";
+import { isScoutEmailUndelivered } from "@/lib/constants/scoutEmail";
 
 export const dynamic = "force-dynamic";
 /* ★名前はサイドバーの「スカウト履歴」に揃えた（2026-09-21。それまで「スカウト管理」） */
@@ -28,14 +26,6 @@ function matchesFilter(status: string, f: FilterKey): boolean {
   return status === f;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  sent:       { label: "未読",     color: "var(--royal)",    bg: "var(--royal-50)",     border: "var(--royal-100)" },
-  read:       { label: "既読",     color: "var(--ink-soft)", bg: "var(--bg-tint)",      border: "var(--line)" },
-  /* ⚠️ 緑にしない（緑はお金の条件だけ。2026-09-21 に青系へ） */
-  interested: { label: "興味あり", color: "var(--royal)",    bg: "var(--royal-50)",     border: "var(--royal-100)" },
-  declined:   { label: "辞退",     color: "var(--ink-mute)", bg: "#F1F5F9",             border: "var(--line)" },
-};
-
 export default async function BizScoutsPage({
   searchParams,
 }: { searchParams?: { status?: string } }) {
@@ -54,21 +44,30 @@ export default async function BizScoutsPage({
 
   const admin = createAdminClient();
 
-  const { data: scouts } = await admin
+  const { data: scouts, error: scoutsErr } = await admin
     .from("ow_scouts")
     .select("id, status, sent_at, replied_at, conversation_id, message, candidate_id, email_status, ow_jobs(id, title)")
     .eq("company_id", ctx.tenantId)
     .order("sent_at", { ascending: false });
 
+  /* ★読み込みの失敗を「0件」「まだ使えません」に化けさせない（2026-09-22） */
+  if (scoutsErr) console.error("[biz/scouts] ow_scouts:", scoutsErr.message);
+
   // Resolve candidate ow_users info via auth_id
+  /* ⚠️ `ow_scouts.candidate_id` は auth 空間（auth.users.id）。ow_users へは auth_id で引く */
   const authIds = Array.from(new Set((scouts ?? []).map((s: any) => s.candidate_id).filter(Boolean)));
-  const { data: users } = authIds.length > 0
-    ? await admin.from("ow_users").select("id, auth_id, name, avatar_color").in("auth_id", authIds).eq("is_test", false)
-    : { data: [] };
+  const { data: users, error: usersErr } = authIds.length > 0
+    ? await admin.from("ow_users").select("id, auth_id, name, avatar_color, is_test").in("auth_id", authIds)
+    : { data: [], error: null };
+  if (usersErr) console.error("[biz/scouts] ow_users:", usersErr.message);
 
   const userMap = new Map((users ?? []).map((u: any) => [u.auth_id, u]));
+  /* ★検証用アカウント宛てのスカウトは一覧から外す（2026-09-22）。それまでは名前だけ引かずに
+        「候補者」「?」の行として残っていた。
+     ⚠️ 引けない人（退会など）は外さない。「表示できない候補者」として残す（送った事実は消さない） */
+  const testAuthIds = new Set((users ?? []).filter((u: any) => u.is_test === true).map((u: any) => u.auth_id));
 
-  const rows = (scouts ?? []).map((s: any) => ({
+  const rows: ScoutRow[] = (scouts ?? []).filter((s: any) => !testAuthIds.has(s.candidate_id)).map((s: any) => ({
     id: s.id as string,
     status: s.status as string,
     sentAt: s.sent_at as string,
@@ -77,7 +76,7 @@ export default async function BizScoutsPage({
     message: s.message as string,
     jobTitle: (s.ow_jobs as any)?.title as string | null,
     jobId: (s.ow_jobs as any)?.id as string | null,
-    candidate: userMap.get(s.candidate_id) as { id: string; name: string; avatar_color: string | null } | null,
+    candidate: (userMap.get(s.candidate_id) ?? null) as { id: string; name: string; avatar_color: string | null } | null,
     /* ★通知メールが届かなかったか（2026-09-10）。
        ⚠️★**`skipped` を含めないこと。** あれは「本人がメール通知を切っている」という
           **本人の設定**で、企業に知らせるものではない（出すと、本人が企業に開示していない
@@ -134,7 +133,11 @@ export default async function BizScoutsPage({
         )}
 
         {/* Table */}
-        {rows.length === 0 ? (
+        {scoutsErr ? (
+          <p role="alert" style={{ fontSize: 14, lineHeight: 1.9, color: "var(--error-ink)" }}>
+            スカウトの読み込みに失敗しました。<strong>「0件」という意味ではありません。</strong>時間をおいて再読み込みしてください。
+          </p>
+        ) : rows.length === 0 ? (
           <div style={{
             background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
             padding: "48px 32px", textAlign: "center",
@@ -176,105 +179,7 @@ export default async function BizScoutsPage({
             )}
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {visibleRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "8px 0" }}>この条件のスカウトはありません。</p>
-            )}
-            {visibleRows.map((row) => {
-              const st = STATUS_CONFIG[row.status] ?? STATUS_CONFIG.sent;
-              return (
-                <div key={row.id} style={{
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-                  padding: "18px 22px",
-                  borderLeft: `3px solid ${st.color}`,
-                  display: "flex", alignItems: "flex-start", gap: 16,
-                }}>
-                  {/* Avatar */}
-                  <div style={{
-                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                    background: row.candidate?.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 15, fontWeight: 700, color: "#fff",
-                  }}>
-                    {(row.candidate?.name ?? "?")[0]}
-                  </div>
-
-                  {/* Main */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                        {row.candidate?.name ?? "候補者"}
-                      </span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-                        background: st.bg, color: st.color, border: `1px solid ${st.border}`,
-                      }}>
-                        {st.label}
-                      </span>
-                      {row.jobTitle && (
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                          求人: {row.jobTitle}
-                        </span>
-                      )}
-                    </div>
-
-                    <p style={{
-                      fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6,
-                      margin: "0 0 10px",
-                      overflow: "hidden", display: "-webkit-box",
-                      WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                    }}>
-                      {row.message}
-                    </p>
-
-                    {/* ★メールで通知できなかったとき（2026-09-10）。
-                           ⚠️★**括弧の中を消さないこと。** 無いと「候補者に何も届いていない」と読まれ、
-                              `/biz/candidates` から二重に送られる。**実際にはアプリ内に届いている。**
-                           ⚠️ `skipped` ではここに来ない（上の `emailUndelivered` を参照）。 */}
-                    {row.emailUndelivered && (
-                      <p style={{
-                        fontSize: 11, color: "var(--warm-ink)", background: "#FFFBEB",
-                        border: "1px solid #FDE68A", borderRadius: 8,
-                        padding: "6px 10px", margin: "0 0 10px",
-                      }}>
-                        {SCOUT_EMAIL_UNDELIVERED_NOTICE}
-                      </p>
-                    )}
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>
-                        送信: {new Date(row.sentAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
-                        {row.repliedAt && (
-                          <> · 返答: {new Date(row.repliedAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}</>
-                        )}
-                      </span>
-                      {row.candidate && (
-                        <Link
-                          href={`/u/${row.candidate.id}`}
-                          target="_blank"
-                          style={{ fontSize: 11, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
-                        >
-                          プロフィールを見る →
-                        </Link>
-                      )}
-                      {row.conversationId && (
-                        <Link
-                          href={`/biz/conversations/${row.conversationId}`}
-                          style={{
-                            fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 6,
-                            background: "var(--royal-50)", color: "var(--royal)",
-                            border: "1px solid var(--royal-100)", textDecoration: "none",
-                          }}
-                        >
-                          会話を見る →
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ScoutList rows={visibleRows} />
         )}
       </div>
     </BusinessLayout>
