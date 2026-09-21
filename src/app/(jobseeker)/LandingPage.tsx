@@ -5,7 +5,7 @@ import { FinalCta } from "./FinalCta";
 import { AuthAwareCta } from "./AuthAwareCta";
 import { fmtMan } from "@/lib/utils/salary";
 import { phaseLabel } from "@/lib/constants/phase";
-import { LP_JOBS_MIN_TO_SHOW, LP_ARTICLES_COPY } from "@/lib/constants/landing";
+import { LP_JOBS_MIN_TO_SHOW, LP_ARTICLES_COPY, LP_CTA_HEIGHT } from "@/lib/constants/landing";
 /* ⚠️★カテゴリのラベルと色は `TYPE_BADGE` の1箇所から引く。**ここに書き写さないこと**
       —— `/articles` の一覧・記事詳細も同じ定数を見ており、割れると同じ記事が
       画面によって違うカテゴリ名で出る。 */
@@ -314,8 +314,12 @@ export default function LandingPage({
            ⚠️ flex-wrap を外さないこと。375px では2段になる。 */
         .lp-hero-cta { display: flex; flex-wrap: wrap; justify-content: center;
                        gap: 12px; margin-top: 22px; }
+        /* ⚠️★ line-height: 1 と min-height はセット。どちらか外すと行高で膨らみ、
+              最終CTA と高さが割れる（2026-09-21 まで 54px / 59px だった）。
+              ⚠️ ここは CSS の template literal の中。バッククォートを書かないこと。 */
         .lp-hero-btn { display: inline-flex; align-items: center; justify-content: center;
                        padding: 13px 24px; border-radius: 8px; font-size: 14.5px;
+                       line-height: 1; min-height: ${LP_CTA_HEIGHT}px;
                        font-weight: 700; text-decoration: none; white-space: nowrap; }
         .lp-hero-btn-solid { background: ${C.navy}; color: #fff; }
         .lp-hero-btn-ghost { background: #fff; color: ${C.navy}; border: 1px solid ${C.line}; }
@@ -478,11 +482,14 @@ export default function LandingPage({
                いるので重複させている。文言は最終CTA と揃えること。
           */}
           <div className="lp-hero-cta">
-            <Link href="/companies" className="lp-hero-btn lp-hero-btn-solid">企業を見る</Link>
+            <Link href="/companies" className="lp-hero-btn lp-hero-btn-solid">企業を探す</Link>
             {/* ⚠️★登録済みの人に「無料登録」を出さない（`FinalCta` と同じ理由）。
                    `member` を `null` にしてあるので、**ログイン済みではボタンごと消える**
                    ——FV に2つ並べる意味は「まだ登録していない人に登録の理由を見せる」ことなので、
-                   済んでいる人には左の「企業を見る」だけで足りる。 */}
+                   済んでいる人には左の「企業を探す」だけで足りる。
+                   ⚠️★**文言は最終CTA（`FinalCta`）と同じ「企業を探す」。**
+                      2026-09-21 まで**ここだけ「企業を見る」**で、同じ行き先なのに
+                      上下で名前が違っていた（柴さんの指摘）。**片方だけ戻さないこと。** */}
             <AuthAwareCta
               className="lp-hero-btn lp-hero-btn-ghost"
               /* ⚠️★**2026-09-20 に「無料登録して経歴を見る」→「無料登録」へ短くした**

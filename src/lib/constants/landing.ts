@@ -100,3 +100,17 @@ export const LP_ARTICLES_COPY = {
  *    「在庫が薄いから畳む」という判断の対象ではない。
  */
 export const LP_ARTICLES_COUNT = 4;
+
+/**
+ * ★LP の主要 CTA ボタンの高さ（2026-09-21）。
+ *
+ * ⚠️★**FV のヒーローと最終CTA（`FinalCta`）で同じ値を使う。** 片方だけ変えないこと。
+ *    実測（2026-09-21 / 375px）では **ヒーロー 54px ／ 最終CTA 59px** と揃っておらず、
+ *    しかも `FinalCta` の `minHeight` が**効いていなかった**
+ *    （`line-height` が既定のままで、padding と合わせて 52px を超えていた）。
+ *
+ * ⚠️★**`line-height: 1` とセットで意味を持つ。** どちらか片方を外すと、
+ *    行高で内容が膨らんで `min-height` が無視され、**また高さが割れる。**
+ * ⚠️ 52px はタップ領域の下限（44px）を満たしている。**これより小さくしないこと。**
+ */
+export const LP_CTA_HEIGHT = 52;

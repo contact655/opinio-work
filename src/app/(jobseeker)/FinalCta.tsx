@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { LP_CTA_HEIGHT } from "@/lib/constants/landing";
 
 /**
  * LP 最終CTA。ログイン状態で出し分ける。
@@ -22,7 +23,9 @@ import { createClient } from "@/lib/supabase/client";
  */
 type State = "loading" | "guest" | "member";
 
-const BTN_H = 52; // ボタンの高さ。プレースホルダーと揃える
+/* ⚠️★**高さは `LP_CTA_HEIGHT` の1箇所から。** FV のヒーローと同じ値を使う
+      （2026-09-21。それまで 54px / 59px で割れていた）。 */
+const BTN_H = LP_CTA_HEIGHT; // ボタンの高さ。プレースホルダーと揃える
 
 export function FinalCta({ navy }: { navy: string }) {
   const [state, setState] = useState<State>("loading");
@@ -52,13 +55,13 @@ export function FinalCta({ navy }: { navy: string }) {
   const solid: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     background: "#fff", color: navy, padding: "15px 28px", borderRadius: 8,
-    fontWeight: 700, fontSize: 15, textDecoration: "none", minHeight: BTN_H,
+    fontWeight: 700, fontSize: 15, textDecoration: "none", minHeight: BTN_H, lineHeight: 1,
   };
   const ghost: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     border: "1px solid rgba(255,255,255,.35)", color: "#fff",
     padding: "15px 28px", borderRadius: 8,
-    fontWeight: 700, fontSize: 15, textDecoration: "none", minHeight: BTN_H,
+    fontWeight: 700, fontSize: 15, textDecoration: "none", minHeight: BTN_H, lineHeight: 1,
   };
 
   return (
