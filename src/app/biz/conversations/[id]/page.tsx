@@ -4,6 +4,8 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { ReplyForm } from "./ReplyForm";
 import { JoinButton } from "./JoinButton";
 
@@ -160,6 +162,23 @@ export default async function BizConversationDetailPage({
 
   if (msgsError) {
     console.error("[BizConvDetail] messages fetch error:", msgsError.message);
+  }
+
+  /* ★既読にする（2026-09-21）。サイドバーの「メッセージ」の未読バッジと一覧のドットは
+        `last_read_at` で数える（`lib/conversations/unread.ts`）。企業側は
+        それまで**一度も書いていなかった**ので、書かないと未読が永久に消えない。
+     ⚠️ **参加者のときだけ**。参加していない人はメッセージを読めていない（RLS）。
+     ⚠️ admin で書く。絞り込みは自分の参加者行の id だけ（求職者側と同じ形）。
+     ⚠️ 失敗しても画面は出す（バッジは主役ではない）。ただしログは出す。 */
+  if (myParticipant && !msgsError) {
+    const r = await mutateOne(
+      createAdminClient()
+        .from("ow_conversation_participants")
+        .update({ last_read_at: new Date().toISOString() })
+        .eq("id", myParticipant.id),
+      "biz 会話の既読",
+    );
+    if (!r.ok) console.error("[BizConvDetail] 既読にできませんでした:", r.error);
   }
 
   const messages: MessageRow[] = (rawMessages ?? []).map((m: any) => ({

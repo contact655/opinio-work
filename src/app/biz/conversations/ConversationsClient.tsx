@@ -271,12 +271,9 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
             const initial = candidateName.trim().charAt(0).toUpperCase();
             const avatarColor = candidate?.avatar_color ?? "linear-gradient(135deg, #6b7280, #475569)";
             const timeLabel = formatRelativeTime(conv.last_message_at ?? conv.created_at);
-            // unread dot: show when there's recent activity (last 24h) on a non-closed conversation
-            const lastActivity = conv.last_message_at ?? conv.created_at;
-            const isRecentlyActive = lastActivity
-              ? Date.now() - new Date(lastActivity).getTime() < 24 * 60 * 60 * 1000
-              : false;
-            const showUnread = conv.stage !== "closed" && conv.status !== "closed" && isRecentlyActive;
+            /* ★未読のドット。判定はサーバー（`unreadConversationIds`）で、
+                  サイドバーのバッジと同じ式。⚠️ ここで時刻から推測し直さないこと。 */
+            const showUnread = conv.isUnread;
 
             return (
               <Link

@@ -24,9 +24,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * ⚠️★**`ow_message_reads` は使わないこと。** 本番0行・src 参照0件で、
  *    ポリシーが user_id の空間を取り違えていて誰も読み書きできない。
  *
- * ⚠️★**企業側は `last_read_at` を書いていない。** したがってこの判定は
- *    求職者側（`/mypage`）のためのもの。企業側の未読を出すなら、先に
- *    企業側が `last_read_at` を書く経路を作ること。
+ * ★企業側も 2026-09-21 から `last_read_at` を書く（`/biz/conversations/[id]` を開いたとき）。
+ *   企業側のバッジと一覧のドットは `unreadConversationIds(..., { companyId })` を使う。
+ *   ⚠️ **参加者でない会話は数えない。** 企業の担当者は「参加する」を押すまで
+ *      メッセージ自体を読めない（RLS）ので、未読と言っても開いて読めない。
  */
 
 /** ⚠️ `user_id` は **`ow_users.id`**（`auth.uid()` ではない）。参加者行も通知も ow_users 空間 */
@@ -45,18 +46,49 @@ export type UnreadCount = { conversations: number };
  *    ここを throw にすると `/mypage` 全体が落ちる（バッジは主役ではない）。
  */
 export async function countUnreadConversations(owUserId: string): Promise<number> {
+  return (await unreadConversationIds(owUserId)).size;
+}
+
+/**
+ * 未読のある会話の id。⚠️ 失敗したら空集合を返す（ログは出す）。
+ *
+ * `companyId` を渡すと**その企業の会話だけ**に絞る（企業側のバッジ用。2026-09-21）。
+ * ⚠️★企業側では必ず渡すこと。同じ人が求職者としても会話を持っていると、
+ *    渡さなければそちらまで企業のバッジに数えてしまう。
+ */
+export async function unreadConversationIds(
+  owUserId: string,
+  opts: { companyId?: string } = {},
+): Promise<Set<string>> {
   const admin = createAdminClient();
+  const result = new Set<string>();
 
   /* ① 自分の参加者行。**ここが可視性の絞り込み**（RLS には任せない。admin なので効かない） */
-  const { data: parts, error: partErr } = await admin
+  const { data: allParts, error: partErr } = await admin
     .from("ow_conversation_participants")
     .select("id, conversation_id, last_read_at")
     .eq("user_id", owUserId);
   if (partErr) {
     console.error("[unread] 参加者の取得に失敗:", partErr.message);
-    return 0;
+    return result;
   }
-  if (!parts || parts.length === 0) return 0;
+  let parts = allParts ?? [];
+  if (parts.length === 0) return result;
+
+  if (opts.companyId) {
+    const { data: convs, error: convErr } = await admin
+      .from("ow_conversations")
+      .select("id")
+      .in("id", parts.map((p) => p.conversation_id as string))
+      .eq("company_id", opts.companyId);
+    if (convErr) {
+      console.error("[unread] 会話の取得に失敗:", convErr.message);
+      return result;
+    }
+    const ok = new Set((convs ?? []).map((c) => c.id as string));
+    parts = parts.filter((p) => ok.has(p.conversation_id as string));
+    if (parts.length === 0) return result;
+  }
 
   const convIds = parts.map((p) => p.conversation_id as string);
 
@@ -68,10 +100,9 @@ export async function countUnreadConversations(owUserId: string): Promise<number
     .is("deleted_at", null);
   if (msgErr) {
     console.error("[unread] メッセージの取得に失敗:", msgErr.message);
-    return 0;
+    return result;
   }
 
-  let unread = 0;
   for (const p of parts) {
     const hit = (msgs ?? []).some((m) =>
       isUnreadMessage(m as MessageLike, {
@@ -80,9 +111,9 @@ export async function countUnreadConversations(owUserId: string): Promise<number
         lastReadAt: (p.last_read_at as string | null) ?? null,
       }),
     );
-    if (hit) unread += 1;
+    if (hit) result.add(p.conversation_id as string);
   }
-  return unread;
+  return result;
 }
 
 export type MessageLike = {

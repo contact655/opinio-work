@@ -43,6 +43,8 @@ type NavItem = {
   href: string;
   label: string;
   icon: React.ReactElement;
+  /** ★未読バッジの出どころ（2026-09-21）。値は `BizShellContext` の `badges` */
+  badge?: "messages" | "proposals";
   children?: { href: string; label: string }[];
 };
 
@@ -70,16 +72,16 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
          ⚠️★提案はスカウトではない（`ow_scouts` にも3ゲートにも無関係。
             `/biz/proposals/page.tsx` の注記）。同じグループに置くのは
             「候補者と出会う入口」だからで、同じ機能だからではない。
-         ⚠️ バッジ（未回答の件数）は付けていない。件数を配る仕組みが
-            このレイアウトに無いため。**付けるなら別の作業。** */
-      { href: "/biz/proposals", label: "提案", icon: <Sparkles size={16} strokeWidth={2.2} /> },
+         ★バッジは「企業がまだ答えていない提案」の数（2026-09-21。`lib/business/navBadges.ts`）。 */
+      { href: "/biz/proposals", label: "提案", icon: <Sparkles size={16} strokeWidth={2.2} />, badge: "proposals" },
       { href: "/biz/scouts", label: "スカウト履歴", icon: <Send size={16} strokeWidth={2.2} /> },
     ],
   },
   {
     heading: "やり取り・選考",
     items: [
-      { href: "/biz/conversations", label: "メッセージ", icon: <Inbox size={16} strokeWidth={2.2} /> },
+      /* ★バッジは未読のある会話の数（2026-09-21）。一覧のドットと同じ式 */
+      { href: "/biz/conversations", label: "メッセージ", icon: <Inbox size={16} strokeWidth={2.2} />, badge: "messages" },
       { href: "/biz/meetings", label: "選考管理", icon: <Calendar size={16} strokeWidth={2.2} /> },
     ],
   },
@@ -119,6 +121,23 @@ export function BusinessLayout({
   const pathname = usePathname();
   const router = useRouter();
   const shell = useBizShell();
+
+  /* ★未読バッジ（2026-09-21）。**ページを移るたびに取り直す。**
+        ⚠️★layout（サーバー）で数えないこと。App Router の layout は
+           ページ間の移動で描き直されないので、数字が古いまま残る。
+        ⚠️ 取得に失敗したら出さない（0 と同じ扱い）。**「0件」とは言わない** ——
+           バッジが出ないことを「未読なし」の根拠にしないこと。
+        ⚠️ 企業が無い人（`hasCompany = false`）はサイドバーごと無いので叩かない。 */
+  const [badges, setBadges] = useState<{ messages: number; proposals: number } | null>(null);
+  useEffect(() => {
+    if (!hasCompany) return;
+    let cancelled = false;
+    fetch("/api/biz/nav-badges", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => { if (!cancelled && b && typeof b.messages === "number") setBadges(b); })
+      .catch((e) => console.error("[BusinessLayout] 未読バッジを取得できませんでした:", e));
+    return () => { cancelled = true; };
+  }, [pathname, hasCompany]);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -381,7 +400,7 @@ export function BusinessLayout({
               // 子が active な時は親をサブデュード表示 (背景なし・テキストのみ royal)
               const showFullActive = active && !childActive;
 
-              const badgeCount = 0;
+              const badgeCount = item.badge && badges ? badges[item.badge] : 0;
 
               return (
                 <div key={item.href} className="biz-nav-item">
@@ -425,7 +444,8 @@ export function BusinessLayout({
                         display: "flex", alignItems: "center", justifyContent: "center",
                         padding: "0 5px", flexShrink: 0,
                       }}>
-                        {badgeCount > 99 ? "99+" : badgeCount}
+                        <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : "未読"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>

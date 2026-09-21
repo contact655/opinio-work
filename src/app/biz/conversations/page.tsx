@@ -3,6 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { ConversationsClient } from "./ConversationsClient";
+import { unreadConversationIds } from "@/lib/conversations/unread";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export type ConversationRow = {
   last_message_at: string | null;
   created_at: string;
   candidate: CandidateInfo | null;
+  /** ★未読があるか。サイドバーのバッジと**同じ関数**で決める（2026-09-21） */
+  isUnread: boolean;
 };
 
 // ── No-tenant fallback ────────────────────────────────────────────────────────
@@ -53,6 +56,11 @@ export default async function BizConversationsPage() {
     console.error("[BizConversationsPage] fetch error:", error.message);
   }
 
+  /* ★未読のドット（2026-09-21）。サイドバーの「メッセージ」バッジと**同じ関数**で決める。
+        ⚠️ それまでは「24時間以内に動きがあった」で出しており、**読んでいても出て、
+           25時間前の未読には出なかった**。バッジの数字とドットの数が食い違わないように揃えた。 */
+  const unread = await unreadConversationIds(ctx.currentOwnId, { companyId: ctx.tenantId });
+
   // Normalise: Supabase may return a single object or an array for the join
   const convList: ConversationRow[] = (rawRows ?? []).map((c: any) => ({
     id: c.id,
@@ -64,6 +72,7 @@ export default async function BizConversationsPage() {
     candidate: Array.isArray(c.candidate)
       ? (c.candidate[0] ?? null)
       : c.candidate ?? null,
+    isUnread: unread.has(c.id),
   }));
 
   /* ★空状態の文言を分けるためだけに数える（2026-08-31）。件数は使わず**あるか無いか**だけ。
