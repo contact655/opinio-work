@@ -239,7 +239,7 @@ export default async function CandidatesPage() {
   const { data: rawUsers, error: rawUsersError } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
-        .select("id, name, location, is_mentor, created_at, auth_id")
+        .select("id, name, headline, location, is_mentor, created_at, auth_id")
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
@@ -426,6 +426,14 @@ export default async function CandidatesPage() {
       return {
         id: u.id as string,
         name: (u.name as string) || "名前未設定",
+        /* ★★本人が書いた1行（`ow_users.headline`。2026-09-23 / 柴さんの指示）。
+              ⚠️★**それまで `/biz` 配下は headline を1ファイルも参照していなかった**のに、
+                 本人側の入力欄には「一覧や**スカウト画面**で最初に読まれる行です」と
+                 書いてあった（守れない約束）。ここに出して初めて本当になる。
+              ⚠️ 空文字は null に畳む（空の行を1本出さないため）。
+              ⚠️★**公開情報。** `/u/[id]` の氏名の下に出ているものと同じで、
+                 `visibility_company`（勤務先を伏せる設定）とは無関係。 */
+        headline: ((u.headline as string | null) ?? "").trim() || null,
         location: (u.location as string) || null,
         isMentor: (u.is_mentor as boolean) || false,
         /* ★「転職検討中」バッジの根拠を `ow_users.is_open_to_work`（boolean）から

@@ -943,6 +943,24 @@ export default function ProfileTab({
   const [headerFocusPhoto, setHeaderFocusPhoto] = useState(false);
   /** ヘッダーのモーダルを「写真の行を開いた状態で」出す。⚠️ 呼び出し側で2行に分けて書かない */
   const openPhotoEditor = () => { setHeaderFocusPhoto(true); setEditingHeader(true); };
+  /**
+   * ★★肩書きの促しから開いたか（2026-09-23）。
+   * ⚠️★これが true のときは**写真の行を自動で開かない**。開くと 380px の下に
+   *    肩書きの欄が隠れ、「肩書きを書く」を押したのに入力欄が画面外になる。
+   */
+  const [headerFocusHeadline, setHeaderFocusHeadline] = useState(false);
+  const openHeadlineEditor = () => { setHeaderFocusHeadline(true); setEditingHeader(true); };
+  /* ★肩書きの促しから開いたら、その入力欄へ寄せて focus する（2026-09-23）。
+        ⚠️ モーダルの中身は開くたびに作り直されるので、次のフレームで探す。 */
+  useEffect(() => {
+    if (!editingHeader || !headerFocusHeadline) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById("pe-headline") as HTMLInputElement | null;
+      el?.scrollIntoView({ block: "center" });
+      el?.focus();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [editingHeader, headerFocusHeadline]);
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
@@ -1184,7 +1202,7 @@ export default function ProfileTab({
               justSaved={basicJustSaved}
               error={null}
               onSave={handleSaveHeader}
-              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setEditingHeader(false); }}
+              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setHeaderFocusHeadline(false); setEditingHeader(false); }}
             >
                 {/* ★写真・カバーは既定で閉じる（2026-08-16）。375px で **380px** を占めていて、
                        名前を1文字直すだけでもここを越えないと保存ボタンに届かなかった。
@@ -1201,7 +1219,7 @@ export default function ProfileTab({
                            写真を持っている人は畳んだまま＝あの問題は起きない。
                      ⚠️ カバーは条件に入れない。カバーだけ未設定の人に 380px を払わせる価値が無い
                         （指摘の主眼はプロフィール画像）。 */
-                  defaultOpen={headerFocusPhoto || !savedAvatarUrl}
+                  defaultOpen={headerFocusPhoto || (!savedAvatarUrl && !headerFocusHeadline)}
                   label="写真・カバー"
                   /* ⚠️ 375px で2行に折り返さない長さにする（「プロフィール画像・カバー写真」＋
                         「画像なし・カバーなし」は両方とも折り返していた） */
@@ -1448,6 +1466,26 @@ export default function ProfileTab({
                   {/* ⚠️ 自己紹介の促しはここに置かない（2026-08-16 / 2-7 で実測）。
                          すぐ下の `#about` セクションが 0件のとき同じ入口を出しており、
                          **同じ操作の入口が40px 差で2つ縦に並ぶ**（ルール⑧）。 */}
+                  {/* ★★肩書きの促し（2026-09-23 / 柴さんの指示）。
+                         ⚠️★上の「自己紹介は置かない」とは**事情が違う。** 肩書きには
+                            `#about` のような対応するセクションが無く、
+                            **空のときヘッダーの行ごと消える**（`ProfileHeader` の
+                            `{headline && …}`）ので、画面のどこにも痕跡が残らない。
+                         ── なぜ足したか（実測 2026-09-23 / 本番・実ユーザー13人）────
+                         肩書き **0人** に対し、自己紹介は **5人（38%）**。
+                         長いほうが書かれて40字のほうが0人なのは、面倒さではなく
+                         **存在に気づけない**ため。自己紹介には空状態のカードがある。
+                         ⚠️ `/people` のサイドバーの「次の1件」（`pickNextStep`）は
+                            職歴 → 写真 → 肩書き の順で、**写真を持つ実ユーザーは1人**しか
+                            いないため、肩書きの促しには誰も到達していなかった。
+                         ⚠️ SNS と同じ形（項目名＋右のボタン）。説明文を足さないこと
+                            （2026-08-25 / 柴さんの指示。押せば分かることを1行使って説明しない）。 */}
+                  {!initialBasicInfo.headline.trim() && (
+                    <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                      肩書き
+                      <button type="button" onClick={openHeadlineEditor} style={promoBtn}>1行で書く →</button>
+                    </p>
+                  )}
                   {Object.values(savedSocialLinks).filter(Boolean).length === 0 && (
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                       {/* ⚠️ 説明文にしない（2026-08-25 / 柴さんの指示）。

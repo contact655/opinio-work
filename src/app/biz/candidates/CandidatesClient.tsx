@@ -89,6 +89,8 @@ function formatTenure(months: number | null): string | null {
 export type Candidate = {
   id: string;
   name: string;
+  /** ★本人が書いた1行（2026-09-23）。⚠️ `currentRole`（職種マスタ）と別物。混ぜない */
+  headline: string | null;
   location: string | null;
   isMentor: boolean;
   /** ★「積極的に検討中」（`ow_profiles.career_stance = 'active'`）。2026-08-26 に改名。
@@ -1175,6 +1177,19 @@ export default function CandidatesClient({
                             <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>送信済み</span>
                           )}
                         </div>
+
+                        {/* ★★本人が書いた1行（2026-09-23 / 柴さんの指示）。
+                               ⚠️★**氏名の直下・職種より上**に置く。本人側の入力欄が
+                                  「名前の直下の1行」として説明しているのがこれで、
+                                  `completion.ts` もその前提で配点を動かしている。
+                               ⚠️★**職種・会社名の行に混ぜないこと。** あちらはマスタ由来の
+                                  機械的な属性で、自由記述を同じ行に入れると読み分けられない。
+                               ⚠️ 無い人には行ごと出さない。「—」で埋めない。 */}
+                        {c.headline && (
+                          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.5, overflowWrap: "anywhere" }}>
+                            {c.headline}
+                          </div>
+                        )}
 
                         {/* 職種 · 会社名 */}
                         {(c.currentRole || c.currentCompany || c.desiredRoleNames.length > 0) && (

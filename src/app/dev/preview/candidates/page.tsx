@@ -35,6 +35,9 @@ const ROLE_TREE = [
 
 function cand(over: Partial<Candidate> & { id: string; name: string }): Candidate {
   return {
+    /* ★既定は null（肩書きを書いていない人）。実データでは**こちらが普通**
+          —— 2026-09-23 実測で肩書きを持つ実ユーザーは 0人。 */
+    headline: null,
     location: null, isMentor: false, isActivelyLooking: false,
     careerStance: "open", careerStanceUpdatedAt: null,
     tenureMonths: null, currentRole: null, currentCompany: null,
@@ -50,6 +53,9 @@ function cand(over: Partial<Candidate> & { id: string; name: string }): Candidat
 const FULL: Candidate[] = [
   cand({
     id: "c1", name: "五十嵐 健二", location: "東京都渋谷区",
+    /* ★★上限の40字ちょうど（`HEADLINE_MAX`）。⚠️ 実データで踏めないので**ここで見る**。
+          ⚠️ 数え直すときは `[...s].length`（サロゲートペアを1文字と数える）。 */
+    headline: "SaaSの法人営業／ISからFSまで10年。次はエンタープライズの立ち上げへ挑戦",
     isActivelyLooking: true, careerStance: "active",
     careerStanceUpdatedAt: new Date(Date.now() - 2 * 3600e3).toISOString(),
     tenureMonths: 148, currentRole: "エンタープライズ営業部 マネージャー",
@@ -72,6 +78,9 @@ const FULL: Candidate[] = [
   }),
   cand({
     id: "c2", name: "安藤 誠司", location: "大阪府大阪市",
+    /* ★短い肩書き。⚠️ c3 以降は `headline: null`（無い人）のまま残してある —— 
+          **出さない側の見え方も同じ画面で並べて確かめるため。** */
+    headline: "医療SaaSのフィールドセールス",
     careerStance: "researching",
     careerStanceUpdatedAt: new Date(Date.now() - 20 * 86400e3).toISOString(),
     tenureMonths: 40, currentRole: "フィールドセールス", currentCompany: "株式会社ZAP",

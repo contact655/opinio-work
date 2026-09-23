@@ -95,6 +95,21 @@ export type DirectoryPerson = {
    * 子階層があれば子（フィールドセールス）、無ければ大分類（営業）。
    * 5名中4名が大分類「営業」で識別できないため、細かいほうを出す。
    */
+  /**
+   * ★★本人が書いた1行（`ow_users.headline`。2026-09-23 / 柴さんの指示で一覧に出した）。
+   *
+   * ⚠️★**それまで `/people` は `hasHeadline`（並び順のスコアの材料）としてしか
+   *    使っておらず、値そのものをどこにも出していなかった。** 一方で入力欄の説明は
+   *    「一覧やスカウト画面で最初に読まれる行です」と書いており、
+   *    `completion.ts` も「一覧やスカウトで先に読まれるのは名前の直下の1行なので」
+   *    という理由で自己紹介の配点を 12 → 8 に下げて肩書きへ 4 を回していた。
+   *    **説明と配点だけが先にあって、表示が無かった。**
+   * ⚠️ 実測（2026-09-23 / 本番）: 肩書きを持つ実ユーザーは **0人**。
+   *    ここに出すことで初めて「書く理由」が画面の側にできる。
+   * ⚠️ **`roleName`（職種マスタ）と別物。** あちらは機械的な分類、こちらは自由記述。
+   *    片方に寄せないこと。
+   */
+  headline: string | null;
   roleName: string | null;
   /** 職種フィルタ用の9大分類 ID。roleName とは粒度が違う（フィルタは粗く） */
   topRoleId: string | null;
@@ -559,6 +574,9 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
         (m) => talkableIds.includes(m.company_id) && m.ow_companies?.accepting_casual_meetings === true,
       ),
       publicScore,
+      /* ⚠️ 空文字は null に畳む。呼び出し側が `card.headline && …` で描くので、
+            空文字のまま渡すと**空の行が1本出る**（高さだけ増える）。 */
+      headline: u.headline?.trim() || null,
       /* ★年代だけに畳む。⚠️ 実年齢を返さないこと（型のコメント参照）。
             判定は `lib/age.ts` の `getUserAge()` に一本化してある（2つ目の計算を作らない）。 */
       ageBand: (() => {

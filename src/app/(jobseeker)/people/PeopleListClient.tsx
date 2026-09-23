@@ -278,6 +278,13 @@ function GridCard({ card, myUserId, followedUserIds }: {
                2026-08-20 に「年齢」フィルタも外し、型からも落とした。 */}
         <AffiliationBlock card={card} />
         <div className="ppl-role">{role}</div>
+        {/* ★★本人が書いた1行（2026-09-23 / 柴さんの指示）。
+               ⚠️★**職種（`ppl-role`）の下に置く。** 上に置かない ——
+                  会社 → 職種 の並びは「どこの人かが先に読めるほうが探しやすい」
+                  という 2026-08-18 の判断で、自由記述をその間に挟むと崩れる。
+               ⚠️ 無い人には**行ごと出さない**。「—」で埋めない。
+                  高さはグリッドの行内 stretch で揃うので `min-height` は要らない。 */}
+        {card.headline && <div className="ppl-headline">{card.headline}</div>}
       </div>
 
       {/* CTAボタン
@@ -416,6 +423,14 @@ function ListRow({ card, myUserId, followedUserIds }: {
             </span>
           )}
         </div>
+
+        {/* ★★本人が書いた1行（2026-09-23）。
+               ⚠️★**上の1行（会社・職種・業種）に混ぜないこと。** あれは機械的な属性を
+                  畳んだ行で、自由記述を同じ行に入れると長さがばらついて畳みが崩れる。
+               ⚠️ 無い人には行ごと出さない。 */}
+        {card.headline && (
+          <div className="ppl-headline-row">{card.headline}</div>
+        )}
 
       </div>
 
@@ -764,6 +779,21 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           min-height: 20px;
           display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
           overflow: hidden; overflow-wrap: anywhere;
+        }
+        /* ★本人が書いた1行（2026-09-23）。職種より弱く、2行までにクランプする。
+              ⚠️ 上限40字（HEADLINE_MAX）なので、5列時のカード幅 235px では2行に収まる。
+              ⚠️★この style はテンプレートリテラル。コメントにバッククォートを書かない。 */
+        .ppl-headline {
+          margin-top: 4px;
+          font-size: 12px; color: var(--ink-mute); line-height: 1.6;
+          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+          overflow: hidden; overflow-wrap: anywhere;
+        }
+        /* 一覧（list）側。横幅があるので1行に収まる想定だが、折り返しは許す */
+        .ppl-headline-row {
+          margin-top: 4px;
+          font-size: 13px; color: var(--ink-mute); line-height: 1.6;
+          overflow-wrap: anywhere;
         }
         .ppl-company {
           display: flex; align-items: center; justify-content: center; gap: 7px;
