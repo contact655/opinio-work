@@ -936,6 +936,13 @@ export default function ProfileTab({
 
   /** ★SNS の促しから開いたか。true のときヘッダーのモーダルで SNS の行を開く */
   const [headerFocusSns, setHeaderFocusSns] = useState(false);
+  /**
+   * ★★アバター／カバーを押して開いたか（2026-09-23）。true のとき「写真・カバー」の行を開く。
+   * ⚠️ `headerFocusSns` と同じ形。**閉じるときに戻す**（押していないのに開き続けないように）。
+   */
+  const [headerFocusPhoto, setHeaderFocusPhoto] = useState(false);
+  /** ヘッダーのモーダルを「写真の行を開いた状態で」出す。⚠️ 呼び出し側で2行に分けて書かない */
+  const openPhotoEditor = () => { setHeaderFocusPhoto(true); setEditingHeader(true); };
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
@@ -1177,13 +1184,24 @@ export default function ProfileTab({
               justSaved={basicJustSaved}
               error={null}
               onSave={handleSaveHeader}
-              onClose={() => { handleCancelBasic(); handleCancelSocial(); setEditingHeader(false); }}
+              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setEditingHeader(false); }}
             >
                 {/* ★写真・カバーは既定で閉じる（2026-08-16）。375px で **380px** を占めていて、
                        名前を1文字直すだけでもここを越えないと保存ボタンに届かなかった。
                     ⚠️ 行の右に「設定済み / 未設定」を出す。閉じていても状態は分かるようにする。 */}
                 <CollapsibleRow
                   first
+                  /* ★★既定で開く条件（2026-09-23 / 柴さんの指示）。
+                        ① アバター／カバーを押して来たとき（`headerFocusPhoto`）
+                        ② ★**プロフィール画像がまだ無いとき**
+                     ⚠️★②は「写真あり **1人 / 実ユーザー13人**」（2026-09-23 実測）への対処。
+                        ⚠️★**全員に開かないこと。** 2026-08-16 に畳んだ理由
+                           （375px で 380px を占め、名前を1文字直すだけでも
+                           ここを越えないと保存ボタンに届かない）は**設定済みの人には今も有効**。
+                           写真を持っている人は畳んだまま＝あの問題は起きない。
+                     ⚠️ カバーは条件に入れない。カバーだけ未設定の人に 380px を払わせる価値が無い
+                        （指摘の主眼はプロフィール画像）。 */
+                  defaultOpen={headerFocusPhoto || !savedAvatarUrl}
                   label="写真・カバー"
                   /* ⚠️ 375px で2行に折り返さない長さにする（「プロフィール画像・カバー写真」＋
                         「画像なし・カバーなし」は両方とも折り返していた） */
@@ -1409,6 +1427,11 @@ export default function ProfileTab({
                 avatarColor={settings.avatarColor}
                 coverPhotoUrl={savedCoverPhotoUrl}
                 coverColor={settings.coverColor || settings.avatarColor}
+                /* ★★写真の差し替え導線（2026-09-23）。**ここだけが渡す。**
+                      ⚠️★`/u/[id]` は同じ部品を使うが**渡していない**。渡すと
+                         他人のプロフィールで押せてしまう（理由は ProfileHeader 側の注記）。 */
+                onAvatarClick={openPhotoEditor}
+                onCoverClick={openPhotoEditor}
                 location={initialBasicInfo.location}
                 followCounts={followCounts ?? { followers: 0, following: 0 }}
                 /* ★氏名の右の「面談可」（2026-08-25 / 柴さんの指示）。

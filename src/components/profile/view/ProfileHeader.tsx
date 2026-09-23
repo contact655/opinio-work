@@ -40,6 +40,7 @@ export function ProfileHeader({
   location, followCounts, socialLinks,
   currentCareer, isCurrentCompanyKnown, talkableBadge,
   topRight, metaActions, promos,
+  onAvatarClick, onCoverClick,
 }: {
   name: string;
   headline?: string | null;
@@ -48,6 +49,25 @@ export function ProfileHeader({
   avatarColor: string;
   coverPhotoUrl?: string | null;
   coverColor: string;
+  /**
+   * ★★写真の差し替え導線（2026-09-23 / 柴さんの指示）。
+   *
+   * **渡したときだけ**アバターとカバーが押せるようになり、カメラのバッジが出る。
+   * ⚠️★**`/u[id]`（公開プロフィール）には渡さないこと。** この部品は本人と
+   *    第三者の両方が使う。渡すと他人のページで押せてしまう。
+   *
+   * ── なぜ足したか（実測 2026-09-23 / 本番・実ユーザー13人）──────────────
+   * プロフィール画像あり **1人（8%）** ／ カバーあり 1人。経路は生きているので
+   * 「起こせるのに、ほとんど起きていない」状態だった。入口が
+   * 「✎ → モーダル → **閉じている**『写真・カバー』行を開く」の**3手**しかなく、
+   * **顔写真そのものが押せなかった**のが理由。
+   *
+   * ⚠️★**モーダルの行を既定で開く方向で解決しないこと。** あの行は 2026-08-16 に
+   *    「375px で 380px を占めていて、名前を1文字直すだけでもここを越えないと
+   *    保存ボタンに届かなかった」という理由で畳んである。ここは並びを動かさない。
+   */
+  onAvatarClick?: () => void;
+  onCoverClick?: () => void;
   location?: string | null;
   followCounts: Counts;
   socialLinks: Record<string, string> | null;
@@ -120,6 +140,42 @@ export function ProfileHeader({
         position: "absolute", bottom: 0, left: 0, right: 0, height: 80,
         background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.25))",
       }} />
+      {/* ★カバー全面を押せるようにする（本人のときだけ）。
+          ⚠️ 右上の `topRight`（鉛筆）とアバターは**後ろの兄弟**なので、重なっても
+             そちらがクリックを受ける。この当たり判定が上に乗ることはない。 */}
+      {onCoverClick && (<>
+        <button
+          type="button"
+          onClick={onCoverClick}
+          aria-label="カバー写真を変更"
+          style={{
+            position: "absolute", inset: 0, padding: 0,
+            background: "transparent", border: "none", cursor: "pointer",
+          }}
+        />
+        {/* ⚠️★`pointerEvents: none` を外さないこと。外すとこのバッジが
+               上のボタンのクリックを食う（`aria-label` が付いているのは上だけ）。
+            ⚠️★**hover で出す形にしないこと。** タッチ端末には hover が無く、
+               「隠れている」という今回の指摘がそのまま戻る。常に出す。 */}
+        {/* ⚠️★**右上に置く。右下に置かないこと**（2026-09-23 に実測して直した）。
+               `topRight`（`/mypage` の鉛筆）は本文の `top:16` にあり、本文は
+               `marginTop: -60` なのでカバーの**下端から 44px 上**に描かれる。
+               右下だと鉛筆と重なる（実画面で重なっていた）。
+            ⚠️ 767px 以下でもカバーは 140px あるので、上端 16px は鉛筆（下端から44px）と離れる。 */}
+        <span aria-hidden="true" style={{
+          position: "absolute", right: 16, top: 16, pointerEvents: "none",
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "6px 10px", borderRadius: 100,
+          background: "rgba(15,23,42,0.55)", color: "#fff",
+          fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          カバー写真
+        </span>
+      </>)}
     </div>
 
     <div className="profile-header-body" style={{ padding: "0 32px 32px", marginTop: -60, position: "relative" }}>
@@ -128,6 +184,10 @@ export function ProfileHeader({
         {topRight}
       </div>
       {/* Avatar: photo or gradient letter */}
+      {/* ⚠️★クラス（`profile-avatar` / `profile-avatar-wrap`）を**この要素から動かさない**。
+             767px 以下のメディアクエリが 88px と `margin-top: -44px` をここに当てている。
+          ⚠️★`onAvatarClick` があるときは `overflow` を `visible` にしてバッジを外へ出す。
+             写真は `<img>` 側の `borderRadius: 50%` で丸いままなので、見た目は変わらない。 */}
       <div className="profile-avatar profile-avatar-wrap" style={{
         width: 120, height: 120, borderRadius: "50%",
         background: avatarUrl ? undefined : avatarColor,
@@ -136,7 +196,7 @@ export function ProfileHeader({
         border: "5px solid #fff",
         boxShadow: "0 4px 16px rgba(15,23,42,0.12)",
         marginBottom: "var(--space-3)", position: "relative",
-        overflow: avatarUrl ? "hidden" : "visible",
+        overflow: onAvatarClick ? "visible" : (avatarUrl ? "hidden" : "visible"),
       }}>
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -147,6 +207,34 @@ export function ProfileHeader({
             style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
           />
         ) : initial}
+        {/* ★顔写真そのものを押せるようにする（本人のときだけ）。
+               ⚠️★**これが今回の主眼。** 3手（✎ → モーダル → 畳まれた行を開く）を1手にする。 */}
+        {onAvatarClick && (<>
+          <button
+            type="button"
+            onClick={onAvatarClick}
+            aria-label="プロフィール画像を変更"
+            style={{
+              position: "absolute", inset: 0, padding: 0, borderRadius: "50%",
+              background: "transparent", border: "none", cursor: "pointer",
+            }}
+          />
+          {/* ⚠️★`pointerEvents: none`（理由はカバー側と同じ）。
+              ⚠️ 大きさは 32px。モーダルのプレビューの 18px は 56px のアバター向けで、
+                 こちらは 120px（767px 以下では 88px）なので比率を合わせてある。 */}
+          <span aria-hidden="true" style={{
+            position: "absolute", right: 2, bottom: 2, pointerEvents: "none",
+            width: 32, height: 32, borderRadius: "50%",
+            background: "var(--royal)", border: "3px solid #fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(15,23,42,0.2)",
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </span>
+        </>)}
       </div>
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
