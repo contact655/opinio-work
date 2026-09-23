@@ -111,7 +111,7 @@ export default async function OnboardingPage() {
         実測（2026-09-14）: 実ユーザー7人のうち**2人（29%）が未完了**。 */
   const { data: owUser } = await createAdminClient()
     .from("ow_users")
-    .select("id, name, family_name, given_name, family_name_kana, given_name_kana, birth_date")
+    .select("id, name, family_name, given_name, family_name_kana, given_name_kana, birth_date, location")
     .eq("auth_id", user.id).maybeSingle();
 
   /* ⚠️ 生年月日は `YYYY-MM-DD`。画面は年/月/日の3つの `<select>` で、
@@ -152,6 +152,10 @@ export default async function OnboardingPage() {
     birthYear: bd ? bd.slice(0, 4) : "",
     birthMonth: bd ? bd.slice(5, 7) : "",
     birthDay: bd ? bd.slice(8, 10) : "",
+    /* ★お住まい（`ow_users.location`。2026-09-23）。
+       ⚠️★**勤務地（`ow_experiences.prefecture`）とは別の列。** あちらは
+          2026-09-15 に聞く画面ごと消してあり、足し戻さないと決めている。 */
+    residence: (owUser?.location as string | null) ?? "",
   };
 
   let currentExperience: Record<string, unknown> | null = null;

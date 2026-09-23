@@ -9,6 +9,7 @@ import {
 import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
+import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
 /* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
       `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
       なぜ入口が2つ要るかは、あの部品の冒頭に書いてある。 */
@@ -213,6 +214,12 @@ export type OnboardingInitialPerson = {
   birthYear: string;
   birthMonth: string;
   birthDay: string;
+  /**
+   * ★お住まい（`ow_users.location`）。空文字は未入力。
+   * ⚠️★**変数名を `location` にしないこと。** コンポーネントの中で
+   *    グローバルの `window.location` を隠す。
+   */
+  residence: string;
 };
 
 function OnboardingInner({
@@ -349,6 +356,18 @@ function OnboardingInner({
   const [birthYear, setBirthYear]   = useState(() => initialPerson.birthYear);
   const [birthMonth, setBirthMonth] = useState(() => initialPerson.birthMonth);
   const [birthDay, setBirthDay]     = useState(() => initialPerson.birthDay);
+
+  /* ★★お住まい（2026-09-23 / 柴さんの指示）。`ow_users.location` の1系統。
+     ⚠️★**選択肢は `RESIDENCE_OPTION_GROUPS` の1箇所から出す。ここで展開し直さない。**
+        この列には DB の CHECK が無く、**語彙の担保が入力欄だけ**。2026-09-15 に
+        `/mypage`（11件）と `/mypage/settings`（47件）が同じ列に別の語彙を書いていて、
+        片方で選ぶともう片方で空欄に見え、保存すると値が消える状態だった。
+     ⚠️★**「非公開」が選択肢にあるので、必須にしても開示は強制しない。**
+        逃げ道のない生年月日より弱い要求。この関係を崩さないこと。
+     ⚠️★**変数名を `location` にしない**（`window.location` を隠す）。
+     ⚠️★**勤務地（`ow_experiences.prefecture`）とは別の列。** あちらは
+        2026-09-15 に聞く画面ごと消してあり、**足し戻さないと決めている。** */
+  const [residence, setResidence] = useState(() => initialPerson.residence);
 
   /* ★★氏名とふりがな（2026-09-14 / 柴さんの指示で1画面目に足した）。
      ⚠️★**`ow_users.name` は消さない。** 表示の正は今も `name`（NOT NULL）で、
@@ -507,13 +526,16 @@ function OnboardingInner({
         ⚠️ 当時の心配（「同じ分野の中からしか選べないように見える」）は、
            **18の大分類がその場に全部並ぶ**ことで解消している。 */
 
-  /* ★★1画面目は**5項目すべて必須**（2026-09-14 / 柴さんの指示）。
+  /* ★★1画面目は**6項目すべて必須**（2026-09-14 / 柴さんの指示。2026-09-23 にお住まいを追加）。
         ⚠️★この画面だけ「後で設定する」を出していない。出すと必須にならない。
-        ⚠️ 生年月日は3つ揃って初めて日付になる（`YYYY-MM-DD`）。1つでも空なら未入力。 */
+        ⚠️ 生年月日は3つ揃って初めて日付になる（`YYYY-MM-DD`）。1つでも空なら未入力。
+        ⚠️★お住まいを必須にできるのは**選択肢に「非公開」があるから**。
+           選択肢からあれを外すなら、必須をやめるかどうかを先に決めること。 */
   const youReady = !!(
     familyName.trim() && givenName.trim() &&
     familyNameKana.trim() && givenNameKana.trim() &&
-    birthYear && birthMonth && birthDay
+    birthYear && birthMonth && birthDay &&
+    residence
   );
 
   /** 1画面目の「次へ」。⚠️ `ow_users` への保存なので `PUT /api/jobseeker/profile` を呼ぶ。 */
@@ -530,7 +552,10 @@ function OnboardingInner({
       family_name_kana: familyNameKana.trim(),
       given_name_kana: givenNameKana.trim(),
       birth_date: `${birthYear}-${birthMonth}-${birthDay}`,
-    }, "お名前と生年月日", failures);
+      /* ★お住まい。⚠️ `ow_users.location` の1系統で、**保存先も同じ PUT**。
+            経歴の POST に相乗りさせない（生年月日と同じ理由）。 */
+      location: residence,
+    }, "お名前と生年月日とお住まい", failures);
     setSaving(false);
     /* ⚠️★失敗したら**進めない**。ここは必須項目なので、黙って次へ行くと
           「入力させたのに保存されていない」になる（他の画面は任意なので best-effort）。 */
@@ -872,6 +897,55 @@ function OnboardingInner({
                    古い文言としてどこかに残っていた前例がある（2026-08-19）。 */}
             <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
               ユーザー一覧には表示されません。年齢はプロフィールの詳細ページにだけ出ます。
+            </p>
+          </div>
+
+          {/* ★★お住まい（2026-09-23 / 柴さんの指示）。**生年月日のすぐ下。**
+
+              ★足した理由: 実ユーザー13人中**4人（31%）しか入っていなかった**（2026-09-23 実測）。
+                 入口が `/mypage` と `/mypage/settings` だけで、あとから入れてもらえていない。
+                 生年月日も同じ形で、1画面目に移したら **3/12 → 8/13（62%）** に増えている。
+
+              ★器だけの列ではない。読み手が実在する:
+                 `/biz/candidates` … **都道府県での絞り込み** ＋ 候補者カードのタグ
+                 `/biz/conversations/[id]` … 候補者情報
+                 `/u/[id]` … 公開プロフィールのメタ行（年齢の隣）
+
+              ⚠️★**ラベルは「お住まい」**（2026-09-23 / 柴さんの判断）。
+                 ・「所在地」は `/biz/company` と `/admin` が**会社の住所**に使っている
+                   （「本社所在地」「オフィス所在地」）ので、語がぶつかる
+                 ・「居住地」は `/biz/candidates` の**企業向けの語**。このリポジトリには
+                   「『話せる人』は企業・運営向けの語。本人向けの画面では使わない」という
+                   先例がある
+                 ⇒ **本人に見せる欄は「お住まい」に揃えた**（`/mypage` の「所在地」も同日に改名）。
+
+              ⚠️★**選択肢は `RESIDENCE_OPTION_GROUPS` の1箇所。ここで展開し直さない。**
+                 `PREFECTURE_FILTER_GROUPS`（47件）に戻さないこと —— あれは
+                 「海外」「非公開」を持たないので、それを選んだ人がここで**空欄に見え、
+                 保存すると値が消える**（2026-09-15 に実際に起きた形）。 */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+              お住まい<span style={needLabelStyle}>保存に必要</span>
+            </div>
+            <select
+              value={residence}
+              onChange={(e) => setResidence(e.target.value)}
+              style={{ ...selectStyle, width: "100%" }}
+              aria-label="お住まい"
+            >
+              <option value="">選択してください</option>
+              {RESIDENCE_OPTION_GROUPS.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.prefectures.map((pref) => <option key={pref} value={pref}>{pref}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            {/* ⚠️★**この一文を消さないこと。** 必須にしておきながら
+                   「出したくない人の逃げ道」がここにしか書いていない。
+                ⚠️ 「企業に見られます」と書かないこと —— 企業側で見えるのは
+                   `/biz/candidates` の候補者一覧で、**都道府県までに丸めて**出る。 */}
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
+              プロフィールに表示されます。出したくない場合は「非公開」を選んでください。
             </p>
           </div>
 

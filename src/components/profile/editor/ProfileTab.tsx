@@ -1301,7 +1301,11 @@ export default function ProfileTab({
                 </div>
               </FormGroup>
 
-              <FormGroup label="所在地" hint="現在お住まいの都道府県。「海外」「非公開」も選べます。" htmlFor="pe-location">
+              {/* ⚠️★ラベルは「お住まい」（2026-09-23 / 柴さんの判断）。**「所在地」に戻さないこと。**
+                     `/biz/company` と `/admin` が**会社の住所**に「本社所在地」「オフィス所在地」を
+                     使っていて語がぶつかる。本人に見せる3箇所（ここ・`/mypage/settings`・
+                     オンボーディング1画面目）を同日に揃えた。 */}
+              <FormGroup label="お住まい" hint="現在お住まいの都道府県。「海外」「非公開」も選べます。" htmlFor="pe-location">
                 <div style={{ position: "relative" }}>
                   <select
                     id="pe-location"
