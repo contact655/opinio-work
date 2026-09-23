@@ -104,6 +104,213 @@ const SORT_OPTIONS = [
 //       （`/companies` の見た目を変えないことを優先した）。
 
 // ── Avatar ────────────────────────────────────────────────────────────
+/**
+ * ★★カードまわりの CSS（2026-09-23 に切り出した）。
+ *
+ * ⚠️★**`/dev/preview/people-cards` と本番の一覧が同じものを使う。**
+ *    切り出す前はこの `<style>` が `PeopleListClient` の JSX の中にあり、
+ *    `GridCard` / `ListRow` だけを別の画面に置くと**CSS が付いてこなかった**
+ *    （プレビューで確かめても本番の見え方と一致しない）。
+ * ⚠️ 中身は1行も変えていない。**コピーを作らないこと。**
+ * ⚠️★この style はテンプレートリテラル。コメントにバッククォートを書かない。
+ */
+export function PeopleCardStyles() {
+  return (
+          <style suppressHydrationWarning>{`
+            .ppl-row-btn-mobile { display: none; }
+            .ppl-row-btn-desktop { display: flex; }
+            @media (max-width: 600px) {
+              .ppl-row-btn-mobile { display: block; }
+              .ppl-row-btn-desktop { display: none !important; }
+            }
+
+            /* グリッド: 3列 → 2列 → 1列 */
+            /* ── コンテナ幅と列数（2026-08-04）──────────────────────────────────
+               1440px 以上で 5列にする。人数が増えたときのための変更で、現時点では4名。
+
+               ⚠️ 1100px のまま5列にすると 1枚 198px になり、職種が2行に折り返す。
+                  「セールス（デジタルセールス）」が「ス）」だけ2行目に落ちる状態。
+                  なので 1440px 以上ではコンテナも 1300px に広げ、1枚 235px を確保する。
+                  4列時（251px）とほぼ同じ幅なので、カード内の見え方は今と変わらない。
+                  社名だけは18文字級（日本ヒューレット・パッカード合同会社）が2行になるが、
+                  これは現在の4列でも同じで、今回の変更による劣化ではない。
+
+               ⚠️ maxWidth をインラインに戻さないこと。インラインはメディアクエリに勝つので
+                  下の 1300px が一切効かなくなる（CLAUDE.md 参照）。 */
+            /* ⚠️ 基底ルールを先に書くこと。同じ詳細度なので、後に書いたほうが勝つ。
+                  .ppl-grid の4列指定をメディアクエリより後ろに置くと 5列が効かない。 */
+            .ppl-wrap { max-width: 1100px; }
+            /* ★左サイドバー（240px）が入ったぶん、列を1つ減らした（2026-09-18）。
+               ⚠️★**実測して決めた値。** 1440px では wrap 1300 − 左右padding 48 − サイドバー 240
+                  − gap 24 = 988px を4列で割って **1枚 235px**。
+                  これは 2026-08-04 に「職種が2行に折り返さない下限」として実測した幅と同じ。
+               ⚠️ 900〜1439px は wrap 1100 なので 3列（1枚 252px）。ここを4列に増やすと
+                  1枚 185px になり、カード内の「プロフィール」+「+フォロー」の横並びが割れる。 */
+            .ppl-layout { display: flex; gap: 24px; align-items: flex-start; }
+            .ppl-main { flex: 1; min-width: 0; }
+            .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+            @media (min-width: 1440px) {
+              .ppl-wrap { max-width: 1300px; }
+              .ppl-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            }
+            /* ⚠️ 899px 未満はサイドバーが一覧の上に畳まれる（横に並ばない）ので、
+                  本文が全幅に戻る。**サイドバーを display:none にしていない**（中身ごと消さない）。 */
+            @media (max-width: 899px) {
+              .ppl-layout { display: block; }
+              .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+            }
+            @media (max-width: 768px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+            /* ⚠️ 1列に落とすのは 560px。420px にすると 421〜560px の帯で
+                  2列 × 180〜250px になり、5列時（235px）より細いカードが出てしまう。
+                  「狭い画面ほどカードが細い」わけではないので、境界は列数から逆算すること。 */
+            @media (max-width: 560px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+
+            /* グリッドカード */
+            .ppl-grid-card {
+              background: #fff;
+              border: 1px solid var(--line);
+              border-radius: 18px;
+              padding: 28px 20px 20px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              cursor: pointer;
+              transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+            }
+            /* ── 役職・所属 ─────────────────────────────────────────────────────
+               役職は2行までにクランプする。自己申告の役職名は部署名を含んで長く、
+               5列時のカード幅（235px）に1行で収まらないことがあるため。
+               途中で切り詰めない（切れた役職名は誤読のもとになる）。 */
+            /* ★会社が先、職種が後（2026-08-18）。余白は会社の下に持たせる */
+            .ppl-role {
+              font-size: 13px; color: var(--ink-soft); line-height: 1.5;
+              min-height: 20px;
+              display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+              overflow: hidden; overflow-wrap: anywhere;
+            }
+            /* ★本人が書いた1行（2026-09-23）。職種より弱く、2行までにクランプする。
+                  ⚠️ 上限40字（HEADLINE_MAX）なので、5列時のカード幅 235px では2行に収まる。
+                  ⚠️★この style はテンプレートリテラル。コメントにバッククォートを書かない。 */
+            .ppl-headline {
+              margin-top: 4px;
+              font-size: 12px; color: var(--ink-mute); line-height: 1.6;
+              display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+              overflow: hidden; overflow-wrap: anywhere;
+            }
+            /* 一覧（list）側。横幅があるので1行に収まる想定だが、折り返しは許す */
+            .ppl-headline-row {
+              margin-top: 4px;
+              font-size: 13px; color: var(--ink-mute); line-height: 1.6;
+              overflow-wrap: anywhere;
+            }
+            .ppl-company {
+              display: flex; align-items: center; justify-content: center; gap: 7px;
+              font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35;
+              margin-bottom: 6px; overflow-wrap: anywhere;
+            }
+            /* 元所属（元◯◯）と学校名。現職の社名より弱く出す。
+               ⚠️★**現職（verified / self）には付けない。** 2026-09-20 に企業ロゴを外すまで、
+                  この弱い見た目は「ロゴが無い＝自己申告」の補助だった。ロゴが無くなった今は
+                  「現職の社名」と「それ以外」を分けるためだけに使う。
+               ⚠️★.ppl-company-logo と .ppl-company-logo-fallback は同日に削除した。
+                  （この style はテンプレートリテラルなので、コメントにバッククォートを書かない）
+                  **社名の横に画像や文字四角を足し戻さないこと。** */
+            .ppl-company-self { font-weight: 500; color: var(--ink-soft); }
+            /* 職歴がまだ無い人の学校名。企業と取り違えないようアイコンで分ける */
+            .ppl-edu-icon { flex-shrink: 0; color: var(--ink-mute); }
+            /* 現職が無い人の「元」。社名より弱く出す */
+            .ppl-past-mark {
+              flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--ink-mute);
+              background: var(--bg-tint); border: 1px solid var(--line-soft);
+              border-radius: 4px; padding: 1px 5px; line-height: 1.4;
+            }
+            /* ⚠️ .ppl-facts（年齢）は 2026-08-18 に削除した。カードには出さない。
+                  ⚠️ この style はテンプレートリテラルなので、コメントにバッククォートを書かないこと。 */
+            .ppl-grid-card:hover {
+              box-shadow: 0 8px 32px rgba(0,35,102,0.12);
+              transform: translateY(-3px);
+              border-color: var(--royal-100);
+            }
+
+            /* ── 1列表示の行 ────────────────────────────────────────────────
+               ★意匠は企業一覧の横カードに合わせてある（2026-08-24）。
+                  hover の値は globals.css の .company-list-card と同じ。
+                  片方を変えるときは必ずもう片方も見ること。 */
+            .ppl-list-row {
+              display: flex; align-items: center; gap: 18px;
+              background: #fff; border: 1px solid var(--line); border-radius: 14px;
+              box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+              padding: 18px 20px; cursor: pointer;
+              transition: box-shadow 0.18s, border-color 0.18s;
+            }
+            /* CTA は縦積み。⚠️ 幅は min-width で固定する。「フォロー」→「フォロー中」で
+               列幅が動くため（企業一覧の「保存」→「保存済」と同じ理由。実測 102px → 115px）。 */
+            /* ⚠️★margin-left: auto が CTA を右端へ送る（2026-09-18）。
+                  本文側の flex:1 を外したので、**これが唯一の押し出し**。
+                  片方だけ戻すと、本文と CTA がくっつくか、余白が中央に戻る。
+               ⚠️ この style はテンプレートリテラルの中。**バッククォートを書かないこと**
+                  （文字列が終わって規則ごと壊れる。2026-09-18 に実際に壊した）。 */
+            .ppl-row-cta {
+              flex-shrink: 0; display: flex; flex-direction: column;
+              align-items: stretch; gap: 8px; min-width: 124px; margin-left: auto;
+            }
+            .ppl-list-row:hover { box-shadow: 0 4px 24px rgba(0,35,102,0.12); border-color: #d0daf5; }
+            .ppl-list-row:hover .ppl-row-name { color: var(--royal); }
+            /* ⚠️★大きな数字のスタット列は 2026-09-18 にやめた。**メタ行のテキストに一本化した。**
+                  以前は「広い画面＝大きい数字の列／狭い画面＝テキスト」の2通りを
+                  .ppl-row-stats と .ppl-row-tenure-inline で切り替えていたが、
+                  行の中身が短い人で**本文と数字のあいだに大きな空白**ができていた。
+               ⚠️ 2通りに戻さないこと。戻すなら「両方同時に出ない」ことを必ず確かめる
+                  （同じ値が2回並ぶ）。 */
+            /* ⚠️ 企業一覧は 767px 以下で CTA を丸ごと隠すが、こちらは**隠さない**。
+                  企業カードは全体が Link なので消しても導線が残るが、
+                  フォローは他に押す場所が無い。折り返して全幅の1行に落とす。 */
+            @media (max-width: 600px) {
+              .ppl-list-row { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
+              .ppl-row-cta { width: 100%; min-width: 0; flex-direction: row; }
+              /* ⚠️★子セレクタの記号を書かないこと。React はこの style の中身を
+                    テキストとして扱うので、**サーバー側だけが実体参照へ化けて
+                    ハイドレーションが落ちる**（ui-debugging ⑲）。クラス名で指定する。
+                 ⚠️★**この注意書き自身がその記号を含んでいて、実際に化けていた**
+                    （2026-09-23 に実測。配信 HTML に1件だけ残っていた）。
+                    **説明のためでも記号そのものを書かないこと。** */
+              /* ⚠️ flex: 1 だと**幅が揃わない**（実測 162px / 123px）。
+                    プロフィール側の padding + border 39px ぶんだけ広くなる。
+                    半分ずつに固定する（4px は gap 8px の半分）。 */
+              .ppl-row-profile-btn, .ppl-row-follow { flex: 0 0 calc(50% - 4px); }
+            }
+
+            /* FilterChip */
+            .ppl-chip {
+              display: inline-flex; align-items: center; gap: 5px;
+              padding: 7px 14px; border-radius: 999px;
+              border: 1.5px solid #e2e8f0; background: #fff;
+              color: var(--ink); font-size: 13px; font-weight: 500;
+              cursor: pointer; white-space: nowrap;
+              transition: all 0.12s; font-family: inherit; flex-shrink: 0;
+            }
+            .ppl-chip:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+            /* ⚠️★active の見た目は components/common/FilterChip と揃えてある（2026-09-18）。
+                  同じ行に「詳細検索 / 外資 / 面談OK」（このクラス）と
+                  「職種 / 年代」（FilterChip）が並ぶので、ずれると2種類のチップに見える。
+               ⚠️ 以前あった box-shadow と font-weight:700 はそのために外した。片方だけ戻さないこと。
+               ⚠️ ここは style タグのテンプレートリテラルの中。バッククォートを書かないこと。 */
+            .ppl-chip.active {
+              border-color: var(--royal); background: var(--royal);
+              color: #fff; font-weight: 600;
+            }
+
+            /* ★絞り込みのチップ（2026-09-17 に「絞り込む」で畳むのをやめた）。
+               ⚠️ display: contents なので、チップは**ツールバーの行の直接の子として**並ぶ。
+                  ここを block などに変えると、行の中に箱がもう1つできて高さが跳ねる。
+               ⚠️ 2つ目の絞り込みを足して狭い画面で収まらなくなったら、
+                  畳む仕掛けを戻すのではなく、企業一覧と同じ「詳細検索」にすること。
+                  ⚠️ ここは style タグのテンプレートリテラルの中。**バッククォートを書かないこと**
+                     （文字列がその場で閉じる。2026-09-17 にこの行で実際に踏んだ）。 */
+            .ppl-filter-chips { display: contents; }
+          `}</style>
+  );
+}
 function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
   if (card.avatarUrl) {
     return (
@@ -212,7 +419,7 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
       （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
 // ── グリッドカード ────────────────────────────────────────────────────
-function GridCard({ card, myUserId, followedUserIds }: {
+export function GridCard({ card, myUserId, followedUserIds }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
 }) {
   const router = useRouter();
@@ -348,7 +555,7 @@ function GridCard({ card, myUserId, followedUserIds }: {
  *
  * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
  */
-function ListRow({ card, myUserId, followedUserIds }: {
+export function ListRow({ card, myUserId, followedUserIds }: {
   card: AmbassadorCard;
   myUserId: string | null;
   followedUserIds: string[];
@@ -708,196 +915,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
 
   return (
     <>
-      <style suppressHydrationWarning>{`
-        .ppl-row-btn-mobile { display: none; }
-        .ppl-row-btn-desktop { display: flex; }
-        @media (max-width: 600px) {
-          .ppl-row-btn-mobile { display: block; }
-          .ppl-row-btn-desktop { display: none !important; }
-        }
-
-        /* グリッド: 3列 → 2列 → 1列 */
-        /* ── コンテナ幅と列数（2026-08-04）──────────────────────────────────
-           1440px 以上で 5列にする。人数が増えたときのための変更で、現時点では4名。
-
-           ⚠️ 1100px のまま5列にすると 1枚 198px になり、職種が2行に折り返す。
-              「セールス（デジタルセールス）」が「ス）」だけ2行目に落ちる状態。
-              なので 1440px 以上ではコンテナも 1300px に広げ、1枚 235px を確保する。
-              4列時（251px）とほぼ同じ幅なので、カード内の見え方は今と変わらない。
-              社名だけは18文字級（日本ヒューレット・パッカード合同会社）が2行になるが、
-              これは現在の4列でも同じで、今回の変更による劣化ではない。
-
-           ⚠️ maxWidth をインラインに戻さないこと。インラインはメディアクエリに勝つので
-              下の 1300px が一切効かなくなる（CLAUDE.md 参照）。 */
-        /* ⚠️ 基底ルールを先に書くこと。同じ詳細度なので、後に書いたほうが勝つ。
-              .ppl-grid の4列指定をメディアクエリより後ろに置くと 5列が効かない。 */
-        .ppl-wrap { max-width: 1100px; }
-        /* ★左サイドバー（240px）が入ったぶん、列を1つ減らした（2026-09-18）。
-           ⚠️★**実測して決めた値。** 1440px では wrap 1300 − 左右padding 48 − サイドバー 240
-              − gap 24 = 988px を4列で割って **1枚 235px**。
-              これは 2026-08-04 に「職種が2行に折り返さない下限」として実測した幅と同じ。
-           ⚠️ 900〜1439px は wrap 1100 なので 3列（1枚 252px）。ここを4列に増やすと
-              1枚 185px になり、カード内の「プロフィール」+「+フォロー」の横並びが割れる。 */
-        .ppl-layout { display: flex; gap: 24px; align-items: flex-start; }
-        .ppl-main { flex: 1; min-width: 0; }
-        .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-        @media (min-width: 1440px) {
-          .ppl-wrap { max-width: 1300px; }
-          .ppl-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        }
-        /* ⚠️ 899px 未満はサイドバーが一覧の上に畳まれる（横に並ばない）ので、
-              本文が全幅に戻る。**サイドバーを display:none にしていない**（中身ごと消さない）。 */
-        @media (max-width: 899px) {
-          .ppl-layout { display: block; }
-          .ppl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-        }
-        @media (max-width: 768px)  { .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
-        /* ⚠️ 1列に落とすのは 560px。420px にすると 421〜560px の帯で
-              2列 × 180〜250px になり、5列時（235px）より細いカードが出てしまう。
-              「狭い画面ほどカードが細い」わけではないので、境界は列数から逆算すること。 */
-        @media (max-width: 560px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
-
-        /* グリッドカード */
-        .ppl-grid-card {
-          background: #fff;
-          border: 1px solid var(--line);
-          border-radius: 18px;
-          padding: 28px 20px 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          cursor: pointer;
-          transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
-        }
-        /* ── 役職・所属 ─────────────────────────────────────────────────────
-           役職は2行までにクランプする。自己申告の役職名は部署名を含んで長く、
-           5列時のカード幅（235px）に1行で収まらないことがあるため。
-           途中で切り詰めない（切れた役職名は誤読のもとになる）。 */
-        /* ★会社が先、職種が後（2026-08-18）。余白は会社の下に持たせる */
-        .ppl-role {
-          font-size: 13px; color: var(--ink-soft); line-height: 1.5;
-          min-height: 20px;
-          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-          overflow: hidden; overflow-wrap: anywhere;
-        }
-        /* ★本人が書いた1行（2026-09-23）。職種より弱く、2行までにクランプする。
-              ⚠️ 上限40字（HEADLINE_MAX）なので、5列時のカード幅 235px では2行に収まる。
-              ⚠️★この style はテンプレートリテラル。コメントにバッククォートを書かない。 */
-        .ppl-headline {
-          margin-top: 4px;
-          font-size: 12px; color: var(--ink-mute); line-height: 1.6;
-          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-          overflow: hidden; overflow-wrap: anywhere;
-        }
-        /* 一覧（list）側。横幅があるので1行に収まる想定だが、折り返しは許す */
-        .ppl-headline-row {
-          margin-top: 4px;
-          font-size: 13px; color: var(--ink-mute); line-height: 1.6;
-          overflow-wrap: anywhere;
-        }
-        .ppl-company {
-          display: flex; align-items: center; justify-content: center; gap: 7px;
-          font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35;
-          margin-bottom: 6px; overflow-wrap: anywhere;
-        }
-        /* 元所属（元◯◯）と学校名。現職の社名より弱く出す。
-           ⚠️★**現職（verified / self）には付けない。** 2026-09-20 に企業ロゴを外すまで、
-              この弱い見た目は「ロゴが無い＝自己申告」の補助だった。ロゴが無くなった今は
-              「現職の社名」と「それ以外」を分けるためだけに使う。
-           ⚠️★.ppl-company-logo と .ppl-company-logo-fallback は同日に削除した。
-              （この style はテンプレートリテラルなので、コメントにバッククォートを書かない）
-              **社名の横に画像や文字四角を足し戻さないこと。** */
-        .ppl-company-self { font-weight: 500; color: var(--ink-soft); }
-        /* 職歴がまだ無い人の学校名。企業と取り違えないようアイコンで分ける */
-        .ppl-edu-icon { flex-shrink: 0; color: var(--ink-mute); }
-        /* 現職が無い人の「元」。社名より弱く出す */
-        .ppl-past-mark {
-          flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--ink-mute);
-          background: var(--bg-tint); border: 1px solid var(--line-soft);
-          border-radius: 4px; padding: 1px 5px; line-height: 1.4;
-        }
-        /* ⚠️ .ppl-facts（年齢）は 2026-08-18 に削除した。カードには出さない。
-              ⚠️ この style はテンプレートリテラルなので、コメントにバッククォートを書かないこと。 */
-        .ppl-grid-card:hover {
-          box-shadow: 0 8px 32px rgba(0,35,102,0.12);
-          transform: translateY(-3px);
-          border-color: var(--royal-100);
-        }
-
-        /* ── 1列表示の行 ────────────────────────────────────────────────
-           ★意匠は企業一覧の横カードに合わせてある（2026-08-24）。
-              hover の値は globals.css の .company-list-card と同じ。
-              片方を変えるときは必ずもう片方も見ること。 */
-        .ppl-list-row {
-          display: flex; align-items: center; gap: 18px;
-          background: #fff; border: 1px solid var(--line); border-radius: 14px;
-          box-shadow: 0 1px 4px rgba(15,23,42,0.06);
-          padding: 18px 20px; cursor: pointer;
-          transition: box-shadow 0.18s, border-color 0.18s;
-        }
-        /* CTA は縦積み。⚠️ 幅は min-width で固定する。「フォロー」→「フォロー中」で
-           列幅が動くため（企業一覧の「保存」→「保存済」と同じ理由。実測 102px → 115px）。 */
-        /* ⚠️★margin-left: auto が CTA を右端へ送る（2026-09-18）。
-              本文側の flex:1 を外したので、**これが唯一の押し出し**。
-              片方だけ戻すと、本文と CTA がくっつくか、余白が中央に戻る。
-           ⚠️ この style はテンプレートリテラルの中。**バッククォートを書かないこと**
-              （文字列が終わって規則ごと壊れる。2026-09-18 に実際に壊した）。 */
-        .ppl-row-cta {
-          flex-shrink: 0; display: flex; flex-direction: column;
-          align-items: stretch; gap: 8px; min-width: 124px; margin-left: auto;
-        }
-        .ppl-list-row:hover { box-shadow: 0 4px 24px rgba(0,35,102,0.12); border-color: #d0daf5; }
-        .ppl-list-row:hover .ppl-row-name { color: var(--royal); }
-        /* ⚠️★大きな数字のスタット列は 2026-09-18 にやめた。**メタ行のテキストに一本化した。**
-              以前は「広い画面＝大きい数字の列／狭い画面＝テキスト」の2通りを
-              .ppl-row-stats と .ppl-row-tenure-inline で切り替えていたが、
-              行の中身が短い人で**本文と数字のあいだに大きな空白**ができていた。
-           ⚠️ 2通りに戻さないこと。戻すなら「両方同時に出ない」ことを必ず確かめる
-              （同じ値が2回並ぶ）。 */
-        /* ⚠️ 企業一覧は 767px 以下で CTA を丸ごと隠すが、こちらは**隠さない**。
-              企業カードは全体が Link なので消しても導線が残るが、
-              フォローは他に押す場所が無い。折り返して全幅の1行に落とす。 */
-        @media (max-width: 600px) {
-          .ppl-list-row { flex-wrap: wrap; gap: 12px; padding: 14px 16px; }
-          .ppl-row-cta { width: 100%; min-width: 0; flex-direction: row; }
-          /* ⚠️ 子セレクタ（>）を書かないこと。React はこの style の中身を
-                テキストとして扱うので **&gt; に化けて規則ごと死ぬ**（実測）。
-                クラス名で指定する。 */
-          /* ⚠️ flex: 1 だと**幅が揃わない**（実測 162px / 123px）。
-                プロフィール側の padding + border 39px ぶんだけ広くなる。
-                半分ずつに固定する（4px は gap 8px の半分）。 */
-          .ppl-row-profile-btn, .ppl-row-follow { flex: 0 0 calc(50% - 4px); }
-        }
-
-        /* FilterChip */
-        .ppl-chip {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 7px 14px; border-radius: 999px;
-          border: 1.5px solid #e2e8f0; background: #fff;
-          color: var(--ink); font-size: 13px; font-weight: 500;
-          cursor: pointer; white-space: nowrap;
-          transition: all 0.12s; font-family: inherit; flex-shrink: 0;
-        }
-        .ppl-chip:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
-        /* ⚠️★active の見た目は components/common/FilterChip と揃えてある（2026-09-18）。
-              同じ行に「詳細検索 / 外資 / 面談OK」（このクラス）と
-              「職種 / 年代」（FilterChip）が並ぶので、ずれると2種類のチップに見える。
-           ⚠️ 以前あった box-shadow と font-weight:700 はそのために外した。片方だけ戻さないこと。
-           ⚠️ ここは style タグのテンプレートリテラルの中。バッククォートを書かないこと。 */
-        .ppl-chip.active {
-          border-color: var(--royal); background: var(--royal);
-          color: #fff; font-weight: 600;
-        }
-
-        /* ★絞り込みのチップ（2026-09-17 に「絞り込む」で畳むのをやめた）。
-           ⚠️ display: contents なので、チップは**ツールバーの行の直接の子として**並ぶ。
-              ここを block などに変えると、行の中に箱がもう1つできて高さが跳ねる。
-           ⚠️ 2つ目の絞り込みを足して狭い画面で収まらなくなったら、
-              畳む仕掛けを戻すのではなく、企業一覧と同じ「詳細検索」にすること。
-              ⚠️ ここは style タグのテンプレートリテラルの中。**バッククォートを書かないこと**
-                 （文字列がその場で閉じる。2026-09-17 にこの行で実際に踏んだ）。 */
-        .ppl-filter-chips { display: contents; }
-      `}</style>
+      <PeopleCardStyles />
 
       <h1 className="sr-only">登録ユーザーを探す</h1>
 
