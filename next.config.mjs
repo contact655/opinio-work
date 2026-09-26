@@ -64,6 +64,13 @@ const nextConfig = {
          ⚠️ 削除の理由は `src/app/sitemap.ts` のコメントを参照。**復活させないこと。** */
       { source: "/salary", destination: "/jobs", permanent: true },
       { source: "/salary/:slug", destination: "/jobs", permanent: true },
+      /* ★記事の type を `mentor` → `career` にした（2026-09-27 / `20260927110000`）。
+            ⚠️★**この1行を消さないこと。** 旧 URL は本番で 200 を返していて、
+               sitemap にも **priority 0.8** で載せていた（＝クローラが辿る）。
+               消すと既存のリンクと検索結果がそのまま 404 になる。
+            ⚠️ ラベルは 2026-08-04 から「キャリアの軌跡」で、`mentor` という語は
+               **公開側のどこにも出ていなかった**。値だけが残っていた。 */
+      { source: "/articles/type/mentor", destination: "/articles/type/career", permanent: true },
       {
         source: "/for-companies",
         destination: "/business",

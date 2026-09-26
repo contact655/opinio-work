@@ -2417,7 +2417,7 @@ function mapDbArticle(row: Record<string, any>): Article {
 
   return {
     slug: row.slug as string,
-    type: row.type as "employee" | "mentor" | "ceo" | "report",
+    type: row.type as "employee" | "career" | "ceo" | "report",
     title: row.title as string,
     subtitle: (row.subtitle as string) ?? "",
     date,

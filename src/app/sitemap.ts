@@ -123,7 +123,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     },
     // ── Static: article type pages ───────────────────────────────────────────
-    ...["employee", "mentor", "ceo", "report"].map((slug) => ({
+    ...["employee", "career", "ceo", "report"].map((slug) => ({
       url: `${baseUrl}/articles/type/${slug}`,
       lastModified: new Date(),
       changeFrequency: "weekly" as const,

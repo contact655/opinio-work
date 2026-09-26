@@ -34,7 +34,7 @@ export type OWCompany = {
 
 const TYPE_LABELS: Record<string, string> = {
   employee: "社員インタビュー",
-  mentor: "メンターインタビュー",
+  career: "キャリアの軌跡",
   ceo: "CEOインタビュー",
   report: "レポート",
 };
@@ -198,7 +198,7 @@ export default function AdminArticlesClient({
           )}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[null, "employee", "mentor", "ceo", "report"].map((type) => (
+          {[null, "employee", "career", "ceo", "report"].map((type) => (
             <button
               type="button"
               key={type ?? "all"}

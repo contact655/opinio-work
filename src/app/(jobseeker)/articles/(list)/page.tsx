@@ -78,7 +78,7 @@ function ArticleCard({ article }: { article: Article }) {
                  ⚠️ `Georgia` は**意図的**（2026-08-29 に確認）。装飾の " 1文字だけを描くもので、
                     Georgia の引用符の形を使っている。本文用フォントの統一対象ではない。
                     トークン（--font-inter / --font-noto-serif）に置き換えないこと。 */}
-          {(article.type === "employee" || article.type === "mentor" || article.type === "ceo") && (
+          {(article.type === "employee" || article.type === "career" || article.type === "ceo") && (
             <span style={{
               position: "absolute", left: 14, bottom: 10, zIndex: 1,
               fontFamily: "Georgia, serif", fontSize: 80, lineHeight: 1,

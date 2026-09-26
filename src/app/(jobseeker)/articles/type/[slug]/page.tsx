@@ -22,12 +22,16 @@ const ARTICLE_TYPE_MAP: Record<string, {
     description: "IT企業で実際に働く社員の声。仕事のやりがい・組織文化・日々の業務をリアルに語ってもらいました。",
     icon: "💬",
   },
-  mentor: {
-    type: "mentor",
+  career: {
+    type: "career",
     // ⚠️ 2026-08-04 まで「OB・OGの声 / Alumni Voices」だったが、実態と違うため変更した。
-    //    この type の記事4件はいずれも、取り上げている企業の**現職者**が
+    //    この type の記事3件はいずれも、取り上げている企業の**現職者**が
     //    自分のキャリアを語るもの（Sansan の PdM / Ubie の CTO / LayerX のエンジニア）で、
-    //    OB・OG（退職者）ではない。type の値 "mentor" は URL に出るので変えない。
+    //    OB・OG（退職者）ではない。**`alumni` に戻さないこと。**
+    // ⚠️★2026-09-27 に値を "mentor" → "career" にした（`20260927110000`）。
+    //    ラベルは 2026-08-04 から「キャリアの軌跡」で、`mentor` は画面に出ていなかった。
+    //    ★**旧 URL `/articles/type/mentor` からの 301 は `next.config.mjs` にある。**
+    //      消すと既存のリンクと検索結果が 404 になる。
     label: "キャリアの軌跡",
     labelEn: "Career Journeys",
     description: "転職経験者・先輩社員が語るキャリアの軌跡。転職の動機から現在の仕事まで、リアルなストーリーをお届けします。",

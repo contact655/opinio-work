@@ -190,7 +190,7 @@ export default function CareersPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 10 }}>
             {[
               { href: "/articles/type/employee", icon: "💬", label: "社員インタビュー" },
-              { href: "/articles/type/mentor",   icon: "🌟", label: "キャリアの軌跡" },
+              { href: "/articles/type/career",   icon: "🌟", label: "キャリアの軌跡" },
               { href: "/articles/type/ceo",      icon: "👔", label: "CEO・経営陣" },
               { href: "/articles/type/report",   icon: "📊", label: "組織レポート" },
             ].map((a) => (

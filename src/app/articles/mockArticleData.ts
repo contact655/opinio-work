@@ -1,6 +1,6 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type ArticleType = "employee" | "mentor" | "ceo" | "report";
+export type ArticleType = "employee" | "career" | "ceo" | "report";
 
 export type ArticleSubject = {
   initial: string;
@@ -72,7 +72,7 @@ export type Article = {
 export const ARTICLE_TYPES: { value: ArticleType | "all"; label: string }[] = [
   { value: "all", label: "すべて" },
   { value: "employee", label: "社員インタビュー" },
-  { value: "mentor", label: "キャリアの軌跡" },
+  { value: "career", label: "キャリアの軌跡" },
   { value: "ceo", label: "CEO・経営陣" },
   { value: "report", label: "組織レポート" },
 ];
@@ -85,14 +85,14 @@ export const ARTICLE_TYPES: { value: ArticleType | "all"; label: string }[] = [
  */
 export const TYPE_BADGE: Record<ArticleType, { label: string; bg: string; color: string }> = {
   employee: { label: "社員インタビュー", bg: "var(--royal-50)", color: "var(--royal)" },
-  mentor:   { label: "キャリアの軌跡",   bg: "var(--royal-50)", color: "var(--royal)" },
+  career:   { label: "キャリアの軌跡",   bg: "var(--royal-50)", color: "var(--royal)" },
   ceo:      { label: "CEO・経営陣",      bg: "var(--royal-50)", color: "var(--royal)" },
   report:   { label: "組織レポート",     bg: "var(--royal-50)", color: "var(--royal)" },
 };
 
 export const TYPE_EYECATCH_ICON: Record<ArticleType, string> = {
   employee: "💬",
-  mentor:   "🌟",
+  career:   "🌟",
   ceo:      "👔",
   report:   "📊",
 };

@@ -22,7 +22,7 @@ export const PLATFORM_META: Record<string, { label: string; color: string; bg: s
 /** 記事タイプ日本語ラベル */
 export const ARTICLE_TYPE_LABEL: Record<string, string> = {
   employee: "社員インタビュー",
-  mentor:   "メンターインタビュー",
+  career:   "キャリアの軌跡",
   ceo:      "創業者インタビュー",
   report:   "取材レポート",
 };

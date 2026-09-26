@@ -55,7 +55,7 @@ export async function generateMetadata({
 
   const typeLabel =
     article.type === "employee" ? "社員インタビュー"
-    : article.type === "mentor" ? "社員・OBの声"
+    : article.type === "career" ? "社員・OBの声"
     : article.type === "ceo" ? "CEO取材"
     : "組織レポート";
 
