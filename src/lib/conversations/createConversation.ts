@@ -41,14 +41,18 @@ export async function createConversation(
   supabase: SupabaseClient,
   input: CreateConversationInput
 ): Promise<CreateConversationResult> {
-  /* ⚠️★`p_mentor_user_id` は null でも**必ず渡す**。RPC は引数の名前と数で解決されるので、
+  /* ⚠️★`p_partner_user_id` は null でも**必ず渡す**。RPC は引数の名前と数で解決されるので、
         落とすと関数が見つからず **PGRST202** になる（CLAUDE.md「RPC は引数名が違うだけで
-        404 になる」）。⚠️ DB の `create_conversation` は触っていない。 */
+        404 になる」）。
+     ⚠️★**2026-09-27 に `p_mentor_user_id` から改名した。** 列の改名
+        （`mentor_user_id` → `partner_user_id`）に合わせたもので、
+        **`DROP FUNCTION` + `CREATE` が要った**（`CREATE OR REPLACE` では引数名を変えられない）。
+        経緯と、そのとき GRANT を戻す必要があることは `20260927100000` に書いてある。 */
   const params = {
     p_kind: "company",
     p_candidate_user_id: input.candidateUserId,
     p_company_id: input.companyId,
-    p_mentor_user_id: null,
+    p_partner_user_id: null,
   };
 
   const { data, error } = await supabase.rpc("create_conversation", params);

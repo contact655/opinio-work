@@ -568,9 +568,12 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
          RLS ポリシー・索引は**定義が自動で追随する**（名前は古いまま残るので別途改名）。
          `create_conversation` は3箇所で参照しており、**同じ migration で
          `CREATE OR REPLACE` して直した。** 放置すると呼ぶまで壊れたと分からない。
-      ⚠️★**引数名 `p_mentor_user_id` だけは残っている。** `CREATE OR REPLACE` では
-         引数名を変えられず、変えるには `DROP FUNCTION` が要るが**それは禁止**
-         （スカウト・応募・面談・提案が依存）。列名と引数名がずれているのは承知のうえ。
+      ✅★**引数名も同日に `p_partner_user_id` へ改名した**（`20260927100000`）。
+         `CREATE OR REPLACE` では引数名を変えられないので **`DROP FUNCTION` を使った**
+         —— その例外を通してよい条件は「`create_conversation` RPC」の節に書いてある。
+         ⚠️★**窓の壊れ方が列の改名と違う。** 引数名は PostgREST の呼び出し契約なので、
+            古いコードは **PGRST202** になるが、呼び出し側が `try/catch` で握って本体を
+            成功扱いにする方針のため、**「応募はできたのに会話が無い」が静かに残りうる。**
    ⚠️ 記事の `type="mentor"`（「社員・OBの声」）は**別概念**。URL に出るので変えない。
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
@@ -2493,7 +2496,17 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
    **両方向とも 42501 で落ちる**（service_role では `auth.uid()` が誰でもないため）。
    ⚠️★**`current_user` で判定しないこと。** SECURITY DEFINER の中では所有者に化ける。
       見るのは **`auth.role()`**。
-   ⚠️★**`DROP FUNCTION` を使わない**（スカウト・応募・面談が依存）。`CREATE OR REPLACE`。
+   ⚠️★**原則 `DROP FUNCTION` を使わない**（スカウト・応募・面談が依存）。`CREATE OR REPLACE`。
+      ⚠️★**2026-09-27 に一度だけ例外を通した**（`20260927100000`。引数名の改名は
+         `CREATE OR REPLACE` では**できない**ため）。通してよい条件はこの3つ:
+           ① **DB オブジェクトの依存が0**（トリガー・他の関数・ビュー）を実測で確かめる
+              —— この規則のもう一方（`handle_new_ow_user`）は**トリガーが依存**しており、
+              CASCADE で**サインアップが止まる**。**あちらには広げないこと。**
+           ② **1トランザクションで DROP → CREATE → GRANT 復元**まで行う
+           ③ ★**GRANT を戻す。** DROP で消えるうえ、**新しい関数には PUBLIC の
+              EXECUTE が既定で付く**。元は `authenticated` と `service_role` だけで
+              **anon には無い**ので、`revoke ... from public` を先に書く。
+              戻し忘れると**全経路が 42501**。migration の末尾で検算している。
 
 ⚠️★**紹介に失敗した行は運営が救う**（2026-09-21）。`introduceIfMutual()` は best-effort
    なので、**`mutual` なのに `introduced_at` が null の行**が残りうる。
