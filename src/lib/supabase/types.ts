@@ -5915,12 +5915,10 @@ export type Database = {
           given_name_kana: string | null
           headline: string | null
           id: string
-          is_active_mentor: boolean
           is_open_to_work: boolean
           is_system: boolean
           is_test: boolean
           location: string | null
-          mentor_registered_at: string | null
           name: string
           phone: string | null
           profile_setup_at: string | null
@@ -5955,12 +5953,10 @@ export type Database = {
           given_name_kana?: string | null
           headline?: string | null
           id?: string
-          is_active_mentor?: boolean
           is_open_to_work?: boolean
           is_system?: boolean
           is_test?: boolean
           location?: string | null
-          mentor_registered_at?: string | null
           name: string
           phone?: string | null
           profile_setup_at?: string | null
@@ -5995,12 +5991,10 @@ export type Database = {
           given_name_kana?: string | null
           headline?: string | null
           id?: string
-          is_active_mentor?: boolean
           is_open_to_work?: boolean
           is_system?: boolean
           is_test?: boolean
           location?: string | null
-          mentor_registered_at?: string | null
           name?: string
           phone?: string | null
           profile_setup_at?: string | null

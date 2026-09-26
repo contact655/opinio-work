@@ -1495,12 +1495,15 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
    where attrelid='public.ow_experiences'::regclass and attnum>0 and not attisdropped;
   ```
 
-  ⚠️ **`ow_users` は anon も列単位**（2026-08-19）。**anon から落とした9列**:
+  ⚠️ **`ow_users` は anon も列単位**（2026-08-19）。**anon から落とした8列**:
 
   ```
   email  birth_date  statistics_opt_out  auth_linked_at
-  profile_setup_at  mentor_registered_at  is_system  created_at  updated_at
+  profile_setup_at  is_system  created_at  updated_at
   ```
+
+  ⚠️ 2026-09-27 まで **9列**で、`mentor_registered_at` が入っていた。
+     **列ごと DROP したので1つ減った**（`20260927050000`）。数は減るので実測で書くこと。
 
   ⚠️ **anon キーの経路（`createPublicClient` / 未ログインの `createClient`）で
      この9列を select しないこと。** 1列でも入るとクエリが丸ごと403になり、
@@ -1545,13 +1548,17 @@ import した時点でビルドが落ちるので、次に同じことをしよ�
         新規作成経路が INSERT するので、INSERT 権限は残してある。
      ⚠️ `ow_company_members` の SELECT からは **`invite_token`** を外してある（同 migration）。
 
-  ⚠️ **配った28列のうち13列はアプリが書いていない**（過剰付与。2026-08-22 に実測）。
+  ⚠️ **アプリが書いていない列がある**（過剰付与。2026-08-22 に13列と実測）。
      `id` `created_at` `welcome_sent_at` `auth_linked_at` `catchphrase` `username`
-     `statistics_opt_out` `is_mentor` `is_active_mentor` `mentor_themes`
-     `mentor_registered_at` `can_talk_to_candidates` `can_talk_to_hr`
+     `statistics_opt_out` `can_talk_to_candidates` `can_talk_to_hr`
      **読む経路が無いので実害は無いが、GRANT の棚卸しをする別タスクの対象。**
-     `can_talk_to_*` は死列、`is_mentor` / `is_active_mentor` / `mentor_*` は
-     **DROP 済みの `ow_mentors` の名残**（CLAUDE.md「メンター機能自体が無い」）。
+     `can_talk_to_*` は死列。
+     ⚠️★**メンターの4列は 2026-09-27 に列ごと DROP した**（`is_mentor` /
+        `is_active_mentor` / `mentor_registered_at` は `20260927040000` と
+        `20260927050000`。`mentor_themes` はそれ以前に消えていた）。
+        **13列のうち4つが減ったので、いまは9列。**
+        ⚠️ `ow_conversations.mentor_user_id` は**落としていない** ——
+           列名だけの名残で、中身は `kind='direct_message'` の相手。現役。
      ⚠️ **2026-08-23 に `can_casual_meeting` も同じ状態になった**（参照0件）。
         この列は UPDATE を配っていない側なので上の13列には入らないが、
         **棚卸しの対象としては同じ**。列も SELECT の GRANT も残っている。
@@ -5149,7 +5156,11 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 ## Hisato 思想（実装済み）
 
 1. **キャリアを考え続ける人**: 「転職活動中」フラグなし。情報収集中でも使える
-2. **Users 統合設計**: `is_mentor` フラグ1つで求職者↔メンター動的発動（マイページで実証済み）
+2. ~~**Users 統合設計**: `is_mentor` フラグ1つで求職者↔メンター動的発動~~
+   ⚠️★**この構想は実現していない。** メンター機能そのものが無く（`ow_mentors` は
+      migration 140 で DROP）、`is_mentor` は**一度も true になったことがない**まま
+      2026-09-27 に**列ごと DROP した**。「マイページで実証済み」も事実ではない。
+      ⚠️ 「話せる人」の実体は `ow_company_members`（本人の申告＋企業/運営の掲載）。
 3. **スカウトしない、採用を**: 企業→求職者へのスカウト機能なし。対話から始まる設計
 4. **運営の丁寧な介在**: メンター登録は個別声がけ、相談は編集部が精査してから転送
 5. **モニター期配慮**: 料金表示なし、無料バッジ（MVP期間中は無料）のみ
