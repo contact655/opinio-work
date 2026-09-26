@@ -6012,7 +6012,7 @@ export type Database = {
           p_candidate_user_id: string
           p_company_id?: string
           p_kind: string
-          p_mentor_user_id?: string
+          p_partner_user_id?: string
         }
         Returns: {
           conversation_id: string

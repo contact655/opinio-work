@@ -575,6 +575,8 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
             古いコードは **PGRST202** になるが、呼び出し側が `try/catch` で握って本体を
             成功扱いにする方針のため、**「応募はできたのに会話が無い」が静かに残りうる。**
    ⚠️ 記事の `type="mentor"`（「社員・OBの声」）は**別概念**。URL に出るので変えない。
+   ✅★**DB から `mentor` は消えた**（2026-09-27 実測: `%mentor%` の列0・表0）。
+      `src/lib/supabase/types.ts` からも0件。**残っているのは記事の `type` だけ。**
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
    `SCOUT_SENDING_ENABLED` を未設定にして止めているので「起こさなかった0」。
