@@ -15,7 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * 数え方が割れていると、バッジの数字を信じて開いた人が何も見つけられない。
  *
  * ⚠️★**参加者行（`ow_conversation_participants`）が唯一の可視性の軸。**
- *    `ow_conversations.candidate_user_id` / `mentor_user_id` で絞らないこと。
+ *    `ow_conversations.candidate_user_id` / `partner_user_id` で絞らないこと。
  *    あれは「誰の会話か」であって「誰が読んでよいか」ではなく、
  *    企業担当者は参加者行でしか会話に繋がらない。
  *    ⚠️ 2026-08-25 に、バッジだけが `candidate_user_id` で数えていたせいで

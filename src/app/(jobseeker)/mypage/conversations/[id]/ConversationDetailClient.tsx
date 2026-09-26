@@ -24,13 +24,13 @@ export type ConversationDetail = {
   stage: string;
   status: string;
   company_id: string | null;
-  mentor_user_id: string | null;
+  partner_user_id: string | null;
   ow_companies: {
     name: string;
     logo_url: string | null;
     logo_letter: string | null;
   } | null;
-  mentor: { name: string } | null;
+  partner: { name: string } | null;
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -143,11 +143,11 @@ export default function ConversationDetailClient({
         `/api/mentor-reservations` も存在しない）。
      ⚠️ 消す前はフォールバックが**3箇所で割れていた**（「メンター」×2 /「対話相手」×1）。
         一度も出ていないので誰も気づけなかった。
-     ⚠️ `ow_conversations.mentor_user_id` は**触っていない**。3件中2件が持っていて、
+     ⚠️ `ow_conversations.partner_user_id` は**触っていない**。3件中2件が持っていて、
         中身は `kind='direct_message'` の相手。名前だけの名残（`?industry=` と同じ形）。 */
   const displayName =
     conversation.kind === "direct_message"
-      ? conversation.mentor?.name ?? "ユーザー"
+      ? conversation.partner?.name ?? "ユーザー"
       : conversation.ow_companies?.name ?? "(企業情報なし)";
 
   const company = conversation.ow_companies;

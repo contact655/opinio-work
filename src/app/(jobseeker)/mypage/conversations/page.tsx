@@ -54,7 +54,7 @@ export default async function ConversationsPage({
         （`[id]/page.tsx`）が同じ条件で判定し、行が無ければ `notFound()` を返すので、
         条件がずれると**一覧には出るのに開けない行**ができる。
 
-     ⚠️ `ow_conversations.candidate_user_id` / `mentor_user_id` では絞らない。
+     ⚠️ `ow_conversations.candidate_user_id` / `partner_user_id` では絞らない。
         あれは「誰の会話か」であって「誰が読んでよいか」ではない。企業担当者は
         参加者行でしか会話に繋がらないため、あの2列で絞ると企業側が読めなくなる。 */
   const { data: myParticipants, error: partError } = await adminSupabase
@@ -86,9 +86,9 @@ export default async function ConversationsPage({
         .from("ow_conversations")
         .select(
           `id, kind, stage, status, last_message_at, created_at,
-           company_id, mentor_user_id,
+           company_id, partner_user_id,
            ow_companies(id, name, logo_url, logo_letter),
-           mentor:ow_users!mentor_user_id(id, name)`
+           partner:ow_users!partner_user_id(id, name)`
         )
         .in("id", conversationIds)
         .order("last_message_at", { ascending: false, nullsFirst: false })

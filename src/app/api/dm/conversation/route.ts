@@ -19,16 +19,16 @@ export async function GET(request: NextRequest) {
   const { data: owMe } = await supabase.from("ow_users").select("id, name").eq("auth_id", authUser.id).maybeSingle();
   if (!owMe) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // 会話が存在し、かつ自分が candidate_user_id または mentor_user_id であることを確認
+  // 会話が存在し、かつ自分が candidate_user_id または partner_user_id であることを確認
   const { data: conv } = await admin
     .from("ow_conversations")
-    .select("id, candidate_user_id, mentor_user_id")
+    .select("id, candidate_user_id, partner_user_id")
     .eq("id", conversationId)
     .maybeSingle();
 
   if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
 
-  const isMember = conv.candidate_user_id === owMe.id || conv.mentor_user_id === owMe.id;
+  const isMember = conv.candidate_user_id === owMe.id || conv.partner_user_id === owMe.id;
   if (!isMember) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
 
   /* 参加者を冪等に揃える。
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   const participants = await ensureDmParticipants(admin, conversationId, [
     owMe.id,
     conv.candidate_user_id,
-    conv.mentor_user_id,
+    conv.partner_user_id,
   ]);
   if (!participants.ok) {
     console.error("[dm/conversation] ensureDmParticipants:", participants.error);

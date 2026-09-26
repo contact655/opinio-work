@@ -19,14 +19,14 @@ export type Conversation = {
   last_message_at: string | null;
   created_at: string;
   company_id: string | null;
-  mentor_user_id: string | null;
+  partner_user_id: string | null;
   ow_companies: {
     id: string;
     name: string;
     logo_url: string | null;
     logo_letter: string | null;
   } | null;
-  mentor: {
+  partner: {
     id: string;
     name: string;
   } | null;
@@ -54,7 +54,7 @@ function isGrouped(curr: MessageRow, prev: MessageRow | null, hasSep: boolean) {
 function ConvAvatar({ conv }: { conv: Conversation }) {
   const displayName =
     conv.kind === "direct_message"
-      ? conv.mentor?.name ?? "ユーザー"
+      ? conv.partner?.name ?? "ユーザー"
       : conv.ow_companies?.name ?? "対話相手";
   const company = conv.ow_companies;
 
@@ -230,11 +230,11 @@ export default function ConversationsClient({
         `/api/mentor-reservations` も存在しない）。
      ⚠️ 消す前はフォールバックが**3箇所で割れていた**（「メンター」×2 /「対話相手」×1）。
         一度も出ていないので誰も気づけなかった。
-     ⚠️ `ow_conversations.mentor_user_id` は**触っていない**。3件中2件が持っていて、
+     ⚠️ `ow_conversations.partner_user_id` は**触っていない**。3件中2件が持っていて、
         中身は `kind='direct_message'` の相手。名前だけの名残（`?industry=` と同じ形）。 */
   const displayName = selectedConv
     ? selectedConv.kind === "direct_message"
-      ? selectedConv.mentor?.name ?? "ユーザー"
+      ? selectedConv.partner?.name ?? "ユーザー"
       : selectedConv.ow_companies?.name ?? "(企業情報なし)"
     : null;
 
@@ -295,7 +295,7 @@ export default function ConversationsClient({
             conversations.map((conv) => {
               const name =
                 conv.kind === "direct_message"
-                  ? conv.mentor?.name ?? "ユーザー"
+                  ? conv.partner?.name ?? "ユーザー"
                   : conv.ow_companies?.name ?? "(企業情報なし)";
               const isSelected = conv.id === selectedConvId;
               const hasUnread = conv.hasUnread ?? false;
@@ -368,7 +368,7 @@ export default function ConversationsClient({
                     .filter((c) => bulkIds.has(c.id))
                     .map((c) =>
                       c.kind === "direct_message"
-                        ? c.mentor?.name ?? "ユーザー"
+                        ? c.partner?.name ?? "ユーザー"
                         : c.ow_companies?.name ?? "(企業情報なし)",
                     )
                     .join("・")}

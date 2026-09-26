@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
   // 会話メンバーであることを確認（candidate または mentor）
   const { data: conv } = await admin
     .from("ow_conversations")
-    .select("id, candidate_user_id, mentor_user_id")
+    .select("id, candidate_user_id, partner_user_id")
     .eq("id", conversationId)
     .maybeSingle();
 
   if (!conv) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
 
-  const isMember = conv.candidate_user_id === owMe.id || conv.mentor_user_id === owMe.id;
+  const isMember = conv.candidate_user_id === owMe.id || conv.partner_user_id === owMe.id;
   if (!isMember) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
 
   /* 参加者を冪等に揃える（両者ぶん）。
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   const participants = await ensureDmParticipants(admin, conversationId, [
     owMe.id,
     conv.candidate_user_id,
-    conv.mentor_user_id,
+    conv.partner_user_id,
   ]);
   if (!participants.ok) {
     console.error("[dm/message] ensureDmParticipants:", participants.error);

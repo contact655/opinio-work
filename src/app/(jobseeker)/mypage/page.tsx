@@ -511,12 +511,12 @@ export default async function MypagePage({
           引いており、`ow_conversations` にはどちらも無いため **毎回 400**
           （本番ログで24時間に19件）。`count` は null になり `?? 0` が受けるので、
           **バッジは常に 0**。新着メッセージに一生気づけない状態だった。
-       ⚠️ 実在する列は id / kind / stage / company_id / mentor_user_id /
+       ⚠️ 実在する列は id / kind / stage / company_id / partner_user_id /
           candidate_user_id / status / last_message_at / created_at の9つだけ。
        ⚠️ **error を捨てない。** 捨てていたから2026-08-12 以降ずっと気づけなかった。
 
        ★バッジの基準は一覧（/mypage/conversations）と同じ「**自分の参加者行があるか**」。
-       ⚠️ 2026-08-25 まで `candidate_user_id` / `mentor_user_id` で数えていたが、
+       ⚠️ 2026-08-25 まで `candidate_user_id` / `partner_user_id` で数えていたが、
           一覧は参加者行で絞るので**基準が2つに割れていた**。実際に本番で、
           参加者行が無い会話をバッジだけが数え、押すと
           **「まだ対話がありません」に着く**状態が出ていた（実ユーザー2名）。

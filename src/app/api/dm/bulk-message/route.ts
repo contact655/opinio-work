@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  *      | `company` | 候補者1人 ↔ 企業1社 | 1件 |
  *      | `direct_message` | 個人1人 ↔ 個人1人 | 2件 |
  *
- *      ⚠️★**`mentor_user_id` に入るのは「DM の相手」。** 列名だけの名残で、
+ *      ⚠️★**`partner_user_id` に入るのは「DM の相手」。** 列名だけの名残で、
  *         **メンターではない**（`ow_mentors` は DROP 済み、`kind='mentor'` の会話は
  *         0件で作る経路も無い）。`?industry=` がラベルと食い違っているのと同じ形。
  *         ⚠️ この行は 2026-09-27 まで「企業1社（またはメンター1人）」と書いてあり、
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         件数ぶんクエリを撃つと、宛先が増えるほど遅くなり、途中で失敗しやすくなる。 */
   const { data: convs, error: convErr } = await admin
     .from("ow_conversations")
-    .select("id, candidate_user_id, mentor_user_id")
+    .select("id, candidate_user_id, partner_user_id")
     .in("id", ids);
   if (convErr) {
     console.error("[dm/bulk-message] conversations:", convErr.message);
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     const conv = byId.get(conversationId);
     if (!conv) { results.push({ conversationId, ok: false, error: "会話が見つかりません" }); continue; }
     /* ⚠️ admin で引いているので RLS は効かない。**ここで当事者かを見る。** */
-    if (conv.candidate_user_id !== owMe.id && conv.mentor_user_id !== owMe.id) {
+    if (conv.candidate_user_id !== owMe.id && conv.partner_user_id !== owMe.id) {
       results.push({ conversationId, ok: false, error: "この会話には送れません" });
       continue;
     }
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
           **送った本人にも「相手の発言」として表示される**（/api/dm/message の注記）。
           参加者が揃わなかったら、その会話へは送らない。 */
     const participants = await ensureDmParticipants(admin, conversationId, [
-      owMe.id, conv.candidate_user_id, conv.mentor_user_id,
+      owMe.id, conv.candidate_user_id, conv.partner_user_id,
     ]);
     if (!participants.ok) {
       console.error("[dm/bulk-message] ensureDmParticipants:", conversationId, participants.error);

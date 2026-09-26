@@ -37,9 +37,9 @@ export default async function ConversationDetailPage({
     (adminSupabase as any)
       .from("ow_conversations")
       .select(
-        `id, kind, stage, status, company_id, mentor_user_id,
+        `id, kind, stage, status, company_id, partner_user_id,
          ow_companies(name, logo_url, logo_letter),
-         mentor:ow_users!mentor_user_id(name)`
+         partner:ow_users!partner_user_id(name)`
       )
       .eq("id", conversationId)
       .maybeSingle(),

@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
   if (!owMe) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   // 既存会話を探す（双方向）
-  const { data: conv1 } = await admin.from("ow_conversations").select("id").eq("kind", "direct_message").eq("candidate_user_id", owMe.id).eq("mentor_user_id", targetUserId).maybeSingle();
-  const { data: conv2 } = await admin.from("ow_conversations").select("id").eq("kind", "direct_message").eq("candidate_user_id", targetUserId).eq("mentor_user_id", owMe.id).maybeSingle();
+  const { data: conv1 } = await admin.from("ow_conversations").select("id").eq("kind", "direct_message").eq("candidate_user_id", owMe.id).eq("partner_user_id", targetUserId).maybeSingle();
+  const { data: conv2 } = await admin.from("ow_conversations").select("id").eq("kind", "direct_message").eq("candidate_user_id", targetUserId).eq("partner_user_id", owMe.id).maybeSingle();
   const conv = conv1 || conv2;
 
   if (!conv) return NextResponse.json({ conversation: null });
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     .select("id")
     .eq("kind", "direct_message")
     .eq("candidate_user_id", owMe.id)
-    .eq("mentor_user_id", targetUserId)
+    .eq("partner_user_id", targetUserId)
     .maybeSingle();
 
   const { data: existingReverse } = await admin
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     .select("id")
     .eq("kind", "direct_message")
     .eq("candidate_user_id", targetUserId)
-    .eq("mentor_user_id", owMe.id)
+    .eq("partner_user_id", owMe.id)
     .maybeSingle();
 
   let conversationId = (existing || existingReverse)?.id ?? null;
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         stage: "active",
         status: "active",
         candidate_user_id: owMe.id,
-        mentor_user_id: targetUserId,
+        partner_user_id: targetUserId,
       })
       .select("id")
       .single();

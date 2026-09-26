@@ -16,9 +16,9 @@ import { mutateMany } from "@/lib/supabase/mutate";
  *    **メッセージを1件も送れない状態が 2026-06-14 からずっと続いていた。**
  *
  * ⚠️ 方向は `ow_conversations` 側が持っている。
- *    `candidate_user_id` = 始めた人 / `mentor_user_id` = 相手
+ *    `candidate_user_id` = 始めた人 / `partner_user_id` = 相手
  *    （`ow_conversations_kind_consistency` が direct_message に
- *      `mentor_user_id IS NOT NULL` を要求している）。
+ *      `partner_user_id IS NOT NULL` を要求している）。
  *
  * ⚠️ **DM の画面は role を読んでいない。** 発言の左右は
  *    `sender_participant_id === myParticipantId` で決めている。
