@@ -17,7 +17,13 @@ import { useEffect, useState } from "react";
  *    このフックを使わず props で渡してよい。二重取得になるため。
  */
 
-export type BookmarkTargetType = "company" | "job" | "mentor" | "article";
+/* ⚠️★型と許容値は `lib/constants/bookmarks.ts` の1箇所から出す。
+      ここで並べ直さないこと（2026-09-27 に "mentor" を外したとき、ここだけ残る形だった）。
+   ⚠️ 既存の import 元を壊さないよう、名前はそのまま再輸出している。 */
+import type { BookmarkTargetType } from "@/lib/constants/bookmarks";
+/* ⚠️ このファイル内でも使うので import と再輸出の両方が要る。
+      `export type { X } from "…"` だけだとローカルに名前が入らない（実際に一度落ちた）。 */
+export type { BookmarkTargetType };
 
 type Snapshot = { ids: Set<string>; authenticated: boolean };
 

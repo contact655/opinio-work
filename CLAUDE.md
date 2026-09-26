@@ -584,10 +584,34 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
       ⚠️ このとき**運営画面だけラベルが古かった**（`/admin/articles` と `platformMeta` が
          「メンターインタビュー」）。同じものが2つの名前で呼ばれていたので同時に揃えた。
 
-   ✅★**`mentor` はプロダクトから消えた**（2026-09-27 実測）:
-      DB の `%mentor%` の列0・表0 ／ `src/lib/supabase/types.ts` 0件 ／ 記事の type 0件。
-      ⚠️ 残るのは **`ow_bookmarks.target_type` の `'mentor'` だけ**で、これは**別概念**
-         （実データは `company` / `job` のみ、`mentor` は0件）。触っていない。
+   ✅★**`ow_bookmarks.target_type` からも `'mentor'` を外した**（`20260927120000`）。
+      実データは `job:2 / company:2` で `mentor` は0件だった。
+      ⚠️★**許容値を `lib/constants/bookmarks.ts` の1箇所に集約した。**
+         それまで `api/bookmarks/route.ts` に**3回インライン**で書かれており、型
+         （`BookmarkTargetType`）と合わせて**4箇所**に散っていた（CLAUDE.md
+         「route の中に `new Set([...])` を書かない」）。**書き写さないこと。**
+      ⚠️ `'article'` は**残した。** 行は0件だが概念として生きている（`mentor` とは違う）。
+
+   ⚠️★★**「DB から `mentor` が消えた」と書くときは、制約の定義まで数えること。**
+      2026-09-27 に一度**不正確な報告をした** ——`%mentor%` の**列と表**だけを数えて
+      「消えた」と言ったが、**CHECK の本文には残っていた**（下記4本）。
+      ```sql
+      -- ★列・表だけでなく、制約の定義も数える
+      select conrelid::regclass, conname from pg_constraint
+       where connamespace='public'::regnamespace and pg_get_constraintdef(oid) ~ '\mmentor\M';
+      ```
+
+   ⚠️ **まだ `mentor` が残っているもの**（2026-09-27 時点。どれも実データ0件）:
+      | どこ | 何 |
+      |---|---|
+      | `ow_conversations_kind_check` | `kind` の許容値に `'mentor'` |
+      | `ow_conversations_kind_consistency` | `kind='mentor'` の枝 |
+      | `ow_conversations_stage_consistency` | 同上 |
+      | `ow_conversation_participants_role_check` | `role` の許容値に `'mentor'` |
+      | `create_conversation` RPC | `p_kind NOT IN ('company','mentor')` の分岐 |
+      ⚠️ TS 側は既に落としてある（`kind: "mentor"` を渡す呼び出しは0件・作る経路も無い）。
+         **残っているのは DB の許容値だけ。** 落とすなら `kind` と `stage` と `role` の
+         3つの CHECK ＋ RPC の分岐を**まとめて**（片方だけだと整合が崩れる）。
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
    `SCOUT_SENDING_ENABLED` を未設定にして止めているので「起こさなかった0」。

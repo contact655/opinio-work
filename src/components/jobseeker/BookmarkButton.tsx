@@ -10,7 +10,7 @@ import {
 
 /**
  * 汎用ブックマークボタン
- * target_type: "company" | "job" | "mentor" | "article"
+ * target_type: `BOOKMARK_TARGET_TYPES`（lib/constants/bookmarks.ts）。⚠️ ここに並べ直さない
  *
  * ⚠️ `initialBookmarked` / `isAuthenticated` は**任意**（2026-08-09）。
  *

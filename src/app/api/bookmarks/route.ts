@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+/* ⚠️★許容値は `lib/constants/bookmarks.ts` の1箇所。**ここに配列を書き写さないこと。**
+      2026-09-27 まで同じ配列をこのファイルに**3回**書いており、型（`BookmarkTargetType`）
+      と合わせて4箇所に散っていた（CLAUDE.md「route の中に new Set([...]) を書かない」）。 */
+import { isBookmarkTargetType } from "@/lib/constants/bookmarks";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +50,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const target_type = url.searchParams.get("target_type");
-  if (!target_type || !["article", "company", "job", "mentor"].includes(target_type)) {
+  if (!isBookmarkTargetType(target_type)) {
     return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
   }
 
@@ -79,7 +83,7 @@ export async function POST(req: Request) {
   if (!target_type || !target_id) {
     return NextResponse.json({ error: "target_type and target_id required" }, { status: 400 });
   }
-  if (!["article", "company", "job", "mentor"].includes(target_type)) {
+  if (!isBookmarkTargetType(target_type)) {
     return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
   }
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -114,7 +118,7 @@ export async function DELETE(req: Request) {
   if (!target_type || !target_id) {
     return NextResponse.json({ error: "target_type and target_id required" }, { status: 400 });
   }
-  if (!["article", "company", "job", "mentor"].includes(target_type)) {
+  if (!isBookmarkTargetType(target_type)) {
     return NextResponse.json({ error: "Invalid target_type" }, { status: 400 });
   }
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
