@@ -126,7 +126,6 @@ export default function ProfileEditor({
   initialExperiences,
   initialContentLinks,
   roles,
-  isWelcome = false,
   /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
         右カラムの IntentCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
         まだ渡してくるので、型としては残す。 */
@@ -167,7 +166,6 @@ export default function ProfileEditor({
   initialContentLinks: ContentLink[];
   roles: RoleItem[];
   /** role_id → 別名[]。職種の検索セレクトでヒットさせる（ow_role_aliases） */
-  isWelcome?: boolean;
   initialScoutEnabled?: boolean | null;
   /** 希望職種（ow_profile_desired_roles）。本人が選んだ role_id（展開前） */
   initialDesiredRoleIds?: string[];
@@ -217,7 +215,6 @@ export default function ProfileEditor({
   /* ⚠️ タブの state（`activeTab` / `mountedTabs` / `VALID_TABS`）は
         2026-08-17 に削除した。`?tab=` は `/mypage` 側で転送する。 */
 
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   /* ⚠️ 「外から開かれたらプロフィールタブへ切り替える」は不要になった（タブが無い）。 */
 
@@ -330,62 +327,16 @@ export default function ProfileEditor({
   return (
     <>
 
-        {/* ── ウェルカムバナー（新規登録後 ?welcome=1 のみ表示） ─────────────── */}
-        {isWelcome && !welcomeDismissed && (
-          <div style={{
-            display: "flex", alignItems: "flex-start", gap: 14,
-            background: "linear-gradient(135deg, #FEF3C7, #FDE68A)",
-            border: "1.5px solid #F59E0B",
-            borderRadius: 14,
-            padding: "var(--space-4) 20px",
-            marginBottom: "var(--space-6)",
-            marginTop: -8,
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-              background: "#F59E0B",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 11V6a2 2 0 0 0-4 0v5" />
-                <path d="M14 10V4a2 2 0 0 0-4 0v6" />
-                <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
-                <path d="M6 14a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-3" />
-              </svg>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "var(--warm-ink)", marginBottom: 4 }}>
-                ようこそ！まずはプロフィールを完成させましょう
-              </div>
-              {/* ⚠️★2026-09-26 に2つの嘘を外した。**戻さないこと。**
-                     ① 「メンター相談」…… メンター機能は存在しない（`ow_mentors` は DROP 済み／
-                        `is_mentor` 0人／`kind='mentor'` の会話0件・作る経路も無い）。
-                     ② 「入力内容は自動保存されます」…… **自動保存の実装が無い。**
-                        保存はモーダルの「保存」ボタンだけ（debounce の PUT は1つも無い）。
-                        ⚠️ 未保存で閉じると破棄の確認は出る（`ProfileEditModal.requestClose`）ので
-                           消えはしないが、**確認が出ること自体がこの文言と矛盾していた。**
-                     ⚠️★自動保存を**作る**なら文言を戻してよい。文言だけ先に戻さないこと。 */}
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", lineHeight: 1.7 }}>
-                自己紹介・職歴・学歴を入力すると、企業とのカジュアル面談が
-                スムーズになります。<strong>入力したら「保存」を押してください。</strong>
-              </div>
-              {/* ⚠️ 「① 基本情報 / ② 職歴」へ飛ぶチップは外した（2026-08-15）。
-                     3タブではどちらも「プロフィール」になり、押し分ける意味が無くなったため。 */}
-            </div>
-            <button
-              type="button"
-              onClick={() => setWelcomeDismissed(true)}
-              aria-label="バナーを閉じる"
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                color: "var(--warm-ink)", padding: 4, flexShrink: 0,
-                fontSize: 18, lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
-          </div>
-        )}
+        {/* ⚠️★ウェルカムバナー（黄色）は 2026-09-26 に削除した。**戻さないこと。**
+               `isWelcome` を渡す呼び出しが **0件**（既定 false）で、**一度も描画されていなかった**。
+               `?welcome=1` で実際に出るのは `/mypage` 側の**緑のバナー**
+               （「OPINIOへようこそ！登録が完了しました。／まずは以下の3ステップを…」）。
+            ⚠️ 消したぶんに2つの嘘が入っていた。**同じ文言で作り直さないこと。**
+               ① 「メンター相談」…… メンター機能は存在しない（`ow_mentors` は DROP 済み／
+                  `is_mentor` 0人／`kind='mentor'` の会話0件・作る経路も無い）
+               ② 「入力内容は自動保存されます」…… **自動保存の実装が無い。**
+                  保存はモーダルの「保存」ボタンだけ（debounce の PUT は1つも無い）。
+                  ⚠️ 未保存で閉じれば破棄の確認は出る（`ProfileEditModal.requestClose`）。 */}
 
         {/* ── ヘッダー行: 保存状態 ─────────────────────────────────────────
             「← マイページ」ボタンはページ上部のパンくずに移した（2026-08-07）。
