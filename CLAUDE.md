@@ -536,7 +536,13 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
 | テーブル | 状況 |
 |---|---|
 | ~~`ow_mentor_reservations`~~ | ✅★**2026-09-27 に DROP した**（`20260927060000`）。0行・`src` からの参照0件・**この表を指す FK も0件**だった。専用のトリガー関数（`update_mentor_reservations_updated_at`）も**表と一緒には消えない**ので同じ migration で落としてある |
-| `ow_messages` | アプリが使うのは `ow_conversation_messages`。名前が似た別テーブルが残っている |
+| ~~`ow_messages`~~ | ✅★**2026-09-27 に DROP した**（`20260927070000`）。0行・`src` からの参照0件・指す FK も0件・GRANT も0件だった。⚠️★**アプリが使うのは `ow_conversation_messages`**（参照12箇所）。名前が似ているので**取り違えないこと** |
+| `ow_threads` | ⚠️★**残っている。** 0行・`src` からの参照0件・指す FK も0件で、`ow_messages` と同じ状態（`thread_id` の相手だった）。落とすなら同じ手順 |
+
+⚠️★**`scripts/seed-messages.ts` は削除した**（2026-09-27）。`ow_threads` と `ow_messages`
+   **だけ**を触る本番書き込みスクリプトで、`ow_messages` を落とした時点で動かなくなる。
+   ⚠️ そもそも本番に直接シードする形で、いまの方針（「本番で検証用アカウントを作らない」
+      「データが薄い画面は `/dev/preview` で見る」）と合わない。**復活させないこと。**
 
 ⚠️★**メンター関連はこれで全部消えた**（2026-09-27）。画面・メール・型・会話の生成経路に加えて、
    `ow_users` の4列（`is_mentor` / `is_active_mentor` / `mentor_registered_at`。
