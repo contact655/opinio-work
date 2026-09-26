@@ -2434,7 +2434,7 @@ export type Database = {
           id: string
           kind: string
           last_message_at: string | null
-          mentor_user_id: string | null
+          partner_user_id: string | null
           stage: string
           status: string
         }
@@ -2445,7 +2445,7 @@ export type Database = {
           id?: string
           kind: string
           last_message_at?: string | null
-          mentor_user_id?: string | null
+          partner_user_id?: string | null
           stage?: string
           status?: string
         }
@@ -2456,7 +2456,7 @@ export type Database = {
           id?: string
           kind?: string
           last_message_at?: string | null
-          mentor_user_id?: string | null
+          partner_user_id?: string | null
           stage?: string
           status?: string
         }
@@ -2476,8 +2476,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ow_conversations_mentor_user_id_fkey"
-            columns: ["mentor_user_id"]
+            foreignKeyName: "ow_conversations_partner_user_id_fkey"
+            columns: ["partner_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
             referencedColumns: ["id"]

@@ -558,8 +558,19 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
 ⚠️★**メンター関連はこれで全部消えた**（2026-09-27）。画面・メール・型・会話の生成経路に加えて、
    `ow_users` の4列（`is_mentor` / `is_active_mentor` / `mentor_registered_at`。
    `mentor_themes` はそれ以前に消えていた）とこの表。
-   ⚠️ **残しているのは `ow_conversations.mentor_user_id` だけ。** 列名だけの名残で、
-      中身は `kind='direct_message'` の相手（現役）。**落とさないこと。**
+   ⚠️★**`ow_conversations.mentor_user_id` は 2026-09-27 に `partner_user_id` へ改名した**
+      （`20260927090000`）。中身は `candidate_user_id`（始めた人）に対する**相手**で、
+      `kind='company'` なら null（相手は `company_id`）、`direct_message` なら DM の相手。
+      ⚠️★**これは DROP ではなく現役の列の改名。** 当てた瞬間、デプロイ済みの古いコードが
+         400 になる（実測: 窓は約3分。`/mypage/conversations` と `/api/dm/*` 4本）。
+         **コードを commit できる状態にしてから当てること。**
+      ⚠️★**RENAME COLUMN が追随しないのは「関数の本文」だけ。** CHECK・UNIQUE・FK・
+         RLS ポリシー・索引は**定義が自動で追随する**（名前は古いまま残るので別途改名）。
+         `create_conversation` は3箇所で参照しており、**同じ migration で
+         `CREATE OR REPLACE` して直した。** 放置すると呼ぶまで壊れたと分からない。
+      ⚠️★**引数名 `p_mentor_user_id` だけは残っている。** `CREATE OR REPLACE` では
+         引数名を変えられず、変えるには `DROP FUNCTION` が要るが**それは禁止**
+         （スカウト・応募・面談・提案が依存）。列名と引数名がずれているのは承知のうえ。
    ⚠️ 記事の `type="mentor"`（「社員・OBの声」）は**別概念**。URL に出るので変えない。
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
