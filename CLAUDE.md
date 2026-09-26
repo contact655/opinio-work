@@ -574,9 +574,20 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
          ⚠️★**窓の壊れ方が列の改名と違う。** 引数名は PostgREST の呼び出し契約なので、
             古いコードは **PGRST202** になるが、呼び出し側が `try/catch` で握って本体を
             成功扱いにする方針のため、**「応募はできたのに会話が無い」が静かに残りうる。**
-   ⚠️ 記事の `type="mentor"`（「社員・OBの声」）は**別概念**。URL に出るので変えない。
-   ✅★**DB から `mentor` は消えた**（2026-09-27 実測: `%mentor%` の列0・表0）。
-      `src/lib/supabase/types.ts` からも0件。**残っているのは記事の `type` だけ。**
+   ✅★**記事の `type` も `mentor` → `career` にした**（2026-09-27 / `20260927110000`）。
+      ラベルは 2026-08-04 から「キャリアの軌跡」で、`mentor` は**公開側に出ていなかった**。
+      ⚠️★**旧 URL `/articles/type/mentor` の 301 を `next.config.mjs` から消さないこと。**
+         本番で 200 を返していて sitemap にも priority 0.8 で載せていた（＝クローラが辿る）。
+         実測（2026-09-27）: 旧 URL は **308 → `/articles/type/career`**、新 URL は 200 で記事3件。
+      ⚠️★**CHECK の張り替えは3段階**（広げる → UPDATE → 狭める）。
+         先に広げないと UPDATE が弾かれる。
+      ⚠️ このとき**運営画面だけラベルが古かった**（`/admin/articles` と `platformMeta` が
+         「メンターインタビュー」）。同じものが2つの名前で呼ばれていたので同時に揃えた。
+
+   ✅★**`mentor` はプロダクトから消えた**（2026-09-27 実測）:
+      DB の `%mentor%` の列0・表0 ／ `src/lib/supabase/types.ts` 0件 ／ 記事の type 0件。
+      ⚠️ 残るのは **`ow_bookmarks.target_type` の `'mentor'` だけ**で、これは**別概念**
+         （実データは `company` / `job` のみ、`mentor` は0件）。触っていない。
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
    `SCOUT_SENDING_ENABLED` を未設定にして止めているので「起こさなかった0」。
