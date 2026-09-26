@@ -5916,7 +5916,6 @@ export type Database = {
           headline: string | null
           id: string
           is_active_mentor: boolean
-          is_mentor: boolean
           is_open_to_work: boolean
           is_system: boolean
           is_test: boolean
@@ -5957,7 +5956,6 @@ export type Database = {
           headline?: string | null
           id?: string
           is_active_mentor?: boolean
-          is_mentor?: boolean
           is_open_to_work?: boolean
           is_system?: boolean
           is_test?: boolean
@@ -5998,7 +5996,6 @@ export type Database = {
           headline?: string | null
           id?: string
           is_active_mentor?: boolean
-          is_mentor?: boolean
           is_open_to_work?: boolean
           is_system?: boolean
           is_test?: boolean

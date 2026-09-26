@@ -247,7 +247,6 @@ async function main() {
           name: userName,
           email: email,
           avatar_color: avatarColor,
-          is_mentor: false,
           visibility: "public",
         })
         .select("id")
