@@ -5066,42 +5066,6 @@ export type Database = {
           },
         ]
       }
-      ow_threads: {
-        Row: {
-          candidate_id: string
-          company_id: string
-          company_name: string | null
-          created_at: string | null
-          id: string
-          last_message: string | null
-          status: string | null
-          unread_count: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          candidate_id: string
-          company_id: string
-          company_name?: string | null
-          created_at?: string | null
-          id?: string
-          last_message?: string | null
-          status?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          candidate_id?: string
-          company_id?: string
-          company_name?: string | null
-          created_at?: string | null
-          id?: string
-          last_message?: string | null
-          status?: string | null
-          unread_count?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       ow_tool_masters: {
         Row: {
           aliases: string[]
