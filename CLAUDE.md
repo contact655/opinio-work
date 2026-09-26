@@ -531,12 +531,19 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
    今わざわざ検証しないのは、これが「根拠のないデータの除去」の作業であって
    未完成機能の棚卸しではないため。
 
-**🗑 未使用テーブル（DROP 候補。今回は消さない）**
+**🗑 未使用テーブル（DROP 候補）**
 
 | テーブル | 状況 |
 |---|---|
-| `ow_mentor_reservations` | **メンター機能自体が無い。** `ow_mentors` は migration 132 で作られ 140 で DROP 済み。「話せる人」の実体は `ow_company_members`。**`src` からの参照0件** |
+| ~~`ow_mentor_reservations`~~ | ✅★**2026-09-27 に DROP した**（`20260927060000`）。0行・`src` からの参照0件・**この表を指す FK も0件**だった。専用のトリガー関数（`update_mentor_reservations_updated_at`）も**表と一緒には消えない**ので同じ migration で落としてある |
 | `ow_messages` | アプリが使うのは `ow_conversation_messages`。名前が似た別テーブルが残っている |
+
+⚠️★**メンター関連はこれで全部消えた**（2026-09-27）。画面・メール・型・会話の生成経路に加えて、
+   `ow_users` の4列（`is_mentor` / `is_active_mentor` / `mentor_registered_at`。
+   `mentor_themes` はそれ以前に消えていた）とこの表。
+   ⚠️ **残しているのは `ow_conversations.mentor_user_id` だけ。** 列名だけの名残で、
+      中身は `kind='direct_message'` の相手（現役）。**落とさないこと。**
+   ⚠️ 記事の `type="mentor"`（「社員・OBの声」）は**別概念**。URL に出るので変えない。
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
    `SCOUT_SENDING_ENABLED` を未設定にして止めているので「起こさなかった0」。
