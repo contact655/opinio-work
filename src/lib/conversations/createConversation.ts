@@ -1,25 +1,24 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * 対話生成の入力。kind ごとに必須引数が分岐する discriminated union。
+ * 対話生成の入力。**`kind='company'` だけ**（候補者1人 ↔ 企業1社）。
  *
- * - kind='company': companyId 必須、mentorUserId は使わない
- * - kind='mentor':  mentorUserId 必須、companyId は使わない
+ * ⚠️★`kind='mentor'` の枝は 2026-09-27 に削除した。**戻さないこと。**
+ *    メンター機能は存在しない —— `ow_mentors` は DROP 済み、`kind='mentor'` の会話は
+ *    **本番0件**、呼び出し元も0件で、呼ぶ予定だった `/api/mentor-reservations` も
+ *    **存在しない**（「Phase ν-5 で呼ばれる予定(P4)」と書かれたまま残っていた）。
  *
- * Phase ν-3 Step 1 では kind='company' のみ使用される。
- * kind='mentor' は Phase ν-5 で /api/mentor-reservations から呼ばれる予定(P4)。
+ * ⚠️★**このラッパーは `direct_message` を作らない。** DM の会話は別の経路で作られる。
+ *    ここに `kind` を増やす前に、その経路と重複しないかを確かめること。
+ *
+ * ⚠️ `kind` のフィールド自体は残してある。RPC が `p_kind` を取るので、
+ *    呼び出し側に何の会話かを書かせたままにしておく（呼び出し元4つとも `"company"`）。
  */
-export type CreateConversationInput =
-  | {
-      kind: "company";
-      candidateUserId: string; // ow_users.id
-      companyId: string; // ow_companies.id
-    }
-  | {
-      kind: "mentor";
-      candidateUserId: string; // ow_users.id
-      mentorUserId: string; // ow_users.id (Phase ν-5 まで呼ばれない)
-    };
+export type CreateConversationInput = {
+  kind: "company";
+  candidateUserId: string; // ow_users.id
+  companyId: string; // ow_companies.id
+};
 
 export type CreateConversationResult = {
   conversationId: string; // ow_conversations.id
@@ -42,20 +41,15 @@ export async function createConversation(
   supabase: SupabaseClient,
   input: CreateConversationInput
 ): Promise<CreateConversationResult> {
-  const params =
-    input.kind === "company"
-      ? {
-          p_kind: "company",
-          p_candidate_user_id: input.candidateUserId,
-          p_company_id: input.companyId,
-          p_mentor_user_id: null,
-        }
-      : {
-          p_kind: "mentor",
-          p_candidate_user_id: input.candidateUserId,
-          p_company_id: null,
-          p_mentor_user_id: input.mentorUserId,
-        };
+  /* ⚠️★`p_mentor_user_id` は null でも**必ず渡す**。RPC は引数の名前と数で解決されるので、
+        落とすと関数が見つからず **PGRST202** になる（CLAUDE.md「RPC は引数名が違うだけで
+        404 になる」）。⚠️ DB の `create_conversation` は触っていない。 */
+  const params = {
+    p_kind: "company",
+    p_candidate_user_id: input.candidateUserId,
+    p_company_id: input.companyId,
+    p_mentor_user_id: null,
+  };
 
   const { data, error } = await supabase.rpc("create_conversation", params);
 
