@@ -601,17 +601,40 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
        where connamespace='public'::regnamespace and pg_get_constraintdef(oid) ~ '\mmentor\M';
       ```
 
-   ⚠️ **まだ `mentor` が残っているもの**（2026-09-27 時点。どれも実データ0件）:
-      | どこ | 何 |
-      |---|---|
-      | `ow_conversations_kind_check` | `kind` の許容値に `'mentor'` |
-      | `ow_conversations_kind_consistency` | `kind='mentor'` の枝 |
-      | `ow_conversations_stage_consistency` | 同上 |
-      | `ow_conversation_participants_role_check` | `role` の許容値に `'mentor'` |
-      | `create_conversation` RPC | `p_kind NOT IN ('company','mentor')` の分岐 |
-      ⚠️ TS 側は既に落としてある（`kind: "mentor"` を渡す呼び出しは0件・作る経路も無い）。
-         **残っているのは DB の許容値だけ。** 落とすなら `kind` と `stage` と `role` の
-         3つの CHECK ＋ RPC の分岐を**まとめて**（片方だけだと整合が崩れる）。
+   ✅★**会話まわりの語彙からも外した**（`20260927130000`。5箇所まとめて）:
+      `ow_conversations_kind_check` ／ `kind_consistency` ／ `stage_consistency` ／
+      `ow_conversation_participants_role_check` ／ `create_conversation` の分岐。
+      ⚠️★**まとめてやること。** 3つの CHECK は互いに整合している
+         （`kind='mentor'` なら `stage` は `mediated`/`direct`、`role` に `mentor`）ので、
+         **片方だけ外すと到達しない枝が残る。**
+      ⚠️ `stage` の `'mediated'` / `'direct'` も一緒に消えた（`kind='mentor'` 専用だった）。
+         いま `stage` は `'active'` だけ。
+      ⚠️★RPC は **`CREATE OR REPLACE`**（引数を1つも変えていないので**窓ができない**）。
+         `p_partner_user_id` は**残してある** —— 消すと署名が変わり、PostgREST の契約が
+         変わってまた窓ができる。`kind='company'` では null であることを引き続き検証する。
+
+   ✅★★**`mentor` はプロダクトから消えた**（2026-09-27 実測。**5種類すべて数えた**）:
+      列0 ／ 表0 ／ **制約0** ／ **関数の本体0**（行コメントを除く）／ ポリシー0。
+      TS 側も `src/lib/supabase/types.ts` 0件・記事の type 0件。
+
+   ⚠️★★**「消えた」と言う前に、この5種類を数えること。**
+      ```sql
+      select
+        (select count(*) from information_schema.columns where table_schema='public' and column_name like '%X%') as 列,
+        (select count(*) from information_schema.tables  where table_schema='public' and table_name  like '%X%') as 表,
+        (select count(*) from pg_constraint where connamespace='public'::regnamespace
+           and pg_get_constraintdef(oid) ~ '\mX\M') as 制約,
+        -- ★行コメントを落とす。落とさないと**自分が書いた注意書き**に当たる
+        (select count(*) from pg_proc where pronamespace='public'::regnamespace
+           and regexp_replace(prosrc,'--[^'||chr(10)||']*','','g') ~ '\mX\M') as 関数の本体,
+        (select count(*) from pg_policy p join pg_class c on c.oid=p.polrelid
+           where c.relnamespace='public'::regnamespace
+             and (coalesce(pg_get_expr(p.polqual,p.polrelid),'')
+                ||coalesce(pg_get_expr(p.polwithcheck,p.polrelid),'')) ~ '\mX\M') as ポリシー;
+      ```
+      ⚠️★2026-09-27 に**2回**取りこぼした ——1回目は列と表だけ数えて「消えた」と報告し
+         （制約に4本残っていた）、2回目は関数の検査でコメントを落とさず、
+         **自分の注意書きに当たって migration がまるごとロールバックした。**
 
 ⚠️ **意図的に止めている0はここに入れない。** `ow_scouts` / `ow_scout_quotas` は
    `SCOUT_SENDING_ENABLED` を未設定にして止めているので「起こさなかった0」。
