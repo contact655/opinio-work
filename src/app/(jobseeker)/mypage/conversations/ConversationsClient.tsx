@@ -224,11 +224,17 @@ export default function ConversationsClient({
   };
 
   const selectedConv = conversations.find((c) => c.id === selectedConvId) ?? null;
+  /* ⚠️★`kind === "mentor"` の分岐は 2026-09-26 に削除した。**戻さないこと。**
+        メンター機能は存在しない —— `ow_mentors` は DROP 済み、`kind='mentor'` の会話は
+        **本番0件**で、**作る経路も無い**（`kind: "mentor"` を渡す呼び出しが0件。
+        `/api/mentor-reservations` も存在しない）。
+     ⚠️ 消す前はフォールバックが**3箇所で割れていた**（「メンター」×2 /「対話相手」×1）。
+        一度も出ていないので誰も気づけなかった。
+     ⚠️ `ow_conversations.mentor_user_id` は**触っていない**。3件中2件が持っていて、
+        中身は `kind='direct_message'` の相手。名前だけの名残（`?industry=` と同じ形）。 */
   const displayName = selectedConv
     ? selectedConv.kind === "direct_message"
       ? selectedConv.mentor?.name ?? "ユーザー"
-      : selectedConv.kind === "mentor"
-      ? selectedConv.mentor?.name ?? "メンター"
       : selectedConv.ow_companies?.name ?? "(企業情報なし)"
     : null;
 
@@ -290,8 +296,6 @@ export default function ConversationsClient({
               const name =
                 conv.kind === "direct_message"
                   ? conv.mentor?.name ?? "ユーザー"
-                  : conv.kind === "mentor"
-                  ? conv.mentor?.name ?? "対話相手"
                   : conv.ow_companies?.name ?? "(企業情報なし)";
               const isSelected = conv.id === selectedConvId;
               const hasUnread = conv.hasUnread ?? false;
@@ -363,7 +367,7 @@ export default function ConversationsClient({
                   {conversations
                     .filter((c) => bulkIds.has(c.id))
                     .map((c) =>
-                      c.kind === "direct_message" || c.kind === "mentor"
+                      c.kind === "direct_message"
                         ? c.mentor?.name ?? "ユーザー"
                         : c.ow_companies?.name ?? "(企業情報なし)",
                     )
