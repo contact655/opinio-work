@@ -1570,7 +1570,13 @@ export default function ProfileTab({
             {/* ★説明文はモーダルの中だけに置く（カードには出さない） */}
             <FormGroup
               label="自己紹介"
-              hint="あなたのキャリアや想いを、企業・メンターに伝えるテキストです。200字を目安に。"
+              /* ⚠️★**「メンター」と書かないこと**（2026-09-26 に外した）。
+                    メンター機能は存在しない —— `ow_mentors` は DROP 済み、
+                    `is_mentor = true` は全ユーザー0人、`kind='mentor'` の会話も0件で
+                    作る経路も無い（`/api/mentor-reservations` は存在しない）。
+                    2026-09-20 に `/biz/candidates` の「メンター」バッジを
+                    同じ理由で削除している。 */
+              hint="あなたのキャリアや想いを、企業に伝えるテキストです。200字を目安に。"
             >
               <TextareaField
                 value={basicInfo.aboutMe}

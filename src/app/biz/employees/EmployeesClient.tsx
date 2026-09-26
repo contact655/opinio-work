@@ -155,15 +155,15 @@ function EmployeeCard({
             {/* ★面談OK（2026-09-18）。⚠️ 部品を複製しないこと。色と文言は
                 `/people`・企業ページ・`/u/[id]` と同じ1箇所から来ている。 */}
             {emp.isTalkable && <TalkableBadge size="sm" />}
-            {emp.isMentor && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, color: "var(--royal)",
-                background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                borderRadius: 4, padding: "1px 6px",
-              }}>
-                メンター
-              </span>
-            )}
+            {/* ⚠️★「メンター」バッジは 2026-09-26 に削除した。**戻さないこと。**
+                   2026-09-20 に `/biz/candidates` から同じバッジを同じ理由で消しており、
+                   ここだけ残っていた。
+                     ① **メンター機能そのものが無い**（`ow_mentors` は DROP 済み。
+                        `kind='mentor'` の会話は0件で、作る経路も無い）
+                     ② 実測（2026-09-26）: `is_mentor = true` は**全ユーザー0人**
+                        ＝ このバッジは**一度も出たことがない**
+                ⚠️ `isMentor` と `ow_users.is_mentor` は残してある（`/admin` が数えている）。
+                   **新しい参照を足さないこと。** */}
           </div>
           <RoleLine roleName={emp.roleName} roleTitle={emp.roleTitle} />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
