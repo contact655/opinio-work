@@ -112,7 +112,7 @@ async function getStats() {
   /* ⚠️ email は authenticated から SELECT 権限を剥がしたので admin で引く（2026-08-06） */
   const { data: recentUsers } = await admin
     .from("ow_users")
-    .select("id, name, email, is_mentor, location, created_at")
+    .select("id, name, email, location, created_at")
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -956,14 +956,6 @@ export default async function AdminDashboard() {
                       <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {u.name || "未入力"}
                       </p>
-                      {u.is_mentor && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700,
-                          background: "#F3E8FF", color: "#7C3AED",
-                          padding: "1px 6px", borderRadius: 100,
-                          flexShrink: 0,
-                        }}>メンター</span>
-                      )}
                     </div>
                     <p style={{ fontSize: 11, color: "#94A3B8", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {u.email ? u.email.replace(/[^@]*/, "***") : "—"}

@@ -38,7 +38,7 @@ function cand(over: Partial<Candidate> & { id: string; name: string }): Candidat
     /* ★既定は null（肩書きを書いていない人）。実データでは**こちらが普通**
           —— 2026-09-23 実測で肩書きを持つ実ユーザーは 0人。 */
     headline: null,
-    location: null, isMentor: false, isActivelyLooking: false,
+    location: null, isActivelyLooking: false,
     careerStance: "open", careerStanceUpdatedAt: null,
     tenureMonths: null, currentRole: null, currentCompany: null,
     employmentType: null, startedAt: null, roleName: null, topRoleName: null,

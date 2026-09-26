@@ -17,7 +17,6 @@ import { Variant, PreviewHeader } from "../Variant";
  */
 const base = {
   avatarUrl: null,
-  isMentor: false,
   isAdmin: false,
   isTalkable: false,
   startedAt: "2021-04-01",
@@ -33,7 +32,7 @@ const CURRENT: BizEmployee[] = [
   { ...base, experienceId: "e3", userId: "u3", name: "鈴木 一郎",
     roleName: "インサイドセールス", roleTitle: "SDR", isTalkable: true },
   { ...base, experienceId: "e4", userId: "u4", name: "高橋 二郎",
-    roleName: "カスタマーサクセス", roleTitle: "CSM", isAdmin: true, isTalkable: true, isMentor: true },
+    roleName: "カスタマーサクセス", roleTitle: "CSM", isAdmin: true, isTalkable: true },
   /* ⚠️ マスタ名も呼び方も無い行。**行ごと出ない**のが正しい（氏名と期間だけになる） */
   { ...base, experienceId: "e5", userId: "u5", name: "田中 三郎",
     roleName: null, roleTitle: null },
@@ -45,7 +44,7 @@ const CURRENT: BizEmployee[] = [
     name: "サンプル 長々しい氏名ですここで折り返るかを見る",
     roleName: "ソリューションエンジニア・セールスエンジニア",
     roleTitle: "エンタープライズ営業統括本部 第2ソリューション部 / プリセールス（金融担当）",
-    isAdmin: true, isTalkable: true, isMentor: true },
+    isAdmin: true, isTalkable: true },
 ];
 
 const ALUMNI: BizEmployee[] = [

@@ -21,7 +21,7 @@ async function getUsers(query?: string) {
           ⚠️ ここは admin クライアントなので引ける。`gender` / `phone` / ふりがなは
              `authenticated` に SELECT を配っていない（`ow_users` の RLS は
              「ログインしていれば他人の行も読める」ため）。**session クライアントに移さないこと。** */
-    .select("id, auth_id, name, email, is_mentor, location, birth_date, visibility, created_at, is_system, family_name_kana, given_name_kana, gender, phone")
+    .select("id, auth_id, name, email, location, birth_date, visibility, created_at, is_system, family_name_kana, given_name_kana, gender, phone")
     .eq("is_system", false)
     .order("created_at", { ascending: false });
 
@@ -67,7 +67,6 @@ export default async function AdminCandidatesPage({
 
 
   const users = await getUsers(searchParams.q);
-  const mentorCount = users.filter((u) => u.is_mentor).length;
   const bizAdminCount = users.filter((u) => u.isBizAdmin).length;
   const neverLoggedInCount = users.filter((u) => !u.lastLogin).length;
 
@@ -94,14 +93,6 @@ export default async function AdminCandidatesPage({
               {users.length}
             </strong>{" "}名
           </span>
-          {mentorCount > 0 && (
-            <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-              うちメンター{" "}
-              <strong style={{ color: "#7C3AED", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                {mentorCount}
-              </strong>{" "}名
-            </span>
-          )}
           {bizAdminCount > 0 && (
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
               うちBIZ担当者{" "}

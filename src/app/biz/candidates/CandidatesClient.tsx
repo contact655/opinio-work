@@ -92,7 +92,6 @@ export type Candidate = {
   /** ★本人が書いた1行（2026-09-23）。⚠️ `currentRole`（職種マスタ）と別物。混ぜない */
   headline: string | null;
   location: string | null;
-  isMentor: boolean;
   /** ★「積極的に検討中」（`ow_profiles.career_stance = 'active'`）。2026-08-26 に改名。
    *  ⚠️ 旧名 `isOpenToWork` は `ow_users.is_open_to_work`（boolean）由来だった。
    *     列を移したので名前も合わせる。**列名で grep したときに残らないようにする。** */
@@ -1171,8 +1170,8 @@ export default function CandidatesClient({
                                     DROP 済み。CLAUDE.md「メンター機能自体が無い」）
                                  ③ 実測（2026-09-20）: `is_mentor = true` は**全51人中0人**
                                     ＝ このバッジは一度も出たことがない
-                                 ⚠️ `isMentor` は型にも `ow_users.is_mentor` にも残っている。
-                                    **新しい参照を足さないこと。** */}
+                              ⚠️★**`ow_users.is_mentor` の列ごと 2026-09-27 に DROP した。**
+                                 `isMentor` は型からも消えている。**足し直さないこと。** */}
                           {c.alreadyScouted && (
                             <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>送信済み</span>
                           )}

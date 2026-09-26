@@ -26,7 +26,6 @@ export type BizEmployee = {
   userId: string;
   name: string | null;
   avatarUrl: string | null;
-  isMentor: boolean;
   /** ★職種マスタ（`ow_roles`）の名前。**これが主。** */
   roleName: string | null;
   /** 本人が入れた社内での呼び方（自由入力）。★マスタ名の下に小さく併記する */
@@ -91,7 +90,6 @@ export default async function EmployeesPage() {
         id,
         name,
         avatar_url,
-        is_mentor,
         is_test,
         visibility,
         auth_id
@@ -203,7 +201,6 @@ export default async function EmployeesPage() {
       userId,
       name: user.name as string | null,
       avatarUrl: user.avatar_url as string | null,
-      isMentor: user.is_mentor === true,
       /* ⚠️ 埋め込みは `role_category_id` が NULL の行では null になる（左結合）。
             `?? ""` に倒さない ——「未設定」と「取得漏れ」が区別できなくなる。 */
       roleName: (row.ow_roles?.name as string | null) ?? null,

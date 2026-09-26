@@ -162,8 +162,8 @@ function EmployeeCard({
                         `kind='mentor'` の会話は0件で、作る経路も無い）
                      ② 実測（2026-09-26）: `is_mentor = true` は**全ユーザー0人**
                         ＝ このバッジは**一度も出たことがない**
-                ⚠️ `isMentor` と `ow_users.is_mentor` は残してある（`/admin` が数えている）。
-                   **新しい参照を足さないこと。** */}
+                ⚠️★**`ow_users.is_mentor` は列ごと 2026-09-27 に DROP した**
+                   （`/admin` の集計も同時に外した）。**足し直さないこと。** */}
           </div>
           <RoleLine roleName={emp.roleName} roleTitle={emp.roleTitle} />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

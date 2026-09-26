@@ -11,7 +11,6 @@ type User = {
   auth_id: string | null;
   name: string | null;
   email: string | null;
-  is_mentor: boolean | null;
   /** 一覧には出さない（2026-08-05）。検索の対象としては使っている */
   location: string | null;
   birth_date: string | null;

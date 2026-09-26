@@ -239,7 +239,7 @@ export default async function CandidatesPage() {
   const { data: rawUsers, error: rawUsersError } = scoutAuthIds.length > 0
     ? await adminClient
         .from("ow_users")
-        .select("id, name, headline, location, is_mentor, created_at, auth_id")
+        .select("id, name, headline, location, created_at, auth_id")
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
@@ -435,7 +435,6 @@ export default async function CandidatesPage() {
                  `visibility_company`（勤務先を伏せる設定）とは無関係。 */
         headline: ((u.headline as string | null) ?? "").trim() || null,
         location: (u.location as string) || null,
-        isMentor: (u.is_mentor as boolean) || false,
         /* ★「転職検討中」バッジの根拠を `ow_users.is_open_to_work`（boolean）から
               `ow_profiles.career_stance` に付け替えた（2026-08-26 / フェーズ2）。
            ⚠️ **バッジを出すのは `active`（積極的に検討中）だけ。** 移行では
