@@ -257,7 +257,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
       ${jobCards}
       ${moreLink}
 
-      <!-- メンター相談CTA -->
+      <!-- 在籍者へのDM CTA -->
       <div style="background:#fff8f0;border:1px solid #fde68a;border-radius:12px;padding:20px 24px;margin-top:24px;text-align:center">
         <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">
           &#x1F4AC; 企業の在籍者にDMで直接相談
