@@ -221,6 +221,16 @@ export function SectionShowAllToggle({ label, hiddenCount, expanded, onToggle }:
  *    **これが唯一の追加の入口**（職歴・学歴）。丸い ＋（`SectionAddCircle`）と違い、
  *    何を足すのかが読めるようにラベルを置く。
  */
+/**
+ * セクション下の「追加」ボタン。
+ *
+ * ⚠️★★**`label` に「＋」を入れないこと**（2026-09-28 / 柴さんの指摘）。
+ *    この部品が **＋ の SVG を描く**ので、ラベルにも入れると
+ *    **「＋ ＋ 職歴を追加」と2つ並ぶ。** 実際に本番でそうなっていた。
+ *    ⚠️ `aria-label` にも同じ `label` を渡しているので、入れると
+ *       スクリーンリーダーにも「プラス プラス 職歴を追加」と読まれる。
+ *    → 渡すのは **「職歴を追加」**のように、動作だけ。
+ */
 export function SectionAddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <div style={{ marginTop: 16 }}>

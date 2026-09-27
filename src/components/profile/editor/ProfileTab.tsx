@@ -1771,7 +1771,7 @@ export default function ProfileTab({
                 />
               )}
               {/* ★★追加はここ1つ（2026-09-12）。**0件でも1件以上でも常に出す。** */}
-              <SectionAddButton label="＋ 職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
+              <SectionAddButton label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
             </ProfileTimelineSection>
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
@@ -1871,7 +1871,7 @@ export default function ProfileTab({
                 </div>
               )}
               {/* ★★追加はここ1つ（2026-09-12）。**0件でも1件以上でも常に出す。** */}
-              <SectionAddButton label="＋ 学歴を追加" onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }} />
+              <SectionAddButton label="学歴を追加" onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }} />
             </ProfileTimelineSection>
             {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダル）。
                    学校マスタへの追加リクエストのバナーもこの中から出る。 */}
