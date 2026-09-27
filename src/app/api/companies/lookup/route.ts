@@ -95,6 +95,14 @@ export async function GET(req: NextRequest) {
       id: c.id as string,
       /* ⚠️ 表示名に畳んでから返す（`name_en` を生で渡さない） */
       name: companyDisplayName(c.name as string, c.name_en as string | null).displayName,
+      /* ★正式名（登記の商号）。**表示名と違うときだけ**返す（2026-09-28 / 柴さんの指示）。
+            ⚠️★**「株式会社テスト」と打った人に候補が「テスト」としか出ず、
+               自分の勤務先だと気づけなかった**（本番で実際に起きて、同じ会社を2つ作った）。
+            ⚠️ 同じときは返さない ——同じ名前を括弧で2回出しても情報が増えない。
+            ⚠️★これは「表示名に統一する」判断を戻すものではない。**主は表示名のまま**で、
+               **添える**だけ。`name` を正式名に戻さないこと。 */
+      formalName: companyDisplayName(c.name as string, c.name_en as string | null).displayName === (c.name as string)
+        ? null : (c.name as string),
       /* ⚠️ `filterListedCompanies` と同じ意味。掲載中＝ディレクトリに載っている */
       isListed: c.is_published === true && c.listing_status === "listed",
     })),

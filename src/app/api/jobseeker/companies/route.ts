@@ -114,6 +114,9 @@ export async function GET(req: Request) {
              ⚠️★これは3回目。スカウトのブロック一覧（`GET /api/jobseeker/scout-settings`）でも
                 同じ理由で畳んでいる（CLAUDE.md）。**社名を画面へ返す口では必ず通すこと。** */
           name: companyDisplayName(h.name, (m?.name_en as string | null) ?? null).displayName,
+          /* ★正式名。**表示名と違うときだけ**返す（2026-09-28）。理由は `lookup` と同じ。 */
+          formalName: companyDisplayName(h.name, (m?.name_en as string | null) ?? null).displayName === h.name
+            ? null : h.name,
           isListed: m?.is_published === true && m?.listing_status === "listed",
           /* ★なぜ候補に出たか。⚠️ 実装語をそのまま返すが、**画面では文言に畳んでから出す**
                 （`companyMatchLabelForUser`）。ここで日本語にしないのは、

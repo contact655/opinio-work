@@ -43,7 +43,17 @@ import { useCallback, useRef, useState } from "react";
     ⚠️ ロゴ・業種・従業員数は**返らない**。 */
 export type CompanyLookupResult = {
   id: string;
+  /** ★表示名（`companyDisplayName`）。「Adobe」「テスト」のように法人格を落とした形 */
   name: string;
+  /**
+   * ★正式名（登記の商号）。**表示名と違うときだけ入る**（2026-09-28）。
+   *
+   * ⚠️★**候補行に小さく添えるためだけの値。** 主は `name`（表示名）のまま。
+   *    「株式会社テスト」と打った人に候補が「テスト」としか出ず、自分の勤務先だと
+   *    気づけずに**同じ会社をもう1つ作った**（2026-09-28 に本番で起きた）。
+   * ⚠️ 同じときは `null`。同じ名前を括弧で2回出しても情報が増えない。
+   */
+  formalName?: string | null;
   /**
    * ディレクトリ（`/companies` の一覧・検索）に載っているか。
    * ＝ `is_published` かつ `listing_status = 'listed'`。
