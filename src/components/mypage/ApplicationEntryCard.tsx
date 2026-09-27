@@ -25,8 +25,14 @@ export type Entry = {
   id: string;
   status: string;
   createdAt: string;
-  company: { id: string; slug: string | null; name: string; logoUrl: string | null; url: string | null } | null;
-  job: { id: string; slug: string | null; title: string } | null;
+  /**
+   * ⚠️★`alive` は「いま開けるか」（2026-09-27）。**`createAdminClient` で id 素引きするので、
+   *    書かないと可視性の条件が1つも効かない**（CLAUDE.md「『本人が保存したもの』の一覧は…」）。
+   *    false のときは**リンクにしない**。`/mypage/bookmarks` `/mypage/follows` と同じ扱い。
+   * ⚠️★**行ごと落とさないこと。** 応募・面談は本人の履歴で、消すと**出した記録が消える。**
+   */
+  company: { id: string; slug: string | null; name: string; logoUrl: string | null; url: string | null; alive: boolean } | null;
+  job: { id: string; slug: string | null; title: string; alive: boolean } | null;
   /** 面談から生まれた対話。⚠️ 無ければリンクごと出さない */
   conversationId: string | null;
 };
@@ -65,14 +71,17 @@ export function ApplicationEntryCard({ entry }: { entry: Entry }) {
     : (JOB_STATUS_TO_STEP[entry.status] ?? -1);
 
   const company = entry.company;
-  const companyHref = company ? `/companies/${company.slug ?? company.id}` : null;
+  /* ⚠️★開けない相手にはリンクを張らない（2026-09-27）。企業ページが 404 になる
+        （`is_published = false`）、求人が取り下げられた（`status <> 'published'`）場合。
+        判定はサーバー側で `alive` に畳んである。 */
+  const companyHref = company?.alive ? `/companies/${company.slug ?? company.id}` : null;
 
   /* 行き先。⚠️ **面談には求職者向けの詳細ページが無い**ので企業ページへ送る。
         求人応募は応募したその求人へ。 */
   const titleText = isMeeting ? (company?.name ?? "企業") : (entry.job?.title ?? "募集");
   const titleHref = isMeeting
     ? companyHref
-    : (entry.job ? `/jobs/${entry.job.slug ?? entry.job.id}` : companyHref);
+    : (entry.job?.alive ? `/jobs/${entry.job.slug ?? entry.job.id}` : companyHref);
 
   return (
     <div className="bg-white rounded-card border border-card-border overflow-hidden">

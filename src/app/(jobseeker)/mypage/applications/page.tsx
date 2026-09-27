@@ -53,9 +53,11 @@ export default async function ApplicationsPage() {
         admin
           .from("ow_job_applications")
           .select(
+            /* ⚠️★`status` / `is_published` / `is_test` を**必ず取る**（2026-09-27）。
+                  落とすと `undefined` になり、下の `alive` が静かに「生きている」側へ倒れる。 */
             `id, status, created_at,
-            ow_jobs(id, slug, title,
-              ow_companies(id, slug, name, logo_url, url)
+            ow_jobs(id, slug, title, status, is_test,
+              ow_companies(id, slug, name, logo_url, url, is_published, is_test)
             )`
           )
           .eq("user_id", owUser.id)
@@ -72,9 +74,10 @@ export default async function ApplicationsPage() {
         admin
           .from("ow_casual_meetings")
           .select(
+            /* ⚠️★可視性の列も取る（2026-09-27。上と同じ理由） */
             `id, status, created_at, conversation_id,
-            company:ow_companies!company_id(id, slug, name, logo_url, url),
-            job:ow_jobs!job_id(id, slug, title)`
+            company:ow_companies!company_id(id, slug, name, logo_url, url, is_published, is_test),
+            job:ow_jobs!job_id(id, slug, title, status, is_test)`
           )
           .eq("user_id", owUser.id)
           .order("created_at", { ascending: false }),
@@ -82,6 +85,18 @@ export default async function ApplicationsPage() {
 
     if (appErr) console.error("[mypage/applications] ow_job_applications:", appErr.message);
     if (meetingErr) console.error("[mypage/applications] ow_casual_meetings:", meetingErr.message);
+
+    /* ★「いま開けるか」の判定（2026-09-27 / `/mypage/bookmarks` `/mypage/follows` と同じ）。
+          ⚠️★**行ごと落とさない。** 応募・面談は本人の履歴で、消すと出した記録が消える。
+             開けないものは**リンクにしないだけ**（`ApplicationEntryCard` が見る）。
+          ⚠️★企業は `is_published`（404 ゲート）で見る。`listing_status` では落とさない
+             —— ディレクトリ非掲載でもページは開ける。
+          ⚠️ 求人の表示条件は `status='published'` かつ `is_test=false` の2つだけ
+             （`ow_jobs` に `is_published` 列は無い）。 */
+    const companyAlive = (c: Record<string, unknown> | null) =>
+      !!c && c.is_published === true && c.is_test !== true;
+    const jobAlive = (j: Record<string, unknown> | null) =>
+      !!j && j.status === "published" && j.is_test !== true;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const jobEntries: Entry[] = ((appRows ?? []) as any[]).map((r) => {
@@ -99,10 +114,11 @@ export default async function ApplicationsPage() {
               name: (company.name as string) ?? "",
               logoUrl: (company.logo_url as string | null) ?? null,
               url: (company.url as string | null) ?? null,
+              alive: companyAlive(company),
             }
           : null,
         job: job
-          ? { id: job.id as string, slug: (job.slug as string | null) ?? null, title: (job.title as string) ?? "" }
+          ? { id: job.id as string, slug: (job.slug as string | null) ?? null, title: (job.title as string) ?? "", alive: jobAlive(job) }
           : null,
         conversationId: null,
       };
@@ -124,10 +140,11 @@ export default async function ApplicationsPage() {
               name: (company.name as string) ?? "",
               logoUrl: (company.logo_url as string | null) ?? null,
               url: (company.url as string | null) ?? null,
+              alive: companyAlive(company),
             }
           : null,
         job: job
-          ? { id: job.id as string, slug: (job.slug as string | null) ?? null, title: (job.title as string) ?? "" }
+          ? { id: job.id as string, slug: (job.slug as string | null) ?? null, title: (job.title as string) ?? "", alive: jobAlive(job) }
           : null,
         conversationId: (r.conversation_id as string | null) ?? null,
       };

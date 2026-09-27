@@ -10,6 +10,12 @@ export type ScoutItem = {
   status: "sent" | "interested" | "declined";
   sentAt: string | null;
   conversationId: string | null;
+  /**
+   * ⚠️★`alive` は「いま開けるか」（2026-09-27）。**`createAdminClient` で素引きするので、
+   *    書かないと可視性の条件が1つも効かない**（CLAUDE.md「『本人が保存したもの』の一覧は…」）。
+   *    false のときは**リンクにしないだけ**。**スカウトの行は落とさない**
+   *    —— 受け取った事実は本人の履歴で、相手が下ろしても消える理由が無い。
+   */
   company: {
     id: string;
     name: string;
@@ -17,8 +23,9 @@ export type ScoutItem = {
     logoLetter: string | null;
     logoGradient: string | null;
     logoUrl: string | null;
+    alive: boolean;
   } | null;
-  job: { id: string; title: string } | null;
+  job: { id: string; title: string; alive: boolean } | null;
 };
 
 function formatDate(iso: string | null): string {
@@ -253,7 +260,9 @@ function ScoutCard({
             }}
             title={company?.name ?? undefined}
           >
-            {company ? (
+            {/* ⚠️★企業ページが 404（`is_published=false`）なら**リンクにしない**。
+                   名前は出す —— どこから来たスカウトかは履歴として残す。 */}
+            {company?.alive ? (
               <Link href={`/companies/${company.slug ?? company.id}`} style={{ color: "inherit", textDecoration: "none" }}>
                 {company.name}
               </Link>
@@ -270,20 +279,23 @@ function ScoutCard({
 
       {/* 紐づく求人 */}
       {scout.job && (
-        <Link
-          href={`/jobs/${scout.job.id}`}
-          style={{
+        /* ⚠️★取り下げられた求人（`status <> 'published'`）は**リンクにしない**（2026-09-27）。
+               ⚠️ カードごと消さない。「どの求人について来たスカウトか」は履歴として残す。
+               ⚠️ `href=""` にしないこと —— 現在地へ飛ぶだけで「押せるのに何も起きない」になる。 */
+        (() => {
+          const jobBoxStyle = {
             display: "block",
             padding: "8px 12px",
             borderRadius: 8,
-            background: "var(--royal-50)",
-            border: "1px solid var(--royal-100)",
+            background: scout.job.alive ? "var(--royal-50)" : "var(--bg-tint)",
+            border: `1px solid ${scout.job.alive ? "var(--royal-100)" : "var(--line)"}`,
             textDecoration: "none",
             marginBottom: 12,
-          }}
-        >
-          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700, color: "var(--royal)", marginBottom: 2 }}>
-            この求人について
+          } as React.CSSProperties;
+          const inner = (<>
+          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700, color: scout.job.alive ? "var(--royal)" : "var(--ink-mute)", marginBottom: 2 }}>
+            {/* ⚠️ 色で危険を示さない。相手が下ろしただけで、本人の操作の失敗ではない */}
+            {scout.job.alive ? "この求人について" : "この求人について ・ 掲載を終了しました"}
           </div>
           <div
             style={{
@@ -299,7 +311,12 @@ function ScoutCard({
           >
             {scout.job.title}
           </div>
-        </Link>
+          </>);
+          /* ⚠️★開けないものは `<Link>` で包まない。`href=""` にしないこと。 */
+          return scout.job.alive
+            ? <Link href={`/jobs/${scout.job.id}`} style={jobBoxStyle}>{inner}</Link>
+            : <div style={jobBoxStyle}>{inner}</div>;
+        })()
       )}
 
       {/* 本文 */}

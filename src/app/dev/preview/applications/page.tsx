@@ -27,11 +27,19 @@ import { CASUAL_MEETING_STATUSES } from "@/lib/constants/casualMeetingStatus";
 
 const CO = {
   id: "c1", slug: "salesforce", name: "株式会社セールスフォース・ジャパン",
-  logoUrl: null, url: "https://www.salesforce.com/jp/",
+  logoUrl: null, url: "https://www.salesforce.com/jp/", alive: true,
 };
 const CO_LONG = {
   id: "c2", slug: "long", name: "富士フイルムビジネスイノベーションジャパン株式会社",
-  logoUrl: null, url: null,
+  logoUrl: null, url: null, alive: true,
+};
+
+/* ★開けなくなった相手（2026-09-27）。企業ページが 404（`is_published=false`）、
+      求人が取り下げられた（`status <> 'published'`）状態。
+   ⚠️★**行は残ってリンクだけ外れる**のが正しい。行ごと消えたら実装が誤っている。 */
+const CO_GONE = {
+  id: "c3", slug: "gone", name: "株式会社KOSKA（公開終了）",
+  logoUrl: null, url: null, alive: false,
 };
 
 const meeting = (status: string, over: Partial<Entry> = {}): Entry => ({
@@ -42,7 +50,7 @@ const meeting = (status: string, over: Partial<Entry> = {}): Entry => ({
 const application = (status: string, over: Partial<Entry> = {}): Entry => ({
   kind: "job", id: `j-${status}`, status, createdAt: "2026-08-20T00:00:00Z",
   company: CO,
-  job: { id: "j1", slug: "account-executive-mulesoft", title: "Account Executive, MuleSoft" },
+  job: { id: "j1", slug: "account-executive-mulesoft", title: "Account Executive, MuleSoft", alive: true },
   conversationId: null, ...over,
 });
 
@@ -118,11 +126,27 @@ export default function ApplicationsPreview() {
           <ApplicationEntryCard
             entry={meeting("scheduled", {
               id: "m-withjob",
-              job: { id: "j1", slug: "ae", title: "Account Executive, MuleSoft" },
+              job: { id: "j1", slug: "ae", title: "Account Executive, MuleSoft", alive: true },
               conversationId: "conv-1",
             })}
           />
           <ApplicationEntryCard entry={meeting("pending", { id: "m-plain" })} />
+        </div>
+      </Variant>
+
+      <Variant
+        label="開けなくなった相手"
+        note="企業ページが 404 / 求人が取り下げられた行。★行は残り、題名がリンクでなくなること（消えたら誤り）"
+      >
+        <div className="space-y-4">
+          <ApplicationEntryCard entry={meeting("pending", { id: "m-gone", company: CO_GONE })} />
+          <ApplicationEntryCard
+            entry={application("doc_review", {
+              id: "j-gone",
+              job: { id: "j8", slug: "gone", title: "Director, Customer Success Management（掲載終了）", alive: false },
+            })}
+          />
+          {/* ⚠️ 求人だけ取り下げ・企業は生きている → 企業ページへ落ちる（`titleHref` の分岐） */}
         </div>
       </Variant>
 
@@ -137,7 +161,7 @@ export default function ApplicationsPreview() {
           <ApplicationEntryCard
             entry={application("doc_review", {
               id: "j-long", company: CO_LONG,
-              job: { id: "j9", slug: "long", title: "エンタープライズ営業（製造業界担当・課長候補／ハイブリッド勤務可）" },
+              job: { id: "j9", slug: "long", title: "エンタープライズ営業（製造業界担当・課長候補／ハイブリッド勤務可）", alive: true },
             })}
           />
         </div>

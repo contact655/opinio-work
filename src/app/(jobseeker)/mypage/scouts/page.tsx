@@ -38,9 +38,12 @@ export default async function ScoutsPage() {
   const { data, error } = await admin
     .from("ow_scouts")
     .select(
+      /* ⚠️★可視性の列を**必ず取る**（2026-09-27）。落とすと `undefined` になり、
+            下の `alive` が静かに「生きている」側へ倒れる
+            （CLAUDE.md「『本人が保存したもの』の一覧は id で素引きするので可視性が抜ける」）。 */
       "id, message, status, sent_at, replied_at, conversation_id, " +
-        "ow_companies!company_id(id, name, slug, logo_letter, logo_gradient, logo_url), " +
-        "ow_jobs!job_id(id, title)",
+        "ow_companies!company_id(id, name, slug, logo_letter, logo_gradient, logo_url, is_published, is_test), " +
+        "ow_jobs!job_id(id, title, status, is_test)",
     )
     .eq("candidate_id", user.id) // ⚠️ auth 空間
     .order("sent_at", { ascending: false });
@@ -55,11 +58,17 @@ export default async function ScoutsPage() {
     replied_at: string | null;
     conversation_id: string | null;
     ow_companies:
-      | { id: string; name: string; slug: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }[]
-      | { id: string; name: string; slug: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }
+      | CompanyRow[]
+      | CompanyRow
       | null;
-    ow_jobs: { id: string; title: string }[] | { id: string; title: string } | null;
+    ow_jobs: JobRow[] | JobRow | null;
   };
+  type CompanyRow = {
+    id: string; name: string; slug: string | null;
+    logo_letter: string | null; logo_gradient: string | null; logo_url: string | null;
+    is_published: boolean | null; is_test: boolean | null;
+  };
+  type JobRow = { id: string; title: string; status: string | null; is_test: boolean | null };
 
   // PostgREST の埋め込みは 1:1 でも配列で返ることがある
   const one = <T,>(v: T[] | T | null): T | null => (Array.isArray(v) ? v[0] ?? null : v ?? null);
@@ -81,9 +90,15 @@ export default async function ScoutsPage() {
             logoLetter: c.logo_letter,
             logoGradient: c.logo_gradient,
             logoUrl: c.logo_url,
+            /* ★「いま開けるか」。⚠️★**行は落とさない。リンクにしないだけ。**
+                  受け取った事実は本人の履歴で、相手が下ろしても消える理由が無い。
+               ⚠️ 企業は `is_published`（404 ゲート）で見る。`listing_status` では落とさない。 */
+            alive: c.is_published === true && c.is_test !== true,
           }
         : null,
-      job: j ? { id: j.id, title: j.title } : null,
+      /* ⚠️ 求人の表示条件は `status='published'` かつ `is_test=false` の2つだけ
+            （`ow_jobs` に `is_published` 列は無い）。 */
+      job: j ? { id: j.id, title: j.title, alive: j.status === "published" && j.is_test !== true } : null,
     };
   });
 
