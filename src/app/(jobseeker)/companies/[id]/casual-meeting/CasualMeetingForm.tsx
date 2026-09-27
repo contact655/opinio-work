@@ -241,7 +241,10 @@ export default function CasualMeetingForm({
           あなたのプロフィールでは、<strong>{companyName}</strong> に<strong>現在も在籍中</strong>として登録されています。
           <br />
           退職済みの場合は、
-          <Link href="/mypage/details/experience" style={{ color: "var(--warm-ink)", fontWeight: 700, textDecoration: "underline" }}>
+          {/* ⚠️★行き先は `/mypage`。**`/mypage/details/experience` に戻さないこと**（2026-09-27）。
+                 職歴の一覧ページは 2026-09-12 に畳んであり、`src/middleware.ts` が
+                 `/mypage` へ 307 で転送するだけ（実測）。編集は `/mypage` の行の鉛筆。 */}
+          <Link href="/mypage" style={{ color: "var(--warm-ink)", fontWeight: 700, textDecoration: "underline" }}>
             職歴の更新
           </Link>
           をご検討ください。<strong>このまま申し込むこともできます。</strong>

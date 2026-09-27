@@ -1668,7 +1668,14 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             自分も面談対応者になるには、<strong style={{ color: "var(--ink)" }}>この会社に在籍中の職歴</strong>が要ります。
             <br />
             職歴は求職者向けのプロフィールで登録します。
-            <a href="/profile/edit?tab=career" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none", marginLeft: 4 }}>
+            {/* ⚠️★行き先は `/mypage`。**`/profile/edit?tab=career` に戻さないこと**（2026-09-27）。
+                   あれは転送だけのページで、実測すると
+                   `/profile/edit?tab=career` → 307 → `/mypage?tab=career` → 307 → `/mypage`
+                   の**3ホップ**になる（`?tab=` は middleware が捨てるだけで何も効かない）。
+                ⚠️ `/profile/edit/page.tsx` は「アプリ内のリンクは全部 `/mypage` へ向け直した」
+                   と書いてあるが、**このリンクだけが残っていた。** あのページは
+                   過去のメールとブックマークのために残すもので、新しく指さない。 */}
+            <a href="/mypage" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none", marginLeft: 4 }}>
               職歴を登録する →
             </a>
           </div>
