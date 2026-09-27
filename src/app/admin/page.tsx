@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { findTestLeftovers, countTestLeftovers } from "@/lib/admin/testLeftovers";
+import { TestLeftoversCard } from "@/components/admin/TestLeftoversCard";
 import { MUTUAL_RESPONSES } from "@/lib/constants/proposalResponses";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
@@ -188,6 +190,9 @@ async function getStats() {
     console.error("[admin] 未紹介の提案の取得に失敗:", stuckIntros.error.message);
   }
 
+  /* ★検証用アカウントの取り残しを数える（2026-09-28）。判定は1箇所。 */
+  const testLeftovers = await findTestLeftovers(admin);
+
   return {
     stuckIntrosCount: stuckIntros.error ? 0 : (stuckIntros.count ?? 0),
     stuckIntrosFailed: Boolean(stuckIntros.error),
@@ -206,6 +211,10 @@ async function getStats() {
     activeCompaniesCount: activeCompanies.count ?? 0,
     activeJobsCount: activeJobs.count ?? 0,
     totalApplicationsCount: totalApplications.count ?? 0,
+    /* ★検証用アカウントの取り残し（2026-09-28）。0件が正常。
+          ⚠️★条件は `lib/admin/testLeftovers.ts` の1箇所。ここに書き写さない
+             （日次 cron が同じ関数を呼ぶ。割れると画面とメールが食い違う）。 */
+    testLeftovers,
     pendingJobsCount: pendingJobs.count ?? 0,
     pendingMeetingsCount: pendingMeetings.count ?? 0,
 
@@ -256,6 +265,8 @@ export default async function AdminDashboard() {
     + (stats.joinRequestsFailed ? 1 : stats.joinRequestsCount)
     /* ⚠️ 0件が正常。取得に失敗したときは 1件として数える（カードが「失敗」を出すため） */
     + (stats.undeliveredScoutsFailed ? 1 : stats.undeliveredScoutsCount)
+    /* ⚠️ 0件が正常。取得に失敗したときは 1件（`countTestLeftovers` がそう返す） */
+    + countTestLeftovers(stats.testLeftovers)
     /* ★在籍していない人の報告（2026-09-18）。0件が正常。失敗は1件として数える */
     + (stats.memberReportsFailed ? 1 : stats.memberReportsCount)
     /* ★未紹介の提案（2026-09-21）。0件が正常。失敗は1件として数える */
@@ -716,6 +727,8 @@ export default async function AdminDashboard() {
                 </div>
               </div>
             )}
+
+            <TestLeftoversCard leftovers={stats.testLeftovers} />
 
             {/* ★★双方合意なのに紹介できていない提案（2026-09-21）。
                    ⚠️ 両側とも答え終わっているので、運営が押さないと永久に残る。

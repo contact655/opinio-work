@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/test-leftovers", label: "is_test の取り残し（/admin の要対応）",
+    desc: "★0件が正常なので、実画面では出る側を描けない。0件／1件／複数／作成者不明／取得失敗をここで見る" },
   { href: "/dev/preview/company-create", label: "会社を登録する（職歴の途中で出るダイアログ）",
     desc: "★縦の長さを見る画面。実画面はオンボーディング未完了のアカウントが要るので、ここでしか測れない" },
   { href: "/dev/preview/people-cards", label: "登録ユーザーのカード（/people）",

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/rebuild-transitions",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/check-test-leftovers",
+      "schedule": "0 21 * * *"
     }
   ]
 }

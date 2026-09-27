@@ -226,6 +226,47 @@ export function casualMeetingAdminTemplate(params: {
  * ⚠️ 再報告のたびに送る。却下後に状況が変わって再報告されるのは、運営が知りたい場面。
  *    ⚠️ 企業が押し直しても**未対応の行は1つしか作れない**ので、同じ報告で何通も飛ばない。
  */
+/**
+ * ★検証用アカウントの取り残しを運営に知らせる（2026-09-28）。
+ *
+ * ⚠️★**0件のときは呼ばないこと。** 「今日も0件でした」を毎日送ると読まれなくなり、
+ *    本当に出た日の1通が埋もれる。呼び出し側（日次 cron）が件数で出し分ける。
+ * ⚠️★**宛名を付けない。** 運営への通知で、個人宛ではない
+ *    （`greetingName()` は人に呼びかけるときだけ）。
+ * ⚠️ 倒す操作はここからさせない。**`/admin` を見て、人が migration を書く。**
+ */
+export function testLeftoversAdminTemplate(params: {
+  users: string[];
+  companies: { name: string; createdBy: string | null }[];
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  const total = params.users.length + params.companies.length;
+  const li = (t: string) => `<li style="margin:0 0 4px">${esc(t)}</li>`;
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【要対応】is_test を立て忘れている行が ${total}件あります`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">検証用アカウントの取り残し</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        実ユーザー・実企業として数えられています。<strong>0件が正常です。</strong>
+      </p>
+      ${params.users.length > 0 ? `
+      <p style="margin:0 0 6px;font-weight:700;color:#0f172a">利用者 ${params.users.length}件</p>
+      <ul style="margin:0 0 16px;padding-left:20px;color:#475569">${params.users.map(li).join("")}</ul>` : ""}
+      ${params.companies.length > 0 ? `
+      <p style="margin:0 0 6px;font-weight:700;color:#0f172a">企業 ${params.companies.length}件</p>
+      <ul style="margin:0 0 16px;padding-left:20px;color:#475569">
+        ${params.companies.map((c) => li(`${c.name}（作成: ${c.createdBy ?? "不明"}）`)).join("")}
+      </ul>` : ""}
+      <p style="margin:0 0 20px;color:#475569">
+        倒すときは <strong>id / email を明示列挙した migration</strong> で行ってください。
+        まとめて倒すと実在の利用者・企業を巻き込みます。
+      </p>
+      <p style="margin:0"><a href="${siteUrl}/admin" style="color:#002366">運営ダッシュボードを開く</a></p>
+    `),
+  };
+}
+
 export function memberReportAdminTemplate(params: {
   companyName: string;
   /** 対象者の氏名。⚠️ 取れないことがある（経歴が消えた等）ので null を許す */
