@@ -1192,10 +1192,18 @@ sitemap 企業URL **21本**（4回連続で同値）・`?industry=` **11本の�
 
 ```sql
 -- ★社名で登記を引く前に、まずこれを見る
-select c.name, c.source, u.email, u.is_test
+--   ⚠️★**作成者の経路は2つある。片方だけ見ない**（2026-09-28 に足した）:
+--      ・ow_company_creations … 2026-09-28 以降に作られた企業（両方の入口）
+--      ・ow_company_admins    … `/biz` から作られた企業（それ以前も辿れる）
+--   ⚠️ どちらも NULL なら「**記録が無い**」。作成者が居ないという意味ではない。
+select c.name, c.source,
+       ucr.email as 作成者, ucr.is_test as 作成者のis_test,
+       ua.email  as 管理者, ua.is_test  as 管理者のis_test
   from ow_companies c
+  left join ow_company_creations cr on cr.company_id = c.id
+  left join ow_users ucr on ucr.id = cr.created_by_ow_user_id
   left join ow_company_admins a on a.company_id = c.id
-  left join ow_users u on u.id = a.user_id
+  left join ow_users ua on ua.id = a.user_id
  where c.name = '対象';
 ```
 
@@ -2041,15 +2049,41 @@ select email, to_char(created_at,'YYYY-MM-DD') as 作成
    → **人を倒したら、同じ作業の中で企業行も数えること。**
 
    ```sql
-   -- ★取り残しを数える。0 が正常
+   -- ★取り残しを数える。0 が正常（2026-09-28 に書き直した）
    --   ⚠️★`source` の条件を外さないこと（下記）
    select c.name, c.source, u.email
      from ow_companies c
-     join ow_company_admins a on a.company_id = c.id
-     join ow_users u on u.id = a.user_id
+     join ow_company_creations cr on cr.company_id = c.id
+     join ow_users u on u.id = cr.created_by_ow_user_id
     where c.is_test is not true and u.is_test = true
       and c.source in ('biz_self','user');
    ```
+
+   ⚠️★★**この検査は 2026-09-28 まで `ow_company_admins` を join していて、
+      `source='user'` の企業を構造上ヒットさせられなかった。**
+      オンボーディングの「この会社をOPINIOに登録する」
+      （`POST /api/jobseeker/companies`）は**管理者の行を作らない**ので、
+      作成者を辿る手がかりがどこにも無かった。
+      ⚠️ その結果、同日に本番で作られた「株式会社テスト」は **0件 と報告された**。
+         柴さんが画面で気づいて初めて倒せている（`20260928043000`）。
+         **「0件だから取り残しが無い」と読める状態**だった。
+      → **`ow_company_creations`**（運営専用・`ow_transitions` と同じ形）に
+        作成者を記録するようにした（`20260928050000`）。書くのは
+        **[recordCompanyCreation](src/lib/companies/recordCreation.ts) の1箇所**で、
+        `/biz` と求職者側の**両方**が通る。**企業を作る経路を足したら必ず呼ぶこと。**
+
+   ⚠️★**バックフィルしていない。** `source='user'` の既存企業は辿る手段が無く、
+      `biz_self` を `ow_company_admins` から埋めるのも推測になる
+      （管理者は後から足せるので「最初に作った人」とは限らない）。
+      ＝ **この検査が効くのは 2026-09-28 以降に作られた企業だけ。**
+      それより前のものは、`source in ('biz_self','user')` の一覧を目で見るしかない。
+
+   ⚠️★**`ow_companies` に作成者の列を足す形に変えないこと。** あの表の SELECT は
+      **anon にテーブルレベル**（実測 2026-09-28: 153/153列）なので、
+      `is_published = true` の企業について作成者が誰にでも読める。
+      ⚠️ 既存の `ow_companies.user_id` も使わない ——`auth.uid() = user_id` の RLS
+         （`ow_companies_own_select` / `..._own_update`）が掛かっており、
+         **書いた瞬間にその利用者へ企業の閲覧・編集権を渡す。**
 
    ⚠️★★**`source` の条件を外すと実在企業を拾う。** 2026-09-28 に実際に書き間違えた
       ——`c.is_test is not true and u.is_test = true` だけにしたら **5件**返り、

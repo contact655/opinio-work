@@ -1220,6 +1220,39 @@ export type Database = {
           },
         ]
       }
+      ow_company_creations: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by_ow_user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by_ow_user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by_ow_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_creations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_creations_created_by_ow_user_id_fkey"
+            columns: ["created_by_ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_culture_tags: {
         Row: {
           company_id: string | null

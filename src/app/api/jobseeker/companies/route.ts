@@ -4,8 +4,9 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
 import { newCompanyAdminTemplate } from "@/lib/notify/templates";
 import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
-import { deriveBrandName } from "@/lib/companies/displayName";
+import { deriveBrandName, companyDisplayName } from "@/lib/companies/displayName";
 import { deriveCompanySlug, resolveSlugCollision } from "@/lib/companies/slug";
+import { recordCompanyCreation } from "@/lib/companies/recordCreation";
 
 /**
  * POST /api/jobseeker/companies
@@ -89,7 +90,8 @@ export async function GET(req: Request) {
      ⚠️ 検証用企業は候補に出さない。 */
   const { data: meta, error: metaErr } = await admin
     .from("ow_companies")
-    .select("id, is_published, listing_status, is_test")
+    /* ⚠️★`name_en` も取る。候補の社名を**表示名に畳む**のに要る（下記） */
+    .select("id, name_en, is_published, listing_status, is_test")
     .in("id", hits.map((h) => h.id));
   if (metaErr) {
     console.error("[GET /api/jobseeker/companies] 掲載状態の取得に失敗:", metaErr.message);
@@ -104,7 +106,14 @@ export async function GET(req: Request) {
         const m = byId.get(h.id);
         return {
           id: h.id,
-          name: h.name,
+          /* ⚠️★★**表示名に畳んでから返す**（2026-09-28）。`/api/companies/lookup`（企業ピッカー）が
+                `companyDisplayName` を通すので、ここで生の `ow_companies.name` を返すと
+                **同じ会社が1クリック差で別の名前に見える。**
+                実際に踏んだ: ピッカーは「テスト」、このダイアログは「株式会社テスト」と出て、
+                「最初の一覧に自分の勤務先が無い」と読まれた（柴さんの指摘）。
+             ⚠️★これは3回目。スカウトのブロック一覧（`GET /api/jobseeker/scout-settings`）でも
+                同じ理由で畳んでいる（CLAUDE.md）。**社名を画面へ返す口では必ず通すこと。** */
+          name: companyDisplayName(h.name, (m?.name_en as string | null) ?? null).displayName,
           isListed: m?.is_published === true && m?.listing_status === "listed",
           /* ★なぜ候補に出たか。⚠️ 実装語をそのまま返すが、**画面では文言に畳んでから出す**
                 （`companyMatchLabelForUser`）。ここで日本語にしないのは、
@@ -246,6 +255,11 @@ export async function POST(req: Request) {
       ? null
       : resolution.owUser;
 
+  /* ★誰が作ったかを記録する（2026-09-28）。⚠️ **通知より先に書く。**
+        メールは best-effort で失敗しうるので、後ろに置くと記録まで落ちる。
+        ⚠️ `owUser` が解決できなければ null を渡す（「不明」で埋めない）。 */
+  await recordCompanyCreation(company.id as string, owUser?.id ?? null);
+
   try {
     await sendEmail(
       newCompanyAdminTemplate({
@@ -273,7 +287,9 @@ export async function POST(req: Request) {
         ⚠️ Cookie は付けない（このルートは企業担当者を作らない）。 */
   return NextResponse.json(
     {
-      company: { id: company.id, name: company.name, isListed: false },
+      /* ⚠️★`name` は**表示名**。`/api/companies/lookup` と揃える（2026-09-28）。
+            生の `name` を返すと、**作った直後だけ選択済みカードの社名が違う。** */
+      company: { id: company.id, name: companyDisplayName(company.name as string, null).displayName, isListed: false },
       /* 正規化名が一致した既存企業。呼び出し側が「もしかして既にある？」に使う。
          ⚠️ ここでも列を絞る。掲載していない企業の情報を渡さない。 */
       duplicate_candidates: duplicates

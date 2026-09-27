@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { deriveBrandName } from "@/lib/companies/displayName";
+import { recordCompanyCreation } from "@/lib/companies/recordCreation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
@@ -271,6 +272,12 @@ export async function POST(req: Request) {
   const owUser = resolution.status === "error" || resolution.status === "needs_verification"
     ? null
     : resolution.owUser;
+
+  /* ★誰が作ったかを記録する（2026-09-28）。⚠️★**`ow_company_admins` があるから不要、にしない。**
+        管理者は後から足せるので「最初に作った人」とは限らず、外れることもある。
+        ⚠️ `source='user'`（求職者側）と**同じ表・同じ関数**に寄せて、
+           取り残しの検査SQLを1本で書けるようにしてある。 */
+  await recordCompanyCreation(company.id as string, owUser?.id ?? null);
 
   if (!owUser) {
     console.error(
