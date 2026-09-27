@@ -242,6 +242,10 @@ export default async function OnboardingPage() {
       initialStance={initialStance}
       initialDesiredRoleIds={initialDesiredRoleIds}
       initialPerson={initialPerson}
+      /* ★2画面目の下書きを利用者ごとに分ける鍵（2026-09-28）。
+            ⚠️★**同じブラウザで別のアカウントに入り替わったとき、前の人の下書きを
+               復元しないため。** 値そのものは画面に出ないので auth の id でよい。 */
+      draftKey={user.id}
     />
   );
 }
