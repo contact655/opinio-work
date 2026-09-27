@@ -235,7 +235,15 @@ export function RoleSearchSelect({
   const inputValue = open ? query : (clearOnSelect ? "" : selectedLabel);
 
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
+    <>
+      {/* ★★`position: relative` の器は**検索欄とドロップダウンだけ**を包むこと（2026-09-28）。
+             ドロップダウンは `top: calc(100% + 4px)` で **器の下端**に付くので、
+             ここに2段セレクトまで入れると**一覧が2段セレクトのさらに下に開く。**
+             ⚠️★**2026-08-26 に2段セレクトをこの器の中へ足した時点で、静かにそうなっていた。**
+                検索欄を押した人には、同じ大分類の一覧が
+                「2段セレクトの上と下に2つある」ように見えていた（柴さんの指摘で発覚）。
+             ⚠️ **2段セレクトをこの器の中に戻さないこと。** */}
+      <div ref={containerRef} style={{ position: "relative" }}>
       <input
         type="text"
         role="combobox"
@@ -393,6 +401,7 @@ export function RoleSearchSelect({
           )}
         </div>
       )}
+      </div>
 
       {/* ★大分類 → 小分類 の2段セレクト（検索の代わりではなく**併用**）。
           **状態によって出すものが変わる。**
@@ -504,7 +513,7 @@ export function RoleSearchSelect({
         </div>
       )}
 
-    </div>
+    </>
   );
 }
 

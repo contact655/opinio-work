@@ -1733,7 +1733,11 @@ function CompanyPicker({
 
         ⚠️ 「紐づきません」のような実装語も使わない。何を失うのかが伝わらない。
       */}
-      {!selected && text.trim() && !searching && results.length === 0 && (
+      {/* ⚠️★**`!creating` を外さないこと**（2026-09-28 に足した）。
+             これは「**登録しないで進む**」ほうの案内なので、登録ダイアログを開いている
+             最中に出すと、**同じ画面で逆向きの案内が2つ**並ぶ（実際に本番でそうなっていた。
+             ダイアログ内2行 ＋ ここ2行 ＝ 説明だけで4行）。 */}
+      {!selected && !creating && text.trim() && !searching && results.length === 0 && (
         <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.8 }}>
           <strong style={{ color: "var(--ink-soft)" }}>このまま進めて大丈夫です。</strong>
           入力した社名がそのまま経歴に残ります。
