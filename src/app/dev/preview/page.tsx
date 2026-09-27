@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/company-create", label: "この会社をOPINIOに登録する（職歴の途中で出る）",
+    desc: "★縦の長さを見る画面。実画面はオンボーディング未完了のアカウントが要るので、ここでしか測れない" },
   { href: "/dev/preview/people-cards", label: "登録ユーザーのカード（/people）",
     note: "★肩書きを持つ実ユーザーが0人。しかも /people は is_test を除外するので、出る側はここでしか見られない" },
   { href: "/dev/preview/candidates", label: "候補者を探す（/biz/organization の隣）",
@@ -107,7 +109,10 @@ export default function PreviewIndex() {
               fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4,
               fontFamily: "var(--font-noto-serif)",
             }}>{it.label}</div>
-            <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>{it.desc}</div>
+            {/* ⚠️★`desc` と `note` の両方を読む（2026-09-28）。それまで `it.desc` だけを
+                   描いていたので、**`note:` で書いた4項目は説明が空のまま**出ていた。
+                   ⚠️ どちらか片方を廃止しないこと —— 既存の4項目が `note` で書かれている。 */}
+            <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>{it.desc ?? it.note}</div>
           </Link>
         ))}
       </div>
