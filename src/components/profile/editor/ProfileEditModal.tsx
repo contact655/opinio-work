@@ -62,6 +62,14 @@ export function ProfileEditModal({
       ⚠️ **不活性のボタンを置く代わりではない。** 押しても意味が無い状態のときは
          **ボタンを出さない**（柴さんの判断）。既定は今までどおり必ず出す。 */
   hidePrimary = false,
+  /** ★★開いたときに focus する要素の id（2026-09-27）。
+      ⚠️★**促しから開いたときに要る。** 下のフォーカストラップが 30ms 後に
+         「最初の input」へ focus するので、**呼び出し側で `focus()` しても必ず奪われる。**
+         実際に 2026-09-23 から肩書きの促しがこれで効いていなかった
+         （押すと `pe-family-name`＝姓 に focus していた）。
+      ⚠️ **呼び出し側に `setTimeout` を書いて競争させないこと。** どちらが勝つかは
+         ミリ秒の差で決まり、遅いマシンで逆転する。初期 focus はここ1箇所が決める。 */
+  initialFocusId,
 }: {
   open: boolean;
   title: string;
@@ -79,6 +87,7 @@ export function ProfileEditModal({
   dangerLabel?: string;
   onDanger?: () => void;
   hidePrimary?: boolean;
+  initialFocusId?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -120,6 +129,17 @@ export function ProfileEditModal({
           （`requestAnimationFrame` は非表示のタブで発火しない。ルール⑪） */
     const t = setTimeout(() => {
       const list = focusables();
+      /* ★指定があればそれを優先し、**画面の中央へ寄せてから** focus する（2026-09-27）。
+            ⚠️ focus だけだと寄り方がブラウザ任せで、モーダルの中身が長いと
+               欄が下端に貼り付く。促しは「押した項目を見せる」のが目的なので中央に置く。 */
+      const preferred = initialFocusId
+        ? panel.querySelector<HTMLElement>(`#${CSS.escape(initialFocusId)}`)
+        : null;
+      if (preferred) {
+        preferred.scrollIntoView({ block: "center" });
+        preferred.focus();
+        return;
+      }
       (list.find((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA") ?? list[0])?.focus();
     }, 30);
     const onKey = (e: KeyboardEvent) => {
@@ -132,7 +152,7 @@ export function ProfileEditModal({
     };
     panel.addEventListener("keydown", onKey);
     return () => { clearTimeout(t); panel.removeEventListener("keydown", onKey); };
-  }, [open]);
+  }, [open, initialFocusId]);
 
   if (!open) return null;
 

@@ -950,17 +950,32 @@ export default function ProfileTab({
    */
   const [headerFocusHeadline, setHeaderFocusHeadline] = useState(false);
   const openHeadlineEditor = () => { setHeaderFocusHeadline(true); setEditingHeader(true); };
-  /* ★肩書きの促しから開いたら、その入力欄へ寄せて focus する（2026-09-23）。
-        ⚠️ モーダルの中身は開くたびに作り直されるので、次のフレームで探す。 */
-  useEffect(() => {
-    if (!editingHeader || !headerFocusHeadline) return;
-    const t = setTimeout(() => {
-      const el = document.getElementById("pe-headline") as HTMLInputElement | null;
-      el?.scrollIntoView({ block: "center" });
-      el?.focus();
-    }, 0);
-    return () => clearTimeout(t);
-  }, [editingHeader, headerFocusHeadline]);
+  /**
+   * ★★お住まいの促しから開いたか（2026-09-27 / 柴さんの指示）。
+   * ⚠️★`headerFocusHeadline` とまったく同じ形。**写真の行を自動で開かない**のも同じ理由で、
+   *    お住まいの欄は肩書きよりさらに下（名前 → 肩書き → URL → お住まい）にあるため、
+   *    380px の写真の行が開くと**押したのに欄が画面外**になる。
+   */
+  const [headerFocusLocation, setHeaderFocusLocation] = useState(false);
+  const openLocationEditor = () => { setHeaderFocusLocation(true); setEditingHeader(true); };
+  /**
+   * ★促しから開いたときに寄せる欄（肩書き 2026-09-23 / お住まい 2026-09-27）。
+   *
+   * ⚠️★★**ここで `focus()` を呼ばないこと。** `ProfileEditModal` のフォーカストラップが
+   *    30ms 後に「最初の input」へ focus するので、**呼び出し側から呼ぶと必ず奪われる。**
+   *    2026-09-23 から 09-27 まで肩書きの促しが実際にこれで効いておらず、
+   *    押すと `pe-family-name`（姓）に focus していた（dev で実測）。
+   *    ⚠️ **`setTimeout` の値を 30 より大きくして競争させる形にしないこと。**
+   *       どちらが勝つかがミリ秒の差で決まり、遅いマシンで逆転する。
+   *    → 初期 focus は `initialFocusId` で**モーダル側の1箇所**が決める。
+   *
+   * ⚠️ 両方 true になることは無い（promo はどちらか一方しか押せない）が、
+   *    肩書きを先に見る（上にあるため）。
+   */
+  const headerInitialFocusId =
+    headerFocusHeadline ? "pe-headline"
+    : headerFocusLocation ? "pe-location"
+    : undefined;
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
   const [basicToastMsg,     setBasicToastMsg]     = useState<string | null>(null);
@@ -1202,7 +1217,9 @@ export default function ProfileTab({
               justSaved={basicJustSaved}
               error={null}
               onSave={handleSaveHeader}
-              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setHeaderFocusHeadline(false); setEditingHeader(false); }}
+              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setHeaderFocusHeadline(false); setHeaderFocusLocation(false); setEditingHeader(false); }}
+              /* ★促しから開いたときだけ、その欄へ寄せて focus する（上の注記を読むこと） */
+              initialFocusId={headerInitialFocusId}
             >
                 {/* ★写真・カバーは既定で閉じる（2026-08-16）。375px で **380px** を占めていて、
                        名前を1文字直すだけでもここを越えないと保存ボタンに届かなかった。
@@ -1219,7 +1236,7 @@ export default function ProfileTab({
                            写真を持っている人は畳んだまま＝あの問題は起きない。
                      ⚠️ カバーは条件に入れない。カバーだけ未設定の人に 380px を払わせる価値が無い
                         （指摘の主眼はプロフィール画像）。 */
-                  defaultOpen={headerFocusPhoto || (!savedAvatarUrl && !headerFocusHeadline)}
+                  defaultOpen={headerFocusPhoto || (!savedAvatarUrl && !headerFocusHeadline && !headerFocusLocation)}
                   label="写真・カバー"
                   /* ⚠️ 375px で2行に折り返さない長さにする（「プロフィール画像・カバー写真」＋
                         「画像なし・カバーなし」は両方とも折り返していた） */
@@ -1497,6 +1514,23 @@ export default function ProfileTab({
                              （2026-08-17 に実測して直した。畳んだまま開くと、
                              押したのに何も起きていないように見える）。 */}
                       <button type="button" onClick={() => { setHeaderFocusSns(true); setEditingHeader(true); }} style={promoBtn}>追加する →</button>
+                    </p>
+                  )}
+                  {/* ★★お住まいの促し（2026-09-27 / 柴さんの指示）。
+                         ⚠️★肩書きと**まったく同じ事情**。値が無いとメタ行から
+                            **行ごと消える**（`ProfileHeader` の `{location && …}`）ので、
+                            画面のどこにも痕跡が残らない。
+                         ── なぜ足したか（実測 2026-09-27 / 本番・実ユーザー13人）────
+                         お住まい **4人（31%）**。自己紹介 5人・肩書き 0人・写真 1人。
+                         ⚠️ 4人なのは 2026-09-23 に**オンボーディング1画面目で必須**にしたから。
+                            それ以前に完了した人には「✎ を開いて気づく」以外の経路が無い。
+                         ⚠️ 読み手は実在する —— `/biz/candidates` の**都道府県での絞り込み**と
+                            候補者カードのタグ、`/biz/conversations/[id]`、`/u/[id]` のメタ行。
+                         ⚠️ 説明文を足さないこと（肩書き・SNS と同じ。項目名＋右のボタンだけ）。 */}
+                  {!initialBasicInfo.location.trim() && (
+                    <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+                      お住まい
+                      <button type="button" onClick={openLocationEditor} style={promoBtn}>選ぶ →</button>
                     </p>
                   )}
                 </>}
