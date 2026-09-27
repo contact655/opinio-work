@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { flattenIndustryOptions, type IndustryOption } from "@/lib/companies/industries";
+import { type IndustryOption } from "@/lib/companies/industries";
+import { IndustrySelectOptions } from "./IndustrySelectOptions";
 import type { CompanyLookupResult } from "./useCompanyLookup";
 import { companyMatchLabelForUser } from "@/lib/companies/matchedOn";
 
@@ -47,16 +48,6 @@ export function CompanyCreateDialog({
   const [industryId, setIndustryId] = useState<string>("");
   const [industries, setIndustries] = useState<IndustryOption[] | null>(null);
   const [industriesFailed, setIndustriesFailed] = useState(false);
-  /* ★★小分類の開閉（2026-09-20 / 柴さんの指示）。**初期は全部閉じる。**
-     ⚠️★**「選択」と「開閉」を同じタップにしない。**
-        行そのものを押す＝その大分類を選ぶ（分からない人は親のままで進める。
-        この仕様は 2026-09-05 から変えていない）。
-        右端の ∨ を押す＝開閉。同じ場所を押して意味が2つあると、
-        「選んだつもりが開いただけ」になる。
-     ⚠️ 小分類を持たない大分類には ∨ を出さない（押せない印を出さない）。
-     ⚠️ **選択済みの小分類がある大分類は開いた状態で描く**（下の `openParents`）。
-        選んだものが畳まれて見えないと、何を選んだか分からなくなる。 */
-  const [openParents, setOpenParents] = useState<Set<string>>(new Set());
   /* ★候補には「なぜ出たか」を添える（2026-09-05）。照合が brand_name / name_en /
         search_aliases まで広がったので、**名前が似ていない候補が出る**
         （「ANDPAD」→「株式会社アンドパッド」）。理由が無いと押してよいか分からない。 */
@@ -231,101 +222,59 @@ export function CompanyCreateDialog({
       ) : industries === null ? (
         <p style={{ fontSize: 12, color: "var(--ink-mute)" }}>読み込み中…</p>
       ) : (
-        /* ⚠️ 2階層（製造業）。**親も選べる**（分からない人は「製造業」のままで進める）。
-              ⚠️ `display_order` は**親ごとの相対順**なので `flattenIndustryOptions` を通す。
-                 通さないと親子が混ざる。
-              ⚠️ 子は左に余白を付け、親の名前を小さく添える。チップだけだと
-                 「製造業」と「電機・機械」が対等に見える。 */
-        <div style={{ display: "grid", gap: 6 }}>
+        /* ★★`select` 1つにする（2026-09-28 / 柴さんの指示。「縦に長すぎる」）。
+              ⚠️★**縦リストに戻さないこと。** 2026-09-05 は大分類18件の縦リスト、
+                 2026-09-20 に小分類をアコーディオンで畳んだが、**それでも長すぎた**
+                 ——畳んでも**大分類18行が常に出る**ので、縦は縮まっていなかった。
+
+              ── 実測（2026-09-28 / `/dev/preview/company-create` のダイアログ1枚）──
+              ⚠️ **実ページとの絶対値の比較ではない**（preview の本文幅は最大980px）。
+                 見るのは**前後の差**。375px は実ページとほぼ同じ幅になる。
+
+              | | 375px | 1440px |
+              |---|---|---|
+              | 前（縦リスト＋アコーディオン） | **1,304px**（1.61画面） | 1,190px |
+              | 後（この `select`） | **353px**（0.43画面） | 312px |
+
+              ⚠️★375px では「この内容で登録する」が**ダイアログ上端から 1,241px 下**にあり、
+                 **スクロールしないと押せなかった。** これが指摘の実体。
+
+              ⚠️★**他の3画面（`/biz/companies/add/new` `/biz/company` `/admin`）は
+                 最初から `select` ＋ `IndustrySelectOptions`。ここだけ違っていた。**
+                 同じものを4画面で使う（`IndustrySelectOptions` の冒頭がそう書いている）。
+              ⚠️ **親も選べる**（`optgroup` のラベルは選べないので、
+                 グループ先頭に親自身の option が入っている）。分からない人は
+                 「製造業」のままで進められる。この仕様は 2026-09-05 から変えていない。
+                 実測（同日）: option 52件＝空の1件 ＋ 業種51件。うち大分類は
+                 **optgroup 7 ＋ 素の option 11 ＝ 18件**で、どれも選べる。 */
+        <>
+          <select
+            value={industryId}
+            onChange={(e) => setIndustryId(e.target.value)}
+            style={{
+              width: "100%", padding: "11px 14px", border: "1px solid var(--line)",
+              borderRadius: 10, fontSize: 14, fontFamily: "inherit", color: "var(--ink)",
+              boxSizing: "border-box", background: "#fff",
+            }}
+          >
+            <option value="">選択してください</option>
+            <IndustrySelectOptions options={industries} />
+          </select>
+
+          {/* ★迷いやすい業種にだけ付いている説明（マスタの `description`）を、
+                 **選んだものだけ**1行で出す。
+                 ⚠️★全件ぶん常に出すと、それだけで縦が伸びる（それが長さの一因だった）。
+                 ⚠️ `description` が無い業種では**行ごと出さない**。「—」を出さない。 */}
           {(() => {
-            /* ★選んだ小分類の親は開いておく（2026-09-20）。
-                  ⚠️ state を触らずここで足す。state に書くと「閉じたのに
-                     再描画で開き直す」形になり、閉じられなくなる。 */
-            const selected = industries.find((o) => o.id === industryId);
-            const forceOpen = selected?.parent_id ?? null;
-            const isOpen = (parentId: string) =>
-              openParents.has(parentId) || forceOpen === parentId;
-            const hasChildren = (parentId: string) =>
-              industries.some((o) => o.parent_id === parentId);
-
-            return flattenIndustryOptions(industries)
-              /* ★閉じている親の子は描かない。**これがアコーディオンの本体。**
-                    ⚠️ 実測（2026-09-20 / 375px）: 全部出すと業種リストだけで
-                       **1,305px＝画面1.6枚分**、小分類を足した後は約4枚分になる。
-                       畳まないと選ぶ前にスクロールで力尽きる。 */
-              .filter((i) => !i.parent_id || isOpen(i.parent_id))
-              .map((i) => {
-            const active = industryId === i.id;
-            const showToggle = !i.parent_id && hasChildren(i.id);
+            const d = industries.find((o) => o.id === industryId)?.description;
+            if (!d) return null;
             return (
-              <div key={i.id} style={{ display: "flex", alignItems: "stretch", gap: 6,
-                marginLeft: i.parent_id ? 16 : 0 }}>
-              <button
-                type="button"
-                aria-pressed={active}
-                onClick={() => setIndustryId(i.id)}
-                style={{
-                  flex: 1, minWidth: 0,
-                  textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                  padding: "9px 12px", borderRadius: 8,
-                  border: active ? "2px solid var(--royal)" : "1px solid var(--line)",
-                  background: active ? "var(--royal-50)" : "#fff",
-                }}
-              >
-                {i.parent_id && (
-                  <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.3 }}>
-                    {industries.find((p) => p.id === i.parent_id)?.name ?? ""}
-                  </span>
-                )}
-                <span style={{
-                  display: "block", fontSize: 13, fontWeight: 600,
-                  color: active ? "var(--royal)" : "var(--ink)",
-                }}>
-                  {i.name}
-                </span>
-                {/* ★迷いやすい組にだけ説明が付く（マスタの description）。
-                       ⚠️ null のときは行ごと出さない。「—」を出さない */}
-                {i.description && (
-                  <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
-                    {i.description}
-                  </span>
-                )}
-              </button>
-
-              {/* ★開閉（2026-09-20）。⚠️★**行の選択とは別のボタンにする。**
-                     ⚠️ 小分類が無い大分類には出さない（押せない印を出さない）。
-                     ⚠️ `aria-expanded` を付ける。読み上げで「開いているか」が分かる。 */}
-              {showToggle && (
-                <button
-                  type="button"
-                  aria-expanded={isOpen(i.id)}
-                  aria-label={`${i.name}の小分類を${isOpen(i.id) ? "閉じる" : "開く"}`}
-                  onClick={() => setOpenParents((prev) => {
-                    const next = new Set(prev);
-                    /* ⚠️ `forceOpen`（選択中の親）を閉じられるようにするため、
-                          「開いている集合」ではなく**この親の状態**で分岐する。 */
-                    if (isOpen(i.id)) next.delete(i.id); else next.add(i.id);
-                    return next;
-                  })}
-                  style={{
-                    flexShrink: 0, width: 40, cursor: "pointer", fontFamily: "inherit",
-                    borderRadius: 8, border: "1px solid var(--line)", background: "#fff",
-                    color: "var(--ink-mute)", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                    style={{ transform: isOpen(i.id) ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-              )}
-              </div>
+              <p style={{ fontSize: 11.5, color: "var(--ink-mute)", margin: "6px 0 0", lineHeight: 1.6 }}>
+                {d}
+              </p>
             );
-              });
           })()}
-        </div>
+        </>
       )}
 
       {error && (
