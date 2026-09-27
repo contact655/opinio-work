@@ -3,7 +3,7 @@ import { PreviewHeader } from "../Variant";
 import { CompanyCreateHarness } from "./CompanyCreateHarness";
 
 /**
- * 「この会社をOPINIOに登録する」ダイアログ（`CompanyCreateDialog`）。2026-09-28 追加。
+ * 「会社を登録する」ダイアログ（`CompanyCreateDialog`）。2026-09-28 追加。
  *
  * ── なぜ要るか ──────────────────────────────────────────────────────────────
  * ⚠️★**実画面で見るのが難しい。** 出るのは次の2箇所で、どちらもログインの内側:
@@ -35,7 +35,7 @@ export default function Page() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="この会社をOPINIOに登録する">
+      <PreviewHeader title="会社を登録する">
         <p style={{ margin: 0 }}>
           職歴を書いている途中に挟まるダイアログ。聞くのは<strong>会社名と業種の2つだけ</strong>で、
           URL・従業員数・所在地は取りません（項目を増やすと入力が止まるため）。

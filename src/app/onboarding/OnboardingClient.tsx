@@ -8,6 +8,7 @@ import {
 } from "@/components/companies/useCompanyLookup";
 import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog";
 import { useRouter, useSearchParams } from "next/navigation";
+import { readStep2Draft, writeStep2Draft, clearStep2Draft } from "@/lib/onboarding/step2Draft";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
 /* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
@@ -224,6 +225,7 @@ export type OnboardingInitialPerson = {
 
 function OnboardingInner({
   roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  draftKey,
   initialPerson,
 }: {
   /** ★職歴の職種に使う。**全職種**（非IT の8分類を含む18分類）。絞り込まない */
@@ -240,6 +242,8 @@ function OnboardingInner({
   initialDesiredRoleIds: string[];
   /** ★1画面目の初期値。⚠️ 2回目に来た人に空を見せないため（`initialStance` と同じ扱い） */
   initialPerson: OnboardingInitialPerson;
+  /** ★2画面目の下書きを分ける鍵（利用者ごと）。詳細は `lib/onboarding/step2Draft.ts` */
+  draftKey: string;
 }) {
   const router = useRouter();
   /* ★`?next=` を読む（2026-09-09 まで**読んでいなかった**。フェーズ0 の 0-4）。
@@ -287,6 +291,18 @@ function OnboardingInner({
      ⚠️ 会社は `company_id` を持っていても**この画面では名前しか出せない**ので、
         `company_text` が無いときは空にして選び直してもらう
         （名前を別に引くと `CompanyPicker` の2実装を増やすことになる）。 */
+  /* ★2画面目の下書き（2026-09-28）。復元は**マウント後**に行う（下の effect）。
+        ⚠️★★**`useState` の初期化子で `localStorage` を読まないこと。**
+           サーバーには `localStorage` が無いので初期HTMLが食い違い、
+           **ハイドレーションが失敗する**（実際に踏んだ:
+           「Expected server HTML to contain a matching <p> in <div>」→
+           `CompanyPicker` の「このまま進めて大丈夫です」が client にだけ出ていた）。
+           ⚠️ この画面の他の初期値（`currentExperience` / `initialPerson`）は
+              **サーバーから props で来る**ので初期化子でよい。**同じ扱いにしない。**
+        ⚠️★**復元が済むまで保存しないこと**（`draftReady`）。
+           済む前に書くと、空の値で下書きを消してしまう。 */
+  const [draftReady, setDraftReady] = useState(false);
+
   const ex = currentExperience;
   const exStr = (k: string): string => {
     const v = ex?.[k];
@@ -297,7 +313,7 @@ function OnboardingInner({
 
   /** ★マスタ紐づけの会社（サーバーが `__company` として渡す）。⚠️ 無ければ null */
   const exCompany = (ex?.__company ?? null) as CompanyLookupResult | null;
-  const [query, setQuery] = useState(() => exCompany?.name ?? exStr("company_text"));
+  const [query, setQuery] = useState(() => exCompany?.name || exStr("company_text"));
   const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(() => exCompany);
   /** ★社内での呼び方（`role_title`）。⚠️ `rank`（役職）とは別の列。混ぜないこと（2026-09-11） */
   const [roleTitle, setRoleTitle] = useState(() => exStr("role_title"));
@@ -518,8 +534,46 @@ function OnboardingInner({
     /* 作成できたら id を覚える。⚠️ 覚えないと、戻って直したときに2件目ができる。 */
     if (res && typeof res === "object" && "id" in res) {
       setExperienceId((res as { id?: string }).id ?? null);
+      /* ★サーバーに入ったので下書きを消す（2026-09-28）。
+            ⚠️★**残すと、次に開いたときに古い下書きが初期値を奪う。**
+               以降の正は `ow_experiences`（`page.tsx` が引いて渡す）。 */
+      clearStep2Draft(draftKey);
     }
   };
+
+  /* ★下書きから復元する（2026-09-28）。**マウント後に1回だけ。**
+        ⚠️★**空のときだけ入れる**（`v || d.x`）。利用者が打ち始めていたら上書きしない。
+        ⚠️ `currentExperience` があるときは何もしない（サーバーが正）。 */
+  useEffect(() => {
+    if (draftReady) return;
+    if (!currentExperience) {
+      const d = readStep2Draft(draftKey);
+      if (d) {
+        setQuery((v) => v || d.query);
+        setSelectedCompany((v) => v ?? (d.company as CompanyLookupResult | null));
+        setDepartment((v) => v || d.department);
+        setRoleId((v) => v || d.roleId);
+        setRoleTitle((v) => v || d.roleTitle);
+        setStartedYear((v) => v || d.startedYear);
+        setStartedMonth((v) => v || d.startedMonth);
+      }
+    }
+    setDraftReady(true);
+  }, [draftKey, currentExperience, draftReady]);
+
+  /* ★2画面目の下書きを保存する（2026-09-28）。
+        ⚠️★**サーバーに職歴があるときは書かない。** あちらが正で、
+           下書きが残っていると次に開いたときに初期値を奪う。
+        ⚠️ 中身が空のときは `writeStep2Draft` 側が消す（空の行を復元しても意味が無い）。
+        ⚠️★**`localStorage` に入れるのは2画面目の入力値だけ。** 1画面目（氏名・生年月日・
+           お住まい）は「次へ」で必ず保存されるので下書きが要らないうえ、
+           **本人の属性をブラウザに残す理由が無い。** ここへ足さないこと。 */
+  useEffect(() => {
+    if (!draftReady || experienceId) return;
+    writeStep2Draft(draftKey, {
+      query, company: selectedCompany, department, roleId, roleTitle, startedYear, startedMonth,
+    });
+  }, [draftReady, draftKey, experienceId, query, selectedCompany, department, roleId, roleTitle, startedYear, startedMonth]);
 
   /* ⚠️★「いまの職種から」の候補チップ（2026-09-11）は 2026-09-12 に削除した（柴さんの指示）。
         大分類のアコーディオン1つに畳んだため。**戻さないこと。**
@@ -710,6 +764,11 @@ function OnboardingInner({
        ⚠️ 完了画面（行き先を3つ選ばせる画面）は 2026-09-09 に削除済み。下のコメントを参照。
        ⚠️★`setSaving(false)` を戻さないこと。遷移までボタンは「登録中...」のままにする。
           false に戻すと、遷移待ちのあいだ**もう一度押せてしまう。** */
+    /* ★完了したら下書きを消す（2026-09-28）。
+          ⚠️★**「後で設定する」でもここを通る。** 経歴を保存せずに抜けた人の下書きが
+             残ると、次にオンボーディングへ来たとき（あるいは別の端末で完了した後）に
+             古い値が初期値に出る。 */
+    clearStep2Draft(draftKey);
     router.replace(next);
   };
 
@@ -1480,7 +1539,7 @@ function CompanyPicker({
         ⚠️ 取得できたらドロップダウンを開くのは**この画面だけ**の作法なので、
            コールバックで受ける（経歴編集は `open` を自前で持っている）。 */
   const [showDropdown, setShowDropdown] = useState(false);
-  /* ★「この会社をOPINIOに登録する」を開いているか（2026-09-05）。
+  /* ★「会社を登録する」ダイアログを開いているか（2026-09-05）。
         ⚠️ ダイアログは**ドロップダウンの代わりに**出す。重ねない。 */
   const [creating, setCreating] = useState(false);
   const { results, loading: searching, search, clear: clearResults } = useCompanyLookup({
@@ -1629,6 +1688,20 @@ function CompanyPicker({
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {companyLabel(c)}
                   </div>
+                  {/* ★正式名を小さく添える（2026-09-28 / 柴さんの指示）。
+                         ⚠️★**表示名と違うときだけ**出す（`formalName` は同じとき null）。
+                            「株式会社テスト」と打った人に候補が「テスト」としか出ず、
+                            自分の勤務先だと気づけずに**同じ会社をもう1つ作った**。
+                         ⚠️★**主は表示名のまま。** 正式名を主にしないこと
+                            （「アドビ株式会社」より「Adobe」のほうが読み手には分かる）。 */}
+                  {c.formalName && (
+                    <div style={{
+                      fontSize: 11, color: "var(--ink-mute)", marginTop: 1,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {c.formalName}
+                    </div>
+                  )}
                   {/* ⚠️★**掲載の有無をここに出さないこと**（2026-09-12 / 柴さんの指示で削除）。
                          会社を選ぶ人に**掲載の有無は関係ない**。選択が変わることはない。
                       ⚠️★`phase` も戻さないこと（2026-08-29）。生値（listed / unicorn /
@@ -1641,7 +1714,7 @@ function CompanyPicker({
               </button>
             ))}
 
-            {/* ★① この会社をOPINIOに登録する（2026-09-05 追加）
+            {/* ★①「「◯◯」をOPINIOに登録する」＝ダイアログを開くボタン（2026-09-05 追加）
                 ⚠️ **自由入力より先・大きく出す。** 自由入力は業界に結びつかないので、
                    そちらが既定に見えると「業界に繋がらない経歴」が増える。 */}
             {showFreeTextOption && !exactMatch && text.trim().length > 0 && (
@@ -1787,6 +1860,7 @@ function LogoMark() {
 
 export default function OnboardingPage({
   roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  draftKey,
   initialPerson,
 }: {
   roles: OnboardingRole[];
@@ -1796,6 +1870,8 @@ export default function OnboardingPage({
   initialStance: string | null;
   initialDesiredRoleIds: string[];
   initialPerson: OnboardingInitialPerson;
+  /** ★2画面目の下書きを分ける鍵（利用者ごと）。詳細は `lib/onboarding/step2Draft.ts` */
+  draftKey: string;
 }) {
   return (
     <Suspense fallback={
@@ -1811,6 +1887,7 @@ export default function OnboardingPage({
         initialStance={initialStance}
         initialDesiredRoleIds={initialDesiredRoleIds}
         initialPerson={initialPerson}
+        draftKey={draftKey}
       />
     </Suspense>
   );

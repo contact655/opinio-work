@@ -25,7 +25,7 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
-  { href: "/dev/preview/company-create", label: "この会社をOPINIOに登録する（職歴の途中で出る）",
+  { href: "/dev/preview/company-create", label: "会社を登録する（職歴の途中で出るダイアログ）",
     desc: "★縦の長さを見る画面。実画面はオンボーディング未完了のアカウントが要るので、ここでしか測れない" },
   { href: "/dev/preview/people-cards", label: "登録ユーザーのカード（/people）",
     note: "★肩書きを持つ実ユーザーが0人。しかも /people は is_test を除外するので、出る側はここでしか見られない" },

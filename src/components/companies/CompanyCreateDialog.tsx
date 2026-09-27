@@ -7,7 +7,7 @@ import type { CompanyLookupResult } from "./useCompanyLookup";
 import { companyMatchLabelForUser } from "@/lib/companies/matchedOn";
 
 /**
- * 「この会社をOPINIOに登録する」— 経歴入力の途中で企業マスタを作る。
+ * 「会社を登録する」— 経歴入力の途中で企業マスタを作る。
  *
  * ⚠️★**経歴編集とオンボーディングで同じものを使う。** ピッカー本体は
  *    見た目が意図的に違うので共通化していない（`useCompanyLookup` の冒頭を参照）が、
@@ -135,8 +135,12 @@ export function CompanyCreateDialog({
         background: "#fff", padding: 16,
       }}
     >
+      {/* ⚠️★見出しは「会社を登録する」（2026-09-28 / 柴さんの指示）。
+             「この会社を**OPINIOに**登録する」から短くした。
+             ⚠️ 開く前のボタンは「「◯◯」をOPINIOに登録する」のままでよい
+                ——あちらは**社名が入る**ので、どの会社の話かが文で分かる。 */}
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-        この会社をOPINIOに登録する
+        会社を登録する
       </div>
       {/* ⚠️★**この1文を消さないこと。**「登録」だけだと**企業ページが公開される**と読まれる
              （2026-08-14 にオンボーディングで実際に誤解された）。
@@ -194,6 +198,16 @@ export function CompanyCreateDialog({
                   }}>
                     {c.name}
                   </span>
+                  {/* ★正式名を小さく添える（2026-09-28）。⚠️ 表示名と違うときだけ。
+                         ⚠️★ピッカーの候補行と**同じ形**にしてある。片方だけ変えないこと。 */}
+                  {c.formalName && (
+                    <span style={{
+                      display: "block", fontSize: 11, color: "var(--ink-mute)", marginTop: 1,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {c.formalName}
+                    </span>
+                  )}
                   {/* ★なぜ候補に出たか。⚠️ 名前で一致したときは出さない
                          （見れば分かるので、当たり前のことを説明する行が増えるだけ）。 */}
                   {companyMatchLabelForUser(c.matchedOn ?? null) && (
