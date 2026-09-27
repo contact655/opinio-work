@@ -53,9 +53,11 @@ export default async function BookmarksPage() {
         const ids = companyBmarks.map((b) => b.target_id as string);
         const { data: companies, error: companiesErr } = await admin
           /* ⚠️ 求職者に見せる分類は**事業領域**。`industry`(text) は廃止予定で
-                新規企業では空になる（CLAUDE.md「求職者側の読み手を事業領域へ移した」）。 */
+                新規企業では空になる（CLAUDE.md「求職者側の読み手を事業領域へ移した」）。
+             ⚠️★`is_published` / `is_test` を**必ず取る**（2026-09-27）。落とすと
+                `undefined` になり、下の判定が静かに「生きている」側へ倒れる。 */
           .from("ow_companies")
-          .select("id, name, employee_count, ow_company_business_domains(is_primary, ow_business_domains(name))")
+          .select("id, name, employee_count, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))")
           .in("id", ids);
         if (companiesErr) console.error("[mypage/bookmarks] ow_companies:", companiesErr.message);
         if (companies) {
@@ -76,7 +78,15 @@ export default async function BookmarksPage() {
               /* ⚠️ `?? "企業"` は事業領域が無いときに出す既定値。`??` でよい
                     （上の `domain` は null か文字列で、空文字にはならない）。 */
               badge_label: domain ?? "企業",
-              href: `/companies/${c.id}`,
+              /* ★開けるかを判定して、開けないものはリンクを外す（2026-09-27 / B案）。
+                    ⚠️★**一覧から落とさない。** 本人が保存したものなので、黙って消すと
+                       理由の分からないまま記録が減る。
+                    ⚠️★**詳細の軸**で見る（`is_published` = 404 ゲート）。
+                       ディレクトリ非掲載（`listing_status='draft'`）は**開けるので外さない**
+                       —— 「最近見た企業」が `filterVisibleCompaniesStrict` を使うのと同じ線。 */
+              href: c.is_published === true && c.is_test !== true ? `/companies/${c.id}` : null,
+              /* ⚠️ 理由は断定しない。運営が下ろしたのか企業が下ろしたのかは、ここからは分からない */
+              gone_label: c.is_published === true && c.is_test !== true ? undefined : "公開を終了しました",
             }];
           });
         }
@@ -85,7 +95,10 @@ export default async function BookmarksPage() {
       if (jobBmarks.length > 0) {
         const ids = jobBmarks.map((b) => b.target_id as string);
         const { data: jobs, error: jobsErr } = await admin
-          .from("ow_jobs").select("id, title, job_category, company_id").in("id", ids);
+          /* ⚠️★`status` / `is_test` を**必ず取る**（2026-09-27）。落とすと `undefined` になり、
+                下の判定が静かに「生きている」側へ倒れる（CLAUDE.md「取得していない値が
+                既定値に化ける」）。 */
+          .from("ow_jobs").select("id, title, job_category, company_id, status, is_test").in("id", ids);
         if (jobsErr) console.error("[mypage/bookmarks] ow_jobs:", jobsErr.message);
         if (jobs) {
           // 職種の表示は会社呼称 ?? 標準職種名。job_category は使わない
@@ -104,7 +117,15 @@ export default async function BookmarksPage() {
               title: j.title as string,
               meta: [cMap.get(j.company_id as string), roleLabels.get(j.id as string)?.label].filter(Boolean).join(" / "),
               badge_label: roleLabels.get(j.id as string)?.label ?? "求人",
-              href: `/jobs/${j.id}`,
+              /* ★公開中の求人だけリンクにする（2026-09-27 / B案）。
+                    ⚠️★**表示条件は `status='published'` かつ `is_test=false` の2つだけ**
+                       （CLAUDE.md。`ow_jobs` に `is_published` 列は無い）。
+                    ⚠️★実際に踏んでいた: 実ユーザーが♡した求人が 2026-08-30 に
+                       出典の突き合わせで `private` になり、**本番で 404 を返していた。** */
+              href: j.status === "published" && j.is_test !== true ? `/jobs/${j.id}` : null,
+              /* ⚠️ 「募集終了」と断定しない。取り下げ・保留・掲載方法の変更もありうる
+                    （CLAUDE.md「採用ページに無い＝募集終了 と断定はできない」と同じ線）。 */
+              gone_label: j.status === "published" && j.is_test !== true ? undefined : "掲載を終了しました",
             }];
           });
         }

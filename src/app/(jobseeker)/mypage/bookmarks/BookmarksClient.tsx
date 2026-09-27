@@ -9,30 +9,54 @@ export type Bookmark = {
   title: string;
   meta: string;
   badge_label: string;
-  href: string;
+  /**
+   * ★行き先。**`null` は「保存したときはあったが、いま開けない」**（2026-09-27）。
+   *
+   * ⚠️★**落とさずに残す**（柴さんの判断。B案）。本人が保存したものなので、
+   *    黙って一覧から消すと**理由の分からないまま記録が減る。**
+   *    ⚠️ フィードは逆に**隠す**側（`ow_posts_visible`）だが、あちらは「他人の投稿」で
+   *       ここは「**本人が保存したもの**」。同じ扱いにする必然はない。
+   * ⚠️★**空文字にしないこと。** `<Link href="">` は現在地に飛ぶだけで、
+   *    「押せるのに何も起きない」になる。**null で受けてリンクごと外す。**
+   */
+  href: string | null;
+  /** ★開けない理由。`href` が null のときだけ出す。⚠️ 推測で書かない（下の注記） */
+  gone_label?: string;
 };
 
 function BookmarkCard({ bk }: { bk: Bookmark }) {
-  return (
-    <Link href={bk.href} style={{ textDecoration: "none" }}>
-      <div style={{
-        background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 12, padding: "16px 18px",
-        display: "flex", flexDirection: "column", gap: 6,
-        transition: "border-color 0.12s, box-shadow 0.12s",
-      }} className="bk-card-hover">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{
-            fontSize: 12, fontWeight: 700, color: "var(--royal)",
-            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-            padding: "2px 8px", borderRadius: 100,
-          }}>{bk.badge_label}</span>
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{bk.title}</div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{bk.meta}</div>
+  const body = (
+    <div style={{
+      background: "#fff", border: "1px solid var(--line)",
+      borderRadius: 12, padding: "16px 18px",
+      display: "flex", flexDirection: "column", gap: 6,
+      transition: "border-color 0.12s, box-shadow 0.12s",
+      /* ⚠️ 開けないものは**薄くするだけ**。消さない・畳まない */
+      opacity: bk.href ? 1 : 0.72,
+    }} className={bk.href ? "bk-card-hover" : undefined}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{
+          fontSize: 12, fontWeight: 700,
+          color: bk.href ? "var(--royal)" : "var(--ink-mute)",
+          background: bk.href ? "var(--royal-50)" : "var(--bg-tint)",
+          border: `1px solid ${bk.href ? "var(--royal-100)" : "var(--line)"}`,
+          padding: "2px 8px", borderRadius: 100,
+        }}>{bk.badge_label}</span>
+        {!bk.href && bk.gone_label && (
+          /* ⚠️★**色で危険を示さない**（ui-conventions の「色の役割」）。
+                 本人の操作が失敗したわけではなく、相手側が下ろしただけ。 */
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)" }}>
+            {bk.gone_label}
+          </span>
+        )}
       </div>
-    </Link>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{bk.title}</div>
+      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{bk.meta}</div>
+    </div>
   );
+  /* ⚠️★開けないものは `<Link>` で包まない。**押せる見た目のまま 404 へ飛ばさない。** */
+  if (!bk.href) return body;
+  return <Link href={bk.href} style={{ textDecoration: "none" }}>{body}</Link>;
 }
 
 function BookmarkSection({ title, items }: { title: string; items: Bookmark[] }) {
