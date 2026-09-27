@@ -4,13 +4,38 @@ import { useState } from "react";
 import Link from "next/link";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 
+/**
+ * ★`gone_label` は「フォローしたときはあったが、いま開けない」（2026-09-27）。
+ *
+ * ⚠️★**一覧から落とさない。** 本人がフォローしたものなので、黙って消すと
+ *    **理由の分からないまま記録が減る。** `/mypage/bookmarks` と同じ扱いにしてある
+ *    （2026-09-27 / 柴さんの判断。B案）。**片方だけ戻さないこと。**
+ * ⚠️★リンクは**外す**。`href` を空文字にしないこと —— `<Link href="">` は
+ *    現在地へ飛ぶだけで「押せるのに何も起きない」になる。
+ */
 export type FollowedCompany = {
   id: string; slug: string | null; name: string; brand_name: string | null;
   industry: string | null; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null;
+  gone_label?: string;
 };
 export type FollowedUser = {
   id: string; name: string; avatar_url: string | null; avatar_color: string | null; visibility: string | null;
+  gone_label?: string;
 };
+
+/** ★開けないものは `<Link>` で包まない。**押せる見た目のまま 404 へ飛ばさない。** */
+function FollowRow({ href, gone, children }: { href: string; gone?: string; children: React.ReactNode }) {
+  /* ⚠️ 薄くするだけ。消さない・畳まない */
+  const body = <div style={gone ? { ...ROW, opacity: 0.72 } : ROW}>{children}</div>;
+  if (!gone) return <Link href={href} style={ROW}>{children}</Link>;
+  return body;
+}
+
+/* ⚠️★**色で危険を示さない**（ui-conventions の「色の役割」）。本人の操作が
+      失敗したわけではなく、相手側が下ろしただけ。 */
+function GoneTag({ label }: { label: string }) {
+  return <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", flexShrink: 0 }}>{label}</span>;
+}
 
 type Tab = "company" | "user";
 
@@ -73,7 +98,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {companies.map((c) => (
-              <Link key={c.id} href={`/companies/${c.slug ?? c.id}`} style={ROW}>
+              <FollowRow key={c.id} href={`/companies/${c.slug ?? c.id}`} gone={c.gone_label}>
                 <CompanyLogoImg
                   logoUrl={c.logo_url} logoLetter={c.logo_letter} logoGradient={c.logo_gradient}
                   name={c.brand_name ?? c.name} size={40} borderRadius={8}
@@ -82,7 +107,8 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
                   <div style={NAME}>{c.brand_name ?? c.name}</div>
                   {c.industry && <div style={SUB}>{c.industry}</div>}
                 </div>
-              </Link>
+                {c.gone_label && <GoneTag label={c.gone_label} />}
+              </FollowRow>
             ))}
           </div>
         )
@@ -96,7 +122,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {users.map((u) => (
-            <Link key={u.id} href={`/u/${u.id}`} style={ROW}>
+            <FollowRow key={u.id} href={`/u/${u.id}`} gone={u.gone_label}>
               {u.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={u.avatar_url} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
@@ -113,7 +139,8 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={NAME}>{u.name}</div>
               </div>
-            </Link>
+              {u.gone_label && <GoneTag label={u.gone_label} />}
+            </FollowRow>
           ))}
         </div>
       )}
