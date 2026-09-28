@@ -86,7 +86,68 @@ function formatPublishedAgo(iso: string | null): string {
   return `${Math.floor(days / 30)}ヶ月前`;
 }
 
-export function transformDbToForm(row: DbCompany, currentPublishedGenres: string[] = []): BizCompany {
+/**
+ * ★下書き（`draft_data`）から**読み戻さない**列（2026-09-29）。
+ *
+ * ⚠️★**`is_published` を外さないこと。** 掲載の管理は運営が行い、企業側の掲載スイッチは
+ *    2026-09-18 に撤去した（`PATCH` も `isPublished` を 400 で断る）。
+ *    下書きに残った古い値で読み戻すと、**運営が掲載にした直後でも企業の画面には
+ *    「未掲載」と出る。** `PATCH` 側が「`is_published` / `listing_status` を
+ *    書き戻さない」としているのと同じ理由・同じ向き。
+ * ⚠️ `updated_at` は `transformDbToForm` が読まないが、意味を持たないので併せて外す。
+ * ⚠️ `draft_data` 自身は `draft_data` の中に入らないので実際には当たらない（防御）。
+ */
+const DRAFT_READBACK_EXCLUDED: ReadonlySet<string> = new Set([
+  "is_published", "listing_status", "updated_at", "draft_data",
+]);
+
+/**
+ * 下書きを本番列の上に重ねる。**キー名は同じ**（`transformFormToDb` が DB の列名で
+ * 書いているため）なので、浅いマージで足りる。
+ *
+ * ⚠️★**`null` も上書きとして扱う。** 利用者がその欄を空にした、という意味。
+ * ⚠️ 下書きに無いキーは本番の値がそのまま残る（古い下書きでも壊れない）。
+ * ⚠️ `genres` は `DbCompany` の列ではないが、混ざっても
+ *    `transformDbToForm` は `row.draft_data?.genres` から読むので影響しない。
+ */
+function applyDraft(row: DbCompany): DbCompany {
+  const draft = row.draft_data;
+  if (!draft || typeof draft !== "object") return row;
+  const merged: Record<string, unknown> = { ...row };
+  for (const [k, v] of Object.entries(draft)) {
+    if (DRAFT_READBACK_EXCLUDED.has(k)) continue;
+    merged[k] = v;
+  }
+  return merged as unknown as DbCompany;
+}
+
+/**
+ * @param opts.withDraft ★`true` なら下書きを本番列の上に重ねてから組み立てる。
+ *
+ * ⚠️★**既定は `false`。編集画面（`/biz/company`）だけが `true` を渡す。**
+ *    `/biz/dashboard` は同じ関数の結果で**開示充実度スコア**を出しており、
+ *    あれは「求職者に何が開示されているか」の指標。下書きを混ぜると
+ *    **公開していない内容を開示済みとして数える。**
+ *
+ * ── ⚠️★なぜ `withDraft` が要るようになったか（2026-09-29 に本番で踏んだ）──
+ * それまでこの関数は**本番列しか読んでおらず**、`draft_data` から読み戻していたのは
+ * `genres` の1項目だけだった。一方 `PUT /api/biz/company`（自動保存）は
+ * `transformFormToDb(form)` の結果で **draft_data をまるごと置き換える。**
+ *   ⇒ 本番列から組んだフォームがそのまま下書きを上書きするので、
+ *     **下書きは書き込み専用**になっていた。利用者から見ると
+ *     「入力した内容がリロードで消え、次の自動保存で失われる」。
+ *   実例（2026-09-29 / 株式会社テスト）: `phase='seed'` / `tagline='スタートアップ'` /
+ *   `description` / `why_join` / `company_features` が下書きにだけ在り、
+ *   別の項目を1つ触った自動保存で**5項目とも null になった**（ダンプから復元）。
+ * ⚠️ 2026-08-26 に直した「『変更を公開する』が書いていない列を NULL で潰す」と**同じ根**。
+ *    あちらは PATCH、こちらは PUT（自動保存）。**片方だけ直さないこと。**
+ */
+export function transformDbToForm(
+  rawRow: DbCompany,
+  currentPublishedGenres: string[] = [],
+  opts: { withDraft?: boolean } = {},
+): BizCompany {
+  const row = opts.withDraft ? applyDraft(rawRow) : rawRow;
   // genres の優先順位: draft_data.genres > 現在公開中の genres > 空配列
   const draftGenres = row.draft_data?.genres;
   const genres: string[] = Array.isArray(draftGenres) ? (draftGenres as string[]) : currentPublishedGenres;
@@ -336,10 +397,14 @@ export async function getCompanyContext(
   };
 }
 
+/**
+ * @param opts.withDraft ★編集画面だけ `true`。理由は `transformDbToForm` の注記。
+ */
 export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
   currentPublishedGenres: string[] = [],
+  opts: { withDraft?: boolean } = {},
 ): Promise<BizCompany | null> {
   const { data, error } = await supabase
     .from("ow_companies")
@@ -353,5 +418,5 @@ export async function fetchCompanyForTenant(
   }
   if (!data) return null;
 
-  return transformDbToForm(data as unknown as DbCompany, currentPublishedGenres);
+  return transformDbToForm(data as unknown as DbCompany, currentPublishedGenres, opts);
 }

@@ -45,7 +45,13 @@ export default async function BizCompanyPage() {
       .select("ow_genres(slug)")
       .eq("company_id", ctx.tenantId)
       .eq("is_human_approved", true),
-    fetchCompanyForTenant(supabase, ctx.tenantId, []),
+    /* ★`withDraft: true`（2026-09-29）。**この画面だけ**下書きを読み戻す。
+          外すと、企業が入力した内容がリロードで画面から消え、次の自動保存で
+          draft_data ごと失われる（`transformDbToForm` の注記に実例）。
+       ⚠️ `/biz/dashboard` は同じ関数を `withDraft` 無しで呼ぶ。あちらの
+          開示充実度スコアは「求職者に何が開示されているか」なので、
+          **下書きを混ぜてはいけない。** */
+    fetchCompanyForTenant(supabase, ctx.tenantId, [], { withDraft: true }),
     adminClient
       .from("ow_industries")
       /* ★`parent_id` を取る（2026-09-05 に業種を2階層に戻した）。
