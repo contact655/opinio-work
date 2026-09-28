@@ -19,7 +19,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { Json } from "@/lib/supabase/types";
-import { createClient } from "@/lib/supabase/client";
 import ProfileTab, { type ProfileSavedSnapshot, type SettingsState } from "./ProfileTab";
 /* ⚠️ カード・入力欄の共通部品は formKit に移した（3-B / 2026-08-15）。中身は変えていない。 */
 import {
@@ -29,7 +28,6 @@ import {
 /* ⚠️ 型は親と RecordEditors の両方が使う。親に置くと循環 import になる。 */
 import {
   type Education,
-  type School,
   type Achievement,
   type Award,
   type MediaAppearance,
@@ -237,20 +235,15 @@ export default function ProfileEditor({
   }, []);
 
 
-  // ── schools マスター（段階6-7 Phase 1: EducationEditor から hoisted） ───────
-  // EducationEditor が mount される度に fetch しないよう、ProfileEditClient
-  // トップレベルで 1 度だけ fetch して props で渡す。
-  const [schools, setSchools] = useState<School[]>([]);
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("ow_schools")
-      .select("id, name, name_kana, logo_letter, logo_gradient, logo_url, type")
-      .order("name", { ascending: true })
-      .then(({ data, error }) => {
-        if (!error && data) setSchools(data as School[]);
-      });
-  }, []);
+  /* ── 学校マスター ─────────────────────────────────────────────────────────
+     ⚠️★★**ここで `ow_schools` を全件取得する形に戻さないこと**（2026-09-28）。
+        以前はここで全件を引き、datalist へ props で流していた。
+        マスタが37件のうちは成立していたが、高校 5,154件を入れた瞬間に
+        **PostgREST の `max-rows`（1000）**で切られ、**大学25校が候補から消えた**
+        （東京大学・早稲田大学・慶應義塾大学ほか。status は 200 で、気づく手段が無い）。
+     → 候補は `EducationForm` が**入力に応じて上限付きで引く**。
+        ⚠️ 「開くたび fetch が走らないように親で1度だけ引く」という当時の理由は、
+           **上限の無い取得と両立しない。** 引く回数より、**全件が返らないこと**を採った。 */
 
   /* 設定タブの state は SettingsTab が持つ（3-B）。親は2つだけ受け取る。
      ⚠️ 既定値の組み立てはここに残す。`owUser` の列と既定色を知っているのは親なので、
@@ -389,7 +382,6 @@ export default function ProfileEditor({
             roles={roles}
             initialExperiences={initialExperiences}
             initialEducations={initialEducations}
-            schools={schools}
             initialAchievements={initialAchievements}
             initialAwards={initialAwards}
             initialCertifications={initialCertifications}

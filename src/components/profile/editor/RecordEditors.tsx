@@ -30,6 +30,8 @@ import { LANGUAGE_PROFICIENCIES } from "@/lib/constants/languageProficiency";
 import { RoleSearchSelect, type RoleOption } from "@/components/ui/RoleSearchSelect";
 import { SKILL_CATEGORIES, MAX_USER_SKILLS, skillCategoryRank } from "@/lib/constants/skills";
 import { MAX_USER_LANGUAGES } from "@/lib/constants/languages";
+import { SCHOOL_SUGGEST_LIMIT, MIN_SCHOOL_QUERY_LENGTH, schoolOptionLabel } from "@/lib/constants/schools";
+import { createClient } from "@/lib/supabase/client";
 
 type EducationDraft = {
   school:        string;
@@ -76,13 +78,52 @@ function EducationForm({
   draft,
   onDraftChange,
   isSaving,
-  schools,
 }: {
   draft: EducationDraft;
   onDraftChange: (d: EducationDraft) => void;
   isSaving: boolean;
-  schools: School[];
 }) {
+  /* ── 学校名の候補 ─────────────────────────────────────────────────────────
+     ⚠️★★**全件を引く形に戻さないこと**（2026-09-28 に実際に壊した）。
+        それまでは親（`ProfileEditor`）が `ow_schools` を**全件**取得して
+        datalist に流していた。マスタが37件のうちは成立していたが、
+        高校 5,154件を入れた瞬間に **PostgREST の `max-rows`（1000）**で切られ、
+        **東京大学・早稲田大学・慶應義塾大学ほか大学25校が候補から消えた。**
+        ⚠️ **status は 200 で、エラーもコンソールも出ない。**「出ない」だけ。
+     ⚠️ 引くのは**入力があるときだけ**。`SCHOOL_SUGGEST_LIMIT` で必ず上限を付ける。
+     ⚠️ `authenticated` は `ow_schools` を `USING (true)` で読めるので、
+        ブラウザから直接引く（以前と同じ経路。API を新設していない）。 */
+  const [candidates, setCandidates] = useState<School[]>([]);
+  useEffect(() => {
+    const q = draft.school.trim();
+    if (q.length < MIN_SCHOOL_QUERY_LENGTH) {
+      setCandidates([]);
+      return;
+    }
+    /* ⚠️ `%` `_` は LIKE のワイルドカード、`,` `(` `)` は PostgREST の `or` の区切り。
+          落とさないとクエリが壊れ、**403 でも 400 でもなく「0件」に化ける。** */
+    const safe = q.replace(/[%_,()]/g, " ").trim();
+    if (!safe) {
+      setCandidates([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      createClient()
+        .from("ow_schools")
+        .select("id, name, name_kana, prefecture, closed_at, logo_letter, logo_gradient, logo_url, type")
+        .or(`name.ilike.%${safe}%,name_kana.ilike.%${safe}%`)
+        .order("name", { ascending: true })
+        .limit(SCHOOL_SUGGEST_LIMIT)
+        .then(({ data, error }) => {
+          /* ⚠️ error を捨てない。捨てると権限エラーが「候補なし」に見える */
+          if (error) console.error("[EducationForm] 学校の候補:", error.message);
+          if (!cancelled && data) setCandidates(data as School[]);
+        });
+    }, 200);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [draft.school]);
+
   const set = useCallback(
     (key: keyof EducationDraft, val: string | boolean) =>
       onDraftChange({ ...draft, [key]: val }),
@@ -116,20 +157,15 @@ function EducationForm({
           list="school-options"
           value={draft.school}
           onChange={(e) => {
-            let newSchool = e.target.value;
-            // datalist の表示値は "name (name_kana)" 形式の場合があるため、
-            // その形式と一致するマスターを先に探す（カナ検索でのマッチ）
-            const displayMatched = schools.find((s) =>
-              s.name_kana
-                ? `${s.name} (${s.name_kana})` === newSchool
-                : s.name === newSchool
-            );
-            if (displayMatched) {
-              // カナ付き表示値 → クリーンな学校名に変換してから保存
-              newSchool = displayMatched.name;
-            }
-            const matched =
-              displayMatched ?? schools.find((s) => s.name === newSchool);
+            const newSchool = e.target.value;
+            /* ⚠️★**`value` は校名そのものにしてある**（2026-09-28）。
+                  以前は「校名 (よみ)」を value に入れ、選ばれたあとに校名へ戻していた
+                  ——datalist はブラウザ側で value を照合するので、よみで探させるには
+                  そうする必要があった。**いまはサーバー側が `name_kana` も見て引く**ので要らない。
+               ⚠️ 同名の別校があると先頭に当たる。**24組（うち11組は同県）**あるので、
+                  ここは厳密に一意ではない。`prefecture` は `<option label>` に出して
+                  利用者が見分けられるようにしてある。 */
+            const matched = candidates.find((s) => s.name === newSchool);
             onDraftChange({
               ...draft,
               school:    newSchool,
@@ -142,11 +178,10 @@ function EducationForm({
           style={ef()}
         />
         <datalist id="school-options">
-          {schools.map((s) => (
-            <option
-              key={s.id}
-              value={s.name_kana ? `${s.name} (${s.name_kana})` : s.name}
-            />
+          {candidates.map((s) => (
+            /* ⚠️★`label` は**見分けるための補助**。`value`（校名）は汚さない。
+                  ⚠️ 廃止校を入れてあるので**印を出す**。出さないと現役校と区別できない。 */
+            <option key={s.id} value={s.name} label={schoolOptionLabel(s)} />
           ))}
         </datalist>
       </div>
@@ -289,14 +324,12 @@ function EducationForm({
 export function EducationEditor({
   educations,
   setEducations,
-  schools,
   openAddNonce, openEditId, openDeleteId, onClosed,
 }: {
   /** ★カードの見出しの「＋」から追加フォームを開く合図（2026-08-16）。値が変わるたびに開く */
   openAddNonce?: number;
   educations: Education[];
   setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
-  schools: School[];  // 段階6-7 Phase 1: ProfileEditClient トップレベルから受け取る
   /** ★外（公開部品の行の鉛筆）から編集を開く行の id。`null` で閉じる（2026-08-16 / 2-5） */
   openEditId?: string | null;
   /** ★外（行のゴミ箱）から削除確認を開く行の id。`null` で閉じる（2026-08-16 / 2-5） */
@@ -506,7 +539,6 @@ export function EducationEditor({
           draft={eduDraft}
           onDraftChange={eduIsEditing ? setEditDraft : setAddDraft}
           isSaving={eduIsEditing ? editSaving : addSaving}
-          schools={schools}
         />
       </ProfileEditModal>
 

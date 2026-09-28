@@ -41,7 +41,6 @@ import {
 } from "./RecordEditors";
 import {
   type Education,
-  type School,
   type Achievement,
   type Award,
   type MediaAppearance,
@@ -576,7 +575,6 @@ export default function ProfileTab({
   roles,
   initialExperiences,
   initialEducations,
-  schools,
   initialAchievements,
   initialAwards,
   initialCertifications,
@@ -631,8 +629,6 @@ export default function ProfileTab({
   roles: RoleItem[];
   initialExperiences: Stint[];
   initialEducations: Education[];
-  /** 学校マスター。★親が1度だけ取得する（タブ側で取ると開くたびに走る） */
-  schools: School[];
   initialAchievements: Achievement[];
   initialAwards: Award[];
   /** 資格（2026-08-24）。⚠️ 学歴の下に出す */
@@ -1878,7 +1874,6 @@ export default function ProfileTab({
             <EducationEditor
               educations={educations}
               setEducations={setEducations}
-              schools={schools}
               openAddNonce={eduAddNonce}
               openEditId={editingEduId}
               openDeleteId={deleteEduId}
