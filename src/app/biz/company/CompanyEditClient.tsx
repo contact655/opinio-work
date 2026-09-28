@@ -777,7 +777,15 @@ export function CompanyEditClient({
                     onChange={(newSlugs) => update("genres", newSlugs)}
                     disabled={isPublishing}
                   />
-                  <FormHint>該当するジャンルを選択してください（複数可）。企業一覧・検索での絞り込みに活用されます。</FormHint>
+                  {/* ⚠️★**「絞り込みに活用されます」と書かないこと**（2026-09-29 に直した）。
+                         ジャンルでの絞り込みは**1箇所も無い**（`?genre=` は src 全体で0件、
+                         `lib/search/companies.ts` にも分岐が無い）。出るのは求職者向けの
+                         企業ページ（Hero のバッジ行と `CompanyInfoBox` のサイドバー）だけ。
+                      ⚠️ 絞り込みを作るなら先に実データを数えること。有効5件のうち紐付きが
+                         あるのは 外資系1社 / AI・LLM特化1社 だけで（2026-09-29 実測）、
+                         **押すと必ず0件になる選択肢が3つできる**
+                         （CLAUDE.md「0件の選択肢を出さない」）。 */}
+                  <FormHint>該当するジャンルを選択してください（複数可）。求職者向けの企業ページに表示されます。</FormHint>
                 </FormGroup>
               )}
               <FormGroup>
