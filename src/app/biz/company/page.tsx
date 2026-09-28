@@ -7,6 +7,7 @@ import { CompanyEditClient, type NotificationTeamMember } from "./CompanyEditCli
 import type { Genre } from "@/components/ui/GenreChipSelector";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
+import { fetchBusinessDomainOptions } from "@/lib/companies/businessDomains";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function BizCompanyPage() {
   /* ⚠️ `ow_saas_categories` の取得は 2026-08-25 に外した。SaaSカテゴリの入力欄を
         撤去したので誰も使わない（列と値は残してある）。事業領域の入力欄を作る日に
         `ow_business_domains` を取りに行く。 */
-  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, teamAdminsResult, listingRequestResult] = await Promise.all([
+  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, businessDomainOptions, companyDomainsResult, teamAdminsResult, listingRequestResult] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
     adminClient
       .from("ow_genres")
@@ -58,9 +59,18 @@ export default async function BizCompanyPage() {
             ⚠️ **2段セレクトには戻していない。** 1段のまま `<optgroup>` で出している
                （`IndustrySelectOptions`）。この列が無いと親子が組めず、
                `display_order` は**親ごとの相対順**なので並びが壊れる。 */
-      .select("id, name, slug, display_order, parent_id")
+      .select("id, name, slug, display_order, parent_id, requires_business_domain")
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
+    /* ★事業領域の選択肢とこの企業の選択（2026-09-29）。
+          ⚠️★**`/biz` にこの入力欄が無かったせいで、企業は自分で公開ゲートを
+             満たせなかった**（実測: 主の事業領域が無い企業が14社）。
+          ⚠️ 選択肢はマスタから。**コードに書かないこと**（業種と同じ扱い）。 */
+    fetchBusinessDomainOptions(adminClient, "biz/company"),
+    adminClient
+      .from("ow_company_business_domains")
+      .select("domain_id, is_primary")
+      .eq("company_id", ctx.tenantId),
     /* ★通知先の候補（2026-09-29）。その会社の**有効な担当者**。
           ⚠️★**`ow_company_admins` から `ow_users` は埋め込めない**（FK が無い。
              `getCompanyContext` の NOTE と同じ）。user_id を取ってから2本目で引く。
@@ -94,6 +104,13 @@ export default async function BizCompanyPage() {
   if (listingRequestResult.error) {
     console.error("[biz/company] listing_requested_at の取得に失敗:", listingRequestResult.error.message);
   }
+
+  /* ⚠️ `error` を捨てない。捨てると「1件も選んでいない」と区別できず、
+        取得に失敗した日に**画面が空のまま保存されて選択が消える。** */
+  if (companyDomainsResult.error) {
+    console.error("[biz/company] 事業領域の取得に失敗:", companyDomainsResult.error.message);
+  }
+  const companyDomainRows = (companyDomainsResult.data ?? []) as { domain_id: string; is_primary: boolean }[];
 
   /* ── 通知先の候補を組み立てる（2026-09-29）────────────────────────────────
         ⚠️ `error` を捨てない。捨てると「担当者が1人もいない」ように見えて、
@@ -150,10 +167,21 @@ export default async function BizCompanyPage() {
 
   const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
 
-  /** ⚠️ `parent_id` を含める。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05） */
-  type IndustryItem = { id: string; name: string; slug: string; display_order: number; parent_id: string | null };
+  /** ⚠️ `parent_id` を含める。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05）
+   *  ⚠️ `requires_business_domain` は事業領域が必須かの判定（2026-09-29）。
+   *     **slug で判定しないこと**（`/admin` 側と同じ規則）。 */
+  type IndustryItem = {
+    id: string; name: string; slug: string; display_order: number; parent_id: string | null;
+    requires_business_domain: boolean;
+  };
 
   const industries: IndustryItem[] = (industriesResult.data ?? []) as IndustryItem[];
+
+  /** この企業の業種が事業領域を必須としているか。
+   *  ⚠️ 見るのは**フォームの値**（＝下書きを含む）。業種を IT に変えた直後から
+   *     「必須です」と出したいため。 */
+  const industryRequiresDomain =
+    industries.find((i) => i.id === company.industryId)?.requires_business_domain ?? false;
 
   return (
     <CompanyEditClient
@@ -171,6 +199,12 @@ export default async function BizCompanyPage() {
       userId={user?.id ?? ""}
       initialListingRequestedAt={(listingRequestResult.data?.listing_requested_at as string | null) ?? null}
       teamMembers={teamMembers}
+      businessDomainOptions={businessDomainOptions}
+      initialBusinessDomainIds={companyDomainRows.map((r) => r.domain_id)}
+      initialPrimaryBusinessDomainId={companyDomainRows.find((r) => r.is_primary)?.domain_id ?? null}
+      /* ⚠️ 必須かどうかは業種マスタの `requires_business_domain` で決まる。
+             **slug で判定しないこと**（`/admin` 側と同じ規則）。 */
+      industryRequiresDomain={industryRequiresDomain}
       industries={industries}
     />
   );

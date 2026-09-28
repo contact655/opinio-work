@@ -19,6 +19,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
 import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
+import { MAX_BUSINESS_DOMAINS_PER_COMPANY, type BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
@@ -57,6 +58,13 @@ type Props = {
    * ⚠️ 空配列でも動く（自由入力だけになる）。
    */
   teamMembers?: NotificationTeamMember[];
+  /** 事業領域の選択肢（`ow_business_domains` の有効なもの）。⚠️ コードに書かない */
+  businessDomainOptions?: BusinessDomainOption[];
+  initialBusinessDomainIds?: string[];
+  initialPrimaryBusinessDomainId?: string | null;
+  /** この企業の業種が事業領域を必須としているか（`ow_industries.requires_business_domain`）。
+   *  ⚠️ **slug で判定しないこと**（`/admin` 側と同じ規則） */
+  industryRequiresDomain?: boolean;
   /** ow_industries 全件。2026-08-25 からフラット20件（親子は無い） */
   /** ⚠️ `parent_id` は必須。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05） */
   industries?: { id: string; name: string; slug: string; display_order: number; parent_id: string | null }[];
@@ -564,6 +572,10 @@ export function CompanyEditClient({
   userId = "",
   initialListingRequestedAt = null,
   teamMembers = [],
+  businessDomainOptions = [],
+  initialBusinessDomainIds = [],
+  initialPrimaryBusinessDomainId = null,
+  industryRequiresDomain = false,
   industries = [],
 }: Props) {
   const router = useRouter();
@@ -579,6 +591,15 @@ export function CompanyEditClient({
   const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
   const [termsChecked, setTermsChecked] = useState(false);
   const [isRecordingAgreement, setIsRecordingAgreement] = useState(false);
+  /* ★事業領域（2026-09-29）。
+     ⚠️★**`form`（＝ `draft_data`）に入れないこと。** junction テーブルなので
+        下書きに載せると、公開ゲートが「主が1件」を見る時点でまだ書かれておらず、
+        **初回の公開が必ず失敗する**（ゲートは更新を当てる前に走る）。
+        ＝ **この項目だけ即時保存**。画面にもそう書いてある。 */
+  const [domainIds, setDomainIds] = useState<string[]>(initialBusinessDomainIds);
+  const [primaryDomainId, setPrimaryDomainId] = useState<string | null>(initialPrimaryBusinessDomainId);
+  const [isSavingDomains, setIsSavingDomains] = useState(false);
+
   /* ★掲載依頼（2026-09-29）。⚠️ `form` に入れない（Props の注記を読むこと） */
   const [listingRequestedAt, setListingRequestedAt] = useState<string | null>(initialListingRequestedAt);
   const [isRequestingListing, setIsRequestingListing] = useState(false);
@@ -734,6 +755,55 @@ export function CompanyEditClient({
     } finally {
       setIsRecordingAgreement(false);
     }
+  }
+
+  // ── 事業領域ハンドラ（2026-09-29）────────────────────────────────────────
+  /*
+   * ⚠️★**即時保存。**「変更を公開する」を経由しない（state の注記を読むこと）。
+   * ⚠️★**サーバーが返すまで state を進めない。** 失敗したのに選ばれたように見えると、
+   *    公開ゲートに当たって初めて気づくことになる（規約同意で 2026-09-18 に踏んだ形）。
+   * ⚠️ 主を選ぶ前（`next.length > 0 && primary === null`）は**保存しない。**
+   *    API が 400 で断るので、押すたびにエラーが出ることになる。
+   */
+  async function saveDomains(nextIds: string[], nextPrimary: string | null) {
+    if (nextIds.length > 0 && nextPrimary === null) return;   // 主が決まるまで待つ
+    setIsSavingDomains(true);
+    try {
+      const res = await fetch("/api/biz/company/business-domains", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain_ids: nextIds, primary_domain_id: nextPrimary }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        showError(d?.error ?? "事業領域を保存できませんでした。時間をおいてもう一度お試しください。");
+        return false;
+      }
+      return true;
+    } catch {
+      showError("事業領域を保存できませんでした。通信状況をご確認ください。");
+      return false;
+    } finally {
+      setIsSavingDomains(false);
+    }
+  }
+
+  async function toggleDomain(id: string) {
+    const checked = domainIds.includes(id);
+    const nextIds = checked ? domainIds.filter((x) => x !== id) : [...domainIds, id];
+    /* 外した領域が主だったら主を空にする。⚠️ 残り1件なら自動でそれを主にする
+          （主を選び直させるためだけに一往復増やさない） */
+    let nextPrimary = primaryDomainId;
+    if (checked && primaryDomainId === id) nextPrimary = nextIds.length === 1 ? nextIds[0] : null;
+    if (!checked && nextIds.length === 1) nextPrimary = id;   // 最初の1件は自動で主
+    setDomainIds(nextIds);
+    setPrimaryDomainId(nextPrimary);
+    await saveDomains(nextIds, nextPrimary);
+  }
+
+  async function choosePrimaryDomain(id: string) {
+    setPrimaryDomainId(id);
+    await saveDomains(domainIds, id);
   }
 
   // ── 掲載依頼ハンドラ（2026-09-29）────────────────────────────────────────
@@ -988,6 +1058,109 @@ export function CompanyEditClient({
                   <FormSelect id="ce-phase" value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_SELECT_OPTIONS} />
                 </FormGroup>
               </div>
+              {/* ★事業領域（2026-09-29 / 柴さんの判断）。**企業ジャンルより先に置く。**
+                     ⚠️★これが `/biz` に無かったせいで、企業は**自分では満たせない条件**
+                        （公開ゲートの「主を1件」）で掲載を止められていた。
+                        実測（2026-09-29）: 主の事業領域が無い企業が14社。
+                     ⚠️★**求職者側の絞り込み・カードのタグ・企業ページのサイドバー・
+                        LPファセット・フッター・sitemap を動かすのはこちら。**
+                        企業ジャンルは絞り込みに1箇所も使われていない（`?genre=` は0件）。
+                        **並び順を入れ替えないこと。** */}
+              {businessDomainOptions.length > 0 && (
+                <FormGroup>
+                  <FormLabel required={industryRequiresDomain}>事業領域</FormLabel>
+                  <FormHint>
+                    この会社が<strong>何を作っているか</strong>です（最大 {MAX_BUSINESS_DOMAINS_PER_COMPANY} 件）。
+                    1つを「主」にしてください —— 企業一覧のカードと検索結果に出るのは主の1件です。
+                  </FormHint>
+                  {/* ⚠️★**必須かどうかは業種マスタの `requires_business_domain`。**
+                         slug で判定しないこと（`/admin` 側と同じ規則）。 */}
+                  {industryRequiresDomain ? (
+                    <FormHint>
+                      <strong style={{ color: "var(--warm-ink)" }}>この業種では掲載に事業領域が必要です。</strong>
+                      主を1件選んでいないと、掲載に切り替えられません。
+                    </FormHint>
+                  ) : (
+                    <FormHint>この業種では任意です。当てはまらないなら空のままで構いません。</FormHint>
+                  )}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                    {businessDomainOptions.map((d) => {
+                      const checked = domainIds.includes(d.id);
+                      const atLimit = !checked && domainIds.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => toggleDomain(d.id)}
+                          disabled={atLimit || isSavingDomains || isPublishing}
+                          title={d.description ?? undefined}
+                          style={{
+                            border: `1.5px solid ${checked ? "var(--royal)" : "var(--line)"}`,
+                            background: checked ? "var(--royal-50)" : "#fff",
+                            color: checked ? "var(--royal)" : "var(--ink-soft)",
+                            borderRadius: 100, padding: "6px 14px",
+                            fontSize: 13, fontWeight: checked ? 700 : 500,
+                            cursor: (atLimit || isSavingDomains) ? "not-allowed" : "pointer",
+                            opacity: atLimit ? 0.4 : 1,
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {d.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* ⚠️★**主を選ぶ行を出す。** 主が決まるまで保存されない
+                         （API が 400 で断るので、押すたびにエラーを出さないため）。
+                      ⚠️ 1件だけのときは自動で主になるので、この行は2件以上のときだけ。 */}
+                  {domainIds.length > 1 && (
+                    <div style={{ marginTop: 10 }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-mute)", marginRight: 8 }}>主にするもの</span>
+                      <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 12 }}>
+                        {domainIds.map((id) => {
+                          const d = businessDomainOptions.find((x) => x.id === id);
+                          if (!d) return null;
+                          return (
+                            <label key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 13, color: "var(--ink)" }}>
+                              <input
+                                type="radio"
+                                name="biz-primary-business-domain"
+                                checked={primaryDomainId === id}
+                                onChange={() => choosePrimaryDomain(id)}
+                                disabled={isSavingDomains || isPublishing}
+                                style={{ width: 14, height: 14, cursor: "pointer" }}
+                              />
+                              {d.name}
+                            </label>
+                          );
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {/* ⚠️★**「すぐ反映される」と出すこと。** この画面で唯一、下書きを
+                         経由しない項目。黙っていると「変更を公開する」を押すまで
+                         効かないと読まれる。 */}
+                  {/* ⚠️★★**主が決まっていない状態を黙って通さないこと**（2026-09-29）。
+                         主が null のあいだ `saveDomains` は**何も送らない**（API が 400 で
+                         断るので、押すたびにエラーを出さないため）。その結果
+                         **画面は新しい選択、DB は古いまま**になる。
+                         例: 3件から主を外すと残り2件になり、主が空になる。
+                         ここで言わないと「入力させたのに保存しない」になる。 */}
+                  {domainIds.length > 0 && primaryDomainId === null ? (
+                    <FormHint>
+                      <strong style={{ color: "var(--warm-ink)" }}>
+                        主にするものを1つ選んでください。選ぶまで保存されません。
+                      </strong>
+                    </FormHint>
+                  ) : (
+                    <FormHint>
+                      {isSavingDomains
+                        ? "保存中..."
+                        : "この項目は選ぶとすぐに反映されます（「変更を公開する」を押す必要はありません）。"}
+                    </FormHint>
+                  )}
+                </FormGroup>
+              )}
               {availableGenres.length > 0 && (
                 <FormGroup>
                   <FormLabel optional>企業ジャンル</FormLabel>

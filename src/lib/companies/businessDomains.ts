@@ -55,3 +55,10 @@ export async function fetchBusinessDomainOptions(
   }
   return (data ?? []) as BusinessDomainOption[];
 }
+
+/* ⚠️★**入れ替え（`setCompanyBusinessDomains`）はこのファイルに置かないこと**
+      （2026-09-29）。あれは `createAdminClient` を使うので、**このファイルを
+      import しているクライアントコンポーネント**（`/admin/companies/[id]` と
+      `/biz/company`）のバンドルに service role の経路が混ざる。
+      → **[setBusinessDomains.ts](./setBusinessDomains.ts)**（サーバー専用）に分けてある。
+   ⚠️ このファイルは**定数と型と純粋な取得だけ**に保つ。 */
