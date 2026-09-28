@@ -18,7 +18,6 @@ import {
 } from "@/lib/business/mockCompany";
 import { createClient } from "@/lib/supabase/client";
 import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
-import GenreChipSelector, { type Genre } from "@/components/ui/GenreChipSelector";
 import { MAX_BUSINESS_DOMAINS_PER_COMPANY, type BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
@@ -40,8 +39,6 @@ type Props = {
   tenantLogoLetter?: string | null;
   memberships?: import("@/lib/business/dashboard").TenantCompany[];
   isAdmin?: boolean;
-  /** ow_genres 全件（display_order 昇順ソート済み）。GenreChipSelector に渡す。 */
-  availableGenres?: Genre[];
   /** 掲載利用規約への同意済みか */
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
@@ -567,7 +564,6 @@ export function CompanyEditClient({
   tenantLogoLetter,
   memberships,
   isAdmin = true,
-  availableGenres = [],
   initialTermsAgreed = false,
   userId = "",
   initialListingRequestedAt = null,
@@ -1161,26 +1157,21 @@ export function CompanyEditClient({
                   )}
                 </FormGroup>
               )}
-              {availableGenres.length > 0 && (
-                <FormGroup>
-                  <FormLabel optional>企業ジャンル</FormLabel>
-                  <GenreChipSelector
-                    genres={availableGenres}
-                    selected={form.genres ?? []}
-                    onChange={(newSlugs) => update("genres", newSlugs)}
-                    disabled={isPublishing}
-                  />
-                  {/* ⚠️★**「絞り込みに活用されます」と書かないこと**（2026-09-29 に直した）。
-                         ジャンルでの絞り込みは**1箇所も無い**（`?genre=` は src 全体で0件、
-                         `lib/search/companies.ts` にも分岐が無い）。出るのは求職者向けの
-                         企業ページ（Hero のバッジ行と `CompanyInfoBox` のサイドバー）だけ。
-                      ⚠️ 絞り込みを作るなら先に実データを数えること。有効5件のうち紐付きが
-                         あるのは 外資系1社 / AI・LLM特化1社 だけで（2026-09-29 実測）、
-                         **押すと必ず0件になる選択肢が3つできる**
-                         （CLAUDE.md「0件の選択肢を出さない」）。 */}
-                  <FormHint>該当するジャンルを選択してください（複数可）。求職者向けの企業ページに表示されます。</FormHint>
-                </FormGroup>
-              )}
+              {/* ★★企業ジャンル（`ow_genres`）の入力欄は 2026-09-29 に畳んだ（柴さんの判断）。
+                     ⚠️★**戻さないこと。** 実測（2026-09-29 / 本番）:
+                       ・絞り込みに**1箇所も使われていない**（`?genre=` は src 全体で0件）
+                       ・掲載中21社のうちジャンルが付いているのは**自社1社だけ**
+                         （AI・LLM特化 → 株式会社Opinio。他の3行は検証用企業か
+                          無効化済みジャンル）
+                       ・有効5件のうち**3件は該当0社**
+                     ＝ 企業に選ばせる意味が無く、**同じ画面で事業領域と紛らわしい**。
+                  ⚠️ **表示は残してある。** 企業ページの Hero のバッジと `CompanyInfoBox` の
+                     サイドバーは今までどおり出るし、`/admin/companies/[id]` の
+                     「ジャンル」タブからは付け外しできる。**消したのは企業側の入力欄だけ。**
+                  ⚠️★**`form.genres` を消さないこと。** `transformFormToDb` が
+                     `draft_data.genres` に書き、PATCH がそれを `ow_company_genres` へ
+                     展開する。フォームから外すと**「変更を公開する」を押した瞬間に
+                     既存のジャンルが消える。**（`page.tsx` が公開済みの値で初期化している） */}
               <FormGroup>
                 <FormLabel htmlFor="ce-url">公式サイトURL</FormLabel>
                 <FormInput id="ce-url" type="url" value={form.url} onChange={(v) => update("url", v)} placeholder="https://example.co.jp" />

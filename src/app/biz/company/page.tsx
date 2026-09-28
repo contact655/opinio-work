@@ -4,7 +4,6 @@ import { fetchCompanyForTenant } from "@/lib/business/company";
 import { fetchOfficePhotosForCompany } from "@/lib/business/photos";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyEditClient, type NotificationTeamMember } from "./CompanyEditClient";
-import type { Genre } from "@/components/ui/GenreChipSelector";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
 import { fetchBusinessDomainOptions } from "@/lib/companies/businessDomains";
@@ -33,13 +32,12 @@ export default async function BizCompanyPage() {
   /* ⚠️ `ow_saas_categories` の取得は 2026-08-25 に外した。SaaSカテゴリの入力欄を
         撤去したので誰も使わない（列と値は残してある）。事業領域の入力欄を作る日に
         `ow_business_domains` を取りに行く。 */
-  const [initialPhotos, genresResult, publishedGenresResult, companyRaw, industriesResult, businessDomainOptions, companyDomainsResult, teamAdminsResult, listingRequestResult] = await Promise.all([
+  /* ⚠️★**`ow_genres`（選択肢）はもう引いていない**（2026-09-29 に企業側の入力欄を畳んだ）。
+        ⚠️ `publishedGenresResult`（この企業に付いているジャンル）は**引き続き要る。**
+           下書きに `genres` が無いときの初期値で、これが無いと
+           **「変更を公開する」を押した瞬間に既存のジャンルが消える。** */
+  const [initialPhotos, publishedGenresResult, companyRaw, industriesResult, businessDomainOptions, companyDomainsResult, teamAdminsResult, listingRequestResult] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
-    adminClient
-      .from("ow_genres")
-      .select("slug, name, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (adminClient as any)
       .from("ow_company_genres")
@@ -165,8 +163,6 @@ export default async function BizCompanyPage() {
     ? { ...companyRaw, genres: publishedGenreSlugs }
     : companyRaw;
 
-  const availableGenres: Genre[] = (genresResult.data ?? []) as Genre[];
-
   /** ⚠️ `parent_id` を含める。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05）
    *  ⚠️ `requires_business_domain` は事業領域が必須かの判定（2026-09-29）。
    *     **slug で判定しないこと**（`/admin` 側と同じ規則）。 */
@@ -194,7 +190,6 @@ export default async function BizCompanyPage() {
       tenantLogoLetter={ctx.logoLetter ?? undefined}
       memberships={ctx.allCompanies}
       isAdmin={ctx.currentPermission === "admin"}
-      availableGenres={availableGenres}
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
       initialListingRequestedAt={(listingRequestResult.data?.listing_requested_at as string | null) ?? null}
