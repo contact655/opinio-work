@@ -4752,6 +4752,7 @@ export type Database = {
       }
       ow_schools: {
         Row: {
+          closed_at: string | null
           country: string
           created_at: string
           id: string
@@ -4760,10 +4761,13 @@ export type Database = {
           logo_url: string | null
           name: string
           name_kana: string | null
+          prefecture: string | null
+          school_code: string | null
           type: string
           updated_at: string
         }
         Insert: {
+          closed_at?: string | null
           country?: string
           created_at?: string
           id?: string
@@ -4772,10 +4776,13 @@ export type Database = {
           logo_url?: string | null
           name: string
           name_kana?: string | null
+          prefecture?: string | null
+          school_code?: string | null
           type?: string
           updated_at?: string
         }
         Update: {
+          closed_at?: string | null
           country?: string
           created_at?: string
           id?: string
@@ -4784,6 +4791,8 @@ export type Database = {
           logo_url?: string | null
           name?: string
           name_kana?: string | null
+          prefecture?: string | null
+          school_code?: string | null
           type?: string
           updated_at?: string
         }
