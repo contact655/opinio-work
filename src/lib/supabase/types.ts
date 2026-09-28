@@ -684,6 +684,7 @@ export type Database = {
           jobs_public: boolean
           linkedin_url: string | null
           listed_exchange: string | null
+          listing_requested_at: string | null
           listing_status: Database["public"]["Enums"]["listing_status_enum"]
           location: string | null
           logo_gradient: string | null
@@ -839,6 +840,7 @@ export type Database = {
           jobs_public?: boolean
           linkedin_url?: string | null
           listed_exchange?: string | null
+          listing_requested_at?: string | null
           listing_status?: Database["public"]["Enums"]["listing_status_enum"]
           location?: string | null
           logo_gradient?: string | null
@@ -994,6 +996,7 @@ export type Database = {
           jobs_public?: boolean
           linkedin_url?: string | null
           listed_exchange?: string | null
+          listing_requested_at?: string | null
           listing_status?: Database["public"]["Enums"]["listing_status_enum"]
           location?: string | null
           logo_gradient?: string | null

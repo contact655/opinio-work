@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { Toggle } from "@/components/ui/Toggle";
-import { updateAcceptingMeetings, updateSortOrder, updateIsPublished, updateApproval, updateCompanyLogoUrl, updateListingStatus } from "./actions";
+import { updateAcceptingMeetings, updateSortOrder, updateIsPublished, updateApproval, updateCompanyLogoUrl, updateListingStatus, clearListingRequest } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -95,6 +95,11 @@ export type Company = {
   target_industry_scope?: "vertical" | "horizontal" | "consumer" | null;
   /** ⚠️ 未確認の件数から検証用企業を外すために要る（`/admin/companies` の「要対応」と揃える） */
   is_test?: boolean | null;
+  /** ★企業が `/biz/company` で「掲載を依頼する」を押した日時（2026-09-29）。null は未依頼。
+   *  ⚠️★**掲載状態ではない。** 正は `listing_status` / `is_published` / `is_approved`。
+   *     これは「運営が動くべき」という印で、掲載にすると自動で消える
+   *     （`updateListingStatus('listed')`）。掲載しないと決めたら `clearListingRequest`。 */
+  listing_requested_at?: string | null;
 };
 
 /* ⚠️ **データはサーバー（page.tsx + createAdminClient）で取る。**
@@ -168,7 +173,22 @@ export default function AdminCompaniesClient(
   function handleListingToggle(company: Company) {
     const newValue: ListingStatus = company.listing_status === "listed" ? "draft" : "listed";
     return run(company.id, () => updateListingStatus(company.id, newValue),
-      (c) => ({ ...c, listing_status: newValue }));
+      /* ⚠️ 掲載にすると、サーバー側が同じ UPDATE で `listing_requested_at` を消す
+            （2026-09-29）。**画面の楽観更新もそれに合わせる。** 揃えないと
+            「掲載中なのに掲載依頼のバナーが残る」状態が再読み込みまで続く。 */
+      (c) => ({
+        ...c,
+        listing_status: newValue,
+        listing_requested_at: newValue === "listed" ? null : c.listing_requested_at,
+      }));
+  }
+
+  /* ★掲載依頼を片付ける（2026-09-29）。**掲載しないと決めたときだけ使う。**
+     ⚠️ 掲載するなら上のトグル（`handleListingToggle`）。あちらは依頼も自動で消える。
+     ⚠️ 企業には何も通知しない。断りの連絡は運営が直接行う。 */
+  function handleClearListingRequest(company: Company) {
+    return run(company.id, () => clearListingRequest(company.id),
+      (c) => ({ ...c, listing_requested_at: null }));
   }
 
   // 承認（is_approved）。掲載は別操作なので is_published は動かさない。取り消しは無し
@@ -240,6 +260,15 @@ export default function AdminCompaniesClient(
    *  ⚠️ サーバー側で掲載中・検証用でないものに絞ってあるので、ここでは数えるだけ。
    *  ⚠️ タブや検索で絞っても全体の数を出す（上の2つと同じ理由）。 */
   const noRecipientCount = companies.filter((c) => c.no_recipient === true).length;
+
+  /** ★企業からの掲載依頼（2026-09-29）。**0件が正常な状態。**
+   *  ⚠️ 検証用（`is_test`）も出す。押せるのは実在の担当者だけなので、
+   *     `/admin/companies` の「要対応」のように積み上がることがない。
+   *  ⚠️ タブや検索で絞っても全体の数を出す（上の2つと同じ理由）。 */
+  const listingRequests = companies
+    .filter((c) => Boolean(c.listing_requested_at))
+    /* ⚠️ 古い依頼を上に。放置が見えないと「件数だけ見て終わり」になる */
+    .sort((a, b) => String(a.listing_requested_at).localeCompare(String(b.listing_requested_at)));
 
   const targetUnknownCount = companies.filter(
     (c) => c.listing_status === "listed"
@@ -348,6 +377,57 @@ export default function AdminCompaniesClient(
                 （docs/ops-fallback-20260915.md）ので、**案内する相手を知る唯一の一覧**がここ。
                 `/admin/ambassador-requests` と `/admin/applications` は
                 **依頼や応募が来た企業しか出さない。** */}
+      {/* ★企業からの掲載依頼（2026-09-29）。**0件が正常な状態。**
+             ⚠️★**件数だけにしないこと。** ここが運営の作業の入口で、
+                「どの会社か」「いつから待たせているか」「どう片付けるか」が
+                この1枚で分かる必要がある。
+             ⚠️ 掲載するなら表の掲載トグル（依頼は自動で消える）。
+                掲載しないと決めたときだけ「対応済みにする」。 */}
+      {listingRequests.length > 0 && (
+        <div role="status" style={{
+          background: "var(--success-soft)", border: "1px solid #A7F3D0", borderRadius: 10,
+          padding: "10px 14px", marginBottom: 16, fontSize: 12.5,
+          color: "var(--success-ink)", lineHeight: 1.7,
+        }}>
+          <strong>掲載依頼 {listingRequests.length}社</strong> — 企業が <strong>/biz の「掲載を依頼する」</strong>を押しました。
+          掲載するなら表の<strong>掲載トグル</strong>を入れてください（依頼の印は自動で消えます）。
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+            {listingRequests.map((c) => {
+              /* ⚠️ 起点は依頼日時。別の起点にすると `/admin` の要対応と数字が食い違う */
+              const days = Math.floor((Date.now() - Date.parse(String(c.listing_requested_at))) / 86_400_000);
+              return (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <Link href={`/admin/companies/${c.id}`} style={{ fontWeight: 700, color: "var(--success-ink)" }}>
+                    {c.name}
+                  </Link>
+                  <span style={{ color: "var(--ink-mute)", fontSize: 11.5 }}>
+                    {new Date(String(c.listing_requested_at)).toLocaleDateString("ja-JP")}
+                    {days > 0 ? `（${days}日前）` : "（今日）"}
+                  </span>
+                  {/* ⚠️ 検証用は隠さず**印で区別する**（`/admin/ambassador-requests` と同じ方針） */}
+                  {c.is_test === true && (
+                    <span style={{ fontSize: 10.5, color: "var(--ink-mute)" }}>検証用</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleClearListingRequest(c)}
+                    disabled={actionLoading === c.id}
+                    title="掲載しないと決めたときに押します。掲載状態は変わりません。企業には通知されません。"
+                    style={{
+                      background: "#fff", border: "1px solid #A7F3D0", borderRadius: 100,
+                      padding: "2px 10px", fontSize: 11, fontWeight: 700,
+                      color: "var(--success-ink)", cursor: actionLoading === c.id ? "wait" : "pointer",
+                    }}
+                  >
+                    {actionLoading === c.id ? "…" : "対応済みにする"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ⚠️★**取得に失敗したら「0社」と出さない。** 壊れているのに正常に見える
              （CLAUDE.md「取得に失敗したら『0件』と表示しない」）。 */}
       {recipientsFailed ? (
@@ -509,6 +589,22 @@ export default function AdminCompaniesClient(
                                 }}
                               >
                                 宛先なし
+                              </div>
+                            )}
+                            {/* ★企業が掲載を依頼した（2026-09-29）。
+                                   ⚠️ 琥珀（要対応＝違反）とも royal（宛先なし）とも色を分ける。
+                                      これは**壊れているのではなく、企業からの申し出**。 */}
+                            {c.listing_requested_at && (
+                              <div
+                                title={`企業が「掲載を依頼する」を押しました（${new Date(String(c.listing_requested_at)).toLocaleString("ja-JP")}）。掲載トグルを入れると、この印は自動で消えます。`}
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4,
+                                  padding: "2px 7px", borderRadius: 100,
+                                  background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                                  fontSize: 10.5, fontWeight: 700, color: "var(--success-ink)", whiteSpace: "nowrap",
+                                }}
+                              >
+                                掲載依頼
                               </div>
                             )}
                           </div>

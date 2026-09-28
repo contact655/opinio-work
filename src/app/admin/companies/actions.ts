@@ -194,9 +194,17 @@ export async function updateListingStatus(
 
   /* ⚠️ 0行更新を成功として扱わない。.select("id") で戻り行を受ける（CLAUDE.md）。
         ⚠️ 引数なしの .select() は使わない。列単位 GRANT を剥がした列があると 403 になる。 */
+  /* ★掲載にしたら、企業からの掲載依頼は片付いたので消す（2026-09-29）。
+        ⚠️★**残すと `/admin` の要対応に出続ける。** 依頼は「運営が動くべき」という印で、
+           動いた時点で意味を失う。取り下げ（draft）では消さない
+           ——依頼が残っているほうが「まだ対応していない」と分かる。
+        ⚠️ 同じ UPDATE に混ぜる。別の UPDATE にすると片方だけ通る余地ができる。 */
+  const patch: Record<string, unknown> = { listing_status: newValue, updated_at: new Date().toISOString() };
+  if (newValue === "listed") patch.listing_requested_at = null;
+
   const { data, error } = await admin
     .from("ow_companies")
-    .update({ listing_status: newValue, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq("id", companyId)
     .select("id");
 
@@ -263,6 +271,46 @@ export async function updateApproval(companyId: string): Promise<ActionResult> {
   }
   revalidatePath("/admin/companies");
   await revalidateCompanyPages(companyId);
+  return { ok: true };
+}
+
+/**
+ * 企業からの掲載依頼（`ow_companies.listing_requested_at`）を片付ける（2026-09-29）。
+ *
+ * ⚠️★**掲載状態は変わらない。** 消すのは「運営が見た」という印だけ。
+ *    掲載するなら `updateListingStatus('listed')` を使う（あちらは同じ UPDATE で
+ *    この列も自動で消す）。**この関数は「掲載しないと決めた」ときに使う。**
+ *
+ * ⚠️★**残しておくと `/admin` の要対応に出続ける。** 依頼は「運営が動くべき」という印で、
+ *    掲載しないと決めたならもう出す理由が無い（0件が正常な数字にしてある）。
+ *
+ * ⚠️ 依頼した企業には通知しない。断りの連絡は運営が直接行う
+ *    ——押しただけで企業に「お断り」が飛ぶ形にしないこと。
+ */
+export async function clearListingRequest(companyId: string): Promise<ActionResult> {
+  if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
+  await assertAdmin();
+  const admin = createAdminClient();
+
+  /* ⚠️ 0行更新を成功として扱わない（CLAUDE.md）。
+        ⚠️ 引数なしの `.select()` を使わない（列単位 GRANT で 403 になる）。 */
+  const { data, error } = await admin
+    .from("ow_companies")
+    .update({ listing_requested_at: null })
+    .eq("id", companyId)
+    .select("id");
+
+  if (error) {
+    console.error("[clearListingRequest]", error.message);
+    return { ok: false, error: toMessage(error) };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "対象の企業が見つかりませんでした（0行更新）" };
+  }
+
+  /* ⚠️ `/admin`（要対応タスク）も作り直す。ここだけだと件数が古いまま残る。 */
+  revalidatePath("/admin/companies");
+  revalidatePath("/admin");
   return { ok: true };
 }
 

@@ -300,6 +300,55 @@ export function memberReportAdminTemplate(params: {
   };
 }
 
+/**
+ * 企業が `/biz/company` の「掲載を依頼する」を押したときに運営へ届く（2026-09-29）。
+ *
+ * ⚠️★**このメールは正ではない。** 依頼の記録は `ow_companies.listing_requested_at` で、
+ *    `/admin` の要対応タスクと `/admin/companies` にも出る。
+ *    **メールを見落としても追える**ので、送信は best-effort でよい
+ *    （`/business/contact` は逆に**メールしか無い**ので `sendEmailStrict`。混同しないこと）。
+ *
+ * ⚠️ 押した人の氏名とメールは**ここにしか残らない。**
+ *    `ow_companies` は SELECT が anon にテーブルレベルなので、列としては持っていない
+ *    （migration `20260929010000` の理由を参照）。**この2行を消さないこと。**
+ */
+export function listingRequestAdminTemplate(params: {
+  companyId: string;
+  companyName: string;
+  /** 押した担当者。⚠️ 名前が無い人がいる（`greetingName` が null を返す形）ので null を許す */
+  requesterName: string | null;
+  requesterEmail: string | null;
+  requestedAt: string;
+  /** 公開ゲート（業種・主の事業領域）で足りていないもの。空なら「無し」 */
+  blockers: string[];
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【掲載依頼】${params.companyName} から掲載の依頼がありました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">掲載の依頼</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        <strong style="color:#0f172a">${esc(params.companyName)}</strong> が
+        <strong>掲載を依頼する</strong>を押しました。<strong>掲載はまだ始まっていません。</strong>
+        運営が内容を確認して掲載状態を切り替えてください。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        ${/* ⚠️ 値が無ければ行ごと出さない（「不明」で埋めない） */""}
+        ${params.requesterName ? `<tr><td style="${TD_LABEL}">依頼した人</td><td style="${TD_VALUE}">${esc(params.requesterName)}</td></tr>` : ""}
+        ${params.requesterEmail ? `<tr><td style="${TD_LABEL}">連絡先</td><td style="${TD_VALUE}">${esc(params.requesterEmail)}</td></tr>` : ""}
+        <tr><td style="${TD_LABEL}">依頼日時</td><td style="${TD_VALUE}">${new Date(params.requestedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</td></tr>
+        ${/* ★足りないものを先に知らせる。運営が画面を開いてから気づくと一往復増える */""}
+        ${params.blockers.length > 0
+          ? `<tr><td style="${TD_LABEL}">掲載前に必要</td><td style="${TD_VALUE}">${esc(params.blockers.join(" / "))}</td></tr>`
+          : ""}
+      </table>
+      <a href="${siteUrl}/admin/companies/${params.companyId}" style="${BTN}">運営画面で確認する →</a>
+    `),
+  };
+}
+
 // T3 申込者宛
 export function casualMeetingUserTemplate(params: {
   to: string;

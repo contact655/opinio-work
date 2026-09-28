@@ -174,6 +174,29 @@ async function getStats() {
     ? Math.floor((Date.now() - Date.parse(memberReports.data[0].reported_at as string)) / 86_400_000)
     : null;
 
+  /* ★企業からの掲載依頼（2026-09-29）。**0件が正常な状態。**
+     企業が `/biz/company` の「掲載を依頼する」を押すと `listing_requested_at` が入り、
+     運営が掲載にすると（`updateListingStatus('listed')`）**同じ UPDATE で消える。**
+     掲載しないと決めたときは `/admin/companies` の「対応済みにする」。
+     ⚠️ 失敗を 0 に倒さない。取得できなかったときは要対応に1件として出す
+        （参加依頼・在籍報告と同じ理由。0 にすると壊れているのに要対応が消える）。
+     ⚠️ 検証用（`is_test`）を外さない。押せるのは実在の担当者だけなので積み上がらないし、
+        外すと検証で押したものが**どこにも出ず消せなくなる。** */
+  const listingRequests = await admin
+    .from("ow_companies")
+    .select("id, listing_requested_at", { count: "exact" })
+    .not("listing_requested_at", "is", null)
+    .order("listing_requested_at", { ascending: true })
+    .limit(1);
+  if (listingRequests.error) {
+    console.error("[admin] 掲載依頼の取得に失敗:", listingRequests.error.message);
+  }
+  /* ⚠️ 最も古い依頼の経過日数。0件なら null（0 ではない）。
+        件数だけだと「放置されている」ことが読み取れない（在籍報告と同じ形）。 */
+  const listingRequestsOldestDays = listingRequests.data?.[0]?.listing_requested_at
+    ? Math.floor((Date.now() - Date.parse(listingRequests.data[0].listing_requested_at as string)) / 86_400_000)
+    : null;
+
   /* ★双方合意しているのに会話が作られていない提案（2026-09-21）。**0件が正常な状態。**
      `introduceIfMutual()` は best-effort なので、会話の作成に失敗するとここに残る。
      ⚠️★**両側とも答え終わっているので、もう誰も押さない。** 運営が
@@ -199,6 +222,9 @@ async function getStats() {
     memberReportsCount: memberReports.error ? 0 : (memberReports.count ?? 0),
     memberReportsFailed: Boolean(memberReports.error),
     memberReportsOldestDays,
+    listingRequestsCount: listingRequests.error ? 0 : (listingRequests.count ?? 0),
+    listingRequestsFailed: Boolean(listingRequests.error),
+    listingRequestsOldestDays,
     undeliveredScoutsCount: undelivered.error ? 0 : (undelivered.count ?? 0),
     undeliveredScoutsFailed: Boolean(undelivered.error),
     /** ⚠️ 直近1件の理由だけ出す。原因は `ow_scouts.email_error` に全件入っている */
@@ -270,7 +296,9 @@ export default async function AdminDashboard() {
     /* ★在籍していない人の報告（2026-09-18）。0件が正常。失敗は1件として数える */
     + (stats.memberReportsFailed ? 1 : stats.memberReportsCount)
     /* ★未紹介の提案（2026-09-21）。0件が正常。失敗は1件として数える */
-    + (stats.stuckIntrosFailed ? 1 : stats.stuckIntrosCount);
+    + (stats.stuckIntrosFailed ? 1 : stats.stuckIntrosCount)
+    /* ★企業からの掲載依頼（2026-09-29）。0件が正常。失敗は1件として数える */
+    + (stats.listingRequestsFailed ? 1 : stats.listingRequestsCount);
 
   const kpis = [
     {
@@ -762,6 +790,42 @@ export default async function AdminDashboard() {
                       {stats.stuckIntrosFailed
                         ? "取得に失敗しています"
                         : "両者とも答え終わっているので、運営が再試行しないと動きません"}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* ★企業からの掲載依頼（2026-09-29）。
+                   ⚠️ 取得に失敗したときも出す（0件に化けさせない）。 */}
+            {(stats.listingRequestsCount > 0 || stats.listingRequestsFailed) && (
+              <Link href="/admin/companies" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "var(--success-soft)", border: "1px solid #A7F3D0",
+                  transition: "background 0.15s", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#D1FAE5", color: "var(--success-ink)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--success-ink)", margin: 0, marginBottom: 2 }}>
+                      {stats.listingRequestsFailed
+                        ? "掲載依頼の取得に失敗しました（0件という意味ではありません）"
+                        : `企業からの掲載依頼 ${stats.listingRequestsCount}社`}
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--success-ink)", margin: 0 }}>
+                      {stats.listingRequestsFailed
+                        ? "取得に失敗しています"
+                        : <>掲載トグルを入れると印は自動で消えます{stats.listingRequestsOldestDays !== null ? ` ・ 最も古い依頼から ${stats.listingRequestsOldestDays}日` : ""}</>}
                     </p>
                   </div>
                 </div>

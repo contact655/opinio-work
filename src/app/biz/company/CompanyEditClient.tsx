@@ -45,6 +45,18 @@ type Props = {
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
+  /**
+   * 企業が「掲載を依頼する」を押した日時（`ow_companies.listing_requested_at`）。null は未依頼。
+   * ⚠️★**`form`（＝ `draft_data` に自動保存される下書き）に入れないこと。**
+   *    これは運営が対応したら NULL に戻す**サーバー側の状態**で、企業が編集する値ではない。
+   *    下書きに混ぜると、自動保存のたびに古い値で上書きされる。
+   */
+  initialListingRequestedAt?: string | null;
+  /**
+   * その会社の有効な担当者（`ow_company_admins` ＋ `ow_users`）。通知先の候補。
+   * ⚠️ 空配列でも動く（自由入力だけになる）。
+   */
+  teamMembers?: NotificationTeamMember[];
   /** ow_industries 全件。2026-08-25 からフラット20件（親子は無い） */
   /** ⚠️ `parent_id` は必須。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05） */
   industries?: { id: string; name: string; slug: string; display_order: number; parent_id: string | null }[];
@@ -167,6 +179,175 @@ function FormInput({
         (e.target as HTMLInputElement).style.boxShadow = "none";
       }}
     />
+  );
+}
+
+/**
+ * 通知先の1人ぶん。⚠️ 出どころは `ow_company_admins`（その会社の有効な担当者）＋ `ow_users`。
+ * ⚠️ `department` / `role_title` は `ow_company_admins` の列。**`ow_users` の職歴ではない。**
+ */
+export type NotificationTeamMember = {
+  name: string;
+  email: string;
+  department: string | null;
+  roleTitle: string | null;
+  /** `permission === "admin"`。⚠️ 未設定のときのフォールバック先はこの人たちだけ */
+  isAdminPermission: boolean;
+};
+
+/** 大文字小文字を無視して比べる。⚠️ メールのローカル部は本来大小を区別するが、
+ *  実運用で区別している事業者はほぼ無く、区別すると同じ人を2回選べてしまう。 */
+const sameEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * 企業への通知先を選ぶ（2026-09-29 / 柴さんの指示）。
+ *
+ * ── なぜ作ったか ──────────────────────────────────────────────────────────
+ * それまでは**カンマ区切りのメールアドレスだけ**で、
+ * `recruiting@example.co.jp` と並んでいても**誰のアドレスか分からなかった。**
+ * 実測（2026-09-29 / 本番）: この列を設定している企業は **0社**。
+ * ＝ **一度も使われないまま**、実際に効いていたのはフォールバック（②有効な管理者）だけ。
+ *
+ * → その会社の **OPINIO アカウントから選ぶ**形にした。名前・部門・職種・メールが出る。
+ *
+ * ⚠️★**自由入力を消さないこと。** `recruiting@` のような共有メールボックスや
+ *    採用代行など、**OPINIO アカウントを持たない宛先が実在する。**
+ *
+ * ⚠️★**保存先は今までどおり `notification_emails`（text[]）。** 選んだ人の
+ *    「メールアドレスだけ」を入れる。**`user_id` で持つ形に変えていない。**
+ *    理由: `lib/notify/recipients.ts` がアドレスの配列を期待しており、
+ *    ここだけ構造を変えると**宛先の解決が2通りに割れる**（そちらのほうが危ない）。
+ *    ⚠️ 引き換えに、その人が OPINIO のメールアドレスを変えても追随しない。
+ *       いまは**本人がメールアドレスを変える機能が存在しない**ので実害は無い
+ *       （CLAUDE.md「`email` は本人向けの変更機能が無いから GRANT を落としている」）。
+ *       **変更機能を作る日は、ここも一緒に考えること。**
+ *
+ * ⚠️★**「上書き」であることを画面に出す。** `notification_emails` は
+ *    既定の宛先への**追加ではなく上書き**（`recipients.ts` の解決順①）。
+ *    1人でも選ぶと、選ばなかった管理者には**届かなくなる。**
+ */
+function NotificationRecipients({
+  value,
+  onChange,
+  members,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  members: NotificationTeamMember[];
+}) {
+  const emails = value ? value.split(",").map((e) => e.trim()).filter(Boolean) : [];
+
+  /** 担当者のアドレスに当たらないもの＝共有アドレスなど。⚠️ 落とさずに必ず残す */
+  const others = emails.filter((e) => !members.some((m) => sameEmail(m.email, e)));
+  const isSelected = (m: NotificationTeamMember) => emails.some((e) => sameEmail(m.email, e));
+
+  /**
+   * ★並びは常に「担当者（`members` の順）→ その他」に組み直す。
+   *
+   * ⚠️★**押した順に足す形にしないこと**（2026-09-29 に実際に食い違った）。
+   *    チェックを付けた経路と、その他のアドレスを足した経路とで**並びが変わり**、
+   *    同じ宛先なのに「いまの宛先」の表示順が操作の順番で変わる。
+   *    保存値（`notification_emails`）にも順序が残るので、**中身が同じでも差分が出て
+   *    「未公開の変更あり」が無意味に点く。**
+   */
+  function rebuild(selectedEmails: string[], otherEmails: string[]) {
+    const ordered = members.filter((m) => selectedEmails.some((e) => sameEmail(m.email, e))).map((m) => m.email);
+    onChange([...ordered, ...otherEmails].join(", "));
+  }
+
+  function toggle(m: NotificationTeamMember) {
+    const selected = members.filter(isSelected).map((x) => x.email);
+    const nextSelected = isSelected(m)
+      ? selected.filter((e) => !sameEmail(m.email, e))
+      : [...selected, m.email];
+    rebuild(nextSelected, others);
+  }
+
+  /** その他のアドレスだけを置き換える。⚠️ 選択済みの担当者を巻き込まないこと */
+  function setOthers(v: string) {
+    const nextOthers = v ? v.split(",").map((e) => e.trim()).filter(Boolean) : [];
+    rebuild(members.filter(isSelected).map((m) => m.email), nextOthers);
+  }
+
+  /** 未設定のときに実際に届く人（`recipients.ts` の②）。⚠️ 条件を変えるならあちらと揃える */
+  const fallback = members.filter((m) => m.isAdminPermission);
+
+  return (
+    <div>
+      {members.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+          {members.map((m) => {
+            const checked = isSelected(m);
+            /* ⚠️ 値が無ければ出さない（「—」や「所属不明」で埋めない） */
+            const sub = [m.department, m.roleTitle].filter(Boolean).join(" ・ ");
+            return (
+              <label
+                key={m.email}
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+                  padding: "10px 12px", borderRadius: 8,
+                  border: `1.5px solid ${checked ? "var(--royal)" : "var(--line)"}`,
+                  background: checked ? "var(--royal-50)" : "#fff",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(m)}
+                  style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }}
+                />
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
+                    {sub && <span style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>{sub}</span>}
+                    {!m.isAdminPermission && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
+                        border: "1px solid var(--line)", borderRadius: 100, padding: "1px 6px",
+                      }}>閲覧のみ</span>
+                    )}
+                  </span>
+                  <span style={{
+                    display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2,
+                    overflowWrap: "anywhere",
+                  }}>{m.email}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      ) : (
+        <FormHint>
+          この会社にはまだ OPINIO の担当者が登録されていません。
+          下の欄にメールアドレスを直接入力してください。
+        </FormHint>
+      )}
+
+      {/* ⚠️★**自由入力を消さないこと。** 共有メールボックスや採用代行の宛先が実在する。 */}
+      <FormLabel optional>その他のアドレス</FormLabel>
+      <EmailTagInput value={others.join(", ")} onChange={setOthers} />
+      <FormHint>
+        recruiting@ のような共有アドレスを追加できます（Enter またはカンマで区切ります）。
+      </FormHint>
+
+      {/* ⚠️★**「誰に届くか」を必ず出す。** `notification_emails` は既定の宛先への
+             **追加ではなく上書き**なので（`lib/notify/recipients.ts` の解決順①）、
+             1人でも選ぶと選ばなかった管理者には届かなくなる。 */}
+      {emails.length === 0 ? (
+        <FormHint>
+          {fallback.length > 0
+            ? <>未設定です。いまは<strong style={{ color: "var(--ink)" }}>{fallback.map((m) => m.name).join(" ・ ")}</strong>（管理者権限の担当者）に届きます。</>
+            : "未設定です。管理者権限の担当者がいないため、いまは運営に届きます。"}
+        </FormHint>
+      ) : (
+        <FormHint>
+          {/* ⚠️ 数ではなく**宛先そのもの**を出す。数だけだと誰が外れたか分からない */}
+          いまの宛先: <strong style={{ color: "var(--ink)" }}>{emails.join(" ・ ")}</strong>
+          <br />
+          ここに挙げた宛先<strong>だけ</strong>に届きます（他の担当者には届きません）。
+        </FormHint>
+      )}
+    </div>
   );
 }
 
@@ -381,6 +562,8 @@ export function CompanyEditClient({
   availableGenres = [],
   initialTermsAgreed = false,
   userId = "",
+  initialListingRequestedAt = null,
+  teamMembers = [],
   industries = [],
 }: Props) {
   const router = useRouter();
@@ -396,6 +579,9 @@ export function CompanyEditClient({
   const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
   const [termsChecked, setTermsChecked] = useState(false);
   const [isRecordingAgreement, setIsRecordingAgreement] = useState(false);
+  /* ★掲載依頼（2026-09-29）。⚠️ `form` に入れない（Props の注記を読むこと） */
+  const [listingRequestedAt, setListingRequestedAt] = useState<string | null>(initialListingRequestedAt);
+  const [isRequestingListing, setIsRequestingListing] = useState(false);
   const [activeSection, setActiveSection] = useState<CompanySectionId>("basic");
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -547,6 +733,40 @@ export function CompanyEditClient({
       showError("同意を記録できませんでした。通信状況をご確認ください。");
     } finally {
       setIsRecordingAgreement(false);
+    }
+  }
+
+  // ── 掲載依頼ハンドラ（2026-09-29）────────────────────────────────────────
+  /*
+   * ⚠️★**掲載状態は変わらない。** 送るのは「依頼した」という記録だけで、
+   *    掲載に切り替えるのは運営（`/admin/companies`）。
+   *    画面にも「掲載はまだ始まりません」と出してある。**消さないこと。**
+   * ⚠️ 結果を見てから state を更新する（規約同意で 2026-09-18 に踏んだのと同じ形。
+   *    先に更新すると、失敗しても「依頼済み」に見える）。
+   */
+  async function handleRequestListing() {
+    if (isRequestingListing) return;
+    setIsRequestingListing(true);
+    try {
+      const res = await fetch("/api/biz/company/listing-request", { method: "POST" });
+      const d = await res.json().catch(() => null);
+      if (!res.ok) {
+        /* ⚠️ 409（すでに依頼済み）は**失敗ではない。** 別のタブや別の担当者が
+              先に押した場合なので、サーバーが返した日時で画面を合わせる。 */
+        if (res.status === 409 && typeof d?.requestedAt === "string") {
+          setListingRequestedAt(d.requestedAt);
+          showToast("すでに掲載依頼を受け付けています", "default");
+          return;
+        }
+        showError(d?.error ?? "掲載依頼を送信できませんでした。時間をおいてもう一度お試しください。");
+        return;
+      }
+      setListingRequestedAt(typeof d?.requestedAt === "string" ? d.requestedAt : new Date().toISOString());
+      showToast("掲載依頼を送信しました ✓", "default");
+    } catch {
+      showError("掲載依頼を送信できませんでした。通信状況をご確認ください。");
+    } finally {
+      setIsRequestingListing(false);
     }
   }
 
@@ -1057,8 +1277,15 @@ export function CompanyEditClient({
                       **どれかを消すなら、残りで気づけるかを確かめてから。** */}
             {/* 規約同意 */}
             {!termsAgreed ? (
+              /* ⚠️★**`marginTop` を付け直さないこと**（2026-09-29）。`.biz-company-body` が
+                    既に `padding-top: 28px` を持っており、他タブの先頭 `SectionCard` は
+                    marginTop を持たない。ここだけ 24px 足していたので**設定タブの先頭だけ
+                    下にずれていた。**
+                 ⚠️★**`marginBottom` を外さないこと。** `SectionCard` は
+                    `marginBottom: 18` だけを持ち `marginTop` を持たないので、
+                    ここに下マージンが無いと**次の「掲載状態」カードと隙間0でくっつく。** */
               <div style={{
-                marginTop: 24, padding: "24px 28px",
+                padding: "24px 28px", marginBottom: 18,
                 background: "var(--warm-soft)", border: "1px solid #FDE68A",
                 borderRadius: 12,
               }}>
@@ -1109,8 +1336,11 @@ export function CompanyEditClient({
                 </button>
               </div>
             ) : (
+              /* ⚠️ 未同意のオレンジ枠と同じ扱いに揃えてある（2026-09-29）。
+                    **片方だけ marginTop / marginBottom を変えないこと** ——
+                    同意した瞬間に先頭の位置が動いて見える。 */
               <div style={{
-                marginTop: 16, padding: "12px 16px",
+                padding: "12px 16px", marginBottom: 18,
                 background: "var(--success-soft)", border: "1px solid #A7F3D0",
                 borderRadius: 10, display: "flex", alignItems: "center", gap: 10,
               }}>
@@ -1148,17 +1378,72 @@ export function CompanyEditClient({
                   }} />
                   {form.isPublished ? "掲載中" : "未掲載"}
                 </div>
-                <FormHint>
-                  {form.isPublished ? (
-                    "掲載の管理は運営が行います。"
-                  ) : (
-                    <>
-                      掲載をご希望の場合は{" "}
-                      <a href="/business/contact" style={{ color: "var(--royal)", fontWeight: 600 }}>運営までご連絡ください</a>
-                      。
-                    </>
-                  )}
-                </FormHint>
+                {/* ★掲載依頼（2026-09-29 / 柴さんの指示）。
+                       それまでは `/business/contact`（公開のフォーム）へのリンクだけで、
+                       **ログイン済みの担当者に会社名・氏名・メールを打ち直させていた。**
+                       しかもあのフォームはメール1本で DB に残らないので、運営が見落とすと追えず、
+                       企業側も「依頼したかどうか」が画面から分からなかった。
+                    ⚠️★**掲載状態は運営が切り替える。** ここが送るのは依頼の記録だけ
+                       （`ow_companies.listing_requested_at`）。**スイッチに戻さないこと。** */}
+                {form.isPublished ? (
+                  <FormHint>掲載の管理は運営が行います。</FormHint>
+                ) : listingRequestedAt ? (
+                  <div style={{
+                    marginTop: 8, padding: "10px 14px", borderRadius: 8,
+                    background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+                      <span style={{ fontWeight: 700, color: "var(--ink)" }}>
+                        掲載を依頼しました（{new Date(listingRequestedAt).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}）
+                      </span>
+                      <br />
+                      {/* ⚠️ 対応までの日数を書かないこと（`/business/contact` と同じ理由。
+                             運営の対応時間を約束できる根拠が無い）。 */}
+                      運営が内容を確認します。掲載が始まるとこの画面の掲載状態が変わります。
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        type="button"
+                        onClick={handleRequestListing}
+                        /* ⚠️ 管理者だけ。掲載は会社としての意思表示なので、
+                              閲覧権限の担当者には押させない（規約同意と同じ扱い）。 */
+                        disabled={!isAdmin || !termsAgreed || isRequestingListing}
+                        className="btn-fixed-size"
+                        style={{
+                          background: (isAdmin && termsAgreed) ? "var(--royal)" : "var(--line)",
+                          color: (isAdmin && termsAgreed) ? "#fff" : "var(--ink-mute)",
+                          border: "none", borderRadius: 8,
+                          padding: "10px 20px", fontSize: 14, fontWeight: 600,
+                          cursor: (isAdmin && termsAgreed) ? "pointer" : "not-allowed",
+                        }}
+                      >
+                        {isRequestingListing ? "送信中..." : "掲載を依頼する"}
+                      </button>
+                    </div>
+                    <FormHint>
+                      {/* ⚠️★**未同意の理由を書くこと。** 押せない理由が画面に無いと、
+                             同じタブの上にあるパネルに気づけない。 */}
+                      {!isAdmin
+                        ? "掲載の依頼は管理者権限の担当者が行えます。"
+                        : !termsAgreed
+                          ? "先に、このページ上部の掲載利用規約へ同意してください。"
+                          : "運営に掲載の依頼が届きます。押しただけでは掲載は始まりません。"}
+                    </FormHint>
+                    {/* ⚠️ フォームへの導線は残す。掲載以外の相談もあるため。 */}
+                    <FormHint>
+                      掲載以外のご相談は{" "}
+                      <a href="/business/contact" style={{ color: "var(--royal)", fontWeight: 600 }}>お問い合わせ</a>
+                      から。
+                    </FormHint>
+                  </>
+                )}
               </FormGroup>
               <FormGroup>
                 <FormLabel>カジュアル面談の受付</FormLabel>
@@ -1179,15 +1464,19 @@ export function CompanyEditClient({
                   ⚠️ 未設定でも通知は止まらない。管理者権限の担当者にフォールバックする。
                      この値は「既定の宛先の上書き」なので、設定するとフォールバックは効かなくなる。
                 */}
+                {/* ★2026-09-29 に、カンマ区切りのメール1欄から
+                       「担当者から選ぶ＋その他のアドレス」に変えた（柴さんの指示）。
+                    ⚠️★**1欄に戻さないこと。** アドレスだけだと**誰のものか分からない。**
+                       実測（2026-09-29 / 本番）: この列を設定していた企業は **0社**で、
+                       実際に効いていたのはフォールバック（②有効な管理者）だけだった。
+                    ⚠️ 保存先・保存形式（`notification_emails` の text[]）は変えていない。
+                       `lib/notify/recipients.ts` の解決順もそのまま。 */}
                 <FormLabel>企業への通知先</FormLabel>
-                <EmailTagInput
+                <NotificationRecipients
                   value={form.notificationEmails}
                   onChange={(v) => update("notificationEmails", v)}
+                  members={teamMembers}
                 />
-                <FormHint>Enterまたはカンマで複数のメールアドレスを追加できます</FormHint>
-                {!form.notificationEmails.trim() && (
-                  <FormHint>未設定の場合は、管理者権限の担当者に届きます。</FormHint>
-                )}
               </FormGroup>
             </SectionCard>
           </>
