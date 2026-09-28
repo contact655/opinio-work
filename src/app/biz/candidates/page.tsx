@@ -78,6 +78,48 @@ export default async function CandidatesPage() {
     );
   }
 
+  /* ══ プランが引けなかったとき ════════════════════════════════════════
+     ⚠️★**`canUse` のゲートと分けること**（2026-09-29）。`canUse(null, ...)` は
+        fail-closed で false になるが、**理由が「売り物だから」ではなく「異常」。**
+        `planType` が null になるのは次の2つ:
+          ① `ow_company_plans` に active な行が無い（本来ありえない。全社に1本ある前提）
+          ② 取得に失敗した
+        ⚠️★**ベータ中は `free` でも候補者検索が開く**ので、ここを分けないと
+           「プラン行が無いだけ」の企業に**有料プランの売り込み**が出る。
+        ⚠️ `source='user'` で作られた企業（求職者が経歴入力から登録）は
+           **プラン行を持たない**（`/api/jobseeker/companies` は意図して触らない）。
+           その企業に後から担当者が付くと①になる。**実際に3社あった**（2026-09-29 に補充）。 */
+  if (ctx.planType === null) {
+    return (
+      <BusinessLayout {...{
+        userName: ctx.userName,
+        tenantName: ctx.tenantName,
+        tenantLogoGradient: ctx.logoGradient,
+        tenantLogoLetter: ctx.logoLetter,
+        memberships: ctx.allCompanies,
+        currentTenantId: ctx.tenantId,
+      }}>
+        <div style={{
+          background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
+          padding: "44px 40px", maxWidth: 620, margin: "48px auto",
+        }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 14, lineHeight: 1.5 }}>
+            候補者を探す
+          </h1>
+          {/* ⚠️ 「有料プランです」と書かないこと。**売り物の案内ではなく異常**。
+                 利用者にできることが無いので、運営に繋ぐ。 */}
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 24 }}>
+            この企業のプラン情報を確認できませんでした。お手数ですが{" "}
+            <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
+              contact@opinio.co.jp
+            </a>{" "}
+            までご連絡ください。
+          </p>
+        </div>
+      </BusinessLayout>
+    );
+  }
+
   /* ══ 有料プランのゲート ═══════════════════════════════════════════════
      ⚠️ **必ずここで返す。候補者を取得する前。**
         500件取ってからクライアントで隠すのは不可。一覧も詳細も同じ

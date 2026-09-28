@@ -76,15 +76,26 @@ export async function changePlan(
     .eq("status", "active")
     .select("id");
 
-  /* ⚠️ 0行更新を成功として扱わない（CLAUDE.md）。
-        active が無い企業は本来存在しない（全社に1本入れてある）ので、
-        0行なら company_id が違うか、行が消えている。 */
   if (closeErr) {
     console.error("[admin/plans] close failed:", closeErr.message);
     return { ok: false, error: "現在のプランを終了できませんでした" };
   }
+
+  /* ⚠️★**0行は正常**（2026-09-29 に変更）。「消したいものが元から無くてよい場合」
+        （CLAUDE.md `mutateAllowNone` の条件）にあたる。
+     ⚠️★それまでは「active が無い企業は本来存在しない（全社に1本入れてある）」
+        という前提で 0行をエラーにしていたが、**その前提は崩れていた。**
+        `POST /api/jobseeker/companies`（求職者が経歴入力から会社を登録する入口）は
+        **意図して `ow_company_plans` を触らない**ので、そこで作られた企業に
+        後から担当者が付くと active な行が無い状態になる。
+        実測（2026-09-29）: 有効な管理者がいる12社のうち**3社**がこれ
+        （株式会社テスト / 株式会社ZAP / サンプルワークス）。
+        ⇒ **運営がプランを設定しようとすると「有効なプランが見つかりませんでした」で
+          失敗し、直す手段が画面から無かった。**
+     ⚠️ 企業そのものが存在しないケースは②の INSERT が FK で落ちるので、
+        ここで弾かなくても取り違えにはならない。 */
   if ((closed?.length ?? 0) === 0) {
-    return { ok: false, error: "この企業に有効なプランが見つかりませんでした" };
+    console.warn(`[admin/plans] active なプランが無い企業に新規作成する: ${companyId}`);
   }
 
   // ② 新しい行を積む
