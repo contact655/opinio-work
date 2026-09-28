@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { schoolTypeLabel } from "@/lib/constants/schools";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Users } from "lucide-react";
@@ -223,19 +224,6 @@ export async function generateMetadata(
     description: `${school.name}出身のIT業界の現役社員・OB/OGのキャリアを見る。`,
     robots: { index: false, follow: false },
   };
-}
-
-// ─── 学校種別ラベル ───────────────────────────────────────────────────────────
-
-function schoolTypeLabel(type: string | null): string {
-  switch (type) {
-    case "university":      return "大学";
-    case "graduate_school": return "大学院";
-    case "college":         return "短期大学・高専";
-    case "highschool":      return "高等学校";
-    case "vocational":      return "専門学校";
-    default:                return "学校";
-  }
 }
 
 // ─── ページ ───────────────────────────────────────────────────────────────────
