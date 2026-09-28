@@ -171,3 +171,70 @@ CLAUDE.md:114 の「キャッシュは3層ある」の直後に、
 | 2026-09-19〜28 | 定時実行が**10回すべて 200 ＋ `10 → 10 行`**。★**DB では何も起きていない** |
 | 2026-09-20 | `/api/industries` が「53行あるのに22行」を踏み、`force-dynamic` を追加（★**直っていなかった**） |
 | 2026-09-28 | 原因特定・cron 2本を修正・本書の棚卸し |
+
+---
+
+## 付録2: 修正後の検証（2026-09-28 / 本番）
+
+デプロイ: commit `47146c01`（`builtAt 2026-09-28T14:28:57Z`）。**ビルドは成功**。
+
+### rebuild-transitions（手動1回・14:30:08 UTC）
+
+```json
+{"ok":true,"before":10,"after":10,"builtAt":"2026-09-28T14:30:08.490262+00:00","durationMs":593}
+```
+
+| 確認項目 | 前 | 後 | 判定 |
+|---|---|---|---|
+| `built_at` | 2026-09-18 18:00:27.674353 | ★**2026-09-28 14:30:08.490262** | ✅ **10日ぶりに動いた**（応答の `builtAt` と DB が一致） |
+| 行数 | 10 | 10 | ✅ 変化なし（想定どおり） |
+| 内容ハッシュ | `30e2c57b4409d45f9cb4bae4d3e68a4a` | `30e2c57b4409d45f9cb4bae4d3e68a4a` | ✅ **一致＝冪等** |
+| `durationMs` | — | **593ms** | ✅ 実際の往復（キャッシュ再生なら 0ms 近く） |
+
+★**Supabase 側の記録**（`ow_transitions` 系が初めて残った。IP は Vercel）:
+
+```
+14:30:08.121  HEAD  /rest/v1/ow_transitions                 200   ← before の件数
+14:30:08.462  POST  /rest/v1/rpc/rebuild_ow_transitions     200   ← ★RPC。これが9日間無かった
+14:30:08.606  GET   /rest/v1/ow_transitions                 200   ← built_at の読み直し
+```
+
+### check-test-leftovers（手動1回・14:31:00 UTC）
+
+```json
+{"ok":true,"total":1,"failed":false,"notified":true,"checkedAt":"2026-09-28T14:30:59.985Z","durationMs":264}
+```
+
+| 確認項目 | 結果 |
+|---|---|
+| 件数 | **1**（SQL の実測と一致） |
+| Supabase 側の記録 | ✅ `GET /rest/v1/ow_users` / `GET /rest/v1/ow_company_creations`（14:31:00） |
+| `durationMs` | **264ms** |
+
+★**初めての実アラート**: `contact+43@opinio.co.jp`（2026-09-27 21:41 作成・`is_test` 未設定）。
+**取り残しの5回目**。⚠️ 倒すのは人が email を明示列挙した migration で行う（自動で倒さない）。
+
+### /api/industries
+
+| 確認項目 | 結果 |
+|---|---|
+| 件数 | API **51件** ＝ DB の `is_active = true` **51件**（全53行） ✅ |
+| 5回叩いたときの DB 読み取り | ★**5件**（修正前は **0 / 6**） ✅ **毎回 DB へ行く** |
+
+### ★翌日（2026-09-29 03:00 JST = 2026-09-28 18:00 UTC）に確認すること
+
+**定時実行が自力で `built_at` を動かすか。** 手動実行は通ったが、
+**9日間壊れていたのは定時実行**なので、そこが直ったかは別に確かめる。
+
+```sql
+-- 2026-09-28 18:00 UTC 台になっていれば直っている（14:30 のままなら定時実行がまだ動いていない）
+select max(built_at) from ow_transitions;
+```
+
+| 見るもの | 期待 |
+|---|---|
+| `ow_transitions.built_at` | **2026-09-28 18:00:2x UTC** |
+| Vercel Logs の応答 | `builtAt` が同じ時刻／`durationMs` が数百 ms |
+| `check-test-leftovers`（21:00 UTC） | `contact+43` を倒していなければ `total:1` でメールが届く |
+
+⚠️ `durationMs` が **0ms 近く**なら、キャッシュが別の経路で復活している。**そのときは再調査。**
