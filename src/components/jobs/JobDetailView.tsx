@@ -1238,7 +1238,7 @@ export async function JobDetailView({
                 casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
                 talkableIds={talkableIds}
                 currentTitle={`${company.name} の他の現役社員`}
-                currentSubtitle="この求人の職種とは違う人たちです"
+                currentSubtitle="この募集の職種とは違う人たちです"
               />
 
               {/* ★ツール（企業詳細と同じ内容）── 2026-08-30 追加 */}

@@ -918,12 +918,12 @@ function JobsSection({
           <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>}>
             {/* ⚠️ 見出しは0件ブランチでも「募集中の求人」。ここだけ「募集中の案件」で、
                    本文も「公開中の募集」になっており、1つのセクションに3つの語彙があった（2026-08-13 統一）。 */}
-            募集中の求人
+            募集中のポジション
           </SecTitle>
         </div>
         <div style={{ padding: "var(--space-6)", textAlign: "center" }}>
           <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", padding: "24px 0", margin: 0 }}>
-            現在、公開中の求人はありません。
+            現在、公開中の募集はありません。
           </p>
           {company.accepting_casual_meetings && (
             <Link href={`/companies/${company.id}/casual-meeting`} style={{
@@ -1021,7 +1021,7 @@ function JobsSection({
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="default">
-          募集中の求人
+          募集中のポジション
           <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)" }}>
             {company.job_count}件
           </span>
@@ -1049,7 +1049,7 @@ function JobsSection({
             ⚠️ 値は slug 優先・UUID も可（JobsClient が両方受ける）。 */}
         <ShowMoreButton
           variant="navigate"
-          label={`${company.job_count}件すべての求人を見る`}
+          label={`${company.job_count}件すべての募集を見る`}
           href={`/jobs?company=${encodeURIComponent(company.slug ?? company.id)}`}
           wrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
         />
@@ -1295,7 +1295,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
                              ここだけ無条件だったため、記事が1件の企業（Ubie / Sansan / PKSHA）で
                              他のCTAを全部消したあとも、この行だけ申込ページへ誘導し続けていた。 */}
                       {[
-                        { href: "#jobs", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>, label: "求人を見る", sub: `${company.job_count > 0 ? company.job_count + "件掲載中" : ""}` },
+                        { href: "#jobs", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>, label: "募集を見る", sub: `${company.job_count > 0 ? company.job_count + "件掲載中" : ""}` },
                         ...(company.accepting_casual_meetings
                           ? [{ href: `/companies/${company.id}/casual-meeting`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: "カジュアル面談", sub: "選考なし・無料" }]
                           : []),
@@ -1577,7 +1577,7 @@ function Sidebar({
               {hasMeeting
                 ? "対話から、はじめよう。"
                 : hasJobs
-                  ? `${company.job_count}件の求人を、見てみませんか？`
+                  ? `${company.job_count}件の募集を、見てみませんか？`
                   : "現在、受付中の募集・面談はありません"}
             </div>
 
@@ -1909,7 +1909,7 @@ export default async function CompanyDetailPage({
         <CompanyStickyNav items={[
           { id: "about", label: "企業概要" },
           ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
-          ...(company.job_count > 0 ? [{ id: "jobs", label: "求人", count: company.job_count }] : []),
+          ...(company.job_count > 0 ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
           /* ⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
                 分からない（絞り込みはクライアント側のAPIが行うため）。
@@ -2078,7 +2078,7 @@ export default async function CompanyDetailPage({
                     let href: string | null;
                     if (isAggregated) {
                       if (post_type === "job_posted") {
-                        text = `求人を ${posts.length} 件追加しました`;
+                        text = `募集を ${posts.length} 件追加しました`;
                         href = "#jobs";
                       } else if (post_type === "article_published") {
                         text = `記事を ${posts.length} 件公開しました`;
@@ -2091,7 +2091,7 @@ export default async function CompanyDetailPage({
                       const post = posts[0];
                       if (post_type === "job_posted") {
                         const title = post.ow_jobs?.title;
-                        text = title ? `求人「${title}」の募集を開始しました` : post.content;
+                        text = title ? `「${title}」の募集を開始しました` : post.content;
                         href = post.ref_job_id ? `/jobs/${post.ref_job_id}` : "#jobs";
                       } else if (post_type === "article_published") {
                         const title = post.ow_articles?.title;
@@ -2185,7 +2185,7 @@ export default async function CompanyDetailPage({
                       }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
-                      求人を見る ({company.job_count}件)
+                      募集を見る ({company.job_count}件)
                     </a>
                   )}
                   <Link

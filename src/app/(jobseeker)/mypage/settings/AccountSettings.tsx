@@ -70,7 +70,7 @@ function NotificationSettingsSection() {
   };
 
   const items: { key: keyof NotifPrefs; label: string; desc: string; icon: string }[] = [
-    { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着求人と、希望条件に合う求人をまとめてお送りします", icon: "💼" },
+    { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着の募集と、希望条件に合う募集をまとめてお送りします", icon: "💼" },
     { key: "email_scout_enabled",  label: "スカウトのお知らせ", desc: "企業からスカウトが届いたときにメールでお知らせします", icon: "📬" },
   ];
 

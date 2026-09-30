@@ -925,7 +925,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     ⚠️ ただし**足元を揃える包みは同じ**にする（`alignItems: baseline`）。
                        `center` だと 15px と 12px でベースラインが 4px ずれる。 */}
                 <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-                  <SectionTitle title={`${shortCompanyName(currentCareer!.company_name)}の募集中の求人`} />
+                  <SectionTitle title={`${shortCompanyName(currentCareer!.company_name)}の募集中のポジション`} />
                   <span style={{
                     fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
                     fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0,
@@ -967,7 +967,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   fontSize: 13, fontWeight: 700, textDecoration: "none",
                   boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
                 }}>
-                  すべての求人を見る →
+                  すべての募集を見る →
                 </Link>
               </div>
             </section>
@@ -995,7 +995,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   {shortCompanyName(currentCareer!.company_name)}への転職に興味はありますか？
                 </p>
                 <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                  {owUser.name}さんのように活躍できる求人を見てみましょう
+                  {owUser.name}さんのように活躍できる募集を見てみましょう
                 </p>
                 <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                   <Link href={`/companies/${currentCareer!.company_id!}`} style={{
@@ -1087,7 +1087,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                       <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                     </svg>
-                    IT 求人を見る
+                    IT 募集を見る
                   </Link>
                   <Link href="/companies" style={{
                     display: "inline-flex", alignItems: "center", gap: 6,

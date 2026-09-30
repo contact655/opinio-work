@@ -91,7 +91,7 @@ const BADGE_STYLE = {
 const POST_TYPE_BADGE: Record<string, { label: string; color: string; bg: string; border: string } | undefined> = {
   company_joined:    { label: "新規掲載", ...BADGE_STYLE },
   article_published: { label: "取材記事", ...BADGE_STYLE },
-  job_posted:        { label: "新着求人", ...BADGE_STYLE },
+  job_posted:        { label: "新着の募集", ...BADGE_STYLE },
 };
 
 /**
@@ -1574,7 +1574,7 @@ function FeedSidebar({
             ))}
           </div>
         )}
-        <Link href="/jobs" style={MORE_LINK_STYLE}>求人一覧を見る →</Link>
+        <Link href="/jobs" style={MORE_LINK_STYLE}>募集一覧を見る →</Link>
       </div>
       )}
 
@@ -2007,7 +2007,7 @@ function PostCard({
             })()}
           </div>
           <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, flexShrink: 0 }}>
-            求人を見る →
+            募集を見る →
           </div>
         </Link>
       )}

@@ -116,7 +116,7 @@ export default async function BookmarksPage() {
               id: b.id as string, type: "job" as const,
               title: j.title as string,
               meta: [cMap.get(j.company_id as string), roleLabels.get(j.id as string)?.label].filter(Boolean).join(" / "),
-              badge_label: roleLabels.get(j.id as string)?.label ?? "求人",
+              badge_label: roleLabels.get(j.id as string)?.label ?? "募集",
               /* ★公開中の求人だけリンクにする（2026-09-27 / B案）。
                     ⚠️★**表示条件は `status='published'` かつ `is_test=false` の2つだけ**
                        （CLAUDE.md。`ow_jobs` に `is_published` 列は無い）。

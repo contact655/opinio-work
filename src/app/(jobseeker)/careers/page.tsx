@@ -31,10 +31,10 @@ const STEPS = [
   {
     step: "02",
     icon: "💼",
-    title: "求人を比較する",
-    desc: "職種・給与・勤務形態でフィルタして、自分の条件に合う求人を絞り込む。",
+    title: "募集を比較する",
+    desc: "職種・給与・勤務形態でフィルタして、自分の条件に合う募集を絞り込む。",
     href: "/jobs",
-    cta: "求人を見る →",
+    cta: "募集を見る →",
     /* ⚠️ `#059669`（= --success）は白の上で **3.77**。12px / 13px には 4.5 が要る。
           文字は `--success-ink`(5.48)、塗りは従来どおり。 */
     color: "var(--success-ink)",
@@ -90,11 +90,11 @@ const ROLE_GUIDES = [
 const FAQS = [
   {
     q: "OPINIOは転職エージェントですか？",
-    a: "いいえ。OPINIOは転職エージェントではありません。企業の実態情報・求人・先輩との対話の場を提供するプラットフォームです。担当者からの電話や、無理な求人紹介はありません。",
+    a: "いいえ。OPINIOは転職エージェントではありません。企業の実態情報・募集・先輩との対話の場を提供するプラットフォームです。担当者からの電話や、無理な紹介はありません。",
   },
   {
     q: "登録なしで使えますか？",
-    a: "企業情報・求人・記事は登録不要で閲覧できます。カジュアル面談の申込みには無料会員登録が必要です。",
+    a: "企業情報・募集・記事は登録不要で閲覧できます。カジュアル面談の申込みには無料会員登録が必要です。",
   },
   {
     q: "どんな企業が掲載されていますか？",
@@ -130,7 +130,7 @@ export default function CareersPage() {
             IT / SaaS 転職ガイド
           </h1>
           <p style={{ fontSize: 15, color: "var(--ink-soft)", margin: "0 0 28px", lineHeight: 1.8, maxWidth: 540 }}>
-            外資系・IT企業への転職を深く考えたい人のための情報ハブ。企業の実態・求人・年収・先輩の声を一か所で比較できます。
+            外資系・IT企業への転職を深く考えたい人のための情報ハブ。企業の実態・募集・年収・先輩の声を一か所で比較できます。
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link href="/companies" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
@@ -171,7 +171,7 @@ export default function CareersPage() {
           <h2 style={{ fontFamily: "var(--font-noto-serif,'Noto Serif JP',serif)", fontSize: "clamp(18px,2.5vw,26px)", fontWeight: 700, color: "var(--ink)", margin: "0 0 8px" }}>
             職種別 転職マップ
           </h2>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 20px" }}>職種を選ぶと、その職種の先輩と求人を一気に確認できます。</p>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 20px" }}>職種を選ぶと、その職種の先輩と募集を一気に確認できます。</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))", gap: 10 }}>
             {ROLE_GUIDES.map((r) => (
               <Link key={r.slug} href={`/people/role/${r.slug}`} className="cg-role-chip">
@@ -231,14 +231,14 @@ export default function CareersPage() {
             まず、知ることから始めよう。
           </h2>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.80)", margin: "0 0 24px", lineHeight: 1.6 }}>
-            登録不要で企業・求人・年収を比較できます。
+            登録不要で企業・募集・年収を比較できます。
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <Link href="/companies" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
               企業を探す →
             </Link>
             <Link href="/jobs" style={{ display: "inline-block", padding: "12px 24px", borderRadius: 100, background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)" }}>
-              求人を見る
+              募集を見る
             </Link>
           </div>
         </div>

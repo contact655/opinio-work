@@ -24,10 +24,17 @@ export async function JobseekerFooter() {
               <OpinioLogo height={28} />
             </div>
             {/* ⚠️ maxWidth は 300。**260 だと「プラットフォー／ム。」で割れる**（13px × 全角20文字 ≒ 274px）。
-                   縮めるときは、2行とも文の途中で折り返さないことを確かめること。 */}
+                   縮めるときは、2行とも文の途中で折り返さないことを確かめること。
+                ⚠️★2026-09-16: 2行目を「**企業/求人/人の情報が、ここに揃っています。**」から
+                   言い直した。在庫は 掲載22社 / 公開求人2件 / 登録ユーザー9人で、
+                   **「揃っています」は在庫の主張として強すぎた。**
+                   1行目の「人を探せる」も**ログイン後だけ**（`/people` は未ログインで 307）なので、
+                   「読めます」の範囲に寄せてある。
+                ⚠️★**在庫が増えても「揃っています」に戻さないこと。** 戻すなら、
+                   その時点の実数を数えてから判断する。 */}
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.9, maxWidth: 300, marginBottom: 20 }}>
-              IT企業の求人と人を探せるプラットフォーム。<br />
-              企業/求人/人の情報が、ここに揃っています。
+              IT企業の募集と人を探せるプラットフォーム。<br />
+              企業と募集は、登録なしで読めます。
             </p>
           </div>
 
@@ -65,8 +72,8 @@ export async function JobseekerFooter() {
                 { href: "/biz/auth",  label: "企業登録" },
                 { href: "/business", label: "掲載について" },
                 /* ⚠️★**この行を外さないこと（2026-08-31）。**
-                      掲載利用規約 第4条2項が料金の「本サービス上」での表示を
-                      義務づけており、掲示先は /business/pricing の1枚しかない。
+                      掲載利用規約 第4条1項・第5条1項が料金の「本サービス上」での
+                      表示を義務づけており、掲示先は /business/pricing の1枚しかない。
                       2026-08-31 にトップから料金セクションを外したため、
                       **フッターとヘッダーのナビが唯一の常設導線になっている。** */
                 { href: "/business/pricing", label: "料金" },
@@ -90,7 +97,6 @@ export async function JobseekerFooter() {
                 { href: "/contact",      label: "お問い合わせ" },
                 { href: "/terms",          label: "利用規約" },
                 { href: "/terms/listing", label: "掲載利用規約" },
-                { href: "/terms/placement", label: "人材紹介利用規約" },
                 { href: "/privacy",        label: "プライバシーポリシー" },
                 { href: "/legal/agency",   label: "職業安定法に基づく明示事項" },
               ].map(({ href, label }) => (

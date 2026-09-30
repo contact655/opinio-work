@@ -383,7 +383,7 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
                               fontSize: 12, fontWeight: 700, textDecoration: "none",
                             }}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
-                              この企業の求人を見る（{jobCount}件）→
+                              この企業の募集を見る（{jobCount}件）→
                             </Link>
                           )}
                         </div>

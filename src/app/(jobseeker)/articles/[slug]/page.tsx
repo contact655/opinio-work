@@ -287,7 +287,7 @@ function CompanyCTA({ article, companyHref }: { article: Article; companyHref: s
             borderRadius: 9, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none",
           }}
         >
-          企業情報と求人を見る
+          企業情報と募集を見る
         </Link>
       </div>
     </div>

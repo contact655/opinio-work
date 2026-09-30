@@ -42,7 +42,7 @@ export default function ApplicationForm({
     });
 
     if (res.status === 409) {
-      setError("この求人にはすでに応募しています。");
+      setError("この募集にはすでに応募しています。");
       setIsSubmitting(false);
       return;
     }
@@ -114,7 +114,7 @@ export default function ApplicationForm({
               fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}
           >
-            求人を探す
+            募集を探す
           </button>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function ApplicationForm({
               transition: "all 0.2s",
             }}
           >
-            {isSubmitting ? "送信中..." : "この求人に応募する"}
+            {isSubmitting ? "送信中..." : "この募集に応募する"}
           </button>
 
           <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>

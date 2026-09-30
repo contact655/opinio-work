@@ -72,7 +72,7 @@ export default function NotFound() {
             fontSize: 14,
             border: "1.5px solid var(--royal-100)",
           }}>
-            求人を見る
+            募集を見る
           </Link>
           <Link href="/articles" style={{
             display: "inline-block",

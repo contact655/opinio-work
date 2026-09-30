@@ -1015,7 +1015,7 @@ export default function JobsClient({
                     type="button"
                     onClick={() => { setGroupByCompany(v => !v); setDisplayCount(PER_PAGE); }}
                     className={`jobs-sort-btn${groupByCompany ? " active" : ""}`}
-                    title="同一企業の求人を1社あたり3件に絞る"
+                    title="同一企業の募集を1社あたり3件に絞る"
                   >
                     {groupByCompany ? "✓ " : ""}1社3件まで
                   </button>

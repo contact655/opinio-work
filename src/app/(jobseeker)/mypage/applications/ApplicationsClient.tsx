@@ -82,7 +82,7 @@ export default function ApplicationsClient({
              ⚠️ 1つだけ色を残す案は採らない。**どれかが上位だという序列**になる。 */}
           {[
             { label: "カジュアル面談", count: counts.meeting },
-            { label: "求人応募", count: counts.job },
+            { label: "募集への応募", count: counts.job },
             { label: "進行中", count: counts.open },
             { label: "内定", count: counts.offered },
           ].map((card) => (

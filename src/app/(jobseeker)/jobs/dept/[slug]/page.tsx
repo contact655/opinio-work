@@ -23,15 +23,15 @@ export const revalidate = 60;
 // SEO 用の説明文だけ。マスタに無い分類をここで増やさないこと——
 // 語彙をコード側に作った結果が上記の破綻だった。
 const DEPT_SEO: Record<string, { labelEn: string; description: string }> = {
-  exec:      { labelEn: "Executive & CxO",        description: "IT企業の経営・CxO・幹部候補の求人。" },
-  bizdev:    { labelEn: "Business Development",   description: "IT企業の事業開発・アライアンス・BizDev求人。" },
-  sales:     { labelEn: "Sales",                  description: "IT企業のフィールドセールス・インサイドセールス・SDR/BDR・セールスエンジニア・プリセールスの求人。" },
-  cs:        { labelEn: "Customer Success",       description: "IT企業のカスタマーサクセス・カスタマーサポート・テクニカルサポート求人。" },
-  marketing: { labelEn: "Marketing",              description: "IT企業のマーケティング・プロダクトマーケティング求人。" },
-  product:   { labelEn: "Product & Design",       description: "IT企業のプロダクトマネージャー・デザイナーの求人。" },
-  "data-ai": { labelEn: "Data & AI",              description: "IT企業のデータサイエンティスト・データアナリスト・機械学習エンジニア求人。" },
-  engineer:  { labelEn: "Software Engineer",      description: "IT企業のバックエンド・フロントエンド・SRE・モバイルエンジニア求人。" },
-  corporate: { labelEn: "Corporate",              description: "IT企業のHR・人事・財務・経理・法務・コーポレート求人。" },
+  exec:      { labelEn: "Executive & CxO",        description: "IT企業の経営・CxO・幹部候補の募集。" },
+  bizdev:    { labelEn: "Business Development",   description: "IT企業の事業開発・アライアンス・BizDevの募集。" },
+  sales:     { labelEn: "Sales",                  description: "IT企業のフィールドセールス・インサイドセールス・SDR/BDR・セールスエンジニア・プリセールスの募集。" },
+  cs:        { labelEn: "Customer Success",       description: "IT企業のカスタマーサクセス・カスタマーサポート・テクニカルサポートの募集。" },
+  marketing: { labelEn: "Marketing",              description: "IT企業のマーケティング・プロダクトマーケティングの募集。" },
+  product:   { labelEn: "Product & Design",       description: "IT企業のプロダクトマネージャー・デザイナーの募集。" },
+  "data-ai": { labelEn: "Data & AI",              description: "IT企業のデータサイエンティスト・データアナリスト・機械学習エンジニアの募集。" },
+  engineer:  { labelEn: "Software Engineer",      description: "IT企業のバックエンド・フロントエンド・SRE・モバイルエンジニアの募集。" },
+  corporate: { labelEn: "Corporate",              description: "IT企業のHR・人事・財務・経理・法務・コーポレートの募集。" },
 };
 
 /** ow_roles の9大分類を SEO 文言つきで取得する */
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const cat = (await getDeptCategories()).find((c) => c.slug === params.slug);
   if (!cat) return { title: { absolute: "求人 | OPINIO" } };
 
-  const title = `${cat.label}の求人 | OPINIO`;
+  const title = `${cat.label}の募集 | OPINIO`;
   const description = `${cat.description} IT業界特化の転職プラットフォームOPINIOで探す。`;
 
   /* ★求人が0件なら noindex（2026-08-30）。
@@ -132,7 +132,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Link href="/jobs" style={{ fontSize: 12, color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500 }}>
-            求人
+            募集
           </Link>
           <span style={{ color: "var(--ink-mute)", fontSize: 12, fontWeight: 500 }}>›</span>
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>{cat.label}</span>
@@ -145,7 +145,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
           margin: "0 0 10px",
           lineHeight: 1.3,
         }}>
-          {cat.label}の求人
+          {cat.label}の募集
         </h1>
         <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
           {cat.description}
@@ -157,7 +157,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
             padding: "4px 14px", borderRadius: 100,
             border: "1px solid var(--royal-100)",
           }}>
-            {filteredJobs.length}件の求人
+            {filteredJobs.length}件の募集
           </span>
           {/* /jobs の職種フィルタは ow_roles の UUID を受ける（?dept= の文字列一致は廃止） */}
           <Link href={`/jobs?category=${cat.id}`} style={{
@@ -172,9 +172,9 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
       {filteredJobs.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--ink-mute)" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-          <p style={{ fontSize: 15, margin: 0 }}>現在この職種の求人はありません</p>
+          <p style={{ fontSize: 15, margin: 0 }}>現在この職種の募集はありません</p>
           <Link href="/jobs" style={{ display: "inline-block", marginTop: 16, fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-            全求人を見る →
+            すべての募集を見る →
           </Link>
         </div>
       ) : (
@@ -314,7 +314,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
         textAlign: "center",
       }}>
         <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, margin: "0 0 16px", lineHeight: 1.6 }}>
-          気になる求人が見つかったら、企業の先輩に話を聞いてみましょう。
+          気になる募集が見つかったら、企業の先輩に話を聞いてみましょう。
         </p>
         <Link href="/companies" style={{
           display: "inline-block", padding: "10px 28px", borderRadius: 100,

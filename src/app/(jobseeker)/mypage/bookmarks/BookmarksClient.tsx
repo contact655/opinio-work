@@ -99,7 +99,7 @@ export default function BookmarksClient({
           ブックマーク
         </h1>
         <BookmarkSection title="企業" items={companyBookmarks} />
-        <BookmarkSection title="求人" items={jobBookmarks} />
+        <BookmarkSection title="募集" items={jobBookmarks} />
       </div>
       <style>{`
         .bk-card-hover:hover {

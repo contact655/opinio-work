@@ -119,7 +119,7 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
             boxShadow: casualHref ? "none" : "0 4px 14px rgba(0,35,102,0.3)",
           }}
         >
-          この求人に応募する
+          この募集に応募する
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>

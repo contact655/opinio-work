@@ -65,7 +65,7 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          aria-label="IT業界の企業・求人を検索"
+          aria-label="IT業界の企業・募集を検索"
           className="hero-search-input"
           style={{
             flex: 1,

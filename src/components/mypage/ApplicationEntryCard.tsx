@@ -112,7 +112,7 @@ export function ApplicationEntryCard({ entry }: { entry: Entry }) {
               border: "1px solid var(--line)", borderRadius: 4, padding: "1px 6px",
               whiteSpace: "nowrap",
             }}>
-              {isMeeting ? "カジュアル面談" : "求人応募"}
+              {isMeeting ? "カジュアル面談" : "募集への応募"}
             </span>
             <span style={{
               fontSize: 11, fontWeight: 600, color: "var(--ink-soft)",

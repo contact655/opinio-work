@@ -295,7 +295,7 @@ function ScoutCard({
           const inner = (<>
           <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700, color: scout.job.alive ? "var(--royal)" : "var(--ink-mute)", marginBottom: 2 }}>
             {/* ⚠️ 色で危険を示さない。相手が下ろしただけで、本人の操作の失敗ではない */}
-            {scout.job.alive ? "この求人について" : "この求人について ・ 掲載を終了しました"}
+            {scout.job.alive ? "この募集について" : "この募集について ・ 掲載を終了しました"}
           </div>
           <div
             style={{

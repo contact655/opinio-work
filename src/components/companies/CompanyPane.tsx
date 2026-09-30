@@ -246,7 +246,7 @@ export function CompanyPane({
           padding: "var(--space-6)", minWidth: 0,
         }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: "var(--space-3)" }}>
-            募集中の求人
+            募集中のポジション
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {topJobs.map((j, i) => (

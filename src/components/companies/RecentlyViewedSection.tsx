@@ -192,7 +192,7 @@ export function RecentlyViewedSection() {
                     <span style={{
                       fontSize: 12, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
                       background: "var(--royal-50)", color: "var(--royal)",
-                    }}>求人{c.job_count}</span>
+                    }}>募集{c.job_count}</span>
                   )}
                 </div>
               </div>

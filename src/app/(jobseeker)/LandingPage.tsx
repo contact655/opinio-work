@@ -438,10 +438,10 @@ export default function LandingPage({
                     押した人は必ずログイン画面に着く。**「N人の現役社員」の形にしないこと。**
 
                  ⚠️ span は inline-block（`.lp-hero-h1 span`）。**折り返しを句の境目に固定するため。**
-                    狭い幅では1行に収まらないので「求人票の向こうにいる／現役社員」で折る。
+                    狭い幅では1行に収まらないので「募集要項の向こうにいる／現役社員」で折る。
                     ⚠️ 塊にしないと「現役社／員」のように語の途中で割れる。 */}
           <h1 className="lp-hero-h1" style={{ fontSize: "clamp(30px, 3.0vw, 42px)", fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 14 }}>
-            <span>求人票の向こうにいる</span>
+            <span>募集要項の向こうにいる</span>
             <span>現役社員</span>
           </h1>
 
@@ -624,7 +624,7 @@ export default function LandingPage({
           <div className="lp-sec-head">
             <div>
               <div className="lp-eyebrow">JOBS</div>
-              <h2 className="lp-h2">募集中の求人</h2>
+              <h2 className="lp-h2">募集中のポジション</h2>
             </div>
             <Link href="/jobs" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4, whiteSpace: "nowrap" }}>
               募集を見る →
@@ -833,7 +833,7 @@ export default function LandingPage({
                  ⚠️★**「比べられます」と書かないこと。** 比較画面は無い（保存した企業の
                     カード一覧だけ）。しかも `/companies` の分割ビューは**未ログインでも使える**
                     ので、比べることは登録の理由になっていない。 */
-              { q: "登録しないと使えませんか？", a: "企業情報・求人・記事は、すべて登録なしで読めます。登録すると増えるのは2つです。ひとつは、在籍している方・していた方が登録した職歴を読めること。もうひとつは、気になる企業や募集を保存しておけることです。" },
+              { q: "登録しないと使えませんか？", a: "企業情報・募集・記事は、すべて登録なしで読めます。登録すると増えるのは2つです。ひとつは、在籍している方・していた方が登録した職歴を読めること。もうひとつは、気になる企業や募集を保存しておけることです。" },
               /* ⚠️★ここにあった FAQ「登録すると、スカウトが届きますか？」は
                      **2026-09-20 に削除した**（柴さんの指示）。長い経緯の注記も一緒に畳んだ。
                      ⚠️ 書き戻すときに要る事実だけ残す:
