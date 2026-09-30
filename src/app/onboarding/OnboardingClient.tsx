@@ -836,8 +836,13 @@ function OnboardingInner({
                    最初の画面だけで「任意」が**4回**出ていた（ここ・職歴のボタン・学歴のボタン・
                    生年月日のバッジ）。同じことの繰り返しで、読む量が増えるだけだった。
                 ⚠️ 「任意である」ことは**押さなくても進めること**と、下の「後で設定する」で伝わる。
-                   ⚠️ 逆に「保存に必要」は**残す**。あちらは positive な印で、
-                      印の無いものが任意だと分かる形にしてある。 */}
+                ⚠️★**1画面目の「保存に必要」は 2026-09-30 に削除した**（柴さんの指示）。
+                   この画面は**全項目が必須で「次へ」自体が通らない**ので、印が無くても
+                   進めない時点で分かる。6欄すべてに同じ5文字が付いて**読む量だけ増えていた**
+                   （「任意」が4回出ていたのを削ったのと同じ理由）。
+                   ⚠️★**2画面目（職種・入社年月）の印は残してある。意味が違う。**
+                      あちらは任意の画面で、埋めずに進むと**入力した会社名が黙って捨てられる**
+                      （`role_category_id` / `started_at` が NOT NULL）。**消さないこと。** */}
             あとから変更できます。
           </p>
 
@@ -875,28 +880,28 @@ function OnboardingInner({
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
               <div>
                 <label htmlFor="ob-family-name" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                  姓<span style={needLabelStyle}>保存に必要</span>
+                  姓
                 </label>
                 <input id="ob-family-name" type="text" value={familyName} autoComplete="family-name"
                   onChange={(e) => setFamilyName(e.target.value)} placeholder="山田" style={textInputStyle} />
               </div>
               <div>
                 <label htmlFor="ob-given-name" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                  名<span style={needLabelStyle}>保存に必要</span>
+                  名
                 </label>
                 <input id="ob-given-name" type="text" value={givenName} autoComplete="given-name"
                   onChange={(e) => setGivenName(e.target.value)} placeholder="太郎" style={textInputStyle} />
               </div>
               <div>
                 <label htmlFor="ob-family-kana" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                  せい<span style={needLabelStyle}>保存に必要</span>
+                  せい
                 </label>
                 <input id="ob-family-kana" type="text" value={familyNameKana}
                   onChange={(e) => setFamilyNameKana(e.target.value)} placeholder="やまだ" style={textInputStyle} />
               </div>
               <div>
                 <label htmlFor="ob-given-kana" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                  めい<span style={needLabelStyle}>保存に必要</span>
+                  めい
                 </label>
                 <input id="ob-given-kana" type="text" value={givenNameKana}
                   onChange={(e) => setGivenNameKana(e.target.value)} placeholder="たろう" style={textInputStyle} />
@@ -933,7 +938,7 @@ function OnboardingInner({
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
               {/* ⚠️ 「任意」バッジは 2026-09-11 に削除。戻さないこと。 */}
-              生年月日<span style={needLabelStyle}>保存に必要</span>
+              生年月日
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
@@ -984,7 +989,7 @@ function OnboardingInner({
                  保存すると値が消える**（2026-09-15 に実際に起きた形）。 */}
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-              お住まい<span style={needLabelStyle}>保存に必要</span>
+              お住まい
             </div>
             <select
               value={residence}
@@ -1475,6 +1480,12 @@ const textInputStyle: React.CSSProperties = {
 
 /**
  * 「保存に必要」の小さな印。**黄色い警告バナーの置き換え**（2026-09-09 / 柴さんの指摘）。
+ *
+ * ⚠️★★**付けてよいのは2画面目（職種・入社年月）だけ**（2026-09-30 / 柴さんの指示）。
+ *    1画面目（姓・名・せい・めい・生年月日・お住まい）の6つは削除した。
+ *    **1画面目に付け戻さないこと** —— あそこは全項目が必須で「次へ」自体が通らないので、
+ *    印が無くても進めない時点で分かる。6欄に同じ5文字が並ぶと読む量だけ増える。
+ *    ⚠️★**2画面目とは意味が違う**。下の理由はあちら専用。
  *
  * ── なぜ印を残すのか ────────────────────────────────────────────────────────
  * ⚠️★**`ow_experiences.role_category_id` と `started_at` は NOT NULL**（実測で確認）。
