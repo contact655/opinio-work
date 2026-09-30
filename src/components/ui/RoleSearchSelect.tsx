@@ -87,10 +87,8 @@ export function RoleSearchSelect({
   const [activeIndex, setActiveIndex] = useState(0);
   /** 開いている大分類の id。⚠️ 検索を打ったら意味が無くなるので畳む */
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  /* 2段セレクトで「大分類だけ選んだ」状態を覚える。
-     ⚠️ `value` からは復元できない。小分類が未選択のとき `value` は
-        大分類の id か空で、どちらも「大分類を選んだ直後」と区別できないため。 */
-  const [pickedParentId, setPickedParentId] = useState<string | null>(null);
+  /* ⚠️ `pickedParentId`（2段セレクトで「大分類だけ選んだ」状態）は 2026-09-30 に
+        削除した。2段セレクトを外したので持ち主がいない。**書き戻さないこと。** */
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -224,13 +222,6 @@ export function RoleSearchSelect({
     const el = listRef.current.querySelector<HTMLElement>(`[data-active="true"]`);
     el?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, open]);
-
-  /* 2段セレクトの現在値。
-     ⚠️ **`value` を正として導く。** 検索で選んでも2段セレクトが追随する必要がある。
-        `pickedParentId` は「大分類だけ選んで小分類がまだ」のときだけ効かせる。 */
-  const twoStepParentId =
-    selected ? (selected.parent_id ?? selected.id) : (pickedParentId ?? "");
-  const twoStepChildren = twoStepParentId ? (childrenOf.get(twoStepParentId) ?? []) : [];
 
   const inputValue = open ? query : (clearOnSelect ? "" : selectedLabel);
 
@@ -403,128 +394,42 @@ export function RoleSearchSelect({
       )}
       </div>
 
-      {/* ★大分類 → 小分類 の2段セレクト（検索の代わりではなく**併用**）。
-          **状態によって出すものが変わる。**
-
-            ① 未選択            … 見出し「または一覧から選ぶ」＋ 大分類 ＋ 小分類
-            ② 大分類だけ選んだ  … **小分類だけ**（「◯◯ の中から選ぶ」）
-            ③ 小分類まで選んだ  … 何も出さない
-            ④ 子のいない大分類  … 何も出さない（もう絞り込めない）
-
-          ⚠️★**②で大分類セレクトを出さないこと**（2026-09-11）。検索欄に「営業」、
-             すぐ下の大分類セレクトにも「営業」と**同じ語が2箇所に出て、
-             職種の欄が2つあるように見える**（柴さんの指摘）。
-          ⚠️★**②を消して「選んだら全部隠す」にしないこと**（2026-09-12 / 柴さんの指摘）。
-             大分類を選んだ時点で一覧ごと消えると、**小分類への導線が画面から無くなり、
-             大分類のまま終わる。** 実際にそうなっていて直した経緯がある。
-             ＝ 2026-08-26 に足した「大分類18件から辿る」経路が死ぬのと同じこと。
-          ⚠️ 検索欄を消して一覧だけに戻さないこと（2026-08-06 の失敗に戻る）。
-          ⚠️ `clearOnSelect`（追加用）のときは出さない。理由は冒頭のメモ。 */}
-      {!clearOnSelect && !selected?.parent_id && !(selected && twoStepChildren.length === 0) && (
-        <div style={{ marginTop: 10 }}>
-          {/* ①のときだけ見出しと大分類セレクトを出す */}
-          {!selected && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-              <span style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-                または一覧から選ぶ
-              </span>
-              <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
-            </div>
-          )}
-
-          {/* ②の見出し。⚠️★**「（任意）」だけで済ませないこと。**
-                 何を選ぶ欄なのかを、選んだ大分類の名前を入れて言う。
-                 ⚠️ ここが弱いと大分類のまま終わる（2026-09-12 に実際にそうなっていた）。 */}
-          {selected && (
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>
-              {selected.name} の中から、近いものを選べます
-            </div>
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr" : "1fr 1fr", gap: 8 }}>
-            {/* 大分類。⚠️ ②では出さない（同じ語が2箇所に出るため） */}
-            {!selected && (
-              <select
-                aria-label={`${ariaLabel}（大分類）`}
-                disabled={disabled}
-                value={twoStepParentId}
-                onChange={(e) => {
-                  const pid = e.target.value;
-                  setPickedParentId(pid || null);
-                  setQuery("");
-                  setOpen(false);
-                  if (!pid) {
-                    onSelect("");
-                    return;
-                  }
-                  /* ⚠️ 大分類だけで確定してよいのは `selectableParent` のときだけ。
-                        求人側（false）は小分類を選ぶまで確定させない。
-                     ⚠️ 子が無い大分類は、選べる側なら即確定でよい。 */
-                  if (selectableParent) onSelect(pid);
-                  else onSelect("");
-                }}
-                style={selectStyle(disabled)}
-              >
-                <option value="">大分類を選ぶ</option>
-                {roots.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-            )}
-
-            {/* 小分類 */}
-            <select
-              aria-label={`${ariaLabel}（小分類）`}
-              disabled={disabled || twoStepChildren.length === 0}
-              value=""
-              onChange={(e) => {
-                const cid = e.target.value;
-                setQuery("");
-                setOpen(false);
-                /* 空に戻したら大分類まで戻す。⚠️ `onSelect("")` にしない。
-                      選べる側では「大分類だけ」が正当な状態なので、そこへ落とす。 */
-                onSelect(cid || (selectableParent ? twoStepParentId : ""));
-              }}
-              style={selectStyle(disabled || twoStepChildren.length === 0)}
-            >
-              <option value="">
-                {twoStepParentId === ""
-                  ? "先に大分類を選ぶ"
-                  : twoStepChildren.length === 0
-                    ? "小分類なし"
-                    : selected ? "選ぶ" : selectableParent ? "小分類を選ぶ（任意）" : "小分類を選ぶ"}
-              </option>
-              {twoStepChildren.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* ⚠️ 「大分類だけでも保存できる」ことを画面に書く。書かないと
-                 小分類が必須だと思われて、当てはまる子が無い人が止まる。 */}
-          {selectableParent && (
-            <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-              {selected
-                ? "当てはまるものが無ければ、このままで保存できます。"
-                : "大分類だけでも保存できます。当てはまる小分類があるときだけ選んでください。"}
-            </p>
-          )}
-        </div>
+      {/* ★★「押さなくても一覧から選べると分かる」ための一言（2026-09-30 / 柴さんの判断）。
+             ⚠️★**消さないこと。** 2段セレクトを外したぶんがここ。プレースホルダは
+                「職種名で**検索**」としか言っていないので、これが無いと
+                **名前を知らない人が一覧に辿り着けない**（2026-08-06 の失敗に戻る）。
+             ⚠️ 開いているあいだは出さない。一覧が出ていれば言う必要が無く、
+                一覧の上に説明が挟まると押した先が遠くなる。
+             ⚠️★**`clearOnSelect`（追加用）では出さない。** 2段セレクトが出ていたのは
+                `!clearOnSelect` の1箇所（オンボーディング2画面目）**だけ**で、
+                他の3箇所（求人の職種・運営の求人編集・職歴エディタ）は元から
+                検索欄だけ。**そこで失われたものは無いので、説明を増やさない。**
+             ⚠️ 選択済みのときは出さない（もう選ぶ必要が無い）。
+             ⚠️ 開いているあいだも出さない（一覧が出ていれば言う必要が無い）。 */}
+      {!clearOnSelect && !open && !selected && (
+        <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+          クリックすると一覧から選べます。
+        </p>
       )}
+
+      {/* ★★2段セレクト（大分類 → 小分類）は 2026-09-30 に削除した（柴さんの判断）。
+             ⚠️★**検索欄の一覧が先にあり、これは後から足したもの。** 経緯:
+               2026-08-25 検索欄の一覧を「大分類だけ並べ、開くと小分類」にした（＝いまの形）
+               2026-08-26 その**翌日**に2段セレクトを併設
+               2026-09-11 / 09-12 / 09-28 2段セレクト由来の不具合を**3回**直した
+                 （選んだ後も残る／選ぶと一覧ごと消える／一覧が2段セレクトの下に開く）
+             ⇒ 同じ仕事を2つの部品でしており、直すたびに噛み合わせの不具合が出ていた。
+             ⚠️★**「一覧から辿る」経路は消えていない。** 検索欄を押せば大分類18件が出て、
+                `>` で小分類が開く。この部品の冒頭にある「検索語が空のときは大分類ごとに
+                グループ化して出すこと（**ここが2段セレクトの代替になっている**）」が
+                そのまま効いている。**空のとき何も出さない形にしないこと。**
+             ⚠️★**失われたのは「押さなくても見える」こと。** そのぶんを下の一言で埋めてある。
+                **あの一言を消すと、一覧から選べることに気づけなくなる。**
+             ⚠️★**検索欄だけに戻すのではない。** 2026-08-06 まで2段 select だけで、
+                「求人20件が大分類11件と孫7件に偏り、中間の子職種が1件も使われていない」
+                状態だった。**2段セレクトだけに戻すのは、その失敗に戻ること。** */}
 
     </>
   );
 }
 
-/** 2段セレクトの見た目。⚠️ 検索欄（高さ40）と揃える */
-function selectStyle(disabled: boolean): React.CSSProperties {
-  return {
-    width: "100%", height: 40, padding: "0 10px",
-    border: "1.5px solid var(--line)", borderRadius: 8,
-    fontSize: 14, fontFamily: "inherit",
-    color: disabled ? "var(--ink-mute)" : "var(--ink)",
-    background: disabled ? "var(--bg-tint)" : "#fff",
-    outline: "none",
-  };
-}
