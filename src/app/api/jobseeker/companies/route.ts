@@ -228,7 +228,21 @@ export async function POST(req: Request) {
       industry_id: rawIndustryId,
       /* ⚠️ `industry`(text) は書かない（2026-08-25 に書き込み経路を閉じた廃止列）。 */
       status: "draft",
-      is_published: false,
+      /* ★★作られた時点でページが見えるようにする（2026-10-01 / 柴さんの指示）。
+            ⚠️★**一覧には出さない**（下の `listing_status: "draft"`）。変えたのは
+               「詳細ページが 404 かどうか」だけ。noindex も付いたまま。
+            ⚠️ これが false だと `lib/utils/timeline.ts` が会社名をテキストに落とすので、
+               **自分で登録した会社なのに職歴からリンクが張られない。**
+               既存分は `20261001060000` で公開済みで、ここはその続き。
+            ⚠️★`is_approved` は false のまま（運営が内容を確認した、の意味）。
+               DB の `trg_guard_company_approval` は **BEFORE UPDATE** なので
+               INSERT は通る。**あとで運営が触る経路では承認が要る。**
+            ⚠️★ログインした人なら誰でも会社名を自由入力して公開ページを作れる、
+               ということでもある。歯止めは noindex ／ 一覧・sitemap に出ない ／
+               作成時に運営へメールが飛ぶ（`newCompanyAdminTemplate`）／
+               `/admin/companies` の「ページ表示」で1クリックで下ろせる、の4つ。 */
+      is_published: true,
+      published_at: new Date().toISOString(),
       /* ⚠️ **明示的に 'draft'。DB既定は 'listed' だが、それに任せない。**
             既定のままだと、運営が is_published を立てた瞬間にディレクトリへ直行する。 */
       listing_status: "draft",

@@ -41,19 +41,28 @@ export const dynamic = "force-dynamic";
 // 公開中かつ求人を持つ企業から引く（lib/seo/featuredCompanies.ts）。
 export async function generateMetadata(): Promise<Metadata> {
   const lead = await featuredCompanyPrefix("jobs");
-  const description = `${lead}IT業界の最新募集情報。フルリモート・高年収・職種別に検索できます。`;
+  /* ★★meta だけ「求人」を残す（2026-10-01 / 柴さんに「おすすめで」と任された判断）。
+        ── なぜ ──────────────────────────────────────────────────────────────
+        画面の文言は a3cec859 で「募集」に統一したが、**meta は検索結果に出る文字列**で、
+        検索されるのは圧倒的に「求人」の側。利用者がサイト内で読む語ではないので、
+        サイト内語彙と一致していなくても体験は損なわない。
+        ⚠️★**他の meta（layout / 企業一覧・詳細 / /careers / /jobs/[id] の約18箇所）は
+           触っていない。**「求人」のままが正しい状態。
+        ⚠️ ここだけ先に「IT募集を探す」になっていて**不統一だった**ので、
+           **両方入れる形**に直した。戻したのではなく、検索語を足した。 */
+  const description = `${lead}IT業界の最新の募集・求人情報。フルリモート・高年収・職種別に検索できます。`;
 
   return {
-    title: { absolute: "IT募集を探す | OPINIO" },
+    title: { absolute: "IT募集・求人を探す | OPINIO" },
     description,
-    keywords: ["IT転職", "SaaS転職", "エンジニア転職", "PdM転職", "フルリモート", "高年収", "OPINIO"],
+    keywords: ["IT求人", "IT転職", "SaaS転職", "エンジニア転職", "PdM転職", "フルリモート", "高年収", "OPINIO"],
     alternates: { canonical: "/jobs" },
     openGraph: {
-      title: "IT募集を探す | OPINIO",
+      title: "IT募集・求人を探す | OPINIO",
       description,
       type: "website",
       url: "/jobs",
-      images: [{ url: "/api/og?type=list&name=%E6%B1%82%E4%BA%BA%E3%82%92%E6%8E%A2%E3%81%99&sub=IT%2FSaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E6%9C%80%E6%96%B0%E6%B1%82%E4%BA%BA%E6%83%85%E5%A0%B1&v=2", width: 1200, height: 630 }],
+      images: [{ url: "/api/og?type=list&name=%E5%8B%9F%E9%9B%86%E3%82%92%E6%8E%A2%E3%81%99&sub=IT/SaaS%E6%A5%AD%E7%95%8C%E3%81%AE%E6%9C%80%E6%96%B0%E3%81%AE%E5%8B%9F%E9%9B%86%E6%83%85%E5%A0%B1&v=2", width: 1200, height: 630 }],
     },
     twitter: { card: "summary_large_image", description },
   };

@@ -3,7 +3,7 @@ import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { getRoleAliases, getRoleTree, getJobRoleMap } from "@/lib/supabase/queries";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import { NextResponse } from "next/server";
-import { filterListedCompanies } from "@/lib/companies/visibility";
+import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { companyNameOrFilter } from "@/lib/companies/searchFilter";
 
 export const dynamic = "force-dynamic";
@@ -68,8 +68,15 @@ export async function GET(req: Request) {
   }
 
   const [{ data: companies }, { data: titleJobs }, { data: roleJobs }] = await Promise.all([
-    // ⚠️ サジェストはディレクトリの軸。listing_status='draft' は出さない
-    filterListedCompanies(
+    /* ★★サジェストも**ページが開ける企業すべて**（2026-10-01 / 柴さんの指示）。
+          それまで「ディレクトリの軸」で掲載中だけを返しており、
+          **「キーエンス」と打っても候補に出ないのに、Enter を押すと出る**という
+          食い違いがあった（`/companies?q=` は 75f441cb で広げてある）。
+       ⚠️★`filterVisibleCompaniesStrict` まで。マスタ全部にはしない ——
+          候補からリンクするので、`is_published=false` を混ぜると 404 へ送る。
+       ⚠️ 掲載中を先に出す（`listing_status` は draft=1 / listed=2 なので降順）。
+          上限が4件しかないので、これが無いと掲載企業が押し出される。 */
+    filterVisibleCompaniesStrict(
       supabase
         .from("ow_companies")
         /* ⚠️ サブテキストは**事業領域**。`industry`(text) は廃止予定で
@@ -86,6 +93,7 @@ export async function GET(req: Request) {
         /* ⚠️ `search_aliases` は**読み仮名**（2026-08-21）。社名が英字の28社を
               カタカナで打っても引けるようにするための列で、**画面には出さない**。 */
         .or(companyNameOrFilter(q))
+        .order("listing_status", { ascending: false })
     ).limit(4),
     supabase
       .from("ow_jobs")
