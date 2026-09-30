@@ -3,9 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MEMBER_CREATED_VIA, type MemberState } from "@/lib/constants/companyMembers";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
-import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
-import { notify } from "@/lib/notify/email";
-import { ambassadorRequestTemplate } from "@/lib/notify/templates";
 import { touchStanceUpdatedAt } from "@/lib/profile/stance";
 
 export const dynamic = "force-dynamic";
@@ -152,13 +149,21 @@ export async function POST(req: NextRequest) {
   /* ⚠️ **必ず捨てる。** 即掲載になったので、捨てないと最大60秒このひとが出ない。 */
   revalidateCompanyAmbassadors(companyId);
 
-  /* ★申請が来たことを知らせる（2026-08-23）。
-     ⚠️ **メール送信で API を失敗させない。** 行は既に作れているので、
-        送信に失敗しても 201 を返す。失敗はログに残す。
-     ⚠️ 宛先と「運営に回ったか」は `getCompanyNotificationTarget` の**同じ判定**から出す。
-        掲載中79社のうち77社は企業側に宛先が無く、その場合は運営に届く。
-     ⚠️ 取引通知なので opt-out 列は要らない（週次のリマインドとは別物）。 */
-  await sendRequestNotice(companyId, owUser.id);
+  /* ★★企業への通知は 2026-09-30 に廃止した（柴さんの判断）。**戻さないこと。**
+     ⚠️★理由は「面談OK は**現職のことに限らず、利用者どうしが気軽に話すためのもの**で、
+        企業が管轄することではない」。**企業ページの掲載と人数は残してある**ので、
+        企業は自社ページと `/biz/members` でいつでも見られるし、非掲載にもできる。
+        変わったのは **push で知らせるのをやめた**ことだけ。
+     ⚠️ 運営の検知は**メールとは独立に残っている** ——`/admin` の要対応
+        「面談対応者（自己申告）未確認 N名」と `/admin/ambassador-requests`
+        （`ops_reviewed_at` で確認済みを記録する）。CLAUDE.md が
+        「定期巡回にしない。要対応タスクに出るので運営画面を開けば必ず目に入る」と
+        決めているとおりで、メールはそれと重複していた。
+     ⚠️ そもそも**実在の企業担当者に届いたことは一度も無かった**（2026-09-30 実測:
+        面談OK が ON の8社すべてで `notification_emails` 0件・実在する管理者0人。
+        全部が運営フォールバックに落ちていた）。
+     ⚠️★**再ONにする経路（`PATCH /api/mypage/ambassador-visibility`）は元から
+        送っていない。** 初回だけ飛ぶ状態で既に一貫していなかった。 */
   /* ★「意思表示を最後に答えた日」を打ち直す（2026-08-26 / フェーズ2）。
      ⚠️ `user.id` は auth 空間。`owUser.id`（ow_users 空間）を渡さないこと。
      ⚠️ 記録なので失敗しても 201 を返す（行は既に作れている）。 */
@@ -168,48 +173,4 @@ export async function POST(req: NextRequest) {
      ⚠️ 2026-08-24 に `pending_company` から変更。**もう承認待ちにはならない。** */
   const state: MemberState = "listed";
   return NextResponse.json({ ok: true, id: created.id, state }, { status: 201 });
-}
-
-/**
- * 掲載が始まったことを企業（宛先が無ければ運営）に知らせる。
- *
- * ⚠️★**承認を求めるメールではない**（2026-08-24 に文面ごと変えた）。
- *    企業がすることは「外したい場合に外す」だけ。承認を促す文面のままにすると、
- *    誰も押さない承認を待たせることになる。
- *
- * ⚠️ **送信可否・宛先の判定はこの関数の中に置く**（CLAUDE.md の既存方針）。
- *    呼び出し側に条件を書くと、経路が増えたときに片方だけ忘れる。
- * ⚠️ **例外を外へ投げない。** 送信の失敗で申請そのものを失敗させない。
- */
-async function sendRequestNotice(companyId: string, owUserId: string): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    const [{ data: company }, { data: user }] = await Promise.all([
-      admin.from("ow_companies").select("name, brand_name").eq("id", companyId).maybeSingle(),
-      admin.from("ow_users").select("name").eq("id", owUserId).maybeSingle(),
-    ]);
-
-    const target = await getCompanyNotificationTarget(companyId, "ambassador-request");
-    if (target.to.length === 0) {
-      console.error("[ambassador self-register] 宛先が0件（運営フォールバックも効いていない）", companyId);
-      return;
-    }
-
-    const appliedAt = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-    for (const to of target.to) {
-      await notify(
-        ambassadorRequestTemplate({
-          to,
-          companyName: company?.brand_name ?? company?.name ?? "（企業名不明）",
-          applicantName: user?.name ?? "（氏名不明）",
-          appliedAt,
-          /* ⚠️ 印はフォールバックと同じ判定から出す */
-          viaOps: target.viaOps,
-        }),
-      );
-    }
-  } catch (e) {
-    /* ⚠️ ここで throw しない。201 を返すことのほうが大事。 */
-    console.error("[ambassador self-register] 通知の送信に失敗:", e);
-  }
 }
