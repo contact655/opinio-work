@@ -121,15 +121,17 @@ export function CompanyPane({
         minWidth: 0,
       }}
     >
-      {/* ── ★固定ヘッダー（2026-09-18）。ロゴ・社名・CTA・♡ ────────────────────
-             ⚠️★**`sticky` はこのラッパー（`.jp-sticky`）。白いカードではない。**
-                器（`.companies-pane`）が `overflow-y: auto` なのでペインの中で止まる。
-                `position: fixed` にすると画面に貼り付く。**JobPane と同じ形。**
-             ⚠️★**ラッパーの背景はページ背景（`--bg-tint`）。** 透明にすると、
-                スクロールで帯の裏をくぐった中身が帯のすぐ下に半分だけ露出する。
-             ⚠️★**ここに項目を足さないこと。** 帯が高くなるほど本文を読む面が削れる。
-                帯の高さはペインの中で常に失われる高さ。 */}
-      <div className="jp-sticky">
+      {/* ── ★ヘッダーは**スクロールする**（2026-09-30 / 柴さんの指示）────────────
+             ⚠️★**`.jp-sticky` で包み直さないこと。** 2026-09-18 〜 09-30 は
+                ロゴ・社名・タグライン・説明・タグ・CTA を丸ごと sticky にしていたが、
+                **帯が高すぎて「下半分しかスクロールできない」**状態になっていた。
+                ペインの中で常に失われる高さが大きすぎた、ということ。
+             ⚠️★**代わりに CTA だけを下部の固定バーへ移した**（この部品の末尾）。
+                「詳細を見る・話を聞く・保存は常に見える」という要件はそちらが満たす。
+                **CTA をこのカードの中に戻さないこと** —— 戻すと帯が復活するか、
+                さもなければ CTA がスクロールの奥に落ちる（2026-09-09 の実測）。
+             ⚠️ `JobPane`（/jobs）は**まだ `.jp-sticky` のまま**。同日には揃えていない。
+                揃えるなら向こうも同じ形にすること。 */}
       {/* ── ヘッダー（ロゴ・社名・タグライン・タグ） ── */}
       <div style={{
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
@@ -228,31 +230,8 @@ export function CompanyPane({
             ⚠️ LinkedIn も応募ボタンをヘッダー直下に置いている。参照どおりの形。
             ⚠️ **末尾に戻さないこと。** 内容が薄い企業（Opinio）では末尾でも見えるので、
                1社だけ見て「見えている」と判断すると同じ形に戻る。 */}
-        {/* ── CTA。⚠️ 「詳細を見る」は必ず出す（ここは要約であって詳細の置き換えではない） ── */}
-        {/* ⚠️ 余白は自前で持つ。外側の flex の gap には**もう乗っていない**（ヘッダーの中に入れたため） */}
-        {/* ⚠️★`var(--space-5)`（未定義＝0）から直した（2026-09-17）。上の注記と同じ理由。 */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: "var(--space-4)" }}>
-          <Link href={detailHref} style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-            background: "var(--royal)", color: "#fff", textDecoration: "none",
-            whiteSpace: "nowrap",
-          }}>詳細を見る →</Link>
-          {/* ⚠️ 色は役割で固定（オレンジ＝カジュアル面談だけ。ui-conventions） */}
-          {company.accepting_casual_meetings && (
-            <Link href={`/companies/${company.id}/casual-meeting`} style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-              background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}>話を聞く</Link>
-          )}
-          {/* ★♡（2026-09-18）。⚠️ **自分で取りに行く設計**なので props を渡さない
-                 （詳細ページ・JobPane と同じ使い方）。ここだけ別経路にしないこと。 */}
-          <BookmarkButton targetType="company" targetId={company.id} label={displayName} />
-        </div>
       </div>
-      </div>{/* jp-sticky end */}
+
 
       {/* ── 企業情報。⚠️ サイドバー／モバイル本文と**同じ部品**を使う ──
              メディアクエリを持たず `minmax` と `minWidth: 0` で組まれているので、
@@ -370,6 +349,48 @@ export function CompanyPane({
         color: "var(--royal)", textDecoration: "none", fontSize: 13, fontWeight: 700,
       }}>詳細ページですべて見る →</Link>
 
+      {/* ── ★CTA は**下部の固定バー**（2026-09-30 / 柴さんの指示）────────────────
+             ⚠️★**`position: sticky; bottom: 0`。** 器（`.companies-pane`）が
+                `overflow-y: auto` なので、ペインの中で下端に貼り付く。
+                **`fixed` にしないこと**（画面に貼り付いて一覧の上にも出る）。
+             ⚠️★**末尾に置いた素の行に戻さないこと。** それが 2026-09-09 に踏んだ形で、
+                内容の厚い企業では `max-height` の奥に落ちて到達できなかった
+                （実測: ペイン 730px に対し中身 907px、CTA は y=1154 のまま動かない）。
+                **いまは sticky なので落ちない。**「末尾にある」だけでは同じではない。
+             ⚠️★**背景を外さないこと。** 透明だと下をくぐる中身がバーの裏に透ける。
+                色はページ背景（`--bg-tint`）。`.jp-sticky` と同じ理由・同じ色。
+             ⚠️★**ここに項目を足さないこと。** バーが高いほど読む面が削れる（帯と同じ話）。
+             ⚠️ 薄い企業（内容がバーより短い）では貼り付かずに普通に下に出る。**それでよい。**
+                1社だけ見て「効いていない」と判断しないこと —— 厚い企業で確かめる。 */}
+      <div style={{
+        position: "sticky", bottom: 0, zIndex: 2,
+        background: "var(--bg-tint)", paddingTop: "var(--space-3)", minWidth: 0,
+      }}>
+        <div style={{
+          display: "flex", gap: 10, flexWrap: "wrap",
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+          padding: "var(--space-4)", minWidth: 0,
+        }}>
+          <Link href={detailHref} style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+            background: "var(--royal)", color: "#fff", textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}>詳細を見る →</Link>
+          {/* ⚠️ 色は役割で固定（オレンジ＝カジュアル面談だけ。ui-conventions） */}
+          {company.accepting_casual_meetings && (
+            <Link href={`/companies/${company.id}/casual-meeting`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}>話を聞く</Link>
+          )}
+          {/* ★♡（2026-09-18）。⚠️ **自分で取りに行く設計**なので props を渡さない
+                 （詳細ページ・JobPane と同じ使い方）。ここだけ別経路にしないこと。 */}
+          <BookmarkButton targetType="company" targetId={company.id} label={displayName} />
+        </div>
+      </div>
     </div>
   );
 }
