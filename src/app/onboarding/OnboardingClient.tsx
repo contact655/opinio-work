@@ -266,7 +266,14 @@ function OnboardingInner({
         ⚠️★**番号を直書きしないこと。** 画面を1つ挟むだけで `step === 1` の意味が全部ずれる。
            下の `STEP` を使う。 */
   /* ⚠️★**3画面**（2026-09-15 に「あとは任意」を削除）。増やすときは `STEP` も一緒に足す。 */
-  const STEPS = ["あなたのこと", "直近のお勤め先", "転職について"] as const;
+  /* ⚠️★3画面目の名前は「転職意欲」（2026-09-30 / 柴さんの指示。旧「転職について」）。
+        ⚠️ 本人向けの画面は同日に揃えた（ここ・見出し・/onboarding/stance のタブ名・
+           /mypage/settings の前置き）。**片方だけ戻さないこと。**
+        ⚠️★問いの文（「転職について、いまの気持ちに近いものは？」）は**変えていない**。
+           「転職意欲、いまの気持ちに近いものは？」だと日本語にならない。
+        ⚠️ 企業向け（/biz/candidates）と運営向け（/admin/proposals）の
+           「『転職について』に答えている〜」は**据え置き**。読み手が違う。 */
+  const STEPS = ["あなたのこと", "直近のお勤め先", "転職意欲"] as const;
   /** ⚠️ 並びを変えたらここも変える。`STEPS` の添字 +1（`?step=` は1始まり）。 */
   const STEP = { YOU: 1, COMPANY: 2, STANCE: 3 } as const;
   const rawStep = Number.parseInt(searchParams.get("step") ?? "1", 10);
@@ -650,12 +657,12 @@ function OnboardingInner({
     await putJson("/api/jobseeker/career-preferences", {
       career_stance: stance,
       desired_role_ids: desiredRoleIds,
-    }, "転職について", failures);
+    }, "転職意欲", failures);
     if (failures.length > 0) {
       /* ⚠️★**ここで止めない。** 保存に失敗しても `career_stance` は空のままなので、
             登録を終えた直後に `OnboardingGuard` が `/onboarding/stance` へ送る
             （＝聞かれないままにはならない）。足止めより先へ通すほうが害が小さい。 */
-      setSaveError("転職についての保存に失敗しました。あとでマイページから設定できます。");
+      setSaveError("転職意欲の保存に失敗しました。あとでマイページから設定できます。");
     }
     setSaving(false);
     /* ★★**この画面が最後**（2026-09-15 に「あとは任意」を削除）。進むのではなく完了する。
@@ -822,7 +829,7 @@ function OnboardingInner({
                          **4つ目（「ここから先は、入れなくても登録できます」）も一緒に外した。** */}
             {step === STEP.YOU ? "あなたのことを教えてください"
               : step === STEP.COMPANY ? "直近のお勤め先を教えてください"
-              : "転職について"}
+              : "転職意欲"}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 24, lineHeight: 1.7 }}>
             {/*

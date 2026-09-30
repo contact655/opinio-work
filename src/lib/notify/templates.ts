@@ -1026,7 +1026,7 @@ export function newUserAdminTemplate(params: {
         <a href="${siteUrl}/admin/users/${params.owUserId}">管理画面で確認する →</a>
       </p>
       <p style="font-size: 12px; color: #888; margin-top: 4px;">
-        この時点ではオンボーディング（氏名・お住まい・直近のお勤め先・転職について）は未完了です。
+        この時点ではオンボーディング（氏名・お住まい・直近のお勤め先・転職意欲）は未完了です。
         どの声かけから来たかは <a href="${siteUrl}/admin/signup-refs">登録経路</a> で見られます。
       </p>
     `),

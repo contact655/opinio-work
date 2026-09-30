@@ -239,7 +239,7 @@ export default function PrivacySettings({
           {careerStance == null ? (
             <>
               <strong style={{ color: "var(--ink)" }}>いまは、企業の候補者検索に表示されていません。</strong>
-              「転職について」に答えると、次のように表示されます。
+              「転職意欲」に答えると、次のように表示されます。
             </>
           ) : !isReachableByCompanies(careerStance) ? (
             <>

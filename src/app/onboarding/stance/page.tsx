@@ -29,7 +29,8 @@ import StanceStepClient from "./StanceStepClient";
    ⚠️ 認証の内側なので `robots` は不要（middleware が未ログインを弾く）。 */
 /* ⚠️ `absolute` を使う。素の `title` に書くと、ルートの `template: "%s | OPINIO"` が
       さらに付いて **「転職について | OPINIO | OPINIO」** になる（2026-08-28 に実測して修正）。 */
-export const metadata = { title: { absolute: "転職について | OPINIO" } };
+/* ⚠️ 名前は「転職意欲」（2026-09-30）。オンボーディング3画面目と同じ問いなので揃える。 */
+export const metadata = { title: { absolute: "転職意欲 | OPINIO" } };
 
 export default async function StancePage({
   searchParams,

@@ -562,10 +562,14 @@ export default function IntentCard({
           </div>
         )}
 
-        {/* ── ③ 転職について（トグルではなく値をそのまま出す）────────────────── */}
+        {/* ── ③ 転職意欲（トグルではなく値をそのまま出す）────────────────────── */}
         <div style={DIVIDER}>
+          {/* ⚠️★ここは `/mypage` に**出ている行**（モーダルの CollapsibleRow とは別物）。
+                 名前は「転職意欲」（2026-09-30 / 柴さんの指示）。**両方を同じ語に保つこと。**
+              ⚠️ 2026-09-30 に片方（モーダル側）だけ先に直して、**画面には旧語が残っていた。**
+                 素の JSX テキストなので `label="..."` の grep では見つからない。 */}
           <div style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
-            転職について
+            転職意欲
           </div>
           {/* ⚠️ 値は**そのまま短く**出す。「設定済み」のような抽象語にしない。
                  未設定は「未設定」と出す（✎ から答えられる）。 */}
@@ -615,7 +619,7 @@ export default function IntentCard({
                           動いていないことを言い換えただけになる。
                     ⚠️ 一方で**候補者検索は動いている**（`/biz/candidates`）ので、
                        「表示されます」は事実。再開したら後段を足してよい。 */}
-                「転職について」に答えると、企業の候補者検索に表示されます。
+                「転職意欲」に答えると、企業の候補者検索に表示されます。
               </div>
             ) : (
               /* ② 本人が「今はいない」を選んだ状態。
@@ -717,7 +721,9 @@ export default function IntentCard({
                   「未設定」が**選べる答え**に見える。
                ⚠️ 4つ目は本人の状態のラベルではなく**連絡の希望**。
                   「転職を考えていない」と書き換えないこと（転職しない人も登録する前提が壊れる）。 */}
-        <CollapsibleRow first={memberRows.length === 0} defaultOpen label="転職について" state={stanceText(stance)}>
+        {/* ⚠️ 行の名前は「転職意欲」（2026-09-30 / 柴さんの指示）。オンボーディング3画面目・
+               /onboarding/stance と**同じ語**にしてある。片方だけ戻さないこと。 */}
+        <CollapsibleRow first={memberRows.length === 0} defaultOpen label="転職意欲" state={stanceText(stance)}>
           {/* ★2026-08-27（フェーズ3）: **この設問がスカウトの可否そのものになった。**
                  ⚠️ 何が起きるかを**選ぶ前に**書く。以前は別のトグル
                     （「企業から声をかけられる」）が持っていた説明で、
@@ -733,7 +739,7 @@ export default function IntentCard({
             <br />
             いま在籍している会社と、職歴に書いた会社からは、答えにかかわらず届きません。
           </p>
-          <div role="radiogroup" aria-label="転職について" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div role="radiogroup" aria-label="転職意欲" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {CAREER_STANCES.map((o) => (
               <label
                 key={o.value}
