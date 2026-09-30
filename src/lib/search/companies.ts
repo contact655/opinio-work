@@ -23,6 +23,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel, CompanyBusinessDomain } from "@/types/genre";
 import { PHASE_FILTER_MAP } from "@/lib/constants/phase";
 import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
+import { normalizeCompanyName } from "@/lib/companies/normalizeName";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
@@ -93,10 +94,15 @@ export async function searchCompanies(
               実測: 「Cisco」で検索すると**シスコ本体は出ず、説明文に Cisco を含む競合2社だけ**が出た。
            ⚠️ 検索できる場所は3つある（ヘッダーのサジェスト / `/companies` の一覧 /
               企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
+        /* ★正規化どうしの突き合わせ（2026-10-01）。ひらがな・半角カナ・全角ラテン・
+              中黒なしを吸収する。⚠️ 空になる語（「株式会社」など）では足さない
+              —— `%%` になって全件に当たる。規則は `normalize_company_name()` の1本。 */
+        const nk = normalizeCompanyName(safeWord);
+        const normCond = nk ? `search_key.ilike.%${nk.replace(/[(),"\\]/g, "")}%,` : "";
         q = q.or(
           `name.ilike.${p},name_en.ilike.${p},brand_name.ilike.${p},slug.ilike.${p},` +
           /* 読み仮名（2026-08-21）。カタカナで打たれたときに拾う。画面には出さない */
-          `search_aliases.ilike.${p},` +
+          `search_aliases.ilike.${p},` + normCond +
           `description.ilike.${p},industry.ilike.${p},tagline.ilike.${p}`
         );
       }
@@ -218,7 +224,24 @@ export async function searchCompanies(
      ⚠️ アプリ側ソート（`employees` / `disclosure`）にも効く。`Array.prototype.sort` は
         安定なので、**同値の並びは前段のこのDB順がそのまま残る**。ここが不定だと
         JS 側が安定でも結果は毎回変わる。 */
-  dataQuery = filterListedCompanies(dataQuery)
+  /* ★★キーワードがあるときだけ、ディレクトリの軸を外す（2026-10-01 / 柴さんの指示）。
+        「一覧には出てこないけど、検索には出てきてほしい」。
+     ── 何が変わるか ────────────────────────────────────────────────────────
+     ・絞り込みだけ（`?industry=` など。`q` なし）… これまでどおり**掲載中だけ**
+     ・キーワードあり（`?q=`）                    … **ページが開ける企業すべて**
+
+     ⚠️★`filterVisibleCompaniesStrict`（`is_published` ＋ `is_test`）に広げる。
+        **マスタ全部にはしない。** 検索結果はカードからリンクするので、
+        `is_published = false` を混ぜると**404 へのリンクを自分で作る**ことになる。
+     ⚠️★これは「中身の無いページを自分から知らせない」（sitemap・フッター・LP）とは
+        別。あちらは**こちらから出す**話で、検索は**探しに来た人に答える**話。
+        **sitemap・LP・フッター・チップの母集団は掲載中のまま。広げないこと。**
+     ⚠️ 掲載中を先に出す（`listing_status` は draft=1 / listed=2 なので降順）。
+        これが無いと、新着順の既定で**今日足した非掲載企業が常に先頭に来る。** */
+  const hasKeyword = !!params.q?.trim();
+  dataQuery = (hasKeyword ? filterVisibleCompaniesStrict(dataQuery) : filterListedCompanies(dataQuery));
+  if (hasKeyword) dataQuery = dataQuery.order("listing_status", { ascending: false });
+  dataQuery = dataQuery
     .order(orderCol, { ascending: orderAsc })
     .order("id", { ascending: false });
 
