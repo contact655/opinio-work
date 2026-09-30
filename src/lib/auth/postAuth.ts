@@ -4,7 +4,8 @@ import { addUserRole } from "@/lib/roles";
 import { notify } from "@/lib/notify/email";
 import { resolveOrLinkOwUser } from "@/lib/auth/linkOwUser";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { senderFooterHtml } from "@/lib/notify/templates";
+import { senderFooterHtml, newUserAdminTemplate } from "@/lib/notify/templates";
+import { PLACEHOLDER_USER_NAME } from "@/lib/constants/personName";
 
 /**
  * メールリンク / OAuth で認証が成立した直後の共通後処理。
@@ -124,7 +125,9 @@ export async function jobseekerDestination(params: {
       .update({ welcome_sent_at: new Date().toISOString() })
       .eq("auth_id", session.user.id)
       .is("welcome_sent_at", null)
-      .select("id")
+      /* ⚠️ `name` は運営への通知に使う。落とすと `undefined` になり、
+            「（未設定）」と出て**実在する名前を未入力として報告する**。 */
+      .select("id, name")
       .maybeSingle();
 
     if (claimError) {
@@ -164,6 +167,26 @@ export async function jobseekerDestination(params: {
             if (error) console.error(`${logPrefix} welcome claim rollback failed:`, error.message);
           });
       });
+
+      /* ★運営（`ADMIN_EMAIL`）にも知らせる（2026-09-30 / 柴さんの依頼）。
+         ⚠️★**ウェルカムメールと同じ `welcome_sent_at` の確保に相乗りしている。**
+            別の列を足していないので、**1人につき1通**が同じ仕組みで保証される。
+            ⚠️ 引き換えに、ウェルカムの送信が失敗して確保が戻った場合は、
+               次の認証で**運営にも2通目が飛ぶ**。運営宛なので実害は無いと判断した。
+               気になるなら `signup_notified_at` を別に持つこと。
+         ⚠️★**求職者の経路だけを通る。** `/biz` は `jobseekerDestination` を呼ばない
+            （企業側は企業を作った時点で `newCompanyAdminTemplate` が飛ぶ）。
+         ⚠️ 名前は `ow_users.name`。プレースホルダ（`ユーザー`）は名前として渡さない。 */
+      const storedName = typeof claimed.name === "string" ? claimed.name.trim() : "";
+      await notify(
+        newUserAdminTemplate({
+          owUserId: claimed.id,
+          email: session.user.email,
+          name: storedName && storedName !== PLACEHOLDER_USER_NAME ? storedName : null,
+          provider: (session.user.app_metadata?.provider as string | undefined) ?? null,
+          confirmedAt: new Date().toISOString(),
+        }),
+      );
     }
   }
 

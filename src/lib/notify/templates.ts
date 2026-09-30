@@ -807,61 +807,23 @@ export function joinRequestApprovedTemplate(params: {
   };
 }
 
-// ── 面談対応者の申請（企業/運営宛）─────────────────────────────────────────
-/**
- * 本人が「話を聞かれてもよい」と申請したことを企業に知らせる（2026-08-23）。
+// ── 面談対応者の申請（企業/運営宛）── ★★2026-09-30 に廃止 ──────────────────
+/*
+ * ⚠️★★`ambassadorRequestTemplate` は削除した（2026-09-30 / 柴さんの判断）。
+ *    **企業への通知そのものをやめたため。復活させないこと。**
  *
- * ⚠️ **中身は入れない。** 役職・職歴・自己紹介などは書かない。
- *    「誰が・どの会社に・いつ申請したか」と、確認する場所への導線まで。
+ *    理由は「面談OK は**現職のことに限らず、利用者どうしが気軽に話すためのもの**で、
+ *    企業が管轄することではない」。⚠️ **企業ページの掲載と人数は残してある**ので、
+ *    企業は自社ページと `/biz/members` で見られるし、非掲載にもできる。
+ *    変わったのは push で知らせるのをやめたことだけ。
  *
- * ⚠️ 取引通知（本人の操作の結果を返すもの）なので **opt-out 列は要らない**。
- *    週次のリマインド（勧誘）とは別物。混同しないこと。
+ * ⚠️ 運営の検知は `/admin` の要対応「面談対応者（自己申告）未確認 N名」と
+ *    `/admin/ambassador-requests`（`ops_reviewed_at`）が担う。**メールと重複していた。**
+ * ⚠️ 実測（2026-09-30）: 面談OK が ON の8社すべてで `notification_emails` 0件・
+ *    実在する管理者0人。**実在の企業担当者に届いたことは一度も無かった。**
+ *
+ * ⚠️ 文面が要るときは git 履歴から（`188bbe34` 時点まで）。
  */
-export function ambassadorRequestTemplate(params: {
-  to: string;
-  companyName: string;
-  applicantName: string;
-  appliedAt: string;
-  /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
-  viaOps?: boolean;
-}) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  /* 運営に回ったときは運営の画面へ、企業に届くときは企業の画面へ送る */
-  const href = params.viaOps === true
-    ? `${siteUrl}/admin/ambassador-requests`
-    : `${siteUrl}/biz/members`;
-
-  return {
-    to: params.to,
-    /* ★2026-08-24: 会社の事前承認を廃止したので、**承認を求める文面をやめた**。
-          ⚠️ 「承認するまで公開されません」は事実と逆になる。ここを戻さないこと。
-          ⚠️ 企業がすることは「外したい場合に外す」だけ。だから件名も本文も
-             お願いではなく**お知らせ**にしてある。 */
-    subject: opsSubject(
-      `【OPINIO】${esc(params.companyName)}の社員の方が「面談OK」を有効にしました`,
-      params.viaOps === true,
-    ),
-    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">「面談OK」が有効になりました</h2>
-      <p style="margin:0 0 20px;color:#475569">
-        <strong style="color:#0f172a">${esc(params.companyName)}</strong> に在籍していると申告している方が、
-        転職を検討している方の相談に応じてもよい、と設定しました。
-        <strong style="color:#0f172a">貴社のページに掲載されています。</strong>
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">お名前</td><td style="${TD_VALUE}">${esc(params.applicantName)}</td></tr>
-        <tr><td style="${TD_LABEL}">設定日</td><td style="${TD_VALUE}">${esc(params.appliedAt)}</td></tr>
-      </table>
-      <p style="margin:0 0 16px;color:#475569;font-size:14px">
-        在籍は<strong style="color:#0f172a">本人の申告</strong>で、OPINIO は在籍確認を行っていません。
-        心当たりが無い場合や掲載を止めたい場合は、下のボタンからいつでも貴社のページから外せます。
-      </p>
-      <p style="margin:0 0 24px">
-        <a href="${href}" style="${BTN}">掲載を確認する →</a>
-      </p>
-    `),
-  };
-}
 
 // ── 「話を聞かれてもよい」の申請に対する企業の判断（本人宛）───────────────────
 /*
@@ -999,6 +961,73 @@ export function scoutTemplate(params: {
         スカウトのお知らせが不要な場合は
         <a href="${unsubscribeUrl(siteUrl)}" style="color:#94a3b8">設定</a>
         から配信を停止できます。
+      </p>
+    `),
+  };
+}
+
+// ── 新規ユーザー登録の運営通知 ──────────────────────────────────────────────
+/**
+ * 求職者が登録を**完了した**ときに運営（`ADMIN_EMAIL`）へ送る（2026-09-30 / 柴さんの依頼）。
+ *
+ * ⚠️★**「登録した」には2つの時点がある。これは②。**
+ *   ① フォーム送信 … `auth.users` と `ow_users` の行ができて確認メールが飛ぶ。
+ *      **まだ本人だと分かっていない。** 打ち間違えた人・戻ってこない人が混ざる
+ *      （実測 2026-09-30: その日の5人のうち1人が①で止まっていた）。
+ *   ② **確認リンクを開いた** … ここで初めて本人。ウェルカムメールが飛ぶ時点。
+ *   ⇒ ②で送る。①で送ると、実在しないアドレスの通知が混ざる。
+ *
+ * ⚠️★**`signup_ref`（登録経路）は載せていない。** あれを書くのは
+ *    `OnboardingGuard`（着地後・クライアント）なので、**この時点ではまだ null。**
+ *    「—」と出すと「経路なし」と読めてしまう。経路は `/admin/signup-refs` で見る。
+ *
+ * ⚠️ 名前は**宛名ではない**ので `greet()` を通さない。ここは事実の報告で、
+ *    「誰が登録したか」を運営が読む欄。無ければ「（未設定）」と**明示する**
+ *    （空欄にすると、取得に失敗したのか未入力なのか区別できない）。
+ *    ⚠️ ただし `'ユーザー'`（プレースホルダ）は名前として出さない。`personName.ts` と同じ扱い。
+ *
+ * ⚠️ 検証用アカウント（`contact+NN@opinio.co.jp`）も**除外していない**。
+ *    `is_test` が立つのは後から migration でなので、この時点では見分けが付かない。
+ *    運営に1通多く届くだけで実害が無く、むしろ `is_test` の立て忘れに気づける。
+ */
+export function newUserAdminTemplate(params: {
+  owUserId: string;
+  email: string;
+  /** `ow_users.name`。無い／プレースホルダなら null を渡す */
+  name: string | null;
+  /** `session.user.app_metadata.provider`（"email" / "google" など） */
+  provider: string | null;
+  confirmedAt: string;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  const providerLabel =
+    params.provider === "google" ? "Google"
+    : params.provider === "email" ? "メールアドレス"
+    : params.provider ?? "不明";
+  const row = (label: string, value: string, mono = false) => `
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; width: 120px;">${label}</td>
+          <td style="padding: 8px 12px; border: 1px solid #e2e8f0;${mono ? "font-family: monospace; font-size: 11px;" : ""}">${value}</td>
+        </tr>`;
+
+  return {
+    to: ADMIN_EMAIL,
+    subject: `[OPINIO] 新規ユーザーが登録しました: ${params.name ?? params.email}`,
+    html: htmlWrap(`
+      <h2>新しいユーザーが OPINIO に登録しました</h2>
+      <table style="border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 16px;">
+        ${row("名前", params.name ? esc(params.name) : '<span style="color:#94a3b8;">（未設定）</span>')}
+        ${row("メールアドレス", esc(params.email))}
+        ${row("認証方法", esc(providerLabel))}
+        ${row("登録日時", new Date(params.confirmedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }))}
+        ${row("ユーザー ID", params.owUserId, true)}
+      </table>
+      <p style="margin-top: 20px;">
+        <a href="${siteUrl}/admin/users/${params.owUserId}">管理画面で確認する →</a>
+      </p>
+      <p style="font-size: 12px; color: #888; margin-top: 4px;">
+        この時点ではオンボーディング（氏名・お住まい・直近のお勤め先・転職について）は未完了です。
+        どの声かけから来たかは <a href="${siteUrl}/admin/signup-refs">登録経路</a> で見られます。
       </p>
     `),
   };
