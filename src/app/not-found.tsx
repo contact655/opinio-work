@@ -80,7 +80,7 @@ export default function NotFound() {
           <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>よく見られているページ</p>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
             {[
-              { href: "/jobs", label: "求人一覧" },
+              { href: "/jobs", label: "募集一覧" },
               { href: "/companies", label: "企業一覧" },
               { href: "/articles", label: "記事" },
               { href: "/auth", label: "ログイン" },
