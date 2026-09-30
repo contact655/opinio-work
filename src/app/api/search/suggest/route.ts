@@ -4,6 +4,7 @@ import { getRoleAliases, getRoleTree, getJobRoleMap } from "@/lib/supabase/queri
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import { NextResponse } from "next/server";
 import { filterListedCompanies } from "@/lib/companies/visibility";
+import { companyNameOrFilter } from "@/lib/companies/searchFilter";
 
 export const dynamic = "force-dynamic";
 
@@ -84,11 +85,7 @@ export async function GET(req: Request) {
               企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
         /* ⚠️ `search_aliases` は**読み仮名**（2026-08-21）。社名が英字の28社を
               カタカナで打っても引けるようにするための列で、**画面には出さない**。 */
-        .or(
-          `name.ilike.${pattern},name_en.ilike.${pattern},` +
-          `brand_name.ilike.${pattern},slug.ilike.${pattern},` +
-          `search_aliases.ilike.${pattern}`
-        )
+        .or(companyNameOrFilter(q))
     ).limit(4),
     supabase
       .from("ow_jobs")

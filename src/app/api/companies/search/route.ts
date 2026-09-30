@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
+import { companyNameOrFilter } from "@/lib/companies/searchFilter";
 
 /**
  * GET /api/companies/search — **企業マスタの照会。`/biz` の企業登録専用。**
@@ -85,21 +86,14 @@ export async function GET(req: NextRequest) {
     const safeDomain = domain.replace(/%/g, "\\%").replace(/_/g, "\\_");
     query = query.ilike("url", `%${safeDomain}%`);
   } else {
-    // ILIKE wildcard エスケープ（% と _ はPostgreSQLのパターン文字）
-    const safeQ = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    /* ★**社名は「和名・英語名・ブランド名・slug」の4つで引く**（2026-08-20）。
+    /* ⚠️★**引く列とエスケープは `companyNameOrFilter` の1箇所**（2026-10-01 に集約）。
        ⚠️ 和名（`name`）だけで引くと、**英語名で検索した人には見つからない**。
           このサイトの社名は「アドビ株式会社」「シスコシステムズ合同会社」のように
           カタカナで入っており、公開79社のうち **50社は英語名の綴りが `name` に無い**。
           実測: 「Cisco」で検索すると**シスコ本体は出ず、説明文に Cisco を含む競合2社だけ**が出た。
-       ⚠️ 検索できる場所は3つある（ヘッダーのサジェスト / `/companies` の一覧 /
-          企業ピッカー）。**3つとも同じ列を見ること。** 1つ直すと他が取り残される。 */
-    query = query.or(
-      `name.ilike.%${safeQ}%,name_en.ilike.%${safeQ}%,` +
-      `brand_name.ilike.%${safeQ}%,slug.ilike.%${safeQ}%,` +
-      /* 読み仮名（2026-08-21）。カタカナで打たれたときに拾う。画面には出さない */
-      `search_aliases.ilike.%${safeQ}%`
-    );
+       ⚠️ 検索できる場所は3つある（ヘッダーのサジェスト / 企業ピッカー / ここ）。
+          **3つとも同じ関数を通すこと。** 1つ直すと他が取り残される。 */
+    query = query.or(companyNameOrFilter(q));
   }
 
   const { data: companies, error } = await query;

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyNameOrFilter } from "@/lib/companies/searchFilter";
 
 /**
  * GET /api/companies/lookup — 職歴の企業ピッカー専用。**未掲載の企業も名前で引ける。**
@@ -53,21 +54,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  const safeQ = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-
-  /* ⚠️★**引く列は `/api/companies/search` と揃える**（CLAUDE.md 2026-08-20）。
-        「検索できる場所は3つある。3つとも同じ列を見ること。1つ直すと他が取り残される」。
-        和名だけで引くと、英語名で検索した人には見つからない。 */
+  /* ⚠️★**引く列は `companyNameOrFilter` の1箇所**（2026-10-01 に集約）。
+        「検索できる場所は3つある。3つとも同じ列を見ること。1つ直すと他が取り残される」
+        を、規約ではなく共有関数で守る形にした。エスケープもあちらが持つ。 */
   const { data, error } = await createAdminClient()
     .from("ow_companies")
     .select("id, name, name_en, is_published, listing_status")
     /* ⚠️ 検証用企業は返さない。求職者の画面に出す候補なので */
     .eq("is_test", false)
-    .or(
-      `name.ilike.%${safeQ}%,name_en.ilike.%${safeQ}%,` +
-      `brand_name.ilike.%${safeQ}%,slug.ilike.%${safeQ}%,` +
-      `search_aliases.ilike.%${safeQ}%`
-    )
+    .or(companyNameOrFilter(q))
     /* ★掲載中 → ページはあるが非掲載 → ページも無い、の順（2026-09-14 に修正）。
           ⚠️★**`is_published` だけで並べない。** 2026-09-14 に61社を
              `listing_status='draft'` にしたので、**`is_published=true` は
