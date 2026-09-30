@@ -29,6 +29,7 @@ import {
   type ExperienceCompanyBody,
   type ExperienceReasonBody,
 } from "@/lib/experiences/createExperience";
+import { HighlightedName } from "@/components/companies/HighlightedName";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -728,7 +729,9 @@ function CompanySearch({
                   </span>
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>
+                    <HighlightedName text={c.name} query={value} />
+                  </div>
                   {/* ★正式名を小さく添える（2026-09-28 / 柴さんの指示）。
                          ⚠️★**表示名と違うときだけ**出す（`formalName` は同じとき null）。
                             「株式会社テスト」と打った人に候補が「テスト」としか出ず、
@@ -740,7 +743,7 @@ function CompanySearch({
                       fontSize: 11, color: "var(--ink-mute)", marginTop: 1,
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
-                      {c.formalName}
+                      <HighlightedName text={c.formalName} query={value} />
                     </div>
                   )}
                   {/* ⚠️★**掲載の有無をここに出さないこと**（2026-09-14 に削除）。

@@ -30,6 +30,7 @@ import {
   EXPERIENCE_CREATE_PATH,
   type CreateExperienceBody,
 } from "@/lib/experiences/createExperience";
+import { HighlightedName } from "@/components/companies/HighlightedName";
 
 /*
   勤務形態のチップ。**value は共有定数から取る**（ここに直書きすると DB の CHECK とずれる。
@@ -1691,7 +1692,7 @@ function CompanyPicker({
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {companyLabel(c)}
+                    <HighlightedName text={companyLabel(c)} query={text} />
                   </div>
                   {/* ★正式名を小さく添える（2026-09-28 / 柴さんの指示）。
                          ⚠️★**表示名と違うときだけ**出す（`formalName` は同じとき null）。
@@ -1704,7 +1705,7 @@ function CompanyPicker({
                       fontSize: 11, color: "var(--ink-mute)", marginTop: 1,
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
-                      {c.formalName}
+                      <HighlightedName text={c.formalName} query={text} />
                     </div>
                   )}
                   {/* ⚠️★**掲載の有無をここに出さないこと**（2026-09-12 / 柴さんの指示で削除）。

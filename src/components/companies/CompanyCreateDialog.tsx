@@ -5,6 +5,7 @@ import { type IndustryOption } from "@/lib/companies/industries";
 import { IndustrySelectOptions } from "./IndustrySelectOptions";
 import type { CompanyLookupResult } from "./useCompanyLookup";
 import { companyMatchLabelForUser } from "@/lib/companies/matchedOn";
+import { HighlightedName } from "@/components/companies/HighlightedName";
 
 /**
  * 「会社を登録する」— 経歴入力の途中で企業マスタを作る。
@@ -196,7 +197,7 @@ export function CompanyCreateDialog({
                     display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)",
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
-                    {c.name}
+                    <HighlightedName text={c.name} query={name} />
                   </span>
                   {/* ★正式名を小さく添える（2026-09-28）。⚠️ 表示名と違うときだけ。
                          ⚠️★ピッカーの候補行と**同じ形**にしてある。片方だけ変えないこと。 */}
@@ -205,7 +206,7 @@ export function CompanyCreateDialog({
                       display: "block", fontSize: 11, color: "var(--ink-mute)", marginTop: 1,
                       overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
-                      {c.formalName}
+                      <HighlightedName text={c.formalName} query={name} />
                     </span>
                   )}
                   {/* ★なぜ候補に出たか。⚠️ 名前で一致したときは出さない
