@@ -425,6 +425,23 @@ function ProfilePhotoUploader({
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>プレビュー（クリックで写真を変更）</div>
       </div>
 
+      {/* ★★写真だけ「選んだ時点で保存される」ことを出す（2026-09-30 / 柴さんの指摘）。
+             ⚠️★**消さないこと。** `uploadPhoto` は Storage へ上げた直後に
+                `PUT /api/jobseeker/profile-photo` で DB まで書く。つまり写真を替えても
+                フッターの「保存」は**押す必要が無く、灰色のまま**になる。
+             ⚠️ それが「保存ボタンの色がつかない ＝ 保存できない」と読まれた（実際に報告された）。
+                ボタンは壊れていない —— 氏名などを変えれば `--royal` の紺色になることを実測済み。
+             ⚠️★これは `/biz/company` の事業領域と**同じ形**。あちらも
+                「この項目だけ即時保存」で、画面に「すぐに反映されます」と出してある。
+                **黙っていると、押すまで効かないと読まれる。** */}
+      <div style={{
+        fontSize: "var(--text-xs)", color: "var(--ink-soft)", lineHeight: 1.7,
+        background: "var(--bg-tint)", border: "1px solid var(--line-soft)",
+        borderRadius: 8, padding: "8px 10px", marginBottom: "var(--space-3)",
+      }}>
+        写真は選んだ時点で保存されます（下の「保存」は押さなくて大丈夫です）。
+      </div>
+
       {/* Upload controls */}
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {/* Avatar */}
