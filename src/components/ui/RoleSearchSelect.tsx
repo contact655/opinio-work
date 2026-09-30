@@ -87,8 +87,10 @@ export function RoleSearchSelect({
   const [activeIndex, setActiveIndex] = useState(0);
   /** 開いている大分類の id。⚠️ 検索を打ったら意味が無くなるので畳む */
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  /* ⚠️ `pickedParentId`（2段セレクトで「大分類だけ選んだ」状態）は 2026-09-30 に
-        削除した。2段セレクトを外したので持ち主がいない。**書き戻さないこと。** */
+  /* 2欄モードで「大分類だけ選んだ」状態を覚える。
+     ⚠️ `value` からは復元できない。小分類が未選択のとき `value` は
+        大分類の id か空で、どちらも「大分類を選んだ直後」と区別できないため。 */
+  const [pickedParentId, setPickedParentId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -224,6 +226,93 @@ export function RoleSearchSelect({
   }, [activeIndex, open]);
 
   const inputValue = open ? query : (clearOnSelect ? "" : selectedLabel);
+
+  /* ══ ★★2欄モード（大分類／小分類）。**`clearOnSelect` でないときだけ** ══════════
+        2026-09-30 / 柴さんの判断。「大分類と小分類で項目を分けるのが見やすい」。
+
+     ⚠️★**検索欄は出さない。** 柴さんが**両方を見比べたうえで**「消して2欄だけ」を選んだ。
+        ⚠️ そのとき伝えた実測をここにも残す —— 2026-08-06、入力UIが2段 select だけ
+           だった頃は **求人20件が大分類11件と孫7件に偏り、中間の子職種が1件も
+           使われていなかった。** 別名検索（「法人営業」→ フィールドセールス）も効かない。
+        ⚠️★**したがって「小分類まで選んだ割合」を後で測り直すこと。**
+           2026-09-30 時点の実績は **31件中28件（90%）**（検索欄があった形での数字）。
+           これを下回るようなら、この判断を見直す材料になる。
+
+     ⚠️★**大分類セレクトを選択後に隠さないこと。** 旧実装（〜2026-09-30）は隠していたが、
+        あれは**検索欄が選んだ名前を出していたから**成り立っていた。検索欄が無いいま隠すと
+        **大分類を選び直す手段が画面から消える。**
+
+     ⚠️★**`clearOnSelect`（求人・スキルの追加用）には広げないこと。** あちらは
+        「選んだ瞬間に一覧へ足して入力を空に戻す」形で、2欄にすると
+        「選んだ瞬間に追加される」のか「大分類を選んでから小分類」なのかが決まらない
+        （追加ボタンが要る）。**下の検索欄のままにする。**
+
+     ⚠️ 職歴の編集モーダル（/mypage）は**別部品**（`RoleAccordionSelect`）。
+        同じ `role_category_id` を3つの形で入力していることになる。**揃えるなら別途。** */
+  if (!clearOnSelect) {
+    const parentId = selected ? (selected.parent_id ?? selected.id) : (pickedParentId ?? "");
+    const kids = parentId ? (childrenOf.get(parentId) ?? []) : [];
+    return (
+      <>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div>
+            <div style={subLabelStyle}>大分類</div>
+            <select
+              aria-label={`${ariaLabel}（大分類）`}
+              disabled={disabled}
+              value={parentId}
+              onChange={(e) => {
+                const pid = e.target.value;
+                setPickedParentId(pid || null);
+                /* ⚠️ 大分類を変えたら小分類は捨てる。前の子が残ると別系統の組み合わせになる。 */
+                if (!pid) { onSelect(""); return; }
+                /* ⚠️ 大分類だけで確定してよいのは `selectableParent` のときだけ。 */
+                onSelect(selectableParent ? pid : "");
+              }}
+              style={twoColSelectStyle(disabled)}
+            >
+              <option value="">選んでください</option>
+              {roots.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div style={subLabelStyle}>小分類{selectableParent ? "（任意）" : ""}</div>
+            <select
+              aria-label={`${ariaLabel}（小分類）`}
+              disabled={disabled || kids.length === 0}
+              /* ⚠️ 選ばれているのが子のときだけ値を持つ。親のままなら空 */
+              value={selected?.parent_id ? selected.id : ""}
+              onChange={(e) => {
+                const cid = e.target.value;
+                /* 空に戻したら大分類まで戻す。⚠️ `onSelect("")` にしない
+                      —— 選べる側では「大分類だけ」が正当な状態。 */
+                onSelect(cid || (selectableParent ? parentId : ""));
+              }}
+              style={twoColSelectStyle(disabled || kids.length === 0)}
+            >
+              <option value="">
+                {!parentId ? "先に大分類を選ぶ" : kids.length === 0 ? "小分類なし" : "選んでください"}
+              </option>
+              {kids.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* ⚠️★「大分類だけでも保存できる」ことを書く。書かないと小分類が必須だと思われ、
+               当てはまる子が無い人が止まる。⚠️ 子が0件の大分類（公務・その他）でも同じ。 */}
+        {selectableParent && (
+          <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+            大分類だけでも保存できます。当てはまる小分類があるときだけ選んでください。
+          </p>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -394,23 +483,15 @@ export function RoleSearchSelect({
       )}
       </div>
 
-      {/* ★★「押さなくても一覧から選べると分かる」ための一言（2026-09-30 / 柴さんの判断）。
-             ⚠️★**消さないこと。** 2段セレクトを外したぶんがここ。プレースホルダは
-                「職種名で**検索**」としか言っていないので、これが無いと
-                **名前を知らない人が一覧に辿り着けない**（2026-08-06 の失敗に戻る）。
-             ⚠️ 開いているあいだは出さない。一覧が出ていれば言う必要が無く、
-                一覧の上に説明が挟まると押した先が遠くなる。
-             ⚠️★**`clearOnSelect`（追加用）では出さない。** 2段セレクトが出ていたのは
-                `!clearOnSelect` の1箇所（オンボーディング2画面目）**だけ**で、
-                他の3箇所（求人の職種・運営の求人編集・職歴エディタ）は元から
-                検索欄だけ。**そこで失われたものは無いので、説明を増やさない。**
-             ⚠️ 選択済みのときは出さない（もう選ぶ必要が無い）。
-             ⚠️ 開いているあいだも出さない（一覧が出ていれば言う必要が無い）。 */}
-      {!clearOnSelect && !open && !selected && (
-        <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-          クリックすると一覧から選べます。
-        </p>
-      )}
+
+      {/* ⚠️ 2026-09-30 の午前に足した2つ（検索欄の下の「クリックすると一覧から選べます」と、
+             大分類を選んだ直後に子を並べるチップ）は、**同日中に削除した。**
+             どちらも `!clearOnSelect` のときだけ出すものだったが、その条件は
+             **2欄モードが早期 return するので到達しない**（＝死んだ分岐になる）。
+          ⚠️★**2欄モードをやめて検索欄に戻すなら、この2つも一緒に戻すこと。**
+             とくにチップは「営業で止まる人」への対処で、実測の根拠がある
+             （2026-09-30: 職歴31件中、子があるのに大分類で止まったのが2件・どちらも営業）。
+             2欄モードでは**小分類の欄そのもの**がその役目を負っている。 */}
 
       {/* ★★2段セレクト（大分類 → 小分類）は 2026-09-30 に削除した（柴さんの判断）。
              ⚠️★**検索欄の一覧が先にあり、これは後から足したもの。** 経緯:
@@ -433,3 +514,19 @@ export function RoleSearchSelect({
   );
 }
 
+/** 2欄モードの小見出し。⚠️ 外側の「職種」ラベルより弱くする（主従が逆転しないため） */
+const subLabelStyle: React.CSSProperties = {
+  fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", marginBottom: 4,
+};
+
+/** 2欄モードのセレクトの見た目。⚠️ 他の入力欄（高さ40）と揃える */
+function twoColSelectStyle(disabled: boolean): React.CSSProperties {
+  return {
+    width: "100%", height: 40, padding: "0 10px",
+    border: "1.5px solid var(--line)", borderRadius: 8,
+    fontSize: 14, fontFamily: "inherit",
+    color: disabled ? "var(--ink-mute)" : "var(--ink)",
+    background: disabled ? "var(--bg-tint)" : "#fff",
+    outline: "none",
+  };
+}
