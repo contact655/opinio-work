@@ -188,21 +188,9 @@ export function PeopleCardStyles() {
               display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
               overflow: hidden; overflow-wrap: anywhere;
             }
-            /* ★本人が書いた1行（2026-09-23）。職種より弱く、2行までにクランプする。
-                  ⚠️ 上限40字（HEADLINE_MAX）なので、5列時のカード幅 235px では2行に収まる。
-                  ⚠️★この style はテンプレートリテラル。コメントにバッククォートを書かない。 */
-            .ppl-headline {
-              margin-top: 4px;
-              font-size: 12px; color: var(--ink-mute); line-height: 1.6;
-              display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-              overflow: hidden; overflow-wrap: anywhere;
-            }
-            /* 一覧（list）側。横幅があるので1行に収まる想定だが、折り返しは許す */
-            .ppl-headline-row {
-              margin-top: 4px;
-              font-size: 13px; color: var(--ink-mute); line-height: 1.6;
-              overflow-wrap: anywhere;
-            }
+            /* ⚠️ .ppl-headline と .ppl-headline-row は 2026-09-30 に削除した
+                  （本人が書いた1行を一覧から外したため。理由は JSX 側の注記に書いてある）。
+                  ⚠️★この style はテンプレートリテラル。コメントにバッククォートを書かないこと。 */
             .ppl-company {
               display: flex; align-items: center; justify-content: center; gap: 7px;
               font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35;
@@ -485,13 +473,20 @@ export function GridCard({ card, myUserId, followedUserIds }: {
                2026-08-20 に「年齢」フィルタも外し、型からも落とした。 */}
         <AffiliationBlock card={card} />
         <div className="ppl-role">{role}</div>
-        {/* ★★本人が書いた1行（2026-09-23 / 柴さんの指示）。
-               ⚠️★**職種（`ppl-role`）の下に置く。** 上に置かない ——
-                  会社 → 職種 の並びは「どこの人かが先に読めるほうが探しやすい」
-                  という 2026-08-18 の判断で、自由記述をその間に挟むと崩れる。
-               ⚠️ 無い人には**行ごと出さない**。「—」で埋めない。
-                  高さはグリッドの行内 stretch で揃うので `min-height` は要らない。 */}
-        {card.headline && <div className="ppl-headline">{card.headline}</div>}
+        {/* ★★本人が書いた1行（`headline`）は 2026-09-30 に一覧から外した（柴さんの判断）。
+               理由は**長いから** —— 自由記述で最大40字あり、2行に折り返すと
+               カードの縦が伸びて、短い人と並んだときの見た目が揃わない
+               （実測: 山下 真澄「インサイドセールス:エンタープライズを対象にBDRとして営業」）。
+            ⚠️★**1列表示（`ppl-headline-row`）からも同時に外してある。**
+               片方だけ戻さないこと —— あの2つは同じ画面のビュートグルで行き来するので、
+               割れると「表示形式を変えたら情報が増減する」形になる。
+            ⚠️★**肩書きが読めなくなったわけではない。** `/u/[id]` の `ProfileHeader` が
+               今も出すので、`pickNextStep` の「肩書きを1行で書く」は嘘になっていない
+               （sidebarData.ts の「埋めると他のユーザーに伝わる項目だけ勧める」規則を満たす）。
+            ⚠️ `DirectoryPerson.headline` は**残してある**（型・クエリとも）。戻すのは
+               この2箇所と CSS を書き戻すだけ。⚠️ 戻すなら**長い人の見え方を先に
+               `/dev/preview/people-cards` で確かめること**（`HEADLINE_40` がその用途）。
+            ⚠️ 自己紹介文（`about_me`）は**もともと一覧に出していない。** 混同しないこと。 */}
       </div>
 
       {/* CTAボタン
@@ -631,13 +626,9 @@ export function ListRow({ card, myUserId, followedUserIds }: {
           )}
         </div>
 
-        {/* ★★本人が書いた1行（2026-09-23）。
-               ⚠️★**上の1行（会社・職種・業種）に混ぜないこと。** あれは機械的な属性を
-                  畳んだ行で、自由記述を同じ行に入れると長さがばらついて畳みが崩れる。
-               ⚠️ 無い人には行ごと出さない。 */}
-        {card.headline && (
-          <div className="ppl-headline-row">{card.headline}</div>
-        )}
+        {/* ★★本人が書いた1行（`headline`）は 2026-09-30 にここからも外した。
+               ⚠️★**グリッド側（`ppl-headline`）とセット。** 理由と戻し方はあちらの注記に
+                  書いてある。**片方だけ戻さないこと。** */}
 
       </div>
 

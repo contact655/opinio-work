@@ -6,15 +6,14 @@ import { Variant, PreviewHeader } from "../Variant";
 /**
  * 登録ユーザーのカード（/people）のプレビュー（2026-09-23）。
  *
- * ⚠️★**作った理由は「肩書きが出る側を実データで描けない」こと。**
- *    実測（2026-09-23 / 本番）: 肩書きを持つ実ユーザーは **0人**。
- *    しかも `/people` は `is_test` を除外するので、唯一 肩書きを持っている
- *    検証用アカウントも一覧に出てこない。
+ * ⚠️★**作った理由は「肩書きが出る側を実データで描けない」ことだった**が、
+ *    **2026-09-30 に肩書きを一覧から外した**ので、いまの用途は
+ *    「所属の4通り・職種の折り返し・0件」を実データ抜きで見ること。
  *    ⚠️★**`is_test` を一時的に false にして確かめないこと**（柴さんの指示）。
  *       その瞬間、実在企業のページに検証用アカウントが出る。
  *
  * ⚠️★**CSS は `PeopleCardStyles` を通すこと。** カードのクラス（`.ppl-grid-card` /
- *    `.ppl-role` / `.ppl-headline` …）はそこにしか無い。自前で書き写すと
+ *    `.ppl-role` / `.ppl-company` …）はそこにしか無い。自前で書き写すと
  *    **プレビューだけ本番と違う見え方**になり、確かめた意味が無くなる。
  *
  * ⚠️★**この配下で DB を読まないこと。** 固定データだけを渡す。
@@ -100,7 +99,7 @@ export default function PeopleCardsPreview() {
 
       <Variant
         label="一覧（4名）"
-        note="⚠️ 肩書きが「会社・職種・業種」の1行と別の行に出ること"
+        note="⚠️ 会社・職種・業種が1行に畳まれること（肩書きは 2026-09-30 に外した）"
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {PEOPLE.map((c) => (
@@ -109,21 +108,11 @@ export default function PeopleCardsPreview() {
         </div>
       </Variant>
 
-      <Variant
-        label="肩書きが全員にある場合"
-        note="⚠️ 一覧が肩書きだけで埋まらないか（職種・会社が読み取れるか）を見る"
-      >
-        <div className="ppl-grid">
-          {PEOPLE.map((c) => (
-            <GridCard
-              key={c.userId}
-              card={{ ...c, headline: c.headline ?? HEADLINE_40 }}
-              myUserId={null}
-              followedUserIds={[]}
-            />
-          ))}
-        </div>
-      </Variant>
+      {/* ⚠️ 「肩書きが全員にある場合」の Variant は 2026-09-30 に落とした。
+             カードが `headline` を描かなくなり、**グリッドと同じ絵しか出なくなった**ため
+             （「確かめられないものを確かめたことにする」形になる）。
+          ⚠️★**固定データの `HEADLINE_40` と各人の `headline` は残してある。**
+             一覧に戻すならこの Variant を書き戻して、**長い人の折り返しを先に見ること。** */}
     </div>
   );
 }
