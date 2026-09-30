@@ -44,19 +44,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Props = { searchParams: { q?: string; drop?: string } };
+type Props = { searchParams: { q?: string; drop?: string; kind?: string } };
 
 const KIND_LABEL: Record<SearchKind, string> = {
   company: "企業",
   job: "募集",
   person: "人",
+  article: "記事",
 };
 
-const KIND_LIST_HREF: Record<SearchKind, string> = {
-  company: "/companies",
-  job: "/jobs",
-  person: "/people",
-};
+/** タブの並び。⚠️ ヘッダーのナビ（企業・募集・ユーザー・フィード・記事）と同じ順にしてある */
+const KIND_ORDER: SearchKind[] = ["company", "job", "person", "article"];
+
+/** 「すべて」タブで、主対象**以外**を何件まで出すか。⚠️ 主対象は HIT_LIMIT まで出す */
+const PREVIEW_PER_KIND = 3;
 
 // ── チップ ───────────────────────────────────────────────────────────────────
 
@@ -180,6 +181,38 @@ function JobCard({ item }: { item: SearchResults["job"]["items"][number] }) {
   );
 }
 
+/**
+ * 記事のカード（2026-10-01）。
+ * ⚠️ 社名で当たった企業に紐づく記事。**タイトルの文字列一致では出ない**
+ *    （`searchArticleHits` の注記）。「なぜ出たか」は会社名の行が担う。
+ */
+function ArticleCard({ item }: { item: SearchResults["article"]["items"][number] }) {
+  return (
+    <Link
+      href={`/articles/${item.slug ?? item.id}`}
+      style={{
+        display: "block", background: "#fff", border: "1px solid var(--line)",
+        borderRadius: 12, padding: 14, textDecoration: "none",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+        {/* ⚠️ 種別が無ければ行ごと出さない（「—」で埋めない） */}
+        {item.typeLabel && (
+          <span style={{ ...chipStyle("neutral"), fontSize: 11 }}>{item.typeLabel}</span>
+        )}
+        {item.companyName && (
+          <span style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {item.companyName}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+        {item.title}
+      </div>
+    </Link>
+  );
+}
+
 // ── ページ本体 ───────────────────────────────────────────────────────────────
 
 export default async function SearchPage({ searchParams }: Props) {
@@ -212,6 +245,7 @@ export default async function SearchPage({ searchParams }: Props) {
     company: { items: [], total: 0 },
     job: { items: [], total: 0 },
     person: { items: [], total: 0 },
+    article: { items: [], total: 0 },
   };
   const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn) : EMPTY;
 
@@ -224,8 +258,20 @@ export default async function SearchPage({ searchParams }: Props) {
     : (await skillBandsForCompanies(conditions)).filter((b) => b.count >= MIN_AGGREGATE_COUNT);
 
   const primary = interpreted.primaryKind;
-  const others = (["company", "job", "person"] as SearchKind[]).filter((k) => k !== primary);
-  const totalAll = results.company.total + results.job.total + results.person.total;
+
+  /* ★どのタブを見ているか（2026-10-01）。`?kind=` が無ければ「すべて」。
+     ⚠️ 知らない値は「すべて」に倒す（URL を手で書き換えられても壊れない）。 */
+  const activeKind: SearchKind | "all" =
+    (KIND_ORDER as string[]).includes(searchParams.kind ?? "")
+      ? (searchParams.kind as SearchKind)
+      : "all";
+
+  /* ★「すべて」では**主対象を先頭に**置く。`interpretQuery` が決めた優先順を捨てない。
+     ⚠️ 残りは `KIND_ORDER`（ヘッダーのナビと同じ並び）。**件数順にしないこと** ——
+        同じ語で引いても日によって並びが変わる。 */
+  const visibleKinds: SearchKind[] =
+    activeKind === "all" ? [primary, ...KIND_ORDER.filter((k) => k !== primary)] : [activeKind];
+  const totalAll = KIND_ORDER.reduce((n, k) => n + results[k].total, 0);
 
   /* 0件のときだけ「条件を1つ外すと」を計算する。
      ⚠️ 条件ごとに引き直すので、当たっているときはやらない（無駄な往復を作らない）。 */
@@ -235,7 +281,7 @@ export default async function SearchPage({ searchParams }: Props) {
       const rest = interpreted.conditions.filter((_, j) => j !== i);
       if (rest.length === 0) continue;
       const r = await runSearch(rest, isLoggedIn);
-      const n = r.company.total + r.job.total + r.person.total;
+      const n = KIND_ORDER.reduce((m, k) => m + r[k].total, 0);
       if (n > 0) relaxations.push({ label: interpreted.conditions[i].label, index: i, count: n });
     }
   }
@@ -257,7 +303,6 @@ export default async function SearchPage({ searchParams }: Props) {
     });
   }
 
-  const sectionTitle = { company: "企業", job: "募集", person: "人" }[primary];
 
   return (
     <div style={{ background: "#f0f4f8", minHeight: "70vh" }}>
@@ -295,54 +340,101 @@ export default async function SearchPage({ searchParams }: Props) {
           </p>
         )}
 
-        {/* ── 主対象 ── */}
-        <section style={{ marginTop: 22 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            {sectionTitle}
-            {!nothingResolved &&
-              (primary !== "person" || isLoggedIn || results.person.total >= MIN_AGGREGATE_COUNT) && (
-              <span
-                style={{
-                  fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
-                  background: "var(--line-soft)", borderRadius: 100, padding: "2px 9px",
-                }}
-              >
-                {results[primary].total}
-              </span>
-            )}
-          </h2>
-
-          <div style={{ marginTop: 12 }}>
-            {nothingResolved ? (
-              <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />
-            ) : primary === "person" && !isLoggedIn ? (
-              <LoginGate total={results.person.total} />
-            ) : results[primary].items.length === 0 ? (
-              <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()} />
-            ) : (
-              <div
-                style={{
-                  display: "grid", gap: 10,
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                }}
-              >
-                {primary === "company" &&
-                  results.company.items.map((it) => <CompanyCard key={it.id} item={it} />)}
-                {primary === "job" &&
-                  results.job.items.map((it) => <JobCard key={it.id} item={it} />)}
-                {primary === "person" &&
-                  results.person.items.map((it) => <PersonHitCard key={it.userId} person={it} />)}
-              </div>
-            )}
+{/* ── ★タブ（2026-10-01 / 柴さんの指示。LinkedIn の横断検索を参考に）──────
+               「すべて」＋種別。**押すと URL に `?kind=` が付く**だけで、検索はやり直さない。
+            ⚠️★0件の種別もタブは出す。押すと0件だが、**何を横断しているかが分かる**
+               （リポジトリの「0件の選択肢を出さない」とは逆向き。ここはタブ＝目次なので）。
+            ⚠️ 人の件数は未ログインだと下限未満で伏せる（既存の `MIN_AGGREGATE_COUNT`）。 */}
+        {!nothingResolved && raw.trim() && (
+          <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(["all", ...KIND_ORDER] as const).map((k) => {
+              const active = activeKind === k;
+              const n = k === "all" ? totalAll : results[k].total;
+              const hideCount = k === "person" && !isLoggedIn && results.person.total < MIN_AGGREGATE_COUNT;
+              return (
+                <Link
+                  key={k}
+                  href={`/search?q=${encodeURIComponent(raw)}${k === "all" ? "" : `&kind=${k}`}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 14px", borderRadius: 100, fontSize: 13, fontWeight: 600,
+                    textDecoration: "none",
+                    background: active ? "var(--royal)" : "#fff",
+                    color: active ? "#fff" : "var(--ink)",
+                    border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                  }}
+                >
+                  {k === "all" ? "すべて" : KIND_LABEL[k]}
+                  {!hideCount && (
+                    <span style={{ fontSize: 12, fontWeight: 700, opacity: active ? 0.85 : 0.55 }}>{n}</span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
+        )}
 
-          {/* ⚠️ 上限で切ったことを黙らない */}
-          {results[primary].items.length > 0 && results[primary].total > results[primary].items.length && (
-            <p style={{ marginTop: 10, fontSize: 12.5, color: "var(--ink-mute)" }}>
-              {results[primary].total}件のうち {results[primary].items.length}件を表示しています。
-            </p>
-          )}
-        </section>
+        {/* ── ★結果（2026-10-01 に「主対象1つ＋件数」から作り直した）────────────
+               それまでは主対象だけカードを出し、他は「N件 一覧へ」だった。
+            ⚠️★**畳む理由がもう無い**（柴さんの判断）。実測（本番 / `?q=Salesforce`）は
+               企業1・募集2・人5・記事1 の**合計9件**で、畳んで押させるより短い。
+               件数が増えたら `PREVIEW_PER_KIND` と `HIT_LIMIT` で切る。
+            ⚠️★**主対象は今までどおり全部出す**（`HIT_LIMIT` まで）。他が3件ずつ増えるだけで、
+               **今まで見えていたものは1つも減らない。**
+            ⚠️ 人は未ログインだと個票を出さない（`LoginGate`）。既存の規則をそのまま適用する。 */}
+        {nothingResolved ? (
+          <section style={{ marginTop: 22 }}>
+            <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />
+          </section>
+        ) : totalAll === 0 ? (
+          <section style={{ marginTop: 22 }}>
+            <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()} />
+          </section>
+        ) : (
+          visibleKinds.map((k) => {
+            const full = activeKind !== "all" || k === primary;
+            const items = full ? results[k].items : results[k].items.slice(0, PREVIEW_PER_KIND);
+            const gated = k === "person" && !isLoggedIn;
+            if (results[k].total === 0) return null;
+            return (
+              <section key={k} style={{ marginTop: 22 }}>
+                <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  {KIND_LABEL[k]}
+                  {(k !== "person" || isLoggedIn || results.person.total >= MIN_AGGREGATE_COUNT) && (
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
+                      background: "var(--line-soft)", borderRadius: 100, padding: "2px 9px",
+                    }}>{results[k].total}</span>
+                  )}
+                </h2>
+                <div style={{ marginTop: 12 }}>
+                  {gated ? (
+                    <LoginGate total={results.person.total} />
+                  ) : (
+                    <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+                      {k === "company" && (items as typeof results.company.items).map((it) => <CompanyCard key={it.id} item={it} />)}
+                      {k === "job" && (items as typeof results.job.items).map((it) => <JobCard key={it.id} item={it} />)}
+                      {k === "person" && (items as typeof results.person.items).map((it) => <PersonHitCard key={it.userId} person={it} />)}
+                      {k === "article" && (items as typeof results.article.items).map((it) => <ArticleCard key={it.id} item={it} />)}
+                    </div>
+                  )}
+                </div>
+                {/* ⚠️★切ったことを黙らない。押す先はこの種別のタブ（検索条件を保ったまま） */}
+                {!gated && results[k].total > items.length && (
+                  <p style={{ marginTop: 10, fontSize: 12.5, color: "var(--ink-mute)" }}>
+                    {results[k].total}件のうち {items.length}件を表示しています。
+                    {activeKind === "all" && (
+                      <Link href={`/search?q=${encodeURIComponent(raw)}&kind=${k}`}
+                        style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6 }}>
+                        すべて表示 →
+                      </Link>
+                    )}
+                  </p>
+                )}
+              </section>
+            );
+          })
+        )}
 
         {/* ── ★スキルの帯。社名として解決した語がスキルにもあるときだけ ── */}
         {skillBands.length > 0 && (
@@ -370,39 +462,9 @@ export default async function SearchPage({ searchParams }: Props) {
           </section>
         )}
 
-        {/* ── 他の対象は件数の注記だけ。⚠️ 条件0件のときは出さない（全件の数字になるため） ── */}
-        {!nothingResolved && (
-        <section style={{ marginTop: 26, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 13 }}>
-            {others.map((k) => {
-              /* 人は未ログインだと下限未満で件数を伏せる */
-              const hidden = k === "person" && !isLoggedIn && results.person.total < MIN_AGGREGATE_COUNT;
-              return (
-                <span key={k} style={{ color: "var(--ink-mute)" }}>
-                  {KIND_LABEL[k]}:{" "}
-                  {hidden ? (
-                    <Link href="/auth" style={{ color: "var(--royal)", fontWeight: 700 }}>
-                      ログインすると表示
-                    </Link>
-                  ) : (
-                    <>
-                      <strong style={{ color: "var(--ink)" }}>{results[k].total}</strong> 件
-                      {results[k].total > 0 && (
-                        <Link
-                          href={KIND_LIST_HREF[k]}
-                          style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6 }}
-                        >
-                          一覧へ
-                        </Link>
-                      )}
-                    </>
-                  )}
-                </span>
-              );
-            })}
-          </div>
-        </section>
-        )}
+{/* ⚠️★「他の対象は件数だけ」だったブロックは 2026-10-01 に削除した。
+               いまは上のセクションが全種別を出すので、同じ数字が2回出ることになる。
+            ⚠️ 0件の種別への導線（`/companies` などの一覧へ）は**タブが担う**。 */}
       </div>
     </div>
   );

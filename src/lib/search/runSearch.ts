@@ -30,6 +30,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import {
@@ -83,6 +84,22 @@ export type PersonHit = {
   matchReason: string | null;
 };
 
+/**
+ * ★記事のヒット（2026-10-01）。
+ * ⚠️★**社名条件からしか来ない。** 記事は `company_id` で企業に紐づいており、
+ *    タイトル・抜粋の文字列一致では**ほぼ当たらない**（実測: 「Salesforce」
+ *    「セールスフォース」「キーエンス」「AI」とも 0件。全12件が企業に紐づく）。
+ */
+export type ArticleHit = {
+  id: string;
+  slug: string | null;
+  title: string;
+  /** 記事の種別ラベル（「キャリアの軌跡」など）。無ければ null */
+  typeLabel: string | null;
+  companyName: string | null;
+  publishedAt: string | null;
+};
+
 export type SearchHit =
   | { kind: "company"; item: CompanyHit }
   | { kind: "job"; item: JobHit }
@@ -98,6 +115,7 @@ export type SearchResults = {
   company: KindResult<CompanyHit>;
   job: KindResult<JobHit>;
   person: KindResult<PersonHit>;
+  article: KindResult<ArticleHit>;
 };
 
 /** 一覧に出す上限。**超えた分は total に出す**（黙って切らない） */
@@ -435,7 +453,9 @@ export async function searchPersonHits(
   const tree = await getRoleTree();
 
   const [userRes, expRes, foreignRes, domainRes, skillRes, langRes] = await Promise.all([
-    db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system"),
+    /* ⚠️★`auth_id` を落とさないこと。落とすと `undefined` になり
+          `isRegisteredUser` が**全員 false** を返して、人の検索が丸ごと空になる。 */
+    db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, auth_id"),
     db
       .from("ow_experiences")
       .select(
@@ -497,9 +517,17 @@ export async function searchPersonHits(
   type UserRow = {
     id: string; name: string | null; avatar_color: string | null; avatar_url: string | null;
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
+    auth_id: string | null;
   };
+  /* ⚠️★★**本人が登録していない行を出さない**（2026-10-01 に足した）。
+        運営が履歴書から起こしたプロフィール（`auth_id` が NULL）は
+        `/u/[id]` が `notFound()` を返すので、**404 へのリンクになっていた。**
+        実測（2026-10-01 / 本番・ログイン済み）: `?q=Salesforce&kind=person` の
+        5人のうち1人（生藤 弘樹）が 404。
+     ⚠️★CLAUDE.md は `isRegisteredUser` を呼ぶ場所を「7箇所」と書いていたが、
+        **`/search` が抜けていた。8箇所目。** 人を出す面を足したら必ず通すこと。 */
   const candidates = ((userRes.data ?? []) as UserRow[]).filter(
-    (u) => u.name && !u.is_test && !u.is_system && u.visibility !== "private",
+    (u) => u.name && !u.is_test && !u.is_system && u.visibility !== "private" && isRegisteredUser(u),
   );
 
   const hits: PersonHit[] = [];
@@ -713,14 +741,17 @@ export async function skillBandsForCompanies(conditions: Condition[]): Promise<S
 
   const [{ data: links, error: linkErr }, { data: users, error: userErr }] = await Promise.all([
     db.from("ow_user_skills").select("user_id, skill_id").in("skill_id", skills.map((s) => s.id)),
-    db.from("ow_users").select("id, visibility, is_test, is_system"),
+    /* ⚠️ `auth_id` を落とさない（`searchPersonHits` と同じ理由） */
+    db.from("ow_users").select("id, visibility, is_test, is_system, auth_id"),
   ]);
   if (linkErr) console.error("[skillBandsForCompanies] ow_user_skills:", linkErr.message);
   if (userErr) console.error("[skillBandsForCompanies] ow_users:", userErr.message);
 
   const visible = new Set(
-    ((users ?? []) as { id: string; visibility: string | null; is_test: boolean | null; is_system: boolean | null }[])
-      .filter((u) => !u.is_test && !u.is_system && u.visibility !== "private")
+    ((users ?? []) as { id: string; visibility: string | null; is_test: boolean | null; is_system: boolean | null; auth_id: string | null }[])
+      /* ⚠️★本人が登録していない行を数えない（`searchPersonHits` と揃える）。
+            数が食い違うと「N名」と言いながら一覧には N-1 人しか出ない。 */
+      .filter((u) => !u.is_test && !u.is_system && u.visibility !== "private" && isRegisteredUser(u))
       .map((u) => u.id),
   );
 
@@ -739,6 +770,54 @@ export async function skillBandsForCompanies(conditions: Condition[]): Promise<S
 
 // ── まとめて引く ─────────────────────────────────────────────────────────────
 
+/**
+ * 社名で当たった企業に紐づく記事を引く。
+ *
+ * ⚠️★**文字列一致では引かない。** 記事12件のタイトル・抜粋に社名はほぼ入っておらず、
+ *    「Salesforce」で 0件だった（2026-10-01 実測）。紐づきは `company_id`。
+ * ⚠️ 社名条件が無いときは**引かずに0件**（`runSearch` の `applies` と同じ考え方）。
+ * ⚠️ `is_published` が false の記事は出さない。null は公開扱い（既存の記事一覧と同じ）。
+ */
+export async function searchArticleHits(conditions: Condition[]): Promise<KindResult<ArticleHit>> {
+  const companyIds = conditions
+    .filter((c): c is Extract<Condition, { kind: "company" }> => c.kind === "company")
+    .map((c) => c.companyId);
+  if (companyIds.length === 0) return { items: [], total: 0 };
+
+  const db = createPublicClient();
+  const { data, error, count } = await db
+    .from("ow_articles")
+    .select("id, slug, title, type, published_at, ow_companies!company_id(name, name_en)", { count: "exact" })
+    .in("company_id", companyIds)
+    .not("is_published", "is", false)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .limit(HIT_LIMIT);
+  /* ⚠️ error を握り潰さない（CLAUDE.md）。0件と失敗を区別できなくなる */
+  if (error) { console.error("[searchArticleHits]", error.message); return { items: [], total: 0 }; }
+
+  const items: ArticleHit[] = (data ?? []).map((r) => {
+    const c = r.ow_companies as unknown as { name: string; name_en: string | null } | null;
+    return {
+      id: r.id as string,
+      slug: (r.slug as string | null) ?? null,
+      title: r.title as string,
+      typeLabel: ARTICLE_TYPE_LABEL[(r.type as string) ?? ""] ?? null,
+      /* ⚠️ 社名は表示名に畳む（CLAUDE.md「社名を画面へ返す口では必ず `companyDisplayName` を通す」） */
+      companyName: c ? companyDisplayName(c.name, c.name_en).displayName : null,
+      publishedAt: (r.published_at as string | null) ?? null,
+    };
+  });
+  return { items, total: count ?? items.length };
+}
+
+/** 記事の種別ラベル。⚠️ `/articles` と同じ語彙にすること（画面ごとに変えない） */
+const ARTICLE_TYPE_LABEL: Record<string, string> = {
+  career: "キャリアの軌跡",
+  company: "企業インタビュー",
+  column: "コラム",
+  news: "ニュース",
+};
+
 export async function runSearch(
   conditions: Condition[],
   isLoggedIn: boolean,
@@ -754,10 +833,11 @@ export async function runSearch(
         条件を数える形にすると、対象が増えたときに必ず数え漏れる。 */
   const applies = (k: SearchKind) => conditions.some((c) => c.appliesTo.includes(k));
 
-  const [company, job, person] = await Promise.all([
+  const [company, job, person, article] = await Promise.all([
     applies("company") ? searchCompanyHits(conditions) : { items: [], total: 0 },
     applies("job") ? searchJobHits(conditions) : { items: [], total: 0 },
     applies("person") ? searchPersonHits(conditions, isLoggedIn) : { items: [], total: 0 },
+    applies("article") ? searchArticleHits(conditions) : { items: [], total: 0 },
   ]);
-  return { company, job, person };
+  return { company, job, person, article };
 }

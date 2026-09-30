@@ -60,7 +60,15 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 // ── 結果の型 ─────────────────────────────────────────────────────────────────
 
 /** 検索の主対象。見出しを付けて出すのはこの1つだけ */
-export type SearchKind = "company" | "job" | "person";
+/**
+ * 検索の対象。
+ * ⚠️★`article` は 2026-10-01 に足した。**社名条件にだけ効く** ——
+ *    記事は `ow_articles.company_id` で企業に紐づいており、
+ *    タイトル・抜粋の文字列一致では**ほぼ当たらない**（実測: 「Salesforce」
+ *    「セールスフォース」「キーエンス」「AI」とも 0件。記事は全12件が企業に紐づく）。
+ *    職種・事業領域・外資の条件は記事に当てない（紐づく列が無い）。
+ */
+export type SearchKind = "company" | "job" | "person" | "article";
 
 /**
  * 解決済みの条件。**必ずマスタの ID か、真偽値か、数値を持つ。**
@@ -535,7 +543,9 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
           /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
           matchOn: "experience",
           label: hit[0].label, // ★マスタの表示名。入力文字列ではない
-          appliesTo: ["company", "job", "person"],
+          /* ⚠️★`article` は**社名条件にだけ**足す（`SearchKind` の注記）。
+                他の条件（職種・事業領域・外資）には足さないこと。 */
+          appliesTo: ["company", "job", "person", "article"],
           companyId: hit[0].id,
         });
       }
