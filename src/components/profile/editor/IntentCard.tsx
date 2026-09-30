@@ -737,7 +737,9 @@ export default function IntentCard({
             「今は考えていない」を選ぶと、企業からあなたに連絡は届きません。
             答えていないあいだも届きません。
             <br />
-            いま在籍している会社と、職歴に書いた会社からは、答えにかかわらず届きません。
+            {/* ⚠️★2026-09-30 に `StanceQuestion`（オンボーディング3画面目）と同じ文へ揃えた。
+                   **片方だけ戻さないこと。** 同じ事実を2つの言い方で説明することになる。 */}
+            これまで在籍した会社からは、答えにかかわらず声がかかることはありません。
           </p>
           <div role="radiogroup" aria-label="転職意欲" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {CAREER_STANCES.map((o) => (
