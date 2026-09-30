@@ -506,6 +506,9 @@ export async function searchCompanies(
         return !!nw && normHay.includes(nw);
       }) ? 0 : 1;
     };
+    /* ★段分け（「社名で一致」／「説明にこの語を含む」）のために印を残す。
+          ⚠️ 描画側が同じ判定をやり直さないため。書き写すと必ず割れる。 */
+    filteredCompanies = filteredCompanies.map((c) => ({ ...c, nameMatch: nameHit(c) === 0 }));
     filteredCompanies = [...filteredCompanies].sort((a, b) => nameHit(a) - nameHit(b));
   }
 

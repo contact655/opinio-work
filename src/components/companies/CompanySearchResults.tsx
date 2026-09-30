@@ -7,6 +7,7 @@ import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { searchCompanies } from "@/lib/search/companies";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import type { WorkStyleValue } from "@/lib/search/companies";
+import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyCardList } from "./CompanyCardList";
 
 type Props = {
@@ -192,6 +193,70 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
               （クリックの横取り）を噛ませるので、包んだ瞬間に右ペインへ戻る。
            ⚠️ `selectedKey` は残してある。詳細ビューで選んだ状態のまま絞り込むと
               `?selected=` が URL に残るので、印だけ付く（ペインは出ない）。 */
+        /* ★★2段に分ける（2026-10-01 / 柴さんの判断）。
+              「Salesforce」で WalkMe・富士フイルム・nCino が並び、**なぜ出たのか**が
+              画面から分からなかった（3社とも**説明文**に Salesforce を含むだけ）。
+           ⚠️★**見出しを出すのは「説明で一致」が1件以上あるときだけ。**
+              全部が社名一致なら見出しは要らない（見れば分かる）。
+           ⚠️★**説明で一致だけのときも見出しを出す。** `?q=CRM` は社名一致0・説明一致11で、
+              「なぜ11社出たのか」を言うのがこの見出しの役目。
+           ⚠️ 段の中身は `nameMatch`（`searchCompanies` が付ける印）で分ける。
+              **ここで判定をやり直さないこと。** 書き写すと必ず割れる。 */
+        <SectionedGrid
+          companies={companies}
+          activeDomainSlug={activeDomainSlug}
+          selectedKey={selectedKey}
+        />
+      )}
+    </>
+  );
+}
+
+/** 検索結果を「社名で一致」「説明にこの語を含む」の2段で描く。片方だけなら見出しを出さない場合がある */
+function SectionedGrid({
+  companies, activeDomainSlug, selectedKey,
+}: {
+  companies: CompanyForCarousel[];
+  activeDomainSlug?: string | null;
+  selectedKey?: string | null;
+}) {
+  /* ⚠️ `nameMatch` が undefined ＝ キーワード無し（絞り込みだけ）。段に分けない */
+  const hasFlag = companies.some((c) => c.nameMatch !== undefined);
+  const nameHits = hasFlag ? companies.filter((c) => c.nameMatch) : companies;
+  const descHits = hasFlag ? companies.filter((c) => !c.nameMatch) : [];
+  const showHeadings = descHits.length > 0;
+
+  return (
+    <>
+      {showHeadings && nameHits.length > 0 && <ResultHeading label="社名で一致" count={nameHits.length} />}
+      {nameHits.length > 0 && <Grid companies={nameHits} activeDomainSlug={activeDomainSlug} selectedKey={selectedKey} />}
+      {showHeadings && <ResultHeading label="説明にこの語を含む" count={descHits.length} first={nameHits.length === 0} />}
+      {descHits.length > 0 && <Grid companies={descHits} activeDomainSlug={activeDomainSlug} selectedKey={selectedKey} />}
+    </>
+  );
+}
+
+/** 段の見出し。⚠️ グリッドの**外**に置く（中に入れるとグリッドのセルとして並ぶ） */
+function ResultHeading({ label, count, first }: { label: string; count: number; first?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "baseline", gap: 8,
+      margin: first ? "0 0 12px" : "24px 0 12px",
+    }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
+      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{count}件</span>
+    </div>
+  );
+}
+
+function Grid({
+  companies, activeDomainSlug, selectedKey,
+}: {
+  companies: CompanyForCarousel[];
+  activeDomainSlug?: string | null;
+  selectedKey?: string | null;
+}) {
+  return (
         <div className="search-results-grid">
           {companies.map((company) => (
             /* ⚠️★`activeDomainSlug` を渡す（2026-09-07）。渡さないとカードのタグは主のままで、
@@ -213,7 +278,5 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
             />
           ))}
         </div>
-      )}
-    </>
   );
 }

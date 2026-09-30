@@ -93,6 +93,14 @@ export function displayBusinessDomain(
 }
 
 export type CompanyForCarousel = {
+  /**
+   * ★キーワード検索で**社名系の列で当たったか**（2026-10-01）。
+   * `?q=` があるときだけ `searchCompanies` が入れる。無いときは undefined。
+   *
+   * ⚠️ 表示の段分け（「社名で一致」／「説明にこの語を含む」）だけに使う。
+   *    **絞り込みの判定には使わない**（当たったかどうかは DB 側が決めている）。
+   */
+  nameMatch?: boolean;
   id: string;
   slug?: string | null;             // URL-safe slug（例: "salesforce"）。null の場合は id で代替
   name: string;
