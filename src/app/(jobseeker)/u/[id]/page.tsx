@@ -1068,7 +1068,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
                     color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
                   }}>
-                    フィードを見る
+                    ホームを見る
                   </Link>
                 </div>
               </>

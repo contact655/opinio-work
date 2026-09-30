@@ -49,6 +49,30 @@ export function afterOnboarding(raw: string | null | undefined): string {
   return v === GENERIC_NEXT ? DEFAULT_AFTER_ONBOARDING : v;
 }
 
+/**
+ * ★ログイン直後の既定の行き先（2026-10-01 / 柴さんの指示で `/companies` から変更）。
+ *
+ * ⚠️★**`DEFAULT_AFTER_ONBOARDING`（`/mypage`）とは別。** あちらは
+ *    「オンボーディングを終えた人が続きを入れる場所」で、2026-09-15 に
+ *    4画面目を削除したときに決めた**別の理由**がある。**片方を変えるときに
+ *    もう片方を巻き込まないこと。**
+ */
+export const DEFAULT_AFTER_LOGIN = "/feed";
+
+/**
+ * ★ログイン直後の行き先（2026-10-01）。
+ *
+ * ⚠️ `next` が「本人の意図」なら尊重する。ただし `GENERIC_NEXT`（`/companies`）は
+ *    **呼び出し側が既定で付けただけ**なので意図とみなさない（`afterOnboarding` と同じ扱い）。
+ * ⚠️★これが要るのは、メールテンプレートの `next=%2Fcompanies` が
+ *    **リポジトリの外（Supabase ダッシュボード）**にあって直せないため。
+ *    ここで畳まないと、メール経由の人だけ `/companies` に着く。
+ */
+export function afterLogin(raw: string | null | undefined): string {
+  const v = safeNext(raw, DEFAULT_AFTER_LOGIN);
+  return v === GENERIC_NEXT || v === "/" ? DEFAULT_AFTER_LOGIN : v;
+}
+
 export function safeNext(raw: string | null | undefined, fallback: string): string {
   const v = raw ?? "";
   if (!v.startsWith("/")) return fallback;

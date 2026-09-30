@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { confirmRedirectTo, safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
+import { afterLogin, confirmRedirectTo, safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { AUTH_ERROR_DISPLAY, toAuthErrorCode, type AuthErrorCode } from "@/lib/constants/authErrors";
 import OpinioLogo from "@/components/common/OpinioLogo";
 import { buildDisplayName, NAME_PART_MAX } from "@/lib/constants/personName";
@@ -105,7 +105,7 @@ function AuthPageInner() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) router.replace(nextUrl && nextUrl !== "/" ? nextUrl : "/companies");
+      if (session?.user) router.replace(afterLogin(nextUrl));
     });
   }, [nextUrl, router]);
 
@@ -263,7 +263,9 @@ function AuthPageInner() {
       通し直すので、この差し戻しが起きない。SPA 的な速さは失うが、
       **ログインの1回だけ**なので割に合う。
     */
-    const dest = nextUrl === "/" ? "/companies" : nextUrl;
+    /* ⚠️★**"/companies" と直書きしないこと**（2026-10-01）。ログイン後の既定は
+          `DEFAULT_AFTER_LOGIN`。メールの `next=%2Fcompanies` も畳まれる。 */
+    const dest = afterLogin(nextUrl);
     setSlowRedirect(dest);
     window.location.assign(dest);
   };

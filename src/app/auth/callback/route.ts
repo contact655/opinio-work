@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { safeNext } from "@/lib/auth/redirects";
+import { afterLogin, safeNext } from "@/lib/auth/redirects";
 import { resolveOwUserForVerifiedEmail, jobseekerDestination } from "@/lib/auth/postAuth";
 
 /**
@@ -23,7 +23,11 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const type = searchParams.get("type"); // "recovery" for password reset
   const isBiz = searchParams.get("biz") === "1"; // biz側からのOAuth
-  const next = safeNext(searchParams.get("next"), isBiz ? "/biz/dashboard" : "/companies");
+  /* ⚠️★求職者側の既定は `afterLogin`（2026-10-01 に `/companies` から変更）。
+        `/biz` は別。企業の着地はダッシュボードのまま。 */
+  const next = isBiz
+    ? safeNext(searchParams.get("next"), "/biz/dashboard")
+    : afterLogin(searchParams.get("next"));
 
   if (!code) {
     // GoTrue 側が error / error_description を付けて戻すことがある。捨てずに残す。

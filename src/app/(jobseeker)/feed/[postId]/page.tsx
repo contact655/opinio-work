@@ -185,7 +185,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
           marginBottom: 20,
         }}
       >
-        ← フィードに戻る
+        ← ホームに戻る
       </Link>
 
       {/* 投稿カード */}
@@ -311,7 +311,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
             href="/feed"
             style={{ marginLeft: "auto", color: "var(--royal)", textDecoration: "none", fontSize: 14 }}
           >
-            フィードで返信する →
+            ホームで返信する →
           </Link>
         </div>
       </div>

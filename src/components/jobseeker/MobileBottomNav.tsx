@@ -32,6 +32,17 @@ import { createClient } from "@/lib/supabase/client";
  * ⚠️ 判定中（`null`）は**マイページのまま**出す。タブが空になる瞬間を作らない。
  */
 const TABS = [
+  /* ★「ホーム」を先頭に（2026-10-01 / 柴さんの指示。旧「フィード」）。
+     ⚠️ ヘッダーのナビと同じ並び・同じ語にすること。片方だけ変えない。 */
+  {
+    href: "/feed",
+    label: "ホーム",
+    icon: (active: boolean) => (
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12h18M3 6h18M3 18h12" stroke={active ? "var(--royal)" : "currentColor"}/>
+      </svg>
+    ),
+  },
   {
     href: "/companies",
     label: "企業",
@@ -49,15 +60,6 @@ const TABS = [
       <svg width="21" height="21" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-      </svg>
-    ),
-  },
-  {
-    href: "/feed",
-    label: "フィード",
-    icon: (active: boolean) => (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 12h18M3 6h18M3 18h12" stroke={active ? "var(--royal)" : "currentColor"}/>
       </svg>
     ),
   },

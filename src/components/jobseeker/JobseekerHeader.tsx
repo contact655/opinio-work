@@ -38,10 +38,14 @@ import OpinioLogo from "@/components/common/OpinioLogo";
  *    まとめて判断すること。** ナビだけ触ると①に戻る。
  */
 const NAV_LINKS = [
+  /* ★「ホーム」を先頭に（2026-10-01 / 柴さんの指示。旧「フィード」）。
+     ⚠️ ログイン後の既定の着地もここ（`DEFAULT_AFTER_LOGIN`）。**片方だけ変えないこと。**
+     ⚠️ `/feed` は未ログインでも 200（middleware の `needsAuth` に入っていない）。
+        先頭に置いても、ログインしていない訪問者が行き止まりに当たることはない。 */
+  { href: "/feed", label: "ホーム" },
   { href: "/companies", label: "企業" },
   { href: "/jobs", label: "募集" },
   { href: "/people", label: "ユーザー" },
-  { href: "/feed", label: "フィード" },
   { href: "/articles", label: "記事" },
 ];
 
