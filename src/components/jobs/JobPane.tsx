@@ -92,12 +92,17 @@ export function JobPane({
           ⚠️★**不透明な背景を外さないこと。** 外すと下の本文が帯の裏に透ける。
           ⚠️ 見出し・CTA が1つしかないので、以前の「CTA はヘッダーの中に置く」という
              約束（末尾に置くと内部スクロールの奥へ落ちる）は**この形で自動的に満たされる**。 */}
-      {/* ⚠️★**sticky はこの外側のラッパー（`jp-sticky`）。白いカードではない**（2026-09-17）。
-             ラッパーが**ページ背景色**で、下に 16px の余白を持つ。これが無いと、
-             スクロールで帯の裏をくぐった中身が**帯のすぐ下に半分だけ露出して横に切れる**
-             （柴さんの指摘）。カード自身を sticky にすると、その隙間が透明になる。
-          ⚠️ 色は `--bg-tint`。ページ背景と同じものを指すこと。**別の灰色を直書きしない。** */}
-      <div className="jp-sticky">
+      {/* ── ★帯は**スクロールする**（2026-09-30 / 柴さんの指示。`/companies` と揃えた）──
+             ⚠️★**`.jp-sticky` で包み直さないこと。** 2026-09-17 〜 09-30 は
+                ロゴ・求人名・企業名・応募・♡ を丸ごと sticky にしていた。
+                実測（2026-09-30 / 1440px / Salesforce の求人）: 帯 **96px** ／
+                ペイン 738px ＝ **読む面の 13% が常に失われていた。**
+             ⚠️★**代わりに CTA（応募する・♡）だけを下部の固定バーへ移した**（この部品の末尾）。
+                `CompanyPane` と同じ形。**片方だけ戻さないこと。**
+             ⚠️ この節にあった「見出し・CTA が1つしかないので『CTA はヘッダーの中に置く』
+                という約束はこの形で自動的に満たされる」は**もう成り立たない**（CTA を
+                ヘッダーから出したため）。満たしているのは**下部の固定バー**のほう。 */}
+      <div>
       <div style={{
         background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
         padding: "var(--space-4) var(--space-6)", minWidth: 0,
@@ -127,20 +132,8 @@ export function JobPane({
             </div>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          {applyOpen && (
-            <Link href={`${href}/apply`} style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 18px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-              background: "var(--royal)", color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
-            }}>応募する</Link>
-          )}
-          {/* ⚠️ 状態は自分で取りに行かせる（`initialBookmarked` と `isAuthenticated` は
-                 **両方揃って初めて** props 経由になる仕様で、一覧は後者を持っていない）。 */}
-          <BookmarkButton targetType="job" targetId={job.id} label={job.role} />
-        </div>
       </div>
-      </div>{/* jp-sticky end */}
+      </div>
 
       {/* ── ★ここから下は「1枚の白い面」（2026-09-17）────────────────────────
              それまで区画ごとに白いカードで、ペインの中に**枠付きの箱が22個・
@@ -347,14 +340,47 @@ export function JobPane({
              在籍者・採用担当者・関連記事）は詳細ページにしかない。
              ⚠️ 同じタブで開く（`Link`）。`target="_blank"` にしないこと
                 ——カード面と挙動が割れる（2026-09-17 に `JobListItem` の「詳細」でも外した）。 */}
-      <Link href={href} style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        /* ⚠️ ルートの `gap` を外したので、間隔はここが持つ */
-        marginTop: "var(--space-4)",
-        padding: "12px 20px", borderRadius: 12, fontSize: 13, fontWeight: 700,
-        background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
-        textDecoration: "none",
-      }}>詳細ページですべて見る →</Link>
+      {/* ── ★CTA は**下部の固定バー**（2026-09-30 / 柴さんの指示。`CompanyPane` と同じ形）──
+             ⚠️★**`position: sticky; bottom: 0`。** 器（`.companies-pane`）が
+                `overflow-y: auto` なので、ペインの中で下端に貼り付く。
+                **`fixed` にしないこと**（画面に貼り付いて一覧の上にも出る）。
+             ⚠️★**末尾に置いた素の行に戻さないこと。** それが 2026-09-09 に踏んだ形で、
+                内容の厚い求人では `max-height` の奥に落ちて到達できなかった。
+                **いまは sticky なので落ちない。**「末尾にある」だけでは同じではない。
+             ⚠️★**背景を外さないこと。** 透明だと下をくぐる中身がバーの裏に透ける。
+                色はページ背景（`--bg-tint`）。`.jp-sticky` と同じ理由・同じ色。
+             ⚠️★**ここに年収やバッジを足さないこと。** バーが高いほど読む面が削れる
+                （帯でまさにそれが起きて、2026-09-30 に外した）。
+             ⚠️ 「詳細ページですべて見る」も**ここに入れた。** ここに無いもの（福利厚生・
+                ツール・拠点・在籍者・採用担当者・関連記事）は詳細ページにしかないので、
+                **出口が常に見えている必要がある。** 同じタブで開く（`target="_blank"` にしない）。 */}
+      <div style={{
+        position: "sticky", bottom: 0, zIndex: 2,
+        background: "var(--bg-tint)", paddingTop: "var(--space-3)", minWidth: 0,
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 16,
+          padding: "var(--space-4)", minWidth: 0,
+        }}>
+          {applyOpen && (
+            <Link href={`${href}/apply`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "11px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              background: "var(--royal)", color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
+            }}>応募する</Link>
+          )}
+          {/* ⚠️ 状態は自分で取りに行かせる（`initialBookmarked` と `isAuthenticated` は
+                 **両方揃って初めて** props 経由になる仕様で、一覧は後者を持っていない）。 */}
+          <BookmarkButton targetType="job" targetId={job.id} label={job.role} />
+          <Link href={href} style={{
+            display: "inline-flex", alignItems: "center", gap: 6, marginLeft: "auto",
+            padding: "11px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+            background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
+            textDecoration: "none", whiteSpace: "nowrap",
+          }}>詳細ページですべて見る →</Link>
+        </div>
+      </div>
     </div>
   );
 }

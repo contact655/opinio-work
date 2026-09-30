@@ -1307,7 +1307,8 @@ export default function JobsClient({
 
       {/* Main content */}
       {/* ⚠️ ページ背景。★2026-09-17 に直書きの #F5F7FA から --bg-tint へ寄せた。
-             右ペインの帯のラッパー（`.jp-sticky`）が**同じ色**である必要があり、
+             右ペインの**下部の固定バー**（2026-09-30 に `.jp-sticky` から置き換え）が
+             **同じ色**である必要があり、
              値を2箇所に持つと片方だけずれる。#F5F7FA と #F8FAFC の差は3階調で見た目は変わらない。 */}
       <div style={{ background: "var(--bg-tint)" }}>
         <div
