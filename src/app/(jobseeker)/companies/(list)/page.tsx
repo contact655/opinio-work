@@ -103,16 +103,20 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 const PAGE_SIZE = 40;
 
 /**
- * ★分割ビューの左レール幅（2026-09-09）。**表示形式で必要な幅が違う。**
+ * ★分割ビューの左レール幅。**いま使うのは詳細表示（?view=list）だけ**（2026-09-30）。
  *
  * ⚠️ 詳細表示（list）の1行は**固定部分だけで 499px**（実測 1440px / dev）:
  *      padding 40 ＋ gap 18×3 ＝ 94 ／ ロゴ 68 ／ 実数3列 241 ／ ボタン列 96
- *    一覧と同じ 420px に畳むと**本文の幅が 0 になる**ので、700px 取っている
+ *    グリッド時代の 420px に畳むと**本文の幅が 0 になる**ので、700px 取っている
  *    （本文に約 201px 残る）。
  * ⚠️ 1280px（分割が始まる最小幅）では pane 側が 528px になる。`CompanyPane` は
  *    380px から崩れないことを `/dev/preview/company-pane` で確認済み。
+ *
+ * ⚠️★`GRID_RAIL_WIDTH = 420` は 2026-09-30 に削除した。一覧グリッドと絞り込み結果を
+ *    分割ビューから外し、**全画面へ遷移する**形にしたため（柴さんの判断）。
+ *    戻すなら 420 を書き戻すだけだが、**「グリッドは全画面」という決めごとを
+ *    覆すことになる**ので、まずそこを決めること。
  */
-const GRID_RAIL_WIDTH = 420;
 const LIST_RAIL_WIDTH = 700;
 
 type SearchParams = {
@@ -344,10 +348,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
             industry={industry}
             target={target}
             foreign={foreign}
-            /* ★分割ビュー（2026-09-08）。一覧グリッドと**同じペイン**を渡す。
-               ⚠️ 渡さないと、絞り込んだ瞬間に分割ビューが消える（それが直前の状態）。 */
-            pane={pane}
-            paneLabel={paneLabel}
+            /* ⚠️ `pane` は渡さない（2026-09-30）。絞り込み結果は**グリッドなので全画面**へ
+                  遷移する側に揃えた。⚠️ 渡す形に戻すと分割ビューが復活する。
+               ⚠️ `selectedKey` だけ残す —— 詳細ビューで選んだまま絞り込むと
+                  `?selected=` が URL に残るので、カードの印だけ付く。 */
             selectedKey={selectedKey}
           />
         ) : (
@@ -412,18 +416,18 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                 .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
                               }
                             `}</style>
-                            {/* ⚠️★分割ビューの骨組みと CSS は CompanySplitLayout が持つ。
-                                   ここに書き戻さないこと —— 絞り込み結果
-                                   （CompanySearchResults）が同じものを使っているので、
-                                   割れると片方の画面でだけペインが出なくなる。 */}
-                            {/* ★scrollMode="panes"（2026-09-18）。左の一覧と右のペインが**それぞれ独立してスクロール**する。
-                                   ⚠️★3経路すべてに掛けている（一覧グリッド / ?view=list / 絞り込み結果）。 一覧グリッド / ?view=list / 絞り込み結果。
-                                      同じ画面でビューを切り替えたときにスクロールの挙動が割れないようにするため。
-                                      1つだけ外さないこと。
-                                   ⚠️ `--split-top` は渡していない。ツールバーの高さがほぼ一定で、
-                                      部品側の既定（162px）と実測がほぼ一致するため。/jobs は詳細検索の
-                                      開閉で高さが変わるので、あちらだけ ResizeObserver で測っている。 */}
-                                <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={GRID_RAIL_WIDTH} scrollMode="panes">
+                            {/* ★★一覧（グリッド）は**分割ビューに載せない**（2026-09-30 / 柴さんの判断）。
+                                   カードを押したら `/companies/[slug]` へ**全画面で遷移する**。
+                                ⚠️★**`CompanySplitLayout` で包み直さないこと。** あの部品は中で
+                                   `CompanySplitLinks`（クリックの横取り）を噛ませるので、包んだ瞬間に
+                                   1280px 以上では**また右ペインに戻る**。
+                                ⚠️★**分割を残すのは詳細ビュー（?view=list）だけ。** 使い分けは
+                                   「**グリッドは全画面 / 1列は分割**」——グリッドは探す画面、
+                                   1列は見比べる画面、という役割の違いに合わせてある。
+                                   ⚠️ 絞り込み結果（`CompanySearchResults`）も**グリッドなので全画面**。
+                                      同日に同じ形へ揃えた。**片方だけ戻さないこと。**
+                                ⚠️ `?selected=` が URL に残ったまま詳細→一覧と切り替えると、
+                                   ペインは出ないが**カードの印だけ残る**。害は無いので触っていない。 */}
                               <div className="companies-grid4">
                                 {paged.map(c => (
                                   <CompanyCardList
@@ -443,12 +447,18 @@ export default async function CompaniesPage({ searchParams }: Props) {
                                   />
                                 ))}
                               </div>
-                            </CompanySplitLayout>
                           </>
                         ) : (
-                          /* ⚠️★詳細表示も分割ビューに載せる（2026-09-09）。**同じ部品**を使う
-                                 ——一覧グリッドと骨組みが割れると、片方だけペインが出なくなる。
-                             ⚠️ レール幅だけが違う（1行が広いため）。理由は LIST_RAIL_WIDTH。 */
+                          /* ★★分割ビューが残っているのは**ここだけ**（詳細表示 / ?view=list）。
+                                 2026-09-09 に一覧グリッドと揃えて載せたが、2026-09-30 に
+                                 **グリッド側を全画面へ戻した**ので、いまは1経路。
+                             ⚠️★`scrollMode="panes"` はこの1経路だけが使う。以前あった
+                                「3経路すべてに掛ける」という約束は、グリッドが分割をやめたので
+                                **もう成り立たない**（残る経路が1つなので割れようがない）。
+                             ⚠️ レール幅は LIST_RAIL_WIDTH（1行が広いため）。理由はあの定数の注記。
+                             ⚠️ `--split-top` は渡していない。ツールバーの高さがほぼ一定で、
+                                部品側の既定（162px）と実測がほぼ一致するため。/jobs は詳細検索の
+                                開閉で高さが変わるので、あちらだけ ResizeObserver で測っている。 */
                           <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={LIST_RAIL_WIDTH} scrollMode="panes">
                             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
                               {paged.map(c => (

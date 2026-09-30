@@ -2,14 +2,12 @@
 // 検索結果グリッド — Server Component
 // キーワード / フィルタが適用されているときのみ表示（カルーセルの代わり）
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
 import { searchCompanies } from "@/lib/search/companies";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import type { WorkStyleValue } from "@/lib/search/companies";
 import { CompanyCardList } from "./CompanyCardList";
-import { CompanySplitLayout } from "./CompanySplitLayout";
 
 type Props = {
   q?: string;
@@ -21,20 +19,9 @@ type Props = {
   /** 対象業界（軸2）の slug。⚠️ `industry`（事業領域）とは別の軸 */
   target?: string;
   foreign?: string;
-  /**
-   * ★分割ビューの右ペイン（2026-09-08）。`null` なら従来どおりの多列グリッド。
-   *
-   * ⚠️★**ここで組み立てないこと。** ページ側が `?selected=` から引いたものを
-   *    そのまま受け取る。両方で組むと、片方だけ `targetIndustries` を渡し忘れる
-   *    形の食い違いが生まれる（CLAUDE.md「`mapCompany` の第4引数を省くと
-   *    『事業領域 —』になる」と同じ罠）。
-   *
-   * ⚠️ この分だけ**サーバー側の取得が1社ぶん増える**が、`?selected=` が
-   *    付いているときだけ。付いていなければ `null` が来る。
-   */
-  pane?: ReactNode;
-  /** ★読み上げ用の企業名（2026-09-08）。⚠️ 一覧グリッドと**同じものを渡す**こと */
-  paneLabel?: string | null;
+  /* ⚠️ `pane` / `paneLabel` は 2026-09-30 に削除した（絞り込み結果を分割ビューから
+        外したため）。**戻すなら `CompanySplitLayout` で包む話とセット**で、
+        「グリッドは全画面」という決めごとを覆すことになる。 */
   /**
    * ★いま右ペインに出している企業の id（2026-09-08）。カードに印を付ける。
    * ⚠️ **id で渡すこと。** `?selected=` は slug でも uuid でもありうるので、
@@ -45,7 +32,7 @@ type Props = {
   selectedKey?: string | null;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, pane = null, paneLabel = null, selectedKey = null }: Props) {
+export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, selectedKey = null }: Props) {
   const params = {
     q: q || undefined,
     phase: phase || undefined,
@@ -196,13 +183,15 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
           </div>
         </div>
       ) : (
-        /* ⚠️ scrollMode は一覧グリッド・詳細表示と揃える（2026-09-18）。片方だけ外さないこと。
-           ⚠️★分割ビューの骨組みは CompanySplitLayout（一覧グリッドと**同じ部品**）。
-              ここに CSS をコピーしないこと —— 割れると、絞り込んだときだけ
-              レールが多列のまま潰れる、といった形になる。
-           ⚠️ レールの1列化は向こうの CSS が `search-results-grid` を名指ししている。
-              このクラス名を変えるなら向こうも直すこと。 */
-        <CompanySplitLayout pane={pane} paneLabel={paneLabel} scrollMode="panes">
+        /* ★★絞り込み結果も**分割ビューに載せない**（2026-09-30 / 柴さんの判断）。
+              カードを押したら `/companies/[slug]` へ**全画面で遷移する**。
+           ⚠️★**一覧グリッドと同日に揃えた。片方だけ戻さないこと。**
+              使い分けは「**グリッドは全画面 / 1列（?view=list）は分割**」。
+              ここはビュートグルに関係なく常にグリッドなので、グリッド側の規則に従う。
+           ⚠️★**`CompanySplitLayout` で包み直さないこと。** 中で `CompanySplitLinks`
+              （クリックの横取り）を噛ませるので、包んだ瞬間に右ペインへ戻る。
+           ⚠️ `selectedKey` は残してある。詳細ビューで選んだ状態のまま絞り込むと
+              `?selected=` が URL に残るので、印だけ付く（ペインは出ない）。 */
         <div className="search-results-grid">
           {companies.map((company) => (
             /* ⚠️★`activeDomainSlug` を渡す（2026-09-07）。渡さないとカードのタグは主のままで、
@@ -224,7 +213,6 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
             />
           ))}
         </div>
-        </CompanySplitLayout>
       )}
     </>
   );
