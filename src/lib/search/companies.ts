@@ -74,7 +74,15 @@ export async function searchCompanies(
         text列の辞書順**で、`約800名` が1位・`約10000名` が下位という並びだった
         （実測。この列は自由記述で、純粋な数値は79社中2社しかない）。 */
   const clientSideSort = params.sort === "disclosure" || params.sort === "employees";
-  const useDbPagination = !params.hiring && !params.foreign && !clientSideSort && params.limit !== undefined;
+  /* ★★キーワード検索は**社名で当たったものを先に**出す（2026-10-01 / 柴さんの指摘）。
+        実測: 「Salesforce」で **WalkMe が先頭・セールスフォースが2番目**だった。
+        WalkMe / 富士フイルム / nCino は**説明文**に Salesforce を含むだけ。
+     ⚠️ PostgREST では「どの列で当たったか」で並べられないので、
+        **既存の「アプリ側で並べるもの」の仕組みに乗せる**（DB 側 range を切る）。
+     ⚠️ 全件取ることになるが、キーワード検索の母数は小さい
+        （実測: `?q=Salesforce` 4件 / いちばん広い `?q=株式会社` でも85件）。 */
+  const keywordSort = !!params.q?.trim();
+  const useDbPagination = !params.hiring && !params.foreign && !clientSideSort && !keywordSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -475,6 +483,30 @@ export async function searchCompanies(
       return score;
     };
     filteredCompanies = [...filteredCompanies].sort((a, b) => disclosureScore(b) - disclosureScore(a));
+  }
+
+  /* ★★社名で当たったものを先に出す（2026-10-01）。
+        ⚠️ **いちばん最後に掛ける。** `Array.prototype.sort` は安定なので、
+           同じ段の中では前段の並び（新着順・開示順など）がそのまま残る。
+        ⚠️ 段は2つだけ。① 社名系で一致 ② それ以外（説明文・タグライン・industry）。
+           **掲載の有無は段にしない** —— 掲載中を先に出すのは DB 側の
+           `listing_status` 降順が既にやっている（同じ段の中で保たれる）。
+        ⚠️ 判定は「打った語のどれか1つでも社名系に当たるか」。AND 検索なので
+           全語が当たる必要は無い（「Salesforce 営業」で社名に営業は無い）。 */
+  if (keywordSort) {
+    const words = params.q!.trim().split(/\s+/).filter(Boolean).map((w) => w.toLowerCase());
+    const nameHit = (c: CompanyForCarousel) => {
+      const hay = [c.name, (c as { name_en?: string }).name_en, (c as { brand_name?: string }).brand_name,
+                   c.slug, (c as { search_aliases?: string }).search_aliases]
+        .filter(Boolean).join(" ").toLowerCase();
+      const normHay = normalizeCompanyName(hay) ?? "";
+      return words.some((w) => {
+        if (hay.includes(w)) return true;
+        const nw = normalizeCompanyName(w);
+        return !!nw && normHay.includes(nw);
+      }) ? 0 : 1;
+    };
+    filteredCompanies = [...filteredCompanies].sort((a, b) => nameHit(a) - nameHit(b));
   }
 
   /* ★**DB 側で range を掛けなかった経路は、ここでページを切る**（2026-09-07）。
