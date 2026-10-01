@@ -273,8 +273,22 @@ export function JobListItem({
 
               ⚠️ ここに1行足すと **23px** 増える。**行を足す前にこの注記を読むこと。** */}
 
-          {/* 行4: 勤務地 · 勤務形態 · 年収 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {/* 行4: 勤務地 / 勤務形態 / 年収
+                 ⚠️★**区切りの「·」を置かないこと**（2026-10-01 に両方外した）。
+                    この行は `flexWrap: wrap` で、幅によって**どこで折り返すかが変わる**。
+                    点を置くと、折り返した行の**行末に点だけが取り残される**。
+                    実測（本番・直す前）: 1440px のレール（440px）で
+                    「東京都 · ハイブリッド ·」／ 375px で「東京都 ·」。
+                    ⚠️★**年収の前だけ外しても足りない。** 375px では勤務形態も折り返すので、
+                       残したほうの点が同じ形になる（実際にそうなった）。
+                    ⚠️ 区切りは **gap（10px）とアイコン**が担う。年収は緑の太字なので読み分けられる。
+                    ⚠️ **1280px 未満の全幅だけ見て判断しないこと。** あそこは1行に収まるので
+                       点があっても何も起きない。踏むのは**レールと狭い画面**。 */}
+          {/* ⚠️★`gap` ではなく `columnGap` / `rowGap` を分ける。`gap: 10` にすると
+                 **折り返したときの行間まで 10 になり、カードが4px 高くなる**
+                 （実測 2026-10-01: 151px -> 155px）。このカードは 2026-09-17 に
+                 174 -> 151px まで削ってあるので、**縦は 6 のまま動かさない。** */}
+          <div style={{ display: "flex", alignItems: "center", columnGap: 10, rowGap: 6, flexWrap: "wrap" }}>
             {job.location && (
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 2 }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -282,9 +296,6 @@ export function JobListItem({
                 </svg>
                 {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
               </span>
-            )}
-            {job.work_style && job.location && (
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             {job.work_style && (
               <span style={{
@@ -306,9 +317,6 @@ export function JobListItem({
                 )}
                 {job.work_style}
               </span>
-            )}
-            {hasSalaryData(job.salary_min, job.salary_max) && (
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--line)", userSelect: "none" }}>·</span>
             )}
             <span style={{
               fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 700,
