@@ -369,6 +369,14 @@ export function JobseekerHeader() {
           alignItems: "center",
           gap: 24,
         }}>
+          {/* ★左のかたまり（ロゴ ＋ 横断検索 ＋ 🔍）。2026-10-01 / 柴さんの指示。
+              ⚠️★**これと右の「Auth actions」が `flex: 1 1 0` で釣り合うので、
+                 あいだのタブが画面のど真ん中に来る。** 片方だけ外すとタブが寄る。
+              ⚠️ 中身は左寄せのまま（この箱が伸びるだけ）。
+              ⚠️ 狭い画面ではこの箱が縮み、**検索窓だけが細くなる**
+                 （1024px で 360 → 202px。実測）。ロゴと🔍は縮まない。 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 24, flex: "1 1 0", minWidth: 0 }}>
+
           {/* Logo */}
           <Link href="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center", color: "var(--brand-ink)" }}>
             <OpinioLogo height={24} />
@@ -454,46 +462,6 @@ export function JobseekerHeader() {
           </div>
           )}
 
-          {/* Nav — desktop only */}
-          <nav className="hidden md:flex" aria-label="メインナビゲーション"
-            /* ★タブは**余白の中央**に置く（2026-10-01 / 柴さんの指示）。
-               ⚠️★`marginLeft: "auto"` に戻さないこと。戻すと**右端のアカウントに貼り付く**。
-                  `margin: "0 auto"` で左右に等しく余白を配るので、検索窓とアカウントの
-                  あいだの真ん中に来る。
-               ⚠️ `flex: 1` にもしないこと。タブが伸びて字間が開く。 */
-            style={{ gap: 8, margin: "0 auto", alignItems: "center", flexShrink: 0 }}>
-            {NAV_LINKS.map(({ href, label }) => {
-              const [hrefPath, hrefQuery] = href.split("?");
-              const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
-              const active = hrefTab
-                ? pathname === hrefPath && searchParams.get("tab") === hrefTab
-                : pathname.startsWith(hrefPath) && !searchParams.get("tab");
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: active ? "var(--royal)" : "var(--ink-soft)",
-                    textDecoration: "none",
-                    borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
-                    paddingTop: 0,
-                    paddingRight: 8,
-                    paddingBottom: 2,
-                    paddingLeft: 8,
-                    transition: "color 0.15s",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-
-          </nav>
-
           {/* ★検索アイコン — **1024px 未満だけ**（2026-10-01）。
               1024px 以上はロゴの右の常設の窓がこの役割を持つので出さない。
               ⚠️★**消さないこと。** 1024px 未満では**これが唯一の横断検索の入口**で、
@@ -526,11 +494,58 @@ export function JobseekerHeader() {
           </button>
           )}
 
-          {/* Spacer — mobile */}
-          <div className="flex md:hidden" style={{ flex: 1 }} />
+          </div>{/* /左のかたまり */}
 
-          {/* Auth actions — desktop */}
-          <div className="hidden md:flex" style={{ gap: 10, alignItems: "center", flexShrink: 0 }}>
+          {/* Nav — desktop only */}
+          <nav className="hidden md:flex" aria-label="メインナビゲーション"
+            /* ★タブは**画面のど真ん中**（2026-10-01 / 柴さんの指示）。
+               ⚠️★**ここには何も置かない。** 中央に来ているのは、左右のかたまりが
+                  どちらも `flex: 1 1 0` で**同じ幅に釣り合っている**から。
+                  `margin: "0 auto"` や `marginLeft: "auto"` を足すと、
+                  釣り合いの上にもう一段ずれが乗る。
+               ⚠️ `flex: 1` にもしないこと。タブが伸びて字間が開く。 */
+            style={{ gap: 8, alignItems: "center", flexShrink: 0 }}>
+            {NAV_LINKS.map(({ href, label }) => {
+              const [hrefPath, hrefQuery] = href.split("?");
+              const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
+              const active = hrefTab
+                ? pathname === hrefPath && searchParams.get("tab") === hrefTab
+                : pathname.startsWith(hrefPath) && !searchParams.get("tab");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: active ? "var(--royal)" : "var(--ink-soft)",
+                    textDecoration: "none",
+                    borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
+                    paddingTop: 0,
+                    paddingRight: 8,
+                    paddingBottom: 2,
+                    paddingLeft: 8,
+                    transition: "color 0.15s",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+
+          </nav>
+
+          {/* ⚠️★モバイル用のスペーサー（`flex md:hidden`）は削除した（2026-10-01）。
+                 左のかたまりが `flex: 1 1 0` で伸びるので役目が重なる。
+                 **2つ置くと余白が半分ずつに割れて、右のかたまりが中途半端な位置で止まる。** */}
+
+          {/* Auth actions — desktop
+              ⚠️★`flex: "1 1 0"` は左のかたまりと**対**。タブを中央に置くための釣り合いで、
+                 `flexShrink: 0` に戻すとタブが右へずれる。
+              ⚠️ 中身は右寄せ（`justifyContent: "flex-end"`）。箱が伸びても離れない。 */}
+          <div className="hidden md:flex" style={{ gap: 10, alignItems: "center", flex: "1 1 0", justifyContent: "flex-end" }}>
             {!loading && (
               user ? (
                 /* ── Logged-in: message icon + bell + avatar button + dropdown ── */
@@ -694,13 +709,21 @@ export function JobseekerHeader() {
                 </>
               ) : (
                 <>
-                  <Link href="/business" style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textDecoration: "none", padding: "8px 10px", whiteSpace: "nowrap" }}>
+                  {/* ⚠️★**1024px 未満では出さない**（2026-10-01）。768px のとき、ロゴ＋🔍＋タブ5つ＋
+                         この3つで **795px** 必要なのに内側は **720px** しかなく、**75px はみ出していた**
+                         （実測。`無料登録` が画面の外に出ていた）。**今回の変更より前からの不具合。**
+                      ⚠️★**行き先は消えていない。** フッターの「企業の方」に
+                         `企業登録` / `掲載について`（→ 同じ `/business`）/ `料金` が全ページにある。
+                      ⚠️ 1024px 以上では出る（実測: 1024 で `flex: 1 1 0` の箱 318px に 303px が収まる）。 */}
+                  <Link href="/business" className="hidden lg:inline-block" style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textDecoration: "none", padding: "8px 10px", whiteSpace: "nowrap", flexShrink: 0 }}>
                     企業の方はこちら
                   </Link>
-                  <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none", padding: "8px 14px" }}>
+                  {/* ⚠️★`flexShrink: 0` を外さないこと。親が `flex: 1 1 0` なので、
+                         狭いと**1文字ずつ縦に折り返して**ボタンが縦長の帯になる（2026-10-01 に踏んだ）。 */}
+                  <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none", padding: "8px 14px", whiteSpace: "nowrap", flexShrink: 0 }}>
                     ログイン
                   </Link>
-                  <Link href="/auth?mode=signup" style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "var(--royal)", textDecoration: "none", padding: "8px 18px", borderRadius: 8 }}>
+                  <Link href="/auth?mode=signup" style={{ fontSize: 13, fontWeight: 600, color: "#fff", background: "var(--royal)", textDecoration: "none", padding: "8px 18px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>
                     無料登録
                   </Link>
                 </>
