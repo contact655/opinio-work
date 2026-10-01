@@ -724,6 +724,47 @@ export const PREVIEW_COMPANY_MAP: Map<string, Company> = new Map([
   } as unknown as Company],
 ]);
 
+/* ── ★求人カード（グリッド／試作）────────────────────────────────────────
+   ⚠️★`/jobs` に「一覧（グリッド）」を足すかを決めるための材料（2026-10-01）。
+      実データは**公開求人2件**で、しかも**両方 Salesforce・両方フル項目**なので、
+      「枚数が増えたとき」「社名が長いとき」「欠けたとき」が**一度も見られない。**
+   ⚠️ 会社は3社に散らしてある（1列のカードは1社しか出ないので足した）。 */
+export const PREVIEW_COMPANY_MAP_MULTI: Map<string, Company> = new Map([
+  ...Array.from(PREVIEW_COMPANY_MAP.entries()),
+  ["preview-co-2", {
+    id: "preview-co-2", slug: "preview-co-2",
+    name: "株式会社ベリーロングカンパニーネームソリューションズ",
+    name_en: "Very Long Company Name Solutions",
+    logo_letter: "ベ", logo_gradient: "linear-gradient(135deg,#0E7490,#22D3EE)",
+    logo_url: null, phase: null,
+  } as unknown as Company],
+  ["preview-co-3", {
+    id: "preview-co-3", slug: "preview-co-3",
+    name: "検証データ株式会社", name_en: "Preview Data",
+    logo_letter: "デ", logo_gradient: "linear-gradient(135deg,#7C3AED,#C4B5FD)",
+    logo_url: null, phase: null,
+  } as unknown as Company],
+]);
+
+/** ★実データと同じ「2件だけ」。⚠️ 3列グリッドで右がどれだけ空くかを見るためのもの */
+export const JOB_GRID_TWO: Job[] = [
+  job({ id: "g-1", role: "Account Executive, MuleSoft（エンタープライズ営業）", salary_min: 900, salary_max: 1800 }),
+  job({ id: "g-2", role: "Account Solution Engineer, Tableau", highlight: "データ活用の入口から、現場の意思決定まで。", salary_min: 800, salary_max: 1300 }),
+];
+
+/** ★求人が増えたとき（9件）。⚠️ グリッドが効くのはこの量から、という判断材料 */
+export const JOB_GRID_MANY: Job[] = [
+  job({ id: "g-m1", role: "Account Executive, MuleSoft（エンタープライズ営業）", salary_min: 900, salary_max: 1800 }),
+  job({ id: "g-m2", company_id: "preview-co-2", role: "カスタマーサクセスマネージャー", highlight: "導入して終わりにしない。使われる状態まで伴走する。", location: "大阪府", work_style: "フルリモート", salary_min: 700, salary_max: 1100 }),
+  job({ id: "g-m3", company_id: "preview-co-3", role: "セールスエンジニア", highlight: "技術で売る。", location: "東京都", work_style: "出社", salary_min: 800, salary_max: 1400 }),
+  job({ id: "g-m4", role: "インサイドセールス（SDR）", highlight: "最初の一本を、価値のある一本に。", salary_min: 500, salary_max: 800 }),
+  job({ id: "g-m5", company_id: "preview-co-2", role: "パートナーアライアンスマネージャー", highlight: "一社では届かない顧客に、組んで届ける。", location: "東京都", work_style: "ハイブリッド", salary_min: 900, salary_max: 1500 }),
+  job({ id: "g-m6", company_id: "preview-co-3", role: "フィールドセールス（中堅企業担当）", highlight: "", location: "愛知県", salary_min: 600, salary_max: 1000 }),
+  job({ id: "g-m7", role: "エンタープライズ営業本部 第一営業部 アカウントエグゼクティブ（金融・通信担当）", highlight: "業種を越えた大規模アカウントに、複数プロダクトを横断して提案する。導入後の定着まで一貫して責任を持つ。", location: "東京都 / 大阪府 / 愛知県 / 福岡県", salary_min: 12000, salary_max: 25000 }),
+  job({ id: "g-m8", company_id: "preview-co-2", role: "AE", highlight: "短い。", location: "東京", employment_type: "業務委託", salary_min: 0, salary_max: 0 }),
+  job({ id: "g-m9", company_id: "preview-co-3", role: "営業企画", highlight: "数字の裏側をつくる。", location: "", work_style: "", employment_type: "", salary_min: 0, salary_max: 0 }),
+];
+
 /* ── 職歴タイムライン ───────────────────────────────────────────────────────
    ⚠️ 実データは **職歴のある実ユーザー4人 / 経歴24件**（2026-08-30 実測）。
       同社グループ・出戻り・並行職・長期ブランクを**まとめて持つ人がいない。**

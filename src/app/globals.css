@@ -2158,3 +2158,103 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   outline-offset: 0 !important;
   border-radius: 6px;
 }
+
+/* ── components/jobs/JobCardGrid.tsx（2026-10-01・試作）────────────────────
+   ⚠️★★**まだ `/jobs` に繋いでいない。** 見えるのは `/dev/preview/job-grid` だけ。
+      「一覧／詳細の切り替えを `/jobs` にも付けるか」を決める前の試作で、
+      採らないと決めたら**この塊ごと消す**（半端に残さない）。
+   ⚠️ 枠・角丸・影は `.job-list-card`（1列のカード）と同じ値にしてある。
+      同じ画面でトグルするので、片方だけ変えないこと。 */
+        .job-grid-card {
+          position: relative;
+          border-radius: 10px;
+          border: 1.5px solid var(--line);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+          background: #fff;
+          transition: border-color 0.15s, box-shadow 0.15s;
+          /* ⚠️★`height: 100%` で**グリッドの行の中で下端を揃える**。
+                これが無いと、キャッチコピーの行数でカードの高さがバラける。 */
+          height: 100%;
+        }
+        .job-grid-card:hover {
+          border-color: var(--royal-100);
+          box-shadow: 0 4px 16px rgba(0,35,102,0.08);
+        }
+        .job-grid-link {
+          display: flex;
+          flex-direction: column;
+          /* ⚠️ 右は♡のぶんを空ける。空けないと**会社名が♡の下に潜る**
+                （`.job-list-item-link` で同じことを 2026-09-17 に踏んでいる）。 */
+          padding: 16px 52px 16px 16px;
+          height: 100%;
+          text-decoration: none;
+          min-width: 0;
+        }
+        .job-grid-heart {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 1;
+          width: 36px;
+          height: 36px;
+          /* ⚠️★`min-height` を 0 に戻す。globals.css の
+                `button { min-height: 36px }` が `height` に勝つので、
+                これが無いと **30x36 の縦長の楕円**になる
+                （.claude/rules/ui-debugging.md「min-height は height に勝つ」）。
+                実測 2026-10-01: 入れる前は 30x36 だった。 */
+          min-height: 0;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          padding: 0;
+        }
+        /* ⚠️ 指で押す幅では 44x44 にする（ステップ1でツールバーのアイコンボタンに
+              入れたのと同じ約束）。♡が大きくなるぶん、本文の右の余白も広げる。 */
+        @media (max-width: 767px) {
+          .job-grid-heart { width: 44px; height: 44px; top: 6px; right: 6px; }
+          .job-grid-link { padding-right: 56px; }
+        }
+        .job-grid-highlight {
+          margin-top: 6px;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: var(--ink-soft);
+          line-height: 1.6;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        /* ⚠️★年収の下の行。`margin-top: auto` で**カードの下端に貼る**ので、
+              キャッチコピーが1行でも2行でも位置が揃う。 */
+        .job-grid-meta {
+          margin-top: 10px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .job-grid-chip {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--ink-soft);
+          background: var(--bg-tint);
+          border: 1px solid var(--line);
+          border-radius: 100px;
+          padding: 2px 9px;
+          white-space: nowrap;
+        }
+        /* ⚠️ グリッドの列数は `/companies` の `.companies-grid4` と同じ段。
+              片方だけ変えると、同じ幅で企業は3列・求人は2列のような食い違いが出る。 */
+        .jobs-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 16px;
+        }
+        @media (max-width: 1199px) {
+          .jobs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        }
+        @media (max-width: 600px) {
+          .jobs-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 8px; }
+        }

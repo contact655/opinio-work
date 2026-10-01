@@ -69,6 +69,8 @@ const ITEMS = [
     desc: "勤務体系・休日・試用期間は本番0件。値が入った状態を見るのはここだけ" },
   { href: "/dev/preview/job-cards", label: "求人カード（一覧）",
     desc: "年収なし・下限だけ・上限だけ。会社が引けないときに落ちないか" },
+  { href: "/dev/preview/job-grid", label: "求人カード（グリッド／試作）",
+    desc: "⚠️★まだ /jobs に繋いでいない。一覧／詳細の切り替えを足すか決めるための試作" },
   { href: "/dev/preview/job-pane", label: "求人ペイン（分割ビューの右側）",
     desc: "⚠️★固定幅かつ高さを固定した箱で見る。本番の公開求人は本文 205〜219字でペインが1pxもあふれず、内部スクロールも上に残る帯も一度も描画されない" },
   { href: "/dev/preview/timeline", label: "職歴タイムライン",
