@@ -116,6 +116,45 @@ export async function unreadConversationIds(
   return result;
 }
 
+/**
+ * ★その人の会話に**1通でもメッセージがあるか**（2026-10-01 / 柴さんの指示）。
+ *
+ * ヘッダーのメッセージアイコンを「**1通も無いうちは出さない**」ためだけに使う。
+ * ⚠️★**未読かどうかではない。** 自分が送った1通でも true。
+ *    会話が実在して戻る先があるなら、入口は出してよい。
+ * ⚠️ 本番は 2026-10-01 時点で `ow_conversation_messages` が **0件**なので、
+ *    いまは全員 false ＝ 誰にもアイコンが出ない。1通入った瞬間に出る。
+ * ⚠️ 可視性の軸は未読と同じ**参加者行**。`candidate_user_id` などで絞らないこと。
+ * ⚠️ 失敗したら false（出さない側）。ログは出す。
+ */
+export async function hasAnyConversationMessage(owUserId: string): Promise<boolean> {
+  const admin = createAdminClient();
+
+  const { data: parts, error: partErr } = await admin
+    .from("ow_conversation_participants")
+    .select("conversation_id")
+    .eq("user_id", owUserId);
+  if (partErr) {
+    console.error("[unread] 参加者の取得に失敗:", partErr.message);
+    return false;
+  }
+  const convIds = (parts ?? []).map((p) => p.conversation_id as string);
+  if (convIds.length === 0) return false;
+
+  /* ⚠️ 1件あるかだけ見る（`limit(1)`）。通数は要らない。 */
+  const { data: msgs, error: msgErr } = await admin
+    .from("ow_conversation_messages")
+    .select("id")
+    .in("conversation_id", convIds)
+    .is("deleted_at", null)
+    .limit(1);
+  if (msgErr) {
+    console.error("[unread] メッセージの取得に失敗:", msgErr.message);
+    return false;
+  }
+  return (msgs ?? []).length > 0;
+}
+
 export type MessageLike = {
   conversation_id: string;
   sender_participant_id: string | null;

@@ -23,9 +23,19 @@ import Link from "next/link";
  *
  * ⚠️ 既読にするのは**会話を開いたとき**（`/mypage/conversations/[id]` が `last_read_at` を書く）。
  *    ベルのように「開いたら全部既読」にしないこと —— 読んでいないものが消える。
+ *
+ * ⚠️★**1通も無いうちはアイコンごと出さない**（2026-10-01 / 柴さんの指示）。
+ *    本番の `ow_conversation_messages` は 2026-10-01 時点で **0件**で、
+ *    出しても「まだ対話がありません」に着くだけだった（2026-09-15 に外した3つ目の理由）。
+ *    ⚠️ 判定は `hasMessages`（**未読ではない**。自分が送った1通でも出る）。
+ *    ⚠️★**取得前も出さない。** 一瞬出てから消えるより、出ないまま増えるほうがよい。
+ *    ⚠️ 1通入れば次にページへ戻った時点で出る（`focus` で取り直す）。
+ *       それまでに届いたことは**ベルの通知**が伝える（2026-09-16）。
  */
 export function MessagesButton() {
   const [unread, setUnread] = useState(0);
+  /** 会話に1通でもあるか。⚠️ 取得前は false ＝ 出さない */
+  const [hasMessages, setHasMessages] = useState(false);
 
   const fetchUnread = useCallback(async () => {
     try {
@@ -33,6 +43,7 @@ export function MessagesButton() {
       if (!res.ok) return;
       const data = await res.json();
       setUnread(data.conversations ?? 0);
+      setHasMessages(data.hasMessages === true);
     } catch {
       /* ⚠️ 握り潰してよい唯一の理由: バッジは主役ではなく、出なくても入口は押せる。
             ⚠️ 数え方の失敗はサーバー側（lib/conversations/unread）がログに出す。 */
@@ -47,6 +58,9 @@ export function MessagesButton() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [fetchUnread]);
+
+  /* ⚠️★ここで `unread > 0` を条件にしないこと。読み終えた会話へ戻れなくなる。 */
+  if (!hasMessages) return null;
 
   return (
     <Link
