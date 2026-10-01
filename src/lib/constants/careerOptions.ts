@@ -64,8 +64,8 @@ export const VALID_JOB_EMPLOYMENT_TYPES = new Set<string>(JOB_EMPLOYMENT_TYPES);
  * ⚠️ **"none"（役職なし）は表示しない。** 「役職が無い」という入力であって、
  *    出すべき値ではない。`rankLabel()` が null を返す。
  *
- * ⚠️ 実データ（2026-08-15）は none / leader / manager / NULL の4種のみ。
- *    general_manager と executive は選べるが未使用。
+ * ⚠️ 実データ（**2026-10-01** 実測・全70行）は none 15 / leader 5 / manager 1 / NULL 49。
+ *    ほかの7つは選べるが未使用。**数は動くので日付を添えて書くこと。**
  *
  * ⚠️★**3層は 2026-09-18 に揃った。** それまで API だけが検証しておらず、
  *    **POST は 50字 / PUT は 100字で切るだけ**（しかも長さが食い違っていた）。
@@ -79,12 +79,37 @@ export const VALID_JOB_EMPLOYMENT_TYPES = new Set<string>(JOB_EMPLOYMENT_TYPES);
  *    ⚠️★**許容リストを route に書き写さないこと。** 下の `isRankValue()` を使う。
  *       書き写した瞬間に UI と割れる（CLAUDE.md「許容値は1箇所に置く」）。
  */
+/*
+ * ★5件 → 10件に増やした（2026-10-01 / 柴さんの指示）。
+ *
+ * ⚠️★**既存5つの `value` は1文字も変えていない。** 既存データ（`none` 15 / `leader` 5 /
+ *    `manager` 1。`general_manager` と `executive` は0件。2026-10-01 実測）はそのまま有効。
+ *
+ * ⚠️★**途中に差し込んでよい。** `careerReasons.ts` の「末尾に足す（選択率の前後比較が
+ *    できなくなる）」とは**事情が違う**。こちらは**段の梯子**で、並び自体が意味を持つので、
+ *    主任を係長の下に置かないと読めない。加えて `RANKS` の並びを**比較や集計に使っている
+ *    箇所は0件**（実測。使い手は選択肢の描画と `rankLabel()` だけ）。
+ *
+ * ⚠️★**ラベルを1つだけ変えた**: `executive` 「役員クラス」→「取締役・役員クラス」。
+ *    `corporate_officer`（執行役員）を足したので、「役員クラス」のままだと
+ *    **どちらを選べばよいか分からない**（執行役員は取締役ではない）。
+ *    ⚠️ 変えてよかったのは **`executive` が0件**だったから。
+ *       **行がある値のラベルは、意味が変わる向きに書き換えないこと。**
+ *
+ * ⚠️★**DB の CHECK（`ow_experiences_rank_check`）も同じ日に広げてある**
+ *    （`20261001090000`）。**ここだけ足すと「選べるのに保存できない」**（3層の規約）。
+ */
 export const RANKS = [
-  { value: "none",            label: "役職なし" },
-  { value: "leader",          label: "係長・リーダークラス" },
-  { value: "manager",         label: "課長・マネージャークラス" },
-  { value: "general_manager", label: "部長・ゼネラルマネージャークラス" },
-  { value: "executive",       label: "役員クラス" },
+  { value: "none",              label: "役職なし" },
+  { value: "chief",             label: "主任・チーフクラス" },
+  { value: "leader",            label: "係長・リーダークラス" },
+  { value: "manager",           label: "課長・マネージャークラス" },
+  { value: "senior_manager",    label: "次長・シニアマネージャークラス" },
+  { value: "general_manager",   label: "部長・ゼネラルマネージャークラス" },
+  { value: "division_head",     label: "本部長・事業部長クラス" },
+  { value: "corporate_officer", label: "執行役員クラス" },
+  { value: "executive",         label: "取締役・役員クラス" },
+  { value: "ceo",               label: "代表取締役・社長・CEO" },
 ] as const;
 
 export const RANK_LABELS: Record<string, string> = Object.fromEntries(
