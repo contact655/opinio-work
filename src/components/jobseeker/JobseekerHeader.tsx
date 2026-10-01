@@ -57,19 +57,136 @@ type SuggestResult = {
 
 const POPULAR_QUERIES = ["プロダクトマネージャー", "エンジニア", "カスタマーサクセス", "営業", "フルリモート", "外資系"];
 
+/** ⚠️★**ヘッダーの検索の候補パネルは、ここ1箇所だけ。**（2026-10-01）
+    デスクトップは入力欄の下のドロップダウン、1024px 未満は🔍から開くオーバーレイで
+    **同じものを出す。** 文言・並び・行き先を片方だけ変えないこと。
+    ⚠️ 「まとめて検索 →」は `SearchAllLink.tsx` と文言を揃えてある（部品側に注記あり）。 */
+function SearchSuggestPanel({ query, suggestions, onClose, router }: {
+  query: string;
+  suggestions: SuggestResult | null;
+  onClose: () => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  return (
+    <>
+      {/* クエリなし: 人気タグ + クイックリンク */}
+      {!query && (
+        <div style={{ padding: "12px 0 20px" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>よく検索されるキーワード</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
+            {POPULAR_QUERIES.map((q) => (
+              <button key={q} type="button"
+                onClick={() => { onClose(); router.push(`/search?q=${encodeURIComponent(q)}`); }}
+                style={{ padding: "5px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "var(--bg-tint)", fontSize: 12, fontWeight: 500, cursor: "pointer", color: "var(--ink-soft)" }}>
+                {q}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>クイックナビ</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[
+              { href: "/companies", label: "企業一覧", icon: "🏢" },
+              { href: "/jobs",      label: "募集一覧", icon: "💼" },
+              { href: "/articles",  label: "記事",      icon: "📝" },
+            ].map(({ href, label, icon }) => (
+              <a key={href} href={href} onClick={() => onClose()}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid var(--line)", textDecoration: "none", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>
+                <span>{icon}</span>{label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* クエリあり: サジェスト結果 */}
+      {query && suggestions && (
+        <div style={{ paddingBottom: 16 }}>
+          {/* 企業 */}
+          {suggestions.companies.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>企業</div>
+              {suggestions.companies.map((c) => (
+                <a key={c.id} href={`/companies/${c.slug ?? c.id}`} onClick={() => onClose()}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                  <div style={{ width: 28, height: 28, borderRadius: 6, background: c.logo_gradient ?? "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{c.logo_letter ?? c.name[0]}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
+                    {c.industry && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{c.industry}</div>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* 求人 */}
+          {suggestions.jobs.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>募集</div>
+              {suggestions.jobs.map((j) => (
+                <a key={j.id} href={`/jobs/${j.id}`} onClick={() => onClose()}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                  <div style={{ width: 28, height: 28, borderRadius: 6, background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", flexShrink: 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{j.title}</div>
+                    {j.roleLabel && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{j.roleLabel}</div>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* 全件検索リンク */}
+          <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginTop: 4 }}>
+            <a href={`/search?q=${encodeURIComponent(query)}`} onClick={() => onClose()}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 8, textDecoration: "none", fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              「{query}」をまとめて検索 →
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* クエリあり・結果なし */}
+      {query && suggestions && suggestions.companies.length === 0 && suggestions.jobs.length === 0 && (
+        <div style={{ padding: "16px 8px 20px", color: "var(--ink-mute)", fontSize: 13 }}>
+          「{query}」に一致する結果がありません。
+          <a href={`/search?q=${encodeURIComponent(query)}`} onClick={() => onClose()}
+            style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6, textDecoration: "underline" }}>まとめて検索 →</a>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function JobseekerHeader() {
   const pathname = usePathname();
+  /* トップページだけヘッダーの検索を出さない（本文の HeroSearch と役割が重なるため） */
+  const isTop = pathname === "/";
   const searchParams = useSearchParams();
   const router = useRouter();
   /* `isBizMember` は「有効な企業所属が1件以上あるか」。true のときだけ
      ユーザーメニューに /biz/dashboard を出す（2026-09-05）。 */
   const [user, setUser] = useState<{ email: string; name: string; isBizMember: boolean } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  /* ★デスクトップ（1024px 以上）の常設の検索窓に付くドロップダウン（2026-10-01）。
+     ⚠️ `searchOpen`（🔍から開くオーバーレイ）と**別の state**。1024px 未満だけが
+        オーバーレイを使うので、同時に開くことはない。1つにまとめると
+        「閉じたら入力を消す」の扱いが割れる（オーバーレイは消す／常設窓は残す）。 */
+  const [inlineOpen, setInlineOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SuggestResult | null>(null);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const inlineSearchRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -193,6 +310,21 @@ export function JobseekerHeader() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownOpen]);
 
+  /* 常設の検索窓のドロップダウン: 外側クリックと Escape で閉じる。
+     ⚠️ 閉じても入力は消さない（オーバーレイと違う点）。打った文字を残すため。 */
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (inlineSearchRef.current && !inlineSearchRef.current.contains(e.target as Node)) setInlineOpen(false);
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setInlineOpen(false); }
+    if (inlineOpen) {
+      document.addEventListener("mousedown", onDown);
+      document.addEventListener("keydown", onKey);
+    }
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [inlineOpen]);
+  useEffect(() => { setInlineOpen(false); }, [pathname]);
+
   // Close mobile menu on pathname change or Escape key
   useEffect(() => { setMobileMenuOpen(false); }, [pathname]);
   useEffect(() => {
@@ -242,8 +374,85 @@ export function JobseekerHeader() {
             <OpinioLogo height={24} />
           </Link>
 
+          {/* ★横断検索の窓（1024px 以上・常設）。2026-10-01 / 柴さんの指示（LinkedIn型）。
+              ⚠️★**トップページ（/）では出さない。** あちらは `HeroSearch` が本文の主役で、
+                 同じ役割の窓が2つ並ぶ（ui-debugging ⑧「同じ場所に着く入口を数える」）。
+              ⚠️★**1024px 未満はこの窓を出さず、右の🔍から同じものを開く。**
+                 768px でタブ5つと同居させると、入力欄が実用にならない幅まで潰れる。
+              ⚠️★**一覧ページの検索窓（/companies /jobs /people /articles）とは役割が違う。**
+                 あちらは「その一覧の中の絞り込み」。ここは横断検索（/search）。混ぜないこと。 */}
+          {!isTop && (
+          <div ref={inlineSearchRef} className="hidden lg:block" style={{ position: "relative", flex: 1, maxWidth: 360, minWidth: 0 }}>
+            <form
+              role="search"
+              aria-label="サイト横断検索"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setInlineOpen(false);
+                if (searchQuery.trim()) router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, height: 36,
+                padding: "0 12px", borderRadius: 8,
+                border: `1px solid ${inlineOpen ? "var(--royal)" : "var(--line)"}`,
+                background: inlineOpen ? "#fff" : "var(--bg-tint)",
+                transition: "border-color 0.15s, background 0.15s",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={suggestLoading ? "var(--royal)" : "var(--ink-mute)"} strokeWidth={2.5} strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0, transition: "stroke 0.2s" }}>
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                type="search"
+                className="hdr-search-input"
+                aria-label="企業・募集・ユーザー・記事を検索"
+                aria-autocomplete="list"
+                aria-expanded={inlineOpen}
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setInlineOpen(true); }}
+                onFocus={() => setInlineOpen(true)}
+                placeholder="検索"
+                style={{
+                  flex: 1, minWidth: 0, height: "100%", border: "none", outline: "none",
+                  fontSize: 14, color: "var(--ink)",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
+                  background: "transparent",
+                }}
+              />
+              {searchQuery && (
+                <button type="button" aria-label="検索をクリア" className="btn-fixed-size"
+                  onClick={() => { setSearchQuery(""); setSuggestions(null); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-mute)", flexShrink: 0 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              )}
+            </form>
+
+            {inlineOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 8px)", left: 0,
+                width: 460, maxWidth: "calc(100vw - 48px)",
+                background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
+                boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+                maxHeight: "calc(100vh - 100px)", overflowY: "auto",
+                padding: "4px 16px 8px",
+              }}>
+                <SearchSuggestPanel
+                  query={searchQuery}
+                  suggestions={suggestions}
+                  router={router}
+                  onClose={() => setInlineOpen(false)}
+                />
+              </div>
+            )}
+          </div>
+          )}
+
           {/* Nav — desktop only */}
-          <nav className="hidden md:flex" aria-label="メインナビゲーション" style={{ gap: 8, flex: 1, alignItems: "center" }}>
+          <nav className="hidden md:flex" aria-label="メインナビゲーション"
+            /* ★検索窓を常設にしたので、タブは右（アカウント側）へ寄せる（2026-10-01）。
+               ⚠️ `flex: 1` に戻さないこと。戻すとタブが左に張り付き、検索窓との間が開く。 */
+            style={{ gap: 8, marginLeft: "auto", alignItems: "center", flexShrink: 0 }}>
             {NAV_LINKS.map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
@@ -276,15 +485,24 @@ export function JobseekerHeader() {
 
           </nav>
 
-          {/* Search icon — desktop */}
+          {/* ★検索アイコン — **1024px 未満だけ**（2026-10-01）。
+              1024px 以上はロゴの右の常設の窓がこの役割を持つので出さない。
+              ⚠️★**消さないこと。** 1024px 未満では**これが唯一の横断検索の入口**で、
+                 外すとモバイル・タブレットから /search へ行く手段が無くなる
+                 （モバイルのタブバーにも引き出しにも検索は無い）。 */}
+          {!isTop && (
           <button
             type="button"
-            className="hidden md:flex"
+            className="flex lg:hidden"
             onClick={() => setSearchOpen(true)}
             aria-label="検索"
+            /* ⚠️★**`display` をインラインに書かないこと**（2026-10-01 に踏んだ）。
+                  インラインの `display: flex` は `lg:hidden` に**勝つ**ので、
+                  クラスで出し分けているつもりが全幅で出続ける（ui-debugging ②）。
+                  ⚠️ これは元からの不具合で、`hidden md:flex` の `hidden` も効いていなかった。 */
             style={{
               width: 36, height: 36,
-              display: "flex", alignItems: "center", justifyContent: "center",
+              alignItems: "center", justifyContent: "center",
               borderRadius: 8, border: "1px solid var(--line)",
               background: "#fff", cursor: "pointer",
               color: "var(--ink-mute)",
@@ -293,10 +511,11 @@ export function JobseekerHeader() {
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--royal)"; e.currentTarget.style.color = "var(--royal)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.color = "var(--ink-mute)"; }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
             </svg>
           </button>
+          )}
 
           {/* Spacer — mobile */}
           <div className="flex md:hidden" style={{ flex: 1 }} />
@@ -573,6 +792,7 @@ export function JobseekerHeader() {
               <input
                 ref={searchInputRef}
                 type="search"
+                className="hdr-search-input"
                 aria-label="企業・職種で検索"
                 aria-autocomplete="list"
                 value={searchQuery}
@@ -604,99 +824,12 @@ export function JobseekerHeader() {
 
             {/* サジェストパネル */}
             <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
-              {/* クエリなし: 人気タグ + クイックリンク */}
-              {!searchQuery && (
-                <div style={{ padding: "12px 0 20px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>よく検索されるキーワード</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
-                    {POPULAR_QUERIES.map((q) => (
-                      <button key={q} type="button"
-                        onClick={() => { setSearchOpen(false); router.push(`/search?q=${encodeURIComponent(q)}`); }}
-                        style={{ padding: "5px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "var(--bg-tint)", fontSize: 12, fontWeight: 500, cursor: "pointer", color: "var(--ink-soft)" }}>
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>クイックナビ</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {[
-                      { href: "/companies", label: "企業一覧", icon: "🏢" },
-                      { href: "/jobs",      label: "募集一覧", icon: "💼" },
-                      { href: "/articles",  label: "記事",      icon: "📝" },
-                    ].map(({ href, label, icon }) => (
-                      <a key={href} href={href} onClick={() => setSearchOpen(false)}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid var(--line)", textDecoration: "none", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>
-                        <span>{icon}</span>{label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* クエリあり: サジェスト結果 */}
-              {searchQuery && suggestions && (
-                <div style={{ paddingBottom: 16 }}>
-                  {/* 企業 */}
-                  {suggestions.companies.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>企業</div>
-                      {suggestions.companies.map((c) => (
-                        <a key={c.id} href={`/companies/${c.slug ?? c.id}`} onClick={() => setSearchOpen(false)}
-                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
-                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ width: 28, height: 28, borderRadius: 6, background: c.logo_gradient ?? "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{c.logo_letter ?? c.name[0]}</div>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{c.name}</div>
-                            {c.industry && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{c.industry}</div>}
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 求人 */}
-                  {suggestions.jobs.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>募集</div>
-                      {suggestions.jobs.map((j) => (
-                        <a key={j.id} href={`/jobs/${j.id}`} onClick={() => setSearchOpen(false)}
-                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, textDecoration: "none", transition: "background 0.1s" }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-tint)"}
-                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ width: 28, height: 28, borderRadius: 6, background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", flexShrink: 0 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-                            </svg>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{j.title}</div>
-                            {j.roleLabel && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{j.roleLabel}</div>}
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 全件検索リンク */}
-                  <div style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 10, marginTop: 4 }}>
-                    <a href={`/search?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 8, textDecoration: "none", fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-                      「{searchQuery}」をまとめて検索 →
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {/* クエリあり・結果なし */}
-              {searchQuery && suggestions && suggestions.companies.length === 0 && suggestions.jobs.length === 0 && (
-                <div style={{ padding: "16px 8px 20px", color: "var(--ink-mute)", fontSize: 13 }}>
-                  「{searchQuery}」に一致する結果がありません。
-                  <a href={`/search?q=${encodeURIComponent(searchQuery)}`} onClick={() => setSearchOpen(false)}
-                    style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6, textDecoration: "underline" }}>まとめて検索 →</a>
-                </div>
-              )}
+              <SearchSuggestPanel
+                query={searchQuery}
+                suggestions={suggestions}
+                router={router}
+                onClose={() => setSearchOpen(false)}
+              />
             </div>
           </div>
         </>

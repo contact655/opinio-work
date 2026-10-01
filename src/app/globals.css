@@ -2055,3 +2055,14 @@ body {
     white-space: nowrap;
   }
 }
+
+/* ★ヘッダーの横断検索の入力欄（2026-10-01）
+   ⚠️ `type="search"` にブラウザが付ける × を消す。自前の「検索をクリア」ボタンと
+      **2つ並んで出る**ため（1440px で実測）。
+   ⚠️★**`input[type="search"]` 全体に当てないこと。** 一覧ページの検索窓には
+      自前のクリアボタンが無いものがあり、消すと手段ごと無くなる。 */
+.hdr-search-input::-webkit-search-cancel-button,
+.hdr-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
