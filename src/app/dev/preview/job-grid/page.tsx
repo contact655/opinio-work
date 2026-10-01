@@ -14,7 +14,7 @@ import {
  *    「枚数が増えたとき」「社名が長いとき」「項目が欠けたとき」は**実データで踏めない。**
  *    ＝ グリッドの見た目を直すときは**必ずこの画面で見る。**
  *
- * ⚠️ 本番の既定は「詳細」（1列＋分割）。グリッドは `?view=card`。
+ * ⚠️ 本番の**既定がこれ**（2026-10-01〜）。詳細（1列＋分割）は `?view=list`。
  */
 function Grid({ children }: { children: React.ReactNode }) {
   /* ⚠️ 実ページに入れるときと同じ class。ここで独自のグリッドを組まない */
@@ -26,8 +26,8 @@ export default function JobGridPreview() {
   return (
     <div>
       <PreviewHeader title="求人カード（一覧＝グリッド）">
-        <code>/jobs</code> の「一覧」表示（<code>?view=card</code>）で使っているカードです。
-        <strong>既定は「詳細」（1列＋分割）</strong>のままです。
+        <code>/jobs</code> の「一覧」表示で使っているカードです。
+        <strong>これが既定</strong>で、詳細（1列＋分割）は <code>?view=list</code>。
         列は <code>/companies</code> と同じ段（1200px 未満で2列・600px 未満で1列）。
         <br />
         ⚠️ 1列のカード（<code>JobListItem</code>）との違いは2つ。

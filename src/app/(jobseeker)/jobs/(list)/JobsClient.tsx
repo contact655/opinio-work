@@ -292,14 +292,16 @@ export default function JobsClient({
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "updated");
   /* ★一覧（グリッド）／詳細（1列＋分割）の切り替え（2026-10-01 / 柴さんの指示）。
-        ⚠️★**`?view=` の値は `/companies` と同じ**（`card` = グリッド / `list` = 1列＋分割）。
-           同じ語が隣り合うページで別の意味を持たないようにするため。
-        ⚠️★**既定は `/companies` と逆で「詳細」。** あちらはグリッドが既定だが、
-           `/jobs` は 2026-09-09 から分割表示だけで来ており、
-           **既定を変えると今日まで見えていたものが変わる。** 公開求人も2件しかなく、
-           3列グリッドに2枚だと右3分の1が空く。
-           ⚠️ 求人が増えて既定を入れ替えるときは、ここ1箇所を変えれば済む。 */
-  const view: "card" | "list" = searchParams.get("view") === "card" ? "card" : "list";
+        ⚠️★**`?view=` の読み方も既定も `/companies` と完全に同じ**にしてある
+           （`card` = グリッド = 既定 / `list` = 1列＋分割）。同じ語が隣り合うページで
+           別の意味や別の既定を持たないようにするため。
+        ⚠️★**未知の値はグリッドに落とす**（`=== "list"` だけを名指しする）。
+           `/companies` が 2026-08-28 に踏んだ形の再発を防ぐ ——あちらは
+           `!view || view === "card"` と書いていたため、`?view=grid` のような綴り違いで
+           **どちらの分岐にも入らず、空ページが 200 で返っていた。**
+        ⚠️ 既定は 2026-10-01 に「詳細」から「一覧」へ変えた（同日中・柴さんの指示）。
+           戻すならこの1行（と下の `setParam` の向き）だけ。 */
+  const view: "card" | "list" = searchParams.get("view") === "list" ? "list" : "card";
   /* ⚠️ `isDesktop`（1024px 判定）は 2026-09-09 に削除した。サイドバーの列幅を
         出し分けるためだけの state で、サイドバーごと無くなった。
         ⚠️ 幅で挙動を変えたくなったら CSS のメディアクエリを使うこと。JS で幅を持つと
@@ -1073,7 +1075,10 @@ export default function JobsClient({
               {/* ★ビュートグル（2026-10-01）。⚠️★見た目は `components/common/ViewToggle.tsx`
                      の1箇所。`/companies` と同じ部品で、**ここに書き写さないこと。**
                   ⚠️ 置き場所は件数の**左**。`/companies` と同じ並び（並び替え → 切替 → 件数）。 */}
-              <ViewToggle value={view} onChange={(v) => setParam("view", v === "card" ? "card" : "")} />
+              {/* ⚠️★**既定（グリッド）のときは `?view=` を URL から消す**。`/companies` の
+                     `GridSortBar` と同じ向き。残すと、既定を将来入れ替えたときに
+                     **古い共有リンクが意図しない側を開く。** */}
+              <ViewToggle value={view} onChange={(v) => setParam("view", v === "list" ? "list" : "")} />
               <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
               <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
                 <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
