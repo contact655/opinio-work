@@ -196,7 +196,17 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     const isBizPath = pathname.startsWith("/biz") && !pathname.startsWith("/biz/auth");
     url.pathname = isBizPath ? "/biz/auth" : "/auth";
-    url.searchParams.set("next", pathname);
+    /* ★`next` には**クエリまで入れる**（2026-10-01）。
+       ⚠️★それまで `pathname` だけで、**ログイン後にクエリが落ちていた。**
+          `/people?q=営業` を未ログインで開くと `/auth?next=%2Fpeople` になり、
+          ログインした先は `/people`（キーワード無し）に着地していた。
+          `/people` に `?q=` を入れた日（2026-10-01）に表に出たが、
+          **クエリを持つ認証必須ページすべてに効く**（`/u/[id]` など）。
+       ⚠️ `safeNext`（lib/auth/redirects.ts）は先頭が `/` であることだけを見るので、
+          クエリ付きでもそのまま通る。`//` と `/\` は従来どおり弾かれる。
+       ⚠️ 元のクエリは `/auth` 側にも残したまま（`?ref=` の計測が
+          `attachSignupRef` ではなくこの URL 経由で効いているため）。**消さないこと。** */
+    url.searchParams.set("next", pathname + request.nextUrl.search);
     // ⚠️ 申し込み系だけログインタブで着地させる。
     //    2026-08-05 に認証チェックをここへ移すまでは、ページ側が /auth/login 経由で
     //    リダイレクトしておりログインタブが開いていた。ステータス是正が目的の変更で
