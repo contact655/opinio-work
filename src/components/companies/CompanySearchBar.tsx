@@ -407,7 +407,12 @@ export function CompanySearchBar({
             <a
               href="/mypage"
               style={{
-                marginLeft: "auto", flexShrink: 0,
+                /* ⚠️★**並び替えがある行では `marginLeft: "auto"` を付けない**（2026-10-01）。
+                      `.sort-bar-row` にも auto があり、**2つあると余白が等分されて
+                      並び替えが右端まで行かない。** あるときは並び替えの直後に並ぶ。
+                   ⚠️ 並び替えが無いとき（絞り込み中）は**こちらが右端役**。外さないこと。 */
+                marginLeft: sortBar ? undefined : "auto",
+                flexShrink: 0,
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "6px 12px", borderRadius: 999,
                 background: "#fef2f2", border: "1.5px solid #fecaca",

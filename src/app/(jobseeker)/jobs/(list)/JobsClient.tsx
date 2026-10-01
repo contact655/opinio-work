@@ -1677,7 +1677,14 @@ export default function JobsClient({
         }
         .jobs-toolbar-sortpills::-webkit-scrollbar { display: none; }
         @media (min-width: 1280px) {
-          .jobs-toolbar-sort { flex-basis: auto; flex-shrink: 0; }
+          /* ★1行のときは右端に寄せる（2026-10-01 / 柴さんの指示。/people に揃えた）。
+                 ⚠️ 1280px 未満は flex-basis: 100% で行を占めるので、ここは効かない。
+                    あちらの行の右寄せは中の margin-left: auto（件数の塊）が担う。
+                 ⚠️★flex-shrink: 0 を外さないこと。先に縮むのは検索窓のほうで、
+                    ここが縮むとピルが横スクロールに化けて選択肢が隠れる。
+                 ⚠️★この中はテンプレートリテラル（style タグ）。
+                    バッククォートと不等号を書かないこと（ui-debugging ⑲）。 */
+          .jobs-toolbar-sort { flex-basis: auto; flex-shrink: 0; margin-left: auto; }
           /* ⚠️ 1行のときはピルを縮めない。縮むと検索窓が伸びたぶんだけ
                  ピルが横スクロールに化け、押せる選択肢が隠れる。
                  先に縮むのは検索窓（flex 1 1 220px）。 */

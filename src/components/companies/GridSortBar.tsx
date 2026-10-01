@@ -76,6 +76,16 @@ export function GridSortBar({ totalCount }: Props) {
         display: "flex",
         alignItems: "center",
         gap: 12,
+        /* ★**右端に寄せる**（2026-10-01 / 柴さんの指示。`/people` `/articles` に揃えた）。
+           ⚠️★`flexShrink: 0` にしないこと。375px で親を超える（`/people` で実際に踏んだ）。
+              `flexWrap` で中を折り、`minWidth: 0` で縮めさせる。
+           ⚠️ `marginLeft: auto` は**行を折ったときだけ効く**（1行で余白が無ければ 0）。
+           ⚠️★**同じ行に2つ目の `marginLeft: auto` を置かないこと。** 余白が等分され、
+              ここが右端まで行かなくなる（`CompanySearchBar` の♥リンクから外してある）。 */
+        rowGap: 8,
+        flexWrap: "wrap",
+        minWidth: 0,
+        marginLeft: "auto",
       }}>
 
         {/* ★ピル3つ（**約345px**）から畳んだ（2026-09-17 / 柴さんの要望）。約140px になる。
