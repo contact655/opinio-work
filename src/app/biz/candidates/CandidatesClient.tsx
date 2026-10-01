@@ -495,7 +495,8 @@ export default function CandidatesClient({
      ⚠️ 並びは詳細検索パネルの並びと**同じ順**にする。片方だけ変えないこと。 */
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
-    if (roleQuery.trim()) chips.push({ key: "roleQuery", label: `役職: ${roleQuery}`, clear: () => setRoleQuery("") });
+    /* ⚠️ ラベルは入力欄と同じ語にする（「役職」に戻さない。下の入力欄の注記を読むこと）。 */
+    if (roleQuery.trim()) chips.push({ key: "roleQuery", label: `社内での呼び方: ${roleQuery}`, clear: () => setRoleQuery("") });
     if (companyQuery.trim()) chips.push({ key: "companyQuery", label: `会社: ${companyQuery}`, clear: () => setCompanyQuery("") });
     if (excludeQuery.trim()) chips.push({ key: "exclude", label: `除外: ${excludeQuery}`, clear: () => setExcludeQuery("") });
     const wantRole = childRoleId ?? topRoleId;
@@ -672,7 +673,7 @@ export default function CandidatesClient({
      ⚠️★**チップは `components/common/FilterChip.tsx` を使う。** `/companies` と
         `/people` が同じものを使っており、**同じ名前の別実装を作らない**（3つ目を作らない）。
      ⚠️★**並びは `activeChips` の並びと同じ順**にしてある。片方だけ変えないこと。
-     ⚠️ 自由入力（役職・会社名）だけはチップにできないので、先頭に小さな欄として置く。 */
+     ⚠️ 自由入力（社内での呼び方・会社名）だけはチップにできないので、先頭に小さな欄として置く。 */
   const roleChipOptions = roleFilterTree.flatMap((top) => [
     { value: top.id, label: top.name },
     /* ⚠️ 子は `parent` を付けて親の直下にぶら下げる（フェーズと同じ形）。
@@ -708,8 +709,19 @@ export default function CandidatesClient({
     }}>
       {/* 自由入力。⚠️ 上の検索窓とは別物（あちらは名前・職種・会社を横断） */}
       {filterRow("キーワード", <>
+        {/* ⚠️★**「役職」と書かないこと**（2026-10-01 に直した）。この欄が見ているのは
+               `ow_experiences.role_title`＝**本人が自由入力した「社内での呼び方」**で、
+               5択の役職（`ow_experiences.rank`）**ではない**。
+               2026-10-01 まで「現在の役職」と書いてあり、**5択の役職で絞っているように読めた。**
+               ⚠️ 2つは別の列（オンボーディングにも「混ぜないこと」と書いてある）。
+                  **ここで両方を見る形にもしないこと** ——自由入力とラベルが1つの欄に混ざる。
+               ⚠️ `rank` で絞る欄は**作っていない**。実データが実ユーザーの職歴36件中
+                  **4件**（係長3 / 課長1。他は「役職なし」15・未入力17）しかなく、
+                  選択肢の大半が必ず0件になる（「0件の選択肢を出さない」）。
+               ⚠️ **state とクエリのキー（`roleQuery`）は変えていない。** 保存した検索条件
+                  （`lib/business/savedSearch.ts`）に入っている名前で、変えると復元できなくなる。 */}
         <input type="text" value={roleQuery} onChange={(e) => setRoleQuery(e.target.value)}
-          aria-label="現在の役職" placeholder="現在の役職（例：営業マネージャー）" style={inputStyle(!!roleQuery)} />
+          aria-label="社内での呼び方" placeholder="社内での呼び方（例：営業マネージャー）" style={inputStyle(!!roleQuery)} />
         <input type="text" value={companyQuery} onChange={(e) => setCompanyQuery(e.target.value)}
           aria-label="現在の会社名" placeholder="現在の会社名（例：Salesforce）" style={inputStyle(!!companyQuery)} />
         {/* ★除外ワード（2026-09-20）。⚠️ 「絞る」ではなく「落とす」なので、
