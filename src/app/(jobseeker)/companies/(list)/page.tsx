@@ -109,8 +109,9 @@ const PAGE_SIZE = 40;
  *      padding 40 ＋ gap 18×3 ＝ 94 ／ ロゴ 68 ／ 実数3列 241 ／ ボタン列 96
  *    グリッド時代の 420px に畳むと**本文の幅が 0 になる**ので、700px 取っている
  *    （本文に約 201px 残る）。
- * ⚠️ 1280px（分割が始まる最小幅）では pane 側が 528px になる。`CompanyPane` は
- *    380px から崩れないことを `/dev/preview/company-pane` で確認済み。
+ * ⚠️ 1280px（分割が始まる最小幅）では pane 側が **512px**（2026-10-01 実測）。
+ *    ページの左右余白をヘッダーと同じ24pxに揃えたので、それまでの 528px から16px狭くなった。
+ *    `CompanyPane` は 380px から崩れないことを `/dev/preview/company-pane` で確認済み。
  *
  * ⚠️★`GRID_RAIL_WIDTH = 420` は 2026-09-30 に削除した。一覧グリッドと絞り込み結果を
  *    分割ビューから外し、**全画面へ遷移する**形にしたため（柴さんの判断）。
@@ -314,7 +315,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
              `CompanySearchBar` は置き場所を貸すだけ。**判定を2箇所に増やさないこと。**
           ⚠️ 上の余白を 20px から 12px に詰めた。詰めすぎると検索窓がヘッダーに貼り付く。 */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
-        <div className="max-w-[1440px] mx-auto px-4">
+        <div className="mx-auto page-gutter" style={{ maxWidth: "var(--max-w-page)" }}>
           <Suspense>
             <CompanySearchBar
               industryOptions={industryFacets}
@@ -334,7 +335,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
     </div>
 
     <div style={{ background: "#f0f4f8" }}>
-      <div className="max-w-[1440px] mx-auto px-4 pt-4 pb-8">
+      <div className="mx-auto page-gutter pt-4 pb-8" style={{ maxWidth: "var(--max-w-page)" }}>
         <div>
 
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}

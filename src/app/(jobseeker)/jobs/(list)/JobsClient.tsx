@@ -960,7 +960,7 @@ export default function JobsClient({
           zIndex: 30,
         }}
       >
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="page-gutter">
 
           {/* ツールバー本体（企業ページ .csb-bar と同等） */}
           <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "0 0 12px" }}>
@@ -1277,7 +1277,7 @@ export default function JobsClient({
           borderBottom: "1px solid var(--line)",
         }}
       >
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="px-5 py-3 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }} className="page-gutter py-3">
 
           {/* 解釈できなかった検索語の通知。
               「エンタープライズ企業 営業」のように、こちらで扱えない語が混ざったとき
@@ -1365,7 +1365,7 @@ export default function JobsClient({
       <div style={{ background: "var(--bg-tint)" }}>
         <div
           style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
-          className="px-5 py-6 md:px-12 md:py-8"
+          className="page-gutter py-6 md:py-8"
         >
           {/* ⚠️★サイドバーは 2026-09-09 に削除した（柴さんの要望）。職種は「詳細検索」へ移し、
                  勤務地は消した。**戻さないこと** ——条件が2箇所に分かれると、片方だけ直す

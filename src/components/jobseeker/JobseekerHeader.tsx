@@ -361,10 +361,11 @@ export function JobseekerHeader() {
         WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--line)",
       }}>
-        <div style={{
+        {/* ⚠️★左右の余白は `.page-gutter`（globals.css）の1箇所。**本文と同じ値**にして
+               ロゴの左端と一覧の左端を揃えている（2026-10-01）。ここに数値を書き戻さないこと。 */}
+        <div className="page-gutter" style={{
           maxWidth: "var(--max-w-page)",
           margin: "0 auto",
-          padding: "0 24px",
           height: 60,
           display: "flex",
           alignItems: "center",

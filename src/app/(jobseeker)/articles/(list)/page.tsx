@@ -334,7 +334,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
 
       {/* Grid */}
       <div style={{ background: "var(--bg-tint)" }}>
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 pt-4 pb-8 md:px-12 md:pb-10">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="page-gutter pt-4 pb-8 md:pb-10">
           {filteredArticles.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 0", color: "var(--ink-mute)" }}>
               <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>

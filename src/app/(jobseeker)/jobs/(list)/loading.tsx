@@ -22,7 +22,7 @@ export default function Loading() {
 
       {/* 2カラム器（サイドバー + 縦リスト） */}
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", padding: "32px 20px 64px" }}
-        className="px-5 py-6 md:px-12 md:py-8">
+        className="page-gutter py-6 md:py-8">
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}
           className="jobs-loading-layout">
           <style>{`

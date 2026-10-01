@@ -80,7 +80,7 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                375px では検索窓が画面の端に貼り付き、件数が右端をはみ出していた。
             → 縦だけを指定する（`paddingTop`）。左右はクラスに任せる。 */
       paddingTop: 12,
-    }} className="px-5 md:px-12">
+    }} className="page-gutter">
       {/* ⚠️ ここも一括指定にしない（上と同じ理由）。左右は親のクラスが持つ。 */}
       <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto", paddingBottom: 14 }}>
 

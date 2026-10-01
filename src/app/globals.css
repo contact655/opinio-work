@@ -2154,6 +2154,20 @@ body {
       ここで変えているのは**位置だけ**で、色も太さも既定のまま。
    ⚠️ `outline-offset: 0` にすると枠の下辺が下線に重なり、1本の線として読める。
    ⚠️★`!important` が要る。上の `a:focus-visible` が `!important` で offset を指定している。 */
+/* ★ページ本文の左右余白。**ヘッダーと同じ 24px**（2026-10-01 / 柴さんの指示）。
+      ⚠️★**値はここ1箇所。** それまで一覧3枚が **16 / 20 / 48px** と割れており、
+         ロゴの左端と本文の左端が最大32pxずれていた（1440px で実測）:
+           /companies 16 ／ /jobs 20(mobile)・48(desktop) ／ /articles 同左 ／ ヘッダー 24
+      ⚠️★**レスポンシブにしない。** ヘッダーは全幅で 24px 固定なので、
+         本文だけ幅で変えると**狭い画面でまたロゴとずれる**（375px で実測して決めた）。
+      ⚠️ `--max-w-page`（1440px）とセットで使う。片方だけだと揃わない。
+      ⚠️★**`/people` と `/feed` は対象外。** あの2つはカラムレイアウトで
+         max-width も違う（1300 / 1400）。別の判断なので混ぜない。 */
+.page-gutter {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 nav[aria-label="メインナビゲーション"] a:focus-visible {
   outline-offset: 0 !important;
   border-radius: 6px;
