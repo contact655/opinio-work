@@ -1595,40 +1595,10 @@ body {
           padding: 12px 0 14px;
           flex-wrap: wrap;
         }
-        .csb-search-wrap {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #fff;
-          border: 1.5px solid #e6e9ef;
-          border-radius: 999px;
-          padding: 0 14px;
-          transition: border-color 0.15s, box-shadow 0.15s;
-          flex: 1 1 220px;
-          min-width: 0;
-        }
-        .csb-search-wrap:focus-within {
-          border-color: var(--royal);
-          box-shadow: 0 0 0 3px rgba(0,35,102,0.08);
-        }
-        /* ⚠️ 入力欄側の枠は出さない（丸の中に四角が重なる）。理由は
-              globals.css 上部の `.search-shell` の注記。 */
-        .csb-search-wrap input:focus-visible {
-          outline: none !important;
-          box-shadow: none !important;
-          border-color: transparent !important;
-        }
-        .csb-input {
-          flex: 1;
-          border: none;
-          outline: none;
-          font-size: 13.5px;
-          color: var(--ink);
-          background: transparent;
-          padding: 9px 0;
-          min-width: 0;
-        }
-        .csb-input::placeholder { color: #6b7280; }
+        /* ⚠️★`.csb-search-wrap` / `.csb-input` は **2026-10-01 に削除した**（参照0件）。
+              検索窓は `ListSearchButton`（「一覧内を検索」）に置き換わっている。
+              入力欄の枠と focus の見せ方は **`.search-shell`**（globals.css 上部）が持つ。
+              ⚠️ ここに書き戻さないこと —— 同じ見た目の定義が2つになる。 */
         .csb-hiring {
           display: inline-flex;
           align-items: center;
@@ -1741,33 +1711,8 @@ body {
         }
         /* ⚠️ `.csb-clear`（「すべてクリア」）は 2026-09-06 に廃止したので削除した。
               経緯は CompanySearchBar.tsx のコメント。 */
-        .csb-suggestions {
-          position: absolute;
-          top: calc(100% + 4px);
-          left: 0; right: 0;
-          background: #fff;
-          border: 1.5px solid var(--royal);
-          border-radius: 10px;
-          box-shadow: 0 8px 28px rgba(0,35,102,0.12);
-          overflow: hidden;
-          z-index: 100;
-        }
-        .csb-suggestion-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 16px;
-          font-size: 14px;
-          color: var(--ink);
-          cursor: pointer;
-          transition: background 0.1s;
-          border: none;
-          background: none;
-          width: 100%;
-          text-align: left;
-          font-family: inherit;
-        }
-        .csb-suggestion-item:hover { background: var(--royal-50); }
+        /* ⚠️★`.csb-suggestions` / `.csb-suggestion-item` も **2026-10-01 に削除した**（参照0件）。
+              サジェストは `ListSearchButton` の `.lsb-menu`（このファイル末尾）に移した。 */
         @media (max-width: 640px) {
           .csb-bar { gap: 6px; }
         }
@@ -2065,4 +2010,138 @@ body {
 .hdr-search-input::-webkit-search-decoration {
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* ── components/common/ListSearchButton.tsx（2026-10-01 / ステップ2）──────────
+   「一覧内を検索」。4ページ（/companies /jobs /people /articles）が共有する。
+   ⚠️★**ここに書く。ページ側に同じ見た目を書き写さないこと。**
+   ⚠️ 行の他のボタン（`.csb-filter-toggle` / `.jobs-pill` / `.ppl-chip`）と
+      **高さ 36px を揃えてある。** 片方だけ変えないこと。 */
+        .lsb {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 0 0 auto;
+        }
+        /* 開いているあいだだけ伸びる。閉じればボタンの幅に戻り、1段目に余白が生まれる */
+        .lsb.lsb--open { flex: 1 1 240px; }
+        .lsb-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 36px;
+          padding: 0 14px;
+          border-radius: 999px;
+          border: 1.5px solid var(--line);
+          background: #fff;
+          color: var(--ink-soft);
+          font-size: 12.5px;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+          flex-shrink: 0;
+          position: relative;
+        }
+        .lsb-btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+        .lsb-field { flex: 1 1 auto; min-width: 0; }
+        .lsb-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 13.5px;
+          color: var(--ink);
+          background: transparent;
+          padding: 9px 0;
+          min-width: 0;
+          font-family: inherit;
+        }
+        /* 確定済みのキーワード。⚠️ 見た目は `.csb-active-chip`（選択中の条件）と同じ。
+           同じ「いま効いている条件」なので、別の意匠にしないこと。 */
+        .lsb-chip {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 30px;
+          padding: 0 10px 0 12px;
+          border-radius: 999px;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          background: var(--royal-50);
+          color: var(--royal);
+          border: 1px solid var(--royal-100);
+          white-space: nowrap;
+          max-width: 220px;
+          overflow: hidden;
+        }
+        .lsb-menu {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0; right: 0;
+          background: #fff;
+          border: 1.5px solid var(--line);
+          border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          overflow: hidden;
+          z-index: 200;
+        }
+        .lsb-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 10px 14px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+        }
+        .lsb-menu-item:hover { background: var(--royal-50); }
+        .lsb-menu-text { min-width: 0; }
+        .lsb-menu-label {
+          display: block;
+          font-size: 13px; font-weight: 600; color: var(--ink);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .lsb-menu-sub {
+          display: block;
+          font-size: 12px; font-weight: 500; color: var(--ink-mute);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+/* ── ★1段目のボタンを狭い画面でアイコンだけにする（2026-10-01 / B-1）──────────
+   対象は「一覧内を検索」と「詳細検索」。**並び替え・表示切替・件数は触っていない。**
+   ⚠️★**文字が消えるので `aria-label` が要る。** 付いていないボタンにこの class を
+      足さないこと（読み上げで「ボタン」としか言われなくなる）。
+   ⚠️★**件数バッジはアイコン側に残す**（`.tb-label` だけを隠し、バッジは隠さない）。
+   ⚠️ 見た目の高さは 36px のまま。**当たり判定だけ `::after` で 44×44 に広げる**
+      —— 行の他のボタンが 36px なので、高さを変えると1段目の rhythm が崩れる。
+      同じ手は `/mypage` の鉛筆アイコン（18px / 当たり判定 44px）で前例がある。 */
+@media (max-width: 767px) {
+  .lsb-btn .tb-label,
+  .tb-collapse-label .tb-label { display: none; }
+  /* ⚠️★**44×44 にする。** 文字が消えて 37px / 47px まで痩せており、
+        指で押す対象としては小さい（実測 2026-10-01 / 375px）。
+     ⚠️★**`::after` で当たり判定だけ広げる手は `<button>` では効かない**（同日に試して失敗）。
+        ボタンは hit test が border box で閉じるので、はみ出した疑似要素を押しても
+        親（`.csb-bar`）が返る。`/mypage` の鉛筆（`<button>` ではない）とは事情が違う。
+        → **実寸を大きくする。**
+     ⚠️ 375px ではこの2つが1行目に並び、他のピル（並び替え・表示切替）は
+        2行目に折れるので、高さの違いは**同じ行に出ない**（実測）。 */
+  .lsb-btn,
+  .tb-collapse-label {
+    height: 44px;
+    min-width: 44px;
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 5px;
+    justify-content: center;
+  }
+  .lsb-chip { max-width: 150px; }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
+import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -780,10 +781,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     setView(v);
     try { window.localStorage.setItem("people-view", v); } catch { /* プライベートモード等。表示は続ける */ }
   };
-  const [keyword, setKeyword] = useState("");
+  /* ★キーワードを URL に入れた（2026-10-01 / 柴さんの判断 A-1）。
+     ⚠️★**パラメータ名は `q`。** 他の3ページ（/companies /jobs /articles）と同じ名前に
+        揃えてある。`/people` だけ別名にしないこと。
+     ⚠️★それまで `useState("")` で、**リロードで消え、共有もできなかった。**
+        同じ列の4ページで挙動が割れていた唯一の箇所。
+     ⚠️ 書き込みは `setParam` の `router.replace`（`scroll: false`）。
+        **確定（Enter）のときだけ**書くので履歴は積まれない。
+     ⚠️ `kwDraft` は入力中の値。URL が変わったら追従させる（戻る・共有リンクで開いたとき）。 */
+  const keyword = searchParams.get("q") ?? "";
+  const [kwDraft, setKwDraft] = useState(keyword);
+  useEffect(() => { setKwDraft(keyword); }, [keyword]);
   const [openChip, setOpenChip] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function onOutside(e: MouseEvent) {
@@ -926,30 +936,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       >
         <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {/* 検索インプット。
-                ⚠️★フォーカスの表示は `.search-shell:focus-within`（globals.css）。
-                   JS でインラインの style を書き換える形から寄せた（2026-09-09）。
-                   この殻は入力欄側の二重枠も止める（丸の中に四角が重なっていた）。 */}
-            <div className="search-shell" style={{
-              /* ⚠️ ここに残すのは**配置だけ**。枠と背景は `.search-shell`（globals.css）。 */
-              position: "relative", flex: "1 1 220px", minWidth: 0,
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input
-                ref={inputRef}
-                type="search"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="名前・会社・職種で検索"
-                style={{ flex: 1, border: "none", outline: "none", fontSize: 13.5, color: "var(--ink)", background: "transparent", padding: "9px 0", minWidth: 0, fontFamily: "inherit" }}
-                aria-label="ユーザーを検索"
-              />
-              {keyword && (
-                <button type="button" onClick={() => { setKeyword(""); inputRef.current?.focus(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#8b95a3", fontSize: 16, padding: "2px" }} aria-label="クリア">✕</button>
-              )}
-            </div>
+            {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
+                   components/common/ListSearchButton —— **4つの一覧で同じ部品**。
+                ⚠️★ここに入力欄を書き戻さないこと。
+                ⚠️ サジェストは持たない（`/people` は元から候補を出していない）。 */}
+            <ListSearchButton
+              value={keyword}
+              draft={kwDraft}
+              onDraftChange={setKwDraft}
+              onCommit={(v) => setParam({ q: v })}
+              onClear={() => setParam({ q: "" })}
+              placeholder="名前・会社・職種で検索"
+              inputAriaLabel="ユーザーを検索"
+            />
 
             {/* ★「詳細検索」（2026-09-18）。**`/companies` と同じ形**にした。
                    ⚠️ 2026-09-17 の注記が「2つ目の絞り込みを足して1行に収まらなくなったら
@@ -959,10 +958,29 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             <button
               type="button"
               onClick={() => setDetailOpen(!detailOpen)}
-              className={`ppl-chip${detailOpen || activeFilterCount > 0 ? " active" : ""}`}
+              className={`ppl-chip tb-collapse-label${detailOpen || activeFilterCount > 0 ? " active" : ""}`}
               aria-expanded={detailOpen}
+              aria-label="詳細検索"
             >
-              詳細検索{activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}
+              {/* ⚠️★**アイコンを外さないこと**（2026-10-01）。768px 未満はラベルが消えるので、
+                     無いと**中身が空のボタン**になる。`/companies` `/jobs` と同じ字形。 */}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="4" y1="6" x2="20" y2="6"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+                <line x1="11" y1="18" x2="13" y2="18"/>
+              </svg>
+              <span className="tb-label">詳細検索</span>
+              {/* ⚠️★件数は**バッジ**で出す（2026-10-01）。それまで素のテキストで
+                     「詳細検索 2」と並べており、`/companies` `/jobs` のバッジと
+                     **同じ意味が違う見た目**になっていた。
+                  ⚠️ 768px 未満はラベルが消えるので、**バッジだけが残る**。隠さないこと。 */}
+              {activeFilterCount > 0 && (
+                <span style={{
+                  fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
+                  background: "var(--royal)", color: "#fff",
+                  fontFamily: "var(--font-inter), var(--font-noto)",
+                }}>{activeFilterCount}</span>
+              )}
             </button>
 
             {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────

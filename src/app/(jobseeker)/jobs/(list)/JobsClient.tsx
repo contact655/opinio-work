@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
+import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -293,11 +294,15 @@ export default function JobsClient({
         ⚠️ 幅で挙動を変えたくなったら CSS のメディアクエリを使うこと。JS で幅を持つと
            サーバー描画と初回描画がずれる（このコードも初期値 false から始まっていた）。 */
 
-  // Local-only keyword search
-  // LP のヒーロー検索から ?q= で飛んでくるため URL を初期値にする
-  const [q, setQ] = useState(searchParams.get("q") ?? "");
-  const [showSuggest, setShowSuggest] = useState(false);
-  const searchBarRef = useRef<HTMLDivElement>(null);
+  /* ★キーワード（2026-10-01 / ステップ2）。**確定済みは URL（`?q=`）。**
+     ⚠️★それまで URL は**初期値を読むだけ**で、打った文字は client state に閉じていた
+        —— リロードで消え、共有もできなかった。`/companies` と `/articles` は
+        URL に入れていたので、**同じ列の4ページで挙動が割れていた。**
+     ⚠️ `qDraft` は**入力中の値**。サジェストの計算に使う（確定前の候補を出すため）。
+     ⚠️ LP のヒーロー検索から `?q=` で飛んでくる経路はそのまま効く。 */
+  const q = searchParams.get("q") ?? "";
+  const [qDraft, setQDraft] = useState(q);
+  useEffect(() => { setQDraft(q); }, [q]);
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const [pillAnchor, setPillAnchor] = useState<{ top: number; left: number } | null>(null);
 
@@ -309,12 +314,10 @@ export default function JobsClient({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const filterPillsRef = useRef<HTMLDivElement>(null);
 
-  // サジェスト / フィルターピル外クリックで閉じる
+  /* フィルターピルの外クリックで閉じる。
+     ⚠️ サジェストの開閉は `ListSearchButton` が自分で持つようになった（2026-10-01）。 */
   useEffect(() => {
     function onOutside(e: MouseEvent) {
-      if (searchBarRef.current && !searchBarRef.current.contains(e.target as Node)) {
-        setShowSuggest(false);
-      }
       const target = e.target as Node;
       const inFilterBar = filterPillsRef.current?.contains(target);
       const inDropdown = (target as HTMLElement)?.closest?.(".jobs-pill-menu");
@@ -435,7 +438,9 @@ export default function JobsClient({
 
   // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
   const suggestions = useMemo(() => {
-    const trimmed = q.trim();
+    /* ⚠️ 確定済み（`q`）ではなく**入力中**（`qDraft`）から作る。
+          確定してからしか候補が出ないと、サジェストの意味が無い。 */
+    const trimmed = qDraft.trim();
     if (trimmed.length < 1) return [];
     const lower = trimmed.toLowerCase();
     const seen = new Set<string>();
@@ -455,7 +460,7 @@ export default function JobsClient({
       }
     }
     return results;
-  }, [q, allJobs, companyMap]);
+  }, [qDraft, allJobs, companyMap]);
 
 
   function setParam(key: string, value: string) {
@@ -877,73 +882,22 @@ export default function JobsClient({
           {/* ツールバー本体（企業ページ .csb-bar と同等） */}
           <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "0 0 12px" }}>
 
-            {/* 検索インプット */}
-            <div ref={searchBarRef} style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
-              {/* ⚠️★フォーカスの表示は CSS（`.search-shell:focus-within`）に寄せた（2026-09-09）。
-                     JS の onFocus / onBlur でインラインの `style` を書き換えていたが、
-                     ①`:focus-within` で足りる ②インラインに書くと後から CSS で
-                     調整できない（globals.css「レスポンシブで変えたい値をインラインに
-                     書かない」と同じ理由）。
-                  ⚠️ `.search-shell` は入力欄側の二重枠も止める。理由は globals.css の注記。 */}
-              <div role="search" className="search-shell">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input
-                  type="search"
-                  aria-label="募集を検索"
-                  placeholder="職種・企業名で検索..."
-                  value={q}
-                  onChange={(e) => { setQ(e.target.value); setShowSuggest(true); }}
-                  onFocus={() => setShowSuggest(true)}
-                  onKeyDown={(e) => { if (e.key === "Escape") setShowSuggest(false); }}
-                  style={{
-                    flex: 1, border: "none", outline: "none",
-                    fontSize: 13.5, color: "var(--ink)", background: "transparent",
-                    padding: "9px 0", minWidth: 0,
-                  }}
-                />
-                {q && (
-                  <button type="button" onClick={() => { setQ(""); setShowSuggest(false); }} aria-label="検索をクリア"
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
-                  >×</button>
-                )}
-              </div>
-
-              {/* ── 検索サジェスト dropdown ── */}
-              {showSuggest && suggestions.length > 0 && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
-                  background: "#fff", border: "1.5px solid var(--line)",
-                  borderRadius: 14, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                  zIndex: 200, overflow: "hidden",
-                }}>
-                  {suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onMouseDown={(e) => { e.preventDefault(); setQ(s.q); setShowSuggest(false); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        width: "100%", padding: "10px 16px",
-                        border: "none", background: "transparent",
-                        cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                        borderBottom: i < suggestions.length - 1 ? "1px solid var(--line-soft)" : "none",
-                      }}
-                      className="suggest-item"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
-                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                      </svg>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
-                        {s.sub && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.sub}</div>}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
+                   components/common/ListSearchButton —— **4つの一覧で同じ部品**。
+                ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 971px を占めていた。
+                ⚠️ サジェストの材料（求人のタイトルと企業名）はページが持っているので、
+                   入力中の値（`qDraft`）もページが持つ。 */}
+            <ListSearchButton
+              value={q}
+              draft={qDraft}
+              onDraftChange={setQDraft}
+              onCommit={(v) => setParam("q", v)}
+              onClear={() => setParam("q", "")}
+              placeholder="職種・企業名で検索"
+              inputAriaLabel="募集を検索"
+              suggestions={suggestions.map((sg, i) => ({ key: `${i}:${sg.q}`, label: sg.label, sub: sg.sub }))}
+              onPickSuggestion={(sg) => setParam("q", suggestions.find((x, i) => `${i}:${x.q}` === sg.key)?.q ?? sg.label)}
+            />
 
             {/* ── ★詳細検索（2026-09-09。柴さんの要望）────────────────────────────
                    条件が3箇所（上のピル行 / 左サイドバー / モバイルの職種ピル）に
@@ -960,10 +914,18 @@ export default function JobsClient({
                 type="button"
                 aria-expanded={showAdvanced}
                 onClick={() => setShowAdvanced((v) => !v)}
-                className={`jobs-pill${showAdvanced || activeChips.length > 0 ? " active" : ""}`}
+                className={`jobs-pill tb-collapse-label${showAdvanced || activeChips.length > 0 ? " active" : ""}`}
+                aria-label="詳細検索"
                 style={{ flexShrink: 0, fontWeight: 700 }}
               >
-                詳細検索
+                {/* ⚠️★**アイコンを外さないこと**（2026-10-01）。768px 未満はラベルが消えるので、
+                       無いと「▾」だけのボタンになる。`/companies` `/people` と同じ字形。 */}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="4" y1="6" x2="20" y2="6"/>
+                  <line x1="8" y1="12" x2="16" y2="12"/>
+                  <line x1="11" y1="18" x2="13" y2="18"/>
+                </svg>
+                <span className="tb-label">詳細検索</span>
                 {activeChips.length > 0 && (
                   <span style={{
                     marginLeft: 6, fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,

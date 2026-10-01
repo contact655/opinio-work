@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useState, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ARTICLE_TYPES } from "@/app/articles/mockArticleData";
 import { SortSelect } from "@/components/common/SortSelect";
+import { ListSearchButton } from "@/components/common/ListSearchButton";
 
 const LINE = "var(--line)";
 const INK_MUTE = "var(--ink-mute)";
@@ -38,7 +39,8 @@ export default function ArticleFilterBar({ total }: { total: number }) {
   const currentQ    = searchParams.get("q") ?? "";
 
   const [localQ, setLocalQ] = useState(currentQ);
-  const qTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* 戻る・共有リンクで開いたときに入力中の値を URL に合わせる */
+  useEffect(() => { setLocalQ(currentQ); }, [currentQ]);
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -47,15 +49,16 @@ export default function ArticleFilterBar({ total }: { total: number }) {
     router.push(`${pathname}?${params.toString()}`);
   }, [searchParams, pathname, router]);
 
-  const handleQueryChange = useCallback((val: string) => {
+  /* ★「一覧内を検索」になった（2026-10-01 / ステップ2）。
+     ⚠️★**打つたびに URL を書き換えるのはやめた。** Enter で確定する。
+        それまで 400ms のデバウンスで `router.push` しており、1文字ごとに履歴が積まれていた。
+     ⚠️ `localQ` は入力中の値。確定済みは URL（`currentQ`）。 */
+  const commitQuery = useCallback((val: string) => {
     setLocalQ(val);
-    if (qTimer.current) clearTimeout(qTimer.current);
-    qTimer.current = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (val.trim()) params.set("q", val.trim());
-      else params.delete("q");
-      router.push(`${pathname}?${params.toString()}`);
-    }, 400);
+    const params = new URLSearchParams(searchParams.toString());
+    if (val.trim()) params.set("q", val.trim());
+    else params.delete("q");
+    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
   }, [searchParams, pathname, router]);
 
   const currentView = searchParams.get("view") ?? "list";
@@ -94,43 +97,18 @@ export default function ArticleFilterBar({ total }: { total: number }) {
 
             ⚠️ 右端に寄せるのは `marginLeft: auto`。**行を折ったときだけ効く。** */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {/* Keyword search */}
-          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={INK_MUTE} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              type="search"
-              placeholder="タイトル・企業名で検索"
-              value={localQ}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              aria-label="記事を検索"
-              /* ⚠️★フォーカス時の二重枠を止める（2026-09-09）。globals.css の
-                    `input:focus-visible` が border の外に outline を足すので、
-                    この入力欄のように**自分で丸い枠を持っている**と線が2本になる。
-                    `.search-pill` は outline だけを消し、枠の色と淡いリングは残す。
-                 ⚠️ 枠の色を変えたい場合も、ここに `outline` を書き戻さないこと。 */
-              className="search-pill"
-              style={{
-                width: "100%", boxSizing: "border-box",
-                padding: "9px 28px 9px 30px",
-                border: `1.5px solid ${localQ ? "var(--royal)" : LINE}`,
-                borderRadius: 100, height: 38,
-                fontSize: 13, color: "var(--ink)",
-                background: "#fff", outline: "none",
-                fontFamily: "inherit",
-                transition: "border-color 0.15s",
-              }}
-            />
-            {localQ && (
-              <button
-                type="button"
-                onClick={() => handleQueryChange("")}
-                aria-label="検索をクリア"
-                style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: INK_MUTE, fontSize: "var(--text-base)", lineHeight: 1, padding: 0 }}
-              ><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            )}
-          </div>
+          {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
+                 components/common/ListSearchButton —— **4つの一覧で同じ部品**。
+              ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 789px を占めていた。 */}
+          <ListSearchButton
+            value={currentQ}
+            draft={localQ}
+            onDraftChange={setLocalQ}
+            onCommit={commitQuery}
+            onClear={() => commitQuery("")}
+            placeholder="タイトル・企業名で検索"
+            inputAriaLabel="記事を検索"
+          />
 
           {/* ★カテゴリ（2026-09-17 にピル5つからドロップダウンへ / 柴さんの指示）。
                  実体は components/common/SortSelect —— 並び替えと**同じ部品**。

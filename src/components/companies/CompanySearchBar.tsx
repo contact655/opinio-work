@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChip } from "@/components/common/FilterChip";
+import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
@@ -56,11 +57,9 @@ export function CompanySearchBar({
   const searchParams = useSearchParams();
 
   const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +70,6 @@ export function CompanySearchBar({
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
         setOpenChip(null);
       }
     }
@@ -96,42 +94,26 @@ export function CompanySearchBar({
     router.push(`?${params.toString()}`);
   }
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setInputValue(val);
-    setShowSuggestions(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      updateParam("q", val || null);
-    }, 300);
+  /* ★「一覧内を検索」になった（2026-10-01 / ステップ2）。
+        ⚠️★**打つたびに URL を書き換えるのはやめた。** Enter で確定する。
+           それまで 300ms のデバウンスで `?q=` を push しており、
+           1文字ごとに履歴が積まれていた（戻るが効かない形）。
+        ⚠️ `inputValue` は**入力中の値**。確定済みは URL（`currentQuery`）。
+           サジェストの計算に入力中の値が要るので、ページ側で持っている。 */
+  const currentQuery = searchParams.get("q") ?? "";
+
+  function commitQuery(v: string) {
+    setInputValue(v);
+    updateParam("q", v || null);
   }
 
-  function handleSuggestionClick(name: string) {
-    setInputValue(name);
-    setShowSuggestions(false);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    updateParam("q", name);
-  }
-
-  /**
-   * 検索欄の ✕。**検索文字だけ**を消す。
-   *
-   * ⚠️★2026-09-06 まで、ここが `router.push("?")` で**絞り込みも全部消していた**。
-   *    入力欄の中の ✕ が、隣のチップまで解除するのは見た目と合っていない。
-   * ⚠️ 「すべてクリア」ボタンは同日に廃止した。いまは**それぞれを個別に外す**:
-   *      検索文字 → この ✕ ／ フェーズ・業種・都道府県 → チップの ✕
-   *      外資系・募集あり → もう一度押す（元からトグル）
-   */
   function clearQuery() {
     setInputValue("");
-    setShowSuggestions(false);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     updateParam("q", null);
   }
 
   function toggleChip(name: string) {
     setOpenChip(openChip === name ? null : name);
-    setShowSuggestions(false);
   }
 
   const currentPhase      = searchParams.get("phase") ?? "";
@@ -185,62 +167,31 @@ export function CompanySearchBar({
       <div ref={wrapRef} style={{ marginBottom: 4 }}>
         <div className="csb-bar">
 
-          {/* 検索インプット */}
-          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 0 }}>
-            <div className="csb-search-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b95a3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="search"
-                className="csb-input"
-                placeholder="企業名・キーワードで検索"
-                value={inputValue}
-                onChange={handleInputChange}
-                onFocus={() => { setShowSuggestions(true); setOpenChip(null); }}
-                aria-label="企業を検索"
-                aria-autocomplete="list"
-                autoComplete="off"
-              />
-              {inputValue && (
-                <button
-                  type="button"
-                  onClick={clearQuery}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: "0 2px", color: "#8b95a3", lineHeight: 1, flexShrink: 0 }}
-                  aria-label="クリア"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {showSuggestions && filtered.length > 0 && (
-              <div className="csb-suggestions" role="listbox">
-                {filtered.map((c) => (
-                  <button
-                    key={c.id}
-                    role="option"
-                    className="csb-suggestion-item"
-                    onMouseDown={(e) => { e.preventDefault(); handleSuggestionClick(c.name); }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                      <rect x="2" y="7" width="20" height="14" rx="2"/>
-                      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                    </svg>
-                    <span>{c.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
+                 components/common/ListSearchButton —— **4つの一覧で同じ部品**。
+              ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 879px を占めていて、
+                 **狭い画面ほど潰れる**（768px で 207px / 375px で 173px。ステップ0 の実測）。
+              ⚠️ サジェストの材料（企業名の一覧）はページが持っているので、
+                 入力中の値（`inputValue`）もページが持つ。 */}
+          <ListSearchButton
+            value={currentQuery}
+            draft={inputValue}
+            onDraftChange={(v) => { setInputValue(v); setOpenChip(null); }}
+            onCommit={commitQuery}
+            onClear={clearQuery}
+            placeholder="企業名・キーワードで検索"
+            inputAriaLabel="企業を検索"
+            suggestions={filtered.map((c) => ({ key: c.id, label: c.name }))}
+            onPickSuggestion={(sg) => commitQuery(sg.label)}
+          />
 
           {/* ★絞り込みのトグル（2026-09-17 に**全幅**で出すようにした）。
                  文言は `/jobs` と揃えて「詳細検索」。**片方だけ変えないこと。**
               ⚠️ 選択中の数をバッジで出す（閉じていても効いている件数が分かる）。 */}
           <button
             type="button"
-            className={`csb-filter-toggle${filtersExpanded || activeChips.length > 0 ? " active" : ""}`}
+            className={`csb-filter-toggle tb-collapse-label${filtersExpanded || activeChips.length > 0 ? " active" : ""}`}
+            aria-label="詳細検索"
             onClick={() => setFiltersExpanded(!filtersExpanded)}
             aria-expanded={filtersExpanded}
           >
@@ -249,7 +200,7 @@ export function CompanySearchBar({
               <line x1="8" y1="12" x2="16" y2="12"/>
               <line x1="11" y1="18" x2="13" y2="18"/>
             </svg>
-            詳細検索
+            <span className="tb-label">詳細検索</span>
             {activeChips.length > 0 && (
               <span style={{
                 fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
