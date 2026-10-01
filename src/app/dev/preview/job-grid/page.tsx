@@ -8,14 +8,13 @@ import {
 } from "../fixtures";
 
 /**
- * ★`/jobs` に「一覧（グリッド）」を足すか決めるための試作（2026-10-01 / 柴さんの指示）。
+ * ★`/jobs` の「一覧（グリッド）」表示（2026-10-01 / 柴さんの指示で繋いだ）。
  *
- * ⚠️★★**まだ `/jobs` には繋いでいない。** 本番の見た目は何も変わっていない。
- *    採らないと決めたら、`JobCardGrid.tsx` と globals.css の `.job-grid-*` と
- *    この画面を**まとめて消す**（半端に残さない）。
+ * ⚠️★**実データは公開求人2件**で、両方 Salesforce・両方フル項目。
+ *    「枚数が増えたとき」「社名が長いとき」「項目が欠けたとき」は**実データで踏めない。**
+ *    ＝ グリッドの見た目を直すときは**必ずこの画面で見る。**
  *
- * ⚠️ 実データは**公開求人2件**で、両方 Salesforce・両方フル項目。
- *    「枚数が増えたとき」「社名が長いとき」「欠けたとき」は実データで踏めない。
+ * ⚠️ 本番の既定は「詳細」（1列＋分割）。グリッドは `?view=card`。
  */
 function Grid({ children }: { children: React.ReactNode }) {
   /* ⚠️ 実ページに入れるときと同じ class。ここで独自のグリッドを組まない */
@@ -26,9 +25,9 @@ export default function JobGridPreview() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="求人カード（一覧＝グリッド）／試作">
-        <code>/jobs</code> に「一覧 / 詳細」の切り替えを足すとどう見えるかの試作です。
-        <strong>まだ本番には繋いでいません。</strong>
+      <PreviewHeader title="求人カード（一覧＝グリッド）">
+        <code>/jobs</code> の「一覧」表示（<code>?view=card</code>）で使っているカードです。
+        <strong>既定は「詳細」（1列＋分割）</strong>のままです。
         列は <code>/companies</code> と同じ段（1200px 未満で2列・600px 未満で1列）。
         <br />
         ⚠️ 1列のカード（<code>JobListItem</code>）との違いは2つ。

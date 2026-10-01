@@ -63,6 +63,8 @@ import { fmtMan } from "@/lib/utils/salary";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
 import { JobPane } from "@/components/jobs/JobPane";
 import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
+import { JobCardGrid } from "@/components/jobs/JobCardGrid";
+import { ViewToggle } from "@/components/common/ViewToggle";
 import { SortSelect } from "@/components/common/SortSelect";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -289,6 +291,15 @@ export default function JobsClient({
   const workStyleSet = useMemo(() => new Set(work_style ? work_style.split(",") : []), [work_style]);
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "updated");
+  /* ★一覧（グリッド）／詳細（1列＋分割）の切り替え（2026-10-01 / 柴さんの指示）。
+        ⚠️★**`?view=` の値は `/companies` と同じ**（`card` = グリッド / `list` = 1列＋分割）。
+           同じ語が隣り合うページで別の意味を持たないようにするため。
+        ⚠️★**既定は `/companies` と逆で「詳細」。** あちらはグリッドが既定だが、
+           `/jobs` は 2026-09-09 から分割表示だけで来ており、
+           **既定を変えると今日まで見えていたものが変わる。** 公開求人も2件しかなく、
+           3列グリッドに2枚だと右3分の1が空く。
+           ⚠️ 求人が増えて既定を入れ替えるときは、ここ1箇所を変えれば済む。 */
+  const view: "card" | "list" = searchParams.get("view") === "card" ? "card" : "list";
   /* ⚠️ `isDesktop`（1024px 判定）は 2026-09-09 に削除した。サイドバーの列幅を
         出し分けるためだけの state で、サイドバーごと無くなった。
         ⚠️ 幅で挙動を変えたくなったら CSS のメディアクエリを使うこと。JS で幅を持つと
@@ -845,6 +856,76 @@ export default function JobsClient({
 
 
 
+  /* ★進捗バー・もっと見る・センチネル。**一覧（グリッド）と詳細（分割）で共有する**
+        （2026-10-01 にグリッドを足したときに変数へ出した）。
+     ⚠️★**2つに書き写さないこと。** 片方だけ直る形の不具合になる。 */
+  const listTail = (
+    <>
+            {/* ★進捗・もっと見る・センチネルは**レールの中**（2026-09-17）。
+                   scrollMode="panes" ではレールが自分でスクロールするので、
+                   **外に置くと一覧の続きが2ペインの下（＝画面の外）に落ちる。**
+                ⚠️ 無限スクロールの IntersectionObserver は root を指定していない
+                   （＝ビューポート基準）。**祖先のスクロール領域によるクリップは効く**ので
+                   レールが独立スクロールでも動く。root をレールに変えないこと ——
+                   分割しない幅ではレールがスクローラではなく、
+                   **常に交差して無限に読み込む**。 */}
+            {/* ⑦ プログレスバー + もっと見るボタン */}
+            <div style={{ marginTop: 16, marginBottom: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
+                  <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{paged.length}</strong>
+                  {" / "}
+                  <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{filteredForDisplay.length}</strong>
+                  {" 件表示中"}
+                </span>
+                {hasMore && (
+                  <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>残り{remainingCount}件</span>
+                )}
+              </div>
+              <div style={{ height: 4, background: "var(--line)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%",
+                  width: `${Math.round(paged.length / Math.max(filteredForDisplay.length, 1) * 100)}%`,
+                  background: "linear-gradient(to right, var(--royal), #3B5FD9)",
+                  borderRadius: 99,
+                  transition: "width 0.4s ease",
+                }} />
+              </div>
+            </div>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => {
+                  const next = displayCount + PER_PAGE;
+                  setDisplayCount(next);
+                  const p = new URLSearchParams(window.location.search);
+                  p.set("show", next.toString());
+                  router.replace(`/jobs?${p.toString()}`, { scroll: false });
+                }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  margin: "12px auto 0",
+                  padding: "12px 32px", borderRadius: 999,
+                  border: "1.5px solid var(--royal)",
+                  background: "#fff", color: "var(--royal)",
+                  fontSize: 14, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                  transition: "all 0.15s",
+                  boxShadow: "0 2px 8px rgba(0,35,102,0.1)",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--royal)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
+              >
+                もっと見る
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+            )}
+            {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
+    </>
+  );
+
   return (
     <>
       <h1 className="sr-only">IT募集を探す</h1>
@@ -989,6 +1070,10 @@ export default function JobsClient({
                   )}
                 </>
               )}
+              {/* ★ビュートグル（2026-10-01）。⚠️★見た目は `components/common/ViewToggle.tsx`
+                     の1箇所。`/companies` と同じ部品で、**ここに書き写さないこと。**
+                  ⚠️ 置き場所は件数の**左**。`/companies` と同じ並び（並び替え → 切替 → 件数）。 */}
+              <ViewToggle value={view} onChange={(v) => setParam("view", v === "card" ? "card" : "")} />
               <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
               <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
                 <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
@@ -1367,6 +1452,29 @@ export default function JobsClient({
                      ⚠️ 部品名が `Company…` なのは歴史的な理由（CompanySplitLinks の注記）。
                      ⚠️ レール幅 700 は企業の詳細表示と同じ。求人カードも横長の行で、
                         420 では本文が入らない。 */}
+              {/* ★★一覧（グリッド）と詳細（1列＋分割）の出し分け（2026-10-01 / 柴さんの指示）。
+                     ⚠️★**`/companies` と同じ約束**:「**グリッドは全画面 / 1列は分割**」。
+                        グリッドは `CompanySplitLayout` で**包まない**。包むと 1280px 以上で
+                        右ペインに戻り、3列が 1枚 130px に潰れる
+                        （`/companies` の `GRID_RAIL_WIDTH` を 2026-09-30 に消したのと同じ理由）。
+                     ⚠️★グリッド側では `?selected=` を**見ない**。押したら全画面へ遷移する。
+                     ⚠️ 進捗・もっと見るは `listTail` で共有している。書き写さないこと。 */}
+              {view === "card" ? (
+                <>
+                  <div className="jobs-grid">
+                    {paged.map((job) => (
+                      <JobCardGrid
+                        key={job.id}
+                        job={job}
+                        companyMap={companyMap}
+                        initialBookmarked={bookmarkedIds.has(job.id)}
+                        isApplied={appliedJobIds.has(job.id)}
+                      />
+                    ))}
+                  </div>
+                  {listTail}
+                </>
+              ) : (
               <CompanySplitLayout
                 pane={selectedJob ? <JobPane job={selectedJob} company={selectedCompany} /> : null}
                 paneLabel={selectedJob ? selectedJob.role : null}
@@ -1398,69 +1506,9 @@ export default function JobsClient({
                   });
                 })()}
               </div>
-              {/* ★進捗・もっと見る・センチネルは**レールの中**（2026-09-17）。
-                     scrollMode="panes" ではレールが自分でスクロールするので、
-                     **外に置くと一覧の続きが2ペインの下（＝画面の外）に落ちる。**
-                  ⚠️ 無限スクロールの IntersectionObserver は root を指定していない
-                     （＝ビューポート基準）。**祖先のスクロール領域によるクリップは効く**ので
-                     レールが独立スクロールでも動く。root をレールに変えないこと ——
-                     分割しない幅ではレールがスクローラではなく、
-                     **常に交差して無限に読み込む**。 */}
-              {/* ⑦ プログレスバー + もっと見るボタン */}
-              <div style={{ marginTop: 16, marginBottom: 4 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                    <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{paged.length}</strong>
-                    {" / "}
-                    <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{filteredForDisplay.length}</strong>
-                    {" 件表示中"}
-                  </span>
-                  {hasMore && (
-                    <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>残り{remainingCount}件</span>
-                  )}
-                </div>
-                <div style={{ height: 4, background: "var(--line)", borderRadius: 99, overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%",
-                    width: `${Math.round(paged.length / Math.max(filteredForDisplay.length, 1) * 100)}%`,
-                    background: "linear-gradient(to right, var(--royal), #3B5FD9)",
-                    borderRadius: 99,
-                    transition: "width 0.4s ease",
-                  }} />
-                </div>
-              </div>
-              {hasMore && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = displayCount + PER_PAGE;
-                    setDisplayCount(next);
-                    const p = new URLSearchParams(window.location.search);
-                    p.set("show", next.toString());
-                    router.replace(`/jobs?${p.toString()}`, { scroll: false });
-                  }}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    margin: "12px auto 0",
-                    padding: "12px 32px", borderRadius: 999,
-                    border: "1.5px solid var(--royal)",
-                    background: "#fff", color: "var(--royal)",
-                    fontSize: 14, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit",
-                    transition: "all 0.15s",
-                    boxShadow: "0 2px 8px rgba(0,35,102,0.1)",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--royal)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; (e.currentTarget as HTMLButtonElement).style.color = "var(--royal)"; }}
-                >
-                  もっと見る
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-              )}
-              {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
+              {listTail}
               </CompanySplitLayout>
+              )}
 
             </>
           )}

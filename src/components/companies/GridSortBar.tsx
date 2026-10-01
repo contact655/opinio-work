@@ -1,6 +1,7 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SortSelect } from "@/components/common/SortSelect";
+import { ViewToggle } from "@/components/common/ViewToggle";
 
 type Props = { totalCount: number };
 
@@ -105,50 +106,9 @@ export function GridSortBar({ totalCount }: Props) {
         {/* 右: ビュートグル + 件数 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
 
-          {/* ビュートグル（一覧/詳細） */}
-          <div style={{
-            display: "flex", gap: 2,
-            background: "var(--line-soft)", borderRadius: 8, padding: 2,
-          }}>
-            <button
-              type="button"
-              onClick={() => setView("card")}
-              className="view-btn"
-              style={{
-                background: currentView === "card" ? "var(--royal)" : "transparent",
-                color: currentView === "card" ? "#fff" : "var(--ink-mute)",
-              }}
-              title="コンパクト一覧"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-              一覧
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className="view-btn"
-              style={{
-                background: currentView === "list" ? "var(--royal)" : "transparent",
-                color: currentView === "list" ? "#fff" : "var(--ink-mute)",
-              }}
-              title="詳細リストビュー"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                <line x1="8" y1="6" x2="21" y2="6"/>
-                <line x1="8" y1="12" x2="21" y2="12"/>
-                <line x1="8" y1="18" x2="21" y2="18"/>
-                <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
-                <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-                <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
-              </svg>
-              詳細
-            </button>
-          </div>
+          {/* ⚠️★見た目は `components/common/ViewToggle.tsx` の1箇所（2026-10-01 に切り出した）。
+                 `/jobs` も同じものを使う。**ここに書き戻さないこと。** */}
+          <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
 
           <div style={{ width: 1, height: 20, background: "var(--line)" }} />
 
