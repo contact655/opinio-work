@@ -290,7 +290,8 @@ export default async function FeedPage() {
   // ⚠️ (a2) の userFollowResult は ow_users を JOIN した行なので、ここでは ID だけを別に取る。
   //    JOIN 結果から拾うと、対象ユーザーが消えていた場合に ID を落としてしまう。
   let followedUserIds: string[] = [];
-  // 投稿できる人だけにコンポーザーを出す。条件は lib/feed/canPost に集約している
+  /* 投稿できる人だけにコンポーザーを出す。条件は lib/feed/canPost に集約している。
+     ★2026-10-01 から「ログインしていること」だけ。**ここに条件を書き足さないこと。** */
   let canPost = false;
   if (myOwUserId) {
     const { data: fRows, error: fErr } = await adminSupabase
@@ -299,7 +300,7 @@ export default async function FeedPage() {
       .eq("follower_user_id", myOwUserId);
     if (fErr) console.error("[feed followedUserIds]", fErr.message);
     followedUserIds = (fRows ?? []).map((r: { target_user_id: string }) => r.target_user_id);
-    canPost = await canUserPost(adminSupabase, myOwUserId);
+    canPost = canUserPost(myOwUserId);
   }
 
   const sidebarUserFollows: SidebarUserFollow[] = (userFollowResult.data ?? [])

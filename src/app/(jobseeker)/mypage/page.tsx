@@ -633,7 +633,7 @@ export default async function MypagePage({
      ⚠️ 失敗しても `/mypage` は落とさない（関数の中で console.error を出す）。 */
   const industryMatchBlocks = owUser ? await fetchIndustryMatchBlocks(owUser.id) : [];
 
-  const canPost = owUser ? await canUserPost(createAdminClient(), owUser.id) : false;
+  const canPost = canUserPost(owUser?.id);
 
   return (
     <MypageClient

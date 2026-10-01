@@ -1,50 +1,32 @@
-import type { createAdminClient } from "@/lib/supabase/admin";
-
 /**
  * 投稿してよい人かどうか。
  *
- * ⚠️ 条件はここ1箇所に置く。API のガード（403）と、コンポーザーの表示可否と、
- *    RLS（posts_insert_own）で3つに分かれるので、少なくともアプリ側は揃える。
+ * ★**条件は「ログインしていること」だけ**（2026-10-01 / 柴さんの判断）。
  *
- * 条件: ow_company_members に行があること。**ただし未承認の本人申請は数えない**（下記）。
+ * ⚠️★**条件はここ1箇所に置く。** 効くのは3層:
+ *      ① コンポーザーの表示（`/feed` と `/mypage`）
+ *      ② API のガード（`POST /api/jobseeker/posts`）
+ *      ③ RLS（`posts_insert_own`）
+ *    **片方だけ直すと PostGREST を直接叩いて抜けられる**（または画面に箱が出るのに 403）。
  *
- * ⚠️ is_public / display_consent は条件に含めない（2026-08-05 に is_public から変更）。
- *    ow_company_members には CHECK 制約 check_public_requires_consent
- *    (is_public = false OR display_consent = true) があり、is_public は
- *    display_consent を含意する。そのため is_public でゲートすると、
- *    「面談に同意した人だけが発信できる」ことになってしまう。
- *    投稿は本人の能動的な行為であって、掲載同意で守る対象ではない。
- *    結果として is_public = false のメンバー（招待済み・未同意）も投稿できる。これは許容。
+ * ── なぜ広げたか（2026-10-01）────────────────────────────────────────────────
+ * それまでの条件は「`ow_company_members` に行があること」で、
+ * **実ユーザー25人のうち投稿できるのは6人だけ**だった（実測）。
+ * **コメントは元から全ログインユーザーに開いている**ので、投稿だけ閉じているのは
+ * 同じ画面の中で不揃いだった。
  *
- * ⚠️★上の判断は**そのまま生きている**。2026-08-23 に足したのは別の軸（2026-08-23）。
- *    本人がマイページから申請できるようにしたため（`created_via = 'self'`）、
- *    **在籍がまだ企業に確認されていない行**が存在しうるようになった。
- *    `ow_experiences` の在籍は自己申告なので、そのままだと「セールスフォース在籍」と
- *    書くだけで投稿権限が付いてしまう。
- *    そこで **`created_via='self'` かつ `is_public=false` のあいだだけ数えない**。
- *    ⚠️ 掲載同意（display_consent）では切っていない。切ると 2026-08-05 の判断を覆すことになる。
- *
- * ⚠️ 既存行は `created_via` が NULL なので**この条件に当たらない**。
- *    招待済み・未同意の人は今までどおり投稿できる（実測で6人とも変化なしを確認）。
- *
- * ⚠️★**RLS（posts_insert_own）と同じ式にすること。** 片方だけ直すと
- *    PostgREST を直接叩いて抜けられる。DB 側は 20260823040000 で同じ条件に揃えてある。
+ * ── 元の条件が守っていたもの（捨てた判断なので残す）──────────────────────────
+ * `ow_experiences` の在籍は**自己申告**なので、「セールスフォース在籍」と書くだけで
+ * 発信権限が付く。それを避けるために、企業に招待された／掲載されている人だけに
+ * 絞っていた（2026-08-05 に `is_public` を外し、2026-08-23 に未承認の本人申請
+ * `created_via='self' かつ is_public=false` を除く形にしていた）。
+ * ⚠️★**その懸念は消えていない。** いま効いている歯止めは次の4つだけ:
+ *      ・ログイン必須（`auth_id` のある `ow_users` 行）
+ *      ・毎時30件の上限（`checkRateLimit`）
+ *      ・本文1,000文字・画像は https のみ
+ *      ・公開範囲は `login_only` 固定（未ログインと検索エンジンには出ない）
+ * ⚠️ 荒れたら**まずここに条件を足す**（3層とも）。画面側だけ塞がないこと。
  */
-export async function canUserPost(
-  admin: ReturnType<typeof createAdminClient>,
-  owUserId: string,
-): Promise<boolean> {
-  /* ⚠️ PostgREST の `.neq()` で絞らないこと。`created_via` が NULL の行は
-        NULL 比較が真にならず**落ちてしまう**（既存メンバー全員が投稿できなくなる）。
-        件数は1人あたり数行なので、取ってから JS で判定する。 */
-  const { data, error } = await admin
-    .from("ow_company_members")
-    .select("id, created_via, is_public")
-    .eq("user_id", owUserId);
-  if (error) {
-    console.error("[canUserPost]", error.message);
-    return false;   // 判定できないときは投稿させない（安全側）
-  }
-  // RLS の `not (coalesce(created_via,'') = 'self' and is_public = false)` と同じ
-  return (data ?? []).some((m) => !(m.created_via === "self" && m.is_public === false));
+export function canUserPost(owUserId: string | null | undefined): boolean {
+  return !!owUserId;
 }
