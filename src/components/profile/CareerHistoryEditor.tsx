@@ -921,6 +921,20 @@ function StintForm({
         />
       </div>
 
+      {/* 部署名 */}
+      <div>
+        <label style={labelStyle()}>部署名</label>
+        <input
+          type="text"
+          value={draft.department}
+          onChange={(e) => set("department", e.target.value)}
+          placeholder="例: エンタープライズ営業本部"
+          disabled={isSaving}
+          style={fieldStyle()}
+          maxLength={100}
+        />
+      </div>
+
       {/*
         職種
         ⚠️ 2026-08-06 に親→子の2段セレクトから検索セレクトに置き換えた。
@@ -985,6 +999,53 @@ function StintForm({
           onChange={(e) => set("roleTitle", e.target.value)}
           placeholder="例: アカウントエグゼクティブ"
           disabled={isSaving}
+          style={fieldStyle()}
+        />
+      </div>
+
+      {/* ★★並びは**オンボーディング2画面目と同じ**にしてある（2026-10-01 / 柴さんの指示）:
+              会社名 → 部署名 → 職種 → 社内での呼び方 → 役職 → 社内での役職名 → 日付 → 残り。
+           ⚠️★**「選択肢 → その社内での呼び方」の2組を離さないこと。**
+              職種と役職で同じ並びにしてあるのが肝で、片方だけ動かすと対が崩れる。
+           ⚠️ **表示順を変えただけ。** 送信内容・必須判定・バリデーションには触っていない。
+
+           ── 2026-08-20 の並び（役職・雇用形態・社内での呼び方・部署名を日付の下へ）は、
+              「この会社を選んだ理由」ブロックが上に居て背景が2画面ぶん沈んでいたため。
+              ⚠️★**その前提はもう無い**（理由は 2026-09-12 に別モーダルへ出した）。
+              戻す理由が無いので戻さないこと。 */}
+      {/* 役職 */}
+      <div>
+        <label style={labelStyle()}>役職</label>
+        <select
+          value={draft.rank}
+          onChange={(e) => set("rank", e.target.value)}
+          disabled={isSaving}
+          style={fieldStyle()}
+        >
+          {RANK_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* ★社内での役職名（2026-10-01 / 柴さんの指示）。職種と同じ「選択肢＋自由入力」の形。
+          ⚠️★**上の5択（`rank`）と役割が違う。** 5択は会社をまたいで比べるための区分で、
+             こちらは**その会社の中だけで通じる呼び名**（例: ユニットリーダー）。
+             片方に寄せないこと。
+          ⚠️ 職種側の「社内での呼び方」（`role_title`）と**ラベルを同じにしないこと。**
+             同じ画面に2つ並ぶので、どちらの話か分からなくなる。 */}
+      <div>
+        <label style={labelStyle()}>社内での役職名</label>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 6px", lineHeight: 1.6 }}>
+          上で選んだ役職を、社内では何と呼んでいますか。
+        </p>
+        <input
+          type="text"
+          value={draft.rankTitle}
+          onChange={(e) => set("rankTitle", e.target.value)}
+          disabled={isSaving}
+          maxLength={100}
+          placeholder="例：ユニットリーダー、本部長代理"
           style={fieldStyle()}
         />
       </div>
@@ -1069,48 +1130,6 @@ function StintForm({
              ⚠️ 描画も止めた（`MergedTimeline` の `JoinReasonNote`）。
                 入力欄が無い以上、本人が直せない値を公開し続けないため。 */}
 
-      {/* ★役職 / 雇用形態 / 社内での呼び方 / 部署名 は、
-            2026-08-20 に「この会社を選んだ理由と、離れた理由」の**下**へ移した。
-            どれも無くても職歴として成立する補助項目で、これらが上にあると
-            背景ブロックが約2画面ぶん下に沈んでいた（実測 836px）。
-         ⚠️ **表示順を変えただけ。** 送信内容・必須判定・バリデーションには触っていない。 */}
-      {/* 役職 */}
-      <div>
-        <label style={labelStyle()}>役職</label>
-        <select
-          value={draft.rank}
-          onChange={(e) => set("rank", e.target.value)}
-          disabled={isSaving}
-          style={fieldStyle()}
-        >
-          {RANK_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* ★社内での役職名（2026-10-01 / 柴さんの指示）。職種と同じ「選択肢＋自由入力」の形。
-          ⚠️★**上の5択（`rank`）と役割が違う。** 5択は会社をまたいで比べるための区分で、
-             こちらは**その会社の中だけで通じる呼び名**（例: ユニットリーダー）。
-             片方に寄せないこと。
-          ⚠️ 職種側の「社内での呼び方」（`role_title`）と**ラベルを同じにしないこと。**
-             同じ画面に2つ並ぶので、どちらの話か分からなくなる。 */}
-      <div>
-        <label style={labelStyle()}>社内での役職名</label>
-        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 6px", lineHeight: 1.6 }}>
-          上で選んだ役職を、社内では何と呼んでいますか。
-        </p>
-        <input
-          type="text"
-          value={draft.rankTitle}
-          onChange={(e) => set("rankTitle", e.target.value)}
-          disabled={isSaving}
-          maxLength={100}
-          placeholder="例：ユニットリーダー、本部長代理"
-          style={fieldStyle()}
-        />
-      </div>
-
       {/* 雇用形態 */}
       <div>
         <label style={labelStyle()}>雇用形態</label>
@@ -1125,20 +1144,6 @@ function StintForm({
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
-      </div>
-
-      {/* 部署名 */}
-      <div>
-        <label style={labelStyle()}>部署名</label>
-        <input
-          type="text"
-          value={draft.department}
-          onChange={(e) => set("department", e.target.value)}
-          placeholder="例: エンタープライズ営業本部"
-          disabled={isSaving}
-          style={fieldStyle()}
-          maxLength={100}
-        />
       </div>
 
       {/*
