@@ -51,6 +51,8 @@ export type Stint = {
   description?: string;
   joinReason?: string;
   rank?: "none" | "leader" | "manager" | "general_manager" | "executive" | null;
+  /** 社内での役職の呼び方（自由入力）。⚠️ 上の `rank`（5択）と別の列。混ぜないこと */
+  rankTitle?: string;
   employmentType?: string;
   salaryBase?: number | null;
   salaryBonus?: number | null;
@@ -219,6 +221,7 @@ type StintDraft = {
   roleTitle: string;
   department: string;
   rank: string;
+  rankTitle: string;
   /*
     ⚠️ 年と月は**別々に持つ**（2026-08-13 修正）。
 
@@ -310,6 +313,7 @@ const EMPTY_DRAFT: StintDraft = {
   roleTitle: "",
   department: "",
   rank: "",
+  rankTitle: "",
   startedYear: "",
   startedMonth: "",
   endedYear: "",
@@ -1085,6 +1089,28 @@ function StintForm({
         </select>
       </div>
 
+      {/* ★社内での役職名（2026-10-01 / 柴さんの指示）。職種と同じ「選択肢＋自由入力」の形。
+          ⚠️★**上の5択（`rank`）と役割が違う。** 5択は会社をまたいで比べるための区分で、
+             こちらは**その会社の中だけで通じる呼び名**（例: ユニットリーダー）。
+             片方に寄せないこと。
+          ⚠️ 職種側の「社内での呼び方」（`role_title`）と**ラベルを同じにしないこと。**
+             同じ画面に2つ並ぶので、どちらの話か分からなくなる。 */}
+      <div>
+        <label style={labelStyle()}>社内での役職名</label>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "0 0 6px", lineHeight: 1.6 }}>
+          上で選んだ役職を、社内では何と呼んでいますか。
+        </p>
+        <input
+          type="text"
+          value={draft.rankTitle}
+          onChange={(e) => set("rankTitle", e.target.value)}
+          disabled={isSaving}
+          maxLength={100}
+          placeholder="例：ユニットリーダー、本部長代理"
+          style={fieldStyle()}
+        />
+      </div>
+
       {/* 雇用形態 */}
       <div>
         <label style={labelStyle()}>雇用形態</label>
@@ -1379,6 +1405,7 @@ export default function CareerHistoryEditor({
     roleTitle: s.roleTitle ?? "",
     department: s.department ?? "",
     rank: s.rank ?? "",
+    rankTitle: s.rankTitle ?? "",
     startedYear: parseYearMonth(s.startedAt).year,
     startedMonth: parseYearMonth(s.startedAt).month,
     endedYear: parseYearMonth(s.endedAt ?? "").year,
@@ -1421,6 +1448,9 @@ export default function CareerHistoryEditor({
     roleTitle: "",
     department: "",
     rank: "",
+    /* ⚠️ 役職も引き継がない。役割を足す＝異動・昇進なので、前の役職名が残ると誤りになる
+          （`role_title` を引き継がないのと同じ理由）。 */
+    rankTitle: "",
     /* ★★開始年月の初期値は「直近の役割の**終了年月の翌月**」（2026-09-12 / 柴さんの指示）。
           異動・昇進は前の役割が終わった翌月から始まることがほとんど。
        ⚠️★**直近が現職なら空にする。** いつまで前の役割だったかは本人にしか分からず、
@@ -1558,6 +1588,7 @@ export default function CareerHistoryEditor({
             API は body にキーが無ければその列を更新しない作りにしてある。 */
       department: d.department || null,
       rank: d.rank || null,
+      rank_title: d.rankTitle || null,
       visibility_company: d.visibilityCompany,
       /* ★出向先（2026-09-12）。⚠️ **役割の属性**。会社の3列には混ぜない。 */
       ...buildSecondmentBody(d),
@@ -1597,6 +1628,7 @@ export default function CareerHistoryEditor({
                 employmentType: editDraft.employmentType || undefined,
                 department: editDraft.department || undefined,
                 rank: (editDraft.rank || null) as Stint["rank"],
+                rankTitle: editDraft.rankTitle || undefined,
                 visibilityCompany: editDraft.visibilityCompany,
                 ...optimisticLocationFields(editDraft),
               }
@@ -1665,6 +1697,7 @@ export default function CareerHistoryEditor({
               API は body にキーが無ければその列を更新しない作りにしてある。 */
         department: addDraft.department || null,
         rank: addDraft.rank || null,
+        rank_title: addDraft.rankTitle || null,
         /* ⚠️★`visibility_company` は**型に無い**（`CreateExperienceBody`）。足さないこと。
               作成時の公開範囲は API が決める（既存の職歴から引き継ぐ）。
               ⚠️ 編集（PUT）は既存値をそのまま送る。あちらは消さないこと。 */
@@ -1688,6 +1721,7 @@ export default function CareerHistoryEditor({
         visibilityCompany: addDraft.visibilityCompany,
         department: addDraft.department || undefined,
         rank: (addDraft.rank || null) as Stint["rank"],
+        rankTitle: addDraft.rankTitle || undefined,
         visibilityReason: addDraft.visibilityReason,
         ...optimisticLocationFields(addDraft),
       };

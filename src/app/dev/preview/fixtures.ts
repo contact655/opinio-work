@@ -814,6 +814,24 @@ export const CAREERS_SAME_COMPANY: CareerEntry[] = [
            started_at: "2021-04-01", ended_at: "2023-03-31" }),
 ];
 
+/**
+ * ★役職の2つの列（2026-10-01）。**どちらが欠けても壊れないこと**を見るための形。
+ *   `rank`（5択） × `rank_title`（社内での役職名）の4通りを並べてある。
+ * ⚠️★2つある行は **1行にまとめて**「課長・マネージャークラス（ユニットリーダー）」と出るはず。
+ *    2行に分かれていたら `buildPositionLines` を見ること。
+ * ⚠️ `rank: "none"`（役職なし）は**出さない**のが正しい。呼び名だけが出る。
+ */
+export const CAREERS_RANK: CareerEntry[] = [
+  career({ id: "rk4", role_title: "AE", rank: "none", rank_title: "チーフ",
+           started_at: "2024-04-01", ended_at: null, is_current: true }),
+  career({ id: "rk3", role_title: "AE", rank: null, rank_title: "ユニットリーダー",
+           started_at: "2023-04-01", ended_at: "2024-03-31" }),
+  career({ id: "rk2", role_title: "AE", rank: "manager", rank_title: null,
+           started_at: "2022-04-01", ended_at: "2023-03-31" }),
+  career({ id: "rk1", role_title: "AE", rank: "manager", rank_title: "ユニットリーダー",
+           started_at: "2021-04-01", ended_at: "2022-03-31" }),
+];
+
 /** ⚠️★出戻り。同じ会社だが**連続しない**ので、別グループになるのが正しい */
 export const CAREERS_BOOMERANG: CareerEntry[] = [
   career({ id: "b3", company_name: "検証ソリューションズ株式会社", role_title: "営業部長",

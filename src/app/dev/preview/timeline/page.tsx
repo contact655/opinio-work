@@ -3,7 +3,7 @@ import { Variant, PreviewHeader } from "../Variant";
 import { devOnly } from "../guard";
 import { EditableTimeline } from "./EditableTimeline";
 import {
-  CAREERS_1, CAREERS_SAME_COMPANY, CAREERS_BOOMERANG, CAREERS_PARALLEL,
+  CAREERS_1, CAREERS_SAME_COMPANY, CAREERS_RANK, CAREERS_BOOMERANG, CAREERS_PARALLEL,
   CAREERS_GAP, CAREERS_CUSTOM, CAREERS_RICH, CAREERS_8, EDUCATIONS_2,
 } from "../fixtures";
 
@@ -42,6 +42,13 @@ export default function TimelinePreview() {
         note="⚠️★career-same-company にまとまるはず。会社名は1回だけ、役割が2行"
       >
         <MergedTimeline careers={CAREERS_SAME_COMPANY} educations={[]} />
+      </Variant>
+
+      <Variant
+        label="役職（5択 × 社内での役職名）"
+        note="⚠️★両方ある行は1行にまとめて「課長・マネージャークラス（ユニットリーダー）」。⚠️「役職なし」は出さず呼び名だけ"
+      >
+        <MergedTimeline careers={CAREERS_RANK} educations={[]} />
       </Variant>
 
       <Variant

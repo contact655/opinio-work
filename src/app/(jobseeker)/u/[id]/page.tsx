@@ -240,7 +240,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
             tsc も lint も通り、その行だけ黙って消える）。`/mypage` 側は
             `EXPERIENCE_EDITOR_COLS` に元から入っている。
       */
-      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason, secondment_company_id, secondment_company_text")
+      .select("id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, rank_title, employment_type, started_at, ended_at, is_current, description, join_reason, prefecture, remote_work_status, visibility_company, visibility_salary, visibility_reason, secondment_company_id, secondment_company_text")
       .eq("user_id", owUser.id)
       .order("is_current", { ascending: false })
       .order("started_at", { ascending: false }),

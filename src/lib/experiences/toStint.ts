@@ -52,6 +52,7 @@ export function rowsToStints(
             別の項目を直して保存しただけで消える。 */
       department: (r.department as string | null) ?? undefined,
       rank: (r.rank as Stint["rank"]) ?? null,
+      rankTitle: (r.rank_title as string | null) ?? undefined,
       /* ⚠️ 公開設定3列。DB は NOT NULL なので `?? 既定値` で埋めない。 */
       visibilityCompany: r.visibility_company as Stint["visibilityCompany"],
       visibilityReason: r.visibility_reason as boolean,

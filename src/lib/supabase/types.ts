@@ -733,6 +733,7 @@ export type Database = {
           salary_raise_frequency: string | null
           salary_review_times: number | null
           search_aliases: string | null
+          search_key: string | null
           selection_count: number | null
           selection_flow: string[] | null
           show_fit_negatives: boolean
@@ -889,6 +890,7 @@ export type Database = {
           salary_raise_frequency?: string | null
           salary_review_times?: number | null
           search_aliases?: string | null
+          search_key?: string | null
           selection_count?: number | null
           selection_flow?: string[] | null
           show_fit_negatives?: boolean
@@ -1045,6 +1047,7 @@ export type Database = {
           salary_raise_frequency?: string | null
           salary_review_times?: number | null
           search_aliases?: string | null
+          search_key?: string | null
           selection_count?: number | null
           selection_flow?: string[] | null
           show_fit_negatives?: boolean
@@ -2679,6 +2682,7 @@ export type Database = {
           leave_reasons: string[] | null
           prefecture: string | null
           rank: string | null
+          rank_title: string | null
           remote_work_status: string | null
           role_category_id: string
           role_title: string | null
@@ -2718,6 +2722,7 @@ export type Database = {
           leave_reasons?: string[] | null
           prefecture?: string | null
           rank?: string | null
+          rank_title?: string | null
           remote_work_status?: string | null
           role_category_id: string
           role_title?: string | null
@@ -2757,6 +2762,7 @@ export type Database = {
           leave_reasons?: string[] | null
           prefecture?: string | null
           rank?: string | null
+          rank_title?: string | null
           remote_work_status?: string | null
           role_category_id?: string
           role_title?: string | null
@@ -6050,6 +6056,16 @@ export type Database = {
       can_send_scout: {
         Args: { p_candidate_id: string; p_company_id: string }
         Returns: boolean
+      }
+      company_search_key: {
+        Args: {
+          p_brand_name: string
+          p_name: string
+          p_name_en: string
+          p_search_aliases: string
+          p_slug: string
+        }
+        Returns: string
       }
       consume_scout_quota: { Args: { p_company_id: string }; Returns: boolean }
       create_conversation: {

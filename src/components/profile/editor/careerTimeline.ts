@@ -37,6 +37,7 @@ export function stintsToCareerEntries(
     role_title: s.roleTitle ?? null,
     department: s.department ?? null,
     rank: s.rank ?? null,
+    rank_title: s.rankTitle ?? null,
     /* ⚠️ `Stint` は "YYYY-MM"、`CareerEntry` は "YYYY-MM-DD"。1日を足す */
     started_at: `${s.startedAt}-01`,
     ended_at: s.isCurrent ? null : (s.endedAt ? `${s.endedAt}-01` : null),

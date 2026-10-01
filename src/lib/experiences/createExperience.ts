@@ -63,6 +63,8 @@ type ExperienceCoreBody = ExperienceReasonBody & {
   display_order?: number;
   department?: string | null;
   rank?: string | null;
+  /** 社内での役職の呼び方（自由入力・100字）。⚠️ 5択の `rank` と別の列。混ぜないこと */
+  rank_title?: string | null;
   /* ⚠️ `visibility_reason` は**残してある**。`visibility_company` と構図は同じだが、
         引き継ぎにすると**本人の代わりに非公開を決める**ことになるので外していない
         （2026-09-11 の判断）。 */

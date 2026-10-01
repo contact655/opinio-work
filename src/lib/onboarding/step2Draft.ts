@@ -28,7 +28,7 @@
  */
 
 /** ⚠️ 項目を増やしたら `KEY_VERSION` を上げる */
-const KEY_VERSION = "v1";
+const KEY_VERSION = "v2";  /* v2: 役職（rank / rankTitle）を足した（2026-10-01） */
 
 /** ⚠️★`userKey` は利用者ごとに違う値（auth の id）。空のときは保存しない */
 function storageKey(userKey: string): string {
@@ -43,6 +43,10 @@ export type Step2Draft = {
   department: string;
   roleId: string;
   roleTitle: string;
+  /** 役職の5択（`ow_experiences.rank` の生値） */
+  rank: string;
+  /** 社内での役職名（自由入力）。⚠️ `rank` と別物 */
+  rankTitle: string;
   startedYear: string;
   startedMonth: string;
 };
@@ -50,7 +54,8 @@ export type Step2Draft = {
 /** 何も入っていない下書きは保存しない（空の行を復元しても意味が無い） */
 function isEmpty(d: Step2Draft): boolean {
   return !d.query.trim() && !d.company && !d.department.trim()
-    && !d.roleId && !d.roleTitle.trim() && !d.startedYear && !d.startedMonth;
+    && !d.roleId && !d.roleTitle.trim() && !d.rank && !d.rankTitle.trim()
+    && !d.startedYear && !d.startedMonth;
 }
 
 export function readStep2Draft(userKey: string): Step2Draft | null {
@@ -70,6 +75,8 @@ export function readStep2Draft(userKey: string): Step2Draft | null {
       department: typeof d.department === "string" ? d.department : "",
       roleId: typeof d.roleId === "string" ? d.roleId : "",
       roleTitle: typeof d.roleTitle === "string" ? d.roleTitle : "",
+      rank: typeof d.rank === "string" ? d.rank : "",
+      rankTitle: typeof d.rankTitle === "string" ? d.rankTitle : "",
       startedYear: typeof d.startedYear === "string" ? d.startedYear : "",
       startedMonth: typeof d.startedMonth === "string" ? d.startedMonth : "",
     };

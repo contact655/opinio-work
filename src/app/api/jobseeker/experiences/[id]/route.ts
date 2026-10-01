@@ -154,6 +154,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       role_title: s(body.role_title, 100),
       department: s(body.department, 100),
       rank,
+      rank_title: s(body.rank_title, 100),
       started_at: startedAt,
       ended_at: endedAt,
       is_current: (body.is_current as boolean | undefined) ?? false,

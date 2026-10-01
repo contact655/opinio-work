@@ -153,6 +153,7 @@ export async function GET() {
       roleTitle: r.role_title as string | undefined || undefined,
       department: (r.department as string | null) ?? undefined,
       rank: (r.rank as string | null) ?? null,
+      rankTitle: (r.rank_title as string | null) ?? undefined,
       /* 年収は返さない（SELECT していない）。入力UIも権限も無い */
       startedAt: (r.started_at as string).slice(0, 7),
       endedAt: r.ended_at ? (r.ended_at as string).slice(0, 7) : undefined,
@@ -247,6 +248,9 @@ export async function POST(req: Request) {
   const companyText = hasCompanyText ? String(body.company_text).slice(0, 200) : null;
   const companyAnon = hasCompanyAnon ? String(body.company_anonymized).slice(0, 200) : null;
   const roleTitle  = typeof body.role_title  === "string" ? body.role_title.slice(0, 100)  : null;
+  /* ⚠️ 社内での役職の呼び方。`role_title`（職種側）と同じ 100字。
+        ⚠️★5択の `rank` と混ぜないこと。別の列で、意味も違う。 */
+  const rankTitle  = typeof body.rank_title  === "string" ? body.rank_title.slice(0, 100)  : null;
   const department = typeof body.department  === "string" ? body.department.slice(0, 100)  : null;
   const description = typeof body.description === "string" ? body.description.slice(0, 5000) : null;
   /* ⚠️ 300字。UI（CareerHistoryEditor）と PUT と**同じ値**にしてある（2026-08-20）。
@@ -341,6 +345,7 @@ export async function POST(req: Request) {
       company_anonymized: companyAnon,
       role_category_id: roleId,
       role_title: roleTitle,
+      rank_title: rankTitle,
       department,
       rank,
       started_at: startedAt,

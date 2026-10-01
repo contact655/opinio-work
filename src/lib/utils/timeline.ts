@@ -113,6 +113,8 @@ export type RawExperienceRow = {
   department?: string | null;
   /** 役職ランクの**生値**（"manager" 等）。表示時は rankLabel() を通すこと */
   rank?: string | null;
+  /** 社内での役職名（自由入力）。⚠️ 上の `rank`（5択の生値）と別の列 */
+  rank_title?: string | null;
   /** DATE "YYYY-MM-DD" */
   started_at: string;
   /** DATE "YYYY-MM-DD" | null（is_current の場合 null）*/
@@ -257,6 +259,7 @@ export function buildTimelineCareerEntriesFromRaw(
             **undefined のまま渡して表示側で落とす**。 */
       department:      r.department,
       rank:            r.rank,
+      rank_title:      r.rank_title,
       started_at:      r.started_at,
       ended_at:        r.ended_at,
       is_current:      r.is_current,

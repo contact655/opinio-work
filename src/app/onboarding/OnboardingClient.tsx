@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { readStep2Draft, writeStep2Draft, clearStep2Draft } from "@/lib/onboarding/step2Draft";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
+import { RANKS } from "@/lib/constants/careerOptions";
 /* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
       `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
       なぜ入口が2つ要るかは、あの部品の冒頭に書いてある。 */
@@ -325,6 +326,10 @@ function OnboardingInner({
   const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(() => exCompany);
   /** ★社内での呼び方（`role_title`）。⚠️ `rank`（役職）とは別の列。混ぜないこと（2026-09-11） */
   const [roleTitle, setRoleTitle] = useState(() => exStr("role_title"));
+  /** ★役職の5択（`rank`）。2026-10-01 にここで聞くようにした（それまでは `/mypage` だけ） */
+  const [rank, setRank] = useState(() => exStr("rank"));
+  /** ★社内での役職名（`rank_title`）。⚠️ 上の `rank` と別の列。混ぜないこと */
+  const [rankTitle, setRankTitle] = useState(() => exStr("rank_title"));
   /* ⚠️★**部署名と社内での呼び方は「＋」で畳まない**（2026-09-14 / 柴さんの指示で常時表示）。
         それまで既定で閉じており（2026-09-11 の判断）、理由は
         「保存に必要な3点を主役にする」だったが、**押さずに素通りする人が多そう**と
@@ -535,6 +540,11 @@ function OnboardingInner({
       ...(isCurrent ? {} : { ended_at: `${endedYear}-${endedMonth}` }),
       ...(department.trim() ? { department: department.trim() } : {}),
       ...(roleTitle.trim() ? { role_title: roleTitle.trim() } : {}),
+      /* ⚠️★役職は2つとも任意。**空なら送らない**（PUT は送った列だけを書くので、
+            戻って空にしたときに既存の値を消さない）。
+         ⚠️ `rank` は5択、`rank_title` は自由入力。別の列なので別々に送る。 */
+      ...(rank ? { rank } : {}),
+      ...(rankTitle.trim() ? { rank_title: rankTitle.trim() } : {}),
       /* ⚠️★勤務地・勤務形態は **2026-09-15 に聞くのをやめた**（4画面目ごと削除）。
             ここに足し戻さないこと ——聞く画面が無いので常に空になる。
             入れてもらうのは `/mypage` の職歴の編集モーダル。 */
@@ -572,6 +582,8 @@ function OnboardingInner({
         setDepartment((v) => v || d.department);
         setRoleId((v) => v || d.roleId);
         setRoleTitle((v) => v || d.roleTitle);
+        setRank((v) => v || d.rank);
+        setRankTitle((v) => v || d.rankTitle);
         setStartedYear((v) => v || d.startedYear);
         setStartedMonth((v) => v || d.startedMonth);
       }
@@ -589,9 +601,11 @@ function OnboardingInner({
   useEffect(() => {
     if (!draftReady || experienceId) return;
     writeStep2Draft(draftKey, {
-      query, company: selectedCompany, department, roleId, roleTitle, startedYear, startedMonth,
+      query, company: selectedCompany, department, roleId, roleTitle, rank, rankTitle,
+      startedYear, startedMonth,
     });
-  }, [draftReady, draftKey, experienceId, query, selectedCompany, department, roleId, roleTitle, startedYear, startedMonth]);
+  }, [draftReady, draftKey, experienceId, query, selectedCompany, department, roleId, roleTitle,
+      rank, rankTitle, startedYear, startedMonth]);
 
   /* ⚠️★「いまの職種から」の候補チップ（2026-09-11）は 2026-09-12 に削除した（柴さんの指示）。
         大分類のアコーディオン1つに畳んだため。**戻さないこと。**
@@ -1158,6 +1172,51 @@ function OnboardingInner({
                 maxLength={100}
                 style={textInputStyle}
                 aria-label="社内での呼び方"
+              />
+
+              {/* ★★役職（2026-10-01 / 柴さんの指示）。**職種とまったく同じ形**にしてある:
+                        選択肢（会社をまたいで比べられる区分）＋ 自由入力（その会社での呼び名）。
+                     ⚠️★**2つで1組。片方だけ消さないこと。** 5択だけだと
+                        「ユニットリーダー」のような呼称がどこにも書けず、
+                        自由入力だけだと会社をまたいで比べられない。
+                     ⚠️★**職種の下に置く。** 職種 → 社内での呼び方 → 役職 → 社内での役職名 の順で、
+                        「選択肢のすぐ下にその呼び方」という並びを2組とも揃えている。
+                     ⚠️ どちらも**任意**。ここを必須にしないこと（2画面目は経歴の入口で、
+                        保存に要るのは会社・職種・入社年月の3点）。
+                     ⚠️ 選択肢は `RANKS`（`lib/constants/careerOptions.ts`）の1箇所。
+                        職歴の編集モーダルと同じものを使う。**書き写さないこと。** */}
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 8 }}>
+                役職
+              </div>
+              <select
+                value={rank}
+                onChange={(e) => setRank(e.target.value)}
+                disabled={saving}
+                /* ⚠️ `selectStyle` は `flex: 1` で、**年／月の横並びの中でしか効かない。**
+                      単独で置くと中身の幅に縮み、上下の入力欄と右端が揃わない
+                      （実測 2026-10-01: 210px / 他は 328px）。**width を明示する。** */
+                style={{ ...selectStyle, width: "100%", boxSizing: "border-box" }}
+                aria-label="役職"
+              >
+                <option value="">選んでください</option>
+                {RANKS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 4 }}>
+                社内での役職名
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 8, lineHeight: 1.6 }}>
+                上で選んだ役職を、社内では何と呼んでいますか。
+              </div>
+              <input
+                type="text"
+                value={rankTitle}
+                onChange={(e) => setRankTitle(e.target.value)}
+                placeholder="例：ユニットリーダー、本部長代理"
+                disabled={saving}
+                maxLength={100}
+                style={textInputStyle}
+                aria-label="社内での役職名"
               />
 
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginTop: 18, marginBottom: 10 }}>

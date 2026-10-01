@@ -149,6 +149,8 @@ export interface CareerEntry {
   department?: string | null;
   /** 役職ランクの**生値**（"manager" 等）。描画時は必ず rankLabel() を通す */
   rank?: string | null;
+  /** 社内での役職名（自由入力）。⚠️ `rank`（5択）と対で出す。片方だけにしない */
+  rank_title?: string | null;
   /** ★勤務地（都道府県）。**その職で実際に働いていた場所**（2026-08-29）。
    *  ⚠️ SELECT に含めていない画面では undefined。**その画面では出ないのが正しい。** */
   prefecture?: string | null;
@@ -308,7 +310,16 @@ function buildPositionLines(c: CareerEntry): { heading: string; sub: string[] } 
   const dept = c.department?.trim() || null;
   // 部署を主見出しに出すぶん、役職名からは同じ接頭辞を落とす
   const title = (c.role_title ? stripDepartmentPrefix(c.role_title, dept) : "").trim() || null;
-  const rank = rankLabel(c.rank);
+  /* ★役職は「5択 ＋ 社内での役職名」を**1行にまとめる**（2026-10-01）。
+        ⚠️★**2行に分けないこと。** 役職だけで2行使うと、部署・職種と合わせて
+           1つの役割が4行になり、在籍期間の縦線が間延びする
+           （キャッチコピーを落として高さを削ったのと同じ話）。
+        ⚠️ 片方しか無ければそれだけを出す。**無い側を「—」や既定値で埋めない。** */
+  const rankBucket = rankLabel(c.rank);
+  const rankTitle = c.rank_title?.trim() || null;
+  const rank = rankBucket && rankTitle
+    ? `${rankBucket}（${rankTitle}）`
+    : (rankTitle ?? rankBucket);
   const role = c.role_label?.trim() || null;
 
   const parent = c.role_parent_name?.trim() || null;
