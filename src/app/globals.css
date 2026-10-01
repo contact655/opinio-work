@@ -2145,3 +2145,16 @@ body {
   }
   .lsb-chip { max-width: 150px; }
 }
+
+/* ── ★ヘッダーのタブのフォーカス枠（2026-10-01 / 柴さんの指摘）──────────────
+   選択中のタブは `border-bottom: 2px solid var(--royal)` で下線を引いている。
+   既定のフォーカス枠（`a:focus-visible { outline-offset: 3px }`）だと、その下線の
+   **3px 下にもう1本 royal の線**が並び、**下線が二重に見える**（実測で再現）。
+   ⚠️★**枠そのものを消さないこと。** キーボード操作で現在地が分からなくなる。
+      ここで変えているのは**位置だけ**で、色も太さも既定のまま。
+   ⚠️ `outline-offset: 0` にすると枠の下辺が下線に重なり、1本の線として読める。
+   ⚠️★`!important` が要る。上の `a:focus-visible` が `!important` で offset を指定している。 */
+nav[aria-label="メインナビゲーション"] a:focus-visible {
+  outline-offset: 0 !important;
+  border-radius: 6px;
+}

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ChevronDown, LayoutGrid } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { MessagesButton } from "@/components/notifications/MessagesButton";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
 /* ⚠️★`highlight` を廃止した（2026-08-30）。**5項目すべて `false` で、
@@ -550,23 +551,26 @@ export function JobseekerHeader() {
               user ? (
                 /* ── Logged-in: message icon + bell + avatar button + dropdown ── */
                 <>
-                {/* ★★メッセージのアイコンは **2026-09-15 に外した**（柴さんの判断）。
-                       ⚠️★**戻さないこと。** 戻すなら「未読バッジ」を一緒に作ること
-                          ——それが無いと同じ状態に戻る。
+                {/* ★メッセージ（2026-10-01 / 柴さんの指示。**ベルの左**）。
+                       実体は `components/notifications/MessagesButton`。
 
-                       ── なぜ外したか（2026-09-15 実測）────────────────────────────
-                       ・`ow_conversation_messages` が **0件**（会話3件はメッセージ0のまま）
-                       ・⚠️★**バッジが無く、届いたことを伝えられない。**
-                         しかも**メッセージ受信で通知も作っていない**
-                         （`ow_notifications` への insert が0件）＝**ベルでも気づけない**
-                       ・**入口は残っている** ——`/mypage` のサイドバーに文字で「メッセージ」
+                    ── 一度外して、条件を満たしてから戻した ──────────────────────
+                    2026-09-15 に外したときの判断は「**戻すなら未読バッジを一緒に作ること**」で、
+                    理由は3つだった:
+                      ・`ow_conversation_messages` が **0件**
+                      ・⚠️**バッジが無く、届いたことを伝えられない**
+                      ・**メッセージ受信で通知も作っていない** ＝ ベルでも気づけない
+                    ⇒ 2026-09-16 に受信通知（ベル）が入り、2026-10-01 に**未読バッジ**を付けた。
+                       ＝「空のページへ行く、文字のない二つ目の入口」ではなくなった。
 
-                       ＝「**空のページへ行く、文字のない二つ目の入口**」だった。
-                       ⚠️ アイコンの絵柄の問題ではない。**押す理由が無い**のが問題だった。
-
-                       ⚠️ 材料は揃っている（`ow_conversation_participants.last_read_at` と
-                          `ow_conversation_messages.sent_at`）ので、**列の追加なしで未読は出せる。**
-                          ただし順序としては**受信通知（ベル＋メール）のほうが先に効く。** */}
+                    ⚠️★**バッジを外さないこと。** 外すと同じ状態に戻る。外すならアイコンごと。
+                    ⚠️ 数え方は `lib/conversations/unread` の1箇所（`/mypage` のサイドバーと
+                       一覧のドットと同じ式）。**ここに別の数え方を書かない。**
+                    ⚠️ アイコン列はモバイルでは出ない（`hidden md:flex`）。
+                       ⚠️★**ヘッダーの引き出しには「メッセージ」が無い**（実測 2026-10-01）。
+                          モバイルの入口は**引き出しの「マイページ」→ サイドバーの「メッセージ」**
+                          （`MypageLayout`。未読バッジ付き）。**そちらを消さないこと。** */}
+                <MessagesButton />
 
                 <NotificationBell />
                 {/* ⚠️★**企業担当者の常設スイッチ**（2026-09-05）。ベルとアバターの間。
