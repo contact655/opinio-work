@@ -382,7 +382,13 @@ export function JobseekerHeader() {
               ⚠️★**一覧ページの検索窓（/companies /jobs /people /articles）とは役割が違う。**
                  あちらは「その一覧の中の絞り込み」。ここは横断検索（/search）。混ぜないこと。 */}
           {!isTop && (
-          <div ref={inlineSearchRef} className="hidden lg:block" style={{ position: "relative", flex: 1, maxWidth: 360, minWidth: 0 }}>
+          <div ref={inlineSearchRef} className="hidden lg:block"
+            /* ⚠️★`flex: 1` に戻さないこと（2026-10-01）。伸びると余白を全部この窓が食い、
+                  **タブが右端のアカウントに貼り付く。** 幅は 360 固定で、
+                  **余った横幅はタブの左右マージン（下の `margin: 0 auto`）に配る。**
+               ⚠️ 縮みは残す（`0 1 360px`）。未ログインは右側が 303px あり、
+                  1024px では縮まないと収まらない。 */
+            style={{ position: "relative", flex: "0 1 360px", maxWidth: 360, minWidth: 0 }}>
             <form
               role="search"
               aria-label="サイト横断検索"
@@ -450,9 +456,12 @@ export function JobseekerHeader() {
 
           {/* Nav — desktop only */}
           <nav className="hidden md:flex" aria-label="メインナビゲーション"
-            /* ★検索窓を常設にしたので、タブは右（アカウント側）へ寄せる（2026-10-01）。
-               ⚠️ `flex: 1` に戻さないこと。戻すとタブが左に張り付き、検索窓との間が開く。 */
-            style={{ gap: 8, marginLeft: "auto", alignItems: "center", flexShrink: 0 }}>
+            /* ★タブは**余白の中央**に置く（2026-10-01 / 柴さんの指示）。
+               ⚠️★`marginLeft: "auto"` に戻さないこと。戻すと**右端のアカウントに貼り付く**。
+                  `margin: "0 auto"` で左右に等しく余白を配るので、検索窓とアカウントの
+                  あいだの真ん中に来る。
+               ⚠️ `flex: 1` にもしないこと。タブが伸びて字間が開く。 */
+            style={{ gap: 8, margin: "0 auto", alignItems: "center", flexShrink: 0 }}>
             {NAV_LINKS.map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
