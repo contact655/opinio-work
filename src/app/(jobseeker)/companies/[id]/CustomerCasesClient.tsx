@@ -26,7 +26,8 @@ function productStyle(_name: string): { bg: string; border: string; color: strin
  *    決めている。ここで緑になっていたのは「48%」「3.2倍」「2年」のような
  *    **導入の成果**で、金銭ではない。同じページに年収レンジの緑があるため、
  *    **凡例の無い緑が2つの意味で使われていた。**
- * ⚠️ 強調は**太さだけ**で足りる（fontWeight 800）。色を足さない。
+ * ★2026-10-03: 太字＋**濃紺（--royal）**にした（柴さんの指示）。緑・オレンジ・黄色は使わない
+ *    （ui-conventions「色の役割」）。⚠️ 文字サイズは本文と同じにする（.cc-num）。
  */
 function BoldNumbers({ text }: { text: string }) {
   const parts = text.split(/([\d,]+(?:\.\d+)?(?:倍|%|件|名|社|万|億|円|ヶ月|ヵ月|か月|時間|分|日|年|割|本|個|台|回|人)?)/g);
@@ -34,7 +35,9 @@ function BoldNumbers({ text }: { text: string }) {
     <>
       {parts.map((part, i) =>
         /[\d,]+(?:\.\d+)?/.test(part) ? (
-          <strong key={i} style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{part}</strong>
+          /* ⚠️★文字サイズは本文と同じ（.cc-num）。大きくするとその行だけ行間が広がる。
+                ⚠️ 数値と単位を分けて折り返さない（nowrap）。「3.2／倍」になっていた。 */
+          <strong key={i} className="cc-num">{part}</strong>
         ) : part
       )}
     </>
@@ -89,17 +92,18 @@ function CaseCard({ c }: { c: CustomerCase }) {
         <span className="cc-label cc-label--usecase">
           活用内容
         </span>
-        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+        <p className="cc-text">
           {c.usecase}
         </p>
       </div>
       {/* 成果 */}
-      <div className="cc-row">
+      {/* ★成果は薄い面で囲み、活用内容と区別する（.cc-row--result）。2026-10-03 */}
+      <div className="cc-row cc-row--result">
         {/* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */}
         <span className="cc-label cc-label--result">
           成果
         </span>
-        <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+        <p className="cc-text cc-text--result">
           <BoldNumbers text={c.result} />
         </p>
       </div>

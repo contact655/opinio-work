@@ -521,18 +521,46 @@ button, [role="button"] {
   border-radius: 6px;
   padding: 2px 7px;
   white-space: nowrap;
-  margin-top: 1px;
+  /* 本文 14px / 1.8 の1行目の中央に合わせる（2026-10-03） */
+  margin-top: 2px;
   font-family: var(--font-inter), var(--font-noto);
 }
 .cc-label--usecase { color: var(--ink-soft); background: #F1F5F9; }
-.cc-label--result  { color: var(--ink-mute); background: var(--bg-tint); }
+/* 成果の面（royal-50）の上では白地にして浮かせる。文字は活用内容と同じ濃さ */
+.cc-label--result  { color: var(--ink-soft); background: #fff; }
+/* ★本文（2026-10-03）。12px / 1.7 では塊に見えたので 14px / 1.8 に。全幅共通。 */
+.cc-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+  font-family: var(--font-inter), var(--font-noto);
+}
+.cc-text--result { color: var(--ink); }
+/* ★強調数値。⚠️★本文と同じ大きさ（inherit）。大きくするとその行だけ行間が広がる。
+   ⚠️ 数値と単位を分けて折り返さない。 */
+.cc-num {
+  font-size: inherit;
+  font-weight: 800;
+  color: var(--royal);
+  white-space: nowrap;
+  font-family: var(--font-inter), var(--font-noto);
+}
+/* ★成果は薄い面＋左の色帯で囲む。既存のトークンだけを使う（新しい色を増やさない） */
+.cc-row--result {
+  background: var(--royal-50);
+  border-left: 3px solid var(--royal-100);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
 @media (max-width: 767px) {
   .pcs-body { padding: var(--space-6) 14px; }
   .cc-card { padding: 16px 14px; gap: 10px; }
   .cc-head { gap: 6px 8px; }
   .cc-products { flex-basis: 100%; margin-left: 0; }
-  .cc-row { flex-direction: column; gap: 2px; }
-  .cc-label { background: none; padding: 0; margin-top: 0; font-size: 11px; color: var(--ink-mute); }
+  .cc-row { flex-direction: column; gap: 4px; }
+  /* ★ラベルは本文の上。色は濃いめ・やや太字にして、本文との区切りが見えるように（2026-10-03） */
+  .cc-label { background: none; padding: 0; margin-top: 0; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
 }
 
 /* ── 企業詳細の固定CTAバー（companies/[id] の MobileBottomCTA。2026-10-03 に横1列へ）──────
