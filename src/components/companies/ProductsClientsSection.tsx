@@ -144,7 +144,9 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
         </SecTitle>
       </div>
 
-      <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      {/* ⚠️ 左右の余白は globals.css の `.pcs-body`（767px 以下だけ詰める。2026-10-03）。
+             インラインに padding を戻さないこと（メディアクエリで上書きできなくなる）。 */}
+      <div className="pcs-body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
 
         {/* ⚠️ 列数を縮めるのは 900px 以上だけ（2026-08-12）。
                狭い画面で製品数に合わせると、**カードが横に伸びる**。

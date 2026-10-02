@@ -43,21 +43,17 @@ function BoldNumbers({ text }: { text: string }) {
 
 type CustomerCase = NonNullable<CompanyDetail["customer_cases"]>[number];
 
+/**
+ * ⚠️★レイアウト（余白・並び・ラベルの見た目）は globals.css の `.cc-*` にある（2026-10-03）。
+ *    767px 以下で並びを変えるため、インラインには書かない（インラインはメディアクエリで上書きできない）。
+ *    768px 以上の値は移す前のインラインと同じ。
+ */
 function CaseCard({ c }: { c: CustomerCase }) {
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        padding: "20px 22px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      {/* ヘッダー行: 企業名 + 業種バッジ + 製品ピル */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <div className="cc-card">
+      {/* ヘッダー行: 企業名 + 業種バッジ + 製品ピル
+          ⚠️ 767px 以下では製品ピルが**社名の行の下に左寄せ**で回る（.cc-products） */}
+      <div className="cc-head">
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", display: "inline-flex", alignItems: "center", gap: 6 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0 }}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
@@ -72,7 +68,7 @@ function CaseCard({ c }: { c: CustomerCase }) {
         }}>
           {c.industry}
         </span>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginLeft: "auto" }}>
+        <div className="cc-products">
           {c.products.map((p, pi) => {
             const s = productStyle(p);
             return (
@@ -88,13 +84,9 @@ function CaseCard({ c }: { c: CustomerCase }) {
           })}
         </div>
       </div>
-      {/* 活用内容 */}
-      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
-        <span style={{
-          fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-soft)",
-          background: "#F1F5F9", borderRadius: 6, padding: "2px 7px",
-          whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-inter), var(--font-noto)",
-        }}>
+      {/* 活用内容。⚠️ 767px 以下ではラベルが本文の上に乗り、本文が全幅になる（.cc-row） */}
+      <div className="cc-row">
+        <span className="cc-label cc-label--usecase">
           活用内容
         </span>
         <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontFamily: "var(--font-inter), var(--font-noto)" }}>
@@ -102,13 +94,9 @@ function CaseCard({ c }: { c: CustomerCase }) {
         </p>
       </div>
       {/* 成果 */}
-      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
-        <span style={{
-          /* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */
-          fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ink-mute)",
-          background: "var(--bg-tint)", borderRadius: 6, padding: "2px 7px",
-          whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--font-inter), var(--font-noto)",
-        }}>
+      <div className="cc-row">
+        {/* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */}
+        <span className="cc-label cc-label--result">
           成果
         </span>
         <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, fontWeight: 600, fontFamily: "var(--font-inter), var(--font-noto)" }}>
