@@ -359,8 +359,10 @@ function Hero({
             flexWrap: "wrap",
           }}
         >
-          {/* Left: logo + info */}
-          <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
+          {/* Left: logo + info
+              ⚠️ 並べ方（横並び／縦積み）は下の <style> の .cd-hero-main で決める。
+                 インラインに display / flexDirection を書き戻さないこと（767px 以下で縦に積めなくなる）。 */}
+          <div className="cd-hero-main">
             {/* Logo — overlaps cover band */}
             <CompanyLogo
               name={company.name}
@@ -378,7 +380,7 @@ function Hero({
                 boxShadow: "0 8px 28px rgba(0,0,0,0.18)",
               }}
             />
-            <div style={{ paddingTop: "var(--space-3)" }}>
+            <div className="cd-hero-info">
               <div
                 style={{
                   fontSize: 12,
@@ -565,6 +567,17 @@ function Hero({
 
 
       </div>
+      {/* ⚠️ 767px 以下はロゴを上、社名以下を全幅で下に積む（2026-10-03）。
+             横並びのままだと、ロゴ 96px＋余白のぶん左が空き、本文が右側の狭い列
+             （390px 幅で約250px）に押し込まれていた。 */}
+      <style>{`
+        .cd-hero-main { display: flex; gap: var(--space-4); align-items: flex-start; }
+        .cd-hero-info { padding-top: var(--space-3); min-width: 0; }
+        @media (max-width: 767px) {
+          .cd-hero-main { flex-direction: column; gap: var(--space-3); }
+          .cd-hero-info { padding-top: 0; width: 100%; }
+        }
+      `}</style>
     </section>
   );
 }
