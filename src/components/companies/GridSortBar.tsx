@@ -108,9 +108,16 @@ export function GridSortBar({ totalCount }: Props) {
 
           {/* ⚠️★見た目は `components/common/ViewToggle.tsx` の1箇所（2026-10-01 に切り出した）。
                  `/jobs` も同じものを使う。**ここに書き戻さないこと。** */}
-          <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
-
-          <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+          {/* ★767px 以下ではトグルと縦罫ごと隠す（2026-10-03 / 柴さんの判断）。
+                 狭い幅では右ペインが出ず、詳細ビューも数値列とボタンが消えるので
+                 「一覧」と切り替える意味が無い。隠し方は globals.css の `.companies-view-toggle`。
+              ⚠️★**`ViewToggle` 側では隠さないこと。** `/jobs` も同じ部品を使っている。
+              ⚠️ 件数は隠さない（トグルの外に置いてある）。 */}
+          {/* ⚠️ display をインラインに書かないこと。767px 以下の display:none に勝ってしまう */}
+          <div className="companies-view-toggle">
+            <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
+            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+          </div>
 
           {/* 件数 */}
           <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>

@@ -401,22 +401,24 @@ export default async function CompaniesPage({ searchParams }: Props) {
 
                     return (
                       <>
+                        {/* ⚠️ グリッドの CSS は**両方の分岐で要る**ので分岐の外に置く（2026-10-03）。
+                               詳細ビュー（?view=list）も 767px 以下ではグリッドを出すため。 */}
+                        <style>{`
+                          .companies-grid4 {
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 16px;
+                            margin-top: 0px;
+                          }
+                          @media (max-width: 1199px) {
+                            .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+                          }
+                          @media (max-width: 600px) {
+                            .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
+                          }
+                        `}</style>
                         {isGridView ? (
                           <>
-                            <style>{`
-                              .companies-grid4 {
-                                display: grid;
-                                grid-template-columns: repeat(3, 1fr);
-                                gap: 16px;
-                                margin-top: 0px;
-                              }
-                              @media (max-width: 1199px) {
-                                .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-                              }
-                              @media (max-width: 600px) {
-                                .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
-                              }
-                            `}</style>
                             {/* ★★一覧（グリッド）は**分割ビューに載せない**（2026-09-30 / 柴さんの判断）。
                                    カードを押したら `/companies/[slug]` へ**全画面で遷移する**。
                                 ⚠️★**`CompanySplitLayout` で包み直さないこと。** あの部品は中で
@@ -460,19 +462,40 @@ export default async function CompaniesPage({ searchParams }: Props) {
                              ⚠️ `--split-top` は渡していない。ツールバーの高さがほぼ一定で、
                                 部品側の既定（162px）と実測がほぼ一致するため。/jobs は詳細検索の
                                 開閉で高さが変わるので、あちらだけ ResizeObserver で測っている。 */
-                          <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={LIST_RAIL_WIDTH} scrollMode="panes">
-                            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
-                              {paged.map(c => (
-                                <CompanyCardList
-                                  key={c.id}
-                                  company={c}
-                                  /* ⚠️ グリッド側と同じ。**同タブ**（2026-09-07） */
-                                  openInNewTab={false}
-                                  selected={c.id === selectedKey || c.slug === selectedKey}
-                                />
-                              ))}
+                          <>
+                            {/* ★★767px 以下は**グリッドだけ**、768px 以上は詳細ビューだけを見せる（2026-10-03 / 柴さんの判断）。
+                                   狭い幅では右ペインが出ず、詳細ビューのカードも数値列とボタン（♡）が
+                                   消えて**一覧より情報が少なくなる**ため。トグルも同じ幅で隠している（GridSortBar）。
+                                ⚠️★**出し分けは CSS（globals.css の .companies-view-narrow / -wide）。**
+                                   サーバーは幅を知らないので両方描き、隠れる側は display:none にする
+                                   （読み上げにも出ない）。matchMedia で差し替えると、スマホで
+                                   詳細ビューが一瞬出てからグリッドに変わる（ちらつき・CLS）。
+                                ⚠️ 狭い側に selected を渡さない。分割ビューが無い幅で印を付けても意味が無い。
+                                ⚠️ ♡ の状態取得は fetchCompanyBookmarks() のキャッシュを共有するので、
+                                   二重に描いても通信は増えない。 */}
+                            <div className="companies-view-narrow">
+                              <div className="companies-grid4">
+                                {paged.map(c => (
+                                  <CompanyCardList key={c.id} company={c} compact openInNewTab={false} />
+                                ))}
+                              </div>
                             </div>
-                          </CompanySplitLayout>
+                            <div className="companies-view-wide">
+                              <CompanySplitLayout pane={pane} paneLabel={paneLabel} railWidth={LIST_RAIL_WIDTH} scrollMode="panes">
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 0 }}>
+                                  {paged.map(c => (
+                                    <CompanyCardList
+                                      key={c.id}
+                                      company={c}
+                                      /* ⚠️ グリッド側と同じ。**同タブ**（2026-09-07） */
+                                      openInNewTab={false}
+                                      selected={c.id === selectedKey || c.slug === selectedKey}
+                                    />
+                                  ))}
+                                </div>
+                              </CompanySplitLayout>
+                            </div>
+                          </>
                         )}
                         {/* 下部ページネーション */}
                         <Pagination currentPage={safePage} totalPages={totalPages} baseHref={baseHref} />

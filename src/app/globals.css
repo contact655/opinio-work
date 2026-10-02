@@ -1234,6 +1234,35 @@ body {
 .company-list-card {
   transition: box-shadow 0.18s, border-color 0.18s;
 }
+
+/* ── CompanyCardList: 背景・枠と、選択中の見た目（compact / list 共通。2026-10-03）──────
+   ⚠️★選択中の見た目は「1280px 以上」かつ「分割レイアウト（.companies-split）の中」だけ。
+      右ペインが無いところで印を付けても、何が選ばれているのか分からないため。
+      ⚠️ 詳細ビューは先頭の企業を**自動で選ぶ**（companies/(list)/page.tsx の autoSelected）。
+         サーバーは幅を知らないので、狭い幅でも aria-current は付く。見た目だけここで止める。
+   ⚠️★背景と枠は CompanyCardList のインラインに**書き戻さないこと**。インラインに勝てず、
+      狭い幅で選択枠が出る形に戻る。
+   ⚠️ 枠は太さを変えず色だけ（1px のまま）。太くすると選択したカードだけ中身が 1px ずれる。
+   ⚠️ 1280 は lib/constants/splitView.ts の SPLIT_MIN_WIDTH と同じ値を手で書いている。 */
+.clv-card,
+.company-list-card {
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.cl-selected-band { display: none; }
+@media (min-width: 1280px) {
+  .companies-split .clv-card[aria-current=true],
+  .companies-split .company-list-card[aria-current=true] {
+    background: #f4f7fd;
+    border-color: var(--royal);
+  }
+  /* 色帯。⚠️ box-shadow で描かないこと（hover の !important に上書きされて消える） */
+  .companies-split .cl-selected-band {
+    display: block;
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--royal);
+  }
+}
 .company-list-card:hover {
   box-shadow: 0 4px 24px rgba(0,35,102,0.12) !important;
   border-color: #d0daf5 !important;
@@ -1246,6 +1275,22 @@ body {
   .clc-stats { display: none !important; }
   .clc-stat-divider { display: none !important; }
   .clc-cta { display: none !important; }
+}
+
+/* ── /companies の「一覧／詳細」を 767px 以下で畳む（2026-10-03 / 柴さんの判断）──────
+   ⚠️★境目 767 / 768 は**すぐ上の .clc-stats / .clc-cta を隠す境目と同じ**にしてある。
+      詳細ビューが一覧より痩せるのはこの幅からなので、トグルもここで消す。
+      ⚠️ 分割ビューの境目（1280 / lib/constants/splitView.ts の SPLIT_MIN_WIDTH）とは別物。混ぜないこと。
+   ⚠️ 片方だけ変えると「トグルが無いのに詳細ビューが出る」か「トグルで切り替えても
+      何も変わらない」になる。.companies-view-toggle（GridSortBar）と
+      .companies-view-narrow / -wide（companies/(list)/page.tsx）は**必ず同じ幅で**。
+   ⚠️ 隠すのは display:none。visibility や幅0で隠すと、二重に描いたカードが読み上げられる。 */
+.companies-view-toggle { display: flex; align-items: center; gap: 8px; }
+.companies-view-narrow { display: none; }
+@media (max-width: 767px) {
+  .companies-view-toggle { display: none; }
+  .companies-view-narrow { display: block; }
+  .companies-view-wide { display: none; }
 }
 
 

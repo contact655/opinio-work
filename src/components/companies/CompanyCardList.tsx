@@ -147,7 +147,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
   const linkRel = openInNewTab ? "noopener noreferrer" : undefined;
   // company_features は現在非表示（culture tags 削除済み）
   // ⑤ 面談受付中のボーダースタイル（オレンジ枠は廃止）
-  const meetingBorder = "1px solid var(--line)";
+  //    ⚠️ 枠（1px solid var(--line)）は globals.css の .clv-card / .company-list-card に移した（2026-10-03）
   const meetingBoxShadow = "0 1px 4px rgba(15,23,42,0.06)";
 
   // ① リモート表示
@@ -181,13 +181,12 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
             display: "flex",
             flexDirection: "column",
             gap: 10,
-            /* ⚠️ 選択中は薄く敷く。色帯だけだと 420px のレールでは弱い（実測して足した）。 */
-            background: selected ? "#f4f7fd" : "#fff",
+            /* ⚠️★背景と枠は**インラインに書かない**（2026-10-03）。選択中の見た目を
+                  「1280px 以上かつ分割レイアウトの中」だけに効かせるため、globals.css の
+                  `.clv-card` / `[aria-current=true]` 側に移した。インラインに戻すと
+                  CSS から上書きできず、狭い幅でも選択枠が出る。 */
             borderRadius: 12,
             minHeight: 142,
-            /* ⚠️ 枠の**太さは変えない**（1px のまま色だけ変える）。太くすると
-                  選択したカードだけ中身が 1px ずれて、レール全体が跳ねて見える。 */
-            border: selected ? "1px solid var(--royal)" : meetingBorder,
             boxShadow: meetingBoxShadow,
             textDecoration: "none",
             color: "inherit",
@@ -201,15 +200,8 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                 カード側は `position: relative` + `overflow: hidden` なので角丸で切られる。
              ⚠️ `boxShadow` で描かないこと。hover のルールが `!important` 付きで
                 box-shadow を上書きするので、**カーソルを乗せた瞬間に帯が消える。** */}
-          {selected && (
-            <span
-              aria-hidden="true"
-              style={{
-                position: "absolute", left: 0, top: 0, bottom: 0, width: 4,
-                background: "var(--royal)",
-              }}
-            />
-          )}
+          {/* ⚠️ 表示するかは globals.css の `.cl-selected-band`（分割レイアウトの中だけ）。 */}
+          {selected && <span aria-hidden="true" className="cl-selected-band" />}
 
           {/* ── ヘッダー行: ロゴ ＋ 名前（ロゴと名前が同じ行にあるので基準線が1本になる）──
               ⚠️ 右に paddingRight を取ってあるのは、右上のハート（絶対配置）の下に
@@ -410,12 +402,9 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
           alignItems: "center",
           gap: 18,
           padding: "18px 20px",
-          /* ⚠️ compact 側と**同じ色**にする（2026-09-09）。行とカードで選択の見え方が
-                違うと、表示形式を切り替えたときに別の状態に見える。 */
-          background: selected ? "#f4f7fd" : "#fff",
+          /* ⚠️★背景と枠は globals.css（`.company-list-card`）。compact 側と同じ理由で
+                インラインに戻さないこと。 */
           borderRadius: 14,
-          /* ⚠️ 枠は太さを変えず色だけ。太くすると選択した行だけ中身が 1px ずれる。 */
-          border: selected ? "1px solid var(--royal)" : meetingBorder,
           boxShadow: meetingBoxShadow,
           textDecoration: "none",
           color: "inherit",
@@ -426,12 +415,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
       >
         {/* ★選択中の色帯。⚠️ compact 側と同じ理由で box-shadow では描かない
                （hover のルールが !important 付きで box-shadow を上書きするため）。 */}
-        {selected && (
-          <span
-            aria-hidden="true"
-            style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--royal)" }}
-          />
-        )}
+        {selected && <span aria-hidden="true" className="cl-selected-band" />}
 
         {/* ── ロゴ ── */}
         <CompanyLogo
