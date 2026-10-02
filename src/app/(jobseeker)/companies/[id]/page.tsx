@@ -1442,74 +1442,57 @@ function MobileBottomCTA({ company }: { company: Company }) {
   const hasJobs = company.job_count > 0;
   if (!hasMobileBottomCta(company)) return null;
 
+  /* ★横1列にした（2026-10-03 / 柴さんの指示）。それまでは全幅で縦2段で、
+        バーだけで 122px、下部ナビと合わせて約186px が常に画面を塞いでいた。
+     ⚠️ 並びは「左：募集を見る（白・枠）／右：話を聞く（オレンジ）」、幅はおよそ 1:2。
+     ⚠️ 片方しか無いときは**その1つを全幅**で出す（空いた列を残さない）。
+     ⚠️★高さ・余白・safe-area は globals.css の .company-mobile-cta に置いてある。
+        バーの高さを変えたら、そこにある main の下余白と ↑ボタンの位置も一緒に直すこと。 */
+  const both = hasMeeting && hasJobs;
+
   return (
-    <div
-      className="lg:hidden bottom-16 md:bottom-0"
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        zIndex: 40,
-        background: "rgba(255,255,255,0.97)",
-        backdropFilter: "blur(10px)",
-        borderTop: "1px solid var(--line)",
-        padding: "10px 16px",
-        boxShadow: "0 -2px 10px rgba(0,0,0,0.06)",
-      }}
-    >
-      {hasMeeting && (
-        <Link
-          href={`/companies/${company.id}/casual-meeting`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-2)",
-            padding: "var(--space-3) 0",
-            background: MEETING_CTA_BG,
-            color: MEETING_CTA_FG,
-            borderRadius: 8,
-            fontSize: "var(--text-base)",
-            fontWeight: 700,
-            textAlign: "center",
-            textDecoration: "none",
-            marginBottom: hasJobs ? "var(--space-2)" : 0,
-            boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
-          }}
-        >
-          <span
+    <div className="company-mobile-cta lg:hidden bottom-16 md:bottom-0">
+      <div className={`company-mobile-cta-row${both ? " company-mobile-cta-row--two" : ""}`}>
+        {hasJobs && (
+          <a
+            href="#jobs"
+            className="company-mobile-cta-btn"
+            style={
+              hasMeeting
+                ? { background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal)" }
+                : /* 募集しか無い企業では、これが唯一の主導線なので塗りにする（従来どおり） */
+                  { background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)", color: "#fff", boxShadow: "0 3px 12px rgba(0,35,102,0.25)" }
+            }
+          >
+            募集を見る
+          </a>
+        )}
+        {hasMeeting && (
+          /* ⚠️ 行き先は従来どおり /companies/[id]/casual-meeting。文言だけ短くした */
+          <Link
+            href={`/companies/${company.id}/casual-meeting`}
+            className="company-mobile-cta-btn"
             style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#fff",
-              flexShrink: 0,
-              animation: "cta-pulse 1.8s ease-in-out infinite",
+              background: MEETING_CTA_BG,
+              color: MEETING_CTA_FG,
+              boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
             }}
-          />
-          <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
-        </Link>
-      )}
-      {hasJobs && (
-        <a
-          href="#jobs"
-          style={{
-            display: "block",
-            padding: "10px 0",
-            background: hasMeeting ? "transparent" : "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-            color: hasMeeting ? "var(--royal)" : "#fff",
-            border: hasMeeting ? "1.5px solid var(--royal)" : "none",
-            borderRadius: 8,
-            fontSize: "var(--text-sm)",
-            fontWeight: 600,
-            textAlign: "center",
-            textDecoration: "none",
-            boxShadow: hasMeeting ? "none" : "0 3px 12px rgba(0,35,102,0.25)",
-          }}
-        >
-          募集を見て応募する
-        </a>
-      )}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#fff",
+                flexShrink: 0,
+                animation: "cta-pulse 1.8s ease-in-out infinite",
+              }}
+            />
+            話を聞く
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
@@ -1934,14 +1917,11 @@ export default async function CompanyDetailPage({
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
           className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]"
         >
-          {/* 固定底部バー（`MobileBottomCTA`）の分の逃げ。
-                 ⚠️ **バーが出る幅と必ず揃えること。** バーは `lg:hidden`（< 1024px）なので
-                    `lg:pb-0`。`md:pb-0` のままだと 768〜1023px で本文の最後が隠れる。
-                 ⚠️ 幅ごとに必要な逃げが違う。**バーの占有高さ = バー高さ + bottom**（実測）。
-                      < 768px  … 122 + 64(ナビの上) = 186px → `pb-48`(192) + 最終要素の margin 24 = 216
-                      >= 768px … 122 +  0(ナビ無し)  = 122px → `pb-36`(144) + 24 = 168
-                    `pb-36` のままだと 375px で **18px かぶっていた**（2026-08-13 実測）。 */}
-          <main className={hasMobileBottomCta(company) ? "pb-48 md:pb-36 lg:pb-0" : undefined}>
+          {/* ⚠️ 固定底部バー（`MobileBottomCTA`）の逃げは**ここに付けない**（2026-10-03）。
+                 本文の後ろにフッターがあり、最下部でバーの裏に来るのはフッターの方。
+                 逃げは globals.css の `body:has(.company-mobile-cta)` が body の末尾に取る。
+                 （以前は pb-48 md:pb-36 lg:pb-0 をここに付けていた） */}
+          <main>
             {/* ★企業情報（モバイルのみ）。⚠️ **サイドバーと同じ部品**を使う（2026-09-07）。
                    サイドバーは `hidden lg:flex` で 1023px 以下では消えるため、ここが無いと
                    **事業領域（83社すべてが持つ唯一の分類）がモバイルで1文字も出ない**。
