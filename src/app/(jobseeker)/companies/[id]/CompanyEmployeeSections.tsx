@@ -19,7 +19,6 @@ import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
-import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 
 type AmbassadorInfo = { memberId: string };
 
@@ -52,56 +51,68 @@ type AmbassadorInfo = { memberId: string };
       その1箇所は `lib/age.ts` の `getUserAge()` を通す。
       ここにあった `calcAge` は年を引くだけで、誕生日前の人を1歳上に出していた。 */
 
-// 現役社員・OB/OG 共通の統一カードレイアウト
-function EmployeeCardInner({
+/* ── ★現役社員・OB/OG は「1つの枠の中に区切り線で並べるリスト」（2026-10-03 / 柴さんの指示）────
+   それまでは現役（灰色の塗り・矢印なし）と OB/OG（白・枠・矢印・maxWidth 380）でカードの形が違い、
+   OB/OG は横幅の約7割で止まっていた。1人1箱で約90px あった。
+   行の形はどちらも同じ:  顔 ／ 名前＋バッジ ／ 職種（2行まで）／ 補足1行 ／ 右端に矢印
+   ⚠️★**表示する項目は変えていない**（B案）。現役社員の在籍期間は**出さない**
+      （入社年月を企業ページで新しく公開することになるため。取得もしていない）。
+   ⚠️ 見た目の指定は globals.css の `.person-list` / `.person-row*`。インラインに戻さないこと。
+   ⚠️ 行全体が /u/[id] へのリンク（新しいタブ）。これは変更前と同じ。 */
+function PersonRow({
   employee,
   badge,
-  subInfo,
+  title,
+  sub,
+  talkHref,
 }: {
   employee: CompanyEmployee;
   badge?: React.ReactNode;
-  subInfo?: React.ReactNode;
+  /** 2行目（職種など）。2行まで出して省略 */
+  title?: string | null;
+  /** 3行目（補足）。1行で省略 */
+  sub?: string | null;
+  /** 面談に応じる人への申込リンク。**企業が受け付けているときだけ**渡す */
+  talkHref?: string | null;
 }) {
   const avatarColor = AVATAR_COLOR;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-      {/* アバター */}
-      <div style={{
-        width: 48, height: 48, borderRadius: "50%",
-        background: avatarColor.bg, flexShrink: 0,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
-        color: avatarColor.text, overflow: "hidden",
-        border: "2px solid var(--line)", position: "relative",
-      }}>
-        {employee.avatarUrl ? (
-          <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name}
-            fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
-            fallbackColor={avatarColor.text} fontSize={18} />
-        ) : (employee.avatarInitial ?? employee.name.charAt(0))}
-      </div>
-
-      {/* テキスト */}
-      <div style={{ minWidth: 0, flex: 1 }}>
-        {/* 1行目: 名前 + 年齢 + バッジ */}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-            {employee.name}
+    <div className="person-row">
+      <a href={`/u/${employee.userId}`} target="_blank" className="person-row-main">
+        <span className="person-row-avatar" style={{ background: avatarColor.bg, color: avatarColor.text }}>
+          {employee.avatarUrl ? (
+            <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name}
+              fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
+              fallbackColor={avatarColor.text} fontSize={16} />
+          ) : (employee.avatarInitial ?? employee.name.charAt(0))}
+        </span>
+        <span className="person-row-text">
+          <span className="person-row-head">
+            <span className="person-row-name">{employee.name}</span>
+            {badge}
           </span>
-          {badge}
-        </div>
-        {/* 2行目: 職種のみ（部署階層は表示しない） */}
-        {employee.roleTitle && (
-          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {employee.roleTitle}
-          </p>
-        )}
-        {/* 追加情報（在籍期間など） */}
-        {subInfo}
-      </div>
+          {title && <span className="person-row-title" title={title}>{title}</span>}
+          {sub && <span className="person-row-sub" title={sub}>{sub}</span>}
+        </span>
+        <svg className="person-row-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </a>
+      {/* ⚠️ リンクの中にリンクを入れられないので、申込リンクは行の下に兄弟として置く */}
+      {talkHref && (
+        <Link href={talkHref} className="person-row-talk">
+          {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
+        </Link>
+      )}
     </div>
   );
 }
+
+/* ★「面談OK」バッジ。⚠️ 色と文言は /people・/u/[id] と揃える（2026-08-23 / 2026-09-18）。
+   ⚠️ 本人が同意していれば出す。企業の受付状態では出し分けない（申込リンクは別）。 */
+const TalkBadge = (
+  <span className="person-row-badge person-row-badge--talk">💬 面談OK</span>
+);
 
 function EmployeeCard({
   employee,
@@ -114,79 +125,21 @@ function EmployeeCard({
   ambassadorInfo?: { memberId: string } | null;
   companyId?: string;
   /** ★企業が申込を受け付けているか。**申込リンクの出し分けだけに使う**（2026-08-23 / 方針D）。
-   *  ⚠️ バッジと社員カードはこの値で消さない。人が出ているのは本人の同意による事実で、
+   *  ⚠️ バッジと社員の行はこの値で消さない。人が出ているのは本人の同意による事実で、
    *     企業が受付を止めていることとは別。 */
   acceptingMeetings?: boolean;
 }) {
   const isAmbassador = !!ambassadorInfo;
-
-  const badge = isAmbassador ? (
-    <span style={{
-      fontSize: 12, fontWeight: 700,
-      padding: "2px 7px", borderRadius: 100,
-      /* ⚠️ 色は /people の「話を聞けます」バッジと同じにする（2026-08-23）。
-            出所が同じなので文言だけでなく色も揃える。黄色ではなくオレンジ系。
-            オレンジ＝カジュアル面談は、この製品で唯一の意味。 */
-      background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
-      whiteSpace: "nowrap", flexShrink: 0,
-    }}>{/* ★本人が同意していれば「面談可」（2026-08-23 に方針変更）。
-             企業の受付状態では出し分けない。
-          ⚠️ 申込導線は別で、受付中のときだけ出す。
-          ⚠️ 文言は /people・`/u/[id]` のバッジと揃える。 */}
-      💬 面談OK</span>
-  ) : undefined;
-
-  if (isAmbassador && companyId) {
-    return (
-      <div style={{
-        display: "flex", flexDirection: "column", gap: 10,
-        padding: "12px 14px",
-        /* ⚠️ 黄色の面で強調しない（2026-08-23）。面談であることは
-              オレンジのバッジとリンクが示すので、地は白のままにする。 */
-        background: "#fff", border: "1px solid #FED7AA", borderRadius: 12,
-      }}>
-        <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
-          style={{ display: "flex", textDecoration: "none" }}>
-          <EmployeeCardInner employee={employee} badge={badge} />
-        </a>
-        {/* ★申込リンクは企業が受け付けているときだけ（2026-08-23 / 方針D）。
-               受付停止のときに出すと、押した先が「受け付けていません」になる。
-               ⚠️ カードとバッジは残す。人が出ていること自体は偽っていない。
-               ⚠️ `member_id` は現状どこにも記録されない（個人指名は未実装）。積み残し。 */}
-        {acceptingMeetings && (
-          <Link
-            /* ★`person`（`ow_users.id`）で渡す（2026-08-25）。
-                  ⚠️ 2026-08-25 まで `member_id`（`ow_company_members.id`）を渡していたが、
-                     **受け側が読んでおらず捨てられていた**。`/u/[id]` は `person` を
-                     渡していたので、**同じ意味の値が2つの名前で飛んでいた**。
-                     人を指すのは `ow_users.id` に統一する（在籍の行は増減するが人は変わらない）。 */
-            href={`/companies/${companyId}/casual-meeting?person=${employee.userId}`}
-            style={{
-              display: "block", textAlign: "center",
-              padding: "8px 16px",
-              background: MEETING_CTA_BG,
-              color: MEETING_CTA_FG, borderRadius: 8,
-              fontSize: 12, fontWeight: 700, textDecoration: "none",
-            }}
-          >
-            {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
-          </Link>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
-      style={{
-        display: "flex", alignItems: "center",
-        padding: "12px 14px",
-        background: "var(--bg-tint)", border: "1px solid var(--line)", borderRadius: 12,
-        textDecoration: "none",
-      }}
-    >
-      <EmployeeCardInner employee={employee} badge={badge} />
-    </a>
+    <PersonRow
+      employee={employee}
+      badge={isAmbassador ? TalkBadge : undefined}
+      title={employee.roleTitle}
+      /* ★`person`（`ow_users.id`）で渡す（2026-08-25）。受付中のときだけ（方針D） */
+      talkHref={isAmbassador && companyId && acceptingMeetings
+        ? `/companies/${companyId}/casual-meeting?person=${employee.userId}`
+        : null}
+    />
   );
 }
 
@@ -205,28 +158,8 @@ const EMPLOYEE_GRID_CSS = `
   @media (max-width: 767px) {
     .person-card-grid { grid-template-columns: minmax(0, 1fr); }
   }
-  .employee-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-  }
-  @media (max-width: 1023px) {
-    .employee-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 767px) {
-    .employee-grid { grid-template-columns: minmax(0, 1fr); }
-  }
-  .alumni-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-  }
-  @media (max-width: 1023px) {
-    .alumni-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 767px) {
-    .alumni-grid { grid-template-columns: minmax(0, 1fr); }
-  }
+  /* ⚠️ .employee-grid / .alumni-grid は 2026-10-03 に廃止した（区切り線のリストへ）。
+     リストの見た目は globals.css の .person-list / .person-row*。 */
 `;
 
 
@@ -357,7 +290,8 @@ export function CurrentEmployeesSection({
         </SecTitle>
 
       </div>
-      <div style={{ padding: "var(--space-6)" }}>
+      {/* ⚠️ 余白は globals.css の .person-section-body（767px 以下だけ左右を詰める） */}
+      <div className="person-section-body">
       {/* ── ★職種の構成バー（3名以上 ＋ 職種が2種類以上）──────────────────────
              ⚠️★**分割表示（`useGroups`）より条件をゆるくしてある。** 3名でも
                 「どんな職種の人が載っているか」は一目で分かるほうがよく、
@@ -430,7 +364,7 @@ export function CurrentEmployeesSection({
         </div>
       ) : !useGroups ? (
         // 小さい会社・職種が1種類 → 素のグリッド
-        <div className="employee-grid">
+        <div className="person-list">
           {employees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
           ))}
@@ -470,7 +404,7 @@ export function CurrentEmployeesSection({
                 {/* ⚠️★大分類のまま登録した人は**子見出しを付けずに**親の直下へ。
                        「営業 > 営業」のような見出しを作らない。 */}
                 {group.direct.length > 0 && (
-                  <div className="employee-grid">
+                  <div className="person-list">
                     {group.direct.map((emp) => (
                       <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
                     ))}
@@ -501,7 +435,7 @@ export function CurrentEmployeesSection({
                         {cat.emps.length}名
                       </span>
                     </div>
-                    <div className="employee-grid">
+                    <div className="person-list">
                       {cat.emps.map((emp) => (
                         <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
                       ))}
@@ -542,6 +476,7 @@ export function CurrentEmployeesSection({
 
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
 
+  /** **この会社での**在籍期間（その経歴の開始〜終了の月数）。今の会社の期間ではない */
   function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
     if (!startedAt || !endedAt) return null;
     const [sy, sm] = startedAt.split("-").map(Number);
@@ -557,57 +492,24 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
 
   const tenure = calcTenure(employee.startedAt, employee.endedAt);
 
-  /* ⚠️ 「💬 DM可」バッジは 2026-08-08 に削除した。
-        条件なしで全員に出ており、情報量が無かった（誰に出しても同じ）。 */
+  /* ⚠️ 「💬 DM可」バッジは 2026-08-08 に削除した。条件なしで全員に出ており、情報量が無かった。
+     ★「在籍」を付けた（2026-10-03）。「2年」だけだと、この会社の期間か今の会社の期間か分からなかった。 */
   const badge = tenure ? (
-    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", background: "var(--royal-50)", padding: "1px 6px", borderRadius: 100, flexShrink: 0 }}>
-      {tenure}
-    </span>
+    <span className="person-row-badge person-row-badge--tenure">在籍{tenure}</span>
   ) : null;
 
-  const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
-  /* 2行目に現在の会社名、3行目に職種を分けて出す（2026-08-08）。
-     それまで「CTC / 金融営業本部 営業第1部 / 法人営業（アカウント営業）」のように
-     1行に詰めており、狭い画面で会社名まで省略記号に飲まれていた。
+  /* ★今の会社と職種は**1行にまとめて「現在：」を付ける**（2026-10-03）。
      ⚠️ 値そのものは変えていない（会社名は brand_name ?? name、職種は自己申告の役職名）。
-     ⚠️ 省略記号を効かせるには minWidth: 0 が要る（親は flex item）。 */
-  const line = {
-    margin: "2px 0 0", fontSize: 12, fontWeight: 500,
-    minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-  } as const;
-  const subInfo = (currentDisplayName || employee.currentRoleTitle) ? (
-    <>
-      {currentDisplayName && (
-        <p title={currentDisplayName} style={{ ...line, color: "var(--ink-mute)" }}>
-          {currentDisplayName}
-        </p>
-      )}
-      {employee.currentRoleTitle && (
-        <p title={employee.currentRoleTitle} style={{ ...line, color: "var(--ink-mute)" }}>
-          {employee.currentRoleTitle}
-        </p>
-      )}
-    </>
-  ) : undefined;
-
-  // AlumniCard は roleTitle（在籍時の部署階層）を非表示にするため空の employee を渡す
-  const alumniEmployee = { ...employee, roleTitle: null };
+     ⚠️ 在籍時の部署・役職（roleTitle）は**出さない**（変更前と同じ）。 */
+  const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName;
+  const current = [currentDisplayName, employee.currentRoleTitle].filter(Boolean).join("・");
 
   return (
-    <a href={`/u/${employee.userId}`} target="_blank" className="employee-card-link"
-      style={{
-        display: "flex", alignItems: "center", gap: 0,
-        padding: "12px 14px",
-        background: "#fff", border: "1px solid var(--line)", borderRadius: 12,
-        textDecoration: "none",
-        maxWidth: 380,
-      }}
-    >
-      <EmployeeCardInner employee={alumniEmployee} badge={badge} subInfo={subInfo} />
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0, marginLeft: 6 }}>
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-    </a>
+    <PersonRow
+      employee={employee}
+      badge={badge}
+      title={current ? `現在：${current}` : null}
+    />
   );
 }
 
@@ -737,7 +639,7 @@ export function ListingStatusPanel({
   );
 }
 
-function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
+export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
   return (
     <section
       id="alumni"
@@ -777,10 +679,11 @@ function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: Compan
           </span>
         </SecTitle>
       </div>
-      <div style={{ padding: "var(--space-6)" }}>
+      {/* ⚠️ 余白は globals.css の .person-section-body（767px 以下だけ左右を詰める） */}
+      <div className="person-section-body">
       {alumni.length > 0 ? (
         <>
-          <div className="employee-grid">
+          <div className="person-list">
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}

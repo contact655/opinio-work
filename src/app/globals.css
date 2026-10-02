@@ -407,6 +407,93 @@ button, [role="button"] {
   bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
+/* ── 企業詳細の現役社員・OB/OG のリスト（CompanyEmployeeSections の PersonRow。2026-10-03）──────
+   1つの枠の中に区切り線で並べる。現役と OB/OG で**同じ行の形**にする。全幅・全画面幅で同じ。
+   ⚠️ 写真の有無（イニシャル）で行の高さが変わらないよう、顔は固定 44px。
+   ⚠️ 職種は2行まで出して省略（1行で切ると「…（アカウント…」で読めなかった）。
+   ⚠️ バッジの色は /people・/u/[id] と揃えてある（面談OK＝オレンジ系。この製品で唯一の意味）。 */
+.person-section-body { padding: var(--space-6); }
+@media (max-width: 767px) {
+  /* 枠の中の枠で左右が二重になるので詰める（導入事例の .pcs-body と同じ値） */
+  .person-section-body { padding: var(--space-6) 14px; }
+}
+.person-list {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.person-row + .person-row { border-top: 1px solid var(--line-soft); }
+.person-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  min-height: 64px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+.person-row-main:hover { background: var(--bg-tint); }
+.person-row-main:hover .person-row-name { color: var(--royal); }
+.person-row-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid var(--line);
+  font-family: var(--font-noto-serif);
+  font-weight: 700;
+  font-size: 16px;
+}
+.person-row-text { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.person-row-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.person-row-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+.person-row-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.person-row-sub {
+  font-size: 12px;
+  color: var(--ink-mute);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-row-arrow { flex-shrink: 0; color: var(--ink-mute); }
+.person-row-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.person-row-badge--talk { background: #FFF7ED; color: #C2410C; border: 1px solid #FED7AA; }
+.person-row-badge--tenure { background: var(--royal-50); color: var(--royal); }
+/* 面談の申込リンク。行の下に、名前の左端に揃えて出す（顔 44 ＋ 間 12 ＋ 余白 14 = 70px） */
+.person-row-talk {
+  display: inline-block;
+  margin: -4px 0 10px 70px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #C2410C;
+  text-decoration: none;
+}
+.person-row-talk:hover { text-decoration: underline; }
+
 /* ── 企業詳細「製品・導入事例」（ProductsClientsSection / CustomerCasesClient。2026-10-03）──────
    ⚠️ 768px 以上の値は、移す前のインラインと同じ（見た目は変えていない）。
    ⚠️★767px 以下だけ並びを変える:

@@ -158,11 +158,20 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
   const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
+    /* ★タブに無いセクションを、どのタブとして扱うか（2026-10-03）。
+       OB/OG（#alumni）はタブを持たず「社員・OB/OG」タブの一部なので、そちらを点ける。
+       ⚠️ これが無いと、OB/OG を見ている間は直前のタブ（現役社員より上の「働く環境」など）が
+          点いたままになる。 */
+    const ALIAS: Record<string, string> = { alumni: "current-employees" };
+    const ids = items.map((i) => i.id);
+    // 別名は「行き先のタブがあり、自分自身はタブに無い」ものだけ見張る
+    const watchIds = [...ids, ...Object.keys(ALIAS).filter((k) => ids.includes(ALIAS[k]) && !ids.includes(k))];
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
+            setActiveId(ALIAS[entry.target.id] ?? entry.target.id);
             break;
           }
         }
@@ -170,11 +179,31 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
       { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
     );
 
-    items.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
+    /* ★★**後から描かれるセクションも拾う**（2026-10-03）。
+       現役社員・OB/OG（CompanyEmployeeSections）は**ブラウザで API を引いてから描く**ので、
+       この effect が走った時点ではまだ DOM に無い（サーバーの HTML に id が0件）。
+       ⚠️ 最初の1回だけ getElementById していたため、**社員のセクションは一度も監視されず**、
+          スクロールしてもタブが「働く環境」のまま動かなかった。
+       ⚠️ 全部見つかったら MutationObserver は外す（DOM の変化を見張り続けない）。 */
+    const observed = new Set<Element>();
+    const attach = () => {
+      for (const id of watchIds) {
+        const el = document.getElementById(id);
+        if (el && !observed.has(el)) {
+          observer.observe(el);
+          observed.add(el);
+        }
+      }
+      if (observed.size >= watchIds.length) mutation.disconnect();
+    };
+    const mutation = new MutationObserver(attach);
+    mutation.observe(document.body, { childList: true, subtree: true });
+    attach();
+
+    return () => {
+      mutation.disconnect();
+      observer.disconnect();
+    };
   }, [items]);
 
   // アクティブなタブを自動スクロールで中央に表示
@@ -230,6 +259,8 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
               key={id}
               ref={(el) => { if (el) btnRefs.current.set(id, el); }}
               onClick={() => scrollTo(id)}
+              /* 選択中のタブ。読み上げに伝えるのと、検証で文字列を当てずに判定するため（2026-10-03） */
+              aria-current={active ? "location" : undefined}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
