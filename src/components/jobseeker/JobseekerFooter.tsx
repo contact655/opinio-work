@@ -93,6 +93,23 @@ export async function JobseekerFooter() {
               運営
             </h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* ★運営会社（2026-10-03 / 柴さんの指示）。フッターに会社サイトへの導線が1つも無く、
+                     見出しの「運営」を押そうとして押せなかった。
+                  ⚠️ 見出し（h4）はリンクにしない。「求職者の方」「企業の方」と扱いを揃えるため。
+                  ⚠️ 外部サイトなので Link ではなく a・新しいタブ。 */}
+              <a
+                href="https://www.opinio.co.jp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link"
+                style={{ fontSize: 13, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                運営会社
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M7 17 17 7M8 7h9v9" />
+                </svg>
+                <span className="sr-only">（新しいタブで開きます）</span>
+              </a>
               {[
                 { href: "/contact",      label: "お問い合わせ" },
                 { href: "/terms",          label: "利用規約" },
