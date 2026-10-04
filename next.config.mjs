@@ -5,19 +5,19 @@ const nextConfig = {
   experimental: {
     /* ★社長図鑑（content/zukan/*.md）を本番の関数へ同梱する（2026-10-04）。
      *
-     * 図鑑ページは静的生成だが、**企業詳細（ISR）と sitemap（1時間ごと）は本番で実行されるたびに
-     * このフォルダを読む**。Vercel の出力トレースは `fs.readdirSync` の動的パスを辿れないので、
-     * 明示しないと同梱されず、企業ページの「社長図鑑に掲載されています」が**静かに消える**。
+     * 図鑑ページは静的生成だが、**本番で実行されるたびにこのフォルダを読む経路がある**:
+     *   企業詳細（ISR）の「社長図鑑に掲載されています」／ sitemap（1時間ごと）／
+     *   ★**フッター**（全ページ。公開記事が1本以上あるときだけ「社長図鑑」を出す。2026-10-04）
+     * Vercel の出力トレースは `fs.readdirSync` の動的パスを辿れないので、明示しないと同梱されず、
+     * **そのページでだけ**カードやリンクが**静かに消える**。
      *
+     * ⚠️★フッターが全ページに出るので**全ルート（`/**`）に入れる**。ルートを絞り直すと、
+     *    絞り漏れたページだけフッターから「社長図鑑」が消える（エラーは出ない）。
+     *    同梱されるのは .md だけで小さい（写真は public/ なので関数には入らない）。
      * ⚠️ キーは「グループを除いたルート」（`normalizeAppPath`）に picomatch で当たる。
-     *    `/companies/[id]` と書くと `[id]` が文字クラスとして解釈されるので `**` で書く。
-     * ⚠️ 確かめ方: build 後に `.next-prod/server/app/(jobseeker)/companies/[id]/page.js.nft.json`
-     *    に `content/zukan/` が入っていること。 */
+     * ⚠️ 確かめ方: build 後に `.next-prod/server/app/**.nft.json` に `content/zukan/` が入っていること。 */
     outputFileTracingIncludes: {
-      "/companies/**": ["./content/zukan/**"],
-      "/zukan/**": ["./content/zukan/**"],
-      "/zukan": ["./content/zukan/**"],
-      "/sitemap.xml": ["./content/zukan/**"],
+      "/**": ["./content/zukan/**"],
     },
   },
   images: {

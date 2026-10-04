@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import OpinioLogo from "@/components/common/OpinioLogo";
+import { getPublishedZukanArticles } from "@/lib/zukan/articles";
 
 /* ⚠️ **サーバーコンポーネント。** 事業領域の一覧を自分で引く。
       全ページに出るので `getBusinessDomainFacets()` は unstable_cache 済み（300s）。
       素で引くと1ページ表示ごとに1クエリ増える。 */
 export async function JobseekerFooter() {
   const industryFacets = await getBusinessDomainFacets();
+  /* ★社長図鑑は公開記事が1本以上あるときだけ出す（2026-10-04 / 柴さんの指示）。
+        ⚠️ 判定は `getPublishedZukanArticles()`（lib/zukan/articles.ts の1箇所）。
+           ここで status を見ないこと。
+        ⚠️ 本番では全ページで content/zukan を読む。next.config.mjs の
+           outputFileTracingIncludes が `/**` なのはこのため。 */
+  const hasZukan = getPublishedZukanArticles().length > 0;
   return (
     <footer role="contentinfo" style={{ background: "var(--ink)", color: "#fff", marginTop: "auto" }}>
 
@@ -51,8 +58,9 @@ export async function JobseekerFooter() {
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "募集を探す" },
                 { href: "/articles",  label: "記事" },
-                /* ★社長図鑑（2026-10-04）。ヘッダーには置かない（柴さんの指示）。フッターのここ1箇所だけ */
-                { href: "/zukan",     label: "社長図鑑" },
+                /* ★社長図鑑（2026-10-04）。ヘッダーには置かない（柴さんの指示）。フッターのここ1箇所だけ。
+                      公開記事が0本のあいだは出さない（`hasZukan`） */
+                ...(hasZukan ? [{ href: "/zukan", label: "社長図鑑" }] : []),
                 { href: "/auth",      label: "無料登録" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
