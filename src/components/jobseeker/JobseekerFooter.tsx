@@ -51,6 +51,8 @@ export async function JobseekerFooter() {
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "募集を探す" },
                 { href: "/articles",  label: "記事" },
+                /* ★社長図鑑（2026-10-04）。ヘッダーには置かない（柴さんの指示）。フッターのここ1箇所だけ */
+                { href: "/zukan",     label: "社長図鑑" },
                 { href: "/auth",      label: "無料登録" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
