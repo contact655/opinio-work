@@ -236,7 +236,18 @@ export function ZukanCompanyCard({ articles }: { articles: ZukanArticle[] }) {
               {a.oneLiner && (
                 <p style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", margin: "1px 0 0", lineHeight: 1.5 }}>{a.oneLiner}</p>
               )}
-              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "2px 0 0", lineHeight: 1.6, overflowWrap: "anywhere" }}>{a.title}</p>
+              {/* ⚠️ 記事タイトルは2行で切る（2026-10-04 / 柴さんの指示）。375px だと4行に折れて
+                     カードが縦に伸びていた。全文は title 属性で読める。
+                  ⚠️ 親の `minWidth: 0` を外さないこと。外すとクランプが効かずに押し広げる。 */}
+              <p
+                title={a.title}
+                style={{
+                  fontSize: 13, color: "var(--ink-soft)", margin: "2px 0 0", lineHeight: 1.6, overflowWrap: "anywhere",
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                }}
+              >
+                {a.title}
+              </p>
             </div>
             <span aria-hidden style={{ color: "var(--royal)", fontSize: 13, fontWeight: 600, flexShrink: 0 }}>読む →</span>
           </Link>
