@@ -11,18 +11,27 @@ import { ZUKAN_LEAD, ZUKAN_TITLE } from "@/lib/constants/zukan";
  */
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: ZUKAN_TITLE,
-  description: ZUKAN_LEAD,
-  alternates: { canonical: "https://opinio.jp/zukan" },
-  openGraph: {
-    title: `${ZUKAN_TITLE} by OPINIO`,
+/**
+ * ★公開記事が0本のあいだは noindex（2026-10-04 / 柴さんの指示）。空のページを検索に載せない。
+ *   1本以上になれば**自動で外れる**（判定は `getPublishedZukanArticles()`。ここで status を見ない）。
+ *   ⚠️ follow は残す（フッター・パンくずのリンクは辿ってよい）。
+ */
+export function generateMetadata(): Metadata {
+  const empty = getPublishedZukanArticles().length === 0;
+  return {
+    title: ZUKAN_TITLE,
     description: ZUKAN_LEAD,
-    type: "website",
-    url: "https://opinio.jp/zukan",
-    siteName: "OPINIO",
-  },
-};
+    alternates: { canonical: "https://opinio.jp/zukan" },
+    ...(empty ? { robots: { index: false, follow: true } } : {}),
+    openGraph: {
+      title: `${ZUKAN_TITLE} by OPINIO`,
+      description: ZUKAN_LEAD,
+      type: "website",
+      url: "https://opinio.jp/zukan",
+      siteName: "OPINIO",
+    },
+  };
+}
 
 export default function ZukanListPage() {
   const articles = getPublishedZukanArticles();
