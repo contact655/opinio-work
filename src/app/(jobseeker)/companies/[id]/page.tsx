@@ -28,8 +28,6 @@ import { getStageCfg } from "@/lib/utils/stageCfg";
 import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
-import { ZukanCompanyCard } from "@/components/zukan/ZukanParts";
-import { getPublishedZukanArticlesByCompanyId } from "@/lib/zukan/articles";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -1961,16 +1959,6 @@ export default async function CompanyDetailPage({
               detail={detail}
               photos={photos}
             />
-
-            {/* ★社長図鑑（/zukan）に掲載されている企業だけ（2026-10-04）。
-                   ⚠️★サイドバーに移さないこと（`hidden lg:flex` で 1023px 以下では消える）。
-                   ⚠️ 判定は `getPublishedZukanArticlesByCompanyId`（draft を含めない）。
-                      記事は content/zukan/*.md で、本番でも実行時に読む
-                      （next.config.mjs の outputFileTracingIncludes）。 */}
-            {(() => {
-              const zukan = getPublishedZukanArticlesByCompanyId(companyId);
-              return zukan.length > 0 ? <ZukanCompanyCard articles={zukan} /> : null;
-            })()}
 
             {/* 2. 製品・導入事例 */}
             <ProductsClientsSection detail={detail} />

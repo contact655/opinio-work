@@ -2,24 +2,6 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    /* ★社長図鑑（content/zukan/*.md）を本番の関数へ同梱する（2026-10-04）。
-     *
-     * 図鑑ページは静的生成だが、**本番で実行されるたびにこのフォルダを読む経路がある**:
-     *   企業詳細（ISR）の「社長図鑑に掲載されています」／ sitemap（1時間ごと）／
-     *   ★**フッター**（全ページ。公開記事が1本以上あるときだけ「社長図鑑」を出す。2026-10-04）
-     * Vercel の出力トレースは `fs.readdirSync` の動的パスを辿れないので、明示しないと同梱されず、
-     * **そのページでだけ**カードやリンクが**静かに消える**。
-     *
-     * ⚠️★フッターが全ページに出るので**全ルート（`/**`）に入れる**。ルートを絞り直すと、
-     *    絞り漏れたページだけフッターから「社長図鑑」が消える（エラーは出ない）。
-     *    同梱されるのは .md だけで小さい（写真は public/ なので関数には入らない）。
-     * ⚠️ キーは「グループを除いたルート」（`normalizeAppPath`）に picomatch で当たる。
-     * ⚠️ 確かめ方: build 後に `.next-prod/server/app/**.nft.json` に `content/zukan/` が入っていること。 */
-    outputFileTracingIncludes: {
-      "/**": ["./content/zukan/**"],
-    },
-  },
   images: {
     remotePatterns: [
       {
@@ -77,6 +59,19 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      /* ★社長図鑑は opinio.co.jp に移した（2026-10-04 / 柴さんの判断）。opinio.jp は転職サイトで、
+            図鑑は Opinio Agent（人材紹介）の集客メディアのため。公開記事0本・noindex のまま移したので
+            被リンクは無いが、念のため受けておく。⚠️ slug は両サイトで同じ。 */
+      {
+        source: "/zukan",
+        destination: "https://www.opinio.co.jp/zukan",
+        permanent: true,
+      },
+      {
+        source: "/zukan/:slug*",
+        destination: "https://www.opinio.co.jp/zukan/:slug*",
+        permanent: true,
+      },
       /* ★`/salary`（年収相場）は 2026-08-29 に削除した。**sitemap に10URL 載せていた**ので、
             404 にせず 301 で `/jobs` へ送る（年収レンジは求人一覧で見られる）。
          ⚠️ 削除の理由は `src/app/sitemap.ts` のコメントを参照。**復活させないこと。** */
