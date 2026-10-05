@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { countUnreadConversations, hasAnyConversationMessage } from "@/lib/conversations/unread";
+import { countUnreadConversations } from "@/lib/conversations/unread";
 
 /**
  * 未読のある会話の数。**ヘッダーのメッセージアイコンのバッジ用**（2026-10-01）。
@@ -11,9 +11,8 @@ import { countUnreadConversations, hasAnyConversationMessage } from "@/lib/conve
  *
  * ⚠️ 返すのは**会話数**（通数ではない）。一覧のドットと粒度を揃えるため。
  *
- * ★`hasMessages` も返す（2026-10-01 / 柴さんの指示）。アイコンを
- *   「**1通も無いうちは出さない**」ための判定で、**未読かどうかとは別**。
- *   ⚠️ 自分が送った1通でも true。戻る先があるなら入口は出してよい。
+ * ⚠️ 2026-10-01〜10-05 は `hasMessages`（1通でもあるか）も返していたが、
+ *    アイコンを常に出すことにしたので外した（2026-10-05 / 柴さんの指示）。
  * ⚠️ 失敗しても 0 を返す（ヘルパー側がログを出す）。バッジは主役ではないので
  *    ヘッダーごと落とさない。
  */
@@ -31,9 +30,6 @@ export async function GET() {
     .maybeSingle();
   if (!owUser?.id) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const [conversations, hasMessages] = await Promise.all([
-    countUnreadConversations(owUser.id),
-    hasAnyConversationMessage(owUser.id),
-  ]);
-  return NextResponse.json({ conversations, hasMessages });
+  const conversations = await countUnreadConversations(owUser.id);
+  return NextResponse.json({ conversations });
 }
