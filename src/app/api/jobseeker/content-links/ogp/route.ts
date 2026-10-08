@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { safeFetchText } from "@/lib/net/safeFetch";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { OGP_RATE_LIMIT } from "@/lib/net/ogpRateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -24,76 +27,42 @@ function extractTitle(html: string): string | null {
 }
 
 // GET /api/jobseeker/content-links/ogp?url=https://...
+/**
+ * ★取得は `safeFetchText`（2026-10-09 に差し替え。SSRF 対策）。DNS で解決した IP を検査し、
+ *   検査した IP に接続を固定し、リダイレクトは1段ずつ検査する。上限は8秒・512KB。
+ * ★回数制限: 利用者ごとに1分あたり20回（超えたら 429。`OGP_RATE_LIMIT`）。
+ * ★取得の拒否・失敗はすべて 200 + null（理由は返さない。サーバーのログにだけ残る）。
+ *   ⚠️ 2026-10-09 まで内部向けのホストは 400、時間切れは `error: "Timeout"` を返していた。
+ *      拒否と失敗で応答を分けると内部の様子を探る手がかりになるので、200 + null に揃えた。
+ * ⚠️ URL の形が不正（解釈できない・http/https 以外）は従来どおり 400。
+ */
 export async function GET(req: NextRequest) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (!(await checkRateLimit(req, { ...OGP_RATE_LIMIT, prefix: "content-links-ogp", id: user.id }))) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "url is required" }, { status: 400 });
 
-  // SSRF guard: only allow http/https to public hosts
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
-    const h = parsed.hostname.toLowerCase();
-    if (
-      h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" || h === "[::1]" ||
-      h.startsWith("192.168.") || h.startsWith("10.") ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h) ||
-      h.endsWith(".local") || h.endsWith(".internal") ||
-      h === "169.254.169.254"
-    ) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
   } catch {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
+  const empty = () => NextResponse.json({ title: null, thumbnail_url: null, description: null });
+
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; OPINIOBot/1.0; +https://opinio.jp)",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-      redirect: "manual",
-    });
-    clearTimeout(timeout);
-
-    // リダイレクトは追わない（SSRF via open redirect 防止）
-    if (res.status >= 300 && res.status < 400) {
-      return NextResponse.json({ title: null, thumbnail_url: null, description: null });
-    }
-    if (!res.ok) {
-      return NextResponse.json({ title: null, thumbnail_url: null, description: null });
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("text/html")) {
-      return NextResponse.json({ title: null, thumbnail_url: null, description: null });
-    }
-
-    // Read only first 50KB to keep it fast
-    const reader = res.body?.getReader();
-    if (!reader) return NextResponse.json({ title: null, thumbnail_url: null, description: null });
-
-    let html = "";
-    let totalBytes = 0;
-    const decoder = new TextDecoder();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      html += decoder.decode(value, { stream: !done });
-      totalBytes += value?.length ?? 0;
-      if (totalBytes > 50_000) break;
-    }
-    reader.cancel().catch(() => {});
+    const fetched = await safeFetchText(url);
+    if (!fetched.ok) return empty();
+    const html = fetched.html;
 
     const ogTitle = extractMeta(html, "og:title");
     const ogImage = extractMeta(html, "og:image");
@@ -108,10 +77,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ title, thumbnail_url, description });
   } catch (err: unknown) {
-    if (err instanceof Error && err.name === "AbortError") {
-      return NextResponse.json({ error: "Timeout", title: null, thumbnail_url: null, description: null });
-    }
-    console.error("[OGP fetch error]", err);
-    return NextResponse.json({ title: null, thumbnail_url: null, description: null });
+    /* ⚠️ URL はログに出さない */
+    console.error("[content-links/ogp] unexpected:", err instanceof Error ? err.name : "error");
+    return empty();
   }
 }

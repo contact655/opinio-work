@@ -52,6 +52,12 @@ export interface RateLimitOptions {
   windowSec: number;
   /** Identifier prefix (e.g. "apply", "dm") to namespace keys */
   prefix: string;
+  /**
+   * ★数える単位（2026-10-09 に追加）。渡さなければ従来どおり **IP アドレス**。
+   * ⚠️ ログイン必須の API で「利用者ごと」に数えたいときは `auth.users.id` を渡す
+   *    （OGP 取得の2本がこれ）。⚠️ 未ログインの経路で渡さないこと（全員が同じ鍵になる）。
+   */
+  id?: string;
 }
 
 /**
@@ -64,7 +70,7 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const key = `${opts.prefix}:${ip}`;
+  const key = opts.id ? `${opts.prefix}:u:${opts.id}` : `${opts.prefix}:${ip}`;
 
   const upstash = await getUpstash();
 

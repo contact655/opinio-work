@@ -1,46 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import ogs from "open-graph-scraper";
+import { safeFetchText } from "@/lib/net/safeFetch";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { OGP_RATE_LIMIT } from "@/lib/net/ogpRateLimit";
 
 export const dynamic = "force-dynamic";
 
-/**
- * SSRF 対策: プライベート IP / 危険スキーマを拒否する
- *
- * - http: / https: のみ許可
- * - localhost, 127.0.0.1, プライベート IP レンジ等を拒否
- * - file://, data:, javascript: 等の危険スキーマを拒否
- */
-function isUrlSafe(urlString: string): boolean {
-  let url: URL;
+/** URL の形だけを見る（http / https で、解釈できること）。⚠️ 接続先の検査は safeFetchText が行う */
+function isHttpUrl(urlString: string): boolean {
   try {
-    url = new URL(urlString);
+    const u = new URL(urlString);
+    return u.protocol === "http:" || u.protocol === "https:";
   } catch {
     return false;
   }
-
-  // スキーマ制限: http / https のみ
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    return false;
-  }
-
-  // ホスト名による SSRF 対策
-  const hostname = url.hostname.toLowerCase();
-  if (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "0.0.0.0" ||
-    hostname === "[::1]" ||
-    hostname.startsWith("192.168.") ||
-    hostname.startsWith("10.") ||
-    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
-    hostname.endsWith(".local") ||
-    hostname.endsWith(".internal")
-  ) {
-    return false;
-  }
-
-  return true;
 }
 
 /**
@@ -49,9 +23,15 @@ function isUrlSafe(urlString: string): boolean {
  * URL を受け取り OGP 情報（og_image_url / og_title）を返す。
  *
  * - 認証必須（未認証の場合は 401）
- * - URL バリデーション失敗は 400
- * - OGP 取得失敗・タイムアウト等はすべて 200 + null で返す（段階6-5 判断点 2: 案 α）
- * - 画像は URL のみ返却、Storage 保存なし（段階6-5 判断点 3: 案 i）
+ * - ★回数制限: 利用者ごとに1分あたり20回（超えたら 429。`OGP_RATE_LIMIT`）
+ * - URL の形が不正（解釈できない・http/https 以外）は 400
+ * - ★取得は `safeFetchText`（2026-10-09 に差し替え）。DNS で解決した IP を検査し、
+ *   検査した IP に接続を固定し、リダイレクトは1段ずつ検査する（SSRF 対策）
+ * - ★取得の拒否・失敗はすべて 200 + null（理由は返さない。サーバーのログにだけ残る）
+ *   ⚠️ 2026-10-09 まで内部向けのホストは 400 を返していたが、**拒否と失敗で応答を
+ *      分けると、内部の様子を探る手がかりになる**ので 200 + null に揃えた
+ * - 画像は URL のみ返却、Storage 保存なし
+ * - ⚠️ og:image は**利用者のブラウザ**が読みに行く（素の img）。サーバーは取りに行かない
  */
 export async function POST(req: NextRequest) {
   // 1. 認証チェック（SSRF 悪用防止: スクレイピング API を未認証公開しない）
@@ -63,7 +43,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. リクエスト body 取得
+  // 2. 回数制限（利用者ごと）
+  if (!(await checkRateLimit(req, { ...OGP_RATE_LIMIT, prefix: "ogp-fetch", id: user.id }))) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
+  // 3. リクエスト body 取得
   let body: { url?: unknown };
   try {
     body = await req.json();
@@ -75,31 +60,20 @@ export async function POST(req: NextRequest) {
   if (typeof url !== "string" || !url.trim()) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
   }
-
-  // 3. URL バリデーション（SSRF 対策含む）
-  if (!isUrlSafe(url)) {
+  if (!isHttpUrl(url)) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
 
-  // 4. OGP 取得（失敗はすべて null で返す: 判断点 2 整合）
-  try {
-    const ogsResult = await ogs({
-      url,
-      timeout: 5, // 5 秒（open-graph-scraper v6 は秒単位）
-      fetchOptions: {
-        redirect: "manual" as RequestRedirect,
-        headers: {
-          "User-Agent": "OPINIOBot/1.0",
-        },
-      },
-    });
+  const empty = () => NextResponse.json({ og_image_url: null, og_title: null }, { status: 200 });
 
-    if (ogsResult.error) {
-      return NextResponse.json(
-        { og_image_url: null, og_title: null },
-        { status: 200 },
-      );
-    }
+  // 4. 取得（SSRF 対策込み）→ 解析だけを open-graph-scraper に任せる
+  try {
+    const fetched = await safeFetchText(url);
+    if (!fetched.ok) return empty();
+
+    /* ⚠️ `url` と `html` は同時に渡せない（ogs の仕様）。取得は済んでいるので html だけ */
+    const ogsResult = await ogs({ html: fetched.html });
+    if (ogsResult.error) return empty();
 
     const { result } = ogsResult;
 
@@ -114,8 +88,10 @@ export async function POST(req: NextRequest) {
       ogImageUrl = result.twitterImage[0].url ?? null;
     }
 
-    // OGP メタデータ内の画像 URL も安全性を確認（javascript: 等を排除）
-    if (ogImageUrl && !isUrlSafe(ogImageUrl)) ogImageUrl = null;
+    /* 画像の URL は http / https だけ（javascript: 等を排除）。
+       ⚠️ 画像は利用者のブラウザが読むので、ここで内部アドレスの判定は要らない
+          （相対パスは従来どおり null になる） */
+    if (ogImageUrl && !isHttpUrl(ogImageUrl)) ogImageUrl = null;
 
     return NextResponse.json(
       {
@@ -124,11 +100,9 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 },
     );
-  } catch {
-    // 想定外エラー（ネットワーク断・パース失敗等）も null で返す（判断点 2）
-    return NextResponse.json(
-      { og_image_url: null, og_title: null },
-      { status: 200 },
-    );
+  } catch (err) {
+    // 想定外エラー（パース失敗等）も null で返す。⚠️ URL はログに出さない
+    console.error("[ogp-fetch] unexpected:", err instanceof Error ? err.name : "error");
+    return empty();
   }
 }
