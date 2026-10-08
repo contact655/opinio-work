@@ -170,9 +170,15 @@ export function ProfileEditModal({
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
+          /* ⚠️★**高さを `vh` だけで決めないこと**（2026-10-08 / スマホで踏んだ）。
+                iOS Safari の `vh` は**ツールバーを畳んだときの高さ**なので、ツールバーが
+                出ている間は 92vh が見えている範囲より高くなり、中央寄せのまま
+                **上の見出しと下の保存ボタンが画面外にはみ出していた。**
+                親（`position: fixed; inset: 0`）の 100% は**いま見えている高さ**に追従するので、
+                そちらで上限を掛ける。⚠️ `dvh` 単独にしない（未対応のブラウザで宣言ごと落ちる）。 */
           style={{
             position: "relative", zIndex: 1, background: "#fff",
-            borderRadius: 16, width: "min(720px, 96vw)", maxHeight: "92vh",
+            borderRadius: 16, width: "min(720px, 96vw)", maxHeight: "min(92vh, calc(100% - 24px))",
             overflow: "hidden", display: "flex", flexDirection: "column",
             boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
           }}
