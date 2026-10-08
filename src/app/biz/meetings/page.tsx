@@ -6,7 +6,6 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchMeetingsForCompany } from "@/lib/business/meetings";
 import { fetchApplicationsForCompany } from "@/lib/business/applications";
-import { canUse } from "@/lib/constants/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +30,8 @@ export default async function BizMeetingsPage({
           自社の面談だけに絞る条件（company_id = ctx.tenantId）は関数側にあり、
           その会社の担当者であることは getTenantContext で確認済み。 */
     fetchMeetingsForCompany(createAdminClient(), ctx.tenantId),
-    /* ⚠️ 第3引数を渡し忘れると連絡先は**出ない**（既定 false / fail-closed）。
-          Free では select から email / phone が落ちるので、
-          ペイロードにも API のレスポンスにも入らない。 */
-    fetchApplicationsForCompany(supabase, ctx.tenantId, canUse(ctx.planType, "applicantContact")),
+    /* ★応募者の連絡先は全プラン共通で返す（2026-10-08 に有料ゲートを外した） */
+    fetchApplicationsForCompany(supabase, ctx.tenantId),
   ]);
 
   // conversationId を applications と meetings に付与

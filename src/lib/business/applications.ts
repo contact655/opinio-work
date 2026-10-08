@@ -42,13 +42,10 @@ export type BizApplication = {
   userId: string;           // ow_job_applications.user_id → conversation 照合に使用
   name: string;
   /**
-   * ⚠️ **Free プランでは null。** 表示を隠すのではなく、
-   *    `fetchApplicationsForCompany` の **select から列ごと落としている。**
-   *    ページのペイロードにも API のレスポンスにも入らない。
-   *    「null なら有料プランの案内を出す」で分岐すること。
+   * ★応募者の連絡先は**全プラン共通で返す**（2026-10-08 に有料ゲートを外した）。
+   * ⚠️ null は「応募者が入力していない」という意味だけ。プランの話ではない。
    */
   email: string | null;
-  /** ⚠️ email と同じ。Free では select から落ちる */
   phone: string | null;
   message: string | null;
   status: ApplicationStatus;
@@ -115,27 +112,15 @@ function transformApplication(row: DbApplication): BizApplication {
 export async function fetchApplicationsForCompany(
   supabase: SupabaseClient,
   tenantId: string,
-  /**
-   * 応募者の連絡先（メールアドレス・電話番号）を返すか。
-   *
-   * ⚠️ **既定は false。** 呼び出し側が `canUse(planType, "applicantContact")` を
-   *    渡し忘れたときに連絡先が出てしまうのを避ける（fail-closed）。
-   * ⚠️ **表示側で隠すのではなく、ここで select から列を落とす。**
-   *    一覧と詳細が同じペイロードに載る作りなので、
-   *    表示を隠すだけでは開発者ツールから読めてしまう。
-   */
-  canSeeContact = false,
+  /* ⚠️ 2026-10-08 まであった第3引数 `canSeeContact`（既定 false）は外した。
+        応募者の連絡先を全プラン共通の無料機能にしたため（lib/constants/plans.ts）。 */
 ): Promise<BizApplication[]> {
   // RLS (migration 049 の company_admins_read_applications) で自社のみ返る
   // ただし eq("company_id") では ow_job_applications に company_id がないため
   // ow_jobs を経由して company_id でフィルタする
   const { data, error } = await supabase
     .from("ow_job_applications")
-    .select(
-      canSeeContact
-        ? "id, job_id, user_id, name, email, phone, message, status, created_at, ow_jobs!inner(id, title)"
-        : "id, job_id, user_id, name, message, status, created_at, ow_jobs!inner(id, title)"
-    )
+    .select("id, job_id, user_id, name, email, phone, message, status, created_at, ow_jobs!inner(id, title)")
     .eq("ow_jobs.company_id", tenantId)
     .order("created_at", { ascending: false });
 

@@ -54,14 +54,19 @@ export const PLAN_MONTHLY_FEE: Record<PlanType, number> = {
 export const PLAN_FEATURES = [
   /** 候補者検索（/biz/candidates）で個人を特定できるデータを見る */
   "candidateSearch",
-  /** 応募者の連絡先（メールアドレス・電話番号）を見る */
-  "applicantContact",
   /** 「話せる人」（アンバサダー）を招待する */
   "ambassadorInvite",
 ] as const;
 
-/* ⚠️★★`scoutSend` は 2026-10-08 に外した。**スカウトごと廃止した**（提案に一本化）。
-      送信 API は 410 を返す（`src/app/api/biz/scouts/route.ts`）。**戻さないこと。** */
+/* ⚠️★★2026-10-08 に2つ外した（柴さんの判断）。**戻さないこと。**
+      ・`applicantContact`（応募者の連絡先）… **全企業に共通の無料機能**にした。
+        求職者からの自主応募・カジュアル面談の受付・応募者の連絡先の表示は無料、
+        有料は「企業情報とユーザー情報のマッチング（提案）」に寄せる、という線引き。
+        ⚠️ ゲートはアプリ側（select から email/phone を落とす）にしか無く、DB は
+           authenticated に両列の SELECT を配っていた（2026-10-08 実測）。
+           **有料で守っているつもりで、守れていなかった。** 外して食い違いも消えた。
+      ・`scoutSend` … **スカウトごと廃止した**（提案に一本化）。
+        送信 API は 410 を返す（`src/app/api/biz/scouts/route.ts`）。 */
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
 /**
@@ -92,11 +97,11 @@ const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
         または利用できる機能を制限することができます」と定めているので、規約上は可能。
         ⚠️ 戻すときは `/biz/candidates` の**未設定（planType が null）の分岐と
            取り違えないこと**（あちらは異常、こちらは売り物の案内）。
-     ⚠️★**他の2つは開けていない。** 応募者の連絡先・面談対応者の招待は
-        `free` では閉じたまま（スカウトは 2026-10-08 に廃止）。**「ベータ中だから全部開ける」に広げないこと** ——
-        ここで開けたのは「登録者を探せないと企業が何もできない」入口の1つだけ。 */
-  free: { candidateSearch: true,  applicantContact: false, ambassadorInvite: false },
-  paid: { candidateSearch: true,  applicantContact: true,  ambassadorInvite: true  },
+     ⚠️★**面談対応者の招待は `free` では閉じたまま。**「ベータ中だから全部開ける」に
+        広げないこと —— ここで開けたのは「登録者を探せないと企業が何もできない」入口の1つだけ。
+        （応募者の連絡先は 2026-10-08 にゲートごと外した。スカウトは同日に廃止） */
+  free: { candidateSearch: true,  ambassadorInvite: false },
+  paid: { candidateSearch: true,  ambassadorInvite: true  },
 };
 
 /**

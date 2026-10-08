@@ -504,37 +504,26 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
       </Section>
 
       {/* 連絡先
-          ⚠️ Free プランでは `email` / `phone` が **null で届く**。
-             画面で隠しているのではなく、`fetchApplicationsForCompany` の
-             select から列ごと落としてある（ペイロードにも入らない）。
-             ここは「届いていないときの表示」を出すだけ。 */}
+          ★全プラン共通で表示する（2026-10-08 に有料ゲートを外した）。
+          ⚠️ 「有料プランで表示されます」の案内を戻さないこと。
+          ⚠️ メールと電話は**別々に**出す。片方が無いことで、もう片方まで隠さない。 */}
       <Section title="連絡先">
-        {app.email ? (
+        {app.email || app.phone ? (
           <>
-            <InfoRow label="メールアドレス" value={
-              <a href={`mailto:${app.email}`} style={{ color: "var(--accent)", textDecoration: "none" }}>
-                {app.email}
-              </a>
-            } />
+            {app.email && (
+              <InfoRow label="メールアドレス" value={
+                <a href={`mailto:${app.email}`} style={{ color: "var(--accent)", textDecoration: "none" }}>
+                  {app.email}
+                </a>
+              } />
+            )}
             {app.phone && <InfoRow label="電話番号" value={app.phone} />}
           </>
         ) : (
-          <div style={{
-            background: "var(--bg-tint)", border: "1px solid var(--line)",
-            borderRadius: 10, padding: "16px 18px",
-          }}>
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-              連絡先は有料プランで表示されます。
-            </p>
-            {/* ⚠️ 金額は書かない（有料プランは未実装） */}
-            <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              ご相談は{" "}
-              <a href="mailto:contact@opinio.co.jp" style={{ color: "var(--royal)", textDecoration: "underline" }}>
-                contact@opinio.co.jp
-              </a>{" "}
-              まで。
-            </p>
-          </div>
+          /* ⚠️ 既定値で埋めない。応募時に入力が無かったという事実だけ出す */
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.9 }}>
+            応募時に連絡先の入力はありませんでした。メッセージからご連絡ください。
+          </p>
         )}
       </Section>
 
