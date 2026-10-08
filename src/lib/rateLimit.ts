@@ -1,10 +1,15 @@
 /**
- * IP-based rate limiter.
+ * 回数制限（2026-10-09 に Upstash へ接続）。
  *
- * Uses Upstash Redis when UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
- * are set. Falls back to in-memory (per-instance) when credentials are absent
- * — suitable for dev and single-region deploys; upgrade to Upstash for
- * multi-region production.
+ * - 数えるのは Upstash Redis（東京 / ap-northeast-1）。**インスタンスをまたいで共有される。**
+ *   URL とトークンは2通りの名前で読む（`upstashEnv()`）。
+ * - 環境変数が無いとき（dev など）は**インスタンスごとのメモリ**で数える。
+ * - ★Upstash に繋がらない・応答しないときも**メモリで数える**（fail-open。柴さんの判断）。
+ *   止めると応募・面談申込が Upstash の障害で止まるため。そのかわり1リクエストごとに
+ *   警告を1行出す（prefix と理由だけ。**鍵＝IP や利用者の ID は出さない**）。
+ * - ⚠️ 2026-10-09 まではエラー時に例外がそのまま上がって **500**、応答が無いときは
+ *   **5秒待って黙って通す**形だった（ライブラリの既定）。
+ * - 確認に使ったキーは有効期限付き（ライブラリが PEXPIRE を付ける）なので片付け不要。
  */
 
 import { NextRequest } from "next/server";
@@ -28,16 +33,30 @@ function checkInMemory(key: string, limit: number, windowMs: number): boolean {
 let upstashRatelimit: typeof import("@upstash/ratelimit").Ratelimit | null = null;
 let upstashRedis: InstanceType<typeof import("@upstash/redis").Redis> | null = null;
 
+/**
+ * ★URL とトークンは2通りの名前で読む。Vercel の連携は KV_REST_API_* を入れる。
+ * ⚠️ KV_REST_API_READ_ONLY_TOKEN は使わない（読み取り専用では数えられない）。
+ */
+function upstashEnv(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
+/** ★繋がらないときに待つ上限。超えたらメモリで数える（ライブラリの既定5秒は長すぎる） */
+const UPSTASH_TIMEOUT_MS = 1000;
+
 async function getUpstash() {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return null;
-  }
+  const env = upstashEnv();
+  if (!env) return null;
   if (!upstashRatelimit || !upstashRedis) {
     const { Ratelimit } = await import("@upstash/ratelimit");
     const { Redis } = await import("@upstash/redis");
     upstashRedis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      url: env.url,
+      token: env.token,
+      /* ⚠️ 再試行は1回まで。既定の5回だと上限まで待つことが増える */
+      retry: { retries: 1 },
     });
     upstashRatelimit = Ratelimit;
   }
@@ -75,15 +94,24 @@ export async function checkRateLimit(
   const upstash = await getUpstash();
 
   if (upstash) {
-    const limiter = new upstash.Ratelimit({
-      redis: upstash.redis,
-      limiter: upstash.Ratelimit.slidingWindow(opts.limit, `${opts.windowSec} s`),
-      prefix: "opinio_rl",
-    });
-    const { success } = await limiter.limit(key);
-    return success;
+    try {
+      const limiter = new upstash.Ratelimit({
+        redis: upstash.redis,
+        limiter: upstash.Ratelimit.slidingWindow(opts.limit, `${opts.windowSec} s`),
+        prefix: "opinio_rl",
+        timeout: UPSTASH_TIMEOUT_MS,
+      });
+      const res = await limiter.limit(key);
+      if (res.reason !== "timeout") return res.success;
+      console.warn(`[rateLimit] Upstash が応答しないためメモリで数えた prefix=${opts.prefix} reason=timeout`);
+    } catch (e) {
+      /* ★fail-open。止めると応募・面談申込が Upstash の障害で止まる */
+      console.warn(
+        `[rateLimit] Upstash に接続できないためメモリで数えた prefix=${opts.prefix} reason=${e instanceof Error ? e.name : "error"}`,
+      );
+    }
   }
 
-  // In-memory fallback
+  // In-memory fallback（環境変数が無いとき・Upstash に繋がらないとき）
   return checkInMemory(key, opts.limit, opts.windowSec * 1000);
 }
