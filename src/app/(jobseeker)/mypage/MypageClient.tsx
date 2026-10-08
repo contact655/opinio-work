@@ -21,7 +21,7 @@ import { type CareerEntry } from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
 /* ★「◯◯の経験が活きる会社」（2026-09-04）。⚠️ ブロックが0件なら何も描かない部品。 */
 import { IndustryMatchSection } from "@/components/mypage/IndustryMatchSection";
-import type { IndustryMatchBlock } from "@/lib/companies/industryMatch";
+import type { IndustryMatchBlock } from "@/lib/companies/industryMatchText";
 
 /* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
       `/mypage` が編集フォームにそのまま渡すので、片方に列を足してもう片方に

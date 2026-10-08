@@ -11,8 +11,10 @@ import { MAX_BUSINESS_DOMAINS_PER_COMPANY } from "@/lib/companies/businessDomain
  *    （`/admin/companies/[id]/CompanyDetailClient.tsx` と `/biz/company/CompanyEditClient.tsx`）。
  *    `createAdminClient` を同じファイルに置くと、そのバンドルに service role の
  *    経路が混ざる。
- * ⚠️ `server-only` パッケージは**このリポジトリに入っていない**ので付けていない。
- *    ビルドでは落ちないので、**クライアントから import しないのは規約で守る。**
+ * ⚠️★`server-only` は **Next に同梱されている**（2026-10-09 に訂正。それまで
+ *    「このリポジトリに入っていない」と書いていたが誤りだった）。このファイルが使う
+ *    `lib/supabase/admin.ts` に `import "server-only"` が入っているので、
+ *    **クライアントから（間接的にでも）import するとビルドが落ちる。**
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

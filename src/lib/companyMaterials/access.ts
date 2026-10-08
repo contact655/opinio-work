@@ -11,6 +11,11 @@
  * ⚠️ 表は RLS ポリシー0本・GRANT なしなので、セッションのクライアントでは読めない。
  *    ここで所属を確かめたあと、`lib/companyMaterials/server.ts`（admin クライアント）を呼ぶ。
  */
+/* ★サーバー専用（2026-10-09）。クライアントコンポーネントから（間接的にでも）読まれると
+      **ビルドが落ちる**。`server-only` は Next に同梱されている（追加のインストールは不要）。
+   ⚠️ 外さないこと。外すと、2026-10-09 に /mypage で起きた「admin クライアントの
+      コードがブラウザ向けファイルに入る」が、気づけないまま戻る。 */
+import "server-only";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";

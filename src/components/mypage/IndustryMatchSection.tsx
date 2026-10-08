@@ -4,7 +4,7 @@ import {
   industryMatchHeading,
   industryMatchReason,
   type IndustryMatchBlock,
-} from "@/lib/companies/industryMatch";
+} from "@/lib/companies/industryMatchText";
 
 /**
  * 「◯◯の経験が活きる会社」— `/mypage` の右カラムに出す。

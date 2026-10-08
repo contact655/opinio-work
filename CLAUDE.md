@@ -2535,7 +2535,14 @@ checkPublishable(companyId, actor)  // 満たしていなければ「何が足�
    あれは `createAdminClient` を使うが、`businessDomains.ts` は**定数と型を
    クライアントコンポーネントが import している**（`/admin/companies/[id]` と
    `/biz/company`）。同居させると **service role の経路がバンドルに混ざる。**
-   ⚠️ `server-only` パッケージはこのリポジトリに入っていないので、**規約で守る。**
+   ⚠️★**`server-only` は Next に同梱されている**（2026-10-09 に訂正。「入っていないので規約で守る」は
+      誤りだった）。`lib/supabase/admin.ts`・`noStore.ts`・`lib/companies/ownCompany.ts` に
+      `import "server-only"` を入れたので、**クライアントから（間接的にでも）読むとビルドが落ちる。**
+   ⚠️★きっかけ（2026-10-09）: `IndustryMatchSection`（クライアントの `MypageClient` の中）が
+      文言の関数のためだけに `industryMatch.ts` を読み、**admin クライアントと `ownCompany.ts` が
+      `/mypage` のブラウザ向けファイルに入っていた**（キーの値は入っていない。環境変数の名前と
+      エラー文だけ）。純粋な部分を `industryMatchText.ts` に切り出して直した。
+      ⚠️ **新しく「クライアントからも読む定数・型」を置くファイルに、admin クライアントを同居させないこと。**
 
 ##### ⚠️★★この項目だけ即時保存で、下書きを経由しない
 

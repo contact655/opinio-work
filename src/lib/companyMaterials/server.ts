@@ -16,9 +16,14 @@
  *   ⚠️★**これ以外の経路で項目を読ませないこと。** 条件（`visibility` / `confirmed_at` /
  *      `restricted_flag`）を呼び出し側に書き写すと、必ずどこかで1つ落ちる。
  *
- * ⚠️ `server-only` パッケージは入っていないので、**クライアントコンポーネントから
- *    import しないこと**（admin クライアントがバンドルに混ざる）。規約で守る。
+ * ⚠️ `import "server-only"` を入れてある（2026-10-09）。クライアントコンポーネントから
+ *    値を import するとビルドが落ちる。型だけなら `import type` で読んでよい（実行時に消える）。
  */
+/* ★サーバー専用（2026-10-09）。クライアントコンポーネントから（間接的にでも）読まれると
+      **ビルドが落ちる**。`server-only` は Next に同梱されている（追加のインストールは不要）。
+   ⚠️ 外さないこと。外すと、2026-10-09 に /mypage で起きた「admin クライアントの
+      コードがブラウザ向けファイルに入る」が、気づけないまま戻る。 */
+import "server-only";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
