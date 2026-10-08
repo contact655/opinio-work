@@ -1840,6 +1840,149 @@ export type Database = {
           },
         ]
       }
+      ow_company_material_documents: {
+        Row: {
+          byte_size: number | null
+          company_id: string
+          created_at: string
+          created_by_ow_user_id: string | null
+          error_message: string | null
+          id: string
+          mime_type: string | null
+          source_type: string
+          source_url: string | null
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          byte_size?: number | null
+          company_id: string
+          created_at?: string
+          created_by_ow_user_id?: string | null
+          error_message?: string | null
+          id?: string
+          mime_type?: string | null
+          source_type: string
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          byte_size?: number | null
+          company_id?: string
+          created_at?: string
+          created_by_ow_user_id?: string | null
+          error_message?: string | null
+          id?: string
+          mime_type?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_material_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_material_documents_created_by_ow_user_id_fkey"
+            columns: ["created_by_ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_material_items: {
+        Row: {
+          ai_suggested_visibility: string | null
+          category: string
+          company_id: string
+          confirmed_at: string | null
+          confirmed_by_ow_user_id: string | null
+          content: string
+          created_at: string
+          created_by_ow_user_id: string | null
+          document_id: string | null
+          id: string
+          restricted_flag: boolean
+          restricted_reason: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          ai_suggested_visibility?: string | null
+          category: string
+          company_id: string
+          confirmed_at?: string | null
+          confirmed_by_ow_user_id?: string | null
+          content: string
+          created_at?: string
+          created_by_ow_user_id?: string | null
+          document_id?: string | null
+          id?: string
+          restricted_flag?: boolean
+          restricted_reason?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          ai_suggested_visibility?: string | null
+          category?: string
+          company_id?: string
+          confirmed_at?: string | null
+          confirmed_by_ow_user_id?: string | null
+          content?: string
+          created_at?: string
+          created_by_ow_user_id?: string | null
+          document_id?: string | null
+          id?: string
+          restricted_flag?: boolean
+          restricted_reason?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_material_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_material_items_confirmed_by_ow_user_id_fkey"
+            columns: ["confirmed_by_ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_material_items_created_by_ow_user_id_fkey"
+            columns: ["created_by_ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_material_items_document_fkey"
+            columns: ["document_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_company_material_documents"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
       ow_company_member_reports: {
         Row: {
           company_id: string

@@ -56,6 +56,13 @@ export const PLAN_FEATURES = [
   "candidateSearch",
   /** 「話せる人」（アンバサダー）を招待する */
   "ambassadorInvite",
+  /**
+   * ★企業資料を**マッチング（提案）の材料に使う**（2026-10-09 / 依頼②）。
+   * ⚠️★ゲートを掛けるのは「マッチングへの利用」だけ。資料の登録・項目の確認と確定・
+   *    求職者向けの公開表示は**ゲートの外**（`free` でも常に使える）。
+   *    判定は `getMaterialsForMatching()`（`lib/companyMaterials/server.ts`）の1か所。
+   */
+  "companyMaterials",
 ] as const;
 
 /* ⚠️★★2026-10-08 に2つ外した（柴さんの判断）。**戻さないこと。**
@@ -100,8 +107,14 @@ const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
      ⚠️★**面談対応者の招待は `free` では閉じたまま。**「ベータ中だから全部開ける」に
         広げないこと —— ここで開けたのは「登録者を探せないと企業が何もできない」入口の1つだけ。
         （応募者の連絡先は 2026-10-08 にゲートごと外した。スカウトは同日に廃止） */
-  free: { candidateSearch: true,  ambassadorInvite: false },
-  paid: { candidateSearch: true,  ambassadorInvite: true  },
+  /* ★★`companyMaterials` も free で true（2026-10-09 / 柴さんの判断。**ベータ版期間中の状態**）。
+        理由は `candidateSearch` と同じ —— 掲載利用規約 第4条2項がベータ期間中の無料提供を
+        定めており、閉じると「有料の機能です」と案内しながら誰も買えない状態になる。
+     ⚠️★**戻す条件も同じ。** 正式版へ移行したら `free.companyMaterials` を `false` に戻す
+        （第4条5項で機能の制限は可能）。戻すと、free の企業の資料は**提案の材料に使われなくなる**
+        だけで、登録・確認・公開表示はそのまま使える（ゲートの外に置いてあるため）。 */
+  free: { candidateSearch: true,  ambassadorInvite: false, companyMaterials: true },
+  paid: { candidateSearch: true,  ambassadorInvite: true,  companyMaterials: true },
 };
 
 /**

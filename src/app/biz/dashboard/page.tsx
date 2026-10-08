@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
 import { checkPublishable } from "@/lib/companies/publishable";
+import { countUnconfirmedMaterialItems } from "@/lib/companyMaterials/server";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export default async function BizDashboardPage({
 
   const supabase = createClient();
   const adminSupabase = createAdminClient();
-  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo, classification] = await Promise.all([
+  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo, classification, unconfirmedMaterials] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
@@ -117,6 +118,8 @@ export default async function BizDashboardPage({
           ⚠️ `{ kind: "admin" }` を渡す＝**規約同意は見ない**（同意は設定タブの話で、
              企業情報の入力とは別）。⚠️ 判定は公開ゲートと同じ関数。書き写さない。 */
     checkPublishable(ctx.tenantId, { kind: "admin" }),
+    /* ★企業資料の未確定の項目（2026-10-09 / 依頼②）。⚠️ 取れなかったら null */
+    countUnconfirmedMaterialItems(ctx.tenantId),
   ]);
 
   /* ★★スタートガイド（2026-10-08 に完了判定を実データへ合わせた / 柴さんの指示）。
@@ -156,6 +159,10 @@ export default async function BizDashboardPage({
           ありません」の下に未完了のガイドが並んでいて、2つが矛盾して見えた。
           ⚠️ 件数は上の `guideItems` と同じ配列から数える。 */
     { key: "guide", label: "スタートガイドの未完了", count: showGuide ? guideRemaining : 0, href: "#start-guide" },
+    /* ★企業資料の未確定の項目（2026-10-09）。確定するまで求職者には出ない。
+          ⚠️ 取得に失敗したら 1件として出す（0 にすると壊れているのに要対応が消える）。 */
+    { key: "materials", label: unconfirmedMaterials === null ? "企業資料（件数を確認できませんでした）" : "未確定の項目（企業資料）",
+      count: unconfirmedMaterials === null ? 1 : unconfirmedMaterials, href: "/biz/materials" },
   ].filter((t) => t.count > 0);
 
   const disclosureScore = companyRaw ? calcDisclosureScore({

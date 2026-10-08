@@ -71,6 +71,8 @@ import type { CompanyTargetIndustry } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
 import { ExpandableStoryBody } from "./ExpandableStoryBody";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
+import { getPublicMaterialItemsCached, type PublicMaterialItem } from "@/lib/companyMaterials/server";
+import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_LABELS } from "@/lib/constants/companyMaterials";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -710,6 +712,65 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
         )}
       </div>
 
+      </div>
+    </section>
+  );
+}
+
+// ─── Company Materials Section ───────────────────────────────────────────────
+
+/**
+ * ★企業が「公開」で確定した項目を区分ごとに出す（2026-10-09 / 依頼②）。
+ * ⚠️ 受け取るのは `getPublicMaterialItemsCached` の結果だけ。**ここで項目を引き直さない。**
+ * ⚠️ 企業の申告であることを書く（運営が確かめた情報と読ませない）。
+ * ⚠️ 区分ごとの色分けはしない（ui-conventions「色の役割」）。
+ * ⚠️ 「合意後に開示」は依頼③。ここには決して出さない（型も PublicMaterialItem しか受けない）。
+ */
+function CompanyMaterialsSection({ items }: { items: PublicMaterialItem[] }) {
+  if (items.length === 0) return null;
+  const groups = MATERIAL_CATEGORIES
+    .map((c) => ({ c, list: items.filter((i) => i.category === c) }))
+    .filter((g) => g.list.length > 0);
+
+  return (
+    <section
+      id="company-materials"
+      style={{
+        background: "#fff",
+        border: "1px solid var(--line)",
+        borderRadius: 18,
+        overflow: "hidden",
+        marginBottom: "var(--space-6)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
+      }}
+    >
+      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+        <SecTitle
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+            </svg>
+          }
+        >
+          企業からの情報
+        </SecTitle>
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          この会社が登録し、公開を確定した内容です（企業の申告で、OPINIO が確認したものではありません）。
+        </p>
+      </div>
+      <div style={{ padding: "var(--space-6) 32px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {groups.map(({ c, list }) => (
+          <div key={c}>
+            <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{MATERIAL_CATEGORY_LABELS[c]}</h3>
+            <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              {list.map((i) => (
+                <li key={i.id} style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.85, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                  {i.content}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -1766,7 +1827,7 @@ export default async function CompanyDetailPage({
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
-         targetIndustries, articleIdRowsResult] = await Promise.all([
+         targetIndustries, articleIdRowsResult, materialItems] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -1786,6 +1847,10 @@ export default async function CompanyDetailPage({
     /* ⚠️ 記事IDは companyId しか要らないのでここに相乗りさせる。
           閲覧者の ow_users はもう引かない（認証を読まないため）。 */
     adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
+    /* ★企業資料の「公開」項目（2026-10-09 / 依頼②）。**確定済み・公開・restricted でない**ものだけ。
+          ⚠️ 条件は `getPublicMaterialItemsCached` の1か所。ここで絞り直さないこと。
+          ⚠️ 確定・変更時は `revalidateCompanyPages()` がこのキャッシュごと落とす。 */
+    getPublicMaterialItemsCached(companyId),
   ]);
 
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
@@ -1969,6 +2034,9 @@ export default async function CompanyDetailPage({
 
             {/* 4. 働く環境（benefits → org-teams） */}
             <BenefitsSection detail={detail} />
+
+            {/* ★企業が公開を確定した情報（2026-10-09 / 依頼②）。0件ならセクションごと出さない */}
+            <CompanyMaterialsSection items={materialItems} />
 
             {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (
