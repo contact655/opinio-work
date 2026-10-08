@@ -1,12 +1,44 @@
 import Link from "next/link";
 
+/**
+ * ★受付状態（2026-10-08）。空状態の文言を出し分けるためだけに使う。
+ * ⚠️ `accepting` が null ＝ 取得できなかった。**「受け付けていない」と読まない。**
+ */
+export type MeetingAcceptance = {
+  /** `ow_companies.accepting_casual_meetings`。取れなければ null */
+  accepting: boolean | null;
+  /** 企業ページが見えるか（`is_published`）。見えなければ申込フォームにも辿り着けない */
+  pageVisible: boolean;
+};
+
 type Props = {
   isSearch?: boolean;
   /** "pending" タブで総件数 0 の場合: カジュアル面談の受け付け案内を表示 */
   isAllEmpty?: boolean;
+  acceptance?: MeetingAcceptance | null;
 };
 
-export function MeetingEmptyState({ isSearch, isAllEmpty }: Props) {
+/**
+ * ★空状態の案内文（2026-10-08）。**受付状態と公開状態の2つ**で決める。
+ * ⚠️★それまでは受付状態を受け取っておらず、**受付中の会社にも
+ *    「『カジュアル面談を受け付ける』を有効にすると…」と出していた**（Third Box で実際に起きた）。
+ * ⚠️★「受付中だがページ非公開」を必ず分けること。この組み合わせでは申込フォームが 404 で、
+ *    **待っても1件も届かない。** 「待てば来ます」と読ませない。
+ */
+export function meetingEmptyMessage(a: MeetingAcceptance | null | undefined): string {
+  if (!a || a.accepting === null) {
+    return "申込が届くと、ここに表示されます。";
+  }
+  if (a.accepting && !a.pageVisible) {
+    return "カジュアル面談は受付中ですが、企業ページが非公開のため、いまは申込が届きません。掲載が始まると、企業ページから申込が届くようになります。";
+  }
+  if (a.accepting) {
+    return "カジュアル面談は受付中です。候補者が企業ページから申し込むと、ここに届きます。";
+  }
+  return "カジュアル面談の受付を一時停止しています。設定タブで「受付中」にすると、候補者からの申込が届くようになります。";
+}
+
+export function MeetingEmptyState({ isSearch, isAllEmpty, acceptance }: Props) {
   if (isSearch) {
     return (
       <div style={{
@@ -71,7 +103,7 @@ export function MeetingEmptyState({ isSearch, isAllEmpty }: Props) {
           maxWidth: 280,
           marginBottom: 20,
         }}>
-          企業設定で「カジュアル面談を受け付ける」を有効にすると、候補者からの申込が届くようになります。
+          {meetingEmptyMessage(acceptance)}
         </div>
         <Link
           href="/biz/company"

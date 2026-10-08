@@ -1,6 +1,7 @@
 "use client";
 
 import type { CompanySectionId } from "@/lib/business/mockCompany";
+import type { CompanyPageStatus } from "@/lib/companies/pageStatus";
 
 export type CompanySubNavSection = {
   id: CompanySectionId;
@@ -38,6 +39,11 @@ type Props = {
   isPublishing?: boolean;
   isAdmin?: boolean;
   termsAgreed?: boolean;
+  /**
+   * ★企業ページの状態（2026-10-08）。判定は `companyPageStatus` の1箇所。
+   * ⚠️ ページ非公開のときは、差分のバッジより**非公開であることを優先して出す**。
+   */
+  pageStatus?: CompanyPageStatus;
   saveState?: "idle" | "saving" | "saved" | "error";
   saveStatusText?: string;
   onRetrySave?: () => void;
@@ -68,6 +74,7 @@ export function CompanyEditSubNav({
   isPublishing,
   isAdmin,
   termsAgreed,
+  pageStatus,
   saveState,
   saveStatusText,
   onRetrySave,
@@ -79,15 +86,24 @@ export function CompanyEditSubNav({
       <div className="biz-company-head" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業ページ</h1>
 
-        {/* 公開の状態。⚠️ 色だけで伝えない（文言で言う） */}
-        {hasDraftChanges ? (
+        {/* 公開の状態。⚠️ 色だけで伝えない（文言で言う）
+               ★★ページ非公開を最優先で出す（2026-10-08）。それまでは差分しか見ておらず、
+                 **ページが 404 なのに「公開済み・最新」と出ていた**（Third Box で実際に起きた）。
+               ⚠️ 差分のバッジは「下書きが本番の列に反映済みか」の意味。
+                  ページが見えるかどうかとは別。文言を「公開済み」に戻さないこと。 */}
+        {pageStatus?.kind === "page_hidden" ? (
+          <span data-state="page_hidden" title={pageStatus.detail} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
+            <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--ink-mute)" }} />
+            ページ非公開
+          </span>
+        ) : hasDraftChanges ? (
           <span data-state="draft" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 100, background: "var(--warm-soft)", border: "1px solid #FDE68A", fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>
             <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warm-strong)" }} />
             未公開の変更あり
           </span>
         ) : (
           <span data-state="published" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 100, background: "var(--success-soft)", border: "1px solid #A7F3D0", fontSize: 12, fontWeight: 600, color: "var(--success-ink)" }}>
-            公開済み・最新
+            変更はすべて反映済み
           </span>
         )}
         {/* ⚠️ 日付が無いなら出さない（推測の日付を出さない） */}
@@ -120,7 +136,7 @@ export function CompanyEditSubNav({
         {isAdmin && !termsAgreed && (
           <button type="button" onClick={() => onSectionClick("settings")}
             style={{ height: 34, padding: "0 12px", borderRadius: 8, border: "1px solid #FDE68A", background: "var(--warm-soft)", color: "var(--warm-ink)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            公開には掲載利用規約への同意が必要です（設定タブ）
+            変更の反映には掲載利用規約への同意が必要です（設定タブ）
           </button>
         )}
         {isAdmin && termsAgreed && (
@@ -129,7 +145,7 @@ export function CompanyEditSubNav({
               cursor: (isPublishing || !hasDraftChanges) ? "not-allowed" : "pointer",
               background: hasDraftChanges ? "var(--royal)" : "var(--line)", color: hasDraftChanges ? "#fff" : "var(--ink-mute)",
               opacity: isPublishing ? 0.7 : 1 }}>
-            {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "公開済み"}
+            {isPublishing ? "公開中..." : hasDraftChanges ? "変更を公開する" : "反映済み"}
           </button>
         )}
       </div>

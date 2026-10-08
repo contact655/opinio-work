@@ -30,6 +30,11 @@ export async function fetchTeamMembersForDashboard(
       .select("id, permission, role_title, user:ow_users!user_id (id, name, avatar_color)")
       .eq("company_id", tenantId)
       .eq("is_active", true)
+      /* ★招待中の行（`user_id` NULL）をメンバーに混ぜない（2026-10-08）。
+            2026-08-05 より前の招待は `is_active = true` で作られており、
+            **「？ ー 管理者」**として並んでいた（Third Box の期限切れ招待 1行）。
+            招待中は `/biz/members` の「招待中」で見る（`fetchPendingInvites`）。 */
+      .not("user_id", "is", null)
       .order("created_at", { ascending: true });
 
     if (error) {

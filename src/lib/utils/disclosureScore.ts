@@ -96,7 +96,20 @@ export function scoreLabel(total: number): string {
   if (total >= 80) return "充実";
   if (total >= 50) return "良好";
   if (total >= 20) return "基本";
-  return "未入力";
+  /* ⚠️★「未入力」と書かないこと（2026-10-08）。点数が入っているのに「未入力」と並び、
+        意味が取れなかった（Third Box で「開示充実度 5」の横に「未入力」）。 */
+  return "これから";
+}
+
+/**
+ * ★企業入力（第1区分・/45）を、合計（/95）と同じ物差しに置き直す（2026-10-08）。
+ *
+ * ダッシュボードは**企業入力を主表示**にした（取材の50点は企業が自分で動かせないため）。
+ * ラベルと色は合計の閾値（80/50/20）を使い回すので、割合をそろえてから渡す。
+ * ⚠️ 表示する数字は `biz` そのもの（「X / 45」）。これは**ラベルと色を決めるためだけ**の値。
+ */
+export function bizScoreOnTotalScale(biz: number): number {
+  return Math.round((biz / DISCLOSURE_BIZ_MAX) * DISCLOSURE_MAX);
 }
 
 /** ★リングなど**塗り**に使う色。文字には `scoreTextColor()` を使うこと */

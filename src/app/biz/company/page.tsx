@@ -79,7 +79,9 @@ export default async function BizCompanyPage() {
       .from("ow_company_admins")
       .select("user_id, department, role_title, permission")
       .eq("company_id", ctx.tenantId)
-      .eq("is_active", true),
+      .eq("is_active", true)
+      /* ★招待中の行（`user_id` NULL）を数えない（2026-10-08）。2026-08-05 より前の招待は `is_active = true` で作られており、1行残っている */
+      .not("user_id", "is", null),
     /* ★掲載依頼の記録（2026-09-29）。
           ⚠️★**`fetchCompanyForTenant`（＝ `BizCompany`）に混ぜないこと。** あれは
              `draft_data` に自動保存される**企業が編集する値**で、この列は運営が
@@ -89,7 +91,9 @@ export default async function BizCompanyPage() {
              読みも運営の管理用なので、セッション側の可視性に依存させない。 */
     adminClient
       .from("ow_companies")
-      .select("listing_requested_at")
+      /* ★`listing_status` も引く（2026-10-08）。状態表示（`companyPageStatus`）が要る。
+            ⚠️ これも `form` に入れない（下書きに混ぜると古い値で上書きされる） */
+      .select("listing_requested_at, listing_status")
       .eq("id", ctx.tenantId)
       .maybeSingle(),
     /* ⚠️ 開示充実度の計算に使っていた4本（公開求人数・公開ストーリー数・取材項目・ツール数）は
@@ -193,6 +197,7 @@ export default async function BizCompanyPage() {
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
       initialListingRequestedAt={(listingRequestResult.data?.listing_requested_at as string | null) ?? null}
+      listingStatus={(listingRequestResult.data?.listing_status as string | null) ?? null}
       teamMembers={teamMembers}
       businessDomainOptions={businessDomainOptions}
       initialBusinessDomainIds={companyDomainRows.map((r) => r.domain_id)}

@@ -9,7 +9,7 @@ import { MeetingStatusTabs } from "@/components/business/MeetingStatusTabs";
 import { MeetingCard } from "@/components/business/MeetingCard";
 import { MeetingSearchBar } from "@/components/business/MeetingSearchBar";
 import { MeetingDetailPanel } from "@/components/business/MeetingDetailPanel";
-import { MeetingEmptyState } from "@/components/business/MeetingEmptyState";
+import { MeetingEmptyState, type MeetingAcceptance } from "@/components/business/MeetingEmptyState";
 
 type MemoSaveState = "idle" | "saving" | "saved";
 
@@ -24,9 +24,11 @@ type Props = {
   meetings: MeetingApplication[];
   tenantName?: string;
   currentUser: CurrentUser;
+  /** ★空状態の文言に使う（2026-10-08）。`MeetingEmptyState` の注記 */
+  acceptance?: MeetingAcceptance | null;
 };
 
-export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props) {
+export function MeetingsClient({ meetings: initialMeetings, currentUser, acceptance = null }: Props) {
   const router = useRouter();
   // ── Core state ──────────────────────────────────────────────
   const [meetings, setMeetings] = useState<MeetingApplication[]>(initialMeetings);
@@ -299,6 +301,7 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser }: Props
           <MeetingEmptyState
             isSearch={!!searchQuery.trim()}
             isAllEmpty={meetings.length === 0 && activeStatus === "pending"}
+            acceptance={acceptance}
           />
         ) : (
           <>

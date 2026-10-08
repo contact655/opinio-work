@@ -9,12 +9,13 @@ import {
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
 import { fetchCompanyForTenant } from "@/lib/business/company";
-import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, DISCLOSURE_MAX, BIZ_SCORE_ITEM_LABELS, type BizScoreItem } from "@/lib/utils/disclosureScore";
+import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, bizScoreOnTotalScale, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX, BIZ_SCORE_ITEM_LABELS, type BizScoreItem } from "@/lib/utils/disclosureScore";
 import { getBizTodoCounts } from "@/lib/business/navBadges";
 import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
+import { checkPublishable } from "@/lib/companies/publishable";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,7 @@ export default async function BizDashboardPage({
 
   const supabase = createClient();
   const adminSupabase = createAdminClient();
-  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo] = await Promise.all([
+  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo, classification] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
@@ -111,7 +112,37 @@ export default async function BizDashboardPage({
     })(),
     /* ★「やること」。メッセージと提案はサイドバーのバッジと同じ関数で数える */
     getBizTodoCounts({ owUserId: ctx.currentOwnId, companyId: ctx.tenantId }),
+    /* ★スタートガイドの「企業情報を入力する」の完了判定（2026-10-08）。
+          掲載に必要な項目（業種＋必須の事業領域）が埋まっているか。
+          ⚠️ `{ kind: "admin" }` を渡す＝**規約同意は見ない**（同意は設定タブの話で、
+             企業情報の入力とは別）。⚠️ 判定は公開ゲートと同じ関数。書き写さない。 */
+    checkPublishable(ctx.tenantId, { kind: "admin" }),
   ]);
+
+  /* ★★スタートガイド（2026-10-08 に完了判定を実データへ合わせた / 柴さんの指示）。
+        それまで「求人を作成」「公開」「面談受付」は **`done: false` の固定**で、
+        「企業情報を入力する」は `is_published`（ページが見えるか）で判定していた。
+        Third Box では**受付中なのに「受付を開始する」が未完了**のまま出ていた。
+     ⚠️ 判定はここ1箇所。下のカードと「やること」の件数が同じ配列を見る。 */
+  const totalJobs = (jobStatusCounts.active ?? 0) + (jobStatusCounts.review ?? 0)
+    + (jobStatusCounts.draft ?? 0) + (jobStatusCounts.rejected ?? 0) + (jobStatusCounts.private ?? 0);
+  const guideItems = [
+    {
+      done: classification.ok,
+      label: "企業情報を入力する",
+      href: "/biz/company",
+      hint: classification.ok
+        ? "掲載に必要な項目（業種・事業領域）は入っています"
+        : "業種と事業領域（掲載に必要な項目）を入れましょう",
+    },
+    { done: totalJobs > 0, label: "求人を作成する", href: "/biz/jobs", hint: "ポジション・給与・業務内容を登録しましょう" },
+    { done: (jobStatusCounts.active ?? 0) > 0, label: "求人を公開する", href: "/biz/jobs", hint: "運営の確認が済むと候補者に表示されます" },
+    /* ⚠️ `companyRaw` が取れなかったときは未完了に倒す（完了と嘘をつかない） */
+    { done: companyRaw?.acceptingCasualMeetings === true, label: "カジュアル面談の受付を開始する", href: "/biz/company", hint: "「面談受付中」バッジが企業ページに表示されます" },
+  ];
+  const guideRemaining = guideItems.filter((g) => !g.done).length;
+  /* ⚠️ 承認前は出さない（従来どおり）。全部済んだら出さない */
+  const showGuide = ctx.isApproved && guideRemaining > 0;
 
   /* ★やること（2026-09-21）。**件数が1以上のものだけ**出す。
         ⚠️ 並びは「相手を待たせているもの」から。差し戻しは運営からの指摘なので最後。
@@ -121,6 +152,10 @@ export default async function BizDashboardPage({
     { key: "proposals", label: "答えていない提案", count: todo.proposals, href: "/biz/proposals" },
     { key: "meetings", label: "未確認の面談申込", count: todo.meetings, href: "/biz/meetings" },
     { key: "rejected", label: "差し戻された求人", count: jobStatusCounts.rejected ?? 0, href: "/biz/jobs?status=rejected" },
+    /* ★未完了のスタートガイド（2026-10-08）。それまで「やること: 対応が必要なものは
+          ありません」の下に未完了のガイドが並んでいて、2つが矛盾して見えた。
+          ⚠️ 件数は上の `guideItems` と同じ配列から数える。 */
+    { key: "guide", label: "スタートガイドの未完了", count: showGuide ? guideRemaining : 0, href: "#start-guide" },
   ].filter((t) => t.count > 0);
 
   const disclosureScore = companyRaw ? calcDisclosureScore({
@@ -265,25 +300,38 @@ export default async function BizDashboardPage({
         logoGradient={ctx.logoGradient}
         logoLetter={ctx.logoLetter}
       >
-        {disclosureScore && (
+        {disclosureScore && (() => {
+          /* ★★企業入力（/45）を主表示にした（2026-10-08 / 柴さんの指示）。
+                それまでは合計（/95）だけを「開示充実度 5」と出し、20点未満に「未入力」を
+                付けていた。分母が無く、入力済みなのに「未入力」と並んで意味が取れなかった。
+             ⚠️★取材の点数（/50）は**別の行**に分ける。企業が自分では動かせないので、
+                合計に混ぜると「何をすれば上がるか」が読めない。
+             ⚠️ ラベルと色は合計の閾値を使い回す（`bizScoreOnTotalScale`）。 */
+          const tierScore = bizScoreOnTotalScale(disclosureScore.biz);
+          return (
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <div aria-hidden="true" style={{
               width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-              background: `conic-gradient(${scoreColor(disclosureScore.total)} ${disclosureScore.total * (360 / DISCLOSURE_MAX)}deg, var(--line) 0deg)`,
+              background: `conic-gradient(${scoreColor(tierScore)} ${disclosureScore.biz * (360 / DISCLOSURE_BIZ_MAX)}deg, var(--line) 0deg)`,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800, color: scoreTextColor(disclosureScore.total) }}>
-                  {disclosureScore.total}
+                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800, color: scoreTextColor(tierScore) }}>
+                  {disclosureScore.biz}
                 </span>
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>開示充実度 {disclosureScore.total}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, color: scoreTextColor(disclosureScore.total), background: "var(--bg-tint)", border: `1px solid ${scoreColor(disclosureScore.total)}` }}>
-                  {scoreLabel(disclosureScore.total)}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                  開示充実度（企業入力） {disclosureScore.biz} / {DISCLOSURE_BIZ_MAX}
                 </span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, color: scoreTextColor(tierScore), background: "var(--bg-tint)", border: `1px solid ${scoreColor(tierScore)}` }}>
+                  {scoreLabel(tierScore)}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>
+                取材で入る項目 {disclosureScore.interview} / {DISCLOSURE_INTERVIEW_MAX}（OPINIO の取材で埋まります）
               </div>
               {/* ★企業が自分で入れられる項目のうち、まだのものだけを出す（2026-09-21）。
                      ⚠️ 取材で埋まる項目は出さない。企業には動かせない数字で、
@@ -305,7 +353,8 @@ export default async function BizDashboardPage({
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
       </CompanyCard>
 
       {/* ── ロゴ未設定バナー ── */}
@@ -348,9 +397,9 @@ export default async function BizDashboardPage({
         </div>
       )}
 
-      {/* ── スタートガイド（承認済み・求人0件の場合のみ表示） ── */}
-      {ctx.isApproved && jobStatusCounts.active === 0 && jobStatusCounts.draft === 0 && (
-        <div style={{
+      {/* ── スタートガイド（承認済みで、未完了が1つ以上あるときだけ表示。2026-10-08） ── */}
+      {showGuide && (
+        <div id="start-guide" style={{
           background: "linear-gradient(135deg,var(--royal-50) 0%,#f0f4ff 100%)",
           border: "1px solid var(--royal-100)", borderRadius: 16,
           padding: "24px 26px", marginTop: 16,
@@ -367,12 +416,7 @@ export default async function BizDashboardPage({
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[
-              { done: ctx.isPublished, label: "企業情報を入力する", href: "/biz/company", hint: "取材済み・開示情報が候補者の判断材料になります" },
-              { done: false, label: "求人を作成する", href: "/biz/jobs", hint: "ポジション・給与・業務内容を登録しましょう" },
-              { done: false, label: "求人を公開する", href: "/biz/jobs", hint: "公開後すぐ候補者に表示されます" },
-              { done: false, label: "カジュアル面談の受付を開始する", href: "/biz/company", hint: "「面談受付中」バッジが企業ページに表示されます" },
-            ].map(({ done, label, href, hint }) => (
+            {guideItems.map(({ done, label, href, hint }) => (
               <Link key={label} href={href} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 16px", borderRadius: 10, background: "#fff", border: `1px solid ${done ? "#A7F3D0" : "var(--line)"}`, textDecoration: "none", transition: "border-color .15s" }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: done ? "var(--success)" : "var(--line)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
                   {done

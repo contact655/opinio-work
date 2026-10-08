@@ -147,3 +147,18 @@ export const WORK_SCHEDULE_OPTIONS = [
   "裁量労働制",
   "その他",
 ];
+
+/**
+ * ★入力欄に渡す選択肢（2026-10-08）。**先頭に「未選択」（value ""）を置く。**
+ *
+ * ⚠️★それまで空の選択肢が無く、値が `""`（未入力）のときブラウザが**先頭の
+ *    「固定時間制」を選択済みのように表示していた**（Third Box で実際に見えた）。
+ *    DB の値ではない —— 実測（2026-10-08）: 「固定時間制」を持つ企業は **0社**
+ *    （NULL 127 ／ フレックスタイム制 1）。求職者側に出ている企業も0社。
+ * ⚠️ 既存データは書き換えていない（書き換える必要が無い）。
+ * ⚠️ リモートワーク状況（`COMPANY_REMOTE_WORK_SELECT_OPTIONS`）と同じ形・同じ文言。
+ */
+export const WORK_SCHEDULE_SELECT_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "未選択" },
+  ...WORK_SCHEDULE_OPTIONS.map((v) => ({ value: v, label: v })),
+];

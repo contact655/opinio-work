@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import type { BizApplication } from "@/lib/business/applications";
 import { MeetingsClient } from "./MeetingsClient";
+import type { MeetingAcceptance } from "@/components/business/MeetingEmptyState";
 import { ApplicationsClient } from "../applications/ApplicationsClient";
 
 type CurrentUser = {
@@ -22,9 +23,11 @@ type Props = {
   initialTab?: "meetings" | "applications";
   /** 空状態の文言に使う。⚠️ 既定 false（fail-closed） */
   hasPublishedJobs?: boolean;
+  /** ★面談タブの空状態の文言に使う（2026-10-08） */
+  acceptance?: MeetingAcceptance | null;
 };
 
-export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings", hasPublishedJobs = false }: Props) {
+export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings", hasPublishedJobs = false, acceptance = null }: Props) {
   const [tab, setTab] = useState<"meetings" | "applications">(initialTab);
   const router = useRouter();
   /* ★タブを URL（?tab=）に合わせる（2026-09-21）。それまでは切り替えても URL が変わらず、
@@ -83,6 +86,7 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
             meetings={meetings}
             tenantName={tenantName}
             currentUser={currentUser}
+            acceptance={acceptance}
           />
         ) : (
           <ApplicationsClient applications={applications} hasPublishedJobs={hasPublishedJobs} />

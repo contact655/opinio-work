@@ -23,7 +23,9 @@ export default async function AdminPlansPage() {
   const { data: adminRows, error: adminErr } = await admin
     .from("ow_company_admins")
     .select("company_id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    /* ★招待中の行（`user_id` NULL）を数えない（2026-10-08）。2026-08-05 より前の招待は `is_active = true` で作られており、1行残っている */
+    .not("user_id", "is", null);
   if (adminErr) console.error("[admin/plans] ow_company_admins:", adminErr.message);
 
   const companyIds = Array.from(new Set((adminRows ?? []).map((r) => r.company_id as string)));

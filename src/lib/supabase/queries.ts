@@ -1689,7 +1689,9 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
     .from("ow_company_admins")
     .select("id, user_id, department, role_title, permission")
     .eq("company_id", companyId)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    /* ★招待中の行（`user_id` NULL）を数えない（2026-10-08）。2026-08-05 より前の招待は `is_active = true` で作られており、1行残っている */
+    .not("user_id", "is", null);
 
   if (error || !adminRows?.length) {
     if (error) console.error("[getCompanyRecruiters]", error.message);

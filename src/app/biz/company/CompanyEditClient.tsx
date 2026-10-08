@@ -10,9 +10,10 @@ import { BenefitsEditor } from "@/components/business/BenefitsEditor";
 import { TERMS_VERSION } from "@/lib/constants/terms";
 import { PHASE_SELECT_OPTIONS } from "@/lib/constants/phase";
 import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
+import { companyPageStatus } from "@/lib/companies/pageStatus";
 import {
   COMPANY_SECTIONS,
-  WORK_SCHEDULE_OPTIONS,
+  WORK_SCHEDULE_SELECT_OPTIONS,
   type BizCompany,
   type CompanySectionId,
 } from "@/lib/business/mockCompany";
@@ -50,6 +51,11 @@ type Props = {
    *    下書きに混ぜると、自動保存のたびに古い値で上書きされる。
    */
   initialListingRequestedAt?: string | null;
+  /**
+   * ★`ow_companies.listing_status`（2026-10-08）。状態表示（`companyPageStatus`）に使う。
+   * ⚠️ `initialListingRequestedAt` と同じ理由で `form` に入れない。取れなければ null。
+   */
+  listingStatus?: string | null;
   /**
    * その会社の有効な担当者（`ow_company_admins` ＋ `ow_users`）。通知先の候補。
    * ⚠️ 空配列でも動く（自由入力だけになる）。
@@ -277,33 +283,87 @@ function NotificationRecipients({
   /** 未設定のときに実際に届く人（`recipients.ts` の②）。⚠️ 条件を変えるならあちらと揃える */
   const fallback = members.filter((m) => m.isAdminPermission);
 
+  /* ★★2択にした（2026-10-08 / 柴さんの指示）。
+        それまでは未設定のとき**チェックが全部外れているのに**、説明文だけが
+        「いまは◯◯（管理者）に届きます」と言っていた。**見た目と実際の宛先が食い違う。**
+     ・既定（管理者全員）… 管理者を**灰色のチェック済み**で示す。押せない
+     ・宛先を選ぶ          … チェックと自由入力で選ぶ（`notification_emails` に保存＝上書き）
+     ⚠️ モードは local state で持つ。値から毎回導くと、「選ぶ」にした直後（まだ0件）に
+        既定へ戻ってしまう。
+     ⚠️★既定へ戻すと `notification_emails` を空にする（＝既定の宛先に戻る）。 */
+  const [mode, setMode] = useState<"default" | "custom">(emails.length > 0 ? "custom" : "default");
+
+  function chooseDefault() {
+    setMode("default");
+    onChange("");
+  }
+  function chooseCustom() {
+    setMode("custom");
+    /* ⚠️ 0件から始めない。既定と同じ顔ぶれを最初の状態にして、そこから外す・足す形にする
+          （0件のままだと保存値が空＝既定のまま、という分かりにくい状態になる） */
+    if (emails.length === 0) rebuild(fallback.map((m) => m.email), []);
+  }
+
+  const radio = (key: "default" | "custom", label: string, hint: string, onPick: () => void) => (
+    <label style={{
+      display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer",
+      padding: "8px 10px", borderRadius: 8,
+      border: `1.5px solid ${mode === key ? "var(--royal)" : "var(--line)"}`,
+      background: mode === key ? "var(--royal-50)" : "#fff",
+    }}>
+      <input type="radio" name="notif-mode" checked={mode === key} onChange={onPick}
+        style={{ marginTop: 3, accentColor: "var(--royal)", cursor: "pointer" }} />
+      <span>
+        <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{hint}</span>
+      </span>
+    </label>
+  );
+
   return (
     <div>
+      <div role="radiogroup" aria-label="通知の宛先" style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+        {radio("default", "管理者全員（既定）",
+          fallback.length > 0
+            ? "管理者権限の担当者全員に届きます。担当者が増えると自動で宛先に入ります。"
+            : "管理者権限の担当者がいないため、いまは運営に届きます。",
+          chooseDefault)}
+        {radio("custom", "宛先を選ぶ",
+          "ここで選んだ宛先だけに届きます（選ばなかった担当者には届きません）。",
+          chooseCustom)}
+      </div>
+
       {members.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
           {members.map((m) => {
-            const checked = isSelected(m);
+            /* ★既定のときは「実際に届く人」をチェック済みで示す（押せない） */
+            const isDefault = mode === "default";
+            const checked = isDefault ? m.isAdminPermission : isSelected(m);
             /* ⚠️ 値が無ければ出さない（「—」や「所属不明」で埋めない） */
             const sub = [m.department, m.roleTitle].filter(Boolean).join(" ・ ");
             return (
               <label
                 key={m.email}
+                data-state={isDefault ? (checked ? "default-on" : "default-off") : (checked ? "on" : "off")}
                 style={{
-                  display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer",
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                  cursor: isDefault ? "default" : "pointer",
                   padding: "10px 12px", borderRadius: 8,
-                  border: `1.5px solid ${checked ? "var(--royal)" : "var(--line)"}`,
-                  background: checked ? "var(--royal-50)" : "#fff",
+                  border: `1.5px solid ${checked && !isDefault ? "var(--royal)" : "var(--line)"}`,
+                  background: isDefault ? "var(--bg-tint)" : checked ? "var(--royal-50)" : "#fff",
+                  opacity: isDefault && !checked ? 0.6 : 1,
                 }}
               >
                 <input
                   type="checkbox"
                   checked={checked}
+                  disabled={isDefault}
                   onChange={() => toggle(m)}
-                  style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }}
+                  style={{ marginTop: 2, width: 16, height: 16, cursor: isDefault ? "default" : "pointer", flexShrink: 0 }}
                 />
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{m.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: isDefault ? "var(--ink-soft)" : "var(--ink)" }}>{m.name}</span>
                     {sub && <span style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>{sub}</span>}
                     {!m.isAdminPermission && (
                       <span style={{
@@ -324,33 +384,30 @@ function NotificationRecipients({
       ) : (
         <FormHint>
           この会社にはまだ OPINIO の担当者が登録されていません。
-          下の欄にメールアドレスを直接入力してください。
+          {mode === "custom" ? "下の欄にメールアドレスを直接入力してください。" : ""}
         </FormHint>
       )}
 
-      {/* ⚠️★**自由入力を消さないこと。** 共有メールボックスや採用代行の宛先が実在する。 */}
-      <FormLabel optional>その他のアドレス</FormLabel>
-      <EmailTagInput value={others.join(", ")} onChange={setOthers} />
-      <FormHint>
-        recruiting@ のような共有アドレスを追加できます（Enter またはカンマで区切ります）。
-      </FormHint>
-
-      {/* ⚠️★**「誰に届くか」を必ず出す。** `notification_emails` は既定の宛先への
-             **追加ではなく上書き**なので（`lib/notify/recipients.ts` の解決順①）、
-             1人でも選ぶと選ばなかった管理者には届かなくなる。 */}
-      {emails.length === 0 ? (
-        <FormHint>
-          {fallback.length > 0
-            ? <>未設定です。いまは<strong style={{ color: "var(--ink)" }}>{fallback.map((m) => m.name).join(" ・ ")}</strong>（管理者権限の担当者）に届きます。</>
-            : "未設定です。管理者権限の担当者がいないため、いまは運営に届きます。"}
-        </FormHint>
-      ) : (
-        <FormHint>
+      {/* ⚠️★**自由入力を消さないこと。** 共有メールボックスや採用代行の宛先が実在する。
+             ⚠️ 自由入力も既定の宛先を**上書き**するので、「宛先を選ぶ」のときだけ出す。 */}
+      {mode === "custom" && (
+        <>
+          <FormLabel optional>その他のアドレス</FormLabel>
+          <EmailTagInput value={others.join(", ")} onChange={setOthers} />
+          <FormHint>
+            recruiting@ のような共有アドレスを追加できます（Enter またはカンマで区切ります）。
+          </FormHint>
           {/* ⚠️ 数ではなく**宛先そのもの**を出す。数だけだと誰が外れたか分からない */}
-          いまの宛先: <strong style={{ color: "var(--ink)" }}>{emails.join(" ・ ")}</strong>
-          <br />
-          ここに挙げた宛先<strong>だけ</strong>に届きます（他の担当者には届きません）。
-        </FormHint>
+          {emails.length === 0 ? (
+            <FormHint>
+              宛先が1つも選ばれていないため、いまは管理者全員に届きます。
+            </FormHint>
+          ) : (
+            <FormHint>
+              いまの宛先: <strong style={{ color: "var(--ink)" }}>{emails.join(" ・ ")}</strong>
+            </FormHint>
+          )}
+        </>
       )}
     </div>
   );
@@ -567,6 +624,7 @@ export function CompanyEditClient({
   initialTermsAgreed = false,
   userId = "",
   initialListingRequestedAt = null,
+  listingStatus = null,
   teamMembers = [],
   businessDomainOptions = [],
   initialBusinessDomainIds = [],
@@ -598,6 +656,11 @@ export function CompanyEditClient({
 
   /* ★掲載依頼（2026-09-29）。⚠️ `form` に入れない（Props の注記を読むこと） */
   const [listingRequestedAt, setListingRequestedAt] = useState<string | null>(initialListingRequestedAt);
+  /* ★状態は1つの関数で決める（2026-10-08）。上部バッジ・右上の案内・設定タブの3か所が
+        これを使う。⚠️ 画面側で `form.isPublished` から文言を組み直さないこと。 */
+  const pageStatus = companyPageStatus({
+    isPublished: form.isPublished, listingStatus, termsAgreed, listingRequestedAt,
+  });
   const [isRequestingListing, setIsRequestingListing] = useState(false);
   const [activeSection, setActiveSection] = useState<CompanySectionId>("basic");
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
@@ -1409,7 +1472,7 @@ export function CompanyEditClient({
                 </FormGroup>
                 <FormGroup>
                   <FormLabel>勤務時間制度</FormLabel>
-                  <FormSelect value={form.workScheduleType} onChange={(v) => update("workScheduleType", v)} options={WORK_SCHEDULE_OPTIONS} />
+                  <FormSelect value={form.workScheduleType} onChange={(v) => update("workScheduleType", v)} options={WORK_SCHEDULE_SELECT_OPTIONS} />
                 </FormGroup>
               </div>
             </SectionCard>
@@ -1529,19 +1592,23 @@ export function CompanyEditClient({
                   ⚠️ 「変更を公開する」（下書きの展開）とは**別物**。あちらは企業側に残す。 */}
               <FormGroup>
                 <FormLabel>掲載状態</FormLabel>
-                <div style={{
+                {/* ★判定は `companyPageStatus` の1箇所（2026-10-08）。
+                       それまで `form.isPublished` だけで「掲載中／未掲載」を出しており、
+                       `listing_status`（一覧に載っているか）を見ていなかった。 */}
+                <div data-state={pageStatus.kind} style={{
                   display: "flex", alignItems: "center", gap: 8,
                   padding: "10px 12px", borderRadius: 8,
                   border: "1px solid var(--line)", background: "var(--bg-tint)",
                   fontSize: 13, fontWeight: 700,
-                  color: form.isPublished ? "var(--royal)" : "var(--ink-mute)",
+                  color: pageStatus.kind === "listed" ? "var(--royal)" : "var(--ink-mute)",
                 }}>
                   <span aria-hidden style={{
                     width: 7, height: 7, borderRadius: "50%",
-                    background: form.isPublished ? "var(--royal)" : "var(--ink-mute)",
+                    background: pageStatus.kind === "listed" ? "var(--royal)" : "var(--ink-mute)",
                   }} />
-                  {form.isPublished ? "掲載中" : "未掲載"}
+                  {pageStatus.label}
                 </div>
+                <FormHint>{pageStatus.detail}</FormHint>
                 {/* ★掲載依頼（2026-09-29 / 柴さんの指示）。
                        それまでは `/business/contact`（公開のフォーム）へのリンクだけで、
                        **ログイン済みの担当者に会社名・氏名・メールを打ち直させていた。**
@@ -1549,7 +1616,7 @@ export function CompanyEditClient({
                        企業側も「依頼したかどうか」が画面から分からなかった。
                     ⚠️★**掲載状態は運営が切り替える。** ここが送るのは依頼の記録だけ
                        （`ow_companies.listing_requested_at`）。**スイッチに戻さないこと。** */}
-                {form.isPublished ? (
+                {pageStatus.kind === "listed" ? (
                   <FormHint>掲載の管理は運営が行います。</FormHint>
                 ) : listingRequestedAt ? (
                   <div style={{
@@ -1685,6 +1752,7 @@ export function CompanyEditClient({
             isPublishing={isPublishing}
             isAdmin={isAdmin}
             termsAgreed={termsAgreed}
+            pageStatus={pageStatus}
             saveState={saveState}
             saveStatusText={saveStatusText}
             onRetrySave={handleRetrySave}

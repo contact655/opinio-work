@@ -60,7 +60,9 @@ async function getStats() {
     // ⚠️ 2026-08-05 から、保留中の招待（user_id が null）はここに数えられない。
     //    招待の作成時に is_active を立てるのをやめ、承諾時に立てるようにしたため。
     //    「招待した人数」ではなく「実際に使える担当者の数」を出したいので、これが正。
-    admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true),
+    /* ⚠️★ただし 2026-08-05 より前の招待は is_active=true で作られており、1行残っていた。
+          `user_id` の NULL も明示的に除く（2026-10-08） */
+    admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true).not("user_id", "is", null),
     /* ★自己申告で掲載されていて、**運営がまだ確認していない**人（2026-08-25）。
           ⚠️★条件は `lib/companyMembers/selfListed.ts` に集約している。**ここに書かないこと。**
              一覧ページと同じ関数を通さないと、**数字と中身が食い違う**

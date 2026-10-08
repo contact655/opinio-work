@@ -73,6 +73,24 @@ export default async function BizMeetingsPage({
   if (pubErr) console.error("[biz/meetings] published job count:", pubErr.message);
   const hasPublishedJobs = (publishedJobCount ?? 0) > 0;
 
+  /* ★面談の受付状態（2026-10-08）。空状態の文言を出し分けるためだけに使う。
+        ⚠️ 失敗したら `accepting: null`（＝不明）。「受け付けていない」に倒さない。
+        ⚠️ ページの公開状態は `ctx.isPublished`（`is_published`）。
+        ⚠️★admin クライアントで引く。`ow_companies` の SELECT は RLS が `is_published = true`
+           で絞るので、セッションで引くと**非公開の会社（まさに案内が要る会社）だけ**
+           行が取れず「不明」になる。会社 id は `getTenantContext` で所属確認済みの1件だけ。 */
+  const { data: acceptRow, error: acceptErr } = await createAdminClient()
+    .from("ow_companies")
+    .select("accepting_casual_meetings")
+    .eq("id", ctx.tenantId)
+    .maybeSingle();
+  if (acceptErr) console.error("[biz/meetings] accepting_casual_meetings:", acceptErr.message);
+  const acceptance = {
+    accepting: typeof acceptRow?.accepting_casual_meetings === "boolean"
+      ? (acceptRow.accepting_casual_meetings as boolean) : null,
+    pageVisible: ctx.isPublished,
+  };
+
   const initialTab = searchParams.tab === "applications" ? "applications" : "meetings";
 
   return (
@@ -97,6 +115,7 @@ export default async function BizMeetingsPage({
         }}
         initialTab={initialTab}
         hasPublishedJobs={hasPublishedJobs}
+        acceptance={acceptance}
       />
     </BusinessLayout>
   );
