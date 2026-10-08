@@ -120,7 +120,6 @@ export type MypageActiveKey =
   // サブページ (/mypage/conversations, /mypage/applications など)
   | "conversations"
   | "applications"
-  | "scouts"
   | "proposals"
   // プロフィール編集ページ (/profile/edit)
   // ν-8 段階1: "settings" → "profile" に役割再定義。"settings" は過渡期互換のため残す。
@@ -137,7 +136,6 @@ export default function MypageLayout({
   activeKey,
   conversationsBadge,
   applicationsBadge,
-  scoutsBadge,
   proposalsBadge,
   children,
   rightColumn,
@@ -147,8 +145,6 @@ export default function MypageLayout({
   activeKey: MypageActiveKey;
   conversationsBadge?: number;
   applicationsBadge?: number;
-  /** 未返答のスカウト件数。0 のときは出さない */
-  scoutsBadge?: number;
   /**
    * ★未回答の提案件数（②）。0 のときは出さない。
    * ⚠️ 取得に失敗したときは **0 ではなく undefined** を渡すこと
@@ -195,14 +191,9 @@ export default function MypageLayout({
                      実測で **応募・面談 −0.4 / メッセージ −0.4 / ブックマーク −9.6** と
                      3つ溢れる。実画面では「メッセージ」と「ブックマーク」が
                      **くっついて1語に見えた**。
-                  ⚠️ 下の「代案はどれも採らない」に挙がっている『項目を5つに』を、
-                     今回**6つのまま入れ替える**形で採った。理由は、
-                     スカウトが `SCOUT_SENDING_ENABLED` で送信を止めていて本番0件であること、
-                     ベルの通知（`type='scout'`）から `/mypage/scouts` へ飛べること。
-                  ⚠️★**スカウトを再開する日は、ここをどうするか決め直すこと。**
-                     いまモバイルにスカウトの入口は**ベルだけ**で、
-                     未返答バッジ（`scoutsBadge`）も出なくなっている。
-                  ⚠️ **PC のサイドバーには両方ある**（縦並びなので幅の問題が無い）。 */
+                  ⚠️★**スカウトは 2026-10-08 に廃止した**（提案に一本化）。
+                     `/mypage/scouts` は削除し、middleware が `/mypage` へ転送する。
+                     PC のサイドバーからも外した。**戻さないこと。** */
             { key: "proposals",      label: "提案",          href: "/mypage/proposals",     icon: Icons.proposal },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
@@ -216,10 +207,6 @@ export default function MypageLayout({
             const badge =
               item.key === "applications" ? applicationsBadge
               : item.key === "conversations" ? conversationsBadge
-              /* ⚠️ `scouts` はいまモバイルの配列に無いので**この枝は通らない**。
-                    消さずに残しているのは、スカウトを戻したときに
-                    **バッジだけ静かに出なくなる**のを防ぐため。 */
-              : item.key === "scouts" ? scoutsBadge
               : item.key === "proposals" ? proposalsBadge
               : undefined;
             return (
@@ -304,7 +291,6 @@ export default function MypageLayout({
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
             <SidebarItem icon={Icons.application} label="応募・面談"    active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
             <SidebarItem icon={Icons.proposal}    label="提案"          active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
-            <SidebarItem icon={Icons.inbox}       label="スカウト"      active={activeKey === "scouts"}         badge={scoutsBadge}         href="/mypage/scouts" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
           </nav>
@@ -407,7 +393,7 @@ export default function MypageLayout({
 
         /* Mobile: show tab bar, hide left sidebar
            ★右カラムは**消さない**（2026-08-16）。消していたせいで、公開促進と
-             スカウト設定がモバイルからは一切見えなかった（代わりの導線も無かった）。
+             転職についての設定がモバイルからは一切見えなかった（代わりの導線も無かった）。
            ⚠️ **控えを本文側に作らない。** グリッドを縦並びの flex に切り替えて、
              同じ要素を order で本文の上へ動かす。同じ内容を2箇所に持つと、
              片方だけ直る形の不具合になる（/profile/edit の完成度バーで一度やった）。 */
@@ -432,7 +418,7 @@ export default function MypageLayout({
           }
           /* 右カラムのうち**モバイルでは出さないもの**。ここで消す（本文側に控えを作らない） */
           .mypage-hide-mobile { display: none !important; }
-          /* モバイルは「設定できないままスカウトが届かない」ほうが重いので先に出す */
+          /* モバイルは「転職について」を未設定のまま候補者検索に出ない、ほうが重いので先に出す */
           .mypage-mobile-first { order: -1; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
         }

@@ -36,7 +36,6 @@ function NotificationSettingsSection() {
         if (!alive) return;
         setPrefs({
           email_weekly_enabled: json.email_weekly_enabled !== false,
-          email_scout_enabled: json.email_scout_enabled !== false,
         });
       } catch {
         /* ⚠️ 読めなかったときに既定値のトグルを操作可能にしない。
@@ -71,7 +70,7 @@ function NotificationSettingsSection() {
 
   const items: { key: keyof NotifPrefs; label: string; desc: string; icon: string }[] = [
     { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着の募集と、希望条件に合う募集をまとめてお送りします", icon: "💼" },
-    { key: "email_scout_enabled",  label: "スカウトのお知らせ", desc: "企業からスカウトが届いたときにメールでお知らせします", icon: "📬" },
+    /* ⚠️ 「スカウトのお知らせ」は 2026-10-08 に外した（スカウト廃止。送るメールが無い） */
   ];
 
   return (

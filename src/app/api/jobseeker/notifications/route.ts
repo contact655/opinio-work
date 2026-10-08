@@ -31,7 +31,7 @@ export async function GET() {
   const { data: rows, error } = await adminSupabase
     .from("ow_notifications")
     .select(`
-      id, type, post_id, comment_id, is_read, created_at, scout_id, conversation_id, proposal_id,
+      id, type, post_id, comment_id, is_read, created_at, conversation_id, proposal_id,
       actor:ow_users!actor_user_id(id, name, avatar_color, avatar_url),
       actorCompany:ow_companies!actor_company_id(id, name, slug, logo_letter, logo_gradient)
     `)
@@ -75,7 +75,6 @@ export async function GET() {
     comment_id: string | null;
     is_read: boolean;
     created_at: string;
-    scout_id: string | null;
     conversation_id: string | null;
     proposal_id: string | null;
     // Supabase の !fk JOIN は配列で返る
@@ -94,7 +93,9 @@ export async function GET() {
            押すと `/feed/[postId]` が 404 になるので落とす（行そのものは消さない）。 */
   const survives = (r: RawRow): boolean => {
     switch (r.type) {
-      case "scout": return !!r.scout_id;
+      /* ⚠️ `scout` は 2026-10-08 に廃止した（実績0件）。case を消したので、
+            万一残っていても既定（投稿の存在）で落ちる。⚠️ `scout_id` を select に戻さないこと
+            ——列の DROP（supabase/pending/）を当てた日にクエリごと 400 になる。 */
       case "message": return !!r.conversation_id;
       /* ★②の提案。投稿にぶら下がらないので自分の case が要る（2026-09-21） */
       case "proposal": return !!r.proposal_id;
@@ -114,7 +115,6 @@ export async function GET() {
       type: r.type,
       postId: r.post_id,
       postPreview: r.post_id ? postPreviews.get(r.post_id) ?? null : null,
-      scoutId: r.scout_id,
       conversationId: r.conversation_id,
       proposalId: r.proposal_id,
       actorCompany: companyRaw

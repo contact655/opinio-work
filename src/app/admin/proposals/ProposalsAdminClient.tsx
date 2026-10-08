@@ -123,7 +123,7 @@ export default function ProposalsAdminClient({
               </strong>
               {msg.result.blockedByStance.stance ? "と答えています。" : "。"}
               <br />
-              スカウトが届かないのと同じ条件です（<code>isReachableByCompanies</code>）。
+              企業の候補者検索に出ないのと同じ条件です（<code>isReachableByCompanies</code>）。
               本人が設定を変えるまで、提案も作りません。
             </>
           ) : msg.ok && msg.kind === "delete" ? (
@@ -151,6 +151,15 @@ export default function ProposalsAdminClient({
                   OPINIO にログインできる担当者が登録されていないため<strong>対象から外しました</strong>
                   （提案を出しても「会いたい」を押せる人がいないため）。
                   担当者が登録されれば、その日から対象に戻ります。
+                </>
+              )}
+              {/* ★求職者がブロックした企業など（2026-10-08）。黙って消さない */}
+              {msg.result.hiddenByCandidate > 0 && (
+                <>
+                  <br />
+                  <strong>{msg.result.hiddenByCandidate} 社</strong>は、
+                  本人がブロックしている・在籍している等の理由で、候補者検索にもこの人を出さない企業のため
+                  <strong>対象から外しました</strong>。
                 </>
               )}
             </>

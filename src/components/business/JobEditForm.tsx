@@ -736,7 +736,7 @@ export function JobEditForm({
                 <FormGroup>
                   <FormLabel optional htmlFor="jef-company-role-name">自社での呼び方</FormLabel>
                   <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
-                    社内やスカウトで使っている呼称があれば入力してください（例: CXデザイナー）
+                    社内や求人票で使っている呼称があれば入力してください（例: CXデザイナー）
                   </p>
                   <FormInput
                     id="jef-company-role-name"

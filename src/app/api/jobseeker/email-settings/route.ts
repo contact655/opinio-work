@@ -12,7 +12,6 @@ export const dynamic = "force-dynamic";
    ⚠️ `ow_profiles.user_id` は **auth 空間**（CLAUDE.md「user_id は2つの空間がある」）。
    ⚠️ ここに無い項目を UI に出さないこと。実在するメールと1対1で対応させている。
         email_weekly_enabled … 週次ダイジェスト（weekly-jobs / weekly-match）
-        email_scout_enabled  … スカウトが届いたとき
       2026-08-10 以前は localStorage に保存していて、cron から読めなかった。 */
 
 export async function GET() {
@@ -23,7 +22,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("ow_profiles")
-    .select("email_weekly_enabled, email_scout_enabled")
+    .select("email_weekly_enabled")
     .eq("user_id", user.id) // ⚠️ auth 空間
     .maybeSingle();
 
@@ -36,7 +35,6 @@ export async function GET() {
         ここで false を返すと「オフになっている」と誤って見える。 */
   return NextResponse.json({
     email_weekly_enabled: data?.email_weekly_enabled ?? EMAIL_SETTING_DEFAULTS.email_weekly_enabled,
-    email_scout_enabled: data?.email_scout_enabled ?? EMAIL_SETTING_DEFAULTS.email_scout_enabled,
   });
 }
 

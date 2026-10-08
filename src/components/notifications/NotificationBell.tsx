@@ -6,12 +6,11 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "scout" | "message" | "proposal" | "introduction";
+  type: "like" | "comment" | "message" | "proposal" | "introduction";
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
   /** スカウトのときだけ入る */
-  scoutId: string | null;
   /** メッセージ・紹介のときだけ入る（2026-09-16 / 2026-09-21） */
   conversationId: string | null;
   /** 提案・紹介のときだけ入る（2026-09-21） */
@@ -37,7 +36,6 @@ type NotificationItem = {
 
 /** 通知を押したときの遷移先。⚠️ 種別ごとに違う */
 function notifHref(notif: NotificationItem): string {
-  if (notif.type === "scout") return "/mypage/scouts";
   /* ⚠️ 会話の詳細は参加者しか開けない（page.tsx が `ow_conversation_participants` を
         照合して notFound する）ので、id をそのまま渡してよい。 */
   if (notif.type === "message") return `/mypage/conversations/${notif.conversationId}`;
@@ -50,9 +48,6 @@ function notifHref(notif: NotificationItem): string {
 }
 
 function notifText(notif: NotificationItem): { who: string; what: string } {
-  if (notif.type === "scout") {
-    return { who: notif.actorCompany?.name ?? "企業", what: " からスカウトが届きました" };
-  }
   /* ⚠️★**本文を出さないこと**（2026-09-16）。ベルはヘッダーに常設で、
         通知だけが開いたままの画面に本文の冒頭を出すと、肩越しに読まれる。
         誰から来たかと、押せば読めることだけを伝える。 */
@@ -61,7 +56,7 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。
-        スカウト・メッセージと同じで、**誰からと、押せば読めることだけ。** */
+        メッセージと同じで、**誰からと、押せば読めることだけ。** */
   if (notif.type === "proposal") {
     return { who: notif.actorCompany?.name ?? "企業", what: " への提案が届きました" };
   }
@@ -87,7 +82,7 @@ function timeAgo(iso: string): string {
 function ActorAvatar({ notif }: { notif: NotificationItem }) {
   const FALLBACK = "linear-gradient(135deg, #002366, #3B5FD9)";
   /* ⚠️ 送り主が**企業**の種別。ユーザーのアバターは入っていない（2026-09-21 に2つ足した） */
-  const isCompanyActor = notif.type === "scout" || notif.type === "proposal" || notif.type === "introduction";
+  const isCompanyActor = notif.type === "proposal" || notif.type === "introduction";
   const actor = notif.actor;
   const company = notif.actorCompany;
 

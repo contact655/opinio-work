@@ -122,7 +122,6 @@ export type Candidate = {
   desiredSalaryMin: number | null;
   desiredSalaryMax: number | null;
   onboardingCompleted: boolean;
-  alreadyScouted: boolean;
   createdAt: string;
   /** ★「できること」（職種 × 年数）。2026-09-20。**職歴からの計算**で、本人の入力ではない。
    *  ⚠️ 事業領域は入らない（社名を伏せた職歴から漏れるため。`buildRoleAutoSkills` の注記）。 */
@@ -161,14 +160,6 @@ function extractPrefecture(location: string | null): string | null {
 }
 
 
-type ScoutQuota = {
-  monthlyLimit: number;
-  bonusCredits: number;
-  usedThisMonth: number;
-  remaining: number;
-};
-
-type JobOption = { id: string; title: string };
 
 /* ⚠️★`SidebarLabel` と `Pill` は 2026-09-20 に削除した（サイドバーをやめたため）。
       **戻さないこと。** 絞り込みのチップは `components/common/FilterChip.tsx` を使う
@@ -178,20 +169,11 @@ type JobOption = { id: string; title: string };
 
 export default function CandidatesClient({
   candidates,
-  scoutQuota,
-  jobOptions = [],
   roleFilterTree = [],
-  scoutSendingEnabled = false,
 }: {
   candidates: Candidate[];
-  scoutQuota?: ScoutQuota;
-  jobOptions?: JobOption[];
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
-  /** スカウト送信が有効か。⚠️ 2026-08-09 時点は停止中（受信側の画面が無いため）。
-   *  false のときは送信ボタンを**出さない**。押せてAPIが 503 を返す形にすると、
-   *  企業には「失敗した」ようにしか見えない。 */
-  scoutSendingEnabled?: boolean;
 }) {
   // ── フリーワード ────────────────────────────────────────────────────
   const [q, setQ] = useState("");
@@ -238,8 +220,8 @@ export default function CandidatesClient({
   const [careerStance, setCareerStance] = useState("");
   const [stanceFreshness, setStanceFreshness] = useState("");
 
-  // ── その他 ──────────────────────────────────────────────────────────
-  const [hideAlreadyScouted, setHideAlreadyScouted] = useState(false);
+  /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
+        保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
 
   /* ── ★詳細検索の開閉（2026-09-20）───────────────────────────────────
      ⚠️★**280px の常時開きサイドバーに戻さないこと。** 条件12個を縦に並べていたが、
@@ -251,46 +233,6 @@ export default function CandidatesClient({
   /* ⚠️ 開いているチップは1つだけ。**チップごとに開閉 state を持たせないこと**
         （`/companies` と同じ形）。2つ同時に開くとメニューが重なる。 */
   const [openChip, setOpenChip] = useState<string | null>(null);
-
-  // ── Scout modal ─────────────────────────────────────────────────────
-  const [scoutTarget, setScoutTarget] = useState<Candidate | null>(null);
-  const [scoutMessage, setScoutMessage] = useState("");
-  const [scoutJobId, setScoutJobId] = useState<string>("");
-  const [scoutSending, setScoutSending] = useState(false);
-  const [scoutError, setScoutError] = useState<string | null>(null);
-  const [scoutSuccess, setScoutSuccess] = useState(false);
-
-  function openScout(c: Candidate) {
-    setScoutTarget(c);
-    setScoutMessage("");
-    setScoutJobId("");
-    setScoutError(null);
-    setScoutSuccess(false);
-  }
-
-  async function sendScout() {
-    if (!scoutTarget || !scoutMessage.trim()) return;
-    setScoutSending(true);
-    setScoutError(null);
-    try {
-      const res = await fetch("/api/biz/scouts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          candidate_id: scoutTarget.id,
-          message: scoutMessage.trim(),
-          job_id: scoutJobId || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setScoutError(data.error ?? "送信に失敗しました"); return; }
-      setScoutSuccess(true);
-    } catch {
-      setScoutError("送信に失敗しました。もう一度お試しください。");
-    } finally {
-      setScoutSending(false);
-    }
-  }
 
   // ── 都道府県・スキルタグを candidates から動的生成 ───────────────────
   const uniquePrefectures = useMemo(() => {
@@ -307,8 +249,6 @@ export default function CandidatesClient({
   // ── フィルター適用 ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = candidates;
-
-    if (hideAlreadyScouted) list = list.filter((c) => !c.alreadyScouted);
 
     // フリーワード（スペース区切りAND）
     if (q.trim()) {
@@ -424,7 +364,6 @@ export default function CandidatesClient({
     return list;
   }, [
     candidates, q, excludeQuery, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
-    hideAlreadyScouted,
     tenureBand, selectedPrefectures,
     careerStance, stanceFreshness,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
@@ -480,7 +419,6 @@ export default function CandidatesClient({
     workStyle,
     jobTypeFilterActive ? "x" : "",
     selectedEmploymentTypes.length ? "x" : "",
-    hideAlreadyScouted ? "x" : "",
     tenureBand ? "x" : "",
     careerStance ? "x" : "",
     stanceFreshness ? "x" : "",
@@ -534,10 +472,9 @@ export default function CandidatesClient({
       const label = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness)?.label;
       if (label) chips.push({ key: "fresh", label: `更新 ${label}`, clear: () => setStanceFreshness("") });
     }
-    if (hideAlreadyScouted) chips.push({ key: "scouted", label: "スカウト済みを除く", clear: () => setHideAlreadyScouted(false) });
     return chips;
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
-      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures, hideAlreadyScouted]);
+      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures]);
 
   /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
      ⚠️★**この表がこの機能の歯止め。** マップ型なので、
@@ -560,7 +497,6 @@ export default function CandidatesClient({
     prefectures: setSelectedPrefectures,
     careerStance: setCareerStance,
     stanceFreshness: setStanceFreshness,
-    hideAlreadyScouted: setHideAlreadyScouted,
     sort: setSort,
   };
 
@@ -569,11 +505,11 @@ export default function CandidatesClient({
     q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
     employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
     tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness,
-    hideAlreadyScouted, sort,
+    sort,
   }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
        tenureBand, selectedPrefectures, careerStance, stanceFreshness,
-       hideAlreadyScouted, sort]);
+       sort]);
 
   const applyFilters = useCallback((f: SavedCandidateFilters) => {
     /* ⚠️ キーを列挙せず表から回す。列挙すると、ここだけ足し忘れる余地が戻る。 */
@@ -666,8 +602,6 @@ export default function CandidatesClient({
     return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
   }
 
-  const alreadyScoutedCount = candidates.filter((c) => c.alreadyScouted).length;
-  const showQuota = scoutQuota && scoutQuota.usedThisMonth > 0;
 
   /* ── ★詳細検索パネルの中身（2026-09-20 にサイドバーから移した）──────────
      ⚠️★**チップは `components/common/FilterChip.tsx` を使う。** `/companies` と
@@ -818,18 +752,8 @@ export default function CandidatesClient({
       )}
 
       {/* フッター：その他の条件と、まとめて外す */}
-      {(alreadyScoutedCount > 0 || activeFilterCount > 0) && (
+      {activeFilterCount > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", paddingTop: 12, borderTop: "1px solid var(--line-soft)" }}>
-          {alreadyScoutedCount > 0 && (
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12.5, color: hideAlreadyScouted ? "var(--royal)" : "var(--ink-soft)", fontWeight: hideAlreadyScouted ? 700 : 500 }}>
-              <input
-                type="checkbox" checked={hideAlreadyScouted}
-                onChange={(e) => setHideAlreadyScouted(e.target.checked)}
-                style={{ width: 14, height: 14, accentColor: "var(--royal)", cursor: "pointer" }}
-              />
-              スカウト済みを除く（{alreadyScoutedCount}人）
-            </label>
-          )}
           {activeFilterCount > 0 && (
             <button type="button" onClick={clearAllFilters}
               style={{
@@ -858,20 +782,6 @@ export default function CandidatesClient({
       {/* ── ヘッダー ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>候補者を探す</h1>
-        {showQuota && (
-          <div style={{
-            background: scoutQuota.remaining === 0 ? "var(--error-soft)" : "var(--bg-tint)",
-            border: `1px solid ${scoutQuota.remaining === 0 ? "#FECACA" : "var(--line)"}`,
-            borderRadius: 8, padding: "6px 12px", flexShrink: 0,
-            display: "flex", alignItems: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>残り</span>
-            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", color: scoutQuota.remaining === 0 ? "var(--error)" : "var(--ink)" }}>
-              {scoutQuota.remaining}
-            </span>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>/ {scoutQuota.monthlyLimit + scoutQuota.bonusCredits} 通</span>
-          </div>
-        )}
       </div>
 
       {/* ── ★ツールバー（2026-09-20）─────────────────────────────────────────
@@ -1140,10 +1050,9 @@ export default function CandidatesClient({
                   <div key={c.id}
                     style={{
                       background: "#fff",
-                      border: c.alreadyScouted ? "1px solid var(--line-soft)" : "1px solid var(--line)",
+                      border: "1px solid var(--line)",
                       borderRadius: 14,
                       overflow: "hidden",
-                      opacity: c.alreadyScouted ? 0.82 : 1,
                       display: "flex",
                       transition: "box-shadow 0.15s",
                     }}
@@ -1184,9 +1093,6 @@ export default function CandidatesClient({
                                     ＝ このバッジは一度も出たことがない
                               ⚠️★**`ow_users.is_mentor` の列ごと 2026-09-27 に DROP した。**
                                  `isMentor` は型からも消えている。**足し直さないこと。** */}
-                          {c.alreadyScouted && (
-                            <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)" }}>送信済み</span>
-                          )}
                         </div>
 
                         {/* ★★本人が書いた1行（2026-09-23 / 柴さんの指示）。
@@ -1281,34 +1187,13 @@ export default function CandidatesClient({
                       </div>
 
                       {/* 右: アクション
-                          ⚠️ scoutSendingEnabled が false のときは送信ボタンを出さない。
-                             出したままにすると押せてしまい、API が 503 を返して
-                             企業には「失敗した」ようにしか見えない（2026-08-09）。 */}
+                          ⚠️★「スカウトを送る」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
+                             **戻さないこと。** カードの操作はプロフィールを開くこと1つ。 */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-                        {scoutSendingEnabled ? (
-                        <button type="button"
-                          onClick={(e) => { e.stopPropagation(); openScout(c); }}
-                          disabled={(scoutQuota?.remaining ?? 1) === 0}
-                          style={{
-                            fontSize: 12, padding: "7px 16px", borderRadius: 7, fontWeight: 700,
-                            fontFamily: "inherit", whiteSpace: "nowrap" as const, cursor: (scoutQuota?.remaining ?? 1) === 0 ? "default" : "pointer",
-                            background: (scoutQuota?.remaining ?? 1) === 0 ? "var(--bg-tint)" : c.alreadyScouted ? "#fff" : "var(--royal)",
-                            color: (scoutQuota?.remaining ?? 1) === 0 ? "var(--ink-mute)" : c.alreadyScouted ? "var(--royal)" : "#fff",
-                            border: c.alreadyScouted ? "1.5px solid var(--royal)" : "none",
-                            boxShadow: !c.alreadyScouted && (scoutQuota?.remaining ?? 1) > 0 ? "0 2px 6px rgba(0,35,102,0.18)" : "none",
-                          }}>
-                          {c.alreadyScouted ? "再スカウト" : "スカウトを送る"}
-                        </button>
-                        ) : null}
-                        {/* ★送れない間は「スカウト準備中」を出さない（2026-09-21）。
-                               ページ上部の案内と同じことを**人数ぶん繰り返していた**。
-                               送れない間のカードの操作はこれ1つになるので、ボタンの形にしてある。 */}
                         <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
-                          style={scoutSendingEnabled
-                            ? { fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 3 }
-                            : { fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}
+                          style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}
                           onClick={(e) => e.stopPropagation()}>
-                          {scoutSendingEnabled ? "プロフィール" : "プロフィールを見る"}
+                          プロフィールを見る
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         </a>
                       </div>
@@ -1321,78 +1206,6 @@ export default function CandidatesClient({
 
         </div>
       </div>
-
-      {/* ── Scout modal ─────────────────────────────────────────────── */}
-      {scoutTarget && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={(e) => { if (e.target === e.currentTarget) setScoutTarget(null); }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 36px", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
-            {scoutSuccess ? (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", margin: "0 auto 16px", background: "linear-gradient(135deg, var(--success), #34D399)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>スカウトを送信しました</h3>
-                <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 24 }}>
-                  {scoutTarget.name} さんへのスカウトを送信しました。<br />返信があればOPINIOから通知します。
-                </p>
-                <button type="button" onClick={() => { setScoutTarget(null); window.location.reload(); }}
-                  style={{ background: "var(--royal)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-                  閉じる
-                </button>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>{scoutTarget.name} さんにスカウトを送る</h3>
-                  <button type="button" onClick={() => setScoutTarget(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "var(--ink-mute)" }}>×</button>
-                </div>
-                {jobOptions.length > 0 && (
-                  <label style={{ display: "block", marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>求人を指定（任意）</div>
-                    <select value={scoutJobId} onChange={(e) => setScoutJobId(e.target.value)}
-                      style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, background: "#fff", fontFamily: "inherit" }}>
-                      <option value="">求人を指定しない（カジュアルな連絡）</option>
-                      {jobOptions.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
-                    </select>
-                  </label>
-                )}
-                <label style={{ display: "block", marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
-                    メッセージ <span style={{ color: "var(--error)" }}>*</span>
-                  </div>
-                  <textarea value={scoutMessage} onChange={(e) => setScoutMessage(e.target.value)}
-                    placeholder={"はじめまして。〇〇株式会社の△△と申します。\nご経歴を拝見し、ぜひ一度お話しできればと思いご連絡しました。"}
-                    rows={6}
-                    style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" as const }}
-                  />
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", textAlign: "right", marginTop: 4 }}>{scoutMessage.length} / 2000</div>
-                </label>
-                {scoutError && (
-                  <div style={{ background: "var(--error-soft)", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--error-ink)", marginBottom: 16 }}>
-                    {scoutError}
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button type="button" onClick={() => setScoutTarget(null)}
-                    style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                    キャンセル
-                  </button>
-                  <button type="button" onClick={sendScout} disabled={scoutSending || !scoutMessage.trim()}
-                    style={{
-                      background: scoutSending || !scoutMessage.trim() ? "var(--ink-mute)" : "var(--royal)",
-                      color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px",
-                      fontSize: 14, fontWeight: 600, fontFamily: "inherit",
-                      cursor: scoutSending || !scoutMessage.trim() ? "default" : "pointer",
-                    }}>
-                    {scoutSending ? "送信中..." : "スカウトを送る"}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ⚠️★2026-09-20 に `.candidates-sidebar` / `.candidates-mobile-toggle` を削除した。
              サイドバーをやめ、条件は上部の「詳細検索」に畳んである。

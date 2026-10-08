@@ -1,5 +1,4 @@
 import { companyMatchLabelForAdmin } from "@/lib/companies/matchedOn";
-import { unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
 import { greetingName } from "@/lib/constants/personName";
 /** 運営の宛先。⚠️ 新しい持ち方を作らない。既存の3テンプレートと同じこれを使う。 */
 export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "contact@opinio.co.jp";
@@ -913,58 +912,8 @@ export function ambassadorDismissedTemplate(params: {
   };
 }
 
-/**
- * ★スカウトが届いたことを本人に知らせる（2026-09-10 にここへ移した）。
- *
- * ⚠️★**それまで `POST /api/biz/scouts` の中で HTML を直書きしており、
- *    このファイルの `htmlWrap()` を通っていなかった。** 結果、利用者に届くメール18種のうち
- *    **スカウトだけがロゴのヘッダーも共通フッターも `<!DOCTYPE>` も無い別物**だった。
- *    ⚠️ 別物にしていた理由は見当たらない（実装順の都合と思われる）。**戻さないこと。**
- *
- * ⚠️★**企業が書いた本文（`ow_scouts.message`）は載せない。実装の都合ではなく判断**（2026-09-10）:
- *      ① 社用PCや共有端末でメールを見る人がいる。**転職の打診の中身が本文に出ると、
- *         本人が選んでいない場所で読まれうる**
- *      ② 転送・引用で内容が本人の手を離れる
- *      ③ 「届いたことだけ知らせて、中身はログインして見る」は、
- *         伏せた社名を企業側の画面で守るのと同じ考え方
- *    **件名にも本文を出さないこと**（プレビューに出るため）。
- */
-export function scoutTemplate(params: {
-  to: string;
-  userName: string | null;
-  companyName: string;
-}) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  /* ⚠️★**名前が無ければ呼びかけの行ごと出さない。「 さん」だけを残さない**（2026-09-10）。
-     `ow_users.name` が空の実ユーザーは現在0人なので将来の備えだが、
-     氏名の欄は運営が作った行では空になりうる（`auth_id IS NULL` の件）。
-     ⚠️ 他のテンプレートは `${esc(params.userName)} さん` を無条件に出しており、同じ形が残っている。 */
-  /* ⚠️ 判定は `greetingName`（`lib/constants/personName.ts`）の1箇所。
-        2026-09-17 に他の7箇所へ広げたときに、ここも同じ関数へ寄せた。 */
-  const greeting = greet(params.userName, "inline");
-  return {
-    to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)} からスカウトが届きました`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">スカウトが届きました</h2>
-      <p style="margin:0 0 24px;color:#475569">
-        ${greeting}<strong style="color:#0f172a">${esc(params.companyName)}</strong> から
-        スカウトが届きました。内容は OPINIO にログインしてご確認ください。
-      </p>
-      <p style="margin:0 0 24px">
-        <a href="${siteUrl}/mypage/scouts" style="${BTN}">内容を見る →</a>
-      </p>
-      <p style="color:#94a3b8;font-size:12px;margin:0">
-        ※ 返答するかどうかはご自身で決められます。見送っても相手に理由は伝わりません。
-      </p>
-      <p style="color:#94a3b8;font-size:12px;margin:8px 0 0">
-        スカウトのお知らせが不要な場合は
-        <a href="${unsubscribeUrl(siteUrl)}" style="color:#94a3b8">設定</a>
-        から配信を停止できます。
-      </p>
-    `),
-  };
-}
+/* ⚠️★`scoutTemplate`（スカウトが届いたお知らせ）は 2026-10-08 にスカウトごと廃止した。
+      送信実績は0件。**戻さないこと。** */
 
 // ── 新規ユーザー登録の運営通知 ──────────────────────────────────────────────
 /**

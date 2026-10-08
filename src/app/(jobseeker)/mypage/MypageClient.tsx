@@ -222,7 +222,6 @@ export default function MypageClient({
   educations = [],
   conversationsBadge,
   applicationsBadge,
-  scoutsBadge,
   proposalsBadge,
   isNewUser = false,
   ambassadorMemberships = [],
@@ -256,7 +255,6 @@ export default function MypageClient({
         一覧は `/mypage/bookmarks` `/mypage/applications` が自分で引く。 */
   conversationsBadge?: number;
   applicationsBadge?: number;
-  scoutsBadge?: number;
   /** 未回答の提案件数（②）。0 のときは出さない */
   proposalsBadge?: number;
   isNewUser?: boolean;
@@ -412,7 +410,6 @@ export default function MypageClient({
       activeKey="dashboard"
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
-      scoutsBadge={scoutsBadge}
       proposalsBadge={proposalsBadge}
       rightColumn={dashboardRightColumn}
     >

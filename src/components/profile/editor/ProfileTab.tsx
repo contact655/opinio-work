@@ -1319,7 +1319,7 @@ export default function ProfileTab({
                      DB の CHECK / API / ここ の3つに置く。 */}
               <FormGroup
                 label="肩書き（1行）"
-                hint={`${HEADLINE_MAX}字まで ・ 一覧やスカウト画面で最初に読まれる行です`}
+                hint={`${HEADLINE_MAX}字まで ・ 一覧や企業の候補者検索で最初に読まれる行です`}
                 htmlFor="pe-headline"
               >
                 <input

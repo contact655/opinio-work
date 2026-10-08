@@ -12,7 +12,6 @@ import { pickLpCompanies } from "@/lib/lp/pickCompanies";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
-import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 import { companyDisplayName } from "@/lib/companies/displayName";
 /* ★記事セクション（2026-09-20）。⚠️★**`/articles` と同じ取得経路を使う。**
       `getArticles()` は `published_at DESC`（新着順）で、`unstable_cache` 済み。
@@ -415,7 +414,6 @@ export default async function HomePage() {
       companies={companies}
       jobs={jobs}
       /* ⚠️ 判定はここで1回だけ。LP 側で env を読まない（サーバー専用のため） */
-      scoutSendingEnabled={isScoutSendingEnabled()}
     />
   );
 }

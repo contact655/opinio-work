@@ -215,7 +215,7 @@ export default async function BizDashboardPage({
               運営審査中です
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
-              承認後、候補者検索・スカウト送信・求人公開をご利用いただけます。審査が完了次第メールでご連絡します。
+              承認後、候補者検索・求人公開をご利用いただけます。審査が完了次第メールでご連絡します。
             </div>
           </div>
         </div>

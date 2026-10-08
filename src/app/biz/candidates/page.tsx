@@ -1,6 +1,5 @@
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { SCOUT_MONTHLY_LIMIT_DEFAULT, usedThisMonth as usedThisMonthOf } from "@/lib/constants/scoutQuota";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcTotalExperience } from "@/lib/profile/tenure";
 import CandidatesClient from "./CandidatesClient";
@@ -12,7 +11,7 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
       `company_id` から引くので、社名を伏せた職歴から企業側へ漏れる（関数の注記）。 */
 import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse } from "@/lib/constants/plans";
-import { canSendScout, isScoutSendingEnabled, isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
+import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +69,7 @@ export default async function CandidatesPage() {
             {COMPANY_REVIEW_BLOCKED_MESSAGE}
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 0 }}>
-            候補者検索・スカウト送信は、運営による企業審査が完了した後にご利用いただけます。<br />
+            候補者検索は、運営による企業審査が完了した後にご利用いただけます。<br />
             審査が完了次第、メールでご連絡します。
           </p>
         </div>
@@ -208,27 +207,16 @@ export default async function CandidatesPage() {
     );
   }
 
-  /** スカウト送信が有効か。⚠️ API 側（POST /api/biz/scouts）と同じ判定にすること。
-   *  片方だけ変えると「押せるのに 503」か「押せないのに送れる」になる。 */
-  const scoutSendingEnabledEnv = isScoutSendingEnabled();
-
-  /* ⚠️★**人材紹介（成功報酬）の同意ゲートは外した**（2026-09-05）。**戻さないこと。**
-        スカウトは掲載側（月額プラン）の機能で、OPINIO はあっせんを行わない
-        （掲載利用規約 第6条1項）。成功報酬の規約に同意させる理由が無い。
-        API 側（POST /api/biz/scouts）からも同じ判定を外してある。 */
-  /* ★★プランの判定は `canSendScout()` に寄せた（2026-09-10）。
-        ⚠️★**`canUse(..., "scoutSend")` をここに直接書かないこと。**
-           `POST /api/biz/scouts` も同じ関数を呼ぶ。経路ごとに条件を書き写すと必ずずれる
-           （2026-08-25 の掲載規約ゲートと同じ形。**3度目**）。
-        ⚠️ 上の `candidateSearch` のゲート（この画面に入れるか）とは**別の判定**。
-           あちらを通っても、スカウトを送れるとは限らない。
-        ⚠️ 軸は2つ。**env とプランの両方が真のときだけ送れる。** */
-  const scoutSendingEnabled = scoutSendingEnabledEnv && canSendScout(ctx.planType);
+  /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。送信可否・送信枠・
+        「送信済み」の判定はすべて外した。**戻さないこと。**
+     ⚠️★**下の `can_send_scout()` は残す。** 名前に反して中身は
+        「この企業にこの候補者を見せてよいか」（転職意欲／自社在籍者の除外／
+        求職者の手動ブロック／転職勧奨禁止）で、この一覧の母集団を決めている。 */
 
   const adminClient = createAdminClient();
 
-  // 並列取得: プロフィール・枠・転職禁止・スカウト済みセット
-  const [profileRows, quotaRow, blockedPlacements, sentScouts] = await Promise.all([
+  // 並列取得: プロフィール・転職禁止
+  const [profileRows, blockedPlacements] = await Promise.all([
     adminClient
       .from("ow_profiles")
       /* ⚠️★`desired_phase` / `transfer_timing` は 2026-08-27 に**引くのをやめた**。
@@ -248,12 +236,6 @@ export default async function CandidatesPage() {
       .not("career_stance", "is", null)
       .neq("career_stance", "no_contact")
       .then(r => r.data ?? []),
-    adminClient
-      .from("ow_scout_quotas")
-      .select("monthly_limit, bonus_credits, used_this_month, period_start")
-      .eq("company_id", ctx.tenantId)
-      .maybeSingle()
-      .then(r => r.data),
     // 転職勧奨禁止（就職後2年以内かつ在職中）
     adminClient
       .from("ow_placements")
@@ -261,16 +243,9 @@ export default async function CandidatesPage() {
       .is("resigned_at", null)
       .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
       .then(r => r.data ?? []),
-    // この企業が既にスカウトを送った candidate_id（auth_id）セット
-    adminClient
-      .from("ow_scouts")
-      .select("candidate_id")
-      .eq("company_id", ctx.tenantId)
-      .then(r => r.data ?? []),
   ]);
 
   const blockedCandidateIds = new Set((blockedPlacements).map((p: any) => p.candidate_id as string));
-  const scoutedAuthIds = new Set((sentScouts).map((s: any) => s.candidate_id as string));
 
   // 声をかけてよい（career_stance が未設定でも no_contact でもない）ユーザーの auth_id 一覧
   const scoutAuthIds = profileRows.map((p: any) => p.user_id as string);
@@ -315,19 +290,12 @@ export default async function CandidatesPage() {
     profilesByAuthId.set(p.user_id as string, p as any);
   }
 
-  /* 送信枠。⚠️ 行が無い企業には DB の DEFAULT が効くので、既定値は
-        `SCOUT_MONTHLY_LIMIT_DEFAULT`（DB の `DEFAULT 30` と同じ値）を使う。
-     ⚠️★`used_this_month` は素で読まない。月次リセットは `can_send_scout()` の中でしか
-        起きないので、**次の送信まで先月の数字が残る**（トリガーも cron も無い）。 */
-  const monthlyLimit = quotaRow?.monthly_limit ?? SCOUT_MONTHLY_LIMIT_DEFAULT;
-  const bonusCredits = quotaRow?.bonus_credits ?? 0;
-  const used = usedThisMonthOf(quotaRow?.used_this_month, quotaRow?.period_start);
-  const remainingQuota = Math.max(0, monthlyLimit + bonusCredits - used);
 
   // 転職勧奨禁止除外
   const eligibleUsers = (rawUsers ?? []).filter((u: any) => !blockedCandidateIds.has(u.id as string));
 
-  // can_send_scout RPC（自社在籍者除外）
+  /* can_send_scout RPC（自社在籍者・手動ブロックの除外）。
+     ⚠️★スカウト廃止後も**消さない**（名前に反して「見せてよいか」の判定）。 */
   const canSendResults = await Promise.all(
     eligibleUsers.map(async (u: any) => {
       const authId = u.auth_id as string | null;
@@ -453,13 +421,6 @@ export default async function CandidatesPage() {
     eligibleUsers.map((u: any) => u.auth_id as string | null).filter((id: string | null): id is string => !!id)
   );
 
-  // 自社求人一覧
-  const { data: companyJobs } = await adminClient
-    .from("ow_jobs")
-    .select("id, title")
-    .eq("company_id", ctx.tenantId)
-    .eq("status", "published").eq("is_test", false)
-    .order("title");
 
   const candidates = eligibleUsers
     .filter((_u: any, i: number) => canSendResults[i] === true)
@@ -467,13 +428,12 @@ export default async function CandidatesPage() {
       const authId = u.auth_id as string | null;
       const profile = authId ? (profilesByAuthId.get(authId) ?? null) : null;
       const currentExp = currentExpByUser.get(u.id as string) ?? null;
-      const alreadyScouted = authId ? scoutedAuthIds.has(authId) : false;
       return {
         id: u.id as string,
         name: (u.name as string) || "名前未設定",
         /* ★★本人が書いた1行（`ow_users.headline`。2026-09-23 / 柴さんの指示）。
               ⚠️★**それまで `/biz` 配下は headline を1ファイルも参照していなかった**のに、
-                 本人側の入力欄には「一覧や**スカウト画面**で最初に読まれる行です」と
+                 本人側の入力欄には「一覧や**スカウト画面**で最初に読まれる行です」と（2026-10-08 に「企業の候補者検索」へ改めた）
                  書いてあった（守れない約束）。ここに出して初めて本当になる。
               ⚠️ 空文字は null に畳む（空の行を1本出さないため）。
               ⚠️★**公開情報。** `/u/[id]` の氏名の下に出ているものと同じで、
@@ -527,7 +487,6 @@ export default async function CandidatesPage() {
         desiredSalaryMin: profile?.desired_salary_min ?? null,
         desiredSalaryMax: profile?.desired_salary_max ?? null,
         onboardingCompleted: profile?.onboarding_completed || false,
-        alreadyScouted,
         createdAt: u.created_at as string,
         /* ★「できること」（職種 × 年数）。2026-09-20。
            ⚠️ 本人が選んだスキルではなく**職歴からの計算**。保存しない（都度計算）。
@@ -567,27 +526,10 @@ export default async function CandidatesPage() {
     currentTenantId: ctx.tenantId,
   };
 
-  const scoutQuota = { monthlyLimit, bonusCredits, usedThisMonth: used, remaining: remainingQuota };
-  const jobOptions = (companyJobs ?? []).map((j: any) => ({ id: j.id as string, title: j.title as string }));
 
   return (
     <BusinessLayout {...layoutProps}>
-      {/* ⚠️ スカウト送信は停止中。`isScoutSendingEnabled()` に連動し、開けた日に自動で消える
-             （手で消さないこと。docs/scout-runbook.md）。
-          ★文言は 2026-09-21 に直した。それまで「求職者側の受信画面を用意している最中」と
-             書いていたが、**受信画面は 2026-08-10 に完成している**（事実と違っていた）。
-             止めている理由（有料プラン・送信フラグ）は企業に説明する話ではないので書かない。
-          ⚠️ 黄色（警告）にしない。企業側に対応してもらうことが無いので、控えめな案内にする。 */}
-      {!scoutSendingEnabledEnv && (
-        <div role="status" style={{
-          background: "var(--bg-tint)", border: "1px solid var(--line)",
-          borderRadius: 10, padding: "10px 16px", marginBottom: 16,
-          fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
-        }}>
-          スカウト送信はまだ始まっていません。候補者の検索・閲覧はご利用いただけます。
-        </div>
-      )}
-      <CandidatesClient candidates={candidates} scoutQuota={scoutQuota} jobOptions={jobOptions} roleFilterTree={roleFilterTree} scoutSendingEnabled={scoutSendingEnabled} />
+      <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree} />
     </BusinessLayout>
   );
 }

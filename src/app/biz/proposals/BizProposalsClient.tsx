@@ -102,7 +102,9 @@ export default function BizProposalsClient({
       >
         <p style={{ margin: 0 }}>
           <strong>これはスカウトではありません。</strong>
-          OPINIO が根拠をそろえてお出ししている提案で、送信枠も消費しません。
+          {/* ⚠️ 「送信枠も消費しません」は 2026-10-08 に外した（スカウトと送信枠ごと廃止したため）。
+                 「スカウトではない」の一文は残す（柴さんの指示）。 */}
+          OPINIO が根拠をそろえてお出ししている提案です。
         </p>
         <p style={{ margin: "4px 0 0" }}>
           候補者は匿名です。<strong>お名前・顔写真・現在の勤務先はお渡ししていません。</strong>

@@ -78,7 +78,7 @@ const NAV_GROUPS = [
       { label: "公開面に出ている人", href: "/admin/public-faces", icon: <Eye          size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
-      { label: "スカウト枠管理",      href: "/admin/scout-quotas",     icon: <Send         size={16} strokeWidth={2} /> },
+      /* ⚠️ 「スカウト枠管理」は 2026-10-08 にスカウトごと廃止した。戻さないこと */
       /* ★2026-09-18 追加（②⑨）。提案を作る側と、材料の棚卸し。
             ⚠️ 2つは**別の問い**。「提案を作る」は候補者1人ぶんを作る操作、
                「根拠の棚卸し」は**企業ごとにあと何が足りないか**。統合しないこと。

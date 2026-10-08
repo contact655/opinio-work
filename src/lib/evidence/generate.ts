@@ -64,6 +64,12 @@ export type GenerateResult = {
    * ⚠️ **黙って消さない。** 画面に出すこと。
    */
   withoutBizAccount: number;
+  /**
+   * ★**求職者が自分でブロックした企業など、`can_send_scout()` が「見せない」と返した企業の数**
+   *   （2026-10-08）。判定に失敗した企業もここに数える（出す側に倒さない）。
+   * ⚠️ **黙って消さない。** 画面に出すこと。
+   */
+  hiddenByCandidate: number;
 };
 
 /**
@@ -99,6 +105,7 @@ export async function generateProposalsForCandidate(
     return {
       examined: 0, proposable: 0, created: 0, skipped: 0, belowThreshold: 0,
       withoutBizAccount: 0,
+      hiddenByCandidate: 0,
       blockedByStance: { stance },
     };
   }
@@ -126,7 +133,12 @@ export async function generateProposalsForCandidate(
      ⚠️★**`notification_emails` では代用しないこと。** あれは通知の宛先であって、
         **返答できるかどうかとは別**（実測でも掲載22社中0社）。 */
   const { data: adminRows, error: adErr } = await db
-    .from("ow_company_admins").select("company_id").eq("is_active", true);
+    .from("ow_company_admins").select("company_id").eq("is_active", true)
+    /* ★招待中の行（`user_id` が NULL）を「答えられる人」に数えない（2026-10-08）。
+          招待は `ow_company_admins` に `user_id = NULL, is_active = true` で入るので、
+          これが無いと**まだ誰もログインできない企業**が対象に入る。
+          `lib/notify/recipients.ts` と同じ条件。 */
+    .not("user_id", "is", null);
   if (adErr) {
     console.error("[evidence/generate] ow_company_admins:", adErr.message);
     throw new Error(`企業の担当者の取得に失敗しました: ${adErr.message}`);
@@ -142,8 +154,30 @@ export async function generateProposalsForCandidate(
     .filter((id) => !exclude.has(id));
 
   /* ★答えられる企業だけを母数にする（上の注記を読むこと） */
-  const targets = listedNotMine.filter((id) => respondable.has(id));
-  const withoutBizAccount = listedNotMine.length - targets.length;
+  const respondableTargets = listedNotMine.filter((id) => respondable.has(id));
+  const withoutBizAccount = listedNotMine.length - respondableTargets.length;
+
+  /* ── ★求職者が「見せない」と決めた企業には出さない（2026-10-08 / 柴さんの指示）──
+     判定は **`can_send_scout()`（SQL）をそのまま呼ぶ**。候補者検索（`/biz/candidates`）と
+     同じ関数なので、**手動ブロック（`ow_scout_blocks`）の効き方が2画面でずれない。**
+     ⚠️★**TS に条件を書き写さないこと。** 別実装を作ると片方だけ直る形になる。
+     ⚠️★関数名に反して、中身は「この企業にこの候補者を見せてよいか」
+        （転職意欲／在籍企業／手動ブロック／転職勧奨禁止）。スカウトは 2026-10-08 に
+        廃止したが**この関数は消さない**（CLAUDE.md）。
+     ⚠️ 失敗したら**出さない側**に倒す（fail-closed）。ただし黙らず数えて画面に出す。
+     ⚠️ `p_candidate_id` は **auth 空間**。 */
+  const visibility = await Promise.all(
+    respondableTargets.map(async (companyId) => {
+      const { data, error } = await db.rpc("can_send_scout", {
+        p_company_id: companyId,
+        p_candidate_id: authId,
+      });
+      if (error) console.error("[evidence/generate] can_send_scout:", error.message);
+      return data === true;
+    }),
+  );
+  const targets = respondableTargets.filter((_id, i) => visibility[i]);
+  const hiddenByCandidate = respondableTargets.length - targets.length;
 
   const facts = await gatherCompanyFacts(candidateOwUserId, targets);
   /* ⚠️★ラベルに人称が入らないので、②と⑨で同じスナップショットを共有できる。
@@ -207,6 +241,7 @@ export async function generateProposalsForCandidate(
     skipped: rows.length - created,
     belowThreshold,
     withoutBizAccount,
+    hiddenByCandidate,
   };
 }
 

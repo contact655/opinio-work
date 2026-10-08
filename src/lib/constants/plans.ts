@@ -58,20 +58,10 @@ export const PLAN_FEATURES = [
   "applicantContact",
   /** 「話せる人」（アンバサダー）を招待する */
   "ambassadorInvite",
-  /** ★スカウトを送る（2026-09-10 に復帰）。⚠️ `SCOUT_SENDING_ENABLED` とは**別の軸**。
-   *  フラグは「機能ごと止めているか」、これは「その企業に開いているか」。**両方が要る。** */
-  "scoutSend",
 ] as const;
 
-/* ⚠️ `scoutSend` は 2026-08-23 に一度外し、**2026-09-10 に戻した**（上の配列に復帰済み）。
-      外していた理由は「売れないものを機能表に載せない」だったが、
-      **`POST /api/biz/scouts` にサーバー側の判定が無く、`free` の企業から送信が通る**
-      ことが分かったため（2026-09-10 に dev で実証: 送信元プラン `free` で 200）。
-      ⚠️★**画面（`/biz/candidates:78`）だけのゲートは守りにならない。**
-         2026-08-25 に掲載規約で同じ形を踏んでいる（UI だけで `PATCH /api/biz/company` に
-         サーバー側チェックが無かった）。**3度目。**
-      ⚠️ 料金表（`/business/pricing`）に `scoutSend` を載せるかは別の判断。
-         **この配列に入れること＝料金表に出すこと、ではない。** */
+/* ⚠️★★`scoutSend` は 2026-10-08 に外した。**スカウトごと廃止した**（提案に一本化）。
+      送信 API は 410 を返す（`src/app/api/biz/scouts/route.ts`）。**戻さないこと。** */
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
 
 /**
@@ -102,11 +92,11 @@ const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
         または利用できる機能を制限することができます」と定めているので、規約上は可能。
         ⚠️ 戻すときは `/biz/candidates` の**未設定（planType が null）の分岐と
            取り違えないこと**（あちらは異常、こちらは売り物の案内）。
-     ⚠️★**他の3つは開けていない。** 応募者の連絡先・面談対応者の招待・スカウトは
-        `free` では閉じたまま。**「ベータ中だから全部開ける」に広げないこと** ——
+     ⚠️★**他の2つは開けていない。** 応募者の連絡先・面談対応者の招待は
+        `free` では閉じたまま（スカウトは 2026-10-08 に廃止）。**「ベータ中だから全部開ける」に広げないこと** ——
         ここで開けたのは「登録者を探せないと企業が何もできない」入口の1つだけ。 */
-  free: { candidateSearch: true,  applicantContact: false, ambassadorInvite: false, scoutSend: false },
-  paid: { candidateSearch: true,  applicantContact: true,  ambassadorInvite: true,  scoutSend: true  },
+  free: { candidateSearch: true,  applicantContact: false, ambassadorInvite: false },
+  paid: { candidateSearch: true,  applicantContact: true,  ambassadorInvite: true  },
 };
 
 /**

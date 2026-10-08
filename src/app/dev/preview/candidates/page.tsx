@@ -15,7 +15,7 @@ import { Variant, PreviewHeader } from "../Variant";
  *    0件・1件・条件を効かせた状態はここでしか作れない。
  *
  * ⚠️★**この配下で DB を読まないこと。** 固定データだけを渡す。
- * ⚠️ スカウトボタンは `scoutSendingEnabled={false}` で出していない（実環境と同じ）。
+ * ⚠️ スカウトは 2026-10-08 に廃止した。カードの操作は「プロフィールを見る」だけ（実環境と同じ）。
  */
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -44,7 +44,7 @@ function cand(over: Partial<Candidate> & { id: string; name: string }): Candidat
     employmentType: null, startedAt: null, roleName: null, topRoleName: null,
     desiredRoleIds: [], desiredRoleNames: [], workStyles: null,
     desiredPrefectures: null, desiredSalaryMin: null, desiredSalaryMax: null,
-    onboardingCompleted: true, alreadyScouted: false,
+    onboardingCompleted: true,
     createdAt: "2026-09-01T00:00:00Z", autoSkills: [],
     ...over,
   };
@@ -87,7 +87,7 @@ const FULL: Candidate[] = [
     employmentType: "正社員", roleName: "フィールドセールス", topRoleName: "営業",
     desiredRoleIds: ["r-sales", "r-fs"], desiredRoleNames: ["フィールドセールス"],
     workStyles: ["remote"], desiredSalaryMin: 600,
-    alreadyScouted: true, createdAt: "2026-09-10T00:00:00Z",
+    createdAt: "2026-09-10T00:00:00Z",
     autoSkills: [
       { label: "フィールドセールス", band: "3年以上" },
       { label: "営業", band: "3年以上" },
@@ -118,7 +118,6 @@ const FULL: Candidate[] = [
   }),
 ];
 
-const QUOTA = { monthlyLimit: 30, bonusCredits: 0, usedThisMonth: 4, remaining: 26 };
 
 export default function CandidatesPreview() {
   if (!IS_DEV) return null;
@@ -138,7 +137,7 @@ export default function CandidatesPreview() {
         label="4名（通常）"
         note="⚠️ 詳細検索を開くと条件が横に並ぶこと。閉じるとチップだけが残ること"
       >
-        <CandidatesClient candidates={FULL} scoutQuota={QUOTA} roleFilterTree={ROLE_TREE} />
+        <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} />
       </Variant>
 
       <Variant

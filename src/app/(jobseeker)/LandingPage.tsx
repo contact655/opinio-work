@@ -230,21 +230,7 @@ export default function LandingPage({
   schoolFacets: LPFacet[];
   companies: LPCompanyCard[];
   jobs: LPJobCard[];
-  /**
-   * ★スカウト送信が開いているか。**2026-09-20 から LP では使っていない。**
-   *
-   * ⚠️★唯一の読み手だった FAQ「登録すると、スカウトが届きますか？」を同日に削除した
-   *    （柴さんの指示）。その中の「なお、企業からのスカウト送信は現在準備中です。」が
-   *    この値に連動していた。
-   * ⚠️★**これで「準備中」の告知は求職者側から消えた**（実測 2026-09-20: 残る「準備中」は
-   *    `/biz` 側と無関係な画面だけ）。CLAUDE.md の
-   *    「『準備中』の文言は手で消さない。開けた日に自動で消える」は**LP には効かなくなった。**
-   * ⚠️ 受け取り方の告知は `/onboarding` の意思表示の画面が担っている（`/auth` 側の注記を参照）。
-   *    **ただし「準備中」だけはあちらに無い。**
-   *
-   * ⚠️ props は残してある。FAQ を書き戻すときに配線し直さずに済むように。
-   */
-  scoutSendingEnabled?: boolean;
+  /* ⚠️ `scoutSendingEnabled` は 2026-10-08 に外した（スカウト廃止）。FAQ を書き戻さないこと。 */
 }) {
   // font-family は globals.css の body と同じ順序にする。
   // 欧文・数字は Inter、和文は Noto Sans JP（Inter に和文グリフが無いので自動で振り分けられる）。

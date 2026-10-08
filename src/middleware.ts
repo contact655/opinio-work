@@ -105,6 +105,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /* ★★スカウトは廃止した（2026-10-08 / 柴さんの判断）。提案に一本化。**復活させないこと。**
+        画面（`/biz/scouts` と `/mypage/scouts`）は削除したので、ブックマークと過去のメールを
+        受けるためにここで転送する（404 にしない）。
+     ⚠️ ページ側の `redirect()` にしない。`loading.tsx` の Suspense 境界の内側だと
+        **HTTP は 200 のまま**になる（上の `/mypage/details/*` と同じ理由）。
+     ⚠️ 受信実績は0件だった（`ow_scouts` 0行・`type='scout'` の通知0行。2026-10-08 実測）。 */
+  if (pathname === "/biz/scouts" || pathname.startsWith("/biz/scouts/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/biz/proposals";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/mypage/scouts" || pathname.startsWith("/mypage/scouts/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mypage";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
   const needsAuth =
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||

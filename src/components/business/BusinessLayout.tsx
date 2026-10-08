@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Send, Search, Calendar, Sparkles, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, Calendar, Sparkles, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -74,7 +74,8 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
             「候補者と出会う入口」だからで、同じ機能だからではない。
          ★バッジは「企業がまだ答えていない提案」の数（2026-09-21。`lib/business/navBadges.ts`）。 */
       { href: "/biz/proposals", label: "提案", icon: <Sparkles size={16} strokeWidth={2.2} />, badge: "proposals" },
-      { href: "/biz/scouts", label: "スカウト履歴", icon: <Send size={16} strokeWidth={2.2} /> },
+      /* ⚠️★「スカウト履歴」は 2026-10-08 にスカウトごと廃止した。**戻さないこと。**
+            旧 URL `/biz/scouts` は middleware が `/biz/proposals` へ転送する。 */
     ],
   },
   {

@@ -5942,8 +5942,15 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 | 段階 | `free` / `paid` の2段だけ（2026-08-23 に3段をやめた） |
 | 判定 | **[`canUse()`](src/lib/constants/plans.ts) の1箇所。** 取れなければ false（fail-closed） |
 
-⚠️ `paid` にすると **4機能が同時に開く。個別には開けない**
-   （`candidateSearch` / `applicantContact` / `ambassadorInvite` / `scoutSend`）。
+⚠️ `paid` にすると **2機能が同時に開く。個別には開けない**
+   （`candidateSearch` / `ambassadorInvite`）。
+⚠️★**2026-10-08 に2つ外した。** `applicantContact`（応募者の連絡先）は**全企業に共通の
+   無料機能**にし、`scoutSend` は**スカウトごと廃止した**（下の「スカウトは廃止」）。
+   線引きは「自主応募・カジュアル面談の受付・応募者の連絡先は無料／有料は
+   企業情報とユーザー情報のマッチング（提案）に寄せる」（柴さんの判断）。
+   ⚠️ 連絡先のゲートはアプリ側（select から email/phone を落とす）にしか無く、
+      DB は authenticated に両列の SELECT を配っていた（2026-10-08 実測）。
+      **有料で守っているつもりで守れていなかった。** 外して食い違いも消えた。
 
 ### ⚠️★★ベータ版期間中は `candidateSearch` を `free` でも開いている
 
@@ -5989,12 +5996,48 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
    **`planType === null` を別の分岐**にして「プラン情報を確認できませんでした」と出す
    （売り物の案内ではなく異常なので、運営に繋ぐ）。
 
-⚠️ スカウトは**別軸で止まったまま**。`SCOUT_SENDING_ENABLED` ＋ プラン ＋
-   `can_send_scout()` の**3ゲート**（`docs/scout-runbook.md`）。
+⚠️ スカウトは 2026-10-08 に**廃止した**（下の節）。
 
 ---
 
-## ⚠️ スカウトは受信側を実装済み。送信はまだ止めてある（2026-08-10）
+## ⚠️★★スカウトは廃止した。提案に一本化。**復活させないこと**（2026-10-08 / 柴さんの判断）
+
+**企業が一方的に送る機能は持たない。** OPINIO が根拠をそろえて出す「提案」
+（`/biz/proposals`・`/mypage/proposals`。双方が「会いたい」と答えたらつながる）に一本化した。
+実績は送信0件・受信0件（`ow_scouts` 0行・`type='scout'` の通知0行。2026-10-08 実測）。
+
+| 何を | どうしたか |
+|---|---|
+| `/biz/scouts`・`/mypage/scouts`・`/admin/scout-quotas`・`/dev/preview/scouts` | **削除。** 前の2つは `src/middleware.ts` が `/biz/proposals`・`/mypage` へ転送 |
+| `POST/GET /api/biz/scouts`・`POST /api/jobseeker/scouts/[id]/reply` | **410 を返すだけ** |
+| 法人サイドバー「スカウト履歴」・`/mypage` の「スカウト」・運営ナビ「スカウト枠管理」 | 外した |
+| `/biz/candidates` の送信ボタン・送信枠・「スカウト済みを除く」・上部の案内 | 外した（保存済み検索の `hideAlreadyScouted` は `parseSavedFilters` が捨てる） |
+| ベルの `type='scout'`・`scoutTemplate`・`/mypage/settings` の「スカウトのお知らせ」 | 外した（`email_scout_enabled` の**列は残す**） |
+| `/admin` の「未達スカウト」・`plans.ts` の `scoutSend`・`scoutEmail.ts`・`scoutQuota.ts` | 外した |
+| 表・トリガー・列・CHECK | **未適用。** `supabase/pending/1_`〜`4_scout_retire_*.sql`（①→②→③→④の順） |
+
+⚠️★★**`can_send_scout()` と `ow_scout_blocks` は消さないこと。** 名前に反して中身は
+   **「この企業にこの候補者を見せてよいか」**の判定（転職意欲／自社在籍者の除外／
+   求職者の手動ブロック／転職勧奨禁止）で、**送信枠には一切触らない。**
+   `/biz/candidates` の母集団と、**提案（`lib/evidence/generate.ts`）**が呼んでいる。
+   `get_blocked_companies` と `/mypage/settings` の「ブロック中の企業」も同じ。
+   ⚠️ 改名（`can_company_see_candidate` など）は今回やっていない。
+   ⚠️★**提案はブロックを 2026-10-08 から見ている。** それまで見ておらず、求職者が
+      ブロックした企業にも提案が出る形だった。**TS に条件を書き写さず、
+      `can_send_scout()` をそのまま呼ぶ**（候補者検索と効き方をずらさないため）。
+
+⚠️ `ow_profiles.scout_enabled` は (c)：列は残して参照も足さない。DROP は pending の③。
+   提案と候補者検索の同意は `career_stance`（`isReachableByCompanies`）が決める。
+⚠️ `isScoutSendingEnabled()`（`lib/business/scoutGate.ts`）は `/business/pricing` の FAQ だけが
+   まだ読んでいる（2026-10-08 時点で並行セッションの作業中ファイル）。あの行を外したら関数ごと消す。
+⚠️ 規約文書（`content/legal/*`）にはスカウトの記述が残っている（求職者向け27・プライバシー13・
+   企業向け5・掲載2。2026-10-08 時点）。ベータ期間の無料提供の明記とまとめて改定する（範囲外にした）。
+
+---
+
+## ⚠️（履歴）スカウトは受信側を実装済み。送信はまだ止めてある（2026-08-10）
+
+⚠️★**この節は 2026-10-08 の廃止より前の記録。** 画面・API・ファイルの多くは既に存在しない。
 
 **受信側（2026-08-10 実装）は動く。送信フラグ `SCOUT_SENDING_ENABLED` だけが未設定。**
 
