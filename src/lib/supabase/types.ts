@@ -3729,7 +3729,6 @@ export type Database = {
           post_id: string | null
           proposal_id: string | null
           recipient_user_id: string
-          scout_id: string | null
           type: string
         }
         Insert: {
@@ -3743,7 +3742,6 @@ export type Database = {
           post_id?: string | null
           proposal_id?: string | null
           recipient_user_id: string
-          scout_id?: string | null
           type: string
         }
         Update: {
@@ -3757,7 +3755,6 @@ export type Database = {
           post_id?: string | null
           proposal_id?: string | null
           recipient_user_id?: string
-          scout_id?: string | null
           type?: string
         }
         Relationships: [
@@ -3815,13 +3812,6 @@ export type Database = {
             columns: ["recipient_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_notifications_scout_id_fkey"
-            columns: ["scout_id"]
-            isOneToOne: false
-            referencedRelation: "ow_scouts"
             referencedColumns: ["id"]
           },
         ]
@@ -4283,7 +4273,6 @@ export type Database = {
           desired_salary_min: number | null
           desired_work_style: string | null
           desired_work_styles: string[] | null
-          email_scout_enabled: boolean
           email_weekly_enabled: boolean
           experience_years: string | null
           id: string
@@ -4293,7 +4282,6 @@ export type Database = {
           name_kana: string | null
           onboarding_completed: boolean | null
           photo_url: string | null
-          scout_enabled: boolean | null
           stance_updated_at: string | null
           transfer_timing: string | null
           transfer_timing_updated_at: string | null
@@ -4312,7 +4300,6 @@ export type Database = {
           desired_salary_min?: number | null
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
-          email_scout_enabled?: boolean
           email_weekly_enabled?: boolean
           experience_years?: string | null
           id?: string
@@ -4322,7 +4309,6 @@ export type Database = {
           name_kana?: string | null
           onboarding_completed?: boolean | null
           photo_url?: string | null
-          scout_enabled?: boolean | null
           stance_updated_at?: string | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
@@ -4341,7 +4327,6 @@ export type Database = {
           desired_salary_min?: number | null
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
-          email_scout_enabled?: boolean
           email_weekly_enabled?: boolean
           experience_years?: string | null
           id?: string
@@ -4351,7 +4336,6 @@ export type Database = {
           name_kana?: string | null
           onboarding_completed?: boolean | null
           photo_url?: string | null
-          scout_enabled?: boolean | null
           stance_updated_at?: string | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
@@ -4832,111 +4816,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ow_scout_quotas: {
-        Row: {
-          bonus_credits: number
-          company_id: string
-          monthly_limit: number
-          period_start: string
-          updated_at: string
-          used_this_month: number
-        }
-        Insert: {
-          bonus_credits?: number
-          company_id: string
-          monthly_limit?: number
-          period_start?: string
-          updated_at?: string
-          used_this_month?: number
-        }
-        Update: {
-          bonus_credits?: number
-          company_id?: string
-          monthly_limit?: number
-          period_start?: string
-          updated_at?: string
-          used_this_month?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_scout_quotas_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ow_scouts: {
-        Row: {
-          candidate_id: string | null
-          company_id: string | null
-          conversation_id: string | null
-          email_error: string | null
-          email_provider_id: string | null
-          email_sent_at: string | null
-          email_status: string
-          id: string
-          job_id: string | null
-          message: string | null
-          replied_at: string | null
-          sent_at: string | null
-          status: string | null
-        }
-        Insert: {
-          candidate_id?: string | null
-          company_id?: string | null
-          conversation_id?: string | null
-          email_error?: string | null
-          email_provider_id?: string | null
-          email_sent_at?: string | null
-          email_status?: string
-          id?: string
-          job_id?: string | null
-          message?: string | null
-          replied_at?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Update: {
-          candidate_id?: string | null
-          company_id?: string | null
-          conversation_id?: string | null
-          email_error?: string | null
-          email_provider_id?: string | null
-          email_sent_at?: string | null
-          email_status?: string
-          id?: string
-          job_id?: string | null
-          message?: string | null
-          replied_at?: string | null
-          sent_at?: string | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_scouts_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_scouts_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ow_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_scouts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -6067,7 +5946,6 @@ export type Database = {
         }
         Returns: string
       }
-      consume_scout_quota: { Args: { p_company_id: string }; Returns: boolean }
       create_conversation: {
         Args: {
           p_candidate_user_id: string

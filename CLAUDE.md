@@ -6014,7 +6014,10 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 | `/biz/candidates` の送信ボタン・送信枠・「スカウト済みを除く」・上部の案内 | 外した（保存済み検索の `hideAlreadyScouted` は `parseSavedFilters` が捨てる） |
 | ベルの `type='scout'`・`scoutTemplate`・`/mypage/settings` の「スカウトのお知らせ」 | 外した（`email_scout_enabled` の**列は残す**） |
 | `/admin` の「未達スカウト」・`plans.ts` の `scoutSend`・`scoutEmail.ts`・`scoutQuota.ts` | 外した |
-| 表・トリガー・列・CHECK | **未適用。** `supabase/pending/1_`〜`4_scout_retire_*.sql`（①→②→③→④の順） |
+| 表・トリガー・列・CHECK | **2026-10-08 に適用済み**（`20261008150000`〜`20261008150300`）。`ow_scouts`・`ow_scout_quotas`・トリガー・関数3本・`ow_notifications.scout_id`・`ow_profiles.scout_enabled` / `email_scout_enabled` を落とし、通知と連絡ログの CHECK から scout を外した。保全は `.dumps/20261008-2355-*` |
+
+⚠️★**不具合で戻すときは3本（`c3befaea` / `90a4e9d6` / `ee5f0bcd`）をまとめて revert する。**
+   A・B 単独の状態はビルドで検証していないので、1本だけ戻さないこと（柴さんの指示）。
 
 ⚠️★★**`can_send_scout()` と `ow_scout_blocks` は消さないこと。** 名前に反して中身は
    **「この企業にこの候補者を見せてよいか」**の判定（転職意欲／自社在籍者の除外／
@@ -6026,7 +6029,7 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
       ブロックした企業にも提案が出る形だった。**TS に条件を書き写さず、
       `can_send_scout()` をそのまま呼ぶ**（候補者検索と効き方をずらさないため）。
 
-⚠️ `ow_profiles.scout_enabled` は (c)：列は残して参照も足さない。DROP は pending の③。
+⚠️ `ow_profiles.scout_enabled` は (c) で参照を外したうえで、2026-10-08 に列ごと DROP した（`email_scout_enabled` も同日）。
    提案と候補者検索の同意は `career_stance`（`isReachableByCompanies`）が決める。
 ⚠️ `isScoutSendingEnabled()`（`lib/business/scoutGate.ts`）は `/business/pricing` の FAQ だけが
    まだ読んでいる（2026-10-08 時点で並行セッションの作業中ファイル）。あの行を外したら関数ごと消す。
