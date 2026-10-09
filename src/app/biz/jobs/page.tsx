@@ -4,6 +4,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
+import { countByJob, fetchCompanyReactions } from "@/lib/business/reactionCounts";
 import { JOB_STATUS_TABS, type JobStatus } from "@/lib/business/mockJobs";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,8 @@ export default async function BizJobsPage({
   if (!ctx) return <BizNoTenantPage />;
 
   const supabase = createClient();
-  const jobs = await fetchJobsForCompany(supabase, ctx.tenantId);
+  /* ★面談申込・応募の数は分析（/biz/analytics）と同じ関数で数える（検証用アカウントを除く）。2026-10-09 */
+  const jobs = await fetchJobsForCompany(supabase, ctx.tenantId, countByJob(await fetchCompanyReactions(supabase, ctx.tenantId)));
 
   return (
     <BusinessLayout

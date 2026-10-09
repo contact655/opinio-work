@@ -3,6 +3,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
+import { countByJob, fetchCompanyReactions, type Fetched, type ReactionRow } from "@/lib/business/reactionCounts";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -29,8 +30,8 @@ export const metadata = { title: { absolute: "分析 | OPINIO Business" }, robot
  *    記録の仕組みは `POST /api/views` と `lib/views/decide.ts`。記録は 2026-10-09 から。
  *    ⚠️ 古い `ow_page_views` / `ow_job_views` は読まない（書く経路が無く、検証用の閲覧も混ざっている）。
  * ★検証用アカウント（is_test）の面談申込・応募・保存は数えない（2026-10-09）。
- *    ⚠️ そのため「求人ごと」の面談申込・応募は、求人管理のカード（`fetchJobsForCompany`）と
- *       検証用のぶんだけ食い違いうる。ここは分析なので検証用を除く側に揃えた。
+ *    面談申込・応募の数え方は `lib/business/reactionCounts.ts` の1か所で、求人管理（/biz/jobs）も同じ関数を通す
+ *    ＝ 求人ごとの数字は2つの画面で一致する。⚠️ ここに数え方を書き戻さないこと。
  */
 
 type Period = "30" | "90" | "all";
@@ -40,8 +41,7 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "all", label: "全期間" },
 ];
 
-type Row = { status: string | null; created_at: string; job_id: string | null };
-type Fetched<T> = { ok: true; rows: T[] } | { ok: false };
+type Row = ReactionRow;
 
 const JST_OFFSET_MS = 9 * 3_600_000;
 
@@ -61,44 +61,6 @@ function lastMonths(n: number): string[] {
 }
 
 // ─── 取得 ────────────────────────────────────────────────────────────────────
-
-/**
- * 検証用アカウントの ow_users.id。⚠️ 失敗したら null（呼び出し側で「取得できませんでした」にする。
- * 空集合に倒すと、検証用を数えたまま正常に見える）。
- * ⚠️ 埋め込み（ow_users!inner）にしない。ow_casual_meetings は ow_users への FK が3本あり曖昧になる。
- */
-async function fetchTestUserIds(userIds: string[]): Promise<Set<string> | null> {
-  if (userIds.length === 0) return new Set();
-  const { data, error } = await createAdminClient()
-    .from("ow_users").select("id").in("id", Array.from(new Set(userIds))).eq("is_test", true);
-  if (error) { console.error("[biz/analytics] is_test:", error.message); return null; }
-  return new Set((data ?? []).map((r) => r.id as string));
-}
-
-async function fetchMeetings(supabase: ReturnType<typeof createClient>, tenantId: string): Promise<Fetched<Row>> {
-  const { data, error } = await supabase
-    .from("ow_casual_meetings")
-    .select("status, created_at, job_id, user_id")
-    .eq("company_id", tenantId);
-  if (error) { console.error("[biz/analytics] meetings:", error.message); return { ok: false }; }
-  const test = await fetchTestUserIds((data ?? []).map((r) => r.user_id as string));
-  if (!test) return { ok: false };
-  /* ⚠️ 日時の無い行は期間にも月にも入れられないので数えない */
-  return { ok: true, rows: (data ?? []).flatMap((r) =>
-    r.created_at && !test.has(r.user_id as string) ? [{ status: r.status, created_at: r.created_at, job_id: r.job_id ?? null }] : []) };
-}
-
-async function fetchApplications(supabase: ReturnType<typeof createClient>, tenantId: string): Promise<Fetched<Row>> {
-  const { data, error } = await supabase
-    .from("ow_job_applications")
-    .select("status, created_at, job_id, user_id, ow_jobs!inner(company_id)")
-    .eq("ow_jobs.company_id", tenantId);
-  if (error) { console.error("[biz/analytics] applications:", error.message); return { ok: false }; }
-  const test = await fetchTestUserIds((data ?? []).map((r) => r.user_id as string));
-  if (!test) return { ok: false };
-  return { ok: true, rows: (data ?? []).flatMap((r) =>
-    r.created_at && !test.has(r.user_id as string) ? [{ status: r.status, created_at: r.created_at, job_id: r.job_id ?? null }] : []) };
-}
 
 type ViewRow = { view_date: string; page_type: string; target_id: string; views: number };
 
@@ -226,12 +188,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
   const supabase = createClient();
   const tenantId = ctx.tenantId;
 
-  const [jobs, meetingsRes, appsRes, viewsRes] = await Promise.all([
-    fetchJobsForCompany(supabase, tenantId),
-    fetchMeetings(supabase, tenantId),
-    fetchApplications(supabase, tenantId),
-    fetchViews(tenantId),
-  ]);
+  /* ★面談申込・応募は求人管理（/biz/jobs）と同じ関数で数える（検証用アカウントを除く）。2026-10-09 */
+  const [reactions, viewsRes] = await Promise.all([fetchCompanyReactions(supabase, tenantId), fetchViews(tenantId)]);
+  const jobCounts = countByJob(reactions);
+  const jobs = await fetchJobsForCompany(supabase, tenantId, jobCounts);
+  const meetingsRes = reactions.meetings;
+  const appsRes = reactions.applications;
   const savesRes = await fetchSaves(tenantId, jobs.map((j) => j.id));
 
   // 期間で絞った行
@@ -276,12 +238,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
 
   const periodLabel = PERIODS.find((p) => p.key === period)!.label;
 
-  /* ★求人ごとの面談申込・応募（全期間）。検証用を除いた行から数える（2026-10-09）。
-        ⚠️ 面談は辞退を除く（求人管理と同じ定義） */
-  const jobMeetingCounts: Record<string, number> = {};
-  if (meetingsRes.ok) for (const m of meetingsRes.rows) if (m.job_id && m.status !== "declined") jobMeetingCounts[m.job_id] = (jobMeetingCounts[m.job_id] ?? 0) + 1;
-  const jobAppCounts: Record<string, number> = {};
-  if (appsRes.ok) for (const a of appsRes.rows) if (a.job_id) jobAppCounts[a.job_id] = (jobAppCounts[a.job_id] ?? 0) + 1;
+  /* ★求人ごとの面談申込・応募（全期間）。求人管理と同じ `countByJob` の結果（2026-10-09） */
+  const jobMeetingCounts = jobCounts.meetings;
+  const jobAppCounts = jobCounts.applications;
 
   /* ★閲覧数。期間は日付で切る（記録が日ごとなので、時刻ではなく JST の日付で比べる） */
   const sinceDate = period === "all" ? null : lastDays(Number(period))[0];
@@ -469,7 +428,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
       </div>
 
       {/* ── 求人ごと ──
-             ⚠️ 面談申込・応募は求人管理のカードと同じ数字（`fetchJobsForCompany`。全期間） */}
+             ⚠️ 面談申込・応募は求人管理のカードと同じ数字（`countByJob`。全期間・検証用を除く） */}
       <div style={card}>
         <SectionTitle note="全期間。面談の申込みは辞退を除いた数。検証用アカウントは含みません。閲覧は 2026年10月9日からの記録">求人ごとの反応</SectionTitle>
         {jobs.length === 0 ? (

@@ -3402,35 +3402,6 @@ export type Database = {
           },
         ]
       }
-      ow_job_views: {
-        Row: {
-          created_at: string | null
-          id: string
-          job_id: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          job_id: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          job_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_job_views_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "ow_jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_jobs: {
         Row: {
           appeal: string | null
@@ -4025,33 +3996,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      ow_page_views: {
-        Row: {
-          created_at: string
-          id: number
-          page_type: string | null
-          path: string
-          referrer_host: string | null
-          target_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          page_type?: string | null
-          path: string
-          referrer_host?: string | null
-          target_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          page_type?: string | null
-          path?: string
-          referrer_host?: string | null
-          target_id?: string | null
-        }
-        Relationships: []
       }
       ow_pipeline_stages: {
         Row: {
@@ -6236,7 +6180,6 @@ export type Database = {
       }
       normalize_company_name: { Args: { p_name: string }; Returns: string }
       ow_uploads_can_write: { Args: { object_name: string }; Returns: boolean }
-      purge_old_page_views: { Args: never; Returns: undefined }
       rebuild_ow_transitions: { Args: never; Returns: number }
       reject_school_request: {
         Args: { p_approved_by: string; p_request_id: string }

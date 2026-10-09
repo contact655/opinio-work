@@ -269,7 +269,7 @@ export default async function FeedPage() {
           （公開79社・2026-08-13 実測）、運営が意図して並べた状態ではないため。
           「掲載中」なら並び順が何であっても表示と実態がずれない。 */
     getCompaniesForList(),
-    // (c) 面談OKな人 (max 3) — ow_company_members から取得
+    // (c) 話を聞ける人 (max 3) — ow_company_members から取得
     adminSupabase
       .from("ow_company_members")
       .select(`
@@ -287,7 +287,7 @@ export default async function FeedPage() {
     .map((r: Record<string, unknown>) => r["ow_companies"])
     .filter(Boolean) as SidebarFollow[];
 
-  // 右レール「面談OKな人」のフォローボタンの初期状態。
+  // 右レール「話を聞ける人」のフォローボタンの初期状態。
   // ⚠️ (a2) の userFollowResult は ow_users を JOIN した行なので、ここでは ID だけを別に取る。
   //    JOIN 結果から拾うと、対象ユーザーが消えていた場合に ID を落としてしまう。
   let followedUserIds: string[] = [];

@@ -273,7 +273,9 @@ function transformJob(row: DbJob, meetingCount: number, applicationCount: number
 
 export async function fetchJobsForCompany(
   supabase: SupabaseClient,
-  tenantId: string
+  tenantId: string,
+  /** 求人ごとの面談申込・応募。`countByJob(await fetchCompanyReactions(...))` を渡す */
+  counts: { meetings: Record<string, number>; applications: Record<string, number> },
 ): Promise<BizJob[]> {
   const { data: rows, error } = await supabase
     .from("ow_jobs")
@@ -289,28 +291,11 @@ export async function fetchJobsForCompany(
   }
   if (!rows?.length) return [];
 
-  // Phase 2: count meetings and applications per job (parallel)
-  const jobIds = rows.map((r) => r.id);
-  const [{ data: meetingRows }, { data: applicationRows }] = await Promise.all([
-    supabase
-      .from("ow_casual_meetings")
-      .select("job_id")
-      .in("job_id", jobIds)
-      .neq("status", "declined"),
-    supabase
-      .from("ow_job_applications")
-      .select("job_id")
-      .in("job_id", jobIds),
-  ]);
-
-  const meetingCounts: Record<string, number> = {};
-  for (const m of meetingRows ?? []) {
-    if (m.job_id) meetingCounts[m.job_id] = (meetingCounts[m.job_id] ?? 0) + 1;
-  }
-  const applicationCounts: Record<string, number> = {};
-  for (const a of applicationRows ?? []) {
-    if (a.job_id) applicationCounts[a.job_id] = (applicationCounts[a.job_id] ?? 0) + 1;
-  }
+  /* ★求人ごとの面談申込・応募は呼び出し側から受け取る（2026-10-09）。
+        数え方は `lib/business/reactionCounts.ts`（検証用アカウントを除く）の1か所で、
+        求人管理と分析が同じ関数を通す。⚠️ ここで数え直さないこと（このファイルはクライアントも読む）。 */
+  const meetingCounts = counts.meetings;
+  const applicationCounts = counts.applications;
 
   return rows.map((row) => {
     const r = row as unknown as DbJob & {
