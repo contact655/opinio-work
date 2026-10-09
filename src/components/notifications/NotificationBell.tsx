@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "message" | "proposal" | "introduction";
+  type: "like" | "comment" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted";
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
@@ -39,6 +39,9 @@ function notifHref(notif: NotificationItem): string {
   /* ⚠️ 会話の詳細は参加者しか開けない（page.tsx が `ow_conversation_participants` を
         照合して notFound する）ので、id をそのまま渡してよい。 */
   if (notif.type === "message") return `/mypage/conversations/${notif.conversationId}`;
+  /* ★メッセージのお願い（段階3）。⚠️ 受け手は承認前は会話を開けないので、一覧の「お願い」の欄へ */
+  if (notif.type === "message_request") return "/mypage/conversations#requests";
+  if (notif.type === "message_request_accepted") return `/mypage/conversations/${notif.conversationId}`;
   /* ★②の提案は一覧へ。⚠️ 提案ごとの詳細ページは無い */
   if (notif.type === "proposal") return "/mypage/proposals";
   /* ★③の紹介は会話そのものへ。⚠️ 提案一覧に戻さない —— 双方が答え終わっていて、
@@ -53,6 +56,13 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
         誰から来たかと、押せば読めることだけを伝える。 */
   if (notif.type === "message") {
     return { who: notif.actor?.name ?? "誰か", what: " からメッセージが届きました" };
+  }
+  /* ★メッセージのお願い（段階3）。⚠️ 本文は出さない（メッセージと同じ） */
+  if (notif.type === "message_request") {
+    return { who: notif.actor?.name ?? "誰か", what: "さんからメッセージのお願いが届きました" };
+  }
+  if (notif.type === "message_request_accepted") {
+    return { who: notif.actor?.name ?? "誰か", what: "さんがメッセージのお願いを承認しました" };
   }
   /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。

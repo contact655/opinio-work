@@ -5669,6 +5669,30 @@ SECURITY DEFINER は RLS を越えて走るので、そのままだと **anon・
 - RLS: `ow_conversations` と `ow_conversation_messages` への authenticated の INSERT は
   **DM だけ**（企業との会話はサーバーだけが書く）。DM の扱いは別途（メッセージのお願い）。
 - ⚠️ 企業の担当者から DM で、その企業に見せてはいけない人へ送るのは `lib/conversations/contactGate.ts` が止める。
+  ★同じ関数が**検証用と実在のアカウントのあいだの DM**も止める（2026-10-09 / 段階3）。
+
+### ⑦ ★★DM は「メッセージのお願い」から始まる（2026-10-09 / 段階3）
+
+**判定と書き込みは [lib/conversations/messageRequest.ts](src/lib/conversations/messageRequest.ts) の1か所。**
+
+| 段 | 送り手（`candidate_user_id`） | 受け手（`partner_user_id`） |
+|---|---|---|
+| 承認待ち（`request_status='pending'`） | 自分の1通が見える。続きは 409 | **参加者に入っていない**。本文も会話の行も読めない。「お願い」の欄にだけ出る |
+| 断った | **承認待ちのまま**（断ったことは伝えない） | 欄から消える |
+| 承認済み（`'accepted'`） | 通常の DM | 承認した時点で参加者に入る |
+
+- ⚠️★**「断った」を `ow_conversations` に書かないこと。** 送り手は自分の会話の行を PostgREST から
+  読めるので、列に書くと断られたことが分かる。断った記録は **`ow_message_request_declines`**
+  （admin のみ）。`responded_at` も承認のときだけ書く。
+- ⚠️★**受け手を承認前に参加者へ足さないこと**（`ensureDmParticipants` を両者ぶん呼ぶのは承認済みだけ）。
+  足した瞬間に RLS（参加者なら読める）で本文が読める。`/api/dm/conversation` と `/api/dm/message` が
+  以前は無条件に両者を足していた。
+- 上限: **1日10件**（日本時間の0時区切り）・**承認待ち20件**（断られたものも数える ——数えないと
+  枠の増減で断られたことが分かる）。定数は `lib/constants/messages.ts`。同じ2人の DM は向きに関係なく1本
+  （一意の索引 `ow_conversations_dm_pair_unique`）。
+- 会話はクライアントから作れない（`ow_conversations_insert` は運営だけ）。段と当事者は
+  `trg_guard_conversation_request_fields` がクライアントからの書き換えを止める。
+- 通知は `message_request`（受け手へ）と `message_request_accepted`（送り手へ）。断ったときは出さない。
 
 ## ⚠️ Supabase の呼び出しで error を捨てない（2026-08-20 追記）
 

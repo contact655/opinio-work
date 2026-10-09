@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
+import { isDmSendable } from "@/lib/conversations/messageRequest";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   // 会話が存在し、かつ自分が candidate_user_id または partner_user_id であることを確認
   const { data: conv } = await admin
     .from("ow_conversations")
-    .select("id, candidate_user_id, partner_user_id")
+    .select("id, kind, candidate_user_id, partner_user_id, request_status")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -38,11 +39,18 @@ export async function GET(request: NextRequest) {
         どちらかがここを通れば揃う。
      ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を捨てており、
         `myParticipantId: null` を返して**入力欄だけが動く**状態になっていた。 */
-  const participants = await ensureDmParticipants(admin, conversationId, [
-    owMe.id,
-    conv.candidate_user_id,
-    conv.partner_user_id,
-  ]);
+  /* ★メッセージのお願い（2026-10-09 / 段階3）。承認前は**送り手だけ**が開ける。
+        ⚠️★受け手を参加者に足さないこと。足すと RLS（参加者なら読める）で本文が読める。
+        ⚠️ 受け手は「お願い」の欄から承認する（`/api/dm/requests/[id]`）。 */
+  const accepted = isDmSendable(conv);
+  if (!accepted && conv.candidate_user_id !== owMe.id) {
+    return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+  }
+  const participants = await ensureDmParticipants(
+    admin,
+    conversationId,
+    accepted ? [owMe.id, conv.candidate_user_id, conv.partner_user_id] : [owMe.id],
+  );
   if (!participants.ok) {
     console.error("[dm/conversation] ensureDmParticipants:", participants.error);
     return NextResponse.json({ error: participants.error }, { status: participants.status });
@@ -62,5 +70,7 @@ export async function GET(request: NextRequest) {
     messages: messages ?? [],
     myParticipantId,
     myName: owMe.name,
+    /* ⚠️ 送り手には「承認待ち」しか見えない（断られていても同じ）。断った記録は別の表 */
+    requestPending: !accepted,
   });
 }

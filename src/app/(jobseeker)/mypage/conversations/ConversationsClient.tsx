@@ -10,6 +10,11 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
+/* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
+import type { IncomingRequest } from "@/lib/conversations/messageRequest";
+
+/** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
+const NOT_ACCEPTED_TEXT = "まだ承認されていません。承認されると続きを送れます";
 
 export type Conversation = {
   id: string;
@@ -20,6 +25,9 @@ export type Conversation = {
   created_at: string;
   company_id: string | null;
   partner_user_id: string | null;
+  /** ★DM の「メッセージのお願い」の段（段階3）。この一覧に出るのは自分が参加者の会話だけなので、
+   *  pending ＝ 自分が送って承認待ち（断られていても pending のまま見える） */
+  request_status?: string | null;
   ow_companies: {
     id: string;
     name: string;
@@ -85,14 +93,109 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
   );
 }
 
+const isPendingRequest = (c: Conversation | null | undefined) =>
+  !!c && c.kind === "direct_message" && c.request_status !== "accepted";
+
+/** ★届いた「メッセージのお願い」の欄（段階3）。⚠️ 本文は出さない（承認するまで読めない決まり） */
+function RequestsSection({
+  requests,
+  busyId,
+  error,
+  onRespond,
+}: {
+  requests: IncomingRequest[];
+  busyId: string | null;
+  error: string | null;
+  onRespond: (id: string, action: "accept" | "decline") => void;
+}) {
+  if (requests.length === 0) return null;
+  return (
+    <section id="requests" data-state="message-requests" aria-label="メッセージのお願い" style={{ borderBottom: "1px solid var(--line)", background: "var(--royal-50)" }}>
+      <p style={{ margin: 0, padding: "10px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
+        メッセージのお願い（{requests.length}件）
+      </p>
+      <p style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+        承認すると、メッセージを読んで返信できます。断っても相手には伝わりません。
+      </p>
+      {error && <p role="alert" style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>}
+      {requests.map((r) => {
+        const busy = busyId === r.conversationId;
+        const profileHref = `/u/${r.requester.username ?? r.requester.id}`;
+        return (
+          <div key={r.conversationId} data-request-id={r.conversationId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderTop: "1px solid var(--line-soft)", background: "#fff" }}>
+            {r.requester.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={r.requester.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            ) : (
+              <InitialAvatar name={r.requester.name} size={36} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Link href={profileHref} style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {r.requester.name}
+              </Link>
+              {r.requester.headline && (
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.requester.headline}</span>
+              )}
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <button type="button" disabled={busy} onClick={() => onRespond(r.conversationId, "accept")} style={{
+                  padding: "5px 12px", borderRadius: 6, border: "none", background: busy ? "var(--line)" : "var(--royal)",
+                  color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: busy ? "default" : "pointer",
+                }}>承認</button>
+                <button type="button" disabled={busy} onClick={() => onRespond(r.conversationId, "decline")} style={{
+                  padding: "5px 12px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff",
+                  color: "var(--ink-soft)", fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: busy ? "default" : "pointer",
+                }}>断る</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 export default function ConversationsClient({
   initialConversations,
   initialOpenConvId,
+  initialRequests,
 }: {
   initialConversations: Conversation[];
   initialOpenConvId?: string | null;
+  initialRequests: IncomingRequest[];
 }) {
   const router = useRouter();
+  const [requests, setRequests] = useState<IncomingRequest[]>(initialRequests);
+  const [respondBusyId, setRespondBusyId] = useState<string | null>(null);
+  const [respondError, setRespondError] = useState<string | null>(null);
+
+  const handleRespond = async (id: string, action: "accept" | "decline") => {
+    if (respondBusyId) return;
+    setRespondBusyId(id);
+    setRespondError(null);
+    try {
+      const res = await fetch(`/api/dm/requests/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setRespondError(data?.error ?? "処理できませんでした。もう一度お試しください。");
+        return;
+      }
+      if (action === "accept") {
+        /* ⚠️ 一覧は初期値の state なので refresh では増えない。開き直して会話を出す */
+        window.location.assign(`/mypage/conversations?open=${id}`);
+        return;
+      }
+      setRequests((prev) => prev.filter((r) => r.conversationId !== id));
+    } catch {
+      setRespondError("処理できませんでした。もう一度お試しください。");
+    } finally {
+      setRespondBusyId(null);
+    }
+  };
   const [conversations] = useState<Conversation[]>(initialConversations);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(initialOpenConvId ?? null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
@@ -146,6 +249,11 @@ export default function ConversationsClient({
 
   const toggleBulkId = (id: string) => {
     setBulkError(null);
+    /* ⚠️ 承認前の DM には送れない（API も 409 で止める）。選ばせない */
+    if (isPendingRequest(conversations.find((c) => c.id === id))) {
+      setBulkError(NOT_ACCEPTED_TEXT);
+      return;
+    }
     setBulkIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -278,6 +386,8 @@ export default function ConversationsClient({
             )}
           </div>
 
+          <RequestsSection requests={requests} busyId={respondBusyId} error={respondError} onRespond={(id, a) => { void handleRespond(id, a); }} />
+
           {conversations.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
@@ -336,6 +446,10 @@ export default function ConversationsClient({
                       }}>{name}</span>
                       {conv.kind === "direct_message" && (
                         <span style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", flexShrink: 0 }}>DM</span>
+                      )}
+                      {/* ★自分が送ったお願い（段階3）。⚠️ 断られていても同じ表示 */}
+                      {isPendingRequest(conv) && (
+                        <span data-state="request-pending" style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", flexShrink: 0 }}>承認待ち</span>
                       )}
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>
@@ -513,7 +627,14 @@ export default function ConversationsClient({
                 <div style={{ padding: "4px 16px", fontSize: 12, fontWeight: 600, color: "var(--error)", background: "#fef2f2" }}>{sendError}</div>
               )}
 
-              {/* 入力エリア */}
+              {/* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める） */}
+              {isPendingRequest(selectedConv) ? (
+                <div data-state="request-pending-banner" style={{
+                  borderTop: "1px solid var(--line)", padding: "14px 16px", flexShrink: 0,
+                  fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", background: "var(--line-soft)",
+                }}>{NOT_ACCEPTED_TEXT}</div>
+              ) : (
+              /* 入力エリア */
               <div style={{
                 borderTop: "1px solid var(--line)", padding: "12px 16px",
                 display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0,
@@ -548,6 +669,7 @@ export default function ConversationsClient({
                   {sending ? "送信中…" : "送信"}
                 </button>
               </div>
+              )}
             </>
           )}
         </div>

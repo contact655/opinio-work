@@ -97,6 +97,9 @@ export async function GET() {
             万一残っていても既定（投稿の存在）で落ちる。⚠️ `scout_id` を select に戻さないこと
             ——列の DROP（supabase/pending/）を当てた日にクエリごと 400 になる。 */
       case "message": return !!r.conversation_id;
+      /* ★メッセージのお願い（2026-10-09 / 段階3）。投稿にぶら下がらないので自分の case が要る */
+      case "message_request": return !!r.conversation_id;
+      case "message_request_accepted": return !!r.conversation_id;
       /* ★②の提案。投稿にぶら下がらないので自分の case が要る（2026-09-21） */
       case "proposal": return !!r.proposal_id;
       /* ★③の紹介。押すと会話へ飛ぶので conversation_id が要る */

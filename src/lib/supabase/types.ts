@@ -2617,6 +2617,9 @@ export type Database = {
           kind: string
           last_message_at: string | null
           partner_user_id: string | null
+          request_status: string | null
+          requested_at: string | null
+          responded_at: string | null
           stage: string
           status: string
         }
@@ -2628,6 +2631,9 @@ export type Database = {
           kind: string
           last_message_at?: string | null
           partner_user_id?: string | null
+          request_status?: string | null
+          requested_at?: string | null
+          responded_at?: string | null
           stage?: string
           status?: string
         }
@@ -2639,6 +2645,9 @@ export type Database = {
           kind?: string
           last_message_at?: string | null
           partner_user_id?: string | null
+          request_status?: string | null
+          requested_at?: string | null
+          responded_at?: string | null
           stage?: string
           status?: string
         }
@@ -3856,6 +3865,29 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "ow_conversation_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_message_request_declines: {
+        Row: {
+          conversation_id: string
+          declined_at: string
+        }
+        Insert: {
+          conversation_id: string
+          declined_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          declined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_message_request_declines_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "ow_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -6075,6 +6107,10 @@ export type Database = {
         Returns: boolean
       }
       auth_ow_user_id: { Args: never; Returns: string }
+      can_contact_without_stance: {
+        Args: { p_candidate_id: string; p_company_id: string }
+        Returns: boolean
+      }
       can_send_scout: {
         Args: { p_candidate_id: string; p_company_id: string }
         Returns: boolean

@@ -5,6 +5,7 @@ import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
   // 会話メンバーであることを確認（candidate または mentor）
   const { data: conv } = await admin
     .from("ow_conversations")
-    .select("id, kind, company_id, candidate_user_id, partner_user_id")
+    .select("id, kind, company_id, candidate_user_id, partner_user_id, request_status")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -72,7 +73,13 @@ export async function POST(request: NextRequest) {
     if (!mine) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
     senderParticipantId = mine.id as string;
   } else {
-    /* 参加者を冪等に揃える（両者ぶん）。
+    /* ★メッセージのお願い（2026-10-09 / 段階3）。承認されるまで続きは送れない。
+          ⚠️ 受け手は承認前は参加者でもないので、ここに来る前提が無い（来ても送らせない）。
+          ⚠️ 判定は `lib/conversations/messageRequest.ts` の `isDmSendable`。 */
+    if (!isDmSendable(conv)) {
+      return NextResponse.json({ error: NOT_ACCEPTED_MESSAGE }, { status: 409 });
+    }
+    /* 参加者を冪等に揃える（両者ぶん）。⚠️ 承認済みのときだけ（承認前に受け手を足すと本文が読める）
        ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を受けておらず、
           participant が null のまま `sender_participant_id: null` で
           メッセージを入れられた。この列は nullable なので **INSERT は成功してしまい**、

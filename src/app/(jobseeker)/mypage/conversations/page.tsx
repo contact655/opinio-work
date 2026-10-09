@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import ConversationsClient, { type Conversation } from "./ConversationsClient";
 import type { Metadata } from "next";
 import { isUnreadMessage, type MessageLike } from "@/lib/conversations/unread";
+import { listIncomingRequests } from "@/lib/conversations/messageRequest";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
       「IT業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
@@ -39,8 +40,13 @@ export default async function ConversationsPage({
     .maybeSingle();
 
   if (!owUser) {
-    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} />;
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={[]} />;
   }
+
+  /* ★届いている「メッセージのお願い」（2026-10-09 / 段階3）。
+        ⚠️ 受け手は承認前は参加者ではないので、下の「参加者行」の絞り込みには出てこない。
+           ここで別に引く（admin。本文は返さない）。 */
+  const incomingRequests = await listIncomingRequests(owUser.id as string);
 
   /* ⚠️ **絞り込みはここで必ず書く。RLS に任せない。**
         `createAdminClient()` は service_role なので **RLS が効かない**。
@@ -75,7 +81,7 @@ export default async function ConversationsPage({
   const conversationIds = Array.from(participantMap.keys());
 
   if (conversationIds.length === 0) {
-    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} />;
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={incomingRequests} />;
   }
 
   // 参加している会話だけを取得（本文の取得もこの範囲に閉じる）
@@ -86,7 +92,7 @@ export default async function ConversationsPage({
         .from("ow_conversations")
         .select(
           `id, kind, stage, status, last_message_at, created_at,
-           company_id, partner_user_id,
+           company_id, partner_user_id, request_status,
            ow_companies(id, name, logo_url, logo_letter),
            partner:ow_users!partner_user_id(id, name)`
         )
@@ -126,5 +132,5 @@ export default async function ConversationsPage({
     return { ...conv, hasUnread };
   });
 
-  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} />;
+  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} initialRequests={incomingRequests} />;
 }

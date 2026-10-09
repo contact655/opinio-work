@@ -17,3 +17,21 @@ export const MAX_DM_LENGTH = 5000;
  *    それでも上限を置くのは、1回のリクエストで DB への書き込みが宛先ぶん走るため。
  */
 export const MAX_BULK_RECIPIENTS = 20;
+
+/* ── ★メッセージのお願い（2026-10-09 / 段階3）──────────────────────────────────
+      DM の最初の1通は「お願い」として届き、受け手が承認するまで続きは送れない。
+      ⚠️ 判定は `lib/conversations/messageRequest.ts` の1か所。route に数字を書き写さない。
+      ⚠️ 件数の上限（濃度）なので、DB の CHECK は張らない。UI と API の2層で守る。 */
+
+/** お願いの本文の長さ。⚠️ `/api/dm/start` の既存の上限と同じ値 */
+export const MAX_MESSAGE_REQUEST_LENGTH = 2000;
+
+/** 1日（日本時間の0時区切り）に送れる新しいお願いの数 */
+export const MESSAGE_REQUEST_DAILY_LIMIT = 10;
+
+/**
+ * 承認待ちのまま並べられるお願いの数。
+ * ⚠️★**断られたものも数える。** 送り手には断られたことを伝えない決まりなので、
+ *    断られた分だけ枠が空くと、枠の増減から断られたことが分かってしまう。
+ */
+export const MESSAGE_REQUEST_OPEN_LIMIT = 20;

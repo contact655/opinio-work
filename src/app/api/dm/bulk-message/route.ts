@@ -6,6 +6,7 @@ import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
         件数ぶんクエリを撃つと、宛先が増えるほど遅くなり、途中で失敗しやすくなる。 */
   const { data: convs, error: convErr } = await admin
     .from("ow_conversations")
-    .select("id, kind, company_id, candidate_user_id, partner_user_id")
+    .select("id, kind, company_id, candidate_user_id, partner_user_id, request_status")
     .in("id", ids);
   if (convErr) {
     console.error("[dm/bulk-message] conversations:", convErr.message);
@@ -146,6 +147,11 @@ export async function POST(request: NextRequest) {
       if (!mine) { results.push({ conversationId, ok: false, error: "この会話には送れません" }); continue; }
       senderParticipantId = mine.id as string;
     } else {
+      /* ★メッセージのお願い（段階3）。承認されるまで続きは送れない（`/api/dm/message` と同じ） */
+      if (!isDmSendable(conv)) {
+        results.push({ conversationId, ok: false, error: NOT_ACCEPTED_MESSAGE });
+        continue;
+      }
       /* ⚠️ `sender_participant_id` が null のまま INSERT できてしまうと、
             **送った本人にも「相手の発言」として表示される**（/api/dm/message の注記）。
             参加者が揃わなかったら、その会話へは送らない。 */

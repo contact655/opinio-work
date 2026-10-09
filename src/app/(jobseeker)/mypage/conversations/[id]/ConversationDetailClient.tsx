@@ -31,6 +31,9 @@ export type ConversationDetail = {
     logo_letter: string | null;
   } | null;
   partner: { name: string } | null;
+  /** ★DM の「メッセージのお願い」の段（段階3）。ここを開けるのは参加者だけなので、
+   *  DM で accepted でなければ「自分が送って承認待ち」（断られていても同じ） */
+  request_status?: string | null;
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -265,7 +268,12 @@ export default function ConversationDetailClient({
 
         {/* Input */}
         <div className="bg-white rounded-b-card border border-t-0 border-card-border px-4 py-3 flex-shrink-0">
-          {myParticipantId ? (
+          {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
+            /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
+            <p data-state="request-pending-banner" className="text-sm text-gray-500 text-center py-1">
+              まだ承認されていません。承認されると続きを送れます
+            </p>
+          ) : myParticipantId ? (
             <div className="flex gap-2 items-end">
               <textarea
                 value={inputText}
