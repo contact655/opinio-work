@@ -170,7 +170,7 @@ export default function MypageLayout({
    *      0件になればカードごと出さない。呼び出し側で `top` に InboxCard を渡さないこと
    *      ——それだと数字がサーバーの値のまま残り、ナビと食い違う。
    */
-  inbox?: { proposals: number | null; messageRequests: number };
+  inbox?: { proposals: number | null; messageRequests: number; approaches?: number | null };
   /**
    * ★「届いているもの」のすぐ上に置く一度きりの確認（2026-10-09。企業からの声かけを受け取るか）。
    *   ⚠️ `top` に渡すと「届いているもの」が消える（`top` は丸ごと置き換える）ので、こちらに渡す。
@@ -195,7 +195,7 @@ export default function MypageLayout({
         ⚠️ 数え方は `lib/mypage/navBadges.ts` の1か所（API はそれを呼ぶだけ）。
         ⚠️ ページが渡した値は最初の表示に使い、取れたら API の値で置き換える。
         ⚠️ 取得に失敗したら渡された値のまま（0 で上書きしない）。 */
-  const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null; messageRequests: number } | null>(null);
+  const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null; messageRequests: number; approaches?: number | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetch("/api/jobseeker/mypage-badges")
@@ -210,11 +210,15 @@ export default function MypageLayout({
 
   /* ★「届いているもの」もナビと同じ取得結果から出す。⚠️ 提案が取れなかったとき（null）は初期値のまま */
   const inboxNow = inbox && (live
-    ? { proposals: live.proposals ?? inbox.proposals, messageRequests: live.messageRequests ?? inbox.messageRequests }
+    ? {
+        proposals: live.proposals ?? inbox.proposals,
+        messageRequests: live.messageRequests ?? inbox.messageRequests,
+        approaches: live.approaches ?? inbox.approaches ?? null,
+      }
     : inbox);
-  const showInbox = !!inboxNow && ((inboxNow.proposals ?? 0) > 0 || inboxNow.messageRequests > 0);
+  const showInbox = !!inboxNow && ((inboxNow.proposals ?? 0) > 0 || inboxNow.messageRequests > 0 || (inboxNow.approaches ?? 0) > 0);
   const inboxCard = showInbox && inboxNow
-    ? <InboxCard proposals={inboxNow.proposals} messageRequests={inboxNow.messageRequests} />
+    ? <InboxCard proposals={inboxNow.proposals} messageRequests={inboxNow.messageRequests} approaches={inboxNow.approaches ?? null} />
     : null;
   const top = topProp ?? (notice || inboxCard ? <>{notice}{inboxCard}</> : undefined);
 

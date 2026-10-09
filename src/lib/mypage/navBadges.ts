@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { countUnreadConversations } from "@/lib/conversations/unread";
 import { countOpenProposals } from "@/lib/evidence/proposalEnded";
 import { countIncomingRequests } from "@/lib/conversations/messageRequest";
+import { countIncomingApproaches } from "@/lib/approaches/server";
 
 export type MypageNavBadges = {
   /** 「メッセージ」の数字 = 未読のある会話 ＋ 届いているお願い */
@@ -14,6 +15,8 @@ export type MypageNavBadges = {
   /** 内訳（「届いているもの」のカードで使う） */
   unreadConversations: number;
   messageRequests: number;
+  /** ★企業からの声かけ（まだ答えていない・30日以内）。取得に失敗したら null（2026-10-09） */
+  approaches: number | null;
 };
 
 /**
@@ -38,12 +41,13 @@ export type MypageNavBadges = {
  */
 export async function getMypageNavBadges(owUserId: string): Promise<MypageNavBadges> {
   const db = createAdminClient();
-  const [unread, apps, proposals, requests] = await Promise.all([
+  const [unread, apps, proposals, requests, approaches] = await Promise.all([
     countUnreadConversations(owUserId),
     db.from("ow_job_applications").select("id", { count: "exact", head: true })
       .eq("user_id", owUserId).neq("status", "pending"),
     countOpenProposals("candidate", { candidateUserId: owUserId }),
     countIncomingRequests(owUserId),
+    countIncomingApproaches(owUserId),
   ]);
   if (apps.error) console.error("[mypage/navBadges] 応募:", apps.error.message);
   return {
@@ -52,5 +56,6 @@ export async function getMypageNavBadges(owUserId: string): Promise<MypageNavBad
     proposals,
     unreadConversations: unread,
     messageRequests: requests,
+    approaches,
   };
 }

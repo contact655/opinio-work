@@ -230,7 +230,152 @@ export async function sendApproach(params: {
     console.error("[approaches] insert:", error?.message);
     return { ok: false, status: 500, error: MSG.failed };
   }
+
+  /* 求職者のベルに積む（best-effort。メールは送らない）。⚠️ 本文はベルに出さない（ベルの決まり） */
+  const { error: nErr } = await db.from("ow_notifications").insert({
+    recipient_user_id: params.candidateOwUserId,
+    actor_company_id: params.companyId,
+    type: "company_approach",
+    approach_id: data.id,
+  });
+  if (nErr) console.error("[approaches] notify:", nErr.message);
+
   return { ok: true, id: data.id as string };
+}
+
+/* ── 受け取る側（段3）──────────────────────────────────────────────────── */
+
+export type IncomingApproach = {
+  id: string;
+  createdAt: string;
+  /** ⚠️ 理由と本文は承認前でも全文見せる（2026-10-09 / 柴さんの判断）。承認で区切るのは2通目以降だけ */
+  reason: string;
+  body: string | null;
+  company: { id: string; name: string; nameEn: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
+  senderName: string | null;
+};
+
+/**
+ * 求職者に届いている、まだ答えていない声かけ（新しい順）。
+ * ⚠️★送ってから30日たったものは出さない（企業側は「承認待ち」のまま。区別させない）。
+ * ⚠️★いまその企業から見せてはいけない状態（ブロックした・在籍が判明した 等）になったものも出さない
+ *    （`can_send_scout()`）。承認しても会話を開けないので、押せる形で残さない。
+ * 取得に失敗したら null（呼び出し側は「0件」と出さない）。
+ */
+export async function listIncomingApproaches(candidateOwUserId: string): Promise<IncomingApproach[] | null> {
+  const db = createAdminClient();
+  const { data: me, error: meErr } = await db.from("ow_users").select("auth_id").eq("id", candidateOwUserId).maybeSingle();
+  if (meErr || !me?.auth_id) {
+    if (meErr) console.error("[approaches] incoming me:", meErr.message);
+    return meErr ? null : [];
+  }
+  const { data, error } = await db
+    .from("ow_company_approaches")
+    .select("id, created_at, reason, body, company_id, sender_user_id")
+    .eq("candidate_user_id", candidateOwUserId)
+    .is("accepted_at", null)
+    .is("declined_at", null)
+    .gte("created_at", daysAgoIso(APPROACH_EXPIRE_DAYS))
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[approaches] incoming:", error.message);
+    return null;
+  }
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+
+  const companyIds = Array.from(new Set(rows.map((r) => r.company_id as string)));
+  const visible = new Set<string>();
+  for (const cid of companyIds) {
+    const { data: ok, error: rErr } = await db.rpc("can_send_scout", { p_company_id: cid, p_candidate_id: me.auth_id as string });
+    if (rErr) {
+      console.error("[approaches] incoming can_send_scout:", rErr.message);
+      return null;
+    }
+    if (ok === true) visible.add(cid);
+  }
+  const shown = rows.filter((r) => visible.has(r.company_id as string));
+  if (shown.length === 0) return [];
+
+  const senderIds = Array.from(new Set(shown.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
+  const [{ data: comps, error: cErr }, { data: senders, error: sErr }] = await Promise.all([
+    db.from("ow_companies").select("id, name, name_en, slug, logo_url, logo_letter, logo_gradient").in("id", Array.from(visible)),
+    senderIds.length > 0
+      ? db.from("ow_users").select("id, name").in("id", senderIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
+  ]);
+  if (cErr || sErr) {
+    console.error("[approaches] incoming join:", cErr?.message ?? sErr?.message);
+    return null;
+  }
+  const compById = new Map((comps ?? []).map((c) => [c.id as string, c]));
+  const senderById = new Map((senders ?? []).map((u) => [u.id as string, u.name as string]));
+  return shown.flatMap((r) => {
+    const c = compById.get(r.company_id as string);
+    if (!c) return [];
+    return [{
+      id: r.id as string,
+      createdAt: r.created_at as string,
+      reason: r.reason as string,
+      body: (r.body as string | null) ?? null,
+      company: {
+        id: c.id as string,
+        name: c.name as string,
+        nameEn: (c.name_en as string | null) ?? null,
+        slug: (c.slug as string | null) ?? null,
+        logoUrl: (c.logo_url as string | null) ?? null,
+        logoLetter: (c.logo_letter as string | null) ?? null,
+        logoGradient: (c.logo_gradient as string | null) ?? null,
+      },
+      senderName: r.sender_user_id ? senderById.get(r.sender_user_id as string) ?? null : null,
+    }];
+  });
+}
+
+/** 届いている声かけの数（「届いているもの」とナビ）。取得に失敗したら null */
+export async function countIncomingApproaches(candidateOwUserId: string): Promise<number | null> {
+  const list = await listIncomingApproaches(candidateOwUserId);
+  return list === null ? null : list.length;
+}
+
+export type RespondApproachAction = "accept" | "decline";
+
+/**
+ * 求職者が答える。⚠️ 本人宛て・未回答・30日以内・いま見せてよい企業 のものだけ。
+ * ⚠️★見送ったことは企業に伝えない（通知も出さない。企業の画面は「承認待ち」のまま）。
+ */
+export async function respondToApproach(params: {
+  approachId: string;
+  candidateOwUserId: string;
+  action: RespondApproachAction;
+}): Promise<{ ok: true; conversationId: string | null } | { ok: false; status: number; error: string }> {
+  const notFound = { ok: false as const, status: 404, error: "この声かけは見つかりません" };
+  /* ⚠️ 一覧と同じ条件で引き直す（期限切れ・答え済み・いま見せてはいけない企業を押せない形にする） */
+  const list = await listIncomingApproaches(params.candidateOwUserId);
+  if (list === null) return { ok: false, status: 500, error: MSG.failed };
+  const target = list.find((a) => a.id === params.approachId);
+  if (!target) return notFound;
+
+  const db = createAdminClient();
+  if (params.action === "decline") {
+    const { data, error } = await db.from("ow_company_approaches")
+      .update({ declined_at: new Date().toISOString() })
+      .eq("id", params.approachId).eq("candidate_user_id", params.candidateOwUserId)
+      .is("accepted_at", null).is("declined_at", null)
+      .select("id");
+    if (error || (data ?? []).length !== 1) {
+      console.error("[approaches] decline:", error?.message ?? `rows=${(data ?? []).length}`);
+      return { ok: false, status: 500, error: MSG.failed };
+    }
+    return { ok: true, conversationId: null };
+  }
+
+  return acceptApproach({ approachId: params.approachId, candidateOwUserId: params.candidateOwUserId, companyId: target.company.id });
+}
+
+/** 承認して企業との会話を開く（段4で実装） */
+async function acceptApproach(_params: { approachId: string; candidateOwUserId: string; companyId: string }): Promise<{ ok: true; conversationId: string | null } | { ok: false; status: number; error: string }> {
+  return { ok: false, status: 501, error: "まだ承認できません" };
 }
 
 export type SentApproach = {

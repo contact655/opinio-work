@@ -506,13 +506,13 @@ export default async function MypagePage({
   let conversationsBadge = 0;
   let applicationsBadge = 0;
   let proposalsBadge = 0;
-  let inbox: { proposals: number | null; messageRequests: number } = { proposals: 0, messageRequests: 0 };
+  let inbox: { proposals: number | null; messageRequests: number; approaches: number | null } = { proposals: 0, messageRequests: 0, approaches: 0 };
   if (owUser) {
     const badges = await getMypageNavBadges(owUser.id as string);
     conversationsBadge = badges.conversations;
     applicationsBadge = badges.applications;
     proposalsBadge = badges.proposals ?? 0;
-    inbox = { proposals: badges.proposals, messageRequests: badges.messageRequests };
+    inbox = { proposals: badges.proposals, messageRequests: badges.messageRequests, approaches: badges.approaches };
   }
 
   // Fetch ambassador memberships (面談対応者として登録されているか)

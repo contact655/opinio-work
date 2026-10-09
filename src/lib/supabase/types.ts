@@ -3935,6 +3935,7 @@ export type Database = {
         Row: {
           actor_company_id: string | null
           actor_user_id: string | null
+          approach_id: string | null
           comment_id: string | null
           conversation_id: string | null
           created_at: string
@@ -3948,6 +3949,7 @@ export type Database = {
         Insert: {
           actor_company_id?: string | null
           actor_user_id?: string | null
+          approach_id?: string | null
           comment_id?: string | null
           conversation_id?: string | null
           created_at?: string
@@ -3961,6 +3963,7 @@ export type Database = {
         Update: {
           actor_company_id?: string | null
           actor_user_id?: string | null
+          approach_id?: string | null
           comment_id?: string | null
           conversation_id?: string | null
           created_at?: string
@@ -3984,6 +3987,13 @@ export type Database = {
             columns: ["actor_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_approach_id_fkey"
+            columns: ["approach_id"]
+            isOneToOne: false
+            referencedRelation: "ow_company_approaches"
             referencedColumns: ["id"]
           },
           {

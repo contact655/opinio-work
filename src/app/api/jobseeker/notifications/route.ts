@@ -31,7 +31,7 @@ export async function GET() {
   const { data: rows, error } = await adminSupabase
     .from("ow_notifications")
     .select(`
-      id, type, post_id, comment_id, is_read, created_at, conversation_id, proposal_id,
+      id, type, post_id, comment_id, is_read, created_at, conversation_id, proposal_id, approach_id,
       actor:ow_users!actor_user_id(id, name, avatar_color, avatar_url),
       actorCompany:ow_companies!actor_company_id(id, name, slug, logo_letter, logo_gradient)
     `)
@@ -77,6 +77,7 @@ export async function GET() {
     created_at: string;
     conversation_id: string | null;
     proposal_id: string | null;
+    approach_id: string | null;
     // Supabase の !fk JOIN は配列で返る
     actor: { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[] | null;
     actorCompany: RawCompany[] | null;
@@ -104,6 +105,9 @@ export async function GET() {
       case "proposal": return !!r.proposal_id;
       /* ★③の紹介。押すと会話へ飛ぶので conversation_id が要る */
       case "introduction": return !!r.conversation_id;
+      /* ★企業からの声かけ（2026-10-09）。投稿にぶら下がらないので自分の case が要る。
+            押すと /mypage/approaches（答え終わった・期限切れのものはそこに出ないが、行き止まりにはならない） */
+      case "company_approach": return !!r.approach_id;
       default: return !!r.post_id && postPreviews.has(r.post_id);
     }
   };

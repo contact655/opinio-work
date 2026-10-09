@@ -262,7 +262,7 @@ export default function MypageClient({
   /** 未回答の提案件数（②）。0 のときは出さない */
   proposalsBadge?: number;
   /** ★「届いているもの」のカード（2026-10-09）。数え方は lib/mypage/navBadges.ts */
-  inbox?: { proposals: number | null; messageRequests: number };
+  inbox?: { proposals: number | null; messageRequests: number; approaches?: number | null };
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   currentCompanies?: { id: string; name: string }[];

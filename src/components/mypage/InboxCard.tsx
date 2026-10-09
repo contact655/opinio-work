@@ -9,7 +9,7 @@ import Link from "next/link";
  *    **本人が答える番**のものだけを数えている。
  * ⚠️ 提案が取得失敗（null）のときは行ごと出さない（0 と書くと「無い」と嘘になる）。
  */
-export function InboxCard({ proposals, messageRequests }: { proposals: number | null; messageRequests: number }) {
+export function InboxCard({ proposals, messageRequests, approaches = null }: { proposals: number | null; messageRequests: number; approaches?: number | null }) {
   const rows = [
     proposals !== null && proposals > 0 && {
       key: "proposals",
@@ -24,6 +24,15 @@ export function InboxCard({ proposals, messageRequests }: { proposals: number | 
       count: messageRequests,
       text: "承認すると内容を読めて、やり取りを始められます",
       href: "/mypage/conversations#requests",
+    },
+    /* ★企業からの声かけ（2026-10-09）。⚠️ 提案（OPINIO が根拠をそろえる）・お願い（個人から）と
+          区別がつく説明にする。取得に失敗（null）したら行ごと出さない */
+    approaches !== null && approaches > 0 && {
+      key: "approaches",
+      label: "企業からの声かけ",
+      count: approaches,
+      text: "企業があなたの経歴を見て、理由を添えて連絡してきています",
+      href: "/mypage/approaches",
     },
   ].filter(Boolean) as { key: string; label: string; count: number; text: string; href: string }[];
 
