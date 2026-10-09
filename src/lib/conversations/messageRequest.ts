@@ -347,3 +347,8 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
 export function isDmSendable(conv: { kind: string | null; request_status?: string | null }): boolean {
   return conv.kind !== "direct_message" || conv.request_status === "accepted";
 }
+
+/** 受け手に届いている承認待ちのお願いの数（断ったものは数えない）。`/mypage` の数字と「届いているもの」 */
+export async function countIncomingRequests(meId: string): Promise<number> {
+  return (await listIncomingRequests(meId)).length;
+}

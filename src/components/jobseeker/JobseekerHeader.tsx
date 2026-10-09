@@ -191,6 +191,18 @@ export function JobseekerHeader() {
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  /* ★768px 未満か（2026-10-09）。ベルを**1つだけ**描くために使う。
+     ⚠️ CSS（`md:hidden`）だけで出し分けると、ベルが2つマウントされて
+        未読の取得が二重に走る。描く側を JS で1つに決める。
+     ⚠️ 初期値は false（SSR と揃える）。狭い画面ではマウント後に切り替わる。 */
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -496,6 +508,16 @@ export function JobseekerHeader() {
           </button>
           )}
 
+          {/* ★スマホのベル（2026-10-09 / 柴さんの指示）。**検索の隣**。
+              それまで 768px 未満ではベルが `hidden md:flex` の中にあり、
+              **スマホからは通知（提案・メッセージのお願い）に気づく手段が無かった。**
+              ⚠️ 描くのは 768px 未満のときだけ（上の `isNarrow`）。右の列のベルと
+                 同時に描かない（未読の取得が二重になる）。
+              ⚠️ トップページ（検索を出さない）でも出す。 */}
+          {!loading && user && isNarrow && (
+            <NotificationBell compactPanel />
+          )}
+
           </div>{/* /左のかたまり */}
 
           {/* Nav — desktop only */}
@@ -574,7 +596,7 @@ export function JobseekerHeader() {
                           （`MypageLayout`。未読バッジ付き）。**そちらを消さないこと。** */}
                 <MessagesButton />
 
-                <NotificationBell />
+                {!isNarrow && <NotificationBell />}
                 {/* ⚠️★**企業担当者の常設スイッチ**（2026-09-05）。ベルとアバターの間。
                        畳んだドロップダウンの中だと、企業側と求職者側を行き来する人が
                        毎回2アクション必要になるため常時見える位置へ出した。

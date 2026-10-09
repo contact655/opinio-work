@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { InboxCard } from "@/components/mypage/InboxCard";
 import MypageLayout from "./_components/MypageLayout";
 /* ★意思表示（2026-08-26 / フェーズ1）。`StanceCard` / `CareerIntentBox` /
       `TalkToMeCard` の**3枚を1枚に統合した**。3枚に戻さないこと。 */
@@ -223,6 +224,8 @@ export default function MypageClient({
   conversationsBadge,
   applicationsBadge,
   proposalsBadge,
+  /* ⚠️ 分割代入で取り出す。取り出さないと `...editorProps` に入って ProfileEditor へ流れる */
+  inbox,
   isNewUser = false,
   ambassadorMemberships = [],
   currentCompanies = [],
@@ -257,6 +260,8 @@ export default function MypageClient({
   applicationsBadge?: number;
   /** 未回答の提案件数（②）。0 のときは出さない */
   proposalsBadge?: number;
+  /** ★「届いているもの」のカード（2026-10-09）。数え方は lib/mypage/navBadges.ts */
+  inbox?: { proposals: number | null; messageRequests: number };
   isNewUser?: boolean;
   ambassadorMemberships?: AmbassadorMembership[];
   currentCompanies?: { id: string; name: string }[];
@@ -412,6 +417,10 @@ export default function MypageClient({
       applicationsBadge={applicationsBadge}
       proposalsBadge={proposalsBadge}
       rightColumn={dashboardRightColumn}
+      /* ★届いているもの（2026-10-09）。最上部（右の列より上）。0件ならカードごと出ない */
+      top={inbox && (inbox.messageRequests > 0 || (inbox.proposals ?? 0) > 0)
+        ? <InboxCard proposals={inbox.proposals} messageRequests={inbox.messageRequests} />
+        : undefined}
     >
       {/* ウェルカムバナー（新規登録直後） */}
       {isNewUser && !welcomeDismissed && (

@@ -207,6 +207,26 @@ export default function ConversationsClient({
   const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  /* ★狭い画面（768px 未満）では会話を詳細ページで開く（2026-10-09）。
+        判定は押した時点の幅で行う（state に持たない）。 */
+  const isNarrowNow = () =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+  const openConversation = (id: string) => {
+    if (isNarrowNow()) {
+      router.push(`/mypage/conversations/${id}`);
+      return;
+    }
+    setSelectedConvId(id);
+  };
+  /* ⚠️ `?open=` で来たとき（DM の入口・通知から）も、狭い画面なら詳細ページへ移す。
+        そのままだと一覧だけが出て、開いたはずの会話が見えない。 */
+  useEffect(() => {
+    if (initialOpenConvId && isNarrowNow()) {
+      router.replace(`/mypage/conversations/${initialOpenConvId}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchMessages = useCallback(async (convId: string) => {
     const r = await fetch(`/api/dm/conversation?id=${convId}`);
     if (!r.ok) return;
@@ -348,12 +368,27 @@ export default function ConversationsClient({
 
   return (
     <MypageLayout activeKey="conversations">
-      <div style={{ display: "flex", gap: 0, height: "calc(100vh - 160px)", minHeight: 500, border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
+      {/* ★768px 未満は1列にする（2026-10-09 / 柴さんの指示）。
+             それまで 375px でも 300px の一覧と会話の面を横に並べており、
+             **入力欄が 27px 幅**しかなく送れなかった（実測）。
+             狭い画面では一覧だけを出し、押したら会話の詳細ページへ移る。
+          ⚠️ 幅で変える値（display・width・height）はインラインに書かない（ui-debugging ②）。
+          ⚠️ style タグの中には不等号・バッククォート・二重引用符を書かない（ui-debugging ⑲。属性セレクタの引用符でハイドレーションが壊れた）。 */}
+      <style>{`
+        .conv-shell { display: flex; height: calc(100vh - 160px); min-height: 500px; }
+        .conv-list { width: 300px; flex-shrink: 0; border-right: 1px solid var(--line); }
+        .conv-panel { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+        @media (max-width: 767px) {
+          .conv-shell { flex-direction: column; height: auto; min-height: 0; }
+          .conv-list { width: 100%; border-right: none; }
+          .conv-panel { display: none; }
+          .conv-panel.conv-panel-bulk { display: flex; border-top: 1px solid var(--line); min-height: 320px; }
+        }
+      `}</style>
+      <div className="conv-shell" style={{ gap: 0, border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
 
         {/* ── 左カラム: 会話リスト ── */}
-        <div style={{
-          width: 300, flexShrink: 0,
-          borderRight: "1px solid var(--line)",
+        <div className="conv-list" style={{
           display: "flex", flexDirection: "column",
           overflowY: "auto",
         }}>
@@ -414,7 +449,7 @@ export default function ConversationsClient({
                 <button
                   key={conv.id}
                   type="button"
-                  onClick={() => (bulkMode ? toggleBulkId(conv.id) : setSelectedConvId(conv.id))}
+                  onClick={() => (bulkMode ? toggleBulkId(conv.id) : openConversation(conv.id))}
                   aria-pressed={bulkMode ? bulkIds.has(conv.id) : undefined}
                   style={{
                     display: "flex", alignItems: "center", gap: 10,
@@ -466,7 +501,7 @@ export default function ConversationsClient({
         </div>
 
         {/* ── 右カラム: 会話パネル ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <div className={bulkMode ? "conv-panel conv-panel-bulk" : "conv-panel"} data-bulk={bulkMode ? "1" : "0"}>
           {/* ★複数送信のときは、会話ではなく**本文を書く面**にする（2026-08-27）。
                  ⚠️ 会話を開いたまま複数送信の欄も出す形にしない。どちらに書いているのか
                     分からなくなり、開いている相手にだけ送ったつもりで全員に届く。 */}

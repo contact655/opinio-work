@@ -20,8 +20,7 @@ import { rowsToStints } from "@/lib/experiences/toStint";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
-import { countUnreadConversations } from "@/lib/conversations/unread";
-import { countOpenProposals } from "@/lib/evidence/proposalEnded";
+import { getMypageNavBadges } from "@/lib/mypage/navBadges";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -498,56 +497,19 @@ export default async function MypagePage({
         完成度バーを外したため。行そのものは編集フォームが使うので取得は残す。 */
 
   // Fetch notification badge counts
+  /* ★数え方は `lib/mypage/navBadges.ts` の1か所（2026-10-09）。他のマイページも同じ関数を
+        API 経由で呼ぶ。⚠️ ここに数え方を書き戻さないこと。経緯（存在しない列で数えていた件、
+        未読の基準など）は `lib/conversations/unread.ts` と `navBadges.ts` に書いてある。 */
   let conversationsBadge = 0;
   let applicationsBadge = 0;
   let proposalsBadge = 0;
+  let inbox: { proposals: number | null; messageRequests: number } = { proposals: 0, messageRequests: 0 };
   if (owUser) {
-    /* ⚠️★2026-09-20 に「7日以内に動きがあった会話数」→「**未読のある会話数**」に変えた。
-          判定は `lib/conversations/unread.ts` の1箇所で、**一覧のドットと同じ式**。
-          ⚠️ 旧実装は `last_message_at > 7日前` で、**読んでいても数え、8日前の未読は
-             数えなかった**。バッジの数字を信じて開いた人が何も見つけられない形。
-          ⚠️ `sevenDaysAgo` はもう使わない（応募・スカウトは別の条件で数えている）。 */
-    /* ⚠️ **存在しない列で数えない。** 2026-08-20 まで `company_user_id` と `updated_at` で
-          引いており、`ow_conversations` にはどちらも無いため **毎回 400**
-          （本番ログで24時間に19件）。`count` は null になり `?? 0` が受けるので、
-          **バッジは常に 0**。新着メッセージに一生気づけない状態だった。
-       ⚠️ 実在する列は id / kind / stage / company_id / partner_user_id /
-          candidate_user_id / status / last_message_at / created_at の9つだけ。
-       ⚠️ **error を捨てない。** 捨てていたから2026-08-12 以降ずっと気づけなかった。
-
-       ★バッジの基準は一覧（/mypage/conversations）と同じ「**自分の参加者行があるか**」。
-       ⚠️ 2026-08-25 まで `candidate_user_id` / `partner_user_id` で数えていたが、
-          一覧は参加者行で絞るので**基準が2つに割れていた**。実際に本番で、
-          参加者行が無い会話をバッジだけが数え、押すと
-          **「まだ対話がありません」に着く**状態が出ていた（実ユーザー2名）。
-       ⚠️ したがって **バッジは必ず一覧の部分集合**にする。数え方を足すときも、
-          先に「その会話が一覧に出るか」を満たすこと。
-       ⚠️ ここはまだ「未読数」ではなく「7日以内に動きがあった会話数」。
-          未読で数えるのは既読フェーズの範囲。 */
-    const [
-      unreadConvCount,
-      { count: appCount, error: appError },
-      proposalCount,
-    ] = await Promise.all([
-      /* ★未読のある会話の数。⚠️ 述語を書き写さないこと（`unread.ts` の1箇所） */
-      countUnreadConversations(owUser.id),
-      supabase
-        .from("ow_job_applications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", owUser.id)
-        .neq("status", "pending"),
-      /* ★未回答の提案（②）。`/mypage/proposals` の「未回答」と**同じ条件**（2026-10-09）:
-            まだ答えておらず、終了してもいないもの（`lib/evidence/proposalEnded.ts`）。
-         ⚠️ `ow_proposals.candidate_user_id` は **ow_users 空間**（スカウトと逆）。
-         ⚠️ 失敗したら null が返る（ログは共通関数が出す）。 */
-      countOpenProposals("candidate", { candidateUserId: owUser.id as string }),
-    ]);
-    /* ⚠️ 会話は `countUnreadConversations` の中で error をログに出し、
-          失敗時は 0 を返す（バッジは主役ではないのでページを落とさない）。 */
-    if (appError)   console.error("[mypage] 応募バッジ:", appError.message);
-    conversationsBadge = unreadConvCount;
-    applicationsBadge = appCount ?? 0;
-    proposalsBadge = proposalCount ?? 0;
+    const badges = await getMypageNavBadges(owUser.id as string);
+    conversationsBadge = badges.conversations;
+    applicationsBadge = badges.applications;
+    proposalsBadge = badges.proposals ?? 0;
+    inbox = { proposals: badges.proposals, messageRequests: badges.messageRequests };
   }
 
   // Fetch ambassador memberships (面談対応者として登録されているか)
@@ -627,6 +589,7 @@ export default async function MypagePage({
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
       proposalsBadge={proposalsBadge}
+      inbox={inbox}
       isNewUser={isNewUser}
       ambassadorMemberships={ambassadorMemberships}
       schoolPeerCounts={schoolPeerCounts}

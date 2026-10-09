@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { MYPAGE_MAIN_COLUMN } from "@/lib/constants/layout";
 import Link from "next/link";
 import { Breadcrumb, type Crumb } from "@/components/ui/Breadcrumb";
@@ -134,10 +135,11 @@ export type MypageActiveKey =
 */
 export default function MypageLayout({
   activeKey,
-  conversationsBadge,
-  applicationsBadge,
-  proposalsBadge,
+  conversationsBadge: conversationsBadgeProp,
+  applicationsBadge: applicationsBadgeProp,
+  proposalsBadge: proposalsBadgeProp,
   children,
+  top,
   rightColumn,
   rightColumnCollapse = "stack",
   breadcrumb,
@@ -152,6 +154,13 @@ export default function MypageLayout({
    */
   proposalsBadge?: number;
   children: React.ReactNode;
+  /**
+   * ★本文の**さらに上**に置くもの（2026-10-09。/mypage の「届いているもの」）。
+   *   ⚠️ children の先頭に置くと、768px 未満では右の列（order: -1 で本文の上へ回る）の
+   *      **下**になってしまう。ここに渡すと、どの幅でも一番上に出る。
+   *   ⚠️ 1回だけ描く（本文側に控えを作らない）。位置は CSS の grid と order で決める。
+   */
+  top?: React.ReactNode;
   rightColumn?: React.ReactNode;
   /**
    * 1100px 未満で右カラムをどう畳むか。
@@ -164,6 +173,25 @@ export default function MypageLayout({
   breadcrumb?: Crumb[];
 }) {
   const topOffset = 65;
+
+  /* ★ナビの数字を**どのマイページでも**出す（2026-10-09）。
+        それまで数字を渡していたのは /mypage のホーム（と提案のページの提案だけ）で、
+        メッセージ一覧や設定に移ると数字が消えていた。
+        ⚠️ 数え方は `lib/mypage/navBadges.ts` の1か所（API はそれを呼ぶだけ）。
+        ⚠️ ページが渡した値は最初の表示に使い、取れたら API の値で置き換える。
+        ⚠️ 取得に失敗したら渡された値のまま（0 で上書きしない）。 */
+  const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/jobseeker/mypage-badges")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setLive(d); })
+      .catch((e) => console.error("[MypageLayout] badges:", e));
+    return () => { cancelled = true; };
+  }, []);
+  const conversationsBadge = live?.conversations ?? conversationsBadgeProp;
+  const applicationsBadge = live?.applications ?? applicationsBadgeProp;
+  const proposalsBadge = live ? (live.proposals ?? proposalsBadgeProp) : proposalsBadgeProp;
 
   return (
     <>
@@ -271,7 +299,7 @@ export default function MypageLayout({
                 揃えるには **1100** が要る。数字はここに書かず定数を見ること。
           ⚠️ `minmax(0, …)` なので、画面が狭いときは従来どおり縮む。
              外枠はそれ以上のとき中央寄せ。 */}
-      <div className="mypage-desktop-grid" style={{ display: "grid", gridTemplateColumns: rightColumn ? `260px minmax(0, ${MYPAGE_MAIN_COLUMN}px) 320px` : `260px minmax(0, ${MYPAGE_MAIN_COLUMN}px)`, minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: rightColumn ? 260 + MYPAGE_MAIN_COLUMN + 320 : 260 + MYPAGE_MAIN_COLUMN, margin: "0 auto" }}>
+      <div className={`mypage-desktop-grid${top ? " mypage-has-top" : ""}`} style={{ display: "grid", gridTemplateColumns: rightColumn ? `260px minmax(0, ${MYPAGE_MAIN_COLUMN}px) 320px` : `260px minmax(0, ${MYPAGE_MAIN_COLUMN}px)`, minHeight: `calc(100vh - ${topOffset}px)`, maxWidth: rightColumn ? 260 + MYPAGE_MAIN_COLUMN + 320 : 260 + MYPAGE_MAIN_COLUMN, margin: "0 auto" }}>
 
         {/* 左サイドバー（デスクトップのみ） */}
         <aside className="mypage-left-aside" style={{
@@ -328,7 +356,12 @@ export default function MypageLayout({
                     （実際に測定で1度掴み違えた）
                ⚠️ スキップリンク（`app/layout.tsx` の `#main-content`）の行き先は
                   **外側のまま**でよい。あちらは既にヘッダーの後ろにある。 */}
-        <div style={{ padding: "36px 40px 60px", background: "var(--bg-tint)" }} className="mypage-main-content">
+        {top && (
+          <div className="mypage-top-slot" style={{ padding: "36px 40px 0", background: "var(--bg-tint)" }}>
+            {top}
+          </div>
+        )}
+        <div style={{ padding: top ? "16px 40px 60px" : "36px 40px 60px", background: "var(--bg-tint)" }} className="mypage-main-content">
           {children}
         </div>
 
@@ -378,6 +411,15 @@ export default function MypageLayout({
            .mypage-narrow-only は rightColumnCollapse に hide を渡すのとセットで使う。 */
         .mypage-narrow-only { display: none; }
 
+        /* ★top を渡したときだけ、行を2つにして本文の上へ置く（2026-10-09）。
+           左右の列は2行ぶん伸ばす。2行目を 1fr にしないと最小高さぶんの余白が
+           top と本文の間に割り込む。 */
+        .mypage-has-top { grid-template-rows: auto 1fr; }
+        .mypage-has-top .mypage-left-aside { grid-column: 1; grid-row: 1 / span 2; }
+        .mypage-has-top .mypage-top-slot { grid-column: 2; grid-row: 1; }
+        .mypage-has-top .mypage-main-content { grid-column: 2; grid-row: 2; }
+        .mypage-has-top .mypage-right-aside { grid-column: 3; grid-row: 1 / span 2; }
+
         /* 3カラムを維持できない幅。1100px 未満だと本文の内側が 424px を切り、
            入力欄が並ばなくなる（/mypage は 800px で横スクロールまで出ていた）。 */
         @media (max-width: 1099px) {
@@ -389,6 +431,7 @@ export default function MypageLayout({
           }
           .mypage-right-hide  { display: none !important; }
           .mypage-narrow-only { display: block; }
+          .mypage-has-top .mypage-right-aside { grid-column: 2 / -1; grid-row: 3; }
         }
 
         /* Mobile: show tab bar, hide left sidebar
@@ -421,6 +464,10 @@ export default function MypageLayout({
           /* モバイルは「転職について」を未設定のまま候補者検索に出ない、ほうが重いので先に出す */
           .mypage-mobile-first { order: -1; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
+          /* top は右の列（order: -1）より上へ */
+          /* 背景は右の列（地の色なし）に揃える。灰色のままだと右の列との境に段ができる */
+          .mypage-top-slot { order: -2; padding: 16px 16px 0 !important; background: transparent !important; }
+          .mypage-has-top .mypage-right-aside { padding-top: 0 !important; }
         }
       `}</style>
     </>

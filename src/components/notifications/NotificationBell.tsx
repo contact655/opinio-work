@@ -131,7 +131,12 @@ function ActorAvatar({ notif }: { notif: NotificationItem }) {
   );
 }
 
-export function NotificationBell() {
+/**
+ * @param compactPanel 狭い画面（768px 未満）のヘッダーに置くとき true（2026-10-09）。
+ *   ⚠️ 通常の 320px 幅・右寄せのままだと、375px ではベルの位置によって左へはみ出す。
+ *      true のときは画面の左右 12px に合わせて固定配置にする。
+ */
+export function NotificationBell({ compactPanel = false }: { compactPanel?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -246,10 +251,9 @@ export function NotificationBell() {
       {open && (
         <div
           style={{
-            position: "absolute",
-            right: 0,
-            top: 44,
-            width: 320,
+            ...(compactPanel
+              ? { position: "fixed" as const, left: 12, right: 12, top: 64 }
+              : { position: "absolute" as const, right: 0, top: 44, width: 320 }),
             background: "#fff",
             borderRadius: 12,
             boxShadow: "0 4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06)",
