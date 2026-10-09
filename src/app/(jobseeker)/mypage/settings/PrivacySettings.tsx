@@ -257,8 +257,13 @@ export default function PrivacySettings({
         <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 10 }}>
           {/* ① 一覧の行 */}
           <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
-            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・現在の職種と会社名・
-            社会人年数・お住まいの地域・希望職種・希望勤務地が並びます。
+            {/* ★2026-10-09 に実際のカード（`biz/candidates/CandidatesClient.tsx`）と突き合わせて直した。
+                   見出し・できること・「転職検討中」が抜けていた。⚠️ カードの項目を変えたらここも直す。
+                   ⚠️ 希望職種は**現在の職種・会社名が無いときだけ**カードに出る（それ以外は出ない）。 */}
+            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・見出し・現在の職種と会社名・
+            できること（職種と経験年数）・社会人年数・お住まいの地域・希望勤務地が並びます。
+            現在の職種と会社名が無いときは、希望職種が出ます。
+            転職意欲で「積極的に検討中」を選んでいると、「転職検討中」と表示されます。
             {/* ⚠️★**会社名は常に実名。** 伏せる設定は 2026-09-15 に畳んだ（下の注記）。
                    条件分岐に戻さないこと ——戻すなら設定ごと戻す。 */}
             会社名はそのまま表示されます。
@@ -267,15 +272,16 @@ export default function PrivacySettings({
           {/* ② ★絞り込み。**落とさないこと** */}
           <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
             <strong style={{ color: "var(--ink)" }}>一覧に出ていない項目も、企業が候補者を絞り込むときに使われます。</strong>
-            希望年収・雇用形態・希望の働き方がこれにあたります。
+            希望年収・雇用形態・希望の働き方・転職意欲とその更新時期がこれにあたります。
             画面に表示されていなくても、これらの条件で探されています。
           </li>
 
           {/* ③ /u/ */}
           <li style={{ fontSize: 12.5, lineHeight: 1.85, color: "var(--ink-soft)" }}>
             一覧から<strong style={{ color: "var(--ink)" }}>あなたのプロフィールページを開けます</strong>。
-            自己紹介・職歴・学歴・スキルのほか、
-            <strong style={{ color: "var(--ink)" }}>生年月日を登録している場合は年齢も表示されます</strong>。
+            {/* ★「年齢も表示されます」は 2026-10-09 に削除した。`/u/[id]` の年齢表示は
+                   2026-08-29 に外してあり、**事実と違っていた。** 年齢を戻すならここも戻す。 */}
+            顔写真・見出し・自己紹介・職歴・学歴・スキルなどが表示されます。
             {/* ⚠️ この一文はオンボーディングと IntentCard と同じ。揃えてある */}
             見えるのは OPINIO にログインしている人だけです。
           </li>
@@ -311,7 +317,7 @@ export default function PrivacySettings({
       {/* ── ブロック中の企業 ───────────────────────────────────────────── */}
       <FormSection title="ブロック中の企業">
         <p style={{ margin: "0 0 12px", fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-          ここに入っている企業からは声がかかりません。
+          ここに入っている企業の候補者検索には表示されず、その企業への提案の対象にもなりません。
           <br />
           <strong style={{ color: "var(--ink)" }}>現在お勤めの会社は自動的に含まれます。</strong>
           職歴の「現職」から判定しているので、ここで外すことはできません。

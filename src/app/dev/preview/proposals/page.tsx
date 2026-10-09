@@ -141,7 +141,7 @@ export default function Page() {
              ⚠️ ボタン（会いたい・見送る）は本物の API を呼ぶ。ここでは押さないこと。 */}
       <Variant
         label="企業側の一覧（/biz/proposals）"
-        note="未回答タブ: 未回答2件（うち1件は候補者が興味あり）。回答済みタブ: 双方合意（メッセージを開く）／候補者が見送り（ボタンなし）"
+        note="未回答タブ: 未回答3件（うち1件は候補者が興味あり、1件はお名前を表示できない候補者）。回答済みタブ: 双方合意（メッセージを開く）／候補者が見送り（ボタンなし）"
       >
         <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} />
       </Variant>
@@ -154,6 +154,8 @@ function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
     id,
     evidence: buildEvidence(facts(3), OPTS),
     counter: buildCounterEvidence(COUNTER_FULL, OPTS),
+    /* ★2026-10-09 から実名（案B）。⚠️ 架空の名前。DB は読まない */
+    candidate: { id: "00000000-0000-0000-0000-0000000000a1", name: "検証 太郎", headline: "SaaS の法人営業 7年" },
     candidateInterested: false,
     candidateDeclined: false,
     response: null,
@@ -169,5 +171,7 @@ const BIZ_SAMPLE: BizProposalView[] = [
   bizItem("p-open-2", { candidateInterested: true }),
   bizItem("p-mutual", { candidateInterested: true, response: "want_to_meet", conversationId: "00000000-0000-0000-0000-000000000000" }),
   bizItem("p-cand-declined", { candidateDeclined: true, jobTitle: null }),
+  /* ★いま見せてはいけない候補者（本人が「今は考えていない」に変えた等）。名前は送られない */
+  bizItem("p-hidden", { candidate: null }),
 ];
 

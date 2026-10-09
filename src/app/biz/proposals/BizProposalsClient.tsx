@@ -9,6 +9,9 @@ export type BizProposalView = {
   id: string;
   evidence: EvidenceView[];
   counter: CounterView[];
+  /** ★候補者（2026-10-09 / 案B で実名にした）。⚠️ いま見せてはいけない人は null
+   *  （サーバーが `can_send_scout()` で判定し、名前を送っていない） */
+  candidate: { id: string; name: string; headline: string | null } | null;
   candidateInterested: boolean;
   candidateDeclined: boolean;
   response: string | null;
@@ -106,10 +109,12 @@ export default function BizProposalsClient({
                  「スカウトではない」の一文は残す（柴さんの指示）。 */}
           OPINIO が根拠をそろえてお出ししている提案です。
         </p>
+        {/* ★2026-10-09 に「候補者は匿名です」をやめた（案B）。提案の対象は全員、
+               候補者検索に実名で出ている人なので、匿名は守れない約束だった。
+               ⚠️★「メッセージが開くのは双方合意のとき」は**変えていない。消さないこと。** */}
         <p style={{ margin: "4px 0 0" }}>
-          候補者は匿名です。<strong>お名前・顔写真・現在の勤務先はお渡ししていません。</strong>
-          <strong>双方が「会いたい」と答えるとメッセージが1本開き</strong>、そこから候補者の
-          公開プロフィール（お名前・顔写真・見出し・職歴の勤務先と在籍期間）をご覧いただけます。
+          候補者のお名前と公開プロフィールは、候補者検索と同じようにご覧いただけます。
+          <strong>メッセージができるようになるのは、双方が「会いたい」と答えたとき</strong>です。
         </p>
       </div>
 
@@ -155,8 +160,7 @@ export default function BizProposalsClient({
         <div style={{ display: "grid", gap: 14 }}>
           {visible.map((p) => (
             <article key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "16px 16px 14px" }}>
-              {/* ★見出しは求人名（2026-09-22）。それまでは全カードが「候補者（匿名）」で見分けがつかなかった。
-                     ⚠️★匿名。名前の代わりに出すのは「提案」という事実だけ */}
+              {/* ★見出しは求人名（2026-09-22）。候補者の名前は下の行（2026-10-09 に実名にした）。 */}
               <header style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--ink)" }}>
@@ -166,8 +170,20 @@ export default function BizProposalsClient({
                   <CandidateBadge p={p} />
                 </div>
                 <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
-                  候補者（匿名）・{formatJaDate(p.computedAt)}時点の情報にもとづく提案
+                  {/* ⚠️ 名前が null のときは、理由を書かない（本人の設定を企業に伝えないため） */}
+                  {p.candidate ? (
+                    <a href={`/u/${p.candidate.id}`} target="_blank" rel="noopener noreferrer"
+                      style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                      {p.candidate.name}
+                    </a>
+                  ) : (
+                    "候補者（いまはお名前を表示できません）"
+                  )}
+                  ・{formatJaDate(p.computedAt)}時点の情報にもとづく提案
                 </div>
+                {p.candidate?.headline && (
+                  <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>{p.candidate.headline}</div>
+                )}
               </header>
 
               <EvidenceList evidence={p.evidence} counter={p.counter} />
