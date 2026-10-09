@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 // GET /api/companies/batch?ids=slug1,uuid2,...
 // 「最近見た企業」カード用: 複数の企業を一括取得する。
 // ⚠️ **id でも slug でも受ける**（localStorage には slug が入っている）。
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
         .from("ow_jobs")
         .select("company_id")
         .in("company_id", resolvedIds)
-        .eq("status", "published").eq("is_test", false);
+        .match(PUBLIC_JOB_MATCH);
 
   if (jobsError) console.error("[companies/batch] ow_jobs:", jobsError.message);
 

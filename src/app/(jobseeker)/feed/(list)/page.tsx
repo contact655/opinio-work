@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -323,7 +324,7 @@ export default async function FeedPage() {
       .from("ow_jobs")
       .select("id, slug, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
       .in("id", bookmarkedJobIds)
-      .eq("status", "published").eq("is_test", false);
+      .match(PUBLIC_JOB_MATCH);
     if (jobRowsErr) console.error("[feed/(list)] ow_jobs:", jobRowsErr.message);
     sidebarSavedJobs = (jobRows ?? []).map((j: Record<string, unknown>) => {
       const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;

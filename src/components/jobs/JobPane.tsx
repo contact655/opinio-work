@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import type { Job } from "@/app/jobs/mockJobData";
-import type { Company } from "@/app/companies/mockCompanies";
+import type { JobsListCompany } from "@/lib/jobs/listCompany";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { Markdown } from "@/components/common/Markdown";
 import { ConditionRow } from "@/components/jobs/ConditionRow";
@@ -45,7 +45,7 @@ export function JobPane({
 }: {
   job: Job;
   /** 会社が引けないことがある（`companyMap` に無い）。**その場合は会社の行を出さない** */
-  company?: Company;
+  company?: JobsListCompany;
 }) {
   const href = `/jobs/${job.slug ?? job.id}`;
 

@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * 根拠エンジンの**取得層**。DB から「事実」を集めて [engine.ts](./engine.ts) に渡す。
  *
@@ -196,8 +197,7 @@ export async function gatherCompanyFacts(
     .from("ow_jobs")
     .select("id, company_id, salary_min, salary_max, remote_work_status")
     .in("company_id", ids)
-    .eq("status", "published")
-    .eq("is_test", false);
+    .match(PUBLIC_JOB_MATCH);
   if (jobErr) console.error("[evidence/fetch] ow_jobs:", jobErr.message);
 
   // ── 畳む ──────────────────────────────────────────────────────────────────

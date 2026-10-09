@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import LandingPage, {
@@ -112,7 +113,7 @@ export default async function HomePage() {
   const jobCountP = db
     .from("ow_jobs")
     .select("id", { count: "exact", head: true })
-    .eq("status", "published").eq("is_test", false);
+    .match(PUBLIC_JOB_MATCH);
 
   // ── 出身校ファセット ────────────────────────────────────────────
   // 公開ユーザーの学歴のみ。行数はユーザー数に比例するが、学歴レコードは
@@ -128,7 +129,7 @@ export default async function HomePage() {
     .select(
       "id, title, job_category, salary_min, salary_max, location, employment_type, remote_work_status, company_id, published_at"
     )
-    .eq("status", "published").eq("is_test", false)
+    .match(PUBLIC_JOB_MATCH)
     .order("published_at", { ascending: false, nullsFirst: false })
     .limit(PREVIEW_JOBS);
 

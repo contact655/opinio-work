@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
@@ -86,7 +87,7 @@ export async function pickLpCompanies(
   // 中身のある企業ID。コンテンツ量に比例する小さな集合なので、
   // 企業数が増えても取得コストは増えない。
   const [jobCoRes, articleCoRes, ownCompanyId] = await Promise.all([
-    db.from("ow_jobs").select("company_id").eq("status", "published").eq("is_test", false),
+    db.from("ow_jobs").select("company_id").match(PUBLIC_JOB_MATCH),
     db.from("ow_articles").select("company_id").eq("is_published", true).not("company_id", "is", null),
     /* ★運営会社。並列で引く（直列にすると1段増える）。
        ⚠️ `unstable_cache` 済みなので、実際にはほぼ問い合わせが出ない。 */

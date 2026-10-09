@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { notFound } from "next/navigation";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { permanentRedirect } from "next/navigation";
@@ -545,7 +546,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
           .from("ow_jobs")
           .select("id, title", { count: "exact" })
           .eq("company_id", currentCareer.company_id)
-          .eq("status", "published").eq("is_test", false)
+          .match(PUBLIC_JOB_MATCH)
           .limit(3)
       : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null, count: null as number | null }),
     // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）

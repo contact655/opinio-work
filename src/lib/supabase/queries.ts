@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * queries.ts — Supabase data access layer for Stage 1 (read-only public pages)
  *
@@ -685,7 +686,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     supabase
       .from("ow_jobs")
       .select("company_id")
-      .eq("status", "published").eq("is_test", false),
+      .match(PUBLIC_JOB_MATCH),
     supabase
       .from("ow_company_office_photos")
       .select("company_id, image_url, display_order")
@@ -787,6 +788,13 @@ const COMPANY_LIST_COLS = [
   "jobs_public", "mission", "fit_positives",
 ].join(", ");
 
+/* ★`getJobs()` が返す企業の列（2026-10-09）。**`/jobs` の画面が使う列だけ。**
+      ⚠️ `COMPANY_LIST_COLS` を使わないこと。あちらは説明文・福利厚生・評価制度まで持ち、
+         `/jobs` の RSC ペイロードにそのまま載っていた。
+      ⚠️ `is_test` は判定にだけ使う（画面へは `toJobsListCompany` で落ちる）。 */
+const JOB_LIST_COMPANY_COLS =
+  "id, slug, name, name_en, brand_name, tagline, industry, industry_id, phase, employee_count, is_published, is_test, logo_gradient, logo_letter, logo_url, url, remote_work_status, updated_at" as const;
+
 const COMPANY_DETAIL_COLS = [
   ...COMPANY_LIST_COLS.split(", "),
   "mission", "description", "founded_year", "ceo_name",
@@ -883,7 +891,7 @@ const getCompanyById = cache(async function getCompanyById(
       .from("ow_jobs")
       .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id)
-      .eq("status", "published").eq("is_test", false),
+      .match(PUBLIC_JOB_MATCH),
     /* ⚠️ 職種マスタは企業ごとに変わらないので、企業ページごとに引かない（2026-08-23）。
           ここを素で引いていたため、**1ビルドで `ow_roles` に166回**飛んでいた
           （異なるクエリは2種類だけ＝83倍の重複）。本番の企業ページ表示でも
@@ -1273,12 +1281,11 @@ export const getJobs = unstable_cache(
       .order("updated_at", { ascending: false })
       .order("id", { ascending: false });
     if (process.env.NODE_ENV !== "development") {
-      jobQuery = jobQuery.eq("status", "published").eq("is_test", false);
+      jobQuery = jobQuery.match(PUBLIC_JOB_MATCH);
     }
 
-    const [{ data: jobRows, error: jobErr }, { data: compRows, error: compErr }, { data: jobRoleRows, error: jobRoleErr }, roleTree, { data: cjrRows, error: cjrErr }] = await Promise.all([
+    const [{ data: jobRows, error: jobErr }, { data: jobRoleRows, error: jobRoleErr }, roleTree, { data: cjrRows, error: cjrErr }] = await Promise.all([
       jobQuery,
-      supabase.from("ow_companies").select(COMPANY_LIST_COLS),
       /*
         ow_job_roles と会社呼称（RLS バイパス）。
         ⚠️ ここは **no-store を使わない**。この関数は unstable_cache の中にあり、
@@ -1298,7 +1305,25 @@ export const getJobs = unstable_cache(
           2026-08-06 に会社呼称が DynamicServerError で空になっていたのを
           ログでしか気づけなかったため、全クエリで出す。 */
     if (jobErr) console.error("[getJobs] jobs", jobErr.message);
+
+    /* ★企業は「公開中の求人を持つ企業」だけを引く（2026-10-09）。
+          ⚠️★**全社を引いて返さないこと。** この戻り値は `/jobs` の RSC ペイロードに載る。
+             2026-10-09 まで条件なしで引いており、**掲載していない企業・検証用企業を含む
+             113社**の社名・タグライン・従業員数が `/jobs` の HTML に埋め込まれていた
+             （画面には出ないがソースから読めた）。
+          ⚠️ 列も `JOB_LIST_COMPANY_COLS` に絞る（`COMPANY_LIST_COLS` は説明文や福利厚生まで持つ）。
+          ⚠️★`is_test` の企業は落とす。求人側は DB のトリガーで is_test が引き継がれるので
+             通常ここに来ないが、念のため企業の列でも見る（`lib/jobs/publicJobs.ts`）。 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const jobCompanyIds = Array.from(new Set(((jobRows ?? []) as any[]).map((r) => r.company_id as string).filter(Boolean)));
+    const { data: compRowsRaw, error: compErr } = jobCompanyIds.length > 0
+      ? await supabase.from("ow_companies").select(JOB_LIST_COMPANY_COLS).in("id", jobCompanyIds)
+      : { data: [], error: null };
     if (compErr) console.error("[getJobs] companies", compErr.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const testCompanyIds = new Set(((compRowsRaw ?? []) as any[]).filter((c) => c.is_test === true).map((c) => c.id as string));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const compRows = ((compRowsRaw ?? []) as any[]).filter((c) => !testCompanyIds.has(c.id as string));
     if (jobRoleErr) console.error("[getJobs] job_roles", jobRoleErr.message);
     if (cjrErr) console.error("[getJobs] company_job_roles", cjrErr.message);
 
@@ -1325,7 +1350,7 @@ export const getJobs = unstable_cache(
       mapCompany(row, 0, [], domainsByCompany.get(row.id as string) ?? []),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jobs = (jobRows ?? []).map((row: Record<string, any>) => {
+    const jobs = (jobRows ?? []).filter((row: Record<string, any>) => !testCompanyIds.has(row.company_id as string)).map((row: Record<string, any>) => {
       const job = mapJob(row);
       const rows = jobRoleMap.get(job.id);
       if (rows && rows.length > 0) {
@@ -1463,7 +1488,7 @@ const getJobById = cache(async function getJobById(
     .select(JOB_DETAIL_COLS)
     .eq("id", id);
   if (!includeUnpublished) {
-    q = q.eq("status", "published").eq("is_test", false);
+    q = q.match(PUBLIC_JOB_MATCH);
   }
   const { data, error } = await q.single();
 
@@ -1488,7 +1513,7 @@ const getJobById = cache(async function getJobById(
       .from("ow_jobs")
       .select("id, title, job_category, role_category_id, salary_min, salary_max, published_at, updated_at")
       .eq("company_id", jobRow.company_id)
-      .eq("status", "published").eq("is_test", false)
+      .match(PUBLIC_JOB_MATCH)
       .neq("id", jobRow.id)
       .limit(3),
     fetchBusinessDomainsByCompany(supabase, [jobRow.company_id as string], "getJobById"),
@@ -1600,7 +1625,7 @@ export async function getJobBySlugOrId(
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
   const supabase = createAdminClient();
 
-  let idQuery = supabase.from("ow_jobs").select("id, slug").eq("status", "published").eq("is_test", false).limit(1);
+  let idQuery = supabase.from("ow_jobs").select("id, slug").match(PUBLIC_JOB_MATCH).limit(1);
   if (isUUID) { idQuery = idQuery.eq("id", slugOrId); }
   else { idQuery = idQuery.eq("slug", slugOrId); }
 

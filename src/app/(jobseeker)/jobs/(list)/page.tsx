@@ -1,3 +1,4 @@
+import { toJobsListCompany } from "@/lib/jobs/listCompany";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getJobs, getParentRoles, getRoleAliases } from "@/lib/supabase/queries";
@@ -106,7 +107,7 @@ export default async function JobsPage() {
       }
     >
       {/* recommendations は渡さない。JobsClient がログイン中だけ自分で取りに行く */}
-      <JobsClient jobs={jobs} companies={companies} parentRoles={parentRoles} industryOptions={industryOptions} roleAliases={roleAliases} />
+      <JobsClient jobs={jobs} companies={companies.map(toJobsListCompany)} parentRoles={parentRoles} industryOptions={industryOptions} roleAliases={roleAliases} />
     </Suspense>
   );
 }

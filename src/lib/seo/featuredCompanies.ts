@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
@@ -79,7 +80,7 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
     const { data, error } = await db
       .from("ow_jobs")
       .select("company_id")
-      .eq("status", "published").eq("is_test", false);
+      .match(PUBLIC_JOB_MATCH);
     if (error) console.error("[featuredCompanies] ow_jobs:", error.message);
     for (const r of data ?? []) add(r.company_id as string | null);
   }

@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 // src/lib/search/companies.ts
 import { resolveIndustryKey } from "./industryGroups";
 import { isRegisteredUser } from "@/lib/users/registered";
@@ -292,7 +293,7 @@ export async function searchCompanies(
         .from("ow_jobs")
         .select("company_id, title, salary_min, salary_max")
         .in("company_id", companyIds)
-        .eq("status", "published").eq("is_test", false),
+        .match(PUBLIC_JOB_MATCH),
       supabase
         .from("ow_articles")
         .select("company_id")

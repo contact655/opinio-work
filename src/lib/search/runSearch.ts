@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 // src/lib/search/runSearch.ts
 /**
  * `/search`（横断検索）専用の取得層。**サーバー専用。**
@@ -264,8 +265,7 @@ async function companyIdsByRole(roleIds: string[]): Promise<string[]> {
       .from("ow_jobs")
       .select("company_id")
       .in("id", Array.from(jobIds))
-      .eq("status", "published")
-      .eq("is_test", false);
+      .match(PUBLIC_JOB_MATCH);
     if (error) console.error("[companyIdsByRole] jobs:", error.message);
     for (const j of data ?? []) if (j.company_id) out.add(j.company_id as string);
   }
@@ -301,8 +301,7 @@ async function jobCountByCompany(companyIds: string[]): Promise<Map<string, numb
     .from("ow_jobs")
     .select("company_id")
     .in("company_id", companyIds)
-    .eq("status", "published")
-    .eq("is_test", false);
+    .match(PUBLIC_JOB_MATCH);
   if (error) {
     console.error("[jobCountByCompany]", error.message);
     return out;
@@ -379,8 +378,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
     .select("id, slug, title, company_id, salary_min, salary_max, work_style, location", {
       count: "exact",
     })
-    .eq("status", "published")
-    .eq("is_test", false);
+    .match(PUBLIC_JOB_MATCH);
 
   const salary = cond.find((c) => c.kind === "salaryMin");
   if (salary && salary.kind === "salaryMin") q = q.gte("salary_min", salary.man);

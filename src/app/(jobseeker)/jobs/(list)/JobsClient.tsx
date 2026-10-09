@@ -56,7 +56,7 @@ const SALARY_PILL_TIERS = [
   { value: "1200", label: "1200万〜" },
   { value: "1500", label: "1500万〜" },
 ] as const;
-import type { Company } from "@/app/companies/mockCompanies";
+import type { JobsListCompany } from "@/lib/jobs/listCompany";
 import { extractPrefecture, PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
 import { parseEmployeeCount } from "@/lib/utils/employeeCount";
 import { fmtMan } from "@/lib/utils/salary";
@@ -180,7 +180,8 @@ export default function JobsClient({
   roleAliases = [],
 }: {
   jobs: Job[];
-  companies: Company[];
+  /* ⚠️ 画面が使う列だけ（`lib/jobs/listCompany.ts`）。公開中の求人を持つ企業だけが入る */
+  companies: JobsListCompany[];
   parentRoles: { id: string; name: string }[];
   /** 事業領域の選択肢。⚠️ **マスタが唯一の出どころ。** ここに値を書かない。
    *  ⚠️ 掲載中が1社以上あるものだけをサーバ側が渡す（0件の選択肢を出さない）。 */
@@ -268,9 +269,12 @@ export default function JobsClient({
      ⚠️ **`is_published` を必ず見る。** ここを外すと、運営が取り下げた企業の社名が
         チップに出てしまう（取り下げ＝詳細ページが404、が現在の意味。CLAUDE.md 参照）。
         求人カードの企業名リンクが `company.is_published` を見ているのと同じ理由。
-     ⚠️ `companies` は getJobs が **全社**返すので、公開求人0件の企業も解決できる。
-        「この企業の公開求人はありません」を社名付きで出せるのはこのため。 */
-  const companyFilter = useMemo(() => {
+     ⚠️★`companies` は**公開中の求人を持つ企業だけ**（2026-10-09 に絞った。全社を渡すと
+        掲載していない企業までページのソースに載るため）。公開求人0件の企業は
+        ここで見つからないので、下の `fetchedCompany` で `/api/companies/batch`
+        （詳細ページが見える企業だけを返す）に問い合わせて社名を出す。
+        「この企業の公開求人はありません」を社名付きで出すため。 */
+  const localCompanyFilter = useMemo(() => {
     if (!companyParam) return null;
     const key = companyParam.toLowerCase();
     return companies.find(
@@ -278,9 +282,41 @@ export default function JobsClient({
     ) ?? null;
   }, [companyParam, companies]);
 
+  const [fetchedCompany, setFetchedCompany] = useState<{ key: string; company: JobsListCompany | null } | null>(null);
+  useEffect(() => {
+    if (!companyParam || localCompanyFilter) return;
+    if (fetchedCompany?.key === companyParam) return;
+    let cancelled = false;
+    fetch(`/api/companies/batch?ids=${encodeURIComponent(companyParam)}`)
+      .then((r) => (r.ok ? r.json() : { companies: [] }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((d: { companies?: any[] }) => {
+        if (cancelled) return;
+        const c = (d.companies ?? [])[0];
+        setFetchedCompany({
+          key: companyParam,
+          company: c
+            ? { id: c.id, slug: c.slug ?? null, name: c.name, brand_name: null, tagline: c.tagline ?? "",
+                phase: "", url: null, employee_count: null, business_domains: [], is_published: true,
+                gradient: "", logo_letter: null, logo_url: null }
+            : null,
+        });
+      })
+      .catch((e) => {
+        console.error("[jobs] ?company= の解決に失敗:", e);
+        if (!cancelled) setFetchedCompany({ key: companyParam, company: null });
+      });
+    return () => { cancelled = true; };
+  }, [companyParam, localCompanyFilter, fetchedCompany?.key]);
+
+  const companyFilter =
+    localCompanyFilter ?? (fetchedCompany?.key === companyParam ? fetchedCompany.company : null);
+
   /* 指定されたが解決できなかった。**黙って無視しない**（CLAUDE.md「エラーを握りつぶさない」）。
-     404 にはしない — 古い共有リンクで真っ白になるより、全件＋注記のほうが読める。 */
-  const companyNotFound = !!companyParam && !companyFilter;
+     404 にはしない — 古い共有リンクで真っ白になるより、全件＋注記のほうが読める。
+     ⚠️ 問い合わせ中は「見つからない」と出さない（一瞬だけ注記が出るのを避ける）。 */
+  const companyNotFound =
+    !!companyParam && !companyFilter && fetchedCompany?.key === companyParam;
 
   /** チップ・空状態に出す企業名。求人カードと同じ綴り（brand_name 優先） */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * 「あと何をすれば根拠が立つか」を企業ごとに数える（運営専用 / 2026-09-18）。
  *
@@ -113,7 +114,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
 
   const [{ data: members, error: memErr }, { data: jobs, error: jobErr }] = await Promise.all([
     db.from("ow_company_members").select("user_id, company_id").eq("display_consent", true).eq("is_public", true),
-    db.from("ow_jobs").select("company_id").eq("status", "published").eq("is_test", false),
+    db.from("ow_jobs").select("company_id").match(PUBLIC_JOB_MATCH),
   ]);
   if (memErr) console.error("[evidenceGaps] ow_company_members:", memErr.message);
   if (jobErr) console.error("[evidenceGaps] ow_jobs:", jobErr.message);

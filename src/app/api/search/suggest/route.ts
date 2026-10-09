@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { createClient } from "@/lib/supabase/server";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { getRoleAliases, getRoleTree, getJobRoleMap } from "@/lib/supabase/queries";
@@ -99,14 +100,14 @@ export async function GET(req: Request) {
       .from("ow_jobs")
       .select("id, title, job_category")
       .ilike("title", pattern)
-      .eq("status", "published").eq("is_test", false)
+      .match(PUBLIC_JOB_MATCH)
       .limit(JOB_LIMIT),
     roleMatchedJobIds.length > 0
       ? supabase
           .from("ow_jobs")
           .select("id, title, job_category")
           .in("id", roleMatchedJobIds.slice(0, 200))
-          .eq("status", "published").eq("is_test", false)
+          .match(PUBLIC_JOB_MATCH)
           .limit(JOB_LIMIT)
       : Promise.resolve({ data: [] as { id: string; title: string; job_category: string | null }[] }),
   ]);

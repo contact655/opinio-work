@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Job } from "@/app/jobs/mockJobData";
-import type { Company } from "@/app/companies/mockCompanies";
+import type { JobsListCompany } from "@/lib/jobs/listCompany";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { showToast } from "@/lib/toast";
 import { fmtMan } from "@/lib/utils/salary";
@@ -38,7 +38,7 @@ export function JobListItem({
   selected = false,
 }: {
   job: Job;
-  companyMap: Map<string, Company>;
+  companyMap: Map<string, JobsListCompany>;
   initialBookmarked?: boolean;
   isApplied?: boolean;
   matchReason?: string | null;
