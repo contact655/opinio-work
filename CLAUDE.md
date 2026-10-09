@@ -7160,6 +7160,7 @@ npm run dev → http://localhost:3000/dev/preview
   重さの正体はサブセット数（和文は124分割）。
 - **横はみ出し**: `document.documentElement.scrollWidth` で測ると見逃す。
   途中の `overflow: hidden` が隠すため。各要素が親の `clientWidth` を超えていないかで見る。
+  ★**「0件」は陽性対照つきで言う**（`scripts/check-overflow.browser.js`。わざと広い要素を差し込んで検出され、取り除くと元の数に戻ることまで確かめる）。
 - **インライン style と CSS の優先順位**: レスポンシブで変えたい値
   （`fontSize` / `padding` / `display` / `flexDirection` / `width`）をインラインに書かない。
   `!important` で殴らない。
