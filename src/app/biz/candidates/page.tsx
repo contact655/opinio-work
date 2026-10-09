@@ -263,7 +263,11 @@ export default async function CandidatesPage() {
         .in("auth_id", scoutAuthIds)
         .neq("visibility", "private")
         .not("is_system", "eq", true)
-        .eq("is_test", false)
+        /* ★`is_test` はここで絞らない（2026-10-09）。判定は `can_send_scout()` の1箇所で、
+              **見る企業と候補者の is_test が一致するときだけ**出す
+              （実在の企業には実在の利用者だけ／検証用の企業には検証用だけ）。
+           ⚠️★ここに `.eq("is_test", false)` を戻すと、**検証用の企業が誰も見えなくなる**
+              （実在は関数が落とし、検証用はここが落とす）。 */
         .order("created_at", { ascending: false })
         .limit(500)
     : { data: [], error: null };
@@ -291,8 +295,12 @@ export default async function CandidatesPage() {
   }
 
 
-  // 転職勧奨禁止除外
-  const eligibleUsers = (rawUsers ?? []).filter((u: any) => !blockedCandidateIds.has(u.id as string));
+  /* 転職勧奨禁止除外（`can_send_scout()` の条件4と二重の守り）。
+     ⚠️★`ow_placements.candidate_id` は **auth 空間**（auth.users を指す FK）。
+        2026-10-09 まで `u.id`（ow_users 空間）と比べていて**一度も当たらなかった**。 */
+  const eligibleUsers = (rawUsers ?? []).filter(
+    (u: any) => !blockedCandidateIds.has(u.auth_id as string),
+  );
 
   /* can_send_scout RPC（自社在籍者・手動ブロックの除外）。
      ⚠️★スカウト廃止後も**消さない**（名前に反して「見せてよいか」の判定）。 */
