@@ -68,7 +68,7 @@ export async function searchCompanies(
   const supabase = createPublicClient();
 
   // ── DB側ページネーションを使うか判定
-  // hiring / foreign / クライアントソート フィルターはアプリ側で処理するため、DB ページネーションと併用不可
+  // クライアントソート・キーワードはアプリ側で並べるため、DB ページネーションと併用不可
   /* ⚠️ **アプリ側で並べるものはここに列挙する。** 列挙するとDB側ページネーションが
         無効になり（下の useDbPagination）、全件取ってから並べてページを切る。
      ⚠️ `employees` を足した（2026-08-28）。**DB側の `employee_count DESC` は
@@ -83,7 +83,8 @@ export async function searchCompanies(
      ⚠️ 全件取ることになるが、キーワード検索の母数は小さい
         （実測: `?q=Salesforce` 4件 / いちばん広い `?q=株式会社` でも85件）。 */
   const keywordSort = !!params.q?.trim();
-  const useDbPagination = !params.hiring && !params.foreign && !clientSideSort && !keywordSort && params.limit !== undefined;
+  /* ⚠️ 募集あり・外資系は 2026-10-09 から DB 側の条件なので、ここには入れない */
+  const useDbPagination = !clientSideSort && !keywordSort && params.limit !== undefined;
 
   // ── フィルター条件を組み立てるヘルパー
   // #14: スペース区切りで AND 検索（例: "SaaS PM" → name.ilike.%SaaS% AND name.ilike.%PM%）
@@ -140,6 +141,9 @@ export async function searchCompanies(
     /* ⚠️ 事業領域での絞り込みは `applyFilters` の外で company_id を解決し、
           `domainCompanyIds` として渡す（下）。ここで `industry`(text) を見ない。 */
     if (domainCompanyIds) q = q.in("id", domainCompanyIds);
+    /* ★外資系も DB 側の条件（2026-10-09）。⚠️ 資本区分は `capital_type` だが、絞り込みは
+          従来どおり `is_foreign` を見る（判定を変えない段なので列も変えない） */
+    if (params.foreign) q = q.eq("is_foreign", true);
     return q;
   }
 
@@ -197,6 +201,23 @@ export async function searchCompanies(
           ? domainCompanyIds.filter((id) => targetCompanyIds!.includes(id))
           : ["00000000-0000-0000-0000-000000000000"])
       : targetCompanyIds;
+  }
+
+  /* ── 募集あり（`?hiring=1`）を DB 側の条件にする（2026-10-09）────────────────
+     ⚠️ それまでは全件を取ってからアプリ側で落としており、**その間は DB 側のページ分けが
+        効かなかった**（docs/list-filters-20261009.md）。公開求人を持つ企業の id を先に引き、
+        事業領域・対象業界と同じ `.in("id", …)` に積集合で足す。
+     ⚠️ 求人の条件は `PUBLIC_JOB_MATCH`（下のカードの「募集中 N件」と同じ）。書き写さないこと。
+     ⚠️★取得に失敗したら投げる。空として扱うと「募集あり 0社」と出る（0 は事実と違う）。 */
+  if (params.hiring) {
+    const { data: jobRows, error: jobErr } = await supabase
+      .from("ow_jobs")
+      .select("company_id")
+      .match(PUBLIC_JOB_MATCH);
+    if (jobErr) throw jobErr;
+    const hiringIds = Array.from(new Set((jobRows ?? []).map((r) => r.company_id as string)));
+    const base = domainCompanyIds ? domainCompanyIds.filter((id) => hiringIds.includes(id)) : hiringIds;
+    domainCompanyIds = base.length > 0 ? base : ["00000000-0000-0000-0000-000000000000"];
   }
 
   // ── Step 1: データ取得 + 総件数を1クエリで同時取得（count: "exact"）
@@ -267,9 +288,8 @@ export async function searchCompanies(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyList: CompanyForCarousel[] = (rawCompanies ?? []) as any[];
 
-  // ── Step 2: 求人件数 + 記事件数 + hiring フラグ（表示企業分のみ）
+  // ── Step 2: 求人件数 + 記事件数（表示企業分のみ）
   const companyIds = companyList.map((c) => c.id);
-  const hiringSet  = new Set<string>();
   const jobCountMap: Record<string, number> = {};
   const articleCountMap: Record<string, number> = {};
 
@@ -386,7 +406,6 @@ export async function searchCompanies(
     // 企業ごとに求人中央値のリストを集める
 
     (activeJobsResult.data ?? []).forEach((j: { company_id: string; title?: string; salary_min?: number | null; salary_max?: number | null }) => {
-      hiringSet.add(j.company_id);
       jobCountMap[j.company_id] = (jobCountMap[j.company_id] || 0) + 1;
       // #2: 最大2件のタイトルを記録
       if (j.title) {
@@ -404,12 +423,8 @@ export async function searchCompanies(
     });
   }
 
-  // ── Step 3: アプリ側フィルタ（hiring のみ、DB ページネーション時は不要）
+  // ── Step 3: カードに出す値を付ける（⚠️ 募集ありの絞り込みは 2026-10-09 から DB 側）
   const companies: CompanyForCarousel[] = companyList
-    .filter((c) => {
-      if (params.hiring && !hiringSet.has(c.id)) return false;
-      return true;
-    })
     .map((c) => ({
       ...(c as CompanyForCarousel),
       job_count: jobCountMap[c.id] || 0,
@@ -425,20 +440,10 @@ export async function searchCompanies(
       live_obog_count: liveObogCountMap[c.id] ?? 0,
     }));
 
-  /* client-side: 外資系フィルター（`ow_companies.is_foreign` を使う）。
-     ⚠️★**「外資系」はフェーズではない。** 2026-09-18 まで `params.phase === "外資系"` を
-        見る分岐がこことクエリ組み立ての2箇所にあったが、`phase` に入る値は
-        `lib/constants/phase.ts` の英字スラッグだけで、**この文字列には決して一致しない**
-        （選択肢は `PHASE_OPTIONS` から作られ、DB の CHECK も英字しか許さない）。
-        入口の `?foreign=1` は別に生きているので、消しても絞り込みは変わらない。
-        **フェーズの語彙に「外資系」を足さないこと**（資本区分は `capital_type`）。 */
+  /* ⚠️ 外資系の絞り込みは 2026-10-09 から `applyFilters` の中（DB 側）。
+     ⚠️★**「外資系」はフェーズではない。** `phase` に入る値は `lib/constants/phase.ts` の
+        英字スラッグだけ。**フェーズの語彙に「外資系」を足さないこと**（資本区分は `capital_type`）。 */
   let filteredCompanies = companies;
-  if (params.foreign) {
-    filteredCompanies = filteredCompanies.filter((c) => {
-      return (c as { is_foreign?: boolean }).is_foreign === true;
-    });
-    totalCount = filteredCompanies.length;
-  }
 
   /* client-side ソート（salary / disclosure）
      ⚠️ "jobs"（募集中あり優先）は 2026-08-18 に廃止した。「募集あり」フィルタと同じ用途。
