@@ -32,15 +32,15 @@ cd "$(dirname "$0")/.."
 #  ① RLS ポリシーの中で使う補助関数。**呼んだ本人のことしか答えない**
 #     （外すとポリシーの評価ごと 403 になる。RLS で計107か所使っている / 2026-10-09 実測）
 #  ② クライアント（セッションのクライアント）から呼ぶ RPC で、**中で auth.uid() による
-#     本人確認をしているもの**。`create_conversation` は応募・面談の API がセッションの
-#     クライアントで呼ぶ（`lib/conversations/createConversation.ts`）
+#     本人確認をしているもの**。2026-10-09 時点で**該当なし**。
+#     ⚠️ `create_conversation` はここに居たが、20261009080000 でクライアントから外した
+#        （企業との会話はサーバーが「開いてよい理由」を確かめて作る。`lib/conversations/openReason.ts`）
 ALLOW=(
   "auth_is_admin()"                              # ①
   "auth_is_company_admin(target_company_id uuid)" # ①
   "auth_is_company_member(target_company_id uuid)" # ①
   "auth_ow_user_id()"                            # ①
   "auth_is_active_company_admin(p_company_id uuid)" # ①
-  "create_conversation(p_kind text, p_candidate_user_id uuid, p_company_id uuid, p_partner_user_id uuid)" # ②
 )
 
 SELF_TEST=0

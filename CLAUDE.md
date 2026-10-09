@@ -5612,11 +5612,12 @@ SECURITY DEFINER は RLS を越えて走るので、そのままだと **anon・
    ⚠️ **外すとポリシーの評価ごと 403 になる。** 締めるときに巻き込まないこと。
 
 3. ★**セッションのクライアントから呼ぶ RPC は、中で `auth.uid()` による本人確認をする。**
-   いま該当するのは `create_conversation` の1本だけ（応募・面談の API が呼ぶ）。
-   中で確かめているのは「**呼んだ本人が候補者本人であること**（service_role は素通し）」と
-   引数の形（`kind='company'`・企業 id あり・相手 id なし）だけ。企業の実在は FK が保証する。
-   ⚠️★**企業が掲載中か・面談を受け付けているか・応募や面談申込が実際にあるかは見ていない**
-      （2026-10-09 時点。直接呼べば、どの企業とも会話の器を作れる）。
+   ★**2026-10-09 時点で該当なし。**
+   ⚠️★`create_conversation` はここに居たが、**クライアントから外した**（20261009080000）。
+      中の本人確認は「呼んだ本人が候補者か」だけで、**応募・面談申込・提案の双方合意が
+      実際にあるかを見ていなかった**ため、求職者がどの企業とも会話を作って送れた。
+      いまは service_role だけが呼び、呼ぶ前に `lib/conversations/openReason.ts` が理由を確かめる
+      （下の「★企業との会話は、理由があるときだけ開く」）。
    ⚠️ 本人確認をせずに authenticated に付与しない。**引数で渡された ID を信じない**
       （「DB 関数の書き方」の②）。
 
@@ -5637,6 +5638,30 @@ SECURITY DEFINER は RLS を越えて走るので、そのままだと **anon・
          プーラーが起動時オプションを捨てる。2026-10-09 に実測）。
 
 実測（2026-10-09 / 本番）: 自己テストで6件を検出／通常の実行は許可リスト外 **0件**。
+
+### ⑥ ★★企業との会話は、理由があるときだけ開く・送れる（2026-10-09 確立）
+
+**判定は [lib/conversations/openReason.ts](src/lib/conversations/openReason.ts) の1か所。**
+
+| 理由 | 掛ける判定 |
+|---|---|
+| 応募・カジュアル面談の申込（**本人が自分から連絡した**） | `can_contact_without_stance()`（転職意欲**以外**） |
+| 提案の双方合意 | `can_send_scout()`（転職意欲を含む全部） |
+
+⚠️★**応募・申込は転職意欲を見ない**（柴さんの判断）。見ると、実在の利用者39人中17人
+   （今は考えていない14・未設定3 / 2026-10-09）が応募できても会話が開かず、企業が返信できない。
+⚠️★**is_test の一致は `can_contact_without_stance()` が見ている。TS に書き足さない。**
+⚠️★`can_send_scout()` ＝ 転職意欲 ＋ `can_contact_without_stance()`。**条件は SQL の1か所。**
+
+- **作る**: 応募の API・面談申込の API・提案の双方合意（`introduce.ts`）は、すべて
+  `openCompanyConversation()`（admin クライアント）を通す。`create_conversation` は service_role だけ。
+- **送る**: `/api/biz/conversations/[id]/messages`・`/api/dm/message`・`/api/dm/bulk-message` は、
+  企業との会話に**送るたびに** `companyConversationAllowed()` を通す（ブロック・在籍の判明・
+  （提案の場合）転職意欲の変更の後は送れない。**読むのはできる**）。
+- ⚠️★企業との会話では**参加者の行を admin で補わない**。補うと、直接作った会話にも送れる。
+- RLS: `ow_conversations` と `ow_conversation_messages` への authenticated の INSERT は
+  **DM だけ**（企業との会話はサーバーだけが書く）。DM の扱いは別途（メッセージのお願い）。
+- ⚠️ 企業の担当者から DM で、その企業に見せてはいけない人へ送るのは `lib/conversations/contactGate.ts` が止める。
 
 ## ⚠️ Supabase の呼び出しで error を捨てない（2026-08-20 追記）
 
