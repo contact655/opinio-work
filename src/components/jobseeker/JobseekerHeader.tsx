@@ -169,8 +169,23 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
 
 export function JobseekerHeader() {
   const pathname = usePathname();
-  /* トップページだけヘッダーの検索を出さない（本文の HeroSearch と役割が重なるため） */
+  /* トップページだけ、ヒーローの検索窓が見えているあいだはヘッダーの検索を出さない（2026-10-09 / 柴さんの判断）。
+     役割の分担: ヘッダー＝候補を見ながら社名・人名へ素早く移る ／ ヒーロー＝文章で条件を書く。
+     ⚠️ ヒーローが画面の外に出たら出す（下の方でも検索できるように）。2つ同時には見せない
+        （ui-debugging ⑧「同じ場所に着く入口を数える」）。
+     ⚠️ 判定は `[data-hero-search]`（HeroSearch の form）の IntersectionObserver。
+        見つからなければ出す側に倒す（検索の入口が消えるより、重なるほうがまし）。 */
   const isTop = pathname === "/";
+  const [heroInView, setHeroInView] = useState(true);
+  useEffect(() => {
+    if (!isTop) return;
+    const el = document.querySelector("[data-hero-search]");
+    if (!el || typeof IntersectionObserver === "undefined") { setHeroInView(false); return; }
+    const io = new IntersectionObserver(([e]) => setHeroInView(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isTop]);
+  const hideHeaderSearch = isTop && heroInView;
   const searchParams = useSearchParams();
   const router = useRouter();
   /* `isBizMember` は「有効な企業所属が1件以上あるか」。true のときだけ
@@ -397,13 +412,13 @@ export function JobseekerHeader() {
           </Link>
 
           {/* ★横断検索の窓（1024px 以上・常設）。2026-10-01 / 柴さんの指示（LinkedIn型）。
-              ⚠️★**トップページ（/）では出さない。** あちらは `HeroSearch` が本文の主役で、
-                 同じ役割の窓が2つ並ぶ（ui-debugging ⑧「同じ場所に着く入口を数える」）。
+              ⚠️★**トップページ（/）では、ヒーローの窓が見えているあいだは出さない**（`hideHeaderSearch`）。
+                 同じ役割の窓が2つ並ぶため（ui-debugging ⑧）。ヒーローが画面の外に出たら出す（2026-10-09）。
               ⚠️★**1024px 未満はこの窓を出さず、右の🔍から同じものを開く。**
                  768px でタブ5つと同居させると、入力欄が実用にならない幅まで潰れる。
               ⚠️★**一覧ページの検索窓（/companies /jobs /people /articles）とは役割が違う。**
                  あちらは「その一覧の中の絞り込み」。ここは横断検索（/search）。混ぜないこと。 */}
-          {!isTop && (
+          {!hideHeaderSearch && (
           <div ref={inlineSearchRef} className="hidden lg:block"
             /* ⚠️★`flex: 1` に戻さないこと（2026-10-01）。伸びると余白を全部この窓が食い、
                   **タブが右端のアカウントに貼り付く。** 幅は 360 固定で、
@@ -481,7 +496,7 @@ export function JobseekerHeader() {
               ⚠️★**消さないこと。** 1024px 未満では**これが唯一の横断検索の入口**で、
                  外すとモバイル・タブレットから /search へ行く手段が無くなる
                  （モバイルのタブバーにも引き出しにも検索は無い）。 */}
-          {!isTop && (
+          {!hideHeaderSearch && (
           <button
             type="button"
             className="flex lg:hidden"

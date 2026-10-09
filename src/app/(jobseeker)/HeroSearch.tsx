@@ -50,7 +50,9 @@ export function HeroSearch({ navy, line, muted, paper2 }: { navy: string; line: 
   return (
     // ⚠️ 幅はインラインに書かないこと（CLAUDE.md「インラインstyle と CSS の優先順位」）。
     //    max-width は .hero-search-form にある。
-    <form onSubmit={submit} className="hero-search-form">
+    /* ⚠️ `data-hero-search` を外さないこと。ヘッダーがこれを見て、トップでヒーローの窓が
+          画面の外に出たあとだけヘッダーの検索窓を出す（2026-10-09） */
+    <form onSubmit={submit} className="hero-search-form" data-hero-search>
       {/* ⚠️★枠・背景・角丸は**インラインに書かないこと**（2026-09-20 に CSS へ移した）。
              インラインだと `:focus-within` が勝てず、**フォーカスしても殻の色が変わらない**
              （globals.css の `.search-shell` に同じ注記がある。あちらも一度そうなった）。 */}
