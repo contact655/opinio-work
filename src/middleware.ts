@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SIGNUP_REF_COOKIE,
   SIGNUP_REF_COOKIE_MAX_AGE,
@@ -237,7 +238,50 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /* ★会話の詳細は、参加者でなければ HTTP でも 404 を返す（2026-10-09）。
+        ページ側の `notFound()` は `/mypage/loading.tsx` の Suspense 境界の内側で起きるので、
+        **画面は 404 なのに HTTP は 200** になっていた（承認前のお願いの受け手・無関係の人）。
+        `/mypage/details` を `dynamicParams = false` で直した前例と同じ問題だが、
+        会話の id は事前に列挙できないのでここで判定する。
+     ⚠️ 判定はページと同じ「参加者の行があるか」。承認前の受け手は参加者ではないので 404。
+     ⚠️ 取得に失敗したら素通しする（ページ側の判定が最後に守る。ここで落とすと参加者まで開けなくなる）。
+     ⚠️ 2本の問い合わせは並列（1往復）。参加者の表示にも1往復ぶん足される。 */
+  const convMatch = pathname.match(CONVERSATION_DETAIL_RE);
+  if (convMatch && sessionUser) {
+    const allowed = await isConversationParticipant(convMatch[1], sessionUser.id);
+    if (allowed === false) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/__conversation_not_found";
+      url.search = "";
+      const res = NextResponse.rewrite(url, { status: 404 });
+      response.cookies.getAll().forEach((c) => res.cookies.set(c));
+      return res;
+    }
+  }
+
   return attachSignupRef(request, finalResponse);
+}
+
+const CONVERSATION_DETAIL_RE = /^\/mypage\/conversations\/([0-9a-f-]{36})\/?$/i;
+
+/** 参加者か。⚠️ 判定できなかったら null（呼び出し側は素通しする） */
+async function isConversationParticipant(conversationId: string, authUserId: string): Promise<boolean | null> {
+  try {
+    const db = createAdminClient();
+    const [{ data: me, error: meErr }, { data: parts, error: pErr }] = await Promise.all([
+      db.from("ow_users").select("id").eq("auth_id", authUserId).maybeSingle(),
+      db.from("ow_conversation_participants").select("user_id").eq("conversation_id", conversationId),
+    ]);
+    if (meErr || pErr) {
+      console.error("[middleware] 会話の参加者判定:", meErr?.message ?? pErr?.message);
+      return null;
+    }
+    if (!me) return false;
+    return (parts ?? []).some((p) => p.user_id === me.id);
+  } catch (e) {
+    console.error("[middleware] 会話の参加者判定:", e);
+    return null;
+  }
 }
 
 export const config = {
