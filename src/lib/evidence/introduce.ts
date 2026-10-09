@@ -23,7 +23,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createConversation } from "@/lib/conversations/createConversation";
+import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { proposalStage } from "@/lib/constants/proposalResponses";
 import { notifyIntroduction } from "@/lib/notify/proposalNotification";
@@ -74,11 +74,14 @@ export async function introduceIfMutual(
 
   let conversationId: string;
   try {
-    const created = await createConversation(db, {
-      kind: "company",
-      candidateUserId: row.candidate_user_id as string,
+    /* ★会話を作る経路はすべて `openReason.ts` を通す（2026-10-09 / 段階2）。
+          双方合意の提案は `can_send_scout()`（転職意欲を含む）で確かめる */
+    const created = await openCompanyConversation({
+      candidateOwUserId: row.candidate_user_id as string,
       companyId: row.company_id as string,
+      source: "proposal",
     });
+    if (!created) return { introduced: false, reason: "failed" };
     conversationId = created.conversationId;
   } catch (e) {
     console.error("[evidence/introduce] createConversation failed:", e);

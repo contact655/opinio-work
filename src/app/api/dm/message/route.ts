@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
+import { companyConversationAllowed } from "@/lib/conversations/openReason";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
   // 会話メンバーであることを確認（candidate または mentor）
   const { data: conv } = await admin
     .from("ow_conversations")
-    .select("id, candidate_user_id, partner_user_id")
+    .select("id, kind, company_id, candidate_user_id, partner_user_id")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -49,27 +50,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
   }
 
-  /* 参加者を冪等に揃える（両者ぶん）。
-     ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を受けておらず、
-        participant が null のまま `sender_participant_id: null` で
-        メッセージを入れられた。この列は nullable なので **INSERT は成功してしまい**、
-        送信者不明の行ができる。DM の画面は
-        `sender_participant_id === myParticipantId` で左右を決めるため、
-        その行は**送った本人にも「相手の発言」として表示される**。 */
-  const participants = await ensureDmParticipants(admin, conversationId, [
-    owMe.id,
-    conv.candidate_user_id,
-    conv.partner_user_id,
-  ]);
-  if (!participants.ok) {
-    console.error("[dm/message] ensureDmParticipants:", participants.error);
-    return NextResponse.json({ error: participants.error }, { status: participants.status });
-  }
+  /* ★企業との会話（2026-10-09 / 段階2）。
+        ① **送るたびに**「開いてよい理由」がまだ有効かを確かめる（ブロック・在籍の判明の後は送れない。
+           読むのは引き続きできる）。判定は `lib/conversations/openReason.ts` の1か所。
+        ② **参加者の行を admin の権限で補わない。** 補うと、直接作った会話にも送れてしまう
+           （2026-10-09 に実測した抜け道）。会話を作るときに `create_conversation` が足した行だけを使う。
+        ⚠️ 理由は返さない */
+  let senderParticipantId: string | undefined;
+  if (conv.kind === "company") {
+    if (!conv.company_id || !(await companyConversationAllowed(conv.candidate_user_id as string, conv.company_id as string))) {
+      return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
+    }
+    const { data: mine, error: mineErr } = await admin
+      .from("ow_conversation_participants")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", owMe.id)
+      .is("left_at", null)
+      .maybeSingle();
+    if (mineErr) console.error("[dm/message] participants:", mineErr.message);
+    if (!mine) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+    senderParticipantId = mine.id as string;
+  } else {
+    /* 参加者を冪等に揃える（両者ぶん）。
+       ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を受けておらず、
+          participant が null のまま `sender_participant_id: null` で
+          メッセージを入れられた。この列は nullable なので **INSERT は成功してしまい**、
+          送信者不明の行ができる。DM の画面は
+          `sender_participant_id === myParticipantId` で左右を決めるため、
+          その行は**送った本人にも「相手の発言」として表示される**。 */
+    const participants = await ensureDmParticipants(admin, conversationId, [
+      owMe.id,
+      conv.candidate_user_id,
+      conv.partner_user_id,
+    ]);
+    if (!participants.ok) {
+      console.error("[dm/message] ensureDmParticipants:", participants.error);
+      return NextResponse.json({ error: participants.error }, { status: participants.status });
+    }
 
-  const senderParticipantId = participants.byUserId.get(owMe.id);
-  if (!senderParticipantId) {
-    console.error("[dm/message] 送信者の participant が揃わなかった conv=", conversationId);
-    return NextResponse.json({ error: "送信に失敗しました" }, { status: 500 });
+    senderParticipantId = participants.byUserId.get(owMe.id);
+    if (!senderParticipantId) {
+      console.error("[dm/message] 送信者の participant が揃わなかった conv=", conversationId);
+      return NextResponse.json({ error: "送信に失敗しました" }, { status: 500 });
+    }
   }
 
   // メッセージ挿入（admin client で RLS バイパス）

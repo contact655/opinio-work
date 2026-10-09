@@ -5,6 +5,7 @@ import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
+import { companyConversationAllowed } from "@/lib/conversations/openReason";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
         件数ぶんクエリを撃つと、宛先が増えるほど遅くなり、途中で失敗しやすくなる。 */
   const { data: convs, error: convErr } = await admin
     .from("ow_conversations")
-    .select("id, candidate_user_id, partner_user_id")
+    .select("id, kind, company_id, candidate_user_id, partner_user_id")
     .in("id", ids);
   if (convErr) {
     console.error("[dm/bulk-message] conversations:", convErr.message);
@@ -125,22 +126,43 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    /* ⚠️ `sender_participant_id` が null のまま INSERT できてしまうと、
-          **送った本人にも「相手の発言」として表示される**（/api/dm/message の注記）。
-          参加者が揃わなかったら、その会話へは送らない。 */
-    const participants = await ensureDmParticipants(admin, conversationId, [
-      owMe.id, conv.candidate_user_id, conv.partner_user_id,
-    ]);
-    if (!participants.ok) {
-      console.error("[dm/bulk-message] ensureDmParticipants:", conversationId, participants.error);
-      results.push({ conversationId, ok: false, error: "送信に失敗しました" });
-      continue;
-    }
-    const senderParticipantId = participants.byUserId.get(owMe.id);
-    if (!senderParticipantId) {
-      console.error("[dm/bulk-message] 送信者の participant が揃わなかった conv=", conversationId);
-      results.push({ conversationId, ok: false, error: "送信に失敗しました" });
-      continue;
+    /* ★企業との会話（2026-10-09 / 段階2）: `/api/dm/message` と同じ扱い。
+          送るたびに「開いてよい理由」を確かめ（`lib/conversations/openReason.ts`）、
+          参加者の行は admin で補わない。⚠️ 理由は返さない */
+    let senderParticipantId: string | undefined;
+    if (conv.kind === "company") {
+      if (!conv.company_id || !(await companyConversationAllowed(conv.candidate_user_id as string, conv.company_id as string))) {
+        results.push({ conversationId, ok: false, error: CONTACT_BLOCKED_MESSAGE });
+        continue;
+      }
+      const { data: mine, error: mineErr } = await admin
+        .from("ow_conversation_participants")
+        .select("id")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", owMe.id)
+        .is("left_at", null)
+        .maybeSingle();
+      if (mineErr) console.error("[dm/bulk-message] participants:", conversationId, mineErr.message);
+      if (!mine) { results.push({ conversationId, ok: false, error: "この会話には送れません" }); continue; }
+      senderParticipantId = mine.id as string;
+    } else {
+      /* ⚠️ `sender_participant_id` が null のまま INSERT できてしまうと、
+            **送った本人にも「相手の発言」として表示される**（/api/dm/message の注記）。
+            参加者が揃わなかったら、その会話へは送らない。 */
+      const participants = await ensureDmParticipants(admin, conversationId, [
+        owMe.id, conv.candidate_user_id, conv.partner_user_id,
+      ]);
+      if (!participants.ok) {
+        console.error("[dm/bulk-message] ensureDmParticipants:", conversationId, participants.error);
+        results.push({ conversationId, ok: false, error: "送信に失敗しました" });
+        continue;
+      }
+      senderParticipantId = participants.byUserId.get(owMe.id);
+      if (!senderParticipantId) {
+        console.error("[dm/bulk-message] 送信者の participant が揃わなかった conv=", conversationId);
+        results.push({ conversationId, ok: false, error: "送信に失敗しました" });
+        continue;
+      }
     }
 
     const { error: insertErr } = await admin

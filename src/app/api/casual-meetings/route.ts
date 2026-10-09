@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { createConversation } from "@/lib/conversations/createConversation";
+import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 
@@ -161,11 +161,10 @@ export async function POST(req: NextRequest) {
 
   // ── 対話生成 (best-effort, Y2) ───────────────────────────────────────────
   try {
-    await createConversation(supabase, {
-      kind: "company",
-      candidateUserId: owUserId,
-      companyId: company_id,
-    });
+    /* ★サーバー（admin）が「開いてよい理由」を確かめてから作る（2026-10-09 / 段階2）。
+          ⚠️ セッションのクライアントで create_conversation を呼ばない（権限を外した）。
+          ⚠️ 判定は `lib/conversations/openReason.ts` の1か所。申込は本人発なので転職意欲は見ない */
+    await openCompanyConversation({ candidateOwUserId: owUserId, companyId: company_id as string, source: "casual_meeting" });
   } catch (e) {
     console.error("[casual-meetings] createConversation failed:", e);
   }

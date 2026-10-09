@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { insertActivity } from "@/lib/business/activities";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { CONTACT_BLOCKED_MESSAGE } from "@/lib/conversations/contactGate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,10 +76,30 @@ export async function POST(
     );
   }
 
+  /* ★企業との会話は、送るたびに「開いてよい理由」がまだ有効かを確かめる（2026-10-09 / 段階2）。
+        ブロック・在籍の判明・（提案の場合）転職意欲の変更の後は送れない。読むのは引き続きできる。
+        判定は `lib/conversations/openReason.ts` の1か所。⚠️ 理由は返さない */
+  const admin = createAdminClient();
+  const { data: convRow, error: convRowErr } = await admin
+    .from("ow_conversations")
+    .select("kind, company_id, candidate_user_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  if (convRowErr) console.error("[conversations/messages POST] ow_conversations:", convRowErr.message);
+  if (!convRow) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+  if (convRow.kind === "company") {
+    if (!convRow.company_id || !(await companyConversationAllowed(convRow.candidate_user_id as string, convRow.company_id as string))) {
+      return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
+    }
+  }
+
   // ── INSERT message ─────────────────────────────────────────────────────────
+  /* ★admin クライアントで書く（2026-10-09）。企業との会話へのメッセージは、
+        クライアントのロールから直接書けない（RLS で DM だけにした）。
+        ⚠️ 当事者であること（上の participant の確認）と、理由の確認を通ったあとだけ。 */
   const now = new Date().toISOString();
 
-  const { data: newMsg, error: insertError } = await supabase
+  const { data: newMsg, error: insertError } = await admin
     .from("ow_conversation_messages")
     .insert({
       conversation_id: conversationId,
