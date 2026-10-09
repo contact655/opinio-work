@@ -2,6 +2,7 @@
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
+import { FilterChip } from "@/components/common/FilterChip";
 import { DetailSearchToggle, ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,26 +26,6 @@ import { PHASE_OPTIONS, phaseMatches } from "@/lib/constants/phase";
  */
 const WORK_STYLE_FILTERS = ["フルリモート", "ハイブリッド", "出社"] as const;
 
-/**
- * 複数選択ピルのラベル。選択が無ければ項目名、1つなら値、複数なら「値 +N」。
- *
- * ⚠️ 新しい意匠を作らないため、既存のピルと同じ1行テキストに収める。
- * ⚠️ **同じピル行で表示ルールを2つ持たない。** 複数選択のピルはすべてこれを使う
- *    （2026-08-08 にフェーズピルもここへ寄せた。それまでフェーズだけ
- *      「最初に一致した1つ」を出す形で、2つ選んでも1つに見えていた）。
- *
- * @param labels 値と表示名が違うとき（フェーズの listed → 上場 など）に渡す
- */
-function pillLabel(selected: Set<string>, fallback: string, labels?: Record<string, string>): string {
-  if (selected.size === 0) return fallback;
-  const order = labels ? Object.keys(labels).filter((k) => selected.has(k)) : Array.from(selected);
-  const first = labels ? (labels[order[0]] ?? order[0]) : order[0];
-  const value = selected.size === 1 ? first : `${first} +${selected.size - 1}`;
-  /* ⚠️★**項目名を残す**（2026-09-09）。以前は値だけを出していたので、
-        選んだ瞬間に「フェーズ」が「ユニコーン」に変わり、**そのピルが何の条件なのか
-        分からなくなっていた**（8つ並ぶので特に読めない）。 */
-  return `${fallback}: ${value}`;
-}
 
 
 const SALARY_PILL_TIERS = [
@@ -123,7 +104,7 @@ const RAIL_WIDTH = 440;
       使っていたのはサイドバーとモバイルの職種ピルで、どちらも同日に消えている。
       **上の「色分けは廃止した」という判断はそのまま生きている**ので、
       職種ごとの色を作りたくなったらこのコメントの上を読むこと。
-      いまの選択状態は `.jobs-pill.active` と `.jobs-pill-item.selected` が持つ。 */
+      いまの選択状態は共通の FilterChip が持つ（2026-10-09）。 */
 
 
 
@@ -354,7 +335,7 @@ export default function JobsClient({
   const [qDraft, setQDraft] = useState(q);
   useEffect(() => { setQDraft(q); }, [q]);
   const [openFilter, setOpenFilter] = useState<string | null>(null);
-  const [pillAnchor, setPillAnchor] = useState<{ top: number; left: number } | null>(null);
+  const toggleFilter = (k: string) => setOpenFilter((cur) => (cur === k ? null : k));
 
   /* ★「詳細検索」の開閉（2026-09-09。柴さんの要望）。
      ⚠️★**既定は閉じている。** 条件が8つあり、常時出すと結果より条件のほうが高くなる。
@@ -370,8 +351,8 @@ export default function JobsClient({
     function onOutside(e: MouseEvent) {
       const target = e.target as Node;
       const inFilterBar = filterPillsRef.current?.contains(target);
-      const inDropdown = (target as HTMLElement)?.closest?.(".jobs-pill-menu");
-      if (!inFilterBar && !inDropdown) {
+      /* ⚠️ メニューは FilterChip の中（ツールバーの中）にあるので、ツールバーの外だけ見ればよい */
+      if (!inFilterBar) {
         setOpenFilter(null);
       }
     }
@@ -392,9 +373,20 @@ export default function JobsClient({
     setParam(key, Array.from(set).join(","));
   }
   function toggleStage(value: string) {
-    const set = new Set(companyStage ? companyStage.split(",") : []);
-    if (set.has(value)) set.delete(value); else set.add(value);
-    setCompanyStage(Array.from(set).join(","));
+    /* ⚠️ 前の値から作る（2026-10-09）。続けて呼ばれても取りこぼさない */
+    setCompanyStage((prev) => {
+      const set = new Set(prev ? prev.split(",") : []);
+      if (set.has(value)) set.delete(value); else set.add(value);
+      return Array.from(set).join(",");
+    });
+  }
+  /** フェーズだけを全部外す。⚠️ 外資系（同じ companyStage に入っている）は残す */
+  function clearPhases() {
+    setCompanyStage((prev) => {
+      const set = new Set(prev ? prev.split(",") : []);
+      phaseKeysRef.current.forEach((k) => set.delete(k));
+      return Array.from(set).join(",");
+    });
   }
 
   // Which filter chip dropdown is open
@@ -438,6 +430,8 @@ export default function JobsClient({
     [],
   );
   const phaseKeys = useMemo(() => phaseOptions.map((o) => o.value), [phaseOptions]);
+  const phaseKeysRef = useRef<string[]>([]);
+  phaseKeysRef.current = phaseKeys;
   const phaseLabels = useMemo(
     () => Object.fromEntries(phaseOptions.map((o) => [o.value, o.label])),
     [phaseOptions],
@@ -448,11 +442,6 @@ export default function JobsClient({
     [companyStageSet, phaseKeys],
   );
 
-  /** 職種 id → 名前。⚠️ `pillLabel` は Record を受ける（並びもこの順になる） */
-  const roleLabels = useMemo(
-    () => Object.fromEntries(parentRoles.map((r) => [r.id, r.name])) as Record<string, string>,
-    [parentRoles],
-  );
 
   /* ★いま効いている条件のチップ（2026-09-09）。「詳細検索」を閉じていても外に出す。
      ⚠️★**これを消さないこと。** 8条件を1つのパネルに畳んだので、これが無いと
@@ -1111,8 +1100,7 @@ export default function JobsClient({
             {!showAdvanced && <ActiveFilterChips chips={activeChips} />}
 
             {/* フィルターピル群。
-                ⚠️ 詳細検索を開いたときだけ出す。ドロップダウンは position: fixed の
-                   1枚（jobs-pill-menu）なので、ここを畳んでも切れない。
+                ⚠️ 詳細検索を開いたときだけ出す。メニューは各 FilterChip の直下に開く。
                 ⚠️★**検索窓と同じ行に並べないこと**（2026-09-09）。以前は
                    検索窓・詳細検索・チップ・8ピルが**全部1行**に詰まり、
                    どこまでが詳細検索の中身なのか読めなかった。
@@ -1124,111 +1112,55 @@ export default function JobsClient({
               borderRadius: 12, padding: "10px 12px", marginBottom: 2,
             }}>
 
-              {/* ★職種 ピル（2026-09-09 にサイドバーから移した。複数選択） */}
-              <button type="button" className={`jobs-pill${categorySet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "category") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("category");
-                }}
-              >
-                {pillLabel(categorySet, "職種", roleLabels)} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
+              {/* ★2026-10-09 に共通の FilterChip に寄せた（それまで /jobs だけ独自のピルと
+                     position: fixed のメニュー1枚を持っていた）。
+                  ⚠️ `labelPrefix` を外さないこと。8つ並ぶので、値だけだと何の条件か分からない。
+                  ⚠️ 単一選択（事業領域・都道府県・年収）は選ぶと閉じる。複数選択は閉じない。
+                  ⚠️ 「すべて」の行は無くした。外すのはチップの ✕（/companies と同じ）。 */}
+              {/* 職種（複数選択）。⚠️ 親職種だけ。子まで出すと148件になり選べない。
+                  ⚠️ 件数は公開求人（allJobs）の数。0 も出す */}
+              <FilterChip label="職種" labelPrefix listStyle value="" values={Array.from(categorySet)}
+                options={parentRoles.map((r) => ({ value: r.id, label: r.name, count: roleCounts.get(r.id) ?? 0 }))}
+                onSelect={() => setParam("category", "")} onClear={() => setParam("category", "")}
+                onToggleValue={(v) => toggleParam("category", v, category)}
+                isOpen={openFilter === "category"} onToggle={() => toggleFilter("category")} />
+              {/* フェーズ（複数選択）。⚠️ ✕ は外資系を消さない（clearPhases） */}
+              <FilterChip label="フェーズ" labelPrefix phaseStyle value="" values={Array.from(phaseSet)}
+                options={phaseOptions}
+                onSelect={clearPhases} onClear={clearPhases} onToggleValue={toggleStage}
+                isOpen={openFilter === "phase"} onToggle={() => toggleFilter("phase")} />
+              <FilterChip label="事業領域" labelPrefix listStyle value={industry}
+                options={industryOptions.map((g) => ({ value: g.slug, label: g.name }))}
+                onSelect={(v) => setParam("industry", v ?? "")}
+                isOpen={openFilter === "industry"} onToggle={() => toggleFilter("industry")} />
+              <FilterChip label="都道府県" labelPrefix listStyle searchable value={prefecture}
+                options={PREFECTURE_FILTER_GROUPS.flatMap((g) => g.prefectures.map((p) => ({ value: p, label: p, group: g.group })))}
+                onSelect={(v) => setParam("prefecture", v ?? "")}
+                isOpen={openFilter === "prefecture"} onToggle={() => toggleFilter("prefecture")} />
+              {/* 勤務形態（複数選択。2026-08-08 に単一選択から変えた） */}
+              <FilterChip label="勤務形態" labelPrefix value="" values={Array.from(workStyleSet)}
+                options={WORK_STYLE_FILTERS.map((v) => ({ value: v, label: v }))}
+                onSelect={() => setParam("work_style", "")} onClear={() => setParam("work_style", "")}
+                onToggleValue={(v) => toggleParam("work_style", v, work_style)}
+                isOpen={openFilter === "work_style"} onToggle={() => toggleFilter("work_style")} />
+              {/* 雇用形態（複数選択）。⚠️ 選択肢は careerOptions.ts の JOB_EMPLOYMENT_TYPES */}
+              <FilterChip label="雇用形態" labelPrefix value="" values={Array.from(empTypeSet)}
+                options={JOB_EMPLOYMENT_TYPES.map((v) => ({ value: v, label: v }))}
+                onSelect={() => setParam("emp_type", "")} onClear={() => setParam("emp_type", "")}
+                onToggleValue={(v) => toggleParam("emp_type", v, empType)}
+                isOpen={openFilter === "empType"} onToggle={() => toggleFilter("empType")} />
+              <FilterChip label="年収" labelPrefix listStyle value={salary}
+                options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
+                onSelect={(v) => setParam("salary", v ?? "")}
+                isOpen={openFilter === "salary"} onToggle={() => toggleFilter("salary")} />
 
-              {/* フェーズ ピル */}
+              {/* 外資系 トグル。⚠️ 見た目は /companies と同じ .foreign-toggle */}
               <button type="button"
-                className={`jobs-pill${phaseSet.size > 0 ? " active" : ""}`}
-                style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "phase") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("phase");
-                }}
-              >
-                {pillLabel(phaseSet, "フェーズ", phaseLabels)} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-
-              {/* 業種 ピル */}
-              <button type="button" className={`jobs-pill${industry ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "industry") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("industry");
-                }}
-              >
-                {industry ? `事業領域: ${industryOptions.find((d) => d.slug === industry)?.name ?? industry}` : "事業領域"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-
-              {/* 都道府県 ピル */}
-              <button type="button" className={`jobs-pill${prefecture ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "prefecture") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("prefecture");
-                }}
-              >
-                {prefecture ? `都道府県: ${prefecture}` : "都道府県"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-
-              {/*
-                勤務形態 ピル（複数選択）
-                ⚠️ 2026-08-08 に単一選択から複数選択へ変えた。
-                   絞り込みロジックは元からカンマ区切りの OR に対応していたが、
-                   それを使えるのはサイドバーの「こだわり条件」だけだった。
-                   サイドバーを消すにあたり、上部で同じことができるようにした
-                   （単一選択のまま消すと「フルリモート または ハイブリッド」が
-                    URL 手打ちでしか指定できない死んだフィルタになる）。
-              */}
-              <button type="button" className={`jobs-pill${workStyleSet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "work_style") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("work_style");
-                }}
-              >
-                {pillLabel(workStyleSet, "勤務形態")} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-
-              {/*
-                雇用形態 ピル（複数選択）
-                ⚠️ 2026-08-08 にサイドバーから移してきた。選択肢は careerOptions.ts の
-                   JOB_EMPLOYMENT_TYPES。ここに直書きしないこと（DB の CHECK と揃えてある）。
-              */}
-              <button type="button" className={`jobs-pill${empTypeSet.size > 0 ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "empType") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("empType");
-                }}
-              >
-                {pillLabel(empTypeSet, "雇用形態")} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-
-              {/* 年収 ピル */}
-              <button type="button" className={`jobs-pill${salary ? " active" : ""}`} style={{ flexShrink: 0 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  if (openFilter === "salary") { setOpenFilter(null); return; }
-                  setPillAnchor({ top: r.bottom + 6, left: r.left });
-                  setOpenFilter("salary");
-                }}
-              >
-                {salary ? `年収: ${SALARY_PILL_TIERS.find(t => t.value === salary)?.label ?? salary}` : "年収"} <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}><path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-
-              {/* 外資系 トグルピル */}
-              <button type="button"
-                className={`jobs-pill${companyStageSet.has("foreign") ? " active" : ""}`}
+                className={`foreign-toggle${companyStageSet.has("foreign") ? " active" : ""}`}
                 onClick={() => toggleStage("foreign")}
-                style={{ flexShrink: 0 }}
+                aria-pressed={companyStageSet.has("foreign")}
               >
-                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, marginLeft: 3 }}>✕</span>}
+                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
               </button>
 
               {/*
@@ -1589,46 +1521,6 @@ export default function JobsClient({
 
 
       <style>{`
-        /* ── フィルターピル ── */
-        .jobs-pill {
-          display: inline-flex; align-items: center; gap: 4px;
-          padding: 7px 14px;
-          border-radius: 999px; font-size: 13px; font-weight: 500;
-          border: 1.5px solid #e2e8f0; background: #fff; color: var(--ink-soft);
-          cursor: pointer; white-space: nowrap; font-family: inherit;
-          transition: border-color 0.12s, background 0.12s, color 0.12s;
-        }
-        .jobs-pill:hover { border-color: var(--royal); color: var(--royal); }
-        .jobs-pill.active {
-          border-color: var(--royal); background: var(--royal-50);
-          color: var(--royal); font-weight: 700;
-        }
-        .jobs-pill-menu {
-          position: absolute; top: calc(100% + 6px); left: 0;
-          background: #fff; border: 1.5px solid #e2e8f0; border-radius: 12px;
-          box-shadow: 0 8px 28px rgba(0,35,102,0.13);
-          z-index: 120; min-width: 160px; max-height: 300px; overflow-y: auto;
-          padding: 6px;
-        }
-        .jobs-pill-item {
-          display: block; width: 100%; text-align: left;
-          padding: 8px 12px; border-radius: 8px; border: none;
-          background: none; font-size: 13px; color: var(--ink); cursor: pointer;
-          font-family: inherit; white-space: nowrap;
-          transition: background 0.1s;
-        }
-        .jobs-pill-item:hover { background: var(--royal-50); }
-        .jobs-pill-item.selected { color: var(--royal); font-weight: 700; background: var(--royal-50); }
-        /* フェーズは2段階。親を太く、子を字下げして階層を示す（/companies の絞り込みと揃える）。
-           ⚠️ 字下げを外すとバケット（スタートアップ）と個別の段（ユニコーン等）が
-              同列に見え、2026-09-06 に指摘された形に戻る。 */
-        .jobs-pill-item.is-parent { font-weight: 700; }
-        /* 都道府県のグループ見出し（よく選ばれる / その他） */
-        .jobs-pill-group {
-          padding: 8px 12px 2px; font-size: 11px; font-weight: 700;
-          color: var(--ink-mute); letter-spacing: 0.06em;
-        }
-        .jobs-pill-item.is-child { padding-left: 30px; font-size: 12.5px; color: var(--ink-soft); }
         .jobs-sort-btn {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
@@ -1810,128 +1702,6 @@ export default function JobsClient({
         }
 
       `}</style>
-
-      {/* フィルターピル ドロップダウン (position: fixed でoverflow clipを回避) */}
-      {openFilter && pillAnchor && (
-        <div className="jobs-pill-menu" style={{ position: "fixed", top: pillAnchor.top, left: pillAnchor.left, zIndex: 1200 }}>
-          {/* ⚠️★**単一選択の職種ドロップダウンは 2026-09-09 に削除した。**
-                 同じ `openFilter === "category"` の分岐が2つ並んでおり、**両方描画されて**
-                 いた。古い方は1つ選ぶと `setParam` で置き換えて閉じるので、
-                 **複数選択が事実上できなかった**（実測: 2つ目を選んでも URL が変わらない）。
-                 ⚠️ 同じキーの分岐を2つ書かないこと。片方だけ直しても動きは変わらない。 */}
-          {/* ★職種（2026-09-09 にサイドバーから移した）。
-                 ⚠️ **複数選択。選んでも閉じない**（勤務形態・雇用形態・フェーズと同じ）。
-                 ⚠️ 件数（`roleCounts`）は**あるときだけ**出す。0 を出さない。
-                 ⚠️ 親職種だけを出す。子職種まで出すと 148件になり、この幅では選べない
-                    （2026-08-06 に職歴エディタで「105件を目視で探させる UI が機能していない」と
-                     分かっている）。 */}
-          {openFilter === "category" && (
-            <>
-              <button className={`jobs-pill-item${categorySet.size === 0 ? " selected" : ""}`}
-                onClick={() => setParam("category", "")}>すべて</button>
-              {parentRoles.map((role) => (
-                <button key={role.id}
-                  className={`jobs-pill-item${categorySet.has(role.id) ? " selected" : ""}`}
-                  onClick={() => toggleParam("category", role.id, category)}
-                >
-                  {role.name}
-                  {/* ⚠️★**0 も出す**（2026-09-09）。以前は件数があるときだけ出しており、
-                         0件の職種は数字が無いので「不明」と区別が付かず、
-                         **押して初めて0件と分かる**状態だった。
-                      ⚠️ `/jobs` は「0件の選択肢を出さない」の例外にしてある（柴さんの判断・
-                         CLAUDE.md）。選択肢は消さずに、**押す前に0と分かるようにする**。
-                      ⚠️ 数えているのは公開求人（`allJobs`）。絞り込みの結果ではない。 */}
-                  <span style={{
-                    marginLeft: 6, opacity: roleCounts.get(role.id) ? 0.6 : 0.35,
-                    fontFamily: "var(--font-inter), var(--font-noto)",
-                  }}>
-                    ({roleCounts.get(role.id) ?? 0})
-                  </span>
-                </button>
-              ))}
-            </>
-          )}
-          {openFilter === "phase" && (
-            <>
-              {/* ⚠️ 複数選択。勤務形態・雇用形態と同じく**選んでも閉じない**（2026-08-08）。
-                     それまでフェーズだけ1つ選ぶたびに閉じており、複数選ぶのに開き直しが要った。
-                  ⚠️ 「すべて」は外資系（foreign）を消さない。別のトグルピルなので残す。 */}
-              <button className={`jobs-pill-item${phaseSet.size === 0 ? " selected" : ""}`}
-                onClick={() => {
-                  /* ⚠️ toggleStage を forEach で回さないこと。companyStage を
-                     クロージャから読むので、2つ以上選んでいると最後の1回しか効かない。 */
-                  const set = new Set(companyStage ? companyStage.split(",") : []);
-                  phaseKeys.forEach((k) => set.delete(k));
-                  setCompanyStage(Array.from(set).join(","));
-                }}>すべて</button>
-              {phaseOptions.map(({ value: key, label, parent }) => (
-                <button key={key}
-                  className={`jobs-pill-item ${parent ? "is-child" : "is-parent"}${companyStageSet.has(key) ? " selected" : ""}`}
-                  onClick={() => toggleStage(key)}>{label}</button>
-              ))}
-            </>
-          )}
-          {openFilter === "industry" && (
-            <>
-              <button className={`jobs-pill-item${!industry ? " selected" : ""}`} onClick={() => { setParam("industry", ""); setOpenFilter(null); }}>すべて</button>
-              {industryOptions.map((g) => (
-                <button key={g.slug} className={`jobs-pill-item${industry === g.slug ? " selected" : ""}`}
-                  onClick={() => { setParam("industry", industry === g.slug ? "" : g.slug); setOpenFilter(null); }}
-                >{g.name}</button>
-              ))}
-            </>
-          )}
-          {openFilter === "work_style" && (
-            <>
-              {/* ⚠️ 複数選択。フェーズピルと同じく**選んでも閉じない** */}
-              <button className={`jobs-pill-item${workStyleSet.size === 0 ? " selected" : ""}`}
-                onClick={() => { setParam("work_style", ""); }}>すべて</button>
-              {WORK_STYLE_FILTERS.map((v) => (
-                <button key={v} className={`jobs-pill-item${workStyleSet.has(v) ? " selected" : ""}`}
-                  onClick={() => toggleParam("work_style", v, work_style)}
-                >{v}</button>
-              ))}
-            </>
-          )}
-          {openFilter === "salary" && (
-            <>
-              <button className={`jobs-pill-item${!salary ? " selected" : ""}`} onClick={() => { setParam("salary", ""); setOpenFilter(null); }}>すべて</button>
-              {SALARY_PILL_TIERS.map((t) => (
-                <button key={t.value} className={`jobs-pill-item${salary === t.value ? " selected" : ""}`}
-                  onClick={() => { setParam("salary", t.value); setOpenFilter(null); }}
-                >{t.label}</button>
-              ))}
-            </>
-          )}
-          {openFilter === "empType" && (
-            <>
-              {/* ⚠️ 複数選択。選んでも閉じない */}
-              <button className={`jobs-pill-item${empTypeSet.size === 0 ? " selected" : ""}`}
-                onClick={() => { setParam("emp_type", ""); }}>すべて</button>
-              {JOB_EMPLOYMENT_TYPES.map((v) => (
-                <button key={v} className={`jobs-pill-item${empTypeSet.has(v) ? " selected" : ""}`}
-                  onClick={() => toggleParam("emp_type", v, empType)}
-                >{v}</button>
-              ))}
-            </>
-          )}
-          {openFilter === "prefecture" && (
-            <>
-              <button className={`jobs-pill-item${!prefecture ? " selected" : ""}`} onClick={() => { setParam("prefecture", ""); setOpenFilter(null); }}>すべて</button>
-              {PREFECTURE_FILTER_GROUPS.map((g) => (
-                <div key={g.group}>
-                  <div className="jobs-pill-group">{g.group}</div>
-                  {g.prefectures.map((p) => (
-                    <button key={p} className={`jobs-pill-item${prefecture === p ? " selected" : ""}`}
-                      onClick={() => { setParam("prefecture", p); setOpenFilter(null); }}
-                    >{p}</button>
-                  ))}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
     </>
   );
 }

@@ -31,13 +31,17 @@ export function FilterChip({
   hint,
   values,
   onToggleValue,
+  onClear,
+  labelPrefix = false,
 }: {
   label: string;
   value: string;
   /** ⚠️ フェーズは2段階。`parent` を持つものが子で、親の直後にインデントして並ぶ。
    *  ⚠️ 都道府県は `group`（「よく選ばれる」/「その他」）で見出しを挟む。
    *     **並び順は渡された順のまま。ここで並べ替えないこと。** */
-  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string; parent?: string; group?: string }[];
+  options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string; parent?: string; group?: string;
+    /** 縦リストのメニューにだけ出す件数（2026-10-09 / /jobs の職種）。⚠️ チップの表示名には入れない */
+    count?: number }[];
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -59,6 +63,18 @@ export function FilterChip({
   values?: string[];
   /** `values` を使うときの切り替え。⚠️ `values` とセットで渡すこと */
   onToggleValue?: (v: string) => void;
+  /**
+   * 複数選択を✕で全部外すとき（2026-10-09 / /jobs のために足した）。
+   * ⚠️ 渡さなければ従来どおり `onToggleValue` を値ごとに呼ぶ。URL を書き換える呼び出し側は
+   *    1回ずつだと最後の1回しか効かないことがあるので、まとめて外す関数を渡すこと。
+   */
+  onClear?: () => void;
+  /**
+   * ★選択中も項目名を残す（「事業領域: AI・データ」「職種: 営業 +1」）。2026-10-09 / /jobs。
+   * ⚠️ /jobs は8つ並ぶので、値だけだと**そのチップが何の条件か分からなくなる**
+   *    （2026-09-09 の判断）。/companies・/people は従来どおり値だけ。
+   */
+  labelPrefix?: boolean;
 }) {
   const [q, setQ] = useState("");
   const multi = Array.isArray(values);
@@ -66,7 +82,14 @@ export function FilterChip({
   const activeOpt = options.find((o) => o.value === value);
   /* 複数選択のラベル。⚠️ 件数を足す（「職種 2」）。選んだ中身を全部並べると
      チップが行を押し広げる（実測: 職種は最長で 14 文字ある） */
-  const activeLabel = multi
+  const activeLabel = labelPrefix
+    ? (() => {
+        /* ⚠️ 並びは options の順（選んだ順ではない）。/jobs の pillLabel と同じ */
+        const picked = multi ? options.filter((o) => values!.includes(o.value)) : activeOpt ? [activeOpt] : [];
+        const first = picked[0]?.label ?? (multi ? values![0] : value);
+        return `${label}: ${picked.length > 1 ? `${first} +${picked.length - 1}` : first}`;
+      })()
+    : multi
     ? (values!.length === 1
         ? options.find((o) => o.value === values![0])?.label ?? label
         : `${label} ${values!.length}`)
@@ -104,7 +127,7 @@ export function FilterChip({
             onClick={(e) => {
               e.stopPropagation();
               /* ⚠️ 複数選択は**全部外す**。1つずつ外したい人はメニューから外す */
-              if (multi) { values!.forEach((v) => onToggleValue?.(v)); } else { onSelect(null); }
+              if (multi) { if (onClear) onClear(); else values!.forEach((v) => onToggleValue?.(v)); } else { onSelect(null); }
             }}
             style={{ fontSize: 12, marginLeft: 1, opacity: 0.75, lineHeight: 1 }}
             aria-label="クリア"
@@ -249,6 +272,12 @@ export function FilterChip({
                       onMouseLeave={(e) => { if (!sel) (e.target as HTMLElement).style.background = "none"; }}
                     >
                       {o.label}
+                      {o.count !== undefined && (
+                        /* ⚠️ 0 も出す（押す前に0件と分かるように。/jobs 2026-09-09） */
+                        <span style={{ marginLeft: 6, opacity: o.count ? 0.6 : 0.35, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                          ({o.count})
+                        </span>
+                      )}
                     </button>
                     </div>
                   );
