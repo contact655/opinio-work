@@ -609,7 +609,7 @@ function AboutSection({
     >
       {/* Section header with subtle gradient */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -623,7 +623,7 @@ function AboutSection({
           企業について
         </SecTitle>
       </div>
-      <div style={{ padding: "var(--space-6) 32px var(--space-6)" }}>
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-6)" }}>
 
         {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
@@ -675,7 +675,7 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -746,7 +746,7 @@ function CompanyMaterialsSection({ items }: { items: PublicMaterialItem[] }) {
         boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
       }}
     >
-      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -760,7 +760,7 @@ function CompanyMaterialsSection({ items }: { items: PublicMaterialItem[] }) {
           この会社が登録し、公開を確定した内容です（企業の申告で、OPINIO が確認したものではありません）。
         </p>
       </div>
-      <div style={{ padding: "var(--space-6) 32px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px)", display: "flex", flexDirection: "column", gap: 20 }}>
         {groups.map(({ c, list }) => (
           <div key={c}>
             <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{MATERIAL_CATEGORY_LABELS[c]}</h3>
@@ -796,7 +796,7 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
       }}
     >
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle
@@ -990,7 +990,7 @@ function JobsSection({
           boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
         }}
       >
-        <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+        <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
           <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>}>
             {/* ⚠️ 見出しは0件ブランチでも「募集中の求人」。ここだけ「募集中の案件」で、
                    本文も「公開中の募集」になっており、1つのセクションに3つの語彙があった（2026-08-13 統一）。 */}
@@ -1093,7 +1093,7 @@ function JobsSection({
              2026-08-15 に復活しているので、導線としてはそちらで足りている。
           ⚠️ `/companies/[id]/jobs` は**いまも 404**。戻さないこと。 */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="default">
@@ -1169,7 +1169,7 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
       }}
     >
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
@@ -1268,7 +1268,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
@@ -1959,7 +1959,8 @@ export default async function CompanyDetailPage({
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-          className="px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]"
+          /* ★`cd-body` はカードの左右の余白（`--cd-pad-x`）を決める（2026-10-09）。globals.css を参照 */
+          className="cd-body px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]"
         >
           {/* ⚠️ 固定底部バー（`MobileBottomCTA`）の逃げは**ここに付けない**（2026-10-03）。
                  本文の後ろにフッターがあり、最下部でバーの裏に来るのはフッターの方。
@@ -2120,7 +2121,7 @@ export default async function CompanyDetailPage({
 
             {/* ── 更新情報 ── */}
             {activityGroups.length > 0 && (
-              <div id="activity" style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
+              <div id="activity" style={{ background: "#fff", borderRadius: 16, padding: "28px var(--cd-pad-x, 32px)", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     ACTIVITY
@@ -2211,7 +2212,7 @@ export default async function CompanyDetailPage({
               <div style={{
                 background: "#fff",
                 borderRadius: 18,
-                padding: "28px 32px",
+                padding: "28px var(--cd-pad-x, 32px)",
                 marginBottom: "var(--space-6)",
                 display: "flex",
                 flexDirection: "column",

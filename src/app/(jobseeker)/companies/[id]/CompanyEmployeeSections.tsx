@@ -271,7 +271,7 @@ export function CurrentEmployeesSection({
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle icon={SECTION_ICON}>
@@ -654,7 +654,7 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni:
     >
       {/* Section header */}
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         <SecTitle

@@ -42,7 +42,7 @@ export function RecruitersSection({
       }}
     >
       <div style={{
-        padding: "var(--space-6) 32px var(--space-4)",
+        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
       }}>
         {title}

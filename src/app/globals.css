@@ -2581,3 +2581,13 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
         @media (max-width: 600px) {
           .jobs-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 8px; }
         }
+
+/* ── ★企業ページのカードの左右の余白（2026-10-09 / 柴さんの指示）────────────────
+   それまで全幅で 32px 固定で、375px だと本文の幅が 375 - 20×2 - 32×2 = 271px まで痩せていた。
+   1023px 以下は /jobs/[id] のカード（375px・768px とも 24px）に揃える。1024px 以上は 32px のまま。
+   ⚠️ 各カードは `padding: "… var(--cd-pad-x, 32px) …"` で読む。既定値 32px があるので、
+      同じ部品を企業ページの外（分割ビューのペインなど）で使っても変わらない。 */
+.cd-body { --cd-pad-x: 32px; }
+@media (max-width: 1023px) {
+  .cd-body { --cd-pad-x: 24px; }
+}

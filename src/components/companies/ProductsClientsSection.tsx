@@ -131,7 +131,7 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
       }}
     >
       {/* Section header */}
-      <div style={{ padding: "var(--space-6) 32px var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
         <SecTitle
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
