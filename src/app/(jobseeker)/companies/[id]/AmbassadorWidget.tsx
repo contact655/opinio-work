@@ -6,7 +6,11 @@ import type { PublicAmbassador } from "@/lib/supabase/queries";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 
 /**
- * サイドバーの「💬 カジュアル面談OK」ウィジェット。
+ * 「💬 この会社の話を聞ける人」ウィジェット。右の列（1024px 以上）と本文（1023px 以下）の両方に置く。
+ *
+ * ⚠️★見出しは 2026-10-09 に「この会社で面談OKの人」から変えた（柴さんの指示）。
+ *    社員カードのバッジ（「面談OK」）は**状態のラベル**で、こちらは**節の見出し**。
+ *    見出しは「受付を止めている企業でも出る」ので、申込を含意しない言い方にした。
  *
  * ── なぜクライアント側なのか ────────────────────────────────────────────────
  * 面談対応者は実ユーザーが全員 `login_only` なので、**未ログインに顔と名前を出してはいけない**。
@@ -34,6 +38,7 @@ export default function AmbassadorWidget({
   publicAmbassadors,
   totalCount,
   acceptingMeetings,
+  outerStyle,
 }: {
   companyId: string;
   /** ⚠️ 未ログインに見せてよい人だけ（`visibility === "public"`）。ISR の HTML に焼かれる */
@@ -46,6 +51,8 @@ export default function AmbassadorWidget({
    *  ⚠️ 呼び出し側が渡すのは `isCasualMeetingOpen()` を通した後の値
    *     （フラグ単独ではなく宛先の有無も含む）。ここで判定し直さないこと。 */
   acceptingMeetings: boolean;
+  /** 外側の余白など（本文に置くときだけ渡す。2026-10-09）。⚠️ 右の列では渡さない（見た目を変えない） */
+  outerStyle?: React.CSSProperties;
 }) {
   const [shown, setShown] = useState<PublicAmbassador[]>(publicAmbassadors);
   /* ★見出しの数字は**カードと同じ応答**から出す（2026-08-23）。
@@ -93,14 +100,16 @@ export default function AmbassadorWidget({
       borderRadius: 14,
       padding: "16px",
       boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+      ...outerStyle,
     }}>
       {/* ★見出しは「申し込める」を意味しない表記にする（2026-08-23 / 方針D）。
              受付を止めている企業でも人は出すので、「カジュアル面談OK」のままだと
              **申し込めないのに OK と書いてある**状態になる。
-             ⚠️ 社員カードのバッジ（CompanyEmployeeSections）と揃えること。出所は同じ。
-             ⚠️ 文言は暫定。確定はこれから。 */}
+             ★2026-10-09 に「この会社の話を聞ける人」で確定（柴さんの指示）。
+             ⚠️ 社員カードのバッジ（「面談OK」）とは揃えない。あちらは人の状態のラベル、
+                こちらは節の見出し。出所（`ow_company_members`）は同じ。 */}
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
-        💬 この会社で面談OKの人
+        💬 この会社の話を聞ける人
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 10 }}>

@@ -105,7 +105,7 @@ export default function AmbassadorInvitePage() {
                 承認しました
               </div>
               <div style={{ color: "var(--ink-soft)", marginBottom: 24 }}>
-                「この会社で面談OKの人」として表示されます。<br />
+                「この会社の話を聞ける人」として表示されます。<br />
                 設定はマイページからいつでも変更できます。
               </div>
               <button
@@ -189,7 +189,7 @@ export default function AmbassadorInvitePage() {
                 面談OKとして掲載してよいか、確認させてください
               </h1>
               <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: "0 0 24px", lineHeight: 1.7 }}>
-                {info.company_name}の採用担当者から、あなたを「この会社で面談OKの人」として掲載したいという申請がありました。
+                {info.company_name}の採用担当者から、あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
               </p>
 
               <div style={{
@@ -202,7 +202,7 @@ export default function AmbassadorInvitePage() {
                   掲載されると：
                 </div>
                 {[
-                  "「この会社で面談OKの人」としてプロフィールが表示されます",
+                  "「この会社の話を聞ける人」としてプロフィールが表示されます",
                   "転職を検討している方から、カジュアル面談の申込みが届きます",
                   "あなたの氏名・役職・所属企業が公開されます",
                 ].map((item, i) => (

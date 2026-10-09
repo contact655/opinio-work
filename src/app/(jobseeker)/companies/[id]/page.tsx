@@ -21,6 +21,7 @@ import {
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
 import AmbassadorWidget from "./AmbassadorWidget";
+import MeetingFlowNote from "./MeetingFlowNote";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -1759,34 +1760,9 @@ function Sidebar({
         acceptingMeetings={company.accepting_casual_meetings === true}
       />
 
-      {/* 申し込みの流れ — コンパクト1行表示 */}
-      {company.accepting_casual_meetings === true && (
-        <div
-          style={{
-            background: "var(--bg-tint)",
-            border: "1px solid var(--line-soft)",
-            borderRadius: 10,
-            padding: "10px 14px",
-          }}
-        >
-          <p style={{
-            margin: 0,
-            fontSize: 12, fontWeight: 500,
-            color: "var(--ink-soft)",
-            lineHeight: 1.6,
-          }}>
-            💬 気軽に話すだけでOK。選考なし・完全無料。
-          </p>
-          <p style={{
-            margin: "4px 0 0",
-            fontSize: 12, fontWeight: 500,
-            color: "var(--ink-mute)",
-            lineHeight: 1.5,
-          }}>
-            フォーム1分 → 担当者から連絡 → 日程調整 → 面談（約30分）
-          </p>
-        </div>
-      )}
+      {/* 申し込みの流れ — コンパクト1行表示。
+             ⚠️★**本文（1023px 以下）と同じ部品**（2026-10-09 に切り出した）。複製を作らないこと。 */}
+      {company.accepting_casual_meetings === true && <MeetingFlowNote />}
 
       {/* 企業情報ボックス。⚠️★**本文（モバイル）と同じ部品を使う**（2026-09-07 に切り出した）。
              サイドバーは `hidden lg:flex` で 1023px 以下では消えるので、
@@ -2038,6 +2014,25 @@ export default async function CompanyDetailPage({
             {/* ★企業が公開を確定した情報（2026-10-09 / 依頼②）。0件ならセクションごと出さない */}
             <CompanyMaterialsSection items={materialItems} />
 
+            {/* ★「この会社の話を聞ける人」を本文にも出す（2026-10-09 / 柴さんの指示）。
+                   右の列は `hidden lg:flex` で 1023px 以下では消えるので、そこだけだと
+                   **スマホ・タブレットからは見えなかった。** 同じ部品を `lg:hidden` 付きで置く。
+                ⚠️ 置き場所は面談の CTA の直前（話を聞ける人 → 申し込む、の順に読める）。
+                ⚠️ 受付を止めている企業でも人は出す（方針D）。申込ボタンだけ部品の中で消える。
+                   だから下の CTA（受付中だけ）の**外**に置く。
+                ⚠️ 0名なら部品が null を返し、この div は空で高さ0になる（余白は部品側に持たせた）。
+                ⚠️ 取得は `useCompanyEmployees` で企業ごとに1本に束ねてあるので、
+                   右の列と2つマウントしても API は1回しか飛ばない。 */}
+            <div className="lg:hidden">
+              <AmbassadorWidget
+                companyId={company.id}
+                publicAmbassadors={ambassadors.filter((a) => a.visibility === "public")}
+                totalCount={ambassadors.length}
+                acceptingMeetings={company.accepting_casual_meetings === true}
+                outerStyle={{ marginBottom: "var(--space-6)" }}
+              />
+            </div>
+
             {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (
               /* ⚠️ 背景で目立たせないこと（2026-08-23）。オレンジは
@@ -2064,6 +2059,11 @@ export default async function CompanyDetailPage({
                 }}>
                   話を聞く →
                 </Link>
+                {/* ★申し込みの流れ（2026-10-09）。右の列と同じ部品。1023px 以下だけ出す
+                       （1024px 以上は右の列に同じものがある）。⚠️ display をインラインに書かない */}
+                <div className="lg:hidden" style={{ flexBasis: "100%" }}>
+                  <MeetingFlowNote />
+                </div>
               </div>
             )}
 

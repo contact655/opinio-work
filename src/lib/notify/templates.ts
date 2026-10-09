@@ -670,7 +670,7 @@ export function ambassadorInviteTemplate(params: {
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談OKとして掲載してよいか、確認させてください</h2>
       <p style="margin:0 0 20px;color:#475569">
         ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
-        あなたを「この会社で面談OKの人」として掲載したいという申請がありました。
+        あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">企業名</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
@@ -678,7 +678,7 @@ export function ambassadorInviteTemplate(params: {
       </table>
       <p style="margin:0 0 16px;color:#475569;font-size:14px">
         掲載されると:<br>
-        ・OPINIOに「この会社で面談OKの人」としてプロフィールが表示されます<br>
+        ・OPINIOに「この会社の話を聞ける人」としてプロフィールが表示されます<br>
         ・転職を検討している方から、カジュアル面談の申込みが届きます<br>
         ・あなたの氏名・役職・所属企業が公開されます
       </p>
