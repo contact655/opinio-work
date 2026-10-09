@@ -283,7 +283,7 @@ export async function searchCompanies(
 
   const { data: rawCompanies, count: rawCount, error } = await dataQuery;
   if (error) throw error;
-  let totalCount = rawCount ?? 0;
+  const totalCount = rawCount ?? 0;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const companyList: CompanyForCarousel[] = (rawCompanies ?? []) as any[];

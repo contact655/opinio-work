@@ -203,7 +203,7 @@ function Pagination({
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
-  const { q, phase, workStyle, hiring, location, industry, target, foreign, view, sort } = searchParams;
+  const { industry, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   // foreign は hasFilter に含めない（外資系だけのときは一覧グリッドのままページ分けする）
   const hasFilter = hasCompanyFilter(searchParams);
