@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -107,6 +108,13 @@ export async function POST(request: NextRequest) {
 
   if (!targetUser || targetUser.visibility === "private" || (targetUser.visibility === "login_only" && !owMe)) {
     return NextResponse.json({ error: "User not found or not accepting messages" }, { status: 404 });
+  }
+
+  /* ★企業の担当者から、その企業に見せてはいけない人へは送らない（2026-10-09 / 段階1）。
+        ⚠️ 会話を作る前に止める（作ってから止めると、空の会話が相手の一覧に残る）。
+        ⚠️ 理由は返さない。判定は `lib/conversations/contactGate.ts` の1か所 */
+  if (await isMessagingBlocked(owMe.id, targetUserId)) {
+    return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
   }
 
   // Check if DM conversation already exists between these two users (both directions)

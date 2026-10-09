@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -39,6 +40,14 @@ export async function POST(request: NextRequest) {
 
   const isMember = conv.candidate_user_id === owMe.id || conv.partner_user_id === owMe.id;
   if (!isMember) return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+
+  /* ★企業の担当者から、その企業に見せてはいけない人へは送らない（2026-10-09 / 段階1）。
+        相手は会話のもう一方の人。⚠️ 企業との会話（相手の個人が居ない）はここでは見ない（段階2）。
+        ⚠️ 理由は返さない。判定は `lib/conversations/contactGate.ts` の1か所 */
+  const recipientId = conv.candidate_user_id === owMe.id ? conv.partner_user_id : conv.candidate_user_id;
+  if (recipientId && (await isMessagingBlocked(owMe.id, recipientId as string))) {
+    return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
+  }
 
   /* 参加者を冪等に揃える（両者ぶん）。
      ⚠️ 失敗を握りつぶさない。2026-08-25 まで INSERT の error を受けておらず、

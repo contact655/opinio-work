@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,15 @@ export async function POST(request: NextRequest) {
     /* ⚠️ admin で引いているので RLS は効かない。**ここで当事者かを見る。** */
     if (conv.candidate_user_id !== owMe.id && conv.partner_user_id !== owMe.id) {
       results.push({ conversationId, ok: false, error: "この会話には送れません" });
+      continue;
+    }
+
+    /* ★企業の担当者から、その企業に見せてはいけない人へは送らない（2026-10-09 / 段階1）。
+          `/api/dm/start`・`/api/dm/message` と同じ判定（`lib/conversations/contactGate.ts`）。
+          ⚠️ ここを外すと、直接作った会話へ一括送信で送れてしまう。⚠️ 理由は返さない */
+    const recipientId = conv.candidate_user_id === owMe.id ? conv.partner_user_id : conv.candidate_user_id;
+    if (recipientId && (await isMessagingBlocked(owMe.id, recipientId as string))) {
+      results.push({ conversationId, ok: false, error: CONTACT_BLOCKED_MESSAGE });
       continue;
     }
 
