@@ -1,7 +1,6 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
@@ -25,6 +24,8 @@ import {
  * 読み書きはすべて admin クライアントで、呼び出し側（API・画面）が所属とプランを確かめてから呼ぶ。
  *
  * ── 送れる相手（`isApproachTarget`）────────────────────────────────────
+ *   ★2026-10-10 から判定は DB 関数 `can_send_company_approach()` の1か所（下の①〜④に
+ *     「受け取る範囲」と「受け取らない企業」を足したもの）。TS では条件を組み立てない。
  *   ① `can_send_scout()` が true（在籍した会社・グループ会社・ブロック・転職勧奨禁止・管理者本人・
  *      検証用と実在の区別。**条件を TS に書き写さない**）
  *   ② 転職意欲が企業に届く値（`isReachableByCompanies`。「情報収集として」も含む）
@@ -66,52 +67,47 @@ export function startOfMonthJst(now = new Date()): string {
   return new Date(Date.UTC(j.getUTCFullYear(), j.getUTCMonth(), 1) - JST).toISOString();
 }
 
-/** ③②（profile 側の条件）だけの判定。⚠️ ①④は別に見ること。画面で一覧を作るときに使う */
-export function profileAcceptsApproaches(p: { career_stance: string | null; accept_company_approaches: boolean | null } | null | undefined): boolean {
-  return !!p && isReachableByCompanies(p.career_stance) && p.accept_company_approaches === true;
-}
-
-/** ①〜④すべて。取得に失敗したら false（fail-closed）。⚠️ 送信の API はかならずこれを通す */
+/**
+ * ★送れるか（2026-10-10 / 段2）。**判定は DB 関数 `can_send_company_approach()` の1か所。**
+ *   中身 = `can_send_scout()`（①②）＋ 受け取る設定（③）＋ 送る担当者との is_test 一致（④）
+ *        ＋ 受け取る範囲（職種・業種・規模・勤務地・リモート）＋ 受け取らない企業。
+ * ⚠️★条件を TS に書き写さないこと。API の 403・候補者検索のボタン・/u/[id] のボタン・
+ *    「声かけを受け取る方のみ」の絞り込みが、すべてこの関数（またはまとめて呼ぶ下の関数）を通る。
+ * ⚠️ 関数は service_role だけが呼べる（`scripts/check-definer-grants.sh` が検査する）。
+ * 取得に失敗したら false（fail-closed）。
+ */
 export async function isApproachTarget(params: {
   companyId: string;
   candidateOwUserId: string;
   senderOwUserId: string;
 }): Promise<boolean> {
+  const m = await approachTargets({ companyId: params.companyId, senderOwUserId: params.senderOwUserId, candidateOwUserIds: [params.candidateOwUserId] });
+  return m?.get(params.candidateOwUserId) === true;
+}
+
+/** 複数人ぶん（候補者検索の一覧用）。1人でも取得に失敗したら null（呼び出し側は全員を送れない扱いにする） */
+export async function approachTargets(params: {
+  companyId: string;
+  senderOwUserId: string;
+  candidateOwUserIds: string[];
+}): Promise<Map<string, boolean> | null> {
   const db = createAdminClient();
-  const { data: users, error: uErr } = await db
-    .from("ow_users").select("id, auth_id, is_test, is_system")
-    .in("id", [params.candidateOwUserId, params.senderOwUserId]);
-  if (uErr) {
-    console.error("[approaches] ow_users:", uErr.message);
-    return false;
-  }
-  const cand = (users ?? []).find((u) => u.id === params.candidateOwUserId);
-  const sender = (users ?? []).find((u) => u.id === params.senderOwUserId);
-  if (!cand || !sender || cand.is_system === true || !cand.auth_id) return false;
-  if (params.candidateOwUserId === params.senderOwUserId) return false;
-  /* ④ */
-  if ((cand.is_test === true) !== (sender.is_test === true)) return false;
-
-  const { data: prof, error: pErr } = await db
-    .from("ow_profiles").select("career_stance, accept_company_approaches")
-    .eq("user_id", cand.auth_id as string).maybeSingle();
-  if (pErr) {
-    console.error("[approaches] ow_profiles:", pErr.message);
-    return false;
-  }
-  /* ②③ */
-  if (!profileAcceptsApproaches(prof as { career_stance: string | null; accept_company_approaches: boolean | null } | null)) return false;
-
-  /* ① ⚠️ `p_candidate_id` は auth 空間 */
-  const { data: ok, error: rErr } = await db.rpc("can_send_scout", {
+  const out = new Map<string, boolean>();
+  const ids = Array.from(new Set(params.candidateOwUserIds));
+  const results = await Promise.all(ids.map((id) => db.rpc("can_send_company_approach", {
     p_company_id: params.companyId,
-    p_candidate_id: cand.auth_id as string,
-  });
-  if (rErr) {
-    console.error("[approaches] can_send_scout:", rErr.message);
-    return false;
+    p_candidate_ow_user_id: id,
+    p_sender_ow_user_id: params.senderOwUserId,
+  })));
+  for (let i = 0; i < ids.length; i++) {
+    const { data, error } = results[i];
+    if (error) {
+      console.error("[approaches] can_send_company_approach:", error.message);
+      return null;
+    }
+    out.set(ids[i], data === true);
   }
-  return ok === true;
+  return out;
 }
 
 export type ApproachQuota = {
@@ -288,7 +284,16 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
   const rows = data ?? [];
   if (rows.length === 0) return [];
 
-  const companyIds = Array.from(new Set(rows.map((r) => r.company_id as string)));
+  /* ★受け取らない企業に追加した会社からの承認待ちは出さない（2026-10-10 / 柴さんの判断）。
+       ⚠️ 承認の判定は今のまま `can_send_scout()`（範囲は送るときだけ見る）。 */
+  const { data: blocked, error: bErr } = await db
+    .from("ow_approach_blocked_companies").select("company_id").eq("user_id", candidateOwUserId);
+  if (bErr) {
+    console.error("[approaches] incoming blocked:", bErr.message);
+    return null;
+  }
+  const blockedIds = new Set((blocked ?? []).map((b) => b.company_id as string));
+  const companyIds = Array.from(new Set(rows.map((r) => r.company_id as string))).filter((c) => !blockedIds.has(c));
   const visible = new Set<string>();
   for (const cid of companyIds) {
     const { data: ok, error: rErr } = await db.rpc("can_send_scout", { p_company_id: cid, p_candidate_id: me.auth_id as string });

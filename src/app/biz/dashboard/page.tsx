@@ -13,6 +13,7 @@ import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, bizScoreOn
 import { getBizTodoCounts } from "@/lib/business/navBadges";
 import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
+import { companyHasApproachRoles } from "@/lib/approaches/range";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
 import { checkPublishable } from "@/lib/companies/publishable";
@@ -89,7 +90,7 @@ export default async function BizDashboardPage({
 
   const supabase = createClient();
   const adminSupabase = createAdminClient();
-  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo, classification, unconfirmedMaterials] = await Promise.all([
+  const [jobStatusCounts, teamMembers, companyRaw, scoreData, todo, classification, unconfirmedMaterials, hasApproachRoles] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
@@ -120,6 +121,8 @@ export default async function BizDashboardPage({
     checkPublishable(ctx.tenantId, { kind: "admin" }),
     /* ★企業資料の未確定の項目（2026-10-09 / 依頼②）。⚠️ 取れなかったら null */
     countUnconfirmedMaterialItems(ctx.tenantId),
+    /* ★声かけを受け取る範囲で「職種」を選んでいる人に届くか（2026-10-10 / 段2）。⚠️ 取れなかったら null */
+    companyHasApproachRoles(ctx.tenantId),
   ]);
 
   /* ★★スタートガイド（2026-10-08 に完了判定を実データへ合わせた / 柴さんの指示）。
@@ -356,6 +359,16 @@ export default async function BizDashboardPage({
                       </Link>
                     </span>
                   ))}
+                </div>
+              )}
+              {/* ★求人も職種の登録も無い企業は、職種で範囲を指定している求職者に声かけが届かない
+                     （2026-10-10 / 柴さんの指示。文言はそのまま）。⚠️ 取れなかったとき（null）は出さない */}
+              {hasApproachRoles === false && (
+                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginTop: 4 }}>
+                  <Link href="/biz/jobs" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>求人</Link>
+                  か
+                  <Link href="/biz/organization?tab=roles" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>職種</Link>
+                  を登録すると、声かけできる相手が増えます
                 </div>
               )}
             </div>

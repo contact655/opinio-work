@@ -223,6 +223,11 @@ export default function CandidatesClient({
         （年齢を出さない理由は労働施策総合推進法9条、性別は均等法5条。**軸が違う**）。 */
   const [careerStance, setCareerStance] = useState("");
   const [stanceFreshness, setStanceFreshness] = useState("");
+  /* ★「声かけを受け取る方のみ」（2026-10-10 / 段2）。⚠️★判定はサーバーで
+        `can_send_company_approach()` を通した `c.approach.eligible` だけを見る（ボタンと同じ値）。
+        ここで条件を組み立てないこと。 */
+  const [approachOnly, setApproachOnly] = useState(false);
+  const approachEnabled = candidates.some((c) => c.approach !== undefined);
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
         保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
@@ -365,11 +370,13 @@ export default function CandidatesClient({
       });
     }
 
+    if (approachOnly) list = list.filter((c) => c.approach?.eligible === true);
+
     return list;
   }, [
     candidates, q, excludeQuery, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
     tenureBand, selectedPrefectures,
-    careerStance, stanceFreshness,
+    careerStance, stanceFreshness, approachOnly,
     selectedEmploymentTypes, salaryMin, includeNoSalary,
   ]);
 
@@ -426,6 +433,7 @@ export default function CandidatesClient({
     tenureBand ? "x" : "",
     careerStance ? "x" : "",
     stanceFreshness ? "x" : "",
+    approachOnly ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
@@ -476,9 +484,10 @@ export default function CandidatesClient({
       const label = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness)?.label;
       if (label) chips.push({ key: "fresh", label: `更新 ${label}`, clear: () => setStanceFreshness("") });
     }
+    if (approachOnly) chips.push({ key: "approach", label: "声かけを受け取る方のみ", clear: () => setApproachOnly(false) });
     return chips;
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
-      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures]);
+      workStyle, salaryMin, careerStance, stanceFreshness, approachOnly, tenureBand, selectedPrefectures]);
 
   /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
      ⚠️★**この表がこの機能の歯止め。** マップ型なので、
@@ -501,6 +510,7 @@ export default function CandidatesClient({
     prefectures: setSelectedPrefectures,
     careerStance: setCareerStance,
     stanceFreshness: setStanceFreshness,
+    approachOnly: setApproachOnly,
     sort: setSort,
   };
 
@@ -508,11 +518,11 @@ export default function CandidatesClient({
   const currentFilters: SavedCandidateFilters = useMemo(() => ({
     q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
     employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-    tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness,
+    tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness, approachOnly,
     sort,
   }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-       tenureBand, selectedPrefectures, careerStance, stanceFreshness,
+       tenureBand, selectedPrefectures, careerStance, stanceFreshness, approachOnly,
        sort]);
 
   const applyFilters = useCallback((f: SavedCandidateFilters) => {
@@ -739,6 +749,15 @@ export default function CandidatesClient({
           onSelect={(v) => setStanceFreshness(v ?? "")}
           isOpen={openChip === "fresh"} onToggle={() => setOpenChip(openChip === "fresh" ? null : "fresh")}
         />
+        {/* ⚠️ 声かけが使えない（プランで閉じている・判定を取れなかった）ときは出さない */}
+        {approachEnabled && (
+          <FilterChip
+            label="声かけ" value={approachOnly ? "1" : ""}
+            options={[{ value: "1", label: "声かけを受け取る方のみ" }]}
+            onSelect={(v) => setApproachOnly(v === "1")}
+            isOpen={openChip === "approach"} onToggle={() => setOpenChip(openChip === "approach" ? null : "approach")}
+          />
+        )}
       </>)}
 
       {/* ⚠️★黙って減らさない／黙って混ぜない。**理由と人数を画面に出す。**

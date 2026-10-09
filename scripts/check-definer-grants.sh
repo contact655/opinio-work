@@ -43,6 +43,16 @@ ALLOW=(
   "auth_is_active_company_admin(p_company_id uuid)" # ①
 )
 
+# ── ★サーバー専用であるべき関数（2026-10-10 / 声かけ 段2）─────────────────────────
+#  存在し、service_role から呼べ、**クライアントのロールからは呼べない**ことを確かめる。
+#  ⚠️ 声かけの判定は `can_send_company_approach` の1本に寄せてある。消えたり service_role から
+#     呼べなくなったりすると、送信の API・候補者検索・/u/[id] が**黙って全部「送れない」になる**。
+SERVER_ONLY=(
+  "can_send_company_approach(p_company_id uuid, p_candidate_ow_user_id uuid, p_sender_ow_user_id uuid)"
+  "company_in_approach_range(p_company_id uuid, p_ow_user_id uuid)"
+  "count_companies_in_approach_range(p_ow_user_id uuid)"
+)
+
 SELF_TEST=0
 [ "${1:-}" = "--self-test" ] && SELF_TEST=1
 
@@ -74,16 +84,29 @@ select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as f
 EOSQL
 )
 
+SQL2=$(cat <<'EOSQL'
+select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as fn,
+       has_function_privilege('service_role', p.oid, 'EXECUTE') as svc,
+       (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE')) as client
+  from pg_proc p
+ where p.pronamespace = 'public'::regnamespace and p.prosecdef
+ order by 1;
+EOSQL
+)
+
 # ── 接続（読み取り専用のトランザクションの中で問い合わせる）────────────────────
 #   ⚠️ `-q` で BEGIN / ROLLBACK の表示を消す。消さないと結果の行に混ざる。
 RO=(-X -A -t -q -F $'\t' -v ON_ERROR_STOP=1 -c "begin transaction read only;" -c "$SQL" -c "rollback;")
+RO2=(-X -A -t -q -F $'\t' -v ON_ERROR_STOP=1 -c "begin transaction read only;" -c "$SQL2" -c "rollback;")
 if [ -n "${SUPABASE_DB_URL:-}" ]; then
   ROWS="$("$PSQL" "$SUPABASE_DB_URL" "${RO[@]}")"
+  ROWS2="$("$PSQL" "$SUPABASE_DB_URL" "${RO2[@]}")"
 else
   CREDS="$(npx supabase db dump --linked --data-only -s public --dry-run 2>/dev/null | grep '^export PG' || true)"
   [ -n "$CREDS" ] || { echo "Supabase CLI の一時資格情報を取得できませんでした（supabase link 済みか確認）"; exit 2; }
   eval "$CREDS"
   ROWS="$("$PSQL" "${RO[@]}")"
+  ROWS2="$("$PSQL" "${RO2[@]}")"
   unset PGPASSWORD
 fi
 
@@ -106,6 +129,30 @@ while IFS=$'\t' read -r fn roles; do
   fi
 done <<< "$ROWS"
 
+# ── ★サーバー専用の関数の確認 ─────────────────────────────────────────────
+check_server_only() {
+  local n=0 want line svc cli
+  for want in "$@"; do
+    line="$(printf '%s\n' "$ROWS2" | awk -F'\t' -v w="$want" '$1 == w')"
+    if [ -z "$line" ]; then echo "NG  $want  ← 存在しない（声かけの判定が全部止まる）"; n=$((n + 1)); continue; fi
+    svc="$(printf '%s' "$line" | cut -f2)"; cli="$(printf '%s' "$line" | cut -f3)"
+    [ "$svc" = "t" ] || { echo "NG  $want  ← service_role から呼べない"; n=$((n + 1)); }
+    [ "$cli" = "f" ] || { echo "NG  $want  ← クライアントのロールから呼べる"; n=$((n + 1)); }
+  done
+  return "$n"
+}
+SRV_BAD=0
+if [ "$SELF_TEST" = 1 ]; then
+  # ★陽性対照: クライアントから呼べる既知の関数と、実在しない名前を渡すと、両方が NG になること
+  check_server_only "auth_ow_user_id()" "does_not_exist_for_self_test()" > /dev/null && CTRL=0 || CTRL=$?
+  if [ "$CTRL" -ge 2 ]; then
+    echo "✓ 自己テスト: サーバー専用の確認は、クライアントから呼べる関数と実在しない名前を両方 NG にした（${CTRL} 件）"
+  else
+    echo "✗ 自己テスト失敗: サーバー専用の確認が NG を出さなかった（${CTRL} 件）"; exit 1
+  fi
+fi
+check_server_only "${SERVER_ONLY[@]}" && SRV_BAD=0 || SRV_BAD=$?
+
 if [ "$SELF_TEST" = 1 ]; then
   # ★陽性対照: 許可リストの関数が1つ残らず検出されること
   MISS=0
@@ -120,9 +167,13 @@ if [ "$SELF_TEST" = 1 ]; then
   echo "✗ 自己テスト失敗"; exit 1
 fi
 
+if [ "$SRV_BAD" -gt 0 ]; then
+  echo "✗ サーバー専用であるべき関数に問題が ${SRV_BAD} 件あります。"
+  exit 1
+fi
 if [ "$BAD" -gt 0 ]; then
   echo "✗ 許可リスト外で、クライアントのロールから呼べる SECURITY DEFINER 関数が ${BAD} 件あります。"
   echo "  migration で revoke execute ... from public, anon, authenticated; を当て、必要なロールにだけ grant してください。"
   exit 1
 fi
-echo "OK: 許可リスト外の SECURITY DEFINER 関数は 0 件（検査した関数のうち許可済み ${#FOUND[@]} 件）"
+echo "OK: 許可リスト外の SECURITY DEFINER 関数は 0 件（検査した関数のうち許可済み ${#FOUND[@]} 件）／サーバー専用の ${#SERVER_ONLY[@]} 本は service_role だけが呼べる"

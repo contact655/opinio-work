@@ -221,6 +221,77 @@ export type Database = {
           },
         ]
       }
+      ow_approach_blocked_companies: {
+        Row: {
+          company_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_approach_blocked_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_approach_blocked_companies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_approach_preferences: {
+        Row: {
+          industries: string[] | null
+          job_categories: string[] | null
+          prefectures: string[] | null
+          remote_ok: boolean | null
+          size_groups: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          industries?: string[] | null
+          job_categories?: string[] | null
+          prefectures?: string[] | null
+          remote_ok?: boolean | null
+          size_groups?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          industries?: string[] | null
+          job_categories?: string[] | null
+          prefectures?: string[] | null
+          remote_ok?: boolean | null
+          size_groups?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_approach_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_articles: {
         Row: {
           body_blocks: Json | null
@@ -6174,8 +6245,20 @@ export type Database = {
         Args: { p_candidate_id: string; p_company_id: string }
         Returns: boolean
       }
+      can_send_company_approach: {
+        Args: {
+          p_candidate_ow_user_id: string
+          p_company_id: string
+          p_sender_ow_user_id?: string
+        }
+        Returns: boolean
+      }
       can_send_scout: {
         Args: { p_candidate_id: string; p_company_id: string }
+        Returns: boolean
+      }
+      company_in_approach_range: {
+        Args: { p_company_id: string; p_ow_user_id: string }
         Returns: boolean
       }
       company_search_key: {
@@ -6187,6 +6270,10 @@ export type Database = {
           p_slug: string
         }
         Returns: string
+      }
+      count_companies_in_approach_range: {
+        Args: { p_ow_user_id: string }
+        Returns: number
       }
       create_conversation: {
         Args: {

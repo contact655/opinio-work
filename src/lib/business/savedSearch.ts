@@ -43,6 +43,8 @@ export type SavedCandidateFilters = {
   stanceFreshness: string;
   /* ⚠️ `hideAlreadyScouted`（スカウト済みを除く）は 2026-10-08 に外した（スカウト廃止）。
         DB に残っている値は下の `parseSavedFilters` が捨てる（知らないキーは捨てる約束）。 */
+  /** ★声かけを受け取る方のみ（2026-10-10）。判定は `can_send_company_approach()`（サーバーで済ませた結果） */
+  approachOnly: boolean;
   /** ⚠️ 並び替えも保存する。「どう見ていたか」まで戻せないと再現にならない */
   sort: string;
 };
@@ -69,6 +71,7 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   prefectures: [],
   careerStance: "",
   stanceFreshness: "",
+  approachOnly: false,
   sort: "new",
 };
 
@@ -105,6 +108,7 @@ export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
     prefectures: strArr(o.prefectures),
     careerStance: str(o.careerStance, ""),
     stanceFreshness: str(o.stanceFreshness, ""),
+    approachOnly: bool(o.approachOnly, false),
     sort: str(o.sort, "new"),
   };
 }
