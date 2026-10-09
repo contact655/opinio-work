@@ -3991,6 +3991,41 @@ export type Database = {
           },
         ]
       }
+      ow_page_view_daily: {
+        Row: {
+          company_id: string
+          page_type: string
+          target_id: string
+          updated_at: string
+          view_date: string
+          views: number
+        }
+        Insert: {
+          company_id: string
+          page_type: string
+          target_id: string
+          updated_at?: string
+          view_date: string
+          views?: number
+        }
+        Update: {
+          company_id?: string
+          page_type?: string
+          target_id?: string
+          updated_at?: string
+          view_date?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_page_view_daily_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_page_views: {
         Row: {
           created_at: string
@@ -6181,6 +6216,15 @@ export type Database = {
           visibility_company: string
           visibility_reason: boolean
         }[]
+      }
+      increment_page_view: {
+        Args: {
+          p_company_id: string
+          p_page_type: string
+          p_target_id: string
+          p_view_date: string
+        }
+        Returns: undefined
       }
       is_solicitation_blocked: {
         Args: { p_candidate_id: string }

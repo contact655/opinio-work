@@ -25,7 +25,12 @@ export const metadata = { title: { absolute: "分析 | OPINIO Business" }, robot
  * ⚠️★**取得に失敗したら 0 と出さない。**「取得できませんでした」と出す。
  * ⚠️ 外したもの: 求人ステータスの棒（求人管理と同じ内容）／最近のアクティビティ
  *    （47行中35行が自動保存の「求人を更新」だった）。`ow_activities` の表は残してある。
- * ⚠️ 閲覧数は**記録していない**（`ow_job_views` に書くコードが無い）。出さないこと。
+ * ★閲覧数（2026-10-09 / 段階D）… `ow_page_view_daily`（日ごと・ページごとの件数。閲覧者は持たない）。
+ *    記録の仕組みは `POST /api/views` と `lib/views/decide.ts`。記録は 2026-10-09 から。
+ *    ⚠️ 古い `ow_page_views` / `ow_job_views` は読まない（書く経路が無く、検証用の閲覧も混ざっている）。
+ * ★検証用アカウント（is_test）の面談申込・応募・保存は数えない（2026-10-09）。
+ *    ⚠️ そのため「求人ごと」の面談申込・応募は、求人管理のカード（`fetchJobsForCompany`）と
+ *       検証用のぶんだけ食い違いうる。ここは分析なので検証用を除く側に揃えた。
  */
 
 type Period = "30" | "90" | "all";
@@ -35,7 +40,7 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "all", label: "全期間" },
 ];
 
-type Row = { status: string | null; created_at: string };
+type Row = { status: string | null; created_at: string; job_id: string | null };
 type Fetched<T> = { ok: true; rows: T[] } | { ok: false };
 
 const JST_OFFSET_MS = 9 * 3_600_000;
@@ -57,23 +62,63 @@ function lastMonths(n: number): string[] {
 
 // ─── 取得 ────────────────────────────────────────────────────────────────────
 
+/**
+ * 検証用アカウントの ow_users.id。⚠️ 失敗したら null（呼び出し側で「取得できませんでした」にする。
+ * 空集合に倒すと、検証用を数えたまま正常に見える）。
+ * ⚠️ 埋め込み（ow_users!inner）にしない。ow_casual_meetings は ow_users への FK が3本あり曖昧になる。
+ */
+async function fetchTestUserIds(userIds: string[]): Promise<Set<string> | null> {
+  if (userIds.length === 0) return new Set();
+  const { data, error } = await createAdminClient()
+    .from("ow_users").select("id").in("id", Array.from(new Set(userIds))).eq("is_test", true);
+  if (error) { console.error("[biz/analytics] is_test:", error.message); return null; }
+  return new Set((data ?? []).map((r) => r.id as string));
+}
+
 async function fetchMeetings(supabase: ReturnType<typeof createClient>, tenantId: string): Promise<Fetched<Row>> {
   const { data, error } = await supabase
     .from("ow_casual_meetings")
-    .select("status, created_at")
+    .select("status, created_at, job_id, user_id")
     .eq("company_id", tenantId);
   if (error) { console.error("[biz/analytics] meetings:", error.message); return { ok: false }; }
+  const test = await fetchTestUserIds((data ?? []).map((r) => r.user_id as string));
+  if (!test) return { ok: false };
   /* ⚠️ 日時の無い行は期間にも月にも入れられないので数えない */
-  return { ok: true, rows: (data ?? []).flatMap((r) => (r.created_at ? [{ status: r.status, created_at: r.created_at }] : [])) };
+  return { ok: true, rows: (data ?? []).flatMap((r) =>
+    r.created_at && !test.has(r.user_id as string) ? [{ status: r.status, created_at: r.created_at, job_id: r.job_id ?? null }] : []) };
 }
 
 async function fetchApplications(supabase: ReturnType<typeof createClient>, tenantId: string): Promise<Fetched<Row>> {
   const { data, error } = await supabase
     .from("ow_job_applications")
-    .select("status, created_at, ow_jobs!inner(company_id)")
+    .select("status, created_at, job_id, user_id, ow_jobs!inner(company_id)")
     .eq("ow_jobs.company_id", tenantId);
   if (error) { console.error("[biz/analytics] applications:", error.message); return { ok: false }; }
-  return { ok: true, rows: (data ?? []).flatMap((r) => (r.created_at ? [{ status: r.status, created_at: r.created_at }] : [])) };
+  const test = await fetchTestUserIds((data ?? []).map((r) => r.user_id as string));
+  if (!test) return { ok: false };
+  return { ok: true, rows: (data ?? []).flatMap((r) =>
+    r.created_at && !test.has(r.user_id as string) ? [{ status: r.status, created_at: r.created_at, job_id: r.job_id ?? null }] : []) };
+}
+
+type ViewRow = { view_date: string; page_type: string; target_id: string; views: number };
+
+/**
+ * ★閲覧数（日ごと・ページごと）。⚠️ この表はクライアントのロールに権限が無いので admin で引く。
+ *    絞り込みは company_id（＝いま見ている企業）だけ。
+ */
+async function fetchViews(tenantId: string): Promise<Fetched<ViewRow>> {
+  const { data, error } = await createAdminClient()
+    .from("ow_page_view_daily")
+    .select("view_date, page_type, target_id, views")
+    .eq("company_id", tenantId);
+  if (error) { console.error("[biz/analytics] views:", error.message); return { ok: false }; }
+  return { ok: true, rows: (data ?? []) as ViewRow[] };
+}
+
+/** JST の「YYYY-MM-DD」を n 日分（古い順・今日まで） */
+function lastDays(n: number): string[] {
+  const today = Date.now() + JST_OFFSET_MS;
+  return Array.from({ length: n }, (_, i) => new Date(today - (n - 1 - i) * 86_400_000).toISOString().slice(0, 10));
 }
 
 type SaveRow = { target_type: string; target_id: string; created_at: string };
@@ -181,10 +226,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
   const supabase = createClient();
   const tenantId = ctx.tenantId;
 
-  const [jobs, meetingsRes, appsRes] = await Promise.all([
+  const [jobs, meetingsRes, appsRes, viewsRes] = await Promise.all([
     fetchJobsForCompany(supabase, tenantId),
     fetchMeetings(supabase, tenantId),
     fetchApplications(supabase, tenantId),
+    fetchViews(tenantId),
   ]);
   const savesRes = await fetchSaves(tenantId, jobs.map((j) => j.id));
 
@@ -230,6 +276,39 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
 
   const periodLabel = PERIODS.find((p) => p.key === period)!.label;
 
+  /* ★求人ごとの面談申込・応募（全期間）。検証用を除いた行から数える（2026-10-09）。
+        ⚠️ 面談は辞退を除く（求人管理と同じ定義） */
+  const jobMeetingCounts: Record<string, number> = {};
+  if (meetingsRes.ok) for (const m of meetingsRes.rows) if (m.job_id && m.status !== "declined") jobMeetingCounts[m.job_id] = (jobMeetingCounts[m.job_id] ?? 0) + 1;
+  const jobAppCounts: Record<string, number> = {};
+  if (appsRes.ok) for (const a of appsRes.rows) if (a.job_id) jobAppCounts[a.job_id] = (jobAppCounts[a.job_id] ?? 0) + 1;
+
+  /* ★閲覧数。期間は日付で切る（記録が日ごとなので、時刻ではなく JST の日付で比べる） */
+  const sinceDate = period === "all" ? null : lastDays(Number(period))[0];
+  const viewsInPeriod = viewsRes.ok ? viewsRes.rows.filter((v) => sinceDate === null || v.view_date >= sinceDate) : [];
+  const companyViews = viewsInPeriod.filter((v) => v.page_type === "company").reduce((a, v) => a + v.views, 0);
+  const jobViews = viewsInPeriod.filter((v) => v.page_type === "job").reduce((a, v) => a + v.views, 0);
+  const jobViewCounts: Record<string, number> = {};
+  if (viewsRes.ok) for (const v of viewsRes.rows) if (v.page_type === "job") jobViewCounts[v.target_id] = (jobViewCounts[v.target_id] ?? 0) + v.views;
+
+  /* 推移: 直近30日・90日は日ごと、全期間は月ごと（記録の最初の月から） */
+  const firstMonth = viewsRes.ok && viewsRes.rows.length > 0
+    ? viewsRes.rows.reduce((m, v) => (v.view_date < m ? v.view_date : m), viewsRes.rows[0].view_date).slice(0, 7)
+    : null;
+  const trendKeys: string[] = period === "all"
+    ? (firstMonth ? lastMonths(12).filter((m) => m >= firstMonth) : [])
+    : lastDays(Number(period));
+  const trend = trendKeys.map((k) => {
+    const rows = viewsInPeriod.filter((v) => (period === "all" ? v.view_date.slice(0, 7) === k : v.view_date === k));
+    return {
+      key: k,
+      company: rows.filter((v) => v.page_type === "company").reduce((a, v) => a + v.views, 0),
+      job: rows.filter((v) => v.page_type === "job").reduce((a, v) => a + v.views, 0),
+    };
+  });
+  const trendMax = Math.max(1, ...trend.map((t) => t.company + t.job));
+  const trendEmpty = trend.every((t) => t.company + t.job === 0);
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -242,6 +321,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
       <style>{`
         .an-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
         .an-funnels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .an-views { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
         .an-period a:hover { color: var(--ink); }
         @media (max-width: 900px) {
           .an-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -254,7 +334,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>分析</h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: 0 }}>
-            面談の申込み・応募・保存の数と、その後どこまで進んだかを確認できます。
+            ページの閲覧、面談の申込み・応募・保存の数と、その後どこまで進んだかを確認できます。
           </p>
         </div>
         {/* 期間。⚠️ URL に持つ（再読み込み・共有で戻る） */}
@@ -287,6 +367,54 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
         <Kpi label="応募" value={appsRes.ok ? apps.length : null} sub={periodLabel} />
         <Kpi label="企業ページの保存" value={savesRes.ok ? companySaves : null} sub={`${periodLabel}・求職者が ♡ した数`} />
         <Kpi label="求人の保存" value={savesRes.ok ? jobSaves : null} sub={`${periodLabel}・全求人の合計`} />
+      </div>
+
+      {/* ── 閲覧数（2026-10-09 / 段階D） ── */}
+      <div style={{ ...card, marginBottom: 16 }} data-state="analytics-views">
+        <SectionTitle note={<>
+          {periodLabel}。同じ人が同じページを1日に何度開いても1回と数えます。検証用・運営・御社の担当者の閲覧は含みません。
+          <br />記録は 2026年10月9日から。誰が見たかは記録していません。
+        </>}>閲覧数</SectionTitle>
+        {!viewsRes.ok ? <Failed /> : (
+          <>
+            <div className="an-views" style={{ marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>企業ページ</div>
+                <div style={{ ...num, fontSize: 24, color: "var(--ink)", lineHeight: 1 }}>{companyViews}<span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 4 }}>回</span></div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>求人（全求人の合計）</div>
+                <div style={{ ...num, fontSize: 24, color: "var(--ink)", lineHeight: 1 }}>{jobViews}<span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 4 }}>回</span></div>
+              </div>
+            </div>
+            {trendEmpty ? (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>この期間の閲覧はまだありません。</p>
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: 16, marginBottom: 10, fontSize: 12, color: "var(--ink-soft)" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--royal)" }} />企業ページ</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--royal-100)" }} />求人</span>
+                  <span style={{ marginLeft: "auto", color: "var(--ink-mute)" }}>{period === "all" ? "月ごと" : "日ごと"}</span>
+                </div>
+                {/* ⚠️ 積み上げの棒。日ごと90本でも縮むように minmax(0, 1fr) */}
+                <div role="img" aria-label={trend.filter((t) => t.company + t.job > 0).map((t) => `${t.key} 企業ページ${t.company}回 求人${t.job}回`).join("、")}
+                  style={{ display: "grid", gridTemplateColumns: `repeat(${trend.length}, minmax(0, 1fr))`, gap: trend.length > 40 ? 1 : 3, alignItems: "end", height: 120 }}>
+                  {trend.map((t) => (
+                    <div key={t.key} title={`${t.key}：企業ページ ${t.company}回・求人 ${t.job}回`}
+                      style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%" }}>
+                      <div style={{ height: `${(t.job / trendMax) * 100}%`, minHeight: t.job > 0 ? 2 : 0, background: "var(--royal-100)" }} />
+                      <div style={{ height: `${(t.company / trendMax) * 100}%`, minHeight: t.company > 0 ? 2 : 0, background: "var(--royal)" }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "var(--ink-mute)" }}>
+                  <span>{fmtTrendKey(trend[0].key)}</span>
+                  <span>{fmtTrendKey(trend[trend.length - 1].key)}</span>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
 
       {/* ── 2つのファネル ── */}
@@ -343,15 +471,15 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
       {/* ── 求人ごと ──
              ⚠️ 面談申込・応募は求人管理のカードと同じ数字（`fetchJobsForCompany`。全期間） */}
       <div style={card}>
-        <SectionTitle note="全期間。面談の申込みは辞退を除いた数（求人管理と同じ）">求人ごとの反応</SectionTitle>
+        <SectionTitle note="全期間。面談の申込みは辞退を除いた数。検証用アカウントは含みません。閲覧は 2026年10月9日からの記録">求人ごとの反応</SectionTitle>
         {jobs.length === 0 ? (
           <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>求人がまだありません。</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }} aria-label="求人ごとの面談申込数・応募数・保存数">
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }} aria-label="求人ごとの閲覧数・面談申込数・応募数・保存数">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                  {["求人", "状態", "面談申込", "応募", "保存"].map((h, i) => (
+                  {["求人", "状態", "閲覧", "面談申込", "応募", "保存"].map((h, i) => (
                     <th key={h} scope="col" style={{
                       padding: "8px 12px", textAlign: i >= 2 ? "right" : "left",
                       fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap",
@@ -369,8 +497,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
                       </Link>
                     </td>
                     <td style={{ padding: "11px 12px", whiteSpace: "nowrap", fontSize: 12, color: "var(--ink-soft)" }}>{JOB_STATUS_LABEL[j.status ?? ""] ?? "—"}</td>
-                    <td style={{ ...num, fontWeight: 600, padding: "11px 12px", color: "var(--ink)", textAlign: "right" }}>{j.meetingCount}</td>
-                    <td style={{ ...num, fontWeight: 600, padding: "11px 12px", color: "var(--ink)", textAlign: "right" }}>{j.applicationCount}</td>
+                    <td style={{ ...num, fontWeight: 600, padding: "11px 12px", color: "var(--ink)", textAlign: "right" }}>{viewsRes.ok ? (jobViewCounts[j.id] ?? 0) : "—"}</td>
+                    <td style={{ ...num, fontWeight: 600, padding: "11px 12px", color: "var(--ink)", textAlign: "right" }}>{meetingsRes.ok ? (jobMeetingCounts[j.id] ?? 0) : "—"}</td>
+                    <td style={{ ...num, fontWeight: 600, padding: "11px 12px", color: "var(--ink)", textAlign: "right" }}>{appsRes.ok ? (jobAppCounts[j.id] ?? 0) : "—"}</td>
                     <td style={{ ...num, fontWeight: 600, padding: "11px 12px", color: "var(--ink)", textAlign: "right" }}>
                       {savesRes.ok ? (jobSaveCounts[j.id] ?? 0) : "—"}
                     </td>
@@ -393,3 +522,8 @@ const JOB_STATUS_LABEL: Record<string, string> = {
   private: "非公開",
   rejected: "差し戻し",
 };
+
+/** 推移の端に出す日付。「YYYY-MM-DD」→「M/D」、「YYYY-MM」→「YYYY年M月」 */
+function fmtTrendKey(k: string): string {
+  return k.length === 10 ? `${Number(k.slice(5, 7))}/${Number(k.slice(8, 10))}` : `${k.slice(0, 4)}年${Number(k.slice(5, 7))}月`;
+}

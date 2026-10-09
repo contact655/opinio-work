@@ -45,6 +45,7 @@ import { BenefitsList } from "@/components/companies/BenefitsList";
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
+import ViewBeacon from "@/components/views/ViewBeacon";
 
 // 5分間ページキャッシュ（ISR）
 type RelatedJob = {
@@ -409,6 +410,8 @@ export async function JobDetailView({
   return (
     <>
       <ReadingProgress />
+      {/* ★閲覧を数える（2026-10-09 / 段階D）。⚠️ プレビュー（/biz）では数えない */}
+      {!preview && <ViewBeacon type="job" id={job.id} />}
       {(() => {
         // published_at が null の求人は JSON-LD を出力しない。
         // created_at フォールバックは使用しない（2026-06-12 のデータ移行日が全件に入るため）。

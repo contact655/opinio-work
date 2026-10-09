@@ -22,6 +22,7 @@ import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
 import AmbassadorWidget from "./AmbassadorWidget";
 import MeetingFlowNote from "./MeetingFlowNote";
+import ViewBeacon from "@/components/views/ViewBeacon";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -1908,6 +1909,8 @@ export default async function CompanyDetailPage({
   return (
     <>
       <ReadingProgress />
+      {/* ★閲覧を数える（2026-10-09 / 段階D）。数えるかどうかはサーバーが決める */}
+      <ViewBeacon type="company" id={company.id} />
       <BackToTop aboveMobileCta={hasMobileBottomCta(company)} />
       <script
         type="application/ld+json"
