@@ -224,7 +224,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ⚠️ 都道府県は**47件の固定リスト**になったので DB から引かない（2026-09-06）。
         該当0件の県も出す方針にしたため、実データを見る必要がなくなった。
         選択肢は lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS`。 */
-  const [industryFacets, targetIndustryOptions, companySuggestions, allCompaniesResult] = await Promise.all([
+  const [industryFacets, targetIndustryOptions, companySuggestions, allCompaniesResult, talkableCount] = await Promise.all([
     /* ★事業領域の選択肢は**マスタ全件**（有効な14件）。**該当0社のものも出す**（2026-09-14）。
           ⚠️★**`getBusinessDomainFacets()` に戻さないこと。** あちらは0社のものを落とすので、
              企業を一覧から外すたびに**チップの項目が静かに減る。**
@@ -259,6 +259,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
         })
       /* ⚠️ 条件は /api/companies/count（ドロワーの件数）と同じ関数で組む */
       : searchCompanies(companyFilterParams(searchParams)),
+    /* ★「話を聞ける人」がいる掲載企業の数（2026-10-09）。0 ならトグルを出さない。
+          ⚠️ 失敗したら null（トグルを出さない）。ページごと落とさない */
+    searchCompanies({ talk: true, limit: 1, offset: 0 })
+      .then((r) => r.totalCount)
+      .catch((e) => { console.error("[companies] 話を聞ける人の件数:", e); return null; }),
     // 口コミ平均スコア
   ]);
 
@@ -328,11 +333,12 @@ export default async function CompaniesPage({ searchParams }: Props) {
               industryOptions={industryFacets}
               targetIndustryOptions={targetIndustryOptions}
               companySuggestions={companySuggestions}
+              talkableCount={talkableCount}
               sortBar={
                 /* ⚠️ 絞り込み中も出す（2026-10-09）。表示形式の切り替えだけ隠す
                       ——絞り込み結果は常にグリッドで、?view=list に切り替わらないため */
                 <Suspense fallback={null}>
-                  <GridSortBar totalCount={allCompaniesResult.totalCount} showViewToggle={!hasFilter} />
+                  <GridSortBar totalCount={allCompaniesResult.totalCount} showViewToggle={!hasFilter} showSort={false} />
                 </Suspense>
               }
             />

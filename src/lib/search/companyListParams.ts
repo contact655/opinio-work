@@ -16,12 +16,14 @@ export type CompanyListQuery = {
   industry?: string;
   target?: string;
   foreign?: string;
+  /** 話を聞ける人（`?talk=1`） */
+  talk?: string;
   sort?: string;
 };
 
 /** 絞り込みがあるか。⚠️ 外資系は含めない（外資系だけのときは一覧グリッドのままページ分けする） */
 export function hasCompanyFilter(sp: CompanyListQuery): boolean {
-  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target);
+  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.talk);
 }
 
 /** 絞り込みの条件（並び替えを含む・ページ分けは含まない） */
@@ -35,6 +37,7 @@ export function companyFilterParams(sp: CompanyListQuery) {
     industry: sp.industry || undefined,
     targetIndustry: sp.target || undefined,
     foreign: sp.foreign === "1" ? true : undefined,
+    talk: sp.talk === "1" ? true : undefined,
     sort: sp.sort ?? "newest",
   };
 }

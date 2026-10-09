@@ -12,7 +12,7 @@ import { companyFilterParams, type CompanyListQuery } from "@/lib/search/company
  */
 export const dynamic = "force-dynamic";
 
-const KEYS = ["q", "phase", "workStyle", "hiring", "location", "industry", "target", "foreign"] as const;
+const KEYS = ["q", "phase", "workStyle", "hiring", "location", "industry", "target", "foreign", "talk"] as const;
 
 export async function GET(req: NextRequest) {
   const sp: CompanyListQuery = {};

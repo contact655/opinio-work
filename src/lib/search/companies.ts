@@ -1,4 +1,5 @@
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
+import { fetchTalkableCompanyIds } from "@/lib/companies/talkableCompanies";
 // src/lib/search/companies.ts
 import { resolveIndustryKey } from "./industryGroups";
 import { isRegisteredUser } from "@/lib/users/registered";
@@ -40,6 +41,8 @@ export type CompanySearchParams = {
   /** 対象業界（軸2）。値は `ow_industries.slug`。⚠️ `industry`（事業領域）とは別の軸。 */
   targetIndustry?: string;
   foreign?: boolean;   // 外資系のみ表示
+  /** 「話を聞ける人」がいる企業だけ（2026-10-09 / `?talk=1`）。判定は `fetchTalkableCompanyIds` */
+  talk?: boolean;
   sort?: string;       // "newest" | "employees" | "disclosure"（"jobs" は 2026-08-18・"salary" は 2026-08-25 に廃止）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
@@ -217,6 +220,14 @@ export async function searchCompanies(
     if (jobErr) throw jobErr;
     const hiringIds = Array.from(new Set((jobRows ?? []).map((r) => r.company_id as string)));
     const base = domainCompanyIds ? domainCompanyIds.filter((id) => hiringIds.includes(id)) : hiringIds;
+    domainCompanyIds = base.length > 0 ? base : ["00000000-0000-0000-0000-000000000000"];
+  }
+
+  /* ── 話を聞ける人（`?talk=1`）も DB 側の条件（2026-10-09）。募集ありと同じ積集合の形。
+     ⚠️ 取得に失敗したら `fetchTalkableCompanyIds` が投げる（0社と出さない）。 */
+  if (params.talk) {
+    const talkIds = await fetchTalkableCompanyIds();
+    const base = domainCompanyIds ? domainCompanyIds.filter((id) => talkIds.includes(id)) : talkIds;
     domainCompanyIds = base.length > 0 ? base : ["00000000-0000-0000-0000-000000000000"];
   }
 

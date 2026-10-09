@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChip } from "@/components/common/FilterChip";
 import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel, type ActiveFilter } from "@/components/common/DetailSearch";
+import { CompanySortSelect, companySortLabel } from "@/components/companies/GridSortBar";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
@@ -32,6 +33,9 @@ type Props = {
    *  ⚠️ こちらも実データにあるものだけ。0件の選択肢を出さない。 */
   targetIndustryOptions: { slug: string; name: string }[];
   companySuggestions?: { id: string; name: string }[];
+  /** ★「話を聞ける人」がいる掲載企業の数（2026-10-09）。⚠️ 0 ならトグルを出さない
+   *  （0件の選択肢を出さない原則）。null は取得失敗で、これも出さない */
+  talkableCount?: number | null;
 };
 
 // ★FilterChip は 2026-09-18 に `components/common/FilterChip.tsx` へ切り出した。
@@ -42,6 +46,7 @@ export function CompanySearchBar({
   industryOptions,
   targetIndustryOptions,
   companySuggestions = [],
+  talkableCount = null,
   /**
    * ★並び替え・表示形式・件数（2026-09-17）。**同じ行に入れるために受け取る。**
    *
@@ -49,7 +54,7 @@ export function CompanySearchBar({
    * 一覧が始まるのは **275px**（本番 1440px 実測）だった。/jobs を 2026-09-17 に
    * 1本（69px / 162px）にしたのと同じ形に揃えた（柴さんの要望）。
    *
-   * ⚠️★**ここで `GridSortBar` を import しないこと。** 表示形式の切り替えを出すかと件数は
+   * ⚠️★**ここで `GridSortBar` 本体を描かないこと**（並び替えだけは `CompanySortSelect` を使う）。表示形式の切り替えを出すかと件数は
    *    ページが持っている（2026-10-09 から絞り込み中も並び替えと件数を出す）。**判定を2箇所に増やさない。**
    */
   sortBar = null,
@@ -92,7 +97,9 @@ export function CompanySearchBar({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.push(`?${params.toString()}`);
+    /* ★履歴を積まない（2026-10-09 / 柴さんの指示）。条件を3つ選んでも「戻る」1回で
+          一覧に来る前のページへ戻る。⚠️ push に戻さないこと（戻るが条件を1つずつ外す操作になる） */
+    router.replace(`?${params.toString()}`);
   }
 
   /* ★「一覧内を検索」になった（2026-10-01 / ステップ2）。
@@ -124,6 +131,10 @@ export function CompanySearchBar({
   const currentHiring     = searchParams.get("hiring") === "1";
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
+  const currentTalk       = searchParams.get("talk") === "1";
+  const currentSortLabel  = companySortLabel(searchParams.get("sort"));
+  /* ⚠️ 該当0社なら出さない。ただし選択中なら外せるように出す */
+  const showTalk = (talkableCount ?? 0) > 0 || currentTalk;
 
   /*
     都道府県は **47件すべて**を「よく選ばれる」→「すべての都道府県」の順で出す。
@@ -148,13 +159,16 @@ export function CompanySearchBar({
   const labelOf = (opts: { value: string; label: string }[], v: string) =>
     opts.find((o) => o.value === v)?.label ?? v;
 
+  /* ★詳細検索の中にある条件だけを出す（2026-10-09 の軸の入れ替え）。
+        事業領域・都道府県・話を聞ける人は1段目に常に見えていて、選択状態をチップ自身が持つ。
+        ここに入れると同じ語が2回並ぶ。⚠️ 並びは詳細検索の中の並びと同じ順にしてある */
   if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
-  if (currentIndustry) activeChips.push({ key: "industry", label: labelOf(industryOptions.map((d) => ({ value: d.slug, label: d.name })), currentIndustry), clear: () => updateParam("industry", null) });
   if (currentTarget) activeChips.push({ key: "target", label: labelOf(targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name })), currentTarget), clear: () => updateParam("target", null) });
-  if (currentLocation) activeChips.push({ key: "location", label: currentLocation, clear: () => updateParam("location", null) });
   if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
   if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
   if (currentHiring) activeChips.push({ key: "hiring", label: "募集あり", clear: () => updateParam("hiring", null) });
+  /* 並び替えも詳細検索の中に移したので、既定以外のときは外に出す（閉じていると何順か分からないため） */
+  if (currentSortLabel) activeChips.push({ key: "sort", label: currentSortLabel, clear: () => updateParam("sort", null) });
 
   /* ⚠️ かつてここで `activeFilters`（「絞り込み中」行のチップ）を組み立てていた。
         2026-09-06 に行ごと廃止したので消した。理由はこのファイル下部のコメント。
@@ -195,6 +209,53 @@ export function CompanySearchBar({
             onToggle={() => setFiltersExpanded(!filtersExpanded)}
           />
 
+          {/* ★1段目に常に見える軸（2026-10-09）: 事業領域 / 都道府県 / 話を聞ける人。
+                 ⚠️ 詳細検索の中は フェーズ / 顧客の業界 / 外資系 / 募集あり / 並び替え。 */}
+          {/* 事業領域（何を作っているか）
+              ⚠️★**ラベルは「事業領域」。**「業種」に戻さないこと（2026-09-06）。
+                 中身は `ow_business_domains` で、`/jobs` も「事業領域」と呼んでいる。
+                 「業種」は `ow_industries`（IT・ソフトウェア／製造業…）に使う語で、
+                 **すぐ隣の「対象業界」チップがそちらのマスタ**。名前が衝突する。
+              ⚠️ URL のキーは `?industry=` のまま。2026-08-26 の移行で被リンクを
+                 切らないためで、**キーとラベルが一致していないのは承知のうえ。** */}
+          <FilterChip
+            label="事業領域"
+            value={currentIndustry}
+            options={industryOptions.map((d) => ({ value: d.slug, label: d.name }))}
+            onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
+            isOpen={openChip === "industry"}
+            onToggle={() => toggleChip("industry")}
+            listStyle
+            /* ⚠️ 隣の「顧客の業界」の hint と**対で読ませる**。片方だけ変えないこと。 */
+            hint="この会社が何を作っているか"
+          />
+
+          {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
+          <FilterChip
+            label="都道府県"
+            value={currentLocation}
+            options={locationOptions}
+            onSelect={(v) => { updateParam("location", v); setOpenChip(null); }}
+            isOpen={openChip === "location"}
+            onToggle={() => toggleChip("location")}
+            listStyle
+            searchable
+          />
+
+          {/* ★話を聞ける人（2026-10-09 / 柴さんの判断）。1段目に常に出す。
+                 ⚠️ 判定は lib/companies/talkableCompanies.ts（企業ページの「この会社の話を聞ける人」と同じ条件）。
+                 ⚠️ 該当0社なら出さない（0件の選択肢を出さない原則）。 */}
+          {showTalk && (
+            <button
+              type="button"
+              className={`foreign-toggle${currentTalk ? " active" : ""}`}
+              onClick={() => updateParam("talk", currentTalk ? null : "1")}
+              aria-pressed={currentTalk}
+            >
+              話を聞ける人{currentTalk && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+            </button>
+          )}
+
           {/* ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）。
                  ⚠️ 出すかどうかと件数はページが決める。ここは置き場所だけ。 */}
           {sortBar}
@@ -224,24 +285,6 @@ export function CompanySearchBar({
             phaseStyle
           />
 
-          {/* 事業領域（何を作っているか）
-              ⚠️★**ラベルは「事業領域」。**「業種」に戻さないこと（2026-09-06）。
-                 中身は `ow_business_domains` で、`/jobs` も「事業領域」と呼んでいる。
-                 「業種」は `ow_industries`（IT・ソフトウェア／製造業…）に使う語で、
-                 **すぐ隣の「対象業界」チップがそちらのマスタ**。名前が衝突する。
-              ⚠️ URL のキーは `?industry=` のまま。2026-08-26 の移行で被リンクを
-                 切らないためで、**キーとラベルが一致していないのは承知のうえ。** */}
-          <FilterChip
-            label="事業領域"
-            value={currentIndustry}
-            options={industryOptions.map((d) => ({ value: d.slug, label: d.name }))}
-            onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
-            isOpen={openChip === "industry"}
-            onToggle={() => toggleChip("industry")}
-            listStyle
-            /* ⚠️ 隣の「顧客の業界」の hint と**対で読ませる**。片方だけ変えないこと。 */
-            hint="この会社が何を作っているか"
-          />
 
           {/* 顧客の業界（誰に売っているか＝軸2）
               ⚠️★**事業領域と別の軸。** 統合しないこと。
@@ -276,17 +319,6 @@ export function CompanySearchBar({
             />
           )}
 
-          {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
-          <FilterChip
-            label="都道府県"
-            value={currentLocation}
-            options={locationOptions}
-            onSelect={(v) => { updateParam("location", v); setOpenChip(null); }}
-            isOpen={openChip === "location"}
-            onToggle={() => toggleChip("location")}
-            listStyle
-            searchable
-          />
 
           {/* ③ 勤務形態フィルター
                  ⚠️ **2026-08-11 に UI から外した（ロジックは残してある）。**
@@ -374,6 +406,9 @@ export function CompanySearchBar({
                  外資系と募集ありはもう一度押せば解除される（元からトグル）。
               ⚠️ 戻すなら、検索欄の ✕ と役割が重ならないようにすること
                  （あちらは検索文字だけを消す）。 */}
+
+          {/* 並び替え（2026-10-09 に詳細検索の中へ移した）。⚠️ 選択肢は GridSortBar.tsx の1か所 */}
+          <CompanySortSelect />
 
           </DetailSearchPanel>
 

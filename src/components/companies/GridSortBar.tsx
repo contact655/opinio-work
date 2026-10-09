@@ -9,6 +9,9 @@ type Props = {
    *  ——絞り込み結果は常にグリッドで、詳細ビュー（?view=list）に切り替わらないため。
    *  並び替えと件数は絞り込み中も出す（docs/list-filters-20261009.md の 1）。 */
   showViewToggle?: boolean;
+  /** ★並び替えをこの行に出すか（2026-10-09）。⚠️ /companies は詳細検索の中へ移したので false。
+   *  そちらは下の `CompanySortSelect` を使う（選択肢と URL の書き方を1か所にするため）。 */
+  showSort?: boolean;
 };
 
 const SORT_OPTIONS = [
@@ -51,24 +54,50 @@ const SORT_OPTIONS = [
   },
 ];
 
-export function GridSortBar({ totalCount, showViewToggle = true }: Props) {
+/** 並び替えの表示名。⚠️ 既定（新着順）は null（選択中の条件として出さない） */
+export function companySortLabel(value: string | null): string | null {
+  if (!value || value === "newest") return null;
+  return SORT_OPTIONS.find((o) => o.value === value)?.label ?? null;
+}
+
+/** ★URL の書き換えは履歴を積まない（2026-10-09）。⚠️ 戻るで一覧に来る前のページへ戻るように */
+function useSetSort() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  return (s: string) => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (s === "newest") p.delete("sort");
+    else p.set("sort", s);
+    router.replace(`/companies?${p.toString()}`);
+  };
+}
+
+/** 並び替えだけ（2026-10-09 / /companies の詳細検索の中に置く） */
+export function CompanySortSelect() {
+  const searchParams = useSearchParams();
+  const setSort = useSetSort();
+  return (
+    <SortSelect
+      value={searchParams.get("sort") ?? "newest"}
+      onChange={setSort}
+      options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+    />
+  );
+}
+
+export function GridSortBar({ totalCount, showViewToggle = true, showSort = true }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const current = searchParams.get("sort") ?? "newest";
   const currentView = searchParams.get("view") ?? "card";
 
-  const setSort = (s: string) => {
-    const p = new URLSearchParams(searchParams.toString());
-    if (s === "newest") p.delete("sort");
-    else p.set("sort", s);
-    router.push(`/companies?${p.toString()}`);
-  };
+  const setSort = useSetSort();
 
   const setView = (v: string) => {
     const p = new URLSearchParams(searchParams.toString());
     if (v === "card") p.delete("view");
     else p.set("view", v);
-    router.push(`/companies?${p.toString()}`);
+    router.replace(`/companies?${p.toString()}`);
   };
 
   return (
@@ -103,11 +132,13 @@ export function GridSortBar({ totalCount, showViewToggle = true }: Props) {
                ⚠️★`icon` は使わなくなったが `SORT_OPTIONS` から消していない。
                   **あの定数のコメントに「なぜ2つ外したか」が書いてある**ので、
                   形を崩さずそのまま残す。 */}
-        <SortSelect
-          value={current}
-          onChange={setSort}
-          options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        />
+        {showSort && (
+          <SortSelect
+            value={current}
+            onChange={setSort}
+            options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+          />
+        )}
 
         {/* 右: ビュートグル + 件数 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
