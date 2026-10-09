@@ -27,10 +27,8 @@ function formatRelativeTime(dateStr: string | null): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ConversationsClient({ conversations, hasPublishedJobs = false }: {
+export function ConversationsClient({ conversations }: {
   conversations: ConversationRow[];
-  /** 空状態の文言に使う。⚠️ 既定 false（fail-closed） */
-  hasPublishedJobs?: boolean;
 }) {
   /* ★「すべて / 未読」（2026-09-21）。未読はサイドバーのバッジと同じ式（サーバーで決める） */
   const [activeFilter, setActiveFilter] = useState<"all" | "unread">("all");
@@ -173,19 +171,30 @@ export function ConversationsClient({ conversations, hasPublishedJobs = false }:
               メッセージはまだありません
             </div>
             <div style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-              {/* ⚠️ 公開求人があるのに「公開すると〜」と言わない（2026-08-31）。
-                     実測で公開求人2件の企業にこの文が出ていた。 */}
-              {hasPublishedJobs
-                ? <>公開中の求人やカジュアル面談から問い合わせが届くと、<br />ここに表示されます。</>
-                : <>求人を公開すると、候補者からの問い合わせがここに表示されます。<br />カジュアル面談の申込みもここでやり取りできます。</>}
+              {/* ★2026-10-10 に書き換えた（柴さんの指示）。企業との会話が開くのは
+                     「応募・カジュアル面談の申込・提案の双方合意・声かけの承認」のときだけ（openReason）で、
+                     「求人を公開すると問い合わせが届く」は今の仕組みと合っていなかった。
+                  ⚠️ 開く理由を足したら、この文も足すこと（`lib/conversations/openReason.ts`）。
+                  ⚠️ 「問い合わせ」と書かない（候補者から自由に連絡できる窓口は無い）。 */}
+              {"応募やカジュアル面談の申込があったとき、提案で双方が「会いたい」と答えたとき、声かけが承認されたときに、ここで候補者とやり取りできます。"}
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/biz/jobs" style={{
+              {/* ★2026-10-10 に「候補者を探す」を足した。企業が自分から動ける入口（声かけ・提案）は
+                     候補者検索から始まるので、これを主（濃紺）にし、残り2つはゴーストにする
+                     （3つとも濃紺にすると、どれが主かが分からない） */}
+              <Link href="/biz/candidates" style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
                 background: "var(--royal)", color: "#fff", textDecoration: "none",
               }}>
-                求人を管理する →
+                候補者を探す →
+              </Link>
+              <Link href="/biz/jobs" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                border: "1px solid var(--line)", color: "var(--ink-soft)", textDecoration: "none", background: "#fff",
+              }}>
+                求人を管理する
               </Link>
               <Link href="/biz/meetings" style={{
                 display: "inline-flex", alignItems: "center", gap: 6,

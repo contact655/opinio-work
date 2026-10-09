@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import EvidenceList, { type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
 import DeclineSheet from "@/components/proposals/DeclineSheet";
 import { COMPANY_RESPONSE_LABELS } from "@/lib/constants/proposalResponses";
@@ -53,9 +54,12 @@ function CandidateBadge({ p }: { p: BizProposalView }) {
   );
 }
 
+/** 根拠の材料の今の数（`lib/evidence/materials.ts`）。⚠️ null は取得に失敗（「—」と出す。0 と出さない） */
+type EvidenceMaterialsView = { path: number; motive: number; talkable: number } | null;
+
 export default function BizProposalsClient({
-  proposals, loadFailed,
-}: { proposals: BizProposalView[]; loadFailed: boolean }) {
+  proposals, loadFailed, materials = null,
+}: { proposals: BizProposalView[]; loadFailed: boolean; materials?: EvidenceMaterialsView }) {
   const [items, setItems] = useState(proposals);
   const [declining, setDeclining] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -107,10 +111,10 @@ export default function BizProposalsClient({
         }}
       >
         <p style={{ margin: 0 }}>
-          <strong>これはスカウトではありません。</strong>
-          {/* ⚠️ 「送信枠も消費しません」は 2026-10-08 に外した（スカウトと送信枠ごと廃止したため）。
-                 「スカウトではない」の一文は残す（柴さんの指示）。 */}
-          OPINIO が根拠をそろえてお出ししている提案です。
+          {/* ★2026-10-10 に「これはスカウトではありません」をやめ、声かけとの違いを書いた（柴さんの指示）。
+                 スカウトは 2026-10-08 に廃止しており、比べる相手としてはもう伝わらない。
+                 ⚠️ 「声かけ」は /biz/approaches へのリンク。提案と声かけは別の機能で、両方ある */}
+          {"OPINIO が経歴の根拠をそろえてお届けする提案です。御社から候補者に直接声をかけたいときは「"}<Link href="/biz/approaches" style={{ color: "var(--royal)", fontWeight: 700 }}>声かけ</Link>{"」をご利用ください。"}
         </p>
         {/* ★2026-10-09 に「候補者は匿名です」をやめた（案B）。提案の対象は全員、
                候補者検索に実名で出ている人なので、匿名は守れない約束だった。
@@ -136,9 +140,32 @@ export default function BizProposalsClient({
           <p style={{ margin: "0 0 10px", fontWeight: 600 }}>いまお出しできる提案はありません。</p>
           <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
             OPINIO は、<strong>根拠を2件以上そろえられた候補者だけ</strong>をご提案します。
-            根拠になるのは、御社に移ってきた方の人数・在籍している方が挙げた入社の決め手・
-            話を聞ける方の人数・ご本人の希望条件との一致です。
+            {/* ⚠️ 改行で文を割らない（JSX が改行を空白にし、「。 根拠」「・ 話を」と空白が入っていた） */}
+            {"根拠になるのは、御社に移ってきた方の人数・在籍している方やしていた方が挙げた入社の決め手・話を聞ける方の人数・ご本人の希望条件との一致です。"}
           </p>
+          {/* ★根拠の材料の今の数（2026-10-10）。実データから数える（`lib/evidence/materials.ts`）。
+                 ⚠️ 取得に失敗したら「—」。0 と出さない
+                 ⚠️ 企業資料の項目は出さない（いまは提案の根拠に使われていない） */}
+          <ul data-state="evidence-materials" style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "grid", gap: 8 }}>
+            {([
+              { key: "path", label: "御社に移ってきた方", value: materials?.path, unit: "人", href: "/biz/employees", action: "社員管理で、企業ページに出ている方を確かめる" },
+              { key: "motive", label: "在籍している方やしていた方が挙げた入社の決め手", value: materials?.motive, unit: "件", href: "/biz/employees", action: "社員管理で、社員に入社の決め手の回答を呼びかける" },
+              { key: "talkable", label: "話を聞ける方", value: materials?.talkable, unit: "人", href: "/biz/employees", action: "社員管理で社員に登録を呼びかける" },
+            ] as const).map((m) => (
+              <li key={m.key} data-material={m.key} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "4px 10px", fontSize: 13, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8 }}>
+                <span style={{ color: "var(--ink-soft)" }}>{m.label}</span>
+                <strong data-material-value style={{ color: "var(--ink)", fontSize: 15 }}>
+                  {typeof m.value === "number" ? `${m.value}${m.unit}` : "—"}
+                </strong>
+                <Link href={m.href} style={{ color: "var(--royal)", fontWeight: 600, fontSize: 12.5, marginLeft: "auto" }}>
+                  {m.action} →
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {materials === null && (
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>数を取得できませんでした（「—」は 0 という意味ではありません）。</p>
+          )}
         </div>
       ) : (
         <>

@@ -90,15 +90,8 @@ export default async function BizConversationsPage() {
     isParticipant: partErr ? true : joined.has(c.id),
   }));
 
-  /* ★空状態の文言を分けるためだけに数える（2026-08-31）。件数は使わず**あるか無いか**だけ。
-        ⚠️ 失敗したら false に倒す（fail-closed）。 */
-  const { count: publishedJobCount, error: pubErr } = await supabase
-    .from("ow_jobs")
-    .select("id", { count: "exact", head: true })
-    .eq("company_id", ctx.tenantId)
-    .eq("status", "published");
-  if (pubErr) console.error("[biz/conversations] published job count:", pubErr.message);
-  const hasPublishedJobs = (publishedJobCount ?? 0) > 0;
+  /* ⚠️ 2026-10-10 に公開求人の有無を数えるのをやめた。空状態の文言を「会話が開く4つの場面」に
+        書き換え、求人の有無で分ける必要が無くなったため（ConversationsClient の注記）。 */
 
   return (
     <BusinessLayout
@@ -109,7 +102,7 @@ export default async function BizConversationsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <ConversationsClient conversations={convList} hasPublishedJobs={hasPublishedJobs} />
+      <ConversationsClient conversations={convList} />
     </BusinessLayout>
   );
 }

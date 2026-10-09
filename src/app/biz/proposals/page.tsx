@@ -4,6 +4,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
 import { isProposalEndedFor, isVisiblePair, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { getEvidenceMaterials } from "@/lib/evidence/materials";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,9 @@ export default async function BizProposalsPage() {
     conversationId: p.introduced_at && p.conversation_id ? (p.conversation_id as string) : null,
   }));
 
+  /* ★提案が0件のときだけ、根拠の材料の今の数を出す（2026-10-10）。⚠️ 取得に失敗したら null（画面は「—」） */
+  const materials = !error && proposals.length === 0 ? await getEvidenceMaterials(ctx.tenantId) : null;
+
   /* ⚠️★**`BusinessLayout` で包む。** 2026-09-21 にナビへ「提案」を足すまで
         このページには**どこからもリンクが無く**、包み忘れに気づけなかった。
         包まないと**ナビが出ず、開いた人が戻れない**（求職者側の `/proposals` が
@@ -114,7 +118,7 @@ export default async function BizProposalsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <BizProposalsClient proposals={proposals} loadFailed={!!error} />
+      <BizProposalsClient proposals={proposals} loadFailed={!!error} materials={materials} />
     </BusinessLayout>
   );
 }
