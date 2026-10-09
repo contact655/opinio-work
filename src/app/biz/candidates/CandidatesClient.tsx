@@ -1,5 +1,6 @@
 "use client";
 
+import { ApproachButton } from "@/components/approaches/ApproachButton";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
@@ -126,6 +127,9 @@ export type Candidate = {
   /** ★「できること」（職種 × 年数）。2026-09-20。**職歴からの計算**で、本人の入力ではない。
    *  ⚠️ 事業領域は入らない（社名を伏せた職歴から漏れるため。`buildRoleAutoSkills` の注記）。 */
   autoSkills?: { label: string; band: string }[];
+  /** ★企業からの「声かけ」（2026-10-09）。⚠️ 送れるかはサーバーが決める（理由は渡さない）。
+   *  `sentAt` はこの企業が180日以内に声をかけた日時（企業自身の事実） */
+  approach?: { eligible: boolean; sentAt: string | null };
 };
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
@@ -1190,6 +1194,11 @@ export default function CandidatesClient({
                           ⚠️★「スカウトを送る」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
                              **戻さないこと。** カードの操作はプロフィールを開くこと1つ。 */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+                        {/* ★声かけ（2026-10-09）。⚠️ 送れない相手には出さない（理由も出さない）。
+                               「スカウト」とは呼ばない。 */}
+                        {c.approach && (c.approach.eligible || c.approach.sentAt) && (
+                          <ApproachButton candidateUserId={c.id} candidateName={c.name} sentAt={c.approach.sentAt} compact />
+                        )}
                         <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}
                           onClick={(e) => e.stopPropagation()}>

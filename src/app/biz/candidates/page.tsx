@@ -11,6 +11,7 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
       `company_id` から引くので、社名を伏せた職歴から企業側へ漏れる（関数の注記）。 */
 import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse } from "@/lib/constants/plans";
+import { getRecentlyApproached, profileAcceptsApproaches } from "@/lib/approaches/server";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
@@ -227,7 +228,7 @@ export default async function CandidatesPage() {
             ⚠️★**`stance_updated_at` を使わないこと。** あちらは「転職・面談の状況カードの
                最終更新」で、**面談OK の登録・公開切替でも打たれる**。使うと
                「面談OK を触っただけの人」が「転職意欲を更新した人」として当たる。 */
-      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, career_stance, career_stance_updated_at")
+      .select("user_id, onboarding_completed, desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, career_stance, career_stance_updated_at, accept_company_approaches")
       /* ★母集合を `scout_enabled` から `career_stance` に付け替えた（2026-08-27 / フェーズ3）。
          ⚠️★**未設定（null）は入れない。** 本人が一度も答えていない状態を
             「受け取る」と読み替えて企業に開示することになる。
@@ -289,6 +290,8 @@ export default async function CandidatesPage() {
     career_stance: string | null;
     /** ★転職意欲を最後に変えた日時（2026-09-19）。⚠️ `stance_updated_at` とは別の列 */
     career_stance_updated_at: string | null;
+    /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ 画面へは「送れるか」の真偽だけを渡す */
+    accept_company_approaches: boolean | null;
   }>();
   for (const p of profileRows) {
     profilesByAuthId.set(p.user_id as string, p as any);
@@ -430,6 +433,27 @@ export default async function CandidatesPage() {
   );
 
 
+  /* ★企業からの「声かけ」（2026-10-09）。送れるかは `lib/approaches/server.ts` と同じ条件:
+       この一覧は `can_send_scout()` 済み（①）。②③は `profileAcceptsApproaches`、④は送る担当者と
+       相手の is_test の一致。⚠️ 送信の API は `isApproachTarget` で全部を見直す（ここは表示だけ）。 */
+  const approachAllowed = canUse(ctx.planType, "companyApproach");
+  const { data: senderRow, error: senderErr } = await adminClient
+    .from("ow_users").select("is_test").eq("id", ctx.currentOwnId).maybeSingle();
+  if (senderErr) console.error("[candidates] sender:", senderErr.message);
+  const senderIsTest = senderRow?.is_test === true;
+  const userIsTestById = new Map<string, boolean>();
+  {
+    const ids = eligibleUsers.map((u: any) => u.id as string);
+    if (ids.length > 0) {
+      const { data: tRows, error: tErr } = await adminClient.from("ow_users").select("id, is_test").in("id", ids);
+      if (tErr) console.error("[candidates] is_test:", tErr.message);
+      for (const t of tRows ?? []) userIsTestById.set(t.id as string, t.is_test === true);
+    }
+  }
+  const recentlyApproached = approachAllowed
+    ? await getRecentlyApproached(ctx.tenantId, eligibleUsers.map((u: any) => u.id as string))
+    : new Map<string, string>();
+
   const candidates = eligibleUsers
     .filter((_u: any, i: number) => canSendResults[i] === true)
     .map((u: any) => {
@@ -502,6 +526,14 @@ export default async function CandidatesPage() {
         autoSkills: buildRoleAutoSkills(expRowsByUser.get(u.id as string) ?? [], roleInfoById)
           .slice(0, 4)
           .map((sk) => ({ label: sk.label, band: sk.band })),
+        /* ⚠️ 取得に失敗した（recentlyApproached が null）ときはボタンを出さない（fail-closed） */
+        approach: approachAllowed && recentlyApproached
+          ? {
+              eligible: profileAcceptsApproaches(profile)
+                && (userIsTestById.get(u.id as string) ?? false) === senderIsTest,
+              sentAt: recentlyApproached.get(u.id as string) ?? null,
+            }
+          : undefined,
       };
     });
 

@@ -23,6 +23,11 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
+import { ApproachButton } from "@/components/approaches/ApproachButton";
+import { getTenantContext } from "@/lib/business/dashboard";
+import { canUse } from "@/lib/constants/plans";
+import { isCompanyReviewed } from "@/lib/business/scoutGate";
+import { getRecentlyApproached, isApproachTarget } from "@/lib/approaches/server";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -189,6 +194,22 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
   /** 閲覧者自身の ow_users.id。未ログインなら null。以降で使い回す */
   const viewerOwUserId = (viewerRowRes.data?.id as string | undefined) ?? null;
+
+  /* ★企業からの「声かけ」（2026-10-09）。閲覧者が企業の有効な担当者のときだけ判定する。
+        ⚠️★送れない相手にはボタンを出さない（理由も出さない）。判定は送信の API と同じ
+           `isApproachTarget`（候補者検索に出る人と同じ範囲なので、出ること自体で新しく漏れる情報は無い）。
+        ⚠️ この企業が180日以内に声をかけていれば「声かけ済み」（企業自身の事実）。 */
+  let approach: { eligible: boolean; sentAt: string | null } | null = null;
+  if (viewerOwUserId && !viewerIsOwner) {
+    const tenant = await getTenantContext();
+    if (tenant && isCompanyReviewed(tenant) && canUse(tenant.planType, "companyApproach")) {
+      const [recent, eligible] = await Promise.all([
+        getRecentlyApproached(tenant.tenantId, [owUser.id]),
+        isApproachTarget({ companyId: tenant.tenantId, candidateOwUserId: owUser.id, senderOwUserId: tenant.currentOwnId }),
+      ]);
+      if (recent) approach = { eligible, sentAt: recent.get(owUser.id) ?? null };
+    }
+  }
 
   // フォロー状態。本人・未ログインには問い合わせない（どちらもボタンを出さないか、
   // 出しても押した時点で /auth に飛ばすため）。
@@ -695,6 +716,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
                     </svg>
                     カジュアル面談
                   </Link>
+                )}
+
+                {/* ★声かけ（2026-10-09）。企業の担当者が見たときだけ。⚠️ 送れない相手には出さない */}
+                {approach && (approach.eligible || approach.sentAt) && (
+                  <ApproachButton candidateUserId={owUser.id} candidateName={owUser.name} sentAt={approach.sentAt} />
                 )}
 
                 {/* DMボタン */}

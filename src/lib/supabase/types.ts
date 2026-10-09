@@ -1187,6 +1187,74 @@ export type Database = {
           },
         ]
       }
+      ow_company_approaches: {
+        Row: {
+          accepted_at: string | null
+          body: string | null
+          candidate_user_id: string
+          company_id: string
+          conversation_id: string | null
+          created_at: string
+          declined_at: string | null
+          id: string
+          reason: string
+          sender_user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          body?: string | null
+          candidate_user_id: string
+          company_id: string
+          conversation_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          id?: string
+          reason: string
+          sender_user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          body?: string | null
+          candidate_user_id?: string
+          company_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          id?: string
+          reason?: string
+          sender_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_approaches_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_approaches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_approaches_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_approaches_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_business_domains: {
         Row: {
           company_id: string

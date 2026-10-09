@@ -63,6 +63,11 @@ export const PLAN_FEATURES = [
    *    判定は `getMaterialsForMatching()`（`lib/companyMaterials/server.ts`）の1か所。
    */
   "companyMaterials",
+  /**
+   * ★企業からの「声かけ」を送る（2026-10-09）。候補者検索のカードと /u/[id] の「話を聞いてみたい」。
+   *   判定は送信の API（`/api/biz/approaches`）と画面の両方で `canUse()` を通す。
+   */
+  "companyApproach",
 ] as const;
 
 /* ⚠️★★2026-10-08 に2つ外した（柴さんの判断）。**戻さないこと。**
@@ -113,8 +118,10 @@ const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
      ⚠️★**戻す条件も同じ。** 正式版へ移行したら `free.companyMaterials` を `false` に戻す
         （第4条5項で機能の制限は可能）。戻すと、free の企業の資料は**提案の材料に使われなくなる**
         だけで、登録・確認・公開表示はそのまま使える（ゲートの外に置いてあるため）。 */
-  free: { candidateSearch: true,  ambassadorInvite: false, companyMaterials: true },
-  paid: { candidateSearch: true,  ambassadorInvite: true,  companyMaterials: true },
+  /* ★★`companyApproach` も free で true（2026-10-09 / 柴さんの判断。**ベータ版期間中の状態**）。
+        理由と戻す条件は `candidateSearch` と同じ（掲載利用規約 第4条2項・5項）。 */
+  free: { candidateSearch: true,  ambassadorInvite: false, companyMaterials: true, companyApproach: true },
+  paid: { candidateSearch: true,  ambassadorInvite: true,  companyMaterials: true, companyApproach: true },
 };
 
 /**
