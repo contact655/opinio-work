@@ -318,9 +318,20 @@ button, label, th,
 
 /* ─── Mobile UX hardening ────────────────────────────────── */
 
-/* Ensure tappable elements meet iOS 44px minimum touch target */
+/* タップ対象の最小の高さ。
+   ⚠️★指で押す画面（767px 以下・タッチ端末）は 44px、マウスの画面は 36px（2026-10-09）。
+      それまでは全幅 36px で、コメントの「iOS 44px」に届いていなかった。
+   ⚠️ デスクトップを 44px にしないのは、ツールバーの行（`.csb-filter-toggle` /
+      `.sort-select-btn` など）が 36px で揃えてあるため。下の「タップ対象」と同じ線引き。
+   ⚠️ 自分で min-height を決めているボタン（`.btn-fixed-size` / クラスで 0 にしているもの）は
+      そちらが勝つ。`!important` にしないこと——円形のアイコンボタンが縦長の楕円に潰れる。 */
 button, [role="button"] {
   min-height: 36px;
+}
+@media (max-width: 767px), (pointer: coarse) {
+  button, [role="button"] {
+    min-height: 44px;
+  }
 }
 
 /* ⚠️ 上の min-height は **高さだけ** を押し上げるため、
