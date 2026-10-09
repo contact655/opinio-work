@@ -3,6 +3,9 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
+import { notify } from "@/lib/notify/email";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+import { approachAcceptedCompanyTemplate } from "@/lib/notify/templates";
 import {
   APPROACH_BODY_MAX,
   APPROACH_EXPIRE_DAYS,
@@ -447,7 +450,96 @@ async function acceptApproach(params: { approachId: string; candidateOwUserId: s
   const { error: cErr } = await db.from("ow_company_approaches").update({ conversation_id: conversationId }).eq("id", params.approachId);
   if (cErr) console.error("[approaches] accept link conversation:", cErr.message);
 
+  /* ★企業にメールで知らせる（2026-10-10）。⚠️ best-effort（失敗しても承認は成立させる）。
+        ⚠️ ここは accepted_at を立てた1回だけ通る（上の条件付き UPDATE が二重の承認を 409 にする）ので、
+           メールも1回だけ。 */
+  await notifyApproachAccepted({
+    companyId: params.companyId,
+    senderOwUserId: senderId,
+    candidateOwUserId: params.candidateOwUserId,
+    conversationId,
+  });
+
   return { ok: true, conversationId };
+}
+
+/**
+ * ★声かけが承認されたことを企業にメールで知らせる（2026-10-10）。
+ *
+ * 宛先: **声かけを送った担当者**（いまも有効な管理者でメールがある場合）。
+ *       届かない場合（退任・無効・メール無し）は応募の通知と同じ決め方（`getCompanyNotificationTarget`）。
+ * ⚠️★本文に会話の内容を書かない（名前と会話へのリンクだけ。`approachAcceptedCompanyTemplate`）。
+ * ⚠️★見送られたときは呼ばない（企業から見て承認待ちのまま）。
+ * ⚠️ 失敗しても投げない（ログだけ）。
+ */
+async function notifyApproachAccepted(params: {
+  companyId: string;
+  senderOwUserId: string | null;
+  candidateOwUserId: string;
+  conversationId: string;
+}): Promise<void> {
+  try {
+    const db = createAdminClient();
+    const { data: cand, error: cErr } = await db.from("ow_users").select("name").eq("id", params.candidateOwUserId).maybeSingle();
+    if (cErr) console.error("[approaches] notify accepted candidate:", cErr.message);
+
+    let to: string[] = [];
+    let viaOps = false;
+    if (params.senderOwUserId) {
+      const [{ data: link, error: lErr }, { data: sender, error: sErr }] = await Promise.all([
+        db.from("ow_company_admins").select("id").eq("user_id", params.senderOwUserId)
+          .eq("company_id", params.companyId).eq("is_active", true).maybeSingle(),
+        db.from("ow_users").select("email").eq("id", params.senderOwUserId).maybeSingle(),
+      ]);
+      if (lErr || sErr) console.error("[approaches] notify accepted sender:", lErr?.message ?? sErr?.message);
+      const email = ((sender?.email as string | null) ?? "").trim();
+      if (link && email) to = [email];
+    }
+    if (to.length === 0) {
+      const target = await getCompanyNotificationTarget(params.companyId, "approach-accepted");
+      to = target.to;
+      viaOps = target.viaOps;
+    }
+    for (const addr of to) {
+      await notify(approachAcceptedCompanyTemplate({
+        to: addr,
+        candidateName: (cand?.name as string | null) ?? null,
+        conversationId: params.conversationId,
+        viaOps,
+      }));
+    }
+  } catch (e) {
+    console.error("[approaches] notify accepted:", e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * ★/biz サイドバーの「声かけ」の数字（2026-10-10）: 承認されて、まだ企業が会話を開いていない件数。
+ * ⚠️ 見送られた・承認待ちは数えない（accepted_at が null）。失敗したら 0（ログは出す。バッジのために落とさない）。
+ */
+export async function countUnseenAcceptedApproaches(companyId: string): Promise<number> {
+  const { count, error } = await createAdminClient()
+    .from("ow_company_approaches").select("id", { count: "exact", head: true })
+    .eq("company_id", companyId).not("accepted_at", "is", null).is("company_seen_at", null);
+  if (error) {
+    console.error("[approaches] unseen accepted:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
+ * 企業の担当者が会話を開いたら、その会話の声かけに company_seen_at を立てる（2026-10-10）。
+ * ⚠️ 呼び出し側（/biz/conversations/[id]）が「その会話が自社のもの」を確かめてから呼ぶ。
+ * ⚠️ 失敗しても画面は出す（ログだけ）。
+ */
+export async function markApproachSeenByCompany(conversationId: string, companyId: string): Promise<void> {
+  const { error } = await createAdminClient()
+    .from("ow_company_approaches")
+    .update({ company_seen_at: new Date().toISOString() })
+    .eq("conversation_id", conversationId).eq("company_id", companyId)
+    .not("accepted_at", "is", null).is("company_seen_at", null);
+  if (error) console.error("[approaches] mark seen:", error.message);
 }
 
 export type SentApproach = {

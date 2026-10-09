@@ -463,6 +463,35 @@ export function applicationCompanyTemplate(params: {
   };
 }
 
+/**
+ * ★企業からの「声かけ」を求職者が承認した（2026-10-10）。宛先は企業（声かけを送った担当者、
+ *   届かなければ `getCompanyNotificationTarget` の決め方）。
+ *
+ * ⚠️★**会話の内容を書かない。** 名前と会話を開くリンクだけ（柴さんの指示）。
+ * ⚠️★**見送られたときは送らない。** 企業から見て「承認待ち」のままにする決まり。
+ * ⚠️ 求職者の名前は**第三者への言及**なので `greet()` は使わない。名前が使えないときは別の言い回しにする。
+ * ⚠️ 「スカウト」と呼ばない。
+ */
+export function approachAcceptedCompanyTemplate(params: {
+  to: string;
+  candidateName: string | null | undefined;
+  conversationId: string;
+  /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
+  viaOps?: boolean;
+}) {
+  const name = greetingName(params.candidateName);
+  const who = name ? `${name}さん` : "声をかけた方";
+  return {
+    to: params.to,
+    subject: opsSubject(`${who}が声かけを承認しました`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">声かけが承認されました</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}が声かけを承認しました。メッセージでやり取りを始められます。</p>
+      <a href="https://opinio.jp/biz/conversations/${encodeURIComponent(params.conversationId)}" style="${BTN}">会話を開く →</a>
+    `),
+  };
+}
+
 // T1 応募者宛
 export function applicationUserTemplate(params: {
   to: string;

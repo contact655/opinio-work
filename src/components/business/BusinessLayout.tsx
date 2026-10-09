@@ -44,7 +44,7 @@ type NavItem = {
   label: string;
   icon: React.ReactElement;
   /** ★未読バッジの出どころ（2026-09-21）。値は `BizShellContext` の `badges` */
-  badge?: "messages" | "proposals";
+  badge?: "messages" | "proposals" | "approaches";
   children?: { href: string; label: string }[];
 };
 
@@ -77,7 +77,9 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       /* ★声かけ（2026-10-09）。企業が自分で見つけた人に、理由を添えて「話を聞いてみたい」と送る。
             ⚠️ 提案（OPINIO が根拠をそろえて出す）とは別の機能。並べて置くが混ぜないこと。
             ⚠️★「スカウト」とは呼ばない。一斉送信型のスカウトは 2026-10-08 に廃止している。 */
-      { href: "/biz/approaches", label: "声かけ", icon: <Hand size={16} strokeWidth={2.2} /> },
+      /* ★バッジは「承認されて、まだ企業が会話を開いていない声かけ」の数（2026-10-10）。
+            ⚠️ 見送られたものは数えない（企業から見て承認待ちのまま） */
+      { href: "/biz/approaches", label: "声かけ", icon: <Hand size={16} strokeWidth={2.2} />, badge: "approaches" },
       /* ⚠️★「スカウト履歴」は 2026-10-08 にスカウトごと廃止した。**戻さないこと。**
             旧 URL `/biz/scouts` は middleware が `/biz/proposals` へ転送する。 */
     ],
@@ -142,7 +144,7 @@ export function BusinessLayout({
         ⚠️ 取得に失敗したら出さない（0 と同じ扱い）。**「0件」とは言わない** ——
            バッジが出ないことを「未読なし」の根拠にしないこと。
         ⚠️ 企業が無い人（`hasCompany = false`）はサイドバーごと無いので叩かない。 */
-  const [badges, setBadges] = useState<{ messages: number; proposals: number } | null>(null);
+  const [badges, setBadges] = useState<{ messages: number; proposals: number; approaches?: number } | null>(null);
   useEffect(() => {
     if (!hasCompany) return;
     let cancelled = false;
@@ -429,7 +431,7 @@ export function BusinessLayout({
               // 子が active な時は親をサブデュード表示 (背景なし・テキストのみ royal)
               const showFullActive = active && !childActive;
 
-              const badgeCount = item.badge && badges ? badges[item.badge] : 0;
+              const badgeCount = item.badge && badges ? (badges[item.badge] ?? 0) : 0;
 
               return (
                 <div key={item.href} className="biz-nav-item">
@@ -474,7 +476,7 @@ export function BusinessLayout({
                         padding: "0 5px", flexShrink: 0,
                       }}>
                         <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : "未読"} {badgeCount}件）</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "承認された声かけ" : "未読"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>

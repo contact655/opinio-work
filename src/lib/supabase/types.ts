@@ -1193,6 +1193,7 @@ export type Database = {
           body: string | null
           candidate_user_id: string
           company_id: string
+          company_seen_at: string | null
           conversation_id: string | null
           created_at: string
           declined_at: string | null
@@ -1205,6 +1206,7 @@ export type Database = {
           body?: string | null
           candidate_user_id: string
           company_id: string
+          company_seen_at?: string | null
           conversation_id?: string | null
           created_at?: string
           declined_at?: string | null
@@ -1217,6 +1219,7 @@ export type Database = {
           body?: string | null
           candidate_user_id?: string
           company_id?: string
+          company_seen_at?: string | null
           conversation_id?: string | null
           created_at?: string
           declined_at?: string | null

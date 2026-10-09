@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
+import { markApproachSeenByCompany } from "@/lib/approaches/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
@@ -103,6 +104,11 @@ export default async function BizConversationDetailPage({
   if (!rawConv) {
     notFound();
   }
+
+  /* ★声かけで開いた会話なら「企業が開いた」印を立てる（2026-10-10）。/biz サイドバーの「声かけ」の数字が消える。
+        ⚠️ 上で `company_id = tenantId` を確かめてから呼ぶ（自社の会話だけ）。参加者かどうかは問わない
+           （「企業として開いたか」。担当者ごとの未読は「メッセージ」のバッジが持つ）。 */
+  await markApproachSeenByCompany(conversationId, ctx.tenantId);
 
   const conv: ConversationRow = {
     id: rawConv.id,
