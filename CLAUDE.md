@@ -1491,6 +1491,9 @@ Supabase の日次バックアップには3つの制約がある（2026-08-20 �
    打ち消していないかを確認し、**確認した旨を migration のコメントに書き残す。**
 3. **推測値を投入しない。** 企業ごとに調べた値でなければ列に入れない。
    「とりあえず hybrid」「とりあえず東京都」は、後から migration 由来か企業設定かを判別できなくなる。
+4. ★**SECURITY DEFINER の関数を作る・差し替える migration を適用したら、
+   `./scripts/check-definer-grants.sh` を走らせる**（0件・exit 0 が正常）。
+   決まりの中身は「DB 関数の書き方」の⑤。
 
 ### ⚠️★保留したい migration を `supabase/migrations/` に置かない（2026-08-26 確立）
 
@@ -5574,6 +5577,66 @@ select proname from pg_proc
 
 （結局その2つも死んでいた——対象の表が DROP 済みで trigger が0本だった——ので
 3本まとめて落とした: `20260820180000`）
+
+### ⑤ ★★SECURITY DEFINER の関数は、クライアントのロールから呼べない状態で作る（2026-10-09 確立）
+
+**`public` スキーマの関数は、作った時点で PUBLIC が実行できる（Postgres の既定）。**
+SECURITY DEFINER は RLS を越えて走るので、そのままだと **anon・authenticated から
+直接呼べて、他人のデータが引ける。**
+
+⚠️★**2026-10-09 に7本がこの状態で見つかった**（`20261009050000` で塞いだ）。
+   `ow_users.auth_id` はログインすれば誰でも読めるので、その ID を渡すと
+   `get_blocked_companies` が**他人の在籍先の社名とブロックした企業**を返し
+   （**未ログインでも**返った）、`can_send_scout` で転職意欲の有無が分かった。
+   学校申請の承認・却下（`approve_school_request` / `reject_school_request`）は
+   **中に運営かどうかの確認が無いまま**誰でも呼べた。
+
+#### 決まり
+
+1. ★**SECURITY DEFINER の関数を作る・差し替える migration には、必ずこれを同梱する。**
+
+   ```sql
+   revoke execute on function public.関数名(引数の型) from public, anon, authenticated;
+   grant  execute on function public.関数名(引数の型) to service_role;  -- 必要なロールにだけ
+   ```
+
+   ⚠️ **`public` からも外す。** anon と authenticated だけ外しても、PUBLIC が残っていれば
+      どのロールからも呼べる（ACL の `=X/postgres` が PUBLIC）。
+   ⚠️ `CREATE OR REPLACE` は ACL を保つ。**`DROP FUNCTION` して作り直すと既定に戻る**ので、
+      そのときは必ず書き直す（`create_conversation` の改名で一度踏んでいる）。
+
+2. ★**RLS ポリシーの中で使う補助関数だけは、authenticated（必要なら anon）に付与してよい。**
+   その場合は関数のコメントに「**呼んだ本人のことしか答えない**」作りであることを書く。
+   いま該当するのは `auth_is_admin` / `auth_is_company_admin` / `auth_is_company_member` /
+   `auth_ow_user_id` / `auth_is_active_company_admin` の5本（RLS で計107か所使う）。
+   ⚠️ **外すとポリシーの評価ごと 403 になる。** 締めるときに巻き込まないこと。
+
+3. ★**セッションのクライアントから呼ぶ RPC は、中で `auth.uid()` による本人確認をする。**
+   いま該当するのは `create_conversation` の1本だけ（応募・面談の API が呼ぶ）。
+   中で確かめているのは「**呼んだ本人が候補者本人であること**（service_role は素通し）」と
+   引数の形（`kind='company'`・企業 id あり・相手 id なし）だけ。企業の実在は FK が保証する。
+   ⚠️★**企業が掲載中か・面談を受け付けているか・応募や面談申込が実際にあるかは見ていない**
+      （2026-10-09 時点。直接呼べば、どの企業とも会話の器を作れる）。
+   ⚠️ 本人確認をせずに authenticated に付与しない。**引数で渡された ID を信じない**
+      （「DB 関数の書き方」の②）。
+
+4. ★**既定の権限（`ALTER DEFAULT PRIVILEGES`）は変えない。** 変えると、2.の補助関数を
+   作るたびに明示的な付与が要り、忘れると RLS ごと 403 になる。**1.の同梱で守る。**
+
+5. ★**適用したら `./scripts/check-definer-grants.sh` を走らせる。**
+
+   ```bash
+   ./scripts/check-definer-grants.sh --self-test   # ★先にこれ。許可済みの関数が全部検出されること
+   ./scripts/check-definer-grants.sh               # 許可リスト外が0件なら exit 0
+   ```
+
+   ⚠️ 許可リストはスクリプトの冒頭（2.の5本＋3.の1本）。**足すときは2.か3.のどちらに
+      当たるかをコメントで書く。** どちらにも当たらないなら、足さずに revoke する。
+   ⚠️ 本番に対して**読み取りだけ**で動く（`BEGIN READ ONLY … ROLLBACK` の中で問い合わせる）。
+      ⚠️★`PGOPTIONS=-c default_transaction_read_only=on` は**効かない**（Supabase の
+         プーラーが起動時オプションを捨てる。2026-10-09 に実測）。
+
+実測（2026-10-09 / 本番）: 自己テストで6件を検出／通常の実行は許可リスト外 **0件**。
 
 ## ⚠️ Supabase の呼び出しで error を捨てない（2026-08-20 追記）
 
