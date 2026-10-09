@@ -13,7 +13,7 @@ import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
-import { DetailSearchToggle, ActiveFilterChips } from "@/components/common/DetailSearch";
+import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel } from "@/components/common/DetailSearch";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 
 /**
@@ -1036,11 +1036,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                    ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる。**
                       現職なし → 職種のときだけ／生年月日なし → 年代のときだけ／
                       マスタ紐付きの職歴なし → 外資のときだけ。他の条件では落とさない。 */}
-            {detailOpen && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 8, rowGap: 8,
-                flexWrap: "wrap", minWidth: 0, paddingTop: 10,
-              }}>
+            {/* ★中身の入れ物は共通（2026-10-09）。1024px 未満は右からのドロワー */}
+            <div style={{ flexBasis: "100%", paddingTop: detailOpen ? 10 : 0 }}>
+            <DetailSearchPanel open={detailOpen} onClose={() => setDetailOpen(false)} count={sorted.length} unit="名">
                 <FilterChip
                   label="職種" value="" values={roles}
                   options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
@@ -1064,8 +1062,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                   onClick={() => setParam({ meeting: meetingOnly ? "" : "1" })} aria-pressed={meetingOnly}>
                   面談OK
                 </button>
-              </div>
-            )}
+            </DetailSearchPanel>
+            </div>
 
             {/* ── ★選択中の条件（2026-09-18）。**閉じていても出す。消さないこと。**
                    8条件を畳んだ `/jobs` と同じ理由 —— これが無いと、絞り込んだ結果を

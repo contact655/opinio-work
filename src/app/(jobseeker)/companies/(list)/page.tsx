@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { fetchAvailableTargetIndustries, searchCompanies, type WorkStyleValue } from "@/lib/search/companies";
+import { fetchAvailableTargetIndustries, searchCompanies } from "@/lib/search/companies";
+import { companyFilterParams, hasCompanyFilter } from "@/lib/search/companyListParams";
 import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
@@ -205,7 +206,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, industry, target, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
   // foreign は hasFilter に含めない（外資系だけのときは一覧グリッドのままページ分けする）
-  const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || target);
+  const hasFilter = hasCompanyFilter(searchParams);
   /* 詳細リスト = view=list。★**これだけを名指しで判定する。** */
   const isListView  = !hasFilter && view === "list";
   /* 一覧（グリッド）= 既定。★**未知の値もここに落とす**（2026-08-28）。
@@ -256,17 +257,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
           limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE,
           sort: sort ?? "newest", foreign: foreign === "1",
         })
-      : searchCompanies({
-          q: q || undefined,
-          phase: phase || undefined,
-          workStyle: (workStyle as WorkStyleValue) || undefined,
-          hiring: hiring === "1" ? true : undefined,
-          location: location || undefined,
-          industry: industry || undefined,
-          targetIndustry: target || undefined,
-          foreign: foreign === "1" ? true : undefined,
-          sort: sort ?? "newest",
-        }),
+      /* ⚠️ 条件は /api/companies/count（ドロワーの件数）と同じ関数で組む */
+      : searchCompanies(companyFilterParams(searchParams)),
     // 口コミ平均スコア
   ]);
 

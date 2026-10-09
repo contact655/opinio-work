@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChip } from "@/components/common/FilterChip";
-import { DetailSearchToggle, ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
+import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel, type ActiveFilter } from "@/components/common/DetailSearch";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
@@ -204,8 +204,14 @@ export function CompanySearchBar({
                  （/jobs で 2026-09-09 に同じ判断をしている）。 */}
           {!filtersExpanded && <ActiveFilterChips chips={activeChips} />}
 
-          {/* フィルターチップ群（モバイルで折りたたみ） */}
-          <div className={`csb-filter-chips${filtersExpanded ? " expanded" : ""}`}>
+          {/* フィルターチップ群。★入れ物は共通（2026-10-09）。1024px 未満は右からのドロワーで、
+                 件数は /api/companies/count から少し待って取り直す（ページの本体と同じ関数で数える） */}
+          <DetailSearchPanel
+            open={filtersExpanded}
+            onClose={() => setFiltersExpanded(false)}
+            countUrl={`/api/companies/count?${searchParams.toString()}`}
+            unit="社"
+          >
 
           {/* フェーズ */}
           <FilterChip
@@ -369,7 +375,7 @@ export function CompanySearchBar({
               ⚠️ 戻すなら、検索欄の ✕ と役割が重ならないようにすること
                  （あちらは検索文字だけを消す）。 */}
 
-          </div>{/* /csb-filter-chips */}
+          </DetailSearchPanel>
 
           {/* 保存件数 */}
           {bookmarkCount > 0 && (

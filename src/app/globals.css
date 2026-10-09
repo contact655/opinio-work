@@ -2021,9 +2021,13 @@ body {
           color: var(--royal);
           font-weight: 700;
         }
-        .csb-filter-chips {
-          display: none;
+        /* ⚠️ `.csb-filter-chips` は 2026-10-09 に共通の `.ds-panel` へ置き換えて削除した */
+        /* ── ★詳細検索の中身（2026-10-09）。実体は components/common/DetailSearch.tsx ──
+           1024px 以上はページ内のパネル、未満は右からのドロワー。
+           ⚠️ 境目の 1023px は DETAIL_SEARCH_DRAWER_MAX と合わせてある。片方だけ変えないこと。 */
+        .ds-panel {
           flex-basis: 100%;
+          display: flex;
           flex-wrap: wrap;
           gap: 6px;
           align-items: center;
@@ -2032,8 +2036,42 @@ body {
           border: 1px solid var(--line);
           border-radius: 12px;
         }
-        .csb-filter-chips.expanded {
-          display: flex;
+        .ds-backdrop {
+          position: fixed; inset: 0; z-index: 1099;
+          background: rgba(15, 23, 42, 0.4);
+        }
+        .ds-drawer {
+          position: fixed; top: 0; right: 0; bottom: 0; z-index: 1100;
+          width: min(360px, 88vw);
+          background: #fff;
+          display: flex; flex-direction: column;
+          box-shadow: -8px 0 28px rgba(15, 23, 42, 0.18);
+        }
+        .ds-drawer-head {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 12px 12px 16px;
+          border-bottom: 1px solid var(--line);
+        }
+        .ds-drawer-close {
+          width: 44px; height: 44px; border-radius: 999px;
+          border: none; background: none; cursor: pointer;
+          font-size: 16px; color: var(--ink-soft); font-family: inherit;
+        }
+        /* 縦に並べる。⚠️ 横に並べると右寄りのチップのメニューがドロワーの外へはみ出す */
+        .ds-drawer-body {
+          flex: 1; min-height: 0; overflow-y: auto;
+          padding: 16px;
+          display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+        }
+        .ds-drawer-foot {
+          padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+          border-top: 1px solid var(--line);
+        }
+        .ds-show-btn {
+          width: 100%; height: 44px; border-radius: 10px;
+          border: none; background: var(--royal); color: #fff;
+          font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+          display: inline-flex; align-items: center; justify-content: center; gap: 4px;
         }
         /* 選択中の条件（閉じているときだけ）。⚠️ ✕ は近道であって唯一の入口ではない */
         .csb-active-chips {

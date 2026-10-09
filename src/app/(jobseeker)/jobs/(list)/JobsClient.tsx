@@ -3,7 +3,7 @@
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { FilterChip } from "@/components/common/FilterChip";
-import { DetailSearchToggle, ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
+import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel, type ActiveFilter } from "@/components/common/DetailSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -1105,12 +1105,8 @@ export default function JobsClient({
                    検索窓・詳細検索・チップ・8ピルが**全部1行**に詰まり、
                    どこまでが詳細検索の中身なのか読めなかった。
                    `flexBasis: "100%"` で必ず行を折り、薄い面を敷いて塊として見せる。 */}
-            {showAdvanced && (
-            <div style={{
-              flexBasis: "100%", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              borderRadius: 12, padding: "10px 12px", marginBottom: 2,
-            }}>
+            {/* ★中身の入れ物は共通（2026-10-09）。1024px 未満は右からのドロワー */}
+            <DetailSearchPanel open={showAdvanced} onClose={() => setShowAdvanced(false)} count={filteredForDisplay.length}>
 
               {/* ★2026-10-09 に共通の FilterChip に寄せた（それまで /jobs だけ独自のピルと
                      position: fixed のメニュー1枚を持っていた）。
@@ -1178,8 +1174,7 @@ export default function JobsClient({
                        検索文字 → 入力欄の ✕ ／ 職種（サイドバー）→ もう一度押す
                   ⚠️ 0件のときの「すべてリセット」は**残してある**（別の場所・別の役割）。
                   ⚠️ サイドバーは 2026-09-09 に削除したので、そこの「検索条件をリセットする」も無い。 */}
-            </div>
-            )}
+            </DetailSearchPanel>
           </div>
         </div>
       </div>
