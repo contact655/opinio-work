@@ -4428,7 +4428,6 @@ export type Database = {
           desired_work_style: string | null
           desired_work_styles: string[] | null
           email_weekly_enabled: boolean
-          experience_years: string | null
           id: string
           job_type: string | null
           location: string | null
@@ -4441,7 +4440,6 @@ export type Database = {
           transfer_timing_updated_at: string | null
           updated_at: string | null
           user_id: string | null
-          worry: string | null
         }
         Insert: {
           bio?: string | null
@@ -4455,7 +4453,6 @@ export type Database = {
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
           email_weekly_enabled?: boolean
-          experience_years?: string | null
           id?: string
           job_type?: string | null
           location?: string | null
@@ -4468,7 +4465,6 @@ export type Database = {
           transfer_timing_updated_at?: string | null
           updated_at?: string | null
           user_id?: string | null
-          worry?: string | null
         }
         Update: {
           bio?: string | null
@@ -4482,7 +4478,6 @@ export type Database = {
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
           email_weekly_enabled?: boolean
-          experience_years?: string | null
           id?: string
           job_type?: string | null
           location?: string | null
@@ -4495,7 +4490,6 @@ export type Database = {
           transfer_timing_updated_at?: string | null
           updated_at?: string | null
           user_id?: string | null
-          worry?: string | null
         }
         Relationships: []
       }
