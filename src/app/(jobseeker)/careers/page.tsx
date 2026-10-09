@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+/* ⚠️ 「比較できる」と書かないこと（2026-10-09 に5か所を書き換えた）。並べて比べる画面は無い
+      （保存した企業・募集は /mypage/bookmarks に並ぶだけ）。年収も比べられるほどのデータが無い。 */
 export const metadata: Metadata = {
   title: { absolute: "IT転職ガイド | OPINIO" },
   description:
-    "外資系・SaaS企業への転職を考えているあなたへ。企業情報・求人・先輩の声を一気に比較できるOPINIOの転職ガイド。",
+    "外資系・SaaS企業への転職を考えているあなたへ。企業情報・募集・記事をまとめて調べられるOPINIOの転職ガイド。",
   keywords: ["IT転職", "SaaS転職", "外資転職", "転職ガイド", "キャリアチェンジ", "エンタープライズ営業 転職"],
   alternates: { canonical: "/careers" },
   openGraph: {
     title: "IT転職ガイド | OPINIO",
-    description: "外資系・SaaS企業への転職を考えているあなたへ。企業・求人・年収・先輩の声を一気に比較。",
+    description: "外資系・SaaS企業への転職を考えているあなたへ。企業・募集・記事をまとめて調べられる転職ガイド。",
     type: "website",
     url: "/careers",
   },
@@ -31,7 +33,7 @@ const STEPS = [
   {
     step: "02",
     icon: "💼",
-    title: "募集を比較する",
+    title: "募集を絞り込む",
     desc: "職種・給与・勤務形態でフィルタして、自分の条件に合う募集を絞り込む。",
     href: "/jobs",
     cta: "募集を見る →",
@@ -130,7 +132,7 @@ export default function CareersPage() {
             IT / SaaS 転職ガイド
           </h1>
           <p style={{ fontSize: 15, color: "var(--ink-soft)", margin: "0 0 28px", lineHeight: 1.8, maxWidth: 540 }}>
-            外資系・IT企業への転職を深く考えたい人のための情報ハブ。企業の実態・募集・年収・先輩の声を一か所で比較できます。
+            外資系・IT企業への転職を深く考えたい人のための情報ハブ。企業の実態・募集・先輩の声を一か所で読めます。
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link href="/companies" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>
@@ -231,7 +233,7 @@ export default function CareersPage() {
             まず、知ることから始めよう。
           </h2>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.80)", margin: "0 0 24px", lineHeight: 1.6 }}>
-            登録不要で企業・募集・年収を比較できます。
+            企業と募集は、登録しなくても見られます。
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <Link href="/companies" style={{ display: "inline-block", padding: "12px 28px", borderRadius: 100, background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>

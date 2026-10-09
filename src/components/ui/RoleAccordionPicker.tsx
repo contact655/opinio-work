@@ -269,8 +269,13 @@ export function RoleAccordionPicker({
                   aria-pressed={st.generalSelected}
                   aria-label={`${p.name}（大分類）を選ぶ`}
                   title={`${p.name}（大分類）を選ぶ`}
-                  className="tap-min-h"
+                  /* ★見た目は 28×28 の丸、押せる範囲は 44px 四方（2026-10-09）。
+                        ⚠️ `btn-fixed-size` を外さないこと。外すと globals.css の
+                           `button { min-height: 36px }` で 28×36 の縦長になる（画面で測って 19個とも 28×36 だった）。
+                        ⚠️ `tap-min-h` を付けないこと。767px 以下で min-height: 44px が後から勝ち、28×44 になる。 */
+                  className="btn-fixed-size tap-target-44"
                   style={{
+                    position: "relative",
                     flexShrink: 0, alignSelf: "center", marginRight: 10,
                     width: 28, height: 28, borderRadius: "50%",
                     border: `1.5px solid ${st.generalSelected ? "var(--royal)" : "var(--line)"}`,

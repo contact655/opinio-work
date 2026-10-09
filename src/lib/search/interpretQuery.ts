@@ -782,11 +782,9 @@ function resolvePrimaryKind(normalized: string, conditions: Condition[]): Search
 
 // ── ④ 解決できなかった語を拾う ───────────────────────────────────────────────
 
-/**
- * 主対象の合図（「人」「企業」「求人」など）。**条件ではないが未解決でもない**ので
- * `unresolved` からは外す。出すと「『人』では絞り込めません」という無意味な表示になる。
- */
-const KIND_MARKER_WORDS = KIND_MARKERS.map((m) => m.word);
+/* 主対象の合図（「人」「企業」「求人」など）は**条件ではないが未解決でもない**ので
+   `unresolved` から外す（collectUnresolved が findKindMarkers の範囲を伏せる）。
+   出すと「『人』では絞り込めません」という無意味な表示になる。 */
 
 /**
  * ⚠️ **ひらがなだけの語は落とす。**
@@ -813,14 +811,12 @@ function collectUnresolved(normalized: string, display: string, consumed: Span[]
   for (const s of consumed) {
     for (let i = s.start; i < s.end && i < chars.length; i++) chars[i] = " ";
   }
-  for (const w of KIND_MARKER_WORDS) {
-    let from = 0;
-    for (;;) {
-      const i = normalized.indexOf(w, from);
-      if (i < 0) break;
-      from = i + 1;
-      for (let j = i; j < i + w.length && j < chars.length; j++) chars[j] = " ";
-    }
+  /* ★伏せる範囲は主対象の判定と同じ `findKindMarkers` から作る（2026-10-09）。
+        ⚠️ 以前はここで合図の語を素の indexOf で探して伏せており、「人材」「求人」のような
+           判定側では除外している「人」まで消していた ——「人材業界」が「材業界」と欠けて
+           「この語では絞り込めない」に出ていた。**規則を2か所に書かないこと。** */
+  for (const m of findKindMarkers(normalized)) {
+    for (let j = m.end - m.len; j < m.end && j < chars.length; j++) chars[j] = " ";
   }
   const rest = chars.join("");
   /* 残りを「漢字・カタカナ・英数のかたまり」に割る。

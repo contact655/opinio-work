@@ -227,9 +227,8 @@ export interface MergedTimelineProps {
    *    公開プロフィール（`/u/[id]`）・企業ページ・`/people` には**渡さない**。
    *    「見ている人が本人か」で出し分けない ——本人が自分の公開ページを見ても true になる。
    *
-   * ⚠️ `careerActions`（鉛筆・ゴミ箱）とは**独立**。`/mypage` の職歴カードは
-   *    行ごとの操作を渡していない（1件ずつ触るのは `/mypage/details/experience`）ので、
-   *    あちらに相乗りさせると出せない。
+   * ⚠️ `careerActions`（行の鉛筆）とは**独立**。鉛筆を渡さない画面でも出せるよう、
+   *    相乗りさせない（`/mypage/details/experience` は 2026-09-12 に畳み、いまは行の鉛筆で編集する）。
    */
   renderCareerAside?: (careerId: string) => React.ReactNode;
 }

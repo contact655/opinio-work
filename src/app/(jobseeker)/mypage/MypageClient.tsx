@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { InboxCard } from "@/components/mypage/InboxCard";
 import MypageLayout from "./_components/MypageLayout";
 /* ★意思表示（2026-08-26 / フェーズ1）。`StanceCard` / `CareerIntentBox` /
       `TalkToMeCard` の**3枚を1枚に統合した**。3枚に戻さないこと。 */
@@ -417,10 +416,9 @@ export default function MypageClient({
       applicationsBadge={applicationsBadge}
       proposalsBadge={proposalsBadge}
       rightColumn={dashboardRightColumn}
-      /* ★届いているもの（2026-10-09）。最上部（右の列より上）。0件ならカードごと出ない */
-      top={inbox && (inbox.messageRequests > 0 || (inbox.proposals ?? 0) > 0)
-        ? <InboxCard proposals={inbox.proposals} messageRequests={inbox.messageRequests} />
-        : undefined}
+      /* ★届いているもの（2026-10-09）。最上部（右の列より上）。描くのはレイアウト側で、
+            ナビと同じ取得結果で数字を置き換える。0件ならカードごと出ない */
+      inbox={inbox}
     >
       {/* ウェルカムバナー（新規登録直後） */}
       {isNewUser && !welcomeDismissed && (

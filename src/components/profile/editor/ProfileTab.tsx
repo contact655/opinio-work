@@ -854,7 +854,8 @@ export default function ProfileTab({
   const shownContent      = contentLinks.slice(0, ROWS_ON_PROFILE.content);
 
   /* ★本体に出す学歴は**新しい順に4件まで**（2026-08-17 / フェーズ3）。
-        残りと、年表に載らない行（入学年月なし）は `/mypage/details/education` が持つ。
+        残りは「すべて表示」でその場に展開し、年表に載らない行（入学年月なし）は
+        セクションの下に「年月未設定」として出す（2026-09-12 に一覧ページを畳んだ）。
      ⚠️ 「すべて表示」の判定は**画面に出した数と保存されている数の差**で出す。
         件数だけで比べると、年表に落ちた行があるときに「4件だから出さない」のに
         1件見えていない状態が作れる。 */
@@ -1687,11 +1688,9 @@ export default function ProfileTab({
                   （{formatYmLabel(oldestCareerStart)} から）
                 </p>
               )}
-              {careerStints.length === 0 && (
-                <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                  まだ職歴を登録していません。
-                </p>
-              )}
+              {/* ★0件のときの「まだ職歴を登録していません。」は外した（2026-10-09 / 柴さんの指示）。
+                     下の「＋ 職歴を追加」と縦に2つ並び、同じことを2回言っていた（ui-debugging ⑧）。
+                     ⚠️ 戻さないこと。入口は「＋ 職歴を追加」の1つだけ。 */}
               {/* ★「まとめて答える」の入口（2026-09-12 / 2-5）。
                      ⚠️ **未回答が0件のときは行ごと出さない。**「すべて回答済みです」とも書かない。
                      ⚠️★**行のドット（`ReasonEntryButton`）は残す。** この行を読み飛ばした人と、
@@ -1823,11 +1822,7 @@ export default function ProfileTab({
               title="学歴"
               latin="EDUCATION"
             >
-              {educations.length === 0 && (
-                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                  まだ学歴を登録していません。
-                </p>
-              )}
+              {/* ★0件のときの「まだ学歴を登録していません。」は外した（2026-10-09。職歴と同じ理由）。 */}
               {shownEducations.length > 0 && (
                 /* ⚠️ `size: "md"` は職歴と揃える。ゴミ箱は渡さない（編集モーダルの中へ移した）。 */
                 <MergedTimeline

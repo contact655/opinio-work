@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { InboxCard } from "@/components/mypage/InboxCard";
 import { MYPAGE_MAIN_COLUMN } from "@/lib/constants/layout";
 import Link from "next/link";
 import { Breadcrumb, type Crumb } from "@/components/ui/Breadcrumb";
@@ -139,7 +140,8 @@ export default function MypageLayout({
   applicationsBadge: applicationsBadgeProp,
   proposalsBadge: proposalsBadgeProp,
   children,
-  top,
+  top: topProp,
+  inbox,
   rightColumn,
   rightColumnCollapse = "stack",
   breadcrumb,
@@ -161,6 +163,13 @@ export default function MypageLayout({
    *   ⚠️ 1回だけ描く（本文側に控えを作らない）。位置は CSS の grid と order で決める。
    */
   top?: React.ReactNode;
+  /**
+   * ★「届いているもの」の初期値（サーバーで数えた値。2026-10-09）。
+   *   ⚠️ カードはここ（レイアウト）で描く。ナビと**同じ取得結果**（下の `live`）で数字を置き換え、
+   *      0件になればカードごと出さない。呼び出し側で `top` に InboxCard を渡さないこと
+   *      ——それだと数字がサーバーの値のまま残り、ナビと食い違う。
+   */
+  inbox?: { proposals: number | null; messageRequests: number };
   rightColumn?: React.ReactNode;
   /**
    * 1100px 未満で右カラムをどう畳むか。
@@ -180,7 +189,7 @@ export default function MypageLayout({
         ⚠️ 数え方は `lib/mypage/navBadges.ts` の1か所（API はそれを呼ぶだけ）。
         ⚠️ ページが渡した値は最初の表示に使い、取れたら API の値で置き換える。
         ⚠️ 取得に失敗したら渡された値のまま（0 で上書きしない）。 */
-  const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null } | null>(null);
+  const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null; messageRequests: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetch("/api/jobseeker/mypage-badges")
@@ -192,6 +201,15 @@ export default function MypageLayout({
   const conversationsBadge = live?.conversations ?? conversationsBadgeProp;
   const applicationsBadge = live?.applications ?? applicationsBadgeProp;
   const proposalsBadge = live ? (live.proposals ?? proposalsBadgeProp) : proposalsBadgeProp;
+
+  /* ★「届いているもの」もナビと同じ取得結果から出す。⚠️ 提案が取れなかったとき（null）は初期値のまま */
+  const inboxNow = inbox && (live
+    ? { proposals: live.proposals ?? inbox.proposals, messageRequests: live.messageRequests ?? inbox.messageRequests }
+    : inbox);
+  const showInbox = !!inboxNow && ((inboxNow.proposals ?? 0) > 0 || inboxNow.messageRequests > 0);
+  const top = topProp ?? (showInbox && inboxNow
+    ? <InboxCard proposals={inboxNow.proposals} messageRequests={inboxNow.messageRequests} />
+    : undefined);
 
   return (
     <>
@@ -461,8 +479,6 @@ export default function MypageLayout({
           }
           /* 右カラムのうち**モバイルでは出さないもの**。ここで消す（本文側に控えを作らない） */
           .mypage-hide-mobile { display: none !important; }
-          /* モバイルは「転職について」を未設定のまま候補者検索に出ない、ほうが重いので先に出す */
-          .mypage-mobile-first { order: -1; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
           /* top は右の列（order: -1）より上へ */
           /* 背景は右の列（地の色なし）に揃える。灰色のままだと右の列との境に段ができる */

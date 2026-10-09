@@ -19,7 +19,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
       ⚠️ ダミーデータを作らないこと（`mockArticleData` の `MOCK_ARTICLES` は
          2026-08-13 に削除済み。あそこに書き戻さない）。 */
 import { getArticles } from "@/lib/supabase/queries";
-import { LP_ARTICLES_COUNT } from "@/lib/constants/landing";
+import { LP_ARTICLES_COUNT, LP_JOBS_MIN_TO_SHOW } from "@/lib/constants/landing";
 
 /**
  * ★件数を **metadata と OGP から外した**（2026-09-16）。
@@ -124,7 +124,11 @@ export default async function HomePage() {
     .not("school_id", "is", null);
 
   // ── プレビュー（各12件だけ）──────────────────────────────────────
-  const jobsP = db
+  /* ★募集のプレビューは、セクションを出すとき（公開中が LP_JOBS_MIN_TO_SHOW 件以上）だけ取る（2026-10-09）。
+        それまでは出さないセクションのために毎回12件を引いていた。
+        ⚠️ 件数を見てから取るので、出すときだけ段が1つ増える（出さないあいだは取得0）。
+        ⚠️ しきい値は LandingPage と同じ定数。ここで別の数を書かないこと。 */
+  const jobsQuery = () => db
     .from("ow_jobs")
     .select(
       "id, title, job_category, salary_min, salary_max, location, employment_type, remote_work_status, company_id, published_at"
@@ -137,8 +141,11 @@ export default async function HomePage() {
         ⚠️ 並列の Promise.all に混ぜる（直列にすると段が1つ増える）。 */
   const articlesP = getArticles();
 
-  const [companyCountRes, jobCountRes, jobsRes, schoolRes, industryFacetList, allArticles] =
-    await Promise.all([companyCountP, jobCountP, jobsP, schoolRowsP, industryFacetsP, articlesP]);
+  const [companyCountRes, jobCountRes, schoolRes, industryFacetList, allArticles] =
+    await Promise.all([companyCountP, jobCountP, schoolRowsP, industryFacetsP, articlesP]);
+  const jobsRes = (jobCountRes.count ?? 0) >= LP_JOBS_MIN_TO_SHOW
+    ? await jobsQuery()
+    : { data: [], error: null };
 
   // ── ピックアップ企業の選定 ──────────────────────────────────────
   // ⚠️ 基準は src/lib/lp/pickCompanies.ts に切り出してある。
