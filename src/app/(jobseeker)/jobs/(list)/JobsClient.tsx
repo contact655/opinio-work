@@ -364,8 +364,13 @@ export default function JobsClient({
   const [groupByCompany, setGroupByCompany] = useState(false);
 
 
-  // 企業ステージフィルター
-  const [companyStage, setCompanyStage] = useState(""); // カンマ区切り複数選択
+  /* ★企業のフェーズと外資系（2026-10-09 に URL へ移した）。
+        それまではこの画面だけのローカル状態で、**共有・リロード・戻るで消えていた。**
+        `?phase=`（カンマ区切り）と `?foreign=1` に置く。書き換えは `setParam`（router.replace＝履歴を積まない）。
+     ⚠️ `companyStage` は下の判定がそのまま使えるよう、従来と同じ「カンマ区切り＋foreign」の形に組み立てる。 */
+  const phaseParam = searchParams.get("phase") ?? "";
+  const foreignParam = searchParams.get("foreign") === "1";
+  const companyStage = [phaseParam, foreignParam ? "foreign" : ""].filter(Boolean).join(",");
   const companyStageSet = useMemo(() => new Set(companyStage ? companyStage.split(",") : []), [companyStage]);
   function toggleParam(key: string, value: string, current: string) {
     const set = new Set(current ? current.split(",") : []);
@@ -373,20 +378,12 @@ export default function JobsClient({
     setParam(key, Array.from(set).join(","));
   }
   function toggleStage(value: string) {
-    /* ⚠️ 前の値から作る（2026-10-09）。続けて呼ばれても取りこぼさない */
-    setCompanyStage((prev) => {
-      const set = new Set(prev ? prev.split(",") : []);
-      if (set.has(value)) set.delete(value); else set.add(value);
-      return Array.from(set).join(",");
-    });
+    if (value === "foreign") setParam("foreign", foreignParam ? "" : "1");
+    else toggleParam("phase", value, phaseParam);
   }
-  /** フェーズだけを全部外す。⚠️ 外資系（同じ companyStage に入っている）は残す */
+  /** フェーズだけを全部外す。⚠️ 外資系（別のキー）は残す */
   function clearPhases() {
-    setCompanyStage((prev) => {
-      const set = new Set(prev ? prev.split(",") : []);
-      phaseKeysRef.current.forEach((k) => set.delete(k));
-      return Array.from(set).join(",");
-    });
+    setParam("phase", "");
   }
 
   // Which filter chip dropdown is open
@@ -430,8 +427,6 @@ export default function JobsClient({
     [],
   );
   const phaseKeys = useMemo(() => phaseOptions.map((o) => o.value), [phaseOptions]);
-  const phaseKeysRef = useRef<string[]>([]);
-  phaseKeysRef.current = phaseKeys;
   const phaseLabels = useMemo(
     () => Object.fromEntries(phaseOptions.map((o) => [o.value, o.label])),
     [phaseOptions],
