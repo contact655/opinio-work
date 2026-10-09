@@ -17,8 +17,13 @@ import {
  * 各ページで getTenantContext() === null のときに「企業アカウント追加導線」を表示する。
  *
  * /admin/ 配下のアクセス制御（二重防御 — layout.tsx の auth_is_admin() と重複）
- *   - 未ログイン: /biz/auth にリダイレクト
- *   - ロール確認は layout.tsx で行う（middleware は auth check のみ）
+ *   - 未ログイン: /auth にリダイレクト
+ *   - ★ログイン済みで運営でない: **ここで 403 を返す**（2026-10-10）
+ *     ⚠️★layout.tsx の判定だけでは守れていなかった。layout が children を描かなくても、
+ *        **ページ側のサーバーコンポーネントは並行して実行され、その結果が RSC ペイロードに載る。**
+ *        実測（2026-10-10 / 本番）: 運営でない検証用アカウントで /admin/plans を開くと、
+ *        画面は「権限がありません」なのに HTML に企業名とプランの一覧が入っていた。
+ *     ⚠️ layout.tsx の判定は消さない（二重防御。middleware が落ちたときの最後の守り）。
  */
 const BIZ_PUBLIC_PATHS = ["/biz", "/biz/auth", "/biz/auth/signup", "/biz/auth/accept-invite"];
 
@@ -238,6 +243,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /* ★/admin は運営でなければここで止める（上の冒頭の注記）。⚠️ 判定できなかったときも止める（fail-closed）。
+        運営の画面なので、判定の失敗で開けなくなるほうが、中身が漏れるより安全。 */
+  if (pathname.startsWith("/admin") && sessionUser) {
+    const admin = await isOpsAdmin(sessionUser.id);
+    if (admin !== true) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/no-admin-access";
+      url.search = "";
+      const res = NextResponse.rewrite(url, { status: admin === null ? 503 : 403 });
+      response.cookies.getAll().forEach((c) => res.cookies.set(c));
+      return res;
+    }
+  }
+
   /* ★会話の詳細は、参加者でなければ HTTP でも 404 を返す（2026-10-09）。
         ページ側の `notFound()` は `/mypage/loading.tsx` の Suspense 境界の内側で起きるので、
         **画面は 404 なのに HTTP は 200** になっていた（承認前のお願いの受け手・無関係の人）。
@@ -260,6 +279,22 @@ export async function middleware(request: NextRequest) {
   }
 
   return attachSignupRef(request, finalResponse);
+}
+
+/** 運営か（`auth_is_admin()` と同じ表）。⚠️ 判定できなかったら null（呼び出し側は止める） */
+async function isOpsAdmin(authUserId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await createAdminClient()
+      .from("ow_user_roles").select("user_id").eq("user_id", authUserId).eq("role", "admin").limit(1);
+    if (error) {
+      console.error("[middleware] 運営の判定:", error.message);
+      return null;
+    }
+    return (data ?? []).length > 0;
+  } catch (e) {
+    console.error("[middleware] 運営の判定:", e);
+    return null;
+  }
 }
 
 const CONVERSATION_DETAIL_RE = /^\/mypage\/conversations\/([0-9a-f-]{36})\/?$/i;
