@@ -214,7 +214,6 @@ export default function RootLayout({
         />
         <a href="#main-content" className="skip-to-main">メインコンテンツへスキップ</a>
         {children}
-        {/* <PageViewTracker /> */}
         <ServiceWorkerRegistration />
       </body>
     </html>

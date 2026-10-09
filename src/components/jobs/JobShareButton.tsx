@@ -33,6 +33,10 @@ export function JobInlineShare({
         type="button"
         onClick={handleCopy}
         title={copied ? "コピー済み" : "URLをコピー"}
+        /* ⚠️ アイコンだけのボタンなので、読み上げ用のラベルを付ける（title は読まれないことがある）。
+              btn-fixed-size: globals.css の min-height: 36px で 30×36 の縦長になるのを外す */
+        aria-label={copied ? "コピー済み" : "URLをコピー"}
+        className="btn-fixed-size"
         style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           width: 30, height: 30, borderRadius: 8,

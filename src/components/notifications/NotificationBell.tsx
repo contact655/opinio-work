@@ -68,7 +68,8 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。
         メッセージと同じで、**誰からと、押せば読めることだけ。** */
   if (notif.type === "proposal") {
-    return { who: notif.actorCompany?.name ?? "企業", what: " への提案が届きました" };
+    /* ⚠️ 「◯◯ への提案」と書かない。企業**への**提案（企業に宛てた提案）と読める（2026-10-09） */
+    return { who: notif.actorCompany?.name ?? "企業", what: " についての提案が届きました" };
   }
   /* ★③。⚠️ 「双方が会いたいと答えた」と書かない —— 相手が何を押したかは
         相手の情報。**自分に何ができるようになったか**だけを伝える。 */

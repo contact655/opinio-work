@@ -226,7 +226,8 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
             aria-label={bookmarked ? "保存を解除" : "保存する"}
             /* ⚠️ globals.css の `button { min-height: 36px }` を外す。
                   付けないと高さだけ 36px に伸びて **縦長の楕円**になる（26×36）。 */
-            className="btn-fixed-size"
+            /* ★tap-target-44: 見た目は 26px のまま、押せる範囲だけ 44px に広げる（2026-10-09） */
+            className="btn-fixed-size tap-target-44"
             style={{
               position: "absolute", top: 10, right: 12,
               width: 26, height: 26, flexShrink: 0,
