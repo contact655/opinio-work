@@ -79,27 +79,30 @@ export function isProposalEndedFor(side: ProposalSide, p: ProposalForEnd, visibl
 }
 
 /**
- * ★未回答の提案の件数（バッジ用）。**画面の「未回答」と同じ条件**:
+ * ★未回答の提案（新しい順）。**画面の「未回答」と同じ条件**:
  *   自分がまだ答えておらず、終了してもいないもの。
+ * ⚠️ 返すのは id と作成日時だけ（企業側のホームで使う。⚠️ 候補者は匿名なので名前を返さない）。
  * ⚠️ 失敗したら null（呼び出し側は 0 と区別すること。「0 = 無い」とは限らない）。
  */
-export async function countOpenProposals(
+export async function listOpenProposals(
   side: ProposalSide,
   id: { companyId: string } | { candidateUserId: string },
-): Promise<number | null> {
+): Promise<{ id: string; createdAt: string }[] | null> {
   const db = createAdminClient();
   let q = db
     .from("ow_proposals")
-    .select("company_id, candidate_user_id, candidate_response, company_response, introduced_at");
+    .select("id, created_at, company_id, candidate_user_id, candidate_response, company_response, introduced_at");
   q = side === "company"
     ? q.eq("company_id", (id as { companyId: string }).companyId).is("company_response", null)
     : q.eq("candidate_user_id", (id as { candidateUserId: string }).candidateUserId).is("candidate_response", null);
-  const { data, error } = await q;
+  const { data, error } = await q.order("created_at", { ascending: false });
   if (error) {
-    console.error("[proposalEnded] 未回答の件数:", error.message);
+    console.error("[proposalEnded] 未回答の一覧:", error.message);
     return null;
   }
   const rows = (data ?? []).map((r) => ({
+    id: r.id as string,
+    createdAt: r.created_at as string,
     companyId: r.company_id as string,
     candidateUserId: r.candidate_user_id as string,
     candidateResponse: (r.candidate_response as string | null) ?? null,
@@ -107,5 +110,13 @@ export async function countOpenProposals(
     introducedAt: (r.introduced_at as string | null) ?? null,
   }));
   const visible = await visiblePairs(rows);
-  return rows.filter((r) => !isProposalEndedFor(side, r, isVisiblePair(visible, r))).length;
+  return rows.filter((r) => !isProposalEndedFor(side, r, isVisiblePair(visible, r))).map((r) => ({ id: r.id, createdAt: r.createdAt }));
+}
+
+/** ★未回答の提案の件数（バッジ用）。`listOpenProposals` と同じ条件。失敗したら null */
+export async function countOpenProposals(
+  side: ProposalSide,
+  id: { companyId: string } | { candidateUserId: string },
+): Promise<number | null> {
+  return (await listOpenProposals(side, id))?.length ?? null;
 }
