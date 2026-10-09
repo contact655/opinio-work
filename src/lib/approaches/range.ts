@@ -22,7 +22,7 @@ export type ApproachRange = {
 
 export const EMPTY_APPROACH_RANGE: ApproachRange = { jobCategories: [], industries: [], sizeGroups: [], prefectures: [], remoteOk: false };
 
-export type RangeOption = { value: string; label: string };
+export type RangeOption = { value: string; label: string; /** その選択肢だけを選んだときに送れる企業の数。取れなければ null */ count: number | null };
 export type ApproachRangeOptions = {
   jobCategories: RangeOption[];
   industries: RangeOption[];
@@ -30,12 +30,51 @@ export type ApproachRangeOptions = {
   prefectures: RangeOption[];
 };
 
+/** 項目のキー（DB の `ow_approach_range_fields.field` と同じ） */
+export const APPROACH_RANGE_FIELDS = ["job_categories", "industries", "size_groups", "prefectures", "remote_ok"] as const;
+export type ApproachRangeField = (typeof APPROACH_RANGE_FIELDS)[number];
+export type ApproachRangeFieldFlags = Record<ApproachRangeField, boolean>;
+
 /**
- * 選べる値。⚠️ 職種は IT/SaaS の大分類だけ（希望職種と同じ母集合。大分類を選ぶと配下の職種にも合う）、
- * 業種は大分類だけ（大分類を選ぶと配下の業種にも合う）。どちらも DB 関数が親子を両方向に見る。
+ * ★項目ごとの有効フラグ（2026-10-10 / 柴さんの指示）。**無効の項目は画面に出さず、判定にも使わない**
+ * （判定側は DB 関数 `company_in_approach_range()` がこの表を見る）。
+ * ⚠️ 割合で自動に切り替えない。運営が /admin/approach-range で切り替える。
+ * 取得に失敗したら null（呼び出し側は節ごと出さない）。行が無い項目は無効の扱い（DB と同じ）。
+ */
+export async function getApproachRangeFieldFlags(): Promise<ApproachRangeFieldFlags | null> {
+  const { data, error } = await createAdminClient().from("ow_approach_range_fields").select("field, enabled");
+  if (error) {
+    console.error("[approach-range] fields:", error.message);
+    return null;
+  }
+  const out = Object.fromEntries(APPROACH_RANGE_FIELDS.map((f) => [f, false])) as ApproachRangeFieldFlags;
+  for (const r of data ?? []) if ((APPROACH_RANGE_FIELDS as readonly string[]).includes(r.field as string)) out[r.field as ApproachRangeField] = r.enabled === true;
+  return out;
+}
+
+export type ApproachRangeFieldCoverage = { field: ApproachRangeField; enabled: boolean; withClue: number; total: number };
+
+/** 項目ごとの割合（公開中・検証用を除く企業のうち、その項目の手がかりを持つ企業）。失敗したら null */
+export async function getApproachRangeFieldCoverage(): Promise<ApproachRangeFieldCoverage[] | null> {
+  const { data, error } = await createAdminClient().rpc("approach_range_field_coverage");
+  if (error) {
+    console.error("[approach-range] coverage:", error.message);
+    return null;
+  }
+  return (data ?? []).map((r: { field: string; enabled: boolean; with_clue: number; total: number }) => ({
+    field: r.field as ApproachRangeField, enabled: r.enabled, withClue: r.with_clue, total: r.total,
+  }));
+}
+
+/**
+ * 選べる値（すべての項目ぶん。出すかどうかは呼び出し側がフラグで決める）。
+ * ⚠️ 職種は IT/SaaS の大分類だけ（希望職種と同じ母集合。大分類を選ぶと配下の職種にも合う）、
+ *    業種は大分類だけ（大分類を選ぶと配下の業種にも合う）。どちらも DB 関数が親子を両方向に見る。
+ * ★`owUserId` を渡すと、有効な項目の選択肢ごとに「その選択肢だけを選んだとき送れる企業の数」を付ける
+ *   （`approach_range_option_counts()`。判定と同じ関数で数える。受け取らない企業は除く）。
  * 取得に失敗したら null。
  */
-export async function getApproachRangeOptions(): Promise<ApproachRangeOptions | null> {
+export async function getApproachRangeOptions(owUserId?: string, flags?: ApproachRangeFieldFlags | null): Promise<ApproachRangeOptions | null> {
   const db = createAdminClient();
   const [{ data: roles, error: rErr }, { data: inds, error: iErr }] = await Promise.all([
     db.from("ow_roles").select("id, name, parent_id, is_active, is_it_saas, display_order").is("parent_id", null).order("display_order"),
@@ -45,13 +84,30 @@ export async function getApproachRangeOptions(): Promise<ApproachRangeOptions | 
     console.error("[approach-range] options:", rErr?.message ?? iErr?.message);
     return null;
   }
-  return {
+  const base: ApproachRangeOptions = {
     jobCategories: (roles ?? []).filter((r) => isDesiredRoleCandidate(r as { is_active: boolean; is_it_saas: boolean | null }))
-      .map((r) => ({ value: r.id as string, label: r.name as string })),
-    industries: (inds ?? []).map((r) => ({ value: r.id as string, label: r.name as string })),
-    sizeGroups: COMPANY_SIZE_GROUPS.map((g) => ({ value: g.value, label: g.label })),
-    prefectures: PREFECTURES.map((p) => ({ value: p, label: p })),
+      .map((r) => ({ value: r.id as string, label: r.name as string, count: null as number | null })),
+    industries: (inds ?? []).map((r) => ({ value: r.id as string, label: r.name as string, count: null as number | null })),
+    sizeGroups: COMPANY_SIZE_GROUPS.map((g) => ({ value: g.value as string, label: g.label as string, count: null as number | null })),
+    prefectures: PREFECTURES.map((p) => ({ value: p as string, label: p as string, count: null as number | null })),
   };
+  if (!owUserId || !flags) return base;
+
+  const targets: [keyof ApproachRangeOptions, ApproachRangeField][] = [
+    ["jobCategories", "job_categories"], ["industries", "industries"], ["sizeGroups", "size_groups"], ["prefectures", "prefectures"],
+  ];
+  await Promise.all(targets.filter(([, f]) => flags[f]).map(async ([key, field]) => {
+    const { data, error } = await db.rpc("approach_range_option_counts", {
+      p_ow_user_id: owUserId, p_field: field, p_values: base[key].map((o) => o.value),
+    });
+    if (error) {
+      console.error("[approach-range] option counts:", field, error.message);
+      return; // ⚠️ 取れなければ null のまま（画面は社数を出さず、選択肢は消さない）
+    }
+    const byValue = new Map<string, number>((data ?? []).map((r: { value: string; companies: number }) => [r.value, r.companies] as [string, number]));
+    base[key] = base[key].map((o) => ({ ...o, count: byValue.get(o.value) ?? null }));
+  }));
+  return base;
 }
 
 /** 保存済みの範囲。行が無ければ空（＝こだわらない）。取得に失敗したら null */
@@ -177,3 +233,19 @@ export async function companyHasApproachRoles(companyId: string): Promise<boolea
   }
   return (count ?? 0) > 0;
 }
+
+/** 設定画面が使う一式。⚠️ どれか1つでも取れなければ null */
+export type ApproachRangeState = NonNullable<Awaited<ReturnType<typeof loadApproachRangeState>>>;
+
+export async function loadApproachRangeState(owUserId: string) {
+  const fields = await getApproachRangeFieldFlags();
+  if (!fields) return null;
+  const [range, blocks, count, options] = await Promise.all([
+    getApproachRange(owUserId), listApproachBlockedCompanies(owUserId), countCompaniesInRange(owUserId),
+    getApproachRangeOptions(owUserId, fields),
+  ]);
+  if (!range || !blocks || !options) return null;
+  /* ⚠️ count は失敗しても null のまま返す（画面は「—」。0 と出さない） */
+  return { range, blocks, count, options, fields };
+}
+

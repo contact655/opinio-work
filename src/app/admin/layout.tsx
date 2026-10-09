@@ -25,6 +25,7 @@ import {
   ClipboardCheck,
   UserPlus,
   UserX,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -87,6 +88,8 @@ const NAV_GROUPS = [
       { label: "提案を作る",          href: "/admin/proposals",        icon: <Send         size={16} strokeWidth={2} /> },
       { label: "根拠の棚卸し",        href: "/admin/evidence-gaps",    icon: <ClipboardCheck size={16} strokeWidth={2} /> },
       { label: "プラン管理",          href: "/admin/plans",            icon: <CreditCard   size={16} strokeWidth={2} /> },
+      /* ★2026-10-10。声かけを受け取る範囲の項目ごとの割合と有効フラグ（50% を超えたら運営が有効にする） */
+      { label: "声かけの受け取り範囲", href: "/admin/approach-range", icon: <SlidersHorizontal size={16} strokeWidth={2} /> },
     ],
   },
 ];

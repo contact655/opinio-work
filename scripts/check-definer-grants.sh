@@ -51,6 +51,9 @@ SERVER_ONLY=(
   "can_send_company_approach(p_company_id uuid, p_candidate_ow_user_id uuid, p_sender_ow_user_id uuid)"
   "company_in_approach_range(p_company_id uuid, p_ow_user_id uuid)"
   "count_companies_in_approach_range(p_ow_user_id uuid)"
+  "approach_company_matches_field(p_company_id uuid, p_field text, p_values text[])"
+  "approach_range_option_counts(p_ow_user_id uuid, p_field text, p_values text[])"
+  "approach_range_field_coverage()"
 )
 
 SELF_TEST=0

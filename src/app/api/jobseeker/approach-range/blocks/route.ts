@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { MAX_APPROACH_BLOCKED_COMPANIES } from "@/lib/constants/approachRange";
-import { countCompaniesInRange, listApproachBlockedCompanies } from "@/lib/approaches/range";
+import { loadApproachRangeState } from "@/lib/approaches/range";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +24,11 @@ async function me(): Promise<string | null> {
   return (data?.id as string | undefined) ?? null;
 }
 
+/** ⚠️ 受け取らない企業が変わると、合計の社数も選択肢ごとの社数も変わるので、一式を返す */
 async function respond(owUserId: string) {
-  const [blocks, count] = await Promise.all([listApproachBlockedCompanies(owUserId), countCompaniesInRange(owUserId)]);
-  if (!blocks) return NextResponse.json({ error: "取得できませんでした" }, { status: 500 });
-  return NextResponse.json({ blocks, count });
+  const state = await loadApproachRangeState(owUserId);
+  if (!state) return NextResponse.json({ error: "取得できませんでした" }, { status: 500 });
+  return NextResponse.json(state);
 }
 
 export async function POST(req: NextRequest) {

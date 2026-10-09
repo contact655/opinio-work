@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { FormSection } from "@/components/profile/editor/formKit";
 import { useCompanyLookup } from "@/components/companies/useCompanyLookup";
-import { APPROACH_RANGE_EXCLUDED_NOTE, MAX_APPROACH_BLOCKED_COMPANIES } from "@/lib/constants/approachRange";
+import { APPROACH_RANGE_EXCLUDED_NOTE, APPROACH_RANGE_NARROW_NOTE, APPROACH_RANGE_NARROW_THRESHOLD, MAX_APPROACH_BLOCKED_COMPANIES } from "@/lib/constants/approachRange";
 import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
-import type { ApproachBlockedCompany, ApproachRange, ApproachRangeOptions } from "@/lib/approaches/range";
+import type { ApproachRange, ApproachRangeState, RangeOption } from "@/lib/approaches/range";
 
 /**
  * ★`/mypage/settings` の「声かけを受け取る範囲」（2026-10-10 / 声かけまわり 段2）。
@@ -14,6 +14,10 @@ import type { ApproachBlockedCompany, ApproachRange, ApproachRangeOptions } from
  *    （判定は DB 関数 `can_send_company_approach()`。画面では組み立てない）。
  * ⚠️ 「この範囲で声かけを送れる企業：N社」は**保存済みの範囲**で数える。選び直したあとは「保存すると更新されます」。
  * ⚠️ 「受け取らない企業」は「ブロック中の企業」（候補者検索にも出なくなる）とは別。こちらは声かけだけを止める。
+ * ★2026-10-10（柴さんの指示）:
+ *   ・無効の項目（`ow_approach_range_fields`。企業側のデータが揃っていない項目）は出さない
+ *   ・選択肢の横に「その選択肢だけを選んだとき送れる企業の数」。0社の選択肢は出さない（選択済みなら外せるように残す）
+ *   ・合計が10社未満なら注意を1行
  */
 const chip = (on: boolean): React.CSSProperties => ({
   fontSize: 12.5, fontWeight: on ? 700 : 500, fontFamily: "inherit", padding: "6px 12px", borderRadius: 100,
@@ -28,22 +32,22 @@ const norm = (r: ApproachRange) => ({
   j: [...r.jobCategories].sort(), i: [...r.industries].sort(), s: [...r.sizeGroups].sort(), p: [...r.prefectures].sort(), r: r.remoteOk,
 });
 
-export function ApproachRangeSection({
-  options, initialRange, initialBlocks, initialCount,
-}: {
-  options: ApproachRangeOptions;
-  initialRange: ApproachRange;
-  initialBlocks: ApproachBlockedCompany[];
-  initialCount: number | null;
-}) {
-  const [saved, setSaved] = useState(initialRange);
-  const [range, setRange] = useState(initialRange);
-  const [count, setCount] = useState<number | null>(initialCount);
+/** 0社の選択肢は出さない。⚠️ 選択済みのものは外せるように残す。社数が取れなかった（null）ときは消さない */
+const visibleOptions = (opts: RangeOption[], selected: string[]) =>
+  opts.filter((o) => o.count == null || o.count > 0 || selected.includes(o.value));
+const optionLabel = (o: RangeOption) => (o.count == null ? o.label : `${o.label}（${o.count}社）`);
+
+export function ApproachRangeSection({ initial }: { initial: ApproachRangeState }) {
+  const [saved, setSaved] = useState(initial.range);
+  const [range, setRange] = useState(initial.range);
+  const [count, setCount] = useState<number | null>(initial.count);
+  const [options, setOptions] = useState(initial.options);
+  const [fields, setFields] = useState(initial.fields);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [blocks, setBlocks] = useState(initialBlocks);
+  const [blocks, setBlocks] = useState(initial.blocks);
   const [blockError, setBlockError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -60,7 +64,8 @@ export function ApproachRangeSection({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "保存できませんでした");
-      setSaved(json.range); setRange(json.range); setCount(json.count ?? null); setDone(true);
+      const st = json as ApproachRangeState;
+      setSaved(st.range); setRange(st.range); setCount(st.count); setOptions(st.options); setFields(st.fields); setDone(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存できませんでした");
     } finally {
@@ -77,7 +82,8 @@ export function ApproachRangeSection({
       );
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? (method === "POST" ? "追加できませんでした" : "解除できませんでした"));
-      setBlocks(json.blocks ?? []); setCount(json.count ?? null);
+      const st = json as ApproachRangeState;
+      setBlocks(st.blocks); setCount(st.count); setOptions(st.options); setFields(st.fields);
       if (method === "POST") { setQ(""); clear(); }
     } catch (e) {
       setBlockError(e instanceof Error ? e.message : "失敗しました");
@@ -88,6 +94,7 @@ export function ApproachRangeSection({
 
   const blockedIds = new Set(blocks.map((b) => b.companyId));
   const prefSet = new Set(range.prefectures);
+  const prefOptions = new Map(options.prefectures.map((o) => [o.value, o]));
 
   return (
     <FormSection title="声かけを受け取る範囲">
@@ -96,33 +103,40 @@ export function ApproachRangeSection({
         選んだ項目の情報が企業側に登録されていない場合、その企業からは届きません。
       </p>
 
+      {fields.job_categories && (<>
       <span style={groupLabel}>職種（企業が募集している・登録している職種）</span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {options.jobCategories.map((o) => (
+        {visibleOptions(options.jobCategories, range.jobCategories).map((o) => (
           <button key={o.value} type="button" style={chip(range.jobCategories.includes(o.value))}
             aria-pressed={range.jobCategories.includes(o.value)}
-            onClick={() => set((r) => ({ jobCategories: toggle(r.jobCategories, o.value) }))}>{o.label}</button>
+            onClick={() => set((r) => ({ jobCategories: toggle(r.jobCategories, o.value) }))}>{optionLabel(o)}</button>
         ))}
       </div>
+      </>)}
 
+      {fields.industries && (<>
       <span style={groupLabel}>業種</span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {options.industries.map((o) => (
+        {visibleOptions(options.industries, range.industries).map((o) => (
           <button key={o.value} type="button" style={chip(range.industries.includes(o.value))}
             aria-pressed={range.industries.includes(o.value)}
-            onClick={() => set((r) => ({ industries: toggle(r.industries, o.value) }))}>{o.label}</button>
+            onClick={() => set((r) => ({ industries: toggle(r.industries, o.value) }))}>{optionLabel(o)}</button>
         ))}
       </div>
+      </>)}
 
+      {fields.size_groups && (<>
       <span style={groupLabel}>会社規模</span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {options.sizeGroups.map((o) => (
+        {visibleOptions(options.sizeGroups, range.sizeGroups).map((o) => (
           <button key={o.value} type="button" style={chip(range.sizeGroups.includes(o.value))}
             aria-pressed={range.sizeGroups.includes(o.value)}
-            onClick={() => set((r) => ({ sizeGroups: toggle(r.sizeGroups, o.value) }))}>{o.label}</button>
+            onClick={() => set((r) => ({ sizeGroups: toggle(r.sizeGroups, o.value) }))}>{optionLabel(o)}</button>
         ))}
       </div>
+      </>)}
 
+      {fields.prefectures && (<>
       <span style={groupLabel}>勤務地（本社または拠点がある都道府県）</span>
       <select
         value=""
@@ -130,11 +144,14 @@ export function ApproachRangeSection({
         style={{ height: 38, padding: "0 10px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", background: "#fff", maxWidth: "100%" }}
       >
         <option value="">都道府県を追加…</option>
-        {PREFECTURE_FILTER_GROUPS.map((g) => (
-          <optgroup key={g.group} label={g.group}>
-            {g.prefectures.map((p) => <option key={`${g.group}-${p}`} value={p} disabled={prefSet.has(p)}>{p}</option>)}
-          </optgroup>
-        ))}
+        {PREFECTURE_FILTER_GROUPS.map((g) => {
+          const visible = g.prefectures.map((p) => prefOptions.get(p)).filter((o): o is RangeOption => !!o && (o.count == null || o.count > 0));
+          return visible.length === 0 ? null : (
+            <optgroup key={g.group} label={g.group}>
+              {visible.map((o) => <option key={`${g.group}-${o.value}`} value={o.value} disabled={prefSet.has(o.value)}>{optionLabel(o)}</option>)}
+            </optgroup>
+          );
+        })}
       </select>
       {range.prefectures.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -144,11 +161,14 @@ export function ApproachRangeSection({
           ))}
         </div>
       )}
+      </>)}
 
+      {fields.remote_ok && (
       <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 13, color: "var(--ink)", cursor: "pointer" }}>
         <input type="checkbox" checked={range.remoteOk} onChange={(e) => { const v = e.target.checked; set(() => ({ remoteOk: v })); }} style={{ accentColor: "var(--royal)" }} />
         リモートワークができる企業だけにする
       </label>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
         <button
@@ -169,6 +189,10 @@ export function ApproachRangeSection({
           この範囲で声かけを送れる企業：{count == null ? "—" : `${count}社`}
         </div>
         {dirty && <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 4 }}>保存すると更新されます。</div>}
+        {/* ⚠️ 黄色は注意の色（ui-conventions）。文字は --warm-ink だけを使う */}
+        {count != null && count < APPROACH_RANGE_NARROW_THRESHOLD && (
+          <div data-state="approach-range-narrow" style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 4 }}>{APPROACH_RANGE_NARROW_NOTE}</div>
+        )}
         <div style={{ fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)", marginTop: 4 }}>{APPROACH_RANGE_EXCLUDED_NOTE}。</div>
       </div>
 

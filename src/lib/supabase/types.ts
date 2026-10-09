@@ -292,6 +292,24 @@ export type Database = {
           },
         ]
       }
+      ow_approach_range_fields: {
+        Row: {
+          enabled: boolean
+          field: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          field: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          field?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ow_articles: {
         Row: {
           body_blocks: Json | null
@@ -6215,6 +6233,26 @@ export type Database = {
       }
     }
     Functions: {
+      approach_company_matches_field: {
+        Args: { p_company_id: string; p_field: string; p_values: string[] }
+        Returns: boolean
+      }
+      approach_range_field_coverage: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          field: string
+          total: number
+          with_clue: number
+        }[]
+      }
+      approach_range_option_counts: {
+        Args: { p_field: string; p_ow_user_id: string; p_values: string[] }
+        Returns: {
+          companies: number
+          value: string
+        }[]
+      }
       approve_school_request: {
         Args: {
           p_approved_by: string

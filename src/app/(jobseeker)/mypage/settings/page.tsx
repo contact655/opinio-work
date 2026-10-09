@@ -6,7 +6,7 @@ import PrivacySettings from "./PrivacySettings";
 import BasicInfoSettings from "./BasicInfoSettings";
 import { ApproachSettingsSection } from "@/components/approaches/ApproachSettingsSection";
 import { ApproachRangeSection } from "@/components/approaches/ApproachRangeSection";
-import { countCompaniesInRange, getApproachRange, getApproachRangeOptions, listApproachBlockedCompanies } from "@/lib/approaches/range";
+import { loadApproachRangeState } from "@/lib/approaches/range";
 import type { Gender } from "@/lib/constants/gender";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProfileVisibility } from "@/lib/constants/profileVisibility";
@@ -65,9 +65,7 @@ export default async function MypageSettingsPage() {
   /* ★声かけを受け取る範囲（2026-10-10 / 段2）。⚠️ どれか1つでも取れなければ節ごと出さない
         （取れなかったのに「こだわらない」と出すと、選んだ範囲が消えたように見える）。 */
   const owUserId = (owUser?.id as string | undefined) ?? null;
-  const [rangeOptions, approachRange, approachBlocks, approachCount] = owUserId
-    ? await Promise.all([getApproachRangeOptions(), getApproachRange(owUserId), listApproachBlockedCompanies(owUserId), countCompaniesInRange(owUserId)])
-    : [null, null, null, null];
+  const approachRangeState = owUserId ? await loadApproachRangeState(owUserId) : null;
 
   return (
     <MypageLayout activeKey="settings">
@@ -93,14 +91,7 @@ export default async function MypageSettingsPage() {
           careerStance={(prof?.career_stance as string | null) ?? null}
         />
       )}
-      {rangeOptions && approachRange && approachBlocks && (
-        <ApproachRangeSection
-          options={rangeOptions}
-          initialRange={approachRange}
-          initialBlocks={approachBlocks}
-          initialCount={approachCount}
-        />
-      )}
+      {approachRangeState && <ApproachRangeSection initial={approachRangeState} />}
       <AccountSettings authEmail={user.email ?? ""} />
     </MypageLayout>
   );
