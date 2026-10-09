@@ -6,6 +6,8 @@ import MypageLayout from "./_components/MypageLayout";
 /* ★意思表示（2026-08-26 / フェーズ1）。`StanceCard` / `CareerIntentBox` /
       `TalkToMeCard` の**3枚を1枚に統合した**。3枚に戻さないこと。 */
 import IntentCard from "@/components/profile/editor/IntentCard";
+import { ApproachConsentCard } from "@/components/approaches/ApproachConsentCard";
+import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 /* ★公開プロフィール（`/u/[id]`）と同じ部品（2026-08-25）。**似た見た目を書き足さない** */
 import { ActivitySection, ProfileArticlesSection } from "@/components/profile/view/ProfileSections";
 import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
@@ -318,8 +320,20 @@ export default function MypageClient({
       transfer_timing: string | null; desired_salary_min: number | null;
       desired_salary_max: number | null; desired_phase: string[] | null;
       career_stance: string | null; stance_updated_at: string | null;
+      accept_company_approaches?: boolean | null;
     } | null;
   };
+
+  /* ★企業からの声かけを受け取るか（2026-10-09）。**値はここで1つだけ持つ。**
+        一度だけの確認カード（最上部）と「転職・面談の状況」のトグルが同じ列を書くので、
+        片方で選んだらもう片方にもすぐ反映されるようにする（別々に持つと食い違う）。
+     ⚠️ null は「まだ選んでいない」（受け取らない扱い）。 */
+  const [acceptApproaches, setAcceptApproaches] = useState<boolean | null>(
+    intentProps.initialProfilePrefs?.accept_company_approaches ?? null,
+  );
+  /* ⚠️ 確認カードは「まだ選んでいない」かつ転職意欲が企業に届く状態のときだけ（理由はカードの注記） */
+  const showApproachConsent =
+    acceptApproaches === null && isReachableByCompanies(intentProps.initialProfilePrefs?.career_stance ?? null);
 
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -353,6 +367,8 @@ export default function MypageClient({
               あれは**在籍中かつ企業マスタに紐づく**会社だけで、自由入力の在籍先や
               過去の職歴を数えない（実ユーザー11人中5人が自由入力）。 */
         experienceCount={editorProps.timelineCareers?.length ?? 0}
+        acceptApproaches={acceptApproaches}
+        onAcceptApproachesChange={setAcceptApproaches}
       />
 
       {/* ⚠️★「公開まであと N つ」カードは 2026-08-25 に**撤去した**（柴さんの指示）。
@@ -419,6 +435,7 @@ export default function MypageClient({
       /* ★届いているもの（2026-10-09）。最上部（右の列より上）。描くのはレイアウト側で、
             ナビと同じ取得結果で数字を置き換える。0件ならカードごと出ない */
       inbox={inbox}
+      notice={showApproachConsent ? <ApproachConsentCard onSaved={setAcceptApproaches} /> : undefined}
     >
       {/* ウェルカムバナー（新規登録直後） */}
       {isNewUser && !welcomeDismissed && (

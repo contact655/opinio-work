@@ -17,6 +17,8 @@ import {
   CAREER_STANCES, CAREER_STANCE_LABELS, isReachableByCompanies,
 } from "@/lib/constants/careerPreferences";
 import { COMMON_PREFECTURES, OTHER_PREFECTURES } from "@/lib/utils/location";
+import { APPROACH_SETTING_LABEL, approachConsentText } from "@/lib/constants/companyApproaches";
+import { saveApproachConsent } from "@/components/approaches/ApproachConsentQuestion";
 
 /**
  * 「意思表示」（`/mypage` 右カラム・**1枚だけ**）。
@@ -199,6 +201,7 @@ function SubLine({ children }: { children: React.ReactNode }) {
 export default function IntentCard({
   initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions,
   currentCompanies, memberships, experienceCount = 0,
+  acceptApproaches = null, onAcceptApproachesChange,
 }: {
   initialPrefs: IntentPrefs;
   /** 「意思表示を最後に答えた日」。⚠️ `null` なら**最終更新の行ごと出さない** */
@@ -216,8 +219,31 @@ export default function IntentCard({
    *  あれは**在籍中かつ企業マスタに紐づく**会社だけで、自由入力の在籍先や過去の職歴を
    *  数えない（実ユーザー11人中5人が自由入力）。0件のときだけ下の案内に使う。 */
   experienceCount?: number;
+  /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ null は「まだ選んでいない」（受け取らない扱い）。
+   *  値は呼び出し側（MypageClient）が1つだけ持つ。一度だけの確認カードと同じ列を書くため */
+  acceptApproaches?: boolean | null;
+  onAcceptApproachesChange?: (v: boolean) => void;
 }) {
   const router = useRouter();
+
+  /* ── ④ 企業からの声かけ（2026-10-09）──────────────────────────────────────
+        ⚠️ 操作はカードのトグルだけ（モーダルには説明の1行だけ）。同じ列を触る場所を
+           このカードの中で2つにしない。保存は `PUT /api/jobseeker/career-preferences`。 */
+  const [approachBusy, setApproachBusy] = useState(false);
+  const [approachError, setApproachError] = useState<string | null>(null);
+  const toggleApproach = useCallback(async () => {
+    const next = acceptApproaches !== true;
+    setApproachBusy(true);
+    setApproachError(null);
+    const r = await saveApproachConsent(next);
+    setApproachBusy(false);
+    if (!r.ok) {
+      /* ⚠️ 失敗は画面に出す（トグルが戻るだけだと押し間違えと区別できない） */
+      setApproachError("保存できませんでした。もう一度お試しください。");
+      return;
+    }
+    onAcceptApproachesChange?.(next);
+  }, [acceptApproaches, onAcceptApproachesChange]);
 
   /* ⚠️★「企業から声をかけられる」のトグルは 2026-08-27 に**削除した**（フェーズ3）。
         スカウトの送信可否は「転職について」＝ `ow_profiles.career_stance` が決める
@@ -646,6 +672,28 @@ export default function IntentCard({
                  （柴さんの指示）。行き先（`/mypage/settings`）は残っている。 */}
         </div>
 
+        {/* ── ④ 企業からの声かけ（2026-10-09）─────────────────────────────────
+               ⚠️★転職意欲が企業に届く状態のときだけ出す。「今は考えていない」・未設定では、
+                  どちらにしても届かないので、トグルを出すと「受け取る」にしたのに何も起きない形になる。
+               ⚠️ 下段は状態だけ（このカードの約束）。null は「未設定」と出す（受け取らないと書かない）。 */}
+        {isReachableByCompanies(saved.prefs.career_stance) && (
+          <div style={DIVIDER} data-state="approach-consent-row">
+            <ToggleRow
+              label={APPROACH_SETTING_LABEL}
+              on={acceptApproaches === true}
+              busy={approachBusy}
+              ariaLabel="企業からの声かけを受け取る"
+              onToggle={() => { void toggleApproach(); }}
+            />
+            {acceptApproaches === null && <SubLine>{approachConsentText(null)}</SubLine>}
+            {approachError && (
+              <p style={{ margin: "8px 0 0", fontSize: SUB_SIZE, fontWeight: 600, color: "var(--error)" }}>
+                {approachError}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* ── 最終更新（2026-08-26 / フェーズ2）────────────────────────────────
                ⚠️ **値が無いときは行ごと出さない。** 「—」も出さない。
                   この列に値が入るのは「意思表示を答えた」ときだけなので、
@@ -739,6 +787,10 @@ export default function IntentCard({
             {/* ⚠️★2026-09-30 に `StanceQuestion`（オンボーディング3画面目）と同じ文へ揃えた。
                    **片方だけ戻さないこと。** 同じ事実を2つの言い方で説明することになる。 */}
             これまで在籍した会社とそのグループ会社には、答えにかかわらず表示されません。
+            <br />
+            {/* ★2026-10-09。声かけは転職意欲とは**別の設定**であることを1行で伝える（柴さんの指示）。
+                   ⚠️ 設定の操作はカードの「企業からの声かけ」の行だけ。ここに操作を足さないこと。 */}
+            企業から理由を添えた声かけを受け取るかどうかは、転職意欲とは別に設定します（このカードと設定画面の「{APPROACH_SETTING_LABEL}」）。
           </p>
           <div role="radiogroup" aria-label="転職意欲" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {CAREER_STANCES.map((o) => (

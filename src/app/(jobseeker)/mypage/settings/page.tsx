@@ -4,6 +4,7 @@ import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
 import BasicInfoSettings from "./BasicInfoSettings";
+import { ApproachSettingsSection } from "@/components/approaches/ApproachSettingsSection";
 import type { Gender } from "@/lib/constants/gender";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProfileVisibility } from "@/lib/constants/profileVisibility";
@@ -48,7 +49,8 @@ export default async function MypageSettingsPage() {
         取れなかったのに「表示されています」と書くと嘘になる。 */
   const { data: prof, error: profError } = await admin
     .from("ow_profiles")
-    .select("career_stance")
+    /* ★`accept_company_approaches`（2026-10-09）。企業からの声かけを受け取るか */
+    .select("career_stance, accept_company_approaches")
     .eq("user_id", user.id)
     .maybeSingle();
   if (profError) console.error("[mypage/settings] ow_profiles:", profError.message);
@@ -74,6 +76,14 @@ export default async function MypageSettingsPage() {
         careerStance={(prof?.career_stance as string | null) ?? null}
         careerStanceKnown={!profError}
       />
+      {/* ★企業からの声かけ（2026-10-09）。⚠️ 取得に失敗したら節ごと出さない
+             （取れなかったのに「未設定」を出すと、選んだ人に選び直させることになる） */}
+      {!profError && (
+        <ApproachSettingsSection
+          initialValue={(prof?.accept_company_approaches as boolean | null) ?? null}
+          careerStance={(prof?.career_stance as string | null) ?? null}
+        />
+      )}
       <AccountSettings authEmail={user.email ?? ""} />
     </MypageLayout>
   );

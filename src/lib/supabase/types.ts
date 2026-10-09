@@ -4417,6 +4417,7 @@ export type Database = {
       }
       ow_profiles: {
         Row: {
+          accept_company_approaches: boolean | null
           bio: string | null
           career_stance: string | null
           career_stance_updated_at: string | null
@@ -4442,6 +4443,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          accept_company_approaches?: boolean | null
           bio?: string | null
           career_stance?: string | null
           career_stance_updated_at?: string | null
@@ -4467,6 +4469,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          accept_company_approaches?: boolean | null
           bio?: string | null
           career_stance?: string | null
           career_stance_updated_at?: string | null

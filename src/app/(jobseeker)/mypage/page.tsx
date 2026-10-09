@@ -470,12 +470,14 @@ export default async function MypagePage({
     career_stance: string | null;
     /** 「意思表示を最後に答えた日」。⚠️ null ならカードの最終更新行ごと出さない */
     stance_updated_at: string | null;
+    /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ null は「まだ選んでいない」（一度だけの確認カードの条件） */
+    accept_company_approaches: boolean | null;
   } | null = null;
   if (owUser) {
     const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
       /* ⚠️ `onboarding_completed` はバナーの判定に使っていたが、バナーごと消した（2026-08-17）。 */
-      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at")
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at, accept_company_approaches")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
@@ -489,6 +491,7 @@ export default async function MypagePage({
         desired_phase:       profile.desired_phase ?? null,
         career_stance:       profile.career_stance ?? null,
         stance_updated_at:   profile.stance_updated_at ?? null,
+        accept_company_approaches: profile.accept_company_approaches ?? null,
       };
     }
   }

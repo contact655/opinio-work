@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
+import { ApproachConsentQuestion } from "@/components/approaches/ApproachConsentQuestion";
+import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 
 /**
  * 「転職について」を1問だけ聞く画面（2026-08-27 / フェーズ3）。
@@ -23,11 +25,16 @@ import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
 export default function StanceStepClient({ next }: { next: string }) {
   const router = useRouter();
   const [stance, setStance] = useState<string | null>(null);
+  /* ★企業からの声かけ（2026-10-09）。登録の途中（`/onboarding` の最後の画面）と同じ扱い:
+        転職意欲が企業に届く値のときだけ聞き、選ぶまで「次へ」を押せない。 */
+  const [acceptApproaches, setAcceptApproaches] = useState<boolean | null>(null);
+  const askApproaches = isReachableByCompanies(stance);
+  const ready = !!stance && (!askApproaches || acceptApproaches !== null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
-    if (!stance || saving) return;
+    if (!ready || saving) return;
     void (async () => {
       setSaving(true);
       setError(null);
@@ -35,7 +42,10 @@ export default function StanceStepClient({ next }: { next: string }) {
         const res = await fetch("/api/jobseeker/career-preferences", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ career_stance: stance }),
+          body: JSON.stringify({
+            career_stance: stance,
+            ...(askApproaches && acceptApproaches !== null ? { accept_company_approaches: acceptApproaches } : {}),
+          }),
         });
         if (!res.ok) {
           /* ⚠️ API はキー名入りの文言を返す。丸めない */
@@ -74,6 +84,12 @@ export default function StanceStepClient({ next }: { next: string }) {
         }}>
           <StanceQuestion value={stance} onChange={setStance} headingTag="h1" disabled={saving} />
 
+          {askApproaches && (
+            <div style={{ marginTop: 24 }} data-state="onboarding-approach-question">
+              <ApproachConsentQuestion value={acceptApproaches} onChange={setAcceptApproaches} disabled={saving} />
+            </div>
+          )}
+
           {error && (
             <p style={{ margin: "12px 0 0", fontSize: 13, fontWeight: 600, color: "var(--error)" }}>{error}</p>
           )}
@@ -81,14 +97,14 @@ export default function StanceStepClient({ next }: { next: string }) {
           {/* ⚠️ 選ぶまで押せない。**既定値で先へ進めない**ことが、この画面の要件そのもの。 */}
           <button
             type="button"
-            disabled={!stance || saving}
+            disabled={!ready || saving}
             onClick={submit}
             style={{
               width: "100%", height: 48, marginTop: 20, borderRadius: 12,
               border: "none", fontSize: 15, fontWeight: 700, fontFamily: "inherit",
-              background: stance ? "var(--royal)" : "var(--line)",
-              color: stance ? "#fff" : "var(--ink-mute)",
-              cursor: !stance || saving ? "default" : "pointer",
+              background: ready ? "var(--royal)" : "var(--line)",
+              color: ready ? "#fff" : "var(--ink-mute)",
+              cursor: !ready || saving ? "default" : "pointer",
             }}
           >
             {saving ? "保存中…" : "次へ"}

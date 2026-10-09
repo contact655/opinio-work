@@ -142,6 +142,7 @@ export default function MypageLayout({
   children,
   top: topProp,
   inbox,
+  notice,
   rightColumn,
   rightColumnCollapse = "stack",
   breadcrumb,
@@ -170,6 +171,11 @@ export default function MypageLayout({
    *      ——それだと数字がサーバーの値のまま残り、ナビと食い違う。
    */
   inbox?: { proposals: number | null; messageRequests: number };
+  /**
+   * ★「届いているもの」のすぐ上に置く一度きりの確認（2026-10-09。企業からの声かけを受け取るか）。
+   *   ⚠️ `top` に渡すと「届いているもの」が消える（`top` は丸ごと置き換える）ので、こちらに渡す。
+   */
+  notice?: React.ReactNode;
   rightColumn?: React.ReactNode;
   /**
    * 1100px 未満で右カラムをどう畳むか。
@@ -207,9 +213,10 @@ export default function MypageLayout({
     ? { proposals: live.proposals ?? inbox.proposals, messageRequests: live.messageRequests ?? inbox.messageRequests }
     : inbox);
   const showInbox = !!inboxNow && ((inboxNow.proposals ?? 0) > 0 || inboxNow.messageRequests > 0);
-  const top = topProp ?? (showInbox && inboxNow
+  const inboxCard = showInbox && inboxNow
     ? <InboxCard proposals={inboxNow.proposals} messageRequests={inboxNow.messageRequests} />
-    : undefined);
+    : null;
+  const top = topProp ?? (notice || inboxCard ? <>{notice}{inboxCard}</> : undefined);
 
   return (
     <>

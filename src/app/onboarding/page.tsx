@@ -199,15 +199,18 @@ export default async function OnboardingPage() {
         ただし握り潰さずログに出す。 */
   let initialStance: string | null = null;
   let initialDesiredRoleIds: string[] = [];
+  /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ null は「まだ選んでいない」 */
+  let initialAcceptApproaches: boolean | null = null;
   {
     const admin = createAdminClient();
     const [{ data: prof, error: profErr }, { data: dRoles, error: dErr }] = await Promise.all([
-      admin.from("ow_profiles").select("career_stance").eq("user_id", user.id).maybeSingle(),
+      admin.from("ow_profiles").select("career_stance, accept_company_approaches").eq("user_id", user.id).maybeSingle(),
       admin.from("ow_profile_desired_roles").select("role_id").eq("user_id", user.id),
     ]);
     if (profErr) console.error("[onboarding] ow_profiles", profErr.message);
     if (dErr) console.error("[onboarding] ow_profile_desired_roles", dErr.message);
     initialStance = (prof?.career_stance as string | null) ?? null;
+    initialAcceptApproaches = (prof?.accept_company_approaches as boolean | null) ?? null;
     initialDesiredRoleIds = (dRoles ?? []).map((r) => r.role_id as string);
   }
 
@@ -240,6 +243,7 @@ export default async function OnboardingPage() {
       roleAliases={roleAliases}
       currentExperience={currentExperience}
       initialStance={initialStance}
+      initialAcceptApproaches={initialAcceptApproaches}
       initialDesiredRoleIds={initialDesiredRoleIds}
       initialPerson={initialPerson}
       /* ★2画面目の下書きを利用者ごとに分ける鍵（2026-09-28）。
