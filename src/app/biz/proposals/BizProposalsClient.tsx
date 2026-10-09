@@ -13,7 +13,9 @@ export type BizProposalView = {
    *  （サーバーが `can_send_scout()` で判定し、名前を送っていない） */
   candidate: { id: string; name: string; headline: string | null } | null;
   candidateInterested: boolean;
-  candidateDeclined: boolean;
+  /** ★終了したか（2026-10-09）。候補者が見送った／いまは見せてはいけない候補者になった。
+   *  ⚠️★**どちらなのかは渡していない**（`lib/evidence/proposalEnded.ts`）。画面にも出さない */
+  ended: boolean;
   response: string | null;
   jobTitle: string | null;
   computedAt: string;
@@ -21,11 +23,11 @@ export type BizProposalView = {
   conversationId: string | null;
 };
 
-/* ★「未回答」＝企業がまだ答えておらず、候補者も見送っていないもの。
+/* ★「未回答」＝企業がまだ答えておらず、終了してもいないもの。
       サイドバーのバッジ（`lib/business/navBadges.ts`）と同じ条件にしてある。
-      ⚠️ 候補者が見送った提案は答えても何も起きないので「回答済み」側に入れ、ボタンを出さない */
+      ⚠️ 終了した提案は答えられない（API も 409 で止める）ので「回答済み」側に入れ、ボタンを出さない */
 function isOpen(p: BizProposalView): boolean {
-  return !p.response && !p.candidateDeclined;
+  return !p.response && !p.ended;
 }
 
 /** "2026-09-21" → "2026年9月21日"。⚠️ 形が違えばそのまま返す（推測で直さない） */
@@ -38,10 +40,11 @@ function formatJaDate(ymd: string): string {
       それまで「興味がある」だけバッジで、「まだ回答していません」は地の文だった。
    ⚠️ null を「見送り」と読ませない（まだ答えていないだけ） */
 function CandidateBadge({ p }: { p: BizProposalView }) {
-  const [label, bg, color, border] = p.candidateInterested
-    ? ["候補者：興味あり", "var(--royal-50)", "var(--royal)", "var(--royal-100)"]
-    : p.candidateDeclined
-      ? ["候補者：見送り", "var(--line-soft)", "var(--ink-mute)", "var(--line)"]
+  /* ⚠️★「候補者：見送り」は 2026-10-09 にやめた。終了の理由は出さない */
+  const [label, bg, color, border] = p.ended
+    ? ["この提案は終了しました", "var(--line-soft)", "var(--ink-mute)", "var(--line)"]
+    : p.candidateInterested
+      ? ["候補者：興味あり", "var(--royal-50)", "var(--royal)", "var(--royal-100)"]
       : ["候補者：まだ回答していません", "#fff", "var(--ink-soft)", "var(--line)"];
   return (
     <span style={{ fontSize: 12, fontWeight: 600, color, background: bg, border: `1px solid ${border}`, borderRadius: 999, padding: "2px 10px", whiteSpace: "nowrap" }}>
@@ -204,10 +207,10 @@ export default function BizProposalsClient({
                       </a>
                     )}
                   </>
-                ) : p.candidateDeclined ? (
-                  /* ⚠️ 候補者が見送った提案には答えても何も起きない。ボタンを出さない */
+                ) : p.ended ? (
+                  /* ⚠️ 終了した提案にはボタンを出さない。⚠️★理由（候補者が見送った等）は書かない */
                   <span style={{ fontSize: 13, color: "var(--ink-soft)", padding: "9px 0" }}>
-                    この方が見送ったため、回答は不要です
+                    この提案は終了しました
                   </span>
                 ) : (
                   <>
@@ -229,7 +232,7 @@ export default function BizProposalsClient({
                            候補者が既に興味ありなら、「会いたい」で双方合意になりメッセージが開く */}
                     {p.candidateInterested && (
                       <span style={{ fontSize: 12, color: "var(--ink-soft)", alignSelf: "center" }}>
-                        「会いたい」と答えるとすぐにメッセージが開き、候補者の公開プロフィールが見られるようになります
+                        「会いたい」と答えるとすぐにメッセージが開きます
                       </span>
                     )}
                   </>

@@ -21,6 +21,7 @@ import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
 import { countUnreadConversations } from "@/lib/conversations/unread";
+import { countOpenProposals } from "@/lib/evidence/proposalEnded";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -526,7 +527,7 @@ export default async function MypagePage({
     const [
       unreadConvCount,
       { count: appCount, error: appError },
-      { count: proposalCount, error: proposalError },
+      proposalCount,
     ] = await Promise.all([
       /* ★未読のある会話の数。⚠️ 述語を書き写さないこと（`unread.ts` の1箇所） */
       countUnreadConversations(owUser.id),
@@ -535,23 +536,15 @@ export default async function MypagePage({
         .select("id", { count: "exact", head: true })
         .eq("user_id", owUser.id)
         .neq("status", "pending"),
-      /* ★未回答の提案（②）。
+      /* ★未回答の提案（②）。`/mypage/proposals` の「未回答」と**同じ条件**（2026-10-09）:
+            まだ答えておらず、終了してもいないもの（`lib/evidence/proposalEnded.ts`）。
          ⚠️ `ow_proposals.candidate_user_id` は **ow_users 空間**（スカウトと逆）。
-            `user.id`（auth 空間）で引くと常に0件になる。
-         ⚠️ `candidate_response is null` ＝ **まだ答えていない**。
-            「見送った」を数えない（CLAUDE.md「null を『見送り』と読ませない」）。
-         ⚠️ `authenticated` に `ow_proposals` の SELECT はあるが、admin で引く
-            （RLS のポリシーに依存させない）。 */
-      createAdminClient()
-        .from("ow_proposals")
-        .select("id", { count: "exact", head: true })
-        .eq("candidate_user_id", owUser.id)
-        .is("candidate_response", null),
+         ⚠️ 失敗したら null が返る（ログは共通関数が出す）。 */
+      countOpenProposals("candidate", { candidateUserId: owUser.id as string }),
     ]);
     /* ⚠️ 会話は `countUnreadConversations` の中で error をログに出し、
           失敗時は 0 を返す（バッジは主役ではないのでページを落とさない）。 */
     if (appError)   console.error("[mypage] 応募バッジ:", appError.message);
-    if (proposalError) console.error("[mypage] 提案バッジ:", proposalError.message);
     conversationsBadge = unreadConvCount;
     applicationsBadge = appCount ?? 0;
     proposalsBadge = proposalCount ?? 0;

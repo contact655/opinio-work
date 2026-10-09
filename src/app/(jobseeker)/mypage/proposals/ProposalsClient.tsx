@@ -15,6 +15,9 @@ export type ProposalView = {
   evidence: EvidenceView[];
   counter: CounterView[];
   response: string | null;
+  /** ★終了したか（2026-10-09）。企業が見送った／いまは企業に見せてはいけない状態になった。
+   *  ⚠️★**どちらなのかは渡していない**（`lib/evidence/proposalEnded.ts`）。画面にも出さない */
+  ended: boolean;
   computedAt: string;
 };
 
@@ -79,7 +82,10 @@ export default function ProposalsClient({
         <strong>提案の時点から、企業にはあなたのお名前と職歴が見えています。</strong>
         企業が見るのは、候補者検索と同じ OPINIO の公開プロフィール
         （お名前・顔写真・見出し・職歴など）です。
-        「興味がある」「見送る」と答えると、その答えも企業に表示されます。<br />
+        {/* ★2026-10-09 に「見送る」も表示される、をやめた。見送りは企業に伝えず、
+               企業には「この提案は終了しました」とだけ出る（理由は出さない）。 */}
+        「興味がある」と答えると、そのことが企業に表示されます。
+        「今は見送る」は企業には伝わらず、企業には「この提案は終了しました」とだけ表示されます。<br />
         <strong>メッセージができるようになるのは、双方が「会いたい」と答えたとき</strong>です。
       </p>
 
@@ -144,9 +150,9 @@ export default function ProposalsClient({
                        ⚠️ 上の告知は**画面の先頭**にあるので、提案が増えると
                           押すときには視界から外れている。**決める場所に置く。**
                        ⚠️ 答えたあとは出さない（もう決める場面ではない）。 */}
-                {!p.response && (
+                {!p.response && !p.ended && (
                   <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "4px 0 0" }}>
-                    「興味がある」＝ 企業も会いたいと答えたら、あなたの公開プロフィールが企業に分かります
+                    「興味がある」＝ 企業にもそのことが表示されます。企業も会いたいと答えると、メッセージが開きます
                   </p>
                 )}
 
@@ -154,6 +160,12 @@ export default function ProposalsClient({
                   {p.response ? (
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", padding: "9px 0" }}>
                       「{CANDIDATE_RESPONSE_LABELS[p.response as "interested" | "declined"]}」と答えました
+                    </span>
+                  ) : p.ended ? (
+                    /* ⚠️ 終了した提案にはボタンを出さない（API も 409 で止める）。
+                          ⚠️★理由（企業が見送った等）は書かない */
+                    <span style={{ fontSize: 13, color: "var(--ink-soft)", padding: "9px 0" }}>
+                      この提案は終了しました
                     </span>
                   ) : (
                     <>

@@ -3,6 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
+import { isProposalEndedFor, isVisiblePair, visiblePairs } from "@/lib/evidence/proposalEnded";
 
 export const dynamic = "force-dynamic";
 
@@ -51,29 +52,35 @@ export default async function BizProposalsPage() {
     .order("created_at", { ascending: false });
   if (error) console.error("[biz/proposals] ow_proposals:", error.message);
 
-  /* ★候補者の氏名（2026-10-09 / 案B）。**`can_send_scout()` が true の人だけ**送る。 */
-  const candidateIds = Array.from(new Set((rows ?? []).map((p) => p.candidate_user_id as string)));
-  const { data: userRows, error: userErr } = candidateIds.length > 0
-    ? await db.from("ow_users").select("id, name, headline, auth_id").in("id", candidateIds)
+  /* ★見せてよい組（2026-10-09）。**名前を送るか**と**終了したか**の両方に使う。
+        判定は `can_send_scout()`（`lib/evidence/proposalEnded.ts` の1箇所）。 */
+  const visible = await visiblePairs(
+    (rows ?? []).map((p) => ({ companyId: ctx.tenantId, candidateUserId: p.candidate_user_id as string })),
+  );
+  const visibleIds = Array.from(new Set((rows ?? [])
+    .map((p) => p.candidate_user_id as string)
+    .filter((id) => isVisiblePair(visible, { companyId: ctx.tenantId, candidateUserId: id }))));
+  /* ★候補者の氏名（2026-10-09 / 案B）。**見せてよい人だけ**引いて送る。 */
+  const { data: userRows, error: userErr } = visibleIds.length > 0
+    ? await db.from("ow_users").select("id, name, headline").in("id", visibleIds)
     : { data: [], error: null };
   if (userErr) console.error("[biz/proposals] ow_users:", userErr.message);
-  const visibleCandidates = new Map<string, { id: string; name: string; headline: string | null }>();
-  await Promise.all((userRows ?? []).map(async (u) => {
-    if (!u.auth_id) return;
-    /* ⚠️ 失敗したら**出さない側**に倒す（名前が出ないだけで、提案は見える）。黙らない */
-    const { data: ok, error: rpcErr } = await db.rpc("can_send_scout", {
-      p_company_id: ctx.tenantId,
-      p_candidate_id: u.auth_id as string,
-    });
-    if (rpcErr) console.error("[biz/proposals] can_send_scout:", rpcErr.message);
-    if (ok === true) {
-      visibleCandidates.set(u.id as string, {
-        id: u.id as string,
-        name: ((u.name as string | null) ?? "").trim() || "名前未設定",
-        headline: ((u.headline as string | null) ?? "").trim() || null,
-      });
-    }
-  }));
+  const visibleCandidates = new Map<string, { id: string; name: string; headline: string | null }>(
+    (userRows ?? []).map((u) => [u.id as string, {
+      id: u.id as string,
+      name: ((u.name as string | null) ?? "").trim() || "名前未設定",
+      headline: ((u.headline as string | null) ?? "").trim() || null,
+    }]),
+  );
+
+  const ended = (p: NonNullable<typeof rows>[number]) =>
+    isProposalEndedFor("company", {
+      companyId: ctx.tenantId,
+      candidateUserId: p.candidate_user_id as string,
+      candidateResponse: (p.candidate_response as string | null) ?? null,
+      companyResponse: (p.company_response as string | null) ?? null,
+      introducedAt: (p.introduced_at as string | null) ?? null,
+    }, isVisiblePair(visible, { companyId: ctx.tenantId, candidateUserId: p.candidate_user_id as string }));
 
   const proposals: BizProposalView[] = (rows ?? []).map((p) => ({
     id: p.id as string,
@@ -81,9 +88,11 @@ export default async function BizProposalsPage() {
     counter: Array.isArray(p.counter_evidence) ? (p.counter_evidence as BizProposalView["counter"]) : [],
     /* ★候補者の氏名。見せてはいけない人は null（上の `can_send_scout()`） */
     candidate: visibleCandidates.get(p.candidate_user_id as string) ?? null,
-    /* ★相手が既に「興味がある」と答えているか */
-    candidateInterested: p.candidate_response === "interested",
-    candidateDeclined: p.candidate_response === "declined",
+    /* ★相手が既に「興味がある」と答えているか。⚠️ 終了した提案では false にする */
+    candidateInterested: !ended(p) && p.candidate_response === "interested",
+    /* ★終了したか（2026-10-09）。⚠️★**候補者の答えそのものは送らない。** 見送ったのか、
+          対象外になったのかを企業に区別させないため（`proposalEnded.ts`） */
+    ended: ended(p),
     response: (p.company_response as string | null) ?? null,
     jobTitle: ((p.ow_jobs as { title?: string } | null)?.title as string | undefined) ?? null,
     computedAt: (p.computed_at as string).slice(0, 10),

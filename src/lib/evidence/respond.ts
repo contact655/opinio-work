@@ -15,6 +15,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { introduceIfMutual } from "./introduce";
 import { mutateOne } from "@/lib/supabase/mutate";
+import { isProposalEndedFor, isVisiblePair, visiblePairs } from "./proposalEnded";
 import {
   DECLINE_NOTE_MAX,
   isValidDeclineReason,
@@ -49,6 +50,32 @@ export async function saveProposalResponse(input: RespondInput): Promise<Respond
     if ((input.note ?? "").length > DECLINE_NOTE_MAX) {
       return { ok: false, status: 400, error: `メモは${DECLINE_NOTE_MAX}文字までです` };
     }
+  }
+
+  /* ★終了した提案には答えさせない（2026-10-09）。画面はボタンを出さないが、**API でも止める。**
+        止めないと、候補者が「今は考えていない」に変えた後でも、企業の「会いたい」で
+        双方合意（＝紹介）に進めてしまう。判定は `isProposalEndedFor` の1箇所。
+     ⚠️ 終了の理由は返さない（相手が見送ったことを伝えないため）。 */
+  const { data: cur, error: curErr } = await db
+    .from("ow_proposals")
+    .select("company_id, candidate_user_id, candidate_response, company_response, introduced_at")
+    .eq("id", proposalId)
+    .maybeSingle();
+  if (curErr) {
+    console.error("[evidence/respond] ow_proposals:", curErr.message);
+    return { ok: false, status: 500, error: "提案を取得できませんでした" };
+  }
+  if (!cur) return { ok: false, status: 404, error: "提案が見つかりません" };
+  const forEnd = {
+    companyId: cur.company_id as string,
+    candidateUserId: cur.candidate_user_id as string,
+    candidateResponse: (cur.candidate_response as string | null) ?? null,
+    companyResponse: (cur.company_response as string | null) ?? null,
+    introducedAt: (cur.introduced_at as string | null) ?? null,
+  };
+  const visible = isVisiblePair(await visiblePairs([forEnd]), forEnd);
+  if (isProposalEndedFor(side, forEnd, visible)) {
+    return { ok: false, status: 409, error: "この提案は終了しました" };
   }
 
   const now = new Date().toISOString();
