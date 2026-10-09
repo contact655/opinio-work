@@ -12,6 +12,7 @@ import { MUTUAL_RESPONSES } from "@/lib/constants/proposalResponses";
  * | 応募 | 本人 | `can_contact_without_stance()`（転職意欲**以外**） |
  * | カジュアル面談の申込 | 本人 | 同上 |
  * | 提案の双方合意 | OPINIO の提案 | `can_send_scout()`（転職意欲を含む全部） |
+ * | ★企業からの声かけを承認した | 企業（求職者が承認） | `can_send_scout()`（転職意欲を含む全部。2026-10-09） |
  *
  * ⚠️★応募・申込は**本人が自分から連絡した**ので転職意欲を見ない（柴さんの判断・2026-10-09）。
  *    見ると、実在の利用者39人中17人が応募・申込できても会話が開かず、企業が返信できない。
@@ -26,7 +27,7 @@ import { MUTUAL_RESPONSES } from "@/lib/constants/proposalResponses";
  * ⚠️ 判定に失敗したら「開けない」に倒す（fail-closed）。黙らずログを出す。
  */
 
-export type OpenReason = "application" | "casual_meeting" | "proposal";
+export type OpenReason = "application" | "casual_meeting" | "proposal" | "approach";
 
 export async function companyConversationAllowed(
   candidateOwUserId: string,
@@ -46,7 +47,7 @@ export async function companyConversationAllowed(
   const { data: jobs, error: jErr } = await db.from("ow_jobs").select("id").eq("company_id", companyId);
   if (jErr) console.error("[openReason] ow_jobs:", jErr.message);
   const jobIds = (jobs ?? []).map((j) => j.id as string);
-  const [app, meet, prop] = await Promise.all([
+  const [app, meet, prop, appr] = await Promise.all([
     jobIds.length > 0
       ? db.from("ow_job_applications").select("id", { count: "exact", head: true })
           .eq("user_id", candidateOwUserId).in("job_id", jobIds)
@@ -57,12 +58,17 @@ export async function companyConversationAllowed(
       .eq("candidate_user_id", candidateOwUserId).eq("company_id", companyId)
       .eq("candidate_response", MUTUAL_RESPONSES.candidate)
       .eq("company_response", MUTUAL_RESPONSES.company),
+    /* ★企業からの声かけを求職者が承認した（2026-10-09）。⚠️ 見送った・未回答は理由にならない */
+    db.from("ow_company_approaches").select("id", { count: "exact", head: true })
+      .eq("candidate_user_id", candidateOwUserId).eq("company_id", companyId)
+      .not("accepted_at", "is", null),
   ]);
-  for (const [label, r] of [["applications", app], ["casual_meetings", meet], ["proposals", prop]] as const) {
+  for (const [label, r] of [["applications", app], ["casual_meetings", meet], ["proposals", prop], ["company_approaches", appr]] as const) {
     if (r.error) console.error(`[openReason] ${label}:`, r.error.message);
   }
   const selfInitiated = (app.count ?? 0) > 0 || (meet.count ?? 0) > 0;
-  const mutualProposal = (prop.count ?? 0) > 0;
+  /* ⚠️ 声かけは企業から始まったので、提案と同じく転職意欲まで見る（下の can_send_scout） */
+  const mutualProposal = (prop.count ?? 0) > 0 || (appr.count ?? 0) > 0;
   if (!selfInitiated && !mutualProposal) return false;
 
   /* ── 見せてよいか（本人発は転職意欲を見ない）── */

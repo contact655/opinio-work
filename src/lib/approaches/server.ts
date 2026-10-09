@@ -2,6 +2,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
+import { openCompanyConversation } from "@/lib/conversations/openReason";
 import {
   APPROACH_BODY_MAX,
   APPROACH_EXPIRE_DAYS,
@@ -373,9 +374,80 @@ export async function respondToApproach(params: {
   return acceptApproach({ approachId: params.approachId, candidateOwUserId: params.candidateOwUserId, companyId: target.company.id });
 }
 
-/** 承認して企業との会話を開く（段4で実装） */
-async function acceptApproach(_params: { approachId: string; candidateOwUserId: string; companyId: string }): Promise<{ ok: true; conversationId: string | null } | { ok: false; status: number; error: string }> {
-  return { ok: false, status: 501, error: "まだ承認できません" };
+/**
+ * ★承認して企業との会話を開く（2026-10-09 / 段4）。
+ *
+ * 1. 声かけに accepted_at を立てる（未回答のものだけ。二重に押しても1回だけ）
+ * 2. `openCompanyConversation(source: "approach")` で会話を開く（判定は openReason の1か所。
+ *    承認済みの声かけを理由として数え、`can_send_scout()` を掛ける）
+ *    ⚠️ 開けなかったら accepted_at を戻す（承認済みなのに会話が無い状態を残さない）
+ * 3. 送った担当者を参加者に入れ、理由と本文を最初の1通として入れる
+ *    ⚠️ 担当者がもう有効でない（退職・外された）ときは1通目を入れない（理由は /biz/approaches に残る）
+ * 4. 声かけに conversation_id を記録する（/biz/approaches の「メッセージを開く」）
+ * ⚠️ 企業と求職者の会話は1組につき1本。応募などで既にあれば、その会話に1通目を足す。
+ */
+async function acceptApproach(params: { approachId: string; candidateOwUserId: string; companyId: string }): Promise<{ ok: true; conversationId: string | null } | { ok: false; status: number; error: string }> {
+  const db = createAdminClient();
+  const now = new Date().toISOString();
+  const { data: marked, error: mErr } = await db.from("ow_company_approaches")
+    .update({ accepted_at: now })
+    .eq("id", params.approachId).eq("candidate_user_id", params.candidateOwUserId)
+    .is("accepted_at", null).is("declined_at", null)
+    .select("id, reason, body, sender_user_id");
+  if (mErr || (marked ?? []).length !== 1) {
+    console.error("[approaches] accept mark:", mErr?.message ?? `rows=${(marked ?? []).length}`);
+    return { ok: false, status: mErr ? 500 : 409, error: mErr ? MSG.failed : "この声かけにはすでに答えています" };
+  }
+  const row = marked![0];
+
+  let opened: { conversationId: string; created: boolean } | null = null;
+  try {
+    opened = await openCompanyConversation({ candidateOwUserId: params.candidateOwUserId, companyId: params.companyId, source: "approach" });
+  } catch (e) {
+    console.error("[approaches] accept open:", e instanceof Error ? e.message : e);
+  }
+  if (!opened) {
+    /* ⚠️ 戻す。承認済みのまま会話が無い形を残さない */
+    const { error: rbErr } = await db.from("ow_company_approaches").update({ accepted_at: null }).eq("id", params.approachId);
+    if (rbErr) console.error("[approaches] accept rollback:", rbErr.message);
+    return { ok: false, status: 403, error: "現在この企業とはやり取りを始められません" };
+  }
+  const conversationId = opened.conversationId;
+
+  /* 1通目（担当者の発言として）。⚠️ best-effort。失敗しても会話は開いたままにする（理由は企業側に残る） */
+  const senderId = (row.sender_user_id as string | null) ?? null;
+  if (senderId) {
+    const { data: adminLink, error: aErr } = await db.from("ow_company_admins")
+      .select("id").eq("user_id", senderId).eq("company_id", params.companyId).eq("is_active", true).maybeSingle();
+    if (aErr) console.error("[approaches] accept admin:", aErr.message);
+    if (adminLink) {
+      const { data: existing, error: pErr } = await db.from("ow_conversation_participants")
+        .select("id").eq("conversation_id", conversationId).eq("user_id", senderId).maybeSingle();
+      if (pErr) console.error("[approaches] accept participant read:", pErr.message);
+      let participantId = (existing?.id as string | undefined) ?? null;
+      if (!participantId && !pErr) {
+        const { data: ins, error: iErr } = await db.from("ow_conversation_participants")
+          .insert({ conversation_id: conversationId, user_id: senderId, role: "company_admin" })
+          .select("id").single();
+        if (iErr) console.error("[approaches] accept participant insert:", iErr.message);
+        participantId = (ins?.id as string | undefined) ?? null;
+      }
+      if (participantId) {
+        const text = `【声をかけた理由】\n${row.reason as string}` + (row.body ? `\n\n${row.body as string}` : "");
+        const { error: msgErr } = await db.from("ow_conversation_messages").insert({
+          conversation_id: conversationId,
+          sender_participant_id: participantId,
+          body: text,
+        });
+        if (msgErr) console.error("[approaches] accept first message:", msgErr.message);
+      }
+    }
+  }
+
+  const { error: cErr } = await db.from("ow_company_approaches").update({ conversation_id: conversationId }).eq("id", params.approachId);
+  if (cErr) console.error("[approaches] accept link conversation:", cErr.message);
+
+  return { ok: true, conversationId };
 }
 
 export type SentApproach = {
