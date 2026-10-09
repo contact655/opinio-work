@@ -13,6 +13,7 @@ import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
+import { DetailSearchToggle, ActiveFilterChips } from "@/components/common/DetailSearch";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 
 /**
@@ -673,29 +674,6 @@ export function ListRow({ card, myUserId, followedUserIds }: {
   );
 }
 
-/**
- * 選択中の条件のチップ（2026-09-18）。
- *
- * ⚠️★**詳細検索を畳んだときに、いま効いている条件を外に出すためのもの。消さないこと。**
- *    8条件を畳んだ `/jobs` と同じ理由で、無いと「絞り込んだ結果を見ている最中に
- *    理由が画面から消える」。
- */
-function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 5,
-      padding: "4px 10px", borderRadius: 999,
-      background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-      color: "var(--royal)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
-    }}>
-      {label}
-      <button type="button" onClick={onRemove} aria-label={`${label} を外す`}
-        style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, fontSize: 12, lineHeight: 1 }}>
-        ✕
-      </button>
-    </span>
-  );
-}
 
 // ── フィルタ判定 ─────────────────────────────────────────────────────
 /**
@@ -955,33 +933,11 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                       `/companies` と同じ『詳細検索』にすること（**選択中の条件を外に出す**のも
                       セット）」と予告していた形そのもの。予告どおり両方やっている。
                 ⚠️★**職種はここへ移した。** 上部に単独で出さないこと（入口が2つになる）。 */}
-            <button
-              type="button"
-              onClick={() => setDetailOpen(!detailOpen)}
-              className={`ppl-chip tb-collapse-label${detailOpen || activeFilterCount > 0 ? " active" : ""}`}
-              aria-expanded={detailOpen}
-              aria-label="詳細検索"
-            >
-              {/* ⚠️★**アイコンを外さないこと**（2026-10-01）。768px 未満はラベルが消えるので、
-                     無いと**中身が空のボタン**になる。`/companies` `/jobs` と同じ字形。 */}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="4" y1="6" x2="20" y2="6"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-                <line x1="11" y1="18" x2="13" y2="18"/>
-              </svg>
-              <span className="tb-label">詳細検索</span>
-              {/* ⚠️★件数は**バッジ**で出す（2026-10-01）。それまで素のテキストで
-                     「詳細検索 2」と並べており、`/companies` `/jobs` のバッジと
-                     **同じ意味が違う見た目**になっていた。
-                  ⚠️ 768px 未満はラベルが消えるので、**バッジだけが残る**。隠さないこと。 */}
-              {activeFilterCount > 0 && (
-                <span style={{
-                  fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
-                  background: "var(--royal)", color: "#fff",
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                }}>{activeFilterCount}</span>
-              )}
-            </button>
+            <DetailSearchToggle
+              open={detailOpen}
+              count={activeFilterCount}
+              onToggle={() => setDetailOpen(!detailOpen)}
+            />
 
             {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
                    それまで sticky な帯が2本あり、一覧が始まるのは 275px 前後だった。
@@ -1116,17 +1072,15 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                    見ている最中に理由が画面から消える。
                 ⚠️ ✕ は近道であって唯一の入口ではない（パネルを開けばチップからも外せる）。 */}
             {!detailOpen && activeFilterCount > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, rowGap: 6, flexWrap: "wrap", paddingTop: 8 }}>
-                {roles.map((v) => (
-                  <ActiveChip key={`r-${v}`} label={ROLE_OPTIONS.find((o) => o.value === v)?.label ?? v}
-                    onRemove={() => setRoles(roles.filter((x) => x !== v))} />
-                ))}
-                {ages.map((v) => (
-                  <ActiveChip key={`a-${v}`} label={AGE_OPTIONS.find((o) => o.value === v)?.label ?? v}
-                    onRemove={() => setAges(ages.filter((x) => x !== v))} />
-                ))}
-                {foreignOnly && <ActiveChip label="外資" onRemove={() => setParam({ foreign: "" })} />}
-                {meetingOnly && <ActiveChip label="面談OK" onRemove={() => setParam({ meeting: "" })} />}
+              <div style={{ paddingTop: 8 }}>
+                <ActiveFilterChips chips={[
+                  ...roles.map((v) => ({ key: `r-${v}`, label: ROLE_OPTIONS.find((o) => o.value === v)?.label ?? v,
+                    clear: () => setRoles(roles.filter((x) => x !== v)) })),
+                  ...ages.map((v) => ({ key: `a-${v}`, label: AGE_OPTIONS.find((o) => o.value === v)?.label ?? v,
+                    clear: () => setAges(ages.filter((x) => x !== v)) })),
+                  ...(foreignOnly ? [{ key: "foreign", label: "外資", clear: () => setParam({ foreign: "" }) }] : []),
+                  ...(meetingOnly ? [{ key: "meeting", label: "面談OK", clear: () => setParam({ meeting: "" }) }] : []),
+                ]} />
               </div>
             )}
         </div>

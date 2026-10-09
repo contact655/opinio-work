@@ -2,6 +2,7 @@
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
+import { DetailSearchToggle, ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -461,7 +462,7 @@ export default function JobsClient({
         ここは近道であって唯一の入口ではない。
      ⚠️ 並びは詳細検索パネルのピルの並びと**同じ順**にしてある。片方だけ変えないこと。 */
   const activeChips = useMemo(() => {
-    const chips: { key: string; label: string; clear: () => void }[] = [];
+    const chips: ActiveFilter[] = [];
     categorySet.forEach((id) => {
       const name = parentRoles.find((r) => r.id === id)?.name;
       /* ⚠️ 名前が引けない id は出さない（生の uuid を画面に出さないため） */
@@ -1029,34 +1030,11 @@ export default function JobsClient({
                    「詳細検索」ボタン自身が 98px 右へ動いていた**（実測）。
                    押した控えが動くのは、押した本人には何が起きたか分からない。 */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <button
-                type="button"
-                aria-expanded={showAdvanced}
-                onClick={() => setShowAdvanced((v) => !v)}
-                className={`jobs-pill tb-collapse-label${showAdvanced || activeChips.length > 0 ? " active" : ""}`}
-                aria-label="詳細検索"
-                style={{ flexShrink: 0, fontWeight: 700 }}
-              >
-                {/* ⚠️★**アイコンを外さないこと**（2026-10-01）。768px 未満はラベルが消えるので、
-                       無いと「▾」だけのボタンになる。`/companies` `/people` と同じ字形。 */}
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="4" y1="6" x2="20" y2="6"/>
-                  <line x1="8" y1="12" x2="16" y2="12"/>
-                  <line x1="11" y1="18" x2="13" y2="18"/>
-                </svg>
-                <span className="tb-label">詳細検索</span>
-                {activeChips.length > 0 && (
-                  <span style={{
-                    marginLeft: 6, fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
-                    background: "var(--royal)", color: "#fff",
-                    fontFamily: "var(--font-inter), var(--font-noto)",
-                  }}>{activeChips.length}</span>
-                )}
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"
-                  style={{ flexShrink: 0, opacity: 0.5, marginLeft: 6, transform: showAdvanced ? "rotate(180deg)" : undefined, transition: "transform .15s" }}>
-                  <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </button>
+              <DetailSearchToggle
+                open={showAdvanced}
+                count={activeChips.length}
+                onToggle={() => setShowAdvanced((v) => !v)}
+              />
 
             </div>
 
@@ -1130,28 +1108,7 @@ export default function JobsClient({
                       **同じ語が2回**出ていた。閉じているときだけの近道にする。
                    ⚠️★**検索窓と同じ行に置かない。** 同じ行だと、開閉のたびに検索窓の幅が
                       変わって「詳細検索」ボタンが左右に動く。`flexBasis: 100%` で必ず折る。 */}
-            {!showAdvanced && activeChips.length > 0 && (
-            <div style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {activeChips.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  onClick={c.clear}
-                  aria-label={`${c.label} の絞り込みを外す`}
-                  style={{
-                    flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6,
-                    height: 30, padding: "0 10px 0 12px", borderRadius: 999,
-                    fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
-                  }}
-                >
-                  {c.label}
-                  <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.75 }}>✕</span>
-                </button>
-              ))}
-            </div>
-            )}
+            {!showAdvanced && <ActiveFilterChips chips={activeChips} />}
 
             {/* フィルターピル群。
                 ⚠️ 詳細検索を開いたときだけ出す。ドロップダウンは position: fixed の

@@ -3,7 +3,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SortSelect } from "@/components/common/SortSelect";
 import { ViewToggle } from "@/components/common/ViewToggle";
 
-type Props = { totalCount: number };
+type Props = {
+  totalCount: number;
+  /** ★表示形式の切り替えを出すか（2026-10-09）。⚠️ 絞り込み中は false
+   *  ——絞り込み結果は常にグリッドで、詳細ビュー（?view=list）に切り替わらないため。
+   *  並び替えと件数は絞り込み中も出す（docs/list-filters-20261009.md の 1）。 */
+  showViewToggle?: boolean;
+};
 
 const SORT_OPTIONS = [
   {
@@ -45,7 +51,7 @@ const SORT_OPTIONS = [
   },
 ];
 
-export function GridSortBar({ totalCount }: Props) {
+export function GridSortBar({ totalCount, showViewToggle = true }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const current = searchParams.get("sort") ?? "newest";
@@ -114,10 +120,12 @@ export function GridSortBar({ totalCount }: Props) {
               ⚠️★**`ViewToggle` 側では隠さないこと。** `/jobs` も同じ部品を使っている。
               ⚠️ 件数は隠さない（トグルの外に置いてある）。 */}
           {/* ⚠️ display をインラインに書かないこと。767px 以下の display:none に勝ってしまう */}
-          <div className="companies-view-toggle">
-            <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
-            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-          </div>
+          {showViewToggle && (
+            <div className="companies-view-toggle">
+              <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
+              <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+            </div>
+          )}
 
           {/* 件数 */}
           <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>

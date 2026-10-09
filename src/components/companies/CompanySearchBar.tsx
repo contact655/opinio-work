@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChip } from "@/components/common/FilterChip";
+import { DetailSearchToggle, ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
@@ -48,8 +49,8 @@ export function CompanySearchBar({
    * 一覧が始まるのは **275px**（本番 1440px 実測）だった。/jobs を 2026-09-17 に
    * 1本（69px / 162px）にしたのと同じ形に揃えた（柴さんの要望）。
    *
-   * ⚠️★**ここで `GridSortBar` を import しないこと。** 出すかどうか（`!hasFilter &&
-   *    needsGrid`）と件数はページが持っている。**判定を2箇所に増やさない。**
+   * ⚠️★**ここで `GridSortBar` を import しないこと。** 表示形式の切り替えを出すかと件数は
+   *    ページが持っている（2026-10-09 から絞り込み中も並び替えと件数を出す）。**判定を2箇所に増やさない。**
    */
   sortBar = null,
 }: Props & { sortBar?: React.ReactNode }) {
@@ -142,7 +143,7 @@ export function CompanySearchBar({
      ⚠️ 並びは下のチップの並びと**同じ順**にしてある。片方だけ変えないこと。
      ⚠️ ✕ は近道であって唯一の入口ではない。「絞り込む」を開けば元のチップからも外せる。
      ⚠️ 検索語（`q`）は入れない。入力欄に出ていて、そこの ✕ で消せる。 */
-  const activeChips: { key: string; label: string; clear: () => void }[] = [];
+  const activeChips: ActiveFilter[] = [];
 
   const labelOf = (opts: { value: string; label: string }[], v: string) =>
     opts.find((o) => o.value === v)?.label ?? v;
@@ -188,28 +189,11 @@ export function CompanySearchBar({
           {/* ★絞り込みのトグル（2026-09-17 に**全幅**で出すようにした）。
                  文言は `/jobs` と揃えて「詳細検索」。**片方だけ変えないこと。**
               ⚠️ 選択中の数をバッジで出す（閉じていても効いている件数が分かる）。 */}
-          <button
-            type="button"
-            className={`csb-filter-toggle tb-collapse-label${filtersExpanded || activeChips.length > 0 ? " active" : ""}`}
-            aria-label="詳細検索"
-            onClick={() => setFiltersExpanded(!filtersExpanded)}
-            aria-expanded={filtersExpanded}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="4" y1="6" x2="20" y2="6"/>
-              <line x1="8" y1="12" x2="16" y2="12"/>
-              <line x1="11" y1="18" x2="13" y2="18"/>
-            </svg>
-            <span className="tb-label">詳細検索</span>
-            {activeChips.length > 0 && (
-              <span style={{
-                fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
-                background: "var(--royal)", color: "#fff",
-                fontFamily: "var(--font-inter), var(--font-noto)",
-              }}>{activeChips.length}</span>
-            )}
-            <span aria-hidden="true" style={{ opacity: 0.5 }}>{filtersExpanded ? "▴" : "▾"}</span>
-          </button>
+          <DetailSearchToggle
+            open={filtersExpanded}
+            count={activeChips.length}
+            onToggle={() => setFiltersExpanded(!filtersExpanded)}
+          />
 
           {/* ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）。
                  ⚠️ 出すかどうかと件数はページが決める。ここは置き場所だけ。 */}
@@ -218,22 +202,7 @@ export function CompanySearchBar({
           {/* ★選択中の条件。⚠️★**閉じているときだけ出す。** 開いているときは
                  ピル自身が選択状態を持っているので、同じ語が2回並ぶ
                  （/jobs で 2026-09-09 に同じ判断をしている）。 */}
-          {!filtersExpanded && activeChips.length > 0 && (
-            <div className="csb-active-chips">
-              {activeChips.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  className="csb-active-chip"
-                  onClick={c.clear}
-                  aria-label={`${c.label} の絞り込みを外す`}
-                >
-                  {c.label}
-                  <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.75 }}>✕</span>
-                </button>
-              ))}
-            </div>
-          )}
+          {!filtersExpanded && <ActiveFilterChips chips={activeChips} />}
 
           {/* フィルターチップ群（モバイルで折りたたみ） */}
           <div className={`csb-filter-chips${filtersExpanded ? " expanded" : ""}`}>

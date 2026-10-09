@@ -4,22 +4,17 @@
 
 import Link from "next/link";
 import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
-import { searchCompanies } from "@/lib/search/companies";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
-import type { WorkStyleValue } from "@/lib/search/companies";
 import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyCardList } from "./CompanyCardList";
 
 type Props = {
-  q?: string;
-  phase?: string;
-  workStyle?: string;
-  hiring?: string;
-  location?: string;
+  /** ★絞り込みの結果（2026-10-09 からページ側で引いて渡す）。
+   *  ⚠️ ここで `searchCompanies` を呼び直さないこと。ページは同じ結果の件数を
+   *     並び替えの行に出すので、2回引くと**件数と本体がずれうる**（docs/list-filters-20261009.md）。 */
+  companies: CompanyForCarousel[];
+  /** 事業領域の `?industry=`。カードのタグを合わせるためだけに使う */
   industry?: string;
-  /** 対象業界（軸2）の slug。⚠️ `industry`（事業領域）とは別の軸 */
-  target?: string;
-  foreign?: string;
   /* ⚠️ `pane` / `paneLabel` は 2026-09-30 に削除した（絞り込み結果を分割ビューから
         外したため）。**戻すなら `CompanySplitLayout` で包む話とセット**で、
         「グリッドは全画面」という決めごとを覆すことになる。 */
@@ -33,19 +28,7 @@ type Props = {
   selectedKey?: string | null;
 };
 
-export async function CompanySearchResults({ q, phase, workStyle, hiring, location, industry, target, foreign, selectedKey = null }: Props) {
-  const params = {
-    q: q || undefined,
-    phase: phase || undefined,
-    workStyle: (workStyle as WorkStyleValue) || undefined,
-    hiring: hiring === "1" ? true : undefined,
-    location: location || undefined,
-    industry: industry || undefined,
-    targetIndustry: target || undefined,
-    foreign: foreign === "1" ? true : undefined,
-  };
-
-  const { companies, totalCount } = await searchCompanies(params);
+export function CompanySearchResults({ companies, industry, selectedKey = null }: Props) {
 
   /* カードのタグに出す事業領域の slug。⚠️ 絞り込んでいなければ null（＝主のタグのまま）。
      ⚠️ `searchCompanies` が絞り込みに使うのと**同じ変換**を通すこと。ここがズレると
@@ -101,13 +84,8 @@ export async function CompanySearchResults({ q, phase, workStyle, hiring, locati
         }
       `}</style>
 
-      {/* ヒット件数ヘッダー */}
-      <div style={{ marginBottom: 16, display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
-          {totalCount}社
-        </span>
-        <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>が見つかりました</span>
-      </div>
+      {/* ⚠️★件数の見出しは 2026-10-09 に外した。件数は1段目の並び替えの隣に出す
+             （絞り込んでいないときと同じ場所。絞り込むと別の場所に移っていた）。 */}
 
       {/* 検索結果グリッド */}
       {companies.length === 0 ? (

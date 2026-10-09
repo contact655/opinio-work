@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { fetchAvailableTargetIndustries, searchCompanies } from "@/lib/search/companies";
+import { fetchAvailableTargetIndustries, searchCompanies, type WorkStyleValue } from "@/lib/search/companies";
 import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
 import { CompanySearchResults } from "@/components/companies/CompanySearchResults";
@@ -204,7 +204,7 @@ function Pagination({
 export default async function CompaniesPage({ searchParams }: Props) {
   const { q, phase, workStyle, hiring, location, industry, target, foreign, view, sort } = searchParams;
   const currentPage = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
-  // foreign は並び替えモディファイア扱いのため hasFilter に含めない（ソートバーを維持するため）
+  // foreign は hasFilter に含めない（外資系だけのときは一覧グリッドのままページ分けする）
   const hasFilter = Boolean(q || phase || workStyle || hiring || location || industry || target);
   /* 詳細リスト = view=list。★**これだけを名指しで判定する。** */
   const isListView  = !hasFilter && view === "list";
@@ -246,12 +246,27 @@ export default async function CompaniesPage({ searchParams }: Props) {
     // 検索サジェスト用企業名リスト（unstable_cache 300s）
     fetchCompanySuggestions(),
     // グリッド/リスト: DB側ページネーション + count を1クエリで取得
+    /* ★絞り込み中も**同じ1回**の検索で本体と件数を出す（2026-10-09）。
+          それまでは絞り込み中だけ別の部品（`CompanySearchResults`）が並び替え無しで
+          引き直しており、**`?sort=` が効かず、並び替えの行と件数が消えていた**
+          （docs/list-filters-20261009.md の 1）。
+       ⚠️ 絞り込み中はページ分けしない（`limit` を渡さない）。今までどおり全件を出す。 */
     needsGrid
       ? searchCompanies({
           limit: PAGE_SIZE, offset: (currentPage - 1) * PAGE_SIZE,
           sort: sort ?? "newest", foreign: foreign === "1",
         })
-      : Promise.resolve({ companies: [], totalCount: 0, appliedFilters: {} }),
+      : searchCompanies({
+          q: q || undefined,
+          phase: phase || undefined,
+          workStyle: (workStyle as WorkStyleValue) || undefined,
+          hiring: hiring === "1" ? true : undefined,
+          location: location || undefined,
+          industry: industry || undefined,
+          targetIndustry: target || undefined,
+          foreign: foreign === "1" ? true : undefined,
+          sort: sort ?? "newest",
+        }),
     // 口コミ平均スコア
   ]);
 
@@ -311,7 +326,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
              （本番 1440px 実測 / ヘッダー61 ＋ 検索帯95 ＋ 並び替え帯103 ＋ 余白16）。
              `/jobs` を同日に1本にしたのと同じ形に揃えた（柴さんの要望）。
 
-          ⚠️★**並び替えを出すかどうか（`!hasFilter && needsGrid`）と件数はここが決める。**
+          ⚠️★**並び替えと件数はここが決める**（2026-10-09 から絞り込み中も出す）。
              `CompanySearchBar` は置き場所を貸すだけ。**判定を2箇所に増やさないこと。**
           ⚠️ 上の余白を 20px から 12px に詰めた。詰めすぎると検索窓がヘッダーに貼り付く。 */}
       <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
@@ -322,11 +337,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
               targetIndustryOptions={targetIndustryOptions}
               companySuggestions={companySuggestions}
               sortBar={
-                !hasFilter && needsGrid ? (
-                  <Suspense fallback={null}>
-                    <GridSortBar totalCount={allCompaniesResult.totalCount} />
-                  </Suspense>
-                ) : null
+                /* ⚠️ 絞り込み中も出す（2026-10-09）。表示形式の切り替えだけ隠す
+                      ——絞り込み結果は常にグリッドで、?view=list に切り替わらないため */
+                <Suspense fallback={null}>
+                  <GridSortBar totalCount={allCompaniesResult.totalCount} showViewToggle={!hasFilter} />
+                </Suspense>
               }
             />
           </Suspense>
@@ -341,14 +356,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
         {/* フィルタ適用中: 検索結果グリッド / 非適用: ジャンルカルーセル or コンパクトグリッド */}
         {hasFilter ? (
           <CompanySearchResults
-            q={q}
-            phase={phase}
-            workStyle={workStyle}
-            hiring={hiring}
-            location={location}
+            companies={allCompaniesResult.companies}
             industry={industry}
-            target={target}
-            foreign={foreign}
             /* ⚠️ `pane` は渡さない（2026-09-30）。絞り込み結果は**グリッドなので全画面**へ
                   遷移する側に揃えた。⚠️ 渡す形に戻すと分割ビューが復活する。
                ⚠️ `selectedKey` だけ残す —— 詳細ビューで選んだまま絞り込むと
