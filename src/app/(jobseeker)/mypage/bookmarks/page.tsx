@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import BookmarksClient, { type Bookmark } from "./BookmarksClient";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import type { Metadata } from "next";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
@@ -57,7 +57,7 @@ export default async function BookmarksPage() {
              ⚠️★`is_published` / `is_test` を**必ず取る**（2026-09-27）。落とすと
                 `undefined` になり、下の判定が静かに「生きている」側へ倒れる。 */
           .from("ow_companies")
-          .select("id, name, employee_count, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))")
+          .select("id, name, employee_count_band, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))")
           .in("id", ids);
         if (companiesErr) console.error("[mypage/bookmarks] ow_companies:", companiesErr.message);
         if (companies) {
@@ -74,7 +74,7 @@ export default async function BookmarksPage() {
             return [{
               id: b.id as string, type: "company" as const,
               title: c.name as string,
-              meta: [domain, formatEmployeeCount(c.employee_count)].filter(Boolean).join(" / "),
+              meta: [domain, formatEmployeeSize(c.employee_count_band, null, { compact: true })].filter(Boolean).join(" / "),
               /* ⚠️ `?? "企業"` は事業領域が無いときに出す既定値。`??` でよい
                     （上の `domain` は null か文字列で、空文字にはならない）。 */
               badge_label: domain ?? "企業",

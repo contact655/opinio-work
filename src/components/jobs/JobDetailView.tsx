@@ -34,7 +34,7 @@ import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/sale
 import { isBusinessRole } from "@/lib/roles/jobRoles";
 import { fmtMan } from "@/lib/utils/salary";
 import { SCHEMA_EMPLOYMENT_TYPE } from "@/lib/constants/schemaEmploymentType";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { primaryBusinessDomain } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
 import ToolsSectionClient from "@/app/(jobseeker)/companies/[id]/ToolsSectionClient";
@@ -528,12 +528,12 @@ export async function JobDetailView({
                        ある項目だけを集めて join する。 */}
                 {[
                   primaryBusinessDomain(company.business_domains)?.name,
-                  formatEmployeeCount(company.employee_count),
+                  formatEmployeeSize(company.employee_count_band, company.employee_count_as_of),
                 ].filter(Boolean).length > 0 && (
                   <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
                     {[
                       primaryBusinessDomain(company.business_domains)?.name,
-                      formatEmployeeCount(company.employee_count),
+                      formatEmployeeSize(company.employee_count_band, company.employee_count_as_of),
                     ].filter(Boolean).join(" · ")}
                   </span>
                 )}

@@ -7,6 +7,7 @@ import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
 import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publishable';
 import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
+import { isEmployeeBand } from "@/lib/constants/employeeBand";
 
 // PUT /api/admin/companies/[id] — 企業情報全フィールド更新
 // service_role を使用（ow_companies の UPDATE RLS は owner only のため）
@@ -43,6 +44,7 @@ export async function PUT(
     'industry_id',
     'funding_stage',
     'employee_count',
+    /* ★帯と時点（2026-10-10）。⚠️ 下のループの外で検証する（空で消せるように） */
     'accepting_casual_meetings',
     'remote_work_status',
     'logo_url',
@@ -121,6 +123,21 @@ export async function PUT(
         updates[key] = val;
       }
     }
+  }
+
+  /* ★従業員数の帯と時点（2026-10-10）。⚠️ 許容値は `EMPLOYEE_BANDS`（DB の CHECK と同じ8区分）。
+        空文字は null（運営が消せるように）。不正値は 400（黙って捨てない） */
+  if ("employee_count_band" in body) {
+    const v = body.employee_count_band;
+    if (v === "" || v === null) updates.employee_count_band = null;
+    else if (isEmployeeBand(v)) updates.employee_count_band = v;
+    else return NextResponse.json({ error: "従業員数の帯に不正な値が指定されました" }, { status: 400 });
+  }
+  if ("employee_count_as_of" in body) {
+    const v = body.employee_count_as_of;
+    if (v === "" || v === null) updates.employee_count_as_of = null;
+    else if (typeof v === "string" && /^\d{4}-\d{2}$/.test(v)) updates.employee_count_as_of = `${v}-01`;
+    else return NextResponse.json({ error: "従業員数の時点は年月で指定してください" }, { status: 400 });
   }
 
   // service_role で RLS バイパス

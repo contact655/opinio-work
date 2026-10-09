@@ -11,7 +11,7 @@ import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor, SidebarCompany } from "./page";
 import { fmtMan } from "@/lib/utils/salary";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ type PostUser = {
   company?: string | null;
 };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; location?: string | null; founded_year?: number | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; employee_count_band?: string | null; location?: string | null; founded_year?: number | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
@@ -94,22 +94,8 @@ const POST_TYPE_BADGE: Record<string, { label: string; color: string; bg: string
   job_posted:        { label: "新着の募集", ...BADGE_STYLE },
 };
 
-/**
- * フィードのメタ行に出す従業員数。**括弧の注記を落とす。**
- *
- * `ow_companies.employee_count` は自由記述で、
- * 「382名（2026年2月時点・単体）」のように時点の注記が付く（2026-08-13 に投入）。
- * 企業詳細では注記に意味があるが、**フィードは1行のメタ情報**なので長すぎる。
- *
- * ⚠️ **フィードだけで落とす。** `formatEmployeeCount`（表示整形の共通関数）は変えない。
- *    企業詳細のサイドバーからは注記が消えてはいけない。
- * ⚠️ 括弧が無い値（「約200名」「1000名以上」）はそのまま通す。
- */
-function stripCountNote(v: string | null | undefined): string | null {
-  if (!v) return null;
-  const cut = v.split(/[（(]/)[0].trim();
-  return cut || null;
-}
+/* ★フィードの従業員数は帯（2026-10-10）。以前の `stripCountNote`（原文から括弧の注記を落とす）は、
+      原文を出さなくなったので消した。 */
 
 type LikerUser = { id: string; name: string; avatar_color: string | null; avatar_url: string | null };
 
@@ -1933,7 +1919,8 @@ function PostCard({
            ⚠️ NULL の項目は「—」を出さず、**項目ごと落とす**。中黒も詰まる。 */
         const facts = [
           co.industry?.trim() || null,
-          stripCountNote(formatEmployeeCount(co.employee_count)),
+          /* ★帯（2026-10-10）。フィードは1行のメタ情報なので時点は出さない */
+          formatEmployeeSize(co.employee_count_band, null, { compact: true }),
           co.location?.trim() || null,
           co.founded_year ? `${co.founded_year}年設立` : null,
         ].filter(Boolean) as string[];

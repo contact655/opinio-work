@@ -100,6 +100,9 @@ function mapCompany(
           出ていた。空値の行は描画側が落とすので、null にすれば行ごと消える。
           CLAUDE.md「値が無いことを、ある値に置き換えない」／「`?? 0` も同じ形」。 */
     employee_count: (row.employee_count as string | null) ?? null,
+    /* ★帯と時点（2026-10-10）。⚠️ select に入れていない経路では undefined → 表示は出ない */
+    employee_count_band: (row.employee_count_band as string | null) ?? null,
+    employee_count_as_of: (row.employee_count_as_of as string | null) ?? null,
     job_count: jobCount,
     current_mentors: 0,
     alumni_mentors: 0,
@@ -470,6 +473,9 @@ export type CompanyListRow = {
   phase: string;
   /** DB上の文字列そのまま（例: "約200名", "1000名以上", "100〜300名"） */
   employee_count: string;
+  /** ★帯と時点（2026-10-10）。画面はこちら */
+  employee_count_band: string | null;
+  employee_count_as_of: string | null;
   /** 平均年収文字列（例: "900万円〜"） */
   avg_salary: string | null;
   location: string;
@@ -494,7 +500,7 @@ export type CompanyListRow = {
 };
 
 const COMPANY_LISTPAGE_COLS = [
-  "id", "slug", "name", "name_en", "tagline", "industry", "phase", "employee_count",
+  "id", "slug", "name", "name_en", "tagline", "industry", "phase", "employee_count", "employee_count_band", "employee_count_as_of",
   "avg_salary", "logo_gradient", "logo_letter", "logo_url",
   "location", "url", "accepting_casual_meetings", "remote_work_status",
   "is_published", "jobs_public", "updated_at", "company_features",
@@ -738,6 +744,8 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     industry: (row.industry as string) ?? "",
     phase: (row.phase as string) ?? "",
     employee_count: (row.employee_count as string) ?? "",
+    employee_count_band: (row.employee_count_band as string | null) ?? null,
+    employee_count_as_of: (row.employee_count_as_of as string | null) ?? null,
     avg_salary: (row.avg_salary as string) ?? null,
     location: (row.location as string) ?? "",
     logo_gradient: (row.logo_gradient as string) ?? null,
@@ -781,7 +789,7 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
      このリストに列を足すときは必ず先に確かめること。
 */
 const COMPANY_LIST_COLS = [
-  "id", "slug", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count", "is_published",
+  "id", "slug", "name", "name_en", "brand_name", "tagline", "industry", "industry_id", "saas_category_id", "phase", "employee_count", "employee_count_band", "employee_count_as_of", "is_published",
   "logo_gradient", "logo_letter", "logo_url", "url", "accepting_casual_meetings",
   "updated_at", "remote_work_status", "flex_time", "side_job_ok",
   "description", "why_join", "benefits", "evaluation_system",
@@ -793,7 +801,7 @@ const COMPANY_LIST_COLS = [
          `/jobs` の RSC ペイロードにそのまま載っていた。
       ⚠️ `is_test` は判定にだけ使う（画面へは `toJobsListCompany` で落ちる）。 */
 const JOB_LIST_COMPANY_COLS =
-  "id, slug, name, name_en, brand_name, tagline, industry, industry_id, phase, employee_count, is_published, is_test, logo_gradient, logo_letter, logo_url, url, remote_work_status, updated_at" as const;
+  "id, slug, name, name_en, brand_name, tagline, industry, industry_id, phase, employee_count, employee_count_band, employee_count_as_of, is_published, is_test, logo_gradient, logo_letter, logo_url, url, remote_work_status, updated_at" as const;
 
 const COMPANY_DETAIL_COLS = [
   ...COMPANY_LIST_COLS.split(", "),

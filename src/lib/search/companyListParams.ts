@@ -6,6 +6,7 @@
  *    押した後の一覧の件数がずれる（docs/list-filters-20261009.md）。
  */
 import type { WorkStyleValue } from "@/lib/search/companies";
+import { isCompanySizeGroup } from "@/lib/constants/employeeBand";
 
 export type CompanyListQuery = {
   q?: string;
@@ -18,12 +19,14 @@ export type CompanyListQuery = {
   foreign?: string;
   /** 話を聞ける人（`?talk=1`） */
   talk?: string;
+  /** ★会社規模（`?size=`。2026-10-10）。値は `COMPANY_SIZE_GROUPS` の value */
+  size?: string;
   sort?: string;
 };
 
 /** 絞り込みがあるか。⚠️ 外資系は含めない（外資系だけのときは一覧グリッドのままページ分けする） */
 export function hasCompanyFilter(sp: CompanyListQuery): boolean {
-  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.talk);
+  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.talk || sp.size);
 }
 
 /** 絞り込みの条件（並び替えを含む・ページ分けは含まない） */
@@ -38,6 +41,8 @@ export function companyFilterParams(sp: CompanyListQuery) {
     targetIndustry: sp.target || undefined,
     foreign: sp.foreign === "1" ? true : undefined,
     talk: sp.talk === "1" ? true : undefined,
+    /* ⚠️ 知らない値は無視する（絞り込まない）。400 にしない —— URL を手で書き換えた人を落とさない */
+    size: isCompanySizeGroup(sp.size) ? sp.size : undefined,
     sort: sp.sort ?? "newest",
   };
 }

@@ -19,6 +19,7 @@ import {
 } from '@/lib/companies/targetIndustries';
 import { IndustrySelectOptions } from '@/components/companies/IndustrySelectOptions';
 import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
+import { EMPLOYEE_BANDS } from "@/lib/constants/employeeBand";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,9 @@ type FormData = {
   industry_id: string;
   funding_stage: string;
   employee_count: string;
+  /** ★帯と時点（2026-10-10）。時点は "YYYY-MM"（input type="month"） */
+  employee_count_band: string;
+  employee_count_as_of: string;
   accepting_casual_meetings: boolean;
   remote_work_status: string;
   logo_url: string;
@@ -171,6 +175,8 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
     industry_id: company.industry_id ?? '',
     funding_stage: company.funding_stage ?? '',
     employee_count: company.employee_count ?? '',
+    employee_count_band: company.employee_count_band ?? '',
+    employee_count_as_of: (company.employee_count_as_of ?? '').slice(0, 7),
     accepting_casual_meetings: company.accepting_casual_meetings ?? false,
     remote_work_status: company.remote_work_status ?? '',
     logo_url: company.logo_url ?? '',
@@ -747,13 +753,32 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
                   />
                 </div>
                 <div>
-                  <label htmlFor="acd-employee-count" className={labelCls}>従業員数</label>
+                  {/* ★2026-10-10 から画面に出るのは帯と時点。自由記述は原文として残す（画面には出ない） */}
+                  <label htmlFor="acd-employee-band" className={labelCls}>従業員数（帯・画面に出る）</label>
+                  <select
+                    id="acd-employee-band"
+                    value={formData.employee_count_band}
+                    onChange={(e) => update('employee_count_band', e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">未設定</option>
+                    {EMPLOYEE_BANDS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
+                  <input
+                    type="month"
+                    aria-label="従業員数の時点（年月）"
+                    value={formData.employee_count_as_of}
+                    onChange={(e) => update('employee_count_as_of', e.target.value)}
+                    className={inputCls}
+                    style={{ marginTop: 6 }}
+                  />
+                  <label htmlFor="acd-employee-count" className={labelCls} style={{ marginTop: 6 }}>原文（画面には出ません）</label>
                   <input
                     id="acd-employee-count"
                     type="text"
                     value={formData.employee_count}
                     onChange={(e) => update('employee_count', e.target.value)}
-                    placeholder="例: 50-100"
+                    placeholder="例: 約200名（2026年4月時点）"
                     className={inputCls}
                   />
                 </div>

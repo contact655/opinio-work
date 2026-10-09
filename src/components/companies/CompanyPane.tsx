@@ -6,7 +6,7 @@ import { primaryBusinessDomain } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
 import { companyDisplayName } from "@/lib/companies/displayName";
-import { formatEmployeeCountBand } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 import { phaseLabel } from "@/lib/constants/phase";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
@@ -208,9 +208,9 @@ export function CompanyPane({
             }}>{phase}</span>
           )}
           {/* ⚠️ 値が無い項目は要素ごと出さない（「—」や「0名」で埋めない） */}
-          {company.employee_count && (
+          {company.employee_count_band && (
             <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
-              {formatEmployeeCountBand(company.employee_count)}
+              {formatEmployeeSize(company.employee_count_band, null, { compact: true })}
             </span>
           )}
           {company.job_count > 0 && (

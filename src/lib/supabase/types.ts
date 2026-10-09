@@ -645,6 +645,8 @@ export type Database = {
           description: string | null
           draft_data: Json | null
           employee_count: string | null
+          employee_count_as_of: string | null
+          employee_count_band: string | null
           engagement_status: Database["public"]["Enums"]["engagement_status_enum"]
           engineer_ratio: string | null
           english_frequency: string | null
@@ -802,6 +804,8 @@ export type Database = {
           description?: string | null
           draft_data?: Json | null
           employee_count?: string | null
+          employee_count_as_of?: string | null
+          employee_count_band?: string | null
           engagement_status?: Database["public"]["Enums"]["engagement_status_enum"]
           engineer_ratio?: string | null
           english_frequency?: string | null
@@ -959,6 +963,8 @@ export type Database = {
           description?: string | null
           draft_data?: Json | null
           employee_count?: string | null
+          employee_count_as_of?: string | null
+          employee_count_band?: string | null
           engagement_status?: Database["public"]["Enums"]["engagement_status_enum"]
           engineer_ratio?: string | null
           english_frequency?: string | null

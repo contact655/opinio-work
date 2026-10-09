@@ -23,6 +23,9 @@ export type Company = {
      ⚠️ **`null` を潰さないこと。** 未入力の企業が5社ある（2026-08-28 実測・うち公開2社）。
         `?? 0` で埋めると画面に「0名」と出る（実際に出ていた）。 */
   employee_count: string | number | null;
+  /** ★従業員数の帯と時点（2026-10-10）。画面はこちらを出す（`formatEmployeeSize`）。⚠️ null は分からない */
+  employee_count_band?: string | null;
+  employee_count_as_of?: string | null;
   job_count: number;
   current_mentors: number;
   alumni_mentors: number;

@@ -12,6 +12,7 @@ import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import type { BizCompany } from "@/lib/business/mockCompany";
 import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/companies/benefits";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
+import { isEmployeeBand } from "@/lib/constants/employeeBand";
 
 
 // PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
@@ -249,6 +250,17 @@ export async function PATCH(req: Request) {
     return norm ? serializeBenefits(norm) : null;
   };
 
+  /* ★帯と時点の検証（2026-10-10）。許容値は `EMPLOYEE_BANDS` の1か所（DB の CHECK と同じ8区分）。
+        ⚠️ 不正値は 400。黙って null にしない（CLAUDE.md「選択肢が決まっている値は3つ揃える」） */
+  const bandIn = s(d.employee_count_band);
+  if (bandIn != null && bandIn !== "" && !isEmployeeBand(bandIn)) {
+    return NextResponse.json({ error: "従業員数の帯に不正な値が指定されました" }, { status: 400 });
+  }
+  const asOfIn = s(d.employee_count_as_of);
+  if (asOfIn != null && asOfIn !== "" && !/^\d{4}-\d{2}-01$/.test(asOfIn)) {
+    return NextResponse.json({ error: "従業員数の時点は年月で指定してください" }, { status: 400 });
+  }
+
   const mainRes = await mutateOne(
     supabase
     .from("ow_companies")
@@ -273,6 +285,9 @@ export async function PATCH(req: Request) {
       url:                      s(d.url),
       founded_year:             n(d.founded_year),
       employee_count:           s(d.employee_count),
+      /* ★帯と時点（2026-10-10）。⚠️ 値は下で検証する（CHECK に弾かれて PATCH 全体が落ちる前に 400 にする） */
+      employee_count_band:      bandIn === "" ? null : bandIn,
+      employee_count_as_of:     asOfIn === "" ? null : asOfIn,
       industry:                 s(d.industry),
       industry_id:              s(d.industry_id),
       saas_category_id:         s(d.saas_category_id),

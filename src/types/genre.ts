@@ -108,7 +108,10 @@ export type CompanyForCarousel = {
   tagline: string | null;              // 企業キャッチコピー（1行）
   industry: string | null;
   funding_stage: string | null;
-  employee_count: string | null;       // ow_companies.employee_count は text 型
+  employee_count: string | null;       // ow_companies.employee_count は text 型（原文。画面には出さない）
+  /** ★帯と時点（2026-10-10）。画面はこちら（`formatEmployeeSize`） */
+  employee_count_band?: string | null;
+  employee_count_as_of?: string | null;
   description: string | null;
   accepting_casual_meetings: boolean;  // 面談OKバッジ用（旧フラグ、後方互換）
   jobs_public: boolean;                // 求人・面談バッジの実際の表示制御（engagement_status 連動）

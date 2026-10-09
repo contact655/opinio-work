@@ -5,6 +5,7 @@ import type { CompanyTargetIndustry } from "@/types/genre";
 import { orderedBusinessDomains } from "@/types/genre";
 import { CAPITAL_TYPE_LABELS } from "@/lib/constants/capitalType";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
 import { splitParenTail } from "@/lib/utils/parenSuffix";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
@@ -171,7 +172,7 @@ export function CompanyInfoBox({
                   「本社」だと本社所在地と誤読される（2026-08-13 改称）。
                   値の参照先は変えていない。 */
             ...(detail.parentCompanyName ? [{ key: "親会社", value: detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : ""), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg> }] : []),
-            { key: "従業員数", value: formatEmployeeCount(company.employee_count) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+            { key: "従業員数", value: formatEmployeeSize(company.employee_count_band, company.employee_count_as_of) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
             ...(detail.globalEmployeeCount ? [{ key: "従業員数（世界）", value: formatEmployeeCount(detail.globalEmployeeCount), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),
             /* 所在地。**`headquarters_address` が無い社だけ**、`location` で出す（2026-08-13）。
                ⚠️ 住所（番地まで）がある社は「拠点・資本関係」セクションの本社カードに出すので、

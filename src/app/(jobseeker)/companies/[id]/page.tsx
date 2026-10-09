@@ -62,7 +62,7 @@ const JOBS_LIMIT = 3;
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan } from "@/lib/utils/salary";
-import { parseEmployeeCount } from "@/lib/utils/employeeCount";
+import { employeeBandRange, formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 /* ⚠️ `primaryBusinessDomain` は meta・OGPバッジ・Hero が使う（**1つに絞る場所**）。
@@ -260,7 +260,8 @@ export async function generateMetadata({
   //    単位まで含んだ文字列が入る（2026-08-03 時点で値のある全社が「名」を含む）。
   //    以前は一律 `+ "名規模"` していたため「3500名以上名規模」「約200名名規模」と
   //    全社の meta description が二重になっていた。値はそのまま使う。
-  const size = company.employee_count?.toString().trim() || null;
+  /* ★2026-10-10 から帯（「51〜200名」）。時点は meta には入れない（短く保つ） */
+  const size = formatEmployeeSize(company.employee_count_band, null, { compact: true });
 
   /* ⚠️ **求職者側の分類は事業領域。** `company.industry`(text) は廃止予定で
         新規企業には書かれないため、ここで使うと新しい企業の meta が欠ける。
@@ -1925,18 +1926,15 @@ export default async function CompanyDetailPage({
                   CLAUDE.md「`?? ""` を挟んだ後の `?? フォールバック` は永久に効かない」。 */
             description: company.tagline || undefined,
             url: `https://opinio.jp/companies/${companySlug ?? companyId}`,
-            /* ⚠️★**`employee_count` は text 列**。`mapCompany` が `as number` で
-                  受けているので型は number に見えるが、実体は「約100名」のような文字列。
-                  そのため `company.employee_count > 0` は **NaN 比較で常に false** になり、
-                  `numberOfEmployees` は**一度も出力されていなかった**
-                  （2026-08-28 に本番の JSON-LD で確認）。
-               ⚠️ 数値の取り出しは `parseEmployeeCount` に集約する。ここで自前で
-                  パースしないこと（一覧のレンジ表記と規則がずれる）。
-               ⚠️ 「約100名」は 100 として出す。CTC の「単体6,425名 / グループ12,862名」は
-                  **単体（6425）**で、一覧の帯（5,001-10,000名）と同じ側を採る。 */
+            /* ⚠️ 2026-08-28 まで `employee_count`（text）を数と比べていて、numberOfEmployees は
+                  一度も出力されていなかった。2026-10-10 から帯の列を使う。 */
+            /* ★2026-10-10 から帯の下限・上限で出す（自由記述の原文は使わない） */
             numberOfEmployees: (() => {
-              const n = parseEmployeeCount(company.employee_count);
-              return n == null ? undefined : { "@type": "QuantitativeValue", value: n };
+              const r = employeeBandRange(company.employee_count_band);
+              if (!r) return undefined;
+              return r.max == null
+                ? { "@type": "QuantitativeValue", minValue: r.min }
+                : { "@type": "QuantitativeValue", minValue: r.min, maxValue: r.max };
             })(),
           }),
         }}

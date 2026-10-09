@@ -3,7 +3,7 @@ import { fetchTalkableCompanyIds } from "@/lib/companies/talkableCompanies";
 // src/lib/search/companies.ts
 import { resolveIndustryKey } from "./industryGroups";
 import { isRegisteredUser } from "@/lib/users/registered";
-import { parseEmployeeCount } from "@/lib/utils/employeeCount";
+import { COMPANY_SIZE_GROUPS, employeeBandRank, sizeGroupOfBand, type CompanySizeGroup } from "@/lib/constants/employeeBand";
 // 企業検索の抽象化レイヤー
 //
 // 事前調査結果（2026-05-17）:
@@ -43,6 +43,8 @@ export type CompanySearchParams = {
   foreign?: boolean;   // 外資系のみ表示
   /** 「話を聞ける人」がいる企業だけ（2026-10-09 / `?talk=1`）。判定は `fetchTalkableCompanyIds` */
   talk?: boolean;
+  /** ★会社規模（2026-10-10）。4つのまとまり（`COMPANY_SIZE_GROUPS`）。帯が空の企業は当たらない */
+  size?: CompanySizeGroup;
   sort?: string;       // "newest" | "employees" | "disclosure"（"jobs" は 2026-08-18・"salary" は 2026-08-25 に廃止）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
@@ -123,6 +125,11 @@ export async function searchCompanies(
     if (params.phase) {
       const dbValues = PHASE_FILTER_MAP[params.phase] ?? [params.phase];
       q = q.in("phase", dbValues);
+    }
+    /* ★会社規模（2026-10-10）。⚠️ まとまり→帯は `COMPANY_SIZE_GROUPS` の1か所。ここに帯を書かない */
+    if (params.size) {
+      const g = COMPANY_SIZE_GROUPS.find((x) => x.value === params.size);
+      if (g) q = q.in("employee_count_band", [...g.bands]);
     }
     if (params.workStyle)  q = q.eq("remote_work_status", params.workStyle);
     if (params.location) {
@@ -244,7 +251,7 @@ export async function searchCompanies(
     supabase
       .from("ow_companies")
       .select(
-        "id, slug, name, name_en, tagline, industry, funding_stage:phase, employee_count, description, is_foreign, " +
+        "id, slug, name, name_en, tagline, industry, funding_stage:phase, employee_count, employee_count_band, employee_count_as_of, description, is_foreign, " +
         "accepting_casual_meetings, remote_work_status, location, branch_locations, logo_letter, logo_gradient, logo_url, updated_at, " +
         "current_member_count, obog_count, company_features, reality_disclosure",
         useDbPagination ? { count: "exact" } : undefined
@@ -466,20 +473,13 @@ export async function searchCompanies(
         その裏で走っていた求人年収の集計（calc_avg_salary_man）も削除した。
      ⚠️ 旧 URL の `?sort=salary` / `?salaryMin=` は無視され、既定に落ちる。壊れない。 */
   /* ── 社員数順 ────────────────────────────────────────────────────────────────
-     ⚠️ **`employee_count` は自由記述の text**。`parseEmployeeCount` で数値を取り出して
-        並べる（括弧の中は捨て、最初の数字を採る。規則は employeeCount.ts）。
-     ⚠️ **第2キーは置いていない。** `Array.prototype.sort` は安定なので、同数のときは
-        前段のDB順（`updated_at DESC` ＝新着順）がそのまま残る。
-        実測（2026-08-28 / 公開79社）: 異なる数値は33種類しかなく、
-        **同数のグループが11組（最大12社）**あるので、ここの挙動は実際に効く。
-        ⚠️ 名前順など別のキーにしたくなったら、ここに1行足す。
-           `updated_at` は企業情報を1つ直すたびに動くので、同数内の順序も動く。
-     ⚠️ **数値が取れない企業は末尾へ**（-1）。0 として扱うと「0名の会社」に見える。 */
+     ⚠️ 2026-10-10 まで自由記述の `employee_count` から数を取り出して並べていた（同数のグループが
+        11組あり、帯の中の順序は画面から説明できなかった）。いまは帯の順だけで並べる。 */
+  /* ★2026-10-10 から**帯の順**で並べる（`employeeBandRank`）。画面に出ているのが帯なので、
+        並び順の根拠も帯に揃えた。帯の中の順序は前段の順（新着順）のまま。帯が無い企業は末尾。 */
   if (params.sort === "employees") {
     filteredCompanies = [...filteredCompanies].sort(
-      (a, b) =>
-        (parseEmployeeCount(b.employee_count) ?? -1) -
-        (parseEmployeeCount(a.employee_count) ?? -1),
+      (a, b) => employeeBandRank(b.employee_count_band) - employeeBandRank(a.employee_count_band),
     );
   }
 
@@ -630,6 +630,34 @@ const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_P
  *    `ow_industries` 側は単純FKなので埋め込んでよい。
  * ⚠️ 並びは業種マスタの `display_order`。**件数順にしない**（親子の順序が崩れる）。
  */
+/**
+ * ★会社規模の選択肢（2026-10-10）。**掲載中の企業が1社以上あるまとまりだけ**返す（0件の選択肢は出さない）。
+ * ⚠️ 母集団は一覧と同じ「ディレクトリ掲載中」（`filterListedCompanies`）。検証用は visibility 側で落ちる。
+ * ⚠️ 取得に失敗したら空配列（チップごと出さない）。0件の選択肢を出すよりよい。
+ */
+export const fetchAvailableSizeGroups = unstable_cache(
+  async (): Promise<{ value: CompanySizeGroup; label: string; count: number }[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await filterListedCompanies(
+      supabase.from("ow_companies").select("employee_count_band"),
+    );
+    if (error) {
+      console.error("[fetchAvailableSizeGroups]", error.message);
+      return [];
+    }
+    const counts = new Map<string, number>();
+    for (const r of (data ?? []) as { employee_count_band: string | null }[]) {
+      const g = sizeGroupOfBand(r.employee_count_band);
+      if (g) counts.set(g, (counts.get(g) ?? 0) + 1);
+    }
+    return COMPANY_SIZE_GROUPS
+      .filter((g) => (counts.get(g.value) ?? 0) > 0)
+      .map((g) => ({ value: g.value, label: g.label, count: counts.get(g.value) ?? 0 }));
+  },
+  ["available-size-groups"],
+  { revalidate: 300 }
+);
+
 export const fetchAvailableTargetIndustries = unstable_cache(
   async (): Promise<{ slug: string; name: string }[]> => {
     const supabase = createPublicClient();

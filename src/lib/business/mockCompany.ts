@@ -36,7 +36,11 @@ export type BizCompany = {
   showFitNegatives: boolean;   // 「慎重に検討を」欄を公開するか
 
   // ── 数値データ ───────────────────────────────────────────
-  employeeCount: string;
+  /** ★従業員数の帯（2026-10-10。`EMPLOYEE_BANDS` の value）。空文字 = 未選択。
+   *  ⚠️ 自由記述の従業員数は編集画面から外した（原文は DB に残る） */
+  employeeCountBand: string;
+  /** ★いつ時点か（"YYYY-MM"。input type="month" の値）。空文字 = 未入力 */
+  employeeCountAsOf: string;
   foundedAt: string;
   avgAge: string;
   avgSalary: string;

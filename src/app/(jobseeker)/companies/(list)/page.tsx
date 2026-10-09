@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { fetchAvailableTargetIndustries, searchCompanies } from "@/lib/search/companies";
+import { fetchAvailableSizeGroups, fetchAvailableTargetIndustries, searchCompanies } from "@/lib/search/companies";
 import { companyFilterParams, hasCompanyFilter } from "@/lib/search/companyListParams";
 import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
@@ -43,7 +43,8 @@ async function facetForMetadata(searchParams: SearchParams) {
   if (!searchParams.industry) return null;
   const hasOtherFilter = Boolean(
     searchParams.q || searchParams.phase || searchParams.workStyle ||
-    searchParams.hiring || searchParams.location || searchParams.target || searchParams.foreign
+    searchParams.hiring || searchParams.location || searchParams.target || searchParams.foreign ||
+    searchParams.size
   );
   if (hasOtherFilter) return null;
   const key = resolveIndustryKey(searchParams.industry);
@@ -132,6 +133,8 @@ type SearchParams = {
   industry?: string;
   /** 対象業界（軸2）の slug。⚠️ `industry` とは**別の軸**（誰に売っているか） */
   target?: string;
+  /** ★会社規模（2026-10-10）。値は `COMPANY_SIZE_GROUPS` の value */
+  size?: string;
   foreign?: string;
   view?: string;
   sort?: string;
@@ -224,7 +227,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ⚠️ 都道府県は**47件の固定リスト**になったので DB から引かない（2026-09-06）。
         該当0件の県も出す方針にしたため、実データを見る必要がなくなった。
         選択肢は lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS`。 */
-  const [industryFacets, targetIndustryOptions, companySuggestions, allCompaniesResult, talkableCount] = await Promise.all([
+  const [industryFacets, targetIndustryOptions, companySuggestions, allCompaniesResult, talkableCount, sizeOptions] = await Promise.all([
     /* ★事業領域の選択肢は**マスタ全件**（有効な14件）。**該当0社のものも出す**（2026-09-14）。
           ⚠️★**`getBusinessDomainFacets()` に戻さないこと。** あちらは0社のものを落とすので、
              企業を一覧から外すたびに**チップの項目が静かに減る。**
@@ -264,6 +267,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
     searchCompanies({ talk: true, limit: 1, offset: 0 })
       .then((r) => r.totalCount)
       .catch((e) => { console.error("[companies] 話を聞ける人の件数:", e); return null; }),
+    /* ★会社規模の選択肢（2026-10-10）。掲載中の企業が1社以上あるまとまりだけ */
+    fetchAvailableSizeGroups(),
     // 口コミ平均スコア
   ]);
 
@@ -334,6 +339,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
               targetIndustryOptions={targetIndustryOptions}
               companySuggestions={companySuggestions}
               talkableCount={talkableCount}
+              sizeOptions={sizeOptions}
               sortBar={
                 /* ⚠️ 絞り込み中も出す（2026-10-09）。表示形式の切り替えだけ隠す
                       ——絞り込み結果は常にグリッドで、?view=list に切り替わらないため */

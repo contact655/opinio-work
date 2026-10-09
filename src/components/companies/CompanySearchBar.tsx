@@ -22,6 +22,7 @@ import { PHASE_OPTIONS } from "@/lib/constants/phase";
  */
 const SHOW_WORK_STYLE_FILTER = false;
 import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
+import { COMPANY_SIZE_GROUPS } from "@/lib/constants/employeeBand";
 
 
 
@@ -36,6 +37,9 @@ type Props = {
   /** ★「話を聞ける人」がいる掲載企業の数（2026-10-09）。⚠️ 0 ならトグルを出さない
    *  （0件の選択肢を出さない原則）。null は取得失敗で、これも出さない */
   talkableCount?: number | null;
+  /** ★会社規模の選択肢（2026-10-10）。⚠️ 掲載中の企業が1社以上あるまとまりだけ（0件の選択肢を出さない）。
+   *  空ならチップごと出さない（ただし選択中なら外せるように出す） */
+  sizeOptions?: { value: string; label: string; count: number }[];
 };
 
 // ★FilterChip は 2026-09-18 に `components/common/FilterChip.tsx` へ切り出した。
@@ -47,6 +51,7 @@ export function CompanySearchBar({
   targetIndustryOptions,
   companySuggestions = [],
   talkableCount = null,
+  sizeOptions = [],
   /**
    * ★並び替え・表示形式・件数（2026-09-17）。**同じ行に入れるために受け取る。**
    *
@@ -132,6 +137,13 @@ export function CompanySearchBar({
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
   const currentTalk       = searchParams.get("talk") === "1";
+  const currentSize       = searchParams.get("size") ?? "";
+  /* ⚠️ 選択肢は「掲載中の企業がある」まとまりだけ。選択中のものが消えていたら外せるように足す */
+  const sizeChipOptions = sizeOptions.map((o) => ({ value: o.value, label: o.label }));
+  if (currentSize && !sizeChipOptions.some((o) => o.value === currentSize)) {
+    const g = COMPANY_SIZE_GROUPS.find((x) => x.value === currentSize);
+    if (g) sizeChipOptions.push({ value: g.value, label: g.label });
+  }
   const currentSortLabel  = companySortLabel(searchParams.get("sort"));
   /* ⚠️ 該当0社なら出さない。ただし選択中なら外せるように出す */
   const showTalk = (talkableCount ?? 0) > 0 || currentTalk;
@@ -163,6 +175,7 @@ export function CompanySearchBar({
         事業領域・都道府県・話を聞ける人は1段目に常に見えていて、選択状態をチップ自身が持つ。
         ここに入れると同じ語が2回並ぶ。⚠️ 並びは詳細検索の中の並びと同じ順にしてある */
   if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
+  if (currentSize) activeChips.push({ key: "size", label: labelOf(sizeChipOptions, currentSize), clear: () => updateParam("size", null) });
   if (currentTarget) activeChips.push({ key: "target", label: labelOf(targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name })), currentTarget), clear: () => updateParam("target", null) });
   if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
   if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
@@ -284,6 +297,19 @@ export function CompanySearchBar({
             onToggle={() => toggleChip("phase")}
             phaseStyle
           />
+
+          {/* ★会社規模（2026-10-10）。従業員数の帯を4つにまとめて出す（`COMPANY_SIZE_GROUPS`）。
+                 ⚠️ 0件のまとまりは出さない（掲載中の企業がある分だけサーバーが渡す） */}
+          {sizeChipOptions.length > 0 && (
+            <FilterChip
+              label="会社規模"
+              value={currentSize}
+              options={sizeChipOptions}
+              onSelect={(v) => { updateParam("size", v); setOpenChip(null); }}
+              isOpen={openChip === "size"}
+              onToggle={() => toggleChip("size")}
+            />
+          )}
 
 
           {/* 顧客の業界（誰に売っているか＝軸2）

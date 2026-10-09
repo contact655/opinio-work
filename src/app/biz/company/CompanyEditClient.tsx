@@ -23,6 +23,7 @@ import { MAX_BUSINESS_DOMAINS_PER_COMPANY, type BusinessDomainOption } from "@/l
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
 import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
+import { EMPLOYEE_BANDS } from "@/lib/constants/employeeBand";
 
 // ── SaveState ──────────────────────────────────────────────────────────────
 
@@ -1395,9 +1396,19 @@ export function CompanyEditClient({
             <SectionCard title="基本情報">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FormGroup>
+                  {/* ★2026-10-10 に自由記述から「帯＋いつ時点」に変えた（柴さんの指示）。
+                         ⚠️ 帯の語彙は `EMPLOYEE_BANDS` の1か所（DB の CHECK と同じ8区分）。
+                         ⚠️ 採用する法人の人数を選ぶ（単体とグループがあれば単体）。 */}
                   <FormLabel required>従業員数</FormLabel>
-                  <FormInput value={form.employeeCount} onChange={(v) => update("employeeCount", v)} placeholder="例: 1,642" />
-                  <FormHint>数字のみを入力（カンマ含む）</FormHint>
+                  <FormSelect
+                    value={form.employeeCountBand}
+                    onChange={(v) => update("employeeCountBand", v)}
+                    options={[{ value: "", label: "選択してください" }, ...EMPLOYEE_BANDS.map((b) => ({ value: b.value, label: b.label }))]}
+                  />
+                  <div style={{ marginTop: 8 }}>
+                    <FormInput type="month" value={form.employeeCountAsOf} onChange={(v) => update("employeeCountAsOf", v)} ariaLabel="従業員数の時点（年月）" />
+                  </div>
+                  <FormHint>採用する法人の人数を選んでください。下の欄に、いつ時点の人数かを年月で入れます（任意）</FormHint>
                 </FormGroup>
                 <FormGroup>
                   <FormLabel>設立年月</FormLabel>

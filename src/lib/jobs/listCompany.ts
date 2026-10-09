@@ -20,6 +20,8 @@ export type JobsListCompany = Pick<
   | "phase"
   | "url"
   | "employee_count"
+  | "employee_count_band"
+  | "employee_count_as_of"
   | "business_domains"
   | "is_published"
   | "application_open"
@@ -38,6 +40,8 @@ export function toJobsListCompany(c: Company): JobsListCompany {
     phase: c.phase,
     url: c.url ?? null,
     employee_count: c.employee_count,
+    employee_count_band: c.employee_count_band ?? null,
+    employee_count_as_of: c.employee_count_as_of ?? null,
     business_domains: c.business_domains ?? [],
     is_published: c.is_published,
     application_open: c.application_open,

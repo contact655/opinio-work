@@ -23,6 +23,8 @@ export type DbCompany = {
   logo_url: string | null;
   description: string | null;
   employee_count: string | null;
+  employee_count_band: string | null;
+  employee_count_as_of: string | null;
   founded_year: number | null;
   avg_age: number | null;
   avg_salary: string | null;
@@ -58,7 +60,7 @@ const SELECT_COLUMNS = [
   "industry", "industry_id", "saas_category_id", "phase", "business_stage", "url", "careers_url",
   /* ⚠️ 【廃止】列は取らないこと（about_markdown / established_at / gender_ratio）。
         2026-08-26 に description / founded_year / female_ratio へ統合済み。 */
-  "logo_gradient", "logo_letter", "logo_url", "description", "employee_count", "founded_year",
+  "logo_gradient", "logo_letter", "logo_url", "description", "employee_count", "employee_count_band", "employee_count_as_of", "founded_year",
   "avg_age", "avg_salary", "funding_total", "female_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails", "show_fit_negatives",
@@ -169,7 +171,9 @@ export function transformDbToForm(
     logoLetter: row.logo_letter ?? (row.name ? row.name[0] : "?"),
     logoUrl: row.logo_url ?? "",
     descriptionMarkdown: row.description ?? "",
-    employeeCount: row.employee_count ?? "",
+    employeeCountBand: row.employee_count_band ?? "",
+    /* ⚠️ date（"2026-04-01"）→ input type="month" の値（"2026-04"） */
+    employeeCountAsOf: (row.employee_count_as_of ?? "").slice(0, 7),
     foundedAt: row.founded_year != null ? String(row.founded_year) : "",
     avgAge: row.avg_age != null ? String(row.avg_age) : "",
     avgSalary: row.avg_salary ?? "",
@@ -238,7 +242,10 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
        ⚠️ 描画は plain text（改行で段落分け／`companies/[id]` の `detail.about`）。
           **markdown は解釈されない。** 入力欄も markdown を promote しない形にしてある。 */
     description: form.descriptionMarkdown || null,
-    employee_count: form.employeeCount || null,
+    /* ★帯と時点（2026-10-10）。⚠️ 自由記述の `employee_count` はもう書かない（キーを出さないので
+          PATCH は触らない ——「キーが無いなら undefined で触らない」の決まり）。原文は DB に残る。 */
+    employee_count_band: form.employeeCountBand || null,
+    employee_count_as_of: form.employeeCountAsOf ? `${form.employeeCountAsOf}-01` : null,
     /* ⚠️ **正は `founded_year`(int)。** 求職者側は年しか表示しない。
           以前は `established_at`(text) に書いており、PATCH は `founded_year` を読むため
           **公開のたびに設立年が NULL で潰れていた。** */

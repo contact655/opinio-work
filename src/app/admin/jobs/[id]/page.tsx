@@ -30,7 +30,7 @@ export default async function AdminJobDetailPage({ params }: Props) {
       source_url, source_verified_at,
       rejection_reason, rejection_date, rejection_reviewer,
       company_id,
-      ow_companies!company_id (id, name, industry, employee_count, is_published)
+      ow_companies!company_id (id, name, industry, employee_count, employee_count_band, employee_count_as_of, is_published)
     `)
     .eq("id", params.id)
     .single();
@@ -85,7 +85,7 @@ export default async function AdminJobDetailPage({ params }: Props) {
   // The join returns ow_companies as an object or null; the `as unknown` bridge
   // avoids the unsafe `as any` while keeping the explicit target type.
   type JobForClient = Omit<typeof job, "ow_companies"> & {
-    ow_companies: { id: string; name: string; industry: string | null; employee_count: string | null; is_published: boolean } | null;
+    ow_companies: { id: string; name: string; industry: string | null; employee_count: string | null; employee_count_band: string | null; employee_count_as_of: string | null; is_published: boolean } | null;
   };
   return (
     <JobDetailClient

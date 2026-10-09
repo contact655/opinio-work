@@ -9,7 +9,7 @@ import { displayBusinessDomain } from "@/types/genre";
 import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { showToast } from "@/lib/toast";
-import { formatEmployeeCountBand } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 import { companyDisplayName } from "@/lib/companies/displayName";
 
@@ -325,17 +325,15 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
               }}>{cardDomain!.name}</span>
             )}
 
-            {company.employee_count && (
+            {company.employee_count_band && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap", flexShrink: 0 }}>
                 {/* ⚠️ 所在地を消して裸の数字になったので、何の数かをアイコンで示す */}
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                {/* ⚠️ **一覧はレンジ表記**（2026-08-28）。時点や単体/連結の注記は落ちる。
-                       ⚠️ `/companies/[id]` のサイドバーと meta は `formatEmployeeCount`
-                          （原文）のまま。**そちらをこれに差し替えないこと。** */}
-                {formatEmployeeCountBand(company.employee_count)}
+                {/* ★帯（2026-10-10）。一覧は帯だけ（時点は詳細で出す）。自由記述の原文は出さない */}
+                {formatEmployeeSize(company.employee_count_band, null, { compact: true })}
               </span>
             )}
 
@@ -467,7 +465,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
 
           {/* 従業員数 + メンバーアバター（所在地・勤務形態は 2026-08-11 に非表示化） */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {company.employee_count && (
+            {company.employee_count_band && (
               <span style={{ fontSize: 12, color: "var(--ink-soft)", display: "flex", alignItems: "center", gap: 3 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={2} strokeLinecap="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -475,10 +473,8 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                {/* ⚠️ 「名」の付与とカンマは employeeCount.ts に集約（2026-08-08）。
-                       ここで `約` を足さない。入っていない値に推測を足すことになる。
-                   ⚠️ **一覧はレンジ表記**（2026-08-28）。グリッド側と必ず同じ関数を使う。 */}
-                {formatEmployeeCountBand(company.employee_count)}
+                {/* ★帯（2026-10-10）。⚠️ グリッド側と必ず同じ関数を使う */}
+                {formatEmployeeSize(company.employee_count_band, null, { compact: true })}
               </span>
             )}
             {company.job_count > 0 && (

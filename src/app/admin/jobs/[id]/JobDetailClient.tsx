@@ -15,7 +15,7 @@ import {
 } from "../actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { fmtMan } from "@/lib/utils/salary";
-import { formatEmployeeCount } from "@/lib/utils/employeeCount";
+import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 
 // ─── 型 ──────────────────────────────────────────────────────────────────────
 
@@ -24,6 +24,8 @@ type Company = {
   name: string;
   industry: string | null;
   employee_count: string | null;
+  employee_count_band?: string | null;
+  employee_count_as_of?: string | null;
   is_published: boolean;
 };
 
@@ -523,7 +525,7 @@ export default function JobDetailClient({
                 ) : "—"
               } />
               <Field label="業界" value={company?.industry} />
-              <Field label="従業員数" value={formatEmployeeCount(company?.employee_count)} />
+              <Field label="従業員数" value={formatEmployeeSize(company?.employee_count_band, company?.employee_count_as_of)} />
               <Field label="公開状態" value={
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,

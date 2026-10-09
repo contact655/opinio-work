@@ -40,7 +40,7 @@ const SALARY_PILL_TIERS = [
 ] as const;
 import type { JobsListCompany } from "@/lib/jobs/listCompany";
 import { extractPrefecture, PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
-import { parseEmployeeCount } from "@/lib/utils/employeeCount";
+import { employeeBandRank } from "@/lib/constants/employeeBand";
 import { fmtMan } from "@/lib/utils/salary";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
 import { JobPane } from "@/components/jobs/JobPane";
@@ -695,11 +695,10 @@ export default function JobsClient({
             文字列同士の引き算で **NaN** になっていた。比較関数が NaN を返すと
             並び順は事実上変わらない。**型が number だと嘘をついていたので気づけなかった。**
          ⚠️ 数が読めない企業は **-1** で末尾へ。0 にすると「社員0名」と同じ扱いになる。 */
-      list = [...list].sort((a, b) => {
-        const aE = parseEmployeeCount(companyMap.get(a.company_id)?.employee_count) ?? -1;
-        const bE = parseEmployeeCount(companyMap.get(b.company_id)?.employee_count) ?? -1;
-        return bE - aE;
-      });
+      /* ★2026-10-10 から帯の順（`employeeBandRank`。帯が無い企業は -1 で末尾） */
+      list = [...list].sort((a, b) =>
+        employeeBandRank(companyMap.get(b.company_id)?.employee_count_band)
+        - employeeBandRank(companyMap.get(a.company_id)?.employee_count_band));
     } else if (sort === "disclosure") {
       // 開示充実順: 年収+キャッチコピー+説明の充実度スコア
       const score = (j: Job) => {
