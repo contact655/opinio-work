@@ -449,7 +449,25 @@ export default function MypageLayout({
           }
           .mypage-right-hide  { display: none !important; }
           .mypage-narrow-only { display: block; }
-          .mypage-has-top .mypage-right-aside { grid-column: 2 / -1; grid-row: 3; }
+        }
+
+        @media (min-width: 768px) and (max-width: 1099px) {
+          /* ★右の列を本文の上へ置く（2026-10-09 / 柴さんの指示）。それまでは本文の下（行3）で、
+             900px 前後だと「転職・面談の状況」が本文の約2,600〜2,900px 下にあった。
+             転職意欲は候補者検索と提案に出るかを決めるカードなので、375px と同じ
+             「届いているもの → 右の列 → 本文」の並びにする。
+             ⚠️ 768〜1099px だけ。1100px 以上の3列と 767px 以下（flex の縦積み）には効かせない。 */
+          .mypage-desktop-grid { grid-template-rows: auto 1fr; }
+          .mypage-left-aside { grid-column: 1; grid-row: 1 / span 2; }
+          .mypage-right-aside { grid-row: 1; padding: 36px 40px 16px !important; background: var(--bg-tint); }
+          /* ⚠️ 下に 16px 空ける。本文の先頭の「公開プロフィールを見る」は本文の上端に貼り付いて描かれるので、空けないと右の列の最後のカードと隙間0でくっつく（実測） */
+          .mypage-main-content { grid-column: 2; grid-row: 2; }
+          .mypage-has-top { grid-template-rows: auto auto 1fr; }
+          .mypage-has-top .mypage-left-aside { grid-row: 1 / span 3; }
+          .mypage-has-top .mypage-right-aside { grid-column: 2 / -1; grid-row: 2; padding-top: 16px !important; }
+          .mypage-has-top .mypage-main-content { grid-row: 3; }
+          /* 右の列が上にあるときは本文の上の余白を詰める（右の列が無い・畳む画面は従来どおり） */
+          .mypage-desktop-grid:has(.mypage-right-aside:not(.mypage-right-hide)) .mypage-main-content { padding-top: 16px !important; }
         }
 
         /* Mobile: show tab bar, hide left sidebar
