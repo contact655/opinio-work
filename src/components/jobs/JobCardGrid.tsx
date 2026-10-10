@@ -182,7 +182,7 @@ export function JobCardGrid({
           fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 700,
           color: salaryKnown ? "var(--success-ink)" : "var(--ink-mute)",
         }}>
-          {formatSalary(job.salary_min, job.salary_max)}
+          {formatSalary(job.salary_min, job.salary_max, { negotiable: job.salary_negotiable, employmentType: job.employment_type })}
         </span>
 
         {/* ── 勤務地 / 勤務形態 / 雇用形態 ── */}

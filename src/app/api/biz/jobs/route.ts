@@ -34,8 +34,10 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     // job_category はクライアントから受け取らない。職種の正は ow_job_roles で、
     // この列は syncJobCategoryFromRoles が primary ロール名から派生させる。
     department: str(body.department, 100),
-    salary_min: salaryMin,
-    salary_max: salaryMax,
+    salary_min: body.salaryNegotiable === true ? null : salaryMin,
+    salary_max: body.salaryNegotiable === true ? null : salaryMax,
+    /* ★要相談（2026-10-10）。要相談なら金額は持たない（DB の CHECK も同じ） */
+    salary_negotiable: body.salaryNegotiable === true,
     salary_note: str(body.salaryNote, 200),
     location: str(body.location, 200),
     remote_work_status: str(body.remoteWorkStatus, 50),
@@ -106,7 +108,7 @@ export async function POST(req: Request) {
     const { data: source } = await supabase
       .from("ow_jobs")
       .select(
-        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference"
+        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference"
       )
       .eq("id", sourceId)
       .eq("company_id", ctxDup.companyId)

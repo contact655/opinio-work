@@ -13,6 +13,8 @@ export type IncomingApproachView = {
   senderName: string | null;
   companyName: string;
   companyHref: string;
+  /** ★運営会社か（2026-10-10） */
+  isOwnCompany: boolean;
   logoUrl: string | null;
   logoLetter: string | null;
   logoGradient: string | null;
@@ -84,7 +86,8 @@ export default function ApproachesClient({ items }: { items: IncomingApproachVie
             <section key={a.id} data-state="incoming-approach" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
               {/* ★見た目は企業の「〇〇さんにはこう見えます」と同じ部品（ApproachLetter）。⚠️ 片方だけ書き換えない */}
               <ApproachLetter companyName={a.companyName} companyHref={a.companyHref} logoUrl={a.logoUrl} logoLetter={a.logoLetter}
-                logoGradient={a.logoGradient} senderName={a.senderName} dateText={fmt(a.createdAt)} reason={a.reason} body={a.body} job={a.job} />
+                logoGradient={a.logoGradient} senderName={a.senderName} dateText={fmt(a.createdAt)} reason={a.reason} body={a.body} job={a.job}
+                isOwnCompany={a.isOwnCompany} />
 
               {errors[a.id] && (
                 <p role="alert" style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{errors[a.id]}</p>

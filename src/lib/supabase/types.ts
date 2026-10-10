@@ -3738,6 +3738,7 @@ export type Database = {
           role_category_id: string | null
           salary_max: number | null
           salary_min: number | null
+          salary_negotiable: boolean
           salary_note: string | null
           sales_hunter_farmer: string | null
           sales_segment: string[] | null
@@ -3810,6 +3811,7 @@ export type Database = {
           role_category_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          salary_negotiable?: boolean
           salary_note?: string | null
           sales_hunter_farmer?: string | null
           sales_segment?: string[] | null
@@ -3882,6 +3884,7 @@ export type Database = {
           role_category_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          salary_negotiable?: boolean
           salary_note?: string | null
           sales_hunter_farmer?: string | null
           sales_segment?: string[] | null

@@ -44,6 +44,8 @@ export type Job = {
         なので、求人ページも `ow_companies.benefits` を出す。**`ow_jobs.benefits` は【廃止】。** */
   /** 給与の補足（「※年棒制」「業績連動ボーナスあり」など）。金額の下に小さく出す */
   salary_note?: string | null;
+  /** ★報酬・給与が「要相談」（2026-10-10）。金額が空で false なら「給与非公開」 */
+  salary_negotiable?: boolean;
   /** 勤務体系（「所定労働時間8時間、フレックスタイム制」など） */
   work_hours?: string | null;
   /** 休日・休暇（「完全週休2日制、有給休暇（10日〜）」など） */

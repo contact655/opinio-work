@@ -10,7 +10,7 @@ import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor, SidebarCompany } from "./page";
-import { fmtMan } from "@/lib/utils/salary";
+import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -1181,11 +1181,13 @@ function GuestSignupPanel({ style }: { style?: React.CSSProperties }) {
  */
 const GUEST_PANEL_AFTER_POSTS = 3;
 
-function formatSalary(min: number | null, max: number | null): string {
+/* ★金額が無いとき（2026-10-10）: 企業が「要相談」を選んだなら「報酬：要相談」、そうでなければ「給与非公開」。
+      ⚠️ それまでは金額が無いだけで「応相談」と出していた */
+function formatSalary(min: number | null, max: number | null, negotiable = false, employmentType: string | null = null): string {
   const hasMn = min != null && min > 0;
   const hasMx = max != null && max > 0;
   const fmt = fmtMan;
-  if (!hasMn && !hasMx) return "応相談";
+  if (!hasMn && !hasMx) return negotiable ? payNegotiableText(employmentType) : "給与非公開";
   if (hasMn && hasMx) return `${fmt(min!)}〜${fmt(max!)}万円`;
   if (hasMn) return `${fmt(min!)}万円〜`;
   return `〜${fmt(max!)}万円`;
@@ -1554,8 +1556,8 @@ function FeedSidebar({
                       {job.companyName}
                     </span>
                   )}
-                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, flexShrink: 0 }}>
-                    {formatSalary(job.salary_min, job.salary_max)}
+                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: (job.salary_min || job.salary_max) ? "var(--success-ink)" : "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>
+                    {formatSalary(job.salary_min, job.salary_max, job.salary_negotiable, job.employment_type)}
                   </span>
                 </div>
               </Link>

@@ -16,6 +16,8 @@ export type JobItem = {
   salary: string;
   salaryMin?: number | null;
   salaryMax?: number | null;
+  /** ★報酬・給与が「要相談」（2026-10-10） */
+  salaryNegotiable?: boolean;
   is_new?: boolean;
   urgency?: "open" | "hot";
   publishedAt?: string | null;

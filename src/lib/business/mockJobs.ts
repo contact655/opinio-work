@@ -16,6 +16,8 @@ export type BizJob = {
   salaryMin?: number;
   salaryMax?: number;
   salaryNote?: string;
+  /** ★報酬・給与が「要相談」（2026-10-10） */
+  salaryNegotiable?: boolean;
   location?: string;
   remoteWorkStatus?: string;
   descriptionMarkdown?: string;

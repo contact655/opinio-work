@@ -212,6 +212,7 @@ function mapJob(row: Record<string, any>): Job {
     work_style: (() => { const raw = (row.work_style ?? row.remote_work_status) as string | null; return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : ""; })(),
     salary_min: salaryMin,
     salary_max: salaryMax,
+    salary_negotiable: row.salary_negotiable === true,
     /* ⚠️ `?? ""` にしない。空文字にすると表示側の `&&` ガードが効かず、
           ラベルだけの行が出る（CLAUDE.md「`?? ""` を挟んだ後の `??` は効かない」）。 */
     salary_note: (row.salary_note as string | null) ?? null,
@@ -304,6 +305,8 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
               salary,
               salaryMin: (j.salary_min as number) || null,
               salaryMax: (j.salary_max as number) || null,
+              /* ★要相談（2026-10-10）。⚠️ 「給与非公開」と区別する */
+              salaryNegotiable: j.salary_negotiable === true,
               description: (j.description as string) || null,
               requirements: (j.requirements as string) || null,
               selectionProcess: (j.selection_process as string) || null,
@@ -897,7 +900,7 @@ const getCompanyById = cache(async function getCompanyById(
           「募集中 2件」と出たうえで押すと 404、という状態だった。 */
     supabase
       .from("ow_jobs")
-      .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
+      .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, salary_negotiable, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id)
       .match(PUBLIC_JOB_MATCH),
     /* ⚠️ 職種マスタは企業ごとに変わらないので、企業ページごとに引かない（2026-08-23）。
@@ -1202,6 +1205,8 @@ const JOB_LIST_COLS = [
   // 会社独自呼称（表示専用。検索・絞り込みには使わない）
   "company_job_role_id",
   "location", "work_style", "salary_min", "salary_max",
+  /* ★報酬・給与の「要相談」（2026-10-10）。⚠️ 落とすと「要相談」が「給与非公開」に化ける */
+  "salary_negotiable",
   "catch_copy", "one_liner", "published_at", "updated_at", "remote_work_status", "urgency",
   "business_model",
   // セールス職専用項目 (Migration 212) — 一覧カードでも OTE 表示に使う

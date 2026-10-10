@@ -32,7 +32,7 @@ import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
 import { isBusinessRole } from "@/lib/roles/jobRoles";
-import { fmtMan } from "@/lib/utils/salary";
+import { fmtMan, payLabel, payNegotiableText } from "@/lib/utils/salary";
 import { SCHEMA_EMPLOYMENT_TYPE } from "@/lib/constants/schemaEmploymentType";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { primaryBusinessDomain } from "@/types/genre";
@@ -46,6 +46,8 @@ import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import ViewBeacon from "@/components/views/ViewBeacon";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
+import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 // 5分間ページキャッシュ（ISR）
 type RelatedJob = {
@@ -282,6 +284,9 @@ export async function JobDetailView({
   //    「求人は公開企業にしか紐づかない」は今そうなっているだけで、
   //    企業を非公開に戻せば崩れる（CLAUDE.md の原則）。null ならテキスト表示にする。
   const companyHref = await resolvePublishedCompanyHref(company.slug ?? company.id);
+  /* ★運営会社か（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
+  const ownCompanyId = await getOwnCompanyId();
+  const isOwnCompany = ownCompanyId !== null && ownCompanyId === company.id;
 
   // UUID → slug 308 redirect
   /* ⚠️ プレビューでは slug へ飛ばさない。下書きは slug を持たないし、
@@ -538,6 +543,8 @@ export async function JobDetailView({
                   </span>
                 )}
               </div>
+              {/* ★運営会社の開示（2026-10-10）。会社名のすぐ下に1行 */}
+              {isOwnCompany && <OwnCompanyNote style={{ marginTop: -6, marginBottom: "var(--space-2)" }} />}
 
               {/* HOT badge */}
               {job.urgency === "hot" && (
@@ -566,7 +573,7 @@ export async function JobDetailView({
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 {(job.salary_min || job.salary_max) ? (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>想定年収</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{payLabel(job.employment_type) === "報酬" ? "報酬" : "想定年収"}</span>
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "5px 14px", borderRadius: 100,
@@ -587,7 +594,8 @@ export async function JobDetailView({
                   background: "var(--line-soft)", border: "1px solid var(--line)",
                   color: "var(--ink-mute)", fontSize: 13, fontWeight: 500,
                 }}>
-                  給与非公開
+                  {/* ★要相談（2026-10-10）と給与非公開を区別する */}
+                  {job.salary_negotiable ? payNegotiableText(job.employment_type) : "給与非公開"}
                 </span>
                 )}
                 {/* OTE ピル（営業職かつ入力あり） */}
@@ -785,7 +793,7 @@ export async function JobDetailView({
                 </SecTitle>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
                   {/* 年収 / OTE */}
-                  {(job.salary_min || job.salary_max) && (
+                  {(job.salary_min || job.salary_max || job.salary_negotiable) && (
                   <div style={{ gridColumn: "1 / -1" }}>
                   {/* 基本給行。
                       ⚠️★**`space-between` にしないこと**（2026-09-02）。
@@ -802,10 +810,10 @@ export async function JobDetailView({
                   }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                        想定年収
+                        {payLabel(job.employment_type) === "報酬" ? "報酬" : "想定年収"}
                       </span>
                       <span style={{ fontSize: 22, fontWeight: 700, color: "var(--royal)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                        {job.salary_min && job.salary_max
+                        {!(job.salary_min || job.salary_max) ? "要相談" : job.salary_min && job.salary_max
                           ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
                           : job.salary_min ? `${fmtMan(job.salary_min)}万円〜`
                           : `〜${fmtMan(job.salary_max)}万円`}

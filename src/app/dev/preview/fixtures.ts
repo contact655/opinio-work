@@ -601,6 +601,10 @@ export const JOB_CARDS_MISSING: Job[] = [
   job({ id: "j-no-salary", role: "検証 年収なし", salary_min: 0, salary_max: 0 }),
   job({ id: "j-min-only", role: "検証 下限だけ", salary_min: 800, salary_max: 0 }),
   job({ id: "j-max-only", role: "検証 上限だけ", salary_min: 0, salary_max: 1200 }),
+  /* ★2026-10-10: 要相談と業務委託の見出し（年収／報酬） */
+  job({ id: "j-negotiable-gyomu", role: "検証 業務委託・要相談", salary_min: 0, salary_max: 0, salary_negotiable: true, employment_type: "業務委託" }),
+  job({ id: "j-negotiable-seishain", role: "検証 正社員・要相談", salary_min: 0, salary_max: 0, salary_negotiable: true, employment_type: "正社員" }),
+  job({ id: "j-gyomu-amount", role: "検証 業務委託・金額あり", salary_min: 600, salary_max: 900, employment_type: "業務委託" }),
   job({ id: "j-no-highlight", role: "検証 キャッチコピーなし", highlight: "" }),
   job({ id: "j-no-location", role: "検証 勤務地なし", location: "", work_style: "" }),
   job({

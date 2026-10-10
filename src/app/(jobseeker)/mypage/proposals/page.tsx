@@ -6,6 +6,7 @@ import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
 import { isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,8 @@ export default async function ProposalsPage() {
     (rows ?? []).map((p) => ({ companyId: p.company_id as string, candidateUserId: me.id as string })),
   );
 
+  /* ★運営会社（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
+  const ownCompanyId = await getOwnCompanyId();
   const proposals: ProposalView[] = (rows ?? []).map((p) => {
     const ended = isProposalEndedFor("candidate", {
       companyId: p.company_id as string,
@@ -75,6 +78,7 @@ export default async function ProposalsPage() {
       companyHref: co ? `/companies/${co.slug ?? co.id}` : null,
       tagline: co?.tagline ?? null,
       logoUrl: co?.logo_url ?? null,
+      isOwnCompany: ownCompanyId !== null && (p.company_id as string) === ownCompanyId,
       evidence: Array.isArray(p.evidence) ? (p.evidence as ProposalView["evidence"]) : [],
       counter: Array.isArray(p.counter_evidence) ? (p.counter_evidence as ProposalView["counter"]) : [],
       response: (p.candidate_response as string | null) ?? null,

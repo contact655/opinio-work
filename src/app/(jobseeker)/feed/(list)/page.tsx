@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // サイドバー用型
 export type SidebarFollow = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 export type SidebarUserFollow = { id: string; name: string; avatar_color: string | null; avatar_url: string | null; role_title: string | null; company_name: string | null };
-export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; companyName: string | null };
+export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; salary_negotiable: boolean; employment_type: string | null; companyName: string | null };
 /** 右レール「掲載中の企業」。ディレクトリに載っている企業から先頭3社 */
 /**
  * 埋め込みで来た事業領域を、表示側が読む1つの値（主の1件）に畳む。
@@ -322,7 +322,7 @@ export default async function FeedPage() {
           ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
     const { data: jobRows, error: jobRowsErr } = await adminSupabase
       .from("ow_jobs")
-      .select("id, slug, title, salary_min, salary_max, ow_companies!company_id(name, brand_name)")
+      .select("id, slug, title, salary_min, salary_max, salary_negotiable, employment_type, ow_companies!company_id(name, brand_name)")
       .in("id", bookmarkedJobIds)
       .match(PUBLIC_JOB_MATCH);
     if (jobRowsErr) console.error("[feed/(list)] ow_jobs:", jobRowsErr.message);
@@ -334,6 +334,8 @@ export default async function FeedPage() {
         title: j.title as string,
         salary_min: j.salary_min as number | null,
         salary_max: j.salary_max as number | null,
+        salary_negotiable: j.salary_negotiable === true,
+        employment_type: (j.employment_type as string | null) ?? null,
         companyName: co?.brand_name ?? co?.name ?? null,
       };
     });

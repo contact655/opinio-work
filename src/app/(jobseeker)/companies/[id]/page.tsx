@@ -61,7 +61,7 @@ const JOBS_LIMIT = 3;
 // BENEFIT_CATEGORY_LIMIT は @/components/companies/BenefitsList にある
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
-import { fmtMan } from "@/lib/utils/salary";
+import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { employeeBandRange, formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { isJobPostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
@@ -75,6 +75,8 @@ import { ExpandableStoryBody } from "./ExpandableStoryBody";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import { getPublicMaterialItemsCached, type PublicMaterialItem } from "@/lib/companyMaterials/server";
 import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_LABELS } from "@/lib/constants/companyMaterials";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
+import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -316,10 +318,13 @@ function Hero({
   company,
   detail,
   coverPhotoUrl,
+  isOwnCompany = false,
 }: {
   company: Company;
   detail: CompanyDetail;
   coverPhotoUrl?: string | null;
+  /** ★運営会社か（2026-10-10）。判定は `getOwnCompanyId()` */
+  isOwnCompany?: boolean;
 }) {
   const displayBrand = (company.brand_name ?? company.name_en ?? company.name)
     .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人)\s*/, "").trim();
@@ -427,6 +432,8 @@ function Hero({
                         {company.name}
                       </div>
                     )}
+                    {/* ★運営会社の開示（2026-10-10）。社名のすぐ下に1行 */}
+                    {isOwnCompany && <OwnCompanyNote style={{ marginBottom: "var(--space-2)" }} />}
                   </>
                 );
               })()}
@@ -831,7 +838,10 @@ function JobEmbedCard({
     ? (job.salaryMin && job.salaryMax
       ? `${fmtMan(job.salaryMin)}〜${fmtMan(job.salaryMax)}万円`
       : job.salaryMin ? `${fmtMan(job.salaryMin)}万円〜` : `〜${fmtMan(job.salaryMax)}万円`)
-    : "応相談";
+    : null;
+  /* ★金額が無いとき（2026-10-10）: 企業が「要相談」を選んだなら「報酬：要相談」、そうでなければ「給与非公開」。
+        ⚠️ それまでは金額が無いだけで「応相談」と出しており、企業が選んでいない「要相談」を名乗っていた */
+  const noAmountText = job.salaryNegotiable ? payNegotiableText(job.employmentType) : "給与非公開";
 
   // Location: hide if same city as company HQ
   const jobLoc = job.location?.trim() || "";
@@ -885,7 +895,7 @@ function JobEmbedCard({
                   {salaryDisplay}
                 </span>
               ) : (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>応相談</span>
+                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{noAmountText}</span>
               )}
             </div>
           </div>
@@ -1794,6 +1804,8 @@ export default async function CompanyDetailPage({
   if (!companyResult) return notFound();
 
   const { company, detail, resolvedId, slug: companySlug } = companyResult;
+  /* ★運営会社か（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
+  const ownCompanyId = await getOwnCompanyId();
 
   // UUID が渡されてスラッグがある場合は 308 リダイレクト
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
@@ -1941,7 +1953,7 @@ export default async function CompanyDetailPage({
       />
       <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
       <Breadcrumb items={[{ label: "OPINIO", href: "/" }, { label: "企業", href: "/companies" }, { label: company.name }]} />
-      <Hero company={company} detail={detail} coverPhotoUrl={photos[0]?.image_url ?? null} />
+      <Hero company={company} detail={detail} coverPhotoUrl={photos[0]?.image_url ?? null} isOwnCompany={ownCompanyId !== null && ownCompanyId === resolvedId} />
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[

@@ -5,6 +5,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { listIncomingApproaches } from "@/lib/approaches/server";
 import MypageLayout from "../_components/MypageLayout";
 import ApproachesClient, { type IncomingApproachView } from "./ApproachesClient";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export default async function MypageApproachesPage() {
   if (!me) redirect("/auth?next=%2Fmypage%2Fapproaches");
 
   const list = await listIncomingApproaches(me.id as string);
+  /* ★運営会社（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
+  const ownCompanyId = await getOwnCompanyId();
   const items: IncomingApproachView[] | null = list === null ? null : list.map((a) => ({
     id: a.id,
     createdAt: a.createdAt,
@@ -39,6 +42,7 @@ export default async function MypageApproachesPage() {
     senderName: a.senderName,
     companyName: companyDisplayName(a.company.name, a.company.nameEn).displayName,
     companyHref: `/companies/${a.company.slug ?? a.company.id}`,
+    isOwnCompany: ownCompanyId !== null && a.company.id === ownCompanyId,
     logoUrl: a.company.logoUrl,
     logoLetter: a.company.logoLetter,
     logoGradient: a.company.logoGradient,

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getJobs, getRoleTree } from "@/lib/supabase/queries";
 import { getDeptJobs } from "@/lib/jobs/deptJobs";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
-import { fmtMan } from "@/lib/utils/salary";
+import { fmtMan, payLabel, payNegotiableText } from "@/lib/utils/salary";
 
 // 求人の掲載状態（published / closed）がここに出るため、鮮度は求人詳細に合わせて60秒。
 // 1時間だと求人を閉じた後も最大1時間このページから流入し続ける。
@@ -232,11 +232,14 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                             {job.roleName}
                           </span>
                         )}
-                        {hasSalary && (
+                        {hasSalary ? (
                           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--success-ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                            {formatSalary(job.salary_min, job.salary_max)}
+                            {/* ★見出しは雇用形態で「年収」／「報酬」（2026-10-10。lib/utils/salary.ts） */}
+                            {payLabel(job.employment_type)}{formatSalary(job.salary_min, job.salary_max)}
                           </span>
-                        )}
+                        ) : job.salary_negotiable ? (
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)" }}>{payNegotiableText(job.employment_type)}</span>
+                        ) : null}
                         {job.work_style && (
                           <span style={{
                             fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100,

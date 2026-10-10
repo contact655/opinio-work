@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { getJobBySlugOrId, getJobs } from "@/lib/supabase/queries";
-import { fmtMan } from "@/lib/utils/salary";
+import { fmtMan, payLabel, payNegotiableText } from "@/lib/utils/salary";
 import { JobDetailView } from "@/components/jobs/JobDetailView";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
@@ -46,9 +46,12 @@ export async function generateMetadata({
   const { job, company, slug: jobSlug } = result;
   const canonicalId = jobSlug ?? params.id;
 
+  /* ★見出しは雇用形態で「年収」／「報酬」、要相談なら「報酬：要相談」（2026-10-10。lib/utils/salary.ts） */
+  const payWord = payLabel(job.employment_type);
   const salaryText = job.salary_min && job.salary_max
-    ? `年収${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
-    : job.salary_min ? `年収${fmtMan(job.salary_min)}万円〜` : "";
+    ? `${payWord}${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
+    : job.salary_min ? `${payWord}${fmtMan(job.salary_min)}万円〜`
+    : job.salary_negotiable ? payNegotiableText(job.employment_type) : "";
 
   /* ⚠️ **`??` ではなく `||`。** `mapJob` が `highlight` を
         `catch_copy ?? one_liner ?? ""` で組み立てるので、**値が無いときは空文字で

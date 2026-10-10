@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 /**
  * ★声かけ1通の見た目（2026-10-10 / 候補者探し 段4）。**求職者に届く画面と、企業の「〇〇さんにはこう見えます」が同じ部品。**
@@ -16,6 +17,8 @@ export type ApproachLetterProps = {
   reason: string;
   body: string | null;
   job: { title: string; href: string | null } | null;
+  /** ★運営会社か（2026-10-10）。true なら「この会社は OPINIO の運営会社です。」を出す（求職者側と企業のプレビューで同じ） */
+  isOwnCompany?: boolean;
   /** プレビューのとき、まだ入力されていない欄に出す薄い文字 */
   placeholder?: { reason: string };
 };
@@ -40,6 +43,7 @@ export function ApproachLetter(p: ApproachLetterProps) {
           <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
             {p.senderName ? `${p.senderName} さんから · ` : ""}{p.dateText}
           </div>
+          {p.isOwnCompany && <OwnCompanyNote style={{ marginTop: 2 }} />}
         </div>
       </div>
 

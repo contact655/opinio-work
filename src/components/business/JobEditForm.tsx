@@ -15,6 +15,7 @@ import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
+import { payLabel, payNegotiableText } from "@/lib/utils/salary";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { flattenTree } from "@/lib/business/orgTree";
@@ -53,6 +54,8 @@ type FormState = {
   department: string;
   salaryMin: string;
   salaryMax: string;
+  /** ★報酬・給与が「要相談」（2026-10-10）。true のとき金額は送らない */
+  salaryNegotiable: boolean;
   salaryNote: string;
   location: string;
   remoteWorkStatus: string;
@@ -88,7 +91,7 @@ type FormState = {
 function jobToForm(job: BizJob | null): FormState {
   if (!job) return {
     title: "", employmentType: "正社員", jobCategory: "", department: "",
-    salaryMin: "", salaryMax: "", salaryNote: "", location: "", remoteWorkStatus: "",
+    salaryMin: "", salaryMax: "", salaryNegotiable: false, salaryNote: "", location: "", remoteWorkStatus: "",
     probationPeriod: "", workHours: "", holidays: "",
     descriptionMarkdown: "", messageToCandidates: "",
     requiredSkills: [], preferredSkills: [], cultureFit: "",
@@ -105,6 +108,7 @@ function jobToForm(job: BizJob | null): FormState {
     department: job.department ?? "",
     salaryMin: job.salaryMin?.toString() ?? "",
     salaryMax: job.salaryMax?.toString() ?? "",
+    salaryNegotiable: job.salaryNegotiable === true,
     salaryNote: job.salaryNote ?? "",
     location: job.location ?? "",
     remoteWorkStatus: job.remoteWorkStatus ?? "",
@@ -517,7 +521,7 @@ export function JobEditForm({
   // セクション完成度チェック
   const sectionComplete = useMemo(() => ({
     basic:        !!form.title.trim(),
-    salary:       !!(form.salaryMin && form.salaryMax),
+    salary:       !!(form.salaryMin && form.salaryMax) || form.salaryNegotiable,
     content:      !!form.descriptionMarkdown.trim(),
     requirements: form.requiredSkills.length > 0 || !!form.cultureFit.trim(),
     process:      form.selectionSteps.length > 0,
@@ -702,7 +706,7 @@ export function JobEditForm({
                       selectableParent={false}
                       onSelect={(id) => addRoleById(id)}
                       ariaLabel="職種を検索して追加"
-                      placeholder="職種名で検索して追加（例: 法人営業、AE）"
+                      placeholder="職種名で検索して追加（例: 法人営業、マーケティング、動画）"
                     />
                   </div>
                   {selectedRoles.length > 0 && (
@@ -874,13 +878,24 @@ export function JobEditForm({
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>給与レンジ、勤務地、勤務形態など、労働条件を入力してください。</p>
             <FormSection title="給与">
               <FormGroup>
-                <FormLabel required>基本給レンジ</FormLabel>
+                {/* ★2026-10-10: 「必須」の印を外した（実際には空でも保存・申請できる）。
+                       見出しは雇用形態で「年収」／「報酬」（業務委託）。lib/utils/salary.ts の payLabel */}
+                <FormLabel>{payLabel(form.employmentType) === "報酬" ? "報酬レンジ" : "年収レンジ"}</FormLabel>
+                {/* ★要相談（2026-10-10）。選ぶと金額は送らず、求職者には「報酬：要相談」（正社員なら「年収：要相談」）と出る。
+                       ⚠️ 金額が空で要相談でもないときの「給与非公開」とは区別する */}
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink)", marginBottom: 8, cursor: "pointer" }}>
+                  <input type="checkbox" data-state={form.salaryNegotiable ? "negotiable" : "amount"} checked={form.salaryNegotiable}
+                    onChange={(e) => { updateForm("salaryNegotiable", e.target.checked); if (e.target.checked) { updateForm("salaryMin", ""); updateForm("salaryMax", ""); } }} />
+                  要相談にする
+                </label>
+                {!form.salaryNegotiable && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
                   <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" id="jef-salary-min" />
                   <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
                   <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
                   <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
                 </div>
+                )}
                 {/* 入力時バリデーション */}
                 {form.salaryMin && form.salaryMax && Number(form.salaryMax) < Number(form.salaryMin) && (
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>最高給与は最低給与以上に設定してください</p>
@@ -889,12 +904,16 @@ export function JobEditForm({
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
                 )}
                 {/* 未入力時の注意文 */}
-                {(!form.salaryMin && !form.salaryMax) && (
+                {(!form.salaryMin && !form.salaryMax && !form.salaryNegotiable) && (
                   <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>
                     💡 給与レンジを記載すると応募数が増加します。未記載の求人は検索結果で下位に表示されます。
                   </p>
                 )}
-                <Hint>固定報酬ベースのレンジです。求職者側では「基本給 {form.salaryMin || "?"}〜{form.salaryMax || "?"}万円」と表示されます</Hint>
+                <Hint>
+                  {form.salaryNegotiable
+                    ? <>求職者側では「{payNegotiableText(form.employmentType)}」と表示されます。条件は下の「給与の補足」に書けます</>
+                    : <>求職者側では「{payLabel(form.employmentType)}{form.salaryMin || "?"}万円〜{form.salaryMax || "?"}万円」と表示されます。空のままにすると「給与非公開」と表示されます</>}
+                </Hint>
               </FormGroup>
 
               {/* ── セールス職専用ブロック ── */}

@@ -67,8 +67,10 @@ export async function PUT(
       // job_category はクライアントから受け取らない。職種の正は ow_job_roles で、
       // この列は下の syncJobCategoryFromRoles が primary ロール名から派生させる。
       department: str(body.department, 100),
-      salary_min: salaryMin,
-      salary_max: salaryMax,
+      salary_min: body.salaryNegotiable === true ? null : salaryMin,
+      salary_max: body.salaryNegotiable === true ? null : salaryMax,
+      /* ★要相談（2026-10-10）。⚠️ 送られてこなければ触らない。要相談なら金額は持たない（DB の CHECK も同じ） */
+      ...(typeof body.salaryNegotiable === "boolean" ? { salary_negotiable: body.salaryNegotiable } : {}),
       salary_note: str(body.salaryNote, 200),
       location: str(body.location, 200),
       remote_work_status: str(body.remoteWorkStatus, 50),

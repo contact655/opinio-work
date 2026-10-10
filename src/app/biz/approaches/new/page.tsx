@@ -11,6 +11,7 @@ import { BIZ_SCORE_ITEM_LABELS, DISCLOSURE_BIZ_MAX } from "@/lib/utils/disclosur
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import ApproachComposeClient from "./ApproachComposeClient";
+import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "声かけを書く | OPINIO Business" } };
@@ -59,6 +60,7 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
   if (!c.approach.eligible) return message("この方には、いま声をかけられません。");
 
   const db = createAdminClient();
+  const ownCompanyId = await getOwnCompanyId();
   const [profile, quota, senders, jobs, disclosure, co] = await Promise.all([
     getCandidateProfileForCompany(candidateId),
     getApproachQuota(ctx.tenantId),
@@ -98,6 +100,8 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
           logoUrl: (co.data?.logo_url as string | null) ?? null,
           logoLetter: (co.data?.logo_letter as string | null) ?? null,
           logoGradient: (co.data?.logo_gradient as string | null) ?? null,
+          /* ★求職者側と同じく「運営会社です」を出す（2026-10-10） */
+          isOwnCompany: ownCompanyId !== null && ownCompanyId === ctx.tenantId,
         }}
         disclosure={disclosure ? {
           biz: disclosure.biz, max: DISCLOSURE_BIZ_MAX,

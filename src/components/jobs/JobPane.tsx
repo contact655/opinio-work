@@ -147,16 +147,21 @@ export function JobPane({
       <div className="jp-sheet">
 
       {/* ── 年収・勤務地・勤務形態・雇用形態 ── */}
-      {(hasSalaryData(job.salary_min, job.salary_max) || badges.length > 0) && (
+      {(hasSalaryData(job.salary_min, job.salary_max) || job.salary_negotiable || badges.length > 0) && (
         <PaneBlock>
-          {hasSalaryData(job.salary_min, job.salary_max) && (
+          {hasSalaryData(job.salary_min, job.salary_max) ? (
             <div style={{
               fontSize: 16, fontWeight: 800,
               color: "var(--success-ink)", fontFamily: "var(--font-inter), var(--font-noto)",
             }}>
-              {formatSalary(job.salary_min, job.salary_max)}
+              {formatSalary(job.salary_min, job.salary_max, { employmentType: job.employment_type })}
             </div>
-          )}
+          ) : job.salary_negotiable ? (
+            /* ★要相談（2026-10-10）。金額ではないので緑にしない */
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+              {formatSalary(job.salary_min, job.salary_max, { negotiable: true, employmentType: job.employment_type })}
+            </div>
+          ) : null}
           {/* ⚠️ 給与の補足は金額の下に小さく（詳細ページと同じ置き方） */}
           {job.salary_note && (
             <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, marginTop: 4 }}>{job.salary_note}</div>

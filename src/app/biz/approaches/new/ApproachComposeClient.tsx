@@ -23,7 +23,7 @@ type Props = {
   senders: { id: string; name: string }[];
   defaultSenderId: string;
   jobs: { id: string; title: string }[];
-  company: { name: string; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
+  company: { name: string; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null; isOwnCompany: boolean };
   disclosure: { biz: number; max: number; missing: { label: string; href: string }[] } | null;
 };
 
@@ -180,7 +180,7 @@ export default function ApproachComposeClient(p: Props) {
             <ApproachLetter companyName={p.company.name} companyHref={null} logoUrl={p.company.logoUrl} logoLetter={p.company.logoLetter}
               logoGradient={p.company.logoGradient} senderName={senderName} dateText="今日" reason={reason} body={body}
               job={job ? { title: job.title, href: `/jobs/${job.id}` } : null}
-              placeholder={{ reason: "（ここに、声をかけた理由が入ります）" }} />
+              placeholder={{ reason: "（ここに、声をかけた理由が入ります）" }} isOwnCompany={p.company.isOwnCompany} />
           </div>
 
           {p.disclosure && (

@@ -8,7 +8,7 @@ import type { Job } from "@/app/jobs/mockJobData";
 import type { JobsListCompany } from "@/lib/jobs/listCompany";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { showToast } from "@/lib/toast";
-import { fmtMan } from "@/lib/utils/salary";
+import { fmtMan, payLabel, payNegotiableText, payState } from "@/lib/utils/salary";
 
 /**
  * `/jobs` の求人カード（2026-08-31 に `JobsClient` から切り出した）。
@@ -21,11 +21,19 @@ import { fmtMan } from "@/lib/utils/salary";
  */
 
 /* ⚠️ カンマ区切りは fmtMan に寄せる。toLocaleString を直書きしない（2026-08-08） */
-export function formatSalary(min: number | null, max: number | null): string {
-  if (!min && !max) return "給与非公開";
-  if (min && max) return `年収${fmtMan(min)}万円〜${fmtMan(max)}万円`;
-  if (max) return `年収〜${fmtMan(max)}万円`;
-  return `年収${fmtMan(min)}万円〜`;
+/* ★2026-10-10: 見出しは雇用形態で「年収」／「報酬」（業務委託）。金額が無く「要相談」なら「報酬：要相談」。
+      「給与非公開」とは区別する（判定は lib/utils/salary.ts の payState / payLabel）。 */
+export function formatSalary(
+  min: number | null, max: number | null,
+  opts?: { negotiable?: boolean | null; employmentType?: string | null },
+): string {
+  const label = payLabel(opts?.employmentType);
+  const state = payState({ min, max, negotiable: opts?.negotiable });
+  if (state === "negotiable") return payNegotiableText(opts?.employmentType);
+  if (state === "hidden") return "給与非公開";
+  if (min && max) return `${label}${fmtMan(min)}万円〜${fmtMan(max)}万円`;
+  if (max) return `${label}〜${fmtMan(max)}万円`;
+  return `${label}${fmtMan(min)}万円〜`;
 }
 
 export function hasSalaryData(min: number | null, max: number | null): boolean {
@@ -322,7 +330,7 @@ export function JobListItem({
               fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 700,
               color: hasSalaryData(job.salary_min, job.salary_max) ? "var(--success-ink)" : "var(--ink-mute)",
             }}>
-              {formatSalary(job.salary_min, job.salary_max)}
+              {formatSalary(job.salary_min, job.salary_max, { negotiable: job.salary_negotiable, employmentType: job.employment_type })}
             </span>
           </div>
         </div>

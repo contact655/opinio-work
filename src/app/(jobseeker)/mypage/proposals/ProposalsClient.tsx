@@ -5,6 +5,7 @@ import Link from "next/link";
 import EvidenceList, { type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
 import DeclineSheet from "@/components/proposals/DeclineSheet";
 import { CANDIDATE_RESPONSE_LABELS } from "@/lib/constants/proposalResponses";
+import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 export type ProposalView = {
   id: string;
@@ -12,6 +13,8 @@ export type ProposalView = {
   companyHref: string | null;
   tagline: string | null;
   logoUrl: string | null;
+  /** ★運営会社か（2026-10-10）。true なら「この会社は OPINIO の運営会社です。」を出す */
+  isOwnCompany: boolean;
   evidence: EvidenceView[];
   counter: CounterView[];
   response: string | null;
@@ -139,6 +142,8 @@ export default function ProposalsClient({
                   {p.tagline && (
                     <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: 0 }}>{p.tagline}</p>
                   )}
+                  {/* ★運営会社の開示（2026-10-10）。運営が自社を薦める形になるので必ず出す */}
+                  {p.isOwnCompany && <OwnCompanyNote style={{ marginTop: 4 }} />}
                 </header>
 
                 <EvidenceList evidence={p.evidence} counter={p.counter} audience="candidate" />
