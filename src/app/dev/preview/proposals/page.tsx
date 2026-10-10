@@ -183,10 +183,12 @@ function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
     evidence: buildEvidence(facts(3), OPTS),
     counter: buildCounterEvidence(COUNTER_FULL, OPTS),
     /* ★2026-10-09 から実名（案B）。⚠️ 架空の名前。DB は読まない */
-    candidate: { id: "00000000-0000-0000-0000-0000000000a1", name: "検証 太郎", headline: "SaaS の法人営業 7年" },
+    candidate: { id: "00000000-0000-0000-0000-0000000000a1", name: "検証 太郎", headline: "SaaS の法人営業 7年", tenureYears: 7, roleTrail: "インサイドセールス → フィールドセールス", prefecture: "神奈川県" },
     candidateInterested: false,
     ended: false,
     response: null,
+    respondedAt: null,
+    introducedAt: null,
     jobTitle: "アカウントエグゼクティブ",
     computedAt: "2026-09-21",
     conversationId: null,

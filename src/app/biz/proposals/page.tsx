@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
 import { PROPOSAL_RESPONSE_DAYS, isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 import { getEvidenceMaterials } from "@/lib/evidence/materials";
+import { calcTotalExperience } from "@/lib/profile/tenure";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function BizProposalsPage() {
           取るのは id（操作に要る）と、提案そのものの中身だけ。 */
     /* ★`introduced_at` / `conversation_id` も取る（2026-09-21）。双方合意のカードから
           その会話を直接開くため。⚠️ どちらも候補者を特定できる列ではない（会話の id） */
-    .select("id, candidate_user_id, evidence, counter_evidence, candidate_response, company_response, computed_at, job_id, introduced_at, conversation_id, respond_by, ow_jobs(title)")
+    .select("id, candidate_user_id, evidence, counter_evidence, candidate_response, company_response, company_responded_at, computed_at, job_id, introduced_at, conversation_id, respond_by, ow_jobs(title)")
     .eq("company_id", ctx.tenantId)
     .order("created_at", { ascending: false });
   if (error) console.error("[biz/proposals] ow_proposals:", error.message);
@@ -62,16 +63,50 @@ export default async function BizProposalsPage() {
     .map((p) => p.candidate_user_id as string)
     .filter((id) => isVisiblePair(visible, { companyId: ctx.tenantId, candidateUserId: id }))));
   /* ★候補者の氏名（2026-10-09 / 案B）。**見せてよい人だけ**引いて送る。 */
-  const { data: userRows, error: userErr } = visibleIds.length > 0
-    ? await db.from("ow_users").select("id, name, headline").in("id", visibleIds)
-    : { data: [], error: null };
+  const [{ data: userRows, error: userErr }, { data: expRows, error: expErr }] = visibleIds.length > 0
+    ? await Promise.all([
+        db.from("ow_users").select("id, name, headline, location").in("id", visibleIds),
+        /* ★社会人年数と職種の変遷（2026-10-11 / キャンバス5）。⚠️ 見せてよい人の分だけ。
+              ⚠️ 職歴を「非表示」にした行は使わない（企業ページの在籍者と同じ扱い） */
+        db.from("ow_experiences").select("user_id, started_at, role_category_id, visibility_company").in("user_id", visibleIds),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
   if (userErr) console.error("[biz/proposals] ow_users:", userErr.message);
-  const visibleCandidates = new Map<string, { id: string; name: string; headline: string | null }>(
-    (userRows ?? []).map((u) => [u.id as string, {
-      id: u.id as string,
-      name: ((u.name as string | null) ?? "").trim() || "名前未設定",
-      headline: ((u.headline as string | null) ?? "").trim() || null,
-    }]),
+  if (expErr) console.error("[biz/proposals] ow_experiences:", expErr.message);
+  const exps = (expRows ?? []).filter((e) => e.visibility_company !== "hidden");
+  const roleIds = Array.from(new Set(exps.map((e) => e.role_category_id as string | null).filter(Boolean) as string[]));
+  const { data: roleRows, error: roleErr } = roleIds.length > 0
+    ? await db.from("ow_roles").select("id, name").in("id", roleIds)
+    : { data: [], error: null };
+  if (roleErr) console.error("[biz/proposals] ow_roles:", roleErr.message);
+  const roleName = new Map((roleRows ?? []).map((r) => [r.id as string, r.name as string]));
+  const expByUser = new Map<string, { started_at: string; role: string | null }[]>();
+  for (const e of exps) {
+    const list = expByUser.get(e.user_id as string) ?? [];
+    list.push({ started_at: e.started_at as string, role: e.role_category_id ? roleName.get(e.role_category_id as string) ?? null : null });
+    expByUser.set(e.user_id as string, list);
+  }
+  /** 職種の変遷（古い順・続けて同じ職種はまとめる・直近3つまで）。⚠️ 取れなければ null（推測で埋めない） */
+  const roleTrail = (userId: string): string | null => {
+    const list = [...(expByUser.get(userId) ?? [])].sort((a, b) => a.started_at.localeCompare(b.started_at));
+    const names: string[] = [];
+    for (const x of list) if (x.role && names[names.length - 1] !== x.role) names.push(x.role);
+    return names.length ? names.slice(-3).join(" → ") : null;
+  };
+  const visibleCandidates = new Map<string, BizProposalView["candidate"] & object>(
+    (userRows ?? []).map((u) => {
+      const months = expErr ? null : calcTotalExperience((expByUser.get(u.id as string) ?? []).map((x) => x.started_at))?.months ?? null;
+      const loc = ((u.location as string | null) ?? "").trim();
+      return [u.id as string, {
+        id: u.id as string,
+        name: ((u.name as string | null) ?? "").trim() || "名前未設定",
+        headline: ((u.headline as string | null) ?? "").trim() || null,
+        tenureYears: months == null ? null : Math.floor(months / 12),
+        roleTrail: roleTrail(u.id as string),
+        /* ⚠️ 「非公開」と選んだ人は出さない */
+        prefecture: loc && loc !== "非公開" ? loc : null,
+      }];
+    }),
   );
 
   const ended = (p: NonNullable<typeof rows>[number]) =>
@@ -96,6 +131,8 @@ export default async function BizProposalsPage() {
           対象外になったのかを企業に区別させないため（`proposalEnded.ts`） */
     ended: ended(p),
     response: (p.company_response as string | null) ?? null,
+    respondedAt: (p.company_responded_at as string | null) ?? null,
+    introducedAt: p.introduced_at && p.conversation_id ? (p.introduced_at as string) : null,
     jobTitle: ((p.ow_jobs as { title?: string } | null)?.title as string | undefined) ?? null,
     computedAt: (p.computed_at as string).slice(0, 10),
     /* ⚠️ 紹介したかの正は `introduced_at`（CLAUDE.md）。`conversation_id` は会話を消すと
@@ -105,8 +142,8 @@ export default async function BizProposalsPage() {
     daysLeft: ended(p) || (p.candidate_response && p.company_response) ? null : proposalDaysLeft(p.respond_by as string),
   }));
 
-  /* ★提案が0件のときだけ、根拠の材料の今の数を出す（2026-10-10）。⚠️ 取得に失敗したら null（画面は「—」） */
-  const materials = !error && proposals.length === 0 ? await getEvidenceMaterials(ctx.tenantId) : null;
+  /* ★根拠の材料の今の数（2026-10-10）。2026-10-11 から常に右の列に出す（キャンバス5）。⚠️ 取得に失敗したら null（画面は「—」） */
+  const materials = await getEvidenceMaterials(ctx.tenantId);
 
   /* ⚠️★**`BusinessLayout` で包む。** 2026-09-21 にナビへ「提案」を足すまで
         このページには**どこからもリンクが無く**、包み忘れに気づけなかった。
