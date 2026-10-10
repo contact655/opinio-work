@@ -203,7 +203,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const { candidates, roleFilterTree, approachJobs } = await loadCompanyCandidates({
+  const { candidates, roleFilterTree } = await loadCompanyCandidates({
     companyId: ctx.tenantId,
     viewerOwUserId: ctx.currentOwnId,
     planType: ctx.planType,
@@ -233,7 +233,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
 
   return (
     <BusinessLayout {...layoutProps}>
-      <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree} approachJobs={approachJobs}
+      <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
         initialSaved={initialSaved}
         /* ⚠️ 一覧に居ない id は開かない（プレビューの API も 404 を返す）。uuid の形だけ確かめる */
         initialSelected={/^[0-9a-f-]{36}$/.test(searchParams?.selected ?? "") ? searchParams!.selected! : null} />

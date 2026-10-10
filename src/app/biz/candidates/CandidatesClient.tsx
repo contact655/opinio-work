@@ -99,7 +99,6 @@ function extractPrefecture(location: string | null): string | null {
 export default function CandidatesClient({
   candidates,
   roleFilterTree = [],
-  approachJobs = [],
   initialSelected = null,
   initialSaved = null,
 }: {
@@ -108,8 +107,6 @@ export default function CandidatesClient({
   candidates: Candidate[];
   /** ★`?selected=` で開いている候補者（段1）。リロードしても同じ人を開く */
   initialSelected?: string | null;
-  /** ★声かけに添えられる自社の公開中の求人（段6） */
-  approachJobs?: { id: string; title: string }[];
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
 }) {
@@ -1164,7 +1161,7 @@ export default function CandidatesClient({
                         {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
                         <div className="cand-card-actions">
                           {c.approach && (c.approach.eligible || c.approach.sent) && (
-                            <ApproachButton candidateUserId={c.id} candidateName={c.name} sent={c.approach.sent} jobs={approachJobs} compact />
+                            <ApproachButton candidateUserId={c.id} sent={c.approach.sent} compact />
                           )}
                           {/* ⚠️★別タブにしない（2026-10-10 / 柴さんの指示）。同じタブで /u/[id] */}
                           <a href={`/u/${c.id}`}

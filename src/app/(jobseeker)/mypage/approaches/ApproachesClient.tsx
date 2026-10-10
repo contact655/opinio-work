@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
+import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 
 export type IncomingApproachView = {
   id: string;
@@ -16,6 +16,8 @@ export type IncomingApproachView = {
   logoUrl: string | null;
   logoLetter: string | null;
   logoGradient: string | null;
+  /** ★関連する求人（2026-10-10）。href が null なら掲載を終了している */
+  job: { title: string; href: string | null } | null;
 };
 
 /**
@@ -80,33 +82,9 @@ export default function ApproachesClient({ items }: { items: IncomingApproachVie
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {shown.map((a) => (
             <section key={a.id} data-state="incoming-approach" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {a.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.logoUrl} alt="" width={40} height={40} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "contain", border: "1px solid var(--line)", background: "#fff", flexShrink: 0 }} />
-                ) : (
-                  <span aria-hidden style={{ width: 40, height: 40, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", background: a.logoGradient ?? "var(--royal)", color: "#fff", fontWeight: 700, flexShrink: 0 }}>
-                    {a.logoLetter ?? a.companyName.charAt(0)}
-                  </span>
-                )}
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <Link href={a.companyHref} style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>{a.companyName}</Link>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
-                    {a.senderName ? `${a.senderName} さんから · ` : ""}{fmt(a.createdAt)}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>あなたに声をかけた理由</div>
-                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap" }}>{a.reason}</p>
-              </div>
-              {a.body && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>メッセージ</div>
-                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap" }}>{a.body}</p>
-                </div>
-              )}
+              {/* ★見た目は企業の「〇〇さんにはこう見えます」と同じ部品（ApproachLetter）。⚠️ 片方だけ書き換えない */}
+              <ApproachLetter companyName={a.companyName} companyHref={a.companyHref} logoUrl={a.logoUrl} logoLetter={a.logoLetter}
+                logoGradient={a.logoGradient} senderName={a.senderName} dateText={fmt(a.createdAt)} reason={a.reason} body={a.body} job={a.job} />
 
               {errors[a.id] && (
                 <p role="alert" style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{errors[a.id]}</p>

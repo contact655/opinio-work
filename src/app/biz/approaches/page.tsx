@@ -19,9 +19,9 @@ export const metadata = {
  * ⚠️★状態は3つ（2026-10-10）:「承認待ち」「30日を過ぎました」「やり取り中」。判定は `companyApproachStatus`。
  *    **見送られたものは、30日以内は「承認待ち」、過ぎたら「30日を過ぎました」**（見送りは区別しない）
  *    （求職者が見送ったことは企業に伝えない決まり）。`listSentApproaches` は declined_at を読まない。
- * ⚠️ 送る入口はここではなく、候補者検索のカードと /u/[id]（その人を見たうえで送るため）。
+ * ⚠️ 送る入口はここではなく、候補者検索のカード・右のプレビュー・/u/[id]（その人を見たうえで送るため）。書く画面は /biz/approaches/new。
  */
-export default async function BizApproachesPage() {
+export default async function BizApproachesPage({ searchParams }: { searchParams?: { sent?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -53,6 +53,18 @@ export default async function BizApproachesPage() {
           <Link href="/biz/proposals" style={{ color: "var(--royal)", fontWeight: 700 }}>提案</Link>
           」とは別の機能です。
         </p>
+
+        {/* ★送った直後のお知らせ（2026-10-10 / 候補者探し 段4）。⚠️ URL には声かけの id だけを入れ、名前はここで引く
+               （自社が送ったものの中から探す。見つからなければ出さない） */}
+        {(() => {
+          const just = searchParams?.sent ? (rows ?? []).find((r) => r.id === searchParams.sent) : undefined;
+          if (!just) return null;
+          return (
+            <div role="status" data-state="approach-sent-banner" style={{ background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, margin: "0 0 16px" }}>
+              {just.candidate.name}さんに声かけを送りました。承認されるとメールでお知らせします。
+            </div>
+          );
+        })()}
 
         {!allowed ? (
           <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>

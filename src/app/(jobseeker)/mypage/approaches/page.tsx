@@ -42,6 +42,7 @@ export default async function MypageApproachesPage() {
     logoUrl: a.company.logoUrl,
     logoLetter: a.company.logoLetter,
     logoGradient: a.company.logoGradient,
+    job: a.job ? { title: a.job.title, href: a.job.isPublic ? `/jobs/${a.job.slug ?? a.job.id}` : null } : null,
   }));
 
   return (

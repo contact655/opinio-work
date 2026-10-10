@@ -731,7 +731,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
                 {/* ★声かけ（2026-10-09）。企業の担当者が見たときだけ。⚠️ 送れない相手には出さない */}
                 {approach && (approach.eligible || approach.sent) && (
-                  <ApproachButton candidateUserId={owUser.id} candidateName={owUser.name} sent={approach.sent} jobs={approach.jobs} />
+                  <ApproachButton candidateUserId={owUser.id} sent={approach.sent} />
                 )}
 
                 {/* DMボタン */}

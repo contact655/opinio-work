@@ -9,7 +9,8 @@ import {
 } from "@/lib/business/dashboard";
 import { fetchTeamMembersForDashboard } from "@/lib/business/team";
 import { fetchCompanyForTenant } from "@/lib/business/company";
-import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, bizScoreOnTotalScale, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX, BIZ_SCORE_ITEM_LABELS, type BizScoreItem } from "@/lib/utils/disclosureScore";
+import { scoreLabel, scoreColor, scoreTextColor, bizScoreOnTotalScale, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX, BIZ_SCORE_ITEM_LABELS } from "@/lib/utils/disclosureScore";
+import { BIZ_SCORE_ITEM_HREF, getBizDisclosure } from "@/lib/business/bizDisclosure";
 import { getTodayTodo, type TodayTodoKind } from "@/lib/business/todayTodo";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
@@ -17,7 +18,6 @@ import { isCompanyReviewed } from "@/lib/business/scoutGate";
 import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
 import { companyHasApproachRoles, getApproachRangeFieldFlags } from "@/lib/approaches/range";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
 import { checkPublishable } from "@/lib/companies/publishable";
 import { countUnconfirmedMaterialItems } from "@/lib/companyMaterials/server";
@@ -88,14 +88,6 @@ function formatTodayDate(iso: string): string {
   return f(new Date(iso)) === f(new Date()) ? "今日" : f(new Date(iso));
 }
 
-const BIZ_SCORE_ITEM_HREF: Record<BizScoreItem, string> = {
-  tagline: "/biz/company",
-  description: "/biz/company",
-  photo: "/biz/company",
-  benefits: "/biz/company",
-  job: "/biz/jobs",
-  story: "/biz/posts",
-};
 
 export default async function BizDashboardPage({
   searchParams,
@@ -110,29 +102,12 @@ export default async function BizDashboardPage({
   }
 
   const supabase = createClient();
-  const adminSupabase = createAdminClient();
-  const [jobStatusCounts, teamMembers, companyRaw, scoreData, today, classification, unconfirmedMaterials, hasApproachRoles, approachQuota] = await Promise.all([
+  const [jobStatusCounts, teamMembers, companyRaw, disclosureScore, today, classification, unconfirmedMaterials, hasApproachRoles, approachQuota] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
-    // スコア計算に必要な取材側フィールド（複数テーブル集計）
-    (async () => {
-      const tid = ctx.tenantId;
-      const [companyFields, photoCnt, storyCnt, toolCnt] = await Promise.all([
-        adminSupabase.from("ow_companies").select(
-          "description, culture_description, customer_cases, market_customer_size, capital_type, branch_locations, org_teams"
-        ).eq("id", tid).maybeSingle(),
-        adminSupabase.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", tid),
-        adminSupabase.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", tid).eq("is_published", true),
-        adminSupabase.from("ow_company_tools").select("id", { count: "exact", head: true }).eq("company_id", tid),
-      ]);
-      return {
-        fields: companyFields.data,
-        photoCount: photoCnt.count ?? 0,
-        storyCount: storyCnt.count ?? 0,
-        toolCount: toolCnt.count ?? 0,
-      };
-    })(),
+    /* ★開示充実度（企業入力）。材料の集め方は `lib/business/bizDisclosure.ts` の1か所（声かけを書く画面と共有。2026-10-10） */
+    getBizDisclosure(ctx.tenantId),
     /* ★「やること」。メッセージと提案はサイドバーのバッジと同じ関数で数える */
     /* ★今日やること（2026-10-10 / 段3）。今あるデータを読むだけ（`lib/business/todayTodo.ts`） */
     getTodayTodo(ctx.tenantId, { owUserId: ctx.currentOwnId, permission: ctx.currentPermission, planType: ctx.planType, reviewed: isCompanyReviewed(ctx) }),
@@ -191,21 +166,6 @@ export default async function BizDashboardPage({
       count: unconfirmedMaterials === null ? 1 : unconfirmedMaterials, href: "/biz/materials" },
   ].filter((t) => t.count > 0);
 
-  const disclosureScore = companyRaw ? calcDisclosureScore({
-    tagline: companyRaw.tagline,
-    description: scoreData.fields?.description ?? null,
-    photoCount: scoreData.photoCount,
-    benefitsCount: companyRaw.benefitsTags.length,
-    hasPublishedJob: (jobStatusCounts.active ?? 0) > 0,
-    hasPublishedStory: scoreData.storyCount > 0,
-    cultureDescription: scoreData.fields?.culture_description ?? null,
-    customerCases: Array.isArray(scoreData.fields?.customer_cases) ? scoreData.fields.customer_cases : null,
-    marketCustomerSize: scoreData.fields?.market_customer_size as string[] | null ?? null,
-    capitalType: scoreData.fields?.capital_type ?? null,
-    branchLocations: scoreData.fields?.branch_locations as string[] | null ?? null,
-    orgTeams: Array.isArray(scoreData.fields?.org_teams) ? scoreData.fields.org_teams : null,
-    toolCount: scoreData.toolCount,
-  }) : null;
 
   return (
     <BusinessLayout

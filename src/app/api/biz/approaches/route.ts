@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
-import { sendApproach } from "@/lib/approaches/server";
+import { listApproachSenders, sendApproach } from "@/lib/approaches/server";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +31,22 @@ export async function POST(req: NextRequest) {
   const jobId = typeof body?.jobId === "string" && body.jobId ? body.jobId : null;
   if (!candidateUserId) return NextResponse.json({ error: "宛先がありません" }, { status: 400 });
 
+  /* ★送る担当者（2026-10-10 / 段4）。省略したら自分。⚠️★**その企業の有効な担当者か**をサーバーで確かめる
+        （画面の選択肢と同じ `listApproachSenders`）。違えば 400（黙って自分に置き換えない）。
+     ⚠️ 送れる相手かの判定（is_test の一致を含む）は sendApproach が**この送り手で**行う。 */
+  let senderOwUserId = ctx.currentOwnId;
+  if (typeof body?.senderUserId === "string" && body.senderUserId && body.senderUserId !== ctx.currentOwnId) {
+    const senders = await listApproachSenders(ctx.tenantId);
+    if (!senders) return NextResponse.json({ error: "担当者を確認できませんでした" }, { status: 500 });
+    if (!senders.some((s) => s.id === body.senderUserId)) {
+      return NextResponse.json({ error: "送る担当者は、この企業の有効な担当者から選んでください" }, { status: 400 });
+    }
+    senderOwUserId = body.senderUserId;
+  }
+
   const r = await sendApproach({
     companyId: ctx.tenantId,
-    senderOwUserId: ctx.currentOwnId,
+    senderOwUserId,
     candidateOwUserId: candidateUserId,
     reason,
     body: message,

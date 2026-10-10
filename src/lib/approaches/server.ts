@@ -299,6 +299,8 @@ export type IncomingApproach = {
   body: string | null;
   company: { id: string; name: string; nameEn: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
   senderName: string | null;
+  /** ★関連する求人（2026-10-10 / 段4 で求職者側にも出した）。公開中でなければ href を付けない（名前だけ） */
+  job: { title: string; slug: string | null; id: string; isPublic: boolean } | null;
 };
 
 /**
@@ -317,7 +319,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
   }
   const { data, error } = await db
     .from("ow_company_approaches")
-    .select("id, created_at, reason, body, company_id, sender_user_id")
+    .select("id, created_at, reason, body, company_id, sender_user_id, job_id")
     .eq("candidate_user_id", candidateOwUserId)
     .is("accepted_at", null)
     .is("declined_at", null)
@@ -353,18 +355,24 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
   if (shown.length === 0) return [];
 
   const senderIds = Array.from(new Set(shown.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
-  const [{ data: comps, error: cErr }, { data: senders, error: sErr }] = await Promise.all([
+  const jobIds = Array.from(new Set(shown.map((r) => r.job_id as string | null).filter(Boolean) as string[]));
+  const [{ data: comps, error: cErr }, { data: senders, error: sErr }, { data: jobs, error: jErr }] = await Promise.all([
     db.from("ow_companies").select("id, name, name_en, slug, logo_url, logo_letter, logo_gradient").in("id", Array.from(visible)),
     senderIds.length > 0
       ? db.from("ow_users").select("id, name").in("id", senderIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
+    jobIds.length > 0
+      ? db.from("ow_jobs").select("id, title, slug, status, is_test").in("id", jobIds)
+      : Promise.resolve({ data: [] as { id: string; title: string; slug: string | null; status: string; is_test: boolean }[], error: null }),
   ]);
+  if (jErr) console.error("[approaches] incoming jobs:", jErr.message);
   if (cErr || sErr) {
     console.error("[approaches] incoming join:", cErr?.message ?? sErr?.message);
     return null;
   }
   const compById = new Map((comps ?? []).map((c) => [c.id as string, c]));
   const senderById = new Map((senders ?? []).map((u) => [u.id as string, u.name as string]));
+  const jobById = new Map((jobs ?? []).map((j) => [j.id as string, j]));
   return shown.flatMap((r) => {
     const c = compById.get(r.company_id as string);
     if (!c) return [];
@@ -383,6 +391,11 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
         logoGradient: (c.logo_gradient as string | null) ?? null,
       },
       senderName: r.sender_user_id ? senderById.get(r.sender_user_id as string) ?? null : null,
+      job: (() => {
+        const j = r.job_id ? jobById.get(r.job_id as string) : undefined;
+        if (!j) return null;
+        return { id: j.id as string, title: (j.title as string) || "（無題の求人）", slug: (j.slug as string | null) ?? null, isPublic: j.status === "published" && j.is_test !== true };
+      })(),
     }];
   });
 }
@@ -658,4 +671,23 @@ export async function listApproachableJobs(companyId: string): Promise<{ id: str
     .eq("company_id", companyId).eq("status", "published").eq("is_test", false).order("created_at", { ascending: false });
   if (error) { console.error("[approaches] jobs:", error.message); return []; }
   return (data ?? []).map((j) => ({ id: j.id as string, title: (j.title as string) || "（無題の求人）" }));
+}
+
+/**
+ * ★声かけを送れる担当者（2026-10-10 / 候補者探し 段4）。**その企業の有効な担当者だけ**（`ow_company_admins.is_active`）。
+ * ⚠️ 送信の API はここに入っている人以外を送り手にしない（画面の選択肢と同じ関数）。
+ * ⚠️ 名前は ow_users.name。空・プレースホルダは「担当者」。取れなければ null。
+ */
+export async function listApproachSenders(companyId: string): Promise<{ id: string; name: string }[] | null> {
+  const db = createAdminClient();
+  const { data, error } = await db.from("ow_company_admins").select("user_id").eq("company_id", companyId).eq("is_active", true).not("user_id", "is", null);
+  if (error) { console.error("[approaches] senders:", error.message); return null; }
+  const ids = Array.from(new Set((data ?? []).map((r) => r.user_id as string)));
+  if (ids.length === 0) return [];
+  const { data: users, error: uErr } = await db.from("ow_users").select("id, name").in("id", ids);
+  if (uErr) { console.error("[approaches] senders users:", uErr.message); return null; }
+  return ids.map((id) => {
+    const n = ((users ?? []).find((u) => u.id === id)?.name as string | null) ?? "";
+    return { id, name: n.trim() && n.trim() !== "ユーザー" ? n.trim() : "担当者" };
+  });
 }
