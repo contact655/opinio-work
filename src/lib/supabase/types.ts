@@ -6260,6 +6260,7 @@ export type Database = {
           location: string | null
           name: string
           phone: string | null
+          profile_edited_at: string | null
           profile_setup_at: string | null
           signup_ref: string | null
           social_links: Json | null
@@ -6298,6 +6299,7 @@ export type Database = {
           location?: string | null
           name: string
           phone?: string | null
+          profile_edited_at?: string | null
           profile_setup_at?: string | null
           signup_ref?: string | null
           social_links?: Json | null
@@ -6336,6 +6338,7 @@ export type Database = {
           location?: string | null
           name?: string
           phone?: string | null
+          profile_edited_at?: string | null
           profile_setup_at?: string | null
           signup_ref?: string | null
           social_links?: Json | null
@@ -6524,9 +6527,27 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_send_company_approach_many: {
+        Args: {
+          p_candidate_ow_user_ids: string[]
+          p_company_id: string
+          p_sender_ow_user_id?: string
+        }
+        Returns: {
+          candidate_ow_user_id: string
+          ok: boolean
+        }[]
+      }
       can_send_scout: {
         Args: { p_candidate_id: string; p_company_id: string }
         Returns: boolean
+      }
+      can_send_scout_many: {
+        Args: { p_candidate_ids: string[]; p_company_id: string }
+        Returns: {
+          candidate_id: string
+          ok: boolean
+        }[]
       }
       company_in_approach_range: {
         Args: { p_company_id: string; p_ow_user_id: string }

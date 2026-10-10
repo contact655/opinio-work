@@ -1,9 +1,16 @@
 "use client";
 
 import { ApproachButton } from "@/components/approaches/ApproachButton";
-import type { RecentApproach } from "@/lib/approaches/server";
+/* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
+      段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
+import {
+  CANDIDATE_SORT_OPTIONS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
+  candidateApproachLabel, filterCandidates, formatJstMonthDay, sortCandidates,
+  type Candidate,
+} from "@/lib/business/candidates/model";
+import { CandidatePreview } from "./CandidatePreview";
+import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { InterestToggle } from "@/components/candidateNotes/InterestToggle";
-import type { CandidateStage } from "@/lib/constants/candidateNotes";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
@@ -43,43 +50,9 @@ const CAREER_STANCE_FILTER_OPTIONS = CAREER_STANCES.filter((o) => o.value !== "n
  * ⚠️ 3ヶ月を入れてあるのは、プロフィールの鮮度判定（`lib/profile/freshness.ts` の
  *    `STALE_AFTER_MONTHS = 3`）と同じ区切りがこのプロダクトに既にあるため。
  */
-/**
- * ★並び替え（2026-09-20 / 柴さんの指示）。**他の3画面と同じ `SortSelect` を使う。**
- *
- * ⚠️★**年齢・性別に関わる軸を足さないこと。** この画面は企業が直接絞る場所で、
- *    年齢は労働施策総合推進法9条、性別は均等法5条の話になる（CLAUDE.md）。
- * ⚠️ 既定は「新着順」。それまで並び替えが無く `created_at DESC` 固定だった。
- */
-const SORT_OPTIONS = [
-  { value: "new",     label: "新着順" },
-  /* ⚠️★読むのは `careerStanceUpdatedAt`。`stance_updated_at` ではない
-        （あちらは面談OK の切り替えでも打たれる。冒頭の注記と同じ理由）。
-     ⚠️ 記録が無い人（2026-09-19 より前に答えた人）は**末尾に置く**。
-        0 扱いにして先頭へ来ると「最近更新した人」として誤って読める。 */
-  { value: "stance",  label: "転職意欲の更新が新しい順" },
-  { value: "tenure",  label: "社会人年数が長い順" },
-] as const;
-
-const STANCE_FRESHNESS_BANDS = [
-  { value: "1d",  label: "24時間以内", days: 1 },
-  { value: "1w",  label: "1週間以内",  days: 7 },
-  { value: "1m",  label: "1ヶ月以内",  days: 30 },
-  { value: "3m",  label: "3ヶ月以内",  days: 90 },
-] as const;
-
-/**
- * 社会人年数の帯（2026-08-20）。**年齢の帯の置き換え。**
- *
- * ⚠️ 元は `ow_experiences` の最も古い `started_at` から `calcTotalExperience` で
- *    その都度算出している（page.tsx）。列にもトリガーにもしない。
- */
-const TENURE_BANDS = [
-  { value: "lt1",  label: "1年未満",   minMonths: 0,   maxMonths: 11 },
-  { value: "1to3", label: "1〜3年",    minMonths: 12,  maxMonths: 35 },
-  { value: "3to5", label: "3〜5年",    minMonths: 36,  maxMonths: 59 },
-  { value: "5to10", label: "5〜10年",  minMonths: 60,  maxMonths: 119 },
-  { value: "gte10", label: "10年以上", minMonths: 120, maxMonths: Number.MAX_SAFE_INTEGER },
-] as const;
+/* ★並び替えの選択肢・社会人年数の帯・更新時期の帯は model.ts（2026-10-10 に移した）。
+   ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
+const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
 function formatTenure(months: number | null): string | null {
@@ -88,54 +61,8 @@ function formatTenure(months: number | null): string | null {
   return `社会人${Math.floor(months / 12)}年`;
 }
 
-/* ⚠️ `/dev/preview/candidates` が固定データを作るために export している。
-      **この画面は有料プラン0社で誰も実物を見られない**ので、確認はプレビューで行う。 */
-export type Candidate = {
-  id: string;
-  name: string;
-  /** ★本人が書いた1行（2026-09-23）。⚠️ `currentRole`（職種マスタ）と別物。混ぜない */
-  headline: string | null;
-  location: string | null;
-  /** ★「積極的に検討中」（`ow_profiles.career_stance = 'active'`）。2026-08-26 に改名。
-   *  ⚠️ 旧名 `isOpenToWork` は `ow_users.is_open_to_work`（boolean）由来だった。
-   *     列を移したので名前も合わせる。**列名で grep したときに残らないようにする。** */
-  isActivelyLooking: boolean;
-  /** ★転職意欲そのもの（2026-09-19）。⚠️ 母集合が `no_contact` と未設定を落としているので、
-   *  ここに来るのは `active` / `open` / `researching` のいずれか */
-  careerStance: string | null;
-  /** ★転職意欲を最後に変えた日時（2026-09-19）。
-   *  ⚠️★**null は「未更新」。「古い」ではない。** 列を入れたのが 2026-09-19 なので、
-   *     それ以前に答えた人は全員 null から始まる。**日付を作って埋めないこと。** */
-  careerStanceUpdatedAt: string | null;
-  /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
-  tenureMonths: number | null;
-  currentRole: string | null;
-  currentCompany: string | null;
-  employmentType: string | null;
-  startedAt: string | null;
-  /** ow_roles の職種名。子階層があれば子、無ければ大分類 */
-  roleName: string | null;
-  /** ow_roles の9大分類名 */
-  topRoleName: string | null;
-  /** 希望職種。**祖先まで展開済み**の role_id（絞り込み用） */
-  desiredRoleIds: string[];
-  /** 表示用。本人が選んだ職種名（展開前） */
-  desiredRoleNames: string[];
-  workStyles: string[] | null;
-  desiredPrefectures: string[] | null;
-  desiredSalaryMin: number | null;
-  desiredSalaryMax: number | null;
-  onboardingCompleted: boolean;
-  createdAt: string;
-  /** ★「できること」（職種 × 年数）。2026-09-20。**職歴からの計算**で、本人の入力ではない。
-   *  ⚠️ 事業領域は入らない（社名を伏せた職歴から漏れるため。`buildRoleAutoSkills` の注記）。 */
-  autoSkills?: { label: string; band: string }[];
-  /** ★企業からの「声かけ」（2026-10-09）。⚠️ 送れるかはサーバーが決める（理由は渡さない）。
-   *  `sentAt` はこの企業が180日以内に声をかけた日時（企業自身の事実） */
-  approach?: { eligible: boolean; sent: RecentApproach | null };
-  /** ★社内の状態（2026-10-10 / 段5）。undefined = 社内メモのフラグがオフ（出さない） */
-  stage?: CandidateStage | null;
-};
+/* ⚠️ `/dev/preview/candidates` が固定データを作るために export している（実体は model.ts）。 */
+export type { Candidate };
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   full_time: "正社員",
@@ -180,8 +107,11 @@ export default function CandidatesClient({
   candidates,
   roleFilterTree = [],
   approachJobs = [],
+  initialSelected = null,
 }: {
   candidates: Candidate[];
+  /** ★`?selected=` で開いている候補者（段1）。リロードしても同じ人を開く */
+  initialSelected?: string | null;
   /** ★声かけに添えられる自社の公開中の求人（段6） */
   approachJobs?: { id: string; title: string }[];
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
@@ -251,6 +181,28 @@ export default function CandidatesClient({
         （`/companies` と同じ形）。2つ同時に開くとメニューが重なる。 */
   const [openChip, setOpenChip] = useState<string | null>(null);
 
+  /* ── ★右のプレビュー（2026-10-10 / 段1・キャンバス1）──────────────────────────
+     ⚠️ 1024px 以上だけ（`CANDIDATE_SPLIT_MIN_WIDTH`。/companies の 1280px とは別の定数）。
+     ⚠️★URL（`?selected=`）は `history.replaceState` で書き換える。**履歴を積まない**（柴さんの指示）。
+        router.replace にしないのは、このページが force-dynamic で**一覧を丸ごと取り直す**ため。
+     ⚠️ 1024px 未満では横取りしない ——カードのリンクがそのまま /u/[id] を**同じタブ**で開く。 */
+  const [selected, setSelected] = useState<string | null>(initialSelected);
+  const updateSelected = useCallback((id: string | null) => {
+    setSelected(id);
+    try {
+      const url = new URL(window.location.href);
+      if (id) url.searchParams.set("selected", id); else url.searchParams.delete("selected");
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch { /* URL を書けなくても表示は続ける */ }
+  }, []);
+  const onCardLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    /* ⌘・中クリック・新しいタブは素通し（ブラウザに任せる） */
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (window.innerWidth < CANDIDATE_SPLIT_MIN_WIDTH) return;
+    e.preventDefault();
+    updateSelected(id);
+  }, [updateSelected]);
+
   // ── 都道府県・スキルタグを candidates から動的生成 ───────────────────
   const uniquePrefectures = useMemo(() => {
     const counts = new Map<string, number>();
@@ -263,131 +215,6 @@ export default function CandidatesClient({
       .map(([p]) => p);
   }, [candidates]);
 
-  // ── フィルター適用 ──────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    let list = candidates;
-
-    // フリーワード（スペース区切りAND）
-    if (q.trim()) {
-      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-      list = list.filter((c) =>
-        terms.every((t) =>
-          c.name.toLowerCase().includes(t) ||
-          (c.currentRole ?? "").toLowerCase().includes(t) ||
-          (c.currentCompany ?? "").toLowerCase().includes(t) ||
-          (c.location ?? "").includes(t) ||
-          (c.roleName ?? "").toLowerCase().includes(t) ||
-          (c.topRoleName ?? "").toLowerCase().includes(t)
-        )
-      );
-    }
-
-    /* ★除外ワード（2026-09-20）。⚠️ 判定の対象はフリーワードと**同じ**。
-          片方だけ対象を足すと「検索では当たるのに除外できない」語ができる。 */
-    if (excludeQuery.trim()) {
-      const ng = excludeQuery.toLowerCase().split(/\s+/).filter(Boolean);
-      list = list.filter((c) => !ng.some((t) =>
-        c.name.toLowerCase().includes(t) ||
-        (c.currentRole ?? "").toLowerCase().includes(t) ||
-        (c.currentCompany ?? "").toLowerCase().includes(t) ||
-        (c.location ?? "").includes(t) ||
-        (c.roleName ?? "").toLowerCase().includes(t) ||
-        (c.topRoleName ?? "").toLowerCase().includes(t)
-      ));
-    }
-
-    // 職種タイトル
-    if (roleQuery.trim()) {
-      const r = roleQuery.toLowerCase();
-      list = list.filter((c) => (c.currentRole ?? "").toLowerCase().includes(r));
-    }
-
-    // 会社名
-    if (companyQuery.trim()) {
-      const co = companyQuery.toLowerCase();
-      list = list.filter((c) => (c.currentCompany ?? "").toLowerCase().includes(co));
-    }
-
-    // 雇用形態（OR）
-    if (selectedEmploymentTypes.length > 0) {
-      list = list.filter((c) => c.employmentType && selectedEmploymentTypes.includes(c.employmentType));
-    }
-
-    // 勤務スタイル: 複数希望のうち1つでも一致すれば残す
-    if (workStyle) list = list.filter((c) => (c.workStyles ?? []).includes(workStyle));
-
-    /* 職種: 候補者側が祖先まで展開済みなので、大分類でも子でも includes() で当たる */
-    const wantRole = childRoleId ?? topRoleId;
-    if (wantRole) list = list.filter((c) => c.desiredRoleIds.includes(wantRole));
-
-
-    /* 社会人年数
-       ⚠️ **未算出（職歴0件）の人は落とさない。** 落とすと「絞り込んだ瞬間に
-          候補者が激減する」という、年齢絞り込みで起きていたのと同じ形になる。
-          何名が年数不明のまま残っているかは、一覧の上に注記で出している。 */
-    if (tenureBand) {
-      const band = TENURE_BANDS.find((b) => b.value === tenureBand);
-      if (band) {
-        list = list.filter((c) => {
-          if (c.tenureMonths == null) return true; // 未算出は通す
-          return c.tenureMonths >= band.minMonths && c.tenureMonths <= band.maxMonths;
-        });
-      }
-    }
-
-    /* ★転職意欲（2026-09-19）。単一選択。
-       ⚠️ 母集合が `no_contact` と未設定を落としているので、ここで null は出てこない。
-          それでも `=== ` で比べる（null が来ても落ちるだけで、既定値に倒さない）。 */
-    if (careerStance) {
-      list = list.filter((c) => c.careerStance === careerStance);
-    }
-
-    /* ★転職意欲の更新時期（2026-09-19）。
-       ⚠️★**未更新（null）は落とす。** 「最近更新した人」を探す条件なので、
-          いつ更新したか分からない人を通すと条件の意味が無くなる。
-          ⚠️ これは `/people` の年代と同じ扱い（値を持たない人は**その項目で絞ったときだけ**
-             落ちる）。社会人年数（`tenureBand`）が未算出を**通す**のとは逆で、
-             **わざと揃えていない** ——あちらは「経験の長さ」で、未算出でも候補ではある。
-       ⚠️★**落とした人数は画面に出す**（下の `droppedNoStanceTs`）。黙って減らすと
-          「絞り込んだ瞬間に0件」の理由が読めない。 */
-    if (stanceFreshness) {
-      const band = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness);
-      if (band) {
-        const since = Date.now() - band.days * 24 * 60 * 60 * 1000;
-        list = list.filter((c) => {
-          if (!c.careerStanceUpdatedAt) return false;
-          const t = new Date(c.careerStanceUpdatedAt).getTime();
-          return Number.isFinite(t) && t >= since;
-        });
-      }
-    }
-
-    // 居住地（OR・前方一致）
-    if (selectedPrefectures.length > 0) {
-      list = list.filter((c) =>
-        selectedPrefectures.some((p) => (c.location ?? "").startsWith(p))
-      );
-    }
-
-    // 希望年収
-    if (salaryMin > 0) {
-      list = list.filter((c) => {
-        const salaryVal = c.desiredSalaryMax ?? c.desiredSalaryMin;
-        if (salaryVal === null) return includeNoSalary;
-        return salaryVal >= salaryMin;
-      });
-    }
-
-    if (approachOnly) list = list.filter((c) => c.approach?.eligible === true);
-
-    return list;
-  }, [
-    candidates, q, excludeQuery, roleQuery, companyQuery, workStyle, topRoleId, childRoleId,
-    tenureBand, selectedPrefectures,
-    careerStance, stanceFreshness, approachOnly,
-    selectedEmploymentTypes, salaryMin, includeNoSalary,
-  ]);
-
   /* ★「更新時期」で絞ったときに、更新日時が無くて落ちた人数（2026-09-19）。
         ⚠️ `filtered` の**後**では数えられない（既に落ちている）ので、母集合から数える。
         ⚠️ 0 のときは注記を出さない（出すと常に注記が居座る）。 */
@@ -395,39 +222,6 @@ export default function CandidatesClient({
     () => (stanceFreshness ? candidates.filter((c) => !c.careerStanceUpdatedAt).length : 0),
     [candidates, stanceFreshness]
   );
-
-  /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
-  const unknownTenureCount = useMemo(
-    () => filtered.filter((c) => c.tenureMonths == null).length,
-    [filtered]
-  );
-
-  /* ★並び替え（2026-09-20）。⚠️ `filtered` を**破壊しない**（`[...]` でコピーする）。 */
-  const sorted = useMemo(() => {
-    const list = [...filtered];
-    if (sort === "stance") {
-      /* ⚠️★記録の無い人は**末尾**。先頭に来ると「最近更新した人」と誤読される。 */
-      return list.sort((a, b) => {
-        if (!a.careerStanceUpdatedAt && !b.careerStanceUpdatedAt) return 0;
-        if (!a.careerStanceUpdatedAt) return 1;
-        if (!b.careerStanceUpdatedAt) return -1;
-        return b.careerStanceUpdatedAt.localeCompare(a.careerStanceUpdatedAt);
-      });
-    }
-    if (sort === "tenure") {
-      /* ⚠️★未算出（職歴0件）は末尾。**0 にしない**（「社会人0年」と同義になる）。
-            絞り込み側が未算出を**落とさない**のと揃えてある。 */
-      return list.sort((a, b) => {
-        if (a.tenureMonths == null && b.tenureMonths == null) return 0;
-        if (a.tenureMonths == null) return 1;
-        if (b.tenureMonths == null) return -1;
-        return b.tenureMonths - a.tenureMonths;
-      });
-    }
-    /* 新着順。⚠️ サーバーが既に `created_at DESC` で返しているが、
-          **ここでも明示する**（他の順から戻したときに元の並びへ戻すため）。 */
-    return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [filtered, sort]);
 
   const jobTypeFilterActive = topRoleId !== null;
   const activeFilterCount = [
@@ -532,6 +326,12 @@ export default function CandidatesClient({
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
        tenureBand, selectedPrefectures, careerStance, stanceFreshness, approachOnly,
        sort]);
+
+  /* ★絞り込みと並び替え（model.ts。段3の新着メールと同じ関数）。⚠️ 描くのは `sorted` */
+  const filtered = useMemo(() => filterCandidates(candidates, currentFilters), [candidates, currentFilters]);
+  const sorted = useMemo(() => sortCandidates(filtered, sort), [filtered, sort]);
+  /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
+  const unknownTenureCount = useMemo(() => filtered.filter((c) => c.tenureMonths == null).length, [filtered]);
 
   const applyFilters = useCallback((f: SavedCandidateFilters) => {
     /* ⚠️ キーを列挙せず表から回す。列挙すると、ここだけ足し忘れる余地が戻る。 */
@@ -808,7 +608,7 @@ export default function CandidatesClient({
   );
 
   return (
-    <div style={{ padding: "16px 32px", maxWidth: 1400, margin: "0 auto" }}>
+    <div className="cand-wrap">
 
       {/* ── ヘッダー ─────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
@@ -1040,14 +840,11 @@ export default function CandidatesClient({
         {showAdvanced && advancedPanel}
       </div>
 
-      {/* ── 一覧 ──────────────────────────────────────────────────────── */}
-      <div>
+      {/* ── 一覧＋右のプレビュー（2026-10-10 / 段1）──────────────────────────────
+             ⚠️★分割は 1024px 以上（CSS の @media と `CANDIDATE_SPLIT_MIN_WIDTH` を手で合わせている）。
+             ⚠️ 1024〜1279px は 一覧4：プレビュー6、それ以上は 1：1。 */}
+      <div className="cand-split" data-selected={selected ? "1" : "0"}>
         <div style={{ minWidth: 0 }}>
-          {/* ⚠️★件数と「選択中の条件」は**ツールバーへ移した**（2026-09-20）。
-                 ここに戻さないこと ——以前は件数バーの横に**都道府県のチップだけ**が出ており、
-                 残り11条件は選んでも画面のどこにも出ていなかった。 */}
-
-          {/* 候補者リスト */}
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "72px 0", background: "#fff", borderRadius: 16, border: "1px solid var(--line)" }}>
               <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -1077,34 +874,37 @@ export default function CandidatesClient({
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
               {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
+                const isSel = selected === c.id;
                 return (
-                  <div key={c.id}
+                  <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"}
+                    className="cand-card"
                     style={{
                       background: "#fff",
-                      border: "1px solid var(--line)",
+                      border: `1px solid ${isSel ? "var(--royal)" : "var(--line)"}`,
                       borderRadius: 14,
                       overflow: "hidden",
                       display: "flex",
                       transition: "box-shadow 0.15s",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,35,102,0.09)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
                   >
-                    {/* ⚠️ 左のアクセントバーは撤去した（上の注記）。戻さないこと。 */}
-
-                    {/* カード本体 */}
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", minWidth: 0 }}>
-
-                      {/* アバター。⚠️ 人によって色を変えない（上の注記）。 */}
-                      <div style={neutralAvatarStyle(48, 18)}>
-                        {c.name.charAt(0) || "?"}
+                    {/* ★カード本体はプロフィールへのリンク（同じタブ）。1024px 以上ではクリックを横取りして右に出す。
+                           ⚠️ ボタン類（声かけ・気になる）はリンクの外に置く（リンクの中にボタンを入れない） */}
+                    {/* ⚠️ 余白・間隔・折り返しは CSS のクラス側（下の style）。1024〜1279px で詰めるため、ここに書かない */}
+                    <div className="cand-card-body">
+                      <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)}>
+                        {/* アバター。⚠️ 人によって色を変えない（上の注記）。 */}
+                      {/* ⚠️ 隠すのは外側の箱（アイコン自身は style に display を持つので、クラスで隠せない） */}
+                      <div className="cand-card-avatar">
+                        <div style={neutralAvatarStyle(48, 18)}>
+                          {c.name.charAt(0) || "?"}
+                        </div>
                       </div>
 
                       {/* メイン情報 */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {/* 名前 + 年齢 + バッジ */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{c.name}</span>
+                        <div className="cand-card-namerow">
+                          <span className="cand-card-name" title={c.name}>{c.name}</span>
                           {/* ⚠️ **年齢は出さない**（2026-08-20）。一覧に年齢を出さない方針。
                                  出すのは職務要件として意味のある社会人年数だけ。 */}
                           {tenure && (
@@ -1113,6 +913,10 @@ export default function CandidatesClient({
                           {/* ⚠️★**緑にしないこと**（2026-09-20 に直した）。ui-conventions の
                                  「色の役割」で**緑は金銭的にプラスの条件のみ**と決まっている
                                  （年収レンジ・退職金・SO/RSU）。状態のバッジには使わない。 */}
+                          {/* ★接点の数（段1）。⚠️ 0件・取れなかったときは出さない */}
+                          {c.touchpoints && c.touchpoints.length > 0 && (
+                            <span data-state="touchpoint-count" style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>接点 {c.touchpoints.length}件</span>
+                          )}
                           {c.isActivelyLooking && (
                             <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>転職検討中</span>
                           )}
@@ -1126,6 +930,20 @@ export default function CandidatesClient({
                                  `isMentor` は型からも消えている。**足し直さないこと。** */}
                         </div>
 
+                        {/* ★2行目以降。⚠️ 1024〜1279px（一覧が4割）では省く（`.cand-card-extra`） */}
+                        <div className="cand-card-extra">
+                        {/* ★声かけの状態とプロフィールの更新日（段1）。⚠️ 判定は増やさない（`candidateApproachLabel`） */}
+                        {(() => {
+                          const label = candidateApproachLabel(c.approach);
+                          const edited = formatJstMonthDay(c.profileEditedAt);
+                          if (!label && !edited) return null;
+                          return (
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, color: "var(--ink-mute)", marginBottom: 6 }}>
+                              {label && <span data-approach-state={label.state} style={{ fontWeight: 600, color: label.state === "eligible" ? "var(--royal)" : "var(--ink-mute)" }}>{label.text}</span>}
+                              {edited && <span>プロフィール更新 {edited}</span>}
+                            </div>
+                          );
+                        })()}
                         {/* ★★本人が書いた1行（2026-09-23 / 柴さんの指示）。
                                ⚠️★**氏名の直下・職種より上**に置く。本人側の入力欄が
                                   「名前の直下の1行」として説明しているのがこれで、
@@ -1216,23 +1034,23 @@ export default function CandidatesClient({
                           </div>
                         )}
                       </div>
+                      </div>
 
-                      {/* 右: アクション
-                          ⚠️★「スカウトを送る」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
-                             **戻さないこと。** カードの操作はプロフィールを開くこと1つ。 */}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-                        {/* ★声かけ（2026-10-09）。⚠️ 送れない相手には出さない（理由も出さない）。
-                               「スカウト」とは呼ばない。 */}
+                      </a>
+
+                      {/* 右: アクション。⚠️ 分割表示のときは声かけとプロフィールのボタンをプレビューに任せる（同じ入口を2つ並べない） */}
+                      <div className="cand-card-side">
                         {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
-                        {c.approach && (c.approach.eligible || c.approach.sent) && (
-                          <ApproachButton candidateUserId={c.id} candidateName={c.name} sent={c.approach.sent} jobs={approachJobs} compact />
-                        )}
-                        <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}
-                          onClick={(e) => e.stopPropagation()}>
-                          プロフィールを見る
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                        </a>
+                        <div className="cand-card-actions">
+                          {c.approach && (c.approach.eligible || c.approach.sent) && (
+                            <ApproachButton candidateUserId={c.id} candidateName={c.name} sent={c.approach.sent} jobs={approachJobs} compact />
+                          )}
+                          {/* ⚠️★別タブにしない（2026-10-10 / 柴さんの指示）。同じタブで /u/[id] */}
+                          <a href={`/u/${c.id}`}
+                            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>
+                            プロフィールを見る
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1240,9 +1058,54 @@ export default function CandidatesClient({
               })}
             </div>
           )}
-
         </div>
+
+        {/* 右のプレビュー。⚠️ 1024px 未満では CSS で隠す */}
+        <aside className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
+          {selected ? (
+            <CandidatePreview key={selected} userId={selected} onClose={() => updateSelected(null)} />
+          ) : (
+            <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+              候補者を選ぶと、ここにプロフィールと貴社との接点が表示されます。
+            </div>
+          )}
+        </aside>
       </div>
+
+      {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
+      <style>{`
+        .cand-wrap { padding: 16px 32px; max-width: 1400px; margin: 0 auto; }
+        .cand-pane { display: none; }
+        .cand-card-body { flex: 1; display: flex; align-items: center; gap: 16px; padding: 14px 18px; min-width: 0; }
+        .cand-card-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; color: inherit; text-decoration: none; }
+        .cand-card-namerow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+        .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+        .cand-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+        .cand-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        @media (max-width: 640px) {
+          .cand-wrap { padding: 12px 16px; }
+          .cand-card-body { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+          .cand-card-link { gap: 12px; }
+          .cand-card-side { flex-direction: row; justify-content: flex-end; flex-wrap: wrap; }
+          .cand-card-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
+        }
+        @media (min-width: 1024px) {
+          .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+          .cand-pane { display: block; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+          .cand-card-actions { display: none; }
+          .cand-card a:hover { cursor: pointer; }
+        }
+        @media (min-width: 1024px) and (max-width: 1279px) {
+          .cand-split { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+          .cand-card-extra { display: none; }
+          .cand-card-avatar { display: none; }
+          .cand-card-body { padding: 10px 12px; gap: 8px; }
+          .cand-card-link { gap: 8px; }
+          .cand-card-namerow { flex-wrap: nowrap; margin-bottom: 0; }
+          .cand-card-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .cand-wrap { padding-left: 16px; padding-right: 16px; }
+        }
+      `}</style>
 
       {/* ⚠️★2026-09-20 に `.candidates-sidebar` / `.candidates-mobile-toggle` を削除した。
              サイドバーをやめ、条件は上部の「詳細検索」に畳んである。

@@ -12,6 +12,17 @@
 export const SPLIT_MIN_WIDTH = 1280;
 
 /**
+ * ★候補者検索（/biz/candidates）の分割ビュー（2026-10-10 / 柴さんの判断）。**候補者だけ 1024px。**
+ *
+ * ⚠️★`SPLIT_MIN_WIDTH` と別の定数にしてある。/companies と /jobs は 1280px のまま。
+ * ⚠️★しきい値は2箇所にある: ①この定数（クリックを振り替えるか。`CandidatesClient`）
+ *    ②**CSS のメディアクエリ**（`CandidatesClient` の `@media (min-width: 1024px)` と
+ *    1024〜1279px の 4:6）。CSS からは定数を参照できないので手で合わせている。
+ *    ①だけ変えると「押してもプレビューが出ない」になる。
+ */
+export const CANDIDATE_SPLIT_MIN_WIDTH = 1024;
+
+/**
  * ビューポート幅の帯。**分割ビューが出る層がどれだけ居るか**を測るために使う。
  *
  * ⚠️★**生の数値をタグにしないこと。** Sentry のタグは高カーディナリティに弱く、
