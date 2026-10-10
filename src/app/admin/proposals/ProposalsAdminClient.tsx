@@ -153,6 +153,14 @@ export default function ProposalsAdminClient({
                   担当者が登録されれば、その日から対象に戻ります。
                 </>
               )}
+              {/* ★担当者が検証用のみ（2026-10-10）。黙って消さない */}
+              {msg.result.testAdminsOnly > 0 && (
+                <>
+                  <br />
+                  <strong>{msg.result.testAdminsOnly} 社</strong>は、担当者が検証用のみのため
+                  <strong>作りませんでした</strong>（実在の求職者への提案に、検証用アカウントが答えることになるため）。
+                </>
+              )}
               {/* ★求職者がブロックした企業など（2026-10-08）。黙って消さない */}
               {msg.result.hiddenByCandidate > 0 && (
                 <>

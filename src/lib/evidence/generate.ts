@@ -66,6 +66,11 @@ export type GenerateResult = {
    */
   withoutBizAccount: number;
   /**
+   * ★**有効な担当者が検証用（is_test）だけなので外した企業の数**（2026-10-10）。
+   * ⚠️ 黙って消さない。画面に出すこと。
+   */
+  testAdminsOnly: number;
+  /**
    * ★**求職者が自分でブロックした企業など、`can_send_scout()` が「見せない」と返した企業の数**
    *   （2026-10-08）。判定に失敗した企業もここに数える（出す側に倒さない）。
    * ⚠️ **黙って消さない。** 画面に出すこと。
@@ -112,6 +117,7 @@ export async function generateProposalsForCandidate(
     return {
       examined: 0, proposable: 0, created: 0, skipped: 0, belowThreshold: 0,
       withoutBizAccount: 0,
+      testAdminsOnly: 0,
       hiddenByCandidate: 0,
       ongoing: 0,
       blockedByStance: { stance },
@@ -141,7 +147,7 @@ export async function generateProposalsForCandidate(
      ⚠️★**`notification_emails` では代用しないこと。** あれは通知の宛先であって、
         **返答できるかどうかとは別**（実測でも掲載22社中0社）。 */
   const { data: adminRows, error: adErr } = await db
-    .from("ow_company_admins").select("company_id").eq("is_active", true)
+    .from("ow_company_admins").select("company_id, user_id").eq("is_active", true)
     /* ★招待中の行（`user_id` が NULL）を「答えられる人」に数えない（2026-10-08）。
           招待は `ow_company_admins` に `user_id = NULL, is_active = true` で入るので、
           これが無いと**まだ誰もログインできない企業**が対象に入る。
@@ -153,6 +159,24 @@ export async function generateProposalsForCandidate(
   }
   const respondable = new Set((adminRows ?? []).map((r) => r.company_id as string));
 
+  /* ── ★検証用でない担当者が1人以上いる企業だけ（2026-10-10 / 柴さんの指示）────
+     実在の企業に検証用の担当者（`is_test`）しかいないと、実在の求職者への提案に
+     **検証用アカウントが答えることになる**（2026-10-10 実測: セールスフォースの有効な担当者2人は両方 is_test）。
+     ⚠️ 埋め込みにしない（`ow_company_admins` → `ow_users` は経路が複数あり曖昧になる）。2段で引く。
+     ⚠️ 引けなければ作らない（fail-closed） */
+  const adminUserIds = Array.from(new Set((adminRows ?? []).map((r) => r.user_id as string)));
+  const { data: adminUsers, error: auErr } = adminUserIds.length
+    ? await db.from("ow_users").select("id, is_test").in("id", adminUserIds)
+    : { data: [], error: null };
+  if (auErr) {
+    console.error("[evidence/generate] 担当者の ow_users:", auErr.message);
+    throw new Error(`企業の担当者の取得に失敗しました: ${auErr.message}`);
+  }
+  const realAdminIds = new Set((adminUsers ?? []).filter((u) => u.is_test !== true).map((u) => u.id as string));
+  const respondableByReal = new Set(
+    (adminRows ?? []).filter((r) => realAdminIds.has(r.user_id as string)).map((r) => r.company_id as string),
+  );
+
   const exclude = await companiesToExclude(candidateOwUserId);
   const listedNotMine = (companyRows ?? [])
     .map((c) => c.id as string)
@@ -162,8 +186,9 @@ export async function generateProposalsForCandidate(
     .filter((id) => !exclude.has(id));
 
   /* ★答えられる企業だけを母数にする（上の注記を読むこと） */
-  const respondableTargets = listedNotMine.filter((id) => respondable.has(id));
-  const withoutBizAccount = listedNotMine.length - respondableTargets.length;
+  const withoutBizAccount = listedNotMine.filter((id) => !respondable.has(id)).length;
+  const testAdminsOnly = listedNotMine.filter((id) => respondable.has(id) && !respondableByReal.has(id)).length;
+  const respondableTargets = listedNotMine.filter((id) => respondableByReal.has(id));
 
   /* ── ★求職者が「見せない」と決めた企業には出さない（2026-10-08 / 柴さんの指示）──
      判定は **`can_send_scout()`（SQL）をそのまま呼ぶ**。候補者検索（`/biz/candidates`）と
@@ -277,6 +302,7 @@ export async function generateProposalsForCandidate(
     skipped: rows.length - created,
     belowThreshold,
     withoutBizAccount,
+    testAdminsOnly,
     hiddenByCandidate,
     ongoing: ongoingCompanies.size,
   };
