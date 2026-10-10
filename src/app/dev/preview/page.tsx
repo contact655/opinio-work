@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/approach-analytics", label: "声かけの振り返り（/biz/analytics の声かけタブ）",
+    desc: "★実画面は検証用を除くので出る側を描けない。0件／送ったが結果0件／結果あり／取得失敗をここで見る" },
   { href: "/dev/preview/detail-search", label: "詳細検索（パネル／ドロワー）",
     desc: "★1024px 未満のドロワーの「N件を表示」。0件／大量／取れない（—）をここで見る" },
   { href: "/dev/preview/test-leftovers", label: "is_test の取り残し（/admin の要対応）",

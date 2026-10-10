@@ -1,4 +1,5 @@
 import { acceptRate, REFERENCE_ONLY_BELOW, ROW_RATE_MIN, type AnalyticsCell, type AnalyticsRow, type ApproachAnalytics } from "@/lib/approaches/analytics";
+import Link from "next/link";
 import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
 /**
@@ -12,14 +13,25 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
   const t = data.total;
   const rate = acceptRate(t);
   const reference = t.resolved < REFERENCE_ONLY_BELOW;
+  /* ★結果の出た声かけが無いとき（2026-10-10 / 柴さんの指示）。表のかわりに1文と入口を出す。
+        送った数が1件以上なら、件数カードは「送った数」だけ出し、ほかは「—」 */
+  const noResults = t.resolved === 0;
+  const emptyNote = (
+    <div data-state="approach-analytics-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+      まだ結果の出た声かけがありません。承認されるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと、ここに出ます。
+      <Link href="/biz/candidates" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>候補者を探す →</Link>
+    </div>
+  );
+  if (noResults && t.sent === 0) return <div data-state="approach-analytics">{emptyNote}</div>;
   return (
     <div data-state="approach-analytics">
       <div className="an-kpis" style={{ marginBottom: 16 }}>
         <Card label="送った数" value={String(t.sent)} sub={periodLabel} />
-        <Card label="承認された数" value={String(t.accepted)} sub={periodLabel} />
-        <Card label="承認率" value={rate === null ? "—" : `${rate}%`} sub={`結果の出た ${t.resolved} 件のうち`} badge={rate !== null && reference ? "参考値" : null} />
-        <Card label="面談につながった数" value={String(t.meetings)} sub="承認された声かけのうち" />
+        <Card label="承認された数" value={noResults ? "—" : String(t.accepted)} sub={periodLabel} />
+        <Card label="承認率" value={noResults || rate === null ? "—" : `${rate}%`} sub={`結果の出た ${t.resolved} 件のうち`} badge={!noResults && rate !== null && reference ? "参考値" : null} />
+        <Card label="面談につながった数" value={noResults ? "—" : String(t.meetings)} sub="承認された声かけのうち" />
       </div>
+      {noResults ? emptyNote : (<>
       <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 16px" }}>
         承認率は「結果の出た件数」（承認された件数と、送ってから{APPROACH_EXPIRE_DAYS}日を過ぎた承認待ち）を分母にしています。
         見送りと返事なしは区別しません。結果の出た件数が{REFERENCE_ONLY_BELOW}件未満のときは参考値、表の行ごとに{ROW_RATE_MIN}件未満のときは率を出していません。
@@ -29,6 +41,7 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
       <Table title="関連する求人を添えたか" rows={data.byJob} note="2026-10-10 から記録しています。それより前の声かけは「記録なし」です。" />
       <Table title="理由の字数" rows={data.byReasonLength} />
       <Table title="本文のテンプレート" rows={data.byTemplate} note="テンプレートの機能はまだありません。2026-10-10 以降の声かけは「テンプレートなし」、それより前は「記録なし」です。" />
+      </>)}
     </div>
   );
 }
