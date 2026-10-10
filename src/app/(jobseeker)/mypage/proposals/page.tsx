@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyLinkStateFor } from "@/lib/companies/linkState";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
@@ -36,7 +37,7 @@ export default async function ProposalsPage() {
 
   const db = createAdminClient();
   const { data: me, error: meErr } = await db
-    .from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+    .from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
   if (meErr) console.error("[proposals] ow_users:", meErr.message);
   if (!me) redirect("/auth?next=%2Fmypage%2Fproposals");
 
@@ -44,7 +45,7 @@ export default async function ProposalsPage() {
     .from("ow_proposals")
     /* ★`company_id` / `company_response` / `introduced_at` は「終了したか」の判定だけに使う（2026-10-09）。
           ⚠️★**`company_response` そのものはクライアントに送らない**（企業が見送ったことを伝えない） */
-    .select("id, company_id, evidence, counter_evidence, candidate_response, company_response, introduced_at, computed_at, respond_by, ow_companies(id, name, name_en, slug, tagline, logo_url)")
+    .select("id, company_id, evidence, counter_evidence, candidate_response, company_response, introduced_at, computed_at, respond_by, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test)")
     .eq("candidate_user_id", me.id)
     .order("created_at", { ascending: false });
   /* ⚠️ 握り潰さない。失敗を「0件」に見せない（CLAUDE.md） */
@@ -67,7 +68,7 @@ export default async function ProposalsPage() {
     }, isVisiblePair(visible, { companyId: p.company_id as string, candidateUserId: me.id as string }));
     const co = p.ow_companies as unknown as {
       id: string; name: string; name_en: string | null; slug: string | null;
-      tagline: string | null; logo_url: string | null;
+      tagline: string | null; logo_url: string | null; is_test: boolean | null;
     } | null;
     const { displayName } = co
       ? companyDisplayName(co.name, co.name_en)
@@ -75,7 +76,10 @@ export default async function ProposalsPage() {
     return {
       id: p.id as string,
       companyName: displayName,
-      companyHref: co ? `/companies/${co.slug ?? co.id}` : null,
+      /* ★見ている人と会社がどちらも検証用なら、社名は文字だけ（`companyLinkStateFor`）。
+            ⚠️ `is_test` を select から落とさない。落とすと実在の会社として扱われ、404 へのリンクが出る */
+      companyHref: co && companyLinkStateFor({ isTest: co.is_test }, { viewerIsTest: me.is_test === true }) === "open"
+        ? `/companies/${co.slug ?? co.id}` : null,
       tagline: co?.tagline ?? null,
       logoUrl: co?.logo_url ?? null,
       isOwnCompany: ownCompanyId !== null && (p.company_id as string) === ownCompanyId,

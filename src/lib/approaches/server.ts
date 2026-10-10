@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { companyLinkStateFor, type CompanyLinkState } from "@/lib/companies/linkState";
 import { jobListingStateFor, type JobListingState } from "@/lib/jobs/publicJobs";
 import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
@@ -299,7 +300,9 @@ export type IncomingApproach = {
   /** ⚠️ 理由と本文は承認前でも全文見せる（2026-10-09 / 柴さんの判断）。承認で区切るのは2通目以降だけ */
   reason: string;
   body: string | null;
-  company: { id: string; name: string; nameEn: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
+  company: { id: string; name: string; nameEn: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null;
+    /** ★社名をリンクにするか（2026-10-11）。判定は `companyLinkStateFor` の1か所 */
+    linkState: CompanyLinkState };
   senderName: string | null;
   /** ★関連する求人（2026-10-10 / 段4 で求職者側にも出した）。公開中でなければ href を付けない（名前だけ） */
   /** ★掲載の状態（2026-10-11）。判定は `jobListingStateFor` の1か所 */
@@ -392,6 +395,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
         logoUrl: (c.logo_url as string | null) ?? null,
         logoLetter: (c.logo_letter as string | null) ?? null,
         logoGradient: (c.logo_gradient as string | null) ?? null,
+        linkState: companyLinkStateFor({ isTest: c.is_test === true }, { viewerIsTest: me.is_test === true }),
       },
       senderName: r.sender_user_id ? senderById.get(r.sender_user_id as string) ?? null : null,
       job: (() => {

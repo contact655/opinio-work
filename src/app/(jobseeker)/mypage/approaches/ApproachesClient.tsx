@@ -12,7 +12,7 @@ export type IncomingApproachView = {
   body: string | null;
   senderName: string | null;
   companyName: string;
-  companyHref: string;
+  companyHref: string | null;
   /** ★運営会社か（2026-10-10） */
   isOwnCompany: boolean;
   logoUrl: string | null;

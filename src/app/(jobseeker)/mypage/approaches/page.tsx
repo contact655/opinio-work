@@ -42,7 +42,8 @@ export default async function MypageApproachesPage() {
     body: a.body,
     senderName: a.senderName,
     companyName: companyDisplayName(a.company.name, a.company.nameEn).displayName,
-    companyHref: `/companies/${a.company.slug ?? a.company.id}`,
+    /* ★見ている人と会社がどちらも検証用なら、社名は文字だけ（企業ページは開かない。`companyLinkStateFor`） */
+    companyHref: a.company.linkState === "open" ? `/companies/${a.company.slug ?? a.company.id}` : null,
     isOwnCompany: ownCompanyId !== null && a.company.id === ownCompanyId,
     logoUrl: a.company.logoUrl,
     logoLetter: a.company.logoLetter,

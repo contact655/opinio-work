@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { companyLinkStateFor } from "@/lib/companies/linkState";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -29,7 +30,7 @@ export default async function FollowsPage() {
   if (!user) redirect("/auth?next=/mypage/follows");
 
   const admin = createAdminClient();
-  const { data: me } = await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  const { data: me } = await admin.from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
   if (!me?.id) redirect("/auth?next=/mypage/follows");
 
   const { data: rows, error } = await admin
@@ -73,11 +74,13 @@ export default async function FollowsPage() {
             ⚠️★**詳細の軸**で見る（`is_published` = 404 ゲート）。ディレクトリ非掲載
                （`listing_status='draft'`）は**開けるので外さない**。
             ⚠️ 理由は断定しない（運営が下ろしたのか企業が下ろしたのかは分からない）。 */
-      const alive = is_published === true && is_test !== true;
+      /* ★見ている人と会社がどちらも検証用なら、終了とは出さず文字だけ（2026-10-11。`companyLinkStateFor`） */
+      const state = companyLinkStateFor({ isTest: is_test, isPublished: is_published }, { viewerIsTest: me.is_test === true });
       return {
         ...rest,
         industry: links.find((l) => l.is_primary)?.ow_business_domains?.name ?? null,
-        gone_label: alive ? undefined : "公開を終了しました",
+        gone_label: state === "closed" ? "公開を終了しました" : undefined,
+        no_link: state === "open_test" ? true : undefined,
       };
     };
     // ow_follows_v の並び（新しい順）を保つ

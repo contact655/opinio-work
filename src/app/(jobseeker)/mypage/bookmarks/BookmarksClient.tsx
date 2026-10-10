@@ -22,6 +22,8 @@ export type Bookmark = {
   href: string | null;
   /** ★開けない理由。`href` が null のときだけ出す。⚠️ 推測で書かない（下の注記） */
   gone_label?: string;
+  /** ★検証用どうし（2026-10-11）。会社・求人はあるものとして扱い、リンクだけしない（薄くしない） */
+  no_link?: boolean;
 };
 
 function BookmarkCard({ bk }: { bk: Bookmark }) {
@@ -32,7 +34,7 @@ function BookmarkCard({ bk }: { bk: Bookmark }) {
       display: "flex", flexDirection: "column", gap: 6,
       transition: "border-color 0.12s, box-shadow 0.12s",
       /* ⚠️ 開けないものは**薄くするだけ**。消さない・畳まない */
-      opacity: bk.href ? 1 : 0.72,
+      opacity: bk.href || bk.no_link ? 1 : 0.72,
     }} className={bk.href ? "bk-card-hover" : undefined}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{

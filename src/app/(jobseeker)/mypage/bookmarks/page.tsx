@@ -1,3 +1,4 @@
+import { companyLinkStateFor } from "@/lib/companies/linkState";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,6 +35,8 @@ export default async function BookmarksPage() {
   if (owUserRowsErr) console.error("[mypage/bookmarks] ow_users:", owUserRowsErr.message);
   const owUserId = owUserRows?.[0]?.id;
   const viewerIsTest = owUserRows?.[0]?.is_test === true;
+  const companyState = (c: { is_published: boolean | null; is_test: boolean | null }) =>
+    companyLinkStateFor({ isTest: c.is_test, isPublished: c.is_published }, { viewerIsTest });
 
   let companyBookmarks: Bookmark[] = [];
   let jobBookmarks: Bookmark[] = [];
@@ -86,9 +89,11 @@ export default async function BookmarksPage() {
                     ⚠️★**詳細の軸**で見る（`is_published` = 404 ゲート）。
                        ディレクトリ非掲載（`listing_status='draft'`）は**開けるので外さない**
                        —— 「最近見た企業」が `filterVisibleCompaniesStrict` を使うのと同じ線。 */
-              href: c.is_published === true && c.is_test !== true ? `/companies/${c.id}` : null,
+              /* ★見ている人と会社がどちらも検証用なら、終了とは出さず文字だけ（2026-10-11。`companyLinkStateFor`） */
+              href: companyState(c) === "open" ? `/companies/${c.id}` : null,
               /* ⚠️ 理由は断定しない。運営が下ろしたのか企業が下ろしたのかは、ここからは分からない */
-              gone_label: c.is_published === true && c.is_test !== true ? undefined : "公開を終了しました",
+              gone_label: companyState(c) === "closed" ? "公開を終了しました" : undefined,
+              no_link: companyState(c) === "open_test" ? true : undefined,
             }];
           });
         }
@@ -131,6 +136,7 @@ export default async function BookmarksPage() {
               /* ⚠️ 「募集終了」と断定しない。取り下げ・保留・掲載方法の変更もありうる
                     （CLAUDE.md「採用ページに無い＝募集終了 と断定はできない」と同じ線）。 */
               gone_label: state === "open" ? undefined : state === "open_test" ? TEST_JOB_LISTED_NOTE : "掲載を終了しました",
+              no_link: state === "open_test" ? true : undefined,
             }];
           });
         }

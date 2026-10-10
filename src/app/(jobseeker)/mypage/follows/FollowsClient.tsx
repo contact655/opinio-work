@@ -17,6 +17,9 @@ export type FollowedCompany = {
   id: string; slug: string | null; name: string; brand_name: string | null;
   industry: string | null; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null;
   gone_label?: string;
+  /** ★見ている人と会社がどちらも検証用（2026-10-11）。会社はあるものとして扱い、リンクだけしない
+        （企業ページは誰に対しても開けないため。`companyLinkStateFor`） */
+  no_link?: boolean;
 };
 export type FollowedUser = {
   id: string; name: string; avatar_url: string | null; avatar_color: string | null; visibility: string | null;
@@ -24,11 +27,10 @@ export type FollowedUser = {
 };
 
 /** ★開けないものは `<Link>` で包まない。**押せる見た目のまま 404 へ飛ばさない。** */
-function FollowRow({ href, gone, children }: { href: string; gone?: string; children: React.ReactNode }) {
+function FollowRow({ href, gone, children }: { href: string | null; gone?: string; children: React.ReactNode }) {
+  if (!gone && href) return <Link href={href} style={ROW}>{children}</Link>;
   /* ⚠️ 薄くするだけ。消さない・畳まない */
-  const body = <div style={gone ? { ...ROW, opacity: 0.72 } : ROW}>{children}</div>;
-  if (!gone) return <Link href={href} style={ROW}>{children}</Link>;
-  return body;
+  return <div style={gone ? { ...ROW, opacity: 0.72 } : ROW}>{children}</div>;
 }
 
 /* ⚠️★**色で危険を示さない**（ui-conventions の「色の役割」）。本人の操作が
@@ -98,7 +100,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {companies.map((c) => (
-              <FollowRow key={c.id} href={`/companies/${c.slug ?? c.id}`} gone={c.gone_label}>
+              <FollowRow key={c.id} href={c.no_link ? null : `/companies/${c.slug ?? c.id}`} gone={c.gone_label}>
                 <CompanyLogoImg
                   logoUrl={c.logo_url} logoLetter={c.logo_letter} logoGradient={c.logo_gradient}
                   name={c.brand_name ?? c.name} size={40} borderRadius={8}
