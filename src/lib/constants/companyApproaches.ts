@@ -69,3 +69,21 @@ export const APPROACH_EXPIRE_DAYS = 30;
 export function normalizeApproachReason(s: string): string {
   return s.replace(/[\s　]+/g, "");
 }
+
+/**
+ * ★企業に見せる声かけの状態（2026-10-10）。/biz/approaches・候補者検索のカード・/u/[id] の「声かけ済み」が**同じ関数**を見る。
+ *   pending  … 送ってから30日以内で、承認されていない（⚠️ 見送られたものを含む。企業には見送りを伝えない）
+ *   expired  … 30日を過ぎて承認されていない（見送り・返事なしを区別しない）
+ *   accepted … 承認済み（やり取り中）
+ * ⚠️ declined_at を引数に取らないこと（見送ったかどうかで表示を変えない）。
+ */
+export type CompanyApproachStatus = "pending" | "expired" | "accepted";
+export const COMPANY_APPROACH_STATUS_LABELS: Record<CompanyApproachStatus, string> = {
+  pending: "承認待ち",
+  expired: `${APPROACH_EXPIRE_DAYS}日を過ぎました`,
+  accepted: "やり取り中",
+};
+export function companyApproachStatus(p: { createdAt: string; acceptedAt: string | null }, now = new Date()): CompanyApproachStatus {
+  if (p.acceptedAt) return "accepted";
+  return now.getTime() - new Date(p.createdAt).getTime() > APPROACH_EXPIRE_DAYS * 24 * 60 * 60 * 1000 ? "expired" : "pending";
+}

@@ -5,6 +5,7 @@ import {
   APPROACH_BODY_MAX,
   APPROACH_REASON_MAX,
   APPROACH_REASON_MIN,
+  COMPANY_APPROACH_STATUS_LABELS,
 } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 
@@ -93,7 +94,7 @@ export function ApproachButton({
           /* ★誰が・いつ・いまどうなっているか・いつから再び送れるか。⚠️ 見送られたものも「承認待ち」（企業には伝えない） */
           <span style={{ display: "flex", flexDirection: "column", gap: 2, whiteSpace: "normal", fontWeight: 600, lineHeight: 1.5 }}>
             <span style={{ color: "var(--ink-soft)" }}>
-              {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}に声かけ済み（{sent.state === "accepted" ? "やり取り中" : "承認待ち"}）
+              {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}に声かけ済み（{COMPANY_APPROACH_STATUS_LABELS[sent.state]}）
             </span>
             <span style={{ fontWeight: 500 }}>再び送れる日：{formatJaDate(sent.resendAt)}</span>
           </span>

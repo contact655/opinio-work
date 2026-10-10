@@ -4,7 +4,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
 import { getApproachQuota, listSentApproaches } from "@/lib/approaches/server";
-import { APPROACH_EXPIRE_DAYS, APPROACH_RESEND_DAYS } from "@/lib/constants/companyApproaches";
+import { APPROACH_EXPIRE_DAYS, APPROACH_RESEND_DAYS, COMPANY_APPROACH_STATUS_LABELS } from "@/lib/constants/companyApproaches";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,8 @@ export const metadata = {
 /**
  * ★企業が送った「声かけ」の一覧（2026-10-09）。
  *
- * ⚠️★状態は2つだけ:「承認待ち」「やり取り中」。**見送られた・期限切れも「承認待ち」のまま**出す
+ * ⚠️★状態は3つ（2026-10-10）:「承認待ち」「30日を過ぎました」「やり取り中」。判定は `companyApproachStatus`。
+ *    **見送られたものは、30日以内は「承認待ち」、過ぎたら「30日を過ぎました」**（見送りは区別しない）
  *    （求職者が見送ったことは企業に伝えない決まり）。`listSentApproaches` は declined_at を読まない。
  * ⚠️ 送る入口はここではなく、候補者検索のカードと /u/[id]（その人を見たうえで送るため）。
  */
@@ -95,9 +96,12 @@ export default async function BizApproachesPage() {
                         {r.candidate.name || "名前未設定"}
                       </Link>
                       {r.status === "accepted" ? (
-                        <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>やり取り中</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>{COMPANY_APPROACH_STATUS_LABELS.accepted}</span>
+                      ) : r.status === "expired" ? (
+                        /* ★30日を過ぎて承認されていない（2026-10-10）。見送り・返事なしは区別しない */
+                        <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>{COMPANY_APPROACH_STATUS_LABELS.expired}</span>
                       ) : (
-                        <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "var(--warm-soft)", color: "var(--warm-ink)", border: "1px solid #FDE68A" }}>承認待ち</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 100, background: "var(--warm-soft)", color: "var(--warm-ink)", border: "1px solid #FDE68A" }}>{COMPANY_APPROACH_STATUS_LABELS.pending}</span>
                       )}
                       <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: "auto" }}>
                         {fmt(r.createdAt)}{r.senderName ? ` · ${r.senderName}` : ""}

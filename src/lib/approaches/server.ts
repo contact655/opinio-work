@@ -15,6 +15,8 @@ import {
   APPROACH_REASON_REUSE_DAYS,
   APPROACH_RESEND_DAYS,
   normalizeApproachReason,
+  companyApproachStatus,
+  type CompanyApproachStatus,
 } from "@/lib/constants/companyApproaches";
 
 /**
@@ -149,13 +151,14 @@ export function quotaBlockMessage(q: ApproachQuota): string | null {
  * ★この企業が180日以内に声をかけた相手（2026-10-10 / 段5 で中身を足した）。
  * 送信の API の「180日は再送できない」と、画面の重複防止の表示が**同じ関数**を見る。
  * 返すもの: 送った日・送った担当者の名前・状態（承認待ち／やり取り中）・再び送れる日。
- * ⚠️★見送られた声かけも「承認待ち」と返す（企業には見送りを伝えない。/biz/approaches と同じ）。
+ * ⚠️★状態は /biz/approaches と同じ `companyApproachStatus`（見送りは区別しない）。
  * 取得に失敗したら null（呼び出し側はボタンを出さない）。
  */
 export type RecentApproach = {
   sentAt: string;
   senderName: string | null;
-  state: "pending" | "accepted";
+  /** ★/biz/approaches と同じ判定（`companyApproachStatus`） */
+  state: CompanyApproachStatus;
   /** 再び送れる日時（送った日から180日後） */
   resendAt: string;
 };
@@ -190,7 +193,7 @@ export async function getRecentlyApproached(companyId: string, candidateOwUserId
     m.set(id, {
       sentAt,
       senderName: (r.sender_user_id && names.get(r.sender_user_id as string)) || null,
-      state: r.accepted_at ? "accepted" : "pending",
+      state: companyApproachStatus({ createdAt: sentAt, acceptedAt: (r.accepted_at as string | null) ?? null }),
       resendAt: new Date(new Date(sentAt).getTime() + APPROACH_RESEND_DAYS * DAY).toISOString(),
     });
   }
@@ -581,8 +584,8 @@ export type SentApproach = {
   id: string;
   createdAt: string;
   reason: string;
-  /** ⚠️ 企業に見せる状態は2つだけ。断った・期限切れは「承認待ち」のまま */
-  status: "pending" | "accepted";
+  /** ★企業に見せる状態（`companyApproachStatus`。承認待ち／30日を過ぎました／やり取り中）。⚠️ 見送りは区別しない */
+  status: CompanyApproachStatus;
   conversationId: string | null;
   candidate: { id: string; name: string; headline: string | null; avatarUrl: string | null; avatarColor: string | null; username: string | null };
   senderName: string | null;
@@ -621,7 +624,7 @@ export async function listSentApproaches(companyId: string): Promise<SentApproac
       id: r.id as string,
       createdAt: r.created_at as string,
       reason: r.reason as string,
-      status: r.accepted_at ? "accepted" : "pending",
+      status: companyApproachStatus({ createdAt: r.created_at as string, acceptedAt: (r.accepted_at as string | null) ?? null }),
       conversationId: (r.conversation_id as string | null) ?? null,
       candidate: {
         id: r.candidate_user_id as string,
