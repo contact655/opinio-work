@@ -8,6 +8,8 @@
  * 引き込まれ、**テストが起動しない。**
  *
  * ⚠️★**このファイルに import を足さないこと。** 足した瞬間にテストが動かなくなる。
+ *    ⚠️ 例外は**型だけの import**（`import type`）。素の Node の型ストリップで消えるので実行に影響しない
+ *       （`./fit` の `FitFact`。2026-10-10）。値の import は足さないこと。
  *    DB から値を取るのは [fetch.ts](./fetch.ts) の仕事。ここは受け取った事実を
  *    文にするだけ。
  *
@@ -26,6 +28,8 @@
  * マッチ度%・星評価は出さない（Hisato 思想⑦）。並べ替えは**根拠の件数**で行う。
  * `preference_match` は `scoreJob()` の結果を使うが、**点数は捨てて理由文だけ**を使う。
  */
+
+import type { FitFact } from "./fit";
 
 // ── しきい値 ─────────────────────────────────────────────────────────────────
 
@@ -68,7 +72,12 @@ export type EvidenceKind =
   | "same_path"        // ある職種・業界から、その企業へ移った人の数
   | "shared_motive"    // その人たちが挙げた入社の決め手と、候補者の希望の一致
   | "talkable"         // その企業で isTalkable() を通る人の数
-  | "preference_match"; // 候補者の希望条件と企業属性の一致
+  | "preference_match" // 候補者の希望条件と企業属性の一致
+  /* ★2026-10-10 に足した3種類（候補者探しの「貴社との接点」と同じ判定。`fit.ts`）。
+     ⚠️★文は保存しない。`fact` だけを保存し、表示するときに見る人に合わせて作る（`evidenceText`） */
+  | "job_role"            // 求人の職種 × 経験職種
+  | "company_role"        // 企業が登録した部門・職種 × 経験職種／関心のある職種
+  | "industry_experience"; // 顧客の業界 または 事業領域 × 職歴（★2つで1種類。どちらか・両方が当たっても1件）
 
 export type Evidence = {
   kind: EvidenceKind;
@@ -80,8 +89,13 @@ export type Evidence = {
    *    「その1人が何を選んだか」が丸見えになる。件数（n）だけ出す。
    */
   k?: number;
-  /** 画面に出す1行。★ここで作る。呼び出し側で組み立て直さないこと */
-  label: string;
+  /**
+   * 画面に出す1行。★既存の4種類だけ。ここで作る。呼び出し側で組み立て直さないこと。
+   * ⚠️★`fact` を持つ種類には入れない（文は表示するときに `evidenceText` が作る）
+   */
+  label?: string;
+  /** ★2026-10-10 に足した3種類の事実。⚠️ 文ではなく事実だけを保存する（`fit.ts`） */
+  fact?: FitFact;
   /** どうやって出した値かの記録。★監査用で、画面には出さない */
   sourceQuery: string;
 };
@@ -127,6 +141,16 @@ export type EvidenceFacts = {
   preference: {
     /** 一致した条件のラベル（scoreJob の reasonParts をそのまま渡す） */
     matchedLabels: string[];
+  } | null;
+  /**
+   * ★候補者探しの「貴社との接点」から取った事実（2026-10-10）。どれも**種類ごとに1件**。
+   * ⚠️ 選び方（どの求人・どの職種か）は fetch.ts が決める。ここでは選ばない。
+   * ⚠️ industry は顧客の業界を優先し、無ければ事業領域（柴さんの決めごと）。
+   */
+  fit: {
+    jobRole: Extract<FitFact, { kind: "job_role" }> | null;
+    companyRole: Extract<FitFact, { kind: "company_role" }> | null;
+    industry: Extract<FitFact, { kind: "target_industry" | "business_domain" }> | null;
   } | null;
 };
 
@@ -232,9 +256,16 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
     });
   }
 
+  /* ★接点の3種類（2026-10-10）。種類ごとに1件。⚠️ 文は入れない（`fit.ts` の注記） */
+  const fit = facts.fit;
+  if (fit?.jobRole) out.push({ kind: "job_role", n: 1, fact: fit.jobRole, sourceQuery: "touchpoints:job_role" });
+  if (fit?.companyRole) out.push({ kind: "company_role", n: 1, fact: fit.companyRole, sourceQuery: "touchpoints:company_role" });
+  if (fit?.industry) out.push({ kind: "industry_experience", n: 1, fact: fit.industry, sourceQuery: `touchpoints:${fit.industry.kind}` });
+
   /* ★件数ではなく「根拠の本数」で並べるので、ここでは kind の優先順で安定させる。
-     ⚠️ `n` の降順にしないこと。④の n は人数ではないので混ざる。 */
-  const ORDER: EvidenceKind[] = ["same_path", "shared_motive", "talkable", "preference_match"];
+     ⚠️ `n` の降順にしないこと。④の n は人数ではないので混ざる。
+     ⚠️ 業界の経験は弱い根拠なので最後（画面は上から3件だけ出す） */
+  const ORDER: EvidenceKind[] = ["same_path", "shared_motive", "talkable", "job_role", "company_role", "preference_match", "industry_experience"];
   return out.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
 }
 

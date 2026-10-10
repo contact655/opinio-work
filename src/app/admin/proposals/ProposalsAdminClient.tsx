@@ -162,6 +162,14 @@ export default function ProposalsAdminClient({
                   <strong>対象から外しました</strong>。
                 </>
               )}
+              {/* ★進行中の提案がある組（2026-10-10）。黙って消さない */}
+              {msg.result.ongoing > 0 && (
+                <>
+                  <br />
+                  <strong>{msg.result.ongoing} 社</strong>は、この人への提案がまだ進行中（届いてから30日以内で終了していない）のため
+                  <strong>作りませんでした</strong>。
+                </>
+              )}
             </>
           ) : (
             <><strong>失敗しました。</strong><br />{msg.error}</>

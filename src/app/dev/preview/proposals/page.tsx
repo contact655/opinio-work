@@ -42,6 +42,7 @@ function facts(n: number, opts?: Partial<EvidenceFacts>): EvidenceFacts {
     sharedMotive: n > 0 ? { n, k: Math.max(1, n - 1), reasonLabel: "裁量の大きさ" } : null,
     talkable: n > 0 ? { n } : null,
     preference: { matchedLabels: ["希望フェーズ（上場企業）にマッチ"] },
+    fit: null,
     ...opts,
   };
 }
@@ -53,7 +54,7 @@ const COUNTER_FULL: CounterFacts = {
 };
 const COUNTER_NONE: CounterFacts = { shortTenure: null, salaryGap: null, workStyleGap: null };
 
-function Card({ f, counter }: { f: EvidenceFacts; counter: CounterFacts }) {
+function Card({ f, counter, audience = "company" }: { f: EvidenceFacts; counter: CounterFacts; audience?: "company" | "candidate" }) {
   const ev = buildEvidence(f, OPTS);
   const ce = buildCounterEvidence(counter, OPTS);
   if (!isProposable(ev)) {
@@ -68,7 +69,7 @@ function Card({ f, counter }: { f: EvidenceFacts; counter: CounterFacts }) {
       </p>
     );
   }
-  return <EvidenceList evidence={ev} counter={ce} />;
+  return <EvidenceList evidence={ev} counter={ce} audience={audience} />;
 }
 
 export default function Page() {
@@ -118,7 +119,7 @@ export default function Page() {
         note="話を聞ける人だけ（1件）→ 提案に出さない"
       >
         <Card
-          f={{ companyName: "サンプルワークス", samePath: null, sharedMotive: null, talkable: { n: 2 }, preference: null }}
+          f={{ companyName: "サンプルワークス", samePath: null, sharedMotive: null, talkable: { n: 2 }, preference: null, fit: null }}
           counter={COUNTER_FULL}
         />
       </Variant>
@@ -131,10 +132,25 @@ export default function Page() {
           f={{
             companyName: "サンプルワークス",
             samePath: { n: 4, fromRoleName: null, fromIndustryName: null },
-            sharedMotive: null, talkable: { n: 3 }, preference: null,
+            sharedMotive: null, talkable: { n: 3 }, preference: null, fit: null,
           }}
           counter={COUNTER_NONE}
         />
+      </Variant>
+
+      {/* ★接点の3種類（2026-10-10）。保存は事実だけで、文は見る人に合わせて作る。
+             ⚠️ 同じ事実が、企業向けと求職者向けで向きだけ変えて出ること */}
+      <Variant label="接点の3種類（企業向け）" note="求人の職種・部門と職種・業界の経験（顧客の業界を優先）。「貴社」が出る">
+        <Card f={FIT_ALL} counter={COUNTER_NONE} audience="company" />
+      </Variant>
+      <Variant label="接点の3種類（求職者向け）" note="同じ事実を求職者向けに。「あなた」が出て「貴社」は出ない">
+        <Card f={FIT_ALL} counter={COUNTER_NONE} audience="candidate" />
+      </Variant>
+      <Variant label="業界の経験だけ" note="★顧客の業界と事業領域の両方が当たっても1件 → 根拠1件で提案に出さない">
+        <Card f={{ ...FIT_NONE_BASE, fit: { jobRole: null, companyRole: null, industry: FIT_TARGET } }} counter={COUNTER_NONE} />
+      </Variant>
+      <Variant label="業界の経験（事業領域）＋移ってきた人数" note="顧客の業界が当たらないときは事業領域の文。求職者向け">
+        <Card f={{ ...FIT_NONE_BASE, samePath: { n: 2, fromRoleName: "アカウントエグゼクティブ", fromIndustryName: null }, fit: { jobRole: null, companyRole: null, industry: FIT_DOMAIN } }} counter={COUNTER_NONE} audience="candidate" />
       </Variant>
 
       {/* ★企業側の一覧（2026-09-21 追加）。本番は提案0件なので、状態ごとの見え方はここでしか見られない。
@@ -148,6 +164,18 @@ export default function Page() {
     </div>
   );
 }
+
+const FIT_TARGET = { kind: "target_industry" as const, industryId: "x", industryName: "建設" };
+const FIT_DOMAIN = { kind: "business_domain" as const, domainIds: ["y"], domainNames: ["CRM・営業支援", "AI・データ"] };
+const FIT_NONE_BASE: EvidenceFacts = { companyName: "サンプルワークス", samePath: null, sharedMotive: null, talkable: null, preference: null, fit: null };
+const FIT_ALL: EvidenceFacts = {
+  ...FIT_NONE_BASE,
+  fit: {
+    jobRole: { kind: "job_role", jobId: "j", jobTitle: "アカウントエグゼクティブ（エンタープライズ営業）", months: 50 },
+    companyRole: { kind: "company_role", companyJobRoleId: "r", roleName: "インサイドセールス", departments: ["営業本部", "マーケティング部"], byExperience: true, byDesired: true },
+    industry: FIT_TARGET,
+  },
+};
 
 function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
   return {

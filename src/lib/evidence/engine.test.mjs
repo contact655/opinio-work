@@ -340,3 +340,48 @@ test("★反証の種類に年齢が無い（型にも文字列にも出さな�
     }
   }
 });
+
+// ── ★接点の3種類（2026-10-10）────────────────────────────────────────────────
+import { evidenceText, fitText } from "./fit.ts";
+
+const JOB = { kind: "job_role", jobId: "j1", jobTitle: "AE", months: 40 };
+const ROLE = { kind: "company_role", companyJobRoleId: "r1", roleName: "IS", departments: ["営業本部"], byExperience: true, byDesired: false };
+const TARGET = { kind: "target_industry", industryId: "i1", industryName: "建設" };
+const DOMAIN = { kind: "business_domain", domainIds: ["d1"], domainNames: ["CRM・営業支援"] };
+
+test("★業界の経験だけでは提案にならない（顧客の業界でも事業領域でも1件）", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, fit: { jobRole: null, companyRole: null, industry: TARGET } }, OPTS);
+  assert.equal(ev.length, 1);
+  assert.equal(ev[0].kind, "industry_experience");
+  assert.equal(isProposable(ev), false);
+});
+
+test("★業界の経験＋ほかの根拠1つで提案になる", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, talkable: { n: 1 }, fit: { jobRole: null, companyRole: null, industry: DOMAIN } }, OPTS);
+  assert.equal(isProposable(ev), true);
+  assert.deepEqual(ev.map((e) => e.kind), ["talkable", "industry_experience"]);
+});
+
+test("★求人の職種＋部門と職種は種類ごとに1件で、2件そろえば提案になる", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, fit: { jobRole: JOB, companyRole: ROLE, industry: null } }, OPTS);
+  assert.deepEqual(ev.map((e) => e.kind), ["job_role", "company_role"]);
+  assert.equal(isProposable(ev), true);
+});
+
+test("★接点の根拠は文を保存しない（事実だけ）。人称は表示するときに付く", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, fit: { jobRole: JOB, companyRole: ROLE, industry: TARGET } }, OPTS);
+  for (const e of ev) {
+    assert.equal(e.label, undefined, "label を保存しない");
+    assert.ok(e.fact);
+    assert.doesNotMatch(evidenceText(e, "company"), /あなた/);
+    assert.doesNotMatch(evidenceText(e, "candidate"), /貴社/);
+  }
+  assert.equal(fitText(JOB, "company"), "求人『AE』と同じ職種の経験があります（経験3年）");
+  assert.equal(fitText(JOB, "candidate"), "あなたの経験と同じ職種の求人『AE』があります（あなたの経験：3年）");
+});
+
+test("★既存の4種類の文は変わらない（label をそのまま出す）", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, talkable: { n: 2 } }, OPTS);
+  assert.equal(evidenceText(ev[0], "company"), "テスト株式会社には、話を聞ける人が 2名います");
+  assert.equal(evidenceText(ev[0], "candidate"), "テスト株式会社には、話を聞ける人が 2名います");
+});

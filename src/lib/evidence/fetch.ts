@@ -24,6 +24,9 @@ import { JOIN_REASON_LABELS } from "@/lib/constants/careerReasons";
 import { matchCompanyPreference } from "@/lib/matching/scoreJob";
 import { getRoleNameMap } from "@/lib/supabase/queries";
 import { buildMoves, countMovesInto, type Move } from "./transitions";
+import { getCompanyCandidateTouchpoints } from "@/lib/business/candidates/touchpoints";
+import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
+import type { FitFact } from "./fit";
 import type {
   CounterFacts,
   EvidenceFacts,
@@ -38,6 +41,11 @@ export type CompanyFacts = {
    * 反証（年収・勤務形態）の材料に使った公開求人。無ければ null。
    * ⚠️★**提案行の `job_id` にはこの値を入れること。** 求人の年収でスナップショットを
    *    作りながら `job_id` を null にすると、**どの求人で判定したのか後から辿れない。**
+   * ★選び方（2026-10-10 / 柴さんの決めごと）: **「求人の職種」の根拠が立った組だけ**、その求人
+   *    （経験年数が最も長いもの。同じなら公開日の新しい順）を付ける。
+   *    ⚠️★**根拠が立たなければ null（企業への提案）。根拠と関係ない求人を付けないこと。**
+   *    その場合、年収のずれ（反証）は測らず、勤務形態は企業の値で見る。
+   *    ⚠️ null の行も一意（候補者 × 企業 × 求人。`NULLS NOT DISTINCT`）が効くので、同じ組に2件目は入らない。
    */
   jobId: string | null;
   evidence: EvidenceFacts;
@@ -92,7 +100,7 @@ export async function gatherCompanyFacts(
     db.from("ow_experiences")
       .select("company_id, role_category_id, join_reasons")
       .eq("user_id", candidateOwUserId),
-    db.from("ow_users").select("auth_id").eq("id", candidateOwUserId).maybeSingle(),
+    db.from("ow_users").select("auth_id, is_test, location").eq("id", candidateOwUserId).maybeSingle(),
     /* 職種名の解決。★企業ごとに引かない（中身は企業に依存しないので共通キャッシュ） */
     getRoleNameMap(),
   ]);
@@ -110,7 +118,7 @@ export async function gatherCompanyFacts(
   // ── 1. 企業の基本情報 ─────────────────────────────────────────────────────
   const { data: companies, error: coErr } = await db
     .from("ow_companies")
-    .select("id, name, name_en, phase, remote_work_status")
+    .select("id, name, name_en, phase, remote_work_status, is_test")
     .in("id", ids);
   if (coErr) console.error("[evidence/fetch] ow_companies:", coErr.message);
 
@@ -195,10 +203,44 @@ export async function gatherCompanyFacts(
   // ── 6. 公開求人（salary_gap の材料）───────────────────────────────────────
   const { data: jobs, error: jobErr } = await db
     .from("ow_jobs")
-    .select("id, company_id, salary_min, salary_max, remote_work_status")
+    .select("id, company_id, salary_min, salary_max, remote_work_status, published_at")
     .in("company_id", ids)
-    .match(PUBLIC_JOB_MATCH);
+    .match(PUBLIC_JOB_MATCH)
+    /* ⚠️ 並びは touchpoints 側と同じ（公開日の新しい順）。ここでは id で引くだけ */
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: true });
   if (jobErr) console.error("[evidence/fetch] ow_jobs:", jobErr.message);
+
+  // ── 7. 候補者探しの「貴社との接点」（求人の職種・部門と職種・業界の経験）──────────
+  /* ★判定は候補者探しと同じ関数（`getCompanyCandidateTouchpoints`）。⚠️ 条件を書き写さないこと。
+     ⚠️ 使ってよい材料も同じ（声かけを受け取る範囲・受け取らない企業・転職意欲の段階・
+        公開範囲を絞った項目は使わない）。勤務地と社員とのつながりは提案の根拠にしない
+        （勤務地は弱く、社員とのつながりは「移ってきた人数」と同じ事実で、人数が少ないと誰か分かるため）。
+     ⚠️ 企業ごとに1回呼ぶ（中で企業の材料を引くため）。提案の相手は担当者がいる掲載企業だけなので数社。 */
+  const desired = authId ? (await getDesiredRolesFor([authId])).get(authId)?.ids ?? [] : [];
+  const fitByCompany = new Map<string, EvidenceFacts["fit"]>();
+  await Promise.all((companies ?? []).map(async (co) => {
+    const tp = await getCompanyCandidateTouchpoints(co.id as string, co.is_test === true, [{
+      owUserId: candidateOwUserId,
+      isTest: me?.is_test === true,
+      location: (me?.location as string | null) ?? null,
+      desiredRoleIds: desired,
+    }]);
+    /* ⚠️ 取れなければ null（測れなかった）。0件と混ぜない */
+    if (!tp) { fitByCompany.set(co.id as string, null); return; }
+    const facts = (tp.byCandidate.get(candidateOwUserId) ?? []).map((t) => t.fact).filter((f): f is FitFact => !!f);
+    /* 求人の職種: 経験年数が最も長いもの。同じなら公開日の新しい順（touchpoints の並び）の先 */
+    let jobRole: Extract<FitFact, { kind: "job_role" }> | null = null;
+    for (const f of facts) if (f.kind === "job_role" && (!jobRole || f.months > jobRole.months)) jobRole = f;
+    /* 部門と職種: 経験と関心の両方で合うものを先に */
+    const roles = facts.filter((f): f is Extract<FitFact, { kind: "company_role" }> => f.kind === "company_role");
+    const companyRole = roles.find((f) => f.byExperience && f.byDesired) ?? roles.find((f) => f.byExperience) ?? roles[0] ?? null;
+    /* 業界の経験: 顧客の業界を優先し、無ければ事業領域（2つで1種類） */
+    const industry = facts.find((f): f is Extract<FitFact, { kind: "target_industry" }> => f.kind === "target_industry")
+      ?? facts.find((f): f is Extract<FitFact, { kind: "business_domain" }> => f.kind === "business_domain")
+      ?? null;
+    fitByCompany.set(co.id as string, { jobRole, companyRole, industry });
+  }));
 
   // ── 畳む ──────────────────────────────────────────────────────────────────
   return (companies ?? []).map((co) => {
@@ -256,7 +298,9 @@ export async function gatherCompanyFacts(
     ).length;
 
     /* ④ preference_match … 求人があれば求人の勤務形態、無ければ企業の値 */
-    const job = (jobs ?? []).find((j) => j.company_id === cid) ?? null;
+    const fit = fitByCompany.get(cid) ?? null;
+    /* ★求人の職種の根拠が立った求人だけ。⚠️ 立たなければ null（根拠と関係ない求人を付けない） */
+    const job = (fit?.jobRole ? (jobs ?? []).find((j) => j.id === fit.jobRole!.jobId) : null) ?? null;
     const workStyle =
       (job?.remote_work_status as string | null) ?? (co.remote_work_status as string | null);
     const matchedLabels = profile
@@ -286,6 +330,7 @@ export async function gatherCompanyFacts(
         sharedMotive,
         talkable: talkableN > 0 ? { n: talkableN } : null,
         preference: matchedLabels.length > 0 ? { matchedLabels } : null,
+        fit,
       },
       counter: {
         /* ⚠️ 退職者が0人なら `null`（測れない）。`{n:0,total:0}` にしない */

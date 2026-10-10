@@ -57,7 +57,7 @@ function CandidateBadge({ p }: { p: BizProposalView }) {
 }
 
 /** 根拠の材料の今の数（`lib/evidence/materials.ts`）。⚠️ null は取得に失敗（「—」と出す。0 と出さない） */
-type EvidenceMaterialsView = { path: number; motive: number; talkable: number } | null;
+type EvidenceMaterialsView = { path: number; motive: number; talkable: number; jobs: number; roles: number } | null;
 
 export default function BizProposalsClient({
   proposals, loadFailed, materials = null, responseDays,
@@ -126,7 +126,7 @@ export default function BizProposalsClient({
         <p style={{ margin: "4px 0 0" }}>
           候補者のお名前と公開プロフィールは、候補者検索と同じようにご覧いただけます。
           <strong>メッセージができるようになるのは、双方が「会いたい」と答えたとき</strong>です。
-          提案は届いてから{responseDays}日で終了します。
+          提案は届いてから{responseDays}日で終了します。見送っても、相手には「この提案は終了しました」とだけ表示されます。
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export default function BizProposalsClient({
           <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
             OPINIO は、<strong>根拠を2件以上そろえられた候補者だけ</strong>をご提案します。
             {/* ⚠️ 改行で文を割らない（JSX が改行を空白にし、「。 根拠」「・ 話を」と空白が入っていた） */}
-            {"根拠になるのは、御社に移ってきた方の人数・在籍している方やしていた方が挙げた入社の決め手・話を聞ける方の人数・ご本人の希望条件との一致です。"}
+            {"根拠になるのは、御社に移ってきた方の人数・在籍している方やしていた方が挙げた入社の決め手・話を聞ける方の人数・御社の求人や部門の職種と同じ経験・ご本人の希望条件との一致・御社の顧客の業界や事業領域での経験です（業界の経験だけでは提案になりません）。"}
           </p>
           {/* ★根拠の材料の今の数（2026-10-10）。実データから数える（`lib/evidence/materials.ts`）。
                  ⚠️ 取得に失敗したら「—」。0 と出さない
@@ -156,6 +156,9 @@ export default function BizProposalsClient({
               { key: "path", label: "御社に移ってきた方", value: materials?.path, unit: "人", href: "/biz/employees", action: "社員管理で、企業ページに出ている方を確かめる" },
               { key: "motive", label: "在籍している方やしていた方が挙げた入社の決め手", value: materials?.motive, unit: "件", href: "/biz/employees", action: "社員管理で、社員に入社の決め手の回答を呼びかける" },
               { key: "talkable", label: "話を聞ける方", value: materials?.talkable, unit: "人", href: "/biz/employees", action: "社員管理で社員に登録を呼びかける" },
+              /* ★2026-10-10 に足した2つ（求人の職種・部門と職種の根拠の材料） */
+              { key: "jobs", label: "公開中の求人", value: materials?.jobs, unit: "件", href: "/biz/jobs/new", action: "求人を登録する" },
+              { key: "roles", label: "職種マスタに紐づいた部門・職種", value: materials?.roles, unit: "件", href: "/biz/organization?tab=roles", action: "部門・職種を登録する" },
             ] as const).map((m) => (
               <li key={m.key} data-material={m.key} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "4px 10px", fontSize: 13, padding: "8px 12px", background: "var(--bg-tint)", borderRadius: 8 }}>
                 <span style={{ color: "var(--ink-soft)" }}>{m.label}</span>
@@ -226,7 +229,7 @@ export default function BizProposalsClient({
                 )}
               </header>
 
-              <EvidenceList evidence={p.evidence} counter={p.counter} />
+              <EvidenceList evidence={p.evidence} counter={p.counter} audience="company" />
 
 
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>

@@ -6,9 +6,14 @@
  *    `kind: "unknown"` は「確かめていない」で、**根拠が無いことの言い換えではない。**
  *
  * ⚠️★**スコア・%・星を出さない**（Hisato 思想⑦）。出すのは件数と文だけ。
+ *
+ * ⚠️★**`audience` は必須。** 2026-10-10 に足した根拠（求人の職種・部門と職種・業界の経験）は
+ *    事実だけを保存しており、文は見る人に合わせてここで作る（`lib/evidence/fit.ts` の `evidenceText`）。
+ *    既存の4種類は人称の無い文を保存しているので、どちらでも同じ文が出る。
  */
+import { evidenceText, type FitAudience, type FitFact } from "@/lib/evidence/fit";
 
-export type EvidenceView = { kind: string; n: number; k?: number; label: string };
+export type EvidenceView = { kind: string; n: number; k?: number; label?: string; fact?: FitFact };
 export type CounterView = { kind: string; label: string };
 
 /** ★1枚に出す根拠の上限。増やすと「根拠が多いほど良い」に見えてしまう */
@@ -17,9 +22,11 @@ export const MAX_EVIDENCE_SHOWN = 3;
 export default function EvidenceList({
   evidence,
   counter,
+  audience,
 }: {
   evidence: EvidenceView[];
   counter: CounterView[];
+  audience: FitAudience;
 }) {
   const shown = evidence.slice(0, MAX_EVIDENCE_SHOWN);
   const rest = evidence.length - shown.length;
@@ -33,7 +40,7 @@ export default function EvidenceList({
             style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "6px 0", fontSize: 14, lineHeight: 1.7 }}
           >
             <span aria-hidden style={{ color: "var(--royal)", flexShrink: 0, marginTop: 1 }}>◆</span>
-            <span>{e.label}</span>
+            <span>{evidenceText(e, audience)}</span>
           </li>
         ))}
       </ul>

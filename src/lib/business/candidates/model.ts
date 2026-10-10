@@ -14,6 +14,8 @@ import type { CandidateStage } from "@/lib/constants/candidateNotes";
 import type { SavedCandidateFilters } from "@/lib/business/savedSearch";
 
 /** ★貴社との接点の1件。種類・表示文・根拠の参照先（画面で根拠へ飛べるように） */
+import type { FitFact } from "@/lib/evidence/fit";
+
 export type TouchpointKind =
   | "job_role"        // ① 求人の職種 × 経験職種（＋年数）
   | "company_role"    // ② 部門・職種 × 経験職種／関心のある職種
@@ -29,6 +31,11 @@ export type Touchpoint = {
   ref: { type: "job" | "company_job_role" | "department" | "industry" | "business_domain" | "company"; id: string } | null;
   /** 強さ（大きいほど上に出す）。並び替えにも使う */
   weight: number;
+  /**
+   * ★文の元になった事実（2026-10-10）。求人の職種・部門と職種・顧客の業界・事業領域の4種類だけ。
+   * ⚠️ 提案の根拠も同じ事実から文を作る（`lib/evidence/fit.ts`）。text を組み立て直さないこと
+   */
+  fact?: FitFact;
 };
 
 /** 自社で接点の材料が揃っているか（空のときの入口を出し分ける。⚠️ クライアントからも読むのでここに置く） */

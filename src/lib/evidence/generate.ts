@@ -42,6 +42,7 @@ import {
 import { companiesToExclude, evidenceOptions, gatherCompanyFacts } from "./fetch";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { notifyProposalsCreated } from "@/lib/notify/proposalNotification";
+import { isProposalEndedFor, isProposalExpired } from "./proposalEnded";
 
 export type GenerateResult = {
   /** 掲載中で、候補者が在籍していない企業の数（＝突き合わせた母数） */
@@ -70,6 +71,12 @@ export type GenerateResult = {
    * ⚠️ **黙って消さない。** 画面に出すこと。
    */
   hiddenByCandidate: number;
+  /**
+   * ★**同じ候補者 × 企業に進行中の提案がある**ので作らなかった企業の数（2026-10-10 / 柴さんの決めごと）。
+   *   進行中 ＝ 回答の締め切り（届いてから30日）前で、どちらから見ても終了していないもの。
+   * ⚠️ 一意の決まり（候補者 × 企業 × 求人）は変えていない。求人が違えば行は作れてしまうので、ここで止める。
+   */
+  ongoing: number;
 };
 
 /**
@@ -106,6 +113,7 @@ export async function generateProposalsForCandidate(
       examined: 0, proposable: 0, created: 0, skipped: 0, belowThreshold: 0,
       withoutBizAccount: 0,
       hiddenByCandidate: 0,
+      ongoing: 0,
       blockedByStance: { stance },
     };
   }
@@ -176,8 +184,36 @@ export async function generateProposalsForCandidate(
       return data === true;
     }),
   );
-  const targets = respondableTargets.filter((_id, i) => visibility[i]);
-  const hiddenByCandidate = respondableTargets.length - targets.length;
+  const visibleTargets = respondableTargets.filter((_id, i) => visibility[i]);
+  const hiddenByCandidate = respondableTargets.length - visibleTargets.length;
+
+  /* ── ★同じ候補者 × 企業に進行中の提案があれば作らない（2026-10-10）────────────
+     判定は画面と同じ関数（`proposalEnded.ts`）。⚠️ 条件を書き写さないこと。
+     ⚠️ 見せてよいかは直前の `can_send_scout()` で確かめ済みなので visible = true で判定する。
+     ⚠️ 引けなければ作らない（fail-closed）。同じ企業に2件目を作るより、作らないほうが安全 */
+  const { data: existing, error: exErr } = visibleTargets.length
+    ? await db.from("ow_proposals")
+        .select("company_id, candidate_response, company_response, introduced_at, respond_by")
+        .eq("candidate_user_id", candidateOwUserId).in("company_id", visibleTargets)
+    : { data: [], error: null };
+  if (exErr) {
+    console.error("[evidence/generate] 既存の提案:", exErr.message);
+    throw new Error(`既存の提案を確かめられませんでした: ${exErr.message}`);
+  }
+  const ongoingCompanies = new Set(
+    (existing ?? []).filter((r) => {
+      const p = {
+        companyId: r.company_id as string,
+        candidateUserId: candidateOwUserId,
+        candidateResponse: (r.candidate_response as string | null) ?? null,
+        companyResponse: (r.company_response as string | null) ?? null,
+        introducedAt: (r.introduced_at as string | null) ?? null,
+        respondBy: r.respond_by as string,
+      };
+      return !isProposalExpired(p) && !isProposalEndedFor("company", p, true) && !isProposalEndedFor("candidate", p, true);
+    }).map((r) => r.company_id as string),
+  );
+  const targets = visibleTargets.filter((id) => !ongoingCompanies.has(id));
 
   const facts = await gatherCompanyFacts(candidateOwUserId, targets);
   /* ⚠️★ラベルに人称が入らないので、②と⑨で同じスナップショットを共有できる。
@@ -242,6 +278,7 @@ export async function generateProposalsForCandidate(
     belowThreshold,
     withoutBizAccount,
     hiddenByCandidate,
+    ongoing: ongoingCompanies.size,
   };
 }
 

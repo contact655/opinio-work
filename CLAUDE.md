@@ -3206,6 +3206,7 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 | 根拠がそろわない理由（**「入力UIが無いから0件」ではなかった**） | [evidence-gaps-20260918.md](docs/evidence-gaps-20260918.md) |
 | ★**③（双方合意）を何から作るか** | [proposals-mutual-20260921.md](docs/proposals-mutual-20260921.md) |
 | ★**②⑨が動かない残りは運用**（決め手1人 / 実在の担当者は自社1社） | [proposals-ops-20260921.md](docs/proposals-ops-20260921.md) |
+| ★**根拠に求人・部門と職種・業界の経験を足した**（文は保存せず表示時に作る／進行中があれば作らない） | [proposals-fit-20261010.md](docs/proposals-fit-20261010.md) |
 
 ⚠️★**mutual の判定と紹介は [introduce.ts](src/lib/evidence/introduce.ts) の
    `introduceIfMutual()` の1箇所。** 入口は [respond.ts](src/lib/evidence/respond.ts) だけで、

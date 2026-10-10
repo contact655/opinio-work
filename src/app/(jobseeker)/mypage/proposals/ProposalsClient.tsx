@@ -113,8 +113,8 @@ export default function ProposalsClient({
             「近そうだから」という理由では出しません。
           </p>
           <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
-            根拠になるのは、同じ職種から移った方の人数・在籍している方が挙げた入社の決め手・
-            話を聞ける方の人数・あなたの希望条件との一致です。
+            {/* ★2026-10-10 に会社の求人・部門の職種・業界を足した。⚠️ 企業側（BizProposalsClient）と同じ事実を向きだけ変えて書いている */}
+            {"根拠になるのは、同じ職種から移った方の人数・在籍している方が挙げた入社の決め手・話を聞ける方の人数・あなたの経験と同じ職種の求人や部門・あなたの希望条件との一致・あなたが経験した業界や事業領域との一致です（業界の一致だけでは提案になりません）。"}
             <strong>職歴と希望条件を登録していただくほど、そろいやすくなります。</strong>
           </p>
         </div>
@@ -141,7 +141,7 @@ export default function ProposalsClient({
                   )}
                 </header>
 
-                <EvidenceList evidence={p.evidence} counter={p.counter} />
+                <EvidenceList evidence={p.evidence} counter={p.counter} audience="candidate" />
 
                 {/* ⚠️ スナップショットである旨を書く。数字が古くなりうることを隠さない */}
                 <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "10px 0 0" }}>
