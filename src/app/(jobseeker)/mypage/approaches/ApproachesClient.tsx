@@ -1,5 +1,6 @@
 "use client";
 
+import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
@@ -23,42 +24,45 @@ export type IncomingApproachView = {
 };
 
 /**
- * ★企業からの声かけの一覧と、答えるボタン（2026-10-09）。
- * ⚠️ 「話してみる」で企業とのメッセージが開く。「今回は見送る」は企業に伝わらない。
+ * ★企業からのメッセージリクエストの一覧と返信欄（2026-10-09。2026-10-11 に「受け入れる」をやめ、そのまま返信できる形に）。
+ * ⚠️ 返信すると企業とのメッセージが開く。「今回は見送る」は企業に伝わらない。
  * ⚠️ 答えたら一覧から外す（サーバーの値を取り直す）。
  */
 export default function ApproachesClient({ items }: { items: IncomingApproachView[] | null }) {
   const router = useRouter();
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [gone, setGone] = useState<Set<string>>(new Set());
 
   const fmt = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).format(new Date(iso));
 
-  async function respond(id: string, action: "accept" | "decline") {
-    setBusyId(id);
-    setErrors((e) => ({ ...e, [id]: "" }));
+  /* ★返信（2026-10-11）。返信した時点で会話が開き、そのまま会話の画面へ移る */
+  async function reply(id: string, body: string): Promise<string | null> {
     try {
-      const res = await fetch(`/api/jobseeker/approaches/${id}/respond`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+      const res = await fetch(`/api/jobseeker/approaches/${id}/reply`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setErrors((e) => ({ ...e, [id]: data?.error ?? "うまくいきませんでした。もう一度お試しください。" }));
-        return;
-      }
-      if (action === "accept" && data?.conversationId) {
-        router.push(`/mypage/conversations/${data.conversationId}`);
-        return;
-      }
+      if (!res.ok) return data?.error ?? "送信できませんでした。もう一度お試しください。";
+      if (data?.conversationId) { router.push(`/mypage/conversations/${data.conversationId}`); return null; }
       setGone((g) => new Set(g).add(id));
       router.refresh();
+      return null;
     } catch {
-      setErrors((e) => ({ ...e, [id]: "うまくいきませんでした。もう一度お試しください。" }));
-    } finally {
-      setBusyId(null);
+      return "送信できませんでした。もう一度お試しください。";
+    }
+  }
+  /* 見送る。⚠️ 企業には伝わらない */
+  async function decline(id: string): Promise<string | null> {
+    try {
+      const res = await fetch(`/api/jobseeker/approaches/${id}/respond`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return data?.error ?? "うまくいきませんでした。もう一度お試しください。";
+      setGone((g) => new Set(g).add(id));
+      router.refresh();
+      return null;
+    } catch {
+      return "うまくいきませんでした。もう一度お試しください。";
     }
   }
 
@@ -69,7 +73,7 @@ export default function ApproachesClient({ items }: { items: IncomingApproachVie
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>企業からのメッセージリクエスト</h1>
       <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 16px" }}>
         候補者検索であなたを見つけた企業が、理由を添えて「話を聞かせてもらえませんか」とメッセージリクエストを送ってきています。
-        「話してみる」を押すと、その企業とメッセージでやり取りを始められます。
+        返信すると、そのままその企業とメッセージでやり取りが始まります。
         <strong style={{ color: "var(--ink)" }}>見送っても、企業には伝わりません。</strong>
         届いてから{APPROACH_EXPIRE_DAYS}日たつと、ここには表示されなくなります。
       </p>
@@ -89,31 +93,9 @@ export default function ApproachesClient({ items }: { items: IncomingApproachVie
                 logoGradient={a.logoGradient} senderName={a.senderName} dateText={fmt(a.createdAt)} reason={a.reason} body={a.body} job={a.job}
                 isOwnCompany={a.isOwnCompany} />
 
-              {errors[a.id] && (
-                <p role="alert" style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{errors[a.id]}</p>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  data-action="accept"
-                  disabled={busyId === a.id}
-                  onClick={() => { void respond(a.id, "accept"); }}
-                  className="tap-min-h"
-                  style={{ padding: "9px 20px", borderRadius: 10, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: busyId === a.id ? "default" : "pointer" }}
-                >
-                  {busyId === a.id ? "処理中…" : "話してみる"}
-                </button>
-                <button
-                  type="button"
-                  data-action="decline"
-                  disabled={busyId === a.id}
-                  onClick={() => { void respond(a.id, "decline"); }}
-                  className="tap-min-h"
-                  style={{ padding: "9px 18px", borderRadius: 10, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: busyId === a.id ? "default" : "pointer" }}
-                >
-                  今回は見送る
-                </button>
-              </div>
+              {/* ★返信欄は企業の見本と同じ部品（RequestReplyBox）。⚠️ 片方だけ書き換えない */}
+              <RequestReplyBox declineNote="見送っても企業には伝わりません。"
+                onSend={(body) => reply(a.id, body)} onDecline={() => decline(a.id)} />
             </section>
           ))}
         </div>

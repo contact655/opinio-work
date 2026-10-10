@@ -464,15 +464,15 @@ export function applicationCompanyTemplate(params: {
 }
 
 /**
- * ★企業からの「声かけ」を求職者が承認した（2026-10-10）。宛先は企業（声かけを送った担当者、
+ * ★企業からのメッセージリクエストに求職者が返信した（2026-10-10。2026-10-11 に「承認」から「返信」へ）。宛先は企業（声かけを送った担当者、
  *   届かなければ `getCompanyNotificationTarget` の決め方）。
  *
  * ⚠️★**会話の内容を書かない。** 名前と会話を開くリンクだけ（柴さんの指示）。
- * ⚠️★**見送られたときは送らない。** 企業から見て「承認待ち」のままにする決まり。
+ * ⚠️★**見送られたときは送らない。** 企業から見て「返事待ち」のままにする決まり。
  * ⚠️ 求職者の名前は**第三者への言及**なので `greet()` は使わない。名前が使えないときは別の言い回しにする。
  * ⚠️ 「スカウト」と呼ばない。
  */
-export function approachAcceptedCompanyTemplate(params: {
+export function approachRepliedCompanyTemplate(params: {
   to: string;
   candidateName: string | null | undefined;
   conversationId: string;
@@ -480,13 +480,14 @@ export function approachAcceptedCompanyTemplate(params: {
   viaOps?: boolean;
 }) {
   const name = greetingName(params.candidateName);
-  const who = name ? `${name}さん` : "メッセージリクエストを送った方";
+  const who = name ? `${name}さん` : "リクエストを送った方";
+  /* ★件名・本文は柴さんの指示（2026-10-11）。⚠️★返信の中身は書かない（名前と会話へのリンクだけ） */
   return {
     to: params.to,
-    subject: opsSubject(`${who}がメッセージリクエストを受け入れました`, params.viaOps === true),
+    subject: opsSubject(`${who}からメッセージリクエストに返信がありました`, params.viaOps === true),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">メッセージリクエストが受け入れられました</h2>
-      <p style="margin:0 0 20px;color:#475569">${esc(who)}がメッセージリクエストを受け入れました。メッセージでやり取りを始められます。</p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">メッセージリクエストに返信がありました</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}から返信がありました。メッセージでやり取りを始められます。</p>
       <a href="https://opinio.jp/biz/conversations/${encodeURIComponent(params.conversationId)}" style="${BTN}">会話を開く →</a>
     `),
   };

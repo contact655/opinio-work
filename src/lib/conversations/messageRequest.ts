@@ -1,8 +1,8 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { mutateOne } from "@/lib/supabase/mutate";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
+import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import {
   MAX_MESSAGE_REQUEST_LENGTH,
@@ -27,13 +27,13 @@ import {
  *    （`CONTACT_BLOCKED_MESSAGE`）。上限や重複のような**送り手自身の事実**は、事実どおりに返す。
  */
 
-export const NOT_ACCEPTED_MESSAGE = "まだ受け入れられていません。受け入れられると続きを送れます";
+export const NOT_ACCEPTED_MESSAGE = "まだ返信がありません。返信があると続きを送れます";
 
 const MSG = {
   daily: `本日はこれ以上メッセージリクエストを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
   open: `返事待ちのリクエストが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上リクエストを送れません`,
-  outgoing: "この方にはすでにメッセージリクエストを送っています。受け入れられると続きを送れます",
-  incoming: "この方からメッセージリクエストが届いています。メッセージ一覧で受け入れることができます",
+  outgoing: "この方にはすでにメッセージリクエストを送っています。返信があると続きを送れます",
+  incoming: "この方からメッセージリクエストが届いています。メッセージ一覧から返信できます",
   exists: "この方とのメッセージはすでに始まっています",
   failed: "送信に失敗しました。もう一度お試しください",
 } as const;
@@ -148,15 +148,17 @@ export async function sendMessageRequest(params: {
   }
   if (senderId === recipientId) return { ok: false, status: 400, error: "自分には送れません" };
 
-  /* ① 相手に関わる理由（理由は返さない） */
-  if (await isMessagingBlocked(senderId, recipientId)) {
-    return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
-  }
-  /* ② 既にある DM */
+  /* ① 既にある DM。⚠️★ブロックより先に見る（2026-10-11）。
+        自分が送って返事待ちのものがあれば、相手がブロックしていても「すでに送っています」（409）を返す。
+        ブロックを先に見ると 403 になり、**ふつうの返事待ちと違う答えでブロックされたと分かってしまう。** */
   const state = await getDmState(senderId, recipientId);
   if (!state) return { ok: false, status: 500, error: MSG.failed };
   const stateMsg = stateBlockMessage(state);
   if (stateMsg) return { ok: false, status: state.kind === "incoming_declined" ? 403 : 409, error: stateMsg };
+  /* ② 相手に関わる理由（理由は返さない） */
+  if (await isMessagingBlocked(senderId, recipientId)) {
+    return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
+  }
   /* ③ 送り手の枠 */
   const quota = await getRequestQuota(senderId);
   if (!quota) return { ok: false, status: 500, error: MSG.failed };
@@ -219,17 +221,24 @@ export async function sendMessageRequest(params: {
   return { ok: true, conversationId };
 }
 
-export type RespondAction = "accept" | "decline";
+export type RespondAction = "decline" | "block" | "report";
 
-/** 受け手が承認・断る */
+/**
+ * 受け手が「今回は見送る」「ブロック」「運営に報告」を押す（2026-10-11 に「承認」を外した。返信は `replyToMessageRequest`）。
+ * ⚠️★見送り・ブロックは送り手に何も伝えない（通知も出さない・会話の行も変えない。送り手には「返事待ち」のまま見える）。
+ * ⚠️ ブロックは ow_user_blocks に記録し、このリクエストを一覧から消す（見送りと同じ ow_message_request_declines）。
+ *    以後はどちらからも送れない（`contactGate.isMessagingBlocked`）。
+ * ⚠️ 報告は ow_message_reports に1件（1通目の本文を控える）。一覧からは消さない。運営は /admin/message-reports で見る。
+ */
 export async function respondToMessageRequest(params: {
   conversationId: string;
   recipientId: string;
   action: RespondAction;
+  note?: string | null;
 }): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const { conversationId, recipientId, action } = params;
   const db = createAdminClient();
-  const notFound = { ok: false as const, status: 404, error: "このお願いは見つかりません" };
+  const notFound = { ok: false as const, status: 404, error: "このリクエストは見つかりません" };
 
   const { data: conv, error } = await db
     .from("ow_conversations")
@@ -240,53 +249,113 @@ export async function respondToMessageRequest(params: {
     console.error("[messageRequest] respond load:", error.message);
     return { ok: false, status: 500, error: MSG.failed };
   }
-  /* ⚠️ 受け手本人のお願いだけ。送り手が自分で承認できないようにする */
+  /* ⚠️ 受け手本人のリクエストだけ。送り手が自分で答えられないようにする */
   if (!conv || conv.kind !== "direct_message" || conv.partner_user_id !== recipientId || conv.request_status !== "pending") {
     return notFound;
   }
   const declined = await isDeclined(conversationId);
   if (declined === null) return { ok: false, status: 500, error: MSG.failed };
   if (declined) return notFound;
+  const senderId = conv.candidate_user_id as string;
 
-  if (action === "decline") {
-    /* ⚠️★送り手には何も伝えない（通知も出さない・会話の行も変えない） */
-    const { error: dErr } = await db.from("ow_message_request_declines").insert({ conversation_id: conversationId });
-    if (dErr && dErr.code !== "23505") {
-      console.error("[messageRequest] decline:", dErr.message);
+  if (action === "report") {
+    const first = await firstMessageBody(conversationId);
+    const { error: rErr } = await db.from("ow_message_reports").insert({
+      conversation_id: conversationId,
+      reporter_user_id: recipientId,
+      reported_user_id: senderId,
+      message_snapshot: first,
+      note: params.note?.trim() ? params.note.trim().slice(0, 1000) : null,
+    });
+    if (rErr) {
+      console.error("[messageRequest] report:", rErr.message);
       return { ok: false, status: 500, error: MSG.failed };
     }
     return { ok: true };
   }
 
-  const r = await mutateOne(
-    db.from("ow_conversations")
-      .update({ request_status: "accepted", responded_at: new Date().toISOString() })
-      .eq("id", conversationId).eq("request_status", "pending"),
-    "メッセージリクエストの承認",
-  );
-  if (!r.ok) return { ok: false, status: r.status, error: MSG.failed };
-
-  /* 承認したので、受け手を参加者に足す（ここで初めて本文が読める） */
-  const parts = await ensureDmParticipants(db, conversationId, [conv.candidate_user_id as string, recipientId]);
-  if (!parts.ok) {
-    console.error("[messageRequest] accept participants:", parts.error);
-    return { ok: false, status: parts.status, error: MSG.failed };
+  if (action === "block") {
+    const { error: bErr } = await db.from("ow_user_blocks").insert({ blocker_user_id: recipientId, blocked_user_id: senderId });
+    if (bErr && bErr.code !== "23505") {
+      console.error("[messageRequest] block:", bErr.message);
+      return { ok: false, status: 500, error: MSG.failed };
+    }
   }
 
-  const { error: nErr } = await db.from("ow_notifications").insert({
-    recipient_user_id: conv.candidate_user_id,
-    actor_user_id: recipientId,
-    type: "message_request_accepted",
-    conversation_id: conversationId,
-  });
-  if (nErr) console.error("[messageRequest] notify accepted:", nErr.message);
-
+  /* 見送り（ブロックも一覧から消す）。⚠️★送り手には何も伝えない */
+  const { error: dErr } = await db.from("ow_message_request_declines").insert({ conversation_id: conversationId });
+  if (dErr && dErr.code !== "23505") {
+    console.error("[messageRequest] decline:", dErr.message);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
   return { ok: true };
+}
+
+/** 返信の長さ（2026-10-11）。DB 関数 reply_to_message_request と同じ値 */
+export const MESSAGE_REQUEST_REPLY_MAX = 2000;
+
+/**
+ * ★受け手が返信する（2026-10-11 / 柴さんの指示。「承認」を挟まず、返信した時点でやり取りが始まる）。
+ * ⚠️★書き込みは DB 関数 `reply_to_message_request` の**1トランザクション**（service_role だけ）:
+ *    返信済み（request_status='accepted'）→ 両者を参加者に → 返信を入れる。途中で失敗したら全部戻る。
+ * ⚠️ 送り手へのお知らせは書き込みが済んでから（通常のメッセージと同じ `notifyNewMessage`。本文は出さない）。
+ */
+export async function replyToMessageRequest(params: {
+  conversationId: string;
+  recipientId: string;
+  body: string;
+}): Promise<{ ok: true; conversationId: string } | { ok: false; status: number; error: string }> {
+  const body = params.body.trim();
+  if (!body) return { ok: false, status: 400, error: "返信を入力してください" };
+  if (body.length > MESSAGE_REQUEST_REPLY_MAX) return { ok: false, status: 400, error: `返信は${MESSAGE_REQUEST_REPLY_MAX}文字以内で入力してください` };
+
+  const db = createAdminClient();
+  const { data: conv, error: cErr } = await db.from("ow_conversations")
+    .select("candidate_user_id").eq("id", params.conversationId).maybeSingle();
+  if (cErr) {
+    console.error("[messageRequest] reply load:", cErr.message);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+  if (!conv) return { ok: false, status: 404, error: "このリクエストは見つかりません" };
+  /* ⚠️ いまこの2人のあいだで送れるか（ブロック・検証用と実在の組・企業の担当者の規則）。理由は返さない */
+  if (await isMessagingBlocked(params.recipientId, conv.candidate_user_id as string)) {
+    return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
+  }
+
+  const { data, error } = await db.rpc("reply_to_message_request", {
+    p_conversation_id: params.conversationId,
+    p_recipient_ow_user_id: params.recipientId,
+    p_body: body,
+  });
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "OR404") return { ok: false, status: 404, error: "このリクエストは見つかりません" };
+    if (code === "OR409") return { ok: false, status: 409, error: "このリクエストにはすでに返信しています" };
+    if (code === "OR400") return { ok: false, status: 400, error: `返信は1〜${MESSAGE_REQUEST_REPLY_MAX}文字で入力してください` };
+    console.error("[messageRequest] reply:", error.message);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+  await notifyNewMessage({ conversationId: params.conversationId, senderOwUserId: params.recipientId, source: "dm/request-reply" });
+  return { ok: true, conversationId: data as string };
+}
+
+/** 1通目の本文（受け手が返信する前に、サーバーから見せる）。⚠️ admin で読む。受け手を参加者に加えない決まりはそのまま */
+async function firstMessageBody(conversationId: string): Promise<string | null> {
+  const { data, error } = await createAdminClient().from("ow_conversation_messages")
+    .select("body").eq("conversation_id", conversationId).is("deleted_at", null)
+    .order("sent_at", { ascending: true }).limit(1).maybeSingle();
+  if (error) {
+    console.error("[messageRequest] first message:", error.message);
+    return null;
+  }
+  return (data?.body as string | undefined) ?? null;
 }
 
 export type IncomingRequest = {
   conversationId: string;
   requestedAt: string | null;
+  /** ★1通目の本文（2026-10-11）。返信する前に読めるよう、サーバーから渡す。取れなかったら null */
+  body: string | null;
   requester: {
     id: string;
     name: string;
@@ -297,7 +366,7 @@ export type IncomingRequest = {
   };
 };
 
-/** 受け手に届いている承認待ちのお願い（断ったものは出さない）。⚠️ 本文は返さない */
+/** 受け手に届いている返事待ちのリクエスト（見送った・ブロックしたものは出さない）。★1通目の本文も返す（2026-10-11） */
 export async function listIncomingRequests(meId: string): Promise<IncomingRequest[]> {
   const db = createAdminClient();
   const { data, error } = await db
@@ -322,6 +391,15 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
     }
     declined = new Set((d ?? []).map((x) => x.conversation_id as string));
   }
+  const shownIds = ids.filter((id) => !declined.has(id));
+  const bodies = new Map<string, string>();
+  if (shownIds.length > 0) {
+    const { data: msgs, error: mErr } = await db.from("ow_conversation_messages")
+      .select("conversation_id, body, sent_at").in("conversation_id", shownIds).is("deleted_at", null)
+      .order("sent_at", { ascending: true });
+    if (mErr) console.error("[messageRequest] incoming bodies:", mErr.message);
+    for (const m of msgs ?? []) if (!bodies.has(m.conversation_id as string)) bodies.set(m.conversation_id as string, m.body as string);
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((data ?? []) as any[])
     .filter((r) => !declined.has(r.id as string))
@@ -330,6 +408,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
       return {
         conversationId: r.id as string,
         requestedAt: (r.requested_at as string | null) ?? null,
+        body: bodies.get(r.id as string) ?? null,
         requester: {
           id: (u?.id as string) ?? "",
           name: (u?.name as string) ?? "",

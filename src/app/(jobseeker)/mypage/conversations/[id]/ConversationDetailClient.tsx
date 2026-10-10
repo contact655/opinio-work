@@ -158,7 +158,9 @@ export default function ConversationDetailClient({
       : conversation.ow_companies?.name ?? "(企業情報なし)";
 
   const company = conversation.ow_companies;
-  const stageLabel = STAGE_LABELS[conversation.stage] ?? conversation.stage;
+  /* ⚠️ 語彙に無い値をそのまま出さない（2026-10-11）。`stage` は今は 'active' しか無く、
+        生の値にフォールバックしていたため、企業との会話の見出しに英語の「active」が出ていた。 */
+  const stageLabel = STAGE_LABELS[conversation.stage] ?? null;
 
   return (
     <MypageLayout activeKey="conversations">
@@ -281,7 +283,7 @@ export default function ConversationDetailClient({
           {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
             /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
             <p data-state="request-pending-banner" className="text-sm text-gray-500 text-center py-1">
-              まだ受け入れられていません。受け入れられると続きを送れます
+              まだ返信がありません。返信があると続きを送れます
             </p>
           ) : myParticipantId ? (
             <div className="flex gap-2 items-end">

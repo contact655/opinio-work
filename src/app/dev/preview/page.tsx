@@ -28,7 +28,7 @@ const ITEMS = [
   { href: "/dev/preview/candidate-touchpoints", label: "貴社との接点（/biz/candidates の右のプレビュー）",
     desc: "★実データは材料がほとんど無く出る側を描けない。0件と入口／材料は揃って0件／2件／5件（ほかに2件）／取得失敗をここで見る" },
   { href: "/dev/preview/approaches", label: "メッセージリクエストの一覧（/biz/approaches）",
-    desc: "★検証用データでは状態が揃わない。0件（メッセージリクエストを送れる人 N人／0人／取得失敗）／返事待ち（3日・25日）／やり取り中（未読）／30日を過ぎたもの／受け入れ率をここで見る" },
+    desc: "★検証用データでは状態が揃わない。0件（メッセージリクエストを送れる人 N人／0人／取得失敗）／返事待ち（3日・25日）／返信あり（未読）／30日を過ぎたもの／返信率をここで見る" },
   { href: "/dev/preview/inbox", label: "届いているもの（/mypage）",
     desc: "★実データでは「個人から」「企業から」のメッセージリクエストが同時に揃わない。2行並んだときの印をここで見る" },
   { href: "/dev/preview/approach-compose", label: "メッセージリクエストを書く（/biz/approaches/new）",

@@ -1,5 +1,6 @@
 "use client";
 
+import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
 import { FromTag } from "@/components/mypage/InboxCard";
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
@@ -15,7 +16,7 @@ import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
-const NOT_ACCEPTED_TEXT = "まだ受け入れられていません。受け入れられると続きを送れます";
+const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
 
 export type Conversation = {
   id: string;
@@ -97,17 +98,21 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
 const isPendingRequest = (c: Conversation | null | undefined) =>
   !!c && c.kind === "direct_message" && c.request_status !== "accepted";
 
-/** ★届いた「メッセージのお願い」の欄（段階3）。⚠️ 本文は出さない（承認するまで読めない決まり） */
+/**
+ * ★届いたメッセージリクエスト（個人から）の欄（段階3。2026-10-11 にそのまま返信できる形に）。
+ * ⚠️★1通目の本文は返信する前から読める（サーバーが admin で読んで渡す）。返信するまで参加者には加えない決まりはそのまま。
+ * ⚠️ 返信欄は企業からのリクエストと同じ部品（RequestReplyBox）。「今回は見送る」「ブロック」は相手に伝えない。
+ */
 function RequestsSection({
   requests,
-  busyId,
-  error,
-  onRespond,
+  reported,
+  onReply,
+  onAction,
 }: {
   requests: IncomingRequest[];
-  busyId: string | null;
-  error: string | null;
-  onRespond: (id: string, action: "accept" | "decline") => void;
+  reported: Set<string>;
+  onReply: (id: string, body: string) => Promise<string | null>;
+  onAction: (id: string, action: "decline" | "block" | "report") => Promise<string | null>;
 }) {
   if (requests.length === 0) return null;
   return (
@@ -117,38 +122,48 @@ function RequestsSection({
         <FromTag label="個人から" />メッセージリクエスト（{requests.length}件）
       </p>
       <p style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-        受け入れると、メッセージを読んで返信できます。見送っても相手には伝わりません。
+        返信すると、そのままメッセージでやり取りが始まります。見送ってもブロックしても、相手には伝わりません。
       </p>
-      {error && <p role="alert" style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>}
       {requests.map((r) => {
-        const busy = busyId === r.conversationId;
         const profileHref = `/u/${r.requester.username ?? r.requester.id}`;
+        const isReported = reported.has(r.conversationId);
         return (
-          <div key={r.conversationId} data-request-id={r.conversationId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderTop: "1px solid var(--line-soft)", background: "#fff" }}>
-            {r.requester.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={r.requester.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-            ) : (
-              <InitialAvatar name={r.requester.name} size={36} />
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Link href={profileHref} style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {r.requester.name}
-              </Link>
-              {r.requester.headline && (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.requester.headline}</span>
+          <div key={r.conversationId} data-request-id={r.conversationId} style={{ padding: "12px 14px", borderTop: "1px solid var(--line-soft)", background: "#fff" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              {r.requester.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={r.requester.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+              ) : (
+                <InitialAvatar name={r.requester.name} size={36} />
               )}
-              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                <button type="button" disabled={busy} onClick={() => onRespond(r.conversationId, "accept")} style={{
-                  padding: "5px 12px", borderRadius: 6, border: "none", background: busy ? "var(--line)" : "var(--royal)",
-                  color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: busy ? "default" : "pointer",
-                }}>受け入れる</button>
-                <button type="button" disabled={busy} onClick={() => onRespond(r.conversationId, "decline")} style={{
-                  padding: "5px 12px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff",
-                  color: "var(--ink-soft)", fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: busy ? "default" : "pointer",
-                }}>今回は見送る</button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Link href={profileHref} style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.requester.name}
+                </Link>
+                {r.requester.headline && (
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.requester.headline}</span>
+                )}
               </div>
             </div>
+            {/* ★1通目の本文（返信する前から読める） */}
+            <p data-state="request-body" style={{ margin: "10px 0 0", fontSize: 13.5, lineHeight: 1.8, color: r.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+              {r.body ?? "（本文を読み込めませんでした）"}
+            </p>
+            <RequestReplyBox declineNote="見送っても相手には伝わりません。"
+              onSend={(body) => onReply(r.conversationId, body)}
+              onDecline={() => onAction(r.conversationId, "decline")}
+              extra={(
+                <>
+                  <button type="button" data-action="block" onClick={() => { if (window.confirm(`${r.requester.name}さんをブロックしますか？このリクエストは一覧から消え、以後この方からのメッセージは届きません。相手には伝わりません。`)) void onAction(r.conversationId, "block"); }}
+                    style={{ background: "none", border: "none", padding: "4px 0", fontSize: 12.5, color: "var(--ink-mute)", textDecoration: "underline", fontFamily: "inherit", cursor: "pointer" }}>ブロック</button>
+                  {isReported ? (
+                    <span data-state="reported" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>運営に報告しました</span>
+                  ) : (
+                    <button type="button" data-action="report" onClick={() => { if (window.confirm("このメッセージを運営に報告しますか？内容を運営が確認します。相手には伝わりません。")) void onAction(r.conversationId, "report"); }}
+                      style={{ background: "none", border: "none", padding: "4px 0", fontSize: 12.5, color: "var(--ink-mute)", textDecoration: "underline", fontFamily: "inherit", cursor: "pointer" }}>運営に報告</button>
+                  )}
+                </>
+              )} />
           </div>
         );
       })}
@@ -167,35 +182,37 @@ export default function ConversationsClient({
 }) {
   const router = useRouter();
   const [requests, setRequests] = useState<IncomingRequest[]>(initialRequests);
-  const [respondBusyId, setRespondBusyId] = useState<string | null>(null);
-  const [respondError, setRespondError] = useState<string | null>(null);
+  const [reported, setReported] = useState<Set<string>>(new Set());
 
-  const handleRespond = async (id: string, action: "accept" | "decline") => {
-    if (respondBusyId) return;
-    setRespondBusyId(id);
-    setRespondError(null);
+  /* ★返信（2026-10-11）。返信した時点で会話が開く。⚠️ 一覧は初期値の state なので、開き直して会話を出す */
+  const handleReply = async (id: string, body: string): Promise<string | null> => {
     try {
       const res = await fetch(`/api/dm/requests/${id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reply", body }),
       });
-      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return null; }
       const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setRespondError(data?.error ?? "処理できませんでした。もう一度お試しください。");
-        return;
-      }
-      if (action === "accept") {
-        /* ⚠️ 一覧は初期値の state なので refresh では増えない。開き直して会話を出す */
-        window.location.assign(`/mypage/conversations?open=${id}`);
-        return;
-      }
-      setRequests((prev) => prev.filter((r) => r.conversationId !== id));
+      if (!res.ok) return data?.error ?? "送信できませんでした。もう一度お試しください。";
+      window.location.assign(`/mypage/conversations?open=${id}`);
+      return null;
     } catch {
-      setRespondError("処理できませんでした。もう一度お試しください。");
-    } finally {
-      setRespondBusyId(null);
+      return "送信できませんでした。もう一度お試しください。";
+    }
+  };
+  /* 見送る・ブロック（一覧から消す）・運営に報告（一覧には残す）。⚠️ どれも相手には伝わらない */
+  const handleAction = async (id: string, action: "decline" | "block" | "report"): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/dm/requests/${id}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return null; }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return data?.error ?? "処理できませんでした。もう一度お試しください。";
+      if (action === "report") setReported((prev) => new Set(prev).add(id));
+      else setRequests((prev) => prev.filter((r) => r.conversationId !== id));
+      return null;
+    } catch {
+      return "処理できませんでした。もう一度お試しください。";
     }
   };
   const [conversations] = useState<Conversation[]>(initialConversations);
@@ -423,7 +440,7 @@ export default function ConversationsClient({
             )}
           </div>
 
-          <RequestsSection requests={requests} busyId={respondBusyId} error={respondError} onRespond={(id, a) => { void handleRespond(id, a); }} />
+          <RequestsSection requests={requests} reported={reported} onReply={handleReply} onAction={handleAction} />
 
           {conversations.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }}>

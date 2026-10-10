@@ -23,7 +23,7 @@ const pending25: SentApproach = {
   status: "pending", conversationId: null, candidate: person("u2", "検証 次郎", null), senderName: "検証 二郎",
   body: null, acceptedAt: null, unseen: false, jobTitle: null,
 };
-/* ⚠️ 受け入れ済み・企業がまだ会話を開いていない */
+/* ⚠️ 返信あり・企業がまだ会話を開いていない */
 const accepted: SentApproach = {
   id: "a1", createdAt: daysAgo(6), reason: "カスタマーサクセスの立ち上げ経験について、直接お話を伺いたいと考えました。",
   status: "accepted", conversationId: "c1", candidate: person("u3", "検証 三郎", "カスタマーサクセス"), senderName: "検証 一郎",
@@ -47,25 +47,28 @@ export default function Page() {
       <PreviewHeader title="メッセージリクエストの一覧（/biz/approaches）">
         <p>実画面は検証用データでは状態が揃わないので、ここで4つの状態を見る。</p>
       </PreviewHeader>
-      <Variant label="0件・メッセージリクエストを送れる人 3人" note="仕組みは大きく。人数・書き方のコツ・ボタン2つ。見出し横の「候補者を探す」は出さない">
+      <Variant label="0件・送れる人 3人" note="仕組みは大きく・数字のカードは出さない（見出しの横の今月の残りだけ）。左に案内（人数・コツ・候補者を探す／受け取る方だけを見る）、右に見本。見出しの右に「候補者を探す」も出る">
         <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={3} />
       </Variant>
-      <Variant label="0件・メッセージリクエストを送れる人 0人" note="受け取る設定の人がいない文と「提案を見る」">
-        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={0} />
+      <Variant label="0件・送れる人 0人・公開中の求人なし" note="1文と「提案を見る」（主）・「求人を公開する」・文字リンク「候補者を探す」。見出しの右の「候補者を探す」は出さない">
+        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob={false} />
       </Variant>
-      <Variant label="0件・人数を取れなかった" note="0人と出さない">
+      <Variant label="0件・送れる人 0人・公開中の求人あり" note="「求人を公開する」は出さない">
+        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob />
+      </Variant>
+      <Variant label="0件・人数を取れなかった" note="0人と出さず「取得できませんでした」">
         <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={null} />
       </Variant>
       <Variant label="返事待ち2件（3日前・25日前）" note="25日前のほうは「あと5日で枠に戻る」はず">
         <ApproachesView now={NOW} allowed rows={[pending3, pending25]} quota={quotaFull} />
       </Variant>
-      <Variant label="やり取り中1件（受け入れ済み・未読）" note="まだ開いていない受け入れの強調・受け入れた日">
+      <Variant label="返信あり1件（まだ開いていない）" note="まだ開いていない返信の強調・返信した日">
         <ApproachesView now={NOW} allowed rows={[accepted]} quota={{ ...quotaEmpty, monthlyUsed: 1 }} />
       </Variant>
       <Variant label="30日を過ぎたもの1件" note="再び送れる日（送った日＋180日）">
         <ApproachesView now={NOW} allowed rows={[expired]} quota={quotaEmpty} />
       </Variant>
-      <Variant label="結果の出たメッセージリクエスト 10件（受け入れ率を出す）" note="受け入れ4・30日を過ぎた6 → 受け入れ率 40%">
+      <Variant label="結果の出たリクエスト 10件（返信率を出す）" note="返信あり4・30日を過ぎた6 → 返信率 40%">
         <ApproachesView now={NOW} allowed quota={{ monthlyUsed: 10, monthlyLimit: 10, openCount: 0, openLimit: 10 }}
           rows={[...Array.from({ length: 4 }, (_, i) => ({ ...accepted, id: `a${i}`, unseen: false, candidate: person(`ua${i}`, `検証 受入${i + 1}`, null) })),
             ...Array.from({ length: 6 }, (_, i) => ({ ...expired, id: `e${i}`, candidate: person(`ue${i}`, `検証 期限${i + 1}`, null) }))]} />

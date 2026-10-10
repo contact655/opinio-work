@@ -92,9 +92,10 @@ export default async function ConversationsPage({
         .from("ow_conversations")
         .select(
           `id, kind, stage, status, last_message_at, created_at,
-           company_id, partner_user_id, request_status,
+           company_id, candidate_user_id, partner_user_id, request_status,
            ow_companies(id, name, logo_url, logo_letter),
-           partner:ow_users!partner_user_id(id, name)`
+           partner:ow_users!partner_user_id(id, name),
+           starter:ow_users!candidate_user_id(id, name)`
         )
         .in("id", conversationIds)
         .order("last_message_at", { ascending: false, nullsFirst: false })
@@ -114,7 +115,17 @@ export default async function ConversationsPage({
     console.error("[mypage/conversations] メッセージの取得:", msgError.message);
   }
 
-  const conversations: Conversation[] = convData ?? [];
+  /* ★DM の「相手」は見ている人によって変わる（2026-10-11）。
+        `partner_user_id` は「リクエストを受けた側」なので、受けた側が見ると**自分の名前**が出ていた
+        （返信してやり取りが始まった直後に気づいた）。始めた人（candidate_user_id）でなければ、相手は始めた人。
+        ⚠️ 詳細ページ（[id]/page.tsx）も同じ判定。片方だけ戻さないこと。 */
+  const conversations: Conversation[] = (convData ?? []).map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ({ starter, candidate_user_id, ...c }: any) =>
+      c.kind === "direct_message" && candidate_user_id && candidate_user_id !== owUser.id
+        ? { ...c, partner: starter ?? null }
+        : c,
+  );
 
   const conversationsWithUnread = conversations.map((conv) => {
     const myPart = participantMap.get(conv.id);

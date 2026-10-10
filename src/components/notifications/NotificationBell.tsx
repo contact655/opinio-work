@@ -66,7 +66,7 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
     return { who: notif.actor?.name ?? "誰か", what: "さんからメッセージリクエストが届きました" };
   }
   if (notif.type === "message_request_accepted") {
-    return { who: notif.actor?.name ?? "誰か", what: "さんがメッセージリクエストを受け入れました" };
+    return { who: notif.actor?.name ?? "誰か", what: "さんがメッセージリクエストに返信しました" };
   }
   /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。

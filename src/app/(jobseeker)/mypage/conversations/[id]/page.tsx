@@ -70,9 +70,10 @@ export default async function ConversationDetailPage({
     (adminSupabase as any)
       .from("ow_conversations")
       .select(
-        `id, kind, stage, status, company_id, partner_user_id, request_status,
+        `id, kind, stage, status, company_id, candidate_user_id, partner_user_id, request_status,
          ow_companies(name, logo_url, logo_letter),
-         partner:ow_users!partner_user_id(name)`
+         partner:ow_users!partner_user_id(name),
+         starter:ow_users!candidate_user_id(name)`
       )
       .eq("id", conversationId)
       .maybeSingle(),
@@ -85,7 +86,18 @@ export default async function ConversationDetailPage({
       .maybeSingle(),
   ]);
 
-  const conversation = convResult.data as ConversationDetail | null;
+  /* ★DM の「相手」は見ている人によって変わる（2026-10-11。一覧の page.tsx と同じ判定）。
+        受けた側が見ると partner_user_id は自分なので、始めた人を相手にする。 */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawConv = convResult.data as any;
+  const conversation = (rawConv
+    ? (() => {
+        const { starter, candidate_user_id, ...c } = rawConv;
+        return c.kind === "direct_message" && candidate_user_id && candidate_user_id !== owUser.id
+          ? { ...c, partner: starter ?? null }
+          : c;
+      })()
+    : null) as ConversationDetail | null;
   const myParticipant = partResult.data as { id: string } | null;
 
   // Conversation not found or user is not a participant

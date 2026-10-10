@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
     body: message,
     jobId,
   });
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  /* ★送り済みなら案内（「送った内容を見る」「メッセージを開く」）も返す（2026-10-11） */
+  if (!r.ok) return NextResponse.json({ error: r.error, action: r.action ?? null }, { status: r.status });
   return NextResponse.json({ ok: true, id: r.id });
 }

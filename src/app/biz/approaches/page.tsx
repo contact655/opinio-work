@@ -4,6 +4,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
 import { getApproachQuota, listSentApproaches } from "@/lib/approaches/server";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ApproachesView } from "./ApproachesView";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export const metadata = {
  *    （求職者が見送ったことは企業に伝えない決まり）。`listSentApproaches` は declined_at を読まない。
  * ⚠️ 送る入口はここではなく、候補者検索のカード・右のプレビュー・/u/[id]（その人を見たうえで送るため）。書く画面は /biz/approaches/new。
  */
-export default async function BizApproachesPage({ searchParams }: { searchParams?: { sent?: string } }) {
+export default async function BizApproachesPage({ searchParams }: { searchParams?: { sent?: string; show?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -30,9 +31,9 @@ export default async function BizApproachesPage({ searchParams }: { searchParams
     ? await Promise.all([listSentApproaches(ctx.tenantId), getApproachQuota(ctx.tenantId)])
     : [[], null];
 
-  /* ★0件のときだけ「いま声をかけられる候補者：N人」を数える（2026-10-11）。
+  /* ★0件のときだけ「いまリクエストを送れる候補者：N人」を数える（2026-10-11）。
         ⚠️★候補者検索と**同じ関数**（`loadCompanyCandidates` → `can_send_company_approach_many`）の
-           `approach.eligible` を数える。人数が「声かけを受け取る方のみ」で絞った件数と食い違わないように。
+           `approach.eligible` を数える。人数が「リクエストを受け取る方のみ」で絞った件数と食い違わないように。
         ⚠️ 判定を取れなかったら null（0人と出さない）。 */
   let approachableCount: number | null | undefined;
   if (allowed && rows !== null && rows.length === 0) {
@@ -40,6 +41,16 @@ export default async function BizApproachesPage({ searchParams }: { searchParams
     approachableCount = candidates.length > 0 && candidates.every((c) => c.approach === undefined)
       ? null
       : candidates.filter((c) => c.approach?.eligible === true).length;
+  }
+
+  /* ★0件・送れる人0人のときの「求人を公開する」を出すか（2026-10-11）。公開中の求人が1件でもあれば出さない。
+        ⚠️ 取れなかったら null（出さない）。求人の公開状態は status だけを見る（検証用の会社の求人も、その会社の画面では公開中として扱う） */
+  let hasPublishedJob: boolean | null = null;
+  if (approachableCount === 0) {
+    const { count, error } = await createAdminClient().from("ow_jobs").select("id", { count: "exact", head: true })
+      .eq("company_id", ctx.tenantId).eq("status", "published");
+    if (error) console.error("[biz/approaches] ow_jobs:", error.message);
+    else hasPublishedJob = (count ?? 0) > 0;
   }
 
   const layoutProps = {
@@ -53,7 +64,7 @@ export default async function BizApproachesPage({ searchParams }: { searchParams
 
   return (
     <BusinessLayout {...layoutProps}>
-      <ApproachesView allowed={allowed} rows={rows} quota={quota} sentId={searchParams?.sent} now={new Date().toISOString()} approachableCount={approachableCount} />
+      <ApproachesView allowed={allowed} rows={rows} quota={quota} sentId={searchParams?.sent} showId={searchParams?.show} now={new Date().toISOString()} approachableCount={approachableCount} hasPublishedJob={hasPublishedJob} />
     </BusinessLayout>
   );
 }

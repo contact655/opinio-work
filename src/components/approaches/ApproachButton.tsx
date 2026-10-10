@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { COMPANY_APPROACH_STATUS_LABELS } from "@/lib/constants/companyApproaches";
+import { approachResendNotice } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 
 const jst = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
 const part = (ps: Intl.DateTimeFormatPart[], t: string) => ps.find((p) => p.type === t)?.value ?? "";
 function formatJaMonthDay(iso: string): string { const ps = jst(iso); return `${part(ps, "month")}月${part(ps, "day")}日`; }
-function formatSlashMonthDay(iso: string): string { const ps = jst(iso); return `${part(ps, "month")}/${part(ps, "day")}`; }
-function formatJaDate(iso: string): string { const ps = jst(iso); return `${part(ps, "year")}年${part(ps, "month")}月${part(ps, "day")}日`; }
 
 /**
  * ★企業からの「声かけ」の入口（2026-10-09）。候補者検索のカード・右のプレビュー・/u/[id] で共通。
@@ -23,46 +21,51 @@ export function ApproachButton({
   candidateUserId,
   sent = null,
   compact = false,
+  hideSender = false,
 }: {
   candidateUserId: string;
   /** ★この企業の誰かが180日以内に声をかけていれば、その記録（2026-10-10 / 段5 重複防止）。あれば押せない */
   sent?: RecentApproach | null;
   /** 候補者検索のカード用（小さめ） */
   compact?: boolean;
+  /** ★「◯◯さんが◯月◯日に送りました」の行を出さない（右のプレビューは見出しの下に同じ行があるため。2026-10-11） */
+  hideSender?: boolean;
 }) {
-  const done = !!sent;
-
-  if (done) {
-    return (
-      <span
-        data-state="approach-sent"
+  if (sent) {
+    /* ★送り済みの案内は状態で分ける（2026-10-11 / 柴さんの指示）。文言と行き先は送信の API と同じ
+          `approachResendNotice` ——返事待ち「送った内容を見る」／返信あり「メッセージを開く」（★会話へ）／
+          30日経過「◯年◯月◯日から、もう一度送れます」。⚠️ 見送りは区別しない（企業には伝えない） */
+    const n = approachResendNotice(sent);
+    const who = sent.senderName ? `${sent.senderName}さん` : "担当者";
+    const actionLink = n.action && (
+      <Link href={n.action.href} data-state="approach-resend-action" onClick={(e) => e.stopPropagation()}
+        className={compact ? "btn-fixed-size" : "tap-min-h"}
         style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: compact ? "6px 12px" : "9px 16px", borderRadius: 8,
-          border: "1px solid var(--line)", background: "#fff",
-          color: "var(--ink-mute)", fontSize: compact ? 12 : 13, fontWeight: 700, whiteSpace: "nowrap",
-          maxWidth: "100%", minWidth: 0,
-        }}
-      >
-        {sent && compact ? (
-          /* ★カード用の短い形（2026-10-11 / 柴さんの指示）。1行目は「リクエスト済み（◯◯さん・10/3）」で1行に収める。
-                ⚠️ 状態と再び送れる日は2行目に回す。長い文はプレビュー（右側）と /u/[id] に残す */
-          <span style={{ display: "flex", flexDirection: "column", gap: 2, fontWeight: 600, lineHeight: 1.5, minWidth: 0, maxWidth: "100%" }}>
-            <span data-state="approach-sent-short" title={`${sent.senderName ? `${sent.senderName}さん` : "担当者"}が${formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み`}
-              style={{ color: "var(--ink-soft)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFeatureSettings: "\"palt\"" }}>
-              リクエスト済み（{sent.senderName ? `${sent.senderName}さん` : "担当者"}・{formatSlashMonthDay(sent.sentAt)}）
-            </span>
-            <span style={{ fontWeight: 500, whiteSpace: "normal" }}>{COMPANY_APPROACH_STATUS_LABELS[sent.state]}・再び送れる日：{formatJaDate(sent.resendAt)}</span>
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          padding: compact ? "5px 12px" : "8px 16px", borderRadius: 8,
+          ...(sent.state === "accepted"
+            ? { border: "none", background: "var(--royal)", color: "#fff" }
+            : { border: "1px solid var(--line)", background: "#fff", color: "var(--royal)" }),
+          fontSize: compact ? 12 : 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", alignSelf: "flex-start",
+        }}>
+        {n.action.label}
+      </Link>
+    );
+    return (
+      <span data-state="approach-sent" data-approach-state={sent.state}
+        style={{ display: "inline-flex", flexDirection: "column", gap: compact ? 4 : 6, maxWidth: "100%", minWidth: 0 }}>
+        {/* ★「◯◯さんが◯月◯日に送りました」。⚠️ カード（名前の下に「リクエスト済み（◯◯さん・10/3）」がある）と
+              右のプレビュー（見出しの下に同じ行がある）では出さない。同じことを2回書かない（2026-10-11） */}
+        {!compact && !hideSender && (
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6, whiteSpace: "normal" }}>
+            {who}が{formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送りました。
           </span>
-        ) : sent ? (
-          /* ★誰が・いつ・いまどうなっているか・いつから再び送れるか。⚠️ 見送られたものも「返事待ち」（企業には伝えない） */
-          <span style={{ display: "flex", flexDirection: "column", gap: 2, whiteSpace: "normal", fontWeight: 600, lineHeight: 1.5 }}>
-            <span style={{ color: "var(--ink-soft)" }}>
-              {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み（{COMPANY_APPROACH_STATUS_LABELS[sent.state]}）
-            </span>
-            <span style={{ fontWeight: 500 }}>再び送れる日：{formatJaDate(sent.resendAt)}</span>
-          </span>
-        ) : "メッセージリクエスト送信済み"}
+        )}
+        <span data-state="approach-resend-message" title={`${who}が${formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み`}
+          style={{ fontSize: compact ? 11.5 : 12.5, color: "var(--ink-mute)", lineHeight: 1.6, whiteSpace: "normal" }}>
+          {n.message}
+        </span>
+        {actionLink}
       </span>
     );
   }

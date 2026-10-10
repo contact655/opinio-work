@@ -24,7 +24,7 @@ export const APPROACH_CONSENT_QUESTION = "企業からのメッセージリク�
  */
 export const APPROACH_CONSENT_DESCRIPTION =
   "受け取ると、候補者検索であなたを見つけた企業から、理由を添えた「メッセージリクエスト」が届くことがあります。" +
-  "話してみるかどうかはあなたが決められ、見送っても企業には伝わりません。" +
+  "返信すると、やり取りが始まります。見送っても企業には伝わりません。" +
   "在籍した会社とそのグループ会社からは届きません。";
 
 export const APPROACH_CONSENT_OPTIONS = [
@@ -81,11 +81,51 @@ export type CompanyApproachStatus = "pending" | "expired" | "accepted";
 export const COMPANY_APPROACH_STATUS_LABELS: Record<CompanyApproachStatus, string> = {
   pending: "返事待ち",
   expired: `${APPROACH_EXPIRE_DAYS}日を過ぎました`,
-  accepted: "やり取り中",
+  accepted: "返信あり",
 };
 export function companyApproachStatus(p: { createdAt: string; acceptedAt: string | null }, now = new Date()): CompanyApproachStatus {
   if (p.acceptedAt) return "accepted";
   return now.getTime() - new Date(p.createdAt).getTime() > APPROACH_EXPIRE_DAYS * 24 * 60 * 60 * 1000 ? "expired" : "pending";
+}
+
+/**
+ * ★同じ方へもう一度送ろうとしたときの案内（2026-10-11 / 柴さんの指示）。**送信の API・候補者検索のカード・
+ *   右のプレビュー・/u/[id]・送る画面が同じ関数を見る。** 文言を各画面に書き写さないこと。
+ *   状態は `companyApproachStatus`（見送りは区別しない）:
+ *     pending  … 「◯月◯日に送ったメッセージリクエストの返事を待っています。…」＋「送った内容を見る」
+ *     accepted … 「すでにやり取りが始まっています。」＋「メッセージを開く」（★送る画面ではなく会話へ）
+ *     expired  … 「この方へは◯年◯月◯日から、もう一度送れます。」（30日経過と見送りを区別しない）
+ * ⚠️ 判定（403 で断る・180日・枠）は変えていない。変えたのは言い方と案内先だけ。
+ * ⚠️★ブロックされている相手に送り済みなら、ブロックではなくこの案内を返す（`sendApproach` が先に見る）。
+ *    ＝ ブロックされた場合も「返事待ち」と見分けがつかない。
+ */
+export type ApproachResendSubject = {
+  id: string;
+  state: CompanyApproachStatus;
+  sentAt: string;
+  resendAt: string;
+  conversationId: string | null;
+};
+const jstParts = (iso: string) =>
+  new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
+const jstPart = (ps: Intl.DateTimeFormatPart[], t: string) => ps.find((p) => p.type === t)?.value ?? "";
+export function approachResendNotice(s: ApproachResendSubject): { message: string; action: { label: string; href: string } | null } {
+  const ps = (iso: string) => jstParts(iso);
+  if (s.state === "accepted") {
+    return {
+      message: "すでにやり取りが始まっています。",
+      action: { label: "メッセージを開く", href: s.conversationId ? `/biz/conversations/${s.conversationId}` : `/biz/approaches?show=${s.id}` },
+    };
+  }
+  if (s.state === "pending") {
+    const p = ps(s.sentAt);
+    return {
+      message: `${jstPart(p, "month")}月${jstPart(p, "day")}日に送ったメッセージリクエストの返事を待っています。返事が来る前に、続けて送ることはできません。`,
+      action: { label: "送った内容を見る", href: `/biz/approaches?show=${s.id}` },
+    };
+  }
+  const r = ps(s.resendAt);
+  return { message: `この方へは${jstPart(r, "year")}年${jstPart(r, "month")}月${jstPart(r, "day")}日から、もう一度送れます。`, action: null };
 }
 
 /**
@@ -106,10 +146,10 @@ export function approachQuotaTexts(q: { monthlyUsed: number; monthlyLimit: numbe
 }
 
 /**
- * ★受け入れ率を出し始める件数（2026-10-11）。結果の出た声かけ（受け入れられた＋30日を過ぎた）がこれ未満なら「—」。
+ * ★返信率を出し始める件数（2026-10-11）。結果の出たリクエスト（返信あり＋30日を過ぎた）がこれ未満なら「—」。
  * ⚠️ 分析タブの「参考値」の境（`REFERENCE_ONLY_BELOW`）とは別。こちらは数字を出さない。
  */
 export const APPROACH_RATE_MIN_RESOLVED = 10;
 
 /** ★/biz/approaches の見出しの説明（2026-10-11 / 柴さんの文言）。⚠️ ヘルプのページ（/biz/help/approaches）も同じ文を使う */
-export const APPROACH_HEADLINE = "気になる候補者に、理由を添えて『話を聞かせてもらえませんか』と送れます。相手が受け入れると、メッセージでやり取りできます。";
+export const APPROACH_HEADLINE = "気になる候補者に、理由を添えて『話を聞かせてもらえませんか』と送れます。相手が返信すると、そのままメッセージでやり取りできます。";

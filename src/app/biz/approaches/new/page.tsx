@@ -5,12 +5,13 @@ import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
-import { getApproachQuota, listApproachableJobs, listApproachSenders } from "@/lib/approaches/server";
+import { getApproachQuota, getRecentlyApproached, listApproachableJobs, listApproachSenders } from "@/lib/approaches/server";
 import { getBizDisclosure, BIZ_SCORE_ITEM_HREF } from "@/lib/business/bizDisclosure";
 import { BIZ_SCORE_ITEM_LABELS, DISCLOSURE_BIZ_MAX } from "@/lib/utils/disclosureScore";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import ApproachComposeClient from "./ApproachComposeClient";
+import { approachResendNotice } from "@/lib/constants/companyApproaches";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +38,17 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
     userName: ctx.userName, tenantName: ctx.tenantName, tenantLogoGradient: ctx.logoGradient,
     tenantLogoLetter: ctx.logoLetter, memberships: ctx.allCompanies, currentTenantId: ctx.tenantId,
   };
-  const message = (text: string) => (
+  /* ★action … 送り済みのときの案内（「送った内容を見る」「メッセージを開く」）。無ければ「候補者を探す」 */
+  const message = (text: string, action?: { label: string; href: string } | null) => (
     <BusinessLayout {...layoutProps}>
       <div style={{ maxWidth: 640, margin: "48px auto", padding: "0 16px" }}>
-        <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>{text}</p>
-        <Link href="/biz/candidates" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>候補者を探す →</Link>
+        <p data-state="approach-compose-message" style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8 }}>{text}</p>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+          {action && (
+            <Link href={action.href} data-state="approach-resend-action" className="btn-fixed-size" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: "0 18px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>{action.label}</Link>
+          )}
+          <Link href="/biz/candidates" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>候補者を探す →</Link>
+        </div>
       </div>
     </BusinessLayout>
   );
@@ -50,13 +57,21 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
   const candidateId = searchParams?.candidate ?? "";
   if (!/^[0-9a-f-]{36}$/.test(candidateId)) return message("メッセージリクエストを送る相手が指定されていません。");
 
+  /* ★送り済みかを**先に**見る（2026-10-11）。言い方は状態で分ける（送信の API と同じ `approachResendNotice`）。
+        ⚠️★候補者が見えるか（下の loadCompanyCandidates）より先に見ること。送った後に相手がこの企業を
+           ブロックすると候補者一覧から外れるので、後に見ると「送れません」に変わり、ブロックされたと分かってしまう。 */
+  const recentForOne = await getRecentlyApproached(ctx.tenantId, [candidateId]);
+  if (!recentForOne) return message("読み込めませんでした。時間をおいてもう一度お試しください。");
+  const sentBefore = recentForOne.get(candidateId);
+  if (sentBefore) {
+    const n = approachResendNotice(sentBefore);
+    return message(n.message, n.action);
+  }
+
   const loaded = await loadCompanyCandidates({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType, onlyOwUserId: candidateId });
   const c = loaded.candidates.find((x) => x.id === candidateId);
   /* ⚠️ 理由を出さない（見えない・受け取っていない・範囲外を区別させない） */
   if (!c || !c.approach) return message("この方には、いまメッセージリクエストを送れません。");
-  if (c.approach.sent) {
-    return message(`${c.approach.sent.senderName ? `${c.approach.sent.senderName}さん` : "担当者"}がすでにメッセージリクエストを送っています。同じ方へは送ってから一定の期間、再びメッセージリクエストを送れません。`);
-  }
   if (!c.approach.eligible) return message("この方には、いまメッセージリクエストを送れません。");
 
   const db = createAdminClient();

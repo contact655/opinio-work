@@ -28,7 +28,8 @@ export const CONTACT_BLOCKED_MESSAGE = "現在メッセージを送れません"
  *   1. ★**検証用と実在のアカウントのあいだは止める**（2026-10-09 / 段階3）。
  *      `can_send_scout()` の is_test の一致と同じ考え方（検証用は検証用どうしでだけ届く）。
  *   2. 相手が本人の登録していない行（auth_id が無い）なら止める。
- *   3. 送る人が企業の担当者なら、その企業から見せてはいけない相手には止める（段階1）。
+ *   3. ★どちらかがもう一方をブロックしていれば止める（2026-10-11。ow_user_blocks）。
+ *   4. 送る人が企業の担当者なら、その企業から見せてはいけない相手には止める（段階1）。
  */
 export async function isMessagingBlocked(senderOwUserId: string, recipientOwUserId: string): Promise<boolean> {
   const db = createAdminClient();
@@ -47,6 +48,18 @@ export async function isMessagingBlocked(senderOwUserId: string, recipientOwUser
   /* ⚠️ auth_id が無い人（本人が登録していない行）には送らない */
   const authId = (recipient.auth_id as string | null) ?? null;
   if (!authId) return true;
+
+  /* ★個人どうしのブロック（2026-10-11）。どちらかがブロックしていれば止める（理由は返さない＝相手に伝えない）。
+        ⚠️ 表は ow_user_blocks（サーバーの admin だけが読める） */
+  const { data: blocks, error: bErr } = await db
+    .from("ow_user_blocks").select("blocker_user_id")
+    .or(`and(blocker_user_id.eq.${recipientOwUserId},blocked_user_id.eq.${senderOwUserId}),and(blocker_user_id.eq.${senderOwUserId},blocked_user_id.eq.${recipientOwUserId})`)
+    .limit(1);
+  if (bErr) {
+    console.error("[contactGate] ow_user_blocks:", bErr.message);
+    return true;
+  }
+  if ((blocks ?? []).length > 0) return true;
 
   const { data: memberships, error: mErr } = await db
     .from("ow_company_admins")

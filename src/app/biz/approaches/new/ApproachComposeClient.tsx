@@ -37,6 +37,8 @@ export default function ApproachComposeClient(p: Props) {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* ★送り済みと分かったときの案内（「送った内容を見る」「メッセージを開く」。2026-10-11） */
+  const [errorAction, setErrorAction] = useState<{ label: string; href: string } | null>(null);
   const reasonRef = useRef<HTMLTextAreaElement>(null);
 
   const len = reason.trim().length;
@@ -59,14 +61,14 @@ export default function ApproachComposeClient(p: Props) {
 
   const send = async () => {
     if (!ok || sending) return;
-    setSending(true); setError(null);
+    setSending(true); setError(null); setErrorAction(null);
     try {
       const res = await fetch("/api/biz/approaches", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ candidateUserId: p.candidate.id, reason, body: body.trim() || null, jobId: jobId || null, senderUserId: senderId }),
       });
       const j = await res.json().catch(() => null);
-      if (!res.ok) { setError(j?.error ?? "送信に失敗しました。もう一度お試しください。"); return; }
+      if (!res.ok) { setError(j?.error ?? "送信に失敗しました。もう一度お試しください。"); setErrorAction(j?.action ?? null); return; }
       router.push(`/biz/approaches?sent=${encodeURIComponent(j.id)}`);
     } catch {
       setError("送信に失敗しました。もう一度お試しください。");
@@ -153,6 +155,9 @@ export default function ApproachComposeClient(p: Props) {
           )}
 
           {error && <p role="alert" style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: "var(--error)" }}>{error}</p>}
+          {error && errorAction && (
+            <Link href={errorAction.href} data-state="approach-resend-action" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>{errorAction.label} →</Link>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" onClick={() => void send()} disabled={!ok || sending} data-state="send-approach"
               style={{ padding: "10px 22px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
@@ -209,7 +214,7 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card} data-state="approach-notes">
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>送る前に</div>
             <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-              <li>受け入れられると、メールでお知らせします。</li>
+              <li>返信があると、メールでお知らせします。</li>
               <li>見送られても、お知らせはしません。</li>
               <li>返事がないまま{APPROACH_EXPIRE_DAYS}日たつと、返事待ちの枠に戻ります。</li>
               <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再びメッセージリクエストを送れません。</li>

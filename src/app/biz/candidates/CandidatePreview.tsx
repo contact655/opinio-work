@@ -147,7 +147,7 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
         {/* ⚠️ 送れる・送り済みのときだけボタン（送り済みは状態の表示になる）。受け取っていない人には出さない */}
         {c.approach && (c.approach.eligible || c.approach.sent) && (
-          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} />
+          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} hideSender />
         )}
         <Link href={`/u/${c.id}`}
           style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>

@@ -152,7 +152,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
             </h2>
             {/* ★何が起きるかを先に言う。送ったあとで気づく形にしない */}
             <p style={{ margin: "8px 0 12px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              相手が受け入れると、続きのやりとりができます。受け入れられるまでは、この1通だけが届きます。
+              相手が返信すると、続きのやりとりができます。返信があるまでは、この1通だけが届きます。
             </p>
             <textarea
               value={body}

@@ -46,6 +46,12 @@ export async function POST(request: NextRequest) {
   /* ★企業の担当者から、その企業に見せてはいけない人へは送らない（2026-10-09 / 段階1）。
         相手は会話のもう一方の人。⚠️ 企業との会話（相手の個人が居ない）はここでは見ない（段階2）。
         ⚠️ 理由は返さない。判定は `lib/conversations/contactGate.ts` の1か所 */
+  /* ⚠️★返事待ちのリクエストは、ブロックより先に 409 を返す（2026-10-11）。
+        ブロックを先に見ると、ブロックされた送り手だけ 403 になり、ふつうの返事待ちと答えが変わって
+        ブロックされたと分かってしまう。どちらにしても続きは送れない。 */
+  if (conv.kind === "direct_message" && !isDmSendable(conv)) {
+    return NextResponse.json({ error: NOT_ACCEPTED_MESSAGE }, { status: 409 });
+  }
   const recipientId = conv.candidate_user_id === owMe.id ? conv.partner_user_id : conv.candidate_user_id;
   if (recipientId && (await isMessagingBlocked(owMe.id, recipientId as string))) {
     return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });

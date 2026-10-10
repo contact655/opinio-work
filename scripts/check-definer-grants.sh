@@ -57,6 +57,10 @@ SERVER_ONLY=(
   "approach_range_field_coverage()"
   "purge_withdrawn_company_candidate_notes()"
   "purge_candidate_notes_on_block()"
+  # ★メッセージリクエストに返信する（2026-10-11）。1トランザクションで会話・1通目・返信を作る。
+  #   ⚠️ クライアントから呼べると、他人宛てのリクエストに返信できてしまう（本人確認は API が行う）
+  "reply_to_company_approach(p_approach_id uuid, p_candidate_ow_user_id uuid, p_body text, p_fail_at_end boolean)"
+  "reply_to_message_request(p_conversation_id uuid, p_recipient_ow_user_id uuid, p_body text, p_fail_at_end boolean)"
 )
 
 SELF_TEST=0

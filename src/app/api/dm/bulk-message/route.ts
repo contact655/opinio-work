@@ -121,6 +121,12 @@ export async function POST(request: NextRequest) {
     /* ★企業の担当者から、その企業に見せてはいけない人へは送らない（2026-10-09 / 段階1）。
           `/api/dm/start`・`/api/dm/message` と同じ判定（`lib/conversations/contactGate.ts`）。
           ⚠️ ここを外すと、直接作った会話へ一括送信で送れてしまう。⚠️ 理由は返さない */
+    /* ⚠️★返事待ちのリクエストはブロックより先に見る（2026-10-11 / `/api/dm/message` と同じ）。
+          先にブロックを見ると、ブロックされた送り手だけ答えが変わってブロックされたと分かる */
+    if (conv.kind === "direct_message" && !isDmSendable(conv)) {
+      results.push({ conversationId, ok: false, error: NOT_ACCEPTED_MESSAGE });
+      continue;
+    }
     const recipientId = conv.candidate_user_id === owMe.id ? conv.partner_user_id : conv.candidate_user_id;
     if (recipientId && (await isMessagingBlocked(owMe.id, recipientId as string))) {
       results.push({ conversationId, ok: false, error: CONTACT_BLOCKED_MESSAGE });

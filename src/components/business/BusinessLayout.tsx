@@ -503,7 +503,7 @@ export function BusinessLayout({
                         position: "relative",
                       }}>
                         <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "受け入れられたメッセージリクエスト" : "未読"} {badgeCount}件）</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "返信があったメッセージリクエスト" : "未読"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>

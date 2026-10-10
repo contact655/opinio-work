@@ -4,7 +4,7 @@ import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
 /**
  * ★/biz/analytics の「声かけ」タブ（2026-10-10 / 段6）。集計は lib/approaches/analytics.ts。
- * ⚠️ 承認率の分母は「結果の出た件数」（承認＋送って30日を過ぎた承認待ち）。10件未満は「参考値」、行ごとに5件未満は率を「—」。
+ * ⚠️ 返信率の分母は「結果の出た件数」（返信あり＋送って30日を過ぎた返事待ち）。10件未満は「参考値」、行ごとに5件未満は率を「—」。
  */
 export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | null; periodLabel: string }) {
   if (!data) {
@@ -18,7 +18,7 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
   const noResults = t.resolved === 0;
   const emptyNote = (
     <div data-state="approach-analytics-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-      まだ結果の出たメッセージリクエストがありません。受け入れられるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと、ここに出ます。
+      まだ結果の出たメッセージリクエストがありません。返信があるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと、ここに出ます。
       <Link href="/biz/candidates" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>候補者を探す →</Link>
     </div>
   );
@@ -27,13 +27,13 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
     <div data-state="approach-analytics">
       <div className="an-kpis" style={{ marginBottom: 16 }}>
         <Card label="送った数" value={String(t.sent)} sub={periodLabel} />
-        <Card label="受け入れられた数" value={noResults ? "—" : String(t.accepted)} sub={periodLabel} />
-        <Card label="受け入れ率" value={noResults || rate === null ? "—" : `${rate}%`} sub={`結果の出た ${t.resolved} 件のうち`} badge={!noResults && rate !== null && reference ? "参考値" : null} />
-        <Card label="面談につながった数" value={noResults ? "—" : String(t.meetings)} sub="受け入れられたメッセージリクエストのうち" />
+        <Card label="返信があった数" value={noResults ? "—" : String(t.accepted)} sub={periodLabel} />
+        <Card label="返信率" value={noResults || rate === null ? "—" : `${rate}%`} sub={`${t.resolved}件のうち${t.accepted}件`} badge={!noResults && rate !== null && reference ? "参考値" : null} />
+        <Card label="面談につながった数" value={noResults ? "—" : String(t.meetings)} sub="返信があったリクエストのうち" />
       </div>
       {noResults ? emptyNote : (<>
       <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 16px" }}>
-        受け入れ率は「結果の出た件数」（受け入れられた件数と、送ってから{APPROACH_EXPIRE_DAYS}日を過ぎた返事待ち）を分母にしています。
+        返信率は「結果の出た件数」（返信があった件数と、送ってから{APPROACH_EXPIRE_DAYS}日を過ぎた返事待ち）を分母にしています。
         見送りと返事なしは区別しません。結果の出た件数が{REFERENCE_ONLY_BELOW}件未満のときは参考値、表の行ごとに{ROW_RATE_MIN}件未満のときは率を出していません。
         検証用アカウントの分は含みません。
       </p>
@@ -76,7 +76,7 @@ function Table({ title, rows, note }: { title: string; rows: AnalyticsRow[]; not
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }} aria-label={title}>
           <thead><tr style={{ borderBottom: "1px solid var(--line)" }}>
-            <th style={{ ...th, textAlign: "left" }}></th><th style={th}>送った</th><th style={th}>結果が出た</th><th style={th}>受け入れ</th><th style={th}>受け入れ率</th><th style={th}>面談</th>
+            <th style={{ ...th, textAlign: "left" }}></th><th style={th}>送った</th><th style={th}>結果が出た</th><th style={th}>返信</th><th style={th}>返信率</th><th style={th}>面談</th>
           </tr></thead>
           <tbody>
             {rows.map((r) => (

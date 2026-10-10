@@ -74,7 +74,7 @@ async function NoTenantPage() {
 /* ★今日やることの件数カード（2026-10-11 にキャンバス7の5つにした）。⚠️ 並びは「相手を待たせているもの」から */
 const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
   /* ⚠️ 「メッセージリクエスト」まで書くとカードの見出しが2行になり、数字の高さが他のカードとずれる（2026-10-11 実測）。「リクエスト」で止める */
-  { kind: "approach", label: "受け入れられたリクエスト", href: "/biz/approaches" },
+  { kind: "approach", label: "返信があったリクエスト", href: "/biz/approaches" },
   { kind: "proposal", label: "回答待ちの提案", href: "/biz/proposals" },
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },

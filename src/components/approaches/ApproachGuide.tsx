@@ -2,17 +2,18 @@
 
 import { Fragment, useState } from "react";
 import { ChevronRight, MessageSquare, Send, Clock } from "lucide-react";
-import { APPROACH_EXPIRE_DAYS, APPROACH_MONTHLY_LIMIT } from "@/lib/constants/companyApproaches";
+import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
 /**
- * ★声かけの仕組み（3ステップ）と、受け入れられやすい理由の書き方（2026-10-11 / 柴さんの指示。LinkedIn Recruiter の InMail 画面を参考）。
+ * ★声かけの仕組み（3ステップ）と、返信をもらいやすい理由の書き方（2026-10-11 / 柴さんの指示。LinkedIn Recruiter の InMail 画面を参考）。
  *   /biz/approaches と /biz/help/approaches が同じ部品を使う。**文言を2か所に書かないこと。**
- * ⚠️ 企業側の言葉は「返事待ち」「受け入れられた」。「承認」と書かない（docs/approach-wording-20261011.md）。
+ * ⚠️ 企業側の言葉は「返事待ち」「返信あり」。「承認」「受け入れ」と書かない（2026-10-11）（docs/approach-wording-20261011.md）。
+ * ⚠️★この部品の中では「メッセージリクエスト」と書かない（「リクエスト」）。画面で長い名前を出すのは見出しと最初の説明文だけ（2026-10-11）。
  */
 export const APPROACH_STEPS = [
-  { Icon: Send, title: "理由を添えて送る", note: `経歴を見て、メッセージリクエストを送りたい理由を書きます。毎月${APPROACH_MONTHLY_LIMIT}通まで` },
-  { Icon: Clock, title: `相手が確認する（返事は${APPROACH_EXPIRE_DAYS}日まで）`, note: "見送られたかどうかは、企業には表示されません" },
-  { Icon: MessageSquare, title: "受け入れられたら、メッセージが開く", note: "メッセージで、日程や話したいことを相談できます" },
+  { Icon: Send, title: "理由を添えて送る", note: "経歴を見て、話を聞きたい理由を書いて送ります。" },
+  { Icon: Clock, title: `相手が読んで返信する（${APPROACH_EXPIRE_DAYS}日まで）`, note: "相手は理由と本文を読んで、返信するかを決めます。" },
+  { Icon: MessageSquare, title: "返信が来たら、そのままやり取り", note: "メッセージで、日程や話したいことを相談できます。" },
 ] as const;
 
 export const APPROACH_TIPS = [

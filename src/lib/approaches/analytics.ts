@@ -35,9 +35,9 @@ const REASON_BUCKETS = [
 
 const empty = (): AnalyticsCell => ({ sent: 0, accepted: 0, resolved: 0, meetings: 0 });
 
-/** 承認率（%）。分母が0なら null */
+/** 返信率（%・整数。2026-10-11 に小数1桁から整数へ。/biz/approaches の「返信率 N%」と揃える）。分母が0なら null */
 export function acceptRate(c: AnalyticsCell): number | null {
-  return c.resolved > 0 ? Math.round((c.accepted / c.resolved) * 1000) / 10 : null;
+  return c.resolved > 0 ? Math.round((c.accepted / c.resolved) * 100) : null;
 }
 
 /**
