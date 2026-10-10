@@ -41,6 +41,7 @@ ALLOW=(
   "auth_is_company_member(target_company_id uuid)" # ①
   "auth_ow_user_id()"                            # ①
   "auth_is_active_company_admin(p_company_id uuid)" # ①
+  "auth_is_test_user()"                          # ①（2026-10-11。呼んだ本人が検証用かだけを答える）
 )
 
 # ── ★サーバー専用であるべき関数（2026-10-10 / 声かけ 段2）─────────────────────────
