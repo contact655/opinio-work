@@ -18,6 +18,11 @@ type Props = {
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
   variant?: BusinessLayoutVariant;
+  /**
+   * ★本文の最大幅（px）。既定は 1200（2026-10-10 に足した）。
+   * ⚠️ 2列（一覧＋右のプレビュー）のページだけが広げる（/biz/candidates が 1440）。他のページは渡さないこと。
+   */
+  mainMaxWidth?: number;
   children: React.ReactNode;
   memberships?: TenantCompany[];
   currentTenantId?: string;
@@ -129,6 +134,7 @@ export function BusinessLayout({
   tenantLogoGradient,
   tenantLogoLetter,
   variant = "default",
+  mainMaxWidth = 1200,
   children,
   memberships,
   currentTenantId,
@@ -567,7 +573,7 @@ export function BusinessLayout({
         <main id="main-content" className="biz-layout-main" style={variant === "fullBleed"
           ? { padding: 0, minWidth: 0, overflow: "hidden" }
           : hasCompany
-            ? { padding: "28px 36px 60px", maxWidth: 1200, minWidth: 0 }
+            ? { padding: "28px 36px 60px", maxWidth: mainMaxWidth, minWidth: 0 }
             : { padding: "28px 36px 60px", maxWidth: 960, minWidth: 0, margin: "0 auto", width: "100%" }
         }>
           {children}

@@ -232,7 +232,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
 
 
   return (
-    <BusinessLayout {...layoutProps}>
+    /* ★2列（一覧＋右のプレビュー）なので本文の最大幅を広げる（2026-10-10 / 柴さんの指示。目安 1440px） */
+    <BusinessLayout {...layoutProps} mainMaxWidth={1440}>
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
         initialSaved={initialSaved}
         /* ⚠️ 一覧に居ない id は開かない（プレビューの API も 404 を返す）。uuid の形だけ確かめる */

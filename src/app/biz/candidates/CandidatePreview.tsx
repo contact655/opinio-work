@@ -132,6 +132,13 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
             {c.location && <span>{c.location}</span>}
             {edited && <span>プロフィール更新 {edited}</span>}
           </div>
+          {/* ★受け取っていない人には、提案への入口を添える（2026-10-10 / 柴さんの文言）。⚠️ 理由は出さない */}
+          {label?.state === "not_accepting" && (
+            <div data-state="not-accepting-note" style={{ marginTop: 4, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              条件が合えば、OPINIO から提案としてお届けすることがあります。{" "}
+              <Link href="/biz/proposals" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>提案を見る →</Link>
+            </div>
+          )}
         </div>
         <button type="button" onClick={onClose} aria-label="プレビューを閉じる"
           style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>

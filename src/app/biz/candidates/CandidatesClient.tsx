@@ -995,10 +995,10 @@ export default function CandidatesClient({
                 const isSel = selected === c.id;
                 return (
                   <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"}
-                    className="cand-card"
+                    /* ⚠️ 枠線は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
+                    className={isSel ? "cand-card is-selected" : "cand-card"}
                     style={{
                       background: "#fff",
-                      border: `1px solid ${isSel ? "var(--royal)" : "var(--line)"}`,
                       borderRadius: 14,
                       overflow: "hidden",
                       display: "flex",
@@ -1052,7 +1052,9 @@ export default function CandidatesClient({
                         <div className="cand-card-extra">
                         {/* ★声かけの状態とプロフィールの更新日（段1）。⚠️ 判定は増やさない（`candidateApproachLabel`） */}
                         {(() => {
-                          const label = candidateApproachLabel(c.approach);
+                          /* ⚠️ カードには「受け取る」「声かけ済み」だけ。「受け取っていません」はプレビューの中だけ（柴さんの指示） */
+                          const raw = candidateApproachLabel(c.approach);
+                          const label = raw && raw.state !== "not_accepting" ? raw : null;
                           const edited = formatJstMonthDay(c.profileEditedAt);
                           if (!label && !edited) return null;
                           return (
@@ -1193,6 +1195,10 @@ export default function CandidatesClient({
       {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
       <style>{`
         .cand-wrap { padding: 16px 32px; max-width: 1400px; margin: 0 auto; }
+        .cand-card { border: 1px solid var(--line); }
+        .cand-card.is-selected { border-color: var(--royal); }
+        .cand-card .cand-card-link:focus-visible { outline: none !important; }
+        .cand-card:has(.cand-card-link:focus-visible) { border-color: var(--royal); }
         .cand-pane { display: none; }
         .cand-card-body { flex: 1; display: flex; align-items: center; gap: 16px; padding: 14px 18px; min-width: 0; }
         .cand-card-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; color: inherit; text-decoration: none; }
@@ -1209,7 +1215,9 @@ export default function CandidatesClient({
         }
         @media (min-width: 1024px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-          .cand-pane { display: block; position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+          .cand-wrap { max-width: none; }
+          /* プレビューはヘッダーの下に固定する。90px は biz-header の高さ 74px と余白 16px。ヘッダーの高さを変えたらここも変える */
+          .cand-pane { display: block; position: sticky; top: 90px; max-height: calc(100vh - 106px); overflow-y: auto; overscroll-behavior: contain; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
           .cand-card-actions { display: none; }
           .cand-card a:hover { cursor: pointer; }
         }
