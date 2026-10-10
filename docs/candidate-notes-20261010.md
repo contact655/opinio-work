@@ -16,7 +16,7 @@
 | フラグ | `CANDIDATE_NOTES_ENABLED`。**本番（NODE_ENV=production）は既定でオフ**、dev は既定でオン（"false" で切れる）。Vercel のプレビューもオフ |
 | オンにする条件 | **プライバシーポリシーを改定して施行してから**（段7の書き換え箇所の一覧） |
 | オフのとき | API は 404、画面（`/u/[id]` の社内メモ・候補者検索のカードの「気になる」）は出さない |
-| 表 | `ow_candidate_notes`（1000字まで・消すと `deleted_at`）／ `ow_candidate_tracking`（状態と担当。「気になる」は stage=interested） |
+| 表 | `ow_candidate_notes`（1000字まで・★担当者が消すと**その場で行ごと消える**。消した記録も残さない。2026-10-10）／ `ow_candidate_tracking`（状態と担当。「気になる」は stage=interested） |
 | 読み書き | **その企業の有効な担当者だけ**。API（`/api/biz/candidates/[id]/notes`・`.../tracking`）がサーバーで確かめる |
 | 直叩き | クライアントのロールに GRANT していないので、PostgREST からは**本人・他社・自社の担当者も含めて 42501**。RLS も有効（担当者だけのポリシー。二重の守り） |
 | 書ける相手 | ★次のどれか（2026-10-10 に広げた）: ①候補者検索で見られる人（`can_send_scout()`）／②自社に応募・面談申込をした人／③自社と会話が開いている人（声かけ・提案など）。⚠️ **求職者がその企業をブロックしていたら、どれに当てはまっても書けない**。判定は `canWriteCandidateNote` |

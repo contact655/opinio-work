@@ -58,7 +58,7 @@ export async function getCandidateNotes(companyId: string, candidateOwUserId: st
   const db = createAdminClient();
   const [{ data: notes, error: nErr }, { data: tr, error: tErr }] = await Promise.all([
     db.from("ow_candidate_notes").select("id, body, created_at, author_id").eq("company_id", companyId)
-      .eq("candidate_user_id", candidateOwUserId).is("deleted_at", null).order("created_at", { ascending: false }),
+      .eq("candidate_user_id", candidateOwUserId).order("created_at", { ascending: false }),
     db.from("ow_candidate_tracking").select("stage, owner_id, updated_at").eq("company_id", companyId).eq("candidate_user_id", candidateOwUserId).maybeSingle(),
   ]);
   if (nErr || tErr) { console.error("[candidateNotes] get:", nErr?.message ?? tErr?.message); return null; }
@@ -89,10 +89,13 @@ export async function addCandidateNote(companyId: string, candidateOwUserId: str
   return { ok: true, data: { id: data.id as string } };
 }
 
-/** 消す（deleted_at を立てる）。⚠️ 自社のメモだけ */
+/**
+ * 消す。★**その場で行ごと消す**（2026-10-10 / 柴さんの判断）。見えなくするだけの論理削除にしない。
+ * ⚠️ 消したことの記録も残さない（本文も、誰が消したかも）。⚠️ 自社のメモだけ
+ */
 export async function deleteCandidateNote(companyId: string, candidateOwUserId: string, noteId: string): Promise<Result> {
-  const { data, error } = await createAdminClient().from("ow_candidate_notes").update({ deleted_at: new Date().toISOString() })
-    .eq("id", noteId).eq("company_id", companyId).eq("candidate_user_id", candidateOwUserId).is("deleted_at", null).select("id");
+  const { data, error } = await createAdminClient().from("ow_candidate_notes").delete()
+    .eq("id", noteId).eq("company_id", companyId).eq("candidate_user_id", candidateOwUserId).select("id");
   if (error) { console.error("[candidateNotes] delete:", error.message); return fail(500, "消せませんでした"); }
   if ((data ?? []).length !== 1) return fail(404, "メモが見つかりません");
   return { ok: true, data: null };

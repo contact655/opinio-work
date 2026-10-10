@@ -94,7 +94,7 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
             <li key={n.id} style={{ borderTop: "1px solid var(--line-soft)", paddingTop: 8 }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11.5, color: "var(--ink-mute)" }}>
                 <span>{n.authorName ?? "担当者"}・{fmt(n.createdAt)}</span>
-                <button type="button" disabled={busy} onClick={() => { if (confirm("このメモを消します。よろしいですか？")) void run(() => fetch(`${base}/notes/${n.id}`, { method: "DELETE" })); }}
+                <button type="button" disabled={busy} onClick={() => { if (confirm("このメモを消すと元に戻せません。消しますか？")) void run(() => fetch(`${base}/notes/${n.id}`, { method: "DELETE" })); }}
                   style={{ marginLeft: "auto", fontSize: 11.5, fontFamily: "inherit", border: "none", background: "none", color: "var(--ink-soft)", cursor: "pointer", textDecoration: "underline" }}>消す</button>
               </div>
               <div style={{ fontSize: 13, color: "var(--ink)", whiteSpace: "pre-wrap", wordBreak: "break-word", marginTop: 2 }}>{n.body}</div>
