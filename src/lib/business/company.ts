@@ -167,8 +167,10 @@ export function transformDbToForm(
     phase: row.phase ?? row.business_stage ?? "",
     url: row.url ?? "",
     careersUrl: row.careers_url ?? "",
-    logoGradient: row.logo_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
-    logoLetter: row.logo_letter ?? (row.name ? row.name[0] : "?"),
+    /* ⚠️★既定値で埋めない（2026-10-10）。埋めると「変更を公開する」で、触っていないのに
+          既定の色と頭文字が本番の列に書き込まれていた。見た目の既定は描く側（CompanyEditClient）で当てる */
+    logoGradient: row.logo_gradient ?? "",
+    logoLetter: row.logo_letter ?? "",
     logoUrl: row.logo_url ?? "",
     descriptionMarkdown: row.description ?? "",
     employeeCountBand: row.employee_count_band ?? "",

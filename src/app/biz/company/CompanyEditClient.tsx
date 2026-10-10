@@ -1019,12 +1019,12 @@ export function CompanyEditClient({
                 ) : (
                   <div style={{
                     width: 90, height: 90, borderRadius: 16,
-                    background: form.logoGradient, color: "#fff",
+                    background: form.logoGradient || "linear-gradient(135deg, var(--royal), var(--accent))", color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 38,
                     boxShadow: "0 6px 16px rgba(0,0,0,0.12)", flexShrink: 0,
                   }}>
-                    {form.logoLetter}
+                    {form.logoLetter || form.name?.[0] || "?"}
                   </div>
                 )}
                 <div style={{ flex: 1, paddingTop: 4 }}>
