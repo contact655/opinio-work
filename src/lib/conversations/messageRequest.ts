@@ -27,13 +27,13 @@ import {
  *    （`CONTACT_BLOCKED_MESSAGE`）。上限や重複のような**送り手自身の事実**は、事実どおりに返す。
  */
 
-export const NOT_ACCEPTED_MESSAGE = "まだ承認されていません。承認されると続きを送れます";
+export const NOT_ACCEPTED_MESSAGE = "まだ受け入れられていません。受け入れられると続きを送れます";
 
 const MSG = {
   daily: `本日はこれ以上メッセージリクエストを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
-  open: `承認待ちのリクエストが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上リクエストを送れません`,
-  outgoing: "この方にはすでにメッセージリクエストを送っています。承認されると続きを送れます",
-  incoming: "この方からメッセージリクエストが届いています。メッセージ一覧から承認できます",
+  open: `返事待ちのリクエストが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上リクエストを送れません`,
+  outgoing: "この方にはすでにメッセージリクエストを送っています。受け入れられると続きを送れます",
+  incoming: "この方からメッセージリクエストが届いています。メッセージ一覧で受け入れることができます",
   exists: "この方とのメッセージはすでに始まっています",
   failed: "送信に失敗しました。もう一度お試しください",
 } as const;

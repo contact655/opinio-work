@@ -15,7 +15,7 @@ import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
-const NOT_ACCEPTED_TEXT = "まだ承認されていません。承認されると続きを送れます";
+const NOT_ACCEPTED_TEXT = "まだ受け入れられていません。受け入れられると続きを送れます";
 
 export type Conversation = {
   id: string;
@@ -117,7 +117,7 @@ function RequestsSection({
         <FromTag label="個人から" />メッセージリクエスト（{requests.length}件）
       </p>
       <p style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-        承認すると、メッセージを読んで返信できます。断っても相手には伝わりません。
+        受け入れると、メッセージを読んで返信できます。見送っても相手には伝わりません。
       </p>
       {error && <p role="alert" style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>}
       {requests.map((r) => {
@@ -142,11 +142,11 @@ function RequestsSection({
                 <button type="button" disabled={busy} onClick={() => onRespond(r.conversationId, "accept")} style={{
                   padding: "5px 12px", borderRadius: 6, border: "none", background: busy ? "var(--line)" : "var(--royal)",
                   color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: busy ? "default" : "pointer",
-                }}>承認</button>
+                }}>受け入れる</button>
                 <button type="button" disabled={busy} onClick={() => onRespond(r.conversationId, "decline")} style={{
                   padding: "5px 12px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff",
                   color: "var(--ink-soft)", fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: busy ? "default" : "pointer",
-                }}>断る</button>
+                }}>今回は見送る</button>
               </div>
             </div>
           </div>
@@ -486,7 +486,7 @@ export default function ConversationsClient({
                       )}
                       {/* ★自分が送ったお願い（段階3）。⚠️ 断られていても同じ表示 */}
                       {isPendingRequest(conv) && (
-                        <span data-state="request-pending" style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", flexShrink: 0 }}>承認待ち</span>
+                        <span data-state="request-pending" style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", flexShrink: 0 }}>返事待ち</span>
                       )}
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>

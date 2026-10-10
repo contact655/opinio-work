@@ -23,7 +23,7 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
       label: "メッセージリクエスト",
       from: "個人から",
       count: messageRequests,
-      text: "承認すると内容を読めて、やり取りを始められます",
+      text: "受け入れると内容を読めて、やり取りを始められます",
       href: "/mypage/conversations#requests",
     },
     /* ★企業からの声かけ（2026-10-09）。⚠️ 提案（OPINIO が根拠をそろえる）・お願い（個人から）と

@@ -281,7 +281,7 @@ export default function ConversationDetailClient({
           {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
             /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
             <p data-state="request-pending-banner" className="text-sm text-gray-500 text-center py-1">
-              まだ承認されていません。承認されると続きを送れます
+              まだ受け入れられていません。受け入れられると続きを送れます
             </p>
           ) : myParticipantId ? (
             <div className="flex gap-2 items-end">
