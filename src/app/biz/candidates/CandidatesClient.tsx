@@ -179,8 +179,11 @@ function extractPrefecture(location: string | null): string | null {
 export default function CandidatesClient({
   candidates,
   roleFilterTree = [],
+  approachJobs = [],
 }: {
   candidates: Candidate[];
+  /** ★声かけに添えられる自社の公開中の求人（段6） */
+  approachJobs?: { id: string; title: string }[];
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
 }) {
@@ -1222,7 +1225,7 @@ export default function CandidatesClient({
                                「スカウト」とは呼ばない。 */}
                         {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
                         {c.approach && (c.approach.eligible || c.approach.sent) && (
-                          <ApproachButton candidateUserId={c.id} candidateName={c.name} sent={c.approach.sent} compact />
+                          <ApproachButton candidateUserId={c.id} candidateName={c.name} sent={c.approach.sent} jobs={approachJobs} compact />
                         )}
                         <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}

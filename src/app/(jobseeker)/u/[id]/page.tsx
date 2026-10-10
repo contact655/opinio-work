@@ -29,7 +29,7 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
-import { getRecentlyApproached, isApproachTarget, type RecentApproach } from "@/lib/approaches/server";
+import { getRecentlyApproached, isApproachTarget, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -201,7 +201,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         ⚠️★送れない相手にはボタンを出さない（理由も出さない）。判定は送信の API と同じ
            `isApproachTarget`（候補者検索に出る人と同じ範囲なので、出ること自体で新しく漏れる情報は無い）。
         ⚠️ この企業が180日以内に声をかけていれば「声かけ済み」（企業自身の事実）。 */
-  let approach: { eligible: boolean; sent: RecentApproach | null } | null = null;
+  let approach: { eligible: boolean; sent: RecentApproach | null; jobs: { id: string; title: string }[] } | null = null;
   /* ★社内メモ（2026-10-10 / 段5）。企業の担当者が見たとき・フラグがオンのときだけ。担当の候補は自社の有効な担当者 */
   let notesAdmins: { id: string; name: string }[] | null = null;
   if (viewerOwUserId && !viewerIsOwner) {
@@ -213,11 +213,12 @@ export default async function UserProfilePage({ params }: { params: { id: string
       else notesAdmins = (adminRows ?? []).map((r) => ({ id: r.user_id as string, name: (((r.ow_users as unknown as { name: string | null } | null)?.name) ?? "").trim() || "担当者" }));
     }
     if (tenant && isCompanyReviewed(tenant) && canUse(tenant.planType, "companyApproach")) {
-      const [recent, eligible] = await Promise.all([
+      const [recent, eligible, approachJobs] = await Promise.all([
         getRecentlyApproached(tenant.tenantId, [owUser.id]),
         isApproachTarget({ companyId: tenant.tenantId, candidateOwUserId: owUser.id, senderOwUserId: tenant.currentOwnId }),
+        listApproachableJobs(tenant.tenantId),
       ]);
-      if (recent) approach = { eligible, sent: recent.get(owUser.id) ?? null };
+      if (recent) approach = { eligible, sent: recent.get(owUser.id) ?? null, jobs: approachJobs };
     }
   }
 
@@ -730,7 +731,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
                 {/* ★声かけ（2026-10-09）。企業の担当者が見たときだけ。⚠️ 送れない相手には出さない */}
                 {approach && (approach.eligible || approach.sent) && (
-                  <ApproachButton candidateUserId={owUser.id} candidateName={owUser.name} sent={approach.sent} />
+                  <ApproachButton candidateUserId={owUser.id} candidateName={owUser.name} sent={approach.sent} jobs={approach.jobs} />
                 )}
 
                 {/* DMボタン */}

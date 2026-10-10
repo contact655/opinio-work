@@ -11,7 +11,7 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
       `company_id` から引くので、社名を伏せた職歴から企業側へ漏れる（関数の注記）。 */
 import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse } from "@/lib/constants/plans";
-import { approachTargets, getRecentlyApproached, type RecentApproach } from "@/lib/approaches/server";
+import { approachTargets, getRecentlyApproached, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
 import { isCandidateNotesEnabled, listCandidateStages } from "@/lib/candidateNotes/server";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
@@ -447,6 +447,8 @@ export default async function CandidatesPage() {
         candidateOwUserIds: eligibleUsers.filter((_u: any, i: number) => canSendResults[i] === true).map((u: any) => u.id as string),
       })
     : null;
+  /* ★声かけに添えられる求人（段6）。⚠️ 取れなければ空（選択欄を出さない） */
+  const approachJobs = approachAllowed ? await listApproachableJobs(ctx.tenantId) : [];
   const recentlyApproached = approachAllowed
     ? await getRecentlyApproached(ctx.tenantId, eligibleUsers.map((u: any) => u.id as string))
     : new Map<string, RecentApproach>();
@@ -573,7 +575,7 @@ export default async function CandidatesPage() {
 
   return (
     <BusinessLayout {...layoutProps}>
-      <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree} />
+      <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree} approachJobs={approachJobs} />
     </BusinessLayout>
   );
 }

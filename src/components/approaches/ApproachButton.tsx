@@ -28,6 +28,7 @@ export function ApproachButton({
   candidateName,
   sent = null,
   compact = false,
+  jobs = [],
 }: {
   candidateUserId: string;
   candidateName: string;
@@ -35,10 +36,13 @@ export function ApproachButton({
   sent?: RecentApproach | null;
   /** 候補者検索のカード用（小さめ） */
   compact?: boolean;
+  /** ★関連する求人の候補（自社の公開中の求人。2026-10-10 / 段6）。空なら選択欄を出さない */
+  jobs?: { id: string; title: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [body, setBody] = useState("");
+  const [jobId, setJobId] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentNow, setSentNow] = useState(false);
@@ -62,7 +66,7 @@ export function ApproachButton({
       const res = await fetch("/api/biz/approaches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateUserId, reason, body: body.trim() || null }),
+        body: JSON.stringify({ candidateUserId, reason, body: body.trim() || null, jobId: jobId || null }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -173,6 +177,16 @@ export function ApproachButton({
               style={{ width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 8, border: "1.5px solid var(--line)", fontFamily: "inherit", fontSize: 14, lineHeight: 1.7, color: "var(--ink)", resize: "vertical" }}
             />
             <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4 }}>{body.length} / {APPROACH_BODY_MAX}</div>
+            {jobs.length > 0 && (
+              <label style={{ display: "block", marginTop: 12, fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                関連する求人<span style={{ fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>任意</span>
+                <select value={jobId} onChange={(e) => setJobId(e.target.value)} aria-label="関連する求人"
+                  style={{ display: "block", width: "100%", marginTop: 6, height: 38, borderRadius: 8, border: "1px solid var(--line)", fontFamily: "inherit", fontSize: 13, padding: "0 8px", background: "#fff" }}>
+                  <option value="">添えない</option>
+                  {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+                </select>
+              </label>
+            )}
 
             {error && (
               <p data-state="approach-error" role="alert" style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>

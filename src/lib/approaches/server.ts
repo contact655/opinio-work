@@ -215,6 +215,8 @@ export async function sendApproach(params: {
   candidateOwUserId: string;
   reason: string;
   body: string | null;
+  /** ★関連する求人（任意。2026-10-10 / 段6）。その企業の公開中の求人だけ */
+  jobId?: string | null;
 }): Promise<SendApproachResult> {
   const reason = params.reason.trim();
   const body = params.body?.trim() || null;
@@ -252,12 +254,23 @@ export async function sendApproach(params: {
     return { ok: false, status: 409, error: MSG.reused };
   }
 
+  /* ⑤ 関連する求人（任意）。⚠️ その企業の公開中の求人だけ（他社・下書きの求人は添えられない） */
+  let jobId: string | null = null;
+  if (params.jobId) {
+    const { data: job, error: jErr } = await db.from("ow_jobs").select("id").eq("id", params.jobId)
+      .eq("company_id", params.companyId).eq("status", "published").eq("is_test", false).maybeSingle();
+    if (jErr) console.error("[approaches] job:", jErr.message);
+    if (!job) return { ok: false, status: 400, error: "添えられる求人ではありません" };
+    jobId = job.id as string;
+  }
+
   const { data, error } = await db.from("ow_company_approaches").insert({
     company_id: params.companyId,
     candidate_user_id: params.candidateOwUserId,
     sender_user_id: params.senderOwUserId,
     reason,
     body,
+    job_id: jobId,
   }).select("id").single();
   if (error || !data) {
     console.error("[approaches] insert:", error?.message);
@@ -637,4 +650,12 @@ export async function listSentApproaches(companyId: string): Promise<SentApproac
       senderName: s?.name ?? null,
     };
   });
+}
+
+/** ★声かけに添えられる求人（その企業の公開中の求人。2026-10-10 / 段6）。失敗したら空（選択欄を出さない） */
+export async function listApproachableJobs(companyId: string): Promise<{ id: string; title: string }[]> {
+  const { data, error } = await createAdminClient().from("ow_jobs").select("id, title")
+    .eq("company_id", companyId).eq("status", "published").eq("is_test", false).order("created_at", { ascending: false });
+  if (error) { console.error("[approaches] jobs:", error.message); return []; }
+  return (data ?? []).map((j) => ({ id: j.id as string, title: (j.title as string) || "（無題の求人）" }));
 }

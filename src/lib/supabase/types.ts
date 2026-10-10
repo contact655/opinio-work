@@ -1389,6 +1389,7 @@ export type Database = {
       ow_company_approaches: {
         Row: {
           accepted_at: string | null
+          attribution_recorded: boolean
           body: string | null
           candidate_user_id: string
           company_id: string
@@ -1397,11 +1398,14 @@ export type Database = {
           created_at: string
           declined_at: string | null
           id: string
+          job_id: string | null
           reason: string
           sender_user_id: string | null
+          template_id: string | null
         }
         Insert: {
           accepted_at?: string | null
+          attribution_recorded?: boolean
           body?: string | null
           candidate_user_id: string
           company_id: string
@@ -1410,11 +1414,14 @@ export type Database = {
           created_at?: string
           declined_at?: string | null
           id?: string
+          job_id?: string | null
           reason: string
           sender_user_id?: string | null
+          template_id?: string | null
         }
         Update: {
           accepted_at?: string | null
+          attribution_recorded?: boolean
           body?: string | null
           candidate_user_id?: string
           company_id?: string
@@ -1423,8 +1430,10 @@ export type Database = {
           created_at?: string
           declined_at?: string | null
           id?: string
+          job_id?: string | null
           reason?: string
           sender_user_id?: string | null
+          template_id?: string | null
         }
         Relationships: [
           {
@@ -1446,6 +1455,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_approaches_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_jobs"
             referencedColumns: ["id"]
           },
           {

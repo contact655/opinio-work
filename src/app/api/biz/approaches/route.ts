@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
   const candidateUserId = typeof body?.candidateUserId === "string" ? body.candidateUserId : "";
   const reason = typeof body?.reason === "string" ? body.reason : "";
   const message = typeof body?.body === "string" ? body.body : null;
+  const jobId = typeof body?.jobId === "string" && body.jobId ? body.jobId : null;
   if (!candidateUserId) return NextResponse.json({ error: "宛先がありません" }, { status: 400 });
 
   const r = await sendApproach({
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
     candidateOwUserId: candidateUserId,
     reason,
     body: message,
+    jobId,
   });
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ ok: true, id: r.id });

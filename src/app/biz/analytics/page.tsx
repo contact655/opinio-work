@@ -6,6 +6,8 @@ import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { countByJob, fetchCompanyReactions, type Fetched, type ReactionRow } from "@/lib/business/reactionCounts";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getApproachAnalytics } from "@/lib/approaches/analytics";
+import { ApproachTab } from "./ApproachTab";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "分析 | OPINIO Business" }, robots: { index: false, follow: false } };
@@ -177,12 +179,22 @@ function Funnel({ steps, drop }: { steps: { label: string; count: number }[]; dr
 
 // ─── ページ ──────────────────────────────────────────────────────────────────
 
-export default async function AnalyticsPage({ searchParams }: { searchParams?: { period?: string } }) {
+export default async function AnalyticsPage({ searchParams }: { searchParams?: { period?: string; tab?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
   const period: Period = searchParams?.period === "90" || searchParams?.period === "all" ? searchParams.period : "30";
   const since = period === "all" ? null : Date.now() - Number(period) * 86_400_000;
+  /* ★「声かけ」タブ（2026-10-10 / 段6）。⚠️ 期間と同じく URL に持つ */
+  const tab: "overview" | "approaches" = searchParams?.tab === "approaches" ? "approaches" : "overview";
+  const approachData = tab === "approaches" ? await getApproachAnalytics(ctx.tenantId, since) : null;
+  const qs = (p: Period, t: typeof tab) => {
+    const q = new URLSearchParams();
+    if (p !== "30") q.set("period", p);
+    if (t !== "overview") q.set("tab", t);
+    const str = q.toString();
+    return str ? `/biz/analytics?${str}` : "/biz/analytics";
+  };
   const inPeriod = (iso: string) => since === null || new Date(iso).getTime() >= since;
 
   const supabase = createClient();
@@ -303,7 +315,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
             return (
               <Link
                 key={p.key}
-                href={p.key === "30" ? "/biz/analytics" : `/biz/analytics?period=${p.key}`}
+                href={qs(p.key, tab)}
                 aria-current={active ? "page" : undefined}
                 data-state={active ? "active" : "inactive"}
                 style={{
@@ -320,6 +332,18 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
         </nav>
       </div>
 
+      {/* ★タブ（2026-10-10 / 段6）。⚠️ 選択状態は下線だけ（ui-conventions） */}
+      <nav aria-label="分析の種類" style={{ display: "flex", gap: 18, borderBottom: "1px solid var(--line)", marginBottom: 16 }}>
+        {([["overview", "全体"], ["approaches", "声かけ"]] as const).map(([k, label]) => (
+          <Link key={k} href={qs(period, k)} aria-current={tab === k ? "page" : undefined} data-state={tab === k ? "active" : "inactive"}
+            style={{ padding: "8px 2px", fontSize: 14, fontWeight: tab === k ? 700 : 500, textDecoration: "none",
+              color: tab === k ? "var(--ink)" : "var(--ink-mute)", borderBottom: `2px solid ${tab === k ? "var(--royal)" : "transparent"}`, marginBottom: -1 }}>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      {tab === "approaches" ? <ApproachTab data={approachData} periodLabel={periodLabel} /> : (<>
       {/* ── 期間の数字 ── */}
       <div className="an-kpis" style={{ marginBottom: 16 }}>
         <Kpi label="面談の申込み" value={meetingsRes.ok ? meetings.length : null} sub={periodLabel} />
@@ -469,6 +493,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
           </div>
         )}
       </div>
+      </>)}
     </BusinessLayout>
   );
 }
