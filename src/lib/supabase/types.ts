@@ -487,7 +487,6 @@ export type Database = {
           candidate_user_id: string
           company_id: string
           created_at: string
-          deleted_at: string | null
           id: string
         }
         Insert: {
@@ -496,7 +495,6 @@ export type Database = {
           candidate_user_id: string
           company_id: string
           created_at?: string
-          deleted_at?: string | null
           id?: string
         }
         Update: {
@@ -505,7 +503,6 @@ export type Database = {
           candidate_user_id?: string
           company_id?: string
           created_at?: string
-          deleted_at?: string | null
           id?: string
         }
         Relationships: [
