@@ -111,3 +111,33 @@ export async function openCompanyConversation(params: {
     companyId: params.companyId,
   });
 }
+
+/**
+ * ★企業との会話に**この人が**送ってよいか（2026-10-10 / 柴さんの指示）。
+ *   `companyConversationAllowed`（企業と求職者の組として開いてよいか）に加えて、
+ *   **送る人が企業側の担当者なら、送る人と求職者の is_test が一致していること**を見る。
+ * ⚠️★なぜ: 企業と求職者の is_test の一致は `can_contact_without_stance()` が見ているが、
+ *    **送る担当者本人**は見ていなかった。実在の企業に付いた検証用の担当者（2026-10-10 時点でセールスフォースの2人）が、
+ *    その企業と実在の求職者の会話に送れた。
+ * ⚠️ 求職者本人が送る場合（`senderOwUserId === candidateOwUserId`）は、担当者の確認は要らない。
+ * ⚠️ 企業側から会話に送る経路は**すべてここを通す**（`/api/biz/conversations/[id]/messages`・`/api/dm/message`・
+ *    `/api/dm/bulk-message`・日程調整 `lib/meetings/server.ts`）。⚠️ 判定に失敗したら送れない（fail-closed）。
+ */
+export async function companyConversationSendAllowed(params: {
+  candidateOwUserId: string;
+  companyId: string;
+  senderOwUserId: string;
+}): Promise<boolean> {
+  if (params.senderOwUserId !== params.candidateOwUserId) {
+    const { data, error } = await createAdminClient()
+      .from("ow_users").select("id, is_test").in("id", [params.senderOwUserId, params.candidateOwUserId]);
+    if (error) {
+      console.error("[openReason] 送る人の is_test:", error.message);
+      return false;
+    }
+    const sender = (data ?? []).find((u) => u.id === params.senderOwUserId);
+    const cand = (data ?? []).find((u) => u.id === params.candidateOwUserId);
+    if (!sender || !cand || (sender.is_test === true) !== (cand.is_test === true)) return false;
+  }
+  return companyConversationAllowed(params.candidateOwUserId, params.companyId);
+}

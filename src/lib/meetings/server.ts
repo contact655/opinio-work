@@ -1,7 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { companyConversationAllowed, companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { notify } from "@/lib/notify/email";
@@ -76,7 +76,8 @@ async function companySendGuard(conversationId: string, companyId: string, owUse
   if (!conv) return fail(404, "会話が見つかりません");
   const pid = await participantId(conversationId, owUserId);
   if (!pid) return fail(403, "この会話に参加していません");
-  if (!(await companyConversationAllowed(conv.candidate_user_id, companyId))) return fail(403, "この方には現在メッセージを送れません");
+  /* ★送る担当者と求職者の is_test の一致も見る（2026-10-10） */
+  if (!(await companyConversationSendAllowed({ candidateOwUserId: conv.candidate_user_id, companyId, senderOwUserId: owUserId }))) return fail(403, "この方には現在メッセージを送れません");
   return { ok: true, data: { conv, participantId: pid } };
 }
 

@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
-import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
 
 export async function POST(request: NextRequest) {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         ⚠️ 理由は返さない */
   let senderParticipantId: string | undefined;
   if (conv.kind === "company") {
-    if (!conv.company_id || !(await companyConversationAllowed(conv.candidate_user_id as string, conv.company_id as string))) {
+    if (!conv.company_id || !(await companyConversationSendAllowed({ candidateOwUserId: conv.candidate_user_id as string, companyId: conv.company_id as string, senderOwUserId: owMe.id as string }))) {
       return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
     }
     const { data: mine, error: mineErr } = await admin

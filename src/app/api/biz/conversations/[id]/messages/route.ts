@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { insertActivity } from "@/lib/business/activities";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { CONTACT_BLOCKED_MESSAGE } from "@/lib/conversations/contactGate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -88,7 +88,8 @@ export async function POST(
   if (convRowErr) console.error("[conversations/messages POST] ow_conversations:", convRowErr.message);
   if (!convRow) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
   if (convRow.kind === "company") {
-    if (!convRow.company_id || !(await companyConversationAllowed(convRow.candidate_user_id as string, convRow.company_id as string))) {
+    /* ★送る担当者と求職者の is_test の一致も見る（2026-10-10。`companyConversationSendAllowed`） */
+    if (!convRow.company_id || !(await companyConversationSendAllowed({ candidateOwUserId: convRow.candidate_user_id as string, companyId: convRow.company_id as string, senderOwUserId: owUser.id as string }))) {
       return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 403 });
     }
   }

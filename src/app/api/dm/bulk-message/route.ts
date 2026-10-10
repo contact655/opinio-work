@@ -5,7 +5,7 @@ import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
-import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
 
 export const dynamic = "force-dynamic";
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
           参加者の行は admin で補わない。⚠️ 理由は返さない */
     let senderParticipantId: string | undefined;
     if (conv.kind === "company") {
-      if (!conv.company_id || !(await companyConversationAllowed(conv.candidate_user_id as string, conv.company_id as string))) {
+      if (!conv.company_id || !(await companyConversationSendAllowed({ candidateOwUserId: conv.candidate_user_id as string, companyId: conv.company_id as string, senderOwUserId: owMe.id as string }))) {
         results.push({ conversationId, ok: false, error: CONTACT_BLOCKED_MESSAGE });
         continue;
       }
