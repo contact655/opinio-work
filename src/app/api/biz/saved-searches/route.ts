@@ -9,6 +9,9 @@ import {
   MAX_SAVED_SEARCH_NAME,
   type SavedSearch,
 } from "@/lib/business/savedSearch";
+import {
+  isNotifyFrequency, listSavedSearchesForViewer, listSavedSearchesWithCounts, markSavedSearchViewed,
+} from "@/lib/business/savedSearchServer";
 
 /**
  * 候補者検索の「保存した条件」。
@@ -35,46 +38,43 @@ async function requireCandidateSearch() {
   return { ctx } as const;
 }
 
-export async function GET() {
+/**
+ * ★一覧（2026-10-10 / 段3）: 自分の条件＋同じ企業で共有された条件。
+ * ⚠️ `?counts=1` のときだけ新着の人数を数える（候補者の母集団を読み直すので重い。検索画面の小窓では数えない）。
+ * ⚠️ 前回見た日時が無い条件は、ここで「今」を初期値として入れる（保存した直後・共有を初めて開いたとき）。
+ */
+export async function GET(req: NextRequest) {
   const g = await requireCandidateSearch();
   if (g.error) return g.error;
   const { ctx } = g;
-
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("ow_saved_candidate_searches")
-    .select("id, name, filters, updated_at")
-    .eq("owner_user_id", ctx.currentOwnId)
-    .eq("company_id", ctx.tenantId)
-    .order("updated_at", { ascending: false });
-
-  /* ⚠️ error を握り潰さない。`?? []` で受けると権限エラーが「0件」に化ける（CLAUDE.md）。 */
-  if (error) {
-    console.error("[GET /api/biz/saved-searches]", error.message);
-    return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-  }
-
-  const searches: SavedSearch[] = (data ?? []).map((r) => ({
-    id: r.id as string,
-    name: r.name as string,
-    filters: parseSavedFilters(r.filters),
-    updatedAt: r.updated_at as string,
+  const withCounts = req.nextUrl.searchParams.get("counts") === "1";
+  const base = { companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, viewerPermission: ctx.currentPermission };
+  const rows = withCounts
+    ? await listSavedSearchesWithCounts({ ...base, planType: ctx.planType })
+    : await listSavedSearchesForViewer(base);
+  if (!rows) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+  const searches = rows.map((r) => ({
+    id: r.id, name: r.name, filters: r.filters, updatedAt: r.updatedAt,
+    ownerName: r.ownerName, isShared: r.isShared, notifyFrequency: r.notifyFrequency,
+    isMine: r.ownerUserId === ctx.currentOwnId,
+    canEdit: r.ownerUserId === ctx.currentOwnId,
+    canDelete: r.ownerUserId === ctx.currentOwnId || ctx.currentPermission === "admin",
+    newCount: "newCount" in r ? (r as { newCount: number | null }).newCount : undefined,
   }));
   return NextResponse.json({ searches });
 }
 
-/**
- * 保存する。
- *
- * ⚠️★**同じ名前で保存したら上書き**（UNIQUE `(company_id, owner_user_id, name)`）。
- *    別の行を作ると、同じ名前が並んでどちらが新しいか分からなくなる。
- */
 export async function POST(req: NextRequest) {
   const g = await requireCandidateSearch();
   if (g.error) return g.error;
   const { ctx } = g;
 
-  const body = (await req.json().catch(() => null)) as { name?: unknown; filters?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { name?: unknown; filters?: unknown; notifyFrequency?: unknown; isShared?: unknown } | null;
+  /* ★お知らせの頻度と共有（段3）。⚠️ 不正な値は 400（黙って既定値にしない） */
+  const notifyFrequency = body?.notifyFrequency === undefined ? "none" : body.notifyFrequency;
+  if (!isNotifyFrequency(notifyFrequency)) return NextResponse.json({ error: "お知らせの設定が正しくありません" }, { status: 400 });
+  if (body?.isShared !== undefined && typeof body.isShared !== "boolean") return NextResponse.json({ error: "公開範囲の設定が正しくありません" }, { status: 400 });
+  const isShared = body?.isShared === true;
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   if (!name) return NextResponse.json({ error: "名前を入力してください" }, { status: 400 });
   if (name.length > MAX_SAVED_SEARCH_NAME) {
@@ -117,6 +117,8 @@ export async function POST(req: NextRequest) {
         company_id: ctx.tenantId,
         name,
         filters,
+        notify_frequency: notifyFrequency,
+        is_shared: isShared,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "company_id,owner_user_id,name" },
@@ -128,6 +130,9 @@ export async function POST(req: NextRequest) {
     console.error("[POST /api/biz/saved-searches]", error?.message);
     return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
+
+  /* ★前回見た日時の初期値は「保存した時点」（段3）。⚠️ 新規のときだけ。上書きでは前回見た日時を動かさない */
+  if (!isOverwrite) await markSavedSearchViewed(data.id as string, ctx.currentOwnId);
 
   const saved: SavedSearch = {
     id: data.id as string,

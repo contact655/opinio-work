@@ -492,6 +492,27 @@ export function approachAcceptedCompanyTemplate(params: {
   };
 }
 
+/**
+ * ★保存した条件の新着のお知らせ（2026-10-10 / 候補者探し 段3）。送るのは条件を作った人だけ。
+ * ⚠️★**氏名・経歴を入れない。** 件数とリンクだけ（柴さんの指示）。
+ * ⚠️ 新着が0人の日は送らない（呼び出し側で止める。ここは count >= 1 の前提）。
+ * ⚠️ 末尾に「お知らせの設定を変える」→ 保存した条件の編集画面。
+ */
+export function savedSearchAlertTemplate(params: { to: string; searchId: string; searchName: string; count: number }) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  const id = encodeURIComponent(params.searchId);
+  return {
+    to: params.to,
+    subject: `保存した条件「${params.searchName}」に新しく${params.count}名が見つかりました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">新しく${params.count}名が見つかりました</h2>
+      <p style="margin:0 0 20px;color:#475569">保存した条件「${esc(params.searchName)}」に合う方が、新しく${params.count}名見つかりました（新しく登録した方と、プロフィールを更新した方）。</p>
+      <a href="${siteUrl}/biz/candidates?saved=${id}&new=1" style="${BTN}">新着を見る →</a>
+      <p style="margin:28px 0 0;font-size:12px;color:#94A3B8"><a href="${siteUrl}/biz/candidates/saved?edit=${id}" style="color:#64748B">お知らせの設定を変える</a></p>
+    `),
+  };
+}
+
 // T1 応募者宛
 export function applicationUserTemplate(params: {
   to: string;

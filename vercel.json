@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/purge-candidate-notes",
       "schedule": "30 18 * * *"
+    },
+    {
+      "path": "/api/cron/saved-search-alerts",
+      "schedule": "0 23 * * *"
     }
   ]
 }

@@ -245,3 +245,58 @@ export function candidateApproachLabel(approach: Candidate["approach"]): { state
   if (approach.eligible) return { state: "eligible", text: "声かけを受け取る" };
   return { state: "not_accepting", text: "声かけは受け取っていません" };
 }
+
+/**
+ * ★保存した条件の「新着」（2026-10-10 / 段3 / 柴さんの決めごと）。数えるのは次の2つだけ:
+ *   ・`since` より後に新しく登録した人（`createdAt` ＝ ow_users.created_at）
+ *   ・`since` より後に本人がプロフィールの中身を編集した人（`profileEditedAt`）
+ * ⚠️★転職意欲・声かけの受け取り・ブロック解除などで「見えるようになった」人は数えない
+ *    （いつ転職を考え始めたか・いつ声かけを受け取り始めたかが企業に伝わるため）。
+ *    ⚠️ ここに条件を足すときは、その日時が**企業に何を伝えるか**を先に考えること。
+ */
+export function isNewSince(c: Candidate, sinceIso: string): boolean {
+  const since = new Date(sinceIso).getTime();
+  if (!Number.isFinite(since)) return false;
+  const t1 = new Date(c.createdAt).getTime();
+  const t2 = c.profileEditedAt ? new Date(c.profileEditedAt).getTime() : NaN;
+  return (Number.isFinite(t1) && t1 > since) || (Number.isFinite(t2) && t2 > since);
+}
+
+export const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  full_time: "正社員",
+  contract: "契約社員",
+  part_time: "パート・アルバイト",
+  freelance: "フリーランス",
+  intern: "インターン",
+};
+
+/**
+ * ★保存した条件をチップの言葉にする（段3。保存した条件の一覧ページで使う）。
+ * ⚠️ 検索画面のチップ（`CandidatesClient` の activeChips）と同じ語にする。並べ替えは含めない。
+ * @param roleNameById 職種の名前（取れなければ空。そのときは職種のチップを出さない＝uuid を出さない）
+ */
+export function describeFilters(
+  f: SavedCandidateFilters,
+  roleNameById: Map<string, string>,
+  labels: { workStyles: Record<string, string>; careerStances: { value: string; label: string }[] },
+): string[] {
+  const out: string[] = [];
+  if (f.q.trim()) out.push(`検索: ${f.q.trim()}`);
+  if (f.roleQuery.trim()) out.push(`社内での呼び方: ${f.roleQuery.trim()}`);
+  if (f.companyQuery.trim()) out.push(`会社: ${f.companyQuery.trim()}`);
+  if (f.excludeQuery.trim()) out.push(`除外: ${f.excludeQuery.trim()}`);
+  const role = f.childRoleId ?? f.topRoleId;
+  if (role && roleNameById.get(role)) out.push(roleNameById.get(role)!);
+  const tb = TENURE_BANDS.find((b) => b.value === f.tenureBand);
+  if (tb) out.push(`社会人 ${tb.label}`);
+  for (const v of f.employmentTypes) out.push(EMPLOYMENT_TYPE_LABELS[v] ?? v);
+  if (f.workStyle) out.push(labels.workStyles[f.workStyle] ?? f.workStyle);
+  if (f.salaryMin > 0) out.push(`${f.salaryMin}万〜`);
+  for (const p of f.prefectures) out.push(p);
+  const cs = labels.careerStances.find((o) => o.value === f.careerStance);
+  if (cs) out.push(cs.label);
+  const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
+  if (fr) out.push(`更新 ${fr.label}`);
+  if (f.approachOnly) out.push("声かけを受け取る方のみ");
+  return out;
+}

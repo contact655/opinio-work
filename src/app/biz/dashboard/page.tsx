@@ -13,6 +13,7 @@ import { calcDisclosureScore, scoreLabel, scoreColor, scoreTextColor, bizScoreOn
 import { getTodayTodo, type TodayTodoKind } from "@/lib/business/todayTodo";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
+import { isCompanyReviewed } from "@/lib/business/scoutGate";
 import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
 import { companyHasApproachRoles, getApproachRangeFieldFlags } from "@/lib/approaches/range";
@@ -78,7 +79,7 @@ const TODAY_CARDS: { kind: TodayTodoKind; label: string; href: string }[] = [
   { kind: "meeting", label: "今日以降の面談", href: "/biz/meetings?tab=meetings" },
 ];
 const TODAY_KIND_LABELS: Record<TodayTodoKind, string> = {
-  approach: "声かけ", unreplied: "メッセージ", proposal: "提案", meetingRequest: "面談申込", meeting: "面談",
+  approach: "声かけ", unreplied: "メッセージ", proposal: "提案", meetingRequest: "面談申込", meeting: "面談", savedSearch: "保存した条件",
 };
 const TODAY_LIST_LIMIT = 10;
 /** 日本時間で「10/9」、今日なら「今日」 */
@@ -134,7 +135,7 @@ export default async function BizDashboardPage({
     })(),
     /* ★「やること」。メッセージと提案はサイドバーのバッジと同じ関数で数える */
     /* ★今日やること（2026-10-10 / 段3）。今あるデータを読むだけ（`lib/business/todayTodo.ts`） */
-    getTodayTodo(ctx.tenantId),
+    getTodayTodo(ctx.tenantId, { owUserId: ctx.currentOwnId, permission: ctx.currentPermission, planType: ctx.planType, reviewed: isCompanyReviewed(ctx) }),
     /* ★スタートガイドの「企業情報を入力する」の完了判定（2026-10-08）。
           掲載に必要な項目（業種＋必須の事業領域）が埋まっているか。
           ⚠️ `{ kind: "admin" }` を渡す＝**規約同意は見ない**（同意は設定タブの話で、

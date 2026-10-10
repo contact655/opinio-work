@@ -5148,7 +5148,10 @@ export type Database = {
           created_at: string
           filters: Json
           id: string
+          is_shared: boolean
+          last_notified_at: string | null
           name: string
+          notify_frequency: string
           owner_user_id: string
           updated_at: string
         }
@@ -5157,7 +5160,10 @@ export type Database = {
           created_at?: string
           filters: Json
           id?: string
+          is_shared?: boolean
+          last_notified_at?: string | null
           name: string
+          notify_frequency?: string
           owner_user_id: string
           updated_at?: string
         }
@@ -5166,7 +5172,10 @@ export type Database = {
           created_at?: string
           filters?: Json
           id?: string
+          is_shared?: boolean
+          last_notified_at?: string | null
           name?: string
+          notify_frequency?: string
           owner_user_id?: string
           updated_at?: string
         }
@@ -5241,6 +5250,39 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_saved_search_views: {
+        Row: {
+          last_viewed_at: string
+          search_id: string
+          viewer_user_id: string
+        }
+        Insert: {
+          last_viewed_at?: string
+          search_id: string
+          viewer_user_id: string
+        }
+        Update: {
+          last_viewed_at?: string
+          search_id?: string
+          viewer_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_saved_search_views_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "ow_saved_candidate_searches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_saved_search_views_viewer_user_id_fkey"
+            columns: ["viewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]

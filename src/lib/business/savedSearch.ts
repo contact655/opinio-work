@@ -123,6 +123,15 @@ export type SavedSearch = {
   name: string;
   filters: SavedCandidateFilters;
   updatedAt: string;
+  /* ★2026-10-10（段3）。一覧の API が返す */
+  ownerName?: string | null;
+  isShared?: boolean;
+  notifyFrequency?: "daily" | "weekly" | "none";
+  isMine?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  /** 新着の人数。undefined = 数えていない（?counts=1 のときだけ）／null = 数えられなかった */
+  newCount?: number | null;
 };
 
 /**

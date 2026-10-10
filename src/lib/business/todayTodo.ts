@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { listOpenProposals, proposalDaysLeft } from "@/lib/evidence/proposalEnded";
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { MEETING_FORMATS, formatMeetingDateTime } from "@/lib/constants/meetings";
+import { listSavedSearchesWithCounts } from "@/lib/business/savedSearchServer";
+import { canUse, type PlanType } from "@/lib/constants/plans";
 
 /**
  * ★企業ホームの「今日やること」（2026-10-10 / 声かけまわり 段3）。**今あるデータを読むだけ。新しい表は作らない。**
@@ -15,14 +17,15 @@ import { MEETING_FORMATS, formatMeetingDateTime } from "@/lib/constants/meetings
  * | `proposal` | 答えていない提案（`/biz/proposals` の「未回答」と同じ条件。`listOpenProposals`） | /biz/proposals |
  * | `meetingRequest` | まだ開いていない面談申込（`/biz/meetings` の未読と同じ条件） | /biz/meetings |
  *
- * ⚠️ 「保存した条件の新着」は出さない（柴さんの判断。まだ実装されていない）。
+ * | `savedSearch` | 新着が1名以上ある保存した条件（自分の条件＋共有。2026-10-10 / 候補者探し 段3） | その条件の新着 |
+ * ⚠️ 保存した条件の新着は、見ている担当者ごとに違う（前回見た日時が担当者ごと）。viewer を渡したときだけ数える。
  * | `meeting` | 今日以降の面談（`ow_meetings`。取り消しを除く。2026-10-10 / 段4） | その会話 |
  * ⚠️ 件数カードの4つ目は 2026-10-10（段4）から「今日以降の面談」。面談申込は一覧にだけ出す。
  * ★提案は締め切り（届いてから30日。`respond_by`）まで「あと◯日」を出す（2026-10-10）。
  * ⚠️ 提案の候補者は匿名。**名前を出さない**（`biz/proposals/page.tsx` と同じ）。
  * ⚠️ 種類ごとに取得に失敗したら、その種類の件数を null にする（画面は「—」。0 と出さない）。
  */
-export type TodayTodoKind = "approach" | "unreplied" | "proposal" | "meetingRequest" | "meeting";
+export type TodayTodoKind = "approach" | "unreplied" | "proposal" | "meetingRequest" | "meeting" | "savedSearch";
 
 export type TodayTodoItem = {
   kind: TodayTodoKind;
@@ -37,9 +40,12 @@ export type TodayTodo = {
   items: TodayTodoItem[];
 };
 
-export async function getTodayTodo(companyId: string): Promise<TodayTodo> {
+export async function getTodayTodo(
+  companyId: string,
+  viewer?: { owUserId: string; permission: "admin" | "member"; planType: PlanType | null; reviewed: boolean },
+): Promise<TodayTodo> {
   const db = createAdminClient();
-  const counts: TodayTodo["counts"] = { approach: null, unreplied: null, proposal: null, meetingRequest: null, meeting: null };
+  const counts: TodayTodo["counts"] = { approach: null, unreplied: null, proposal: null, meetingRequest: null, meeting: null, savedSearch: null };
   const items: TodayTodoItem[] = [];
 
   const [approaches, conversations, proposals, meetings, upcoming] = await Promise.all([
@@ -135,6 +141,19 @@ export async function getTodayTodo(companyId: string): Promise<TodayTodo> {
     /* ⚠️ 並び順の日時は「決まった日」ではなく面談の日時なので、近い予定が上に来る */
     for (const m of upcoming) {
       items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName} さんとの面談（${formatMeetingDateTime(m.startsAt)}・${MEETING_FORMATS[m.format]}）`, href: `/biz/conversations/${m.conversationId}` });
+    }
+  }
+
+  /* ★保存した条件の新着（段3）。⚠️ 候補者検索を使えない企業では数えない（画面と同じゲート） */
+  if (viewer && viewer.reviewed && canUse(viewer.planType, "candidateSearch")) {
+    const saved = await listSavedSearchesWithCounts({ companyId, viewerOwUserId: viewer.owUserId, viewerPermission: viewer.permission, planType: viewer.planType });
+    if (saved) {
+      const withNew = saved.filter((s) => (s.newCount ?? 0) > 0);
+      counts.savedSearch = withNew.length;
+      for (const s of withNew) {
+        /* ⚠️ 日付は「今日」（新着は今の時点の数）。前回見た日時を出すと、いつの新着か誤読される */
+        items.push({ kind: "savedSearch", at: new Date().toISOString(), title: `保存した条件「${s.name}」に新着 ${s.newCount}名`, href: `/biz/candidates?saved=${s.id}&new=1` });
+      }
     }
   }
 

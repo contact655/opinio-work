@@ -4,8 +4,8 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
 /* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
-  CANDIDATE_SORT_OPTIONS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
-  candidateApproachLabel, filterCandidates, formatJstMonthDay, sortCandidates,
+  CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
+  candidateApproachLabel, filterCandidates, formatJstMonthDay, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
@@ -64,13 +64,6 @@ function formatTenure(months: number | null): string | null {
 /* ⚠️ `/dev/preview/candidates` が固定データを作るために export している（実体は model.ts）。 */
 export type { Candidate };
 
-const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
-  full_time: "正社員",
-  contract: "契約社員",
-  part_time: "パート・アルバイト",
-  freelance: "フリーランス",
-  intern: "インターン",
-};
 
 
 /* ⚠️★**アバターに人ごとの色を割り当てないこと**（2026-09-21 に撤去）。
@@ -108,7 +101,10 @@ export default function CandidatesClient({
   roleFilterTree = [],
   approachJobs = [],
   initialSelected = null,
+  initialSaved = null,
 }: {
+  /** ★保存した条件で開いたとき（段3）。newSince があれば「新着だけ」を出す */
+  initialSaved?: { id: string; name: string; filters: SavedCandidateFilters; newSince: string | null } | null;
   candidates: Candidate[];
   /** ★`?selected=` で開いている候補者（段1）。リロードしても同じ人を開く */
   initialSelected?: string | null;
@@ -328,7 +324,18 @@ export default function CandidatesClient({
        sort]);
 
   /* ★絞り込みと並び替え（model.ts。段3の新着メールと同じ関数）。⚠️ 描くのは `sorted` */
-  const filtered = useMemo(() => filterCandidates(candidates, currentFilters), [candidates, currentFilters]);
+  /* ★新着だけ（段3）。⚠️ 判定は `isNewSince`（登録日と本人の編集日だけ）。×で全員に戻せる */
+  const [newSince, setNewSince] = useState<string | null>(initialSaved?.newSince ?? null);
+  const [openedSaved, setOpenedSaved] = useState<{ id: string; name: string } | null>(initialSaved ? { id: initialSaved.id, name: initialSaved.name } : null);
+  const filtered = useMemo(() => {
+    const list = filterCandidates(candidates, currentFilters);
+    return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
+  }, [candidates, currentFilters, newSince]);
+  /* ★「声かけを受け取る方のみ」で0名になったか（トグル以外の条件では人がいる）。⚠️ 文言を出し分けるためだけ */
+  const zeroByApproachOnly = useMemo(
+    () => currentFilters.approachOnly && filtered.length === 0
+      && filterCandidates(candidates, { ...currentFilters, approachOnly: false }).length > 0,
+    [candidates, currentFilters, filtered.length]);
   const sorted = useMemo(() => sortCandidates(filtered, sort), [filtered, sort]);
   /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
   const unknownTenureCount = useMemo(() => filtered.filter((c) => c.tenureMonths == null).length, [filtered]);
@@ -345,10 +352,21 @@ export default function CandidatesClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* ★保存した条件で開いたら、その条件を当てて、前回見た日時を今にする（段3）。
+        ⚠️ 新着の基準（newSince）はサーバーが**開く前の値**で渡している。ここで更新しても数え直さない */
+  useEffect(() => {
+    if (!initialSaved) return;
+    applyFilters(initialSaved.filters);
+    void fetch(`/api/biz/saved-searches/${initialSaved.id}/view`, { method: "POST" }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* ⚠️★「クリア」も同じ経路。**空の定義を2つ持たない**
         （持つと「クリアしたのに1つだけ残る」が起きる）。 */
   function clearAllFilters() {
     applyFilters(EMPTY_SAVED_FILTERS);
+    setNewSince(null);
+    setOpenedSaved(null);
   }
 
   /* ── ★保存した条件の読み書き ────────────────────────────────────────────
@@ -360,6 +378,9 @@ export default function CandidatesClient({
   const [savedOpen, setSavedOpen] = useState(false);
   /** ★「この条件を保存」の小窓（段2）。⚠️ 「保存した条件」と同時に開かない */
   const [saveOpen, setSaveOpen] = useState(false);
+  /* ★保存するときに選ぶもの（段3）。⚠️ お知らせの既定は「受け取らない」（選ばずに保存した人にメールを送り始めない） */
+  const [saveNotify, setSaveNotify] = useState<"daily" | "weekly" | "none">("none");
+  const [saveShared, setSaveShared] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -382,7 +403,8 @@ export default function CandidatesClient({
   /** ★条件を選んでいるか（段2）。⚠️ 並び替えだけ変えた状態は「条件」に数えない（保存ボタンを出さない） */
   const hasConditions = !isEmptyFilters({ ...currentFilters, sort: EMPTY_SAVED_FILTERS.sort });
   /* ⚠️ 同じ名前は上書き（サーバーの UNIQUE と揃えてある）。押す前に分かるよう文言を変える */
-  const willOverwrite = (savedSearches ?? []).some((v) => v.name === saveName.trim());
+  /* ⚠️ 上書きになるのは**自分の**同じ名前だけ（他の人が共有した条件とは別の行になる） */
+  const willOverwrite = (savedSearches ?? []).some((v) => v.isMine !== false && v.name === saveName.trim());
 
   async function saveCurrentSearch() {
     const name = saveName.trim();
@@ -392,7 +414,7 @@ export default function CandidatesClient({
       const res = await fetch("/api/biz/saved-searches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, filters: currentFilters }),
+        body: JSON.stringify({ name, filters: currentFilters, notifyFrequency: saveNotify, isShared: saveShared }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "保存に失敗しました");
@@ -736,6 +758,28 @@ export default function CandidatesClient({
                       同じ名前があります。上書きされます
                     </p>
                   )}
+                  {/* ★新着のお知らせ（段3）。⚠️ 選択肢は savedSearchServer の NOTIFY_FREQUENCIES と同じ3つ */}
+                  <fieldset style={{ border: "none", margin: "10px 0 0", padding: 0 }}>
+                    <legend style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 4 }}>新着のお知らせ（メール）</legend>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12.5 }}>
+                      {([["daily", "毎朝"], ["weekly", "毎週月曜"], ["none", "受け取らない"]] as const).map(([v, l]) => (
+                        <label key={v} style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                          <input type="radio" name="save-notify" value={v} checked={saveNotify === v} onChange={() => setSaveNotify(v)} />{l}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <fieldset style={{ border: "none", margin: "8px 0 0", padding: 0 }}>
+                    <legend style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 4 }}>公開範囲</legend>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12.5 }}>
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                        <input type="radio" name="save-share" checked={!saveShared} onChange={() => setSaveShared(false)} />自分だけ
+                      </label>
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                        <input type="radio" name="save-share" checked={saveShared} onChange={() => setSaveShared(true)} />チームで共有
+                      </label>
+                    </div>
+                  </fieldset>
                   <button
                     type="button" onClick={() => void saveCurrentSearch()}
                     disabled={!saveName.trim() || saving}
@@ -813,7 +857,12 @@ export default function CandidatesClient({
                     <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <button
                         type="button"
-                        onClick={() => { applyFilters(v.filters); setSavedOpen(false); }}
+                        onClick={() => {
+                          applyFilters(v.filters); setSavedOpen(false);
+                          /* ★その条件で開いた＝前回見た日時を今に（段3） */
+                          setOpenedSaved({ id: v.id, name: v.name }); setNewSince(null);
+                          void fetch(`/api/biz/saved-searches/${v.id}/view`, { method: "POST" }).catch(() => {});
+                        }}
                         style={{
                           flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none",
                           cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
@@ -822,8 +871,10 @@ export default function CandidatesClient({
                         }}
                         title={v.name}>
                         {v.name}
+                        {/* ★共有された他の人の条件は、作った人を小さく添える（段3） */}
+                        {v.isMine === false && <span style={{ marginLeft: 6, fontSize: 11.5, color: "var(--ink-mute)" }}>{v.ownerName ?? "担当者"}さん・共有</span>}
                       </button>
-                      <button
+                      {v.canDelete !== false && <button
                         type="button" onClick={() => void deleteSavedSearch(v.id)}
                         aria-label={`${v.name} を削除`}
                         style={{
@@ -831,10 +882,14 @@ export default function CandidatesClient({
                           color: "var(--ink-mute)", fontSize: 13, lineHeight: 1, padding: "8px 8px",
                         }}>
                         ✕
-                      </button>
+                      </button>}
                     </div>
                   ))
                 )}
+                {/* ★保存した条件の一覧ページ（段3）。新着の人数・お知らせ・共有はそちらで */}
+                <a href="/biz/candidates/saved" style={{ display: "block", padding: "10px 10px 6px", borderTop: "1px solid var(--line-soft)", marginTop: 4, fontSize: 12.5, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+                  保存した条件の一覧へ →
+                </a>
               </div>
             </>
           )}
@@ -880,6 +935,19 @@ export default function CandidatesClient({
           </div>
         )}
 
+        {/* ★保存した条件で開いているとき（段3）。新着だけのときは「全員を表示」で戻せる */}
+        {openedSaved && (
+          <div data-state={newSince ? "saved-new-only" : "saved-opened"} style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 12.5, color: "var(--ink-soft)" }}>
+            <span>保存した条件「{openedSaved.name}」{newSince ? "の新着だけを表示しています" : "で表示しています"}</span>
+            {newSince && (
+              <button type="button" onClick={() => setNewSince(null)}
+                style={{ border: "none", background: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: "var(--royal)", textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
+                全員を表示
+              </button>
+            )}
+          </div>
+        )}
+
         {showAdvanced && advancedPanel}
       </div>
 
@@ -895,6 +963,15 @@ export default function CandidatesClient({
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
               </div>
+              {/* ★「声かけを受け取る方のみ」で0名になったとき（段3 / 柴さんの文言）。⚠️ トグル以外の条件で0名なら今までの表示 */}
+              {zeroByApproachOnly ? (
+                <div data-state="approach-only-empty">
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 auto 12px", maxWidth: 460, padding: "0 16px" }}>
+                    声かけを受け取る設定の方は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
+                  </p>
+                  <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>提案を見る →</a>
+                </div>
+              ) : (<>
               <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>条件に合う候補者が見つかりませんでした</p>
               <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
                 {candidates.length === 0
@@ -911,6 +988,7 @@ export default function CandidatesClient({
                   フィルターをクリア
                 </button>
               )}
+              </>)}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

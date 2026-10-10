@@ -4,6 +4,7 @@ import CandidatesClient from "./CandidatesClient";
 import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
+import { ensureLastViewed, getSavedSearchForViewer } from "@/lib/business/savedSearchServer";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const metadata = {
   title: { absolute: "候補者を探す | OPINIO Business" },
 };
 
-export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string } }) {
+export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) {
     return (
@@ -208,6 +209,18 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
     planType: ctx.planType,
   });
 
+  /* ★保存した条件で開く（段3）。`?saved=<id>`（この条件で探す）／`&new=1`（新着を見る）。
+     ⚠️ 見られる条件（自分のもの・共有）だけ。新着の基準は**開く前**の前回見た日時
+        （前回見た日時を今にするのは、画面が開いたあとクライアントから）。 */
+  let initialSaved: { id: string; name: string; filters: import("@/lib/business/savedSearch").SavedCandidateFilters; newSince: string | null } | null = null;
+  if (searchParams?.saved && /^[0-9a-f-]{36}$/.test(searchParams.saved)) {
+    const sv = await getSavedSearchForViewer({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, id: searchParams.saved });
+    if (sv) {
+      const since = (await ensureLastViewed([sv.id], ctx.currentOwnId)).get(sv.id) ?? null;
+      initialSaved = { id: sv.id, name: sv.name, filters: sv.filters, newSince: searchParams.new === "1" ? since : null };
+    }
+  }
+
   const layoutProps = {
     userName: ctx.userName,
     tenantName: ctx.tenantName,
@@ -221,6 +234,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   return (
     <BusinessLayout {...layoutProps}>
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree} approachJobs={approachJobs}
+        initialSaved={initialSaved}
         /* ⚠️ 一覧に居ない id は開かない（プレビューの API も 404 を返す）。uuid の形だけ確かめる */
         initialSelected={/^[0-9a-f-]{36}$/.test(searchParams?.selected ?? "") ? searchParams!.selected! : null} />
     </BusinessLayout>
