@@ -906,7 +906,8 @@ export function CreateCompanyClient({
 
       {/* サイドバー */}
       {sidebar && (
-        <div style={{ position: "sticky", top: 24 }}>
+        /* ⚠️ ヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと） */
+        <div style={{ position: "sticky", top: "calc(var(--biz-header-h) + 24px)" }}>
           {sidebar}
         </div>
       )}

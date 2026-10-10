@@ -1744,7 +1744,7 @@ export function CompanyEditClient({
       <div style={{
         display: "flex",
         flexDirection: "column",
-        height: "calc(100vh - 57px)",
+        height: "calc(100vh - var(--biz-header-h))",
       }}>
 
         {/* ★上部（見出し・状態・操作・タブ）＋本文の1列（2026-09-21）。

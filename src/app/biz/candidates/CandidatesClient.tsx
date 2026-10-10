@@ -1216,8 +1216,8 @@ export default function CandidatesClient({
         @media (min-width: 1024px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
           .cand-wrap { max-width: none; }
-          /* プレビューはヘッダーの下に固定する。90px は biz-header の高さ 74px と余白 16px。ヘッダーの高さを変えたらここも変える */
-          .cand-pane { display: block; position: sticky; top: 90px; max-height: calc(100vh - 106px); overflow-y: auto; overscroll-behavior: contain; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+          /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと） */
+          .cand-pane { display: block; position: sticky; top: calc(var(--biz-header-h) + 16px); max-height: calc(100vh - var(--biz-header-h) - 32px); overflow-y: auto; overscroll-behavior: contain; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
           .cand-card-actions { display: none; }
           .cand-card a:hover { cursor: pointer; }
         }

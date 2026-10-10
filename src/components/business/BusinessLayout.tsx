@@ -381,7 +381,7 @@ export function BusinessLayout({
       {/* ── Body: sidebar + main ── */}
       {/* ⚠️ 企業が無いときは1列。列だけ残すと本文が右に寄り、
              「サイドバーが読み込み中」に見える。 */}
-      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: hasCompany ? "240px 1fr" : "1fr", minHeight: "calc(100vh - 57px)" }}>
+      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: hasCompany ? "240px 1fr" : "1fr", minHeight: "calc(100vh - var(--biz-header-h))" }}>
 
         {/* Sidebar
             ⚠️★**企業が紐付いていないときは丸ごと出さない**（2026-09-04 / 柴さんの指摘）。
@@ -393,9 +393,10 @@ export function BusinessLayout({
           borderRight: "1px solid var(--line)",
           padding: "20px 0",
           position: "sticky",
-          top: 57,
+          /* ⚠️ ヘッダーの高さは --biz-header-h（下の style）。数字で書かないこと */
+          top: "var(--biz-header-h)",
           alignSelf: "start",
-          height: "calc(100vh - 57px)",
+          height: "calc(100vh - var(--biz-header-h))",
           overflowY: "auto",
           outline: "none",
         }}>
@@ -588,6 +589,14 @@ export function BusinessLayout({
         /* ★ヘッダー右の導線とアカウントメニュー（2026-09-21）。
               ⚠️ 色・余白をここに寄せている。hover をインラインの onMouseEnter で書かない。 */
         /* ⚠️ display はインラインに書かない（480px 以下で消すため） */
+        /* ★ヘッダーの高さ（2026-10-10）。ヘッダー自身もこの高さで描き、固定の位置（サイドバー・候補者のプレビュー）と
+             画面いっぱいの高さ（面談・企業情報の編集・求人の編集）はすべてこの変数から計算する。
+             ⚠️ 値は中身（アカウントのボタン 49px か 44px）＋上下の余白＋下の線 1px。余白やボタンの大きさを変えたら、ここも変える。
+             ⚠️ 切り替える幅は、ヘッダーの余白を変えている 768px と 480px に合わせてある。 */
+        :root { --biz-header-h: 74px; }
+        .biz-header { height: var(--biz-header-h); box-sizing: border-box; }
+        @media (max-width: 768px) { :root { --biz-header-h: 70px; } }
+        @media (max-width: 480px) { :root { --biz-header-h: 65px; } }
         .biz-header-links { display: flex; }
         .biz-header-link {
           display: inline-flex; align-items: center; gap: 6px;

@@ -1350,7 +1350,7 @@ export function JobEditForm({
   // ── レンダリング ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 57px)" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - var(--biz-header-h))" }}>
 
       {/* 編集サブヘッダー */}
       <div style={{

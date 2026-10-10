@@ -2295,7 +2295,7 @@ body {
         2列でも足りないので1列にする。 */
   .biz-3col { grid-template-columns: 1fr !important; }
   /* ⚠️ 高さ固定の2カラム（面談・企業情報編集・求人編集）は
-        1列に畳むと **`height: calc(100vh - 57px)` + `overflow: hidden` のせいで
+        1列に畳むと **`height: calc(100vh - var(--biz-header-h))` + `overflow: hidden` のせいで
         下半分が見えなくなる。** 縦に積むなら高さの固定を外す。 */
   .biz-2col[style*="overflow:hidden"],
   .biz-2col[style*="overflow: hidden"] {

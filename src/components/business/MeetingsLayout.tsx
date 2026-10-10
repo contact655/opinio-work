@@ -8,7 +8,7 @@ export function MeetingsLayout({ listPanel, detailPanel }: Props) {
     <div className="biz-2col" style={{
       display: "grid",
       gridTemplateColumns: "360px 1fr",
-      height: "calc(100vh - 57px)",
+      height: "calc(100vh - var(--biz-header-h))",
       overflow: "hidden",
     }}>
       {/* Middle: list panel */}
