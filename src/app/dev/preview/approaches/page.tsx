@@ -15,24 +15,30 @@ const REASON_LONG = "前職で中堅企業向けの新規開拓からチーム�
 
 const pending3: SentApproach = {
   id: "p3", createdAt: daysAgo(3), reason: REASON_LONG, status: "pending", conversationId: null,
+  body: "ご都合のよいときに、30分ほどオンラインでお話しできればうれしいです。", acceptedAt: null, unseen: false, jobTitle: "インサイドセールス（IT・SaaS 領域の法人開拓）",
   candidate: person("u1", "検証 花子", "法人営業 / SaaS"), senderName: "検証 一郎",
 };
 const pending25: SentApproach = {
   id: "p25", createdAt: daysAgo(25), reason: "大手クラウド企業でのエンタープライズ営業の経験を、当社の大型案件の立ち上げに活かしていただけると考えました。",
   status: "pending", conversationId: null, candidate: person("u2", "検証 次郎", null), senderName: "検証 二郎",
+  body: null, acceptedAt: null, unseen: false, jobTitle: null,
 };
 /* ⚠️ 承認済み・企業がまだ会話を開いていない。いまの型は承認日も未読も持っていない */
 const accepted: SentApproach = {
   id: "a1", createdAt: daysAgo(6), reason: "カスタマーサクセスの立ち上げ経験について、直接お話を伺いたいと考えました。",
   status: "accepted", conversationId: "c1", candidate: person("u3", "検証 三郎", "カスタマーサクセス"), senderName: "検証 一郎",
+  body: null, acceptedAt: daysAgo(2), unseen: true, jobTitle: "フィールドセールス（リクルーティングアドバイザー）",
 };
 const expired: SentApproach = {
   id: "e1", createdAt: daysAgo(40), reason: "マーケティングの組織づくりの経験を伺いたいと考えました。",
   status: "expired", conversationId: null, candidate: person("u4", "検証 四郎", null), senderName: null,
+  body: null, acceptedAt: null, unseen: false, jobTitle: null,
 };
 
 const quotaEmpty: ApproachQuota = { monthlyUsed: 0, monthlyLimit: 10, openCount: 0, openLimit: 10 };
 const quotaFull: ApproachQuota = { monthlyUsed: 2, monthlyLimit: 10, openCount: 2, openLimit: 10 };
+
+const NOW = new Date().toISOString();
 
 export default function Page() {
   devOnly();
@@ -42,19 +48,19 @@ export default function Page() {
         <p>実画面は検証用データでは状態が揃わないので、ここで4つの状態を見る。</p>
       </PreviewHeader>
       <Variant label="0件" note="送った数 0 / 承認待ち 0。空の案内と「候補者を探す」">
-        <ApproachesView allowed rows={[]} quota={quotaEmpty} />
+        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} />
       </Variant>
       <Variant label="承認待ち2件（3日前・25日前）" note="25日前のほうは「あと5日で枠に戻る」はず">
-        <ApproachesView allowed rows={[pending3, pending25]} quota={quotaFull} />
+        <ApproachesView now={NOW} allowed rows={[pending3, pending25]} quota={quotaFull} />
       </Variant>
       <Variant label="やり取り中1件（承認済み・未読）" note="未読の強調・承認日">
-        <ApproachesView allowed rows={[accepted]} quota={{ ...quotaEmpty, monthlyUsed: 1 }} />
+        <ApproachesView now={NOW} allowed rows={[accepted]} quota={{ ...quotaEmpty, monthlyUsed: 1 }} />
       </Variant>
       <Variant label="30日を過ぎたもの1件" note="再び送れる日（送った日＋180日）">
-        <ApproachesView allowed rows={[expired]} quota={quotaEmpty} />
+        <ApproachesView now={NOW} allowed rows={[expired]} quota={quotaEmpty} />
       </Variant>
       <Variant label="4状態をまとめて（すべて）" note="並び順・混在時の見え方">
-        <ApproachesView allowed rows={[pending3, accepted, pending25, expired]} quota={{ monthlyUsed: 3, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
+        <ApproachesView now={NOW} allowed rows={[pending3, accepted, pending25, expired]} quota={{ monthlyUsed: 3, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
       </Variant>
     </div>
   );

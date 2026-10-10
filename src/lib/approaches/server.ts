@@ -616,6 +616,12 @@ export type SentApproach = {
   conversationId: string | null;
   candidate: { id: string; name: string; headline: string | null; avatarUrl: string | null; avatarColor: string | null; username: string | null };
   senderName: string | null;
+  /** ★2026-10-11（キャンバス4）: 本文・承認日・企業が会話を開いたか・添えた求人 */
+  body: string | null;
+  acceptedAt: string | null;
+  /** 承認済みで、企業がまだ会話を開いていない（`company_seen_at` が null） */
+  unseen: boolean;
+  jobTitle: string | null;
 };
 
 /** 企業が送った声かけの一覧（新しい順）。⚠️ declined_at は読まない・返さない */
@@ -624,7 +630,7 @@ export async function listSentApproaches(companyId: string): Promise<SentApproac
   const { data, error } = await db
     .from("ow_company_approaches")
     /* ⚠️★declined_at を select に入れないこと。企業に断ったことが伝わる経路を作らない */
-    .select("id, created_at, reason, accepted_at, conversation_id, candidate_user_id, sender_user_id")
+    .select("id, created_at, reason, body, accepted_at, company_seen_at, conversation_id, candidate_user_id, sender_user_id, job_id, ow_jobs(title)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -662,6 +668,10 @@ export async function listSentApproaches(companyId: string): Promise<SentApproac
         username: c?.username ?? null,
       },
       senderName: s?.name ?? null,
+      body: (r.body as string | null) ?? null,
+      acceptedAt: (r.accepted_at as string | null) ?? null,
+      unseen: !!r.accepted_at && !r.company_seen_at,
+      jobTitle: ((r.ow_jobs as { title?: string } | null)?.title as string | undefined) ?? null,
     };
   });
 }

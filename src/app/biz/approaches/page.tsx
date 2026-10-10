@@ -40,7 +40,7 @@ export default async function BizApproachesPage({ searchParams }: { searchParams
 
   return (
     <BusinessLayout {...layoutProps}>
-      <ApproachesView allowed={allowed} rows={rows} quota={quota} sentId={searchParams?.sent} />
+      <ApproachesView allowed={allowed} rows={rows} quota={quota} sentId={searchParams?.sent} now={new Date().toISOString()} />
     </BusinessLayout>
   );
 }
