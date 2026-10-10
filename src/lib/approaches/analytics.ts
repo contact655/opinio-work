@@ -11,7 +11,7 @@ import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
  * - 結果の出た件数が10件未満なら、承認率に「参考値」を付ける（`REFERENCE_ONLY_BELOW`）。
  * - 表の行ごとに、結果の出た件数が5件未満なら率は「—」にして件数だけ出す（`ROW_RATE_MIN`）。
  * - 「面談につながった」= 承認された声かけのうち、その会話に面談（ow_meetings。取り消しを除く）があるもの。
- * - ⚠️ 検証用アカウント（送った担当者か相手が is_test）は除く。
+ * - ⚠️ 検証用アカウント（送った担当者か相手が is_test）は除く。ただし企業自身が is_test なら数える（2026-10-11）。
  * - 関連する求人・テンプレートは 2026-10-10 から記録（それより前の行は「記録なし」）。
  */
 export const REFERENCE_ONLY_BELOW = 10;
@@ -66,7 +66,12 @@ export async function getApproachAnalytics(companyId: string, sinceMs: number | 
   const userById = new Map((users.data ?? []).map((u) => [u.id as string, u]));
   const meetingConvs = new Set((meetings.data ?? []).map((m) => m.conversation_id as string));
 
-  if (!opts.includeTest) {
+  /* ★検証用の企業（自身が is_test）は検証用の担当者・相手も数える（2026-10-11 / 柴さんの判断）。
+        声かけは is_test 同士でしか送れないので、外すと検証用の企業では常に0件になる。
+        ⚠️ 実在の企業は今までどおり検証用を外す。取れなければ外す側（実在の企業と同じ扱い）。 */
+  const { data: comp, error: cErr } = await db.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle();
+  if (cErr) console.error("[approaches/analytics] company:", cErr.message);
+  if (!opts.includeTest && comp?.is_test !== true) {
     rows = rows.filter((r) => {
       const s = r.sender_user_id ? userById.get(r.sender_user_id as string) : null;
       const c = userById.get(r.candidate_user_id as string);
