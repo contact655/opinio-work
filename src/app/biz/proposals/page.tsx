@@ -3,7 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
-import { isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { PROPOSAL_RESPONSE_DAYS, isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 import { getEvidenceMaterials } from "@/lib/evidence/materials";
 
 export const dynamic = "force-dynamic";
@@ -121,7 +121,7 @@ export default async function BizProposalsPage() {
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <BizProposalsClient proposals={proposals} loadFailed={!!error} materials={materials} />
+      <BizProposalsClient proposals={proposals} loadFailed={!!error} materials={materials} responseDays={PROPOSAL_RESPONSE_DAYS} />
     </BusinessLayout>
   );
 }

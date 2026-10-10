@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   APPROACH_BODY_MAX,
+  APPROACH_EXPIRE_DAYS,
   APPROACH_REASON_MAX,
   APPROACH_REASON_MIN,
   COMPANY_APPROACH_STATUS_LABELS,
@@ -142,7 +143,7 @@ export function ApproachButton({
             </h2>
             <p style={{ margin: "8px 0 14px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
               理由とメッセージは、相手が承認する前から全文が届きます。相手が承認すると、企業とのメッセージとしてやり取りを始められます。
-              承認されなかった場合も、そのことはお知らせしません。
+              相手が見送ったかどうかはお知らせしません。承認されていない声かけは、送ってから{APPROACH_EXPIRE_DAYS}日間は「承認待ち」、それ以降は「{APPROACH_EXPIRE_DAYS}日を過ぎました」と表示されます。
             </p>
 
             <label htmlFor="approach-reason" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>

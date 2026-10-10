@@ -47,7 +47,7 @@ export default async function BizApproachesPage() {
         <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 16px" }}>
           候補者検索で見つけた方に、理由を添えて「話を聞いてみたい」と伝えた記録です。
           相手が承認すると、メッセージでやり取りを始められます。
-          相手が見送ったかどうかはお知らせしません（承認されるまで「承認待ち」のまま表示されます）。
+          相手が見送ったかどうかはお知らせしません。承認されていない声かけは、送ってから{APPROACH_EXPIRE_DAYS}日間は「承認待ち」、それ以降は「{APPROACH_EXPIRE_DAYS}日を過ぎました」と表示されます。
           <br />
           OPINIO が根拠をそろえてお届けする「
           <Link href="/biz/proposals" style={{ color: "var(--royal)", fontWeight: 700 }}>提案</Link>

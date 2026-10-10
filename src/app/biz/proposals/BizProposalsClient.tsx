@@ -60,8 +60,10 @@ function CandidateBadge({ p }: { p: BizProposalView }) {
 type EvidenceMaterialsView = { path: number; motive: number; talkable: number } | null;
 
 export default function BizProposalsClient({
-  proposals, loadFailed, materials = null,
-}: { proposals: BizProposalView[]; loadFailed: boolean; materials?: EvidenceMaterialsView }) {
+  proposals, loadFailed, materials = null, responseDays,
+}: { proposals: BizProposalView[]; loadFailed: boolean; materials?: EvidenceMaterialsView;
+  /** 提案の締め切り（日）。⚠️ 値は lib/evidence/proposalEnded.ts の PROPOSAL_RESPONSE_DAYS（サーバー専用なので props で受ける） */
+  responseDays: number }) {
   const [items, setItems] = useState(proposals);
   const [declining, setDeclining] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -124,6 +126,7 @@ export default function BizProposalsClient({
         <p style={{ margin: "4px 0 0" }}>
           候補者のお名前と公開プロフィールは、候補者検索と同じようにご覧いただけます。
           <strong>メッセージができるようになるのは、双方が「会いたい」と答えたとき</strong>です。
+          提案は届いてから{responseDays}日で終了します。
         </p>
       </div>
 

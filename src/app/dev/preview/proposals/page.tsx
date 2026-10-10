@@ -143,7 +143,7 @@ export default function Page() {
         label="企業側の一覧（/biz/proposals）"
         note="未回答タブ: 未回答2件（うち1件は候補者が興味あり）。回答済みタブ: 双方合意（メッセージを開く）／終了した提案2件（「この提案は終了しました」・ボタンなし。1件はお名前も表示できない）"
       >
-        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} />
+        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} responseDays={30} />
       </Variant>
     </div>
   );
