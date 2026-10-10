@@ -36,6 +36,8 @@ export async function togglePublish(
     .select("id")
     .eq("company_id", existing.company_id)
     .eq("user_id", owUser.id)
+    /* ⚠️ 無効にした担当者は通さない（2026-10-10。それまで is_active を見ていなかった） */
+    .eq("is_active", true)
     .maybeSingle();
   if (!membership) return { success: false, error: "権限がありません" };
 
