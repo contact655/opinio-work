@@ -8,6 +8,8 @@ type EmailParams = {
   to: string;
   subject: string;
   html: string;
+  /** ★添付ファイル（2026-10-10。面談の .ics）。⚠️ 省略可。既存の呼び出しは変わらない */
+  attachments?: { filename: string; content: string; contentType?: string }[];
 };
 
 /**
@@ -59,6 +61,7 @@ export async function sendEmail(params: EmailParams): Promise<void> {
   if (!RESEND_API_KEY) {
     console.log("[notify] sendEmail (mock):", {
       subject: params.subject,
+      attachments: params.attachments?.map((a) => a.filename),
     });
     return;
   }
@@ -69,6 +72,7 @@ export async function sendEmail(params: EmailParams): Promise<void> {
     to: [params.to],
     subject: params.subject,
     html: params.html,
+    ...(params.attachments?.length ? { attachments: params.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, "utf8"), contentType: a.contentType })) } : {}),
   });
 
   if (error) {

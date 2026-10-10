@@ -108,6 +108,8 @@ export async function GET() {
       /* ★企業からの声かけ（2026-10-09）。投稿にぶら下がらないので自分の case が要る。
             押すと /mypage/approaches（答え終わった・期限切れのものはそこに出ないが、行き止まりにはならない） */
       case "company_approach": return !!r.approach_id;
+      /* ★企業が面談・候補日を取り消した（2026-10-10 / 段4）。押すと会話へ */
+      case "meeting_canceled": return !!r.conversation_id;
       default: return !!r.post_id && postPreviews.has(r.post_id);
     }
   };

@@ -1,3 +1,5 @@
+import { listCompanyMeetings } from "@/lib/meetings/server";
+import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
 import { PipelineClient } from "./PipelineClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
@@ -93,6 +95,13 @@ export default async function BizMeetingsPage({
 
   const initialTab = searchParams.tab === "applications" ? "applications" : "meetings";
 
+  /* ★決まった面談（2026-10-10 / 段4）。⚠️ 取れなければ null（並べない。0件とは言わない） */
+  const scheduledRaw = await listCompanyMeetings(ctx.tenantId, { upcoming: true });
+  const scheduled = scheduledRaw?.map((m) => ({
+    id: m.id, conversationId: m.conversationId, candidateName: m.candidateName,
+    whenText: formatMeetingDateTime(m.startsAt), formatLabel: MEETING_FORMATS[m.format], duration: m.duration, origin: m.origin,
+  })) ?? null;
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -116,6 +125,7 @@ export default async function BizMeetingsPage({
         initialTab={initialTab}
         hasPublishedJobs={hasPublishedJobs}
         acceptance={acceptance}
+        scheduled={scheduled}
       />
     </BusinessLayout>
   );

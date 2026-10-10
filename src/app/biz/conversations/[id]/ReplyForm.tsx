@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 
 type Props = {
   conversationId: string;
+  /** ★入力欄の左下に置く操作（2026-10-10 / 段4。「候補日」ボタン） */
+  tools?: React.ReactNode;
 };
 
-export function ReplyForm({ conversationId }: Props) {
+export function ReplyForm({ conversationId, tools }: Props) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -145,6 +147,7 @@ export function ReplyForm({ conversationId }: Props) {
               gap: 10,
             }}
           >
+            {tools && <div style={{ marginRight: "auto" }}>{tools}</div>}
             {/* Character count */}
             {text.length > 0 && (
               <span

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach";
+  type: "like" | "comment" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled";
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
@@ -49,6 +49,8 @@ function notifHref(notif: NotificationItem): string {
   if (notif.type === "introduction") return `/mypage/conversations/${notif.conversationId}`;
   /* ★企業からの声かけ（2026-10-09）。一覧で答える */
   if (notif.type === "company_approach") return "/mypage/approaches";
+  /* ★面談・候補日の取り消し（2026-10-10 / 段4）。会話へ */
+  if (notif.type === "meeting_canceled") return `/mypage/conversations/${notif.conversationId}`;
   return `/feed/${notif.postId}`;
 }
 
@@ -82,6 +84,9 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   if (notif.type === "company_approach") {
     return { who: notif.actorCompany?.name ?? "企業", what: " から声かけが届きました" };
   }
+  if (notif.type === "meeting_canceled") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " が面談の日程を取り消しました" };
+  }
   return {
     who: notif.actor?.name ?? "誰か",
     what: notif.type === "like" ? " があなたの投稿にいいねしました" : " があなたの投稿にコメントしました",
@@ -99,7 +104,7 @@ function timeAgo(iso: string): string {
 function ActorAvatar({ notif }: { notif: NotificationItem }) {
   const FALLBACK = "linear-gradient(135deg, #002366, #3B5FD9)";
   /* ⚠️ 送り主が**企業**の種別。ユーザーのアバターは入っていない（2026-09-21 に2つ足した） */
-  const isCompanyActor = notif.type === "proposal" || notif.type === "introduction" || notif.type === "company_approach";
+  const isCompanyActor = notif.type === "proposal" || notif.type === "introduction" || notif.type === "company_approach" || notif.type === "meeting_canceled";
   const actor = notif.actor;
   const company = notif.actorCompany;
 

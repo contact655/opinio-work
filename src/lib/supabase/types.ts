@@ -1210,6 +1210,7 @@ export type Database = {
           joined_at: string | null
           permission: string
           role_title: string | null
+          scheduling_url: string | null
           user_id: string | null
         }
         Insert: {
@@ -1233,6 +1234,7 @@ export type Database = {
           joined_at?: string | null
           permission?: string
           role_title?: string | null
+          scheduling_url?: string | null
           user_id?: string | null
         }
         Update: {
@@ -1256,6 +1258,7 @@ export type Database = {
           joined_at?: string | null
           permission?: string
           role_title?: string | null
+          scheduling_url?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -2691,6 +2694,8 @@ export type Database = {
           deleted_at: string | null
           edited_at: string | null
           id: string
+          kind: string
+          payload: Json | null
           sender_participant_id: string | null
           sent_at: string
         }
@@ -2700,6 +2705,8 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           id?: string
+          kind?: string
+          payload?: Json | null
           sender_participant_id?: string | null
           sent_at?: string
         }
@@ -2709,6 +2716,8 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           id?: string
+          kind?: string
+          payload?: Json | null
           sender_participant_id?: string | null
           sent_at?: string
         }
@@ -3973,6 +3982,103 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_meetings: {
+        Row: {
+          attendees: string[]
+          canceled_at: string | null
+          canceled_by: string | null
+          candidate_user_id: string
+          company_id: string
+          conversation_id: string
+          created_at: string
+          created_by: string | null
+          duration_minutes: number
+          format: string
+          id: string
+          slots_message_id: string | null
+          source: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          attendees?: string[]
+          canceled_at?: string | null
+          canceled_by?: string | null
+          candidate_user_id: string
+          company_id: string
+          conversation_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_minutes: number
+          format: string
+          id?: string
+          slots_message_id?: string | null
+          source: string
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          attendees?: string[]
+          canceled_at?: string | null
+          canceled_by?: string | null
+          candidate_user_id?: string
+          company_id?: string
+          conversation_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number
+          format?: string
+          id?: string
+          slots_message_id?: string | null
+          source?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_meetings_canceled_by_fkey"
+            columns: ["canceled_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_meetings_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_meetings_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_meetings_slots_message_id_fkey"
+            columns: ["slots_message_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversation_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_message_reads: {
         Row: {
           message_id: string
@@ -4039,6 +4145,7 @@ export type Database = {
           created_at: string
           id: string
           is_read: boolean
+          meeting_id: string | null
           post_id: string | null
           proposal_id: string | null
           recipient_user_id: string
@@ -4053,6 +4160,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          meeting_id?: string | null
           post_id?: string | null
           proposal_id?: string | null
           recipient_user_id: string
@@ -4067,6 +4175,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean
+          meeting_id?: string | null
           post_id?: string | null
           proposal_id?: string | null
           recipient_user_id?: string
@@ -4106,6 +4215,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_notifications_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "ow_meetings"
             referencedColumns: ["id"]
           },
           {

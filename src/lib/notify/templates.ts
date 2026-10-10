@@ -1010,3 +1010,54 @@ export function newUserAdminTemplate(params: {
     `),
   };
 }
+
+// ★面談の日時が決まった（2026-10-10 / 段4）。求職者と企業の両方へ。.ics を添付する（呼び出し側）
+// ⚠️ 本文に会話の内容を書かない（日時・時間・形式と、会話へのリンクだけ）
+export function meetingConfirmedTemplate(params: {
+  to: string;
+  side: "candidate" | "company";
+  /** 相手の名前（企業名 or 求職者名） */
+  counterpartName: string | null | undefined;
+  whenText: string;
+  durationMinutes: number;
+  formatLabel: string;
+  conversationId: string;
+  viaOps?: boolean;
+}) {
+  const who = params.side === "candidate" ? (params.counterpartName ?? "企業") : (greetingName(params.counterpartName) ? `${greetingName(params.counterpartName)}さん` : "求職者");
+  const link = params.side === "candidate"
+    ? `https://opinio.jp/mypage/conversations/${encodeURIComponent(params.conversationId)}`
+    : `https://opinio.jp/biz/conversations/${encodeURIComponent(params.conversationId)}`;
+  return {
+    to: params.to,
+    subject: opsSubject(`面談の日時が決まりました（${who}・${params.whenText}）`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談の日時が決まりました</h2>
+      <p style="margin:0 0 16px;color:#475569">${esc(who)}との面談です。カレンダーに追加できるファイルを添付しています。</p>
+      <div style="background:#eff3fc;border-radius:8px;padding:16px 20px;margin-bottom:24px;border-left:3px solid #002366">
+        <p style="margin:0;font-size:14px;color:#0f172a;line-height:1.8">
+          日時：${esc(params.whenText)}（日本時間）<br>時間：${params.durationMinutes}分<br>形式：${esc(params.formatLabel)}
+        </p>
+      </div>
+      <a href="${link}" style="${BTN}">会話を開く →</a>
+    `),
+  };
+}
+
+// ★企業が面談（または候補日）を取り消した（2026-10-10 / 段4）。求職者へ
+export function meetingCanceledTemplate(params: {
+  to: string;
+  companyName: string;
+  whenText: string | null;
+  conversationId: string;
+}) {
+  return {
+    to: params.to,
+    subject: `【opinio.jp】${params.companyName}が面談の日程を取り消しました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談の日程が取り消されました</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(params.companyName)}が${params.whenText ? `${esc(params.whenText)}の面談` : "送った候補日"}を取り消しました。くわしくは会話でご確認ください。</p>
+      <a href="https://opinio.jp/mypage/conversations/${encodeURIComponent(params.conversationId)}" style="${BTN}">会話を開く →</a>
+    `),
+  };
+}

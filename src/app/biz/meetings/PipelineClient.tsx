@@ -25,9 +25,16 @@ type Props = {
   hasPublishedJobs?: boolean;
   /** ★面談タブの空状態の文言に使う（2026-10-08） */
   acceptance?: MeetingAcceptance | null;
+  /** ★決まった面談（ow_meetings。今日以降・取り消し除く。2026-10-10 / 段4）。取れなければ null */
+  scheduled?: ScheduledMeetingRow[] | null;
 };
 
-export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings", hasPublishedJobs = false, acceptance = null }: Props) {
+export type ScheduledMeetingRow = {
+  id: string; conversationId: string; candidateName: string; whenText: string;
+  formatLabel: string; duration: number; origin: "approach" | "proposal" | null;
+};
+
+export function PipelineClient({ meetings, applications, tenantName, currentUser, initialTab = "meetings", hasPublishedJobs = false, acceptance = null, scheduled = null }: Props) {
   const [tab, setTab] = useState<"meetings" | "applications">(initialTab);
   const router = useRouter();
   /* ★タブを URL（?tab=）に合わせる（2026-09-21）。それまでは切り替えても URL が変わらず、
@@ -78,6 +85,31 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
           </button>
         ))}
       </div>
+
+      {/* ★決まった面談（2026-10-10 / 段4）。声かけ・提案から始まった会話には印を付ける（柴さんの判断）。
+             ⚠️ 面談申込の行は作らない。ow_meetings をそのまま並べる */}
+      {tab === "meetings" && scheduled && scheduled.length > 0 && (
+        <div data-state="scheduled-meetings" style={{ padding: "10px 20px", borderBottom: "1px solid var(--line)", background: "#fff", maxHeight: 220, overflowY: "auto" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>決まった面談（今日以降）</div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+            {scheduled.map((m) => (
+              <li key={m.id}>
+                <a href={`/biz/conversations/${m.conversationId}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", fontSize: 13, color: "var(--ink)", textDecoration: "none", flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{m.whenText}</span>
+                  <span style={{ minWidth: 0 }}>{m.candidateName} さん</span>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{m.formatLabel}・{m.duration}分</span>
+                  {m.origin && (
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)" }}>
+                      {m.origin === "approach" ? "声かけから" : "提案から"}
+                    </span>
+                  )}
+                  <span aria-hidden="true" style={{ marginLeft: "auto", color: "var(--ink-mute)" }}>→</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* コンテンツ */}
       <div style={{ flex: 1, overflow: "hidden" }}>

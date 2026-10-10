@@ -9,6 +9,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { ReplyForm } from "./ReplyForm";
 import { JoinButton } from "./JoinButton";
+import { RecordMeetingButton, SchedulingTools } from "./SchedulingTools";
+import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
+import { conversationMeetingState, getSchedulingUrl } from "@/lib/meetings/server";
+import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +51,9 @@ type ParticipantRow = {
 type MessageRow = {
   id: string;
   body: string;
+  /** ★種類（2026-10-10 / 段4）。text / meeting_slots / scheduling_link */
+  kind: string;
+  payload: unknown;
   sent_at: string;
   sender_participant_id: string | null;
   participant: {
@@ -153,7 +160,7 @@ export default async function BizConversationDetailPage({
   const { data: rawMessages, error: msgsError } = await supabase
     .from("ow_conversation_messages")
     .select(`
-      id, body, sent_at, sender_participant_id,
+      id, body, kind, payload, sent_at, sender_participant_id,
       participant:ow_conversation_participants!sender_participant_id(
         id, role, user_id,
         user:ow_users(name)
@@ -187,11 +194,26 @@ export default async function BizConversationDetailPage({
   const messages: MessageRow[] = (rawMessages ?? []).map((m: any) => ({
     id: m.id,
     body: m.body,
+    kind: m.kind ?? "text",
+    payload: m.payload ?? null,
     sent_at: m.sent_at,
     sender_participant_id: m.sender_participant_id,
     participant: Array.isArray(m.participant)
       ? (m.participant[0] ?? null)
       : m.participant ?? null,
+  }));
+
+  /* ★日程調整（2026-10-10 / 段4）。同席者の候補（自社の有効な担当者）・自分の日程調整リンク・面談の状態 */
+  const adminDb = createAdminClient();
+  const [{ data: adminRows, error: adminErr }, mySchedulingUrl, meetingState] = await Promise.all([
+    adminDb.from("ow_company_admins").select("user_id, ow_users!user_id(name)").eq("company_id", ctx.tenantId).eq("is_active", true).not("user_id", "is", null),
+    getSchedulingUrl(ctx.tenantId, ctx.currentOwnId),
+    conversationMeetingState(conversationId),
+  ]);
+  if (adminErr) console.error("[BizConvDetail] admins:", adminErr.message);
+  const companyAdmins = (adminRows ?? []).map((r) => ({
+    id: r.user_id as string,
+    name: (((r.ow_users as unknown as { name: string | null } | null)?.name) ?? "").trim() || "担当者",
   }));
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -306,6 +328,19 @@ export default async function BizConversationDetailPage({
         </div>
       </div>
 
+      {/* ★面談（2026-10-10 / 段4）。⚠️ 「選考管理に追加」は面談が決まる前は出さない（柴さんの判断）。
+             決まったら「選考管理で見る」。リンクを送った会話では「面談日が決まったら記録する」 */}
+      {meetingState?.scheduled ? (
+        <div data-state="meeting-scheduled" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+            面談：{formatMeetingDateTime(meetingState.scheduled.startsAt)}（{MEETING_FORMATS[meetingState.scheduled.format]}・{meetingState.scheduled.duration}分）
+          </span>
+          <Link href="/biz/meetings?tab=meetings" style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>選考管理で見る →</Link>
+        </div>
+      ) : isParticipant && meetingState?.linkSent ? (
+        <div style={{ marginBottom: 14 }}><RecordMeetingButton conversationId={conv.id} /></div>
+      ) : null}
+
       {/* ── Main content: 2-column ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, alignItems: "start" }}>
 
@@ -382,17 +417,22 @@ export default async function BizConversationDetailPage({
 
                       {/* Bubble */}
                       <div
-                        className={isCandidate ? "msg-bubble-candidate" : "msg-bubble-hr"}
+                        /* ⚠️ 候補日・リンクのカードは吹き出しの色を付けない（カードが自分の枠を持つ） */
+                        className={msg.kind !== "text" ? undefined : isCandidate ? "msg-bubble-candidate" : "msg-bubble-hr"}
                         style={{
-                          maxWidth: "70%",
-                          padding: "10px 14px",
+                          /* ⚠️ カードは 70% だと日時が折り返す。カード側の上限（420px）に任せる */
+                          maxWidth: msg.kind !== "text" ? "min(420px, 100%)" : "70%",
+                          width: msg.kind !== "text" ? 320 : undefined,
+                          padding: msg.kind !== "text" ? 0 : "10px 14px",
                           fontSize: 14,
                           lineHeight: 1.6,
                           whiteSpace: "pre-wrap",
                           wordBreak: "break-word",
                         }}
                       >
-                        {msg.body}
+                        {msg.kind === "meeting_slots" || msg.kind === "scheduling_link" ? (
+                          <MeetingMessageCard side="company" conversationId={conv.id} messageId={msg.id} kind={msg.kind} payload={msg.payload} />
+                        ) : msg.body}
                       </div>
                     </div>
                   </div>
@@ -403,7 +443,10 @@ export default async function BizConversationDetailPage({
 
           {/* Reply area: JoinButton for non-participants, ReplyForm for participants */}
           {isParticipant ? (
-            <ReplyForm conversationId={conv.id} />
+            <ReplyForm
+              conversationId={conv.id}
+              tools={<SchedulingTools conversationId={conv.id} admins={companyAdmins} myUserId={ctx.currentOwnId} initialSchedulingUrl={mySchedulingUrl} />}
+            />
           ) : (
             <JoinButton conversationId={conv.id} />
           )}

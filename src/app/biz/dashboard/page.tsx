@@ -74,11 +74,11 @@ const TODAY_CARDS: { kind: TodayTodoKind; label: string; href: string }[] = [
   { kind: "approach", label: "承認された声かけ", href: "/biz/approaches" },
   { kind: "unreplied", label: "返信していない会話", href: "/biz/conversations" },
   { kind: "proposal", label: "答えていない提案", href: "/biz/proposals" },
-  /* ⚠️ 「今日以降の面談」は日時を持つ表が無いのでまだ出せない（段4で ow_meetings を作るときに差し替える） */
-  { kind: "meetingRequest", label: "未確認の面談申込", href: "/biz/meetings" },
+  /* ★2026-10-10（段4）に「未確認の面談申込」から差し替えた。面談申込は一覧の行には残る */
+  { kind: "meeting", label: "今日以降の面談", href: "/biz/meetings?tab=meetings" },
 ];
 const TODAY_KIND_LABELS: Record<TodayTodoKind, string> = {
-  approach: "声かけ", unreplied: "メッセージ", proposal: "提案", meetingRequest: "面談申込",
+  approach: "声かけ", unreplied: "メッセージ", proposal: "提案", meetingRequest: "面談申込", meeting: "面談",
 };
 const TODAY_LIST_LIMIT = 10;
 /** 日本時間で「10/9」、今日なら「今日」 */

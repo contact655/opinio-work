@@ -7,10 +7,14 @@ import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
+import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 
 export type MessageRow = {
   id: string;
   body: string;
+  /** ★種類（2026-10-10 / 段4）。text / meeting_slots / scheduling_link。⚠️ 古い応答では無いことがある */
+  kind?: string;
+  payload?: unknown;
   sent_at: string;
   sender_participant_id: string | null;
   ow_conversation_participants: {
@@ -251,11 +255,17 @@ export default function ConversationDetailClient({
                         ) : (
                           <div style={{ width: 28, flexShrink: 0 }} />
                         )}
+                        {(msg.kind === "meeting_slots" || msg.kind === "scheduling_link") && conversation.kind === "company" ? (
+                          /* ★候補日・日程調整リンク（2026-10-10 / 段4）。選ぶと確定し、一覧を取り直す */
+                          <MeetingMessageCard side="candidate" conversationId={conversationId} messageId={msg.id}
+                            kind={msg.kind} payload={msg.payload} onChanged={() => void refreshMessages()} />
+                        ) : (
                         <div className={`max-w-[60%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
                           isMe ? "bg-primary text-white rounded-br-sm" : "bg-gray-100 text-foreground rounded-bl-sm"
                         }`}>
                           {msg.body}
                         </div>
+                        )}
                         <span className="text-xs text-gray-400 flex-shrink-0 self-end">{msgTime}</span>
                       </div>
                     </div>

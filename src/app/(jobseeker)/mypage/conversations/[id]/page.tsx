@@ -97,7 +97,7 @@ export default async function ConversationDetailPage({
     (adminSupabase as any)
       .from("ow_conversation_messages")
       .select(
-        `id, body, sent_at, sender_participant_id,
+        `id, body, kind, payload, sent_at, sender_participant_id,
          ow_conversation_participants!sender_participant_id(
            role,
            ow_users(name)
