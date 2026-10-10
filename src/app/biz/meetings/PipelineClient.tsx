@@ -46,14 +46,12 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    /* ★高さはクラス（下の style）。⚠️ 画面全体は「画面の高さ − ヘッダー」（--biz-header-h）、タブの行は --biz-meetings-tabs-h、
+          下段（面談の一覧と詳細）はその残りをいっぱいに使う。数字で書かないこと */
+    <div className="biz-meetings-root">
 
-      {/* タブ切り替え */}
-      <div style={{
-        display: "flex", gap: 0, alignItems: "center",
-        background: "#fff", borderBottom: "1px solid var(--line)",
-        padding: "0 24px",
-      }}>
+      {/* タブ切り替え。⚠️ 高さは --biz-meetings-tabs-h で固定。狭い幅でも折り返さず、入りきらなければ行の中だけ横にスクロールする */}
+      <div className="biz-meetings-tabs">
         {/* ★見出し（2026-09-21）。サイドバーの「選考管理」と同じ名前にする */}
         <h1 style={{ margin: "0 20px 0 0", fontSize: 16, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>選考管理</h1>
         {[
@@ -65,7 +63,7 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
             type="button"
             onClick={() => switchTab(t.key)}
             style={{
-              padding: "12px 20px", border: "none", background: "none", cursor: "pointer",
+              padding: "12px 20px", border: "none", background: "none", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
               fontSize: 14, fontWeight: tab === t.key ? 700 : 500,
               color: tab === t.key ? "var(--royal)" : "var(--ink-soft)",
               borderBottom: tab === t.key ? "2px solid var(--royal)" : "2px solid transparent",
@@ -111,8 +109,8 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
         </div>
       )}
 
-      {/* コンテンツ */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
+      {/* コンテンツ。⚠️ 残りの高さをいっぱいに使う（min-height: 0 が無いと中身の高さに押し広げられる） */}
+      <div className="biz-meetings-body">
         {tab === "meetings" ? (
           <MeetingsClient
             meetings={meetings}
@@ -124,6 +122,24 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
           <ApplicationsClient applications={applications} hasPublishedJobs={hasPublishedJobs} />
         )}
       </div>
+      {/* ⚠️ style タグの中に山かっこや引用符を書かないこと */}
+      <style>{`
+        :root { --biz-meetings-tabs-h: 50px; }
+        .biz-meetings-root { display: flex; flex-direction: column; height: calc(100vh - var(--biz-header-h)); }
+        .biz-meetings-tabs {
+          display: flex; gap: 0; align-items: center; flex-shrink: 0;
+          height: var(--biz-meetings-tabs-h); box-sizing: border-box;
+          background: #fff; border-bottom: 1px solid var(--line); padding: 0 24px;
+          overflow-x: auto; overflow-y: hidden;
+        }
+        .biz-meetings-body { flex: 1; min-height: 0; overflow: hidden; }
+        @media (max-width: 768px) {
+          /* 縦積みのときは高さを中身どおりにする（上にサイドバーを畳んだ行が載るので、画面の高さに合わせると必ずはみ出す） */
+          .biz-meetings-root { height: auto; }
+          .biz-meetings-body { overflow: visible; }
+          .biz-meetings-tabs { padding: 0 12px; }
+        }
+      `}</style>
     </div>
   );
 }

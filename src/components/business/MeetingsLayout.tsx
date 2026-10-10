@@ -8,7 +8,9 @@ export function MeetingsLayout({ listPanel, detailPanel }: Props) {
     <div className="biz-2col" style={{
       display: "grid",
       gridTemplateColumns: "360px 1fr",
-      height: "calc(100vh - var(--biz-header-h))",
+      /* ⚠️ 親（.biz-meetings-body）の残りの高さをいっぱいに使う。上にタブの行と「決まった面談」が載るので、
+            画面の高さから引き算しないこと（決まった面談の高さは件数で変わる） */
+      height: "100%",
       overflow: "hidden",
     }}>
       {/* Middle: list panel */}
