@@ -480,6 +480,104 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_candidate_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          candidate_user_id: string
+          company_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          candidate_user_id: string
+          company_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          candidate_user_id?: string
+          company_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_candidate_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_notes_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_candidate_tracking: {
+        Row: {
+          candidate_user_id: string
+          company_id: string
+          owner_id: string | null
+          stage: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_user_id: string
+          company_id: string
+          owner_id?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_user_id?: string
+          company_id?: string
+          owner_id?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_candidate_tracking_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_tracking_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_tracking_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_career_agent_leads: {
         Row: {
           admin_note: string | null
@@ -842,6 +940,7 @@ export type Database = {
           user_id: string | null
           verified_at: string | null
           why_join: string | null
+          withdrawn_at: string | null
           work_time_system: string | null
           workstyle_description: string | null
           x_url: string | null
@@ -1001,6 +1100,7 @@ export type Database = {
           user_id?: string | null
           verified_at?: string | null
           why_join?: string | null
+          withdrawn_at?: string | null
           work_time_system?: string | null
           workstyle_description?: string | null
           x_url?: string | null
@@ -1160,6 +1260,7 @@ export type Database = {
           user_id?: string | null
           verified_at?: string | null
           why_join?: string | null
+          withdrawn_at?: string | null
           work_time_system?: string | null
           workstyle_description?: string | null
           x_url?: string | null
@@ -6508,6 +6609,13 @@ export type Database = {
       }
       normalize_company_name: { Args: { p_name: string }; Returns: string }
       ow_uploads_can_write: { Args: { object_name: string }; Returns: boolean }
+      purge_withdrawn_company_candidate_notes: {
+        Args: never
+        Returns: {
+          notes: number
+          tracking: number
+        }[]
+      }
       rebuild_ow_transitions: { Args: never; Returns: number }
       reject_school_request: {
         Args: { p_approved_by: string; p_request_id: string }

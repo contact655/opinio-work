@@ -11,7 +11,8 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
       `company_id` から引くので、社名を伏せた職歴から企業側へ漏れる（関数の注記）。 */
 import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse } from "@/lib/constants/plans";
-import { approachTargets, getRecentlyApproached } from "@/lib/approaches/server";
+import { approachTargets, getRecentlyApproached, type RecentApproach } from "@/lib/approaches/server";
+import { isCandidateNotesEnabled, listCandidateStages } from "@/lib/candidateNotes/server";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
@@ -448,7 +449,13 @@ export default async function CandidatesPage() {
     : null;
   const recentlyApproached = approachAllowed
     ? await getRecentlyApproached(ctx.tenantId, eligibleUsers.map((u: any) => u.id as string))
-    : new Map<string, string>();
+    : new Map<string, RecentApproach>();
+
+  /* ★社内の状態（2026-10-10 / 段5）。フラグがオンのときだけ。⚠️ 取れなければ null（カードに出さない） */
+  const notesEnabled = isCandidateNotesEnabled();
+  const stages = notesEnabled
+    ? await listCandidateStages(ctx.tenantId, eligibleUsers.filter((_u: any, i: number) => canSendResults[i] === true).map((u: any) => u.id as string))
+    : null;
 
   const candidates = eligibleUsers
     .filter((_u: any, i: number) => canSendResults[i] === true)
@@ -526,9 +533,11 @@ export default async function CandidatesPage() {
         approach: approachAllowed && recentlyApproached && approachOk
           ? {
               eligible: approachOk.get(u.id as string) === true,
-              sentAt: recentlyApproached.get(u.id as string) ?? null,
+              sent: recentlyApproached.get(u.id as string) ?? null,
             }
           : undefined,
+        /* ★社内の状態（段5）。undefined = フラグがオフか取れなかった（カードに出さない） */
+        stage: stages ? (stages.get(u.id as string) ?? null) : undefined,
       };
     });
 

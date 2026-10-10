@@ -1,6 +1,9 @@
 "use client";
 
 import { ApproachButton } from "@/components/approaches/ApproachButton";
+import type { RecentApproach } from "@/lib/approaches/server";
+import { InterestToggle } from "@/components/candidateNotes/InterestToggle";
+import type { CandidateStage } from "@/lib/constants/candidateNotes";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
@@ -129,7 +132,9 @@ export type Candidate = {
   autoSkills?: { label: string; band: string }[];
   /** ★企業からの「声かけ」（2026-10-09）。⚠️ 送れるかはサーバーが決める（理由は渡さない）。
    *  `sentAt` はこの企業が180日以内に声をかけた日時（企業自身の事実） */
-  approach?: { eligible: boolean; sentAt: string | null };
+  approach?: { eligible: boolean; sent: RecentApproach | null };
+  /** ★社内の状態（2026-10-10 / 段5）。undefined = 社内メモのフラグがオフ（出さない） */
+  stage?: CandidateStage | null;
 };
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
@@ -1215,8 +1220,9 @@ export default function CandidatesClient({
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                         {/* ★声かけ（2026-10-09）。⚠️ 送れない相手には出さない（理由も出さない）。
                                「スカウト」とは呼ばない。 */}
-                        {c.approach && (c.approach.eligible || c.approach.sentAt) && (
-                          <ApproachButton candidateUserId={c.id} candidateName={c.name} sentAt={c.approach.sentAt} compact />
+                        {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
+                        {c.approach && (c.approach.eligible || c.approach.sent) && (
+                          <ApproachButton candidateUserId={c.id} candidateName={c.name} sent={c.approach.sent} compact />
                         )}
                         <a href={`/u/${c.id}`} target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}

@@ -1,3 +1,4 @@
+import { CompanyWithdrawPanel } from "./CompanyWithdrawPanel";
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CompanyDetailClient } from './CompanyDetailClient';
@@ -95,6 +96,9 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
   ]);
 
   return (
+    <>
+    {/* ★企業の退会の操作（2026-10-10 / 段5）。30日後に社内メモと社内の状態を消す */}
+    <CompanyWithdrawPanel companyId={company.id} withdrawnAt={(company.withdrawn_at as string | null) ?? null} />
     <CompanyDetailClient
       initialTab={searchParams.tab}
       company={company}
@@ -108,5 +112,6 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
       allToolMasters={allToolMasters}
       companyTools={companyTools}
     />
+    </>
   );
 }

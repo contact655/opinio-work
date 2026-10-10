@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/check-test-leftovers",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/purge-candidate-notes",
+      "schedule": "30 18 * * *"
     }
   ]
 }

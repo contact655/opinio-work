@@ -385,3 +385,20 @@ export async function updateCompanyLogoUrl(
   await revalidateCompanyPages(companyId);
   return { ok: true };
 }
+
+/**
+ * ★企業の退会の操作（2026-10-10 / 段5）。`ow_companies.withdrawn_at` を記録する／取り消す。
+ * この日から30日後に、日次の処理（/api/cron/purge-candidate-notes）がその企業の社内メモと社内の状態を消す。
+ * ⚠️ いまはそれ以外のこと（掲載・担当者・プラン）は変えない。退会に伴うほかの手続きは別に行う。
+ * ⚠️ 取り消せるのは、まだ消えていない（30日たっていない）あいだだけ意味がある。
+ */
+export async function setCompanyWithdrawn(companyId: string, withdrawn: boolean): Promise<ActionResult> {
+  if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
+  await assertAdmin();
+  const { data, error } = await createAdminClient().from("ow_companies")
+    .update({ withdrawn_at: withdrawn ? new Date().toISOString() : null }).eq("id", companyId).select("id");
+  if (error) return { ok: false, error: toMessage(error) };
+  if ((data ?? []).length !== 1) return { ok: false, error: "企業が見つかりません" };
+  revalidatePath(`/admin/companies/${companyId}`);
+  return { ok: true };
+}

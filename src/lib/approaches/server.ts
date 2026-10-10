@@ -145,10 +145,24 @@ export function quotaBlockMessage(q: ApproachQuota): string | null {
   return null;
 }
 
-/** この企業が180日以内に声をかけた相手（ow_users.id → 送った日時）。⚠️ 状態は返さない */
-export async function getRecentlyApproached(companyId: string, candidateOwUserIds?: string[]): Promise<Map<string, string> | null> {
+/**
+ * ★この企業が180日以内に声をかけた相手（2026-10-10 / 段5 で中身を足した）。
+ * 送信の API の「180日は再送できない」と、画面の重複防止の表示が**同じ関数**を見る。
+ * 返すもの: 送った日・送った担当者の名前・状態（承認待ち／やり取り中）・再び送れる日。
+ * ⚠️★見送られた声かけも「承認待ち」と返す（企業には見送りを伝えない。/biz/approaches と同じ）。
+ * 取得に失敗したら null（呼び出し側はボタンを出さない）。
+ */
+export type RecentApproach = {
+  sentAt: string;
+  senderName: string | null;
+  state: "pending" | "accepted";
+  /** 再び送れる日時（送った日から180日後） */
+  resendAt: string;
+};
+
+export async function getRecentlyApproached(companyId: string, candidateOwUserIds?: string[]): Promise<Map<string, RecentApproach> | null> {
   const db = createAdminClient();
-  let q = db.from("ow_company_approaches").select("candidate_user_id, created_at")
+  let q = db.from("ow_company_approaches").select("candidate_user_id, created_at, accepted_at, sender_user_id")
     .eq("company_id", companyId).gte("created_at", daysAgoIso(APPROACH_RESEND_DAYS))
     .order("created_at", { ascending: false });
   if (candidateOwUserIds) {
@@ -160,9 +174,25 @@ export async function getRecentlyApproached(companyId: string, candidateOwUserId
     console.error("[approaches] recent:", error.message);
     return null;
   }
-  const m = new Map<string, string>();
-  for (const r of data ?? []) {
-    if (!m.has(r.candidate_user_id as string)) m.set(r.candidate_user_id as string, r.created_at as string);
+  const rows = data ?? [];
+  const senderIds = Array.from(new Set(rows.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
+  const names = new Map<string, string>();
+  if (senderIds.length > 0) {
+    const { data: us, error: uErr } = await db.from("ow_users").select("id, name").in("id", senderIds);
+    if (uErr) console.error("[approaches] recent senders:", uErr.message);
+    for (const u of us ?? []) names.set(u.id as string, ((u.name as string | null) ?? "").trim());
+  }
+  const m = new Map<string, RecentApproach>();
+  for (const r of rows) {
+    const id = r.candidate_user_id as string;
+    if (m.has(id)) continue;
+    const sentAt = r.created_at as string;
+    m.set(id, {
+      sentAt,
+      senderName: (r.sender_user_id && names.get(r.sender_user_id as string)) || null,
+      state: r.accepted_at ? "accepted" : "pending",
+      resendAt: new Date(new Date(sentAt).getTime() + APPROACH_RESEND_DAYS * DAY).toISOString(),
+    });
   }
   return m;
 }

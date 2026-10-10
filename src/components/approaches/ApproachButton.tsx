@@ -6,6 +6,12 @@ import {
   APPROACH_REASON_MAX,
   APPROACH_REASON_MIN,
 } from "@/lib/constants/companyApproaches";
+import type { RecentApproach } from "@/lib/approaches/server";
+
+const jst = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
+const part = (ps: Intl.DateTimeFormatPart[], t: string) => ps.find((p) => p.type === t)?.value ?? "";
+function formatJaMonthDay(iso: string): string { const ps = jst(iso); return `${part(ps, "month")}月${part(ps, "day")}日`; }
+function formatJaDate(iso: string): string { const ps = jst(iso); return `${part(ps, "year")}年${part(ps, "month")}月${part(ps, "day")}日`; }
 
 /**
  * ★企業からの「声かけ」の入口（2026-10-09）。候補者検索のカードと /u/[id] で共通。
@@ -19,13 +25,13 @@ import {
 export function ApproachButton({
   candidateUserId,
   candidateName,
-  sentAt = null,
+  sent = null,
   compact = false,
 }: {
   candidateUserId: string;
   candidateName: string;
-  /** この企業が180日以内に声をかけた日時。あれば「声かけ済み」 */
-  sentAt?: string | null;
+  /** ★この企業の誰かが180日以内に声をかけていれば、その記録（2026-10-10 / 段5 重複防止）。あれば押せない */
+  sent?: RecentApproach | null;
   /** 候補者検索のカード用（小さめ） */
   compact?: boolean;
 }) {
@@ -36,7 +42,7 @@ export function ApproachButton({
   const [error, setError] = useState<string | null>(null);
   const [sentNow, setSentNow] = useState(false);
 
-  const done = sentNow || !!sentAt;
+  const done = sentNow || !!sent;
   const reasonLen = reason.trim().length;
   const reasonOk = reasonLen >= APPROACH_REASON_MIN && reasonLen <= APPROACH_REASON_MAX;
 
@@ -83,7 +89,15 @@ export function ApproachButton({
           color: "var(--ink-mute)", fontSize: compact ? 12 : 13, fontWeight: 700, whiteSpace: "nowrap",
         }}
       >
-        声かけ済み
+        {sent ? (
+          /* ★誰が・いつ・いまどうなっているか・いつから再び送れるか。⚠️ 見送られたものも「承認待ち」（企業には伝えない） */
+          <span style={{ display: "flex", flexDirection: "column", gap: 2, whiteSpace: "normal", fontWeight: 600, lineHeight: 1.5 }}>
+            <span style={{ color: "var(--ink-soft)" }}>
+              {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}に声かけ済み（{sent.state === "accepted" ? "やり取り中" : "承認待ち"}）
+            </span>
+            <span style={{ fontWeight: 500 }}>再び送れる日：{formatJaDate(sent.resendAt)}</span>
+          </span>
+        ) : "声かけ済み"}
       </span>
     );
   }
