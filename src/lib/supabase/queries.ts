@@ -213,6 +213,7 @@ function mapJob(row: Record<string, any>): Job {
     salary_min: salaryMin,
     salary_max: salaryMax,
     salary_negotiable: row.salary_negotiable === true,
+    source_url: (row.source_url as string | null) ?? null,
     /* ⚠️ `?? ""` にしない。空文字にすると表示側の `&&` ガードが効かず、
           ラベルだけの行が出る（CLAUDE.md「`?? ""` を挟んだ後の `??` は効かない」）。 */
     salary_note: (row.salary_note as string | null) ?? null,
@@ -1243,6 +1244,8 @@ const JOB_LIST_COLS = [
 const JOB_DETAIL_COLS = [
   ...JOB_LIST_COLS.split(", "),
   "status", "expires_at",
+  /* ★出典 URL（2026-10-10）。OPINIO で応募を受けていない企業の求人ページで「企業の採用ページで応募する」に使う */
+  "source_url",
   /* ⚠️ **`preferred` も取ること（2026-08-26 追加）。** `mapJob` は
         `row.preferred_skills ?? row.preferred` で歓迎スキルを組み立てるが、
         **`preferred_skills`(配列) は本番20件すべて空で、実データは `preferred`(text) に

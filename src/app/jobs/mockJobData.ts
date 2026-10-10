@@ -46,6 +46,8 @@ export type Job = {
   salary_note?: string | null;
   /** ★報酬・給与が「要相談」（2026-10-10）。金額が空で false なら「給与非公開」 */
   salary_negotiable?: boolean;
+  /** ★求人原文の URL（出典）。⚠️ 公開側では「OPINIO で応募を受けていない企業」の外部リンクにだけ使う（2026-10-10） */
+  source_url?: string | null;
   /** 勤務体系（「所定労働時間8時間、フレックスタイム制」など） */
   work_hours?: string | null;
   /** 休日・休暇（「完全週休2日制、有給休暇（10日〜）」など） */

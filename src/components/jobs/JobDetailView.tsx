@@ -47,6 +47,7 @@ import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
+import { APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 // 5分間ページキャッシュ（ISR）
@@ -1428,6 +1429,29 @@ export async function JobDetailView({
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </Link>
+                  )}
+
+                  {/* ★OPINIO で応募を受けていない企業（2026-10-10 / 柴さんの指示）。答えられる担当者がいないため
+                         （lib/companies/respondingStaff.ts）。求人に出典 URL があれば企業の採用ページへの外部リンク、
+                         無ければ1文だけ。⚠️ 外部リンクは nofollow（OPINIO が推薦しているリンクではない） */}
+                  {!company.application_open && (
+                    job.source_url && /^https?:\/\//.test(job.source_url) ? (
+                      <a href={job.source_url} target="_blank" rel="noopener noreferrer nofollow" data-state="external-apply" style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                        width: "100%", padding: "12px var(--space-6)",
+                        background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
+                        borderRadius: 10, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none", textAlign: "center",
+                      }}>
+                        企業の採用ページで応募する
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                          <path d="M7 17L17 7M8 7h9v9" />
+                        </svg>
+                      </a>
+                    ) : (
+                      <p data-state="application-closed" style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+                        {APPLICATION_CLOSED_MESSAGE}
+                      </p>
+                    )
                   )}
 
                   <BookmarkButton

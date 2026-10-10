@@ -1,3 +1,4 @@
+import { filterCompaniesWithRespondingStaff, hasRespondingStaff } from "@/lib/companies/respondingStaff";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getCompanyNotificationRecipients,
@@ -36,8 +37,12 @@ export async function isCasualMeetingOpen(
   // 企業が受付を止めているなら、宛先の有無に関係なく閉じる
   if (acceptingFlag !== true) return false;
 
-  const recipients = await getCompanyNotificationRecipients(companyId, "casual-meeting");
-  return recipients.length > 0;
+  /* ★答えられる担当者がいない企業は受けない（2026-10-10。lib/companies/respondingStaff.ts） */
+  const [recipients, staff] = await Promise.all([
+    getCompanyNotificationRecipients(companyId, "casual-meeting"),
+    hasRespondingStaff(companyId),
+  ]);
+  return recipients.length > 0 && staff;
 }
 
 /**
@@ -54,9 +59,10 @@ export async function filterOpenCasualMeetingCompanies(
   if (ids.length === 0) return open;
 
   const admin = createAdminClient();
-  const [{ data: companies, error }, withRecipient] = await Promise.all([
+  const [{ data: companies, error }, withRecipient, staff] = await Promise.all([
     admin.from("ow_companies").select("id, accepting_casual_meetings").in("id", ids),
     filterCompaniesWithRecipients(ids, "casual-meeting"),
+    filterCompaniesWithRespondingStaff(ids),
   ]);
 
   /* ⚠️ 握り潰さない。引けなかったときは「開いている」ではなく「閉じている」に倒す。 */
@@ -66,7 +72,8 @@ export async function filterOpenCasualMeetingCompanies(
   }
 
   for (const c of companies ?? []) {
-    if (c.accepting_casual_meetings === true && withRecipient.has(c.id as string)) {
+    /* ★答えられる担当者がいる企業だけ（2026-10-10）。⚠️ 引けなければ（null）閉じる */
+    if (c.accepting_casual_meetings === true && withRecipient.has(c.id as string) && staff?.has(c.id as string) === true) {
       open.add(c.id as string);
     }
   }

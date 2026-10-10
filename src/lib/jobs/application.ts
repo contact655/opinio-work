@@ -1,3 +1,4 @@
+import { filterCompaniesWithRespondingStaff, hasRespondingStaff } from "@/lib/companies/respondingStaff";
 import {
   getCompanyNotificationRecipients,
   filterCompaniesWithRecipients,
@@ -29,8 +30,12 @@ import {
  */
 export async function isJobApplicationOpen(companyId: string): Promise<boolean> {
   if (!companyId) return false;
-  const recipients = await getCompanyNotificationRecipients(companyId, "applications");
-  return recipients.length > 0;
+  /* ★答えられる担当者がいない企業は受けない（2026-10-10。lib/companies/respondingStaff.ts） */
+  const [recipients, staff] = await Promise.all([
+    getCompanyNotificationRecipients(companyId, "applications"),
+    hasRespondingStaff(companyId),
+  ]);
+  return recipients.length > 0 && staff;
 }
 
 /**
@@ -41,8 +46,15 @@ export async function isJobApplicationOpen(companyId: string): Promise<boolean> 
 export async function filterCompaniesAcceptingApplications(
   companyIds: string[],
 ): Promise<Set<string>> {
-  return filterCompaniesWithRecipients(companyIds, "applications");
+  const [withRecipients, staff] = await Promise.all([
+    filterCompaniesWithRecipients(companyIds, "applications"),
+    filterCompaniesWithRespondingStaff(companyIds),
+  ]);
+  /* ⚠️ 担当者を引けなければ（null）受けない側に倒す */
+  return new Set(Array.from(withRecipients).filter((id) => staff?.has(id) === true));
 }
 
 /** 応募を受け付けていないときに画面へ出す文言。**理由や再開見込みは書かない**（把握していない） */
-export const APPLICATION_CLOSED_MESSAGE = "現在応募を受け付けていません";
+/* ★2026-10-10: 閉じる理由は実質「答えられる担当者がいない」だけになった（宛先は運営に落ちるので必ずある）。
+      柴さんの指示の文言にした。⚠️ 出典 URL がある求人は、この文のかわりに企業の採用ページへの外部リンクを出す */
+export const APPLICATION_CLOSED_MESSAGE = "この企業は、まだ OPINIO での応募を受け付けていません。";

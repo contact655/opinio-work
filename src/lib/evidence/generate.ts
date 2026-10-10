@@ -43,6 +43,7 @@ import { companiesToExclude, evidenceOptions, gatherCompanyFacts } from "./fetch
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { notifyProposalsCreated } from "@/lib/notify/proposalNotification";
 import { isProposalEndedFor, isProposalExpired } from "./proposalEnded";
+import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
 
 export type GenerateResult = {
   /** 掲載中で、候補者が在籍していない企業の数（＝突き合わせた母数） */
@@ -164,18 +165,13 @@ export async function generateProposalsForCandidate(
      **検証用アカウントが答えることになる**（2026-10-10 実測: セールスフォースの有効な担当者2人は両方 is_test）。
      ⚠️ 埋め込みにしない（`ow_company_admins` → `ow_users` は経路が複数あり曖昧になる）。2段で引く。
      ⚠️ 引けなければ作らない（fail-closed） */
-  const adminUserIds = Array.from(new Set((adminRows ?? []).map((r) => r.user_id as string)));
-  const { data: adminUsers, error: auErr } = adminUserIds.length
-    ? await db.from("ow_users").select("id, is_test").in("id", adminUserIds)
-    : { data: [], error: null };
-  if (auErr) {
-    console.error("[evidence/generate] 担当者の ow_users:", auErr.message);
-    throw new Error(`企業の担当者の取得に失敗しました: ${auErr.message}`);
+  /* ⚠️ 判定は応募・面談申込と同じ関数（`lib/companies/respondingStaff.ts`）。条件を書き写さないこと。
+        提案の相手は掲載中＝実在の企業だけなので「検証用でない担当者がいる企業」と同じ意味になる */
+  const respondableByReal = await filterCompaniesWithRespondingStaff(Array.from(respondable));
+  if (!respondableByReal) {
+    throw new Error("企業の担当者の取得に失敗しました");
   }
-  const realAdminIds = new Set((adminUsers ?? []).filter((u) => u.is_test !== true).map((u) => u.id as string));
-  const respondableByReal = new Set(
-    (adminRows ?? []).filter((r) => realAdminIds.has(r.user_id as string)).map((r) => r.company_id as string),
-  );
+
 
   const exclude = await companiesToExclude(candidateOwUserId);
   const listedNotMine = (companyRows ?? [])
