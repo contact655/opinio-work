@@ -12,7 +12,13 @@ import {
  *
  * - 候補日: 求職者は1つ選ぶと確定（ほかの候補は押せなくなる）。企業は取り消せる（相手に通知が届く）。
  * - リンク: ⚠️ `rel="noopener noreferrer nofollow"`。ドメイン名を見せる。サーバーからは URL を取りにいかない。
+ * - ★時刻を過ぎた未確定の候補は「期限切れ」で押せない（2026-10-10。**表示するときに判定**。状態は書き換えない）。
+ *   3つともすべて過ぎたら、企業側に「候補日がすべて過ぎました」と「新しい候補日を送る」を出す。
+ *   求職者側は「期限切れ」の表示だけ（通知は送らない）。選ぶ API も過ぎた日時を弾く。
  */
+
+/** ★「新しい候補日を送る」で入力欄の「候補日」を開くための合図（SchedulingTools が受ける） */
+export const OPEN_MEETING_SLOTS_EVENT = "opinio:open-meeting-slots";
 export function MeetingMessageCard({
   side, conversationId, messageId, kind, payload, onChanged,
 }: {
@@ -61,10 +67,13 @@ export function MeetingMessageCard({
     }
   };
 
-  const statusLabel = p.status === "confirmed" ? "日時が決まりました" : p.status === "canceled" ? "取り消されました" : side === "candidate" ? "ご都合のよい日時を1つ選んでください" : "相手の返事を待っています";
+  const allExpired = p.status === "open" && p.slots.every((x) => new Date(x).getTime() <= now);
+  const statusLabel = p.status === "confirmed" ? "日時が決まりました" : p.status === "canceled" ? "取り消されました"
+    : allExpired ? (side === "company" ? "候補日がすべて過ぎました" : "期限切れ")
+    : side === "candidate" ? "ご都合のよい日時を1つ選んでください" : "相手の返事を待っています";
 
   return (
-    <div data-state={`meeting-slots-${p.status}`} style={card}>
+    <div data-state={`meeting-slots-${allExpired ? "expired" : p.status}`} style={card}>
       <div style={title}>面談の候補日</div>
       <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 8 }}>
         {MEETING_FORMATS[p.format]}・{p.duration}分{p.attendees?.length ? `・同席：${p.attendees.join("、")}` : ""}
@@ -72,17 +81,19 @@ export function MeetingMessageCard({
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {p.slots.map((s, i) => {
           const chosen = p.status === "confirmed" && p.chosenIndex === i;
-          const canChoose = side === "candidate" && p.status === "open" && new Date(s).getTime() > now;
+          const expired = p.status === "open" && new Date(s).getTime() <= now;
+          const canChoose = side === "candidate" && p.status === "open" && !expired;
           return (
             <div key={s} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8,
               border: `1px solid ${chosen ? "var(--royal)" : "var(--line)"}`, background: chosen ? "var(--royal-50)" : "#fff",
-              opacity: p.status === "canceled" || (p.status === "confirmed" && !chosen) ? 0.55 : 1,
-            }}>
+              opacity: p.status === "canceled" || (p.status === "confirmed" && !chosen) || expired ? 0.55 : 1,
+            }} data-state={expired ? "slot-expired" : undefined}>
               <span style={{ flex: 1, fontSize: 13, fontWeight: chosen ? 700 : 600, color: "var(--ink)" }}>
                 {formatMeetingDateTime(s)}{chosen && "（決定）"}
               </span>
-              {side === "candidate" && p.status === "open" && (
+              {expired && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>期限切れ</span>}
+              {side === "candidate" && p.status === "open" && !expired && (
                 <button type="button" disabled={!canChoose || busy} className="tap-min-h"
                   onClick={() => { if (confirm(`${formatMeetingDateTime(s)} で決めます。よろしいですか？`)) void post(`/api/conversations/${conversationId}/meeting-slots/${messageId}/choose`, { index: i }); }}
                   style={{ fontSize: 12, fontWeight: 700, fontFamily: "inherit", padding: "6px 12px", borderRadius: 8, border: "none",
@@ -96,7 +107,14 @@ export function MeetingMessageCard({
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: p.status === "confirmed" ? "var(--success-ink)" : "var(--ink-mute)" }}>{statusLabel}</span>
-        {side === "company" && p.status !== "canceled" && (
+        {side === "company" && allExpired && (
+          <button type="button" className="tap-min-h"
+            onClick={() => window.dispatchEvent(new Event(OPEN_MEETING_SLOTS_EVENT))}
+            style={{ fontSize: 12, fontWeight: 700, fontFamily: "inherit", padding: "5px 10px", borderRadius: 8, border: "none", background: "var(--royal)", color: "#fff", cursor: "pointer" }}>
+            新しい候補日を送る
+          </button>
+        )}
+        {side === "company" && p.status !== "canceled" && !allExpired && (
           <button type="button" disabled={busy} className="tap-min-h"
             onClick={() => { if (confirm(p.status === "confirmed" ? "決まった面談を取り消します。相手に通知が届きます。よろしいですか？" : "候補日を取り消します。相手に通知が届きます。よろしいですか？")) void post(`/api/biz/conversations/${conversationId}/meeting-slots/${messageId}/cancel`); }}
             style={{ fontSize: 12, fontWeight: 600, fontFamily: "inherit", padding: "5px 10px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer" }}>

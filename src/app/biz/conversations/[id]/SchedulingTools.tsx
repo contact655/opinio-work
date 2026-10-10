@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { OPEN_MEETING_SLOTS_EVENT } from "@/components/meetings/MeetingMessageCard";
 import { useRouter } from "next/navigation";
 import { MAX_MEETING_SLOTS, MEETING_DURATIONS, MEETING_FORMATS, MEETING_SLOT_STEP_MINUTES, type MeetingDuration, type MeetingFormat } from "@/lib/constants/meetings";
 
@@ -27,6 +28,13 @@ export function SchedulingTools({
   const [savedUrl, setSavedUrl] = useState(initialSchedulingUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /* ★候補日がすべて過ぎたカードの「新しい候補日を送る」から開く */
+  useEffect(() => {
+    const open = () => setOpen("slots");
+    window.addEventListener(OPEN_MEETING_SLOTS_EVENT, open);
+    return () => window.removeEventListener(OPEN_MEETING_SLOTS_EVENT, open);
+  }, []);
 
   const call = async (path: string, method: string, body?: unknown) => {
     const res = await fetch(path, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
