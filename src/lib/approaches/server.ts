@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { jobListingStateFor, type JobListingState } from "@/lib/jobs/publicJobs";
 import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { notify } from "@/lib/notify/email";
@@ -301,7 +302,8 @@ export type IncomingApproach = {
   company: { id: string; name: string; nameEn: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null };
   senderName: string | null;
   /** ★関連する求人（2026-10-10 / 段4 で求職者側にも出した）。公開中でなければ href を付けない（名前だけ） */
-  job: { title: string; slug: string | null; id: string; isPublic: boolean } | null;
+  /** ★掲載の状態（2026-10-11）。判定は `jobListingStateFor` の1か所 */
+  job: { title: string; slug: string | null; id: string; state: JobListingState } | null;
 };
 
 /**
@@ -313,7 +315,7 @@ export type IncomingApproach = {
  */
 export async function listIncomingApproaches(candidateOwUserId: string): Promise<IncomingApproach[] | null> {
   const db = createAdminClient();
-  const { data: me, error: meErr } = await db.from("ow_users").select("auth_id").eq("id", candidateOwUserId).maybeSingle();
+  const { data: me, error: meErr } = await db.from("ow_users").select("auth_id, is_test").eq("id", candidateOwUserId).maybeSingle();
   if (meErr || !me?.auth_id) {
     if (meErr) console.error("[approaches] incoming me:", meErr.message);
     return meErr ? null : [];
@@ -358,7 +360,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
   const senderIds = Array.from(new Set(shown.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
   const jobIds = Array.from(new Set(shown.map((r) => r.job_id as string | null).filter(Boolean) as string[]));
   const [{ data: comps, error: cErr }, { data: senders, error: sErr }, { data: jobs, error: jErr }] = await Promise.all([
-    db.from("ow_companies").select("id, name, name_en, slug, logo_url, logo_letter, logo_gradient").in("id", Array.from(visible)),
+    db.from("ow_companies").select("id, name, name_en, slug, logo_url, logo_letter, logo_gradient, is_test").in("id", Array.from(visible)),
     senderIds.length > 0
       ? db.from("ow_users").select("id, name").in("id", senderIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
@@ -395,7 +397,10 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
       job: (() => {
         const j = r.job_id ? jobById.get(r.job_id as string) : undefined;
         if (!j) return null;
-        return { id: j.id as string, title: (j.title as string) || "（無題の求人）", slug: (j.slug as string | null) ?? null, isPublic: j.status === "published" && j.is_test !== true };
+        return {
+          id: j.id as string, title: (j.title as string) || "（無題の求人）", slug: (j.slug as string | null) ?? null,
+          state: jobListingStateFor(j as { status: string; is_test: boolean }, { viewerIsTest: me.is_test === true, companyIsTest: c.is_test === true }),
+        };
       })(),
     }];
   });

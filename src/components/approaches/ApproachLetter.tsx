@@ -16,7 +16,8 @@ export type ApproachLetterProps = {
   dateText: string;
   reason: string;
   body: string | null;
-  job: { title: string; href: string | null } | null;
+  /** note … href が無くても掲載中のとき（検証用の求人を検証用の人が見ている）に添える一言。無ければ「掲載を終了しました」 */
+  job: { title: string; href: string | null; note?: string | null } | null;
   /** ★運営会社か（2026-10-10）。true なら「この会社は OPINIO の運営会社です。」を出す（求職者側と企業のプレビューで同じ） */
   isOwnCompany?: boolean;
   /** プレビューのとき、まだ入力されていない欄に出す薄い文字 */
@@ -64,7 +65,9 @@ export function ApproachLetter(p: ApproachLetterProps) {
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>関連する求人</div>
           {p.job.href
             ? <Link href={p.job.href} style={{ fontSize: 14, fontWeight: 600, color: "var(--royal)", textDecoration: "none", overflowWrap: "anywhere" }}>{p.job.title}</Link>
-            : <span style={{ fontSize: 14, color: "var(--ink-soft)", overflowWrap: "anywhere" }}>{p.job.title}（掲載を終了しました）</span>}
+            : p.job.note
+              ? <span style={{ fontSize: 14, color: "var(--ink)", overflowWrap: "anywhere" }}>{p.job.title}<span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: 6 }}>{p.job.note}</span></span>
+              : <span style={{ fontSize: 14, color: "var(--ink-soft)", overflowWrap: "anywhere" }}>{p.job.title}（掲載を終了しました）</span>}
         </div>
       )}
     </div>

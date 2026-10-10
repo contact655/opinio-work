@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { TEST_JOB_LISTED_NOTE } from "@/lib/jobs/publicJobs";
 import { listIncomingApproaches } from "@/lib/approaches/server";
 import MypageLayout from "../_components/MypageLayout";
 import ApproachesClient, { type IncomingApproachView } from "./ApproachesClient";
@@ -46,7 +47,12 @@ export default async function MypageApproachesPage() {
     logoUrl: a.company.logoUrl,
     logoLetter: a.company.logoLetter,
     logoGradient: a.company.logoGradient,
-    job: a.job ? { title: a.job.title, href: a.job.isPublic ? `/jobs/${a.job.slug ?? a.job.id}` : null } : null,
+    job: a.job ? {
+      title: a.job.title,
+      href: a.job.state === "open" ? `/jobs/${a.job.slug ?? a.job.id}` : null,
+      /* ★見ている人と企業がどちらも検証用なら、掲載中として扱う（リンクはしない。`jobListingStateFor`） */
+      note: a.job.state === "open_test" ? TEST_JOB_LISTED_NOTE : null,
+    } : null,
   }));
 
   return (

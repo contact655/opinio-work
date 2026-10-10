@@ -23,3 +23,24 @@
  * ⚠️ クライアントコンポーネントからも読むので、ここにサーバー専用のものを置かない。
  */
 export const PUBLIC_JOB_MATCH = { status: "published", is_test: false } as const;
+
+/**
+ * ★求職者の画面で、ある求人を「掲載中」と扱うか（2026-10-11 / 柴さんの指示）。
+ *   open      … 誰に対しても掲載中（`PUBLIC_JOB_MATCH` と同じ条件）。求人ページへリンクしてよい
+ *   open_test … **見ている人と企業がどちらも検証用**のときの検証用の求人。掲載中として扱う。
+ *               ⚠️★求人ページ（`/jobs/[id]`）へはリンクしない。あのページは ISR で全員に同じ HTML を配るので、
+ *                  検証用の求人を見せる形にできない（`PUBLIC_JOB_MATCH` で 404 になる）。
+ *   closed    … 掲載を終了した（またはこの人には見せない）
+ * ⚠️ 読み取りの決まり（`auth_is_test_user()`。20261011030000）と同じ考え方。実在の利用者には open_test を返さない。
+ */
+export type JobListingState = "open" | "open_test" | "closed";
+export function jobListingStateFor(
+  job: { status: string | null; is_test: boolean | null },
+  ctx: { viewerIsTest: boolean; companyIsTest: boolean },
+): JobListingState {
+  if (job.status !== "published") return "closed";
+  if (job.is_test !== true) return "open";
+  return ctx.viewerIsTest && ctx.companyIsTest ? "open_test" : "closed";
+}
+/** open_test のときに求人名の横に添える一言 */
+export const TEST_JOB_LISTED_NOTE = "掲載中（検証用の求人のため、求人ページは開きません）";

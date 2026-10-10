@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { jobListingStateFor, TEST_JOB_LISTED_NOTE } from "@/lib/jobs/publicJobs";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import BookmarksClient, { type Bookmark } from "./BookmarksClient";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
@@ -29,9 +30,10 @@ export default async function BookmarksPage() {
         側からは区別が付かず、画面には**節ごと消えたようにしか見えない**。
         ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
   const { data: owUserRows, error: owUserRowsErr } = await admin
-    .from("ow_users").select("id").eq("auth_id", user.id).limit(1);
+    .from("ow_users").select("id, is_test").eq("auth_id", user.id).limit(1);
   if (owUserRowsErr) console.error("[mypage/bookmarks] ow_users:", owUserRowsErr.message);
   const owUserId = owUserRows?.[0]?.id;
+  const viewerIsTest = owUserRows?.[0]?.is_test === true;
 
   let companyBookmarks: Bookmark[] = [];
   let jobBookmarks: Bookmark[] = [];
@@ -105,13 +107,16 @@ export default async function BookmarksPage() {
           const roleLabels = await fetchJobRoleLabels(jobs.map((j) => j.id as string));
           const companyIds = Array.from(new Set(jobs.map((j) => j.company_id as string)));
           const { data: companies, error: companiesErr } = await admin
-            .from("ow_companies").select("id, name").in("id", companyIds);
+            .from("ow_companies").select("id, name, is_test").in("id", companyIds);
           if (companiesErr) console.error("[mypage/bookmarks] ow_companies:", companiesErr.message);
           const cMap = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
+          const cTest = new Map((companies ?? []).map((c) => [c.id as string, c.is_test === true]));
           const jMap = new Map(jobs.map((j) => [j.id, j]));
           jobBookmarks = jobBmarks.flatMap((b) => {
             const j = jMap.get(b.target_id as string);
             if (!j) return [];
+            /* ★判定は `jobListingStateFor` の1か所（2026-10-11）。見ている人と企業がどちらも検証用なら掲載中として扱う */
+            const state = jobListingStateFor(j as { status: string; is_test: boolean }, { viewerIsTest, companyIsTest: cTest.get(j.company_id as string) === true });
             return [{
               id: b.id as string, type: "job" as const,
               title: j.title as string,
@@ -122,10 +127,10 @@ export default async function BookmarksPage() {
                        （CLAUDE.md。`ow_jobs` に `is_published` 列は無い）。
                     ⚠️★実際に踏んでいた: 実ユーザーが♡した求人が 2026-08-30 に
                        出典の突き合わせで `private` になり、**本番で 404 を返していた。** */
-              href: j.status === "published" && j.is_test !== true ? `/jobs/${j.id}` : null,
+              href: state === "open" ? `/jobs/${j.id}` : null,
               /* ⚠️ 「募集終了」と断定しない。取り下げ・保留・掲載方法の変更もありうる
                     （CLAUDE.md「採用ページに無い＝募集終了 と断定はできない」と同じ線）。 */
-              gone_label: j.status === "published" && j.is_test !== true ? undefined : "掲載を終了しました",
+              gone_label: state === "open" ? undefined : state === "open_test" ? TEST_JOB_LISTED_NOTE : "掲載を終了しました",
             }];
           });
         }
