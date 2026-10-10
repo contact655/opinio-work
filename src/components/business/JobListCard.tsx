@@ -425,8 +425,8 @@ export function JobListCard({ job, onStatusChange, onDelete, onDuplicate }: Prop
           </span>
         )}
 
-        {/* アクションボタン群 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+        {/* アクションボタン群。⚠️ 折り返す（375px で4つ並ぶと 332px になり、親 297px からはみ出していた。2026-10-11） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0, maxWidth: "100%" }}>
           {renderActions(job, onStatusChange, onDelete, onDuplicate, router.push)}
         </div>
       </div>
