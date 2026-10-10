@@ -79,7 +79,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
             ⚠️★「スカウト」とは呼ばない。一斉送信型のスカウトは 2026-10-08 に廃止している。 */
       /* ★バッジは「承認されて、まだ企業が会話を開いていない声かけ」の数（2026-10-10）。
             ⚠️ 見送られたものは数えない（企業から見て承認待ちのまま） */
-      { href: "/biz/approaches", label: "声かけ", icon: <Hand size={16} strokeWidth={2.2} />, badge: "approaches" },
+      { href: "/biz/approaches", label: "メッセージリクエスト", icon: <Hand size={16} strokeWidth={2.2} />, badge: "approaches" },
       /* ★根拠つき提案（⑨）。2026-09-21 まで**ここに行が無く、画面へ辿り着く手段が
             1つも無かった**。
          ⚠️★提案はスカウトではない（`ow_scouts` にも3ゲートにも無関係。
@@ -162,6 +162,20 @@ export function BusinessLayout({
       .catch((e) => console.error("[BusinessLayout] 未読バッジを取得できませんでした:", e));
     return () => { cancelled = true; };
   }, [pathname, hasCompany]);
+  /* ★狭い画面（ナビが横スクロールの1行になる）で、いまのページの項目を見える位置へ寄せる（2026-10-11）。
+        「メッセージリクエスト」は右端で切れて見えていた。⚠️ 縦並び（広い画面）では何もしない。
+        ⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪）。バッジで幅が変わるので badges も見る */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const nav = document.querySelector<HTMLElement>(".biz-layout-sidebar nav");
+      if (!nav || getComputedStyle(nav).flexDirection !== "row" || nav.scrollWidth <= nav.clientWidth) return;
+      const cur = nav.querySelector<HTMLElement>('a[aria-current="page"]');
+      if (!cur) return;
+      const n = nav.getBoundingClientRect(), c = cur.getBoundingClientRect();
+      nav.scrollLeft = Math.max(0, nav.scrollLeft + (c.left - n.left) - (n.width - c.width) / 2);
+    }, 60);
+    return () => clearTimeout(t);
+  }, [pathname, badges]);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -483,9 +497,13 @@ export function BusinessLayout({
                         fontSize: 10, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         padding: "0 5px", flexShrink: 0,
+                        /* ⚠️★position: relative を外さないこと（2026-10-11）。中の .sr-only（position: absolute）の基準を
+                              このバッジにする。無いと、狭い画面の横スクロールのナビの外まで基準が抜けて、
+                              ページ全体の幅を押し広げていた（375px で 728px。原因はこれで、1fr の件より大きかった） */
+                        position: "relative",
                       }}>
                         <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "受け入れられた声かけ" : "未読"} {badgeCount}件）</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "受け入れられたメッセージリクエスト" : "未読"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>
@@ -655,7 +673,11 @@ export function BusinessLayout({
         }
 
         @media (max-width: 768px) {
-          .biz-layout-grid { grid-template-columns: 1fr !important; }
+          /* ⚠️★1fr ではなく minmax(0, 1fr)（2026-10-11）。1fr だとトラックの最小が中身（横に並べたナビの全幅）になり、
+                ナビ自体は横スクロールなのに**ページ全体が広がっていた**（375px で innerWidth 637px。
+                「メッセージリクエスト」に改名して 728px）。サイドバーにも min-width: 0 を当てる。 */
+          .biz-layout-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .biz-layout-sidebar { min-width: 0 !important; }
           .biz-layout-sidebar {
             position: static !important;
             height: auto !important;

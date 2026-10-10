@@ -10,7 +10,7 @@ import { APPROACH_EXPIRE_DAYS, APPROACH_MONTHLY_LIMIT } from "@/lib/constants/co
  * ⚠️ 企業側の言葉は「返事待ち」「受け入れられた」。「承認」と書かない（docs/approach-wording-20261011.md）。
  */
 export const APPROACH_STEPS = [
-  { Icon: Send, title: "理由を添えて送る", note: `経歴を見て、声をかけたい理由を書きます。毎月${APPROACH_MONTHLY_LIMIT}通まで` },
+  { Icon: Send, title: "理由を添えて送る", note: `経歴を見て、メッセージリクエストを送りたい理由を書きます。毎月${APPROACH_MONTHLY_LIMIT}通まで` },
   { Icon: Clock, title: `相手が確認する（返事は${APPROACH_EXPIRE_DAYS}日まで）`, note: "見送られたかどうかは、企業には表示されません" },
   { Icon: MessageSquare, title: "受け入れられたら、メッセージが開く", note: "メッセージで、日程や話したいことを相談できます" },
 ] as const;

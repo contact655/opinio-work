@@ -3,7 +3,7 @@ import { APPROACH_RANGE_FIELD_MIN_COVERAGE } from "@/lib/constants/approachRange
 import { ApproachRangeFieldToggle } from "./ApproachRangeFieldToggle";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: { absolute: "声かけの受け取り範囲 | OPINIO Admin" } };
+export const metadata = { title: { absolute: "メッセージリクエストの受け取り範囲 | OPINIO Admin" } };
 
 const LABELS: Record<string, string> = {
   job_categories: "職種",
@@ -23,7 +23,7 @@ export default async function AdminApproachRangePage() {
   const rows = await getApproachRangeFieldCoverage();
   return (
     <div style={{ maxWidth: 820 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>声かけの受け取り範囲</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 6px" }}>メッセージリクエストの受け取り範囲</h1>
       <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 16px" }}>
         求職者の設定画面に出す項目を選びます。無効の項目は設定画面に出ず、値が入っていても判定に使いません。
         割合が {Math.round(APPROACH_RANGE_FIELD_MIN_COVERAGE * 100)}% を超えたら有効にする目安です（自動では切り替わりません）。

@@ -21,7 +21,7 @@ export default function Page() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="声かけを書く（/biz/approaches/new）">
+      <PreviewHeader title="メッセージリクエストを書く（/biz/approaches/new）">
         <p>右の「今月の枠」と「送る前に」の言い方（今月の残り・返事待ち・受け入れられる）を見る。</p>
       </PreviewHeader>
       <Variant label="残り8通・返事待ち2件" note="送ったあとの今月の残り：7通">

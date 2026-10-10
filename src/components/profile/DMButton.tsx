@@ -130,7 +130,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
         <span data-state="dm-notice" role="status" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6 }}>
           {notice.text}
           {notice.requestsLink && (
-            <>{" "}<Link href="/mypage/conversations#requests" style={{ color: "var(--royal)", fontWeight: 700 }}>お願いを見る →</Link></>
+            <>{" "}<Link href="/mypage/conversations#requests" style={{ color: "var(--royal)", fontWeight: 700 }}>リクエストを見る →</Link></>
           )}
         </span>
       )}
@@ -148,7 +148,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
         >
           <div style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
             <h2 id="dm-request-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
-              {targetName} さんにメッセージのお願いを送る
+              {targetName} さんにメッセージリクエストを送る
             </h2>
             {/* ★何が起きるかを先に言う。送ったあとで気づく形にしない */}
             <p style={{ margin: "8px 0 12px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
@@ -189,7 +189,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
                 color: sending || !body.trim() ? "var(--ink-mute)" : "#fff",
                 fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                 cursor: sending || !body.trim() ? "default" : "pointer",
-              }}>{sending ? "送信中…" : "お願いを送る"}</button>
+              }}>{sending ? "送信中…" : "リクエストを送る"}</button>
             </div>
           </div>
         </div>

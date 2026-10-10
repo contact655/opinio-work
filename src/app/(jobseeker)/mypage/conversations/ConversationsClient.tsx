@@ -1,5 +1,6 @@
 "use client";
 
+import { FromTag } from "@/components/mypage/InboxCard";
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -110,9 +111,10 @@ function RequestsSection({
 }) {
   if (requests.length === 0) return null;
   return (
-    <section id="requests" data-state="message-requests" aria-label="メッセージのお願い" style={{ borderBottom: "1px solid var(--line)", background: "var(--royal-50)" }}>
+    <section id="requests" data-state="message-requests" aria-label="メッセージリクエスト" style={{ borderBottom: "1px solid var(--line)", background: "var(--royal-50)" }}>
       <p style={{ margin: 0, padding: "10px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
-        メッセージのお願い（{requests.length}件）
+        {/* ★個人から届いたものだけの欄。企業からのものは /mypage/approaches（2026-10-11 に印を付けた） */}
+        <FromTag label="個人から" />メッセージリクエスト（{requests.length}件）
       </p>
       <p style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
         承認すると、メッセージを読んで返信できます。断っても相手には伝わりません。

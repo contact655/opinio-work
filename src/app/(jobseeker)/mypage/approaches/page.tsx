@@ -11,7 +11,7 @@ import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "企業からの声かけ | OPINIO" },
+  title: { absolute: "企業からのメッセージリクエスト | OPINIO" },
   robots: { index: false, follow: false },
 };
 

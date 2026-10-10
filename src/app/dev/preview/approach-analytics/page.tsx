@@ -29,7 +29,7 @@ export default function Page() {
   return (
     <div>
       <style>{`.an-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; } @media (max-width: 900px) { .an-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }`}</style>
-      <PreviewHeader title="声かけの振り返り（/biz/analytics の声かけタブ）">
+      <PreviewHeader title="メッセージリクエストの振り返り（/biz/analytics のメッセージリクエストタブ）">
         <p>実画面は検証用アカウントを除いて数えるので、ここで3つの状態を見る。</p>
       </PreviewHeader>
       <Variant label="送った数 0" note="1文と「候補者を探す」だけ。件数カードと表は出さない">

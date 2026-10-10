@@ -44,13 +44,13 @@ export default function Page() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="声かけの一覧（/biz/approaches）">
+      <PreviewHeader title="メッセージリクエストの一覧（/biz/approaches）">
         <p>実画面は検証用データでは状態が揃わないので、ここで4つの状態を見る。</p>
       </PreviewHeader>
-      <Variant label="0件・声をかけられる人 3人" note="仕組みは大きく。人数・書き方のコツ・ボタン2つ。見出し横の「候補者を探す」は出さない">
+      <Variant label="0件・メッセージリクエストを送れる人 3人" note="仕組みは大きく。人数・書き方のコツ・ボタン2つ。見出し横の「候補者を探す」は出さない">
         <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={3} />
       </Variant>
-      <Variant label="0件・声をかけられる人 0人" note="受け取る設定の人がいない文と「提案を見る」">
+      <Variant label="0件・メッセージリクエストを送れる人 0人" note="受け取る設定の人がいない文と「提案を見る」">
         <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={0} />
       </Variant>
       <Variant label="0件・人数を取れなかった" note="0人と出さない">
@@ -65,7 +65,7 @@ export default function Page() {
       <Variant label="30日を過ぎたもの1件" note="再び送れる日（送った日＋180日）">
         <ApproachesView now={NOW} allowed rows={[expired]} quota={quotaEmpty} />
       </Variant>
-      <Variant label="結果の出た声かけ 10件（受け入れ率を出す）" note="受け入れ4・30日を過ぎた6 → 受け入れ率 40%">
+      <Variant label="結果の出たメッセージリクエスト 10件（受け入れ率を出す）" note="受け入れ4・30日を過ぎた6 → 受け入れ率 40%">
         <ApproachesView now={NOW} allowed quota={{ monthlyUsed: 10, monthlyLimit: 10, openCount: 0, openLimit: 10 }}
           rows={[...Array.from({ length: 4 }, (_, i) => ({ ...accepted, id: `a${i}`, unseen: false, candidate: person(`ua${i}`, `検証 受入${i + 1}`, null) })),
             ...Array.from({ length: 6 }, (_, i) => ({ ...expired, id: `e${i}`, candidate: person(`ue${i}`, `検証 期限${i + 1}`, null) }))]} />

@@ -16,7 +16,7 @@ export const APPROACH_RANGE_EXCLUDED_NOTE = "現職・過去の在籍企業と�
 
 /** ★合計の社数がこれ未満なら注意を1行出す（2026-10-10 / 柴さんの指示） */
 export const APPROACH_RANGE_NARROW_THRESHOLD = 10;
-export const APPROACH_RANGE_NARROW_NOTE = "範囲が狭く、声かけがほとんど届かない可能性があります";
+export const APPROACH_RANGE_NARROW_NOTE = "範囲が狭く、メッセージリクエストがほとんど届かない可能性があります";
 
 /** ★項目を設定画面に出すかの目安（運営が有効にする判断の材料。**自動では切り替えない**） */
 export const APPROACH_RANGE_FIELD_MIN_COVERAGE = 0.5;

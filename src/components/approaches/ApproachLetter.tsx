@@ -49,7 +49,7 @@ export function ApproachLetter(p: ApproachLetterProps) {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>あなたに声をかけた理由</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>あなたにメッセージリクエストを送った理由</div>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: reasonEmpty ? "var(--ink-mute)" : "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
           {reasonEmpty ? (p.placeholder?.reason ?? "") : p.reason}
         </p>

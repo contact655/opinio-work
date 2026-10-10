@@ -34,7 +34,7 @@ export function ApproachConsentCard({ onSaved }: { onSaved: (v: boolean) => void
 
   return (
     <section
-      aria-label="企業からの声かけの設定"
+      aria-label="企業からのメッセージリクエストの設定"
       data-state="approach-consent-card"
       style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px", marginBottom: 16 }}
     >

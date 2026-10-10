@@ -334,7 +334,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
 
       {/* ★タブ（2026-10-10 / 段6）。⚠️ 選択状態は下線だけ（ui-conventions） */}
       <nav aria-label="分析の種類" style={{ display: "flex", gap: 18, borderBottom: "1px solid var(--line)", marginBottom: 16 }}>
-        {([["overview", "全体"], ["approaches", "声かけ"]] as const).map(([k, label]) => (
+        {([["overview", "全体"], ["approaches", "メッセージリクエスト"]] as const).map(([k, label]) => (
           <Link key={k} href={qs(period, k)} aria-current={tab === k ? "page" : undefined} data-state={tab === k ? "active" : "inactive"}
             style={{ padding: "8px 2px", fontSize: 14, fontWeight: tab === k ? 700 : 500, textDecoration: "none",
               color: tab === k ? "var(--ink)" : "var(--ink-mute)", borderBottom: `2px solid ${tab === k ? "var(--royal)" : "transparent"}`, marginBottom: -1 }}>

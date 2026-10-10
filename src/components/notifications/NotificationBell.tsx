@@ -63,10 +63,10 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   /* ★メッセージのお願い（段階3）。⚠️ 本文は出さない（メッセージと同じ） */
   if (notif.type === "message_request") {
-    return { who: notif.actor?.name ?? "誰か", what: "さんからメッセージのお願いが届きました" };
+    return { who: notif.actor?.name ?? "誰か", what: "さんからメッセージリクエストが届きました" };
   }
   if (notif.type === "message_request_accepted") {
-    return { who: notif.actor?.name ?? "誰か", what: "さんがメッセージのお願いを承認しました" };
+    return { who: notif.actor?.name ?? "誰か", what: "さんがメッセージリクエストを承認しました" };
   }
   /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。
@@ -82,7 +82,7 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   /* ★企業からの声かけ（2026-10-09）。⚠️ 理由・本文は出さない（ベルの決まり）。「スカウト」と呼ばない */
   if (notif.type === "company_approach") {
-    return { who: notif.actorCompany?.name ?? "企業", what: " から声かけが届きました" };
+    return { who: notif.actorCompany?.name ?? "企業", what: " からメッセージリクエストが届きました" };
   }
   if (notif.type === "meeting_canceled") {
     return { who: notif.actorCompany?.name ?? "企業", what: " が面談の日程を取り消しました" };

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 /* ⚠️ サイドバーの「声かけ」と同じ名前にする */
 export const metadata = {
-  title: { absolute: "声かけ | OPINIO Business" },
+  title: { absolute: "メッセージリクエスト | OPINIO Business" },
 };
 
 /**

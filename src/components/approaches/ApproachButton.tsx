@@ -46,11 +46,11 @@ export function ApproachButton({
           /* ★誰が・いつ・いまどうなっているか・いつから再び送れるか。⚠️ 見送られたものも「承認待ち」（企業には伝えない） */
           <span style={{ display: "flex", flexDirection: "column", gap: 2, whiteSpace: "normal", fontWeight: 600, lineHeight: 1.5 }}>
             <span style={{ color: "var(--ink-soft)" }}>
-              {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}に声かけ済み（{COMPANY_APPROACH_STATUS_LABELS[sent.state]}）
+              {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み（{COMPANY_APPROACH_STATUS_LABELS[sent.state]}）
             </span>
             <span style={{ fontWeight: 500 }}>再び送れる日：{formatJaDate(sent.resendAt)}</span>
           </span>
-        ) : "声かけ済み"}
+        ) : "メッセージリクエスト送信済み"}
       </span>
     );
   }
@@ -69,7 +69,7 @@ export function ApproachButton({
         textDecoration: "none", whiteSpace: "nowrap",
       }}
     >
-      話を聞いてみたい
+      メッセージリクエストを送る
     </Link>
   );
 }

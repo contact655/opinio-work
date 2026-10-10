@@ -12,10 +12,10 @@
  */
 
 /** 設定の名前。⚠️ 4つの入口（オンボーディング・/mypage のカード・確認カード・/mypage/settings）で同じ語にする */
-export const APPROACH_SETTING_LABEL = "企業からの声かけ";
+export const APPROACH_SETTING_LABEL = "企業からのメッセージリクエスト";
 
 /** 一度だけの確認カードとオンボーディングの問い */
-export const APPROACH_CONSENT_QUESTION = "企業からの声かけを受け取りますか？";
+export const APPROACH_CONSENT_QUESTION = "企業からのメッセージリクエストを受け取りますか？";
 
 /**
  * 何が起きるかの説明。⚠️★**同意の範囲そのもの。** 4つの入口で言い換えないこと。
@@ -23,7 +23,7 @@ export const APPROACH_CONSENT_QUESTION = "企業からの声かけを受け取�
  *    関数より先に文言だけ変えないこと。
  */
 export const APPROACH_CONSENT_DESCRIPTION =
-  "受け取ると、候補者検索であなたを見つけた企業から、理由を添えた「声かけ」が届くことがあります。" +
+  "受け取ると、候補者検索であなたを見つけた企業から、理由を添えた「メッセージリクエスト」が届くことがあります。" +
   "話してみるかどうかはあなたが決められ、見送っても企業には伝わりません。" +
   "在籍した会社とそのグループ会社からは届きません。";
 

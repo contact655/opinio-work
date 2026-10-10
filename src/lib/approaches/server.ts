@@ -49,17 +49,17 @@ import {
  *   ・同じ理由（空白を詰めて完全一致）は30日間使い回せない
  */
 
-export const APPROACH_BLOCKED_MESSAGE = "この方には現在声をかけられません";
+export const APPROACH_BLOCKED_MESSAGE = "この方には現在メッセージリクエストを送れません";
 
 const MSG = {
   failed: "送信に失敗しました。もう一度お試しください。",
   reasonShort: `理由は${APPROACH_REASON_MIN}文字以上で入力してください`,
   reasonLong: `理由は${APPROACH_REASON_MAX}文字以内で入力してください`,
   bodyLong: `メッセージは${APPROACH_BODY_MAX}文字以内で入力してください`,
-  monthly: `今月はこれ以上声をかけられません（1社あたり毎月${APPROACH_MONTHLY_LIMIT}通まで）`,
-  open: `返事待ちの声かけが${APPROACH_OPEN_LIMIT}件あるため、これ以上声をかけられません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
-  resend: `この方には${APPROACH_RESEND_DAYS}日以内に声をかけています。続けて送ることはできません`,
-  reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方に声をかけたい理由を書いてください`,
+  monthly: `今月はこれ以上メッセージリクエストを送れません（1社あたり毎月${APPROACH_MONTHLY_LIMIT}通まで）`,
+  open: `返事待ちのメッセージリクエストが${APPROACH_OPEN_LIMIT}件あるため、これ以上メッセージリクエストを送れません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
+  resend: `この方には${APPROACH_RESEND_DAYS}日以内にメッセージリクエストを送っています。続けて送ることはできません`,
+  reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方にメッセージリクエストを送りたい理由を書いてください`,
 } as const;
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -427,7 +427,7 @@ export async function respondToApproach(params: {
   candidateOwUserId: string;
   action: RespondApproachAction;
 }): Promise<{ ok: true; conversationId: string | null } | { ok: false; status: number; error: string }> {
-  const notFound = { ok: false as const, status: 404, error: "この声かけは見つかりません" };
+  const notFound = { ok: false as const, status: 404, error: "このメッセージリクエストは見つかりません" };
   /* ⚠️ 一覧と同じ条件で引き直す（期限切れ・答え済み・いま見せてはいけない企業を押せない形にする） */
   const list = await listIncomingApproaches(params.candidateOwUserId);
   if (list === null) return { ok: false, status: 500, error: MSG.failed };
@@ -473,7 +473,7 @@ async function acceptApproach(params: { approachId: string; candidateOwUserId: s
     .select("id, reason, body, sender_user_id");
   if (mErr || (marked ?? []).length !== 1) {
     console.error("[approaches] accept mark:", mErr?.message ?? `rows=${(marked ?? []).length}`);
-    return { ok: false, status: mErr ? 500 : 409, error: mErr ? MSG.failed : "この声かけにはすでに答えています" };
+    return { ok: false, status: mErr ? 500 : 409, error: mErr ? MSG.failed : "このメッセージリクエストにはすでに答えています" };
   }
   const row = marked![0];
 
@@ -510,7 +510,7 @@ async function acceptApproach(params: { approachId: string; candidateOwUserId: s
         participantId = (ins?.id as string | undefined) ?? null;
       }
       if (participantId) {
-        const text = `【声をかけた理由】\n${row.reason as string}` + (row.body ? `\n\n${row.body as string}` : "");
+        const text = `【メッセージリクエストを送った理由】\n${row.reason as string}` + (row.body ? `\n\n${row.body as string}` : "");
         const { error: msgErr } = await db.from("ow_conversation_messages").insert({
           conversation_id: conversationId,
           sender_participant_id: participantId,

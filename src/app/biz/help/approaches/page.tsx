@@ -8,7 +8,7 @@ import {
 } from "@/lib/constants/companyApproaches";
 
 export const metadata = {
-  title: { absolute: "声かけとは | OPINIO Business" },
+  title: { absolute: "メッセージリクエストとは | OPINIO Business" },
 };
 
 /**
@@ -30,8 +30,8 @@ export default async function ApproachHelpPage() {
       tenantLogoLetter={ctx.logoLetter} memberships={ctx.allCompanies} currentTenantId={ctx.tenantId}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0, maxWidth: 880 }}>
         <div>
-          <Link href="/biz/approaches" style={{ fontSize: 13, color: "var(--ink-soft)", textDecoration: "none" }}>← 声かけに戻る</Link>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "8px 0 0" }}>声かけとは</h1>
+          <Link href="/biz/approaches" style={{ fontSize: 13, color: "var(--ink-soft)", textDecoration: "none" }}>← メッセージリクエストに戻る</Link>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "8px 0 0" }}>メッセージリクエストとは</h1>
           <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)", margin: "6px 0 0" }}>{APPROACH_HEADLINE}</p>
         </div>
 
@@ -44,8 +44,8 @@ export default async function ApproachHelpPage() {
           <h2 style={h2}>送れる数</h2>
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
             <li style={li}>1社あたり毎月{APPROACH_MONTHLY_LIMIT}通まで送れます。毎月1日に戻ります。</li>
-            <li style={li}>返事待ちの声かけは、同時に{APPROACH_OPEN_LIMIT}件までです。受け入れられるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと枠に戻ります。</li>
-            <li style={li}>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び声をかけられません。</li>
+            <li style={li}>返事待ちのメッセージリクエストは、同時に{APPROACH_OPEN_LIMIT}件までです。受け入れられるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと枠に戻ります。</li>
+            <li style={li}>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再びメッセージリクエストを送れません。</li>
           </ul>
         </section>
 
@@ -54,7 +54,7 @@ export default async function ApproachHelpPage() {
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
             <li style={li}>受け入れられると、メールでお知らせし、メッセージでやり取りできるようになります。</li>
             <li style={li}>見送られたかどうかは、企業には表示されません。{APPROACH_EXPIRE_DAYS}日たつと、返事がなかったものと同じ表示になります。</li>
-            <li style={li}>声をかけられるのは、「企業からの声かけを受け取る」と設定している方だけです。</li>
+            <li style={li}>メッセージリクエストを送れるのは、「企業からのメッセージリクエストを受け取る」と設定している方だけです。</li>
           </ul>
         </section>
 
@@ -66,13 +66,13 @@ export default async function ApproachHelpPage() {
         <section style={card}>
           <h2 style={h2}>提案との違い</h2>
           <p style={{ margin: 0, ...li }}>
-            声かけは、御社が自分で見つけた方に送るものです。提案は、OPINIO が根拠をそろえてお届けするもので、双方が「会いたい」と答えるとメッセージが開きます。
+            メッセージリクエストは、御社が自分で見つけた方に送るものです。提案は、OPINIO が根拠をそろえてお届けするもので、双方が「会いたい」と答えるとメッセージが開きます。
           </p>
         </section>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link href="/biz/candidates" className="btn-fixed-size" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: "0 16px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>候補者を探す</Link>
-          <Link href="/biz/approaches" className="btn-fixed-size" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: "0 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>声かけの状況を見る</Link>
+          <Link href="/biz/approaches" className="btn-fixed-size" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: "0 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, textDecoration: "none" }}>メッセージリクエストの状況を見る</Link>
         </div>
       </div>
     </BusinessLayout>

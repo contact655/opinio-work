@@ -709,7 +709,7 @@ export default function CandidatesClient({
             }}>
               <span style={{ position: "absolute", top: 2, left: approachOnly ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
             </span>
-            声かけを受け取る方のみ
+            リクエストを受け取る方のみ
           </button>
         )}
 
@@ -967,7 +967,7 @@ export default function CandidatesClient({
               {zeroByApproachOnly ? (
                 <div data-state="approach-only-empty">
                   <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 auto 12px", maxWidth: 460, padding: "0 16px" }}>
-                    声かけを受け取る設定の方は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
+                    メッセージリクエストを受け取る設定の方は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
                   </p>
                   <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>提案を見る →</a>
                 </div>

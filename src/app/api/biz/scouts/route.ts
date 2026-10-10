@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  */
 function gone() {
   return NextResponse.json(
-    { error: "スカウト機能は終了しました。候補者とは「提案」と「声かけ」からつながれます。" },
+    { error: "スカウト機能は終了しました。候補者とは「提案」と「メッセージリクエスト」からつながれます。" },
     { status: 410 },
   );
 }

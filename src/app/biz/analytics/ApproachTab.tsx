@@ -8,7 +8,7 @@ import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
  */
 export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | null; periodLabel: string }) {
   if (!data) {
-    return <p style={{ fontSize: 13, color: "var(--error)" }}>声かけの数字を取得できませんでした（0件という意味ではありません）。</p>;
+    return <p style={{ fontSize: 13, color: "var(--error)" }}>メッセージリクエストの数字を取得できませんでした（0件という意味ではありません）。</p>;
   }
   const t = data.total;
   const rate = acceptRate(t);
@@ -18,7 +18,7 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
   const noResults = t.resolved === 0;
   const emptyNote = (
     <div data-state="approach-analytics-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-      まだ結果の出た声かけがありません。受け入れられるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと、ここに出ます。
+      まだ結果の出たメッセージリクエストがありません。受け入れられるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと、ここに出ます。
       <Link href="/biz/candidates" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>候補者を探す →</Link>
     </div>
   );
@@ -29,7 +29,7 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
         <Card label="送った数" value={String(t.sent)} sub={periodLabel} />
         <Card label="受け入れられた数" value={noResults ? "—" : String(t.accepted)} sub={periodLabel} />
         <Card label="受け入れ率" value={noResults || rate === null ? "—" : `${rate}%`} sub={`結果の出た ${t.resolved} 件のうち`} badge={!noResults && rate !== null && reference ? "参考値" : null} />
-        <Card label="面談につながった数" value={noResults ? "—" : String(t.meetings)} sub="受け入れられた声かけのうち" />
+        <Card label="面談につながった数" value={noResults ? "—" : String(t.meetings)} sub="受け入れられたメッセージリクエストのうち" />
       </div>
       {noResults ? emptyNote : (<>
       <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 16px" }}>
@@ -38,9 +38,9 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
         検証用アカウントの分は含みません。
       </p>
       <Table title="送った人ごと" rows={data.bySender} />
-      <Table title="関連する求人を添えたか" rows={data.byJob} note="2026-10-10 から記録しています。それより前の声かけは「記録なし」です。" />
+      <Table title="関連する求人を添えたか" rows={data.byJob} note="2026-10-10 から記録しています。それより前のメッセージリクエストは「記録なし」です。" />
       <Table title="理由の字数" rows={data.byReasonLength} />
-      <Table title="本文のテンプレート" rows={data.byTemplate} note="テンプレートの機能はまだありません。2026-10-10 以降の声かけは「テンプレートなし」、それより前は「記録なし」です。" />
+      <Table title="本文のテンプレート" rows={data.byTemplate} note="テンプレートの機能はまだありません。2026-10-10 以降のメッセージリクエストは「テンプレートなし」、それより前は「記録なし」です。" />
       </>)}
     </div>
   );
@@ -72,7 +72,7 @@ function Table({ title, rows, note }: { title: string; rows: AnalyticsRow[]; not
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{title}</div>
       {note && <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginBottom: 6 }}>{note}</div>}
       {rows.length === 0 || rows.every((r) => r.sent === 0) ? (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>この期間に送った声かけはありません</p>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>この期間に送ったメッセージリクエストはありません</p>
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }} aria-label={title}>
           <thead><tr style={{ borderBottom: "1px solid var(--line)" }}>

@@ -682,7 +682,7 @@ export default function IntentCard({
               label={APPROACH_SETTING_LABEL}
               on={acceptApproaches === true}
               busy={approachBusy}
-              ariaLabel="企業からの声かけを受け取る"
+              ariaLabel="企業からのメッセージリクエストを受け取る"
               onToggle={() => { void toggleApproach(); }}
             />
             {acceptApproaches === null && <SubLine>{approachConsentText(null)}</SubLine>}
@@ -790,7 +790,7 @@ export default function IntentCard({
             <br />
             {/* ★2026-10-09。声かけは転職意欲とは**別の設定**であることを1行で伝える（柴さんの指示）。
                    ⚠️ 設定の操作はカードの「企業からの声かけ」の行だけ。ここに操作を足さないこと。 */}
-            企業から理由を添えた声かけを受け取るかどうかは、転職意欲とは別に設定します（このカードと設定画面の「{APPROACH_SETTING_LABEL}」）。
+            企業から理由を添えたメッセージリクエストを受け取るかどうかは、転職意欲とは別に設定します（このカードと設定画面の「{APPROACH_SETTING_LABEL}」）。
           </p>
           <div role="radiogroup" aria-label="転職意欲" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {CAREER_STANCES.map((o) => (

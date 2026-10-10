@@ -30,10 +30,10 @@ import {
 export const NOT_ACCEPTED_MESSAGE = "まだ承認されていません。承認されると続きを送れます";
 
 const MSG = {
-  daily: `本日はこれ以上メッセージのお願いを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
-  open: `承認待ちのお願いが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上お願いを送れません`,
-  outgoing: "この方にはすでにメッセージのお願いを送っています。承認されると続きを送れます",
-  incoming: "この方からメッセージのお願いが届いています。メッセージ一覧から承認できます",
+  daily: `本日はこれ以上メッセージリクエストを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
+  open: `承認待ちのリクエストが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上リクエストを送れません`,
+  outgoing: "この方にはすでにメッセージリクエストを送っています。承認されると続きを送れます",
+  incoming: "この方からメッセージリクエストが届いています。メッセージ一覧から承認できます",
   exists: "この方とのメッセージはすでに始まっています",
   failed: "送信に失敗しました。もう一度お試しください",
 } as const;
@@ -262,7 +262,7 @@ export async function respondToMessageRequest(params: {
     db.from("ow_conversations")
       .update({ request_status: "accepted", responded_at: new Date().toISOString() })
       .eq("id", conversationId).eq("request_status", "pending"),
-    "メッセージのお願いの承認",
+    "メッセージリクエストの承認",
   );
   if (!r.ok) return { ok: false, status: r.status, error: MSG.failed };
 

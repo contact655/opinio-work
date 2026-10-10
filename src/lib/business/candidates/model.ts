@@ -247,10 +247,10 @@ export function candidateApproachLabel(approach: Candidate["approach"]): { state
   if (!approach) return null;
   if (approach.sent) {
     const who = approach.sent.senderName ? `${approach.sent.senderName}さん` : "担当者";
-    return { state: "sent", text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}に声かけ済み` };
+    return { state: "sent", text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージリクエストを送信済み` };
   }
-  if (approach.eligible) return { state: "eligible", text: "声かけを受け取る" };
-  return { state: "not_accepting", text: "声かけは受け取っていません" };
+  if (approach.eligible) return { state: "eligible", text: "メッセージリクエストを受け取る" };
+  return { state: "not_accepting", text: "リクエストは受け取っていません" };
 }
 
 /**
@@ -304,6 +304,6 @@ export function describeFilters(
   if (cs) out.push(cs.label);
   const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
   if (fr) out.push(`更新 ${fr.label}`);
-  if (f.approachOnly) out.push("声かけを受け取る方のみ");
+  if (f.approachOnly) out.push("リクエストを受け取る方のみ");
   return out;
 }

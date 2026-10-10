@@ -97,9 +97,9 @@ export function ApproachRangeSection({ initial }: { initial: ApproachRangeState 
   const prefOptions = new Map(options.prefectures.map((o) => [o.value, o]));
 
   return (
-    <FormSection title="声かけを受け取る範囲">
+    <FormSection title="メッセージリクエストを受け取る範囲">
       <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-        選んだ条件に合う企業からだけ、声かけが届きます。何も選んでいない項目は「こだわらない」として扱います。
+        選んだ条件に合う企業からだけ、メッセージリクエストが届きます。何も選んでいない項目は「こだわらない」として扱います。
         選んだ項目の情報が企業側に登録されていない場合、その企業からは届きません。
       </p>
 
@@ -186,7 +186,7 @@ export function ApproachRangeSection({ initial }: { initial: ApproachRangeState 
 
       <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 10, background: "var(--line-soft)" }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }} data-testid="approach-range-count">
-          この範囲で声かけを送れる企業：{count == null ? "—" : `${count}社`}
+          この範囲でメッセージリクエストを送れる企業：{count == null ? "—" : `${count}社`}
         </div>
         {dirty && <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 4 }}>保存すると更新されます。</div>}
         {/* ⚠️ 黄色は注意の色（ui-conventions）。文字は --warm-ink だけを使う */}
@@ -196,9 +196,9 @@ export function ApproachRangeSection({ initial }: { initial: ApproachRangeState 
         <div style={{ fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)", marginTop: 4 }}>{APPROACH_RANGE_EXCLUDED_NOTE}。</div>
       </div>
 
-      <span style={{ ...groupLabel, marginTop: 20 }}>声かけを受け取らない企業</span>
+      <span style={{ ...groupLabel, marginTop: 20 }}>メッセージリクエストを受け取らない企業</span>
       <p style={{ margin: "0 0 8px", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-        ここに入れた企業からは声かけが届きません。届いている承認待ちの声かけも表示されなくなります。
+        ここに入れた企業からはメッセージリクエストが届きません。届いていて、まだ答えていないメッセージリクエストも表示されなくなります。
         企業の候補者検索に出なくしたいときは、上の「ブロック中の企業」を使ってください。
       </p>
       {blockError && <p style={{ margin: "0 0 8px", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{blockError}</p>}

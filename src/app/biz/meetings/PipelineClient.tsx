@@ -98,7 +98,7 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
                   <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{m.formatLabel}・{m.duration}分</span>
                   {m.origin && (
                     <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)" }}>
-                      {m.origin === "approach" ? "声かけから" : "提案から"}
+                      {m.origin === "approach" ? "メッセージリクエストから" : "提案から"}
                     </span>
                   )}
                   <span aria-hidden="true" style={{ marginLeft: "auto", color: "var(--ink-mute)" }}>→</span>

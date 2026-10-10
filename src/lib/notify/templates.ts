@@ -480,13 +480,13 @@ export function approachAcceptedCompanyTemplate(params: {
   viaOps?: boolean;
 }) {
   const name = greetingName(params.candidateName);
-  const who = name ? `${name}さん` : "声をかけた方";
+  const who = name ? `${name}さん` : "メッセージリクエストを送った方";
   return {
     to: params.to,
-    subject: opsSubject(`${who}が声かけを受け入れました`, params.viaOps === true),
+    subject: opsSubject(`${who}がメッセージリクエストを受け入れました`, params.viaOps === true),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">声かけが受け入れられました</h2>
-      <p style="margin:0 0 20px;color:#475569">${esc(who)}が声かけを受け入れました。メッセージでやり取りを始められます。</p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">メッセージリクエストが受け入れられました</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}がメッセージリクエストを受け入れました。メッセージでやり取りを始められます。</p>
       <a href="https://opinio.jp/biz/conversations/${encodeURIComponent(params.conversationId)}" style="${BTN}">会話を開く →</a>
     `),
   };

@@ -83,7 +83,7 @@ export default function ApproachComposeClient(p: Props) {
     <div className="ac-wrap">
       <div style={{ marginBottom: 14 }}>
         <Link href="/biz/candidates" style={{ fontSize: 12.5, color: "var(--ink-soft)", textDecoration: "none" }}>← 候補者を探す</Link>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "6px 0 2px" }}>{p.candidate.name} さんに声をかける</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "6px 0 2px" }}>{p.candidate.name} さんにメッセージリクエストを送る</h1>
         {(p.candidate.currentRole || p.candidate.currentCompany) && (
           <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>{[p.candidate.currentRole, p.candidate.currentCompany].filter(Boolean).join(" · ")}</div>
         )}
@@ -104,7 +104,7 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
               <label htmlFor="ac-reason" style={{ ...label, marginBottom: 0 }}>
-                この方に声をかけたい理由<span style={{ color: "var(--error)", marginLeft: 4 }}>必須</span>
+                この方にメッセージリクエストを送りたい理由<span style={{ color: "var(--error)", marginLeft: 4 }}>必須</span>
               </label>
               {p.quotes.length > 0 && (
                 <div style={{ position: "relative", marginLeft: "auto" }}>
@@ -157,7 +157,7 @@ export default function ApproachComposeClient(p: Props) {
             <button type="button" onClick={() => void send()} disabled={!ok || sending} data-state="send-approach"
               style={{ padding: "10px 22px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
                 background: ok ? "var(--royal)" : "var(--line)", color: ok ? "#fff" : "var(--ink-mute)", cursor: ok && !sending ? "pointer" : "default" }}>
-              {sending ? "送信中…" : "声をかける"}
+              {sending ? "送信中…" : "メッセージリクエストを送る"}
             </button>
             <Link href="/biz/candidates" style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "none" }}>やめる</Link>
           </div>
@@ -184,14 +184,14 @@ export default function ApproachComposeClient(p: Props) {
             <ApproachLetter companyName={p.company.name} companyHref={null} logoUrl={p.company.logoUrl} logoLetter={p.company.logoLetter}
               logoGradient={p.company.logoGradient} senderName={senderName} dateText="今日" reason={reason} body={body}
               job={job ? { title: job.title, href: `/jobs/${job.id}` } : null}
-              placeholder={{ reason: "（ここに、声をかけた理由が入ります）" }} isOwnCompany={p.company.isOwnCompany} />
+              placeholder={{ reason: "（ここに、メッセージリクエストを送る理由が入ります）" }} isOwnCompany={p.company.isOwnCompany} />
           </div>
 
           {p.disclosure && (
             <div style={card} data-state="approach-disclosure">
               <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>企業ページの充実度</div>
               <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 6 }}>
-                企業入力 {p.disclosure.biz} / {p.disclosure.max}。声をかけられた方は、まず企業ページを見ます。
+                企業入力 {p.disclosure.biz} / {p.disclosure.max}。メッセージリクエストを受け取った方は、まず企業ページを見ます。
               </div>
               {p.disclosure.missing.length === 0 ? (
                 <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
@@ -212,7 +212,7 @@ export default function ApproachComposeClient(p: Props) {
               <li>受け入れられると、メールでお知らせします。</li>
               <li>見送られても、お知らせはしません。</li>
               <li>返事がないまま{APPROACH_EXPIRE_DAYS}日たつと、返事待ちの枠に戻ります。</li>
-              <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び声をかけられません。</li>
+              <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再びメッセージリクエストを送れません。</li>
             </ul>
           </div>
         </aside>

@@ -66,19 +66,19 @@ export default function ApproachesClient({ items }: { items: IncomingApproachVie
 
   return (
     <div>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>企業からの声かけ</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "0 0 6px" }}>企業からのメッセージリクエスト</h1>
       <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 16px" }}>
-        候補者検索であなたを見つけた企業が、理由を添えて「話を聞いてみたい」と連絡してきています。
+        候補者検索であなたを見つけた企業が、理由を添えて「話を聞かせてもらえませんか」とメッセージリクエストを送ってきています。
         「話してみる」を押すと、その企業とメッセージでやり取りを始められます。
         <strong style={{ color: "var(--ink)" }}>見送っても、企業には伝わりません。</strong>
         届いてから{APPROACH_EXPIRE_DAYS}日たつと、ここには表示されなくなります。
       </p>
 
       {items === null ? (
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--error)" }}>声かけを取得できませんでした。時間をおいて再読み込みしてください。</p>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--error)" }}>メッセージリクエストを取得できませんでした。時間をおいて再読み込みしてください。</p>
       ) : shown.length === 0 ? (
         <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, fontSize: 13, color: "var(--ink-soft)" }}>
-          いま届いている声かけはありません。
+          いま届いているメッセージリクエストはありません。
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

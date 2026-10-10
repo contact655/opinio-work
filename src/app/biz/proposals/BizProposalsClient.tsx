@@ -217,12 +217,12 @@ export default function BizProposalsClient({
           </section>
 
           <section style={{ background: "var(--bg-tint, #f8f9fb)", border: "1px solid var(--line)", borderRadius: 12, padding: "18px 20px" }}>
-            <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>提案と声かけの違い</h2>
+            <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>提案とメッセージリクエストの違い</h2>
             <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10, fontSize: 13, lineHeight: 1.7 }}>
               <div><dt style={{ fontWeight: 700 }}>提案</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>OPINIO が根拠をそろえて双方にご紹介します。送れる数の枠は使いません。両方が「会いたい」でメッセージが開きます。</dd></div>
-              <div><dt style={{ fontWeight: 700 }}>声かけ</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>御社から理由を添えて送ります。毎月10通まで。相手が受け入れるとメッセージが開きます。</dd></div>
+              <div><dt style={{ fontWeight: 700 }}>メッセージリクエスト</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>御社から理由を添えて送ります。毎月10通まで。相手が受け入れるとメッセージが開きます。</dd></div>
             </dl>
-            <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>候補者を探して声をかける →</Link>
+            <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>候補者を探してメッセージリクエストを送る →</Link>
           </section>
         </aside>
       </div>

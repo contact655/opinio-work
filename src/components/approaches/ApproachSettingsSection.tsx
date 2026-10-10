@@ -51,7 +51,7 @@ export function ApproachSettingsSection({
       {/* ⚠️★転職意欲で止まっている人には、どちらを選んでも届かないことを書く（選んだのに何も起きない、を防ぐ） */}
       {!isReachableByCompanies(careerStance) && (
         <p style={{ margin: "10px 0 0", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-          いまは転職意欲が「今は考えていない」か未設定のため、どちらを選んでも声かけは届きません。
+          いまは転職意欲が「今は考えていない」か未設定のため、どちらを選んでもメッセージリクエストは届きません。
         </p>
       )}
 

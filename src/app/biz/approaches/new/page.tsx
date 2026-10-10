@@ -14,7 +14,7 @@ import ApproachComposeClient from "./ApproachComposeClient";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: { absolute: "声かけを書く | OPINIO Business" } };
+export const metadata = { title: { absolute: "メッセージリクエストを書く | OPINIO Business" } };
 
 /**
  * ★声かけを書く（2026-10-10 / 候補者探し 段4・キャンバス3）。
@@ -46,18 +46,18 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
     </BusinessLayout>
   );
   if (!isCompanyReviewed(ctx)) return message(COMPANY_REVIEW_BLOCKED_MESSAGE);
-  if (!canUse(ctx.planType, "companyApproach")) return message("声かけは、ご利用のプランでは使えません。");
+  if (!canUse(ctx.planType, "companyApproach")) return message("メッセージリクエストは、ご利用のプランでは使えません。");
   const candidateId = searchParams?.candidate ?? "";
-  if (!/^[0-9a-f-]{36}$/.test(candidateId)) return message("声をかける相手が指定されていません。");
+  if (!/^[0-9a-f-]{36}$/.test(candidateId)) return message("メッセージリクエストを送る相手が指定されていません。");
 
   const loaded = await loadCompanyCandidates({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType, onlyOwUserId: candidateId });
   const c = loaded.candidates.find((x) => x.id === candidateId);
   /* ⚠️ 理由を出さない（見えない・受け取っていない・範囲外を区別させない） */
-  if (!c || !c.approach) return message("この方には、いま声をかけられません。");
+  if (!c || !c.approach) return message("この方には、いまメッセージリクエストを送れません。");
   if (c.approach.sent) {
-    return message(`${c.approach.sent.senderName ? `${c.approach.sent.senderName}さん` : "担当者"}がすでに声をかけています。同じ方へは送ってから一定の期間、再び声をかけられません。`);
+    return message(`${c.approach.sent.senderName ? `${c.approach.sent.senderName}さん` : "担当者"}がすでにメッセージリクエストを送っています。同じ方へは送ってから一定の期間、再びメッセージリクエストを送れません。`);
   }
-  if (!c.approach.eligible) return message("この方には、いま声をかけられません。");
+  if (!c.approach.eligible) return message("この方には、いまメッセージリクエストを送れません。");
 
   const db = createAdminClient();
   const ownCompanyId = await getOwnCompanyId();

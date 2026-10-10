@@ -104,15 +104,15 @@ export function ApproachesView({ allowed, rows, quota, sentId, now: nowIso, appr
 
       {just && (
         <div role="status" data-state="approach-sent-banner" style={{ background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)", borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 700 }}>
-          {just.candidate.name}さんに声かけを送りました。受け入れられるとメールでお知らせします。
+          {just.candidate.name}さんにメッセージリクエストを送りました。受け入れられるとメールでお知らせします。
         </div>
       )}
 
       <div className="apx-head">
         <div style={{ minWidth: 0, flex: "1 1 320px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>声かけ</h1>
-            <Link href="/biz/help/approaches" data-state="approach-help-link" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>声かけとは？</Link>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>メッセージリクエスト</h1>
+            <Link href="/biz/help/approaches" data-state="approach-help-link" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>メッセージリクエストとは？</Link>
           </div>
           <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "6px 0 0" }}>
             {APPROACH_HEADLINE}
@@ -128,7 +128,7 @@ export function ApproachesView({ allowed, rows, quota, sentId, now: nowIso, appr
 
       {!allowed ? (
         <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>
-          ご利用のプランでは声かけを使えません。
+          ご利用のプランではメッセージリクエストを使えません。
         </div>
       ) : (
         <>
@@ -141,11 +141,11 @@ export function ApproachesView({ allowed, rows, quota, sentId, now: nowIso, appr
               <QuotaCard label="今月の残り" value={q.remaining} unit="通" sub={q.remainingSub}
                 help={`今月あと何通送れるかで、毎月${quota.monthlyLimit}通まで送れて${approachMonthlyResetLabel(now)}に${quota.monthlyLimit}通に戻ります。`} />
               <QuotaCard label="返事待ち" value={quota.openCount} unit="件" sub={q.openSub}
-                help={`送ってまだ返事のない声かけの数で、同時に${quota.openLimit}件まで送れて、受け入れられるか送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります。`} />
+                help={`送ってまだ返事のないメッセージリクエストの数で、同時に${quota.openLimit}件まで送れて、受け入れられるか送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります。`} />
               <QuotaCard label="やり取り中" value={rows === null ? null : talking} unit="人"
                 sub={unseen > 0 ? `まだ開いていない受け入れ ${unseen}件` : null} subStrong
                 sub2={rows === null ? null : rateText}
-                help={`声かけを受け入れてくれた候補者の数で、受け入れ率は結果の出た声かけ（受け入れられた・${APPROACH_EXPIRE_DAYS}日を過ぎた）のうち受け入れられた割合です。`} />
+                help={`メッセージリクエストを受け入れてくれた候補者の数で、受け入れ率は結果の出たメッセージリクエスト（受け入れられた・${APPROACH_EXPIRE_DAYS}日を過ぎた）のうち受け入れられた割合です。`} />
             </div>
           ) : (
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", margin: 0 }}>送信数を取得できませんでした。</p>
@@ -166,7 +166,7 @@ export function ApproachesView({ allowed, rows, quota, sentId, now: nowIso, appr
                 ))}
               </div>
               {shown.length === 0 ? (
-                <p style={{ margin: 0, padding: "20px", fontSize: 13, color: "var(--ink-mute)" }}>該当する声かけはありません。</p>
+                <p style={{ margin: 0, padding: "20px", fontSize: 13, color: "var(--ink-mute)" }}>該当するメッセージリクエストはありません。</p>
               ) : shown.map((r) => (
                 <ApproachRow key={r.id} r={r} now={now} open={open.has(r.id)} onToggle={() => toggle(r.id)} />
               ))}
@@ -191,18 +191,18 @@ export function ApproachesView({ allowed, rows, quota, sentId, now: nowIso, appr
 function EmptyGuide({ approachableCount }: { approachableCount: number | null | undefined }) {
   return (
     <section data-state="approach-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>まだ声かけを送っていません。</p>
+      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>まだメッセージリクエストを送っていません。</p>
       {approachableCount === null || approachableCount === undefined ? (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>いま声をかけられる候補者の数を確認できませんでした。</p>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>いまメッセージリクエストを送れる候補者の数を確認できませんでした。</p>
       ) : approachableCount > 0 ? (
         <p data-state="approachable-count" style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>
-          いま声をかけられる候補者：<strong style={{ fontSize: 18 }}>{approachableCount}</strong>人
+          いまメッセージリクエストを送れる候補者：<strong style={{ fontSize: 18 }}>{approachableCount}</strong>人
         </p>
       ) : (
         <div data-state="approachable-zero" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <p style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>いま声をかけられる候補者：<strong>0</strong>人</p>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>いまメッセージリクエストを送れる候補者：<strong>0</strong>人</p>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-            声かけを受け取る設定の候補者は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
+            メッセージリクエストを受け取る設定の候補者は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
           </p>
           <Link href="/biz/proposals" style={{ alignSelf: "flex-start", fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>提案を見る →</Link>
         </div>
@@ -213,7 +213,7 @@ function EmptyGuide({ approachableCount }: { approachableCount: number | null | 
       </div>
       <div className="apx-empty-actions">
         <Link href="/biz/candidates" className="btn-fixed-size" style={BTN_PRIMARY}>候補者を探す</Link>
-        <Link href="/biz/candidates?approach=1" className="btn-fixed-size" style={BTN_SECONDARY}>声かけを受け取る方だけを見る</Link>
+        <Link href="/biz/candidates?approach=1" className="btn-fixed-size" style={BTN_SECONDARY}>リクエストを受け取る方だけを見る</Link>
       </div>
     </section>
   );
@@ -283,7 +283,7 @@ function ApproachRow({ r, now, open, onToggle }: { r: SentApproach; now: Date; o
         )}
         {open && (
           <div data-state="approach-detail" style={{ marginTop: 10, padding: "12px 14px", background: "var(--bg-soft, #f8f9fb)", border: "1px solid var(--line-soft)", borderRadius: 8, fontSize: 13, lineHeight: 1.8, color: "var(--ink)" }}>
-            <div style={{ fontWeight: 700, color: "var(--ink-soft)", fontSize: 12 }}>声をかけた理由</div>
+            <div style={{ fontWeight: 700, color: "var(--ink-soft)", fontSize: 12 }}>メッセージリクエストを送った理由</div>
             <p style={{ margin: "2px 0 0", whiteSpace: "pre-wrap" }}>{r.reason}</p>
             {r.body && (
               <>

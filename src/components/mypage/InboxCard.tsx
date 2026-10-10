@@ -20,7 +20,8 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
     },
     messageRequests > 0 && {
       key: "requests",
-      label: "メッセージのお願い",
+      label: "メッセージリクエスト",
+      from: "個人から",
       count: messageRequests,
       text: "承認すると内容を読めて、やり取りを始められます",
       href: "/mypage/conversations#requests",
@@ -29,12 +30,13 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
           区別がつく説明にする。取得に失敗（null）したら行ごと出さない */
     approaches !== null && approaches > 0 && {
       key: "approaches",
-      label: "企業からの声かけ",
+      label: "メッセージリクエスト",
+      from: "企業から",
       count: approaches,
       text: "企業があなたの経歴を見て、理由を添えて連絡してきています",
       href: "/mypage/approaches",
     },
-  ].filter(Boolean) as { key: string; label: string; count: number; text: string; href: string }[];
+  ].filter(Boolean) as { key: string; label: string; from?: string; count: number; text: string; href: string }[];
 
   if (rows.length === 0) return null;
 
@@ -59,8 +61,11 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+                {/* ★同じ「メッセージリクエスト」が2行並ぶので、どこから届いたかの印を付ける（2026-10-11）。
+                      ⚠️ 色で分けない（neutral）。文字で区別する */}
+                {r.from && <FromTag label={r.from} />}
                 {r.label}
-                <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>{r.count}件</span>
+                <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap" }}>{r.count}件</span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>{r.text}</div>
             </div>
@@ -69,5 +74,14 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
         ))}
       </div>
     </section>
+  );
+}
+
+/** ★「企業から」「個人から」の印（2026-10-11）。/mypage/conversations の欄でも同じ形を使う */
+export function FromTag({ label }: { label: string }) {
+  return (
+    <span data-from-tag={label} style={{ display: "inline-block", marginRight: 6, padding: "1px 7px", borderRadius: 4, border: "1px solid var(--line)", background: "var(--bg-tint, #f6f7f9)", fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", verticalAlign: "1px" }}>
+      {label}
+    </span>
   );
 }
