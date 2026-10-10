@@ -32,11 +32,17 @@ export type TodayTodoItem = {
   /** 並び順に使う日時（新しい順） */
   at: string;
   title: string;
+  /** ★2行目の補足（2026-10-11 / キャンバス7）。無ければ出さない */
+  sub?: string;
+  /** ★ボタンの文言（2026-10-11）。⚠️ 主な操作（承認された声かけ）だけ primary */
+  action: string;
   href: string;
 };
 
 export type TodayTodo = {
   counts: Record<TodayTodoKind, number | null>;
+  /** ★保存した条件の新着の人数の合計（2026-10-11）。⚠️ counts.savedSearch は「新着がある条件の数」。取れなければ null */
+  savedSearchPeople: number | null;
   items: TodayTodoItem[];
 };
 
@@ -47,9 +53,10 @@ export async function getTodayTodo(
   const db = createAdminClient();
   const counts: TodayTodo["counts"] = { approach: null, unreplied: null, proposal: null, meetingRequest: null, meeting: null, savedSearch: null };
   const items: TodayTodoItem[] = [];
+  let savedSearchPeople: number | null = null;
 
   const [approaches, conversations, proposals, meetings, upcoming] = await Promise.all([
-    db.from("ow_company_approaches").select("id, accepted_at, conversation_id, candidate_user_id")
+    db.from("ow_company_approaches").select("id, accepted_at, conversation_id, candidate_user_id, sender_user_id")
       .eq("company_id", companyId).not("accepted_at", "is", null).is("company_seen_at", null)
       .order("accepted_at", { ascending: false }),
     db.from("ow_conversations").select("id, candidate_user_id, last_message_at")
@@ -61,7 +68,7 @@ export async function getTodayTodo(
   ]);
 
   /* 会話の最後のメッセージが誰からか */
-  let unrepliedRows: { id: string; candidate: string; at: string }[] | null = null;
+  let unrepliedRows: { id: string; candidate: string; at: string; body: string | null }[] | null = null;
   if (conversations.error) {
     console.error("[todayTodo] conversations:", conversations.error.message);
   } else {
@@ -70,7 +77,7 @@ export async function getTodayTodo(
     if (convs.length > 0) {
       const ids = convs.map((c) => c.id as string);
       const [{ data: msgs, error: mErr }, { data: parts, error: pErr }] = await Promise.all([
-        db.from("ow_conversation_messages").select("conversation_id, sender_participant_id, sent_at")
+        db.from("ow_conversation_messages").select("conversation_id, sender_participant_id, sent_at, body, kind")
           .in("conversation_id", ids).is("deleted_at", null).order("sent_at", { ascending: false }),
         db.from("ow_conversation_participants").select("id, user_id").in("conversation_id", ids),
       ]);
@@ -79,14 +86,14 @@ export async function getTodayTodo(
         unrepliedRows = null;
       } else {
         const userByPart = new Map((parts ?? []).map((p) => [p.id as string, (p.user_id as string | null) ?? null]));
-        const last = new Map<string, { sender: string | null; at: string }>();
+        const last = new Map<string, { sender: string | null; at: string; body: string | null }>();
         for (const m of msgs ?? []) {
           const cid = m.conversation_id as string;
-          if (!last.has(cid)) last.set(cid, { sender: userByPart.get(m.sender_participant_id as string) ?? null, at: m.sent_at as string });
+          if (!last.has(cid)) last.set(cid, { sender: userByPart.get(m.sender_participant_id as string) ?? null, at: m.sent_at as string, body: (m.kind ?? "text") === "text" ? (m.body as string | null) : null });
         }
         for (const c of convs) {
           const l = last.get(c.id as string);
-          if (l && l.sender && l.sender === c.candidate_user_id) unrepliedRows.push({ id: c.id as string, candidate: c.candidate_user_id as string, at: l.at });
+          if (l && l.sender && l.sender === c.candidate_user_id) unrepliedRows.push({ id: c.id as string, candidate: c.candidate_user_id as string, at: l.at, body: l.body });
         }
       }
     }
@@ -94,7 +101,11 @@ export async function getTodayTodo(
 
   /* 名前（声かけ・会話・面談申込）。⚠️ 提案は匿名なので引かない */
   const nameIds = new Set<string>();
-  for (const a of approaches.data ?? []) nameIds.add(a.candidate_user_id as string);
+  for (const a of approaches.data ?? []) {
+    nameIds.add(a.candidate_user_id as string);
+    if (a.sender_user_id) nameIds.add(a.sender_user_id as string);
+  }
+  for (const p of proposals ?? []) nameIds.add(p.candidateUserId);
   for (const u of unrepliedRows ?? []) nameIds.add(u.candidate);
   for (const m of meetings.data ?? []) nameIds.add(m.user_id as string);
   const names = new Map<string, string>();
@@ -112,6 +123,8 @@ export async function getTodayTodo(
       items.push({
         kind: "approach", at: a.accepted_at as string,
         title: `${nameOf(a.candidate_user_id as string)} さんが声かけを承認しました`,
+        sub: [fmtMd(a.accepted_at as string), a.sender_user_id ? `送った人：${nameOf(a.sender_user_id as string)}` : null, "まだ誰も会話を開いていません"].filter(Boolean).join(" ・ "),
+        action: "メッセージを開く",
         href: a.conversation_id ? `/biz/conversations/${a.conversation_id}` : "/biz/approaches",
       });
     }
@@ -119,20 +132,23 @@ export async function getTodayTodo(
   if (unrepliedRows) {
     counts.unreplied = unrepliedRows.length;
     for (const u of unrepliedRows) {
-      items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)} さんへの返信がまだです`, href: `/biz/conversations/${u.id}` });
+      /* ⚠️ 本文は冒頭だけ（自社の会話なので見せてよい）。候補日などの種類つきのメッセージは出さない */
+      const snippet = u.body ? `「${u.body.replace(/\s+/g, " ").slice(0, 40)}${u.body.length > 40 ? "…" : ""}」` : null;
+      items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)} さんから返信があります`, sub: [relDays(u.at), snippet].filter(Boolean).join(" ・ "), action: "返信する", href: `/biz/conversations/${u.id}` });
     }
   }
   if (proposals) {
     counts.proposal = proposals.length;
     for (const p of proposals) {
-      items.push({ kind: "proposal", at: p.createdAt, title: `答えていない提案（${proposalDaysLeft(p.respondBy) <= 1 ? "今日まで" : `あと${proposalDaysLeft(p.respondBy)}日`}）`, href: "/biz/proposals" });
+      const left = proposalDaysLeft(p.respondBy);
+      items.push({ kind: "proposal", at: p.createdAt, title: `${nameOf(p.candidateUserId)} さんの提案に回答してください`, sub: [left <= 1 ? "今日で終了" : `あと${left}日で終了`, `根拠${p.evidenceCount}つ`].join(" ・ "), action: "提案を見る", href: "/biz/proposals" });
     }
   }
   if (meetings.error) console.error("[todayTodo] meetings:", meetings.error.message);
   else {
     counts.meetingRequest = meetings.data?.length ?? 0;
     for (const m of meetings.data ?? []) {
-      items.push({ kind: "meetingRequest", at: m.created_at as string, title: `${nameOf(m.user_id as string)} さんから面談の申し込み`, href: "/biz/meetings" });
+      items.push({ kind: "meetingRequest", at: m.created_at as string, title: `${nameOf(m.user_id as string)} さんから面談の申し込み`, sub: fmtMd(m.created_at as string), action: "申し込みを見る", href: "/biz/meetings" });
     }
   }
 
@@ -140,7 +156,7 @@ export async function getTodayTodo(
     counts.meeting = upcoming.length;
     /* ⚠️ 並び順の日時は「決まった日」ではなく面談の日時なので、近い予定が上に来る */
     for (const m of upcoming) {
-      items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName} さんとの面談（${formatMeetingDateTime(m.startsAt)}・${MEETING_FORMATS[m.format]}）`, href: `/biz/conversations/${m.conversationId}` });
+      items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName} さんとの面談`, sub: [`${formatMeetingDateTime(m.startsAt)}（${m.duration}分）`, MEETING_FORMATS[m.format], m.attendees.length ? `同席：${m.attendees.join("、")}` : null].filter(Boolean).join(" ・ "), action: "予定を見る", href: `/biz/conversations/${m.conversationId}` });
     }
   }
 
@@ -150,14 +166,25 @@ export async function getTodayTodo(
     if (saved) {
       const withNew = saved.filter((s) => (s.newCount ?? 0) > 0);
       counts.savedSearch = withNew.length;
+      savedSearchPeople = withNew.reduce((n, s) => n + (s.newCount ?? 0), 0);
       for (const s of withNew) {
         /* ⚠️ 日付は「今日」（新着は今の時点の数）。前回見た日時を出すと、いつの新着か誤読される */
-        items.push({ kind: "savedSearch", at: new Date().toISOString(), title: `保存した条件「${s.name}」に新着 ${s.newCount}名`, href: `/biz/candidates?saved=${s.id}&new=1` });
+        items.push({ kind: "savedSearch", at: new Date().toISOString(), title: `保存した条件「${s.name}」に新着 ${s.newCount}名`, sub: "前回この条件を見たあとに登録・更新した方", action: "新着を見る", href: `/biz/candidates?saved=${s.id}&new=1` });
       }
     }
   }
 
   items.sort((a, b) => (a.kind === "meeting") !== (b.kind === "meeting") ? (a.kind === "meeting" ? -1 : 1)
     : a.kind === "meeting" ? a.at.localeCompare(b.at) : b.at.localeCompare(a.at));
-  return { counts, items };
+  return { counts, savedSearchPeople, items };
+}
+
+/** 日本時間で「10月8日」 */
+function fmtMd(iso: string): string {
+  return new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "long", day: "numeric" }).format(new Date(iso));
+}
+/** 「今日」「2日前」。⚠️ 7日を超えたら日付 */
+function relDays(iso: string): string {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+  return d <= 0 ? "今日" : d <= 7 ? `${d}日前` : fmtMd(iso);
 }

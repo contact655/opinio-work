@@ -70,24 +70,42 @@ async function NoTenantPage() {
 }
 
 /** ★「まだ入れていない項目」の行き先（2026-09-21）。ラベルは disclosureScore.ts の1箇所 */
-/* ★今日やること（2026-10-10 / 段3）の件数カード。⚠️ 並びは「相手を待たせているもの」から */
-const TODAY_CARDS: { kind: TodayTodoKind; label: string; href: string }[] = [
+/* ★今日やることの件数カード（2026-10-11 にキャンバス7の5つにした）。⚠️ 並びは「相手を待たせているもの」から */
+const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
   { kind: "approach", label: "承認された声かけ", href: "/biz/approaches" },
-  { kind: "unreplied", label: "返信していない会話", href: "/biz/conversations" },
-  { kind: "proposal", label: "答えていない提案", href: "/biz/proposals" },
-  /* ★2026-10-10（段4）に「未確認の面談申込」から差し替えた。面談申込は一覧の行には残る */
+  { kind: "proposal", label: "回答待ちの提案", href: "/biz/proposals" },
+  /* ⚠️ 人数（新着がある条件の数ではない） */
+  { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
+  { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/conversations" },
   { kind: "meeting", label: "今日以降の面談", href: "/biz/meetings?tab=meetings" },
 ];
-const TODAY_KIND_LABELS: Record<TodayTodoKind, string> = {
-  approach: "声かけ", unreplied: "メッセージ", proposal: "提案", meetingRequest: "面談申込", meeting: "面談", savedSearch: "保存した条件",
-};
 const TODAY_LIST_LIMIT = 10;
-/** 日本時間で「10/9」、今日なら「今日」 */
-function formatTodayDate(iso: string): string {
-  const f = (d: Date) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).format(d);
-  return f(new Date(iso)) === f(new Date()) ? "今日" : f(new Date(iso));
+/** 「10月11日（日）」（日本時間） */
+function formatTodayHeading(d: Date): string {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short" }).formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.month}月${p.day}日（${p.weekday}）`;
 }
 
+const TODO_BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40, padding: "0 16px", borderRadius: 8, fontSize: 13.5, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", background: "#fff", color: "var(--royal)", border: "1px solid var(--line)" };
+const TODO_BTN_PRIMARY: React.CSSProperties = { ...TODO_BTN, background: "var(--royal)", color: "#fff", border: "1px solid var(--royal)" };
+
+/** 項目ごとのアイコン。⚠️ 色で意味を足さない（ui-conventions「色の役割」）: 待ち＝黄、ほかは濃紺かニュートラル */
+function TodoIcon({ kind }: { kind: TodayTodoKind | "other" }) {
+  const tone = kind === "approach" || kind === "unreplied" ? { bg: "var(--royal-50)", fg: "var(--royal)" }
+    : kind === "proposal" ? { bg: "var(--warm-soft)", fg: "var(--warm-ink)" }
+    : { bg: "var(--line-soft)", fg: "var(--ink-soft)" };
+  const path = kind === "approach" ? <path d="M5 12l5 5 9-10" />
+    : kind === "unreplied" ? <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    : kind === "proposal" ? <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>
+    : kind === "savedSearch" ? <path d="M6 3h12v18l-6-4-6 4z" />
+    : kind === "meeting" || kind === "meetingRequest" ? <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></>
+    : <><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></>;
+  return (
+    <span aria-hidden="true" style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: tone.bg, color: tone.fg }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{path}</svg>
+    </span>
+  );
+}
 
 export default async function BizDashboardPage({
   searchParams,
@@ -249,61 +267,67 @@ export default async function BizDashboardPage({
         </div>
       )}
 
-      {/* ── ★今日やること（2026-10-10 / 段3）。左＝今日やること、右＝今月の声かけの枠・企業ページの充実度 ──
+      {/* ── ★今日やること（2026-10-11 にキャンバス7「企業ホーム：今日やること」へ揃えた）──
              ⚠️ 件数カードと一覧は同じ `getTodayTodo` の結果から作る（数字と行が食い違わないように）。
              ⚠️ 取得に失敗した種類は「—」（0 と出さない）。 */}
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--ink)" }}>今日やること</h1>
+        <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>
+          {formatTodayHeading(new Date())} ・ 対応が必要なものを新しい順に並べています。
+        </p>
+      </div>
+
+      <div className="biz-today-cards" data-state="today-cards">
+        {TODAY_CARDS.map((c) => {
+          const n = c.kind === "savedSearchPeople" ? today.savedSearchPeople : today.counts[c.kind];
+          return (
+            <Link key={c.kind} href={c.href} data-state={`today-${c.kind}`} className="biz-today-card">
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{c.label}</span>
+              <span style={{ fontSize: 26, fontWeight: 800, color: n ? "var(--ink)" : "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                {n == null ? "—" : n}
+                {c.unit && n != null && <span style={{ fontSize: 14, fontWeight: 500 }}>{c.unit}</span>}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
       <div className="biz-home-grid">
         <section data-state={today.items.length > 0 || todoItems.length > 0 ? "has-todo" : "empty"} style={{
-          background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px 22px", minWidth: 0,
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 14, minWidth: 0, overflow: "hidden",
         }}>
-          <DashboardCardHeading title="今日やること" />
-          <div className="biz-today-cards">
-            {TODAY_CARDS.map((c) => {
-              const n = today.counts[c.kind];
-              return (
-                <Link key={c.kind} href={c.href} data-state={`today-${c.kind}`} className="biz-today-card">
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)" }}>{c.label}</span>
-                  <span style={{ fontSize: 22, fontWeight: 800, color: n ? "var(--ink)" : "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                    {n == null ? "—" : n}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+          <h2 style={{ margin: 0, padding: "16px 20px", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+            対応が必要なもの（{today.items.length + todoItems.length}）
+          </h2>
           {today.items.length === 0 && todoItems.length === 0 ? (
             /* ⚠️ 0件でもカードは消さない。「確かめた結果、無い」ことを伝える */
-            <p style={{ margin: "14px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>今すぐ対応が必要なものはありません</p>
+            <p style={{ margin: 0, padding: "0 20px 18px", fontSize: 13, color: "var(--ink-soft)" }}>今すぐ対応が必要なものはありません</p>
           ) : (
-            <ul style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {today.items.slice(0, TODAY_LIST_LIMIT).map((t, i) => (
-                <li key={`${t.kind}-${i}`}>
-                  <Link href={t.href} className="biz-todo-row" style={{ borderTop: i > 0 ? "1px solid var(--line-soft)" : "none" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", background: "var(--line-soft)", borderRadius: 100, padding: "2px 8px", whiteSpace: "nowrap" }}>
-                      {TODAY_KIND_LABELS[t.kind]}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>{t.title}</span>
-                    <span style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{formatTodayDate(t.at)}</span>
-                    <span aria-hidden="true" style={{ color: "var(--ink-mute)" }}>→</span>
-                  </Link>
+                <li key={`${t.kind}-${i}`} className="biz-todo-row" data-todo-kind={t.kind}>
+                  <TodoIcon kind={t.kind} />
+                  <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{t.title}</div>
+                    {t.sub && <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.sub}>{t.sub}</div>}
+                  </div>
+                  <Link href={t.href} className="btn-fixed-size" style={t.kind === "approach" ? TODO_BTN_PRIMARY : TODO_BTN}>{t.action}</Link>
                 </li>
               ))}
               {today.items.length > TODAY_LIST_LIMIT && (
-                <li style={{ fontSize: 12, color: "var(--ink-mute)", padding: "8px 4px", borderTop: "1px solid var(--line-soft)" }}>
+                <li style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 20px", borderTop: "1px solid var(--line-soft)" }}>
                   ほか {today.items.length - TODAY_LIST_LIMIT} 件は、上の件数から各画面で確認できます
                 </li>
               )}
               {/* そのほか（差し戻し・スタートガイド・企業資料）。件数が1以上のものだけ */}
               {todoItems.map((t) => (
-                <li key={t.key}>
-                  <Link href={t.href} className="biz-todo-row" style={{ borderTop: "1px solid var(--line-soft)" }}>
-                    <span style={{ flex: 1, minWidth: 0 }}>{t.label}</span>
-                    <span style={{
-                      minWidth: 22, height: 22, padding: "0 7px", borderRadius: 100,
-                      background: "var(--error)", color: "#fff",
-                      fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    }}>{t.count > 99 ? "99+" : t.count}</span>
-                    <span aria-hidden="true" style={{ color: "var(--ink-mute)" }}>→</span>
-                  </Link>
+                <li key={t.key} className="biz-todo-row" data-todo-kind={t.key}>
+                  <TodoIcon kind="other" />
+                  <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{t.label}</div>
+                    <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>{t.count > 99 ? "99+" : t.count}件</div>
+                  </div>
+                  <Link href={t.href} className="btn-fixed-size" style={TODO_BTN}>確認する</Link>
                 </li>
               ))}
             </ul>
@@ -316,99 +340,111 @@ export default async function BizDashboardPage({
             <section data-state="approach-quota" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
               <DashboardCardHeading title="今月の声かけ" />
               {approachQuota ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, color: "var(--ink)" }}>
-                  <div>送った数　<strong>{approachQuota.monthlyUsed}</strong> / {approachQuota.monthlyLimit}件</div>
-                  <div>承認待ち　<strong>{approachQuota.openCount}</strong> / {approachQuota.openLimit}件</div>
-                  <Link href="/biz/candidates" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none", marginTop: 4 }}>候補者を探す →</Link>
+                <div style={{ display: "flex", flexDirection: "column", fontSize: 13.5, color: "var(--ink)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>送った数</span><strong>{approachQuota.monthlyUsed} / {approachQuota.monthlyLimit}</strong></div>
+                  <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 12px", overflow: "hidden" }}>
+                    <div style={{ width: `${Math.min(100, Math.round((approachQuota.monthlyUsed / Math.max(1, approachQuota.monthlyLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>承認待ち</span><strong>{approachQuota.openCount} / {approachQuota.openLimit}</strong></div>
+                  <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 4px", overflow: "hidden" }}>
+                    <div style={{ width: `${Math.min(100, Math.round((approachQuota.openCount / Math.max(1, approachQuota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <Link href="/biz/analytics?tab=approaches" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>振り返りを見る →</Link>
+                    <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>候補者を探す →</Link>
+                  </div>
                 </div>
               ) : (
                 <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>件数を確認できませんでした</p>
               )}
             </section>
           )}
-          {/* 企業ページの充実度（企業が入力できる項目。2026-09-21 から CompanyCard の中にあったものを移した） */}
+          {/* 企業ページの充実度。★2026-10-11: 点数に加えて、まだのものを項目ごとに並べ、それぞれに入口を付けた（キャンバス7）。
+                 ロゴ未設定の案内もここにまとめた（それまでは別の帯） */}
           <section data-state="disclosure" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
             <DashboardCardHeading title="企業ページの充実度" />
-        {disclosureScore && (() => {
+        {disclosureScore ? (() => {
           /* ★★企業入力（/45）を主表示にした（2026-10-08 / 柴さんの指示）。
-                それまでは合計（/95）だけを「開示充実度 5」と出し、20点未満に「未入力」を
-                付けていた。分母が無く、入力済みなのに「未入力」と並んで意味が取れなかった。
              ⚠️★取材の点数（/50）は**別の行**に分ける。企業が自分では動かせないので、
                 合計に混ぜると「何をすれば上がるか」が読めない。
              ⚠️ ラベルと色は合計の閾値を使い回す（`bizScoreOnTotalScale`）。 */
           const tierScore = bizScoreOnTotalScale(disclosureScore.biz);
+          const missingLogo = companyRaw ? !companyRaw.logoUrl : false;
+          const missing: { key: string; label: string; href: string }[] = [
+            ...disclosureScore.bizMissing.map((k) => ({ key: k, label: BIZ_SCORE_ITEM_LABELS[k], href: BIZ_SCORE_ITEM_HREF[k] })),
+            ...(missingLogo ? [{ key: "logo", label: "企業ロゴ", href: "/biz/company" }] : []),
+          ];
           return (
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <div aria-hidden="true" style={{
-              width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-              background: `conic-gradient(${scoreColor(tierScore)} ${disclosureScore.biz * (360 / DISCLOSURE_BIZ_MAX)}deg, var(--line) 0deg)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800, color: scoreTextColor(tierScore) }}>
-                  {disclosureScore.biz}
-                </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div aria-hidden="true" style={{
+                width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                background: `conic-gradient(${scoreColor(tierScore)} ${disclosureScore.biz * (360 / DISCLOSURE_BIZ_MAX)}deg, var(--line) 0deg)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800, color: scoreTextColor(tierScore) }}>
+                    {disclosureScore.biz}
+                  </span>
+                </div>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>企業入力 {disclosureScore.biz} / {DISCLOSURE_BIZ_MAX}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, color: scoreTextColor(tierScore), background: "var(--bg-tint)", border: `1px solid ${scoreColor(tierScore)}` }}>
+                    {scoreLabel(tierScore)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
+                  取材で入る項目 {disclosureScore.interview} / {DISCLOSURE_INTERVIEW_MAX}
+                </div>
               </div>
             </div>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-                  開示充実度（企業入力） {disclosureScore.biz} / {DISCLOSURE_BIZ_MAX}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, color: scoreTextColor(tierScore), background: "var(--bg-tint)", border: `1px solid ${scoreColor(tierScore)}` }}>
-                  {scoreLabel(tierScore)}
-                </span>
+            <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>声かけを受け取った方は、まず企業ページを見に来ます。</p>
+            {/* ★企業が自分で入れられる項目のうち、まだのもの。⚠️ 取材で埋まる項目は出さない（企業には動かせない） */}
+            {missing.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
+            ) : (
+              <ul data-state="disclosure-missing" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column" }}>
+                {missing.map((m) => (
+                  <li key={m.key} style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 36, fontSize: 13.5 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg>
+                    <Link href={m.href} style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>{m.label}を入れる</Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* ★求人も職種の登録も無い企業は、職種で範囲を指定している求職者に声かけが届かない
+                   （2026-10-10 / 柴さんの指示。文言はそのまま）。⚠️ 取れなかったとき（null）は出さない */}
+            {hasApproachRoles === false && (
+              <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+                <Link href="/biz/jobs" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>求人</Link>
+                か
+                <Link href="/biz/organization?tab=roles" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>職種</Link>
+                を登録すると、声かけできる相手が増えます
               </div>
-              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>
-                取材で入る項目 {disclosureScore.interview} / {DISCLOSURE_INTERVIEW_MAX}（OPINIO の取材で埋まります）
-              </div>
-              {/* ★企業が自分で入れられる項目のうち、まだのものだけを出す（2026-09-21）。
-                     ⚠️ 取材で埋まる項目は出さない。企業には動かせない数字で、
-                        「50/50」「0/50」を見せても次の行動にならない。 */}
-              {disclosureScore.bizMissing.length === 0 ? (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
-              ) : (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-                  まだ入れていない項目（{disclosureScore.bizMissing.length}）：
-                  {disclosureScore.bizMissing.map((k, i) => (
-                    <span key={k}>
-                      {i > 0 && "・"}
-                      <Link href={BIZ_SCORE_ITEM_HREF[k]} style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-                        {BIZ_SCORE_ITEM_LABELS[k]}
-                      </Link>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {/* ★求人も職種の登録も無い企業は、職種で範囲を指定している求職者に声かけが届かない
-                     （2026-10-10 / 柴さんの指示。文言はそのまま）。⚠️ 取れなかったとき（null）は出さない */}
-              {hasApproachRoles === false && (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginTop: 4 }}>
-                  <Link href="/biz/jobs" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>求人</Link>
-                  か
-                  <Link href="/biz/organization?tab=roles" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>職種</Link>
-                  を登録すると、声かけできる相手が増えます
-                </div>
-              )}
-            </div>
+            )}
           </div>
           );
-        })()}
+        })() : (
+          <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>充実度を確認できませんでした</p>
+        )}
           </section>
         </aside>
         <style>{`
           .biz-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
           @media (min-width: 1024px) { .biz-home-grid { grid-template-columns: minmax(0, 1fr) 300px; } }
-          .biz-today-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-          @media (min-width: 640px) { .biz-today-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-          .biz-today-card { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; }
+          .biz-today-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+          @media (min-width: 640px) { .biz-today-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+          @media (min-width: 1024px) { .biz-today-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+          .biz-today-card { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; min-width: 0; }
           .biz-today-card:hover { background: var(--bg-tint); }
-          .biz-todo-row { display: flex; align-items: center; gap: 10px; padding: 11px 4px; font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; }
-          .biz-todo-row:hover { background: var(--bg-tint); }
+          .biz-todo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--line-soft); }
+          @media (max-width: 767px) { .biz-todo-row { padding: 12px 16px; gap: 10px; } }
         `}</style>
       </div>
 
-      {/* ── 企業ページ（企業カード＋開示充実度を1枚に。2026-09-21）── */}
+      {/* ── 企業ページ（企業カード）── */}
       <CompanyCard
         /* ★公開ページが無いなら「公開ページを見る」を出さない（2026-09-20）。
               判定は `hasPublicCompanyPage` の1箇所。ここに条件を書かない。 */
@@ -420,45 +456,6 @@ export default async function BizDashboardPage({
       >
       </CompanyCard>
 
-      {/* ── ロゴ未設定バナー ── */}
-      {companyRaw && !companyRaw.logoUrl && ctx.isPublished && (
-        <div style={{
-          background: "#fff", border: "1.5px dashed #FDBA74",
-          borderRadius: 12, padding: "14px 18px", marginTop: 16,
-          display: "flex", alignItems: "center", gap: 14,
-        }}>
-          {/* プレビュー：ロゴなしグラデーション四角 */}
-          <div style={{
-            width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-            background: ctx.logoGradient ?? "linear-gradient(135deg,#002366,#3B5FD9)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, fontWeight: 800, color: "#fff",
-          }}>
-            {ctx.logoLetter ?? ctx.tenantName[0]}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>
-              企業ロゴが未設定です
-            </div>
-            <div style={{ fontSize: 11, color: "#78350F", lineHeight: 1.6 }}>
-              ロゴを設定すると求人カードの信頼感が大幅にアップします。LinkedInやIndeedでは
-              ロゴ有りの企業は応募率が最大2倍になるというデータがあります。
-            </div>
-          </div>
-          <Link
-            href="/biz/company"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "9px 16px", borderRadius: 8, flexShrink: 0,
-              fontSize: 12, fontWeight: 700,
-              background: "var(--warm-strong)", color: "#fff", textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            ロゴを設定する →
-          </Link>
-        </div>
-      )}
 
       {/* ── スタートガイド（承認済みで、未完了が1つ以上あるときだけ表示。2026-10-08） ── */}
       {showGuide && (

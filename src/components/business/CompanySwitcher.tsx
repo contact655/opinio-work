@@ -66,14 +66,15 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
   return (
     <div ref={ref} style={inSidebar
       ? { position: "relative" }
-      : { position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)" }}>
+      /* ⚠️ minWidth: 0 … ヘッダーの flex の中で中身の幅より縮めるため（375px で 2px はみ出していた。2026-10-11） */
+      : { position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)", minWidth: 0 }}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         aria-haspopup="true"
         aria-expanded={open}
         style={{
-          display: "flex", alignItems: "center", gap: 8,
+          display: "flex", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%",
           background: "transparent", cursor: "pointer",
           ...(inSidebar
             ? { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", textAlign: "left" as const }

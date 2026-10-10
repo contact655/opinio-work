@@ -105,11 +105,11 @@ export function isProposalEndedFor(side: ProposalSide, p: ProposalForEnd, visibl
 export async function listOpenProposals(
   side: ProposalSide,
   id: { companyId: string } | { candidateUserId: string },
-): Promise<{ id: string; createdAt: string; respondBy: string }[] | null> {
+): Promise<{ id: string; createdAt: string; respondBy: string; candidateUserId: string; evidenceCount: number }[] | null> {
   const db = createAdminClient();
   let q = db
     .from("ow_proposals")
-    .select("id, created_at, respond_by, company_id, candidate_user_id, candidate_response, company_response, introduced_at");
+    .select("id, created_at, respond_by, company_id, candidate_user_id, candidate_response, company_response, introduced_at, evidence");
   q = side === "company"
     ? q.eq("company_id", (id as { companyId: string }).companyId).is("company_response", null)
     : q.eq("candidate_user_id", (id as { candidateUserId: string }).candidateUserId).is("candidate_response", null);
@@ -127,10 +127,13 @@ export async function listOpenProposals(
     companyResponse: (r.company_response as string | null) ?? null,
     introducedAt: (r.introduced_at as string | null) ?? null,
     respondBy: r.respond_by as string,
+    evidenceCount: Array.isArray(r.evidence) ? r.evidence.length : 0,
   }));
   const visible = await visiblePairs(rows);
+  /* ⚠️ 返すのは終了していない＝見せてよい組だけ（終了の判定に can_send_scout が入っている）。
+        candidateUserId はホームの「◯◯さんの提案」に使う（2026-10-11） */
   return rows.filter((r) => !isProposalEndedFor(side, r, isVisiblePair(visible, r)))
-    .map((r) => ({ id: r.id, createdAt: r.createdAt, respondBy: r.respondBy }));
+    .map((r) => ({ id: r.id, createdAt: r.createdAt, respondBy: r.respondBy, candidateUserId: r.candidateUserId, evidenceCount: r.evidenceCount }));
 }
 
 /** ★未回答の提案の件数（バッジ用）。`listOpenProposals` と同じ条件。失敗したら null */
