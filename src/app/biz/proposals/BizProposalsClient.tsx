@@ -22,6 +22,8 @@ export type BizProposalView = {
   computedAt: string;
   /** ★双方合意で紹介済みなら、その会話の id（2026-09-21）。未紹介は null */
   conversationId: string | null;
+  /** ★回答の締め切りまであと何日（2026-10-10）。終了・両方回答済みなら null（出さない） */
+  daysLeft: number | null;
 };
 
 /* ★「未回答」＝企業がまだ答えておらず、終了してもいないもの。
@@ -198,6 +200,11 @@ export default function BizProposalsClient({
                     {p.jobTitle ? `${p.jobTitle} への提案` : "提案"}
                   </h2>
                   <CandidateBadge p={p} />
+                  {p.daysLeft != null && (
+                    <span data-state="proposal-days-left" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+                      {p.daysLeft <= 1 ? "今日まで" : `あと${p.daysLeft}日`}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
                   {/* ⚠️ 名前が null のときは、理由を書かない（本人の設定を企業に伝えないため） */}

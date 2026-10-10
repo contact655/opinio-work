@@ -162,13 +162,15 @@ function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
     jobTitle: "アカウントエグゼクティブ",
     computedAt: "2026-09-21",
     conversationId: null,
+    /* ★締め切り（2026-10-10）。未回答には日数、終了・合意済みには出さない */
+    daysLeft: null,
     ...over,
   };
 }
 
 const BIZ_SAMPLE: BizProposalView[] = [
-  bizItem("p-open-1", {}),
-  bizItem("p-open-2", { candidateInterested: true }),
+  bizItem("p-open-1", { daysLeft: 12 }),
+  bizItem("p-open-2", { candidateInterested: true, daysLeft: 1 }),
   bizItem("p-mutual", { candidateInterested: true, response: "want_to_meet", conversationId: "00000000-0000-0000-0000-000000000000" }),
   /* ★終了（2026-10-09）。候補者が見送ったのか、対象外になったのかは企業に区別させない */
   bizItem("p-ended", { ended: true, jobTitle: null }),

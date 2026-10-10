@@ -3,7 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
-import { isProposalEndedFor, isVisiblePair, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 import { getEvidenceMaterials } from "@/lib/evidence/materials";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export default async function BizProposalsPage() {
           取るのは id（操作に要る）と、提案そのものの中身だけ。 */
     /* ★`introduced_at` / `conversation_id` も取る（2026-09-21）。双方合意のカードから
           その会話を直接開くため。⚠️ どちらも候補者を特定できる列ではない（会話の id） */
-    .select("id, candidate_user_id, evidence, counter_evidence, candidate_response, company_response, computed_at, job_id, introduced_at, conversation_id, ow_jobs(title)")
+    .select("id, candidate_user_id, evidence, counter_evidence, candidate_response, company_response, computed_at, job_id, introduced_at, conversation_id, respond_by, ow_jobs(title)")
     .eq("company_id", ctx.tenantId)
     .order("created_at", { ascending: false });
   if (error) console.error("[biz/proposals] ow_proposals:", error.message);
@@ -81,6 +81,7 @@ export default async function BizProposalsPage() {
       candidateResponse: (p.candidate_response as string | null) ?? null,
       companyResponse: (p.company_response as string | null) ?? null,
       introducedAt: (p.introduced_at as string | null) ?? null,
+      respondBy: p.respond_by as string,
     }, isVisiblePair(visible, { companyId: ctx.tenantId, candidateUserId: p.candidate_user_id as string }));
 
   const proposals: BizProposalView[] = (rows ?? []).map((p) => ({
@@ -100,6 +101,8 @@ export default async function BizProposalsPage() {
     /* ⚠️ 紹介したかの正は `introduced_at`（CLAUDE.md）。`conversation_id` は会話を消すと
           null になりうるので、両方あるときだけリンクを出す */
     conversationId: p.introduced_at && p.conversation_id ? (p.conversation_id as string) : null,
+    /* ★締め切り（2026-10-10）。届いてから30日。⚠️ 終了した・両方が答えた提案には出さない */
+    daysLeft: ended(p) || (p.candidate_response && p.company_response) ? null : proposalDaysLeft(p.respond_by as string),
   }));
 
   /* ★提案が0件のときだけ、根拠の材料の今の数を出す（2026-10-10）。⚠️ 取得に失敗したら null（画面は「—」） */

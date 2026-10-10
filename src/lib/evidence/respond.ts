@@ -58,7 +58,7 @@ export async function saveProposalResponse(input: RespondInput): Promise<Respond
      ⚠️ 終了の理由は返さない（相手が見送ったことを伝えないため）。 */
   const { data: cur, error: curErr } = await db
     .from("ow_proposals")
-    .select("company_id, candidate_user_id, candidate_response, company_response, introduced_at")
+    .select("company_id, candidate_user_id, candidate_response, company_response, introduced_at, respond_by")
     .eq("id", proposalId)
     .maybeSingle();
   if (curErr) {
@@ -72,6 +72,7 @@ export async function saveProposalResponse(input: RespondInput): Promise<Respond
     candidateResponse: (cur.candidate_response as string | null) ?? null,
     companyResponse: (cur.company_response as string | null) ?? null,
     introducedAt: (cur.introduced_at as string | null) ?? null,
+    respondBy: cur.respond_by as string,
   };
   const visible = isVisiblePair(await visiblePairs([forEnd]), forEnd);
   if (isProposalEndedFor(side, forEnd, visible)) {

@@ -1,7 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { listOpenProposals } from "@/lib/evidence/proposalEnded";
+import { listOpenProposals, proposalDaysLeft } from "@/lib/evidence/proposalEnded";
 
 /**
  * ★企業ホームの「今日やること」（2026-10-10 / 声かけまわり 段3）。**今あるデータを読むだけ。新しい表は作らない。**
@@ -16,7 +16,7 @@ import { listOpenProposals } from "@/lib/evidence/proposalEnded";
  * ⚠️ 「保存した条件の新着」は出さない（柴さんの判断。まだ実装されていない）。
  * ⚠️ 「今日以降の面談」は、日時を持つ表が無いのでまだ出せない（段4で `ow_meetings` を作るときに足す）。
  *    それまで4つ目の件数は「未確認の面談申込」。
- * ⚠️ 提案には締め切りが無いので「残り日数」は出せない。代わりに「届いてから◯日」を出す。
+ * ★提案は締め切り（届いてから30日。`respond_by`）まで「あと◯日」を出す（2026-10-10）。
  * ⚠️ 提案の候補者は匿名。**名前を出さない**（`biz/proposals/page.tsx` と同じ）。
  * ⚠️ 種類ごとに取得に失敗したら、その種類の件数を null にする（画面は「—」。0 と出さない）。
  */
@@ -34,11 +34,6 @@ export type TodayTodo = {
   counts: Record<TodayTodoKind, number | null>;
   items: TodayTodoItem[];
 };
-
-const DAY = 24 * 60 * 60 * 1000;
-export function daysSince(iso: string, now = new Date()): number {
-  return Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / DAY));
-}
 
 export async function getTodayTodo(companyId: string): Promise<TodayTodo> {
   const db = createAdminClient();
@@ -121,7 +116,7 @@ export async function getTodayTodo(companyId: string): Promise<TodayTodo> {
   if (proposals) {
     counts.proposal = proposals.length;
     for (const p of proposals) {
-      items.push({ kind: "proposal", at: p.createdAt, title: `答えていない提案（届いてから${daysSince(p.createdAt)}日）`, href: "/biz/proposals" });
+      items.push({ kind: "proposal", at: p.createdAt, title: `答えていない提案（${proposalDaysLeft(p.respondBy) <= 1 ? "今日まで" : `あと${proposalDaysLeft(p.respondBy)}日`}）`, href: "/biz/proposals" });
     }
   }
   if (meetings.error) console.error("[todayTodo] meetings:", meetings.error.message);

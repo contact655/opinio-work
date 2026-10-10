@@ -9,7 +9,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *   ① **相手が見送った**（企業から見れば候補者が、候補者から見れば企業が）
  *   ② **いまはこの企業にこの候補者を見せてはいけない**（`can_send_scout()` が false。
  *      本人が「今は考えていない」に変えた・ブロックした・在籍が判明した等）
+ *   ③ ★**回答の締め切り（`respond_by`。届いてから30日）を過ぎて、両方の回答がそろっていない**（2026-10-10）
  *   ただし**双方合意で紹介済み**（`introduced_at` あり）のものは終了にしない（会話が既にある）。
+ *   ⚠️ 締め切りは**表示するときに判定する**（定期実行で状態を書き換えない）。
  *
  * ⚠️★**終了の理由はどの画面にも出さない。** 画面に渡すのは「終了したか」の真偽だけ。
  *    相手が見送ったことを直接伝えないために、②も同じ「終了」に混ぜてある
@@ -29,7 +31,22 @@ export type ProposalForEnd = {
   candidateResponse: string | null;
   companyResponse: string | null;
   introducedAt: string | null;
+  /** ★回答の締め切り（`ow_proposals.respond_by`）。⚠️ 必須。select から落とすと締め切りが効かなくなるので型で止める */
+  respondBy: string;
 };
+
+/** ★提案に答えられる日数（届いてから）。⚠️ DB の既定値（`now() + interval '30 days'`）と同じ値にすること */
+export const PROPOSAL_RESPONSE_DAYS = 30;
+
+/** 締め切りを過ぎたか */
+export function isProposalExpired(p: Pick<ProposalForEnd, "respondBy">, now = new Date()): boolean {
+  return new Date(p.respondBy).getTime() <= now.getTime();
+}
+
+/** 締め切りまで「あと◯日」（切り上げ。過ぎていれば 0） */
+export function proposalDaysLeft(respondBy: string, now = new Date()): number {
+  return Math.max(0, Math.ceil((new Date(respondBy).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+}
 
 const pairKey = (companyId: string, candidateUserId: string) => `${companyId}:${candidateUserId}`;
 
@@ -75,7 +92,8 @@ export function isVisiblePair(visible: Set<string>, p: { companyId: string; cand
 export function isProposalEndedFor(side: ProposalSide, p: ProposalForEnd, visible: boolean): boolean {
   if (p.introducedAt) return false;
   const otherDeclined = side === "company" ? p.candidateResponse === "declined" : p.companyResponse === "declined";
-  return otherDeclined || !visible;
+  const expired = isProposalExpired(p) && !(p.candidateResponse && p.companyResponse);
+  return otherDeclined || !visible || expired;
 }
 
 /**
@@ -87,11 +105,11 @@ export function isProposalEndedFor(side: ProposalSide, p: ProposalForEnd, visibl
 export async function listOpenProposals(
   side: ProposalSide,
   id: { companyId: string } | { candidateUserId: string },
-): Promise<{ id: string; createdAt: string }[] | null> {
+): Promise<{ id: string; createdAt: string; respondBy: string }[] | null> {
   const db = createAdminClient();
   let q = db
     .from("ow_proposals")
-    .select("id, created_at, company_id, candidate_user_id, candidate_response, company_response, introduced_at");
+    .select("id, created_at, respond_by, company_id, candidate_user_id, candidate_response, company_response, introduced_at");
   q = side === "company"
     ? q.eq("company_id", (id as { companyId: string }).companyId).is("company_response", null)
     : q.eq("candidate_user_id", (id as { candidateUserId: string }).candidateUserId).is("candidate_response", null);
@@ -108,9 +126,11 @@ export async function listOpenProposals(
     candidateResponse: (r.candidate_response as string | null) ?? null,
     companyResponse: (r.company_response as string | null) ?? null,
     introducedAt: (r.introduced_at as string | null) ?? null,
+    respondBy: r.respond_by as string,
   }));
   const visible = await visiblePairs(rows);
-  return rows.filter((r) => !isProposalEndedFor(side, r, isVisiblePair(visible, r))).map((r) => ({ id: r.id, createdAt: r.createdAt }));
+  return rows.filter((r) => !isProposalEndedFor(side, r, isVisiblePair(visible, r)))
+    .map((r) => ({ id: r.id, createdAt: r.createdAt, respondBy: r.respondBy }));
 }
 
 /** ★未回答の提案の件数（バッジ用）。`listOpenProposals` と同じ条件。失敗したら null */

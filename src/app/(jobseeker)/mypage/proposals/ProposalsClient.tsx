@@ -19,6 +19,8 @@ export type ProposalView = {
    *  ⚠️★**どちらなのかは渡していない**（`lib/evidence/proposalEnded.ts`）。画面にも出さない */
   ended: boolean;
   computedAt: string;
+  /** ★回答の締め切りまであと何日（2026-10-10）。終了・両方回答済みなら null。⚠️ 通知は送らない（表示だけ） */
+  daysLeft: number | null;
 };
 
 export default function ProposalsClient({
@@ -144,6 +146,11 @@ export default function ProposalsClient({
                 {/* ⚠️ スナップショットである旨を書く。数字が古くなりうることを隠さない */}
                 <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "10px 0 0" }}>
                   {p.computedAt} 時点の情報にもとづく提案です
+                  {p.daysLeft != null && (
+                    <span data-state="proposal-days-left" style={{ marginLeft: 8, fontWeight: 600 }}>
+                      ・回答の締め切りまで{p.daysLeft <= 1 ? "今日まで" : `あと${p.daysLeft}日`}
+                    </span>
+                  )}
                 </p>
 
                 {/* ★★押す直前にも1行だけ置く（2026-09-21）。

@@ -5,7 +5,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
-import { isProposalEndedFor, isVisiblePair, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function ProposalsPage() {
     .from("ow_proposals")
     /* ★`company_id` / `company_response` / `introduced_at` は「終了したか」の判定だけに使う（2026-10-09）。
           ⚠️★**`company_response` そのものはクライアントに送らない**（企業が見送ったことを伝えない） */
-    .select("id, company_id, evidence, counter_evidence, candidate_response, company_response, introduced_at, computed_at, ow_companies(id, name, name_en, slug, tagline, logo_url)")
+    .select("id, company_id, evidence, counter_evidence, candidate_response, company_response, introduced_at, computed_at, respond_by, ow_companies(id, name, name_en, slug, tagline, logo_url)")
     .eq("candidate_user_id", me.id)
     .order("created_at", { ascending: false });
   /* ⚠️ 握り潰さない。失敗を「0件」に見せない（CLAUDE.md） */
@@ -54,6 +54,14 @@ export default async function ProposalsPage() {
   );
 
   const proposals: ProposalView[] = (rows ?? []).map((p) => {
+    const ended = isProposalEndedFor("candidate", {
+      companyId: p.company_id as string,
+      candidateUserId: me.id as string,
+      candidateResponse: (p.candidate_response as string | null) ?? null,
+      companyResponse: (p.company_response as string | null) ?? null,
+      introducedAt: (p.introduced_at as string | null) ?? null,
+      respondBy: p.respond_by as string,
+    }, isVisiblePair(visible, { companyId: p.company_id as string, candidateUserId: me.id as string }));
     const co = p.ow_companies as unknown as {
       id: string; name: string; name_en: string | null; slug: string | null;
       tagline: string | null; logo_url: string | null;
@@ -70,14 +78,10 @@ export default async function ProposalsPage() {
       evidence: Array.isArray(p.evidence) ? (p.evidence as ProposalView["evidence"]) : [],
       counter: Array.isArray(p.counter_evidence) ? (p.counter_evidence as ProposalView["counter"]) : [],
       response: (p.candidate_response as string | null) ?? null,
-      ended: isProposalEndedFor("candidate", {
-        companyId: p.company_id as string,
-        candidateUserId: me.id as string,
-        candidateResponse: (p.candidate_response as string | null) ?? null,
-        companyResponse: (p.company_response as string | null) ?? null,
-        introducedAt: (p.introduced_at as string | null) ?? null,
-      }, isVisiblePair(visible, { companyId: p.company_id as string, candidateUserId: me.id as string })),
+      ended,
       computedAt: (p.computed_at as string).slice(0, 10),
+      /* ★締め切り（2026-10-10）。⚠️ 終了した・両方が答えた提案には出さない */
+      daysLeft: ended || (p.candidate_response && p.company_response) ? null : proposalDaysLeft(p.respond_by as string),
     };
   });
 
