@@ -12,7 +12,7 @@ export const metadata = {
   title: { absolute: "候補者を探す | OPINIO Business" },
 };
 
-export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string } }) {
+export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string; approach?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) {
     return (
@@ -236,6 +236,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
     <BusinessLayout {...layoutProps} mainMaxWidth={1440}>
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
         initialSaved={initialSaved}
+        initialApproachOnly={searchParams?.approach === "1"}
         /* ⚠️ 一覧に居ない id は開かない（プレビューの API も 404 を返す）。uuid の形だけ確かめる */
         initialSelected={/^[0-9a-f-]{36}$/.test(searchParams?.selected ?? "") ? searchParams!.selected! : null} />
     </BusinessLayout>

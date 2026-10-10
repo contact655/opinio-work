@@ -485,7 +485,7 @@ export function BusinessLayout({
                         padding: "0 5px", flexShrink: 0,
                       }}>
                         <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "承認された声かけ" : "未読"} {badgeCount}件）</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "受け入れられた声かけ" : "未読"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>

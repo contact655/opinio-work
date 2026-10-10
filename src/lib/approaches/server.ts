@@ -56,8 +56,8 @@ const MSG = {
   reasonShort: `理由は${APPROACH_REASON_MIN}文字以上で入力してください`,
   reasonLong: `理由は${APPROACH_REASON_MAX}文字以内で入力してください`,
   bodyLong: `メッセージは${APPROACH_BODY_MAX}文字以内で入力してください`,
-  monthly: `今月はこれ以上声をかけられません（1社あたり月${APPROACH_MONTHLY_LIMIT}件まで）`,
-  open: `承認待ちの声かけが${APPROACH_OPEN_LIMIT}件あるため、これ以上声をかけられません`,
+  monthly: `今月はこれ以上声をかけられません（1社あたり毎月${APPROACH_MONTHLY_LIMIT}通まで）`,
+  open: `返事待ちの声かけが${APPROACH_OPEN_LIMIT}件あるため、これ以上声をかけられません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
   resend: `この方には${APPROACH_RESEND_DAYS}日以内に声をかけています。続けて送ることはできません`,
   reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方に声をかけたい理由を書いてください`,
 } as const;

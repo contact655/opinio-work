@@ -122,7 +122,7 @@ export async function getTodayTodo(
     for (const a of approaches.data ?? []) {
       items.push({
         kind: "approach", at: a.accepted_at as string,
-        title: `${nameOf(a.candidate_user_id as string)} さんが声かけを承認しました`,
+        title: `${nameOf(a.candidate_user_id as string)} さんが声かけを受け入れました`,
         sub: [fmtMd(a.accepted_at as string), a.sender_user_id ? `送った人：${nameOf(a.sender_user_id as string)}` : null, "まだ誰も会話を開いていません"].filter(Boolean).join(" ・ "),
         action: "メッセージを開く",
         href: a.conversation_id ? `/biz/conversations/${a.conversation_id}` : "/biz/approaches",

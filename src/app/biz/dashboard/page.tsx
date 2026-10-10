@@ -14,6 +14,7 @@ import { BIZ_SCORE_ITEM_HREF, getBizDisclosure } from "@/lib/business/bizDisclos
 import { getTodayTodo, type TodayTodoKind } from "@/lib/business/todayTodo";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
+import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
 import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
@@ -72,7 +73,7 @@ async function NoTenantPage() {
 /** ★「まだ入れていない項目」の行き先（2026-09-21）。ラベルは disclosureScore.ts の1箇所 */
 /* ★今日やることの件数カード（2026-10-11 にキャンバス7の5つにした）。⚠️ 並びは「相手を待たせているもの」から */
 const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
-  { kind: "approach", label: "承認された声かけ", href: "/biz/approaches" },
+  { kind: "approach", label: "受け入れられた声かけ", href: "/biz/approaches" },
   { kind: "proposal", label: "回答待ちの提案", href: "/biz/proposals" },
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
@@ -341,11 +342,13 @@ export default async function BizDashboardPage({
               <DashboardCardHeading title="今月の声かけ" />
               {approachQuota ? (
                 <div style={{ display: "flex", flexDirection: "column", fontSize: 13.5, color: "var(--ink)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>送った数</span><strong>{approachQuota.monthlyUsed} / {approachQuota.monthlyLimit}</strong></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>今月の残り</span><strong>{approachQuotaTexts(approachQuota, new Date()).remaining}通</strong></div>
+                  <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(approachQuota, new Date()).remainingSub}</div>
                   <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 12px", overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, Math.round((approachQuota.monthlyUsed / Math.max(1, approachQuota.monthlyLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
+                    <div style={{ /* ★残りの量を示す（ラベルが「今月の残り」なので） */ width: `${Math.min(100, Math.round((approachQuotaTexts(approachQuota, new Date()).remaining / Math.max(1, approachQuota.monthlyLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>承認待ち</span><strong>{approachQuota.openCount} / {approachQuota.openLimit}</strong></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>返事待ち</span><strong>{approachQuota.openCount}件</strong></div>
+                  <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(approachQuota, new Date()).openSub}</div>
                   <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 4px", overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(100, Math.round((approachQuota.openCount / Math.max(1, approachQuota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
                   </div>

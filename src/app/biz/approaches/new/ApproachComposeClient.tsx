@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
+import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
 import {
   APPROACH_BODY_MAX, APPROACH_EXPIRE_DAYS, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_RESEND_DAYS,
 } from "@/lib/constants/companyApproaches";
@@ -167,10 +168,13 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card} data-state="approach-quota">
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 8 }}>今月の枠</div>
             {p.quota ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, fontSize: 12, color: "var(--ink-soft)" }}>
-                <div>送った数<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{p.quota.monthlyUsed} / {p.quota.monthlyLimit}</div></div>
-                <div>承認待ち<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{p.quota.openCount} / {p.quota.openLimit}</div></div>
-                <div>送ったあとの残り<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{remaining}</div></div>
+              /* ★言い方は /biz/approaches・ホームと同じ（`approachQuotaTexts`）。2026-10-11 */
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, fontSize: 12, color: "var(--ink-soft)" }}>
+                <div>今月の残り<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{approachQuotaTexts(p.quota, new Date()).remaining}通</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{approachQuotaTexts(p.quota, new Date()).remainingSub}</div></div>
+                <div>返事待ち<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{p.quota.openCount}件</div>
+                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{approachQuotaTexts(p.quota, new Date()).openSub}</div></div>
+                <div style={{ gridColumn: "1 / -1" }}>送ったあとの今月の残り：<strong style={{ color: "var(--ink)" }}>{remaining}通</strong></div>
               </div>
             ) : <div style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>枠を確認できませんでした（—）</div>}
           </div>
@@ -205,9 +209,9 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card} data-state="approach-notes">
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>送る前に</div>
             <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-              <li>承認されると、メールでお知らせします。</li>
+              <li>受け入れられると、メールでお知らせします。</li>
               <li>見送られても、お知らせはしません。</li>
-              <li>承認されないまま{APPROACH_EXPIRE_DAYS}日たつと、承認待ちの枠に戻ります。</li>
+              <li>返事がないまま{APPROACH_EXPIRE_DAYS}日たつと、返事待ちの枠に戻ります。</li>
               <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び声をかけられません。</li>
             </ul>
           </div>

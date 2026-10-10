@@ -79,7 +79,7 @@ export function normalizeApproachReason(s: string): string {
  */
 export type CompanyApproachStatus = "pending" | "expired" | "accepted";
 export const COMPANY_APPROACH_STATUS_LABELS: Record<CompanyApproachStatus, string> = {
-  pending: "承認待ち",
+  pending: "返事待ち",
   expired: `${APPROACH_EXPIRE_DAYS}日を過ぎました`,
   accepted: "やり取り中",
 };
@@ -87,3 +87,29 @@ export function companyApproachStatus(p: { createdAt: string; acceptedAt: string
   if (p.acceptedAt) return "accepted";
   return now.getTime() - new Date(p.createdAt).getTime() > APPROACH_EXPIRE_DAYS * 24 * 60 * 60 * 1000 ? "expired" : "pending";
 }
+
+/**
+ * ★枠の言い方（2026-10-11 / 柴さんの指示。企業側の表示だけ）。/biz/approaches・書く画面・ホームが同じ関数を見る。
+ *   「今月送った数 N/10」→「今月の残り N通」、「承認待ち N/10」→「返事待ち N件」。
+ * ⚠️ DB の値・API の数え方は変えていない（`getApproachQuota` の monthlyUsed / openCount のまま）。
+ */
+export function approachMonthlyResetLabel(now: Date): string {
+  const m = Number(new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric" }).format(now).replace(/\D/g, ""));
+  return `${(m % 12) + 1}月1日`;
+}
+export function approachQuotaTexts(q: { monthlyUsed: number; monthlyLimit: number; openCount: number; openLimit: number }, now: Date) {
+  return {
+    remaining: Math.max(0, q.monthlyLimit - q.monthlyUsed),
+    remainingSub: `毎月${q.monthlyLimit}通・${approachMonthlyResetLabel(now)}に戻ります`,
+    openSub: `同時に${q.openLimit}件まで・${APPROACH_EXPIRE_DAYS}日で枠に戻ります`,
+  };
+}
+
+/**
+ * ★受け入れ率を出し始める件数（2026-10-11）。結果の出た声かけ（受け入れられた＋30日を過ぎた）がこれ未満なら「—」。
+ * ⚠️ 分析タブの「参考値」の境（`REFERENCE_ONLY_BELOW`）とは別。こちらは数字を出さない。
+ */
+export const APPROACH_RATE_MIN_RESOLVED = 10;
+
+/** ★/biz/approaches の見出しの説明（2026-10-11 / 柴さんの文言）。⚠️ ヘルプのページ（/biz/help/approaches）も同じ文を使う */
+export const APPROACH_HEADLINE = "気になる候補者に、理由を添えて『話を聞かせてもらえませんか』と送れます。相手が受け入れると、メッセージでやり取りできます。";

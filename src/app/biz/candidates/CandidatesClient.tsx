@@ -101,12 +101,15 @@ export default function CandidatesClient({
   roleFilterTree = [],
   initialSelected = null,
   initialSaved = null,
+  initialApproachOnly = false,
 }: {
   /** ★保存した条件で開いたとき（段3）。newSince があれば「新着だけ」を出す */
   initialSaved?: { id: string; name: string; filters: SavedCandidateFilters; newSince: string | null } | null;
   candidates: Candidate[];
   /** ★`?selected=` で開いている候補者（段1）。リロードしても同じ人を開く */
   initialSelected?: string | null;
+  /** ★`?approach=1` で開いたとき（/biz/approaches の「声かけを受け取る方だけを見る」。2026-10-11）。トグルをオンにして開く */
+  initialApproachOnly?: boolean;
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
 }) {
@@ -157,7 +160,7 @@ export default function CandidatesClient({
   /* ★「声かけを受け取る方のみ」（2026-10-10 / 段2）。⚠️★判定はサーバーで
         `can_send_company_approach()` を通した `c.approach.eligible` だけを見る（ボタンと同じ値）。
         ここで条件を組み立てないこと。 */
-  const [approachOnly, setApproachOnly] = useState(false);
+  const [approachOnly, setApproachOnly] = useState(initialApproachOnly);
   const approachEnabled = candidates.some((c) => c.approach !== undefined);
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
