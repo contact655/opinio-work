@@ -6,6 +6,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { markApproachSeenByCompany } from "@/lib/approaches/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { ReplyForm } from "./ReplyForm";
 import { JoinButton } from "./JoinButton";
@@ -204,17 +205,14 @@ export default async function BizConversationDetailPage({
   }));
 
   /* ★日程調整（2026-10-10 / 段4）。同席者の候補（自社の有効な担当者）・自分の日程調整リンク・面談の状態 */
-  const adminDb = createAdminClient();
-  const [{ data: adminRows, error: adminErr }, mySchedulingUrl, meetingState] = await Promise.all([
-    adminDb.from("ow_company_admins").select("user_id, ow_users!user_id(name)").eq("company_id", ctx.tenantId).eq("is_active", true).not("user_id", "is", null),
+  const [sameTestStaff, mySchedulingUrl, meetingState] = await Promise.all([
+    /* ★同席者の候補は、操作している人と is_test が同じ担当者だけ（2026-10-10。`listSameTestStaff`） */
+    listSameTestStaff(ctx.tenantId, ctx.currentOwnId),
     getSchedulingUrl(ctx.tenantId, ctx.currentOwnId),
     conversationMeetingState(conversationId),
   ]);
-  if (adminErr) console.error("[BizConvDetail] admins:", adminErr.message);
-  const companyAdmins = (adminRows ?? []).map((r) => ({
-    id: r.user_id as string,
-    name: (((r.ow_users as unknown as { name: string | null } | null)?.name) ?? "").trim() || "担当者",
-  }));
+  /* ⚠️ 取れなければ同席者の候補は出さない（空）。送信側でも同じ関数で確かめる */
+  const companyAdmins = sameTestStaff ?? [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

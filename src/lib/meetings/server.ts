@@ -2,6 +2,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyConversationAllowed } from "@/lib/conversations/openReason";
+import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
@@ -98,15 +99,15 @@ export async function sendMeetingSlots(params: {
   const g = await companySendGuard(params.conversationId, params.companyId, params.senderOwUserId);
   if (!g.ok) return g;
 
-  /* 同席する人は、その企業の有効な担当者だけ（名前を送った時点のまま残す） */
+  /* 同席する人は、その企業の有効な担当者のうち**送る人と is_test が同じ人だけ**（2026-10-10。画面の選択肢と同じ関数）。
+     名前は送った時点のまま残す */
   let attendees: string[] = [];
   if (ids.length > 0) {
-    const db = createAdminClient();
-    const { data, error } = await db.from("ow_company_admins").select("user_id, ow_users!user_id(name)")
-      .eq("company_id", params.companyId).eq("is_active", true).in("user_id", ids);
-    if (error) { console.error("[meetings] attendees:", error.message); return fail(500, "送信できませんでした"); }
-    if ((data ?? []).length !== ids.length) return fail(400, "同席する人に、この会社の担当者でない人が含まれています");
-    attendees = (data ?? []).map((r) => ((r.ow_users as unknown as { name: string | null } | null)?.name ?? "").trim() || "担当者");
+    const staff = await listSameTestStaff(params.companyId, params.senderOwUserId);
+    if (!staff) return fail(500, "送信できませんでした");
+    const byId = new Map(staff.map((x) => [x.id, x.name]));
+    if (ids.some((id) => !byId.has(id))) return fail(400, "同席する人は、この会社の担当者から選んでください");
+    attendees = ids.map((id) => byId.get(id) as string);
   }
 
   const format = params.format as MeetingFormat;

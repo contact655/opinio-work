@@ -62,7 +62,7 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
   const [profile, quota, senders, jobs, disclosure, co] = await Promise.all([
     getCandidateProfileForCompany(candidateId),
     getApproachQuota(ctx.tenantId),
-    listApproachSenders(ctx.tenantId),
+    listApproachSenders(ctx.tenantId, ctx.currentOwnId),
     listApproachableJobs(ctx.tenantId),
     getBizDisclosure(ctx.tenantId),
     db.from("ow_companies").select("name, name_en, logo_url, logo_letter, logo_gradient").eq("id", ctx.tenantId).maybeSingle(),

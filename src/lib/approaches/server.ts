@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
@@ -678,16 +679,10 @@ export async function listApproachableJobs(companyId: string): Promise<{ id: str
  * ⚠️ 送信の API はここに入っている人以外を送り手にしない（画面の選択肢と同じ関数）。
  * ⚠️ 名前は ow_users.name。空・プレースホルダは「担当者」。取れなければ null。
  */
-export async function listApproachSenders(companyId: string): Promise<{ id: string; name: string }[] | null> {
-  const db = createAdminClient();
-  const { data, error } = await db.from("ow_company_admins").select("user_id").eq("company_id", companyId).eq("is_active", true).not("user_id", "is", null);
-  if (error) { console.error("[approaches] senders:", error.message); return null; }
-  const ids = Array.from(new Set((data ?? []).map((r) => r.user_id as string)));
-  if (ids.length === 0) return [];
-  const { data: users, error: uErr } = await db.from("ow_users").select("id, name").in("id", ids);
-  if (uErr) { console.error("[approaches] senders users:", uErr.message); return null; }
-  return ids.map((id) => {
-    const n = ((users ?? []).find((u) => u.id === id)?.name as string | null) ?? "";
-    return { id, name: n.trim() && n.trim() !== "ユーザー" ? n.trim() : "担当者" };
-  });
+/**
+ * ★声かけを「送る担当者」として選べる人。**操作している人と is_test が同じ担当者だけ**（2026-10-10）。
+ * ⚠️ 判定は `lib/business/sameTestStaff.ts` の1か所（日程調整の同席者と同じ決まり）。画面と送信 API の両方がここを通す。
+ */
+export async function listApproachSenders(companyId: string, operatorOwUserId: string): Promise<{ id: string; name: string }[] | null> {
+  return listSameTestStaff(companyId, operatorOwUserId);
 }
