@@ -12,15 +12,17 @@
 export const SPLIT_MIN_WIDTH = 1280;
 
 /**
- * ★候補者検索（/biz/candidates）の分割ビュー（2026-10-10 / 柴さんの判断）。**候補者だけ 1024px。**
+ * ★候補者検索（/biz/candidates）の分割ビュー。
  *
- * ⚠️★`SPLIT_MIN_WIDTH` と別の定数にしてある。/companies と /jobs は 1280px のまま。
+ * ⚠️★2026-10-11 に 1024px から **1280px**（/companies・/jobs と同じ）に揃えた（柴さんの指示）。
+ *    1024〜1279px は一覧が4割しか無く、名前が「…」で切れ、カードの2行目以降を隠すしかなかったため。
+ *    1279px 以下はカードを押すとプロフィール（/u/[id]）へ同じタブで移る。
  * ⚠️★しきい値は2箇所にある: ①この定数（クリックを振り替えるか。`CandidatesClient`）
- *    ②**CSS のメディアクエリ**（`CandidatesClient` の `@media (min-width: 1024px)` と
- *    1024〜1279px の 4:6）。CSS からは定数を参照できないので手で合わせている。
- *    ①だけ変えると「押してもプレビューが出ない」になる。
+ *    ②**CSS のメディアクエリ**（`CandidatesClient` の `@media (min-width: 1280px)`）。
+ *    CSS からは定数を参照できないので手で合わせている。①だけ変えると「押してもプレビューが出ない」になる。
+ * ⚠️ 定数は分けたまま `SPLIT_MIN_WIDTH` を指す（候補者だけ別の値に戻すときに、ここ1か所で済むように）。
  */
-export const CANDIDATE_SPLIT_MIN_WIDTH = 1024;
+export const CANDIDATE_SPLIT_MIN_WIDTH = SPLIT_MIN_WIDTH;
 
 /**
  * ビューポート幅の帯。**分割ビューが出る層がどれだけ居るか**を測るために使う。

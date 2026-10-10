@@ -178,10 +178,10 @@ export default function CandidatesClient({
   const [openChip, setOpenChip] = useState<string | null>(null);
 
   /* ── ★右のプレビュー（2026-10-10 / 段1・キャンバス1）──────────────────────────
-     ⚠️ 1024px 以上だけ（`CANDIDATE_SPLIT_MIN_WIDTH`。/companies の 1280px とは別の定数）。
+     ⚠️ 1280px 以上だけ（`CANDIDATE_SPLIT_MIN_WIDTH`。2026-10-11 に /companies・/jobs と同じ 1280px に揃えた）。
      ⚠️★URL（`?selected=`）は `history.replaceState` で書き換える。**履歴を積まない**（柴さんの指示）。
         router.replace にしないのは、このページが force-dynamic で**一覧を丸ごと取り直す**ため。
-     ⚠️ 1024px 未満では横取りしない ——カードのリンクがそのまま /u/[id] を**同じタブ**で開く。 */
+     ⚠️ 1280px 未満では横取りしない ——カードのリンクがそのまま /u/[id] を**同じタブ**で開く。 */
   const [selected, setSelected] = useState<string | null>(initialSelected);
   const updateSelected = useCallback((id: string | null) => {
     setSelected(id);
@@ -952,8 +952,8 @@ export default function CandidatesClient({
       </div>
 
       {/* ── 一覧＋右のプレビュー（2026-10-10 / 段1）──────────────────────────────
-             ⚠️★分割は 1024px 以上（CSS の @media と `CANDIDATE_SPLIT_MIN_WIDTH` を手で合わせている）。
-             ⚠️ 1024〜1279px は 一覧4：プレビュー6、それ以上は 1：1。 */}
+             ⚠️★分割は 1280px 以上（CSS の @media と `CANDIDATE_SPLIT_MIN_WIDTH` を手で合わせている）。一覧とプレビューは 1：1。
+             ⚠️ 1024〜1279px 用の「カードを詰める・2行目以降を隠す」作りは 2026-10-11 に外した（1279px 以下では分割しないので不要）。 */}
       <div className="cand-split" data-selected={selected ? "1" : "0"}>
         <div style={{ minWidth: 0 }}>
           {filtered.length === 0 ? (
@@ -1008,9 +1008,9 @@ export default function CandidatesClient({
                       transition: "box-shadow 0.15s",
                     }}
                   >
-                    {/* ★カード本体はプロフィールへのリンク（同じタブ）。1024px 以上ではクリックを横取りして右に出す。
+                    {/* ★カード本体はプロフィールへのリンク（同じタブ）。1280px 以上ではクリックを横取りして右に出す。
                            ⚠️ ボタン類（声かけ・気になる）はリンクの外に置く（リンクの中にボタンを入れない） */}
-                    {/* ⚠️ 余白・間隔・折り返しは CSS のクラス側（下の style）。1024〜1279px で詰めるため、ここに書かない */}
+                    {/* ⚠️ 余白・間隔・折り返しは CSS のクラス側（下の style）。ここに書かない */}
                     <div className="cand-card-body">
                       <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)}>
                         {/* アバター。⚠️ 人によって色を変えない（上の注記）。 */}
@@ -1051,7 +1051,7 @@ export default function CandidatesClient({
                                  `isMentor` は型からも消えている。**足し直さないこと。** */}
                         </div>
 
-                        {/* ★2行目以降。⚠️ 1024〜1279px（一覧が4割）では省く（`.cand-card-extra`） */}
+                        {/* ★2行目以降（2026-10-11 まで 1024〜1279px で隠していた。分割を 1280px からにしたので常に出す） */}
                         <div className="cand-card-extra">
                         {/* ★声かけの状態とプロフィールの更新日（段1）。⚠️ 判定は増やさない（`candidateApproachLabel`） */}
                         {(() => {
@@ -1062,7 +1062,10 @@ export default function CandidatesClient({
                           if (!label && !edited) return null;
                           return (
                             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, color: "var(--ink-mute)", marginBottom: 6 }}>
-                              {label && <span data-approach-state={label.state} style={{ fontWeight: 600, color: label.state === "eligible" ? "var(--royal)" : "var(--ink-mute)" }}>{label.text}</span>}
+                              {/* ★カードは短い形（short）。1行に収め、収まらないときは省略して全文は title で読める（2026-10-11） */}
+                              {label && <span data-approach-state={label.state} title={label.text} style={{ fontWeight: 600, color: label.state === "eligible" ? "var(--royal)" : "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, maxWidth: "100%",
+                                /* ⚠️ 括弧・中黒の前後の空きを詰める（palt）。375px で長い名前＋2桁の日付がちょうど7px溢れていた（2026-10-11 実測） */
+                                fontFeatureSettings: "\"palt\"" }}>{label.short}</span>}
                               {edited && <span>プロフィール更新 {edited}</span>}
                             </div>
                           );
@@ -1183,7 +1186,7 @@ export default function CandidatesClient({
           )}
         </div>
 
-        {/* 右のプレビュー。⚠️ 1024px 未満では CSS で隠す */}
+        {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {selected ? (
             <CandidatePreview key={selected} userId={selected} onClose={() => updateSelected(null)} />
@@ -1216,23 +1219,13 @@ export default function CandidatesClient({
           .cand-card-side { flex-direction: row; justify-content: flex-end; flex-wrap: wrap; }
           .cand-card-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
         }
-        @media (min-width: 1024px) {
+        @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
           .cand-wrap { max-width: none; }
           /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと） */
           .cand-pane { display: block; position: sticky; top: calc(var(--biz-header-h) + 16px); max-height: calc(100vh - var(--biz-header-h) - 32px); overflow-y: auto; overscroll-behavior: contain; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
           .cand-card-actions { display: none; }
           .cand-card a:hover { cursor: pointer; }
-        }
-        @media (min-width: 1024px) and (max-width: 1279px) {
-          .cand-split { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
-          .cand-card-extra { display: none; }
-          .cand-card-avatar { display: none; }
-          .cand-card-body { padding: 10px 12px; gap: 8px; }
-          .cand-card-link { gap: 8px; }
-          .cand-card-namerow { flex-wrap: nowrap; margin-bottom: 0; }
-          .cand-card-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .cand-wrap { padding-left: 16px; padding-right: 16px; }
         }
       `}</style>
 

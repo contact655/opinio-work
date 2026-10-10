@@ -7,6 +7,7 @@ import type { RecentApproach } from "@/lib/approaches/server";
 const jst = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
 const part = (ps: Intl.DateTimeFormatPart[], t: string) => ps.find((p) => p.type === t)?.value ?? "";
 function formatJaMonthDay(iso: string): string { const ps = jst(iso); return `${part(ps, "month")}月${part(ps, "day")}日`; }
+function formatSlashMonthDay(iso: string): string { const ps = jst(iso); return `${part(ps, "month")}/${part(ps, "day")}`; }
 function formatJaDate(iso: string): string { const ps = jst(iso); return `${part(ps, "year")}年${part(ps, "month")}月${part(ps, "day")}日`; }
 
 /**
@@ -40,10 +41,21 @@ export function ApproachButton({
           padding: compact ? "6px 12px" : "9px 16px", borderRadius: 8,
           border: "1px solid var(--line)", background: "#fff",
           color: "var(--ink-mute)", fontSize: compact ? 12 : 13, fontWeight: 700, whiteSpace: "nowrap",
+          maxWidth: "100%", minWidth: 0,
         }}
       >
-        {sent ? (
-          /* ★誰が・いつ・いまどうなっているか・いつから再び送れるか。⚠️ 見送られたものも「承認待ち」（企業には伝えない） */
+        {sent && compact ? (
+          /* ★カード用の短い形（2026-10-11 / 柴さんの指示）。1行目は「リクエスト済み（◯◯さん・10/3）」で1行に収める。
+                ⚠️ 状態と再び送れる日は2行目に回す。長い文はプレビュー（右側）と /u/[id] に残す */
+          <span style={{ display: "flex", flexDirection: "column", gap: 2, fontWeight: 600, lineHeight: 1.5, minWidth: 0, maxWidth: "100%" }}>
+            <span data-state="approach-sent-short" title={`${sent.senderName ? `${sent.senderName}さん` : "担当者"}が${formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み`}
+              style={{ color: "var(--ink-soft)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFeatureSettings: "\"palt\"" }}>
+              リクエスト済み（{sent.senderName ? `${sent.senderName}さん` : "担当者"}・{formatSlashMonthDay(sent.sentAt)}）
+            </span>
+            <span style={{ fontWeight: 500, whiteSpace: "normal" }}>{COMPANY_APPROACH_STATUS_LABELS[sent.state]}・再び送れる日：{formatJaDate(sent.resendAt)}</span>
+          </span>
+        ) : sent ? (
+          /* ★誰が・いつ・いまどうなっているか・いつから再び送れるか。⚠️ 見送られたものも「返事待ち」（企業には伝えない） */
           <span style={{ display: "flex", flexDirection: "column", gap: 2, whiteSpace: "normal", fontWeight: 600, lineHeight: 1.5 }}>
             <span style={{ color: "var(--ink-soft)" }}>
               {sent.senderName ? `${sent.senderName}さん` : "担当者"}が{formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み（{COMPANY_APPROACH_STATUS_LABELS[sent.state]}）

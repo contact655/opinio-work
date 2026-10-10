@@ -236,6 +236,16 @@ export function formatJstMonthDay(iso: string | null | undefined): string | null
   return `${p("month")}月${p("day")}日`;
 }
 
+/** 「10/3」の形（日本時間）。カードの短い表示用 */
+export function formatJstSlashMonthDay(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return null;
+  const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).formatToParts(d);
+  const p = (t: string) => ps.find((x) => x.type === t)?.value ?? "";
+  return `${p("month")}/${p("day")}`;
+}
+
 /**
  * ★カードとプレビューに出す「声かけの状態」（段1）。
  * ⚠️★判定は増やさない。`approach.eligible`（`can_send_company_approach()`）と
@@ -243,14 +253,20 @@ export function formatJstMonthDay(iso: string | null | undefined): string | null
  * ⚠️ 「受け取っていません」は理由を区別しない（範囲外・受け取らない企業・未設定を企業に見分けさせない）。
  * ⚠️ 声かけが使えない（undefined）ときは null（何も出さない）。
  */
-export function candidateApproachLabel(approach: Candidate["approach"]): { state: "eligible" | "sent" | "not_accepting"; text: string } | null {
+export function candidateApproachLabel(approach: Candidate["approach"]): { state: "eligible" | "sent" | "not_accepting"; text: string; short: string } | null {
   if (!approach) return null;
   if (approach.sent) {
     const who = approach.sent.senderName ? `${approach.sent.senderName}さん` : "担当者";
-    return { state: "sent", text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージリクエストを送信済み` };
+    /* ★short はカード用（2026-10-11 / 柴さんの指示）。「リクエスト済み（◯◯さん・10/3）」の形で1行に収める。
+          プレビュー（右側）は text（長い文）のまま */
+    return {
+      state: "sent",
+      text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージリクエストを送信済み`,
+      short: `リクエスト済み（${who}・${formatJstSlashMonthDay(approach.sent.sentAt) ?? "—"}）`,
+    };
   }
-  if (approach.eligible) return { state: "eligible", text: "メッセージリクエストを受け取る" };
-  return { state: "not_accepting", text: "リクエストは受け取っていません" };
+  if (approach.eligible) return { state: "eligible", text: "メッセージリクエストを受け取る", short: "メッセージリクエストを受け取る" };
+  return { state: "not_accepting", text: "リクエストは受け取っていません", short: "リクエストは受け取っていません" };
 }
 
 /**
