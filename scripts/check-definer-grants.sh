@@ -55,6 +55,7 @@ SERVER_ONLY=(
   "approach_range_option_counts(p_ow_user_id uuid, p_field text, p_values text[])"
   "approach_range_field_coverage()"
   "purge_withdrawn_company_candidate_notes()"
+  "purge_candidate_notes_on_block()"
 )
 
 SELF_TEST=0

@@ -14,6 +14,8 @@ type Tracking = { stage: CandidateStage | null; ownerId: string | null; ownerNam
 export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUserId: string; admins: { id: string; name: string }[] }) {
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [tracking, setTracking] = useState<Tracking>({ stage: null, ownerId: null, ownerName: null });
+  /* ★書けない相手（検索で見られない・応募も会話も無い）でも読める。そのときは入力欄と状態の変更を出さない */
+  const [writable, setWritable] = useState(true);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
     const res = await fetch(`${base}/notes`);
     const json = await res.json().catch(() => ({}));
     if (!res.ok) { setError(json.error ?? "読み込めませんでした"); return; }
-    setNotes(json.notes); setTracking(json.tracking);
+    setNotes(json.notes); setTracking(json.tracking); setWritable(json.writable !== false);
   }, [base]);
   useEffect(() => { void load(); }, [load]);
 
@@ -50,14 +52,14 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
         <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>状態
-          <select value={tracking.stage ?? ""} disabled={busy} style={{ ...sel, marginLeft: 6 }}
+          <select value={tracking.stage ?? ""} disabled={busy || !writable} style={{ ...sel, marginLeft: 6 }}
             onChange={(e) => void saveTracking((e.target.value || null) as CandidateStage | null, tracking.ownerId)}>
             <option value="">なし</option>
             {(Object.keys(CANDIDATE_STAGES) as CandidateStage[]).map((s) => <option key={s} value={s}>{CANDIDATE_STAGES[s]}</option>)}
           </select>
         </label>
         <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>担当
-          <select value={tracking.ownerId ?? ""} disabled={busy} style={{ ...sel, marginLeft: 6 }}
+          <select value={tracking.ownerId ?? ""} disabled={busy || !writable} style={{ ...sel, marginLeft: 6 }}
             onChange={(e) => void saveTracking(tracking.stage, e.target.value || null)}>
             <option value="">なし</option>
             {admins.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -65,6 +67,12 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
         </label>
       </div>
 
+      {!writable && (
+        <p data-state="notes-readonly" style={{ margin: "0 0 8px", fontSize: 12, color: "var(--ink-mute)" }}>
+          いまはこの方に新しくメモを残したり、状態を変えたりできません（これまでのメモは読めます）。
+        </p>
+      )}
+      {writable && (<>
       <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={CANDIDATE_NOTE_MAX} rows={3} aria-label="社内メモ"
         placeholder="事実（いつ・何があったか）と評価を分けて書いてください"
         style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px", fontFamily: "inherit", fontSize: 13, resize: "vertical" }} />
@@ -76,6 +84,7 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
           メモを残す
         </button>
       </div>
+      </>)}
       {error && <div role="alert" style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 6 }}>{error}</div>}
 
       <ul style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>

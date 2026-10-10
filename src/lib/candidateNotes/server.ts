@@ -11,7 +11,8 @@ import { CANDIDATE_NOTE_MAX, isCandidateStage, type CandidateStage } from "@/lib
  *    （"false" を入れると切れる）。⚠️ Vercel のプレビューも production 扱いなのでオフ。
  * ⚠️ 表はクライアントのロールに GRANT していない（PostgREST から直接は誰も読めない）。
  *    呼び出し側（API）が「その企業の有効な担当者」であることを確かめてから呼ぶ。
- * ⚠️ 書けるのは、その企業がいま見てよい候補者だけ（`can_send_scout()`。候補者検索に出る人と同じ）。読むのは自社の記録なので制限しない。
+ * ⚠️ 書ける相手は `canWriteCandidateNote`（検索で見られる／応募・面談申込／会話あり。ブロックされていない）。
+ *    読むのは自社の記録なので制限しない（ブロックされた企業の分は DB のトリガーが消している）。
  */
 export function isCandidateNotesEnabled(): boolean {
   const v = process.env.CANDIDATE_NOTES_ENABLED;
@@ -26,16 +27,34 @@ const fail = (status: number, error: string): Result<never> => ({ ok: false, sta
 export type CandidateNote = { id: string; body: string; createdAt: string; authorId: string | null; authorName: string | null };
 export type CandidateTracking = { stage: CandidateStage | null; ownerId: string | null; ownerName: string | null; updatedAt: string | null };
 
-async function visibleToCompany(companyId: string, candidateOwUserId: string): Promise<boolean> {
+/**
+ * ★書ける相手（2026-10-10 / 柴さんの指示）。次のどれかに当てはまる人:
+ *   ① 候補者検索で見られる人（`can_send_scout()`）
+ *   ② 自社に応募した人（ow_job_applications。求人がこの会社のもの）か、面談申込をした人（ow_casual_meetings）
+ *   ③ 自社と会話が開いている人（企業との会話。声かけ・提案などから）
+ * ⚠️★求職者がこの企業をブロックしていたら、どれに当てはまっても書けない（ブロックした時点で
+ *    メモ・担当・状態は DB のトリガーが消している。`purge_candidate_notes_on_block`）。
+ * ⚠️ どれにも当てはまらなくなった人（転職意欲を変えた・グループ会社に入った 等）は、メモは読めるが書けない。
+ * 判定できなかったら false（書かせない）。
+ */
+export async function canWriteCandidateNote(companyId: string, candidateOwUserId: string): Promise<boolean> {
   const db = createAdminClient();
   const { data: u, error } = await db.from("ow_users").select("auth_id").eq("id", candidateOwUserId).maybeSingle();
   if (error || !u?.auth_id) { if (error) console.error("[candidateNotes] user:", error.message); return false; }
-  const { data, error: rErr } = await db.rpc("can_send_scout", { p_company_id: companyId, p_candidate_id: u.auth_id as string });
-  if (rErr) { console.error("[candidateNotes] can_send_scout:", rErr.message); return false; }
-  return data === true;
+  const authId = u.auth_id as string;
+  const [blk, vis, apps, meet, conv] = await Promise.all([
+    db.from("ow_scout_blocks").select("id", { count: "exact", head: true }).eq("candidate_id", authId).eq("company_id", companyId),
+    db.rpc("can_send_scout", { p_company_id: companyId, p_candidate_id: authId }),
+    db.from("ow_job_applications").select("id, ow_jobs!inner(company_id)", { count: "exact", head: true }).eq("user_id", candidateOwUserId).eq("ow_jobs.company_id", companyId),
+    db.from("ow_casual_meetings").select("id", { count: "exact", head: true }).eq("user_id", candidateOwUserId).eq("company_id", companyId),
+    db.from("ow_conversations").select("id", { count: "exact", head: true }).eq("kind", "company").eq("company_id", companyId).eq("candidate_user_id", candidateOwUserId),
+  ]);
+  for (const r of [blk, vis, apps, meet, conv]) if (r.error) { console.error("[candidateNotes] canWrite:", r.error.message); return false; }
+  if ((blk.count ?? 0) > 0) return false;
+  return vis.data === true || (apps.count ?? 0) > 0 || (meet.count ?? 0) > 0 || (conv.count ?? 0) > 0;
 }
 
-export async function getCandidateNotes(companyId: string, candidateOwUserId: string): Promise<{ notes: CandidateNote[]; tracking: CandidateTracking } | null> {
+export async function getCandidateNotes(companyId: string, candidateOwUserId: string): Promise<{ notes: CandidateNote[]; tracking: CandidateTracking; writable?: boolean } | null> {
   const db = createAdminClient();
   const [{ data: notes, error: nErr }, { data: tr, error: tErr }] = await Promise.all([
     db.from("ow_candidate_notes").select("id, body, created_at, author_id").eq("company_id", companyId)
@@ -63,7 +82,7 @@ export async function addCandidateNote(companyId: string, candidateOwUserId: str
   const body = typeof raw === "string" ? raw.trim() : "";
   if (!body) return fail(400, "メモを入れてください");
   if (body.length > CANDIDATE_NOTE_MAX) return fail(400, `メモは${CANDIDATE_NOTE_MAX}字までです`);
-  if (!(await visibleToCompany(companyId, candidateOwUserId))) return fail(404, "この方にはメモを残せません");
+  if (!(await canWriteCandidateNote(companyId, candidateOwUserId))) return fail(403, "この方には、いまはメモを残せません");
   const { data, error } = await createAdminClient().from("ow_candidate_notes")
     .insert({ company_id: companyId, candidate_user_id: candidateOwUserId, author_id: authorOwUserId, body }).select("id").single();
   if (error || !data) { console.error("[candidateNotes] add:", error?.message); return fail(500, "保存できませんでした"); }
@@ -84,7 +103,7 @@ export async function deleteCandidateNote(companyId: string, candidateOwUserId: 
 export async function setCandidateTracking(companyId: string, candidateOwUserId: string, stageRaw: unknown, ownerRaw: unknown): Promise<Result<CandidateTracking>> {
   const stage = stageRaw === null || stageRaw === "" ? null : stageRaw;
   if (stage !== null && !isCandidateStage(stage)) return fail(400, "状態の値が正しくありません");
-  if (!(await visibleToCompany(companyId, candidateOwUserId))) return fail(404, "この方の状態は変えられません");
+  if (!(await canWriteCandidateNote(companyId, candidateOwUserId))) return fail(403, "この方の状態は、いまは変えられません");
   const db = createAdminClient();
   let ownerId: unknown = ownerRaw === null || ownerRaw === "" ? null : ownerRaw;
   if (ownerRaw === undefined) {
