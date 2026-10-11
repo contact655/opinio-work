@@ -80,7 +80,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
             `/biz/proposals/page.tsx` の注記）。同じグループに置くのは
             「候補者と出会う入口」だからで、同じ機能だからではない。
          ★バッジは「会うか決める提案」の数（2026-10-11 から。確認してから の設定のときだけ出る。`lib/business/navBadges.ts`）。 */
-      { href: "/biz/proposals", label: "提案", icon: <Sparkles size={16} strokeWidth={2.2} />, badge: "proposals" },
+      { href: "/biz/proposals", label: "紹介", icon: <Sparkles size={16} strokeWidth={2.2} />, badge: "proposals" },
       /* ⚠️★「スカウト履歴」は 2026-10-08 にスカウトごと廃止した。**戻さないこと。**
             旧 URL `/biz/scouts` は middleware が `/biz/proposals` へ転送する。 */
     ],

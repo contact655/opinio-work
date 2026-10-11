@@ -28,6 +28,13 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
     setNotes(json.notes); setTracking(json.tracking); setWritable(json.writable !== false);
   }, [base]);
   useEffect(() => { void load(); }, [load]);
+  /* ★プレビューの「すべて見る」（/u/[id]#candidate-notes）で来たら、この欄まで送る（2026-10-11）。
+        ⚠️ ブラウザ任せだと、描画のあとで先頭に戻されて届かない（実測）。⚠️ rAF にしない（描画されていないと動かない） */
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hash !== "#candidate-notes") return;
+    const t = window.setTimeout(() => document.getElementById("candidate-notes")?.scrollIntoView({ block: "start" }), 300);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const run = async (fn: () => Promise<Response>) => {
     setBusy(true); setError(null);

@@ -41,7 +41,7 @@ type Stats = { introduced: number; raised: number; meetings: number; cutoff: str
 type EvidenceMaterialsView = { path: number; motive: number; talkable: number; jobs: number; roles: number } | null;
 
 const TABS: { key: "arrived" | "ended"; label: string }[] = [
-  { key: "arrived", label: "届いた方" },
+  { key: "arrived", label: "話を聞きたい方" },
   { key: "ended", label: "終了" },
 ];
 
@@ -49,17 +49,21 @@ function fmtMd(iso: string): string {
   return new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "long", day: "numeric" }).format(new Date(iso));
 }
 
-/** ★状態の一言（灰色の文字）。⚠️ hidden（いま見せられない）はサーバーが行ごと落とすので来ない */
+/**
+ * ★状態の一言（灰色の文字）。⚠️ 「OPINIOからの紹介で、」は付けない（2026-10-11 / 柴さんの指示）。
+ * ⚠️ hidden（いま見せられない）はサーバーが行ごと落とすので来ない。
+ */
 function statusLine(p: BizProposalView): string {
+  const want = "貴社の話を聞いてみたいそうです";
   switch (p.phase) {
-    case "introduced": return "メッセージでやり取りできます";
-    case "connecting": return "メッセージを準備しています";
+    case "introduced": return `${want}・メッセージが始まりました`;
+    case "connecting": return `${want}・メッセージを準備しています`;
     case "company_review":
-      return p.daysLeft == null ? "会うかどうかをお選びください"
-        : p.daysLeft <= 1 ? "会うかどうかをお選びください（今日まで）" : `会うかどうかをお選びください（あと${p.daysLeft}日）`;
+      return p.daysLeft == null ? `${want}・会うかどうかをお選びください`
+        : p.daysLeft <= 1 ? `${want}・会うかどうかをお選びください（今日まで）` : `${want}・会うかどうかをお選びください（あと${p.daysLeft}日）`;
     case "company_declined": return "今回は見送りました";
     case "company_expired": return "期限までにお返事がなかったため終了しました";
-    default: return "この提案は終了しました";
+    default: return "このご紹介は終了しました";
   }
 }
 
@@ -158,10 +162,10 @@ export default function BizProposalsClient({
       `}</style>
 
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>提案</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>OPINIOからの紹介</h1>
         {/* ⚠️★求職者側（`ProposalsClient`）と同じ事実を向きだけ変えて書いている。片方だけ直さないこと */}
         <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "6px 0 0" }}>
-          OPINIO が、貴社の求人や部門と経歴が合う方に、貴社をご紹介します。「話を聞いてみたい」と答えた方だけが、ここに届きます。送れる数の枠は使いません。
+          OPINIO が、貴社の求人と経歴が合う方に貴社をご紹介し、『話を聞いてみたい』と答えた方だけをここにお届けします。貴社から送る必要はなく、送れる数の枠も使いません。
         </p>
       </div>
 
@@ -175,11 +179,11 @@ export default function BizProposalsClient({
         <div className="bpz-main">
           {loadFailed ? (
             <p style={{ fontSize: 14, lineHeight: 1.9, color: "#B3261E", margin: 0 }}>
-              提案の読み込みに失敗しました。<strong>「0件」という意味ではありません。</strong>
+              紹介の読み込みに失敗しました。<strong>「0件」という意味ではありません。</strong>
             </p>
           ) : (
             <>
-              <div role="tablist" aria-label="提案の区分" className="bpz-tabs">
+              <div role="tablist" aria-label="紹介の区分" className="bpz-tabs">
                 {TABS.map((t) => (
                   <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} data-state={tab === t.key ? "active" : "inactive"}
                     className="bpz-tab btn-fixed-size" onClick={() => setTab(t.key)}>
@@ -195,12 +199,12 @@ export default function BizProposalsClient({
                       <p style={{ margin: "0 0 8px", fontWeight: 600 }}>まだ届いた方はいません。</p>
                       {/* ⚠️「右の」「下の」を付けない（375px では材料が下に出るため） */}
                       <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
-                        「提案の材料」が増えるほど、合う方に貴社をご紹介しやすくなります。{" "}
-                        <Link href="/biz/help/proposals" style={{ color: "var(--royal)", fontWeight: 600 }}>提案の根拠になるもの</Link>
+                        登録が増えるほど、合う方に貴社をご紹介しやすくなります。{" "}
+                        <Link href="/biz/help/proposals" style={{ color: "var(--royal)", fontWeight: 600 }}>紹介の決め方</Link>
                       </p>
                     </>
                   ) : (
-                    <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>終了した提案はありません。</p>
+                    <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>終了したご紹介はありません。</p>
                   )}
                 </div>
               ) : visible.map((p) => (
@@ -216,13 +220,13 @@ export default function BizProposalsClient({
         </div>
 
         <aside className="bpz-side">
-          {/* ① 届いた方をどう受けるか */}
+          {/* ① 話を聞きたい方が届いたら */}
           <section data-state="proposal-mode" style={SIDE_CARD}>
-            <h2 style={SIDE_H2}>届いた方をどう受けるか</h2>
+            <h2 style={SIDE_H2}>話を聞きたい方が届いたら</h2>
             {curMode === null ? (
               <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>設定を取得できませんでした。</p>
             ) : (
-              <div role="radiogroup" aria-label="届いた方をどう受けるか" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div role="radiogroup" aria-label="話を聞きたい方が届いたら" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {([
                   { v: "auto" as const, label: "すぐにメッセージを始める", rec: true, desc: "貴社の作業はありません。届いたらメールでお知らせします。" },
                   { v: "review" as const, label: "確認してから会うかを決める", rec: false, desc: `届いた方を見て「会う」か「今回は見送る」を選びます（${reviewDays}日以内）。` },
@@ -243,11 +247,10 @@ export default function BizProposalsClient({
             {modeMsg && <p role="status" style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>{modeMsg}</p>}
           </section>
 
-          {/* ② 今月の提案（人数だけ・毎朝更新） */}
+          {/* ② 今月の紹介（人数だけ・毎朝更新） */}
           <section data-state="proposal-stats" style={SIDE_CARD}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-              <h2 style={SIDE_H2}>今月の提案</h2>
-              <span style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>毎朝更新</span>
+              <h2 style={SIDE_H2}>今月の紹介<span style={{ fontSize: 11.5, fontWeight: 400, color: "var(--ink-mute)", marginLeft: 4 }}>（毎朝更新）</span></h2>
             </div>
             {([
               { k: "introduced", label: "ご紹介した方" },
@@ -262,10 +265,10 @@ export default function BizProposalsClient({
             {stats === null && <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>数を取得できませんでした（「—」は 0 という意味ではありません）。</p>}
           </section>
 
-          {/* ③ 提案の材料 */}
+          {/* ③ 紹介を増やすには */}
           <section data-state="evidence-materials" style={SIDE_CARD}>
-            <h2 style={SIDE_H2}>提案の材料</h2>
-            <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-mute)" }}>「提案の材料」が増えるほど、合う方に貴社をご紹介しやすくなります。</p>
+            <h2 style={SIDE_H2}>紹介を増やすには</h2>
+            <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-mute)" }}>登録が増えるほど、合う方に貴社をご紹介しやすくなります。</p>
             {/* ⚠️ 取得に失敗したら「—」。0 と出さない */}
             {([
               { key: "jobs", label: "公開中の求人", value: materials?.jobs, unit: "件", href: "/biz/jobs/new", action: "求人を登録する" },
@@ -284,17 +287,17 @@ export default function BizProposalsClient({
                 <Link href={m.href} style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{m.action} →</Link>
               </div>
             ))}
-            <Link href="/biz/help/proposals" data-state="materials-help" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "var(--royal)" }}>提案の根拠になるもの</Link>
+            <Link href="/biz/help/proposals" data-state="materials-help" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "var(--royal)" }}>紹介の決め方</Link>
             {materials === null && (
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>数を取得できませんでした（「—」は 0 という意味ではありません）。</p>
             )}
           </section>
 
-          {/* ④ 提案とメッセージの違い */}
+          {/* ④ 紹介とメッセージの違い */}
           <section style={{ ...SIDE_CARD, background: "var(--bg-tint, #f8f9fb)" }}>
-            <h2 style={{ ...SIDE_H2, marginBottom: 10 }}>提案とメッセージの違い</h2>
+            <h2 style={{ ...SIDE_H2, marginBottom: 10 }}>紹介とメッセージの違い</h2>
             <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10, fontSize: 13, lineHeight: 1.7 }}>
-              <div><dt style={{ fontWeight: 700 }}>提案</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>OPINIO が合う方に貴社をご紹介します。「話を聞いてみたい」と答えた方だけが届きます。枠は使いません。</dd></div>
+              <div><dt style={{ fontWeight: 700 }}>OPINIOからの紹介</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>OPINIO が合う方に貴社をご紹介します。「話を聞いてみたい」と答えた方だけが届きます。枠は使いません。</dd></div>
               <div><dt style={{ fontWeight: 700 }}>メッセージ</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>貴社から理由を添えて送ります。毎月10通まで。相手はそのまま返信できます。</dd></div>
             </dl>
             <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>候補者を探してメッセージを送る</Link>
@@ -330,7 +333,7 @@ function ProposalCard({ p, pending, open, onToggle, onMeet, onDecline }: {
           <strong style={{ fontSize: 16, color: ended ? "var(--ink-soft)" : "var(--ink)" }}>{c ? c.name : "候補者（いまはお名前を表示できません）"}</strong>
           {career && <div style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 2 }}>{career}</div>}
           <div data-state="proposal-status" style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 4 }}>
-            {fmtMd(p.raisedAt)}に「話を聞いてみたい」と回答 ・ {statusLine(p)}
+            {fmtMd(p.raisedAt)} ・ {statusLine(p)}
           </div>
         </div>
       </div>
@@ -372,7 +375,7 @@ function ProposalCard({ p, pending, open, onToggle, onMeet, onDecline }: {
       </div>
       {review && (
         <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>
-          「会う」を選ぶとメッセージが開きます。見送っても、相手には「この提案は終了しました」とだけ表示されます。
+          「会う」を選ぶとメッセージが開きます。見送っても、相手には「このご紹介は終了しました」とだけ表示されます。
         </p>
       )}
     </article>

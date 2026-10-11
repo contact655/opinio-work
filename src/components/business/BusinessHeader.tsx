@@ -31,7 +31,7 @@ const BUSINESS_TOP = "/business";
 const NAV_LINKS: { href: string; label: string }[] = [
   { href: `${BUSINESS_TOP}#people`,   label: "人で伝わること" },
   { href: `${BUSINESS_TOP}#onpage`,   label: "企業ページ" },
-  { href: `${BUSINESS_TOP}#proposal`, label: "提案のしくみ" },
+  { href: `${BUSINESS_TOP}#proposal`, label: "紹介のしくみ" },
   { href: "/business/pricing",        label: "料金" },
 ];
 

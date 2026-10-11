@@ -286,10 +286,10 @@ function EmptyGuide({ approachableCount, candidateCount = null, hasPublishedJob 
         <>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
             {/* ★「候補者は○名いるのに送れるのは0人」を分かるようにする（2026-10-11 / 柴さんの文言）。人数が取れなかったら前半を出さない */}
-            {candidateCount !== null && candidateCount > 0 ? `候補者は${candidateCount}名いますが、` : ""}メッセージを受け取る設定の方はまだいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「提案」に届きます。
+            {candidateCount !== null && candidateCount > 0 ? `候補者は${candidateCount}名いますが、` : ""}メッセージを受け取る設定の方はまだいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「紹介」に届きます。
           </p>
           <div className="apx-empty-actions">
-            <Link href="/biz/proposals" className="btn-fixed-size" style={BTN_PRIMARY}>提案を見る</Link>
+            <Link href="/biz/proposals" className="btn-fixed-size" style={BTN_PRIMARY}>紹介を見る</Link>
             {hasPublishedJob === false && <Link href="/biz/jobs/new" className="btn-fixed-size" style={BTN_WRAP_SECONDARY}>求人を公開する</Link>}
             <Link href="/biz/candidates" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", padding: "8px 4px" }}>候補者を探す</Link>
           </div>

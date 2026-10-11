@@ -256,7 +256,7 @@ export default function ProposalsClient({
                       <span style={{ color: "var(--ink-soft)" }}>今回は見送りました。</span>
                     ) : (
                       /* ⚠️★理由（企業が見送った・期限切れ等）は書かない */
-                      <span style={{ color: "var(--ink-soft)" }}>この提案は終了しました</span>
+                      <span style={{ color: "var(--ink-soft)" }}>このご紹介は終了しました</span>
                     )}
                     {p.note && (p.status === "waiting" || p.status === "introduced") && (
                       <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>

@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 /* ★タブの題（2026-09-21）。サイドバーの「提案」と同じ名前にする */
 export const metadata = {
-  title: { absolute: "提案 | OPINIO Business" },
+  title: { absolute: "OPINIOからの紹介 | OPINIO Business" },
 };
 
 /**

@@ -507,14 +507,14 @@ export function proposalRaisedCompanyTemplate(params: {
   viaOps?: boolean;
 }) {
   const name = greetingName(params.candidateName);
-  const who = name ? `${name}さん` : "提案をお届けした方";
+  const who = name ? `${name}さん` : "ご紹介した方";
   const auto = params.mode === "auto" && params.conversationId;
   return {
     to: params.to,
-    subject: opsSubject(`${who}が提案を見て「話を聞いてみたい」と答えました`, params.viaOps === true),
+    subject: opsSubject(`${who}が、貴社の話を聞いてみたいそうです（OPINIOからの紹介）`, params.viaOps === true),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">提案で届いた方がいます</h2>
-      <p style="margin:0 0 20px;color:#475569">${esc(who)}が、OPINIO からの提案を見て「話を聞いてみたい」と答えました。${
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">OPINIOからの紹介</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}が、OPINIO からの紹介を見て「話を聞いてみたい」と答えました。${
         auto ? "そのままメッセージでやり取りできます。" : "内容を見て、会うかどうかを決めてください（14日で終了します）。"
       }</p>
       <a href="${auto ? `https://opinio.jp/biz/messages/${encodeURIComponent(params.conversationId as string)}` : "https://opinio.jp/biz/proposals"}" style="${BTN}">${auto ? "メッセージを開く" : "提案を見る"} →</a>

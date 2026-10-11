@@ -1,7 +1,6 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { proposalDaysLeft } from "@/lib/evidence/proposalEnded";
 import { listCompanyProposalTodos } from "@/lib/evidence/companyProposals";
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { MEETING_FORMATS, formatMeetingDateTime } from "@/lib/constants/meetings";
@@ -144,12 +143,12 @@ export async function getTodayTodo(
   if (proposals) {
     counts.proposal = proposals.length;
     for (const p of proposals) {
-      const title = `${nameOf(p.candidateUserId)}さんが提案を見て「話を聞いてみたい」と答えました`;
+      const title = `${nameOf(p.candidateUserId)}さんが、貴社の話を聞いてみたいそうです`;
       if (p.kind === "open") {
-        items.push({ kind: "proposal", at: p.at, title, sub: [fmtMd(p.at), "まだ誰も会話を開いていません"].join(" ・ "), action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
+        items.push({ kind: "proposal", at: p.at, title, sub: `紹介・${fmtMd(p.at)}`, action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
       } else {
-        const left = p.companyRespondBy ? proposalDaysLeft(p.companyRespondBy) : null;
-        items.push({ kind: "proposal", at: p.at, title, sub: [fmtMd(p.at), left == null ? null : left <= 1 ? "今日までに会うか決めてください" : `あと${left}日で終了`].filter(Boolean).join(" ・ "), action: "会うか決める", href: "/biz/proposals" });
+        /* ★下の小さな文字は「紹介・日付」（2026-10-11 / 柴さんの指示）。締め切りは紹介の画面に出す */
+        items.push({ kind: "proposal", at: p.at, title, sub: `紹介・${fmtMd(p.at)}`, action: "会うか決める", href: "/biz/proposals" });
       }
     }
   }

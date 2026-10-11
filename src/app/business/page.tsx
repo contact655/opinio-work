@@ -199,7 +199,7 @@ export default async function ForCompaniesPage() {
           .lpv3-row-tag { font-size: 12px; font-weight: 700; color: var(--ink-mute); line-height: 1.7; }
           @media (min-width: 760px) { .lpv3-row-tag { text-align: right; } }
 
-          /* ── 提案のしくみ。900px 未満で縦積み ── */
+          /* ── 紹介のしくみ。900px 未満で縦積み ── */
           .lpv3-proposal { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
           @media (min-width: 900px) { .lpv3-proposal { grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr); gap: 52px; } }
 
@@ -315,7 +315,7 @@ export default async function ForCompaniesPage() {
                      「手が／かり」に割れる（2026-09-17 に全幅を掃いて確認。割れるのはここ1語だけ）。
                      見出しと同じ手で塊にして守る。**span を外さないこと。** */}
               集まった経歴は、次の一人を見つける<span style={{ display: "inline-block" }}>手がかり</span>にもなります。
-              その席で力を発揮している人と、似た道を歩いてきた人を、OPINIOが御社に提案していきます。
+              その席で力を発揮している人と、似た道を歩いてきた人を、OPINIOが御社にご紹介していきます。
             </p>
 
             <div className="lpv3-proposal">

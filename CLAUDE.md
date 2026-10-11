@@ -3227,6 +3227,10 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 - 企業に出す数字は**人数だけ・1日1回**（`companyProposalStats`。今日の0時より前だけ数える＝「毎朝更新」）
 - 企業へのメールは**答えた時だけ**（`notifyCompanyProposalRaised`）。提案は有効な担当者がいる企業にしか作らないので宛先は担当者に届く
 - ⚠️ 下の `introduceIfMutual()` / `MUTUAL_RESPONSES` / `proposalStage()` は**削除した**（名前が残っている記述は経緯）
+- ★★**企業側では「提案」と言わない。「紹介」「OPINIOからの紹介」**（2026-10-11 / 柴さんの指示。人事の方に「提案」が通じないため）。
+  画面・メール・ヘルプ・/business が対象。**仕組み・URL（/biz/proposals）・DB・コード内の名前は変えていない。**
+  `node scripts/check-biz-wording.mjs` が0件を確かめる（コメントと「提案営業」は数えない。`--self-test` あり）。
+  求職者側の終了表示も「このご紹介は終了しました」
 
 
 ⚠️★**mutual の判定と紹介は [introduce.ts](src/lib/evidence/introduce.ts) の

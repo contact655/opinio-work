@@ -30,6 +30,7 @@ export function ApproachButton({
   compact = false,
   hideSender = false,
   hideUnavailable = false,
+  hidePendingNotice = false,
 }: {
   candidateUserId: string;
   /** ★この企業の誰かが180日以内に送っていれば、その記録。あれば送れない */
@@ -42,6 +43,9 @@ export function ApproachButton({
   hideSender?: boolean;
   /** ★送れないときに何も出さない（候補者検索のカード・プレビュー。2026-10-11）。/u/[id] は一文を出す */
   hideUnavailable?: boolean;
+  /** ★返事待ちのとき、黄色い注意の帯と「返信があると…」の一文を出さず、ボタン2つだけにする
+   *  （候補者検索のプレビュー。2026-10-11 / 柴さんの指示）。/u/[id] は帯を残す */
+  hidePendingNotice?: boolean;
 }) {
   if (sent) {
     const n = approachResendNotice(sent);
@@ -67,9 +71,9 @@ export function ApproachButton({
       const md = formatJaMonthDay(sent.sentAt);
       return (
         <span data-state="approach-sent" data-approach-state="pending" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", minWidth: 0 }}>
-          <span data-state="approach-pending-band" role="status" style={{ display: "block", padding: "10px 12px", borderRadius: 8, background: "var(--warm-soft)", color: "var(--warm-ink)", fontSize: 12.5, fontWeight: 600, lineHeight: 1.7, whiteSpace: "normal" }}>
+          {!hidePendingNotice && <span data-state="approach-pending-band" role="status" style={{ display: "block", padding: "10px 12px", borderRadius: 8, background: "var(--warm-soft)", color: "var(--warm-ink)", fontSize: 12.5, fontWeight: 600, lineHeight: 1.7, whiteSpace: "normal" }}>
             {who}が{md}にメッセージを送っています。返信を待っています（あと{approachDaysLeft(sent.sentAt)}日）。返事が来る前に、続けて送ることはできません。
-          </span>
+          </span>}
           <span style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button type="button" disabled data-state="approach-pending-button" className="tap-min-h"
               style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--line)", color: "var(--ink-mute)", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "default", whiteSpace: "nowrap" }}>
@@ -77,7 +81,7 @@ export function ApproachButton({
             </button>
             {actionLink}
           </span>
-          <span style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>返信があると、ここに「メッセージを開く」が出ます。</span>
+          {!hidePendingNotice && <span style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>返信があると、ここに「メッセージを開く」が出ます。</span>}
         </span>
       );
     }

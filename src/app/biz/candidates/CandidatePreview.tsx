@@ -136,7 +136,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange }: { userI
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
         {/* ⚠️ 送れる・送り済みのときだけボタン（送り済みは状態の表示になる）。受け取っていない人には出さない */}
         {c.approach && (
-          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} hideSender hideUnavailable />
+          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} hideSender hideUnavailable hidePendingNotice />
         )}
         <Link href={`/u/${c.id}`}
           style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>

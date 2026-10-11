@@ -976,9 +976,9 @@ export default function CandidatesClient({
               {zeroByApproachOnly ? (
                 <div data-state="approach-only-empty">
                   <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 auto 12px", maxWidth: 460, padding: "0 16px" }}>
-                    企業からのメッセージを受け取る設定の方は、まだいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「提案」に届きます。
+                    企業からのメッセージを受け取る設定の方は、まだいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「紹介」に届きます。
                   </p>
-                  <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>提案を見る →</a>
+                  <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>紹介を見る →</a>
                 </div>
               ) : (<>
               <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>条件に合う候補者が見つかりませんでした</p>
@@ -1048,7 +1048,7 @@ export default function CandidatesClient({
                                  （年収レンジ・退職金・SO/RSU）。状態のバッジには使わない。 */}
                           {/* ★接点の数（段1）。⚠️ 0件・取れなかったときは出さない */}
                           {c.touchpoints && c.touchpoints.length > 0 && (
-                            <span data-state="touchpoint-count" style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>接点 {c.touchpoints.length}件</span>
+                            <span data-state="touchpoint-count" style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>合うところ {c.touchpoints.length}</span>
                           )}
                           {c.isActivelyLooking && (
                             /* ⚠️ 状態は色付きのバッジにせず灰色の小さな文字（2026-10-11 / モックの共通ルール） */

@@ -9,7 +9,7 @@ import type { CompanyProposalStats } from "@/lib/evidence/companyProposals";
  */
 export function ProposalTab({ stats, periodLabel }: { stats: CompanyProposalStats | null; periodLabel: string }) {
   if (!stats) {
-    return <p style={{ fontSize: 13, color: "var(--error)" }}>提案の数字を取得できませんでした（0件という意味ではありません）。</p>;
+    return <p style={{ fontSize: 13, color: "var(--error)" }}>紹介の数字を取得できませんでした（0件という意味ではありません）。</p>;
   }
   const pct = (a: number, b: number) => (b === 0 ? null : Math.round((a / b) * 100));
   const steps = [
@@ -25,8 +25,8 @@ export function ProposalTab({ stats, periodLabel }: { stats: CompanyProposalStat
       </p>
       {stats.introduced === 0 ? (
         <div data-state="proposal-analytics-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-          この期間にご紹介した方はまだいません。「提案の材料」が増えるほど、合う方に貴社をご紹介しやすくなります。
-          <Link href="/biz/proposals" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>提案を見る →</Link>
+          この期間にご紹介した方はまだいません。登録が増えるほど、合う方に貴社をご紹介しやすくなります。
+          <Link href="/biz/proposals" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>OPINIOからの紹介を見る →</Link>
         </div>
       ) : (
         <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>

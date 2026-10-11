@@ -87,7 +87,7 @@ export async function saveCandidateResponse(input: {
   const visible = isVisiblePair(await visiblePairs([pair]), pair);
   if (proposalPhase(phaseInputOf(cur), visible) !== "candidate_pending") {
     /* ⚠️ 終了の理由は返さない */
-    return { ok: false, status: 409, error: "この提案は終了しました" };
+    return { ok: false, status: 409, error: "このご紹介は終了しました" };
   }
 
   const now = new Date();

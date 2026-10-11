@@ -4,7 +4,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 
 export const metadata = {
-  title: { absolute: "提案の根拠になるもの | OPINIO Business" },
+  title: { absolute: "OPINIOからの紹介のしくみ | OPINIO Business" },
 };
 
 /**
@@ -20,8 +20,8 @@ export default async function ProposalHelpPage() {
       tenantLogoLetter={ctx.logoLetter} memberships={ctx.allCompanies} currentTenantId={ctx.tenantId}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0, maxWidth: 880 }}>
         <div>
-          <Link href="/biz/proposals" style={{ fontSize: 13, color: "var(--ink-soft)", textDecoration: "none" }}>← 提案に戻る</Link>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "8px 0 0" }}>提案の根拠になるもの</h1>
+          <Link href="/biz/proposals" style={{ fontSize: 13, color: "var(--ink-soft)", textDecoration: "none" }}>← OPINIOからの紹介に戻る</Link>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "8px 0 0" }}>OPINIOからの紹介のしくみ</h1>
           <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)", margin: "6px 0 0" }}>
             OPINIO は、根拠が2つ以上そろった方にだけ、貴社をご紹介します。根拠になるのは次のものです。
           </p>
@@ -33,11 +33,11 @@ export default async function ProposalHelpPage() {
             <li style={li}>話を聞ける方の人数</li>
             <li style={li}>貴社の求人や部門の職種と同じ経験</li>
             <li style={li}>ご本人の希望条件との一致</li>
-            <li style={li}>貴社の顧客の業界や事業領域での経験（業界の経験だけでは提案になりません）</li>
+            <li style={li}>貴社の顧客の業界や事業領域での経験（業界の経験だけではご紹介しません）</li>
           </ul>
         </section>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-          求人・職種を設定した部門・社員の回答などの「提案の材料」が増えるほど、合う方に貴社をご紹介しやすくなります。ご紹介した方が「話を聞いてみたい」と答えると、「提案」に届きます。
+          求人・職種を設定した部門・社員の回答などの登録が増えるほど、合う方に貴社をご紹介しやすくなります。ご紹介した方が「話を聞いてみたい」と答えると、「紹介」に届きます。
         </p>
       </div>
     </BusinessLayout>
