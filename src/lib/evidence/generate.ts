@@ -227,7 +227,7 @@ export async function generateProposalsForCandidate(
   }
   /* ★進行中 ＝ 求職者の返事待ち／企業の返事待ち（review）／会話を作る途中／会話ができた。
         ⚠️ 判定は `proposalPhase()` の1か所（2026-10-11）。条件を書き写さないこと */
-  const ONGOING_PHASES = new Set<ProposalPhase>(["candidate_pending", "company_review", "connecting", "introduced"]);
+  const ONGOING_PHASES = new Set<ProposalPhase>(["candidate_pending", "connecting", "introduced"]);
   const ongoingCompanies = new Set(
     (existing ?? []).filter((r) => ONGOING_PHASES.has(proposalPhase(phaseInputOf(r), true))).map((r) => r.company_id as string),
   );

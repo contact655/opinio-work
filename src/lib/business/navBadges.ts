@@ -1,5 +1,5 @@
 import { unreadConversationIds } from "@/lib/conversations/unread";
-import { countCompanyProposalReviews, unseenProposalConversationIds } from "@/lib/evidence/companyProposals";
+import { unseenProposalConversationIds } from "@/lib/evidence/companyProposals";
 import { unseenRepliedConversationIds } from "@/lib/approaches/server";
 
 /**
@@ -21,17 +21,16 @@ export async function getBizNavBadges(params: {
   owUserId: string;
   companyId: string;
 }): Promise<BizNavBadges> {
-  const [unread, proposals, replied, fromProposals] = await Promise.all([
+  const [unread, replied, fromProposals] = await Promise.all([
     unreadConversationIds(params.owUserId, { companyId: params.companyId }),
-    countCompanyProposalReviews(params.companyId),
     unseenRepliedConversationIds(params.companyId),
     /* ★提案から始まった会話は、企業の担当者がまだ参加者になっていない（参加者の未読では数えられない）ので別に数える */
     unseenProposalConversationIds(params.companyId),
   ]);
   return {
     messages: new Set([...Array.from(unread), ...Array.from(replied), ...Array.from(fromProposals)]).size,
-    /* ⚠️ 失敗したら 0（ログは共通関数が出す） */
-    proposals: proposals ?? 0,
+    /* ★2026-10-11 から企業が答える紹介は無い（届いた方はその場で会話になり、上の messages で数える）。常に 0 */
+    proposals: 0,
   };
 }
 

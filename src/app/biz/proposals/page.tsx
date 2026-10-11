@@ -3,13 +3,11 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import BizProposalsClient, { type BizProposalView } from "./BizProposalsClient";
-import { proposalDaysLeft } from "@/lib/evidence/proposalEnded";
 import {
-  listCompanyProposals, getCompanyProposalMode, companyProposalStats, startOfMonthJstIso,
+  listCompanyProposals, companyProposalStats, startOfMonthJstIso,
 } from "@/lib/evidence/companyProposals";
 import { getEvidenceMaterials } from "@/lib/evidence/materials";
 import { calcTotalExperience } from "@/lib/profile/tenure";
-import { PROPOSAL_COMPANY_RESPONSE_DAYS } from "@/lib/constants/proposalResponses";
 
 export const dynamic = "force-dynamic";
 
@@ -36,9 +34,9 @@ export default async function BizProposalsPage() {
   /* ⚠️ 他の /biz と同じ形にする。`null` を返すと**真っ白な画面**になる */
   if (!ctx) return <BizNoTenantPage />;
 
-  const [rows, mode, stats, materials] = await Promise.all([
+  /* ⚠️ 企業側の設定（すぐにメッセージ／確認してから）は 2026-10-11 に廃止した。読まない */
+  const [rows, stats, materials] = await Promise.all([
     listCompanyProposals(ctx.tenantId),
-    getCompanyProposalMode(ctx.tenantId),
     companyProposalStats(ctx.tenantId, startOfMonthJstIso()),
     getEvidenceMaterials(ctx.tenantId),
   ]);
@@ -103,7 +101,6 @@ export default async function BizProposalsPage() {
     raisedAt: r.raisedAt,
     /* ⚠️ 会話のリンクは会話ができた段だけ */
     conversationId: r.phase === "introduced" ? r.conversationId : null,
-    daysLeft: r.phase === "company_review" && r.companyRespondBy ? proposalDaysLeft(r.companyRespondBy) : null,
   }));
 
   /* ⚠️★`BusinessLayout` で包む。包まないとナビが出ず、開いた人が戻れない */
@@ -120,10 +117,7 @@ export default async function BizProposalsPage() {
         proposals={proposals}
         loadFailed={rows === null}
         materials={materials}
-        mode={mode}
-        canEditMode={ctx.currentPermission === "admin"}
         stats={stats}
-        reviewDays={PROPOSAL_COMPANY_RESPONSE_DAYS}
       />
     </BusinessLayout>
   );

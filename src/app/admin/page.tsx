@@ -188,13 +188,13 @@ async function getStats() {
      ⚠️★**両側とも答え終わっているので、もう誰も押さない。** 運営が
         `/admin/proposals` の「再試行」を押さないと**永久に救われない。**
      ⚠️ 述語は `proposalShouldConnect()`（proposalResponses.ts）と同じ:
-        求職者が「話を聞いてみたい」かつ（自動で届ける設定 か 企業が「会う」）。
+        求職者が「話を聞いてみたい」かつ 以前に企業が見送ったものでない（2026-10-11 に企業側の設定をなくした）。
      ⚠️ 失敗を 0 に倒さない（参加依頼・在籍報告と同じ理由）。 */
   const stuckIntros = await admin
     .from("ow_proposals")
     .select("id", { count: "exact", head: true })
     .eq("candidate_response", "interested")
-    .or("delivery_mode.eq.auto,company_response.eq.want_to_meet")
+    .or("company_response.is.null,company_response.eq.want_to_meet")
     .is("introduced_at", null);
   if (stuckIntros.error) {
     console.error("[admin] 未紹介の提案の取得に失敗:", stuckIntros.error.message);

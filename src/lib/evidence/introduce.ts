@@ -18,8 +18,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { proposalIntroLine, proposalShouldConnect } from "@/lib/constants/proposalResponses";
-import { notifyIntroduction, notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
-import { emailCandidateCompanyMessage } from "@/lib/notify/companyMessageEmail";
+import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
 
 export type IntroduceOutcome =
   | { introduced: false; reason: "not_ready" | "already" | "failed" }
@@ -27,16 +26,17 @@ export type IntroduceOutcome =
 
 /**
  * @param db ★admin クライアント（service_role）
- * @param opts.by 誰の操作で作ったか。`company`（review で会う）なら求職者に知らせる。`candidate`（auto）なら企業にメールで知らせる
+ * @param opts.by 誰の操作で作ったか。`candidate`（求職者が答えた）・`ops`（運営の再試行）。どちらも企業にメールで知らせる。
+ *   ⚠️ 2026-10-11 に `company`（企業が「会う」と答えた）をなくした。企業は答えない
  */
 export async function introduceProposal(
   db: SupabaseClient,
   proposalId: string,
-  opts: { by: "candidate" | "company" | "ops" },
+  opts: { by: "candidate" | "ops" },
 ): Promise<IntroduceOutcome> {
   const { data: row, error } = await db
     .from("ow_proposals")
-    .select("candidate_user_id, company_id, candidate_response, company_response, delivery_mode, introduced_at, candidate_note")
+    .select("candidate_user_id, company_id, candidate_response, company_response, introduced_at, candidate_note")
     .eq("id", proposalId)
     .maybeSingle();
   if (error || !row) {
@@ -47,7 +47,6 @@ export async function introduceProposal(
   if (!proposalShouldConnect({
     candidateResponse: (row.candidate_response as string | null) ?? null,
     companyResponse: (row.company_response as string | null) ?? null,
-    deliveryMode: (row.delivery_mode as string | null) ?? null,
   })) return { introduced: false, reason: "not_ready" };
 
   const candidateUserId = row.candidate_user_id as string;
@@ -118,14 +117,8 @@ export async function introduceProposal(
   }
 
   /* ④ 知らせる。⚠️ 記録を書いたあと（二重に出さない） */
-  if (opts.by === "candidate" || opts.by === "ops") {
-    await notifyCompanyProposalRaised({ companyId, candidateUserId, mode: "auto", conversationId });
-  }
-  if (opts.by === "company" || opts.by === "ops") {
-    await notifyIntroduction({ proposalId, candidateUserId, companyId, conversationId });
-    /* ★企業が「会う」と答えたことをメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
-    await emailCandidateCompanyMessage({ kind: "introduction", candidateOwUserId: candidateUserId, companyId, conversationId, source: `introduce:${opts.by}` });
-  }
+  await notifyCompanyProposalRaised({ companyId, candidateUserId, mode: "auto", conversationId });
+  /* ⚠️ 求職者への「〇〇から会いたいと返事が届きました」（ベル・メール）は 2026-10-11 に外した（企業が答えないため） */
 
   console.log(`[evidence/introduce] 会話を作った proposal=${proposalId} conversation=${conversationId} by=${opts.by}`);
   return { introduced: true, conversationId };

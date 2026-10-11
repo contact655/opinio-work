@@ -37,7 +37,7 @@ export default async function ProposalHelpPage() {
           </ul>
         </section>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-          求人・職種を設定した部門・社員の回答などの登録が増えるほど、合う方に貴社をご紹介しやすくなります。ご紹介した方が「話を聞いてみたい」と答えると、「紹介」に届きます。
+          求人・職種を設定した部門・社員の回答などの登録が増えるほど、合う方に貴社をご紹介しやすくなります。ご紹介した方が「話を聞いてみたい」と答えると、その場でメッセージでやり取りできるようになり、メールでお知らせします（貴社の作業はありません）。
         </p>
       </div>
     </BusinessLayout>

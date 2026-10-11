@@ -55,11 +55,10 @@ export async function companyConversationAllowed(
       .eq("user_id", candidateOwUserId).eq("company_id", companyId),
     db.from("ow_proposals").select("id", { count: "exact", head: true })
       .eq("candidate_user_id", candidateOwUserId).eq("company_id", companyId)
-      /* ★2026-10-11: 求職者が「話を聞いてみたい」と答え、企業が自動（auto）か「会う」を選んだもの。
-            ⚠️ 条件は `proposalShouldConnect()`（proposalResponses.ts）と同じ。
-            企業が見送れるのは review だけなので、auto と declined は同時に立たない */
+      /* ★求職者が「話を聞いてみたい」と答えたもの（以前に企業が見送ったものを除く）。2026-10-11 に企業側の設定をなくした。
+            ⚠️ 条件は `proposalShouldConnect()`（proposalResponses.ts）と同じ */
       .eq("candidate_response", "interested")
-      .or("delivery_mode.eq.auto,company_response.eq.want_to_meet"),
+      .or("company_response.is.null,company_response.eq.want_to_meet"),
     /* ★企業からの声かけを求職者が承認した（2026-10-09）。⚠️ 見送った・未回答は理由にならない */
     db.from("ow_company_approaches").select("id", { count: "exact", head: true })
       .eq("candidate_user_id", candidateOwUserId).eq("company_id", companyId)

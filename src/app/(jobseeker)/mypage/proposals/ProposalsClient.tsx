@@ -19,13 +19,11 @@ export type ProposalView = {
   counter: CounterView[];
   /**
    * ★この提案がいまどうなっているか（`proposalPhase()` から作った表示用の区分）。
-   *   pending … 答えられる ／ waiting … 話を聞いてみたいと答え、企業の返事を待っている ／
+   *   pending … 答えられる ／ waiting … 話を聞いてみたいと答え、メッセージを準備している（作成に失敗し、運営が救う間） ／
    *   introduced … メッセージが開いた ／ declined … 自分が見送った ／ ended … 終了した
-   * ⚠️★ended の理由（企業が見送った・14日返事が無い・30日たった等）は**渡していない**。画面にも出さない
+   * ⚠️★ended の理由（以前に企業が見送った・30日たった等）は**渡していない**。画面にも出さない
    */
   status: "pending" | "waiting" | "introduced" | "declined" | "ended";
-  /** ★企業が「確認してから」（B）の設定か。押す直前の説明を変えるだけ。未回答のときだけ意味を持つ */
-  companyReviews: boolean;
   jobTitle: string | null;
   /** 求人ページへのリンク。掲載中でないときは null */
   jobHref: string | null;
@@ -208,9 +206,8 @@ export default function ProposalsClient({
 
                     {/* ★★押す直前に置く。⚠️ 画面の先頭の告知は、提案が増えると押すときには視界から外れている */}
                     <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, margin: "8px 0 0" }}>
-                      {p.companyReviews
-                        ? <>押すと、{p.companyName}にあなたのプロフィールとひとことが届きます。{p.companyName}が「会う」と答えると、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。</>
-                        : <>押すと、{p.companyName}にあなたのプロフィールとひとことが届き、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。</>}
+                      {/* ★説明は1種類（2026-10-11 に企業側の「確認してから」をなくした）。⚠️ 企業ごとに変えないこと */}
+                      押すと、{p.companyName}にあなたのプロフィールとひとことが届き、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。
                     </p>
 
                     <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -251,7 +248,7 @@ export default function ProposalsClient({
                         )}
                       </div>
                     ) : p.status === "waiting" ? (
-                      <span>「話を聞いてみたい」と答えました。{p.companyName}からの返事をお待ちください。</span>
+                      <span>「話を聞いてみたい」と答えました。メッセージを準備しています。</span>
                     ) : p.status === "declined" ? (
                       <span style={{ color: "var(--ink-soft)" }}>今回は見送りました。</span>
                     ) : (

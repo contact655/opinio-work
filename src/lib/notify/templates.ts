@@ -496,7 +496,6 @@ export function approachRepliedCompanyTemplate(params: {
 /**
  * ★企業からメッセージが届いたことを求職者に知らせる（2026-10-11 / 柴さんの指示）。
  *   approach … 企業からの1通目。**送った理由の冒頭だけ**を入れる
- *   introduction … 紹介で企業が「会う」と答えた（会話ができた）
  *   reply … 会話で企業から返信があった
  * ⚠️★**本文全体はメールに入れない。** 続きは OPINIO で読む形（理由の冒頭まで）。返信の中身は1文字も入れない。
  * ⚠️ 送るかどうか（設定・30分まとめ・実在の利用者への開始）は lib/notify/companyMessageEmail.ts が決める。ここは文面だけ。
@@ -507,7 +506,7 @@ export function companyMessageCandidateTemplate(params: {
   to: string;
   userName: string | null | undefined;
   companyName: string;
-  kind: "approach" | "introduction" | "reply";
+  kind: "approach" | "reply";
   /** approach のときだけ。⚠️ 全文を渡してよい（ここで冒頭だけに切る） */
   reason?: string | null;
   /** 開く先（https://opinio.jp/… の絶対 URL） */
@@ -516,13 +515,8 @@ export function companyMessageCandidateTemplate(params: {
   const co = params.companyName;
   const flat = (params.reason ?? "").replace(/\s+/g, " ").trim();
   const preview = flat.length > COMPANY_MESSAGE_REASON_PREVIEW_CHARS ? `${flat.slice(0, COMPANY_MESSAGE_REASON_PREVIEW_CHARS)}…` : flat;
-  const subject =
-    params.kind === "introduction" ? `${co}から「会いたい」と返事が届きました`
-    : `${co}からメッセージが届きました`;
-  const lead =
-    params.kind === "approach" ? `${co}から、理由を添えたメッセージが届きました。`
-    : params.kind === "introduction" ? `OPINIOからご紹介した${co}が「会う」と答えました。メッセージでやり取りを始められます。`
-    : `${co}から、新しいメッセージが届きました。`;
+  const subject = `${co}からメッセージが届きました`;
+  const lead = params.kind === "approach" ? `${co}から、理由を添えたメッセージが届きました。` : `${co}から、新しいメッセージが届きました。`;
   const button = params.kind === "approach" ? "OPINIOで読む →" : "メッセージを開く →";
   return {
     to: params.to,

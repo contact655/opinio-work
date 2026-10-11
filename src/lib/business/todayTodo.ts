@@ -14,7 +14,7 @@ import { canUse, type PlanType } from "@/lib/constants/plans";
  * |---|---|---|
  * | `approach` | 承認されたのに、まだ会話を開いていない声かけ（`company_seen_at` が null） | その会話 |
  * | `unreplied` | 最後のメッセージが求職者からの会話（＝こちらがまだ返していない） | その会話 |
- * | `proposal` | ★提案で届いた方（2026-10-11）。会話ができてまだ開いていない → その会話 ／ 会うか決める（確認してから の設定）→ /biz/proposals。`listCompanyProposalTodos` | |
+ * | `proposal` | ★提案で届いた方（2026-10-11）。会話ができてまだ開いていない → その会話（2026-10-11 に「会うか決める」をなくした）。`listCompanyProposalTodos` | |
  * | `meetingRequest` | まだ開いていない面談申込（`/biz/meetings` の未読と同じ条件） | /biz/meetings |
  *
  * | `savedSearch` | 新着が1名以上ある保存した条件（自分の条件＋共有。2026-10-10 / 候補者探し 段3） | その条件の新着 |
@@ -144,12 +144,8 @@ export async function getTodayTodo(
     counts.proposal = proposals.length;
     for (const p of proposals) {
       const title = `${nameOf(p.candidateUserId)}さんが、貴社の話を聞いてみたいそうです`;
-      if (p.kind === "open") {
-        items.push({ kind: "proposal", at: p.at, title, sub: `紹介・${fmtMd(p.at)}`, action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
-      } else {
-        /* ★下の小さな文字は「紹介・日付」（2026-10-11 / 柴さんの指示）。締め切りは紹介の画面に出す */
-        items.push({ kind: "proposal", at: p.at, title, sub: `紹介・${fmtMd(p.at)}`, action: "会うか決める", href: "/biz/proposals" });
-      }
+      /* ★会話ができてまだ開いていないものだけ（2026-10-11 に「会うか決める」をなくした） */
+      items.push({ kind: "proposal", at: p.at, title, sub: `紹介・${fmtMd(p.at)}`, action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
     }
   }
   if (meetings.error) console.error("[todayTodo] meetings:", meetings.error.message);

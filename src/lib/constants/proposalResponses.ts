@@ -4,12 +4,12 @@
  * ── 流れ ──────────────────────────────────────────────────────────────────────
  *   1. 運営が提案を作る。届くのは**求職者だけ**（企業には何も見えない）
  *   2. 求職者が「話を聞いてみたい」（interested）か「今回は見送る」（declined）を選ぶ
- *   3. interested のとき、企業の設定（`ow_company_proposal_settings.mode`。行が無ければ auto）を
- *      `ow_proposals.delivery_mode` に写す
- *        auto   … その場で会話を作る
- *        review … 企業の /biz/proposals に「届いた方」として出る。会う（want_to_meet）なら会話を作る。
- *                 見送り（declined）・14日間返事なし（`company_respond_by` を過ぎた）は終了
- *   ⚠️ 移行前に企業が「会いたい」と答え済みの提案は、求職者が答えた時点で auto として扱う
+ *   3. interested なら、どの企業でもその場で会話を作り、企業にメールで知らせる
+ *   ★2026-10-11（同日）に企業側の設定（すぐにメッセージ／確認してから会うかを決める）をなくした（柴さんの指示）。
+ *      「会う／今回は見送る」「14日の期限」は無い。
+ *      ⚠️ `ow_company_proposal_settings` と `delivery_mode` / `company_respond_by` / `company_response` の列は
+ *         **残してあるが使わない**（消すかは後で決める）。新しく答えた提案には delivery_mode = 'auto' を写す。
+ *      ⚠️ 以前に企業が「今回は見送る」と答えた提案（company_response = 'declined'）だけは、記録どおり終了のまま
  *
  * ⚠️★**DB の CHECK（`candidate_response_check` / `company_response_check` / `delivery_mode_check`）と
  *    同じ値にすること。** 片方だけ足すと「押せるのに保存できない」になる。
@@ -22,7 +22,7 @@
 export const CANDIDATE_RESPONSES = ["interested", "declined"] as const;
 export type CandidateResponse = (typeof CANDIDATE_RESPONSES)[number];
 
-/** 企業の返答（review のときだけ使う） */
+/** 企業の返答。⚠️ 2026-10-11 から企業は答えない（以前の記録を読むためだけに残す） */
 export const COMPANY_RESPONSES = ["want_to_meet", "declined"] as const;
 export type CompanyResponse = (typeof COMPANY_RESPONSES)[number];
 
@@ -43,7 +43,7 @@ export function isCompanyResponse(v: string): v is CompanyResponse {
   return (COMPANY_RESPONSES as readonly string[]).includes(v);
 }
 
-/** ★企業の設定。⚠️ DB の CHECK（`ow_company_proposal_settings.mode` / `ow_proposals.delivery_mode`）と同じ値 */
+/** ★企業の設定（2026-10-11 に廃止。値は DB の CHECK と同じ。新しく写すのは "auto" だけ） */
 export const PROPOSAL_COMPANY_MODES = ["auto", "review"] as const;
 export type ProposalCompanyMode = (typeof PROPOSAL_COMPANY_MODES)[number];
 /** ★行が無い企業の扱い（柴さんの判断: 既定はすぐにメッセージを始める） */
@@ -54,8 +54,6 @@ export function isProposalCompanyMode(v: string): v is ProposalCompanyMode {
 
 /** ★求職者が答えられる日数（届いてから）。⚠️ DB の既定値（`respond_by = now() + 30 days`）と同じ値 */
 export const PROPOSAL_RESPONSE_DAYS = 30;
-/** ★review のとき企業が答えられる日数（求職者が答えてから） */
-export const PROPOSAL_COMPANY_RESPONSE_DAYS = 14;
 /** ★「会社へのひとこと」の上限。⚠️ DB の CHECK（`candidate_note_length`）と同じ値 */
 export const PROPOSAL_NOTE_MAX = 200;
 
@@ -64,16 +62,14 @@ export const PROPOSAL_NOTE_MAX = 200;
  *   candidate_pending  … 求職者が未回答（企業には見えない）
  *   candidate_declined … 求職者が見送った（企業には見えない）
  *   candidate_expired  … 求職者が答えずに30日たった（企業には見えない）
- *   company_review     … review で企業の返事待ち（14日以内）
- *   company_declined   … review で企業が見送った
- *   company_expired    … review で企業が14日答えなかった
+ *   company_declined   … 以前の「確認してから」で企業が見送った（2026-10-11 より前の記録だけ）
  *   connecting         … 会話を作るはずだが、まだ作れていない（作成の失敗。運営が再試行で救う）
  *   introduced         … 会話ができた
  *   hidden             … いまはこの企業にこの候補者を見せてはいけない（`can_send_scout()` が false）。会話がまだ無いもの
  */
 export type ProposalPhase =
   | "candidate_pending" | "candidate_declined" | "candidate_expired"
-  | "company_review" | "company_declined" | "company_expired"
+  | "company_declined"
   | "connecting" | "introduced" | "hidden";
 
 export type ProposalPhaseInput = {
@@ -102,15 +98,13 @@ export function proposalPhase(p: ProposalPhaseInput, visible: boolean, now = new
   }
   if (!visible) return "hidden";
   if (p.companyResponse === "declined") return "company_declined";
-  if (p.deliveryMode === "auto" || p.companyResponse === "want_to_meet") return "connecting";
-  if (past(p.companyRespondBy, now)) return "company_expired";
-  return "company_review";
+  return "connecting";
 }
 
-/** ★会話を作ってよい段か（auto で求職者が答えた／review で企業が会う）。`introduce.ts` と `openReason.ts` が使う */
-export function proposalShouldConnect(p: Pick<ProposalPhaseInput, "candidateResponse" | "companyResponse" | "deliveryMode">): boolean {
-  return p.candidateResponse === "interested" && p.companyResponse !== "declined"
-    && (p.deliveryMode === "auto" || p.companyResponse === "want_to_meet");
+/** ★会話を作ってよい段か（求職者が「話を聞いてみたい」と答えた。以前に企業が見送ったものを除く）。`introduce.ts` と `openReason.ts` が使う
+ *  ⚠️ SQL で同じ条件を書いている所が2か所ある（admin/page.tsx の要対応・openReason.ts）。揃えること */
+export function proposalShouldConnect(p: Pick<ProposalPhaseInput, "candidateResponse" | "companyResponse">): boolean {
+  return p.candidateResponse === "interested" && p.companyResponse !== "declined";
 }
 
 /**
@@ -127,7 +121,7 @@ export function companyTabOf(phase: ProposalPhase, candidateResponse: string | n
   /* ★答えたあとで見せられなくなった方（会話がまだ無い）は、終了タブにも出さない・数えない（2026-10-11 / 柴さんの判断）。
         ⚠️ 名前なしの「終了」行でも、「答えた人がいた」ことが企業に分かってしまう */
   if (phase === "hidden") return null;
-  if (phase === "introduced" || phase === "company_review" || phase === "connecting") return "arrived";
+  if (phase === "introduced" || phase === "connecting") return "arrived";
   return "ended";
 }
 

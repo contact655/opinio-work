@@ -1,10 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  DEFAULT_PROPOSAL_COMPANY_MODE, isProposalCompanyMode, proposalPhase, companyTabOf,
-  type ProposalCompanyMode, type ProposalPhase,
-} from "@/lib/constants/proposalResponses";
+import { proposalPhase, companyTabOf, type ProposalPhase } from "@/lib/constants/proposalResponses";
 import { PROPOSAL_PHASE_COLS, phaseInputOf, visiblePairs, isVisiblePair } from "./proposalEnded";
 
 /**
@@ -17,35 +14,8 @@ import { PROPOSAL_PHASE_COLS, phaseInputOf, visiblePairs, isVisiblePair } from "
  *    `node scripts/check-proposal-reads.mjs` が0件を確かめる。
  */
 
-// ── 企業の設定（A=auto / B=review）────────────────────────────────────────────
-
-/**
- * ★企業の設定。行が無ければ既定（auto）。
- * ⚠️ 読めなかったら null（呼び出し側は「自動で会話を作らない」側に倒すこと）。
- */
-export async function getCompanyProposalMode(companyId: string): Promise<ProposalCompanyMode | null> {
-  const { data, error } = await createAdminClient()
-    .from("ow_company_proposal_settings").select("mode").eq("company_id", companyId).maybeSingle();
-  if (error) {
-    console.error("[companyProposals] 設定:", error.message);
-    return null;
-  }
-  const mode = (data?.mode as string | null) ?? null;
-  return mode && isProposalCompanyMode(mode) ? mode : DEFAULT_PROPOSAL_COMPANY_MODE;
-}
-
-/** ★設定を保存する。⚠️ 所属と権限は呼び出し側（API）が確かめてから呼ぶ */
-export async function setCompanyProposalMode(companyId: string, mode: ProposalCompanyMode, byOwUserId: string): Promise<boolean> {
-  const { error } = await createAdminClient().from("ow_company_proposal_settings").upsert(
-    { company_id: companyId, mode, updated_at: new Date().toISOString(), updated_by: byOwUserId },
-    { onConflict: "company_id" },
-  );
-  if (error) {
-    console.error("[companyProposals] 設定の保存:", error.message);
-    return false;
-  }
-  return true;
-}
+/* ⚠️★企業の設定（すぐにメッセージ／確認してから）は 2026-10-11 に廃止した（柴さんの指示）。
+      `ow_company_proposal_settings` は残してあるが読み書きしない。getCompanyProposalMode / setCompanyProposalMode は削除した */
 
 // ── 届いた方 ──────────────────────────────────────────────────────────────────
 
@@ -58,12 +28,10 @@ export type CompanyProposalRow = {
   evidence: unknown[];
   counter: unknown[];
   note: string | null;
-  deliveryMode: "auto" | "review" | null;
   phase: ProposalPhase;
   tab: "arrived" | "ended";
   /** 求職者が「話を聞いてみたい」と答えた日時 */
   raisedAt: string;
-  companyRespondBy: string | null;
   introducedAt: string | null;
   conversationId: string | null;
   /** ★企業の参加者が会話を開いたか（ホームの「対応が必要なもの」に使う） */
@@ -80,7 +48,6 @@ function toRow(r: Record<string, unknown>, visible: boolean): CompanyProposalRow
   if (!tab) return null;
   const job = r.ow_jobs as { title?: string } | { title?: string }[] | null;
   const jobTitle = Array.isArray(job) ? job[0]?.title ?? null : job?.title ?? null;
-  const mode = (r.delivery_mode as string | null) ?? null;
   return {
     id: r.id as string,
     candidateUserId: r.candidate_user_id as string,
@@ -89,11 +56,9 @@ function toRow(r: Record<string, unknown>, visible: boolean): CompanyProposalRow
     evidence: Array.isArray(r.evidence) ? (r.evidence as unknown[]) : [],
     counter: Array.isArray(r.counter_evidence) ? (r.counter_evidence as unknown[]) : [],
     note: (r.candidate_note as string | null) ?? null,
-    deliveryMode: mode === "auto" || mode === "review" ? mode : null,
     phase,
     tab,
     raisedAt: (r.candidate_responded_at as string | null) ?? (r.created_at as string),
-    companyRespondBy: input.companyRespondBy,
     introducedAt: input.introducedAt,
     conversationId: (r.conversation_id as string | null) ?? null,
     companySeenAt: (r.company_seen_at as string | null) ?? null,
@@ -125,52 +90,22 @@ export async function listCompanyProposals(companyId: string): Promise<CompanyPr
 }
 
 /**
- * ★企業が会う／見送るを選べる提案だけを1件返す（review の返事待ちで、14日以内で、いま見せてよいもの）。
- * ⚠️★それ以外（未回答・見送り・期限切れ・auto・存在しない id）はすべて null。
- *    API は null を一律「見つからない」で返し、存在を区別させない。
+ * ★企業が対応すべき提案（ホームの「対応が必要なもの」）。会話ができたが、まだ企業の参加者が開いていないもの。
+ * ⚠️ 2026-10-11 に「会うかどうかを決める（review）」をなくした。
  */
-export async function getCompanyProposalForResponse(companyId: string, proposalId: string): Promise<CompanyProposalRow | null> {
-  const db = createAdminClient();
-  const { data, error } = await db
-    .from("ow_proposals")
-    .select(COMPANY_COLS)
-    .eq("id", proposalId)
-    .eq("company_id", companyId)
-    .eq("candidate_response", "interested")
-    .maybeSingle();
-  if (error) {
-    console.error("[companyProposals] 1件:", error.message);
-    return null;
-  }
-  if (!data) return null;
-  const r = data as Record<string, unknown>;
-  const visible = await visiblePairs([{ companyId, candidateUserId: r.candidate_user_id as string }]);
-  const row = toRow(r, isVisiblePair(visible, { companyId, candidateUserId: r.candidate_user_id as string }));
-  return row && row.phase === "company_review" ? row : null;
-}
-
-/**
- * ★企業が対応すべき提案（ホームの「対応が必要なもの」と上の数字「提案で届いた方」）。
- *   open   … 会話ができたが、まだ企業の参加者が開いていない
- *   review … 会うかどうかを決める（14日以内）
- */
-export type CompanyProposalTodo = { id: string; candidateUserId: string; at: string; kind: "open" | "review"; conversationId: string | null; companyRespondBy: string | null };
+export type CompanyProposalTodo = { id: string; candidateUserId: string; at: string; kind: "open"; conversationId: string | null };
 export async function listCompanyProposalTodos(companyId: string): Promise<CompanyProposalTodo[] | null> {
   const rows = await listCompanyProposals(companyId);
   if (!rows) return null;
   const out: CompanyProposalTodo[] = [];
   for (const r of rows) {
-    if (r.phase === "company_review") out.push({ id: r.id, candidateUserId: r.candidateUserId, at: r.raisedAt, kind: "review", conversationId: null, companyRespondBy: r.companyRespondBy });
-    else if (r.phase === "introduced" && r.conversationId && !r.companySeenAt) out.push({ id: r.id, candidateUserId: r.candidateUserId, at: r.raisedAt, kind: "open", conversationId: r.conversationId, companyRespondBy: null });
+    if (r.phase === "introduced" && r.conversationId && !r.companySeenAt) out.push({ id: r.id, candidateUserId: r.candidateUserId, at: r.raisedAt, kind: "open", conversationId: r.conversationId });
   }
   return out;
 }
 
-/** ★会うかどうかを決める提案の件数（サイドバーの「提案」のバッジ）。失敗したら null */
-export async function countCompanyProposalReviews(companyId: string): Promise<number | null> {
-  const rows = await listCompanyProposals(companyId);
-  return rows ? rows.filter((r) => r.phase === "company_review").length : null;
-}
+/* ⚠️ countCompanyProposalReviews（サイドバーの「紹介」のバッジ）は 2026-10-11 に削除した。
+      届いた方はその場で会話になり、メッセージのバッジ（unseenProposalConversationIds）で数える */
 
 /** ★提案から始まって、企業の参加者がまだ開いていない会話（/biz/messages の「新しい」印とサイドバーのバッジ） */
 export async function unseenProposalConversationIds(companyId: string): Promise<Set<string>> {

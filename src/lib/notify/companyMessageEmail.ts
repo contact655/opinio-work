@@ -8,7 +8,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
  *
  * 呼ぶ場所は3つ。⚠️★**条件（設定・まとめ・実在の利用者への開始）を呼び出し側に書き写さないこと。**
  *   approach     … 企業からの1通目（lib/approaches/server.ts の sendApproach）
- *   introduction … 紹介で企業が「会う」と答えた（lib/evidence/introduce.ts。by=company / ops）
+ *   （introduction … 紹介で企業が「会う」と答えたとき。2026-10-11 に企業が答える流れをなくしたので外した）
  *   reply        … 会話で企業から返信があった。★送信経路は4本（api/biz/conversations/[id]/messages ／
  *                  api/dm/message ／ api/dm/bulk-message ／ lib/meetings/server.ts の候補日・日程調整リンク）。
  *                  ⚠️ 4本とも `emailCandidateIfCompanySent` を呼ぶ（「企業との会話で、求職者本人でない人が送った」の判定を1か所に）
@@ -37,11 +37,11 @@ export const COMPANY_MESSAGE_EMAIL_WINDOW_MINUTES = 30;
 const SITE = "https://opinio.jp";
 
 export async function emailCandidateCompanyMessage(params: {
-  kind: "approach" | "introduction" | "reply";
+  kind: "approach" | "reply";
   /** ★`ow_users.id` 空間 */
   candidateOwUserId: string;
   companyId: string;
-  /** introduction / reply で必須 */
+  /** reply で必須 */
   conversationId?: string | null;
   /** approach で必須 */
   approachId?: string | null;

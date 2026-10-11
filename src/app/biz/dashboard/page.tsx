@@ -75,7 +75,7 @@ async function NoTenantPage() {
 const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
   /* ★2026-10-11: 「メッセージ」にまとめた。送ったメッセージに返信があって、まだ開いていないもの */
   { kind: "approach", label: "新しい返信", href: "/biz/messages" },
-  /* ★2026-10-11: 提案は求職者が「話を聞いてみたい」と答えた方だけが届く。まだ開いていない会話＋会うか決める方 */
+  /* ★2026-10-11: 提案は求職者が「話を聞いてみたい」と答えた方だけが届き、その場で会話になる。まだ開いていない会話 */
   { kind: "proposal", label: "紹介で届いた方", href: "/biz/proposals" },
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },

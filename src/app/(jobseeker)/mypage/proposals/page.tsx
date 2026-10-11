@@ -7,7 +7,6 @@ import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
 import { isVisiblePair, phaseInputOf, PROPOSAL_PHASE_COLS, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
-import { getCompanyProposalMode } from "@/lib/evidence/companyProposals";
 import { proposalPhase } from "@/lib/constants/proposalResponses";
 import { jobListingStateFor } from "@/lib/jobs/publicJobs";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
@@ -48,7 +47,7 @@ export default async function ProposalsPage() {
     .from("ow_proposals")
     /* ★段の判定に要る列は `PROPOSAL_PHASE_COLS` の1か所。
           ⚠️★**`company_response` / `delivery_mode` そのものはクライアントに送らない**
-            （企業が見送ったこと・企業の設定を伝えない。送るのは段から作った表示用の区分だけ） */
+            （以前に企業が見送ったことを伝えない。送るのは段から作った表示用の区分だけ） */
     .select(`id, company_id, evidence, counter_evidence, computed_at, conversation_id, candidate_note, ${PROPOSAL_PHASE_COLS}, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test), ow_jobs(id, title, slug, status, is_test)`)
     .eq("candidate_user_id", me.id)
     .order("created_at", { ascending: false });
@@ -58,15 +57,6 @@ export default async function ProposalsPage() {
   const visible = await visiblePairs(
     (rows ?? []).map((p) => ({ companyId: p.company_id as string, candidateUserId: me.id as string })),
   );
-
-  /* ★未回答の提案について、企業の設定（すぐにメッセージ／確認してから）を引く。
-        押す直前の説明を変えるためだけに使う（「押すとすぐメッセージ」が B では事実と違うため）。
-        ⚠️ 読めなかったら review 側の説明に倒す（できると言い過ぎない） */
-  const pendingCompanyIds = Array.from(new Set((rows ?? [])
-    .filter((p) => !p.candidate_response).map((p) => p.company_id as string)));
-  const modeByCompany = new Map(await Promise.all(
-    pendingCompanyIds.map(async (id) => [id, (await getCompanyProposalMode(id)) ?? "review"] as const),
-  ));
 
   /* ★運営会社（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
   const ownCompanyId = await getOwnCompanyId();
@@ -80,7 +70,7 @@ export default async function ProposalsPage() {
       phase === "candidate_pending" ? "pending"
       : phase === "introduced" ? "introduced"
       : phase === "candidate_declined" ? "declined"
-      : phase === "company_review" || phase === "connecting" ? "waiting"
+      : phase === "connecting" ? "waiting"
       : "ended";
     const co = p.ow_companies as unknown as {
       id: string; name: string; name_en: string | null; slug: string | null;
@@ -107,7 +97,6 @@ export default async function ProposalsPage() {
       evidence: Array.isArray(p.evidence) ? (p.evidence as ProposalView["evidence"]) : [],
       counter: Array.isArray(p.counter_evidence) ? (p.counter_evidence as ProposalView["counter"]) : [],
       status,
-      companyReviews: status === "pending" ? modeByCompany.get(p.company_id as string) !== "auto" : false,
       jobTitle: job?.title ?? null,
       jobHref: job && jobState === "open" ? `/jobs/${job.slug ?? job.id}` : null,
       jobClosed: !!job && jobState === "closed",

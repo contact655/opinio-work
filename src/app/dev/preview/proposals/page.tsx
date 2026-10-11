@@ -154,16 +154,16 @@ export default function Page() {
       </Variant>
 
       {/* ★企業側の一覧（2026-09-21 追加）。本番は提案0件なので、状態ごとの見え方はここでしか見られない。
-             ⚠️ ボタン（会いたい・見送る）は本物の API を呼ぶ。ここでは押さないこと。 */}
+             ⚠️ 2026-10-11 に企業側の設定と「会う／今回は見送る」をなくした。 */}
       <Variant
         label="企業側の一覧（/biz/proposals）"
-        note="届いた方: 確認してから（あと12日・ひとことあり）／すぐにメッセージ（メッセージを開く）／メッセージ準備中。終了: 見送った／期限切れ（見せられなくなった方は行ごと出ない）。右の列: 設定A・今月の提案（毎朝更新）"
+        note="届いた方: メッセージを開く（ひとことあり）／メッセージ準備中。終了: 以前に見送った記録（見せられなくなった方は行ごと出ない）。右の列: 今月の紹介（毎朝更新）。⚠️ 設定欄・会う／見送るのボタン・期限が出ていないこと"
       >
-        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} mode="auto" canEditMode={false}
-          stats={{ introduced: 12, raised: 3, meetings: 1, cutoff: "2026-10-10T15:00:00.000Z" }} reviewDays={14} />
+        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false}
+          stats={{ introduced: 12, raised: 3, meetings: 1, cutoff: "2026-10-10T15:00:00.000Z" }} />
       </Variant>
-      <Variant label="企業側（届いた方0人・設定B・数字取得失敗）" note="空の文は「右の」を付けない。数字は「—」">
-        <BizProposalsClient proposals={[]} loadFailed={false} mode="review" canEditMode={false} stats={null} reviewDays={14} />
+      <Variant label="企業側（届いた方0人・数字取得失敗）" note="空の文は「右の」を付けない。数字は「—」">
+        <BizProposalsClient proposals={[]} loadFailed={false} stats={null} />
       </Variant>
     </div>
   );
@@ -194,16 +194,13 @@ function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
     jobTitle: "アカウントエグゼクティブ",
     raisedAt: "2026-10-09T03:00:00.000Z",
     conversationId: null,
-    daysLeft: null,
     ...over,
   };
 }
 
 const BIZ_SAMPLE: BizProposalView[] = [
-  bizItem("p-review", { phase: "company_review", daysLeft: 12, note: "御社のエンタープライズ向けの営業体制について、お話を伺えたらうれしいです。現職の状況も含めてご相談させてください。" }),
-  bizItem("p-auto", { phase: "introduced", conversationId: "00000000-0000-0000-0000-000000000000" }),
+  bizItem("p-auto", { phase: "introduced", conversationId: "00000000-0000-0000-0000-000000000000", note: "御社のエンタープライズ向けの営業体制について、お話を伺えたらうれしいです。現職の状況も含めてご相談させてください。" }),
   bizItem("p-connecting", { phase: "connecting", jobTitle: null }),
   bizItem("p-declined", { tab: "ended", phase: "company_declined" }),
-  bizItem("p-expired", { tab: "ended", phase: "company_expired" }),
   /* ⚠️ いま見せてはいけない方（hidden）はサーバーが行ごと落とすので、ここにも置かない（2026-10-11） */
 ];
