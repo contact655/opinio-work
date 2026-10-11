@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ApproachButton } from "@/components/approaches/ApproachButton";
+import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { neutralAvatarStyle } from "@/lib/avatarColor";
-import { candidateApproachLabel, formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
+import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
 
 /**
  * ★候補者検索の右のプレビュー（2026-10-10 / 候補者探し 段1・キャンバス1）。
@@ -15,7 +15,7 @@ import { candidateApproachLabel, formatJstMonthDay, type Candidate, type Touchpo
  * ⚠️ 「プロフィール全体を見る」は**同じタブ**で /u/[id]。
  * ⚠️ 接点（見出し「〈会社名〉と合うところ（〇）」）は強い順に3つまで。4つ以上なら「ほかに N件」で全部。
  *    ★0件のときは見出しごと出さない（2026-10-11 / 柴さんの指示。それまでは空でも欄を出し、材料への入口を出していた）。
- * ⚠️★送れるかどうかは、ボタンの有無だけで示す（2026-10-11。理由は出さない）。状態のチップを出さない。
+ * ⚠️★送れない人は、ボタンの代わりに灰色の1行で理由だけ出す（2026-10-11 / 柴さんの指示。`PreviewApproachArea`）。状態のチップは出さない。
  */
 export type PreviewData = {
   candidate: Candidate;
@@ -77,7 +77,9 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
   );
 }
 
-export function CandidatePreview({ userId, onClose, onNoteCountChange }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void }) {
+export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLimitLine = null }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void;
+  /** ★企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
+  companyLimitLine?: string | null }) {
   const [data, setData] = useState<PreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +105,6 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange }: { userI
 
   const c = data.candidate;
   const tenure = formatTenure(c.tenureMonths);
-  const label = candidateApproachLabel(c.approach);
   const edited = formatJstMonthDay(c.profileEditedAt);
   return (
     <div data-state="candidate-preview" style={{ padding: "18px 20px" }}>
@@ -123,7 +124,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange }: { userI
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, fontSize: 12, color: "var(--ink-mute)" }}>
             {/* ⚠️ 送れない一文は下のボタンの位置に出す（同じ文を2回出さない） */}
             {/* ⚠️ 返事待ちはボタンの上の帯が同じことを言うので、ここには出さない（同じ文を2回出さない） */}
-            {label && label.state === "sent" && c.approach?.sent?.state !== "pending" && <span data-approach-state={label.state}>{label.text}</span>}
+            {/* ⚠️ 送り済みの1行は下のボタンの位置（PreviewApproachArea）に出す（同じ文を2回出さない。2026-10-11） */}
             {c.location && <span>{c.location}</span>}
             {edited && <span>プロフィール更新 {edited}</span>}
           </div>
@@ -133,16 +134,15 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange }: { userI
           style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
-        {/* ⚠️ 送れる・送り済みのときだけボタン（送り済みは状態の表示になる）。受け取っていない人には出さない */}
-        {c.approach && (
-          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} hideSender hideUnavailable hidePendingNotice />
-        )}
-        <Link href={`/u/${c.id}`}
-          style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>
-          プロフィール全体を見る
-        </Link>
-      </div>
+      {/* ★名前の直下に主ボタン「メッセージを送る」（その場でフォームが開く）。送れない人は灰色の1行で理由だけ（2026-10-11 / 柴さんの指示）。
+             「プロフィール全体を見る」は副ボタン（白地・枠線）で横に並べる */}
+      <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine}
+        profileLink={
+          <Link href={`/u/${c.id}`} data-state="preview-profile-link"
+            style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", whiteSpace: "nowrap" }}>
+            プロフィール全体を見る
+          </Link>
+        } />
 
       <TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />
 

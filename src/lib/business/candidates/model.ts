@@ -83,7 +83,12 @@ export type Candidate = {
   /** ★「できること」（職種 × 年数）。**職歴からの計算**で、本人の入力ではない */
   autoSkills?: { label: string; band: string }[];
   /** ★企業からの「声かけ」。⚠️ 送れるかはサーバーが決める（理由は渡さない） */
-  approach?: { eligible: boolean; sent: RecentApproach | null };
+  approach?: {
+    eligible: boolean; sent: RecentApproach | null;
+    /** ★送れない理由（eligible でも送り済みでもないとき。2026-10-11）
+     *   test_company … 検証用の会社を実アカウントで見ている ／ not_looking … 「今は考えていない」 ／ other … 区別しない（範囲外・受け取らない企業など） */
+    blocked?: "test_company" | "not_looking" | "other";
+  };
   /** ★社内の状態。undefined = 社内メモのフラグがオフ（出さない） */
   stage?: CandidateStage | null;
   /** ★社内メモの件数（2026-10-11）。undefined = 社内メモのフラグがオフか、取れなかった（出さない） */

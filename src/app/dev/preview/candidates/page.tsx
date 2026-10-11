@@ -1,6 +1,7 @@
 "use client";
 
 import CandidatesClient, { type Candidate } from "@/app/biz/candidates/CandidatesClient";
+import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { Variant, PreviewHeader } from "../Variant";
 
 /**
@@ -138,6 +139,42 @@ export default function CandidatesPreview() {
         note="⚠️ 詳細検索を開くと条件が横に並ぶこと。閉じるとチップだけが残ること"
       >
         <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} />
+      </Variant>
+
+      {/* ★送れない理由（2026-10-11 / 柴さんの指示）。実アカウントで検証用の会社を見た状態は、実アカウントでログインしないと
+             実画面では作れない（実アカウントの状態を変えないため、ここで見る） */}
+      <Variant
+        label="検証用の会社を実アカウントで見た状態（一覧の上の1行）"
+        note="⚠️ 一覧の上に灰色で「検証用の会社のため、このアカウントからは送れません」。「いま、メッセージを送れる候補者はいません。」が出ないこと"
+      >
+        <CandidatesClient candidates={FULL.map((c) => ({ ...c, approach: { eligible: false, sent: null, blocked: "test_company" as const } }))} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
+      </Variant>
+      <Variant
+        label="企業側の上限に当たっている（一覧の上の1行）"
+        note="⚠️ 一覧の上に灰色で上限の文言"
+      >
+        <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} companyLimitLine="今月の送信数が上限（10通）に達しました。11月1日から送れます" />
+      </Variant>
+      <Variant
+        label="右のプレビューのボタンの位置（状態ごと）"
+        note="⚠️ 送れる人だけ主ボタン。送れない人は灰色の1行（バッジにしない）。「プロフィール全体を見る」は白地・枠線で横に並ぶ"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, background: "#fff", padding: 16, border: "1px solid var(--line)", borderRadius: 12, maxWidth: 560 }}>
+          {([
+            ["送れる", { eligible: true, sent: null }, null],
+            ["検証用の会社を実アカウントで見ている", { eligible: false, sent: null, blocked: "test_company" }, null],
+            ["今は転職を考えていない", { eligible: false, sent: null, blocked: "not_looking" }, null],
+            ["その他（範囲外など。区別しない）", { eligible: false, sent: null, blocked: "other" }, null],
+            ["今月の上限", { eligible: true, sent: null }, "今月の送信数が上限（10通）に達しました。11月1日から送れます"],
+            ["返信待ちの上限", { eligible: true, sent: null }, "返信待ちが10件あります。返信が来るか、30日たつと送れます"],
+          ] as const).map(([label, approach, limit]) => (
+            <div key={label}>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>{label}</div>
+              <PreviewApproachArea candidate={{ ...FULL[0], approach: approach as NonNullable<Candidate["approach"]> }} jobs={[]} limitLine={limit}
+                profileLink={<span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff" }}>プロフィール全体を見る</span>} />
+            </div>
+          ))}
+        </div>
       </Variant>
 
       <Variant

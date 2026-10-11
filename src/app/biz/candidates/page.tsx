@@ -4,6 +4,10 @@ import CandidatesClient from "./CandidatesClient";
 import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
+import { getApproachQuota } from "@/lib/approaches/server";
+import { approachCompanyLimitLine } from "@/lib/constants/companyApproaches";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { companyDisplayName } from "@/lib/companies/displayName";
 import { ensureLastViewed, getSavedSearchForViewer } from "@/lib/business/savedSearchServer";
 
 export const dynamic = "force-dynamic";
@@ -203,11 +207,20 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const { candidates, roleFilterTree } = await loadCompanyCandidates({
-    companyId: ctx.tenantId,
-    viewerOwUserId: ctx.currentOwnId,
-    planType: ctx.planType,
-  });
+  const [{ candidates, roleFilterTree }, approachQuota, coRow] = await Promise.all([
+    loadCompanyCandidates({
+      companyId: ctx.tenantId,
+      viewerOwUserId: ctx.currentOwnId,
+      planType: ctx.planType,
+    }),
+    /* ★企業側の上限（今月の送信数・返信待ち）。当たっていれば一覧の上とプレビューに1行出す（2026-10-11） */
+    canUse(ctx.planType, "companyApproach") ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
+    /* ★カードの「〈会社名〉と合うところ（〇）」の会社名（プレビューと同じ表示名。2026-10-11） */
+    createAdminClient().from("ow_companies").select("name, name_en").eq("id", ctx.tenantId).maybeSingle(),
+  ]);
+  if (coRow.error) console.error("[biz/candidates] ow_companies:", coRow.error.message);
+  const companyShortName = coRow.data ? companyDisplayName(coRow.data.name as string, (coRow.data.name_en as string | null) ?? null).displayName : null;
+  const companyLimitLine = approachCompanyLimitLine(approachQuota, new Date());
 
   /* ★保存した条件で開く（段3）。`?saved=<id>`（この条件で探す）／`&new=1`（新着を見る）。
      ⚠️ 見られる条件（自分のもの・共有）だけ。新着の基準は**開く前**の前回見た日時
@@ -236,6 +249,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
     <BusinessLayout {...layoutProps} mainMaxWidth={1440}>
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
         initialSaved={initialSaved}
+        companyShortName={companyShortName}
+        companyLimitLine={companyLimitLine}
         /* ⚠️ 一覧に居ない id は開かない（プレビューの API も 404 を返す）。uuid の形だけ確かめる */
         initialSelected={/^[0-9a-f-]{36}$/.test(searchParams?.selected ?? "") ? searchParams!.selected! : null} />
     </BusinessLayout>

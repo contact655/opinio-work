@@ -9,6 +9,7 @@ import {
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
+import { APPROACH_TEST_COMPANY_MESSAGE } from "@/lib/constants/companyApproaches";
 import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { InterestToggle } from "@/components/candidateNotes/InterestToggle";
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -113,7 +114,13 @@ export default function CandidatesClient({
   roleFilterTree = [],
   initialSelected = null,
   initialSaved = null,
+  companyShortName = null,
+  companyLimitLine = null,
 }: {
+  /** ★カードの「〈会社名〉と合うところ（〇）」の会社名。取れなければ null（「貴社」） */
+  companyShortName?: string | null;
+  /** ★企業側の上限（今月の送信数・返信待ち）に当たっているときの1行。当たっていなければ null */
+  companyLimitLine?: string | null;
   /** ★保存した条件で開いたとき（段3）。newSince があれば「新着だけ」を出す */
   initialSaved?: { id: string; name: string; filters: SavedCandidateFilters; newSince: string | null } | null;
   candidates: Candidate[];
@@ -170,8 +177,9 @@ export default function CandidatesClient({
         全員が最初から受け取る形にし、止める方法は「転職について」の「今は考えていない」で兼ねる
         （その人はそもそもこの一覧に出ない）。送れるかどうかは今までどおりボタンの有無だけで示す。
      ★送れる人が0人のときだけ一文を出す。⚠️ 判定は `c.approach.eligible`（`can_send_company_approach()`）だけ */
-  const approachEnabled = candidates.some((c) => c.approach !== undefined);
-  const approachableCount = candidates.filter((c) => c.approach?.eligible === true).length;
+  /* ★一覧の上の灰色の1行（2026-10-11 / 柴さんの指示）。「いま、メッセージを送れる候補者はいません。」は外した。
+        検証用の会社を実アカウントで見ているとき → その旨。企業側の上限に当たっているとき → 上限の文言。それ以外は出さない */
+  const topNotice = candidates.some((c) => c.approach?.blocked === "test_company") ? APPROACH_TEST_COMPANY_MESSAGE : companyLimitLine;
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
         保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
@@ -664,10 +672,10 @@ export default function CandidatesClient({
             「転職について」で「今は考えていない」を選んでいる方は表示されません。
           </HelpToggle>
         </div>
-        {/* ★送れる人が0人のときだけ（2026-10-11）。⚠️ 候補者がそもそも0人のときは下の空の表示に任せる。order で行の最後に回す */}
-        {approachEnabled && candidates.length > 0 && approachableCount === 0 && (
-          <p data-state="no-approachable" style={{ order: 10, flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-            いま、メッセージを送れる候補者はいません。
+        {/* ★送れない理由の1行（検証用の会社／企業側の上限）。⚠️ 灰色の文字（バッジにしない）。order で行の最後に回す */}
+        {topNotice && candidates.length > 0 && (
+          <p data-state="approach-top-notice" style={{ order: 10, flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+            {topNotice}
           </p>
         )}
 
@@ -1056,7 +1064,7 @@ export default function CandidatesClient({
                               ))}
                               {/* ⚠️ 職種チップは「できること」に同じ名前が無いときだけ（同じ語を2回出さない） */}
                               {showRole && <span className="cand-chip">{c.roleName}</span>}
-                              {tp > 0 && <span data-state="touchpoint-count" className="cand-chip">合うところ {tp}</span>}
+                              {tp > 0 && <span data-state="touchpoint-count" className="cand-chip">{companyShortName ?? "貴社"}と合うところ（{tp}）</span>}
                               {/* ★社内メモの件数。⚠️ フラグがオフ（undefined）・0件なら出さない */}
                               {notes > 0 && (
                                 <span data-state="card-note-count" className="cand-chip">
@@ -1087,7 +1095,7 @@ export default function CandidatesClient({
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownId ? (
-            <CandidatePreview key={shownId} userId={shownId} onClose={() => { setAutoPick(false); updateSelected(null); }}
+            <CandidatePreview key={shownId} userId={shownId} companyLimitLine={companyLimitLine} onClose={() => { setAutoPick(false); updateSelected(null); }}
               onNoteCountChange={(n) => setNoteCountOverride((prev) => ({ ...prev, [shownId]: n }))} />
           ) : isWide === null ? null : (
             <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>

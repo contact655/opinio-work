@@ -64,6 +64,10 @@ export async function loadCompanyCandidates(params: {
     adminClient.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle(),
   ]);
   const companyIsTest = companyRow.data?.is_test === true;
+  /* ★見ている担当者が検証用か（送れない理由の「検証用の会社のため…」に使う。2026-10-11）。⚠️ 取れなければ null（理由を出さず「その他」） */
+  const { data: viewerRow, error: viewerErr } = await adminClient.from("ow_users").select("is_test").eq("id", params.viewerOwUserId).maybeSingle();
+  if (viewerErr) console.error("[candidates] viewer:", viewerErr.message);
+  const viewerIsTest: boolean | null = viewerRow ? viewerRow.is_test === true : null;
   const blockedCandidateIds = new Set(blockedPlacements.map((p) => p.candidate_id as string));
   const stanceAuthIds = profileRows.map((p) => p.user_id as string);
 
@@ -209,7 +213,17 @@ export async function loadCompanyCandidates(params: {
       autoSkills: buildRoleAutoSkills(expRowsByUser.get(u.id as string) ?? [], roleInfoById)
         .slice(0, 4).map((sk) => ({ label: sk.label, band: sk.band })),
       approach: approachAllowed && recentlyApproached && approachOk
-        ? { eligible: approachOk.get(u.id as string) === true, sent: recentlyApproached.get(u.id as string) ?? null }
+        ? (() => {
+            const eligible = approachOk.get(u.id as string) === true;
+            const sent = recentlyApproached.get(u.id as string) ?? null;
+            /* ★送れない理由（2026-10-11）。⚠️ 検証用の会社を実アカウントで見ているときだけ test_company
+                  （実在の会社の候補者は実在の人だけなので、実在の会社では出ない）。範囲外・受け取らない企業は区別しない */
+            const blocked = eligible || sent ? undefined
+              : companyIsTest && viewerIsTest === false ? "test_company" as const
+              : profile?.career_stance === "no_contact" ? "not_looking" as const
+              : "other" as const;
+            return { eligible, sent, ...(blocked ? { blocked } : {}) };
+          })()
         : undefined,
       stage: stages ? (stages.get(u.id as string) ?? null) : undefined,
       noteCount: noteCounts ? (noteCounts.get(u.id as string) ?? 0) : undefined,

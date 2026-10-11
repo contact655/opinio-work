@@ -168,6 +168,27 @@ export function approachStatusLine(state: CompanyApproachStatus, sentAt: string,
  *   ⚠️「受け取っていません」と書かない（本人の設定だと読める） */
 export const APPROACH_UNAVAILABLE_MESSAGE = "現在、この方にはメッセージを送れません。";
 
+/* ★送れない理由の1行（候補者検索の右のプレビューと一覧の上。2026-10-11 / 柴さんの指示）。⚠️ 灰色の文字で出す（バッジにしない）。
+      ⚠️ ここに無い理由（受け取る範囲の外・受け取らない企業）は区別せず APPROACH_UNAVAILABLE_MESSAGE（相手の設定を企業に伝えない） */
+/** 検証用の会社を実アカウントで見ているとき（送り手と候補者の is_test が違う）。⚠️ 実在の会社の画面には出さない */
+export const APPROACH_TEST_COMPANY_MESSAGE = "検証用の会社のため、このアカウントからは送れません";
+/** 「転職について」が「今は考えていない」の方 */
+export const APPROACH_NOT_LOOKING_MESSAGE = "今は転職を考えていない方です";
+/** 180日以内にこの会社から送っている方（送った日） */
+export function approachAlreadySentLine(sentAtIso: string): string {
+  /* ⚠️ 「10/11」ではなく「10月11日」（柴さんの指示）。日本時間で区切る */
+  const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).formatToParts(new Date(sentAtIso));
+  const v = (t: string) => ps.find((x) => x.type === t)?.value ?? "";
+  return `${v("month")}月${v("day")}日に送っています`;
+}
+/** ★企業側の上限に当たっているときの1行（今月の送信数 → 返信待ちの順に見る）。当たっていなければ null */
+export function approachCompanyLimitLine(q: { monthlyUsed: number; monthlyLimit: number; openCount: number; openLimit: number } | null, now: Date): string | null {
+  if (!q) return null;
+  if (q.monthlyUsed >= q.monthlyLimit) return `今月の送信数が上限（${q.monthlyLimit}通）に達しました。${approachMonthlyResetLabel(now)}から送れます`;
+  if (q.openCount >= q.openLimit) return `返信待ちが${q.openLimit}件あります。返信が来るか、${APPROACH_EXPIRE_DAYS}日たつと送れます`;
+  return null;
+}
+
 /**
  * ★枠の言い方（2026-10-11 / 柴さんの指示。企業側の表示だけ）。/biz/approaches・書く画面・ホームが同じ関数を見る。
  *   「今月送った数 N/10」→「今月の残り N通」、「承認待ち N/10」→「返事待ち N件」。
