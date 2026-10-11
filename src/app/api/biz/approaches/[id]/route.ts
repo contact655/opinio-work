@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { listSentApproaches } from "@/lib/approaches/server";
+import { getApproachReplyExcerpt, listSentApproaches } from "@/lib/approaches/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,5 +16,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!list) return NextResponse.json({ error: "読み込めませんでした" }, { status: 500 });
   const r = list.find((x) => x.id === params.id);
   if (!r) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
-  return NextResponse.json({ id: r.id, createdAt: r.createdAt, senderName: r.senderName, jobTitle: r.jobTitle, reason: r.reason, body: r.body });
+  /* ★返信があれば冒頭だけ（右欄の吹き出しの下に出す）。⚠️ 自社の1件と確かめた後の conversationId だけを渡す */
+  const replyExcerpt = r.status === "accepted" && r.conversationId ? await getApproachReplyExcerpt(r.conversationId, r.candidate.id) : null;
+  return NextResponse.json({
+    id: r.id, createdAt: r.createdAt, senderName: r.senderName, jobTitle: r.jobTitle, reason: r.reason, body: r.body,
+    status: r.status, conversationId: r.conversationId, replyExcerpt,
+  });
 }

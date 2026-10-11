@@ -1,6 +1,6 @@
 "use client";
 
-import { SentApproachDetail } from "@/components/approaches/SentApproachDetail";
+import { ApproachBubble } from "@/components/approaches/ApproachBubble";
 import { CandidateProfileDrawerButton } from "@/components/candidates/CandidateProfileDrawer";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -242,9 +242,9 @@ function SentItem({ r, now, open, onToggle }: { r: SentApproach; now: Date; open
         <Line name={name} date={fmtListDate(r.createdAt, now)} status={status} preview={`あなた：${r.reason.split("\n")[0]}`} unread={false} faded={faded} />
       </button>
       {open && (
-        /* ★中身は候補者を探すの右欄と同じ部品（2026-10-11）。「プロフィールを見る」は画面を切り替えずに右から出す */
-        <SentApproachDetail senderName={r.senderName} sentAt={r.createdAt} jobTitle={r.jobTitle} reason={r.reason} body={r.body}
-          style={{ margin: "0 18px 14px 74px" }}
+        /* ★中身は候補者を探すの右欄と同じ吹き出し（`ApproachBubble`。2026-10-11）。「プロフィールを見る」は画面を切り替えずに右から出す */
+        <ApproachBubble senderName={r.senderName} sentAt={r.createdAt} jobTitle={r.jobTitle} reason={r.reason} body={r.body}
+          status={r.status} style={{ margin: "0 18px 14px 74px" }}
           footer={<CandidateProfileDrawerButton userId={r.candidate.id} name={name} style={{ display: "inline-block", marginTop: 8 }} />} />
       )}
     </div>

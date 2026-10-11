@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SentApproachDetail } from "@/components/approaches/SentApproachDetail";
+import { ApproachBubble } from "@/components/approaches/ApproachBubble";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,
-  APPROACH_UNAVAILABLE_MESSAGE, approachAlreadySentLine, approachResendNotice,
+  APPROACH_UNAVAILABLE_MESSAGE, approachResendNotice, type CompanyApproachStatus,
 } from "@/lib/constants/companyApproaches";
 
 /**
@@ -19,8 +19,8 @@ import {
  *   送り済み → 「〇月〇日に送っています」／検証用の会社 → APPROACH_TEST_COMPANY_MESSAGE ／
  *   今は考えていない → APPROACH_NOT_LOOKING_MESSAGE ／ 企業側の上限 → `limitLine` ／ それ以外 → APPROACH_UNAVAILABLE_MESSAGE
  * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここは字数だけ見る。
- * ★「送った内容を見る」は右欄の中で開閉する（2026-10-11。/biz/messages のカードと同じ部品 `SentApproachDetail`）。
- *   返信が来ている（accepted）ときだけ「メッセージを開く」で /biz/messages のスレッドへ移る。
+ * ★送ってある場合は、最初から送った内容を吹き出しで出す（2026-10-11 / 柴さんの指示。開閉はやめた）。
+ *   /biz/messages のカードと同じ部品（`ApproachBubble`）。返信があれば冒頭と「メッセージを開く」（これだけは画面を移る）。
  * ⚠️ `profileLink` は任意（2026-10-11 に「プロフィール全体を見る」ボタンをやめ、名前の横の新しいタブのアイコンにした）。
  */
 export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }: {
@@ -39,10 +39,6 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorAction, setErrorAction] = useState<{ label: string; href: string } | null>(null);
-  /* ★送った内容（その場で開閉）。null = まだ取っていない */
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detail, setDetail] = useState<{ createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null } | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
 
   const gray = (text: string, state: string, extra?: React.ReactNode) => (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
@@ -55,46 +51,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   /* ⚠️ 声かけが使えないプラン・判定が取れなかったとき（approach が undefined）は、プロフィールへの入口だけ */
   if (!a) return <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>{profileLink}</div>;
   if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
-  if (a.sent) {
-    const n = approachResendNotice(a.sent);
-    /* ★返信あり → 「メッセージを開く」でスレッドへ（これだけは移ってよい）。それ以外 → 「送った内容を見る」をその場で開閉 */
-    if (a.sent.state === "accepted") {
-      const action = n.action && (
-        <Link href={n.action.href} data-state="approach-resend-action" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>{n.action.label} →</Link>
-      );
-      return gray(approachAlreadySentLine(a.sent.sentAt), "approach-already-sent", action);
-    }
-    const sentId = a.sent.id;
-    const toggle = async () => {
-      if (detailOpen) { setDetailOpen(false); return; }
-      setDetailOpen(true);
-      if (detail) return;
-      setDetailError(null);
-      try {
-        const res = await fetch(`/api/biz/approaches/${encodeURIComponent(sentId)}`);
-        const j = await res.json().catch(() => null);
-        if (!res.ok || !j) { setDetailError("送った内容を読み込めませんでした"); return; }
-        setDetail(j);
-      } catch {
-        setDetailError("送った内容を読み込めませんでした");
-      }
-    };
-    return (
-      <div>
-        {gray(approachAlreadySentLine(a.sent.sentAt), "approach-already-sent", (
-          <button type="button" onClick={() => void toggle()} aria-expanded={detailOpen} data-state="approach-detail-toggle"
-            style={{ background: "none", border: "none", padding: 0, fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit" }}>
-            {detailOpen ? "送った内容を閉じる" : "送った内容を見る"}
-          </button>
-        ))}
-        {detailOpen && (
-          detailError ? <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-soft)" }}>{detailError}</p>
-          : detail ? <SentApproachDetail senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body} style={{ marginTop: 10 }} />
-          : <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-mute)" }}>読み込み中…</p>
-        )}
-      </div>
-    );
-  }
+  if (a.sent) return <SentBubble sent={a.sent} />;
   if (!a.eligible) {
     const text = a.blocked === "test_company" ? APPROACH_TEST_COMPANY_MESSAGE
       : a.blocked === "not_looking" ? APPROACH_NOT_LOOKING_MESSAGE
@@ -183,5 +140,31 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
         </div>
       )}
     </div>
+  );
+}
+
+/** ★送ってある場合の吹き出し。中身は /biz/messages と同じ取得（`GET /api/biz/approaches/[id]`）から */
+function SentBubble({ sent }: { sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]> }) {
+  type Detail = { createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null;
+    status: CompanyApproachStatus; conversationId: string | null; replyExcerpt: string | null };
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setDetail(null); setFailed(false);
+    fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}`)
+      .then(async (res) => { const j = await res.json().catch(() => null); if (!alive) return; if (!res.ok || !j) setFailed(true); else setDetail(j); })
+      .catch(() => { if (alive) setFailed(true); });
+    return () => { alive = false; };
+  }, [sent.id]);
+  const wrap: React.CSSProperties = { marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" };
+  if (failed) return <p data-state="approach-detail-error" style={{ ...wrap, margin: "12px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>送った内容を読み込めませんでした</p>;
+  if (!detail) return <p data-state="approach-detail-loading" style={{ ...wrap, margin: "12px 0 0", fontSize: 13, color: "var(--ink-mute)" }}>読み込み中…</p>;
+  const action = approachResendNotice(sent).action;
+  return (
+    <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
+      status={detail.status}
+      reply={detail.status === "accepted" ? { excerpt: detail.replyExcerpt, href: action?.href ?? (detail.conversationId ? `/biz/messages/${detail.conversationId}` : "/biz/messages") } : null}
+      style={wrap} />
   );
 }

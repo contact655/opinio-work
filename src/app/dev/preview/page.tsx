@@ -45,6 +45,8 @@ const ITEMS = [
     desc: "★縦の長さを見る画面。実画面はオンボーディング未完了のアカウントが要るので、ここでしか測れない" },
   { href: "/dev/preview/people-cards", label: "登録ユーザーのカード（/people）",
     note: "★肩書きを持つ実ユーザーが0人。しかも /people は is_test を除外するので、出る側はここでしか見られない" },
+  { href: "/dev/preview/approach-bubble", label: "送ったメッセージの吹き出し（右欄・/biz/messages）",
+    note: "★実データは返信待ち1件だけ。返信あり・30日経過・長文はここで見る" },
   { href: "/dev/preview/panel-profile", label: "右欄のプロフィール（候補者を探す・メッセージのドロワー）",
     note: "★検証用の候補者は項目が薄い。全部の項目がそろった詰まった表示はここで見る" },
   { href: "/dev/preview/candidates", label: "候補者を探す（/biz/organization の隣）",

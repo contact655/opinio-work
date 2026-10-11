@@ -669,6 +669,26 @@ export type SentApproach = {
   jobTitle: string | null;
 };
 
+/**
+ * ★返信の冒頭（2026-10-11）。送ったメッセージに返信があったとき、右欄の吹き出しの下に冒頭だけ出すため。
+ * ⚠️ 読むのは「その会話で候補者本人が書いた最初のメッセージ」だけ。呼び出し側で、自社の送ったメッセージの
+ *    会話であることを確かめてから呼ぶこと（`listSentApproaches` で引いた行の conversationId を渡す）。
+ * ⚠️ 取れなければ null（冒頭を出さず「メッセージを開く」だけになる）。
+ */
+export async function getApproachReplyExcerpt(conversationId: string, candidateOwUserId: string): Promise<string | null> {
+  const db = createAdminClient();
+  const { data: part, error: pErr } = await db.from("ow_conversation_participants")
+    .select("id").eq("conversation_id", conversationId).eq("user_id", candidateOwUserId).maybeSingle();
+  if (pErr) { console.error("[approaches] reply excerpt participant:", pErr.message); return null; }
+  if (!part) return null;
+  const { data: msg, error: mErr } = await db.from("ow_conversation_messages")
+    .select("body").eq("conversation_id", conversationId).eq("sender_participant_id", part.id as string)
+    .is("deleted_at", null).order("sent_at", { ascending: true }).limit(1).maybeSingle();
+  if (mErr) { console.error("[approaches] reply excerpt message:", mErr.message); return null; }
+  const body = ((msg?.body as string | undefined) ?? "").trim();
+  return body ? body.slice(0, 120) : null;
+}
+
 /** 企業が送った声かけの一覧（新しい順）。⚠️ declined_at は読まない・返さない */
 export async function listSentApproaches(companyId: string): Promise<SentApproach[] | null> {
   const db = createAdminClient();
