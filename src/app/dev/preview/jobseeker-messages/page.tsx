@@ -33,7 +33,7 @@ export default function Page() {
         <p>一覧の行（企業ロゴ・企業名・日付・「まだ返信していません」）を押すと、右に開く（狭い画面ではその場で開く）。一番下に「企業からのメッセージを受け取る：受け取る　設定を変える」。</p>
       </PreviewHeader>
       <Variant label="企業から1件・受け取る" note="行を押して開いたところを見る">
-        <ConversationsClient initialConversations={[]} initialRequests={[]} initialApproaches={[approach]} initialTab="unreplied" acceptApproaches />
+        <ConversationsClient initialConversations={[]} initialRequests={[]} initialApproaches={[approach]} initialTab="unreplied" />
       </Variant>
     </div>
   );

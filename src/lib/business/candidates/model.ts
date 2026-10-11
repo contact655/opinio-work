@@ -182,8 +182,6 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
       return v >= f.salaryMin;
     });
   }
-  /* ⚠️★判定はサーバーで `can_send_company_approach()` を通した値だけを見る（ボタンと同じ値） */
-  if (f.approachOnly) list = list.filter((c) => c.approach?.eligible === true);
   return list;
 }
 
@@ -325,6 +323,5 @@ export function describeFilters(
   if (cs) out.push(cs.label);
   const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
   if (fr) out.push(`更新 ${fr.label}`);
-  if (f.approachOnly) out.push("メッセージを受け取る方のみ");
   return out;
 }

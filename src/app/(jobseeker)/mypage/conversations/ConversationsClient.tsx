@@ -13,7 +13,6 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
-import { APPROACH_SETTING_LABEL, approachConsentText } from "@/lib/constants/companyApproaches";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
 
@@ -233,7 +232,6 @@ export default function ConversationsClient({
   initialRequests,
   initialApproaches = [],
   initialTab = "all",
-  acceptApproaches,
 }: {
   initialConversations: Conversation[];
   initialOpenConvId?: string | null;
@@ -241,8 +239,6 @@ export default function ConversationsClient({
   /** ★企業から届いた、まだ返信していない最初のメッセージ（2026-10-11）。null = 取れなかった */
   initialApproaches?: IncomingApproachView[] | null;
   initialTab?: "all" | "unreplied";
-  /** ★企業からのメッセージを受け取るか（`ow_profiles.accept_company_approaches`。2026-10-11）。undefined = 取れなかった（行ごと出さない） */
-  acceptApproaches?: boolean | null;
 }) {
   const router = useRouter();
   const [requests, setRequests] = useState<IncomingRequest[]>(initialRequests);
@@ -667,11 +663,11 @@ export default function ConversationsClient({
               );
             })
           )}
-          {/* ★一覧の一番下に、いまの受け取りの設定（2026-10-11 / モックに合わせた）。⚠️ 取れなかったら出さない */}
-          {!bulkMode && acceptApproaches !== undefined && (
+          {/* ★一覧の一番下に、止め方の1行（2026-10-11 に受け取りの設定から置き換えた。全員が最初から受け取る形） */}
+          {!bulkMode && (
             <div data-state="approach-setting-line" style={{ marginTop: "auto", padding: "12px 14px", borderTop: "1px solid var(--line-soft)", fontSize: 12, color: "var(--ink-mute)", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
-              <span>{APPROACH_SETTING_LABEL}：<strong style={{ color: "var(--ink-soft)" }}>{acceptApproaches === null ? "未設定" : approachConsentText(acceptApproaches)}</strong></span>
-              <Link href="/mypage/settings" style={{ fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>設定を変える</Link>
+              <span>企業からのメッセージは「転職について」で止められます。</span>
+              <Link href="/mypage#intent" style={{ fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>転職についてを変える</Link>
             </div>
           )}
         </div>

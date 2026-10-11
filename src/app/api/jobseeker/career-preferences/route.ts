@@ -62,8 +62,6 @@ export async function PUT(req: Request) {
     /** ★「意思表示を最後に答えた日」。⚠️ 希望条件の保存では動かさない（下記） */
     stance_updated_at?: string | null;
     desired_phase?: string[] | null;
-    /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ 本人からは true / false だけを受ける（null に戻させない） */
-    accept_company_approaches?: boolean;
     updated_at?: string | null;
   } = {};
 
@@ -186,17 +184,9 @@ export async function PUT(req: Request) {
     }
   }
 
-  /* ★企業からの声かけを受け取るか（2026-10-09）。
-     ⚠️★null は受け付けない。null は「まだ選んでいない」の印で、/mypage の一度だけの確認カードを
-        出す条件になっている。一度選んだ人を null に戻すと、もう一度聞かれることになる。
-     ⚠️ 書く経路はこのルートだけ（オンボーディング・/mypage のカード・確認カード・/mypage/settings の4つの入口）。 */
-  if ("accept_company_approaches" in body) {
-    const v = body.accept_company_approaches;
-    if (typeof v !== "boolean") {
-      return NextResponse.json({ error: "accept_company_approaches は true か false で指定してください" }, { status: 400 });
-    }
-    patch.accept_company_approaches = v;
-  }
+  /* ⚠️★`accept_company_approaches`（企業からのメッセージを受け取るか）は 2026-10-11 に受け付けるのをやめた。
+        全員が最初から受け取る形にし、判定からも外した（列とデータは残してある。扱いは別に決める）。
+        送られてきても書かない（知らないキーは捨てる）。 */
 
   // ── 希望職種（ow_profile_desired_roles）─────────────────────────────────
   // ⚠️ role_id が ow_roles に実在するかまで確かめる。存在しない UUID を投げられると

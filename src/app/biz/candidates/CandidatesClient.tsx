@@ -113,15 +113,12 @@ export default function CandidatesClient({
   roleFilterTree = [],
   initialSelected = null,
   initialSaved = null,
-  initialApproachOnly = false,
 }: {
   /** ★保存した条件で開いたとき（段3）。newSince があれば「新着だけ」を出す */
   initialSaved?: { id: string; name: string; filters: SavedCandidateFilters; newSince: string | null } | null;
   candidates: Candidate[];
   /** ★`?selected=` で開いている候補者（段1）。リロードしても同じ人を開く */
   initialSelected?: string | null;
-  /** ★`?approach=1` で開いたとき（/biz/approaches の「声かけを受け取る方だけを見る」。2026-10-11）。トグルをオンにして開く */
-  initialApproachOnly?: boolean;
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
 }) {
@@ -169,12 +166,11 @@ export default function CandidatesClient({
         （年齢を出さない理由は労働施策総合推進法9条、性別は均等法5条。**軸が違う**）。 */
   const [careerStance, setCareerStance] = useState("");
   const [stanceFreshness, setStanceFreshness] = useState("");
-  /* ★「声かけを受け取る方のみ」（2026-10-10 / 段2）。⚠️★判定はサーバーで
-        `can_send_company_approach()` を通した `c.approach.eligible` だけを見る（ボタンと同じ値）。
-        ここで条件を組み立てないこと。 */
-  const [approachOnly, setApproachOnly] = useState(initialApproachOnly);
+  /* ⚠️★「メッセージを受け取る方のみ」の切り替えは 2026-10-11 に外した（柴さんの指示）。
+        全員が最初から受け取る形にし、止める方法は「転職について」の「今は考えていない」で兼ねる
+        （その人はそもそもこの一覧に出ない）。送れるかどうかは今までどおりボタンの有無だけで示す。
+     ★送れる人が0人のときだけ一文を出す。⚠️ 判定は `c.approach.eligible`（`can_send_company_approach()`）だけ */
   const approachEnabled = candidates.some((c) => c.approach !== undefined);
-  /* ★「メッセージを受け取る方のみ（○名）」の人数（2026-10-11）。⚠️ 絞り込み前の全員から数える（判定は c.approach.eligible だけ） */
   const approachableCount = candidates.filter((c) => c.approach?.eligible === true).length;
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
@@ -247,7 +243,6 @@ export default function CandidatesClient({
     tenureBand ? "x" : "",
     careerStance ? "x" : "",
     stanceFreshness ? "x" : "",
-    approachOnly ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
   ].filter(Boolean).length;
@@ -298,7 +293,6 @@ export default function CandidatesClient({
       const label = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness)?.label;
       if (label) chips.push({ key: "fresh", label: `更新 ${label}`, clear: () => setStanceFreshness("") });
     }
-    /* ⚠️ 「声かけを受け取る方のみ」はチップにしない（1段目のトグルが状態を示す。同じ語を2回並べない） */
     return chips;
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
       workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures]);
@@ -324,7 +318,6 @@ export default function CandidatesClient({
     prefectures: setSelectedPrefectures,
     careerStance: setCareerStance,
     stanceFreshness: setStanceFreshness,
-    approachOnly: setApproachOnly,
     sort: setSort,
   };
 
@@ -332,11 +325,11 @@ export default function CandidatesClient({
   const currentFilters: SavedCandidateFilters = useMemo(() => ({
     q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
     employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-    tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness, approachOnly,
+    tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness,
     sort,
   }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-       tenureBand, selectedPrefectures, careerStance, stanceFreshness, approachOnly,
+       tenureBand, selectedPrefectures, careerStance, stanceFreshness,
        sort]);
 
   /* ★絞り込みと並び替え（model.ts。段3の新着メールと同じ関数）。⚠️ 描くのは `sorted` */
@@ -347,11 +340,6 @@ export default function CandidatesClient({
     const list = filterCandidates(candidates, currentFilters);
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
   }, [candidates, currentFilters, newSince]);
-  /* ★「声かけを受け取る方のみ」で0名になったか（トグル以外の条件では人がいる）。⚠️ 文言を出し分けるためだけ */
-  const zeroByApproachOnly = useMemo(
-    () => currentFilters.approachOnly && filtered.length === 0
-      && filterCandidates(candidates, { ...currentFilters, approachOnly: false }).length > 0,
-    [candidates, currentFilters, filtered.length]);
   const sorted = useMemo(() => sortCandidates(filtered, sort), [filtered, sort]);
   /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
   const unknownTenureCount = useMemo(() => filtered.filter((c) => c.tenureMonths == null).length, [filtered]);
@@ -650,8 +638,14 @@ export default function CandidatesClient({
         {/* ★見出しの下の1文（2026-10-11 / モックに合わせた）。⚠️「現職・過去の在籍企業とそのグループ会社には表示されません」は
                `can_send_scout()` の在籍企業の除外の言い換え。判定は変えていない */}
         <p data-state="candidates-lead" style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
-          「メッセージを受け取る」設定の方には、貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。
+          理由を添えて、候補者に貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。
         </p>
+        {/* ★送れる人が0人のときだけ（2026-10-11）。⚠️ 候補者がそもそも0人のときは下の空の表示に任せる */}
+        {approachEnabled && candidates.length > 0 && approachableCount === 0 && (
+          <p data-state="no-approachable" style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+            いま、メッセージを送れる候補者はいません。
+          </p>
+        )}
       </div>
 
       {/* ── ★ツールバー（2026-09-20）─────────────────────────────────────────
@@ -710,30 +704,7 @@ export default function CandidatesClient({
           )}
         </button>
 
-        {/* ★「声かけを受け取る方のみ」（2026-10-10 / 段2）。詳細検索の中から1段目へ出した。
-               ⚠️★判定は `c.approach.eligible`（`can_send_company_approach()`）だけ。ここで条件を組み立てない。
-               ⚠️ 声かけが使えない（プランで閉じている・判定を取れなかった）ときは出さない */}
-        {approachEnabled && (
-          <button type="button" aria-pressed={approachOnly} data-state={approachOnly ? "approach-only-on" : "approach-only-off"}
-            onClick={() => setApproachOnly((v) => !v)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-              height: 38, padding: "0 14px", borderRadius: 999, cursor: "pointer",
-              fontFamily: "inherit", fontSize: 13, fontWeight: approachOnly ? 700 : 500,
-              border: `1px solid ${approachOnly ? "var(--royal)" : "var(--line)"}`,
-              background: approachOnly ? "var(--royal-50)" : "#fff",
-              color: approachOnly ? "var(--royal)" : "var(--ink-soft)",
-            }}>
-            <span aria-hidden="true" style={{
-              display: "inline-block", width: 28, height: 16, borderRadius: 999, position: "relative",
-              background: approachOnly ? "var(--royal)" : "var(--line)", transition: "background 0.15s",
-            }}>
-              <span style={{ position: "absolute", top: 2, left: approachOnly ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
-            </span>
-            メッセージを受け取る方のみ（{approachableCount}名）
-          </button>
-        )}
-
+        {/* ⚠️★「メッセージを受け取る方のみ（〇名）」の切り替えは 2026-10-11 に外した。戻さないこと */}
         <SortSelect value={sort} options={SORT_OPTIONS} onChange={setSort} />
 
         {/* ★「この条件を保存」（2026-10-10 / 段2）。**条件を選んでいるときだけ**出す。
@@ -984,15 +955,6 @@ export default function CandidatesClient({
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
               </div>
-              {/* ★「声かけを受け取る方のみ」で0名になったとき（段3 / 柴さんの文言）。⚠️ トグル以外の条件で0名なら今までの表示 */}
-              {zeroByApproachOnly ? (
-                <div data-state="approach-only-empty">
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 auto 12px", maxWidth: 460, padding: "0 16px" }}>
-                    企業からのメッセージを受け取る設定の方は、まだいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「紹介」に届きます。
-                  </p>
-                  <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>紹介を見る →</a>
-                </div>
-              ) : (<>
               <p style={{ fontSize: 15, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>条件に合う候補者が見つかりませんでした</p>
               <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>
                 {candidates.length === 0
@@ -1009,7 +971,6 @@ export default function CandidatesClient({
                   フィルターをクリア
                 </button>
               )}
-              </>)}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

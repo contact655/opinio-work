@@ -16,8 +16,7 @@ import { RANKS } from "@/lib/constants/careerOptions";
       `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
       なぜ入口が2つ要るかは、あの部品の冒頭に書いてある。 */
 import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
-import { ApproachConsentQuestion } from "@/components/approaches/ApproachConsentQuestion";
-import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
+import { APPROACH_DEFAULT_NOTICE } from "@/lib/constants/companyApproaches";
 /* ⚠️★一覧から辿って追加する2段セレクト。**ここに書き直さないこと**（共通部品）。
       `IntentCard`（マイページの希望職種）と同じものを使う。 */
 import { RoleAccordionPicker, SelectedRoleChips } from "@/components/ui/RoleAccordionPicker";
@@ -229,7 +228,6 @@ export type OnboardingInitialPerson = {
 
 function OnboardingInner({
   roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
-  initialAcceptApproaches = null,
   draftKey,
   initialPerson,
 }: {
@@ -246,7 +244,6 @@ function OnboardingInner({
   initialStance: string | null;
   initialDesiredRoleIds: string[];
   /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ null は「まだ選んでいない」 */
-  initialAcceptApproaches?: boolean | null;
   /** ★1画面目の初期値。⚠️ 2回目に来た人に空を見せないため（`initialStance` と同じ扱い） */
   initialPerson: OnboardingInitialPerson;
   /** ★2画面目の下書きを分ける鍵（利用者ごと）。詳細は `lib/onboarding/step2Draft.ts` */
@@ -364,13 +361,8 @@ function OnboardingInner({
            スキップは置かない。
      ⚠️ 関心のある職種は**任意**。上限は `MAX_DESIRED_ROLES`（定数1つ。ここに数字を書かない）。 */
   const [stance, setStance] = useState<string | null>(initialStance);
-  /* ★★企業からの声かけを受け取るか（2026-10-09 / 柴さんの指示）。
-     ⚠️★既定値を持たない。転職意欲が企業に届く値（「今は考えていない」以外）のときだけ聞き、
-        **どちらかを選ぶまで「次へ」を押せない**（転職意欲と同じ扱い）。
-     ⚠️ 「今は考えていない」を選んだ人には聞かない（どちらを選んでも届かないため）。保存もしない（null のまま）。
-        あとで転職意欲を変えた日に、/mypage の一度だけの確認カードで聞く。 */
-  const [acceptApproaches, setAcceptApproaches] = useState<boolean | null>(initialAcceptApproaches);
-  const askApproaches = isReachableByCompanies(stance);
+  /* ⚠️★企業からのメッセージを受け取るかは聞かない（2026-10-11 / 柴さんの指示。全員が最初から受け取る形）。
+        止める方法は「転職について」で兼ねるので、画面の下に1行だけ書く（`APPROACH_DEFAULT_NOTICE`）。 */
   const [desiredRoleIds, setDesiredRoleIds] = useState<string[]>(initialDesiredRoleIds);
   const [startedYear, setStartedYear] = useState<string>(() => exStr("started_at").slice(0, 4));
   const [startedMonth, setStartedMonth] = useState<string>(() => exStr("started_at").slice(5, 7));
@@ -672,7 +664,7 @@ function OnboardingInner({
        STANCE  … `career_stance` を選ぶまで押せない。⚠️★既定値で埋めない要件があるため */
   const ctaReady = step === STEP.YOU ? youReady
     : step === STEP.COMPANY ? !!(query.trim() || selectedCompany)
-    : step === STEP.STANCE ? !!stance && (!askApproaches || acceptApproaches !== null)
+    : step === STEP.STANCE ? !!stance
     : true;
 
   /** 上限（`MAX_DESIRED_ROLES`）に当たったことを伝える短い注記。次の操作で消える（2026-09-12） */
@@ -694,8 +686,6 @@ function OnboardingInner({
     await putJson("/api/jobseeker/career-preferences", {
       career_stance: stance,
       desired_role_ids: desiredRoleIds,
-      /* ★聞いたときだけ送る（聞かなかった人は null のまま。API は null を受けない） */
-      ...(askApproaches && acceptApproaches !== null ? { accept_company_approaches: acceptApproaches } : {}),
     }, "転職意欲", failures);
     if (failures.length > 0) {
       /* ⚠️★**ここで止めない。** 保存に失敗しても `career_stance` は空のままなので、
@@ -1308,13 +1298,10 @@ function OnboardingInner({
           {step === STEP.STANCE && (<>
             <StanceQuestion value={stance} onChange={setStance} disabled={saving} />
 
-            {/* ★★企業からの声かけ（2026-10-09）。転職意欲が企業に届く値のときだけ出す。
-                   ⚠️ 問い・説明・選択肢は `ApproachConsentQuestion` の1か所。ここに書かない */}
-            {askApproaches && (
-              <div style={{ marginTop: 24 }} data-state="onboarding-approach-question">
-                <ApproachConsentQuestion value={acceptApproaches} onChange={setAcceptApproaches} disabled={saving} />
-              </div>
-            )}
+            {/* ★企業からのメッセージ（2026-10-11）。聞かずに1行だけ書く。⚠️ 文は `APPROACH_DEFAULT_NOTICE` の1か所 */}
+            <p data-state="onboarding-approach-notice" style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+              {APPROACH_DEFAULT_NOTICE}
+            </p>
 
             {/* ── ★★関心のある職種（任意）──────────────────────────────────
                 ⚠️★**大分類のアコーディオン1つに作り直した**（2026-09-12 / 柴さんの指示）。
@@ -1944,7 +1931,6 @@ function LogoMark() {
 
 export default function OnboardingPage({
   roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
-  initialAcceptApproaches = null,
   draftKey,
   initialPerson,
 }: {
@@ -1955,7 +1941,6 @@ export default function OnboardingPage({
   initialStance: string | null;
   initialDesiredRoleIds: string[];
   /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ null は「まだ選んでいない」 */
-  initialAcceptApproaches?: boolean | null;
   initialPerson: OnboardingInitialPerson;
   /** ★2画面目の下書きを分ける鍵（利用者ごと）。詳細は `lib/onboarding/step2Draft.ts` */
   draftKey: string;
@@ -1972,7 +1957,6 @@ export default function OnboardingPage({
         roleAliases={roleAliases}
         currentExperience={currentExperience}
         initialStance={initialStance}
-        initialAcceptApproaches={initialAcceptApproaches}
         initialDesiredRoleIds={initialDesiredRoleIds}
         initialPerson={initialPerson}
         draftKey={draftKey}

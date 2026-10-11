@@ -60,14 +60,14 @@ export default function Page() {
       <PreviewHeader title="メッセージ（/biz/messages）">
         <p>実画面は検証用データでは状態が揃わないので、ここで4つの状態を見る。</p>
       </PreviewHeader>
-      <Variant label="0件・送れる人 3人" note="仕組みは大きく・数字のカードは出さない（見出しの横の今月の残りだけ）。左に案内（人数・コツ・候補者を探す／受け取る方だけを見る）、右に見本。見出しの右に「候補者を探す」も出る">
+      <Variant label="0件・送れる人 3人" note="仕組みは大きく・数字のカードは出さない（見出しの横の今月の残りだけ）。左に案内（人数・コツ・候補者を探す）、右に見本。見出しの右に「候補者を探す」も出る">
         <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={3} />
       </Variant>
       <Variant label="0件・送れる人 0人・公開中の求人なし" note="1文と「提案を見る」（主）・「求人を公開する」・文字リンク「候補者を探す」。見出しの右の「候補者を探す」は出さない">
-        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} candidateCount={12} hasPublishedJob={false} />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob={false} />
       </Variant>
       <Variant label="0件・送れる人 0人・公開中の求人あり" note="「求人を公開する」は出さない">
-        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} candidateCount={12} hasPublishedJob />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob />
       </Variant>
       <Variant label="0件・人数を取れなかった" note="0人と出さず「取得できませんでした」">
         <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={null} />
