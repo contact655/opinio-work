@@ -20,6 +20,8 @@ type Props = {
   onProfileDetail?: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  /** ★選考管理の右側に入れるとき（2026-10-11）。名前・年齢・前後の移動の段を出さない（上の共通の段が名前を出す）。操作と確認はそのまま */
+  embedded?: boolean;
 };
 
 function IconBtn({ children, onClick, disabled, ariaLabel, title }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; ariaLabel?: string; title?: string }) {
@@ -179,6 +181,7 @@ export function MeetingDetailPanel({
   onProfileDetail,
   onPrev,
   onNext,
+  embedded = false,
 }: Props) {
   const [declineConfirming, setDeclineConfirming] = useState(false);
   /* ★「日程が決まった」の確認（2026-09-21）。`scheduled` にすると候補者へ
@@ -212,10 +215,10 @@ export function MeetingDetailPanel({
   const memoValue = memoDraft ?? m.companyMemo;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: embedded ? undefined : "100%" }}>
 
-      {/* ── detail-head ── */}
-      <div style={{
+      {/* ── detail-head ──（★embedded のときは出さない） */}
+      {!embedded && <div style={{
         background: "#fff",
         padding: "18px 28px",
         borderBottom: "1px solid var(--line)",
@@ -262,7 +265,7 @@ export function MeetingDetailPanel({
             </svg>
           </IconBtn>
         </div>
-      </div>
+      </div>}
 
       {/* ── action-bar ── */}
       <div style={{
@@ -377,8 +380,9 @@ export function MeetingDetailPanel({
 
       {/* ── detail-content ── */}
       <div style={{
-        flex: 1,
-        overflowY: "auto",
+        /* ★embedded のときは外側（選考管理の右側）がまとめてスクロールする */
+        flex: embedded ? undefined : 1,
+        overflowY: embedded ? undefined : "auto",
         padding: "24px 28px",
         display: "flex",
         flexDirection: "column",

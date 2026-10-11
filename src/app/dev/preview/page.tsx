@@ -45,6 +45,8 @@ const ITEMS = [
     desc: "★縦の長さを見る画面。実画面はオンボーディング未完了のアカウントが要るので、ここでしか測れない" },
   { href: "/dev/preview/people-cards", label: "登録ユーザーのカード（/people）",
     note: "★肩書きを持つ実ユーザーが0人。しかも /people は is_test を除外するので、出る側はここでしか見られない" },
+  { href: "/dev/preview/selection", label: "選考管理の左右2画面（/biz/meetings）",
+    note: "★本番は申込・応募とも0件。中身のある状態・同じ人の重複はここで見る" },
   { href: "/dev/preview/messages-split", label: "メッセージの左右2画面（/biz/messages）",
     note: "★実データは返事待ち1件だけ。返信あり・興味あり・空の右側はここで見る" },
   { href: "/dev/preview/approach-bubble", label: "送ったメッセージの吹き出し（右欄・/biz/messages）",

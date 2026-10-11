@@ -398,9 +398,11 @@ type DetailProps = {
   onStatusChange: (id: string, status: ApplicationStatus) => void;
   /** ⚠️ salary は null を取りうる（年収は任意） */
   onHireConfirm: (id: string, salary: number | null) => void;
+  /** ★選考管理の右側に入れるとき（2026-10-11）。名前と顔の枠を出さず、状態の変更だけを出す。メッセージへのボタンも上の共通の段にあるので出さない */
+  embedded?: boolean;
 };
 
-function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailProps) {
+export function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm, embedded = false }: DetailProps) {
   const [showHireForm, setShowHireForm] = useState(false);
   const [hiredSalary, setHiredSalary] = useState("");
   const [hireSubmitting, setHireSubmitting] = useState(false);
@@ -417,13 +419,14 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Profile header — improved visual hierarchy */}
-      <div style={{
+      <div style={embedded ? { display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between" } : {
         background: "linear-gradient(135deg, var(--royal-50) 0%, #f8faff 100%)",
         borderRadius: 12, border: "1px solid var(--royal-100)",
         padding: "20px 20px 18px",
         display: "flex", alignItems: "flex-start", gap: 16,
         justifyContent: "space-between",
       }}>
+        {embedded ? <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>選考の状態</span> : (<>
         <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 0 }}>
           {/* Large avatar with ring。⚠️ 人によって色を変えない */}
           <div style={{
@@ -455,6 +458,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
           </div>
         </div>
 
+        </>)}
         {/* Status selector */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
           <label htmlFor={`app-status-${app.id}`} style={{
@@ -543,7 +547,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
 
       {/* アクションボタン群 */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 4 }}>
-        {app.conversationId && (
+        {!embedded && app.conversationId && (
           <Link
             href={`/biz/messages/${app.conversationId}`}
             style={{

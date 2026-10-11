@@ -159,6 +159,7 @@ export function transformMeeting(
     questions: row.questions ?? "",
     preferredFormat: row.preferred_format ?? "—",
     submittedAt: formatRelativeTime(row.created_at),
+    createdAt: row.created_at,
     status: row.status as MeetingStatus,
     isUnread: row.company_read_at == null,
     assigneeId: row.assignee_user_id ?? null,

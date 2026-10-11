@@ -39,6 +39,8 @@ export type MeetingApplication = {
   preferredFormat: string;
   // メタ
   submittedAt: string;
+  /** ★受け付けた日時（ISO。2026-10-11 / 選考管理の並び順）。⚠️ submittedAt は「3日前」などの表示用 */
+  createdAt?: string;
   status: MeetingStatus;
   isUnread: boolean;
   // 企業側

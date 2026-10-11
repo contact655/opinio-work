@@ -1,6 +1,6 @@
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
-import { PipelineClient } from "./PipelineClient";
+import { SelectionView } from "./SelectionView";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -20,7 +20,7 @@ export const metadata = {
 export default async function BizMeetingsPage({
   searchParams,
 }: {
-  searchParams: { tab?: string };
+  searchParams: { tab?: string; show?: string };
 }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
@@ -93,7 +93,9 @@ export default async function BizMeetingsPage({
     pageVisible: ctx.isPublished,
   };
 
-  const initialTab = searchParams.tab === "applications" ? "applications" : "meetings";
+  /* ★タブは すべて／カジュアル面談／選考・応募（2026-10-11）。旧 ?tab=applications はそのまま効く */
+  const initialTab = searchParams.tab === "applications" ? "applications" : searchParams.tab === "meetings" ? "meetings" : "all";
+  const initialShow = typeof searchParams.show === "string" && /^[ma]:[0-9a-f-]{36}$/i.test(searchParams.show) ? searchParams.show : null;
 
   /* ★決まった面談（2026-10-10 / 段4）。⚠️ 取れなければ null（並べない。0件とは言わない） */
   const scheduledRaw = await listCompanyMeetings(ctx.tenantId, { upcoming: true });
@@ -112,10 +114,9 @@ export default async function BizMeetingsPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <PipelineClient
+      <SelectionView
         meetings={meetingsWithConv}
         applications={appsWithConv}
-        tenantName={ctx.tenantName}
         currentUser={{
           owUserId: ctx.currentOwnId,
           name: ctx.userName,
@@ -123,9 +124,11 @@ export default async function BizMeetingsPage({
           gradient: ctx.currentOwnerGradient,
         }}
         initialTab={initialTab}
+        initialShow={initialShow}
         hasPublishedJobs={hasPublishedJobs}
         acceptance={acceptance}
         scheduled={scheduled}
+        now={new Date().toISOString()}
       />
     </BusinessLayout>
   );
