@@ -25,14 +25,33 @@ export const WORDING_CATEGORY_LABELS: Record<WordingCategory, string> = {
   suspicious: "違法・不審な求人のおそれ",
 };
 
-type Rule = { category: WordingCategory; pattern: RegExp; example: string };
+type Rule = {
+  category: WordingCategory;
+  pattern: RegExp;
+  example: string;
+  /** ★同じ文がメンバーの説明（MEMBER_CONTEXT）なら当てない。⚠️ 年齢の「範囲」だけに付ける */
+  memberContextExempt?: boolean;
+};
+
+/* ★年齢の範囲の扱い（2026-10-12 / 柴さんの指示）
+   - 「20代〜30代」「25歳〜35歳」「20代から30代まで」のような範囲は、原則として当てる（「20代〜30代の方を募集」をすり抜けさせない）
+   - ただし同じ文にメンバーの説明を示す語（MEMBER_CONTEXT）があれば当てない（「20代から50代まで幅広く活躍しています」）
+   - ⚠️ その文に募集・限定を示す語（RECRUIT_CONTEXT）もあれば、説明の語があっても当てる（抜け道にしないため）
+   - ⚠️ 単独の「30代まで」「35歳まで」は範囲の後ろ側（から・〜 の直後）を除く。範囲は範囲のルールが拾うので二重にしない
+   ⚠️ 区切りに長音「ー」を入れない（「リーダー30代まで」の「ー」が範囲に見える）
+   ⚠️ 「社員」「メンバー」は説明の語に入れない（「20代〜30代の正社員」が抜ける） */
+const MEMBER_CONTEXT = /活躍|在籍|平均年齢|年齢層|年齢構成|年代構成|幅広/;
+const RECRUIT_CONTEXT = /募集|の方|限定|のみ|求む|歓迎|に限る/;
+const RANGE_SEP = "(?:から|〜|~|-|－)";
 
 /* ★案。正規化（全角半角・空白の除去）したあとの文字列に当てる */
 export const WORDING_RULES: readonly Rule[] = [
   // ── 年齢 ──
-  { category: "age", pattern: /(\d{2}|[二三四五六]十)歳(まで|以下|未満|迄|前後|くらい|位|程度)/, example: "35歳まで／30歳以下／40歳前後" },
-  /* ⚠️ 「20代から50代まで」「20〜50代まで」（幅の説明）は当てない。範囲の後ろ側（から・〜 の直後）を除く */
-  { category: "age", pattern: /(?<!(から|〜|~|ー|-|－))[1-6]0代(のみ|限定|まで|中心|歓迎|の方)/, example: "20代のみ／30代まで／20代歓迎" },
+  { category: "age", pattern: /(?<!(から|〜|~|-|－))(\d{2}|[二三四五六]十)歳(まで|以下|未満|迄|前後|くらい|位|程度)/, example: "35歳まで／30歳以下／40歳前後" },
+  /* ⚠️ 範囲の後ろ側（から・〜 の直後）は除く。範囲は下の2本が拾う */
+  { category: "age", pattern: /(?<!(から|〜|~|-|－))[1-6]0代(のみ|限定|まで|中心|歓迎|の方)/, example: "20代のみ／30代まで／20代歓迎" },
+  { category: "age", pattern: new RegExp(`[1-6]0代?${RANGE_SEP}[1-6]0代`), example: "20代〜30代／20〜30代／20代から30代まで", memberContextExempt: true },
+  { category: "age", pattern: new RegExp(`(\\d{2}|[二三四五六]十)歳?${RANGE_SEP}(\\d{2}|[二三四五六]十)歳`), example: "25歳〜35歳／25〜35歳", memberContextExempt: true },
   { category: "age", pattern: /(若手|若年層|若い方)(のみ|限定)/, example: "若手のみ／若年層限定" },
   { category: "age", pattern: /年齢制限(あり|有り|有)/, example: "年齢制限あり" },
   // ── 性別 ──
@@ -77,8 +96,13 @@ export function checkWording(fields: { field: string; text: string | null | unde
   const seen = new Set<string>();
   for (const f of fields) {
     if (!f.text) continue;
-    const t = normalize(f.text);
-    for (const r of WORDING_RULES) {
+    /* ★文ごとに当てる（メンバーの説明かどうかを文単位で見るため）。⚠️ 正規化で改行が消えるので、分けてから正規化する */
+    for (const sentence of f.text.split(/[。．！？!?\n]/)) {
+     const t = normalize(sentence);
+     if (!t) continue;
+     const memberOnly = MEMBER_CONTEXT.test(t) && !RECRUIT_CONTEXT.test(t);
+     for (const r of WORDING_RULES) {
+      if (r.memberContextExempt && memberOnly) continue;
       const g = new RegExp(r.pattern.source, "g");
       for (const m of Array.from(t.matchAll(g))) {
         const k = `${f.field}|${m[0]}`;
@@ -86,6 +110,7 @@ export function checkWording(fields: { field: string; text: string | null | unde
         seen.add(k);
         out.push({ category: r.category, match: m[0], field: f.field });
       }
+     }
     }
   }
   return out;

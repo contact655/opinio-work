@@ -41,4 +41,4 @@
 
 `src/lib/jobs/wordingCheck.ts` の `WORDING_RULES` は **2026-10-12 に柴さんが確定し、本番でも有効**（`WORDING_LIST_CONFIRMED = true`）。
 確定時に2点直した: 英字の語（OL）は前後が英字なら当てない（TOOL・SOLUTION・CONTROL）／
-年代の範囲の後ろ側（「20代から50代まで」）は当てない。当たる例・当たらない例は `wordingCheck.test.mjs`（`npm test`）。
+年齢の範囲（「20代〜30代」「25歳〜35歳」）は原則当てるが、同じ文がメンバーの説明（活躍・在籍・平均年齢・年齢層 など）なら当てない（募集・限定の語があれば当てる）。当たる例・当たらない例は `wordingCheck.test.mjs`（`npm test`）。
