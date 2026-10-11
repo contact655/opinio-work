@@ -1,7 +1,7 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { TouchpointSection } from "@/app/biz/candidates/CandidatePreview";
-import type { Touchpoint } from "@/lib/business/candidates/model";
+import { PreviewHeaderLines, TouchpointSection } from "@/app/biz/candidates/CandidatePreview";
+import type { Candidate, Touchpoint } from "@/lib/business/candidates/model";
 
 /**
  * ★候補者検索の「〈会社名〉と合うところ」（2026-10-10 / 候補者探し 段1。2026-10-11 に名前を改めた）。
@@ -20,6 +20,9 @@ const five = [
   tp("target_industry", "貴社の顧客の業界（製造業）での経験があります", 3),
   tp("business_domain", "同じ事業領域（CRM・営業支援・マーケティング）の会社での経験があります", 2),
 ];
+
+/* 右欄の上の段（3・4行目）に要る項目だけ。⚠️ 部品は本番と同じ */
+const person = (careerStance: string | null, touchpoints: Touchpoint[] | undefined) => ({ careerStance, touchpoints }) as unknown as Candidate;
 
 export default function Page() {
   devOnly();
@@ -42,6 +45,18 @@ export default function Page() {
       </Variant>
       <Variant label="取得に失敗（undefined）" note="欄ごと出さない（0件と言わない）">
         <TouchpointSection touchpoints={undefined} companyShortName="Third Box" />
+      </Variant>
+      <h2 style={{ fontSize: 16, margin: "32px 0 8px" }}>右欄の上の段（3・4行目。2026-10-12）</h2>
+      <Variant label="意向・合うところ・接点（ほか2件）" note="灰色の文字だけ。「合うところ（5）›」を押すとその場で開く">
+        <PreviewHeaderLines candidate={person("active", five)} companyShortName="Third Box"
+          contacts={{ latest: { at: "2025-03-14T02:00:00Z", title: "応募：インサイドセールス" }, more: 2 }} />
+      </Variant>
+      <Variant label="接点だけ（ほか0件）" note="意向・合うところが無ければ3行目は出ない">
+        <PreviewHeaderLines candidate={person(null, [])} companyShortName="Third Box"
+          contacts={{ latest: { at: "2026-09-02T02:00:00Z", title: "カジュアル面談の申込：ポジション指定なし" }, more: 0 }} />
+      </Variant>
+      <Variant label="何も無い" note="3・4行目とも出ない（何も描かれないのが正しい）">
+        <PreviewHeaderLines candidate={person(null, [])} companyShortName="Third Box" contacts={null} />
       </Variant>
     </div>
   );

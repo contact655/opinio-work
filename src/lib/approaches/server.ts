@@ -786,3 +786,22 @@ export async function candidateApproachFirst(
   const first = messages.find((m) => m.body === expected);
   return first ? { messageId: first.id, text: approachFirstDisplayText(reason, body) } : null;
 }
+
+/**
+ * ★会話の最新1通（候補者を探すの右欄の、閉じたメッセージ欄に出す。2026-10-12）。
+ *   「返信あり・10月12日 03:00」＋冒頭1行。⚠️ 既読は付けない（読み込むだけ）。
+ * ⚠️ 呼び出し側で、自社の送ったメッセージの会話だと確かめてから渡すこと（getApproachReplyExcerpt と同じ）。
+ * ⚠️ 1通目（送った理由）は見出しを外して出す（approachFirstDisplayText と同じ形）。
+ */
+export async function getConversationLatest(conversationId: string, first?: { reason: string; body: string | null }): Promise<{ at: string; excerpt: string | null } | null> {
+  const { data: msg, error } = await createAdminClient().from("ow_conversation_messages")
+    .select("body, kind, sent_at").eq("conversation_id", conversationId).is("deleted_at", null)
+    .order("sent_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) { console.error("[approaches] latest message:", error.message); return null; }
+  if (!msg) return null;
+  const raw = (msg.body as string | null) ?? "";
+  const text = first && raw === approachFirstMessageBody(first.reason, first.body) ? approachFirstDisplayText(first.reason, first.body) : raw;
+  /* ⚠️ 候補日などの種類つきのメッセージは本文を出さない */
+  const excerpt = (msg.kind ?? "text") === "text" ? text.replace(/\s+/g, " ").trim().slice(0, 80) || null : null;
+  return { at: msg.sent_at as string, excerpt };
+}

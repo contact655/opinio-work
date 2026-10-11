@@ -1,30 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApproachBubble } from "@/components/approaches/ApproachBubble";
 import { ThreadMessages, type ThreadMessagesData } from "@/app/biz/messages/ThreadMessages";
 import { ReplyForm } from "@/app/biz/messages/[id]/ReplyForm";
+import { chatTime } from "@/components/messages/ChatBubble";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,
-  APPROACH_UNAVAILABLE_MESSAGE, PANE_THREAD_RECENT, approachResendNotice, type CompanyApproachStatus,
+  APPROACH_UNAVAILABLE_MESSAGE, PANE_THREAD_RECENT, approachDaysLeft, approachResendNotice, type CompanyApproachStatus,
 } from "@/lib/constants/companyApproaches";
 
 /**
- * ★候補者検索の右のプレビューから、その場でメッセージを送る（2026-10-11 / 柴さんの指示）。
+ * ★候補者を探すの右欄の、下に固定するメッセージ欄（2026-10-12 / 柴さんの指示で「下の段」にした）。
  *
- * - 送れる人: 主ボタン「メッセージを送る」。押すとプレビューの中に送信フォームが開く（画面は移らない）。
- *   送る先・文面の決まりは /biz/messages/new と同じ（`POST /api/biz/approaches`。理由は30〜200字必須）。
- *   送ったらボタンの位置に灰色の「メッセージを送りました」（バッジにしない）。
- * - 送れない人: ボタンの代わりに灰色の1行で理由だけ。
- *   送り済み → 「〇月〇日に送っています」／検証用の会社 → APPROACH_TEST_COMPANY_MESSAGE ／
- *   今は考えていない → APPROACH_NOT_LOOKING_MESSAGE ／ 企業側の上限 → `limitLine` ／ それ以外 → APPROACH_UNAVAILABLE_MESSAGE
- * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここは字数だけ見る。
- * ★送ってある場合は、最初から送った内容を吹き出しで出す（2026-10-11 / 柴さんの指示。開閉はやめた）。
- *   /biz/messages のカードと同じ部品（`ApproachBubble`）。返信があれば冒頭と「メッセージを開く」（これだけは画面を移る）。
- * ⚠️ `profileLink` は任意（2026-10-11 に「プロフィール全体を見る」ボタンをやめ、名前の横の新しいタブのアイコンにした）。
+ * 閉じた状態（1〜2行）:
+ *   未送信 …「メッセージを送る」（押すと送信フォームがこの欄の上に広がる）
+ *   返信待ち …「返信を待っています（あと〇日）」 ／ 30日返信なし …「返信はありませんでした」
+ *   返信あり …「返信あり・10月12日 03:00」＋最新1通の冒頭1行
+ *   送れない … 灰色の1行の理由（送り済み・検証用の会社・今は考えていない・上限・その他）
+ * 「開く」で上に広がる（右欄の高さの最大60%。`CandidateProfilePanel` の footer）:
+ *   返信あり … 最新3件の吹き出し（/biz/messages と同じ `ThreadMessages`）・「これまでのやり取り（n件）を見る」・返信欄（`ReplyForm`）。
+ *               参加者でない人は返信欄の代わりに「メッセージ画面で参加する」
+ *   返信待ち・30日 … 送った内容（`ApproachBubble`）
+ * ★未読の返信がある人（サイドバーのバッジと同じ集合）を開いたときは、最初から開いた状態にする。
+ * ⚠️ 開いたときだけやり取りを読む（既読もそのときに付く）。閉じているあいだは既読にしない。
+ * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここは字数だけ見る。⚠️ 状態をバッジにしない（灰色の文字）。
  */
+const GRAY: React.CSSProperties = { fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 };
+const DOCK: React.CSSProperties = { padding: "12px 20px", minHeight: 0, display: "flex", flexDirection: "column" };
+const TOGGLE: React.CSSProperties = { flexShrink: 0, background: "none", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" };
+
 export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }: {
   candidate: Candidate;
   jobs: { id: string; title: string }[];
@@ -42,19 +49,18 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   const [error, setError] = useState<string | null>(null);
   const [errorAction, setErrorAction] = useState<{ label: string; href: string } | null>(null);
 
-  const gray = (text: string, state: string, extra?: React.ReactNode) => (
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
-      <span data-state={state} style={{ fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 }}>{text}</span>
-      {extra}
+  const gray = (text: string, state: string) => (
+    <div style={{ ...DOCK, flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <span data-state={state} style={GRAY}>{text}</span>
       {profileLink}
     </div>
   );
 
-  /* ⚠️ 声かけが使えないプラン・判定が取れなかったとき（approach が undefined）は、プロフィールへの入口だけ */
-  if (!a) return <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>{profileLink}</div>;
+  /* ⚠️ メッセージが使えないプラン・判定が取れなかったとき（approach が undefined）は欄を出さない */
+  if (!a) return profileLink ? <div style={DOCK}>{profileLink}</div> : null;
   if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
-  /* ⚠️ key で候補者ごとに作り直す（別の人の内容が一瞬残らないように。取り直しの回数もここで 0 に戻る） */
-  if (a.sent) return <SentBubble key={a.sent.id} sent={a.sent} />;
+  /* ⚠️ key で候補者ごとに作り直す（別の人の内容が一瞬残らないように。開閉もここで戻る） */
+  if (a.sent) return <SentDock key={a.sent.id} sent={a.sent} />;
   if (!a.eligible) {
     const text = a.blocked === "test_company" ? APPROACH_TEST_COMPANY_MESSAGE
       : a.blocked === "not_looking" ? APPROACH_NOT_LOOKING_MESSAGE
@@ -88,7 +94,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   const field: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px", fontSize: 13, lineHeight: 1.7, fontFamily: "inherit", background: "#fff" };
 
   return (
-    <div style={{ marginTop: 14 }}>
+    <div data-state={open ? "dock-open" : "dock-closed"} style={{ ...DOCK, overflowY: open ? "auto" : undefined }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {!open && (
           <button type="button" onClick={() => setOpen(true)} data-state="approach-button" className="tap-min-h"
@@ -99,7 +105,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
         {profileLink}
       </div>
       {open && (
-        <div data-state="approach-inline-form" style={{ marginTop: 12, padding: "14px 14px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--bg-tint)" }}>
+        <div data-state="approach-inline-form" style={{ marginTop: 0, padding: "14px 14px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--bg-tint)" }}>
           <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>
             貴社として届きます。{candidate.name}さんが返信すると、そのままメッセージでやり取りが始まります。
           </p>
@@ -148,63 +154,105 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
 
 /**
  * ★送ってある場合。中身は /biz/messages と同じ取得（`GET /api/biz/approaches/[id]`）から。
- *   返信待ち・30日経過 … これまでどおり `ApproachBubble`（送った内容＋灰色の1行）
- *   ★返信あり（2026-10-12 / 柴さんの指示）… やり取りを吹き出しで時系列に（`ThreadMessages`。/biz/messages と同じ部品）。
- *     最新 PANE_THREAD_RECENT 件まで。それより多ければ「これまでのやり取り（n件）を見る」→ /biz/messages の該当スレッド。
- *     下に入力欄（/biz/messages と同じ `ReplyForm`）。送れたらその場で取り直す。
- *     ⚠️ 参加していない会話は入力欄を出さず、メッセージ画面へ（参加は向こうで行う。ここで参加させない）
+ *   閉じた状態は最初の取得（既読を付けない）だけで描く。開いたら `?thread=1` でやり取りを取る。
  */
-function SentBubble({ sent }: { sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]> }) {
+function SentDock({ sent }: { sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]> }) {
   type Detail = { createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null;
     status: CompanyApproachStatus; conversationId: string | null; replyExcerpt: string | null;
+    latest: { at: string; excerpt: string | null } | null; unread: boolean;
     thread: (ThreadMessagesData & { total: number }) | null };
   const [detail, setDetail] = useState<Detail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  /* 閉じた状態の材料（既読を付けない）。⚠️ 未読の返信があれば最初から開く */
   useEffect(() => {
     let alive = true;
-    if (reloadKey === 0) setDetail(null);
-    setFailed(false);
     fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}`)
-      .then(async (res) => { const j = await res.json().catch(() => null); if (!alive) return; if (!res.ok || !j) setFailed(true); else setDetail(j); })
+      .then(async (res) => { const j = await res.json().catch(() => null); if (!alive) return; if (!res.ok || !j) setFailed(true); else { setDetail(j); if (j.unread) setOpen(true); } })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
-  }, [sent.id, reloadKey]);
-  const wrap: React.CSSProperties = { marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" };
-  if (failed) return <p data-state="approach-detail-error" style={{ ...wrap, margin: "12px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>送った内容を読み込めませんでした</p>;
-  if (!detail) return <p data-state="approach-detail-loading" style={{ ...wrap, margin: "12px 0 0", fontSize: 13, color: "var(--ink-mute)" }}>読み込み中…</p>;
+  }, [sent.id]);
+  /* 開いたときだけやり取りを取る（ここで既読が付く）。送ったあとは reloadKey で取り直す */
+  const [thread, setThread] = useState<Detail["thread"]>(null);
+  const [threadFailed, setThreadFailed] = useState(false);
+  const accepted = detail?.status === "accepted";
+  /* ★開いてやり取りが届いたら、いちばん下（最新と返信欄）を見せる。⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪） */
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open || !thread) return;
+    const t = setTimeout(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight; }, 60);
+    return () => clearTimeout(t);
+  }, [open, thread]);
+  useEffect(() => {
+    if (!open || !accepted) return;
+    let alive = true;
+    setThreadFailed(false);
+    fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}?thread=1`)
+      .then(async (res) => { const j = await res.json().catch(() => null); if (!alive) return; if (!res.ok || !j?.thread) setThreadFailed(true); else { setThread(j.thread); setDetail(j); } })
+      .catch(() => { if (alive) setThreadFailed(true); });
+    return () => { alive = false; };
+  }, [open, accepted, sent.id, reloadKey]);
+
+  if (failed) return <div style={DOCK}><span data-state="approach-detail-error" style={GRAY}>送った内容を読み込めませんでした</span></div>;
+  if (!detail) return <div style={DOCK}><span data-state="approach-detail-loading" style={GRAY}>読み込み中…</span></div>;
   const action = approachResendNotice(sent).action;
   const threadHref = detail.conversationId ? `/biz/messages?show=${detail.conversationId}` : action?.href ?? "/biz/messages";
-  if (detail.status === "accepted" && detail.thread) {
-    const t = detail.thread;
-    return (
-      <div data-state="pane-thread" style={wrap}>
-        {t.total > PANE_THREAD_RECENT && (
-          <Link href={threadHref} data-state="pane-thread-all"
-            style={{ display: "block", textAlign: "center", marginBottom: 10, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
-            これまでのやり取り（{t.total}件）を見る
-          </Link>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <ThreadMessages thread={t} />
-        </div>
-        {t.isParticipant ? (
-          <div style={{ margin: "12px -20px 0" }}>
-            <ReplyForm conversationId={t.conv.id} placeholder="返信を書く" onSent={() => setReloadKey((k) => k + 1)} />
-          </div>
-        ) : (
-          <Link href={threadHref} data-state="pane-thread-join"
-            style={{ display: "inline-block", marginTop: 12, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
-            メッセージ画面で参加する →
-          </Link>
-        )}
-      </div>
-    );
-  }
+
+  /* 閉じた状態の1〜2行 */
+  const summary = accepted ? (
+    <div style={{ minWidth: 0, flex: 1 }}>
+      <div data-state="dock-status" style={GRAY}>返信あり{detail.latest ? `・${chatTime(detail.latest.at)}` : ""}</div>
+      {detail.latest?.excerpt && (
+        <div data-state="dock-excerpt" style={{ fontSize: 13, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={detail.latest.excerpt}>{detail.latest.excerpt}</div>
+      )}
+    </div>
+  ) : (
+    <div data-state="dock-status" style={{ ...GRAY, minWidth: 0, flex: 1 }}>
+      {detail.status === "pending" ? `返信を待っています（あと${approachDaysLeft(detail.createdAt)}日）` : "返信はありませんでした"}
+    </div>
+  );
+
   return (
-    <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
-      status={detail.status}
-      reply={detail.status === "accepted" ? { excerpt: detail.replyExcerpt, href: threadHref } : null}
-      style={wrap} />
+    <div data-state={open ? "dock-open" : "dock-closed"} style={{ ...DOCK, padding: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 20px", flexShrink: 0 }}>
+        {summary}
+        <button type="button" onClick={() => setOpen((x) => !x)} aria-expanded={open} data-state="dock-toggle" style={TOGGLE}>{open ? "閉じる" : "開く"}</button>
+      </div>
+      {open && (
+        <div ref={bodyRef} data-state="dock-body" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 20px 12px" }}>
+          {!accepted ? (
+            <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
+              status={detail.status} reply={null} />
+          ) : threadFailed ? (
+            <span style={GRAY}>やり取りを読み込めませんでした</span>
+          ) : !thread ? (
+            <span style={GRAY}>読み込み中…</span>
+          ) : (
+            <div data-state="pane-thread">
+              {thread.total > PANE_THREAD_RECENT && (
+                <Link href={threadHref} data-state="pane-thread-all"
+                  style={{ display: "block", textAlign: "center", marginBottom: 10, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+                  これまでのやり取り（{thread.total}件）を見る
+                </Link>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <ThreadMessages thread={thread} />
+              </div>
+              {thread.isParticipant ? (
+                <div style={{ margin: "12px -20px 0" }}>
+                  <ReplyForm conversationId={thread.conv.id} placeholder="返信を書く" onSent={() => setReloadKey((k) => k + 1)} />
+                </div>
+              ) : (
+                <Link href={threadHref} data-state="pane-thread-join"
+                  style={{ display: "inline-block", marginTop: 12, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+                  メッセージ画面で参加する →
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

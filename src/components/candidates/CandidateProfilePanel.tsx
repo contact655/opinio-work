@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { renderCandidateProfile } from "@/lib/profile/profileViewAction";
+import { PanelExtraTabsProvider, type PanelTab } from "@/components/profile/view/PanelProfileTabs";
 /* ⚠️ この部品を使うページは、page.tsx で `PROFILE_CLIENT_MODULES` を参照すること（profileClientModules.ts の注記） */
 
 /**
@@ -13,8 +14,10 @@ import { renderCandidateProfile } from "@/lib/profile/profileViewAction";
  *   ⚠️★見せてよいかの判定とデータの取り方は /u/[id] と同じ1か所。ここで取り直さない・条件を足さない
  * - `before` … プロフィールの前に出すもの（候補者を探すの「合うところ」「社内メモ」）
  * ⚠️ 状態はバッジにしない（灰色の文字）。
+ * ★`tabs` … 中身をタブ（職歴／学歴／スキル／自己紹介）で出す。候補者を探すだけ（2026-10-12）。`extraTabs` は右欄の側から足すタブ（社内メモ）
+ * ★`footer` … 下に固定する段（候補者を探すのメッセージ欄）。中身だけがスクロールする
  */
-export function CandidateProfilePanel({ userId, name, meta, headerExtra, before, onClose }: {
+export function CandidateProfilePanel({ userId, name, meta, headerExtra, before, onClose, tabs = false, extraTabs, footer }: {
   userId: string;
   name: string;
   /** 名前の下の灰色の1行（社会人〇年・職種など）。無ければ出さない */
@@ -24,6 +27,9 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
   before?: ReactNode;
   /** 閉じる（✕）。⚠️ 渡さなければ ✕ を出さない（/biz/employees は常に誰かを出す。2026-10-12） */
   onClose?: () => void;
+  tabs?: boolean;
+  extraTabs?: PanelTab[];
+  footer?: ReactNode;
 }) {
   const [content, setContent] = useState<ReactNode | null>(null);
   const [failed, setFailed] = useState(false);
@@ -31,11 +37,11 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
   useEffect(() => {
     let alive = true;
     setContent(null); setFailed(false);
-    renderCandidateProfile(userId)
+    renderCandidateProfile(userId, { tabs })
       .then((node) => { if (alive) setContent(node); })
       .catch((e) => { console.error("[CandidateProfilePanel]", e); if (alive) setFailed(true); });
     return () => { alive = false; };
-  }, [userId]);
+  }, [userId, tabs]);
 
   return (
     <div data-state="candidate-profile-panel" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
@@ -64,14 +70,17 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
         {headerExtra}
       </div>
       {/* 中身（ここだけスクロール） */}
-      <div data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
+      <div data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: tabs ? "0 20px 20px" : "4px 20px 20px" }}>
         {before}
-        {failed ? (
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "12px 4px" }}>プロフィールを読み込めませんでした。</p>
-        ) : content ?? (
-          <p data-state="profile-loading" style={{ fontSize: 13, color: "var(--ink-mute)", margin: "12px 4px" }}>読み込み中…</p>
-        )}
+        <PanelExtraTabsProvider tabs={extraTabs ?? []}>
+          {failed ? (
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "12px 4px" }}>プロフィールを読み込めませんでした。</p>
+          ) : content ?? (
+            <p data-state="profile-loading" style={{ fontSize: 13, color: "var(--ink-mute)", margin: "12px 4px" }}>読み込み中…</p>
+          )}
+        </PanelExtraTabsProvider>
       </div>
+      {footer && <div data-state="candidate-profile-footer" style={{ flexShrink: 0, borderTop: "1px solid var(--line)", background: "#fff", maxHeight: "60%", display: "flex", flexDirection: "column", minHeight: 0 }}>{footer}</div>}
     </div>
   );
 }

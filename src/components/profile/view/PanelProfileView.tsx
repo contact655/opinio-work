@@ -7,6 +7,7 @@ import { formatDuration, formatYmLabel } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
 import { languageProficiencyLabel } from "@/lib/constants/languageProficiency";
 import { SKILL_CATEGORIES } from "@/lib/constants/skills";
+import { PanelProfileTabs, type PanelTab } from "@/components/profile/view/PanelProfileTabs";
 
 /**
  * ★右欄（候補者を探す・メッセージのドロワー）用の、詰まったプロフィール表示（2026-10-11 / 柴さんの指示）。
@@ -80,7 +81,13 @@ function groupCareers(careers: CareerEntry[]): CareerEntry[][] {
   return groups;
 }
 
-export function PanelProfileView({ data }: { data: PanelProfileData }) {
+/** ★タブ（2026-10-12）。自己紹介タブに自己紹介・語学・資格・実績・メディアなどをまとめる */
+type TabKey = "career" | "education" | "skills" | "about";
+const TAB_LABELS: Record<TabKey, string> = { career: "職歴", education: "学歴", skills: "スキル", about: "自己紹介" };
+const TAB_ORDER: TabKey[] = ["career", "education", "skills", "about"];
+
+/** `tabbed` … 候補者を探すの右欄だけ（2026-10-12）。中身・判定は同じで、並べ方だけがタブになる */
+export function PanelProfileView({ data, tabbed = false }: { data: PanelProfileData; tabbed?: boolean }) {
   const careerGroups = groupCareers(data.careers);
   const skillGroups = [
     ...[
@@ -98,10 +105,10 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
     ...socials.map((u) => ({ key: u, url: u, label: hostOf(u) })),
   ];
 
-  const sections: Array<{ title: string; body: ReactNode }> = [];
+  const sections: Array<{ title: string; body: ReactNode; tab: TabKey }> = [];
 
   if (careerGroups.length > 0) sections.push({
-    title: "職歴",
+    title: "職歴", tab: "career",
     body: (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {careerGroups.map((g) => {
@@ -149,7 +156,7 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
   });
 
   if (skillGroups.length > 0) sections.push({
-    title: "スキル",
+    title: "スキル", tab: "skills",
     body: (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {skillGroups.map((g) => (
@@ -170,7 +177,7 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
   });
 
   if (data.aboutMe?.trim()) sections.push({
-    title: "自己紹介",
+    title: "自己紹介", tab: "about",
     body: <p style={{ margin: 0, fontSize: 14, color: soft, lineHeight: 1.8, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{data.aboutMe}</p>,
   });
 
@@ -184,7 +191,7 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
     })),
   ];
   if (eduRows.length > 0) sections.push({
-    title: "学歴",
+    title: "学歴", tab: "education",
     body: (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {eduRows.map((e) => (
@@ -213,34 +220,47 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
   );
   const linkStyle = { color: "var(--royal)", textDecoration: "none" } as const;
 
-  if (data.achievements.length > 0) sections.push({ title: "実績", body: list(data.achievements.map((a) => ({
+  if (data.achievements.length > 0) sections.push({ title: "実績", tab: "about", body: list(data.achievements.map((a) => ({
     key: a.id, main: <>{a.title}{a.value && <>：{a.value}{a.unit ?? ""}</>}</>, sub: a.description,
   }))) });
-  if (data.awards.length > 0) sections.push({ title: "受賞・表彰", body: list(data.awards.map((a) => ({
+  if (data.awards.length > 0) sections.push({ title: "受賞・表彰", tab: "about", body: list(data.awards.map((a) => ({
     key: a.id, main: a.title, sub: [a.issuer, a.awarded_at ? formatYmLabel(a.awarded_at) : null].filter(Boolean).join(" · ") || null,
   }))) });
-  if (data.certifications.length > 0) sections.push({ title: "資格", body: list(data.certifications.map((c) => ({
+  if (data.certifications.length > 0) sections.push({ title: "資格", tab: "about", body: list(data.certifications.map((c) => ({
     key: c.id, main: c.name, sub: [c.issuer, c.issued_at ? formatYmLabel(c.issued_at) : null].filter(Boolean).join(" · ") || null,
   }))) });
-  if (data.languages.length > 0) sections.push({ title: "語学", body: list(data.languages.map((l) => ({
+  if (data.languages.length > 0) sections.push({ title: "語学", tab: "about", body: list(data.languages.map((l) => ({
     key: l.id, main: l.name, sub: languageProficiencyLabel(l.proficiency),
   }))) });
-  if (data.mediaAppearances.length > 0) sections.push({ title: "メディア掲載", body: list(data.mediaAppearances.map((m) => ({
+  if (data.mediaAppearances.length > 0) sections.push({ title: "メディア掲載", tab: "about", body: list(data.mediaAppearances.map((m) => ({
     key: m.id,
     main: m.url ? <a href={m.url} target="_blank" rel="noopener noreferrer" style={linkStyle}>{m.title}</a> : m.title,
     sub: [m.media_name, m.appeared_at ? formatYmLabel(m.appeared_at) : null].filter(Boolean).join(" · ") || null,
   }))) });
-  if (data.featuredArticles.length > 0) sections.push({ title: "OPINIO掲載記事", body: list(data.featuredArticles.map((a) => ({
+  if (data.featuredArticles.length > 0) sections.push({ title: "OPINIO掲載記事", tab: "about", body: list(data.featuredArticles.map((a) => ({
     key: a.id, main: <a href={`/articles/${a.slug}`} target="_blank" rel="noopener noreferrer" style={linkStyle}>{a.title}</a>,
   }))) });
-  if (links.length > 0) sections.push({ title: "発信・リンク", body: list(links.map((l) => ({
+  if (links.length > 0) sections.push({ title: "発信・リンク", tab: "about", body: list(links.map((l) => ({
     key: l.key, main: <a href={l.url} target="_blank" rel="noopener noreferrer nofollow" style={linkStyle}>{l.label}</a>,
   }))) });
-  if (data.posts.length > 0) sections.push({ title: "アクティビティ", body: list(data.posts.map((p) => ({
+  if (data.posts.length > 0) sections.push({ title: "アクティビティ", tab: "about", body: list(data.posts.map((p) => ({
     key: p.id,
     main: <span style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "pre-wrap", color: soft }}>{p.content}</span>,
     sub: formatYmLabel(p.created_at.slice(0, 10)),
   }))) });
+
+  if (tabbed) {
+    /* ⚠️ 中身の無いタブは出さない。1つのタブに1項目だけなら見出しは出さない（タブ名と重なるため） */
+    const tabs: PanelTab[] = TAB_ORDER.map((key): PanelTab | null => {
+      const own = sections.filter((x) => x.tab === key);
+      if (own.length === 0) return null;
+      const body = own.length === 1 && own[0].title === TAB_LABELS[key]
+        ? own[0].body
+        : <div>{own.map((x, i) => <Section key={x.title} title={x.title} first={i === 0}>{x.body}</Section>)}</div>;
+      return { key, label: TAB_LABELS[key], body };
+    }).filter((t): t is PanelTab => t !== null);
+    return <PanelProfileTabs tabs={tabs} />;
+  }
 
   if (sections.length === 0) {
     return <p data-state="panel-profile-empty" style={{ margin: "12px 0", fontSize: 13, color: mute }}>プロフィールはまだ書かれていません。</p>;

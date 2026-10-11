@@ -23,8 +23,9 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
 import { ProfileMoreMenu } from "@/components/profile/ProfileMoreMenu";
 import * as ProfileSections from "@/components/profile/view/ProfileSections";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
+import * as PanelProfileTabs from "@/components/profile/view/PanelProfileTabs";
 
 export const PROFILE_CLIENT_MODULES = [
   CandidateNotesPanel, MergedTimeline, SchoolLogoImg, ProfileShareButton, FollowUserButton, DMButton,
-  ApproachButton, ProfileMoreMenu, ProfileSections, CompanyLogoImg,
+  ApproachButton, ProfileMoreMenu, ProfileSections, CompanyLogoImg, PanelProfileTabs,
 ] as const;

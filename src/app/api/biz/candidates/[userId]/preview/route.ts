@@ -7,6 +7,7 @@ import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile
 import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSelectionHistory } from "@/lib/business/selectionHistory";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +32,12 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
   const candidate = loaded.candidates.find((c) => c.id === params.userId);
   if (!candidate) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const [profile, { data: co, error: coErr }] = await Promise.all([
+  const [profile, { data: co, error: coErr }, history] = await Promise.all([
     getCandidateProfileForCompany(params.userId),
     /* ★「〈会社名〉と合うところ」の会社名（2026-10-11）。短い表示名（株式会社などを外す）。取れなければ null */
     createAdminClient().from("ow_companies").select("name, name_en").eq("id", ctx.tenantId).maybeSingle(),
+    /* ★この会社との接点（2026-10-12）。選考管理の「この会社とのこれまで」と同じ関数。自社のものだけ */
+    getSelectionHistory(ctx.tenantId, params.userId),
   ]);
   if (coErr) console.error("[candidates/preview] company:", coErr.message);
   if (!profile) return NextResponse.json({ error: "取得できませんでした" }, { status: 500 });
@@ -49,5 +52,13 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
     companyShortName: co ? companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName : null,
     /* ★社内メモの欄を出すか。⚠️ フラグがオフなら出さない（API も 404） */
     notesEnabled: isCandidateNotesEnabled(),
+    /* ★最新1件＋ほかの件数。⚠️ 送ったメッセージと返信は右欄の下のメッセージ欄に出すので、ここでは数えない（二重にしない）。
+          取れなければ null（行を出さない） */
+    contacts: (() => {
+      if (!history) return null;
+      const rows = history.filter((h) => h.kind !== "approach_sent" && h.kind !== "approach_reply");
+      if (rows.length === 0) return null;
+      return { latest: { at: rows[0].at, title: rows[0].title }, more: rows.length - 1 };
+    })(),
   });
 }
