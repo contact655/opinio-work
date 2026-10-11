@@ -591,10 +591,11 @@ export function JobEditForm({
 
   const stepStatus = (id: StepId): StepStatus => {
     if (id === "review") return null;
+    /* ⚠️ 公開の条件に入っていないステップは、空なら「任意」（「未入力」と出すと書かないと駄目に見える） */
     if (id === "more") return "optional";
     if (missing.some((m) => m.step === id)) return "todo";
-    if (id === "requirements") return form.requiredSkills.length > 0 || form.preferredSkills.length > 0 ? "done" : "todo";
-    if (id === "process") return form.selectionSteps.some((s) => s.trim()) ? "done" : "todo";
+    if (id === "requirements") return form.requiredSkills.length > 0 || form.preferredSkills.length > 0 ? "done" : "optional";
+    if (id === "process") return form.selectionSteps.some((s) => s.trim()) ? "done" : "optional";
     return "done";
   };
   const steps: EditStep[] = STEP_DEFS.map((s) => ({ id: s.id, label: s.label, status: stepStatus(s.id) }));
