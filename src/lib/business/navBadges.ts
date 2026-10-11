@@ -17,22 +17,37 @@ import { unseenRepliedConversationIds } from "@/lib/approaches/server";
  */
 export type BizNavBadges = { messages: number; proposals: number };
 
-export async function getBizNavBadges(params: {
-  owUserId: string;
-  companyId: string;
-}): Promise<BizNavBadges> {
+/**
+ * ★「対応が必要なメッセージ」の会話（2026-10-12 / 柴さんの指示で1つにまとめた）。
+ *   サイドバーのバッジ・ホームの「対応が必要なもの」が**この関数**で数える（メッセージ画面の「未読」タブと同じ3つの集合）。
+ *   unread … 参加者として未読がある会話 ／ replied … 送ったメッセージに返信があって誰もまだ開いていない会話 ／
+ *   fromProposals … 提案から始まって誰もまだ開いていない会話
+ * ⚠️ 条件を呼び出し側で書き足さない。数え方を変えるときはここを変える（バッジとホームが同時に変わる）。
+ */
+export async function companyMessageTodoIds(params: { owUserId: string; companyId: string }): Promise<{
+  unread: Set<string>; replied: Set<string>; fromProposals: Set<string>; all: Set<string>;
+}> {
   const [unread, replied, fromProposals] = await Promise.all([
     unreadConversationIds(params.owUserId, { companyId: params.companyId }),
     unseenRepliedConversationIds(params.companyId),
     /* ★提案から始まった会話は、企業の担当者がまだ参加者になっていない（参加者の未読では数えられない）ので別に数える */
     unseenProposalConversationIds(params.companyId),
   ]);
+  const all = new Set([...Array.from(unread), ...Array.from(replied), ...Array.from(fromProposals)]);
+  return { unread, replied, fromProposals, all };
+}
+
+export async function getBizNavBadges(params: {
+  owUserId: string;
+  companyId: string;
+}): Promise<BizNavBadges> {
+  const { all } = await companyMessageTodoIds(params);
   return {
-    messages: new Set([...Array.from(unread), ...Array.from(replied), ...Array.from(fromProposals)]).size,
+    messages: all.size,
     /* ★2026-10-11 から企業が答える紹介は無い（届いた方はその場で会話になり、上の messages で数える）。常に 0 */
     proposals: 0,
   };
 }
 
-/* ⚠️ ダッシュボードの「やること」用の `getBizTodoCounts` は 2026-10-10（段3）に外した。
-      ホームは `lib/business/todayTodo.ts`（今日やること）を使う。面談申込の未読もそちらで数えている。 */
+/* ⚠️ ホームの「対応が必要なもの」は `lib/business/actionItems.ts`（2026-10-12）。メッセージは上の
+      `companyMessageTodoIds` をそのまま使う。面談申込・応募の新規もそちらで数えている。 */

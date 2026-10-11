@@ -69,6 +69,8 @@ const ITEMS = [
     desc: "カテゴリ分けの境界（3カテゴリ目と4カテゴリ目）と、緑にしてよい項目" },
   { href: "/dev/preview/company-employees", label: "現役社員（企業ページ）",
     desc: "⚠️ 職種ごとに分かれる側は本番に該当企業が無い。5名以上＋職種2種類以上でしか出ない" },
+  { href: "/dev/preview/biz-home", label: "企業ホーム（/biz/dashboard）",
+    desc: "★対応が多い状態・はじめにやることが全部済んだ状態（枠ごと消える）・一部を取得できなかった状態。検証用の企業では作れない" },
   { href: "/dev/preview/biz-employees", label: "社員・OB/OG（/biz/employees）",
     desc: "⚠️ 管理者バッジ・面談OKバッジ・職種の併記は、ログインできるどの企業にも該当者が居ない。ここでしか見られない" },
   { href: "/dev/preview/employees", label: "現役社員 / OB・OG",

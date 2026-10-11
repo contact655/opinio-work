@@ -94,3 +94,19 @@ export function companyPageStatus(input: {
     detail: "企業ページは見えますが、企業一覧には載っていません。掲載するには運営に掲載を依頼してください。",
   };
 }
+
+/**
+ * ★企業ページの状態を1行で（2026-10-12）。/biz/company の上部と、ホームの右の列「企業ページ」が**この関数**を使う。
+ *   「公開中」「公開中・未公開の変更あり」「非公開・公開まであと2つ」「非公開・掲載を依頼済み（運営が確認中）」など。
+ * ⚠️ `blockingCount` は companyRequirements.ts で数えた「公開まであと〇つ」（掲載中なら always の項目だけ）。ここで数えない。
+ */
+export function companyStatusText(
+  status: CompanyPageStatus,
+  o: { hasChanges: boolean; listingRequestedAt: string | null; blockingCount: number },
+): string {
+  if (status.kind === "listed") return o.hasChanges ? "公開中・未公開の変更あり" : "公開中";
+  const where = status.pageVisible ? "企業一覧に未掲載" : "非公開";
+  if (o.listingRequestedAt) return `${where}・掲載を依頼済み（運営が確認中）`;
+  if (o.blockingCount > 0) return `${where}・公開まであと${o.blockingCount}つ`;
+  return `${where}・掲載を依頼できます`;
+}

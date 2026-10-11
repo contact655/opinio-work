@@ -1,29 +1,24 @@
-import { FindabilityCard } from "@/components/business/FindabilityCard";
-import { getEvidenceMaterials } from "@/lib/evidence/materials";
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { CompanyCard } from "@/components/business/CompanyCard";
-import { JobStatusCards } from "@/components/business/JobStatusCards";
-import { TeamMembers } from "@/components/business/TeamMembers";
-import {
-  getTenantContext,
-  getJobStatusCounts,
-} from "@/lib/business/dashboard";
-import { fetchTeamMembersForDashboard } from "@/lib/business/team";
-import { fetchCompanyForTenant } from "@/lib/business/company";
-import { scoreLabel, scoreColor, scoreTextColor, bizScoreOnTotalScale, DISCLOSURE_BIZ_MAX, DISCLOSURE_INTERVIEW_MAX, BIZ_SCORE_ITEM_LABELS } from "@/lib/utils/disclosureScore";
-import { BIZ_SCORE_ITEM_HREF, getBizDisclosure } from "@/lib/business/bizDisclosure";
-import { getTodayTodo, type TodayTodoKind } from "@/lib/business/todayTodo";
+import { HomeActionList } from "@/components/business/home/HomeActionList";
+import { HomeChecklist } from "@/components/business/home/HomeChecklist";
+import { HomeSideColumn } from "@/components/business/home/HomeSideColumn";
+import { getTenantContext, getJobStatusCounts } from "@/lib/business/dashboard";
+import { getBizActionItems } from "@/lib/business/actionItems";
+import { buildHomeChecklist } from "@/lib/business/homeChecklist";
+import type { HomeSide } from "@/lib/business/homeTypes";
+import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
 import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
-import { DashboardCardHeading } from "@/components/business/DashboardCardHeading";
 import { createClient } from "@/lib/supabase/server";
-import { companyHasApproachRoles, getApproachRangeFieldFlags } from "@/lib/approaches/range";
-import { hasPublicCompanyPage } from "@/lib/companies/visibility";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPublishable } from "@/lib/companies/publishable";
-import { countUnconfirmedMaterialItems } from "@/lib/companyMaterials/server";
+import { companyPageStatus, companyStatusText } from "@/lib/companies/pageStatus";
+import { getEvidenceMaterials } from "@/lib/evidence/materials";
+import { getCompanyEmployees } from "@/lib/supabase/queries";
+import { jobState } from "@/lib/jobs/jobState";
 
 export const dynamic = "force-dynamic";
 
@@ -72,46 +67,14 @@ async function NoTenantPage() {
   );
 }
 
-/** ★「まだ入れていない項目」の行き先（2026-09-21）。ラベルは disclosureScore.ts の1箇所 */
-/* ★今日やることの件数カード（2026-10-11 にキャンバス7の5つにした）。⚠️ 並びは「相手を待たせているもの」から */
-const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
-  /* ★2026-10-11: 「メッセージ」にまとめた。送ったメッセージに返信があって、まだ開いていないもの */
-  { kind: "approach", label: "新しい返信", href: "/biz/messages" },
-  /* ⚠️ 「紹介で届いた方」の数字は 2026-10-11 に外した（「紹介」をやめ、届いた方は「メッセージ」に統合したため）。
-        まだ開いていない会話は下の「対応が必要なもの」に「〇〇さんが、貴社の話を聞いてみたいそうです」と出る */
-  /* ⚠️ 人数（新着がある条件の数ではない） */
-  { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
-  { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/messages" },
-  /* ⚠️ 2026-10-11 にモックに合わせて4つにした（「今日以降の面談」の数字は外した。面談は下の一覧には今までどおり出る） */
-];
-const TODAY_LIST_LIMIT = 10;
-/** 「10月11日（日）」（日本時間） */
-function formatTodayHeading(d: Date): string {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short" }).formatToParts(d).map((x) => [x.type, x.value]));
-  return `${p.month}月${p.day}日（${p.weekday}）`;
-}
-
-const TODO_BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40, padding: "0 16px", borderRadius: 8, fontSize: 13.5, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", background: "#fff", color: "var(--royal)", border: "1px solid var(--line)" };
-const TODO_BTN_PRIMARY: React.CSSProperties = { ...TODO_BTN, background: "var(--royal)", color: "#fff", border: "1px solid var(--royal)" };
-
-/** 項目ごとのアイコン。⚠️ 色で意味を足さない（ui-conventions「色の役割」）: 待ち＝黄、ほかは濃紺かニュートラル */
-function TodoIcon({ kind }: { kind: TodayTodoKind | "other" }) {
-  /* ⚠️ 提案は 2026-10-11 から「待ち」ではなく「届いた方」なので黄色にしない */
-  const tone = kind === "approach" || kind === "unreplied" || kind === "proposal" ? { bg: "var(--royal-50)", fg: "var(--royal)" }
-    : { bg: "var(--line-soft)", fg: "var(--ink-soft)" };
-  const path = kind === "approach" ? <path d="M5 12l5 5 9-10" />
-    : kind === "unreplied" ? <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-    : kind === "proposal" ? <><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-7 7-7s7 3 7 7M19 8v6M16 11h6" /></>
-    : kind === "savedSearch" ? <path d="M6 3h12v18l-6-4-6 4z" />
-    : kind === "meeting" || kind === "meetingRequest" ? <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></>
-    : <><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></>;
-  return (
-    <span aria-hidden="true" style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: tone.bg, color: tone.fg }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{path}</svg>
-    </span>
-  );
-}
-
+/**
+ * ★企業ホーム（2026-10-12 / 柴さんの指示で作り直した）。
+ *   左（主）… 対応が必要なもの（`lib/business/actionItems.ts`）→ はじめにやること（`lib/business/homeChecklist.ts`）
+ *   右（細い列）… 今月のメッセージ／求人の数／企業ページの状態
+ * ⚠️ 上部の数字タイル・会社名とロゴのカード・チーム・企業ページの充実度（企業入力 /45・取材 /50）・
+ *    「候補者に貴社を見つけてもらうには」（貴社に移ってきた方・入社の決め手の回答）は 2026-10-12 に外した。
+ * ⚠️ 左右の列は高さをそろえない（上揃え）。状態はバッジにしない。
+ */
 export default async function BizDashboardPage({
   searchParams,
 }: {
@@ -125,71 +88,66 @@ export default async function BizDashboardPage({
   }
 
   const supabase = createClient();
-  const [jobStatusCounts, teamMembers, companyRaw, disclosureScore, today, classification, unconfirmedMaterials, hasApproachRoles, approachQuota, findMaterials] = await Promise.all([
+  const quotaAllowed = canUse(ctx.planType, "companyApproach");
+  const [jobStatusCounts, jobs, companyRow, publishCheck, materials, employees, quota] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
-    fetchTeamMembersForDashboard(supabase, ctx.tenantId),
-    fetchCompanyForTenant(supabase, ctx.tenantId, []),
-    /* ★開示充実度（企業入力）。材料の集め方は `lib/business/bizDisclosure.ts` の1か所（声かけを書く画面と共有。2026-10-10） */
-    getBizDisclosure(ctx.tenantId),
-    /* ★「やること」。メッセージと提案はサイドバーのバッジと同じ関数で数える */
-    /* ★今日やること（2026-10-10 / 段3）。今あるデータを読むだけ（`lib/business/todayTodo.ts`） */
-    getTodayTodo(ctx.tenantId, { owUserId: ctx.currentOwnId, permission: ctx.currentPermission, planType: ctx.planType, reviewed: isCompanyReviewed(ctx) }),
-    /* ★スタートガイドの「企業情報を入力する」の完了判定（2026-10-08）。
-          掲載に必要な項目（業種＋必須の事業領域）が埋まっているか。
-          ⚠️ `{ kind: "admin" }` を渡す＝**規約同意は見ない**（同意は設定タブの話で、
-             企業情報の入力とは別）。⚠️ 判定は公開ゲートと同じ関数。書き写さない。 */
-    checkPublishable(ctx.tenantId, { kind: "admin" }),
-    /* ★企業資料の未確定の項目（2026-10-09 / 依頼②）。⚠️ 取れなかったら null */
-    countUnconfirmedMaterialItems(ctx.tenantId),
-    /* ★声かけを受け取る範囲で「職種」を選んでいる人に届くか（2026-10-10 / 段2）。⚠️ 取れなかったら null。
-          ⚠️ 職種の項目が無効（求職者の設定画面に出ていない）なら一言も出さない ——登録しても届く相手は増えないため */
-    getApproachRangeFieldFlags().then((f) => (f?.job_categories ? companyHasApproachRoles(ctx.tenantId) : null)),
-    /* ★今月の声かけの枠（右の列）。声かけが使えないプランでは取らない */
-    canUse(ctx.planType, "companyApproach") ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
-    /* ★「候補者に貴社を見つけてもらうには」（2026-10-11。旧 /biz/proposals から移した）。⚠️ 取れなかったら null */
+    /* ★下書きの「公開まであと〇つ」（publishMissingCount）。求人管理と同じ関数 */
+    fetchJobsForCompany(supabase, ctx.tenantId, { meetings: {}, applications: {} }).catch((e) => { console.error("[dashboard] jobs:", e); return null; }),
+    createAdminClient().from("ow_companies").select("listing_requested_at, accepting_casual_meetings").eq("id", ctx.tenantId).maybeSingle(),
+    /* ★企業ページの「公開まであと〇つ」。/biz/company・掲載の依頼と同じ判定（下書きを重ね、掲載に要る項目まで見る）。
+          ⚠️ `{ kind: "admin" }` ＝規約同意は数えない（同意は項目ではなく、押す人の状態） */
+    checkPublishable(ctx.tenantId, { kind: "admin" }, { useDraft: true, forListing: true }),
     getEvidenceMaterials(ctx.tenantId),
+    getCompanyEmployees(ctx.tenantId).catch((e) => { console.error("[dashboard] employees:", e); return null; }),
+    quotaAllowed ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
   ]);
+  if (companyRow.error) console.error("[dashboard] company:", companyRow.error.message);
 
-  /* ★★スタートガイド（2026-10-08 に完了判定を実データへ合わせた / 柴さんの指示）。
-        それまで「求人を作成」「公開」「面談受付」は **`done: false` の固定**で、
-        「企業情報を入力する」は `is_published`（ページが見えるか）で判定していた。
-        Third Box では**受付中なのに「受付を開始する」が未完了**のまま出ていた。
-     ⚠️ 判定はここ1箇所。下のカードと「やること」の件数が同じ配列を見る。 */
-  const totalJobs = jobStatusCounts.published + jobStatusCounts.draft + jobStatusCounts.stopped;
-  const guideItems = [
-    {
-      done: classification.ok,
-      label: "企業情報を入力する",
-      href: "/biz/company",
-      hint: classification.ok
-        ? "掲載に必要な項目（業種・事業領域）は入っています"
-        : "業種と事業領域（掲載に必要な項目）を入れましょう",
-    },
-    { done: totalJobs > 0, label: "求人を作成する", href: "/biz/jobs", hint: "ポジション・給与・業務内容を登録しましょう" },
-    { done: jobStatusCounts.published > 0, label: "求人を公開する", href: "/biz/jobs", hint: "必要な項目がそろえば、すぐに候補者に表示されます" },
-    /* ⚠️ `companyRaw` が取れなかったときは未完了に倒す（完了と嘘をつかない） */
-    { done: companyRaw?.acceptingCasualMeetings === true, label: "カジュアル面談の受付を開始する", href: "/biz/company", hint: "「面談受付中」バッジが企業ページに表示されます" },
-  ];
-  const guideRemaining = guideItems.filter((g) => !g.done).length;
-  /* ⚠️ 承認前は出さない（従来どおり）。全部済んだら出さない */
-  const showGuide = ctx.isApproved && guideRemaining > 0;
+  const actions = await getBizActionItems({
+    companyId: ctx.tenantId, owUserId: ctx.currentOwnId, permission: ctx.currentPermission,
+    planType: ctx.planType, reviewed: isCompanyReviewed(ctx), stoppedByOps: jobStatusCounts.stoppedByOps,
+  });
 
-  /* ★やること（2026-09-21）。**件数が1以上のものだけ**出す。
-        ⚠️ 並びは「相手を待たせているもの」から。差し戻しは運営からの指摘なので最後。
-        ⚠️ 「審査中の求人」は入れない —— 運営の対応待ちで、企業側にできることが無い。 */
-  /* ⚠️ 2026-10-10（段3）: メッセージ・提案・面談申込は上の「今日やること」に移した。ここに残すのはそれ以外 */
-  const todoItems = [
-    { key: "stopped-by-ops", label: "運営が停止した求人", count: jobStatusCounts.stoppedByOps, href: "/biz/jobs?status=stopped" },
-    /* ★未完了のスタートガイド（2026-10-08）。それまで「やること: 対応が必要なものは
-          ありません」の下に未完了のガイドが並んでいて、2つが矛盾して見えた。
-          ⚠️ 件数は上の `guideItems` と同じ配列から数える。 */
-    { key: "guide", label: "スタートガイドの未完了", count: showGuide ? guideRemaining : 0, href: "#start-guide" },
-    /* ★企業資料の未確定の項目（2026-10-09）。確定するまで求職者には出ない。
-          ⚠️ 取得に失敗したら 1件として出す（0 にすると壊れているのに要対応が消える）。 */
-    { key: "materials", label: unconfirmedMaterials === null ? "企業資料（件数を確認できませんでした）" : "未確定の項目（企業資料）",
-      count: unconfirmedMaterials === null ? 1 : unconfirmedMaterials, href: "/biz/materials" },
-  ].filter((t) => t.count > 0);
+  const listed = ctx.isPublished && ctx.listingStatus === "listed";
+  const listingRequestedAt = (companyRow.data?.listing_requested_at as string | null | undefined) ?? null;
+  /* ⚠️ 取れなかったとき（ok:false なのに requirements が無い）は null（「あと〇つ」を出さない） */
+  const companyMissing = publishCheck.ok ? 0 : publishCheck.requirements ? publishCheck.requirements.length : null;
+  /* 掲載中は企業名・業種・事業領域だけで止める（/biz/company と同じ） */
+  const blockingCount = publishCheck.ok ? 0
+    : (listed ? (publishCheck.requirements ?? []).filter((r) => r.scope === "always") : (publishCheck.requirements ?? [])).length;
 
+  const drafts = (jobs ?? []).filter((j) => jobState({ status: j.status, stoppedAt: j.stoppedAt ?? null }) === "draft");
+  const nearest = drafts.slice().sort((a, b) => (a.publishMissingCount ?? 99) - (b.publishMissingCount ?? 99))[0] ?? null;
+
+  const checklist = buildHomeChecklist({
+    listed,
+    listingRequested: listingRequestedAt !== null,
+    companyMissing,
+    totalJobs: jobs ? jobs.length : null,
+    publishedJobs: jobs ? jobStatusCounts.published : null,
+    nearestDraft: nearest ? { id: nearest.id, title: nearest.title || "無題の求人", missing: nearest.publishMissingCount ?? 0 } : null,
+    roles: materials?.roles ?? null,
+    employees: employees ? employees.current.length + employees.alumni.length : null,
+    acceptingCasualMeetings: companyRow.error ? null : companyRow.data?.accepting_casual_meetings === true,
+  });
+
+  const now = new Date();
+  const side: HomeSide = {
+    quota: !quotaAllowed ? undefined : quota ? {
+      sentText: `${quota.monthlyUsed}/${quota.monthlyLimit}`,
+      sentSub: approachQuotaTexts(quota, now).remainingSub,
+      sentPct: Math.round((quota.monthlyUsed / Math.max(1, quota.monthlyLimit)) * 100),
+      openText: `${quota.openCount}/${quota.openLimit}`,
+      openSub: approachQuotaTexts(quota, now).openSub,
+      openPct: Math.round((quota.openCount / Math.max(1, quota.openLimit)) * 100),
+    } : null,
+    jobs: { published: jobStatusCounts.published, draft: jobStatusCounts.draft, stopped: jobStatusCounts.stopped },
+    /* ★/biz/company の上部と同じ1行（`companyStatusText`）。⚠️ ホームでは「未公開の変更あり」を見ない */
+    companyStatus: companyStatusText(
+      companyPageStatus({ isPublished: ctx.isPublished, listingStatus: ctx.listingStatus, termsAgreed: true, listingRequestedAt }),
+      { hasChanges: false, listingRequestedAt, blockingCount },
+    ),
+  };
 
   return (
     <BusinessLayout
@@ -273,250 +231,19 @@ export default async function BizDashboardPage({
         </div>
       )}
 
-      {/* ── ★今日やること（2026-10-11 にキャンバス7「企業ホーム：今日やること」へ揃えた）──
-             ⚠️ 件数カードと一覧は同じ `getTodayTodo` の結果から作る（数字と行が食い違わないように）。
-             ⚠️ 取得に失敗した種類は「—」（0 と出さない）。 */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--ink)" }}>今日やること</h1>
-        <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>
-          {formatTodayHeading(new Date())} ・ 対応が必要なものを新しい順に並べています。
-        </p>
-      </div>
-
-      <div className="biz-today-cards" data-state="today-cards">
-        {TODAY_CARDS.map((c) => {
-          const n = c.kind === "savedSearchPeople" ? today.savedSearchPeople : today.counts[c.kind];
-          return (
-            <Link key={c.kind} href={c.href} data-state={`today-${c.kind}`} className="biz-today-card">
-              <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{c.label}</span>
-              <span style={{ fontSize: 26, fontWeight: 800, color: n ? "var(--ink)" : "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                {n == null ? "—" : n}
-                {c.unit && n != null && <span style={{ fontSize: 14, fontWeight: 500 }}>{c.unit}</span>}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+      <h1 style={{ margin: "0 0 16px", fontSize: 22, fontWeight: 700, color: "var(--ink)" }}>ホーム</h1>
 
       <div className="biz-home-grid">
-        <section data-state={today.items.length > 0 || todoItems.length > 0 ? "has-todo" : "empty"} style={{
-          background: "#fff", border: "1px solid var(--line)", borderRadius: 14, minWidth: 0, overflow: "hidden",
-        }}>
-          <h2 style={{ margin: 0, padding: "16px 20px", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
-            対応が必要なもの（{today.items.length + todoItems.length}）
-          </h2>
-          {today.items.length === 0 && todoItems.length === 0 ? (
-            /* ⚠️ 0件でもカードは消さない。「確かめた結果、無い」ことを伝える */
-            <p style={{ margin: 0, padding: "0 20px 18px", fontSize: 13, color: "var(--ink-soft)" }}>今すぐ対応が必要なものはありません</p>
-          ) : (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {today.items.slice(0, TODAY_LIST_LIMIT).map((t, i) => (
-                <li key={`${t.kind}-${i}`} className="biz-todo-row" data-todo-kind={t.kind}>
-                  <TodoIcon kind={t.kind} />
-                  <div style={{ flex: "1 1 240px", minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{t.title}</div>
-                    {t.sub && <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.sub}>{t.sub}</div>}
-                  </div>
-                  <Link href={t.href} className="btn-fixed-size" style={t.kind === "approach" ? TODO_BTN_PRIMARY : TODO_BTN}>{t.action}</Link>
-                </li>
-              ))}
-              {today.items.length > TODAY_LIST_LIMIT && (
-                <li style={{ fontSize: 12, color: "var(--ink-mute)", padding: "10px 20px", borderTop: "1px solid var(--line-soft)" }}>
-                  ほか {today.items.length - TODAY_LIST_LIMIT} 件は、上の件数から各画面で確認できます
-                </li>
-              )}
-              {/* そのほか（差し戻し・スタートガイド・企業資料）。件数が1以上のものだけ */}
-              {todoItems.map((t) => (
-                <li key={t.key} className="biz-todo-row" data-todo-kind={t.key}>
-                  <TodoIcon kind="other" />
-                  <div style={{ flex: "1 1 240px", minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{t.label}</div>
-                    <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>{t.count > 99 ? "99+" : t.count}件</div>
-                  </div>
-                  <Link href={t.href} className="btn-fixed-size" style={TODO_BTN}>確認する</Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <aside style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-          {/* 今月の声かけの枠。⚠️ 声かけが使えないプランでは出さない */}
-          {canUse(ctx.planType, "companyApproach") && (
-            <section data-state="approach-quota" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
-              <DashboardCardHeading title="今月のメッセージ" />
-              {approachQuota ? (
-                <div style={{ display: "flex", flexDirection: "column", fontSize: 13.5, color: "var(--ink)" }}>
-                  {/* ★「送った数 〇/10」「返事待ち 〇/10」（2026-10-11 / モックに合わせた） */}
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>送った数</span><strong data-state="home-sent">{approachQuota.monthlyUsed}/{approachQuota.monthlyLimit}</strong></div>
-                  <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(approachQuota, new Date()).remainingSub}</div>
-                  <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 12px", overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, Math.round((approachQuota.monthlyUsed / Math.max(1, approachQuota.monthlyLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>返事待ち</span><strong data-state="home-open">{approachQuota.openCount}/{approachQuota.openLimit}</strong></div>
-                  <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(approachQuota, new Date()).openSub}</div>
-                  <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 4px", overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, Math.round((approachQuota.openCount / Math.max(1, approachQuota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
-                  </div>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <Link href="/biz/analytics?tab=messages" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>振り返りを見る →</Link>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>件数を確認できませんでした</p>
-              )}
-            </section>
-          )}
-          {/* ★候補者に貴社を見つけてもらうには（2026-10-11 / 柴さんの指示） */}
-          <FindabilityCard materials={findMaterials} />
-          {/* 企業ページの充実度。★2026-10-11: 点数に加えて、まだのものを項目ごとに並べ、それぞれに入口を付けた（キャンバス7）。
-                 ロゴ未設定の案内もここにまとめた（それまでは別の帯） */}
-          <section data-state="disclosure" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
-            <DashboardCardHeading title="企業ページの充実度" />
-        {disclosureScore ? (() => {
-          /* ★★企業入力（/45）を主表示にした（2026-10-08 / 柴さんの指示）。
-             ⚠️★取材の点数（/50）は**別の行**に分ける。企業が自分では動かせないので、
-                合計に混ぜると「何をすれば上がるか」が読めない。
-             ⚠️ ラベルと色は合計の閾値を使い回す（`bizScoreOnTotalScale`）。 */
-          const tierScore = bizScoreOnTotalScale(disclosureScore.biz);
-          const missingLogo = companyRaw ? !companyRaw.logoUrl : false;
-          const missing: { key: string; label: string; href: string }[] = [
-            ...disclosureScore.bizMissing.map((k) => ({ key: k, label: BIZ_SCORE_ITEM_LABELS[k], href: BIZ_SCORE_ITEM_HREF[k] })),
-            ...(missingLogo ? [{ key: "logo", label: "企業ロゴ", href: "/biz/company" }] : []),
-          ];
-          return (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div aria-hidden="true" style={{
-                width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-                background: `conic-gradient(${scoreColor(tierScore)} ${disclosureScore.biz * (360 / DISCLOSURE_BIZ_MAX)}deg, var(--line) 0deg)`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 800, color: scoreTextColor(tierScore) }}>
-                    {disclosureScore.biz}
-                  </span>
-                </div>
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>企業入力 {disclosureScore.biz} / {DISCLOSURE_BIZ_MAX}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, color: scoreTextColor(tierScore), background: "var(--bg-tint)", border: `1px solid ${scoreColor(tierScore)}` }}>
-                    {scoreLabel(tierScore)}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
-                  取材で入る項目 {disclosureScore.interview} / {DISCLOSURE_INTERVIEW_MAX}
-                </div>
-              </div>
-            </div>
-            <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>メッセージを受け取った方は、まず企業ページを見に来ます。</p>
-            {/* ★企業が自分で入れられる項目のうち、まだのもの。⚠️ 取材で埋まる項目は出さない（企業には動かせない） */}
-            {missing.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
-            ) : (
-              <ul data-state="disclosure-missing" style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column" }}>
-                {missing.map((m) => (
-                  <li key={m.key} style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 36, fontSize: 13.5 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg>
-                    <Link href={m.href} style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>{m.label}を入れる</Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {/* ★求人も職種の登録も無い企業は、職種で範囲を指定している求職者に声かけが届かない
-                   （2026-10-10 / 柴さんの指示。文言はそのまま）。⚠️ 取れなかったとき（null）は出さない */}
-            {hasApproachRoles === false && (
-              <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-                <Link href="/biz/jobs" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>求人</Link>
-                か
-                <Link href="/biz/organization?tab=roles" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>職種</Link>
-                を登録すると、メッセージを送れる相手が増えます
-              </div>
-            )}
-          </div>
-          );
-        })() : (
-          <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>充実度を確認できませんでした</p>
-        )}
-          </section>
-        </aside>
-        <style>{`
-          .biz-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
-          @media (min-width: 1024px) { .biz-home-grid { grid-template-columns: minmax(0, 1fr) 300px; } }
-          .biz-today-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-          @media (min-width: 1024px) { .biz-today-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-          .biz-today-card { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; min-width: 0; }
-          .biz-today-card:hover { background: var(--bg-tint); }
-          .biz-todo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--line-soft); }
-          @media (max-width: 767px) { .biz-todo-row { padding: 12px 16px; gap: 10px; } }
-        `}</style>
-      </div>
-
-      {/* ── 企業ページ（企業カード）── */}
-      <CompanyCard
-        /* ★公開ページが無いなら「公開ページを見る」を出さない（2026-09-20）。
-              判定は `hasPublicCompanyPage` の1箇所。ここに条件を書かない。 */
-        hasPublicPage={hasPublicCompanyPage({ isPublished: ctx.isPublished })}
-        tenantId={ctx.tenantId}
-        tenantName={ctx.tenantName}
-        logoGradient={ctx.logoGradient}
-        logoLetter={ctx.logoLetter}
-      >
-      </CompanyCard>
-
-
-      {/* ── スタートガイド（承認済みで、未完了が1つ以上あるときだけ表示。2026-10-08） ── */}
-      {showGuide && (
-        <div id="start-guide" style={{
-          background: "linear-gradient(135deg,var(--royal-50) 0%,#f0f4ff 100%)",
-          border: "1px solid var(--royal-100)", borderRadius: 16,
-          padding: "24px 26px", marginTop: 16,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>スタートガイド</div>
-              <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>最初の求人を公開して候補者との接点を作りましょう</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {guideItems.map(({ done, label, href, hint }) => (
-              <Link key={label} href={href} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 16px", borderRadius: 10, background: "#fff", border: `1px solid ${done ? "#A7F3D0" : "var(--line)"}`, textDecoration: "none", transition: "border-color .15s" }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", background: done ? "var(--success)" : "var(--line)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                  {done
-                    ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    : <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
-                  }
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: done ? 500 : 700, color: done ? "var(--ink-mute)" : "var(--ink)", textDecoration: done ? "line-through" : "none", marginBottom: 2 }}>{label}</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{hint}</div>
-                </div>
-                {!done && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" style={{ flexShrink: 0, marginTop: 4 }}><path d="M9 18l6-6-6-6"/></svg>}
-              </Link>
-            ))}
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <HomeActionList actions={actions} />
+          <HomeChecklist items={checklist} />
         </div>
-      )}
-
-      {/* ── 2-col: JobStatusCards + TeamMembers ── */}
-      {/* ⚠️ 375px では1列に畳む（globals.css の `.biz-2col`）。
-             畳まないと各カラムが 163px になり、見出しが1文字ずつ折り返す。 */}
-      <div className="biz-2col" style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 16,
-        marginTop: 16,
-      }}>
-        <JobStatusCards counts={jobStatusCounts} />
-        <TeamMembers members={teamMembers} />
+        <HomeSideColumn side={side} />
       </div>
-
+      <style>{`
+        .biz-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+        @media (min-width: 1024px) { .biz-home-grid { grid-template-columns: minmax(0, 1fr) 280px; } }
+      `}</style>
     </BusinessLayout>
   );
 }

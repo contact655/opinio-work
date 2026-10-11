@@ -9,7 +9,7 @@ import { BenefitsEditor } from "@/components/business/BenefitsEditor";
 import { TERMS_VERSION } from "@/lib/constants/terms";
 import { PHASE_SELECT_OPTIONS } from "@/lib/constants/phase";
 import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
-import { companyPageStatus } from "@/lib/companies/pageStatus";
+import { companyPageStatus, companyStatusText } from "@/lib/companies/pageStatus";
 import { WORK_SCHEDULE_SELECT_OPTIONS, type BizCompany } from "@/lib/business/mockCompany";
 import { createClient } from "@/lib/supabase/client";
 import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
@@ -396,13 +396,8 @@ export function CompanyEditClient({
   const blocking: CompanyRequirement[] = listed ? missingAll.filter((r) => r.scope === "always") : missingAll;
   const hasChanges = hasDraftChanges || photos.some((p) => p.isDraft);
 
-  const statusText = (() => {
-    if (listed) return hasChanges ? "公開中・未公開の変更あり" : "公開中";
-    const where = pageStatus.pageVisible ? "企業一覧に未掲載" : "非公開";
-    if (listingRequestedAt) return `${where}・掲載を依頼済み（運営が確認中）`;
-    if (blocking.length > 0) return `${where}・公開まであと${blocking.length}つ`;
-    return `${where}・掲載を依頼できます`;
-  })();
+  /* ★1行の状態はホームの右の列と同じ関数（`companyStatusText`） */
+  const statusText = companyStatusText(pageStatus, { hasChanges, listingRequestedAt, blockingCount: blocking.length });
 
   // ── 自動保存（下書き）──────────────────────────────────────────────────
   async function putDraft(next: BizCompany): Promise<boolean> {
