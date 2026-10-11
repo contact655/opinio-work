@@ -145,7 +145,8 @@ export async function getTodayTodo(
     for (const p of proposals) {
       const title = `${nameOf(p.candidateUserId)}さんが、貴社の話を聞いてみたいそうです`;
       /* ★会話ができてまだ開いていないものだけ（2026-10-11 に「会うか決める」をなくした） */
-      items.push({ kind: "proposal", at: p.at, title, sub: `紹介・${fmtMd(p.at)}`, action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
+      /* ★下の小さな文字は日付だけ（2026-10-11 に「紹介・」をやめた / 柴さんの指示） */
+      items.push({ kind: "proposal", at: p.at, title, sub: fmtMd(p.at), action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
     }
   }
   if (meetings.error) console.error("[todayTodo] meetings:", meetings.error.message);

@@ -69,6 +69,11 @@ const nextConfig = {
       { source: "/biz/approaches/new", destination: "/biz/messages/new", statusCode: 301 },
       { source: "/biz/help/approaches", destination: "/biz/help/messages", statusCode: 301 },
       { source: "/mypage/approaches", destination: "/mypage/conversations?tab=unreplied", statusCode: 301 },
+      /* ★企業側の「紹介」の画面をなくし、届いた方は「メッセージ」に統合した（2026-10-11 / 柴さんの指示。
+            「紹介」は人材紹介と紛らわしいため）。過去のメール・ブックマークのために転送する。
+         ⚠️ API のパス（/api/biz/proposals/*）は変えていない（410 を返す） */
+      { source: "/biz/proposals", destination: "/biz/messages", statusCode: 301 },
+      { source: "/biz/help/proposals", destination: "/biz/help/interested", statusCode: 301 },
       /* ★社長図鑑は opinio.co.jp に移した（2026-10-04 / 柴さんの判断）。opinio.jp は転職サイトで、
             図鑑は Opinio Agent（人材紹介）の集客メディアのため。公開記事0本・noindex のまま移したので
             被リンクは無いが、念のため受けておく。⚠️ slug は両サイトで同じ。 */

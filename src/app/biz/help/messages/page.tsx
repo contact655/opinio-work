@@ -79,9 +79,11 @@ export default async function ApproachHelpPage() {
         </section>
 
         <section style={card}>
-          <h2 style={h2}>OPINIOからの紹介との違い</h2>
+          <h2 style={h2}>貴社に興味を持った方</h2>
+          {/* ⚠️ 企業向けでは「紹介」「提案」と書かない（2026-10-11 / 柴さんの指示） */}
           <p style={{ margin: 0, ...li }}>
-            メッセージは、貴社が自分で見つけた方に送るものです。OPINIOからの紹介は、OPINIO が経歴の合う方に貴社をご紹介するもので、「話を聞いてみたい」と答えた方だけが届きます。
+            OPINIO が経歴の合う方に貴社をおすすめし、「話を聞いてみたい」と答えた方も、このメッセージに届きます（一覧に「貴社に興味があります」と出ます）。貴社から送る必要はなく、送れる数の枠も使いません。
+            {" "}<Link href="/biz/help/interested" style={{ color: "var(--royal)", fontWeight: 600 }}>しくみを見る</Link>
           </p>
         </section>
 

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, Sparkles, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -74,15 +74,11 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       { href: "/biz/candidates", label: "候補者を探す", icon: <Search size={16} strokeWidth={2.2} /> },
       /* ★「メッセージリクエスト」の行は 2026-10-11 に外した（柴さんの指示）。企業から送る1通目も
             「やり取り・選考」の「メッセージ」（/biz/messages の返事待ちタブ）にまとめた。旧 URL は 301 で転送。 */
-      /* ★根拠つき提案（⑨）。2026-09-21 まで**ここに行が無く、画面へ辿り着く手段が
-            1つも無かった**。
-         ⚠️★提案はスカウトではない（`ow_scouts` にも3ゲートにも無関係。
-            `/biz/proposals/page.tsx` の注記）。同じグループに置くのは
-            「候補者と出会う入口」だからで、同じ機能だからではない。
-         ⚠️ バッジは付けない（2026-10-11 に「会うか決める」をなくした。届いた方は会話になり「メッセージ」のバッジで数える）。 */
-      { href: "/biz/proposals", label: "紹介", icon: <Sparkles size={16} strokeWidth={2.2} /> },
+      /* ★「紹介」の行は 2026-10-11 に外した（柴さんの指示。「紹介」は人材紹介と紛らわしいため）。
+            求職者が「話を聞いてみたい」と答えた方は「メッセージ」に届く（一覧で「貴社に興味があります」と出る）。
+            旧 URL /biz/proposals は next.config.mjs が /biz/messages へ 301 で転送する。⚠️ 戻さないこと */
       /* ⚠️★「スカウト履歴」は 2026-10-08 にスカウトごと廃止した。**戻さないこと。**
-            旧 URL `/biz/scouts` は middleware が `/biz/proposals` へ転送する。 */
+            旧 URL `/biz/scouts` は middleware が `/biz/messages` へ転送する。 */
     ],
   },
   {

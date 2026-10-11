@@ -8,7 +8,7 @@ import { getApproachQuota, listSentApproaches } from "@/lib/approaches/server";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { unreadConversationIds } from "@/lib/conversations/unread";
 import { MessagesView } from "./MessagesView";
-import { unseenProposalConversationIds } from "@/lib/evidence/companyProposals";
+import { unseenProposalConversationIds, interestConversationIds } from "@/lib/evidence/companyProposals";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,8 @@ export type ConversationRow = {
   isParticipant: boolean;
   /** ★企業から送ったメッセージに返信があり、企業がまだこの会話を開いていない（2026-10-11） */
   isNewReply: boolean;
+  /** ★求職者が OPINIO のおすすめを見て「話を聞いてみたい」と答えてできた会話（2026-10-11）。一覧で「貴社に興味があります」 */
+  fromInterest: boolean;
   /** ★最後のメッセージの冒頭（2026-10-11）。⚠️ セッションのクライアントで読むので、参加していない会話は null（RLS） */
   lastMessage: string | null;
   /** ★最後のメッセージを送った人（2026-10-11）。自分＝"me" ／ 同じ会社の別の担当者＝氏名 ／ 候補者＝"candidate" ／ 分からない＝null */
@@ -90,6 +92,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   /* ★提案から始まって、まだ誰も開いていない会話も「新しい」印を付ける（2026-10-11）。
         ⚠️ 企業の担当者はまだ参加者でないので、参加者の未読では数えられない。⚠️ 提案を読むのは companyProposals.ts だけ */
   for (const id of Array.from(await unseenProposalConversationIds(ctx.tenantId))) newReplyConvIds.add(id);
+  const interestIds = await interestConversationIds(ctx.tenantId);
 
   /* ★一覧の「最後のメッセージの冒頭1行」（2026-10-11 / 柴さんの指示。LinkedIn の受信箱と同じ）。
         ⚠️★admin で読まないこと。セッションのクライアントで読めば、参加していない会話は RLS で落ちる（読めない人に本文を出さない） */
@@ -140,6 +143,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
     isUnread: unread.has(c.id),
     isParticipant: partErr ? true : joined.has(c.id),
     isNewReply: newReplyConvIds.has(c.id),
+    fromInterest: interestIds.has(c.id),
     lastMessage: lastBody.get(c.id) ?? null,
     lastSender: (lastSenderPid.has(c.id) && senderOf.get(lastSenderPid.get(c.id) as string)) || null,
   }));

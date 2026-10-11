@@ -10,7 +10,6 @@ import {
   type EvidenceFacts,
 } from "@/lib/evidence/engine";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
-import BizProposalsClient, { type BizProposalView } from "@/app/biz/proposals/BizProposalsClient";
 
 /**
  * 根拠つき提案（②⑨）の見え方。2026-09-18 追加。
@@ -153,18 +152,8 @@ export default function Page() {
         <Card f={{ ...FIT_NONE_BASE, samePath: { n: 2, fromRoleName: "アカウントエグゼクティブ", fromIndustryName: null }, fit: { jobRole: null, companyRole: null, industry: FIT_DOMAIN } }} counter={COUNTER_NONE} audience="candidate" />
       </Variant>
 
-      {/* ★企業側の一覧（2026-09-21 追加）。本番は提案0件なので、状態ごとの見え方はここでしか見られない。
-             ⚠️ 2026-10-11 に企業側の設定と「会う／今回は見送る」をなくした。 */}
-      <Variant
-        label="企業側の一覧（/biz/proposals）"
-        note="届いた方: メッセージを開く（ひとことあり）／メッセージ準備中。終了: 以前に見送った記録（見せられなくなった方は行ごと出ない）。右の列: 今月の紹介（毎朝更新）。⚠️ 設定欄・会う／見送るのボタン・期限が出ていないこと"
-      >
-        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false}
-          stats={{ introduced: 12, raised: 3, meetings: 1, cutoff: "2026-10-10T15:00:00.000Z" }} />
-      </Variant>
-      <Variant label="企業側（届いた方0人・数字取得失敗）" note="空の文は「右の」を付けない。数字は「—」">
-        <BizProposalsClient proposals={[]} loadFailed={false} stats={null} />
-      </Variant>
+      {/* ⚠️ 企業側の一覧（/biz/proposals）は 2026-10-11 に画面ごとなくした（届いた方は「メッセージ」に統合）。
+             一覧での見え方は /dev/preview/approaches の「貴社に興味があります」の行で見る */}
     </div>
   );
 }
@@ -181,26 +170,3 @@ const FIT_ALL: EvidenceFacts = {
   },
 };
 
-function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
-  return {
-    id,
-    tab: "arrived",
-    phase: "introduced",
-    evidence: buildEvidence(facts(3), OPTS),
-    counter: buildCounterEvidence(COUNTER_FULL, OPTS),
-    /* ⚠️ 架空の名前。DB は読まない */
-    candidate: { id: "00000000-0000-0000-0000-0000000000a1", name: "検証 太郎", headline: "SaaS の法人営業 7年", tenureYears: 7, roleTrail: "インサイドセールス → フィールドセールス", prefecture: "神奈川県" },
-    note: null,
-    jobTitle: "アカウントエグゼクティブ",
-    raisedAt: "2026-10-09T03:00:00.000Z",
-    conversationId: null,
-    ...over,
-  };
-}
-
-const BIZ_SAMPLE: BizProposalView[] = [
-  bizItem("p-auto", { phase: "introduced", conversationId: "00000000-0000-0000-0000-000000000000", note: "御社のエンタープライズ向けの営業体制について、お話を伺えたらうれしいです。現職の状況も含めてご相談させてください。" }),
-  bizItem("p-connecting", { phase: "connecting", jobTitle: null }),
-  bizItem("p-declined", { tab: "ended", phase: "company_declined" }),
-  /* ⚠️ いま見せてはいけない方（hidden）はサーバーが行ごと落とすので、ここにも置かない（2026-10-11） */
-];

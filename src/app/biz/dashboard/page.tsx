@@ -1,3 +1,5 @@
+import { FindabilityCard } from "@/components/business/FindabilityCard";
+import { getEvidenceMaterials } from "@/lib/evidence/materials";
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CompanyCard } from "@/components/business/CompanyCard";
@@ -75,8 +77,8 @@ async function NoTenantPage() {
 const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
   /* ★2026-10-11: 「メッセージ」にまとめた。送ったメッセージに返信があって、まだ開いていないもの */
   { kind: "approach", label: "新しい返信", href: "/biz/messages" },
-  /* ★2026-10-11: 提案は求職者が「話を聞いてみたい」と答えた方だけが届き、その場で会話になる。まだ開いていない会話 */
-  { kind: "proposal", label: "紹介で届いた方", href: "/biz/proposals" },
+  /* ⚠️ 「紹介で届いた方」の数字は 2026-10-11 に外した（「紹介」をやめ、届いた方は「メッセージ」に統合したため）。
+        まだ開いていない会話は下の「対応が必要なもの」に「〇〇さんが、貴社の話を聞いてみたいそうです」と出る */
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
   { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/messages" },
@@ -123,7 +125,7 @@ export default async function BizDashboardPage({
   }
 
   const supabase = createClient();
-  const [jobStatusCounts, teamMembers, companyRaw, disclosureScore, today, classification, unconfirmedMaterials, hasApproachRoles, approachQuota] = await Promise.all([
+  const [jobStatusCounts, teamMembers, companyRaw, disclosureScore, today, classification, unconfirmedMaterials, hasApproachRoles, approachQuota, findMaterials] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     fetchTeamMembersForDashboard(supabase, ctx.tenantId),
     fetchCompanyForTenant(supabase, ctx.tenantId, []),
@@ -144,6 +146,8 @@ export default async function BizDashboardPage({
     getApproachRangeFieldFlags().then((f) => (f?.job_categories ? companyHasApproachRoles(ctx.tenantId) : null)),
     /* ★今月の声かけの枠（右の列）。声かけが使えないプランでは取らない */
     canUse(ctx.planType, "companyApproach") ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
+    /* ★「候補者に貴社を見つけてもらうには」（2026-10-11。旧 /biz/proposals から移した）。⚠️ 取れなかったら null */
+    getEvidenceMaterials(ctx.tenantId),
   ]);
 
   /* ★★スタートガイド（2026-10-08 に完了判定を実データへ合わせた / 柴さんの指示）。
@@ -364,6 +368,8 @@ export default async function BizDashboardPage({
               )}
             </section>
           )}
+          {/* ★候補者に貴社を見つけてもらうには（2026-10-11 / 柴さんの指示） */}
+          <FindabilityCard materials={findMaterials} />
           {/* 企業ページの充実度。★2026-10-11: 点数に加えて、まだのものを項目ごとに並べ、それぞれに入口を付けた（キャンバス7）。
                  ロゴ未設定の案内もここにまとめた（それまでは別の帯） */}
           <section data-state="disclosure" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>

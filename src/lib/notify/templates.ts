@@ -536,30 +536,26 @@ export function companyMessageCandidateTemplate(params: {
 }
 
 /**
- * ★提案を見て「話を聞いてみたい」と答えた方が届いた（2026-10-11 / 提案を「求職者が先に答える」形にした）。
- *   auto … その場で会話を作ったので「メッセージを開く」へ。review … /biz/proposals で会うか決めてもらう。
+ * ★求職者が OPINIO のおすすめを見て「話を聞いてみたい」と答えた（会話はその場でできている）。
+ * ⚠️★企業向けでは「紹介」「提案」と書かない（2026-10-11 / 柴さんの指示。人材紹介と紛らわしいため）。
  * ⚠️★ひとことの中身は書かない（名前とリンクだけ。approachRepliedCompanyTemplate と同じ方針）。
  * ⚠️ 求職者の名前は第三者への言及なので `greet()` は使わない。
  */
 export function proposalRaisedCompanyTemplate(params: {
   to: string;
   candidateName: string | null | undefined;
-  mode: "auto" | "review";
-  conversationId: string | null;
+  conversationId: string;
   viaOps?: boolean;
 }) {
   const name = greetingName(params.candidateName);
-  const who = name ? `${name}さん` : "ご紹介した方";
-  const auto = params.mode === "auto" && params.conversationId;
+  const who = name ? `${name}さん` : "候補者の方";
   return {
     to: params.to,
-    subject: opsSubject(`${who}が、貴社の話を聞いてみたいそうです（OPINIOからの紹介）`, params.viaOps === true),
+    subject: opsSubject(`${who}が、貴社の話を聞いてみたいそうです`, params.viaOps === true),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">OPINIOからの紹介</h2>
-      <p style="margin:0 0 20px;color:#475569">${esc(who)}が、OPINIO からの紹介を見て「話を聞いてみたい」と答えました。${
-        auto ? "そのままメッセージでやり取りできます。" : "内容を見て、会うかどうかを決めてください（14日で終了します）。"
-      }</p>
-      <a href="${auto ? `https://opinio.jp/biz/messages/${encodeURIComponent(params.conversationId as string)}` : "https://opinio.jp/biz/proposals"}" style="${BTN}">${auto ? "メッセージを開く" : "提案を見る"} →</a>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">貴社の話を聞いてみたい方がいます</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}が、OPINIO のおすすめで貴社を知り、話を聞いてみたいそうです。そのままメッセージでやり取りできます。</p>
+      <a href="https://opinio.jp/biz/messages/${encodeURIComponent(params.conversationId)}" style="${BTN}">メッセージを開く →</a>
     `),
   };
 }

@@ -117,7 +117,7 @@ export async function introduceProposal(
   }
 
   /* ④ 知らせる。⚠️ 記録を書いたあと（二重に出さない） */
-  await notifyCompanyProposalRaised({ companyId, candidateUserId, mode: "auto", conversationId });
+  await notifyCompanyProposalRaised({ companyId, candidateUserId, conversationId });
   /* ⚠️ 求職者への「〇〇から会いたいと返事が届きました」（ベル・メール）は 2026-10-11 に外した（企業が答えないため） */
 
   console.log(`[evidence/introduce] 会話を作った proposal=${proposalId} conversation=${conversationId} by=${opts.by}`);

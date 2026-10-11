@@ -133,6 +133,6 @@ export function daysLeftUntil(iso: string, now = new Date()): number {
 /** ★案内の行の文言（企業側・求職者側の会話に同じ行）。⚠️ 本人の発言にしない（`kind = 'proposal_intro'`） */
 export function proposalIntroLine(candidateName: string | null | undefined): string {
   const n = (candidateName ?? "").trim();
-  /* ★2026-10-11 に「提案」→「OPINIO からの紹介」（企業側で「提案」を使わないため）。⚠️ 既に保存された行の本文は変わらない */
-  return `${n && n !== "ユーザー" ? `${n}さん` : "候補者の方"}が OPINIO からの紹介を見て、話を聞いてみたいと答えました。`;
+  /* ★2026-10-11（同日）に「紹介」もやめた（人材紹介と紛らわしいため / 柴さんの指示）。⚠️ 既に保存された行の本文は変わらない */
+  return `${n && n !== "ユーザー" ? `${n}さん` : "候補者の方"}が、OPINIO のおすすめで貴社を知り、話を聞いてみたいそうです。`;
 }

@@ -43,7 +43,7 @@ export function SeatVisual() {
       viewBox="0 0 360 186"
       style={{ width: "100%", height: "auto", display: "block" }}
       role="img"
-      aria-label="経歴の近い人を、営業チームの空いた席に紹介する図"
+      aria-label="経歴の近い人を、営業チームの空いた席におすすめする図"
     >
       {/* ── チームの見出しとツリー線 ── */}
       <text x={TEAM_CX} y={32} textAnchor="middle" fontSize={13} fontWeight={700} fill={TEXT}>営業チーム</text>

@@ -43,11 +43,13 @@ const NOW = new Date().toISOString();
 
 const conv = (id: string, name: string, extra: Partial<ConversationRow> = {}): ConversationRow => ({
   id, kind: "company", stage: "active", status: "active", last_message_at: daysAgo(1), created_at: daysAgo(5),
-  candidate: { id: `cu-${id}`, name, avatar_color: null, avatar_url: null }, isUnread: false, isParticipant: true, isNewReply: false,
+  candidate: { id: `cu-${id}`, name, avatar_color: null, avatar_url: null }, isUnread: false, isParticipant: true, isNewReply: false, fromInterest: false,
   lastMessage: "ご連絡ありがとうございます。来週のどこかで30分ほどお話しできればと思います。", lastSender: "candidate", ...extra,
 });
 const convs: ConversationRow[] = [
   conv("c1", "検証 三郎", { isUnread: true, isNewReply: true }),
+  /* ★「話を聞いてみたい」と答えてできた会話（名前の下に灰色で「貴社に興味があります」） */
+  conv("c5", "検証 八郎", { fromInterest: true, isNewReply: true, lastMessage: "（検証）御社の営業体制についてお話を伺いたいです。" }),
   conv("c2", "検証 五郎", { lastSender: "me", lastMessage: "ありがとうございます。では水曜の15時でお願いします。" }),
   conv("c4", "検証 七郎", { lastSender: { colleague: "検証 一郎" }, lastMessage: "日程の候補をお送りします。" }),
   conv("c3", "検証 六郎", { isParticipant: false, lastMessage: null, lastSender: null }),

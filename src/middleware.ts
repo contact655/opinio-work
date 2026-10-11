@@ -119,7 +119,7 @@ export async function middleware(request: NextRequest) {
      ⚠️ 受信実績は0件だった（`ow_scouts` 0行・`type='scout'` の通知0行。2026-10-08 実測）。 */
   if (pathname === "/biz/scouts" || pathname.startsWith("/biz/scouts/")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/biz/proposals";
+    url.pathname = "/biz/messages"; /* ★2026-10-11 に /biz/proposals をなくした（メッセージに統合） */
     url.search = "";
     return NextResponse.redirect(url);
   }

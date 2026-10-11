@@ -108,6 +108,22 @@ export async function listCompanyProposalTodos(companyId: string): Promise<Compa
       届いた方はその場で会話になり、メッセージのバッジ（unseenProposalConversationIds）で数える */
 
 /** ★提案から始まって、企業の参加者がまだ開いていない会話（/biz/messages の「新しい」印とサイドバーのバッジ） */
+/**
+ * ★求職者が「話を聞いてみたい」と答えてできた会話（2026-10-11）。/biz/messages の一覧で名前の下に
+ *   灰色で「貴社に興味があります」と出すために使う（バッジにしない）。失敗したら空（印が出ないだけ）。
+ */
+export async function interestConversationIds(companyId: string): Promise<Set<string>> {
+  const { data, error } = await createAdminClient()
+    .from("ow_proposals").select("conversation_id")
+    .eq("company_id", companyId).eq("candidate_response", "interested")
+    .not("introduced_at", "is", null).not("conversation_id", "is", null);
+  if (error) {
+    console.error("[companyProposals] 興味がある方の会話:", error.message);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => r.conversation_id as string));
+}
+
 export async function unseenProposalConversationIds(companyId: string): Promise<Set<string>> {
   const { data, error } = await createAdminClient()
     .from("ow_proposals").select("conversation_id")

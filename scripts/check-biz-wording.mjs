@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * ★企業側の画面・メール・通知に「提案」が出ていないかを数える（2026-10-11 / 柴さんの指示）。
- *   企業側では「提案」を「紹介」（OPINIOからの紹介）と言い換えた。仕組み・URL・DB・コード内の名前は変えていない。
+ * ★企業側の画面・メール・通知・ヘルプに「提案」「紹介」が出ていないかを数える（2026-10-11 / 柴さんの指示）。
+ *   「提案」→「紹介」と言い換えたあと、同日に「紹介」もやめた（人材紹介と紛らわしいため）。
+ *   企業側では「OPINIO のおすすめ」「貴社に興味がある方」と書く。仕組み・URL・DB・コード内の名前は変えていない。
+ *   ⚠️ 数えない語: 自己紹介・会社紹介・人材紹介（別の意味の決まった語）、提案営業（職種名）。運営の /admin は対象外。
  *
  *   node scripts/check-biz-wording.mjs              # 0件なら exit 0
  *   node scripts/check-biz-wording.mjs --self-test  # わざと1か所入れて、検出されることを確かめる
@@ -25,7 +27,10 @@ const DIRS = JOBSEEKER
   : ["src/app/biz", "src/app/business", "src/components/business", "src/lib/business", "src/app/api/biz", "src/lib/notify"];
 /* 求職者側で数えないもの: 運営の /admin/proposals だけが受け取るエラー */
 const SKIP_FILES = JOBSEEKER ? new Set(["src/lib/evidence/generate.ts"]) : new Set();
-const WORD = "提案";
+/* ★企業側は「提案」と「紹介」、求職者側は「提案」 */
+const WORDS = JOBSEEKER ? ["提案"] : ["提案", "紹介"];
+/* 別の意味の決まった語。⚠️ 足すときは、この機能の名前でないことを確かめてから */
+const ALLOWED = /提案営業|自己紹介|会社紹介|人材紹介/g;
 
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -82,7 +87,8 @@ function scan() {
       lines.forEach((l, i) => {
         /* 「提案営業」は職種名（LP の経歴の例）。この機能の名前ではない */
         if (/console\.(error|warn|log)\(/.test(l)) return;
-        if (l.replace(/提案営業/g, "").includes(WORD)) hits.push(`${rel}:${i + 1}: ${l.trim().slice(0, 140)}`);
+        const t = l.replace(ALLOWED, "");
+        if (WORDS.some((w) => t.includes(w))) hits.push(`${rel}:${i + 1}: ${l.trim().slice(0, 140)}`);
       });
     }
   }
@@ -91,16 +97,16 @@ function scan() {
 
 if (process.argv.includes("--self-test")) {
   const probe = path.join(ROOT, "src/app/biz/__wording_probe__.tsx");
-  fs.writeFileSync(probe, `// 提案（コメントは数えない）\nexport const P = () => <p>提案を見る</p>;\nexport const s = "提案";\n`);
+  fs.writeFileSync(probe, `// 提案・紹介（コメントは数えない）\nexport const P = () => <p>提案を見る</p>;\nexport const s = "紹介";\nexport const ok = "自己紹介";\n`);
   try {
     const { hits } = scan();
     const found = hits.filter((h) => h.includes("__wording_probe__")).length;
-    console.log(`自己テスト: 差し込んだ2か所（コメント1か所は除外）のうち ${found} か所を検出`);
+    console.log(`自己テスト: 差し込んだ2か所（コメント1か所・自己紹介1か所は除外）のうち ${found} か所を検出`);
     process.exitCode = found === 2 ? 0 : 1;
   } finally { fs.unlinkSync(probe); }
 } else {
   const { hits, files } = scan();
-  console.log(`${JOBSEEKER ? "求職者側" : "企業側"}で画面に出る「${WORD}」: ${hits.length}件（${files}ファイル）`);
+  console.log(`${JOBSEEKER ? "求職者側" : "企業側"}で画面に出る「${WORDS.join("」「")}」: ${hits.length}件（${files}ファイル）`);
   for (const h of hits) console.log("  " + h);
   process.exitCode = hits.length === 0 ? 0 : 1;
 }

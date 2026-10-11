@@ -93,15 +93,14 @@ export async function notifyIntroduction(params: {
 
 /**
  * ★求職者が提案を見て「話を聞いてみたい」と答えたことを、企業に知らせる（2026-10-11）。
- *   auto … 会話を作ったあとに呼ぶ（「メッセージを開く」） ／ review … 答えた直後に呼ぶ（「提案を見る」）
+ *   会話を作ったあとに呼ぶ（「メッセージを開く」）。2026-10-11 に review（確認してから）をなくした
  * ⚠️★ひとことの中身は書かない（名前とリンクだけ）。⚠️ best-effort。失敗はログに出す
  */
 export async function notifyCompanyProposalRaised(params: {
   companyId: string;
   /** ★`ow_users.id` 空間 */
   candidateUserId: string;
-  mode: "auto" | "review";
-  conversationId: string | null;
+  conversationId: string;
 }): Promise<void> {
   try {
     const db = createAdminClient();
@@ -112,7 +111,6 @@ export async function notifyCompanyProposalRaised(params: {
       await notify(proposalRaisedCompanyTemplate({
         to,
         candidateName: (cand?.name as string | null) ?? null,
-        mode: params.mode,
         conversationId: params.conversationId,
         viaOps: target.viaOps,
       }));

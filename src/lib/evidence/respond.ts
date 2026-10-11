@@ -76,16 +76,16 @@ export async function saveCandidateResponse(input: {
     .eq("id", input.proposalId).eq("candidate_user_id", input.candidateUserId).maybeSingle();
   if (error) {
     console.error("[evidence/respond] ow_proposals:", error.message);
-    return { ok: false, status: 500, error: "ご紹介を取得できませんでした" };
+    return { ok: false, status: 500, error: "おすすめを取得できませんでした" };
   }
-  if (!cur) return { ok: false, status: 404, error: "このご紹介は見つかりません" };
-  if (cur.candidate_response) return { ok: false, status: 409, error: "このご紹介にはすでに答えています" };
+  if (!cur) return { ok: false, status: 404, error: "このおすすめは見つかりません" };
+  if (cur.candidate_response) return { ok: false, status: 409, error: "このおすすめにはすでに答えています" };
   const companyId = cur.company_id as string;
   const pair = { companyId, candidateUserId: input.candidateUserId };
   const visible = isVisiblePair(await visiblePairs([pair]), pair);
   if (proposalPhase(phaseInputOf(cur), visible) !== "candidate_pending") {
     /* ⚠️ 終了の理由は返さない */
-    return { ok: false, status: 409, error: "このご紹介は終了しました" };
+    return { ok: false, status: 409, error: "このおすすめは終了しました" };
   }
 
   const now = new Date();

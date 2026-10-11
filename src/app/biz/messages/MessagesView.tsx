@@ -220,7 +220,8 @@ function ConvItem({ c, now }: { c: ConversationRow; now: Date }) {
   return (
     <Link href={`/biz/messages/${c.id}`} className="apx-item" data-item="conv" data-unread={unread ? "true" : "false"}>
       <Avatar name={name} url={c.candidate?.avatar_url ?? null} />
-      <Line name={name} date={fmtListDate(c.last_message_at ?? c.created_at, now)} status={null} preview={preview} unread={unread} />
+      {/* ★「話を聞いてみたい」と答えてできた会話は、名前の下に灰色で（2026-10-11 / 柴さんの指示。バッジにしない） */}
+      <Line name={name} date={fmtListDate(c.last_message_at ?? c.created_at, now)} status={c.fromInterest ? "貴社に興味があります" : null} preview={preview} unread={unread} />
     </Link>
   );
 }
@@ -284,10 +285,10 @@ function EmptyGuide({ approachableCount, hasPublishedJob }: { approachableCount:
         <>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
             {/* ⚠️★「候補者は○名いますが、受け取る設定の方は…」は 2026-10-11 に外した（全員が最初から受け取る形にしたため）。戻さないこと */}
-            いま、メッセージを送れる候補者はいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「紹介」に届きます。
+            いま、メッセージを送れる候補者はいません。経歴の合う方には、OPINIO が貴社をおすすめすることがあります。「話を聞いてみたい」と答えた方は、このメッセージに届きます。
           </p>
           <div className="apx-empty-actions">
-            <Link href="/biz/proposals" className="btn-fixed-size" style={BTN_PRIMARY}>紹介を見る</Link>
+            <Link href="/biz/help/interested" className="btn-fixed-size" style={BTN_PRIMARY}>しくみを見る</Link>
             {hasPublishedJob === false && <Link href="/biz/jobs/new" className="btn-fixed-size" style={BTN_WRAP_SECONDARY}>求人を公開する</Link>}
             <Link href="/biz/candidates" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", padding: "8px 4px" }}>候補者を探す</Link>
           </div>
