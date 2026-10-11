@@ -63,8 +63,10 @@ function fmtDate(iso: string): string {
 
 export function SelectionView({
   meetings: initialMeetings, applications: initialApplications, currentUser, acceptance = null, hasPublishedJobs = false,
-  initialTab = "all", initialShow = null, autoSelect = true, linkBase = "/biz/meetings", now: nowIso, fixtures, scheduled = null,
+  initialTab = "all", initialShow = null, autoSelect = true, linkBase = "/biz/meetings", now: nowIso, fixtures, scheduled = null, jobFilter = null,
 }: {
+  /** ★求人で絞る（2026-10-12。求人管理の応募・面談の数から来る ?job=）。null = 絞らない */
+  jobFilter?: string | null;
   /** ★決まった面談（今日以降）。取れなければ null */
   scheduled?: ScheduledMeetingRow[] | null;
   meetings: MeetingApplication[];
@@ -106,22 +108,26 @@ export function SelectionView({
     return c;
   }, [items]);
 
-  const inTab = items.filter((it) => tab === "all" || (tab === "meetings" ? it.kind === "meeting" : it.kind === "application"));
+  const [job, setJob] = useState<string | null>(jobFilter);
+  const jobTitleOf = job ? (items.find((it) => (it.kind === "meeting" ? it.m.jobId : it.a.jobId) === job)?.jobTitle ?? null) : null;
+  const byJob = job ? items.filter((it) => (it.kind === "meeting" ? it.m.jobId : it.a.jobId) === job) : items;
+  const inTab = byJob.filter((it) => tab === "all" || (tab === "meetings" ? it.kind === "meeting" : it.kind === "application"));
   const shown = inTab.filter((it) => it.closed === closedView);
   const counts = {
-    all: items.filter((i) => !i.closed).length,
-    meetings: items.filter((i) => i.kind === "meeting" && !i.closed).length,
-    applications: items.filter((i) => i.kind === "application" && !i.closed).length,
+    all: byJob.filter((i) => !i.closed).length,
+    meetings: byJob.filter((i) => i.kind === "meeting" && !i.closed).length,
+    applications: byJob.filter((i) => i.kind === "application" && !i.closed).length,
   };
   const selected = items.find((it) => it.key === selectedKey) ?? null;
 
   const urlOf = useCallback((key: string | null, t: SelectionTab = tab) => {
     const q = new URLSearchParams();
+    if (job) q.set("job", job);
     if (t !== "all") q.set("tab", t);
     if (key) q.set("show", key);
     const s = q.toString();
     return s ? `${linkBase}?${s}` : linkBase;
-  }, [linkBase, tab]);
+  }, [linkBase, tab, job]);
 
   const markMeetingRead = useCallback((id: string) => {
     setMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, isUnread: false } : m)));
@@ -280,6 +286,15 @@ export function SelectionView({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* ★求人で絞っているとき（求人管理の応募・面談の数から来た）。灰色の1行と解除 */}
+      {job && (
+        <div data-state="job-filter" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13, color: "var(--ink-soft)" }}>
+          <span>求人「{jobTitleOf ?? "この求人"}」の応募・面談だけを表示しています（{byJob.length}件）</span>
+          <button type="button" onClick={() => { setJob(null); setSelectedKey(null); if (autoSelect) router.replace(linkBase, { scroll: false }); }}
+            style={{ background: "none", border: 0, padding: 0, font: "inherit", fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer" }}>絞り込みを外す</button>
         </div>
       )}
 

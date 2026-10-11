@@ -551,7 +551,8 @@ export function JobEditForm({
   /* ★公開の判定（2026-10-12）。サーバー（requestPublish）と同じ関数 decidePublish。
         ⚠️ 禁止表現はいま入力している内容で見る（直したらすぐ消える） */
   const wordingHits = useMemo(() => checkWording(wordingFieldsFromForm(form)), [form]);
-  const isStopped = initialJob?.status === "private" && !!initialJob.stoppedAt;
+  /* ⚠️ 旧「差し戻し」（rejected）も停止と同じ（サーバーの requestPublish と揃える） */
+  const isStopped = (initialJob?.status === "private" && !!initialJob.stoppedAt) || initialJob?.status === "rejected";
   const decision = useMemo(() => decidePublish({ missing, hits: wordingHits, companyListed, stopped: isStopped }), [missing, wordingHits, companyListed, isStopped]);
   const canPublish = decision.kind !== "blocked";
 
@@ -1308,6 +1309,8 @@ export function JobEditForm({
           onStepClick={goToStep}
           missing={missing}
           onMissingClick={goToField}
+          readyNote={decision.kind === "blocked" && decision.reason === "company_not_listed" ? "企業ページの公開後に公開できます"
+            : decision.kind === "review" ? "公開すると運営確認中になります" : null}
         />
 
         <main id="jef-main" className="jef-main">

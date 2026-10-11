@@ -1,4 +1,6 @@
 import { laborFromRow } from "@/lib/jobs/laborTerms";
+import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
+import { WORDING_COLUMNS, checkWording, wordingFieldsFromRow } from "@/lib/jobs/wordingCheck";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizJob, JobStatus } from "./mockJobs";
 import { VALID_JOB_EMPLOYMENT_TYPES, JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
@@ -287,11 +289,13 @@ export async function fetchJobsForCompany(
   tenantId: string,
   /** 求人ごとの面談申込・応募。`countByJob(await fetchCompanyReactions(...))` を渡す */
   counts: { meetings: Record<string, number>; applications: Record<string, number> },
+  /** ★求人ごとの閲覧数（直近30日。2026-10-12）。null = 取れなかった（0 と出さない） */
+  views30d: Record<string, number> | null = null,
 ): Promise<BizJob[]> {
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, stopped_reason, stopped_at, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)"
+      `${JOB_PUBLISH_COLUMNS}, ${WORDING_COLUMNS}, job_category, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, stopped_reason, stopped_at, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)`
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
@@ -323,6 +327,12 @@ export async function fetchJobsForCompany(
       .filter((n): n is string => !!n);
     // 自社での呼び方。論理削除済みは出さない（会社が「もう使っていない」と言っている名前）
     job.companyRoleName = r.ow_company_job_roles?.deleted_at ? undefined : r.ow_company_job_roles?.name;
+    /* ★一覧の「公開まであと〇つ」と、運営確認中の理由（2026-10-12）。⚠️ 公開の判定と同じ関数 */
+    const raw = row as unknown as Record<string, unknown>;
+    job.publishMissingCount = missingForPublishFromRow(raw, (r.ow_job_roles ?? []).length).length;
+    job.wordingHits = job.status === "pending_review" ? checkWording(wordingFieldsFromRow(raw)).map((h) => `「${h.match}」（${h.field}）`) : [];
+    job.views30d = views30d ? (views30d[row.id] ?? 0) : undefined;
+    job.updatedAtIso = r.updated_at ?? undefined;
     return job;
   });
 }

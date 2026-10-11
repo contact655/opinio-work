@@ -47,7 +47,8 @@ export async function requestPublish(jobId: string, companyId: string, actorOwUs
     missing: missingForPublishFromRow(r, roleCount ?? 0),
     hits: checkWording(wordingFieldsFromRow(r)),
     companyListed: isCompanyListedForJobs(co as { is_published?: boolean; listing_status?: string } | null),
-    stopped: r.stopped_at != null,
+    /* ⚠️ 旧「差し戻し」（rejected）も停止と同じに扱う（運営が止めたもの。stopped_at を持たない） */
+    stopped: r.stopped_at != null || r.status === "rejected",
   });
 
   if (decision.kind === "publish") {

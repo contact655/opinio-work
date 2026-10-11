@@ -149,6 +149,7 @@ export function transformMeeting(
     applicantCurrentCompany: currentExp ? resolveCompanyName(currentExp) : "—",
     applicantCurrentRole: currentExp?.role_title ?? "—",
     jobTitle: row.job?.title ?? null,
+    jobId: row.job_id ?? null,
     jobSalary:
       row.job?.salary_min != null && row.job?.salary_max != null
         ? `¥${row.job.salary_min.toLocaleString("ja-JP")}-${row.job.salary_max.toLocaleString("ja-JP")}万`

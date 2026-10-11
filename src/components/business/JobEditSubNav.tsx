@@ -25,11 +25,13 @@ type Props = {
   onStepClick: (id: string) => void;
   missing: PublishRequirement[];
   onMissingClick: (r: PublishRequirement) => void;
+  /** ★項目はそろっているが、すぐには公開されないときの一言（企業ページが非公開・運営確認になる）。無ければ「公開できます」 */
+  readyNote?: string | null;
 };
 
 const STATUS_TEXT: Record<Exclude<StepStatus, null>, string> = { done: "済み", todo: "未入力", optional: "任意" };
 
-export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissingClick }: Props) {
+export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissingClick, readyNote = null }: Props) {
   /* 767px 以下では横並びなので、いまのステップが見える位置まで横に送る。
      ⚠️ scrollIntoView を使わない（ページ全体が縦にも動く） */
   const navRef = useRef<HTMLElement>(null);
@@ -49,7 +51,7 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
       {/* ★公開まであと〇つ。押すとその入力欄へ移る */}
       <div data-state={missing.length === 0 ? "ready" : "missing"} style={{ padding: "18px 18px 14px", borderBottom: "1px solid var(--line)" }}>
         {missing.length === 0 ? (
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-ink)" }}>公開できます</div>
+          <div data-state="subnav-ready" style={{ fontSize: 13, fontWeight: 700, color: readyNote ? "var(--ink)" : "var(--success-ink)" }}>{readyNote ?? "公開できます"}</div>
         ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>

@@ -20,7 +20,7 @@ export const metadata = {
 export default async function BizMeetingsPage({
   searchParams,
 }: {
-  searchParams: { tab?: string; show?: string };
+  searchParams: { tab?: string; show?: string; job?: string };
 }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
@@ -128,6 +128,7 @@ export default async function BizMeetingsPage({
         hasPublishedJobs={hasPublishedJobs}
         acceptance={acceptance}
         scheduled={scheduled}
+        jobFilter={typeof searchParams.job === "string" && /^[0-9a-f-]{36}$/i.test(searchParams.job) ? searchParams.job : null}
         now={new Date().toISOString()}
       />
     </BusinessLayout>

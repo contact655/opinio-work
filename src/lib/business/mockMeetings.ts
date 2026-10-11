@@ -31,6 +31,8 @@ export type MeetingApplication = {
   applicantCurrentRole: string;
   // 申込内容
   jobTitle: string | null;
+  /** ★求人の id（2026-10-12）。求人管理から選考管理をその求人で絞って開くため（/biz/meetings?job=） */
+  jobId?: string | null;
   jobSalary: string | null;
   intent: string;
   intentDetail: string;

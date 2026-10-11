@@ -3,6 +3,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { countByJob, fetchCompanyReactions } from "@/lib/business/reactionCounts";
 import { JOB_STATUS_TABS, type JobStatus } from "@/lib/business/mockJobs";
@@ -39,7 +40,15 @@ export default async function BizJobsPage({
 
   const supabase = createClient();
   /* ★面談申込・応募の数は分析（/biz/analytics）と同じ関数で数える（検証用アカウントを除く）。2026-10-09 */
-  const jobs = await fetchJobsForCompany(supabase, ctx.tenantId, countByJob(await fetchCompanyReactions(supabase, ctx.tenantId)));
+  /* ★閲覧数（直近30日。2026-10-12）。/biz/analytics と同じ表（ow_page_view_daily）。⚠️ 取れなければ null（0 と出さない） */
+  const since = new Date(Date.now() + 9 * 3600_000 - 29 * 86_400_000).toISOString().slice(0, 10);
+  const { data: viewRows, error: viewErr } = await createAdminClient()
+    .from("ow_page_view_daily").select("target_id, views")
+    .eq("company_id", ctx.tenantId).eq("page_type", "job").gte("view_date", since);
+  if (viewErr) console.error("[biz/jobs] views:", viewErr.message);
+  const views30d: Record<string, number> | null = viewErr ? null : {};
+  if (views30d) for (const r of viewRows ?? []) views30d[r.target_id as string] = (views30d[r.target_id as string] ?? 0) + ((r.views as number) ?? 0);
+  const jobs = await fetchJobsForCompany(supabase, ctx.tenantId, countByJob(await fetchCompanyReactions(supabase, ctx.tenantId)), views30d);
 
   return (
     <BusinessLayout
@@ -50,7 +59,7 @@ export default async function BizJobsPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} />
+      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} viewsFailed={!!viewErr} />
     </BusinessLayout>
   );
 }

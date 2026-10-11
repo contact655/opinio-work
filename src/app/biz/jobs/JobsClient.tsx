@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
 import { JOB_STATUS_TABS, countByStatus, jobViewStatus } from "@/lib/business/mockJobs";
-import { JobListCard } from "@/components/business/JobListCard";
 import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 import { FilterChip } from "@/components/common/FilterChip";
 
@@ -14,6 +13,8 @@ type Props = {
   isAdmin?: boolean;
   /** `?status=` 由来の初期タブ。⚠️ 検証済みの値だけが来る（page.tsx を参照） */
   initialStatus?: JobStatus | "all";
+  /** 閲覧数が取れなかった（「—」と出す。0 と出さない） */
+  viewsFailed?: boolean;
 };
 
 /* ★2026-09-21 に左の絞り込み欄（部門・職種・雇用形態・年収）をやめた（柴さん）。
@@ -22,7 +23,38 @@ type Props = {
    ⚠️ 年収の絞り込みは**万円の値を円（×10000）と比べていて一度も正しく効いていなかった**。
       戻すなら単位を揃えること（`salaryMin` / `salaryMax` は万円）。 */
 
-export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all" }: Props) {
+/**
+ * ★求人管理の一覧（2026-10-12 / 柴さんの指示。大きなカードをやめ、1行1求人にした）。
+ *   列: タイトル（下に灰色で 職種・雇用形態・勤務地）／状態（灰色の文字）／応募／面談／閲覧（直近30日）／更新日／⋯
+ *   ⚠️ 色付きのバッジを使わない（状態も雇用形態も職種も灰色の文字）
+ *   ⚠️ タブは すべて／公開中／下書き／非公開。運営確認中・停止中は1件以上あるときだけ出す
+ *   ⚠️ 下書きで項目が足りないものは、状態の位置に「公開まであと〇つ」
+ *   ⚠️ 応募・面談の数を押すと、選考管理（/biz/meetings?job=<id>）をその求人で絞って開く
+ */
+const MAIN_TABS: (JobStatus | "all")[] = ["all", "published", "draft", "private"];
+const COND_TABS: JobStatus[] = ["pending_review", "rejected"];
+const tabLabel = (st: JobStatus | "all") => JOB_STATUS_TABS.find((t) => t.status === st)?.labelJa ?? st;
+
+function statusText(j: BizJob): string {
+  const v = jobViewStatus(j);
+  /* ⚠️「〜つ」は9まで。10以上は「〜項目」 */
+  const n = j.publishMissingCount ?? 0;
+  if (v === "draft" && n > 0) return n < 10 ? `公開まであと${n}つ` : `公開まであと${n}項目`;
+  return tabLabel(v);
+}
+function fmtDate(iso?: string): string {
+  if (!iso) return "—";
+  const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
+  const v = (t: string) => ps.find((p) => p.type === t)?.value ?? "";
+  const thisYear = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric" }).format(new Date()).replace(/\D/g, "");
+  return `${v("year") === thisYear ? "" : `${v("year")}/`}${v("month")}/${v("day")}`;
+}
+function subLine(j: BizJob): string {
+  const role = j.companyRoleName || (j.jobRoleNames ?? [])[0] || j.jobCategory;
+  return [role ? `職種：${role}` : null, j.employmentType || null, j.location || null].filter(Boolean).join("・");
+}
+
+export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", viewsFailed = false }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStatus | "all">(initialStatus);
@@ -31,29 +63,28 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
 
   const showError = (msg: string) => {
     setErrorMessage(msg);
     setTimeout(() => setErrorMessage(null), 4000);
   };
 
-  const handleStatusChange = useCallback(async (jobId: string, newStatus: JobStatus) => {
+  /* ⚠️ 一覧から変えられる状態は「非公開にする」だけ（公開は編集画面の「確認して公開」から。ガイドラインへの同意の一文を通す） */
+  const makePrivate = useCallback(async (jobId: string) => {
+    setMenuId(null);
     const old = jobs.find((j) => j.id === jobId);
-    setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: newStatus } : j));
+    setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: "private" } : j));
     const res = await fetch(`/api/biz/jobs/${jobId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "status", value: newStatus }),
+      body: JSON.stringify({ action: "status", value: "private" }),
     });
     if (!res.ok && old) {
       setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: old.status } : j));
-      showError("ステータス更新に失敗しました。再度お試しください。");
+      showError("非公開にできませんでした。再度お試しください。");
     }
   }, [jobs]);
-
-  const handleDelete = useCallback(async (jobId: string) => {
-    setPendingDeleteId(jobId);
-  }, []);
 
   const confirmDelete = useCallback(async (jobId: string) => {
     setPendingDeleteId(null);
@@ -62,11 +93,13 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
     const res = await fetch(`/api/biz/jobs/${jobId}`, { method: "DELETE" });
     if (!res.ok) {
       setJobs(snapshot);
-      showError("削除に失敗しました。再度お試しください。");
+      const j = (await res.json().catch(() => null)) as { error?: string } | null;
+      showError(j?.error ?? "削除に失敗しました。再度お試しください。");
     }
   }, [jobs]);
 
   const handleDuplicate = useCallback(async (jobId: string) => {
+    setMenuId(null);
     const res = await fetch("/api/biz/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +111,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
   }, [router]);
 
   const counts = useMemo(() => countByStatus(jobs), [jobs]);
+  const tabs: (JobStatus | "all")[] = [...MAIN_TABS, ...COND_TABS.filter((t) => counts[t] > 0 || activeStatus === t)];
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -93,9 +127,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
       if (activeStatus !== "all" && jobViewStatus(j) !== activeStatus) return false;
       if (categoryFilter) {
         const roles = j.jobRoleNames ?? [];
-        const matchesRole = roles.includes(categoryFilter);
-        const matchesCategory = j.jobCategory === categoryFilter;
-        if (!matchesRole && !matchesCategory) return false;
+        if (!roles.includes(categoryFilter) && j.jobCategory !== categoryFilter) return false;
       }
       const q = searchQuery.toLowerCase().trim();
       if (!q) return true;
@@ -109,16 +141,35 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
   }, [jobs, activeStatus, searchQuery, categoryFilter]);
 
   const hasFilters = activeStatus !== "all" || !!searchQuery.trim() || !!categoryFilter;
-  /* 検索と職種だけ外す（状態のタブは画面の主軸なので残す） */
   const hasNarrowing = !!searchQuery.trim() || !!categoryFilter;
-  function clearNarrowing() {
-    setSearchQuery("");
-    setCategoryFilter("");
-  }
+
+  const countCell = (n: number, j: BizJob, kind: "applications" | "meetings") => n > 0 ? (
+    <Link href={`/biz/meetings?job=${j.id}${kind === "applications" ? "&tab=applications" : "&tab=meetings"}`} data-state={`count-${kind}`} style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>{n}</Link>
+  ) : <span style={{ color: "var(--ink-mute)" }}>0</span>;
 
   return (
-    <div>
-      {/* エラーバナー */}
+    <div onClick={() => menuId && setMenuId(null)}>
+      <style>{`
+        .jl-head, .jl-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px 56px 56px 72px 72px 40px; gap: 12px; align-items: center; padding: 12px 16px; }
+        .jl-head { font-size: 12px; color: var(--ink-mute); border-bottom: 1px solid var(--line); }
+        .jl-row { border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink); background: #fff; }
+        .jl-row:first-child { border-top: 0; }
+        .jl-num { text-align: right; font-variant-numeric: tabular-nums; }
+        .jl-mlabel { display: none; }
+        .jl-menu { position: absolute; right: 0; top: 30px; z-index: 20; min-width: 160px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(15,23,42,0.12); padding: 4px; }
+        .jl-menu button, .jl-menu a { display: block; width: 100%; text-align: left; padding: 8px 12px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); text-decoration: none; border-radius: 6px; cursor: pointer; }
+        .jl-menu button:hover, .jl-menu a:hover { background: var(--bg-tint); }
+        @media (max-width: 899px) {
+          .jl-head { display: none; }
+          .jl-row { grid-template-columns: minmax(0, 1fr) 40px; row-gap: 6px; }
+          .jl-cell-status, .jl-num { grid-column: 1; text-align: left; }
+          .jl-cell-menu { grid-column: 2; grid-row: 1; }
+          .jl-nums { grid-column: 1; display: flex; gap: 14px; font-size: 12.5px; color: var(--ink-soft); }
+          .jl-mlabel { display: inline; color: var(--ink-mute); margin-right: 4px; }
+        }
+        @media (min-width: 900px) { .jl-nums { display: contents; } }
+      `}</style>
+
       {errorMessage && (
         <div role="alert" aria-live="polite" style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -126,20 +177,11 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
           fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
         }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            {errorMessage}
-          </span>
-          <button type="button" onClick={() => setErrorMessage(null)} aria-label="エラーを閉じる" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--error)", fontSize: 16, padding: "0 4px" }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <span>{errorMessage}</span>
+          <button type="button" onClick={() => setErrorMessage(null)} aria-label="エラーを閉じる" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--error)", fontSize: 16, padding: "0 4px" }}>×</button>
         </div>
       )}
 
-      {/* ★見出し（2026-09-21）。それまでページに見出しが無かった */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>求人管理</h1>
         {isAdmin && (
@@ -149,72 +191,37 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none",
             flexShrink: 0, whiteSpace: "nowrap",
           }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            新規求人を作成
+            ＋ 新規求人を作成
           </Link>
         )}
       </div>
 
-      {/* 状態のタブ */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
-          {JOB_STATUS_TABS.map((tab) => {
-            const isActive = activeStatus === tab.status;
-            const isRejected = tab.status === "rejected";
-            return (
-              <button
-                type="button"
-                key={tab.status}
-                onClick={() => setActiveStatus(tab.status)}
-                aria-pressed={isActive}
-                style={{
-                  padding: "7px 13px",
-                  background: isActive ? "var(--royal)" : "#fff",
-                  border: `1px solid ${isActive ? "var(--royal)" : isRejected && counts.rejected > 0 ? "#FCA5A5" : "var(--line)"}`,
-                  borderRadius: 100, fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                  color: isActive ? "#fff" : isRejected && counts.rejected > 0 ? "var(--error)" : "var(--ink-soft)",
-                  cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
-                }}
-              >
-                {tab.labelJa}
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 10, fontWeight: 700, opacity: 0.8 }}>
-                  {counts[tab.status]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {/* 状態のタブ（下線だけ）。⚠️ 運営確認中・停止中は1件以上のときだけ */}
+      <div role="tablist" aria-label="求人の状態" style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)", marginBottom: 12, overflowX: "auto" }}>
+        {tabs.map((st) => {
+          const active = activeStatus === st;
+          return (
+            <button key={st} type="button" role="tab" aria-selected={active} data-tab={st} className="btn-fixed-size"
+              onClick={() => setActiveStatus(st)}
+              style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, padding: "0 12px", border: 0, borderBottom: `3px solid ${active ? "var(--royal)" : "transparent"}`, background: "none", fontFamily: "inherit", fontSize: 14, fontWeight: active ? 700 : 500, color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer" }}>
+              {tabLabel(st)}
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{counts[st]}</span>
+            </button>
+          );
+        })}
+      </div>
 
-
-      {/* 検索と職種。⚠️ チップは components/common/FilterChip（候補者検索と同じもの） */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
         <div style={{ position: "relative", flex: "1 1 240px", minWidth: 0, maxWidth: 420 }}>
-          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ink-mute)", pointerEvents: "none", display: "flex" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>
-            </svg>
-          </span>
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="タイトル・職種・部門で検索"
             aria-label="求人を検索"
-            style={{
-              width: "100%", height: 36, boxSizing: "border-box",
-              padding: "0 32px 0 32px",
-              border: "1px solid var(--line)", borderRadius: 999, fontFamily: "inherit",
-              fontSize: 13, background: "#fff", outline: "none",
-            }}
+            style={{ width: "100%", height: 36, boxSizing: "border-box", padding: "0 14px", border: "1px solid var(--line)", borderRadius: 999, fontFamily: "inherit", fontSize: 13, background: "#fff", outline: "none" }}
           />
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery("")} aria-label="検索をクリア"
-              style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, lineHeight: 1, padding: 2, display: "flex", alignItems: "center" }}>×</button>
-          )}
         </div>
-
-        {/* ⚠️ 職種が1つも無い会社ではチップごと出さない（押しても選べるものが無い） */}
         {categoryOptions.length > 0 && (
           <FilterChip
             label="職種" value={categoryFilter}
@@ -223,59 +230,79 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             isOpen={openChip === "category"} onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
           />
         )}
-
         {hasNarrowing && (
-          <button type="button" onClick={clearNarrowing}
+          <button type="button" onClick={() => { setSearchQuery(""); setCategoryFilter(""); }}
             style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
             条件を外す
           </button>
         )}
-
-        <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--ink-soft)" }}>
-          <strong style={{ fontSize: 15, color: "var(--royal)" }}>{filtered.length}</strong> 件
-        </span>
+        <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--ink-soft)" }}>{filtered.length} 件</span>
       </div>
 
-      <div>
-        {/* 求人リスト */}
-        <div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {filtered.length === 0 ? (
-              <JobsEmptyState hasFilters={hasFilters} />
-            ) : (
-              filtered.map((job) => (
-                <div key={job.id}>
-                  <JobListCard
-                    job={job}
-                    onStatusChange={handleStatusChange}
-                    onDelete={handleDelete}
-                    onDuplicate={handleDuplicate}
-                  />
-                  {pendingDeleteId === job.id && (
-                    <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "12px 18px", borderRadius: "0 0 10px 10px",
-                      background: "#FFF5F5", border: "1px solid #FCA5A5", borderTop: "none", fontSize: 13,
-                    }}>
+      {filtered.length === 0 ? (
+        <JobsEmptyState hasFilters={hasFilters} />
+      ) : (
+        <section data-state="job-list" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12 }}>
+          <div className="jl-head" aria-hidden="true">
+            <span>求人</span><span>状態</span><span className="jl-num">応募</span><span className="jl-num">面談</span>
+            <span className="jl-num" title="直近30日">閲覧</span><span className="jl-num">更新日</span><span />
+          </div>
+          <div>
+            {filtered.map((j) => {
+              const v = jobViewStatus(j);
+              const note = v === "rejected" ? (j.stoppedReason ?? j.rejectionReason ?? null)
+                : v === "pending_review" && (j.wordingHits?.length ?? 0) > 0 ? `運営が確認している表現：${j.wordingHits!.join("・")}` : null;
+              return (
+                <div key={j.id}>
+                  <div className="jl-row" data-item="job" data-status={v}>
+                    <div style={{ minWidth: 0 }}>
+                      <Link href={`/biz/jobs/${j.id}/edit`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflowWrap: "anywhere" }}>{j.title}</Link>
+                      <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={subLine(j)}>{subLine(j)}</div>
+                      {note && (
+                        <div data-state={v === "rejected" ? "job-stop-reason" : "job-review-hits"} style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>
+                          {v === "rejected" ? `停止の理由：${note}` : note}
+                        </div>
+                      )}
+                    </div>
+                    <div className="jl-cell-status" data-state="job-status-text" style={{ color: "var(--ink-mute)", fontSize: 13 }}>{statusText(j)}</div>
+                    <div className="jl-nums">
+                      <span className="jl-num"><span className="jl-mlabel">応募</span>{countCell(j.applicationCount, j, "applications")}</span>
+                      <span className="jl-num"><span className="jl-mlabel">面談</span>{countCell(j.meetingCount, j, "meetings")}</span>
+                      <span className="jl-num" style={{ color: "var(--ink-soft)" }}><span className="jl-mlabel">閲覧</span>{viewsFailed || j.views30d === undefined ? "—" : j.views30d}</span>
+                      <span className="jl-num" style={{ color: "var(--ink-soft)" }}><span className="jl-mlabel">更新</span>{fmtDate(j.updatedAtIso)}</span>
+                    </div>
+                    <div className="jl-cell-menu" style={{ position: "relative", textAlign: "right" }}>
+                      <button type="button" aria-label={`「${j.title}」の操作`} aria-expanded={menuId === j.id} data-state="job-menu-button" className="btn-fixed-size"
+                        onClick={(e) => { e.stopPropagation(); setMenuId(menuId === j.id ? null : j.id); }}
+                        style={{ width: 32, height: 32, border: "1px solid var(--line)", borderRadius: 8, background: "#fff", color: "var(--ink-soft)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>⋯</button>
+                      {menuId === j.id && (
+                        <div className="jl-menu" role="menu" onClick={(e) => e.stopPropagation()}>
+                          <Link role="menuitem" href={`/biz/jobs/${j.id}/edit${v === "draft" || v === "private" || v === "rejected" || v === "pending_review" ? "?section=review" : ""}`}>{v === "published" ? "編集" : "編集・公開"}</Link>
+                          <Link role="menuitem" href={`/biz/jobs/${j.id}/preview`}>プレビュー</Link>
+                          {isAdmin && <button type="button" role="menuitem" onClick={() => handleDuplicate(j.id)}>複製</button>}
+                          {isAdmin && v === "published" && <button type="button" role="menuitem" onClick={() => makePrivate(j.id)}>非公開にする</button>}
+                          {isAdmin && v !== "published" && <button type="button" role="menuitem" style={{ color: "var(--error)" }} onClick={() => { setMenuId(null); setPendingDeleteId(j.id); }}>削除</button>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {pendingDeleteId === j.id && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "10px 16px", background: "#FFF5F5", borderTop: "1px solid #FCA5A5", fontSize: 13 }}>
                       <span style={{ color: "var(--error)", fontWeight: 600 }}>この求人を削除しますか？この操作は取り消せません。</span>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button type="button" onClick={() => setPendingDeleteId(null)}
-                          style={{ padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer" }}>
-                          キャンセル
-                        </button>
-                        <button type="button" onClick={() => confirmDelete(job.id)}
-                          style={{ padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "1px solid var(--error)", background: "var(--error)", color: "#fff", cursor: "pointer" }}>
-                          削除する
-                        </button>
+                          style={{ padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer" }}>キャンセル</button>
+                        <button type="button" onClick={() => confirmDelete(j.id)}
+                          style={{ padding: "7px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, border: "1px solid var(--error)", background: "var(--error)", color: "#fff", cursor: "pointer" }}>削除する</button>
                       </div>
                     </div>
                   )}
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
-        </div>
-      </div>
+        </section>
+      )}
     </div>
   );
 }
