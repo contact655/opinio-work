@@ -2,6 +2,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calcTotalExperience } from "@/lib/profile/tenure";
+import { getUserAge } from "@/lib/age";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS, MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
@@ -71,11 +72,14 @@ export async function loadCompanyCandidates(params: {
   const blockedCandidateIds = new Set(blockedPlacements.map((p) => p.candidate_id as string));
   const stanceAuthIds = profileRows.map((p) => p.user_id as string);
 
-  /* ow_users。⚠️ `birth_date` は取らない（年齢で絞り込ませない。労働施策総合推進法9条）。
+  /* ow_users。★`birth_date` は 2026-10-12 から読む（柴さんの判断で年齢を一覧と右欄に出すため）。
+        ⚠️★**読むのはこのサーバーの関数の中だけ。** 下で `getUserAge()` を通して年齢（数）にし、
+           生年月日そのものは Candidate に入れない（＝ブラウザに渡さない）。admin クライアントで読む
+           （authenticated には birth_date の SELECT を配っていない。開けると全員分が取れる）。
      ⚠️★`is_test` はここで絞らない。判定は `can_send_scout()` の1箇所（見る企業と is_test が一致する人だけ） */
   let usersQ = adminClient
     .from("ow_users")
-    .select("id, name, headline, location, created_at, auth_id, is_test, profile_edited_at")
+    .select("id, name, headline, location, created_at, auth_id, is_test, profile_edited_at, birth_date")
     .in("auth_id", stanceAuthIds.length ? stanceAuthIds : ["00000000-0000-0000-0000-000000000000"])
     .neq("visibility", "private")
     .not("is_system", "eq", true)
@@ -194,6 +198,8 @@ export async function loadCompanyCandidates(params: {
       careerStanceUpdatedAt: (profile?.career_stance_updated_at as string | null) ?? null,
       /* ⚠️ 職歴0件は null（0年で埋めない） */
       tenureMonths: calcTotalExperience(startedAtsByUser.get(u.id as string) ?? [])?.months ?? null,
+      /* ★年齢（数だけ）。⚠️ 生年月日が無ければ null（推測しない）。birth_date そのものは返さない */
+      age: getUserAge((u.birth_date as string | null) ?? null),
       currentRole: currentExp?.role_title ?? null,
       currentCompany: currentExp?.company ?? null,
       employmentType: currentExp?.employment_type ?? null,

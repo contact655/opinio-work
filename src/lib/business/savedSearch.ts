@@ -38,6 +38,9 @@ export type SavedCandidateFilters = {
   /** 年収未設定の候補者も通すか。⚠️ 既定は true（落とさない側） */
   includeNoSalary: boolean;
   tenureBand: string;
+  /** ★年齢の下限・上限（2026-10-12）。0 = 指定なし。⚠️ 効くのは CANDIDATE_AGE_FILTER_ENABLED のときだけ */
+  ageMin: number;
+  ageMax: number;
   prefectures: string[];
   careerStance: string;
   stanceFreshness: string;
@@ -68,6 +71,8 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   salaryMin: 0,
   includeNoSalary: true,
   tenureBand: "",
+  ageMin: 0,
+  ageMax: 0,
   prefectures: [],
   careerStance: "",
   stanceFreshness: "",
@@ -104,6 +109,8 @@ export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
     salaryMin: num(o.salaryMin, 0),
     includeNoSalary: bool(o.includeNoSalary, true),
     tenureBand: str(o.tenureBand, ""),
+    ageMin: num(o.ageMin, 0),
+    ageMax: num(o.ageMax, 0),
     prefectures: strArr(o.prefectures),
     careerStance: str(o.careerStance, ""),
     stanceFreshness: str(o.stanceFreshness, ""),

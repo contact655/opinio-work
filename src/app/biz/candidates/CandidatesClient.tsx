@@ -4,7 +4,7 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
 /* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
-  CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
+  AGE_FILTER_OPTIONS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS, ageRangeLabel,
   filterCandidates, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
@@ -116,7 +116,10 @@ export default function CandidatesClient({
   initialSaved = null,
   companyShortName = null,
   companyLimitLine = null,
+  ageFilterEnabled = false,
 }: {
+  /** ★年齢の絞り込み・並び替えを出すか（`isCandidateAgeFilterEnabled()`。本番は無効）。⚠️ 年齢の表示はこれと関係なく出す */
+  ageFilterEnabled?: boolean;
   /** ★カードの「〈会社名〉と合うところ（〇）」の会社名。取れなければ null（「貴社」） */
   companyShortName?: string | null;
   /** ★企業側の上限（今月の送信数・返信待ち）に当たっているときの1行。当たっていなければ null */
@@ -151,18 +154,14 @@ export default function CandidatesClient({
   const [includeNoSalary, setIncludeNoSalary] = useState(true);
 
   // ── 属性 ────────────────────────────────────────────────────────────
-  /* ★年齢の絞り込みは 2026-08-20 に撤去した。社会人年数に置き換えている。
-     ⚠️ **年齢の select や birthYear をここに戻さないこと。**
-        労働施策総合推進法9条で募集・採用時の年齢制限は原則禁止で、
-        **年齢で絞り込む機能**は禁止行為を直接手助けする形になる。
-        ⚠️★**「有料職業紹介の許可事業者だから」とは書かないこと**（2026-09-15 に削除）。
-           OPINIO は募集情報等提供（職安法4条6項）で職業紹介ではない。
-           ⚠️★**理由はむしろ強い。** 絞り込むのは**この画面を使う企業自身**なので、
-              禁止行為の手段をそのまま渡すことになる。
-        「経験年数で絞る」は職務要件なので性質が違う。
-     ⚠️ 撤去前の実装は `if (!c.birthYear) return false` で、
-        生年月日が未入力の10人（実ユーザー14人中）を**無条件に落としていた**。
-        同じ失敗を繰り返さないため、未算出の人は落とさない（下の tenureBand）。 */
+  /* ★★年齢（2026-10-12 / 柴さんの判断で方針を変えた。CLAUDE.md「年齢」の節）。
+        表示は一覧と右欄に出す。**絞り込み・並び替えは `ageFilterEnabled` のときだけ**（本番は無効。弁護士の確認待ち）。
+     ⚠️ 2026-08-20 に撤去した理由（労働施策総合推進法9条。企業自身が年齢で絞る形になる）は今も残っている。
+        本番で有効にする前に、確認の結果を CLAUDE.md に書くこと。
+     ⚠️ 年齢は**サーバーで計算した数**（Candidate.age）。生年月日はブラウザに来ない。
+     ⚠️ 生年月日が無い人は年齢で絞ると**落ちる**（人数を下に出す）。社会人年数は落とさない。向きが逆なのは意図的 */
+  const [ageMin, setAgeMin] = useState(0);
+  const [ageMax, setAgeMax] = useState(0);
   const [tenureBand, setTenureBand] = useState("");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
 
@@ -247,6 +246,11 @@ export default function CandidatesClient({
   /* ★「更新時期」で絞ったときに、更新日時が無くて落ちた人数（2026-09-19）。
         ⚠️ `filtered` の**後**では数えられない（既に落ちている）ので、母集合から数える。
         ⚠️ 0 のときは注記を出さない（出すと常に注記が居座る）。 */
+  /* ★年齢で絞ったときに、生年月日が無くて落ちた人数（2026-10-12）。母集合から数える */
+  const droppedNoAge = useMemo(
+    () => (ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? candidates.filter((c) => c.age == null).length : 0),
+    [candidates, ageFilterEnabled, ageMin, ageMax]
+  );
   const droppedNoStanceTs = useMemo(
     () => (stanceFreshness ? candidates.filter((c) => !c.careerStanceUpdatedAt).length : 0),
     [candidates, stanceFreshness]
@@ -262,6 +266,7 @@ export default function CandidatesClient({
     jobTypeFilterActive ? "x" : "",
     selectedEmploymentTypes.length ? "x" : "",
     tenureBand ? "x" : "",
+    ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? "x" : "",
     careerStance ? "x" : "",
     stanceFreshness ? "x" : "",
     selectedPrefectures.length ? "x" : "",
@@ -291,6 +296,7 @@ export default function CandidatesClient({
       const label = TENURE_BANDS.find((b) => b.value === tenureBand)?.label;
       if (label) chips.push({ key: "tenure", label: `社会人 ${label}`, clear: () => setTenureBand("") });
     }
+    if (ageFilterEnabled && (ageMin > 0 || ageMax > 0)) chips.push({ key: "age", label: ageRangeLabel(ageMin, ageMax), clear: () => { setAgeMin(0); setAgeMax(0); } });
     selectedEmploymentTypes.forEach((v) => chips.push({
       key: `et:${v}`,
       label: EMPLOYMENT_TYPE_LABELS[v] ?? v,
@@ -316,7 +322,7 @@ export default function CandidatesClient({
     }
     return chips;
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
-      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures]);
+      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures, ageFilterEnabled, ageMin, ageMax]);
 
   /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
      ⚠️★**この表がこの機能の歯止め。** マップ型なので、
@@ -336,6 +342,8 @@ export default function CandidatesClient({
     salaryMin: setSalaryMin,
     includeNoSalary: setIncludeNoSalary,
     tenureBand: setTenureBand,
+    ageMin: setAgeMin,
+    ageMax: setAgeMax,
     prefectures: setSelectedPrefectures,
     careerStance: setCareerStance,
     stanceFreshness: setStanceFreshness,
@@ -346,11 +354,11 @@ export default function CandidatesClient({
   const currentFilters: SavedCandidateFilters = useMemo(() => ({
     q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
     employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-    tenureBand, prefectures: selectedPrefectures, careerStance, stanceFreshness,
+    tenureBand, ageMin, ageMax, prefectures: selectedPrefectures, careerStance, stanceFreshness,
     sort,
   }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-       tenureBand, selectedPrefectures, careerStance, stanceFreshness,
+       tenureBand, ageMin, ageMax, selectedPrefectures, careerStance, stanceFreshness,
        sort]);
 
   /* ★絞り込みと並び替え（model.ts。段3の新着メールと同じ関数）。⚠️ 描くのは `sorted` */
@@ -358,10 +366,12 @@ export default function CandidatesClient({
   const [newSince, setNewSince] = useState<string | null>(initialSaved?.newSince ?? null);
   const [openedSaved, setOpenedSaved] = useState<{ id: string; name: string } | null>(initialSaved ? { id: initialSaved.id, name: initialSaved.name } : null);
   const filtered = useMemo(() => {
-    const list = filterCandidates(candidates, currentFilters);
+    const list = filterCandidates(candidates, currentFilters, new Date(), { ageFilter: ageFilterEnabled });
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
-  }, [candidates, currentFilters, newSince]);
-  const sorted = useMemo(() => sortCandidates(filtered, sort), [filtered, sort]);
+  }, [candidates, currentFilters, newSince, ageFilterEnabled]);
+  /* ⚠️ 年齢の並び替えは無効な環境では使わない（保存した条件に残っていても新着順に戻す） */
+  const effectiveSort = !ageFilterEnabled && AGE_SORTS.includes(sort) ? "new" : sort;
+  const sorted = useMemo(() => sortCandidates(filtered, effectiveSort), [filtered, effectiveSort]);
   /* ★プレビューに出す人。明示的に選んだ人 → 無ければ（1280px 以上で、閉じていなければ）先頭の人 */
   const shownId: string | null = selected ?? (isWide && autoPick ? sorted[0]?.id ?? null : null);
   /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
@@ -584,6 +594,21 @@ export default function CandidatesClient({
           onSelect={(v) => setTenureBand(v ?? "")}
           isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}
         />
+        {/* ★年齢（下限・上限）。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ出す（本番は無効） */}
+        {ageFilterEnabled && (<>
+          <FilterChip
+            label="年齢（下限）" value={ageMin ? String(ageMin) : ""}
+            options={AGE_FILTER_OPTIONS.filter((a) => !ageMax || a <= ageMax).map((a) => ({ value: String(a), label: `${a}歳以上` }))}
+            onSelect={(v) => setAgeMin(v ? Number(v) : 0)}
+            isOpen={openChip === "ageMin"} onToggle={() => setOpenChip(openChip === "ageMin" ? null : "ageMin")}
+          />
+          <FilterChip
+            label="年齢（上限）" value={ageMax ? String(ageMax) : ""}
+            options={AGE_FILTER_OPTIONS.filter((a) => !ageMin || a >= ageMin).map((a) => ({ value: String(a), label: `${a}歳以下` }))}
+            onSelect={(v) => setAgeMax(v ? Number(v) : 0)}
+            isOpen={openChip === "ageMax"} onToggle={() => setOpenChip(openChip === "ageMax" ? null : "ageMax")}
+          />
+        </>)}
         <FilterChip
           label="雇用形態" value="" values={selectedEmploymentTypes}
           options={Object.entries(EMPLOYMENT_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
@@ -643,6 +668,11 @@ export default function CandidatesClient({
         <div style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
           更新日時が記録されていない {droppedNoStanceTs} 名は含みません。
           この記録は 2026-09-19 から取り始めたため、それ以前に答えた方は対象外です。
+        </div>
+      )}
+      {droppedNoAge > 0 && (
+        <div data-state="age-dropped-note" style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+          生年月日が未登録の {droppedNoAge} 名は含みません。
         </div>
       )}
       {tenureBand && unknownTenureCount > 0 && (
@@ -754,7 +784,7 @@ export default function CandidatesClient({
         </button>
 
         {/* ⚠️★「メッセージを受け取る方のみ（〇名）」の切り替えは 2026-10-11 に外した。戻さないこと */}
-        <SortSelect value={sort} options={SORT_OPTIONS} onChange={setSort} />
+        <SortSelect value={effectiveSort} options={ageFilterEnabled ? SORT_OPTIONS : SORT_OPTIONS.filter((o) => !AGE_SORTS.includes(o.value))} onChange={setSort} />
 
         {/* ★「この条件を保存」（2026-10-10 / 段2）。**条件を選んでいるときだけ**出す。
                ⚠️ 保存の入口はここ1つ（「保存した条件」の中から保存フォームを外した。入口を2つにしない）。 */}
@@ -1045,17 +1075,18 @@ export default function CandidatesClient({
                       <div style={neutralAvatarStyle(40, 15)}>{c.name.charAt(0) || "?"}</div>
                     </div>
                     <div className="cand-card-main">
-                      {/* 1行目。⚠️ 年齢は出さない（2026-08-20）。社会人年数だけ。現職が分からないときは希望職種 */}
+                      {/* 1行目。★年齢（2026-10-12 から出す。生年月日が無い人は出さない）・社会人年数。現職が分からないときは希望職種 */}
                       {(() => {
                         const pref = c.location ? (extractPrefecture(c.location) ?? c.location) : null;
                         const role = c.currentRole || c.currentCompany
                           ? c.currentRole
                           : (c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
-                        const title = [c.name, tenure, role, c.currentCompany, pref].filter(Boolean).join(" ・ ");
+                        const ageText = c.age != null ? `${c.age}歳` : null;
+                        const title = [c.name, ageText, tenure, role, c.currentCompany, pref].filter(Boolean).join(" ・ ");
                         return (
                           <div className="cand-card-row1" title={title}>
                             <span className="cand-card-name">{c.name}</span>
-                            {tenure && <span className="cand-card-sub">{tenure}</span>}
+                            {(ageText || tenure) && <span className="cand-card-sub" data-state="card-age-tenure">{[ageText, tenure].filter(Boolean).join("・")}</span>}
                             {/* ⚠️ 640px 以下では、この3つを名前の下の行に回す（1行に収めると職種まで切れて読めない） */}
                             <span className="cand-card-metas">
                             {role && <span className="cand-card-meta cand-card-role">{role}</span>}

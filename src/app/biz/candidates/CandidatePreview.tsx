@@ -105,7 +105,8 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   const c = data.candidate;
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
-  const meta = [tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
+  /* ★年齢（2026-10-12 から出す）。⚠️ サーバーで計算した数（Candidate.age）。生年月日が無い人は出さない */
+  const meta = [c.age != null ? `${c.age}歳` : null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
   /* ★右欄は「上：誰か／中：タブ／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
         上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・合うところ）・4行目（この会社との接点）
         中（ここだけスクロール）… 職歴／学歴／スキル／自己紹介（＋社内メモが有効なら「メモ」）。中身と判定は /u/[id] と同じ

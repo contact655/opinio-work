@@ -60,6 +60,9 @@ export type Candidate = {
   careerStanceUpdatedAt: string | null;
   /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
   tenureMonths: number | null;
+  /** ★年齢（2026-10-12 / 柴さんの判断で一覧と右欄に出す）。**サーバーで `getUserAge()` を通した数だけ。**
+   *  ⚠️★生年月日そのものはブラウザに渡さない（load.ts で読み、ここに数だけ入れる）。生年月日が無ければ null（推測しない） */
+  age: number | null;
   currentRole: string | null;
   currentCompany: string | null;
   employmentType: string | null;
@@ -106,6 +109,9 @@ export const TENURE_BANDS = [
   { value: "gte10", label: "10年以上", minMonths: 120, maxMonths: Number.MAX_SAFE_INTEGER },
 ] as const;
 
+/** ★年齢の絞り込みの選択肢（下限・上限。2026-10-12）。⚠️ 使えるのは CANDIDATE_AGE_FILTER_ENABLED のときだけ（ageFilter.ts） */
+export const AGE_FILTER_OPTIONS = [20, 25, 30, 35, 40, 45, 50, 55, 60, 65] as const;
+
 /** 転職意欲の更新時期の帯（2026-09-19）。⚠️ 読むのは `career_stance_updated_at` */
 export const STANCE_FRESHNESS_BANDS = [
   { value: "1d",  label: "24時間以内", days: 1 },
@@ -129,7 +135,9 @@ function textHit(c: Candidate, t: string): boolean {
  * ⚠️ `currentCompany` は社名を伏せた人では「非公開企業」に置き換え済み（load.ts）。
  *    ここに社名の生値を渡す経路を作らないこと。
  */
-export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilters, now: Date = new Date()): Candidate[] {
+export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilters, now: Date = new Date(),
+  /** ★年齢の絞り込みを効かせるか（`isCandidateAgeFilterEnabled()`。本番は無効）。無効なら保存された年齢の条件も無視する */
+  opts: { ageFilter?: boolean } = {}): Candidate[] {
   let list = candidates;
 
   if (f.q.trim()) {
@@ -162,6 +170,11 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
     if (band) {
       list = list.filter((c) => c.tenureMonths == null || (c.tenureMonths >= band.minMonths && c.tenureMonths <= band.maxMonths));
     }
+  }
+  /* ★年齢（2026-10-12）。⚠️★生年月日が無い人（age が null）は**落とす**（範囲に入るか分からないため。
+        社会人年数と逆向き。画面には「生年月日が未登録の N 名は含みません」と人数を出す） */
+  if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) {
+    list = list.filter((c) => c.age != null && (f.ageMin <= 0 || c.age >= f.ageMin) && (f.ageMax <= 0 || c.age <= f.ageMax));
   }
   if (f.careerStance) list = list.filter((c) => c.careerStance === f.careerStance);
   /* 転職意欲の更新時期。⚠️★未更新（null）は落とす */
@@ -196,7 +209,11 @@ export const CANDIDATE_SORT_OPTIONS = [
   { value: "tenure",      label: "社会人年数が長い順" },
   /* ★段1。⚠️ 接点が取れなかった（undefined）人は 0 件として扱わず末尾 */
   { value: "touchpoints", label: "接点が多い順" },
+  /* ★2026-10-12。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ選べる（画面が `AGE_SORTS` を外す）。生年月日が無い人は末尾 */
+  { value: "age_young", label: "年齢が若い順" },
+  { value: "age_old", label: "年齢が高い順" },
 ] as const;
+export const AGE_SORTS: readonly string[] = ["age_young", "age_old"];
 
 /** 並び替え。⚠️ 引数を壊さない（コピーして並べる）。記録の無い人は末尾 */
 export function sortCandidates(list: Candidate[], sort: string): Candidate[] {
@@ -216,6 +233,15 @@ export function sortCandidates(list: Candidate[], sort: string): Candidate[] {
       if (a.tenureMonths == null) return 1;
       if (b.tenureMonths == null) return -1;
       return b.tenureMonths - a.tenureMonths;
+    });
+  }
+  if (sort === "age_young" || sort === "age_old") {
+    const dir = sort === "age_young" ? 1 : -1;
+    return out.sort((a, b) => {
+      if (a.age == null && b.age == null) return newest(a, b);
+      if (a.age == null) return 1;
+      if (b.age == null) return -1;
+      return (a.age - b.age) * dir || newest(a, b);
     });
   }
   if (sort === "touchpoints") {
@@ -320,6 +346,8 @@ export function describeFilters(
   if (role && roleNameById.get(role)) out.push(roleNameById.get(role)!);
   const tb = TENURE_BANDS.find((b) => b.value === f.tenureBand);
   if (tb) out.push(`社会人 ${tb.label}`);
+  /* ★年齢（2026-10-12）。⚠️ 無効な環境でも、保存されている条件は言葉にして見せる（黙って消さない） */
+  if (f.ageMin > 0 || f.ageMax > 0) out.push(ageRangeLabel(f.ageMin, f.ageMax));
   for (const v of f.employmentTypes) out.push(EMPLOYMENT_TYPE_LABELS[v] ?? v);
   if (f.workStyle) out.push(labels.workStyles[f.workStyle] ?? f.workStyle);
   if (f.salaryMin > 0) out.push(`${f.salaryMin}万〜`);
@@ -329,4 +357,11 @@ export function describeFilters(
   const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
   if (fr) out.push(`更新 ${fr.label}`);
   return out;
+}
+
+/** 「30〜39歳」「30歳〜」「〜39歳」。⚠️ 検索画面のチップと保存した条件の一覧が同じ言葉にする */
+export function ageRangeLabel(min: number, max: number): string {
+  if (min > 0 && max > 0) return `${min}〜${max}歳`;
+  if (min > 0) return `${min}歳〜`;
+  return `〜${max}歳`;
 }

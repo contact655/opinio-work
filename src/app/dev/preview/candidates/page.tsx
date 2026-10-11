@@ -41,7 +41,7 @@ function cand(over: Partial<Candidate> & { id: string; name: string }): Candidat
     headline: null,
     location: null, isActivelyLooking: false,
     careerStance: "open", careerStanceUpdatedAt: null,
-    tenureMonths: null, currentRole: null, currentCompany: null,
+    tenureMonths: null, age: null, currentRole: null, currentCompany: null,
     employmentType: null, startedAt: null, roleName: null, topRoleName: null,
     desiredRoleIds: [], desiredRoleNames: [], workStyles: null,
     desiredPrefectures: null, desiredSalaryMin: null, desiredSalaryMax: null,

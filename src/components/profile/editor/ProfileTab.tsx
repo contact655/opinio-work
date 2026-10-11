@@ -972,6 +972,9 @@ export default function ProfileTab({
    */
   const [headerFocusLocation, setHeaderFocusLocation] = useState(false);
   const openLocationEditor = () => { setHeaderFocusLocation(true); setEditingHeader(true); };
+  /** ★★生年月日の案内から開いたか（2026-10-12 / 柴さんの指示）。お住まいと同じ形（写真の行を自動で開かない） */
+  const [headerFocusBirth, setHeaderFocusBirth] = useState(false);
+  const openBirthEditor = () => { setHeaderFocusBirth(true); setEditingHeader(true); };
   /**
    * ★促しから開いたときに寄せる欄（肩書き 2026-09-23 / お住まい 2026-09-27）。
    *
@@ -989,6 +992,7 @@ export default function ProfileTab({
   const headerInitialFocusId =
     headerFocusHeadline ? "pe-headline"
     : headerFocusLocation ? "pe-location"
+    : headerFocusBirth ? "pe-birth-year"
     : undefined;
   const [basicSaving,       setBasicSaving]       = useState(false);
   const [basicJustSaved,    setBasicJustSaved]    = useState(false);
@@ -1231,7 +1235,7 @@ export default function ProfileTab({
               justSaved={basicJustSaved}
               error={null}
               onSave={handleSaveHeader}
-              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setHeaderFocusHeadline(false); setHeaderFocusLocation(false); setEditingHeader(false); }}
+              onClose={() => { handleCancelBasic(); handleCancelSocial(); setHeaderFocusPhoto(false); setHeaderFocusHeadline(false); setHeaderFocusLocation(false); setHeaderFocusBirth(false); setEditingHeader(false); }}
               /* ★促しから開いたときだけ、その欄へ寄せて focus する（上の注記を読むこと） */
               initialFocusId={headerInitialFocusId}
             >
@@ -1250,7 +1254,7 @@ export default function ProfileTab({
                            写真を持っている人は畳んだまま＝あの問題は起きない。
                      ⚠️ カバーは条件に入れない。カバーだけ未設定の人に 380px を払わせる価値が無い
                         （指摘の主眼はプロフィール画像）。 */
-                  defaultOpen={headerFocusPhoto || (!savedAvatarUrl && !headerFocusHeadline && !headerFocusLocation)}
+                  defaultOpen={headerFocusPhoto || (!savedAvatarUrl && !headerFocusHeadline && !headerFocusLocation && !headerFocusBirth)}
                   label="写真・カバー"
                   /* ⚠️ 375px で2行に折り返さない長さにする（「プロフィール画像・カバー写真」＋
                         「画像なし・カバーなし」は両方とも折り返していた） */
@@ -1400,15 +1404,16 @@ export default function ProfileTab({
 
               <FormGroup
                 label="生年月日"
-                /* ⚠️ 実態と合わせる（2026-08-20）。カードの年齢は 2026-08-18 に外し、
-                       「年齢」フィルタも 2026-08-20 に撤去した。
-                       **一覧に出ると書いたままにしない。** */
-                hint="プロフィールの詳細ページにのみ年齢が表示されます。一覧には出ません。入力しない場合は年齢非公開となります。"
+                /* ⚠️★2026-10-12 に「プロフィールの詳細ページにのみ年齢が表示されます。一覧には出ません。」を外した。
+                       企業の候補者一覧と右欄に年齢を出すようにしたので、**事実と違う約束になった**ため。
+                       ⚠️ 年齢表示についての一言は**足さない**（柴さんの指示）。残すのは元からある最後の一文だけ */
+                hint="入力しない場合は年齢非公開となります。"
               >
                 <div style={{ display: "flex", gap: "var(--space-2)" }}>
                   {/* 年 */}
                   <div style={{ position: "relative", flex: "0 0 110px" }}>
                     <select
+                      id="pe-birth-year"
                       value={birthYear}
                       onChange={(e) => setBirthYear(e.target.value)}
                       style={selectStyle()}
@@ -1466,6 +1471,18 @@ export default function ProfileTab({
                 </CollapsibleRow>
             </ProfileEditModal>
 
+            {/* ★★生年月日が未入力の人への案内（2026-10-12 / 柴さんの指示）。入力するまで使えなくはしない。
+                   ⚠️ 判定は**保存済みの値**（`initialBirthYear`）。入力中の値で消さない（ui-debugging ⑦）。
+                   ⚠️ 年齢表示についての説明は足さない。黄色は「未完了」の色（ui-conventions） */}
+            {!initialBirthYear && (
+              <div data-state="birthdate-notice" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: "var(--warm-soft)", border: "1px solid #FCD34D", fontSize: 13, color: "var(--warm-ink)" }}>
+                <span style={{ flex: 1, minWidth: 0 }}>生年月日を入力してください</span>
+                <button type="button" onClick={openBirthEditor} className="btn-fixed-size"
+                  style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "1px solid #FCD34D", background: "#fff", color: "var(--warm-ink)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  入力する
+                </button>
+              </div>
+            )}
             <ProfileHeader
                 /* ⚠️ ヘッダーは**保存済みの表示名**（`.claude/rules/ui-debugging.md` ⑦）。
                       編集中の `displayName` を渡すと、保存前の入力が公開側の見た目に出る。 */
