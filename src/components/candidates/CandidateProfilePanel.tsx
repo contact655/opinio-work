@@ -22,7 +22,8 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
   /** 固定の段に出すもの（メッセージを送る・送れない理由など） */
   headerExtra?: ReactNode;
   before?: ReactNode;
-  onClose: () => void;
+  /** 閉じる（✕）。⚠️ 渡さなければ ✕ を出さない（/biz/employees は常に誰かを出す。2026-10-12） */
+  onClose?: () => void;
 }) {
   const [content, setContent] = useState<ReactNode | null>(null);
   const [failed, setFailed] = useState(false);
@@ -55,8 +56,10 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
             </div>
             {meta && <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 4, overflowWrap: "anywhere" }}>{meta}</div>}
           </div>
-          <button type="button" onClick={onClose} aria-label="閉じる"
-            style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>
+          {onClose && (
+            <button type="button" onClick={onClose} aria-label="閉じる"
+              style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>
+          )}
         </div>
         {headerExtra}
       </div>

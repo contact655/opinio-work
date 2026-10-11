@@ -22,14 +22,15 @@ const base = {
   startedAt: "2021-04-01",
   endedAt: null,
   isCurrent: true,
+  departmentName: null as string | null,
 } satisfies Omit<BizEmployee, "experienceId" | "userId" | "name" | "roleName" | "roleTitle">;
 
 const CURRENT: BizEmployee[] = [
-  { ...base, experienceId: "e1", userId: "u1", name: "山田 太郎",
+  { ...base, experienceId: "e1", userId: "u1", name: "山田 太郎", departmentName: "金融営業本部",
     roleName: "エンタープライズセールス", roleTitle: "金融営業本部 営業第1部 / 法人営業（アカウント営業）" },
   { ...base, experienceId: "e2", userId: "u2", name: "佐藤 花子",
     roleName: "フィールドセールス", roleTitle: null, isAdmin: true },
-  { ...base, experienceId: "e3", userId: "u3", name: "鈴木 一郎",
+  { ...base, experienceId: "e3", userId: "u3", name: "鈴木 一郎", departmentName: "インサイドセールス部",
     roleName: "インサイドセールス", roleTitle: "SDR", isTalkable: true },
   { ...base, experienceId: "e4", userId: "u4", name: "高橋 二郎",
     roleName: "カスタマーサクセス", roleTitle: "CSM", isAdmin: true, isTalkable: true },
@@ -48,7 +49,7 @@ const CURRENT: BizEmployee[] = [
 ];
 
 const ALUMNI: BizEmployee[] = [
-  { ...base, experienceId: "a1", userId: "u8", name: "退職 太郎",
+  { ...base, experienceId: "a1", userId: "u8", name: "退職 太郎", departmentName: "金融営業本部",
     roleName: "フィールドセールス", roleTitle: "AE",
     isCurrent: false, endedAt: "2024-03-31" },
   /* ⚠️★`ow_company_members` の行が残っている退職者。**面談OKを出さない**のが正しい。
@@ -63,21 +64,22 @@ export default function BizEmployeesPreview() {
   return (
     <div>
       <PreviewHeader title="社員・OB/OG（/biz/employees）">
-        タブは<strong>2つだけ</strong>（現役社員 / OB・OG社員）。
+        ★2026-10-12 から左右2画面（1280px 以上）。右のプロフィール欄はプレビューでは描きません（DB を読む経路を通さないため）。
+        切り替えは<strong>2つだけ</strong>（現役 / OB・OG）。
         職種は<strong>マスタ名が主で、社内での呼び方を小さく併記</strong>します。
         どちらも無い行は<strong>職種の行ごと出ません</strong>。
       </PreviewHeader>
 
       <Variant label="現役7件（管理者・面談OK・職種の3パターン）" note="⚠️ 5人目は職種の行が丸ごと無いこと。6人目は小さい方だけ出ること">
-        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={[]} reportedExperienceIds={[]} rejectedExperiences={[]} companyName="株式会社サンプル" />
+        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={[]} reportedExperienceIds={[]} rejectedExperiences={[]} companyName="株式会社サンプル" companyId="c1" initialTab="current" initialDept="" initialQuery="" initialSelectedId={null} renderProfile={false} />
       </Variant>
 
       <Variant label="非表示（運営）と報告済みが混ざる" note="⚠️★非表示の行は表示だけ残し、操作は出さない（戻すのは運営）。1人目は「運営に報告済み」でボタンが消えていること">
-        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={["e3", "e5"]} reportedExperienceIds={["e1"]} rejectedExperiences={[{ experienceId: "e2", note: "本人に確認したところ、在籍期間の記載に誤りはありませんでした" }, { experienceId: "e4", note: null }]} companyName="株式会社サンプル" />
+        <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={["e3", "e5"]} reportedExperienceIds={["e1"]} rejectedExperiences={[{ experienceId: "e2", note: "本人に確認したところ、在籍期間の記載に誤りはありませんでした" }, { experienceId: "e4", note: null }]} companyName="株式会社サンプル" companyId="c1" initialTab="current" initialDept="" initialQuery="" initialSelectedId={null} renderProfile={false} />
       </Variant>
 
       <Variant label="0件（空状態）" note="⚠️ 企業側から追加できないことが文面で伝わるか">
-        <EmployeesClient current={[]} alumni={[]} hiddenExperienceIds={[]} reportedExperienceIds={[]} rejectedExperiences={[]} companyName="株式会社サンプル" />
+        <EmployeesClient current={[]} alumni={[]} hiddenExperienceIds={[]} reportedExperienceIds={[]} rejectedExperiences={[]} companyName="株式会社サンプル" companyId="c1" initialTab="current" initialDept="" initialQuery="" initialSelectedId={null} renderProfile={false} />
       </Variant>
     </div>
   );

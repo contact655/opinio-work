@@ -1,3 +1,6 @@
+import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
+/* ★右欄（CandidateProfilePanel）を使うページは必ず参照する（profileClientModules.ts の注記） */
+void PROFILE_CLIENT_MODULES;
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -30,6 +33,9 @@ export type BizEmployee = {
   roleName: string | null;
   /** 本人が入れた社内での呼び方（自由入力）。★マスタ名の下に小さく併記する */
   roleTitle: string | null;
+  /** ★部門（2026-10-12）。部門マスタ（department_id）の名前、無ければ本人が入れた部署名。
+   *  ⚠️ 公開プロフィール（/u/[id] の職歴）にも出ている値。新しく見せる範囲を広げていない */
+  departmentName: string | null;
   startedAt: string;
   endedAt: string | null;
   isCurrent: boolean;
@@ -39,7 +45,10 @@ export type BizEmployee = {
   isTalkable: boolean;
 };
 
-export default async function EmployeesPage() {
+export default async function EmployeesPage({ searchParams }: {
+  /* ★選択は URL に残す（2026-10-12）。tab=current|alumni ／ dept=部門名 ／ q=名前 ／ id=経歴 id。⚠️ 値の検証は EmployeesClient */
+  searchParams?: { tab?: string; dept?: string; q?: string; id?: string };
+}) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -86,6 +95,10 @@ export default async function EmployeesPage() {
       started_at,
       ended_at,
       is_current,
+      department,
+      ow_company_departments!department_id (
+        name
+      ),
       ow_users (
         id,
         name,
@@ -106,6 +119,13 @@ export default async function EmployeesPage() {
   if (rowsError) {
     console.error("[biz/employees] experiences fetch failed:", rowsError.message);
   }
+
+  /* ★検証用の企業（is_test）だけは、検証用アカウントの経歴も出す（2026-10-12）。
+        実在の企業では今までどおり検証用アカウントを出さない（下の isSeedRow と同じ条件）。
+        ⚠️ 検証用の企業は求職者側に出ないので、企業ページとの食い違いは起きない */
+  const { data: tenantRow, error: tenantErr } = await admin.from("ow_companies").select("is_test").eq("id", ctx.tenantId).maybeSingle();
+  if (tenantErr) console.error("[biz/employees] company fetch failed:", tenantErr.message);
+  const tenantIsTest = tenantRow?.is_test === true;
 
   // 非表示 experience_id 一覧
   const { data: hiddenRows } = await admin
@@ -193,7 +213,7 @@ export default async function EmployeesPage() {
           作ったプロフィール）や非公開の人まで「企業ページに出ている人」として並んでいた。
        ⚠️★`auth_id` と `visibility` を select から落とさないこと。落とすと undefined になり、
           `isRegisteredUser` が全員を外して**一覧が丸ごと空になる**（型では気づけない）。 */
-    if (user.is_test === true || user.visibility === "private" || !isRegisteredUser(user)) return [];
+    if ((user.is_test === true && !tenantIsTest) || user.visibility === "private" || !isRegisteredUser(user)) return [];
     const userId = user.id as string;
     const isCurrent = row.is_current as boolean;
     return [{
@@ -205,6 +225,7 @@ export default async function EmployeesPage() {
             `?? ""` に倒さない ——「未設定」と「取得漏れ」が区別できなくなる。 */
       roleName: (row.ow_roles?.name as string | null) ?? null,
       roleTitle: row.role_title as string | null,
+      departmentName: ((row.ow_company_departments?.name as string | null) ?? (row.department as string | null) ?? "").trim() || null,
       startedAt: row.started_at as string,
       endedAt: row.ended_at as string | null,
       isCurrent,
@@ -256,6 +277,11 @@ export default async function EmployeesPage() {
         reportedExperienceIds={reportedExperienceIds}
         rejectedExperiences={rejectedExperiences}
         companyName={ctx.tenantName ?? ""}
+        companyId={ctx.tenantId}
+        initialTab={searchParams?.tab === "alumni" ? "alumni" : "current"}
+        initialDept={typeof searchParams?.dept === "string" ? searchParams.dept : ""}
+        initialQuery={typeof searchParams?.q === "string" ? searchParams.q : ""}
+        initialSelectedId={typeof searchParams?.id === "string" ? searchParams.id : null}
       />
     </BusinessLayout>
   );
