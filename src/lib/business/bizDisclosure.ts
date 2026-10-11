@@ -25,7 +25,8 @@ export async function getBizDisclosure(companyId: string): Promise<ScoreBreakdow
     db.from("ow_companies").select(
       "tagline, benefits, description, culture_description, customer_cases, market_customer_size, capital_type, branch_locations, org_teams",
     ).eq("id", companyId).maybeSingle(),
-    db.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", companyId),
+    /* ⚠️ 求職者に見えている写真だけ数える（未公開＝is_draft を除く。2026-10-12） */
+    db.from("ow_company_office_photos").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("is_draft", false),
     db.from("ow_company_posts").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("is_published", true),
     db.from("ow_company_tools").select("id", { count: "exact", head: true }).eq("company_id", companyId),
     db.from("ow_jobs").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("status", "published"),

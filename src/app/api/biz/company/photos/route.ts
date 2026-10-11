@@ -3,10 +3,9 @@ import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { MAX_PHOTOS_PER_CATEGORY, type PhotoCategory } from "@/lib/business/photos";
+import { MAX_PHOTOS_TOTAL, isPhotoCategory } from "@/lib/business/photos";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 
-const VALID_CATEGORIES: PhotoCategory[] = ["workspace", "meeting", "welfare", "event"];
 
 export async function POST(request: Request) {
   try {
@@ -29,7 +28,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { category, image_url, caption, display_order } = body;
 
-    if (!VALID_CATEGORIES.includes(category)) {
+    if (!isPhotoCategory(category)) {
       return Response.json({ error: "Invalid category" }, { status: 400 });
     }
     if (!image_url || typeof image_url !== "string") {
@@ -42,21 +41,18 @@ export async function POST(request: Request) {
       return Response.json({ error: "image_url must be a valid storage URL" }, { status: 400 });
     }
 
-    // Check existing count for this category
+    /* ★上限は合計20枚（2026-10-12。それまではカテゴリごとに5枚）。未公開の写真も数える */
     const { count, error: countError } = await supabase
       .from("ow_company_office_photos")
       .select("*", { count: "exact", head: true })
-      .eq("company_id", companyId)
-      .eq("category", category);
+      .eq("company_id", companyId);
 
     if (countError) {
       return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
-    if ((count ?? 0) >= MAX_PHOTOS_PER_CATEGORY) {
-      return Response.json({
-        error: `Maximum ${MAX_PHOTOS_PER_CATEGORY} photos per category`,
-      }, { status: 400 });
+    if ((count ?? 0) >= MAX_PHOTOS_TOTAL) {
+      return Response.json({ error: `写真は${MAX_PHOTOS_TOTAL}枚までです` }, { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -67,6 +63,8 @@ export async function POST(request: Request) {
         image_url,
         caption: caption ?? null,
         display_order: display_order ?? (count ?? 0),
+        /* ★未公開で入れる（「公開する」で公開。2026-10-12）。⚠️ トリガーでも true に直る */
+        is_draft: true,
       })
       .select()
       .single();
@@ -75,10 +73,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
-    /* ⚠️★2026-09-07 追加。それまで写真を足しても消しても revalidate は0件だった。
-          ⚠️ 写真は `getCompanyPhotosCached`（unstable_cache 300秒）越しだが、
-             **`revalidatePath` で一緒に落ちる**（2026-09-08 に本番でツールで実測）。 */
-    await revalidateCompanyPages(companyId);
+    /* ⚠️ 追加した写真は未公開なので、求職者側のキャッシュを捨てる必要は無い（公開は applyDraft.ts が捨てる） */
     return Response.json({ data }, { status: 201 });
   } catch {
     return Response.json({ error: "Internal server error" }, { status: 500 });

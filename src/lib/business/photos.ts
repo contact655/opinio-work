@@ -11,6 +11,7 @@ export type DbOfficePhoto = {
   display_order: number;
   created_at: string;
   tagged_user_id: string | null;
+  is_draft?: boolean;
 };
 
 export type OfficePhoto = {
@@ -19,9 +20,26 @@ export type OfficePhoto = {
   caption: string;
   category: PhotoCategory;
   tagged_user_id: string | null;
+  /** ★未公開（「公開する」を押すまで求職者に見えない。2026-10-12） */
+  isDraft: boolean;
 };
 
-export const MAX_PHOTOS_PER_CATEGORY = 5;
+/**
+ * ★写真は1つの枠にまとめ、カテゴリは写真ごとに選ぶ（2026-10-12）。上限は**合計20枚**。
+ * ⚠️ それまでは4カテゴリ×5枚だった。求職者側の表示（getCompanyPhotos）も limit 20。
+ * ⚠️ カテゴリの語彙は DB の CHECK（ow_company_office_photos_category_check）と同じ4つ。
+ */
+export const MAX_PHOTOS_TOTAL = 20;
+
+export const PHOTO_CATEGORIES: { value: PhotoCategory; label: string }[] = [
+  /* ⚠️ 求職者側（PhotoCarousel の CATEGORY_LABEL）と同じ語にする */
+  { value: "workspace", label: "オフィス" },
+  { value: "meeting", label: "働く様子" },
+  { value: "welfare", label: "休憩・食事スペース" },
+  { value: "event", label: "チーム・イベント" },
+];
+export const isPhotoCategory = (v: unknown): v is PhotoCategory =>
+  typeof v === "string" && PHOTO_CATEGORIES.some((c) => c.value === v);
 
 export function dbPhotoToForm(db: DbOfficePhoto): OfficePhoto {
   return {
@@ -30,6 +48,7 @@ export function dbPhotoToForm(db: DbOfficePhoto): OfficePhoto {
     caption: db.caption ?? "",
     category: db.category,
     tagged_user_id: db.tagged_user_id ?? null,
+    isDraft: db.is_draft === true,
   };
 }
 
@@ -41,8 +60,8 @@ export async function fetchOfficePhotosForCompany(
     .from("ow_company_office_photos")
     .select("*")
     .eq("company_id", companyId)
-    .order("category")
-    .order("display_order");
+    .order("display_order")
+    .order("created_at");
 
   if (error) {
     console.error("[fetchOfficePhotosForCompany]", error);

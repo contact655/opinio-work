@@ -2441,6 +2441,7 @@ export type Database = {
           display_order: number
           id: string
           image_url: string
+          is_draft: boolean
           tagged_user_id: string | null
         }
         Insert: {
@@ -2451,6 +2452,7 @@ export type Database = {
           display_order?: number
           id?: string
           image_url: string
+          is_draft?: boolean
           tagged_user_id?: string | null
         }
         Update: {
@@ -2461,6 +2463,7 @@ export type Database = {
           display_order?: number
           id?: string
           image_url?: string
+          is_draft?: boolean
           tagged_user_id?: string | null
         }
         Relationships: [

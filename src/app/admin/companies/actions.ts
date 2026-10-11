@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
+import { applyCompanyDraft } from "@/lib/companies/applyDraft";
 
 async function assertAdmin(): Promise<void> {
   const supabase = createClient();
@@ -185,12 +186,18 @@ export async function updateListingStatus(
   }
   await assertAdmin();
 
-  // ⚠️ 公開ゲート（掲載に切り替えるときだけ）。取り下げ（draft）は常に通す
-  if (newValue === "listed") {
-    const gate = await checkPublishable(companyId, { kind: "admin" });
-    if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
-  }
+  /* ⚠️ 公開ゲート（掲載に切り替えるときだけ）。取り下げ（draft）は常に通す。
+     ★**下書きの値で判定し、掲載と一緒に下書き（と未公開の写真）を反映する**（2026-10-12）。
+        掲載前の企業は自分で下書きを反映できず「掲載を依頼する」を押すので、ここで反映しないと
+        掲載した瞬間に**依頼したときの内容ではなく古い内容**が出る。
+     ⚠️ 運営の掲載では従業員数・本社所在地で止めない（止めるのは企業の「掲載を依頼する」）。 */
   const admin = createAdminClient();
+  if (newValue === "listed") {
+    const gate = await checkPublishable(companyId, { kind: "admin" }, { useDraft: true });
+    if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
+    const applied = await applyCompanyDraft(companyId, { client: admin, label: "admin 掲載" });
+    if (!applied.ok) return { ok: false, error: `下書きを反映できませんでした: ${applied.message ?? applied.error}` };
+  }
 
   /* ⚠️ 0行更新を成功として扱わない。.select("id") で戻り行を受ける（CLAUDE.md）。
         ⚠️ 引数なしの .select() は使わない。列単位 GRANT を剥がした列があると 403 になる。 */

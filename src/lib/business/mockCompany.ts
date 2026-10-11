@@ -30,7 +30,12 @@ export type BizCompany = {
   // ── About（企業説明） ──────────────────────────────────────
   descriptionMarkdown: string;
   whyJoin: string;          // 入社理由・魅力（公開ページで参照）
-  companyFeatures: string[]; // 企業特徴リスト（公開ページ「特徴」セクション）
+  /* ⚠️★企業の特徴（company_features）は 2026-10-12 に入力欄ごと外した（求職者に表示されないため）。
+        列とデータ（77社）と開示充実順の計算はそのまま。**フォームに戻さないこと。** */
+  /** ★事業領域（2026-10-12 から下書きに入れる。それまでは選ぶと即時保存だった）。
+   *  ⚠️ 下書きのキーは `business_domains`（`companyRequirements.ts` の DRAFT_BUSINESS_DOMAINS_KEY） */
+  businessDomainIds: string[];
+  primaryBusinessDomainId: string | null;
   fitPositives: string[];   // 「こんな人に向いている」ポイント
   fitNegatives: string[];   // 「注意点・向いていないかも」ポイント
   showFitNegatives: boolean;   // 「慎重に検討を」欄を公開するか
@@ -41,11 +46,10 @@ export type BizCompany = {
   employeeCountBand: string;
   /** ★いつ時点か（"YYYY-MM"。input type="month" の値）。空文字 = 未入力 */
   employeeCountAsOf: string;
+  /** 設立年（"2017"）。⚠️ 保存は `founded_year`（整数）なので年だけ */
   foundedAt: string;
-  avgAge: string;
-  avgSalary: string;
-  fundingTotal: string;
-  genderRatio: string;
+  /* ⚠️★平均年齢・男女比・平均年収・累計調達額は 2026-10-12 に入力欄ごと外した（求職者に表示されないため）。
+        列とデータは残す。**フォームに戻さないこと。** 戻すなら先に求職者側の表示を作る */
   evaluationSystem: string;
   /* ⚠️ 2026-08-31 に `string[]` から変えた。名前＋任意の詳細を持つ。
         型は `lib/companies/benefits.ts` に集約（ここで書き直さない）。 */
@@ -66,7 +70,8 @@ export type BizCompany = {
   // ── 公開設定 ────────────────────────────────────────────
   isPublished: boolean;
   acceptingCasualMeetings: boolean;
-  notificationEmails: string;
+  /* ⚠️★通知先（notification_emails）は 2026-10-12 に「メンバーと権限」へ移した（下書きを通さず即時保存）。
+        **このフォーム（＝下書き）に戻さないこと。** 戻すと「公開する」まで通知先が変わらない */
 
   // ── 面談スケジュール ──────────────────────────────────
   availabilityDays: string[];    // 例: ["月","水","金"]
@@ -84,29 +89,12 @@ export type BizCompany = {
   lastPublishedAt: string;    // "2026年4月12日 14:32"
   lastPublishedAgo: string;   // "14日前"
   hasDraftChanges: boolean;
-  numbersUpdatedAt: string;   // ISO date string or "" — 数値アンケートの最終回答日時
+  /* ⚠️ numbersUpdatedAt（「数値を最新として公開する」の日付）は 2026-10-12 に外した。表示先が無い */
 };
 
 
-/* セクション定義。★**2026-09-18 に 7 → 5 に畳んだ**（柴さんの指示）。
-      ・ロゴ設定 → **基本情報**に統合（1項目しか無く、タブを1つ占めていた）
-      ・働き方   → **数字・働き方**に統合（どちらも「数字で見る企業」に出る）
-      ・公開設定 → **設定**に改名し、掲載規約の同意をここへ移した
-
-   ⚠️★**`id` は変えていない。** 画面のラベルだけ変えた。id を変えると
-      `CompanySectionId` を持つ全箇所（サブナビ・完成度スコアの導線）が芋づるになる。
-      ⚠️ 消した `logo` / `workstyle` は**表示の単位としては残っている**
-         （`CompanyEditClient` の `renderPanel` が内部の id として使う）。
-   ⚠️ タブの deep link は無い（`activeSection` はローカル state）。 */
-export const COMPANY_SECTIONS = [
-  { id: "basic",    label: "基本情報",   showStatus: true },
-  { id: "about",    label: "会社紹介",   showStatus: true },
-  { id: "data",     label: "数字・働き方", showStatus: true },
-  { id: "photos",   label: "写真",       showStatus: true },
-  { id: "settings", label: "設定",       showStatus: false },
-] as const;
-
-export type CompanySectionId = typeof COMPANY_SECTIONS[number]["id"];
+/* ⚠️ タブ（COMPANY_SECTIONS）は 2026-10-12 にやめた（柴さんの指示）。/biz/company は1ページ。
+      並びは CompanyEditClient の本文の順（基本情報 → 会社紹介 → 働き方 → 写真）。 */
 
 /* ⚠️ 業種の選択肢をここに持たない。**`ow_industries` のマスタが唯一の出どころ。**
       2026-08-14 までここに独自の8値があり、`/biz/company` の編集フォームが

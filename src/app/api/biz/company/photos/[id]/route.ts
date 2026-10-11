@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { isPhotoCategory, type PhotoCategory } from "@/lib/business/photos";
 
 export async function PATCH(
   request: Request,
@@ -35,7 +36,13 @@ export async function PATCH(
       caption?: string | null;
       display_order?: number;
       tagged_user_id?: string | null;
+      category?: PhotoCategory;
     } = {};
+    /* ★カテゴリは写真ごとに選ぶ（2026-10-12）。⚠️ 語彙は DB の CHECK と同じ4つ（isPhotoCategory） */
+    if ("category" in body) {
+      if (!isPhotoCategory(body.category)) return Response.json({ error: "Invalid category" }, { status: 400 });
+      updates.category = body.category;
+    }
     if (typeof body.caption === "string") updates.caption = body.caption.slice(0, 500);
     if (typeof body.display_order === "number") {
       const ord = body.display_order;

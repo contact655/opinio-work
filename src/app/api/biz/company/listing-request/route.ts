@@ -39,13 +39,12 @@ export const dynamic = "force-dynamic";
  * ⚠️★**ここで掲載を立てる形に変えないこと。** 掲載の管理は運営が行う
  *    （`/admin/companies` の `updateIsPublished` / `updateListingStatus`）。
  *
- * ── ⚠️★分類が欠けていても依頼は通す ─────────────────────────────────────
- * `checkPublishable` の欠けは**依頼を止める理由にしない。**
- * **事業領域は企業側に入力欄が無く、企業が自分で直せない**（`/biz/company` は
- * `ow_business_domains` を取りに行っていない）。止めると行き止まりになる。
- *   → 欠けているものは**運営へのメールに載せる**だけにして、一往復減らす。
- * ⚠️ 例外は**掲載利用規約の同意**。あれは同じ画面のすぐ上で直せるし、
- *    未同意のままでは運営が掲載に切り替えられないので、ここで止める。
+ * ── ★必要な項目が欠けていたら依頼を止める（2026-10-12 に変更 / 柴さんの指示）────
+ * 企業名・業種・事業領域・従業員数・本社所在地（`companyRequirements.ts`）。**下書きの値で**判定する
+ * （掲載前の企業は自分で下書きを反映できず、運営が掲載にする操作の中でまとめて反映されるため）。
+ * ⚠️ それまでは「事業領域は企業側に入力欄が無く直せない」ので止めていなかった。
+ *    2026-09-29 に `/biz/company` に入力欄ができたので、もう行き止まりにならない。
+ * ⚠️ 掲載利用規約の同意も止める（画面では、初めて押したときの確認画面で同意を取る）。
  *
  * ⚠️ 書き込みは **admin クライアント**。`listing_requested_at` は
  *    `authenticated` に UPDATE を配っていない（migration `20260929010000`）。
@@ -96,10 +95,19 @@ export async function POST() {
     );
   }
 
-  /* 掲載規約の同意だけは先に要る（上記のとおり、ここは企業が自分で直せる） */
+  /* 掲載規約の同意（画面では確認画面で取ってから送る） */
   if (!(await hasAgreedTerms(user.id, "listing"))) {
     return NextResponse.json(
-      { error: "先に掲載利用規約へ同意してください。" },
+      { error: "TERMS_REQUIRED", message: "先に掲載利用規約へ同意してください。" },
+      { status: 400 },
+    );
+  }
+
+  /* ★必要な項目（下書きの値で判定）。⚠️ 条件はここに書かない（companyRequirements.ts） */
+  const gate = await checkPublishable(companyId, { kind: "admin" }, { useDraft: true, forListing: true });
+  if (!gate.ok) {
+    return NextResponse.json(
+      { error: "REQUIREMENTS_MISSING", message: `入力が足りない項目があります。${gate.missing.join(" ")}`, missing: gate.missing },
       { status: 400 },
     );
   }
@@ -123,12 +131,8 @@ export async function POST() {
     .maybeSingle();
   if (requesterErr) console.error("[listing-request] 依頼者の取得に失敗:", requesterErr.message);
 
-  /* 掲載前に足りないもの。⚠️ 止めるためではなく**運営に先に知らせる**ため。
-        ⚠️ `actor` は `admin` で呼ぶ ——ここで見たいのは分類の欠けだけで、
-           掲載規約の同意は1つ上で別に確かめている（二重に出さない）。 */
-  let blockers: string[] = [];
-  const publishable = await checkPublishable(companyId, { kind: "admin" });
-  if (!publishable.ok) blockers = publishable.missing;
+  /* ⚠️ 必要な項目は上で止めているので、ここで足りないものは無い（メールの欄は空で送る） */
+  const blockers: string[] = [];
 
   try {
     await sendEmail(listingRequestAdminTemplate({

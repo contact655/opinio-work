@@ -704,6 +704,8 @@ export async function getCompaniesForList(): Promise<CompanyListRow[]> {
     supabase
       .from("ow_company_office_photos")
       .select("company_id, image_url, display_order")
+      /* ⚠️★未公開（企業が「公開する」を押す前）の写真を出さない（2026-10-12） */
+      .eq("is_draft", false)
       .order("display_order", { ascending: true }),
     // is_test=true ユーザーを除外するため ow_users を JOIN
     supabase
@@ -1684,6 +1686,8 @@ export async function getCompanyPhotos(companyId: string): Promise<CompanyPhoto[
     .from("ow_company_office_photos")
     .select("id, image_url, category, caption, display_order, tagged_user_id")
     .eq("company_id", companyId)
+    /* ⚠️★未公開の写真を出さない（2026-10-12）。admin クライアントなので RLS では落ちない。外さないこと */
+    .eq("is_draft", false)
     .order("display_order", { ascending: true })
     .limit(20);
   if (error) {

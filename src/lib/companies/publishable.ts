@@ -1,37 +1,37 @@
 /**
- * 公開ゲート — 分類の欠けた企業を掲載させない。
+ * 公開ゲート — 必要な項目が欠けた企業を公開・掲載させない。
  *
- * ⚠️ **条件を各経路に書き写さないこと。** 公開に触れる経路は4つあり、
- *    それぞれに条件を書くと必ず漏れる。条件の本体は
- *    このファイルの `classificationBlockers()` 1箇所だけに置く。
+ * ★項目の判定は `companyRequirements.ts`（純粋関数）の1か所（2026-10-12）。
+ *   **ここは材料（DB と下書き）を集めて、あの関数に渡すだけ。条件を書かないこと。**
+ *   画面の「公開まであと〇つ」も同じ関数を呼ぶので、画面とサーバーで判定が割れない。
  *
- * ⚠️ **軸2（対象業界）を入れる日は、`classificationBlockers()` に1行足す。**
- *    別の場所に足さない。ゲートと一覧の警告が自動で揃う。
+ * ── この2つは同じ関数を呼ぶ ────────────────────────────────────────────────
+ *   `checkPublishable()`     … 1社ぶん。**公開・掲載に切り替える瞬間**に各経路から呼ぶ
+ *   `findPublishBlockers()`  … 複数社ぶん。**既に公開・掲載されている違反**を運営の一覧に出す
  *
- * ── この2つは同じ条件を見る ────────────────────────────────────────────────
- *   `checkPublishable()`     … 1社ぶん。**公開に切り替える瞬間**に4経路から呼ぶ
- *   `findPublishBlockers()`  … 複数社ぶん。**既に公開されている違反**を一覧に出す
+ * ── 呼ぶ経路（2026-10-12）──────────────────────────────────────────────────
+ *   企業「変更を公開する」  PATCH /api/biz/company            useDraft・always・規約同意
+ *   企業「掲載を依頼する」  POST /api/biz/company/listing-request  useDraft・forListing（規約同意は route が別に見る）
+ *   運営「掲載」            admin/companies/actions.ts updateListingStatus  useDraft（下書きもまとめて反映する）
+ *   運営「ページ公開」      admin/companies/actions.ts updateIsPublished
+ *   運営 API                PUT /api/admin/companies/[id]（is_published だけ。listing_status は受け付けない）
  *
- * ⚠️ **どちらも例外を投げない。** 「満たしているか＋足りないものの一覧」を返す
- *    純粋な判定で、HTTP のステータスや画面表示は呼び出し側が決める。
- *    表示のために例外を握りつぶす作りにしないため。
- *    （名前が `assertPublishable` だった頃は「投げる」と誤読されたので改名した）
- *
- * ── なぜ作成時ではなく公開時に見るか ────────────────────────────────────────
- *   企業が自分で登録する入口で業種を必須にすると、登録の摩擦が増える。
- *   新規企業は `is_published = false` / `listing_status = 'draft'` で生まれるので、
- *   **誰にも見えない。塞ぐべきは「見えるようにする一手」だけ。**
+ * ⚠️ **どちらも例外を投げない。** 「満たしているか＋足りないものの一覧」を返す。
  *
  * ── 誰が公開するかで条件が違う ──────────────────────────────────────────────
- *   分類（業種・事業領域）… actor に関わらず必須。運営が例外的に通せる形にしない。
- *                          欠けたまま掲載されると、業種フィルタ・LPファセット・
- *                          `/jobs` から静かに消える
- *   掲載規約の同意        … **企業のときだけ必須。** 運営が代理で掲載する場面まで
- *                          止めると運用が回らない
+ *   企業名・業種・事業領域 … actor に関わらず必須（scope: always）
+ *   従業員数・本社所在地   … 「掲載を依頼する」のときだけ（scope: listing）。掲載中は止めない
+ *   掲載規約の同意         … **企業のときだけ必須。** 運営が代理で掲載する場面まで止めると運用が回らない
  */
-
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
+import {
+  missingCompanyRequirements,
+  readDraftBusinessDomains,
+  requirementMessage,
+  type CompanyRequirement,
+  type CompanyRequirementInput,
+} from "./companyRequirements";
 
 /** 誰が公開しようとしているか。⚠️ ロールではなく**経路**で決める */
 export type PublishActor =
@@ -43,93 +43,111 @@ export type PublishActor =
 export type PublishableResult =
   | { ok: true }
   /** ⚠️ `missing` は**利用者にそのまま見せる文**。何が足りないかを具体的に書く */
-  | { ok: false; missing: string[] };
+  | { ok: false; missing: string[]; requirements?: CompanyRequirement[] };
 
-/** 判定に要る企業1社ぶんの材料。⚠️ ここに足したら SELECT 側も揃えること */
-type ClassificationRow = {
-  industry_id: string | null;
-  industryName: string | null;
-  requiresBusinessDomain: boolean;
-  hasPrimaryDomain: boolean;
+export type PublishCheckOptions = {
+  /** ★下書き（`draft_data`）の値を本番の値の上に重ねて判定する。企業の公開・掲載依頼と、運営の掲載で使う */
+  useDraft?: boolean;
+  /** ★掲載の依頼。従業員数・本社所在地まで見る */
+  forListing?: boolean;
 };
 
-/**
- * ★分類の条件はここだけ。`checkPublishable` も `findPublishBlockers` もこれを呼ぶ。
- *
- * ⚠️ **actor に依らない条件だけを置く。** 掲載規約のような
- *    「誰が操作しているか」で変わるものは呼び出し側で足す。
- */
-function classificationBlockers(row: ClassificationRow): string[] {
-  const missing: string[] = [];
+/** 判定に要る列。⚠️ `toRequirementInput` が読む列と1対1にすること */
+const COLS = "id, name, industry_id, employee_count_band, location, headquarters_address, listing_status, draft_data" as const;
 
-  if (!row.industry_id) {
-    missing.push("業種が設定されていません。");
-  }
+type Row = {
+  id: string;
+  name: string | null;
+  industry_id: string | null;
+  employee_count_band: string | null;
+  location: string | null;
+  headquarters_address: string | null;
+  listing_status: string | null;
+  draft_data: unknown;
+};
 
-  /* ⚠️ 事業領域が必須かどうかは業種マスタの `requires_business_domain` で決まる。
-        slug をここに書かない（マスタと別のリストが増える）。 */
-  if (row.requiresBusinessDomain && !row.hasPrimaryDomain) {
-    missing.push(`事業領域が設定されていません（「${row.industryName ?? "この業種"}」では必須です）。`);
-  }
-
-  return missing;
+/** 下書きのうち判定に使うキーだけを重ねる。⚠️ キーがあれば null も上書き（利用者が消した） */
+function withDraft(row: Row): Row {
+  const d = row.draft_data;
+  if (!d || typeof d !== "object") return row;
+  const draft = d as Record<string, unknown>;
+  const pick = (k: keyof Row) => (k in draft ? ((draft[k] as string | null) ?? null) : (row[k] as string | null));
+  return {
+    ...row,
+    name: pick("name"),
+    industry_id: pick("industry_id"),
+    employee_count_band: pick("employee_count_band"),
+    location: pick("location"),
+  };
 }
 
-/** SELECT の形。⚠️ `classificationBlockers` が見る材料と1対1にすること */
-const CLASSIFICATION_COLS = "id, industry_id, ow_industries(name, requires_business_domain)" as const;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toClassificationRow(row: any, hasPrimaryDomain: boolean): ClassificationRow {
-  const industry = row.ow_industries as { name: string; requires_business_domain: boolean } | null;
+function toRequirementInput(row: Row, requiresBusinessDomain: boolean, hasPrimaryDomain: boolean): CompanyRequirementInput {
   return {
-    industry_id: (row.industry_id as string | null) ?? null,
-    industryName: industry?.name ?? null,
-    requiresBusinessDomain: industry?.requires_business_domain ?? false,
+    name: row.name,
+    industryId: row.industry_id,
+    requiresBusinessDomain,
     hasPrimaryDomain,
+    employeeCountBand: row.employee_count_band,
+    location: row.location,
+    headquartersAddress: row.headquarters_address,
   };
 }
 
 /**
- * 1社が掲載してよい状態か。**公開に切り替える瞬間**に呼ぶ。
- *
- * ⚠️ **`is_published` を true にする / `listing_status` を `'listed'` にする
- *    どちらの操作でも呼ぶこと。** 片方だけだと、もう片方から掲載できてしまう。
- *
- * ⚠️ 取得に失敗したら**通さない**（fail closed）。`?? []` で0件に倒して
- *    「条件を満たしている」と読ませない。
+ * 1社が公開・掲載してよい状態か。**切り替える瞬間・下書きを反映する直前**に呼ぶ。
+ * ⚠️ 取得に失敗したら**通さない**（fail closed）。
  */
 export async function checkPublishable(
   companyId: string,
   actor: PublishActor,
+  opts: PublishCheckOptions = {},
 ): Promise<PublishableResult> {
   const admin = createAdminClient();
 
-  const { data: company, error } = await admin
-    .from("ow_companies")
-    .select(CLASSIFICATION_COLS)
-    .eq("id", companyId)
-    .maybeSingle();
-
+  const { data: raw, error } = await admin.from("ow_companies").select(COLS).eq("id", companyId).maybeSingle();
   if (error) {
     console.error("[checkPublishable] 企業の取得に失敗:", error.message);
     return { ok: false, missing: ["企業情報を確認できませんでした。時間をおいて再度お試しください。"] };
   }
-  if (!company) {
-    return { ok: false, missing: ["企業が見つかりませんでした。"] };
+  if (!raw) return { ok: false, missing: ["企業が見つかりませんでした。"] };
+
+  const row = opts.useDraft ? withDraft(raw as Row) : (raw as Row);
+
+  /* 業種マスタ（事業領域が必須か）。⚠️ 下書きで業種を変えていれば**下書きの業種**で引く */
+  let requiresBusinessDomain = false;
+  if (row.industry_id) {
+    const { data: ind, error: indErr } = await admin
+      .from("ow_industries").select("requires_business_domain").eq("id", row.industry_id).maybeSingle();
+    if (indErr) {
+      console.error("[checkPublishable] 業種の取得に失敗:", indErr.message);
+      return { ok: false, missing: ["業種を確認できませんでした。時間をおいて再度お試しください。"] };
+    }
+    requiresBusinessDomain = ind?.requires_business_domain === true;
   }
 
-  const { count, error: domainErr } = await admin
-    .from("ow_company_business_domains")
-    .select("company_id", { count: "exact", head: true })
-    .eq("company_id", companyId)
-    .eq("is_primary", true);
-
-  if (domainErr) {
-    console.error("[checkPublishable] 事業領域の取得に失敗:", domainErr.message);
-    return { ok: false, missing: ["事業領域を確認できませんでした。時間をおいて再度お試しください。"] };
+  /* 主の事業領域。⚠️ 下書きに事業領域があれば下書きで判定する（反映の前に判定するため） */
+  let hasPrimaryDomain: boolean;
+  const draftDomains = opts.useDraft ? readDraftBusinessDomains((raw as Row).draft_data) : null;
+  if (draftDomains) {
+    hasPrimaryDomain = draftDomains.primary_domain_id !== null && draftDomains.domain_ids.includes(draftDomains.primary_domain_id);
+  } else {
+    const { count, error: domainErr } = await admin
+      .from("ow_company_business_domains")
+      .select("company_id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("is_primary", true);
+    if (domainErr) {
+      console.error("[checkPublishable] 事業領域の取得に失敗:", domainErr.message);
+      return { ok: false, missing: ["事業領域を確認できませんでした。時間をおいて再度お試しください。"] };
+    }
+    hasPrimaryDomain = (count ?? 0) > 0;
   }
 
-  const missing = classificationBlockers(toClassificationRow(company, (count ?? 0) > 0));
+  const requirements = missingCompanyRequirements(
+    toRequirementInput(row, requiresBusinessDomain, hasPrimaryDomain),
+    { forListing: opts.forListing === true },
+  );
+  const missing = requirements.map(requirementMessage);
 
   // ── 掲載規約の同意（企業のときだけ）────────────────────────────────────
   if (actor.kind === "company") {
@@ -138,25 +156,19 @@ export async function checkPublishable(
     }
   }
 
-  return missing.length === 0 ? { ok: true } : { ok: false, missing };
+  return missing.length === 0 ? { ok: true } : { ok: false, missing, requirements };
 }
 
 /**
- * **既に公開されている企業のうち、いま掲載の条件を満たしていないもの**を洗い出す。
+ * **既に公開されている企業のうち、いま条件を満たしていないもの**を洗い出す（運営の「要対応」）。
  *
- * ⚠️ **なぜ要るか。** `checkPublishable` は切り替え操作しか見ないので、
- *    ゲートを入れる前から公開されている企業の違反は誰も検知できない
- *    （2026-08-25 時点の実例: 株式会社データプール — 公開中・事業領域なし）。
- *    運営の一覧に出して気づけるようにする。
+ * ⚠️ 掲載中（listed）の企業は従業員数・本社所在地まで見る。**止めはしない**（要対応として出すだけ）。
+ * ⚠️ **掲載規約の同意は見ない。** 企業そのものの状態ではない。
+ * ⚠️ **検証用の企業（`is_test`）は出さない**（求職者側から丸ごと除外されているので直す対象ではない）。
+ * ⚠️ 下書きは見ない。いま求職者に見えている値の話。
+ * ⚠️ N+1 にしないこと。
  *
- * ⚠️ **掲載規約の同意は見ない。** あれは「誰が操作するか」で変わる条件で、
- *    企業そのものの状態ではない（同じ企業でも、同意済みの担当者なら公開できる）。
- *    一覧に出すのは**運営が直せるもの**＝分類だけにする。
- *
- * ⚠️ N+1 にしないこと。企業と事業領域をそれぞれ1クエリで引く。
- *
- * @returns 違反している企業だけの Map（company_id → 足りないものの一覧）。
- *          取得に失敗したら **null**（空の Map と区別する。0件を装わない）
+ * @returns 違反している企業だけの Map。取得に失敗したら **null**（0件を装わない）
  */
 export async function findPublishBlockers(
   companyIds: string[],
@@ -165,39 +177,27 @@ export async function findPublishBlockers(
 
   const admin = createAdminClient();
 
-  const [{ data: rows, error }, { data: domainRows, error: domainErr }] = await Promise.all([
-    /* ⚠️ **検証用の企業（`is_test`）は運営タスクに出さない（2026-08-26）。**
-          この一覧の意味は「運営が直すべき**公開中**の企業」。`is_test` の行は
-          `lib/companies/visibility.ts` が求職者側から丸ごと除外しているので、
-          分類が欠けていても誰にも見えない＝直す対象ではない。
-          外さないと、テスト企業を作るたびに消えない警告が積み上がる。
-       ⚠️ **`checkPublishable`（ゲート）側には同じ条件を入れないこと。**
-          あちらは「公開に切り替える一手」を塞ぐもので、テスト企業でも
-          分類が欠けたまま切り替えられる状態は作らない。
-          **目的が違うので条件が違ってよい**（結果が食い違うわけではない）。 */
-    admin.from("ow_companies").select(CLASSIFICATION_COLS).eq("is_test", false).in("id", companyIds),
-    admin
-      .from("ow_company_business_domains")
-      .select("company_id")
-      .eq("is_primary", true)
-      .in("company_id", companyIds),
+  const [{ data: rows, error }, { data: domainRows, error: domainErr }, { data: industries, error: indErr }] = await Promise.all([
+    admin.from("ow_companies").select(COLS).eq("is_test", false).in("id", companyIds),
+    admin.from("ow_company_business_domains").select("company_id").eq("is_primary", true).in("company_id", companyIds),
+    admin.from("ow_industries").select("id, requires_business_domain"),
   ]);
 
-  /* ⚠️ error を握りつぶさない。空で返すと「違反0件」に見え、
-        取得できていないことに気づけない。 */
-  if (error || domainErr) {
-    console.error("[findPublishBlockers]", (error ?? domainErr)!.message);
+  if (error || domainErr || indErr) {
+    console.error("[findPublishBlockers]", (error ?? domainErr ?? indErr)!.message);
     return null;
   }
 
   const withPrimary = new Set((domainRows ?? []).map((d) => d.company_id as string));
+  const requires = new Map((industries ?? []).map((i) => [i.id as string, i.requires_business_domain === true]));
 
   const result = new Map<string, string[]>();
-  for (const row of rows ?? []) {
-    const missing = classificationBlockers(
-      toClassificationRow(row, withPrimary.has(row.id as string)),
+  for (const raw of (rows ?? []) as Row[]) {
+    const reqs = missingCompanyRequirements(
+      toRequirementInput(raw, raw.industry_id ? requires.get(raw.industry_id) ?? false : false, withPrimary.has(raw.id)),
+      { forListing: raw.listing_status === "listed" },
     );
-    if (missing.length > 0) result.set(row.id as string, missing);
+    if (reqs.length > 0) result.set(raw.id, reqs.map(requirementMessage));
   }
   return result;
 }

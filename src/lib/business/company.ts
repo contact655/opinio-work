@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizCompany } from "./mockCompany";
 import type { Json } from "@/lib/supabase/types";
 import { normalizeBenefits, serializeBenefits } from "@/lib/companies/benefits";
+import { DRAFT_BUSINESS_DOMAINS_KEY, readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
 
 export type DbCompany = {
   id: string;
@@ -147,9 +148,15 @@ function applyDraft(row: DbCompany): DbCompany {
 export function transformDbToForm(
   rawRow: DbCompany,
   currentPublishedGenres: string[] = [],
-  opts: { withDraft?: boolean } = {},
+  opts: {
+    withDraft?: boolean;
+    /** ★いま公開されている事業領域（`ow_company_business_domains`）。下書きに事業領域が無いときの初期値 */
+    publishedDomains?: { ids: string[]; primaryId: string | null };
+  } = {},
 ): BizCompany {
   const row = opts.withDraft ? applyDraft(rawRow) : rawRow;
+  /* ★事業領域: 下書きにあれば下書き、無ければ公開中の値（2026-10-12。genres と同じ考え方） */
+  const draftDomains = opts.withDraft ? readDraftBusinessDomains(rawRow.draft_data) : null;
   // genres の優先順位: draft_data.genres > 現在公開中の genres > 空配列
   const draftGenres = row.draft_data?.genres;
   const genres: string[] = Array.isArray(draftGenres) ? (draftGenres as string[]) : currentPublishedGenres;
@@ -159,7 +166,8 @@ export function transformDbToForm(
     tagline: row.tagline ?? "",
     mission: row.mission ?? "",
     whyJoin: row.why_join ?? "",
-    companyFeatures: Array.isArray(row.company_features) ? row.company_features : [],
+    businessDomainIds: draftDomains?.domain_ids ?? opts.publishedDomains?.ids ?? [],
+    primaryBusinessDomainId: draftDomains ? draftDomains.primary_domain_id : (opts.publishedDomains?.primaryId ?? null),
     industry: row.industry ?? "",
     industryId: (row.industry_id as string | null) ?? "",
     saasCategoryId: (row.saas_category_id as string | null) ?? "",
@@ -177,10 +185,6 @@ export function transformDbToForm(
     /* ⚠️ date（"2026-04-01"）→ input type="month" の値（"2026-04"） */
     employeeCountAsOf: (row.employee_count_as_of ?? "").slice(0, 7),
     foundedAt: row.founded_year != null ? String(row.founded_year) : "",
-    avgAge: row.avg_age != null ? String(row.avg_age) : "",
-    avgSalary: row.avg_salary ?? "",
-    fundingTotal: row.funding_total ?? "",
-    genderRatio: row.female_ratio ?? "",
     evaluationSystem: row.evaluation_system ?? "",
     /* ⚠️ 旧形式（text[]）も受ける。migration の前後どちらでも動く */
     benefitsTags: normalizeBenefits(row.benefits) ?? [],
@@ -201,9 +205,6 @@ export function transformDbToForm(
           null になりえず、既定値の判断は DB 側にある。ここで true に寄せると、
           将来 nullable にしたときに「未設定」を「受け付ける」と読み替えてしまう。 */
     acceptingCasualMeetings: row.accepting_casual_meetings === true,
-    notificationEmails: Array.isArray(row.notification_emails)
-      ? row.notification_emails.join(", ")
-      : "",
     availabilityDays: Array.isArray(row.availability_days) ? row.availability_days : [],
     availabilityTimes: Array.isArray(row.availability_times) ? row.availability_times : [],
     availabilityNotes: row.availability_notes ?? "",
@@ -215,19 +216,23 @@ export function transformDbToForm(
     lastPublishedAt: formatPublishedAt(row.published_at),
     lastPublishedAgo: formatPublishedAgo(row.published_at),
     hasDraftChanges: row.draft_data != null && Object.keys(row.draft_data).length > 0,
-    numbersUpdatedAt: row.numbers_updated_at ?? "",
   };
 }
 
 export function transformFormToDb(form: BizCompany): { [key: string]: Json | undefined } {
-  const avgAge = parseInt(form.avgAge.replace(/[^\d]/g, ""), 10);
   const paidLeave = parseInt(form.paidLeaveRate.replace(/[^\d]/g, ""), 10);
   return {
     name: form.name,
     tagline: form.tagline || null,
     mission: form.mission || null,
     why_join: form.whyJoin || null,
-    company_features: form.companyFeatures.length > 0 ? form.companyFeatures : null,
+    /* ⚠️ company_features / avg_age / avg_salary / funding_total / female_ratio / notification_emails は
+          **キーを出さない**（2026-10-12 に入力欄を外した）。キーが無ければ反映（applyDraft.ts）は触らない */
+    /* ★事業領域（下書き）。形は setCompanyBusinessDomains の body と同じ */
+    [DRAFT_BUSINESS_DOMAINS_KEY]: {
+      domain_ids: form.businessDomainIds,
+      primary_domain_id: form.primaryBusinessDomainId,
+    },
     industry: form.industry || null,
     industry_id: form.industryId || null,
     saas_category_id: form.saasCategoryId || null,
@@ -241,8 +246,9 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
     /* ⚠️ **正は `description`。** 2026-08-26 に統合した。
           以前は `about_markdown` に書いていたが、求職者側は `description` を読むため
           企業が書いた企業説明は**どこにも出なかった**（本番0件）。
-       ⚠️ 描画は plain text（改行で段落分け／`companies/[id]` の `detail.about`）。
-          **markdown は解釈されない。** 入力欄も markdown を promote しない形にしてある。 */
+       ⚠️★求職者側は **Markdown として描画する**（`companies/[id]/page.tsx` の `<Markdown>{detail.about}</Markdown>`）。
+          ⚠️ 2026-10-12 まで「plain text・markdown は解釈されない」と書いてあったが誤り（2026-08-26 から Markdown）。
+          入力欄（MarkdownEditor）は記号を見せず、日本語のボタン（見出し・太字・箇条書き・リンク）で挿入する。 */
     description: form.descriptionMarkdown || null,
     /* ★帯と時点（2026-10-10）。⚠️ 自由記述の `employee_count` はもう書かない（キーを出さないので
           PATCH は触らない ——「キーが無いなら undefined で触らない」の決まり）。原文は DB に残る。 */
@@ -252,11 +258,6 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
           以前は `established_at`(text) に書いており、PATCH は `founded_year` を読むため
           **公開のたびに設立年が NULL で潰れていた。** */
     founded_year: form.foundedAt ? (parseInt(form.foundedAt.replace(/[^\d]/g, "").slice(0, 4), 10) || null) : null,
-    avg_age: isNaN(avgAge) ? null : avgAge,
-    avg_salary: form.avgSalary || null,
-    funding_total: form.fundingTotal || null,
-    /* ⚠️ **正は `female_ratio`。** `gender_ratio` は本番0件のまま廃止した。 */
-    female_ratio: form.genderRatio || null,
     evaluation_system: form.evaluationSystem || null,
     /* ⚠️ 空の name を落とし、空の detail はキーごと省く。0件なら null。
           ⚠️ ここで自前に整形しないこと（`serializeBenefits` に集約） */
@@ -273,9 +274,6 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
     workstyle_description: form.workstyleNote || null,
     is_published: form.isPublished,
     accepting_casual_meetings: form.acceptingCasualMeetings,
-    notification_emails: form.notificationEmails
-      ? form.notificationEmails.split(/[,\n]/).map((e) => e.trim()).filter(Boolean)
-      : null,
     availability_days: form.availabilityDays.length > 0 ? form.availabilityDays : null,
     availability_times: form.availabilityTimes.length > 0 ? form.availabilityTimes : null,
     availability_notes: form.availabilityNotes || null,
@@ -413,7 +411,7 @@ export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
   currentPublishedGenres: string[] = [],
-  opts: { withDraft?: boolean } = {},
+  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null } } = {},
 ): Promise<BizCompany | null> {
   const { data, error } = await supabase
     .from("ow_companies")

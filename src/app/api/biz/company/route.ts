@@ -1,18 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { revalidateCompanyPages } from "@/lib/companies/revalidate";
-import { mutateOne, mutateAllowNone } from "@/lib/supabase/mutate";
+import { mutateOne } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
-import { isValidIndustry } from "@/lib/search/industryGroups";
-import { isPhaseValue } from "@/lib/constants/phase";
-import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import type { BizCompany } from "@/lib/business/mockCompany";
-import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/companies/benefits";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
-import { isEmployeeBand } from "@/lib/constants/employeeBand";
+import { applyCompanyDraft } from "@/lib/companies/applyDraft";
 
 
 // PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
@@ -72,8 +67,8 @@ export async function PUT(req: Request) {
 }
 
 // PATCH /api/biz/company
-//   { action: "publish_draft" }             … draft_data を本番カラムへ展開する（「変更を公開する」）
-//   { action: "update_numbers_timestamp" }  … numbers_updated_at を now() に更新
+//   { action: "publish_draft" }  … 下書き（draft_data）と未公開の写真を反映する（「変更を公開する」）。
+//                                  掲載中の企業だけ。反映の処理は lib/companies/applyDraft.ts
 //
 // ⚠️★**掲載（is_published / listing_status）はここでは動かない**（2026-09-18 に分離）。
 //    それまでは `{ isPublished: true }` の**1リクエストが両方**を駆動していた。
@@ -105,6 +100,12 @@ export async function PATCH(req: Request) {
     );
   }
 
+  /* ⚠️ 受け付けるのは「下書きを反映する」だけ（2026-10-12）。
+        `update_numbers_timestamp`（「数値を最新として公開する」）は外した。押しても求職者側のどこにも出ない日付だった */
+  if (body.action !== "publish_draft") {
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  }
+
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
@@ -112,303 +113,42 @@ export async function PATCH(req: Request) {
 
   try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
 
-  // ── 数値アンケート登録タイムスタンプ更新 ─────────────────────────────────
-  if (body.action === "update_numbers_timestamp") {
-    const now = new Date().toISOString();
-    const numRes = await mutateOne(
-      supabase
-        .from("ow_companies")
-        .update({ numbers_updated_at: now, updated_at: now })
-        .eq("id", companyId),
-      "company PATCH update_numbers_timestamp",
-    );
-    if (!numRes.ok) {
-      return NextResponse.json({ error: numRes.error }, { status: numRes.status });
-    }
-    return NextResponse.json({ ok: true, numbersUpdatedAt: now });
-  }
-
-  const now = new Date().toISOString();
-
-  // draft_data + is_approved を取得
-  const { data: currentRow, error: fetchError } = await supabase
+  /* ★掲載中の企業だけが自分で反映できる（2026-10-12 / 柴さんの判断）。
+        掲載前の企業は「掲載を依頼する」→ 運営が掲載にする操作の中で、下書きもまとめて反映される
+        （admin/companies/actions.ts の updateListingStatus → applyCompanyDraft）。
+     ⚠️ 未承認の企業は今までどおり反映できない（403）。 */
+  const { data: co, error: coErr } = await supabase
     .from("ow_companies")
-    .select("draft_data, is_approved, published_at")
+    .select("is_approved, is_published, listing_status")
     .eq("id", companyId)
-    .single();
-
-  if (fetchError) {
-    console.error("[company PATCH fetch]", fetchError.message);
+    .maybeSingle();
+  if (coErr) {
+    console.error("[company PATCH fetch]", coErr.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  // 未承認の企業は下書きを公開できない
-  if (!currentRow?.is_approved) {
+  if (!co?.is_approved) {
     return NextResponse.json({ error: "Not approved by admin yet" }, { status: 403 });
   }
-
-  // draft_data.genres を取り出して ow_company_genres 反映用に保持
-  const draftData = currentRow?.draft_data as Record<string, unknown> | null;
-  const genreSlugs: string[] = Array.isArray(draftData?.genres)
-    ? (draftData!.genres as string[])
-    : [];
-
-  // draft_data があれば本番カラムに展開。なければ is_published のみ更新
-  // ※ genres は ow_companies カラムに存在しない（関係テーブル管理）ため除外
-  const d = (draftData ?? {}) as Record<string, unknown>;
-
-  /* 業種は選択肢の外の値を受け取らない。
-     ⚠️ 旧表記（`LEGACY_INDUSTRY_VALUES`）は通す。弾くと、その値を持つ既存企業が
-        業種と無関係な項目を保存しただけで 400 になる。 */
-  if (typeof d.industry === "string" && d.industry.trim() && !isValidIndustry(d.industry.trim())) {
+  if (!(co.is_published === true && co.listing_status === "listed")) {
     return NextResponse.json(
-      { error: "INVALID_INDUSTRY", message: "業種の値が不正です。" },
-      { status: 400 }
+      { error: "NOT_LISTED", message: "掲載前の企業ページは「掲載を依頼する」から公開します。" },
+      { status: 409 },
     );
   }
 
-  /* 事業ステージも同じ形で弾く（2026-09-18）。
-     ⚠️★**ここを素通しすると、DB の `ow_companies_phase_check` に落ちる。**
-        `ow_companies` は UPDATE が列単位 GRANT なので、**1列が弾かれると
-        PATCH が丸ごと失敗する** ——企業から見ると「事業ステージを選んだら
-        企業情報が何も保存できなくなった」という壊れ方になる（2026-09-06 に実際に起きた形）。
-     ⚠️★**許容値をここに書き写さないこと。** `isPhaseValue` は `PHASE_OPTIONS` から
-        導出している。手書きの配列を置くと4つ目の語彙ができる。
-     ⚠️ 空文字は「未設定」なので通す（下の `s()` が null にする）。弾くのは不正値だけ。 */
-  if (typeof d.phase === "string" && d.phase.trim() && !isPhaseValue(d.phase.trim())) {
-    return NextResponse.json(
-      { error: "INVALID_PHASE", message: "事業ステージの値が不正です。" },
-      { status: 400 }
-    );
+  /* ⚠️ 公開ゲート。**下書きの値で**判定する（業種・事業領域を下書きで変えていればそちらで見る）。
+        条件はここに書かず `checkPublishable` → `companyRequirements.ts`。企業経路なので掲載規約の同意も要る。
+     ⚠️ 掲載中の企業は従業員数・本社所在地では止めない（forListing を付けない） */
+  const gate = await checkPublishable(companyId, { kind: "company", authUserId: user.id }, { useDraft: true });
+  if (!gate.ok) {
+    return NextResponse.json({ error: publishBlockedMessage(gate.missing), missing: gate.missing }, { status: 400 });
   }
 
-  /* 勤務形態も同じ形で弾く（2026-09-18）。
-     ⚠️★**この列は 2026-09-18 まで実際に壊れていた。** `/biz/company` のセレクトが
-        日本語ラベルを value として送っており、DB の CHECK（英字4値）に1つも通らず、
-        **勤務形態を選ぶと企業情報の保存が丸ごと失敗していた**（実測: 4値とも 23514）。
-        入力側は `COMPANY_REMOTE_WORK_STATUSES` に揃えたので、ここは最後の砦。
-     ⚠️★**許容リストを書き写さないこと。** `workStyle.ts` から導出している。 */
-  if (
-    typeof d.remote_work_status === "string" && d.remote_work_status.trim() &&
-    !VALID_COMPANY_REMOTE_WORK_STATUSES.has(d.remote_work_status.trim())
-  ) {
-    return NextResponse.json(
-      { error: "INVALID_REMOTE_WORK_STATUS", message: "リモートワーク状況の値が不正です。" },
-      { status: 400 }
-    );
-  }
-  /* ⚠️ 公開ゲート。条件はここに書かず `checkPublishable` を呼ぶ（4経路あるので
-        書き写すと必ず漏れる）。**企業経路なので掲載規約の同意も要る。**
-        これまで掲載規約のゲートは `CompanyEditSubNav` のボタン出し分け（UI）だけで、
-        API を直接叩けば未同意でも公開できていた。
-     ⚠️ 取り下げ（isPublished=false）は常に通す。 */
-  /* ⚠️★**このゲートを消さないこと**（2026-09-18 に条件だけ付け替えた）。
-        分離前は `isPublished` に掛かっていた。いまは**下書きを本番列へ展開する一手**に掛ける
-        —— 掲載中の企業でも、ここを通ると求職者に見える内容が変わるため。 */
-  {
-    const gate = await checkPublishable(companyId, { kind: "company", authUserId: user.id });
-    if (!gate.ok) {
-      return NextResponse.json({ error: publishBlockedMessage(gate.missing) }, { status: 400 });
-    }
-  }
+  /* ★反映は applyCompanyDraft の1か所（運営の掲載と同じ関数）。
+     ⚠️ セッションのクライアントで書く（`ow_companies` は UPDATE が列単位 GRANT。企業が書ける列だけが通る） */
+  const r = await applyCompanyDraft(companyId, { client: supabase, label: "company PATCH" });
+  if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.status });
 
-  /* ★**draft_data に無いキーは触らない（undefined を返す）。**
-     ⚠️ 以前は `typeof v === "string" ? v : null` だったため、
-        **`transformFormToDb` が書いていないキーはすべて null で上書きされた。**
-        実際に3列が食い違っていた（2026-08-26 に発見）:
-
-          PATCH が読む      draft_data にある名前     本番の件数
-          description       （無い。about_markdown）   82/87
-          founded_year      established_at             82/87
-          female_ratio      gender_ratio                1/87
-
-        つまり**企業が「変更を公開する」を1回押すだけで、自社の説明文と設立年が
-        消えていた。** 実害が出ていないのは draft_data が全社 NULL だからで
-        （保存経路自体が 2026-08-23 まで RLS で0行更新だった）、**踏むのは時間の問題だった。**
-
-     ⚠️ **キーがあって空**（利用者が消した）と**キーが無い**（フォームがその項目を
-        持っていない）を区別すること。前者は null で消す、後者は触らない。
-     ⚠️ 名前の食い違い自体は直していない。フォーム側の項目とマスタの対応は
-        別タスク（下のコメント参照）。ここで塞ぐのは**破壊**のほう。 */
-  const s = (v: unknown): string | null | undefined =>
-    v === undefined ? undefined : typeof v === "string" ? v : null;
-  const n = (v: unknown): number | null | undefined =>
-    v === undefined ? undefined : typeof v === "number" ? v : null;
-  const sa = (v: unknown): string[] | null | undefined =>
-    v === undefined ? undefined : Array.isArray(v) ? v as string[] : null;
-
-  /* ⚠️★福利厚生は **jsonb**（2026-08-31 に text[] から移行）。`sa()` を使わないこと。
-        あれは `as string[]` でキャストするだけなので、**オブジェクトの配列が
-        「文字列の配列」として通り、型の嘘が残る。**
-     ⚠️ `serializeBenefits` を通す。空の name を落とし、空の detail は
-        キーごと省き、0件なら null にする。**ここで自前に整形しない。**
-     ⚠️ `undefined`（draft_data にキーが無い）は**触らない**。上のコメントの
-        「キーがあって空」と「キーが無い」の区別をここでも守る。 */
-  const bene = (v: unknown): Benefit[] | null | undefined => {
-    if (v === undefined) return undefined;
-    const norm = normalizeBenefits(v);
-    return norm ? serializeBenefits(norm) : null;
-  };
-
-  /* ★帯と時点の検証（2026-10-10）。許容値は `EMPLOYEE_BANDS` の1か所（DB の CHECK と同じ8区分）。
-        ⚠️ 不正値は 400。黙って null にしない（CLAUDE.md「選択肢が決まっている値は3つ揃える」） */
-  const bandIn = s(d.employee_count_band);
-  if (bandIn != null && bandIn !== "" && !isEmployeeBand(bandIn)) {
-    return NextResponse.json({ error: "従業員数の帯に不正な値が指定されました" }, { status: 400 });
-  }
-  const asOfIn = s(d.employee_count_as_of);
-  if (asOfIn != null && asOfIn !== "" && !/^\d{4}-\d{2}-01$/.test(asOfIn)) {
-    return NextResponse.json({ error: "従業員数の時点は年月で指定してください" }, { status: 400 });
-  }
-
-  const mainRes = await mutateOne(
-    supabase
-    .from("ow_companies")
-    .update({
-      tagline:                  s(d.tagline),
-      description:              s(d.description),
-      mission:                  s(d.mission),
-      /* ⚠️ 2026-08-31 に migration を当て、型を生成し直したので**キャストは外した**
-            （`types.ts` の `benefits` は `Json | null`）。**戻さないこと。** */
-      benefits:                 bene(d.benefits),
-      avg_salary:               s(d.avg_salary),
-      avg_age:                  n(d.avg_age),
-      female_ratio:             s(d.female_ratio),
-      fit_positives:            sa(d.fit_positives),
-      fit_negatives:            sa(d.fit_negatives),
-      why_join:                 s(d.why_join),
-      remote_work_status:       s(d.remote_work_status),
-      flex_time:                typeof d.flex_time === "boolean" ? d.flex_time : undefined,
-      side_job_ok:              typeof d.side_job_ok === "boolean" ? d.side_job_ok : undefined,
-      accepting_casual_meetings: typeof d.accepting_casual_meetings === "boolean" ? d.accepting_casual_meetings : undefined,
-      location:                 s(d.location),
-      url:                      s(d.url),
-      founded_year:             n(d.founded_year),
-      employee_count:           s(d.employee_count),
-      /* ★帯と時点（2026-10-10）。⚠️ 値は下で検証する（CHECK に弾かれて PATCH 全体が落ちる前に 400 にする） */
-      employee_count_band:      bandIn === "" ? null : bandIn,
-      employee_count_as_of:     asOfIn === "" ? null : asOfIn,
-      industry:                 s(d.industry),
-      industry_id:              s(d.industry_id),
-      saas_category_id:         s(d.saas_category_id),
-      phase:                    s(d.phase),
-      logo_url:                 s(d.logo_url),
-      logo_gradient:            s(d.logo_gradient),
-      logo_letter:              s(d.logo_letter),
-      /* ★ここから下は 2026-08-26 に追加。**入力欄は生きているのに展開されておらず、
-            企業が保存しても永久に公開されない状態だった。**
-         ⚠️ とくに `notification_emails` は
-            `lib/notify/recipients.ts` の**第一優先の宛先**で、
-            設定しても応募・面談の通知が届かないままだった（本番の設定は0社）。
-         ⚠️ 列単位 UPDATE の GRANT を実測で確認済み（6列とも authenticated に true）。
-            **1列でも権限が無いと PATCH 全体が 403 になる**ので、
-            ここに列を足すときは必ず `has_column_privilege` で測ること。 */
-      notification_emails:      sa(d.notification_emails),
-      company_features:         sa(d.company_features),
-      nearest_station:          s(d.nearest_station),
-      careers_url:              s(d.careers_url),
-      funding_total:            s(d.funding_total),
-      work_time_system:         s(d.work_time_system),
-      /* ⚠️★**`is_published` / `listing_status` をここに書き戻さないこと**（2026-09-18）。
-            分離前は企業側の「公開する」が2軸を同時に動かしていた。いまは
-            **下書きの展開だけ**を行い、掲載の状態は運営の操作でしか変わらない。
-         ⚠️ 書き戻すと、掲載規約に未同意のまま掲載を立てる経路が企業側に復活する。 */
-      /* ⚠️ published_at の規則は lib/companies/publishedAt.ts に集約している。
-            2026-08-12 まで `body.isPublished ? now : null` と書いており、
-            **公開中に再保存するたび初回公開日を上書きし、非公開に戻すと消していた。**
-            運営側（updateIsPublished）の「最初に公開した日時」という意味と食い違っていた。 */
-      /* ✅ 2026-08-26 に名前の食い違いを解消した（migration 20260826160000）。
-            `transformFormToDb` が `description` / `founded_year` / `female_ratio` を
-            直接書くようになったので、ここの `d.*` がそのまま噛み合う。
-         ⚠️ 【廃止】キー（about_markdown / established_at / gender_ratio）を
-            ここに足さないこと。読む先が2つに戻る。
-         ⚠️ 入力欄が撤去済みの項目（評価制度・残業時間・有給取得率・働き方の補足・
-            面談可能日時）も足さないこと。`transformFormToDb` は今もキーを吐くので、
-            足すと**古い空値で上書きする**ことになる。 */
-      /* ⚠️ `published_at` も触らない。「最初に公開した日時」は掲載を立てた運営の操作で決まる
-            （規則は lib/companies/publishedAt.ts）。ここは下書きの展開しかしていない。 */
-      updated_at:               now,
-      draft_data:               null,
-    })
-    .eq("id", companyId),
-    "company PATCH 本体",
-  );
-
-  /* ⚠️ **0行更新を成功として扱わない。** ここが 2026-08-23 まで
-        85社で黙って保存されていなかった箇所（RLS の条件が `ow_companies.user_id`
-        依存で、その列は2社にしか入っていなかった）。 */
-  if (!mainRes.ok) {
-    return NextResponse.json({ error: mainRes.error }, { status: mainRes.status });
-  }
-
-  // ── ow_company_genres の反映（パターンX: 全置換）─────────────────────────
-  try {
-    // 1. slug → genre_id の解決
-    /* ⚠️★**`is_active = true` で絞る**（2026-09-18）。選択肢から外したジャンルを
-          API 直叩きで付け直せると、**画面から外せないタグ**ができる。
-          外れた slug は下の `missingSlugs` に落ちて `console.warn` に出る。 */
-    const { data: genreRecords, error: genreQueryErr } = await supabase
-      .from("ow_genres")
-      .select("id, slug")
-      .eq("is_active", true)
-      .in("slug", genreSlugs.length > 0 ? genreSlugs : ["__no_match__"]);
-
-    if (genreQueryErr) throw genreQueryErr;
-
-    // 不正な slug が混じっていた場合はログに出して無視
-    const resolvedSlugs = new Set((genreRecords ?? []).map((r) => r.slug));
-    const missingSlugs = genreSlugs.filter((s) => !resolvedSlugs.has(s));
-    if (missingSlugs.length > 0) {
-      console.warn(`[biz/company PATCH] Invalid genre slugs ignored: ${missingSlugs.join(", ")}`);
-    }
-
-    const genreIds = (genreRecords ?? []).map((r) => r.id);
-
-    /* 2. 既存レコードを全 DELETE
-       ⚠️ **0行は正常**（もともとジャンル未設定の企業がある）。
-          ただし **RLS 拒否は 0行と区別する**（mutateAllowNone は error を見る）。
-          2026-08-23 までこの表には書き込みポリシーが1本も無く、
-          **DELETE が黙って0行になっていた。** */
-    const delGenres = await mutateAllowNone(
-      supabase.from("ow_company_genres").delete().eq("company_id", companyId),
-      "company PATCH: genres 入替（掃除）",
-      { returning: "company_id" },
-    );
-    if (!delGenres.ok) throw new Error(delGenres.error);
-
-    // 3. 新しい配列を全 INSERT（slug 配列が空の場合は INSERT スキップ → 全解除）
-    if (genreIds.length > 0) {
-      const { error: insertErr } = await supabase
-        .from("ow_company_genres")
-        .insert(
-          genreIds.map((genre_id) => ({
-            company_id: companyId,
-            genre_id,
-            is_human_approved: true,
-            is_ai_suggested: false,
-          }))
-        );
-
-      if (insertErr) throw insertErr;
-    }
-  } catch (genreErr) {
-    // ジャンル同期失敗はログに記録するが、公開処理自体は成功扱い（best-effort）
-    // 本番カラムへの展開は完了しているため、ユーザー操作はブロックしない
-    console.error("[company PATCH] ow_company_genres sync failed:", genreErr);
-  }
-
-  /* ⚠️★**`company_joined` の投稿をこの経路に戻さないこと**（2026-09-18 に削除）。
-        あれは「ディレクトリに迎え入れた」ことのお知らせで、**掲載を立てた操作**に対して出す。
-        いまその操作は運営側（/admin/companies）にしかない。
-        ⚠️ ここで作ると、掲載中の企業が下書きを公開するたびに「参加しました」が流れる。 */
-
-  /* ⚠️★**2026-09-07 に追加。それまでこのファイルには revalidate が1つも無く、
-        企業が「変更を公開する」を押しても反映は `revalidate` の秒数任せだった。**
-     ⚠️ `unstable_cache` 側（写真300秒・ツール300秒など）も**一緒に落ちる**
-        （2026-09-08 に本番で実測。詳細は revalidate.ts の注記）。 */
-  await revalidateCompanyPages(companyId);
-
-  /* ⚠️ `publishedAt` は返さない（2026-09-18）。この経路は掲載を立てないので、
-        「最初に公開した日時」は変わらない。呼び出し側も使っていない。 */
-  return NextResponse.json({ ok: true, publishedAt: null });
+  /* ⚠️★`company_joined` の投稿をこの経路に戻さないこと（掲載を立てた運営の操作に対して出す） */
+  return NextResponse.json({ ok: true });
 }
