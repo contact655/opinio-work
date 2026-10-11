@@ -117,13 +117,16 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
                   /* ⚠️ 役職の区分（rank）と社内での呼び方（rank_title）は対で出す。片方だけにしない（/u/[id] と同じ形） */
                   const rl = rankLabel(c.rank);
                   const rank = rl ? (c.rank_title ? `${rl}（${c.rank_title}）` : rl) : (c.rank_title || null);
-                  const role = [c.role_parent_name, c.role_label].filter(Boolean).join("・");
-                  const lines = [c.department, [c.role_title, rank].filter(Boolean).join("・") || null, role || null].filter(Boolean) as string[];
+                  /* ★2行目＝職種名（社内での呼び方・職種。例: AE・フィールドセールス）／3行目＝部署・役職。
+                        区切りは「・」だけ（「/」は使わない）。値が無い行は出さない */
+                  const roleLine = Array.from(new Set([c.role_title, c.role_label].filter(Boolean) as string[])).join("・");
+                  const orgLine = [c.department, rank].filter(Boolean).join("・");
+                  const lines = [roleLine, orgLine].filter(Boolean);
                   return (
                     <div key={c.id} data-state="panel-career-row" style={{ marginTop: 4 }}>
-                      {lines.length > 0 && (
-                        <div style={{ fontSize: 14, color: soft, lineHeight: 1.6, overflowWrap: "anywhere" }}>{lines.join(" / ")}</div>
-                      )}
+                      {lines.map((l) => (
+                        <div key={l} style={{ fontSize: 14, color: soft, lineHeight: 1.6, overflowWrap: "anywhere" }}>{l}</div>
+                      ))}
                       <div style={{ fontSize: 13, color: mute }}>{period(c.started_at, c.ended_at, c.is_current)}</div>
                       {c.secondment_company_name && (
                         <div style={{ fontSize: 13, color: mute }}>{c.secondment_company_name}へ出向</div>
@@ -151,7 +154,8 @@ export function PanelProfileView({ data }: { data: PanelProfileData }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {skillGroups.map((g) => (
           <div key={g.label}>
-            <div style={{ fontSize: 12, color: mute, marginBottom: 4 }}>{g.label}</div>
+            {/* ★分類名（職種・業界など）は、分類が2種類以上あるときだけ出す */}
+            {skillGroups.length > 1 && <div style={{ fontSize: 12, color: mute, marginBottom: 4 }}>{g.label}</div>}
             <div style={{ fontSize: 14, color: soft, lineHeight: 1.7, overflowWrap: "anywhere" }}>
               {g.rows.map((r, i) => (
                 <span key={r.key}>
