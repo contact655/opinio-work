@@ -203,6 +203,19 @@ export default function CandidatesClient({
       window.history.replaceState(window.history.state, "", url.toString());
     } catch { /* URL を書けなくても表示は続ける */ }
   }, []);
+  /* ★1280px 以上で開いたときは、先頭の候補者を選んだ状態にする（2026-10-11 / 柴さんの指示）。
+        ⚠️ URL には書かない（`?selected=` が無ければ毎回先頭を出す）。明示的に選んだ人だけを URL に残す。
+        ⚠️ 1280px 未満は従来どおり（プレビューは CSS で隠れている）。幅が分かるまでは null（SSR では選ばない）。
+        ⚠️ プレビューを閉じたら先頭に戻さない（`autoPick` を落とす）。空の案内が出るのはこのときと0件のときだけ。 */
+  const [isWide, setIsWide] = useState<boolean | null>(null);
+  const [autoPick, setAutoPick] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${CANDIDATE_SPLIT_MIN_WIDTH}px)`);
+    const on = () => setIsWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
   const onCardLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     /* ⌘・中クリック・新しいタブは素通し（ブラウザに任せる） */
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -341,6 +354,8 @@ export default function CandidatesClient({
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
   }, [candidates, currentFilters, newSince]);
   const sorted = useMemo(() => sortCandidates(filtered, sort), [filtered, sort]);
+  /* ★プレビューに出す人。明示的に選んだ人 → 無ければ（1280px 以上で、閉じていなければ）先頭の人 */
+  const shownId: string | null = selected ?? (isWide && autoPick ? sorted[0]?.id ?? null : null);
   /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
   const unknownTenureCount = useMemo(() => filtered.filter((c) => c.tenureMonths == null).length, [filtered]);
 
@@ -946,7 +961,7 @@ export default function CandidatesClient({
       {/* ── 一覧＋右のプレビュー（2026-10-10 / 段1）──────────────────────────────
              ⚠️★分割は 1280px 以上（CSS の @media と `CANDIDATE_SPLIT_MIN_WIDTH` を手で合わせている）。一覧とプレビューは 1：1。
              ⚠️ 1024〜1279px 用の「カードを詰める・2行目以降を隠す」作りは 2026-10-11 に外した（1279px 以下では分割しないので不要）。 */}
-      <div className="cand-split" data-selected={selected ? "1" : "0"}>
+      <div className="cand-split" data-selected={shownId ? "1" : "0"}>
         <div style={{ minWidth: 0 }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "72px 0", background: "#fff", borderRadius: 16, border: "1px solid var(--line)" }}>
@@ -973,20 +988,21 @@ export default function CandidatesClient({
               )}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
               {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
-                const isSel = selected === c.id;
+                const isSel = shownId === c.id;
                 return (
                   <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"}
                     /* ⚠️ 枠線と背景は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
                     className={isSel ? "cand-card is-selected" : "cand-card"}
                   >
-                    {/* ★3行のカード（2026-10-11 / 柴さんの指示。1画面に6〜7人）。中身は変えず並べ方だけ:
-                           1行目 名前・社会人〇年（・転職検討中）／右端に「気になる」
-                           2行目 職種・会社・勤務地（灰色1行・末尾は…）
-                           3行目 チップ（職種と経験年数・合うところ・社内メモ）／右端に「〇日前に更新」
+                    {/* ★2行のカード（2026-10-11 / 柴さんの指示。1300×800 で8〜9人）:
+                           1行目 名前・社会人〇年・職種・会社・勤務地（灰色）／右端に「気になる」
+                                 ⚠️ 幅が足りないときは 勤務地 → 会社 の順に縮めて「…」（flex-shrink の倍率で順番を作っている）
+                           2行目 チップ（転職検討中・職種と経験年数・合うところ・社内メモ）／右端に「〇日前に更新」
+                                 ⚠️ チップは1行に収まるぶんだけ出す（2行目に折り返さない。カードの高さを揃えるため）
                         ⚠️ 本人が書いた1行（headline）と希望勤務地はカードから外した（プレビューと詳細に出る）。
                         ⚠️ ボタン類（気になる・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
                     <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
@@ -995,36 +1011,43 @@ export default function CandidatesClient({
                       <div style={neutralAvatarStyle(40, 15)}>{c.name.charAt(0) || "?"}</div>
                     </div>
                     <div className="cand-card-main">
-                      {/* 1行目。⚠️ 年齢は出さない（2026-08-20）。社会人年数だけ */}
-                      <div className="cand-card-row1">
-                        <span className="cand-card-name" title={c.name}>{c.name}</span>
-                        {tenure && <span className="cand-card-sub">{tenure}</span>}
-                        {/* ⚠️ 状態は灰色の小さな文字（色付きのバッジにしない） */}
-                        {c.isActivelyLooking && <span data-state="actively-looking" className="cand-card-sub">転職検討中</span>}
-                        {c.stage !== undefined && (
-                          <span className="cand-card-bookmark"><InterestToggle candidateUserId={c.id} initialStage={c.stage} compact /></span>
-                        )}
-                      </div>
-                      {/* 2行目。⚠️ 勤務地はチップにせず文字で（2026-10-11）。現職が分からないときは希望職種 */}
+                      {/* 1行目。⚠️ 年齢は出さない（2026-08-20）。社会人年数だけ。現職が分からないときは希望職種 */}
                       {(() => {
                         const pref = c.location ? (extractPrefecture(c.location) ?? c.location) : null;
-                        const parts = (c.currentRole || c.currentCompany)
-                          ? [c.currentRole, c.currentCompany, pref]
-                          : [c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null, pref];
-                        const line = parts.filter(Boolean).join(" ・ ");
-                        return line ? <div className="cand-card-row2" title={line}>{line}</div> : null;
+                        const role = c.currentRole || c.currentCompany
+                          ? c.currentRole
+                          : (c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
+                        const title = [c.name, tenure, role, c.currentCompany, pref].filter(Boolean).join(" ・ ");
+                        return (
+                          <div className="cand-card-row1" title={title}>
+                            <span className="cand-card-name">{c.name}</span>
+                            {tenure && <span className="cand-card-sub">{tenure}</span>}
+                            {/* ⚠️ 640px 以下では、この3つを名前の下の行に回す（1行に収めると職種まで切れて読めない） */}
+                            <span className="cand-card-metas">
+                            {role && <span className="cand-card-meta cand-card-role">{role}</span>}
+                            {/* 区切りの「・」は項目の中に入れる（縮んで消えるときに区切りも一緒に消える） */}
+                            {c.currentCompany && <span className={role ? "cand-card-meta cand-card-company has-sep" : "cand-card-meta cand-card-company"}>{role ? "・" : ""}{c.currentCompany}</span>}
+                            {pref && <span className={role || c.currentCompany ? "cand-card-meta cand-card-pref has-sep" : "cand-card-meta cand-card-pref"}>{role || c.currentCompany ? "・" : ""}{pref}</span>}
+                            </span>
+                            {c.stage !== undefined && (
+                              <span className="cand-card-bookmark"><InterestToggle candidateUserId={c.id} initialStage={c.stage} compact /></span>
+                            )}
+                          </div>
+                        );
                       })()}
-                      {/* 3行目 */}
+                      {/* 2行目 */}
                       {(() => {
                         const skills = c.autoSkills ?? [];
                         const showRole = !!c.roleName && !skills.some((sk) => sk.label === c.roleName);
                         const tp = c.touchpoints?.length ?? 0;
                         const notes = noteCountOverride[c.id] ?? c.noteCount ?? 0;
                         const updated = relativeUpdated(c.profileEditedAt);
-                        if (skills.length === 0 && !showRole && !tp && !notes && !updated) return null;
+                        if (skills.length === 0 && !showRole && !tp && !notes && !updated && !c.isActivelyLooking) return null;
                         return (
-                          <div className="cand-card-row3">
+                          <div className="cand-card-row2">
                             <div className="cand-card-chips">
+                              {/* ⚠️ 状態は色付きにしない（他のチップと同じ見た目） */}
+                              {c.isActivelyLooking && <span data-state="actively-looking" className="cand-chip">転職検討中</span>}
                               {/* ★できること（職種 × 年数）。⚠️ 職歴からの計算（本人の入力ではない） */}
                               {skills.map((sk) => (
                                 <span key={sk.label} className="cand-chip">{sk.label}<span className="cand-chip-sub">{sk.band}</span></span>
@@ -1061,10 +1084,10 @@ export default function CandidatesClient({
 
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
-          {selected ? (
-            <CandidatePreview key={selected} userId={selected} onClose={() => updateSelected(null)}
-              onNoteCountChange={(n) => setNoteCountOverride((prev) => ({ ...prev, [selected]: n }))} />
-          ) : (
+          {shownId ? (
+            <CandidatePreview key={shownId} userId={shownId} onClose={() => { setAutoPick(false); updateSelected(null); }}
+              onNoteCountChange={(n) => setNoteCountOverride((prev) => ({ ...prev, [shownId]: n }))} />
+          ) : isWide === null ? null : (
             <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
               候補者を選ぶと、ここにプロフィールと貴社と合うところが表示されます。
             </div>
@@ -1075,7 +1098,7 @@ export default function CandidatesClient({
       {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
       <style>{`
         .cand-wrap { padding: 16px 32px; max-width: 1400px; margin: 0 auto; }
-        .cand-card { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
+        .cand-card { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
         .cand-card.is-selected { border-color: var(--royal); background: var(--royal-50); }
         .cand-card .cand-card-link:focus-visible { outline: none !important; }
         .cand-card:has(.cand-card-link:focus-visible) { border-color: var(--royal); }
@@ -1085,21 +1108,31 @@ export default function CandidatesClient({
         /* カード全体をリンクにする（中のボタンは z-index で上に出す） */
         .cand-card-link { position: absolute; inset: 0; border-radius: 12px; z-index: 0; }
         .cand-card-avatar { flex-shrink: 0; }
-        .cand-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-        .cand-card-row1 { display: flex; align-items: center; gap: 8px; min-width: 0; height: 20px; line-height: 20px; }
-        .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cand-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+        .cand-card-row1 { display: flex; align-items: center; gap: 6px; min-width: 0; height: 20px; line-height: 20px; }
+        .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 0; max-width: 40%; }
         .cand-card-sub { font-size: 12px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; }
+        /* 職種・会社・勤務地。縮む順番は 勤務地 → 会社 → 職種（倍率の差で作る。数字の大小だけが意味を持つ） */
+        .cand-card-metas { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+        .cand-card-meta { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cand-card-role { color: var(--ink-soft); flex-shrink: 1; }
+        .cand-card-company { color: var(--ink-mute); flex-shrink: 100; }
+        .cand-card-pref { color: var(--ink-mute); flex-shrink: 10000; }
+        .cand-card-meta.has-sep { margin-left: -6px; }
         .cand-card-bookmark { margin-left: auto; margin-right: -6px; height: 20px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
-        .cand-card-row2 { font-size: 13px; line-height: 17px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        .cand-card-row3 { display: flex; align-items: center; gap: 8px; min-width: 0; }
-        .cand-card-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; flex: 1; }
+        .cand-card-row2 { display: flex; align-items: center; gap: 8px; min-width: 0; height: 19px; }
+        /* チップは1行に収まるぶんだけ（折り返した2行目は高さで切る） */
+        .cand-card-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; flex: 1; height: 19px; overflow: hidden; }
         .cand-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; line-height: 17px; font-weight: 600; padding: 0 8px; border-radius: 100px; background: var(--bg-tint); border: 1px solid var(--line); color: var(--ink-soft); white-space: nowrap; }
         .cand-chip-sub { font-weight: 500; color: var(--ink-mute); }
-        .cand-card-updated { margin-left: auto; font-size: 11.5px; line-height: 19px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; align-self: flex-end; }
+        .cand-card-updated { margin-left: auto; font-size: 11.5px; line-height: 19px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; }
         .cand-card-actions { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
         @media (max-width: 640px) {
           .cand-wrap { padding: 12px 16px; }
           .cand-card { padding: 12px 14px; gap: 10px; }
+          .cand-card-row1 { flex-wrap: wrap; height: auto; row-gap: 2px; }
+          .cand-card-metas { order: 3; flex-basis: 100%; line-height: 18px; }
+          .cand-card-bookmark { order: 2; }
         }
         @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
