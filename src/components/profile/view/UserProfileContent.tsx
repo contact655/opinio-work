@@ -18,6 +18,7 @@ import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
 import SchoolLogoImg from "@/components/profile/SchoolLogoImg";
+import { PanelProfileView } from "@/components/profile/view/PanelProfileView";
 import {
   buildTimelineCareerEntriesFromRaw,
   toTimelineEducationEntries,
@@ -613,6 +614,24 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   // キャリアパスノード用 年表示
   // プラットフォームメタ（アイコン色・表示名）
 
+
+  /* ★右欄（embed）は見た目だけ別の部品にする（2026-10-11 / 柴さんの指示）。
+        ⚠️ 渡すのは上で取って判定し終えた値だけ。右欄のために取り直さない・条件を足さない。
+        ⚠️ ここから下（/u/[id] の見た目）は embed のときに通らない。 */
+  if (embed) {
+    return (
+      <PanelProfileView data={{
+        aboutMe: owUser.about_me,
+        careers: timelineCareers,
+        educations: timelineEdus,
+        unplacedEducations: unplacedEdus,
+        skills, autoSkills, achievements, awards, certifications, languages, mediaAppearances,
+        featuredArticles, contentLinks,
+        socialLinks: socialLinks as Record<string, string | undefined>,
+        posts: recentPostsTyped,
+      }} />
+    );
+  }
 
   return (
     <div style={{ background: embed ? "transparent" : "var(--bg-tint)", minHeight: embed ? undefined : "100vh" }}>

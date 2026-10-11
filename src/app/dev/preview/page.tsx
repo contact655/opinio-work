@@ -45,6 +45,8 @@ const ITEMS = [
     desc: "★縦の長さを見る画面。実画面はオンボーディング未完了のアカウントが要るので、ここでしか測れない" },
   { href: "/dev/preview/people-cards", label: "登録ユーザーのカード（/people）",
     note: "★肩書きを持つ実ユーザーが0人。しかも /people は is_test を除外するので、出る側はここでしか見られない" },
+  { href: "/dev/preview/panel-profile", label: "右欄のプロフィール（候補者を探す・メッセージのドロワー）",
+    note: "★検証用の候補者は項目が薄い。全部の項目がそろった詰まった表示はここで見る" },
   { href: "/dev/preview/candidates", label: "候補者を探す（/biz/organization の隣）",
     note: "★実画面は有料プラン0社で誰も開けない。ゲートの内側はここでしか見られない" },
   { href: "/dev/preview/biz-applications", label: "応募一覧（企業側）",

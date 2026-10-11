@@ -61,7 +61,7 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
         {headerExtra}
       </div>
       {/* 中身（ここだけスクロール） */}
-      <div data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "12px 16px 20px" }}>
+      <div data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
         {before}
         {failed ? (
           <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "12px 4px" }}>プロフィールを読み込めませんでした。</p>
