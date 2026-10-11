@@ -19,7 +19,6 @@ import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
-import { JobPrefillPanel } from "@/components/business/JobPrefillPanel";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { payLabel } from "@/lib/utils/salary";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
@@ -359,8 +358,6 @@ type Props = {
   initialDepartmentId?: string | null;
   /** 自社での呼び方の初期値。編集画面でページ側が解決して渡す */
   initialCompanyRoleName?: string;
-  /** ★求人票の貼り付けから下書きを作る入口を出すか（段階3）。⚠️ ページが `isJobPrefillEnabled()`（キーの有無）で決める */
-  prefillEnabled?: boolean;
 };
 
 export function JobEditForm({
@@ -376,7 +373,6 @@ export function JobEditForm({
   initialDepartmentId = null,
   initialCompanyRoleName = "",
   initialSection = "job",
-  prefillEnabled = false,
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
@@ -659,27 +655,6 @@ export function JobEditForm({
       case "job":
         return (
           <>
-            {/* ★求人票の貼り付けから下書きを作る（段階3）。⚠️ 確認して「入れる」を押すまでフォームに入れない */}
-            {prefillEnabled && (
-              <JobPrefillPanel
-                currentText={(it) => {
-                  if (it.kind === "labor") {
-                    const v = form.laborTerms[it.key as keyof LaborTerms];
-                    return Array.isArray(v) ? v.join("・") : String(v ?? "");
-                  }
-                  const v = form[it.key as keyof FormState];
-                  return Array.isArray(v) ? v.join("・") : typeof v === "string" ? v : "";
-                }}
-                onApplyTop={(key, value) => {
-                  if (key === "salaryMin" || key === "salaryMax") updateForm("salaryNegotiable", false);
-                  updateForm(key as keyof FormState, value as never);
-                }}
-                onApplyLabor={(patch) => {
-                  setForm((prev) => ({ ...prev, laborTerms: { ...prev.laborTerms, ...patch } }));
-                  if (currentJobId || form.title.trim().length > 0) triggerAutosave();
-                }}
-              />
-            )}
             <FormSection>
               <FormGroup>
                 <FormLabel required={req("title")} htmlFor="jef-title">求人タイトル</FormLabel>
