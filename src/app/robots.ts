@@ -25,6 +25,8 @@ export default function robots(): MetadataRoute.Robots {
           "/biz/jobs",
           "/biz/meetings",
           "/biz/applications",
+          "/biz/messages",
+          /* 旧 URL（2026-10-11 に /biz/messages へ 301）。転送元として残す */
           "/biz/conversations",
           "/biz/posts",
           "/biz/members",

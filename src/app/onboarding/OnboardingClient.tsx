@@ -1020,7 +1020,7 @@ function OnboardingInner({
 
               ★器だけの列ではない。読み手が実在する:
                  `/biz/candidates` … **都道府県での絞り込み** ＋ 候補者カードのタグ
-                 `/biz/conversations/[id]` … 候補者情報
+                 `/biz/messages/[id]` … 候補者情報
                  `/u/[id]` … 公開プロフィールのメタ行（年齢の隣）
 
               ⚠️★**ラベルは「お住まい」**（2026-09-23 / 柴さんの判断）。
@@ -1443,7 +1443,7 @@ function OnboardingInner({
             {step === STEP.STANCE && !ctaReady && (
               <p style={{ margin: "0 0 8px", fontSize: 12.5, fontWeight: 600, color: "var(--ink-mute)", textAlign: "center" }}>
                 {/* ⚠️ 何を選べば進めるかを書く（声かけの問いを見落として押せない理由が分からない、を防ぐ） */}
-                {!stance ? "どれか1つ選ぶと、次へ進めます" : "企業からのメッセージリクエストを受け取るかを選ぶと、次へ進めます"}
+                {!stance ? "どれか1つ選ぶと、次へ進めます" : "企業からのメッセージを受け取るかを選ぶと、次へ進めます"}
               </p>
             )}
             {/* ⚠️★ステップで役割が変わる。1・2画面目は**保存して次へ**、最後は**完了**。
