@@ -115,13 +115,13 @@ function EmbedUnavailable() {
   return <div data-state="profile-unavailable" style={{ padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>この方は表示できません。</div>;
 }
 
-export async function UserProfileContent({ resolvedId, profileUsername, embed = false, panelTabs = false }: {
+export async function UserProfileContent({ resolvedId, profileUsername, embed = false, panelSectioned = false }: {
   resolvedId: string;
   profileUsername: string | null;
   /** ★候補者を探す・メッセージの右欄で使う（パンくず・ボタン群・共有・社内メモを出さない） */
   embed?: boolean;
-  /** ★右欄をタブで出す（候補者を探すだけ。2026-10-12）。中身と判定は同じ */
-  panelTabs?: boolean;
+  /** ★右欄を節の目次つきの1本のスクロールで出す（候補者を探すだけ。2026-10-12）。中身と判定は同じ */
+  panelSectioned?: boolean;
 }) {
   const supabase = createClient();
   const adminSupabase = createAdminClient();
@@ -622,7 +622,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         ⚠️ ここから下（/u/[id] の見た目）は embed のときに通らない。 */
   if (embed) {
     return (
-      <PanelProfileView tabbed={panelTabs} data={{
+      <PanelProfileView sectioned={panelSectioned} data={{
         aboutMe: owUser.about_me,
         careers: timelineCareers,
         educations: timelineEdus,

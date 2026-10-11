@@ -29,15 +29,15 @@ export default function Page() {
   return (
     <div>
       <PreviewHeader title="〈会社名〉と合うところ（/biz/candidates の右のプレビュー）">
-        <p>2026-10-11 に「貴社との接点」から改めた。強い順に3つまで。4つ以上は「ほかに N件」。（〇）は項目の数。0件・取得失敗は見出しごと出さない。</p>
+        <p>2026-10-11 に「貴社との接点」から改めた。右欄のプロフィールの先頭に開閉なしで出す（2026-10-12）。強い順に2つまで全文。3つ以上は「ほか N件」で、押すとその場で全部。（〇）は項目の数。0件・取得失敗は見出しごと出さない。</p>
       </PreviewHeader>
       <Variant label="0件" note="見出しごと出ない（何も描かれないのが正しい）">
         <TouchpointSection touchpoints={[]} companyShortName="Third Box" />
       </Variant>
-      <Variant label="2件" note="「Third Boxと合うところ（2）」。「ほかに」は出ない">
+      <Variant label="2件" note="「Third Boxと合うところ（2）」。「ほか」は出ない">
         <TouchpointSection touchpoints={two} companyShortName="Third Box" />
       </Variant>
-      <Variant label="5件" note="（5）・3件と「ほかに2件」。押すと全部">
+      <Variant label="5件" note="（5）・2件と「ほか3件」。押すとその場で全部">
         <TouchpointSection touchpoints={five} companyShortName="Third Box" />
       </Variant>
       <Variant label="会社名が取れない" note="「貴社と合うところ（2）」">
@@ -47,16 +47,16 @@ export default function Page() {
         <TouchpointSection touchpoints={undefined} companyShortName="Third Box" />
       </Variant>
       <h2 style={{ fontSize: 16, margin: "32px 0 8px" }}>右欄の上の段（3・4行目。2026-10-12）</h2>
-      <Variant label="意向・合うところ・接点（ほか2件）" note="灰色の文字だけ。「合うところ（5）›」を押すとその場で開く">
-        <PreviewHeaderLines candidate={person("active", five)} companyShortName="Third Box"
+      <Variant label="意向・接点（ほか2件）" note="灰色の文字だけ。合うところはここに出さない（プロフィールの先頭に出る）">
+        <PreviewHeaderLines candidate={person("active", five)}
           contacts={{ latest: { at: "2025-03-14T02:00:00Z", title: "応募：インサイドセールス" }, more: 2 }} />
       </Variant>
-      <Variant label="接点だけ（ほか0件）" note="意向・合うところが無ければ3行目は出ない">
-        <PreviewHeaderLines candidate={person(null, [])} companyShortName="Third Box"
+      <Variant label="接点だけ（ほか0件）" note="意向が無ければ3行目は出ない">
+        <PreviewHeaderLines candidate={person(null, [])}
           contacts={{ latest: { at: "2026-09-02T02:00:00Z", title: "カジュアル面談の申込：ポジション指定なし" }, more: 0 }} />
       </Variant>
       <Variant label="何も無い" note="3・4行目とも出ない（何も描かれないのが正しい）">
-        <PreviewHeaderLines candidate={person(null, [])} companyShortName="Third Box" contacts={null} />
+        <PreviewHeaderLines candidate={person(null, [])} contacts={null} />
       </Variant>
     </div>
   );

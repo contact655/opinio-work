@@ -33,7 +33,8 @@ export type PreviewData = {
   contacts?: { latest: { at: string; title: string }; more: number } | null;
 };
 
-const TOUCHPOINT_INITIAL = 3;
+/** ★最初に全文で出す件数（2026-10-12 に 3 → 2）。それより多ければ「ほかn件」で、押すとその場で全部 */
+const TOUCHPOINT_INITIAL = 2;
 
 
 function formatTenure(months: number | null): string | null {
@@ -46,19 +47,18 @@ function formatTenure(months: number | null): string | null {
  * 「〈会社名〉と合うところ（〇）」の欄（2026-10-11 に「貴社との接点」から改めた）。
  * ⚠️ （〇）は項目の数。％や点数は出さない。⚠️ 0件・取れなかった（undefined）ときは見出しごと出さない。
  * ⚠️ プレビューの部品として切り出してある（/dev/preview から使う）
+ * ★右欄では開閉させずに、プロフィールの先頭に常に出す（2026-10-12 / 柴さんの指示）。2件まで全文・3件以上は「ほかn件」
  */
-export function TouchpointSection({ touchpoints, companyShortName, hideHeading = false }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null;
-  /** ★右欄の上の段で開くとき（2026-10-12）。見出しは押した行が兼ねるので出さない */
-  hideHeading?: boolean }) {
+export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
   const [showAll, setShowAll] = useState(false);
   if (!touchpoints || touchpoints.length === 0) return null;
   const shown = showAll ? touchpoints : touchpoints.slice(0, TOUCHPOINT_INITIAL);
   const rest = touchpoints.length - TOUCHPOINT_INITIAL;
   return (
-    <section data-state="touchpoints" style={{ marginTop: hideHeading ? 6 : 16 }}>
-      {!hideHeading && <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>
+    <section data-state="touchpoints" style={{ padding: "14px 0 4px" }}>
+      <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
         {companyShortName ?? "貴社"}と合うところ（{touchpoints.length}）
-      </h3>}
+      </h3>
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         {shown.map((t, i) => (
           <li key={`${t.kind}:${t.ref?.id ?? i}`} data-touchpoint={t.kind}
@@ -70,7 +70,7 @@ export function TouchpointSection({ touchpoints, companyShortName, hideHeading =
       {rest > 0 && !showAll && (
         <button type="button" onClick={() => setShowAll(true)}
           style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", padding: "6px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer" }}>
-          ほかに{rest}件
+          ほか{rest}件
         </button>
       )}
     </section>
@@ -110,9 +110,10 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   const edited = formatJstMonthDay(c.profileEditedAt);
   /* ★年齢（2026-10-12 から出す）。⚠️ サーバーで計算した数（Candidate.age）。生年月日が無い人は出さない */
   const meta = [c.age != null ? `${c.age}歳` : null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
-  /* ★右欄は「上：誰か／中：タブ／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
-        上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・合うところ）・4行目（この会社との接点）
-        中（ここだけスクロール）… 職歴／学歴／スキル／自己紹介（＋社内メモが有効なら「メモ」）。中身と判定は /u/[id] と同じ
+  /* ★右欄は「上：誰か／中：プロフィール／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
+        上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・最近の利用）・4行目（この会社との接点）
+        中（ここだけスクロール）… 先頭に「〈会社名〉と合うところ」（開閉なし）、続けて 職歴 → スキル → 自己紹介 → 学歴 → その他
+          （＋社内メモが有効なら「メモ」）を1本で。上に節へのリンクの帯。中身と判定は /u/[id] と同じ
         下（固定）… メッセージ欄（`PreviewApproachArea`） */
   return (
     <CandidateProfilePanel
@@ -121,9 +122,10 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
       meta={meta || null}
       onClose={onClose}
       nameAction={nameAction}
-      headerExtra={<PreviewHeaderLines candidate={c} companyShortName={data.companyShortName ?? null} contacts={data.contacts ?? null} />}
-      tabs
-      extraTabs={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
+      headerExtra={<PreviewHeaderLines candidate={c} contacts={data.contacts ?? null} />}
+      sectioned
+      before={<TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />}
+      extraSections={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
       footer={c.approach ? <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} /> : undefined}
     />
   );
@@ -131,48 +133,34 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
 
 /**
  * ★上の段の3・4行目（2026-10-12）。どれも灰色の文字（バッジにしない）。値が無い項目は出さない。
- *   3行目 … 転職への意向（`CAREER_STANCE_LABELS`）・「〈会社名〉と合うところ（n）›」（押すとその場で開く。中身は `TouchpointSection`）
+ *   3行目 … 転職への意向（`CAREER_STANCE_LABELS`）・最近の利用
+ *   ⚠️ 「〈会社名〉と合うところ」は 2026-10-12 にここから外し、プロフィールの先頭に常に出す形にした（`TouchpointSection`）
  *   4行目 … この会社との接点（選考管理の「この会社とのこれまで」と同じ。最新1件＋「ほかn件」）
  * ⚠️ /dev/preview/candidate-touchpoints から使う（Third Box の実データには接点が無く、4行目を描けないため）
  */
-export function PreviewHeaderLines({ candidate, companyShortName, contacts }: {
+export function PreviewHeaderLines({ candidate, contacts }: {
   candidate: Candidate;
-  companyShortName: string | null;
   contacts: PreviewData["contacts"];
 }) {
-  const [showTouch, setShowTouch] = useState(false);
   const stanceLabel = candidate.careerStance ? CAREER_STANCE_LABELS[candidate.careerStance] ?? null : null;
   /* ★「情報収集として（9月30日に更新）」（2026-10-12）。⚠️ 更新日時が無い（不明）なら日付を付けない */
   const stanceDate = formatJstMonthDay(candidate.careerStanceUpdatedAt);
   const stance = stanceLabel ? (stanceDate ? `${stanceLabel}（${stanceDate}に更新）` : stanceLabel) : null;
   /* ★最近の利用（2026-10-12）。⚠️ スイッチが無効なら undefined で何も出さない。記録が無い（null）も出さない */
   const activityText = candidate.activity ? ACTIVITY_LABELS[candidate.activity] : null;
-  const n = candidate.touchpoints?.length ?? 0;
   const gray: React.CSSProperties = { fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.6 };
-  if (!stance && n === 0 && !contacts && !activityText) return null;
+  if (!stance && !contacts && !activityText) return null;
   return (
     <div data-state="preview-header-lines" style={{ marginTop: 4 }}>
-      {(stance || n > 0 || activityText) && (
+      {(stance || activityText) && (
         <div style={{ ...gray, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {stance && <span data-state="header-stance">{stance}</span>}
           {activityText && <>{stance && <span aria-hidden="true">・</span>}<span data-state="header-activity">{activityText}</span></>}
-          {(stance || activityText) && n > 0 && <span aria-hidden="true">・</span>}
-          {n > 0 && (
-            <button type="button" onClick={() => setShowTouch((x) => !x)} aria-expanded={showTouch} data-state="header-touchpoints"
-              style={{ background: "none", border: "none", padding: 0, fontFamily: "inherit", fontSize: 12.5, color: "var(--ink-mute)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>
-              {companyShortName ?? "貴社"}と合うところ（{n}）{showTouch ? "（閉じる）" : " ›"}
-            </button>
-          )}
         </div>
       )}
       {contacts && (
         <div data-state="header-contacts" style={gray}>
           この会社との接点：{formatYm(contacts.latest.at)} {contacts.latest.title}{contacts.more > 0 ? `（ほか${contacts.more}件）` : ""}
-        </div>
-      )}
-      {showTouch && (
-        <div style={{ maxHeight: 220, overflowY: "auto" }}>
-          <TouchpointSection touchpoints={candidate.touchpoints} companyShortName={companyShortName} hideHeading />
         </div>
       )}
     </div>
