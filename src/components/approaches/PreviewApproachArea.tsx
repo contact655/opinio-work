@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SentApproachDetail } from "@/components/approaches/SentApproachDetail";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,
@@ -18,14 +19,16 @@ import {
  *   送り済み → 「〇月〇日に送っています」／検証用の会社 → APPROACH_TEST_COMPANY_MESSAGE ／
  *   今は考えていない → APPROACH_NOT_LOOKING_MESSAGE ／ 企業側の上限 → `limitLine` ／ それ以外 → APPROACH_UNAVAILABLE_MESSAGE
  * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここは字数だけ見る。
- * ⚠️ 「プロフィール全体を見る」は `profileLink` で受け取り、主ボタン（または理由の1行）の横に並べる。
+ * ★「送った内容を見る」は右欄の中で開閉する（2026-10-11。/biz/messages のカードと同じ部品 `SentApproachDetail`）。
+ *   返信が来ている（accepted）ときだけ「メッセージを開く」で /biz/messages のスレッドへ移る。
+ * ⚠️ `profileLink` は任意（2026-10-11 に「プロフィール全体を見る」ボタンをやめ、名前の横の新しいタブのアイコンにした）。
  */
 export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }: {
   candidate: Candidate;
   jobs: { id: string; title: string }[];
   /** 企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
   limitLine: string | null;
-  profileLink: React.ReactNode;
+  profileLink?: React.ReactNode;
 }) {
   const a = candidate.approach;
   const [open, setOpen] = useState(false);
@@ -36,6 +39,10 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorAction, setErrorAction] = useState<{ label: string; href: string } | null>(null);
+  /* ★送った内容（その場で開閉）。null = まだ取っていない */
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detail, setDetail] = useState<{ createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null } | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const gray = (text: string, state: string, extra?: React.ReactNode) => (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
@@ -50,10 +57,43 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
   if (a.sent) {
     const n = approachResendNotice(a.sent);
-    const action = n.action && (
-      <Link href={n.action.href} data-state="approach-resend-action" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>{n.action.label} →</Link>
+    /* ★返信あり → 「メッセージを開く」でスレッドへ（これだけは移ってよい）。それ以外 → 「送った内容を見る」をその場で開閉 */
+    if (a.sent.state === "accepted") {
+      const action = n.action && (
+        <Link href={n.action.href} data-state="approach-resend-action" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>{n.action.label} →</Link>
+      );
+      return gray(approachAlreadySentLine(a.sent.sentAt), "approach-already-sent", action);
+    }
+    const sentId = a.sent.id;
+    const toggle = async () => {
+      if (detailOpen) { setDetailOpen(false); return; }
+      setDetailOpen(true);
+      if (detail) return;
+      setDetailError(null);
+      try {
+        const res = await fetch(`/api/biz/approaches/${encodeURIComponent(sentId)}`);
+        const j = await res.json().catch(() => null);
+        if (!res.ok || !j) { setDetailError("送った内容を読み込めませんでした"); return; }
+        setDetail(j);
+      } catch {
+        setDetailError("送った内容を読み込めませんでした");
+      }
+    };
+    return (
+      <div>
+        {gray(approachAlreadySentLine(a.sent.sentAt), "approach-already-sent", (
+          <button type="button" onClick={() => void toggle()} aria-expanded={detailOpen} data-state="approach-detail-toggle"
+            style={{ background: "none", border: "none", padding: 0, fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit" }}>
+            {detailOpen ? "送った内容を閉じる" : "送った内容を見る"}
+          </button>
+        ))}
+        {detailOpen && (
+          detailError ? <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-soft)" }}>{detailError}</p>
+          : detail ? <SentApproachDetail senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body} style={{ marginTop: 10 }} />
+          : <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-mute)" }}>読み込み中…</p>
+        )}
+      </div>
     );
-    return gray(approachAlreadySentLine(a.sent.sentAt), "approach-already-sent", action);
   }
   if (!a.eligible) {
     const text = a.blocked === "test_company" ? APPROACH_TEST_COMPANY_MESSAGE

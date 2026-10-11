@@ -12,7 +12,7 @@ import { CandidatePreview } from "./CandidatePreview";
 import { APPROACH_TEST_COMPANY_MESSAGE } from "@/lib/constants/companyApproaches";
 import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { InterestToggle } from "@/components/candidateNotes/InterestToggle";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
       ここに似た実装を作らないこと ——`FilterChip` は 2026-09-18 に
@@ -426,6 +426,23 @@ export default function CandidatesClient({
   }, []);
 
   useEffect(() => { void refreshSaved(); }, [refreshSaved]);
+
+  // 右の欄の高さを「いま見えている上端から画面の下端まで」に合わせる。
+  // ⚠️ CSS の calc だけだと、ページ先頭（sticky で固定される前）は欄の下端が画面の外にはみ出し、
+  //    中をいちばん下までスクロールしても最後の数十 px が見えない（2026-10-11 に実測: 46px）。
+  const paneRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const fit = () => {
+      const el = paneRef.current;
+      if (!el || getComputedStyle(el).position !== "sticky") return;
+      const top = Math.max(el.getBoundingClientRect().top, 0);
+      el.style.setProperty("--cand-pane-h", `${Math.max(window.innerHeight - top - 16, 240)}px`);
+    };
+    fit();
+    window.addEventListener("scroll", fit, { passive: true });
+    window.addEventListener("resize", fit);
+    return () => { window.removeEventListener("scroll", fit); window.removeEventListener("resize", fit); };
+  }, []);
 
   /** ★条件を選んでいるか（段2）。⚠️ 並び替えだけ変えた状態は「条件」に数えない（保存ボタンを出さない） */
   const hasConditions = !isEmptyFilters({ ...currentFilters, sort: EMPTY_SAVED_FILTERS.sort });
@@ -1093,7 +1110,7 @@ export default function CandidatesClient({
         </div>
 
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
-        <aside className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
+        <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownId ? (
             <CandidatePreview key={shownId} userId={shownId} companyLimitLine={companyLimitLine} onClose={() => { setAutoPick(false); updateSelected(null); }}
               onNoteCountChange={(n) => setNoteCountOverride((prev) => ({ ...prev, [shownId]: n }))} />
@@ -1147,8 +1164,9 @@ export default function CandidatesClient({
         @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
           .cand-wrap { max-width: none; }
-          /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと） */
-          .cand-pane { display: block; position: sticky; top: calc(var(--biz-header-h) + 16px); max-height: calc(100vh - var(--biz-header-h) - 32px); overflow-y: auto; overscroll-behavior: contain; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+          /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと）。
+             ★2026-10-11: 高さを決めて外側はスクロールさせず、中（CandidateProfilePanel）の本文だけをスクロールさせる（名前とボタンの段を固定するため） */
+          .cand-pane { display: block; position: sticky; top: calc(var(--biz-header-h) + 16px); height: var(--cand-pane-h, calc(100vh - var(--biz-header-h) - 32px)); overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
           .cand-card-actions { display: none; }
         }
       `}</style>

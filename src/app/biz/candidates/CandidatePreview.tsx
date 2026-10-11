@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
+import { CandidateProfilePanel } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
-import { neutralAvatarStyle } from "@/lib/avatarColor";
 import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
 
 /**
@@ -32,11 +31,6 @@ export type PreviewData = {
 
 const TOUCHPOINT_INITIAL = 3;
 
-function ym(v: string | null): string {
-  if (!v) return "";
-  const m = v.match(/^(\d{4})-(\d{2})/);
-  return m ? `${m[1]}年${Number(m[2])}月` : "";
-}
 
 function formatTenure(months: number | null): string | null {
   if (months == null) return null;
@@ -106,90 +100,21 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   const c = data.candidate;
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
+  const meta = [tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
+  /* ★右欄でプロフィール全体を見せる（2026-10-11 / 柴さんの指示）。中身は /u/[id] と同じ関数（`CandidateProfilePanel`）。
+        名前とボタンの段は固定、中身だけスクロール。⚠️ 自己紹介・経歴・スキルの一覧はプロフィールの中に出るので、ここでは出さない（二重にしない） */
   return (
-    <div data-state="candidate-preview" style={{ padding: "18px 20px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={neutralAvatarStyle(52, 20)}>{c.name.charAt(0) || "?"}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>{c.name}</h2>
-            {tenure && <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>}
-            {/* ⚠️ 「メッセージを送れます」のチップは 2026-10-11 に外した（送れるかはボタンで分かる）。戻さないこと */}
-          </div>
-          {(c.currentRole || c.currentCompany) && (
-            <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>
-              {[c.currentRole, c.currentCompany].filter(Boolean).join(" · ")}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, fontSize: 12, color: "var(--ink-mute)" }}>
-            {/* ⚠️ 送れない一文は下のボタンの位置に出す（同じ文を2回出さない） */}
-            {/* ⚠️ 返事待ちはボタンの上の帯が同じことを言うので、ここには出さない（同じ文を2回出さない） */}
-            {/* ⚠️ 送り済みの1行は下のボタンの位置（PreviewApproachArea）に出す（同じ文を2回出さない。2026-10-11） */}
-            {c.location && <span>{c.location}</span>}
-            {edited && <span>プロフィール更新 {edited}</span>}
-          </div>
-          {/* ⚠️ 送れない人にだけ出していた「提案を見る」の一文は 2026-10-11 に外した（送れない人には何も出さない。送れない人を見た目で区別させない） */}
-        </div>
-        <button type="button" onClick={onClose} aria-label="プレビューを閉じる"
-          style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>
-      </div>
-
-      {/* ★名前の直下に主ボタン「メッセージを送る」（その場でフォームが開く）。送れない人は灰色の1行で理由だけ（2026-10-11 / 柴さんの指示）。
-             「プロフィール全体を見る」は副ボタン（白地・枠線）で横に並べる */}
-      <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine}
-        profileLink={
-          <Link href={`/u/${c.id}`} data-state="preview-profile-link"
-            style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", whiteSpace: "nowrap" }}>
-            プロフィール全体を見る
-          </Link>
-        } />
-
-      <TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />
-
-      {/* ★社内メモ（2026-10-11）。「合うところ」の下・自己紹介の上。⚠️ フラグがオフなら出さない */}
-      {data.notesEnabled && <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} />}
-
-      {c.headline && <p style={{ margin: "16px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, overflowWrap: "anywhere" }}>{c.headline}</p>}
-
-      {data.aboutMe && (
-        <section style={{ marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>自己紹介</h3>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--ink)", lineHeight: 1.8, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{data.aboutMe}</p>
-        </section>
-      )}
-
-      {data.experiences.length > 0 && (
-        <section style={{ marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>経歴</h3>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-            {data.experiences.map((e) => (
-              <li key={e.id} style={{ fontSize: 12.5, lineHeight: 1.6, borderLeft: "2px solid var(--line)", paddingLeft: 10 }}>
-                <div style={{ fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>{e.company ?? "—"}</div>
-                {(e.roleTitle || e.roleName) && <div style={{ color: "var(--ink-soft)", overflowWrap: "anywhere" }}>{[e.roleName, e.roleTitle].filter(Boolean).join(" · ")}</div>}
-                {(e.startedAt || e.isCurrent) && (
-                  <div style={{ color: "var(--ink-mute)" }}>{ym(e.startedAt)}〜{e.isCurrent ? "現在" : ym(e.endedAt)}</div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {((c.autoSkills ?? []).length > 0 || data.skills.length > 0) && (
-        <section style={{ marginTop: 16 }}>
-          <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>スキル</h3>
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-            {(c.autoSkills ?? []).map((sk) => (
-              <span key={`a:${sk.label}`} style={{ fontSize: 12, fontWeight: 600, padding: "2px 9px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
-                {sk.label} <span style={{ fontWeight: 500, color: "var(--ink-mute)" }}>{sk.band}</span>
-              </span>
-            ))}
-            {data.skills.map((s) => (
-              <span key={`s:${s}`} style={{ fontSize: 12, fontWeight: 600, padding: "2px 9px", borderRadius: 100, background: "#fff", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>{s}</span>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+    <CandidateProfilePanel
+      userId={c.id}
+      name={c.name}
+      meta={meta || null}
+      onClose={onClose}
+      headerExtra={<PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} />}
+      before={<>
+        <TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />
+        {/* ★社内メモ（2026-10-11）。⚠️ フラグがオフなら出さない。⚠️ プロフィールの中（/u/[id]）の社内メモは右欄では出さない（embed） */}
+        {data.notesEnabled && <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} />}
+      </>}
+    />
   );
 }

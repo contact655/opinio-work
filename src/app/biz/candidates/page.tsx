@@ -1,3 +1,6 @@
+import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
+/* ★右欄（候補者のプロフィール）の中身が使う client コンポーネントを、このページから参照しておく（profileClientModules.ts の注記） */
+void PROFILE_CLIENT_MODULES;
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import CandidatesClient from "./CandidatesClient";

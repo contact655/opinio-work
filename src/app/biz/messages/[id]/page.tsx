@@ -1,3 +1,7 @@
+import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
+/* ★右欄（候補者のプロフィール）の中身が使う client コンポーネントを、このページから参照しておく（profileClientModules.ts の注記） */
+void PROFILE_CLIENT_MODULES;
+import { CandidateProfileDrawerButton } from "@/components/candidates/CandidateProfileDrawer";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
@@ -590,27 +594,8 @@ export default async function BizConversationDetailPage({
                 paddingTop: 12,
                 borderTop: "1px solid var(--line-soft)",
               }}>
-                <a
-                  href={`/u/${candidate.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--royal)",
-                    fontWeight: 600,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    textDecoration: "none",
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                  公開プロフィールを見る →
-                </a>
+                {/* ★画面を切り替えずに右から同じプロフィール欄を出す（2026-10-11。候補者を探すの右欄と同じ部品） */}
+                <CandidateProfileDrawerButton userId={candidate.id} name={candidate.name ?? "候補者"} label="公開プロフィールを見る →" style={{ fontSize: 12 }} />
               </div>
             )}
           </div>

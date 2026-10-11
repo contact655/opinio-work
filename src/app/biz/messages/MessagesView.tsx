@@ -1,5 +1,7 @@
 "use client";
 
+import { SentApproachDetail } from "@/components/approaches/SentApproachDetail";
+import { CandidateProfileDrawerButton } from "@/components/candidates/CandidateProfileDrawer";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
@@ -240,20 +242,10 @@ function SentItem({ r, now, open, onToggle }: { r: SentApproach; now: Date; open
         <Line name={name} date={fmtListDate(r.createdAt, now)} status={status} preview={`あなた：${r.reason.split("\n")[0]}`} unread={false} faded={faded} />
       </button>
       {open && (
-        <div data-state="approach-detail" style={{ margin: "0 18px 14px 74px", padding: "12px 14px", background: "var(--bg-tint, #f6f7f9)", borderRadius: 8, fontSize: 13, lineHeight: 1.8, color: "var(--ink)", minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-            {[r.senderName ? `送った人：${r.senderName}` : null, r.jobTitle ? `求人：${r.jobTitle}` : null].filter(Boolean).join("・")}
-          </div>
-          <div style={{ fontWeight: 700, color: "var(--ink-soft)", fontSize: 12, marginTop: 6 }}>送った理由</div>
-          <p style={{ margin: "2px 0 0", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{r.reason}</p>
-          {r.body && (
-            <>
-              <div style={{ fontWeight: 700, color: "var(--ink-soft)", fontSize: 12, marginTop: 10 }}>本文</div>
-              <p style={{ margin: "2px 0 0", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{r.body}</p>
-            </>
-          )}
-          <Link href={`/u/${r.candidate.username ?? r.candidate.id}`} style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>プロフィールを見る →</Link>
-        </div>
+        /* ★中身は候補者を探すの右欄と同じ部品（2026-10-11）。「プロフィールを見る」は画面を切り替えずに右から出す */
+        <SentApproachDetail senderName={r.senderName} sentAt={r.createdAt} jobTitle={r.jobTitle} reason={r.reason} body={r.body}
+          style={{ margin: "0 18px 14px 74px" }}
+          footer={<CandidateProfileDrawerButton userId={r.candidate.id} name={name} style={{ display: "inline-block", marginTop: 8 }} />} />
       )}
     </div>
   );
