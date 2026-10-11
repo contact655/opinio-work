@@ -3688,6 +3688,38 @@ export type Database = {
           },
         ]
       }
+      ow_job_prefill_usage: {
+        Row: {
+          company_id: string
+          input_tokens: number
+          output_tokens: number
+          used_count: number
+          used_on: string
+        }
+        Insert: {
+          company_id: string
+          input_tokens?: number
+          output_tokens?: number
+          used_count?: number
+          used_on: string
+        }
+        Update: {
+          company_id?: string
+          input_tokens?: number
+          output_tokens?: number
+          used_count?: number
+          used_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_job_prefill_usage_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_job_requirements: {
         Row: {
           content: string | null
@@ -6747,6 +6779,15 @@ export type Database = {
       }
     }
     Functions: {
+      add_job_prefill_tokens: {
+        Args: {
+          p_company_id: string
+          p_day: string
+          p_input: number
+          p_output: number
+        }
+        Returns: undefined
+      }
       approach_company_matches_field: {
         Args: { p_company_id: string; p_field: string; p_values: string[] }
         Returns: boolean
@@ -6953,6 +6994,10 @@ export type Database = {
           p_recipient_ow_user_id: string
         }
         Returns: string
+      }
+      reserve_job_prefill: {
+        Args: { p_company_id: string; p_day: string; p_limit: number }
+        Returns: number
       }
       set_company_business_domains: {
         Args: {

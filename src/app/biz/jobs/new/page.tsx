@@ -1,3 +1,4 @@
+import { isJobPrefillEnabled } from "@/lib/jobs/prefill";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { JobEditForm } from "@/components/business/JobEditForm";
@@ -56,6 +57,7 @@ export default async function JobNewPage() {
       currentTenantId={ctx.tenantId}
     >
       <JobEditForm
+        prefillEnabled={isJobPrefillEnabled()}
         mode="new"
         companyId={ctx.tenantId}
         teamMembers={teamMembers}
