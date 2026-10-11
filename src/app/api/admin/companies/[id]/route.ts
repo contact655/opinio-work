@@ -6,6 +6,7 @@ import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
 import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publishable';
+import { cleanupCompanyLogoFiles } from '@/lib/companies/logoFiles';
 import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
 
@@ -194,6 +195,13 @@ export async function PUT(
     Object.assign(updates, publishedAtPatch(cur?.published_at, updates.is_published === true, nowIso));
   }
 
+  /* ロゴが変わるかを見るため、更新前の値を控える（変わったときだけ古いファイルを消す） */
+  let logoBefore: string | null | undefined;
+  if ('logo_url' in updates) {
+    const { data: prev } = await supabase.from('ow_companies').select('logo_url').eq('id', params.id).maybeSingle();
+    logoBefore = (prev?.logo_url as string | null | undefined) ?? null;
+  }
+
   const { data, error } = await supabase
     .from('ow_companies')
     .update(updates)
@@ -233,6 +241,12 @@ export async function PUT(
     } catch (feedErr) {
       console.error('[feed company_joined]', feedErr);
     }
+  }
+
+  /* ★ロゴを変えたら、使われなくなったロゴのファイルを消す（2026-10-12。ロゴは毎回別のファイル名で入る）。
+     ⚠️ この画面は保存のたびに logo_url を送るので、**値が変わったときだけ**消す（他の項目の保存で消さない） */
+  if ('logo_url' in updates && (updates.logo_url ?? null) !== logoBefore) {
+    await cleanupCompanyLogoFiles(params.id, 'admin PUT');
   }
 
   /* ★キャッシュを捨てる（2026-09-04 追加）。事業領域・対象業界のルートと同じ理由。

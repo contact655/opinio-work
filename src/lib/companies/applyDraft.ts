@@ -10,6 +10,7 @@ import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/compan
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
 import { setCompanyBusinessDomains } from "@/lib/companies/setBusinessDomains";
 import { readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
+import { cleanupCompanyLogoFiles } from "@/lib/companies/logoFiles";
 
 /**
  * ★企業ページの下書き（`draft_data`）と未公開の写真を、求職者に見える状態へ反映する（2026-10-12）。
@@ -55,7 +56,13 @@ const bene = (v: unknown): Benefit[] | null | undefined => {
 
 export async function applyCompanyDraft(
   companyId: string,
-  opts: { client: SupabaseClient; label: string },
+  opts: {
+    client: SupabaseClient;
+    label: string;
+    /** ★企業名も反映するか（2026-10-12）。**運営の掲載（掲載前の企業）だけ true。**
+     *  掲載後の社名の変更は企業からは受け付けない（運営へ連絡。運営画面からは変えられる） */
+    writeName?: boolean;
+  },
 ): Promise<ApplyDraftResult> {
   const { client, label } = opts;
   const now = new Date().toISOString();
@@ -108,8 +115,9 @@ export async function applyCompanyDraft(
     client
       .from("ow_companies")
       .update({
-        /* ⚠️ 企業名（name）は従来どおり書かない。以前の PATCH も書いておらず、変えると
-              normalized_name・スカウトのブロック判定・検索の別名まで動く（運営の作業） */
+        /* ★企業名は運営の掲載のときだけ書く（writeName）。掲載後は企業から変えられない。
+              ⚠️ 空にはしない（NOT NULL）。変えると normalized_name はトリガーが作り直す */
+        name:                     opts.writeName ? ((s(d.name) ?? "").trim() || undefined) : undefined,
         tagline:                  s(d.tagline),
         description:              s(d.description),
         mission:                  s(d.mission),
@@ -187,6 +195,9 @@ export async function applyCompanyDraft(
     /* ⚠️ 本体は反映済み。写真だけ未公開のまま残るので、利用者にそう伝える */
     return { ok: false, status: photoRes.status, error: "写真を公開できませんでした。もう一度「公開する」を押してください。" };
   }
+
+  /* ── ⑤ 使われなくなったロゴのファイルを消す（公開した後の古いロゴ・公開しないまま差し替えたロゴ）。best-effort ── */
+  await cleanupCompanyLogoFiles(companyId, label);
 
   await revalidateCompanyPages(companyId);
   return { ok: true };

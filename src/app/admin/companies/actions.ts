@@ -195,7 +195,8 @@ export async function updateListingStatus(
   if (newValue === "listed") {
     const gate = await checkPublishable(companyId, { kind: "admin" }, { useDraft: true });
     if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
-    const applied = await applyCompanyDraft(companyId, { client: admin, label: "admin 掲載" });
+    /* ★掲載前の企業が下書きで直した企業名も、ここで反映する（掲載後は企業からは変えられない） */
+    const applied = await applyCompanyDraft(companyId, { client: admin, label: "admin 掲載", writeName: true });
     if (!applied.ok) return { ok: false, error: `下書きを反映できませんでした: ${applied.message ?? applied.error}` };
   }
 

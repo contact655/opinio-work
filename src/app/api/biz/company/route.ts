@@ -35,6 +35,19 @@ export async function PUT(req: Request) {
   // 本番カラム（name, mission など）は一切変更しない
   const record = transformFormToDb(body as BizCompany);
 
+  /* ★掲載中の企業は、企業名の変更を受け付けない（2026-10-12 / 柴さんの指示。運営へ連絡してもらう）。
+        下書きの企業名を本番の企業名で上書きして保存する（画面も読み取り専用）。
+     ⚠️ 掲載前の企業は編集でき、運営が掲載にする操作の中で反映される（applyDraft の writeName） */
+  {
+    const { data: cur, error: curErr } = await supabase
+      .from("ow_companies").select("name, is_published, listing_status").eq("id", companyId).maybeSingle();
+    if (curErr || !cur) {
+      console.error("[company PUT] 企業の取得に失敗:", curErr?.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    if (cur.is_published === true && cur.listing_status === "listed") record.name = cur.name;
+  }
+
   /* ⚠️ **0行更新を成功として扱わない。** 2026-08-23 まで `.select()` が無く、
         RLS が `auth.uid() = user_id`（87社中2社にしか入っていない列）を
         要求していたため、**85社で保存されないまま「保存しました」と出ていた。** */

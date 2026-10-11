@@ -115,6 +115,7 @@ function FormInput({
   ariaLabel,
   maxLength,
   id,
+  readOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -123,10 +124,12 @@ function FormInput({
   ariaLabel?: string;
   maxLength?: number;
   id?: string;
+  readOnly?: boolean;
 }) {
   return (
     <input
       id={id}
+      readOnly={readOnly}
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -140,12 +143,13 @@ function FormInput({
         borderRadius: 8,
         fontFamily: "inherit",
         fontSize: 13,
-        color: "var(--ink)",
-        background: "#fff",
+        color: readOnly ? "var(--ink-soft)" : "var(--ink)",
+        background: readOnly ? "var(--bg-tint)" : "#fff",
         outline: "none",
         transition: "all 0.15s",
       }}
       onFocus={(e) => {
+        if (readOnly) return;
         (e.target as HTMLInputElement).style.borderColor = "var(--royal)";
         (e.target as HTMLInputElement).style.boxShadow = "0 0 0 3px var(--royal-50)";
       }}
@@ -664,7 +668,14 @@ export function CompanyEditClient({
               <Section id="cpe-basic" title="基本情報">
                 <FormGroup>
                   <FormLabel required htmlFor="ce-name">企業名</FormLabel>
-                  <FormInput id="ce-name" value={form.name} onChange={(v) => update("name", v)} />
+                  {/* ★掲載後は企業からは変えられない（2026-10-12）。サーバー（PUT /api/biz/company）も本番の社名で上書きする。
+                        掲載前は編集でき、運営が掲載にする操作の中で反映される */}
+                  <FormInput id="ce-name" value={form.name} onChange={(v) => update("name", v)} readOnly={listed} />
+                  {listed && (
+                    <FormHint>
+                      社名の変更は運営へご連絡ください（<a href="/business/contact" style={{ color: "var(--royal)", fontWeight: 600 }}>お問い合わせ</a>）。
+                    </FormHint>
+                  )}
                 </FormGroup>
                 <FormGroup>
                   <FormLabel required htmlFor="ce-industry">業種</FormLabel>

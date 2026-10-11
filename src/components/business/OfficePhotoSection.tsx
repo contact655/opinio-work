@@ -568,7 +568,7 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
 
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
         <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: 0 }}>
-          写真ごとにカテゴリを選べます。追加した写真は「公開する」を押すまで求職者には見えません。
+          写真ごとにカテゴリを選べます。新しい写真は「公開する」で反映されます。削除や説明の変更はすぐ反映されます。
         </p>
         <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
           <strong style={{ color: "var(--ink)" }}>{photos.length}</strong> / {MAX_PHOTOS_TOTAL}枚
