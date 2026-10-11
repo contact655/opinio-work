@@ -41,7 +41,10 @@ export default function PrivacySettings({
   careerStance,
   careerStanceKnown,
   showAge = false,
+  showActivity = false,
 }: {
+  /** ★「最近の利用」（3日以内など）を企業に見せているか（`isCandidateActivityEnabled()`。2026-10-12） */
+  showActivity?: boolean;
   /** ★「企業に見える項目」に年齢を出すか（`isCandidateAgeDisplayEnabled()`。2026-10-12）。企業の画面に年齢が出ていないなら書かない */
   showAge?: boolean;
   initialVisibility: ProfileVisibility;
@@ -266,6 +269,7 @@ export default function PrivacySettings({
             一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・見出し・{showAge ? "年齢・" : ""}現在の職種と会社名・
             できること（職種と経験年数）・社会人年数・お住まいの地域・希望勤務地が並びます。
             現在の職種と会社名が無いときは、希望職種が出ます。
+            {showActivity && "OPINIO を最近利用した時期（「3日以内」「1週間以内」「1か月以内」「それ以前」のいずれか）も表示されます。"}
             転職意欲で「積極的に検討中」を選んでいると、「転職検討中」と表示されます。
             {/* ⚠️★**会社名は常に実名。** 伏せる設定は 2026-09-15 に畳んだ（下の注記）。
                    条件分岐に戻さないこと ——戻すなら設定ごと戻す。 */}

@@ -5,6 +5,7 @@ import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { MobileBottomNav } from "@/components/jobseeker/MobileBottomNav";
 import { GlobalToast } from "@/components/ui/GlobalToast";
 import { OnboardingGuard } from "@/components/jobseeker/OnboardingGuard";
+import { ActivityPing } from "@/components/jobseeker/ActivityPing";
 
 export const metadata: Metadata = {
   title: {
@@ -68,6 +69,8 @@ export default function JobseekerLayout({ children }: { children: React.ReactNod
       <MobileBottomNav />
       <GlobalToast />
       <OnboardingGuard />
+      {/* ★最後に利用した日（1日1回まで。2026-10-12） */}
+      <ActivityPing />
     </div>
   );
 }

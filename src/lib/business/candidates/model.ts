@@ -60,6 +60,9 @@ export type Candidate = {
   careerStanceUpdatedAt: string | null;
   /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
   tenureMonths: number | null;
+  /** ★最近の利用（4段階の帯。2026-10-12）。⚠️ 正確な日時は渡さない（activity.ts でサーバーが帯にする）。
+   *  undefined = スイッチ（CANDIDATE_ACTIVITY_ENABLED）が無効 ／ null = 記録が無い（不明） */
+  activity?: ActivityBand | null;
   /** ★年齢（2026-10-12 / 柴さんの判断で一覧と右欄に出す）。**サーバーで `getUserAge()` を通した数だけ。**
    *  ⚠️★生年月日そのものはブラウザに渡さない（load.ts で読み、ここに数だけ入れる）。生年月日が無ければ null（推測しない） */
   age: number | null;
@@ -112,13 +115,23 @@ export const TENURE_BANDS = [
 /** ★年齢の絞り込みの選択肢（下限・上限。2026-10-12）。⚠️ 使えるのは CANDIDATE_AGE_FILTER_ENABLED のときだけ（ageFilter.ts） */
 export const AGE_FILTER_OPTIONS = [20, 25, 30, 35, 40, 45, 50, 55, 60, 65] as const;
 
-/** 転職意欲の更新時期の帯（2026-09-19）。⚠️ 読むのは `career_stance_updated_at` */
+/** 転職への意向を更新した時期の帯（2026-09-19。2026-10-12 に 7日／30日／90日 にした）。⚠️ 読むのは `career_stance_updated_at` */
 export const STANCE_FRESHNESS_BANDS = [
-  { value: "1d",  label: "24時間以内", days: 1 },
-  { value: "1w",  label: "1週間以内",  days: 7 },
-  { value: "1m",  label: "1ヶ月以内",  days: 30 },
-  { value: "3m",  label: "3ヶ月以内",  days: 90 },
+  { value: "7d",  label: "7日以内",  days: 7 },
+  { value: "30d", label: "30日以内", days: 30 },
+  { value: "90d", label: "90日以内", days: 90 },
 ] as const;
+
+/** ★最近の利用の帯（2026-10-12）。⚠️ 企業に見せるのはこの4段階だけ（正確な日時は出さない） */
+export type ActivityBand = "3d" | "1w" | "1m" | "older";
+export const ACTIVITY_LABELS: Record<ActivityBand, string> = { "3d": "3日以内に利用", "1w": "1週間以内に利用", "1m": "1か月以内に利用", older: "それ以前" };
+/** 絞り込みの選択肢（その帯「以内」）。⚠️ 「それ以前」で絞る選択肢は置かない */
+export const ACTIVITY_FILTER_OPTIONS = [
+  { value: "3d", label: "3日以内" },
+  { value: "1w", label: "1週間以内" },
+  { value: "1m", label: "1か月以内" },
+] as const;
+const ACTIVITY_RANK: Record<ActivityBand, number> = { "3d": 0, "1w": 1, "1m": 2, older: 3 };
 
 /* フリーワードと除外ワードが見る項目。⚠️★**同じ対象**を見る（片方だけ足すと「検索では当たるのに除外できない」語ができる） */
 function textHit(c: Candidate, t: string): boolean {
@@ -136,8 +149,9 @@ function textHit(c: Candidate, t: string): boolean {
  *    ここに社名の生値を渡す経路を作らないこと。
  */
 export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilters, now: Date = new Date(),
-  /** ★年齢の絞り込みを効かせるか（`isCandidateAgeFilterEnabled()`。本番は無効）。無効なら保存された年齢の条件も無視する */
-  opts: { ageFilter?: boolean } = {}): Candidate[] {
+  /** ★年齢の絞り込みを効かせるか（`isCandidateAgeFilterEnabled()`。本番は無効）。無効なら保存された年齢の条件も無視する
+   *  ★activity … 最近の利用で絞るか（`isCandidateActivityEnabled()`。本番は無効）。無効なら保存された条件も無視する */
+  opts: { ageFilter?: boolean; activity?: boolean } = {}): Candidate[] {
   let list = candidates;
 
   if (f.q.trim()) {
@@ -176,7 +190,13 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
   if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) {
     list = list.filter((c) => c.age != null && (f.ageMin <= 0 || c.age >= f.ageMin) && (f.ageMax <= 0 || c.age <= f.ageMax));
   }
-  if (f.careerStance) list = list.filter((c) => c.careerStance === f.careerStance);
+  /* ★転職への意向（複数選択は OR。2026-10-12） */
+  if (f.careerStances.length > 0) list = list.filter((c) => c.careerStance != null && f.careerStances.includes(c.careerStance));
+  /* ★最近の利用（2026-10-12）。⚠️ 記録が無い人（null）は落とす（画面に人数を出す） */
+  if (opts.activity && f.activity in ACTIVITY_RANK) {
+    const max = ACTIVITY_RANK[f.activity as ActivityBand];
+    list = list.filter((c) => c.activity != null && ACTIVITY_RANK[c.activity] <= max);
+  }
   /* 転職意欲の更新時期。⚠️★未更新（null）は落とす */
   if (f.stanceFreshness) {
     const band = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
@@ -205,14 +225,17 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
 
 export const CANDIDATE_SORT_OPTIONS = [
   { value: "new",         label: "新着順" },
-  { value: "stance",      label: "転職意欲の更新が新しい順" },
+  { value: "stance",      label: "意向の更新が新しい順" },
   { value: "tenure",      label: "社会人年数が長い順" },
   /* ★段1。⚠️ 接点が取れなかった（undefined）人は 0 件として扱わず末尾 */
   { value: "touchpoints", label: "接点が多い順" },
   /* ★2026-10-12。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ選べる（画面が `AGE_SORTS` を外す）。生年月日が無い人は末尾 */
   { value: "age_young", label: "年齢が若い順" },
   { value: "age_old", label: "年齢が高い順" },
+  /* ★2026-10-12。⚠️ CANDIDATE_ACTIVITY_ENABLED のときだけ。帯の単位で並べる（正確な日時は持っていない）。記録が無い人は末尾 */
+  { value: "activity", label: "最近利用した順" },
 ] as const;
+export const ACTIVITY_SORTS: readonly string[] = ["activity"];
 export const AGE_SORTS: readonly string[] = ["age_young", "age_old"];
 
 /** 並び替え。⚠️ 引数を壊さない（コピーして並べる）。記録の無い人は末尾 */
@@ -233,6 +256,15 @@ export function sortCandidates(list: Candidate[], sort: string): Candidate[] {
       if (a.tenureMonths == null) return 1;
       if (b.tenureMonths == null) return -1;
       return b.tenureMonths - a.tenureMonths;
+    });
+  }
+  if (sort === "activity") {
+    return out.sort((a, b) => {
+      const ra = a.activity ? ACTIVITY_RANK[a.activity] : null, rb = b.activity ? ACTIVITY_RANK[b.activity] : null;
+      if (ra === null && rb === null) return newest(a, b);
+      if (ra === null) return 1;
+      if (rb === null) return -1;
+      return ra - rb || newest(a, b);
     });
   }
   if (sort === "age_young" || sort === "age_old") {
@@ -336,8 +368,8 @@ export function describeFilters(
   f: SavedCandidateFilters,
   roleNameById: Map<string, string>,
   labels: { workStyles: Record<string, string>; careerStances: { value: string; label: string }[] },
-  /** ★年齢の絞り込みが使える環境か（`isCandidateAgeFilterEnabled()`）。無効なら年齢の条件を言葉にしない（2026-10-12） */
-  opts: { ageFilter?: boolean } = {},
+  /** ★年齢の絞り込みが使える環境か（`isCandidateAgeFilterEnabled()`）。無効なら年齢の条件を言葉にしない（2026-10-12）。activity も同じ */
+  opts: { ageFilter?: boolean; activity?: boolean } = {},
 ): string[] {
   const out: string[] = [];
   if (f.q.trim()) out.push(`検索: ${f.q.trim()}`);
@@ -354,8 +386,8 @@ export function describeFilters(
   if (f.workStyle) out.push(labels.workStyles[f.workStyle] ?? f.workStyle);
   if (f.salaryMin > 0) out.push(`${f.salaryMin}万〜`);
   for (const p of f.prefectures) out.push(p);
-  const cs = labels.careerStances.find((o) => o.value === f.careerStance);
-  if (cs) out.push(cs.label);
+  for (const v of f.careerStances) { const cs = labels.careerStances.find((o) => o.value === v); if (cs) out.push(cs.label); }
+  if (opts.activity) { const a = ACTIVITY_FILTER_OPTIONS.find((o) => o.value === f.activity); if (a) out.push(`利用 ${a.label}`); }
   const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
   if (fr) out.push(`更新 ${fr.label}`);
   return out;

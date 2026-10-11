@@ -4,7 +4,7 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
 /* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
-  AGE_FILTER_OPTIONS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS, ageRangeLabel,
+  ACTIVITY_FILTER_OPTIONS, ACTIVITY_SORTS, AGE_FILTER_OPTIONS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS, ageRangeLabel,
   filterCandidates, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
@@ -117,7 +117,10 @@ export default function CandidatesClient({
   companyShortName = null,
   companyLimitLine = null,
   ageFilterEnabled = false,
+  activityEnabled = false,
 }: {
+  /** ★最近の利用の絞り込み・並び替え（`isCandidateActivityEnabled()`。本番は無効） */
+  activityEnabled?: boolean;
   /** ★年齢の絞り込み・並び替えを出すか（`isCandidateAgeFilterEnabled()`。本番は無効）。⚠️ 年齢の表示はこれと関係なく出す */
   ageFilterEnabled?: boolean;
   /** ★カードの「〈会社名〉と合うところ（〇）」の会社名。取れなければ null（「貴社」） */
@@ -170,8 +173,11 @@ export default function CandidatesClient({
         なり、単独では使いどころが限られる（YOUTRUST も2つ並べている）。
      ⚠️ 年齢・性別と違い、**本人が自分で選んで公開している項目**なので絞り込みに出してよい
         （年齢を出さない理由は労働施策総合推進法9条、性別は均等法5条。**軸が違う**）。 */
-  const [careerStance, setCareerStance] = useState("");
+  /* ★転職への意向は複数選択（2026-10-12）。⚠️「今は考えていない」は選択肢に無い（その人は一覧に出ない） */
+  const [careerStances, setCareerStances] = useState<string[]>([]);
   const [stanceFreshness, setStanceFreshness] = useState("");
+  /* ★最近の利用（2026-10-12。`activityEnabled` のときだけ） */
+  const [activity, setActivity] = useState("");
   /* ⚠️★「メッセージを受け取る方のみ」の切り替えは 2026-10-11 に外した（柴さんの指示）。
         全員が最初から受け取る形にし、止める方法は「転職について」の「今は考えていない」で兼ねる
         （その人はそもそもこの一覧に出ない）。送れるかどうかは今までどおりボタンの有無だけで示す。
@@ -251,6 +257,11 @@ export default function CandidatesClient({
     () => (ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? candidates.filter((c) => c.age == null).length : 0),
     [candidates, ageFilterEnabled, ageMin, ageMax]
   );
+  /* ★最近の利用で絞ったときに、記録が無くて落ちた人数（2026-10-12） */
+  const droppedNoActivity = useMemo(
+    () => (activityEnabled && activity ? candidates.filter((c) => c.activity == null).length : 0),
+    [candidates, activityEnabled, activity]
+  );
   const droppedNoStanceTs = useMemo(
     () => (stanceFreshness ? candidates.filter((c) => !c.careerStanceUpdatedAt).length : 0),
     [candidates, stanceFreshness]
@@ -267,7 +278,8 @@ export default function CandidatesClient({
     selectedEmploymentTypes.length ? "x" : "",
     tenureBand ? "x" : "",
     ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? "x" : "",
-    careerStance ? "x" : "",
+    careerStances.length ? "x" : "",
+    activityEnabled && activity ? "x" : "",
     stanceFreshness ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
@@ -312,9 +324,13 @@ export default function CandidatesClient({
       key: `pref:${pref}`, label: pref,
       clear: () => setSelectedPrefectures(selectedPrefectures.filter((x) => x !== pref)),
     }));
-    if (careerStance) {
-      const label = CAREER_STANCE_FILTER_OPTIONS.find((o) => o.value === careerStance)?.label;
-      if (label) chips.push({ key: "stance", label, clear: () => setCareerStance("") });
+    careerStances.forEach((v) => {
+      const label = CAREER_STANCE_FILTER_OPTIONS.find((o) => o.value === v)?.label;
+      if (label) chips.push({ key: `stance:${v}`, label, clear: () => setCareerStances(careerStances.filter((x) => x !== v)) });
+    });
+    if (activityEnabled && activity) {
+      const label = ACTIVITY_FILTER_OPTIONS.find((o) => o.value === activity)?.label;
+      if (label) chips.push({ key: "activity", label: `利用 ${label}`, clear: () => setActivity("") });
     }
     if (stanceFreshness) {
       const label = STANCE_FRESHNESS_BANDS.find((b) => b.value === stanceFreshness)?.label;
@@ -322,7 +338,7 @@ export default function CandidatesClient({
     }
     return chips;
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
-      workStyle, salaryMin, careerStance, stanceFreshness, tenureBand, selectedPrefectures, ageFilterEnabled, ageMin, ageMax]);
+      workStyle, salaryMin, careerStances, stanceFreshness, tenureBand, selectedPrefectures, ageFilterEnabled, ageMin, ageMax, activityEnabled, activity]);
 
   /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
      ⚠️★**この表がこの機能の歯止め。** マップ型なので、
@@ -345,7 +361,8 @@ export default function CandidatesClient({
     ageMin: setAgeMin,
     ageMax: setAgeMax,
     prefectures: setSelectedPrefectures,
-    careerStance: setCareerStance,
+    careerStances: setCareerStances,
+    activity: setActivity,
     stanceFreshness: setStanceFreshness,
     sort: setSort,
   };
@@ -354,11 +371,11 @@ export default function CandidatesClient({
   const currentFilters: SavedCandidateFilters = useMemo(() => ({
     q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
     employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-    tenureBand, ageMin, ageMax, prefectures: selectedPrefectures, careerStance, stanceFreshness,
+    tenureBand, ageMin, ageMax, prefectures: selectedPrefectures, careerStances, stanceFreshness, activity,
     sort,
   }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
-       tenureBand, ageMin, ageMax, selectedPrefectures, careerStance, stanceFreshness,
+       tenureBand, ageMin, ageMax, selectedPrefectures, careerStances, stanceFreshness, activity,
        sort]);
 
   /* ★絞り込みと並び替え（model.ts。段3の新着メールと同じ関数）。⚠️ 描くのは `sorted` */
@@ -366,11 +383,11 @@ export default function CandidatesClient({
   const [newSince, setNewSince] = useState<string | null>(initialSaved?.newSince ?? null);
   const [openedSaved, setOpenedSaved] = useState<{ id: string; name: string } | null>(initialSaved ? { id: initialSaved.id, name: initialSaved.name } : null);
   const filtered = useMemo(() => {
-    const list = filterCandidates(candidates, currentFilters, new Date(), { ageFilter: ageFilterEnabled });
+    const list = filterCandidates(candidates, currentFilters, new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled });
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
-  }, [candidates, currentFilters, newSince, ageFilterEnabled]);
+  }, [candidates, currentFilters, newSince, ageFilterEnabled, activityEnabled]);
   /* ⚠️ 年齢の並び替えは無効な環境では使わない（保存した条件に残っていても新着順に戻す） */
-  const effectiveSort = !ageFilterEnabled && AGE_SORTS.includes(sort) ? "new" : sort;
+  const effectiveSort = (!ageFilterEnabled && AGE_SORTS.includes(sort)) || (!activityEnabled && ACTIVITY_SORTS.includes(sort)) ? "new" : sort;
   const sorted = useMemo(() => sortCandidates(filtered, effectiveSort), [filtered, effectiveSort]);
   /* ★プレビューに出す人。明示的に選んだ人 → 無ければ（1280px 以上で、閉じていなければ）先頭の人 */
   const shownId: string | null = selected ?? (isWide && autoPick ? sorted[0]?.id ?? null : null);
@@ -646,19 +663,29 @@ export default function CandidatesClient({
 
       {/* ★転職意欲と更新時期。⚠️★**2つは対。片方だけ外さないこと**（更新時期だけだと
              「意欲は問わないが最近更新した人」になり、条件として成立しない）。 */}
-      {filterRow("転職意欲", <>
+      {filterRow("転職への意向", <>
         <FilterChip
-          label="転職意欲" value={careerStance}
+          label="転職への意向" value="" values={careerStances}
           options={CAREER_STANCE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-          onSelect={(v) => setCareerStance(v ?? "")}
+          onSelect={() => {}}
+          onToggleValue={(v) => setCareerStances(toggleMulti(careerStances, v))}
           isOpen={openChip === "stance"} onToggle={() => setOpenChip(openChip === "stance" ? null : "stance")}
         />
         <FilterChip
-          label="意欲の更新" value={stanceFreshness}
+          label="意向を更新した時期" value={stanceFreshness}
           options={STANCE_FRESHNESS_BANDS.map((b) => ({ value: b.value, label: b.label }))}
           onSelect={(v) => setStanceFreshness(v ?? "")}
           isOpen={openChip === "fresh"} onToggle={() => setOpenChip(openChip === "fresh" ? null : "fresh")}
         />
+        {/* ★最近の利用（2026-10-12）。⚠️ CANDIDATE_ACTIVITY_ENABLED のときだけ（本番は無効） */}
+        {activityEnabled && (
+          <FilterChip
+            label="最近の利用" value={activity}
+            options={ACTIVITY_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            onSelect={(v) => setActivity(v ?? "")}
+            isOpen={openChip === "activity"} onToggle={() => setOpenChip(openChip === "activity" ? null : "activity")}
+          />
+        )}
         {/* ⚠️★「声かけを受け取る方のみ」は 2026-10-10（段2）に1段目のトグルへ移した。ここに戻さないこと（入口を2つにしない） */}
       </>)}
 
@@ -673,6 +700,11 @@ export default function CandidatesClient({
       {droppedNoAge > 0 && (
         <div data-state="age-dropped-note" style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
           生年月日が未登録の {droppedNoAge} 名は含みません。
+        </div>
+      )}
+      {droppedNoActivity > 0 && (
+        <div data-state="activity-dropped-note" style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+          利用の記録が無い {droppedNoActivity} 名は含みません。この記録は 2026-10-12 から取り始めました。
         </div>
       )}
       {tenureBand && unknownTenureCount > 0 && (
@@ -784,7 +816,7 @@ export default function CandidatesClient({
         </button>
 
         {/* ⚠️★「メッセージを受け取る方のみ（〇名）」の切り替えは 2026-10-11 に外した。戻さないこと */}
-        <SortSelect value={effectiveSort} options={ageFilterEnabled ? SORT_OPTIONS : SORT_OPTIONS.filter((o) => !AGE_SORTS.includes(o.value))} onChange={setSort} />
+        <SortSelect value={effectiveSort} options={SORT_OPTIONS.filter((o) => (ageFilterEnabled || !AGE_SORTS.includes(o.value)) && (activityEnabled || !ACTIVITY_SORTS.includes(o.value)))} onChange={setSort} />
 
         {/* ★「この条件を保存」（2026-10-10 / 段2）。**条件を選んでいるときだけ**出す。
                ⚠️ 保存の入口はここ1つ（「保存した条件」の中から保存フォームを外した。入口を2つにしない）。 */}

@@ -42,7 +42,10 @@ export type SavedCandidateFilters = {
   ageMin: number;
   ageMax: number;
   prefectures: string[];
-  careerStance: string;
+  /** ★転職への意向（複数選択。2026-10-12 に単一の `careerStance` から変えた。古い保存は parse で配列に直す） */
+  careerStances: string[];
+  /** ★最近の利用（"3d" / "1w" / "1m"。"" = 指定なし）。⚠️ 効くのは CANDIDATE_ACTIVITY_ENABLED のときだけ */
+  activity: string;
   stanceFreshness: string;
   /* ⚠️ `hideAlreadyScouted`（スカウト済みを除く）は 2026-10-08 に外した（スカウト廃止）。
         DB に残っている値は下の `parseSavedFilters` が捨てる（知らないキーは捨てる約束）。 */
@@ -74,7 +77,8 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   ageMin: 0,
   ageMax: 0,
   prefectures: [],
-  careerStance: "",
+  careerStances: [],
+  activity: "",
   stanceFreshness: "",
   sort: "new",
 };
@@ -112,8 +116,11 @@ export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
     ageMin: num(o.ageMin, 0),
     ageMax: num(o.ageMax, 0),
     prefectures: strArr(o.prefectures),
-    careerStance: str(o.careerStance, ""),
-    stanceFreshness: str(o.stanceFreshness, ""),
+    /* ⚠️ 2026-10-12 より前の保存は `careerStance`（文字列1つ）。配列に直す */
+    careerStances: Array.isArray(o.careerStances) ? strArr(o.careerStances) : (typeof o.careerStance === "string" && o.careerStance ? [o.careerStance] : []),
+    activity: str(o.activity, ""),
+    /* ⚠️ 2026-10-12 に帯を 7日／30日／90日 にした。古い値（1d/1w → 7d、1m → 30d、3m → 90d）は読み替える */
+    stanceFreshness: ({ "1d": "7d", "1w": "7d", "1m": "30d", "3m": "90d" } as Record<string, string>)[str(o.stanceFreshness, "")] ?? str(o.stanceFreshness, ""),
     sort: str(o.sort, "new"),
   };
 }

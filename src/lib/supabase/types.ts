@@ -6554,6 +6554,7 @@ export type Database = {
           is_open_to_work: boolean
           is_system: boolean
           is_test: boolean
+          last_active_at: string | null
           location: string | null
           name: string
           phone: string | null
@@ -6593,6 +6594,7 @@ export type Database = {
           is_open_to_work?: boolean
           is_system?: boolean
           is_test?: boolean
+          last_active_at?: string | null
           location?: string | null
           name: string
           phone?: string | null
@@ -6632,6 +6634,7 @@ export type Database = {
           is_open_to_work?: boolean
           is_system?: boolean
           is_test?: boolean
+          last_active_at?: string | null
           location?: string | null
           name?: string
           phone?: string | null

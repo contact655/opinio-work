@@ -8,6 +8,7 @@ import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
+import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { approachCompanyLimitLine } from "@/lib/constants/companyApproaches";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -257,6 +258,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         companyLimitLine={companyLimitLine}
         /* ★年齢の絞り込み・並び替え（本番は無効。CANDIDATE_AGE_FILTER_ENABLED） */
         ageFilterEnabled={isCandidateAgeFilterEnabled()}
+        /* ★最近の利用（本番は無効。CANDIDATE_ACTIVITY_ENABLED） */
+        activityEnabled={isCandidateActivityEnabled()}
         /* ⚠️ 一覧に居ない id は開かない（プレビューの API も 404 を返す）。uuid の形だけ確かめる */
         initialSelected={/^[0-9a-f-]{36}$/.test(searchParams?.selected ?? "") ? searchParams!.selected! : null} />
     </BusinessLayout>

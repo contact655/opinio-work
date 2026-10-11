@@ -6,6 +6,7 @@ import { CandidateProfilePanel } from "@/components/candidates/CandidateProfileP
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
 import { CAREER_STANCE_LABELS } from "@/lib/constants/careerPreferences";
+import { ACTIVITY_LABELS } from "@/lib/business/candidates/model";
 
 /**
  * ★候補者検索の右のプレビュー（2026-10-10 / 候補者探し 段1・キャンバス1）。
@@ -137,16 +138,22 @@ export function PreviewHeaderLines({ candidate, companyShortName, contacts }: {
   contacts: PreviewData["contacts"];
 }) {
   const [showTouch, setShowTouch] = useState(false);
-  const stance = candidate.careerStance ? CAREER_STANCE_LABELS[candidate.careerStance] ?? null : null;
+  const stanceLabel = candidate.careerStance ? CAREER_STANCE_LABELS[candidate.careerStance] ?? null : null;
+  /* ★「情報収集として（9月30日に更新）」（2026-10-12）。⚠️ 更新日時が無い（不明）なら日付を付けない */
+  const stanceDate = formatJstMonthDay(candidate.careerStanceUpdatedAt);
+  const stance = stanceLabel ? (stanceDate ? `${stanceLabel}（${stanceDate}に更新）` : stanceLabel) : null;
+  /* ★最近の利用（2026-10-12）。⚠️ スイッチが無効なら undefined で何も出さない。記録が無い（null）も出さない */
+  const activityText = candidate.activity ? ACTIVITY_LABELS[candidate.activity] : null;
   const n = candidate.touchpoints?.length ?? 0;
   const gray: React.CSSProperties = { fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.6 };
-  if (!stance && n === 0 && !contacts) return null;
+  if (!stance && n === 0 && !contacts && !activityText) return null;
   return (
     <div data-state="preview-header-lines" style={{ marginTop: 4 }}>
-      {(stance || n > 0) && (
+      {(stance || n > 0 || activityText) && (
         <div style={{ ...gray, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {stance && <span data-state="header-stance">{stance}</span>}
-          {stance && n > 0 && <span aria-hidden="true">・</span>}
+          {activityText && <>{stance && <span aria-hidden="true">・</span>}<span data-state="header-activity">{activityText}</span></>}
+          {(stance || activityText) && n > 0 && <span aria-hidden="true">・</span>}
           {n > 0 && (
             <button type="button" onClick={() => setShowTouch((x) => !x)} aria-expanded={showTouch} data-state="header-touchpoints"
               style={{ background: "none", border: "none", padding: 0, fontFamily: "inherit", fontSize: 12.5, color: "var(--ink-mute)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}>

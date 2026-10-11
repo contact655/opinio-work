@@ -4,6 +4,7 @@ import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
+import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import BasicInfoSettings from "./BasicInfoSettings";
 import { ApproachSettingsSection } from "@/components/approaches/ApproachSettingsSection";
 import { ApproachRangeSection } from "@/components/approaches/ApproachRangeSection";
@@ -84,6 +85,8 @@ export default async function MypageSettingsPage() {
         careerStanceKnown={!profError}
         /* ★企業の候補者一覧に年齢を出しているときだけ「年齢」を書く（2026-10-12。本番は無効） */
         showAge={isCandidateAgeDisplayEnabled()}
+        /* ★最近の利用（本番は無効。CANDIDATE_ACTIVITY_ENABLED） */
+        showActivity={isCandidateActivityEnabled()}
       />
       {/* ★企業からのメッセージ（2026-10-11 に説明だけにした）。⚠️ スイッチを戻さないこと */}
       <ApproachSettingsSection />

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { parseSavedFilters, type SavedCandidateFilters } from "@/lib/business/savedSearch";
 import { filterCandidates, isNewSince, type Candidate } from "@/lib/business/candidates/model";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
+import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import type { PlanType } from "@/lib/constants/plans";
 
@@ -141,12 +142,12 @@ export async function markSavedSearchViewed(searchId: string, viewerOwUserId: st
 
 /** 新着の人数。⚠️ 見える人（can_send_scout）だけ・条件に合う人だけ・登録日か本人の編集日が since より後 */
 export function countNew(candidates: Candidate[], filters: SavedCandidateFilters, sinceIso: string): number {
-  return filterCandidates(candidates, filters, new Date(), { ageFilter: isCandidateAgeFilterEnabled() }).filter((c) => isNewSince(c, sinceIso)).length;
+  return filterCandidates(candidates, filters, new Date(), { ageFilter: isCandidateAgeFilterEnabled(), activity: isCandidateActivityEnabled() }).filter((c) => isNewSince(c, sinceIso)).length;
 }
 
 /** ★新着のうち、いまメッセージを送れる方（2026-10-11）。⚠️ 判定は候補者検索のカードの「メッセージを送れます」と同じ */
 export function countNewApproachable(candidates: Candidate[], filters: SavedCandidateFilters, sinceIso: string): number {
-  return filterCandidates(candidates, filters, new Date(), { ageFilter: isCandidateAgeFilterEnabled() }).filter((c) => isNewSince(c, sinceIso) && c.approach?.eligible === true && !c.approach.sent).length;
+  return filterCandidates(candidates, filters, new Date(), { ageFilter: isCandidateAgeFilterEnabled(), activity: isCandidateActivityEnabled() }).filter((c) => isNewSince(c, sinceIso) && c.approach?.eligible === true && !c.approach.sent).length;
 }
 
 /** 画面用: 見られる条件 ＋ 前回見た日時 ＋ 新着の人数 ＋ できること */
