@@ -72,6 +72,9 @@ function inviteText(companyName: string): string {
     `2. 経歴の「お勤め先」で「${companyName}」を選びます`,
     "",
     `登録すると、${companyName}の企業ページに社員として表示されます（見えるのは OPINIO にログインしている人だけです）。`,
+    /* ⚠️ 実在する設定: /mypage/settings の公開範囲「非公開」。一覧と企業ページの両方から外れる
+          （page.tsx が visibility = private を除外）。その設定を外すならこの1行も消すこと */
+    "表示したくない場合は、プロフィールの設定からいつでも非表示にできます。",
   ].join("\n");
 }
 
@@ -244,10 +247,10 @@ export function EmployeesClient({
 
   /** 企業ページでの見え方（灰色の文字） */
   const visibilityText = (e: BizEmployee) =>
-    hiddenIds.has(e.experienceId) ? "企業ページには表示されていません（運営が外しました）"
-    : e.isTalkable ? "話を聞ける（企業ページに表示中）"
-    /* ⚠️ 話を聞けない人も企業ページの社員一覧には出ている。「表示されていません」とだけ書くと誤りになる */
-    : "企業ページに表示中（話を聞ける人には出ていません）";
+    hiddenIds.has(e.experienceId) ? "企業ページには表示されていません"
+    : e.isTalkable ? "企業ページに表示中・話を聞ける"
+    /* ⚠️ 話を聞けない人も企業ページの社員一覧には出ている。「表示されていません」と書かない */
+    : "企業ページに表示されています";
 
   const segBtn = (key: Tab, label: string, n: number) => (
     <button key={key} type="button" role="tab" aria-selected={tab === key} data-tab={key} className="btn-fixed-size"
@@ -326,9 +329,7 @@ export function EmployeesClient({
                       borderRadius: i === 0 ? "12px 12px 0 0" : i === list.length - 1 ? "0 0 12px 12px" : 0 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name ?? "名前未設定"}</span>
-                      {e.isTalkable && <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>話を聞ける</span>}
-                      {hiddenIds.has(e.experienceId) && <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>企業ページに表示されていません</span>}
-                    </div>
+                      {e.isTalkable && <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>話を聞ける</span>}                    </div>
                     {orgLine(e) && <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={orgLine(e)}>{orgLine(e)}</div>}
                     <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>{periodText(e)}</div>
                   </button>
