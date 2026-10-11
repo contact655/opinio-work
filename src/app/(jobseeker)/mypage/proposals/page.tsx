@@ -6,7 +6,10 @@ import { companyLinkStateFor } from "@/lib/companies/linkState";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
-import { isProposalEndedFor, isVisiblePair, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { isVisiblePair, phaseInputOf, PROPOSAL_PHASE_COLS, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
+import { getCompanyProposalMode } from "@/lib/evidence/companyProposals";
+import { proposalPhase } from "@/lib/constants/proposalResponses";
+import { jobListingStateFor } from "@/lib/jobs/publicJobs";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
@@ -43,9 +46,10 @@ export default async function ProposalsPage() {
 
   const { data: rows, error } = await db
     .from("ow_proposals")
-    /* ★`company_id` / `company_response` / `introduced_at` は「終了したか」の判定だけに使う（2026-10-09）。
-          ⚠️★**`company_response` そのものはクライアントに送らない**（企業が見送ったことを伝えない） */
-    .select("id, company_id, evidence, counter_evidence, candidate_response, company_response, introduced_at, computed_at, respond_by, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test)")
+    /* ★段の判定に要る列は `PROPOSAL_PHASE_COLS` の1か所。
+          ⚠️★**`company_response` / `delivery_mode` そのものはクライアントに送らない**
+            （企業が見送ったこと・企業の設定を伝えない。送るのは段から作った表示用の区分だけ） */
+    .select(`id, company_id, evidence, counter_evidence, computed_at, conversation_id, candidate_note, ${PROPOSAL_PHASE_COLS}, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test), ow_jobs(id, title, slug, status, is_test)`)
     .eq("candidate_user_id", me.id)
     .order("created_at", { ascending: false });
   /* ⚠️ 握り潰さない。失敗を「0件」に見せない（CLAUDE.md） */
@@ -55,24 +59,41 @@ export default async function ProposalsPage() {
     (rows ?? []).map((p) => ({ companyId: p.company_id as string, candidateUserId: me.id as string })),
   );
 
+  /* ★未回答の提案について、企業の設定（すぐにメッセージ／確認してから）を引く。
+        押す直前の説明を変えるためだけに使う（「押すとすぐメッセージ」が B では事実と違うため）。
+        ⚠️ 読めなかったら review 側の説明に倒す（できると言い過ぎない） */
+  const pendingCompanyIds = Array.from(new Set((rows ?? [])
+    .filter((p) => !p.candidate_response).map((p) => p.company_id as string)));
+  const modeByCompany = new Map(await Promise.all(
+    pendingCompanyIds.map(async (id) => [id, (await getCompanyProposalMode(id)) ?? "review"] as const),
+  ));
+
   /* ★運営会社（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
   const ownCompanyId = await getOwnCompanyId();
   const proposals: ProposalView[] = (rows ?? []).map((p) => {
-    const ended = isProposalEndedFor("candidate", {
-      companyId: p.company_id as string,
-      candidateUserId: me.id as string,
-      candidateResponse: (p.candidate_response as string | null) ?? null,
-      companyResponse: (p.company_response as string | null) ?? null,
-      introducedAt: (p.introduced_at as string | null) ?? null,
-      respondBy: p.respond_by as string,
-    }, isVisiblePair(visible, { companyId: p.company_id as string, candidateUserId: me.id as string }));
+    const phase = proposalPhase(
+      phaseInputOf(p),
+      isVisiblePair(visible, { companyId: p.company_id as string, candidateUserId: me.id as string }),
+    );
+    /* ★求職者に見せる区分。⚠️ 企業が見送った・期限切れ・いまは見せない、を区別しない（「終了しました」だけ） */
+    const status: ProposalView["status"] =
+      phase === "candidate_pending" ? "pending"
+      : phase === "introduced" ? "introduced"
+      : phase === "candidate_declined" ? "declined"
+      : phase === "company_review" || phase === "connecting" ? "waiting"
+      : "ended";
     const co = p.ow_companies as unknown as {
       id: string; name: string; name_en: string | null; slug: string | null;
       tagline: string | null; logo_url: string | null; is_test: boolean | null;
     } | null;
+    const job = p.ow_jobs as unknown as {
+      id: string; title: string | null; slug: string | null; status: string | null; is_test: boolean | null;
+    } | null;
     const { displayName } = co
       ? companyDisplayName(co.name, co.name_en)
       : { displayName: "—" };
+    /* ★関連する求人。⚠️ 掲載を終了した求人はリンクにしない（404 の行き止まりを作らない） */
+    const jobState = job ? jobListingStateFor(job, { viewerIsTest: me.is_test === true, companyIsTest: co?.is_test === true }) : "closed";
     return {
       id: p.id as string,
       companyName: displayName,
@@ -85,18 +106,23 @@ export default async function ProposalsPage() {
       isOwnCompany: ownCompanyId !== null && (p.company_id as string) === ownCompanyId,
       evidence: Array.isArray(p.evidence) ? (p.evidence as ProposalView["evidence"]) : [],
       counter: Array.isArray(p.counter_evidence) ? (p.counter_evidence as ProposalView["counter"]) : [],
-      response: (p.candidate_response as string | null) ?? null,
-      ended,
+      status,
+      companyReviews: status === "pending" ? modeByCompany.get(p.company_id as string) !== "auto" : false,
+      jobTitle: job?.title ?? null,
+      jobHref: job && jobState === "open" ? `/jobs/${job.slug ?? job.id}` : null,
+      jobClosed: !!job && jobState === "closed",
+      note: (p.candidate_note as string | null) ?? null,
+      conversationId: status === "introduced" ? ((p.conversation_id as string | null) ?? null) : null,
       computedAt: (p.computed_at as string).slice(0, 10),
-      /* ★締め切り（2026-10-10）。⚠️ 終了した・両方が答えた提案には出さない */
-      daysLeft: ended || (p.candidate_response && p.company_response) ? null : proposalDaysLeft(p.respond_by as string),
+      /* ★締め切り（2026-10-10）。⚠️ 未回答のときだけ出す */
+      daysLeft: status === "pending" ? proposalDaysLeft(p.respond_by as string) : null,
     };
   });
 
   /* ⚠️ **取得に失敗したときはバッジを出さない。** 0 を渡すと
         `badge > 0` で描画ごと落ちる＝「未回答は無い」と嘘をつくことになる。 */
-  /* ⚠️ 終了した提案は答えられないので数えない（`/mypage` のバッジと同じ条件） */
-  const unanswered = error ? undefined : proposals.filter((p) => !p.response && !p.ended).length;
+  /* ⚠️ 答えられる提案だけ数える（`/mypage` のバッジ `countOpenProposals` と同じ条件＝段が candidate_pending） */
+  const unanswered = error ? undefined : proposals.filter((p) => p.status === "pending").length;
 
   return (
     <MypageLayout activeKey="proposals" proposalsBadge={unanswered}>

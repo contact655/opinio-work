@@ -1,5 +1,5 @@
 import { unreadConversationIds } from "@/lib/conversations/unread";
-import { countOpenProposals as countOpenProposalsShared } from "@/lib/evidence/proposalEnded";
+import { countCompanyProposalReviews, unseenProposalConversationIds } from "@/lib/evidence/companyProposals";
 import { unseenRepliedConversationIds } from "@/lib/approaches/server";
 
 /**
@@ -7,8 +7,8 @@ import { unseenRepliedConversationIds } from "@/lib/approaches/server";
  *
  * | 項目 | 数えるもの |
  * |---|---|
- * | メッセージ | 未読のある会話 ∪ 送ったメッセージに返信があってまだ開いていない会話（2026-10-11 に和へ。**会話の数で、通数ではない**） |
- * | 提案 | 企業がまだ答えていない提案。⚠️ **終了したもの**（候補者が見送った／いまは見せてはいけない候補者）は数えない。判定は `lib/evidence/proposalEnded.ts` |
+ * | メッセージ | 未読のある会話 ∪ 送ったメッセージに返信があってまだ開いていない会話 ∪ ★提案から始まってまだ開いていない会話（**会話の数で、通数ではない**） |
+ * | 提案 | ★会うかどうかを決める提案（企業の設定が「確認してから」のときだけ。2026-10-11）。判定は `lib/evidence/companyProposals.ts` |
  *
  * ⚠️★**失敗したら 0 を返す（ログは出す）。** バッジのために `/biz` 全体を落とさない。
  *    その代わり「0 = 無い」とは限らない。**数字が出ないことを根拠に「未読なし」と判断しないこと。**
@@ -21,18 +21,18 @@ export async function getBizNavBadges(params: {
   owUserId: string;
   companyId: string;
 }): Promise<BizNavBadges> {
-  const [unread, proposals, replied] = await Promise.all([
+  const [unread, proposals, replied, fromProposals] = await Promise.all([
     unreadConversationIds(params.owUserId, { companyId: params.companyId }),
-    countOpenProposals(params.companyId),
+    countCompanyProposalReviews(params.companyId),
     unseenRepliedConversationIds(params.companyId),
+    /* ★提案から始まった会話は、企業の担当者がまだ参加者になっていない（参加者の未読では数えられない）ので別に数える */
+    unseenProposalConversationIds(params.companyId),
   ]);
-  return { messages: new Set([...Array.from(unread), ...Array.from(replied)]).size, proposals };
-}
-
-/* ★画面（`/biz/proposals` の「未回答」）と同じ条件で数える（2026-10-09）。
-      ⚠️ 条件をここに書き写さないこと。⚠️ 失敗したら 0（ログは共通関数が出す） */
-async function countOpenProposals(companyId: string): Promise<number> {
-  return (await countOpenProposalsShared("company", { companyId })) ?? 0;
+  return {
+    messages: new Set([...Array.from(unread), ...Array.from(replied), ...Array.from(fromProposals)]).size,
+    /* ⚠️ 失敗したら 0（ログは共通関数が出す） */
+    proposals: proposals ?? 0,
+  };
 }
 
 /* ⚠️ ダッシュボードの「やること」用の `getBizTodoCounts` は 2026-10-10（段3）に外した。

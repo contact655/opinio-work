@@ -12,7 +12,7 @@ import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 export type MessageRow = {
   id: string;
   body: string;
-  /** ★種類（2026-10-10 / 段4）。text / meeting_slots / scheduling_link。⚠️ 古い応答では無いことがある */
+  /** ★種類（2026-10-10 / 段4）。text / meeting_slots / scheduling_link / proposal_intro（2026-10-11）。⚠️ 古い応答では無いことがある */
   kind?: string;
   payload?: unknown;
   sent_at: string;
@@ -241,6 +241,12 @@ export default function ConversationDetailClient({
                         <div className="flex-1 h-px bg-gray-100" />
                       </div>
                     )}
+                    {msg.kind === "proposal_intro" ? (
+                      /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
+                      <div data-state="proposal-intro" className="text-center text-xs text-gray-500 my-3 leading-relaxed">
+                        {msg.body}
+                      </div>
+                    ) : (
                     <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} ${grouped ? "mt-0.5" : "mt-3"}`}>
                       {!grouped && (
                         <span className={`text-xs text-gray-500 mb-0.5 ${isMe ? "pr-9 text-right" : "pl-9"}`}>
@@ -271,6 +277,7 @@ export default function ConversationDetailClient({
                         <span className="text-xs text-gray-400 flex-shrink-0 self-end">{msgTime}</span>
                       </div>
                     </div>
+                    )}
                   </Fragment>
                 );
               })}

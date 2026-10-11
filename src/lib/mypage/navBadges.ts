@@ -45,7 +45,7 @@ export async function getMypageNavBadges(owUserId: string): Promise<MypageNavBad
     countUnreadConversations(owUserId),
     db.from("ow_job_applications").select("id", { count: "exact", head: true })
       .eq("user_id", owUserId).neq("status", "pending"),
-    countOpenProposals("candidate", { candidateUserId: owUserId }),
+    countOpenProposals(owUserId),
     countIncomingRequests(owUserId),
     countIncomingApproaches(owUserId),
   ]);

@@ -81,7 +81,7 @@ export default async function ApproachHelpPage() {
         <section style={card}>
           <h2 style={h2}>提案との違い</h2>
           <p style={{ margin: 0, ...li }}>
-            メッセージは、貴社が自分で見つけた方に送るものです。提案は、OPINIO が根拠をそろえてお届けするもので、双方が「会いたい」と答えるとメッセージが開きます。
+            メッセージは、貴社が自分で見つけた方に送るものです。提案は、OPINIO が経歴の合う方に貴社をご紹介するもので、「話を聞いてみたい」と答えた方だけが届きます。
           </p>
         </section>
 

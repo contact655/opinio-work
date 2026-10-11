@@ -42,7 +42,8 @@ import {
 import { companiesToExclude, evidenceOptions, gatherCompanyFacts } from "./fetch";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { notifyProposalsCreated } from "@/lib/notify/proposalNotification";
-import { isProposalEndedFor, isProposalExpired } from "./proposalEnded";
+import { PROPOSAL_PHASE_COLS, phaseInputOf } from "./proposalEnded";
+import { proposalPhase, type ProposalPhase } from "@/lib/constants/proposalResponses";
 import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
 
 export type GenerateResult = {
@@ -83,6 +84,8 @@ export type GenerateResult = {
    * ⚠️ 一意の決まり（候補者 × 企業 × 求人）は変えていない。求人が違えば行は作れてしまうので、ここで止める。
    */
   ongoing: number;
+  /** ★根拠はそろったが、紹介できる求人が無かった企業の数（2026-10-11。提案は求人つきでしか作らない） */
+  withoutJob: number;
 };
 
 /**
@@ -121,6 +124,7 @@ export async function generateProposalsForCandidate(
       testAdminsOnly: 0,
       hiddenByCandidate: 0,
       ongoing: 0,
+      withoutJob: 0,
       blockedByStance: { stance },
     };
   }
@@ -214,25 +218,18 @@ export async function generateProposalsForCandidate(
      ⚠️ 引けなければ作らない（fail-closed）。同じ企業に2件目を作るより、作らないほうが安全 */
   const { data: existing, error: exErr } = visibleTargets.length
     ? await db.from("ow_proposals")
-        .select("company_id, candidate_response, company_response, introduced_at, respond_by")
+        .select(`company_id, ${PROPOSAL_PHASE_COLS}`)
         .eq("candidate_user_id", candidateOwUserId).in("company_id", visibleTargets)
     : { data: [], error: null };
   if (exErr) {
     console.error("[evidence/generate] 既存の提案:", exErr.message);
     throw new Error(`既存の提案を確かめられませんでした: ${exErr.message}`);
   }
+  /* ★進行中 ＝ 求職者の返事待ち／企業の返事待ち（review）／会話を作る途中／会話ができた。
+        ⚠️ 判定は `proposalPhase()` の1か所（2026-10-11）。条件を書き写さないこと */
+  const ONGOING_PHASES = new Set<ProposalPhase>(["candidate_pending", "company_review", "connecting", "introduced"]);
   const ongoingCompanies = new Set(
-    (existing ?? []).filter((r) => {
-      const p = {
-        companyId: r.company_id as string,
-        candidateUserId: candidateOwUserId,
-        candidateResponse: (r.candidate_response as string | null) ?? null,
-        companyResponse: (r.company_response as string | null) ?? null,
-        introducedAt: (r.introduced_at as string | null) ?? null,
-        respondBy: r.respond_by as string,
-      };
-      return !isProposalExpired(p) && !isProposalEndedFor("company", p, true) && !isProposalEndedFor("candidate", p, true);
-    }).map((r) => r.company_id as string),
+    (existing ?? []).filter((r) => ONGOING_PHASES.has(proposalPhase(phaseInputOf(r), true))).map((r) => r.company_id as string),
   );
   const targets = visibleTargets.filter((id) => !ongoingCompanies.has(id));
 
@@ -244,8 +241,15 @@ export async function generateProposalsForCandidate(
 
   const rows: Record<string, unknown>[] = [];
   let belowThreshold = 0;
+  let withoutJob = 0;
 
   for (const f of facts) {
+    /* ★求人が無い提案は作らない（2026-10-11 / 柴さんの決めごと。`job_id` は NOT NULL にする）。
+          ⚠️ 黙って落とさず数える */
+    if (!f.jobId) {
+      withoutJob += 1;
+      continue;
+    }
     const evidence = buildEvidence(f.evidence, opts);
     if (!isProposable(evidence)) {
       belowThreshold += 1;
@@ -301,6 +305,7 @@ export async function generateProposalsForCandidate(
     testAdminsOnly,
     hiddenByCandidate,
     ongoing: ongoingCompanies.size,
+    withoutJob,
   };
 }
 

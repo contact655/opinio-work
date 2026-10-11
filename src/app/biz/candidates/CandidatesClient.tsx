@@ -974,7 +974,7 @@ export default function CandidatesClient({
               {zeroByApproachOnly ? (
                 <div data-state="approach-only-empty">
                   <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 auto 12px", maxWidth: 460, padding: "0 16px" }}>
-                    企業からのメッセージを受け取る設定の方は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
+                    企業からのメッセージを受け取る設定の方は、まだいません。経歴の合う方には、OPINIO が貴社をご紹介することがあります。「話を聞いてみたい」と答えた方は「提案」に届きます。
                   </p>
                   <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>提案を見る →</a>
                 </div>

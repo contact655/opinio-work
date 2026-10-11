@@ -9,6 +9,7 @@ import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { meetingCanceledTemplate, meetingConfirmedTemplate } from "@/lib/notify/templates";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { buildMeetingIcs } from "@/lib/meetings/ics";
+import { proposalConversationIds } from "@/lib/evidence/companyProposals";
 import {
   MAX_MEETING_SLOTS, MEETING_FORMATS, formatMeetingDateTime, isMeetingDuration, isMeetingFormat,
   parseSchedulingUrl, slotError,
@@ -391,14 +392,14 @@ export async function listCompanyMeetings(companyId: string, opts: { upcoming?: 
   if (rows.length === 0) return [];
   const convIds = Array.from(new Set(rows.map((r) => r.conversation_id as string)));
   const userIds = Array.from(new Set(rows.map((r) => r.candidate_user_id as string)));
-  const [{ data: users }, { data: aps }, { data: props }] = await Promise.all([
+  const [{ data: users }, { data: aps }, fromProposal] = await Promise.all([
     db.from("ow_users").select("id, name").in("id", userIds),
     db.from("ow_company_approaches").select("conversation_id").in("conversation_id", convIds),
-    db.from("ow_proposals").select("conversation_id").in("conversation_id", convIds),
+    /* ★提案から始まった会話か。⚠️ 提案を読むのは companyProposals.ts だけ（企業側から直接読まない） */
+    proposalConversationIds(convIds),
   ]);
   const names = new Map((users ?? []).map((u) => [u.id as string, ((u.name as string | null) ?? "").trim() || "名前未設定"]));
   const fromApproach = new Set((aps ?? []).map((a) => a.conversation_id as string));
-  const fromProposal = new Set((props ?? []).map((p) => p.conversation_id as string));
   return rows.map((r) => ({
     id: r.id as string, conversationId: r.conversation_id as string, candidateUserId: r.candidate_user_id as string,
     candidateName: names.get(r.candidate_user_id as string) ?? "名前未設定",

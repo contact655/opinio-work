@@ -23,7 +23,7 @@ export default async function ProposalHelpPage() {
           <Link href="/biz/proposals" style={{ fontSize: 13, color: "var(--ink-soft)", textDecoration: "none" }}>← 提案に戻る</Link>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: "8px 0 0" }}>提案の根拠になるもの</h1>
           <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink-soft)", margin: "6px 0 0" }}>
-            OPINIO は、根拠が2つ以上そろった候補者だけをご提案します。根拠になるのは次のものです。
+            OPINIO は、根拠が2つ以上そろった方にだけ、貴社をご紹介します。根拠になるのは次のものです。
           </p>
         </div>
         <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 20, minWidth: 0 }}>
@@ -37,7 +37,7 @@ export default async function ProposalHelpPage() {
           </ul>
         </section>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-          求人・職種を設定した部門・社員の回答などの「提案の材料」が増えるほど、根拠のある提案が届きやすくなります。
+          求人・職種を設定した部門・社員の回答などの「提案の材料」が増えるほど、合う方に貴社をご紹介しやすくなります。ご紹介した方が「話を聞いてみたい」と答えると、「提案」に届きます。
         </p>
       </div>
     </BusinessLayout>

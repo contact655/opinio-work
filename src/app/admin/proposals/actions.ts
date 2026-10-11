@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateProposalsForCandidate, type GenerateResult } from "@/lib/evidence/generate";
 import { mutateOne } from "@/lib/supabase/mutate";
-import { introduceIfMutual } from "@/lib/evidence/introduce";
+import { introduceProposal } from "@/lib/evidence/introduce";
 
 /**
  * ⚠️★**削除の結果を「作成」の型に押し込まないこと**（2026-09-21 に直した）。
@@ -116,14 +116,15 @@ export async function deleteProposal(proposalId: string): Promise<ActionResult> 
  * ★双方合意しているのに会話が作られていない提案を、もう一度紹介する（2026-09-21）。
  *
  * ── なぜ要るか ─────────────────────────────────────────────────────────────
- * `introduceIfMutual()` は **best-effort**。返答そのものを取り消さないために、
+ * `introduceProposal()` は **best-effort**。返答そのものを取り消さないために、
  * 会話の作成に失敗してもログを出すだけで通す。
- * ⚠️★**その結果、`mutual` なのに `introduced_at` が null の行が残りうる。**
+ * ⚠️★**その結果、会話を作るはずの段（connecting）なのに `introduced_at` が null の行が残りうる。**
  *    **両側とも答え終わっているので、もう誰も押さない**＝再試行のきっかけが無い。
  *    2026-09-21 まで、この行を救う手段が1つも無かった。
  *
- * ⚠️ 冪等。既に紹介済みなら `introduceIfMutual()` が `already` を返して何もしない。
- * ⚠️ mutual でない行に押しても `not_mutual` で何も起きない（画面には出さない想定）。
+ * ⚠️ 冪等。既に会話があれば `introduceProposal()` が `already` を返して何もしない。
+ * ⚠️ 会話を作る段でない行に押しても `not_ready` で何も起きない（画面には出さない想定）。
+ * ⚠️ 運営の再試行は両側に知らせる（`by: "ops"`）。
  */
 export async function retryIntroduction(proposalId: string): Promise<ActionResult> {
   const supabase = createClient();
@@ -133,7 +134,7 @@ export async function retryIntroduction(proposalId: string): Promise<ActionResul
 
   if (!proposalId) return { ok: false, error: "提案が指定されていません" };
 
-  const out = await introduceIfMutual(createAdminClient(), proposalId);
+  const out = await introduceProposal(createAdminClient(), proposalId, { by: "ops" });
   revalidatePath("/admin/proposals");
   return out.introduced
     ? { ok: true, kind: "retry", introduced: true }

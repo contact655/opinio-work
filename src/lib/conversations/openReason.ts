@@ -2,7 +2,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createConversation } from "@/lib/conversations/createConversation";
-import { MUTUAL_RESPONSES } from "@/lib/constants/proposalResponses";
 
 /**
  * ★企業との会話を「開いてよいか」の判定（2026-10-09 / 段階2）。**ここが唯一の判定。**
@@ -56,8 +55,11 @@ export async function companyConversationAllowed(
       .eq("user_id", candidateOwUserId).eq("company_id", companyId),
     db.from("ow_proposals").select("id", { count: "exact", head: true })
       .eq("candidate_user_id", candidateOwUserId).eq("company_id", companyId)
-      .eq("candidate_response", MUTUAL_RESPONSES.candidate)
-      .eq("company_response", MUTUAL_RESPONSES.company),
+      /* ★2026-10-11: 求職者が「話を聞いてみたい」と答え、企業が自動（auto）か「会う」を選んだもの。
+            ⚠️ 条件は `proposalShouldConnect()`（proposalResponses.ts）と同じ。
+            企業が見送れるのは review だけなので、auto と declined は同時に立たない */
+      .eq("candidate_response", "interested")
+      .or("delivery_mode.eq.auto,company_response.eq.want_to_meet"),
     /* ★企業からの声かけを求職者が承認した（2026-10-09）。⚠️ 見送った・未回答は理由にならない */
     db.from("ow_company_approaches").select("id", { count: "exact", head: true })
       .eq("candidate_user_id", candidateOwUserId).eq("company_id", companyId)

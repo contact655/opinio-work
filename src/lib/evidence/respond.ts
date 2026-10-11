@@ -1,126 +1,165 @@
 /**
- * 提案への返答と、見送り理由の保存（②⑨④の共通部分）。
+ * 提案への返答（2026-10-11 に「求職者が先に答える」形へ作り替えた）。
  *
- * ⚠️★**②と⑨で別実装にしないこと。** 違うのは「どちらの side か」だけ。
+ *   求職者 … `saveCandidateResponse`：「話を聞いてみたい」（任意のひとこと）／「今回は見送る」（理由は任意）
+ *   企業   … `saveCompanyResponse`：review で届いた方に「会う」／「今回は見送る」（理由は任意）
  *
- * ⚠️★**③（双方合意の紹介）もここから呼ぶ。** 返答を保存したあとに
- *    [`introduceIfMutual()`](./introduce.ts) を通す。**route 側に書かないこと。**
- *
- * ⚠️★**求職者の見送り理由は企業に渡さない。企業の理由は要約のみ求職者に渡す。**
- *    2026-09-18 時点では**どちらも相手に渡していない**（保存までしか作っていない）。
- *    担保は `ow_proposal_declines` を別表にして RLS で side を絞っていること。
- *    **ここで相手側の行を読まないこと。**
+ * ⚠️★会話を作るのは `introduceProposal()`（introduce.ts）だけ。route に条件を書き写さないこと。
+ * ⚠️★段の判定は `proposalPhase()` の1か所。答えられるのは
+ *    求職者 … candidate_pending のときだけ ／ 企業 … company_review のときだけ（`getCompanyProposalForResponse`）。
+ * ⚠️★見送り理由は相手に渡さない。`ow_proposal_declines` は運営しか読めない表。
+ *    理由は任意（2026-10-11 / 柴さんの判断）。選ばなかったら行を作らない（空を既定値で埋めない）。
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { introduceIfMutual } from "./introduce";
+import { introduceProposal } from "./introduce";
 import { mutateOne } from "@/lib/supabase/mutate";
-import { isProposalEndedFor, isVisiblePair, visiblePairs } from "./proposalEnded";
+import { PROPOSAL_PHASE_COLS, phaseInputOf, visiblePairs, isVisiblePair } from "./proposalEnded";
+import { getCompanyProposalForResponse, getCompanyProposalMode } from "./companyProposals";
+import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
 import {
-  DECLINE_NOTE_MAX,
-  isValidDeclineReason,
-  type DeclineSide,
-} from "@/lib/constants/declineReasons";
+  PROPOSAL_COMPANY_RESPONSE_DAYS, PROPOSAL_NOTE_MAX, proposalPhase,
+  type CandidateResponse, type CompanyResponse,
+} from "@/lib/constants/proposalResponses";
+import { DECLINE_NOTE_MAX, isValidDeclineReason, type DeclineSide } from "@/lib/constants/declineReasons";
 
-export type RespondInput = {
+export type RespondOutcome = { ok: true; conversationId?: string | null } | { ok: false; status: number; error: string };
+
+/** 見送り理由（任意）を保存する。⚠️ 選ばなかったら何もしない */
+async function saveDecline(proposalId: string, side: DeclineSide, reason: string | null | undefined, note: string | null | undefined): Promise<RespondOutcome | null> {
+  const r = (reason ?? "").trim();
+  const n = (note ?? "").trim();
+  if (!r) return null;
+  if (!isValidDeclineReason(side, r)) return { ok: false, status: 400, error: "この選択肢は使えません" };
+  if (n.length > DECLINE_NOTE_MAX) return { ok: false, status: 400, error: `メモは${DECLINE_NOTE_MAX}文字までです` };
+  const { error } = await createAdminClient().from("ow_proposal_declines").upsert(
+    { proposal_id: proposalId, side, reason: r, note: n || null },
+    { onConflict: "proposal_id,side" },
+  );
+  if (error) {
+    console.error("[evidence/respond] declines:", error.message);
+    return { ok: false, status: 500, error: "見送り理由の保存に失敗しました" };
+  }
+  return null;
+}
+
+/** 理由とメモの事前チェック（保存前に弾く） */
+function checkDeclineInput(side: DeclineSide, reason?: string | null, note?: string | null): RespondOutcome | null {
+  const r = (reason ?? "").trim();
+  if (r && !isValidDeclineReason(side, r)) return { ok: false, status: 400, error: "この選択肢は使えません" };
+  if ((note ?? "").trim().length > DECLINE_NOTE_MAX) return { ok: false, status: 400, error: `メモは${DECLINE_NOTE_MAX}文字までです` };
+  return null;
+}
+
+/**
+ * ★求職者の返答。⚠️ 本人の提案かは `candidateUserId` で絞って確かめる（route がセッションから渡す）。
+ */
+export async function saveCandidateResponse(input: {
   proposalId: string;
-  side: DeclineSide;
-  /** `interested` / `declined`（求職者）または `want_to_meet` / `declined`（企業） */
-  response: string;
-  /** 見送るときだけ必須 */
-  reason?: string | null;
+  candidateUserId: string;
+  response: CandidateResponse;
+  /** 「会社へのひとこと」（interested のときだけ・200字まで） */
   note?: string | null;
-};
-
-export type RespondOutcome = { ok: true } | { ok: false; status: number; error: string };
-
-export async function saveProposalResponse(input: RespondInput): Promise<RespondOutcome> {
-  const { proposalId, side, response } = input;
+  reason?: string | null;
+  declineNote?: string | null;
+}): Promise<RespondOutcome> {
   const db = createAdminClient();
-
-  const isDecline = response === "declined";
-  if (isDecline) {
-    const reason = (input.reason ?? "").trim();
-    /* ⚠️ 理由は1つだけ。**空を既定値で埋めない**（「その他」に倒すと集計が濁る） */
-    if (!reason) return { ok: false, status: 400, error: "見送る理由を選んでください" };
-    if (!isValidDeclineReason(side, reason)) {
-      /* ★side が違う選択肢は弾く。DB の CHECK も同じことを要求している（2層） */
-      return { ok: false, status: 400, error: "この選択肢はこちら側では使えません" };
-    }
-    if ((input.note ?? "").length > DECLINE_NOTE_MAX) {
-      return { ok: false, status: 400, error: `メモは${DECLINE_NOTE_MAX}文字までです` };
-    }
+  const note = (input.note ?? "").trim();
+  if (input.response === "interested" && note.length > PROPOSAL_NOTE_MAX) {
+    return { ok: false, status: 400, error: `ひとことは${PROPOSAL_NOTE_MAX}文字までです` };
+  }
+  if (input.response === "declined") {
+    const bad = checkDeclineInput("candidate", input.reason, input.declineNote);
+    if (bad) return bad;
   }
 
-  /* ★終了した提案には答えさせない（2026-10-09）。画面はボタンを出さないが、**API でも止める。**
-        止めないと、候補者が「今は考えていない」に変えた後でも、企業の「会いたい」で
-        双方合意（＝紹介）に進めてしまう。判定は `isProposalEndedFor` の1箇所。
-     ⚠️ 終了の理由は返さない（相手が見送ったことを伝えないため）。 */
-  const { data: cur, error: curErr } = await db
-    .from("ow_proposals")
-    .select("company_id, candidate_user_id, candidate_response, company_response, introduced_at, respond_by")
-    .eq("id", proposalId)
-    .maybeSingle();
-  if (curErr) {
-    console.error("[evidence/respond] ow_proposals:", curErr.message);
+  const { data: cur, error } = await db.from("ow_proposals")
+    .select(`id, company_id, candidate_user_id, ${PROPOSAL_PHASE_COLS}`)
+    .eq("id", input.proposalId).eq("candidate_user_id", input.candidateUserId).maybeSingle();
+  if (error) {
+    console.error("[evidence/respond] ow_proposals:", error.message);
     return { ok: false, status: 500, error: "提案を取得できませんでした" };
   }
   if (!cur) return { ok: false, status: 404, error: "提案が見つかりません" };
-  const forEnd = {
-    companyId: cur.company_id as string,
-    candidateUserId: cur.candidate_user_id as string,
-    candidateResponse: (cur.candidate_response as string | null) ?? null,
-    companyResponse: (cur.company_response as string | null) ?? null,
-    introducedAt: (cur.introduced_at as string | null) ?? null,
-    respondBy: cur.respond_by as string,
-  };
-  const visible = isVisiblePair(await visiblePairs([forEnd]), forEnd);
-  if (isProposalEndedFor(side, forEnd, visible)) {
+  if (cur.candidate_response) return { ok: false, status: 409, error: "この提案にはすでに答えています" };
+  const companyId = cur.company_id as string;
+  const pair = { companyId, candidateUserId: input.candidateUserId };
+  const visible = isVisiblePair(await visiblePairs([pair]), pair);
+  if (proposalPhase(phaseInputOf(cur), visible) !== "candidate_pending") {
+    /* ⚠️ 終了の理由は返さない */
     return { ok: false, status: 409, error: "この提案は終了しました" };
   }
 
-  const now = new Date().toISOString();
-  const patch =
-    side === "candidate"
-      ? { candidate_response: response, candidate_responded_at: now }
-      : { company_response: response, company_responded_at: now };
+  const now = new Date();
+  if (input.response === "declined") {
+    const r = await mutateOne(
+      db.from("ow_proposals").update({ candidate_response: "declined", candidate_responded_at: now.toISOString() })
+        .eq("id", input.proposalId).is("candidate_response", null),
+      "proposal candidate declined",
+    );
+    if (!r.ok) return { ok: false, status: r.status, error: r.error };
+    const d = await saveDecline(input.proposalId, "candidate", input.reason, input.declineNote);
+    if (d) return d;
+    return { ok: true };
+  }
 
-  /* ⚠️ `mutateOne`。0行更新を成功として扱わない（CLAUDE.md）。
-        提案が消えている／id が違うときにここで気づける。 */
+  /* ★「話を聞いてみたい」。企業の設定を写す。
+        ⚠️ 移行前に企業が「会いたい」と答え済みなら auto（求職者が答えたらすぐ会話）。
+        ⚠️ 設定を読めなかったら review に倒す（自動で会話を作らない側） */
+  const mode = cur.company_response === "want_to_meet" ? "auto" : ((await getCompanyProposalMode(companyId)) ?? "review");
   const r = await mutateOne(
-    db.from("ow_proposals").update(patch).eq("id", proposalId),
-    `proposal ${side} response`,
+    db.from("ow_proposals").update({
+      candidate_response: "interested",
+      candidate_responded_at: now.toISOString(),
+      candidate_note: note || null,
+      delivery_mode: mode,
+      company_respond_by: mode === "review" ? new Date(now.getTime() + PROPOSAL_COMPANY_RESPONSE_DAYS * 24 * 60 * 60 * 1000).toISOString() : null,
+    }).eq("id", input.proposalId).is("candidate_response", null),
+    "proposal candidate interested",
   );
   if (!r.ok) return { ok: false, status: r.status, error: r.error };
 
-  if (isDecline) {
-    /* ⚠️ 1提案 × 1side につき1件（DB の unique）。押し直しは上書きにする */
-    const { error } = await db
-      .from("ow_proposal_declines")
-      .upsert(
-        {
-          proposal_id: proposalId,
-          side,
-          reason: (input.reason ?? "").trim(),
-          note: (input.note ?? "").trim() || null,
-        },
-        { onConflict: "proposal_id,side" },
-      );
-    if (error) {
-      console.error("[evidence/respond] declines:", error.message);
-      return { ok: false, status: 500, error: "見送り理由の保存に失敗しました" };
-    }
+  if (mode === "auto") {
+    const out = await introduceProposal(db, input.proposalId, { by: "candidate" });
+    return { ok: true, conversationId: out.introduced ? out.conversationId : null };
   }
+  await notifyCompanyProposalRaised({ companyId, candidateUserId: input.candidateUserId, mode: "review", conversationId: null });
+  return { ok: true, conversationId: null };
+}
 
-  /* ── ③ 双方合意の紹介 ──────────────────────────────────────────────────
-     ⚠️★**ここが唯一の入口。** ②の route と⑨の route に条件を書き写さないこと。
-        どちらが「最後に答えたほう」でも同じ経路を通る。
-     ⚠️ best-effort。紹介に失敗しても返答は取り消さない（中は握りつぶさずログを出す）。
-     ⚠️ 見送りのときは呼ばない —— `proposalStage()` が `closed` を返すので
-        呼んでも no-op だが、**無駄な往復を1本減らす**。 */
-  if (!isDecline) {
-    await introduceIfMutual(db, proposalId);
+/**
+ * ★企業の返答（review のときだけ）。
+ * ⚠️★答えられない提案（未回答・見送り・期限切れ・auto・他社・存在しない）は一律 404「見つかりません」。
+ *    存在を区別させない。
+ */
+export async function saveCompanyResponse(input: {
+  proposalId: string;
+  companyId: string;
+  response: CompanyResponse;
+  reason?: string | null;
+  note?: string | null;
+}): Promise<RespondOutcome> {
+  const notFound: RespondOutcome = { ok: false, status: 404, error: "提案が見つかりません" };
+  if (input.response === "declined") {
+    const bad = checkDeclineInput("company", input.reason, input.note);
+    if (bad) return bad;
   }
+  const row = await getCompanyProposalForResponse(input.companyId, input.proposalId);
+  if (!row) return notFound;
 
-  return { ok: true };
+  const db = createAdminClient();
+  const r = await mutateOne(
+    db.from("ow_proposals").update({ company_response: input.response, company_responded_at: new Date().toISOString() })
+      .eq("id", input.proposalId).eq("company_id", input.companyId).is("company_response", null),
+    "proposal company response",
+  );
+  if (!r.ok) return r.status === 404 ? notFound : { ok: false, status: r.status, error: r.error };
+
+  if (input.response === "declined") {
+    const d = await saveDecline(input.proposalId, "company", input.reason, input.note);
+    if (d) return d;
+    return { ok: true };
+  }
+  const out = await introduceProposal(db, input.proposalId, { by: "company" });
+  return { ok: true, conversationId: out.introduced ? out.conversationId : null };
 }

@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findTestLeftovers, countTestLeftovers } from "@/lib/admin/testLeftovers";
 import { TestLeftoversCard } from "@/components/admin/TestLeftoversCard";
-import { MUTUAL_RESPONSES } from "@/lib/constants/proposalResponses";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 /* ⚠️★件数も一覧も同じ関数を通す。条件を書き分けると
@@ -184,17 +183,18 @@ async function getStats() {
     ? Math.floor((Date.now() - Date.parse(listingRequests.data[0].listing_requested_at as string)) / 86_400_000)
     : null;
 
-  /* ★双方合意しているのに会話が作られていない提案（2026-09-21）。**0件が正常な状態。**
-     `introduceIfMutual()` は best-effort なので、会話の作成に失敗するとここに残る。
+  /* ★会話を作るはずなのに作られていない提案（2026-09-21・2026-10-11 に条件を変更）。**0件が正常な状態。**
+     `introduceProposal()` は best-effort なので、会話の作成に失敗するとここに残る。
      ⚠️★**両側とも答え終わっているので、もう誰も押さない。** 運営が
         `/admin/proposals` の「再試行」を押さないと**永久に救われない。**
-     ⚠️ 述語は `MUTUAL_RESPONSES` の1箇所から（TS の `proposalStage()` と同じ値）。
+     ⚠️ 述語は `proposalShouldConnect()`（proposalResponses.ts）と同じ:
+        求職者が「話を聞いてみたい」かつ（自動で届ける設定 か 企業が「会う」）。
      ⚠️ 失敗を 0 に倒さない（参加依頼・在籍報告と同じ理由）。 */
   const stuckIntros = await admin
     .from("ow_proposals")
     .select("id", { count: "exact", head: true })
-    .eq("candidate_response", MUTUAL_RESPONSES.candidate)
-    .eq("company_response", MUTUAL_RESPONSES.company)
+    .eq("candidate_response", "interested")
+    .or("delivery_mode.eq.auto,company_response.eq.want_to_meet")
     .is("introduced_at", null);
   if (stuckIntros.error) {
     console.error("[admin] 未紹介の提案の取得に失敗:", stuckIntros.error.message);
@@ -728,12 +728,12 @@ export default async function AdminDashboard() {
                     <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
                       {stats.stuckIntrosFailed
                         ? "未紹介の提案の取得に失敗しました（0件という意味ではありません）"
-                        : `双方が会いたいのに紹介できていない提案 ${stats.stuckIntrosCount}件`}
+                        : `会話が作られていない提案 ${stats.stuckIntrosCount}件`}
                     </p>
                     <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
                       {stats.stuckIntrosFailed
                         ? "取得に失敗しています"
-                        : "両者とも答え終わっているので、運営が再試行しないと動きません"}
+                        : "本人は「話を聞いてみたい」と答え済みです。運営が再試行しないと動きません"}
                     </p>
                   </div>
                 </div>

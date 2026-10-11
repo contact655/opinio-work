@@ -1,58 +1,28 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { proposalPhase, PROPOSAL_RESPONSE_DAYS, daysLeftUntil } from "@/lib/constants/proposalResponses";
 
 /**
- * 提案が「終了した」か（2026-10-09 / 柴さんの判断）。
+ * 提案の「見せてよいか」と、求職者側の未回答の一覧（2026-10-11 に「求職者が先に答える」形へ作り替えた）。
  *
- * ★終了の条件（見る側から見て）:
- *   ① **相手が見送った**（企業から見れば候補者が、候補者から見れば企業が）
- *   ② **いまはこの企業にこの候補者を見せてはいけない**（`can_send_scout()` が false。
- *      本人が「今は考えていない」に変えた・ブロックした・在籍が判明した等）
- *   ③ ★**回答の締め切り（`respond_by`。届いてから30日）を過ぎて、両方の回答がそろっていない**（2026-10-10）
- *   ただし**双方合意で紹介済み**（`introduced_at` あり）のものは終了にしない（会話が既にある）。
- *   ⚠️ 締め切りは**表示するときに判定する**（定期実行で状態を書き換えない）。
- *
- * ⚠️★**終了の理由はどの画面にも出さない。** 画面に渡すのは「終了したか」の真偽だけ。
- *    相手が見送ったことを直接伝えないために、②も同じ「終了」に混ぜてある
- *    （理由が1つだと「終わった＝相手が見送った」と読めてしまう）。
- * ⚠️★**判定をここ以外に書き写さないこと。** 使うのは
- *    `/biz/proposals`・`/mypage/proposals`・両方の未回答バッジ・返答の API（`respond.ts`）。
- *    割れると「画面では終わっているのにバッジに数えられる」「画面では押せないのに API は通る」になる。
- * ⚠️ 自分が見送った提案は「終了」ではなく、**自分の答え**として表示する（呼び出し側）。
+ * ⚠️★段（終了したか等）の判定は `proposalPhase()`（lib/constants/proposalResponses.ts）の1か所。ここに書き写さない。
+ * ⚠️★企業側で提案を読むのは `lib/evidence/companyProposals.ts` だけ（求職者が答えた行しか返さない）。
+ *    ここの `listOpenProposals` は**求職者側専用**。企業側から呼ばないこと。
  */
 
-export type ProposalSide = "candidate" | "company";
-
-export type ProposalForEnd = {
-  companyId: string;
-  /** ow_users 空間 */
-  candidateUserId: string;
-  candidateResponse: string | null;
-  companyResponse: string | null;
-  introducedAt: string | null;
-  /** ★回答の締め切り（`ow_proposals.respond_by`）。⚠️ 必須。select から落とすと締め切りが効かなくなるので型で止める */
-  respondBy: string;
-};
-
-/** ★提案に答えられる日数（届いてから）。⚠️ DB の既定値（`now() + interval '30 days'`）と同じ値にすること */
-export const PROPOSAL_RESPONSE_DAYS = 30;
-
-/** 締め切りを過ぎたか */
-export function isProposalExpired(p: Pick<ProposalForEnd, "respondBy">, now = new Date()): boolean {
-  return new Date(p.respondBy).getTime() <= now.getTime();
-}
+export { PROPOSAL_RESPONSE_DAYS };
 
 /** 締め切りまで「あと◯日」（切り上げ。過ぎていれば 0） */
 export function proposalDaysLeft(respondBy: string, now = new Date()): number {
-  return Math.max(0, Math.ceil((new Date(respondBy).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+  return daysLeftUntil(respondBy, now);
 }
 
 const pairKey = (companyId: string, candidateUserId: string) => `${companyId}:${candidateUserId}`;
 
 /**
  * いま見せてよい（企業 × 候補者）の組を返す。⚠️ 判定は `can_send_scout()` そのもの。
- * ⚠️ 失敗したら**見せない側**（＝終了）に倒す。黙らずログを出す。
+ * ⚠️ 失敗したら**見せない側**に倒す。黙らずログを出す。
  */
 export async function visiblePairs(
   pairs: { companyId: string; candidateUserId: string }[],
@@ -88,32 +58,35 @@ export function isVisiblePair(visible: Set<string>, p: { companyId: string; cand
   return visible.has(pairKey(p.companyId, p.candidateUserId));
 }
 
-/** 見る側（`side`）から見て、この提案が終了しているか */
-export function isProposalEndedFor(side: ProposalSide, p: ProposalForEnd, visible: boolean): boolean {
-  if (p.introducedAt) return false;
-  const otherDeclined = side === "company" ? p.candidateResponse === "declined" : p.companyResponse === "declined";
-  const expired = isProposalExpired(p) && !(p.candidateResponse && p.companyResponse);
-  return otherDeclined || !visible || expired;
+/** ★提案の行（段の判定に要る列）。⚠️ select からどれかを落とすと判定が静かに変わるので、ここで1つに決める */
+export const PROPOSAL_PHASE_COLS =
+  "candidate_response, company_response, introduced_at, respond_by, delivery_mode, company_respond_by" as const;
+
+export function phaseInputOf(r: Record<string, unknown>) {
+  return {
+    candidateResponse: (r.candidate_response as string | null) ?? null,
+    companyResponse: (r.company_response as string | null) ?? null,
+    introducedAt: (r.introduced_at as string | null) ?? null,
+    respondBy: r.respond_by as string,
+    deliveryMode: (r.delivery_mode as string | null) ?? null,
+    companyRespondBy: (r.company_respond_by as string | null) ?? null,
+  };
 }
 
 /**
- * ★未回答の提案（新しい順）。**画面の「未回答」と同じ条件**:
- *   自分がまだ答えておらず、終了してもいないもの。
- * ⚠️ 返すのは id と作成日時だけ（企業側のホームで使う。⚠️ 候補者は匿名なので名前を返さない）。
- * ⚠️ 失敗したら null（呼び出し側は 0 と区別すること。「0 = 無い」とは限らない）。
+ * ★求職者の未回答の提案（新しい順）。**画面の「未回答」と同じ条件**（段が candidate_pending）。
+ * ⚠️ 求職者側専用。失敗したら null（呼び出し側は 0 と区別すること）。
  */
 export async function listOpenProposals(
-  side: ProposalSide,
-  id: { companyId: string } | { candidateUserId: string },
-): Promise<{ id: string; createdAt: string; respondBy: string; candidateUserId: string; evidenceCount: number }[] | null> {
+  candidateUserId: string,
+): Promise<{ id: string; createdAt: string; respondBy: string; companyId: string }[] | null> {
   const db = createAdminClient();
-  let q = db
+  const { data, error } = await db
     .from("ow_proposals")
-    .select("id, created_at, respond_by, company_id, candidate_user_id, candidate_response, company_response, introduced_at, evidence");
-  q = side === "company"
-    ? q.eq("company_id", (id as { companyId: string }).companyId).is("company_response", null)
-    : q.eq("candidate_user_id", (id as { candidateUserId: string }).candidateUserId).is("candidate_response", null);
-  const { data, error } = await q.order("created_at", { ascending: false });
+    .select(`id, created_at, company_id, candidate_user_id, ${PROPOSAL_PHASE_COLS}`)
+    .eq("candidate_user_id", candidateUserId)
+    .is("candidate_response", null)
+    .order("created_at", { ascending: false });
   if (error) {
     console.error("[proposalEnded] 未回答の一覧:", error.message);
     return null;
@@ -123,23 +96,15 @@ export async function listOpenProposals(
     createdAt: r.created_at as string,
     companyId: r.company_id as string,
     candidateUserId: r.candidate_user_id as string,
-    candidateResponse: (r.candidate_response as string | null) ?? null,
-    companyResponse: (r.company_response as string | null) ?? null,
-    introducedAt: (r.introduced_at as string | null) ?? null,
-    respondBy: r.respond_by as string,
-    evidenceCount: Array.isArray(r.evidence) ? r.evidence.length : 0,
+    input: phaseInputOf(r),
   }));
   const visible = await visiblePairs(rows);
-  /* ⚠️ 返すのは終了していない＝見せてよい組だけ（終了の判定に can_send_scout が入っている）。
-        candidateUserId はホームの「◯◯さんの提案」に使う（2026-10-11） */
-  return rows.filter((r) => !isProposalEndedFor(side, r, isVisiblePair(visible, r)))
-    .map((r) => ({ id: r.id, createdAt: r.createdAt, respondBy: r.respondBy, candidateUserId: r.candidateUserId, evidenceCount: r.evidenceCount }));
+  return rows
+    .filter((r) => proposalPhase(r.input, isVisiblePair(visible, r)) === "candidate_pending")
+    .map((r) => ({ id: r.id, createdAt: r.createdAt, respondBy: r.input.respondBy, companyId: r.companyId }));
 }
 
-/** ★未回答の提案の件数（バッジ用）。`listOpenProposals` と同じ条件。失敗したら null */
-export async function countOpenProposals(
-  side: ProposalSide,
-  id: { companyId: string } | { candidateUserId: string },
-): Promise<number | null> {
-  return (await listOpenProposals(side, id))?.length ?? null;
+/** ★求職者の未回答の件数（バッジ用）。`listOpenProposals` と同じ条件。失敗したら null */
+export async function countOpenProposals(candidateUserId: string): Promise<number | null> {
+  return (await listOpenProposals(candidateUserId))?.length ?? null;
 }

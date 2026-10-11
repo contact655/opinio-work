@@ -2596,6 +2596,42 @@ export type Database = {
           },
         ]
       }
+      ow_company_proposal_settings: {
+        Row: {
+          company_id: string
+          mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          mode: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_proposal_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_proposal_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_segments: {
         Row: {
           company_id: string
@@ -5017,56 +5053,68 @@ export type Database = {
       }
       ow_proposals: {
         Row: {
+          candidate_note: string | null
           candidate_responded_at: string | null
           candidate_response: string | null
           candidate_user_id: string
           company_id: string
+          company_respond_by: string | null
           company_responded_at: string | null
           company_response: string | null
+          company_seen_at: string | null
           computed_at: string
           conversation_id: string | null
           counter_evidence: Json
           created_at: string
+          delivery_mode: string | null
           evidence: Json
           id: string
           introduced_at: string | null
-          job_id: string | null
+          job_id: string
           respond_by: string
           updated_at: string
         }
         Insert: {
+          candidate_note?: string | null
           candidate_responded_at?: string | null
           candidate_response?: string | null
           candidate_user_id: string
           company_id: string
+          company_respond_by?: string | null
           company_responded_at?: string | null
           company_response?: string | null
+          company_seen_at?: string | null
           computed_at?: string
           conversation_id?: string | null
           counter_evidence: Json
           created_at?: string
+          delivery_mode?: string | null
           evidence: Json
           id?: string
           introduced_at?: string | null
-          job_id?: string | null
+          job_id: string
           respond_by?: string
           updated_at?: string
         }
         Update: {
+          candidate_note?: string | null
           candidate_responded_at?: string | null
           candidate_response?: string | null
           candidate_user_id?: string
           company_id?: string
+          company_respond_by?: string | null
           company_responded_at?: string | null
           company_response?: string | null
+          company_seen_at?: string | null
           computed_at?: string
           conversation_id?: string | null
           counter_evidence?: Json
           created_at?: string
+          delivery_mode?: string | null
           evidence?: Json
           id?: string
           introduced_at?: string | null
-          job_id?: string | null
+          job_id?: string
           respond_by?: string
           updated_at?: string
         }

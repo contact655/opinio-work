@@ -3351,3 +3351,13 @@ NOTICE: 適用後: false 4 件 / true 25 件 / 既定 false
 同じ「職種」を、**直近のお勤め先はチップ**（親18件＋押すと子が開く）、
 **これまでの職歴は `<select>`**（「職歴 1 の職種」）で入力させている。
 **揃えるかは別途。** ⚠️ 揃えると上の「移設案」の判断も変わる。
+
+## ★企業資料「合意後に公開」を読む処理がまだ無い（記録のみ / 2026-10-11）
+
+`ow_company_material_items.visibility = 'after_mutual'` の説明文は、2026-10-11 に
+「提案で『話を聞いてみたい』と答え、貴社とメッセージが始まった求職者だけが見られます」に書き換えた
+（`lib/constants/companyMaterials.ts`）。**この条件で求職者に見せる処理はまだ無い**
+（`getMaterialsForMatching` は分類するだけで、呼び出し元も無い）。
+
+作るときの条件: 提案の段が `introduced`（`proposalPhase()`）の求職者 × その企業だけ。
+⚠️ 判定は `lib/evidence/companyProposals.ts` / `proposalResponses.ts` を通す。条件を書き写さないこと。

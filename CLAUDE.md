@@ -3207,6 +3207,27 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 | ★**③（双方合意）を何から作るか** | [proposals-mutual-20260921.md](docs/proposals-mutual-20260921.md) |
 | ★**②⑨が動かない残りは運用**（決め手1人 / 実在の担当者は自社1社） | [proposals-ops-20260921.md](docs/proposals-ops-20260921.md) |
 | ★**根拠に求人・部門と職種・業界の経験を足した**（文は保存せず表示時に作る／進行中があれば作らない） | [proposals-fit-20261010.md](docs/proposals-fit-20261010.md) |
+| ★★**「求職者が先に答える」形に作り替えた**（2026-10-11。何が・いつ企業に届くか／規約で書き直す箇所） | [proposals-candidate-first-legal-20261011.md](docs/proposals-candidate-first-legal-20261011.md) |
+
+### ★★2026-10-11 から、提案は「求職者が先に答える」（柴さんの判断）。この節の下の記述より優先する
+
+- 提案は**求職者にだけ届く**。「話を聞いてみたい」（任意のひとこと200字）と答えたときだけ企業に届く。
+  未回答・見送り・30日経過は**企業に一切出さない**（名前も件数の内訳も）
+- 企業の設定 `ow_company_proposal_settings.mode`（**行が無ければ auto**）を、答えた時点で
+  `ow_proposals.delivery_mode` に写す。auto＝その場で会話 ／ review＝企業が14日以内に「会う」か見送る
+- 段の判定は **`proposalPhase()`**（[proposalResponses.ts](src/lib/constants/proposalResponses.ts)）の1か所。
+  会話を作るのは **`introduceProposal()`**（[introduce.ts](src/lib/evidence/introduce.ts)）だけ。入口は [respond.ts](src/lib/evidence/respond.ts)
+- ⚠️★**企業側で提案を読むのは [companyProposals.ts](src/lib/evidence/companyProposals.ts) だけ。**
+  `src/app/biz`・`src/lib/business`・`src/app/api/biz` から表を直接読まない
+  （`node scripts/check-proposal-reads.mjs` が0件を確かめる。`--self-test` で検出器を先に確かめる）
+- ⚠️★企業の返答 API は、答えられない提案（未回答・見送り・期限切れ・auto・他社・存在しない）に**一律 404**（存在を区別させない）
+- ⚠️★答えたあとで見せられなくなった方（段 `hidden`・会話なし）は、企業の**終了タブにも出さない・数えない**（`companyTabOf`）。名前なしの行でも「答えた人がいた」と分かるため
+- ⚠️★`job_id` は **NOT NULL・ON DELETE RESTRICT**（`20261011090100`）。求人削除の 409 は「この求人は削除できません。非公開にしてください。」——**提案に使われていることを書かない**
+- 会話の先頭は**案内の行**（`ow_conversation_messages.kind = 'proposal_intro'`・送った人なし）。ひとことは求職者本人の発言として続く
+- 企業に出す数字は**人数だけ・1日1回**（`companyProposalStats`。今日の0時より前だけ数える＝「毎朝更新」）
+- 企業へのメールは**答えた時だけ**（`notifyCompanyProposalRaised`）。提案は有効な担当者がいる企業にしか作らないので宛先は担当者に届く
+- ⚠️ 下の `introduceIfMutual()` / `MUTUAL_RESPONSES` / `proposalStage()` は**削除した**（名前が残っている記述は経緯）
+
 
 ⚠️★**mutual の判定と紹介は [introduce.ts](src/lib/evidence/introduce.ts) の
    `introduceIfMutual()` の1箇所。** 入口は [respond.ts](src/lib/evidence/respond.ts) だけで、

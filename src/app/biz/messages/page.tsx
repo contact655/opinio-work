@@ -8,6 +8,7 @@ import { getApproachQuota, listSentApproaches } from "@/lib/approaches/server";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { unreadConversationIds } from "@/lib/conversations/unread";
 import { MessagesView } from "./MessagesView";
+import { unseenProposalConversationIds } from "@/lib/evidence/companyProposals";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,9 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
     ? await Promise.all([listSentApproaches(ctx.tenantId), getApproachQuota(ctx.tenantId)])
     : [[], null];
   const newReplyConvIds = new Set((sent ?? []).filter((r) => r.unseen && r.conversationId).map((r) => r.conversationId as string));
+  /* ★提案から始まって、まだ誰も開いていない会話も「新しい」印を付ける（2026-10-11）。
+        ⚠️ 企業の担当者はまだ参加者でないので、参加者の未読では数えられない。⚠️ 提案を読むのは companyProposals.ts だけ */
+  for (const id of Array.from(await unseenProposalConversationIds(ctx.tenantId))) newReplyConvIds.add(id);
 
   /* ★一覧の「最後のメッセージの冒頭1行」（2026-10-11 / 柴さんの指示。LinkedIn の受信箱と同じ）。
         ⚠️★admin で読まないこと。セッションのクライアントで読めば、参加していない会話は RLS で落ちる（読めない人に本文を出さない） */

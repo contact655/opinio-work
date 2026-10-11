@@ -1,7 +1,8 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { listOpenProposals, proposalDaysLeft } from "@/lib/evidence/proposalEnded";
+import { proposalDaysLeft } from "@/lib/evidence/proposalEnded";
+import { listCompanyProposalTodos } from "@/lib/evidence/companyProposals";
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { MEETING_FORMATS, formatMeetingDateTime } from "@/lib/constants/meetings";
 import { listSavedSearchesWithCounts } from "@/lib/business/savedSearchServer";
@@ -14,15 +15,15 @@ import { canUse, type PlanType } from "@/lib/constants/plans";
  * |---|---|---|
  * | `approach` | 承認されたのに、まだ会話を開いていない声かけ（`company_seen_at` が null） | その会話 |
  * | `unreplied` | 最後のメッセージが求職者からの会話（＝こちらがまだ返していない） | その会話 |
- * | `proposal` | 答えていない提案（`/biz/proposals` の「未回答」と同じ条件。`listOpenProposals`） | /biz/proposals |
+ * | `proposal` | ★提案で届いた方（2026-10-11）。会話ができてまだ開いていない → その会話 ／ 会うか決める（確認してから の設定）→ /biz/proposals。`listCompanyProposalTodos` | |
  * | `meetingRequest` | まだ開いていない面談申込（`/biz/meetings` の未読と同じ条件） | /biz/meetings |
  *
  * | `savedSearch` | 新着が1名以上ある保存した条件（自分の条件＋共有。2026-10-10 / 候補者探し 段3） | その条件の新着 |
  * ⚠️ 保存した条件の新着は、見ている担当者ごとに違う（前回見た日時が担当者ごと）。viewer を渡したときだけ数える。
  * | `meeting` | 今日以降の面談（`ow_meetings`。取り消しを除く。2026-10-10 / 段4） | その会話 |
  * ⚠️ 件数カードの4つ目は 2026-10-10（段4）から「今日以降の面談」。面談申込は一覧にだけ出す。
- * ★提案は締め切り（届いてから30日。`respond_by`）まで「あと◯日」を出す（2026-10-10）。
- * ⚠️ 提案の候補者は匿名。**名前を出さない**（`biz/proposals/page.tsx` と同じ）。
+ * ★提案は、求職者が「話を聞いてみたい」と答えたものだけが届く（2026-10-11）。答えた人なので名前を出す。
+ *   会うかを決めるもの（確認してから）は、締め切り（答えてから14日）まで「あと◯日」を出す。
  * ⚠️ 種類ごとに取得に失敗したら、その種類の件数を null にする（画面は「—」。0 と出さない）。
  */
 export type TodayTodoKind = "approach" | "unreplied" | "proposal" | "meetingRequest" | "meeting" | "savedSearch";
@@ -61,7 +62,7 @@ export async function getTodayTodo(
       .order("accepted_at", { ascending: false }),
     db.from("ow_conversations").select("id, candidate_user_id, last_message_at")
       .eq("company_id", companyId).eq("kind", "company"),
-    listOpenProposals("company", { companyId }),
+    listCompanyProposalTodos(companyId),
     db.from("ow_casual_meetings").select("id, created_at, user_id")
       .eq("company_id", companyId).is("company_read_at", null).order("created_at", { ascending: false }),
     listCompanyMeetings(companyId, { upcoming: true }),
@@ -99,7 +100,7 @@ export async function getTodayTodo(
     }
   }
 
-  /* 名前（声かけ・会話・面談申込）。⚠️ 提案は匿名なので引かない */
+  /* 名前（声かけ・会話・提案・面談申込） */
   const nameIds = new Set<string>();
   for (const a of approaches.data ?? []) {
     nameIds.add(a.candidate_user_id as string);
@@ -129,9 +130,12 @@ export async function getTodayTodo(
       });
     }
   }
+  /* ★提案から始まって、まだ開いていない会話は「提案」として1行だけ出す（「返信があります」と二重にしない） */
+  const openProposalConvIds = new Set((proposals ?? []).filter((p) => p.conversationId).map((p) => p.conversationId as string));
   if (unrepliedRows) {
-    counts.unreplied = unrepliedRows.length;
-    for (const u of unrepliedRows) {
+    const rows = unrepliedRows.filter((u) => !openProposalConvIds.has(u.id));
+    counts.unreplied = rows.length;
+    for (const u of rows) {
       /* ⚠️ 本文は冒頭だけ（自社の会話なので見せてよい）。候補日などの種類つきのメッセージは出さない */
       const snippet = u.body ? `「${u.body.replace(/\s+/g, " ").slice(0, 40)}${u.body.length > 40 ? "…" : ""}」` : null;
       items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)}さんから返信があります`, sub: [relDays(u.at), snippet].filter(Boolean).join(" ・ "), action: "返信する", href: `/biz/messages/${u.id}` });
@@ -140,8 +144,13 @@ export async function getTodayTodo(
   if (proposals) {
     counts.proposal = proposals.length;
     for (const p of proposals) {
-      const left = proposalDaysLeft(p.respondBy);
-      items.push({ kind: "proposal", at: p.createdAt, title: `${nameOf(p.candidateUserId)}さんの提案に回答してください`, sub: [left <= 1 ? "今日で終了" : `あと${left}日で終了`, `根拠${p.evidenceCount}つ`].join(" ・ "), action: "提案を見る", href: "/biz/proposals" });
+      const title = `${nameOf(p.candidateUserId)}さんが提案を見て「話を聞いてみたい」と答えました`;
+      if (p.kind === "open") {
+        items.push({ kind: "proposal", at: p.at, title, sub: [fmtMd(p.at), "まだ誰も会話を開いていません"].join(" ・ "), action: "メッセージを開く", href: `/biz/messages/${p.conversationId}` });
+      } else {
+        const left = p.companyRespondBy ? proposalDaysLeft(p.companyRespondBy) : null;
+        items.push({ kind: "proposal", at: p.at, title, sub: [fmtMd(p.at), left == null ? null : left <= 1 ? "今日までに会うか決めてください" : `あと${left}日で終了`].filter(Boolean).join(" ・ "), action: "会うか決める", href: "/biz/proposals" });
+      }
     }
   }
   if (meetings.error) console.error("[todayTodo] meetings:", meetings.error.message);

@@ -4,6 +4,7 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { markApproachSeenByCompany } from "@/lib/approaches/server";
+import { markProposalSeenByCompany } from "@/lib/evidence/companyProposals";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listSameTestStaff } from "@/lib/business/sameTestStaff";
@@ -189,6 +190,8 @@ export default async function BizConversationDetailPage({
           （2026-10-11 / 柴さんの指示）。⚠️ 以前は参加していない担当者が開いても立っていた（本文は RLS で読めないのに既読になる）。
           ⚠️ 上で `company_id = tenantId` を確かめてある（自社の会話だけ）。運営は /biz の会話を開けない（getTenantContext が所属を要求する） */
     await markApproachSeenByCompany(conversationId, ctx.tenantId);
+    /* ★提案から始まった会話も同じ（2026-10-11）。⚠️ 参加者が開いたときだけ */
+    await markProposalSeenByCompany(conversationId, ctx.tenantId);
   }
 
   const messages: MessageRow[] = (rawMessages ?? []).map((m: any) => ({
@@ -408,6 +411,15 @@ export default async function BizConversationDetailPage({
                 const { date, time } = formatDateTime(msg.sent_at);
 
                 const isApproachFirst = approachFirst?.messageId === msg.id;
+                /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
+                if (msg.kind === "proposal_intro") {
+                  return (
+                    <div key={msg.id} data-state="proposal-intro" style={{ textAlign: "center", fontSize: 12.5, color: "var(--ink-soft)", margin: "8px 0", lineHeight: 1.6 }}>
+                      {msg.body}
+                      <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)" }}>{date} {time}</span>
+                    </div>
+                  );
+                }
                 return (
                   <div key={msg.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {/* ★返信が来たところに中央の小さな一行（2026-10-11 / モックに合わせた） */}

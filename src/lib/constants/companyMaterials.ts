@@ -30,7 +30,7 @@ export const MATERIAL_VISIBILITY_LABELS: Record<MaterialVisibility, string> = {
  */
 export const MATERIAL_VISIBILITY_AUDIENCE: Record<MaterialVisibility, string> = {
   public: "誰でも見られます。求職者向けの企業ページに表示されます（ログインしていない人や検索エンジンも含みます）。",
-  after_mutual: "提案で、双方が「会いたい」と答えた求職者だけが見られます。それ以外の求職者には表示されません。",
+  after_mutual: "提案で「話を聞いてみたい」と答え、貴社とメッセージが始まった求職者だけが見られます。それ以外の求職者には表示されません。",
   internal: "この会社の担当者と、OPINIO のマッチングの処理だけが使います。求職者には一切表示されません。",
 };
 

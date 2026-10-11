@@ -9,7 +9,9 @@ type Row = {
   id: string; candidateName: string; companyName: string;
   evidenceCount: number; counterCount: number; hasJob: boolean; computedAt: string;
   candidateResponse: string | null; companyResponse: string | null;
-  /** `proposalStage()` が2つの返答から導出した段。⚠️ 列では持たない */
+  /** 企業に届けた形（auto / review）。求職者が答えるまで null */
+  deliveryMode: string | null;
+  /** `proposalPhase()` が導出した段。⚠️ 列では持たない */
   stage: string;
   /** 紹介済みか（正は `introduced_at`） */
   introduced: boolean;
@@ -33,8 +35,9 @@ export default function ProposalsAdminClient({
       <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.7 }}>
         候補者を1人選ぶと、掲載中の企業ぶんの提案を作ります。根拠が {minEvidence} 件以上そろった
         組み合わせだけが行になります。<br />
-        ★<strong>OPINIO にログインできる担当者がいない企業は対象外です</strong>
-        （提案を出しても「会いたい」を押せる人がいないため）。<br />
+        ★<strong>提案は求職者にだけ届きます。</strong>求職者が「話を聞いてみたい」と答えたときだけ企業に届きます
+        （企業の設定が「すぐにメッセージ」なら会話を作り、「確認してから」なら企業が会うかを決めます）。<br />
+        ★<strong>OPINIO にログインできる担当者がいない企業と、紹介できる求人が無い企業は対象外です。</strong><br />
         根拠は<strong>作った時点のスナップショット</strong>で、表示のたびに作り直しません。
         すでにある提案は上書きしません（作り直すには先に消してください）。
       </p>
@@ -174,7 +177,15 @@ export default function ProposalsAdminClient({
               {msg.result.ongoing > 0 && (
                 <>
                   <br />
-                  <strong>{msg.result.ongoing} 社</strong>は、この人への提案がまだ進行中（届いてから30日以内で終了していない）のため
+                  <strong>{msg.result.ongoing} 社</strong>は、この人への提案がまだ進行中（本人か企業の返事待ち、またはメッセージが始まっている）のため
+                  <strong>作りませんでした</strong>。
+                </>
+              )}
+              {/* ★求人が無い組（2026-10-11）。提案は求人つきでしか作らない。黙って消さない */}
+              {msg.result.withoutJob > 0 && (
+                <>
+                  <br />
+                  <strong>{msg.result.withoutJob} 社</strong>は、根拠はそろいましたが紹介できる公開中の求人が無いため
                   <strong>作りませんでした</strong>。
                 </>
               )}
@@ -213,13 +224,14 @@ export default function ProposalsAdminClient({
                 <td style={{ padding: 8 }}>{r.computedAt}</td>
                 {/* ⚠️ null は「まだ答えていない」。「見送り」と読ませない */}
                 <td style={{ padding: 8 }}>{r.candidateResponse ?? "未回答"}</td>
-                <td style={{ padding: 8 }}>{r.companyResponse ?? "未回答"}</td>
-                {/* ★★双方合意しているのに会話が作られていない行を見つけるための列（2026-09-21）。
-                       `introduceIfMutual()` は best-effort なので、失敗するとここに残る。
-                       ⚠️ **両側とも答え終わっているので、もう誰も押さない**＝
-                          運営が押さないと永久に救われない。 */}
                 <td style={{ padding: 8 }}>
-                  {r.stage !== "mutual" ? (
+                  {r.deliveryMode === "auto" ? "すぐにメッセージ" : r.deliveryMode === "review" ? (r.companyResponse ?? "確認待ち") : (r.companyResponse ?? "—")}
+                </td>
+                {/* ★★会話を作るはずなのに作られていない行を見つけるための列（2026-09-21 / 2026-10-11）。
+                       `introduceProposal()` は best-effort なので、失敗するとここに残る（段が connecting）。
+                       ⚠️ **答える人はもう居ない**＝運営が押さないと永久に救われない。 */}
+                <td style={{ padding: 8 }}>
+                  {r.stage !== "connecting" && !r.introduced ? (
                     <span style={{ color: "var(--ink-mute)" }}>—</span>
                   ) : r.introduced ? (
                     <span style={{ color: "var(--success-ink)", fontWeight: 600 }}>済</span>

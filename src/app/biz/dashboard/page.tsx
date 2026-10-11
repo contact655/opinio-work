@@ -75,7 +75,8 @@ async function NoTenantPage() {
 const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
   /* ★2026-10-11: 「メッセージ」にまとめた。送ったメッセージに返信があって、まだ開いていないもの */
   { kind: "approach", label: "新しい返信", href: "/biz/messages" },
-  { kind: "proposal", label: "回答待ちの提案", href: "/biz/proposals" },
+  /* ★2026-10-11: 提案は求職者が「話を聞いてみたい」と答えた方だけが届く。まだ開いていない会話＋会うか決める方 */
+  { kind: "proposal", label: "提案で届いた方", href: "/biz/proposals" },
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
   { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/messages" },
@@ -93,12 +94,12 @@ const TODO_BTN_PRIMARY: React.CSSProperties = { ...TODO_BTN, background: "var(--
 
 /** 項目ごとのアイコン。⚠️ 色で意味を足さない（ui-conventions「色の役割」）: 待ち＝黄、ほかは濃紺かニュートラル */
 function TodoIcon({ kind }: { kind: TodayTodoKind | "other" }) {
-  const tone = kind === "approach" || kind === "unreplied" ? { bg: "var(--royal-50)", fg: "var(--royal)" }
-    : kind === "proposal" ? { bg: "var(--warm-soft)", fg: "var(--warm-ink)" }
+  /* ⚠️ 提案は 2026-10-11 から「待ち」ではなく「届いた方」なので黄色にしない */
+  const tone = kind === "approach" || kind === "unreplied" || kind === "proposal" ? { bg: "var(--royal-50)", fg: "var(--royal)" }
     : { bg: "var(--line-soft)", fg: "var(--ink-soft)" };
   const path = kind === "approach" ? <path d="M5 12l5 5 9-10" />
     : kind === "unreplied" ? <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-    : kind === "proposal" ? <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>
+    : kind === "proposal" ? <><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-7 7-7s7 3 7 7M19 8v6M16 11h6" /></>
     : kind === "savedSearch" ? <path d="M6 3h12v18l-6-4-6 4z" />
     : kind === "meeting" || kind === "meetingRequest" ? <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></>
     : <><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></>;

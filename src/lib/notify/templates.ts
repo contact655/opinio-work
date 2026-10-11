@@ -494,6 +494,35 @@ export function approachRepliedCompanyTemplate(params: {
 }
 
 /**
+ * ★提案を見て「話を聞いてみたい」と答えた方が届いた（2026-10-11 / 提案を「求職者が先に答える」形にした）。
+ *   auto … その場で会話を作ったので「メッセージを開く」へ。review … /biz/proposals で会うか決めてもらう。
+ * ⚠️★ひとことの中身は書かない（名前とリンクだけ。approachRepliedCompanyTemplate と同じ方針）。
+ * ⚠️ 求職者の名前は第三者への言及なので `greet()` は使わない。
+ */
+export function proposalRaisedCompanyTemplate(params: {
+  to: string;
+  candidateName: string | null | undefined;
+  mode: "auto" | "review";
+  conversationId: string | null;
+  viaOps?: boolean;
+}) {
+  const name = greetingName(params.candidateName);
+  const who = name ? `${name}さん` : "提案をお届けした方";
+  const auto = params.mode === "auto" && params.conversationId;
+  return {
+    to: params.to,
+    subject: opsSubject(`${who}が提案を見て「話を聞いてみたい」と答えました`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">提案で届いた方がいます</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}が、OPINIO からの提案を見て「話を聞いてみたい」と答えました。${
+        auto ? "そのままメッセージでやり取りできます。" : "内容を見て、会うかどうかを決めてください（14日で終了します）。"
+      }</p>
+      <a href="${auto ? `https://opinio.jp/biz/messages/${encodeURIComponent(params.conversationId as string)}` : "https://opinio.jp/biz/proposals"}" style="${BTN}">${auto ? "メッセージを開く" : "提案を見る"} →</a>
+    `),
+  };
+}
+
+/**
  * ★保存した条件の新着のお知らせ（2026-10-10 / 候補者探し 段3）。送るのは条件を作った人だけ。
  * ⚠️★**氏名・経歴を入れない。** 件数とリンクだけ（柴さんの指示）。
  * ⚠️ 新着が0人の日は送らない（呼び出し側で止める。ここは count >= 1 の前提）。

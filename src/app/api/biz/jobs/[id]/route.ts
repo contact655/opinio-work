@@ -386,6 +386,13 @@ export async function DELETE(
     .eq("company_id", ctx2.companyId);
 
   if (error) {
+    /* ★提案に添えた求人は消せない（2026-10-11。ow_proposals.job_id は ON DELETE RESTRICT。
+          消すと、提案から始まった会話の「開いてよい理由」まで消えるため）。
+          ⚠️★**理由（提案に使われていること）を文言に書かない**（2026-10-11 / 柴さんの判断）。
+             書くと、その求人で誰かに貴社を紹介したことが企業に分かる */
+    if (error.code === "23503") {
+      return NextResponse.json({ error: "この求人は削除できません。非公開にしてください。" }, { status: 409 });
+    }
     console.error("[jobs DELETE]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

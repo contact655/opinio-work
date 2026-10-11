@@ -10,7 +10,10 @@ import {
 /**
  * ④ 見送り理由のシート。**②と⑨の両方から呼ぶ共通部品。**
  *
- * ⚠️★**理由は1つだけ選ばせる（複数選択にしない）。**
+ * ★★理由は**任意**（2026-10-11 / 柴さんの判断）。選ばずに「見送る」を押せる。
+ *    ⚠️ 選ばなかったら理由の行は作らない（`saveDecline`）。既定値で埋めないこと。
+ *
+ * ⚠️★**理由は1つだけ（複数選択にしない）。**
  *    「いちばんの理由」が取れなくなり、集計が「何となく全部」になる。
  *    DB も `reason text`（配列ではない）で、`(proposal_id, side)` が一意。
  *
@@ -40,7 +43,7 @@ export default function DeclineSheet({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="見送る理由"
+      aria-label="今回は見送る"
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,.35)",
         display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60,
@@ -54,14 +57,15 @@ export default function DeclineSheet({
           width: "100%", maxWidth: 420, maxHeight: "85vh", overflowY: "auto",
         }}
       >
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>見送る理由を1つ選んでください</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>今回は見送る</h2>
         <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 14px", lineHeight: 1.7 }}>
           {/* ★いま相手に渡していないことを、そのまま書く */}
           {side === "candidate"
-            ? "この内容は企業には伝わりません。次の提案の精度を上げるためだけに使います。"
-            : "この内容は候補者には伝わりません。次の提案の精度を上げるためだけに使います。"}
+            ? "見送ったことも理由も、企業には伝わりません。理由は任意です。選んでいただくと、次の提案の精度を上げるために使います。"
+            : "見送ったことも理由も、候補者には伝わりません（候補者には「この提案は終了しました」とだけ表示されます）。理由は任意です。"}
         </p>
 
+        <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 6px" }}>理由（任意・1つ）</p>
         <div style={{ display: "grid", gap: 2, marginBottom: 14 }}>
           {options.map((o) => (
             <label
@@ -106,13 +110,13 @@ export default function DeclineSheet({
           </button>
           <button
             onClick={() => onSubmit(reason, note)}
-            /* ⚠️ 理由を選ぶまで押せない。既定値で埋めない */
-            disabled={!reason || pending}
+            /* ★理由は任意（2026-10-11）。選ばなくても押せる。⚠️ 既定値で埋めない（空のまま送る） */
+            disabled={pending}
             style={{
               padding: "9px 14px", borderRadius: 8, border: "none",
               background: "var(--royal)", color: "#fff", fontWeight: 600,
-              cursor: reason && !pending ? "pointer" : "default",
-              opacity: reason && !pending ? 1 : 0.5,
+              cursor: !pending ? "pointer" : "default",
+              opacity: !pending ? 1 : 0.5,
             }}
           >
             {pending ? "保存中…" : "見送る"}

@@ -157,9 +157,13 @@ export default function Page() {
              ⚠️ ボタン（会いたい・見送る）は本物の API を呼ぶ。ここでは押さないこと。 */}
       <Variant
         label="企業側の一覧（/biz/proposals）"
-        note="未回答タブ: 未回答2件（うち1件は候補者が興味あり）。回答済みタブ: 双方合意（メッセージを開く）／終了した提案2件（「この提案は終了しました」・ボタンなし。1件はお名前も表示できない）"
+        note="届いた方: 確認してから（あと12日・ひとことあり）／すぐにメッセージ（メッセージを開く）／メッセージ準備中。終了: 見送った／期限切れ（見せられなくなった方は行ごと出ない）。右の列: 設定A・今月の提案（毎朝更新）"
       >
-        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} responseDays={30} />
+        <BizProposalsClient proposals={BIZ_SAMPLE} loadFailed={false} mode="auto" canEditMode={false}
+          stats={{ introduced: 12, raised: 3, meetings: 1, cutoff: "2026-10-10T15:00:00.000Z" }} reviewDays={14} />
+      </Variant>
+      <Variant label="企業側（届いた方0人・設定B・数字取得失敗）" note="空の文は「右の」を付けない。数字は「—」">
+        <BizProposalsClient proposals={[]} loadFailed={false} mode="review" canEditMode={false} stats={null} reviewDays={14} />
       </Variant>
     </div>
   );
@@ -180,31 +184,26 @@ const FIT_ALL: EvidenceFacts = {
 function bizItem(id: string, over: Partial<BizProposalView>): BizProposalView {
   return {
     id,
+    tab: "arrived",
+    phase: "introduced",
     evidence: buildEvidence(facts(3), OPTS),
     counter: buildCounterEvidence(COUNTER_FULL, OPTS),
-    /* ★2026-10-09 から実名（案B）。⚠️ 架空の名前。DB は読まない */
+    /* ⚠️ 架空の名前。DB は読まない */
     candidate: { id: "00000000-0000-0000-0000-0000000000a1", name: "検証 太郎", headline: "SaaS の法人営業 7年", tenureYears: 7, roleTrail: "インサイドセールス → フィールドセールス", prefecture: "神奈川県" },
-    candidateInterested: false,
-    ended: false,
-    response: null,
-    respondedAt: null,
-    introducedAt: null,
+    note: null,
     jobTitle: "アカウントエグゼクティブ",
-    computedAt: "2026-09-21",
+    raisedAt: "2026-10-09T03:00:00.000Z",
     conversationId: null,
-    /* ★締め切り（2026-10-10）。未回答には日数、終了・合意済みには出さない */
     daysLeft: null,
     ...over,
   };
 }
 
 const BIZ_SAMPLE: BizProposalView[] = [
-  bizItem("p-open-1", { daysLeft: 12 }),
-  bizItem("p-open-2", { candidateInterested: true, daysLeft: 1 }),
-  bizItem("p-mutual", { candidateInterested: true, response: "want_to_meet", conversationId: "00000000-0000-0000-0000-000000000000" }),
-  /* ★終了（2026-10-09）。候補者が見送ったのか、対象外になったのかは企業に区別させない */
-  bizItem("p-ended", { ended: true, jobTitle: null }),
-  /* ★いま見せてはいけない候補者（本人が「今は考えていない」に変えた等）。名前は送られない */
-  bizItem("p-hidden", { candidate: null, ended: true }),
+  bizItem("p-review", { phase: "company_review", daysLeft: 12, note: "御社のエンタープライズ向けの営業体制について、お話を伺えたらうれしいです。現職の状況も含めてご相談させてください。" }),
+  bizItem("p-auto", { phase: "introduced", conversationId: "00000000-0000-0000-0000-000000000000" }),
+  bizItem("p-connecting", { phase: "connecting", jobTitle: null }),
+  bizItem("p-declined", { tab: "ended", phase: "company_declined" }),
+  bizItem("p-expired", { tab: "ended", phase: "company_expired" }),
+  /* ⚠️ いま見せてはいけない方（hidden）はサーバーが行ごと落とすので、ここにも置かない（2026-10-11） */
 ];
-

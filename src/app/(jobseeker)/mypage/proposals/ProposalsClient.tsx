@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import EvidenceList, { type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
 import DeclineSheet from "@/components/proposals/DeclineSheet";
-import { CANDIDATE_RESPONSE_LABELS } from "@/lib/constants/proposalResponses";
+import { PROPOSAL_NOTE_MAX, PROPOSAL_RESPONSE_DAYS } from "@/lib/constants/proposalResponses";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 export type ProposalView = {
@@ -17,10 +17,24 @@ export type ProposalView = {
   isOwnCompany: boolean;
   evidence: EvidenceView[];
   counter: CounterView[];
-  response: string | null;
-  /** ★終了したか（2026-10-09）。企業が見送った／いまは企業に見せてはいけない状態になった。
-   *  ⚠️★**どちらなのかは渡していない**（`lib/evidence/proposalEnded.ts`）。画面にも出さない */
-  ended: boolean;
+  /**
+   * ★この提案がいまどうなっているか（`proposalPhase()` から作った表示用の区分）。
+   *   pending … 答えられる ／ waiting … 話を聞いてみたいと答え、企業の返事を待っている ／
+   *   introduced … メッセージが開いた ／ declined … 自分が見送った ／ ended … 終了した
+   * ⚠️★ended の理由（企業が見送った・14日返事が無い・30日たった等）は**渡していない**。画面にも出さない
+   */
+  status: "pending" | "waiting" | "introduced" | "declined" | "ended";
+  /** ★企業が「確認してから」（B）の設定か。押す直前の説明を変えるだけ。未回答のときだけ意味を持つ */
+  companyReviews: boolean;
+  jobTitle: string | null;
+  /** 求人ページへのリンク。掲載中でないときは null */
+  jobHref: string | null;
+  /** 関連する求人の掲載が終わっている */
+  jobClosed: boolean;
+  /** 自分が送ったひとこと */
+  note: string | null;
+  /** メッセージが開いたときの会話 */
+  conversationId: string | null;
   computedAt: string;
   /** ★回答の締め切りまであと何日（2026-10-10）。終了・両方回答済みなら null。⚠️ 通知は送らない（表示だけ） */
   daysLeft: number | null;
@@ -33,14 +47,20 @@ export default function ProposalsClient({
   const [declining, setDeclining] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  /* ★会社へのひとこと（任意）。提案ごとに持つ */
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
-  async function respond(id: string, response: string, reason?: string, note?: string) {
+  async function respond(id: string, response: "interested" | "declined", reason?: string, declineNote?: string) {
     setPending(true); setErr(null);
     try {
       const res = await fetch(`/api/jobseeker/proposals/${id}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response, reason, note }),
+        body: JSON.stringify(
+          response === "interested"
+            ? { response, note: (notes[id] ?? "").trim() || null }
+            : { response, reason: reason || null, declineNote: declineNote || null },
+        ),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -48,7 +68,16 @@ export default function ProposalsClient({
         setErr(j.error ?? "保存できませんでした");
         return;
       }
-      setItems((prev) => prev.map((p) => (p.id === id ? { ...p, response } : p)));
+      const j = (await res.json().catch(() => ({}))) as { conversationId?: string | null };
+      setItems((prev) => prev.map((p) => {
+        if (p.id !== id) return p;
+        /* ⚠️ 答えたら締め切りは出さない（daysLeft を消す） */
+        if (response === "declined") return { ...p, status: "declined", daysLeft: null };
+        /* ★auto ならその場で会話ができている。review なら企業の返事待ち */
+        return j.conversationId
+          ? { ...p, status: "introduced", conversationId: j.conversationId, note: (notes[id] ?? "").trim() || null, daysLeft: null }
+          : { ...p, status: "waiting", note: (notes[id] ?? "").trim() || null, daysLeft: null };
+      }));
       setDeclining(null);
     } finally {
       setPending(false);
@@ -71,27 +100,16 @@ export default function ProposalsClient({
         根拠にしているのは、OPINIO に登録された職歴と、在籍している方がご自身で答えた内容だけです。
       </p>
 
-      {/* ★★何が・いつ・どこまで渡るかを書く（2026-09-21 に実測して書き直した）。
-             ⚠️★**「お互いが分かります」だけにしないこと。** 何が渡るかを言っていなかった。
-                カジュアル面談の `share_profile` を撤去したときと同じで、
-                **選択肢を持たせない以上、告知は厚くする。**
-             ⚠️★**非対称であることも書く。** 企業名はこの画面に最初から出ているので、
-                「お互いが」は事実と違う。伏せているのは候補者側だけ。
-             ⚠️★**2026-10-09 に「匿名で届いていて」をやめた**（柴さんの判断・案B）。
-                提案の対象は全員、同じ企業の候補者検索に実名で出ているので、匿名は守れない
-                約束だった。企業側の提案カードにもお名前を出している（`biz/proposals/page.tsx`）。
-             ⚠️★**「この時点では企業に何も伝わりません」も同日に外した。事実と違っていた。**
-                企業側のカードには以前から「候補者：興味あり」のバッジが出ている。
-             ⚠️★「メッセージが開くのは双方合意のとき」は**変えていない。消さないこと。** */}
+      {/* ★★何が・いつ・どこまで渡るかを書く（2026-10-11 に「求職者が先に答える」形へ書き直した）。
+             ⚠️★選択肢を持たせない以上、告知は厚くする。消さないこと。
+             ⚠️★「提案のことは企業に伝わらない」は**提案について**の話。候補者検索に出ているかは別
+                （そちらは「転職について」の設定で決まる）。混ぜて「企業から見えません」と書かないこと */}
       <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 0 20px" }}>
-        <strong>提案の時点から、企業にはあなたのお名前と職歴が見えています。</strong>
-        企業が見るのは、候補者検索と同じ OPINIO の公開プロフィール
-        （お名前・顔写真・見出し・職歴など）です。
-        {/* ★2026-10-09 に「見送る」も表示される、をやめた。見送りは企業に伝えず、
-               企業には「この提案は終了しました」とだけ出る（理由は出さない）。 */}
-        「興味がある」と答えると、そのことが企業に表示されます。
-        「今は見送る」は企業には伝わらず、企業には「この提案は終了しました」とだけ表示されます。<br />
-        <strong>メッセージができるようになるのは、双方が「会いたい」と答えたとき</strong>です。
+        <strong>提案はあなたにだけ届いています。</strong>
+        あなたが「話を聞いてみたい」と答えるまで、この提案のことは企業に伝わりません。
+        答えると、企業にあなたの公開プロフィール（お名前・顔写真・見出し・職歴など）と、書いた場合はひとことが届きます。
+        応募にはなりません。「今回は見送る」を選んでも、企業には伝わりません。
+        提案は届いてから{PROPOSAL_RESPONSE_DAYS}日で終了します。
       </p>
 
       {err && (
@@ -148,6 +166,18 @@ export default function ProposalsClient({
 
                 <EvidenceList evidence={p.evidence} counter={p.counter} audience="candidate" />
 
+                {/* ★関連する求人（2026-10-11。提案は求人つきでしか作らない） */}
+                {p.jobTitle && (
+                  <p style={{ fontSize: 13, margin: "10px 0 0" }}>
+                    <span style={{ color: "var(--ink-soft)" }}>関連する求人：</span>
+                    {p.jobHref ? (
+                      <Link href={p.jobHref} style={{ color: "var(--royal)" }}>{p.jobTitle}</Link>
+                    ) : (
+                      <span>{p.jobTitle}{p.jobClosed && <span style={{ color: "var(--ink-soft)" }}>（掲載を終了しました）</span>}</span>
+                    )}
+                  </p>
+                )}
+
                 {/* ⚠️ スナップショットである旨を書く。数字が古くなりうることを隠さない */}
                 <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "10px 0 0" }}>
                   {p.computedAt} 時点の情報にもとづく提案です
@@ -158,54 +188,83 @@ export default function ProposalsClient({
                   )}
                 </p>
 
-                {/* ★★押す直前にも1行だけ置く（2026-09-21）。
-                       ⚠️ 上の告知は**画面の先頭**にあるので、提案が増えると
-                          押すときには視界から外れている。**決める場所に置く。**
-                       ⚠️ 答えたあとは出さない（もう決める場面ではない）。 */}
-                {!p.response && !p.ended && (
-                  <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "4px 0 0" }}>
-                    「興味がある」＝ 企業にもそのことが表示されます。企業も会いたいと答えると、メッセージが開きます
-                  </p>
-                )}
+                {p.status === "pending" ? (
+                  <div data-state="proposal-pending" style={{ marginTop: 14 }}>
+                    <label htmlFor={`note-${p.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                      会社へのひとこと<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（任意・{PROPOSAL_NOTE_MAX}字まで）</span>
+                    </label>
+                    <textarea
+                      id={`note-${p.id}`}
+                      value={notes[p.id] ?? ""}
+                      maxLength={PROPOSAL_NOTE_MAX}
+                      rows={3}
+                      onChange={(e) => setNotes((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                      placeholder="聞いてみたいことや、いまの状況など"
+                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.6, resize: "vertical" }}
+                    />
+                    <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", textAlign: "right" }}>
+                      {(notes[p.id] ?? "").length} / {PROPOSAL_NOTE_MAX}
+                    </p>
 
-                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                  {p.response ? (
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", padding: "9px 0" }}>
-                      「{CANDIDATE_RESPONSE_LABELS[p.response as "interested" | "declined"]}」と答えました
-                    </span>
-                  ) : p.ended ? (
-                    /* ⚠️ 終了した提案にはボタンを出さない（API も 409 で止める）。
-                          ⚠️★理由（企業が見送った等）は書かない */
-                    <span style={{ fontSize: 13, color: "var(--ink-soft)", padding: "9px 0" }}>
-                      この提案は終了しました
-                    </span>
-                  ) : (
-                    <>
+                    {/* ★★押す直前に置く。⚠️ 画面の先頭の告知は、提案が増えると押すときには視界から外れている */}
+                    <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, margin: "8px 0 0" }}>
+                      {p.companyReviews
+                        ? <>押すと、{p.companyName}にあなたのプロフィールとひとことが届きます。{p.companyName}が「会う」と答えると、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。</>
+                        : <>押すと、{p.companyName}にあなたのプロフィールとひとことが届き、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。</>}
+                    </p>
+
+                    <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <button
                         onClick={() => respond(p.id, "interested")}
                         disabled={pending}
-                        style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 600, cursor: "pointer" }}
+                        style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 600, cursor: pending ? "default" : "pointer", opacity: pending ? 0.6 : 1 }}
                       >
-                        興味がある
+                        話を聞いてみたい
                       </button>
+                      {p.companyHref && (
+                        <Link href={p.companyHref} style={{ fontSize: 13, color: "var(--royal)" }}>
+                          企業ページを見る
+                        </Link>
+                      )}
+                      {/* ★小さく置く（2026-10-11）。理由は任意 */}
                       <button
                         onClick={() => setDeclining(p.id)}
                         disabled={pending}
-                        style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}
+                        style={{ marginLeft: "auto", padding: "4px 0", border: "none", background: "none", color: "var(--ink-soft)", fontSize: 12, textDecoration: "underline", cursor: "pointer" }}
                       >
-                        今は見送る
+                        今回は見送る
                       </button>
-                      {p.companyHref && (
-                        <Link
-                          href={p.companyHref}
-                          style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 14, textDecoration: "none", color: "inherit" }}
-                        >
-                          根拠を確かめる
-                        </Link>
-                      )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div data-state={`proposal-${p.status}`} style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7 }}>
+                    {p.status === "introduced" ? (
+                      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 600 }}>「話を聞いてみたい」と答えました。メッセージでやり取りできます。</span>
+                        {p.conversationId && (
+                          <Link
+                            href={`/mypage/conversations/${p.conversationId}`}
+                            style={{ padding: "8px 14px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontWeight: 600, textDecoration: "none" }}
+                          >
+                            メッセージを開く
+                          </Link>
+                        )}
+                      </div>
+                    ) : p.status === "waiting" ? (
+                      <span>「話を聞いてみたい」と答えました。{p.companyName}からの返事をお待ちください。</span>
+                    ) : p.status === "declined" ? (
+                      <span style={{ color: "var(--ink-soft)" }}>今回は見送りました。</span>
+                    ) : (
+                      /* ⚠️★理由（企業が見送った・期限切れ等）は書かない */
+                      <span style={{ color: "var(--ink-soft)" }}>この提案は終了しました</span>
+                    )}
+                    {p.note && (p.status === "waiting" || p.status === "introduced") && (
+                      <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>
+                        送ったひとこと：{p.note}
+                      </p>
+                    )}
+                  </div>
+                )}
               </article>
             ))}
           </div>

@@ -1,119 +1,129 @@
 /**
- * ③ 双方合意の紹介 —— mutual になった瞬間に会話を1本作る。
+ * ★提案から会話を作る（2026-10-11 に「求職者が先に答える」形へ作り替えた）。
  *
- * ⚠️★**呼び出し側に条件を書き写さないこと。** 入口は
- *    [`saveProposalResponse()`](./respond.ts) の1箇所だけで、
- *    ②の route と⑨の route はそれを呼ぶだけ。2本に書くと必ず片方だけ直る。
+ * いつ呼ばれるか（入口は `respond.ts` だけ。route に条件を書き写さないこと）:
+ *   auto   … 求職者が「話を聞いてみたい」と答えた直後
+ *   review … 企業が「会う」を押した直後
+ *   運営   … /admin/proposals の再試行（作成に失敗して残ったもの）
  *
- * ⚠️★**紹介の器を新設しない。** `create_conversation` RPC に寄せる。
- *    自前で `ow_conversations` に INSERT すると `stage` を間違えて
- *    `ow_conversations_stage_consistency` に必ず違反する
- *    （2026-08-25 まで scout の返答がそれで500だった）。
+ * 会話にはこの順で入れる:
+ *   ① 案内の行（`kind = 'proposal_intro'`・送った人なし）「〇〇さんが提案を見て、話を聞いてみたいと答えました。」
+ *   ② ひとことがあれば、求職者本人の発言として1通目
  *
- * ⚠️★**admin クライアント（service_role）で呼ぶ。**
- *    RPC は 2026-09-21 の migration で service_role だけ
- *    「候補者本人か」の確認を素通しするようにした。
- *    **それ以前は、最後に答えたのが企業だと 42501 で落ちていた**
- *    （mutual は「最後に答えたほう」で成立するので半分が失敗する）。
- *
- * ⚠️★**`notifyNewMessage` は使えない。** あれは送信者を要求するが、紹介の会話には
- *    メッセージが1件も無い。そこで専用の種別 `introduction` を足した（2026-09-21）。
- *    ⚠️ 種別を足したら `survives()`（`GET /api/jobseeker/notifications`）にも
- *       `case` を足すこと。忘れるとその種別が丸ごと静かに消える。
+ * ⚠️★会話を作るのは `openCompanyConversation()`（`openReason.ts`）だけ。自前で ow_conversations に入れない。
+ * ⚠️★二重に作らない: `introduced_at` を「まだ空なら書く」で取ってから、メッセージと通知を出す。
+ * ⚠️ best-effort。失敗しても返答は取り消さない（失敗は必ずログに出し、/admin の要対応で救う）。
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
-import { mutateOne } from "@/lib/supabase/mutate";
-import { proposalStage } from "@/lib/constants/proposalResponses";
-import { notifyIntroduction } from "@/lib/notify/proposalNotification";
+import { proposalIntroLine, proposalShouldConnect } from "@/lib/constants/proposalResponses";
+import { notifyIntroduction, notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
 
 export type IntroduceOutcome =
-  | { introduced: false; reason: "not_mutual" | "already" | "failed" }
+  | { introduced: false; reason: "not_ready" | "already" | "failed" }
   | { introduced: true; conversationId: string };
 
 /**
- * 提案が mutual なら会話を作り、`introduced_at` に記録する。**冪等。**
- *
- * ⚠️ **best-effort。** 失敗しても返答そのものは取り消さない
- *    （返答は本人の操作で、紹介の失敗で巻き戻すほうが害が大きい）。
- *    ただし**握りつぶさない** —— 失敗は必ず `console.error` に出す。
- *
- * @param db ★**admin クライアント**（service_role）。利用者クライアントを渡さないこと
+ * @param db ★admin クライアント（service_role）
+ * @param opts.by 誰の操作で作ったか。`company`（review で会う）なら求職者に知らせる。`candidate`（auto）なら企業にメールで知らせる
  */
-export async function introduceIfMutual(
+export async function introduceProposal(
   db: SupabaseClient,
   proposalId: string,
+  opts: { by: "candidate" | "company" | "ops" },
 ): Promise<IntroduceOutcome> {
   const { data: row, error } = await db
     .from("ow_proposals")
-    .select("candidate_user_id, company_id, candidate_response, company_response, introduced_at")
+    .select("candidate_user_id, company_id, candidate_response, company_response, delivery_mode, introduced_at, candidate_note")
     .eq("id", proposalId)
     .maybeSingle();
-
-  if (error) {
-    console.error("[evidence/introduce] ow_proposals:", error.message);
+  if (error || !row) {
+    console.error("[evidence/introduce] ow_proposals:", error?.message ?? "not found", proposalId);
     return { introduced: false, reason: "failed" };
   }
-  if (!row) {
-    console.error("[evidence/introduce] 提案が見つからない:", proposalId);
-    return { introduced: false, reason: "failed" };
-  }
-
-  /* ★段は2つの返答から導出する。列で持たない（食い違う余地を作らない） */
-  const stage = proposalStage(
-    row.candidate_response as string | null,
-    row.company_response as string | null,
-  );
-  if (stage !== "mutual") return { introduced: false, reason: "not_mutual" };
-
-  /* ⚠️ RPC 自体は冪等だが、**通知とメールは二重に出る**ので記録で止める。
-        判定に使うのは `introduced_at`（`conversation_id` は ON DELETE SET NULL
-        で消えうるので「紹介したか」の正にならない）。 */
   if (row.introduced_at) return { introduced: false, reason: "already" };
+  if (!proposalShouldConnect({
+    candidateResponse: (row.candidate_response as string | null) ?? null,
+    companyResponse: (row.company_response as string | null) ?? null,
+    deliveryMode: (row.delivery_mode as string | null) ?? null,
+  })) return { introduced: false, reason: "not_ready" };
 
+  const candidateUserId = row.candidate_user_id as string;
+  const companyId = row.company_id as string;
+
+  /* ① 会話を作る（作る経路は openReason.ts の1か所。判定に `can_send_scout()` が入っている）。RPC は冪等 */
   let conversationId: string;
   try {
-    /* ★会話を作る経路はすべて `openReason.ts` を通す（2026-10-09 / 段階2）。
-          双方合意の提案は `can_send_scout()`（転職意欲を含む）で確かめる */
-    const created = await openCompanyConversation({
-      candidateOwUserId: row.candidate_user_id as string,
-      companyId: row.company_id as string,
-      source: "proposal",
-    });
+    const created = await openCompanyConversation({ candidateOwUserId: candidateUserId, companyId, source: "proposal" });
     if (!created) return { introduced: false, reason: "failed" };
     conversationId = created.conversationId;
   } catch (e) {
-    console.error("[evidence/introduce] createConversation failed:", e);
+    console.error("[evidence/introduce] 会話の作成:", e);
     return { introduced: false, reason: "failed" };
   }
 
-  /* ⚠️ 0行更新を成功として扱わない（CLAUDE.md） */
-  const saved = await mutateOne(
-    db
-      .from("ow_proposals")
-      .update({ conversation_id: conversationId, introduced_at: new Date().toISOString() })
-      .eq("id", proposalId)
-      /* ★二重紹介の最後の歯止め。同時に2つの返答が入っても1回しか通らない */
-      .is("introduced_at", null),
-    "proposal introduce",
-  );
-  if (!saved.ok) {
-    console.error("[evidence/introduce] 記録に失敗:", saved.error);
+  /* ② 取る。⚠️ 0行なら別の処理が先に作った（メッセージと通知を二重に出さない） */
+  const { data: claimed, error: cErr } = await db
+    .from("ow_proposals")
+    .update({ conversation_id: conversationId, introduced_at: new Date().toISOString() })
+    .eq("id", proposalId)
+    .is("introduced_at", null)
+    .select("id");
+  if (cErr) {
+    console.error("[evidence/introduce] 記録:", cErr.message);
     return { introduced: false, reason: "failed" };
   }
+  if (!claimed || claimed.length === 0) return { introduced: false, reason: "already" };
 
-  /* ★知らせる。⚠️ **記録（`introduced_at`）を書いたあとに呼ぶ。**
-        先に呼ぶと、記録に失敗したときに通知だけが二重に出る。
-     ⚠️ 候補者にしか出ない（`/biz` に通知の面が無い）。企業は「会いたい」を
-        押した本人なので、次に何が起きるかは知っている。 */
-  await notifyIntroduction({
-    proposalId,
-    candidateUserId: row.candidate_user_id as string,
-    companyId: row.company_id as string,
-    conversationId,
-  });
+  /* ③ 案内の行とひとこと。⚠️ 失敗しても会話はできている（ログを出して進む） */
+  try {
+    const [{ data: cand }, { data: part, error: pErr }] = await Promise.all([
+      db.from("ow_users").select("name").eq("id", candidateUserId).maybeSingle(),
+      db.from("ow_conversation_participants").select("id").eq("conversation_id", conversationId)
+        .eq("user_id", candidateUserId).is("left_at", null).maybeSingle(),
+    ]);
+    if (pErr) console.error("[evidence/introduce] 参加者:", pErr.message);
+    const t0 = Date.now();
+    const { error: iErr } = await db.from("ow_conversation_messages").insert({
+      conversation_id: conversationId,
+      sender_participant_id: null,
+      kind: "proposal_intro",
+      body: proposalIntroLine((cand?.name as string | null) ?? null),
+      payload: { proposal_id: proposalId },
+      sent_at: new Date(t0).toISOString(),
+    });
+    if (iErr) console.error("[evidence/introduce] 案内の行:", iErr.message);
+    const note = ((row.candidate_note as string | null) ?? "").trim();
+    if (note && part?.id) {
+      /* ⚠️ 案内の行のあとに並ぶよう、時刻を1ミリ秒ずらす */
+      const { error: nErr } = await db.from("ow_conversation_messages").insert({
+        conversation_id: conversationId,
+        sender_participant_id: part.id as string,
+        kind: "text",
+        body: note,
+        sent_at: new Date(t0 + 1).toISOString(),
+      });
+      if (nErr) console.error("[evidence/introduce] ひとこと:", nErr.message);
+    }
+    /* ★求職者には自分の操作なので未読にしない（案内の行は送った人が無いので、放っておくと未読に数えられる） */
+    if (part?.id && opts.by === "candidate") {
+      const { error: rErr } = await db.from("ow_conversation_participants")
+        .update({ last_read_at: new Date(t0 + 2).toISOString() }).eq("id", part.id as string);
+      if (rErr) console.error("[evidence/introduce] 既読:", rErr.message);
+    }
+  } catch (e) {
+    console.error("[evidence/introduce] メッセージ:", e);
+  }
 
-  console.log(`[evidence/introduce] 紹介した proposal=${proposalId} conversation=${conversationId}`);
+  /* ④ 知らせる。⚠️ 記録を書いたあと（二重に出さない） */
+  if (opts.by === "candidate" || opts.by === "ops") {
+    await notifyCompanyProposalRaised({ companyId, candidateUserId, mode: "auto", conversationId });
+  }
+  if (opts.by === "company" || opts.by === "ops") {
+    await notifyIntroduction({ proposalId, candidateUserId, companyId, conversationId });
+  }
+
+  console.log(`[evidence/introduce] 会話を作った proposal=${proposalId} conversation=${conversationId} by=${opts.by}`);
   return { introduced: true, conversationId };
 }

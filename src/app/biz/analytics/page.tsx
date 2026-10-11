@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getApproachAnalytics } from "@/lib/approaches/analytics";
 import { ApproachTab } from "./ApproachTab";
+import { ProposalTab } from "./ProposalTab";
+import { companyProposalStats } from "@/lib/evidence/companyProposals";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "分析 | OPINIO Business" }, robots: { index: false, follow: false } };
@@ -187,8 +189,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
   const since = period === "all" ? null : Date.now() - Number(period) * 86_400_000;
   /* ★「声かけ」タブ（2026-10-10 / 段6）。⚠️ 期間と同じく URL に持つ */
   /* ★タブの名前は「メッセージ」（2026-10-11）。旧 ?tab=approaches も受ける */
-  const tab: "overview" | "messages" = searchParams?.tab === "messages" || searchParams?.tab === "approaches" ? "messages" : "overview";
+  /* ★「提案」タブ（2026-10-11）。⚠️ 数字は1日1回の集計（`companyProposalStats`） */
+  const tab: "overview" | "messages" | "proposals" =
+    searchParams?.tab === "messages" || searchParams?.tab === "approaches" ? "messages"
+    : searchParams?.tab === "proposals" ? "proposals" : "overview";
   const approachData = tab === "messages" ? await getApproachAnalytics(ctx.tenantId, since) : null;
+  const proposalStats = tab === "proposals" ? await companyProposalStats(ctx.tenantId, since === null ? null : new Date(since).toISOString()) : null;
   const qs = (p: Period, t: typeof tab) => {
     const q = new URLSearchParams();
     if (p !== "30") q.set("period", p);
@@ -335,7 +341,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
 
       {/* ★タブ（2026-10-10 / 段6）。⚠️ 選択状態は下線だけ（ui-conventions） */}
       <nav aria-label="分析の種類" style={{ display: "flex", gap: 18, borderBottom: "1px solid var(--line)", marginBottom: 16 }}>
-        {([["overview", "全体"], ["messages", "メッセージ"]] as const).map(([k, label]) => (
+        {([["overview", "全体"], ["messages", "メッセージ"], ["proposals", "提案"]] as const).map(([k, label]) => (
           <Link key={k} href={qs(period, k)} aria-current={tab === k ? "page" : undefined} data-state={tab === k ? "active" : "inactive"}
             style={{ padding: "8px 2px", fontSize: 14, fontWeight: tab === k ? 700 : 500, textDecoration: "none",
               color: tab === k ? "var(--ink)" : "var(--ink-mute)", borderBottom: `2px solid ${tab === k ? "var(--royal)" : "transparent"}`, marginBottom: -1 }}>
@@ -344,7 +350,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
         ))}
       </nav>
 
-      {tab === "messages" ? <ApproachTab data={approachData} periodLabel={periodLabel} /> : (<>
+      {tab === "messages" ? <ApproachTab data={approachData} periodLabel={periodLabel} />
+        : tab === "proposals" ? <ProposalTab stats={proposalStats} periodLabel={periodLabel} /> : (<>
       {/* ── 期間の数字 ── */}
       <div className="an-kpis" style={{ marginBottom: 16 }}>
         <Kpi label="面談の申込み" value={meetingsRes.ok ? meetings.length : null} sub={periodLabel} />

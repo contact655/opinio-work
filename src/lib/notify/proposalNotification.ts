@@ -1,4 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notify } from "@/lib/notify/email";
+import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+import { proposalRaisedCompanyTemplate } from "@/lib/notify/templates";
 
 /**
  * ★提案（②）と紹介（③）を候補者のベルに出す（2026-09-21）。
@@ -8,12 +11,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * 画面への導線も0件だったので、**誰も答えようがなく mutual は起こせなかった**
  * （CLAUDE.md「起きなかった0か、起こせなかった0かを分ける」）。
  *
- * ── ⚠️★受け取るのは候補者だけ ─────────────────────────────────────────────
- * `/biz` には通知の面が**1つも無い**（実測 2026-09-21: `ow_notifications` も
- * `NotificationBell` も `src/app/biz` からの参照0件）。企業はナビの「提案」から
- * 自分で見に行く。**ここから企業向けのメールを生やさないこと** ——
- * 掲載22社のうち通知の宛先を持つのは2社で、残りは運営フォールバックで
- * `ADMIN_EMAIL` に落ちる（＝運営に大量に届く）。出すなら宛先の設計とセット。
+ * ── ★企業にはメールで知らせる（2026-10-11 に変えた）─────────────────────────────
+ * 提案を「求職者が先に答える」形にしたので、企業に知らせるのは**求職者が「話を聞いてみたい」と
+ * 答えたときだけ**（`notifyCompanyProposalRaised`）。未回答・見送りでは何も送らない。
+ * ⚠️ 以前ここには「企業向けメールを生やさないこと（宛先の無い企業が多く運営に落ちる）」と書いてあった。
+ *    提案は**有効な担当者がいる企業にしか作らない**（`generate.ts`）ので、宛先は担当者に届く。
+ *    宛先の決め方は応募の通知と同じ（`getCompanyNotificationTarget`）。
  *
  * ── 空間 ───────────────────────────────────────────────────────────────────
  * ⚠️★`ow_notifications.recipient_user_id` も `ow_proposals.candidate_user_id` も
@@ -86,4 +89,35 @@ export async function notifyIntroduction(params: {
     return;
   }
   console.log(`[notify-introduction] proposal=${params.proposalId}`);
+}
+
+/**
+ * ★求職者が提案を見て「話を聞いてみたい」と答えたことを、企業に知らせる（2026-10-11）。
+ *   auto … 会話を作ったあとに呼ぶ（「メッセージを開く」） ／ review … 答えた直後に呼ぶ（「提案を見る」）
+ * ⚠️★ひとことの中身は書かない（名前とリンクだけ）。⚠️ best-effort。失敗はログに出す
+ */
+export async function notifyCompanyProposalRaised(params: {
+  companyId: string;
+  /** ★`ow_users.id` 空間 */
+  candidateUserId: string;
+  mode: "auto" | "review";
+  conversationId: string | null;
+}): Promise<void> {
+  try {
+    const db = createAdminClient();
+    const { data: cand, error } = await db.from("ow_users").select("name").eq("id", params.candidateUserId).maybeSingle();
+    if (error) console.error("[notify-proposal-raised] ow_users:", error.message);
+    const target = await getCompanyNotificationTarget(params.companyId, "proposal-raised");
+    for (const to of target.to) {
+      await notify(proposalRaisedCompanyTemplate({
+        to,
+        candidateName: (cand?.name as string | null) ?? null,
+        mode: params.mode,
+        conversationId: params.conversationId,
+        viaOps: target.viaOps,
+      }));
+    }
+  } catch (e) {
+    console.error("[notify-proposal-raised]", e instanceof Error ? e.message : e);
+  }
 }
