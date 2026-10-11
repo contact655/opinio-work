@@ -647,37 +647,39 @@ export default function CandidatesClient({
   return (
     <div className="cand-wrap">
 
-      {/* ── ヘッダー ─────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>候補者を探す</h1>
-        {/* ★見出しの下の1文（2026-10-11 / モックに合わせた）。⚠️「現職・過去の在籍企業とそのグループ会社には表示されません」は
-               `can_send_scout()` の在籍企業の除外の言い換え。判定は変えていない */}
-        <p data-state="candidates-lead" style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
-          理由を添えて、候補者に貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。
-        </p>
-        {/* ★送れる人が0人のときだけ（2026-10-11）。⚠️ 候補者がそもそも0人のときは下の空の表示に任せる */}
-        {approachEnabled && candidates.length > 0 && approachableCount === 0 && (
-          <p data-state="no-approachable" style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
-            いま、メッセージを送れる候補者はいません。
-          </p>
-        )}
-      </div>
-
       {/* ── ★ツールバー（2026-09-20）─────────────────────────────────────────
              `/companies`・`/jobs`・`/people` と同じ並び：
                検索窓 → 詳細検索 → 並び替え → 件数
              ⚠️★**280px のサイドバーに戻さないこと。** 条件12個を常時開きで縦に
                 並べていたのを畳んだ（`/jobs` が 2026-09-09 にやったのと同じ）。 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-        {/* フリーワード */}
-        <div style={{ position: "relative", flex: "1 1 100%", minWidth: 0 }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        {/* ── 見出し ─────────────────────────────────────────────────────
+               ★上部を詰めた（2026-10-11 / 柴さんの指示。1300×800 で最初から8〜9人）。見出しもツールバーと同じ行に置く。
+               ⚠️ 見出しの下の説明文は外し、「？」に入れた。説明を見出しの下に戻さないこと */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, marginRight: 8 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0, lineHeight: "38px", whiteSpace: "nowrap" }}>候補者を探す</h1>
+          <HelpToggle label="候補者を探すについて">
+            {/* ⚠️「現職・過去の在籍企業とそのグループ会社には表示されません」は `can_send_scout()` の在籍企業の除外の言い換え。判定は変えていない */}
+            理由を添えて、候補者に貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。
+            「転職について」で「今は考えていない」を選んでいる方は表示されません。
+          </HelpToggle>
+        </div>
+        {/* ★送れる人が0人のときだけ（2026-10-11）。⚠️ 候補者がそもそも0人のときは下の空の表示に任せる。order で行の最後に回す */}
+        {approachEnabled && candidates.length > 0 && approachableCount === 0 && (
+          <p data-state="no-approachable" style={{ order: 10, flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+            いま、メッセージを送れる候補者はいません。
+          </p>
+        )}
+
+        {/* フリーワード。★ボタン類と同じ行に置く（2026-10-11）。幅が足りなければ折り返して2行になる */}
+        <div style={{ position: "relative", flex: "1 1 180px", minWidth: 0 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
             style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} aria-hidden>
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
             type="search" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社で検索（複数の言葉はスペースで区切る）"
+            placeholder="名前・職種・会社で検索"
             style={{
               width: "100%", height: 38, padding: "0 32px 0 34px",
               border: "1px solid var(--line)", borderRadius: 999,
@@ -1097,7 +1099,7 @@ export default function CandidatesClient({
 
       {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
       <style>{`
-        .cand-wrap { padding: 16px 32px; max-width: 1400px; margin: 0 auto; }
+        .cand-wrap { padding: 0 32px 16px; max-width: 1400px; margin: 0 auto; }
         .cand-card { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
         .cand-card.is-selected { border-color: var(--royal); background: var(--royal-50); }
         .cand-card .cand-card-link:focus-visible { outline: none !important; }
@@ -1128,7 +1130,7 @@ export default function CandidatesClient({
         .cand-card-updated { margin-left: auto; font-size: 11.5px; line-height: 19px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; }
         .cand-card-actions { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
         @media (max-width: 640px) {
-          .cand-wrap { padding: 12px 16px; }
+          .cand-wrap { padding: 0 16px 12px; }
           .cand-card { padding: 12px 14px; gap: 10px; }
           .cand-card-row1 { flex-wrap: wrap; height: auto; row-gap: 2px; }
           .cand-card-metas { order: 3; flex-basis: 100%; line-height: 18px; }
@@ -1147,5 +1149,36 @@ export default function CandidatesClient({
              サイドバーをやめ、条件は上部の「詳細検索」に畳んである。
              ⚠️ ツールバーは flex-wrap で折り返すので、狭い画面用の出し分け CSS は要らない。 */}
     </div>
+  );
+}
+
+/**
+ * ★見出し横の「？」（2026-10-11）。押すと説明が開く。⚠️ hover だけにしない（タッチで開けない）。
+ */
+function HelpToggle({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    /* ⚠️ この span に position を付けない。説明は見出しの行（親の relative）の左端から開く（375px で右にはみ出さないため） */
+    <span style={{ display: "inline-flex" }}>
+      <button type="button" aria-label={label} aria-expanded={open} onClick={() => setOpen((v) => !v)}
+        data-state="candidates-help"
+        className="btn-fixed-size"
+        style={{
+          width: 20, height: 20, borderRadius: "50%", border: "1px solid var(--line)", background: "#fff",
+          color: "var(--ink-mute)", fontSize: 12, fontWeight: 700, lineHeight: 1, cursor: "pointer",
+          display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", padding: 0,
+        }}>?</button>
+      {open && (
+        <>
+          <button type="button" aria-label="閉じる" onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "transparent", border: "none", cursor: "default", zIndex: 40 }} />
+          <span role="note" style={{
+            position: "absolute", top: 42, left: 0, zIndex: 41, width: 360, maxWidth: "calc(100vw - 32px)",
+            background: "#fff", border: "1px solid var(--line)", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,35,102,0.12)",
+            padding: "10px 12px", fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-soft)", fontWeight: 400,
+          }}>{children}</span>
+        </>
+      )}
+    </span>
   );
 }
