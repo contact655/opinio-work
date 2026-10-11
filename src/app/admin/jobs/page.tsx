@@ -59,7 +59,7 @@ export default async function AdminJobsPage() {
     const m = missingForPublishFromRow(r as unknown as Record<string, unknown>, roleCounts.get(r.id as string) ?? 0);
     if (m.length > 0) publishMissing[r.id as string] = m.map((x) => x.label);
   }
-  /* ★禁止表現（wordingCheck.ts。2026-10-12）。運営確認中の求人だけ。⚠️ 企業の画面・公開の判定と同じ関数 */
+  /* ★禁止表現（wordingCheck.ts。2026-10-12）。再開依頼の求人だけ。⚠️ 企業の画面・公開の判定と同じ関数 */
   const wordingHits: Record<string, string[]> = {};
   for (const r of pubRows ?? []) {
     const row = r as unknown as Record<string, unknown>;

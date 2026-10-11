@@ -189,18 +189,20 @@ const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", 
  *       片方だけ足すと「画面では選べるが保存できない」になる。
  */
 export const JOB_STATUS_TRANSITIONS: Record<string, readonly JobStatus[]> = {
-  /* ★2026-10-12 に即時公開へ切り替えた（柴さんの指示）。`published` は「公開する」の**申し出**で、
+  /* ★2026-10-12 に即時公開へ切り替えた（柴さんの指示）。`published` は「公開する」「再開する」「再開を依頼する」の**申し出**で、
         実際に何になるかは lib/jobs/publishServer.ts の requestPublish が決める
-        （すぐ公開 ／ 運営確認中 ／ 断る）。⚠️ 企業が直接 published を書くことはできない（トリガー・RLS） */
+        （すぐ公開 ／ 運営が停止した求人なら再開の依頼＝pending_review ／ 断る）。
+     ⚠️ 企業が直接 published を書くことはできない（トリガー・RLS）
+     ⚠️ 画面の呼び方は lib/jobs/jobState.ts（下書き／公開中／停止中） */
   /** 下書き → 公開する */
   draft:          ["published"],
-  /** 運営確認中 → 直して公開し直す ／ 下書きに戻す */
-  pending_review: ["published", "draft"],
-  /** 差し戻し（旧。2026-10-12 から作らない）→ 直して公開する */
+  /** 再開を依頼済み（運営が停止した求人）→ 企業からは動かせない（運営が戻すか見送る） */
+  pending_review: [],
+  /** 旧「差し戻し」（2026-10-12 から作らない）→ 運営が停止した求人と同じく再開の依頼 */
   rejected:       ["published"],
-  /** 公開中 → 自社都合で止める */
+  /** 公開中 → 停止する（自社で停止） */
   published:      ["private"],
-  /** 非公開 → 公開を再開（運営が停止した求人は requestPublish が運営確認中にする） */
+  /** 停止中 → 再開する（自社で停止）／ 再開を依頼する（運営が停止） */
   private:        ["published"],
 };
 
@@ -327,10 +329,12 @@ export async function fetchJobsForCompany(
       .filter((n): n is string => !!n);
     // 自社での呼び方。論理削除済みは出さない（会社が「もう使っていない」と言っている名前）
     job.companyRoleName = r.ow_company_job_roles?.deleted_at ? undefined : r.ow_company_job_roles?.name;
-    /* ★一覧の「公開まであと〇つ」と、運営確認中の理由（2026-10-12）。⚠️ 公開の判定と同じ関数 */
+    /* ★一覧の「公開まであと〇つ」（2026-10-12）。必要な項目の不足＋禁止表現（どちらも公開をブロックする）。
+          ⚠️ 公開の判定と同じ関数（missingForPublishFromRow / checkWording） */
     const raw = row as unknown as Record<string, unknown>;
-    job.publishMissingCount = missingForPublishFromRow(raw, (r.ow_job_roles ?? []).length).length;
-    job.wordingHits = job.status === "pending_review" ? checkWording(wordingFieldsFromRow(raw)).map((h) => `「${h.match}」（${h.field}）`) : [];
+    const hits = checkWording(wordingFieldsFromRow(raw));
+    job.publishMissingCount = missingForPublishFromRow(raw, (r.ow_job_roles ?? []).length).length + hits.length;
+    job.wordingHits = hits.map((h) => `「${h.match}」（${h.field}）`);
     job.views30d = views30d ? (views30d[row.id] ?? 0) : undefined;
     job.updatedAtIso = r.updated_at ?? undefined;
     return job;

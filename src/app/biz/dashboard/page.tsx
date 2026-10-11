@@ -155,8 +155,7 @@ export default async function BizDashboardPage({
         「企業情報を入力する」は `is_published`（ページが見えるか）で判定していた。
         Third Box では**受付中なのに「受付を開始する」が未完了**のまま出ていた。
      ⚠️ 判定はここ1箇所。下のカードと「やること」の件数が同じ配列を見る。 */
-  const totalJobs = (jobStatusCounts.active ?? 0) + (jobStatusCounts.review ?? 0)
-    + (jobStatusCounts.draft ?? 0) + (jobStatusCounts.rejected ?? 0) + (jobStatusCounts.private ?? 0);
+  const totalJobs = jobStatusCounts.published + jobStatusCounts.draft + jobStatusCounts.stopped;
   const guideItems = [
     {
       done: classification.ok,
@@ -167,7 +166,7 @@ export default async function BizDashboardPage({
         : "業種と事業領域（掲載に必要な項目）を入れましょう",
     },
     { done: totalJobs > 0, label: "求人を作成する", href: "/biz/jobs", hint: "ポジション・給与・業務内容を登録しましょう" },
-    { done: (jobStatusCounts.active ?? 0) > 0, label: "求人を公開する", href: "/biz/jobs", hint: "運営の確認が済むと候補者に表示されます" },
+    { done: jobStatusCounts.published > 0, label: "求人を公開する", href: "/biz/jobs", hint: "必要な項目がそろえば、すぐに候補者に表示されます" },
     /* ⚠️ `companyRaw` が取れなかったときは未完了に倒す（完了と嘘をつかない） */
     { done: companyRaw?.acceptingCasualMeetings === true, label: "カジュアル面談の受付を開始する", href: "/biz/company", hint: "「面談受付中」バッジが企業ページに表示されます" },
   ];
@@ -180,7 +179,7 @@ export default async function BizDashboardPage({
         ⚠️ 「審査中の求人」は入れない —— 運営の対応待ちで、企業側にできることが無い。 */
   /* ⚠️ 2026-10-10（段3）: メッセージ・提案・面談申込は上の「今日やること」に移した。ここに残すのはそれ以外 */
   const todoItems = [
-    { key: "rejected", label: "運営が停止した求人", count: jobStatusCounts.rejected ?? 0, href: "/biz/jobs?status=rejected" },
+    { key: "stopped-by-ops", label: "運営が停止した求人", count: jobStatusCounts.stoppedByOps, href: "/biz/jobs?status=stopped" },
     /* ★未完了のスタートガイド（2026-10-08）。それまで「やること: 対応が必要なものは
           ありません」の下に未完了のガイドが並んでいて、2つが矛盾して見えた。
           ⚠️ 件数は上の `guideItems` と同じ配列から数える。 */

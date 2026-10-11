@@ -3,8 +3,10 @@
  *   ブラウザ（作成・編集画面）とサーバー（公開の判定・運営画面）が同じ関数を呼ぶ。
  *
  *   観点: 年齢制限 ／ 性別限定（性別を示す職種名を含む）／ 国籍限定 ／ 違法・不審な求人
- *   引っかかったら公開せず「運営確認中」（pending_review）にする。どの表現が該当したかを企業に出す。
- *   ⚠️ 「拒否」ではない。運営が見て問題なければ公開する（例: 法律で認められた年齢制限の例外）。
+ *   ★引っかかったら**公開をブロックする**（2026-10-12 に変更 / 柴さんの判断。それまでは「運営確認中」に回していた）。
+ *     必要な項目の不足と同じ扱いで、「公開まであと〇項目」に数え、該当する入力欄へ移動できる。
+ *     文言は wordingMessage（「『営業マン』は使えません。『営業担当』などに言い換えると公開できます」）。
+ *   ⚠️ 法律で認められた年齢制限の例外などで、どうしても必要な場合は運営へ相談してもらう（画面に出す）。
  *
  * ★**言葉のリストは 2026-10-12 に柴さんが確定した**（`WORDING_LIST_CONFIRMED = true`。本番でも有効）。
  *    false に戻すと本番（NODE_ENV = production）では何も検出しなくなる（ローカルの dev では動く）。
@@ -116,8 +118,10 @@ export function checkWording(fields: { field: string; text: string | null | unde
   return out;
 }
 
-/** 検査する欄（DB の行から）。⚠️ 欄を足すときは `wordingFieldsFromForm` と `WORDING_COLUMNS` も足す */
-export const WORDING_COLUMNS = "title, description, message_to_candidates, required_skills, preferred_skills, culture_fit, salary_note, location, work_hours, holidays" as const;
+/** 検査する欄（DB の行から）。⚠️ 欄を足すときは `wordingFieldsFromForm`・`WORDING_COLUMNS`・`WORDING_FIELD_TARGETS` も足す
+ *  ⚠️★**企業が直せない欄を入れないこと**（2026-10-12）。公開をブロックするので、入力欄の無い欄に当たると永久に公開できない。
+ *     「求める人物像」（culture_fit）は 2026-10-11 に入力欄を外したので、ここからも外した */
+export const WORDING_COLUMNS = "title, description, message_to_candidates, required_skills, preferred_skills, salary_note, location, work_hours, holidays" as const;
 
 const joinList = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").join("\n") : typeof v === "string" ? v : null);
 
@@ -128,7 +132,6 @@ export function wordingFieldsFromRow(row: Record<string, unknown>): { field: str
     { field: "候補者へのメッセージ", text: (row.message_to_candidates as string | null) ?? null },
     { field: "必須スキル", text: joinList(row.required_skills) },
     { field: "歓迎スキル", text: joinList(row.preferred_skills) },
-    { field: "求める人物像", text: (row.culture_fit as string | null) ?? null },
     { field: "給与の補足", text: (row.salary_note as string | null) ?? null },
     { field: "勤務地", text: (row.location as string | null) ?? null },
     { field: "勤務時間", text: (row.work_hours as string | null) ?? null },
@@ -138,11 +141,51 @@ export function wordingFieldsFromRow(row: Record<string, unknown>): { field: str
 
 export function wordingFieldsFromForm(form: {
   title?: string; descriptionMarkdown?: string; messageToCandidates?: string; requiredSkills?: string[]; preferredSkills?: string[];
-  cultureFit?: string; salaryNote?: string; location?: string; workHours?: string | null; holidays?: string | null;
+  salaryNote?: string; location?: string; workHours?: string | null; holidays?: string | null;
 }): { field: string; text: string | null }[] {
   return wordingFieldsFromRow({
     title: form.title, description: form.descriptionMarkdown, message_to_candidates: form.messageToCandidates,
-    required_skills: form.requiredSkills, preferred_skills: form.preferredSkills, culture_fit: form.cultureFit,
+    required_skills: form.requiredSkills, preferred_skills: form.preferredSkills,
     salary_note: form.salaryNote, location: form.location, work_hours: form.workHours, holidays: form.holidays,
   });
 }
+
+/* ── ★公開をブロックしたときの案内（2026-10-12）──────────────────────────── */
+
+/** 言い換えの例。⚠️ 当たった語に対して1つ。無いものはカテゴリごとの文にする */
+const REPLACEMENTS: readonly [RegExp, string][] = [
+  [/^(営業マン|セールスマン)$/, "営業担当"],
+  [/^ビジネスマン$/, "ビジネスパーソン"],
+  [/^サラリーマン$/, "会社員"],
+  [/^(ウェイター|ウェイトレス)$/, "ホールスタッフ"],
+  [/^看護婦$/, "看護師"],
+  [/^保母$/, "保育士"],
+  [/^スチュワーデス$/, "客室乗務員"],
+  [/^OL$/, "事務職"],
+];
+
+/** ★企業に見せる文。「『営業マン』は使えません。『営業担当』などに言い換えると公開できます」 */
+export function wordingMessage(hit: Pick<WordingHit, "category" | "match">): string {
+  const rep = REPLACEMENTS.find(([re]) => re.test(hit.match))?.[1];
+  if (rep) return `「${hit.match}」は使えません。「${rep}」などに言い換えると公開できます。`;
+  switch (hit.category) {
+    case "age": return `「${hit.match}」のような年齢の条件は書けません。経験やスキルで書くと公開できます。`;
+    case "gender": return `「${hit.match}」のような性別の条件は書けません。性別を問わない書き方にすると公開できます。`;
+    case "nationality": return `「${hit.match}」のような国籍の条件は書けません。必要な語学力などで書くと公開できます。`;
+    default: return `「${hit.match}」は不審な求人と受け取られるおそれがあるため使えません。言い換えるか削除すると公開できます。`;
+  }
+}
+
+/** ★当たった欄 → 編集画面のどのステップのどの入力欄か（「公開まであと〇項目」から移動する先）。
+ *  ⚠️ JobEditForm の入力欄の id と揃える。ステップ名は publishRequirements.ts の JobEditStep */
+export const WORDING_FIELD_TARGETS: Record<string, { step: "job" | "conditions" | "requirements" | "more"; fieldId: string }> = {
+  "求人タイトル": { step: "job", fieldId: "jef-title" },
+  "仕事内容": { step: "job", fieldId: "jef-description" },
+  "候補者へのメッセージ": { step: "more", fieldId: "jef-message-to-candidates" },
+  "必須スキル": { step: "requirements", fieldId: "jef-required-skills" },
+  "歓迎スキル": { step: "requirements", fieldId: "jef-preferred-skills" },
+  "給与の補足": { step: "conditions", fieldId: "jef-salary-note" },
+  "勤務地": { step: "conditions", fieldId: "jef-location" },
+  "勤務時間": { step: "conditions", fieldId: "jef-work-hours" },
+  "休日・休暇": { step: "conditions", fieldId: "jef-holidays" },
+};

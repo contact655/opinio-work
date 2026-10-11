@@ -27,7 +27,7 @@ export type PublishResult =
   | { ok: true; decision: PublishDecision }
   | { ok: false; status: number; error: string };
 
-/** 企業の「公開する」。published / pending_review（運営確認中）に書くか、断る */
+/** 企業の「公開する」「再開する」「再開を依頼する」。published にするか、pending_review（運営が停止した求人の再開依頼）にするか、断る */
 export async function requestPublish(jobId: string, companyId: string, actorOwUserId: string): Promise<PublishResult> {
   const db = createAdminClient();
   const [{ data: row, error: jErr }, { count: roleCount, error: rErr }, { data: co, error: cErr }] = await Promise.all([
@@ -58,7 +58,7 @@ export async function requestPublish(jobId: string, companyId: string, actorOwUs
     const now = new Date().toISOString();
     const u = await mutateOne(
       db.from("ow_jobs").update({ status: "pending_review", submitted_at: now, updated_at: now }).eq("id", jobId).eq("company_id", companyId),
-      "求人を運営確認中にする",
+      "運営が停止した求人の再開を依頼する",
     );
     if (!u.ok) return { ok: false, status: 500, error: "公開できませんでした。時間をおいてもう一度お試しください。" };
     await revalidateJobPages(jobId);
@@ -107,8 +107,9 @@ export async function markPublished(jobId: string, opts: { actorOwUserId: string
   return { ok: true };
 }
 
-/** ★運営の停止。status = private ＋ 停止の記録。企業にメールで知らせる（失敗しても停止は成立。ログは出す） */
-export async function stopJob(jobId: string, reason: string, adminOwUserId: string | null): Promise<{ ok: true } | { ok: false; error: string }> {
+/** ★運営の停止。status = private ＋ 停止の記録。企業にメールで知らせる（失敗しても停止は成立。ログは出す）
+ *  ★kind = "decline_reopen" … 再開の依頼（pending_review）を見送る。停止中に戻し、理由を更新する（2026-10-12） */
+export async function stopJob(jobId: string, reason: string, adminOwUserId: string | null, kind: "stop" | "decline_reopen" = "stop"): Promise<{ ok: true } | { ok: false; error: string }> {
   const text = reason.trim();
   if (!text) return { ok: false, error: "停止の理由を入力してください" };
   const db = createAdminClient();
@@ -125,7 +126,7 @@ export async function stopJob(jobId: string, reason: string, adminOwUserId: stri
     const companyId = data[0].company_id as string;
     const target = await getCompanyNotificationTarget(companyId, "job-stopped");
     for (const to of target.to) {
-      await sendEmail(jobStoppedCompanyTemplate({ to, jobTitle: (data[0].title as string | null) ?? "求人", reason: text, jobId, viaOps: target.viaOps }));
+      await sendEmail(jobStoppedCompanyTemplate({ to, jobTitle: (data[0].title as string | null) ?? "求人", reason: text, jobId, viaOps: target.viaOps, kind }));
     }
   } catch (e) {
     console.error("[publishServer] 停止の通知:", e instanceof Error ? e.message : e);

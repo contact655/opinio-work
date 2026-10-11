@@ -497,15 +497,23 @@ export function approachRepliedCompanyTemplate(params: {
  * ★運営が求人を停止したことを企業に知らせる（2026-10-12 / 柴さんの指示。即時公開に切り替え、運営は公開後に巡回する）。
  * ⚠️ 理由は全文入れる（企業が直すために要る）。宛先は getCompanyNotificationTarget（応募の通知と同じ決め方）。
  */
-export function jobStoppedCompanyTemplate(params: { to: string; jobTitle: string; reason: string; jobId: string; viaOps?: boolean }) {
+/**
+ * ★運営が求人を停止した／再開の依頼を見送ったことを企業に知らせる（2026-10-12）。
+ *   kind: "stop" … 停止した ／ "decline_reopen" … 再開の依頼を見送り、停止中のまま（理由を更新）
+ * ⚠️ 画面の呼び方（停止中・再開を依頼する）と揃える。「運営確認中」「非公開」と書かない
+ */
+export function jobStoppedCompanyTemplate(params: { to: string; jobTitle: string; reason: string; jobId: string; viaOps?: boolean; kind?: "stop" | "decline_reopen" }) {
+  const decline = params.kind === "decline_reopen";
   return {
     to: params.to,
-    subject: opsSubject(`求人「${params.jobTitle}」の掲載を停止しました`, params.viaOps === true),
+    subject: opsSubject(decline ? `求人「${params.jobTitle}」の再開を見送りました` : `求人「${params.jobTitle}」の掲載を停止しました`, params.viaOps === true),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">求人の掲載を停止しました</h2>
-      <p style="margin:0 0 12px;color:#475569">OPINIO 運営が内容を確認し、次の理由で求人「${esc(params.jobTitle)}」の掲載を停止しました。</p>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">${decline ? "求人の再開を見送りました" : "求人の掲載を停止しました"}</h2>
+      <p style="margin:0 0 12px;color:#475569">${decline
+        ? `OPINIO 運営が内容を確認し、次の理由で求人「${esc(params.jobTitle)}」の再開を見送りました。停止中のままです。`
+        : `OPINIO 運営が内容を確認し、次の理由で求人「${esc(params.jobTitle)}」の掲載を停止しました。`}</p>
       <p style="margin:0 0 20px;padding:12px 14px;background:#F8FAFC;border-radius:8px;color:#0F172A;white-space:pre-wrap">${esc(params.reason)}</p>
-      <p style="margin:0 0 20px;color:#475569">内容を直して「公開する」を押すと、運営が確認したうえで掲載を再開します。</p>
+      <p style="margin:0 0 20px;color:#475569">内容を直して、求人管理の「再開を依頼する」を押すと、運営が確認したうえで掲載を再開します。</p>
       <a href="https://opinio.jp/biz/jobs/${encodeURIComponent(params.jobId)}/edit" style="${BTN}">求人を直す →</a>
     `),
   };

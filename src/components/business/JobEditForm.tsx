@@ -14,8 +14,9 @@ import {
   CONTRACT_PERIODS, CONTRACT_RENEWALS, WORKPLACE_CHANGE_SCOPES, DUTIES_CHANGE_SCOPES, YES_NO,
   SOCIAL_INSURANCES, SMOKING_MEASURES, EMPTY_LABOR_TERMS, type LaborTerms,
 } from "@/lib/jobs/laborTerms";
-import { checkWording, wordingFieldsFromForm, WORDING_CATEGORY_LABELS } from "@/lib/jobs/wordingCheck";
-import { decidePublish, COMPANY_NOT_LISTED_MESSAGE, POST_PUBLISH_NOTE } from "@/lib/jobs/publishGate";
+import { checkWording, wordingFieldsFromForm } from "@/lib/jobs/wordingCheck";
+import { decidePublish, wordingRequirements, COMPANY_NOT_LISTED_MESSAGE, POST_PUBLISH_NOTE } from "@/lib/jobs/publishGate";
+import { jobState } from "@/lib/jobs/jobState";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
@@ -551,16 +552,25 @@ export function JobEditForm({
   /* ★公開の判定（2026-10-12）。サーバー（requestPublish）と同じ関数 decidePublish。
         ⚠️ 禁止表現はいま入力している内容で見る（直したらすぐ消える） */
   const wordingHits = useMemo(() => checkWording(wordingFieldsFromForm(form)), [form]);
-  /* ⚠️ 旧「差し戻し」（rejected）も停止と同じ（サーバーの requestPublish と揃える） */
-  const isStopped = (initialJob?.status === "private" && !!initialJob.stoppedAt) || initialJob?.status === "rejected";
+  /* ★状態は jobState（求人管理の一覧と同じ関数）。停止中は「自社で停止」と「運営が停止」で押した結果が違う
+        （自社 → すぐ公開 ／ 運営 → 再開の依頼。サーバーの requestPublish と揃える） */
+  const state = initialJob ? jobState(initialJob) : "draft";
+  const isStopped = state === "stopped_ops" || state === "reopen_requested";
   const decision = useMemo(() => decidePublish({ missing, hits: wordingHits, companyListed, stopped: isStopped }), [missing, wordingHits, companyListed, isStopped]);
-  const canPublish = decision.kind !== "blocked";
+  /* ★「公開まであと〇項目」は 必要な項目の不足＋禁止表現（どちらも公開をブロックする。2026-10-12） */
+  const wordingBlockers = useMemo(() => wordingRequirements(wordingHits), [wordingHits]);
+  const blockers = useMemo(() => [...missing, ...wordingBlockers], [missing, wordingBlockers]);
+  /* ⚠️ 再開を依頼済みのあいだは押せない（運営の確認待ち） */
+  const canPublish = decision.kind !== "blocked" && state !== "reopen_requested";
+  /** 公開ボタンの文言（状態ごと） */
+  const publishLabel = state === "stopped_self" ? "再開する" : state === "stopped_ops" ? "再開を依頼する"
+    : state === "reopen_requested" ? "再開を依頼済み" : "公開する";
 
   const handlePublish = useCallback(async () => {
     const jobId = currentJobId;
     if (!jobId) return;
-    if (missing.length > 0) {
-      showError(`公開の前に入力してください：${missing.map((m) => m.label).join("・")}`);
+    if (blockers.length > 0) {
+      showError(`公開の前に直してください：${blockers.map((m) => m.label).join("・")}`);
       return;
     }
     if (!companyListed) {
@@ -587,9 +597,9 @@ export function JobEditForm({
         const j = (await submitRes.json().catch(() => null)) as { error?: string } | null;
         throw new Error(j?.error || "submit failed");
       }
-      /* ★すぐ公開 → 公開中のタブ ／ 運営確認中 → そのタブ */
+      /* ★すぐ公開 → 公開中のタブ ／ 再開の依頼（運営が停止した求人）→ 停止中のタブ */
       const j = (await submitRes.json().catch(() => null)) as { decision?: string } | null;
-      router.push(j?.decision === "review" ? "/biz/jobs?status=pending_review" : "/biz/jobs?status=published");
+      router.push(j?.decision === "review" ? "/biz/jobs?status=stopped" : "/biz/jobs?status=published");
     } catch (e) {
       const msg = e instanceof Error && e.message !== "submit failed" && e.message !== "save failed" ? e.message : null;
       showError(msg ?? "公開に失敗しました。再度お試しください。");
@@ -597,7 +607,7 @@ export function JobEditForm({
       setIsPublishing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, currentJobId, router, missing, selectedRoles, departmentId, companyListed]);
+  }, [form, currentJobId, router, missing, blockers, selectedRoles, departmentId, companyListed]);
 
   const req = (key: string) => isPublishRequired(key, form.employmentType);
   /* 業務委託は雇用ではないので、労働条件の項目を出さない（publishRequirements.ts の requirementsFor と同じ判定） */
@@ -611,7 +621,7 @@ export function JobEditForm({
     if (id === "review") return null;
     /* ⚠️ 公開の条件に入っていないステップは、空なら「任意」（「未入力」と出すと書かないと駄目に見える） */
     if (id === "more") return "optional";
-    if (missing.some((m) => m.step === id)) return "todo";
+    if (blockers.some((m) => m.step === id)) return "todo";
     if (id === "requirements") return form.requiredSkills.length > 0 || form.preferredSkills.length > 0 ? "done" : "optional";
     if (id === "process") return form.selectionSteps.some((s) => s.trim()) ? "done" : "optional";
     return "done";
@@ -938,12 +948,17 @@ export function JobEditForm({
           <FormSection title="経験・スキル">
             <FormGroup>
               <FormLabel>必須の経験</FormLabel>
+              {/* ⚠️ id は禁止表現から移る先（wordingCheck.ts の WORDING_FIELD_TARGETS） */}
+              <div id="jef-required-skills" tabIndex={-1} style={{ outline: "none" }}>
               <RequirementsTagInput tags={form.requiredSkills} onTagsChange={(t) => updateForm("requiredSkills", t)} placeholder="経験・スキルを入力して Enter" />
+              </div>
               <Hint>業務に欠かせない経験・スキルを書いてください。年齢・性別などの属性は書かないでください。</Hint>
             </FormGroup>
             <FormGroup style={{ marginBottom: 0 }}>
               <FormLabel>歓迎する経験</FormLabel>
+              <div id="jef-preferred-skills" tabIndex={-1} style={{ outline: "none" }}>
               <RequirementsTagInput tags={form.preferredSkills} onTagsChange={(t) => updateForm("preferredSkills", t)} placeholder="経験・スキルを入力して Enter" />
+              </div>
             </FormGroup>
             {/* ⚠️★「求めるカルチャーフィット」の入力欄は 2026-10-11 に外した（求職者側に表示先が無いため）。
                    **列（culture_fit）と既存の値は残してある。** `form.cultureFit` も送り続けるので値は消えない。 */}
@@ -1173,43 +1188,49 @@ export function JobEditForm({
             </FormSection>
 
             {/* ★公開（2026-10-12 / 即時公開）。判定は decidePublish（サーバーと同じ関数） */}
-            <div data-state={decision.kind === "publish" ? "ready" : decision.kind === "review" ? "review" : decision.reason === "missing" ? "missing" : "company-not-listed"} style={{
+            <div data-state={decision.kind === "publish" ? "ready" : decision.kind === "review" ? "reopen" : decision.reason} style={{
               background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px", marginTop: 8,
             }}>
-              {missing.length > 0 ? (
+              {blockers.length > 0 ? (
                 <>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-                    公開の前に、あと{missing.length}つ入力してください
+                    公開の前に、あと{blockers.length}つ直してください
                   </div>
-                  <ul style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
-                    {missing.map((r) => (
-                      <li key={r.key}>
-                        <button type="button" onClick={() => goToField(r)}
-                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--royal)", textDecoration: "underline" }}>
-                          {r.label}（{STEP_DEFS.find((s) => s.id === r.step)?.label}）
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {missing.length > 0 && (
+                    <ul style={{ margin: "0 0 12px", padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
+                      {missing.map((r) => (
+                        <li key={r.key}>
+                          <button type="button" onClick={() => goToField(r)}
+                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--royal)", textDecoration: "underline" }}>
+                            {r.label}（{STEP_DEFS.find((s) => s.id === r.step)?.label}）
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {/* ★禁止表現（2026-10-12 から公開をブロックする）。言い換えの例を出し、押すとその入力欄へ */}
+                  {wordingBlockers.length > 0 && (
+                    <ul data-state="wording-hits" style={{ margin: "0 0 12px", padding: 0, listStyle: "none" }}>
+                      {wordingBlockers.map((r) => (
+                        <li key={r.key} style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.8 }}>
+                          {r.message}{" "}
+                          <button type="button" onClick={() => goToField(r)}
+                            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--royal)", textDecoration: "underline" }}>
+                            {STEP_DEFS.find((s) => s.id === r.step)?.label}の該当箇所へ
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </>
               ) : !companyListed ? (
                 <div data-state="company-not-listed" style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{COMPANY_NOT_LISTED_MESSAGE}</div>
+              ) : state === "reopen_requested" ? (
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>再開を依頼済みです。OPINIO 運営が確認したうえで掲載を再開します</div>
               ) : isStopped ? (
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>公開すると、OPINIO 運営が確認したうえで掲載を再開します</div>
-              ) : wordingHits.length > 0 ? (
-                <>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>次の表現は OPINIO 運営の確認が必要です</div>
-                  <ul data-state="wording-hits" style={{ margin: "0 0 10px", paddingLeft: 18, fontSize: 13, color: "var(--ink)", lineHeight: 1.8 }}>
-                    {wordingHits.map((h) => (
-                      <li key={`${h.field}|${h.match}`}>「{h.match}」（{h.field}・{WORDING_CATEGORY_LABELS[h.category]}）</li>
-                    ))}
-                  </ul>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 10 }}>
-                    このまま公開すると「運営確認中」になり、確認が済むまで求職者には出ません。直してから公開すると、すぐに公開されます。
-                  </div>
-                </>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>「再開を依頼する」を押すと、OPINIO 運営が確認したうえで掲載を再開します</div>
               ) : (
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>公開できます</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{state === "stopped_self" ? "再開できます" : "公開できます"}</div>
               )}
               <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 14 }}>
                 {POST_PUBLISH_NOTE}
@@ -1226,7 +1247,7 @@ export function JobEditForm({
                   cursor: isPublishing || !canPublish || !currentJobId ? "not-allowed" : "pointer",
                 }}
               >
-                {isPublishing ? "送信中…" : "公開する"}
+                {isPublishing ? "送信中…" : publishLabel}
               </button>
               <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>
                 公開することで、求人掲載ガイドラインに同意したものとみなされます。
@@ -1307,39 +1328,30 @@ export function JobEditForm({
           steps={steps}
           activeStep={current.id}
           onStepClick={goToStep}
-          missing={missing}
+          missing={blockers}
           onMissingClick={goToField}
           readyNote={decision.kind === "blocked" && decision.reason === "company_not_listed" ? "企業ページの公開後に公開できます"
-            : decision.kind === "review" ? "公開すると運営確認中になります" : null}
+            : state === "reopen_requested" ? "再開を依頼済みです（運営が確認中）"
+            : decision.kind === "review" ? "再開を依頼すると運営が確認します" : null}
         />
 
         <main id="jef-main" className="jef-main">
-          {/* ★停止中・運営確認中の知らせ（2026-10-12）。⚠️ 状態は灰色の文字で（バッジにしない） */}
-          {mode === "edit" && (isStopped || initialJob?.status === "rejected" || initialJob?.status === "pending_review") && (
-            <div data-state={isStopped || initialJob?.status === "rejected" ? "job-stopped-notice" : "job-review-notice"} style={{
+          {/* ★停止中の知らせ（2026-10-12。下書き／公開中／停止中の3つ）。⚠️ 状態は灰色の文字で（バッジにしない） */}
+          {mode === "edit" && (state === "stopped_self" || state === "stopped_ops" || state === "reopen_requested") && (
+            <div data-state={`job-${state}-notice`} style={{
               background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "14px 18px", marginBottom: 20, fontSize: 13, lineHeight: 1.8, color: "var(--ink)",
             }}>
-              {isStopped || initialJob?.status === "rejected" ? (
-                <>
-                  <div style={{ color: "var(--ink-mute)" }}>停止中・OPINIO 運営が掲載を停止しました</div>
-                  {(initialJob?.stoppedReason || initialJob?.rejectionReason) && (
-                    <p style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}>理由：{initialJob?.stoppedReason ?? initialJob?.rejectionReason}</p>
-                  )}
-                  <p style={{ margin: "4px 0 0", color: "var(--ink-soft)" }}>内容を直して「公開する」を押すと、運営が確認したうえで掲載を再開します。</p>
-                </>
-              ) : (
-                <>
-                  <div style={{ color: "var(--ink-mute)" }}>運営確認中</div>
-                  <p style={{ margin: "4px 0 0", color: "var(--ink-soft)" }}>
-                    {wordingHits.length > 0
-                      ? "次の表現について OPINIO 運営が確認しています。直して「公開する」を押すと、該当が無くなっていればすぐに公開されます。"
-                      : "OPINIO 運営が内容を確認しています。確認が済むと公開されます。"}
-                  </p>
-                  {wordingHits.length > 0 && (
-                    <p style={{ margin: "4px 0 0" }}>{wordingHits.map((h) => `「${h.match}」（${h.field}）`).join("・")}</p>
-                  )}
-                </>
+              <div style={{ color: "var(--ink-mute)" }}>
+                {state === "stopped_self" ? "停止中（自社で停止）" : state === "stopped_ops" ? "停止中（OPINIO 運営が停止）" : "停止中（OPINIO 運営が停止・再開を依頼済み）"}
+              </div>
+              {state !== "stopped_self" && (initialJob?.stoppedReason || initialJob?.rejectionReason) && (
+                <p style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}>理由：{initialJob?.stoppedReason ?? initialJob?.rejectionReason}</p>
               )}
+              <p style={{ margin: "4px 0 0", color: "var(--ink-soft)" }}>
+                {state === "stopped_self" ? "「再開する」を押すと、必要な項目がそろっていればすぐに公開されます。"
+                  : state === "stopped_ops" ? "内容を直して「再開を依頼する」を押すと、運営が確認したうえで掲載を再開します。"
+                  : "運営が確認したうえで掲載を再開します。結果はメールと、この画面でお知らせします。"}
+              </p>
             </div>
           )}
           {errorMessage && (

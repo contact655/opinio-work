@@ -37,12 +37,12 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
       （企業の即時公開と同じ処理。published_at は初回だけ・停止の記録を消す・フィードの「求人を公開しました」・キャッシュの破棄）。
    ⚠️ 差し戻し（rejectJob）と運営の非公開化（privateJob）は「停止」（stopJobAction）にまとめた。理由は必須で、企業に通知する。 */
 
-/** 運営確認中の求人を公開する（禁止表現に当たったが問題ない・停止後の再公開の申し出を確認した、など） */
+/** 再開依頼（運営が停止した求人の再開の申し出）を確認して公開に戻す */
 export async function approveJob(jobId: string): Promise<ActionResult> {
   return publishAs(jobId);
 }
 
-/** 停止中・非公開の求人を公開に戻す */
+/** 運営が停止した求人を公開に戻す（⚠️ 自社で停止した求人は企業の操作。運営画面からは戻さない） */
 export async function republishJob(jobId: string): Promise<ActionResult> {
   return publishAs(jobId);
 }
@@ -61,8 +61,9 @@ async function publishAs(jobId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** ★停止。status = private ＋ 停止の理由・日時・誰が。企業にメールで知らせ、求人管理の画面にも理由を出す */
-export async function stopJobAction(jobId: string, reason: string): Promise<ActionResult> {
+/** ★停止。status = private ＋ 停止の理由・日時・誰が。企業にメールで知らせ、求人管理の画面にも理由を出す
+ *  ★kind = "decline_reopen" … 再開依頼を見送る（停止中に戻し、理由を更新。メールの文面が変わる） */
+export async function stopJobAction(jobId: string, reason: string, kind: "stop" | "decline_reopen" = "stop"): Promise<ActionResult> {
   if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
   if (!reason.trim()) return { ok: false, error: "停止の理由を入力してください" };
   let adminOwUserId: string | null = null;
@@ -71,7 +72,7 @@ export async function stopJobAction(jobId: string, reason: string): Promise<Acti
   } catch {
     return { ok: false, error: "権限がありません" };
   }
-  const r = await stopJob(jobId, reason, adminOwUserId);
+  const r = await stopJob(jobId, reason, adminOwUserId, kind === "decline_reopen" ? "decline_reopen" : "stop");
   if (!r.ok) return { ok: false, error: r.error };
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);

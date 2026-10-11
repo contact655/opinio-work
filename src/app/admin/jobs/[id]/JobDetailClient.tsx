@@ -13,6 +13,7 @@ import {
   type ActionResult,
 } from "../actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { jobState, JOB_STATE_ADMIN_LABEL, type JobState } from "@/lib/jobs/jobState";
 import { fmtMan } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 
@@ -78,14 +79,13 @@ type Job = {
 // ─── 定数 ────────────────────────────────────────────────────────────────────
 
 
-const STATUS_BADGE: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending_review: { label: "運営確認中", color: "var(--warm-ink)", bg: "#FEF3C7", border: "#FDE68A" },
-  stopped:        { label: "停止中",     color: "#991B1B", bg: "#FEE2E2", border: "#FCA5A5" },
-  published:      { label: "公開中",     color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
-  active:         { label: "公開中(旧)", color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
-  draft:          { label: "下書き",     color: "#475569", bg: "#F1F5F9", border: "#E2E8F0" },
-  rejected:       { label: "差し戻し",   color: "#991B1B", bg: "#FEE2E2", border: "#FCA5A5" },
-  private:        { label: "非公開",     color: "#6b7280", bg: "#F8FAFC", border: "#E2E8F0" },
+/* ★状態の呼び方は lib/jobs/jobState.ts（2026-10-12）。運営画面は 停止中（自社）／停止中（運営）／再開依頼 */
+const STATUS_BADGE: Record<JobState, { label: string; color: string; bg: string; border: string }> = {
+  reopen_requested: { label: JOB_STATE_ADMIN_LABEL.reopen_requested, color: "var(--warm-ink)", bg: "#FEF3C7", border: "#FDE68A" },
+  stopped_ops:      { label: JOB_STATE_ADMIN_LABEL.stopped_ops,      color: "#991B1B", bg: "#FEE2E2", border: "#FCA5A5" },
+  stopped_self:     { label: JOB_STATE_ADMIN_LABEL.stopped_self,     color: "#6b7280", bg: "#F8FAFC", border: "#E2E8F0" },
+  published:        { label: JOB_STATE_ADMIN_LABEL.published,        color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
+  draft:            { label: JOB_STATE_ADMIN_LABEL.draft,            color: "#475569", bg: "#F1F5F9", border: "#E2E8F0" },
 };
 
 function normalizedStatus(s: string | null) {
@@ -213,9 +213,10 @@ export default function JobDetailClient({
   const [stopped, setStopped] = useState<{ reason: string | null; at: string | null }>({ reason: job.stopped_reason ?? (job.status === "rejected" ? job.rejection_reason : null), at: job.stopped_at });
 
   const ns = normalizedStatus(status);
-  /* ★停止中（private ＋ stopped_at）と旧「差し戻し」は「停止中」と出す */
-  const isStopped = ns === "rejected" || (ns === "private" && !!stopped.at);
-  const badge = (isStopped ? STATUS_BADGE.stopped : STATUS_BADGE[status ?? "draft"]) ?? STATUS_BADGE.draft;
+  /* ★状態は jobState（企業の画面と同じ関数） */
+  const vs = jobState({ status, stoppedAt: stopped.at });
+  const isStopped = vs === "stopped_ops" || vs === "reopen_requested";
+  const badge = STATUS_BADGE[vs];
   const company = job.ow_companies;
 
   // ── actions ────────────────────────────────────────────────────────────────
@@ -250,7 +251,8 @@ export default function JobDetailClient({
   async function handleStopConfirm() {
     const reason = rejectionReason.trim();
     if (!reason) return;
-    const ok = await run(() => stopJobAction(job.id, reason), "private");
+    /* ⚠️ 再開依頼の求人なら「見送り」（停止中に戻し、理由を更新） */
+    const ok = await run(() => stopJobAction(job.id, reason, vs === "reopen_requested" ? "decline_reopen" : "stop"), "private");
     if (ok) { setStopped({ reason, at: new Date().toISOString() }); setShowRejectModal(false); setRejectionReason(""); }
   }
 
@@ -334,7 +336,7 @@ export default function JobDetailClient({
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {ns === "pending_review" && (
+            {vs === "reopen_requested" && (
               <>
                 <button
                   type="button"
@@ -347,7 +349,7 @@ export default function JobDetailClient({
                     opacity: actionLoading ? 0.5 : 1,
                   }}
                 >
-                  ✓ 承認・公開
+                  ✓ 公開に戻す
                 </button>
                 <button
                   type="button"
@@ -360,7 +362,7 @@ export default function JobDetailClient({
                     opacity: actionLoading ? 0.5 : 1,
                   }}
                 >
-                  停止する
+                  再開を見送る
                 </button>
               </>
             )}
@@ -379,7 +381,8 @@ export default function JobDetailClient({
                 停止する
               </button>
             )}
-            {(ns === "private" || ns === "rejected") && (
+            {/* ⚠️ 戻せるのは運営が停止した求人だけ（自社で停止した求人は企業の「再開する」） */}
+            {vs === "stopped_ops" && (
               <button
                 type="button"
                 onClick={handleRepublish}
@@ -417,7 +420,7 @@ export default function JobDetailClient({
           {/* 出典（運営用・公開ページには出さない） */}
           <SourcePanel job={job} />
 
-          {/* ★禁止表現の候補（2026-10-12）。運営確認中の理由になる。⚠️ 当たっても違反とは限らない（運営が判断する） */}
+          {/* ★禁止表現（2026-10-12）。企業側では公開をブロックするので、公開中・再開依頼で出るのは言葉のリストが変わったときだけ */}
           {wordingHits.length > 0 && (
             <div data-state="wording-hits" style={{ background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10, padding: "14px 18px", marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 6 }}>禁止表現の候補</div>
@@ -426,13 +429,13 @@ export default function JobDetailClient({
           )}
 
           {/* ★停止の理由（2026-10-12）。旧「差し戻し」の理由もここに出す */}
-          {(isStopped || ns === "pending_review") && stopped.reason && (
+          {isStopped && stopped.reason && (
             <div style={{
               background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 10,
               padding: "16px 20px", marginBottom: 28,
             }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", marginBottom: 6 }}>
-                停止の理由{stopped.at ? `（${formatDate(stopped.at)}）` : ""}{ns === "pending_review" ? "・企業が直して再公開を申し出ています" : ""}
+                停止の理由{stopped.at ? `（${formatDate(stopped.at)}）` : ""}{vs === "reopen_requested" ? "・企業が直して再開を依頼しています" : ""}
               </div>
               <p style={{ fontSize: 13, color: "#7F1D1D", lineHeight: 1.8, margin: 0, whiteSpace: "pre-wrap" }}>
                 {stopped.reason}
@@ -661,10 +664,10 @@ export default function JobDetailClient({
               boxShadow: "0 20px 60px rgba(15,23,42,0.18)",
             }}>
             <h2 id="reject-modal-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
-              停止の理由を入力
+              {vs === "reopen_requested" ? "再開を見送る理由を入力" : "停止の理由を入力"}
             </h2>
             <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 16, lineHeight: 1.6 }}>
-              企業にメールと求人管理の画面で知らせます。直してほしい箇所を具体的に書いてください。
+              {vs === "reopen_requested" ? "停止中のままになります。" : ""}企業にメールと求人管理の画面で知らせます。直してほしい箇所を具体的に書いてください。
             </p>
 
             <label htmlFor="jd-rejection-reason" style={{ display: "none" }}>停止の理由</label>
@@ -705,7 +708,7 @@ export default function JobDetailClient({
                   opacity: !rejectionReason.trim() || actionLoading ? 0.5 : 1,
                 }}
               >
-                停止する
+                {vs === "reopen_requested" ? "見送る" : "停止する"}
               </button>
             </div>
           </div>

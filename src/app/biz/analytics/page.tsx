@@ -507,12 +507,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
 }
 
 /* ⚠️ 状態の色分けはしない（求人管理のバッジが担う）。ここは数字を読む表なので文字だけ */
+/* ★状態の呼び方は lib/jobs/jobState.ts（2026-10-12。下書き／公開中／停止中） */
 const JOB_STATUS_LABEL: Record<string, string> = {
   published: "公開中",
-  pending_review: "審査中",
+  pending_review: "停止中",
   draft: "下書き",
-  private: "非公開",
-  rejected: "差し戻し",
+  private: "停止中",
+  rejected: "停止中",
 };
 
 /** 推移の端に出す日付。「YYYY-MM-DD」→「M/D」、「YYYY-MM」→「YYYY年M月」 */

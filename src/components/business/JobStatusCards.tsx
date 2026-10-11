@@ -11,8 +11,7 @@ import { DashboardCardHeading } from "./DashboardCardHeading";
  *    （2026-08-31 時点で該当0社。**踏むのは1社目が全件取り下げられた日**）。
  *    CLAUDE.md「値が無いことを、ある値に置き換えない」。
  */
-const totalJobs = (counts: JobStatusCounts) =>
-  counts.active + counts.review + counts.draft + counts.rejected + counts.private;
+const totalJobs = (counts: JobStatusCounts) => counts.published + counts.draft + counts.stopped;
 
 type Props = { counts: JobStatusCounts };
 
@@ -25,56 +24,13 @@ type Card = {
 };
 
 export function JobStatusCards({ counts }: Props) {
+  /* ★2026-10-12 に3枚にした（下書き／公開中／停止中。lib/jobs/jobState.ts）。
+        「運営確認中」「非公開」は無くした。⚠️ `?status=` は求人管理のタブの値（published / draft / stopped）。
+     ⚠️ 0件でも出す（求人管理のタブと揃える） */
   const cards: Card[] = [
-    {
-      label: "公開中",
-      count: counts.active,
-      color: "var(--success-ink)",
-      bg: "var(--success-soft)",
-      /* ⚠️ `?status=` の値は `JOB_STATUS_TABS` の `status` と**同じ綴り**にする。
-            旧: `active` / `review` は DB にも タブにも無い値で、`/biz/jobs` 側が
-            知らない値として「すべて」に落としていた。 */
-      href: "/biz/jobs?status=published",
-    },
-    {
-      label: "運営確認中",
-      count: counts.review,
-      /* ⚠️ 数字は 28px なので基準は 3.0 だが、`--warm` は白の上で **2.15** で届かない。
-            塗り（`bg`）は `--warm-soft` のままで、**文字だけ** `--warm-ink`(5.02)。 */
-      color: "var(--warm-ink)",
-      bg: "var(--warm-soft)",
-      href: "/biz/jobs?status=pending_review",
-    },
-    {
-      label: "下書き",
-      count: counts.draft,
-      color: "var(--ink-mute)",
-      bg: "var(--line-soft)",
-      href: "/biz/jobs?status=draft",
-    },
-    /* ★「差し戻し」「非公開」を足した（2026-08-31）。
-          ⚠️ それまで3枚しか無く、**運営が取り下げた求人がダッシュボードに一切出なかった。**
-             実測（2026-08-31 / 本番）: セールスフォースは求人5件のうち**3件が非公開**なのに、
-             ダッシュボードは「公開中 2 / 審査中 0 / 下書き 0」としか出しておらず、
-             **自社の求人が3件下ろされたことに企業が気づけなかった。**
-          ⚠️ 件数（`closed`）は `getJobStatusCounts` が**元から計算していた**。
-             **描いていなかっただけ。**
-          ⚠️ 0件でも出す。`/biz/jobs` のタブが0件でも常に出るのと揃える
-             （出したり消したりすると「なぜ増えたのか」が分からなくなる）。 */
-    {
-      label: "停止中",
-      count: counts.rejected,
-      color: "var(--error-ink)",
-      bg: "var(--error-soft)",
-      href: "/biz/jobs?status=rejected",
-    },
-    {
-      label: "非公開",
-      count: counts.private,
-      color: "var(--ink)",
-      bg: "var(--line-soft)",
-      href: "/biz/jobs?status=private",
-    },
+    { label: "公開中", count: counts.published, color: "var(--success-ink)", bg: "var(--success-soft)", href: "/biz/jobs?status=published" },
+    { label: "下書き", count: counts.draft, color: "var(--ink-mute)", bg: "var(--line-soft)", href: "/biz/jobs?status=draft" },
+    { label: "停止中", count: counts.stopped, color: "var(--ink)", bg: "var(--line-soft)", href: "/biz/jobs?status=stopped" },
   ];
 
   return (

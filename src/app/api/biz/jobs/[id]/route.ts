@@ -1,6 +1,8 @@
 import { laborToRow } from "@/lib/jobs/laborTerms";
 import { requestPublish } from "@/lib/jobs/publishServer";
-import { COMPANY_NOT_LISTED_MESSAGE } from "@/lib/jobs/publishGate";
+import { COMPANY_NOT_LISTED_MESSAGE, blockedMessage } from "@/lib/jobs/publishGate";
+import { wordingMessage } from "@/lib/jobs/wordingCheck";
+import { jobState, JOB_STATE_LABEL } from "@/lib/jobs/jobState";
 import { createClient } from "@/lib/supabase/server";
 import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
@@ -266,39 +268,43 @@ export async function PATCH(
 
   if (!canCompanyTransition(current.status, newStatus)) {
     /* ⚠️ 何が悪いのかを案内する。「invalid status」だけだと企業側は分からない */
-    const hint = newStatus === "rejected"
-      ? "この操作はできません。"
-      : `「${current.status}」から「${newStatus}」への変更はできません。`;
+    /* ⚠️ DB の値（pending_review など）を企業に見せない。画面の呼び方（lib/jobs/jobState.ts）で書く */
+    const hint = current.status === "pending_review"
+      ? "再開を依頼済みです。OPINIO 運営の確認が済むまで変更できません。"
+      : `いまの状態（${JOB_STATE_LABEL[jobState({ status: current.status, stoppedAt: null })]}）からは、この操作はできません。`;
     return NextResponse.json({ error: hint, allowed: JOB_STATUS_TRANSITIONS[current.status ?? ""] ?? [] }, { status: 403 });
   }
 
-  /* ★「公開する」（2026-10-12 / 柴さんの指示。運営の事前審査をやめ、即時公開にした）。
+  /* ★「公開する」「再開する」「再開を依頼する」（2026-10-12 / 柴さんの指示。即時公開）。
         ⚠️ 判定と書き込みは lib/jobs/publishServer.ts の requestPublish だけ（画面と同じ判定 decidePublish）。
-           17項目が欠けている・企業ページが公開中でない → 断る ／ 停止中・禁止表現 → 運営確認中 ／ それ以外 → すぐ公開
+           17項目が欠けている・禁止表現・企業ページが公開中でない → 断る ／
+           運営が停止した求人 → 再開の依頼（pending_review）／ それ以外（自社で停止した求人を含む）→ すぐ公開
         ⚠️ 企業が直接 published を書けないこと（トリガー・RLS）は変えていない。書き込みは admin クライアント */
   if (newStatus === "published") {
     const r = await requestPublish(jobId, ctx1.companyId, ctx1.owUserId);
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
     const d = r.decision;
     if (d.kind === "blocked") {
-      if (d.reason === "missing") {
-        return NextResponse.json(
-          { error: `公開の前に入力してください：${d.missing.map((m) => m.label).join("・")}`, decision: "blocked", reason: "missing", missing: d.missing.map((m) => ({ key: m.key, label: m.label })) },
-          { status: 422 },
-        );
+      if (d.reason === "company_not_listed") {
+        return NextResponse.json({ error: COMPANY_NOT_LISTED_MESSAGE, decision: "blocked", reason: "company_not_listed" }, { status: 409 });
       }
-      return NextResponse.json({ error: COMPANY_NOT_LISTED_MESSAGE, decision: "blocked", reason: "company_not_listed" }, { status: 409 });
+      /* ★必要な項目の不足と禁止表現は同じ扱い（422）。文は blockedMessage（「『営業マン』は使えません…」） */
+      return NextResponse.json(
+        { error: blockedMessage(d), decision: "blocked", reason: d.reason,
+          missing: d.missing.map((m) => ({ key: m.key, label: m.label })),
+          hits: d.hits.map((h) => ({ match: h.match, field: h.field, message: wordingMessage(h) })) },
+        { status: 422 },
+      );
     }
     if (d.kind === "review") {
-      return NextResponse.json({ ok: true, decision: "review", reason: d.reason, hits: d.hits });
+      return NextResponse.json({ ok: true, decision: "review", reason: d.reason });
     }
     return NextResponse.json({ ok: true, decision: "published" });
   }
 
   const now = new Date().toISOString();
   const patch: { status: string; updated_at: string; submitted_at?: string | null } = { status: newStatus, updated_at: now };
-  /* 運営確認中から下書きに戻したら、申し出の時刻を消す */
-  if (newStatus === "draft") patch.submitted_at = null;
+  /* ⚠️ ここに来るのは「停止する」（published → private）だけ（JOB_STATUS_TRANSITIONS）。自社での停止は停止の記録（stopped_*）を付けない */
   const { error } = await supabase
     .from("ow_jobs")
     .update(patch)
@@ -347,7 +353,7 @@ export async function DELETE(
           ⚠️★**理由（提案に使われていること）を文言に書かない**（2026-10-11 / 柴さんの判断）。
              書くと、その求人で誰かに貴社を紹介したことが企業に分かる */
     if (error.code === "23503") {
-      return NextResponse.json({ error: "この求人は削除できません。非公開にしてください。" }, { status: 409 });
+      return NextResponse.json({ error: "この求人は削除できません。停止してください。" }, { status: 409 });
     }
     console.error("[jobs DELETE]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -7,6 +7,7 @@ import { isRedirectError } from "next/dist/client/components/redirect";
 import { getCompanyContext } from "@/lib/business/company";
 import { PLAN_LABELS, type PlanType } from "@/lib/constants/plans";
 import { greetingName } from "@/lib/constants/personName";
+import { jobState, jobStateTab } from "@/lib/jobs/jobState";
 
 /**
  * Opinio Business — Dashboard data layer
@@ -49,21 +50,14 @@ export type TenantContext = {
   currentPermission: "admin" | "member"; // Phase 12: current user's permission in the active tenant
 };
 
+/** ★求人の数（2026-10-12 に画面の状態に合わせて3つにした。lib/jobs/jobState.ts） */
 export type JobStatusCounts = {
-  active: number;
-  review: number;
+  published: number;
   draft: number;
-  /**
-   * ★`rejected` と `private` を分けて持つ（2026-08-31）。
-   *
-   * ⚠️ それまでは2つを `closed` にまとめていたが、**意味が違う**。
-   *    `rejected` = 運営が差し戻した（企業が直して再申請する）
-   *    `private`  = 運営が公開を止めた（取り下げ）
-   *    `/biz/jobs` のタブは元から「差し戻し」「非公開」に分かれており、
-   *    ダッシュボードだけがまとめていた。
-   */
-  rejected: number;
-  private: number;
+  /** 停止中（自社で停止・運営が停止・再開を依頼済み） */
+  stopped: number;
+  /** そのうち運営が停止して、まだ再開を依頼していないもの（ホームの「やること」に出す） */
+  stoppedByOps: number;
 };
 
 // ─── Tenant Context ───────────────────────────────────
@@ -204,19 +198,17 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
       .from("ow_jobs")
       .select("status, stopped_at")
       .eq("company_id", tenantId);
-    const rows = data || [];
-    /* DB の実際のステータス値: published / pending_review / draft / rejected / private
-       ★2026-10-12: rejected は「停止中」（運営が停止した private ＋ 旧「差し戻し」）。private はそれ以外（企業が自分で止めた） */
-    const stopped = (r: any) => r.status === "rejected" || (r.status === "private" && r.stopped_at);
+    const rows = (data || []) as { status: string | null; stopped_at: string | null }[];
+    /* ★状態は jobState（画面と同じ関数）。⚠️ ここで status から数え方を組み直さない */
+    const states = rows.map((r) => jobState({ status: r.status, stoppedAt: r.stopped_at }));
     return {
-      active: rows.filter((r: any) => r.status === "published").length,
-      review: rows.filter((r: any) => r.status === "pending_review").length,
-      draft: rows.filter((r: any) => r.status === "draft").length,
-      rejected: rows.filter(stopped).length,
-      private: rows.filter((r: any) => r.status === "private" && !stopped(r)).length,
+      published: states.filter((s) => s === "published").length,
+      draft: states.filter((s) => s === "draft").length,
+      stopped: states.filter((s) => jobStateTab(s) === "stopped").length,
+      stoppedByOps: states.filter((s) => s === "stopped_ops").length,
     };
   } catch {
-    return { active: 0, review: 0, draft: 0, rejected: 0, private: 0 };
+    return { published: 0, draft: 0, stopped: 0, stoppedByOps: 0 };
   }
 }
 

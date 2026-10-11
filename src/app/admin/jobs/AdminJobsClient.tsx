@@ -4,17 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { approveJob, stopJobAction, republishJob, type ActionResult } from "./actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { jobState, JOB_STATE_ADMIN_LABEL } from "@/lib/jobs/jobState";
 
 // DB status values: published / pending_review / draft / rejected / private の5値
 const STATUS_TABS = [
   { key: "all",            label: "すべて" },
-  /* ★2026-10-12 に即時公開へ切り替えた。運営確認中 ＝ 禁止表現に当たった求人・停止後に再公開を申し出た求人 */
-  { key: "pending_review", label: "運営確認中" },
-  { key: "published",      label: "公開中" },
-  { key: "draft",          label: "下書き" },
-  /* ★停止中 ＝ status が private で、運営が止めた記録（stopped_at）があるもの。旧「差し戻し」もここに含める */
-  { key: "stopped",        label: "停止中" },
-  { key: "private",        label: "非公開" },
+  /* ★状態の呼び方は lib/jobs/jobState.ts（2026-10-12。下書き／公開中／停止中）。運営画面は
+        停止中（自社）／停止中（運営）／再開依頼（運営が停止した求人を企業が再開したいと申し出た）に分けて出す */
+  { key: "reopen_requested", label: JOB_STATE_ADMIN_LABEL.reopen_requested },
+  { key: "published",      label: JOB_STATE_ADMIN_LABEL.published },
+  { key: "draft",          label: JOB_STATE_ADMIN_LABEL.draft },
+  { key: "stopped_ops",    label: JOB_STATE_ADMIN_LABEL.stopped_ops },
+  { key: "stopped_self",   label: JOB_STATE_ADMIN_LABEL.stopped_self },
   /* ⚠️ 「出典なし」は status ではなく source_url で絞るタブ。
         公開中なのに求人原文のURLが無いものを残タスクとして可視化する。
         2026-08-11 時点で Salesforce の5件が該当し続ける。 */
@@ -57,13 +58,11 @@ type Job = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  pending_review: { label: "運営確認中", cls: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
-  stopped:        { label: "停止中",     cls: "bg-red-100 text-red-600 border border-red-200" },
-  published:      { label: "公開中",     cls: "bg-green-100 text-green-700 border border-green-200" },
-  active:         { label: "公開中(旧)", cls: "bg-green-100 text-green-700 border border-green-200" },
-  draft:          { label: "下書き",     cls: "bg-gray-100 text-gray-600 border border-gray-200" },
-  rejected:       { label: "差し戻し",   cls: "bg-red-100 text-red-600 border border-red-200" },
-  private:        { label: "非公開",     cls: "bg-slate-100 text-slate-500 border border-slate-200" },
+  reopen_requested: { label: JOB_STATE_ADMIN_LABEL.reopen_requested, cls: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
+  stopped_ops:    { label: JOB_STATE_ADMIN_LABEL.stopped_ops,  cls: "bg-red-100 text-red-600 border border-red-200" },
+  stopped_self:   { label: JOB_STATE_ADMIN_LABEL.stopped_self, cls: "bg-slate-100 text-slate-500 border border-slate-200" },
+  published:      { label: JOB_STATE_ADMIN_LABEL.published,    cls: "bg-green-100 text-green-700 border border-green-200" },
+  draft:          { label: JOB_STATE_ADMIN_LABEL.draft,        cls: "bg-gray-100 text-gray-600 border border-gray-200" },
 };
 
 /** 標準職種名。主ロール優先、無ければ先頭 */
@@ -82,7 +81,7 @@ function standardRoleName(j: Job): string | null {
       区別できない状態だった。 */
 export default function AdminJobsClient({ initialJobs, publishMissing = {}, wordingHits = {} }: {
   initialJobs: Job[];
-  /** ★求人 id → 禁止表現（wordingCheck.ts）に当たった表現（運営確認中の理由。サーバーで checkWording から作る） */
+  /** ★求人 id → 禁止表現（wordingCheck.ts）に当たった表現（サーバーで checkWording から作る。企業側では公開をブロックする） */
   wordingHits?: Record<string, string[]>;
   /** 求人 id → 公開に必要なのに足りない項目の名前（サーバーで missingForPublishFromRow から作る） */
   publishMissing?: Record<string, string[]>;
@@ -123,13 +122,15 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
       setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "published" } : j)));
   }
 
-  // ★停止を確定（理由は必須。企業に通知される）
+  // ★停止／再開依頼の見送りを確定（理由は必須。企業に通知される）
   async function handleStopConfirm() {
     if (!rejectTarget || !rejectionReason.trim()) return;
     const target = rejectTarget;
     const reason = rejectionReason.trim();
+    /* ⚠️ 再開依頼の求人なら「見送り」（停止中に戻し、理由を更新。メールの文面が変わる） */
+    const decline = viewStatus(target) === "reopen_requested";
     const ok = await runAction(target.id,
-      () => stopJobAction(target.id, reason),
+      () => stopJobAction(target.id, reason, decline ? "decline_reopen" : "stop"),
       () => setJobs((prev) => prev.map((j) =>
         j.id === target.id ? { ...j, status: "private", stopped_reason: reason, stopped_at: new Date().toISOString() } : j)));
     if (ok) {
@@ -146,12 +147,8 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
 
   /** ⚠️ status が NULL の行は draft 扱い。CHECK が NULL を許しているため */
   const normalizedStatus = (s: string | null) => s ?? "draft";
-  /** ★タブと表示の状態。停止中（private ＋ stopped_at）と旧「差し戻し」は "stopped" */
-  const viewStatus = (j: Job) => {
-    const ns = normalizedStatus(j.status);
-    if (ns === "rejected" || (ns === "private" && j.stopped_at)) return "stopped";
-    return ns;
-  };
+  /** ★タブと表示の状態。⚠️ 判定は jobState（企業の画面と同じ関数）。ここで status から組み直さない */
+  const viewStatus = (j: Job) => jobState({ status: j.status, stoppedAt: j.stopped_at });
 
   /** 公開中なのに求人原文のURLが記録されていない求人 */
   const isMissingSource = (j: Job) =>
@@ -185,7 +182,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
     return true;
   });
 
-  const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
+  const pendingCount = jobs.filter((j) => !isTest(j) && viewStatus(j) === "reopen_requested").length;
 
   return (
     <div style={{ padding: 32 }}>
@@ -195,7 +192,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>求人の確認</h1>
           <p style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
             企業は求人をすぐに公開できます。公開中の求人を確認し、問題があれば理由を添えて停止します（企業に通知されます）。
-            「運営確認中」は、禁止表現に当たった求人と、停止後に再公開を申し出た求人です。
+            「再開依頼」は、運営が停止した求人を企業が直して再開を申し出たものです。確認して公開に戻すか、理由を添えて見送ります。
           </p>
         </div>
         {pendingCount > 0 && (
@@ -209,7 +206,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
             fontSize: 13,
             fontWeight: 600,
           }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>運営確認中 {pendingCount}件
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>再開依頼 {pendingCount}件
           </span>
         )}
       </div>
@@ -332,8 +329,8 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
               </tr>
             ) : (
               filtered.map((j) => {
-                const ns = normalizedStatus(j.status);
-                const badge = STATUS_BADGE[viewStatus(j)] ?? STATUS_BADGE["draft"];
+                const vs = viewStatus(j);
+                const badge = STATUS_BADGE[vs] ?? STATUS_BADGE["draft"];
                 const workStyle = (() => {
                   const raw = j.work_style ?? j.remote_work_status;
                   return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : "—";
@@ -408,7 +405,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
                     {/* 操作 */}
                     <td style={{ padding: "12px 14px" }}>
                       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                        {ns === "pending_review" && (
+                        {vs === "reopen_requested" && (
                           <>
                             <button
                               type="button"
@@ -422,7 +419,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
                                 opacity: actionLoading === j.id ? 0.5 : 1,
                               }}
                             >
-                              承認・公開
+                              公開に戻す
                             </button>
                             <button
                               type="button"
@@ -436,11 +433,11 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
                                 opacity: actionLoading === j.id ? 0.5 : 1,
                               }}
                             >
-                              停止する
+                              再開を見送る
                             </button>
                           </>
                         )}
-                        {(ns === "published") && (
+                        {(vs === "published") && (
                           <button
                             type="button"
                             onClick={() => { setRejectTarget(j); setRejectionReason(""); }}
@@ -456,7 +453,8 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
                             停止する
                           </button>
                         )}
-                        {(ns === "private" || ns === "rejected") && (
+                        {/* ⚠️ 戻せるのは運営が停止した求人だけ。自社で停止した求人は企業の操作（「再開する」） */}
+                        {vs === "stopped_ops" && (
                           <button
                             type="button"
                             onClick={() => handleRepublish(j)}
@@ -472,7 +470,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
                             公開に戻す
                           </button>
                         )}
-                        {ns === "draft" && (
+                        {(vs === "draft" || vs === "stopped_self") && (
                           <span style={{ fontSize: 12, color: "#CBD5E1" }}>—</span>
                         )}
                       </div>
@@ -501,14 +499,14 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
             width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
           }}>
             <h3 id="ajobs-reject-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
-              停止の理由を入力
+              {viewStatus(rejectTarget) === "reopen_requested" ? "再開を見送る理由を入力" : "停止の理由を入力"}
             </h3>
             <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
               「{rejectTarget.title}」（{rejectTarget.ow_companies?.name}）
             </p>
             <div style={{ marginBottom: 20 }}>
               <label htmlFor="ajob-rejection-reason" style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
-                停止の理由（企業にメールと求人管理の画面で知らせます）
+                {viewStatus(rejectTarget) === "reopen_requested" ? "見送る理由（停止中のままになります。企業にメールと求人管理の画面で知らせます）" : "停止の理由（企業にメールと求人管理の画面で知らせます）"}
               </label>
               <textarea
                 id="ajob-rejection-reason"
@@ -549,7 +547,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {}, word
                   opacity: !rejectionReason.trim() || actionLoading !== null ? 0.5 : 1,
                 }}
               >
-                停止する
+                {viewStatus(rejectTarget) === "reopen_requested" ? "見送る" : "停止する"}
               </button>
             </div>
           </div>

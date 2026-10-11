@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
-import { JOB_STATUS_TABS, countByStatus, jobViewStatus } from "@/lib/business/mockJobs";
+import type { BizJob } from "@/lib/business/mockJobs";
+import { countByTab } from "@/lib/business/mockJobs";
+import { JOB_STATE_LABEL, JOB_TABS, JOB_TAB_LABEL, jobState, jobStateTab, type JobStateTab } from "@/lib/jobs/jobState";
 import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 import { FilterChip } from "@/components/common/FilterChip";
 
@@ -12,7 +13,9 @@ type Props = {
   jobs: BizJob[];
   isAdmin?: boolean;
   /** `?status=` 由来の初期タブ。⚠️ 検証済みの値だけが来る（page.tsx を参照） */
-  initialStatus?: JobStatus | "all";
+  initialStatus?: JobStateTab | "all";
+  /** `?dept=` 由来の部門（部門 id）。⚠️ 選択肢に無ければ無視する */
+  initialDept?: string;
   /** 閲覧数が取れなかった（「—」と出す。0 と出さない） */
   viewsFailed?: boolean;
 };
@@ -25,22 +28,20 @@ type Props = {
 
 /**
  * ★求人管理の一覧（2026-10-12 / 柴さんの指示。大きなカードをやめ、1行1求人にした）。
- *   列: タイトル（下に灰色で 職種・雇用形態・勤務地）／状態（灰色の文字）／応募／面談／閲覧（直近30日）／更新日／⋯
+ *   列: タイトル（下に灰色で 部門 › 職種・雇用形態・勤務地）／状態（灰色の文字）／応募／面談／閲覧（直近30日）／更新日／⋯
  *   ⚠️ 色付きのバッジを使わない（状態も雇用形態も職種も灰色の文字）
- *   ⚠️ タブは すべて／公開中／下書き／非公開。運営確認中・停止中は1件以上あるときだけ出す
- *   ⚠️ 下書きで項目が足りないものは、状態の位置に「公開まであと〇つ」
+ *   ★状態は 下書き／公開中／停止中 の3つ（2026-10-12。lib/jobs/jobState.ts）。タブは すべて／公開中／下書き／停止中
+ *     停止中は2種類: 自社で停止（⋯「再開する」）／運営が停止（下に理由。⋯「再開を依頼する」→ 再開を依頼済み）
+ *   ⚠️ 下書きで公開できないもの（項目の不足・禁止表現）は、状態の位置に「公開まであと〇つ」
  *   ⚠️ 応募・面談の数を押すと、選考管理（/biz/meetings?job=<id>）をその求人で絞って開く
+ *   ★部門で絞り込める（?dept=。求人がある部門だけを選択肢にする）
  */
-const MAIN_TABS: (JobStatus | "all")[] = ["all", "published", "draft", "private"];
-const COND_TABS: JobStatus[] = ["pending_review", "rejected"];
-const tabLabel = (st: JobStatus | "all") => JOB_STATUS_TABS.find((t) => t.status === st)?.labelJa ?? st;
-
 function statusText(j: BizJob): string {
-  const v = jobViewStatus(j);
+  const v = jobState(j);
   /* ⚠️「〜つ」は9まで。10以上は「〜項目」 */
   const n = j.publishMissingCount ?? 0;
   if (v === "draft" && n > 0) return n < 10 ? `公開まであと${n}つ` : `公開まであと${n}項目`;
-  return tabLabel(v);
+  return JOB_STATE_LABEL[v];
 }
 function fmtDate(iso?: string): string {
   if (!iso) return "—";
@@ -49,15 +50,18 @@ function fmtDate(iso?: string): string {
   const thisYear = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric" }).format(new Date()).replace(/\D/g, "");
   return `${v("year") === thisYear ? "" : `${v("year")}/`}${v("month")}/${v("day")}`;
 }
+/** 2行目「営業部 › PDM ・ 正社員 ・ 東京都」。⚠️ 部門が無ければ「PDM ・ 正社員 ・ 東京都」。「職種：」とは書かない */
 function subLine(j: BizJob): string {
   const role = j.companyRoleName || (j.jobRoleNames ?? [])[0] || j.jobCategory;
-  return [role ? `職種：${role}` : null, j.employmentType || null, j.location || null].filter(Boolean).join("・");
+  const dept = j.departmentName || j.department || "";
+  const head = dept && role ? `${dept} › ${role}` : dept || role || "";
+  return [head || null, j.employmentType || null, j.location || null].filter(Boolean).join(" ・ ");
 }
 
-export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", viewsFailed = false }: Props) {
+export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", initialDept = "", viewsFailed = false }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
-  const [activeStatus, setActiveStatus] = useState<JobStatus | "all">(initialStatus);
+  const [activeStatus, setActiveStatus] = useState<JobStateTab | "all">(initialStatus);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -65,13 +69,13 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
 
-  const showError = (msg: string) => {
+  const showError = (msg: string, ms = 4000) => {
     setErrorMessage(msg);
-    setTimeout(() => setErrorMessage(null), 4000);
+    setTimeout(() => setErrorMessage(null), ms);
   };
 
-  /* ⚠️ 一覧から変えられる状態は「非公開にする」だけ（公開は編集画面の「確認して公開」から。ガイドラインへの同意の一文を通す） */
-  const makePrivate = useCallback(async (jobId: string) => {
+  /* ★「停止する」（公開中 → 自社で停止）。⚠️ 停止の記録（stopped_*）は付けない（運営の停止と区別するため） */
+  const stopJob = useCallback(async (jobId: string) => {
     setMenuId(null);
     const old = jobs.find((j) => j.id === jobId);
     setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: "private" } : j));
@@ -82,9 +86,24 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
     });
     if (!res.ok && old) {
       setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: old.status } : j));
-      showError("非公開にできませんでした。再度お試しください。");
+      showError("停止できませんでした。再度お試しください。");
     }
   }, [jobs]);
+
+  /* ★「再開する」（自社で停止 → 公開判定を通れば即時公開）／「再開を依頼する」（運営が停止 → 運営の確認待ち）。
+        どちらも同じ「公開する」の申し出（PATCH published）で、何になるかはサーバーの requestPublish が決める。
+     ⚠️ 結果を見てから画面を変える（楽観的に変えない。公開できない理由はサーバーの文をそのまま出す） */
+  const resumeJob = useCallback(async (jobId: string) => {
+    setMenuId(null);
+    const res = await fetch(`/api/biz/jobs/${jobId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", value: "published" }),
+    });
+    const d = (await res.json().catch(() => null)) as { error?: string; decision?: string } | null;
+    if (!res.ok) { showError(d?.error ?? "再開できませんでした。再度お試しください。", 8000); return; }
+    setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: d?.decision === "review" ? "pending_review" : "published" } : j));
+  }, []);
 
   const confirmDelete = useCallback(async (jobId: string) => {
     setPendingDeleteId(null);
@@ -110,8 +129,26 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
     router.push(`/biz/jobs/${id}/edit`);
   }, [router]);
 
-  const counts = useMemo(() => countByStatus(jobs), [jobs]);
-  const tabs: (JobStatus | "all")[] = [...MAIN_TABS, ...COND_TABS.filter((t) => counts[t] > 0 || activeStatus === t)];
+  const counts = useMemo(() => countByTab(jobs), [jobs]);
+
+  /* ★部門の選択肢（2026-10-12）。**求人がある部門だけ**（部門・職種の設定にあっても求人が無ければ出さない） */
+  const deptOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const j of jobs) if (j.departmentId && j.departmentName) m.set(j.departmentId, j.departmentName);
+    return Array.from(m, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, "ja"));
+  }, [jobs]);
+  /* ⚠️ URL の値は選択肢に無ければ無視する（消えた部門・他社の id） */
+  const [deptFilter, setDeptFilter] = useState(initialDept);
+  const activeDept = deptOptions.some((d) => d.value === deptFilter) ? deptFilter : "";
+
+  /* ★選択を URL に残す（?status= / ?dept=）。⚠️ router.replace にしない（サーバーで一覧を引き直すことになる） */
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (activeStatus === "all") p.delete("status"); else p.set("status", activeStatus);
+    if (activeDept) p.set("dept", activeDept); else p.delete("dept");
+    const q = p.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
+  }, [activeStatus, activeDept]);
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -124,7 +161,8 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
 
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
-      if (activeStatus !== "all" && jobViewStatus(j) !== activeStatus) return false;
+      if (activeStatus !== "all" && jobStateTab(jobState(j)) !== activeStatus) return false;
+      if (activeDept && j.departmentId !== activeDept) return false;
       if (categoryFilter) {
         const roles = j.jobRoleNames ?? [];
         if (!roles.includes(categoryFilter) && j.jobCategory !== categoryFilter) return false;
@@ -138,10 +176,10 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
         (j.jobRoleNames ?? []).some((n) => n.toLowerCase().includes(q))
       );
     });
-  }, [jobs, activeStatus, searchQuery, categoryFilter]);
+  }, [jobs, activeStatus, searchQuery, categoryFilter, activeDept]);
 
-  const hasFilters = activeStatus !== "all" || !!searchQuery.trim() || !!categoryFilter;
-  const hasNarrowing = !!searchQuery.trim() || !!categoryFilter;
+  const hasFilters = activeStatus !== "all" || !!searchQuery.trim() || !!categoryFilter || !!activeDept;
+  const hasNarrowing = !!searchQuery.trim() || !!categoryFilter || !!activeDept;
 
   const countCell = (n: number, j: BizJob, kind: "applications" | "meetings") => n > 0 ? (
     <Link href={`/biz/meetings?job=${j.id}${kind === "applications" ? "&tab=applications" : "&tab=meetings"}`} data-state={`count-${kind}`} style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>{n}</Link>
@@ -196,15 +234,15 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
         )}
       </div>
 
-      {/* 状態のタブ（下線だけ）。⚠️ 運営確認中・停止中は1件以上のときだけ */}
+      {/* 状態のタブ（下線だけ）。すべて／公開中／下書き／停止中（2026-10-12） */}
       <div role="tablist" aria-label="求人の状態" style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--line)", marginBottom: 12, overflowX: "auto" }}>
-        {tabs.map((st) => {
+        {JOB_TABS.map((st) => {
           const active = activeStatus === st;
           return (
             <button key={st} type="button" role="tab" aria-selected={active} data-tab={st} className="btn-fixed-size"
               onClick={() => setActiveStatus(st)}
               style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, minHeight: 40, padding: "0 12px", border: 0, borderBottom: `3px solid ${active ? "var(--royal)" : "transparent"}`, background: "none", fontFamily: "inherit", fontSize: 14, fontWeight: active ? 700 : 500, color: active ? "var(--royal)" : "var(--ink-soft)", cursor: "pointer" }}>
-              {tabLabel(st)}
+              {JOB_TAB_LABEL[st]}
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{counts[st]}</span>
             </button>
           );
@@ -230,8 +268,16 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             isOpen={openChip === "category"} onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
           />
         )}
+        {deptOptions.length > 0 && (
+          <FilterChip
+            label="部門" value={activeDept}
+            options={deptOptions}
+            onSelect={(v) => setDeptFilter(v ?? "")}
+            isOpen={openChip === "dept"} onToggle={() => setOpenChip(openChip === "dept" ? null : "dept")}
+          />
+        )}
         {hasNarrowing && (
-          <button type="button" onClick={() => { setSearchQuery(""); setCategoryFilter(""); }}
+          <button type="button" onClick={() => { setSearchQuery(""); setCategoryFilter(""); setDeptFilter(""); }}
             style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
             条件を外す
           </button>
@@ -249,9 +295,9 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
           </div>
           <div>
             {filtered.map((j) => {
-              const v = jobViewStatus(j);
-              const note = v === "rejected" ? (j.stoppedReason ?? j.rejectionReason ?? null)
-                : v === "pending_review" && (j.wordingHits?.length ?? 0) > 0 ? `運営が確認している表現：${j.wordingHits!.join("・")}` : null;
+              const v = jobState(j);
+              /* ★運営が停止した求人は、下に理由を出す（再開を依頼済みでも） */
+              const note = v === "stopped_ops" || v === "reopen_requested" ? (j.stoppedReason ?? j.rejectionReason ?? null) : null;
               return (
                 <div key={j.id}>
                   <div className="jl-row" data-item="job" data-status={v}>
@@ -259,8 +305,8 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
                       <Link href={`/biz/jobs/${j.id}/edit`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflowWrap: "anywhere" }}>{j.title}</Link>
                       <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={subLine(j)}>{subLine(j)}</div>
                       {note && (
-                        <div data-state={v === "rejected" ? "job-stop-reason" : "job-review-hits"} style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>
-                          {v === "rejected" ? `停止の理由：${note}` : note}
+                        <div data-state="job-stop-reason" style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>
+                          停止の理由：{note}
                         </div>
                       )}
                     </div>
@@ -277,10 +323,12 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
                         style={{ width: 32, height: 32, border: "1px solid var(--line)", borderRadius: 8, background: "#fff", color: "var(--ink-soft)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>⋯</button>
                       {menuId === j.id && (
                         <div className="jl-menu" role="menu" onClick={(e) => e.stopPropagation()}>
-                          <Link role="menuitem" href={`/biz/jobs/${j.id}/edit${v === "draft" || v === "private" || v === "rejected" || v === "pending_review" ? "?section=review" : ""}`}>{v === "published" ? "編集" : "編集・公開"}</Link>
+                          <Link role="menuitem" href={`/biz/jobs/${j.id}/edit${v === "draft" ? "?section=review" : ""}`}>{v === "draft" ? "編集・公開" : "編集"}</Link>
                           <Link role="menuitem" href={`/biz/jobs/${j.id}/preview`}>プレビュー</Link>
                           {isAdmin && <button type="button" role="menuitem" onClick={() => handleDuplicate(j.id)}>複製</button>}
-                          {isAdmin && v === "published" && <button type="button" role="menuitem" onClick={() => makePrivate(j.id)}>非公開にする</button>}
+                          {isAdmin && v === "published" && <button type="button" role="menuitem" onClick={() => stopJob(j.id)}>停止する</button>}
+                          {isAdmin && v === "stopped_self" && <button type="button" role="menuitem" onClick={() => resumeJob(j.id)}>再開する</button>}
+                          {isAdmin && v === "stopped_ops" && <button type="button" role="menuitem" onClick={() => resumeJob(j.id)}>再開を依頼する</button>}
                           {isAdmin && v !== "published" && <button type="button" role="menuitem" style={{ color: "var(--error)" }} onClick={() => { setMenuId(null); setPendingDeleteId(j.id); }}>削除</button>}
                         </div>
                       )}

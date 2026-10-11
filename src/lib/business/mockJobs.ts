@@ -46,7 +46,7 @@ export type BizJob = {
   stoppedAt?: string;
   /** ★求人管理の一覧用（2026-10-12）。公開に必要なのに足りない項目の数（下書きの「公開まであと〇つ」） */
   publishMissingCount?: number;
-  /** ★運営確認中の理由になった禁止表現（「〇〇」（欄））。一覧と編集画面に出す */
+  /** ★禁止表現（「〇〇」（欄））。公開をブロックする（2026-10-12）。一覧の「公開まであと〇つ」に数える */
   wordingHits?: string[];
   /** ★閲覧数（直近30日。ow_page_view_daily） */
   views30d?: number;
@@ -81,44 +81,14 @@ export type BizJob = {
 };
 
 
-export type JobStatusTab = {
-  status: JobStatus | "all";
-  label: string;
-  labelJa: string;
-};
+/* ★画面の状態（下書き／公開中／停止中）は lib/jobs/jobState.ts の1か所（2026-10-12）。
+      ⚠️ ここにあった JOB_STATUS_TABS（運営確認中・停止中・非公開のタブ）と jobViewStatus は外した。戻さないこと */
+import { jobState, jobStateTab, type JobStateTab } from "@/lib/jobs/jobState";
 
-export const JOB_STATUS_TABS: JobStatusTab[] = [
-  { status: "all",            label: "All",         labelJa: "すべて" },
-  { status: "published",      label: "Published",   labelJa: "公開中" },
-  { status: "pending_review", label: "In Review",   labelJa: "運営確認中" },
-  { status: "draft",          label: "Draft",       labelJa: "下書き" },
-  { status: "rejected",       label: "Rejected",    labelJa: "停止中" },
-  { status: "private",        label: "Private",     labelJa: "非公開" },
-];
+export type JobTabCounts = Record<JobStateTab | "all", number>;
 
-export type JobStatusCounts = Record<JobStatus | "all", number>;
-
-/**
- * ★企業に見せる状態（2026-10-12）。運営が停止した求人（private ＋ stoppedAt）と旧「差し戻し」は "rejected"（画面では「停止中」）。
- * ⚠️ タブ・件数・一覧の状態はすべてこれを通す（status をそのまま使うと、停止中が「非公開」に混ざる）
- */
-export function jobViewStatus(j: Pick<BizJob, "status" | "stoppedAt">): JobStatus {
-  if (j.status === "rejected" || (j.status === "private" && j.stoppedAt)) return "rejected";
-  return j.status;
-}
-
-export function countByStatus(jobs: BizJob[]): JobStatusCounts {
-  const counts: JobStatusCounts = {
-    all: jobs.length,
-    draft: 0,
-    pending_review: 0,
-    published: 0,
-    rejected: 0,
-    private: 0,
-  };
-  for (const j of jobs) {
-    const v = jobViewStatus(j);
-    counts[v] = (counts[v] ?? 0) + 1;
-  }
+export function countByTab(jobs: Pick<BizJob, "status" | "stoppedAt">[]): JobTabCounts {
+  const counts: JobTabCounts = { all: jobs.length, published: 0, draft: 0, stopped: 0 };
+  for (const j of jobs) counts[jobStateTab(jobState(j))] += 1;
   return counts;
 }

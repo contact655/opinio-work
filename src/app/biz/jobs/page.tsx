@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { countByJob, fetchCompanyReactions } from "@/lib/business/reactionCounts";
-import { JOB_STATUS_TABS, type JobStatus } from "@/lib/business/mockJobs";
+import { isJobTab, type JobStateTab } from "@/lib/jobs/jobState";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,9 @@ export const metadata = {
  * **どのカードを押しても「すべて」タブに着地していた。**
  * CLAUDE.md「リンク先が実在するか、そこに本当に着地するかを確かめること」。
  *
- * ⚠️ 値は `JOB_STATUS_TABS` と突き合わせる。知らない値は `all` に落とす
+ * ⚠️ 値は `JOB_TABS`（lib/jobs/jobState.ts）と突き合わせる。知らない値は `all` に落とす。
+ *   旧い値（private / pending_review / rejected。2026-10-12 まで）は「停止中」に寄せる（メールや履歴のリンクのため）
+ * ★`?dept=` は部門の絞り込み（部門 id）。⚠️ 選択肢に無い値は JobsClient が無視する
  *   （URL の値をそのまま state に入れない）。
  * ⚠️ `useSearchParams()` をクライアント側で使う形にはしない。あれは静的生成時に
  *   最寄りの Suspense fallback で打ち切られる（`/jobs` で実際に踏んだ）。
@@ -30,11 +32,12 @@ export const metadata = {
  */
 export default async function BizJobsPage({
   searchParams,
-}: { searchParams?: { status?: string } }) {
+}: { searchParams?: { status?: string; dept?: string } }) {
   const raw = searchParams?.status;
-  const initialStatus = (JOB_STATUS_TABS.some((t) => t.status === raw)
-    ? raw
-    : "all") as JobStatus | "all";
+  const initialStatus: JobStateTab | "all" = isJobTab(raw) ? raw
+    : raw === "private" || raw === "pending_review" || raw === "rejected" ? "stopped"
+    : "all";
+  const initialDept = typeof searchParams?.dept === "string" ? searchParams.dept : "";
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -59,7 +62,7 @@ export default async function BizJobsPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} viewsFailed={!!viewErr} />
+      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} />
     </BusinessLayout>
   );
 }
