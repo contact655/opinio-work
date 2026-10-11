@@ -9,8 +9,6 @@ type Row = {
   id: string; candidateName: string; companyName: string;
   evidenceCount: number; counterCount: number; hasJob: boolean; computedAt: string;
   candidateResponse: string | null; companyResponse: string | null;
-  /** 企業に届けた形（auto / review）。求職者が答えるまで null */
-  deliveryMode: string | null;
   /** `proposalPhase()` が導出した段。⚠️ 列では持たない */
   stage: string;
   /** 紹介済みか（正は `introduced_at`） */
@@ -36,7 +34,7 @@ export default function ProposalsAdminClient({
         候補者を1人選ぶと、掲載中の企業ぶんの提案を作ります。根拠が {minEvidence} 件以上そろった
         組み合わせだけが行になります。<br />
         ★<strong>提案は求職者にだけ届きます。</strong>求職者が「話を聞いてみたい」と答えたときだけ企業に届きます
-        （企業の設定が「すぐにメッセージ」なら会話を作り、「確認してから」なら企業が会うかを決めます）。<br />
+        （答えたらその場で会話を作ります。企業が会うかを決める手順はありません）。<br />
         ★<strong>OPINIO にログインできる担当者がいない企業と、紹介できる求人が無い企業は対象外です。</strong><br />
         根拠は<strong>作った時点のスナップショット</strong>で、表示のたびに作り直しません。
         すでにある提案は上書きしません（作り直すには先に消してください）。
@@ -225,7 +223,9 @@ export default function ProposalsAdminClient({
                 {/* ⚠️ null は「まだ答えていない」。「見送り」と読ませない */}
                 <td style={{ padding: 8 }}>{r.candidateResponse ?? "未回答"}</td>
                 <td style={{ padding: 8 }}>
-                  {r.deliveryMode === "auto" ? "すぐにメッセージ" : r.deliveryMode === "review" ? (r.companyResponse ?? "確認待ち") : (r.companyResponse ?? "—")}
+                  {/* ★2026-10-11 から企業は答えない（「話を聞いてみたい」でその場で会話になる）。
+                         以前の「確認してから」で企業が答えた記録だけ出す。⚠️ 「確認待ち」は出さない（もう待つものが無い） */}
+                  {r.companyResponse === "declined" ? "見送り（以前の記録）" : r.companyResponse === "want_to_meet" ? "会う（以前の記録）" : "—"}
                 </td>
                 {/* ★★会話を作るはずなのに作られていない行を見つけるための列（2026-09-21 / 2026-10-11）。
                        `introduceProposal()` は best-effort なので、失敗するとここに残る（段が connecting）。

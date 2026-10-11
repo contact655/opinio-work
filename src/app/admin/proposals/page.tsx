@@ -91,7 +91,6 @@ export default async function AdminProposalsPage() {
     computedAt: (p.computed_at as string).slice(0, 10),
     candidateResponse: (p.candidate_response as string | null) ?? null,
     companyResponse: (p.company_response as string | null) ?? null,
-    deliveryMode: (p.delivery_mode as string | null) ?? null,
     /* ★段は返答と日時から導出する。列で持たない（`proposalPhase()` の1か所）。
           ⚠️ 運営の一覧なので「見せてよいか」（can_send_scout）は引かず true で出す。
              200件ぶん RPC を投げないため。再試行は `introduceProposal()` 側で改めて判定される */
