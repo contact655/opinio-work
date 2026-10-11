@@ -101,6 +101,7 @@ export async function uploadCompanyLogo(
   file: File,
 ): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  /* ⚠️ 名前の形式を変えるなら logoFiles.ts の GENERATED_LOGO_RE も揃えること（後片付けの対象を決めている） */
   const path = `companies/logos/${companyId}/logo-${Date.now()}.${ext}`;
 
   const { error } = await supabase.storage
