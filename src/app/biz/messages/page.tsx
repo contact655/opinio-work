@@ -114,8 +114,12 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   /* ★1通も送っていないときだけ「いまメッセージを送れる候補者：N人」を数える。
         ⚠️ 候補者検索と**同じ関数**（`loadCompanyCandidates` → `can_send_company_approach_many`）。取れなかったら null */
   let approachableCount: number | null | undefined;
+  /* ★候補者検索に出る人数（2026-10-11）。「候補者は○名いますが、受け取る設定の方はまだいません」に使う。
+        ⚠️ 候補者検索の一覧と同じ関数の結果をそのまま数える（別の数え方をしない） */
+  let candidateCount: number | null = null;
   if (allowed && sent !== null && sent.length === 0) {
     const { candidates } = await loadCompanyCandidates({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType });
+    candidateCount = candidates.length;
     approachableCount = candidates.length > 0 && candidates.every((c) => c.approach === undefined)
       ? null
       : candidates.filter((c) => c.approach?.eligible === true).length;
@@ -151,6 +155,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
         showId={searchParams?.show}
         now={new Date().toISOString()}
         approachableCount={approachableCount}
+        candidateCount={candidateCount}
         hasPublishedJob={hasPublishedJob}
       />
     </BusinessLayout>

@@ -29,6 +29,7 @@ export function ApproachButton({
   eligible = false,
   compact = false,
   hideSender = false,
+  hideUnavailable = false,
 }: {
   candidateUserId: string;
   /** ★この企業の誰かが180日以内に送っていれば、その記録。あれば送れない */
@@ -39,6 +40,8 @@ export function ApproachButton({
   compact?: boolean;
   /** ★「◯◯さんが◯月◯日に送りました」の行を出さない（右のプレビューは見出しの下に同じ行があるため） */
   hideSender?: boolean;
+  /** ★送れないときに何も出さない（候補者検索のカード・プレビュー。2026-10-11）。/u/[id] は一文を出す */
+  hideUnavailable?: boolean;
 }) {
   if (sent) {
     const n = approachResendNotice(sent);
@@ -78,6 +81,7 @@ export function ApproachButton({
   }
 
   if (!eligible) {
+    if (hideUnavailable) return null;
     return (
       <span data-state="approach-unavailable" style={{ fontSize: compact ? 11.5 : 12.5, color: "var(--ink-mute)", lineHeight: 1.6, whiteSpace: "normal" }}>
         {APPROACH_UNAVAILABLE_MESSAGE}

@@ -59,10 +59,10 @@ export default function Page() {
         <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={3} />
       </Variant>
       <Variant label="0件・送れる人 0人・公開中の求人なし" note="1文と「提案を見る」（主）・「求人を公開する」・文字リンク「候補者を探す」。見出しの右の「候補者を探す」は出さない">
-        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob={false} />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} candidateCount={12} hasPublishedJob={false} />
       </Variant>
       <Variant label="0件・送れる人 0人・公開中の求人あり" note="「求人を公開する」は出さない">
-        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} candidateCount={12} hasPublishedJob />
       </Variant>
       <Variant label="0件・人数を取れなかった" note="0人と出さず「取得できませんでした」">
         <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={null} />

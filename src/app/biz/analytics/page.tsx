@@ -356,7 +356,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
       {/* ── 閲覧数（2026-10-09 / 段階D） ── */}
       <div style={{ ...card, marginBottom: 16 }} data-state="analytics-views">
         <SectionTitle note={<>
-          {periodLabel}。同じ人が同じページを1日に何度開いても1回と数えます。検証用・運営・御社の担当者の閲覧は含みません。
+          {periodLabel}。同じ人が同じページを1日に何度開いても1回と数えます。検証用・運営・貴社の担当者の閲覧は含みません。
           <br />記録は 2026年10月9日から。誰が見たかは記録していません。
         </>}>閲覧数</SectionTitle>
         {!viewsRes.ok ? <Failed /> : (

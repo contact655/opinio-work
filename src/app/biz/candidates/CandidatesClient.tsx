@@ -162,6 +162,8 @@ export default function CandidatesClient({
         ここで条件を組み立てないこと。 */
   const [approachOnly, setApproachOnly] = useState(initialApproachOnly);
   const approachEnabled = candidates.some((c) => c.approach !== undefined);
+  /* ★「メッセージを受け取る方のみ（○名）」の人数（2026-10-11）。⚠️ 絞り込み前の全員から数える（判定は c.approach.eligible だけ） */
+  const approachableCount = candidates.filter((c) => c.approach?.eligible === true).length;
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
         保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
@@ -647,7 +649,7 @@ export default function CandidatesClient({
           </svg>
           <input
             type="search" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社で検索（スペース区切りでAND）"
+            placeholder="名前・職種・会社で検索（複数の言葉はスペースで区切る）"
             style={{
               width: "100%", height: 38, padding: "0 32px 0 34px",
               border: "1px solid var(--line)", borderRadius: 999,
@@ -709,7 +711,7 @@ export default function CandidatesClient({
             }}>
               <span style={{ position: "absolute", top: 2, left: approachOnly ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
             </span>
-            メッセージを受け取る方のみ
+            メッセージを受け取る方のみ（{approachableCount}名）
           </button>
         )}
 
@@ -1026,6 +1028,11 @@ export default function CandidatesClient({
                         {/* 名前 + 年齢 + バッジ */}
                         <div className="cand-card-namerow">
                           <span className="cand-card-name" title={c.name}>{c.name}</span>
+                          {/* ★送れる人にだけ小さく出す（2026-10-11 / 柴さんの指示）。⚠️★送れない人には何も出さない
+                                 （受け取らない設定・ブロック・範囲外・転職に興味なし を見た目で区別させない） */}
+                          {c.approach?.eligible === true && !c.approach.sent && (
+                            <span data-state="can-message" style={{ fontSize: 11.5, fontWeight: 600, color: "var(--royal)", whiteSpace: "nowrap" }}>メッセージを送れます</span>
+                          )}
                           {/* ⚠️ **年齢は出さない**（2026-08-20）。一覧に年齢を出さない方針。
                                  出すのは職務要件として意味のある社会人年数だけ。 */}
                           {tenure && (
@@ -1057,7 +1064,8 @@ export default function CandidatesClient({
                         {(() => {
                           /* ⚠️ カードには「受け取る」「声かけ済み」だけ。「受け取っていません」はプレビューの中だけ（柴さんの指示） */
                           const raw = candidateApproachLabel(c.approach);
-                          const label = raw && raw.state !== "not_accepting" ? raw : null;
+                          /* ⚠️ 「送れます」は名前の横に移した（2026-10-11）。ここは送り済みだけ。送れない人には何も出さない */
+                          const label = raw && raw.state === "sent" ? raw : null;
                           const edited = formatJstMonthDay(c.profileEditedAt);
                           if (!label && !edited) return null;
                           return (
@@ -1169,7 +1177,7 @@ export default function CandidatesClient({
                         {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
                         <div className="cand-card-actions">
                           {c.approach && (
-                            <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact />
+                            <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact hideUnavailable />
                           )}
                           {/* ⚠️★別タブにしない（2026-10-10 / 柴さんの指示）。同じタブで /u/[id] */}
                           <a href={`/u/${c.id}`}

@@ -55,7 +55,7 @@ type Item =
   | { kind: "conv"; key: string; at: string; conv: ConversationRow }
   | { kind: "sent"; key: string; at: string; sent: SentApproach };
 
-export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, showId, now: nowIso, approachableCount, hasPublishedJob }: {
+export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, showId, now: nowIso, approachableCount, candidateCount = null, hasPublishedJob }: {
   allowed: boolean;
   conversations: ConversationRow[];
   /** 企業から送った1通目。null = 取れなかった */
@@ -69,6 +69,8 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   now: string;
   /** ★いまメッセージを送れる候補者の数（1通も送っていないときだけ）。null = 取れなかった */
   approachableCount?: number | null;
+  /** ★候補者検索に出る人数（1通も送っていないときだけ）。null = 取れなかった */
+  candidateCount?: number | null;
   /** ★公開中の求人があるか（送れる人0人のときの「求人を公開する」を出すか） */
   hasPublishedJob?: boolean | null;
 }) {
@@ -133,7 +135,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
           <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: 0 }}>{APPROACH_HEADLINE}</p>
           <ApproachStepsLarge />
           <div className="apx-empty">
-            <EmptyGuide approachableCount={approachableCount} hasPublishedJob={hasPublishedJob} />
+            <EmptyGuide approachableCount={approachableCount} candidateCount={candidateCount} hasPublishedJob={hasPublishedJob} />
             <SampleLetter />
           </div>
           <Link href="/biz/help/messages" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>候補者にメッセージを送るときのルール</Link>
@@ -259,7 +261,7 @@ function SentItem({ r, now, open, onToggle }: { r: SentApproach; now: Date; open
  * ⚠️ 人数は候補者検索の「メッセージを受け取る方のみ」と同じ判定。取れなかったら「取得できませんでした」（0人と出さない）。
  * ⚠️ 送れる人が0人のときは、提案（主）・求人を公開する（公開中の求人が無いときだけ）・候補者を探す（文字リンク）。
  */
-function EmptyGuide({ approachableCount, hasPublishedJob }: { approachableCount: number | null | undefined; hasPublishedJob?: boolean | null }) {
+function EmptyGuide({ approachableCount, candidateCount = null, hasPublishedJob }: { approachableCount: number | null | undefined; candidateCount?: number | null; hasPublishedJob?: boolean | null }) {
   const unknown = approachableCount === null || approachableCount === undefined;
   const zero = approachableCount === 0;
   return (
@@ -279,7 +281,8 @@ function EmptyGuide({ approachableCount, hasPublishedJob }: { approachableCount:
       {zero ? (
         <>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-            企業からのメッセージを受け取る設定の候補者は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
+            {/* ★「候補者は○名いるのに送れるのは0人」を分かるようにする（2026-10-11 / 柴さんの文言）。人数が取れなかったら前半を出さない */}
+            {candidateCount !== null && candidateCount > 0 ? `候補者は${candidateCount}名いますが、` : ""}メッセージを受け取る設定の方はまだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
           </p>
           <div className="apx-empty-actions">
             <Link href="/biz/proposals" className="btn-fixed-size" style={BTN_PRIMARY}>提案を見る</Link>

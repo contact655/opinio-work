@@ -55,7 +55,7 @@ export default async function ApproachHelpPage() {
           <h2 style={h2}>相手の返事と、企業に表示されること</h2>
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
             <li style={li}>相手は理由と本文を読んで、返信するかを決めます。相手はメッセージ一覧の「未返信」から開き、下の欄にそのまま返信を書いて送れます。</li>
-            <li style={li}>返信があると、メールでお知らせします。そのままメッセージでやり取りが続きます（御社の理由と本文が1通目、相手の返信が2通目）。会話は御社の有効な担当者なら誰でも見て返信できます。</li>
+            <li style={li}>返信があると、メールでお知らせします。そのままメッセージでやり取りが続きます（貴社の理由と本文が1通目、相手の返信が2通目）。会話は貴社の有効な担当者なら誰でも見て返信できます。</li>
             <li style={li}>{APPROACH_SILENCE_NOTE}</li>
             <li style={li}>返事が無いまま{APPROACH_EXPIRE_DAYS}日たつと、相手も返信できなくなります。</li>
           </ul>
@@ -81,7 +81,7 @@ export default async function ApproachHelpPage() {
         <section style={card}>
           <h2 style={h2}>提案との違い</h2>
           <p style={{ margin: 0, ...li }}>
-            メッセージは、御社が自分で見つけた方に送るものです。提案は、OPINIO が根拠をそろえてお届けするもので、双方が「会いたい」と答えるとメッセージが開きます。
+            メッセージは、貴社が自分で見つけた方に送るものです。提案は、OPINIO が根拠をそろえてお届けするもので、双方が「会いたい」と答えるとメッセージが開きます。
           </p>
         </section>
 

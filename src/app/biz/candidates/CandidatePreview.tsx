@@ -121,6 +121,10 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>{c.name}</h2>
             {tenure && <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>}
+            {/* ★送れる人にだけ小さく出す（2026-10-11）。⚠️ 送れない人には何も出さない（理由を推測させない） */}
+            {c.approach?.eligible === true && !c.approach.sent && (
+              <span data-state="can-message" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>メッセージを送れます</span>
+            )}
           </div>
           {(c.currentRole || c.currentCompany) && (
             <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>
@@ -129,17 +133,11 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, fontSize: 12, color: "var(--ink-mute)" }}>
             {/* ⚠️ 送れない一文は下のボタンの位置に出す（同じ文を2回出さない） */}
-            {label && label.state !== "not_accepting" && <span data-approach-state={label.state}>{label.text}</span>}
+            {label && label.state === "sent" && <span data-approach-state={label.state}>{label.text}</span>}
             {c.location && <span>{c.location}</span>}
             {edited && <span>プロフィール更新 {edited}</span>}
           </div>
-          {/* ★受け取っていない人には、提案への入口を添える（2026-10-10 / 柴さんの文言）。⚠️ 理由は出さない */}
-          {label?.state === "not_accepting" && (
-            <div data-state="not-accepting-note" style={{ marginTop: 4, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              条件が合えば、OPINIO から提案としてお届けすることがあります。{" "}
-              <Link href="/biz/proposals" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>提案を見る →</Link>
-            </div>
-          )}
+          {/* ⚠️ 送れない人にだけ出していた「提案を見る」の一文は 2026-10-11 に外した（送れない人には何も出さない。送れない人を見た目で区別させない） */}
         </div>
         <button type="button" onClick={onClose} aria-label="プレビューを閉じる"
           style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>
@@ -148,7 +146,7 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
         {/* ⚠️ 送れる・送り済みのときだけボタン（送り済みは状態の表示になる）。受け取っていない人には出さない */}
         {c.approach && (
-          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} hideSender />
+          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} hideSender hideUnavailable />
         )}
         <Link href={`/u/${c.id}`}
           style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>

@@ -140,9 +140,9 @@ export default function BizProposalsClient({
                向きだけ変えて書いている。**片方だけ直さないこと。**
                ⚠️★「メッセージが開くのは双方が会いたいと答えたとき」は消さないこと */}
         <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: "6px 0 0" }}>
-          OPINIO が、御社の求人・部門と候補者の経歴を照らし合わせ、根拠が2つ以上そろった方を御社と候補者の両方にご紹介します。
-          候補者のお名前と公開プロフィールは、候補者検索と同じようにご覧いただけます。
-          <strong>両方が「会いたい」と答えると、メッセージが開きます。</strong>提案は届いてから{responseDays}日で終了します。
+          {/* ★2文にした（2026-10-11 / 柴さんの文言） */}
+          OPINIO が、貴社の求人や部門と候補者の経歴を照らし合わせ、根拠が2つ以上そろった方を、貴社と候補者の両方にご紹介します。
+          両方が「会いたい」と答えると、メッセージでやり取りできます（提案は{responseDays}日で終了します）。
         </p>
       </div>
 
@@ -161,10 +161,10 @@ export default function BizProposalsClient({
           ) : items.length === 0 ? (
             <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "20px 18px", fontSize: 14, lineHeight: 1.9 }}>
               <p style={{ margin: "0 0 10px", fontWeight: 600 }}>いまお出しできる提案はありません。</p>
+              {/* ★1文にした（2026-10-11 / 柴さんの文言）。根拠の一覧はヘルプ（/biz/help/proposals）へ移した */}
               <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
-                OPINIO は、<strong>根拠を2件以上そろえられた候補者だけ</strong>をご提案します。
-                {"根拠になるのは、御社に移ってきた方の人数・在籍している方やしていた方が挙げた入社の決め手・話を聞ける方の人数・御社の求人や部門の職種と同じ経験・ご本人の希望条件との一致・御社の顧客の業界や事業領域での経験です（業界の経験だけでは提案になりません）。"}
-                右の「提案の材料」を増やすと、提案が届きやすくなります。
+                右の「提案の材料」が増えるほど、根拠のある提案が届きやすくなります。{" "}
+                <Link href="/biz/help/proposals" style={{ color: "var(--royal)", fontWeight: 600 }}>提案の根拠になるもの</Link>
               </p>
             </div>
           ) : (
@@ -196,8 +196,8 @@ export default function BizProposalsClient({
                    ⚠️ 企業資料の項目は出さない（いまは提案の根拠に使われていない） */}
             {([
               { key: "jobs", label: "公開中の求人", value: materials?.jobs, unit: "件", href: "/biz/jobs/new", action: "求人を登録する" },
-              { key: "roles", label: "職種マスタに紐づいた部門・職種", value: materials?.roles, unit: "件", href: "/biz/organization?tab=roles", action: "部門・職種を登録する" },
-              { key: "path", label: "御社に移ってきた方", value: materials?.path, unit: "人", href: "/biz/employees", action: "企業ページに出ている方を確かめる" },
+              { key: "roles", label: "職種を設定した部門", value: materials?.roles, unit: "件", href: "/biz/organization?tab=roles", action: "部門・職種を登録する" },
+              { key: "path", label: "貴社に移ってきた方", value: materials?.path, unit: "人", href: "/biz/employees", action: "企業ページに出ている方を確かめる" },
               { key: "motive", label: "入社の決め手の回答", value: materials?.motive, unit: "件", href: "/biz/employees", action: "社員に回答を呼びかける" },
               { key: "talkable", label: "話を聞ける方", value: materials?.talkable, unit: "人", href: "/biz/employees", action: "社員に登録を呼びかける" },
             ] as const).map((m, i, arr) => (
@@ -220,7 +220,7 @@ export default function BizProposalsClient({
             <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>提案とメッセージの違い</h2>
             <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10, fontSize: 13, lineHeight: 1.7 }}>
               <div><dt style={{ fontWeight: 700 }}>提案</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>OPINIO が根拠をそろえて双方にご紹介します。送れる数の枠は使いません。両方が「会いたい」でメッセージが開きます。</dd></div>
-              <div><dt style={{ fontWeight: 700 }}>メッセージ</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>御社から理由を添えて送ります。毎月10通まで。相手が返信すると、そのままやり取りが始まります。</dd></div>
+              <div><dt style={{ fontWeight: 700 }}>メッセージ</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>貴社から理由を添えて送ります。毎月10通まで。相手が返信すると、そのままやり取りが始まります。</dd></div>
             </dl>
             <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>候補者を探してメッセージを送る →</Link>
           </section>

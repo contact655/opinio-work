@@ -13,7 +13,7 @@ import { APPROACH_EXPIRE_DAYS, APPROACH_MONTHLY_LIMIT } from "@/lib/constants/co
 export const APPROACH_STEPS = [
   { Icon: Send, title: `理由を添えて送る（毎月${APPROACH_MONTHLY_LIMIT}通まで）`, note: "経歴を見て、話を聞きたい理由を書いて送ります。" },
   { Icon: Clock, title: `相手が読んで、返信する（${APPROACH_EXPIRE_DAYS}日以内）`, note: "相手は理由と本文を読んで、返信するかを決めます。" },
-  { Icon: MessageSquare, title: "返信が来たら、そのままやり取りを続ける", note: "メッセージで、日程や話したいことを相談できます。" },
+  { Icon: MessageSquare, title: "返信が来たら、やり取りを続ける", note: "メッセージで、日程や話したいことを相談できます。" },
 ] as const;
 
 export const APPROACH_TIPS = [
