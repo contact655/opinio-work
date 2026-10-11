@@ -1086,7 +1086,11 @@ function OnboardingInner({
             onTextChange={(v) => { setQuery(v); setSelectedCompany(null); }}
             onSelect={(c) => { setSelectedCompany(c); setQuery(c.name); }}
             onClear={() => { setSelectedCompany(null); setQuery(""); }}
-            onEnter={() => { if (!saving) finish(); }}
+            /* ⚠️★Enter で `finish()` を呼ばないこと（2026-10-11 に本番で踏んだ）。
+                  ここで Enter（日本語入力の確定の Enter を含む）を押すと**オンボーディングごと完了**し、
+                  経歴は保存されないまま `/mypage` → `OnboardingGuard` → `/onboarding/stance`（戻れない1枚）へ飛んでいた。
+                  利用者からは「勝手に次へ進み、勤務先の画面に戻れない」に見える。
+               ⚠️ 進むのは「次へ」ボタンだけ。会社は候補から本人が選ぶ（自動で選ばない）。 */
           />
 
           {/* ── 職種・入社年月 ────────────────────────────────────────────────
@@ -1703,6 +1707,9 @@ function CompanyPicker({
               }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") setShowDropdown(false);
+                /* ⚠️★日本語入力の確定の Enter は無視する（`isComposing`。Safari は false で来るので keyCode 229 も見る）。
+                      確定の Enter を「送る」と読むと、社名を打っている途中で先へ進んでしまう（2026-10-11） */
+                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                 if (e.key === "Enter" && !showDropdown) onEnter?.();
               }}
               placeholder={placeholder}

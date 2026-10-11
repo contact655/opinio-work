@@ -109,6 +109,10 @@ export default function StanceStepClient({ next }: { next: string }) {
           >
             {saving ? "保存中…" : "次へ"}
           </button>
+          {/* ★この画面には戻るボタンが無い（登録はもう完了している）。直したい人のために、どこで直せるかを書く（2026-10-11） */}
+          <p data-state="stance-fix-later" style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-mute)", textAlign: "center" }}>
+            お名前・お勤め先などの入力は、あとからマイページでいつでも直せます。
+          </p>
         </div>
       </div>
     </div>
