@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
+import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
 import BasicInfoSettings from "./BasicInfoSettings";
 import { ApproachSettingsSection } from "@/components/approaches/ApproachSettingsSection";
 import { ApproachRangeSection } from "@/components/approaches/ApproachRangeSection";
@@ -81,6 +82,8 @@ export default async function MypageSettingsPage() {
         initialVisibility={((owUser?.visibility as ProfileVisibility | null) ?? "login_only")}
         careerStance={(prof?.career_stance as string | null) ?? null}
         careerStanceKnown={!profError}
+        /* ★企業の候補者一覧に年齢を出しているときだけ「年齢」を書く（2026-10-12。本番は無効） */
+        showAge={isCandidateAgeDisplayEnabled()}
       />
       {/* ★企業からのメッセージ（2026-10-11 に説明だけにした）。⚠️ スイッチを戻さないこと */}
       <ApproachSettingsSection />

@@ -40,7 +40,10 @@ export default function PrivacySettings({
   initialVisibility,
   careerStance,
   careerStanceKnown,
+  showAge = false,
 }: {
+  /** ★「企業に見える項目」に年齢を出すか（`isCandidateAgeDisplayEnabled()`。2026-10-12）。企業の画面に年齢が出ていないなら書かない */
+  showAge?: boolean;
   initialVisibility: ProfileVisibility;
   /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」 */
   careerStance: string | null;
@@ -260,7 +263,7 @@ export default function PrivacySettings({
                    見出し・できること・「転職検討中」が抜けていた。⚠️ カードの項目を変えたらここも直す。
                    ⚠️ 希望職種は**現在の職種・会社名が無いときだけ**カードに出る（それ以外は出ない）。 */}
             {/* ★年齢（2026-10-12 から一覧と右欄に出す。生年月日から計算した年齢だけで、生年月日は出さない） */}
-            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・見出し・年齢・現在の職種と会社名・
+            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・見出し・{showAge ? "年齢・" : ""}現在の職種と会社名・
             できること（職種と経験年数）・社会人年数・お住まいの地域・希望勤務地が並びます。
             現在の職種と会社名が無いときは、希望職種が出ます。
             転職意欲で「積極的に検討中」を選んでいると、「転職検討中」と表示されます。

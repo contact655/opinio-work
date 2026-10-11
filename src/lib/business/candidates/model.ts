@@ -336,6 +336,8 @@ export function describeFilters(
   f: SavedCandidateFilters,
   roleNameById: Map<string, string>,
   labels: { workStyles: Record<string, string>; careerStances: { value: string; label: string }[] },
+  /** ★年齢の絞り込みが使える環境か（`isCandidateAgeFilterEnabled()`）。無効なら年齢の条件を言葉にしない（2026-10-12） */
+  opts: { ageFilter?: boolean } = {},
 ): string[] {
   const out: string[] = [];
   if (f.q.trim()) out.push(`検索: ${f.q.trim()}`);
@@ -346,8 +348,8 @@ export function describeFilters(
   if (role && roleNameById.get(role)) out.push(roleNameById.get(role)!);
   const tb = TENURE_BANDS.find((b) => b.value === f.tenureBand);
   if (tb) out.push(`社会人 ${tb.label}`);
-  /* ★年齢（2026-10-12）。⚠️ 無効な環境でも、保存されている条件は言葉にして見せる（黙って消さない） */
-  if (f.ageMin > 0 || f.ageMax > 0) out.push(ageRangeLabel(f.ageMin, f.ageMax));
+  /* ★年齢（2026-10-12）。⚠️ 無効な環境（本番）では出さない（年齢が画面に一切出ない状態にする。柴さんの指示） */
+  if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) out.push(ageRangeLabel(f.ageMin, f.ageMax));
   for (const v of f.employmentTypes) out.push(EMPLOYMENT_TYPE_LABELS[v] ?? v);
   if (f.workStyle) out.push(labels.workStyles[f.workStyle] ?? f.workStyle);
   if (f.salaryMin > 0) out.push(`${f.salaryMin}万〜`);
