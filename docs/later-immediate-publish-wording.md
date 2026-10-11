@@ -39,5 +39,6 @@
 
 ## 禁止表現のリスト
 
-`src/lib/jobs/wordingCheck.ts` の `WORDING_RULES` は**案**。`WORDING_LIST_CONFIRMED = false` のあいだは
-**本番では何も検出しない**（ローカルの dev だけで動く）。柴さんが確定したら true にする。
+`src/lib/jobs/wordingCheck.ts` の `WORDING_RULES` は **2026-10-12 に柴さんが確定し、本番でも有効**（`WORDING_LIST_CONFIRMED = true`）。
+確定時に2点直した: 英字の語（OL）は前後が英字なら当てない（TOOL・SOLUTION・CONTROL）／
+年代の範囲の後ろ側（「20代から50代まで」）は当てない。当たる例・当たらない例は `wordingCheck.test.mjs`（`npm test`）。

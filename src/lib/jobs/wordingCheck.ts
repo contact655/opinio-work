@@ -6,14 +6,16 @@
  *   引っかかったら公開せず「運営確認中」（pending_review）にする。どの表現が該当したかを企業に出す。
  *   ⚠️ 「拒否」ではない。運営が見て問題なければ公開する（例: 法律で認められた年齢制限の例外）。
  *
- * ⚠️★**言葉のリストは案**（柴さんが確定するまで本番に出さない）。`WORDING_LIST_CONFIRMED` が false のあいだは
- *    **本番（NODE_ENV = production）では何も検出しない**。ローカルの dev では動く（検証用）。
- *    確定したら true にする。⚠️ NODE_ENV はビルドで置き換わるので、ブラウザ側でも同じ判定になる。
+ * ★**言葉のリストは 2026-10-12 に柴さんが確定した**（`WORDING_LIST_CONFIRMED = true`。本番でも有効）。
+ *    false に戻すと本番（NODE_ENV = production）では何も検出しなくなる（ローカルの dev では動く）。
+ * ⚠️★**英字の語は前後が英字のときに当てない**（TOOL・SOLUTION・CONTROL の中の「OL」で誤検知しないため）。
+ *    `normalize` は英字どうしの間の空白を1つ残すので、「Excel OL」は語の境目として扱える。
+ *    英字の語を足すときは `(?<![A-Za-z])語(?![A-Za-z])` の形にし、wordingCheck.test.mjs に誤検知の例も足すこと。
  * ⚠️ DB や server-only のものを import しないこと（ブラウザからも読む）。
  * ⚠️ 17項目の判定（publishRequirements.ts）とは分けてある。両方を呼ぶのは publishGate.ts の1か所。
  */
 
-export const WORDING_LIST_CONFIRMED = false;
+export const WORDING_LIST_CONFIRMED = true;
 
 export type WordingCategory = "age" | "gender" | "nationality" | "suspicious";
 export const WORDING_CATEGORY_LABELS: Record<WordingCategory, string> = {
@@ -29,12 +31,15 @@ type Rule = { category: WordingCategory; pattern: RegExp; example: string };
 export const WORDING_RULES: readonly Rule[] = [
   // ── 年齢 ──
   { category: "age", pattern: /(\d{2}|[二三四五六]十)歳(まで|以下|未満|迄|前後|くらい|位|程度)/, example: "35歳まで／30歳以下／40歳前後" },
-  { category: "age", pattern: /[1-6]0代(のみ|限定|まで|中心|歓迎|の方)/, example: "20代のみ／30代まで／20代歓迎" },
+  /* ⚠️ 「20代から50代まで」「20〜50代まで」（幅の説明）は当てない。範囲の後ろ側（から・〜 の直後）を除く */
+  { category: "age", pattern: /(?<!(から|〜|~|ー|-|－))[1-6]0代(のみ|限定|まで|中心|歓迎|の方)/, example: "20代のみ／30代まで／20代歓迎" },
   { category: "age", pattern: /(若手|若年層|若い方)(のみ|限定)/, example: "若手のみ／若年層限定" },
   { category: "age", pattern: /年齢制限(あり|有り|有)/, example: "年齢制限あり" },
   // ── 性別 ──
   { category: "gender", pattern: /(男性|女性|男子|女子)(のみ|限定|歓迎|募集|に限る)/, example: "男性のみ／女性限定／女性歓迎" },
-  { category: "gender", pattern: /営業マン|セールスマン|ビジネスマン|サラリーマン|ウェイター|ウェイトレス|看護婦|保母|スチュワーデス|(?<![A-Za-z])OL(?![A-Za-z])/, example: "営業マン／ウェイトレス／OL" },
+  { category: "gender", pattern: /営業マン|セールスマン|ビジネスマン|サラリーマン|ウェイター|ウェイトレス|看護婦|保母|スチュワーデス/, example: "営業マン／ウェイトレス" },
+  /* ⚠️ 英字の語は前後が英字なら当てない（TOOL / SOLUTION / CONTROL）。小文字の ol も当てない */
+  { category: "gender", pattern: /(?<![A-Za-z])OL(?![A-Za-z])/, example: "OL" },
   // ── 国籍 ──
   { category: "nationality", pattern: /(日本人|日本国籍(の方)?)(のみ|限定|に限る)/, example: "日本人のみ／日本国籍限定" },
   { category: "nationality", pattern: /(外国人|外国籍)(不可|お断り|NG)/, example: "外国人不可／外国籍NG" },
@@ -54,9 +59,11 @@ export type WordingHit = {
   field: string;
 };
 
-/** 全角英数→半角・空白（全角を含む）の除去。⚠️ 当たった文字列もこの形で返る */
-function normalize(s: string): string {
-  return s.normalize("NFKC").replace(/\s+/g, "");
+/** 全角英数→半角・空白（全角を含む）の除去。⚠️ 当たった文字列もこの形で返る
+ *  ⚠️ 英字どうしの間の空白だけは1つ残す。消すと「Excel OL」が「ExcelOL」になり、英字の語の境目が消える */
+export function normalize(s: string): string {
+  return s.normalize("NFKC").replace(/\s+/g, (m, off: number, str: string) =>
+    /[A-Za-z]/.test(str[off - 1] ?? "") && /[A-Za-z]/.test(str[off + m.length] ?? "") ? " " : "");
 }
 
 function active(): boolean {
