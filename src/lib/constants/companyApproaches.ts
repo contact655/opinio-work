@@ -53,6 +53,20 @@ export const APPROACH_REASON_MIN = 30;
 export const APPROACH_REASON_MAX = 200;
 /** ★候補者を探すの右欄に出す、返信後のやり取りの件数（最新から）。超えたら「これまでのやり取り（n件）を見る」 */
 export const PANE_THREAD_RECENT = 3;
+
+/**
+ * ★返信したときに会話の1通目として入る本文（DB 関数 `reply_to_company_approach` と同じ組み立て。
+ *   supabase/migrations/20261011050000_message_request_reply.sql）。⚠️ 片方だけ変えないこと。
+ *   画面では見出し「【送った理由】」を出さず、理由と本文だけを吹き出しにする（会社側・求職者側とも）。
+ *   1通目かどうかはこの文字列との**完全一致**で見る（理由に空行が入りうるので、本文を分けて推測しない）。
+ */
+export function approachFirstMessageBody(reason: string, body: string | null): string {
+  return `【送った理由】\n${reason}${body ? `\n\n${body}` : ""}`;
+}
+/** 吹き出しに出す1通目（見出しなし） */
+export function approachFirstDisplayText(reason: string, body: string | null): string {
+  return [reason, body].filter((x) => !!x && x.trim()).join("\n\n");
+}
 /** 本文の長さ（任意）。⚠️ DM のお願い（`MAX_MESSAGE_REQUEST_LENGTH`）と同じ値 */
 export const APPROACH_BODY_MAX = 2000;
 

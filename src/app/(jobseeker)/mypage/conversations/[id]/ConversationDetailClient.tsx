@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Fragment } from "react";
-import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
-import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
-import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
+import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubble";
 
 export type MessageRow = {
   id: string;
@@ -48,31 +46,21 @@ const STAGE_LABELS: Record<string, string> = {
   closed: "終了",
 };
 
-function isGroupedMessage(
-  curr: MessageRow,
-  prev: MessageRow | null,
-  needsSeparator: boolean
-): boolean {
-  if (!prev || needsSeparator) return false;
-  const sameSender = curr.sender_participant_id === prev.sender_participant_id;
-  const withinFiveMin =
-    new Date(curr.sent_at).getTime() - new Date(prev.sent_at).getTime() <
-    5 * 60 * 1000;
-  return sameSender && withinFiveMin;
-}
-
 export default function ConversationDetailClient({
   conversationId,
   initialConversation,
   initialMessages,
   initialMyParticipantId,
   myUserName,
+  approachFirst = null,
 }: {
   conversationId: string;
   initialConversation: ConversationDetail | null;
   initialMessages: MessageRow[];
   initialMyParticipantId: string | null;
   myUserName: string | null;
+  /** ★企業から届いたメッセージの1通目（見出しなしで出す本文）。page.tsx が送ったメッセージの行と照合して渡す */
+  approachFirst?: { messageId: string; text: string } | null;
 }) {
   const [conversation] = useState<ConversationDetail | null>(initialConversation);
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
@@ -218,67 +206,36 @@ export default function ConversationDetailClient({
               <p className="text-gray-400 text-sm">まだメッセージはありません</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {messages.map((msg, i) => {
-                const prevMsg = i > 0 ? messages[i - 1] : null;
+            /* ★吹き出しは会社側と同じ共通部品（`ChatBubble`。2026-10-12 / 柴さんの指示）。
+                  求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
+                  ⚠️ 状態の言葉・アバター・日付の区切りは出さない（会社側と揃える）。 */
+            <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {messages.map((msg) => {
+                if (msg.kind === "proposal_intro") {
+                  /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
+                  return (
+                    <ChatNotice key={msg.id} state="proposal-intro">
+                      {msg.body}
+                      <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)" }}>{chatTime(msg.sent_at)}</span>
+                    </ChatNotice>
+                  );
+                }
                 const isMe = msg.sender_participant_id === myParticipantId;
-                const needsSeparator =
-                  !prevMsg ||
-                  new Date(msg.sent_at).toDateString() !== new Date(prevMsg.sent_at).toDateString();
-                const grouped = isGroupedMessage(msg, prevMsg, needsSeparator);
-                const participant = msg.ow_conversation_participants;
-                const senderName = participant?.ow_users?.name ?? "運営";
-                const msgTime = formatRelativeTime(msg.sent_at, { withTime: true });
-
+                const sender = isMe ? (myUserName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "運営");
+                const isCard = (msg.kind === "meeting_slots" || msg.kind === "scheduling_link") && conversation.kind === "company";
                 return (
-                  <Fragment key={msg.id}>
-                    {needsSeparator && (
-                      <div className="flex items-center gap-3 py-3">
-                        <div className="flex-1 h-px bg-gray-100" />
-                        <span className="text-xs text-gray-400 flex-shrink-0 px-2 select-none">
-                          {formatDateSeparator(msg.sent_at)}
-                        </span>
-                        <div className="flex-1 h-px bg-gray-100" />
+                  <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at} plain={isCard}>
+                    {isCard ? (
+                      /* ★候補日・日程調整リンク（2026-10-10 / 段4）。選ぶと確定し、一覧を取り直す */
+                      <div style={{ width: 320, maxWidth: "min(420px, 100%)" }}>
+                        <MeetingMessageCard side="candidate" conversationId={conversationId} messageId={msg.id}
+                          kind={msg.kind as "meeting_slots" | "scheduling_link"} payload={msg.payload} onChanged={() => void refreshMessages()} />
                       </div>
-                    )}
-                    {msg.kind === "proposal_intro" ? (
-                      /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
-                      <div data-state="proposal-intro" className="text-center text-xs text-gray-500 my-3 leading-relaxed">
-                        {msg.body}
-                      </div>
-                    ) : (
-                    <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} ${grouped ? "mt-0.5" : "mt-3"}`}>
-                      {!grouped && (
-                        <span className={`text-xs text-gray-500 mb-0.5 ${isMe ? "pr-9 text-right" : "pl-9"}`}>
-                          {isMe ? (myUserName ?? "自分") : senderName}
-                        </span>
-                      )}
-                      <div className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
-                        {!grouped ? (
-                          isMe ? (
-                            <InitialAvatar name={myUserName ?? "自"} size={28} />
-                          ) : (
-                            <InitialAvatar name={senderName} size={28} bgStyle="var(--line)" textColor="var(--ink-soft)" />
-                          )
-                        ) : (
-                          <div style={{ width: 28, flexShrink: 0 }} />
-                        )}
-                        {(msg.kind === "meeting_slots" || msg.kind === "scheduling_link") && conversation.kind === "company" ? (
-                          /* ★候補日・日程調整リンク（2026-10-10 / 段4）。選ぶと確定し、一覧を取り直す */
-                          <MeetingMessageCard side="candidate" conversationId={conversationId} messageId={msg.id}
-                            kind={msg.kind} payload={msg.payload} onChanged={() => void refreshMessages()} />
-                        ) : (
-                        <div className={`max-w-[60%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words ${
-                          isMe ? "bg-primary text-white rounded-br-sm" : "bg-gray-100 text-foreground rounded-bl-sm"
-                        }`}>
-                          {msg.body}
-                        </div>
-                        )}
-                        <span className="text-xs text-gray-400 flex-shrink-0 self-end">{msgTime}</span>
-                      </div>
-                    </div>
-                    )}
-                  </Fragment>
+                    ) : approachFirst?.messageId === msg.id ? (
+                      /* ★企業から届いたメッセージの1通目は、見出し（【送った理由】）なしで理由と本文だけ */
+                      <span data-state="approach-first">{approachFirst.text}</span>
+                    ) : msg.body}
+                  </ChatBubble>
                 );
               })}
             </div>

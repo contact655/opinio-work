@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { isDmSendable } from "@/lib/conversations/messageRequest";
+import { candidateApproachFirst } from "@/lib/approaches/server";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -66,8 +67,12 @@ export async function GET(request: NextRequest) {
     .is("deleted_at", null)
     .order("sent_at", { ascending: true });
 
+  /* ★企業から届いたメッセージの1通目を見出しなしで出す（2026-10-12）。⚠️ 自分宛ての送ったメッセージとだけ照合する */
+  const approachFirst = conv.kind === "company" && messages ? await candidateApproachFirst(conversationId, owMe.id, messages) : null;
+
   return NextResponse.json({
     messages: messages ?? [],
+    approachFirst,
     myParticipantId,
     myName: owMe.name,
     /* ⚠️ 送り手には「承認待ち」しか見えない（断られていても同じ）。断った記録は別の表 */

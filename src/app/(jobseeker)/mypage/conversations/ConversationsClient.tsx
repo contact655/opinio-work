@@ -7,8 +7,8 @@ import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
-import { formatDateSeparator } from "@/lib/utils/formatDateSeparator";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { ChatBubble } from "@/components/messages/ChatBubble";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 
@@ -55,14 +55,6 @@ type MessageRow = {
     ow_users: { name: string } | null;
   } | null;
 };
-
-function isGrouped(curr: MessageRow, prev: MessageRow | null, hasSep: boolean) {
-  if (!prev || hasSep) return false;
-  return (
-    curr.sender_participant_id === prev.sender_participant_id &&
-    new Date(curr.sent_at).getTime() - new Date(prev.sent_at).getTime() < 5 * 60 * 1000
-  );
-}
 
 function ConvAvatar({ conv }: { conv: Conversation }) {
   const displayName =
@@ -327,6 +319,8 @@ export default function ConversationsClient({
   const [conversations] = useState<Conversation[]>(initialConversations);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(initialOpenConvId ?? null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
+  /** ★企業から届いたメッセージの1通目（見出しなしで出す本文）。API が送ったメッセージの行と照合して返す */
+  const [approachFirst, setApproachFirst] = useState<{ messageId: string; text: string } | null>(null);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
   const [myName, setMyName] = useState<string | null>(null);
   const [panelLoading, setPanelLoading] = useState(false);
@@ -361,6 +355,7 @@ export default function ConversationsClient({
     if (!r.ok) return;
     const data = await r.json();
     setMessages(data.messages ?? []);
+    setApproachFirst(data.approachFirst ?? null);
     setMyParticipantId(data.myParticipantId ?? null);
     setMyName(data.myName ?? null);
   }, []);
@@ -369,6 +364,7 @@ export default function ConversationsClient({
     if (!selectedConvId) return;
     setPanelLoading(true);
     setMessages([]);
+    setApproachFirst(null);
     setInputText("");
     setSendError(null);
     fetchMessages(selectedConvId).finally(() => setPanelLoading(false));
@@ -775,57 +771,19 @@ export default function ConversationsClient({
                     <p style={{ fontSize: 13, color: "var(--ink-mute)" }}>まだメッセージはありません</p>
                   </div>
                 ) : (
-                  <div>
-                    {messages.map((msg, i) => {
-                      const prev = i > 0 ? messages[i - 1] : null;
+                  /* ★吹き出しは会社側と同じ共通部品（`ChatBubble`。2026-10-12 / 柴さんの指示）。
+                        求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
+                        ⚠️ /mypage/conversations/[id] と同じ並べ方。片方だけ書き換えない */
+                  <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {messages.map((msg) => {
                       const isMe = msg.sender_participant_id === myParticipantId;
-                      const needsSep = !prev || new Date(msg.sent_at).toDateString() !== new Date(prev.sent_at).toDateString();
-                      const grouped = isGrouped(msg, prev, needsSep);
-                      const senderName = msg.ow_conversation_participants?.ow_users?.name ?? (isMe ? (myName ?? "自分") : "相手");
-
+                      const sender = isMe ? (myName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "相手");
                       return (
-                        <Fragment key={msg.id}>
-                          {needsSep && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
-                              <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{formatDateSeparator(msg.sent_at)}</span>
-                              <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-                            </div>
-                          )}
-                          <div style={{
-                            display: "flex", flexDirection: "column",
-                            alignItems: isMe ? "flex-end" : "flex-start",
-                            marginTop: grouped ? 2 : 12,
-                          }}>
-                            {!grouped && (
-                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 3 }}>
-                                {isMe ? (myName ?? "自分") : senderName}
-                              </span>
-                            )}
-                            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, flexDirection: isMe ? "row-reverse" : "row" }}>
-                              {!grouped ? (
-                                isMe ? (
-                                  <InitialAvatar name={myName ?? "自"} size={26} />
-                                ) : (
-                                  <InitialAvatar name={senderName} size={26} bgStyle="var(--line)" textColor="var(--ink-soft)" />
-                                )
-                              ) : <div style={{ width: 26, flexShrink: 0 }} />}
-                              <div style={{
-                                maxWidth: "62%", padding: "9px 13px", borderRadius: 16,
-                                borderBottomRightRadius: isMe ? 3 : 16,
-                                borderBottomLeftRadius: isMe ? 16 : 3,
-                                background: isMe ? "var(--royal)" : "#f1f5f9",
-                                color: isMe ? "#fff" : "var(--ink)",
-                                fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word",
-                              }}>
-                                {msg.body}
-                              </div>
-                              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", flexShrink: 0 }}>
-                                {formatRelativeTime(msg.sent_at, { withTime: true })}
-                              </span>
-                            </div>
-                          </div>
-                        </Fragment>
+                        <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at}>
+                          {approachFirst?.messageId === msg.id
+                            ? <span data-state="approach-first">{approachFirst.text}</span>
+                            : msg.body}
+                        </ChatBubble>
                       );
                     })}
                     <div ref={bottomRef} />

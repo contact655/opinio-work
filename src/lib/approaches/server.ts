@@ -9,6 +9,8 @@ import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { approachRepliedCompanyTemplate } from "@/lib/notify/templates";
 import { emailCandidateCompanyMessage } from "@/lib/notify/companyMessageEmail";
 import {
+  approachFirstDisplayText,
+  approachFirstMessageBody,
   APPROACH_BODY_MAX,
   APPROACH_EXPIRE_DAYS,
   APPROACH_MONTHLY_LIMIT,
@@ -760,4 +762,27 @@ export async function listApproachableJobs(companyId: string): Promise<{ id: str
  */
 export async function listApproachSenders(companyId: string, operatorOwUserId: string): Promise<{ id: string; name: string; role: string | null }[] | null> {
   return listSameTestStaff(companyId, operatorOwUserId);
+}
+
+/**
+ * ★求職者側で、企業から届いたメッセージの1通目を見出し（【送った理由】）なしで出すための照合（2026-10-12）。
+ *   会社側（`loadCompanyThread`）と同じく、送ったメッセージの行の本文と**完全一致**した1通だけを返す。
+ *   /mypage/conversations/[id] と GET /api/dm/conversation（一覧の右側）が同じ関数を使う。
+ * ⚠️ 自分宛て（candidate_user_id = 自分）の行だけを見る。表示の置き換えだけで、保存されている本文は変えない。
+ */
+export async function candidateApproachFirst(
+  conversationId: string,
+  candidateOwUserId: string,
+  messages: { id: string; body: string }[],
+): Promise<{ messageId: string; text: string } | null> {
+  if (messages.length === 0) return null;
+  const { data: ap, error } = await createAdminClient().from("ow_company_approaches")
+    .select("reason, body").eq("conversation_id", conversationId).eq("candidate_user_id", candidateOwUserId).maybeSingle();
+  if (error) console.error("[candidateApproachFirst]", error.message);
+  if (!ap) return null;
+  const reason = ap.reason as string;
+  const body = (ap.body as string | null) ?? null;
+  const expected = approachFirstMessageBody(reason, body);
+  const first = messages.find((m) => m.body === expected);
+  return first ? { messageId: first.id, text: approachFirstDisplayText(reason, body) } : null;
 }

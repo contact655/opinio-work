@@ -54,19 +54,16 @@ export function ApproachLetter(p: ApproachLetterProps) {
         </div>
       </div>
 
-      {/* ★理由は薄い背景の箱（2026-10-11 / モックに合わせた） */}
+      {/* ★理由と本文を1つの箱に、見出しなしで（2026-10-12 / 柴さんの指示。返信後の会話の1通目と同じ並び）。
+            「あなたに送った理由」「メッセージ」の見出しは出さない。理由と本文のあいだは空行1つ */}
       <div data-state="letter-reason" style={{ marginTop: 12, background: "var(--bg-tint, #f6f7f9)", borderRadius: 10, padding: "12px 14px" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>あなたに送った理由</div>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: reasonEmpty ? "var(--ink-mute)" : "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
           {reasonEmpty ? (p.placeholder?.reason ?? "") : p.reason}
         </p>
+        {p.body && p.body.trim() && (
+          <p data-state="letter-body" style={{ margin: "1.8em 0 0", fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{p.body}</p>
+        )}
       </div>
-      {p.body && p.body.trim() && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>メッセージ</div>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{p.body}</p>
-        </div>
-      )}
       {p.job && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>関連する求人</div>

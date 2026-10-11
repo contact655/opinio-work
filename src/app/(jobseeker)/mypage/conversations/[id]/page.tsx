@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { candidateApproachFirst } from "@/lib/approaches/server";
 import ConversationDetailClient, {
   type ConversationDetail,
   type MessageRow,
@@ -129,6 +130,10 @@ export default async function ConversationDetailPage({
   const messages = (msgsResult.data as MessageRow[]) ?? [];
   const myUserName = owUser.name ?? user.email?.split("@")[0] ?? null;
 
+  /* ★企業から届いたメッセージに返信して始まった会話は、1通目を見出し（【送った理由】）なしで出す（2026-10-12）。
+        照合は `candidateApproachFirst`（一覧の右側の API と同じ関数） */
+  const approachFirst = conversation.kind === "company" ? await candidateApproachFirst(conversationId, owUser.id, messages) : null;
+
   return (
     <ConversationDetailClient
       conversationId={conversationId}
@@ -136,6 +141,7 @@ export default async function ConversationDetailPage({
       initialMessages={messages}
       initialMyParticipantId={myParticipant.id}
       myUserName={myUserName}
+      approachFirst={approachFirst}
     />
   );
 }

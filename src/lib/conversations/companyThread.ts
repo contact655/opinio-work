@@ -8,6 +8,7 @@ import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { conversationMeetingState, getSchedulingUrl } from "@/lib/meetings/server";
 import { calcTotalExperience } from "@/lib/profile/tenure";
 import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
+import { approachFirstMessageBody } from "@/lib/constants/companyApproaches";
 
 /**
  * ★企業の会話1本を開くときの読み込み（2026-10-11 に /biz/messages/[id] から切り出した）。
@@ -112,7 +113,7 @@ export async function loadCompanyThread(conversationId: string, ctx: { tenantId:
       .select("reason, body, accepted_at").eq("conversation_id", conversationId).eq("company_id", ctx.tenantId).maybeSingle();
     if (apErr) console.error("[companyThread] approach:", apErr.message);
     if (ap) {
-      const expected = `【送った理由】\n${ap.reason as string}${ap.body ? `\n\n${ap.body as string}` : ""}`;
+      const expected = approachFirstMessageBody(ap.reason as string, (ap.body as string | null) ?? null);
       const first = messages.find((m) => m.body === expected);
       if (first) {
         approachFirst = { messageId: first.id, reason: ap.reason as string, body: (ap.body as string | null) ?? null };
