@@ -17,8 +17,10 @@ import { PanelExtraTabsProvider, type PanelTab } from "@/components/profile/view
  * ★`tabs` … 中身をタブ（職歴／学歴／スキル／自己紹介）で出す。候補者を探すだけ（2026-10-12）。`extraTabs` は右欄の側から足すタブ（社内メモ）
  * ★`footer` … 下に固定する段（候補者を探すのメッセージ欄）。中身だけがスクロールする
  */
-export function CandidateProfilePanel({ userId, name, meta, headerExtra, before, onClose, tabs = false, extraTabs, footer }: {
+export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAction, before, onClose, tabs = false, extraTabs, footer }: {
   userId: string;
+  /** 名前の右（新しいタブのアイコンの隣）に置くもの。候補者を探すの★（2026-10-12） */
+  nameAction?: ReactNode;
   name: string;
   /** 名前の下の灰色の1行（社会人〇年・職種など）。無ければ出さない */
   meta?: ReactNode;
@@ -59,6 +61,7 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, before,
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
               </a>
+              {nameAction}
             </div>
             {meta && <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 4, overflowWrap: "anywhere" }}>{meta}</div>}
           </div>

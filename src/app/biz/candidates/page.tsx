@@ -14,6 +14,7 @@ import { approachCompanyLimitLine } from "@/lib/constants/companyApproaches";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { ensureLastViewed, getSavedSearchForViewer } from "@/lib/business/savedSearchServer";
+import { parseSavedFilters, type SavedCandidateFilters } from "@/lib/business/savedSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export const metadata = {
   title: { absolute: "候補者を探す | OPINIO Business" },
 };
 
-export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string; approach?: string } }) {
+export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string; approach?: string; f?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) {
     return (
@@ -239,6 +240,13 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
     }
   }
 
+  /* ★URL の条件（`?f=`。2026-10-12）。保存した条件と同じ形の JSON を `parseSavedFilters` で読む（知らないキー・壊れた値は捨てる）。
+     ⚠️ 読めなければ条件なしで開く（エラーにしない）。保存した条件で開いたとき（`?saved=`）はそちらが優先 */
+  let initialFilters: SavedCandidateFilters | null = null;
+  if (searchParams?.f && searchParams.f.length <= 4000) {
+    try { initialFilters = parseSavedFilters(JSON.parse(searchParams.f)); } catch { initialFilters = null; }
+  }
+
   const layoutProps = {
     userName: ctx.userName,
     tenantName: ctx.tenantName,
@@ -254,6 +262,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
     <BusinessLayout {...layoutProps} mainMaxWidth={1440}>
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
         initialSaved={initialSaved}
+        initialFilters={initialFilters}
         companyShortName={companyShortName}
         companyLimitLine={companyLimitLine}
         /* ★年齢の絞り込み・並び替え（本番は無効。CANDIDATE_AGE_FILTER_ENABLED） */

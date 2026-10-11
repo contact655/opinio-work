@@ -11,9 +11,8 @@ import {
 import { CandidatePreview } from "./CandidatePreview";
 import { APPROACH_TEST_COMPANY_MESSAGE } from "@/lib/constants/companyApproaches";
 import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
-import { InterestToggle } from "@/components/candidateNotes/InterestToggle";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
+import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES, CAREER_STANCE_LABELS } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
       ここに似た実装を作らないこと ——`FilterChip` は 2026-09-18 に
       「同じ名前の別実装が2つあった」のを1つに畳んだもので、**3つ目を作らない**。 */
@@ -54,6 +53,8 @@ const CAREER_STANCE_FILTER_OPTIONS = CAREER_STANCES.filter((o) => o.value !== "n
 /* ★並び替えの選択肢・社会人年数の帯・更新時期の帯は model.ts（2026-10-10 に移した）。
    ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
 const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
+/** ★カードの2行目に出す「できること」の上限（2026-10-12） */
+const CARD_SKILLS_MAX = 2;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
 function formatTenure(months: number | null): string | null {
@@ -75,18 +76,6 @@ export type { Candidate };
 
 
 // 都道府県を location 文字列から抽出（先頭の都道府県部分）
-/** ★「〇日前に更新」（2026-10-11 / カードの右下）。⚠️ 記録が無い（null）・読めないときは出さない */
-function relativeUpdated(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return null;
-  const days = Math.max(0, Math.floor((Date.now() - t) / (24 * 60 * 60 * 1000)));
-  if (days === 0) return "今日更新";
-  if (days < 60) return `${days}日前に更新`;
-  if (days < 365) return `${Math.floor(days / 30)}か月前に更新`;
-  return `${Math.floor(days / 365)}年前に更新`;
-}
-
 function extractPrefecture(location: string | null): string | null {
   if (!location) return null;
   const PREFS = [
@@ -118,7 +107,10 @@ export default function CandidatesClient({
   companyLimitLine = null,
   ageFilterEnabled = false,
   activityEnabled = false,
+  initialFilters = null,
 }: {
+  /** ★URL（`?f=`）から復元した条件（2026-10-12）。保存した条件と同じ形（`parseSavedFilters` を通したもの） */
+  initialFilters?: SavedCandidateFilters | null;
   /** ★最近の利用の絞り込み・並び替え（`isCandidateActivityEnabled()`。本番は無効） */
   activityEnabled?: boolean;
   /** ★年齢の絞り込み・並び替えを出すか（`isCandidateAgeFilterEnabled()`。本番は無効）。⚠️ 年齢の表示はこれと関係なく出す */
@@ -135,26 +127,28 @@ export default function CandidatesClient({
   /** 職種フィルタの階層（ow_roles の大分類＋子）。サーバーで組む */
   roleFilterTree?: { id: string; name: string; children: { id: string; name: string }[] }[];
 }) {
+  /* ★初期値は URL（`?f=`）の条件。無ければ空。⚠️ 保存した条件で開いたとき（`?saved=`）は下の effect が上書きする */
+  const init = initialFilters ?? EMPTY_SAVED_FILTERS;
   // ── フリーワード ────────────────────────────────────────────────────
-  const [q, setQ] = useState("");
-  const [roleQuery, setRoleQuery] = useState("");
-  const [companyQuery, setCompanyQuery] = useState("");
+  const [q, setQ] = useState(init.q);
+  const [roleQuery, setRoleQuery] = useState(init.roleQuery);
+  const [companyQuery, setCompanyQuery] = useState(init.companyQuery);
   /* ★除外ワード（2026-09-20）。⚠️ フリーワードと**同じ対象**を見て、当たったら落とす。
      ⚠️ スペース区切りは **OR**（1つでも当たれば落とす）。フリーワードの AND とは逆だが、
         「除外」は1つ当たれば除外したいのが自然なのでこうしてある。 */
-  const [excludeQuery, setExcludeQuery] = useState("");
+  const [excludeQuery, setExcludeQuery] = useState(init.excludeQuery);
 
   // ── 経歴・雇用形態 ──────────────────────────────────────────────────
-  const [topRoleId, setTopRoleId] = useState<string | null>(null);
-  const [childRoleId, setChildRoleId] = useState<string | null>(null);
-  const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>([]);
+  const [topRoleId, setTopRoleId] = useState<string | null>(init.topRoleId);
+  const [childRoleId, setChildRoleId] = useState<string | null>(init.childRoleId);
+  const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>(init.employmentTypes);
 
   // ── 希望条件 ────────────────────────────────────────────────────────
-  const [workStyle, setWorkStyle] = useState("");
+  const [workStyle, setWorkStyle] = useState(init.workStyle);
   // 0 = 指定なし（万円単位）
-  const [salaryMin, setSalaryMin] = useState(0);
+  const [salaryMin, setSalaryMin] = useState(init.salaryMin);
   // デフォルトON: 年収未設定の候補者も通す
-  const [includeNoSalary, setIncludeNoSalary] = useState(true);
+  const [includeNoSalary, setIncludeNoSalary] = useState(init.includeNoSalary);
 
   // ── 属性 ────────────────────────────────────────────────────────────
   /* ★★年齢（2026-10-12 / 柴さんの判断で方針を変えた。CLAUDE.md「年齢」の節）。
@@ -163,10 +157,10 @@ export default function CandidatesClient({
         本番で有効にする前に、確認の結果を CLAUDE.md に書くこと。
      ⚠️ 年齢は**サーバーで計算した数**（Candidate.age）。生年月日はブラウザに来ない。
      ⚠️ 生年月日が無い人は年齢で絞ると**落ちる**（人数を下に出す）。社会人年数は落とさない。向きが逆なのは意図的 */
-  const [ageMin, setAgeMin] = useState(0);
-  const [ageMax, setAgeMax] = useState(0);
-  const [tenureBand, setTenureBand] = useState("");
-  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
+  const [ageMin, setAgeMin] = useState(init.ageMin);
+  const [ageMax, setAgeMax] = useState(init.ageMax);
+  const [tenureBand, setTenureBand] = useState(init.tenureBand);
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>(init.prefectures);
 
   /* ── ★転職意欲と、その更新時期（2026-09-19 / 柴さんの指示）────────────────
      ⚠️★**この2つは対で使う。** 更新時期だけだと「意欲は問わないが最近更新した人」に
@@ -174,10 +168,15 @@ export default function CandidatesClient({
      ⚠️ 年齢・性別と違い、**本人が自分で選んで公開している項目**なので絞り込みに出してよい
         （年齢を出さない理由は労働施策総合推進法9条、性別は均等法5条。**軸が違う**）。 */
   /* ★転職への意向は複数選択（2026-10-12）。⚠️「今は考えていない」は選択肢に無い（その人は一覧に出ない） */
-  const [careerStances, setCareerStances] = useState<string[]>([]);
-  const [stanceFreshness, setStanceFreshness] = useState("");
+  const [careerStances, setCareerStances] = useState<string[]>(init.careerStances);
+  const [stanceFreshness, setStanceFreshness] = useState(init.stanceFreshness);
   /* ★最近の利用（2026-10-12。`activityEnabled` のときだけ） */
-  const [activity, setActivity] = useState("");
+  const [activity, setActivity] = useState(init.activity);
+  /* ★「合うところあり」と「気になる」（2026-10-12）。どちらも ON/OFF */
+  const [hasTouchpoints, setHasTouchpoints] = useState(init.hasTouchpoints);
+  const [starredOnly, setStarredOnly] = useState(init.starredOnly);
+  /* ★★（気になる）。サーバーの値より、この画面で押した値を優先する（押した直後に一覧と数を合わせる） */
+  const [starOverride, setStarOverride] = useState<Record<string, boolean>>({});
   /* ⚠️★「メッセージを受け取る方のみ」の切り替えは 2026-10-11 に外した（柴さんの指示）。
         全員が最初から受け取る形にし、止める方法は「転職について」の「今は考えていない」で兼ねる
         （その人はそもそもこの一覧に出ない）。送れるかどうかは今までどおりボタンの有無だけで示す。
@@ -195,7 +194,7 @@ export default function CandidatesClient({
      ⚠️★**閉じていても `activeChips` を外に出す。** 消すと
         「絞り込んだ結果を見ている最中に、絞った理由が画面から消える」。 */
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [sort, setSort] = useState<string>("new");
+  const [sort, setSort] = useState<string>(init.sort);
   /* ⚠️ 開いているチップは1つだけ。**チップごとに開閉 state を持たせないこと**
         （`/companies` と同じ形）。2つ同時に開くとメニューが重なる。 */
   const [openChip, setOpenChip] = useState<string | null>(null);
@@ -206,8 +205,6 @@ export default function CandidatesClient({
         router.replace にしないのは、このページが force-dynamic で**一覧を丸ごと取り直す**ため。
      ⚠️ 1280px 未満では横取りしない ——カードのリンクがそのまま /u/[id] を**同じタブ**で開く。 */
   const [selected, setSelected] = useState<string | null>(initialSelected);
-  /* ★プレビューでメモを残したときに、カードの「社内メモ 〇」を合わせる（2026-10-11）。サーバーの件数より優先する */
-  const [noteCountOverride, setNoteCountOverride] = useState<Record<string, number>>({});
   const updateSelected = useCallback((id: string | null) => {
     setSelected(id);
     try {
@@ -283,6 +280,15 @@ export default function CandidatesClient({
     stanceFreshness ? "x" : "",
     selectedPrefectures.length ? "x" : "",
     salaryMin > 0 ? "x" : "",
+    hasTouchpoints ? "x" : "",
+    starredOnly ? "x" : "",
+  ].filter(Boolean).length;
+  /** ★詳細検索の中にある条件の数（ボタンに出す）。⚠️ よく使う行に出ている条件は数えない（同じものを2か所で数えない） */
+  const advancedCount = [
+    roleQuery.trim(), companyQuery.trim(), excludeQuery.trim(),
+    ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? "x" : "",
+    selectedEmploymentTypes.length ? "x" : "", workStyle, salaryMin > 0 ? "x" : "",
+    stanceFreshness, activityEnabled && activity ? "x" : "",
   ].filter(Boolean).length;
 
   /* ★いま効いている条件のチップ（2026-09-20）。**詳細検索を閉じていても外に出す。**
@@ -292,10 +298,6 @@ export default function CandidatesClient({
      ⚠️ 並びは詳細検索パネルの並びと**同じ順**にする。片方だけ変えないこと。 */
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
-    /* ⚠️ ラベルは入力欄と同じ語にする（「役職」に戻さない。下の入力欄の注記を読むこと）。 */
-    if (roleQuery.trim()) chips.push({ key: "roleQuery", label: `社内での呼び方: ${roleQuery}`, clear: () => setRoleQuery("") });
-    if (companyQuery.trim()) chips.push({ key: "companyQuery", label: `会社: ${companyQuery}`, clear: () => setCompanyQuery("") });
-    if (excludeQuery.trim()) chips.push({ key: "exclude", label: `除外: ${excludeQuery}`, clear: () => setExcludeQuery("") });
     const wantRole = childRoleId ?? topRoleId;
     if (wantRole) {
       /* ⚠️ 名前が引けない id は出さない（生の uuid を画面に出さないため） */
@@ -304,10 +306,26 @@ export default function CandidatesClient({
         : roleFilterTree.find((t) => t.id === topRoleId)?.name;
       if (name) chips.push({ key: "role", label: name, clear: () => { setTopRoleId(null); setChildRoleId(null); } });
     }
+    careerStances.forEach((v) => {
+      const label = CAREER_STANCE_FILTER_OPTIONS.find((o) => o.value === v)?.label;
+      if (label) chips.push({ key: `stance:${v}`, label, clear: () => setCareerStances(careerStances.filter((x) => x !== v)) });
+    });
     if (tenureBand) {
       const label = TENURE_BANDS.find((b) => b.value === tenureBand)?.label;
       if (label) chips.push({ key: "tenure", label: `社会人 ${label}`, clear: () => setTenureBand("") });
     }
+    selectedPrefectures.forEach((pref) => chips.push({
+      key: `pref:${pref}`, label: pref,
+      clear: () => setSelectedPrefectures(selectedPrefectures.filter((x) => x !== pref)),
+    }));
+    if (hasTouchpoints) chips.push({ key: "touch", label: "合うところあり", clear: () => setHasTouchpoints(false) });
+    if (starredOnly) chips.push({ key: "starred", label: "気になる", clear: () => setStarredOnly(false) });
+    /* ★ここまでがよく使う行（2026-10-12）と同じ並び。以下は検索窓と詳細検索の中の条件 */
+    if (q.trim()) chips.push({ key: "q", label: `キーワード: ${q.trim()}`, clear: () => setQ("") });
+    /* ⚠️ ラベルは入力欄と同じ語にする（「役職」に戻さない。下の入力欄の注記を読むこと）。 */
+    if (roleQuery.trim()) chips.push({ key: "roleQuery", label: `社内での呼び方: ${roleQuery}`, clear: () => setRoleQuery("") });
+    if (companyQuery.trim()) chips.push({ key: "companyQuery", label: `会社: ${companyQuery}`, clear: () => setCompanyQuery("") });
+    if (excludeQuery.trim()) chips.push({ key: "exclude", label: `除外: ${excludeQuery}`, clear: () => setExcludeQuery("") });
     if (ageFilterEnabled && (ageMin > 0 || ageMax > 0)) chips.push({ key: "age", label: ageRangeLabel(ageMin, ageMax), clear: () => { setAgeMin(0); setAgeMax(0); } });
     selectedEmploymentTypes.forEach((v) => chips.push({
       key: `et:${v}`,
@@ -320,14 +338,6 @@ export default function CandidatesClient({
       clear: () => setWorkStyle(""),
     });
     if (salaryMin > 0) chips.push({ key: "salary", label: `${salaryMin}万〜`, clear: () => setSalaryMin(0) });
-    selectedPrefectures.forEach((pref) => chips.push({
-      key: `pref:${pref}`, label: pref,
-      clear: () => setSelectedPrefectures(selectedPrefectures.filter((x) => x !== pref)),
-    }));
-    careerStances.forEach((v) => {
-      const label = CAREER_STANCE_FILTER_OPTIONS.find((o) => o.value === v)?.label;
-      if (label) chips.push({ key: `stance:${v}`, label, clear: () => setCareerStances(careerStances.filter((x) => x !== v)) });
-    });
     if (activityEnabled && activity) {
       const label = ACTIVITY_FILTER_OPTIONS.find((o) => o.value === activity)?.label;
       if (label) chips.push({ key: "activity", label: `利用 ${label}`, clear: () => setActivity("") });
@@ -338,7 +348,8 @@ export default function CandidatesClient({
     }
     return chips;
   }, [excludeQuery, roleQuery, companyQuery, childRoleId, topRoleId, roleFilterTree, selectedEmploymentTypes,
-      workStyle, salaryMin, careerStances, stanceFreshness, tenureBand, selectedPrefectures, ageFilterEnabled, ageMin, ageMax, activityEnabled, activity]);
+      workStyle, salaryMin, careerStances, stanceFreshness, tenureBand, selectedPrefectures, ageFilterEnabled, ageMin, ageMax, activityEnabled, activity,
+      hasTouchpoints, starredOnly, q]);
 
   /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
      ⚠️★**この表がこの機能の歯止め。** マップ型なので、
@@ -364,6 +375,8 @@ export default function CandidatesClient({
     careerStances: setCareerStances,
     activity: setActivity,
     stanceFreshness: setStanceFreshness,
+    hasTouchpoints: setHasTouchpoints,
+    starredOnly: setStarredOnly,
     sort: setSort,
   };
 
@@ -372,25 +385,88 @@ export default function CandidatesClient({
     q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
     employmentTypes: selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
     tenureBand, ageMin, ageMax, prefectures: selectedPrefectures, careerStances, stanceFreshness, activity,
+    hasTouchpoints, starredOnly,
     sort,
   }), [q, excludeQuery, roleQuery, companyQuery, topRoleId, childRoleId,
        selectedEmploymentTypes, workStyle, salaryMin, includeNoSalary,
        tenureBand, ageMin, ageMax, selectedPrefectures, careerStances, stanceFreshness, activity,
+       hasTouchpoints, starredOnly,
        sort]);
+
+  /* ★★の状態を重ねた候補者（2026-10-12）。⚠️ 絞り込み（「気になる」）も数も、すべてこちらを通す */
+  const withStars = useMemo(
+    () => (Object.keys(starOverride).length === 0 ? candidates : candidates.map((c) => (c.id in starOverride ? { ...c, starred: starOverride[c.id] } : c))),
+    [candidates, starOverride]
+  );
+  const starredCount = useMemo(() => withStars.filter((c) => c.starred).length, [withStars]);
+  const toggleStar = useCallback(async (id: string, next: boolean) => {
+    setStarOverride((prev) => ({ ...prev, [id]: next }));
+    try {
+      const res = await fetch(`/api/biz/candidates/${id}/star`, { method: next ? "POST" : "DELETE" });
+      if (!res.ok) throw new Error(String(res.status));
+    } catch (e) {
+      /* ⚠️ 失敗したら戻す（押したのに保存されていない状態を残さない） */
+      console.error("[candidates] star:", e);
+      setStarOverride((prev) => ({ ...prev, [id]: !next }));
+    }
+  }, []);
+
+  /* ★条件を URL に持つ（2026-10-12）。保存した条件と同じ形の JSON を `?f=` に入れる。
+     ⚠️ 履歴は積まない（replaceState）。⚠️ 空なら外す。`?selected=` は残す */
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (isEmptyFilters(currentFilters)) url.searchParams.delete("f");
+      else {
+        /* ⚠️ 既定値のキーは省く（URL を短くするため）。読む側は `parseSavedFilters` が既定値で埋めるので同じ条件に戻る */
+        const diff = Object.fromEntries(Object.entries(currentFilters).filter(([k, v]) =>
+          JSON.stringify(v) !== JSON.stringify(EMPTY_SAVED_FILTERS[k as keyof SavedCandidateFilters])));
+        url.searchParams.set("f", JSON.stringify(diff));
+      }
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch { /* URL を書けなくても表示は続ける */ }
+  }, [currentFilters]);
 
   /* ★絞り込みと並び替え（model.ts。段3の新着メールと同じ関数）。⚠️ 描くのは `sorted` */
   /* ★新着だけ（段3）。⚠️ 判定は `isNewSince`（登録日と本人の編集日だけ）。×で全員に戻せる */
   const [newSince, setNewSince] = useState<string | null>(initialSaved?.newSince ?? null);
   const [openedSaved, setOpenedSaved] = useState<{ id: string; name: string } | null>(initialSaved ? { id: initialSaved.id, name: initialSaved.name } : null);
   const filtered = useMemo(() => {
-    const list = filterCandidates(candidates, currentFilters, new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled });
+    const list = filterCandidates(withStars, currentFilters, new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled });
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
-  }, [candidates, currentFilters, newSince, ageFilterEnabled, activityEnabled]);
+  }, [withStars, currentFilters, newSince, ageFilterEnabled, activityEnabled]);
   /* ⚠️ 年齢の並び替えは無効な環境では使わない（保存した条件に残っていても新着順に戻す） */
   const effectiveSort = (!ageFilterEnabled && AGE_SORTS.includes(sort)) || (!activityEnabled && ACTIVITY_SORTS.includes(sort)) ? "new" : sort;
   const sorted = useMemo(() => sortCandidates(filtered, effectiveSort), [filtered, effectiveSort]);
   /* ★プレビューに出す人。明示的に選んだ人 → 無ければ（1280px 以上で、閉じていなければ）先頭の人 */
   const shownId: string | null = selected ?? (isWide && autoPick ? sorted[0]?.id ?? null : null);
+  /* ★キーボードで候補者を移る（2026-10-12 / 柴さんの指示）。↑↓ と J/K。
+     ⚠️ 入力中（input・textarea・select・contenteditable）と修飾キー付きは何もしない。
+     ⚠️ 1280px 以上（右欄が出ているとき）だけ。それ未満は右欄が無いので、選んでも何も変わらない。
+     ⚠️ 選んだカードが見えるように一覧をスクロールする（`block: "nearest"`。ヘッダーの下に隠れないよう scroll-margin を CSS で持つ）。
+        ⚠️ `behavior: "instant"`。html が scroll-behavior: smooth なので、既定だとキーを続けて押したときに前のスクロールが途中で止まり、選んだカードが画面外に残る */
+  useEffect(() => {
+    if (!isWide) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
+      const k = e.key;
+      const dir = k === "ArrowDown" || k === "j" || k === "J" ? 1 : k === "ArrowUp" || k === "k" || k === "K" ? -1 : 0;
+      if (!dir || sorted.length === 0) return;
+      e.preventDefault();
+      const idx = shownId ? sorted.findIndex((c) => c.id === shownId) : -1;
+      const nextIdx = idx < 0 ? 0 : Math.min(sorted.length - 1, Math.max(0, idx + dir));
+      const next = sorted[nextIdx];
+      if (!next || next.id === shownId) return;
+      setAutoPick(true);
+      updateSelected(next.id);
+      document.querySelector(`[data-candidate-card="${next.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isWide, sorted, shownId, updateSelected]);
+
   /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
   const unknownTenureCount = useMemo(() => filtered.filter((c) => c.tenureMonths == null).length, [filtered]);
 
@@ -591,26 +667,6 @@ export default function CandidatesClient({
       </>)}
 
       {filterRow("経歴", <>
-        <FilterChip
-          label="職種" value={childRoleId ?? topRoleId ?? ""}
-          options={roleChipOptions} searchable
-          onSelect={(v) => {
-            if (!v) { setTopRoleId(null); setChildRoleId(null); return; }
-            const parent = roleFilterTree.find((t) => t.id === v);
-            if (parent) { setTopRoleId(v); setChildRoleId(null); return; }
-            /* 子を選んだら、親も一緒に立てる。⚠️ 絞り込みは `childRoleId ?? topRoleId` を見るので
-                  親を立てなくても効くが、**チップの表示と解除の経路を1つにする**ため揃える。 */
-            const owner = roleFilterTree.find((t) => t.children.some((c) => c.id === v));
-            setTopRoleId(owner?.id ?? null); setChildRoleId(v);
-          }}
-          isOpen={openChip === "role"} onToggle={() => setOpenChip(openChip === "role" ? null : "role")}
-        />
-        <FilterChip
-          label="社会人年数" value={tenureBand}
-          options={TENURE_BANDS.map((b) => ({ value: b.value, label: b.label }))}
-          onSelect={(v) => setTenureBand(v ?? "")}
-          isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}
-        />
         {/* ★年齢（下限・上限）。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ出す（本番は無効） */}
         {ageFilterEnabled && (<>
           <FilterChip
@@ -650,27 +706,11 @@ export default function CandidatesClient({
           onSelect={(v) => setSalaryMin(v ? Number(v) : 0)}
           isOpen={openChip === "salary"} onToggle={() => setOpenChip(openChip === "salary" ? null : "salary")}
         />
-        {uniquePrefectures.length > 0 && (
-          <FilterChip
-            label="居住地" value="" values={selectedPrefectures}
-            options={uniquePrefectures.map((pref) => ({ value: pref, label: pref }))}
-            onSelect={() => {}}
-            onToggleValue={(v) => setSelectedPrefectures(toggleMulti(selectedPrefectures, v))}
-            isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}
-          />
-        )}
       </>)}
 
       {/* ★転職意欲と更新時期。⚠️★**2つは対。片方だけ外さないこと**（更新時期だけだと
              「意欲は問わないが最近更新した人」になり、条件として成立しない）。 */}
-      {filterRow("転職への意向", <>
-        <FilterChip
-          label="転職への意向" value="" values={careerStances}
-          options={CAREER_STANCE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-          onSelect={() => {}}
-          onToggleValue={(v) => setCareerStances(toggleMulti(careerStances, v))}
-          isOpen={openChip === "stance"} onToggle={() => setOpenChip(openChip === "stance" ? null : "stance")}
-        />
+      {filterRow("意向の更新・利用", <>
         <FilterChip
           label="意向を更新した時期" value={stanceFreshness}
           options={STANCE_FRESHNESS_BANDS.map((b) => ({ value: b.value, label: b.label }))}
@@ -738,6 +778,91 @@ export default function CandidatesClient({
     </div>
   );
 
+
+  /* ── ★よく使う条件の行（2026-10-12 / 柴さんの指示）──────────────────────────
+     検索窓の下に1行：職種／転職への意向／社会人年数／居住地／合うところあり／気になる（n）／詳細検索。
+     ⚠️ 年齢・最近の利用は詳細検索の中（スイッチがオンのときだけ）。
+     ⚠️ 画面のラベルは「居住地」（指示は「勤務地」だったが、見ているのは本人のお住まい `ow_users.location`。
+        希望勤務地とは別の列なので「勤務地」と書くと別のもので絞っているように読める） */
+  const toggleStyle = (on: boolean): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, height: 34, padding: "0 14px", borderRadius: 999,
+    border: `1.5px solid ${on ? "var(--royal)" : "#e2e8f0"}`, background: on ? "var(--royal)" : "#fff",
+    color: on ? "#fff" : "var(--ink-soft)", fontSize: 13, fontWeight: on ? 600 : 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+  });
+  const quickRow = (
+    <div data-state="quick-filters" style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <FilterChip
+        label="職種" value={childRoleId ?? topRoleId ?? ""}
+        options={roleChipOptions} searchable
+        onSelect={(v) => {
+          if (!v) { setTopRoleId(null); setChildRoleId(null); return; }
+          const parent = roleFilterTree.find((t) => t.id === v);
+          if (parent) { setTopRoleId(v); setChildRoleId(null); return; }
+          /* 子を選んだら、親も一緒に立てる。⚠️ 絞り込みは `childRoleId ?? topRoleId` を見るので
+                親を立てなくても効くが、**チップの表示と解除の経路を1つにする**ため揃える。 */
+          const owner = roleFilterTree.find((t) => t.children.some((c) => c.id === v));
+          setTopRoleId(owner?.id ?? null); setChildRoleId(v);
+        }}
+        isOpen={openChip === "role"} onToggle={() => setOpenChip(openChip === "role" ? null : "role")}
+      />
+        <FilterChip
+        label="転職への意向" value="" values={careerStances}
+        options={CAREER_STANCE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        onSelect={() => {}}
+        onToggleValue={(v) => setCareerStances(toggleMulti(careerStances, v))}
+        isOpen={openChip === "stance"} onToggle={() => setOpenChip(openChip === "stance" ? null : "stance")}
+      />
+        <FilterChip
+        label="社会人年数" value={tenureBand}
+        options={TENURE_BANDS.map((b) => ({ value: b.value, label: b.label }))}
+        onSelect={(v) => setTenureBand(v ?? "")}
+        isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}
+      />
+        {uniquePrefectures.length > 0 && (
+        <FilterChip
+          label="居住地" value="" values={selectedPrefectures}
+          options={uniquePrefectures.map((pref) => ({ value: pref, label: pref }))}
+          onSelect={() => {}}
+          onToggleValue={(v) => setSelectedPrefectures(toggleMulti(selectedPrefectures, v))}
+          isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}
+        />
+      )}
+      <button type="button" aria-pressed={hasTouchpoints} data-state="toggle-touchpoints" onClick={() => setHasTouchpoints((v) => !v)} style={toggleStyle(hasTouchpoints)}>
+        合うところあり
+      </button>
+      {/* ★気になる（会社の管理者で共有の★）。⚠️ 0人でも出す（押すと0件になるが、入口があることを示す） */}
+      <button type="button" aria-pressed={starredOnly} data-state="toggle-starred" onClick={() => setStarredOnly((v) => !v)} style={toggleStyle(starredOnly)}>
+        <StarIcon filled={starredOnly} />気になる（{starredCount}）
+      </button>
+        {/* 詳細検索。⚠️ 効いている条件の数をボタンに出す（閉じていても分かるように） */}
+      <button
+        type="button" onClick={() => setShowAdvanced((v) => !v)}
+        aria-expanded={showAdvanced}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+          height: 34, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+          fontFamily: "inherit", fontSize: 13,
+          fontWeight: showAdvanced || advancedCount > 0 ? 700 : 500,
+          border: `1px solid ${showAdvanced || advancedCount > 0 ? "var(--royal)" : "var(--line)"}`,
+          background: showAdvanced || advancedCount > 0 ? "var(--royal-50)" : "#fff",
+          color: showAdvanced || advancedCount > 0 ? "var(--royal)" : "var(--ink-soft)",
+        }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
+        </svg>
+        詳細検索
+        {advancedCount > 0 && (
+          <span style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999,
+            background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 800,
+          }}>{advancedCount}</span>
+        )}
+      </button>
+
+    </div>
+  );
+
   return (
     <div className="cand-wrap">
 
@@ -756,6 +881,8 @@ export default function CandidatesClient({
             {/* ⚠️「現職・過去の在籍企業とそのグループ会社には表示されません」は `can_send_scout()` の在籍企業の除外の言い換え。判定は変えていない */}
             理由を添えて、候補者に貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。
             「転職について」で「今は考えていない」を選んでいる方は表示されません。
+            <br />★を付けた方は「気になる」で絞り込めます（社内の担当者で共有。ご本人には通知されません）。
+            <br />キーボード：↑↓ または J／K で候補者を移れます（入力中は効きません）。
           </HelpToggle>
         </div>
         {/* ★送れない理由の1行（検証用の会社／企業側の上限）。⚠️ 灰色の文字（バッジにしない）。order で行の最後に回す */}
@@ -788,32 +915,6 @@ export default function CandidatesClient({
             </button>
           )}
         </div>
-
-        {/* 詳細検索。⚠️ 効いている条件の数をボタンに出す（閉じていても分かるように） */}
-        <button
-          type="button" onClick={() => setShowAdvanced((v) => !v)}
-          aria-expanded={showAdvanced}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-            height: 38, padding: "0 14px", borderRadius: 999, cursor: "pointer",
-            fontFamily: "inherit", fontSize: 13,
-            fontWeight: showAdvanced || activeChips.length > 0 ? 700 : 500,
-            border: `1px solid ${showAdvanced || activeChips.length > 0 ? "var(--royal)" : "var(--line)"}`,
-            background: showAdvanced || activeChips.length > 0 ? "var(--royal-50)" : "#fff",
-            color: showAdvanced || activeChips.length > 0 ? "var(--royal)" : "var(--ink-soft)",
-          }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
-          </svg>
-          詳細検索
-          {activeChips.length > 0 && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999,
-              background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 800,
-            }}>{activeChips.length}</span>
-          )}
-        </button>
 
         {/* ⚠️★「メッセージを受け取る方のみ（〇名）」の切り替えは 2026-10-11 に外した。戻さないこと */}
         <SortSelect value={effectiveSort} options={SORT_OPTIONS.filter((o) => (ageFilterEnabled || !AGE_SORTS.includes(o.value)) && (activityEnabled || !ACTIVITY_SORTS.includes(o.value)))} onChange={setSort} />
@@ -1010,30 +1111,27 @@ export default function CandidatesClient({
           </p>
         )}
 
-        {/* ⚠️★**開いているときは出さない**（チップ自身が選択状態を持つので、
-               同じ語が2回並ぶ）。⚠️ `flexBasis: 100%` で必ず行を折る
-               ——同じ行に置くと開閉のたびに「詳細検索」ボタンが左右に動く。 */}
-        {!showAdvanced && activeChips.length > 0 && (
-          <div style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {activeChips.map((c) => (
-              <button
-                key={c.key} type="button" onClick={c.clear}
-                aria-label={`${c.label} の絞り込みを外す`}
-                style={{
-                  flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6,
-                  height: 30, padding: "0 10px 0 12px", borderRadius: 999,
-                  fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)", whiteSpace: "nowrap",
-                }}>
-                {c.label}
-                <span aria-hidden="true" style={{ fontSize: 13, opacity: 0.75 }}>✕</span>
-              </button>
+        {quickRow}
+
+        {/* ★絞り込み中（2026-10-12 / 柴さんの指示）。**絞っているあいだは常に出す**（詳細検索の開閉と関係なく）。
+               ⚠️ 消さないこと。条件を畳んだので、これが無いと「なぜこの人数か」が画面から消える。
+               ⚠️ 解除の手段はここの ✕ と「すべて解除」。元のチップからも外せる */}
+        {activeChips.length > 0 && (
+          <div data-state="active-filters" style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", fontSize: 12.5, color: "var(--ink-soft)" }}>
+            <span style={{ fontWeight: 700, marginRight: 4 }}>絞り込み中：</span>
+            {activeChips.map((c, idx) => (
+              <span key={c.key} style={{ display: "inline-flex", alignItems: "center" }}>
+                {idx > 0 && <span aria-hidden="true" style={{ margin: "0 4px", color: "var(--ink-mute)" }}>・</span>}
+                <button type="button" onClick={c.clear} aria-label={`${c.label} の絞り込みを外す`} data-state="active-filter"
+                  className="btn-fixed-size"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, height: 26, padding: "0 4px", border: "none", background: "none", fontSize: 12.5, fontWeight: 600, color: "var(--ink)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  {c.label}<span aria-hidden="true" style={{ fontSize: 12, color: "var(--ink-mute)" }}>✕</span>
+                </button>
+              </span>
             ))}
-            {/* ★条件をクリア（段2）。⚠️ 外すのは全部（検索窓の語・声かけのトグルも）。「詳細検索」の中の「条件をすべて外す」と同じ経路 */}
-            <button type="button" onClick={clearAllFilters} data-state="clear-conditions"
-              style={{ flexShrink: 0, height: 30, padding: "0 10px", borderRadius: 999, border: "none", background: "none", fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
-              条件をクリア
+            <button type="button" onClick={clearAllFilters} data-state="clear-conditions" className="btn-fixed-size"
+              style={{ marginLeft: 10, height: 26, padding: "0 4px", border: "none", background: "none", fontSize: 12.5, fontWeight: 600, color: "var(--royal)", textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
+              すべて解除
             </button>
           </div>
         )}
@@ -1084,7 +1182,7 @@ export default function CandidatesClient({
               )}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
               {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
@@ -1094,27 +1192,26 @@ export default function CandidatesClient({
                     /* ⚠️ 枠線と背景は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
                     className={isSel ? "cand-card is-selected" : "cand-card"}
                   >
-                    {/* ★2行のカード（2026-10-11 / 柴さんの指示。1300×800 で8〜9人）:
-                           1行目 名前・社会人〇年・職種・会社・勤務地（灰色）／右端に「気になる」
-                                 ⚠️ 幅が足りないときは 勤務地 → 会社 の順に縮めて「…」（flex-shrink の倍率で順番を作っている）
-                           2行目 チップ（転職検討中・職種と経験年数・合うところ・社内メモ）／右端に「〇日前に更新」
-                                 ⚠️ チップは1行に収まるぶんだけ出す（2行目に折り返さない。カードの高さを揃えるため）
-                        ⚠️ 本人が書いた1行（headline）と希望勤務地はカードから外した（プレビューと詳細に出る）。
-                        ⚠️ ボタン類（気になる・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
+                    {/* ★2行のカード（2026-10-12 / 柴さんの指示で整理。1280px で14人前後）:
+                           1行目 名前（太字）・年齢（スイッチがオンのとき）・社会人〇年・職種・会社・都道府県・転職への意向（灰色・末尾）／右端に★
+                                 ⚠️ 幅が足りないときは 都道府県 → 会社 → 職種 の順に縮めて「…」。意向は縮めない
+                           2行目 できること（最大2つ）と「〈会社名〉と合うところ（〇）」だけ
+                        ⚠️ 状態をバッジにしない（「転職検討中」のチップは外した。意向は1行目の灰色の文字で全員に出す）。
+                        ⚠️ ボタン類（★・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
                     <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
-                    {/* アバター。⚠️ 人によって色を変えない。⚠️ 上そろえ */}
+                    {/* アバター（32px）。⚠️ 人によって色を変えない */}
                     <div className="cand-card-avatar" aria-hidden="true">
-                      <div style={neutralAvatarStyle(40, 15)}>{c.name.charAt(0) || "?"}</div>
+                      <div style={neutralAvatarStyle(32, 13)}>{c.name.charAt(0) || "?"}</div>
                     </div>
                     <div className="cand-card-main">
-                      {/* 1行目。★年齢（2026-10-12 から出す。生年月日が無い人は出さない）・社会人年数。現職が分からないときは希望職種 */}
                       {(() => {
                         const pref = c.location ? (extractPrefecture(c.location) ?? c.location) : null;
                         const role = c.currentRole || c.currentCompany
                           ? c.currentRole
                           : (c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
                         const ageText = c.age != null ? `${c.age}歳` : null;
-                        const title = [c.name, ageText, tenure, role, c.currentCompany, pref].filter(Boolean).join(" ・ ");
+                        const stanceText = c.careerStance ? CAREER_STANCE_LABELS[c.careerStance] ?? null : null;
+                        const title = [c.name, ageText, tenure, role, c.currentCompany, pref, stanceText].filter(Boolean).join(" ・ ");
                         return (
                           <div className="cand-card-row1" title={title}>
                             <span className="cand-card-name">{c.name}</span>
@@ -1126,41 +1223,27 @@ export default function CandidatesClient({
                             {c.currentCompany && <span className={role ? "cand-card-meta cand-card-company has-sep" : "cand-card-meta cand-card-company"}>{role ? "・" : ""}{c.currentCompany}</span>}
                             {pref && <span className={role || c.currentCompany ? "cand-card-meta cand-card-pref has-sep" : "cand-card-meta cand-card-pref"}>{role || c.currentCompany ? "・" : ""}{pref}</span>}
                             </span>
-                            {c.stage !== undefined && (
-                              <span className="cand-card-bookmark"><InterestToggle candidateUserId={c.id} initialStage={c.stage} compact /></span>
-                            )}
+                            {stanceText && <span className="cand-card-stance" data-state="card-stance">{stanceText}</span>}
+                            <span className="cand-card-star">
+                              <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />
+                            </span>
                           </div>
                         );
                       })()}
-                      {/* 2行目 */}
+                      {/* 2行目。⚠️ できることは最大2つ（`CARD_SKILLS_MAX`） */}
                       {(() => {
-                        const skills = c.autoSkills ?? [];
-                        const showRole = !!c.roleName && !skills.some((sk) => sk.label === c.roleName);
+                        const skills = (c.autoSkills ?? []).slice(0, CARD_SKILLS_MAX);
                         const tp = c.touchpoints?.length ?? 0;
-                        const notes = noteCountOverride[c.id] ?? c.noteCount ?? 0;
-                        const updated = relativeUpdated(c.profileEditedAt);
-                        if (skills.length === 0 && !showRole && !tp && !notes && !updated && !c.isActivelyLooking) return null;
+                        if (skills.length === 0 && !tp) return null;
                         return (
                           <div className="cand-card-row2">
                             <div className="cand-card-chips">
-                              {/* ⚠️ 状態は色付きにしない（他のチップと同じ見た目） */}
-                              {c.isActivelyLooking && <span data-state="actively-looking" className="cand-chip">転職検討中</span>}
                               {/* ★できること（職種 × 年数）。⚠️ 職歴からの計算（本人の入力ではない） */}
                               {skills.map((sk) => (
                                 <span key={sk.label} className="cand-chip">{sk.label}<span className="cand-chip-sub">{sk.band}</span></span>
                               ))}
-                              {/* ⚠️ 職種チップは「できること」に同じ名前が無いときだけ（同じ語を2回出さない） */}
-                              {showRole && <span className="cand-chip">{c.roleName}</span>}
                               {tp > 0 && <span data-state="touchpoint-count" className="cand-chip">{companyShortName ?? "貴社"}と合うところ（{tp}）</span>}
-                              {/* ★社内メモの件数。⚠️ フラグがオフ（undefined）・0件なら出さない */}
-                              {notes > 0 && (
-                                <span data-state="card-note-count" className="cand-chip">
-                                  <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-                                  社内メモ {notes}
-                                </span>
-                              )}
                             </div>
-                            {updated && <span className="cand-card-updated">{updated}</span>}
                           </div>
                         );
                       })()}
@@ -1183,7 +1266,7 @@ export default function CandidatesClient({
         <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownId ? (
             <CandidatePreview key={shownId} userId={shownId} companyLimitLine={companyLimitLine} onClose={() => { setAutoPick(false); updateSelected(null); }}
-              onNoteCountChange={(n) => setNoteCountOverride((prev) => ({ ...prev, [shownId]: n }))} />
+              nameAction={<StarButton starred={!!withStars.find((x) => x.id === shownId)?.starred} onToggle={() => { const cur = !!withStars.find((x) => x.id === shownId)?.starred; void toggleStar(shownId, !cur); }} size={28} />} />
           ) : isWide === null ? null : (
             <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
               候補者を選ぶと、ここにプロフィールと貴社と合うところが表示されます。
@@ -1195,7 +1278,8 @@ export default function CandidatesClient({
       {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
       <style>{`
         .cand-wrap { padding: 0 32px 16px; max-width: 1400px; margin: 0 auto; }
-        .cand-card { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
+        .cand-card { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 6px 12px 6px 14px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
+        .cand-card { scroll-margin-top: calc(var(--biz-header-h, 64px) + 12px); scroll-margin-bottom: 12px; }
         .cand-card.is-selected { border-color: var(--royal); background: var(--royal-50); }
         .cand-card .cand-card-link:focus-visible { outline: none !important; }
         .cand-card:has(.cand-card-link:focus-visible) { border-color: var(--royal); }
@@ -1205,7 +1289,7 @@ export default function CandidatesClient({
         /* カード全体をリンクにする（中のボタンは z-index で上に出す） */
         .cand-card-link { position: absolute; inset: 0; border-radius: 12px; z-index: 0; }
         .cand-card-avatar { flex-shrink: 0; }
-        .cand-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+        .cand-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; justify-content: center; min-height: 32px; }
         .cand-card-row1 { display: flex; align-items: center; gap: 6px; min-width: 0; height: 20px; line-height: 20px; }
         .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 0; max-width: 40%; }
         .cand-card-sub { font-size: 12px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; }
@@ -1216,20 +1300,21 @@ export default function CandidatesClient({
         .cand-card-company { color: var(--ink-mute); flex-shrink: 100; }
         .cand-card-pref { color: var(--ink-mute); flex-shrink: 10000; }
         .cand-card-meta.has-sep { margin-left: -6px; }
-        .cand-card-bookmark { margin-left: auto; margin-right: -6px; height: 20px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
+        .cand-card-stance { font-size: 12px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 3em; flex: 0 3 auto; }
+        .cand-card-star { margin-left: auto; margin-right: -4px; height: 20px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
         .cand-card-row2 { display: flex; align-items: center; gap: 8px; min-width: 0; height: 19px; }
         /* チップは1行に収まるぶんだけ（折り返した2行目は高さで切る） */
         .cand-card-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; flex: 1; height: 19px; overflow: hidden; }
         .cand-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; line-height: 17px; font-weight: 600; padding: 0 8px; border-radius: 100px; background: var(--bg-tint); border: 1px solid var(--line); color: var(--ink-soft); white-space: nowrap; }
         .cand-chip-sub { font-weight: 500; color: var(--ink-mute); }
-        .cand-card-updated { margin-left: auto; font-size: 11.5px; line-height: 19px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; }
         .cand-card-actions { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
         @media (max-width: 640px) {
           .cand-wrap { padding: 0 16px 12px; }
           .cand-card { padding: 12px 14px; gap: 10px; }
           .cand-card-row1 { flex-wrap: wrap; height: auto; row-gap: 2px; }
           .cand-card-metas { order: 3; flex-basis: 100%; line-height: 18px; }
-          .cand-card-bookmark { order: 2; }
+          .cand-card-star { order: 2; }
+          .cand-card-stance { order: 4; }
         }
         @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -1276,5 +1361,28 @@ function HelpToggle({ label, children }: { label: string; children: React.ReactN
         </>
       )}
     </span>
+  );
+}
+
+/** ★（気になる）のアイコン。⚠️ 色は塗り（royal）と線だけ。状態を色付きのバッジにしない */
+function StarIcon({ filled, size = 14 }: { filled: boolean; size?: number }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+      <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
+    </svg>
+  );
+}
+
+/** ★カードと右欄の★ボタン。⚠️ 押しても候補者本人には何も届かない（会社の中だけ） */
+export function StarButton({ starred, onToggle, size = 28 }: { starred: boolean; onToggle: () => void; size?: number }) {
+  return (
+    <button type="button" aria-pressed={starred} aria-label={starred ? "気になるから外す" : "気になるに保存"} title={starred ? "気になるから外す" : "気になる（社内で共有・本人には通知されません）"}
+      data-state={starred ? "star-on" : "star-off"}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+      className="btn-fixed-size"
+      style={{ width: size, height: size, borderRadius: "50%", border: "none", background: "none", padding: 0, cursor: "pointer",
+        display: "inline-flex", alignItems: "center", justifyContent: "center", color: starred ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
+      <StarIcon filled={starred} size={Math.round(size * 0.6)} />
+    </button>
   );
 }

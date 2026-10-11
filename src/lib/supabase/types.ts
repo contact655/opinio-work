@@ -529,6 +529,49 @@ export type Database = {
           },
         ]
       }
+      ow_candidate_stars: {
+        Row: {
+          candidate_user_id: string
+          company_id: string
+          created_at: string
+          starred_by: string | null
+        }
+        Insert: {
+          candidate_user_id: string
+          company_id: string
+          created_at?: string
+          starred_by?: string | null
+        }
+        Update: {
+          candidate_user_id?: string
+          company_id?: string
+          created_at?: string
+          starred_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_candidate_stars_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_stars_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_stars_starred_by_fkey"
+            columns: ["starred_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_candidate_tracking: {
         Row: {
           candidate_user_id: string

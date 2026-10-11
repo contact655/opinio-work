@@ -191,6 +191,15 @@ export async function loadCompanyCandidates(params: {
     isCandidateNotesEnabled() ? listCandidateNoteCounts(companyId, userIds) : Promise.resolve(null),
   ]);
 
+  /* ★★（気になる。2026-10-12）。この会社の分だけ。⚠️ 取れなければ全員 false（ログは出す） */
+  const starred = new Set<string>();
+  if (userIds.length) {
+    const { data: stars, error: starErr } = await adminClient.from("ow_candidate_stars")
+      .select("candidate_user_id").eq("company_id", companyId).in("candidate_user_id", userIds);
+    if (starErr) console.error("[candidates] ow_candidate_stars:", starErr.message);
+    for (const r of stars ?? []) starred.add(r.candidate_user_id as string);
+  }
+
   const candidates: Candidate[] = users.map((u) => {
     const authId = u.auth_id as string;
     const profile = profilesByAuthId.get(authId) ?? null;
@@ -244,6 +253,7 @@ export async function loadCompanyCandidates(params: {
       stage: stages ? (stages.get(u.id as string) ?? null) : undefined,
       noteCount: noteCounts ? (noteCounts.get(u.id as string) ?? 0) : undefined,
       touchpoints: touch ? (touch.byCandidate.get(u.id as string) ?? []) : undefined,
+      starred: starred.has(u.id as string),
     };
   });
 

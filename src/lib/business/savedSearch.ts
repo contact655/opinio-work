@@ -44,6 +44,10 @@ export type SavedCandidateFilters = {
   prefectures: string[];
   /** ★転職への意向（複数選択。2026-10-12 に単一の `careerStance` から変えた。古い保存は parse で配列に直す） */
   careerStances: string[];
+  /** ★「〈会社名〉と合うところ」が1件以上ある人だけ（2026-10-12） */
+  hasTouchpoints: boolean;
+  /** ★★（気になる）を付けた人だけ（2026-10-12。会社の管理者で共有） */
+  starredOnly: boolean;
   /** ★最近の利用（"3d" / "1w" / "1m"。"" = 指定なし）。⚠️ 効くのは CANDIDATE_ACTIVITY_ENABLED のときだけ */
   activity: string;
   stanceFreshness: string;
@@ -78,6 +82,8 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   ageMax: 0,
   prefectures: [],
   careerStances: [],
+  hasTouchpoints: false,
+  starredOnly: false,
   activity: "",
   stanceFreshness: "",
   sort: "new",
@@ -118,6 +124,8 @@ export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
     prefectures: strArr(o.prefectures),
     /* ⚠️ 2026-10-12 より前の保存は `careerStance`（文字列1つ）。配列に直す */
     careerStances: Array.isArray(o.careerStances) ? strArr(o.careerStances) : (typeof o.careerStance === "string" && o.careerStance ? [o.careerStance] : []),
+    hasTouchpoints: bool(o.hasTouchpoints, false),
+    starredOnly: bool(o.starredOnly, false),
     activity: str(o.activity, ""),
     /* ⚠️ 2026-10-12 に帯を 7日／30日／90日 にした。古い値（1d/1w → 7d、1m → 30d、3m → 90d）は読み替える */
     stanceFreshness: ({ "1d": "7d", "1w": "7d", "1m": "30d", "3m": "90d" } as Record<string, string>)[str(o.stanceFreshness, "")] ?? str(o.stanceFreshness, ""),
@@ -127,7 +135,9 @@ export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
 
 /** 1つも条件が入っていないか。⚠️ 条件ゼロのまま保存させないための判定 */
 export function isEmptyFilters(f: SavedCandidateFilters): boolean {
-  return JSON.stringify(f) === JSON.stringify(EMPTY_SAVED_FILTERS);
+  /* ⚠️ キーごとに比べる（JSON.stringify の丸ごと比較はキーの並び順で食い違う。2026-10-12 に踏んだ） */
+  return (Object.keys(EMPTY_SAVED_FILTERS) as (keyof SavedCandidateFilters)[])
+    .every((k) => JSON.stringify(f[k]) === JSON.stringify(EMPTY_SAVED_FILTERS[k]));
 }
 
 export type SavedSearch = {

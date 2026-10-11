@@ -60,6 +60,8 @@ export type Candidate = {
   careerStanceUpdatedAt: string | null;
   /** 社会人年数（月数）。**職歴が0件なら null＝未算出。0 ではない** */
   tenureMonths: number | null;
+  /** ★この会社の「★」（気になる。会社の管理者で共有。2026-10-12）。⚠️ 取れなかったときは false */
+  starred?: boolean;
   /** ★最近の利用（4段階の帯。2026-10-12）。⚠️ 正確な日時は渡さない（activity.ts でサーバーが帯にする）。
    *  undefined = スイッチ（CANDIDATE_ACTIVITY_ENABLED）が無効 ／ null = 記録が無い（不明） */
   activity?: ActivityBand | null;
@@ -190,6 +192,10 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
   if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) {
     list = list.filter((c) => c.age != null && (f.ageMin <= 0 || c.age >= f.ageMin) && (f.ageMax <= 0 || c.age <= f.ageMax));
   }
+  /* ★合うところあり（2026-10-12）。⚠️ 取れなかった人（undefined）は落とす */
+  if (f.hasTouchpoints) list = list.filter((c) => (c.touchpoints?.length ?? 0) > 0);
+  /* ★★を付けた人だけ（2026-10-12） */
+  if (f.starredOnly) list = list.filter((c) => c.starred === true);
   /* ★転職への意向（複数選択は OR。2026-10-12） */
   if (f.careerStances.length > 0) list = list.filter((c) => c.careerStance != null && f.careerStances.includes(c.careerStance));
   /* ★最近の利用（2026-10-12）。⚠️ 記録が無い人（null）は落とす（画面に人数を出す） */
@@ -228,7 +234,7 @@ export const CANDIDATE_SORT_OPTIONS = [
   { value: "stance",      label: "意向の更新が新しい順" },
   { value: "tenure",      label: "社会人年数が長い順" },
   /* ★段1。⚠️ 接点が取れなかった（undefined）人は 0 件として扱わず末尾 */
-  { value: "touchpoints", label: "接点が多い順" },
+  { value: "touchpoints", label: "合うところが多い順" },
   /* ★2026-10-12。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ選べる（画面が `AGE_SORTS` を外す）。生年月日が無い人は末尾 */
   { value: "age_young", label: "年齢が若い順" },
   { value: "age_old", label: "年齢が高い順" },
@@ -386,6 +392,8 @@ export function describeFilters(
   if (f.workStyle) out.push(labels.workStyles[f.workStyle] ?? f.workStyle);
   if (f.salaryMin > 0) out.push(`${f.salaryMin}万〜`);
   for (const p of f.prefectures) out.push(p);
+  if (f.hasTouchpoints) out.push("合うところあり");
+  if (f.starredOnly) out.push("気になる");
   for (const v of f.careerStances) { const cs = labels.careerStances.find((o) => o.value === v); if (cs) out.push(cs.label); }
   if (opts.activity) { const a = ACTIVITY_FILTER_OPTIONS.find((o) => o.value === f.activity); if (a) out.push(`利用 ${a.label}`); }
   const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);

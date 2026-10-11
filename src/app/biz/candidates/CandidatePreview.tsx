@@ -77,7 +77,9 @@ export function TouchpointSection({ touchpoints, companyShortName, hideHeading =
   );
 }
 
-export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLimitLine = null }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void;
+export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLimitLine = null, nameAction }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void;
+  /** ★名前の右に置くもの（★ボタン。状態は一覧側が持つ） */
+  nameAction?: React.ReactNode;
   /** ★企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
   companyLimitLine?: string | null }) {
   const [data, setData] = useState<PreviewData | null>(null);
@@ -118,6 +120,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
       name={c.name}
       meta={meta || null}
       onClose={onClose}
+      nameAction={nameAction}
       headerExtra={<PreviewHeaderLines candidate={c} companyShortName={data.companyShortName ?? null} contacts={data.contacts ?? null} />}
       tabs
       extraTabs={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
