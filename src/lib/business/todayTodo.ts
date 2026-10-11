@@ -122,10 +122,10 @@ export async function getTodayTodo(
     for (const a of approaches.data ?? []) {
       items.push({
         kind: "approach", at: a.accepted_at as string,
-        title: `${nameOf(a.candidate_user_id as string)} さんからメッセージリクエストに返信がありました`,
+        title: `${nameOf(a.candidate_user_id as string)} さんから返信がありました`,
         sub: [fmtMd(a.accepted_at as string), a.sender_user_id ? `送った人：${nameOf(a.sender_user_id as string)}` : null, "まだ誰も会話を開いていません"].filter(Boolean).join(" ・ "),
         action: "メッセージを開く",
-        href: a.conversation_id ? `/biz/conversations/${a.conversation_id}` : "/biz/approaches",
+        href: a.conversation_id ? `/biz/messages/${a.conversation_id}` : "/biz/messages?tab=pending",
       });
     }
   }
@@ -134,7 +134,7 @@ export async function getTodayTodo(
     for (const u of unrepliedRows) {
       /* ⚠️ 本文は冒頭だけ（自社の会話なので見せてよい）。候補日などの種類つきのメッセージは出さない */
       const snippet = u.body ? `「${u.body.replace(/\s+/g, " ").slice(0, 40)}${u.body.length > 40 ? "…" : ""}」` : null;
-      items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)} さんから返信があります`, sub: [relDays(u.at), snippet].filter(Boolean).join(" ・ "), action: "返信する", href: `/biz/conversations/${u.id}` });
+      items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)} さんから返信があります`, sub: [relDays(u.at), snippet].filter(Boolean).join(" ・ "), action: "返信する", href: `/biz/messages/${u.id}` });
     }
   }
   if (proposals) {
@@ -156,7 +156,7 @@ export async function getTodayTodo(
     counts.meeting = upcoming.length;
     /* ⚠️ 並び順の日時は「決まった日」ではなく面談の日時なので、近い予定が上に来る */
     for (const m of upcoming) {
-      items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName} さんとの面談`, sub: [`${formatMeetingDateTime(m.startsAt)}（${m.duration}分）`, MEETING_FORMATS[m.format], m.attendees.length ? `同席：${m.attendees.join("、")}` : null].filter(Boolean).join(" ・ "), action: "予定を見る", href: `/biz/conversations/${m.conversationId}` });
+      items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName} さんとの面談`, sub: [`${formatMeetingDateTime(m.startsAt)}（${m.duration}分）`, MEETING_FORMATS[m.format], m.attendees.length ? `同席：${m.attendees.join("、")}` : null].filter(Boolean).join(" ・ "), action: "予定を見る", href: `/biz/messages/${m.conversationId}` });
     }
   }
 

@@ -19,6 +19,7 @@ import {
   normalizeApproachReason,
   companyApproachStatus,
   approachResendNotice,
+  APPROACH_UNAVAILABLE_MESSAGE,
   type CompanyApproachStatus,
 } from "@/lib/constants/companyApproaches";
 
@@ -49,16 +50,17 @@ import {
  *   ・同じ理由（空白を詰めて完全一致）は30日間使い回せない
  */
 
-export const APPROACH_BLOCKED_MESSAGE = "この方には現在メッセージリクエストを送れません";
+/** ★送れない理由は返さない。文言は `APPROACH_UNAVAILABLE_MESSAGE`（画面と同じ一文。2026-10-11） */
+export const APPROACH_BLOCKED_MESSAGE = APPROACH_UNAVAILABLE_MESSAGE;
 
 const MSG = {
   failed: "送信に失敗しました。もう一度お試しください。",
   reasonShort: `理由は${APPROACH_REASON_MIN}文字以上で入力してください`,
   reasonLong: `理由は${APPROACH_REASON_MAX}文字以内で入力してください`,
   bodyLong: `メッセージは${APPROACH_BODY_MAX}文字以内で入力してください`,
-  monthly: `今月はこれ以上メッセージリクエストを送れません（1社あたり毎月${APPROACH_MONTHLY_LIMIT}通まで）`,
-  open: `返事待ちのメッセージリクエストが${APPROACH_OPEN_LIMIT}件あるため、これ以上メッセージリクエストを送れません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
-  reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方にメッセージリクエストを送りたい理由を書いてください`,
+  monthly: `今月はこれ以上メッセージを送れません（1社あたり毎月${APPROACH_MONTHLY_LIMIT}通まで）`,
+  open: `返事待ちのメッセージが${APPROACH_OPEN_LIMIT}件あるため、これ以上送れません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
+  reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方にメッセージを送りたい理由を書いてください`,
 } as const;
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -318,6 +320,8 @@ export type IncomingApproach = {
     /** ★社名をリンクにするか（2026-10-11）。判定は `companyLinkStateFor` の1か所 */
     linkState: CompanyLinkState };
   senderName: string | null;
+  /** ★送った担当者の ow_users.id（運営への報告に控える。画面には出さない） */
+  senderUserId: string | null;
   /** ★関連する求人（2026-10-10 / 段4 で求職者側にも出した）。公開中でなければ href を付けない（名前だけ） */
   /** ★掲載の状態（2026-10-11）。判定は `jobListingStateFor` の1か所 */
   job: { title: string; slug: string | null; id: string; state: JobListingState } | null;
@@ -412,6 +416,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
         linkState: companyLinkStateFor({ isTest: c.is_test === true }, { viewerIsTest: me.is_test === true }),
       },
       senderName: r.sender_user_id ? senderById.get(r.sender_user_id as string) ?? null : null,
+      senderUserId: (r.sender_user_id as string | null) ?? null,
       job: (() => {
         const j = r.job_id ? jobById.get(r.job_id as string) : undefined;
         if (!j) return null;
@@ -430,7 +435,7 @@ export async function countIncomingApproaches(candidateOwUserId: string): Promis
   return list === null ? null : list.length;
 }
 
-export type RespondApproachAction = "decline";
+export type RespondApproachAction = "decline" | "block" | "report";
 
 /**
  * 求職者が「今回は見送る」を押す。⚠️ 本人宛て・未回答・30日以内・いま見せてよい企業 のものだけ。
@@ -442,13 +447,43 @@ export async function respondToApproach(params: {
   candidateOwUserId: string;
   action: RespondApproachAction;
 }): Promise<{ ok: true; conversationId: null } | { ok: false; status: number; error: string }> {
-  const notFound = { ok: false as const, status: 404, error: "このリクエストは見つかりません" };
+  const notFound = { ok: false as const, status: 404, error: "このメッセージは見つかりません" };
   /* ⚠️ 一覧と同じ条件で引き直す（期限切れ・答え済み・いま見せてはいけない企業を押せない形にする） */
   const list = await listIncomingApproaches(params.candidateOwUserId);
   if (list === null) return { ok: false, status: 500, error: MSG.failed };
-  if (!list.some((a) => a.id === params.approachId)) return notFound;
+  const target = list.find((a) => a.id === params.approachId);
+  if (!target) return notFound;
 
   const db = createAdminClient();
+
+  /* ★運営に報告（2026-10-11）。一覧からは消さない（返信も見送りもまだできる）。⚠️ 企業には伝えない */
+  if (params.action === "report") {
+    const { error: rErr } = await db.from("ow_message_reports").insert({
+      reporter_user_id: params.candidateOwUserId,
+      reported_user_id: target.senderUserId,
+      approach_id: target.id,
+      reported_company_id: target.company.id,
+      message_snapshot: [target.reason, target.body].filter(Boolean).join("\n\n").slice(0, 4000),
+    });
+    if (rErr) {
+      console.error("[approaches] report:", rErr.message);
+      return { ok: false, status: 500, error: MSG.failed };
+    }
+    return { ok: true, conversationId: null };
+  }
+
+  /* ★ブロック（2026-10-11）。「メッセージを受け取らない企業」に入れる（設定画面と同じ表）。
+        ⚠️ 入れると、この企業からのまだ返信していないメッセージは一覧から消える（`listIncomingApproaches`）。
+        ⚠️ 見送りとしても記録する（企業には伝えない。企業の画面は「返事待ち」のまま） */
+  if (params.action === "block") {
+    const { error: bErr } = await db.from("ow_approach_blocked_companies")
+      .upsert({ user_id: params.candidateOwUserId, company_id: target.company.id }, { onConflict: "user_id,company_id", ignoreDuplicates: true });
+    if (bErr) {
+      console.error("[approaches] block:", bErr.message);
+      return { ok: false, status: 500, error: MSG.failed };
+    }
+  }
+
   const { data, error } = await db.from("ow_company_approaches")
     .update({ declined_at: new Date().toISOString() })
     .eq("id", params.approachId).eq("candidate_user_id", params.candidateOwUserId)
@@ -486,7 +521,7 @@ export async function replyToApproach(params: {
   const list = await listIncomingApproaches(params.candidateOwUserId);
   if (list === null) return { ok: false, status: 500, error: MSG.failed };
   const target = list.find((a) => a.id === params.approachId);
-  if (!target) return { ok: false, status: 404, error: "このリクエストは見つかりません" };
+  if (!target) return { ok: false, status: 404, error: "このメッセージは見つかりません" };
 
   const db = createAdminClient();
   const { data, error } = await db.rpc("reply_to_company_approach", {
@@ -496,8 +531,8 @@ export async function replyToApproach(params: {
   });
   if (error) {
     const code = (error as { code?: string }).code;
-    if (code === "OR404") return { ok: false, status: 404, error: "このリクエストは見つかりません" };
-    if (code === "OR409") return { ok: false, status: 409, error: "このリクエストにはすでに返信しています" };
+    if (code === "OR404") return { ok: false, status: 404, error: "このメッセージは見つかりません" };
+    if (code === "OR409") return { ok: false, status: 409, error: "このメッセージにはすでに返信しています" };
     if (code === "OR403") return { ok: false, status: 403, error: "現在この企業とはやり取りを始められません" };
     if (code === "OR400") return { ok: false, status: 400, error: `返信は1〜${APPROACH_REPLY_MAX}文字で入力してください` };
     console.error("[approaches] reply:", error.message);
@@ -572,20 +607,25 @@ async function notifyApproachReplied(params: {
  * ★/biz サイドバーの「声かけ」の数字（2026-10-10）: 承認されて、まだ企業が会話を開いていない件数。
  * ⚠️ 見送られた・承認待ちは数えない（accepted_at が null）。失敗したら 0（ログは出す。バッジのために落とさない）。
  */
-export async function countUnseenAcceptedApproaches(companyId: string): Promise<number> {
-  const { count, error } = await createAdminClient()
-    .from("ow_company_approaches").select("id", { count: "exact", head: true })
+/**
+ * ★返信があって、企業がまだその会話を開いていないメッセージの会話 id（2026-10-11）。
+ *   サイドバーの「メッセージ」バッジは、未読の会話と**この集合の和**を数える（同じ会話を2回数えない）。
+ * ⚠️ 失敗したら空集合（ログは出す）。
+ */
+export async function unseenRepliedConversationIds(companyId: string): Promise<Set<string>> {
+  const { data, error } = await createAdminClient()
+    .from("ow_company_approaches").select("conversation_id")
     .eq("company_id", companyId).not("accepted_at", "is", null).is("company_seen_at", null);
   if (error) {
-    console.error("[approaches] unseen accepted:", error.message);
-    return 0;
+    console.error("[approaches] unseen replied:", error.message);
+    return new Set();
   }
-  return count ?? 0;
+  return new Set((data ?? []).map((r) => r.conversation_id as string | null).filter((v): v is string => !!v));
 }
 
 /**
  * 企業の担当者が会話を開いたら、その会話の声かけに company_seen_at を立てる（2026-10-10）。
- * ⚠️ 呼び出し側（/biz/conversations/[id]）が「その会話が自社のもの」を確かめてから呼ぶ。
+ * ⚠️ 呼び出し側（/biz/messages/[id]）が「その会話が自社のもの」を確かめてから呼ぶ。
  * ⚠️ 失敗しても画面は出す（ログだけ）。
  */
 export async function markApproachSeenByCompany(conversationId: string, companyId: string): Promise<void> {

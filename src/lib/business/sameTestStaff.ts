@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *
  * 使うところ（画面の選択肢とサーバーの判定の両方がこの関数を通す。⚠️ 条件を書き写さないこと）:
  *   - 声かけの「送る担当者」（`lib/approaches/server.ts` の `listApproachSenders` → 画面と `POST /api/biz/approaches`）
- *   - 日程調整の候補日の「同席する人」（`/biz/conversations/[id]` の選択肢と `lib/meetings/server.ts`）
+ *   - 日程調整の候補日の「同席する人」（`/biz/messages/[id]` の選択肢と `lib/meetings/server.ts`）
  *
  * ⚠️★なぜ: 相手との is_test の一致は**送り手（または会話）で**見ている。選べる人を自由にすると、
  *    検証用のアカウントで操作しながら実在の担当者を送り手・同席者にして、実在の求職者に届けられる。

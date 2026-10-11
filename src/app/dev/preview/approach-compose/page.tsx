@@ -1,9 +1,9 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import ApproachComposeClient from "@/app/biz/approaches/new/ApproachComposeClient";
+import ApproachComposeClient from "@/app/biz/messages/new/ApproachComposeClient";
 
 /**
- * ★声かけを書く画面（/biz/approaches/new）の見え方（2026-10-11）。
+ * ★声かけを書く画面（/biz/messages/new）の見え方（2026-10-11）。
  * ⚠️ DB は読まない（固定データ）。実画面は「いま送れる候補者」が居ないと開けないので、ここで見る。
  * ⚠️ 「声をかける」を押すと実際の API に送る。**ここでは押さないこと**（固定の候補者 id は実在しないので 404 で止まる）。
  */
@@ -21,7 +21,7 @@ export default function Page() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="メッセージリクエストを書く（/biz/approaches/new）">
+      <PreviewHeader title="メッセージを送る（/biz/messages/new）">
         <p>右の「今月の枠」と「送る前に」の言い方（今月の残り・返事待ち・返信がある）を見る。</p>
       </PreviewHeader>
       <Variant label="残り8通・返事待ち2件" note="送ったあとの今月の残り：7通">

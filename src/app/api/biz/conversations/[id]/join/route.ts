@@ -77,8 +77,8 @@ export async function POST(
     .maybeSingle();
 
   if (existing) {
-    revalidatePath("/biz/conversations");
-    revalidatePath(`/biz/conversations/${conversationId}`);
+    revalidatePath("/biz/messages");
+    revalidatePath(`/biz/messages/${conversationId}`);
     return NextResponse.json({ ok: true, alreadyJoined: true });
   }
 
@@ -96,8 +96,8 @@ export async function POST(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  revalidatePath("/biz/conversations");
-  revalidatePath(`/biz/conversations/${conversationId}`);
+  revalidatePath("/biz/messages");
+  revalidatePath(`/biz/messages/${conversationId}`);
 
   return NextResponse.json({ ok: true });
 }

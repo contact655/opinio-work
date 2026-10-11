@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * ★/mypage のホーム最上部の「届いているもの」（2026-10-09）。
  *
- * 提案とメッセージのお願いを、件数と一行の説明つきで並べる。⚠️ **0件のときはカードごと出さない。**
+ * 提案と未返信のメッセージ（企業から・個人から）を、件数と一行の説明つきで並べる。⚠️ **0件のときはカードごと出さない。**
  * ⚠️ 件数は `lib/mypage/navBadges.ts` の数え方（ナビの数字と同じ）。ここで数え直さない。
  * ⚠️ 説明文は「提案」と「お願い」の違いを伝えるためのもの。どちらも**相手側の対応を待つ**状態ではなく、
  *    **本人が答える番**のものだけを数えている。
@@ -18,23 +18,14 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
       text: "OPINIO が根拠をそろえてお届けしている企業との出会い",
       href: "/mypage/proposals",
     },
-    messageRequests > 0 && {
-      key: "requests",
-      label: "メッセージリクエスト",
-      from: "個人から",
-      count: messageRequests,
-      text: "返信すると、そのままメッセージでやり取りが始まります",
-      href: "/mypage/conversations#requests",
-    },
-    /* ★企業からの声かけ（2026-10-09）。⚠️ 提案（OPINIO が根拠をそろえる）・お願い（個人から）と
-          区別がつく説明にする。取得に失敗（null）したら行ごと出さない */
-    approaches !== null && approaches > 0 && {
-      key: "approaches",
-      label: "メッセージリクエスト",
-      from: "企業から",
-      count: approaches,
-      text: "企業があなたの経歴を見て、理由を添えて連絡してきています",
-      href: "/mypage/approaches",
+    /* ★企業から・個人からの最初のメッセージは「未返信のメッセージ」1行にまとめた（2026-10-11 / 柴さんの指示。
+          「メッセージリクエスト」を「メッセージ」にまとめた）。⚠️ 企業からの件数が取れない（null）ときは個人からだけ数える */
+    messageRequests + (approaches ?? 0) > 0 && {
+      key: "unreplied",
+      label: "未返信のメッセージ",
+      count: messageRequests + (approaches ?? 0),
+      text: "企業や個人から届いた最初のメッセージです。返信すると、そのままやり取りが始まります",
+      href: "/mypage/conversations?tab=unreplied",
     },
   ].filter(Boolean) as { key: string; label: string; from?: string; count: number; text: string; href: string }[];
 
@@ -61,8 +52,6 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                {/* ★同じ「メッセージリクエスト」が2行並ぶので、どこから届いたかの印を付ける（2026-10-11）。
-                      ⚠️ 色で分けない（neutral）。文字で区別する */}
                 {r.from && <FromTag label={r.from} />}
                 {r.label}
                 <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap" }}>{r.count}件</span>
@@ -80,7 +69,7 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
 /** ★「企業から」「個人から」の印（2026-10-11）。/mypage/conversations の欄でも同じ形を使う */
 export function FromTag({ label }: { label: string }) {
   return (
-    <span data-from-tag={label} style={{ display: "inline-block", marginRight: 6, padding: "1px 7px", borderRadius: 4, border: "1px solid var(--line)", background: "var(--bg-tint, #f6f7f9)", fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", verticalAlign: "1px" }}>
+    <span data-from-tag={label} style={{ display: "inline-block", flexShrink: 0, whiteSpace: "nowrap", marginRight: 6, padding: "1px 7px", borderRadius: 4, border: "1px solid var(--line)", background: "var(--bg-tint, #f6f7f9)", fontSize: 11, fontWeight: 700, color: "var(--ink-soft)", verticalAlign: "1px" }}>
       {label}
     </span>
   );

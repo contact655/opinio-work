@@ -92,13 +92,13 @@ export function PipelineClient({ meetings, applications, tenantName, currentUser
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
             {scheduled.map((m) => (
               <li key={m.id}>
-                <a href={`/biz/conversations/${m.conversationId}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", fontSize: 13, color: "var(--ink)", textDecoration: "none", flexWrap: "wrap" }}>
+                <a href={`/biz/messages/${m.conversationId}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 4px", fontSize: 13, color: "var(--ink)", textDecoration: "none", flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{m.whenText}</span>
                   <span style={{ minWidth: 0 }}>{m.candidateName} さん</span>
                   <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{m.formatLabel}・{m.duration}分</span>
                   {m.origin && (
                     <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)" }}>
-                      {m.origin === "approach" ? "メッセージリクエストから" : "提案から"}
+                      {m.origin === "approach" ? "メッセージから" : "提案から"}
                     </span>
                   )}
                   <span aria-hidden="true" style={{ marginLeft: "auto", color: "var(--ink-mute)" }}>→</span>

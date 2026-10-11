@@ -1,7 +1,8 @@
 "use client";
 
 import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
-import { FromTag } from "@/components/mypage/InboxCard";
+import { ApproachLetter } from "@/components/approaches/ApproachLetter";
+import type { IncomingApproachView } from "@/components/approaches/incomingApproachView";
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,6 +42,8 @@ export type Conversation = {
     name: string;
   } | null;
   hasUnread?: boolean;
+  /** ★最後のメッセージの冒頭1行（2026-10-11） */
+  lastMessage?: string | null;
 };
 
 type MessageRow = {
@@ -98,76 +101,122 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
 const isPendingRequest = (c: Conversation | null | undefined) =>
   !!c && c.kind === "direct_message" && c.request_status !== "accepted";
 
-/**
- * ★届いたメッセージリクエスト（個人から）の欄（段階3。2026-10-11 にそのまま返信できる形に）。
- * ⚠️★1通目の本文は返信する前から読める（サーバーが admin で読んで渡す）。返信するまで参加者には加えない決まりはそのまま。
- * ⚠️ 返信欄は企業からのリクエストと同じ部品（RequestReplyBox）。「今回は見送る」「ブロック」は相手に伝えない。
- */
-function RequestsSection({
-  requests,
-  reported,
-  onReply,
-  onAction,
-}: {
-  requests: IncomingRequest[];
-  reported: Set<string>;
-  onReply: (id: string, body: string) => Promise<string | null>;
-  onAction: (id: string, action: "decline" | "block" | "report") => Promise<string | null>;
-}) {
-  if (requests.length === 0) return null;
+/** ★未返信の1件（2026-10-11 / 柴さんの指示。企業から・個人からの最初のメッセージを同じ見た目で並べる） */
+export type UnrepliedItem =
+  | { kind: "company"; key: string; at: string; approach: IncomingApproachView }
+  | { kind: "person"; key: string; at: string; request: IncomingRequest };
+
+const linkBtn: React.CSSProperties = { background: "none", border: "none", padding: "4px 0", fontSize: 12.5, color: "var(--ink-mute)", textDecoration: "underline", fontFamily: "inherit", cursor: "pointer" };
+
+/** 一覧の1行（未返信）。⚠️ 理由・本文の冒頭だけ。全文は開いてから */
+function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selected: boolean; onOpen: () => void }) {
+  const name = item.kind === "company" ? item.approach.companyName : item.request.requester.name;
+  const preview = item.kind === "company" ? item.approach.reason : (item.request.body ?? "");
   return (
-    <section id="requests" data-state="message-requests" aria-label="メッセージリクエスト" style={{ borderBottom: "1px solid var(--line)", background: "var(--royal-50)" }}>
-      <p style={{ margin: 0, padding: "10px 14px 4px", fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
-        {/* ★個人から届いたものだけの欄。企業からのものは /mypage/approaches（2026-10-11 に印を付けた） */}
-        <FromTag label="個人から" />メッセージリクエスト（{requests.length}件）
-      </p>
-      <p style={{ margin: 0, padding: "0 14px 8px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-        返信すると、そのままメッセージでやり取りが始まります。見送ってもブロックしても、相手には伝わりません。
-      </p>
-      {requests.map((r) => {
-        const profileHref = `/u/${r.requester.username ?? r.requester.id}`;
-        const isReported = reported.has(r.conversationId);
-        return (
-          <div key={r.conversationId} data-request-id={r.conversationId} style={{ padding: "12px 14px", borderTop: "1px solid var(--line-soft)", background: "#fff" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-              {r.requester.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={r.requester.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-              ) : (
-                <InitialAvatar name={r.requester.name} size={36} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Link href={profileHref} style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {r.requester.name}
-                </Link>
-                {r.requester.headline && (
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.requester.headline}</span>
-                )}
-              </div>
-            </div>
-            {/* ★1通目の本文（返信する前から読める） */}
-            <p data-state="request-body" style={{ margin: "10px 0 0", fontSize: 13.5, lineHeight: 1.8, color: r.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-              {r.body ?? "（本文を読み込めませんでした）"}
-            </p>
-            <RequestReplyBox declineNote="見送っても相手には伝わりません。"
-              onSend={(body) => onReply(r.conversationId, body)}
-              onDecline={() => onAction(r.conversationId, "decline")}
-              extra={(
-                <>
-                  <button type="button" data-action="block" onClick={() => { if (window.confirm(`${r.requester.name}さんをブロックしますか？このリクエストは一覧から消え、以後この方からのメッセージは届きません。相手には伝わりません。`)) void onAction(r.conversationId, "block"); }}
-                    style={{ background: "none", border: "none", padding: "4px 0", fontSize: 12.5, color: "var(--ink-mute)", textDecoration: "underline", fontFamily: "inherit", cursor: "pointer" }}>ブロック</button>
-                  {isReported ? (
-                    <span data-state="reported" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>運営に報告しました</span>
-                  ) : (
-                    <button type="button" data-action="report" onClick={() => { if (window.confirm("このメッセージを運営に報告しますか？内容を運営が確認します。相手には伝わりません。")) void onAction(r.conversationId, "report"); }}
-                      style={{ background: "none", border: "none", padding: "4px 0", fontSize: 12.5, color: "var(--ink-mute)", textDecoration: "underline", fontFamily: "inherit", cursor: "pointer" }}>運営に報告</button>
-                  )}
-                </>
-              )} />
+    <button type="button" onClick={onOpen} data-unreplied={item.kind} data-unreplied-id={item.key} aria-expanded={selected}
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 14px", textAlign: "left", border: "none",
+        borderBottom: "1px solid var(--line-soft)", width: "100%", cursor: "pointer", fontFamily: "inherit",
+        background: selected ? "var(--royal-50)" : "#fff",
+        borderLeft: selected ? "3px solid var(--royal)" : "3px solid transparent",
+      }}>
+      {item.kind === "company" ? (
+        item.approach.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.approach.logoUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: item.approach.logoGradient ?? "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: item.approach.logoGradient ? "#fff" : "var(--royal)" }}>
+            {item.approach.logoLetter ?? name[0] ?? "?"}
           </div>
-        );
-      })}
-    </section>
+        )
+      ) : item.request.requester.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.request.requester.avatarUrl} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+      ) : (
+        <InitialAvatar name={name} size={40} />
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{name}</span>
+          <span style={{ fontSize: 11.5, color: "var(--ink-mute)", flexShrink: 0 }}>{formatRelativeTime(item.at)}</span>
+        </div>
+        {/* ★状態は灰色の小さな文字（2026-10-11 / 柴さんの指示）。⚠️ バッジ・「企業から」の印を付けない */}
+        <div data-state="item-status" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>まだ返信していません</div>
+        <div style={{ marginTop: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{preview}</div>
+      </div>
+      <div aria-hidden style={{ width: 8, height: 8, marginTop: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
+    </button>
+  );
+}
+
+/**
+ * ★未返信の1件を開いたところ（2026-10-11）。理由と本文・返信欄（ひな形つき）・「今回は見送る」・ブロック・運営に報告。
+ * ⚠️★返信するまで、個人からのものは参加者に加えない決まり・企業からのものは会話を開かない決まりはそのまま（サーバーが守る）。
+ * ⚠️ 見送り・ブロック・報告はどれも相手に伝えない。
+ */
+function UnrepliedDetail({ item, reported, onReply, onAction }: {
+  item: UnrepliedItem;
+  reported: boolean;
+  onReply: (item: UnrepliedItem, body: string) => Promise<string | null>;
+  onAction: (item: UnrepliedItem, action: "decline" | "block" | "report") => Promise<string | null>;
+}) {
+  const fmt = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).format(new Date(iso));
+  const who = item.kind === "company" ? item.approach.companyName : `${item.request.requester.name}さん`;
+  const extra = (
+    <>
+      <button type="button" data-action="block" style={linkBtn}
+        onClick={() => {
+          const msg = item.kind === "company"
+            ? `${who}をブロックしますか？このメッセージは一覧から消え、以後この企業からのメッセージは届きません。企業には伝わりません。`
+            : `${who}をブロックしますか？このメッセージは一覧から消え、以後この方からのメッセージは届きません。相手には伝わりません。`;
+          if (window.confirm(msg)) void onAction(item, "block");
+        }}>ブロック</button>
+      {reported ? (
+        <span data-state="reported" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>運営に報告しました</span>
+      ) : (
+        <button type="button" data-action="report" style={linkBtn}
+          onClick={() => { if (window.confirm("このメッセージを運営に報告しますか？内容を運営が確認します。相手には伝わりません。")) void onAction(item, "report"); }}>運営に報告</button>
+      )}
+    </>
+  );
+  return (
+    <div data-state="unreplied-detail" data-unreplied={item.kind} style={{ padding: "16px 18px", minWidth: 0 }}>
+      {item.kind === "company" ? (
+        /* ★見た目は企業の「〇〇さんにはこう見えます」と同じ部品（ApproachLetter）。⚠️ 片方だけ書き換えない */
+        <ApproachLetter companyName={item.approach.companyName} companyHref={item.approach.companyHref} logoUrl={item.approach.logoUrl}
+          logoLetter={item.approach.logoLetter} logoGradient={item.approach.logoGradient} senderName={item.approach.senderName}
+          dateText={fmt(item.approach.createdAt)} reason={item.approach.reason} body={item.approach.body} job={item.approach.job}
+          isOwnCompany={item.approach.isOwnCompany} />
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            {item.request.requester.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.request.requester.avatarUrl} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            ) : (
+              <InitialAvatar name={item.request.requester.name} size={40} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Link href={`/u/${item.request.requester.username ?? item.request.requester.id}`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.request.requester.name}
+              </Link>
+              {item.request.requester.headline && (
+                <span style={{ fontSize: 12, color: "var(--ink-mute)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.request.requester.headline}</span>
+              )}
+            </div>
+          </div>
+          <p data-state="request-body" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.8, color: item.request.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+            {item.request.body ?? "（本文を読み込めませんでした）"}
+          </p>
+        </>
+      )}
+      {/* ★返信欄は企業の見本と同じ部品（RequestReplyBox）。⚠️ 片方だけ書き換えない */}
+      <RequestReplyBox
+        declineNote={item.kind === "company" ? "見送っても企業には伝わりません。" : "見送っても相手には伝わりません。"}
+        onSend={(body) => onReply(item, body)}
+        onDecline={() => onAction(item, "decline")}
+        extra={extra} />
+    </div>
   );
 }
 
@@ -175,14 +224,68 @@ export default function ConversationsClient({
   initialConversations,
   initialOpenConvId,
   initialRequests,
+  initialApproaches = [],
+  initialTab = "all",
 }: {
   initialConversations: Conversation[];
   initialOpenConvId?: string | null;
   initialRequests: IncomingRequest[];
+  /** ★企業から届いた、まだ返信していない最初のメッセージ（2026-10-11）。null = 取れなかった */
+  initialApproaches?: IncomingApproachView[] | null;
+  initialTab?: "all" | "unreplied";
 }) {
   const router = useRouter();
   const [requests, setRequests] = useState<IncomingRequest[]>(initialRequests);
+  const [approaches, setApproaches] = useState<IncomingApproachView[]>(initialApproaches ?? []);
+  const approachesFailed = initialApproaches === null;
   const [reported, setReported] = useState<Set<string>>(new Set());
+  /* ★「すべて」「未返信」（2026-10-11 / 柴さんの指示）。未返信 ＝ まだ返信していない最初のメッセージ（企業から・個人から） */
+  const [tab, setTab] = useState<"all" | "unreplied">(initialTab);
+  const [openUnreplied, setOpenUnreplied] = useState<string | null>(null);
+  const unreplied: UnrepliedItem[] = [
+    ...approaches.map((a): UnrepliedItem => ({ kind: "company", key: `a:${a.id}`, at: a.createdAt, approach: a })),
+    ...requests.map((r): UnrepliedItem => ({ kind: "person", key: `r:${r.conversationId}`, at: r.requestedAt ?? "", request: r })),
+  ].sort((x, y) => (x.at < y.at ? 1 : -1));
+  const openedUnreplied = unreplied.find((u) => u.key === openUnreplied) ?? null;
+
+  /* 返信（企業から・個人から）。返信した時点でやり取りが始まる */
+  const replyUnreplied = async (item: UnrepliedItem, body: string): Promise<string | null> => {
+    if (item.kind === "person") return handleReply(item.request.conversationId, body);
+    try {
+      const res = await fetch(`/api/jobseeker/approaches/${item.approach.id}/reply`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return null; }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return data?.error ?? "送信できませんでした。もう一度お試しください。";
+      window.location.assign(data?.conversationId ? `/mypage/conversations?open=${data.conversationId}` : "/mypage/conversations");
+      return null;
+    } catch {
+      return "送信できませんでした。もう一度お試しください。";
+    }
+  };
+  /* 見送る・ブロック（一覧から消す）・運営に報告（一覧には残す）。⚠️ どれも相手には伝わらない */
+  const actUnreplied = async (item: UnrepliedItem, action: "decline" | "block" | "report"): Promise<string | null> => {
+    if (item.kind === "person") {
+      const err = await handleAction(item.request.conversationId, action);
+      if (!err && action === "report") setReported((prev) => new Set(prev).add(item.key));
+      if (!err && action !== "report") setOpenUnreplied(null);
+      return err;
+    }
+    try {
+      const res = await fetch(`/api/jobseeker/approaches/${item.approach.id}/respond`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return null; }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return data?.error ?? "処理できませんでした。もう一度お試しください。";
+      if (action === "report") setReported((prev) => new Set(prev).add(item.key));
+      else { setApproaches((prev) => prev.filter((a) => a.id !== item.approach.id)); setOpenUnreplied(null); }
+      return null;
+    } catch {
+      return "処理できませんでした。もう一度お試しください。";
+    }
+  };
 
   /* ★返信（2026-10-11）。返信した時点で会話が開く。⚠️ 一覧は初期値の state なので、開き直して会話を出す */
   const handleReply = async (id: string, body: string): Promise<string | null> => {
@@ -235,6 +338,7 @@ export default function ConversationsClient({
       router.push(`/mypage/conversations/${id}`);
       return;
     }
+    setOpenUnreplied(null);
     setSelectedConvId(id);
   };
   /* ⚠️ `?open=` で来たとき（DM の入口・通知から）も、狭い画面なら詳細ページへ移す。
@@ -397,7 +501,9 @@ export default function ConversationsClient({
         .conv-shell { display: flex; height: calc(100vh - 160px); min-height: 500px; }
         .conv-list { width: 300px; flex-shrink: 0; border-right: 1px solid var(--line); }
         .conv-panel { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+        .conv-inline-detail { display: none; }
         @media (max-width: 767px) {
+          .conv-inline-detail { display: block; }
           .conv-shell { flex-direction: column; height: auto; min-height: 0; }
           .conv-list { width: 100%; border-right: none; }
           .conv-panel { display: none; }
@@ -440,9 +546,41 @@ export default function ConversationsClient({
             )}
           </div>
 
-          <RequestsSection requests={requests} reported={reported} onReply={handleReply} onAction={handleAction} />
+          {/* ★「すべて」「未返信」（2026-10-11 / 柴さんの指示）。⚠️ 選択状態は下線だけ（ui-conventions） */}
+          {!bulkMode && (
+            <div role="tablist" aria-label="メッセージの絞り込み" style={{ display: "flex", gap: 16, padding: "0 16px", borderBottom: "1px solid var(--line-soft)", flexShrink: 0 }}>
+              {([["all", "すべて", 0], ["unreplied", "未返信", unreplied.length]] as const).map(([k, label, n]) => (
+                <button key={k} type="button" role="tab" aria-selected={tab === k} data-tab={k} data-state={tab === k ? "active" : "inactive"}
+                  onClick={() => { setTab(k); setOpenUnreplied(null); }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "9px 2px", background: "none", border: "none", borderBottom: `2px solid ${tab === k ? "var(--royal)" : "transparent"}`, marginBottom: -1, fontFamily: "inherit", fontSize: 13, fontWeight: tab === k ? 700 : 500, color: tab === k ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer" }}>
+                  {label}
+                  {n > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{n}</span>}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {conversations.length === 0 ? (
+          {/* ★未返信の最初のメッセージ（企業から・個人から）。「すべて」でも先頭に並べる。
+                 広い画面は右の面で開き、狭い画面はその場で開く（ui-debugging ② 幅で変える値は CSS） */}
+          {!bulkMode && approachesFailed && (
+            <p role="alert" style={{ margin: 0, padding: "10px 14px", fontSize: 12.5, fontWeight: 600, color: "var(--error)" }}>企業からのメッセージを読み込めませんでした。時間をおいて再読み込みしてください。</p>
+          )}
+          {!bulkMode && unreplied.map((u) => (
+            <Fragment key={u.key}>
+              <UnrepliedRow item={u} selected={openUnreplied === u.key}
+                onOpen={() => { setOpenUnreplied(openUnreplied === u.key && isNarrowNow() ? null : u.key); setSelectedConvId(null); }} />
+              {openUnreplied === u.key && (
+                <div className="conv-inline-detail" style={{ borderBottom: "1px solid var(--line)" }}>
+                  <UnrepliedDetail item={u} reported={reported.has(u.key)} onReply={replyUnreplied} onAction={actUnreplied} />
+                </div>
+              )}
+            </Fragment>
+          ))}
+          {!bulkMode && tab === "unreplied" && unreplied.length === 0 && !approachesFailed && (
+            <p data-state="unreplied-empty" style={{ margin: 0, padding: 24, fontSize: 13, color: "var(--ink-soft)", textAlign: "center" }}>未返信のメッセージはありません。</p>
+          )}
+
+          {tab === "unreplied" && !bulkMode ? null : conversations.length === 0 && unreplied.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
@@ -492,22 +630,24 @@ export default function ConversationsClient({
                   )}
                   <ConvAvatar conv={conv} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    {/* ★LinkedIn の受信箱と同じ形（2026-10-11 / 柴さんの指示）。名前・日付・最後のメッセージの冒頭。
+                           ⚠️ 状態のバッジ（「DM」「返事待ち」）を使わない。状態は灰色の小さな文字で出す */}
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
                       <span style={{
                         fontSize: 13, fontWeight: hasUnread ? 700 : 500,
                         color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        flex: 1,
+                        flex: 1, minWidth: 0,
                       }}>{name}</span>
-                      {conv.kind === "direct_message" && (
-                        <span style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", flexShrink: 0 }}>DM</span>
-                      )}
-                      {/* ★自分が送ったお願い（段階3）。⚠️ 断られていても同じ表示 */}
-                      {isPendingRequest(conv) && (
-                        <span data-state="request-pending" style={{ fontSize: 12, fontWeight: 500, padding: "1px 5px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)", flexShrink: 0 }}>返事待ち</span>
-                      )}
+                      <span style={{ fontSize: 11.5, color: hasUnread ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
+                        {conv.last_message_at ? formatRelativeTime(conv.last_message_at) : ""}
+                      </span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>
-                      {conv.last_message_at ? formatRelativeTime(conv.last_message_at) : "これから対話"}
+                    {/* ★自分が送った最初のメッセージに返信がまだ無い（段階3）。⚠️ 見送られていても同じ表示 */}
+                    {isPendingRequest(conv) && (
+                      <div data-state="request-pending" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>返信を待っています</div>
+                    )}
+                    <div style={{ fontSize: 12.5, fontWeight: hasUnread ? 600 : 400, color: hasUnread ? "var(--ink)" : "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                      {conv.lastMessage ?? "これから対話"}
                     </div>
                   </div>
                   {hasUnread && (
@@ -583,6 +723,10 @@ export default function ConversationsClient({
                   {bulkSending ? "送信中…" : "送信"}
                 </button>
               </div>
+            </div>
+          ) : openedUnreplied ? (
+            <div style={{ overflowY: "auto", height: "100%" }}>
+              <UnrepliedDetail item={openedUnreplied} reported={reported.has(openedUnreplied.key)} onReply={replyUnreplied} onAction={actUnreplied} />
             </div>
           ) : !selectedConvId ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--ink-mute)" }}>

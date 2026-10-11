@@ -26,6 +26,7 @@ import { FollowUserButton } from "./FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
 import { ApproachButton } from "@/components/approaches/ApproachButton";
+import { ProfileMoreMenu } from "@/components/profile/ProfileMoreMenu";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
@@ -201,7 +202,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         ⚠️★送れない相手にはボタンを出さない（理由も出さない）。判定は送信の API と同じ
            `isApproachTarget`（候補者検索に出る人と同じ範囲なので、出ること自体で新しく漏れる情報は無い）。
         ⚠️ この企業が180日以内に声をかけていれば「声かけ済み」（企業自身の事実）。 */
-  let approach: { eligible: boolean; sent: RecentApproach | null; jobs: { id: string; title: string }[] } | null = null;
+  let approach: { eligible: boolean; sent: RecentApproach | null; jobs: { id: string; title: string }[]; companyName: string } | null = null;
   /* ★社内メモ（2026-10-10 / 段5）。企業の担当者が見たとき・フラグがオンのときだけ。担当の候補は自社の有効な担当者 */
   let notesAdmins: { id: string; name: string }[] | null = null;
   if (viewerOwUserId && !viewerIsOwner) {
@@ -218,7 +219,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
         isApproachTarget({ companyId: tenant.tenantId, candidateOwUserId: owUser.id, senderOwUserId: tenant.currentOwnId }),
         listApproachableJobs(tenant.tenantId),
       ]);
-      if (recent) approach = { eligible, sent: recent.get(owUser.id) ?? null, jobs: approachJobs };
+      if (recent) approach = { eligible, sent: recent.get(owUser.id) ?? null, jobs: approachJobs, companyName: tenant.tenantName };
     }
   }
 
@@ -712,7 +713,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
           metaActions={<>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
                 {/* カジュアル面談ボタン（非オーナー かつ 在籍企業の話を聞ける人 かつ 在籍企業が受付中） */}
-                {!viewerIsOwner && isTalkableHere && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
+                {/* ⚠️ 企業の担当者が見ているときは出さない（主のボタンを会社としての「メッセージを送る」1つにする。2026-10-11） */}
+                {!viewerIsOwner && !approach && isTalkableHere && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
                   <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "9px 18px", borderRadius: 8,
@@ -729,13 +731,25 @@ export default async function UserProfilePage({ params }: { params: { id: string
                   </Link>
                 )}
 
-                {/* ★声かけ（2026-10-09）。企業の担当者が見たときだけ。⚠️ 送れない相手には出さない */}
-                {approach && (approach.eligible || approach.sent) && (
-                  <ApproachButton candidateUserId={owUser.id} sent={approach.sent} />
+                {/* ★企業の担当者が見たとき（2026-10-11 / 柴さんの指示）。一番目立つボタンは会社としての
+                       「メッセージを送る」1つ。下に小さく「◯◯として送ります」。個人の DM は「…」の中へ。
+                       ⚠️ 送れない相手にはボタンを出さず、理由を区別しない1文だけ（`APPROACH_UNAVAILABLE_MESSAGE`） */}
+                {approach && !viewerIsOwner && (
+                  <div data-state="company-message-cta" style={{ display: "inline-flex", flexDirection: "column", gap: 4, minWidth: 0, maxWidth: "100%" }}>
+                    <ApproachButton candidateUserId={owUser.id} sent={approach.sent} eligible={approach.eligible} />
+                    {!approach.sent && approach.eligible && (
+                      <span data-state="send-as-company" style={{ fontSize: 11.5, color: "var(--ink-mute)", overflowWrap: "anywhere" }}>{approach.companyName}として送ります</span>
+                    )}
+                  </div>
+                )}
+                {approach && !viewerIsOwner && authUser && (
+                  <ProfileMoreMenu>
+                    <DMButton targetUserId={owUser.id} targetName={owUser.name} label="個人としてメッセージを送る" variant="menuItem" />
+                  </ProfileMoreMenu>
                 )}
 
-                {/* DMボタン */}
-                {!viewerIsOwner && authUser ? (
+                {/* DMボタン（企業の担当者でない人。企業の担当者は上の「…」の中） */}
+                {approach ? null : !viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
                 ) : !viewerIsOwner && !authUser ? (
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{

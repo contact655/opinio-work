@@ -214,10 +214,10 @@ export function MeetingsClient({ meetings: initialMeetings, currentUser, accepta
   }, [selectedId, handleMemoChange]);
 
   /* ★その候補者との会話を直接開く（2026-09-21）。見つからないときだけ一覧へ。
-        それまでは常に一覧（/biz/conversations）へ着いていた。 */
+        それまでは常に一覧（/biz/messages）へ着いていた。 */
   const openConversation = useCallback(() => {
     const convId = meetings.find((m) => m.id === selectedId)?.conversationId;
-    router.push(convId ? `/biz/conversations/${convId}` : "/biz/conversations");
+    router.push(convId ? `/biz/messages/${convId}` : "/biz/messages");
   }, [router, meetings, selectedId]);
   const handleReply = openConversation;
 

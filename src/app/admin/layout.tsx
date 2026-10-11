@@ -74,7 +74,7 @@ const NAV_GROUPS = [
             ⚠️★**外せるのは運営だけ**（`ow_company_hidden_experiences` は運営専用）。
                企業側の非表示ボタンは 2026-09-18 に削除した。 */
       { label: "在籍していない人の報告", href: "/admin/member-reports", icon: <UserX        size={16} strokeWidth={2} /> },
-      { label: "メッセージリクエストの報告", href: "/admin/message-reports", icon: <UserX        size={16} strokeWidth={2} /> },
+      { label: "メッセージの報告", href: "/admin/message-reports", icon: <UserX        size={16} strokeWidth={2} /> },
       /* ★「登録している人」ではなく「訪問者に実際に見えている人」の一覧（2026-08-26）。
             /admin/candidates とは別の問いに答えるので分けてある。 */
       { label: "公開面に出ている人", href: "/admin/public-faces", icon: <Eye          size={16} strokeWidth={2} /> },
@@ -90,7 +90,7 @@ const NAV_GROUPS = [
       { label: "根拠の棚卸し",        href: "/admin/evidence-gaps",    icon: <ClipboardCheck size={16} strokeWidth={2} /> },
       { label: "プラン管理",          href: "/admin/plans",            icon: <CreditCard   size={16} strokeWidth={2} /> },
       /* ★2026-10-10。声かけを受け取る範囲の項目ごとの割合と有効フラグ（50% を超えたら運営が有効にする） */
-      { label: "メッセージリクエストの受け取り範囲", href: "/admin/approach-range", icon: <SlidersHorizontal size={16} strokeWidth={2} /> },
+      { label: "企業からのメッセージの受け取り範囲", href: "/admin/approach-range", icon: <SlidersHorizontal size={16} strokeWidth={2} /> },
     ],
   },
 ];

@@ -128,7 +128,8 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
             </div>
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, fontSize: 12, color: "var(--ink-mute)" }}>
-            {label && <span data-approach-state={label.state}>{label.text}</span>}
+            {/* ⚠️ 送れない一文は下のボタンの位置に出す（同じ文を2回出さない） */}
+            {label && label.state !== "not_accepting" && <span data-approach-state={label.state}>{label.text}</span>}
             {c.location && <span>{c.location}</span>}
             {edited && <span>プロフィール更新 {edited}</span>}
           </div>
@@ -146,8 +147,8 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
         {/* ⚠️ 送れる・送り済みのときだけボタン（送り済みは状態の表示になる）。受け取っていない人には出さない */}
-        {c.approach && (c.approach.eligible || c.approach.sent) && (
-          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} hideSender />
+        {c.approach && (
+          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} hideSender />
         )}
         <Link href={`/u/${c.id}`}
           style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, textDecoration: "none", padding: "9px 16px", borderRadius: 8, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>

@@ -16,6 +16,8 @@ type Props = {
    *    氏名は同じカードの見出しに大きく出ているので、繰り返す必要が無い。
    */
   label?: string;
+  /** ★「…」メニューの中に置く形（2026-10-11 / 企業の担当者が /u/[id] を見たとき。「個人としてメッセージを送る」） */
+  variant?: "button" | "menuItem";
 };
 
 /**
@@ -31,7 +33,7 @@ type Props = {
  * ⚠️★**空の会話を作らない。** 本文が無ければ送らない（以前は押しただけで空の会話ができた）。
  * ⚠️ 文言はサーバーが返したものをそのまま出す。相手に関わる理由は返ってこない。
  */
-export function DMButton({ targetUserId, targetName, label }: Props) {
+export function DMButton({ targetUserId, targetName, label, variant = "button" }: Props) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ text: string; requestsLink?: boolean } | null>(null);
   const [composing, setComposing] = useState(false);
@@ -106,31 +108,38 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
 
   return (
     <>
+      {variant === "menuItem" ? (
+        <button type="button" role="menuitem" onClick={handleClick} disabled={loading} data-action="personal-dm"
+          style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, color: loading ? "var(--ink-mute)" : "var(--ink)", cursor: loading ? "default" : "pointer", whiteSpace: "nowrap" }}>
+          {loading ? "準備中..." : (label ?? "個人としてメッセージを送る")}
+        </button>
+      ) : (
       <button
-        type="button"
-        onClick={handleClick}
-        disabled={loading}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "9px 18px", borderRadius: 8,
-          border: "1.5px solid var(--royal-100)",
-          background: loading ? "var(--line)" : "var(--royal-50)",
-          color: loading ? "var(--ink-mute)" : "var(--royal)",
-          fontSize: 13, fontWeight: 700,
-          cursor: loading ? "not-allowed" : "pointer",
-          flexShrink: 0, whiteSpace: "nowrap",
-        }}
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        {loading ? "準備中..." : (label ?? `${targetName} にDMを送る`)}
-      </button>
+          type="button"
+          onClick={handleClick}
+          disabled={loading}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            padding: "9px 18px", borderRadius: 8,
+            border: "1.5px solid var(--royal-100)",
+            background: loading ? "var(--line)" : "var(--royal-50)",
+            color: loading ? "var(--ink-mute)" : "var(--royal)",
+            fontSize: 13, fontWeight: 700,
+            cursor: loading ? "not-allowed" : "pointer",
+            flexShrink: 0, whiteSpace: "nowrap",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          {loading ? "準備中..." : (label ?? `${targetName} にDMを送る`)}
+        </button>
+      )}
       {notice && (
         <span data-state="dm-notice" role="status" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6 }}>
           {notice.text}
           {notice.requestsLink && (
-            <>{" "}<Link href="/mypage/conversations#requests" style={{ color: "var(--royal)", fontWeight: 700 }}>リクエストを見る →</Link></>
+            <>{" "}<Link href="/mypage/conversations?tab=unreplied" style={{ color: "var(--royal)", fontWeight: 700 }}>未返信のメッセージを見る →</Link></>
           )}
         </span>
       )}
@@ -148,7 +157,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
         >
           <div style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
             <h2 id="dm-request-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
-              {targetName} さんにメッセージリクエストを送る
+              {targetName} さんにメッセージを送る
             </h2>
             {/* ★何が起きるかを先に言う。送ったあとで気づく形にしない */}
             <p style={{ margin: "8px 0 12px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
@@ -189,7 +198,7 @@ export function DMButton({ targetUserId, targetName, label }: Props) {
                 color: sending || !body.trim() ? "var(--ink-mute)" : "#fff",
                 fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                 cursor: sending || !body.trim() ? "default" : "pointer",
-              }}>{sending ? "送信中…" : "リクエストを送る"}</button>
+              }}>{sending ? "送信中…" : "送る"}</button>
             </div>
           </div>
         </div>

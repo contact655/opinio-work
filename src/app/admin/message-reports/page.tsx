@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "メッセージリクエストの報告 | OPINIO 運営" },
+  title: { absolute: "メッセージの報告 | OPINIO 運営" },
 };
 
 /**
@@ -18,7 +18,7 @@ export default async function MessageReportsPage() {
   const admin = createAdminClient();
   const { data: reports, error } = await admin
     .from("ow_message_reports")
-    .select("id, conversation_id, reporter_user_id, reported_user_id, message_snapshot, note, created_at, resolved_at")
+    .select("id, conversation_id, approach_id, reported_company_id, reporter_user_id, reported_user_id, message_snapshot, note, created_at, resolved_at")
     .order("created_at", { ascending: false })
     .limit(200);
   if (error) console.error("[admin/message-reports]", error.message);
@@ -36,13 +36,21 @@ export default async function MessageReportsPage() {
     if (!u) return "（不明）";
     return u.isTest ? `${u.name}（検証用アカウント）` : u.name;
   };
+  /* ★企業から届いた最初のメッセージの報告（2026-10-11）。どの企業かを出す */
+  const companyIds = Array.from(new Set((reports ?? []).map((r) => r.reported_company_id as string | null).filter(Boolean) as string[]));
+  const companies = new Map<string, string>();
+  if (companyIds.length > 0) {
+    const { data: cs, error: cErr } = await admin.from("ow_companies").select("id, name").in("id", companyIds);
+    if (cErr) console.error("[admin/message-reports] ow_companies:", cErr.message);
+    for (const c of cs ?? []) companies.set(c.id as string, c.name as string);
+  }
   const fmt = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
   return (
     <div style={{ maxWidth: 960 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 6px" }}>メッセージリクエストの報告</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 6px" }}>メッセージの報告</h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.8 }}>
-        個人から届いたメッセージリクエストを、受け取った人が「運営に報告」したものです。新しい順。報告したことは送った人には伝わっていません。
+        返信する前のメッセージ（個人から・企業から）を、受け取った人が「運営に報告」したものです。新しい順。報告したことは送った人には伝わっていません。
       </p>
       {error ? (
         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--error)" }}>取得に失敗しました（0件という意味ではありません）。</p>
@@ -54,6 +62,8 @@ export default async function MessageReportsPage() {
             <section key={r.id as string} data-report-id={r.id as string} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "14px 16px" }}>
               <div style={{ fontSize: 12.5, color: "var(--ink-mute)", display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <span>{fmt(r.created_at as string)}</span>
+                <span style={{ fontWeight: 700 }}>{r.approach_id ? "企業から" : "個人から"}</span>
+                {r.reported_company_id && <span>企業：{companies.get(r.reported_company_id as string) ?? "（不明）"}</span>}
                 <span>報告した人：{who(r.reporter_user_id as string)}</span>
                 <span>送った人：{r.reported_user_id ? <Link href={`/u/${r.reported_user_id as string}`} target="_blank">{who(r.reported_user_id as string)}</Link> : who(null)}</span>
               </div>

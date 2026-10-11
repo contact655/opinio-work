@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *
  * ── なぜ1箇所に集めるか ─────────────────────────────────────────────────────
  * 送信経路は**4本**ある（`api/dm/message` / `api/dm/bulk-message` / `api/dm/start` /
- * `api/biz/conversations/[id]/messages`）。⚠️★**呼び出し側に条件を書き写さないこと。**
+ * `api/biz/messages/[id]/messages`）。⚠️★**呼び出し側に条件を書き写さないこと。**
  * 経路を足した人が忘れると、その経路だけ「送れるのに気づかれない」になる。
  * 通知の宛先（`lib/notify/recipients.ts`）と同じ考え方。
  *

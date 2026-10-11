@@ -59,6 +59,16 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      /* ★「メッセージリクエスト」を「メッセージ」にまとめた（2026-10-11 / 柴さんの指示）。
+            古い URL は**恒久的に転送（301）**する。送信済みのメール・通知・ブックマークのリンクを切らないため。
+         ⚠️ クエリ（?show= / ?sent= / ?candidate=）は Next がそのまま引き継ぐ。
+         ⚠️ API のパス（/api/biz/conversations・/api/biz/approaches 等）は変えていない。 */
+      { source: "/biz/conversations", destination: "/biz/messages", statusCode: 301 },
+      { source: "/biz/conversations/:id", destination: "/biz/messages/:id", statusCode: 301 },
+      { source: "/biz/approaches", destination: "/biz/messages?tab=pending", statusCode: 301 },
+      { source: "/biz/approaches/new", destination: "/biz/messages/new", statusCode: 301 },
+      { source: "/biz/help/approaches", destination: "/biz/help/messages", statusCode: 301 },
+      { source: "/mypage/approaches", destination: "/mypage/conversations?tab=unreplied", statusCode: 301 },
       /* ★社長図鑑は opinio.co.jp に移した（2026-10-04 / 柴さんの判断）。opinio.jp は転職サイトで、
             図鑑は Opinio Agent（人材紹介）の集客メディアのため。公開記事0本・noindex のまま移したので
             被リンクは無いが、念のため受けておく。⚠️ slug は両サイトで同じ。 */

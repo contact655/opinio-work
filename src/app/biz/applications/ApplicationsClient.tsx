@@ -545,7 +545,7 @@ function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm }: DetailP
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 4 }}>
         {app.conversationId && (
           <Link
-            href={`/biz/conversations/${app.conversationId}`}
+            href={`/biz/messages/${app.conversationId}`}
             style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "10px 20px",

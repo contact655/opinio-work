@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { approachResendNotice } from "@/lib/constants/companyApproaches";
+import { approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 
 const jst = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
@@ -9,32 +9,38 @@ const part = (ps: Intl.DateTimeFormatPart[], t: string) => ps.find((p) => p.type
 function formatJaMonthDay(iso: string): string { const ps = jst(iso); return `${part(ps, "month")}月${part(ps, "day")}日`; }
 
 /**
- * ★企業からの「声かけ」の入口（2026-10-09）。候補者検索のカード・右のプレビュー・/u/[id] で共通。
+ * ★企業から候補者へ「メッセージを送る」入口（2026-10-09。2026-10-11 に「メッセージ」へ名前を揃えた）。
+ *   候補者検索のカード・右のプレビュー・/u/[id] で共通。
  *
- * ⚠️★2026-10-10（候補者探し 段4）から、押すと「声かけを書く」ページ（/biz/approaches/new）へ**同じタブ**で移る。
- *    それまでの小窓は外した（書く場所を1つにする。枠・見え方・注意を右の列に出すため）。
- * ⚠️★**出す・出さないは呼び出し側（サーバー）が決める。** 送れない相手には、このボタン自体を描かない（理由も出さない）。
- * ⚠️ `sent` があるときは「声かけ済み」を出す（180日間は再送できない。これは企業自身の事実なので出してよい）。
- * ⚠️★画面の言葉に「スカウト」を使わない。
+ * | 状態 | 出すもの |
+ * |---|---|
+ * | 送れる | 「メッセージを送る」（→ /biz/messages/new） |
+ * | 返事待ち | 「返事待ち（◯月◯日に送信）」＋「送った内容を見る」 |
+ * | 返信あり | 「メッセージを開く」（→ 会話） |
+ * | 30日を過ぎた | 「◯年◯月◯日から送れます」（ボタンなし） |
+ * | 送れない | ボタンなし・`APPROACH_UNAVAILABLE_MESSAGE` の1文。⚠️★**理由ごとに分けない**（同じ文言・同じ見た目） |
+ *
+ * ⚠️ 文言と行き先は送信の API と同じ `approachResendNotice`。⚠️ 見送りは区別しない（企業には伝えない）。
+ * ⚠️★画面の言葉に「スカウト」「リクエスト」「受け入れ」を使わない。
  */
 export function ApproachButton({
   candidateUserId,
   sent = null,
+  eligible = false,
   compact = false,
   hideSender = false,
 }: {
   candidateUserId: string;
-  /** ★この企業の誰かが180日以内に声をかけていれば、その記録（2026-10-10 / 段5 重複防止）。あれば押せない */
+  /** ★この企業の誰かが180日以内に送っていれば、その記録。あれば送れない */
   sent?: RecentApproach | null;
+  /** ★送れるか（`can_send_company_approach()`）。false で送り済みでもなければ、送れない一文を出す */
+  eligible?: boolean;
   /** 候補者検索のカード用（小さめ） */
   compact?: boolean;
-  /** ★「◯◯さんが◯月◯日に送りました」の行を出さない（右のプレビューは見出しの下に同じ行があるため。2026-10-11） */
+  /** ★「◯◯さんが◯月◯日に送りました」の行を出さない（右のプレビューは見出しの下に同じ行があるため） */
   hideSender?: boolean;
 }) {
   if (sent) {
-    /* ★送り済みの案内は状態で分ける（2026-10-11 / 柴さんの指示）。文言と行き先は送信の API と同じ
-          `approachResendNotice` ——返事待ち「送った内容を見る」／返信あり「メッセージを開く」（★会話へ）／
-          30日経過「◯年◯月◯日から、もう一度送れます」。⚠️ 見送りは区別しない（企業には伝えない） */
     const n = approachResendNotice(sent);
     const who = sent.senderName ? `${sent.senderName}さん` : "担当者";
     const actionLink = n.action && (
@@ -54,25 +60,34 @@ export function ApproachButton({
     return (
       <span data-state="approach-sent" data-approach-state={sent.state}
         style={{ display: "inline-flex", flexDirection: "column", gap: compact ? 4 : 6, maxWidth: "100%", minWidth: 0 }}>
-        {/* ★「◯◯さんが◯月◯日に送りました」。⚠️ カード（名前の下に「リクエスト済み（◯◯さん・10/3）」がある）と
-              右のプレビュー（見出しの下に同じ行がある）では出さない。同じことを2回書かない（2026-10-11） */}
         {!compact && !hideSender && (
           <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6, whiteSpace: "normal" }}>
-            {who}が{formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送りました。
+            {who}が{formatJaMonthDay(sent.sentAt)}にメッセージを送りました。
           </span>
         )}
-        <span data-state="approach-resend-message" title={`${who}が${formatJaMonthDay(sent.sentAt)}にメッセージリクエストを送信済み`}
-          style={{ fontSize: compact ? 11.5 : 12.5, color: "var(--ink-mute)", lineHeight: 1.6, whiteSpace: "normal" }}>
-          {n.message}
-        </span>
+        {/* ★状態の1行（返事待ち（◯月◯日に送信）／◯年◯月◯日から送れます）。返信ありはボタンだけ */}
+        {sent.state !== "accepted" && (
+          <span data-state="approach-resend-message" title={n.message}
+            style={{ fontSize: compact ? 11.5 : 12.5, fontWeight: 600, color: "var(--ink-mute)", lineHeight: 1.6, whiteSpace: "normal" }}>
+            {n.label}
+          </span>
+        )}
         {actionLink}
+      </span>
+    );
+  }
+
+  if (!eligible) {
+    return (
+      <span data-state="approach-unavailable" style={{ fontSize: compact ? 11.5 : 12.5, color: "var(--ink-mute)", lineHeight: 1.6, whiteSpace: "normal" }}>
+        {APPROACH_UNAVAILABLE_MESSAGE}
       </span>
     );
   }
 
   return (
     <Link
-      href={`/biz/approaches/new?candidate=${encodeURIComponent(candidateUserId)}`}
+      href={`/biz/messages/new?candidate=${encodeURIComponent(candidateUserId)}`}
       data-state="approach-button"
       onClick={(e) => e.stopPropagation()}
       className="tap-min-h"
@@ -84,7 +99,7 @@ export function ApproachButton({
         textDecoration: "none", whiteSpace: "nowrap",
       }}
     >
-      メッセージリクエストを送る
+      メッセージを送る
     </Link>
   );
 }

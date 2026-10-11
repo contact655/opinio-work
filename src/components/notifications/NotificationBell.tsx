@@ -40,7 +40,7 @@ function notifHref(notif: NotificationItem): string {
         照合して notFound する）ので、id をそのまま渡してよい。 */
   if (notif.type === "message") return `/mypage/conversations/${notif.conversationId}`;
   /* ★メッセージのお願い（段階3）。⚠️ 受け手は承認前は会話を開けないので、一覧の「お願い」の欄へ */
-  if (notif.type === "message_request") return "/mypage/conversations#requests";
+  if (notif.type === "message_request") return "/mypage/conversations?tab=unreplied";
   if (notif.type === "message_request_accepted") return `/mypage/conversations/${notif.conversationId}`;
   /* ★②の提案は一覧へ。⚠️ 提案ごとの詳細ページは無い */
   if (notif.type === "proposal") return "/mypage/proposals";
@@ -48,7 +48,7 @@ function notifHref(notif: NotificationItem): string {
         そこでできることはもう無い。 */
   if (notif.type === "introduction") return `/mypage/conversations/${notif.conversationId}`;
   /* ★企業からの声かけ（2026-10-09）。一覧で答える */
-  if (notif.type === "company_approach") return "/mypage/approaches";
+  if (notif.type === "company_approach") return "/mypage/conversations?tab=unreplied";
   /* ★面談・候補日の取り消し（2026-10-10 / 段4）。会話へ */
   if (notif.type === "meeting_canceled") return `/mypage/conversations/${notif.conversationId}`;
   return `/feed/${notif.postId}`;
@@ -63,10 +63,10 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   /* ★メッセージのお願い（段階3）。⚠️ 本文は出さない（メッセージと同じ） */
   if (notif.type === "message_request") {
-    return { who: notif.actor?.name ?? "誰か", what: "さんからメッセージリクエストが届きました" };
+    return { who: notif.actor?.name ?? "誰か", what: "さんからメッセージが届きました" };
   }
   if (notif.type === "message_request_accepted") {
-    return { who: notif.actor?.name ?? "誰か", what: "さんがメッセージリクエストに返信しました" };
+    return { who: notif.actor?.name ?? "誰か", what: "さんから返信がありました" };
   }
   /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。
@@ -82,7 +82,7 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   /* ★企業からの声かけ（2026-10-09）。⚠️ 理由・本文は出さない（ベルの決まり）。「スカウト」と呼ばない */
   if (notif.type === "company_approach") {
-    return { who: notif.actorCompany?.name ?? "企業", what: " からメッセージリクエストが届きました" };
+    return { who: notif.actorCompany?.name ?? "企業", what: " からメッセージが届きました" };
   }
   if (notif.type === "meeting_canceled") {
     return { who: notif.actorCompany?.name ?? "企業", what: " が面談の日程を取り消しました" };

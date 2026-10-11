@@ -9,6 +9,7 @@
  * ⚠️ 見せてよいかの判定（`can_send_scout()`）と声かけの判定（`can_send_company_approach()`）は
  *    **ここに書かない**。load.ts が DB 関数を通した結果だけを `Candidate` に入れる。
  */
+import { APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 import type { CandidateStage } from "@/lib/constants/candidateNotes";
 import type { SavedCandidateFilters } from "@/lib/business/savedSearch";
@@ -250,7 +251,7 @@ export function formatJstSlashMonthDay(iso: string | null | undefined): string |
  * ★カードとプレビューに出す「声かけの状態」（段1）。
  * ⚠️★判定は増やさない。`approach.eligible`（`can_send_company_approach()`）と
  *    `approach.sent`（`companyApproachStatus` を通した記録）を言葉にするだけ。
- * ⚠️ 「受け取っていません」は理由を区別しない（範囲外・受け取らない企業・未設定を企業に見分けさせない）。
+ * ⚠️ 送れない理由は区別しない（`APPROACH_UNAVAILABLE_MESSAGE` の1文。「受け取っていません」と書かない）。
  * ⚠️ 声かけが使えない（undefined）ときは null（何も出さない）。
  */
 export function candidateApproachLabel(approach: Candidate["approach"]): { state: "eligible" | "sent" | "not_accepting"; text: string; short: string } | null {
@@ -261,12 +262,13 @@ export function candidateApproachLabel(approach: Candidate["approach"]): { state
           プレビュー（右側）は text（長い文）のまま */
     return {
       state: "sent",
-      text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージリクエストを送信済み`,
-      short: `リクエスト済み（${who}・${formatJstSlashMonthDay(approach.sent.sentAt) ?? "—"}）`,
+      text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージを送りました`,
+      short: `送信済み（${who}・${formatJstSlashMonthDay(approach.sent.sentAt) ?? "—"}）`,
     };
   }
-  if (approach.eligible) return { state: "eligible", text: "メッセージリクエストを受け取る", short: "メッセージリクエストを受け取る" };
-  return { state: "not_accepting", text: "リクエストは受け取っていません", short: "リクエストは受け取っていません" };
+  if (approach.eligible) return { state: "eligible", text: "メッセージを送れます", short: "メッセージを送れます" };
+  /* ★送れない理由は区別しない（2026-10-11 / 柴さんの指示）。受け取らない設定・ブロック・範囲外・転職に興味なし のどれでも同じ一文 */
+  return { state: "not_accepting", text: APPROACH_UNAVAILABLE_MESSAGE, short: APPROACH_UNAVAILABLE_MESSAGE };
 }
 
 /**
@@ -320,6 +322,6 @@ export function describeFilters(
   if (cs) out.push(cs.label);
   const fr = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
   if (fr) out.push(`更新 ${fr.label}`);
-  if (f.approachOnly) out.push("リクエストを受け取る方のみ");
+  if (f.approachOnly) out.push("メッセージを受け取る方のみ");
   return out;
 }

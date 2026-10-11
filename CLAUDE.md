@@ -5718,6 +5718,14 @@ SECURITY DEFINER は RLS を越えて走るので、そのままだと **anon・
    ⚠️ 運営の「声かけ」（`/admin/signup-refs` の登録経路。運営が人を誘うこと）は**別の意味**なので変えていない。
    → 文言の一覧は [docs/approach-wording-20261011.md](docs/approach-wording-20261011.md)
 
+⚠️★★**段階2（2026-10-11 / 柴さんの指示）: 画面では「メッセージリクエスト」という語をもう使わない。「メッセージ」にまとめた。**
+   企業側は `/biz/messages`（すべて／返事待ち／30日を過ぎました。旧 `/biz/conversations`・`/biz/approaches` は 301）、
+   求職者側は `/mypage/conversations` の「未返信」（企業から・個人からの最初のメッセージ。旧 `/mypage/approaches` は 301）。
+   ⚠️ **ルール（月10通・返事待ち10件・30日・180日・見送りは見せない）と DB の名前は変えていない。**
+   ⚠️★送れない相手には理由を分けずに `APPROACH_UNAVAILABLE_MESSAGE`（「現在、この方にはメッセージを送れません。」）。
+      受け取らない設定・ブロック・範囲外・転職に興味なし で**文言も API の応答も同じ**にしてある。**理由ごとの文言を足さないこと。**
+   ⚠️ 画面に「リクエスト」「受け入れ」「確認する」（メッセージの文脈で）を書かない。上の表の「画面の名前」は段階1の記録。
+
 **判定と書き込みは [lib/conversations/messageRequest.ts](src/lib/conversations/messageRequest.ts) の1か所。**
 
 | 段 | 送り手（`candidate_user_id`） | 受け手（`partner_user_id`） |

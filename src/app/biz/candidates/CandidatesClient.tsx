@@ -709,7 +709,7 @@ export default function CandidatesClient({
             }}>
               <span style={{ position: "absolute", top: 2, left: approachOnly ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
             </span>
-            リクエストを受け取る方のみ
+            メッセージを受け取る方のみ
           </button>
         )}
 
@@ -967,7 +967,7 @@ export default function CandidatesClient({
               {zeroByApproachOnly ? (
                 <div data-state="approach-only-empty">
                   <p style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 auto 12px", maxWidth: 460, padding: "0 16px" }}>
-                    メッセージリクエストを受け取る設定の方は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
+                    企業からのメッセージを受け取る設定の方は、まだいません。条件に合う方には、OPINIO から提案としてお届けすることがあります。
                   </p>
                   <a href="/biz/proposals" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>提案を見る →</a>
                 </div>
@@ -1168,8 +1168,8 @@ export default function CandidatesClient({
                       <div className="cand-card-side">
                         {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
                         <div className="cand-card-actions">
-                          {c.approach && (c.approach.eligible || c.approach.sent) && (
-                            <ApproachButton candidateUserId={c.id} sent={c.approach.sent} compact />
+                          {c.approach && (
+                            <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact />
                           )}
                           {/* ⚠️★別タブにしない（2026-10-10 / 柴さんの指示）。同じタブで /u/[id] */}
                           <a href={`/u/${c.id}`}

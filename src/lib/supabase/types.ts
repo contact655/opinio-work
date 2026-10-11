@@ -4229,6 +4229,81 @@ export type Database = {
           },
         ]
       }
+      ow_message_reports: {
+        Row: {
+          approach_id: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          message_snapshot: string | null
+          note: string | null
+          reported_company_id: string | null
+          reported_user_id: string | null
+          reporter_user_id: string
+          resolved_at: string | null
+        }
+        Insert: {
+          approach_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_snapshot?: string | null
+          note?: string | null
+          reported_company_id?: string | null
+          reported_user_id?: string | null
+          reporter_user_id: string
+          resolved_at?: string | null
+        }
+        Update: {
+          approach_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_snapshot?: string | null
+          note?: string | null
+          reported_company_id?: string | null
+          reported_user_id?: string | null
+          reporter_user_id?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_message_reports_approach_id_fkey"
+            columns: ["approach_id"]
+            isOneToOne: false
+            referencedRelation: "ow_company_approaches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_message_reports_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_message_reports_reported_company_id_fkey"
+            columns: ["reported_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_message_reports_reported_user_id_fkey"
+            columns: ["reported_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_message_reports_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_message_request_declines: {
         Row: {
           conversation_id: string
@@ -5838,6 +5913,39 @@ export type Database = {
           },
         ]
       }
+      ow_user_blocks: {
+        Row: {
+          blocked_user_id: string
+          blocker_user_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_user_id: string
+          blocker_user_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_user_id?: string
+          blocker_user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_user_blocks_blocked_user_id_fkey"
+            columns: ["blocked_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_user_blocks_blocker_user_id_fkey"
+            columns: ["blocker_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_user_certifications: {
         Row: {
           created_at: string
@@ -6559,6 +6667,7 @@ export type Database = {
         Args: { target_company_id: string }
         Returns: boolean
       }
+      auth_is_test_user: { Args: never; Returns: boolean }
       auth_ow_user_id: { Args: never; Returns: string }
       can_contact_without_stance: {
         Args: { p_candidate_id: string; p_company_id: string }
@@ -6701,6 +6810,24 @@ export type Database = {
         Returns: {
           rejected_at: string
         }[]
+      }
+      reply_to_company_approach: {
+        Args: {
+          p_approach_id: string
+          p_body: string
+          p_candidate_ow_user_id: string
+          p_fail_at_end?: boolean
+        }
+        Returns: string
+      }
+      reply_to_message_request: {
+        Args: {
+          p_body: string
+          p_conversation_id: string
+          p_fail_at_end?: boolean
+          p_recipient_ow_user_id: string
+        }
+        Returns: string
       }
       set_company_business_domains: {
         Args: {

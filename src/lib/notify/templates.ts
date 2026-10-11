@@ -480,15 +480,15 @@ export function approachRepliedCompanyTemplate(params: {
   viaOps?: boolean;
 }) {
   const name = greetingName(params.candidateName);
-  const who = name ? `${name}さん` : "リクエストを送った方";
+  const who = name ? `${name}さん` : "メッセージを送った方";
   /* ★件名・本文は柴さんの指示（2026-10-11）。⚠️★返信の中身は書かない（名前と会話へのリンクだけ） */
   return {
     to: params.to,
-    subject: opsSubject(`${who}からメッセージリクエストに返信がありました`, params.viaOps === true),
+    subject: opsSubject(`${who}から返信がありました`, params.viaOps === true),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">メッセージリクエストに返信がありました</h2>
-      <p style="margin:0 0 20px;color:#475569">${esc(who)}から返信がありました。メッセージでやり取りを始められます。</p>
-      <a href="https://opinio.jp/biz/conversations/${encodeURIComponent(params.conversationId)}" style="${BTN}">会話を開く →</a>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">返信がありました</h2>
+      <p style="margin:0 0 20px;color:#475569">${esc(who)}から返信がありました。そのままメッセージでやり取りできます。</p>
+      <a href="https://opinio.jp/biz/messages/${encodeURIComponent(params.conversationId)}" style="${BTN}">メッセージを開く →</a>
     `),
   };
 }
@@ -1049,7 +1049,7 @@ export function meetingConfirmedTemplate(params: {
   const who = params.side === "candidate" ? (params.counterpartName ?? "企業") : (greetingName(params.counterpartName) ? `${greetingName(params.counterpartName)}さん` : "求職者");
   const link = params.side === "candidate"
     ? `https://opinio.jp/mypage/conversations/${encodeURIComponent(params.conversationId)}`
-    : `https://opinio.jp/biz/conversations/${encodeURIComponent(params.conversationId)}`;
+    : `https://opinio.jp/biz/messages/${encodeURIComponent(params.conversationId)}`;
   return {
     to: params.to,
     subject: opsSubject(`面談の日時が決まりました（${who}・${params.whenText}）`, params.viaOps === true),

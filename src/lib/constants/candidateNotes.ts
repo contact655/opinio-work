@@ -5,7 +5,7 @@
 export const CANDIDATE_NOTE_MAX = 1000;
 export const CANDIDATE_STAGES = {
   interested: "気になる",
-  approached: "メッセージリクエスト送信済み",
+  approached: "メッセージ送信済み",
   meeting: "面談",
   screening: "選考中",
   declined_internal: "見送り（社内）",

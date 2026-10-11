@@ -1539,7 +1539,7 @@ export default function ProfileTab({
                          ⚠️ 4人なのは 2026-09-23 に**オンボーディング1画面目で必須**にしたから。
                             それ以前に完了した人には「✎ を開いて気づく」以外の経路が無い。
                          ⚠️ 読み手は実在する —— `/biz/candidates` の**都道府県での絞り込み**と
-                            候補者カードのタグ、`/biz/conversations/[id]`、`/u/[id]` のメタ行。
+                            候補者カードのタグ、`/biz/messages/[id]`、`/u/[id]` のメタ行。
                          ⚠️ 説明文を足さないこと（肩書き・SNS と同じ。項目名＋右のボタンだけ）。 */}
                   {!initialBasicInfo.location.trim() && (
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>

@@ -179,7 +179,7 @@ async function sendConfirmedEmails(params: {
       meetingId: params.meetingId, startsAt: params.startsAt, durationMinutes: params.duration,
       summary: side === "candidate" ? `${companyName}との面談` : `${(cand?.name as string | null) ?? "求職者"}さんとの面談`,
       description: `形式：${formatLabel}／時間：${params.duration}分`,
-      url: side === "candidate" ? `https://opinio.jp/mypage/conversations/${params.conversationId}` : `https://opinio.jp/biz/conversations/${params.conversationId}`,
+      url: side === "candidate" ? `https://opinio.jp/mypage/conversations/${params.conversationId}` : `https://opinio.jp/biz/messages/${params.conversationId}`,
     });
     const candEmail = ((cand?.email as string | null) ?? "").trim();
     if (candEmail) {

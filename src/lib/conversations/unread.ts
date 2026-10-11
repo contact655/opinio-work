@@ -24,7 +24,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * ⚠️★**`ow_message_reads` は使わないこと。** 本番0行・src 参照0件で、
  *    ポリシーが user_id の空間を取り違えていて誰も読み書きできない。
  *
- * ★企業側も 2026-09-21 から `last_read_at` を書く（`/biz/conversations/[id]` を開いたとき）。
+ * ★企業側も 2026-09-21 から `last_read_at` を書く（`/biz/messages/[id]` を開いたとき）。
  *   企業側のバッジと一覧のドットは `unreadConversationIds(..., { companyId })` を使う。
  *   ⚠️ **参加者でない会話は数えない。** 企業の担当者は「参加する」を押すまで
  *      メッセージ自体を読めない（RLS）ので、未読と言っても開いて読めない。

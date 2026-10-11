@@ -1,10 +1,11 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { ApproachesView } from "@/app/biz/approaches/ApproachesView";
+import { MessagesView } from "@/app/biz/messages/MessagesView";
+import type { ConversationRow } from "@/app/biz/messages/page";
 import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 
 /**
- * ★声かけの一覧（/biz/approaches）の見え方（2026-10-11）。
+ * ★企業のメッセージ（/biz/messages）の見え方（2026-10-11）。
  * ⚠️ DB は読まない（固定データ）。日付は表示した時点から逆算する。
  * ⚠️ 実画面は BusinessLayout（左ナビ）の中に出る。ここは本文だけ。
  */
@@ -40,41 +41,48 @@ const quotaFull: ApproachQuota = { monthlyUsed: 2, monthlyLimit: 10, openCount: 
 
 const NOW = new Date().toISOString();
 
+const conv = (id: string, name: string, extra: Partial<ConversationRow> = {}): ConversationRow => ({
+  id, kind: "company", stage: "active", status: "active", last_message_at: daysAgo(1), created_at: daysAgo(5),
+  candidate: { id: `cu-${id}`, name, avatar_color: null, avatar_url: null }, isUnread: false, isParticipant: true, isNewReply: false,
+  lastMessage: "ご連絡ありがとうございます。来週のどこかで30分ほどお話しできればと思います。", ...extra,
+});
+const convs: ConversationRow[] = [conv("c1", "検証 三郎", { isUnread: true, isNewReply: true }), conv("c2", "検証 五郎"), conv("c3", "検証 六郎", { isParticipant: false, lastMessage: null })];
+
 export default function Page() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="メッセージリクエストの一覧（/biz/approaches）">
+      <PreviewHeader title="メッセージ（/biz/messages）">
         <p>実画面は検証用データでは状態が揃わないので、ここで4つの状態を見る。</p>
       </PreviewHeader>
       <Variant label="0件・送れる人 3人" note="仕組みは大きく・数字のカードは出さない（見出しの横の今月の残りだけ）。左に案内（人数・コツ・候補者を探す／受け取る方だけを見る）、右に見本。見出しの右に「候補者を探す」も出る">
-        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={3} />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={3} />
       </Variant>
       <Variant label="0件・送れる人 0人・公開中の求人なし" note="1文と「提案を見る」（主）・「求人を公開する」・文字リンク「候補者を探す」。見出しの右の「候補者を探す」は出さない">
-        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob={false} />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob={false} />
       </Variant>
       <Variant label="0件・送れる人 0人・公開中の求人あり" note="「求人を公開する」は出さない">
-        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={0} hasPublishedJob />
       </Variant>
       <Variant label="0件・人数を取れなかった" note="0人と出さず「取得できませんでした」">
-        <ApproachesView now={NOW} allowed rows={[]} quota={quotaEmpty} approachableCount={null} />
+        <MessagesView now={NOW} allowed conversations={[]} sent={[]} quota={quotaEmpty} approachableCount={null} />
       </Variant>
-      <Variant label="返事待ち2件（3日前・25日前）" note="25日前のほうは「あと5日で枠に戻る」はず">
-        <ApproachesView now={NOW} allowed rows={[pending3, pending25]} quota={quotaFull} />
+      <Variant label="返事待ちタブ・2件（3日前・25日前）" note="灰色で「返信を待っています・あと〇日」。25日前のほうは「あと5日」">
+        <MessagesView now={NOW} allowed initialTab="pending" conversations={[]} sent={[pending3, pending25]} quota={quotaFull} />
       </Variant>
-      <Variant label="返信あり1件（まだ開いていない）" note="まだ開いていない返信の強調・返信した日">
-        <ApproachesView now={NOW} allowed rows={[accepted]} quota={{ ...quotaEmpty, monthlyUsed: 1 }} />
+      <Variant label="すべてタブ・会話3件（新しい返信1・未参加1）" note="「新しい返信」の印・未読のドット">
+        <MessagesView now={NOW} allowed conversations={convs} sent={[accepted]} quota={{ ...quotaEmpty, monthlyUsed: 1 }} />
       </Variant>
-      <Variant label="30日を過ぎたもの1件" note="再び送れる日（送った日＋180日）">
-        <ApproachesView now={NOW} allowed rows={[expired]} quota={quotaEmpty} />
+      <Variant label="30日を過ぎたもの1件（すべてに並ぶ）" note="灰色で「返信はありませんでした・〇年〇月〇日から再び送れます」。バッジは無い">
+        <MessagesView now={NOW} allowed conversations={[]} sent={[expired]} quota={quotaEmpty} />
       </Variant>
-      <Variant label="結果の出たリクエスト 10件（返信率を出す）" note="返信あり4・30日を過ぎた6 → 返信率 40%">
-        <ApproachesView now={NOW} allowed quota={{ monthlyUsed: 10, monthlyLimit: 10, openCount: 0, openLimit: 10 }}
-          rows={[...Array.from({ length: 4 }, (_, i) => ({ ...accepted, id: `a${i}`, unseen: false, candidate: person(`ua${i}`, `検証 受入${i + 1}`, null) })),
+      <Variant label="結果の出たメッセージ 10件" note="返信あり4・30日を過ぎた6">
+        <MessagesView now={NOW} allowed conversations={[]} quota={{ monthlyUsed: 10, monthlyLimit: 10, openCount: 0, openLimit: 10 }}
+          sent={[...Array.from({ length: 4 }, (_, i) => ({ ...accepted, id: `a${i}`, unseen: false, candidate: person(`ua${i}`, `検証 受入${i + 1}`, null) })),
             ...Array.from({ length: 6 }, (_, i) => ({ ...expired, id: `e${i}`, candidate: person(`ue${i}`, `検証 期限${i + 1}`, null) }))]} />
       </Variant>
-      <Variant label="4状態をまとめて（すべて）" note="並び順・混在時の見え方">
-        <ApproachesView now={NOW} allowed rows={[pending3, accepted, pending25, expired]} quota={{ monthlyUsed: 3, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
+      <Variant label="混在（すべてタブ）" note="会話3件＋返事待ち2・30日1">
+        <MessagesView now={NOW} allowed conversations={convs} sent={[pending3, accepted, pending25, expired]} quota={{ monthlyUsed: 3, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
       </Variant>
     </div>
   );

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
-import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
+import { approachQuotaTexts, APPROACH_SILENCE_NOTE } from "@/lib/constants/companyApproaches";
 import {
   APPROACH_BODY_MAX, APPROACH_EXPIRE_DAYS, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_RESEND_DAYS,
 } from "@/lib/constants/companyApproaches";
@@ -14,7 +14,8 @@ import type { ApproachQuota } from "@/lib/approaches/server";
  * ★声かけを書く（2026-10-10 / 候補者探し 段4・キャンバス3）。左が入力、右が枠・見え方・充実度・注意。
  * ⚠️★「〇〇さんにはこう見えます」は求職者の画面と同じ部品（ApproachLetter）。入力に合わせてその場で変わる。
  * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここでは字数だけ見る。
- * ⚠️ 送ったら /biz/approaches に移り、上にお知らせを出す（`?sent=<声かけの id>`。名前は URL に入れない）。
+ * ⚠️ 送ったら /biz/messages の返事待ちタブに移り、上にお知らせを出す（`?tab=pending&sent=<id>`。名前は URL に入れない）。
+ * ⚠️ 画面の語は「メッセージ」（2026-10-11 / 柴さんの指示）。「リクエスト」「受け入れ」「確認する」と書かない。
  * ⚠️ 本文のテンプレートは今回は作らない（柴さんの指示）。
  */
 type Props = {
@@ -69,7 +70,7 @@ export default function ApproachComposeClient(p: Props) {
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) { setError(j?.error ?? "送信に失敗しました。もう一度お試しください。"); setErrorAction(j?.action ?? null); return; }
-      router.push(`/biz/approaches?sent=${encodeURIComponent(j.id)}`);
+      router.push(`/biz/messages?tab=pending&sent=${encodeURIComponent(j.id)}`);
     } catch {
       setError("送信に失敗しました。もう一度お試しください。");
     } finally {
@@ -85,9 +86,16 @@ export default function ApproachComposeClient(p: Props) {
     <div className="ac-wrap">
       <div style={{ marginBottom: 14 }}>
         <Link href="/biz/candidates" style={{ fontSize: 12.5, color: "var(--ink-soft)", textDecoration: "none" }}>← 候補者を探す</Link>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "6px 0 2px" }}>{p.candidate.name} さんにメッセージリクエストを送る</h1>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: "6px 0 2px" }}>{p.candidate.name} さんにメッセージを送る</h1>
         {(p.candidate.currentRole || p.candidate.currentCompany) && (
           <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>{[p.candidate.currentRole, p.candidate.currentCompany].filter(Boolean).join(" · ")}</div>
+        )}
+        {/* ★今月の残りを上に小さく（2026-10-11 / 柴さんの指示）。言い方は /biz/messages と同じ */}
+        {p.quota && (
+          <div data-state="compose-quota-head" style={{ marginTop: 6, fontSize: 12.5, color: "var(--ink-soft)" }}>
+            今月あと<strong style={{ color: "var(--ink)" }}>{approachQuotaTexts(p.quota, new Date()).remaining}通</strong>送れます
+            <span style={{ color: "var(--ink-mute)" }}>（{approachQuotaTexts(p.quota, new Date()).remainingSub}）</span>
+          </div>
         )}
       </div>
 
@@ -106,7 +114,7 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
               <label htmlFor="ac-reason" style={{ ...label, marginBottom: 0 }}>
-                この方にメッセージリクエストを送りたい理由<span style={{ color: "var(--error)", marginLeft: 4 }}>必須</span>
+                送る理由<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 4 }}>（最初に表示されます・{APPROACH_REASON_MIN}〜{APPROACH_REASON_MAX}字）</span><span style={{ color: "var(--error)", marginLeft: 4 }}>必須</span>
               </label>
               {p.quotes.length > 0 && (
                 <div style={{ position: "relative", marginLeft: "auto" }}>
@@ -162,7 +170,7 @@ export default function ApproachComposeClient(p: Props) {
             <button type="button" onClick={() => void send()} disabled={!ok || sending} data-state="send-approach"
               style={{ padding: "10px 22px", borderRadius: 8, border: "none", fontSize: 14, fontWeight: 700, fontFamily: "inherit",
                 background: ok ? "var(--royal)" : "var(--line)", color: ok ? "#fff" : "var(--ink-mute)", cursor: ok && !sending ? "pointer" : "default" }}>
-              {sending ? "送信中…" : "メッセージリクエストを送る"}
+              {sending ? "送信中…" : "送る"}
             </button>
             <Link href="/biz/candidates" style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "none" }}>やめる</Link>
           </div>
@@ -173,7 +181,7 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card} data-state="approach-quota">
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 8 }}>今月の枠</div>
             {p.quota ? (
-              /* ★言い方は /biz/approaches・ホームと同じ（`approachQuotaTexts`）。2026-10-11 */
+              /* ★言い方は /biz/messages・ホームと同じ（`approachQuotaTexts`）。2026-10-11 */
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, fontSize: 12, color: "var(--ink-soft)" }}>
                 <div>今月の残り<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{approachQuotaTexts(p.quota, new Date()).remaining}通</div>
                   <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{approachQuotaTexts(p.quota, new Date()).remainingSub}</div></div>
@@ -189,14 +197,14 @@ export default function ApproachComposeClient(p: Props) {
             <ApproachLetter companyName={p.company.name} companyHref={null} logoUrl={p.company.logoUrl} logoLetter={p.company.logoLetter}
               logoGradient={p.company.logoGradient} senderName={senderName} dateText="今日" reason={reason} body={body}
               job={job ? { title: job.title, href: `/jobs/${job.id}` } : null}
-              placeholder={{ reason: "（ここに、メッセージリクエストを送る理由が入ります）" }} isOwnCompany={p.company.isOwnCompany} />
+              placeholder={{ reason: "（ここに、送る理由が入ります）" }} isOwnCompany={p.company.isOwnCompany} />
           </div>
 
           {p.disclosure && (
             <div style={card} data-state="approach-disclosure">
               <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>企業ページの充実度</div>
               <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 6 }}>
-                企業入力 {p.disclosure.biz} / {p.disclosure.max}。メッセージリクエストを受け取った方は、まず企業ページを見ます。
+                企業入力 {p.disclosure.biz} / {p.disclosure.max}。メッセージを受け取った方は、まず企業ページを見ます。
               </div>
               {p.disclosure.missing.length === 0 ? (
                 <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
@@ -214,10 +222,10 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card} data-state="approach-notes">
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>送る前に</div>
             <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-              <li>返信があると、メールでお知らせします。</li>
-              <li>見送られても、お知らせはしません。</li>
-              <li>返事がないまま{APPROACH_EXPIRE_DAYS}日たつと、返事待ちの枠に戻ります。</li>
-              <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再びメッセージリクエストを送れません。</li>
+              <li>返信があると、メールでお知らせします。返信が来たら、そのままメッセージでやり取りを続けます。</li>
+              <li>{APPROACH_SILENCE_NOTE}</li>
+              <li>返事が来る前に、続けて送ることはできません。返事がないまま{APPROACH_EXPIRE_DAYS}日たつと、返事待ちの枠に戻ります。</li>
+              <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び送れません。</li>
             </ul>
           </div>
         </aside>

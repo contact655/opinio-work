@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, Sparkles, Hand, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, Sparkles, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -49,7 +49,7 @@ type NavItem = {
   label: string;
   icon: React.ReactElement;
   /** ★未読バッジの出どころ（2026-09-21）。値は `BizShellContext` の `badges` */
-  badge?: "messages" | "proposals" | "approaches";
+  badge?: "messages" | "proposals";
   children?: { href: string; label: string }[];
 };
 
@@ -72,14 +72,8 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "候補者と出会う",
     items: [
       { href: "/biz/candidates", label: "候補者を探す", icon: <Search size={16} strokeWidth={2.2} /> },
-      /* ★並びは 候補者を探す → 声かけ → 提案（2026-10-11 / 柴さんの指示）。自分で探して声をかける流れを先に置く。
-            ⚠️ バッジは各行の `badge` が持つので、行ごと動かせば一緒に移る。 */
-      /* ★声かけ（2026-10-09）。企業が自分で見つけた人に、理由を添えて「話を聞いてみたい」と送る。
-            ⚠️ 提案（OPINIO が根拠をそろえて出す）とは別の機能。並べて置くが混ぜないこと。
-            ⚠️★「スカウト」とは呼ばない。一斉送信型のスカウトは 2026-10-08 に廃止している。 */
-      /* ★バッジは「承認されて、まだ企業が会話を開いていない声かけ」の数（2026-10-10）。
-            ⚠️ 見送られたものは数えない（企業から見て承認待ちのまま） */
-      { href: "/biz/approaches", label: "メッセージリクエスト", icon: <Hand size={16} strokeWidth={2.2} />, badge: "approaches" },
+      /* ★「メッセージリクエスト」の行は 2026-10-11 に外した（柴さんの指示）。企業から送る1通目も
+            「やり取り・選考」の「メッセージ」（/biz/messages の返事待ちタブ）にまとめた。旧 URL は 301 で転送。 */
       /* ★根拠つき提案（⑨）。2026-09-21 まで**ここに行が無く、画面へ辿り着く手段が
             1つも無かった**。
          ⚠️★提案はスカウトではない（`ow_scouts` にも3ゲートにも無関係。
@@ -94,8 +88,8 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: "やり取り・選考",
     items: [
-      /* ★バッジは未読のある会話の数（2026-09-21）。一覧のドットと同じ式 */
-      { href: "/biz/conversations", label: "メッセージ", icon: <Inbox size={16} strokeWidth={2.2} />, badge: "messages" },
+      /* ★バッジは「未読のある会話 ∪ 返信があってまだ開いていない会話」の数（2026-10-11。`lib/business/navBadges.ts`） */
+      { href: "/biz/messages", label: "メッセージ", icon: <Inbox size={16} strokeWidth={2.2} />, badge: "messages" },
       { href: "/biz/meetings", label: "選考管理", icon: <Calendar size={16} strokeWidth={2.2} /> },
     ],
   },
@@ -152,7 +146,7 @@ export function BusinessLayout({
         ⚠️ 取得に失敗したら出さない（0 と同じ扱い）。**「0件」とは言わない** ——
            バッジが出ないことを「未読なし」の根拠にしないこと。
         ⚠️ 企業が無い人（`hasCompany = false`）はサイドバーごと無いので叩かない。 */
-  const [badges, setBadges] = useState<{ messages: number; proposals: number; approaches?: number } | null>(null);
+  const [badges, setBadges] = useState<{ messages: number; proposals: number } | null>(null);
   useEffect(() => {
     if (!hasCompany) return;
     let cancelled = false;
@@ -503,7 +497,7 @@ export function BusinessLayout({
                         position: "relative",
                       }}>
                         <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "approaches" ? "返信があったメッセージリクエスト" : "未読"} {badgeCount}件）</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : "未読・新しい返信"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>
@@ -676,7 +670,9 @@ export function BusinessLayout({
           /* ⚠️★1fr ではなく minmax(0, 1fr)（2026-10-11）。1fr だとトラックの最小が中身（横に並べたナビの全幅）になり、
                 ナビ自体は横スクロールなのに**ページ全体が広がっていた**（375px で innerWidth 637px。
                 「メッセージリクエスト」に改名して 728px）。サイドバーにも min-width: 0 を当てる。 */
-          .biz-layout-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .biz-layout-grid { grid-template-columns: minmax(0, 1fr) !important; align-content: start; }
+          /* ⚠️ align-content: start（2026-10-11）。縦に2行（ナビ・本文）になると、中身が短いページでは最小の高さを埋めるため
+                2行が引き伸ばされ、ナビと見出しのあいだに 200px 以上の空白ができていた（375px の /biz/messages で実測） */
           .biz-layout-sidebar { min-width: 0 !important; }
           .biz-layout-sidebar {
             position: static !important;

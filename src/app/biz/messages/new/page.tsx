@@ -11,11 +11,11 @@ import { BIZ_SCORE_ITEM_LABELS, DISCLOSURE_BIZ_MAX } from "@/lib/utils/disclosur
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import ApproachComposeClient from "./ApproachComposeClient";
-import { approachResendNotice } from "@/lib/constants/companyApproaches";
+import { approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: { absolute: "メッセージリクエストを書く | OPINIO Business" } };
+export const metadata = { title: { absolute: "メッセージを送る | OPINIO Business" } };
 
 /**
  * ★声かけを書く（2026-10-10 / 候補者探し 段4・キャンバス3）。
@@ -53,9 +53,9 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
     </BusinessLayout>
   );
   if (!isCompanyReviewed(ctx)) return message(COMPANY_REVIEW_BLOCKED_MESSAGE);
-  if (!canUse(ctx.planType, "companyApproach")) return message("メッセージリクエストは、ご利用のプランでは使えません。");
+  if (!canUse(ctx.planType, "companyApproach")) return message("企業からのメッセージは、ご利用のプランでは使えません。");
   const candidateId = searchParams?.candidate ?? "";
-  if (!/^[0-9a-f-]{36}$/.test(candidateId)) return message("メッセージリクエストを送る相手が指定されていません。");
+  if (!/^[0-9a-f-]{36}$/.test(candidateId)) return message("メッセージを送る相手が指定されていません。");
 
   /* ★送り済みかを**先に**見る（2026-10-11）。言い方は状態で分ける（送信の API と同じ `approachResendNotice`）。
         ⚠️★候補者が見えるか（下の loadCompanyCandidates）より先に見ること。送った後に相手がこの企業を
@@ -71,8 +71,7 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
   const loaded = await loadCompanyCandidates({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType, onlyOwUserId: candidateId });
   const c = loaded.candidates.find((x) => x.id === candidateId);
   /* ⚠️ 理由を出さない（見えない・受け取っていない・範囲外を区別させない） */
-  if (!c || !c.approach) return message("この方には、いまメッセージリクエストを送れません。");
-  if (!c.approach.eligible) return message("この方には、いまメッセージリクエストを送れません。");
+  if (!c || !c.approach || !c.approach.eligible) return message(APPROACH_UNAVAILABLE_MESSAGE);
 
   const db = createAdminClient();
   const ownCompanyId = await getOwnCompanyId();

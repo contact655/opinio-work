@@ -12,10 +12,10 @@
  */
 
 /** 設定の名前。⚠️ 4つの入口（オンボーディング・/mypage のカード・確認カード・/mypage/settings）で同じ語にする */
-export const APPROACH_SETTING_LABEL = "企業からのメッセージリクエスト";
+export const APPROACH_SETTING_LABEL = "企業からのメッセージを受け取る";
 
 /** 一度だけの確認カードとオンボーディングの問い */
-export const APPROACH_CONSENT_QUESTION = "企業からのメッセージリクエストを受け取りますか？";
+export const APPROACH_CONSENT_QUESTION = "企業からのメッセージを受け取りますか？";
 
 /**
  * 何が起きるかの説明。⚠️★**同意の範囲そのもの。** 4つの入口で言い換えないこと。
@@ -23,8 +23,8 @@ export const APPROACH_CONSENT_QUESTION = "企業からのメッセージリク�
  *    関数より先に文言だけ変えないこと。
  */
 export const APPROACH_CONSENT_DESCRIPTION =
-  "受け取ると、候補者検索であなたを見つけた企業から、理由を添えた「メッセージリクエスト」が届くことがあります。" +
-  "返信すると、やり取りが始まります。見送っても企業には伝わりません。" +
+  "受け取ると、候補者検索であなたを見つけた企業から、理由を添えたメッセージが届くことがあります。" +
+  "返信すると、そのままやり取りが始まります。見送っても企業には伝わりません。" +
   "在籍した会社とそのグループ会社からは届きません。";
 
 export const APPROACH_CONSENT_OPTIONS = [
@@ -109,24 +109,38 @@ export type ApproachResendSubject = {
 const jstParts = (iso: string) =>
   new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
 const jstPart = (ps: Intl.DateTimeFormatPart[], t: string) => ps.find((p) => p.type === t)?.value ?? "";
-export function approachResendNotice(s: ApproachResendSubject): { message: string; action: { label: string; href: string } | null } {
-  const ps = (iso: string) => jstParts(iso);
+export function approachResendNotice(s: ApproachResendSubject): {
+  /** 候補者の画面・一覧・プレビューに出す短い言い方（2026-10-11 / 柴さんの指示） */
+  label: string;
+  /** 送信の API と送る画面で返す文 */
+  message: string;
+  action: { label: string; href: string } | null;
+} {
   if (s.state === "accepted") {
     return {
+      label: "返信あり",
       message: "すでにやり取りが始まっています。",
-      action: { label: "メッセージを開く", href: s.conversationId ? `/biz/conversations/${s.conversationId}` : `/biz/approaches?show=${s.id}` },
+      action: { label: "メッセージを開く", href: s.conversationId ? `/biz/messages/${s.conversationId}` : `/biz/messages?tab=pending&show=${s.id}` },
     };
   }
   if (s.state === "pending") {
-    const p = ps(s.sentAt);
+    const p = jstParts(s.sentAt);
+    const md = `${jstPart(p, "month")}月${jstPart(p, "day")}日`;
     return {
-      message: `${jstPart(p, "month")}月${jstPart(p, "day")}日に送ったメッセージリクエストの返事を待っています。返事が来る前に、続けて送ることはできません。`,
-      action: { label: "送った内容を見る", href: `/biz/approaches?show=${s.id}` },
+      label: `返事待ち（${md}に送信）`,
+      message: `${md}に送ったメッセージの返事を待っています。返事が来る前に、続けて送ることはできません。`,
+      action: { label: "送った内容を見る", href: `/biz/messages?tab=pending&show=${s.id}` },
     };
   }
-  const r = ps(s.resendAt);
-  return { message: `この方へは${jstPart(r, "year")}年${jstPart(r, "month")}月${jstPart(r, "day")}日から、もう一度送れます。`, action: null };
+  const r = jstParts(s.resendAt);
+  const ymd = `${jstPart(r, "year")}年${jstPart(r, "month")}月${jstPart(r, "day")}日`;
+  return { label: `${ymd}から送れます`, message: `この方へは${ymd}から、もう一度送れます。`, action: null };
 }
+
+/** ★送れない相手への一文（2026-10-11 / 柴さんの指示）。**理由ごとに分けない**（受け取らない設定・ブロック・
+ *   受け取る範囲の外・転職に興味なし のどれでも同じ文言・同じ見た目・同じ API の応答）。
+ *   ⚠️「受け取っていません」と書かない（本人の設定だと読める） */
+export const APPROACH_UNAVAILABLE_MESSAGE = "現在、この方にはメッセージを送れません。";
 
 /**
  * ★枠の言い方（2026-10-11 / 柴さんの指示。企業側の表示だけ）。/biz/approaches・書く画面・ホームが同じ関数を見る。
@@ -151,5 +165,9 @@ export function approachQuotaTexts(q: { monthlyUsed: number; monthlyLimit: numbe
  */
 export const APPROACH_RATE_MIN_RESOLVED = 10;
 
-/** ★/biz/approaches の見出しの説明（2026-10-11 / 柴さんの文言）。⚠️ ヘルプのページ（/biz/help/approaches）も同じ文を使う */
-export const APPROACH_HEADLINE = "気になる候補者に、理由を添えて『話を聞かせてもらえませんか』と送れます。相手が返信すると、そのままメッセージでやり取りできます。";
+/** ★/biz/messages の見出しの説明（2026-10-11 / 柴さんの指示。「メッセージ」にまとめた）。⚠️ ヘルプ（/biz/help/messages）も同じ文を使う。
+ *  ⚠️ 「リクエスト」「受け入れ」「確認する」と書かない */
+export const APPROACH_HEADLINE = "気になる候補者に、理由を添えてメッセージを送れます。相手が返信すると、そのままメッセージでやり取りが始まります。";
+/** ★返事がないときの説明（2026-10-11 / 柴さんの文言）。⚠️「見送られたかどうかは〜」という書き方をしない */
+/*  ⚠️ 2026-10-11（バッジをやめた日）に「『30日を過ぎました』になります」から変えた。一覧の灰色の文字（返信はありませんでした）と揃える */
+export const APPROACH_SILENCE_NOTE = `返事がない場合、その理由は表示されません。${APPROACH_EXPIRE_DAYS}日たつと「返信はありませんでした」と表示されます。`;

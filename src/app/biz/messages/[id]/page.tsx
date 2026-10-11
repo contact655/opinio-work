@@ -113,11 +113,6 @@ export default async function BizConversationDetailPage({
     notFound();
   }
 
-  /* ★声かけで開いた会話なら「企業が開いた」印を立てる（2026-10-10）。/biz サイドバーの「声かけ」の数字が消える。
-        ⚠️ 上で `company_id = tenantId` を確かめてから呼ぶ（自社の会話だけ）。参加者かどうかは問わない
-           （「企業として開いたか」。担当者ごとの未読は「メッセージ」のバッジが持つ）。 */
-  await markApproachSeenByCompany(conversationId, ctx.tenantId);
-
   const conv: ConversationRow = {
     id: rawConv.id,
     kind: rawConv.kind,
@@ -190,6 +185,10 @@ export default async function BizConversationDetailPage({
       "biz 会話の既読",
     );
     if (!r.ok) console.error("[BizConvDetail] 既読にできませんでした:", r.error);
+    /* ★送ったメッセージへの返信を「企業が見た」印（company_seen_at）も、**その会話の当事者（参加者）が開いたときだけ**立てる
+          （2026-10-11 / 柴さんの指示）。⚠️ 以前は参加していない担当者が開いても立っていた（本文は RLS で読めないのに既読になる）。
+          ⚠️ 上で `company_id = tenantId` を確かめてある（自社の会話だけ）。運営は /biz の会話を開けない（getTenantContext が所属を要求する） */
+    await markApproachSeenByCompany(conversationId, ctx.tenantId);
   }
 
   const messages: MessageRow[] = (rawMessages ?? []).map((m: any) => ({
@@ -241,7 +240,7 @@ export default async function BizConversationDetailPage({
       <div style={{ marginBottom: 20 }}>
         {/* Back link */}
         <Link
-          href="/biz/conversations"
+          href="/biz/messages"
           style={{
             display: "inline-flex",
             alignItems: "center",

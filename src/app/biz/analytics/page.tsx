@@ -186,8 +186,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
   const period: Period = searchParams?.period === "90" || searchParams?.period === "all" ? searchParams.period : "30";
   const since = period === "all" ? null : Date.now() - Number(period) * 86_400_000;
   /* ★「声かけ」タブ（2026-10-10 / 段6）。⚠️ 期間と同じく URL に持つ */
-  const tab: "overview" | "approaches" = searchParams?.tab === "approaches" ? "approaches" : "overview";
-  const approachData = tab === "approaches" ? await getApproachAnalytics(ctx.tenantId, since) : null;
+  /* ★タブの名前は「メッセージ」（2026-10-11）。旧 ?tab=approaches も受ける */
+  const tab: "overview" | "messages" = searchParams?.tab === "messages" || searchParams?.tab === "approaches" ? "messages" : "overview";
+  const approachData = tab === "messages" ? await getApproachAnalytics(ctx.tenantId, since) : null;
   const qs = (p: Period, t: typeof tab) => {
     const q = new URLSearchParams();
     if (p !== "30") q.set("period", p);
@@ -334,7 +335,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
 
       {/* ★タブ（2026-10-10 / 段6）。⚠️ 選択状態は下線だけ（ui-conventions） */}
       <nav aria-label="分析の種類" style={{ display: "flex", gap: 18, borderBottom: "1px solid var(--line)", marginBottom: 16 }}>
-        {([["overview", "全体"], ["approaches", "メッセージリクエスト"]] as const).map(([k, label]) => (
+        {([["overview", "全体"], ["messages", "メッセージ"]] as const).map(([k, label]) => (
           <Link key={k} href={qs(period, k)} aria-current={tab === k ? "page" : undefined} data-state={tab === k ? "active" : "inactive"}
             style={{ padding: "8px 2px", fontSize: 14, fontWeight: tab === k ? 700 : 500, textDecoration: "none",
               color: tab === k ? "var(--ink)" : "var(--ink-mute)", borderBottom: `2px solid ${tab === k ? "var(--royal)" : "transparent"}`, marginBottom: -1 }}>
@@ -343,7 +344,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: {
         ))}
       </nav>
 
-      {tab === "approaches" ? <ApproachTab data={approachData} periodLabel={periodLabel} /> : (<>
+      {tab === "messages" ? <ApproachTab data={approachData} periodLabel={periodLabel} /> : (<>
       {/* ── 期間の数字 ── */}
       <div className="an-kpis" style={{ marginBottom: 16 }}>
         <Kpi label="面談の申込み" value={meetingsRes.ok ? meetings.length : null} sub={periodLabel} />

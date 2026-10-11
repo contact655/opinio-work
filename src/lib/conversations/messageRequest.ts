@@ -30,10 +30,10 @@ import {
 export const NOT_ACCEPTED_MESSAGE = "まだ返信がありません。返信があると続きを送れます";
 
 const MSG = {
-  daily: `本日はこれ以上メッセージリクエストを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
-  open: `返事待ちのリクエストが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上リクエストを送れません`,
-  outgoing: "この方にはすでにメッセージリクエストを送っています。返信があると続きを送れます",
-  incoming: "この方からメッセージリクエストが届いています。メッセージ一覧から返信できます",
+  daily: `本日はこれ以上、新しい方へメッセージを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
+  open: `返事待ちのメッセージが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上新しい方へ送れません`,
+  outgoing: "この方にはすでにメッセージを送っています。返信があると続きを送れます",
+  incoming: "この方からメッセージが届いています。メッセージ一覧の「未返信」から返信できます",
   exists: "この方とのメッセージはすでに始まっています",
   failed: "送信に失敗しました。もう一度お試しください",
 } as const;
@@ -238,7 +238,7 @@ export async function respondToMessageRequest(params: {
 }): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const { conversationId, recipientId, action } = params;
   const db = createAdminClient();
-  const notFound = { ok: false as const, status: 404, error: "このリクエストは見つかりません" };
+  const notFound = { ok: false as const, status: 404, error: "このメッセージは見つかりません" };
 
   const { data: conv, error } = await db
     .from("ow_conversations")
@@ -316,7 +316,7 @@ export async function replyToMessageRequest(params: {
     console.error("[messageRequest] reply load:", cErr.message);
     return { ok: false, status: 500, error: MSG.failed };
   }
-  if (!conv) return { ok: false, status: 404, error: "このリクエストは見つかりません" };
+  if (!conv) return { ok: false, status: 404, error: "このメッセージは見つかりません" };
   /* ⚠️ いまこの2人のあいだで送れるか（ブロック・検証用と実在の組・企業の担当者の規則）。理由は返さない */
   if (await isMessagingBlocked(params.recipientId, conv.candidate_user_id as string)) {
     return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
@@ -329,8 +329,8 @@ export async function replyToMessageRequest(params: {
   });
   if (error) {
     const code = (error as { code?: string }).code;
-    if (code === "OR404") return { ok: false, status: 404, error: "このリクエストは見つかりません" };
-    if (code === "OR409") return { ok: false, status: 409, error: "このリクエストにはすでに返信しています" };
+    if (code === "OR404") return { ok: false, status: 404, error: "このメッセージは見つかりません" };
+    if (code === "OR409") return { ok: false, status: 409, error: "このメッセージにはすでに返信しています" };
     if (code === "OR400") return { ok: false, status: 400, error: `返信は1〜${MESSAGE_REQUEST_REPLY_MAX}文字で入力してください` };
     console.error("[messageRequest] reply:", error.message);
     return { ok: false, status: 500, error: MSG.failed };

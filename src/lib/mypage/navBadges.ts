@@ -51,7 +51,8 @@ export async function getMypageNavBadges(owUserId: string): Promise<MypageNavBad
   ]);
   if (apps.error) console.error("[mypage/navBadges] 応募:", apps.error.message);
   return {
-    conversations: unread + requests,
+    /* ★企業から届いた未返信のメッセージも「メッセージ」に入れた（2026-10-11）。一覧の「未返信」と同じ集合 */
+    conversations: unread + requests + (approaches ?? 0),
     applications: apps.count ?? 0,
     proposals,
     unreadConversations: unread,

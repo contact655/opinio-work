@@ -5,6 +5,8 @@ import ConversationsClient, { type Conversation } from "./ConversationsClient";
 import type { Metadata } from "next";
 import { isUnreadMessage, type MessageLike } from "@/lib/conversations/unread";
 import { listIncomingRequests } from "@/lib/conversations/messageRequest";
+import { messagePreviewLine } from "@/lib/conversations/previewLine";
+import { loadIncomingApproachViews } from "@/lib/approaches/incomingView";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
       「IT業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
@@ -21,9 +23,11 @@ export const dynamic = "force-dynamic";
 export default async function ConversationsPage({
   searchParams,
 }: {
-  searchParams?: { open?: string };
+  searchParams?: { open?: string; tab?: string };
 }) {
   const initialOpenConvId = searchParams?.open ?? null;
+  /* ★「未返信」タブ（2026-10-11）。旧 /mypage/approaches はここへ 301 転送（?tab=unreplied） */
+  const initialTab = searchParams?.tab === "unreplied" ? "unreplied" : "all";
   const supabase = createClient();
   const {
     data: { user },
@@ -40,13 +44,17 @@ export default async function ConversationsPage({
     .maybeSingle();
 
   if (!owUser) {
-    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={[]} />;
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={[]} initialApproaches={[]} initialTab={initialTab} />;
   }
 
   /* ★届いている「メッセージのお願い」（2026-10-09 / 段階3）。
         ⚠️ 受け手は承認前は参加者ではないので、下の「参加者行」の絞り込みには出てこない。
            ここで別に引く（admin。本文は返さない）。 */
-  const incomingRequests = await listIncomingRequests(owUser.id as string);
+  const [incomingRequests, incomingApproaches] = await Promise.all([
+    listIncomingRequests(owUser.id as string),
+    /* ★企業から届いた、まだ返信していない最初のメッセージ（2026-10-11 に /mypage/approaches からここへ）。null = 取れなかった */
+    loadIncomingApproachViews(owUser.id as string),
+  ]);
 
   /* ⚠️ **絞り込みはここで必ず書く。RLS に任せない。**
         `createAdminClient()` は service_role なので **RLS が効かない**。
@@ -81,7 +89,7 @@ export default async function ConversationsPage({
   const conversationIds = Array.from(participantMap.keys());
 
   if (conversationIds.length === 0) {
-    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={incomingRequests} />;
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={incomingRequests} initialApproaches={incomingApproaches} initialTab={initialTab} />;
   }
 
   // 参加している会話だけを取得（本文の取得もこの範囲に閉じる）
@@ -103,7 +111,7 @@ export default async function ConversationsPage({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (adminSupabase as any)
         .from("ow_conversation_messages")
-        .select("conversation_id, sender_participant_id, sent_at")
+        .select("conversation_id, sender_participant_id, sent_at, body")
         .in("conversation_id", conversationIds)
         .is("deleted_at", null),
     ]);
@@ -129,7 +137,12 @@ export default async function ConversationsPage({
 
   const conversationsWithUnread = conversations.map((conv) => {
     const myPart = participantMap.get(conv.id);
-    if (!myPart) return { ...conv, hasUnread: false };
+    /* ★最後のメッセージの冒頭（2026-10-11 / 一覧を LinkedIn の受信箱と同じ形にした）。⚠️ 自分が参加している会話だけ（上で絞ってある） */
+    const last = (messages ?? [])
+      .filter((m: { conversation_id: string }) => m.conversation_id === conv.id)
+      .sort((a: { sent_at: string }, b: { sent_at: string }) => b.sent_at.localeCompare(a.sent_at))[0] as { body?: string | null } | undefined;
+    const lastMessage = messagePreviewLine(last?.body ?? null);
+    if (!myPart) return { ...conv, hasUnread: false, lastMessage };
     /* ★判定は `lib/conversations/unread.ts` の1箇所（2026-09-20）。
           ⚠️★**ここに式を書き戻さないこと。** サイドバーのバッジが同じ関数を呼ぶので、
              割れると「バッジは1なのにドットが付いていない」が起きる。 */
@@ -140,8 +153,8 @@ export default async function ConversationsPage({
         lastReadAt: myPart.last_read_at,
       }),
     );
-    return { ...conv, hasUnread };
+    return { ...conv, hasUnread, lastMessage };
   });
 
-  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} initialRequests={incomingRequests} />;
+  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} initialRequests={incomingRequests} initialApproaches={incomingApproaches} initialTab={initialTab} />;
 }

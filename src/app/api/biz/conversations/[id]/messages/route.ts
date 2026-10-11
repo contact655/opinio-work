@@ -181,7 +181,7 @@ export async function POST(
   }
 
   // ── Revalidate detail page ─────────────────────────────────────────────────
-  revalidatePath(`/biz/conversations/${conversationId}`);
+  revalidatePath(`/biz/messages/${conversationId}`);
 
   return NextResponse.json({ ok: true, id: newMsg.id });
 }

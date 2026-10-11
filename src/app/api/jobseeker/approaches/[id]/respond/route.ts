@@ -6,8 +6,8 @@ import { respondToApproach } from "@/lib/approaches/server";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/jobseeker/approaches/[id]/respond — 企業からのリクエストを「今回は見送る」（2026-10-09）。
- * body: { action: "decline" }
+ * POST /api/jobseeker/approaches/[id]/respond — 企業から届いた最初のメッセージを「今回は見送る」「ブロック」「運営に報告」（2026-10-09。2026-10-11 にブロック・報告を足した）。
+ * body: { action: "decline" | "block" | "report" }
  * ⚠️★2026-10-11 から「受け入れる」は無い。返信は POST /api/jobseeker/approaches/[id]/reply（返信した時点でやり取りが始まる）。
  *
  * ⚠️ 本人宛てか・未回答か・期限内か・いま見せてよい企業かは `respondToApproach` が見る。
@@ -20,8 +20,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const action = body?.action;
-  if (action !== "decline") {
-    return NextResponse.json({ error: "action は decline で指定してください（返信は /reply）" }, { status: 400 });
+  if (action !== "decline" && action !== "block" && action !== "report") {
+    return NextResponse.json({ error: "action は decline / block / report で指定してください（返信は /reply）" }, { status: 400 });
   }
 
   const admin = createAdminClient();

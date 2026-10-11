@@ -73,12 +73,12 @@ async function NoTenantPage() {
 /** ★「まだ入れていない項目」の行き先（2026-09-21）。ラベルは disclosureScore.ts の1箇所 */
 /* ★今日やることの件数カード（2026-10-11 にキャンバス7の5つにした）。⚠️ 並びは「相手を待たせているもの」から */
 const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; href: string; unit?: string }[] = [
-  /* ⚠️ 「メッセージリクエスト」まで書くとカードの見出しが2行になり、数字の高さが他のカードとずれる（2026-10-11 実測）。「リクエスト」で止める */
-  { kind: "approach", label: "返信があったリクエスト", href: "/biz/approaches" },
+  /* ★2026-10-11: 「メッセージ」にまとめた。送ったメッセージに返信があって、まだ開いていないもの */
+  { kind: "approach", label: "新しい返信", href: "/biz/messages" },
   { kind: "proposal", label: "回答待ちの提案", href: "/biz/proposals" },
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
-  { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/conversations" },
+  { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/messages" },
   { kind: "meeting", label: "今日以降の面談", href: "/biz/meetings?tab=meetings" },
 ];
 const TODAY_LIST_LIMIT = 10;
@@ -340,7 +340,7 @@ export default async function BizDashboardPage({
           {/* 今月の声かけの枠。⚠️ 声かけが使えないプランでは出さない */}
           {canUse(ctx.planType, "companyApproach") && (
             <section data-state="approach-quota" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
-              <DashboardCardHeading title="今月のメッセージリクエスト" />
+              <DashboardCardHeading title="今月のメッセージ" />
               {approachQuota ? (
                 <div style={{ display: "flex", flexDirection: "column", fontSize: 13.5, color: "var(--ink)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}><span>今月の残り</span><strong>{approachQuotaTexts(approachQuota, new Date()).remaining}通</strong></div>
@@ -354,7 +354,7 @@ export default async function BizDashboardPage({
                     <div style={{ width: `${Math.min(100, Math.round((approachQuota.openCount / Math.max(1, approachQuota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
                   </div>
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    <Link href="/biz/analytics?tab=approaches" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>振り返りを見る →</Link>
+                    <Link href="/biz/analytics?tab=messages" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>振り返りを見る →</Link>
                     <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>候補者を探す →</Link>
                   </div>
                 </div>
@@ -404,7 +404,7 @@ export default async function BizDashboardPage({
                 </div>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>メッセージリクエストを受け取った方は、まず企業ページを見に来ます。</p>
+            <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>メッセージを受け取った方は、まず企業ページを見に来ます。</p>
             {/* ★企業が自分で入れられる項目のうち、まだのもの。⚠️ 取材で埋まる項目は出さない（企業には動かせない） */}
             {missing.length === 0 ? (
               <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
@@ -425,7 +425,7 @@ export default async function BizDashboardPage({
                 <Link href="/biz/jobs" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>求人</Link>
                 か
                 <Link href="/biz/organization?tab=roles" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>職種</Link>
-                を登録すると、メッセージリクエストを送れる相手が増えます
+                を登録すると、メッセージを送れる相手が増えます
               </div>
             )}
           </div>
