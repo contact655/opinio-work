@@ -156,9 +156,11 @@ function TagList({ items }: { items: string[] }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function JobDetailClient({
-  job, roles = [], roleAliases = {}, initialJobRoles = [],
+  job, roles = [], roleAliases = {}, initialJobRoles = [], publishMissing = null,
 }: {
   job: Job;
+  /** ★公開に必要なのに足りない項目（2026-10-11）。null は「確認できなかった」（0件ではない） */
+  publishMissing?: string[] | null;
   roles?: RoleItem[];
   roleAliases?: Record<string, string[]>;
   initialJobRoles?: { roleId: string; isPrimary: boolean }[];
@@ -283,6 +285,19 @@ export default function JobDetailClient({
         }}>
           ← 求人管理一覧
         </Link>
+
+        {/* ★公開に必要な項目の不足（企業の画面・公開申請の API と同じ判定。lib/jobs/publishRequirements.ts） */}
+        {publishMissing === null ? (
+          <div role="alert" style={{ marginBottom: 16, background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991B1B" }}>
+            公開に必要な項目を確認できませんでした（不足が無いという意味ではありません）。
+          </div>
+        ) : publishMissing.length > 0 ? (
+          <div data-state="publish-missing" style={{ marginBottom: 16, background: "var(--warm-soft)", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--warm-ink)", lineHeight: 1.7 }}>
+            <strong>公開に必要な項目が {publishMissing.length} つ足りません：</strong>{publishMissing.join("・")}
+          </div>
+        ) : (
+          <div data-state="publish-ready" style={{ marginBottom: 16, fontSize: 12, color: "var(--success-ink)" }}>公開に必要な項目はそろっています</div>
+        )}
 
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
           <div>

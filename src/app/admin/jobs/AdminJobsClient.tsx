@@ -17,6 +17,9 @@ const STATUS_TABS = [
         公開中なのに求人原文のURLが無いものを残タスクとして可視化する。
         2026-08-11 時点で Salesforce の5件が該当し続ける。 */
   { key: "no_source",      label: "出典なし（公開中）" },
+  /* ★公開に必要な項目（lib/jobs/publishRequirements.ts）が足りない公開中の求人（2026-10-11）。
+        ⚠️ 自動では下ろさない。運営が企業に入力を頼むための一覧 */
+  { key: "publish_missing", label: "要対応（公開中・項目不足）" },
   /* ⚠️ テスト求人は他のタブから外すが、**専用タブで必ず見えるようにする。**
         完全に隠すと「見えていないだけ」を自分で作ることになる
         （2026-08-11 に /admin/jobs で20件中13件が見えていなかったのと同じ形）。 */
@@ -71,8 +74,14 @@ function standardRoleName(j: Job): string | null {
       公開求人と自社の求人しか読めない。実測で **20件中13件が運営に見えていなかった**
       （全部が他社の draft）。審査待ちが本当に0件なのか見えていないだけなのか
       区別できない状態だった。 */
-export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] }) {
+export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
+  initialJobs: Job[];
+  /** 求人 id → 公開に必要なのに足りない項目の名前（サーバーで missingForPublishFromRow から作る） */
+  publishMissing?: Record<string, string[]>;
+}) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const isPublishMissing = (j: Job) =>
+    normalizedStatus(j.status) === "published" && (publishMissing[j.id]?.length ?? 0) > 0;
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -153,6 +162,8 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
       return false;
     } else if (activeTab === "no_source") {
       if (!isMissingSource(j)) return false;
+    } else if (activeTab === "publish_missing") {
+      if (!isPublishMissing(j)) return false;
     } else if (activeTab !== "all" && normalizedStatus(j.status) !== activeTab) {
       return false;
     }
@@ -250,6 +261,7 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
             tab.key === "test" ? jobs.filter(isTest).length
             : tab.key === "all" ? real.length
             : tab.key === "no_source" ? real.filter(isMissingSource).length
+            : tab.key === "publish_missing" ? real.filter(isPublishMissing).length
             : real.filter((j) => normalizedStatus(j.status) === tab.key).length;
           return (
             <button
@@ -334,6 +346,14 @@ export default function AdminJobsClient({ initialJobs }: { initialJobs: Job[] })
                           maxWidth: 220,
                         }}>
                           理由: {j.rejection_reason}
+                        </div>
+                      )}
+                      {(publishMissing[j.id]?.length ?? 0) > 0 && (
+                        <div data-state="publish-missing" title={publishMissing[j.id].join("・")} style={{
+                          marginTop: 4, fontSize: 11, color: "#92400E", fontWeight: 600,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220,
+                        }}>
+                          不足 {publishMissing[j.id].length}項目：{publishMissing[j.id].join("・")}
                         </div>
                       )}
                     </td>

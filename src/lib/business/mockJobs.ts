@@ -1,3 +1,4 @@
+import type { LaborTerms } from "@/lib/jobs/laborTerms";
 /** ⚠️ DB の CHECK（ow_jobs_status_check）と必ず同じ集合にすること。
  *  ⚠️ `active` は 2026-08-11 に削除した。復活させないこと。 */
 export type JobStatus = "draft" | "pending_review" | "published" | "rejected" | "private";
@@ -64,6 +65,8 @@ export type BizJob = {
   workHours?: string | null;
   /** 休日・休暇（「完全週休2日制、有給休暇（10日〜）」など） */
   holidays?: string | null;
+  /** ★労働条件（2026-10-11）。lib/jobs/laborTerms.ts */
+  laborTerms?: LaborTerms;
 };
 
 

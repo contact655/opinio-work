@@ -1,3 +1,4 @@
+import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminJobsClient from "./AdminJobsClient";
 
@@ -47,5 +48,28 @@ export default async function AdminJobsPage() {
     );
   }
 
-  return <AdminJobsClient initialJobs={(data ?? []) as unknown as Parameters<typeof AdminJobsClient>[0]["initialJobs"]} />;
+  /* ★公開に必要な項目の不足（2026-10-11）。判定は missingForPublishFromRow の1か所（企業の画面・公開申請の API と同じ）。
+        ⚠️ 取得に失敗したら「不足なし」に倒さず、画面に出す */
+  const { data: pubRows, error: pubErr } = await supabase.from("ow_jobs").select(JOB_PUBLISH_COLUMNS);
+  if (pubErr) console.error("[admin/jobs] publish columns", pubErr.message);
+  const roleCounts = new Map((data ?? []).map((j) => [j.id as string, ((j as { ow_job_roles?: unknown[] | null }).ow_job_roles ?? []).length]));
+  const publishMissing: Record<string, string[]> = {};
+  for (const r of pubRows ?? []) {
+    const m = missingForPublishFromRow(r as unknown as Record<string, unknown>, roleCounts.get(r.id as string) ?? 0);
+    if (m.length > 0) publishMissing[r.id as string] = m.map((x) => x.label);
+  }
+
+  return (
+    <>
+      {pubErr && (
+        <div role="alert" style={{ margin: "16px 32px 0", background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991B1B" }}>
+          公開に必要な項目の確認に失敗しました（「要対応」の件数は0という意味ではありません）: {pubErr.message}
+        </div>
+      )}
+      <AdminJobsClient
+        initialJobs={(data ?? []) as unknown as Parameters<typeof AdminJobsClient>[0]["initialJobs"]}
+        publishMissing={publishMissing}
+      />
+    </>
+  );
 }

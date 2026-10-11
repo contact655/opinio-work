@@ -1,3 +1,4 @@
+import { laborLines } from "@/lib/jobs/laborTerms";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * src/components/jobs/JobDetailView.tsx
@@ -901,7 +902,7 @@ export async function JobDetailView({
                   {/* ★勤務体系・休日・試用期間（2026-09-02 追加）。
                          HERP など他社の求人票が「待遇・労働環境」として出している項目で、
                          **列は前からあったのに入力欄も描画も無く、全件0件だった。** */}
-                  <ConditionRow label="勤務体系" value={job.work_hours} icon={
+                  <ConditionRow label="始業・終業時刻" value={job.work_hours} icon={
                     <><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></>
                   } />
                   <ConditionRow label="休日・休暇" value={job.holidays} icon={
@@ -911,6 +912,32 @@ export async function JobDetailView({
                     <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></>
                   } />
                 </div>
+              </section>
+              )}
+
+              {/* ── ★労働条件（2026-10-11）。法律で明示が必要な項目（lib/jobs/laborTerms.ts）。
+                     ⚠️ 入っている行だけ出す。1行も無ければ節ごと出さない */}
+              {job.labor && laborLines(job.labor).length > 0 && (
+              <section data-section="labor-terms" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>
+                  </svg>
+                }>
+                  労働条件
+                </SecTitle>
+                <dl style={{ margin: 0, display: "flex", flexDirection: "column" }}>
+                  {laborLines(job.labor).map((l) => (
+                    <div key={l.label} className="jd-labor-row" style={{ borderTop: "1px solid var(--line-soft)", padding: "10px 0" }}>
+                      <dt style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{l.label}</dt>
+                      <dd style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.7, minWidth: 0, overflowWrap: "anywhere" }}>{l.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <style>{`
+                  .jd-labor-row { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 12px; align-items: baseline; }
+                  @media (max-width: 640px) { .jd-labor-row { grid-template-columns: minmax(0,1fr); gap: 2px; } }
+                `}</style>
               </section>
               )}
 

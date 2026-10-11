@@ -1,3 +1,5 @@
+import { laborToRow } from "@/lib/jobs/laborTerms";
+import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
 import { createClient } from "@/lib/supabase/server";
 import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -57,6 +59,10 @@ export async function PUT(
   const optionErr = validateJobOptionFields(body);
   if (optionErr) return NextResponse.json(optionErr, { status: 400 });
 
+  /* ★労働条件（2026-10-11）。⚠️ 送られてこなければ触らない（「送られてこない＝変更しない」） */
+  const labor = body.laborTerms !== undefined ? laborToRow(body.laborTerms) : null;
+  if (labor && "error" in labor) return NextResponse.json({ error: labor.error }, { status: 400 });
+
   const now = new Date().toISOString();
 
   const { error: updateErr } = await supabase
@@ -99,6 +105,7 @@ export async function PUT(
       incentive_note: str(body.incentiveNote, 1000) || null,
       tech_stack: Array.isArray(body.techStack) ? (body.techStack as string[]).filter((s) => typeof s === "string").slice(0, 40) : [],
       department_id: (typeof body.departmentId === "string" && UUID_RE.test(body.departmentId)) ? body.departmentId : null,
+      ...(labor ? labor.row : {}),
       updated_at: now,
     })
     .eq("id", jobId)
@@ -272,6 +279,27 @@ export async function PATCH(
       },
       { status: 403 }
     );
+  }
+
+  /* ★公開申請は、公開に必要な項目がそろっているときだけ受ける（2026-10-11）。
+        ⚠️ 判定は `missingForPublishFromRow` の1か所（画面の目次・運営の審査画面と同じ関数）。
+        ⚠️ 画面でボタンを押せなくしてあっても、API を直接叩けば通るので、ここでも見る。 */
+  if (newStatus === "pending_review") {
+    const [{ data: jobRow, error: jobErr }, { count: roleCount, error: roleErr }] = await Promise.all([
+      supabase.from("ow_jobs").select(JOB_PUBLISH_COLUMNS).eq("id", jobId).eq("company_id", ctx1.companyId).maybeSingle(),
+      supabase.from("ow_job_roles").select("job_id", { count: "exact", head: true }).eq("job_id", jobId),
+    ]);
+    if (jobErr || roleErr || !jobRow) {
+      console.error("[jobs PATCH status] 公開条件の確認に失敗:", jobErr?.message ?? roleErr?.message ?? "no row");
+      return NextResponse.json({ error: "公開に必要な項目を確認できませんでした。時間をおいてもう一度お試しください。" }, { status: 500 });
+    }
+    const missing = missingForPublishFromRow(jobRow as unknown as Record<string, unknown>, roleCount ?? 0);
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { error: `公開申請の前に入力してください：${missing.map((m) => m.label).join("・")}`, missing: missing.map((m) => ({ key: m.key, label: m.label })) },
+        { status: 422 },
+      );
+    }
   }
 
   /* ⚠️ ここにあった「未承認企業は published への昇格不可」の判定は消した。

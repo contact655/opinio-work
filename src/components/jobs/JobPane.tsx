@@ -254,7 +254,7 @@ export function JobPane({
             <ConditionRow label="職種" value={job.roleLabel} icon={
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             } />
-            <ConditionRow label="勤務体系" value={job.work_hours} icon={
+            <ConditionRow label="始業・終業時刻" value={job.work_hours} icon={
               <><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></>
             } />
             <ConditionRow label="休日・休暇" value={job.holidays} icon={

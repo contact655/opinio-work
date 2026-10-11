@@ -1,3 +1,4 @@
+import { laborFromRow } from "@/lib/jobs/laborTerms";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * queries.ts — Supabase data access layer for Stage 1 (read-only public pages)
@@ -220,6 +221,9 @@ function mapJob(row: Record<string, any>): Job {
     work_hours: (row.work_hours as string | null) ?? null,
     holidays: (row.holidays as string | null) ?? null,
     probation_period: (row.probation_period as string | null) ?? null,
+    /* ★労働条件（2026-10-11）。⚠️ 取得していない（一覧の列）ときは null にする。
+          "" で埋めると「値が無い」と「取得していない」が区別できない */
+    labor: "smoking_measure" in row ? laborFromRow(row) : null,
     experience: "",
     tags,
     highlight: (row.catch_copy as string) ?? (row.one_liner as string) ?? "",
@@ -1268,6 +1272,11 @@ const JOB_DETAIL_COLS = [
      ⚠️ `work_hours` / `holidays` は入力欄も無かったので同時に足した。
         **列・API・入力欄・COLS・描画の5つが揃って初めて出る。** */
   "salary_note", "probation_period", "work_hours", "holidays",
+  /* ★労働条件（2026-10-11）。lib/jobs/laborTerms.ts の LABOR_COLUMNS と同じ列。⚠️ 落とすと「労働条件」が出ない */
+  "contract_period", "contract_period_detail", "contract_renewal", "contract_renewal_limit",
+  "workplace_change_scope", "workplace_change_note", "duties_change_scope", "duties_change_note",
+  "break_time", "overtime", "fixed_overtime", "fixed_overtime_hours", "fixed_overtime_pay",
+  "social_insurance", "smoking_measure", "smoking_note",
 ].join(", ");
 
 export const getJobs = unstable_cache(

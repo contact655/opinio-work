@@ -1,3 +1,4 @@
+import { laborFromRow } from "@/lib/jobs/laborTerms";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizJob, JobStatus } from "./mockJobs";
 import { VALID_JOB_EMPLOYMENT_TYPES, JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
@@ -326,7 +327,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, why_hire, team_composition, first_90_days, work_hours, holidays, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, why_hire, team_composition, first_90_days, work_hours, holidays, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -398,6 +399,8 @@ export async function fetchJobById(
     first90Days: row.first_90_days ?? undefined,
     workHours: row.work_hours ?? undefined,
     holidays: row.holidays ?? undefined,
+    /* ★労働条件（2026-10-11）。⚠️ SELECT から列を落とすと "" になり、別の項目を保存した瞬間に消える */
+    laborTerms: laborFromRow(row as unknown as Record<string, unknown>),
   };
 
   return { job, assigneeIds, jobRoles, companyId: row.company_id ?? "" };

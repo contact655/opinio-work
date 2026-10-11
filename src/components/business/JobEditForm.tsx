@@ -9,7 +9,11 @@ import type { TeamMember } from "@/lib/business/jobs";
 import Link from "next/link";
 import type { BizJob } from "@/lib/business/mockJobs";
 import { JobEditSubNav, type EditStep, type StepStatus } from "./JobEditSubNav";
-import { missingForPublish, isPublishRequired, type PublishRequirement } from "@/lib/jobs/publishRequirements";
+import { missingForPublish, isPublishRequired, requirementsFor, type PublishRequirement } from "@/lib/jobs/publishRequirements";
+import {
+  CONTRACT_PERIODS, CONTRACT_RENEWALS, WORKPLACE_CHANGE_SCOPES, DUTIES_CHANGE_SCOPES, YES_NO,
+  SOCIAL_INSURANCES, SMOKING_MEASURES, EMPTY_LABOR_TERMS, type LaborTerms,
+} from "@/lib/jobs/laborTerms";
 import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
@@ -91,6 +95,8 @@ type FormState = {
   techStack: string[];
   /** 自社での呼び方。ow_company_job_roles に溜まる（表示専用。検索は標準職種のまま） */
   companyRoleName: string;
+  /** ★労働条件（2026-10-11）。API には `laborTerms` のまま送る（lib/jobs/laborTerms.ts） */
+  laborTerms: LaborTerms;
 };
 
 function jobToForm(job: BizJob | null): FormState {
@@ -104,7 +110,7 @@ function jobToForm(job: BizJob | null): FormState {
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
     whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
     oteMin: "", oteMax: "", salesSegment: [], salesHunterFarmer: "", incentiveNote: "",
-    techStack: [], companyRoleName: "",
+    techStack: [], companyRoleName: "", laborTerms: { ...EMPTY_LABOR_TERMS },
   };
   return {
     title: job.title,
@@ -150,6 +156,7 @@ function jobToForm(job: BizJob | null): FormState {
     techStack: job.techStack ?? [],
     // ⚠️ 呼称は BizJob に載っていない。ページ側から initialCompanyRoleName で入れる
     companyRoleName: "",
+    laborTerms: job.laborTerms ? { ...job.laborTerms } : { ...EMPTY_LABOR_TERMS },
   };
 }
 
@@ -288,6 +295,28 @@ function MoreGroup({ title, filled, children }: { title: string; filled: boolean
       </summary>
       <div style={{ padding: "0 18px 18px" }}>{children}</div>
     </details>
+  );
+}
+
+/** 選択肢をチップで並べる（もう一度押すと外せる）。⚠️ options は laborTerms.ts の定数を渡す */
+function ChoiceChips({ id, options, value, onChange }: { id?: string; options: readonly { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div id={id} role="group" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button key={o.value} type="button" aria-pressed={active} onClick={() => onChange(active ? "" : o.value)}
+            style={{
+              padding: "6px 14px", borderRadius: 20, fontFamily: "inherit", fontSize: 13, cursor: "pointer",
+              border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
+              background: active ? "var(--royal-50)" : "#fff",
+              color: active ? "var(--royal)" : "var(--ink-soft)", fontWeight: active ? 700 : 400,
+            }}>
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -512,6 +541,7 @@ export function JobEditForm({
     workHours: form.workHours,
     holidays: form.holidays,
     probationPeriod: form.probationPeriod,
+    labor: form.laborTerms,
   }), [form, selectedRoles]);
 
   const handlePublish = useCallback(async () => {
@@ -536,17 +566,28 @@ export function JobEditForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "status", value: "pending_review" }),
       });
-      if (!submitRes.ok) throw new Error("submit failed");
+      if (!submitRes.ok) {
+        /* ★サーバーが断った理由（足りない項目など）をそのまま出す */
+        const j = (await submitRes.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(j?.error || "submit failed");
+      }
       router.push("/biz/jobs");
-    } catch {
-      showError("公開申請に失敗しました。再度お試しください。");
+    } catch (e) {
+      const msg = e instanceof Error && e.message !== "submit failed" && e.message !== "save failed" ? e.message : null;
+      showError(msg ?? "公開申請に失敗しました。再度お試しください。");
     } finally {
       setIsPublishing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, currentJobId, router, missing, selectedRoles, departmentId]);
 
-  const req = (key: string) => isPublishRequired(key);
+  const req = (key: string) => isPublishRequired(key, form.employmentType);
+  /* 業務委託は雇用ではないので、労働条件の項目を出さない（publishRequirements.ts の requirementsFor と同じ判定） */
+  const requiresLabor = requirementsFor(form.employmentType).some((r) => r.key === "contractPeriod");
+
+  function updateLabor<K extends keyof LaborTerms>(key: K, value: LaborTerms[K]) {
+    updateForm("laborTerms", { ...form.laborTerms, [key]: value });
+  }
 
   const stepStatus = (id: StepId): StepStatus => {
     if (id === "review") return null;
@@ -681,11 +722,13 @@ export function JobEditForm({
           </>
         );
 
-      case "conditions":
+      case "conditions": {
+        const L = form.laborTerms;
+        const contractOnly = !requiresLabor;
         return (
           <>
-            <FormSection title="雇用形態と給与">
-              <FormGroup>
+            <FormSection title="雇用形態と契約期間">
+              <FormGroup style={contractOnly ? { marginBottom: 0 } : undefined}>
                 <FormLabel required={req("employmentType")}>雇用形態</FormLabel>
                 <div id="jef-employment" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {JOB_EMPLOYMENT_TYPES.map((type) => {
@@ -703,7 +746,34 @@ export function JobEditForm({
                     );
                   })}
                 </div>
+                {contractOnly && <Hint>業務委託は雇用契約ではないため、契約期間・社会保険などの労働条件の項目はありません。</Hint>}
               </FormGroup>
+              {!contractOnly && (
+                <FormGroup style={{ marginBottom: 0 }}>
+                  <FormLabel required={req("contractPeriod")}>契約期間</FormLabel>
+                  <ChoiceChips id="jef-contract-period" options={CONTRACT_PERIODS} value={L.contractPeriod} onChange={(v) => updateLabor("contractPeriod", v)} />
+                  {L.contractPeriod === "fixed" && (
+                    <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div>
+                        <FormLabel required htmlFor="jef-contract-period-detail">期間</FormLabel>
+                        <FormInput id="jef-contract-period-detail" value={L.contractPeriodDetail} onChange={(v) => updateLabor("contractPeriodDetail", v)} placeholder="例：1年（2027年3月31日まで）" />
+                      </div>
+                      <div>
+                        <FormLabel required>契約の更新</FormLabel>
+                        <ChoiceChips options={CONTRACT_RENEWALS} value={L.contractRenewal} onChange={(v) => updateLabor("contractRenewal", v)} />
+                      </div>
+                      <div>
+                        <FormLabel htmlFor="jef-contract-renewal-limit">更新の上限</FormLabel>
+                        <FormInput id="jef-contract-renewal-limit" value={L.contractRenewalLimit} onChange={(v) => updateLabor("contractRenewalLimit", v)} placeholder="例：通算5年まで／上限なし" />
+                        <Hint>更新の上限（通算の契約期間や更新の回数）がある場合は書いてください。</Hint>
+                      </div>
+                    </div>
+                  )}
+                </FormGroup>
+              )}
+            </FormSection>
+
+            <FormSection title="給与">
               <FormGroup>
                 <FormLabel required={req("salary")} htmlFor="jef-salary-min">{payLabel(form.employmentType) === "報酬" ? "報酬（下限〜上限）" : "年収（下限〜上限）"}</FormLabel>
                 {/* ★要相談（2026-10-10）。選ぶと金額は送らず、求職者には「年収：要相談」と出る。
@@ -729,34 +799,79 @@ export function JobEditForm({
                 )}
                 <Hint>
                   {form.salaryNegotiable
-                    ? <>公開申請には下限と上限が必要です。決め方は下の「給与の補足」に書けます（例：経験・能力により決定）</>
+                    ? <>「要相談」だけでは公開申請できません。下限と上限を入れ、決め方は下の「給与の補足」に書いてください（例：経験・能力により決定）</>
                     : <>求職者側では「{payLabel(form.employmentType)}{form.salaryMin || "?"}万円〜{form.salaryMax || "?"}万円」と表示されます</>}
                 </Hint>
               </FormGroup>
+              {!contractOnly && (
+                <FormGroup>
+                  <FormLabel required={req("fixedOvertime")}>固定残業代</FormLabel>
+                  <ChoiceChips id="jef-fixed-overtime" options={YES_NO} value={L.fixedOvertime} onChange={(v) => updateLabor("fixedOvertime", v)} />
+                  {L.fixedOvertime === "yes" && (
+                    <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto minmax(0,1fr) auto", gap: 8, alignItems: "center", marginTop: 10 }}>
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>月</span>
+                      <FormInput id="jef-fixed-overtime-hours" type="number" value={L.fixedOvertimeHours} onChange={(v) => updateLabor("fixedOvertimeHours", v)} placeholder="20" />
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>時間分</span>
+                      <FormInput id="jef-fixed-overtime-pay" type="number" value={L.fixedOvertimePay} onChange={(v) => updateLabor("fixedOvertimePay", v)} placeholder="50000" />
+                      <span style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>円</span>
+                    </div>
+                  )}
+                  {L.fixedOvertime === "yes" && <Hint>時間を超えた分は追加で支払う、と求職者に表示されます。</Hint>}
+                </FormGroup>
+              )}
               <FormGroup style={{ marginBottom: 0 }}>
                 <FormLabel htmlFor="jef-salary-note">給与の補足</FormLabel>
                 <FormTextarea id="jef-salary-note" value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：経験・能力により決定。賞与は年2回、業績連動。" rows={3} maxLength={200} />
               </FormGroup>
             </FormSection>
 
-            <FormSection title="勤務地と働き方">
+            <FormSection title="勤務地と変更の範囲">
               <FormGroup>
                 <FormLabel required={req("location")} htmlFor="jef-location">勤務地</FormLabel>
                 <FormInput id="jef-location" value={form.location} onChange={(v) => updateForm("location", v)} placeholder="例：東京都豊島区東池袋1-9-6" />
               </FormGroup>
+              {!contractOnly && (
+                <>
+                  <FormGroup>
+                    <FormLabel required={req("workplaceChange")}>就業場所の変更の範囲</FormLabel>
+                    <ChoiceChips id="jef-workplace-change" options={WORKPLACE_CHANGE_SCOPES} value={L.workplaceChangeScope} onChange={(v) => updateLabor("workplaceChangeScope", v)} />
+                    <div style={{ marginTop: 8 }}>
+                      <FormInput id="jef-workplace-change-note" value={L.workplaceChangeNote} onChange={(v) => updateLabor("workplaceChangeNote", v)} placeholder="補足（例：本社および全国の支店）" />
+                    </div>
+                  </FormGroup>
+                  <FormGroup>
+                    <FormLabel required={req("dutiesChange")}>業務の変更の範囲</FormLabel>
+                    <ChoiceChips id="jef-duties-change" options={DUTIES_CHANGE_SCOPES} value={L.dutiesChangeScope} onChange={(v) => updateLabor("dutiesChangeScope", v)} />
+                    <div style={{ marginTop: 8 }}>
+                      <FormInput id="jef-duties-change-note" value={L.dutiesChangeNote} onChange={(v) => updateLabor("dutiesChangeNote", v)} placeholder="補足（例：営業部門の業務全般）" />
+                    </div>
+                  </FormGroup>
+                </>
+              )}
               <FormGroup style={{ marginBottom: 0 }}>
                 <FormLabel htmlFor="jef-remote">リモートワーク</FormLabel>
                 <FormSelect id="jef-remote" value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_WORK_STATUSES} />
               </FormGroup>
             </FormSection>
 
-            {/* ★勤務時間・休日（2026-09-02 追加）。⚠️ 自由入力にしてある（企業ごとに書き方が違う）。
-                   選択肢にするなら UI・API・DB の CHECK を3つ揃えること。 */}
+            {/* ★勤務時間・休日（2026-09-02 追加）。⚠️ 自由入力にしてある（企業ごとに書き方が違う）。 */}
             <FormSection title="勤務時間と休日">
               <FormGroup>
-                <FormLabel required={req("workHours")} htmlFor="jef-work-hours">勤務時間</FormLabel>
-                <FormInput id="jef-work-hours" value={form.workHours} onChange={(v) => updateForm("workHours", v)} placeholder="例：9:00〜18:00（休憩60分）、フレックスタイム制（コア11:00〜15:00）" />
+                <FormLabel required={req("workHours")} htmlFor="jef-work-hours">始業・終業時刻</FormLabel>
+                <FormInput id="jef-work-hours" value={form.workHours} onChange={(v) => updateForm("workHours", v)} placeholder="例：9:00〜18:00／フレックスタイム制（コア11:00〜15:00）" />
               </FormGroup>
+              {!contractOnly && (
+                <div className="jef-2col" style={{ marginBottom: 18 }}>
+                  <div>
+                    <FormLabel required={req("breakTime")} htmlFor="jef-break-time">休憩時間</FormLabel>
+                    <FormInput id="jef-break-time" value={L.breakTime} onChange={(v) => updateLabor("breakTime", v)} placeholder="例：60分" />
+                  </div>
+                  <div>
+                    <FormLabel required={req("overtime")}>時間外労働</FormLabel>
+                    <ChoiceChips id="jef-overtime" options={YES_NO} value={L.overtime} onChange={(v) => updateLabor("overtime", v)} />
+                  </div>
+                </div>
+              )}
               <FormGroup>
                 <FormLabel required={req("holidays")} htmlFor="jef-holidays">休日・休暇</FormLabel>
                 <FormInput id="jef-holidays" value={form.holidays} onChange={(v) => updateForm("holidays", v)} placeholder="例：完全週休2日制（土日祝）、年末年始、有給休暇（初年度10日）" />
@@ -767,8 +882,37 @@ export function JobEditForm({
                 <Hint>試用期間が無い場合は「なし」と書いてください。</Hint>
               </FormGroup>
             </FormSection>
+
+            {!contractOnly && (
+              <FormSection title="社会保険と受動喫煙対策">
+                <FormGroup>
+                  <FormLabel required={req("socialInsurance")}>加入する社会保険</FormLabel>
+                  <div id="jef-social-insurance" style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}>
+                    {SOCIAL_INSURANCES.map((o) => {
+                      const checked = L.socialInsurance.includes(o.value);
+                      return (
+                        <label key={o.value} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink)", cursor: "pointer" }}>
+                          <input type="checkbox" checked={checked}
+                            onChange={() => updateLabor("socialInsurance", checked ? L.socialInsurance.filter((x) => x !== o.value) : [...L.socialInsurance, o.value])} />
+                          {o.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </FormGroup>
+                <FormGroup style={{ marginBottom: 0 }}>
+                  <FormLabel required={req("smoking")}>受動喫煙防止の措置</FormLabel>
+                  <ChoiceChips id="jef-smoking" options={SMOKING_MEASURES} value={L.smokingMeasure} onChange={(v) => updateLabor("smokingMeasure", v)} />
+                  <div style={{ marginTop: 8 }}>
+                    <FormInput id="jef-smoking-note" value={L.smokingNote} onChange={(v) => updateLabor("smokingNote", v)}
+                      placeholder={L.smokingMeasure === "other" ? "内容を書いてください（必須）" : "補足（例：ビル内に喫煙所あり）"} />
+                  </div>
+                </FormGroup>
+              </FormSection>
+            )}
           </>
         );
+      }
 
       case "requirements":
         return (
@@ -1018,7 +1162,7 @@ export function JobEditForm({
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
                     公開申請の前に、あと{missing.length}つ入力してください
                   </div>
-                  <ul style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <ul style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
                     {missing.map((r) => (
                       <li key={r.key}>
                         <button type="button" onClick={() => goToField(r)}

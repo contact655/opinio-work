@@ -1,3 +1,4 @@
+import { laborToRow } from "@/lib/jobs/laborTerms";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateJobPages } from "@/lib/companies/revalidate";
 import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
     const { data: source } = await supabase
       .from("ow_jobs")
       .select(
-        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference"
+        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, work_hours, holidays, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note"
       )
       .eq("id", sourceId)
       .eq("company_id", ctxDup.companyId)
@@ -182,7 +183,10 @@ export async function POST(req: Request) {
   if ("error" in salaryResult) {
     return NextResponse.json({ error: salaryResult.error }, { status: 422 });
   }
-  const record = buildJobRecord(body, companyId, salaryResult.salaryMin, salaryResult.salaryMax);
+  /* ★労働条件（2026-10-11）。⚠️ PUT と同じ `laborToRow` を通す（POST と PUT は同じ項目を受ける） */
+  const labor = body.laborTerms !== undefined ? laborToRow(body.laborTerms) : null;
+  if (labor && "error" in labor) return NextResponse.json({ error: labor.error }, { status: 400 });
+  const record = { ...buildJobRecord(body, companyId, salaryResult.salaryMin, salaryResult.salaryMax), ...(labor ? labor.row : {}) };
   const { data: newJob, error: insertErr } = await supabase
     .from("ow_jobs")
     .insert(record)

@@ -1,3 +1,4 @@
+import type { LaborTerms } from "@/lib/jobs/laborTerms";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,8 @@ export type Job = {
   holidays?: string | null;
   /** 試用期間（「あり（3ヶ月）」など）。⚠️ 正は `probation_period`。`trial_period` は【廃止】 */
   probation_period?: string | null;
+  /** ★労働条件（2026-10-11）。⚠️ 詳細ページの列（JOB_DETAIL_COLS）にしか無い。一覧では null */
+  labor?: LaborTerms | null;
   experience: string;
   tags: string[];
   highlight: string;

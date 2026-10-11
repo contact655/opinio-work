@@ -1,3 +1,4 @@
+import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import JobDetailClient from "./JobDetailClient";
@@ -87,8 +88,16 @@ export default async function AdminJobDetailPage({ params }: Props) {
   type JobForClient = Omit<typeof job, "ow_companies"> & {
     ow_companies: { id: string; name: string; industry: string | null; employee_count: string | null; employee_count_band: string | null; employee_count_as_of: string | null; is_published: boolean } | null;
   };
+  /* ★公開に必要な項目の不足（2026-10-11）。判定は企業の画面・公開申請の API と同じ missingForPublishFromRow */
+  const { data: pubRow, error: pubErr } = await supabase.from("ow_jobs").select(JOB_PUBLISH_COLUMNS).eq("id", params.id).maybeSingle();
+  if (pubErr) console.error("[AdminJobDetailPage] publish columns", pubErr.message);
+  const publishMissing = pubErr || !pubRow
+    ? null
+    : missingForPublishFromRow(pubRow as unknown as Record<string, unknown>, initialJobRoles.length).map((m) => m.label);
+
   return (
     <JobDetailClient
+      publishMissing={publishMissing}
       job={job as unknown as JobForClient}
       roles={roles}
       roleAliases={roleAliases}

@@ -3732,21 +3732,31 @@ export type Database = {
           appeal: string | null
           avg_overtime: string | null
           benefits: string | null
+          break_time: string | null
           business_model: string | null
           catch_copy: string | null
           company_id: string | null
           company_job_role_id: string | null
+          contract_period: string | null
+          contract_period_detail: string | null
+          contract_renewal: string | null
+          contract_renewal_limit: string | null
           created_at: string | null
           culture_fit: string | null
           department: string | null
           department_id: string | null
           description: string | null
           description_markdown: string | null
+          duties_change_note: string | null
+          duties_change_scope: string | null
           employment_type: string | null
           expires_at: string | null
           first_90_days: string | null
           fit_negatives: Json | null
           fit_positives: Json | null
+          fixed_overtime: string | null
+          fixed_overtime_hours: number | null
+          fixed_overtime_pay: number | null
           gradient_preset: string | null
           holidays: string | null
           id: string
@@ -3760,6 +3770,7 @@ export type Database = {
           one_liner: string | null
           ote_max: number | null
           ote_min: number | null
+          overtime: string | null
           positives: string[] | null
           preferred: string | null
           preferred_skills: string[] | null
@@ -3783,6 +3794,9 @@ export type Database = {
           selection_process: Json | null
           selection_steps: string[] | null
           slug: string | null
+          smoking_measure: string | null
+          smoking_note: string | null
+          social_insurance: string[] | null
           source_url: string | null
           source_verified_at: string | null
           start_date_preference: string | null
@@ -3800,26 +3814,38 @@ export type Database = {
           why_we_exist: string | null
           work_hours: string | null
           work_style: string | null
+          workplace_change_note: string | null
+          workplace_change_scope: string | null
         }
         Insert: {
           appeal?: string | null
           avg_overtime?: string | null
           benefits?: string | null
+          break_time?: string | null
           business_model?: string | null
           catch_copy?: string | null
           company_id?: string | null
           company_job_role_id?: string | null
+          contract_period?: string | null
+          contract_period_detail?: string | null
+          contract_renewal?: string | null
+          contract_renewal_limit?: string | null
           created_at?: string | null
           culture_fit?: string | null
           department?: string | null
           department_id?: string | null
           description?: string | null
           description_markdown?: string | null
+          duties_change_note?: string | null
+          duties_change_scope?: string | null
           employment_type?: string | null
           expires_at?: string | null
           first_90_days?: string | null
           fit_negatives?: Json | null
           fit_positives?: Json | null
+          fixed_overtime?: string | null
+          fixed_overtime_hours?: number | null
+          fixed_overtime_pay?: number | null
           gradient_preset?: string | null
           holidays?: string | null
           id?: string
@@ -3833,6 +3859,7 @@ export type Database = {
           one_liner?: string | null
           ote_max?: number | null
           ote_min?: number | null
+          overtime?: string | null
           positives?: string[] | null
           preferred?: string | null
           preferred_skills?: string[] | null
@@ -3856,6 +3883,9 @@ export type Database = {
           selection_process?: Json | null
           selection_steps?: string[] | null
           slug?: string | null
+          smoking_measure?: string | null
+          smoking_note?: string | null
+          social_insurance?: string[] | null
           source_url?: string | null
           source_verified_at?: string | null
           start_date_preference?: string | null
@@ -3873,26 +3903,38 @@ export type Database = {
           why_we_exist?: string | null
           work_hours?: string | null
           work_style?: string | null
+          workplace_change_note?: string | null
+          workplace_change_scope?: string | null
         }
         Update: {
           appeal?: string | null
           avg_overtime?: string | null
           benefits?: string | null
+          break_time?: string | null
           business_model?: string | null
           catch_copy?: string | null
           company_id?: string | null
           company_job_role_id?: string | null
+          contract_period?: string | null
+          contract_period_detail?: string | null
+          contract_renewal?: string | null
+          contract_renewal_limit?: string | null
           created_at?: string | null
           culture_fit?: string | null
           department?: string | null
           department_id?: string | null
           description?: string | null
           description_markdown?: string | null
+          duties_change_note?: string | null
+          duties_change_scope?: string | null
           employment_type?: string | null
           expires_at?: string | null
           first_90_days?: string | null
           fit_negatives?: Json | null
           fit_positives?: Json | null
+          fixed_overtime?: string | null
+          fixed_overtime_hours?: number | null
+          fixed_overtime_pay?: number | null
           gradient_preset?: string | null
           holidays?: string | null
           id?: string
@@ -3906,6 +3948,7 @@ export type Database = {
           one_liner?: string | null
           ote_max?: number | null
           ote_min?: number | null
+          overtime?: string | null
           positives?: string[] | null
           preferred?: string | null
           preferred_skills?: string[] | null
@@ -3929,6 +3972,9 @@ export type Database = {
           selection_process?: Json | null
           selection_steps?: string[] | null
           slug?: string | null
+          smoking_measure?: string | null
+          smoking_note?: string | null
+          social_insurance?: string[] | null
           source_url?: string | null
           source_verified_at?: string | null
           start_date_preference?: string | null
@@ -3946,6 +3992,8 @@ export type Database = {
           why_we_exist?: string | null
           work_hours?: string | null
           work_style?: string | null
+          workplace_change_note?: string | null
+          workplace_change_scope?: string | null
         }
         Relationships: [
           {
