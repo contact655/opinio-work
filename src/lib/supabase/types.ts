@@ -2406,6 +2406,32 @@ export type Database = {
           },
         ]
       }
+      ow_company_message_email_sends: {
+        Row: {
+          last_sent_at: string
+          recipient_user_id: string
+          thread_key: string
+        }
+        Insert: {
+          last_sent_at?: string
+          recipient_user_id: string
+          thread_key: string
+        }
+        Update: {
+          last_sent_at?: string
+          recipient_user_id?: string
+          thread_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_message_email_sends_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_office_photos: {
         Row: {
           caption: string | null
@@ -4996,6 +5022,7 @@ export type Database = {
           desired_salary_min: number | null
           desired_work_style: string | null
           desired_work_styles: string[] | null
+          email_company_message_enabled: boolean
           email_weekly_enabled: boolean
           id: string
           job_type: string | null
@@ -5022,6 +5049,7 @@ export type Database = {
           desired_salary_min?: number | null
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
+          email_company_message_enabled?: boolean
           email_weekly_enabled?: boolean
           id?: string
           job_type?: string | null
@@ -5048,6 +5076,7 @@ export type Database = {
           desired_salary_min?: number | null
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
+          email_company_message_enabled?: boolean
           email_weekly_enabled?: boolean
           id?: string
           job_type?: string | null

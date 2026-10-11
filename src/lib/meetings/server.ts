@@ -1,4 +1,5 @@
 /* ★サーバー専用。admin クライアントを使う */
+import { emailCandidateIfCompanySent } from "@/lib/notify/companyMessageEmail";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyConversationAllowed, companyConversationSendAllowed } from "@/lib/conversations/openReason";
@@ -68,6 +69,10 @@ async function insertKindMessage(params: {
   const { error: uErr } = await db.from("ow_conversations").update({ last_message_at: now }).eq("id", params.conversationId);
   if (uErr) console.error("[meetings] last_message_at:", uErr.message);
   await notifyNewMessage({ conversationId: params.conversationId, senderOwUserId: params.senderOwUserId, source: `meetings/${params.kind}` });
+  /* ★求職者にメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
+  const { data: conv, error: cErr } = await db.from("ow_conversations").select("id, kind, company_id, candidate_user_id").eq("id", params.conversationId).maybeSingle();
+  if (cErr) console.error("[meetings] conversation for email:", cErr.message);
+  if (conv) await emailCandidateIfCompanySent({ conversation: conv as { id: string; kind: string | null; company_id: string | null; candidate_user_id: string | null }, senderOwUserId: params.senderOwUserId, source: `meetings/${params.kind}` });
   return { ok: true, data: { messageId: data.id as string } };
 }
 

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { emailCandidateIfCompanySent } from "@/lib/notify/companyMessageEmail";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
@@ -125,6 +126,8 @@ export async function POST(request: NextRequest) {
   /* ★受信者の通知に積む（2026-09-16）。⚠️ best-effort ——失敗しても送信は成功のまま。
         ⚠️★**条件をここに書かないこと。** 宛先の決め方は `notifyNewMessage` の1箇所。 */
   await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/message" });
+  /* ★企業との会話なら求職者にメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
+  await emailCandidateIfCompanySent({ conversation: { id: conversationId, kind: conv.kind as string, company_id: conv.company_id as string | null, candidate_user_id: conv.candidate_user_id as string | null }, senderOwUserId: owMe.id as string, source: "dm/message" });
 
   return NextResponse.json({ ok: true });
 }

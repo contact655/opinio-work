@@ -7,6 +7,7 @@ import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { approachRepliedCompanyTemplate } from "@/lib/notify/templates";
+import { emailCandidateCompanyMessage } from "@/lib/notify/companyMessageEmail";
 import {
   APPROACH_BODY_MAX,
   APPROACH_EXPIRE_DAYS,
@@ -217,7 +218,7 @@ export type SendApproachResult =
 /**
  * 声かけを送る。⚠️ 呼び出し側は「企業の有効な担当者であること」と `canUse(…, "companyApproach")` を
  * 確かめてから呼ぶこと（ここでは見ない）。
- * ⚠️ 通知は段3で足す（`notifyApproach`）。
+ * 通知はベル（ow_notifications）とメール（companyMessageEmail.ts）。
  */
 export async function sendApproach(params: {
   companyId: string;
@@ -295,7 +296,7 @@ export async function sendApproach(params: {
     return { ok: false, status: 500, error: MSG.failed };
   }
 
-  /* 求職者のベルに積む（best-effort。メールは送らない）。⚠️ 本文はベルに出さない（ベルの決まり） */
+  /* 求職者のベルに積む（best-effort）。⚠️ 本文はベルに出さない（ベルの決まり） */
   const { error: nErr } = await db.from("ow_notifications").insert({
     recipient_user_id: params.candidateOwUserId,
     actor_company_id: params.companyId,
@@ -303,6 +304,12 @@ export async function sendApproach(params: {
     approach_id: data.id,
   });
   if (nErr) console.error("[approaches] notify:", nErr.message);
+
+  /* ★メールでも知らせる（2026-10-11）。理由は冒頭だけ入る。条件（設定・実在の利用者への開始）は companyMessageEmail.ts の1か所 */
+  await emailCandidateCompanyMessage({
+    kind: "approach", candidateOwUserId: params.candidateOwUserId, companyId: params.companyId,
+    approachId: data.id as string, reason, source: "approach",
+  });
 
   return { ok: true, id: data.id as string };
 }

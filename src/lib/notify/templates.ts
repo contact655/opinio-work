@@ -494,6 +494,54 @@ export function approachRepliedCompanyTemplate(params: {
 }
 
 /**
+ * ★企業からメッセージが届いたことを求職者に知らせる（2026-10-11 / 柴さんの指示）。
+ *   approach … 企業からの1通目。**送った理由の冒頭だけ**を入れる
+ *   introduction … 紹介で企業が「会う」と答えた（会話ができた）
+ *   reply … 会話で企業から返信があった
+ * ⚠️★**本文全体はメールに入れない。** 続きは OPINIO で読む形（理由の冒頭まで）。返信の中身は1文字も入れない。
+ * ⚠️ 送るかどうか（設定・30分まとめ・実在の利用者への開始）は lib/notify/companyMessageEmail.ts が決める。ここは文面だけ。
+ */
+export const COMPANY_MESSAGE_REASON_PREVIEW_CHARS = 60;
+
+export function companyMessageCandidateTemplate(params: {
+  to: string;
+  userName: string | null | undefined;
+  companyName: string;
+  kind: "approach" | "introduction" | "reply";
+  /** approach のときだけ。⚠️ 全文を渡してよい（ここで冒頭だけに切る） */
+  reason?: string | null;
+  /** 開く先（https://opinio.jp/… の絶対 URL） */
+  url: string;
+}) {
+  const co = params.companyName;
+  const flat = (params.reason ?? "").replace(/\s+/g, " ").trim();
+  const preview = flat.length > COMPANY_MESSAGE_REASON_PREVIEW_CHARS ? `${flat.slice(0, COMPANY_MESSAGE_REASON_PREVIEW_CHARS)}…` : flat;
+  const subject =
+    params.kind === "introduction" ? `${co}から「会いたい」と返事が届きました`
+    : `${co}からメッセージが届きました`;
+  const lead =
+    params.kind === "approach" ? `${co}から、理由を添えたメッセージが届きました。`
+    : params.kind === "introduction" ? `OPINIOからご紹介した${co}が「会う」と答えました。メッセージでやり取りを始められます。`
+    : `${co}から、新しいメッセージが届きました。`;
+  const button = params.kind === "approach" ? "OPINIOで読む →" : "メッセージを開く →";
+  return {
+    to: params.to,
+    subject,
+    html: htmlWrap(`${greet(params.userName, "line")}
+      <p style="margin:0 0 16px;color:#475569">${esc(lead)}</p>
+      ${params.kind === "approach" && preview ? `<div style="margin:0 0 20px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#334155">
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">送った理由（冒頭）</div>${esc(preview)}</div>` : ""}
+      <a href="${esc(params.url)}" style="${BTN}">${button}</a>
+      <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;line-height:1.7">
+        このあと30分以内に同じ相手から届いたメッセージは、改めてお知らせしません。OPINIO でまとめてご覧ください。<br>
+        このお知らせは <a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「企業からのメッセージをメールで受け取る」で止められます。
+        企業からのメッセージそのものを止めるには、「転職について」で「今は考えていない」を選んでください。
+      </p>
+    `),
+  };
+}
+
+/**
  * ★提案を見て「話を聞いてみたい」と答えた方が届いた（2026-10-11 / 提案を「求職者が先に答える」形にした）。
  *   auto … その場で会話を作ったので「メッセージを開く」へ。review … /biz/proposals で会うか決めてもらう。
  * ⚠️★ひとことの中身は書かない（名前とリンクだけ。approachRepliedCompanyTemplate と同じ方針）。

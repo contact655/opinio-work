@@ -19,6 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { proposalIntroLine, proposalShouldConnect } from "@/lib/constants/proposalResponses";
 import { notifyIntroduction, notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
+import { emailCandidateCompanyMessage } from "@/lib/notify/companyMessageEmail";
 
 export type IntroduceOutcome =
   | { introduced: false; reason: "not_ready" | "already" | "failed" }
@@ -122,6 +123,8 @@ export async function introduceProposal(
   }
   if (opts.by === "company" || opts.by === "ops") {
     await notifyIntroduction({ proposalId, candidateUserId, companyId, conversationId });
+    /* ★企業が「会う」と答えたことをメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
+    await emailCandidateCompanyMessage({ kind: "introduction", candidateOwUserId: candidateUserId, companyId, conversationId, source: `introduce:${opts.by}` });
   }
 
   console.log(`[evidence/introduce] 会話を作った proposal=${proposalId} conversation=${conversationId} by=${opts.by}`);

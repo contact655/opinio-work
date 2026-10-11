@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { insertActivity } from "@/lib/business/activities";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { emailCandidateIfCompanySent } from "@/lib/notify/companyMessageEmail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { CONTACT_BLOCKED_MESSAGE } from "@/lib/conversations/contactGate";
@@ -144,6 +145,14 @@ export async function POST(
         ⚠️ 渡すのは **`ow_users.id`**（`user.id` は auth 空間なので渡さない）。 */
   await notifyNewMessage({
     conversationId,
+    senderOwUserId: owUser.id as string,
+    source: "biz/conversations/messages",
+  });
+
+  /* ★企業から求職者への返信をメールでも知らせる（2026-10-11）。30分以内はまとめる。
+        ⚠️ 条件は lib/notify/companyMessageEmail.ts の1か所。ここに書き写さない */
+  await emailCandidateIfCompanySent({
+    conversation: { id: conversationId, kind: convRow.kind as string, company_id: convRow.company_id as string | null, candidate_user_id: convRow.candidate_user_id as string | null },
     senderOwUserId: owUser.id as string,
     source: "biz/conversations/messages",
   });

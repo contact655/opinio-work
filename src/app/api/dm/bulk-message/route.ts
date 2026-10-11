@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { emailCandidateIfCompanySent } from "@/lib/notify/companyMessageEmail";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
@@ -190,6 +191,8 @@ export async function POST(request: NextRequest) {
           まとめて最後に1回にすると、途中で失敗した会話ぶんまで通知が飛ぶ。
           ⚠️ 条件は `notifyNewMessage` の1箇所。ここに書き写さない。 */
     await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/bulk-message" });
+    /* ★企業との会話なら求職者にメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
+    await emailCandidateIfCompanySent({ conversation: { id: conversationId, kind: conv.kind as string, company_id: conv.company_id as string | null, candidate_user_id: conv.candidate_user_id as string | null }, senderOwUserId: owMe.id as string, source: "dm/bulk-message" });
 
     /* ⚠️ 一覧の並び替えに使う。失敗しても本文は入っているので、送信自体は成功扱い。 */
     const { error: touchErr } = await admin
