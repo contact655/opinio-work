@@ -1,205 +1,127 @@
 "use client";
 
-export type EditSection = {
-  id: string;
-  label: string;
-  isComplete?: boolean;
-  showStatus?: boolean;
-};
+import { useEffect, useRef } from "react";
+import type { PublishRequirement } from "@/lib/jobs/publishRequirements";
 
 /**
- * 「推奨項目」の1つ。**公開の条件ではない。**
+ * 求人の作成・編集画面の左の目次（2026-10-11 に作り直した）。
  *
- * ⚠️★**`completionPercent` に混ぜないこと。** 混ぜると、既に公開中の求人の％が
- *    その日いきなり下がる（公開中2件は3項目とも空なので 100% → 77% になる）。
- *    企業から見れば「何もしていないのに減った」であり、直す動機にならない。
+ * ⚠️★**「公開まであと〇つ」は `missingForPublish()`（lib/jobs/publishRequirements.ts）の結果をそのまま出す。**
+ *    ここで条件を足したり数え直したりしないこと。割れると「目次は0なのに申請できない」になる。
+ * ⚠️ 旧版の「入力進捗 %」と「推奨項目」は外した。%は「何を書けば公開できるか」を言っていなかった。
  */
-export type RecommendedItem = {
-  key: string;
+
+export type StepStatus = "done" | "todo" | "optional" | null;
+
+export type EditStep = {
+  id: string;
   label: string;
-  /** クリックで開くセクション（`EditSection.id`） */
-  sectionId: string;
-  filled: boolean;
+  status: StepStatus;
 };
 
 type Props = {
-  sections: EditSection[];
-  activeSection: string;
-  onSectionClick: (id: string) => void;
-  completionPercent: number;
-  recommended?: RecommendedItem[];
+  steps: EditStep[];
+  activeStep: string;
+  onStepClick: (id: string) => void;
+  missing: PublishRequirement[];
+  onMissingClick: (r: PublishRequirement) => void;
 };
 
-export function JobEditSubNav({
-  sections,
-  activeSection,
-  onSectionClick,
-  recommended = [],
-  completionPercent,
-}: Props) {
+const STATUS_TEXT: Record<Exclude<StepStatus, null>, string> = { done: "済み", todo: "未入力", optional: "任意" };
+
+export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissingClick }: Props) {
+  /* 767px 以下では横並びなので、いまのステップが見える位置まで横に送る。
+     ⚠️ scrollIntoView を使わない（ページ全体が縦にも動く） */
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const cur = nav?.querySelector<HTMLElement>("[aria-current]");
+    if (nav && cur && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: Math.max(0, cur.offsetLeft - 16) });
+  }, [activeStep]);
+
   return (
-    <aside style={{
+    <aside className="jef-subnav" style={{
       background: "var(--bg-tint)",
-      borderRight: "1px solid var(--line)",
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
+      overflowY: "auto",
     }}>
-      {/* ヘッド */}
-      <div style={{
-        padding: "20px 20px 16px",
-        borderBottom: "1px solid var(--line)",
-      }}>
-        <div style={{
-          fontFamily: "var(--font-noto-serif)",
-          fontSize: 16, fontWeight: 600,
-          color: "var(--ink)",
-          marginBottom: 4,
-        }}>
-          求人を編集
-        </div>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-          編集すると下書きに保存されます。「公開申請」で運営審査（2-3営業日）後に公開されます。
+      {/* ★公開まであと〇つ。押すとその入力欄へ移る */}
+      <div data-state={missing.length === 0 ? "ready" : "missing"} style={{ padding: "18px 18px 14px", borderBottom: "1px solid var(--line)" }}>
+        {missing.length === 0 ? (
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-ink)" }}>公開申請できます</div>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+              公開まであと{missing.length}つ
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {missing.map((r) => (
+                <button
+                  key={r.key}
+                  type="button"
+                  onClick={() => onMissingClick(r)}
+                  style={{
+                    fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 100,
+                    border: "1px solid var(--line)", background: "#fff", color: "var(--royal)",
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        <div className="jef-subnav-note" style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6, marginTop: 10 }}>
+          入力した内容は自動で保存されます。公開申請のあと、運営の確認（2〜3営業日）を経て公開されます。
         </div>
       </div>
 
-      {/* セクションナビ */}
-      <nav style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
-        {sections.map((s) => {
-          const isActive = s.id === activeSection;
+      {/* ⚠️ 767px 以下は横に並べて1行でスクロールさせる（縦に並べるとフォームが1画面下に落ちる） */}
+      <style>{`
+        .jef-subnav { border-right: 1px solid var(--line); }
+        .jef-steps { display: flex; flex-direction: column; position: relative; }
+        .jef-step { display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%; padding: 10px 18px; border: none; border-left: 3px solid transparent; text-align: left; cursor: pointer; font-family: inherit; }
+        .jef-step[aria-current] { border-left-color: var(--royal); }
+        @media (max-width: 767px) {
+          .jef-subnav { border-right: none; border-bottom: 1px solid var(--line); }
+          .jef-steps { flex-direction: row; overflow-x: auto; }
+          .jef-step { width: auto; flex-shrink: 0; white-space: nowrap; padding: 10px 14px; border-left: none; border-bottom: 3px solid transparent; }
+          .jef-step[aria-current] { border-bottom-color: var(--royal); }
+          .jef-subnav-note { display: none; }
+        }
+      `}</style>
+      <nav ref={navRef} className="jef-steps" aria-label="求人の入力ステップ">
+        {steps.map((s, i) => {
+          const isActive = s.id === activeStep;
           return (
             <button
               key={s.id}
               type="button"
-              onClick={() => onSectionClick(s.id)}
+              onClick={() => onStepClick(s.id)}
+              aria-current={isActive ? "step" : undefined}
+              data-state={s.status ?? "none"}
+              className="jef-step"
               style={{
-                padding: "9px 20px",
-                fontSize: 12, fontWeight: isActive ? 700 : 500,
+                fontSize: 13, fontWeight: isActive ? 700 : 500,
                 color: isActive ? "var(--royal)" : "var(--ink-soft)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                borderLeft: `3px solid ${isActive ? "var(--royal)" : "transparent"}`,
-                justifyContent: "space-between",
-                transition: "all 0.15s",
                 background: isActive ? "#fff" : "transparent",
-                border: "none",
-                fontFamily: "inherit",
-                textAlign: "left",
-                width: "100%",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
               }}
             >
-              <span>{s.label}</span>
-              {s.showStatus && (
+              <span style={{ minWidth: 0 }}>{i + 1}. {s.label}</span>
+              {s.status && (
                 <span style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                  fontSize: 10, fontWeight: 600,
-                  flexShrink: 0,
-                  color: s.isComplete ? "var(--success-ink)" : "var(--warm-ink)",
+                  fontSize: 11, fontWeight: 600, flexShrink: 0,
+                  color: s.status === "done" ? "var(--success-ink)" : s.status === "todo" ? "var(--warm-ink)" : "var(--ink-mute)",
                 }}>
-                  {s.isComplete ? "✓" : "未入力"}
+                  {STATUS_TEXT[s.status]}
                 </span>
               )}
             </button>
           );
         })}
       </nav>
-
-      {/* 進捗バー */}
-      <div style={{
-        margin: 16,
-        padding: 14,
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 10,
-      }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, color: "var(--ink)",
-          marginBottom: 8,
-          display: "flex",
-          justifyContent: "space-between",
-        }}>
-          <span>入力進捗</span>
-          <span style={{ color: "var(--royal)" }}>{completionPercent}%</span>
-        </div>
-        <div style={{
-          height: 5,
-          background: "var(--bg-tint)",
-          borderRadius: 100,
-          overflow: "hidden",
-          marginBottom: 8,
-        }}>
-          <div style={{
-            height: "100%",
-            width: `${completionPercent}%`,
-            background: "linear-gradient(to right, var(--royal), var(--accent))",
-            borderRadius: 100,
-            transition: "width 0.3s ease",
-          }} />
-        </div>
-        <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-          全項目を入力すると、公開申請がスムーズに進みます。
-        </div>
-      </div>
-
-      {/*
-        推奨項目（2026-09-02 追加）
-
-        ⚠️★**上の入力進捗とは別枠にしてある。** 必須ではないので、
-           未入力を「未入力」と赤や黄で咎めない。黄色は「注意・未完了・待ち」の色で、
-           任意の項目に使うと**やらないと駄目に見える**（ui-conventions「色の役割」）。
-        ⚠️ 済 / 未済は**色ではなく記号と濃さ**で示す。同じ画面に上のセクション一覧
-           （✓ / 未入力）があるので、色で二重に意味を作らない。
-        ⚠️★ここに項目を足したら、**求人詳細に表示先があること**を必ず確かめること。
-           表示先の無い項目を勧めると「入力させたのに出ない」になる。
-      */}
-      {recommended.length > 0 && (
-        <div style={{
-          marginTop: 12, padding: "14px 16px",
-          background: "#fff", border: "1px solid var(--line)", borderRadius: 10,
-        }}>
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "baseline",
-            fontSize: 11, fontWeight: 700, color: "var(--ink)", marginBottom: 4,
-          }}>
-            <span>推奨項目（任意）</span>
-            <span style={{ color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-              {recommended.filter((r) => r.filled).length} / {recommended.length}
-            </span>
-          </div>
-          <div style={{ fontSize: 10, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 10 }}>
-            公開の条件ではありません。書くと、候補者が応募するかどうかを判断しやすくなります。
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {recommended.map((r) => (
-              <button
-                key={r.key}
-                type="button"
-                onClick={() => onSectionClick(r.sectionId)}
-                title={r.filled ? `${r.label}（入力済み）` : `${r.label} を書く`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  fontSize: 11, fontWeight: 600, padding: "4px 10px",
-                  borderRadius: 100, cursor: "pointer",
-                  border: r.filled ? "1px solid var(--royal-100, #dce5f7)" : "1px solid var(--line)",
-                  background: r.filled ? "var(--royal-50)" : "var(--line-soft)",
-                  color: r.filled ? "var(--royal)" : "var(--ink-mute)",
-                }}
-              >
-                <span aria-hidden="true">{r.filled ? "✓" : "＋"}</span>
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </aside>
   );
 }

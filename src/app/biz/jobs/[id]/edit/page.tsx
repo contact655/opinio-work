@@ -7,7 +7,7 @@ import { fetchJobById, fetchTeamMembers } from "@/lib/business/jobs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import type { RoleItem, DeptItem } from "@/components/business/JobEditForm";
-import { JOB_EDIT_SECTIONS } from "@/lib/business/jobEditSections";
+import { normalizeJobEditSection } from "@/lib/business/jobEditSections";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +20,10 @@ export default async function JobEditPage({
   params,
   searchParams,
 }: { params: { id: string }; searchParams?: { section?: string } }) {
-  /* ★`?section=settings` で公開設定から開く（2026-09-21。求人管理のカードの「公開申請へ」）。
-        ⚠️ 知らない値は basic に落とす（URL の値をそのまま state に入れない） */
-  const rawSection = searchParams?.section ?? "";
-  const initialSection = (JOB_EDIT_SECTIONS as readonly string[]).includes(rawSection) ? rawSection : "basic";
+  /* ★`?section=review` で「確認して公開申請」から開く（求人管理のカードの「公開申請へ」）。
+        ⚠️ 旧名（settings / basic など）は `normalizeJobEditSection` が読み替える。
+        ⚠️ 知らない値は job に落とす（URL の値をそのまま state に入れない） */
+  const initialSection = normalizeJobEditSection(searchParams?.section);
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 

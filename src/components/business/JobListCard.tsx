@@ -104,7 +104,7 @@ function renderActions(
         ⚠️★**カードの上で `pending_review` にしないこと。** それまで「修正して再申請」
            「編集 / 公開申請」「公開を再開」は**編集画面を開かずに即申請**しており、
            掲載ガイドラインへの同意の一文（公開設定にだけある）を通らずに申請できた。 */
-  const toPublish = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/edit?section=settings`) : undefined;
+  const toPublish = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/edit?section=review`) : undefined;
   const viewPublic = onNavigate ? () => onNavigate(`/jobs/${job.id}`) : undefined;
   /* ★審査中の「プレビュー」。2026-09-21 まで onClick が無く、押しても何も起きなかった */
   const preview = onNavigate ? () => onNavigate(`/biz/jobs/${job.id}/preview`) : undefined;

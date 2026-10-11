@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
@@ -8,14 +8,15 @@ import { useAutoSave } from "@/hooks/useAutoSave";
 import type { TeamMember } from "@/lib/business/jobs";
 import Link from "next/link";
 import type { BizJob } from "@/lib/business/mockJobs";
-import { JobEditSubNav, type EditSection, type RecommendedItem } from "./JobEditSubNav";
+import { JobEditSubNav, type EditStep, type StepStatus } from "./JobEditSubNav";
+import { missingForPublish, isPublishRequired, type PublishRequirement } from "@/lib/jobs/publishRequirements";
 import { JobRejectionBanner } from "./JobRejectionBanner";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
-import { payLabel, payNegotiableText } from "@/lib/utils/salary";
+import { payLabel } from "@/lib/utils/salary";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { flattenTree } from "@/lib/business/orgTree";
@@ -35,15 +36,19 @@ const DURATION_OPTIONS = ["応相談", "1ヶ月以内", "3ヶ月以内", "半年
          （CLAUDE.md「入力させたのに保存しない UI を作らない」）。
       → 0件のときは**架空の人ではなく空状態**を出し、メンバーと権限へ送る。 */
 
-const SECTION_DEFS = [
-  { id: "basic",        label: "基本情報",       showStatus: true },
-  { id: "salary",       label: "給与・労働条件",  showStatus: true },
-  { id: "content",      label: "仕事内容",        showStatus: true },
-  { id: "requirements", label: "求める人物像",    showStatus: true },
-  { id: "process",      label: "選考プロセス",    showStatus: true },
-  { id: "assignee",     label: "採用担当者",      showStatus: true },
-  { id: "settings",     label: "公開設定",        showStatus: false },
-];
+/* ★入力のステップ（2026-10-11 に並べ直した）。⚠️ `lib/business/jobEditSections.ts` と揃える */
+const STEP_DEFS = [
+  { id: "job",          label: "何の仕事か" },
+  { id: "conditions",   label: "条件" },
+  { id: "requirements", label: "求める人" },
+  { id: "process",      label: "選考の進め方" },
+  { id: "more",         label: "さらに伝える" },
+  { id: "review",       label: "確認して公開申請" },
+] as const;
+type StepId = (typeof STEP_DEFS)[number]["id"];
+
+/* ★使う技術を出す職種の大分類（それ以外の職種では出さない。既に値がある求人では出す） */
+const TECH_ROOT_NAMES = ["エンジニア", "データ・AI", "デザイナー"];
 
 type FormMode = "new" | "edit";
 
@@ -150,12 +155,13 @@ function jobToForm(job: BizJob | null): FormState {
 
 // ─── サブコンポーネント ──────────────────────────────────────────────────────
 
-function FormLabel({ children, required, optional, htmlFor }: { children: React.ReactNode; required?: boolean; optional?: boolean; htmlFor?: string }) {
+/* ★「必須」の印は公開に必要な項目（`lib/jobs/publishRequirements.ts`）にだけ付ける（2026-10-11）。
+      ⚠️ それ以外には「任意」の印も付けない。印と実際の条件が食い違うと、表示が嘘になる。 */
+function FormLabel({ children, required, htmlFor }: { children: React.ReactNode; required?: boolean; htmlFor?: string }) {
   return (
     <label htmlFor={htmlFor} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>
       {children}
       {required && <span style={{ color: "var(--error)", fontSize: 12, fontWeight: 600 }}>必須</span>}
-      {optional && <span style={{ color: "var(--ink-mute)", fontSize: 12, fontWeight: 400 }}>任意</span>}
     </label>
   );
 }
@@ -252,18 +258,36 @@ function FormTextarea({ value, onChange, placeholder, rows = 5, maxLength, ariaL
   );
 }
 
-function FormSection({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
+function FormSection({ title, desc, children }: { title?: string; desc?: string; children: React.ReactNode }) {
   return (
-    <div style={{
+    <div className="jef-card" style={{
       background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 14, padding: "26px 30px", marginBottom: 18,
+      borderRadius: 14, marginBottom: 18,
     }}>
-      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: desc ? 6 : 18, display: "flex", alignItems: "center", gap: 8 }}>
-        {title}
-      </div>
+      {/* ⚠️ 入力欄が1つだけの枠には見出しを付けない（ラベルと同じ言葉が2回並ぶ） */}
+      {title && (
+        <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", marginBottom: desc ? 6 : 18 }}>
+          {title}
+        </div>
+      )}
       {desc && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 18, lineHeight: 1.7 }}>{desc}</div>}
       {children}
     </div>
+  );
+}
+
+function MoreGroup({ title, filled, children }: { title: string; filled: boolean; children: React.ReactNode }) {
+  return (
+    <details className="jef-more" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, marginBottom: 10 }}>
+      <summary style={{ padding: "14px 18px", cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ flex: 1, minWidth: 0 }}>{title}</span>
+        {filled && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--success-ink)" }}>入力済み</span>}
+        {/* ⚠️ 記号を CSS の content で出さない（style の中の引用符はハイドレーションを壊す。ui-conventions） */}
+        <span aria-hidden="true" className="jef-more-plus" style={{ color: "var(--ink-mute)", fontWeight: 400 }}>＋</span>
+        <span aria-hidden="true" className="jef-more-minus" style={{ color: "var(--ink-mute)", fontWeight: 400 }}>−</span>
+      </summary>
+      <div style={{ padding: "0 18px 18px" }}>{children}</div>
+    </details>
   );
 }
 
@@ -286,8 +310,8 @@ export type DeptItem = { id: string; parent_id: string | null; name: string };
 
 type Props = {
   /**
-   * ★最初に開く節（2026-09-21）。求人管理のカードの「公開申請へ」などが `settings` を渡す。
-   * ⚠️ 公開申請は**この画面の「公開設定」からだけ**行う。掲載ガイドラインへの同意の一文が
+   * ★最初に開くステップ（2026-09-21）。求人管理のカードの「公開申請へ」が `review` を渡す。
+   * ⚠️ 公開申請は**この画面の「確認して公開申請」からだけ**行う。掲載ガイドラインへの同意の一文が
    *    ここにしか無いので、カードの上から直接申請する経路を作らないこと。
    * ⚠️ 値の検証は呼ぶ側（edit/page.tsx）で `lib/business/jobEditSections.ts` と突き合わせる。
    */
@@ -319,7 +343,7 @@ export function JobEditForm({
   departments = [],
   initialDepartmentId = null,
   initialCompanyRoleName = "",
-  initialSection = "basic",
+  initialSection = "job",
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
@@ -329,7 +353,6 @@ export function JobEditForm({
   });
   const [departmentId, setDepartmentId] = useState<string>(initialDepartmentId ?? "");
   const [activeSection, setActiveSection] = useState(initialSection);
-  const [isCreating, setIsCreating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // currentJobId: 新規モードでも自動保存後の ID を追跡する
@@ -339,28 +362,30 @@ export function JobEditForm({
   /* ⚠️ 2段セレクト用の roleParentId / roleChildId / childRoles / addRole は
         2026-08-06 に検索セレクトへ置き換えたので削除した。追加は addRoleById 一本。 */
 
-  const parentRoles = useMemo(() => roles.filter((r) => r.parent_id === null), [roles]);
 
   // セールス専用ブロック（OTE・担当セグメント）の出し分け。
   // 旧実装は job_category のフリーテキストを見ていたが、その入力欄を廃止したため
   // 選択中のロールが「営業」配下かどうかで判定する。ow_roles は最大3階層あり
   // （営業 → ソリューションエンジニア・プリセールス → セールスエンジニア）、
   // 親を1回辿るだけでは足りないのでルートまで遡る。
-  const isSalesSelected = useMemo(() => {
+  /* 選んだ職種の大分類（ルート）の名前。ow_roles は最大3階層あるのでルートまで遡る。
+     ⚠️ 営業 → 営業職の項目、エンジニア・データ・AI・デザイナー → 使う技術、の出し分けに使う */
+  const selectedRootNames = useMemo(() => {
     const byId = new Map(roles.map((r) => [r.id, r]));
-    const salesRootId = parentRoles.find((r) => r.name === "営業")?.id;
-    if (!salesRootId) return false;
-    return selectedRoles.some((sr) => {
+    const names = new Set<string>();
+    for (const sr of selectedRoles) {
       let node = byId.get(sr.roleId);
       const seen = new Set<string>();
-      while (node && !seen.has(node.id)) {
-        if (node.id === salesRootId) return true;
+      while (node && node.parent_id && !seen.has(node.id)) {
         seen.add(node.id);
-        node = node.parent_id ? byId.get(node.parent_id) : undefined;
+        node = byId.get(node.parent_id);
       }
-      return false;
-    });
-  }, [roles, parentRoles, selectedRoles]);
+      if (node) names.add(node.name);
+    }
+    return names;
+  }, [roles, selectedRoles]);
+  const isSalesSelected = selectedRootNames.has("営業");
+  const isTechSelected = TECH_ROOT_NAMES.some((n) => selectedRootNames.has(n));
 
   /*
     検索セレクトから直接 id を受けて追加する。
@@ -419,7 +444,7 @@ export function JobEditForm({
       });
       if (!res.ok) throw new Error("save failed");
     }
-  }, [form, selectedRoles, currentJobId, companyId]);
+  }, [form, selectedRoles, currentJobId, companyId, departmentId]);
 
   const { saveState, trigger: triggerAutosave } = useAutoSave({ onSave: doSave });
 
@@ -462,45 +487,48 @@ export function JobEditForm({
   ];
 
   // selectedRoles が変わるたびに自動保存トリガー
+  /* ⚠️ 職種が実際に変わったときだけ保存する。2026-10-11 まで、編集画面を開くだけで PUT が1回走っていた。
+        ⚠️ 「初回だけ飛ばす」フラグにしない（開発時の StrictMode は effect を2回走らせるので、2回目で保存される） */
+  const lastRolesKey = useRef(JSON.stringify(initialJobRoles));
   useEffect(() => {
+    const key = JSON.stringify(selectedRoles);
+    if (key === lastRolesKey.current) return;
+    lastRolesKey.current = key;
     if (currentJobId) triggerAutosave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoles]);
 
-  const handleCreate = useCallback(async () => {
-    if (!form.title.trim()) { showError("求人タイトルを入力してください。"); return; }
-    setIsCreating(true);
-    try {
-      if (currentJobId) {
-        // 自動保存が既にレコードを作成済み → ページを edit モードでリロードして完全に切り替える
-        router.replace(`/biz/jobs/${currentJobId}/edit`);
-        return;
-      }
-      const res = await fetch("/api/biz/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, departmentId: departmentId || null, companyId }),
-      });
-      if (!res.ok) throw new Error("create failed");
-      const { id } = await res.json() as { id: string };
-      router.replace(`/biz/jobs/${id}/edit`);
-    } catch {
-      showError("求人の作成に失敗しました。再度お試しください。");
-    } finally {
-      setIsCreating(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, companyId, router, currentJobId]);
+  /* ── ★公開に必要な項目（2026-10-11）──────────────────────────────
+     ⚠️★判定は `missingForPublish()` の1か所。目次・「必須」の印・公開申請ボタンが同じ結果を見る。
+     ⚠️ 旧版の「入力進捗 %」と「推奨項目」は外した（%は何を書けば公開できるかを言っていなかった）。 */
+  const missing = useMemo(() => missingForPublish({
+    title: form.title,
+    roleCount: selectedRoles.length,
+    description: form.descriptionMarkdown,
+    employmentType: form.employmentType,
+    salaryMin: form.salaryNegotiable ? null : form.salaryMin,
+    salaryMax: form.salaryNegotiable ? null : form.salaryMax,
+    location: form.location,
+    workHours: form.workHours,
+    holidays: form.holidays,
+    probationPeriod: form.probationPeriod,
+  }), [form, selectedRoles]);
 
   const handlePublish = useCallback(async () => {
     const jobId = currentJobId;
     if (!jobId) return;
+    if (missing.length > 0) {
+      showError(`公開申請の前に入力してください：${missing.map((m) => m.label).join("・")}`);
+      return;
+    }
     setIsPublishing(true);
     try {
       const saveRes = await fetch(`/api/biz/jobs/${jobId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, departmentId: departmentId || null }),
+        /* ⚠️★`jobRoles` を必ず送る。2026-10-11 まで送っておらず、PUT は「送られた職種で置き換える」ので
+              **公開申請を押すと職種が全部外れていた**（route.ts の ow_job_roles 同期）。 */
+        body: JSON.stringify({ ...form, departmentId: departmentId || null, jobRoles: selectedRoles }),
       });
       if (!saveRes.ok) throw new Error("save failed");
       const submitRes = await fetch(`/api/biz/jobs/${jobId}`, {
@@ -516,187 +544,88 @@ export function JobEditForm({
       setIsPublishing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, currentJobId, router]);
+  }, [form, currentJobId, router, missing, selectedRoles, departmentId]);
 
-  // セクション完成度チェック
-  const sectionComplete = useMemo(() => ({
-    basic:        !!form.title.trim(),
-    salary:       !!(form.salaryMin && form.salaryMax) || form.salaryNegotiable,
-    content:      !!form.descriptionMarkdown.trim(),
-    requirements: form.requiredSkills.length > 0 || !!form.cultureFit.trim(),
-    process:      form.selectionSteps.length > 0,
-    assignee:     form.assigneeIds.length > 0,
-    settings:     true,
-  }), [form]);
+  const req = (key: string) => isPublishRequired(key);
 
-  const completionPercent = useMemo(() => {
-    const keys = ["basic", "salary", "content", "requirements", "process", "assignee"] as const;
-    const done = keys.filter((k) => sectionComplete[k]).length;
-    return Math.round((done / keys.length) * 100);
-  }, [sectionComplete]);
-
-  /* ── 推奨項目（2026-09-02 追加）────────────────────────────────
-     ⚠️★**`completionPercent` に混ぜていない。** 混ぜると、公開中の求人の％が
-        その日いきなり下がる（公開中2件は3項目とも空なので 100% → 77%）。
-        企業から見れば「何もしていないのに減った」で、直す動機にならない。
-
-     ⚠️★**求人詳細に表示先がある項目だけを載せること。** 表示先の無いものを勧めると
-        「入力させたのに出ない」になる。2026-09-02 に確認した時点で
-        **`culture_fit`（求めるカルチャーフィット）は求職者側に表示先が無い**
-        （`/admin/jobs/[id]` の審査画面にしか出ない）ので**入れていない**。
-        載せるなら、先に求人詳細に描画を作ること。
-
-     ⚠️ 本番0件だった3項目（なぜ今採用するか / チーム構成 / 入社後90日）は、
-        2026-09-02 まで**保存しても消えていた**。0件は「書かなかった」ではなく
-        「残らなかった」でもある（CLAUDE.md「起きなかった0か、起こせなかった0か」）。 */
-  const recommended: RecommendedItem[] = useMemo(() => [
-    { key: "whyHire",         label: "なぜ今採用するか", sectionId: "content", filled: !!form.whyHire.trim() },
-    { key: "teamComposition", label: "チーム構成",       sectionId: "content", filled: !!form.teamComposition.trim() },
-    { key: "first90Days",     label: "入社後90日",       sectionId: "content", filled: !!form.first90Days.trim() },
-    { key: "messageToCandidates", label: "候補者へのメッセージ", sectionId: "content", filled: !!form.messageToCandidates.trim() },
-    { key: "salaryNote",      label: "給与の補足",       sectionId: "salary",  filled: !!form.salaryNote.trim() },
-    { key: "workHours",       label: "勤務体系",         sectionId: "salary",  filled: !!form.workHours.trim() },
-    { key: "holidays",        label: "休日・休暇",       sectionId: "salary",  filled: !!form.holidays.trim() },
-    { key: "probationPeriod", label: "試用期間",         sectionId: "salary",  filled: !!form.probationPeriod.trim() },
-  ], [form]);
-
-  const sections: EditSection[] = SECTION_DEFS.map((s) => ({
-    ...s,
-    isComplete: sectionComplete[s.id as keyof typeof sectionComplete],
-  }));
-
-  // topbar 保存状態ピル
-  const saveStatusStyle: React.CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: 6,
-    fontSize: 12, padding: "4px 10px", borderRadius: 100,
-    transition: "all 0.3s", flexShrink: 0,
-    ...(saveState === "saving" ? { color: "var(--warm-ink)", background: "var(--warm-soft)" }
-      : saveState === "saved"  ? { color: "var(--success-ink)", background: "var(--success-soft)" }
-      : saveState === "error"  ? { color: "var(--error-ink)", background: "var(--error-soft)" }
-      : { color: "var(--ink-mute)", background: "var(--bg-tint)" }),
+  const stepStatus = (id: StepId): StepStatus => {
+    if (id === "review") return null;
+    if (id === "more") return "optional";
+    if (missing.some((m) => m.step === id)) return "todo";
+    if (id === "requirements") return form.requiredSkills.length > 0 || form.preferredSkills.length > 0 ? "done" : "todo";
+    if (id === "process") return form.selectionSteps.some((s) => s.trim()) ? "done" : "todo";
+    return "done";
   };
-  const saveStatusText = saveState === "saving" ? "下書きに保存中..."
-    : saveState === "saved"  ? "下書きを自動保存しました"
+  const steps: EditStep[] = STEP_DEFS.map((s) => ({ id: s.id, label: s.label, status: stepStatus(s.id) }));
+
+  /* 目次の「足りない項目」を押したら、そのステップを開いて入力欄へ移る。
+     ⚠️ rAF ではなく setTimeout（描画されていないと rAF は発火しない。ui-debugging ⑪） */
+  const goToField = (r: PublishRequirement) => {
+    setActiveSection(r.step);
+    setTimeout(() => {
+      const el = document.getElementById(r.fieldId);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusable = el.matches("input,textarea,select,button") ? el : el.querySelector<HTMLElement>("input,textarea,select,button");
+      focusable?.focus({ preventScroll: true });
+    }, 80);
+  };
+
+  const goToStep = (id: string) => {
+    setActiveSection(id);
+    setTimeout(() => document.getElementById("jef-main")?.scrollTo({ top: 0 }), 0);
+  };
+
+  // 保存状態（小さく出す）
+  const saveStatusText = saveState === "saving" ? "保存中…"
+    : saveState === "saved"  ? "保存しました"
     : saveState === "error"  ? "保存に失敗しました"
-    : "編集中";
+    : null;
+  const saveStatusColor = saveState === "error" ? "var(--error-ink)" : saveState === "saved" ? "var(--success-ink)" : "var(--ink-mute)";
 
   const pageTitle = mode === "new" ? "求人を作成" : (initialJob?.title ?? "求人を編集");
 
-  // ── セクションレンダラー ───────────────────────────────────────────────
+  /* 選んだ職種の大分類で出し分ける（営業 → 営業職の項目、エンジニア・データ・AI・デザイナー → 使う技術）。
+     ⚠️ 既に値が入っている求人では、職種に関係なく出す（出さないと消す手段が無くなる） */
+  const showSales = isSalesSelected || !!(form.oteMin || form.oteMax || form.salesSegment.length || form.salesHunterFarmer || form.incentiveNote.trim());
+  const showTech = isTechSelected || form.techStack.length > 0;
 
-  function renderSection() {
-    switch (activeSection) {
-      case "basic":
+  // ── 部品 ───────────────────────────────────────────────────────────────
+
+  const chipStyle = (active: boolean): React.CSSProperties => ({
+    padding: "6px 14px", borderRadius: 20,
+    border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
+    background: active ? "var(--royal-50)" : "#fff",
+    color: active ? "var(--royal)" : "var(--ink-soft)",
+    fontSize: 13, fontWeight: active ? 700 : 400,
+    cursor: "pointer", fontFamily: "inherit",
+  });
+
+  const stepIndex = STEP_DEFS.findIndex((s) => s.id === activeSection);
+  const current = STEP_DEFS[stepIndex] ?? STEP_DEFS[0];
+  const prev = stepIndex > 0 ? STEP_DEFS[stepIndex - 1] : null;
+  const next = stepIndex >= 0 && stepIndex < STEP_DEFS.length - 1 ? STEP_DEFS[stepIndex + 1] : null;
+
+  // ── ステップの中身 ─────────────────────────────────────────────────────
+
+  function renderStep() {
+    switch (current.id) {
+      case "job":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>基本情報</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>求人の基本情報を入力してください。求職者側の検索・一覧表示に使われる重要な項目です。</p>
-            <FormSection title="求人タイトル・職種">
+            <FormSection>
               <FormGroup>
-                <FormLabel required htmlFor="jef-title">求人タイトル</FormLabel>
-                <FormInput id="jef-title" value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：プロダクトマネージャー（タイミーキャリアプラス）" required />
-                <Hint>求職者が最初に目にする最重要項目。ポジション名 + 補足情報を記載してください。</Hint>
+                <FormLabel required={req("title")} htmlFor="jef-title">求人タイトル</FormLabel>
+                <FormInput id="jef-title" value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：プロダクトマネージャー（タイミーキャリアプラス）" />
+                <Hint>求職者が最初に目にする項目です。ポジション名と補足を書いてください。タイトルを入れると下書きとして保存されます。</Hint>
               </FormGroup>
-              <FormGroup>
-                <FormLabel required>雇用形態</FormLabel>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {JOB_EMPLOYMENT_TYPES.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => updateForm("employmentType", type)}
-                      style={{
-                        padding: "8px 16px",
-                        background: form.employmentType === type ? "var(--royal)" : "#fff",
-                        border: `1.5px solid ${form.employmentType === type ? "var(--royal)" : "var(--line)"}`,
-                        borderRadius: 100,
-                        fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                        color: form.employmentType === type ? "#fff" : "var(--ink-soft)",
-                        cursor: "pointer", transition: "all 0.15s",
-                      }}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </FormGroup>
-              {/*
-                「職種カテゴリ」セレクト（JOB_CATEGORIES 7値 → ow_jobs.job_category）は
-                2026-08-03 に削除した。職種は下の「職種（ow_roles）」ピッカー一本に統一する。
 
-                削除した理由: この7値（営業 / PdM・PM / エンジニア / その他 など）が
-                職種ページ側の語彙と噛み合わず、正しく選んでも4/7はどの職種ページにも
-                載らなかった。二重入力で、しかも壊れているほうを残す理由が無い。
-
-                job_category カラム自体はまだ残っており、API 側で primary ロール名から
-                派生させて書いている（表示用の互換値）。参照箇所の移行が済んだら列ごと落とす。
-              */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-                <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional htmlFor="jef-department">所属部門</FormLabel>
-                  {departments.length > 0 ? (
-                    <div>
-                      <select
-                        id="jef-department"
-                        value={departmentId}
-                        onChange={(e) => setDepartmentId(e.target.value)}
-                        style={{
-                          width: "100%", padding: "10px 32px 10px 12px",
-                          border: "1.5px solid var(--line)", borderRadius: 8,
-                          fontFamily: "inherit", fontSize: 13, color: "var(--ink)",
-                          background: "#fff", cursor: "pointer", appearance: "none", outline: "none",
-                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-                          backgroundRepeat: "no-repeat",
-                          backgroundPosition: "right 10px center",
-                        }}
-                        onFocus={(e) => { e.target.style.borderColor = "var(--royal)"; e.target.style.boxShadow = "0 0 0 3px var(--royal-50)"; }}
-                        onBlur={(e) => { e.target.style.borderColor = "var(--line)"; e.target.style.boxShadow = "none"; }}
-                      >
-                        <option value="">部門を選択（任意）</option>
-                        {/* ★★`<optgroup>` をやめて、字下げした `<option>` を並べる（2026-09-19）。
-                               ⚠️★**`<optgroup>` は入れ子にできない。** 部門が2階層までだった頃は
-                                  「親＝optgroup / 子＝option」で足りていたが、5階層に広げた時点で
-                                  **3階層目以降がこの select から出せなくなる**
-                                  （保存はできるのに選べない、という一番分かりにくい壊れ方）。
-                               ⚠️★**並べ替えは `flattenTree` を通すこと。** 素の配列順だと
-                                  子が親から離れて並び、字下げだけ残って意味が読めない。
-                               ⚠️ 字下げに全角スペースを使っているのは、`<option>` に
-                                  padding が効かないため（ブラウザ依存）。 */}
-                        {flattenTree(departments).map(({ node, depth }) => (
-                          <option key={node.id} value={node.id}>
-                            {"　".repeat(depth - 1)}{depth > 1 ? "└ " : ""}{node.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
-                        部門マスタは <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> から管理できます
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 5 }}>
-                        <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> で部門マスタを登録すると、ここでセレクトできるようになります
-                      </p>
-                    </div>
-                  )}
-                </FormGroup>
-              </div>
-              {/* 職種マスタ連携 */}
               {roles.length > 0 && (
                 <FormGroup>
-                  <FormLabel optional>職種（マスタ紐づけ）</FormLabel>
-                  {/*
-                    ⚠️ 2026-08-06 に2段セレクトから検索セレクトに置き換えた。
-                       105件を目視で探させるUIが機能しておらず、求人20件が
-                       大分類11件と孫7件に偏り、中間の子職種が1件も使われていなかった。
-                    ⚠️ selectableParent={false} は2段セレクト時代の制約をそのまま維持している。
-                       旧UIは「子があるカテゴリでは親を選べない」形だった
-                       （targetId = childRoles.length > 0 ? roleChildId : roleParentId）。
-                       子を持たない大分類は従来どおり選べる。
-                    ⚠️ 選択済みタグ・代表切替・解除には手を触れていない。
-                       addRole を呼ぶ手段を差し替えただけ。
-                  */}
+                <div id="jef-role">
+                  <FormLabel required={req("role")}>職種</FormLabel>
+                  {/* ⚠️ 2026-08-06 に2段セレクトから検索セレクトに置き換えた。
+                         selectableParent={false} は「子があるカテゴリでは親を選べない」旧UIの制約を維持している。 */}
                   <div style={{ marginBottom: 8 }}>
                     <RoleSearchSelect
                       roles={roles}
@@ -715,451 +644,163 @@ export function JobEditForm({
                         const role = roles.find((r) => r.id === sr.roleId);
                         return (
                           <div key={sr.roleId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: sr.isPrimary ? "var(--royal-50)" : "var(--bg-tint)", border: `1px solid ${sr.isPrimary ? "var(--royal-100)" : "var(--line)"}` }}>
-                            <input type="radio" name="primary-role" checked={sr.isPrimary} onChange={() => setPrimary(sr.roleId)} style={{ accentColor: "var(--royal)", cursor: "pointer" }} />
-                            <span style={{ flex: 1, fontSize: 13, fontWeight: sr.isPrimary ? 700 : 400, color: sr.isPrimary ? "var(--royal)" : "var(--ink)" }}>
+                            <input type="radio" name="primary-role" aria-label={`${role?.name ?? ""}を代表にする`} checked={sr.isPrimary} onChange={() => setPrimary(sr.roleId)} style={{ accentColor: "var(--royal)", cursor: "pointer" }} />
+                            <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: sr.isPrimary ? 700 : 400, color: sr.isPrimary ? "var(--royal)" : "var(--ink)" }}>
                               {role?.name ?? sr.roleId}
                               {sr.isPrimary && <span style={{ marginLeft: 6, fontSize: 12, color: "var(--ink-mute)", fontWeight: 400 }}>（代表）</span>}
                             </span>
-                            <button type="button" onClick={() => removeRole(sr.roleId)} style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>解除</button>
+                            <button type="button" onClick={() => removeRole(sr.roleId)} style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>外す</button>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>
-                    複数選択可。ラジオボタンで代表職種を1つ指定してください。
-                  </p>
+                  <Hint>いくつか選べます。いちばん近いものを「代表」にしてください。求職者の検索と絞り込みは代表の職種で行われます。</Hint>
+                </div>
                 </FormGroup>
               )}
-              {/*
-                自社での呼び方。表示は自社呼称・検索は標準職種、の入力側。
-                ⚠️ 代表職種が決まっていないと紐づけ先（standard_role_id）が無いので出さない。
-                ⚠️ 代表職種を切り替えてもこの値は保持する。紐づけ先が変わるだけ。
-              */}
-              {roles.length > 0 && selectedRoles.some((r) => r.isPrimary) && (
-                <FormGroup>
-                  <FormLabel optional htmlFor="jef-company-role-name">自社での呼び方</FormLabel>
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
-                    社内や求人票で使っている呼称があれば入力してください（例: CXデザイナー）
-                  </p>
-                  <FormInput
-                    id="jef-company-role-name"
-                    list="jef-company-role-suggestions"
-                    value={form.companyRoleName}
-                    onChange={(v) => updateForm("companyRoleName", v)}
-                    placeholder="例：CXデザイナー"
-                  />
-                  <datalist id="jef-company-role-suggestions">
-                    {companyRoleSuggestions.map((n) => <option key={n} value={n} />)}
-                  </datalist>
-                  {/* ★選んだ部門に紐付いた職種をすぐ選べるように出す（2026-09-22） */}
-                  {deptRoleNames.length > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                      <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>この部門の職種：</span>
-                      {deptRoleNames.map((n) => {
-                        const active = form.companyRoleName === n;
-                        return (
-                          <button key={n} type="button" onClick={() => updateForm("companyRoleName", n)} aria-pressed={active}
-                            style={{
-                              fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
-                              border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
-                              background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)",
-                            }}>
-                            {n}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 6 }}>
-                    求人ページにはこの呼び方が出ます。検索や絞り込みは上で選んだ標準職種のままです。
-                  </p>
-                </FormGroup>
-              )}
+
+              <FormLabel required={req("description")} htmlFor="jef-description">仕事内容</FormLabel>
+              <textarea
+                /* ⚠️ **描画とセットで扱うこと。** 求職者側は `components/common/Markdown` で解釈する。
+                      片方だけ変えると「書けるのに出ない」か「記号がそのまま出る」になる。
+                   ⚠️ 2026-10-11 に、押しても何も起きなかった書式ボタン（H2 / B / List など）を外した。 */
+                id="jef-description"
+                value={form.descriptionMarkdown}
+                onChange={(e) => updateForm("descriptionMarkdown", e.target.value)}
+                placeholder={"## このポジションのミッション\n\n具体的な業務内容を書いてください。"}
+                rows={10}
+                style={{
+                  width: "100%", padding: "12px 14px", border: "1.5px solid var(--line)", borderRadius: 8,
+                  background: "#fff", fontFamily: "inherit", fontSize: 13, boxSizing: "border-box",
+                  color: "var(--ink)", lineHeight: 1.8, resize: "vertical", minHeight: 200, outline: "none",
+                }}
+              />
+              <Hint>求職者に表示されます。見出し（##）や箇条書き（-）が使えます。</Hint>
+            </FormSection>
+          </>
+        );
+
+      case "conditions":
+        return (
+          <>
+            <FormSection title="雇用形態と給与">
               <FormGroup>
-                <FormLabel optional htmlFor="jef-business-model">業態タグ（プロダクト特性）</FormLabel>
-                <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
-                  「どういう売り方・提供形態か」を求職者に伝えるタグです。業界（ドメイン）とは別の軸です。
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {BUSINESS_MODELS.map((m) => {
-                    const isActive = form.businessModel === m.key;
+                <FormLabel required={req("employmentType")}>雇用形態</FormLabel>
+                <div id="jef-employment" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {JOB_EMPLOYMENT_TYPES.map((type) => {
+                    const active = form.employmentType === type;
                     return (
-                      <button
-                        key={m.key}
-                        type="button"
-                        onClick={() => updateForm("businessModel", isActive ? "" : m.key)}
-                        title={m.desc || undefined}
+                      <button key={type} type="button" aria-pressed={active} onClick={() => updateForm("employmentType", type)}
                         style={{
-                          padding: "6px 14px",
-                          borderRadius: 20,
-                          border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                          background: isActive ? "var(--royal-50)" : "#fff",
-                          color: isActive ? "var(--royal)" : "var(--ink-soft)",
-                          fontSize: 13,
-                          fontWeight: isActive ? 700 : 400,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "all 0.1s",
-                        }}
-                      >
-                        {m.label}
+                          padding: "8px 16px", borderRadius: 100, fontFamily: "inherit", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          background: active ? "var(--royal)" : "#fff",
+                          border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
+                          color: active ? "#fff" : "var(--ink-soft)",
+                        }}>
+                        {type}
                       </button>
                     );
                   })}
                 </div>
               </FormGroup>
-
-              {/* 技術スタック (Migration 245) */}
               <FormGroup>
-                <FormLabel optional>技術スタック</FormLabel>
-                <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 12, lineHeight: 1.6 }}>
-                  このポジションで主に使う技術・ツールを選択してください（複数可、任意）。
-                </p>
-                {TECH_STACK_CATEGORIES.map((cat) => (
-                  <div key={cat.label} style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
-                      {cat.label}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                      {cat.items.map((tech) => {
-                        const isActive = form.techStack.includes(tech);
-                        return (
-                          <button
-                            key={tech}
-                            type="button"
-                            onClick={() => {
-                              const next = isActive
-                                ? form.techStack.filter((t) => t !== tech)
-                                : [...form.techStack, tech];
-                              updateForm("techStack", next);
-                            }}
-                            style={{
-                              padding: "5px 12px",
-                              borderRadius: 20,
-                              border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                              background: isActive ? "var(--royal-50)" : "#fff",
-                              color: isActive ? "var(--royal)" : "var(--ink-soft)",
-                              fontSize: 13,
-                              fontWeight: isActive ? 700 : 400,
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                              transition: "all 0.1s",
-                            }}
-                          >
-                            {isActive && <span style={{ marginRight: 4 }}>✓</span>}{tech}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-                {form.techStack.length > 0 && (
-                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginRight: 4 }}>選択中:</span>
-                    {form.techStack.map((t) => (
-                      <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700 }}>
-                        {t}
-                        <button type="button" onClick={() => updateForm("techStack", form.techStack.filter((x) => x !== t))}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--royal)", fontSize: 14, lineHeight: 1, padding: 0, fontFamily: "inherit" }}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </FormGroup>
-            </FormSection>
-          </>
-        );
-
-      case "salary":
-        return (
-          <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>給与・労働条件</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>給与レンジ、勤務地、勤務形態など、労働条件を入力してください。</p>
-            <FormSection title="給与">
-              <FormGroup>
-                {/* ★2026-10-10: 「必須」の印を外した（実際には空でも保存・申請できる）。
-                       見出しは雇用形態で「年収」／「報酬」（業務委託）。lib/utils/salary.ts の payLabel */}
-                <FormLabel>{payLabel(form.employmentType) === "報酬" ? "報酬レンジ" : "年収レンジ"}</FormLabel>
-                {/* ★要相談（2026-10-10）。選ぶと金額は送らず、求職者には「報酬：要相談」（正社員なら「年収：要相談」）と出る。
-                       ⚠️ 金額が空で要相談でもないときの「給与非公開」とは区別する */}
+                <FormLabel required={req("salary")} htmlFor="jef-salary-min">{payLabel(form.employmentType) === "報酬" ? "報酬（下限〜上限）" : "年収（下限〜上限）"}</FormLabel>
+                {/* ★要相談（2026-10-10）。選ぶと金額は送らず、求職者には「年収：要相談」と出る。
+                       ⚠️ 2026-10-11 から公開には下限・上限が要る（要相談だけでは申請できない） */}
                 <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink)", marginBottom: 8, cursor: "pointer" }}>
                   <input type="checkbox" data-state={form.salaryNegotiable ? "negotiable" : "amount"} checked={form.salaryNegotiable}
                     onChange={(e) => { updateForm("salaryNegotiable", e.target.checked); if (e.target.checked) { updateForm("salaryMin", ""); updateForm("salaryMax", ""); } }} />
                   要相談にする
                 </label>
                 {!form.salaryNegotiable && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
-                  <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" id="jef-salary-min" />
-                  <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
-                  <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
-                </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr) auto", gap: 8, alignItems: "center" }}>
+                    <FormInput value={form.salaryMin} onChange={(v) => updateForm("salaryMin", v)} placeholder="600" type="number" id="jef-salary-min" />
+                    <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
+                    <FormInput value={form.salaryMax} onChange={(v) => updateForm("salaryMax", v)} placeholder="1000" type="number" id="jef-salary-max" />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                  </div>
                 )}
-                {/* 入力時バリデーション */}
                 {form.salaryMin && form.salaryMax && Number(form.salaryMax) < Number(form.salaryMin) && (
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>最高給与は最低給与以上に設定してください</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>上限は下限以上にしてください</p>
                 )}
                 {form.salaryMin && form.salaryMax && Number(form.salaryMax) >= Number(form.salaryMin) && (Number(form.salaryMax) - Number(form.salaryMin)) > 250 && (
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 4 }}>⚠ レンジ幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
-                )}
-                {/* 未入力時の注意文 */}
-                {(!form.salaryMin && !form.salaryMax && !form.salaryNegotiable) && (
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>
-                    💡 給与レンジを記載すると応募数が増加します。未記載の求人は検索結果で下位に表示されます。
-                  </p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)", marginTop: 4 }}>幅が250万円を超えています。求職者に分かりやすい範囲か確認してください</p>
                 )}
                 <Hint>
                   {form.salaryNegotiable
-                    ? <>求職者側では「{payNegotiableText(form.employmentType)}」と表示されます。条件は下の「給与の補足」に書けます</>
-                    : <>求職者側では「{payLabel(form.employmentType)}{form.salaryMin || "?"}万円〜{form.salaryMax || "?"}万円」と表示されます。空のままにすると「給与非公開」と表示されます</>}
+                    ? <>公開申請には下限と上限が必要です。決め方は下の「給与の補足」に書けます（例：経験・能力により決定）</>
+                    : <>求職者側では「{payLabel(form.employmentType)}{form.salaryMin || "?"}万円〜{form.salaryMax || "?"}万円」と表示されます</>}
                 </Hint>
               </FormGroup>
-
-              {/* ── セールス職専用ブロック ── */}
-              {isSalesSelected && (
-                <div style={{ border: "1.5px solid #DBEAFE", borderRadius: 12, padding: "20px 20px 12px", background: "#EFF6FF", marginTop: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 100, background: "var(--royal)", color: "#fff" }}>営業職</span>
-                    <span style={{ fontSize: 12, color: "#1D4ED8", fontWeight: 600 }}>セールス専用の報酬・担当領域</span>
-                  </div>
-
-                  {/* OTE */}
-                  <FormGroup>
-                    <FormLabel optional>OTE（目標達成時の想定年収）</FormLabel>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: -4, marginBottom: 8, lineHeight: 1.6 }}>
-                      インセンティブ・コミッション込みで目標達成時に想定される年収レンジ。基本給レンジとは別に入力してください。
-                    </p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr 60px", gap: 8, alignItems: "center" }}>
-                      <FormInput value={form.oteMin} onChange={(v) => updateForm("oteMin", v)} placeholder="800" type="number" id="jef-ote-min" />
-                      <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
-                      <FormInput value={form.oteMax} onChange={(v) => updateForm("oteMax", v)} placeholder="1400" type="number" id="jef-ote-max" />
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
-                    </div>
-                  </FormGroup>
-
-                  {/* 担当セグメント */}
-                  <FormGroup>
-                    <FormLabel optional>担当セグメント</FormLabel>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {SALES_SEGMENTS.map((seg) => {
-                        const isActive = form.salesSegment.includes(seg.key);
-                        return (
-                          <button
-                            key={seg.key}
-                            type="button"
-                            title={seg.desc}
-                            onClick={() => {
-                              const next = isActive
-                                ? form.salesSegment.filter((s) => s !== seg.key)
-                                : [...form.salesSegment, seg.key];
-                              updateForm("salesSegment", next);
-                            }}
-                            style={{
-                              padding: "8px 16px", borderRadius: 100,
-                              border: `1.5px solid ${isActive ? "#1D4ED8" : "var(--line)"}`,
-                              background: isActive ? "#DBEAFE" : "#fff",
-                              color: isActive ? "#1D4ED8" : "var(--ink-soft)",
-                              fontSize: 13, fontWeight: isActive ? 700 : 400,
-                              cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s",
-                            }}
-                          >
-                            {seg.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <Hint>複数選択可。SMB・ミッドマーケット・エンタープライズなど担当する市場規模を選んでください</Hint>
-                  </FormGroup>
-
-                  {/* 新規/既存の傾向 */}
-                  <FormGroup>
-                    <FormLabel optional>新規/既存の傾向</FormLabel>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {SALES_HUNTER_FARMER_OPTIONS.map((opt) => {
-                        const isActive = form.salesHunterFarmer === opt.key;
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            title={opt.desc}
-                            onClick={() => updateForm("salesHunterFarmer", isActive ? "" : opt.key)}
-                            style={{
-                              padding: "8px 16px", borderRadius: 100,
-                              border: `1.5px solid ${isActive ? "#1D4ED8" : "var(--line)"}`,
-                              background: isActive ? "#DBEAFE" : "#fff",
-                              color: isActive ? "#1D4ED8" : "var(--ink-soft)",
-                              fontSize: 13, fontWeight: isActive ? 700 : 400,
-                              cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s",
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </FormGroup>
-
-                  {/* インセンティブ補足 */}
-                  <FormGroup style={{ marginBottom: 4 }}>
-                    <FormLabel optional htmlFor="jef-incentive-note">インセンティブ補足</FormLabel>
-                    <FormTextarea
-                      id="jef-incentive-note"
-                      value={form.incentiveNote}
-                      onChange={(v) => updateForm("incentiveNote", v)}
-                      placeholder="例：コミッション上限なし。四半期ごとに目標設定・評価。超過達成時はボーナスあり。"
-                      rows={2}
-                      maxLength={500}
-                    />
-                  </FormGroup>
-                </div>
-              )}
-
               <FormGroup style={{ marginBottom: 0 }}>
-                <FormLabel optional htmlFor="jef-salary-note">給与の補足説明</FormLabel>
-                <FormTextarea id="jef-salary-note" value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：賞与は年2回、業績連動。ストックオプション制度あり。" rows={3} maxLength={200} />
+                <FormLabel htmlFor="jef-salary-note">給与の補足</FormLabel>
+                <FormTextarea id="jef-salary-note" value={form.salaryNote} onChange={(v) => updateForm("salaryNote", v)} placeholder="例：経験・能力により決定。賞与は年2回、業績連動。" rows={3} maxLength={200} />
               </FormGroup>
             </FormSection>
-            <FormSection title="勤務地・勤務形態">
-              <FormGroup>
-                <FormLabel required htmlFor="jef-location">勤務地</FormLabel>
-                <FormInput id="jef-location" value={form.location} onChange={(v) => updateForm("location", v)} placeholder="例：東京都豊島区東池袋1-9-6" required />
-              </FormGroup>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <FormGroup style={{ margin: 0 }}>
-                  <FormLabel required htmlFor="jef-remote">リモートワーク</FormLabel>
-                  <FormSelect id="jef-remote" value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_WORK_STATUSES} />
-                </FormGroup>
-                <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional htmlFor="jef-probation">試用期間</FormLabel>
-                  <FormInput id="jef-probation" value={form.probationPeriod} onChange={(v) => updateForm("probationPeriod", v)} placeholder="例：3ヶ月" />
-                </FormGroup>
-              </div>
-              {/* ★勤務体系・休日（2026-09-02 追加）。
-                     列は前からあったが**入力欄・SELECT・描画のどれも無く、全件0件**だった。
-                  ⚠️ 自由入力にしてある。企業ごとに書き方が違い（「フレックス（コア11-15時）」
-                     「裁量労働制」など）、選択肢に畳むと必ず当てはまらない企業が出るため。
-                     ⚠️ 選択肢にするなら UI・API・DB の CHECK を3つ揃えること。 */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-                <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional htmlFor="jef-work-hours">勤務体系</FormLabel>
-                  <FormInput id="jef-work-hours" value={form.workHours} onChange={(v) => updateForm("workHours", v)} placeholder="例: 所定労働時間8時間、フレックスタイム制" />
-                </FormGroup>
-                <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional htmlFor="jef-holidays">休日・休暇</FormLabel>
-                  <FormInput id="jef-holidays" value={form.holidays} onChange={(v) => updateForm("holidays", v)} placeholder="例: 完全週休2日制、有給休暇（初年度10日）" />
-                </FormGroup>
-              </div>
-            </FormSection>
-          </>
-        );
 
-      case "content":
-        return (
-          <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>仕事内容</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>具体的な仕事内容、ミッション、入社後の期待値を記述してください。</p>
-            <FormSection title="仕事内容の詳細" desc="候補者がポジションをイメージできるよう、具体的な業務内容を記述してください。">
-              {/* Markdown editor toolbar + textarea */}
-              <div style={{ border: "1.5px solid var(--line)", borderRadius: 8, overflow: "hidden" }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--royal)")}
-                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) e.currentTarget.style.borderColor = "var(--line)"; }}
-                tabIndex={-1}
-              >
-                <div style={{ display: "flex", gap: 2, padding: "6px 8px", background: "var(--bg-tint)", borderBottom: "1px solid var(--line)", flexWrap: "wrap" }}>
-                  {["H2", "H3", "B", "I", "List", "Quote", "Link"].map((tool, i) => (
-                    <>
-                      {(i === 2 || i === 4) && <div key={`div-${i}`} style={{ width: 1, background: "var(--line)", margin: "4px 4px" }} />}
-                      <button key={tool} type="button" onClick={() => {}} style={{
-                        padding: "5px 10px", background: "transparent", border: "none", borderRadius: 5,
-                        fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700,
-                        color: "var(--ink-soft)", cursor: "pointer",
-                      }}>{tool}</button>
-                    </>
-                  ))}
-                </div>
-                <textarea
-                  /* ⚠️ **描画とセットで扱うこと。** 求職者側は `components/common/Markdown`
-                        で解釈する（2026-08-26 に対応）。片方だけ変えると
-                        「書けるのに出ない」か「記号がそのまま出る」になる。 */
-                  aria-label="求人詳細（Markdown）"
-                  value={form.descriptionMarkdown}
-                  onChange={(e) => updateForm("descriptionMarkdown", e.target.value)}
-                  placeholder={"## このポジションのミッション\n\n具体的な業務内容を記載してください。"}
-                  rows={10}
-                  style={{
-                    width: "100%", padding: "14px 16px", border: "none",
-                    background: "#fff", fontFamily: "inherit", fontSize: 13,
-                    color: "var(--ink)", lineHeight: 1.8, resize: "vertical",
-                    minHeight: 200, outline: "none",
-                  }}
-                />
-              </div>
+            <FormSection title="勤務地と働き方">
+              <FormGroup>
+                <FormLabel required={req("location")} htmlFor="jef-location">勤務地</FormLabel>
+                <FormInput id="jef-location" value={form.location} onChange={(v) => updateForm("location", v)} placeholder="例：東京都豊島区東池袋1-9-6" />
+              </FormGroup>
+              <FormGroup style={{ marginBottom: 0 }}>
+                <FormLabel htmlFor="jef-remote">リモートワーク</FormLabel>
+                <FormSelect id="jef-remote" value={form.remoteWorkStatus} onChange={(v) => updateForm("remoteWorkStatus", v)} options={REMOTE_WORK_STATUSES} />
+              </FormGroup>
             </FormSection>
-            <FormSection title="候補者へのメッセージ" desc="採用担当者から候補者へのメッセージ。求職者側の求人詳細ページに表示されます。">
-              <FormTextarea id="jef-message-to-candidates" value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：BtoCマーケティングの経験を活かして、社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={5} maxLength={500} />
-            </FormSection>
-            <FormSection title="なぜ今採用するか" desc="採用背景・ビジネス課題・チームの状況を記述してください。求職者の意欲を高めます。">
-              <FormTextarea id="jef-why-hire" value={form.whyHire} onChange={(v) => updateForm("whyHire", v)} placeholder="例：プロダクトの急成長にともない、PMが1名から3名体制に拡充する必要があります。新機能ロードマップの推進を担うポジションです。" rows={4} maxLength={600} />
-            </FormSection>
-            <FormSection title="チーム構成" desc="人数・職種・チームの雰囲気などを記述してください。">
-              <FormTextarea id="jef-team-composition" value={form.teamComposition} onChange={(v) => updateForm("teamComposition", v)} placeholder="例：プロダクトチームはPM2名、エンジニア8名、デザイナー2名の12名構成。週1でチーム全体のレトロスペクティブを実施。" rows={4} maxLength={600} />
-            </FormSection>
-            <FormSection title="入社後90日でやること" desc="最初のミッション・期待役割を明示することで候補者の不安を解消できます。">
-              <FormTextarea id="jef-first-90-days" value={form.first90Days} onChange={(v) => updateForm("first90Days", v)} placeholder="例：1ヶ月目：既存プロダクトのオンボーディング・ユーザーインタビュー参加。2ヶ月目：小規模機能のPRD作成・実装レビュー。3ヶ月目：四半期OKRの一つを担当。" rows={4} maxLength={600} />
+
+            {/* ★勤務時間・休日（2026-09-02 追加）。⚠️ 自由入力にしてある（企業ごとに書き方が違う）。
+                   選択肢にするなら UI・API・DB の CHECK を3つ揃えること。 */}
+            <FormSection title="勤務時間と休日">
+              <FormGroup>
+                <FormLabel required={req("workHours")} htmlFor="jef-work-hours">勤務時間</FormLabel>
+                <FormInput id="jef-work-hours" value={form.workHours} onChange={(v) => updateForm("workHours", v)} placeholder="例：9:00〜18:00（休憩60分）、フレックスタイム制（コア11:00〜15:00）" />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel required={req("holidays")} htmlFor="jef-holidays">休日・休暇</FormLabel>
+                <FormInput id="jef-holidays" value={form.holidays} onChange={(v) => updateForm("holidays", v)} placeholder="例：完全週休2日制（土日祝）、年末年始、有給休暇（初年度10日）" />
+              </FormGroup>
+              <FormGroup style={{ marginBottom: 0 }}>
+                <FormLabel required={req("probation")} htmlFor="jef-probation">試用期間</FormLabel>
+                <FormInput id="jef-probation" value={form.probationPeriod} onChange={(v) => updateForm("probationPeriod", v)} placeholder="例：3ヶ月（条件の変更なし）" />
+                <Hint>試用期間が無い場合は「なし」と書いてください。</Hint>
+              </FormGroup>
             </FormSection>
           </>
         );
 
       case "requirements":
         return (
-          <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>求める人物像</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>必須スキル・歓迎スキル・求めるカルチャーフィットを記入してください。</p>
-            <FormSection title="スキル・経験">
-              <FormGroup>
-                <FormLabel>必須スキル・経験</FormLabel>
-                <RequirementsTagInput
-                  tags={form.requiredSkills}
-                  onTagsChange={(t) => updateForm("requiredSkills", t)}
-                  placeholder="スキルを入力して Enter..."
-                />
-                <Hint>業務遂行に必要不可欠なスキル・経験を記述してください。年齢・性別等の属性は記載しないでください。</Hint>
-              </FormGroup>
-              <FormGroup style={{ marginBottom: 0 }}>
-                <FormLabel optional>歓迎スキル・経験</FormLabel>
-                <RequirementsTagInput
-                  tags={form.preferredSkills}
-                  onTagsChange={(t) => updateForm("preferredSkills", t)}
-                  placeholder="歓迎スキルを入力して Enter..."
-                />
-              </FormGroup>
-            </FormSection>
-            <FormSection title="求めるカルチャーフィット" desc="スキルだけでは測れない、価値観・働き方のフィットについて記述してください。">
-              <FormTextarea id="jef-culture-fit" value={form.cultureFit} onChange={(v) => updateForm("cultureFit", v)} placeholder="例：データドリブンな意思決定を大切にしながらも、ユーザーの声に真摯に向き合える方。" rows={5} maxLength={500} />
-            </FormSection>
-          </>
+          <FormSection title="経験・スキル">
+            <FormGroup>
+              <FormLabel>必須の経験</FormLabel>
+              <RequirementsTagInput tags={form.requiredSkills} onTagsChange={(t) => updateForm("requiredSkills", t)} placeholder="経験・スキルを入力して Enter" />
+              <Hint>業務に欠かせない経験・スキルを書いてください。年齢・性別などの属性は書かないでください。</Hint>
+            </FormGroup>
+            <FormGroup style={{ marginBottom: 0 }}>
+              <FormLabel>歓迎する経験</FormLabel>
+              <RequirementsTagInput tags={form.preferredSkills} onTagsChange={(t) => updateForm("preferredSkills", t)} placeholder="経験・スキルを入力して Enter" />
+            </FormGroup>
+            {/* ⚠️★「求めるカルチャーフィット」の入力欄は 2026-10-11 に外した（求職者側に表示先が無いため）。
+                   **列（culture_fit）と既存の値は残してある。** `form.cultureFit` も送り続けるので値は消えない。 */}
+          </FormSection>
         );
 
       case "process":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>選考プロセス</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>候補者がイメージできるよう、選考のステップを記述してください。</p>
-            <FormSection title="選考ステップ" desc="通常の選考フローを記入してください。求職者側の求人ページに表示されます。">
-              <ProcessStepsEditor
-                steps={form.selectionSteps}
-                onStepsChange={(s) => updateForm("selectionSteps", s)}
-              />
+            <FormSection title="選考ステップ" desc="求職者側の求人ページに表示されます。">
+              <ProcessStepsEditor steps={form.selectionSteps} onStepsChange={(s) => updateForm("selectionSteps", s)} />
             </FormSection>
-            <FormSection title="選考期間の目安">
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <FormSection title="期間と入社時期">
+              <div className="jef-2col">
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel htmlFor="jef-selection-duration">カジュアル面談から内定まで</FormLabel>
-                  <FormInput id="jef-selection-duration" value={form.selectionDuration} onChange={(v) => updateForm("selectionDuration", v)} placeholder="例：3-4週間" />
+                  <FormLabel htmlFor="jef-selection-duration">内定までの期間</FormLabel>
+                  <FormInput id="jef-selection-duration" value={form.selectionDuration} onChange={(v) => updateForm("selectionDuration", v)} placeholder="例：3〜4週間" />
                 </FormGroup>
                 <FormGroup style={{ margin: 0 }}>
-                  <FormLabel optional htmlFor="jef-start-date">入社可能時期</FormLabel>
+                  <FormLabel htmlFor="jef-start-date">入社時期</FormLabel>
                   <FormSelect id="jef-start-date" value={form.startDatePreference} onChange={(v) => updateForm("startDatePreference", v)} options={DURATION_OPTIONS} />
                 </FormGroup>
               </div>
@@ -1167,194 +808,247 @@ export function JobEditForm({
           </>
         );
 
-      case "assignee":
+      case "more":
         return (
           <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>採用担当者</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>この求人の採用担当者を選択してください。複数選択可能。</p>
-            <FormSection title="担当者選択" desc="チームメンバーから、この求人の担当者を選んでください。">
-              {/* ★0件のときは架空の人を出さず、行き先を示す（2026-09-18）。 */}
-              {effectiveTeam.length === 0 && (
-                <div style={{
-                  padding: "20px 18px", borderRadius: 10, textAlign: "center",
-                  background: "var(--bg-tint)", border: "1px dashed var(--line)",
-                  fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9,
-                }}>
-                  選べる担当者がいません。<br />
-                  <a href="/biz/members" style={{ color: "var(--royal)", fontWeight: 600 }}>メンバーと権限</a>
-                  {" "}でメンバーを追加すると、ここから選べるようになります。
-                </div>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {effectiveTeam.map((member) => {
-                  const isActive = form.assigneeIds.includes(member.id);
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, margin: "0 0 16px" }}>
+              書かなくても公開申請できます。書くと、求職者が応募するかを決めやすくなります。
+            </p>
+            <MoreGroup title="なぜ今採用するか" filled={!!form.whyHire.trim()}>
+              <FormTextarea id="jef-why-hire" ariaLabel="なぜ今採用するか" value={form.whyHire} onChange={(v) => updateForm("whyHire", v)} placeholder="例：プロダクトの成長にともない、PMを1名から3名体制にします。" rows={4} maxLength={600} />
+            </MoreGroup>
+            <MoreGroup title="チーム構成" filled={!!form.teamComposition.trim()}>
+              <FormTextarea id="jef-team-composition" ariaLabel="チーム構成" value={form.teamComposition} onChange={(v) => updateForm("teamComposition", v)} placeholder="例：PM2名、エンジニア8名、デザイナー2名の12名。" rows={4} maxLength={600} />
+            </MoreGroup>
+            <MoreGroup title="入社後90日でやること" filled={!!form.first90Days.trim()}>
+              <FormTextarea id="jef-first-90-days" ariaLabel="入社後90日でやること" value={form.first90Days} onChange={(v) => updateForm("first90Days", v)} placeholder="例：1か月目はオンボーディング。2か月目に小さな機能のPRDを書きます。" rows={4} maxLength={600} />
+            </MoreGroup>
+            <MoreGroup title="候補者へのメッセージ" filled={!!form.messageToCandidates.trim()}>
+              <FormTextarea id="jef-message-to-candidates" ariaLabel="候補者へのメッセージ" value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={4} maxLength={500} />
+            </MoreGroup>
+            <MoreGroup title="事業のかたち" filled={!!form.businessModel}>
+              <Hint>どういう売り方・提供のしかたの事業かを選びます。業界とは別の軸です。</Hint>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                {BUSINESS_MODELS.map((m) => {
+                  const active = form.businessModel === m.key;
                   return (
-                    <button
-                      key={member.id}
-                      type="button"
-                      onClick={() => {
-                        const newIds = isActive
-                          ? form.assigneeIds.filter((id) => id !== member.id)
-                          : [...form.assigneeIds, member.id];
-                        updateForm("assigneeIds", newIds);
-                      }}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "18px 36px 1fr",
-                        gap: 12,
-                        alignItems: "center",
-                        padding: "10px 14px",
-                        background: isActive ? "var(--royal-50)" : "var(--bg-tint)",
-                        border: `1.5px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                        fontFamily: "inherit",
-                        textAlign: "left",
-                      }}
-                    >
-                      {/* Checkbox */}
-                      <div style={{
-                        width: 18, height: 18,
-                        border: `2px solid ${isActive ? "var(--royal)" : "var(--line)"}`,
-                        borderRadius: 4,
-                        background: isActive ? "var(--royal)" : "transparent",
-                        flexShrink: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {isActive && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-                            <path d="M20 6L9 17l-5-5"/>
-                          </svg>
-                        )}
-                      </div>
-                      {/* Avatar */}
-                      <div style={{
-                        width: 36, height: 36, borderRadius: "50%",
-                        background: member.gradient, color: "#fff",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 600, fontSize: 14,
-                      }}>
-                        {member.initial}
-                      </div>
-                      {/* Info */}
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{member.name}</div>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{member.role}</div>
-                      </div>
+                    <button key={m.key} type="button" aria-pressed={active} title={m.desc || undefined}
+                      onClick={() => updateForm("businessModel", active ? "" : m.key)} style={chipStyle(active)}>
+                      {m.label}
                     </button>
                   );
                 })}
               </div>
-            </FormSection>
-          </>
-        );
+            </MoreGroup>
 
-      case "settings":
-        return (
-          <>
-            <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 24, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>公開設定</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 28, lineHeight: 1.9 }}>求人の公開状態を選択してください。新規・編集後は運営審査を経て公開されます。</p>
-            <FormSection title="採用温度感" desc="「HOT」にすると求職者側の求人カードに強調バッジが表示されます。積極的に採用したいポジションに設定してください。">
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {([
-                  { value: "open", label: "OPEN", sublabel: "通常募集", color: "var(--success-ink)", bg: "var(--success-soft)" },
-                  { value: "hot",  label: "HOT",  sublabel: "積極採用中", color: "var(--error-ink)", bg: "#FEE2E2" },
-                ] as const).map((opt) => {
-                  const isSelected = form.urgency === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updateForm("urgency", opt.value)}
-                      style={{
-                        padding: "14px 16px",
-                        border: `2px solid ${isSelected ? opt.color : "var(--line)"}`,
-                        borderRadius: 10,
-                        background: isSelected ? opt.bg : "#fff",
-                        cursor: "pointer",
-                        textAlign: "left" as const,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <div style={{
-                        fontSize: 15, fontWeight: 800, color: isSelected ? opt.color : "var(--ink-mute)",
-                        fontFamily: "var(--font-inter), var(--font-noto)", letterSpacing: "0.05em", marginBottom: 3,
-                      }}>
-                        {opt.label}
-                      </div>
-                      <div style={{ fontSize: 12, color: isSelected ? opt.color : "var(--ink-mute)", fontWeight: 600 }}>
-                        {opt.sublabel}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </FormSection>
-            <FormSection title="公開状態">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  { icon: "👁", title: "公開申請する", desc: "「公開申請」ボタンを押すと、運営審査（2-3営業日）を経て、OPINIO上で求職者に公開されます。", isPublic: true },
-                  { icon: "🔒", title: "下書きとして保存", desc: "求人を下書きとして保存します。公開はされません。後で編集を続けることができます。", isPublic: false },
-                ].map((opt) => (
-                  <div key={String(opt.isPublic)} style={{
-                    display: "flex", gap: 12,
-                    padding: "14px 16px",
-                    background: "var(--bg-tint)",
-                    border: "1.5px solid var(--line)",
-                    borderRadius: 10,
-                  }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: 8,
-                      background: opt.isPublic ? "var(--success)" : "var(--ink-mute)",
-                      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0, fontSize: 14,
-                    }}>
-                      {opt.isPublic ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{opt.title}</div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7 }}>{opt.desc}</div>
+            {showSales && (
+              <MoreGroup title="営業職の項目" filled={!!(form.oteMin || form.oteMax || form.salesSegment.length || form.salesHunterFarmer || form.incentiveNote.trim())}>
+                <FormGroup>
+                  <FormLabel htmlFor="jef-ote-min">OTE（目標達成時の想定年収）</FormLabel>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr) auto", gap: 8, alignItems: "center" }}>
+                    <FormInput value={form.oteMin} onChange={(v) => updateForm("oteMin", v)} placeholder="800" type="number" id="jef-ote-min" />
+                    <span style={{ color: "var(--ink-mute)", fontWeight: 600 }}>〜</span>
+                    <FormInput value={form.oteMax} onChange={(v) => updateForm("oteMax", v)} placeholder="1400" type="number" id="jef-ote-max" />
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>万円</span>
+                  </div>
+                  <Hint>インセンティブ込みで目標を達成したときの年収です。</Hint>
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>担当セグメント</FormLabel>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {SALES_SEGMENTS.map((seg) => {
+                      const active = form.salesSegment.includes(seg.key);
+                      return (
+                        <button key={seg.key} type="button" aria-pressed={active} title={seg.desc} style={chipStyle(active)}
+                          onClick={() => updateForm("salesSegment", active ? form.salesSegment.filter((s) => s !== seg.key) : [...form.salesSegment, seg.key])}>
+                          {seg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FormGroup>
+                <FormGroup>
+                  <FormLabel>新規／既存</FormLabel>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {SALES_HUNTER_FARMER_OPTIONS.map((opt) => {
+                      const active = form.salesHunterFarmer === opt.key;
+                      return (
+                        <button key={opt.key} type="button" aria-pressed={active} title={opt.desc} style={chipStyle(active)}
+                          onClick={() => updateForm("salesHunterFarmer", active ? "" : opt.key)}>
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FormGroup>
+                <FormGroup style={{ marginBottom: 0 }}>
+                  <FormLabel htmlFor="jef-incentive-note">インセンティブの補足</FormLabel>
+                  <FormTextarea id="jef-incentive-note" value={form.incentiveNote} onChange={(v) => updateForm("incentiveNote", v)} placeholder="例：コミッション上限なし。四半期ごとに目標設定・評価。" rows={2} maxLength={500} />
+                </FormGroup>
+              </MoreGroup>
+            )}
+
+            {showTech && (
+              <MoreGroup title="使う技術" filled={form.techStack.length > 0}>
+                <Hint>このポジションで主に使う技術・ツールを選んでください。</Hint>
+                {TECH_STACK_CATEGORIES.map((cat) => (
+                  <div key={cat.label} style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 8 }}>{cat.label}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                      {cat.items.map((tech) => {
+                        const active = form.techStack.includes(tech);
+                        return (
+                          <button key={tech} type="button" aria-pressed={active} style={chipStyle(active)}
+                            onClick={() => updateForm("techStack", active ? form.techStack.filter((t) => t !== tech) : [...form.techStack, tech])}>
+                            {active && <span style={{ marginRight: 4 }}>✓</span>}{tech}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
-              </div>
+              </MoreGroup>
+            )}
+
+            <MoreGroup title="部門" filled={!!(departmentId || form.department.trim())}>
+              {departments.length > 0 ? (
+                <>
+                  <select
+                    id="jef-department"
+                    aria-label="部門"
+                    value={departmentId}
+                    onChange={(e) => { setDepartmentId(e.target.value); if (currentJobId) triggerAutosave(); }}
+                    style={{
+                      width: "100%", padding: "10px 32px 10px 12px", border: "1.5px solid var(--line)", borderRadius: 8,
+                      fontFamily: "inherit", fontSize: 13, color: "var(--ink)", background: "#fff", cursor: "pointer", outline: "none",
+                    }}
+                  >
+                    <option value="">選択しない</option>
+                    {/* ★`<optgroup>` は入れ子にできないので、字下げした `<option>` を並べる（2026-09-19）。
+                           並べ替えは `flattenTree` を通すこと。 */}
+                    {flattenTree(departments).map(({ node, depth }) => (
+                      <option key={node.id} value={node.id}>
+                        {"　".repeat(depth - 1)}{depth > 1 ? "└ " : ""}{node.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Hint>ここに無い部門は <a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> で追加できます。</Hint>
+                </>
+              ) : (
+                <>
+                  <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
+                  <Hint><a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> で部門を登録すると、ここで選べるようになります。</Hint>
+                </>
+              )}
+            </MoreGroup>
+
+            {/* 自社での呼び方。⚠️ 代表職種が決まっていないと紐づけ先が無いので出さない */}
+            {roles.length > 0 && selectedRoles.some((r) => r.isPrimary) && (
+              <MoreGroup title="自社での呼び方" filled={!!form.companyRoleName.trim()}>
+                <FormInput id="jef-company-role-name" list="jef-company-role-suggestions" value={form.companyRoleName} onChange={(v) => updateForm("companyRoleName", v)} placeholder="例：CXデザイナー" />
+                <datalist id="jef-company-role-suggestions">
+                  {companyRoleSuggestions.map((n) => <option key={n} value={n} />)}
+                </datalist>
+                {deptRoleNames.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                    <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>この部門の職種：</span>
+                    {deptRoleNames.map((n) => {
+                      const active = form.companyRoleName === n;
+                      return (
+                        <button key={n} type="button" onClick={() => updateForm("companyRoleName", n)} aria-pressed={active}
+                          style={{ ...chipStyle(active), fontSize: 12, padding: "3px 10px" }}>
+                          {n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <Hint>求人ページにはこの呼び方が出ます。検索や絞り込みは「職種」で選んだものを使います。</Hint>
+              </MoreGroup>
+            )}
+          </>
+        );
+
+      case "review":
+        return (
+          <>
+            <FormSection title="採用担当者">
+              {/* ★0件のときは架空の人を出さず、行き先を示す（2026-09-18）。 */}
+              {effectiveTeam.length === 0 ? (
+                <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9 }}>
+                  選べる担当者がいません。<a href="/biz/members" style={{ color: "var(--royal)", fontWeight: 600 }}>メンバーと権限</a> でメンバーを追加すると選べるようになります。
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {effectiveTeam.map((member) => {
+                    const active = form.assigneeIds.includes(member.id);
+                    return (
+                      <button key={member.id} type="button" aria-pressed={active}
+                        onClick={() => updateForm("assigneeIds", active ? form.assigneeIds.filter((id) => id !== member.id) : [...form.assigneeIds, member.id])}
+                        style={{ ...chipStyle(active), display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {active && <span aria-hidden="true">✓</span>}{member.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </FormSection>
-            {/* 公開申請エリア */}
-            <div style={{
-              background: "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)",
-              border: "1px solid var(--royal-100)",
-              borderRadius: 14, padding: "24px 28px",
-              marginTop: 24, textAlign: "center",
-            }}>
-              <div style={{ fontFamily: "var(--font-noto-serif)", fontSize: 16, fontWeight: 600, color: "var(--royal)", marginBottom: 8 }}>
-                準備ができたら、公開申請をしてください
+
+            <FormSection title="採用の温度感">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {([
+                  { value: "open", label: "OPEN（通常募集）" },
+                  { value: "hot",  label: "HOT（積極採用中）" },
+                ] as const).map((opt) => (
+                  <button key={opt.value} type="button" aria-pressed={form.urgency === opt.value}
+                    onClick={() => updateForm("urgency", opt.value)} style={chipStyle(form.urgency === opt.value)}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16 }}>
-                公開申請後、OPINIO運営が内容を確認します（通常2-3営業日）。<br/>審査通過後、求職者に公開されます。
+              <Hint>HOT にすると、求職者側の求人カードに目立つ印が付きます。</Hint>
+            </FormSection>
+
+            {/* 公開申請 */}
+            <div data-state={missing.length === 0 ? "ready" : "missing"} style={{
+              background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px", marginTop: 8,
+            }}>
+              {missing.length > 0 ? (
+                <>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
+                    公開申請の前に、あと{missing.length}つ入力してください
+                  </div>
+                  <ul style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                    {missing.map((r) => (
+                      <li key={r.key}>
+                        <button type="button" onClick={() => goToField(r)}
+                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "var(--royal)", textDecoration: "underline" }}>
+                          {r.label}（{STEP_DEFS.find((s) => s.id === r.step)?.label}）
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>公開申請できます</div>
+              )}
+              <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 14 }}>
+                申請のあと、OPINIO 運営が内容を確認します（通常2〜3営業日）。確認が済むと求職者に公開されます。
               </div>
               <button
                 type="button"
-                onClick={mode === "new" ? handleCreate : handlePublish}
-                disabled={isCreating || isPublishing}
+                onClick={handlePublish}
+                disabled={isPublishing || missing.length > 0 || !currentJobId}
                 style={{
-                  padding: "12px 32px",
-                  background: "var(--royal)", color: "#fff",
-                  border: "none", borderRadius: 10,
-                  fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  boxShadow: "0 4px 14px rgba(0, 35, 102, 0.2)",
+                  padding: "12px 28px", border: "none", borderRadius: 10, fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+                  background: isPublishing || missing.length > 0 || !currentJobId ? "var(--line)" : "var(--royal)",
+                  color: isPublishing || missing.length > 0 || !currentJobId ? "var(--ink-mute)" : "#fff",
+                  cursor: isPublishing || missing.length > 0 || !currentJobId ? "not-allowed" : "pointer",
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                公開申請する
+                {isPublishing ? "送信中…" : "公開申請する"}
               </button>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>
                 公開申請することで、求人掲載ガイドラインに同意したものとみなされます。
               </div>
             </div>
@@ -1369,157 +1063,108 @@ export function JobEditForm({
   // ── レンダリング ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - var(--biz-header-h))" }}>
+    <div className="jef-root">
+      <style>{`
+        .jef-root { display: flex; flex-direction: column; height: calc(100vh - var(--biz-header-h)); }
+        .jef-body { display: grid; grid-template-columns: 240px minmax(0,1fr); flex: 1; overflow: hidden; }
+        .jef-2col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+        .jef-main { overflow-y: auto; padding: 28px 40px 60px; max-width: 900px; }
+        .jef-card { padding: 24px 28px; }
+        .jef-more summary { list-style: none; }
+        .jef-more summary::-webkit-details-marker { display: none; }
+        .jef-more[open] .jef-more-plus { display: none; }
+        .jef-more:not([open]) .jef-more-minus { display: none; }
+        @media (max-width: 767px) {
+          .jef-root { height: auto; }
+          .jef-body { grid-template-columns: minmax(0,1fr); overflow: visible; }
+          .jef-2col { grid-template-columns: minmax(0,1fr); }
+          .jef-main { padding: 20px 16px 48px; overflow-y: visible; }
+          .jef-card { padding: 18px 16px; }
+          .jef-head-title { display: none; }
+        }
+      `}</style>
 
       {/* 編集サブヘッダー */}
       <div style={{
-        height: 52, flexShrink: 0,
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "0 24px",
-        background: "rgba(255,255,255,0.96)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--line)",
+        height: 52, flexShrink: 0, display: "flex", alignItems: "center", gap: 12, padding: "0 16px",
+        background: "rgba(255,255,255,0.96)", borderBottom: "1px solid var(--line)",
       }}>
         <Link href="/biz/jobs" style={{
-          display: "flex", alignItems: "center", gap: 6,
-          paddingRight: 16, borderRight: "1px solid var(--line)",
-          color: "var(--ink-soft)", fontSize: 13, fontWeight: 500,
-          textDecoration: "none", flexShrink: 0,
-          transition: "color 0.15s",
-        }}
-          onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = "var(--royal)")}
-          onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)")}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-          求人一覧に戻る
+          display: "flex", alignItems: "center", gap: 6, paddingRight: 12, borderRight: "1px solid var(--line)",
+          color: "var(--ink-soft)", fontSize: 13, fontWeight: 500, textDecoration: "none", flexShrink: 0,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          求人一覧
         </Link>
-
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-          <span style={{
-            fontSize: 13, fontWeight: 600, color: "var(--ink)",
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <span className="jef-head-title" style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>
             {pageTitle}
           </span>
-          <span style={saveStatusStyle}>
-            {saveState === "saving" ? (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ) : saveState === "saved" ? (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            ) : saveState === "error" ? (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            ) : null}
-            {saveStatusText}
-          </span>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            type="button"
-            onClick={() => {
-              /* ⚠️★2026-09-02 まで公開ページ `/jobs/{id}` を開いており、
-                     **下書きでは必ず 404** だった（公開ページは published かつ is_test=false しか返さない）。
-                     つまり企業は公開申請する前に見た目を確認できなかった。
-                     `/biz/jobs/{id}/preview` は force-dynamic ＋ noindex ＋ 所属チェック付きで、
-                     描画は公開ページと同じ `JobDetailView` を使う。 */
-              if (currentJobId) window.open(`/biz/jobs/${currentJobId}/preview`, "_blank", "noopener,noreferrer");
-            }}
-            disabled={!currentJobId}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", fontSize: 13, fontWeight: 600,
-              border: "1px solid var(--line)", borderRadius: 8,
-              background: "#fff", color: "var(--ink)", cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            プレビュー
-          </button>
-          {mode === "new" ? (
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={isCreating || !form.title.trim()}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", fontSize: 13, fontWeight: 600,
-                border: "1px solid var(--royal)", borderRadius: 8,
-                background: isCreating || !form.title.trim() ? "var(--ink-mute)" : "var(--royal)",
-                color: "#fff", cursor: isCreating || !form.title.trim() ? "not-allowed" : "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              {isCreating ? "作成中..." : "作成して続ける"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={isPublishing}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 16px", fontSize: 13, fontWeight: 600,
-                border: "1px solid var(--royal)", borderRadius: 8,
-                background: isPublishing ? "var(--ink-mute)" : "var(--royal)",
-                color: "#fff", cursor: isPublishing ? "not-allowed" : "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              {isPublishing ? "送信中..." : "公開申請する"}
-            </button>
+          {saveStatusText && (
+            <span role="status" style={{ fontSize: 12, color: saveStatusColor, flexShrink: 0 }}>{saveStatusText}</span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            /* `/biz/jobs/{id}/preview` は所属チェック付き・描画は公開ページと同じ `JobDetailView`。 */
+            if (currentJobId) window.open(`/biz/jobs/${currentJobId}/preview`, "_blank", "noopener,noreferrer");
+          }}
+          disabled={!currentJobId}
+          title={currentJobId ? undefined : "タイトルを入れると下書きが作られ、プレビューできます"}
+          style={{
+            padding: "7px 14px", fontSize: 13, fontWeight: 600, border: "1px solid var(--line)", borderRadius: 8,
+            background: "#fff", color: currentJobId ? "var(--ink)" : "var(--ink-mute)", cursor: currentJobId ? "pointer" : "not-allowed", flexShrink: 0,
+          }}
+        >
+          プレビュー
+        </button>
       </div>
 
-      {/* 2カラム：サブナビ + フォーム */}
-      <div className="biz-2col" style={{
-        display: "grid",
-        gridTemplateColumns: "240px 1fr",
-        flex: 1,
-        overflow: "hidden",
-      }}>
+      {/* 2カラム：目次 + フォーム */}
+      <div className="jef-body">
         <JobEditSubNav
-          sections={sections}
-          activeSection={activeSection}
-          onSectionClick={setActiveSection}
-          recommended={recommended}
-          completionPercent={completionPercent}
+          steps={steps}
+          activeStep={current.id}
+          onStepClick={goToStep}
+          missing={missing}
+          onMissingClick={goToField}
         />
 
-        <main style={{
-          overflowY: "auto",
-          padding: "32px 40px 60px",
-          maxWidth: 900,
-        }}>
-          {/* 差し戻しバナー（edit + rejected のみ） */}
+        <main id="jef-main" className="jef-main">
           {mode === "edit" && initialJob?.status === "rejected" && initialJob.rejectionReason && (
-            <JobRejectionBanner
-              reason={initialJob.rejectionReason}
-              date={initialJob.rejectionDate}
-              reviewer={initialJob.rejectionReviewer}
-            />
+            <JobRejectionBanner reason={initialJob.rejectionReason} date={initialJob.rejectionDate} reviewer={initialJob.rejectionReviewer} />
           )}
-          {/* エラーバナー */}
           {errorMessage && (
             <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "12px 16px", marginBottom: 20, borderRadius: 8,
-              background: "var(--error-soft)", border: "1px solid #FCA5A5",
-              fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
+              display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", marginBottom: 20, borderRadius: 8,
+              background: "var(--error-soft)", border: "1px solid #FCA5A5", fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
             }} role="alert">
-              <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span>{errorMessage}</span>
-              <button type="button" onClick={() => setErrorMessage(null)} style={{
-                background: "none", border: "none", cursor: "pointer",
-                color: "var(--error)", fontSize: 16, padding: "0 4px",
-              }}>×</button>
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span style={{ flex: 1, minWidth: 0 }}>{errorMessage}</span>
+              <button type="button" aria-label="閉じる" onClick={() => setErrorMessage(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--error)", fontSize: 16, padding: "0 4px" }}>×</button>
             </div>
           )}
-          {renderSection()}
+
+          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>ステップ {stepIndex + 1} / {STEP_DEFS.length}</div>
+          <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 500, color: "var(--ink)", margin: "0 0 20px" }}>{current.label}</h1>
+
+          {renderStep()}
+
+          {/* ★次のステップへ（行き先を名前で出す）。最後は「確認して公開申請へ」 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 24, flexWrap: "wrap" }}>
+            {prev && (
+              <button type="button" onClick={() => goToStep(prev.id)}
+                style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, border: "1px solid var(--line)", borderRadius: 8, background: "#fff", color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit" }}>
+                戻る
+              </button>
+            )}
+            {next && (
+              <button type="button" onClick={() => goToStep(next.id)}
+                style={{ marginLeft: "auto", padding: "10px 20px", fontSize: 14, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
+                {next.id === "review" ? "確認して公開申請へ" : `次へ：${next.label}`}
+              </button>
+            )}
+          </div>
         </main>
       </div>
     </div>
