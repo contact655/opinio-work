@@ -5,7 +5,7 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
   CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
-  filterCandidates, formatJstMonthDay, isNewSince, sortCandidates,
+  filterCandidates, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
@@ -74,6 +74,18 @@ export type { Candidate };
 
 
 // 都道府県を location 文字列から抽出（先頭の都道府県部分）
+/** ★「〇日前に更新」（2026-10-11 / カードの右下）。⚠️ 記録が無い（null）・読めないときは出さない */
+function relativeUpdated(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const days = Math.max(0, Math.floor((Date.now() - t) / (24 * 60 * 60 * 1000)));
+  if (days === 0) return "今日更新";
+  if (days < 60) return `${days}日前に更新`;
+  if (days < 365) return `${Math.floor(days / 30)}か月前に更新`;
+  return `${Math.floor(days / 365)}年前に更新`;
+}
+
 function extractPrefecture(location: string | null): string | null {
   if (!location) return null;
   const PREFS = [
@@ -1000,201 +1012,84 @@ export default function CandidatesClient({
               </>)}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
               {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
                 const isSel = selected === c.id;
                 return (
                   <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"}
-                    /* ⚠️ 枠線は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
+                    /* ⚠️ 枠線と背景は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
                     className={isSel ? "cand-card is-selected" : "cand-card"}
-                    style={{
-                      background: "#fff",
-                      borderRadius: 14,
-                      overflow: "hidden",
-                      display: "flex",
-                      transition: "box-shadow 0.15s",
-                    }}
                   >
-                    {/* ★カード本体はプロフィールへのリンク（同じタブ）。1280px 以上ではクリックを横取りして右に出す。
-                           ⚠️ ボタン類（声かけ・気になる）はリンクの外に置く（リンクの中にボタンを入れない） */}
-                    {/* ⚠️ 余白・間隔・折り返しは CSS のクラス側（下の style）。ここに書かない */}
-                    <div className="cand-card-body">
-                      <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)}>
-                        {/* アバター。⚠️ 人によって色を変えない（上の注記）。 */}
-                      {/* ⚠️ 隠すのは外側の箱（アイコン自身は style に display を持つので、クラスで隠せない） */}
-                      <div className="cand-card-avatar">
-                        <div style={neutralAvatarStyle(48, 18)}>
-                          {c.name.charAt(0) || "?"}
-                        </div>
+                    {/* ★3行のカード（2026-10-11 / 柴さんの指示。1画面に6〜7人）。中身は変えず並べ方だけ:
+                           1行目 名前・社会人〇年（・転職検討中）／右端に「気になる」
+                           2行目 職種・会社・勤務地（灰色1行・末尾は…）
+                           3行目 チップ（職種と経験年数・合うところ・社内メモ）／右端に「〇日前に更新」
+                        ⚠️ 本人が書いた1行（headline）と希望勤務地はカードから外した（プレビューと詳細に出る）。
+                        ⚠️ ボタン類（気になる・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
+                    <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
+                    {/* アバター。⚠️ 人によって色を変えない。⚠️ 上そろえ */}
+                    <div className="cand-card-avatar" aria-hidden="true">
+                      <div style={neutralAvatarStyle(40, 15)}>{c.name.charAt(0) || "?"}</div>
+                    </div>
+                    <div className="cand-card-main">
+                      {/* 1行目。⚠️ 年齢は出さない（2026-08-20）。社会人年数だけ */}
+                      <div className="cand-card-row1">
+                        <span className="cand-card-name" title={c.name}>{c.name}</span>
+                        {tenure && <span className="cand-card-sub">{tenure}</span>}
+                        {/* ⚠️ 状態は灰色の小さな文字（色付きのバッジにしない） */}
+                        {c.isActivelyLooking && <span data-state="actively-looking" className="cand-card-sub">転職検討中</span>}
+                        {c.stage !== undefined && (
+                          <span className="cand-card-bookmark"><InterestToggle candidateUserId={c.id} initialStage={c.stage} compact /></span>
+                        )}
                       </div>
-
-                      {/* メイン情報 */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* 名前 + 年齢 + バッジ */}
-                        <div className="cand-card-namerow">
-                          <span className="cand-card-name" title={c.name}>{c.name}</span>
-                          {/* ⚠️★カードに送れるかどうかの状態は出さない（2026-10-11 / 柴さんの指示）。
-                                 「メッセージを送れます」「返信を待っています・あと〇日」は外した。戻さないこと。
-                                 送れるかは、切り替え「メッセージを受け取る方のみ」とプレビュー・カードのボタンで分かる */}
-                          {/* ⚠️ **年齢は出さない**（2026-08-20）。一覧に年齢を出さない方針。
-                                 出すのは職務要件として意味のある社会人年数だけ。 */}
-                          {tenure && (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>
-                          )}
-                          {/* ⚠️★**緑にしないこと**（2026-09-20 に直した）。ui-conventions の
-                                 「色の役割」で**緑は金銭的にプラスの条件のみ**と決まっている
-                                 （年収レンジ・退職金・SO/RSU）。状態のバッジには使わない。 */}
-                          {/* ★接点の数（段1）。⚠️ 0件・取れなかったときは出さない */}
-                          {c.touchpoints && c.touchpoints.length > 0 && (
-                            <span data-state="touchpoint-count" style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>合うところ {c.touchpoints.length}</span>
-                          )}
-                          {c.isActivelyLooking && (
-                            /* ⚠️ 状態は色付きのバッジにせず灰色の小さな文字（2026-10-11 / モックの共通ルール） */
-                            <span data-state="actively-looking" style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>転職検討中</span>
-                          )}
-                          {/* ⚠️★「メンター」バッジは 2026-09-20 に削除した。**戻さないこと。**
-                                 ① ui-conventions は**紫を使わない**と決めている
-                                 ② **メンター機能そのものが無い**（`ow_mentors` は migration 140 で
-                                    DROP 済み。CLAUDE.md「メンター機能自体が無い」）
-                                 ③ 実測（2026-09-20）: `is_mentor = true` は**全51人中0人**
-                                    ＝ このバッジは一度も出たことがない
-                              ⚠️★**`ow_users.is_mentor` の列ごと 2026-09-27 に DROP した。**
-                                 `isMentor` は型からも消えている。**足し直さないこと。** */}
-                        </div>
-
-                        {/* ★2行目以降（2026-10-11 まで 1024〜1279px で隠していた。分割を 1280px からにしたので常に出す） */}
-                        <div className="cand-card-extra">
-                        {/* ★プロフィールの更新日（段1）。⚠️ 送った・返事待ちの状態は 2026-10-11 にカードから外した（ボタンが示す） */}
-                        {(() => {
-                          const edited = formatJstMonthDay(c.profileEditedAt);
-                          if (!edited) return null;
-                          return (
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, color: "var(--ink-mute)", marginBottom: 6 }}>
-                              <span>プロフィール更新 {edited}</span>
+                      {/* 2行目。⚠️ 勤務地はチップにせず文字で（2026-10-11）。現職が分からないときは希望職種 */}
+                      {(() => {
+                        const pref = c.location ? (extractPrefecture(c.location) ?? c.location) : null;
+                        const parts = (c.currentRole || c.currentCompany)
+                          ? [c.currentRole, c.currentCompany, pref]
+                          : [c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null, pref];
+                        const line = parts.filter(Boolean).join(" ・ ");
+                        return line ? <div className="cand-card-row2" title={line}>{line}</div> : null;
+                      })()}
+                      {/* 3行目 */}
+                      {(() => {
+                        const skills = c.autoSkills ?? [];
+                        const showRole = !!c.roleName && !skills.some((sk) => sk.label === c.roleName);
+                        const tp = c.touchpoints?.length ?? 0;
+                        const notes = noteCountOverride[c.id] ?? c.noteCount ?? 0;
+                        const updated = relativeUpdated(c.profileEditedAt);
+                        if (skills.length === 0 && !showRole && !tp && !notes && !updated) return null;
+                        return (
+                          <div className="cand-card-row3">
+                            <div className="cand-card-chips">
+                              {/* ★できること（職種 × 年数）。⚠️ 職歴からの計算（本人の入力ではない） */}
+                              {skills.map((sk) => (
+                                <span key={sk.label} className="cand-chip">{sk.label}<span className="cand-chip-sub">{sk.band}</span></span>
+                              ))}
+                              {/* ⚠️ 職種チップは「できること」に同じ名前が無いときだけ（同じ語を2回出さない） */}
+                              {showRole && <span className="cand-chip">{c.roleName}</span>}
+                              {tp > 0 && <span data-state="touchpoint-count" className="cand-chip">合うところ {tp}</span>}
+                              {/* ★社内メモの件数。⚠️ フラグがオフ（undefined）・0件なら出さない */}
+                              {notes > 0 && (
+                                <span data-state="card-note-count" className="cand-chip">
+                                  <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+                                  社内メモ {notes}
+                                </span>
+                              )}
                             </div>
-                          );
-                        })()}
-                        {/* ★★本人が書いた1行（2026-09-23 / 柴さんの指示）。
-                               ⚠️★**氏名の直下・職種より上**に置く。本人側の入力欄が
-                                  「名前の直下の1行」として説明しているのがこれで、
-                                  `completion.ts` もその前提で配点を動かしている。
-                               ⚠️★**職種・会社名の行に混ぜないこと。** あちらはマスタ由来の
-                                  機械的な属性で、自由記述を同じ行に入れると読み分けられない。
-                               ⚠️ 無い人には行ごと出さない。「—」で埋めない。 */}
-                        {c.headline && (
-                          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.5, overflowWrap: "anywhere" }}>
-                            {c.headline}
+                            {updated && <span className="cand-card-updated">{updated}</span>}
                           </div>
-                        )}
-
-                        {/* 職種 · 会社名 */}
-                        {(c.currentRole || c.currentCompany || c.desiredRoleNames.length > 0) && (
-                          <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.4 }}>
-                            {c.currentRole && <span style={{ fontWeight: 600, color: "var(--ink)" }}>{c.currentRole}</span>}
-                            {c.currentRole && c.currentCompany && <span style={{ color: "var(--ink-mute)" }}> · </span>}
-                            {c.currentCompany && <span>{c.currentCompany}</span>}
-                            {/* 現職が分からないときだけ希望職種を出す。複数あれば並べる */}
-                            {!c.currentRole && !c.currentCompany && c.desiredRoleNames.length > 0 && (
-                              <span style={{ color: "var(--ink-mute)" }}>
-                                希望: {c.desiredRoleNames.join("・")}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* ★できること（職種 × 年数）。2026-09-20。
-                               ⚠️ **本人が選んだスキルではなく職歴からの計算。**
-                                  ラベルは付けない（`/u/[id]` も手動スキルと混ぜて出す）。
-                               ⚠️ 空なら行ごと出さない。「なし」と書かない。
-                               ⚠️★事業領域は入っていない（社名を伏せた職歴から
-                                  企業側へ漏れるため。`buildRoleAutoSkills` の注記）。 */}
-                        {c.autoSkills && c.autoSkills.length > 0 && (
-                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
-                            {c.autoSkills.map((sk) => (
-                              <span key={sk.label} style={{
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                fontSize: 12, fontWeight: 600, padding: "2px 9px", borderRadius: 100,
-                                background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
-                              }}>
-                                {sk.label}
-                                <span style={{ fontWeight: 500, color: "var(--ink-mute)" }}>{sk.band}</span>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* 希望勤務地。⚠️ 表示のみ（絞り込みは別タスク）。
-                            ⚠️ 空なら行ごと出さない。「未設定」とも書かない。 */}
-                        {c.desiredPrefectures && c.desiredPrefectures.length > 0 && (
-                          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 6, lineHeight: 1.5 }}>
-                            希望勤務地: {c.desiredPrefectures.join("・")}
-                          </div>
-                        )}
-
-                        {/* ⚠️★「転職検討時期」の表示は 2026-08-27 に削除した。
-                               ⚠️ **同日に本人側の入力欄を消した**ので、残すと
-                                  「企業には見えるのに本人は直せない」状態になる。
-                                  列（`transfer_timing`）と値は残してある。
-                               ⚠️ 入力欄を戻すなら、ここも一緒に戻すこと。 */}
-
-                        {/* タグ行: 職種・居住地。
-                            職種は ow_roles 由来（2026-08-04）。
-                            以前は自由記述のスキルタグを検索対象にしていたが、
-                            表記揺れで絞り込みの精度が出ないためマスタの職種に置き換えた。
-                            旧スキルタグはカードに表示していなかったので、ここは新規表示。 */}
-                        {/* ⚠️★職種チップは「できること」に**同じ名前が無いときだけ**出す
-                               （2026-09-20）。出し分けないと、同じカードに
-                               「アカウントエグゼクティブ 10年以上」と
-                               「アカウントエグゼクティブ」が並んで**同じ語が2回**出る。
-                            ⚠️ 消してしまわないのは、職歴に開始日が無いなどで
-                               「できること」が空になる人がいるため（現職の職種は出したい）。 */}
-                        {((c.roleName && !(c.autoSkills ?? []).some((sk) => sk.label === c.roleName)) || c.location) && (
-                          <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
-                            {c.roleName && !(c.autoSkills ?? []).some((sk) => sk.label === c.roleName) && (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 600, padding: "2px 8px", borderRadius: 100, background: "var(--royal-50)", border: "1px solid var(--royal-100)", color: "var(--royal)" }}>
-                                {c.roleName}
-                              </span>
-                            )}
-                            {c.location && (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 500, padding: "2px 8px", borderRadius: 100, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                {extractPrefecture(c.location) ?? c.location}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      </div>
-
-                      </a>
-
-                      {/* 右: アクション。⚠️ 分割表示のときは声かけとプロフィールのボタンをプレビューに任せる（同じ入口を2つ並べない） */}
-                      <div className="cand-card-side">
-                        {c.stage !== undefined && <InterestToggle candidateUserId={c.id} initialStage={c.stage} />}
+                        );
+                      })()}
+                      {/* ★メッセージのボタン。⚠️ 1280px 以上はプレビューに任せて隠す（同じ入口を2つ並べない）。
+                             送れない人には何も出さない。「プロフィールを見る」はカード自体がリンクなので外した */}
+                      {c.approach && (c.approach.eligible || c.approach.sent) && (
                         <div className="cand-card-actions">
-                          {c.approach && (
-                            <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact hideUnavailable />
-                          )}
-                          {/* ⚠️★別タブにしない（2026-10-10 / 柴さんの指示）。同じタブで /u/[id] */}
-                          <a href={`/u/${c.id}`}
-                            style={{ fontSize: 12, color: "var(--royal)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 14px", borderRadius: 7, border: "1px solid var(--royal-100)", background: "var(--royal-50)", whiteSpace: "nowrap" }}>
-                            プロフィールを見る
-                          </a>
+                          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact hideUnavailable />
                         </div>
-                        {/* ★社内メモの件数（2026-10-11）。右下に小さく。⚠️ フラグがオフ（undefined）・0件なら出さない */}
-                        {(() => {
-                          const n = noteCountOverride[c.id] ?? c.noteCount;
-                          if (!n) return null;
-                          return (
-                            <span data-state="card-note-count" style={{ alignSelf: "flex-end", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-                              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-                              社内メモ {n}
-                            </span>
-                          );
-                        })()}
-                      </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1219,23 +1114,31 @@ export default function CandidatesClient({
       {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
       <style>{`
         .cand-wrap { padding: 16px 32px; max-width: 1400px; margin: 0 auto; }
-        .cand-card { border: 1px solid var(--line); }
-        .cand-card.is-selected { border-color: var(--royal); }
+        .cand-card { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
+        .cand-card.is-selected { border-color: var(--royal); background: var(--royal-50); }
         .cand-card .cand-card-link:focus-visible { outline: none !important; }
         .cand-card:has(.cand-card-link:focus-visible) { border-color: var(--royal); }
+        .cand-card:hover { border-color: var(--royal-100); }
+        .cand-card.is-selected:hover { border-color: var(--royal); }
         .cand-pane { display: none; }
-        .cand-card-body { flex: 1; display: flex; align-items: center; gap: 16px; padding: 14px 18px; min-width: 0; }
-        .cand-card-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; color: inherit; text-decoration: none; }
-        .cand-card-namerow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
-        .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); }
-        .cand-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
-        .cand-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        /* カード全体をリンクにする（中のボタンは z-index で上に出す） */
+        .cand-card-link { position: absolute; inset: 0; border-radius: 12px; z-index: 0; }
+        .cand-card-avatar { flex-shrink: 0; }
+        .cand-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .cand-card-row1 { display: flex; align-items: center; gap: 8px; min-width: 0; height: 20px; line-height: 20px; }
+        .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cand-card-sub { font-size: 12px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; }
+        .cand-card-bookmark { margin-left: auto; margin-right: -6px; height: 20px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
+        .cand-card-row2 { font-size: 13px; line-height: 17px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cand-card-row3 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .cand-card-chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; flex: 1; }
+        .cand-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; line-height: 17px; font-weight: 600; padding: 0 8px; border-radius: 100px; background: var(--bg-tint); border: 1px solid var(--line); color: var(--ink-soft); white-space: nowrap; }
+        .cand-chip-sub { font-weight: 500; color: var(--ink-mute); }
+        .cand-card-updated { margin-left: auto; font-size: 11.5px; line-height: 19px; color: var(--ink-mute); white-space: nowrap; flex-shrink: 0; align-self: flex-end; }
+        .cand-card-actions { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
         @media (max-width: 640px) {
           .cand-wrap { padding: 12px 16px; }
-          .cand-card-body { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
-          .cand-card-link { gap: 12px; }
-          .cand-card-side { flex-direction: row; justify-content: flex-end; flex-wrap: wrap; }
-          .cand-card-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
+          .cand-card { padding: 12px 14px; gap: 10px; }
         }
         @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -1243,7 +1146,6 @@ export default function CandidatesClient({
           /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと） */
           .cand-pane { display: block; position: sticky; top: calc(var(--biz-header-h) + 16px); max-height: calc(100vh - var(--biz-header-h) - 32px); overflow-y: auto; overscroll-behavior: contain; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
           .cand-card-actions { display: none; }
-          .cand-card a:hover { cursor: pointer; }
         }
       `}</style>
 
