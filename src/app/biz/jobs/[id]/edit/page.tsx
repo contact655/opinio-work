@@ -1,3 +1,4 @@
+import { isCompanyListedForJobs } from "@/lib/jobs/publishGate";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { JobEditForm } from "@/components/business/JobEditForm";
@@ -132,6 +133,7 @@ export default async function JobEditPage({
         roles={roles}
         roleAliases={toAliasMap(aliasResult.data as { role_id: string; alias: string }[] | null)}
         departments={departments}
+        companyListed={isCompanyListedForJobs({ is_published: ctx.isPublished, listing_status: ctx.listingStatus })}
         initialDepartmentId={initialDepartmentId}
         initialCompanyRoleName={initialCompanyRoleName}
         initialSection={initialSection}

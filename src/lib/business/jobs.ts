@@ -100,6 +100,8 @@ type DbJobFull = {
   rejection_reason: string | null;
   rejection_date: string | null;
   rejection_reviewer: string | null;
+  stopped_reason: string | null;
+  stopped_at: string | null;
   business_model: string | null;
   // セールス職専用項目 (Migration 212)
   ote_min: number | null;
@@ -137,6 +139,8 @@ type DbJob = {
   published_at: string | null;
   updated_at: string | null;
   business_model: string | null;        // m210 業態タグ
+  stopped_reason?: string | null;
+  stopped_at?: string | null;
 };
 
 // ─── Helpers ───────────────────────────────────────────
@@ -183,16 +187,19 @@ const VALID_STATUSES = new Set<string>(["draft", "pending_review", "published", 
  *       片方だけ足すと「画面では選べるが保存できない」になる。
  */
 export const JOB_STATUS_TRANSITIONS: Record<string, readonly JobStatus[]> = {
-  /** 下書き → 公開申請 */
-  draft:          ["pending_review"],
-  /** 審査待ち → 申請を取り下げる */
-  pending_review: ["draft"],
-  /** 差し戻し → 修正して再申請 */
-  rejected:       ["pending_review"],
-  /** 公開中 → 自社都合で止める（運営の `privateJob` とは別。企業も止められる） */
+  /* ★2026-10-12 に即時公開へ切り替えた（柴さんの指示）。`published` は「公開する」の**申し出**で、
+        実際に何になるかは lib/jobs/publishServer.ts の requestPublish が決める
+        （すぐ公開 ／ 運営確認中 ／ 断る）。⚠️ 企業が直接 published を書くことはできない（トリガー・RLS） */
+  /** 下書き → 公開する */
+  draft:          ["published"],
+  /** 運営確認中 → 直して公開し直す ／ 下書きに戻す */
+  pending_review: ["published", "draft"],
+  /** 差し戻し（旧。2026-10-12 から作らない）→ 直して公開する */
+  rejected:       ["published"],
+  /** 公開中 → 自社都合で止める */
   published:      ["private"],
-  /** 非公開 → 公開を再開（＝再審査に出す。直接 published には戻さない） */
-  private:        ["pending_review"],
+  /** 非公開 → 公開を再開（運営が停止した求人は requestPublish が運営確認中にする） */
+  private:        ["published"],
 };
 
 /** `from` から `to` へ企業側が動かしてよいか。知らない値は false（fail-closed）。 */
@@ -268,6 +275,8 @@ function transformJob(row: DbJob, meetingCount: number, applicationCount: number
     rejectionReason: undefined,
     rejectionDate: undefined,
     rejectionReviewer: undefined,
+    stoppedReason: row.stopped_reason ?? undefined,
+    stoppedAt: row.stopped_at ?? undefined,
   };
 }
 
@@ -282,7 +291,7 @@ export async function fetchJobsForCompany(
   const { data: rows, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)"
+      "id, title, job_category, employment_type, salary_min, salary_max, location, remote_work_status, description, required_skills, preferred_skills, selection_steps, status, urgency, published_at, updated_at, business_model, stopped_reason, stopped_at, department_id, ow_company_departments!department_id(name), ow_job_roles!job_id(role_id, ow_roles!role_id(name)), company_job_role_id, ow_company_job_roles!company_job_role_id(name, deleted_at)"
     )
     .eq("company_id", tenantId)
     .order("updated_at", { ascending: false });
@@ -327,7 +336,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, why_hire, team_composition, first_90_days, work_hours, holidays, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, stopped_reason, stopped_at, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, why_hire, team_composition, first_90_days, work_hours, holidays, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -380,6 +389,8 @@ export async function fetchJobById(
     rejectionReason: row.rejection_reason ?? undefined,
     rejectionDate: row.rejection_date ?? undefined,
     rejectionReviewer: row.rejection_reviewer ?? undefined,
+    stoppedReason: row.stopped_reason ?? undefined,
+    stoppedAt: row.stopped_at ?? undefined,
     businessModel: row.business_model ?? undefined,
     // セールス職専用項目 (Migration 212)
     oteMin: row.ote_min ?? undefined,

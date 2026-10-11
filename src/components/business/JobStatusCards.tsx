@@ -37,7 +37,7 @@ export function JobStatusCards({ counts }: Props) {
       href: "/biz/jobs?status=published",
     },
     {
-      label: "審査中",
+      label: "運営確認中",
       count: counts.review,
       /* ⚠️ 数字は 28px なので基準は 3.0 だが、`--warm` は白の上で **2.15** で届かない。
             塗り（`bg`）は `--warm-soft` のままで、**文字だけ** `--warm-ink`(5.02)。 */
@@ -62,7 +62,7 @@ export function JobStatusCards({ counts }: Props) {
           ⚠️ 0件でも出す。`/biz/jobs` のタブが0件でも常に出るのと揃える
              （出したり消したりすると「なぜ増えたのか」が分からなくなる）。 */
     {
-      label: "差し戻し",
+      label: "停止中",
       count: counts.rejected,
       color: "var(--error-ink)",
       bg: "var(--error-soft)",

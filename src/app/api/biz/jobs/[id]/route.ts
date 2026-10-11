@@ -1,9 +1,8 @@
 import { laborToRow } from "@/lib/jobs/laborTerms";
-import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
+import { requestPublish } from "@/lib/jobs/publishServer";
+import { COMPANY_NOT_LISTED_MESSAGE } from "@/lib/jobs/publishGate";
 import { createClient } from "@/lib/supabase/server";
 import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { buildJobPostedRow } from "@/lib/feed/systemPosts";
 import { NextResponse } from "next/server";
 import { revalidateJobPages } from "@/lib/companies/revalidate";
 import { cookies } from "next/headers";
@@ -266,121 +265,50 @@ export async function PATCH(
   }
 
   if (!canCompanyTransition(current.status, newStatus)) {
-    /* ⚠️ **`published` を名指しで案内する。** 「invalid status」だけだと、
-          企業側は自分の操作の何が悪いのか分からない。 */
-    const hint =
-      newStatus === "published" || newStatus === "rejected"
-        ? "求人の公開・差し戻しは運営が行います。「公開申請」を送ってください。"
-        : `「${current.status}」から「${newStatus}」への変更はできません。`;
-    return NextResponse.json(
-      {
-        error: hint,
-        allowed: JOB_STATUS_TRANSITIONS[current.status ?? ""] ?? [],
-      },
-      { status: 403 }
-    );
+    /* ⚠️ 何が悪いのかを案内する。「invalid status」だけだと企業側は分からない */
+    const hint = newStatus === "rejected"
+      ? "この操作はできません。"
+      : `「${current.status}」から「${newStatus}」への変更はできません。`;
+    return NextResponse.json({ error: hint, allowed: JOB_STATUS_TRANSITIONS[current.status ?? ""] ?? [] }, { status: 403 });
   }
 
-  /* ★公開申請は、公開に必要な項目がそろっているときだけ受ける（2026-10-11）。
-        ⚠️ 判定は `missingForPublishFromRow` の1か所（画面の目次・運営の審査画面と同じ関数）。
-        ⚠️ 画面でボタンを押せなくしてあっても、API を直接叩けば通るので、ここでも見る。 */
-  if (newStatus === "pending_review") {
-    const [{ data: jobRow, error: jobErr }, { count: roleCount, error: roleErr }] = await Promise.all([
-      supabase.from("ow_jobs").select(JOB_PUBLISH_COLUMNS).eq("id", jobId).eq("company_id", ctx1.companyId).maybeSingle(),
-      supabase.from("ow_job_roles").select("job_id", { count: "exact", head: true }).eq("job_id", jobId),
-    ]);
-    if (jobErr || roleErr || !jobRow) {
-      console.error("[jobs PATCH status] 公開条件の確認に失敗:", jobErr?.message ?? roleErr?.message ?? "no row");
-      return NextResponse.json({ error: "公開に必要な項目を確認できませんでした。時間をおいてもう一度お試しください。" }, { status: 500 });
+  /* ★「公開する」（2026-10-12 / 柴さんの指示。運営の事前審査をやめ、即時公開にした）。
+        ⚠️ 判定と書き込みは lib/jobs/publishServer.ts の requestPublish だけ（画面と同じ判定 decidePublish）。
+           17項目が欠けている・企業ページが公開中でない → 断る ／ 停止中・禁止表現 → 運営確認中 ／ それ以外 → すぐ公開
+        ⚠️ 企業が直接 published を書けないこと（トリガー・RLS）は変えていない。書き込みは admin クライアント */
+  if (newStatus === "published") {
+    const r = await requestPublish(jobId, ctx1.companyId, ctx1.owUserId);
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    const d = r.decision;
+    if (d.kind === "blocked") {
+      if (d.reason === "missing") {
+        return NextResponse.json(
+          { error: `公開の前に入力してください：${d.missing.map((m) => m.label).join("・")}`, decision: "blocked", reason: "missing", missing: d.missing.map((m) => ({ key: m.key, label: m.label })) },
+          { status: 422 },
+        );
+      }
+      return NextResponse.json({ error: COMPANY_NOT_LISTED_MESSAGE, decision: "blocked", reason: "company_not_listed" }, { status: 409 });
     }
-    const missing = missingForPublishFromRow(jobRow as unknown as Record<string, unknown>, roleCount ?? 0);
-    if (missing.length > 0) {
-      return NextResponse.json(
-        { error: `公開申請の前に入力してください：${missing.map((m) => m.label).join("・")}`, missing: missing.map((m) => ({ key: m.key, label: m.label })) },
-        { status: 422 },
-      );
+    if (d.kind === "review") {
+      return NextResponse.json({ ok: true, decision: "review", reason: d.reason, hits: d.hits });
     }
+    return NextResponse.json({ ok: true, decision: "published" });
   }
-
-  /* ⚠️ ここにあった「未承認企業は published への昇格不可」の判定は消した。
-        `published` はもう企業側からは設定できないので**到達しない**。
-        同じ趣旨のゲートは運営側（`/admin/jobs` の approveJob）に残っている。 */
 
   const now = new Date().toISOString();
   const patch: { status: string; updated_at: string; submitted_at?: string | null } = { status: newStatus, updated_at: now };
-
-  // When submitting for review, record submission time if column exists
-  if (newStatus === "pending_review") {
-    patch.submitted_at = now;
-  }
-  // When withdrawing to draft, clear submission time
-  if (newStatus === "draft") {
-    patch.submitted_at = null;
-  }
-
+  /* 運営確認中から下書きに戻したら、申し出の時刻を消す */
+  if (newStatus === "draft") patch.submitted_at = null;
   const { error } = await supabase
     .from("ow_jobs")
     .update(patch)
     .eq("id", jobId)
     .eq("company_id", ctx1.companyId);
-
   if (error) {
     console.error("[jobs PATCH status]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
-  /* ── ⚠️ この下のブロックは 2026-08-23 以降 **到達しない** ───────────────
-        `canCompanyTransition` の遷移表に `published` への遷移が1本も無いため、
-        企業側から `newStatus === "published"` になることはない。
-
-     ⚠️ **消していない。理由は、これがフィード投稿（`job_posted`）を作る
-        唯一の実装だから。** 運営の承認経路（`admin/jobs/actions.ts` の
-        `approveJob`）は status を published にするだけで、
-        **フィード投稿も活動ログも作らない**（`buildJobPostedRow` の
-        呼び出し元は src 全体でここ1箇所）。
-
-     ⚠️ **つまり「公開してもフィードに流れない」という穴が既にある。**
-        実測（2026-08-23）: `ow_posts` の `job_posted` は74件あるが
-        すべて 2026-06-18 以前で、`scripts/backfill-feed-posts.mjs` が
-        作ったもの。**この経路から作られた投稿は0件。**
-
-        塞ぎ方は「approveJob に移す」だが、それは
-        **承認するたびに公開のフィード投稿が出る**という対外的な挙動の変更なので、
-        判断を仰ぐまで行っていない。移すときはこのブロックごと移すこと
-        （本文の組み立ては `lib/feed/systemPosts` に集約されている）。 */
-  if (newStatus === "published") {
-    const jobRow1 = await supabase.from("ow_jobs").select("company_id, title").eq("id", jobId).maybeSingle();
-    if (jobRow1.data?.company_id) {
-      await insertActivity(supabase, {
-        company_id: jobRow1.data.company_id,
-        actor_user_id: ctx1.owUserId,
-        type: "job_published",
-        description: `求人「${jobRow1.data.title ?? "—"}」を公開しました`,
-        target_type: "job",
-        target_id: jobId,
-      });
-
-      // Feed: job_posted (best-effort, 重複は 23505 で無視)
-      try {
-        const adminSupabase = createAdminClient();
-        const coRow = await adminSupabase.from("ow_companies").select("name, brand_name").eq("id", jobRow1.data.company_id).maybeSingle();
-        // ⚠️ 本文と ref_* の埋め方は lib/feed/systemPosts に集約している。ここで組み立てない。
-        //    突合スクリプト（scripts/backfill-feed-posts.mjs）も同じ関数を使う。
-        const { error: feedErr } = await adminSupabase.from("ow_posts").insert(
-          buildJobPostedRow(jobId, jobRow1.data.company_id, coRow.data ?? {}, jobRow1.data),
-        );
-        if (feedErr && feedErr.code !== "23505") {
-          console.error("[feed job_posted]", feedErr.message);
-        }
-      } catch (feedErr) {
-        console.error("[feed job_posted]", feedErr);
-      }
-    }
-  }
-
-  /* ⚠️★2026-09-08 追加。このファイルには revalidate が1つも無く、企業が求人を
-        編集・公開・削除しても、`/jobs`・求人詳細・**その企業の企業ページ**は
-        ページの `revalidate` 待ちだった。slug の扱いは revalidateJobPages に集約。 */
   await revalidateJobPages(jobId);
   return NextResponse.json({ ok: true });
 }

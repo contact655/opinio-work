@@ -3827,6 +3827,9 @@ export type Database = {
           source_verified_at: string | null
           start_date_preference: string | null
           status: string | null
+          stopped_at: string | null
+          stopped_by: string | null
+          stopped_reason: string | null
           submitted_at: string | null
           team_composition: string | null
           tech_stack: string[]
@@ -3916,6 +3919,9 @@ export type Database = {
           source_verified_at?: string | null
           start_date_preference?: string | null
           status?: string | null
+          stopped_at?: string | null
+          stopped_by?: string | null
+          stopped_reason?: string | null
           submitted_at?: string | null
           team_composition?: string | null
           tech_stack?: string[]
@@ -4005,6 +4011,9 @@ export type Database = {
           source_verified_at?: string | null
           start_date_preference?: string | null
           status?: string | null
+          stopped_at?: string | null
+          stopped_by?: string | null
+          stopped_reason?: string | null
           submitted_at?: string | null
           team_composition?: string | null
           tech_stack?: string[]
@@ -4048,6 +4057,13 @@ export type Database = {
             columns: ["role_category_id"]
             isOneToOne: false
             referencedRelation: "ow_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_jobs_stopped_by_fkey"
+            columns: ["stopped_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]

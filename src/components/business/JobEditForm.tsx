@@ -14,7 +14,8 @@ import {
   CONTRACT_PERIODS, CONTRACT_RENEWALS, WORKPLACE_CHANGE_SCOPES, DUTIES_CHANGE_SCOPES, YES_NO,
   SOCIAL_INSURANCES, SMOKING_MEASURES, EMPTY_LABOR_TERMS, type LaborTerms,
 } from "@/lib/jobs/laborTerms";
-import { JobRejectionBanner } from "./JobRejectionBanner";
+import { checkWording, wordingFieldsFromForm, WORDING_CATEGORY_LABELS } from "@/lib/jobs/wordingCheck";
+import { decidePublish, COMPANY_NOT_LISTED_MESSAGE, POST_PUBLISH_NOTE } from "@/lib/jobs/publishGate";
 import { RequirementsTagInput } from "./RequirementsTagInput";
 import { ProcessStepsEditor } from "./ProcessStepsEditor";
 import { BUSINESS_MODELS } from "@/lib/constants/businessModels";
@@ -47,7 +48,7 @@ const STEP_DEFS = [
   { id: "requirements", label: "求める人" },
   { id: "process",      label: "選考の進め方" },
   { id: "more",         label: "さらに伝える" },
-  { id: "review",       label: "確認して公開申請" },
+  { id: "review",       label: "確認して公開" },
 ] as const;
 type StepId = (typeof STEP_DEFS)[number]["id"];
 
@@ -339,8 +340,8 @@ export type DeptItem = { id: string; parent_id: string | null; name: string };
 
 type Props = {
   /**
-   * ★最初に開くステップ（2026-09-21）。求人管理のカードの「公開申請へ」が `review` を渡す。
-   * ⚠️ 公開申請は**この画面の「確認して公開申請」からだけ**行う。掲載ガイドラインへの同意の一文が
+   * ★最初に開くステップ（2026-09-21）。求人管理の「公開へ」が `review` を渡す。
+   * ⚠️ 公開は**この画面の「確認して公開」からだけ**行う。掲載ガイドラインへの同意の一文が
    *    ここにしか無いので、カードの上から直接申請する経路を作らないこと。
    * ⚠️ 値の検証は呼ぶ側（edit/page.tsx）で `lib/business/jobEditSections.ts` と突き合わせる。
    */
@@ -358,6 +359,8 @@ type Props = {
   initialDepartmentId?: string | null;
   /** 自社での呼び方の初期値。編集画面でページ側が解決して渡す */
   initialCompanyRoleName?: string;
+  /** ★企業ページが公開中（listed）か（2026-10-12）。公開中でなければ求人を公開できない（lib/jobs/publishGate.ts） */
+  companyListed?: boolean;
 };
 
 export function JobEditForm({
@@ -373,6 +376,7 @@ export function JobEditForm({
   initialDepartmentId = null,
   initialCompanyRoleName = "",
   initialSection = "job",
+  companyListed = false,
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => {
@@ -528,7 +532,7 @@ export function JobEditForm({
   }, [selectedRoles]);
 
   /* ── ★公開に必要な項目（2026-10-11）──────────────────────────────
-     ⚠️★判定は `missingForPublish()` の1か所。目次・「必須」の印・公開申請ボタンが同じ結果を見る。
+     ⚠️★判定は `missingForPublish()` の1か所。目次・「必須」の印・公開ボタンが同じ結果を見る。
      ⚠️ 旧版の「入力進捗 %」と「推奨項目」は外した（%は何を書けば公開できるかを言っていなかった）。 */
   const missing = useMemo(() => missingForPublish({
     title: form.title,
@@ -544,11 +548,22 @@ export function JobEditForm({
     labor: form.laborTerms,
   }), [form, selectedRoles]);
 
+  /* ★公開の判定（2026-10-12）。サーバー（requestPublish）と同じ関数 decidePublish。
+        ⚠️ 禁止表現はいま入力している内容で見る（直したらすぐ消える） */
+  const wordingHits = useMemo(() => checkWording(wordingFieldsFromForm(form)), [form]);
+  const isStopped = initialJob?.status === "private" && !!initialJob.stoppedAt;
+  const decision = useMemo(() => decidePublish({ missing, hits: wordingHits, companyListed, stopped: isStopped }), [missing, wordingHits, companyListed, isStopped]);
+  const canPublish = decision.kind !== "blocked";
+
   const handlePublish = useCallback(async () => {
     const jobId = currentJobId;
     if (!jobId) return;
     if (missing.length > 0) {
-      showError(`公開申請の前に入力してください：${missing.map((m) => m.label).join("・")}`);
+      showError(`公開の前に入力してください：${missing.map((m) => m.label).join("・")}`);
+      return;
+    }
+    if (!companyListed) {
+      showError(COMPANY_NOT_LISTED_MESSAGE);
       return;
     }
     setIsPublishing(true);
@@ -557,29 +572,31 @@ export function JobEditForm({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         /* ⚠️★`jobRoles` を必ず送る。2026-10-11 まで送っておらず、PUT は「送られた職種で置き換える」ので
-              **公開申請を押すと職種が全部外れていた**（route.ts の ow_job_roles 同期）。 */
+              **公開を押すと職種が全部外れていた**（route.ts の ow_job_roles 同期）。 */
         body: JSON.stringify({ ...form, departmentId: departmentId || null, jobRoles: selectedRoles }),
       });
       if (!saveRes.ok) throw new Error("save failed");
       const submitRes = await fetch(`/api/biz/jobs/${jobId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "status", value: "pending_review" }),
+        body: JSON.stringify({ action: "status", value: "published" }),
       });
       if (!submitRes.ok) {
-        /* ★サーバーが断った理由（足りない項目など）をそのまま出す */
+        /* ★サーバーが断った理由（足りない項目・企業ページが非公開など）をそのまま出す */
         const j = (await submitRes.json().catch(() => null)) as { error?: string } | null;
         throw new Error(j?.error || "submit failed");
       }
-      router.push("/biz/jobs");
+      /* ★すぐ公開 → 公開中のタブ ／ 運営確認中 → そのタブ */
+      const j = (await submitRes.json().catch(() => null)) as { decision?: string } | null;
+      router.push(j?.decision === "review" ? "/biz/jobs?status=pending_review" : "/biz/jobs?status=published");
     } catch (e) {
       const msg = e instanceof Error && e.message !== "submit failed" && e.message !== "save failed" ? e.message : null;
-      showError(msg ?? "公開申請に失敗しました。再度お試しください。");
+      showError(msg ?? "公開に失敗しました。再度お試しください。");
     } finally {
       setIsPublishing(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, currentJobId, router, missing, selectedRoles, departmentId]);
+  }, [form, currentJobId, router, missing, selectedRoles, departmentId, companyListed]);
 
   const req = (key: string) => isPublishRequired(key, form.employmentType);
   /* 業務委託は雇用ではないので、労働条件の項目を出さない（publishRequirements.ts の requirementsFor と同じ判定） */
@@ -800,7 +817,7 @@ export function JobEditForm({
                 )}
                 <Hint>
                   {form.salaryNegotiable
-                    ? <>「要相談」だけでは公開申請できません。下限と上限を入れ、決め方は下の「給与の補足」に書いてください（例：経験・能力により決定）</>
+                    ? <>「要相談」だけでは公開できません。下限と上限を入れ、決め方は下の「給与の補足」に書いてください（例：経験・能力により決定）</>
                     : <>求職者側では「{payLabel(form.employmentType)}{form.salaryMin || "?"}万円〜{form.salaryMax || "?"}万円」と表示されます</>}
                 </Hint>
               </FormGroup>
@@ -957,7 +974,7 @@ export function JobEditForm({
         return (
           <>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, margin: "0 0 16px" }}>
-              書かなくても公開申請できます。書くと、求職者が応募するかを決めやすくなります。
+              書かなくても公開できます。書くと、求職者が応募するかを決めやすくなります。
             </p>
             <MoreGroup title="なぜ今採用するか" filled={!!form.whyHire.trim()}>
               <FormTextarea id="jef-why-hire" ariaLabel="なぜ今採用するか" value={form.whyHire} onChange={(v) => updateForm("whyHire", v)} placeholder="例：プロダクトの成長にともない、PMを1名から3名体制にします。" rows={4} maxLength={600} />
@@ -1154,14 +1171,14 @@ export function JobEditForm({
               <Hint>HOT にすると、求職者側の求人カードに目立つ印が付きます。</Hint>
             </FormSection>
 
-            {/* 公開申請 */}
-            <div data-state={missing.length === 0 ? "ready" : "missing"} style={{
+            {/* ★公開（2026-10-12 / 即時公開）。判定は decidePublish（サーバーと同じ関数） */}
+            <div data-state={decision.kind === "publish" ? "ready" : decision.kind === "review" ? "review" : decision.reason === "missing" ? "missing" : "company-not-listed"} style={{
               background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "22px 24px", marginTop: 8,
             }}>
               {missing.length > 0 ? (
                 <>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-                    公開申請の前に、あと{missing.length}つ入力してください
+                    公開の前に、あと{missing.length}つ入力してください
                   </div>
                   <ul style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
                     {missing.map((r) => (
@@ -1174,27 +1191,44 @@ export function JobEditForm({
                     ))}
                   </ul>
                 </>
+              ) : !companyListed ? (
+                <div data-state="company-not-listed" style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{COMPANY_NOT_LISTED_MESSAGE}</div>
+              ) : isStopped ? (
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>公開すると、OPINIO 運営が確認したうえで掲載を再開します</div>
+              ) : wordingHits.length > 0 ? (
+                <>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>次の表現は OPINIO 運営の確認が必要です</div>
+                  <ul data-state="wording-hits" style={{ margin: "0 0 10px", paddingLeft: 18, fontSize: 13, color: "var(--ink)", lineHeight: 1.8 }}>
+                    {wordingHits.map((h) => (
+                      <li key={`${h.field}|${h.match}`}>「{h.match}」（{h.field}・{WORDING_CATEGORY_LABELS[h.category]}）</li>
+                    ))}
+                  </ul>
+                  <div style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 10 }}>
+                    このまま公開すると「運営確認中」になり、確認が済むまで求職者には出ません。直してから公開すると、すぐに公開されます。
+                  </div>
+                </>
               ) : (
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>公開申請できます</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>公開できます</div>
               )}
               <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 14 }}>
-                申請のあと、OPINIO 運営が内容を確認します（通常2〜3営業日）。確認が済むと求職者に公開されます。
+                {POST_PUBLISH_NOTE}
               </div>
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={isPublishing || missing.length > 0 || !currentJobId}
+                data-state="publish-button"
+                disabled={isPublishing || !canPublish || !currentJobId}
                 style={{
                   padding: "12px 28px", border: "none", borderRadius: 10, fontFamily: "inherit", fontSize: 14, fontWeight: 700,
-                  background: isPublishing || missing.length > 0 || !currentJobId ? "var(--line)" : "var(--royal)",
-                  color: isPublishing || missing.length > 0 || !currentJobId ? "var(--ink-mute)" : "#fff",
-                  cursor: isPublishing || missing.length > 0 || !currentJobId ? "not-allowed" : "pointer",
+                  background: isPublishing || !canPublish || !currentJobId ? "var(--line)" : "var(--royal)",
+                  color: isPublishing || !canPublish || !currentJobId ? "var(--ink-mute)" : "#fff",
+                  cursor: isPublishing || !canPublish || !currentJobId ? "not-allowed" : "pointer",
                 }}
               >
-                {isPublishing ? "送信中…" : "公開申請する"}
+                {isPublishing ? "送信中…" : "公開する"}
               </button>
               <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 10 }}>
-                公開申請することで、求人掲載ガイドラインに同意したものとみなされます。
+                公開することで、求人掲載ガイドラインに同意したものとみなされます。
               </div>
             </div>
           </>
@@ -1277,8 +1311,33 @@ export function JobEditForm({
         />
 
         <main id="jef-main" className="jef-main">
-          {mode === "edit" && initialJob?.status === "rejected" && initialJob.rejectionReason && (
-            <JobRejectionBanner reason={initialJob.rejectionReason} date={initialJob.rejectionDate} reviewer={initialJob.rejectionReviewer} />
+          {/* ★停止中・運営確認中の知らせ（2026-10-12）。⚠️ 状態は灰色の文字で（バッジにしない） */}
+          {mode === "edit" && (isStopped || initialJob?.status === "rejected" || initialJob?.status === "pending_review") && (
+            <div data-state={isStopped || initialJob?.status === "rejected" ? "job-stopped-notice" : "job-review-notice"} style={{
+              background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "14px 18px", marginBottom: 20, fontSize: 13, lineHeight: 1.8, color: "var(--ink)",
+            }}>
+              {isStopped || initialJob?.status === "rejected" ? (
+                <>
+                  <div style={{ color: "var(--ink-mute)" }}>停止中・OPINIO 運営が掲載を停止しました</div>
+                  {(initialJob?.stoppedReason || initialJob?.rejectionReason) && (
+                    <p style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}>理由：{initialJob?.stoppedReason ?? initialJob?.rejectionReason}</p>
+                  )}
+                  <p style={{ margin: "4px 0 0", color: "var(--ink-soft)" }}>内容を直して「公開する」を押すと、運営が確認したうえで掲載を再開します。</p>
+                </>
+              ) : (
+                <>
+                  <div style={{ color: "var(--ink-mute)" }}>運営確認中</div>
+                  <p style={{ margin: "4px 0 0", color: "var(--ink-soft)" }}>
+                    {wordingHits.length > 0
+                      ? "次の表現について OPINIO 運営が確認しています。直して「公開する」を押すと、該当が無くなっていればすぐに公開されます。"
+                      : "OPINIO 運営が内容を確認しています。確認が済むと公開されます。"}
+                  </p>
+                  {wordingHits.length > 0 && (
+                    <p style={{ margin: "4px 0 0" }}>{wordingHits.map((h) => `「${h.match}」（${h.field}）`).join("・")}</p>
+                  )}
+                </>
+              )}
+            </div>
           )}
           {errorMessage && (
             <div style={{
@@ -1295,7 +1354,7 @@ export function JobEditForm({
 
           {renderStep()}
 
-          {/* ★次のステップへ（行き先を名前で出す）。最後は「確認して公開申請へ」 */}
+          {/* ★次のステップへ（行き先を名前で出す）。最後は「確認して公開へ」 */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 24, flexWrap: "wrap" }}>
             {prev && (
               <button type="button" onClick={() => goToStep(prev.id)}
@@ -1306,7 +1365,7 @@ export function JobEditForm({
             {next && (
               <button type="button" onClick={() => goToStep(next.id)}
                 style={{ marginLeft: "auto", padding: "10px 20px", fontSize: 14, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
-                {next.id === "review" ? "確認して公開申請へ" : `次へ：${next.label}`}
+                {next.id === "review" ? "確認して公開へ" : `次へ：${next.label}`}
               </button>
             )}
           </div>

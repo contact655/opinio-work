@@ -610,8 +610,8 @@ export default async function AdminDashboard() {
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>求人審査待ち</p>
-                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>{stats.pendingJobsCount}件の求人審査が必要</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>運営確認中の求人</p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>{stats.pendingJobsCount}件（禁止表現の候補・停止後の再公開の申し出）</p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>

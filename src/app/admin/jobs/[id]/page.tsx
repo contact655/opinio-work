@@ -1,4 +1,5 @@
 import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
+import { WORDING_COLUMNS, checkWording, wordingFieldsFromRow } from "@/lib/jobs/wordingCheck";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import JobDetailClient from "./JobDetailClient";
@@ -30,6 +31,7 @@ export default async function AdminJobDetailPage({ params }: Props) {
       status, submitted_at, published_at, updated_at,
       source_url, source_verified_at,
       rejection_reason, rejection_date, rejection_reviewer,
+      stopped_reason, stopped_at,
       company_id,
       ow_companies!company_id (id, name, industry, employee_count, employee_count_band, employee_count_as_of, is_published)
     `)
@@ -89,15 +91,18 @@ export default async function AdminJobDetailPage({ params }: Props) {
     ow_companies: { id: string; name: string; industry: string | null; employee_count: string | null; employee_count_band: string | null; employee_count_as_of: string | null; is_published: boolean } | null;
   };
   /* ★公開に必要な項目の不足（2026-10-11）。判定は企業の画面・公開申請の API と同じ missingForPublishFromRow */
-  const { data: pubRow, error: pubErr } = await supabase.from("ow_jobs").select(JOB_PUBLISH_COLUMNS).eq("id", params.id).maybeSingle();
+  const { data: pubRow, error: pubErr } = await supabase.from("ow_jobs").select(`${JOB_PUBLISH_COLUMNS}, ${WORDING_COLUMNS}`).eq("id", params.id).maybeSingle();
   if (pubErr) console.error("[AdminJobDetailPage] publish columns", pubErr.message);
   const publishMissing = pubErr || !pubRow
     ? null
     : missingForPublishFromRow(pubRow as unknown as Record<string, unknown>, initialJobRoles.length).map((m) => m.label);
+  /* ★禁止表現の候補（2026-10-12）。企業の画面・公開の判定と同じ関数 */
+  const wordingHits = pubRow ? checkWording(wordingFieldsFromRow(pubRow as unknown as Record<string, unknown>)).map((h) => `「${h.match}」（${h.field}）`) : [];
 
   return (
     <JobDetailClient
       publishMissing={publishMissing}
+      wordingHits={wordingHits}
       job={job as unknown as JobForClient}
       roles={roles}
       roleAliases={roleAliases}

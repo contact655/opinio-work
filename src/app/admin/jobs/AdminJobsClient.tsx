@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { approveJob, rejectJob, privateJob, republishJob, type ActionResult } from "./actions";
+import { approveJob, stopJobAction, republishJob, type ActionResult } from "./actions";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 
 // DB status values: published / pending_review / draft / rejected / private の5値
 const STATUS_TABS = [
   { key: "all",            label: "すべて" },
-  { key: "pending_review", label: "審査待ち" },
+  /* ★2026-10-12 に即時公開へ切り替えた。運営確認中 ＝ 禁止表現に当たった求人・停止後に再公開を申し出た求人 */
+  { key: "pending_review", label: "運営確認中" },
   { key: "published",      label: "公開中" },
   { key: "draft",          label: "下書き" },
-  { key: "rejected",       label: "差し戻し済み" },
+  /* ★停止中 ＝ status が private で、運営が止めた記録（stopped_at）があるもの。旧「差し戻し」もここに含める */
+  { key: "stopped",        label: "停止中" },
   { key: "private",        label: "非公開" },
   /* ⚠️ 「出典なし」は status ではなく source_url で絞るタブ。
         公開中なのに求人原文のURLが無いものを残タスクとして可視化する。
@@ -45,6 +47,9 @@ type Job = {
   is_test: boolean | null;
   rejection_reason: string | null;
   rejection_reviewer: string | null;
+  /** ★運営が停止した理由・日時（2026-10-12） */
+  stopped_reason: string | null;
+  stopped_at: string | null;
   submitted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -52,7 +57,8 @@ type Job = {
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  pending_review: { label: "審査待ち",   cls: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
+  pending_review: { label: "運営確認中", cls: "bg-yellow-100 text-yellow-700 border border-yellow-200" },
+  stopped:        { label: "停止中",     cls: "bg-red-100 text-red-600 border border-red-200" },
   published:      { label: "公開中",     cls: "bg-green-100 text-green-700 border border-green-200" },
   active:         { label: "公開中(旧)", cls: "bg-green-100 text-green-700 border border-green-200" },
   draft:          { label: "下書き",     cls: "bg-gray-100 text-gray-600 border border-gray-200" },
@@ -74,8 +80,10 @@ function standardRoleName(j: Job): string | null {
       公開求人と自社の求人しか読めない。実測で **20件中13件が運営に見えていなかった**
       （全部が他社の draft）。審査待ちが本当に0件なのか見えていないだけなのか
       区別できない状態だった。 */
-export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
+export default function AdminJobsClient({ initialJobs, publishMissing = {}, wordingHits = {} }: {
   initialJobs: Job[];
+  /** ★求人 id → 禁止表現（wordingCheck.ts）に当たった表現（運営確認中の理由。サーバーで checkWording から作る） */
+  wordingHits?: Record<string, string[]>;
   /** 求人 id → 公開に必要なのに足りない項目の名前（サーバーで missingForPublishFromRow から作る） */
   publishMissing?: Record<string, string[]>;
 }) {
@@ -87,10 +95,9 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // 差し戻しモーダル state
+  // 停止の理由のモーダル state
   const [rejectTarget, setRejectTarget] = useState<Job | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [rejectionReviewer, setRejectionReviewer] = useState("OPINIO編集部");
 
 
   /* ⚠️ **楽観更新だけで済ませない（2026-08-11）。** Server Action は
@@ -116,35 +123,35 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
       setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "published" } : j)));
   }
 
-  // 差し戻し確定
-  async function handleRejectConfirm() {
+  // ★停止を確定（理由は必須。企業に通知される）
+  async function handleStopConfirm() {
     if (!rejectTarget || !rejectionReason.trim()) return;
     const target = rejectTarget;
     const reason = rejectionReason.trim();
     const ok = await runAction(target.id,
-      () => rejectJob(target.id, reason, rejectionReviewer.trim()),
+      () => stopJobAction(target.id, reason),
       () => setJobs((prev) => prev.map((j) =>
-        j.id === target.id ? { ...j, status: "rejected", rejection_reason: reason } : j)));
+        j.id === target.id ? { ...j, status: "private", stopped_reason: reason, stopped_at: new Date().toISOString() } : j)));
     if (ok) {
       setRejectTarget(null);
       setRejectionReason("");
     }
   }
 
-  // 非公開化
-  async function handlePrivate(job: Job) {
-    await runAction(job.id, () => privateJob(job.id), () =>
-      setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "private" } : j)));
-  }
-
   // 再公開 (private → published)
   async function handleRepublish(job: Job) {
     await runAction(job.id, () => republishJob(job.id), () =>
-      setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "published" } : j)));
+      setJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "published", stopped_reason: null, stopped_at: null } : j)));
   }
 
   /** ⚠️ status が NULL の行は draft 扱い。CHECK が NULL を許しているため */
   const normalizedStatus = (s: string | null) => s ?? "draft";
+  /** ★タブと表示の状態。停止中（private ＋ stopped_at）と旧「差し戻し」は "stopped" */
+  const viewStatus = (j: Job) => {
+    const ns = normalizedStatus(j.status);
+    if (ns === "rejected" || (ns === "private" && j.stopped_at)) return "stopped";
+    return ns;
+  };
 
   /** 公開中なのに求人原文のURLが記録されていない求人 */
   const isMissingSource = (j: Job) =>
@@ -164,7 +171,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
       if (!isMissingSource(j)) return false;
     } else if (activeTab === "publish_missing") {
       if (!isPublishMissing(j)) return false;
-    } else if (activeTab !== "all" && normalizedStatus(j.status) !== activeTab) {
+    } else if (activeTab !== "all" && viewStatus(j) !== activeTab) {
       return false;
     }
     if (searchQuery.trim()) {
@@ -185,9 +192,10 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>求人審査</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>求人の確認</h1>
           <p style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
-            企業から申請された求人を審査・承認します
+            企業は求人をすぐに公開できます。公開中の求人を確認し、問題があれば理由を添えて停止します（企業に通知されます）。
+            「運営確認中」は、禁止表現に当たった求人と、停止後に再公開を申し出た求人です。
           </p>
         </div>
         {pendingCount > 0 && (
@@ -201,7 +209,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
             fontSize: 13,
             fontWeight: 600,
           }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{pendingCount}件の審査待ち
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>運営確認中 {pendingCount}件
           </span>
         )}
       </div>
@@ -262,7 +270,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
             : tab.key === "all" ? real.length
             : tab.key === "no_source" ? real.filter(isMissingSource).length
             : tab.key === "publish_missing" ? real.filter(isPublishMissing).length
-            : real.filter((j) => normalizedStatus(j.status) === tab.key).length;
+            : real.filter((j) => viewStatus(j) === tab.key).length;
           return (
             <button
               key={tab.key}
@@ -304,7 +312,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
-              {["求人タイトル", "企業名", "職種", "年収（万円）", "勤務地", "働き方", "ステータス", "申請日", "操作"].map((h) => (
+              {["求人タイトル", "企業名", "職種", "年収（万円）", "勤務地", "働き方", "ステータス", "更新日", "操作"].map((h) => (
                 <th key={h} scope="col" style={{
                   textAlign: "left", padding: "10px 14px",
                   fontSize: 11, color: "#6b7280", fontWeight: 600,
@@ -325,7 +333,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
             ) : (
               filtered.map((j) => {
                 const ns = normalizedStatus(j.status);
-                const badge = STATUS_BADGE[j.status ?? "draft"] ?? STATUS_BADGE["draft"];
+                const badge = STATUS_BADGE[viewStatus(j)] ?? STATUS_BADGE["draft"];
                 const workStyle = (() => {
                   const raw = j.work_style ?? j.remote_work_status;
                   return raw ? (WORK_STYLE_LABELS[raw] ?? raw) : "—";
@@ -339,13 +347,21 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
                           {j.title || "—"}
                         </Link>
                       </div>
-                      {j.status === "rejected" && j.rejection_reason && (
-                        <div style={{
+                      {(j.stopped_reason || (j.status === "rejected" && j.rejection_reason)) && (
+                        <div data-state="stopped-reason" title={j.stopped_reason ?? j.rejection_reason ?? ""} style={{
                           marginTop: 4, fontSize: 11, color: "#EF4444",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                           maxWidth: 220,
                         }}>
-                          理由: {j.rejection_reason}
+                          停止の理由: {j.stopped_reason ?? j.rejection_reason}
+                        </div>
+                      )}
+                      {(wordingHits[j.id]?.length ?? 0) > 0 && (
+                        <div data-state="wording-hits" title={wordingHits[j.id].join("・")} style={{
+                          marginTop: 4, fontSize: 11, color: "#92400E", fontWeight: 600,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220,
+                        }}>
+                          禁止表現の候補：{wordingHits[j.id].join("・")}
                         </div>
                       )}
                       {(publishMissing[j.id]?.length ?? 0) > 0 && (
@@ -420,14 +436,14 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
                                 opacity: actionLoading === j.id ? 0.5 : 1,
                               }}
                             >
-                              差し戻し
+                              停止する
                             </button>
                           </>
                         )}
                         {(ns === "published") && (
                           <button
                             type="button"
-                            onClick={() => handlePrivate(j)}
+                            onClick={() => { setRejectTarget(j); setRejectionReason(""); }}
                             disabled={actionLoading === j.id}
                             style={{
                               padding: "5px 12px", borderRadius: 6,
@@ -437,26 +453,10 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
                               opacity: actionLoading === j.id ? 0.5 : 1,
                             }}
                           >
-                            非公開化
+                            停止する
                           </button>
                         )}
-                        {ns === "rejected" && (
-                          <button
-                            type="button"
-                            onClick={() => { setRejectTarget(j); setRejectionReason(j.rejection_reason ?? ""); }}
-                            disabled={actionLoading === j.id}
-                            style={{
-                              padding: "5px 12px", borderRadius: 6,
-                              background: "#F1F5F9", border: "1px solid #CBD5E1",
-                              color: "#475569", fontSize: 12, fontWeight: 600,
-                              cursor: "pointer", whiteSpace: "nowrap",
-                              opacity: actionLoading === j.id ? 0.5 : 1,
-                            }}
-                          >
-                            理由を編集
-                          </button>
-                        )}
-                        {ns === "private" && (
+                        {(ns === "private" || ns === "rejected") && (
                           <button
                             type="button"
                             onClick={() => handleRepublish(j)}
@@ -469,7 +469,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
                               opacity: actionLoading === j.id ? 0.5 : 1,
                             }}
                           >
-                            再公開
+                            公開に戻す
                           </button>
                         )}
                         {ns === "draft" && (
@@ -485,7 +485,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
         </table>
       </div>
 
-      {/* 差し戻しモーダル */}
+      {/* 停止の理由のモーダル */}
       {rejectTarget && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
@@ -501,14 +501,14 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
             width: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
           }}>
             <h3 id="ajobs-reject-title" style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
-              差し戻し理由を入力
+              停止の理由を入力
             </h3>
             <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
               「{rejectTarget.title}」（{rejectTarget.ow_companies?.name}）
             </p>
-            <div style={{ marginBottom: 14 }}>
+            <div style={{ marginBottom: 20 }}>
               <label htmlFor="ajob-rejection-reason" style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
-                フィードバック内容（企業側に表示されます）
+                停止の理由（企業にメールと求人管理の画面で知らせます）
               </label>
               <textarea
                 id="ajob-rejection-reason"
@@ -520,24 +520,6 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
                   width: "100%", padding: "10px 12px",
                   border: "1px solid #CBD5E1", borderRadius: 8,
                   fontSize: 13, color: "#0F172A", resize: "vertical",
-                  fontFamily: "inherit", boxSizing: "border-box",
-                  outline: "none",
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor="ajob-reviewer" style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
-                審査担当者名
-              </label>
-              <input
-                id="ajob-reviewer"
-                type="text"
-                value={rejectionReviewer}
-                onChange={(e) => setRejectionReviewer(e.target.value)}
-                style={{
-                  width: "100%", padding: "8px 12px",
-                  border: "1px solid #CBD5E1", borderRadius: 8,
-                  fontSize: 13, color: "#0F172A",
                   fontFamily: "inherit", boxSizing: "border-box",
                   outline: "none",
                 }}
@@ -557,7 +539,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
               </button>
               <button
                 type="button"
-                onClick={handleRejectConfirm}
+                onClick={handleStopConfirm}
                 disabled={!rejectionReason.trim() || actionLoading !== null}
                 style={{
                   padding: "8px 18px", borderRadius: 8,
@@ -567,7 +549,7 @@ export default function AdminJobsClient({ initialJobs, publishMissing = {} }: {
                   opacity: !rejectionReason.trim() || actionLoading !== null ? 0.5 : 1,
                 }}
               >
-                差し戻しを確定
+                停止する
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
+import { WORDING_COLUMNS, checkWording, wordingFieldsFromRow } from "@/lib/jobs/wordingCheck";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminJobsClient from "./AdminJobsClient";
 
@@ -27,7 +28,7 @@ export default async function AdminJobsPage() {
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, source_url, is_test, rejection_reason, rejection_reviewer, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))"
+      "id, title, status, job_category, salary_min, salary_max, location, remote_work_status, work_style, source_url, is_test, rejection_reason, rejection_reviewer, stopped_reason, stopped_at, submitted_at, created_at, updated_at, ow_companies(name), ow_job_roles!job_id(is_primary, ow_roles!role_id(name))"
     )
     .order("updated_at", { ascending: false });
 
@@ -37,7 +38,7 @@ export default async function AdminJobsPage() {
     console.error("[admin/jobs] ow_jobs", error.message);
     return (
       <div style={{ padding: 32 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>求人審査</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", margin: 0 }}>求人の確認</h1>
         <div role="alert" style={{
           marginTop: 16, background: "#FEE2E2", border: "1px solid #FCA5A5",
           borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#991B1B",
@@ -50,13 +51,21 @@ export default async function AdminJobsPage() {
 
   /* ★公開に必要な項目の不足（2026-10-11）。判定は missingForPublishFromRow の1か所（企業の画面・公開申請の API と同じ）。
         ⚠️ 取得に失敗したら「不足なし」に倒さず、画面に出す */
-  const { data: pubRows, error: pubErr } = await supabase.from("ow_jobs").select(JOB_PUBLISH_COLUMNS);
+  const { data: pubRows, error: pubErr } = await supabase.from("ow_jobs").select(`${JOB_PUBLISH_COLUMNS}, ${WORDING_COLUMNS}, status`);
   if (pubErr) console.error("[admin/jobs] publish columns", pubErr.message);
   const roleCounts = new Map((data ?? []).map((j) => [j.id as string, ((j as { ow_job_roles?: unknown[] | null }).ow_job_roles ?? []).length]));
   const publishMissing: Record<string, string[]> = {};
   for (const r of pubRows ?? []) {
     const m = missingForPublishFromRow(r as unknown as Record<string, unknown>, roleCounts.get(r.id as string) ?? 0);
     if (m.length > 0) publishMissing[r.id as string] = m.map((x) => x.label);
+  }
+  /* ★禁止表現（wordingCheck.ts。2026-10-12）。運営確認中の求人だけ。⚠️ 企業の画面・公開の判定と同じ関数 */
+  const wordingHits: Record<string, string[]> = {};
+  for (const r of pubRows ?? []) {
+    const row = r as unknown as Record<string, unknown>;
+    if (row.status !== "pending_review") continue;
+    const hits = checkWording(wordingFieldsFromRow(row));
+    if (hits.length > 0) wordingHits[row.id as string] = hits.map((h) => `「${h.match}」（${h.field}）`);
   }
 
   return (
@@ -68,6 +77,7 @@ export default async function AdminJobsPage() {
       )}
       <AdminJobsClient
         initialJobs={(data ?? []) as unknown as Parameters<typeof AdminJobsClient>[0]["initialJobs"]}
+        wordingHits={wordingHits}
         publishMissing={publishMissing}
       />
     </>

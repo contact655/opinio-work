@@ -83,8 +83,8 @@ export function JobsEmptyState({ hasFilters }: Props) {
         maxWidth: 360,
         marginBottom: 28,
       }}>
-        求人を作成して OPINIOに掲載申請すると、運営審査（2-3 営業日）を経て公開されます。
-        公開後はカジュアル面談の申込を受け付けられます。
+        求人を作成して「公開する」を押すと、すぐに公開されます。公開後はカジュアル面談の申込を受け付けられます。
+        公開後も運営が内容を確認し、問題がある場合は停止することがあります。
       </div>
 
       <Link
@@ -121,7 +121,7 @@ export function JobsEmptyState({ hasFilters }: Props) {
       }}>
         {[
           { step: "1", label: "求人を作成", desc: "職種・給与・働き方を入力" },
-          { step: "2", label: "掲載申請", desc: "運営が 2-3 営業日で審査" },
+          { step: "2", label: "公開する", desc: "必要な項目がそろえばすぐに公開" },
           { step: "3", label: "面談を受け付け", desc: "候補者からの申込が届く" },
         ].map(({ step, label, desc }) => (
           <div key={step} style={{

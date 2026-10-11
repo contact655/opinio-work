@@ -30,6 +30,8 @@ export type TenantContext = {
   tenantId: string;
   tenantName: string;
   isPublished: boolean;          // ow_companies.is_published
+  /** ★ow_companies.listing_status（2026-10-12）。求人の即時公開の条件（企業ページが公開中か。lib/jobs/publishGate.ts） */
+  listingStatus: string | null;
   isApproved: boolean;           // ow_companies.is_approved — 運営が承認済みか
   /**
    * いま有効な契約プラン。`ow_company_plans` の status='active' の行。
@@ -121,7 +123,7 @@ async function loadTenantContext(): Promise<TenantContext | null> {
           2箇所で引くと、片方だけ直したときに画面と API で判定が割れる。 */
     const [companiesRes, owUserRes] = await Promise.all([
       admin.from("ow_companies")
-        .select("id, name, logo_gradient, logo_letter, is_published, is_approved")
+        .select("id, name, logo_gradient, logo_letter, is_published, is_approved, listing_status")
         .in("id", allMembershipIds),
       admin.from("ow_users")
         .select("avatar_color, name")
@@ -167,6 +169,7 @@ async function loadTenantContext(): Promise<TenantContext | null> {
       tenantId,
       tenantName: companyRow.name || "—",
       isPublished: (companyRow as any).is_published === true,
+      listingStatus: ((companyRow as any).listing_status as string | null) ?? null,
       isApproved: (companyRow as any).is_approved === true,
       planType,
       planLabel: planType ? (PLAN_LABELS[planType] ?? "—") : "未設定",
@@ -199,16 +202,18 @@ export async function getJobStatusCounts(tenantId: string): Promise<JobStatusCou
   try {
     const { data } = await supabase
       .from("ow_jobs")
-      .select("status")
+      .select("status, stopped_at")
       .eq("company_id", tenantId);
     const rows = data || [];
-    // DB の実際のステータス値: published / pending_review / draft / rejected / private
+    /* DB の実際のステータス値: published / pending_review / draft / rejected / private
+       ★2026-10-12: rejected は「停止中」（運営が停止した private ＋ 旧「差し戻し」）。private はそれ以外（企業が自分で止めた） */
+    const stopped = (r: any) => r.status === "rejected" || (r.status === "private" && r.stopped_at);
     return {
       active: rows.filter((r: any) => r.status === "published").length,
       review: rows.filter((r: any) => r.status === "pending_review").length,
       draft: rows.filter((r: any) => r.status === "draft").length,
-      rejected: rows.filter((r: any) => r.status === "rejected").length,
-      private: rows.filter((r: any) => r.status === "private").length,
+      rejected: rows.filter(stopped).length,
+      private: rows.filter((r: any) => r.status === "private" && !stopped(r)).length,
     };
   } catch {
     return { active: 0, review: 0, draft: 0, rejected: 0, private: 0 };

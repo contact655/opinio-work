@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { BizJob, JobStatus } from "@/lib/business/mockJobs";
-import { JOB_STATUS_TABS, countByStatus } from "@/lib/business/mockJobs";
+import { JOB_STATUS_TABS, countByStatus, jobViewStatus } from "@/lib/business/mockJobs";
 import { JobListCard } from "@/components/business/JobListCard";
 import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 import { FilterChip } from "@/components/common/FilterChip";
@@ -90,7 +90,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
 
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
-      if (activeStatus !== "all" && j.status !== activeStatus) return false;
+      if (activeStatus !== "all" && jobViewStatus(j) !== activeStatus) return false;
       if (categoryFilter) {
         const roles = j.jobRoleNames ?? [];
         const matchesRole = roles.includes(categoryFilter);

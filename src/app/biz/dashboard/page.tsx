@@ -180,7 +180,7 @@ export default async function BizDashboardPage({
         ⚠️ 「審査中の求人」は入れない —— 運営の対応待ちで、企業側にできることが無い。 */
   /* ⚠️ 2026-10-10（段3）: メッセージ・提案・面談申込は上の「今日やること」に移した。ここに残すのはそれ以外 */
   const todoItems = [
-    { key: "rejected", label: "差し戻された求人", count: jobStatusCounts.rejected ?? 0, href: "/biz/jobs?status=rejected" },
+    { key: "rejected", label: "運営が停止した求人", count: jobStatusCounts.rejected ?? 0, href: "/biz/jobs?status=rejected" },
     /* ★未完了のスタートガイド（2026-10-08）。それまで「やること: 対応が必要なものは
           ありません」の下に未完了のガイドが並んでいて、2つが矛盾して見えた。
           ⚠️ 件数は上の `guideItems` と同じ配列から数える。 */

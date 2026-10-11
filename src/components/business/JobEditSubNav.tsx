@@ -49,7 +49,7 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
       {/* ★公開まであと〇つ。押すとその入力欄へ移る */}
       <div data-state={missing.length === 0 ? "ready" : "missing"} style={{ padding: "18px 18px 14px", borderBottom: "1px solid var(--line)" }}>
         {missing.length === 0 ? (
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-ink)" }}>公開申請できます</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success-ink)" }}>公開できます</div>
         ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
@@ -74,7 +74,7 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
           </>
         )}
         <div className="jef-subnav-note" style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6, marginTop: 10 }}>
-          入力した内容は自動で保存されます。公開申請のあと、運営の確認（2〜3営業日）を経て公開されます。
+          入力した内容は自動で保存されます。公開後も運営が内容を確認し、問題がある場合は停止することがあります。
         </div>
       </div>
 

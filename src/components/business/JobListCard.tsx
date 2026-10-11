@@ -115,7 +115,7 @@ function renderActions(
         <>
           <ActionBtn label="複製" onClick={dup} />
           <IconBtn title="削除" isDelete onClick={del} />
-          <ActionBtn label="修正して再申請" primary onClick={edit} />
+          <ActionBtn label="直して公開へ" primary onClick={toPublish} />
         </>
       );
     case "published":
@@ -132,7 +132,7 @@ function renderActions(
       return (
         <>
           <ActionBtn label="プレビュー" onClick={preview} />
-          <ActionBtn label="申請を取り下げる"
+          <ActionBtn label="下書きに戻す"
             onClick={onStatusChange ? () => onStatusChange(job.id, "draft") : undefined} />
         </>
       );
@@ -143,7 +143,7 @@ function renderActions(
             <ActionBtn label="複製" onClick={dup} />
             <IconBtn title="削除" isDelete onClick={del} />
             <ActionBtn label="編集" onClick={edit} />
-            <ActionBtn label="公開申請へ" primary onClick={toPublish} />
+            <ActionBtn label="公開へ" primary onClick={toPublish} />
           </>
         );
       }
@@ -159,7 +159,7 @@ function renderActions(
         <>
           <ActionBtn label="複製" onClick={dup} />
           <IconBtn title="削除" isDelete onClick={del} />
-          <ActionBtn label="再公開を申請へ" primary onClick={toPublish} />
+          <ActionBtn label="公開へ" primary onClick={toPublish} />
         </>
       );
   }
@@ -191,7 +191,7 @@ function renderDateMeta(job: BizJob) {
     case "pending_review":
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          {clockIcon}申請 <strong>{job.submittedAt}</strong>
+          {clockIcon}更新 <strong>{job.lastEditedAt}</strong>
           {/* ⚠️ 期限を書かない（2026-09-22 まで「2-3営業日で完了予定」。審査は運営の手作業で、守れる裏付けが無い） */}
           <span style={{ color: "var(--ink-mute)" }}>· 運営が内容を確認しています</span>
         </span>

@@ -1,16 +1,22 @@
 "use server";
 
+import { markPublished, stopJob } from "@/lib/jobs/publishServer";
+
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { revalidateJobPages } from "@/lib/companies/revalidate";
 
-async function assertAdmin(): Promise<void> {
+/** 運営か確かめる。戻り値は運営の ow_users.id（停止の記録に使う。取れなければ null） */
+async function assertAdmin(): Promise<string | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   const { data: isAdmin } = await supabase.rpc("auth_is_admin");
   if (!isAdmin) throw new Error("Forbidden");
+  const { data: me, error } = await createAdminClient().from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (error) console.error("[admin/jobs] 運営の ow_users:", error.message);
+  return (me?.id as string | undefined) ?? null;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,136 +31,50 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  */
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function fail(err: { code?: string; message: string } | null | undefined): ActionResult {
-  if (!err) return { ok: true };
-  return { ok: false, error: `${err.message}${err.code ? `（${err.code}）` : ""}` };
-}
+/* ⚠️ 0行更新を成功として扱わない、は lib/jobs/publishServer.ts（mutateOne・行数の確認）に移した（2026-10-12） */
 
-/**
- * ⚠️ **0行更新を成功として扱わない。**
- *    2026-08-11 まで求人詳細ページがブラウザ側クライアントで直接 UPDATE しており、
- *    `ow_jobs` に運営ポリシー（auth_is_admin）が無いため
- *    **他社の求人では常に0行更新**だった。error も出ないので成功に見えていた。
- *    ここは admin クライアントなので RLS は効かないが、
- *    id の綴り違いなどで0行になる可能性は残るため必ず件数を見る。
- */
-function requireOneRow(rows: unknown[] | null, jobId: string): ActionResult {
-  if (!rows || rows.length === 0) {
-    return { ok: false, error: `対象の求人が見つかりませんでした（id: ${jobId}）` };
-  }
-  return { ok: true };
-}
+/* ★2026-10-12 に即時公開へ切り替えた（柴さんの指示）。公開の書き込みは lib/jobs/publishServer.ts の markPublished だけ
+      （企業の即時公開と同じ処理。published_at は初回だけ・停止の記録を消す・フィードの「求人を公開しました」・キャッシュの破棄）。
+   ⚠️ 差し戻し（rejectJob）と運営の非公開化（privateJob）は「停止」（stopJobAction）にまとめた。理由は必須で、企業に通知する。 */
 
+/** 運営確認中の求人を公開する（禁止表現に当たったが問題ない・停止後の再公開の申し出を確認した、など） */
 export async function approveJob(jobId: string): Promise<ActionResult> {
-  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
-  try {
-    await assertAdmin();
-  } catch {
-    return { ok: false, error: "権限がありません" };
-  }
-  const admin = createAdminClient();
-  const now = new Date().toISOString();
-  const { data, error } = await admin.from("ow_jobs").update({
-    status: "published",
-    published_at: now,
-    updated_at: now,
-    rejection_reason: null,
-    rejection_reviewer: null,
-    rejection_date: null,
-  }).eq("id", jobId).select("id");   // ⚠️ 列を絞る。引数なしの .select() は全列を返す
-  if (error) return fail(error);
-  const rowCheck = requireOneRow(data, jobId);
-  if (!rowCheck.ok) return rowCheck;
-  revalidatePath("/admin/jobs");
-  revalidatePath(`/admin/jobs/${jobId}`);
-  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
-        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
-        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
-  await revalidateJobPages(jobId);
-  return { ok: true };
+  return publishAs(jobId);
 }
 
-export async function rejectJob(
-  jobId: string,
-  reason: string,
-  reviewer: string,
-): Promise<ActionResult> {
-  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
-  if (!reason.trim()) return { ok: false, error: "差し戻し理由を入力してください" };
-  try {
-    await assertAdmin();
-  } catch {
-    return { ok: false, error: "権限がありません" };
-  }
-  const admin = createAdminClient();
-  const now = new Date().toISOString();
-  const dateLabel = new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-  const { data, error } = await admin.from("ow_jobs").update({
-    status: "rejected",
-    rejection_reason: reason.slice(0, 1000),
-    rejection_reviewer: (reviewer || "OPINIO編集部").slice(0, 100),
-    rejection_date: dateLabel,
-    updated_at: now,
-  }).eq("id", jobId).select("id");
-  if (error) return fail(error);
-  const rowCheck = requireOneRow(data, jobId);
-  if (!rowCheck.ok) return rowCheck;
-  revalidatePath("/admin/jobs");
-  revalidatePath(`/admin/jobs/${jobId}`);
-  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
-        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
-        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
-  await revalidateJobPages(jobId);
-  return { ok: true };
-}
-
-export async function privateJob(jobId: string): Promise<ActionResult> {
-  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
-  try {
-    await assertAdmin();
-  } catch {
-    return { ok: false, error: "権限がありません" };
-  }
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("ow_jobs")
-    .update({ status: "private", updated_at: new Date().toISOString() })
-    .eq("id", jobId)
-    .select("id");
-  if (error) return fail(error);
-  const rowCheck = requireOneRow(data, jobId);
-  if (!rowCheck.ok) return rowCheck;
-  revalidatePath("/admin/jobs");
-  revalidatePath(`/admin/jobs/${jobId}`);
-  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
-        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
-        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
-  await revalidateJobPages(jobId);
-  return { ok: true };
-}
-
+/** 停止中・非公開の求人を公開に戻す */
 export async function republishJob(jobId: string): Promise<ActionResult> {
+  return publishAs(jobId);
+}
+
+async function publishAs(jobId: string): Promise<ActionResult> {
   if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
   try {
     await assertAdmin();
   } catch {
     return { ok: false, error: "権限がありません" };
   }
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("ow_jobs")
-    .update({ status: "published", updated_at: new Date().toISOString() })
-    .eq("id", jobId)
-    .select("id");
-  if (error) return fail(error);
-  const rowCheck = requireOneRow(data, jobId);
-  if (!rowCheck.ok) return rowCheck;
+  const r = await markPublished(jobId, { actorOwUserId: null });
+  if (!r.ok) return { ok: false, error: r.error };
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
-  /* ⚠️★2026-09-08 追加。**公開側を1つも落としていなかった。**
-        求人の掲載状態が変われば `/jobs`・求人詳細・**その企業の企業ページ**（公開求人と
-        「募集中 N件」を出している）が変わる。詳細と slug の扱いは revalidateJobPages に集約。 */
-  await revalidateJobPages(jobId);
+  return { ok: true };
+}
+
+/** ★停止。status = private ＋ 停止の理由・日時・誰が。企業にメールで知らせ、求人管理の画面にも理由を出す */
+export async function stopJobAction(jobId: string, reason: string): Promise<ActionResult> {
+  if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  if (!reason.trim()) return { ok: false, error: "停止の理由を入力してください" };
+  let adminOwUserId: string | null = null;
+  try {
+    adminOwUserId = await assertAdmin();
+  } catch {
+    return { ok: false, error: "権限がありません" };
+  }
+  const r = await stopJob(jobId, reason, adminOwUserId);
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidatePath("/admin/jobs");
+  revalidatePath(`/admin/jobs/${jobId}`);
   return { ok: true };
 }
 

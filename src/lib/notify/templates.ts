@@ -494,6 +494,24 @@ export function approachRepliedCompanyTemplate(params: {
 }
 
 /**
+ * ★運営が求人を停止したことを企業に知らせる（2026-10-12 / 柴さんの指示。即時公開に切り替え、運営は公開後に巡回する）。
+ * ⚠️ 理由は全文入れる（企業が直すために要る）。宛先は getCompanyNotificationTarget（応募の通知と同じ決め方）。
+ */
+export function jobStoppedCompanyTemplate(params: { to: string; jobTitle: string; reason: string; jobId: string; viaOps?: boolean }) {
+  return {
+    to: params.to,
+    subject: opsSubject(`求人「${params.jobTitle}」の掲載を停止しました`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">求人の掲載を停止しました</h2>
+      <p style="margin:0 0 12px;color:#475569">OPINIO 運営が内容を確認し、次の理由で求人「${esc(params.jobTitle)}」の掲載を停止しました。</p>
+      <p style="margin:0 0 20px;padding:12px 14px;background:#F8FAFC;border-radius:8px;color:#0F172A;white-space:pre-wrap">${esc(params.reason)}</p>
+      <p style="margin:0 0 20px;color:#475569">内容を直して「公開する」を押すと、運営が確認したうえで掲載を再開します。</p>
+      <a href="https://opinio.jp/biz/jobs/${encodeURIComponent(params.jobId)}/edit" style="${BTN}">求人を直す →</a>
+    `),
+  };
+}
+
+/**
  * ★企業からメッセージが届いたことを求職者に知らせる（2026-10-11 / 柴さんの指示）。
  *   approach … 企業からの1通目。**送った理由の冒頭だけ**を入れる
  *   reply … 会話で企業から返信があった

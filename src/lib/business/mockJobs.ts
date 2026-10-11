@@ -41,6 +41,17 @@ export type BizJob = {
   rejectionReason?: string;
   rejectionDate?: string;
   rejectionReviewer?: string;
+  /** ★運営が停止した理由・日時（2026-10-12）。status = private と組み合わせて「停止中」 */
+  stoppedReason?: string;
+  stoppedAt?: string;
+  /** ★求人管理の一覧用（2026-10-12）。公開に必要なのに足りない項目の数（下書きの「公開まであと〇つ」） */
+  publishMissingCount?: number;
+  /** ★運営確認中の理由になった禁止表現（「〇〇」（欄））。一覧と編集画面に出す */
+  wordingHits?: string[];
+  /** ★閲覧数（直近30日。ow_page_view_daily） */
+  views30d?: number;
+  /** 一覧の「更新日」（ISO）。⚠️ lastEditedAt は「3日前」などの表示用 */
+  updatedAtIso?: string;
   // 業態タグ (Migration 210)
   businessModel?: string | null;
   // セールス職専用項目 (Migration 212)
@@ -79,13 +90,22 @@ export type JobStatusTab = {
 export const JOB_STATUS_TABS: JobStatusTab[] = [
   { status: "all",            label: "All",         labelJa: "すべて" },
   { status: "published",      label: "Published",   labelJa: "公開中" },
-  { status: "pending_review", label: "In Review",   labelJa: "審査中" },
+  { status: "pending_review", label: "In Review",   labelJa: "運営確認中" },
   { status: "draft",          label: "Draft",       labelJa: "下書き" },
-  { status: "rejected",       label: "Rejected",    labelJa: "差し戻し" },
+  { status: "rejected",       label: "Rejected",    labelJa: "停止中" },
   { status: "private",        label: "Private",     labelJa: "非公開" },
 ];
 
 export type JobStatusCounts = Record<JobStatus | "all", number>;
+
+/**
+ * ★企業に見せる状態（2026-10-12）。運営が停止した求人（private ＋ stoppedAt）と旧「差し戻し」は "rejected"（画面では「停止中」）。
+ * ⚠️ タブ・件数・一覧の状態はすべてこれを通す（status をそのまま使うと、停止中が「非公開」に混ざる）
+ */
+export function jobViewStatus(j: Pick<BizJob, "status" | "stoppedAt">): JobStatus {
+  if (j.status === "rejected" || (j.status === "private" && j.stoppedAt)) return "rejected";
+  return j.status;
+}
 
 export function countByStatus(jobs: BizJob[]): JobStatusCounts {
   const counts: JobStatusCounts = {
@@ -97,7 +117,8 @@ export function countByStatus(jobs: BizJob[]): JobStatusCounts {
     private: 0,
   };
   for (const j of jobs) {
-    counts[j.status] = (counts[j.status] ?? 0) + 1;
+    const v = jobViewStatus(j);
+    counts[v] = (counts[v] ?? 0) + 1;
   }
   return counts;
 }
