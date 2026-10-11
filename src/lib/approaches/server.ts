@@ -320,6 +320,8 @@ export type IncomingApproach = {
     /** ★社名をリンクにするか（2026-10-11）。判定は `companyLinkStateFor` の1か所 */
     linkState: CompanyLinkState };
   senderName: string | null;
+  /** ★送った担当者の役職（`ow_company_admins.role_title`。2026-10-11）。無ければ null */
+  senderRole: string | null;
   /** ★送った担当者の ow_users.id（運営への報告に控える。画面には出さない） */
   senderUserId: string | null;
   /** ★関連する求人（2026-10-10 / 段4 で求職者側にも出した）。公開中でなければ href を付けない（名前だけ） */
@@ -380,7 +382,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
 
   const senderIds = Array.from(new Set(shown.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
   const jobIds = Array.from(new Set(shown.map((r) => r.job_id as string | null).filter(Boolean) as string[]));
-  const [{ data: comps, error: cErr }, { data: senders, error: sErr }, { data: jobs, error: jErr }] = await Promise.all([
+  const [{ data: comps, error: cErr }, { data: senders, error: sErr }, { data: jobs, error: jErr }, { data: senderRoles, error: rErr }] = await Promise.all([
     db.from("ow_companies").select("id, name, name_en, slug, logo_url, logo_letter, logo_gradient, is_test").in("id", Array.from(visible)),
     senderIds.length > 0
       ? db.from("ow_users").select("id, name").in("id", senderIds)
@@ -388,8 +390,14 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
     jobIds.length > 0
       ? db.from("ow_jobs").select("id, title, slug, status, is_test").in("id", jobIds)
       : Promise.resolve({ data: [] as { id: string; title: string; slug: string | null; status: string; is_test: boolean }[], error: null }),
+    /* ★送った担当者の役職（「〇〇（役職）から」）。⚠️ 取れなくても本文は出す（役職を省くだけ） */
+    senderIds.length > 0
+      ? db.from("ow_company_admins").select("user_id, company_id, role_title").in("user_id", senderIds)
+      : Promise.resolve({ data: [] as { user_id: string; company_id: string; role_title: string | null }[], error: null }),
   ]);
   if (jErr) console.error("[approaches] incoming jobs:", jErr.message);
+  if (rErr) console.error("[approaches] incoming sender roles:", rErr.message);
+  const roleByKey = new Map((senderRoles ?? []).map((a) => [`${a.company_id as string}:${a.user_id as string}`, ((a.role_title as string | null) ?? "").trim() || null]));
   if (cErr || sErr) {
     console.error("[approaches] incoming join:", cErr?.message ?? sErr?.message);
     return null;
@@ -416,6 +424,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
         linkState: companyLinkStateFor({ isTest: c.is_test === true }, { viewerIsTest: me.is_test === true }),
       },
       senderName: r.sender_user_id ? senderById.get(r.sender_user_id as string) ?? null : null,
+      senderRole: r.sender_user_id ? roleByKey.get(`${r.company_id as string}:${r.sender_user_id as string}`) ?? null : null,
       senderUserId: (r.sender_user_id as string | null) ?? null,
       job: (() => {
         const j = r.job_id ? jobById.get(r.job_id as string) : undefined;
@@ -723,6 +732,6 @@ export async function listApproachableJobs(companyId: string): Promise<{ id: str
  * ★声かけを「送る担当者」として選べる人。**操作している人と is_test が同じ担当者だけ**（2026-10-10）。
  * ⚠️ 判定は `lib/business/sameTestStaff.ts` の1か所（日程調整の同席者と同じ決まり）。画面と送信 API の両方がここを通す。
  */
-export async function listApproachSenders(companyId: string, operatorOwUserId: string): Promise<{ id: string; name: string }[] | null> {
+export async function listApproachSenders(companyId: string, operatorOwUserId: string): Promise<{ id: string; name: string; role: string | null }[] | null> {
   return listSameTestStaff(companyId, operatorOwUserId);
 }

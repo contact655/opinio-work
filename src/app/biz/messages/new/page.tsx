@@ -6,8 +6,6 @@ import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/busines
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
 import { getApproachQuota, getRecentlyApproached, listApproachableJobs, listApproachSenders } from "@/lib/approaches/server";
-import { getBizDisclosure, BIZ_SCORE_ITEM_HREF } from "@/lib/business/bizDisclosure";
-import { BIZ_SCORE_ITEM_LABELS, DISCLOSURE_BIZ_MAX } from "@/lib/utils/disclosureScore";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import ApproachComposeClient from "./ApproachComposeClient";
@@ -75,12 +73,12 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
 
   const db = createAdminClient();
   const ownCompanyId = await getOwnCompanyId();
-  const [profile, quota, senders, jobs, disclosure, co] = await Promise.all([
+  const [profile, quota, senders, jobs, co] = await Promise.all([
+    /* ⚠️ 企業ページの充実度は 2026-10-11 にこの画面から外した（モックに無い。ホームに出す） */
     getCandidateProfileForCompany(candidateId),
     getApproachQuota(ctx.tenantId),
     listApproachSenders(ctx.tenantId, ctx.currentOwnId),
     listApproachableJobs(ctx.tenantId),
-    getBizDisclosure(ctx.tenantId),
     db.from("ow_companies").select("name, name_en, logo_url, logo_letter, logo_gradient").eq("id", ctx.tenantId).maybeSingle(),
   ]);
   if (!profile || !senders) return message("読み込めませんでした。時間をおいてもう一度お試しください。");
@@ -117,10 +115,6 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
           /* ★求職者側と同じく「運営会社です」を出す（2026-10-10） */
           isOwnCompany: ownCompanyId !== null && ownCompanyId === ctx.tenantId,
         }}
-        disclosure={disclosure ? {
-          biz: disclosure.biz, max: DISCLOSURE_BIZ_MAX,
-          missing: disclosure.bizMissing.map((k) => ({ label: BIZ_SCORE_ITEM_LABELS[k], href: BIZ_SCORE_ITEM_HREF[k] })),
-        } : null}
       />
     </BusinessLayout>
   );

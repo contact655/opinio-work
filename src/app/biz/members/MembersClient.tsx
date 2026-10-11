@@ -20,11 +20,11 @@ const PERMISSION_LABEL: Record<"admin" | "member", string> = { admin: "管理者
 /**
  * 権限でできることの違い（2026-09-22 に画面から数えた）。
  * 管理者だけのもの: 求人の新規作成（/biz/jobs）・企業ページの公開（/biz/company）・
- *                  チーム管理（この画面）・部門と職種の編集（/biz/organization）。
+ *                  メンバーと権限（この画面）・部門と職種の編集（/biz/organization）。
  * ⚠️ 出し分けを足したり外したりしたら、ここも直すこと
  */
 const PERMISSION_HINT: Record<"admin" | "member", string> = {
-  admin: "すべての操作ができます。求人の新規作成・企業ページの公開・チーム管理・部門と職種の編集は管理者だけです",
+  admin: "すべての操作ができます。求人の新規作成・企業ページの公開・メンバーと権限・部門と職種の編集は管理者だけです",
   member: "候補者・メッセージ・選考など日々の採用業務を扱えます",
 };
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
@@ -1414,13 +1414,15 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
               color: "var(--ink)",
               margin: 0,
             }}>
-              {/* ⚠️★**表示名は「チーム管理」に統一する**（2026-09-18）。
+              {/* ⚠️★**表示名は「メンバーと権限」に統一する**（2026-09-18 に「チーム管理」で統一 →
+                     2026-10-11 に柴さんの指示で「メンバーと権限」へ改名。サイドバー・title・
+                     アバターメニュー・求人フォームのリンクも同時に変えた）。
                      サイドバー・`metadata.title` と同じ語にした。
                      ここだけ「チームメンバー」で、3つの呼び名がずれていた。
                   ⚠️★**URL は `/biz/members` のまま。変えない**（既存リンクが切れる）。
                      コードの中で場所を指すときは `/biz/members`、
-                     画面に出す語は「チーム管理」。 */}
-              チーム管理
+                     画面に出す語は「メンバーと権限」。 */}
+              メンバーと権限
             </h1>
           </div>
           {/* ★3つのタブぜんぶの説明にした（2026-09-21。それまで採用担当のことしか書いていなかった） */}
@@ -1461,7 +1463,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
 
       {/* ── タブ バー ─────────────────────────────────────────── */}
       {/* ⚠️ 狭い画面ではタブを折り返さず横に流す（2026-09-22。375px で「面談 / 対応 / 者」と3行に割れていた） */}
-      <div role="tablist" aria-label="チーム管理の区分" style={{
+      <div role="tablist" aria-label="メンバーと権限の区分" style={{
         display: "flex", gap: 0, marginBottom: 20,
         borderBottom: "1px solid var(--line)", overflowX: "auto",
       }}>
@@ -1470,7 +1472,7 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
           /* ⚠️ display_consent で数えると**本人からの申請（未承認）が混ざる**。
              このタブには3区分すべてが出るので、出ている件数（＝全件）を出す。 */
           /* ★2026-09-21 に「現場」「社員」から改名。中身を表していなかったうえ、
-                「社員」はサイドバーの「社員管理」とぶつかっていた */
+                「社員」はサイドバーの「社員・OB/OG」とぶつかっていた */
           { key: "field" as const, label: "面談対応者", count: ambassadors.length },
           { key: "employees" as const, label: "面談を依頼できる社員", count: ambassadorCandidates.length },
         ]).map((tab) => {

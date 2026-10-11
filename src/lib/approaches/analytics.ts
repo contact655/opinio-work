@@ -17,7 +17,8 @@ import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 export const REFERENCE_ONLY_BELOW = 10;
 export const ROW_RATE_MIN = 5;
 
-export type AnalyticsCell = { sent: number; accepted: number; resolved: number; meetings: number };
+/** ★replyDays は返信があったものの「送ってから返信までの日数」（2026-10-11。中央値を出すため） */
+export type AnalyticsCell = { sent: number; accepted: number; resolved: number; meetings: number; replyDays: number[] };
 export type AnalyticsRow = AnalyticsCell & { key: string; label: string };
 export type ApproachAnalytics = {
   total: AnalyticsCell;
@@ -33,7 +34,16 @@ const REASON_BUCKETS = [
   { key: "140-200", label: "140〜200字", min: 140, max: 200 },
 ] as const;
 
-const empty = (): AnalyticsCell => ({ sent: 0, accepted: 0, resolved: 0, meetings: 0 });
+const empty = (): AnalyticsCell => ({ sent: 0, accepted: 0, resolved: 0, meetings: 0, replyDays: [] });
+
+/** ★返信までの日数の中央値（日・小数1桁。2026-10-11）。返信が無ければ null */
+export function medianReplyDays(c: AnalyticsCell): number | null {
+  if (c.replyDays.length === 0) return null;
+  const xs = [...c.replyDays].sort((a, b) => a - b);
+  const mid = Math.floor(xs.length / 2);
+  const m = xs.length % 2 ? xs[mid] : (xs[mid - 1] + xs[mid]) / 2;
+  return Math.round(m * 10) / 10;
+}
 
 /** 返信率（%・整数。2026-10-11 に小数1桁から整数へ。/biz/approaches の「返信率 N%」と揃える）。分母が0なら null */
 export function acceptRate(c: AnalyticsCell): number | null {
@@ -95,7 +105,8 @@ export async function getApproachAnalytics(companyId: string, sinceMs: number | 
     const accepted = !!r.accepted_at;
     const resolved = accepted || now - new Date(r.created_at as string).getTime() > expireMs;
     const meeting = accepted && !!r.conversation_id && meetingConvs.has(r.conversation_id as string);
-    const apply = (c: AnalyticsCell) => { c.sent++; if (accepted) c.accepted++; if (resolved) c.resolved++; if (meeting) c.meetings++; };
+    const replyDays = accepted ? Math.max(0, (new Date(r.accepted_at as string).getTime() - new Date(r.created_at as string).getTime()) / (24 * 60 * 60 * 1000)) : null;
+    const apply = (c: AnalyticsCell) => { c.sent++; if (accepted) c.accepted++; if (resolved) c.resolved++; if (meeting) c.meetings++; if (replyDays !== null) c.replyDays.push(replyDays); };
     apply(total);
     const sender = r.sender_user_id ? userById.get(r.sender_user_id as string) : null;
     add(bySender, (r.sender_user_id as string) ?? "-", ((sender?.name as string | null) ?? "").trim() || "（記録なし）", apply);

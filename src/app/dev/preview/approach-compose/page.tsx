@@ -10,11 +10,10 @@ import ApproachComposeClient from "@/app/biz/messages/new/ApproachComposeClient"
 const base = {
   candidate: { id: "00000000-0000-0000-0000-000000000000", name: "検証 花子", headline: "法人営業 / SaaS", currentRole: "インサイドセールス", currentCompany: "検証株式会社" },
   quotes: [{ label: "職歴", text: "SaaS の新規開拓を担当" }],
-  senders: [{ id: "s1", name: "検証 一郎" }],
+  senders: [{ id: "s1", name: "検証 一郎", role: "人事部 採用担当" }],
   defaultSenderId: "s1",
   jobs: [{ id: "j1", title: "インサイドセールス（IT・SaaS 領域の法人開拓）" }],
   company: { name: "株式会社検証", logoUrl: null, logoLetter: "検", logoGradient: null, isOwnCompany: false },
-  disclosure: null,
 };
 
 export default function Page() {
@@ -22,12 +21,12 @@ export default function Page() {
   return (
     <div>
       <PreviewHeader title="メッセージを送る（/biz/messages/new）">
-        <p>右の「今月の枠」と「送る前に」の言い方（今月の残り・返事待ち・返信がある）を見る。</p>
+        <p>右の ①今月あと〇通・返事待ちのバー ②〇〇さんにはこう見えます（返信欄つき） ③送る前に を見る（2026-10-11 にモックに合わせた）。</p>
       </PreviewHeader>
-      <Variant label="残り8通・返事待ち2件" note="送ったあとの今月の残り：7通">
+      <Variant label="残り8通・返事待ち2件" note="今月あと8通送れます・返事待ち 2件／10件">
         <ApproachComposeClient {...base} quota={{ monthlyUsed: 2, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
       </Variant>
-      <Variant label="枠を取れなかった" note="（—）と出る">
+      <Variant label="枠を取れなかった" note="「送れる数を確認できませんでした」と出る">
         <ApproachComposeClient {...base} quota={null} />
       </Variant>
     </div>

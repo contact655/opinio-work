@@ -29,9 +29,9 @@
  *   5. `lib/supabase/queries.ts`            … `getCompanyEmployees`（現役社員 / OB・OG）
  *   6. `lib/supabase/queries.ts`            … 面談対応者（ambassadors）
  *   7. `app/(jobseeker)/u/[id]/page.tsx`    … 公開プロフィール（**404 にする**）
- *   8. `app/biz/employees/page.tsx`         … 企業側の「社員管理」（2026-09-21 追加。
+ *   8. `app/biz/employees/page.tsx`         … 企業側の「社員・OB/OG」（2026-09-21 追加。
  *      企業ページに出ている人の一覧なので、企業ページと同じ条件にした）
- *   9. `app/biz/members/page.tsx`           … チーム管理の「面談対応者」「面談を依頼できる社員」
+ *   9. `app/biz/members/page.tsx`           … メンバーと権限の「面談対応者」「面談を依頼できる社員」
  *      （2026-09-21 追加。同じく企業ページと同じ条件）
  *
  * ⚠️★`ow_users` から人を出す経路を新しく足すときは、必ずここを呼ぶ。

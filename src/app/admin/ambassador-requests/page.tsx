@@ -123,7 +123,7 @@ export default async function AmbassadorRequestsPage() {
       <p style={{ margin: "0 0 20px", fontSize: 12, color: "#92400e", lineHeight: 1.7, fontWeight: 600 }}>
         在籍は本人の申告で、OPINIO は在籍確認を行っていません。
         なりすましや誤りに気づいたら、ここから<strong style={{ color: "#7c2d12" }}>企業ページから外して</strong>ください。
-        企業側に担当者がいる場合は、企業の「チーム管理」からも外せます。
+        企業側に担当者がいる場合は、企業の「メンバーと権限」からも外せます。
       </p>
       <RequestsClient requests={requests} />
     </div>

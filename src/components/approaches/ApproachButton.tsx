@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
+import { approachDaysLeft, approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 
 const jst = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
@@ -60,6 +60,27 @@ export function ApproachButton({
         {n.action.label}
       </Link>
     );
+    /* ★候補者の詳細（右のプレビュー・/u/[id]）で返事待ちのとき（2026-10-11 / モックに合わせた）:
+          注意の帯 → 押せない「返事待ち（◯月◯日に送信）」＋「送った内容を見る」 → 「返信があると…」の一文。
+          ⚠️ 帯は黄色（注意・待ち）。文言の日付と残り日数は一覧と同じ関数（`approachDaysLeft`） */
+    if (!compact && sent.state === "pending") {
+      const md = formatJaMonthDay(sent.sentAt);
+      return (
+        <span data-state="approach-sent" data-approach-state="pending" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", minWidth: 0 }}>
+          <span data-state="approach-pending-band" role="status" style={{ display: "block", padding: "10px 12px", borderRadius: 8, background: "var(--warm-soft)", color: "var(--warm-ink)", fontSize: 12.5, fontWeight: 600, lineHeight: 1.7, whiteSpace: "normal" }}>
+            {who}が{md}にメッセージを送っています。返信を待っています（あと{approachDaysLeft(sent.sentAt)}日）。返事が来る前に、続けて送ることはできません。
+          </span>
+          <span style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" disabled data-state="approach-pending-button" className="tap-min-h"
+              style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--line)", color: "var(--ink-mute)", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: "default", whiteSpace: "nowrap" }}>
+              返事待ち（{md}に送信）
+            </button>
+            {actionLink}
+          </span>
+          <span style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>返信があると、ここに「メッセージを開く」が出ます。</span>
+        </span>
+      );
+    }
     return (
       <span data-state="approach-sent" data-approach-state={sent.state}
         style={{ display: "inline-flex", flexDirection: "column", gap: compact ? 4 : 6, maxWidth: "100%", minWidth: 0 }}>
@@ -69,7 +90,8 @@ export function ApproachButton({
           </span>
         )}
         {/* ★状態の1行（返事待ち（◯月◯日に送信）／◯年◯月◯日から送れます）。返信ありはボタンだけ */}
-        {sent.state !== "accepted" && (
+        {/* ⚠️ カード（compact）では出さない。カードには灰色の状態の1行（`approachStatusLine`）が既にある */}
+        {sent.state !== "accepted" && !compact && (
           <span data-state="approach-resend-message" title={n.message}
             style={{ fontSize: compact ? 11.5 : 12.5, fontWeight: 600, color: "var(--ink-mute)", lineHeight: 1.6, whiteSpace: "normal" }}>
             {n.label}

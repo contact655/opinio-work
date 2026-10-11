@@ -109,7 +109,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
             ⚠️ 企業ページのタブにしなかった理由: 「内部のみ」の項目（企業ページに出ないもの）を含み、
                確定も項目ごとに即時に保存する（企業ページの下書き → 「変更を公開する」とは作りが違う） */
       { href: "/biz/materials", label: "企業資料", icon: <FileText size={16} strokeWidth={2.2} /> },
-      { href: "/biz/employees", label: "社員管理", icon: <UsersRound size={16} strokeWidth={2.2} /> },
+      { href: "/biz/employees", label: "社員・OB/OG", icon: <UsersRound size={16} strokeWidth={2.2} /> },
       /* ★2026-09-21 に「投稿・発信」から改名（外部リンクのタブを外し、中身がストーリーだけになった） */
       { href: "/biz/posts", label: "企業ストーリー", icon: <Newspaper size={16} strokeWidth={2.2} /> },
     ],
@@ -118,7 +118,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "管理",
     items: [
       { href: "/biz/analytics", label: "分析", icon: <BarChart2 size={16} strokeWidth={2.2} /> },
-      { href: "/biz/members", label: "チーム管理", icon: <Users size={16} strokeWidth={2.2} /> },
+      { href: "/biz/members", label: "メンバーと権限", icon: <Users size={16} strokeWidth={2.2} /> },
     ],
   },
 ];
@@ -366,7 +366,7 @@ export function BusinessLayout({
                 <>
                   <div className="biz-menu-heading">この会社</div>
                   <Link href="/biz/members" role="menuitem" className="biz-menu-item" onClick={() => setAvatarOpen(false)}>
-                    <Users size={15} strokeWidth={2.2} aria-hidden />チーム管理
+                    <Users size={15} strokeWidth={2.2} aria-hidden />メンバーと権限
                   </Link>
                 </>
               )}

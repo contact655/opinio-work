@@ -23,6 +23,7 @@ export async function loadIncomingApproachViews(owUserId: string): Promise<Incom
     reason: a.reason,
     body: a.body,
     senderName: a.senderName,
+    senderRole: a.senderRole,
     companyName: companyDisplayName(a.company.name, a.company.nameEn).displayName,
     /* ★見ている人と会社がどちらも検証用なら、社名は文字だけ（企業ページは開かない。`companyLinkStateFor`） */
     companyHref: a.company.linkState === "open" ? `/companies/${a.company.slug ?? a.company.id}` : null,

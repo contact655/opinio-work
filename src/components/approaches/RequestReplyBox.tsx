@@ -79,17 +79,8 @@ export function RequestReplyBox({
         placeholder="返信を書く（返信すると、そのままメッセージでやり取りが始まります）"
         rows={3}
         style={{ display: "block", width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.7, fontFamily: "inherit", resize: "vertical", background: sample ? "var(--bg-tint, #f6f7f9)" : "#fff", color: "var(--ink)" }} />
+      {/* ★左に小さく「今回は見送る」、右に「送信」（2026-10-11 / モックに合わせた。それまでは見送るが送信の下の行だった） */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: tooLong ? "var(--error)" : "var(--ink-mute)" }}>{text.length} / {REPLY_MAX}</span>
-        <button type="button" className="tap-min-h" data-action="send" aria-disabled={sample || undefined} disabled={!sample && !canSend}
-          onClick={(e) => { if (sample) { inert(e); return; } void send(); }}
-          style={{ padding: "9px 22px", borderRadius: 10, border: "none", background: canSend ? "var(--royal)" : "var(--line)", color: canSend ? "#fff" : "var(--ink-mute)", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: canSend ? "pointer" : "default", opacity: sample ? 0.6 : 1 }}>
-          {busy ? "送信中…" : "送信"}
-        </button>
-      </div>
-      {error && <p role="alert" style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>}
-
-      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         {!confirmDecline ? (
           <button type="button" data-action="decline" aria-disabled={sample || undefined}
             onClick={(e) => { if (sample) { inert(e); return; } setConfirmDecline(true); }}
@@ -97,7 +88,7 @@ export function RequestReplyBox({
             今回は見送る
           </button>
         ) : (
-          <span data-state="decline-confirm" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 12.5, color: "var(--ink-soft)" }}>
+          <span data-state="decline-confirm" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 12.5, color: "var(--ink-soft)", minWidth: 0 }}>
             {declineNote}
             <button type="button" data-action="decline-confirm" disabled={busy} onClick={() => { void decline(); }}
               style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>見送る</button>
@@ -105,8 +96,20 @@ export function RequestReplyBox({
               style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, color: "var(--ink-mute)", fontFamily: "inherit", cursor: "pointer" }}>やめる</button>
           </span>
         )}
-        {extra}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
+          {text.length > 0 && <span style={{ fontSize: 12, color: tooLong ? "var(--error)" : "var(--ink-mute)" }}>{text.length} / {REPLY_MAX}</span>}
+          <button type="button" className="tap-min-h" data-action="send" aria-disabled={sample || undefined} disabled={!sample && !canSend}
+            onClick={(e) => { if (sample) { inert(e); return; } void send(); }}
+            style={{ padding: "9px 22px", borderRadius: 10, border: "none", background: canSend ? "var(--royal)" : "var(--line)", color: canSend ? "#fff" : "var(--ink-mute)", fontSize: 13, fontWeight: 700, fontFamily: "inherit", cursor: canSend ? "pointer" : "default", opacity: sample ? 0.6 : 1 }}>
+            {busy ? "送信中…" : "送信"}
+          </button>
+        </span>
       </div>
+      {error && <p role="alert" style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{error}</p>}
+
+      {extra && <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        {extra}
+      </div>}
     </div>
   );
 }

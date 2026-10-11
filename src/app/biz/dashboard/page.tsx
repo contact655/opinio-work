@@ -79,7 +79,7 @@ const TODAY_CARDS: { kind: TodayTodoKind | "savedSearchPeople"; label: string; h
   /* ⚠️ 人数（新着がある条件の数ではない） */
   { kind: "savedSearchPeople", label: "保存した条件の新着", href: "/biz/candidates/saved", unit: " 名" },
   { kind: "unreplied", label: "返信していないメッセージ", href: "/biz/messages" },
-  { kind: "meeting", label: "今日以降の面談", href: "/biz/meetings?tab=meetings" },
+  /* ⚠️ 2026-10-11 にモックに合わせて4つにした（「今日以降の面談」の数字は外した。面談は下の一覧には今までどおり出る） */
 ];
 const TODAY_LIST_LIMIT = 10;
 /** 「10月11日（日）」（日本時間） */
@@ -343,19 +343,19 @@ export default async function BizDashboardPage({
               <DashboardCardHeading title="今月のメッセージ" />
               {approachQuota ? (
                 <div style={{ display: "flex", flexDirection: "column", fontSize: 13.5, color: "var(--ink)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>今月の残り</span><strong>{approachQuotaTexts(approachQuota, new Date()).remaining}通</strong></div>
+                  {/* ★「送った数 〇/10」「返事待ち 〇/10」（2026-10-11 / モックに合わせた） */}
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>送った数</span><strong data-state="home-sent">{approachQuota.monthlyUsed}/{approachQuota.monthlyLimit}</strong></div>
                   <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(approachQuota, new Date()).remainingSub}</div>
                   <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 12px", overflow: "hidden" }}>
-                    <div style={{ /* ★残りの量を示す（ラベルが「今月の残り」なので） */ width: `${Math.min(100, Math.round((approachQuotaTexts(approachQuota, new Date()).remaining / Math.max(1, approachQuota.monthlyLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
+                    <div style={{ width: `${Math.min(100, Math.round((approachQuota.monthlyUsed / Math.max(1, approachQuota.monthlyLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>返事待ち</span><strong>{approachQuota.openCount}件</strong></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>返事待ち</span><strong data-state="home-open">{approachQuota.openCount}/{approachQuota.openLimit}</strong></div>
                   <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(approachQuota, new Date()).openSub}</div>
                   <div aria-hidden="true" style={{ height: 8, borderRadius: 4, background: "var(--line-soft)", margin: "6px 0 4px", overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(100, Math.round((approachQuota.openCount / Math.max(1, approachQuota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
                   </div>
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                     <Link href="/biz/analytics?tab=messages" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>振り返りを見る →</Link>
-                    <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>候補者を探す →</Link>
                   </div>
                 </div>
               ) : (
@@ -439,8 +439,7 @@ export default async function BizDashboardPage({
           .biz-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
           @media (min-width: 1024px) { .biz-home-grid { grid-template-columns: minmax(0, 1fr) 300px; } }
           .biz-today-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-          @media (min-width: 640px) { .biz-today-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-          @media (min-width: 1024px) { .biz-today-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+          @media (min-width: 1024px) { .biz-today-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
           .biz-today-card { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; min-width: 0; }
           .biz-today-card:hover { background: var(--bg-tint); }
           .biz-todo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--line-soft); }

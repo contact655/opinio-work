@@ -123,7 +123,7 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
             {tenure && <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>}
             {/* ★送れる人にだけ小さく出す（2026-10-11）。⚠️ 送れない人には何も出さない（理由を推測させない） */}
             {c.approach?.eligible === true && !c.approach.sent && (
-              <span data-state="can-message" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>メッセージを送れます</span>
+              <span data-state="can-message" style={{ fontSize: 12, fontWeight: 600, color: "var(--success-ink)" }}>メッセージを送れます</span>
             )}
           </div>
           {(c.currentRole || c.currentCompany) && (
@@ -133,7 +133,8 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6, fontSize: 12, color: "var(--ink-mute)" }}>
             {/* ⚠️ 送れない一文は下のボタンの位置に出す（同じ文を2回出さない） */}
-            {label && label.state === "sent" && <span data-approach-state={label.state}>{label.text}</span>}
+            {/* ⚠️ 返事待ちはボタンの上の帯が同じことを言うので、ここには出さない（同じ文を2回出さない） */}
+            {label && label.state === "sent" && c.approach?.sent?.state !== "pending" && <span data-approach-state={label.state}>{label.text}</span>}
             {c.location && <span>{c.location}</span>}
             {edited && <span>プロフィール更新 {edited}</span>}
           </div>

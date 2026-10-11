@@ -137,6 +137,25 @@ export function approachResendNotice(s: ApproachResendSubject): {
   return { label: `${ymd}から送れます`, message: `この方へは${ymd}から、もう一度送れます。`, action: null };
 }
 
+/**
+ * ★送ったあとの状態を言う灰色の1行（2026-10-11 / モックに合わせた）。/biz/messages の一覧・候補者検索のカード・
+ *   候補者の詳細が同じ関数を見る。 色付きのバッジにしない（灰色の文字で出す）。
+ *     pending  … 「返信を待っています・あと〇日」
+ *     expired  … 「返信はありませんでした・〇年〇月〇日から再び送れます」（見送りと30日経過を区別しない）
+ *     accepted … 「返信がありました」
+ */
+const DAY_MS = 24 * 60 * 60 * 1000;
+export function approachDaysLeft(sentAt: string, now = new Date()): number {
+  const elapsed = Math.floor((now.getTime() - new Date(sentAt).getTime()) / DAY_MS);
+  return Math.max(1, APPROACH_EXPIRE_DAYS - elapsed);
+}
+export function approachStatusLine(state: CompanyApproachStatus, sentAt: string, now = new Date()): string {
+  if (state === "accepted") return "返信がありました";
+  if (state === "pending") return `返信を待っています・あと${approachDaysLeft(sentAt, now)}日`;
+  const r = jstParts(new Date(new Date(sentAt).getTime() + APPROACH_RESEND_DAYS * DAY_MS).toISOString());
+  return `返信はありませんでした・${jstPart(r, "year")}年${jstPart(r, "month")}月${jstPart(r, "day")}日から再び送れます`;
+}
+
 /** ★送れない相手への一文（2026-10-11 / 柴さんの指示）。**理由ごとに分けない**（受け取らない設定・ブロック・
  *   受け取る範囲の外・転職に興味なし のどれでも同じ文言・同じ見た目・同じ API の応答）。
  *   ⚠️「受け取っていません」と書かない（本人の設定だと読める） */

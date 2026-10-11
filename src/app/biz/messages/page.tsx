@@ -40,6 +40,8 @@ export type ConversationRow = {
   isNewReply: boolean;
   /** ★最後のメッセージの冒頭（2026-10-11）。⚠️ セッションのクライアントで読むので、参加していない会話は null（RLS） */
   lastMessage: string | null;
+  /** ★最後のメッセージを送った人（2026-10-11）。自分＝"me" ／ 同じ会社の別の担当者＝氏名 ／ 候補者＝"candidate" ／ 分からない＝null */
+  lastSender: "me" | "candidate" | { colleague: string } | null;
 };
 
 /**
@@ -89,12 +91,38 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
         ⚠️★admin で読まないこと。セッションのクライアントで読めば、参加していない会話は RLS で落ちる（読めない人に本文を出さない） */
   const convIds = (rawRows ?? []).map((c) => c.id as string);
   const lastBody = new Map<string, string>();
+  const lastSenderPid = new Map<string, string>();
   if (convIds.length > 0) {
     const { data: msgs, error: mErr } = await supabase
-      .from("ow_conversation_messages").select("conversation_id, body, sent_at")
+      .from("ow_conversation_messages").select("conversation_id, body, sent_at, sender_participant_id")
       .in("conversation_id", convIds).is("deleted_at", null).order("sent_at", { ascending: false });
     if (mErr) console.error("[biz/messages] last messages:", mErr.message);
-    for (const m of msgs ?? []) if (!lastBody.has(m.conversation_id as string)) lastBody.set(m.conversation_id as string, m.body as string);
+    for (const m of msgs ?? []) {
+      if (lastBody.has(m.conversation_id as string)) continue;
+      lastBody.set(m.conversation_id as string, m.body as string);
+      if (m.sender_participant_id) lastSenderPid.set(m.conversation_id as string, m.sender_participant_id as string);
+    }
+  }
+  /* ★送った人を「あなた／同じ会社の担当者の氏名／候補者」に分ける。
+        ⚠️ 引くのは、上で本文を読めた会話（＝参加している会話）の最後の送り手だけ。admin で読むが、出すのは自社の担当者の氏名だけ */
+  const senderOf = new Map<string, "me" | "candidate" | { colleague: string }>();
+  const pids = Array.from(new Set(Array.from(lastSenderPid.values())));
+  if (pids.length > 0) {
+    const admin = createAdminClient();
+    const { data: parts, error: pErr } = await admin.from("ow_conversation_participants").select("id, user_id, role").in("id", pids);
+    if (pErr) console.error("[biz/messages] senders:", pErr.message);
+    const colleagueIds = (parts ?? []).filter((x) => x.role === "company_admin" && x.user_id !== ctx.currentOwnId).map((x) => x.user_id as string);
+    const names = new Map<string, string>();
+    if (colleagueIds.length > 0) {
+      const { data: us, error: uErr } = await admin.from("ow_users").select("id, name").in("id", colleagueIds);
+      if (uErr) console.error("[biz/messages] sender names:", uErr.message);
+      for (const u of us ?? []) names.set(u.id as string, (u.name as string) || "担当者");
+    }
+    for (const x of parts ?? []) {
+      if (x.user_id === ctx.currentOwnId) senderOf.set(x.id as string, "me");
+      else if (x.role === "company_admin") senderOf.set(x.id as string, { colleague: names.get(x.user_id as string) ?? "担当者" });
+      else senderOf.set(x.id as string, "candidate");
+    }
   }
 
   const convList: ConversationRow[] = (rawRows ?? []).map((c: any) => ({
@@ -109,6 +137,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
     isParticipant: partErr ? true : joined.has(c.id),
     isNewReply: newReplyConvIds.has(c.id),
     lastMessage: lastBody.get(c.id) ?? null,
+    lastSender: (lastSenderPid.has(c.id) && senderOf.get(lastSenderPid.get(c.id) as string)) || null,
   }));
 
   /* ★1通も送っていないときだけ「いまメッセージを送れる候補者：N人」を数える。

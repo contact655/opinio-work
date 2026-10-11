@@ -147,7 +147,7 @@ async function loadTenantContext(): Promise<TenantContext | null> {
 
     /* ★表示名は `ow_users.name`（プロフィールの氏名）を正にする（2026-09-21）。
           それまでは auth の metadata か**メールアドレスの @ より前**を使っており、
-          チーム管理（`ow_users.name`）と食い違っていた（CLAUDE.md「name 表示の二重経路問題」）。
+          メンバーと権限（`ow_users.name`）と食い違っていた（CLAUDE.md「name 表示の二重経路問題」）。
        ⚠️ `'ユーザー'`（プレースホルダ）は名前として出さない（`greetingName` が弾く）。
        ⚠️★**メールアドレスの一部を名前にしないこと。** 最後は「ご担当者」に倒す。 */
     const userName =

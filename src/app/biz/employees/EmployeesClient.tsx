@@ -21,7 +21,7 @@ type Props = {
 };
 
 /* ⚠️★**タブは2つだけ**（2026-09-18）。「非表示中」と「管理アカウント」を消した。
-      ・管理アカウント … `/biz/members`（チーム管理）と同じ人たちで、
+      ・管理アカウント … `/biz/members`（メンバーと権限）と同じ人たちで、
         **見るだけの一覧が二重**だった。
         経歴を持つ管理者には現役社員カードに「管理者」バッジを出す形に替えた。
       ・非表示中 … 件数が常に0で、タブだけが常設されていた。非表示の行は
@@ -425,7 +425,7 @@ export function EmployeesClient({ current, alumni, hiddenExperienceIds, reported
       {/* ページヘッダー */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
-          社員管理
+          社員・OB/OG
         </h1>
         {/* ⚠️★「管理アカウント」「非表示」の説明は 2026-09-18 に外した。
                タブが無くなったので、指していた先が画面に無い文になる。 */}

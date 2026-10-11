@@ -13,6 +13,8 @@ export type ApproachLetterProps = {
   logoLetter: string | null;
   logoGradient: string | null;
   senderName: string | null;
+  /** ★送った担当者の役職（2026-10-11）。「〇〇（役職）から・日付」 */
+  senderRole?: string | null;
   dateText: string;
   reason: string;
   body: string | null;
@@ -41,14 +43,19 @@ export function ApproachLetter(p: ApproachLetterProps) {
           {p.companyHref
             ? <Link href={p.companyHref} style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflowWrap: "anywhere" }}>{p.companyName}</Link>
             : <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>{p.companyName}</span>}
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
-            {p.senderName ? `${p.senderName} さんから · ` : ""}{p.dateText}
+          {/* ★「〇〇（役職）から・日付」（2026-10-11 / モックに合わせた） */}
+          <div data-state="letter-from" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
+            {p.senderName ? `${p.senderName}${p.senderRole ? `（${p.senderRole}）` : ""}から・` : ""}{p.dateText}
           </div>
+          {p.companyHref && (
+            <Link href={p.companyHref} data-state="letter-company-link" style={{ display: "inline-block", marginTop: 2, fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>企業ページを見る</Link>
+          )}
           {p.isOwnCompany && <OwnCompanyNote style={{ marginTop: 2 }} />}
         </div>
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      {/* ★理由は薄い背景の箱（2026-10-11 / モックに合わせた） */}
+      <div data-state="letter-reason" style={{ marginTop: 12, background: "var(--bg-tint, #f6f7f9)", borderRadius: 10, padding: "12px 14px" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>あなたに送った理由</div>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: reasonEmpty ? "var(--ink-mute)" : "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
           {reasonEmpty ? (p.placeholder?.reason ?? "") : p.reason}

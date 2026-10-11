@@ -33,7 +33,7 @@ const DURATION_OPTIONS = ["応相談", "1ヶ月以内", "3ヶ月以内", "半年
          `assigneeIds.filter((uid) => validIds.has(uid))` で**黙って捨てる**。
          企業は担当者を選べたつもりで、**何も保存されない**
          （CLAUDE.md「入力させたのに保存しない UI を作らない」）。
-      → 0件のときは**架空の人ではなく空状態**を出し、チーム管理へ送る。 */
+      → 0件のときは**架空の人ではなく空状態**を出し、メンバーと権限へ送る。 */
 
 const SECTION_DEFS = [
   { id: "basic",        label: "基本情報",       showStatus: true },
@@ -1181,7 +1181,7 @@ export function JobEditForm({
                   fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9,
                 }}>
                   選べる担当者がいません。<br />
-                  <a href="/biz/members" style={{ color: "var(--royal)", fontWeight: 600 }}>チーム管理</a>
+                  <a href="/biz/members" style={{ color: "var(--royal)", fontWeight: 600 }}>メンバーと権限</a>
                   {" "}でメンバーを追加すると、ここから選べるようになります。
                 </div>
               )}

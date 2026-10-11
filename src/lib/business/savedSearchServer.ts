@@ -52,6 +52,8 @@ export type SavedSearchForViewer = SavedSearchRow & {
   lastViewedAt: string;
   /** 新着の人数。null = 数えられなかった（画面は「—」） */
   newCount: number | null;
+  /** ★新着のうち、いまメッセージを送れる方（2026-10-11）。null = 数えられなかった */
+  newApproachableCount: number | null;
 };
 
 const COLS = "id, name, filters, owner_user_id, is_shared, notify_frequency, updated_at, created_at, last_notified_at";
@@ -141,6 +143,11 @@ export function countNew(candidates: Candidate[], filters: SavedCandidateFilters
   return filterCandidates(candidates, filters).filter((c) => isNewSince(c, sinceIso)).length;
 }
 
+/** ★新着のうち、いまメッセージを送れる方（2026-10-11）。⚠️ 判定は候補者検索のカードの「メッセージを送れます」と同じ */
+export function countNewApproachable(candidates: Candidate[], filters: SavedCandidateFilters, sinceIso: string): number {
+  return filterCandidates(candidates, filters).filter((c) => isNewSince(c, sinceIso) && c.approach?.eligible === true && !c.approach.sent).length;
+}
+
 /** 画面用: 見られる条件 ＋ 前回見た日時 ＋ 新着の人数 ＋ できること */
 export async function listSavedSearchesWithCounts(params: {
   companyId: string;
@@ -169,6 +176,7 @@ export async function listSavedSearchesWithCounts(params: {
       canDelete: isMine || params.viewerPermission === "admin",
       lastViewedAt: since,
       newCount: candidates ? countNew(candidates, r.filters, since) : null,
+      newApproachableCount: candidates ? countNewApproachable(candidates, r.filters, since) : null,
     };
   });
 }

@@ -10,7 +10,7 @@ import { isRegisteredUser } from "@/lib/users/registered";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "チーム管理 | OPINIO Business" },
+  title: { absolute: "メンバーと権限 | OPINIO Business" },
 };
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";

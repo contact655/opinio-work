@@ -1,4 +1,4 @@
-import { acceptRate, REFERENCE_ONLY_BELOW, ROW_RATE_MIN, type AnalyticsCell, type AnalyticsRow, type ApproachAnalytics } from "@/lib/approaches/analytics";
+import { acceptRate, medianReplyDays, REFERENCE_ONLY_BELOW, ROW_RATE_MIN, type AnalyticsCell, type AnalyticsRow, type ApproachAnalytics } from "@/lib/approaches/analytics";
 import Link from "next/link";
 import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
@@ -33,8 +33,9 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
       </div>
       {noResults ? emptyNote : (<>
       <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 16px" }}>
-        返信率は「結果の出た件数」（返信があった件数と、送ってから{APPROACH_EXPIRE_DAYS}日を過ぎた返事待ち）を分母にしています。
-        見送りと返事なしは区別しません。結果の出た件数が{REFERENCE_ONLY_BELOW}件未満のときは参考値、表の行ごとに{ROW_RATE_MIN}件未満のときは率を出していません。
+        {/* ★先頭の2文はモックの文言（2026-10-11）。⚠️ 参考値・率を出さない条件の説明は残す（画面に出る「参考値」「—」の理由） */}
+        返事待ちのうち送ってから{APPROACH_EXPIRE_DAYS}日以内のものは、返信率の計算に入れていません。返信がなかったものは、理由を区別せず「返信なし」として数えます。
+        結果の出た件数が{REFERENCE_ONLY_BELOW}件未満のときは参考値、表の行ごとに{ROW_RATE_MIN}件未満のときは率を出していません。
         検証用アカウントの分は含みません。
       </p>
       <Table title="送った人ごと" rows={data.bySender} />
@@ -52,11 +53,18 @@ function Card({ label, value, sub, badge }: { label: string; value: string; sub?
       <div style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>{label}</div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
         <span style={{ fontSize: 24, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{value}</span>
-        {badge && <span data-state="reference-only" style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: 100, background: "var(--line-soft)", color: "var(--ink-soft)" }}>{badge}</span>}
+        {/* ⚠️ バッジにしない。灰色の小さな文字（2026-10-11 / モックに合わせた） */}
+        {badge && <span data-state="reference-only" style={{ fontSize: 11.5, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>（{badge}）</span>}
       </div>
       {sub && <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
+}
+
+function replyDaysCell(c: AnalyticsCell): string {
+  const m = medianReplyDays(c);
+  /* ⚠️ 0.1日未満に丸まったものを「0日」と出さない（同じ日のうちに返信があった） */
+  return m === null ? "—" : m < 0.1 ? "1日未満" : `${m}日`;
 }
 
 function rateCell(c: AnalyticsCell): string {
@@ -76,14 +84,14 @@ function Table({ title, rows, note }: { title: string; rows: AnalyticsRow[]; not
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }} aria-label={title}>
           <thead><tr style={{ borderBottom: "1px solid var(--line)" }}>
-            <th style={{ ...th, textAlign: "left" }}></th><th style={th}>送った</th><th style={th}>結果が出た</th><th style={th}>返信</th><th style={th}>返信率</th><th style={th}>面談</th>
+            <th style={{ ...th, textAlign: "left" }}></th><th style={th}>送った</th><th style={th}>結果が出た</th><th style={th}>返信</th><th style={th}>返信率</th><th style={th}>返信までの日数（中央値）</th><th style={th}>面談</th>
           </tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.key} data-row={r.key} style={{ borderBottom: "1px solid var(--line-soft)" }}>
                 <td style={{ ...td, textAlign: "left", fontFamily: "inherit" }}>{r.label}</td>
                 <td style={td}>{r.sent}</td><td style={td}>{r.resolved}</td><td style={td}>{r.accepted}</td>
-                <td style={td} data-rate>{rateCell(r)}</td><td style={td}>{r.meetings}</td>
+                <td style={td} data-rate>{rateCell(r)}</td><td style={td} data-reply-days>{replyDaysCell(r)}</td><td style={td}>{r.meetings}</td>
               </tr>
             ))}
           </tbody>

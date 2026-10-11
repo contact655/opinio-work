@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
-import { approachQuotaTexts, APPROACH_SILENCE_NOTE } from "@/lib/constants/companyApproaches";
+import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
+import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
 import {
   APPROACH_BODY_MAX, APPROACH_EXPIRE_DAYS, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_RESEND_DAYS,
 } from "@/lib/constants/companyApproaches";
@@ -22,11 +23,10 @@ type Props = {
   candidate: { id: string; name: string; headline: string | null; currentRole: string | null; currentCompany: string | null };
   quotes: { label: string; text: string }[];
   quota: ApproachQuota | null;
-  senders: { id: string; name: string }[];
+  senders: { id: string; name: string; role: string | null }[];
   defaultSenderId: string;
   jobs: { id: string; title: string }[];
   company: { name: string; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null; isOwnCompany: boolean };
-  disclosure: { biz: number; max: number; missing: { label: string; href: string }[] } | null;
 };
 
 export default function ApproachComposeClient(p: Props) {
@@ -47,6 +47,7 @@ export default function ApproachComposeClient(p: Props) {
   /* ⚠️ 色は柴さんの指示（30字未満は赤、30〜200字は緑）。200字を超えたら赤 */
   const counterColor = ok ? "#15803D" : "var(--error)";
   const senderName = p.senders.find((s) => s.id === senderId)?.name ?? null;
+  const senderRole = p.senders.find((s) => s.id === senderId)?.role ?? null;
   const job = p.jobs.find((j) => j.id === jobId) ?? null;
 
   /** 引用を理由の欄に差し込む（カーソルの位置。無ければ末尾）。⚠️ 200字を超えても止めない（字数の色で知らせる） */
@@ -80,7 +81,6 @@ export default function ApproachComposeClient(p: Props) {
 
   const card: React.CSSProperties = { background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "14px 16px" };
   const label: React.CSSProperties = { display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 };
-  const remaining = p.quota ? Math.max(0, p.quota.monthlyLimit - p.quota.monthlyUsed - 1) : null;
 
   return (
     <div className="ac-wrap">
@@ -90,13 +90,10 @@ export default function ApproachComposeClient(p: Props) {
         {(p.candidate.currentRole || p.candidate.currentCompany) && (
           <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>{[p.candidate.currentRole, p.candidate.currentCompany].filter(Boolean).join(" · ")}</div>
         )}
-        {/* ★今月の残りを上に小さく（2026-10-11 / 柴さんの指示）。言い方は /biz/messages と同じ */}
-        {p.quota && (
-          <div data-state="compose-quota-head" style={{ marginTop: 6, fontSize: 12.5, color: "var(--ink-soft)" }}>
-            今月あと<strong style={{ color: "var(--ink)" }}>{approachQuotaTexts(p.quota, new Date()).remaining}通</strong>送れます
-            <span style={{ color: "var(--ink-mute)" }}>（{approachQuotaTexts(p.quota, new Date()).remainingSub}）</span>
-          </div>
-        )}
+        {/* ★見出しの下の1文（2026-10-11 / モックに合わせた）。⚠️ 今月の残りは右の①に出すので、ここには出さない（同じ数字を2回出さない） */}
+        <p data-state="compose-lead" style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+          貴社として届きます。{p.candidate.name}さんが返信すると、そのままメッセージでやり取りが始まります。
+        </p>
       </div>
 
       <div className="ac-grid">
@@ -114,7 +111,7 @@ export default function ApproachComposeClient(p: Props) {
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
               <label htmlFor="ac-reason" style={{ ...label, marginBottom: 0 }}>
-                送る理由<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 4 }}>（最初に表示されます・{APPROACH_REASON_MIN}〜{APPROACH_REASON_MAX}字）</span><span style={{ color: "var(--error)", marginLeft: 4 }}>必須</span>
+                送る理由<span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 4 }}>（最初に表示されます）</span><span style={{ color: "var(--error)", marginLeft: 4 }}>必須</span>
               </label>
               {p.quotes.length > 0 && (
                 <div style={{ position: "relative", marginLeft: "auto" }}>
@@ -138,6 +135,7 @@ export default function ApproachComposeClient(p: Props) {
             <textarea id="ac-reason" ref={reasonRef} value={reason} onChange={(e) => setReason(e.target.value)} rows={5}
               placeholder="経歴のどこに惹かれたのか、具体的に書いてください"
               style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", fontSize: 13, lineHeight: 1.7, fontFamily: "inherit", resize: "vertical" }} />
+            <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 4 }}>この文が最初に{p.candidate.name}さんに表示されます。</div>
             <div data-state={ok ? "reason-ok" : "reason-ng"} style={{ fontSize: 12, fontWeight: 700, color: counterColor, marginTop: 4 }}>
               {len} / {APPROACH_REASON_MAX}（{APPROACH_REASON_MIN}文字以上）
             </div>
@@ -149,6 +147,7 @@ export default function ApproachComposeClient(p: Props) {
               placeholder="自己紹介や、話したいことを書いてください"
               style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", fontSize: 13, lineHeight: 1.7, fontFamily: "inherit", resize: "vertical" }} />
             <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 4 }}>{body.length} / {APPROACH_BODY_MAX}</div>
+            <div data-state="compose-body-note" style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 4 }}>理由と本文は、そのまま最初のメッセージとして会話に入ります。</div>
           </div>
 
           {p.jobs.length > 0 && (
@@ -178,54 +177,39 @@ export default function ApproachComposeClient(p: Props) {
 
         {/* ── 右: 枠・見え方・充実度・注意 ── */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          {/* ① 今月の残りと返事待ち（2026-10-11 / モックに合わせた）。言い方は /biz/messages と同じ */}
           <div style={card} data-state="approach-quota">
-            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 8 }}>今月の枠</div>
             {p.quota ? (
-              /* ★言い方は /biz/messages・ホームと同じ（`approachQuotaTexts`）。2026-10-11 */
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, fontSize: 12, color: "var(--ink-soft)" }}>
-                <div>今月の残り<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{approachQuotaTexts(p.quota, new Date()).remaining}通</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{approachQuotaTexts(p.quota, new Date()).remainingSub}</div></div>
-                <div>返事待ち<div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>{p.quota.openCount}件</div>
-                  <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>{approachQuotaTexts(p.quota, new Date()).openSub}</div></div>
-                <div style={{ gridColumn: "1 / -1" }}>送ったあとの今月の残り：<strong style={{ color: "var(--ink)" }}>{remaining}通</strong></div>
-              </div>
-            ) : <div style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>枠を確認できませんでした（—）</div>}
+              <>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>今月あと{approachQuotaTexts(p.quota, new Date()).remaining}通送れます</div>
+                <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(p.quota, new Date()).remainingSub}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ink-soft)", marginTop: 12 }}>
+                  <span>返事待ち</span><span data-state="compose-open-count">{p.quota.openCount}件／{p.quota.openLimit}件</span>
+                </div>
+                <div aria-hidden style={{ height: 6, borderRadius: 999, background: "var(--line-soft, #eef0f3)", marginTop: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.min(100, Math.round((p.quota.openCount / Math.max(1, p.quota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
+                </div>
+              </>
+            ) : <div style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>送れる数を確認できませんでした</div>}
           </div>
 
+          {/* ② 見え方。⚠️ 求職者の画面と同じ部品（手紙＋返信欄）。返信欄は見本で押せない */}
           <div style={card} data-state="approach-preview">
-            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 10 }}>{p.candidate.name} さんにはこう見えます</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 10 }}>{p.candidate.name}さんにはこう見えます</div>
             <ApproachLetter companyName={p.company.name} companyHref={null} logoUrl={p.company.logoUrl} logoLetter={p.company.logoLetter}
-              logoGradient={p.company.logoGradient} senderName={senderName} dateText="今日" reason={reason} body={body}
+              logoGradient={p.company.logoGradient} senderName={senderName} senderRole={senderRole} dateText="今日" reason={reason} body={body}
               job={job ? { title: job.title, href: `/jobs/${job.id}` } : null}
               placeholder={{ reason: "（ここに、送る理由が入ります）" }} isOwnCompany={p.company.isOwnCompany} />
+            <RequestReplyBox sample declineNote="見送っても企業には伝わりません。" />
           </div>
 
-          {p.disclosure && (
-            <div style={card} data-state="approach-disclosure">
-              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>企業ページの充実度</div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 6 }}>
-                企業入力 {p.disclosure.biz} / {p.disclosure.max}。メッセージを受け取った方は、まず企業ページを見ます。
-              </div>
-              {p.disclosure.missing.length === 0 ? (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)" }}>自分で入力できる項目はすべて入っています</div>
-              ) : (
-                <div style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-                  まだ入れていない項目：
-                  {p.disclosure.missing.map((m, i) => (
-                    <span key={m.label}>{i > 0 && "・"}<Link href={m.href} style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>{m.label}</Link></span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
+          {/* ③ 送る前に（2026-10-11 / モックの3項目） */}
           <div style={card} data-state="approach-notes">
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>送る前に</div>
             <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-              <li>返信があると、メールでお知らせします。返信が来たら、そのままメッセージでやり取りを続けます。</li>
-              <li>{APPROACH_SILENCE_NOTE}</li>
-              <li>返事が来る前に、続けて送ることはできません。返事がないまま{APPROACH_EXPIRE_DAYS}日たつと、返事待ちの枠に戻ります。</li>
-              <li>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び送れません。</li>
+              <li>返信があると、メールでお知らせします。</li>
+              <li>返事がない場合、その理由は表示されません。{APPROACH_EXPIRE_DAYS}日たつと「返信はありませんでした」になり、返事待ちの枠に戻ります。</li>
+              <li>同じ方には、{APPROACH_RESEND_DAYS}日間もう一度送れません。</li>
             </ul>
           </div>
         </aside>

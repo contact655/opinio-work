@@ -6,7 +6,7 @@ import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { messagePreviewLine } from "@/lib/conversations/previewLine";
 import {
-  APPROACH_EXPIRE_DAYS, APPROACH_RESEND_DAYS, APPROACH_HEADLINE, APPROACH_SILENCE_NOTE, approachQuotaTexts,
+  APPROACH_HEADLINE, APPROACH_SILENCE_NOTE, approachQuotaTexts, approachStatusLine,
 } from "@/lib/constants/companyApproaches";
 import { ApproachStepsLarge, ApproachTipsList } from "@/components/approaches/ApproachGuide";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
@@ -35,11 +35,6 @@ const TABS: { key: MessagesTab; label: string }[] = [
   { key: "unread", label: "未読" },
   { key: "pending", label: "返事待ち" },
 ];
-const DAY = 24 * 60 * 60 * 1000;
-
-function fmtYmd(iso: string): string {
-  return new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric" }).format(new Date(iso));
-}
 /** 一覧の日付。今日なら時刻、今年なら「10月3日」、それより前は「2025年10月3日」 */
 function fmtListDate(iso: string, now: Date): string {
   const tz = { timeZone: "Asia/Tokyo" } as const;
@@ -111,6 +106,8 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
         .apx-tab[aria-selected=true] { border-bottom-color: var(--royal); color: var(--royal); font-weight: 700; }
         .apx-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 14px 18px; border: 0; border-top: 1px solid var(--line-soft); background: #fff; text-align: left; font: inherit; color: inherit; text-decoration: none; cursor: pointer; }
         .apx-item:hover { background: var(--bg-tint, #f6f7f9); }
+        .apx-item[data-unread=true] { background: var(--royal-50); }
+        .apx-faded { opacity: 0.55; }
         .apx-list { margin-top: -1px; }
         .apx-empty { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
         .apx-empty-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -128,7 +125,13 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
         </div>
       )}
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>メッセージ</h1>
+      {/* ★右上に「候補者を探して送る」（2026-10-11 / モックに合わせた）。⚠️ 1通も送っていないときの大きな案内には出さない（案内の中に同じ行き先がある） */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>メッセージ</h1>
+        {!showBigGuide && allowed && (
+          <Link href="/biz/candidates" data-state="messages-find" className="btn-fixed-size" style={BTN_SECONDARY}>候補者を探して送る</Link>
+        )}
+      </div>
 
       {showBigGuide ? (
         <>
@@ -174,7 +177,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
             )}
           </section>
           {allowed && (
-            <p data-state="approach-footnote" style={{ margin: 0, fontSize: 12.5, lineHeight: 1.8, color: "var(--ink-mute)" }}>{APPROACH_SILENCE_NOTE}</p>
+            <p data-state="approach-footnote" style={{ margin: 0, fontSize: 12.5, lineHeight: 1.8, color: "var(--ink-mute)" }}>{APPROACH_SILENCE_NOTE}返信が来る前に、同じ方へ続けて送ることはできません。</p>
           )}
         </>
       )}
@@ -191,11 +194,11 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
 }
 
 /** 1行の共通の形（名前・日付・状態の灰色の行・冒頭1行・未読の点） */
-function Line({ name, date, status, preview, unread }: { name: string; date: string; status: string | null; preview: string | null; unread: boolean }) {
+function Line({ name, date, status, preview, unread, faded = false }: { name: string; date: string; status: string | null; preview: string | null; unread: boolean; faded?: boolean }) {
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: unread ? 700 : 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+        <span className={faded ? "apx-faded" : undefined} style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: unread ? 700 : 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
         <span style={{ flexShrink: 0, fontSize: 12, color: unread ? "var(--royal)" : "var(--ink-mute)", fontWeight: unread ? 700 : 400 }}>{date}</span>
       </div>
       {status && <div data-state="item-status" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>{status}</div>}
@@ -212,7 +215,10 @@ function ConvItem({ c, now }: { c: ConversationRow; now: Date }) {
   const name = c.candidate?.name || "名前未設定";
   const unread = c.isUnread || c.isNewReply;
   /* ⚠️ 参加していない会話は本文を読めない（RLS）。冒頭の代わりに灰色の一言（バッジにしない） */
-  const preview = c.lastMessage ? messagePreviewLine(c.lastMessage) : !c.isParticipant ? "開くと会話に参加できます" : null;
+  /* ★自分が送ったものは「あなた：」、同じ会社の別の担当者なら「氏名：」（2026-10-11 / モックに合わせた）。相手からのものは付けない */
+  const line = c.lastMessage ? messagePreviewLine(c.lastMessage) : null;
+  const prefix = c.lastSender === "me" ? "あなた：" : c.lastSender && c.lastSender !== "candidate" ? `${c.lastSender.colleague}：` : "";
+  const preview = line ? `${prefix}${line}` : !c.isParticipant ? "開くと会話に参加できます" : null;
   return (
     <Link href={`/biz/messages/${c.id}`} className="apx-item" data-item="conv" data-unread={unread ? "true" : "false"}>
       <Avatar name={name} url={c.candidate?.avatar_url ?? null} />
@@ -224,17 +230,15 @@ function ConvItem({ c, now }: { c: ConversationRow; now: Date }) {
 /** 送って返信がないもの（30日以内・30日を過ぎたもの）。押すと送った内容がその場で開く */
 function SentItem({ r, now, open, onToggle }: { r: SentApproach; now: Date; open: boolean; onToggle: () => void }) {
   const name = r.candidate.name || "名前未設定";
-  const elapsedDays = Math.floor((now.getTime() - new Date(r.createdAt).getTime()) / DAY);
-  const daysLeft = Math.max(1, APPROACH_EXPIRE_DAYS - elapsedDays);
-  const resendAt = new Date(new Date(r.createdAt).getTime() + APPROACH_RESEND_DAYS * DAY).toISOString();
-  const status = r.status === "pending"
-    ? `返信を待っています・あと${daysLeft}日`
-    : `返信はありませんでした・${fmtYmd(resendAt)}から再び送れます`;
+  /* ⚠️ 文言は候補者検索のカード・候補者の詳細と同じ関数（`approachStatusLine`） */
+  const status = approachStatusLine(r.status, r.createdAt, now);
+  /* ★返信がなかった行は、顔写真と名前を少し薄く（2026-10-11 / モックに合わせた） */
+  const faded = r.status !== "pending";
   return (
     <div id={`approach-${r.id}`} data-item="sent" data-approach-status={r.status}>
       <button type="button" className="apx-item" onClick={onToggle} aria-expanded={open}>
-        <Avatar name={name} url={r.candidate.avatarUrl} />
-        <Line name={name} date={fmtListDate(r.createdAt, now)} status={status} preview={`あなた：${r.reason.split("\n")[0]}`} unread={false} />
+        <span className={faded ? "apx-faded" : undefined} style={{ flexShrink: 0, display: "inline-flex" }}><Avatar name={name} url={r.candidate.avatarUrl} /></span>
+        <Line name={name} date={fmtListDate(r.createdAt, now)} status={status} preview={`あなた：${r.reason.split("\n")[0]}`} unread={false} faded={faded} />
       </button>
       {open && (
         <div data-state="approach-detail" style={{ margin: "0 18px 14px 74px", padding: "12px 14px", background: "var(--bg-tint, #f6f7f9)", borderRadius: 8, fontSize: 13, lineHeight: 1.8, color: "var(--ink)", minWidth: 0 }}>

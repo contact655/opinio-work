@@ -122,7 +122,7 @@ export async function getTodayTodo(
     for (const a of approaches.data ?? []) {
       items.push({
         kind: "approach", at: a.accepted_at as string,
-        title: `${nameOf(a.candidate_user_id as string)} さんから返信がありました`,
+        title: `${nameOf(a.candidate_user_id as string)}さんから返信がありました`,
         sub: [fmtMd(a.accepted_at as string), a.sender_user_id ? `送った人：${nameOf(a.sender_user_id as string)}` : null, "まだ誰も会話を開いていません"].filter(Boolean).join(" ・ "),
         action: "メッセージを開く",
         href: a.conversation_id ? `/biz/messages/${a.conversation_id}` : "/biz/messages?tab=pending",
@@ -134,21 +134,21 @@ export async function getTodayTodo(
     for (const u of unrepliedRows) {
       /* ⚠️ 本文は冒頭だけ（自社の会話なので見せてよい）。候補日などの種類つきのメッセージは出さない */
       const snippet = u.body ? `「${u.body.replace(/\s+/g, " ").slice(0, 40)}${u.body.length > 40 ? "…" : ""}」` : null;
-      items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)} さんから返信があります`, sub: [relDays(u.at), snippet].filter(Boolean).join(" ・ "), action: "返信する", href: `/biz/messages/${u.id}` });
+      items.push({ kind: "unreplied", at: u.at, title: `${nameOf(u.candidate)}さんから返信があります`, sub: [relDays(u.at), snippet].filter(Boolean).join(" ・ "), action: "返信する", href: `/biz/messages/${u.id}` });
     }
   }
   if (proposals) {
     counts.proposal = proposals.length;
     for (const p of proposals) {
       const left = proposalDaysLeft(p.respondBy);
-      items.push({ kind: "proposal", at: p.createdAt, title: `${nameOf(p.candidateUserId)} さんの提案に回答してください`, sub: [left <= 1 ? "今日で終了" : `あと${left}日で終了`, `根拠${p.evidenceCount}つ`].join(" ・ "), action: "提案を見る", href: "/biz/proposals" });
+      items.push({ kind: "proposal", at: p.createdAt, title: `${nameOf(p.candidateUserId)}さんの提案に回答してください`, sub: [left <= 1 ? "今日で終了" : `あと${left}日で終了`, `根拠${p.evidenceCount}つ`].join(" ・ "), action: "提案を見る", href: "/biz/proposals" });
     }
   }
   if (meetings.error) console.error("[todayTodo] meetings:", meetings.error.message);
   else {
     counts.meetingRequest = meetings.data?.length ?? 0;
     for (const m of meetings.data ?? []) {
-      items.push({ kind: "meetingRequest", at: m.created_at as string, title: `${nameOf(m.user_id as string)} さんから面談の申し込み`, sub: fmtMd(m.created_at as string), action: "申し込みを見る", href: "/biz/meetings" });
+      items.push({ kind: "meetingRequest", at: m.created_at as string, title: `${nameOf(m.user_id as string)}さんから面談の申し込み`, sub: fmtMd(m.created_at as string), action: "申し込みを見る", href: "/biz/meetings" });
     }
   }
 
@@ -156,7 +156,7 @@ export async function getTodayTodo(
     counts.meeting = upcoming.length;
     /* ⚠️ 並び順の日時は「決まった日」ではなく面談の日時なので、近い予定が上に来る */
     for (const m of upcoming) {
-      items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName} さんとの面談`, sub: [`${formatMeetingDateTime(m.startsAt)}（${m.duration}分）`, MEETING_FORMATS[m.format], m.attendees.length ? `同席：${m.attendees.join("、")}` : null].filter(Boolean).join(" ・ "), action: "予定を見る", href: `/biz/messages/${m.conversationId}` });
+      items.push({ kind: "meeting", at: m.startsAt, title: `${m.candidateName}さんとの面談`, sub: [`${formatMeetingDateTime(m.startsAt)}（${m.duration}分）`, MEETING_FORMATS[m.format], m.attendees.length ? `同席：${m.attendees.join("、")}` : null].filter(Boolean).join(" ・ "), action: "予定を見る", href: `/biz/messages/${m.conversationId}` });
     }
   }
 
@@ -169,7 +169,7 @@ export async function getTodayTodo(
       savedSearchPeople = withNew.reduce((n, s) => n + (s.newCount ?? 0), 0);
       for (const s of withNew) {
         /* ⚠️ 日付は「今日」（新着は今の時点の数）。前回見た日時を出すと、いつの新着か誤読される */
-        items.push({ kind: "savedSearch", at: new Date().toISOString(), title: `保存した条件「${s.name}」に新着 ${s.newCount}名`, sub: "前回この条件を見たあとに登録・更新した方", action: "新着を見る", href: `/biz/candidates?saved=${s.id}&new=1` });
+        items.push({ kind: "savedSearch", at: new Date().toISOString(), title: `保存した条件「${s.name}」に新着 ${s.newCount}名`, sub: typeof s.newApproachableCount === "number" ? `うちメッセージを送れる方 ${s.newApproachableCount}名` : "前回この条件を見たあとに登録・更新した方", action: "新着を見る", href: `/biz/candidates?saved=${s.id}&new=1` });
       }
     }
   }

@@ -14,12 +14,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *    検証用のアカウントで操作しながら実在の担当者を送り手・同席者にして、実在の求職者に届けられる。
  * ⚠️ 操作している人を引けなければ null（fail-closed）。
  */
-export async function listSameTestStaff(companyId: string, operatorOwUserId: string): Promise<{ id: string; name: string }[] | null> {
+/** ★role は担当者の役職（`ow_company_admins.role_title`。2026-10-11 / 「〇〇（役職）から」に使う）。無ければ null */
+export async function listSameTestStaff(companyId: string, operatorOwUserId: string): Promise<{ id: string; name: string; role: string | null }[] | null> {
   const db = createAdminClient();
-  const { data, error } = await db.from("ow_company_admins").select("user_id")
+  const { data, error } = await db.from("ow_company_admins").select("user_id, role_title")
     .eq("company_id", companyId).eq("is_active", true).not("user_id", "is", null);
   if (error) { console.error("[sameTestStaff] admins:", error.message); return null; }
   const adminIds = Array.from(new Set((data ?? []).map((r) => r.user_id as string)));
+  const roleOf = new Map((data ?? []).map((r) => [r.user_id as string, ((r.role_title as string | null) ?? "").trim() || null]));
   const { data: users, error: uErr } = await db.from("ow_users").select("id, name, is_test")
     .in("id", Array.from(new Set([...adminIds, operatorOwUserId])));
   if (uErr) { console.error("[sameTestStaff] users:", uErr.message); return null; }
@@ -30,6 +32,6 @@ export async function listSameTestStaff(companyId: string, operatorOwUserId: str
     const u = (users ?? []).find((x) => x.id === id);
     if (!u || !sameTest(u)) return [];
     const n = ((u.name as string | null) ?? "").trim();
-    return [{ id, name: n && n !== "ユーザー" ? n : "担当者" }];
+    return [{ id, name: n && n !== "ユーザー" ? n : "担当者", role: roleOf.get(id) ?? null }];
   });
 }

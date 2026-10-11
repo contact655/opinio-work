@@ -631,8 +631,13 @@ export default function CandidatesClient({
     <div className="cand-wrap">
 
       {/* ── ヘッダー ─────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>候補者を探す</h1>
+        {/* ★見出しの下の1文（2026-10-11 / モックに合わせた）。⚠️「現職・過去の在籍企業とそのグループ会社には表示されません」は
+               `can_send_scout()` の在籍企業の除外の言い換え。判定は変えていない */}
+        <p data-state="candidates-lead" style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+          「メッセージを受け取る」設定の方には、貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。
+        </p>
       </div>
 
       {/* ── ★ツールバー（2026-09-20）─────────────────────────────────────────
@@ -1031,7 +1036,7 @@ export default function CandidatesClient({
                           {/* ★送れる人にだけ小さく出す（2026-10-11 / 柴さんの指示）。⚠️★送れない人には何も出さない
                                  （受け取らない設定・ブロック・範囲外・転職に興味なし を見た目で区別させない） */}
                           {c.approach?.eligible === true && !c.approach.sent && (
-                            <span data-state="can-message" style={{ fontSize: 11.5, fontWeight: 600, color: "var(--royal)", whiteSpace: "nowrap" }}>メッセージを送れます</span>
+                            <span data-state="can-message" style={{ fontSize: 11.5, fontWeight: 600, color: "var(--success-ink)", whiteSpace: "nowrap" }}>メッセージを送れます</span>
                           )}
                           {/* ⚠️ **年齢は出さない**（2026-08-20）。一覧に年齢を出さない方針。
                                  出すのは職務要件として意味のある社会人年数だけ。 */}
@@ -1046,7 +1051,8 @@ export default function CandidatesClient({
                             <span data-state="touchpoint-count" style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>接点 {c.touchpoints.length}件</span>
                           )}
                           {c.isActivelyLooking && (
-                            <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)" }}>転職検討中</span>
+                            /* ⚠️ 状態は色付きのバッジにせず灰色の小さな文字（2026-10-11 / モックの共通ルール） */
+                            <span data-state="actively-looking" style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>転職検討中</span>
                           )}
                           {/* ⚠️★「メンター」バッジは 2026-09-20 に削除した。**戻さないこと。**
                                  ① ui-conventions は**紫を使わない**と決めている

@@ -8,17 +8,17 @@ import { isRegisteredUser } from "@/lib/users/registered";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "社員管理 | OPINIO Business" },
+  title: { absolute: "社員・OB/OG | OPINIO Business" },
 };
 
 /* ⚠️★**`BizTeamMember` と「管理アカウント」タブは 2026-09-18 に削除した。**
-      同じ人たちは「チーム管理」（**`/biz/members`**）で追加・削除でき、この画面で
+      同じ人たちは「メンバーと権限」（**`/biz/members`**）で追加・削除でき、この画面で
       **見るだけの一覧が二重にあった**。代わりに、経歴を登録している管理者には
       現役社員カードに「管理者」バッジを出す（下の `isAdmin`）。
    ⚠️ `ow_company_admins` の取得自体は残す。バッジの判定に要る。
    ⚠️★**経歴を持たない管理者は、この画面に出なくなった。** それは意図どおり
       ——ここは「企業ページに出る人」の一覧で、管理権限の一覧ではない。
-      権限の確認は `/biz/members`（サイドバーの「チーム管理」）で行う。
+      権限の確認は `/biz/members`（サイドバーの「メンバーと権限」）で行う。
       ⚠️ **`/biz/team` というパスは存在しない。** 書くときは実在を確かめること。 */
 
 export type BizEmployee = {
@@ -60,7 +60,7 @@ export default async function EmployeesPage() {
        必ずユーザー側を優先する」（2026-08-02 確立）に従う。
 
     ⚠️ 企業側が失うものは無い。`masked` / `hidden` の人は公開側にも出ていないので、
-       社員管理画面（＝公開時の見え方を調整する画面）で企業がすることが元から無い。
+       社員・OB/OG画面（＝公開時の見え方を調整する画面）で企業がすることが元から無い。
 
     ⚠️ **企業が自分で隠した行（`ow_company_hidden_experiences`）はここで除外しない。**
        あれは企業が解除できる必要がある。除外の主体が違うので混同しないこと。

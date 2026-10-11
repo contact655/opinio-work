@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { FormSection } from "@/components/profile/editor/formKit";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
-import { APPROACH_SETTING_LABEL } from "@/lib/constants/companyApproaches";
-import { ApproachConsentQuestion, saveApproachConsent } from "./ApproachConsentQuestion";
+import { APPROACH_SETTING_LABEL, approachConsentText } from "@/lib/constants/companyApproaches";
+import { saveApproachConsent } from "./ApproachConsentQuestion";
 
 /**
  * ★`/mypage/settings` の「企業からの声かけ」（2026-10-09）。
@@ -45,8 +45,30 @@ export function ApproachSettingsSection({
   };
 
   return (
-    <FormSection title={APPROACH_SETTING_LABEL}>
-      <ApproachConsentQuestion value={value} onChange={(v) => { setValue(v); setDone(false); }} disabled={saving} showQuestion={false} name="approach-settings" />
+    /* ★見出し・説明・スイッチはモックの文言（2026-10-11）。⚠️ 書く列は今までどおり `accept_company_approaches`（保存は「保存する」）。
+          ⚠️ 未設定（null）は「オフ」と同じ見た目にしない。スイッチの横に「まだ選んでいません」と出す */
+    <FormSection title="企業からのメッセージ">
+      <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
+        企業が理由を添えて送るメッセージです。そのまま返信できます。届く範囲は、ここで絞れます。見送っても企業には伝わりません。
+        {/* ⚠️ 同意の範囲（在籍した会社とそのグループ会社からは届かない）は消さない（`APPROACH_CONSENT_DESCRIPTION` と同じ事実） */}
+        在籍した会社とそのグループ会社からは届きません。
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button type="button" role="switch" aria-checked={value === true} aria-label={APPROACH_SETTING_LABEL} disabled={saving}
+          data-state={value === true ? "on" : value === false ? "off" : "unset"}
+          onClick={() => { setValue(value === true ? false : true); setDone(false); }}
+          className="btn-fixed-size"
+          style={{ position: "relative", width: 44, height: 26, borderRadius: 999, border: "none", padding: 0, cursor: saving ? "default" : "pointer", background: value === true ? "var(--royal)" : "var(--line)", flexShrink: 0 }}>
+          <span aria-hidden style={{ position: "absolute", top: 3, left: value === true ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.2)", transition: "left 0.15s" }} />
+        </button>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{APPROACH_SETTING_LABEL}</span>
+        <span data-state="approach-setting-value" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>
+          {value === null ? "まだ選んでいません" : approachConsentText(value)}
+        </span>
+      </div>
+      <p style={{ margin: "8px 0 0", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+        オフにすると、企業の候補者検索で「メッセージを送れます」と表示されなくなります。
+      </p>
 
       {/* ⚠️★転職意欲で止まっている人には、どちらを選んでも届かないことを書く（選んだのに何も起きない、を防ぐ） */}
       {!isReachableByCompanies(careerStance) && (

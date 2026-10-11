@@ -203,6 +203,31 @@ export default async function BizConversationDetailPage({
       : m.participant ?? null,
   }));
 
+  /* ★企業から送った最初のメッセージ（2026-10-11 / モックに合わせた）。理由と本文を元の記録から取り、
+        1通目の吹き出しを「送った理由」・区切り線・本文で描く。⚠️ 本文の文字列を分けて推測しない（理由に空行が入りうる）。
+        ⚠️ 自社の会話だけ（上で company_id = tenantId を確かめてある）。参加していない人には本文が無いので使わない */
+  let approachFirst: { messageId: string; reason: string; body: string | null } | null = null;
+  let replyNote: { messageId: string; text: string } | null = null;
+  if (messages.length > 0) {
+    const { data: ap, error: apErr } = await createAdminClient().from("ow_company_approaches")
+      .select("reason, body, accepted_at").eq("conversation_id", conversationId).eq("company_id", ctx.tenantId).maybeSingle();
+    if (apErr) console.error("[BizConvDetail] approach:", apErr.message);
+    if (ap) {
+      const expected = `【送った理由】\n${ap.reason as string}${ap.body ? `\n\n${ap.body as string}` : ""}`;
+      const first = messages.find((m) => m.body === expected);
+      if (first) {
+        approachFirst = { messageId: first.id, reason: ap.reason as string, body: (ap.body as string | null) ?? null };
+        const firstIdx = messages.indexOf(first);
+        const reply = messages.slice(firstIdx + 1).find((m) => m.participant?.role === "candidate");
+        if (reply) {
+          const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).formatToParts(new Date(reply.sent_at));
+          const md = `${ps.find((x) => x.type === "month")?.value ?? ""}月${ps.find((x) => x.type === "day")?.value ?? ""}日`;
+          replyNote = { messageId: reply.id, text: `${md}・${candidateName}さんから返信がありました` };
+        }
+      }
+    }
+  }
+
   /* ★日程調整（2026-10-10 / 段4）。同席者の候補（自社の有効な担当者）・自分の日程調整リンク・面談の状態 */
   const [sameTestStaff, mySchedulingUrl, meetingState] = await Promise.all([
     /* ★同席者の候補は、操作している人と is_test が同じ担当者だけ（2026-10-10。`listSameTestStaff`） */
@@ -229,6 +254,8 @@ export default async function BizConversationDetailPage({
           color: var(--ink);
           border-radius: 16px 16px 16px 4px;
         }
+        .biz-conv-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+        @media (min-width: 1024px) { .biz-conv-grid { grid-template-columns: minmax(0, 1fr) 280px; } }
         .msg-bubble-hr {
           background: var(--royal);
           color: #fff;
@@ -339,7 +366,8 @@ export default async function BizConversationDetailPage({
       ) : null}
 
       {/* ── Main content: 2-column ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, alignItems: "start" }}>
+      {/* ⚠️ 2026-10-11 まで「1fr 280px」固定で、375px では会話が幅 50px ほどに潰れていた。列数は CSS で変える（ui-debugging ②） */}
+      <div className="biz-conv-grid">
 
         {/* ── Left: Chat messages ── */}
         <div style={{
@@ -379,9 +407,14 @@ export default async function BizConversationDetailPage({
                 const senderName = msg.participant?.user?.name ?? "不明";
                 const { date, time } = formatDateTime(msg.sent_at);
 
+                const isApproachFirst = approachFirst?.messageId === msg.id;
                 return (
+                  <div key={msg.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {/* ★返信が来たところに中央の小さな一行（2026-10-11 / モックに合わせた） */}
+                  {replyNote?.messageId === msg.id && (
+                    <div data-state="reply-note" style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", margin: "6px 0" }}>{replyNote.text}</div>
+                  )}
                   <div
-                    key={msg.id}
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -389,28 +422,18 @@ export default async function BizConversationDetailPage({
                       gap: 4,
                     }}
                   >
-                    {/* Sender name (candidate side only) */}
-                    {isCandidate && (
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", paddingLeft: 4 }}>
-                        {senderName}
-                      </span>
-                    )}
+                    {/* ★吹き出しの上は「送った人・日付」だけ（2026-10-11 / モックに合わせた）。状態の言葉は出さない */}
+                    <span data-state="bubble-meta" style={{ fontSize: 11, color: "var(--ink-mute)", padding: "0 4px" }}>
+                      {senderName}・{date} {time}
+                    </span>
 
                     <div style={{
                       display: "flex",
                       alignItems: "flex-end",
                       gap: 8,
                       flexDirection: isCandidate ? "row" : "row-reverse",
+                      maxWidth: "100%",
                     }}>
-                      {/* Timestamp */}
-                      <span style={{
-                        fontSize: 11,
-                        color: "var(--ink-mute)",
-                        flexShrink: 0,
-                        whiteSpace: "nowrap",
-                      }}>
-                        {date} {time}
-                      </span>
 
                       {/* Bubble */}
                       <div
@@ -429,9 +452,21 @@ export default async function BizConversationDetailPage({
                       >
                         {msg.kind === "meeting_slots" || msg.kind === "scheduling_link" ? (
                           <MeetingMessageCard side="company" conversationId={conv.id} messageId={msg.id} kind={msg.kind} payload={msg.payload} />
+                        ) : isApproachFirst && approachFirst ? (
+                          <span data-state="approach-first">
+                            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, opacity: 0.8 }}>送った理由</span>
+                            {approachFirst.reason}
+                            {approachFirst.body && (
+                              <>
+                                <span aria-hidden style={{ display: "block", borderTop: "1px solid currentColor", opacity: 0.25, margin: "10px 0" }} />
+                                {approachFirst.body}
+                              </>
+                            )}
+                          </span>
                         ) : msg.body}
                       </div>
                     </div>
+                  </div>
                   </div>
                 );
               })

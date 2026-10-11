@@ -163,7 +163,8 @@ export default function BizProposalsClient({
               <p style={{ margin: "0 0 10px", fontWeight: 600 }}>いまお出しできる提案はありません。</p>
               {/* ★1文にした（2026-10-11 / 柴さんの文言）。根拠の一覧はヘルプ（/biz/help/proposals）へ移した */}
               <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
-                右の「提案の材料」が増えるほど、根拠のある提案が届きやすくなります。{" "}
+                {/* ⚠️「右の」「下の」を付けない（375px では材料が下に出るため。2026-10-11 / 柴さんの判断） */}
+                「提案の材料」が増えるほど、根拠のある提案が届きやすくなります。{" "}
                 <Link href="/biz/help/proposals" style={{ color: "var(--royal)", fontWeight: 600 }}>提案の根拠になるもの</Link>
               </p>
             </div>
@@ -211,6 +212,7 @@ export default function BizProposalsClient({
                 <Link href={m.href} style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{m.action} →</Link>
               </div>
             ))}
+            <Link href="/biz/help/proposals" data-state="materials-help" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 600, color: "var(--royal)" }}>提案の根拠になるもの</Link>
             {materials === null && (
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>数を取得できませんでした（「—」は 0 という意味ではありません）。</p>
             )}
@@ -219,10 +221,10 @@ export default function BizProposalsClient({
           <section style={{ background: "var(--bg-tint, #f8f9fb)", border: "1px solid var(--line)", borderRadius: 12, padding: "18px 20px" }}>
             <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>提案とメッセージの違い</h2>
             <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10, fontSize: 13, lineHeight: 1.7 }}>
-              <div><dt style={{ fontWeight: 700 }}>提案</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>OPINIO が根拠をそろえて双方にご紹介します。送れる数の枠は使いません。両方が「会いたい」でメッセージが開きます。</dd></div>
-              <div><dt style={{ fontWeight: 700 }}>メッセージ</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>貴社から理由を添えて送ります。毎月10通まで。相手が返信すると、そのままやり取りが始まります。</dd></div>
+              <div><dt style={{ fontWeight: 700 }}>提案</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>OPINIO が根拠をそろえて両方にご紹介します。送れる数の枠は使いません。両方が「会いたい」と答えると、やり取りできます。</dd></div>
+              <div><dt style={{ fontWeight: 700 }}>メッセージ</dt><dd style={{ margin: 0, color: "var(--ink-soft)" }}>貴社から理由を添えて送ります。毎月10通まで。相手はそのまま返信できます。</dd></div>
             </dl>
-            <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>候補者を探してメッセージを送る →</Link>
+            <Link href="/biz/candidates" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, fontSize: 14, fontWeight: 600, color: "var(--royal)" }}>候補者を探してメッセージを送る</Link>
           </section>
         </aside>
       </div>
@@ -239,7 +241,7 @@ export default function BizProposalsClient({
   );
 }
 
-function CandidateHead({ p, size }: { p: BizProposalView; size: number }) {
+function CandidateHead({ p, size, isNew = false }: { p: BizProposalView; size: number; isNew?: boolean }) {
   const c = p.candidate;
   const meta = c ? [c.tenureYears != null ? `社会人${c.tenureYears}年` : null, c.roleTrail, c.prefecture].filter(Boolean).join(" ・ ") : "";
   return (
@@ -248,6 +250,8 @@ function CandidateHead({ p, size }: { p: BizProposalView; size: number }) {
       <div style={{ minWidth: 0 }}>
         {/* ⚠️ 名前が null のときは、理由を書かない（本人の設定を企業に伝えないため） */}
         <strong style={{ fontSize: size >= 48 ? 16 : 15, color: "var(--ink)" }}>{c ? c.name : "候補者（いまはお名前を表示できません）"}</strong>
+        {/* ★「新しい提案」は名前の横に紺の太字だけ（2026-10-11 / モックに合わせた。バッジにしない） */}
+        {isNew && <span data-state="proposal-new" style={{ marginLeft: 8, fontSize: 12.5, fontWeight: 700, color: "var(--royal)" }}>新しい提案</span>}
         {meta && <div style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 2 }}>{meta}</div>}
       </div>
     </div>
@@ -258,14 +262,12 @@ function WaitingCard({ p, pending, onMeet, onDecline }: { p: BizProposalView; pe
   return (
     <article data-state="proposal-waiting" style={{ background: "#fff", border: "2px solid var(--royal)", borderRadius: 12, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <CandidateHead p={p} size={48} />
+        <CandidateHead p={p} size={48} isNew />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-          <span style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "var(--royal)", color: "#fff" }}>新しい提案</span>
-            {p.candidateInterested && (
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "var(--royal-50)", color: "var(--royal)" }}>候補者：興味あり</span>
-            )}
-          </span>
+          {/* ⚠️ 状態はバッジにせず灰色の文字（2026-10-11 / モックに合わせた） */}
+          {p.candidateInterested && (
+            <span data-state="candidate-interested" style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>候補者は「興味あり」と回答</span>
+          )}
           <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
             {fmtYmd(p.computedAt)}{p.daysLeft != null ? ` ・ ${p.daysLeft <= 1 ? "今日で終了" : `あと${p.daysLeft}日で終了`}` : ""}
           </span>
@@ -292,31 +294,23 @@ function WaitingCard({ p, pending, onMeet, onDecline }: { p: BizProposalView; pe
   );
 }
 
-const STAGE_BADGE: Record<Exclude<Stage, "waiting">, { label: string; style: React.CSSProperties }> = {
-  theirs: { label: "相手の回答待ち", style: { background: "var(--warm-soft)", color: "var(--warm-ink)" } },
-  mutual: { label: "両方が会いたい", style: { background: "var(--royal-50)", color: "var(--royal)" } },
-  ended: { label: "終了", style: { background: "var(--line-soft)", color: "var(--ink-soft)" } },
-};
-
 function AnsweredRow({ p, stage, open, onToggle }: { p: BizProposalView; stage: Exclude<Stage, "waiting">; open: boolean; onToggle: () => void }) {
-  const badge = STAGE_BADGE[stage];
-  /* ⚠️★終了の理由（候補者が見送った等）は書かない */
+  /* ★状態はバッジにせず灰色の文字（2026-10-11 / モックに合わせた）。⚠️★終了の理由（候補者が見送った等）は書かない */
   const sub = stage === "theirs"
-    ? [p.respondedAt ? `${fmtMd(p.respondedAt)}に「会いたい」と回答` : null, p.jobTitle ? `求人：${p.jobTitle}` : null, p.daysLeft != null ? `あと${p.daysLeft}日で終了` : null].filter(Boolean).join(" ・ ")
+    ? ["相手の回答を待っています", p.respondedAt ? `${fmtMd(p.respondedAt)}に「会いたい」と回答` : null].filter(Boolean).join("・")
     : stage === "mutual"
-      ? (p.introducedAt ? `${fmtMd(p.introducedAt)}にメッセージが開きました` : "メッセージが開きました")
+      ? ["両方が「会いたい」と回答", p.introducedAt ? `${fmtMd(p.introducedAt)}からやり取りできます` : null].filter(Boolean).join("・")
       : "この提案は終了しました";
   return (
-    <article data-state={`proposal-${stage}`} style={{ background: stage === "ended" ? "var(--bg-tint, #f8f9fb)" : "#fff", border: "1px solid var(--line)", borderRadius: 12 }}>
+    <article data-state={`proposal-${stage}`} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, opacity: stage === "ended" ? 0.6 : 1 }}>
       <div className="bpz-row">
         <div style={{ display: "flex", gap: 12, alignItems: "center", flex: "1 1 260px", minWidth: 0 }}>
           <InitialAvatar name={p.candidate?.name ?? "?"} size={44} bgStyle={stage === "ended" ? "var(--line-soft)" : "var(--royal-100)"} textColor={stage === "ended" ? "var(--ink-mute)" : "var(--royal)"} />
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <strong style={{ fontSize: 15, color: stage === "ended" ? "var(--ink-soft)" : "var(--ink)" }}>{p.candidate ? p.candidate.name : "候補者（いまはお名前を表示できません）"}</strong>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 4, ...badge.style }}>{badge.label}</span>
             </div>
-            <div style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 4 }}>{sub}</div>
+            <div data-state="proposal-status" style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 4 }}>{sub}</div>
           </div>
         </div>
         {stage === "mutual" && p.conversationId ? (

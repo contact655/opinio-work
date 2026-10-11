@@ -4,7 +4,7 @@ import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 
 /**
- * `/biz/employees`（社員管理）のプレビュー（2026-09-18）。
+ * `/biz/employees`（社員・OB/OG）のプレビュー（2026-09-18）。
  *
  * ⚠️★**この画面を作った理由。** B6 で足した3つ——管理者バッジ・面談OKバッジ・
  *    職種の併記——は、**ログインできるどの企業にも該当者が居ない**ので実データで
@@ -62,7 +62,7 @@ export default function BizEmployeesPreview() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="社員管理（/biz/employees）">
+      <PreviewHeader title="社員・OB/OG（/biz/employees）">
         タブは<strong>2つだけ</strong>（現役社員 / OB・OG社員）。
         職種は<strong>マスタ名が主で、社内での呼び方を小さく併記</strong>します。
         どちらも無い行は<strong>職種の行ごと出ません</strong>。

@@ -9,7 +9,7 @@
  * ⚠️ 見せてよいかの判定（`can_send_scout()`）と声かけの判定（`can_send_company_approach()`）は
  *    **ここに書かない**。load.ts が DB 関数を通した結果だけを `Candidate` に入れる。
  */
-import { APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
+import { APPROACH_UNAVAILABLE_MESSAGE, approachStatusLine } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 import type { CandidateStage } from "@/lib/constants/candidateNotes";
 import type { SavedCandidateFilters } from "@/lib/business/savedSearch";
@@ -263,7 +263,8 @@ export function candidateApproachLabel(approach: Candidate["approach"]): { state
     return {
       state: "sent",
       text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージを送りました`,
-      short: `送信済み（${who}・${formatJstSlashMonthDay(approach.sent.sentAt) ?? "—"}）`,
+      /* ★カードは灰色の状態の1行（2026-10-11 / モックに合わせた。/biz/messages の一覧と同じ関数） */
+      short: approachStatusLine(approach.sent.state, approach.sent.sentAt),
     };
   }
   if (approach.eligible) return { state: "eligible", text: "メッセージを送れます", short: "メッセージを送れます" };

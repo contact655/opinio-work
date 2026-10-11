@@ -5,6 +5,8 @@ export type IncomingApproachView = {
   reason: string;
   body: string | null;
   senderName: string | null;
+  /** ★送った担当者の役職（2026-10-11）。無ければ null */
+  senderRole: string | null;
   companyName: string;
   companyHref: string | null;
   /** ★運営会社か（2026-10-10） */

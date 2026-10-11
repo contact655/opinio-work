@@ -8,16 +8,18 @@ import type { AnalyticsRow, ApproachAnalytics } from "@/lib/approaches/analytics
  * ⚠️ 実画面は検証用アカウントを除いて数えるので、検証用のデータでは「出る側」を描けない。ここで見る。
  * ⚠️ DB は読まない（固定データ）。
  */
-const row = (key: string, label: string, sent: number, resolved: number, accepted: number, meetings = 0): AnalyticsRow => ({ key, label, sent, resolved, accepted, meetings });
-const empty: ApproachAnalytics = { total: { sent: 0, resolved: 0, accepted: 0, meetings: 0 }, bySender: [], byJob: [], byReasonLength: [], byTemplate: [] };
+/* ⚠️ replyDays は返信の数だけ並べる（返信までの日数の中央値の見本。2026-10-11） */
+const days = (n: number) => Array.from({ length: n }, (_, i) => [0.5, 2, 3, 6, 9][i % 5]);
+const row = (key: string, label: string, sent: number, resolved: number, accepted: number, meetings = 0): AnalyticsRow => ({ key, label, sent, resolved, accepted, meetings, replyDays: days(accepted) });
+const empty: ApproachAnalytics = { total: { sent: 0, resolved: 0, accepted: 0, meetings: 0, replyDays: days(0) }, bySender: [], byJob: [], byReasonLength: [], byTemplate: [] };
 const sentOnly: ApproachAnalytics = {
-  total: { sent: 3, resolved: 0, accepted: 0, meetings: 0 },
+  total: { sent: 3, resolved: 0, accepted: 0, meetings: 0, replyDays: days(0) },
   bySender: [row("a", "検証 一郎", 3, 0, 0)], byJob: [row("without", "添えていない", 3, 0, 0)],
   byReasonLength: [row("30-79", "30〜79字", 2, 0, 0), row("80-139", "80〜139字", 1, 0, 0), row("140-200", "140〜200字", 0, 0, 0)],
   byTemplate: [row("none", "テンプレートなし", 3, 0, 0)],
 };
 const withData: ApproachAnalytics = {
-  total: { sent: 13, resolved: 11, accepted: 5, meetings: 1 },
+  total: { sent: 13, resolved: 11, accepted: 5, meetings: 1, replyDays: days(5) },
   bySender: [row("a", "検証 一郎", 9, 8, 4, 1), row("b", "検証 二郎", 4, 3, 1)],
   byJob: [row("without", "添えていない", 9, 7, 3, 1), row("none-recorded", "記録なし", 3, 3, 1), row("with", "求人を添えた", 1, 1, 1)],
   byReasonLength: [row("30-79", "30〜79字", 5, 4, 2, 1), row("80-139", "80〜139字", 5, 4, 2), row("140-200", "140〜200字", 3, 3, 1)],
