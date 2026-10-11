@@ -4,6 +4,14 @@
       `##` が記号のまま出る状態だった。 */
 "use client";
 
+import { useRef } from "react";
+
+/* ★2026-10-12: ボタンを日本語にし、記号（H1/H2/H3・B/I・Quote）を見せない（柴さんの指示）。
+      人事の方に Markdown の記号は通じないため。保存形式（Markdown）と求職者側の表示は変えていない。
+   ⚠️★それまでボタンを押しても**何も起きていなかった。** テキストエリアを
+      `closest("[data-md-editor]")` で探していたが、ツールバーはその要素の**外**にあり、毎回 null だった。
+      ref で直接持つ形にした。**closest に戻さないこと。** */
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
@@ -19,20 +27,16 @@ type ToolbarAction = {
   linePrefix?: string;
 };
 
+/* ⚠️ 見出しは1段（##）だけ。企業ページの本文の中の見出しなので、大見出し（#）は使わせない */
 const TOOLBAR: (ToolbarAction | "divider")[] = [
-  { label: "H1", title: "見出し1",  linePrefix: "# " },
-  { label: "H2", title: "見出し2",  linePrefix: "## " },
-  { label: "H3", title: "見出し3",  linePrefix: "### " },
-  "divider",
-  { label: "B",  title: "太字",     prefix: "**", suffix: "**" },
-  { label: "I",  title: "斜体",     prefix: "*",  suffix: "*" },
-  "divider",
-  { label: "List",  title: "リスト",   linePrefix: "- " },
-  { label: "Quote", title: "引用",     linePrefix: "> " },
-  { label: "Link",  title: "リンク",   prefix: "[", suffix: "](URL)" },
+  { label: "見出し",   title: "選んだ行を見出しにする",   linePrefix: "## " },
+  { label: "太字",     title: "選んだ文字を太字にする",   prefix: "**", suffix: "**" },
+  { label: "箇条書き", title: "選んだ行を箇条書きにする", linePrefix: "- " },
+  { label: "リンク",   title: "選んだ文字をリンクにする", prefix: "[", suffix: "](https://)" },
 ];
 
 export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }: Props) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   function handleToolbarClick(action: ToolbarAction, textarea: HTMLTextAreaElement) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
@@ -99,18 +103,16 @@ export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }
               key={item.label}
               type="button"
               title={item.title}
-              onClick={(e) => {
-                const wrapper = (e.currentTarget as HTMLElement).closest("[data-md-editor]");
-                const textarea = wrapper?.querySelector("textarea") as HTMLTextAreaElement | null;
-                if (textarea) handleToolbarClick(item, textarea);
+              onClick={() => {
+                if (textareaRef.current) handleToolbarClick(item, textareaRef.current);
               }}
               style={{
                 padding: "5px 10px",
                 background: "transparent",
                 border: "none",
                 borderRadius: 5,
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontSize: 11,
+                fontFamily: "inherit",
+                fontSize: 12,
                 fontWeight: 700,
                 color: "var(--ink-soft)",
                 cursor: "pointer",
@@ -137,6 +139,7 @@ export function MarkdownEditor({ value, onChange, placeholder, minHeight = 240 }
       {/* エディタ本体 */}
       <div data-md-editor="">
         <textarea
+          ref={textareaRef}
           aria-label={placeholder ?? "本文"}
           value={value}
           onChange={(e) => onChange(e.target.value)}

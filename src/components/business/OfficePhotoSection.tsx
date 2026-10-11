@@ -4,79 +4,21 @@ import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AlertTriangle } from "lucide-react";
 import {
-  MAX_PHOTOS_PER_CATEGORY,
+  MAX_PHOTOS_TOTAL,
+  PHOTO_CATEGORIES,
   buildStoragePath,
   type OfficePhoto,
   type PhotoCategory,
 } from "@/lib/business/photos";
 import type { CompanyMember } from "@/lib/business/photos";
 
-// ─── 定数 ───────────────────────────────────────────────────────────────────
-
-const CATEGORY_DEFS: {
-  id: PhotoCategory;
-  label: string;
-  iconColor: string;
-  iconBg: string;
-  icon: React.ReactNode;
-}[] = [
-  {
-    id: "workspace",
-    label: "オフィス",
-    iconColor: "var(--royal)",
-    iconBg: "var(--royal-50)",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    ),
-  },
-  {
-    id: "meeting",
-    label: "働く様子",
-    iconColor: "var(--purple)",
-    iconBg: "var(--purple-soft)",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <rect x="2" y="3" width="20" height="14" rx="2"/>
-        <line x1="8" y1="21" x2="16" y2="21"/>
-        <line x1="12" y1="17" x2="12" y2="21"/>
-      </svg>
-    ),
-  },
-  {
-    id: "welfare",
-    label: "休憩・食事スペース",
-    iconColor: "var(--success)",
-    iconBg: "var(--success-soft)",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
-        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
-        <line x1="6" y1="1" x2="6" y2="4"/>
-        <line x1="10" y1="1" x2="10" y2="4"/>
-        <line x1="14" y1="1" x2="14" y2="4"/>
-      </svg>
-    ),
-  },
-  {
-    id: "event",
-    label: "チーム・イベント",
-    iconColor: "var(--warm-ink)",
-    iconBg: "var(--warm-soft)",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
-  },
-];
-
-// ─── 型 ─────────────────────────────────────────────────────────────────────
+/*
+ * ★企業ページの写真（2026-10-12 に作り直した / 柴さんの指示）。
+ *   ・カテゴリごとの4つの枠をやめ、**1つの枠にまとめて追加し、写真ごとにカテゴリを選ぶ**
+ *   ・上限は**合計20枚**（MAX_PHOTOS_TOTAL）
+ *   ・追加した写真は**未公開**（is_draft）。「公開する」（lib/companies/applyDraft.ts）を押すまで求職者に見えない
+ * ⚠️ 削除・キャプション・カテゴリの変更は今までどおりその場で保存される（公開済みの写真にもすぐ効く）。
+ */
 
 type Props = {
   companyId: string;
@@ -99,6 +41,7 @@ function PhotoCard({
   onDragEnter,
   onTagChange,
   onLoadMembers,
+  onCategoryChange,
 }: {
   photo: OfficePhoto;
   isDragging: boolean;
@@ -112,6 +55,7 @@ function PhotoCard({
   onDragEnter: () => void;
   onTagChange: (userId: string | null) => void;
   onLoadMembers: () => void;
+  onCategoryChange: (category: PhotoCategory) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
@@ -214,6 +158,26 @@ function PhotoCard({
               </svg>
             </button>
           </div>
+        )}
+      </div>
+
+      {/* ★カテゴリは写真ごとに選ぶ（2026-10-12）。⚠️ 語彙は PHOTO_CATEGORIES（DB の CHECK と同じ4つ） */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px 0" }}>
+        <select
+          aria-label="写真のカテゴリ"
+          value={photo.category}
+          onChange={(e) => onCategoryChange(e.target.value as PhotoCategory)}
+          style={{
+            flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, padding: "4px 6px",
+            border: "1px solid var(--line)", borderRadius: 6, color: "var(--ink)", background: "#fff",
+            fontFamily: "inherit",
+          }}
+        >
+          {PHOTO_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+        {/* ⚠️ バッジにしない（灰色の文字）。「公開する」を押すまで求職者には見えない */}
+        {photo.isDraft && (
+          <span data-state="photo-draft" style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>未公開</span>
         )}
       </div>
 
@@ -421,135 +385,26 @@ function PhotoAddCard({
   );
 }
 
-// ─── カテゴリセクション ──────────────────────────────────────────────────────
-
-function PhotoCategorySection({
-  def,
-  photos,
-  draggingId,
-  uploadingCategory,
-  members,
-  membersLoading,
-  onAdd,
-  onDelete,
-  onCaptionChange,
-  onTagChange,
-  onLoadMembers,
-  onDragStart,
-  onDragEnter,
-  onDragEnd,
-}: {
-  def: typeof CATEGORY_DEFS[number];
-  photos: OfficePhoto[];
-  draggingId: string | null;
-  uploadingCategory: PhotoCategory | null;
-  members: CompanyMember[];
-  membersLoading: boolean;
-  onAdd: () => void;
-  onDelete: (id: string) => void;
-  onCaptionChange: (id: string, caption: string) => void;
-  onTagChange: (id: string, userId: string | null) => void;
-  onLoadMembers: () => void;
-  onDragStart: (id: string) => void;
-  onDragEnter: (id: string) => void;
-  onDragEnd: () => void;
-}) {
-  const remaining = MAX_PHOTOS_PER_CATEGORY - photos.length;
-  const addSlots = Math.min(remaining, remaining > 0 ? 1 : 0);
-  const isUploading = uploadingCategory === def.id;
-
-  return (
-    <div style={{ marginBottom: 28 }}>
-      {/* カテゴリヘッド */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 12,
-        paddingBottom: 8,
-        borderBottom: "1px solid var(--line)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
-          <div style={{
-            width: 24, height: 24, borderRadius: 6,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: def.iconBg, color: def.iconColor,
-          }}>
-            {def.icon}
-          </div>
-          {def.label}
-        </div>
-        <div style={{
-          fontFamily: "var(--font-inter), var(--font-noto)",
-          fontSize: 12, fontWeight: 600, color: "var(--ink-mute)",
-        }}>
-          <strong style={{ color: "var(--ink)" }}>{photos.length}</strong> / {MAX_PHOTOS_PER_CATEGORY}枚
-        </div>
-      </div>
-
-      {/* 写真グリッド（3列） */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 12,
-        }}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={onDragEnd}
-      >
-        {photos.map((photo) => {
-          const taggedMember = photo.tagged_user_id
-            ? members.find(m => m.userId === photo.tagged_user_id) ?? null
-            : null;
-          return (
-            <PhotoCard
-              key={photo.id}
-              photo={photo}
-              isDragging={draggingId === photo.id}
-              taggedUserId={photo.tagged_user_id ?? null}
-              taggedUserName={taggedMember?.name ?? null}
-              members={members}
-              membersLoading={membersLoading}
-              onCaptionChange={(caption) => onCaptionChange(photo.id, caption)}
-              onDelete={() => onDelete(photo.id)}
-              onDragStart={() => onDragStart(photo.id)}
-              onDragEnter={() => onDragEnter(photo.id)}
-              onTagChange={(userId) => onTagChange(photo.id, userId)}
-              onLoadMembers={onLoadMembers}
-            />
-          );
-        })}
-        {/* 追加スロット */}
-        {addSlots > 0 && (
-          <PhotoAddCard
-            key="add"
-            disabled={photos.length >= MAX_PHOTOS_PER_CATEGORY}
-            uploading={isUploading}
-            onAdd={onAdd}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── メインコンポーネント ────────────────────────────────────────────────────
 
 export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [uploadingCategory, setUploadingCategory] = useState<PhotoCategory | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [members, setMembers] = useState<CompanyMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const membersLoadedRef = useRef(false);
   const dragOverIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const pendingCategoryRef = useRef<PhotoCategory | null>(null);
   const isUploadingRef = useRef(false);
   const captionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function byCategory(cat: PhotoCategory) {
-    return photos.filter((p) => p.category === cat);
+  const full = photos.length >= MAX_PHOTOS_TOTAL;
+
+  function showErr(msg: string, ms = 5000) {
+    setPhotoError(msg);
+    setTimeout(() => setPhotoError(null), ms);
   }
 
   async function loadMembers() {
@@ -569,97 +424,90 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
     }
   }
 
-  async function handleTagChange(photoId: string, userId: string | null) {
-    // Optimistic update
-    onPhotosChange(photos.map((p) => (p.id === photoId ? { ...p, tagged_user_id: userId } : p)));
-    // Persist to DB
+  async function patchPhoto(id: string, body: Record<string, unknown>, label: string): Promise<boolean> {
     try {
-      await fetch(`/api/biz/company/photos/${photoId}`, {
+      const res = await fetch(`/api/biz/company/photos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tagged_user_id: userId }),
+        body: JSON.stringify(body),
       });
+      if (!res.ok) throw new Error(String(res.status));
+      return true;
     } catch (err) {
-      console.error("[OfficePhotoSection] tag PATCH failed:", err);
+      console.error(`[OfficePhotoSection] ${label} PATCH failed:`, err);
+      showErr("保存に失敗しました。もう一度お試しください。");
+      return false;
     }
   }
 
-  function handleAdd(category: PhotoCategory) {
-    if (isUploadingRef.current) return;
-    pendingCategoryRef.current = category;
+  async function handleTagChange(photoId: string, userId: string | null) {
+    onPhotosChange(photos.map((p) => (p.id === photoId ? { ...p, tagged_user_id: userId } : p)));
+    await patchPhoto(photoId, { tagged_user_id: userId }, "tag");
+  }
+
+  async function handleCategoryChange(photoId: string, category: PhotoCategory) {
+    const before = photos;
+    onPhotosChange(photos.map((p) => (p.id === photoId ? { ...p, category } : p)));
+    /* ⚠️ 失敗したら戻す（選んだように見えて保存されていない、を作らない） */
+    if (!(await patchPhoto(photoId, { category }, "category"))) onPhotosChange(before);
+  }
+
+  function handleAdd() {
+    if (isUploadingRef.current || full) return;
     fileInputRef.current?.click();
   }
 
   async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !pendingCategoryRef.current) return;
-
-    const category = pendingCategoryRef.current;
+    if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setPhotoError("JPG・PNG・WebP のみ対応しています");
-      setTimeout(() => setPhotoError(null), 4000);
+      showErr("JPG・PNG・WebP のみ対応しています", 4000);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setPhotoError("5MB 以内のファイルを選択してください");
-      setTimeout(() => setPhotoError(null), 4000);
+      showErr("5MB 以内のファイルを選択してください", 4000);
       return;
     }
-
     if (isUploadingRef.current) return;
     isUploadingRef.current = true;
-    setUploadingCategory(category);
+    setUploading(true);
 
     try {
       const supabase = createClient();
       const path = buildStoragePath(companyId, file.name);
-
       const { error: uploadError } = await supabase.storage
         .from("ow-uploads")
         .upload(path, file, { cacheControl: "3600", upsert: false });
-
       if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("ow-uploads").getPublicUrl(path);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("ow-uploads")
-        .getPublicUrl(path);
-
-      const catPhotos = byCategory(category);
+      /* ⚠️ カテゴリの初期値は「オフィス」。追加したあと写真ごとに選び直せる */
       const res = await fetch("/api/biz/company/photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category,
-          image_url: publicUrl,
-          caption: "",
-          display_order: catPhotos.length,
-        }),
+        body: JSON.stringify({ category: "workspace", image_url: publicUrl, caption: "", display_order: photos.length }),
       });
-
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Upload failed");
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error ?? "Upload failed");
       }
-
       const { data } = await res.json();
-      const newPhoto: OfficePhoto = {
+      onPhotosChange([...photos, {
         id: data.id,
         url: data.image_url,
         caption: data.caption ?? "",
         category: data.category,
         tagged_user_id: data.tagged_user_id ?? null,
-      };
-      onPhotosChange([...photos, newPhoto]);
+        isDraft: data.is_draft === true,
+      }]);
     } catch (err) {
       console.error("[OfficePhotoSection] upload failed:", err);
-      setPhotoError("アップロードに失敗しました。もう一度お試しください。");
-      setTimeout(() => setPhotoError(null), 5000);
+      showErr(err instanceof Error && err.message.includes("枚まで") ? err.message : "アップロードに失敗しました。もう一度お試しください。");
     } finally {
       isUploadingRef.current = false;
-      setUploadingCategory(null);
-      pendingCategoryRef.current = null;
+      setUploading(false);
     }
   }
 
@@ -667,40 +515,20 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
     try {
       const res = await fetch(`/api/biz/company/photos/${id}`, { method: "DELETE" });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Delete failed");
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error ?? "Delete failed");
       }
       onPhotosChange(photos.filter((p) => p.id !== id));
     } catch (err) {
       console.error("[OfficePhotoSection] delete failed:", err);
-      setPhotoError("削除に失敗しました。もう一度お試しください。");
-      setTimeout(() => setPhotoError(null), 5000);
+      showErr("削除に失敗しました。もう一度お試しください。");
     }
   }
 
   function handleCaptionChange(id: string, caption: string) {
     onPhotosChange(photos.map((p) => (p.id === id ? { ...p, caption } : p)));
-
     if (captionTimerRef.current) clearTimeout(captionTimerRef.current);
-    captionTimerRef.current = setTimeout(async () => {
-      try {
-        await fetch(`/api/biz/company/photos/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ caption }),
-        });
-      } catch (err) {
-        console.error("[OfficePhotoSection] caption PATCH failed:", err);
-      }
-    }, 700);
-  }
-
-  function handleDragStart(id: string) {
-    setDraggingId(id);
-  }
-
-  function handleDragEnter(id: string) {
-    dragOverIdRef.current = id;
+    captionTimerRef.current = setTimeout(() => { void patchPhoto(id, { caption }, "caption"); }, 700);
   }
 
   function handleDragEnd() {
@@ -722,92 +550,65 @@ export function OfficePhotoSection({ companyId, photos, onPhotosChange }: Props)
 
   return (
     <div>
-      {/* hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        style={{ display: "none" }}
-        onChange={handleFileSelected}
-      />
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={handleFileSelected} />
 
-      {/* Photo error banner */}
       {photoError && (
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", alignItems: "center", gap: 8,
           padding: "10px 14px", marginBottom: 14, borderRadius: 8,
           background: "var(--error-soft)", border: "1px solid #FCA5A5",
           fontSize: 13, color: "var(--error-ink)", fontWeight: 600,
         }} role="alert">
-          <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span>{photoError}</span>
-          <button type="button" onClick={() => setPhotoError(null)} style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: "var(--error)", fontSize: 16, padding: "0 4px",
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /><span style={{ flex: 1 }}>{photoError}</span>
+          <button type="button" onClick={() => setPhotoError(null)} aria-label="閉じる" style={{
+            background: "none", border: "none", cursor: "pointer", color: "var(--error)", fontSize: 16, padding: "0 4px",
           }}>×</button>
         </div>
       )}
 
-      {/* ガイドラインバナー */}
-      <div style={{
-        background: "linear-gradient(135deg, var(--royal-50) 0%, #fff 100%)",
-        border: "1px solid var(--royal-100)",
-        borderRadius: 12,
-        padding: "16px 20px",
-        marginBottom: 22,
-        display: "flex",
-        gap: 12,
-      }}>
-        <div style={{
-          width: 32, height: 32, background: "var(--royal)", color: "#fff",
-          borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-          </svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", marginBottom: 6 }}>
-            写真選びのポイント
-          </div>
-          <ul style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.8, listStyle: "none", padding: 0 }}>
-            {[
-              "各カテゴリ、無理に枚数を埋める必要はありません",
-              "「この写真で何が伝わるか」を意識して選んでください",
-              "古くなった写真は定期的に見直しましょう",
-            ].map((tip) => (
-              <li key={tip} style={{ paddingLeft: 14, position: "relative" }}>
-                <span style={{ position: "absolute", left: 4, color: "var(--royal)", fontWeight: 700 }}>•</span>
-                {tip}
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: 0 }}>
+          写真ごとにカテゴリを選べます。追加した写真は「公開する」を押すまで求職者には見えません。
+        </p>
+        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+          <strong style={{ color: "var(--ink)" }}>{photos.length}</strong> / {MAX_PHOTOS_TOTAL}枚
+        </span>
       </div>
 
-      {/* カテゴリ別グリッド */}
-      {CATEGORY_DEFS.map((def) => (
-        <PhotoCategorySection
-          key={def.id}
-          def={def}
-          photos={byCategory(def.id)}
-          draggingId={draggingId}
-          uploadingCategory={uploadingCategory}
-          members={members}
-          membersLoading={membersLoading}
-          onAdd={() => handleAdd(def.id)}
-          onDelete={handleDelete}
-          onCaptionChange={handleCaptionChange}
-          onTagChange={handleTagChange}
-          onLoadMembers={loadMembers}
-          onDragStart={handleDragStart}
-          onDragEnter={handleDragEnter}
-          onDragEnd={handleDragEnd}
-        />
-      ))}
+      <div
+        className="ops-grid"
+        style={{ display: "grid", gap: 12 }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDragEnd}
+      >
+        {photos.map((photo) => {
+          const taggedMember = photo.tagged_user_id ? members.find((m) => m.userId === photo.tagged_user_id) ?? null : null;
+          return (
+            <PhotoCard
+              key={photo.id}
+              photo={photo}
+              isDragging={draggingId === photo.id}
+              taggedUserId={photo.tagged_user_id ?? null}
+              taggedUserName={taggedMember?.name ?? null}
+              members={members}
+              membersLoading={membersLoading}
+              onCaptionChange={(caption) => handleCaptionChange(photo.id, caption)}
+              onDelete={() => handleDelete(photo.id)}
+              onDragStart={() => setDraggingId(photo.id)}
+              onDragEnter={() => { dragOverIdRef.current = photo.id; }}
+              onTagChange={(userId) => handleTagChange(photo.id, userId)}
+              onLoadMembers={loadMembers}
+              onCategoryChange={(c) => handleCategoryChange(photo.id, c)}
+            />
+          );
+        })}
+        {!full && <PhotoAddCard disabled={full} uploading={uploading} onAdd={handleAdd} />}
+      </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        .ops-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        @media (max-width: 720px) { .ops-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       `}</style>
     </div>
   );

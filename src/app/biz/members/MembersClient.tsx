@@ -1,5 +1,7 @@
 "use client";
 
+import { NotificationRecipientsCard } from "@/components/business/NotificationRecipientsCard";
+import type { NotificationTeamMember } from "@/lib/business/notificationTeam";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
@@ -86,6 +88,9 @@ export type MeetingStat = {
 };
 
 type Props = {
+  /** ★通知の宛先（2026-10-12 に /biz/company から移した）。採用担当タブの下に出す */
+  notificationMembers?: NotificationTeamMember[];
+  notificationEmails?: string[];
   initialMembers: MemberRecord[];
   initialPendingInvites: PendingInviteRecord[];
   currentUserId: string;
@@ -1101,7 +1106,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false, selfHasCurrentExperience = false }: Props) {
+export function MembersClient({ notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false, selfHasCurrentExperience = false }: Props) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<"staff" | "field" | "employees">("staff");
 
@@ -1587,6 +1592,8 @@ export function MembersClient({ initialMembers, initialPendingInvites, currentUs
             onToast={setToastMessage}
           />
           )}
+          {/* ★通知の宛先（2026-10-12 に企業ページの設定タブから移した）。即時保存 */}
+          <NotificationRecipientsCard members={notificationMembers} initialEmails={notificationEmails} canEdit={isAdmin} />
         </>
       )}
 

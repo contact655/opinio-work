@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
 import { canUse } from "@/lib/constants/plans";
 import { isRegisteredUser } from "@/lib/users/registered";
+import { fetchNotificationSettings } from "@/lib/business/notificationTeam";
 
 export const dynamic = "force-dynamic";
 
@@ -158,13 +159,15 @@ export default async function MembersPage() {
 
   const adminSupabase = createAdminClient();
 
-  const [members, pendingInvites, ambassadors] = await Promise.all([
+  const [members, pendingInvites, ambassadors, notification] = await Promise.all([
     /* ⚠️ admin クライアントを渡す。担当者一覧は他メンバーの email を表示するが、
           2026-08-06 に authenticated から ow_users.email の SELECT 権限を剥がした。
           会社の管理者であることは上の getTenantContext で確認済み。 */
     fetchMembersForCompany(adminSupabase, ctx.tenantId),
     fetchPendingInvitesForCompany(adminSupabase, ctx.tenantId),
     fetchAmbassadors(ctx.tenantId),
+    /* ★通知の宛先（2026-10-12 に /biz/company から移した） */
+    fetchNotificationSettings(ctx.tenantId),
   ]);
 
   const existingUserIds = ambassadors.map((a) => a.user_id);
@@ -222,6 +225,8 @@ export default async function MembersPage() {
       currentTenantId={ctx.tenantId}
     >
       <MembersClient
+        notificationMembers={notification.members}
+        notificationEmails={notification.emails}
         initialMembers={members}
         initialPendingInvites={pendingInvites}
         currentUserId={ctx.currentOwnId}
