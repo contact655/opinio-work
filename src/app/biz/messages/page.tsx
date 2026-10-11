@@ -11,6 +11,9 @@ import { getApproachQuota, listSentApproaches } from "@/lib/approaches/server";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { unreadConversationIds } from "@/lib/conversations/unread";
 import { MessagesView } from "./MessagesView";
+import { EmptyPane, NoSelectionPane, PendingPane, ThreadPane } from "./MessagePane";
+import { candidateHeaderMeta, loadCompanyThread } from "@/lib/conversations/companyThread";
+import type { SentApproach } from "@/lib/approaches/server";
 import { unseenProposalConversationIds, interestConversationIds } from "@/lib/evidence/companyProposals";
 
 export const dynamic = "force-dynamic";
@@ -74,8 +77,6 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
     .order("created_at", { ascending: false });
   if (error) console.error("[biz/messages] conversations:", error.message);
 
-  /* ★未読のドット。サイドバーの「メッセージ」バッジと**同じ関数**で決める（2026-09-21） */
-  const unread = await unreadConversationIds(ctx.currentOwnId, { companyId: ctx.tenantId });
 
   /* ★自分が参加している会話（一覧で「未参加」を見分ける）。⚠️ 失敗したら「全部参加している」に倒す */
   const { data: myParts, error: partErr } = await supabase
@@ -91,11 +92,35 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   const [sent, quota] = allowed
     ? await Promise.all([listSentApproaches(ctx.tenantId), getApproachQuota(ctx.tenantId)])
     : [[], null];
+  /* ★右側で開くもの（2026-10-11 / 左右2画面）。?show= は会話の id か、送ったメッセージの id（どちらも受ける）。
+        返信があった送ったメッセージは、その会話を開く。⚠️ 自社の会話・自社の送ったメッセージだけ（他社の id は何も開かない） */
+  const showParam = typeof searchParams?.show === "string" && /^[0-9a-f-]{36}$/i.test(searchParams.show) ? searchParams.show : null;
+  const convIdSet = new Set((rawRows ?? []).map((c) => c.id as string));
+  let selectedConvId: string | null = null;
+  let selectedSent: SentApproach | null = null;
+  if (showParam) {
+    if (convIdSet.has(showParam)) selectedConvId = showParam;
+    else {
+      const s0 = (sent ?? []).find((r) => r.id === showParam) ?? null;
+      if (s0?.status === "accepted" && s0.conversationId && convIdSet.has(s0.conversationId)) selectedConvId = s0.conversationId;
+      else if (s0 && s0.status !== "accepted") selectedSent = s0;
+    }
+  }
+  /* ★開いた会話は、ここで既読にする（`loadCompanyThread`。参加者のときだけ）。⚠️ 一覧の未読を数えるより先に読む */
+  const thread = selectedConvId ? await loadCompanyThread(selectedConvId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId }) : null;
+  const selectedCandidateId = thread?.candidate?.id ?? selectedSent?.candidate.id ?? null;
+  const paneMeta = selectedCandidateId ? await candidateHeaderMeta(selectedCandidateId) : null;
+
+  /* ★未読のドット。サイドバーの「メッセージ」バッジと**同じ関数**で決める（2026-09-21） */
+  const unread = await unreadConversationIds(ctx.currentOwnId, { companyId: ctx.tenantId });
+
   const newReplyConvIds = new Set((sent ?? []).filter((r) => r.unseen && r.conversationId).map((r) => r.conversationId as string));
   /* ★提案から始まって、まだ誰も開いていない会話も「新しい」印を付ける（2026-10-11）。
         ⚠️ 企業の担当者はまだ参加者でないので、参加者の未読では数えられない。⚠️ 提案を読むのは companyProposals.ts だけ */
   for (const id of Array.from(await unseenProposalConversationIds(ctx.tenantId))) newReplyConvIds.add(id);
   const interestIds = await interestConversationIds(ctx.tenantId);
+  /* ⚠️ いま開いた会話は、上で企業が見た印を付けた（参加者のとき）。この描画の「新しい」印からも外す */
+  if (thread?.isParticipant) newReplyConvIds.delete(thread.conv.id);
 
   /* ★一覧の「最後のメッセージの冒頭1行」（2026-10-11 / 柴さんの指示。LinkedIn の受信箱と同じ）。
         ⚠️★admin で読まないこと。セッションのクライアントで読めば、参加していない会話は RLS で落ちる（読めない人に本文を出さない） */
@@ -171,6 +196,12 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
 
   /* ★タブは「すべて」「未読」「返事待ち」（2026-10-11 / 柴さんの指示）。旧 ?tab=expired は「すべて」へ */
   const tab = searchParams?.tab === "pending" || searchParams?.tab === "unread" ? searchParams.tab : "all";
+  const backHref = tab === "all" ? "/biz/messages" : `/biz/messages?tab=${tab}`;
+  const nowDate = new Date();
+  const pane = thread ? <ThreadPane thread={thread} meta={paneMeta} backHref={backHref} myOwUserId={ctx.currentOwnId} />
+    : selectedSent ? <PendingPane sent={selectedSent} meta={paneMeta} backHref={backHref} now={nowDate} />
+    : null;
+  const selectedKey = thread ? `c:${thread.conv.id}` : selectedSent ? `s:${selectedSent.id}` : null;
 
   return (
     <BusinessLayout
@@ -188,8 +219,11 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
         quota={quota}
         initialTab={tab}
         sentId={searchParams?.sent}
-        showId={searchParams?.show}
-        now={new Date().toISOString()}
+        pane={pane}
+        selectedKey={selectedKey}
+        emptyPane={<EmptyPane canSend={allowed} />}
+        noSelectionPane={<NoSelectionPane />}
+        now={nowDate.toISOString()}
         approachableCount={approachableCount}
         hasPublishedJob={hasPublishedJob}
       />

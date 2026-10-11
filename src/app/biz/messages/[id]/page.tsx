@@ -7,18 +7,12 @@ import { notFound } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { markApproachSeenByCompany } from "@/lib/approaches/server";
-import { markProposalSeenByCompany } from "@/lib/evidence/companyProposals";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { listSameTestStaff } from "@/lib/business/sameTestStaff";
-import { mutateOne } from "@/lib/supabase/mutate";
 import { ReplyForm } from "./ReplyForm";
 import { JoinButton } from "./JoinButton";
 import { RecordMeetingButton, SchedulingTools } from "./SchedulingTools";
-import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
-import { conversationMeetingState, getSchedulingUrl } from "@/lib/meetings/server";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
+import { loadCompanyThread } from "@/lib/conversations/companyThread";
+import { ThreadMessages } from "../ThreadMessages";
 
 export const dynamic = "force-dynamic";
 
@@ -26,65 +20,6 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: { absolute: "メッセージ | OPINIO Business" },
 };
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type CandidateInfo = {
-  id: string;
-  name: string | null;
-  about_me: string | null;
-  location: string | null;
-  avatar_color: string | null;
-};
-
-type ConversationRow = {
-  id: string;
-  kind: string | null;
-  stage: string | null;
-  status: string | null;
-  last_message_at: string | null;
-  created_at: string;
-  candidate: CandidateInfo | null;
-};
-
-type ParticipantRow = {
-  id: string;
-  role: string;
-  user_id: string;
-  user: { name: string | null } | null;
-};
-
-type MessageRow = {
-  id: string;
-  body: string;
-  /** ★種類（2026-10-10 / 段4）。text / meeting_slots / scheduling_link */
-  kind: string;
-  payload: unknown;
-  sent_at: string;
-  sender_participant_id: string | null;
-  participant: {
-    id: string;
-    role: string;
-    user_id: string;
-    user: { name: string | null } | null;
-  } | null;
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/* ★状態（stage）の印は 2026-09-21 に外した（一覧と同じ理由。全部「進行中」で、変える操作が無い） */
-
-function formatDateTime(dateStr: string): { date: string; time: string } {
-  const d = new Date(dateStr);
-  return {
-    date: d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }),
-    time: d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
-  };
-}
-
-// ── No-tenant fallback ────────────────────────────────────────────────────────
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default async function BizConversationDetailPage({
   params,
@@ -96,156 +31,15 @@ export default async function BizConversationDetailPage({
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createClient() as any;
-
-  // ── [1] Conversation detail ────────────────────────────────────────────────
-  const { data: rawConv, error: convError } = await supabase
-    .from("ow_conversations")
-    .select(`
-      id, kind, stage, status, last_message_at, created_at,
-      candidate:ow_users!candidate_user_id(id, name, about_me, location, avatar_color)
-    `)
-    .eq("id", conversationId)
-    .eq("company_id", ctx.tenantId)
-    .maybeSingle();
-
-  if (convError) {
-    console.error("[BizConvDetail] conv fetch error:", convError.message);
-  }
-
-  if (!rawConv) {
-    notFound();
-  }
-
-  const conv: ConversationRow = {
-    id: rawConv.id,
-    kind: rawConv.kind,
-    stage: rawConv.stage,
-    status: rawConv.status,
-    last_message_at: rawConv.last_message_at,
-    created_at: rawConv.created_at,
-    candidate: Array.isArray(rawConv.candidate)
-      ? (rawConv.candidate[0] ?? null)
-      : rawConv.candidate ?? null,
-  };
-
-  const candidate = conv.candidate;
+  /* ★読み込み・既読は /biz/messages の右側と同じ関数（2026-10-11 に切り出した。条件は変えていない） */
+  const thread = await loadCompanyThread(conversationId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId });
+  if (!thread) notFound();
+  const { conv, candidate, participants, isParticipant, meetingState, companyAdmins, schedulingUrl: mySchedulingUrl } = thread;
   const candidateName = candidate?.name ?? "名前未設定";
   const candidateInitial = candidateName.trim().charAt(0).toUpperCase();
   const candidateAvatarColor =
     candidate?.avatar_color ?? "linear-gradient(135deg, #6b7280, #475569)";
 
-
-  // ── [2] Participants ───────────────────────────────────────────────────────
-  const { data: rawParticipants } = await supabase
-    .from("ow_conversation_participants")
-    .select("id, role, user_id, user:ow_users(name)")
-    .eq("conversation_id", conversationId);
-
-  const participants: ParticipantRow[] = (rawParticipants ?? []).map((p: any) => ({
-    id: p.id,
-    role: p.role,
-    user_id: p.user_id,
-    user: Array.isArray(p.user) ? (p.user[0] ?? null) : p.user ?? null,
-  }));
-
-  // Check if current user (ctx.currentOwnId) is a participant
-  const myParticipant = participants.find((p) => p.user_id === ctx.currentOwnId) ?? null;
-  const isParticipant = myParticipant !== null;
-
-  // ── [3] Messages ──────────────────────────────────────────────────────────
-  // NOTE: ow_conversation_messages SELECT RLS requires being a participant.
-  // 担当者_001 IS a participant → can see messages.
-  // Non-participant HR (e.g. 担当者_005) gets empty result (not an error).
-  const { data: rawMessages, error: msgsError } = await supabase
-    .from("ow_conversation_messages")
-    .select(`
-      id, body, kind, payload, sent_at, sender_participant_id,
-      participant:ow_conversation_participants!sender_participant_id(
-        id, role, user_id,
-        user:ow_users(name)
-      )
-    `)
-    .eq("conversation_id", conversationId)
-    .is("deleted_at", null)
-    .order("sent_at", { ascending: true });
-
-  if (msgsError) {
-    console.error("[BizConvDetail] messages fetch error:", msgsError.message);
-  }
-
-  /* ★既読にする（2026-09-21）。サイドバーの「メッセージ」の未読バッジと一覧のドットは
-        `last_read_at` で数える（`lib/conversations/unread.ts`）。企業側は
-        それまで**一度も書いていなかった**ので、書かないと未読が永久に消えない。
-     ⚠️ **参加者のときだけ**。参加していない人はメッセージを読めていない（RLS）。
-     ⚠️ admin で書く。絞り込みは自分の参加者行の id だけ（求職者側と同じ形）。
-     ⚠️ 失敗しても画面は出す（バッジは主役ではない）。ただしログは出す。 */
-  if (myParticipant && !msgsError) {
-    const r = await mutateOne(
-      createAdminClient()
-        .from("ow_conversation_participants")
-        .update({ last_read_at: new Date().toISOString() })
-        .eq("id", myParticipant.id),
-      "biz 会話の既読",
-    );
-    if (!r.ok) console.error("[BizConvDetail] 既読にできませんでした:", r.error);
-    /* ★送ったメッセージへの返信を「企業が見た」印（company_seen_at）も、**その会話の当事者（参加者）が開いたときだけ**立てる
-          （2026-10-11 / 柴さんの指示）。⚠️ 以前は参加していない担当者が開いても立っていた（本文は RLS で読めないのに既読になる）。
-          ⚠️ 上で `company_id = tenantId` を確かめてある（自社の会話だけ）。運営は /biz の会話を開けない（getTenantContext が所属を要求する） */
-    await markApproachSeenByCompany(conversationId, ctx.tenantId);
-    /* ★提案から始まった会話も同じ（2026-10-11）。⚠️ 参加者が開いたときだけ */
-    await markProposalSeenByCompany(conversationId, ctx.tenantId);
-  }
-
-  const messages: MessageRow[] = (rawMessages ?? []).map((m: any) => ({
-    id: m.id,
-    body: m.body,
-    kind: m.kind ?? "text",
-    payload: m.payload ?? null,
-    sent_at: m.sent_at,
-    sender_participant_id: m.sender_participant_id,
-    participant: Array.isArray(m.participant)
-      ? (m.participant[0] ?? null)
-      : m.participant ?? null,
-  }));
-
-  /* ★企業から送った最初のメッセージ（2026-10-11 / モックに合わせた）。理由と本文を元の記録から取り、
-        1通目の吹き出しを「送った理由」・区切り線・本文で描く。⚠️ 本文の文字列を分けて推測しない（理由に空行が入りうる）。
-        ⚠️ 自社の会話だけ（上で company_id = tenantId を確かめてある）。参加していない人には本文が無いので使わない */
-  let approachFirst: { messageId: string; reason: string; body: string | null } | null = null;
-  let replyNote: { messageId: string; text: string } | null = null;
-  if (messages.length > 0) {
-    const { data: ap, error: apErr } = await createAdminClient().from("ow_company_approaches")
-      .select("reason, body, accepted_at").eq("conversation_id", conversationId).eq("company_id", ctx.tenantId).maybeSingle();
-    if (apErr) console.error("[BizConvDetail] approach:", apErr.message);
-    if (ap) {
-      const expected = `【送った理由】\n${ap.reason as string}${ap.body ? `\n\n${ap.body as string}` : ""}`;
-      const first = messages.find((m) => m.body === expected);
-      if (first) {
-        approachFirst = { messageId: first.id, reason: ap.reason as string, body: (ap.body as string | null) ?? null };
-        const firstIdx = messages.indexOf(first);
-        const reply = messages.slice(firstIdx + 1).find((m) => m.participant?.role === "candidate");
-        if (reply) {
-          const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).formatToParts(new Date(reply.sent_at));
-          const md = `${ps.find((x) => x.type === "month")?.value ?? ""}月${ps.find((x) => x.type === "day")?.value ?? ""}日`;
-          replyNote = { messageId: reply.id, text: `${md}・${candidateName}さんから返信がありました` };
-        }
-      }
-    }
-  }
-
-  /* ★日程調整（2026-10-10 / 段4）。同席者の候補（自社の有効な担当者）・自分の日程調整リンク・面談の状態 */
-  const [sameTestStaff, mySchedulingUrl, meetingState] = await Promise.all([
-    /* ★同席者の候補は、操作している人と is_test が同じ担当者だけ（2026-10-10。`listSameTestStaff`） */
-    listSameTestStaff(ctx.tenantId, ctx.currentOwnId),
-    getSchedulingUrl(ctx.tenantId, ctx.currentOwnId),
-    conversationMeetingState(conversationId),
-  ]);
-  /* ⚠️ 取れなければ同席者の候補は出さない（空）。送信側でも同じ関数で確かめる */
-  const companyAdmins = sameTestStaff ?? [];
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -256,18 +50,8 @@ export default async function BizConversationDetailPage({
       currentTenantId={ctx.tenantId}
     >
       <style>{`
-        .msg-bubble-candidate {
-          background: var(--line-soft);
-          color: var(--ink);
-          border-radius: 16px 16px 16px 4px;
-        }
         .biz-conv-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
         @media (min-width: 1024px) { .biz-conv-grid { grid-template-columns: minmax(0, 1fr) 280px; } }
-        .msg-bubble-hr {
-          background: var(--royal);
-          color: #fff;
-          border-radius: 16px 16px 4px 16px;
-        }
       `}</style>
 
       {/* ── Page header ── */}
@@ -385,108 +169,9 @@ export default async function BizConversationDetailPage({
           display: "flex",
           flexDirection: "column",
         }}>
-          {/* Message area */}
-          <div style={{
-            padding: "20px 16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            minHeight: 400,
-          }}>
-            {messages.length === 0 ? (
-              <div style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--ink-mute)",
-                fontSize: 13,
-                padding: "60px 0",
-              }}>
-                {isParticipant
-                  ? "まだメッセージはありません"
-                  : "この会話のメッセージを読むには、参加が必要です"}
-              </div>
-            ) : (
-              messages.map((msg) => {
-                const participantRole = msg.participant?.role;
-                const isCandidate = participantRole === "candidate";
-                const senderName = msg.participant?.user?.name ?? "不明";
-                const { date, time } = formatDateTime(msg.sent_at);
-
-                const isApproachFirst = approachFirst?.messageId === msg.id;
-                /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
-                if (msg.kind === "proposal_intro") {
-                  return (
-                    <div key={msg.id} data-state="proposal-intro" style={{ textAlign: "center", fontSize: 12.5, color: "var(--ink-soft)", margin: "8px 0", lineHeight: 1.6 }}>
-                      {msg.body}
-                      <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)" }}>{date} {time}</span>
-                    </div>
-                  );
-                }
-                return (
-                  <div key={msg.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {/* ★返信が来たところに中央の小さな一行（2026-10-11 / モックに合わせた） */}
-                  {replyNote?.messageId === msg.id && (
-                    <div data-state="reply-note" style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-mute)", margin: "6px 0" }}>{replyNote.text}</div>
-                  )}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: isCandidate ? "flex-start" : "flex-end",
-                      gap: 4,
-                    }}
-                  >
-                    {/* ★吹き出しの上は「送った人・日付」だけ（2026-10-11 / モックに合わせた）。状態の言葉は出さない */}
-                    <span data-state="bubble-meta" style={{ fontSize: 11, color: "var(--ink-mute)", padding: "0 4px" }}>
-                      {senderName}・{date} {time}
-                    </span>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "flex-end",
-                      gap: 8,
-                      flexDirection: isCandidate ? "row" : "row-reverse",
-                      maxWidth: "100%",
-                    }}>
-
-                      {/* Bubble */}
-                      <div
-                        /* ⚠️ 候補日・リンクのカードは吹き出しの色を付けない（カードが自分の枠を持つ） */
-                        className={msg.kind !== "text" ? undefined : isCandidate ? "msg-bubble-candidate" : "msg-bubble-hr"}
-                        style={{
-                          /* ⚠️ カードは 70% だと日時が折り返す。カード側の上限（420px）に任せる */
-                          maxWidth: msg.kind !== "text" ? "min(420px, 100%)" : "70%",
-                          width: msg.kind !== "text" ? 320 : undefined,
-                          padding: msg.kind !== "text" ? 0 : "10px 14px",
-                          fontSize: 14,
-                          lineHeight: 1.6,
-                          whiteSpace: "pre-wrap",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {msg.kind === "meeting_slots" || msg.kind === "scheduling_link" ? (
-                          <MeetingMessageCard side="company" conversationId={conv.id} messageId={msg.id} kind={msg.kind} payload={msg.payload} />
-                        ) : isApproachFirst && approachFirst ? (
-                          <span data-state="approach-first">
-                            <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, opacity: 0.8 }}>送った理由</span>
-                            {approachFirst.reason}
-                            {approachFirst.body && (
-                              <>
-                                <span aria-hidden style={{ display: "block", borderTop: "1px solid currentColor", opacity: 0.25, margin: "10px 0" }} />
-                                {approachFirst.body}
-                              </>
-                            )}
-                          </span>
-                        ) : msg.body}
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                );
-              })
-            )}
+          {/* Message area（★/biz/messages の右側と同じ部品。2026-10-11） */}
+          <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16, minHeight: 400 }}>
+            <ThreadMessages thread={thread} />
           </div>
 
           {/* Reply area: JoinButton for non-participants, ReplyForm for participants */}

@@ -24,6 +24,9 @@ export const SPLIT_MIN_WIDTH = 1280;
  */
 export const CANDIDATE_SPLIT_MIN_WIDTH = SPLIT_MIN_WIDTH;
 
+/** ★/biz/messages の左右2画面（2026-10-11）。⚠️ MessagesView の CSS（min-width: 1280px）と手で合わせている */
+export const MESSAGES_SPLIT_MIN_WIDTH = SPLIT_MIN_WIDTH;
+
 /**
  * ビューポート幅の帯。**分割ビューが出る層がどれだけ居るか**を測るために使う。
  *

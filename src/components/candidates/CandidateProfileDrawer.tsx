@@ -28,11 +28,11 @@ export function CandidateProfileDrawer({ userId, name, onClose }: { userId: stri
 }
 
 /** ★「プロフィールを見る →」のボタン（押すとドロワー）。サーバーのページ（/biz/messages/[id]）からも使えるように切り出した */
-export function CandidateProfileDrawerButton({ userId, name, label = "プロフィールを見る →", style }: { userId: string; name: string; label?: string; style?: React.CSSProperties }) {
+export function CandidateProfileDrawerButton({ userId, name, label = "プロフィールを見る →", ariaLabel, title, style }: { userId: string; name: string; label?: string; ariaLabel?: string; title?: string; style?: React.CSSProperties }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} data-state="open-profile-drawer"
+      <button type="button" onClick={() => setOpen(true)} data-state="open-profile-drawer" aria-label={ariaLabel} title={title}
         style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", ...style }}>
         {label}
       </button>
