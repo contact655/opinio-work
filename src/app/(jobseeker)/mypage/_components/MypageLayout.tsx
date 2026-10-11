@@ -251,7 +251,7 @@ export default function MypageLayout({
                   ⚠️★**スカウトは 2026-10-08 に廃止した**（提案に一本化）。
                      `/mypage/scouts` は削除し、middleware が `/mypage` へ転送する。
                      PC のサイドバーからも外した。**戻さないこと。** */
-            { key: "proposals",      label: "提案",          href: "/mypage/proposals",     icon: Icons.proposal },
+            { key: "proposals",      label: "ご紹介",        href: "/mypage/proposals",     icon: Icons.proposal },
             { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
             { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
             /* ★設定（2026-08-17 / フェーズ4-1）。
@@ -347,7 +347,7 @@ export default function MypageLayout({
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
             <SidebarItem icon={Icons.application} label="応募・面談"    active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
-            <SidebarItem icon={Icons.proposal}    label="提案"          active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
+            <SidebarItem icon={Icons.proposal}    label="ご紹介"          active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
           </nav>
@@ -465,7 +465,7 @@ export default function MypageLayout({
         @media (min-width: 768px) and (max-width: 1099px) {
           /* ★右の列を本文の上へ置く（2026-10-09 / 柴さんの指示）。それまでは本文の下（行3）で、
              900px 前後だと「転職・面談の状況」が本文の約2,600〜2,900px 下にあった。
-             転職意欲は候補者検索と提案に出るかを決めるカードなので、375px と同じ
+             転職意欲は候補者検索とご紹介に出るかを決めるカードなので、375px と同じ
              「届いているもの → 右の列 → 本文」の並びにする。
              ⚠️ 768〜1099px だけ。1100px 以上の3列と 767px 以下（flex の縦積み）には効かせない。 */
           .mypage-desktop-grid { grid-template-rows: auto 1fr; }

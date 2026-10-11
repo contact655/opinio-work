@@ -18,7 +18,7 @@ export const metadata = {
   /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
         `template: "%s | OPINIO"` が後ろに足すので、素の `title` だと
         「… | OPINIO | OPINIO」になる。 */
-  title: { absolute: "あなたへの提案 | OPINIO" },
+  title: { absolute: "あなたに合いそうな会社 | OPINIO" },
   /* ⚠️ 本人にしか出ない画面。検索結果に出す意味が無い */
   robots: { index: false, follow: false },
 };

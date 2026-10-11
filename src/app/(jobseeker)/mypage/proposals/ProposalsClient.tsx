@@ -86,7 +86,7 @@ export default function ProposalsClient({
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 6px" }}>あなたへの提案</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 6px" }}>あなたに合いそうな会社</h1>
 
       {/* ★★中立の明示。消さないこと */}
       <p
@@ -96,7 +96,7 @@ export default function ProposalsClient({
           borderRadius: 8, padding: "10px 12px", margin: "0 0 8px",
         }}
       >
-        この提案は <strong>OPINIO が出しています。人材紹介会社は関わっていません。</strong><br />
+        このご紹介は <strong>OPINIO が行っています。人材紹介会社は関わっていません。</strong><br />
         根拠にしているのは、OPINIO に登録された職歴と、在籍している方がご自身で答えた内容だけです。
       </p>
 
@@ -105,11 +105,11 @@ export default function ProposalsClient({
              ⚠️★「提案のことは企業に伝わらない」は**提案について**の話。候補者検索に出ているかは別
                 （そちらは「転職について」の設定で決まる）。混ぜて「企業から見えません」と書かないこと */}
       <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 0 20px" }}>
-        <strong>提案はあなたにだけ届いています。</strong>
-        あなたが「話を聞いてみたい」と答えるまで、この提案のことは企業に伝わりません。
+        <strong>このご紹介はあなたにだけ届いています。</strong>
+        あなたが「話を聞いてみたい」と答えるまで、このご紹介のことは企業に伝わりません（企業の候補者検索に表示されるかどうかは、これとは別に「転職について」の設定で決まります）。
         答えると、企業にあなたの公開プロフィール（お名前・顔写真・見出し・職歴など）と、書いた場合はひとことが届きます。
         応募にはなりません。「今回は見送る」を選んでも、企業には伝わりません。
-        提案は届いてから{PROPOSAL_RESPONSE_DAYS}日で終了します。
+        ご紹介は届いてから{PROPOSAL_RESPONSE_DAYS}日で終了します。
       </p>
 
       {err && (
@@ -121,21 +121,21 @@ export default function ProposalsClient({
       {/* ── 空のとき ★ここで手を抜かない ────────────────────────────────── */}
       {loadFailed ? (
         <p style={{ fontSize: 14, lineHeight: 1.9, color: "#B3261E" }}>
-          提案の読み込みに失敗しました。<strong>「0社」という意味ではありません。</strong>
+          ご紹介の読み込みに失敗しました。<strong>「0社」という意味ではありません。</strong>
           しばらくしてから開き直してください。
         </p>
       ) : items.length === 0 ? (
         <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "20px 18px", lineHeight: 1.9, fontSize: 14 }}>
           <p style={{ margin: "0 0 10px", fontWeight: 600 }}>
-            いまお出しできる提案はありません。
+            いまご紹介できる会社はありません。
           </p>
           <p style={{ margin: "0 0 10px", color: "var(--ink-soft)", fontSize: 13 }}>
-            OPINIO は、<strong>根拠を {minEvidence} 件以上そろえられた会社だけ</strong>を提案します。
+            OPINIO は、<strong>根拠を {minEvidence} 件以上そろえられた会社だけ</strong>をご紹介します。
             「近そうだから」という理由では出しません。
           </p>
           <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
             {/* ★2026-10-10 に会社の求人・部門の職種・業界を足した。⚠️ 企業側（BizProposalsClient）と同じ事実を向きだけ変えて書いている */}
-            {"根拠になるのは、同じ職種から移った方の人数・在籍している方が挙げた入社の決め手・話を聞ける方の人数・あなたの経験と同じ職種の求人や部門・あなたの希望条件との一致・あなたが経験した業界や事業領域との一致です（業界の一致だけでは提案になりません）。"}
+            {"根拠になるのは、同じ職種から移った方の人数・在籍している方が挙げた入社の決め手・話を聞ける方の人数・あなたの経験と同じ職種の求人や部門・あなたの希望条件との一致・あなたが経験した業界や事業領域との一致です（業界の一致だけではご紹介しません）。"}
             <strong>職歴と希望条件を登録していただくほど、そろいやすくなります。</strong>
           </p>
         </div>
@@ -180,7 +180,7 @@ export default function ProposalsClient({
 
                 {/* ⚠️ スナップショットである旨を書く。数字が古くなりうることを隠さない */}
                 <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "10px 0 0" }}>
-                  {p.computedAt} 時点の情報にもとづく提案です
+                  {p.computedAt} 時点の情報にもとづくご紹介です
                   {p.daysLeft != null && (
                     <span data-state="proposal-days-left" style={{ marginLeft: 8, fontWeight: 600 }}>
                       ・回答の締め切りまで{p.daysLeft <= 1 ? "今日まで" : `あと${p.daysLeft}日`}

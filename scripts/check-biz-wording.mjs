@@ -5,6 +5,8 @@
  *
  *   node scripts/check-biz-wording.mjs              # 0件なら exit 0
  *   node scripts/check-biz-wording.mjs --self-test  # わざと1か所入れて、検出されることを確かめる
+ *   node scripts/check-biz-wording.mjs --jobseeker  # 求職者側（2026-10-11。「あなたに合いそうな会社」「ご紹介」と言い換えた）
+ *     ⚠️ 求職者側は運営だけが見るエラー（提案を作る処理）とサーバーのログ（console.*）を数えない
  *
  * 見る場所: src/app/biz ・ src/app/business ・ src/components/business ・ src/lib/business ・ src/app/api/biz（返すエラー文）
  *          ・企業向けのメール（src/lib/notify の企業宛て）
@@ -16,7 +18,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-const DIRS = ["src/app/biz", "src/app/business", "src/components/business", "src/lib/business", "src/app/api/biz", "src/lib/notify"];
+const JOBSEEKER = process.argv.includes("--jobseeker");
+const DIRS = JOBSEEKER
+  ? ["src/app/(jobseeker)", "src/app/onboarding", "src/components/mypage", "src/components/notifications", "src/components/profile",
+     "src/components/proposals", "src/app/api/jobseeker", "src/lib/evidence", "src/lib/notify", "src/lib/mypage"]
+  : ["src/app/biz", "src/app/business", "src/components/business", "src/lib/business", "src/app/api/biz", "src/lib/notify"];
+/* 求職者側で数えないもの: 運営の /admin/proposals だけが受け取るエラー */
+const SKIP_FILES = JOBSEEKER ? new Set(["src/lib/evidence/generate.ts"]) : new Set();
 const WORD = "提案";
 
 function walk(dir, out = []) {
@@ -68,11 +76,12 @@ function scan() {
   for (const d of DIRS) {
     for (const f of walk(path.join(ROOT, d))) {
       const rel = path.relative(ROOT, f);
-      if (JOBSEEKER_ONLY.has(rel)) continue;
+      if ((!JOBSEEKER && JOBSEEKER_ONLY.has(rel)) || SKIP_FILES.has(rel)) continue;
       files += 1;
       const lines = stripComments(fs.readFileSync(f, "utf8")).split("\n");
       lines.forEach((l, i) => {
         /* 「提案営業」は職種名（LP の経歴の例）。この機能の名前ではない */
+        if (/console\.(error|warn|log)\(/.test(l)) return;
         if (l.replace(/提案営業/g, "").includes(WORD)) hits.push(`${rel}:${i + 1}: ${l.trim().slice(0, 140)}`);
       });
     }
@@ -91,7 +100,7 @@ if (process.argv.includes("--self-test")) {
   } finally { fs.unlinkSync(probe); }
 } else {
   const { hits, files } = scan();
-  console.log(`企業側で画面に出る「${WORD}」: ${hits.length}件（${files}ファイル）`);
+  console.log(`${JOBSEEKER ? "求職者側" : "企業側"}で画面に出る「${WORD}」: ${hits.length}件（${files}ファイル）`);
   for (const h of hits) console.log("  " + h);
   process.exitCode = hits.length === 0 ? 0 : 1;
 }

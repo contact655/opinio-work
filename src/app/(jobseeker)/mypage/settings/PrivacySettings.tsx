@@ -317,7 +317,7 @@ export default function PrivacySettings({
       {/* ── ブロック中の企業 ───────────────────────────────────────────── */}
       <FormSection title="ブロック中の企業">
         <p style={{ margin: "0 0 12px", fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-          ここに入っている企業の候補者検索には表示されず、その企業への提案の対象にもなりません。
+          ここに入っている企業の候補者検索には表示されず、その企業を OPINIO があなたにご紹介することもありません。
           <br />
           <strong style={{ color: "var(--ink)" }}>現在お勤めの会社は自動的に含まれます。</strong>
           職歴の「現職」から判定しているので、ここで外すことはできません。

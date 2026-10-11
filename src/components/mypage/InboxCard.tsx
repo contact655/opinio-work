@@ -13,7 +13,7 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
   const rows = [
     proposals !== null && proposals > 0 && {
       key: "proposals",
-      label: "提案",
+      label: "あなたに合いそうな会社",
       count: proposals,
       text: "OPINIO が根拠をそろえてお届けしている企業との出会い",
       href: "/mypage/proposals",

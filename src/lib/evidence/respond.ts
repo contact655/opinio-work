@@ -78,10 +78,10 @@ export async function saveCandidateResponse(input: {
     .eq("id", input.proposalId).eq("candidate_user_id", input.candidateUserId).maybeSingle();
   if (error) {
     console.error("[evidence/respond] ow_proposals:", error.message);
-    return { ok: false, status: 500, error: "提案を取得できませんでした" };
+    return { ok: false, status: 500, error: "ご紹介を取得できませんでした" };
   }
-  if (!cur) return { ok: false, status: 404, error: "提案が見つかりません" };
-  if (cur.candidate_response) return { ok: false, status: 409, error: "この提案にはすでに答えています" };
+  if (!cur) return { ok: false, status: 404, error: "このご紹介は見つかりません" };
+  if (cur.candidate_response) return { ok: false, status: 409, error: "このご紹介にはすでに答えています" };
   const companyId = cur.company_id as string;
   const pair = { companyId, candidateUserId: input.candidateUserId };
   const visible = isVisiblePair(await visiblePairs([pair]), pair);
@@ -139,7 +139,7 @@ export async function saveCompanyResponse(input: {
   reason?: string | null;
   note?: string | null;
 }): Promise<RespondOutcome> {
-  const notFound: RespondOutcome = { ok: false, status: 404, error: "提案が見つかりません" };
+  const notFound: RespondOutcome = { ok: false, status: 404, error: "このご紹介は見つかりません" };
   if (input.response === "declined") {
     const bad = checkDeclineInput("company", input.reason, input.note);
     if (bad) return bad;
