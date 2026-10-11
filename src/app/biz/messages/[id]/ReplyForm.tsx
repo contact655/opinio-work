@@ -7,9 +7,12 @@ type Props = {
   conversationId: string;
   /** ★入力欄の左下に置く操作（2026-10-10 / 段4。「候補日」ボタン） */
   tools?: React.ReactNode;
+  /** ★送れたあとに呼ぶ（2026-10-12。候補者を探すの右欄は自分で取り直す）。渡したときは router.refresh() しない */
+  onSent?: () => void;
+  placeholder?: string;
 };
 
-export function ReplyForm({ conversationId, tools }: Props) {
+export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -56,7 +59,8 @@ export function ReplyForm({ conversationId, tools }: Props) {
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
-      router.refresh();
+      if (onSent) onSent();
+      else router.refresh();
     } catch {
       setError("ネットワークエラーが発生しました");
     } finally {
@@ -119,7 +123,7 @@ export function ReplyForm({ conversationId, tools }: Props) {
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             disabled={submitting}
-            placeholder="メッセージを入力… (⌘+Enter で送信)"
+            placeholder={placeholder ?? "メッセージを入力… (⌘+Enter で送信)"}
             aria-label="返信メッセージ"
             rows={2}
             style={{

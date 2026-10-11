@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { getApproachReplyExcerpt, listSentApproaches } from "@/lib/approaches/server";
+import { loadCompanyThread } from "@/lib/conversations/companyThread";
+import { PANE_THREAD_RECENT } from "@/lib/constants/companyApproaches";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +20,22 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!r) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
   /* ★返信があれば冒頭だけ（右欄の吹き出しの下に出す）。⚠️ 自社の1件と確かめた後の conversationId だけを渡す */
   const replyExcerpt = r.status === "accepted" && r.conversationId ? await getApproachReplyExcerpt(r.conversationId, r.candidate.id) : null;
+  /* ★返信があれば、やり取りの最新 PANE_THREAD_RECENT 件（2026-10-12 / 柴さんの指示。右欄に吹き出しで出す）。
+        ⚠️ 読み込みは /biz/messages と同じ `loadCompanyThread`（会社で絞る・参加者でなければ RLS で読めない）。条件を書き足さない。
+        ⚠️ 参加者なら既読が付く（右欄に最新のやり取りを出した＝見た、として /biz/messages と同じ扱い） */
+  let thread = null;
+  if (r.status === "accepted" && r.conversationId) {
+    const t = await loadCompanyThread(r.conversationId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId });
+    if (t) {
+      thread = {
+        conv: { id: t.conv.id }, isParticipant: t.isParticipant, messagesFailed: t.messagesFailed,
+        total: t.messages.length, messages: t.messages.slice(-PANE_THREAD_RECENT),
+        approachFirst: t.approachFirst, replyNote: t.replyNote,
+      };
+    }
+  }
   return NextResponse.json({
     id: r.id, createdAt: r.createdAt, senderName: r.senderName, jobTitle: r.jobTitle, reason: r.reason, body: r.body,
-    status: r.status, conversationId: r.conversationId, replyExcerpt,
+    status: r.status, conversationId: r.conversationId, replyExcerpt, thread,
   });
 }

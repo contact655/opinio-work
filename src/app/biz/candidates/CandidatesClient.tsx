@@ -435,8 +435,15 @@ export default function CandidatesClient({
     const fit = () => {
       const el = paneRef.current;
       if (!el || getComputedStyle(el).position !== "sticky") return;
-      const top = Math.max(el.getBoundingClientRect().top, 0);
-      el.style.setProperty("--cand-pane-h", `${Math.max(window.innerHeight - top - 16, 240)}px`);
+      /* ⚠️★下限は 0 ではなく sticky の top（ヘッダーの下）。0 にすると、一覧の終わりで欄が押し上げられた瞬間に
+            top が負になって欄が伸び、さらに押し上げられて名前の段がヘッダーの裏に隠れる（2026-10-12 に実測: top -30px） */
+      const stickyTop = parseFloat(getComputedStyle(el).top) || 0;
+      const top = Math.max(el.getBoundingClientRect().top, stickyTop);
+      /* ⚠️★下の余白は「一覧の下にあるページの余白」以上にする。16px だけ空けると、いちばん下までスクロールしたとき
+            一覧の枠（.cand-split）の下端が欄の下端より上に来て、sticky の欄がその差だけ押し上げられる（実測: 76px 上へずれた） */
+      const split = el.parentElement;
+      const below = split ? Math.max(document.documentElement.scrollHeight - (split.getBoundingClientRect().bottom + window.scrollY), 0) : 0;
+      el.style.setProperty("--cand-pane-h", `${Math.max(window.innerHeight - top - Math.max(16, below), 240)}px`);
     };
     fit();
     window.addEventListener("scroll", fit, { passive: true });

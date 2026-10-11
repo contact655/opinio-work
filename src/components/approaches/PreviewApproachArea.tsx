@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ApproachBubble } from "@/components/approaches/ApproachBubble";
+import { ThreadMessages, type ThreadMessagesData } from "@/app/biz/messages/ThreadMessages";
+import { ReplyForm } from "@/app/biz/messages/[id]/ReplyForm";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,
-  APPROACH_UNAVAILABLE_MESSAGE, approachResendNotice, type CompanyApproachStatus,
+  APPROACH_UNAVAILABLE_MESSAGE, PANE_THREAD_RECENT, approachResendNotice, type CompanyApproachStatus,
 } from "@/lib/constants/companyApproaches";
 
 /**
@@ -51,7 +53,8 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   /* ⚠️ 声かけが使えないプラン・判定が取れなかったとき（approach が undefined）は、プロフィールへの入口だけ */
   if (!a) return <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>{profileLink}</div>;
   if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
-  if (a.sent) return <SentBubble sent={a.sent} />;
+  /* ⚠️ key で候補者ごとに作り直す（別の人の内容が一瞬残らないように。取り直しの回数もここで 0 に戻る） */
+  if (a.sent) return <SentBubble key={a.sent.id} sent={a.sent} />;
   if (!a.eligible) {
     const text = a.blocked === "test_company" ? APPROACH_TEST_COMPANY_MESSAGE
       : a.blocked === "not_looking" ? APPROACH_NOT_LOOKING_MESSAGE
@@ -143,28 +146,65 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }:
   );
 }
 
-/** ★送ってある場合の吹き出し。中身は /biz/messages と同じ取得（`GET /api/biz/approaches/[id]`）から */
+/**
+ * ★送ってある場合。中身は /biz/messages と同じ取得（`GET /api/biz/approaches/[id]`）から。
+ *   返信待ち・30日経過 … これまでどおり `ApproachBubble`（送った内容＋灰色の1行）
+ *   ★返信あり（2026-10-12 / 柴さんの指示）… やり取りを吹き出しで時系列に（`ThreadMessages`。/biz/messages と同じ部品）。
+ *     最新 PANE_THREAD_RECENT 件まで。それより多ければ「これまでのやり取り（n件）を見る」→ /biz/messages の該当スレッド。
+ *     下に入力欄（/biz/messages と同じ `ReplyForm`）。送れたらその場で取り直す。
+ *     ⚠️ 参加していない会話は入力欄を出さず、メッセージ画面へ（参加は向こうで行う。ここで参加させない）
+ */
 function SentBubble({ sent }: { sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]> }) {
   type Detail = { createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null;
-    status: CompanyApproachStatus; conversationId: string | null; replyExcerpt: string | null };
+    status: CompanyApproachStatus; conversationId: string | null; replyExcerpt: string | null;
+    thread: (ThreadMessagesData & { total: number }) | null };
   const [detail, setDetail] = useState<Detail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let alive = true;
-    setDetail(null); setFailed(false);
+    if (reloadKey === 0) setDetail(null);
+    setFailed(false);
     fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}`)
       .then(async (res) => { const j = await res.json().catch(() => null); if (!alive) return; if (!res.ok || !j) setFailed(true); else setDetail(j); })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
-  }, [sent.id]);
+  }, [sent.id, reloadKey]);
   const wrap: React.CSSProperties = { marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" };
   if (failed) return <p data-state="approach-detail-error" style={{ ...wrap, margin: "12px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>送った内容を読み込めませんでした</p>;
   if (!detail) return <p data-state="approach-detail-loading" style={{ ...wrap, margin: "12px 0 0", fontSize: 13, color: "var(--ink-mute)" }}>読み込み中…</p>;
   const action = approachResendNotice(sent).action;
+  const threadHref = detail.conversationId ? `/biz/messages?show=${detail.conversationId}` : action?.href ?? "/biz/messages";
+  if (detail.status === "accepted" && detail.thread) {
+    const t = detail.thread;
+    return (
+      <div data-state="pane-thread" style={wrap}>
+        {t.total > PANE_THREAD_RECENT && (
+          <Link href={threadHref} data-state="pane-thread-all"
+            style={{ display: "block", textAlign: "center", marginBottom: 10, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+            これまでのやり取り（{t.total}件）を見る
+          </Link>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <ThreadMessages thread={t} />
+        </div>
+        {t.isParticipant ? (
+          <div style={{ margin: "12px -20px 0" }}>
+            <ReplyForm conversationId={t.conv.id} placeholder="返信を書く" onSent={() => setReloadKey((k) => k + 1)} />
+          </div>
+        ) : (
+          <Link href={threadHref} data-state="pane-thread-join"
+            style={{ display: "inline-block", marginTop: 12, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+            メッセージ画面で参加する →
+          </Link>
+        )}
+      </div>
+    );
+  }
   return (
     <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
       status={detail.status}
-      reply={detail.status === "accepted" ? { excerpt: detail.replyExcerpt, href: action?.href ?? (detail.conversationId ? `/biz/messages/${detail.conversationId}` : "/biz/messages") } : null}
+      reply={detail.status === "accepted" ? { excerpt: detail.replyExcerpt, href: threadHref } : null}
       style={wrap} />
   );
 }

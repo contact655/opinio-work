@@ -51,6 +51,8 @@ export function approachConsentText(v: boolean | null | undefined): string {
 /** 理由の長さ。⚠️ 短すぎると「誰にでも送れる一言」になるので下限を置く */
 export const APPROACH_REASON_MIN = 30;
 export const APPROACH_REASON_MAX = 200;
+/** ★候補者を探すの右欄に出す、返信後のやり取りの件数（最新から）。超えたら「これまでのやり取り（n件）を見る」 */
+export const PANE_THREAD_RECENT = 3;
 /** 本文の長さ（任意）。⚠️ DM のお願い（`MAX_MESSAGE_REQUEST_LENGTH`）と同じ値 */
 export const APPROACH_BODY_MAX = 2000;
 

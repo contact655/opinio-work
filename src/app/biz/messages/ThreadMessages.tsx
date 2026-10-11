@@ -8,8 +8,12 @@ import type { CompanyThread } from "@/lib/conversations/companyThread";
  * - 提案から始まった会話の案内（`kind = 'proposal_intro'`）は中央の灰色の文
  * - 送ったメッセージの1通目は「理由」と「本文」を空行でつないで1つの吹き出しに（「送った理由」のラベルは出さない）
  * - 面談の日程（`meeting_slots` / `scheduling_link`）は既存のカード
+ * ★候補者を探すの右欄（PreviewApproachArea）も、返信後のやり取りをこの部品で描く（2026-10-12）
  */
-export function ThreadMessages({ thread }: { thread: CompanyThread }) {
+/** ★描くのに要る分だけ。候補者を探すの右欄（API から最新の数件だけ受け取る）も同じ部品で描くため */
+export type ThreadMessagesData = Pick<CompanyThread, "messages" | "approachFirst" | "replyNote" | "isParticipant" | "messagesFailed"> & { conv: { id: string } };
+
+export function ThreadMessages({ thread }: { thread: ThreadMessagesData }) {
   const { messages, approachFirst, replyNote, isParticipant, conv } = thread;
   if (messages.length === 0) {
     return (
