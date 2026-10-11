@@ -11,7 +11,7 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
 import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse, type PlanType } from "@/lib/constants/plans";
 import { getRecentlyApproached, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
-import { isCandidateNotesEnabled, listCandidateStages } from "@/lib/candidateNotes/server";
+import { isCandidateNotesEnabled, listCandidateNoteCounts, listCandidateStages } from "@/lib/candidateNotes/server";
 import { getCompanyCandidateTouchpoints, type TouchpointMaterials } from "@/lib/business/candidates/touchpoints";
 import type { Candidate } from "@/lib/business/candidates/model";
 
@@ -161,7 +161,7 @@ export async function loadCompanyCandidates(params: {
       else approachOk = new Map(((data ?? []) as { candidate_ow_user_id: string; ok: boolean }[]).map((r) => [r.candidate_ow_user_id, r.ok === true]));
     }
   }
-  const [approachJobs, recentlyApproached, stages, touch] = await Promise.all([
+  const [approachJobs, recentlyApproached, stages, touch, noteCounts] = await Promise.all([
     approachAllowed ? listApproachableJobs(companyId) : Promise.resolve([] as { id: string; title: string }[]),
     approachAllowed ? getRecentlyApproached(companyId, userIds) : Promise.resolve(new Map<string, RecentApproach>()),
     isCandidateNotesEnabled() ? listCandidateStages(companyId, userIds) : Promise.resolve(null),
@@ -171,6 +171,8 @@ export async function loadCompanyCandidates(params: {
       location: (u.location as string | null) ?? null,
       desiredRoleIds: desiredByAuthId.get(u.auth_id as string)?.ids ?? [],
     }))),
+    /* ★社内メモの件数（カードの「社内メモ 〇」。2026-10-11）。⚠️ フラグがオフなら引かない */
+    isCandidateNotesEnabled() ? listCandidateNoteCounts(companyId, userIds) : Promise.resolve(null),
   ]);
 
   const candidates: Candidate[] = users.map((u) => {
@@ -210,6 +212,7 @@ export async function loadCompanyCandidates(params: {
         ? { eligible: approachOk.get(u.id as string) === true, sent: recentlyApproached.get(u.id as string) ?? null }
         : undefined,
       stage: stages ? (stages.get(u.id as string) ?? null) : undefined,
+      noteCount: noteCounts ? (noteCounts.get(u.id as string) ?? 0) : undefined,
       touchpoints: touch ? (touch.byCandidate.get(u.id as string) ?? []) : undefined,
     };
   });

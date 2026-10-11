@@ -5,7 +5,7 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
   CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
-  candidateApproachLabel, filterCandidates, formatJstMonthDay, isNewSince, sortCandidates,
+  filterCandidates, formatJstMonthDay, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
@@ -185,6 +185,8 @@ export default function CandidatesClient({
         router.replace にしないのは、このページが force-dynamic で**一覧を丸ごと取り直す**ため。
      ⚠️ 1280px 未満では横取りしない ——カードのリンクがそのまま /u/[id] を**同じタブ**で開く。 */
   const [selected, setSelected] = useState<string | null>(initialSelected);
+  /* ★プレビューでメモを残したときに、カードの「社内メモ 〇」を合わせる（2026-10-11）。サーバーの件数より優先する */
+  const [noteCountOverride, setNoteCountOverride] = useState<Record<string, number>>({});
   const updateSelected = useCallback((id: string | null) => {
     setSelected(id);
     try {
@@ -1033,11 +1035,9 @@ export default function CandidatesClient({
                         {/* 名前 + 年齢 + バッジ */}
                         <div className="cand-card-namerow">
                           <span className="cand-card-name" title={c.name}>{c.name}</span>
-                          {/* ★送れる人にだけ小さく出す（2026-10-11 / 柴さんの指示）。⚠️★送れない人には何も出さない
-                                 （受け取らない設定・ブロック・範囲外・転職に興味なし を見た目で区別させない） */}
-                          {c.approach?.eligible === true && !c.approach.sent && (
-                            <span data-state="can-message" style={{ fontSize: 11.5, fontWeight: 600, color: "var(--success-ink)", whiteSpace: "nowrap" }}>メッセージを送れます</span>
-                          )}
+                          {/* ⚠️★カードに送れるかどうかの状態は出さない（2026-10-11 / 柴さんの指示）。
+                                 「メッセージを送れます」「返信を待っています・あと〇日」は外した。戻さないこと。
+                                 送れるかは、切り替え「メッセージを受け取る方のみ」とプレビュー・カードのボタンで分かる */}
                           {/* ⚠️ **年齢は出さない**（2026-08-20）。一覧に年齢を出さない方針。
                                  出すのは職務要件として意味のある社会人年数だけ。 */}
                           {tenure && (
@@ -1066,21 +1066,13 @@ export default function CandidatesClient({
 
                         {/* ★2行目以降（2026-10-11 まで 1024〜1279px で隠していた。分割を 1280px からにしたので常に出す） */}
                         <div className="cand-card-extra">
-                        {/* ★声かけの状態とプロフィールの更新日（段1）。⚠️ 判定は増やさない（`candidateApproachLabel`） */}
+                        {/* ★プロフィールの更新日（段1）。⚠️ 送った・返事待ちの状態は 2026-10-11 にカードから外した（ボタンが示す） */}
                         {(() => {
-                          /* ⚠️ カードには「受け取る」「声かけ済み」だけ。「受け取っていません」はプレビューの中だけ（柴さんの指示） */
-                          const raw = candidateApproachLabel(c.approach);
-                          /* ⚠️ 「送れます」は名前の横に移した（2026-10-11）。ここは送り済みだけ。送れない人には何も出さない */
-                          const label = raw && raw.state === "sent" ? raw : null;
                           const edited = formatJstMonthDay(c.profileEditedAt);
-                          if (!label && !edited) return null;
+                          if (!edited) return null;
                           return (
                             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", fontSize: 12, color: "var(--ink-mute)", marginBottom: 6 }}>
-                              {/* ★カードは短い形（short）。1行に収め、収まらないときは省略して全文は title で読める（2026-10-11） */}
-                              {label && <span data-approach-state={label.state} title={label.text} style={{ fontWeight: 600, color: label.state === "eligible" ? "var(--royal)" : "var(--ink-mute)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, maxWidth: "100%",
-                                /* ⚠️ 括弧・中黒の前後の空きを詰める（palt）。375px で長い名前＋2桁の日付がちょうど7px溢れていた（2026-10-11 実測） */
-                                fontFeatureSettings: "\"palt\"" }}>{label.short}</span>}
-                              {edited && <span>プロフィール更新 {edited}</span>}
+                              <span>プロフィール更新 {edited}</span>
                             </div>
                           );
                         })()}
@@ -1191,6 +1183,17 @@ export default function CandidatesClient({
                             プロフィールを見る
                           </a>
                         </div>
+                        {/* ★社内メモの件数（2026-10-11）。右下に小さく。⚠️ フラグがオフ（undefined）・0件なら出さない */}
+                        {(() => {
+                          const n = noteCountOverride[c.id] ?? c.noteCount;
+                          if (!n) return null;
+                          return (
+                            <span data-state="card-note-count" style={{ alignSelf: "flex-end", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+                              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+                              社内メモ {n}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1203,10 +1206,11 @@ export default function CandidatesClient({
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {selected ? (
-            <CandidatePreview key={selected} userId={selected} onClose={() => updateSelected(null)} />
+            <CandidatePreview key={selected} userId={selected} onClose={() => updateSelected(null)}
+              onNoteCountChange={(n) => setNoteCountOverride((prev) => ({ ...prev, [selected]: n }))} />
           ) : (
             <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              候補者を選ぶと、ここにプロフィールと貴社との接点が表示されます。
+              候補者を選ぶと、ここにプロフィールと貴社と合うところが表示されます。
             </div>
           )}
         </aside>

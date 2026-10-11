@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ApproachButton } from "@/components/approaches/ApproachButton";
+import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { neutralAvatarStyle } from "@/lib/avatarColor";
 import { candidateApproachLabel, formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
 
@@ -12,7 +13,9 @@ import { candidateApproachLabel, formatJstMonthDay, type Candidate, type Touchpo
  * ⚠️ 中身は `/api/biz/candidates/[userId]/preview` から取る（一覧と同じ判定を通った人だけ返る）。
  * ⚠️★声かけのボタンは `ApproachButton`（一覧と同じ部品）。送れるかは `approach.eligible` だけを見る。
  * ⚠️ 「プロフィール全体を見る」は**同じタブ**で /u/[id]。
- * ⚠️ 接点は強い順に3つまで。4つ以上なら「ほかに N件」で全部。**空でも欄は消さない**。
+ * ⚠️ 接点（見出し「〈会社名〉と合うところ（〇）」）は強い順に3つまで。4つ以上なら「ほかに N件」で全部。
+ *    ★0件のときは見出しごと出さない（2026-10-11 / 柴さんの指示。それまでは空でも欄を出し、材料への入口を出していた）。
+ * ⚠️★送れるかどうかは、上の切り替え「メッセージを受け取る方のみ」とボタンだけで示す（2026-10-11）。状態のチップを出さない。
  */
 export type PreviewData = {
   candidate: Candidate;
@@ -21,6 +24,10 @@ export type PreviewData = {
   skills: string[];
   touchpointMaterials: TouchpointMaterials | null;
   approachJobs: { id: string; title: string }[];
+  /** ★「〈会社名〉と合うところ」の会社名（法人格を外した表示名）。取れなければ null（「貴社と合うところ」） */
+  companyShortName?: string | null;
+  /** ★社内メモの欄を出すか（CANDIDATE_NOTES_ENABLED） */
+  notesEnabled?: boolean;
 };
 
 const TOUCHPOINT_INITIAL = 3;
@@ -37,55 +44,40 @@ function formatTenure(months: number | null): string | null {
   return `社会人${Math.floor(months / 12)}年`;
 }
 
-/** 接点の欄（空のときは足りない材料への入口）。⚠️ プレビューの部品として切り出してある（/dev/preview から使う） */
-export function TouchpointSection({ touchpoints, materials }: { touchpoints: Touchpoint[] | undefined; materials: TouchpointMaterials | null }) {
+/**
+ * 「〈会社名〉と合うところ（〇）」の欄（2026-10-11 に「貴社との接点」から改めた）。
+ * ⚠️ （〇）は項目の数。％や点数は出さない。⚠️ 0件・取れなかった（undefined）ときは見出しごと出さない。
+ * ⚠️ プレビューの部品として切り出してある（/dev/preview から使う）
+ */
+export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
   const [showAll, setShowAll] = useState(false);
-  /* ⚠️ 取れなかった（undefined）ときは欄ごと出さない。0件と言わない */
-  if (!touchpoints) return null;
+  if (!touchpoints || touchpoints.length === 0) return null;
   const shown = showAll ? touchpoints : touchpoints.slice(0, TOUCHPOINT_INITIAL);
   const rest = touchpoints.length - TOUCHPOINT_INITIAL;
-  const entrances: { href: string; label: string }[] = [];
-  if (materials && !materials.hasJobs) entrances.push({ href: "/biz/jobs/new", label: "求人を登録する" });
-  if (materials && !materials.hasCompanyRoles) entrances.push({ href: "/biz/organization?tab=roles", label: "部門・職種を登録する" });
-  if (materials && !materials.hasPublicEmployees) entrances.push({ href: "/biz/employees", label: "社員に企業ページへの登録を呼びかける" });
   return (
     <section data-state="touchpoints" style={{ marginTop: 16 }}>
-      <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>貴社との接点</h3>
-      {touchpoints.length === 0 ? (
-        <div data-state="touchpoints-empty" style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          <p style={{ margin: 0 }}>まだ貴社との接点は見つかっていません。</p>
-          {/* ⚠️ 材料が揃っている企業では入口を出さない（その候補者とだけ接点が無い） */}
-          {entrances.length > 0 && (
-            <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-              {entrances.map((e) => (
-                <li key={e.href}><Link href={e.href} style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none" }}>{e.label} →</Link></li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : (
-        <>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-            {shown.map((t, i) => (
-              <li key={`${t.kind}:${t.ref?.id ?? i}`} data-touchpoint={t.kind}
-                style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--ink)", padding: "8px 10px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", overflowWrap: "anywhere" }}>
-                {t.text}
-              </li>
-            ))}
-          </ul>
-          {rest > 0 && !showAll && (
-            <button type="button" onClick={() => setShowAll(true)}
-              style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", padding: "6px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer" }}>
-              ほかに{rest}件
-            </button>
-          )}
-        </>
+      <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>
+        {companyShortName ?? "貴社"}と合うところ（{touchpoints.length}）
+      </h3>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+        {shown.map((t, i) => (
+          <li key={`${t.kind}:${t.ref?.id ?? i}`} data-touchpoint={t.kind}
+            style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--ink)", padding: "8px 10px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", overflowWrap: "anywhere" }}>
+            {t.text}
+          </li>
+        ))}
+      </ul>
+      {rest > 0 && !showAll && (
+        <button type="button" onClick={() => setShowAll(true)}
+          style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", padding: "6px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer" }}>
+          ほかに{rest}件
+        </button>
       )}
     </section>
   );
 }
 
-export function CandidatePreview({ userId, onClose }: { userId: string; onClose: () => void }) {
+export function CandidatePreview({ userId, onClose, onNoteCountChange }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void }) {
   const [data, setData] = useState<PreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,10 +113,7 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>{c.name}</h2>
             {tenure && <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)" }}>{tenure}</span>}
-            {/* ★送れる人にだけ小さく出す（2026-10-11）。⚠️ 送れない人には何も出さない（理由を推測させない） */}
-            {c.approach?.eligible === true && !c.approach.sent && (
-              <span data-state="can-message" style={{ fontSize: 12, fontWeight: 600, color: "var(--success-ink)" }}>メッセージを送れます</span>
-            )}
+            {/* ⚠️ 「メッセージを送れます」のチップは 2026-10-11 に外した（送れるかはボタンで分かる）。戻さないこと */}
           </div>
           {(c.currentRole || c.currentCompany) && (
             <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>
@@ -155,7 +144,10 @@ export function CandidatePreview({ userId, onClose }: { userId: string; onClose:
         </Link>
       </div>
 
-      <TouchpointSection touchpoints={c.touchpoints} materials={data.touchpointMaterials} />
+      <TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />
+
+      {/* ★社内メモ（2026-10-11）。「合うところ」の下・自己紹介の上。⚠️ フラグがオフなら出さない */}
+      {data.notesEnabled && <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} />}
 
       {c.headline && <p style={{ margin: "16px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, overflowWrap: "anywhere" }}>{c.headline}</p>}
 

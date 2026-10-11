@@ -4,6 +4,9 @@ import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
+import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
+import { companyDisplayName } from "@/lib/companies/displayName";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +31,12 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
   const candidate = loaded.candidates.find((c) => c.id === params.userId);
   if (!candidate) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const profile = await getCandidateProfileForCompany(params.userId);
+  const [profile, { data: co, error: coErr }] = await Promise.all([
+    getCandidateProfileForCompany(params.userId),
+    /* ★「〈会社名〉と合うところ」の会社名（2026-10-11）。短い表示名（株式会社などを外す）。取れなければ null */
+    createAdminClient().from("ow_companies").select("name, name_en").eq("id", ctx.tenantId).maybeSingle(),
+  ]);
+  if (coErr) console.error("[candidates/preview] company:", coErr.message);
   if (!profile) return NextResponse.json({ error: "取得できませんでした" }, { status: 500 });
 
   return NextResponse.json({
@@ -38,5 +46,8 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
     skills: profile.skills,
     touchpointMaterials: loaded.touchpointMaterials,
     approachJobs: loaded.approachJobs,
+    companyShortName: co ? companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName : null,
+    /* ★社内メモの欄を出すか。⚠️ フラグがオフなら出さない（API も 404） */
+    notesEnabled: isCandidateNotesEnabled(),
   });
 }

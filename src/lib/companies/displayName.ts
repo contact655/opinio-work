@@ -55,6 +55,9 @@ export function stripLegalSuffix(name: string): string {
     .replace(/\s*合同会社$/, "")
     .replace(/^有限会社\s*/, "")
     .replace(/\s*有限会社$/, "")
+    /* ★略記（2026-10-11）。2026-10-11 時点で該当する社名は0件（実測）。⚠️ 落とすだけ。足さない */
+    .replace(/^(?:（株）|\(株\)|㈱)\s*/, "")
+    .replace(/\s*(?:（株）|\(株\)|㈱)$/, "")
     .trim();
 }
 

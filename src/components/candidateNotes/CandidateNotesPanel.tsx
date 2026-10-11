@@ -46,7 +46,8 @@ export function CandidateNotesPanel({ candidateUserId, admins }: { candidateUser
   const sel: React.CSSProperties = { height: 34, borderRadius: 8, border: "1px solid var(--line)", fontFamily: "inherit", fontSize: 13, padding: "0 8px", background: "#fff" };
 
   return (
-    <section data-state="candidate-notes" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", marginTop: 16 }}>
+    /* ★id はプレビューの「すべて見る」の飛び先（/u/[id]#candidate-notes。2026-10-11）。⚠️ 変えるなら CandidateNotesPreview も */
+    <section id="candidate-notes" data-state="candidate-notes" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", marginTop: 16, scrollMarginTop: 80 }}>
       <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>社内メモ</div>
       <p style={{ margin: "6px 0 12px", fontSize: 12, lineHeight: 1.7, color: "var(--ink-soft)" }}>{CANDIDATE_NOTES_NOTICE}</p>
 

@@ -134,3 +134,14 @@ export async function listCandidateStages(companyId: string, candidateOwUserIds:
   if (error) { console.error("[candidateNotes] stages:", error.message); return null; }
   return new Map((data ?? []).map((r) => [r.candidate_user_id as string, r.stage as CandidateStage]));
 }
+
+/** ★候補者検索のカード用: 社内メモの件数をまとめて（2026-10-11）。メモが無い人は入れない。失敗したら null */
+export async function listCandidateNoteCounts(companyId: string, candidateOwUserIds: string[]): Promise<Map<string, number> | null> {
+  if (candidateOwUserIds.length === 0) return new Map();
+  const { data, error } = await createAdminClient().from("ow_candidate_notes").select("candidate_user_id")
+    .eq("company_id", companyId).in("candidate_user_id", candidateOwUserIds);
+  if (error) { console.error("[candidateNotes] counts:", error.message); return null; }
+  const out = new Map<string, number>();
+  for (const r of data ?? []) out.set(r.candidate_user_id as string, (out.get(r.candidate_user_id as string) ?? 0) + 1);
+  return out;
+}

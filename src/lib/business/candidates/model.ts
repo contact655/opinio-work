@@ -86,6 +86,8 @@ export type Candidate = {
   approach?: { eligible: boolean; sent: RecentApproach | null };
   /** ★社内の状態。undefined = 社内メモのフラグがオフ（出さない） */
   stage?: CandidateStage | null;
+  /** ★社内メモの件数（2026-10-11）。undefined = 社内メモのフラグがオフか、取れなかった（出さない） */
+  noteCount?: number;
   /** ★貴社との接点（段1）。強い順。undefined = 取れなかった（印を出さない） */
   touchpoints?: Touchpoint[];
 };

@@ -25,7 +25,7 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
-  { href: "/dev/preview/candidate-touchpoints", label: "貴社との接点（/biz/candidates の右のプレビュー）",
+  { href: "/dev/preview/candidate-touchpoints", label: "〈会社名〉と合うところ（/biz/candidates の右のプレビュー）",
     desc: "★実データは材料がほとんど無く出る側を描けない。0件と入口／材料は揃って0件／2件／5件（ほかに2件）／取得失敗をここで見る" },
   { href: "/dev/preview/approaches", label: "企業のメッセージ（/biz/messages）",
     desc: "★検証用データでは状態が揃わない。0件（メッセージを送れる人 N人／0人／取得失敗）／すべて（新しい返信）／返事待ち（3日・25日）／30日を過ぎたものをここで見る" },
