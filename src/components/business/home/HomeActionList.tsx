@@ -10,7 +10,7 @@ const LIMIT = 10;
 const BTN: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 36, padding: "0 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", background: "#fff", color: "var(--royal)", border: "1px solid var(--line)" };
 
 export function HomeActionList({ actions }: { actions: HomeActions }) {
-  const { items, failed } = actions;
+  const { items, failed, meetings } = actions;
   return (
     <section data-state={items.length > 0 ? "has-actions" : "no-actions"} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, minWidth: 0, overflow: "hidden" }}>
       <h2 style={{ margin: 0, padding: "16px 20px", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
@@ -40,6 +40,23 @@ export function HomeActionList({ actions }: { actions: HomeActions }) {
         <p data-state="actions-failed" style={{ margin: 0, padding: "10px 20px 14px", fontSize: 12, color: "var(--ink-mute)", borderTop: "1px solid var(--line-soft)" }}>
           {failed.join("・")}を確認できませんでした（件数に入っていません）。
         </p>
+      )}
+      {/* ★今日・明日の面談（2026-10-12）。件数には入れない。⚠️ 無ければ（取れなかったときも）枠ごと出さない */}
+      {meetings && meetings.length > 0 && (
+        <div data-state="home-meetings" style={{ borderTop: "1px solid var(--line-soft)", padding: "10px 20px 12px", background: "var(--bg-tint)" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>今日・明日の面談</div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {meetings.map((m) => (
+              <li key={m.id}>
+                <Link href={m.href} data-state="home-meeting" style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", padding: "4px 0", fontSize: 13, color: "var(--ink)", textDecoration: "none" }}>
+                  <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{m.dayLabel} {m.time}</span>
+                  <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{m.name}さん</span>
+                  <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{m.detail}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       <style>{`
         .biz-home-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid var(--line-soft); }

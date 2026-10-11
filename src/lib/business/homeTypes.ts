@@ -4,7 +4,7 @@
  */
 
 /** 対応が必要なもの1行。ボタンは1つ（返信する／確認する） */
-export type HomeActionKind = "message" | "reply" | "interest" | "meetingRequest" | "application" | "savedSearch" | "stoppedJobs" | "materials";
+export type HomeActionKind = "message" | "reply" | "interest" | "unanswered" | "meetingRequest" | "application" | "savedSearch" | "stoppedJobs" | "materials";
 
 export type HomeActionItem = {
   kind: HomeActionKind;
@@ -20,7 +20,12 @@ export type HomeActions = {
   items: HomeActionItem[];
   /** ★取得に失敗した種類の名前（画面に「一部を確認できませんでした」と出す。0件を装わない） */
   failed: string[];
+  /** ★今日・明日の面談（2026-10-12）。選考管理の「決まった面談」と同じ `listCompanyMeetings`。無ければ空配列、取れなければ null */
+  meetings: HomeMeeting[] | null;
 };
+
+/** 「今日 15:00 山田 太郎さん オンライン・30分」 */
+export type HomeMeeting = { id: string; dayLabel: "今日" | "明日"; time: string; name: string; detail: string; href: string };
 
 /** はじめにやること1項目 */
 export type HomeChecklistKey = "listing" | "jobCreate" | "jobPublish" | "roles" | "employees" | "casualMeeting";

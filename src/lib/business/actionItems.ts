@@ -5,7 +5,9 @@ import { companyMessageTodoIds } from "@/lib/business/navBadges";
 import { listSavedSearchesWithCounts } from "@/lib/business/savedSearchServer";
 import { countUnconfirmedMaterialItems } from "@/lib/companyMaterials/server";
 import { canUse, type PlanType } from "@/lib/constants/plans";
-import type { HomeActionItem, HomeActions } from "@/lib/business/homeTypes";
+import { listCompanyMeetings } from "@/lib/meetings/server";
+import { MEETING_FORMATS } from "@/lib/constants/meetings";
+import type { HomeActionItem, HomeActions, HomeMeeting } from "@/lib/business/homeTypes";
 
 /**
  * ★企業ホームの「対応が必要なもの」（2026-10-12 / 柴さんの指示。旧 `todayTodo.ts` と上の数字タイルを1つにした）。
@@ -14,6 +16,7 @@ import type { HomeActionItem, HomeActions } from "@/lib/business/homeTypes";
  * | 行 | 数え方（どこと同じか） |
  * |---|---|
  * | メッセージ | `companyMessageTodoIds`（サイドバーの「メッセージ」バッジ・メッセージ画面の「未読」と同じ関数） |
+ * | 返信していない | ★最後のメッセージが候補者から（開いたかどうかは問わない。2026-10-12）。⚠️ 上の未読に入っている会話は出さない（未読の行を優先） |
  * | 面談の申込 | `ow_casual_meetings.company_read_at` が空（選考管理の未読の太字と同じ） |
  * | 応募 | `ow_job_applications.status = 'pending'`（選考管理の「新着」） |
  * | 保存した条件の新着 | `listSavedSearchesWithCounts`（保存した条件の画面と同じ。候補者検索を使える企業だけ） |
@@ -22,7 +25,9 @@ import type { HomeActionItem, HomeActions } from "@/lib/business/homeTypes";
  *
  * ⚠️★旧ホームで「新しい返信 0」と「〇〇さんから返信があります」が食い違っていたのは、前者が「返信を誰もまだ開いていない」、
  *    後者が「最後のメッセージが求職者から（＝こちらがまだ返していない）」を数えていたため。いまはメッセージ画面の
- *    「未読」と同じ1つの定義だけ。⚠️ 開いたが返していない会話は出ない（メッセージ画面で見る）。
+ *    「未読」と同じ定義に、★「返信していない」を足した（2026-10-12 / 柴さんの指示）。同じ会話は1行だけ。
+ * ⚠️ サイドバーの「メッセージ」の数字は未読だけのまま（返信していないものは数えない）。
+ * ★今日・明日の面談は件数に入れない（`meetings` に別に返す。選考管理の「決まった面談」と同じ `listCompanyMeetings`）。
  * ⚠️ 種類ごとに取得に失敗したら `failed` に名前を入れる（行を出さず、0件を装わない）。
  * ⚠️ 在籍報告の結果・再開依頼の結果は「企業が見たか」の記録が無いので行にしていない（運営が停止した求人は上の行に出る）。
  */
@@ -40,14 +45,46 @@ export async function getBizActionItems(params: {
   const failed: string[] = [];
   const now = new Date().toISOString();
 
-  const [msg, meetings, applications, materials] = await Promise.all([
+  const [msg, meetings, applications, materials, companyConvs, upcoming] = await Promise.all([
     companyMessageTodoIds({ owUserId: params.owUserId, companyId: params.companyId }).catch((e) => { console.error("[actionItems] messages:", e); return null; }),
     db.from("ow_casual_meetings").select("id, created_at, user_id")
       .eq("company_id", params.companyId).is("company_read_at", null).order("created_at", { ascending: false }),
     db.from("ow_job_applications").select("id, created_at, user_id, name, status, ow_jobs!inner(title, company_id)")
       .eq("ow_jobs.company_id", params.companyId).eq("status", "pending").order("created_at", { ascending: false }),
     countUnconfirmedMaterialItems(params.companyId),
+    /* ★返信していない会話の材料（企業との会話すべて） */
+    db.from("ow_conversations").select("id, candidate_user_id, last_message_at").eq("company_id", params.companyId).eq("kind", "company").not("last_message_at", "is", null),
+    listCompanyMeetings(params.companyId, { upcoming: true }),
   ]);
+
+  /* ★返信していない会話: 最後のメッセージを送ったのが候補者本人。⚠️ 送った人の無い行（提案の案内）は数えない */
+  let unanswered: { id: string; candidate: string; at: string }[] | null = null;
+  if (companyConvs.error) console.error("[actionItems] company conversations:", companyConvs.error.message);
+  else {
+    unanswered = [];
+    const rows = companyConvs.data ?? [];
+    if (rows.length > 0) {
+      const ids = rows.map((c) => c.id as string);
+      const [{ data: lastMsgs, error: mErr }, { data: parts, error: pErr }] = await Promise.all([
+        db.from("ow_conversation_messages").select("conversation_id, sender_participant_id, sent_at")
+          .in("conversation_id", ids).is("deleted_at", null).order("sent_at", { ascending: false }),
+        db.from("ow_conversation_participants").select("id, user_id").in("conversation_id", ids),
+      ]);
+      if (mErr || pErr) { console.error("[actionItems] last messages:", mErr?.message ?? pErr?.message); unanswered = null; }
+      else {
+        const userByPart = new Map((parts ?? []).map((p) => [p.id as string, (p.user_id as string | null) ?? null]));
+        const last = new Map<string, { sender: string | null; at: string }>();
+        for (const m of lastMsgs ?? []) {
+          const cid = m.conversation_id as string;
+          if (!last.has(cid)) last.set(cid, { sender: m.sender_participant_id ? userByPart.get(m.sender_participant_id as string) ?? null : null, at: m.sent_at as string });
+        }
+        for (const c of rows) {
+          const l = last.get(c.id as string);
+          if (l?.sender && l.sender === c.candidate_user_id) unanswered.push({ id: c.id as string, candidate: c.candidate_user_id as string, at: l.at });
+        }
+      }
+    }
+  }
 
   /* 会話（対応が必要なメッセージ）の相手と日時。⚠️ 自社の会話だけ（company_id で絞る） */
   const convIds = msg ? Array.from(msg.all) : [];
@@ -59,6 +96,7 @@ export async function getBizActionItems(params: {
   /* 名前 */
   const nameIds = new Set<string>();
   for (const c of convs.data ?? []) if (c.candidate_user_id) nameIds.add(c.candidate_user_id as string);
+  for (const u of unanswered ?? []) nameIds.add(u.candidate);
   for (const m of meetings.data ?? []) if (m.user_id) nameIds.add(m.user_id as string);
   const names = new Map<string, string>();
   if (nameIds.size > 0) {
@@ -79,6 +117,14 @@ export async function getBizActionItems(params: {
         : kind === "reply" ? `${who}さんから返信がありました`
         : `${who}さんから新しいメッセージがあります`;
       items.push({ kind, at, title, sub: relDays(at), action: "返信する", href: `/biz/messages?show=${id}` });
+    }
+  }
+
+  /* ★返信していない（未読の会話は上で1行出したので出さない）。⚠️ 未読の取得に失敗したときは、二重に出さないよう出さない */
+  if (unanswered === null) failed.push("返信していない会話");
+  else if (msg) {
+    for (const u of unanswered.filter((x) => !msg.all.has(x.id))) {
+      items.push({ kind: "unanswered", at: u.at, title: `${nameOf(u.candidate)}さんに返信していません（${jstDateTime(u.at)}〜）`, action: "返信する", href: `/biz/messages?show=${u.id}` });
     }
   }
 
@@ -116,7 +162,36 @@ export async function getBizActionItems(params: {
   }
 
   items.sort((a, b) => b.at.localeCompare(a.at));
-  return { items, failed };
+
+  /* ★今日・明日の面談（日本時間）。⚠️ 取れなければ null（枠を出さない。0件とは言わない） */
+  let todayMeetings: HomeMeeting[] | null = null;
+  if (upcoming) {
+    const today = jstDateKey(new Date());
+    const tomorrow = jstDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    todayMeetings = upcoming
+      .filter((m) => { const k = jstDateKey(new Date(m.startsAt)); return k === today || k === tomorrow; })
+      .map((m) => ({
+        id: m.id, dayLabel: jstDateKey(new Date(m.startsAt)) === today ? "今日" as const : "明日" as const,
+        time: jstTime(m.startsAt), name: m.candidateName, detail: `${MEETING_FORMATS[m.format]}・${m.duration}分`,
+        href: `/biz/messages?show=${m.conversationId}`,
+      }));
+  }
+  return { items, failed, meetings: todayMeetings };
+}
+
+const JST = "Asia/Tokyo";
+/** 「2026-10-12」（日本時間） */
+function jstDateKey(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: JST, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+/** 「15:00」（日本時間） */
+function jstTime(iso: string): string {
+  return new Intl.DateTimeFormat("ja-JP", { timeZone: JST, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
+}
+/** 「10月12日 03:00」（日本時間） */
+function jstDateTime(iso: string): string {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("ja-JP", { timeZone: JST, month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.month}月${p.day}日 ${p.hour}:${p.minute}`;
 }
 
 /** 「今日」「2日前」。⚠️ 7日を超えたら日付（日本時間） */

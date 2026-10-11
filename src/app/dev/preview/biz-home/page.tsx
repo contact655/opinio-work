@@ -13,12 +13,19 @@ import { Variant, PreviewHeader } from "../Variant";
  */
 const ago = (d: number) => new Date(Date.now() - d * 86400000).toISOString();
 
+const MEETINGS: HomeActions["meetings"] = [
+  { id: "m1", dayLabel: "今日", time: "15:00", name: "山田 太郎", detail: "オンライン・30分", href: "#" },
+  { id: "m2", dayLabel: "明日", time: "10:30", name: "佐藤 花子", detail: "対面・60分", href: "#" },
+];
+
 const ACTIONS: HomeActions = {
   failed: [],
+  meetings: MEETINGS,
   items: [
     { kind: "reply", at: ago(0), title: "鈴木 鉄平さんから返信がありました", sub: "今日", action: "返信する", href: "#" },
     { kind: "interest", at: ago(1), title: "山田 花子さんが、貴社の話を聞いてみたいそうです", sub: "1日前", action: "返信する", href: "#" },
     { kind: "message", at: ago(2), title: "佐藤 一郎さんから新しいメッセージがあります", sub: "2日前", action: "返信する", href: "#" },
+    { kind: "unanswered", at: ago(2), title: "鈴木 鉄平さんに返信していません（10月12日 03:00〜）", action: "返信する", href: "#" },
     { kind: "meetingRequest", at: ago(2), title: "高橋 次郎さんから面談の申し込み", sub: "2日前", action: "確認する", href: "#" },
     { kind: "application", at: ago(3), title: "田中 三郎さんから応募がありました", sub: "3日前 ・ 求人：フィールドセールス（SaaS 新規開拓）", action: "確認する", href: "#" },
     { kind: "savedSearch", at: ago(0), title: "保存した条件「SaaS営業 5年以上」に新着 3名", sub: "うちメッセージを送れる方 2名", action: "確認する", href: "#" },
@@ -64,14 +71,14 @@ export default function BizHomePreview() {
       <PreviewHeader title="企業ホーム（/biz/dashboard）">
         <p>左に「対応が必要なもの」と「はじめにやること」、右に今月のメッセージ・求人・企業ページ。左右は上揃えで、高さをそろえない。</p>
       </PreviewHeader>
-      <Variant label="対応あり・はじめにやることが途中" note="済んだ項目（カジュアル面談）はチェック付きで下へ">
+      <Variant label="対応あり・今日と明日の面談・はじめにやることが途中" note="面談は件数に入らない。済んだ項目（カジュアル面談）はチェック付きで下へ">
         <Home actions={ACTIONS} checklist={START} side={{ ...SIDE, companyStatus: "非公開・公開まであと2つ" }} />
       </Variant>
-      <Variant label="対応0件・はじめにやることが全部済んだ" note="⚠️ はじめにやることの枠ごと出ないこと。対応は「今日の対応はありません」（灰色）">
-        <Home actions={{ items: [], failed: [] }} checklist={ALL_DONE} side={SIDE} />
+      <Variant label="対応0件・はじめにやることが全部済んだ" note="⚠️ はじめにやること・面談の枠ごと出ないこと。対応は「今日の対応はありません」（灰色）">
+        <Home actions={{ items: [], failed: [], meetings: [] }} checklist={ALL_DONE} side={SIDE} />
       </Variant>
       <Variant label="一部を取得できなかった" note="⚠️ 0件を装わず、確認できなかった種類を一言添える。求人の数は「—」">
-        <Home actions={{ items: ACTIONS.items.slice(0, 1), failed: ["保存した条件"] }} checklist={START} side={{ ...SIDE, quota: null, jobs: null }} />
+        <Home actions={{ items: ACTIONS.items.slice(0, 1), failed: ["保存した条件"], meetings: null }} checklist={START} side={{ ...SIDE, quota: null, jobs: null }} />
       </Variant>
     </>
   );
