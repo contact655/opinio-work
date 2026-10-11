@@ -1,11 +1,10 @@
 -- ════════════════════════════════════════════════════════════════════════
---
--- ⚠️★これを当てる commit で、src/lib/notify/companyMessageEmail.ts の `SEND_TO_REAL_USERS` を true にすること
---    （それまで企業からのメッセージのメールは検証用アカウントにしか送らない。2026-10-11 / 柴さんの指示）
 -- 企業からのメッセージを「全員が最初から受け取る」形にする（2026-10-11 / 柴さんの指示）
 -- ════════════════════════════════════════════════════════════════════════
 --
--- ★保留中（supabase/pending/）。柴さんが人数を確認し、利用者に伝えてから migrations/ へ移して当てる。
+-- 2026-10-11 に supabase/pending/ から移して当てた（柴さんが利用者への連絡を終えたあと）。
+-- ★同じ commit で src/lib/notify/companyMessageEmail.ts の `SEND_TO_REAL_USERS` を true にした
+--   （企業からのメッセージのメールを実在の利用者にも送る）。
 --
 -- 何が変わるか:
 --   can_send_company_approach() から「ow_profiles.accept_company_approaches is true」の条件だけを外す。

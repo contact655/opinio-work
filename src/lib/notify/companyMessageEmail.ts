@@ -18,7 +18,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
  * ② 同じ会話（または同じ声かけ）について、30分以内にもう送っている（まとめて1通にする）
  *    ⚠️ 最初の1通をすぐ送り、続く30分のぶんは送らない形。メールには「続けて届いたものは
  *       まとめてお知らせします」と書き、OPINIO を開けば全部読める
- * ③ ★実在の利用者で、`SEND_TO_REAL_USERS` がまだ false
+ * ③ ★実在の利用者で、`SEND_TO_REAL_USERS` が false（2026-10-11 から true）
  *    ⚠️★「全員が最初から受け取る」形の DB の変更（supabase/pending/20261011110000）を当てるまで、
  *       実在の利用者には送らない（柴さんの指示）。**当てる commit で true にすること。**
  *       検証用アカウント（is_test）には今から送る。
@@ -28,8 +28,8 @@ import { companyDisplayName } from "@/lib/companies/displayName";
  * ⚠️ ローカル dev では lib/notify/email.ts が送らない（EMAIL_SEND_IN_DEV=true のときだけ送る）。
  */
 
-/** ★DB の変更（20261011110000）を当てる commit で true にする */
-export const SEND_TO_REAL_USERS = false;
+/** ★2026-10-11 に DB の変更（20261011110000）を当てたので true にした。⚠️ false に戻すと実在の利用者に届かなくなる */
+export const SEND_TO_REAL_USERS = true;
 
 /** 同じ会話について、この時間内に続いたぶんはまとめる（送らない） */
 export const COMPANY_MESSAGE_EMAIL_WINDOW_MINUTES = 30;
