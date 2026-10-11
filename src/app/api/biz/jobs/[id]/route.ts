@@ -1,3 +1,4 @@
+import { resolveOwnDepartmentId } from "@/lib/business/jobDepartment";
 import { laborToRow } from "@/lib/jobs/laborTerms";
 import { requestPublish } from "@/lib/jobs/publishServer";
 import { COMPANY_NOT_LISTED_MESSAGE, blockedMessage } from "@/lib/jobs/publishGate";
@@ -63,6 +64,9 @@ export async function PUT(
   /* ★労働条件（2026-10-11）。⚠️ 送られてこなければ触らない（「送られてこない＝変更しない」） */
   const labor = body.laborTerms !== undefined ? laborToRow(body.laborTerms) : null;
   if (labor && "error" in labor) return NextResponse.json({ error: labor.error }, { status: 400 });
+  /* ★部門はその会社のものだけ（2026-10-12）。⚠️ 他社・削除済みの部門は 400 */
+  const dept = await resolveOwnDepartmentId(ctx0.companyId, body.departmentId);
+  if (!dept.ok) return NextResponse.json({ error: dept.error }, { status: 400 });
 
   const now = new Date().toISOString();
 
@@ -105,7 +109,7 @@ export async function PUT(
       sales_hunter_farmer: str(body.salesHunterFarmer, 20) || null,
       incentive_note: str(body.incentiveNote, 1000) || null,
       tech_stack: Array.isArray(body.techStack) ? (body.techStack as string[]).filter((s) => typeof s === "string").slice(0, 40) : [],
-      department_id: (typeof body.departmentId === "string" && UUID_RE.test(body.departmentId)) ? body.departmentId : null,
+      department_id: dept.id,
       ...(labor ? labor.row : {}),
       updated_at: now,
     })

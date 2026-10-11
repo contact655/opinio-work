@@ -52,6 +52,11 @@ export default async function BizJobsPage({
   const views30d: Record<string, number> | null = viewErr ? null : {};
   if (views30d) for (const r of viewRows ?? []) views30d[r.target_id as string] = (views30d[r.target_id as string] ?? 0) + ((r.views as number) ?? 0);
   const jobs = await fetchJobsForCompany(supabase, ctx.tenantId, countByJob(await fetchCompanyReactions(supabase, ctx.tenantId)), views30d);
+  /* ★部門の絞り込みの選択肢（2026-10-12）。求人の作成画面と同じ取り方（削除していない部門）。⚠️ 取れなければ null */
+  const { data: deptRows, error: deptErr } = await supabase.from("ow_company_departments").select("id, name")
+    .eq("company_id", ctx.tenantId).is("deleted_at", null).order("display_order").order("name");
+  if (deptErr) console.error("[biz/jobs] departments:", deptErr.message);
+  const departments = deptErr ? null : (deptRows ?? []).map((d) => ({ id: d.id as string, name: d.name as string }));
 
   return (
     <BusinessLayout
@@ -62,7 +67,7 @@ export default async function BizJobsPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} />
+      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} departments={departments} />
     </BusinessLayout>
   );
 }

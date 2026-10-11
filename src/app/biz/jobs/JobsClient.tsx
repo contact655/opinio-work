@@ -18,6 +18,8 @@ type Props = {
   initialDept?: string;
   /** 閲覧数が取れなかった（「—」と出す。0 と出さない） */
   viewsFailed?: boolean;
+  /** ★その会社の部門（部門・職種の設定にあるもの。2026-10-12）。取れなければ null（求人にある部門だけで選択肢を作る） */
+  departments?: { id: string; name: string }[] | null;
 };
 
 /* ★2026-09-21 に左の絞り込み欄（部門・職種・雇用形態・年収）をやめた（柴さん）。
@@ -58,7 +60,10 @@ function subLine(j: BizJob): string {
   return [head || null, j.employmentType || null, j.location || null].filter(Boolean).join(" ・ ");
 }
 
-export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", initialDept = "", viewsFailed = false }: Props) {
+/** 「部門なし」の値（?dept=none）。⚠️ 部門の id（uuid）と重ならない文字列 */
+const NO_DEPT = "none";
+
+export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", initialDept = "", viewsFailed = false, departments = null }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStateTab | "all">(initialStatus);
@@ -131,12 +136,24 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
 
   const counts = useMemo(() => countByTab(jobs), [jobs]);
 
-  /* ★部門の選択肢（2026-10-12）。**求人がある部門だけ**（部門・職種の設定にあっても求人が無ければ出さない） */
+  /* ★部門の選択肢（2026-10-12 に変えた / 柴さんの指示）。**その会社の部門すべて＋「部門なし」**、件数を横に。
+        それまでは「部門付きの求人がある部門だけ」で、部門付きの求人が0件だと絞り込みごと消えていた。
+        ⚠️ 件数はいま選んでいる状態のタブの中で数える（押したときに出る件数と揃える）。
+        ⚠️ 部門の一覧が取れなかったとき（null）は、求人に付いている部門だけで作る（消さない） */
   const deptOptions = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const j of jobs) if (j.departmentId && j.departmentName) m.set(j.departmentId, j.departmentName);
-    return Array.from(m, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, "ja"));
-  }, [jobs]);
+    const inTab = jobs.filter((j) => activeStatus === "all" || jobStateTab(jobState(j)) === activeStatus);
+    const count = new Map<string, number>();
+    let none = 0;
+    for (const j of inTab) { if (j.departmentId) count.set(j.departmentId, (count.get(j.departmentId) ?? 0) + 1); else none++; }
+    const names = new Map<string, string>((departments ?? []).map((d) => [d.id, d.name]));
+    for (const j of jobs) if (j.departmentId && j.departmentName && !names.has(j.departmentId)) names.set(j.departmentId, j.departmentName);
+    const opts = Array.from(names, ([value, name]) => ({ value, label: `${name}（${count.get(value) ?? 0}）`, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "ja"))
+      .map(({ value, label }) => ({ value, label }));
+    return [...opts, { value: NO_DEPT, label: `部門なし（${none}）` }];
+  }, [jobs, departments, activeStatus]);
+  /** 会社に部門が1つも無い（部門・職種の設定が空）。⚠️ 取れなかった（null）は「無い」と言わない */
+  const noDepartments = departments !== null && departments.length === 0 && !jobs.some((j) => j.departmentId);
   /* ⚠️ URL の値は選択肢に無ければ無視する（消えた部門・他社の id） */
   const [deptFilter, setDeptFilter] = useState(initialDept);
   const activeDept = deptOptions.some((d) => d.value === deptFilter) ? deptFilter : "";
@@ -162,7 +179,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
       if (activeStatus !== "all" && jobStateTab(jobState(j)) !== activeStatus) return false;
-      if (activeDept && j.departmentId !== activeDept) return false;
+      if (activeDept === NO_DEPT ? !!j.departmentId : (activeDept && j.departmentId !== activeDept)) return false;
       if (categoryFilter) {
         const roles = j.jobRoleNames ?? [];
         if (!roles.includes(categoryFilter) && j.jobCategory !== categoryFilter) return false;
@@ -268,14 +285,17 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             isOpen={openChip === "category"} onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
           />
         )}
-        {deptOptions.length > 0 && (
+        {/* ★求人が1件以上あれば常に出す（2026-10-12）。部門が1つも無い会社は登録への入口だけ */}
+        {jobs.length > 0 && (noDepartments ? (
+          <a href="/biz/organization" data-state="dept-register-link" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap" }}>部門・職種を登録する ›</a>
+        ) : (
           <FilterChip
             label="部門" value={activeDept}
             options={deptOptions}
             onSelect={(v) => setDeptFilter(v ?? "")}
             isOpen={openChip === "dept"} onToggle={() => setOpenChip(openChip === "dept" ? null : "dept")}
           />
-        )}
+        ))}
         {hasNarrowing && (
           <button type="button" onClick={() => { setSearchQuery(""); setCategoryFilter(""); setDeptFilter(""); }}
             style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>

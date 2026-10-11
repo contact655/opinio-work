@@ -1,3 +1,4 @@
+import { resolveOwnDepartmentId } from "@/lib/business/jobDepartment";
 import { laborToRow } from "@/lib/jobs/laborTerms";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateJobPages } from "@/lib/companies/revalidate";
@@ -186,7 +187,10 @@ export async function POST(req: Request) {
   /* ★労働条件（2026-10-11）。⚠️ PUT と同じ `laborToRow` を通す（POST と PUT は同じ項目を受ける） */
   const labor = body.laborTerms !== undefined ? laborToRow(body.laborTerms) : null;
   if (labor && "error" in labor) return NextResponse.json({ error: labor.error }, { status: 400 });
-  const record = { ...buildJobRecord(body, companyId, salaryResult.salaryMin, salaryResult.salaryMax), ...(labor ? labor.row : {}) };
+  /* ★部門はその会社のものだけ（2026-10-12）。⚠️ 他社・削除済みの部門は 400 */
+  const dept = await resolveOwnDepartmentId(companyId, body.departmentId);
+  if (!dept.ok) return NextResponse.json({ error: dept.error }, { status: 400 });
+  const record = { ...buildJobRecord(body, companyId, salaryResult.salaryMin, salaryResult.salaryMax), ...(labor ? labor.row : {}), department_id: dept.id };
   const { data: newJob, error: insertErr } = await supabase
     .from("ow_jobs")
     .insert(record)
