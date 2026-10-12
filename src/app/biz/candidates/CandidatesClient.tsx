@@ -9,6 +9,7 @@ import {
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
+import { StanceDot } from "@/components/candidates/StanceMeter";
 import { APPROACH_TEST_COMPANY_MESSAGE } from "@/lib/constants/companyApproaches";
 import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -1211,11 +1212,12 @@ export default function CandidatesClient({
                           : (c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
                         const ageText = c.age != null ? `${c.age}歳` : null;
                         const stanceText = c.careerStance ? CAREER_STANCE_LABELS[c.careerStance] ?? null : null;
-                        const title = [c.name, ageText, tenure, role, c.currentCompany, pref, stanceText].filter(Boolean).join(" ・ ");
+                        const title = [c.name, ageText, c.genderLabel, tenure, role, c.currentCompany, pref, stanceText].filter(Boolean).join(" ・ ");
                         return (
                           <div className="cand-card-row1" title={title}>
                             <span className="cand-card-name">{c.name}</span>
-                            {(ageText || tenure) && <span className="cand-card-sub" data-state="card-age-tenure">{[ageText, tenure].filter(Boolean).join("・")}</span>}
+                            {/* ★年齢・性別（どちらもサーバーで表示用にしたもの。性別は表示だけで絞り込みには使わない）・社会人年数 */}
+                            {(ageText || c.genderLabel || tenure) && <span className="cand-card-sub" data-state="card-age-tenure">{[ageText, c.genderLabel, tenure].filter(Boolean).join("・")}</span>}
                             {/* ⚠️ 640px 以下では、この3つを名前の下の行に回す（1行に収めると職種まで切れて読めない） */}
                             <span className="cand-card-metas">
                             {role && <span className="cand-card-meta cand-card-role">{role}</span>}
@@ -1223,7 +1225,8 @@ export default function CandidatesClient({
                             {c.currentCompany && <span className={role ? "cand-card-meta cand-card-company has-sep" : "cand-card-meta cand-card-company"}>{role ? "・" : ""}{c.currentCompany}</span>}
                             {pref && <span className={role || c.currentCompany ? "cand-card-meta cand-card-pref has-sep" : "cand-card-meta cand-card-pref"}>{role || c.currentCompany ? "・" : ""}{pref}</span>}
                             </span>
-                            {stanceText && <span className="cand-card-stance" data-state="card-stance">{stanceText}</span>}
+                            {/* ★意向の文字の前に同じ色の小さな点（StanceMeter と同じ色）。文字はグレーのまま */}
+                            {stanceText && <span className="cand-card-stance" data-state="card-stance"><StanceDot stance={c.careerStance} size={7} /><span className="cand-card-stance-text">{stanceText}</span></span>}
                             <span className="cand-card-star">
                               <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />
                             </span>
@@ -1300,7 +1303,8 @@ export default function CandidatesClient({
         .cand-card-company { color: var(--ink-mute); flex-shrink: 100; }
         .cand-card-pref { color: var(--ink-mute); flex-shrink: 10000; }
         .cand-card-meta.has-sep { margin-left: -6px; }
-        .cand-card-stance { font-size: 12px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 3em; flex: 0 3 auto; }
+        .cand-card-stance { font-size: 12px; color: var(--ink-mute); white-space: nowrap; min-width: 3em; flex: 0 3 auto; display: inline-flex; align-items: center; gap: 5px; overflow: hidden; }
+        .cand-card-stance-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         .cand-card-star { margin-left: auto; margin-right: -4px; height: 20px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
         .cand-card-row2 { display: flex; align-items: center; gap: 8px; min-width: 0; height: 19px; }
         /* チップは1行に収まるぶんだけ（折り返した2行目は高さで切る） */

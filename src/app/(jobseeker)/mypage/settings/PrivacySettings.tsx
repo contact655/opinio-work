@@ -41,12 +41,15 @@ export default function PrivacySettings({
   careerStance,
   careerStanceKnown,
   showAge = false,
+  showGender = false,
   showActivity = false,
 }: {
   /** ★「最近の利用」（3日以内など）を企業に見せているか（`isCandidateActivityEnabled()`。2026-10-12） */
   showActivity?: boolean;
   /** ★「企業に見える項目」に年齢を出すか（`isCandidateAgeDisplayEnabled()`。2026-10-12）。企業の画面に年齢が出ていないなら書かない */
   showAge?: boolean;
+  /** ★「企業に見える項目」に性別を出すか（`isCandidateGenderDisplayEnabled()`。2026-10-12）。表示だけで、企業は性別で絞り込めない */
+  showGender?: boolean;
   initialVisibility: ProfileVisibility;
   /** 「転職について」の意思表示。⚠️ null は「まだ答えていない」 */
   careerStance: string | null;
@@ -268,12 +271,13 @@ export default function PrivacySettings({
                      見出しと希望勤務地はカードから外れたが、企業の画面に渡るデータには含まれるので、その旨を書く）。
                    ⚠️ 希望職種は**現在の職種・会社名が無いときだけ**カードに出る（それ以外は出ない）。 */}
             {/* ★年齢（`isCandidateAgeDisplayEnabled()` のときだけ。生年月日から計算した年齢だけで、生年月日は出さない） */}
-            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・{showAge ? "年齢・" : ""}社会人年数・現在の職種と会社名・
+            一覧には、<strong style={{ color: "var(--ink)" }}>お名前</strong>・{showAge ? "年齢・" : ""}{showGender ? "性別（登録した場合）・" : ""}社会人年数・現在の職種と会社名・
             お住まいの地域・転職への意向（「積極的に検討中」「いい話があれば聞きたい」「情報収集として」）・
             できること（職種と経験年数）が並びます。
             現在の職種と会社名が無いときは、希望職種が出ます。
             見出しと希望勤務地は一覧には出ませんが、企業の画面に渡るデータには含まれます。
             {showActivity && "OPINIO を最近利用した時期（「3日以内」「1週間以内」「1か月以内」「それ以前」のいずれか）も表示されます。"}
+            {showGender && "性別は表示されるだけで、企業が性別で絞り込むことはできません。「回答しない」を選ぶと表示されません。"}
             {/* ⚠️★**会社名は常に実名。** 伏せる設定は 2026-09-15 に畳んだ（下の注記）。
                    条件分岐に戻さないこと ——戻すなら設定ごと戻す。 */}
             会社名はそのまま表示されます。

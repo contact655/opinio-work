@@ -68,6 +68,8 @@ export type Candidate = {
   /** ★年齢（2026-10-12 / 柴さんの判断で一覧と右欄に出す）。**サーバーで `getUserAge()` を通した数だけ。**
    *  ⚠️★生年月日そのものはブラウザに渡さない（load.ts で読み、ここに数だけ入れる）。生年月日が無ければ null（推測しない） */
   age: number | null;
+  /** ★性別の表示用の文字（男性・女性・その他）。表示だけで、絞り込み・並び替え・保存した条件には使わない（均等法5条）。無効・未登録・「回答しない」は null */
+  genderLabel?: string | null;
   currentRole: string | null;
   currentCompany: string | null;
   employmentType: string | null;

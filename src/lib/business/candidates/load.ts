@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calcTotalExperience } from "@/lib/profile/tenure";
 import { getUserAge } from "@/lib/age";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
+import { candidateGenderLabel, isCandidateGenderDisplayEnabled } from "@/lib/business/candidates/genderDisplay";
 import { activityBand, isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS, MASKED_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -83,11 +84,13 @@ export async function loadCompanyCandidates(params: {
   const ageDisplay = isCandidateAgeDisplayEnabled();
   /* ★最近の利用（2026-10-12）。⚠️ 無効（本番）なら last_active_at を読まない。有効でも帯だけを返す（正確な日時は Candidate に入れない） */
   const activityOn = isCandidateActivityEnabled();
-  const userCols = ["id, name, headline, location, created_at, auth_id, is_test, profile_edited_at", ageDisplay ? "birth_date" : null, activityOn ? "last_active_at" : null].filter(Boolean).join(", ");
+  /* ★性別（2026-10-12）。⚠️ 無効（本番）なら gender を読まない。有効でも表示用の文字だけを Candidate に入れる（絞り込みには使わない） */
+  const genderDisplay = isCandidateGenderDisplayEnabled();
+  const userCols = ["id, name, headline, location, created_at, auth_id, is_test, profile_edited_at", ageDisplay ? "birth_date" : null, activityOn ? "last_active_at" : null, genderDisplay ? "gender" : null].filter(Boolean).join(", ");
   let usersQ = adminClient
     .from("ow_users")
     /* ⚠️ 型は列が多いほうに合わせる（無効のときは birth_date が返らず、下で読まない） */
-    .select(userCols as "id, name, headline, location, created_at, auth_id, is_test, profile_edited_at, birth_date, last_active_at")
+    .select(userCols as "id, name, headline, location, created_at, auth_id, is_test, profile_edited_at, birth_date, last_active_at, gender")
     .in("auth_id", stanceAuthIds.length ? stanceAuthIds : ["00000000-0000-0000-0000-000000000000"])
     .neq("visibility", "private")
     .not("is_system", "eq", true)
@@ -217,6 +220,8 @@ export async function loadCompanyCandidates(params: {
       tenureMonths: calcTotalExperience(startedAtsByUser.get(u.id as string) ?? [])?.months ?? null,
       /* ★年齢（数だけ）。⚠️ 生年月日が無ければ null（推測しない）。birth_date そのものは返さない */
       age: ageDisplay ? getUserAge((u.birth_date as string | null) ?? null) : null,
+      /* ★性別の表示用の文字だけ（男性・女性・その他）。「回答しない」・未登録は null。⚠️ 値は渡さない（絞り込みに使わせない） */
+      genderLabel: genderDisplay ? candidateGenderLabel((u.gender as string | null) ?? null) : null,
       /* ★帯だけ（undefined = スイッチが無効。画面は何も出さない） */
       activity: activityOn ? activityBand((u.last_active_at as string | null) ?? null) : undefined,
       currentRole: currentExp?.role_title ?? null,
