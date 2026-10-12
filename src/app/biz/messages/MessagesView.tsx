@@ -62,7 +62,7 @@ type Item =
  * ⚠️ 選択は URL の ?show= に残す（再読込・共有で同じものが開く）。開いたら既読にするのはサーバー（`loadCompanyThread`）
  * ⚠️ 広い画面で何も選んでいなければ、一覧の一番上を選ぶ（URL を置き換える）。狭い画面では選ばない（一覧を出す）
  */
-export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, hasPublishedJob }: {
+export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, hasPublishedJob, sentThisMonthFrom = null }: {
   allowed: boolean;
   conversations: ConversationRow[];
   /** 企業から送った1通目。null = 取れなかった */
@@ -86,6 +86,11 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   approachableCount?: number | null;
   /** ★公開中の求人があるか（送れる人0人のときの「求人を公開する」を出すか） */
   hasPublishedJob?: boolean | null;
+  /**
+   * ★「今月送った相手」の絞り込み（2026-10-12 / ホームの「送った数」から開く。URL は ?filter=sent_this_month）。
+   *   今月の始まり（日本時間・送った数の数え方と同じ `startOfMonthJst`）。null なら絞り込んでいない
+   */
+  sentThisMonthFrom?: string | null;
 }) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const router = useRouter();
@@ -98,9 +103,21 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   ].sort((x, y) => y.at.localeCompare(x.at)), [conversations, sent]);
   const isUnread = (it: Item) => it.kind === "conv" && (it.conv.isUnread || it.conv.isNewReply) && `c:${it.id}` !== selectedKey;
   const isPending = (it: Item) => it.kind === "sent" && it.sent.status === "pending";
-  const shown = items.filter((it) => tab === "all" || (tab === "unread" ? isUnread(it) : isPending(it)));
+  /* ★今月送った相手（送った1通目が今月）。返信があったものは会話の行、まだのものは送った行 */
+  const sentThisMonthKeys = useMemo(() => {
+    if (!sentThisMonthFrom) return null;
+    const keys = new Set<string>();
+    for (const r of sent ?? []) {
+      if (new Date(r.createdAt).getTime() < new Date(sentThisMonthFrom).getTime()) continue;
+      keys.add(r.status === "accepted" && r.conversationId ? `c:${r.conversationId}` : `s:${r.id}`);
+    }
+    return keys;
+  }, [sent, sentThisMonthFrom]);
+  const inSentFilter = (it: Item) => !sentThisMonthKeys || sentThisMonthKeys.has(it.key);
+  const shown = items.filter((it) => inSentFilter(it) && (tab === "all" || (tab === "unread" ? isUnread(it) : isPending(it))));
   const counts: Record<MessagesTab, number> = { all: items.length, unread: items.filter(isUnread).length, pending: items.filter(isPending).length };
-  const hrefOf = (id: string, t: MessagesTab = tab) => `${linkBase}?${t === "all" ? "" : `tab=${t}&`}show=${id}`;
+  const filterQ = sentThisMonthKeys ? "filter=sent_this_month&" : "";
+  const hrefOf = (id: string, t: MessagesTab = tab) => `${linkBase}?${filterQ}${t === "all" ? "" : `tab=${t}&`}show=${id}`;
 
   /* ★広い画面で何も選んでいなければ、一覧の一番上を選ぶ。⚠️ 狭い画面では選ばない（一覧だけを出すため） */
   const firstId = shown[0]?.id ?? null;
@@ -119,7 +136,10 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   const changeTab = (t: MessagesTab) => {
     setTab(t);
     /* タブを変えたら、そのタブの一番上を開き直す（広い画面）。URL にタブも残す */
-    if (autoSelect) router.replace(t === "all" ? linkBase : `${linkBase}?tab=${t}`, { scroll: false });
+    if (autoSelect) {
+      const qs = [sentThisMonthKeys ? "filter=sent_this_month" : null, t === "all" ? null : `tab=${t}`].filter(Boolean).join("&");
+      router.replace(qs ? `${linkBase}?${qs}` : linkBase, { scroll: false });
+    }
   };
 
   return (
@@ -204,6 +224,15 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
                   </button>
                 ))}
               </div>
+              {sentThisMonthKeys && (
+                <div data-state="messages-sent-filter" style={{ padding: "8px 14px", borderBottom: "1px solid var(--line-soft)" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 6px 3px 10px", borderRadius: 999, background: "var(--royal-50)", border: "1px solid var(--royal-100)", fontSize: 12.5, fontWeight: 600, color: "var(--royal)" }}>
+                    今月送った相手（{sentThisMonthKeys.size}件）
+                    <Link href={tab === "all" ? linkBase : `${linkBase}?tab=${tab}`} aria-label="今月送った相手の絞り込みを外す" data-state="messages-sent-filter-clear"
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", color: "var(--royal)", textDecoration: "none", fontSize: 13 }}>✕</Link>
+                  </span>
+                </div>
+              )}
               {sent === null && allowed && (
                 <p role="alert" style={{ margin: 0, padding: "12px 14px", fontSize: 13, fontWeight: 600, color: "var(--error)" }}>送ったメッセージの一覧を取得できませんでした。時間をおいて再読み込みしてください。</p>
               )}

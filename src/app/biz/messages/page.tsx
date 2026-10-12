@@ -7,7 +7,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canUse } from "@/lib/constants/plans";
-import { getApproachQuota, listSentApproaches } from "@/lib/approaches/server";
+import { getApproachQuota, listSentApproaches, startOfMonthJst } from "@/lib/approaches/server";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { unreadConversationIds } from "@/lib/conversations/unread";
 import { MessagesView } from "./MessagesView";
@@ -60,7 +60,7 @@ export type ConversationRow = {
  * ⚠️ ルール（月10通・返事待ち10件・30日・180日・見送りは見せない）は変えていない。言葉と URL だけ。
  * ⚠️ 旧 URL は next.config.mjs で 301 転送（/biz/conversations → ここ、/biz/approaches → ?tab=pending）。
  */
-export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string } }) {
+export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string; filter?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
 
@@ -226,6 +226,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
         now={nowDate.toISOString()}
         approachableCount={approachableCount}
         hasPublishedJob={hasPublishedJob}
+        sentThisMonthFrom={searchParams?.filter === "sent_this_month" ? startOfMonthJst(nowDate) : null}
       />
     </BusinessLayout>
   );
