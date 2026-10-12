@@ -7,6 +7,7 @@ import { optionalText, optionalUrlMap, requiredText, InvalidInputError } from "@
 import { normalizeUsername, validateUsername, USERNAME_ERROR_MESSAGE } from "@/lib/constants/username";
 import { isGender } from "@/lib/constants/gender";
 import { NAME_PART_MAX, PHONE_MAX, buildDisplayName, isValidPhone } from "@/lib/constants/personName";
+import { birthDateRangeError } from "@/lib/age";
 
 export const dynamic = "force-dynamic";
 
@@ -186,7 +187,12 @@ export async function PUT(req: Request) {
     if ("birth_date" in body) {
       const bd = body.birth_date;
       if (bd === null || bd === "") patch.birth_date = null;
-      else if (typeof bd === "string" && BIRTH_RE.test(bd)) patch.birth_date = bd;
+      else if (typeof bd === "string" && BIRTH_RE.test(bd)) {
+        /* ★15〜100歳の範囲だけ受ける（2026-10-13）。判定は lib/age.ts の1か所 */
+        const rangeError = birthDateRangeError(bd);
+        if (rangeError) return NextResponse.json({ error: "BIRTH_DATE_OUT_OF_RANGE", message: rangeError }, { status: 400 });
+        patch.birth_date = bd;
+      }
       else return NextResponse.json({ error: "INVALID_BIRTH_DATE", message: "生年月日の形式が正しくありません。" }, { status: 400 });
     }
     /* ⚠️ **空文字のキーを残さない。** 残すと、全部消して保存しても `{"x": ""}` が残り、

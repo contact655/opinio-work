@@ -81,6 +81,7 @@ import {
 } from "@/components/profile/view/ProfileSections";
 import { ResidenceSelect } from "@/components/profile/ResidenceSelect";
 import { NAME_PART_MAX, buildDisplayName } from "@/lib/constants/personName";
+import { birthYearOptions, birthDateRangeError } from "@/lib/age";
 import type { Json } from "@/lib/supabase/types";
 import {
   SocialIcon,
@@ -727,6 +728,9 @@ export default function ProfileTab({
   const [birthYear,  setBirthYear]  = useState<string>(initialParsed.year);
   const [birthMonth, setBirthMonth] = useState<string>(initialParsed.month);
   const [birthDay,   setBirthDay]   = useState<string>(initialParsed.day);
+  /* ★生年の選択肢（15〜100歳。2026-10-13）。⚠️ 範囲外の値が既に入っている人のぶんは足し戻す
+        （足し戻さないと選択欄が空に見え、別の項目を保存した瞬間に生年月日が消える） */
+  const [birthYears] = useState(() => birthYearOptions(initialParsed.year));
 
   // 変更検知用の初期値（保存成功時に更新）
   const [initialBasicInfo, setInitialBasicInfo] = useState<BasicInfo>({
@@ -1054,6 +1058,16 @@ export default function ProfileTab({
       return;
     }
     const nameFilled = !!fam && !!giv;
+    /* ★生年月日が15〜100歳の範囲外なら送る前に止める（2026-10-13）。API も同じ関数で 400 を返す */
+    if (birthYear && birthMonth && birthDay) {
+      const rangeError = birthDateRangeError(`${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`);
+      if (rangeError) {
+        setBasicToastVariant("error");
+        setBasicToastMsg(rangeError);
+        notifyGlobalSave("error");
+        return;
+      }
+    }
     setBasicSaving(true);
     setSocialSaving(true);
     notifyGlobalSave("saving");
@@ -1406,7 +1420,7 @@ export default function ProfileTab({
                       aria-label="生年（年）"
                     >
                       <option value="">年</option>
-                      {Array.from({ length: 101 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                      {birthYears.map((y) => (
                         <option key={y} value={String(y)}>{y}年</option>
                       ))}
                     </select>

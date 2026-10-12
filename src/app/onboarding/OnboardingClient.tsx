@@ -12,6 +12,7 @@ import { readStep2Draft, writeStep2Draft, clearStep2Draft } from "@/lib/onboardi
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { ResidenceSelect } from "@/components/profile/ResidenceSelect";
 import { parseResidence } from "@/lib/utils/location";
+import { birthYearOptions, birthDateRangeError } from "@/lib/age";
 import { RANKS } from "@/lib/constants/careerOptions";
 /* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
       `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
@@ -181,10 +182,9 @@ export type ExistingExperience = Record<string, unknown>;
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 51 }, (_, i) => CURRENT_YEAR - i);
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-/* 生年月日の選択肢。⚠️ `/profile/edit` の `ProfileTab` と同じ幅（101年 / 12ヶ月 / 31日）に揃える。
+/* 生年月日の選択肢。⚠️ 年は `birthYearOptions()`（lib/age.ts。15〜100歳）で、`/mypage` の `ProfileTab` と同じもの。
    ⚠️ 日は31固定。月ごとの日数に合わせない —— 不正な組み合わせは
       `PUT /api/jobseeker/profile` の `BIRTH_RE` と DB の DATE 型が弾く。 */
-const BIRTH_YEARS = Array.from({ length: 101 }, (_, i) => CURRENT_YEAR - i);
 const BIRTH_DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
 
 const selectStyle: React.CSSProperties = {
@@ -392,6 +392,12 @@ function OnboardingInner({
   const [birthYear, setBirthYear]   = useState(() => initialPerson.birthYear);
   const [birthMonth, setBirthMonth] = useState(() => initialPerson.birthMonth);
   const [birthDay, setBirthDay]     = useState(() => initialPerson.birthDay);
+  /* ★生年の選択肢（15〜100歳）。⚠️ 範囲外の値が既に入っている人のぶんは足し戻す */
+  const [birthYears] = useState(() => birthYearOptions(initialPerson.birthYear));
+  /* ★15〜100歳の範囲外なら進めない（2026-10-13）。誕生日がまだの「今年−15年生まれ」はここで止まる */
+  const birthRangeError = birthYear && birthMonth && birthDay
+    ? birthDateRangeError(`${birthYear}-${birthMonth}-${birthDay}`)
+    : null;
 
   /* ★★お住まい（2026-09-23 / 柴さんの指示）。`ow_users.location` の1系統。
      ⚠️★**選択肢は `RESIDENCE_OPTION_GROUPS` の1箇所から出す。ここで展開し直さない。**
@@ -627,7 +633,7 @@ function OnboardingInner({
   const youReady = !!(
     familyName.trim() && givenName.trim() &&
     familyNameKana.trim() && givenNameKana.trim() &&
-    birthYear && birthMonth && birthDay &&
+    birthYear && birthMonth && birthDay && !birthRangeError &&
     /* ⚠️ 読めない古い値のままでは進めない（選び直してもらう） */
     parseResidence(residence).choice
   );
@@ -985,7 +991,7 @@ function OnboardingInner({
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
                 <option value="">年</option>
-                {BIRTH_YEARS.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
+                {birthYears.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
               </select>
               <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} style={selectStyle} aria-label="生月">
                 <option value="">月</option>
@@ -996,6 +1002,9 @@ function OnboardingInner({
                 {BIRTH_DAYS.map((d) => <option key={d} value={d}>{Number(d)}日</option>)}
               </select>
             </div>
+            {birthRangeError && (
+              <p role="alert" style={{ fontSize: 12, color: "var(--error)", marginTop: 8, lineHeight: 1.6 }}>{birthRangeError}</p>
+            )}
             {/* ⚠️★**この一文を消さないこと。** 年齢は詳細ページにしか出さず、年齢での絞り込みも
                    作らないという方針（CLAUDE.md「年齢は詳細だけ」／労働施策総合推進法9条）の
                    説明がここにしか無い。
