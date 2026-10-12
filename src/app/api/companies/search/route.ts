@@ -76,7 +76,10 @@ export async function GET(req: NextRequest) {
           **掲載で絞るのをやめたのでその前提は消えた。**
           受け手（`/biz/companies/add/new`）は `?? null` で受けており、
           業種の行が出ないだけ。**既定値で埋めないこと。** */
-    .select("id, name, brand_name, logo_url, industry_id, employee_count, url, ow_industries(name)")
+    /* ⚠️★FK を名指しする（`!industry_id`）。2026-10-12 にお客さまの業界の表（ow_company_customer_industries）を
+          足して ow_companies ↔ ow_industries の経路が2本になり、名指ししない埋め込みは
+          「more than one relationship」で**クエリごと失敗**していた（scripts/check-embeds.mjs で検出） */
+    .select("id, name, brand_name, logo_url, industry_id, employee_count, url, ow_industries!industry_id(name)")
     .eq("is_test", false)
     .order("name")
     .limit(limit);
