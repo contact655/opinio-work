@@ -1,4 +1,5 @@
 import { JobsClient } from "./JobsClient";
+import { listJobInternalNotes } from "@/lib/jobs/internalNotes";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -57,6 +58,10 @@ export default async function BizJobsPage({
     .eq("company_id", ctx.tenantId).is("deleted_at", null).order("display_order").order("name");
   if (deptErr) console.error("[biz/jobs] departments:", deptErr.message);
   const departments = deptErr ? null : (deptRows ?? []).map((d) => ({ id: d.id as string, name: d.name as string }));
+  /* ★社内メモ（2026-10-12）。メモがある求人に印を付ける。⚠️ 冒頭だけを渡す（印のツールチップ用。全文は編集画面で読む） */
+  const noteMap = await listJobInternalNotes(ctx.tenantId);
+  const internalNotes: Record<string, string> = {};
+  noteMap.forEach((body, id) => { internalNotes[id] = body.split(/\r?\n/).slice(0, 2).join("\n").slice(0, 140); });
 
   return (
     <BusinessLayout
@@ -67,7 +72,7 @@ export default async function BizJobsPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} departments={departments} />
+      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} departments={departments} internalNotes={internalNotes} />
     </BusinessLayout>
   );
 }

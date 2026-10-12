@@ -26,6 +26,7 @@ import { payLabel } from "@/lib/utils/salary";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
 import { JOB_EXPERIENCE_YEARS, JOB_POSITION_LEVELS } from "@/lib/constants/jobFit";
+import { JobInternalNote } from "@/components/business/JobInternalNote";
 import { flattenTree } from "@/lib/business/orgTree";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
@@ -1314,6 +1315,13 @@ export function JobEditForm({
       <style>{`
         .jef-root { display: flex; flex-direction: column; height: calc(100vh - var(--biz-header-h)); }
         .jef-body { display: grid; grid-template-columns: 240px minmax(0,1fr); flex: 1; overflow: hidden; }
+        /* ★社内メモ（2026-10-12）。1280px 以上は右に固定の枠、1279px 以下はフォームの上に折りたたみ */
+        .jef-note-side { display: none; }
+        @media (min-width: 1280px) {
+          .jef-body { grid-template-columns: 240px minmax(0,1fr) 300px; }
+          .jef-note-side { display: block; overflow-y: auto; padding: 28px 20px 40px 0; }
+          .jef-note-collapsible { display: none; }
+        }
         .jef-2col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
         .jef-main { overflow-y: auto; padding: 28px 40px 60px; max-width: 900px; }
         .jef-card { padding: 24px 28px; }
@@ -1382,6 +1390,8 @@ export function JobEditForm({
         />
 
         <main id="jef-main" className="jef-main">
+          {/* ★社内メモ（1279px 以下はここに折りたたみ。1280px 以上は右の枠） */}
+          <JobInternalNote jobId={currentJobId} variant="collapsible" />
           {/* ★停止中の知らせ（2026-10-12。下書き／公開中／停止中の3つ）。⚠️ 状態は灰色の文字で（バッジにしない） */}
           {mode === "edit" && (state === "stopped_self" || state === "stopped_ops" || state === "reopen_requested") && (
             <div data-state={`job-${state}-notice`} style={{
@@ -1431,6 +1441,9 @@ export function JobEditForm({
             )}
           </div>
         </main>
+        <div className="jef-note-side">
+          <JobInternalNote jobId={currentJobId} variant="panel" />
+        </div>
       </div>
     </div>
   );

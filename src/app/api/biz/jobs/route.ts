@@ -10,6 +10,7 @@ import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { validateJobOptionFields, toUrgency } from "@/lib/business/jobs";
+import { copyJobInternalNote } from "@/lib/jobs/internalNotes";
 import { parseJobExperienceYears, parseJobPositionLevel } from "@/lib/constants/jobFit";
 
 /** 新規作成では「送られてこない」も未入力（null） */
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
     const { data: source } = await supabase
       .from("ow_jobs")
       .select(
-        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, work_hours, holidays, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note"
+        "company_id, title, employment_type, job_category, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, work_hours, holidays, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note, required_experience_years, position_level"
       )
       .eq("id", sourceId)
       .eq("company_id", ctxDup.companyId)
@@ -166,6 +167,9 @@ export async function POST(req: Request) {
         srcAssignees.map((a) => ({ job_id: newJob.id, user_id: a.user_id }))
       );
     }
+
+    /* ★社内メモも複製する（2026-10-12）。⚠️ 求職者には出さない別の表（ow_job_internal_notes） */
+    await copyJobInternalNote(ctxDup.companyId, sourceId, newJob.id as string, ctxDup.owUserId ?? null);
 
     return NextResponse.json({ id: newJob.id });
   }

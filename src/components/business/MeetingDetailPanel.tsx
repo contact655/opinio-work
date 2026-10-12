@@ -1,5 +1,6 @@
 "use client";
 
+import { JobInternalNote } from "@/components/business/JobInternalNote";
 import { useState, useEffect } from "react";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
@@ -537,6 +538,8 @@ export function MeetingDetailPanel({
                 </div>
               )}
             </div>
+            {/* ★この求人の社内メモ（2026-10-12）。読むだけ・開閉。メモが無ければ何も出さない。⚠️ 求職者には出さない */}
+            {m.jobId && <JobInternalNote jobId={m.jobId} variant="readonly" />}
           </DetailSection>
         )}
 

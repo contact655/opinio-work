@@ -21,6 +21,8 @@ type Props = {
   viewsFailed?: boolean;
   /** ★その会社の部門（部門・職種の設定にあるもの。2026-10-12）。取れなければ null（求人にある部門だけで選択肢を作る） */
   departments?: { id: string; name: string }[] | null;
+  /** ★社内メモの冒頭（2行まで）。求人 id → 冒頭。メモが無い求人は入らない（2026-10-12） */
+  internalNotes?: Record<string, string>;
 };
 
 /* ★2026-09-21 に左の絞り込み欄（部門・職種・雇用形態・年収）をやめた（柴さん）。
@@ -65,7 +67,7 @@ function subLine(j: BizJob): string {
 /** 「部門なし」の値（?dept=none）。⚠️ 部門の id（uuid）と重ならない文字列 */
 const NO_DEPT = "none";
 
-export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", initialDept = "", viewsFailed = false, departments = null }: Props) {
+export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", initialDept = "", viewsFailed = false, departments = null, internalNotes = {} }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStateTab | "all">(initialStatus);
@@ -332,6 +334,15 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
                   <div className="jl-row" data-item="job" data-status={v}>
                     <div style={{ minWidth: 0 }}>
                       <Link href={`/biz/jobs/${j.id}/edit`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflowWrap: "anywhere" }}>{j.title}</Link>
+                      {/* ★社内メモの印（2026-10-12）。乗せると冒頭2行（title 属性）。⚠️ 求職者には出さない */}
+                      {internalNotes[j.id] && (
+                        <span title={`社内メモ：\n${internalNotes[j.id]}`} aria-label="社内メモあり" data-state="job-note-mark"
+                          style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 6, color: "var(--ink-mute)", cursor: "help" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><polyline points="14 3 14 9 20 9" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" />
+                          </svg>
+                        </span>
+                      )}
                       <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={subLine(j)}>{subLine(j)}</div>
                       {note && (
                         <div data-state="job-stop-reason" style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, overflowWrap: "anywhere" }}>

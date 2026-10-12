@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/job-internal-note", label: "求人の社内メモ（求人の編集・選考管理）",
+    desc: "★Third Box には応募・面談が無く、選考管理での見え方を描けない。読むだけの表示（短い・長い・無い）をここで見る" },
   { href: "/dev/preview/pane-thread", label: "右欄のメッセージ欄（/biz/candidates。直近10通・上へスクロール）",
     desc: "★実データは数通しか無い。30通で前の10通を読み込む動き・日付の区切り・始まりの案内をここで見る" },
   { href: "/dev/preview/candidate-touchpoints", label: "〈会社名〉と合うところ（/biz/candidates の右のプレビュー）",

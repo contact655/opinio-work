@@ -1,5 +1,6 @@
 "use client";
 
+import { JobInternalNote } from "@/components/business/JobInternalNote";
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import type { BizApplication, ApplicationStatus, ApplicationStatusTab } from "@/lib/business/applications";
@@ -506,6 +507,8 @@ export function DetailPanel({ app, isUpdating, onStatusChange, onHireConfirm, em
           })
         } />
       </Section>
+      {/* ★この求人の社内メモ（2026-10-12）。読むだけ・開閉。メモが無ければ何も出さない。⚠️ 求職者には出さない */}
+      {app.jobId && <JobInternalNote jobId={app.jobId} variant="readonly" />}
 
       {/* 連絡先
           ★全プラン共通で表示する（2026-10-08 に有料ゲートを外した）。

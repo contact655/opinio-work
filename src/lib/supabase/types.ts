@@ -3705,6 +3705,52 @@ export type Database = {
           },
         ]
       }
+      ow_job_internal_notes: {
+        Row: {
+          body: string
+          company_id: string
+          job_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          company_id: string
+          job_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          company_id?: string
+          job_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_job_internal_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_job_internal_notes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_job_internal_notes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_job_matching_tags: {
         Row: {
           id: string
