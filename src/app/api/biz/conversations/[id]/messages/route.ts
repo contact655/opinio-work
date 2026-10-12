@@ -70,12 +70,9 @@ export async function POST(
     .is("left_at", null)
     .maybeSingle();
 
-  if (!participant) {
-    return NextResponse.json(
-      { error: "Not a participant of this conversation" },
-      { status: 403 }
-    );
-  }
+  /* ★参加していなくても、その会社の現役の管理者なら返信できる（返信すると同時に参加する。2026-10-12）。
+        参加者の追加と送信は DB 関数 `join_and_send_company_message` の1トランザクション（下で呼ぶ）。
+        ⚠️ ここでは「参加者でない」ことだけ覚えておき、理由の確認（検証用と実アカウントの間など）を通してから送る */
 
   /* ★企業との会話は、送るたびに「開いてよい理由」がまだ有効かを確かめる（2026-10-09 / 段階2）。
         ブロック・在籍の判明・（提案の場合）転職意欲の変更の後は送れない。読むのは引き続きできる。
@@ -88,6 +85,16 @@ export async function POST(
     .maybeSingle();
   if (convRowErr) console.error("[conversations/messages POST] ow_conversations:", convRowErr.message);
   if (!convRow) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+  if (!participant) {
+    /* 参加者でない人が送れるのは、企業との会話で、その会社の現役の管理者のときだけ */
+    if (convRow.kind !== "company" || !convRow.company_id) {
+      return NextResponse.json({ error: "Not a participant of this conversation" }, { status: 403 });
+    }
+    const { data: adminLink, error: adminErr } = await admin.from("ow_company_admins").select("id")
+      .eq("user_id", owUser.id).eq("company_id", convRow.company_id).eq("is_active", true).maybeSingle();
+    if (adminErr) console.error("[conversations/messages POST] ow_company_admins:", adminErr.message);
+    if (!adminLink) return NextResponse.json({ error: "Not a participant of this conversation" }, { status: 403 });
+  }
   if (convRow.kind === "company") {
     /* ★送る担当者と求職者の is_test の一致も見る（2026-10-10。`companyConversationSendAllowed`） */
     if (!convRow.company_id || !(await companyConversationSendAllowed({ candidateOwUserId: convRow.candidate_user_id as string, companyId: convRow.company_id as string, senderOwUserId: owUser.id as string }))) {
@@ -101,21 +108,32 @@ export async function POST(
         ⚠️ 当事者であること（上の participant の確認）と、理由の確認を通ったあとだけ。 */
   const now = new Date().toISOString();
 
-  const { data: newMsg, error: insertError } = await admin
-    .from("ow_conversation_messages")
-    .insert({
-      conversation_id: conversationId,
-      sender_participant_id: participant.id,
-      body: messageBody,
-      sent_at: now,
-    })
-    .select("id")
-    .single();
+  let newMsg: { id: string } | null = null;
+  let insertError: { message: string } | null = null;
+  if (participant) {
+    const r = await admin
+      .from("ow_conversation_messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_participant_id: participant.id,
+        body: messageBody,
+        sent_at: now,
+      })
+      .select("id")
+      .single();
+    newMsg = r.data as { id: string } | null; insertError = r.error;
+  } else {
+    /* ★参加と送信を1つのトランザクションで（途中で失敗したらどちらも残らない） */
+    const r = await admin.rpc("join_and_send_company_message", {
+      p_conversation_id: conversationId, p_sender_ow_user_id: owUser.id as string, p_body: messageBody, p_fail_at_end: false,
+    });
+    newMsg = r.data ? { id: r.data as string } : null; insertError = r.error ?? (r.data ? null : { message: "no id" });
+  }
 
-  if (insertError) {
+  if (insertError || !newMsg) {
     console.error(
       "[conversations/messages POST] insert error:",
-      insertError.message
+      insertError?.message
     );
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -173,7 +191,8 @@ export async function POST(
       .eq("id", conversationId)
       .maybeSingle();
     if (conv?.company_id) {
-      const isCompanySender = participant.role === "company_admin";
+      /* 参加者でなかった人は、いま参加した管理者（company_admin） */
+      const isCompanySender = !participant || participant.role === "company_admin";
       await insertActivity(supabase, {
         company_id: conv.company_id,
         actor_user_id: owUser.id,
@@ -191,6 +210,7 @@ export async function POST(
 
   // ── Revalidate detail page ─────────────────────────────────────────────────
   revalidatePath(`/biz/messages/${conversationId}`);
+  if (!participant) revalidatePath("/biz/messages");
 
-  return NextResponse.json({ ok: true, id: newMsg.id });
+  return NextResponse.json({ ok: true, id: newMsg.id, joined: !participant });
 }

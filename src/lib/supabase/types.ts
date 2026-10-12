@@ -7125,6 +7125,15 @@ export type Database = {
         Args: { p_candidate_id: string }
         Returns: boolean
       }
+      join_and_send_company_message: {
+        Args: {
+          p_body: string
+          p_conversation_id: string
+          p_fail_at_end?: boolean
+          p_sender_ow_user_id: string
+        }
+        Returns: string
+      }
       merge_role: {
         Args: { from_role_id: string; to_role_id: string }
         Returns: Json

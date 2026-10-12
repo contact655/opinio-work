@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ApproachBubble } from "@/components/approaches/ApproachBubble";
 import { PaneThread, type PaneThreadPage } from "@/components/approaches/PaneThread";
-import { ReplyForm } from "@/app/biz/messages/[id]/ReplyForm";
+import { ThreadReplyArea } from "@/app/biz/messages/[id]/ThreadReplyArea";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,
@@ -211,15 +211,12 @@ function SentDock({ sent }: {
           <div style={{ padding: "4px 0 12px" }}><span style={GRAY}>読み込み中…</span></div>
         ) : (
           <PaneThread initial={thread} loadOlder={loadOlder}
-            footer={thread.isParticipant ? (
-              <ReplyForm conversationId={thread.conv.id} placeholder="返信を書く" compact onSent={() => setReloadKey((k) => k + 1)} />
-            ) : (
-              <div style={{ padding: "8px 0 4px" }}>
-                <Link href={threadHref} data-state="pane-thread-join" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
-                  メッセージ画面で参加する →
-                </Link>
-              </div>
-            )} />
+            footer={
+              /* ★参加していない管理者も返信でき、返信すると参加する（2026-10-12）。送れないときは一行だけ */
+              <ThreadReplyArea conversationId={thread.conv.id} isParticipant={thread.isParticipant}
+                canReply={thread.canReply ?? thread.isParticipant} sendBlocked={thread.sendBlocked ?? null}
+                placeholder="返信を書く" compact onSent={() => setReloadKey((k) => k + 1)} />
+            } />
         )}
         {/* ★小さく残す（2026-10-12） */}
         <Link href={threadHref} data-state="pane-open-messages" style={{ alignSelf: "flex-end", marginTop: 8, fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}>

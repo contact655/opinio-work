@@ -7,8 +7,7 @@ import { notFound } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { ReplyForm } from "./ReplyForm";
-import { JoinButton } from "./JoinButton";
+import { ThreadReplyArea } from "./ThreadReplyArea";
 import { RecordMeetingButton, SchedulingTools } from "./SchedulingTools";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
 import { loadCompanyThread } from "@/lib/conversations/companyThread";
@@ -174,15 +173,9 @@ export default async function BizConversationDetailPage({
             <ThreadMessages thread={thread} />
           </div>
 
-          {/* Reply area: JoinButton for non-participants, ReplyForm for participants */}
-          {isParticipant ? (
-            <ReplyForm
-              conversationId={conv.id}
-              tools={<SchedulingTools conversationId={conv.id} admins={companyAdmins} myUserId={ctx.currentOwnId} initialSchedulingUrl={mySchedulingUrl} />}
-            />
-          ) : (
-            <JoinButton conversationId={conv.id} />
-          )}
+          {/* ★返信欄（2026-10-12）。参加していない管理者も返信でき、返信すると参加する（ThreadReplyArea） */}
+          <ThreadReplyArea conversationId={conv.id} isParticipant={isParticipant} canReply={thread.canReply} sendBlocked={thread.sendBlocked}
+            tools={<SchedulingTools conversationId={conv.id} admins={companyAdmins} myUserId={ctx.currentOwnId} initialSchedulingUrl={mySchedulingUrl} />} />
         </div>
 
         {/* ── Right: Candidate summary + participants ── */}

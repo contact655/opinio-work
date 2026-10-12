@@ -40,7 +40,7 @@ const msg = (id: string, body: string, p: ThreadMessage["participant"], at: stri
 const base = (id: string, name: string, messages: ThreadMessage[], extra: Partial<CompanyThread> = {}): CompanyThread => ({
   conv: { id, kind: "company", stage: "active", status: "active", last_message_at: daysAgo(0), created_at: daysAgo(5) },
   candidate: { id: `cu-${id}`, name, about_me: null, location: "東京都", avatar_color: null },
-  participants: [me, cand(name)], isParticipant: true, messages, messagesFailed: false,
+  participants: [me, cand(name)], isParticipant: true, canReply: true, sendBlocked: null, messages, messagesFailed: false,
   approachFirst: null, replyNote: null, companyAdmins: [], schedulingUrl: null, meetingState: null, ...extra,
 });
 

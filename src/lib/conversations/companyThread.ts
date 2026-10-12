@@ -32,6 +32,10 @@ export type CompanyThread = {
   candidate: ThreadCandidate | null;
   participants: ThreadParticipant[];
   isParticipant: boolean;
+  /** ★返信欄を出してよいか（2026-10-12）。参加者、またはその会社の現役の管理者（返信すると参加する） */
+  canReply: boolean;
+  /** ★送れない理由（画面の表示用）。検証用と実アカウントの間は送れない（`companyConversationSendAllowed` と同じ判定） */
+  sendBlocked: "test_mismatch" | null;
   messages: ThreadMessage[];
   messagesFailed: boolean;
   /** 送ったメッセージ（1通目）。吹き出しを「理由・本文」で描くため */
@@ -127,6 +131,19 @@ export async function loadCompanyThread(conversationId: string, ctx: { tenantId:
     }
   }
 
+  /* ★返信できるか（2026-10-12）。⚠️ 判定の担保は送信の API（参加者 or 現役の管理者・検証用と実アカウントの一致）。
+        ここは表示の出し分けだけ。読み取りは admin（is_test と管理者の行はセッションでは読めないことがある） */
+  const adminDb = createAdminClient();
+  const [{ data: who, error: whoErr }, { data: adminRow, error: adminErr }] = await Promise.all([
+    adminDb.from("ow_users").select("id, is_test").in("id", [ctx.currentOwnId, candidate?.id].filter((x): x is string => !!x)),
+    adminDb.from("ow_company_admins").select("id").eq("user_id", ctx.currentOwnId).eq("company_id", ctx.tenantId).eq("is_active", true).maybeSingle(),
+  ]);
+  if (whoErr || adminErr) console.error("[companyThread] reply check:", whoErr?.message ?? adminErr?.message);
+  const meTest = (who ?? []).find((u) => u.id === ctx.currentOwnId)?.is_test === true;
+  const candTest = (who ?? []).find((u) => u.id === candidate?.id)?.is_test === true;
+  const sendBlocked: CompanyThread["sendBlocked"] = candidate && who && meTest !== candTest ? "test_mismatch" : null;
+  const canReply = myParticipant !== null || !!adminRow;
+
   const [sameTestStaff, schedulingUrl, meetingState] = await Promise.all([
     listSameTestStaff(ctx.tenantId, ctx.currentOwnId),
     getSchedulingUrl(ctx.tenantId, ctx.currentOwnId),
@@ -135,7 +152,7 @@ export async function loadCompanyThread(conversationId: string, ctx: { tenantId:
 
   return {
     conv: { id: rawConv.id, kind: rawConv.kind, stage: rawConv.stage, status: rawConv.status, last_message_at: rawConv.last_message_at, created_at: rawConv.created_at },
-    candidate, participants, isParticipant: myParticipant !== null, messages, messagesFailed: !!msgsError,
+    candidate, participants, isParticipant: myParticipant !== null, canReply, sendBlocked, messages, messagesFailed: !!msgsError,
     approachFirst, replyNote, companyAdmins: sameTestStaff ?? [], schedulingUrl, meetingState,
   };
 }

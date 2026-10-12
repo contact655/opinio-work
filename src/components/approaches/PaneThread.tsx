@@ -15,7 +15,9 @@ import { ChatNotice, chatDay } from "@/components/messages/ChatBubble";
  * ⚠️ 吹き出しは /biz/messages と同じ `ThreadMessages`（中は `ChatBubble`）。日付の区切りと頭文字の丸はこの欄だけ付ける。
  * ⚠️ 位置を保つ相手は、いちばん近いスクロールする祖先（右欄のスクロール）。見つからなければ window。
  */
-export type PaneThreadPage = ThreadMessagesData & { total: number; hasMore: boolean; firstAt: string | null };
+export type PaneThreadPage = ThreadMessagesData & { total: number; hasMore: boolean; firstAt: string | null;
+  /** ★返信欄の出し分け（2026-10-12）。`loadCompanyThread` の canReply / sendBlocked */
+  canReply?: boolean; sendBlocked?: "test_mismatch" | null };
 
 function scrollParent(el: HTMLElement | null): HTMLElement | null {
   /* ⚠️ body と html は除く（body に overflow-x: hidden があると overflow-y が auto と出るが、実際に動くのは画面＝window） */

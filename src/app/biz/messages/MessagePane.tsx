@@ -7,8 +7,7 @@ import type { SentApproach } from "@/lib/approaches/server";
 import { approachDaysLeft } from "@/lib/constants/companyApproaches";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
 import { ThreadMessages } from "./ThreadMessages";
-import { ReplyForm } from "./[id]/ReplyForm";
-import { JoinButton } from "./[id]/JoinButton";
+import { ThreadReplyArea } from "./[id]/ThreadReplyArea";
 import { RecordMeetingButton, SchedulingTools } from "./[id]/SchedulingTools";
 
 /**
@@ -49,10 +48,10 @@ export function ThreadPane({ thread, meta, backHref, myOwUserId }: { thread: Com
   const m = thread.meetingState;
   return (
     <PaneShell candidateId={thread.candidate?.id ?? null} name={name} meta={meta} backHref={backHref}
-      footer={thread.isParticipant ? (
-        <ReplyForm conversationId={thread.conv.id}
+      footer={
+        <ThreadReplyArea conversationId={thread.conv.id} isParticipant={thread.isParticipant} canReply={thread.canReply} sendBlocked={thread.sendBlocked}
           tools={<SchedulingTools conversationId={thread.conv.id} admins={thread.companyAdmins} myUserId={myOwUserId} initialSchedulingUrl={thread.schedulingUrl} />} />
-      ) : <JoinButton conversationId={thread.conv.id} />}>
+      }>
       {m?.scheduled ? (
         <div data-state="meeting-scheduled" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "8px 12px", borderRadius: 10, background: "var(--bg-tint)", fontSize: 13 }}>
           <span style={{ color: "var(--ink)" }}>面談：{formatMeetingDateTime(m.scheduled.startsAt)}（{MEETING_FORMATS[m.scheduled.format]}・{m.scheduled.duration}分）</span>

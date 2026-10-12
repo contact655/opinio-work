@@ -34,7 +34,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       const end = before ? t.messages.findIndex((m) => m.id === before) : t.messages.length;
       const page = end < 0 ? [] : t.messages.slice(Math.max(0, end - PANE_THREAD_RECENT), end);
       thread = {
-        conv: { id: t.conv.id }, isParticipant: t.isParticipant, messagesFailed: t.messagesFailed,
+        conv: { id: t.conv.id }, isParticipant: t.isParticipant, canReply: t.canReply, sendBlocked: t.sendBlocked, messagesFailed: t.messagesFailed,
         total: t.messages.length, messages: page,
         /* 前にまだあるか（上端に「ここからやり取りが始まりました」を出すかどうか） */
         hasMore: end > PANE_THREAD_RECENT,

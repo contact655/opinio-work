@@ -61,6 +61,9 @@ SERVER_ONLY=(
   #   ⚠️ クライアントから呼べると、他人宛てのリクエストに返信できてしまう（本人確認は API が行う）
   "reply_to_company_approach(p_approach_id uuid, p_candidate_ow_user_id uuid, p_body text, p_fail_at_end boolean)"
   "reply_to_message_request(p_conversation_id uuid, p_recipient_ow_user_id uuid, p_body text, p_fail_at_end boolean)"
+  # ★参加していない管理者が返信すると同時に参加する（2026-10-12）。参加者の追加と送信を1トランザクションで。
+  #   ⚠️ クライアントから呼べると、本人確認・検証用と実アカウントの判定を飛ばして送れてしまう
+  "join_and_send_company_message(p_conversation_id uuid, p_sender_ow_user_id uuid, p_body text, p_fail_at_end boolean)"
 )
 
 SELF_TEST=0
