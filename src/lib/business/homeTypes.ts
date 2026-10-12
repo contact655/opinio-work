@@ -47,4 +47,6 @@ export type HomeSide = {
   jobs: { published: number; draft: number; stopped: number } | null;
   /** 企業ページの状態の1行（「公開中」「非公開・公開まであと2つ」など） */
   companyStatus: string;
+  /** ★役割で出す欄（2026-10-12）。false の欄は出さない（押した先を開けないため）。省略はすべて出す */
+  show?: { jobs: boolean; company: boolean };
 };

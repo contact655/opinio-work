@@ -669,6 +669,35 @@ export function applicationStatusTemplate(params: {
 
 // ── T6: 企業採用担当者への招待メール ──────────────────────────────────────────
 
+/**
+ * ★面接担当になったことを本人に知らせる（2026-10-12）。応募ごとの担当（ow_application_interviewers）を付けたときだけ。
+ * ⚠️ 候補者の連絡先・応募の本文は載せない（画面で見てもらう）。載せるのは求人名と画面へのリンクだけ。
+ */
+export function interviewerAssignedTemplate(params: {
+  recipientEmail: string;
+  recipientName: string | null;
+  companyName: string;
+  jobTitle: string | null;
+  url: string;
+}) {
+  return {
+    to: params.recipientEmail,
+    subject: `【${params.companyName}】面接担当になりました - OPINIO`,
+    html: htmlWrap(`
+      ${greet(params.recipientName, "line")}
+      <p>
+        ${esc(params.companyName)} の${params.jobTitle ? `「${esc(params.jobTitle)}」への` : ""}応募で、あなたが面接担当になりました。
+      </p>
+      <p>選考管理の画面で、候補者のプロフィールと選考の流れを確認し、メモを残せます。</p>
+      <p style="margin: 28px 0;">
+        <a href="${params.url.startsWith("https://") ? params.url : "#"}"
+          style="display: inline-block; background: #002366; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;"
+        >選考管理を開く →</a>
+      </p>
+    `),
+  };
+}
+
 export function companyInviteTemplate(params: {
   recipientEmail: string;
   inviterName: string;       // 招待した人の名前
@@ -681,9 +710,9 @@ export function companyInviteTemplate(params: {
 
   return {
     to: params.recipientEmail,
-    subject: `${params.companyName} の採用担当として招待されました - OPINIO`,
+    subject: `${params.companyName} に${roleText}招待されました - OPINIO`,
     html: htmlWrap(`
-      <h2>${esc(params.companyName)} の採用担当チームに招待されました</h2>
+      <h2>${esc(params.companyName)} のチームに招待されました</h2>
       <p>${esc(params.recipientEmail)} 様</p>
       <p>
         <strong>${esc(params.inviterName)}</strong> さんから、OPINIO で

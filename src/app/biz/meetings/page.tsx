@@ -1,3 +1,6 @@
+import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
+import { can } from "@/lib/auth/roles";
+import { listAssignableStaff, listInterviewersFor } from "@/lib/business/interviewers";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
@@ -29,7 +32,10 @@ export default async function BizMeetingsPage({
   guardBizPage(ctx.currentPermission, "selection.view", "selection.viewAssigned");
 
   const supabase = createClient();
-  const [meetings, applications] = await Promise.all([
+  /* ★役割（2026-10-12）。面接官は「担当の応募」だけ（応募は RLS が絞る）。カジュアル面談・決まった面談・連絡先は出さない */
+  const role = ctx.currentPermission;
+  const isInterviewerOnly = !can(role, "selection.view") && can(role, "selection.viewAssigned");
+  const [meetingsAll, applicationsRaw] = await Promise.all([
     /* ⚠️ admin クライアントを渡す。応募者の birth_date（年齢表示）を読むが、
           2026-08-06 に authenticated から ow_users.birth_date の SELECT 権限を剥がした。
           自社の面談だけに絞る条件（company_id = ctx.tenantId）は関数側にあり、
@@ -37,6 +43,15 @@ export default async function BizMeetingsPage({
     fetchMeetingsForCompany(createAdminClient(), ctx.tenantId),
     /* ★応募者の連絡先は全プラン共通で返す（2026-10-08 に有料ゲートを外した） */
     fetchApplicationsForCompany(supabase, ctx.tenantId),
+  ]);
+  const meetings = isInterviewerOnly ? [] : meetingsAll;
+  const applications = isInterviewerOnly
+    ? applicationsRaw.map((a) => ({ ...a, email: null, phone: null }))
+    : applicationsRaw;
+  /* ★面接担当（応募ごと）と、担当にできる人。⚠️ 取れなければ null（「担当なし」と言わない） */
+  const [interviewers, assignableStaff] = await Promise.all([
+    listInterviewersFor(ctx.tenantId, applications.map((a) => a.id)),
+    can(role, "selection.assignInterviewers") ? listAssignableStaff(ctx.tenantId) : Promise.resolve(null),
   ]);
 
   // conversationId を applications と meetings に付与
@@ -101,7 +116,7 @@ export default async function BizMeetingsPage({
   const initialShow = typeof searchParams.show === "string" && /^[ma]:[0-9a-f-]{36}$/i.test(searchParams.show) ? searchParams.show : null;
 
   /* ★決まった面談（2026-10-10 / 段4）。⚠️ 取れなければ null（並べない。0件とは言わない） */
-  const scheduledRaw = await listCompanyMeetings(ctx.tenantId, { upcoming: true });
+  const scheduledRaw = isInterviewerOnly ? [] : await listCompanyMeetings(ctx.tenantId, { upcoming: true });
   const scheduled = scheduledRaw?.map((m) => ({
     id: m.id, conversationId: m.conversationId, candidateName: m.candidateName,
     whenText: formatMeetingDateTime(m.startsAt), formatLabel: MEETING_FORMATS[m.format], duration: m.duration, origin: m.origin,
@@ -131,6 +146,15 @@ export default async function BizMeetingsPage({
         hasPublishedJobs={hasPublishedJobs}
         acceptance={acceptance}
         scheduled={scheduled}
+        perms={{
+          canEdit: can(role, "selection.edit"),
+          canAssign: can(role, "selection.assignInterviewers"),
+          canMessage: can(role, "messages.use"),
+          isInterviewerOnly,
+          notesEnabled: isCandidateNotesEnabled(),
+        }}
+        interviewers={interviewers}
+        assignableStaff={assignableStaff}
         jobFilter={typeof searchParams.job === "string" && /^[0-9a-f-]{36}$/i.test(searchParams.job) ? searchParams.job : null}
         now={new Date().toISOString()}
       />

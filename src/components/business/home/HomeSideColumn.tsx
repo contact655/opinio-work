@@ -61,6 +61,7 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
           ) : <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>件数を確認できませんでした</p>}
         </section>
       )}
+      {side.show?.jobs !== false && (
       <section data-state="home-jobs" style={CARD}>
         <h2 style={H}>求人</h2>
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -74,6 +75,8 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
           ))}
         </div>
       </section>
+      )}
+      {side.show?.company !== false && (
       <section data-state="home-company" style={CARD}>
         <h2 style={H}>企業ページ</h2>
         <Link href="/biz/company" style={{ display: "block", fontSize: 13, color: "var(--ink)", textDecoration: "none" }}>
@@ -81,6 +84,7 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
           <span style={{ ...LINK, display: "block", marginTop: 4 }}>企業ページを開く →</span>
         </Link>
       </section>
+      )}
     </aside>
   );
 }

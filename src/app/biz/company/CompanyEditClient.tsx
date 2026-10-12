@@ -52,7 +52,12 @@ type Props = {
   tenantLogoGradient?: string | null;
   tenantLogoLetter?: string | null;
   memberships?: import("@/lib/business/dashboard").TenantCompany[];
+  /** ★企業ページの本文を公開できるか（2026-10-12 / company.page。管理者・採用担当） */
   isAdmin?: boolean;
+  /** ★基本情報（社名・ロゴ・業種など）を編集できるか（company.basic。管理者だけ） */
+  canEditBasic?: boolean;
+  /** ★掲載を依頼できるか（company.listingRequest。管理者だけ） */
+  canRequestListing?: boolean;
   /** 掲載利用規約に（見ている人が）同意済みか */
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
@@ -339,6 +344,8 @@ export function CompanyEditClient({
   tenantLogoLetter,
   memberships,
   isAdmin = true,
+  canEditBasic = true,
+  canRequestListing = true,
   initialTermsAgreed = false,
   userId = "",
   initialListingRequestedAt = null,
@@ -587,13 +594,15 @@ export function CompanyEditClient({
     if (listingRequestedAt) return { label: "掲載を依頼済み", enabled: false, onClick: undefined, state: "requested" };
     return {
       label: "掲載を依頼する",
-      enabled: isAdmin && blocking.length === 0 && !busy,
+      enabled: canRequestListing && blocking.length === 0 && !busy,
       onClick: () => { setTermsChecked(false); setConfirmMode("listing"); setConfirmOpen(true); },
       state: "request",
     };
   })();
   const primaryHint = !isAdmin
     ? "公開・掲載の依頼は管理者権限の担当者が行えます。"
+    : primary.state === "request" && !canRequestListing
+    ? "掲載の依頼は管理者が行います。"
     : primary.state !== "published" && primary.state !== "requested" && blocking.length > 0
       ? `必要な項目があと${blocking.length}つあります（右側から移動できます）。`
       : null;
@@ -659,7 +668,14 @@ export function CompanyEditClient({
                 </div>
               )}
 
-              {/* ── 基本情報 ── */}
+              {/* ── 基本情報 ──（★管理者だけ。2026-10-12 / company.basic。ほかの役割には欄ごと出さない。
+                     ⚠️ API も採用担当の保存では基本情報のキーをいまの下書きのまま残す） */}
+              {!canEditBasic && (
+                <p data-state="basic-admin-only" style={{ margin: "0 0 16px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                  企業名・ロゴ・業種などの基本情報は管理者が編集します。
+                </p>
+              )}
+              {canEditBasic && (
               <Section id="cpe-basic" title="基本情報">
                 <FormGroup>
                   <FormLabel required htmlFor="ce-name">企業名</FormLabel>
@@ -801,6 +817,7 @@ export function CompanyEditClient({
                   </FormGroup>
                 </div>
               </Section>
+              )}
 
               {/* ── 会社紹介 ── */}
               <Section id="cpe-about" title="会社紹介">

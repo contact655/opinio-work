@@ -46,3 +46,15 @@ test("DB の段（auth_company_can）は、アプリの操作と同じ役割の�
   same(DB_LEVEL_ROLES.admin, PERMISSIONS["members.manage"]);
   same(DB_LEVEL_ROLES.member, COMPANY_ROLES);
 });
+
+test("開ける画面（ホームのリンクの出し分け）", async () => {
+  const { canOpenBizPath } = await import("./roles.ts");
+  assert.ok(canOpenBizPath("viewer", "/biz/jobs?status=draft"));
+  assert.equal(canOpenBizPath("viewer", "/biz/jobs/new"), false);
+  assert.equal(canOpenBizPath("viewer", "/biz/jobs/abc/edit?section=review"), false);
+  assert.ok(canOpenBizPath("recruiter", "/biz/jobs/abc/edit"));
+  assert.ok(canOpenBizPath("interviewer", "/biz/meetings?show=a:1"));
+  assert.equal(canOpenBizPath("interviewer", "/biz/candidates"), false);
+  assert.equal(canOpenBizPath("recruiter", "/biz/members"), false);
+  assert.equal(canOpenBizPath("admin", "/biz/unknown"), false);
+});

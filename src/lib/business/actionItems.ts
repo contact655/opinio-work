@@ -1,4 +1,5 @@
-import type { CompanyRole } from "@/lib/auth/roles";
+import { can, type CompanyRole } from "@/lib/auth/roles";
+import { assignedApplicationIds } from "@/lib/auth/companyAccess";
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -162,11 +163,34 @@ export async function getBizActionItems(params: {
     items.push({ kind: "materials", at: now, title: `企業資料の未確定の項目 ${materials}件`, sub: "確定するまで求職者には出ません", action: "確認する", href: "/biz/materials" });
   }
 
+  /* ★役割で出すものを絞る（2026-10-12。判定は can() の1か所）。押した先が開けない行を出さない。
+        面接官の応募は「担当の応募」だけ */
+  const role = params.permission;
+  const assigned = can(role, "selection.view") ? null : await assignedApplicationIds(params.companyId, params.owUserId);
+  const allowed = (it: (typeof items)[number]): boolean => {
+    switch (it.kind) {
+      case "interest": case "reply": case "message": case "unanswered": return can(role, "messages.use");
+      case "meetingRequest": return can(role, "selection.view");
+      case "application": {
+        if (can(role, "selection.view")) return true;
+        if (!can(role, "selection.viewAssigned") || !assigned) return false;
+        const id = it.href.split("show=a:")[1] ?? "";
+        return assigned.includes(id);
+      }
+      case "savedSearch": return can(role, "candidates.search");
+      case "stoppedJobs": return can(role, "jobs.edit");
+      case "materials": return can(role, "materials.edit");
+      default: return false;
+    }
+  };
+  const visible = items.filter(allowed);
+  items.length = 0;
+  items.push(...visible);
   items.sort((a, b) => b.at.localeCompare(a.at));
 
   /* ★今日・明日の面談（日本時間）。⚠️ 取れなければ null（枠を出さない。0件とは言わない） */
   let todayMeetings: HomeMeeting[] | null = null;
-  if (upcoming) {
+  if (upcoming && can(role, "messages.use")) {
     const today = jstDateKey(new Date());
     const tomorrow = jstDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
     todayMeetings = upcoming

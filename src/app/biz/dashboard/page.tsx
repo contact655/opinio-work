@@ -1,3 +1,4 @@
+import { can, canOpenBizPath } from "@/lib/auth/roles";
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { HomeActionList } from "@/components/business/home/HomeActionList";
@@ -78,7 +79,7 @@ async function NoTenantPage() {
 export default async function BizDashboardPage({
   searchParams,
 }: {
-  searchParams: { welcome?: string };
+  searchParams: { welcome?: string; denied?: string };
 }) {
   const isFirstMember = searchParams?.welcome === "1";
   const ctx = await getTenantContext();
@@ -133,7 +134,8 @@ export default async function BizDashboardPage({
 
   const now = new Date();
   const side: HomeSide = {
-    quota: !quotaAllowed ? undefined : quota ? {
+    show: { jobs: can(ctx.currentPermission, "jobs.view"), company: can(ctx.currentPermission, "company.page") },
+    quota: !quotaAllowed || !can(ctx.currentPermission, "messages.use") ? undefined : quota ? {
       sentText: `${quota.monthlyUsed}/${quota.monthlyLimit}`,
       sentSub: approachQuotaTexts(quota, now).remainingSub,
       sentPct: Math.round((quota.monthlyUsed / Math.max(1, quota.monthlyLimit)) * 100),
@@ -158,6 +160,12 @@ export default async function BizDashboardPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
+      {/* ★権限の無い画面から戻されたとき（2026-10-12。lib/auth/companyAccess.ts の guardBizPage） */}
+      {searchParams.denied === "1" && (
+        <p role="status" data-state="page-denied" style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-mute)" }}>
+          その画面を開く権限がありません。役割は管理者が「メンバーと権限」で変更できます。
+        </p>
+      )}
       {/* ── 1人目バナー（企業開設直後のみ） ── */}
       {isFirstMember && (
         <div style={{
@@ -188,6 +196,7 @@ export default async function BizDashboardPage({
               あなたはこの企業の最初の人事担当者です。まず企業情報を充実させると、候補者への信頼感が高まります。
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" as const }}>
+{can(ctx.currentPermission, "company.page") && (
               <Link href="/biz/company" style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "8px 16px", borderRadius: 8,
@@ -195,7 +204,8 @@ export default async function BizDashboardPage({
                 fontSize: 12, fontWeight: 700, textDecoration: "none",
               }}>
                 企業情報を入力する →
-              </Link>
+              </Link>)}
+{can(ctx.currentPermission, "members.manage") && (
               <Link href="/biz/members" style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "8px 16px", borderRadius: 8,
@@ -204,7 +214,7 @@ export default async function BizDashboardPage({
                 fontSize: 12, fontWeight: 600, textDecoration: "none",
               }}>
                 メンバーを招待する
-              </Link>
+              </Link>)}
             </div>
           </div>
         </div>
@@ -236,7 +246,8 @@ export default async function BizDashboardPage({
       <div className="biz-home-grid">
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           <HomeActionList actions={actions} />
-          <HomeChecklist items={checklist} />
+          {/* ★役割で開けない画面へのリンクは出さない（2026-10-12） */}
+          <HomeChecklist items={checklist.filter((it) => canOpenBizPath(ctx.currentPermission, it.href))} />
         </div>
         <HomeSideColumn side={side} />
       </div>

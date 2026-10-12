@@ -23,6 +23,8 @@ type Props = {
   onNext?: () => void;
   /** ★選考管理の右側に入れるとき（2026-10-11）。名前・年齢・前後の移動の段を出さない（上の共通の段が名前を出す）。操作と確認はそのまま */
   embedded?: boolean;
+  /** ★閲覧のみの役割（2026-10-12）。返信・日程・状態の変更・担当・メモの編集を出さない（見るだけ） */
+  readOnly?: boolean;
 };
 
 function IconBtn({ children, onClick, disabled, ariaLabel, title }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; ariaLabel?: string; title?: string }) {
@@ -183,6 +185,7 @@ export function MeetingDetailPanel({
   onPrev,
   onNext,
   embedded = false,
+  readOnly = false,
 }: Props) {
   const [declineConfirming, setDeclineConfirming] = useState(false);
   /* ★「日程が決まった」の確認（2026-09-21）。`scheduled` にすると候補者へ
@@ -268,6 +271,8 @@ export function MeetingDetailPanel({
         </div>
       </div>}
 
+      {/* ★閲覧のみでは操作の段を出さない（2026-10-12） */}
+      {!readOnly && (<>
       {/* ── action-bar ── */}
       <div style={{
         background: "#fff",
@@ -378,6 +383,7 @@ export function MeetingDetailPanel({
           </ActionBtn>
         )}
       </div>
+      </>)}
 
       {/* ── detail-content ── */}
       <div style={{
@@ -481,7 +487,7 @@ export function MeetingDetailPanel({
                 </svg>
                 <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>まだ対応者がいません</span>
               </div>
-              <button
+              {!readOnly && <button
                 type="button"
                 onClick={onAssignToMe}
                 style={{
@@ -492,7 +498,7 @@ export function MeetingDetailPanel({
                   display: "inline-flex", alignItems: "center", gap: 4,
                 }}>
                 ✓ 自分が対応する
-              </button>
+              </button>}
             </div>
           )}
         </DetailSection>
@@ -666,6 +672,7 @@ export function MeetingDetailPanel({
           <textarea
             value={memoValue}
             onChange={(e) => onMemoChange?.(e.target.value)}
+            readOnly={readOnly}
             aria-label="社内共有メモ"
             placeholder="チームメンバーと共有するメモを書いてください..."
             style={{

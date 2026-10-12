@@ -1,3 +1,5 @@
+import { can, isCompanyRole, toCompanyRole, ROLE_LABELS } from "@/lib/auth/roles";
+import { roleIn } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,9 +35,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "メールアドレスの形式が正しくありません" }, { status: 400 });
   }
   const permission = body.permission;
-  if (permission !== "admin" && permission !== "member") {
+  /* ★役割は4つ（2026-10-12。lib/auth/roles.ts）。旧値 member は採用担当として受ける */
+  if (permission !== "member" && !isCompanyRole(permission)) {
     return NextResponse.json({ error: "権限が不正です" }, { status: 400 });
   }
+  const role = toCompanyRole(permission)!;
 
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
@@ -44,8 +48,7 @@ export async function POST(req: Request) {
   }
   const { owUserId: actorOwUserId, companyId, allMemberships } = ctx;
 
-  const actorMembership = allMemberships.find((m) => m.companyId === companyId);
-  if (actorMembership?.permission !== "admin") {
+  if (!can(roleIn(allMemberships, companyId), "members.manage")) {
     return NextResponse.json({ error: "メンバー追加は管理者のみ可能です" }, { status: 403 });
   }
 
@@ -59,7 +62,7 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (targetUser) {
-    const result = await addExistingUserToCompany({ supabase, targetUser, companyId, permission });
+    const result = await addExistingUserToCompany({ supabase, targetUser, companyId, permission: role });
     if (!result.ok) {
       return NextResponse.json({ error: result.message }, { status: result.status });
     }
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
     .insert({
       user_id: null,
       company_id: companyId,
-      permission,
+      permission: role,
       /*
         ⚠️ 招待の時点では false（2026-08-05 に true から変更）。
            true を立てていたため is_active が「有効かどうか」ではなく
@@ -143,6 +146,8 @@ export async function POST(req: Request) {
         inviterName: inviterUser?.name ?? "採用担当者",
         companyName: company?.name ?? "",
         inviteUrl,
+        /* ★招待した役割をそのまま書く（2026-10-12。それまでは常に「採用担当として」） */
+        roleLabel: `${ROLE_LABELS[role]}として`,
       })
     );
     emailSent = true;

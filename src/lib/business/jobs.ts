@@ -1,3 +1,4 @@
+import { ROLE_LABELS, toCompanyRole } from "@/lib/auth/roles";
 import { laborFromRow } from "@/lib/jobs/laborTerms";
 import { parseJobExperienceYears, parseJobPositionLevel } from "@/lib/constants/jobFit";
 import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "@/lib/jobs/publishRequirements";
@@ -488,7 +489,8 @@ export async function fetchTeamMembers(
         name: u.name ?? "ユーザー",
         gradient: u.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
         initial: u.name?.[0] ?? "U",
-        role: m.permission === "admin" ? "Admin · 採用管理者" : "採用担当",
+        /* ★役割の呼び名は lib/auth/roles.ts の1か所（2026-10-12） */
+        role: ROLE_LABELS[toCompanyRole(m.permission) ?? "recruiter"],
       };
     })
     .filter((m): m is TeamMember => m !== null);

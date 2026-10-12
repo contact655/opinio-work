@@ -4,7 +4,8 @@ import { mutateOne } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse, roleIn } from "@/lib/auth/permissions";
+import { can, isCompanyRole } from "@/lib/auth/roles";
 
 type Action = "permission" | "deactivate" | "reactivate" | "update_profile" | "ambassador";
 
@@ -65,19 +66,23 @@ export async function PATCH(
       .select("id", { count: "exact", head: true })
       .eq("company_id", companyId!)
       .eq("permission", "admin")
-      .eq("is_active", true);
+      .eq("is_active", true)
+      /* ⚠️ 招待中の行（user_id が無い）は数えない。数えると「受けていない招待」が管理者の代わりになり、
+            本当の最後の1人を降格・無効化できてしまう（2026-10-12 に直した） */
+      .not("user_id", "is", null);
     return count ?? 0;
   }
 
   // ── action: permission ──────────────────────────────────────────
   if (body.action === "permission") {
+    /* ★役割は4つ（2026-10-12。lib/auth/roles.ts） */
     const newPermission = body.value;
-    if (newPermission !== "admin" && newPermission !== "member") {
+    if (!isCompanyRole(newPermission)) {
       return NextResponse.json({ error: "Invalid permission value" }, { status: 400 });
     }
 
     // ガード A: 自己降格防止
-    if (isSelf && newPermission === "member") {
+    if (isSelf && newPermission !== "admin") {
       return NextResponse.json(
         { error: "自分自身の権限を降格することはできません", code: "SELF_DEMOTION" },
         { status: 403 }
@@ -85,7 +90,7 @@ export async function PATCH(
     }
 
     // ガード B: 最後の admin 消去防止
-    if (target.permission === "admin" && newPermission === "member") {
+    if (target.permission === "admin" && newPermission !== "admin") {
       const adminCount = await countActiveAdmins();
       if (adminCount <= 1) {
         return NextResponse.json(
@@ -223,8 +228,7 @@ export async function DELETE(
 
   const { companyId, allMemberships } = ctx;
 
-  const actorMembership = allMemberships.find((m) => m.companyId === companyId);
-  if (actorMembership?.permission !== "admin") {
+  if (!can(roleIn(allMemberships, companyId), "members.manage")) {
     return NextResponse.json({ error: "招待のキャンセルは管理者のみ可能です" }, { status: 403 });
   }
 

@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
 /* ★右欄（候補者のプロフィール）の中身が使う client コンポーネントを、このページから参照しておく（profileClientModules.ts の注記） */
@@ -264,6 +265,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
     /* ★2列（一覧＋右のプレビュー）なので本文の最大幅を広げる（2026-10-10 / 柴さんの指示。目安 1440px） */
     <BusinessLayout {...layoutProps} mainMaxWidth={1440}>
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
+        canAct={can(ctx.currentPermission, "candidates.search")}
         initialSaved={initialSaved}
         initialFilters={initialFilters}
         companyShortName={companyShortName}

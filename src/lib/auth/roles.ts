@@ -109,3 +109,29 @@ export const DB_LEVEL_ROLES = {
 export const PROVISIONAL_ADMIN_ONLY: CompanyAction[] = [
   "organization.manage", "notifications.manage", "company.listingRequest", "savedSearches.manageAll",
 ];
+
+/**
+ * ★/biz のこの画面を開けるか（2026-10-12）。ホームのリンクなど、行き先から出し分けるとき用。
+ * ⚠️ 画面側の入口（guardBizPage）と同じ操作を返すこと。新しい画面を足したらここにも足す（無い画面は「開けない」）。
+ */
+const PATH_ACTIONS: [RegExp, CompanyAction[]][] = [
+  [/^\/biz\/dashboard/, ["dashboard.view"]],
+  [/^\/biz\/candidates/, ["candidates.viewProfile"]],
+  [/^\/biz\/messages/, ["messages.use"]],
+  [/^\/biz\/meetings/, ["selection.view", "selection.viewAssigned"]],
+  [/^\/biz\/jobs\/new/, ["jobs.edit"]],
+  [/^\/biz\/jobs\/[^/]+\/edit/, ["jobs.edit"]],
+  [/^\/biz\/jobs/, ["jobs.view"]],
+  [/^\/biz\/organization/, ["organization.manage"]],
+  [/^\/biz\/company/, ["company.page"]],
+  [/^\/biz\/materials/, ["materials.view"]],
+  [/^\/biz\/employees/, ["employees.manage"]],
+  [/^\/biz\/posts/, ["stories.edit"]],
+  [/^\/biz\/analytics/, ["analytics.view"]],
+  [/^\/biz\/members/, ["members.manage"]],
+];
+export function canOpenBizPath(role: CompanyRole | null | undefined, href: string): boolean {
+  const path = href.split(/[?#]/)[0];
+  const hit = PATH_ACTIONS.find(([re]) => re.test(path));
+  return !!hit && hit[1].some((a) => can(role, a));
+}

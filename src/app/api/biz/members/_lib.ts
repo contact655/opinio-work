@@ -1,3 +1,4 @@
+import type { CompanyRole } from "@/lib/auth/roles";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { mutateOne } from "@/lib/supabase/mutate";
 
@@ -24,7 +25,7 @@ export async function addExistingUserToCompany(params: {
   supabase: SupabaseClient;
   targetUser: { id: string; name: string; email: string };
   companyId: string;
-  permission: "admin" | "member";
+  permission: CompanyRole;
 }): Promise<AddResult> {
   const { supabase, targetUser, companyId, permission } = params;
 

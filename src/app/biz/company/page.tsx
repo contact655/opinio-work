@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -141,7 +142,9 @@ export default async function BizCompanyPage() {
       tenantLogoGradient={ctx.logoGradient ?? undefined}
       tenantLogoLetter={ctx.logoLetter ?? undefined}
       memberships={ctx.allCompanies}
-      isAdmin={ctx.currentPermission === "admin"}
+      isAdmin={can(ctx.currentPermission, "company.page")}
+      canEditBasic={can(ctx.currentPermission, "company.basic")}
+      canRequestListing={can(ctx.currentPermission, "company.listingRequest")}
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
       initialListingRequestedAt={(listingRequestResult.data?.listing_requested_at as string | null) ?? null}

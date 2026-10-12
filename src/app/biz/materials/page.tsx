@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -45,7 +46,8 @@ export default async function BizMaterialsPage() {
         documents={data?.documents ?? []}
         items={data?.items ?? []}
         loadFailed={data === null}
-        canEdit={ctx.currentPermission === "admin"}
+        canEdit={can(ctx.currentPermission, "materials.edit")}
+        canUseDrive={can(ctx.currentPermission, "integrations.manage")}
       />
     </BusinessLayout>
   );

@@ -30,6 +30,8 @@ type Props = {
   loadFailed: boolean;
   /** 管理者権限か。⚠️ 画面で隠すだけでなく API も断る（resolveMaterialsActor） */
   canEdit: boolean;
+  /** ★Google ドライブから選ぶ（連携。2026-10-12 / integrations.manage。管理者だけ） */
+  canUseDrive?: boolean;
 };
 
 const card: React.CSSProperties = {
@@ -56,7 +58,7 @@ function formatBytes(n: number | null) {
   return `${(n / 1024 / 1024).toFixed(1)}MB`;
 }
 
-export default function MaterialsClient({ documents, items, loadFailed, canEdit }: Props) {
+export default function MaterialsClient({ documents, items, loadFailed, canEdit, canUseDrive = false }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,12 +128,12 @@ export default function MaterialsClient({ documents, items, loadFailed, canEdit 
       {notice && <div role="status" style={{ ...card, background: "var(--bg-tint)", fontSize: 13, color: "var(--ink-soft)" }}>{notice}</div>}
       {!canEdit && (
         <div style={{ ...card, background: "var(--bg-tint)", fontSize: 13, color: "var(--ink-soft)" }}>
-          閲覧のみの権限です。登録・編集・確定は管理者権限の担当者が行えます。
+          閲覧のみの権限です。登録・編集・確定は管理者・採用担当が行えます。
         </div>
       )}
 
       {canEdit && (
-        <RegisterDocument busy={busy}
+        <RegisterDocument busy={busy} canUseDrive={canUseDrive}
           existingUrls={documents.map((d) => d.sourceUrl).filter((u): u is string => !!u)}
           onDone={() => router.refresh()} />
       )}
@@ -206,7 +208,7 @@ function putWithProgress(url: string, file: File, mime: string, onPct: (n: numbe
  *                 Vercel の関数は 4.5MB までなので、関数を通すと 10MB が通らない。
  *   URL      … 1行1件。http / https だけ。貼り付けの中の重複と、登録済みの URL は除く（サーバーも 409 で断る）
  */
-function RegisterDocument({ busy, existingUrls, onDone }: { busy: boolean; existingUrls: string[]; onDone: () => void }) {
+function RegisterDocument({ busy, existingUrls, onDone, canUseDrive }: { busy: boolean; existingUrls: string[]; onDone: () => void; canUseDrive: boolean }) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [running, setRunning] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -378,7 +380,7 @@ function RegisterDocument({ busy, existingUrls, onDone }: { busy: boolean; exist
           )}
         </div>
       </div>
-      {DRIVE_PICKER_ENABLED && (
+      {DRIVE_PICKER_ENABLED && canUseDrive && (
         <div data-state="drive-picker" style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <button type="button" style={btn} disabled={busy || driveRunning} onClick={() => void pickFromDrive()}>
             {driveRunning ? "Google ドライブを開いています…" : "Google ドライブから選ぶ"}

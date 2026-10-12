@@ -1,4 +1,5 @@
 "use client";
+import { COMPANY_ROLES, ROLE_DESCRIPTIONS, ROLE_LABELS, type CompanyRole } from "@/lib/auth/roles";
 
 import { NotificationRecipientsCard } from "@/components/business/NotificationRecipientsCard";
 import { SlackNotificationCard } from "@/components/business/SlackNotificationCard";
@@ -20,17 +21,10 @@ type ActionType = "permission" | "deactivate" | "reactivate";
  * ⚠️ それまでこの画面だけ member を「人事」と呼び、ヘッダー・企業の切り替え・確認ダイアログの
  *    「メンバー」と食い違っていた（メニューは「人事に変更」、確認は「メンバーに変更」）。
  */
-const PERMISSION_LABEL: Record<"admin" | "member", string> = { admin: "管理者", member: "メンバー" };
-/**
- * 権限でできることの違い（2026-09-22 に画面から数えた）。
- * 管理者だけのもの: 求人の新規作成（/biz/jobs）・企業ページの公開（/biz/company）・
- *                  メンバーと権限（この画面）・部門と職種の編集（/biz/organization）。
- * ⚠️ 出し分けを足したり外したりしたら、ここも直すこと
- */
-const PERMISSION_HINT: Record<"admin" | "member", string> = {
-  admin: "すべての操作ができます。求人の新規作成・企業ページの公開・メンバーと権限・部門と職種の編集は管理者だけです",
-  member: "候補者・メッセージ・選考など日々の採用業務を扱えます",
-};
+/* ★役割は4つ（2026-10-12）。呼び名と1行の説明は lib/auth/roles.ts の1か所（ROLE_LABELS / ROLE_DESCRIPTIONS）。
+      ⚠️ この画面に別の呼び名を書かないこと */
+const PERMISSION_LABEL = ROLE_LABELS;
+const PERMISSION_HINT = ROLE_DESCRIPTIONS;
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
 /**
@@ -127,11 +121,14 @@ function DropdownMenu({
   isSelf,
   onAction,
   onEditProfile,
+  isLastAdmin,
 }: {
   member: MemberRecord;
   isSelf: boolean;
-  onAction: (id: string, action: ActionType, value?: "admin" | "member") => void;
+  onAction: (id: string, action: ActionType, value?: CompanyRole) => void;
   onEditProfile: (target: ProfileEditTarget) => void;
+  /** ★最後の管理者（2026-10-12）。役割の変更も無効化も出さない（API も断る） */
+  isLastAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -143,9 +140,6 @@ function DropdownMenu({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
-
-  const newPerm = member.permission === "admin" ? "member" : "admin";
-  const newPermLabel = PERMISSION_LABEL[newPerm];
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
@@ -213,13 +207,18 @@ function DropdownMenu({
               {/* ★自分の行では権限の変更と無効化を出さない（2026-09-22）。
                      それまでは「（自分は変更不可）」と灰色で並べていた。押せないものを並べない。
                      ⚠️ API 側も自分を拒む。ここは見た目だけ */}
-              {!isSelf && (<>
+              {!isSelf && isLastAdmin && (
+                <p data-state="last-admin-note" style={{ margin: 0, padding: "10px 14px", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                  最後の管理者のため、役割の変更と無効化はできません。先にほかの人を管理者にしてください。
+                </p>
+              )}
+              {!isSelf && !isLastAdmin && (<>
               <button
                 type="button"
-                
+                data-state="change-role"
                 onClick={() => {
                   setOpen(false);
-                  onAction(member.id, "permission", newPerm);
+                  onAction(member.id, "permission", member.permission);
                 }}
                 style={{
                   display: "block",
@@ -235,7 +234,7 @@ function DropdownMenu({
                   borderBottom: "1px solid var(--line-soft)",
                 }}
               >
-                権限を「{newPermLabel}」に変更
+                役割を変更
               </button>
               <button
                 type="button"
@@ -302,12 +301,14 @@ function ConfirmDialog({
 }: {
   member: MemberRecord;
   actionType: ActionType;
-  actionValue: "admin" | "member" | null;
+  actionValue: CompanyRole | null;
   isSubmitting: boolean;
   errorMessage: string | null;
-  onConfirm: () => void;
+  onConfirm: (value?: CompanyRole) => void;
   onCancel: () => void;
 }) {
+  /* ★役割の変更は4つから選ぶ（2026-10-12）。初期値はいまの役割。同じなら「変更する」を押せない */
+  const [picked, setPicked] = useState<CompanyRole | null>(actionValue);
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && !isSubmitting) onCancel();
@@ -322,9 +323,8 @@ function ConfirmDialog({
   let confirmColor = "var(--royal)";
 
   if (actionType === "permission") {
-    const label = PERMISSION_LABEL[actionValue === "admin" ? "admin" : "member"];
-    title = "権限を変更";
-    body = `${member.name}さんの権限を「${label}」に変更しますか？`;
+    title = "役割を変更";
+    body = `${member.name}さんの役割を選んでください。`;
     confirmLabel = "変更する";
   } else if (actionType === "deactivate") {
     title = "メンバーを無効化";
@@ -374,6 +374,9 @@ function ConfirmDialog({
         <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 20 }}>
           {body}
         </p>
+        {actionType === "permission" && (
+          <RolePicker name="change-role" value={picked} onChange={setPicked} />
+        )}
 
         {errorMessage && (
           <div role="alert" aria-live="polite" style={{
@@ -410,9 +413,11 @@ function ConfirmDialog({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            disabled={isSubmitting}
+            onClick={() => onConfirm(actionType === "permission" ? picked ?? undefined : undefined)}
+            disabled={isSubmitting || (actionType === "permission" && (!picked || picked === actionValue))}
             style={{
+              /* ⚠️ 押せないときは薄くする（押せそうに見えて何も起きない状態にしない） */
+              opacity: isSubmitting || (actionType === "permission" && (!picked || picked === actionValue)) ? 0.45 : 1,
               padding: "9px 18px",
               border: "none",
               borderRadius: 8,
@@ -422,7 +427,6 @@ function ConfirmDialog({
               fontWeight: 600,
               color: "#fff",
               cursor: isSubmitting ? "not-allowed" : "pointer",
-              opacity: isSubmitting ? 0.6 : 1,
             }}
           >
             {isSubmitting ? "処理中..." : confirmLabel}
@@ -607,6 +611,33 @@ function EditProfileDialog({
   );
 }
 
+// ── RolePicker ──────────────────────────────────────────────────────
+/** ★役割を選ぶ（2026-10-12）。4つの役割と、それぞれでできることを1行で出す。追加と変更の両方で使う */
+function RolePicker({ name, value, onChange }: { name: string; value: CompanyRole | null; onChange: (r: CompanyRole) => void }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>役割</div>
+      <div role="radiogroup" aria-label="役割" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {COMPANY_ROLES.map((p) => {
+          const isSelected = value === p;
+          return (
+            <label key={p} data-state={isSelected ? "selected" : "unselected"} style={{
+              display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+              border: `1px solid ${isSelected ? "var(--royal)" : "var(--line)"}`, background: isSelected ? "var(--royal-50)" : "#fff",
+            }}>
+              <input type="radio" name={name} value={p} checked={isSelected} onChange={() => onChange(p)} style={{ marginTop: 2, accentColor: "var(--royal)" }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{PERMISSION_LABEL[p]}</div>
+                <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>{PERMISSION_HINT[p]}</div>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── AddMemberDialog ─────────────────────────────────────────────────
 function AddMemberDialog({
   isSubmitting,
@@ -617,12 +648,12 @@ function AddMemberDialog({
 }: {
   isSubmitting: boolean;
   errorMessage: string | null;
-  defaultPermission?: "admin" | "member";
-  onSubmit: (email: string, permission: "admin" | "member") => void;
+  defaultPermission?: CompanyRole;
+  onSubmit: (email: string, permission: CompanyRole) => void;
   onCancel: () => void;
 }) {
   const [email, setEmail] = useState("");
-  const [permission, setPermission] = useState<"admin" | "member">(defaultPermission ?? "member");
+  const [permission, setPermission] = useState<CompanyRole>(defaultPermission ?? "recruiter");
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -710,47 +741,8 @@ function AddMemberDialog({
           />
         </div>
 
-        {/* permission */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 8 }}>
-            権限
-          </label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(["member", "admin"] as const).map((p) => {
-              const isSelected = permission === p;
-              const label = PERMISSION_LABEL[p];
-              const desc = PERMISSION_HINT[p];
-              return (
-                <label
-                  key={p}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                    padding: "10px 12px",
-                    border: `1px solid ${isSelected ? "var(--royal)" : "var(--line)"}`,
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    background: isSelected ? "var(--royal-50)" : "#fff",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="permission"
-                    value={p}
-                    checked={isSelected}
-                    onChange={() => setPermission(p)}
-                    style={{ marginTop: 2, accentColor: "var(--royal)" }}
-                  />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{label}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>{desc}</div>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        </div>
+        {/* ★役割（2026-10-12 に4つにした）。それぞれ1行の説明つき */}
+        <RolePicker name="permission" value={permission} onChange={setPermission} />
 
         {(localError || errorMessage) && (
           <div style={{
@@ -820,13 +812,35 @@ function daysUntilExpiry(expiresAt: string): number {
 function PendingInvitesSection({
   invites,
   onCancelled,
+  onResent,
   onToast,
 }: {
   invites: PendingInviteRecord[];
   onCancelled: (id: string) => void;
+  /** ★再送したら、新しいリンクと招待日時で行を差し替える（2026-10-12） */
+  onResent: (id: string, patch: { invitation_token: string; invited_at: string }) => void;
   onToast: (msg: string) => void;
 }) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  /* ★招待の再送（2026-10-12）。新しいリンクを作って期限を今から7日に延ばし、メールを送り直す。
+        ⚠️ 前のリンクは使えなくなる。メールが送れなくてもリンクは新しくなる（URL コピーで渡せる） */
+  async function handleResend(invite: PendingInviteRecord) {
+    setResendingId(invite.id);
+    try {
+      const res = await fetch(`/api/biz/members/${invite.id}/resend`, { method: "POST" });
+      const json = await res.json().catch(() => ({})) as { error?: string; email_sent?: boolean; invite_url?: string };
+      if (!res.ok || !json.invite_url) { onToast(json.error ?? "再送に失敗しました"); return; }
+      const token = new URL(json.invite_url).searchParams.get("token") ?? invite.invitation_token;
+      onResent(invite.id, { invitation_token: token, invited_at: new Date().toISOString() });
+      onToast(json.email_sent ? "招待メールを再送しました（期限は今日から7日）" : "リンクを作り直しました。メールは送れなかったので、URL をコピーして渡してください");
+    } catch {
+      onToast("通信エラーが発生しました");
+    } finally {
+      setResendingId(null);
+    }
+  }
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -1001,7 +1015,20 @@ function PendingInvitesSection({
                 </div>
 
                 {/* Right: actions */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    data-state="resend-invite"
+                    onClick={() => void handleResend(invite)}
+                    disabled={resendingId === invite.id}
+                    style={{
+                      padding: "6px 11px", background: "#fff", border: "1px solid var(--line)", borderRadius: 7,
+                      fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
+                      cursor: resendingId === invite.id ? "default" : "pointer", whiteSpace: "nowrap",
+                    }}
+                  >
+                    {resendingId === invite.id ? "再送中..." : "再送"}
+                  </button>
                   {!isExpired && (
                     <button
                       type="button"
@@ -1121,14 +1148,14 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
 
   // add member dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [addDialogPermission, setAddDialogPermission] = useState<"admin" | "member">("member");
+  const [addDialogPermission, setAddDialogPermission] = useState<CompanyRole>("recruiter");
   const [addError, setAddError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   // dialog state
   const [dialogMemberId, setDialogMemberId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<ActionType | null>(null);
-  const [actionValue, setActionValue] = useState<"admin" | "member" | null>(null);
+  const [actionValue, setActionValue] = useState<CompanyRole | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -1324,7 +1351,7 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
     }
   }
 
-  async function handleAddMember(email: string, permission: "admin" | "member") {
+  async function handleAddMember(email: string, permission: CompanyRole) {
     setIsAdding(true);
     setAddError(null);
     try {
@@ -1353,7 +1380,7 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
     }
   }
 
-  function openDialog(id: string, action: ActionType, value?: "admin" | "member") {
+  function openDialog(id: string, action: ActionType, value?: CompanyRole) {
     setDialogMemberId(id);
     setActionType(action);
     setActionValue(value ?? null);
@@ -1368,13 +1395,14 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
     setErrorMessage(null);
   }
 
-  async function handleConfirm() {
+  async function handleConfirm(picked?: CompanyRole) {
     if (!dialogMemberId || !actionType) return;
+    if (actionType === "permission" && !picked) return;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     const body: Record<string, string> = { action: actionType };
-    if (actionType === "permission" && actionValue) body.value = actionValue;
+    if (actionType === "permission" && picked) body.value = picked;
 
     try {
       const res = await fetch(`/api/biz/members/${dialogMemberId}`, {
@@ -1390,7 +1418,7 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
       }
 
       const successMsg =
-        actionType === "permission" ? "権限を変更しました" :
+        actionType === "permission" ? "役割を変更しました" :
         actionType === "deactivate" ? "無効化しました" :
         "再有効化しました";
 
@@ -1450,7 +1478,7 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
                 setActiveSection("field");
                 setEmailInviteOpen(activeSection === "employees" ? true : (v) => !v);
               } else {
-                setAddDialogPermission("member");
+                setAddDialogPermission("recruiter");
                 setAddError(null);
                 setShowAddDialog(true);
               }
@@ -1540,7 +1568,9 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
               `}</style>
               {activeMembers.map((member, idx) => {
                 const isSelf = member.user_id === currentUserId;
-                const perm = member.permission === "admin" ? "admin" : "member";
+                const perm = member.permission;
+                /* ★最後の管理者（招待中の行は数えない。API と同じ数え方） */
+                const isLastAdmin = perm === "admin" && activeMembers.filter((m) => m.permission === "admin" && m.is_active).length <= 1;
                 return (
                   <div key={member.id} className="mem-row" style={{
                     display: "flex", alignItems: "center", gap: 14, padding: "14px 20px",
@@ -1569,16 +1599,12 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
                       </div>
                     </div>
                     <div className="mem-row-meta" style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-                      <span title={PERMISSION_HINT[perm]} style={{
-                        fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 100, whiteSpace: "nowrap",
-                        background: perm === "admin" ? "var(--royal-50)" : "var(--line-soft)",
-                        color: perm === "admin" ? "var(--royal)" : "var(--ink-soft)",
-                        border: `1px solid ${perm === "admin" ? "var(--royal-100)" : "var(--line)"}`,
-                      }}>
+                      {/* ★役割は灰色の文字で出す（色のバッジにしない。2026-10-12） */}
+                      <span title={PERMISSION_HINT[perm]} data-state={`role-${perm}`} style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
                         {PERMISSION_LABEL[perm]}
                       </span>
                       <span style={{ fontSize: 12, color: "var(--ink-mute)", whiteSpace: "nowrap", minWidth: 110 }}>{formatDate(member.created_at)} 追加</span>
-                      {isAdmin && <DropdownMenu member={member} isSelf={isSelf} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />}
+                      {isAdmin && <DropdownMenu member={member} isSelf={isSelf} isLastAdmin={isLastAdmin} onAction={openDialog} onEditProfile={(t) => { setProfileError(null); setEditProfileTarget(t); }} />}
                     </div>
                   </div>
                 );
@@ -1593,6 +1619,7 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
               setPendingInvites((prev) => prev.filter((i) => i.id !== id));
               router.refresh();
             }}
+            onResent={(id, patch) => setPendingInvites((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)))}
             onToast={setToastMessage}
           />
           )}

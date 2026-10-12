@@ -14,6 +14,7 @@ import { DetailPanel as ApplicationDetailPanel } from "../applications/Applicati
 import { CandidateProfileDrawerButton } from "@/components/candidates/CandidateProfileDrawer";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { MESSAGES_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
+import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 
 /**
  * ★選考管理（/biz/meetings）の左右2画面（2026-10-11 / 柴さんの指示。メッセージ画面と同じ形）。
@@ -28,6 +29,23 @@ import { MESSAGES_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
  */
 
 type CurrentUser = { owUserId: string; name: string; initial: string; gradient: string };
+
+/** ★役割で変わる操作（2026-10-12。判定はサーバーの can()。ここは出し分けだけ） */
+export type SelectionPerms = {
+  /** 状態の変更・担当・メモ（採用担当以上） */
+  canEdit: boolean;
+  /** 面接担当の付け外し（採用担当以上） */
+  canAssign: boolean;
+  /** 「メッセージを開く」（採用担当以上） */
+  canMessage: boolean;
+  /** 面接官（担当の応募だけが一覧に来る） */
+  isInterviewerOnly: boolean;
+  /** 社内メモ（候補者メモ）が使えるか */
+  notesEnabled: boolean;
+};
+const ALL_PERMS: SelectionPerms = { canEdit: true, canAssign: true, canMessage: true, isInterviewerOnly: false, notesEnabled: false };
+type InterviewerRef = { userId: string; name: string };
+const APP_STATUS_TEXT: Record<string, string> = { pending: "新着", reviewing: "確認中", interview: "面接中", accepted: "内定", rejected: "不採用", hired: "採用" };
 /** 決まった面談（ow_meetings。今日以降・取り消し除く）。上に並べる */
 export type ScheduledMeetingRow = {
   id: string; conversationId: string; candidateName: string; whenText: string;
@@ -64,7 +82,14 @@ function fmtDate(iso: string): string {
 export function SelectionView({
   meetings: initialMeetings, applications: initialApplications, currentUser, acceptance = null, hasPublishedJobs = false,
   initialTab = "all", initialShow = null, autoSelect = true, linkBase = "/biz/meetings", now: nowIso, fixtures, scheduled = null, jobFilter = null,
+  perms = ALL_PERMS, interviewers: initialInterviewers = null, assignableStaff = null,
 }: {
+  /** ★役割で変わる操作（既定はすべて可。/dev/preview 用） */
+  perms?: SelectionPerms;
+  /** ★応募ごとの面接担当。取れなければ null */
+  interviewers?: Record<string, InterviewerRef[]> | null;
+  /** ★担当にできる人（採用担当以上のときだけ渡る） */
+  assignableStaff?: InterviewerRef[] | null;
   /** ★求人で絞る（2026-10-12。求人管理の応募・面談の数から来る ?job=）。null = 絞らない */
   jobFilter?: string | null;
   /** ★決まった面談（今日以降）。取れなければ null */
@@ -88,6 +113,7 @@ export function SelectionView({
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const [meetings, setMeetings] = useState(initialMeetings);
   const [applications, setApplications] = useState(initialApplications);
+  const [interviewers, setInterviewers] = useState<Record<string, InterviewerRef[]> | null>(initialInterviewers);
   const [tab, setTab] = useState<SelectionTab>(initialTab);
   const [closedView, setClosedView] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(initialShow);
@@ -131,7 +157,8 @@ export function SelectionView({
 
   const markMeetingRead = useCallback((id: string) => {
     setMeetings((prev) => prev.map((m) => (m.id === id ? { ...m, isUnread: false } : m)));
-    fetch(`/api/biz/meetings/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark_read" }) }).catch(console.error);
+    /* ⚠️ 既読にするのは操作できる役割だけ（閲覧のみが開いても状態を変えない） */
+    if (perms.canEdit) fetch(`/api/biz/meetings/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark_read" }) }).catch(console.error);
   }, []);
 
   const select = useCallback((key: string) => {
@@ -352,10 +379,11 @@ export function SelectionView({
           {selected ? (
             <SelectedPane key={selected.key} it={selected} now={now} fixtures={fixtures}
               onBack={() => { setSelectedKey(null); if (autoSelect) router.replace(urlOf(null), { scroll: false }); }}
-              messageHref={messageHref(selected.conversationId)}>
+              messageHref={perms.canMessage ? messageHref(selected.conversationId) : null} showMessage={perms.canMessage}>
               {selected.kind === "meeting" ? (
                 <MeetingDetailPanel
                   embedded
+                  readOnly={!perms.canEdit}
                   meeting={selected.m}
                   memoDraft={memoDrafts[selected.m.id] ?? selected.m.companyMemo}
                   memoSaveState={memoSaveStates[selected.m.id] ?? "idle"}
@@ -368,8 +396,26 @@ export function SelectionView({
                   onProfileDetail={() => { if (selected.userId) window.open(`/u/${selected.userId}`, "_blank", "noopener,noreferrer"); }}
                 />
               ) : (
-                <div style={{ padding: "20px 24px" }}>
-                  <ApplicationDetailPanel embedded app={selected.a} isUpdating={updatingId === selected.a.id} onStatusChange={appStatus} onHireConfirm={hireConfirm} />
+                <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+                  {perms.canEdit ? (
+                    <ApplicationDetailPanel embedded app={selected.a} isUpdating={updatingId === selected.a.id} onStatusChange={appStatus} onHireConfirm={hireConfirm} />
+                  ) : (
+                    <p data-state="app-status-readonly" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>
+                      選考の状態：{APP_STATUS_TEXT[selected.a.status] ?? selected.a.status}
+                    </p>
+                  )}
+                  <InterviewersSection
+                    applicationId={selected.a.id}
+                    current={interviewers ? interviewers[selected.a.id] ?? [] : null}
+                    staff={perms.canAssign ? assignableStaff : null}
+                    onChange={(list) => setInterviewers((prev) => ({ ...(prev ?? {}), [selected.a.id]: list }))}
+                  />
+                  {perms.notesEnabled && selected.userId && (
+                    <section data-state="selection-notes">
+                      {/* ⚠️ 見出しは部品の「社内メモ」（ここで重ねない）。面接官の評価もここに書く */}
+                      <CandidateNotesPreview candidateUserId={selected.userId} candidateName={selected.name} />
+                    </section>
+                  )}
                 </div>
               )}
             </SelectedPane>
@@ -385,9 +431,9 @@ export function SelectionView({
 }
 
 /** 右側。上の段（固定）＋中身（今の詳細パネル）＋この会社とのこれまで */
-function SelectedPane({ it, now, fixtures, onBack, messageHref, children }: {
+function SelectedPane({ it, now, fixtures, onBack, messageHref, showMessage = true, children }: {
   it: Item; now: Date; fixtures?: Record<string, { meta: string | null; history: HistoryItem[] }>;
-  onBack: () => void; messageHref: string | null; children: React.ReactNode;
+  onBack: () => void; messageHref: string | null; showMessage?: boolean; children: React.ReactNode;
 }) {
   const fx = it.userId ? fixtures?.[it.userId] : undefined;
   const [data, setData] = useState<{ meta: string | null; history: HistoryItem[] } | null>(fx ?? null);
@@ -422,7 +468,7 @@ function SelectedPane({ it, now, fixtures, onBack, messageHref, children }: {
               {kindLine}{it.at ? `・${fmtDate(it.at)}に受付` : ""}
             </div>
           </div>
-          {messageHref ? (
+          {!showMessage ? null : messageHref ? (
             <Link href={messageHref} data-state="open-message" className="btn-fixed-size" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", padding: "8px 14px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>メッセージを開く</Link>
           ) : (
             <span data-state="no-message" style={{ flexShrink: 0, fontSize: 12.5, color: "var(--ink-mute)", paddingTop: 6 }}>メッセージのやり取りはまだありません</span>
@@ -449,5 +495,71 @@ function SelectedPane({ it, now, fixtures, onBack, messageHref, children }: {
         </section>
       </div>
     </>
+  );
+}
+
+/**
+ * ★面接担当（2026-10-12）。応募ごとに何人でも。`staff` が渡るとき（採用担当以上）だけ付け外しできる。
+ * ⚠️ 判定はサーバー（/api/biz/applications/[id]/interviewers が selection.assignInterviewers を確かめる）。
+ * ⚠️ 担当の一覧が取れなかったときは「読み込めませんでした」（「担当なし」と言わない）。
+ */
+function InterviewersSection({ applicationId, current, staff, onChange }: {
+  applicationId: string;
+  current: InterviewerRef[] | null;
+  staff: InterviewerRef[] | null;
+  onChange: (list: InterviewerRef[]) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pick, setPick] = useState("");
+  const call = async (userId: string, method: "POST" | "DELETE") => {
+    setBusy(true); setError(null);
+    try {
+      const r = await fetch(`/api/biz/applications/${applicationId}/interviewers`, {
+        method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }),
+      });
+      const j = await r.json().catch(() => ({})) as { interviewers?: InterviewerRef[]; error?: string };
+      if (!r.ok || !j.interviewers) { setError(j.error ?? "変更できませんでした"); return; }
+      onChange(j.interviewers); setPick("");
+    } catch { setError("通信エラーが発生しました"); }
+    finally { setBusy(false); }
+  };
+  const assigned = new Set((current ?? []).map((x) => x.userId));
+  const options = (staff ?? []).filter((x) => !assigned.has(x.userId));
+  return (
+    <section data-state="interviewers">
+      <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>面接担当</h3>
+      {current === null ? (
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>読み込めませんでした</p>
+      ) : current.length === 0 ? (
+        <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>まだ担当はいません</p>
+      ) : (
+        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {current.map((x) => (
+            <li key={x.userId} data-state="interviewer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--ink)", padding: "4px 10px", border: "1px solid var(--line)", borderRadius: 100 }}>
+              {x.name}
+              {staff && (
+                <button type="button" aria-label={`${x.name}さんを担当から外す`} disabled={busy} onClick={() => void call(x.userId, "DELETE")}
+                  className="btn-fixed-size" style={{ border: "none", background: "none", color: "var(--ink-mute)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0, width: 18, height: 18 }}>×</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {staff && options.length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <select aria-label="面接担当に加える人" value={pick} onChange={(e) => setPick(e.target.value)} disabled={busy}
+            style={{ minWidth: 0, maxWidth: "100%", padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", background: "#fff" }}>
+            <option value="">担当に加える人を選ぶ</option>
+            {options.map((x) => <option key={x.userId} value={x.userId}>{x.name}</option>)}
+          </select>
+          <button type="button" disabled={!pick || busy} onClick={() => void call(pick, "POST")}
+            style={{ padding: "7px 14px", border: "1px solid var(--line)", borderRadius: 8, background: "#fff", fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", cursor: pick && !busy ? "pointer" : "default", fontFamily: "inherit" }}>
+            加える
+          </button>
+        </div>
+      )}
+      {error && <p role="alert" style={{ margin: "8px 0 0", fontSize: 12, color: "var(--error-ink)" }}>{error}</p>}
+    </section>
   );
 }

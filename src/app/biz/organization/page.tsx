@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -30,7 +31,7 @@ export default async function OrganizationPage({
   guardBizPage(ctx.currentPermission, "organization.manage");
   /* ★書き込みは管理者だけ（RLS の auth_company_can(…, 'admin') と API が同じ条件）。
         メンバーには一覧だけ見せる（2026-09-22） */
-  const isAdmin = ctx.currentPermission === "admin";
+  const isAdmin = can(ctx.currentPermission, "organization.manage");
 
   const activeTab = searchParams?.tab === "roles" ? "roles" : "departments";
 

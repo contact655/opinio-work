@@ -1,3 +1,4 @@
+import { toCompanyRole, type CompanyRole } from "@/lib/auth/roles";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type MemberRecord = {
@@ -9,7 +10,7 @@ export type MemberRecord = {
   gradient: string;
   role_title: string | null;
   department: string | null;
-  permission: "admin" | "member";
+  permission: CompanyRole;
   is_active: boolean;
   is_ambassador: boolean;
   created_at: string;
@@ -20,7 +21,7 @@ export type PendingInviteRecord = {
   invited_email: string;
   invited_at: string;
   expires_at: string;
-  permission: "admin" | "member";
+  permission: CompanyRole;
   invitation_token: string;
 };
 
@@ -67,7 +68,8 @@ export async function fetchPendingInvitesForCompany(
       expires_at: new Date(
         new Date(row.invited_at).getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000
       ).toISOString(),
-      permission: row.permission === "admin" ? "admin" : "member",
+      /* ⚠️ DB の CHECK で4つ以外は入らない。読めなければ閲覧のみとして表示する（権限の判定には使わない） */
+      permission: toCompanyRole(row.permission) ?? "viewer",
       invitation_token: row.invitation_token ?? "",
     }));
   } catch (err) {
@@ -108,7 +110,7 @@ export async function fetchMembersForCompany(
         gradient,
         role_title: r.role_title,
         department: r.department,
-        permission: r.permission === "admin" ? "admin" : "member",
+        permission: toCompanyRole(r.permission) ?? "viewer",
         is_active: r.is_active,
         is_ambassador: r.is_ambassador ?? false,
         created_at: r.created_at,

@@ -12,7 +12,8 @@ import { FilterChip } from "@/components/common/FilterChip";
 
 type Props = {
   jobs: BizJob[];
-  isAdmin?: boolean;
+  /** ★求人の作成・編集・公開・停止ができるか（2026-10-12 / jobs.edit。閲覧のみは false） */
+  canEdit?: boolean;
   /** `?status=` 由来の初期タブ。⚠️ 検証済みの値だけが来る（page.tsx を参照） */
   initialStatus?: JobStateTab | "all";
   /** `?dept=` 由来の部門（部門 id）。⚠️ 選択肢に無ければ無視する */
@@ -67,7 +68,7 @@ function subLine(j: BizJob): string {
 /** 「部門なし」の値（?dept=none）。⚠️ 部門の id（uuid）と重ならない文字列 */
 const NO_DEPT = "none";
 
-export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = "all", initialDept = "", viewsFailed = false, departments = null, internalNotes = {} }: Props) {
+export function JobsClient({ jobs: initialJobs, canEdit = true, initialStatus = "all", initialDept = "", viewsFailed = false, departments = null, internalNotes = {} }: Props) {
   const router = useRouter();
   const [jobs, setJobs] = useState<BizJob[]>(initialJobs);
   const [activeStatus, setActiveStatus] = useState<JobStateTab | "all">(initialStatus);
@@ -249,7 +250,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>求人管理</h1>
-        {isAdmin && (
+        {canEdit && (
           <Link href="/biz/jobs/new" className="btn-fixed-size" style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             height: 36, padding: "0 16px", background: "var(--royal)", color: "#fff",
@@ -333,7 +334,7 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
                 <div key={j.id}>
                   <div className="jl-row" data-item="job" data-status={v}>
                     <div style={{ minWidth: 0 }}>
-                      <Link href={`/biz/jobs/${j.id}/edit`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflowWrap: "anywhere" }}>{j.title}</Link>
+                      <Link href={canEdit ? `/biz/jobs/${j.id}/edit` : `/biz/jobs/${j.id}/preview`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflowWrap: "anywhere" }}>{j.title}</Link>
                       {/* ★社内メモの印（2026-10-12）。乗せると冒頭2行（title 属性）。⚠️ 求職者には出さない */}
                       {internalNotes[j.id] && (
                         <span title={`社内メモ：\n${internalNotes[j.id]}`} aria-label="社内メモあり" data-state="job-note-mark"
@@ -363,13 +364,13 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
                         style={{ width: 32, height: 32, border: "1px solid var(--line)", borderRadius: 8, background: "#fff", color: "var(--ink-soft)", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>⋯</button>
                       {menuId === j.id && (
                         <div className="jl-menu" role="menu" onClick={(e) => e.stopPropagation()}>
-                          <Link role="menuitem" href={`/biz/jobs/${j.id}/edit${v === "draft" ? "?section=review" : ""}`}>{v === "draft" ? "編集・公開" : "編集"}</Link>
+                          {canEdit && <Link role="menuitem" href={`/biz/jobs/${j.id}/edit${v === "draft" ? "?section=review" : ""}`}>{v === "draft" ? "編集・公開" : "編集"}</Link>}
                           <Link role="menuitem" href={`/biz/jobs/${j.id}/preview`}>プレビュー</Link>
-                          {isAdmin && <button type="button" role="menuitem" onClick={() => handleDuplicate(j.id)}>複製</button>}
-                          {isAdmin && v === "published" && <button type="button" role="menuitem" onClick={() => stopJob(j.id)}>停止する</button>}
-                          {isAdmin && v === "stopped_self" && <button type="button" role="menuitem" onClick={() => resumeJob(j.id)}>再開する</button>}
-                          {isAdmin && v === "stopped_ops" && <button type="button" role="menuitem" onClick={() => resumeJob(j.id)}>再開を依頼する</button>}
-                          {isAdmin && v !== "published" && <button type="button" role="menuitem" style={{ color: "var(--error)" }} onClick={() => { setMenuId(null); setPendingDeleteId(j.id); }}>削除</button>}
+                          {canEdit && <button type="button" role="menuitem" onClick={() => handleDuplicate(j.id)}>複製</button>}
+                          {canEdit && v === "published" && <button type="button" role="menuitem" onClick={() => stopJob(j.id)}>停止する</button>}
+                          {canEdit && v === "stopped_self" && <button type="button" role="menuitem" onClick={() => resumeJob(j.id)}>再開する</button>}
+                          {canEdit && v === "stopped_ops" && <button type="button" role="menuitem" onClick={() => resumeJob(j.id)}>再開を依頼する</button>}
+                          {canEdit && v !== "published" && <button type="button" role="menuitem" style={{ color: "var(--error)" }} onClick={() => { setMenuId(null); setPendingDeleteId(j.id); }}>削除</button>}
                         </div>
                       )}
                     </div>

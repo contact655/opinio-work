@@ -101,6 +101,7 @@ export default function CandidatesClient({
   initialSaved = null,
   companyShortName = null,
   companyLimitLine = null,
+  canAct = true,
   ageFilterEnabled = false,
   activityEnabled = false,
   initialFilters = null,
@@ -115,6 +116,8 @@ export default function CandidatesClient({
   companyShortName?: string | null;
   /** ★企業側の上限（今月の送信数・返信待ち）に当たっているときの1行。当たっていなければ null */
   companyLimitLine?: string | null;
+  /** ★候補者への操作（★・メッセージ・条件の保存）ができるか（2026-10-12 / candidates.search。閲覧のみは false） */
+  canAct?: boolean;
   /** ★保存した条件で開いたとき（段3）。newSince があれば「新着だけ」を出す */
   initialSaved?: { id: string; name: string; filters: SavedCandidateFilters; newSince: string | null } | null;
   candidates: Candidate[];
@@ -910,7 +913,7 @@ export default function CandidatesClient({
 
         {/* ★「この条件を保存」（2026-10-10 / 段2）。**条件を選んでいるときだけ**出す。
                ⚠️ 保存の入口はここ1つ（「保存した条件」の中から保存フォームを外した。入口を2つにしない）。 */}
-        {hasConditions && (
+        {hasConditions && canAct && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             <button type="button" onClick={() => { setSaveOpen((v) => !v); setSavedOpen(false); }} aria-expanded={saveOpen}
               data-state="save-current"
@@ -1216,7 +1219,7 @@ export default function CandidatesClient({
                             {/* ★意向の文字の前に同じ色の小さな点（StanceMeter と同じ色）。文字はグレーのまま */}
                             {stanceText && <span className="cand-card-stance" data-state="card-stance"><StanceDot stance={c.careerStance} size={7} /><span className="cand-card-stance-text">{stanceText}</span></span>}
                             <span className="cand-card-star">
-                              <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />
+                              {canAct && <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />}
                             </span>
                           </div>
                         );
@@ -1240,7 +1243,7 @@ export default function CandidatesClient({
                       })()}
                       {/* ★メッセージのボタン。⚠️ 1280px 以上はプレビューに任せて隠す（同じ入口を2つ並べない）。
                              送れない人には何も出さない。「プロフィールを見る」はカード自体がリンクなので外した */}
-                      {c.approach && (c.approach.eligible || c.approach.sent) && (
+                      {canAct && c.approach && (c.approach.eligible || c.approach.sent) && (
                         <div className="cand-card-actions">
                           <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact hideUnavailable />
                         </div>
@@ -1256,8 +1259,8 @@ export default function CandidatesClient({
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownId ? (
-            <CandidatePreview key={shownId} userId={shownId} companyLimitLine={companyLimitLine} onClose={() => { setAutoPick(false); updateSelected(null); }}
-              nameAction={<StarButton starred={!!withStars.find((x) => x.id === shownId)?.starred} onToggle={() => { const cur = !!withStars.find((x) => x.id === shownId)?.starred; void toggleStar(shownId, !cur); }} size={28} />} />
+            <CandidatePreview key={shownId} userId={shownId} companyLimitLine={companyLimitLine} canAct={canAct} onClose={() => { setAutoPick(false); updateSelected(null); }}
+              nameAction={!canAct ? undefined : <StarButton starred={!!withStars.find((x) => x.id === shownId)?.starred} onToggle={() => { const cur = !!withStars.find((x) => x.id === shownId)?.starred; void toggleStar(shownId, !cur); }} size={28} />} />
           ) : isWide === null ? null : (
             <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
               候補者を選ぶと、ここにプロフィールと貴社と合うところが表示されます。

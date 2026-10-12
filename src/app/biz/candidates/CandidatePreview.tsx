@@ -152,7 +152,9 @@ export function TransferPrefsBox({ candidate }: { candidate: Candidate }) {
   );
 }
 
-export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLimitLine = null, nameAction }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void;
+export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLimitLine = null, nameAction, canAct = true }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void;
+  /** ★メッセージを送れるか（2026-10-12。閲覧のみは false。送る欄ごと出さない） */
+  canAct?: boolean;
   /** ★名前の右に置くもの（★ボタン。状態は一覧側が持つ） */
   nameAction?: React.ReactNode;
   /** ★企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
@@ -207,7 +209,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
   /* ★年齢（2026-10-12 から出す）。⚠️ サーバーで計算した数（Candidate.age）。生年月日が無い人は出さない */
-  const jumpLabel = messageJumpLabel(c, companyLimitLine);
+  const jumpLabel = canAct ? messageJumpLabel(c, companyLimitLine) : null;
   const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
   /* ★右欄は「上：誰か／中：プロフィール／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
         上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・最近の利用）・4行目（この会社との接点）
@@ -237,7 +239,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
           {jumpLabel}
         </button>
       ) : undefined}
-      after={c.approach ? (
+      after={canAct && c.approach ? (
         /* ★「メッセージ」は1本のスクロールの最後の項目（2026-10-12 / 柴さんの指示）。プロフィールの節と同じ見出し・区切り線 */
         <section data-panel-section="messages" style={{ padding: "14px 0 0", borderTop: "1px solid var(--line)" }}>
           <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>メッセージ</h3>

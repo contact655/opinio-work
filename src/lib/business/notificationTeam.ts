@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { can, toCompanyRole } from "@/lib/auth/roles";
 
 /**
  * 通知先の1人ぶん。⚠️ 出どころは `ow_company_admins`（その会社の有効な担当者）＋ `ow_users`。
@@ -50,6 +51,9 @@ export async function fetchNotificationSettings(companyId: string): Promise<{
     .map((r): NotificationTeamMember | null => {
       const u = r.user_id ? userMap.get(r.user_id) : undefined;
       if (!u?.email) return null;   // 通知先として選べないものを出さない
+      /* ★通知（応募・面談・メッセージ）を受け取るのは 管理者・採用担当だけ（2026-10-12）。
+            閲覧のみには送らない。面接官は担当の応募の通知だけ（lib/business/interviewers.ts）なので会社全体の通知先に入れない */
+      if (!can(toCompanyRole(r.permission), "messages.use")) return null;
       return {
         name: (u.name ?? "").trim() || u.email,
         email: u.email,

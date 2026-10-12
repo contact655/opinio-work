@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { JobsClient } from "./JobsClient";
 import { listJobInternalNotes } from "@/lib/jobs/internalNotes";
@@ -75,7 +76,7 @@ export default async function BizJobsPage({
       memberships={ctx.allCompanies}
       currentTenantId={ctx.tenantId}
     >
-      <JobsClient jobs={jobs} isAdmin={ctx.currentPermission === "admin"} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} departments={departments} internalNotes={internalNotes} />
+      <JobsClient jobs={jobs} canEdit={can(ctx.currentPermission, "jobs.edit")} initialStatus={initialStatus} initialDept={initialDept} viewsFailed={!!viewErr} departments={departments} internalNotes={internalNotes} />
     </BusinessLayout>
   );
 }

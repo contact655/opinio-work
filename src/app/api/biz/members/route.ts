@@ -1,3 +1,5 @@
+import { can, isCompanyRole, toCompanyRole } from "@/lib/auth/roles";
+import { roleIn } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
@@ -24,9 +26,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "メールアドレスの形式が正しくありません" }, { status: 400 });
   }
   const permission = body.permission;
-  if (permission !== "admin" && permission !== "member") {
+  /* ★役割は4つ（2026-10-12。lib/auth/roles.ts）。旧値 member は採用担当として受ける */
+  if (permission !== "member" && !isCompanyRole(permission)) {
     return NextResponse.json({ error: "権限が不正です" }, { status: 400 });
   }
+  const role = toCompanyRole(permission)!;
 
   const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
@@ -36,8 +40,7 @@ export async function POST(req: Request) {
   const { companyId, allMemberships } = ctx;
 
   // actorAdmin 確認: allMemberships から直接取得 (追加 DB クエリなし)
-  const actorMembership = allMemberships.find((m) => m.companyId === companyId);
-  if (actorMembership?.permission !== "admin") {
+  if (!can(roleIn(allMemberships, companyId), "members.manage")) {
     return NextResponse.json({ error: "メンバー追加は管理者のみ可能です" }, { status: 403 });
   }
 
@@ -58,7 +61,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await addExistingUserToCompany({ supabase, targetUser, companyId, permission });
+  const result = await addExistingUserToCompany({ supabase, targetUser, companyId, permission: role });
 
   if (!result.ok) {
     return NextResponse.json({ error: result.message }, { status: result.status });

@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -229,13 +230,13 @@ export default async function MembersPage() {
       currentTenantId={ctx.tenantId}
     >
       <MembersClient
-        slackSettings={ctx.currentPermission === "admin" ? await getSlackSettingsView(ctx.tenantId) : null}
+        slackSettings={can(ctx.currentPermission, "integrations.manage") ? await getSlackSettingsView(ctx.tenantId) : null}
         notificationMembers={notification.members}
         notificationEmails={notification.emails}
         initialMembers={members}
         initialPendingInvites={pendingInvites}
         currentUserId={ctx.currentOwnId}
-        isAdmin={ctx.currentPermission === "admin"}
+        isAdmin={can(ctx.currentPermission, "members.manage")}
         ambassadors={ambassadors}
         ambassadorCandidates={candidates}
         meetingStats={meetingStats}
