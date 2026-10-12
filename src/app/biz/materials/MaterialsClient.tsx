@@ -21,6 +21,7 @@ import {
   type MaterialVisibility,
 } from "@/lib/constants/companyMaterials";
 import { parseMaterialUrlLines } from "@/lib/companyMaterials/links";
+import { DRIVE_PICKER_ENABLED, openDrivePicker } from "@/lib/companyMaterials/drivePicker";
 import { MaterialKindIcon, materialKindOf } from "./MaterialKindIcon";
 
 type Props = {
@@ -260,6 +261,33 @@ function RegisterDocument({ busy, existingUrls, onDone }: { busy: boolean; exist
     if (any) onDone();
   }
 
+  /* ★Google ドライブから選ぶ（2026-10-12）。中身はコピーせず、名前・種類・リンクだけ保存する */
+  const [driveRunning, setDriveRunning] = useState(false);
+  const [driveResult, setDriveResult] = useState<string | null>(null);
+  async function pickFromDrive() {
+    setDriveRunning(true); setDriveResult(null);
+    try {
+      const files = await openDrivePicker();
+      if (files.length === 0) { setDriveRunning(false); return; }
+      let ok = 0; const errors: string[] = [];
+      for (const f of files) {
+        if (existingUrls.includes(f.url)) { errors.push(`「${f.name}」は登録済み`); continue; }
+        const res = await fetch("/api/biz/materials/documents", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: f.url, title: f.name, driveMimeType: f.mimeType }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok) ok++; else errors.push(`「${f.name}」：${j.error ?? "登録できませんでした"}`);
+      }
+      setDriveResult(`${ok}件を登録しました。${errors.length ? `（${errors.join("／")}）` : ""}`);
+      if (ok > 0) onDone();
+    } catch (e) {
+      setDriveResult(e instanceof Error ? e.message : "Google ドライブを開けませんでした");
+    } finally {
+      setDriveRunning(false);
+    }
+  }
+
   async function submitUrls() {
     if (parsed.valid.length === 0) return;
     setUrlRunning(true); setUrlResult(null);
@@ -350,6 +378,15 @@ function RegisterDocument({ busy, existingUrls, onDone }: { busy: boolean; exist
           )}
         </div>
       </div>
+      {DRIVE_PICKER_ENABLED && (
+        <div data-state="drive-picker" style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" style={btn} disabled={busy || driveRunning} onClick={() => void pickFromDrive()}>
+            {driveRunning ? "Google ドライブを開いています…" : "Google ドライブから選ぶ"}
+          </button>
+          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>ほかの担当者が開けるかどうかは、Google ドライブ側の共有設定によります。</span>
+          {driveResult && <span role="status" style={{ fontSize: 12.5, color: "var(--ink-soft)", width: "100%" }}>{driveResult}</span>}
+        </div>
+      )}
       {/* ⚠️ 中身を読まないことを書いておく（「読み取ってくれる」と思わせない） */}
       <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
         登録した資料は、この会社の担当者だけが開けます。資料の中身・リンク先は読み取りません（資料名はファイル名か URL。一覧で変更できます）。

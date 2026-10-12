@@ -46,14 +46,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: r.value.id }, { status: 201 });
   }
 
-  let body: { url?: unknown; title?: unknown };
+  let body: { url?: unknown; title?: unknown; driveMimeType?: unknown };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "形式が正しくありません。" }, { status: 400 }); }
   const url = typeof body.url === "string" ? body.url.trim() : "";
   if (!isAllowedMaterialUrl(url)) {
     return NextResponse.json({ error: "URL は http:// または https:// で始まるものだけ登録できます。" }, { status: 400 });
   }
   const title = (typeof body.title === "string" && body.title.trim() ? body.title.trim() : url).slice(0, MATERIAL_TITLE_MAX);
-  const r = await createUrlDocument(companyId, owUserId, title, url);
+  /* ★Google ドライブから選んだとき（2026-10-12）。種類の表示にだけ使う。⚠️ Google の URL のときだけ受ける */
+  const host = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
+  const driveMimeType = typeof body.driveMimeType === "string" && /^[a-z]+\/[A-Za-z0-9.+-]{1,100}$/.test(body.driveMimeType)
+    && (host === "docs.google.com" || host === "drive.google.com") ? body.driveMimeType : null;
+  const r = await createUrlDocument(companyId, owUserId, title, url, driveMimeType);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ id: r.value.id }, { status: 201 });
 }

@@ -24,7 +24,8 @@ const nextConfig = {
     // script-src-elem で外部スクリプトを制限し、外部ドメインのスクリプト読み込みを防ぐ。
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.sentry-cdn.com https://browser.sentry-cdn.com",
+      /* ★apis.google.com / accounts.google.com は企業資料の「Google ドライブから選ぶ」（Google Picker）用（2026-10-12） */
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.sentry-cdn.com https://browser.sentry-cdn.com https://apis.google.com https://accounts.google.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
@@ -34,7 +35,10 @@ const nextConfig = {
             一致しないため、**本番のクライアントエラーが1件も届いていなかった**。
             JS は配信・実行されるので、画面もビルドも正常に見える。
             US / EU など地域サフィックスも変わるのでワイルドカードで受ける。 */
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.googleapis.com https://accounts.google.com",
+      /* ★Google Picker は docs.google.com の iframe、ログインの確認は accounts.google.com（2026-10-12）。
+            frame-src を書かないと default-src 'self' に落ちて Picker が開かない */
+      "frame-src 'self' https://docs.google.com https://drive.google.com https://accounts.google.com https://content.googleapis.com",
       /* Sentry の Session Replay が blob: の Worker を作る。
          これが無いと script-src にフォールバックして弾かれる */
       "worker-src 'self' blob:",
