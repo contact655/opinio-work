@@ -58,6 +58,8 @@ export type Candidate = {
   name: string;
   /** ★本人が書いた1行（2026-09-23）。⚠️ `currentRole`（職種マスタ）と別物。混ぜない */
   headline: string | null;
+  /** ★プロフィール写真（2026-10-12。表示だけ。並べ替え・絞り込みに使わない）。公開バケットの URL。無ければ null */
+  avatarUrl?: string | null;
   location: string | null;
   /** ★「積極的に検討中」（`ow_profiles.career_stance = 'active'`） */
   isActivelyLooking: boolean;

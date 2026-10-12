@@ -21,7 +21,7 @@ import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES, CAREER_STANCE_LABELS } from 
       「同じ名前の別実装が2つあった」のを1つに畳んだもので、**3つ目を作らない**。 */
 import { FilterChip } from "@/components/common/FilterChip";
 import { SortSelect } from "@/components/common/SortSelect";
-import { neutralAvatarStyle } from "@/lib/avatarColor";
+import { PersonAvatar } from "@/components/common/PersonAvatar";
 /* ★保存した条件（2026-09-21）。⚠️ 型・既定値・上限は
       [lib/business/savedSearch.ts](../../../lib/business/savedSearch.ts) の1箇所。
       **画面にローカル定数を書かないこと**（上限が画面と API で食い違った前例がある）。 */
@@ -1190,7 +1190,7 @@ export default function CandidatesClient({
                     <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
                     {/* アバター（32px）。⚠️ 人によって色を変えない */}
                     <div className="cand-card-avatar" aria-hidden="true">
-                      <div style={neutralAvatarStyle(32, 13)}>{c.name.charAt(0) || "?"}</div>
+                      <PersonAvatar name={c.name} url={c.avatarUrl} size={32} fontSize={13} />
                     </div>
                     <div className="cand-card-main">
                       {(() => {

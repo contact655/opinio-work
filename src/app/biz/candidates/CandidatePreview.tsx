@@ -218,6 +218,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
     <CandidateProfilePanel
       userId={c.id}
       name={c.name}
+      avatarUrl={c.avatarUrl ?? null}
       meta={meta || null}
       onClose={onClose}
       nameAction={nameAction}

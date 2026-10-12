@@ -86,11 +86,11 @@ export async function loadCompanyCandidates(params: {
   const activityOn = isCandidateActivityEnabled();
   /* ★性別（2026-10-12）。⚠️ 無効（本番）なら gender を読まない。有効でも表示用の文字だけを Candidate に入れる（絞り込みには使わない） */
   const genderDisplay = isCandidateGenderDisplayEnabled();
-  const userCols = ["id, name, headline, location, created_at, auth_id, is_test, profile_edited_at", ageDisplay ? "birth_date" : null, activityOn ? "last_active_at" : null, genderDisplay ? "gender" : null].filter(Boolean).join(", ");
+  const userCols = ["id, name, headline, avatar_url, location, created_at, auth_id, is_test, profile_edited_at", ageDisplay ? "birth_date" : null, activityOn ? "last_active_at" : null, genderDisplay ? "gender" : null].filter(Boolean).join(", ");
   let usersQ = adminClient
     .from("ow_users")
     /* ⚠️ 型は列が多いほうに合わせる（無効のときは birth_date が返らず、下で読まない） */
-    .select(userCols as "id, name, headline, location, created_at, auth_id, is_test, profile_edited_at, birth_date, last_active_at, gender")
+    .select(userCols as "id, name, headline, avatar_url, location, created_at, auth_id, is_test, profile_edited_at, birth_date, last_active_at, gender")
     .in("auth_id", stanceAuthIds.length ? stanceAuthIds : ["00000000-0000-0000-0000-000000000000"])
     .neq("visibility", "private")
     .not("is_system", "eq", true)
@@ -211,6 +211,7 @@ export async function loadCompanyCandidates(params: {
       id: u.id as string,
       name: (u.name as string) || "名前未設定",
       headline: ((u.headline as string | null) ?? "").trim() || null,
+      avatarUrl: (u.avatar_url as string | null) ?? null,
       location: (u.location as string) || null,
       /* 「転職検討中」バッジは `active` だけ */
       isActivelyLooking: profile?.career_stance === "active",

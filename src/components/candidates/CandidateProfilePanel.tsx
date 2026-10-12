@@ -1,5 +1,6 @@
 "use client";
 
+import { PersonAvatar } from "@/components/common/PersonAvatar";
 import { useEffect, useState, type ReactNode } from "react";
 import { renderCandidateProfile } from "@/lib/profile/profileViewAction";
 import { PanelExtraSectionsProvider, type PanelSection } from "@/components/profile/view/PanelProfileScroll";
@@ -17,11 +18,13 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  * ★`sectioned` … 中身を節の目次（上に固定の帯）つきの1本のスクロールで出す。候補者を探すだけ（2026-10-12）。`extraSections` は右欄の側から足す節（社内メモ）
  * ★`after` … プロフィールの後に出す項目（候補者を探すの「メッセージ」）。下に固定する段は 2026-10-12 にやめた（1本のスクロールにした）
  */
-export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef }: {
+export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef }: {
   userId: string;
   /** 名前の右（新しいタブのアイコンの隣）に置くもの。候補者を探すの★（2026-10-12） */
   nameAction?: ReactNode;
   name: string;
+  /** ★名前の段の写真（48px。2026-10-12）。undefined なら出さない／null なら頭文字の丸 */
+  avatarUrl?: string | null;
   /** 名前の下の灰色の1行（社会人〇年・職種など）。無ければ出さない */
   meta?: ReactNode;
   /** 固定の段に出すもの（メッセージを送る・送れない理由など） */
@@ -55,6 +58,7 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
       {/* 固定の段 */}
       <div style={{ flexShrink: 0, padding: "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} /></div>}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>{name}</h2>
