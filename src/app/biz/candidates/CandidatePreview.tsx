@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StanceMeter } from "@/components/candidates/StanceMeter";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { CandidateProfilePanel } from "@/components/candidates/CandidateProfilePanel";
@@ -32,7 +32,18 @@ export type PreviewData = {
   notesEnabled?: boolean;
   /** ★この会社との接点（選考管理と同じ）。最新1件＋ほかの件数。無ければ null */
   contacts?: { latest: { at: string; title: string }; more: number } | null;
+  /** ★未読の返信がある（開いたときにメッセージの位置までスクロールする。2026-10-12） */
+  messagesUnread?: boolean;
 };
+
+/** ★名前の段の「メッセージ…↓」の文言（2026-10-12）。送れない人・判定が取れない人には出さない */
+function messageJumpLabel(c: Candidate, limitLine: string | null): string | null {
+  const a = c.approach;
+  if (!a) return null;
+  if (a.sent) return a.sent.state === "accepted" ? "メッセージ（返信あり）↓" : a.sent.state === "pending" ? "メッセージ（返信待ち）↓" : "メッセージ（返信なし）↓";
+  if (a.eligible && !limitLine) return "メッセージを送る ↓";
+  return null;
+}
 
 /** ★最初に全文で出す件数（2026-10-12 に 3 → 2）。それより多ければ「ほかn件」で、押すとその場で全部 */
 const TOUCHPOINT_INITIAL = 2;
@@ -148,8 +159,15 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   companyLimitLine?: string | null }) {
   const [data, setData] = useState<PreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /* ★メッセージ欄を右欄いっぱいに広げているか（候補者を切り替えると key で作り直されて戻る） */
-  const [dockExpanded, setDockExpanded] = useState(false);
+  /* ★右欄のスクロールとメッセージの項目（ジャンプ・未読の返信があるときの初期位置。2026-10-12） */
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const jumpToMessages = useCallback((smooth = true) => {
+    const box = scrollRef.current, sec = box?.querySelector<HTMLElement>("[data-panel-section=messages]");
+    if (!box || !sec) return;
+    /* ⚠️ offsetTop は使わない（基準が右欄のスクロールとは限らない）。見えている位置の差で測る */
+    const top = box.scrollTop + (sec.getBoundingClientRect().top - box.getBoundingClientRect().top) - 8;
+    box.scrollTo({ top, behavior: smooth ? "smooth" : "instant" as ScrollBehavior });
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -168,6 +186,20 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
     return () => { alive = false; };
   }, [userId]);
 
+  /* ★未読の返信がある候補者は、最初からメッセージの位置で開く（2026-10-12）。
+        ⚠️ プロフィールは後から読み込まれる（メッセージの項目はその後に出る）ので、出るまで待ってから動かす。
+        ⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪） */
+  useEffect(() => {
+    if (!data?.messagesUnread) return;
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      if (scrollRef.current?.querySelector("[data-panel-section=messages]")) { clearInterval(t); setTimeout(() => jumpToMessages(false), 60); }
+      else if (tries > 50) clearInterval(t);
+    }, 100);
+    return () => clearInterval(t);
+  }, [data, jumpToMessages]);
+
   if (error) return <div data-state="preview-error" style={{ padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>{error}</div>;
   if (!data) return <div data-state="preview-loading" style={{ padding: 20, fontSize: 13, color: "var(--ink-mute)" }}>読み込み中…</div>;
 
@@ -175,6 +207,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
   /* ★年齢（2026-10-12 から出す）。⚠️ サーバーで計算した数（Candidate.age）。生年月日が無い人は出さない */
+  const jumpLabel = messageJumpLabel(c, companyLimitLine);
   const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
   /* ★右欄は「上：誰か／中：プロフィール／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
         上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・最近の利用）・4行目（この会社との接点）
@@ -196,8 +229,20 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
         <TouchpointGuide touchpoints={c.touchpoints} materials={data.touchpointMaterials} />
       </>}
       extraSections={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
-      footer={c.approach ? <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} expanded={dockExpanded} onExpandChange={setDockExpanded} /> : undefined}
-      footerExpanded={dockExpanded}
+      scrollRef={scrollRef}
+      headerRight={jumpLabel ? (
+        <button type="button" onClick={() => jumpToMessages()} data-state="jump-messages"
+          style={{ flexShrink: 0, alignSelf: "center", background: "none", border: "1px solid var(--line)", borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          {jumpLabel}
+        </button>
+      ) : undefined}
+      after={c.approach ? (
+        /* ★「メッセージ」は1本のスクロールの最後の項目（2026-10-12 / 柴さんの指示）。プロフィールの節と同じ見出し・区切り線 */
+        <section data-panel-section="messages" style={{ padding: "14px 0 0", borderTop: "1px solid var(--line)" }}>
+          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>メッセージ</h3>
+          <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} />
+        </section>
+      ) : undefined}
     />
   );
 }

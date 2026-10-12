@@ -12,7 +12,10 @@ import {
 } from "@/lib/constants/companyApproaches";
 
 /**
- * ★候補者を探すの右欄の、下に固定するメッセージ欄（2026-10-12 / 柴さんの指示で「下の段」にした）。
+ * ★候補者を探すの右欄の「メッセージ」の項目（2026-10-12 / 柴さんの指示）。
+ *   ⚠️★下に固定する欄はやめた（2026-10-12）。右欄の1本のスクロールの最後の項目として、本文と同じ流れに並ぶ。
+ *      「広げる／元に戻す」も削除した（入れ子のスクロールが無いので要らない）。
+ *   以下は旧版（下の段だったとき）の説明。中身（状態ごとの出し分け）は変えていない。
  *
  * 閉じた状態（1〜2行）:
  *   未送信 …「メッセージを送る」（押すと送信フォームがこの欄の上に広がる）
@@ -27,13 +30,10 @@ import {
  * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここは字数だけ見る。⚠️ 状態をバッジにしない（灰色の文字）。
  */
 const GRAY: React.CSSProperties = { fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 };
-const DOCK: React.CSSProperties = { padding: "12px 20px", minHeight: 0, display: "flex", flexDirection: "column" };
+const DOCK: React.CSSProperties = { padding: "4px 0", minHeight: 0, display: "flex", flexDirection: "column" };
 const TOGGLE: React.CSSProperties = { flexShrink: 0, background: "none", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" };
 
-export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, expanded = false, onExpandChange }: {
-  /** ★やり取りの欄を右欄いっぱいに広げているか（状態は CandidatePreview が持つ。CandidateProfilePanel の footerExpanded と対） */
-  expanded?: boolean;
-  onExpandChange?: (v: boolean) => void;
+export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }: {
   candidate: Candidate;
   jobs: { id: string; title: string }[];
   /** 企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
@@ -61,7 +61,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, e
   if (!a) return profileLink ? <div style={DOCK}>{profileLink}</div> : null;
   if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
   /* ⚠️ key で候補者ごとに作り直す（別の人の内容が一瞬残らないように。開閉もここで戻る） */
-  if (a.sent) return <SentDock key={a.sent.id} sent={a.sent} expanded={expanded} onExpandChange={onExpandChange} />;
+  if (a.sent) return <SentDock key={a.sent.id} sent={a.sent} />;
   if (!a.eligible) {
     const text = a.blocked === "test_company" ? APPROACH_TEST_COMPANY_MESSAGE
       : a.blocked === "not_looking" ? APPROACH_NOT_LOOKING_MESSAGE
@@ -161,10 +161,8 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, e
  * ⚠️ 既読は、やり取りを取りに行ったとき（＝欄に出したとき）に付く（`?thread=1`）。
  *    ホームの「返信していません」は最後に送ったのが候補者かで判定しているので、既読では消えない（actionItems.ts）。
  */
-function SentDock({ sent, expanded = false, onExpandChange }: {
+function SentDock({ sent }: {
   sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]>;
-  expanded?: boolean;
-  onExpandChange?: (v: boolean) => void;
 }) {
   type Detail = { createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null;
     status: CompanyApproachStatus; conversationId: string | null };
@@ -206,30 +204,27 @@ function SentDock({ sent, expanded = false, onExpandChange }: {
   /* ── 返信あり：最初から開いた状態 ── */
   if (accepted) {
     return (
-      <div data-state={expanded ? "dock-expanded" : "dock-thread"} style={{ display: "flex", flexDirection: "column", minHeight: 0, flex: expanded ? 1 : "0 1 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 20px 4px", flexShrink: 0 }}>
-          <Link href={threadHref} data-state="pane-open-messages" style={{ fontSize: 12.5, color: "var(--ink-mute)", textDecoration: "none" }}>
-            メッセージ画面で開く ›
-          </Link>
-          <button type="button" onClick={() => onExpandChange?.(!expanded)} aria-expanded={expanded} data-state="dock-expand"
-            style={{ ...TOGGLE, marginLeft: "auto" }}>{expanded ? "元に戻す" : "広げる"}</button>
-        </div>
+      <div data-state="dock-thread" style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
         {threadFailed ? (
-          <div style={{ padding: "4px 20px 12px" }}><span style={GRAY}>やり取りを読み込めませんでした</span></div>
+          <div style={{ padding: "4px 0 12px" }}><span style={GRAY}>やり取りを読み込めませんでした</span></div>
         ) : !thread ? (
-          <div style={{ padding: "4px 20px 12px" }}><span style={GRAY}>読み込み中…</span></div>
+          <div style={{ padding: "4px 0 12px" }}><span style={GRAY}>読み込み中…</span></div>
         ) : (
           <PaneThread initial={thread} loadOlder={loadOlder}
             footer={thread.isParticipant ? (
               <ReplyForm conversationId={thread.conv.id} placeholder="返信を書く" compact onSent={() => setReloadKey((k) => k + 1)} />
             ) : (
-              <div style={{ padding: "8px 20px 12px", borderTop: "1px solid var(--line)" }}>
+              <div style={{ padding: "8px 0 4px" }}>
                 <Link href={threadHref} data-state="pane-thread-join" style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
                   メッセージ画面で参加する →
                 </Link>
               </div>
             )} />
         )}
+        {/* ★小さく残す（2026-10-12） */}
+        <Link href={threadHref} data-state="pane-open-messages" style={{ alignSelf: "flex-end", marginTop: 8, fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}>
+          メッセージ画面で開く ›
+        </Link>
       </div>
     );
   }
@@ -237,14 +232,14 @@ function SentDock({ sent, expanded = false, onExpandChange }: {
   /* ── 返信待ち・30日返信なし：閉じた1行（「開く」で送った内容） ── */
   return (
     <div data-state={open ? "dock-open" : "dock-closed"} style={{ ...DOCK, padding: 0 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 20px", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "4px 0", flexShrink: 0 }}>
         <div data-state="dock-status" style={{ ...GRAY, minWidth: 0, flex: 1 }}>
           {detail.status === "pending" ? `返信を待っています（あと${approachDaysLeft(detail.createdAt)}日）` : "返信はありませんでした"}
         </div>
         <button type="button" onClick={() => setOpen((x) => !x)} aria-expanded={open} data-state="dock-toggle" style={TOGGLE}>{open ? "閉じる" : "開く"}</button>
       </div>
       {open && (
-        <div data-state="dock-body" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 20px 12px" }}>
+        <div data-state="dock-body" style={{ padding: "4px 0 8px" }}>
           <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
             status={detail.status} reply={null} />
         </div>

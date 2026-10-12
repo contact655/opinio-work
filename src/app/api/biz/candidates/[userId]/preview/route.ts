@@ -8,6 +8,8 @@ import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSelectionHistory } from "@/lib/business/selectionHistory";
+import { unreadConversationIds } from "@/lib/conversations/unread";
+import { unseenRepliedConversationIds } from "@/lib/approaches/server";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,17 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
     getSelectionHistory(ctx.tenantId, params.userId),
   ]);
   if (coErr) console.error("[candidates/preview] company:", coErr.message);
+  /* ★未読の返信があるか（2026-10-12）。右欄を開いたとき、最初からメッセージの位置で開くため。
+        サイドバーのバッジ・/biz/messages と同じ関数（未読の会話 ∪ 返信があってまだ開いていない会話）。⚠️ 取れなければ false */
+  const convId = candidate.approach?.sent?.conversationId ?? null;
+  let messagesUnread = false;
+  if (convId) {
+    const [unread, unseen] = await Promise.all([
+      unreadConversationIds(ctx.currentOwnId, { companyId: ctx.tenantId }).catch(() => new Set<string>()),
+      unseenRepliedConversationIds(ctx.tenantId).catch(() => new Set<string>()),
+    ]);
+    messagesUnread = unread.has(convId) || unseen.has(convId);
+  }
   if (!profile) return NextResponse.json({ error: "取得できませんでした" }, { status: 500 });
 
   return NextResponse.json({
@@ -52,6 +65,7 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
     companyShortName: co ? companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName : null,
     /* ★社内メモの欄を出すか。⚠️ フラグがオフなら出さない（API も 404） */
     notesEnabled: isCandidateNotesEnabled(),
+    messagesUnread,
     /* ★最新1件＋ほかの件数。⚠️ 送ったメッセージと返信は右欄の下のメッセージ欄に出すので、ここでは数えない（二重にしない）。
           取れなければ null（行を出さない） */
     contacts: (() => {

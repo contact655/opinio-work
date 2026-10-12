@@ -15,9 +15,9 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  * - `before` … プロフィールの前に出すもの（候補者を探すの「合うところ」「社内メモ」）
  * ⚠️ 状態はバッジにしない（灰色の文字）。
  * ★`sectioned` … 中身を節の目次（上に固定の帯）つきの1本のスクロールで出す。候補者を探すだけ（2026-10-12）。`extraSections` は右欄の側から足す節（社内メモ）
- * ★`footer` … 下に固定する段（候補者を探すのメッセージ欄）。中身だけがスクロールする
+ * ★`after` … プロフィールの後に出す項目（候補者を探すの「メッセージ」）。下に固定する段は 2026-10-12 にやめた（1本のスクロールにした）
  */
-export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAction, before, onClose, sectioned = false, extraSections, footer, footerExpanded = false }: {
+export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef }: {
   userId: string;
   /** 名前の右（新しいタブのアイコンの隣）に置くもの。候補者を探すの★（2026-10-12） */
   nameAction?: ReactNode;
@@ -31,9 +31,12 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
   onClose?: () => void;
   sectioned?: boolean;
   extraSections?: PanelSection[];
-  footer?: ReactNode;
-  /** ★下の段（メッセージ欄）を広げているか。広げると上の名前の段だけ残し、中身を隠して下の段を全体に（2026-10-12） */
-  footerExpanded?: boolean;
+  /** ★プロフィールの後に出すもの（候補者を探すの「メッセージ」の項目。2026-10-12 に下の固定欄から移した） */
+  after?: ReactNode;
+  /** ★名前の段の右（✕の手前）。「メッセージ（返信あり）↓」など */
+  headerRight?: ReactNode;
+  /** ★中身のスクロールの要素（ジャンプに使う） */
+  scrollRef?: React.Ref<HTMLDivElement>;
 }) {
   const [content, setContent] = useState<ReactNode | null>(null);
   const [failed, setFailed] = useState(false);
@@ -67,6 +70,7 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
             </div>
             {meta && <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 4, overflowWrap: "anywhere" }}>{meta}</div>}
           </div>
+          {headerRight}
           {onClose && (
             <button type="button" onClick={onClose} aria-label="閉じる"
               style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", color: "var(--ink-mute)", fontSize: 16, padding: 4 }}>✕</button>
@@ -75,7 +79,7 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
         {headerExtra}
       </div>
       {/* 中身（ここだけスクロール） */}
-      <div data-state="candidate-profile-scroll" style={{ display: footerExpanded ? "none" : undefined, flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: sectioned ? "4px 20px 20px" : "4px 20px 20px" }}>
+      <div ref={scrollRef} data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
         {before}
         <PanelExtraSectionsProvider sections={extraSections ?? []}>
           {failed ? (
@@ -84,9 +88,9 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
             <p data-state="profile-loading" style={{ fontSize: 13, color: "var(--ink-mute)", margin: "12px 4px" }}>読み込み中…</p>
           )}
         </PanelExtraSectionsProvider>
+        {/* ⚠️ プロフィールが読めるまで出さない（先に出すと、読み込み後に位置が下へずれる） */}
+        {(content || failed) && after}
       </div>
-      {/* ★下の段は右欄の高さの最大50%（中身が少なければその分だけ）。広げたら全体（2026-10-12 / 柴さんの指示） */}
-      {footer && <div data-state="candidate-profile-footer" style={{ flex: footerExpanded ? 1 : "0 1 auto", flexShrink: footerExpanded ? undefined : 0, borderTop: "1px solid var(--line)", background: "#fff", maxHeight: footerExpanded ? undefined : "50%", display: "flex", flexDirection: "column", minHeight: 0 }}>{footer}</div>}
     </div>
   );
 }

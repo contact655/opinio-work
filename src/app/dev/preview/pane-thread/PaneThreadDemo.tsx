@@ -6,6 +6,7 @@ import type { ThreadMessage } from "@/lib/conversations/companyThread";
 
 /**
  * ★右欄のメッセージ欄（PaneThread）を固定データで動かす（2026-10-12）。
+ *   上の「さらに前のやり取りを表示（n件）」を押すと、10通ずつ（少し待ってから）上に足す。
  * ⚠️ DB を読まない。30通をこの中で作り、上へスクロールしたら 10通ずつ（少し待ってから）返す。
  */
 const PAGE = 10;
@@ -41,9 +42,10 @@ export function PaneThreadDemo({ total, height }: { total: number; height: numbe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div data-state="dev-pane-thread" style={{ maxWidth: 560, maxHeight: height, display: "flex", flexDirection: "column", border: "1px dashed var(--line)", background: "#fff" }}>
+    /* ★右欄と同じく、外側の箱（overflow: auto）がスクロールする。PaneThread 自身は入れ子のスクロールを持たない（2026-10-12） */
+    <div data-state="dev-pane-thread" style={{ maxWidth: 560, maxHeight: height, overflowY: "auto", padding: "4px 20px 20px", border: "1px dashed var(--line)", background: "#fff" }}>
       <PaneThread initial={initial} loadOlder={loadOlder}
-        footer={<div style={{ padding: "10px 20px", borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--ink-mute)" }}>（ここに返信欄）</div>} />
+        footer={<div style={{ padding: "10px 0", borderTop: "1px solid var(--line)", fontSize: 12.5, color: "var(--ink-mute)" }}>（ここに返信欄）</div>} />
     </div>
   );
 }
