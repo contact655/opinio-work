@@ -3,7 +3,7 @@
 // キーワード / フィルタが適用されているときのみ表示（カルーセルの代わり）
 
 import Link from "next/link";
-import { INDUSTRY_GROUPS } from "@/lib/search/industryGroups";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { resolveIndustryKey } from "@/lib/search/industryGroups";
 import type { CompanyForCarousel } from "@/types/genre";
 import { CompanyCardList } from "./CompanyCardList";
@@ -28,7 +28,11 @@ type Props = {
   selectedKey?: string | null;
 };
 
-export function CompanySearchResults({ companies, industry, selectedKey = null }: Props) {
+export async function CompanySearchResults({ companies, industry, selectedKey = null }: Props) {
+  /* ★0件のときの「事業領域から探す」はマスタから出す（2026-10-12）。それまで旧 `INDUSTRY_GROUPS` の
+        固定ラベルで、無くなった「業種特化」「ITサービス・受託」や改名前の名前が出ていた。
+     ⚠️ `getBusinessDomainFacets()`（掲載中の会社が1社以上ある事業だけ）を使う。押して0件の行き止まりを作らない。 */
+  const facets = companies.length === 0 ? await getBusinessDomainFacets() : [];
 
   /* カードのタグに出す事業領域の slug。⚠️ 絞り込んでいなければ null（＝主のタグのまま）。
      ⚠️ `searchCompanies` が絞り込みに使うのと**同じ変換**を通すこと。ここがズレると
@@ -141,13 +145,13 @@ export function CompanySearchResults({ companies, industry, selectedKey = null }
                  URL は LP の業種チップと同じ形式（/companies?industry=<key>）に揃えている。 */}
           <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid var(--line)" }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 12 }}>
-              業種から探す
+              事業領域から探す
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-              {INDUSTRY_GROUPS.map((g) => (
+              {facets.map((g) => (
                 <Link
-                  key={g.key}
-                  href={`/companies?industry=${g.key}`}
+                  key={g.slug}
+                  href={`/companies?industry=${g.slug}`}
                   style={{
                     padding: "7px 14px", borderRadius: 100,
                     background: "#fff", border: "1px solid var(--line)",
@@ -155,7 +159,7 @@ export function CompanySearchResults({ companies, industry, selectedKey = null }
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {g.label}
+                  {g.name}
                 </Link>
               ))}
             </div>

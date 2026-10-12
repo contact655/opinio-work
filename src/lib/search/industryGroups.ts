@@ -54,6 +54,8 @@ const LEGACY_KEYS: Record<string, string> = {
   fintech: "finance",
   ec: "marketplace",
   healthcare: "vertical",
+  /* ★2026-10-12: 事業「プロジェクト管理」を「業務効率化」（slug は collab のまま）にまとめた（分類 段2）。 */
+  "project-management": "collab",
 };
 
 /**
