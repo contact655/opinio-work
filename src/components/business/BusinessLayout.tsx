@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
@@ -120,7 +120,51 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
 ];
 
 
-export function BusinessLayout({
+/**
+ * ★サイドバーとヘッダーは /biz の共通レイアウトで1回だけ描く（2026-10-12 / 柴さんの指示）。
+ *
+ *   それまでは各ページ（と各 loading.tsx）が自分で `BusinessLayout` を描いており、
+ *   ページを移るたびにサイドバーごと作り直されていた。しかも loading.tsx は
+ *   `userName=""` だけを渡すので、**読み込み中は企業の切り替えの枠が消え、全項目が上へずれていた。**
+ *
+ *   いまは `app/biz/layout.tsx` が `BizFrame` で枠（ヘッダー・サイドバー）を描き、
+ *   ページ側の `BusinessLayout` は**枠の中では本文（main）だけ**を返す。
+ *   枠が無いところ（ログイン前・企業の参加画面・企業が取れないとき）は従来どおり全部を描く。
+ * ⚠️ ページの props（tenantName など）は枠の中では使わない（枠は layout の `getTenantContext` から描く。
+ *    `cache` で同じ値になる）。本文の幅（`mainMaxWidth`・`variant`・`hasCompany`）だけ効く。
+ */
+const BizFrameContext = createContext(false);
+
+function mainStyleOf(variant: BusinessLayoutVariant, hasCompany: boolean, mainMaxWidth: number): React.CSSProperties {
+  return variant === "fullBleed"
+    ? { padding: 0, minWidth: 0, overflow: "hidden" }
+    : hasCompany
+      ? { padding: "28px 36px 60px", maxWidth: mainMaxWidth, minWidth: 0 }
+      : { padding: "28px 36px 60px", maxWidth: 960, minWidth: 0, margin: "0 auto", width: "100%" };
+}
+
+export function BusinessLayout(props: Props) {
+  const framed = useContext(BizFrameContext);
+  if (framed) {
+    return (
+      <main id="main-content" className="biz-layout-main" style={mainStyleOf(props.variant ?? "default", props.hasCompany ?? true, props.mainMaxWidth ?? 1200)}>
+        {props.children}
+      </main>
+    );
+  }
+  return <BusinessChrome {...props} />;
+}
+
+/** ★/biz の共通レイアウトが描く枠。中のページの `BusinessLayout` は本文だけを返す */
+export function BizFrame({ children, ...props }: Omit<Props, "children" | "variant" | "mainMaxWidth" | "hasCompany"> & { children: React.ReactNode }) {
+  return (
+    <BizFrameContext.Provider value={true}>
+      <BusinessChrome {...props} frame>{children}</BusinessChrome>
+    </BizFrameContext.Provider>
+  );
+}
+
+function BusinessChrome({
   userName,
   tenantName,
   tenantLogoGradient,
@@ -131,7 +175,8 @@ export function BusinessLayout({
   memberships,
   currentTenantId,
   hasCompany = true,
-}: Props) {
+  frame = false,
+}: Props & { frame?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const shell = useBizShell();
@@ -187,8 +232,13 @@ export function BusinessLayout({
   const logoLetter = tenantLogoLetter || (tenantName || "?").trim().charAt(0).toUpperCase();
   const logoGradient = tenantLogoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
 
+  /* ★押した瞬間に選択中の表示にする（2026-10-12）。読み込みの完了（pathname の変化）を待たない。
+        ⚠️ 読み込み中であることは本文の上の細い線だけで示す（サイドバーは動かさない） */
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  useEffect(() => { setPendingHref(null); }, [pathname]);
+  const currentPath = pendingHref ?? pathname;
   function isActive(href: string) {
-    return pathname === href || pathname.startsWith(href + "/");
+    return currentPath === href || currentPath.startsWith(href + "/");
   }
 
   async function handleLogout() {
@@ -411,7 +461,7 @@ export function BusinessLayout({
                     ヘッダー側を出す（CSS の `.biz-sidebar-company` / `.biz-header-company-switch`）。
                     **どちらか一方しか見えない**ようにしてある。 */}
           {tenantName && memberships && currentTenantId && (
-            <div className="biz-sidebar-company" style={{ padding: "0 12px 14px", marginBottom: 6, borderBottom: "1px solid var(--line-soft)" }}>
+            <div className="biz-sidebar-company" style={{ height: 58, boxSizing: "border-box", padding: "0 12px 14px", marginBottom: 6, borderBottom: "1px solid var(--line-soft)" }}>
               <CompanySwitcher
                 placement="sidebar"
                 currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
@@ -451,9 +501,16 @@ export function BusinessLayout({
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
+                    onClick={(e) => {
+                      /* ⚠️ ⌘・中クリック（別タブ）では選択を変えない */
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      if (!(pathname === item.href)) setPendingHref(item.href);
+                    }}
                     style={{
+                      /* ★各項目の高さを固定（2026-10-12）。バッジの有無・読み込みで行の高さが変わらないように */
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "9px 20px",
+                      height: 38, boxSizing: "border-box",
+                      padding: "0 20px",
                       fontSize: 13, fontWeight: active ? 600 : 500,
                       color: active ? "var(--royal)" : "var(--ink-soft)",
                       textDecoration: "none",
@@ -480,6 +537,9 @@ export function BusinessLayout({
                       </span>
                       {item.label}
                     </span>
+                    {/* ★バッジの場所は常に取っておく（2026-10-12）。読み込みで出たり消えたりしても項目が動かないように。
+                           ⚠️ 0件・未取得のときは中身ごと出さない（visibility ではなく空の箱。読み上げにも出さない） */}
+                    {item.badge && badgeCount <= 0 && <span aria-hidden="true" style={{ width: 18, height: 18, flexShrink: 0 }} />}
                     {badgeCount > 0 && (
                       <span style={{
                         minWidth: 18, height: 18, borderRadius: 100,
@@ -581,14 +641,18 @@ export function BusinessLayout({
                （2026-09-04）。左寄せのままだと 1440px で左端に貼り付き、
                右が大きく空いて「サイドバーが消えた」ように見える。
                ここは登録フローなので、`/biz/auth` と同じ中央寄せに揃える。 */}
-        <main id="main-content" className="biz-layout-main" style={variant === "fullBleed"
-          ? { padding: 0, minWidth: 0, overflow: "hidden" }
-          : hasCompany
-            ? { padding: "28px 36px 60px", maxWidth: mainMaxWidth, minWidth: 0 }
-            : { padding: "28px 36px 60px", maxWidth: 960, minWidth: 0, margin: "0 auto", width: "100%" }
-        }>
-          {children}
-        </main>
+        {frame ? (
+          /* ★枠のときは、本文（main）はページ側の BusinessLayout が描く。ここは入れ物だけ。
+                読み込み中は上に細い線（pendingHref があいだ）。⚠️ サイドバーには何も出さない */
+          <div className="biz-layout-main-col" style={{ minWidth: 0, position: "relative" }}>
+            {pendingHref && <div className="biz-nav-progress" role="progressbar" aria-label="読み込み中" />}
+            {children}
+          </div>
+        ) : (
+          <main id="main-content" className="biz-layout-main" style={mainStyleOf(variant, hasCompany, mainMaxWidth)}>
+            {children}
+          </main>
+        )}
       </div>
 
       {/* Mobile fallback nav (≤768px) */}
@@ -604,6 +668,12 @@ export function BusinessLayout({
              ⚠️ 値は中身（アカウントのボタン 49px か 44px）＋上下の余白＋下の線 1px。余白やボタンの大きさを変えたら、ここも変える。
              ⚠️ 切り替える幅は、ヘッダーの余白を変えている 768px と 480px に合わせてある。 */
         :root { --biz-header-h: 74px; }
+        /* ★スクロールバーの有無で全体の幅が変わらないように（2026-10-12） */
+        html { scrollbar-gutter: stable; }
+        .biz-nav-progress { position: sticky; top: var(--biz-header-h); z-index: 90; height: 2px; margin-bottom: -2px;
+          background: linear-gradient(90deg, transparent, var(--royal), transparent); background-size: 50% 100%;
+          background-repeat: no-repeat; animation: biz-nav-progress 1s linear infinite; }
+        @keyframes biz-nav-progress { from { background-position: -50% 0; } to { background-position: 150% 0; } }
         .biz-header { height: var(--biz-header-h); box-sizing: border-box; }
         @media (max-width: 768px) { :root { --biz-header-h: 70px; } }
         @media (max-width: 480px) { :root { --biz-header-h: 65px; } }

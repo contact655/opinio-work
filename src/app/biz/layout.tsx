@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { hasPublicCompanyPage } from "@/lib/companies/visibility";
 import { BizShellProvider } from "@/components/business/BizShellContext";
+import { BizFrame } from "@/components/business/BusinessLayout";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -61,7 +62,20 @@ export default async function BizLayout({ children }: { children: React.ReactNod
       userName: tenant?.userName ?? null,
       permission: tenant?.currentPermission ?? null,
     }}>
-      {children}
+      {/* ★サイドバーとヘッダーはここで1回だけ描く（2026-10-12）。ページを移っても作り直さない。
+             ⚠️ 企業が取れないとき（複数社で未選択など）は枠を出さず、ページ側が全部を描く（従来どおり） */}
+      {tenant ? (
+        <BizFrame
+          userName={tenant.userName}
+          tenantName={tenant.tenantName}
+          tenantLogoGradient={tenant.logoGradient}
+          tenantLogoLetter={tenant.logoLetter}
+          memberships={tenant.allCompanies}
+          currentTenantId={tenant.tenantId}
+        >
+          {children}
+        </BizFrame>
+      ) : children}
     </BizShellProvider>
   );
 }
