@@ -313,6 +313,23 @@ function BusinessChrome({
         alignItems: "center",
         gap: 24,
       }}>
+        {/* ★しまう／開くボタン（2026-10-12）。ヘッダーの左端（Claude.ai と同じ場所）。
+               ⚠️ サイドバーの中に置かないこと（専用の行が1つ増え、項目が下へずれる）。
+               ⚠️ 左の余白を詰めて、しまったときのアイコンの列（64px）の真ん中にそろえてある（CSS）。
+               ⚠️ 1024px 未満と、企業が無い画面（サイドバーが無い）では出さない */}
+        {hasCompany && (
+          <button
+            type="button"
+            className="biz-sidebar-toggle btn-fixed-size"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? "サイドバーを開く" : "サイドバーをしまう"}
+            aria-expanded={!collapsed}
+            aria-controls="biz-sidebar-nav"
+            title={collapsed ? "サイドバーを開く" : "サイドバーをしまう"}
+          >
+            <PanelLeft size={18} strokeWidth={2} />
+          </button>
+        )}
         {/* Brand */}
         <Link href="/biz/dashboard" className="biz-header-brand" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
           <OpinioLogo height={22} style={{ color: "var(--brand-ink)" }} />
@@ -506,23 +523,6 @@ function BusinessChrome({
                  ⚠️ 狭い画面ではサイドバーが横スクロールの列になるので、ここは隠して
                     ヘッダー側を出す（CSS の `.biz-sidebar-company` / `.biz-header-company-switch`）。
                     **どちらか一方しか見えない**ようにしてある。 */}
-          {/* ★しまう／開くボタン（2026-10-12）。⚠️ 1024px 未満では出さない（CSS） */}
-          <div className="biz-sidebar-toggle-row">
-            <button
-              type="button"
-              className="biz-sidebar-toggle btn-fixed-size"
-              onClick={toggleSidebar}
-              aria-label={collapsed ? "サイドバーを開く" : "サイドバーをしまう"}
-              aria-expanded={!collapsed}
-              aria-controls="biz-sidebar-nav"
-              onMouseEnter={(e) => showTip(e, "サイドバーを開く")}
-              onFocus={(e) => showTip(e, "サイドバーを開く")}
-              onMouseLeave={hideTip}
-              onBlur={hideTip}
-            >
-              <PanelLeft size={18} strokeWidth={2} />
-            </button>
-          </div>
           {tenantName && memberships && currentTenantId && (
             <div className="biz-sidebar-company">
               <CompanySwitcher
@@ -816,7 +816,7 @@ function BusinessChrome({
         }
 
         /* ★サイドバーをしまう（2026-10-12）。⚠️ 見出し・項目・会社の切り替えの余白は、しまったときに変えるのでここに置く */
-        .biz-sidebar-toggle-row { display: none; }
+        .biz-sidebar-toggle { display: none; }
         .biz-sidebar-company { height: 58px; box-sizing: border-box; padding: 0 12px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
         .biz-nav-heading { font-size: 11px; font-weight: 700; color: var(--ink-mute); letter-spacing: 0.04em; padding: 16px 20px 6px; }
         .biz-nav-link { justify-content: space-between; padding: 0 20px; }
@@ -828,13 +828,11 @@ function BusinessChrome({
           padding: 5px 10px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
           box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
         @media (min-width: 1024px) {
-          .biz-sidebar-toggle-row { display: flex; justify-content: flex-end; padding: 0 12px 8px; }
-          .biz-sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
-            border: none; border-radius: 8px; background: transparent; color: var(--ink-mute); cursor: pointer; }
+          .biz-sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0;
+            margin: 0 -12px 0 -12px; border: none; border-radius: 8px; background: transparent; color: var(--ink-mute); cursor: pointer; }
           .biz-sidebar-toggle:hover { background: var(--bg-tint); color: var(--ink); }
           .biz-sidebar-toggle:focus-visible { outline: 2px solid var(--royal); outline-offset: 1px; }
           html[data-biz-sidebar=collapsed] { --biz-sidebar-w: 64px; }
-          html[data-biz-sidebar=collapsed] .biz-sidebar-toggle-row { justify-content: center; padding: 0 0 8px; }
           html[data-biz-sidebar=collapsed] .biz-layout-sidebar { overflow-x: hidden; }
           html[data-biz-sidebar=collapsed] .biz-nav-label { display: none; }
           html[data-biz-sidebar=collapsed] .biz-nav-heading { height: 1px; padding: 0; margin: 10px 14px; background: var(--line-soft); }
