@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 業種の選択肢はここに書かない。**`ow_industries` のマスタが唯一の出どころ**で、
       サーバー側（page.tsx）が引いて props で渡す。2026-08-25 まで
@@ -143,7 +142,6 @@ export function CreateCompanyClient({
   const [domainMatch, setDomainMatch] = useState<SearchResult | null>(null);
   const [domainMatchDismissed, setDomainMatchDismissed] = useState(false);
 
-  const router = useRouter();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -280,14 +278,15 @@ export function CreateCompanyClient({
       });
       if (res.status === 409) {
         // すでにメンバー → ダッシュボードへ
-        router.push("/biz/dashboard");
+        /* ★ページごと読み込む（2026-10-13）。router.push だと /biz の layout（除外パスで描いたもの）が残り、サイドバーが空になる */
+        window.location.assign("/biz/dashboard");
         return;
       }
       if (res.ok) {
         const data = await res.json();
         if (data.auto_approved) {
-          // 管理者ゼロ → 即時承認 → ダッシュボードへ
-          router.push("/biz/dashboard");
+          // 管理者ゼロ → 即時承認 → ダッシュボードへ（★ページごと読み込む。上と同じ理由）
+          window.location.assign("/biz/dashboard");
           return;
         }
         // 管理者あり → 既存担当者へ通知済み

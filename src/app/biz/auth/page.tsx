@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { confirmRedirectTo } from "@/lib/auth/redirects";
+import { confirmRedirectTo, safeNext, sameOriginPath } from "@/lib/auth/redirects";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
 type Mode = "signup" | "login";
@@ -36,7 +36,8 @@ function BizAuthInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawNext = searchParams.get("next") ?? "";
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/biz/dashboard";
+  /* ⚠️ 同じサイト内の相対パスだけ（`safeNext`: "/" で始まり、"//" と "/\\" で始まらない）。移るときに `sameOriginPath` でもう一度確かめる */
+  const next = safeNext(rawNext, "/biz/dashboard");
   const modeParam = searchParams.get("mode");
   const isInviteContext = searchParams.get("context") === "invite";
   const companyFromUrl = searchParams.get("company") ?? "";
@@ -93,7 +94,9 @@ function BizAuthInner() {
         .select("id")
         .limit(1);
       if ((memberships?.length ?? 0) > 0) {
-        router.replace(next);
+        /* ★ページごと読み込む（2026-10-13）。`router.replace` だと /biz の layout が描き直されず
+              （/biz/auth は除外パスで layout が枠と権限を入れない）、サイドバーが空・「管理者」も出ない画面になる */
+        window.location.replace(sameOriginPath(next, "/biz/dashboard", window.location.origin));
         return;
       }
       // ログイン済み・企業未登録 → 挨拶カードを表示
@@ -783,7 +786,9 @@ function LoginForm({ prefillEmail, next, router, inviteContext }: LoginFormProps
          ⚠️ `PENDING_COMPANY_KEY` 自体は残っている。ログイン済み画面のボタンが
             会社名を書いて `/biz/companies/add/new` へ送り、あちらがプリフィルに使う。
             **企業を作るのは add/new だけ。ここでは作らない。** */
-      router.replace(next);
+      /* ★ページごと読み込む（2026-10-13）。`router.replace` だと /biz の layout が描き直されず、
+            サイドバーが空・「管理者」も出ない画面になる（パスワードでログインした人が毎回当たっていた） */
+      window.location.replace(sameOriginPath(next, "/biz/dashboard", window.location.origin));
     } catch {
       setError("ログインに失敗しました。時間をおいて再度お試しください。");
     } finally {

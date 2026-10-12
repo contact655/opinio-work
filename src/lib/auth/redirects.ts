@@ -85,6 +85,25 @@ export function afterLogin(raw: string | null | undefined): string {
   return v === GENERIC_NEXT || v === "/" ? DEFAULT_AFTER_LOGIN : v;
 }
 
+/**
+ * ★`window.location` に渡す直前の確認（2026-10-13）。`safeNext` を通したうえで、URL として解いて
+ *   **同じオリジンのときだけ**オリジン付きの URL を返す。違えば fallback。
+ * ⚠️ `safeNext` の文字列の確認だけでは、ブラウザが URL から取り除く文字（タブ・改行）を挟んだ
+ *    `/\t/evil.com` のような値が `//evil.com` として解かれうる。`window.location` は外へも飛べるので、ここで止める。
+ */
+export function sameOriginPath(raw: string | null | undefined, fallback: string, origin: string): string {
+  const v = safeNext(raw, fallback);
+  try {
+    const u = new URL(v, origin);
+    if (u.origin !== origin) return fallback;
+    /* ⚠️★パスだけを返さない。`/.//evil.com` は URL として解くと pathname が `//evil.com` になり、
+          パスだけ返すと「//」で始まる＝別のサイトとして解かれる。**オリジン付きの完全な URL** を返す */
+    return u.href;
+  } catch {
+    return fallback;
+  }
+}
+
 export function safeNext(raw: string | null | undefined, fallback: string): string {
   const v = raw ?? "";
   if (!v.startsWith("/")) return fallback;

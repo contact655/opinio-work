@@ -7857,6 +7857,28 @@ curl -s https://opinio.jp/api/health
 
 ## 🔧 将来の改善課題
 
+### ⚠️★★/biz の除外パスからクライアント遷移すると、サイドバーが空・「管理者」が出ない（2026-10-13）
+
+**原因:** `app/biz/layout.tsx` は除外パス（`/biz/auth`・`/biz/companies/add`・`/biz/select-company` など）では
+枠も `BizShellProvider`（役割・名前）も入れずに子だけを返す。App Router は**クライアント遷移で共通の layout を
+描き直さない**ので、除外パスから `router.push` / `router.replace` で `/biz/...` へ移ると、除外パスで描いた
+layout が残る。ページ側の `BusinessLayout` が自前で枠を描くが Provider の外なので `shell.permission` が null
+→ `can(null, …)` でサイドバーの項目が全部消え、「管理者」も出ない（会社の切り替えだけ props で出る）。
+再読み込み（ページごとの読み込み）で直る。
+
+**2026-10-13 に直した経路（案1）:** パスワードでログイン（`/biz/auth` の `router.replace(next)`）・
+ログイン済みで `/biz/auth` を開いたとき・企業作成で既存の会社に入ったとき（`CreateCompanyClient` の2か所）を
+`window.location.replace / assign` にした。⚠️ 行き先は `sameOriginPath`（`safeNext`＋同じオリジンの確認）を通す。
+⚠️★**除外パスから /biz の中へ移るときは `router` を使わない**（ページごと読み込む）。
+
+**残っている課題（別タスク）:**
+- 案2: route group（`app/biz/(public)/…` と `app/biz/(app)/…`）に分け、枠を `(app)/layout.tsx` で描く。
+  グループをまたぐと layout が描き直されるので、どこから来ても起きなくなる（約30ページの移動。URL は変わらない）
+- 案3: 除外ページ（`/biz/companies/add` など）が描く枠はいまサイドバーが空。意図してサイドバーなしの枠にする
+- 案4: `layout.tsx` の `getTenantContext().catch(() => null)` は一時的な失敗も null にして同じ症状を出す。
+  黙って握りつぶさず、エラー表示か1回の再試行にする
+
+
 ### name 表示の二重経路問題（一部解決 2026-04-27）
 
 **現状（2026-04-27 16:20 時点）:**
