@@ -2748,6 +2748,95 @@ export type Database = {
           },
         ]
       }
+      ow_company_slack_sends: {
+        Row: {
+          company_id: string
+          last_sent_at: string
+          thread_key: string
+        }
+        Insert: {
+          company_id: string
+          last_sent_at?: string
+          thread_key: string
+        }
+        Update: {
+          company_id?: string
+          last_sent_at?: string
+          thread_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_slack_sends_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_slack_settings: {
+        Row: {
+          company_id: string
+          consecutive_failures: number
+          include_candidate_name: boolean
+          last_error_at: string | null
+          last_error_status: number | null
+          last_success_at: string | null
+          notify_application: boolean
+          notify_meeting: boolean
+          notify_reply: boolean
+          paused_at: string | null
+          updated_at: string
+          updated_by_ow_user_id: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          company_id: string
+          consecutive_failures?: number
+          include_candidate_name?: boolean
+          last_error_at?: string | null
+          last_error_status?: number | null
+          last_success_at?: string | null
+          notify_application?: boolean
+          notify_meeting?: boolean
+          notify_reply?: boolean
+          paused_at?: string | null
+          updated_at?: string
+          updated_by_ow_user_id?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          company_id?: string
+          consecutive_failures?: number
+          include_candidate_name?: boolean
+          last_error_at?: string | null
+          last_error_status?: number | null
+          last_success_at?: string | null
+          notify_application?: boolean
+          notify_meeting?: boolean
+          notify_reply?: boolean
+          paused_at?: string | null
+          updated_at?: string
+          updated_by_ow_user_id?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_slack_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_slack_settings_updated_by_ow_user_id_fkey"
+            columns: ["updated_by_ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_target_industries: {
         Row: {
           company_id: string

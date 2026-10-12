@@ -3,6 +3,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSlackSettingsView } from "@/lib/notify/slack";
 import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
 import { canUse } from "@/lib/constants/plans";
 import { isRegisteredUser } from "@/lib/users/registered";
@@ -225,6 +226,7 @@ export default async function MembersPage() {
       currentTenantId={ctx.tenantId}
     >
       <MembersClient
+        slackSettings={ctx.currentPermission === "admin" ? await getSlackSettingsView(ctx.tenantId) : null}
         notificationMembers={notification.members}
         notificationEmails={notification.emails}
         initialMembers={members}

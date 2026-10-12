@@ -11,6 +11,7 @@ import {
   applicationCompanyTemplate,
 } from "@/lib/notify/templates";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+import { notifyCompanySlack } from "@/lib/notify/slack";
 import { insertActivity } from "@/lib/business/activities";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { isJobApplicationOpen, APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
@@ -218,6 +219,12 @@ export async function POST(req: NextRequest) {
         })
       );
     }
+  }
+
+  /* ★会社の Slack にも知らせる（2026-10-12）。条件（設定・オンオフ・30分まとめ・一時停止）は slack.ts の1か所 */
+  if (jobForNotify?.company_id) {
+    await notifyCompanySlack({ companyId: jobForNotify.company_id as string, kind: "application", threadKey: "application",
+      candidateOwUserId: owUserId, path: "/biz/applications", source: "applications" });
   }
 
   return NextResponse.json({ id: inserted.id, status: inserted.status }, { status: 201 });

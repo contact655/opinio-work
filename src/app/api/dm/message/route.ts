@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { emailCandidateIfCompanySent } from "@/lib/notify/companyMessageEmail";
+import { notifyCompanySlack } from "@/lib/notify/slack";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
@@ -128,6 +129,12 @@ export async function POST(request: NextRequest) {
   await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/message" });
   /* ★企業との会話なら求職者にメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
   await emailCandidateIfCompanySent({ conversation: { id: conversationId, kind: conv.kind as string, company_id: conv.company_id as string | null, candidate_user_id: conv.candidate_user_id as string | null }, senderOwUserId: owMe.id as string, source: "dm/message" });
+
+  /* ★求職者が企業との会話で送ったら、会社の Slack に知らせる（2026-10-12）。条件は slack.ts の1か所 */
+  if (conv.kind === "company" && conv.company_id && owMe.id === conv.candidate_user_id) {
+    await notifyCompanySlack({ companyId: conv.company_id as string, kind: "reply", threadKey: `reply:${conversationId}`,
+      candidateOwUserId: owMe.id as string, path: `/biz/messages/${conversationId}`, source: "dm/message" });
+  }
 
   return NextResponse.json({ ok: true });
 }

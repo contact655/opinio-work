@@ -8,6 +8,7 @@ import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { approachRepliedCompanyTemplate } from "@/lib/notify/templates";
 import { emailCandidateCompanyMessage } from "@/lib/notify/companyMessageEmail";
+import { notifyCompanySlack } from "@/lib/notify/slack";
 import {
   approachFirstDisplayText,
   approachFirstMessageBody,
@@ -567,6 +568,9 @@ export async function replyToApproach(params: {
     candidateOwUserId: params.candidateOwUserId,
     conversationId,
   });
+  /* ★会社の Slack にも知らせる（2026-10-12）。条件は slack.ts の1か所 */
+  await notifyCompanySlack({ companyId: target.company.id, kind: "reply", threadKey: `reply:${conversationId}`,
+    candidateOwUserId: params.candidateOwUserId, path: `/biz/messages/${conversationId}`, source: "approach-reply" });
   return { ok: true, conversationId };
 }
 

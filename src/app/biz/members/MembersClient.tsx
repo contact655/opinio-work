@@ -1,6 +1,8 @@
 "use client";
 
 import { NotificationRecipientsCard } from "@/components/business/NotificationRecipientsCard";
+import { SlackNotificationCard } from "@/components/business/SlackNotificationCard";
+import type { SlackSettingsView } from "@/lib/notify/slack";
 import type { NotificationTeamMember } from "@/lib/business/notificationTeam";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -90,6 +92,8 @@ export type MeetingStat = {
 type Props = {
   /** ★通知の宛先（2026-10-12 に /biz/company から移した）。採用担当タブの下に出す */
   notificationMembers?: NotificationTeamMember[];
+  /** ★Slack 通知の設定（2026-10-12）。管理者のときだけ渡る（それ以外は null で欄を出さない） */
+  slackSettings?: SlackSettingsView | null;
   notificationEmails?: string[];
   initialMembers: MemberRecord[];
   initialPendingInvites: PendingInviteRecord[];
@@ -1106,7 +1110,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false, selfHasCurrentExperience = false }: Props) {
+export function MembersClient({ slackSettings = null, notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false, selfHasCurrentExperience = false }: Props) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<"staff" | "field" | "employees">("staff");
 
@@ -1594,6 +1598,8 @@ export function MembersClient({ notificationMembers = [], notificationEmails = [
           )}
           {/* ★通知の宛先（2026-10-12 に企業ページの設定タブから移した）。即時保存 */}
           <NotificationRecipientsCard members={notificationMembers} initialEmails={notificationEmails} canEdit={isAdmin} />
+          {/* ★Slack 通知（2026-10-12）。管理者だけ（設定は管理者しか読めない） */}
+          {isAdmin && slackSettings && <SlackNotificationCard initial={slackSettings} />}
         </>
       )}
 

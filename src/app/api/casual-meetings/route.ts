@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
+import { notifyCompanySlack } from "@/lib/notify/slack";
 
 /** ⚠️ UUID 以外を DB に投げない（`22P02` になり、`?? []` 側では「0件」に化ける） */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -242,6 +243,10 @@ export async function POST(req: NextRequest) {
       );
     }
   }
+
+  /* ★会社の Slack にも知らせる（2026-10-12）。条件は slack.ts の1か所 */
+  await notifyCompanySlack({ companyId: company_id as string, kind: "meeting", threadKey: "meeting",
+    candidateOwUserId: owUserId, path: "/biz/meetings", source: "casual-meetings" });
 
   return NextResponse.json({ id: meeting.id, status: meeting.status });
 }
