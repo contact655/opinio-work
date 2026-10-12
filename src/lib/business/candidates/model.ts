@@ -16,6 +16,7 @@ import type { SavedCandidateFilters } from "@/lib/business/savedSearch";
 
 /** ★貴社との接点の1件。種類・表示文・根拠の参照先（画面で根拠へ飛べるように） */
 import type { FitFact } from "@/lib/evidence/fit";
+import { residenceKey } from "@/lib/utils/location";
 
 export type TouchpointKind =
   | "job_role"        // ① 求人の職種 × 経験職種（＋年数）
@@ -223,9 +224,10 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
       });
     }
   }
-  /* 居住地（OR・前方一致） */
+  /* 居住地（OR）。★自由入力の値は `residenceKey` で都道府県・「海外」に対応づけて比べる（2026-10-12）。
+     ⚠️ 対応づけられない値（「非公開」・未入力・読めない文字）は、居住地で絞ったときだけ落ちる */
   if (f.prefectures.length > 0) {
-    list = list.filter((c) => f.prefectures.some((p) => (c.location ?? "").startsWith(p)));
+    list = list.filter((c) => { const k = residenceKey(c.location); return !!k && f.prefectures.includes(k); });
   }
   if (f.salaryMin > 0) {
     list = list.filter((c) => {

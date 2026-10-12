@@ -1,5 +1,7 @@
 "use client";
 
+import { ResidenceFilter } from "./ResidenceFilter";
+import { OVERSEAS, residenceKey } from "@/lib/utils/location";
 import { ApproachButton } from "@/components/approaches/ApproachButton";
 /* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
@@ -76,19 +78,12 @@ export type { Candidate };
       カード左端の 4px のバーに同じ色を敷いていた。 */
 
 
-// 都道府県を location 文字列から抽出（先頭の都道府県部分）
-function extractPrefecture(location: string | null): string | null {
+/* ★居住地の表示（2026-10-12）。判定は `residenceKey` の1か所（絞り込みと同じ）。
+   「海外（アメリカ）」は国名ごと出す。対応づけられない値はそのまま出す（推測で丸めない） */
+function residenceLabel(location: string | null): string | null {
   if (!location) return null;
-  const PREFS = [
-    "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
-    "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
-    "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
-    "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
-    "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
-    "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
-    "熊本県","大分県","宮崎県","鹿児島県","沖縄県",
-  ];
-  return PREFS.find((p) => location.startsWith(p)) ?? null;
+  const k = residenceKey(location);
+  return k === OVERSEAS ? location : (k ?? location);
 }
 
 
@@ -236,15 +231,14 @@ export default function CandidatesClient({
   }, [updateSelected]);
 
   // ── 都道府県・スキルタグを candidates から動的生成 ───────────────────
-  const uniquePrefectures = useMemo(() => {
-    const counts = new Map<string, number>();
+  /* ★居住地ごとの人数（2026-10-12）。母集合（絞り込み前）で数える。⚠️ 選択肢は人数に関わらず47＋海外を全部出す */
+  const residenceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
     for (const c of candidates) {
-      const p = extractPrefecture(c.location);
-      if (p) counts.set(p, (counts.get(p) ?? 0) + 1);
+      const k = residenceKey(c.location);
+      if (k) counts[k] = (counts[k] ?? 0) + 1;
     }
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([p]) => p);
+    return counts;
   }, [candidates]);
 
   /* ★「更新時期」で絞ったときに、更新日時が無くて落ちた人数（2026-09-19）。
@@ -819,15 +813,9 @@ export default function CandidatesClient({
         onSelect={(v) => setTenureBand(v ?? "")}
         isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}
       />
-        {uniquePrefectures.length > 0 && (
-        <FilterChip
-          label="居住地" value="" values={selectedPrefectures}
-          options={uniquePrefectures.map((pref) => ({ value: pref, label: pref }))}
-          onSelect={() => {}}
-          onToggleValue={(v) => setSelectedPrefectures(toggleMulti(selectedPrefectures, v))}
-          isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}
-        />
-      )}
+        {/* ★居住地（2026-10-12）。47都道府県を地方ごとに常に全部＋海外。複数選択・地方ごとの「すべて」・クリア／適用 */}
+        <ResidenceFilter selected={selectedPrefectures} counts={residenceCounts} onApply={setSelectedPrefectures}
+          isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")} />
       <button type="button" aria-pressed={hasTouchpoints} data-state="toggle-touchpoints" onClick={() => setHasTouchpoints((v) => !v)} style={toggleStyle(hasTouchpoints)}>
         合うところあり
       </button>
@@ -1206,7 +1194,7 @@ export default function CandidatesClient({
                     </div>
                     <div className="cand-card-main">
                       {(() => {
-                        const pref = c.location ? (extractPrefecture(c.location) ?? c.location) : null;
+                        const pref = residenceLabel(c.location);
                         const role = c.currentRole || c.currentCompany
                           ? c.currentRole
                           : (c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);

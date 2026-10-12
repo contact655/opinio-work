@@ -10,7 +10,8 @@ import { CompanyCreateDialog } from "@/components/companies/CompanyCreateDialog"
 import { useRouter, useSearchParams } from "next/navigation";
 import { readStep2Draft, writeStep2Draft, clearStep2Draft } from "@/lib/onboarding/step2Draft";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
-import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
+import { ResidenceSelect } from "@/components/profile/ResidenceSelect";
+import { parseResidence } from "@/lib/utils/location";
 import { RANKS } from "@/lib/constants/careerOptions";
 /* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
       `/onboarding/stance`（過去に登録を終えた人向けの1枚）と**同じ実装**を使う。
@@ -625,7 +626,8 @@ function OnboardingInner({
     familyName.trim() && givenName.trim() &&
     familyNameKana.trim() && givenNameKana.trim() &&
     birthYear && birthMonth && birthDay &&
-    residence
+    /* ⚠️ 読めない古い値のままでは進めない（選び直してもらう） */
+    parseResidence(residence).choice
   );
 
   /** 1画面目の「次へ」。⚠️ `ow_users` への保存なので `PUT /api/jobseeker/profile` を呼ぶ。 */
@@ -1029,19 +1031,8 @@ function OnboardingInner({
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
               お住まい
             </div>
-            <select
-              value={residence}
-              onChange={(e) => setResidence(e.target.value)}
-              style={{ ...selectStyle, width: "100%" }}
-              aria-label="お住まい"
-            >
-              <option value="">選択してください</option>
-              {RESIDENCE_OPTION_GROUPS.map((g) => (
-                <optgroup key={g.group} label={g.group}>
-                  {g.prefectures.map((pref) => <option key={pref} value={pref}>{pref}</option>)}
-                </optgroup>
-              ))}
-            </select>
+            {/* ⚠️★選択肢・海外の国名・古い値の扱いは共通部品（ResidenceSelect）。ここで展開し直さない */}
+            <ResidenceSelect id="ob-residence" value={residence} onChange={setResidence} selectStyle={{ ...selectStyle, width: "100%" }} />
             {/* ⚠️★**この一文を消さないこと。** 必須にしておきながら
                    「出したくない人の逃げ道」がここにしか書いていない。
                 ⚠️ 「企業に見られます」と書かないこと —— 企業側で見えるのは

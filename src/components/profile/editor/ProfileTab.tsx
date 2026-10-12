@@ -79,7 +79,7 @@ import {
   ProfileTimelineSection,
   ProfileAboutSection,
 } from "@/components/profile/view/ProfileSections";
-import { RESIDENCE_OPTION_GROUPS } from "@/lib/utils/location";
+import { ResidenceSelect } from "@/components/profile/ResidenceSelect";
 import { NAME_PART_MAX, buildDisplayName } from "@/lib/constants/personName";
 import type { Json } from "@/lib/supabase/types";
 import {
@@ -1378,27 +1378,8 @@ export default function ProfileTab({
                      オンボーディング1画面目）を同日に揃えた。 */}
               <FormGroup label="お住まい" hint="現在お住まいの都道府県。「海外」「非公開」も選べます。" htmlFor="pe-location">
                 <div style={{ position: "relative" }}>
-                  <select
-                    id="pe-location"
-                    value={basicInfo.location}
-                    onChange={(e) => setBasicInfo((prev) => ({ ...prev, location: e.target.value }))}
-                    style={selectStyle()}
-                  >
-                    <option value="">選択してください</option>
-                    {/* ⚠️★選択肢は `RESIDENCE_OPTION_GROUPS` の1箇所だけ（2026-09-15）。
-                           ここで展開し直さない —— `/mypage/settings` の「居住地」と
-                           **同じ `ow_users.location`** に書くので、割れると片方で選んだ値が
-                           もう片方で空欄に見え、保存した瞬間に消える。
-                        ⚠️ 直す前はここが `mockProfileData.ts` の `LOCATIONS`（11件）で、
-                           実際に割れていた。 */}
-                    {RESIDENCE_OPTION_GROUPS.map((g) => (
-                      <optgroup key={g.group} label={g.group}>
-                        {g.prefectures.map((loc) => (
-                          <option key={loc} value={loc}>{loc}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                  <ResidenceSelect id="pe-location" value={basicInfo.location}
+                    onChange={(v) => setBasicInfo((prev) => ({ ...prev, location: v }))} selectStyle={selectStyle()} />
                 </div>
               </FormGroup>
 

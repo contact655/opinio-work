@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { buildResidence, parseResidence } from "@/lib/utils/location";
 import { NextResponse } from "next/server";
 import type { Json } from "@/lib/supabase/types";
 /* ⚠️ 空入力の扱いは1箇所に寄せる。ここに if を書き足さないこと（lib/api/normalize.ts の冒頭を参照）。 */
@@ -150,7 +151,13 @@ export async function PUT(req: Request) {
           ⚠️ **列と既存データは残してある。** 実データは3件
              （`linear-gradient(135deg, #002366, #3B5FD9)` 等）で、表示側が読んでいる。 */
     if ("about_me" in body) patch.about_me = optionalText(body.about_me, 2000);
-    if ("location" in body) patch.location = optionalText(body.location, 100);
+    /* ★お住まい（2026-10-12）。選択式の値（47都道府県・「海外」「海外（国名）」・「非公開」）にそろえて保存する。
+          古い自由入力（「東京都渋谷区」）は都道府県に対応づけて保存し直す。対応づけられないものはそのまま（推測で埋めない） */
+    if ("location" in body) {
+      const raw = optionalText(body.location, 100);
+      const parsed = raw ? parseResidence(raw) : null;
+      patch.location = parsed && parsed.choice ? buildResidence(parsed.choice, parsed.country) : raw;
+    }
 
     /* ★プロフィールURL（`/u/<username>`）。編集UIは /profile/edit の基本情報にある。
        ⚠️ 形式は `lib/constants/username.ts` と DB の CHECK（ow_users_username_format）に

@@ -118,3 +118,67 @@ export const RESIDENCE_OPTION_GROUPS: { group: string; prefectures: readonly str
   ...PREFECTURE_FILTER_GROUPS,
   { group: "その他", prefectures: RESIDENCE_EXTRA_OPTIONS },
 ];
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * ★居住地の判定（2026-10-12 / 候補者を探すの居住地の絞り込み）。
+ *
+ *   `ow_users.location` は自由記述の列（DB の CHECK なし）。値は書き換えず、
+ *   **読むときに**都道府県か「海外」へ対応づける。対応づけられないものは null（＝未設定扱い）。
+ *     「東京」「東京都渋谷区」→ 東京都 ／「海外」「海外（アメリカ）」→ 海外 ／「非公開」・空 → null
+ *   ⚠️ 絞り込み・候補者カード・入力欄の初期値が、この関数1つを通る。書き写さないこと。
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/** 「海外」。入力では「海外（国名）」の形で国名を添えられる */
+export const OVERSEAS = "海外" as const;
+
+/** 地方ごとのまとまり（絞り込みの表示順）。⚠️ 47件の中身は `PREFECTURES` と同じ */
+export const PREFECTURE_REGIONS: { region: string; prefectures: readonly string[] }[] = [
+  { region: "北海道・東北", prefectures: ["北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県"] },
+  { region: "関東", prefectures: ["茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県"] },
+  { region: "中部", prefectures: ["新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県", "静岡県", "愛知県"] },
+  { region: "近畿", prefectures: ["三重県", "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県"] },
+  { region: "中国・四国", prefectures: ["鳥取県", "島根県", "岡山県", "広島県", "山口県", "徳島県", "香川県", "愛媛県", "高知県"] },
+  { region: "九州・沖縄", prefectures: ["福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"] },
+];
+
+/** 都道府県名の「都・府・県」を外した呼び方 → 正式名（「東京」→「東京都」）。北海道はそのまま */
+const SHORT_TO_PREF = new Map<string, string>(
+  PREFECTURES.map((p) => [p === "北海道" ? p : p.replace(/[都府県]$/, ""), p]),
+);
+
+/** 居住地の文字列 → 都道府県（正式名）か「海外」。読めなければ null */
+export function residenceKey(location: string | null | undefined): string | null {
+  const s = (location ?? "").trim();
+  if (!s) return null;
+  if (s.startsWith(OVERSEAS)) return OVERSEAS;
+  const full = (PREFECTURES as readonly string[]).find((p) => s.startsWith(p));
+  if (full) return full;
+  /* 「東京」「大阪市北区」のような書き方。長い名前から当てる（「京都」より先に「東京」を見ないと誤る組は無いが、念のため） */
+  const shorts = Array.from(SHORT_TO_PREF.keys()).sort((a, b) => b.length - a.length);
+  const hit = shorts.find((k) => s.startsWith(k));
+  return hit ? (SHORT_TO_PREF.get(hit) as string) : null;
+}
+
+/** 入力の値を組み立てる（「海外」のときだけ国名を添える）。⚠️ 国名は任意 */
+export function buildResidence(choice: string, country: string): string {
+  if (choice !== OVERSEAS) return choice;
+  const c = country.trim();
+  return c ? `${OVERSEAS}（${c}）` : OVERSEAS;
+}
+
+/** 保存された値を入力欄の形に分ける。選択肢に当てはまらない古い値は choice を "" にして raw に残す */
+export function parseResidence(location: string | null | undefined): { choice: string; country: string; raw: string | null } {
+  const s = (location ?? "").trim();
+  if (!s) return { choice: "", country: "", raw: null };
+  if (s.startsWith(OVERSEAS)) {
+    /* 「海外（アメリカ）」の形。それ以外の書き方（「海外 アメリカ」）も国名を落とさない */
+    const m = s.match(/^海外[（(](.*)[）)]$/);
+    const country = m ? m[1] : s.slice(OVERSEAS.length).replace(/^[\s・:：/-]+/, "");
+    return { choice: OVERSEAS, country: country.trim(), raw: null };
+  }
+  if ((RESIDENCE_EXTRA_OPTIONS as readonly string[]).includes(s)) return { choice: s, country: "", raw: null };
+  /* 都道府県の正式名ちょうど → そのまま。それ以外（「東京」「東京都渋谷区」）は対応づけた県を選んだ状態で開く（次に保存すると選択式の値になる） */
+  const key = residenceKey(s);
+  if (key && key !== OVERSEAS) return { choice: key, country: "", raw: key === s ? null : s };
+  return { choice: "", country: "", raw: s };
+}
