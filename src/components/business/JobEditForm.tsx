@@ -25,6 +25,7 @@ import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { payLabel } from "@/lib/utils/salary";
 import { SALES_SEGMENTS, SALES_HUNTER_FARMER_OPTIONS } from "@/lib/constants/salesFields";
 import { TECH_STACK_CATEGORIES } from "@/lib/techStack";
+import { JOB_EXPERIENCE_YEARS, JOB_POSITION_LEVELS } from "@/lib/constants/jobFit";
 import { flattenTree } from "@/lib/business/orgTree";
 
 // ─── 定数 ───────────────────────────────────────────────────────────────────
@@ -97,6 +98,10 @@ type FormState = {
   techStack: string[];
   /** 自社での呼び方。ow_company_job_roles に溜まる（表示専用。検索は標準職種のまま） */
   companyRoleName: string;
+  /** ★この職種の経験年数（"" = 未入力 / "0" = 不問 / "3" = 3年以上）。2026-10-12 */
+  requiredExperienceYears: string;
+  /** ★ポジションのレベル（"" = 未入力。値は RANKS）。2026-10-12 */
+  positionLevel: string;
   /** ★労働条件（2026-10-11）。API には `laborTerms` のまま送る（lib/jobs/laborTerms.ts） */
   laborTerms: LaborTerms;
 };
@@ -112,7 +117,7 @@ function jobToForm(job: BizJob | null): FormState {
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
     whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
     oteMin: "", oteMax: "", salesSegment: [], salesHunterFarmer: "", incentiveNote: "",
-    techStack: [], companyRoleName: "", laborTerms: { ...EMPTY_LABOR_TERMS },
+    techStack: [], companyRoleName: "", requiredExperienceYears: "", positionLevel: "", laborTerms: { ...EMPTY_LABOR_TERMS },
   };
   return {
     title: job.title,
@@ -156,6 +161,8 @@ function jobToForm(job: BizJob | null): FormState {
     salesHunterFarmer: job.salesHunterFarmer ?? "",
     incentiveNote: job.incentiveNote ?? "",
     techStack: job.techStack ?? [],
+    requiredExperienceYears: job.requiredExperienceYears == null ? "" : String(job.requiredExperienceYears),
+    positionLevel: job.positionLevel ?? "",
     // ⚠️ 呼称は BizJob に載っていない。ページ側から initialCompanyRoleName で入れる
     companyRoleName: "",
     laborTerms: job.laborTerms ? { ...job.laborTerms } : { ...EMPTY_LABOR_TERMS },
@@ -420,6 +427,8 @@ export function JobEditForm({
   }, [roles, selectedRoles]);
   const isSalesSelected = selectedRootNames.has("営業");
   const isTechSelected = TECH_ROOT_NAMES.some((n) => selectedRootNames.has(n));
+  /** 代表の職種名（「この職種の経験年数」の見出しに添える） */
+  const primaryRoleName = roles.find((r) => r.id === (selectedRoles.find((x) => x.isPrimary) ?? selectedRoles[0])?.roleId)?.name ?? null;
 
   /*
     検索セレクトから直接 id を受けて追加する。
@@ -730,6 +739,16 @@ export function JobEditForm({
                 </FormGroup>
               )}
 
+              {/* ★ポジションのレベル（2026-10-12）。任意・選ぶだけ。語彙は職歴の役職と同じ（突き合わせに使う） */}
+              <FormGroup>
+                <FormLabel htmlFor="jef-position-level">ポジションのレベル</FormLabel>
+                <div style={{ maxWidth: 360 }}>
+                  <FormSelect id="jef-position-level" value={form.positionLevel} onChange={(v) => updateForm("positionLevel", v)}
+                    options={JOB_POSITION_LEVELS.map((o) => ({ value: o.value, label: o.label }))} />
+                </div>
+                <Hint>任意です。入れると、同じかそれ以上の役職を経験した候補者に「合うところ」として出ます。</Hint>
+              </FormGroup>
+
               <FormLabel required={req("description")} htmlFor="jef-description">仕事内容</FormLabel>
               <textarea
                 /* ⚠️ **描画とセットで扱うこと。** 求職者側は `components/common/Markdown` で解釈する。
@@ -946,6 +965,17 @@ export function JobEditForm({
       case "requirements":
         return (
           <FormSection title="経験・スキル">
+            {/* ★この職種の経験年数（2026-10-12）。任意・選ぶだけ。代表の職種の経験年数で突き合わせる */}
+            <FormGroup>
+              <FormLabel htmlFor="jef-experience-years">
+                この職種の経験年数{primaryRoleName ? <span style={{ fontWeight: 400, color: "var(--ink-mute)" }}>（{primaryRoleName}）</span> : null}
+              </FormLabel>
+              <div style={{ maxWidth: 240 }}>
+                <FormSelect id="jef-experience-years" value={form.requiredExperienceYears} onChange={(v) => updateForm("requiredExperienceYears", v)}
+                  options={JOB_EXPERIENCE_YEARS.map((o) => ({ value: String(o.value), label: o.label }))} />
+              </div>
+              <Hint>任意です。入れると、その年数以上この職種を経験した候補者に「合うところ」として出ます。</Hint>
+            </FormGroup>
             <FormGroup>
               <FormLabel>必須の経験</FormLabel>
               {/* ⚠️ id は禁止表現から移る先（wordingCheck.ts の WORDING_FIELD_TARGETS） */}

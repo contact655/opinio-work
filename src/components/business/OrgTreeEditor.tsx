@@ -51,6 +51,20 @@ export type OrgExtra<T extends OrgRow> = {
   valueOf: (row: T) => string;
   /** body に混ぜる */
   toBody: (value: string) => Record<string, unknown>;
+  /**
+   * ★この列を必須にする（2026-10-12 / 職種の「標準の職種」）。未選択のあいだは追加・保存を押せない。
+   * ⚠️ 担保はサーバー側（POST は 400）。ここは操作感のため。
+   */
+  required?: boolean;
+  /**
+   * ★名前を任意にする（2026-10-12）。名前が空のときは、この列の値から名前を作る（職種なら標準の職種名）。
+   * ⚠️ 返した名前で保存する（`name` 列は NOT NULL のまま）。null を返したら空のまま送らない。
+   */
+  nameFromExtra?: (value: string) => string | null;
+  /** 名前欄の placeholder（任意にしたとき用） */
+  namePlaceholder?: string;
+  /** 一覧の上に出す案内（行の中身から決める。例：標準の職種が未選択の行がある） */
+  notice?: (rows: T[]) => React.ReactNode;
 };
 
 type Props<T extends OrgRow> = {
@@ -148,7 +162,11 @@ function Row<T extends OrgRow>({
   rowAddon?: (row: T) => React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(node.name);
+  /* ★名前がこの列から作られたもの（＝社内の呼び方が無い）なら、編集欄は空で開く。
+        空のまま列だけ変えると、名前も新しい列の値に付いていく */
+  const followsExtra = !!extra?.nameFromExtra && extra.valueOf(node) !== "" && node.name === extra.nameFromExtra(extra.valueOf(node));
+  const initialEditName = followsExtra ? "" : node.name;
+  const [editName, setEditName] = useState(initialEditName);
   const [editExtra, setEditExtra] = useState(extra ? extra.valueOf(node) : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hover, setHover] = useState(false);
@@ -157,9 +175,12 @@ function Row<T extends OrgRow>({
   const collapsed = collapsedIds.has(node.id);
   const used = usage?.counts[node.id] ?? 0;
 
+  const extraMissing = !!extra?.required && !editExtra;
   async function commitRename() {
-    const name = editName.trim();
-    if (!name) { setEditing(false); setEditName(node.name); return; }
+    if (extraMissing) return;
+    const typed = editName.trim();
+    const name = typed || (extra?.nameFromExtra ? (extra.nameFromExtra(editExtra) ?? "") : "");
+    if (!name) { setEditing(false); setEditName(initialEditName); return; }
     const extraChanged = extra ? editExtra !== extra.valueOf(node) : false;
     if (name === node.name && !extraChanged) { setEditing(false); return; }
     await onRename(node.id, name, extra ? editExtra : undefined);
@@ -206,8 +227,9 @@ function Row<T extends OrgRow>({
               onChange={(e) => setEditName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") commitRename();
-                if (e.key === "Escape") { setEditing(false); setEditName(node.name); }
+                if (e.key === "Escape") { setEditing(false); setEditName(initialEditName); }
               }}
+              placeholder={extra?.namePlaceholder}
               style={{
                 flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, fontFamily: "inherit",
                 border: "1px solid var(--line)", borderRadius: 8, padding: "7px 10px",
@@ -216,13 +238,14 @@ function Row<T extends OrgRow>({
             />
             {extra && extra.input(editExtra, setEditExtra)}
             <button
-              type="button" onClick={commitRename} disabled={pending}
-              style={{ padding: "7px 14px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+              type="button" onClick={commitRename} disabled={pending || extraMissing}
+              title={extraMissing ? "標準の職種を選んでください" : undefined}
+              style={{ padding: "7px 14px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, opacity: pending || extraMissing ? 0.45 : 1 }}
             >
               保存
             </button>
             <button
-              type="button" onClick={() => { setEditing(false); setEditName(node.name); setEditExtra(extra ? extra.valueOf(node) : ""); }}
+              type="button" onClick={() => { setEditing(false); setEditName(initialEditName); setEditExtra(extra ? extra.valueOf(node) : ""); }}
               style={{ padding: "7px 10px", fontSize: 13, border: "none", borderRadius: 8, background: "transparent", color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
             >
               やめる
@@ -582,8 +605,11 @@ export function OrgTreeEditor<T extends OrgRow>({
   }
   const draftDepth = draftPath().length + 1;
 
+  const draftExtraMissing = !!extra?.required && !draftExtra;
+  const draftResolvedName = draftName.trim() || (extra?.nameFromExtra ? (extra.nameFromExtra(draftExtra) ?? "") : "");
   async function commitDraft() {
-    const name = draftName.trim();
+    if (draftExtraMissing) return;
+    const name = draftResolvedName;
     if (!name) return;
     const created = await createRow(pendingParentId, name, draftExtra);
     if (!created) return;               // ⚠️ 失敗時は入力を残す（打ち直さずに済む）
@@ -669,6 +695,8 @@ export function OrgTreeEditor<T extends OrgRow>({
         </div>
       )}
 
+      {extra?.notice?.(rows)}
+
       <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
         {/* 見出し。件数と、いちばん使う操作（追加）をここに置く */}
         <div className="org-card-head" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: "1px solid var(--line)" }}>
@@ -746,7 +774,7 @@ export function OrgTreeEditor<T extends OrgRow>({
                 <input
                   ref={draftRef}
                   autoFocus
-                  placeholder={`${unit}名を入力して Enter（例：${example}）`}
+                  placeholder={extra?.namePlaceholder ?? `${unit}名を入力して Enter（例：${example}）`}
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
                   onKeyDown={(e) => {
@@ -776,9 +804,9 @@ export function OrgTreeEditor<T extends OrgRow>({
                 />
                 {extra && extra.input(draftExtra, setDraftExtra)}
                 <button
-                  type="button" onClick={commitDraft} disabled={!draftName.trim() || isPending}
+                  type="button" onClick={commitDraft} disabled={!draftResolvedName || draftExtraMissing || isPending}
                   className="org-primary-btn"
-                  style={{ padding: "7px 18px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, opacity: !draftName.trim() || isPending ? 0.45 : 1 }}
+                  style={{ padding: "7px 18px", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, background: "var(--royal)", color: "#fff", cursor: "pointer", fontFamily: "inherit", flexShrink: 0, opacity: !draftResolvedName || draftExtraMissing || isPending ? 0.45 : 1 }}
                 >
                   追加
                 </button>
@@ -794,6 +822,11 @@ export function OrgTreeEditor<T extends OrgRow>({
               )}
             </div>
 
+            {draftExtraMissing && draftName.trim() && (
+              <div data-state="org-draft-extra-missing" style={{ marginTop: 8, fontSize: 12, color: "var(--ink-mute)" }}>
+                標準の職種を選ぶと追加できます
+              </div>
+            )}
             {/* ⚠️ キーの説明は欄の中に置く。**下のヒントまで読みに行かせない** */}
             <div className="org-kbd-hints" style={{ marginTop: 10, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
               <kbd style={kbd}>Enter</kbd> で追加して続けて入力／

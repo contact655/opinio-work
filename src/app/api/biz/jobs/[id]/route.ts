@@ -1,4 +1,5 @@
 import { resolveOwnDepartmentId } from "@/lib/business/jobDepartment";
+import { parseJobExperienceYears, parseJobPositionLevel } from "@/lib/constants/jobFit";
 import { laborToRow } from "@/lib/jobs/laborTerms";
 import { requestPublish } from "@/lib/jobs/publishServer";
 import { COMPANY_NOT_LISTED_MESSAGE, blockedMessage } from "@/lib/jobs/publishGate";
@@ -68,6 +69,11 @@ export async function PUT(
   const dept = await resolveOwnDepartmentId(ctx0.companyId, body.departmentId);
   if (!dept.ok) return NextResponse.json({ error: dept.error }, { status: 400 });
 
+  const fitYearsRaw = parseJobExperienceYears(body.requiredExperienceYears);
+  const fitLevelRaw = parseJobPositionLevel(body.positionLevel);
+  const fitYears = fitYearsRaw === "invalid" ? undefined : fitYearsRaw;
+  const fitLevel = fitLevelRaw === "invalid" ? undefined : fitLevelRaw;
+
   const now = new Date().toISOString();
 
   const { error: updateErr } = await supabase
@@ -110,6 +116,9 @@ export async function PUT(
       incentive_note: str(body.incentiveNote, 1000) || null,
       tech_stack: Array.isArray(body.techStack) ? (body.techStack as string[]).filter((s) => typeof s === "string").slice(0, 40) : [],
       department_id: dept.id,
+      /* ★経験年数・ポジションのレベル（2026-10-12）。⚠️ 送られてこなければ触らない */
+      ...(fitYears !== undefined ? { required_experience_years: fitYears } : {}),
+      ...(fitLevel !== undefined ? { position_level: fitLevel } : {}),
       ...(labor ? labor.row : {}),
       updated_at: now,
     })

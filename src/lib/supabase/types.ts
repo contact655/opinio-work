@@ -3843,6 +3843,7 @@ export type Database = {
           ote_max: number | null
           ote_min: number | null
           overtime: string | null
+          position_level: string | null
           positives: string[] | null
           preferred: string | null
           preferred_skills: string[] | null
@@ -3852,6 +3853,7 @@ export type Database = {
           rejection_reason: string | null
           rejection_reviewer: string | null
           remote_work_status: string | null
+          required_experience_years: number | null
           required_skills: string[] | null
           requirements: string | null
           role_category_id: string | null
@@ -3935,6 +3937,7 @@ export type Database = {
           ote_max?: number | null
           ote_min?: number | null
           overtime?: string | null
+          position_level?: string | null
           positives?: string[] | null
           preferred?: string | null
           preferred_skills?: string[] | null
@@ -3944,6 +3947,7 @@ export type Database = {
           rejection_reason?: string | null
           rejection_reviewer?: string | null
           remote_work_status?: string | null
+          required_experience_years?: number | null
           required_skills?: string[] | null
           requirements?: string | null
           role_category_id?: string | null
@@ -4027,6 +4031,7 @@ export type Database = {
           ote_max?: number | null
           ote_min?: number | null
           overtime?: string | null
+          position_level?: string | null
           positives?: string[] | null
           preferred?: string | null
           preferred_skills?: string[] | null
@@ -4036,6 +4041,7 @@ export type Database = {
           rejection_reason?: string | null
           rejection_reviewer?: string | null
           remote_work_status?: string | null
+          required_experience_years?: number | null
           required_skills?: string[] | null
           requirements?: string | null
           role_category_id?: string | null

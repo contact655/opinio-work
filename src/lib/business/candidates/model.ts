@@ -23,7 +23,9 @@ export type TouchpointKind =
   | "location"        // ③ 求人の勤務地 × 居住地
   | "target_industry" // ④a 顧客の業界 × 職歴の業種
   | "business_domain" // ④b 事業領域 × 前の勤務先の事業領域
-  | "alumni";         // ⑤ 社員の前職 × 候補者の前職
+  | "alumni"          // ⑤ 社員の前職 × 候補者の前職
+  | "position_level"  // ★求人のレベル × 職歴の役職（2026-10-12）
+  | "business_stage"; // ★自社の事業ステージ（細かい段）× 前の勤務先（2026-10-12）
 export type Touchpoint = {
   kind: TouchpointKind;
   /** 画面に出す1文。⚠️ 社員の名前・候補者が伏せた勤務先は入らない */
@@ -44,6 +46,10 @@ export type TouchpointMaterials = {
   hasJobs: boolean;
   hasCompanyRoles: boolean;
   hasPublicEmployees: boolean;
+  /** ★標準の職種が未選択の自社職種がある（2026-10-12。案内の出し分け） */
+  hasUnlinkedCompanyRoles?: boolean;
+  /** ★公開中の求人に、経験年数が未入力のものがある（2026-10-12。案内の出し分け） */
+  hasJobsWithoutYears?: boolean;
 };
 
 export type Candidate = {

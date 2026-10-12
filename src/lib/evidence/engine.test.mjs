@@ -385,3 +385,25 @@ test("★既存の4種類の文は変わらない（label をそのまま出す�
   assert.equal(evidenceText(ev[0], "company"), "テスト株式会社には、話を聞ける人が 2名います");
   assert.equal(evidenceText(ev[0], "candidate"), "テスト株式会社には、話を聞ける人が 2名います");
 });
+
+// ── ★具体的な文（2026-10-12）──────────────────────────────────────────────────
+test("★経験年数を満たす求人は、何年・何を求めているかまで書く", () => {
+  const f = { kind: "job_role", jobId: "j1", jobTitle: "FS", months: 62, requiredYears: 3, roleName: "フィールドセールス" };
+  assert.equal(fitText(f, "company"), "フィールドセールスを5年経験（求人『FS』の求める経験：3年以上）");
+  assert.doesNotMatch(fitText(f, "candidate"), /貴社/);
+});
+
+test("★部門と職種は、候補者側の職種名と会社側の職種名を並べる", () => {
+  const f = { kind: "company_role", companyJobRoleId: "r1", roleName: "フィールドセールス", departments: ["営業部"],
+    byExperience: false, byDesired: true, desiredRoleName: "フィールドセールス", standardRoleName: "フィールドセールス" };
+  assert.equal(fitText(f, "company"), "関心のある職種『フィールドセールス』が、営業部の職種『フィールドセールス』と一致");
+  /* 親子で合ったときは「一致」と言わない */
+  const parent = { ...f, desiredRoleName: "営業" };
+  assert.equal(fitText(parent, "company"), "関心のある職種『営業』が、営業部の職種『フィールドセールス』と同じ系統の職種です");
+  assert.doesNotMatch(fitText(f, "candidate"), /貴社/);
+});
+
+test("★名前を持たない古い事実は、従来の文のまま", () => {
+  assert.equal(fitText(ROLE, "company"), "部門『営業本部』の職種と、経験職種が合っています");
+  assert.equal(fitText(JOB, "company"), "求人『AE』と同じ職種の経験があります（経験3年）");
+});

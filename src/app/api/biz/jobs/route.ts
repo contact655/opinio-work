@@ -10,6 +10,12 @@ import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { validateJobOptionFields, toUrgency } from "@/lib/business/jobs";
+import { parseJobExperienceYears, parseJobPositionLevel } from "@/lib/constants/jobFit";
+
+/** 新規作成では「送られてこない」も未入力（null） */
+function fitValue<T>(v: T | null | undefined | "invalid"): T | null {
+  return v === undefined || v === "invalid" ? null : v;
+}
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" ? v.slice(0, max) || undefined : undefined;
@@ -63,6 +69,9 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     sales_hunter_farmer: str(body.salesHunterFarmer, 20) ?? null,
     incentive_note: str(body.incentiveNote, 1000) ?? null,
     tech_stack: strArr(body.techStack).slice(0, 40),
+    /* ★経験年数・ポジションのレベル（2026-10-12）。不正値は validateJobOptionFields が先に 400 */
+    required_experience_years: fitValue(parseJobExperienceYears(body.requiredExperienceYears)),
+    position_level: fitValue(parseJobPositionLevel(body.positionLevel)),
     /* ⚠️★2026-09-02 追加。**この3つは PUT にしか無く、新規作成の初回保存で落ちていた。**
           フォームは `currentJobId` が無いときだけ POST するので、
           「なぜ今採用するか」「チーム構成」「入社後90日」を書いてから

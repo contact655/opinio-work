@@ -62,6 +62,10 @@ export type BizJob = {
   incentiveNote?: string | null;
   // 技術スタック (Migration 245)
   techStack?: string[] | null;
+  /** ★この職種の経験年数（0=不問 / N年以上）。NULL=未入力（2026-10-12） */
+  requiredExperienceYears?: number | null;
+  /** ★ポジションのレベル（職歴の役職と同じ語彙）。NULL=未入力（2026-10-12） */
+  positionLevel?: string | null;
   /* ── ★2026-09-02 に追加。**入力欄と PUT は前からあったのに、この型に無く
         `jobToForm` が空文字で固定していたため、編集画面を開き直すと消えていた。**
         `salary_note` は本番の公開2件とも埋まっており、企業が1回保存すれば失われる状態だった。

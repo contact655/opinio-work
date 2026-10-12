@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { mutateMany, mutateOne } from "@/lib/supabase/mutate";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { validateMove, type OrgNodeLike } from "@/lib/business/orgTree";
+import { lookupStandardRole } from "@/lib/business/standardRole";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
@@ -16,8 +17,22 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const body = await req.json();
   const patch: { name?: string; standard_role_id?: string | null; display_order?: number; parent_id?: string | null } = {};
-  if (body.name !== undefined) patch.name = String(body.name).trim();
-  if (body.standard_role_id !== undefined) patch.standard_role_id = typeof body.standard_role_id === "string" ? body.standard_role_id : null;
+  /* ★標準の職種は外せない（2026-10-12）。選ぶ・選び直すだけ。
+        ⚠️ 名前だけ・並べ替えだけの PATCH は standard_role_id を送らないので、未選択の古い行も動かせる */
+  let standardName: string | null = null;
+  if (body.standard_role_id !== undefined) {
+    const standard = await lookupStandardRole(body.standard_role_id);
+    if (!standard) return NextResponse.json({ error: "標準の職種を選んでください" }, { status: 400 });
+    patch.standard_role_id = standard.id;
+    standardName = standard.name;
+  }
+  if (body.name !== undefined) {
+    const typed = String(body.name).trim();
+    /* 呼び方を空にしたら標準の職種名で表示する。標準の職種が分からないときは空で上書きしない */
+    if (typed) patch.name = typed;
+    else if (standardName) patch.name = standardName;
+    else return NextResponse.json({ error: "職種名を入力してください" }, { status: 400 });
+  }
   if (body.display_order !== undefined) patch.display_order = Number(body.display_order);
 
   const supabase = createClient();

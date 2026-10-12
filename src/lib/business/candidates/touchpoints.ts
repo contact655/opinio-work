@@ -9,6 +9,9 @@ import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 import { isRegisteredUser } from "@/lib/users/registered";
 import type { Touchpoint, TouchpointMaterials } from "@/lib/business/candidates/model";
 import { fitText, type FitFact } from "@/lib/evidence/fit";
+import { RANK_LABELS } from "@/lib/constants/careerOptions";
+import { rankOrder } from "@/lib/constants/jobFit";
+import { phaseLabel } from "@/lib/constants/phase";
 export type { TouchpointMaterials };
 
 /**
@@ -46,7 +49,16 @@ export type TouchpointResult = {
   materials: TouchpointMaterials;
 };
 
-const WEIGHT = { job_role: 5, company_role: 4, alumni: 3, target_industry: 3, business_domain: 2, location: 1 } as const;
+/* ★並び順（2026-10-12 / 柴さんの指示）: 仕事（職種・経験年数・レベル）→ 業界（顧客の業界・事業領域）→ 人（出身）→ 条件（勤務地）→ 事業ステージ。
+      ⚠️ 重みは並べるためだけの値（画面に出さない・％にしない） */
+const WEIGHT = {
+  job_experience: 9, job_role: 8, position_level: 7, company_role: 6,
+  target_industry: 5, business_domain: 4, alumni: 3, location: 2, business_stage: 1,
+} as const;
+
+/** ★事業ステージは細かい段（シリーズB・グロース上場など）が同じときだけ合うところにする。
+ *   ⚠️ 大分類（スタートアップ／上場企業／非上場）だけの一致は出さない（外資の上場企業が軒並み当たり、信号が弱い） */
+const COARSE_PHASES = new Set(["startup", "listed", "non_listed"]);
 
 /** 職種が「同じ」か「親子」（両方向）。兄弟は合わない */
 export function rolesRelated(tree: RoleTree, a: string, b: string): boolean {
@@ -77,6 +89,10 @@ type Exp = {
   role_category_id: string | null; started_at: string | null; ended_at: string | null;
   is_current: boolean; visibility_company: string | null;
   companyName: string | null;
+  /** 役職（RANKS の値）。⚠️ 会社を伏せた職歴でも使う（職種と同じく、伏せる対象は社名） */
+  rank: string | null;
+  /** 勤務先の事業ステージ（マスタの会社のときだけ） */
+  companyPhase: string | null;
 };
 
 export async function getCompanyCandidateTouchpoints(
@@ -89,10 +105,10 @@ export async function getCompanyCandidateTouchpoints(
   const ids = Array.from(new Set(candidates.map((c) => c.owUserId)));
 
   // ── 自社の材料（企業ごとに1回）───────────────────────────────────────────
-  const [jobsR, rolesR, linksR, deptR, targetR, domainR, empExpR, hiddenR, tree] = await Promise.all([
+  const [jobsR, rolesR, linksR, deptR, targetR, domainR, empExpR, hiddenR, tree, unlinkedR, ownCoR] = await Promise.all([
     /* ⚠️ 自社の求人だけ。is_test は自社と同じもの（実在の企業には実在の求人だけ） */
     /* ⚠️ 公開日の新しい順（同じ年数の求人が2件当たったとき、提案が選ぶ求人を決まった1件にするため） */
-    db.from("ow_jobs").select("id, title, location, published_at, ow_job_roles(role_id)")
+    db.from("ow_jobs").select("id, title, location, published_at, required_experience_years, position_level, ow_job_roles(role_id)")
       .eq("company_id", companyId).eq("status", "published").eq("is_test", companyIsTest)
       .order("published_at", { ascending: false, nullsFirst: false }).order("id", { ascending: true }),
     db.from("ow_company_job_roles").select("id, name, standard_role_id")
@@ -106,15 +122,24 @@ export async function getCompanyCandidateTouchpoints(
       .eq("company_id", companyId).eq("is_current", true).neq("visibility_company", "hidden"),
     db.from("ow_company_hidden_experiences").select("experience_id").eq("company_id", companyId),
     getRoleTree(),
+    /* ★標準の職種が未選択の自社職種（案内の出し分けだけに使う。2026-10-12） */
+    db.from("ow_company_job_roles").select("id", { count: "exact", head: true })
+      .eq("company_id", companyId).is("deleted_at", null).is("standard_role_id", null),
+    /* ★自社の事業ステージ（2026-10-12） */
+    db.from("ow_companies").select("phase").eq("id", companyId).maybeSingle(),
   ]);
-  for (const r of [jobsR, rolesR, linksR, deptR, targetR, domainR, empExpR, hiddenR]) {
+  for (const r of [jobsR, rolesR, linksR, deptR, targetR, domainR, empExpR, hiddenR, unlinkedR, ownCoR]) {
     if (r.error) { console.error("[touchpoints] 自社の材料:", r.error.message); return null; }
   }
   const jobs = (jobsR.data ?? []).map((j) => ({
     id: j.id as string, title: (j.title as string) ?? "",
     pref: prefOf(j.location as string | null),
     roleIds: ((j.ow_job_roles as { role_id: string }[] | null) ?? []).map((x) => x.role_id),
+    requiredYears: (j.required_experience_years as number | null) ?? null,
+    level: (j.position_level as string | null) ?? null,
   }));
+  const ownPhase = (ownCoR.data?.phase as string | null) ?? null;
+  const ownFinePhase = ownPhase && !COARSE_PHASES.has(ownPhase) ? ownPhase : null;
   const deptName = new Map((deptR.data ?? []).map((d) => [d.id as string, d.name as string]));
   const deptsByRole = new Map<string, string[]>();
   for (const l of linksR.data ?? []) {
@@ -141,7 +166,7 @@ export async function getCompanyCandidateTouchpoints(
   const [expR, empUsersR] = await Promise.all([
     allUserIds.length
       ? db.from("ow_experiences")
-          .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_companies!company_id(name, industry_id)")
+          .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, industry_id, phase)")
           .in("user_id", allUserIds)
       : Promise.resolve({ data: [], error: null }),
     empIds.length
@@ -155,7 +180,7 @@ export async function getCompanyCandidateTouchpoints(
   const industryOfCompany = new Map<string, string | null>();
   const expsByUser = new Map<string, Exp[]>();
   for (const e of (expR.data ?? []) as Record<string, unknown>[]) {
-    const co = e.ow_companies as { name: string | null; industry_id: string | null } | null;
+    const co = e.ow_companies as { name: string | null; industry_id: string | null; phase: string | null } | null;
     if (e.company_id) industryOfCompany.set(e.company_id as string, co?.industry_id ?? null);
     const row: Exp = {
       id: e.id as string, user_id: e.user_id as string,
@@ -164,6 +189,8 @@ export async function getCompanyCandidateTouchpoints(
       started_at: (e.started_at as string | null) ?? null, ended_at: (e.ended_at as string | null) ?? null,
       is_current: e.is_current === true, visibility_company: (e.visibility_company as string | null) ?? "real",
       companyName: (co?.name ?? (e.company_text as string | null) ?? "").trim() || null,
+      rank: (e.rank as string | null) ?? null,
+      companyPhase: co?.phase ?? null,
     };
     const arr = expsByUser.get(row.user_id) ?? [];
     arr.push(row);
@@ -234,20 +261,52 @@ export async function getCompanyCandidateTouchpoints(
     }
     const expRoleIds = Array.from(monthsByRole.keys());
 
-    // ① 求人の職種
+    // ① 求人の職種（＋経験年数）
     for (const j of jobs) {
       const hit = expRoleIds.filter((r) => j.roleIds.some((jr) => rolesRelated(tree, r, jr)));
       if (hit.length === 0) continue;
-      const months = Math.max(...hit.map((r) => monthsByRole.get(r) ?? 0));
-      const fact: FitFact = { kind: "job_role", jobId: j.id, jobTitle: j.title, months };
-      out.push({ kind: "job_role", weight: WEIGHT.job_role, ref: { type: "job", id: j.id }, fact, text: fitText(fact, "company") });
+      /* いちばん長く経験した、求人と合う職種 */
+      const best = hit.reduce((a, b) => ((monthsByRole.get(b) ?? 0) > (monthsByRole.get(a) ?? 0) ? b : a));
+      const months = monthsByRole.get(best) ?? 0;
+      /* ★経験年数（2026-10-12）。求人が「N年以上」を求めていて、満たすときだけ（不問・未入力・足りないときは従来どおり） */
+      const met = !!j.requiredYears && j.requiredYears > 0 && Math.floor(months / 12) >= j.requiredYears;
+      const roleName = tree.byId.get(best)?.name;
+      const fact: FitFact = met && roleName
+        ? { kind: "job_role", jobId: j.id, jobTitle: j.title, months, requiredYears: j.requiredYears as number, roleName }
+        : { kind: "job_role", jobId: j.id, jobTitle: j.title, months };
+      out.push({ kind: "job_role", weight: met && roleName ? WEIGHT.job_experience : WEIGHT.job_role, ref: { type: "job", id: j.id }, fact, text: fitText(fact, "company") });
+    }
+    // ★ポジションのレベル（2026-10-12）× 職歴の役職。同じかそれ以上の役職を経験していれば
+    const myRank = exps.reduce<number | null>((m, e) => {
+      const o = rankOrder(e.rank);
+      return o == null ? m : m == null ? o : Math.max(m, o);
+    }, null);
+    if (myRank != null) {
+      for (const j of jobs) {
+        const need = rankOrder(j.level);
+        /* ⚠️「役職なし」の求人は出さない（誰でも満たすので合うところにならない） */
+        if (need == null || need === 0 || myRank < need) continue;
+        const mine = exps.map((e) => e.rank).find((r) => rankOrder(r) === myRank) ?? null;
+        const mineLabel = mine ? RANK_LABELS[mine] : null;
+        const needLabel = j.level ? RANK_LABELS[j.level] : null;
+        if (!mineLabel || !needLabel) continue;
+        out.push({ kind: "position_level", weight: WEIGHT.position_level, ref: { type: "job", id: j.id },
+          text: `${mineLabel}の経験があります（求人『${j.title}』のレベル：${needLabel}）` });
+      }
     }
     // ② 自社が登録した職種（部門）
+    const roleNameOf = (id: string) => tree.byId.get(id)?.name;
     for (const r of companyRoles) {
-      const byExp = expRoleIds.some((x) => rolesRelated(tree, x, r.standardRoleId));
-      const byDesired = c.desiredRoleIds.some((x) => rolesRelated(tree, x, r.standardRoleId));
+      const expHit = expRoleIds.find((x) => rolesRelated(tree, x, r.standardRoleId));
+      const desiredHit = c.desiredRoleIds.find((x) => rolesRelated(tree, x, r.standardRoleId));
+      const byExp = !!expHit, byDesired = !!desiredHit;
       if (!byExp && !byDesired) continue;
-      const fact: FitFact = { kind: "company_role", companyJobRoleId: r.id, roleName: r.name, departments: r.departments, byExperience: byExp, byDesired };
+      const fact: FitFact = {
+        kind: "company_role", companyJobRoleId: r.id, roleName: r.name, departments: r.departments, byExperience: byExp, byDesired,
+        ...(roleNameOf(r.standardRoleId) ? { standardRoleName: roleNameOf(r.standardRoleId) } : {}),
+        ...(expHit && roleNameOf(expHit) ? { expRoleName: roleNameOf(expHit) } : {}),
+        ...(desiredHit && roleNameOf(desiredHit) ? { desiredRoleName: roleNameOf(desiredHit) } : {}),
+      };
       out.push({ kind: "company_role", weight: WEIGHT.company_role, ref: { type: "company_job_role", id: r.id }, fact, text: fitText(fact, "company") });
     }
     // ⑤ 社員とのつながり（社名を出している職歴だけ。is_test が候補者と一致する社員だけ数える）
@@ -300,6 +359,13 @@ export async function getCompanyCandidateTouchpoints(
       if (j) out.push({ kind: "location", weight: WEIGHT.location, ref: { type: "job", id: j.id },
         text: `求人の勤務地（${pref}）とお住まいが合っています` });
     }
+    // ★事業ステージ（2026-10-12）。細かい段が同じ会社の経験があるときだけ・いちばん下に
+    if (ownFinePhase) {
+      const e = exps.find((x) => x.company_id && x.company_id !== companyId && x.visibility_company === "real" && x.companyPhase === ownFinePhase && x.companyName);
+      const label = phaseLabel(ownFinePhase);
+      if (e && label) out.push({ kind: "business_stage", weight: WEIGHT.business_stage, ref: null,
+        text: `同じ事業ステージ（${label}）の会社（${e.companyName}）での経験があります` });
+    }
     out.sort((a, b) => b.weight - a.weight);
     byCandidate.set(c.owUserId, out);
   }
@@ -310,6 +376,8 @@ export async function getCompanyCandidateTouchpoints(
       hasJobs: jobs.length > 0,
       hasCompanyRoles: companyRoles.length > 0,
       hasPublicEmployees: empUsers.size > 0,
+      hasUnlinkedCompanyRoles: (unlinkedR.count ?? 0) > 0,
+      hasJobsWithoutYears: jobs.some((j) => j.requiredYears == null),
     },
   };
 }

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MAX_ORG_DEPTH, wouldExceedDepth, type OrgNodeLike } from "@/lib/business/orgTree";
+import { lookupStandardRole } from "@/lib/business/standardRole";
 
 export async function GET() {
   const ctx = await getTenantContext();
@@ -48,7 +49,12 @@ export async function POST(req: Request) {
   }
 
   const { name, parent_id, standard_role_id, display_order } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: "職種名を入力してください" }, { status: 400 });
+  /* ★標準の職種は必須・社内での呼び方は任意（2026-10-12 / 柴さんの指示）。
+        標準の職種は候補者の職歴・関心のある職種と突き合わせる軸で、無いと「合うところ」に使えない。
+        ⚠️ 呼び方が空なら標準の職種名で保存する（`name` は NOT NULL のまま）。 */
+  const standard = await lookupStandardRole(standard_role_id);
+  if (!standard) return NextResponse.json({ error: "標準の職種を選んでください" }, { status: 400 });
+  const resolvedName = (typeof name === "string" && name.trim()) ? name.trim() : standard.name;
 
   const supabase = createClient();
 
@@ -82,9 +88,9 @@ export async function POST(req: Request) {
     .from("ow_company_job_roles")
     .insert({
       company_id: ctx.tenantId,
-      name: name.trim(),
+      name: resolvedName,
       parent_id: parent_id ?? null,
-      standard_role_id: standard_role_id ?? null,
+      standard_role_id: standard.id,
       display_order: display_order ?? 0,
     })
     .select("id, parent_id, name, standard_role_id, display_order")

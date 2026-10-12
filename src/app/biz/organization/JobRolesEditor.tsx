@@ -38,10 +38,19 @@ type Props = {
   roleDepartments?: Record<string, string[]>;
 };
 
-function StandardRoleBadge({ roleId, roles }: { roleId: string | null; roles: StandardRole[] }) {
-  if (!roleId) return null;
+function StandardRoleBadge({ roleId, roles, name }: { roleId: string | null; roles: StandardRole[]; name: string }) {
+  /* ★未選択の行（2026-10-12 より前に作られたもの）。灰色の文字で出す。バッジにしない */
+  if (!roleId) {
+    return (
+      <span data-state="standard-role-missing" style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>
+        標準の職種を選んでください
+      </span>
+    );
+  }
   const role = roles.find((r) => r.id === roleId);
   if (!role) return null;
+  /* 社内の呼び方が無い（＝名前が標準の職種名そのもの）なら、同じ語を2回並べない */
+  if (role.name === name) return null;
   return (
     <span style={{
       display: "inline-flex",
@@ -66,11 +75,14 @@ function StandardRoleCombobox({
   onChange,
   roles,
   placeholder,
+  required = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   roles: StandardRole[];
   placeholder?: string;
+  /** ★必須（2026-10-12）。「紐づけなし」と ✕ を出さない */
+  required?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -218,7 +230,7 @@ function StandardRoleCombobox({
             minWidth: 0,
           }}
         />
-        {value && (
+        {value && !required && (
           <button
             type="button"
             onClick={handleClear}
@@ -252,8 +264,8 @@ function StandardRoleCombobox({
             listStyle: "none",
           }}
         >
-          {/* 未設定に戻す */}
-          <li
+          {/* 未設定に戻す。⚠️ 必須のときは出さない */}
+          {!required && <li
             onClick={() => handleSelect("")}
             style={{
               padding: "6px 12px",
@@ -267,7 +279,7 @@ function StandardRoleCombobox({
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             紐づけなし
-          </li>
+          </li>}
 
           {filtered.length === 0 ? (
             <li style={{ padding: "8px 12px", fontSize: 12, color: "var(--ink-mute)" }}>
@@ -344,10 +356,25 @@ export function JobRolesEditor({ initialRoles, standardRoles, readOnly = false, 
       initialRows={initialRoles}
       example="フィールドセールス"
       extra={{
-        view: (row) => <StandardRoleBadge roleId={row.standard_role_id} roles={standardRoles} />,
+        view: (row) => <StandardRoleBadge roleId={row.standard_role_id} roles={standardRoles} name={row.name} />,
         input: (value, onChange) => (
-          <StandardRoleCombobox value={value} onChange={onChange} roles={standardRoles} />
+          <StandardRoleCombobox value={value} onChange={onChange} roles={standardRoles} required placeholder="標準の職種を選ぶ（必須）" />
         ),
+        /* ★標準の職種は必須・社内での呼び方は任意（2026-10-12 / 柴さんの指示）。
+              呼び方が空なら標準の職種名で保存する（`name` は NOT NULL のまま）。
+              ⚠️ 必須の担保はサーバー（`POST /api/biz/job-roles` が 400）。 */
+        required: true,
+        nameFromExtra: (value) => standardRoles.find((r) => r.id === value)?.name ?? null,
+        namePlaceholder: "社内での呼び方（任意・例：PDM、FS）",
+        notice: (rows) => {
+          const missing = rows.filter((r) => !r.standard_role_id).length;
+          if (missing === 0) return null;
+          return (
+            <p data-state="standard-role-missing-notice" style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+              標準の職種が選ばれていない職種が{missing}件あります。選ぶまで、候補者を探すの「合うところ」には使われません（行の ✎ から選べます）。
+            </p>
+          );
+        },
         valueOf: (row) => row.standard_role_id ?? "",
         /* ⚠️ 空文字は「紐づけなし」。**null で送る**（"" のまま送ると
               uuid の列に空文字が入って 400 になる）。 */
@@ -357,7 +384,8 @@ export function JobRolesEditor({ initialRoles, standardRoles, readOnly = false, 
         <>下の入力欄は <b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上。最大{MAX_ORG_DEPTH}階層）</>,
         <>行の <b>↑ ↓</b> で並べ替え、<b>← →</b> で階層を変えられます</>,
         <>職種名は社内で使っている呼び方で構いません（例：FS, AE, IC などの略称も可）</>,
-        <><b>標準職種</b>と紐づけると、OPINIO の求人検索・マッチングで正しく分類されます</>,
+        <><b>標準の職種</b>は必須です。候補者の職歴・関心のある職種と突き合わせて「合うところ」を出すのに使います</>,
+        <>社内での呼び方は任意です。空なら標準の職種名で表示します</>,
         <>職種名をダブルクリックすると名前を変更できます</>,
         <>削除すると<b>その下の職種も一緒に削除されます</b>。紐づいた求人の記録は残ります</>,
       ]}

@@ -47,7 +47,33 @@ function formatTenure(months: number | null): string | null {
 /** ★合うところの分類（太字で頭に出す）。判定の種類（kind）を名前にしただけで、判定は変えていない */
 const TOUCHPOINT_CATEGORY: Record<Touchpoint["kind"], string> = {
   job_role: "職種", company_role: "職種", location: "勤務地", target_industry: "業界", business_domain: "事業領域", alumni: "出身",
+  position_level: "レベル", business_stage: "事業ステージ",
 };
+/** ★求人の職種のうち、求める経験年数を満たしたもの（2026-10-12）は「経験年数」と出す */
+function touchpointCategory(t: Touchpoint): string {
+  if (t.fact?.kind === "job_role" && t.fact.requiredYears) return "経験年数";
+  return TOUCHPOINT_CATEGORY[t.kind] ?? "";
+}
+
+/**
+ * ★「合うところ」が0件の候補者に出す案内（2026-10-12 / 柴さんの指示）。灰色の1行。
+ *   会社側のデータが足りないときだけ出す（足しても合う人が増えないなら出さない）。
+ * ⚠️ 取れなかった（materials が null・touchpoints が undefined）ときは出さない。
+ */
+export function TouchpointGuide({ touchpoints, materials }: { touchpoints: Touchpoint[] | undefined; materials: TouchpointMaterials | null }) {
+  if (!touchpoints || touchpoints.length > 0 || !materials) return null;
+  const line = materials.hasUnlinkedCompanyRoles
+    ? { href: "/biz/organization?tab=roles", text: "部門・職種で標準の職種を選ぶと、合う候補者が見つかりやすくなります" }
+    : materials.hasJobs && materials.hasJobsWithoutYears
+      ? { href: "/biz/jobs", text: "求人に経験年数を入れると、合う候補者が見つかりやすくなります" }
+      : null;
+  if (!line) return null;
+  return (
+    <p data-state="touchpoint-guide" style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+      <a href={line.href} style={{ color: "inherit", textDecoration: "none" }}>{line.text} ›</a>
+    </p>
+  );
+}
 
 /**
  * 「〈会社名〉と合うところ（〇）」の枠（2026-10-11 に「貴社との接点」から改めた）。
@@ -71,7 +97,7 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
           <li key={`${t.kind}:${t.ref?.id ?? i}`} data-touchpoint={t.kind}
             style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, lineHeight: 1.6, color: "var(--ink)", overflowWrap: "anywhere" }}>
             <span aria-hidden="true" style={{ flexShrink: 0, color: "var(--royal)", fontWeight: 700 }}>✓</span>
-            <span style={{ flexShrink: 0, fontWeight: 700, whiteSpace: "nowrap" }}>{TOUCHPOINT_CATEGORY[t.kind] ?? ""}</span>
+            <span style={{ flexShrink: 0, fontWeight: 700, whiteSpace: "nowrap" }}>{touchpointCategory(t)}</span>
             <span style={{ minWidth: 0 }}>{t.text}</span>
           </li>
         ))}
@@ -167,6 +193,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
       before={<>
         <TransferPrefsBox candidate={c} />
         <TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />
+        <TouchpointGuide touchpoints={c.touchpoints} materials={data.touchpointMaterials} />
       </>}
       extraSections={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
       footer={c.approach ? <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} expanded={dockExpanded} onExpandChange={setDockExpanded} /> : undefined}
