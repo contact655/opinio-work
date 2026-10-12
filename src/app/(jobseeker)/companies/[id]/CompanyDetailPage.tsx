@@ -73,7 +73,8 @@ import { cleanEnName } from "@/lib/companies/displayName";
 import { primaryBusinessDomain } from "@/types/genre";
 import type { CompanyTargetIndustry } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
-import { ExpandableStoryBody } from "./ExpandableStoryBody";
+import { CompanyStoryCard } from "@/components/companies/CompanyStoryCard";
+import { StoryViewObserver } from "@/components/views/StoryViewObserver";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import { getPublicMaterialItemsCached, type PublicMaterialItem } from "@/lib/companyMaterials/server";
 import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_LABELS } from "@/lib/constants/companyMaterials";
@@ -1159,15 +1160,8 @@ type CompanyPost = {
   published_at: string | null;
 };
 
-const POST_CATEGORY_LABEL: Record<string, string> = {
-  culture: "カルチャー",
-  product: "プロダクト",
-  team: "チーム",
-  event: "イベント",
-  other: "その他",
-};
-
-function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
+/* ★種類名は lib/companyStories/shared.ts の1か所（CompanyStoryCard が使う）。⚠️ ここに表を戻さないこと */
+function CompanyPostsSection({ posts, countViews }: { posts: CompanyPost[]; countViews: boolean }) {
   if (posts.length === 0) return null;
   return (
     <section
@@ -1207,56 +1201,18 @@ function CompanyPostsSection({ posts }: { posts: CompanyPost[] }) {
         </span>
       </div>
       <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: 12 }}>
-        {posts.map((post) => {
-          const catLabel = post.category ? (POST_CATEGORY_LABEL[post.category] ?? post.category) : null;
-          /* ★全文を出す（2026-09-22）。それまでは冒頭120字の抜粋だけで、続きを読む手段が無かった。
-                ⚠️ 長いものだけ畳む。目安は120字（それまでの抜粋の長さ）。改行が多いものも畳む */
-          const body = post.body?.trim() ?? "";
-          const long = body.length > 120 || body.split("\n").length > 5;
-          return (
-            <div key={post.id} style={{
-              border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
-              background: "#fff", display: "flex", flexDirection: "column", gap: 0,
-            }}>
-              {post.cover_image_url && (
-                <div style={{ position: "relative", height: 160, background: "var(--bg-tint)", flexShrink: 0 }}>
-                  <img
-                    src={post.cover_image_url}
-                    alt={post.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  />
-                </div>
-              )}
-              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
-                {catLabel && (
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 100,
-                    background: "var(--royal-50)", color: "var(--royal)",
-                    fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
-                    width: "fit-content",
-                  }}>
-                    {catLabel}
-                  </span>
-                )}
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.5, fontFamily: "var(--font-noto-serif)" }}>
-                  {post.title}
-                </h3>
-                {body && (long ? (
-                  <ExpandableStoryBody title={post.title}>
-                    <Markdown>{body}</Markdown>
-                  </ExpandableStoryBody>
-                ) : (
-                  <Markdown>{body}</Markdown>
-                ))}
-                {post.published_at && (
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                    {new Date(post.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {posts.map((post) => (
+          /* ★閲覧数（2026-10-12）。⚠️ 検証用（/t/）と担当者のプレビューでは数えない */
+          <StoryViewObserver key={post.id} id={post.id} enabled={countViews}>
+            <CompanyStoryCard
+              title={post.title}
+              body={post.body}
+              category={post.category}
+              coverImageUrl={post.cover_image_url}
+              publishedAt={post.published_at}
+            />
+          </StoryViewObserver>
+        ))}
       </div>
     </section>
   );
@@ -2143,7 +2099,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             />
 
             {/* 6. 記事・更新情報（posts → articles → activity） */}
-            <CompanyPostsSection posts={companyPosts} />
+            <CompanyPostsSection posts={companyPosts} countViews={!testMode && !preview} />
             <CompanyArticlesSection articles={companyArticles} company={company} />
 
             {/* ── 更新情報 ── */}

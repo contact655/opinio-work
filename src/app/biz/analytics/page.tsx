@@ -76,7 +76,9 @@ async function fetchViews(tenantId: string): Promise<Fetched<ViewRow>> {
   const { data, error } = await createAdminClient()
     .from("ow_page_view_daily")
     .select("view_date, page_type, target_id, views")
-    .eq("company_id", tenantId);
+    .eq("company_id", tenantId)
+    /* ⚠️ ストーリーの閲覧（page_type = story。2026-10-12〜）はこの画面では数えない（/biz/posts に出す） */
+    .in("page_type", ["company", "job"]);
   if (error) { console.error("[biz/analytics] views:", error.message); return { ok: false }; }
   return { ok: true, rows: (data ?? []) as ViewRow[] };
 }

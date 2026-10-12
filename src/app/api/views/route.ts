@@ -3,14 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { decideView, isBotUserAgent, type ViewerInfo } from "@/lib/views/decide";
-import { SEEN_COOKIE, jstToday, pageKey, parseSeen, secondsUntilJstMidnight, serializeSeen } from "@/lib/views/seenCookie";
+import { SEEN_COOKIE, jstToday, pageKey, parseSeen, secondsUntilJstMidnight, serializeSeen, type ViewPageType } from "@/lib/views/seenCookie";
 
 export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * ★企業ページ・求人詳細の閲覧を1件数える（2026-10-09 / 段階D）。
+ * ★企業ページ・求人詳細・企業ストーリー（2026-10-12〜）の閲覧を1件数える（2026-10-09 / 段階D）。
  *
  * 呼ぶのはページ側の `ViewBeacon`（クライアント）だけ。ページは ISR なので、
  * 描画の時点では数えられない（サーバーで閲覧者を読むと動的になる）。
@@ -24,7 +24,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const type = body?.type === "company" || body?.type === "job" ? (body.type as "company" | "job") : null;
+  const type: ViewPageType | null = body?.type === "company" || body?.type === "job" || body?.type === "story" ? (body.type as ViewPageType) : null;
   const id = typeof body?.id === "string" && UUID.test(body.id) ? (body.id as string) : null;
   if (!type || !id) return NextResponse.json({ error: "invalid" }, { status: 400 });
 
@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
     const { data, error } = await admin.from("ow_companies").select("id, is_published, is_test").eq("id", id).maybeSingle();
     if (error) console.error("[api/views] company:", error.message);
     if (data && data.is_published === true && data.is_test !== true) companyId = data.id as string;
+  } else if (type === "story") {
+    /* ★企業ストーリー（2026-10-12）。公開中で、企業ページも公開されていて検証用でないものだけ */
+    const { data, error } = await admin.from("ow_company_posts")
+      .select("id, company_id, is_published, ow_companies!inner(is_published, is_test)").eq("id", id).maybeSingle();
+    if (error) console.error("[api/views] story:", error.message);
+    const co = data?.ow_companies as unknown as { is_published: boolean; is_test: boolean } | null;
+    if (data && data.is_published === true && co?.is_published === true && co.is_test !== true) companyId = data.company_id as string;
   } else {
     const { data, error } = await admin.from("ow_jobs").select("id, company_id").eq("id", id).match(PUBLIC_JOB_MATCH).maybeSingle();
     if (error) console.error("[api/views] job:", error.message);

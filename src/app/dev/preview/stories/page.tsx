@@ -2,8 +2,10 @@ import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 import { PostsClient } from "@/app/biz/posts/PostsClient";
 import { BizShellProvider } from "@/components/business/BizShellContext";
-import { ExpandableStoryBody } from "@/app/(jobseeker)/companies/[id]/ExpandableStoryBody";
-import { Markdown } from "@/components/common/Markdown";
+import { StoryEditor } from "@/app/biz/posts/StoryEditor";
+import { CompanyStoryCard } from "@/components/companies/CompanyStoryCard";
+import type { StoryWithDraft } from "@/lib/companyStories/server";
+import { storyTemplate } from "@/lib/companyStories/shared";
 
 /**
  * 企業ストーリー（/biz/posts と企業ページの「企業からの投稿」）のプレビュー（2026-09-22）。
@@ -32,23 +34,26 @@ const LONG_BODY = [
 ].join("\n");
 
 const now = "2026-09-20T10:00:00.000Z";
-function story(id: string, over: Record<string, unknown>) {
+function story(id: string, over: Partial<StoryWithDraft>): StoryWithDraft {
   return {
-    id, company_id: "c", author_user_id: null, title: "", body: "", category: "culture",
-    cover_image_url: null, is_published: false, published_at: null, created_at: now, updated_at: now,
-    ...over,
-  } as Parameters<typeof PostsClient>[0]["initialStories"][number];
+    id, title: "", body: "", category: "culture", coverImageUrl: null, isPublished: false,
+    publishedAt: null, createdAt: now, updatedAt: now, draft: null, ...over,
+  };
 }
 
-const STORIES = [
-  story("s1", { title: "なぜ私たちはこのプロダクトを作っているのか", body: LONG_BODY, category: "product", is_published: true, published_at: now }),
+const STORIES: StoryWithDraft[] = [
+  story("s1", { title: "なぜ私たちはこのプロダクトを作っているのか", body: LONG_BODY, category: "product", isPublished: true, publishedAt: now }),
   story("s2", { title: "入社1年目のエンジニアに聞いた、最初の3か月", body: "配属初日に任されたのは、請求書の読み取り精度を上げる改修でした。", category: "interview" }),
   story("s3", {
     title: "とても長いタイトルが入ったときに一覧で省略されるかを確かめるためのストーリー（オフィス移転のお知らせと新しい働き方について）",
-    body: "短い本文。", category: "event", is_published: true, published_at: now,
-    cover_image_url: "/brand/opinio-symbol.svg",
+    body: "短い本文。", category: "event", isPublished: true, publishedAt: now,
+    coverImageUrl: "/brand/opinio-symbol.svg",
+    draft: { title: "書きかけ", body: "短い本文。", category: "event", coverImageUrl: null, updatedAt: now },
   }),
+  story("s4", { title: "ひな形のまま", body: storyTemplate("interview"), category: "interview" }),
+  story("s5", { title: "種類が古い値（team）", body: "その他として出ること。", category: "team" }),
 ];
+const VIEWS: Record<string, number> = { s1: 1234, s3: 0 };
 
 export default function StoriesPreviewPage() {
   devOnly();
@@ -60,27 +65,35 @@ export default function StoriesPreviewPage() {
         本文が長いものだけ「続きを読む」で開けること。
       </PreviewHeader>
 
-      <Variant label="/biz/posts：3件（企業ページ公開中）" note="⚠️ 公開中の行にだけ「企業ページで見る」が出ること。カバー画像の無い行に絵文字の枠が出ないこと">
+      <Variant label="/biz/posts：5件（企業ページ公開中）" note="⚠️ 状態が色のバッジでなく灰色の文字で出ること。⋯ に「企業ページで見る」が出るのは公開中だけ。表紙が無いカードは種類名が出ること。古い種類（team）が英語で出ないこと">
         <BizShellProvider value={{ tenantId: "c", hasPublicPage: true, userName: null, permission: "admin" }}>
-          <PostsClient companyId="c" companyName="サンプル株式会社" initialStories={STORIES} />
+          <PostsClient initialStories={STORIES} views={VIEWS} />
         </BizShellProvider>
       </Variant>
 
-      <Variant label="/biz/posts：企業ページが非公開" note="⚠️ 「公開中のストーリーも求職者には表示されていません」が出ること。「企業ページで見る」が出ないこと">
+      <Variant label="/biz/posts：企業ページが非公開・閲覧数が取れない" note="⚠️ 「公開中のストーリーも求職者には表示されていません」が出ること。「閲覧」が出ないこと（0 と出さない）">
         <BizShellProvider value={{ tenantId: "c", hasPublicPage: false, userName: null, permission: "admin" }}>
-          <PostsClient companyId="c" companyName="サンプル株式会社" initialStories={STORIES} />
+          <PostsClient initialStories={STORIES} views={null} />
         </BizShellProvider>
       </Variant>
 
-      <Variant label="/biz/posts：0件" note="⚠️ 絵文字の3段図が無いこと。「ストーリーを書く」が見出しと空状態で2つ出ないこと">
-        <PostsClient companyId="c" companyName="サンプル株式会社" initialStories={[]} />
+      <Variant label="/biz/posts：0件" note="⚠️ 「＋ 新しいストーリー」のカードだけが出ること">
+        <PostsClient initialStories={[]} views={{}} />
+      </Variant>
+
+      <Variant label="/biz/posts：読み込めなかった" note="⚠️ 「まだ無い」と区別して、読み込めなかったと出ること">
+        <PostsClient initialStories={null} views={null} />
+      </Variant>
+
+      <Variant label="編集画面：公開中・未公開の変更あり" note="⚠️ ブラウザ幅 1280 以上で左右2画面、1279 以下で「編集／プレビュー」の切り替え。この画面では保存は失敗する（未ログイン相当）">
+        <BizShellProvider value={{ tenantId: "c", hasPublicPage: true, userName: null, permission: "admin" }}>
+          <StoryEditor initial={STORIES[2]} />
+        </BizShellProvider>
       </Variant>
 
       <Variant label="企業ページ：長い本文" note="⚠️ 見出し・箇条書き・太字が記号のまま出ないこと。「続きを読む」で全文が開くこと">
         <div style={{ maxWidth: 720 }}>
-          <ExpandableStoryBody title="なぜこのプロダクトを作っているのか">
-            <Markdown>{LONG_BODY}</Markdown>
-          </ExpandableStoryBody>
+          <CompanyStoryCard title="なぜこのプロダクトを作っているのか" body={LONG_BODY} category="product" coverImageUrl={null} publishedAt={now} />
         </div>
       </Variant>
     </div>

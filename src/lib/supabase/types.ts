@@ -2647,6 +2647,61 @@ export type Database = {
           },
         ]
       }
+      ow_company_post_drafts: {
+        Row: {
+          body: string
+          category: string
+          company_id: string
+          cover_image_url: string | null
+          post_id: string
+          title: string
+          updated_at: string
+          updated_by_ow_user_id: string | null
+        }
+        Insert: {
+          body?: string
+          category?: string
+          company_id: string
+          cover_image_url?: string | null
+          post_id: string
+          title?: string
+          updated_at?: string
+          updated_by_ow_user_id?: string | null
+        }
+        Update: {
+          body?: string
+          category?: string
+          company_id?: string
+          cover_image_url?: string | null
+          post_id?: string
+          title?: string
+          updated_at?: string
+          updated_by_ow_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_post_drafts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_post_drafts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "ow_company_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_post_drafts_updated_by_ow_user_id_fkey"
+            columns: ["updated_by_ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_posts: {
         Row: {
           author_user_id: string | null

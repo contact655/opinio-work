@@ -10,15 +10,18 @@
 export const SEEN_COOKIE = "ov";
 const MAX_KEYS = 100;
 
-export function pageKey(type: "company" | "job", id: string): string {
-  return (type === "company" ? "c" : "j") + id.replace(/-/g, "").slice(0, 12);
+export type ViewPageType = "company" | "job" | "story";
+
+/** ⚠️ 頭の1文字で種類を分ける（c: 企業ページ / j: 求人 / s: 企業ストーリー。s は 2026-10-12 追加） */
+export function pageKey(type: ViewPageType, id: string): string {
+  return (type === "company" ? "c" : type === "job" ? "j" : "s") + id.replace(/-/g, "").slice(0, 12);
 }
 
 export function parseSeen(raw: string | undefined, today: string): string[] {
   if (!raw) return [];
   const [date, ...keys] = raw.split("|");
   if (date !== today) return [];
-  return keys.filter((k) => /^[cj][0-9a-f]{12}$/.test(k));
+  return keys.filter((k) => /^[cjs][0-9a-f]{12}$/.test(k));
 }
 
 export function serializeSeen(today: string, keys: string[]): string {
