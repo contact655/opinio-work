@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TestCompaniesSection } from "@/components/testView/TestCompaniesSection";
 import { Suspense } from "react";
 import { fetchAvailableSizeGroups, fetchAvailableTargetIndustries, searchCompanies } from "@/lib/search/companies";
 import { companyFilterParams, hasCompanyFilter } from "@/lib/search/companyListParams";
@@ -354,6 +355,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
     </div>
 
     <div style={{ background: "#f0f4f8" }}>
+      {/* ★検証用アカウントにだけ、検証用の会社を出す（2026-10-12）。それ以外には何も描かない */}
+      <TestCompaniesSection kind="companies" />
       <div className="mx-auto page-gutter pt-4 pb-8" style={{ maxWidth: "var(--max-w-page)" }}>
         <div>
 

@@ -881,7 +881,10 @@ export async function getCompanies(): Promise<Company[]> {
  *    （2026-08-05 の casual-meeting、2026-08-11 の apply で2回踏んだ）。
  */
 const getCompanyById = cache(async function getCompanyById(
-  id: string
+  id: string,
+  /** ★検証用アカウント専用の表示（/t/companies。2026-10-12）。検証用の会社と、その公開中の求人だけを出す。
+   *  ⚠️ 呼んでよいのは「見ている人が検証用」と確かめた後だけ（getTestCompanyBySlugOrId 経由） */
+  testMode = false,
 ): Promise<{ company: Company; detail: CompanyDetail } | null> {
   const supabase = createAdminClient();
 
@@ -890,7 +893,9 @@ const getCompanyById = cache(async function getCompanyById(
     .select(COMPANY_DETAIL_COLS)
     .eq("id", id);
   // 詳細の軸。ディレクトリ非掲載（listing_status='draft'）でもページは見える
-  companyQuery = filterVisibleCompanies(companyQuery);
+  companyQuery = testMode
+    ? companyQuery.eq("is_published", true).eq("is_test", true)
+    : filterVisibleCompanies(companyQuery);
   const { data, error } = await companyQuery.single();
 
   if (error || !data) {
@@ -909,7 +914,8 @@ const getCompanyById = cache(async function getCompanyById(
       .from("ow_jobs")
       .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, salary_negotiable, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id)
-      .match(PUBLIC_JOB_MATCH),
+      /* ★検証用の表示では、その検証用の会社の公開中の求人（求人も必ず is_test。DB のトリガーが保証） */
+      .match(testMode ? { status: "published", is_test: true } : PUBLIC_JOB_MATCH),
     /* ⚠️ 職種マスタは企業ごとに変わらないので、企業ページごとに引かない（2026-08-23）。
           ここを素で引いていたため、**1ビルドで `ow_roles` に166回**飛んでいた
           （異なるクエリは2種類だけ＝83倍の重複）。本番の企業ページ表示でも
@@ -1005,6 +1011,35 @@ export async function getCompanyBySlugOrId(
   if (!result) return null;
 
   return { ...result, resolvedId, slug, listingStatus };
+}
+
+/**
+ * ★検証用アカウント専用（/t/companies/[id]。2026-10-12）。検証用の会社（ページ表示中）だけを返す。
+ * ⚠️ 呼ぶ側が「見ている人が検証用」を確かめてから呼ぶこと（lib/users/testViewer.ts）。実在の会社は返さない。
+ */
+export async function getTestCompanyBySlugOrId(
+  slugOrId: string
+): Promise<{ company: Company; detail: CompanyDetail; resolvedId: string; slug: string | null; listingStatus: string | null } | null> {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+  const { data: rows, error } = await createAdminClient()
+    .from("ow_companies").select("id, slug, listing_status")
+    .eq(isUUID ? "id" : "slug", slugOrId).eq("is_published", true).eq("is_test", true).limit(1);
+  if (error) { console.error("[getTestCompanyBySlugOrId]", error.message); return null; }
+  const row = rows?.[0];
+  if (!row) return null;
+  const result = await getCompanyById(row.id as string, true);
+  if (!result) return null;
+  return { ...result, resolvedId: row.id as string, slug: (row.slug as string | null) ?? null, listingStatus: (row.listing_status as string | null) ?? null };
+}
+
+/** ★検証用アカウント専用（/t/jobs/[id]）。検証用の公開中の求人の id を slug か id から引く。無ければ null */
+export async function resolveTestJobId(slugOrId: string): Promise<string | null> {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+  const { data, error } = await createAdminClient()
+    .from("ow_jobs").select("id").eq(isUUID ? "id" : "slug", slugOrId)
+    .eq("status", "published").eq("is_test", true).limit(1);
+  if (error) { console.error("[resolveTestJobId]", error.message); return null; }
+  return (data?.[0]?.id as string | undefined) ?? null;
 }
 
 /**

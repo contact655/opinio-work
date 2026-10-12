@@ -1,4 +1,5 @@
 import { toJobsListCompany } from "@/lib/jobs/listCompany";
+import { TestCompaniesSection } from "@/components/testView/TestCompaniesSection";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getJobs, getParentRoles, getRoleAliases } from "@/lib/supabase/queries";
@@ -107,6 +108,8 @@ export default async function JobsPage() {
       }
     >
       {/* recommendations は渡さない。JobsClient がログイン中だけ自分で取りに行く */}
+      {/* ★検証用アカウントにだけ、検証用の会社の公開中の求人を出す（2026-10-12）。それ以外には何も描かない */}
+      <TestCompaniesSection kind="jobs" />
       <JobsClient jobs={jobs} companies={companies.map(toJobsListCompany)} parentRoles={parentRoles} industryOptions={industryOptions} roleAliases={roleAliases} />
     </Suspense>
   );

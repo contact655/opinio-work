@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { viewerIsTestUser } from "@/lib/users/testViewer";
 import { NextRequest, NextResponse } from "next/server";
 import { resolveOwUserId } from "@/lib/supabase/resolveOwUserId";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
@@ -54,11 +56,26 @@ export async function POST(req: NextRequest) {
   }
 
   // 求人の存在・公開状態チェック
-  const { data: job } = await supabase
+  let { data: job } = await supabase
     .from("ow_jobs")
     .select("id, status, company_id")
     .eq("id", job_id)
     .maybeSingle();
+  /* ★検証用アカウントは、検証用の会社の公開中の求人にも応募できる（2026-10-12）。
+        ow_jobs の RLS は検証用の求人を誰にも返さないので、応募者が検証用のときだけ admin で
+        「公開中かつ検証用」の求人を引き直す。⚠️ 検証用でない人には引き直さない（存在も分からない）。 */
+  let jobDb = supabase;
+  if (!job && (await viewerIsTestUser())) {
+    const admin = createAdminClient();
+    const { data: testJob } = await admin
+      .from("ow_jobs")
+      .select("id, status, company_id")
+      .eq("id", job_id)
+      .eq("status", "published")
+      .eq("is_test", true)
+      .maybeSingle();
+    if (testJob) { job = testJob; jobDb = admin as unknown as typeof supabase; }
+  }
   if (!job || job.status !== "published") {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
@@ -112,7 +129,7 @@ export async function POST(req: NextRequest) {
 
   // ── Activity: application_received (best-effort) ─────────────────────────
   try {
-    const { data: jobInfo } = await supabase
+    const { data: jobInfo } = await jobDb
       .from("ow_jobs")
       .select("title, company_id")
       .eq("id", job_id as string)
@@ -132,7 +149,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Notify (best-effort, T1) ──────────────────────────────────────────────
-  const { data: jobForNotify } = await supabase
+  const { data: jobForNotify } = await jobDb
     .from("ow_jobs")
     .select("title, company_id, ow_companies!inner(name)")
     .eq("id", job_id as string)

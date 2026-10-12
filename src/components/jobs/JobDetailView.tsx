@@ -1,4 +1,5 @@
 import { laborLines } from "@/lib/jobs/laborTerms";
+import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/lib/jobs/testViewMode";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * src/components/jobs/JobDetailView.tsx
@@ -135,7 +136,7 @@ function RelatedJobsSection({ jobs }: { jobs: RelatedJob[] }) {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {jobs.map((rj) => (
-          <Link key={rj.id} href={`/jobs/${rj.slug ?? rj.id}`} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+          <Link key={rj.id} href={jobPath(rj.slug ?? rj.id)} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: "var(--space-3) 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
             <CompanyLogo
               name={rj.companyName}
               logoUrl={rj.logoUrl}
@@ -268,14 +269,19 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
 export async function JobDetailView({
   id,
   preview = false,
+  testMode = false,
 }: {
   /** slug または UUID。`preview` のときは UUID のみ */
   id: string;
   /** ⚠️ **`/biz/jobs/[id]/preview` だけが true にする。**
    *  下書き・非公開・テスト求人も描画し、slug への 308 リダイレクトを止める。 */
   preview?: boolean;
+  /** ★検証用アカウント専用（/t/jobs/[id]。2026-10-12）。id は確かめ済みの検証用の公開中の求人の UUID。
+   *  リンクを /t/… に向け、上部に灰色の一行を出し、閲覧を数えない */
+  testMode?: boolean;
 }) {
-  const result = preview
+  if (testMode) enterTestViewMode();
+  const result = preview || testMode
     ? await getJobForPreview(id)
     : await getJobBySlugOrIdCached(id);
   if (!result) notFound();
@@ -285,7 +291,9 @@ export async function JobDetailView({
   // ⚠️ 企業ページへのリンクは env に関係なく is_published を見る。
   //    「求人は公開企業にしか紐づかない」は今そうなっているだけで、
   //    企業を非公開に戻せば崩れる（CLAUDE.md の原則）。null ならテキスト表示にする。
-  const companyHref = await resolvePublishedCompanyHref(company.slug ?? company.id);
+  const companyHref = testMode ? companyPath(company.slug ?? company.id) : await resolvePublishedCompanyHref(company.slug ?? company.id);
+  /* カジュアル面談の申込は /companies/[id]/casual-meeting（動的。検証用アカウントには検証用の会社も通す）。/t の下には無い */
+  const casualBase = testMode ? `/companies/${company.slug ?? company.id}` : companyHref;
   /* ★運営会社か（2026-10-10）。⚠️ null（見つからない）は「運営会社でない」に倒す */
   const ownCompanyId = await getOwnCompanyId();
   const isOwnCompany = ownCompanyId !== null && ownCompanyId === company.id;
@@ -294,7 +302,8 @@ export async function JobDetailView({
   /* ⚠️ プレビューでは slug へ飛ばさない。下書きは slug を持たないし、
         飛ばすと公開ページ（404）に着く。 */
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  if (!preview && isUUID && jobSlug) { permanentRedirect(`/jobs/${jobSlug}`); }
+  /* ⚠️ testMode は呼び出し側（/t/jobs/[id]）が解決済みの UUID を渡すので、ここで slug へ飛ばすと同じ URL に戻って止まらない */
+  if (!preview && !testMode && isUUID && jobSlug) { permanentRedirect(jobPath(jobSlug)); }
 
   const jobId = resolvedId;
 
@@ -418,7 +427,12 @@ export async function JobDetailView({
     <>
       <ReadingProgress />
       {/* ★閲覧を数える（2026-10-09 / 段階D）。⚠️ プレビュー（/biz）では数えない */}
-      {!preview && <ViewBeacon type="job" id={job.id} />}
+      {testMode && (
+        <p data-state="test-company-notice" style={{ margin: 0, padding: "8px 16px", textAlign: "center", fontSize: 12.5, color: "var(--ink-mute)", background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
+          {TEST_COMPANY_NOTICE}
+        </p>
+      )}
+      {!preview && !testMode && <ViewBeacon type="job" id={job.id} />}
       {(() => {
         // published_at が null の求人は JSON-LD を出力しない。
         // created_at フォールバックは使用しない（2026-06-12 のデータ移行日が全件に入るため）。
@@ -646,7 +660,7 @@ export async function JobDetailView({
            ボタンが出ない」が起きる。実際に非掲載企業で1社ずつ起きていた。
       */}
       <JobMobileStickyBar
-        casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting?job_id=${job.id}` : undefined}
+        casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting?job_id=${job.id}` : undefined}
         applyHref={company.application_open ? `/jobs/${job.id}/apply` : undefined}
       />
 
@@ -1250,7 +1264,7 @@ export async function JobDetailView({
                 current={jobEmployees.current}
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
-                casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
+                casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting` : null}
                 talkableIds={talkableIds}
                 alwaysShowAlumni
               />
@@ -1275,7 +1289,7 @@ export async function JobDetailView({
                 current={otherEmployees.current}
                 alumni={[]}
                 companyId={job.company_id}
-                casualHref={companyHref && company.accepting_casual_meetings ? `${companyHref}/casual-meeting` : null}
+                casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting` : null}
                 talkableIds={talkableIds}
                 currentTitle={`${company.name} の他の現役社員`}
                 currentSubtitle="この募集の職種とは違う人たちです"
@@ -1351,7 +1365,7 @@ export async function JobDetailView({
                   </SecTitle>
                   <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
                     {relatedJobs.map((rj) => (
-                      <Link key={rj.id} href={`/jobs/${rj.slug ?? rj.id}`} style={{
+                      <Link key={rj.id} href={jobPath(rj.slug ?? rj.id)} style={{
                         display: "flex", gap: "var(--space-3)", alignItems: "flex-start",
                         padding: 14, border: "1px solid var(--line)", borderRadius: 10,
                         background: "var(--bg-tint)", textDecoration: "none",
@@ -1419,7 +1433,7 @@ export async function JobDetailView({
                   {/* ③ Primary: カジュアル面談 — warm orange, OPINIO思想に合わせてトップに */}
                   {/* ⚠️ companyHref が null（非公開企業）ならCTAごと出さない */}
                   {company.accepting_casual_meetings && companyHref && (
-                    <Link href={`${companyHref}/casual-meeting?job_id=${job.id}`} style={{
+                    <Link href={`${casualBase}/casual-meeting?job_id=${job.id}`} style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
                       width: "100%", padding: "15px var(--space-6)",
                       background: MEETING_CTA_BG,

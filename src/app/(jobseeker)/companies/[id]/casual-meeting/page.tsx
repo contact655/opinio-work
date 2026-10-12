@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCompanyBySlugOrId } from "@/lib/supabase/queries";
+import { getCompanyBySlugOrId, getTestCompanyBySlugOrId } from "@/lib/supabase/queries";
+import { viewerIsTestUser } from "@/lib/users/testViewer";
 import CasualMeetingForm from "./CasualMeetingForm";
 
 /** ⚠️ UUID 以外を DB に投げない（`22P02` で 400 になり、`?? []` 側では「0件」に化ける） */
@@ -31,7 +32,13 @@ export default async function CasualMeetingPage({
   //    2026-08-05 まで slug の URL は常に notFound() を投げていたが、
   //    このセグメントの loading.tsx が Suspense 境界を作っていたため
   //    HTTP 200 のまま「見つかりません」が出るだけで、誰も気づけなかった。
-  const result = await getCompanyBySlugOrId(params.id);
+  let result = await getCompanyBySlugOrId(params.id);
+  /* ★検証用アカウントだけ、検証用の会社にも申し込める（2026-10-12）。それ以外は今どおり 404 */
+  let companyBase = "/companies";
+  if (!result && (await viewerIsTestUser())) {
+    result = await getTestCompanyBySlugOrId(params.id);
+    companyBase = "/t/companies";
+  }
   if (!result) return notFound();
 
   const { company } = result;
@@ -68,7 +75,7 @@ export default async function CasualMeetingPage({
             <strong style={{ color: "var(--ink)" }}>{company.name}</strong> は現在、カジュアル面談を受け付けていません。
           </p>
           <a
-            href={`/companies/${params.id}`}
+            href={`${companyBase}/${params.id}`}
             style={{
               display: "inline-block", padding: "10px 28px",
               background: "var(--royal)", color: "#fff",

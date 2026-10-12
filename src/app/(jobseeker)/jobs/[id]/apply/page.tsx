@@ -2,7 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { getJobBySlugOrId } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobForPreview, resolveTestJobId } from "@/lib/supabase/queries";
+import { viewerIsTestUser } from "@/lib/users/testViewer";
 import ApplicationForm from "./ApplicationForm";
 import { APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
 
@@ -23,7 +24,14 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
         **公開求人5件すべてで 404 になっていた**（未ログインだと認証リダイレクトが
         先に出るため、ログインするまで誰も気づけない形だった）。
         2026-08-05 に casual-meeting で踏んだのと同じ罠。 */
-  const result = await getJobBySlugOrId(params.id);
+  let result = await getJobBySlugOrId(params.id);
+  /* ★検証用アカウントだけ、検証用の会社の公開中の求人にも応募できる（2026-10-12）。それ以外は今どおり 404 */
+  let jobBase = "/jobs";
+  if (!result && (await viewerIsTestUser())) {
+    const testId = await resolveTestJobId(params.id);
+    result = testId ? await getJobForPreview(testId) : null;
+    jobBase = "/t/jobs";
+  }
   if (!result) notFound();
 
   const { job, company } = result;
@@ -58,7 +66,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
             <strong style={{ color: "var(--ink)" }}>{job.role}</strong>（{company.name}）
           </p>
           <Link
-            href={`/jobs/${job.id}`}
+            href={`${jobBase}/${job.id}`}
             style={{
               display: "inline-block", padding: "10px 28px",
               background: "var(--royal)", color: "#fff",
@@ -86,7 +94,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
             <span>/</span>
             <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>募集</Link>
             <span>/</span>
-            <Link href={`/jobs/${job.id}`} style={{ color: "var(--ink-mute)" }}>{job.role}</Link>
+            <Link href={`${jobBase}/${job.id}`} style={{ color: "var(--ink-mute)" }}>{job.role}</Link>
             <span>/</span>
             <span aria-current="page" style={{ color: "var(--ink-soft)" }}>応募</span>
           </div>

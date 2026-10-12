@@ -6,6 +6,9 @@ import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import { NextResponse } from "next/server";
 import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { companyNameOrFilter } from "@/lib/companies/searchFilter";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { viewerIsTestUser } from "@/lib/users/testViewer";
+import { TEST_SUGGEST_NOTE } from "@/lib/jobs/testViewMode";
 
 export const dynamic = "force-dynamic";
 
@@ -145,8 +148,24 @@ export async function GET(req: Request) {
     return { ...rest, industry: primary };
   });
 
+  /* ★検証用アカウントにだけ、検証用の会社と公開中の求人も候補に足す（2026-10-12）。行き先は /t/…。
+        ⚠️ 検証用でない人には引かない（存在も分からない）。判定はサーバー */
+  const testCompanies: Record<string, unknown>[] = [];
+  const testJobs: Record<string, unknown>[] = [];
+  if (await viewerIsTestUser()) {
+    const admin = createAdminClient();
+    const [{ data: tc }, { data: tj }] = await Promise.all([
+      admin.from("ow_companies").select("id, slug, name, logo_letter, logo_gradient")
+        .eq("is_published", true).eq("is_test", true).or(companyNameOrFilter(q)).limit(2),
+      admin.from("ow_jobs").select("id, slug, title")
+        .eq("status", "published").eq("is_test", true).ilike("title", pattern).limit(2),
+    ]);
+    for (const c of tc ?? []) testCompanies.push({ ...c, industry: TEST_SUGGEST_NOTE, href: `/t/companies/${c.slug ?? c.id}` });
+    for (const j of tj ?? []) testJobs.push({ id: j.id, title: j.title, roleLabel: TEST_SUGGEST_NOTE, href: `/t/jobs/${j.slug ?? j.id}` });
+  }
+
   return NextResponse.json({
-    companies: companiesOut,
-    jobs: jobs.map((j) => ({ ...j, roleLabel: roleLabels.get(j.id)?.label ?? null })),
+    companies: [...companiesOut, ...testCompanies],
+    jobs: [...jobs.map((j) => ({ ...j, roleLabel: roleLabels.get(j.id)?.label ?? null })), ...testJobs],
   });
 }
