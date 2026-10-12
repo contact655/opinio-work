@@ -503,35 +503,134 @@ export type Database = {
           },
         ]
       }
-      ow_business_domains: {
+      ow_business_domain_proposals: {
         Row: {
+          company_id: string
           created_at: string
-          description: string | null
-          display_order: number
+          domain_id: string
           id: string
-          is_active: boolean
-          name: string
-          slug: string
+          proposed_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
         }
         Insert: {
+          company_id: string
           created_at?: string
-          description?: string | null
-          display_order?: number
+          domain_id: string
           id?: string
-          is_active?: boolean
-          name: string
-          slug: string
+          proposed_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
         }
         Update: {
+          company_id?: string
+          created_at?: string
+          domain_id?: string
+          id?: string
+          proposed_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_business_domain_proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_business_domain_proposals_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_business_domain_proposals_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_business_domain_proposals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_business_domains: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          description: string | null
+          display_kind: string
+          display_order: number
+          id: string
+          industry_id: string | null
+          is_active: boolean
+          merged_into: string | null
+          name: string
+          parent_domain_id: string | null
+          slug: string
+          status: string
+        }
+        Insert: {
+          aliases?: string[]
           created_at?: string
           description?: string | null
+          display_kind?: string
           display_order?: number
           id?: string
+          industry_id?: string | null
           is_active?: boolean
-          name?: string
-          slug?: string
+          merged_into?: string | null
+          name: string
+          parent_domain_id?: string | null
+          slug: string
+          status?: string
         }
-        Relationships: []
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          description?: string | null
+          display_kind?: string
+          display_order?: number
+          id?: string
+          industry_id?: string | null
+          is_active?: boolean
+          merged_into?: string | null
+          name?: string
+          parent_domain_id?: string | null
+          slug?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_business_domains_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "ow_industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_business_domains_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "ow_business_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_business_domains_parent_domain_id_fkey"
+            columns: ["parent_domain_id"]
+            isOneToOne: false
+            referencedRelation: "ow_business_domains"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ow_candidate_notes: {
         Row: {
@@ -914,6 +1013,7 @@ export type Database = {
           ceo_name: string | null
           childcare_leave_rate: string | null
           company_features: Json | null
+          company_stage: string | null
           contracted_at: string | null
           core_time: string | null
           cover_color: string | null
@@ -921,6 +1021,7 @@ export type Database = {
           culture_description: string | null
           culture_keywords: string[] | null
           current_member_count: number
+          customer_all_industries: boolean
           customer_cases: Json | null
           description: string | null
           draft_data: Json | null
@@ -955,6 +1056,7 @@ export type Database = {
           headcount_3y_ago: number | null
           header_image_url: string | null
           headquarters_address: string | null
+          hq_country: string | null
           id: string
           incentive_detail: string | null
           industry: string | null
@@ -1018,6 +1120,7 @@ export type Database = {
           search_key: string | null
           selection_count: number | null
           selection_flow: string[] | null
+          serves_consumers: boolean
           show_fit_negatives: boolean
           side_job_ok: boolean | null
           slug: string | null
@@ -1074,6 +1177,7 @@ export type Database = {
           ceo_name?: string | null
           childcare_leave_rate?: string | null
           company_features?: Json | null
+          company_stage?: string | null
           contracted_at?: string | null
           core_time?: string | null
           cover_color?: string | null
@@ -1081,6 +1185,7 @@ export type Database = {
           culture_description?: string | null
           culture_keywords?: string[] | null
           current_member_count?: number
+          customer_all_industries?: boolean
           customer_cases?: Json | null
           description?: string | null
           draft_data?: Json | null
@@ -1115,6 +1220,7 @@ export type Database = {
           headcount_3y_ago?: number | null
           header_image_url?: string | null
           headquarters_address?: string | null
+          hq_country?: string | null
           id?: string
           incentive_detail?: string | null
           industry?: string | null
@@ -1178,6 +1284,7 @@ export type Database = {
           search_key?: string | null
           selection_count?: number | null
           selection_flow?: string[] | null
+          serves_consumers?: boolean
           show_fit_negatives?: boolean
           side_job_ok?: boolean | null
           slug?: string | null
@@ -1234,6 +1341,7 @@ export type Database = {
           ceo_name?: string | null
           childcare_leave_rate?: string | null
           company_features?: Json | null
+          company_stage?: string | null
           contracted_at?: string | null
           core_time?: string | null
           cover_color?: string | null
@@ -1241,6 +1349,7 @@ export type Database = {
           culture_description?: string | null
           culture_keywords?: string[] | null
           current_member_count?: number
+          customer_all_industries?: boolean
           customer_cases?: Json | null
           description?: string | null
           draft_data?: Json | null
@@ -1275,6 +1384,7 @@ export type Database = {
           headcount_3y_ago?: number | null
           header_image_url?: string | null
           headquarters_address?: string | null
+          hq_country?: string | null
           id?: string
           incentive_detail?: string | null
           industry?: string | null
@@ -1338,6 +1448,7 @@ export type Database = {
           search_key?: string | null
           selection_count?: number | null
           selection_flow?: string[] | null
+          serves_consumers?: boolean
           show_fit_negatives?: boolean
           side_job_ok?: boolean | null
           slug?: string | null
@@ -1663,6 +1774,39 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_customer_industries: {
+        Row: {
+          company_id: string
+          created_at: string
+          industry_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          industry_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          industry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_customer_industries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_customer_industries_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "ow_industries"
             referencedColumns: ["id"]
           },
         ]
@@ -3660,6 +3804,7 @@ export type Database = {
       }
       ow_industries: {
         Row: {
+          aliases: string[]
           created_at: string
           description: string | null
           display_order: number
@@ -3669,8 +3814,10 @@ export type Database = {
           parent_id: string | null
           requires_business_domain: boolean
           slug: string
+          successor_id: string | null
         }
         Insert: {
+          aliases?: string[]
           created_at?: string
           description?: string | null
           display_order?: number
@@ -3680,8 +3827,10 @@ export type Database = {
           parent_id?: string | null
           requires_business_domain?: boolean
           slug: string
+          successor_id?: string | null
         }
         Update: {
+          aliases?: string[]
           created_at?: string
           description?: string | null
           display_order?: number
@@ -3691,11 +3840,19 @@ export type Database = {
           parent_id?: string | null
           requires_business_domain?: boolean
           slug?: string
+          successor_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "ow_industries_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ow_industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_industries_successor_id_fkey"
+            columns: ["successor_id"]
             isOneToOne: false
             referencedRelation: "ow_industries"
             referencedColumns: ["id"]

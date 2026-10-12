@@ -74,6 +74,17 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     console.error('[admin/companies/[id]] 対象業界の取得に失敗:', targetsError.message);
   }
 
+  /* ★無効な業種は「この企業が今使っているもの（とその親）」だけ残す（2026-10-12）。
+     分類の作り直し（段1）で、まだ使い始めていない新しい業種を無効のまま入れてある。
+     全部出すとセレクトが「（無効）」で埋まり、運営が誤って選べてしまう。
+     ⚠️ 使っている無効な業種は消さない（上の注記のとおり、消すと保存で業種が消えたように見える）。 */
+  const inUse = new Set<string>(
+    [company.industry_id as string | null, ...(companyTargets ?? []).map((t) => t.industry_id as string)]
+      .filter((v): v is string => !!v),
+  );
+  for (const i of industries ?? []) if (inUse.has(i.id) && i.parent_id) inUse.add(i.parent_id);
+  const industryOptions = (industries ?? []).filter((i) => i.is_active || inUse.has(i.id));
+
   // この企業に紐付け済みのジャンル（承認済み・未承認問わず全件）
   const { data: companyGenres } = await supabase
     .from('ow_company_genres')
@@ -102,7 +113,7 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     <CompanyDetailClient
       initialTab={searchParams.tab}
       company={company}
-      allIndustries={industries ?? []}
+      allIndustries={industryOptions}
       allBusinessDomains={businessDomains}
       companyBusinessDomains={companyDomains ?? []}
       companyTargetIndustries={companyTargets ?? []}
