@@ -1,14 +1,13 @@
 "use client";
 
-import { OrgTreeEditor } from "@/components/business/OrgTreeEditor";
-import type { OrgRow } from "@/components/business/OrgTreeEditor";
 import { Variant, PreviewHeader } from "../Variant";
 import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
-import { JobRolesEditor } from "@/app/biz/organization/JobRolesEditor";
-import { DepartmentsEditor } from "@/app/biz/organization/DepartmentsEditor";
+import { JobRolesEditor, type CompanyJobRole } from "@/app/biz/organization/JobRolesEditor";
+import { DepartmentsWorkspace, type Department } from "@/app/biz/organization/DepartmentsWorkspace";
+import type { StandardRole } from "@/app/biz/organization/StandardRoleCombobox";
 
 /**
- * 組織体制の編集（/biz/organization）のプレビュー（2026-09-20）。
+ * 部門・職種（/biz/organization）のプレビュー（2026-09-20 / 2026-10-12 に部門タブを一覧＋編集パネルへ作り直した）。
  *
  * ⚠️★**実データでは踏めない形がほとんど。** 本番の `ow_company_departments` は
  *    ログインできる企業でほぼ空で、**5階層・長い名前・兄弟が多い木**を実画面で作るには
@@ -26,12 +25,12 @@ import { DepartmentsEditor } from "@/app/biz/organization/DepartmentsEditor";
       `NODE_ENV` はビルド時に静的置換されるので、本番バンドルからは中身ごと落ちる。 */
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-function row(id: string, name: string, parent: string | null, order: number): OrgRow {
+function row(id: string, name: string, parent: string | null, order: number): Department {
   return { id, parent_id: parent, name, display_order: order };
 }
 
 /** 2階層。いちばん普通の形 */
-const SHALLOW: OrgRow[] = [
+const SHALLOW: Department[] = [
   row("a", "営業本部", null, 0),
   row("a1", "第1営業部", "a", 0),
   row("a2", "第2営業部", "a", 1),
@@ -41,8 +40,8 @@ const SHALLOW: OrgRow[] = [
   row("c2", "経理部", "c", 1),
 ];
 
-/** 上限ちょうど。⚠️ 5階層目の行で「→（一段下げる）」が押せないこと */
-const DEEP: OrgRow[] = [
+/** 上限ちょうど。⚠️ 5階層目の行の ⋯ で「下に部門を追加」が押せないこと */
+const DEEP: Department[] = [
   row("d1", "1階層目", null, 0),
   row("d2", "2階層目", "d1", 0),
   row("d3", "3階層目", "d2", 0),
@@ -52,120 +51,78 @@ const DEEP: OrgRow[] = [
 ];
 
 /** 長い名前・兄弟が多い。⚠️ 折り返しても操作ボタンが押し出されないこと */
-const LONG: OrgRow[] = [
+const LONG: Department[] = [
   row("L", "グローバルエンタープライズセールス統括本部（アジアパシフィック）", null, 0),
   ...Array.from({ length: 8 }, (_, i) =>
     row(`L${i}`, `第${i + 1}営業部：金融・保険ソリューション担当チーム`, "L", i)),
 ];
 
+/** 標準の職種（固定データ。DB は読まない） */
+const STD: StandardRole[] = [
+  { id: "s-sales", name: "営業", parent_id: null, display_order: 1 },
+  { id: "s-is", name: "インサイドセールス", parent_id: "s-sales", display_order: 1 },
+  { id: "s-fs", name: "フィールドセールス", parent_id: "s-sales", display_order: 2 },
+  { id: "s-cs", name: "カスタマーサクセス", parent_id: "s-sales", display_order: 3 },
+  { id: "s-eng", name: "エンジニア", parent_id: null, display_order: 2 },
+  { id: "s-be", name: "バックエンドエンジニア", parent_id: "s-eng", display_order: 1 },
+];
+const ROLES: CompanyJobRole[] = [
+  { id: "r1", parent_id: null, name: "IS", standard_role_id: "s-is", display_order: 0 },
+  { id: "r2", parent_id: null, name: "フィールドセールス", standard_role_id: "s-fs", display_order: 1 },
+  { id: "r3", parent_id: null, name: "CSM", standard_role_id: null, display_order: 2 },
+  { id: "r4", parent_id: null, name: "バックエンドエンジニア", standard_role_id: "s-be", display_order: 3 },
+];
+const LINKS = { r1: ["a1", "b"], r2: ["a2"], r3: ["b"], r4: [] as string[] };
+
 export default function OrgTreePreview() {
   if (!IS_DEV) return null;
   return (
     <div>
-      <PreviewHeader title="組織体制の編集（部門・職種）">
-        <code>/biz/organization</code> の中身（<code>OrgTreeEditor</code>）です。
-        <strong>部門タブと職種タブが同じ部品</strong>を使っています。
+      <PreviewHeader title="部門・職種（/biz/organization）">
+        部門タブは<strong>左に一覧・行を押すと右に編集パネル</strong>（1280px 以上は左右、未満はパネルが一覧の上に全幅）。
+        職種タブは<strong>読むだけの一覧</strong>で、部門名から部門タブのパネルへ飛ぶ。
         <br />
-        見るところ：<strong>行にマウスを乗せたときだけ操作が出る</strong>こと／
-        縦の罫線で親子が追えること／三角で畳めること／
-        <strong>いちばん上の行で ↑ が押せない</strong>・
-        <strong>5階層目で → が押せない</strong>こと。
+        ⚠️ 保存・並べ替え・削除は API を叩くので、この画面では未ログインで失敗して赤い帯が出るのが正しい。DB は読んでいない。
       </PreviewHeader>
 
-      <Variant
-        label="0件（まだ何も無い）"
-        note="⚠️ 空の箱を出さず、入力欄が最初から開いていること。『閉じる』も出ないこと（閉じる先が無いため）"
-      >
-        <OrgTreeEditor unit="部門" endpoint="/api/biz/departments" createdKey="department"
-          initialRows={[]} example="営業部" hints={[<>ここにヒントが入ります</>]} />
+      <Variant label="0件（まだ何も無い）" note="⚠️ 空の案内と「＋ 部門を追加」だけが出ること">
+        <DepartmentsWorkspace initialDepartments={[]} initialRoles={[]} standardRoles={STD} initialRoleDepartments={{}} />
       </Variant>
 
       <Variant
-        label="2階層（よくある形）"
-        note="⚠️ 子の左に縦の罫線があること。子を持たない行も名前の左端が揃っていること。求人のある行（第1営業部・カスタマーサクセス部・人事部）にだけ件数が出ること"
+        label="2階層＋職種あり（よくある形）"
+        note="⚠️ 2行目に「この部門の職種：…」。カスタマーサクセス部にだけ灰色で「標準の職種が未設定（1）」。求人のある行にだけ件数。取っ手と ⋯ が出ること"
       >
-        <OrgTreeEditor unit="部門" endpoint="/api/biz/departments" createdKey="department"
-          initialRows={SHALLOW} example="営業部"
-          usage={{ counts: { a1: 3, b: 1, c1: 12 }, noun: "求人" }}
-          hints={[<>行の ↑ ↓ で並べ替え、← → で階層を変えられます</>]} />
+        <DepartmentsWorkspace initialDepartments={SHALLOW} initialRoles={ROLES} standardRoles={STD}
+          initialRoleDepartments={LINKS} usage={{ a1: 3, b: 1, c1: 12 }} />
       </Variant>
 
       <Variant
-        label={`${MAX_ORG_DEPTH}階層（上限ちょうど）`}
-        note="⚠️ いちばん深い行で「一段下げる（→）」が押せないこと。字下げしても操作が画面外へ出ないこと"
+        label="編集パネルを開いた状態（カスタマーサクセス部）"
+        note="⚠️ 1280px 以上で右に 440px のパネル。CSM は標準の職種が空なので「保存」が押せず「標準の職種を選ぶと保存できます」"
       >
-        <OrgTreeEditor unit="部門" endpoint="/api/biz/departments" createdKey="department"
-          initialRows={DEEP} example="営業部" hints={[<>上限は{MAX_ORG_DEPTH}階層です</>]} />
+        <DepartmentsWorkspace initialDepartments={SHALLOW} initialRoles={ROLES} standardRoles={STD}
+          initialRoleDepartments={LINKS} initialSelectedId="b" />
       </Variant>
 
-      <Variant
-        label="長い名前 × 兄弟8件"
-        note="⚠️ 名前が折り返しても操作ボタンが右にはみ出さないこと。畳むと件数（8）が出ること"
-      >
-        <OrgTreeEditor unit="職種" endpoint="/api/biz/job-roles" createdKey="jobRole"
-          initialRows={LONG} example="フィールドセールス"
-          hints={[<>職種名は社内の呼び方で構いません</>]} />
+      <Variant label={`${MAX_ORG_DEPTH}階層（上限ちょうど）`} note="⚠️ いちばん深い行の ⋯ で「下に部門を追加」が押せないこと。字下げしても ⋯ が画面外へ出ないこと">
+        <DepartmentsWorkspace initialDepartments={DEEP} initialRoles={[]} standardRoles={STD} initialRoleDepartments={{}} />
       </Variant>
 
-      <Variant
-        label="職種と部門の紐付け：職種タブ"
-        note="⚠️ 各行の下に「所属する部門」。インサイドセールスは2部門。チェックを付け外しすると、この画面では未ログインで保存に失敗し、選択が元に戻って理由が出るのが正しい"
-      >
-        <JobRolesEditor
-          initialRoles={[
-            { id: "r1", parent_id: null, name: "インサイドセールス", standard_role_id: null, display_order: 0 },
-            { id: "r2", parent_id: null, name: "フィールドセールス", standard_role_id: null, display_order: 1 },
-            { id: "r3", parent_id: null, name: "バックエンドエンジニア", standard_role_id: null, display_order: 2 },
-          ]}
-          standardRoles={[]}
-          departments={SHALLOW}
-          roleDepartments={{ r1: ["a1", "b"], r2: ["a2"] }}
-        />
+      <Variant label="長い名前 × 兄弟8件" note="⚠️ 名前が折り返しても ⋯ が右にはみ出さないこと">
+        <DepartmentsWorkspace initialDepartments={LONG} initialRoles={[]} standardRoles={STD} initialRoleDepartments={{}} />
       </Variant>
 
-      <Variant
-        label="職種と部門の紐付け：部門タブ（読むだけ）"
-        note="⚠️ 紐付いた部門の行にだけ「この部門の職種：…」。部門タブでは付け外しできない"
-      >
-        <DepartmentsEditor
-          initialDepartments={SHALLOW}
-          roleDepartments={{ r1: ["a1", "b"], r2: ["a2"] }}
-          jobRoles={[{ id: "r1", name: "インサイドセールス" }, { id: "r2", name: "フィールドセールス" }]}
-        />
+      <Variant label="閲覧だけ（管理者でないメンバー）" note="⚠️ 取っ手・⋯・「＋ 部門を追加」が出ないこと。行を押すとパネルは開くが入力できず、保存ボタンが無いこと">
+        <DepartmentsWorkspace initialDepartments={SHALLOW} initialRoles={ROLES} standardRoles={STD} initialRoleDepartments={LINKS} readOnly />
       </Variant>
 
-      <Variant
-        label="職種と部門の紐付け：閲覧だけ"
-        note="⚠️ 付いている部門だけ出る。「＋ 部門を選ぶ」も ✕ も出ない。何も付いていない職種には行が出ない"
-      >
-        <JobRolesEditor
-          initialRoles={[
-            { id: "r1", parent_id: null, name: "インサイドセールス", standard_role_id: null, display_order: 0 },
-            { id: "r3", parent_id: null, name: "バックエンドエンジニア", standard_role_id: null, display_order: 1 },
-          ]}
-          standardRoles={[]}
-          departments={SHALLOW}
-          roleDepartments={{ r1: ["a1", "b"] }}
-          readOnly
-        />
+      <Variant label="職種タブ（読むだけ）" note="⚠️ 呼び方が標準の職種名と同じ行は「—」。CSM は標準の職種が「未設定」。バックエンドエンジニアは「部門なし」。部門名はリンク">
+        <JobRolesEditor roles={ROLES} standardRoles={STD} departments={SHALLOW} roleDepartments={LINKS} usage={{ r1: 2, r3: 1 }} />
       </Variant>
 
-      <Variant
-        label="閲覧だけ（管理者でないメンバー）"
-        note="⚠️ 追加欄・「＋ 追加する」・行の操作・使い方が出ないこと。ダブルクリックでも名前が編集にならないこと。案内の一文が出ること"
-      >
-        <OrgTreeEditor unit="部門" endpoint="/api/biz/departments" createdKey="department"
-          initialRows={SHALLOW} example="営業部" readOnly
-          hints={[<>ここは出ないはず</>]} />
-      </Variant>
-
-      <Variant
-        label="閲覧だけ × 0件"
-        note="⚠️ 入力欄が自動で開かないこと（0件のとき管理者には開く）"
-      >
-        <OrgTreeEditor unit="職種" endpoint="/api/biz/job-roles" createdKey="jobRole"
-          initialRows={[]} example="フィールドセールス" readOnly
-          hints={[<>ここは出ないはず</>]} />
+      <Variant label="職種タブ × 紐付けを読めなかった" note="⚠️ 部門の列が「部門なし」ではなく「—」になること">
+        <JobRolesEditor roles={ROLES} standardRoles={STD} departments={SHALLOW} />
       </Variant>
     </div>
   );

@@ -1,394 +1,95 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import { buildRoleTree } from "@/lib/roles/jobRoles";
-import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
-import { OrgTreeEditor } from "@/components/business/OrgTreeEditor";
-import { RoleDepartmentsField } from "./RoleDepartmentsField";
-import type { Department } from "./DepartmentsEditor";
+import Link from "next/link";
+import { flattenTree } from "@/lib/business/orgTree";
+import type { StandardRole } from "./StandardRoleCombobox";
+import type { Department } from "./DepartmentsWorkspace";
+
+export type { StandardRole } from "./StandardRoleCombobox";
 
 export type CompanyJobRole = {
   id: string;
-  /** ★親の自社職種。NULL は最上位（2026-09-19 / 柴さんの指示で階層にした）。
-   *  ⚠️★**標準職種（`standard_role_id`）の親子とは別物。** あちらは OPINIO のマスタで、
-   *     こちらは自社の組織の形。混ぜないこと。 */
+  /** ★親の自社職種。NULL は最上位（2026-09-19）。
+   *  ⚠️★**標準職種（`standard_role_id`）の親子とは別物。** あちらは OPINIO のマスタで、こちらは自社の組織の形。 */
   parent_id: string | null;
   name: string;
   standard_role_id: string | null;
   display_order: number;
 };
 
-export type StandardRole = {
-  id: string;
-  name: string;
-  parent_id: string | null;
-  /** ⚠️ **親ごとの相対順**。フラットに並べると親子が混ざる（CLAUDE.md） */
-  display_order: number | null;
-};
-
-type Props = {
-  initialRoles: CompanyJobRole[];
+/**
+ * ★職種タブ（2026-10-12 / 柴さんの指示で**読むだけの一覧**にした）。
+ *   列は 社内での呼び方 / 標準の職種 / 部門 / 求人。部門名を押すと部門タブのその部門のパネルが開く。
+ * ⚠️★**ここで編集させないこと。** 職種の追加・標準の職種・呼び方・部門の付け外しは、部門タブのパネルの1か所でやる
+ *    （2か所で編集できると、どちらで直したかが分からなくなる）。
+ * ⚠️ 紐付けが読めなかったときは部門の列を「—」にする（「部門なし」と見せない）。
+ */
+export function JobRolesEditor({ roles, standardRoles, departments, roleDepartments, usage }: {
+  roles: CompanyJobRole[];
   standardRoles: StandardRole[];
-  /** ★管理者でない人は閲覧だけ（2026-09-22）。`OrgTreeEditor` の readOnly を読む */
-  readOnly?: boolean;
-  /** ★行ごとの求人の件数（2026-09-22）。id → 件数 */
-  usage?: Record<string, number>;
-  /** ★部門の一覧と、職種ごとの所属部門（2026-09-22）。紐付けが読めなかったときは roleDepartments が undefined */
-  departments?: Department[];
+  departments: Department[];
   roleDepartments?: Record<string, string[]>;
-};
-
-function StandardRoleBadge({ roleId, roles, name }: { roleId: string | null; roles: StandardRole[]; name: string }) {
-  /* ★未選択の行（2026-10-12 より前に作られたもの）。灰色の文字で出す。バッジにしない */
-  if (!roleId) {
-    return (
-      <span data-state="standard-role-missing" style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>
-        標準の職種を選んでください
-      </span>
-    );
-  }
-  const role = roles.find((r) => r.id === roleId);
-  if (!role) return null;
-  /* 社内の呼び方が無い（＝名前が標準の職種名そのもの）なら、同じ語を2回並べない */
-  if (role.name === name) return null;
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 3,
-      padding: "1px 7px",
-      borderRadius: 100,
-      fontSize: 11,
-      fontWeight: 600,
-      background: "var(--royal-50)",
-      color: "var(--royal)",
-      border: "1px solid var(--royal-100)",
-      flexShrink: 0,
-    }}>
-      {role.name}
-    </span>
-  );
-}
-
-function StandardRoleCombobox({
-  value,
-  onChange,
-  roles,
-  placeholder,
-  required = false,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  roles: StandardRole[];
-  placeholder?: string;
-  /** ★必須（2026-10-12）。「紐づけなし」と ✕ を出さない */
-  required?: boolean;
+  usage?: Record<string, number>;
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-
-  /* ★木に組んでから出す（2026-09-05 修正）。
-     ── 何が起きていたか ──────────────────────────────────────────────────
-     `filtered` を**そのまま map** しており、`display_order` が
-     **親ごとの相対順**であることを踏まえていなかった。実測（本番データ・154件）:
-       先頭22件が全部**子**で、最初の親（経営・CxO）が出るのは **23番目**。
-       「CEO・代表取締役」が8番目に出て、親はその15行あとにあった。
-     ⚠️ `ow_roles` の子には `display_order = 0` の行があるので、
-        「たまたま親が先に来る」ことも無い。
-
-     ── 直し方は `RoleSearchSelect` に揃えた ────────────────────────────────
-     親（`tree.topLevel`）→ その子 の順に組み、**子には親名を出す**
-     （`{親名} ›` を小さく前置。あちらと同じ表現）。
-     ⚠️ **新しい組み方を発明しない。** 並べ方も見せ方もあちらと同じにする。
-     ⚠️★ただし**初期表示で子を畳む挙動は持ち込んでいない。** あちらは検索欄が
-        空のとき大分類だけを出すが、ここは154件を一覧する前提の画面なので、
-        **件数（集合）は変えず並びだけを直す**に留めた。 */
-  const tree = useMemo(
-    () => buildRoleTree(roles.map((r, i) => ({
-      id: r.id,
-      parentId: r.parent_id,
-      name: r.name,
-      slug: null,
-      /* ⚠️ `display_order` が無い行は**渡された順**を使う。
-            `page.tsx` が display_order → name で並べているので、順序は保たれる。 */
-      displayOrder: r.display_order ?? i,
-    }))),
-    [roles],
-  );
-  const parentMap = useMemo(
-    () => new Map(tree.topLevel.map((r) => [r.id, r.name])),
-    [tree],
-  );
-  /** 親 id → 子。⚠️ 渡された順（＝display_order 順）を保つ */
-  const childrenOf = useMemo(() => {
-    const m = new Map<string, StandardRole[]>();
-    for (const r of roles) {
-      if (!r.parent_id) continue;
-      if (!m.has(r.parent_id)) m.set(r.parent_id, []);
-      m.get(r.parent_id)!.push(r);
-    }
-    return m;
-  }, [roles]);
-
-  const getSelectedLabel = () => {
-    if (!value) return "";
-    const role = roles.find((r) => r.id === value);
-    if (!role) return "";
-    if (!role.parent_id) return role.name;
-    return `${parentMap.get(role.parent_id) ?? ""} › ${role.name}`;
-  };
-
-  /* ⚠️★**マッチ条件は変えない**（2026-09-05）。集合を変えずに並びだけ直す。
-        子は「親名 or 自分の名前」に部分一致で当たる、という既存の挙動をそのまま残す。 */
-  const filtered = roles.filter((r) => {
-    if (!query) return true;
-    if (!r.parent_id) {
-      return r.name.includes(query);
-    }
-    const parent = parentMap.get(r.parent_id) ?? "";
-    return parent.includes(query) || r.name.includes(query);
-  });
-
-  /* ★`filtered` を**親 → その子** の順に並べ替える。
-     ⚠️ **絞り込んでも親子の構造を保つ。** 子だけがヒットしたときは親の行は出ないが、
-        子の行に親名を出しているので何の下かは読める。
-     ⚠️★**1件も落とさないこと。** 親が `roles` に無い孤児は末尾に付ける。
-        落とすと「絞り込んだら候補が消えた」になり、集合が変わってしまう。 */
-  const rows = useMemo(() => {
-    const keep = new Set(filtered.map((r) => r.id));
-    const out: StandardRole[] = [];
-    const emitted = new Set<string>();
-    for (const top of tree.topLevel) {
-      const self = roles.find((r) => r.id === top.id);
-      if (self && keep.has(top.id)) { out.push(self); emitted.add(top.id); }
-      for (const c of childrenOf.get(top.id) ?? []) {
-        if (keep.has(c.id)) { out.push(c); emitted.add(c.id); }
-      }
-    }
-    for (const r of filtered) if (!emitted.has(r.id)) out.push(r);
-    return out;
-  }, [filtered, tree, childrenOf, roles]);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  function handleSelect(id: string) {
-    onChange(id);
-    setOpen(false);
-    setQuery("");
-  }
-
-  function handleClear(e: React.MouseEvent) {
-    e.stopPropagation();
-    onChange("");
-    setQuery("");
-  }
+  const stdById = new Map(standardRoles.map((r) => [r.id, r]));
+  const deptOrder = flattenTree(departments).map(({ node }) => node);
+  const ordered = flattenTree(roles);
+  const missing = roles.filter((r) => !r.standard_role_id).length;
 
   return (
-    <div ref={containerRef} style={{ position: "relative", minWidth: 200 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          border: `1px solid ${open ? "var(--accent)" : "var(--line)"}`,
-          borderRadius: 5,
-          background: "#fff",
-          cursor: "text",
-          padding: "3px 6px 3px 8px",
-          gap: 4,
-        }}
-        onClick={() => { if (!open) { setOpen(true); setQuery(""); } }}
-      >
-        <input
-          value={open ? query : getSelectedLabel()}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => { if (!open) setOpen(true); }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") { setOpen(false); setQuery(""); }
-            if (e.key === "Enter" && filtered.length === 1) { handleSelect(filtered[0].id); }
-          }}
-          placeholder={open ? "検索…" : (placeholder ?? "標準職種（任意）")}
-          style={{
-            flex: 1,
-            fontSize: 12,
-            fontFamily: "inherit",
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            color: (value && !open) ? "var(--ink)" : "var(--ink-soft)",
-            minWidth: 0,
-          }}
-        />
-        {value && !required && (
-          <button
-            type="button"
-            onClick={handleClear}
-            style={{ fontSize: 11, color: "var(--ink-mute)", border: "none", background: "none", cursor: "pointer", padding: "0 2px", lineHeight: 1, flexShrink: 0 }}
-          >
-            ✕
-          </button>
-        )}
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, color: "var(--ink-mute)", pointerEvents: "none" }}>
-          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-
-      {open && (
-        <ul
-          ref={listRef}
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            right: 0,
-            maxHeight: 260,
-            overflowY: "auto",
-            background: "#fff",
-            border: "1px solid var(--line)",
-            borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
-            zIndex: 100,
-            margin: 0,
-            padding: "4px 0",
-            listStyle: "none",
-          }}
-        >
-          {/* 未設定に戻す。⚠️ 必須のときは出さない */}
-          {!required && <li
-            onClick={() => handleSelect("")}
-            style={{
-              padding: "6px 12px",
-              fontSize: 12,
-              color: "var(--ink-mute)",
-              cursor: "pointer",
-              borderBottom: "1px solid var(--line-soft)",
-              marginBottom: 2,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-          >
-            紐づけなし
-          </li>}
-
-          {filtered.length === 0 ? (
-            <li style={{ padding: "8px 12px", fontSize: 12, color: "var(--ink-mute)" }}>
-              該当なし
-            </li>
-          ) : (
-            <>
-              {rows.length > 20 && (
-                <li style={{ padding: "4px 12px", fontSize: 11, color: "var(--ink-mute)" }}>
-                  {rows.length} 件 — 絞り込むと候補が減ります
-                </li>
-              )}
-              {rows.map((r) => {
-                const isParent = !r.parent_id;
-                const parentName = r.parent_id ? (parentMap.get(r.parent_id) ?? "") : "";
+    <div>
+      <style>{`
+        .jrl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .jrl-table th { text-align: left; font-size: 12px; font-weight: 700; color: var(--ink-soft); padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-tint); white-space: nowrap; }
+        .jrl-table td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: var(--ink); overflow-wrap: anywhere; }
+        .jrl-table tr:last-child td { border-bottom: none; }
+        .jrl-dept { color: var(--royal); font-weight: 600; text-decoration: none; }
+        .jrl-dept:hover { text-decoration: underline; }
+        @media (max-width: 720px) {
+          .jrl-table thead { display: none; }
+          .jrl-table tr { display: block; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }
+          .jrl-table td { display: block; padding: 2px 0; border: none; }
+        }
+      `}</style>
+      <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+        職種の追加・変更は、<Link href="/biz/organization" style={{ color: "var(--royal)", fontWeight: 600 }}>部門タブ</Link>で部門を選んで行います。
+        {missing > 0 && <span data-state="standard-role-missing-notice" style={{ color: "var(--ink-mute)" }}>　標準の職種が未設定の職種が{missing}件あります（候補者を探すの「合うところ」には使われません）。</span>}
+      </p>
+      <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
+        {ordered.length === 0 ? (
+          <p style={{ margin: 0, padding: "18px 16px", fontSize: 13, color: "var(--ink-mute)" }}>職種はまだありません。部門タブで部門を選び、「＋ 新しい職種を追加」から登録できます。</p>
+        ) : (
+          <table className="jrl-table" data-state="job-roles-list">
+            <thead>
+              <tr><th>社内での呼び方</th><th>標準の職種</th><th>部門</th><th style={{ textAlign: "right" }}>求人</th></tr>
+            </thead>
+            <tbody>
+              {ordered.map(({ node: r, depth }) => {
+                const std = r.standard_role_id ? stdById.get(r.standard_role_id) : undefined;
+                const alias = std && std.name === r.name ? null : r.name;
+                const depts = roleDepartments ? deptOrder.filter((d) => (roleDepartments[r.id] ?? []).includes(d.id)) : null;
+                const used = usage?.[r.id] ?? 0;
                 return (
-                  <li
-                    key={r.id}
-                    onClick={() => handleSelect(r.id)}
-                    style={{
-                      padding: isParent ? "6px 12px" : "5px 12px 5px 22px",
-                      fontSize: 12,
-                      fontWeight: isParent ? 700 : 400,
-                      color: isParent ? "var(--ink)" : "var(--ink-soft)",
-                      cursor: "pointer",
-                      background: r.id === value ? "var(--royal-50)" : "transparent",
-                    }}
-                    onMouseEnter={(e) => { if (r.id !== value) (e.currentTarget as HTMLElement).style.background = "var(--bg-tint)"; }}
-                    onMouseLeave={(e) => { if (r.id !== value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                  >
-                    {/* ★子には**常に**親名を出す（2026-09-05）。
-                           以前は検索中だけ出しており、初期表示ではインデント22pxだけだったので
-                           「何の下の職種か」が読めなかった。表現は `RoleSearchSelect` に合わせる。 */}
-                    {!isParent && parentName && (
-                      <span style={{ fontSize: 11, color: "var(--ink-mute)", marginRight: 6 }}>
-                        {parentName} ›
-                      </span>
-                    )}
-                    {isParent ? r.name : (query ? <strong>{r.name}</strong> : r.name)}
-                  </li>
+                  <tr key={r.id} data-state="job-role-row">
+                    <td style={{ paddingLeft: depth > 1 ? 14 + (depth - 1) * 16 : undefined }}>
+                      {alias ?? <span style={{ color: "var(--ink-mute)" }}>—</span>}
+                    </td>
+                    <td>{std ? std.name : <span data-state="standard-role-missing" style={{ color: "var(--ink-mute)" }}>未設定</span>}</td>
+                    <td>
+                      {depts === null ? <span style={{ color: "var(--ink-mute)" }}>—</span>
+                        : depts.length === 0 ? <span style={{ color: "var(--ink-mute)" }}>部門なし</span>
+                        : depts.map((d, i) => (
+                          <span key={d.id}>{i > 0 && "、"}<Link className="jrl-dept" href={`/biz/organization?dept=${d.id}`}>{d.name}</Link></span>
+                        ))}
+                    </td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap", color: used > 0 ? "var(--ink)" : "var(--ink-mute)" }}>{used > 0 ? `${used}件` : "—"}</td>
+                  </tr>
                 );
               })}
-            </>
-          )}
-        </ul>
-      )}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
-  );
-}
-
-/**
- * 職種タブ。**中身は部門タブと同じ部品**（`components/business/OrgTreeEditor.tsx`）。
- *
- * ⚠️★**ここに木の描画や追加欄を書き戻さないこと**（2026-09-20 にまとめた）。
- *    部門との違いは**「標準職種」の1列だけ**で、それを `extra` で渡している。
- *    振る舞いを変えたくなったら、この列ではなく部品側の props を足すこと。
- *
- * ⚠️★`standard_role_id`（OPINIO のマスタ）と `parent_id`（自社の組織の形）は**別物**。
- *    前者は求人検索・マッチングの分類、後者は画面の階層。混ぜないこと。
- */
-export function JobRolesEditor({ initialRoles, standardRoles, readOnly = false, usage, departments = [], roleDepartments }: Props) {
-  return (
-    <OrgTreeEditor<CompanyJobRole>
-      unit="職種"
-      /* ★所属する部門（2026-09-22）。⚠️ 紐付けが読めなかったときは出さない
-            （「どこにも所属していない」と見せて、上書きで消させないため） */
-      rowAddon={roleDepartments ? (row) => (
-        <RoleDepartmentsField roleId={row.id} departments={departments} initial={roleDepartments[row.id] ?? []} readOnly={readOnly} />
-      ) : undefined}
-      readOnly={readOnly}
-      usage={usage ? { counts: usage, noun: "求人" } : undefined}
-      endpoint="/api/biz/job-roles"
-      createdKey="jobRole"
-      initialRows={initialRoles}
-      example="フィールドセールス"
-      extra={{
-        view: (row) => <StandardRoleBadge roleId={row.standard_role_id} roles={standardRoles} name={row.name} />,
-        input: (value, onChange) => (
-          <StandardRoleCombobox value={value} onChange={onChange} roles={standardRoles} required placeholder="標準の職種を選ぶ（必須）" />
-        ),
-        /* ★標準の職種は必須・社内での呼び方は任意（2026-10-12 / 柴さんの指示）。
-              呼び方が空なら標準の職種名で保存する（`name` は NOT NULL のまま）。
-              ⚠️ 必須の担保はサーバー（`POST /api/biz/job-roles` が 400）。 */
-        required: true,
-        nameFromExtra: (value) => standardRoles.find((r) => r.id === value)?.name ?? null,
-        namePlaceholder: "社内での呼び方（任意・例：PDM、FS）",
-        notice: (rows) => {
-          const missing = rows.filter((r) => !r.standard_role_id).length;
-          if (missing === 0) return null;
-          return (
-            <p data-state="standard-role-missing-notice" style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              標準の職種が選ばれていない職種が{missing}件あります。選ぶまで、候補者を探すの「合うところ」には使われません（行の ✎ から選べます）。
-            </p>
-          );
-        },
-        valueOf: (row) => row.standard_role_id ?? "",
-        /* ⚠️ 空文字は「紐づけなし」。**null で送る**（"" のまま送ると
-              uuid の列に空文字が入って 400 になる）。 */
-        toBody: (value) => ({ standard_role_id: value || null }),
-      }}
-      hints={[
-        <>下の入力欄は <b>Enter で続けて打ち込めます</b>（Tab で一段下、Shift+Tab で一段上。最大{MAX_ORG_DEPTH}階層）</>,
-        <>行の <b>↑ ↓</b> で並べ替え、<b>← →</b> で階層を変えられます</>,
-        <>職種名は社内で使っている呼び方で構いません（例：FS, AE, IC などの略称も可）</>,
-        <><b>標準の職種</b>は必須です。候補者の職歴・関心のある職種と突き合わせて「合うところ」を出すのに使います</>,
-        <>社内での呼び方は任意です。空なら標準の職種名で表示します</>,
-        <>職種名をダブルクリックすると名前を変更できます</>,
-        <>削除すると<b>その下の職種も一緒に削除されます</b>。紐づいた求人の記録は残ります</>,
-      ]}
-    />
   );
 }

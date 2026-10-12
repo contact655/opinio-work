@@ -2,10 +2,9 @@ import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { DepartmentsEditor } from "./DepartmentsEditor";
+import { DepartmentsWorkspace, type Department } from "./DepartmentsWorkspace";
 import { JobRolesEditor } from "./JobRolesEditor";
 import { OrganizationTabs } from "./OrganizationTabs";
-import type { Department } from "./DepartmentsEditor";
 import type { CompanyJobRole, StandardRole } from "./JobRolesEditor";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +20,8 @@ export const metadata = {
 export default async function OrganizationPage({
   searchParams,
 }: {
-  searchParams?: { tab?: string };
+  /** `?dept=<id>` … 職種タブの部門名から飛んできたとき、その部門の編集パネルを開く */
+  searchParams?: { tab?: string; dept?: string };
 }) {
   const ctx = await getTenantContext();
   if (!ctx) redirect("/biz/dashboard");
@@ -139,25 +139,26 @@ export default async function OrganizationPage({
         <OrganizationTabs activeTab={activeTab} />
       </div>
 
-      {/* ⚠️★外側の余白はここが持つ。`OrgTreeEditor` 側に書き戻さないこと
+      {/* ⚠️★外側の余白はここが持つ。`DepartmentsWorkspace` 側に書き戻さないこと
              （`/dev/preview/org-tree` に置いたときに余白が入り込む）。 */}
-      <div style={{ maxWidth: 1100, paddingTop: 20 }}>
+      <div style={{ maxWidth: 1240, paddingTop: 20 }}>
         {activeTab === "departments" ? (
-          <DepartmentsEditor
+          <DepartmentsWorkspace
             initialDepartments={(deptResult.data ?? []) as Department[]}
-            readOnly={!isAdmin}
+            initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
+            standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
+            initialRoleDepartments={linksOk ? roleDepartments : undefined}
             usage={usageOk ? deptUsage : undefined}
-            roleDepartments={linksOk ? roleDepartments : undefined}
-            jobRoles={(jobRolesResult.data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }))}
+            readOnly={!isAdmin}
+            initialSelectedId={searchParams?.dept ?? null}
           />
         ) : (
           <JobRolesEditor
-            initialRoles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
+            roles={(jobRolesResult.data ?? []) as CompanyJobRole[]}
             standardRoles={(stdRolesResult.data ?? []) as StandardRole[]}
-            readOnly={!isAdmin}
-            usage={usageOk ? roleUsage : undefined}
             departments={(deptResult.data ?? []) as Department[]}
             roleDepartments={linksOk ? roleDepartments : undefined}
+            usage={usageOk ? roleUsage : undefined}
           />
         )}
       </div>
