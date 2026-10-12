@@ -17,7 +17,10 @@ import { mutateOne } from "@/lib/supabase/mutate";
  *    （既存 API の src/app/api/biz/job-roles/route.ts と同じ流儀）。
  * ⚠️ 論理削除済み（deleted_at あり）の同名行は**復活させる**。
  *    会社がもう一度その呼称を使うと言っているので、別行を作る理由がない。
- * ⚠️ standard_role_id は毎回いまの主ロールで上書きする。会社の最新の意図を採る。
+ * ⚠️★standard_role_id は**空の行にだけ**入れる（2026-10-12 / 柴さんの指示）。
+ *    既に入っている行は上書きしない。部門・職種の画面で選んだ標準の職種が、
+ *    求人の自動保存で黙って書き換わっていた（Third Box の PDM がフィールドセールスに戻された）。
+ *    食い違いは求人の編集画面に1行出すだけで、自動では直さない。
  */
 export async function syncCompanyJobRole(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +74,7 @@ async function upsertCompanyJobRole(
   //    絞ると INSERT に回って UNIQUE 違反になる。
   const found = await supabase
     .from("ow_company_job_roles")
-    .select("id")
+    .select("id, standard_role_id")
     .eq("company_id", companyId)
     .eq("name", name)
     .maybeSingle();
@@ -84,7 +87,7 @@ async function upsertCompanyJobRole(
   if (found.data?.id) {
     const res = await mutateOne(
       supabase.from("ow_company_job_roles")
-        .update({ standard_role_id: standardRoleId, deleted_at: null })
+        .update(fillOnly(found.data.standard_role_id as string | null, standardRoleId))
         .eq("id", found.data.id),
       "syncCompanyJobRole update",
     );
@@ -112,7 +115,7 @@ async function upsertCompanyJobRole(
   if (inserted.error.code === "23505") {
     const again = await supabase
       .from("ow_company_job_roles")
-      .select("id")
+      .select("id, standard_role_id")
       .eq("company_id", companyId)
       .eq("name", name)
       .maybeSingle();
@@ -122,7 +125,7 @@ async function upsertCompanyJobRole(
     }
     const res2 = await mutateOne(
       supabase.from("ow_company_job_roles")
-        .update({ standard_role_id: standardRoleId, deleted_at: null })
+        .update(fillOnly(again.data.standard_role_id as string | null, standardRoleId))
         .eq("id", again.data.id),
       "syncCompanyJobRole update after 23505",
     );
@@ -132,4 +135,9 @@ async function upsertCompanyJobRole(
 
   console.error("[syncCompanyJobRole] insert", inserted.error.message);
   return null;
+}
+
+/** 既に標準の職種がある行は触らない（復活だけ）。空の行にだけ求人の職種を入れる */
+function fillOnly(current: string | null, fromJob: string | null): { deleted_at: null; standard_role_id?: string | null } {
+  return current ? { deleted_at: null } : { deleted_at: null, standard_role_id: fromJob };
 }

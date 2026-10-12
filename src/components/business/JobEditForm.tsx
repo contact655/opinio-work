@@ -505,15 +505,15 @@ export function JobEditForm({
     自社での呼び方のサジェスト。既存 GET /api/biz/job-roles をそのまま使う。
     ⚠️ 新しい API は作らない。/biz/organization の登録UIと同じ受け皿を共有する。
   */
-  const [companyRoles, setCompanyRoles] = useState<{ name: string; departmentIds: string[] }[]>([]);
+  const [companyRoles, setCompanyRoles] = useState<{ name: string; departmentIds: string[]; standardRoleId: string | null }[]>([]);
   useEffect(() => {
     let alive = true;
     fetch("/api/biz/job-roles")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!alive || !d?.jobRoles) return;
-        setCompanyRoles((d.jobRoles as { name: string; departmentIds?: string[] }[])
-          .map((x) => ({ name: x.name, departmentIds: x.departmentIds ?? [] })));
+        setCompanyRoles((d.jobRoles as { name: string; departmentIds?: string[]; standard_role_id?: string | null }[])
+          .map((x) => ({ name: x.name, departmentIds: x.departmentIds ?? [], standardRoleId: x.standard_role_id ?? null })));
       })
       .catch((e) => console.error("[JobEditForm] job-roles fetch", e));
     return () => { alive = false; };
@@ -524,6 +524,16 @@ export function JobEditForm({
   const deptRoleNames = departmentId
     ? companyRoles.filter((r) => r.departmentIds.includes(departmentId)).map((r) => r.name)
     : [];
+  /* ★部門・職種の標準の職種と、この求人の代表の職種が違うとき（2026-10-12）。
+        ⚠️ 自動では直さない（求人の保存は空の行にしか標準の職種を入れない。companyJobRole.ts） */
+  const roleMismatch = (() => {
+    const cr = companyRoles.find((r) => r.name === form.companyRoleName.trim());
+    const primary = selectedRoles.find((r) => r.isPrimary)?.roleId;
+    if (!cr?.standardRoleId || !primary || cr.standardRoleId === primary) return null;
+    const standard = roles.find((r) => r.id === cr.standardRoleId)?.name;
+    const job = roles.find((r) => r.id === primary)?.name;
+    return standard && job ? { standard, job } : null;
+  })();
   const companyRoleSuggestions = [
     ...deptRoleNames,
     ...companyRoles.map((r) => r.name).filter((n) => !deptRoleNames.includes(n)),
@@ -1172,6 +1182,12 @@ export function JobEditForm({
                   </div>
                 )}
                 <Hint>求人ページにはこの呼び方が出ます。検索や絞り込みは「職種」で選んだものを使います。</Hint>
+                {roleMismatch && (
+                  <p data-state="company-role-mismatch" style={{ margin: "8px 0 0", fontSize: 12.5, lineHeight: 1.6, color: "var(--ink-mute)" }}>
+                    部門・職種での設定（{roleMismatch.standard}）と、この求人の職種（{roleMismatch.job}）が違います{" "}
+                    <a href="/biz/organization?tab=roles" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>部門・職種を開く ›</a>
+                  </p>
+                )}
               </MoreGroup>
             )}
           </>
