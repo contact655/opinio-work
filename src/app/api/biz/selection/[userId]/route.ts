@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { actorFromTenant, canSeeCandidate, permissionDenied } from "@/lib/auth/companyAccess";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { getSelectionHistory } from "@/lib/business/selectionHistory";
 import { candidateHeaderMeta } from "@/lib/conversations/companyThread";
@@ -14,6 +15,8 @@ export async function GET(_req: Request, { params }: { params: { userId: string 
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!/^[0-9a-f-]{36}$/i.test(params.userId)) return NextResponse.json({ error: "not found" }, { status: 404 });
+  /* ★役割（2026-10-12）。選考を見られる役割は誰の分でも、面接官は担当の候補者だけ */
+  if (!(await canSeeCandidate(actorFromTenant(ctx), params.userId))) return permissionDenied();
   const history = await getSelectionHistory(ctx.tenantId, params.userId);
   if (history === null) return NextResponse.json({ error: "読み込めませんでした" }, { status: 500 });
   /* ⚠️★自社と1件も関わりの無い人には何も返さない（id を変えて叩けば誰の経歴の要約でも取れる形にしない） */

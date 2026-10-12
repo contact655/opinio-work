@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
 import { SelectionView } from "./SelectionView";
@@ -24,6 +25,8 @@ export default async function BizMeetingsPage({
 }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "selection.view", "selection.viewAssigned");
 
   const supabase = createClient();
   const [meetings, applications] = await Promise.all([

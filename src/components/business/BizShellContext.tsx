@@ -1,4 +1,5 @@
 "use client";
+import type { CompanyRole } from "@/lib/auth/roles";
 
 import { createContext, useContext } from "react";
 
@@ -25,8 +26,8 @@ export type BizShell = {
   hasPublicPage: boolean;
   /** ★ヘッダーの表示名（`ow_users.name`。2026-09-21）。`null` なら各ページの `userName` を使う */
   userName: string | null;
-  /** ★ヘッダーの権限表示（2026-09-21）。それまでは全員に「Admin」と直書きしていた */
-  permission: "admin" | "member" | null;
+  /** ★いまの会社での役割（2026-10-12 に4つにした）。ヘッダーの表示とサイドバー・ボタンの出し分け（can()）に使う */
+  permission: CompanyRole | null;
 };
 
 const BizShellContext = createContext<BizShell>({

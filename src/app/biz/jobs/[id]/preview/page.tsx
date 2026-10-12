@@ -1,3 +1,5 @@
+import { roleIn } from "@/lib/auth/permissions";
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -63,6 +65,8 @@ export default async function JobPreviewPage({ params }: { params: { id: string 
 
   const ctx = await getCompanyContext(supabase, user.id, cookies().get("biz_current_company_id")?.value);
   if (!ctx) return <NotAvailable />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(roleIn(ctx.allMemberships, ctx.companyId), "jobs.view");
 
   /* ⚠️ **求人の持ち主を確かめる。** URL の id をそのまま信じない。
         admin クライアントで引くのは、下書きが RLS で 0 行になるのを避けるため。

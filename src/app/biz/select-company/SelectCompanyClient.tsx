@@ -1,4 +1,5 @@
 "use client";
+import { ROLE_LABELS, type CompanyRole } from "@/lib/auth/roles";
 
 import { useState } from "react";
 
@@ -7,7 +8,7 @@ type Item = {
   name: string;
   logoGradient: string | null;
   logoLetter: string | null;
-  permission: "admin" | "member";
+  permission: CompanyRole;
   isDefault: boolean;
 };
 
@@ -122,7 +123,7 @@ export default function SelectCompanyClient({ items }: { items: Item[] }) {
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-                  {item.permission === "admin" ? "管理者" : "メンバー"}
+                  {ROLE_LABELS[item.permission]}
                 </div>
               </div>
               {/* Spinner or arrow */}

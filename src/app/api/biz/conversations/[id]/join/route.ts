@@ -1,3 +1,4 @@
+import { can, toCompanyRole } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -54,13 +55,14 @@ export async function POST(
   // ── Verify caller belongs to this company (ow_company_admins) ─────────────
   const { data: adminLink } = await supabase
     .from("ow_company_admins")
-    .select("id")
+    .select("id, permission")
     .eq("user_id", meUser.id)
     .eq("company_id", conv.company_id)
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!adminLink) {
+  /* ★役割（2026-10-12）。やり取りに入れるのは メッセージを使える役割（管理者・採用担当）だけ */
+  if (!adminLink || !can(toCompanyRole(adminLink.permission), "messages.use")) {
     return NextResponse.json(
       { error: "not authorized for this company" },
       { status: 403 }

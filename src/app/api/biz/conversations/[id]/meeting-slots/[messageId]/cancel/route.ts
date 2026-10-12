@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { cancelMeetingSlots } from "@/lib/meetings/server";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(_req: NextRequest, { params }: { params: { id: string; messageId: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!can(ctx.currentPermission, "meetings.manage")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
   const r = await cancelMeetingSlots({ conversationId: params.id, companyId: ctx.tenantId, actorOwUserId: ctx.currentOwnId, messageId: params.messageId });
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ ok: true });

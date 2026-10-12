@@ -4,7 +4,7 @@ import { mutateOne } from "@/lib/supabase/mutate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { isPhotoCategory, type PhotoCategory } from "@/lib/business/photos";
 
 export async function PATCH(
@@ -29,7 +29,7 @@ export async function PATCH(
     }
     const { companyId } = ctx;
 
-    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+    try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
     const body = await request.json();
     const updates: {
@@ -99,7 +99,7 @@ export async function DELETE(
     }
     const { companyId } = ctx;
 
-    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+    try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
     // 1. DB から該当行を取得して image_url を取り出す（Storage パス推定用）
     const { data: photo, error: fetchError } = await supabase

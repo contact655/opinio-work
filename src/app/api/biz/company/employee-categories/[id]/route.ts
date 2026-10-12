@@ -14,7 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 export async function DELETE(
   _req: Request,
@@ -37,7 +37,7 @@ export async function DELETE(
   }
   const { companyId } = ctx;
 
-  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, companyId, "employees.manage"); } catch { return permissionDeniedResponse(); }
 
   // company_id を条件に含めて他社データの削除を防止
   const { error, count } = await admin

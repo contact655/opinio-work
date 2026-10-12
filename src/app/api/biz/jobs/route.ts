@@ -6,7 +6,7 @@ import { mutateMany, mutateAllowNone } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { validateJobOptionFields, toUrgency } from "@/lib/business/jobs";
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     const cookieCompanyIdDup = cookies().get("biz_current_company_id")?.value;
     const ctxDup = await getCompanyContext(supabase, user.id, cookieCompanyIdDup);
     if (!ctxDup) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    try { requireAdmin(ctxDup.allMemberships, ctxDup.companyId); } catch { return permissionDeniedResponse(); }
+    try { requireCompanyAction(ctxDup.allMemberships, ctxDup.companyId, "jobs.edit"); } catch { return permissionDeniedResponse(); }
 
     const { data: source } = await supabase
       .from("ow_jobs")
@@ -187,7 +187,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, ctx.companyId, "jobs.edit"); } catch { return permissionDeniedResponse(); }
 
   // 選択肢が決まっている項目は 400 で弾く。黙って既定値に倒さない
   const optionErr = validateJobOptionFields(body);

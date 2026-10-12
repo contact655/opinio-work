@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -17,6 +18,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!can(ctx.currentPermission, "jobs.view")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
   const note = await getJobInternalNote(ctx.tenantId, params.id);
   return NextResponse.json({ note });
 }
@@ -25,6 +27,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!can(ctx.currentPermission, "jobs.edit")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
   const json = await req.json().catch(() => null) as { body?: unknown } | null;
   if (!json || typeof json.body !== "string") return NextResponse.json({ error: "本文がありません" }, { status: 400 });
   const body = json.body.trim();

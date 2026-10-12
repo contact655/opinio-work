@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
@@ -28,6 +29,8 @@ export default async function SavedSearchesPage({ searchParams }: { searchParams
       </BusinessLayout>
     );
   }
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "candidates.viewProfile");
   const layoutProps = {
     userName: ctx.userName, tenantName: ctx.tenantName, tenantLogoGradient: ctx.logoGradient,
     tenantLogoLetter: ctx.logoLetter, memberships: ctx.allCompanies, currentTenantId: ctx.tenantId,

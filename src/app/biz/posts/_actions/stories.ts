@@ -1,9 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
-import { getCompanyContext } from "@/lib/business/company";
+import { checkBizAction } from "@/lib/auth/companyAccess";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import {
   saveStory, publishStory, unpublishStory, discardStoryChanges, deleteCompanyStory, createStoryCoverUploadUrl,
@@ -20,15 +18,13 @@ import {
 
 export type ActionResult<T> = { ok: true; value: T } | { ok: false; error: string; wording?: string[] };
 
+/* ★企業ストーリーを書けるのは 管理者・採用担当（2026-10-12 / stories.edit）。判定は can() の1か所 */
 async function ctx(): Promise<{ companyId: string; owUserId: string } | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const c = await getCompanyContext(supabase, user.id, cookies().get("biz_current_company_id")?.value);
-  return c ? { companyId: c.companyId, owUserId: c.owUserId } : null;
+  const r = await checkBizAction("stories.edit");
+  return r.ok ? { companyId: r.actor.companyId, owUserId: r.actor.owUserId } : null;
 }
 
-const NO_AUTH = { ok: false as const, error: "ログインし直してください。" };
+const NO_AUTH = { ok: false as const, error: "ログインし直すか、権限を確かめてください。" };
 
 export async function saveStoryAction(id: string | null, f: StoryFields): Promise<ActionResult<{ id: string; hasDraft: boolean; savedAt: string }>> {
   const c = await ctx();

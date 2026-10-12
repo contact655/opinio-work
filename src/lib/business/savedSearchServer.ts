@@ -1,3 +1,4 @@
+import { can, type CompanyRole } from "@/lib/auth/roles";
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -79,7 +80,7 @@ function toRow(r: Record<string, unknown>, ownerName: string | null): SavedSearc
 export async function listSavedSearchesForViewer(params: {
   companyId: string;
   viewerOwUserId: string;
-  viewerPermission: "admin" | "member";
+  viewerPermission: CompanyRole;
 }): Promise<SavedSearchRow[] | null> {
   const db = createAdminClient();
   const { data, error } = await db
@@ -154,7 +155,7 @@ export function countNewApproachable(candidates: Candidate[], filters: SavedCand
 export async function listSavedSearchesWithCounts(params: {
   companyId: string;
   viewerOwUserId: string;
-  viewerPermission: "admin" | "member";
+  viewerPermission: CompanyRole;
   planType: PlanType | null;
 }): Promise<SavedSearchForViewer[] | null> {
   const rows = await listSavedSearchesForViewer(params);
@@ -175,7 +176,7 @@ export async function listSavedSearchesWithCounts(params: {
       ...r,
       isMine,
       canEdit: isMine,
-      canDelete: isMine || params.viewerPermission === "admin",
+      canDelete: isMine || can(params.viewerPermission, "savedSearches.manageAll"),
       lastViewedAt: since,
       newCount: candidates ? countNew(candidates, r.filters, since) : null,
       newApproachableCount: candidates ? countNewApproachable(candidates, r.filters, since) : null,

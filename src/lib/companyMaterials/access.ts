@@ -1,10 +1,10 @@
 /**
  * 企業資料の API が**必ず通す**権限確認（依頼② フェーズ1a / 2026-10-09）。
  *
- * ★柴さんの決定:
- *   閲覧  … その企業の有効な担当者（閲覧権限 `member` も可）
- *   編集  … 管理者権限（`permission = 'admin'`）だけ
- *           （登録・項目の追加と編集・区分の確定・印・削除）
+ * ★柴さんの決定（2026-10-12 に役割を4つにした。判定は lib/auth/roles.ts の can()）:
+ *   閲覧  … 管理者・採用担当（materials.view）
+ *   編集  … 管理者・採用担当（materials.edit。登録・項目の追加と編集・区分の確定・印・削除）
+ *   Google ドライブから選ぶ … 管理者だけ（連携。integrations.manage）
  *
  * ⚠️ 所属の解決は `getCompanyContext`。`ow_company_admins` を **`user_id = 自分の ow_users.id`
  *    かつ `is_active`** で引くので、招待中の行（`user_id` が NULL）は**構造上当たらない**。
@@ -20,7 +20,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { can } from "@/lib/auth/roles";
 import type { PlanType } from "@/lib/constants/plans";
 
 export type MaterialsActor = {
@@ -43,9 +44,11 @@ export async function resolveMaterialsActor(
   if (!ctx) {
     return { ok: false, response: NextResponse.json({ error: "所属する企業が見つかりません。" }, { status: 403 }) };
   }
-  const isAdmin = ctx.allMemberships.find((m) => m.companyId === ctx.companyId)?.permission === "admin";
-  if (mode === "edit") {
-    try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return { ok: false, response: permissionDeniedResponse() }; }
-  }
+  /* ★役割で判定（2026-10-12）。見る … 採用担当以上／編集 … 採用担当以上（lib/auth/roles.ts） */
+  try { requireCompanyAction(ctx.allMemberships, ctx.companyId, mode === "edit" ? "materials.edit" : "materials.view"); }
+  catch { return { ok: false, response: permissionDeniedResponse() }; }
+  const role = ctx.allMemberships.find((m) => m.companyId === ctx.companyId)?.permission ?? null;
+  /** ★Google ドライブ（連携）は管理者だけ */
+  const isAdmin = can(role, "integrations.manage");
   return { ok: true, actor: { companyId: ctx.companyId, owUserId: ctx.owUserId, planType: ctx.planType, isAdmin } };
 }

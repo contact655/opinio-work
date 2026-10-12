@@ -17,7 +17,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 // ─── POST: カテゴリ追加 ───────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   }
   const { companyId } = ctx;
 
-  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, companyId, "employees.manage"); } catch { return permissionDeniedResponse(); }
 
   const { data, error } = await admin
     .from("ow_company_employee_categories")
@@ -101,7 +101,7 @@ export async function PUT(req: Request) {
   }
   const { companyId } = ctx;
 
-  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, companyId, "employees.manage"); } catch { return permissionDeniedResponse(); }
 
   // 各 ID の display_order を index 値に更新
   // 並列実行で高速化、ただし企業帰属確認のため company_id も条件に含める

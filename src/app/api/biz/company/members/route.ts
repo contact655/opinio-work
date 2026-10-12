@@ -1,3 +1,5 @@
+import { can } from "@/lib/auth/roles";
+import { roleIn } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
@@ -13,6 +15,8 @@ export async function GET() {
     const cookieCompanyId = cookies().get("biz_current_company_id")?.value;
     const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
     if (!ctx) return Response.json({ error: "Company not found" }, { status: 404 });
+    /* ★役割（2026-10-12）。写真に写っている人を選ぶ一覧。企業ページの本文を編集できる役割だけ */
+    if (!can(roleIn(ctx.allMemberships, ctx.companyId), "company.page")) return Response.json({ error: "この操作の権限がありません。" }, { status: 403 });
 
     const { companyId } = ctx;
     const admin = createAdminClient();

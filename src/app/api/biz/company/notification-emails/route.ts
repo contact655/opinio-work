@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { mutateOne } from "@/lib/supabase/mutate";
 
 /**
@@ -29,7 +29,7 @@ export async function PUT(req: Request) {
 
   const ctx = await getCompanyContext(supabase, user.id, cookies().get("biz_current_company_id")?.value);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
-  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, ctx.companyId, "notifications.manage"); } catch { return permissionDeniedResponse(); }
 
   if (!Array.isArray(body.emails) || !body.emails.every((e) => typeof e === "string")) {
     return NextResponse.json({ error: "emails は文字列の配列で送ってください。" }, { status: 400 });

@@ -1,4 +1,5 @@
 "use client";
+import { can, ROLE_LABELS, type CompanyAction } from "@/lib/auth/roles";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -50,6 +51,8 @@ type NavItem = {
   icon: React.ReactElement;
   /** ★未読バッジの出どころ（2026-09-21）。値は `BizShellContext` の `badges` */
   badge?: "messages" | "proposals";
+  /** ★この項目を出す条件（2026-10-12）。いずれかの操作ができれば出す。⚠️ 判定は can() の1か所 */
+  needs: CompanyAction[];
   children?: { href: string; label: string }[];
 };
 
@@ -65,13 +68,13 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: null,
     items: [
-      { href: "/biz/dashboard", label: "ホーム", icon: <LayoutGrid size={16} strokeWidth={2.2} /> },
+      { href: "/biz/dashboard", label: "ホーム", needs: ["dashboard.view"], icon: <LayoutGrid size={16} strokeWidth={2.2} /> },
     ],
   },
   {
     heading: "候補者と出会う",
     items: [
-      { href: "/biz/candidates", label: "候補者を探す", icon: <Search size={16} strokeWidth={2.2} /> },
+      { href: "/biz/candidates", label: "候補者を探す", needs: ["candidates.viewProfile"], icon: <Search size={16} strokeWidth={2.2} /> },
       /* ★「メッセージリクエスト」の行は 2026-10-11 に外した（柴さんの指示）。企業から送る1通目も
             「やり取り・選考」の「メッセージ」（/biz/messages の返事待ちタブ）にまとめた。旧 URL は 301 で転送。 */
       /* ★「紹介」の行は 2026-10-11 に外した（柴さんの指示。「紹介」は人材紹介と紛らわしいため）。
@@ -85,36 +88,36 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "やり取り・選考",
     items: [
       /* ★バッジは「未読のある会話 ∪ 返信があってまだ開いていない会話」の数（2026-10-11。`lib/business/navBadges.ts`） */
-      { href: "/biz/messages", label: "メッセージ", icon: <Inbox size={16} strokeWidth={2.2} />, badge: "messages" },
-      { href: "/biz/meetings", label: "選考管理", icon: <Calendar size={16} strokeWidth={2.2} /> },
+      { href: "/biz/messages", label: "メッセージ", needs: ["messages.use"], icon: <Inbox size={16} strokeWidth={2.2} />, badge: "messages" },
+      { href: "/biz/meetings", label: "選考管理", needs: ["selection.view", "selection.viewAssigned"], icon: <Calendar size={16} strokeWidth={2.2} /> },
     ],
   },
   {
     heading: "会社を伝える",
     items: [
-      { href: "/biz/jobs", label: "求人管理", icon: <Briefcase size={16} strokeWidth={2.2} /> },
+      { href: "/biz/jobs", label: "求人管理", needs: ["jobs.view"], icon: <Briefcase size={16} strokeWidth={2.2} /> },
       /* ★2026-09-21 に「組織体制」から改名し、求人管理の直下へ移した。
             ここで登録する部門・職種は**求人作成の選択肢としてだけ**使われる（社員登録・
             求職者向けのページには出ない）。旧名は企業ページの「組織体制」欄と同じ名前だった。
          ⚠️ パスは /biz/organization のまま（変えていない） */
-      { href: "/biz/organization", label: "部門・職種", icon: <Layers size={16} strokeWidth={2.2} /> },
+      { href: "/biz/organization", label: "部門・職種", needs: ["organization.manage"], icon: <Layers size={16} strokeWidth={2.2} /> },
       /* ⚠️ 2026-09-21 に「企業情報」から改名。求職者に見える**公開ページの編集**だと
             分かるようにするため。パスは `/biz/company` のまま（変えていない）。 */
-      { href: "/biz/company", label: "企業ページ", icon: <Building2 size={16} strokeWidth={2.2} /> },
+      { href: "/biz/company", label: "企業ページ", needs: ["company.page"], icon: <Building2 size={16} strokeWidth={2.2} /> },
       /* ★企業資料（2026-10-09 / 依頼②）。資料を登録し、項目ごとに公開範囲を決めて確定する。
             ⚠️ 企業ページのタブにしなかった理由: 「内部のみ」の項目（企業ページに出ないもの）を含み、
                確定も項目ごとに即時に保存する（企業ページの下書き → 「変更を公開する」とは作りが違う） */
-      { href: "/biz/materials", label: "企業資料", icon: <FileText size={16} strokeWidth={2.2} /> },
-      { href: "/biz/employees", label: "社員・OB/OG", icon: <UsersRound size={16} strokeWidth={2.2} /> },
+      { href: "/biz/materials", label: "企業資料", needs: ["materials.view"], icon: <FileText size={16} strokeWidth={2.2} /> },
+      { href: "/biz/employees", label: "社員・OB/OG", needs: ["employees.manage"], icon: <UsersRound size={16} strokeWidth={2.2} /> },
       /* ★2026-09-21 に「投稿・発信」から改名（外部リンクのタブを外し、中身がストーリーだけになった） */
-      { href: "/biz/posts", label: "企業ストーリー", icon: <Newspaper size={16} strokeWidth={2.2} /> },
+      { href: "/biz/posts", label: "企業ストーリー", needs: ["stories.edit"], icon: <Newspaper size={16} strokeWidth={2.2} /> },
     ],
   },
   {
     heading: "管理",
     items: [
-      { href: "/biz/analytics", label: "分析", icon: <BarChart2 size={16} strokeWidth={2.2} /> },
-      { href: "/biz/members", label: "メンバーと権限", icon: <Users size={16} strokeWidth={2.2} /> },
+      { href: "/biz/analytics", label: "分析", needs: ["analytics.view"], icon: <BarChart2 size={16} strokeWidth={2.2} /> },
+      { href: "/biz/members", label: "メンバーと権限", needs: ["members.manage"], icon: <Users size={16} strokeWidth={2.2} /> },
     ],
   },
 ];
@@ -227,7 +230,7 @@ function BusinessChrome({
   /* ★名前と権限は `BizShellContext`（layout が `getTenantContext` から入れる）を正にする。
         props の `userName` は Provider の外（企業が無い画面など）だけの逃げ道。 */
   const displayName = shell.userName ?? userName;
-  const roleLabel = shell.permission === "admin" ? "管理者" : shell.permission === "member" ? "メンバー" : null;
+  const roleLabel = shell.permission ? ROLE_LABELS[shell.permission] : null;
   const userInitial = displayName.trim().charAt(0).toUpperCase() || null;
   const logoLetter = tenantLogoLetter || (tenantName || "?").trim().charAt(0).toUpperCase();
   const logoGradient = tenantLogoGradient || "linear-gradient(135deg, #F97316, #EA580C)";
@@ -471,7 +474,9 @@ function BusinessChrome({
           )}
 
           <nav>
-            {NAV_GROUPS.map((group, gi) => (
+            {/* ★権限が無い項目は出さない（押せない状態で残さない。2026-10-12）。見出しは中身が残るときだけ */}
+            {NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((it) => it.needs.some((a) => can(shell.permission, a))) }))
+              .filter((g) => g.items.length > 0).map((group, gi) => (
             <React.Fragment key={group.heading ?? `g${gi}`}>
             {/* ⚠️ 狭い画面では隠す（横スクロールの列に見出しを混ぜない）。
                    ⚠️ 見出しと項目は **nav の直下に兄弟として**並べる。グループを div で包むと、
@@ -615,7 +620,7 @@ function BusinessChrome({
                  ⚠️ 狭い画面では隠す（ダッシュボードの企業カードに同じボタンがある）。 */}
           {/* ★2026-10-12: 404 にならないプレビュー（/preview/company）に変えた。掲載前・検証用でも開ける。
                  ⚠️ そのため hasPublicPage の条件は外した（担当者なら必ず開ける） */}
-          {shell.tenantId && (
+          {shell.tenantId && can(shell.permission, "company.page") && (
             <div className="biz-sidebar-footer" style={{ margin: "14px 12px 0", paddingTop: 12, borderTop: "1px solid var(--line-soft)" }}>
               <a
                 href="/preview/company"

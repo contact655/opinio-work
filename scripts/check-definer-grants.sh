@@ -37,8 +37,7 @@ cd "$(dirname "$0")/.."
 #        （企業との会話はサーバーが「開いてよい理由」を確かめて作る。`lib/conversations/openReason.ts`）
 ALLOW=(
   "auth_is_admin()"                              # ①
-  "auth_is_company_admin(target_company_id uuid)" # ①
-  "auth_is_company_member(target_company_id uuid)" # ①
+  "auth_company_can(p_company_id uuid, p_action text)" # ①（2026-10-12。担当者の権限の判定はこの1つ。旧 auth_is_company_admin / _member を置き換え）
   "auth_ow_user_id()"                            # ①
   "auth_is_test_user()"                          # ①（2026-10-11。呼んだ本人が検証用かだけを答える）
 )

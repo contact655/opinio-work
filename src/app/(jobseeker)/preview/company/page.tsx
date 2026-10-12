@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -18,6 +19,8 @@ export const metadata: Metadata = { title: { absolute: "求職者から見た企
 export default async function CompanyPreviewPage() {
   const ctx = await getTenantContext();
   if (!ctx) notFound();
+  /* ★役割（2026-10-12）。企業ページを編集できる役割（管理者・採用担当）だけ。ほかは 404 */
+  if (!can(ctx.currentPermission, "company.page")) notFound();
   const { data: c, error } = await createAdminClient().from("ow_companies")
     .select("id, slug, is_published, is_test").eq("id", ctx.tenantId).maybeSingle();
   if (error) console.error("[preview/company]", error.message);

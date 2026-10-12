@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { isCompanyListedForJobs } from "@/lib/jobs/publishGate";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -21,6 +22,8 @@ export default async function JobNewPage() {
 
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage userName={userName} />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "jobs.edit");
 
   const adminClient = createAdminClient();
   const [teamMembers, rolesResult, aliasResult, deptsResult] = await Promise.all([

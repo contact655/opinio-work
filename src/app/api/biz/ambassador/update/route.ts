@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function PATCH(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (ctx.currentPermission !== "admin") {
+  if (!can(ctx.currentPermission, "employees.manage")) {
     return NextResponse.json({ error: "管理者のみ操作できます" }, { status: 403 });
   }
 

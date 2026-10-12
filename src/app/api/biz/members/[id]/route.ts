@@ -4,7 +4,7 @@ import { mutateOne } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 type Action = "permission" | "deactivate" | "reactivate" | "update_profile" | "ambassador";
 
@@ -56,7 +56,7 @@ export async function PATCH(
   const isSelf = target.user_id === actorOwUserId;
 
   // ambassador の設定は admin 必須
-  try { requireAdmin(allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(allMemberships, companyId, "members.manage"); } catch { return permissionDeniedResponse(); }
 
   // 最後の admin を数える共通ヘルパー
   async function countActiveAdmins(): Promise<number> {

@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (ctx.currentPermission !== "admin") {
+  if (!can(ctx.currentPermission, "employees.manage")) {
     return NextResponse.json({ error: "管理者のみ操作できます" }, { status: 403 });
   }
 

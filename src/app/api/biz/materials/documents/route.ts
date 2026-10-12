@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
   const host = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
   const driveMimeType = typeof body.driveMimeType === "string" && /^[a-z]+\/[A-Za-z0-9.+-]{1,100}$/.test(body.driveMimeType)
     && (host === "docs.google.com" || host === "drive.google.com") ? body.driveMimeType : null;
+  /* ★Google ドライブから選んだもの（連携）は管理者だけ（2026-10-12）。⚠️ 画面のボタンも管理者にしか出さない */
+  if (driveMimeType && !a.actor.isAdmin) {
+    return NextResponse.json({ error: "Google ドライブとの連携は管理者だけが使えます。", code: "permission_denied" }, { status: 403 });
+  }
   const r = await createUrlDocument(companyId, owUserId, title, url, driveMimeType);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ id: r.value.id }, { status: 201 });

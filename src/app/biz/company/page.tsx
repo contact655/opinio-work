@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchCompanyForTenant } from "@/lib/business/company";
@@ -17,6 +18,8 @@ export const metadata = {
 export default async function BizCompanyPage() {
   const ctx = await getTenantContext();
   if (!ctx) redirect("/biz/dashboard");
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "company.page");
 
   const supabase = createClient();
 

@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { isCompanyListedForJobs } from "@/lib/jobs/publishGate";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -27,6 +28,8 @@ export default async function JobEditPage({
   const initialSection = normalizeJobEditSection(searchParams?.section);
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "jobs.edit");
 
   const supabase = createClient();
   const adminClient = createAdminClient();

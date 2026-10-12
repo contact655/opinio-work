@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { sendEmail } from "@/lib/notify/email";
 import { listingRequestAdminTemplate } from "@/lib/notify/templates";
@@ -62,7 +62,7 @@ export async function POST() {
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   const { companyId, owUserId } = ctx;
 
-  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, companyId, "company.listingRequest"); } catch { return permissionDeniedResponse(); }
 
   const admin = createAdminClient();
 

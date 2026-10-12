@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
 /* ★右欄（候補者のプロフィール）の中身が使う client コンポーネントを、このページから参照しておく（profileClientModules.ts の注記） */
 void PROFILE_CLIENT_MODULES;
@@ -63,6 +64,8 @@ export type ConversationRow = {
 export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string; filter?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "messages.use");
 
   const supabase = createClient();
 

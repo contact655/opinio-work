@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!can(ctx.currentPermission, "messages.use")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
   /* ⚠️ 候補者検索（/biz/candidates）と同じ審査の判定。画面だけ塞いでも API は直接叩ける */
   if (!isCompanyReviewed(ctx)) {
     return NextResponse.json({ error: COMPANY_REVIEW_BLOCKED_MESSAGE }, { status: 403 });

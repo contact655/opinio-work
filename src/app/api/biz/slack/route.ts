@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { getSlackSettingsView, saveSlackSettings } from "@/lib/notify/slack";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 async function requireAdmin() {
   const ctx = await getTenantContext();
   if (!ctx) return { error: NextResponse.json({ error: "ログインしてください。" }, { status: 401 }) } as const;
-  if (ctx.currentPermission !== "admin") {
+  if (!can(ctx.currentPermission, "integrations.manage")) {
     return { error: NextResponse.json({ error: "Slack 通知の設定は管理者だけができます。" }, { status: 403 }) } as const;
   }
   return { ctx } as const;

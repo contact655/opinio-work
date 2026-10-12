@@ -4,7 +4,7 @@ import { mutateOne } from "@/lib/supabase/mutate";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
 import { MAX_PHOTOS_TOTAL, isPhotoCategory } from "@/lib/business/photos";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 
 
 export async function POST(request: Request) {
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
     const { companyId } = ctx;
 
-    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+    try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
     const body = await request.json();
     const { category, image_url, caption, display_order } = body;
@@ -96,7 +96,7 @@ export async function DELETE(request: Request) {
     }
     const { companyId } = ctx;
 
-    try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+    try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
     const { searchParams } = new URL(request.url);
     const photoId = searchParams.get("id");

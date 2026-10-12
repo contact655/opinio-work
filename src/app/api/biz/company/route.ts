@@ -1,10 +1,13 @@
+import { can } from "@/lib/auth/roles";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { transformFormToDb, getCompanyContext } from "@/lib/business/company";
+import { transformFormToDb, getCompanyContext, COMPANY_BASIC_DRAFT_KEYS } from "@/lib/business/company";
+import type { Json } from "@/lib/supabase/types";
 import { insertActivity } from "@/lib/business/activities";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse, roleIn } from "@/lib/auth/permissions";
 import type { BizCompany } from "@/lib/business/mockCompany";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 import { applyCompanyDraft } from "@/lib/companies/applyDraft";
@@ -29,7 +32,7 @@ export async function PUT(req: Request) {
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   const { companyId, owUserId } = ctx;
 
-  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
   // フォーム値を DB カラム形式に変換して draft_data に保存
   // 本番カラム（name, mission など）は一切変更しない
@@ -46,6 +49,22 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
     if (cur.is_published === true && cur.listing_status === "listed") record.name = cur.name;
+  }
+
+  /* ★基本情報（社名・ロゴ・業種など）は管理者だけ（2026-10-12 / company.basic）。
+        それ以外の人の保存では、基本情報のキーを**いまの下書きのまま**にする（無ければキーごと送らない＝反映で触らない）。
+     ⚠️ 黙って捨てるのではなく画面でも基本情報の欄を出していない（CompanyEditClient）。 */
+  if (!can(roleIn(ctx.allMemberships, companyId), "company.basic")) {
+    const { data: draftRow, error: dErr } = await createAdminClient().from("ow_companies").select("draft_data").eq("id", companyId).maybeSingle();
+    if (dErr) {
+      console.error("[company PUT] 下書きの取得に失敗:", dErr.message);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    const curDraft = (draftRow?.draft_data ?? {}) as Record<string, unknown>;
+    for (const k of COMPANY_BASIC_DRAFT_KEYS) {
+      if (k in curDraft) record[k] = curDraft[k] as Json;
+      else delete record[k];
+    }
   }
 
   /* ⚠️ **0行更新を成功として扱わない。** 2026-08-23 まで `.select()` が無く、
@@ -124,7 +143,7 @@ export async function PATCH(req: Request) {
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
   const { companyId } = ctx;
 
-  try { requireAdmin(ctx.allMemberships, companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
   /* ★掲載中の企業だけが自分で反映できる（2026-10-12 / 柴さんの判断）。
         掲載前の企業は「掲載を依頼する」→ 運営が掲載にする操作の中で、下書きもまとめて反映される

@@ -168,6 +168,59 @@ export type Database = {
           },
         ]
       }
+      ow_application_interviewers: {
+        Row: {
+          application_id: string
+          assigned_by: string | null
+          company_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          assigned_by?: string | null
+          company_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          assigned_by?: string | null
+          company_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_application_interviewers_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "ow_job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_application_interviewers_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_application_interviewers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_application_interviewers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_applications: {
         Row: {
           applied_at: string | null
@@ -7076,15 +7129,11 @@ export type Database = {
           updated_educations_count: number
         }[]
       }
+      auth_company_can: {
+        Args: { p_action: string; p_company_id: string }
+        Returns: boolean
+      }
       auth_is_admin: { Args: never; Returns: boolean }
-      auth_is_company_admin: {
-        Args: { target_company_id: string }
-        Returns: boolean
-      }
-      auth_is_company_member: {
-        Args: { target_company_id: string }
-        Returns: boolean
-      }
       auth_is_test_user: { Args: never; Returns: boolean }
       auth_ow_user_id: { Args: never; Returns: string }
       can_contact_without_stance: {

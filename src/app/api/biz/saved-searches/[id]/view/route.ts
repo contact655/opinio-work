@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { getSavedSearchForViewer, markSavedSearchViewed } from "@/lib/business/savedSearchServer";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!can(ctx.currentPermission, "candidates.viewProfile")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
   const s = await getSavedSearchForViewer({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, id: params.id });
   if (!s) return NextResponse.json({ error: "not found" }, { status: 404 });
   const ok = await markSavedSearchViewed(s.id, ctx.currentOwnId);

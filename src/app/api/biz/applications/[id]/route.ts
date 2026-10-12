@@ -1,3 +1,4 @@
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -54,6 +55,8 @@ export async function PATCH(
   if (!ctx) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  /* ★役割（2026-10-12）。選考の状態を変えられるのは 管理者・採用担当 */
+  try { requireCompanyAction(ctx.allMemberships, ctx.companyId, "selection.edit"); } catch { return permissionDeniedResponse(); }
 
   // ── Verify application belongs to this company (defense in depth) ─────────
   // RLS handles this automatically, but we also check explicitly to return

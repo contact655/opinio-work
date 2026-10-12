@@ -1,3 +1,4 @@
+import type { CompanyRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cache } from "react";
@@ -47,7 +48,8 @@ export type TenantContext = {
   currentOwnId: string;          // ow_users.id (UUID) — assignee resolution
   currentOwnerGradient: string;  // avatar_color or royal fallback
   allCompanies: TenantCompany[]; // all active memberships (for CompanySwitcher)
-  currentPermission: "admin" | "member"; // Phase 12: current user's permission in the active tenant
+  /** ★いまの会社での役割（2026-10-12 に4つにした）。⚠️ 判定は lib/auth/roles.ts の can() を通す */
+  currentPermission: CompanyRole;
 };
 
 /** ★求人の数（2026-10-12 に画面の状態に合わせて3つにした。lib/jobs/jobState.ts） */
@@ -156,8 +158,10 @@ async function loadTenantContext(): Promise<TenantContext | null> {
         : "linear-gradient(135deg, var(--royal), var(--accent))";
 
     // Phase 12: derive current user's permission from allMemberships
-    const currentPermission: "admin" | "member" =
-      ctx.allMemberships.find((m) => m.companyId === tenantId)?.permission ?? "member";
+    /* ⚠️ 見つからないときに既定の役割で埋めない（権限を勝手に与えない）。所属が無ければ担当者ではない */
+    const currentMembership = ctx.allMemberships.find((m) => m.companyId === tenantId);
+    if (!currentMembership) return null;
+    const currentPermission: CompanyRole = currentMembership.permission;
 
     return {
       tenantId,

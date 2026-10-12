@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { redirect } from "next/navigation";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,7 +26,9 @@ export default async function OrganizationPage({
 }) {
   const ctx = await getTenantContext();
   if (!ctx) redirect("/biz/dashboard");
-  /* ★書き込みは管理者だけ（RLS の auth_is_company_admin と API が同じ条件）。
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "organization.manage");
+  /* ★書き込みは管理者だけ（RLS の auth_company_can(…, 'admin') と API が同じ条件）。
         メンバーには一覧だけ見せる（2026-09-22） */
   const isAdmin = ctx.currentPermission === "admin";
 
@@ -34,7 +37,7 @@ export default async function OrganizationPage({
   const adminSupabase = createAdminClient();
 
   /* ★部門・職種は admin クライアントで読む（2026-09-22）。
-        ⚠️ `ow_company_job_roles` の RLS は管理者しか通さず（`auth_is_company_admin`）、
+        ⚠️ `ow_company_job_roles` の RLS は管理者しか通さず（`auth_company_can(…, 'admin')`）、
            部門も「管理者」か「企業ページ公開中」しか通さない。セッションのクライアントで読むと
            **メンバーには職種が1件も出ず、閲覧だけの画面が空になっていた。**
         ⚠️ この会社に属していることは上の `getTenantContext` で確かめてある。

@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -18,6 +19,8 @@ export const metadata = {
 export default async function BizPostsPage() {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "stories.edit");
 
   const [stories, views] = await Promise.all([listCompanyStories(ctx.tenantId), storyViewTotals(ctx.tenantId)]);
 

@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { NextRequest, NextResponse } from "next/server";
 import { dismissMember } from "@/lib/companyMembers/decide";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function DELETE(req: NextRequest) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (ctx.currentPermission !== "admin") {
+  if (!can(ctx.currentPermission, "employees.manage")) {
     return NextResponse.json({ error: "管理者のみ操作できます" }, { status: 403 });
   }
 

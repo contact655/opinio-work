@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
 /* ★右欄（CandidateProfilePanel）を使うページは必ず参照する（profileClientModules.ts の注記） */
 void PROFILE_CLIENT_MODULES;
@@ -53,6 +54,8 @@ export default async function EmployeesPage({ searchParams }: {
 }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "employees.manage");
 
   const admin = createAdminClient();
 

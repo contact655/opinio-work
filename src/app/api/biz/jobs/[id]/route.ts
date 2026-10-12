@@ -14,7 +14,7 @@ import { getCompanyContext } from "@/lib/business/company";
 import { insertActivity } from "@/lib/business/activities";
 import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { validateJobOptionFields, toUrgency, canCompanyTransition, JOB_STATUS_TRANSITIONS } from "@/lib/business/jobs";
 
 
@@ -50,7 +50,7 @@ export async function PUT(
   const cookieCompanyId0 = cookies().get("biz_current_company_id")?.value;
   const ctx0 = await getCompanyContext(supabase, user.id, cookieCompanyId0);
   if (!ctx0) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  try { requireAdmin(ctx0.allMemberships, ctx0.companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx0.allMemberships, ctx0.companyId, "jobs.edit"); } catch { return permissionDeniedResponse(); }
 
   const salaryMin = body.salaryMin ? parseInt(String(body.salaryMin)) : null;
   const salaryMax = body.salaryMax ? parseInt(String(body.salaryMax)) : null;
@@ -247,7 +247,7 @@ export async function PATCH(
   const cookieCompanyId1 = cookies().get("biz_current_company_id")?.value;
   const ctx1 = await getCompanyContext(supabase, user.id, cookieCompanyId1);
   if (!ctx1) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  try { requireAdmin(ctx1.allMemberships, ctx1.companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx1.allMemberships, ctx1.companyId, "jobs.edit"); } catch { return permissionDeniedResponse(); }
 
   const newStatus = body.value ?? "";
 
@@ -347,7 +347,7 @@ export async function DELETE(
   const cookieCompanyId2 = cookies().get("biz_current_company_id")?.value;
   const ctx2 = await getCompanyContext(supabase, user.id, cookieCompanyId2);
   if (!ctx2) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  try { requireAdmin(ctx2.allMemberships, ctx2.companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx2.allMemberships, ctx2.companyId, "jobs.edit"); } catch { return permissionDeniedResponse(); }
 
   /* ⚠️★**削除する前に slug を控える**（2026-09-08）。消してから引いても行が無いので、
         **消した求人のページ（`/jobs/<slug>`）がキャッシュに残り続ける。** */

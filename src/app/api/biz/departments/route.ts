@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -23,10 +24,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  /* ★書き込みは管理者だけ（2026-09-22）。DB の RLS（auth_is_company_admin）も同じ条件で、
+  /* ★書き込みは管理者だけ（2026-09-22）。DB の RLS（auth_company_can(…, 'admin')）も同じ条件で、
         それまではメンバーが押すと RLS の英語のエラーがそのまま画面に出ていた。
         ⚠️ ここで先に日本語の 403 を返す。RLS は外さない（二重に守る） */
-  if (ctx.currentPermission !== "admin") {
+  if (!can(ctx.currentPermission, "organization.manage")) {
     return NextResponse.json({ error: "部門・職種の編集は管理者だけができます" }, { status: 403 });
   }
 

@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
@@ -29,9 +30,13 @@ import {
 export const dynamic = "force-dynamic";
 
 /** 企業の担当者であることと、候補者検索を使えることを確かめる */
-async function requireCandidateSearch() {
+async function requireCandidateSearch(action: "candidates.viewProfile" | "candidates.search") {
   const ctx = await getTenantContext();
   if (!ctx) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) } as const;
+  /* ★役割（2026-10-12）。一覧を見る … 閲覧のみ以上／保存する … 採用担当以上 */
+  if (!can(ctx.currentPermission, action)) {
+    return { error: NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 }) } as const;
+  }
   if (!canUse(ctx.planType, "candidateSearch")) {
     return { error: NextResponse.json({ error: "候補者検索は有料プランの機能です" }, { status: 403 }) } as const;
   }
@@ -44,7 +49,7 @@ async function requireCandidateSearch() {
  * ⚠️ 前回見た日時が無い条件は、ここで「今」を初期値として入れる（保存した直後・共有を初めて開いたとき）。
  */
 export async function GET(req: NextRequest) {
-  const g = await requireCandidateSearch();
+  const g = await requireCandidateSearch("candidates.viewProfile");
   if (g.error) return g.error;
   const { ctx } = g;
   const withCounts = req.nextUrl.searchParams.get("counts") === "1";
@@ -58,14 +63,14 @@ export async function GET(req: NextRequest) {
     ownerName: r.ownerName, isShared: r.isShared, notifyFrequency: r.notifyFrequency,
     isMine: r.ownerUserId === ctx.currentOwnId,
     canEdit: r.ownerUserId === ctx.currentOwnId,
-    canDelete: r.ownerUserId === ctx.currentOwnId || ctx.currentPermission === "admin",
+    canDelete: r.ownerUserId === ctx.currentOwnId || can(ctx.currentPermission, "savedSearches.manageAll"),
     newCount: "newCount" in r ? (r as { newCount: number | null }).newCount : undefined,
   }));
   return NextResponse.json({ searches });
 }
 
 export async function POST(req: NextRequest) {
-  const g = await requireCandidateSearch();
+  const g = await requireCandidateSearch("candidates.search");
   if (g.error) return g.error;
   const { ctx } = g;
 

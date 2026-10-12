@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
 /* ★右欄（候補者のプロフィール）の中身が使う client コンポーネントを、このページから参照しておく（profileClientModules.ts の注記） */
 void PROFILE_CLIENT_MODULES;
@@ -38,6 +39,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
       </BusinessLayout>
     );
   }
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "candidates.viewProfile");
 
   /* 未承認企業は候補者検索不可。
      ⚠️★**`ctx.isPublished` に戻さないこと**（2026-09-20 に直した）。

@@ -1,3 +1,4 @@
+import { can, toCompanyRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
@@ -85,15 +86,20 @@ export async function POST(
     .maybeSingle();
   if (convRowErr) console.error("[conversations/messages POST] ow_conversations:", convRowErr.message);
   if (!convRow) return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
-  if (!participant) {
-    /* 参加者でない人が送れるのは、企業との会話で、その会社の現役の管理者のときだけ */
-    if (convRow.kind !== "company" || !convRow.company_id) {
-      return NextResponse.json({ error: "Not a participant of this conversation" }, { status: 403 });
-    }
-    const { data: adminLink, error: adminErr } = await admin.from("ow_company_admins").select("id")
-      .eq("user_id", owUser.id).eq("company_id", convRow.company_id).eq("is_active", true).maybeSingle();
+  /* ★企業との会話で企業側として送る人は、メッセージを使える役割（管理者・採用担当）であること（2026-10-12）。
+        ⚠️ 参加者でも確かめる（参加したあとに閲覧のみ・面接官へ変わった人が送れないように） */
+  const sendsAsCompany = convRow.kind === "company" && (!participant || participant.role === "company_admin");
+  if (!participant && (convRow.kind !== "company" || !convRow.company_id)) {
+    return NextResponse.json({ error: "Not a participant of this conversation" }, { status: 403 });
+  }
+  if (sendsAsCompany) {
+    const { data: adminLink, error: adminErr } = await admin.from("ow_company_admins").select("id, permission")
+      .eq("user_id", owUser.id).eq("company_id", convRow.company_id as string).eq("is_active", true).maybeSingle();
     if (adminErr) console.error("[conversations/messages POST] ow_company_admins:", adminErr.message);
     if (!adminLink) return NextResponse.json({ error: "Not a participant of this conversation" }, { status: 403 });
+    if (!can(toCompanyRole(adminLink.permission), "messages.use")) {
+      return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
+    }
   }
   if (convRow.kind === "company") {
     /* ★送る担当者と求職者の is_test の一致も見る（2026-10-10。`companyConversationSendAllowed`） */

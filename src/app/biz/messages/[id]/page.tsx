@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
 /* ★右欄（候補者のプロフィール）の中身が使う client コンポーネントを、このページから参照しておく（profileClientModules.ts の注記） */
 void PROFILE_CLIENT_MODULES;
@@ -29,6 +30,8 @@ export default async function BizConversationDetailPage({
 
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "messages.use");
 
   /* ★読み込み・既読は /biz/messages の右側と同じ関数（2026-10-11 に切り出した。条件は変えていない） */
   const thread = await loadCompanyThread(conversationId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId });

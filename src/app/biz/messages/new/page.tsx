@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
@@ -32,6 +33,8 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
       </BusinessLayout>
     );
   }
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "messages.use");
   const layoutProps = {
     userName: ctx.userName, tenantName: ctx.tenantName, tenantLogoGradient: ctx.logoGradient,
     tenantLogoLetter: ctx.logoLetter, memberships: ctx.allCompanies, currentTenantId: ctx.tenantId,

@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { JobsClient } from "./JobsClient";
 import { listJobInternalNotes } from "@/lib/jobs/internalNotes";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
@@ -41,6 +42,8 @@ export default async function BizJobsPage({
   const initialDept = typeof searchParams?.dept === "string" ? searchParams.dept : "";
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "jobs.view");
 
   const supabase = createClient();
   /* ★面談申込・応募の数は分析（/biz/analytics）と同じ関数で数える（検証用アカウントを除く）。2026-10-09 */

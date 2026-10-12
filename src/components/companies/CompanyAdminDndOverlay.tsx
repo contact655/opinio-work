@@ -105,7 +105,7 @@ export function CompanyAdminDndOverlay() {
           **87社中85社で0行更新**だった。しかも戻り値を捨てていたので
           「保存しました」と出たまま**並び順は1つも変わっていなかった**。
           2026-08-11 の企業ロゴURL（83社で0行更新）と同じ根。
-       ⚠️ 運営は企業の管理者ではないので、`auth_is_company_admin` の
+       ⚠️ 運営は企業の管理者ではないので、`auth_company_can(…, 'admin')` の
           新しいポリシーでも通らない。**運営の書き込みは service_role に寄せる。** */
     setSaving(true);
     setSaved(false);

@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import { notFound } from "next/navigation";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -18,6 +19,8 @@ export const metadata = {
 export default async function BizStoryEditPage({ params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "stories.edit");
 
   const story = params.id === "new" ? null : await getCompanyStory(ctx.tenantId, params.id);
   if (params.id !== "new" && !story) notFound();

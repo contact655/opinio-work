@@ -1,3 +1,4 @@
+import { guardBizPage } from "@/lib/auth/companyAccess";
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
@@ -186,6 +187,8 @@ function Funnel({ steps, drop }: { steps: { label: string; count: number }[]; dr
 export default async function AnalyticsPage({ searchParams }: { searchParams?: { period?: string; tab?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
+  /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
+  guardBizPage(ctx.currentPermission, "analytics.view");
 
   const period: Period = searchParams?.period === "90" || searchParams?.period === "all" ? searchParams.period : "30";
   const since = period === "all" ? null : Date.now() - Number(period) * 86_400_000;

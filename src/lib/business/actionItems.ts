@@ -1,3 +1,4 @@
+import type { CompanyRole } from "@/lib/auth/roles";
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,7 +35,7 @@ import type { HomeActionItem, HomeActions, HomeMeeting } from "@/lib/business/ho
 export async function getBizActionItems(params: {
   companyId: string;
   owUserId: string;
-  permission: "admin" | "member";
+  permission: CompanyRole;
   planType: PlanType | null;
   reviewed: boolean;
   /** `getJobStatusCounts().stoppedByOps`。取れなければ null */

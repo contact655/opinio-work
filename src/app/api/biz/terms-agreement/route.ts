@@ -1,3 +1,4 @@
+import { can, toCompanyRole } from "@/lib/auth/roles";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -64,10 +65,14 @@ export async function POST(req: NextRequest) {
     const { data: me, error: meErr } = await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
     if (meErr) console.error("[terms-agreement] ow_users:", meErr.message);
     const { data: link, error: linkErr } = me
-      ? await admin.from("ow_company_admins").select("id").eq("user_id", me.id).eq("company_id", companyId).eq("is_active", true).maybeSingle()
+      ? await admin.from("ow_company_admins").select("id, permission").eq("user_id", me.id).eq("company_id", companyId).eq("is_active", true).maybeSingle()
       : { data: null, error: null };
     if (linkErr) console.error("[terms-agreement] ow_company_admins:", linkErr.message);
     if (!link) return NextResponse.json({ error: "FORBIDDEN", message: "この会社の担当者ではありません。" }, { status: 403 });
+    /* ★役割（2026-10-12）。掲載の規約に同意するのは企業ページを公開できる役割（管理者・採用担当）。同意は人ごと */
+    if (!can(toCompanyRole(link.permission), "company.page")) {
+      return NextResponse.json({ error: "FORBIDDEN", message: "この操作の権限がありません。" }, { status: 403 });
+    }
   }
 
   /* ⚠️ `user_id` は **auth 空間**（`auth.users.id`）。`ow_users.id` を入れないこと。

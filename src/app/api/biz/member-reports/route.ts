@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
-import { requireAdmin, permissionDeniedResponse } from "@/lib/auth/permissions";
+import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { VALID_MEMBER_REPORT_REASONS, MEMBER_REPORT_NOTE_MAX, memberReportReasonLabel } from "@/lib/constants/memberReports";
 import { sendEmail } from "@/lib/notify/email";
 import { memberReportAdminTemplate } from "@/lib/notify/templates";
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   const ctx = await getCompanyContext(supabase, user.id, cookieCompanyId);
   if (!ctx) return NextResponse.json({ error: "Company context not found" }, { status: 404 });
 
-  try { requireAdmin(ctx.allMemberships, ctx.companyId); } catch { return permissionDeniedResponse(); }
+  try { requireCompanyAction(ctx.allMemberships, ctx.companyId, "employees.manage"); } catch { return permissionDeniedResponse(); }
 
   let body: { experience_id?: unknown; reason?: unknown; note?: unknown };
   try { body = await req.json(); } catch {

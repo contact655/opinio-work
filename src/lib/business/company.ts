@@ -219,6 +219,16 @@ export function transformDbToForm(
   };
 }
 
+/**
+ * ★会社の「基本情報」（/biz/company の基本情報の欄）。編集できるのは管理者だけ（2026-10-12 / company.basic）。
+ *   採用担当が下書きを保存したときは、これらのキーを**いまの下書きのまま**にする（PUT /api/biz/company）。
+ * ⚠️ 画面の基本情報の欄と揃えること（片方だけ足すと、採用担当の保存で黙って戻る項目ができる）。
+ */
+export const COMPANY_BASIC_DRAFT_KEYS: readonly string[] = [
+  "name", "tagline", DRAFT_BUSINESS_DOMAINS_KEY, "industry", "industry_id", "saas_category_id", "genres", "phase",
+  "url", "careers_url", "logo_gradient", "logo_letter", "logo_url",
+];
+
 export function transformFormToDb(form: BizCompany): { [key: string]: Json | undefined } {
   const paidLeave = parseInt(form.paidLeaveRate.replace(/[^\d]/g, ""), 10);
   return {
@@ -289,6 +299,7 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
 }
 
 import { toPlanType, type PlanType } from "@/lib/constants/plans";
+import { toCompanyRole, type CompanyRole } from "@/lib/auth/roles";
 
 // ── Multi-tenant context ─────────────────────────────────────────────────────
 
@@ -296,7 +307,8 @@ export type CompanyMembership = {
   companyId: string;
   isDefault: boolean;
   joinedAt: string | null;    // ISO timestamp (may be null on legacy rows)
-  permission: "admin" | "member";
+  /** ★役割（2026-10-12 に4つにした。lib/auth/roles.ts）。⚠️ 判定は can() を通す */
+  permission: CompanyRole;
 };
 
 export type CompanyContext = {
@@ -357,12 +369,13 @@ export async function getCompanyContext(
     return a.joined_at < b.joined_at ? -1 : 1;
   });
 
-  const allMemberships: CompanyMembership[] = rows.map((r) => ({
-    companyId: r.company_id,
-    isDefault: r.is_default ?? false,
-    joinedAt: r.joined_at ?? null,
-    permission: r.permission as "admin" | "member",
-  }));
+  /* ⚠️ 知らない役割の行は落とす（何もできない人として扱う。既定の役割で埋めない） */
+  const allMemberships: CompanyMembership[] = rows.flatMap((r) => {
+    const role = toCompanyRole(r.permission);
+    if (!role) { console.error("[getCompanyContext] 知らない役割:", r.permission); return []; }
+    return [{ companyId: r.company_id, isDefault: r.is_default ?? false, joinedAt: r.joined_at ?? null, permission: role }];
+  });
+  if (allMemberships.length === 0) return null;
 
   // 3. 解決: Cookie → is_default → oldest joined_at
   let resolved: CompanyMembership | undefined;

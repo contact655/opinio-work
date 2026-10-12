@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -17,7 +18,7 @@ import { mutateAllowNone, mutateMany } from "@/lib/supabase/mutate";
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (ctx.currentPermission !== "admin") {
+  if (!can(ctx.currentPermission, "organization.manage")) {
     return NextResponse.json({ error: "部門・職種の編集は管理者だけができます" }, { status: 403 });
   }
 

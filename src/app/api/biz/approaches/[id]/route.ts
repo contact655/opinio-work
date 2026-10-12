@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/roles";
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { getApproachReplyExcerpt, listSentApproaches } from "@/lib/approaches/server";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!can(ctx.currentPermission, "messages.use")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
   const list = await listSentApproaches(ctx.tenantId);
   if (!list) return NextResponse.json({ error: "読み込めませんでした" }, { status: 500 });
   const r = list.find((x) => x.id === params.id);
