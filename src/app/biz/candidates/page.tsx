@@ -263,8 +263,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
 
 
   return (
-    /* ★2列（一覧＋右のプレビュー）なので本文の最大幅を広げる（2026-10-10 / 柴さんの指示。目安 1440px） */
-    <BusinessLayout {...layoutProps} mainMaxWidth={1440}>
+    /* ★2列（一覧＋右のプレビュー）なので本文の最大幅を外す（2026-10-13 / 柴さんの指示。それまでは 1440px）。
+          一覧と詳細の幅を3段で切り替えるため、1680・1920 の画面で余白を残さない。⚠️ この画面だけ。他の画面は変えない */
+    <BusinessLayout {...layoutProps} mainMaxWidth="none">
       <CandidatesClient candidates={candidates} roleFilterTree={roleFilterTree}
         canAct={can(ctx.currentPermission, "candidates.search")}
         initialSaved={initialSaved}
@@ -277,6 +278,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         notesEnabled={isCandidateNotesEnabled()}
         /* ⚠️ 名前が引けないときの「ご担当者」（getTenantContext の最後の倒し先）は名前として渡さない */
         viewerName={ctx.userName && ctx.userName !== "ご担当者" ? ctx.userName : null}
+        /* ★段（一覧と詳細の幅）を覚えるキーに使う（会社・担当者ごと。2026-10-13） */
+        stageStorageKey={`biz-cand-stage:${ctx.tenantId}:${ctx.currentOwnId}`}
         /* ★年齢の絞り込み・並び替え（本番は無効。CANDIDATE_AGE_FILTER_ENABLED） */
         ageFilterEnabled={isCandidateAgeFilterEnabled()}
         /* ★最近の利用（本番は無効。CANDIDATE_ACTIVITY_ENABLED） */

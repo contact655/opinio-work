@@ -67,6 +67,16 @@ function formatTenure(months: number | null): string | null {
   return `社会人${Math.floor(months / 12)}年`;
 }
 
+/* ★一覧と詳細の幅の3段（2026-10-13）。⚠️ 数字は CSS（.cand-stage-1〜3）と揃える */
+type CandStage = 1 | 2 | 3;
+const CAND_DIVIDER_W = 16;
+const CAND_STAGE1_MIN_PANE = 380;
+const CAND_STAGE3_LIST_W = 260;
+const CAND_STAGE3_MIN_PANE = 680;
+const CAND_STAGE_LABEL: Record<CandStage, string> = { 1: "一覧を広く", 2: "半々", 3: "詳細を広く" };
+/** ★段3（一覧 260px）のカードだけの短い意向（2026-10-13 / 柴さんの指示）。⚠️ 元の表記は title に入れる。点の色はそのまま */
+const STANCE_SHORT_LABELS: Record<string, string> = { active: "積極的", open: "話を聞く", researching: "情報収集" };
+
 /* ⚠️ `/dev/preview/candidates` が固定データを作るために export している（実体は model.ts）。 */
 export type { Candidate };
 
@@ -110,7 +120,10 @@ export default function CandidatesClient({
   touchpointMaterials = null,
   notesEnabled = false,
   viewerName = null,
+  stageStorageKey = null,
 }: {
+  /** ★段（一覧と詳細の幅）を覚える localStorage のキー（会社・担当者ごと。2026-10-13）。null なら覚えない */
+  stageStorageKey?: string | null;
   /** ★見ている担当者の名前（見送った直後の「○○さんが見送り」に使う。2026-10-13） */
   viewerName?: string | null;
   /** ★右欄が使う会社の材料（2026-10-13。page.tsx が loadCompanyCandidates の結果から渡す） */
@@ -189,6 +202,8 @@ export default function CandidatesClient({
   const [starOverride, setStarOverride] = useState<Record<string, boolean>>({});
   /* ★見送り（2026-10-13）。★と同じく、この画面で押した値を優先する。⚠️ 候補者本人には何も届かない */
   const [hiddenOverride, setHiddenOverride] = useState<Record<string, { hidden: boolean; at: string }>>({});
+  /* ★右欄で既読にした人（2026-10-13）。一覧の「返信あり・未読」と右欄の点を消す */
+  const [readOverride, setReadOverride] = useState<Record<string, boolean>>({});
   /* ★見送った人も一覧に出すか（末尾の「表示する」）。出すときは薄く表示し、その場で解除できる */
   const [showHidden, setShowHidden] = useState(false);
   /* ★見送った直後の「元に戻す」（右下の小さな知らせ）。⚠️ 6秒で消える */
@@ -237,6 +252,53 @@ export default function CandidatesClient({
         ⚠️ プレビューを閉じたら先頭に戻さない（`autoPick` を落とす）。空の案内が出るのはこのときと0件のときだけ。 */
   const [isWide, setIsWide] = useState<boolean | null>(null);
   const [autoPick, setAutoPick] = useState(true);
+
+  /* ── ★一覧と詳細の幅を3段で切り替える（2026-10-13 / 柴さんの指示）──────────────────────────
+     段1 一覧を広く（右欄 1/3・最低380px）／ 段2 半々（既定）／ 段3 詳細を広く（一覧 260px・右欄は2列）。
+     ⚠️ 1280px 未満は分割しない（区切り線も出さない）。⚠️ 段3は右欄が 680px 以上取れるときだけ
+        （プロフィール列 最低320px＋メッセージ列 最低300px＋余白）。足りなくなったら段2に戻す。
+     ⚠️ 最後に使った段は localStorage（会社・担当者ごとのキー）。読めない・壊れているときは段2 */
+  const [stage, setStageState] = useState<CandStage>(2);
+  const setStage = useCallback((s: CandStage) => {
+    setStageState(s);
+    if (stageStorageKey) { try { window.localStorage.setItem(stageStorageKey, String(s)); } catch { /* 覚えられなくても続ける */ } }
+  }, [stageStorageKey]);
+  useEffect(() => {
+    if (!stageStorageKey) return;
+    try {
+      const v = Number(window.localStorage.getItem(stageStorageKey));
+      if (v === 1 || v === 2 || v === 3) setStageState(v);
+    } catch { /* 段2のまま */ }
+  }, [stageStorageKey]);
+  /* 一覧＋右欄の幅（ResizeObserver）。null = まだ測っていない（段3を戻す判断をしない） */
+  const splitRef = useRef<HTMLDivElement | null>(null);
+  const [splitW, setSplitW] = useState<number | null>(null);
+  useEffect(() => {
+    const el = splitRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setSplitW(el.clientWidth);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    /* ⚠️ 画面の幅が変わったときも測る（ResizeObserver は描画されていないタブでは通知が遅れることがある） */
+    window.addEventListener("resize", measure);
+    measure();
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
+  }, []);
+  const canStage3 = splitW !== null && splitW - CAND_DIVIDER_W - CAND_STAGE3_LIST_W >= CAND_STAGE3_MIN_PANE;
+  useEffect(() => { if (stage === 3 && splitW !== null && !canStage3) setStage(2); }, [stage, splitW, canStage3, setStage]);
+  /* ドラッグ中の一覧の幅（離すと最も近い段に吸い付く。自由な幅では止めない） */
+  const [dragListW, setDragListW] = useState<number | null>(null);
+  const dragListWRef = useRef<number | null>(null);
+  const stageListWidths = useCallback((): { stage: CandStage; w: number }[] => {
+    if (splitW === null) return [];
+    const inner = splitW - CAND_DIVIDER_W;
+    const out: { stage: CandStage; w: number }[] = [
+      { stage: 1, w: inner - Math.max(CAND_STAGE1_MIN_PANE, inner / 3) },
+      { stage: 2, w: inner / 2 },
+    ];
+    if (canStage3) out.push({ stage: 3, w: CAND_STAGE3_LIST_W });
+    return out;
+  }, [splitW, canStage3]);
   useEffect(() => {
     const mq = window.matchMedia(`(min-width: ${CANDIDATE_SPLIT_MIN_WIDTH}px)`);
     const on = () => setIsWide(mq.matches);
@@ -412,13 +474,14 @@ export default function CandidatesClient({
 
   /* ★★の状態を重ねた候補者（2026-10-12）。⚠️ 絞り込み（「気になる」）も数も、すべてこちらを通す */
   const withStars = useMemo(
-    () => (Object.keys(starOverride).length === 0 && Object.keys(hiddenOverride).length === 0 ? candidates
-      : candidates.map((c) => (c.id in starOverride || c.id in hiddenOverride
+    () => (Object.keys(starOverride).length === 0 && Object.keys(hiddenOverride).length === 0 && Object.keys(readOverride).length === 0 ? candidates
+      : candidates.map((c) => (c.id in starOverride || c.id in hiddenOverride || c.id in readOverride
         ? { ...c, ...(c.id in starOverride ? { starred: starOverride[c.id] } : {}),
             /* ⚠️ この画面で見送ったときは「見ている人・いま」を入れる（サーバーの hidden_by / created_at と同じ意味） */
-            ...(c.id in hiddenOverride ? { hidden: hiddenOverride[c.id].hidden, hiddenBy: hiddenOverride[c.id].hidden ? { name: viewerName, at: hiddenOverride[c.id].at } : null } : {}) }
+            ...(c.id in hiddenOverride ? { hidden: hiddenOverride[c.id].hidden, hiddenBy: hiddenOverride[c.id].hidden ? { name: viewerName, at: hiddenOverride[c.id].at } : null } : {}),
+            ...(c.id in readOverride && c.approach ? { approach: { ...c.approach, unreadCount: 0, unseenReply: false } } : {}) }
         : c))),
-    [candidates, starOverride, hiddenOverride]
+    [candidates, starOverride, hiddenOverride, readOverride]
   );
   const starredCount = useMemo(() => withStars.filter((c) => c.starred).length, [withStars]);
   const toggleStar = useCallback(async (id: string, next: boolean) => {
@@ -1215,8 +1278,9 @@ export default function CandidatesClient({
       {/* ── 一覧＋右のプレビュー（2026-10-10 / 段1）──────────────────────────────
              ⚠️★分割は 1280px 以上（CSS の @media と `CANDIDATE_SPLIT_MIN_WIDTH` を手で合わせている）。一覧とプレビューは 1：1。
              ⚠️ 1024〜1279px 用の「カードを詰める・2行目以降を隠す」作りは 2026-10-11 に外した（1279px 以下では分割しないので不要）。 */}
-      <div className="cand-split" data-selected={shownId ? "1" : "0"}>
-        <div style={{ minWidth: 0 }}>
+      <div ref={splitRef} className={`cand-split cand-stage-${stage}`} data-selected={shownId ? "1" : "0"} data-stage={stage}
+        style={dragListW !== null ? { gridTemplateColumns: `${dragListW}px ${CAND_DIVIDER_W}px minmax(0, 1fr)` } : undefined}>
+        <div className="cand-list-col" style={{ minWidth: 0 }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "72px 0", background: "#fff", borderRadius: 16, border: "1px solid var(--line)" }}>
               <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--royal-50)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -1254,6 +1318,33 @@ export default function CandidatesClient({
                 const msgLabel = !c.approach?.sent ? null
                   : sentState === "accepted" ? (hasUnread ? "返信あり・未読" : "返信あり")
                   : "送信済み";
+                /* ★段3（詳細を広く）の細い一覧（2026-10-13）。2行だけ：名前・意向・★ ／ 職種 @ 会社・状態。
+                      ⚠️ 年齢・年数・居住地・合うところの行は出さない（右欄に全部ある）。⚠️ J/K・‹ › はそのまま使える */
+                if (isWide && stage === 3) {
+                  const stanceText = c.careerStance ? CAREER_STANCE_LABELS[c.careerStance] ?? null : null;
+                  const stanceShort = c.careerStance ? STANCE_SHORT_LABELS[c.careerStance] ?? stanceText : null;
+                  const roleCo = [c.currentRole || (c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null), c.currentCompany].filter(Boolean).join(" @ ");
+                  return (
+                    <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"} data-hidden={c.hidden ? "1" : "0"} data-compact="1"
+                      className={["cand-card", "is-compact", isSel ? "is-selected" : "", c.hidden ? "is-hidden" : ""].filter(Boolean).join(" ")}>
+                      <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
+                      <div className="cand-card-main">
+                        <div className="cand-card-row1" title={[c.name, stanceText].filter(Boolean).join(" ・ ")}>
+                          <span className="cand-card-name cand-compact-name">{c.name}</span>
+                          {stanceShort && <span className="cand-card-stance" data-state="card-stance" title={stanceText ?? undefined}><StanceDot stance={c.careerStance} size={7} /><span className="cand-card-stance-text">{stanceShort}</span></span>}
+                          <span className="cand-card-star">
+                            {canAct && <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={24} />}
+                          </span>
+                        </div>
+                        <div className="cand-card-row2" title={roleCo || undefined}>
+                          <span className="cand-compact-roleco" data-state="compact-roleco">{roleCo}</span>
+                          {c.hidden ? <span className="cand-card-msg" data-state="card-hidden-by">見送り</span>
+                            : msgLabel && <span className="cand-card-msg" data-state={sentState === "accepted" ? "card-replied" : "card-sent"}>{msgLabel}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"} data-hidden={c.hidden ? "1" : "0"}
                     /* ⚠️ 枠線と背景は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
@@ -1356,10 +1447,34 @@ export default function CandidatesClient({
           )}
         </div>
 
+        {/* ★区切り線（2026-10-13）。ドラッグ・‹ ›・←→ で段を移る。⚠️ 1280px 未満では CSS で隠す */}
+        <CandDivider stage={stage} canStage3={canStage3}
+          onStage={setStage}
+          onDrag={(clientX) => {
+            const el = splitRef.current; if (!el || splitW === null) return;
+            const x = clientX - el.getBoundingClientRect().left;
+            const w = Math.max(200, Math.min(splitW - CAND_DIVIDER_W - 300, x));
+            dragListWRef.current = w;
+            setDragListW(w);
+          }}
+          onDragEnd={() => {
+            const w = dragListWRef.current;
+            dragListWRef.current = null;
+            setDragListW(null);
+            if (w === null) return;
+            const near = stageListWidths().reduce<{ stage: CandStage; d: number } | null>((best, o) => {
+              const d = Math.abs(o.w - w);
+              return !best || d < best.d ? { stage: o.stage, d } : best;
+            }, null);
+            if (near) setStage(near.stage);
+          }} />
+
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownCandidate ? (
             <CandidatePreview key={shownCandidate.id} candidate={shownCandidate} companyLimitLine={companyLimitLine} canAct={canAct}
+              layout={isWide && stage === 3 ? "columns" : "tabs"}
+              onMessagesRead={() => setReadOverride((prev) => ({ ...prev, [shownCandidate.id]: true }))}
               companyShortName={companyShortName} touchpointMaterials={touchpointMaterials} approachJobs={approachJobs} notesEnabled={notesEnabled}
               onClose={() => { setAutoPick(false); updateSelected(null); }}
               actions={{
@@ -1436,16 +1551,37 @@ export default function CandidatesClient({
         .cand-card-hidden-by { flex-shrink: 0; margin-left: auto; font-size: 11.5px; line-height: 17px; color: var(--ink-mute); white-space: nowrap; }
         .cand-card-unhide { position: relative; z-index: 1; flex-shrink: 0; height: 19px; padding: 0 6px; border: none; background: none; font-size: 11.5px; font-weight: 700; color: var(--royal); text-decoration: underline; cursor: pointer; font-family: inherit; }
         .cand-card-actions { position: relative; z-index: 1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 3px; }
+        .cand-compact-name { max-width: none; flex-shrink: 1; }
+        .cand-compact-roleco { flex: 1; min-width: 0; font-size: 12.5px; line-height: 17px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cand-card.is-compact { padding: 6px 10px 6px 12px; }
         @media (max-width: 640px) {
           .cand-wrap { padding: 0 16px 12px; }
+        }
+        /* ★カードを詰める基準は**一覧の幅**（2026-10-13。それまでは画面の幅 640px）。
+              段1・段2の一覧（1280px 画面で最も狭くて 444px）は1行のまま、スマホ（一覧 約343px）だけ折り返す */
+        .cand-list-col { container-type: inline-size; container-name: candlist; }
+        @container candlist (max-width: 420px) {
           .cand-card { padding: 12px 14px; gap: 10px; }
           .cand-card-row1 { flex-wrap: wrap; height: auto; row-gap: 2px; }
           .cand-card-metas { order: 3; flex-basis: 100%; line-height: 18px; }
           .cand-card-star { order: 2; }
           .cand-card-stance { order: 4; }
+          .cand-card.is-compact { padding: 6px 10px 6px 12px; }
+          .cand-card.is-compact .cand-card-row1 { flex-wrap: nowrap; height: 20px; }
         }
+        .cand-divider { display: none; }
         @media (min-width: 1280px) {
-          .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+          .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); gap: 0; align-items: start; }
+          .cand-split.cand-stage-1 { grid-template-columns: minmax(0, 1fr) 16px max(380px, calc((100% - 16px) / 3)); }
+          .cand-split.cand-stage-3 { grid-template-columns: 260px 16px minmax(0, 1fr); }
+          .cand-divider { display: block; align-self: stretch; position: relative; cursor: col-resize; touch-action: none; outline: none; }
+          .cand-divider-line { position: absolute; top: 0; bottom: 0; left: 7px; width: 2px; border-radius: 1px; background: transparent; transition: background 0.15s; }
+          .cand-divider:hover .cand-divider-line, .cand-divider.is-dragging .cand-divider-line { background: var(--royal-100); }
+          .cand-divider:focus-visible .cand-divider-line { background: var(--royal); }
+          .cand-divider-grip { position: sticky; top: calc(var(--biz-header-h) + 120px); display: flex; flex-direction: column; align-items: center; gap: 4px; margin-left: -6px; width: 28px; padding: 4px 0; background: #fff; border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 2px 8px rgba(15,23,42,0.08); z-index: 2; }
+          .cand-divider-btn { width: 22px; height: 22px; border-radius: 50%; border: none; background: none; color: var(--ink-soft); font-size: 15px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-family: inherit; }
+          .cand-divider-btn:hover { background: var(--bg-tint); }
+          .cand-divider-btn[aria-disabled=true] { opacity: 0.3; cursor: default; }
           .cand-wrap { max-width: none; }
           /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと）。
              ★2026-10-11: 高さを決めて外側はスクロールさせず、中（CandidateProfilePanel）の本文だけをスクロールさせる（名前とボタンの段を固定するため） */
@@ -1512,5 +1648,58 @@ export function StarButton({ starred, onToggle, size = 28 }: { starred: boolean;
         display: "inline-flex", alignItems: "center", justifyContent: "center", color: starred ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
       <StarIcon filled={starred} size={Math.round(size * 0.6)} />
     </button>
+  );
+}
+
+/**
+ * ★一覧と詳細の区切り線（2026-10-13 / 柴さんの指示）。段1〜3を切り替える。
+ * - ドラッグ：動かしている間は自由に動き、離すと最も近い段に吸い付く（自由な幅では止めない。判断は親）
+ * - つまみの ‹（詳細を広く）／ ›（一覧を広く）。端の段では押せない。段3にできない幅では ‹ に理由を出す
+ * - キーボード：Tab で入り ←（詳細を広く）→（一覧を広く）
+ * ⚠️ 押せない状態は aria-disabled（disabled だとツールチップが出ないため）。押しても何もしない
+ */
+function CandDivider({ stage, canStage3, onStage, onDrag, onDragEnd }: {
+  stage: CandStage; canStage3: boolean;
+  onStage: (s: CandStage) => void;
+  onDrag: (clientX: number) => void;
+  onDragEnd: () => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const canUp = stage === 1 || (stage === 2 && canStage3);
+  const canDown = stage > 1;
+  const up = () => { if (canUp) onStage((stage + 1) as CandStage); };
+  const down = () => { if (canDown) onStage((stage - 1) as CandStage); };
+  const upTitle = stage === 2 && !canStage3 ? "画面を広げるか、サイドバーを畳むと使えます" : `${CAND_STAGE_LABEL[Math.min(3, stage + 1) as CandStage]}`;
+  return (
+    <div role="separator" aria-orientation="vertical" aria-valuenow={stage} aria-valuemin={1} aria-valuemax={3}
+      aria-valuetext={CAND_STAGE_LABEL[stage]} aria-label="一覧と詳細の幅" tabIndex={0}
+      data-state="cand-divider" className={dragging ? "cand-divider is-dragging" : "cand-divider"}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); up(); }
+        else if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); down(); }
+      }}
+      onPointerDown={(e) => {
+        if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        setDragging(true);
+        onDrag(e.clientX);
+      }}
+      onPointerMove={(e) => { if (dragging) onDrag(e.clientX); }}
+      onPointerUp={(e) => {
+        if (!dragging) return;
+        try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* 既に外れている */ }
+        setDragging(false);
+        onDragEnd();
+      }}
+      onPointerCancel={() => { if (dragging) { setDragging(false); onDragEnd(); } }}>
+      <span className="cand-divider-line" aria-hidden="true" />
+      <div className="cand-divider-grip">
+        <button type="button" tabIndex={-1} className="cand-divider-btn btn-fixed-size" data-state="divider-up"
+          aria-label="詳細を広く" aria-disabled={!canUp} title={upTitle} onClick={up}>‹</button>
+        <button type="button" tabIndex={-1} className="cand-divider-btn btn-fixed-size" data-state="divider-down"
+          aria-label="一覧を広く" aria-disabled={!canDown} title={canDown ? CAND_STAGE_LABEL[(stage - 1) as CandStage] : "一覧を広く"} onClick={down}>›</button>
+      </div>
+    </div>
   );
 }

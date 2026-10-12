@@ -26,8 +26,10 @@ export type PreviewContacts = { latest: { at: string; title: string }; more: num
 
 /* ★「プロフィール／メッセージ」のタブ（2026-10-13 / 柴さんの指示）。
       ★最初に開くタブは**常にプロフィール**（2026-10-13 に変えた。それまでは返信がある人はメッセージで開いていた）。
-      ⚠️★メッセージのタブの中身は**一度開くまで描かない**。描くとやり取りを取りに行き、そこで既読が付く
-         （`GET /api/biz/approaches/[id]?thread=1`）。選んだだけで既読にしない。
+      ⚠️★メッセージのタブの中身は**一度開くまで描かない**（取りに行く本数を減らすため）。
+      ★既読（2026-10-13）: やり取りは既読を付けずに読む（`?thread=1&read=0`）。付けるのはメッセージ欄で
+         入力欄にフォーカス・スクロール・送信したときだけ（`PreviewApproachArea` の SentDock）。
+         タブを開いただけ・段3で表示されただけでは付けない。
       ⚠️ タブは URL の `?tab=` に残す（戻る・リンクの共有で同じタブ）。書き方は `?selected=` と同じ history.replaceState。
          別の人を選ぶと一覧側が `tab` を外す（`updateSelected`）＝プロフィールで開く */
 function tabFromUrl(userId: string): PanelTab | null {
@@ -167,7 +169,11 @@ export type PreviewActions = {
 };
 
 export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, companyLimitLine = null, canAct = true,
-  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions }: {
+  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead }: {
+  /** ★右欄の形（2026-10-13）。"tabs" … 段1・段2（プロフィール／メッセージのタブ）／ "columns" … 段3（2列を同時に） */
+  layout?: "tabs" | "columns";
+  /** ★既読を付けたあと（一覧の「返信あり・未読」を消す） */
+  onMessagesRead?: () => void;
   /** ★一覧が持っている候補者（2026-10-13。API で取り直さない） */
   candidate: Candidate;
   onClose: () => void; onNoteCountChange?: (count: number) => void;
@@ -193,6 +199,10 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
   /* ★「メッセージを送る」から来たら送る欄を開いた状態にする（値が変わったときだけ。ui-debugging ⑭） */
   const [openFormNonce, setOpenFormNonce] = useState(0);
   const changeTab = useCallback((t: PanelTab) => { setTab(t); writeTabToUrl(t); if (t === "messages") setMessagesMounted(true); }, []);
+  const columns = layout === "columns";
+  /* ★既読を付けたか（2026-10-13）。⚠️ 表示しただけ・タブを開いただけでは付かない（入力欄にフォーカス・スクロール・送信のときだけ） */
+  const [readNow, setReadNow] = useState(false);
+  const handleRead = useCallback(() => { setReadNow(true); onMessagesRead?.(); }, [onMessagesRead]);
 
   /* ★この会社との接点だけを取る（一覧に無い唯一のもの）。⚠️ 取れなければ行を出さない */
   useEffect(() => {
@@ -207,7 +217,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
   /* ★メッセージのタブを開いたら、いちばん新しいやり取り（と返信欄）までスクロールする（2026-10-13）。
         ⚠️ やり取りは後から読み込まれるので、出るまで待ってから動かす。⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪） */
   useEffect(() => {
-    if (activeTab !== "messages") return;
+    if (activeTab !== "messages" && !columns) return;
     let tries = 0;
     const t = setInterval(() => {
       tries++;
@@ -216,7 +226,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
       else if (tries > 50) clearInterval(t);
     }, 100);
     return () => clearInterval(t);
-  }, [activeTab]);
+  }, [activeTab, columns]);
 
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
@@ -224,15 +234,15 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
   const showMessages = canAct && !!c.approach;
   /* ★未読（2026-10-13）。あるときだけタブのラベル右に小さな丸（数字は出さない。ui-conventions「タブ」）。
         見ている担当者の未読 ∪ 自社の誰も開いていない返信。⚠️ 一度開いたら消す */
-  const unreadDot = !messagesMounted && ((c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true);
+  const unreadDot = !readNow && ((c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true);
   const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join("　");
 
   /* ★メッセージのボタン（上の段）。やり取りがあれば「メッセージを続ける」、送れる人は「メッセージを送る」。
         ⚠️ 送れない人・送り済みで返信の無い人には「送る」を出さない（理由はメッセージのタブに灰色の1行で出る） */
   const a = c.approach;
   const messageButton = !showMessages || !a ? null
-    : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: () => changeTab("messages") }
-    : a.eligible && !companyLimitLine ? { label: "メッセージを送る", onClick: () => { changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
+    : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: () => { if (!columns) changeTab("messages"); } }
+    : a.eligible && !companyLimitLine ? { label: "メッセージを送る", onClick: () => { if (!columns) changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
     : null;
 
   return (
@@ -251,14 +261,23 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
         <TouchpointGuide touchpoints={c.touchpoints} materials={touchpointMaterials} />
       </>}
       extraSections={notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
-      tabs={showMessages ? {
+      columns={showMessages && columns ? {
+        messagesDot: unreadDot,
+        messagesScrollRef,
+        messages: (
+          <section data-panel-section="messages">
+            <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} onRead={handleRead} />
+          </section>
+        ),
+      } : undefined}
+      tabs={showMessages && !columns ? {
         active: activeTab,
         onChange: changeTab,
         messagesDot: unreadDot,
         messagesScrollRef,
         messages: messagesMounted ? (
           <section data-panel-section="messages">
-            <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} />
+            <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} onRead={handleRead} />
           </section>
         ) : null,
       } : undefined}

@@ -24,7 +24,15 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  */
 export type PanelTab = "profile" | "messages";
 
-export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs, topBar }: {
+export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs, topBar, columns }: {
+  /** ★段3（詳細を広く）の2列（2026-10-13）。渡したときはタブを使わず、左：プロフィール ／ 右：メッセージ を同時に出す。
+   *   ⚠️ 各列は独立してスクロールする（ページ全体を動かさない）。列幅は プロフィール 最低320px・メッセージ 最低300px で残りを分け合う */
+  columns?: {
+    messages: ReactNode;
+    /** 未読があるとき、見出しの右に小さな丸（数字は出さない。ui-conventions） */
+    messagesDot?: boolean;
+    messagesScrollRef?: React.Ref<HTMLDivElement>;
+  };
   /** ★固定の段のいちばん上に置く操作の帯（候補者を探すの［メッセージ］［☆ 気になる］［見送り］［‹ ›］。2026-10-13） */
   topBar?: ReactNode;
   userId: string;
@@ -75,7 +83,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
   return (
     <div data-state="candidate-profile-panel" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* 固定の段 */}
-      <div style={{ flexShrink: 0, padding: tabs ? "16px 20px 0" : "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
+      <div style={{ flexShrink: 0, padding: tabs && !columns ? "16px 20px 0" : "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
         {topBar}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} /></div>}
@@ -101,7 +109,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
           )}
         </div>
         {headerExtra}
-        {tabs && (
+        {tabs && !columns && (
           <div role="tablist" aria-label="表示する内容" data-state="panel-tabs" style={{ display: "flex", gap: 20, marginTop: 10 }}>
             {(["profile", "messages"] as const).map((t) => {
               const on = tabs.active === t;
@@ -121,15 +129,39 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
           </div>
         )}
       </div>
+      {/* ★段3（2026-10-13）。左：プロフィール ／ 右：メッセージ。⚠️ どちらも overflow:auto のスクロール容器
+            （メッセージの「前を読む」がページ全体を動かさないように。PaneThread の scrollParent がここを拾う） */}
+      {columns && (
+        <div data-state="candidate-columns" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(320px, 1.2fr) minmax(300px, 1fr)" }}>
+          <div ref={scrollRef} data-state="candidate-profile-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px", borderRight: "1px solid var(--line)" }}>
+            {before}
+            <PanelExtraSectionsProvider sections={extraSections ?? []}>
+              {failed ? (
+                <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "12px 4px" }}>プロフィールを読み込めませんでした。</p>
+              ) : content ?? (
+                <p data-state="profile-loading" style={{ fontSize: 13, color: "var(--ink-mute)", margin: "12px 4px" }}>読み込み中…</p>
+              )}
+            </PanelExtraSectionsProvider>
+          </div>
+          <div ref={columns.messagesScrollRef} data-state="candidate-messages-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "12px 20px 20px", background: "var(--bg-tint)" }}>
+            <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+              メッセージ
+              {columns.messagesDot && <span data-state="col-messages-dot" aria-label="未読があります" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)" }} />}
+            </h3>
+            <p style={{ margin: "2px 0 10px", fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>既読は、この欄で入力やスクロールをしたときに付きます</p>
+            {columns.messages}
+          </div>
+        </div>
+      )}
       {/* ★メッセージのタブ（2026-10-13）。⚠️ 隠すだけで描いたまま（書きかけの返信を消さない） */}
-      {tabs && (
+      {tabs && !columns && (
         <div ref={tabs.messagesScrollRef} role="tabpanel" id="cpp-panel-messages" aria-labelledby="cpp-tab-messages" data-state="candidate-messages-scroll"
           style={{ display: tabs.active === "messages" ? "block" : "none", flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "12px 20px 20px" }}>
           {tabs.messages}
         </div>
       )}
       {/* 中身（ここだけスクロール） */}
-      <div ref={scrollRef} data-state="candidate-profile-scroll" role={tabs ? "tabpanel" : undefined} id={tabs ? "cpp-panel-profile" : undefined}
+      {!columns && <div ref={scrollRef} data-state="candidate-profile-scroll" role={tabs ? "tabpanel" : undefined} id={tabs ? "cpp-panel-profile" : undefined}
         aria-labelledby={tabs ? "cpp-tab-profile" : undefined}
         style={{ display: tabs && tabs.active !== "profile" ? "none" : "block", flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
         {before}
@@ -142,7 +174,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
         </PanelExtraSectionsProvider>
         {/* ⚠️ プロフィールが読めるまで出さない（先に出すと、読み込み後に位置が下へずれる） */}
         {!tabs && (content || failed) && after}
-      </div>
+      </div>}
     </div>
   );
 }

@@ -47,7 +47,10 @@ export type CompanyThread = {
   meetingState: Awaited<ReturnType<typeof conversationMeetingState>>;
 };
 
-export async function loadCompanyThread(conversationId: string, ctx: { tenantId: string; currentOwnId: string }): Promise<CompanyThread | null> {
+export async function loadCompanyThread(conversationId: string, ctx: { tenantId: string; currentOwnId: string },
+  /** ★既読を付けるか（2026-10-13）。**既定は true（今までどおり）**。/biz/messages は渡さない。
+   *   候補者を探すの右欄だけ false で読み、入力欄にフォーカス・スクロール・送信したときに `markCompanyThreadRead` を呼ぶ */
+  opts: { markRead?: boolean } = {}): Promise<CompanyThread | null> {
   const supabase = createClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   const { data: rawConv, error: convError } = await supabase
@@ -92,15 +95,8 @@ export async function loadCompanyThread(conversationId: string, ctx: { tenantId:
   /* ★既読。企業側も `last_read_at` で数える（`lib/conversations/unread.ts`）。
         ⚠️ **参加者のときだけ**。参加していない人はメッセージを読めていない（RLS）。
         ⚠️ admin で書く。絞り込みは自分の参加者行の id だけ。失敗しても画面は出す（ログは出す） */
-  if (myParticipant && !msgsError) {
-    const r = await mutateOne(
-      createAdminClient().from("ow_conversation_participants").update({ last_read_at: new Date().toISOString() }).eq("id", myParticipant.id),
-      "biz 会話の既読",
-    );
-    if (!r.ok) console.error("[companyThread] 既読にできませんでした:", r.error);
-    /* ★企業が見た印（送ったメッセージ・提案）。⚠️ 参加者のときだけ（読めていない人に印を付けない）。上で company_id を確かめてある */
-    await markApproachSeenByCompany(conversationId, ctx.tenantId);
-    await markProposalSeenByCompany(conversationId, ctx.tenantId);
+  if (opts.markRead !== false && myParticipant && !msgsError) {
+    await writeRead(conversationId, myParticipant.id, ctx.tenantId);
   }
 
   const messages: ThreadMessage[] = (rawMessages ?? []).map((m: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -175,4 +171,35 @@ export async function candidateHeaderMeta(owUserId: string): Promise<string | nu
   const role = cur ? (cur.roleTitle || cur.roleName) : null;
   const company = cur && !cur.companyMasked ? cur.company : null;
   return [tenureText, role, company, location].filter(Boolean).join("・") || null;
+}
+
+/** 既読と「企業が見た印」を書く（`loadCompanyThread` と `markCompanyThreadRead` が同じ処理を通る） */
+async function writeRead(conversationId: string, participantId: string, tenantId: string): Promise<boolean> {
+  const r = await mutateOne(
+    createAdminClient().from("ow_conversation_participants").update({ last_read_at: new Date().toISOString() }).eq("id", participantId),
+    "biz 会話の既読",
+  );
+  if (!r.ok) console.error("[companyThread] 既読にできませんでした:", r.error);
+  /* ★企業が見た印（送ったメッセージ・提案）。⚠️ 参加者のときだけ（読めていない人に印を付けない）。呼び出し側で company_id を確かめてある */
+  await markApproachSeenByCompany(conversationId, tenantId);
+  await markProposalSeenByCompany(conversationId, tenantId);
+  return r.ok;
+}
+
+/**
+ * ★会話を既読にする（2026-10-13 / 候補者を探すの右欄。入力欄にフォーカス・スクロール・送信したとき）。
+ * ⚠️★条件は `loadCompanyThread` の既読と同じ: 会話が自社のもの（セッションで `company_id` を確かめる）かつ、
+ *    自分がその会話の参加者のとき**だけ**。参加していなければ何もしない（false）。
+ */
+export async function markCompanyThreadRead(conversationId: string, ctx: { tenantId: string; currentOwnId: string }): Promise<boolean> {
+  const supabase = createClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { data: conv, error: convErr } = await supabase.from("ow_conversations").select("id")
+    .eq("id", conversationId).eq("company_id", ctx.tenantId).maybeSingle();
+  if (convErr) console.error("[companyThread] read conv:", convErr.message);
+  if (!conv) return false;
+  const { data: me, error: meErr } = await supabase.from("ow_conversation_participants").select("id")
+    .eq("conversation_id", conversationId).eq("user_id", ctx.currentOwnId).limit(1).maybeSingle();
+  if (meErr) console.error("[companyThread] read participant:", meErr.message);
+  if (!me) return false;
+  return writeRead(conversationId, me.id as string, ctx.tenantId);
 }

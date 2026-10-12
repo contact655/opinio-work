@@ -30,7 +30,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   let thread = null;
   const url = new URL(req.url);
   if (r.status === "accepted" && r.conversationId && url.searchParams.get("thread") === "1") {
-    const t = await loadCompanyThread(r.conversationId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId });
+    /* ★`?read=0` … 既読を付けずに読む（2026-10-13。候補者を探すの右欄。既読は POST …/read で付ける）。省略時は今までどおり付ける */
+    const markRead = url.searchParams.get("read") !== "0";
+    const t = await loadCompanyThread(r.conversationId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId }, { markRead });
     if (t) {
       const before = url.searchParams.get("before");
       const end = before ? t.messages.findIndex((m) => m.id === before) : t.messages.length;

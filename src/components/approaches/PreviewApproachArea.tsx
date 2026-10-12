@@ -33,8 +33,10 @@ const GRAY: React.CSSProperties = { fontSize: 13, color: "var(--ink-mute)", line
 const DOCK: React.CSSProperties = { padding: "4px 0", minHeight: 0, display: "flex", flexDirection: "column" };
 const TOGGLE: React.CSSProperties = { flexShrink: 0, background: "none", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" };
 
-export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, openNonce }: {
+export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, openNonce, onRead }: {
   candidate: Candidate;
+  /** ★既読を付けたあと（右欄の点・一覧の「未読」を消す。2026-10-13） */
+  onRead?: () => void;
   /** ★外から送る欄を開く（右欄の上の段の「メッセージを送る」。2026-10-13）。値が変わったときだけ開く（ui-debugging ⑭） */
   openNonce?: number;
   jobs: { id: string; title: string }[];
@@ -70,7 +72,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
   if (!a) return profileLink ? <div style={DOCK}>{profileLink}</div> : null;
   if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
   /* ⚠️ key で候補者ごとに作り直す（別の人の内容が一瞬残らないように。開閉もここで戻る） */
-  if (a.sent) return <SentDock key={a.sent.id} sent={a.sent} />;
+  if (a.sent) return <SentDock key={a.sent.id} sent={a.sent} onRead={onRead} />;
   if (!a.eligible) {
     const text = a.blocked === "test_company" ? APPROACH_TEST_COMPANY_MESSAGE
       : a.blocked === "not_looking" ? APPROACH_NOT_LOOKING_MESSAGE
@@ -167,11 +169,16 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
  *   返信あり … 最初から開いた状態でやり取りを出す（`PaneThread`。最新10通・上へスクロールで前の10通）。
  *              欄の右上に「広げる／元に戻す」、いちばん下に返信欄（参加者でなければ「メッセージ画面で参加する」）。
  *   返信待ち・30日返信なし … 閉じた1行。「開く」で送った内容（`ApproachBubble`）
- * ⚠️ 既読は、やり取りを取りに行ったとき（＝欄に出したとき）に付く（`?thread=1`）。
- *    ホームの「返信していません」は最後に送ったのが候補者かで判定しているので、既読では消えない（actionItems.ts）。
+ * ★既読（2026-10-13 / 柴さんの指示）。やり取りは**既読を付けずに**読む（`?thread=1&read=0`）。
+ *   既読を付けるのは、この欄で ①入力欄にフォーカスした ②スクロールした（ホイール・タッチ・キー）③送信した ときだけ
+ *   （`POST /api/biz/approaches/[id]/read`）。表示されただけでは付けない（段3で J/K で流すと全員に付くため）。
+ *   ⚠️ スクロールは `scroll` イベントで判定しない。開いたときに最新までスクロールする処理（プログラムの scrollTop）でも発火するため。
+ *   ホームの「返信していません」は最後に送ったのが候補者かで判定しているので、既読では消えない（actionItems.ts）。
  */
-function SentDock({ sent }: {
+const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
+function SentDock({ sent, onRead }: {
   sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]>;
+  onRead?: () => void;
 }) {
   type Detail = { createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null;
     status: CompanyApproachStatus; conversationId: string | null };
@@ -194,16 +201,25 @@ function SentDock({ sent }: {
     if (!accepted) return;
     let alive = true;
     setThreadFailed(false);
-    fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}?thread=1`)
+    fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}?thread=1&read=0`)
       .then(async (res) => { const j = await res.json().catch(() => null); if (!alive) return; if (!res.ok || !j?.thread) setThreadFailed(true); else setThread(j.thread); })
       .catch(() => { if (alive) setThreadFailed(true); });
     return () => { alive = false; };
   }, [accepted, sent.id, reloadKey]);
   const loadOlder = useCallback(async (before: string) => {
-    const res = await fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}?thread=1&before=${encodeURIComponent(before)}`);
+    const res = await fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}?thread=1&read=0&before=${encodeURIComponent(before)}`);
     const j = await res.json().catch(() => null);
     return res.ok && j?.thread ? (j.thread as PaneThreadPage) : null;
   }, [sent.id]);
+  /* ★既読を付ける（1回だけ。送信したときは付け直す）。⚠️ 失敗しても画面は変えない（点が残るだけ） */
+  const readDone = useRef(false);
+  const markRead = useCallback((force = false) => {
+    if (readDone.current && !force) return;
+    readDone.current = true;
+    fetch(`/api/biz/approaches/${encodeURIComponent(sent.id)}/read`, { method: "POST" })
+      .then(async (res) => { const j = await res.json().catch(() => null); if (res.ok && j?.ok) onRead?.(); })
+      .catch(() => { readDone.current = false; });
+  }, [sent.id, onRead]);
 
   if (failed) return <div style={DOCK}><span data-state="approach-detail-error" style={GRAY}>送った内容を読み込めませんでした</span></div>;
   if (!detail) return <div style={DOCK}><span data-state="approach-detail-loading" style={GRAY}>読み込み中…</span></div>;
@@ -213,7 +229,9 @@ function SentDock({ sent }: {
   /* ── 返信あり：最初から開いた状態 ── */
   if (accepted) {
     return (
-      <div data-state="dock-thread" style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div data-state="dock-thread" style={{ display: "flex", flexDirection: "column", minWidth: 0 }}
+        onFocusCapture={() => markRead()} onWheel={() => markRead()} onTouchMove={() => markRead()}
+        onKeyDown={(e) => { if (SCROLL_KEYS.has(e.key) && !(e.target as HTMLElement).closest("textarea,input")) markRead(); }}>
         {threadFailed ? (
           <div style={{ padding: "4px 0 12px" }}><span style={GRAY}>やり取りを読み込めませんでした</span></div>
         ) : !thread ? (
@@ -224,7 +242,7 @@ function SentDock({ sent }: {
               /* ★参加していない管理者も返信でき、返信すると参加する（2026-10-12）。送れないときは一行だけ */
               <ThreadReplyArea conversationId={thread.conv.id} isParticipant={thread.isParticipant}
                 canReply={thread.canReply ?? thread.isParticipant} sendBlocked={thread.sendBlocked ?? null}
-                placeholder="返信を書く" compact onSent={() => setReloadKey((k) => k + 1)} />
+                placeholder="返信を書く" compact onSent={() => { setReloadKey((k) => k + 1); markRead(true); }} />
             } />
         )}
         {/* ★小さく残す（2026-10-12） */}

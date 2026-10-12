@@ -41,9 +41,10 @@ type Props = {
   variant?: BusinessLayoutVariant;
   /**
    * ★本文の最大幅（px）。既定は 1200（2026-10-10 に足した）。
-   * ⚠️ 2列（一覧＋右のプレビュー）のページだけが広げる（/biz/candidates が 1440）。他のページは渡さないこと。
+   * ⚠️ 2列（一覧＋右のプレビュー）のページだけが広げる。他のページは渡さないこと。
+   * ★`"none"` … 上限なし（2026-10-13。/biz/candidates だけ。一覧と詳細の幅を3段で切り替えるため、広い画面で余白を残さない）
    */
-  mainMaxWidth?: number;
+  mainMaxWidth?: number | "none";
   children: React.ReactNode;
   memberships?: TenantCompany[];
   currentTenantId?: string;
@@ -158,7 +159,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
  */
 const BizFrameContext = createContext(false);
 
-function mainStyleOf(variant: BusinessLayoutVariant, hasCompany: boolean, mainMaxWidth: number): React.CSSProperties {
+function mainStyleOf(variant: BusinessLayoutVariant, hasCompany: boolean, mainMaxWidth: number | "none"): React.CSSProperties {
   return variant === "fullBleed"
     ? { padding: 0, minWidth: 0, overflow: "hidden" }
     : hasCompany
