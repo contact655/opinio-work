@@ -1378,13 +1378,15 @@ export default function CandidatesClient({
         /* 2行目: 職種 @ 会社 ／ 3行目: 年齢・性別・社会人年数・居住地・経験職種と年数 */
         .cand-card-roleco { font-size: 13px; line-height: 19px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         .cand-card-sub3 { font-size: 12px; line-height: 17px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        /* 4行目: 合う理由の1行（薄い緑の帯）。⚠️ 緑は金銭以外に使わない規則があるが、ここは柴さんのモックの指定（理由の帯）。文字は濃い色 */
-        .cand-card-reason { display: flex; align-items: center; gap: 6px; margin-top: 3px; padding: 2px 8px; border-radius: 6px; background: #EEF8F1; color: #14532D; font-size: 12px; line-height: 18px; min-width: 0; }
+        /* 4行目: 合う理由の1行（淡い青の帯。2026-10-13 に緑から変えた。緑は金銭的にプラスの条件だけに使う規則のため）。
+           背景は royal-100。選択中のカードの背景が royal-50 なので、それより一段濃くしないと帯が溶ける。
+           文字 #0B2A66 は 10.79:1、ほか○件 #2C4373 は 7.69:1、チェック royal は 11.59:1（いずれも royal-100 の上） */
+        .cand-card-reason { display: flex; align-items: center; gap: 6px; margin-top: 3px; padding: 2px 8px; border-radius: 6px; background: var(--royal-100); color: #0B2A66; font-size: 12px; line-height: 18px; min-width: 0; }
         .cand-card-reason.is-empty { background: var(--bg-tint); color: var(--ink-mute); }
-        .cand-card-reason-check { flex-shrink: 0; font-weight: 700; }
+        .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: var(--royal); }
         .cand-card-reason-item { flex-shrink: 0; font-weight: 700; }
         .cand-card-reason-text { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cand-card-reason-more { flex-shrink: 0; margin-left: auto; padding-left: 6px; color: #166534; white-space: nowrap; }
+        .cand-card-reason-more { flex-shrink: 0; margin-left: auto; padding-left: 6px; color: #2C4373; white-space: nowrap; }
         .cand-card.is-hidden { opacity: 0.55; }
         .cand-card.is-hidden:hover { opacity: 0.8; }
         .cand-card-hidden-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
