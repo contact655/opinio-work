@@ -7,6 +7,7 @@ import { MEMBER_REPORT_REASONS, MEMBER_REPORT_NOTE_MAX, type MemberReportReason 
 import { SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { CandidateProfilePanel } from "@/components/candidates/CandidateProfilePanel";
 import { FilterChip } from "@/components/common/FilterChip";
+import { PersonAvatar } from "@/components/common/PersonAvatar";
 import type { BizEmployee } from "./page";
 
 /**
@@ -37,6 +38,10 @@ type Props = {
   rejectedExperiences: { experienceId: string; note: string | null }[];
   companyName: string;
   companyId: string;
+  /** ★部門・職種の設定の順（部門名）。一覧を部門ごとに並べる（2026-10-12） */
+  deptOrder?: string[];
+  /** ★会社の招待リンク（https://opinio.jp/join/<slug>）。案内文に入れる */
+  joinUrl?: string;
   initialTab: Tab;
   initialDept: string;
   initialQuery: string;
@@ -62,14 +67,20 @@ function orgLine(e: BizEmployee): string {
   return e.departmentName || role;
 }
 
-/** ★社員に送る案内文（0人のとき「コピー」で渡す）。⚠️ 文面を変えるときは報告にも載せる */
-function inviteText(companyName: string): string {
+/** 入社年（現役）または在籍期間（OB・OG） */
+function yearText(e: BizEmployee): string {
+  return e.isCurrent ? `${e.startedAt.slice(0, 4)}年入社` : periodText(e);
+}
+
+/** ★社員に送る案内文。⚠️ 文面を変えるときは報告にも載せる。
+ *  ★2026-10-12: URL を会社の招待リンク（/join/<slug>）にした。開くと「お勤め先」にこの会社が入った状態で始まる */
+function inviteText(companyName: string, joinUrl = "https://opinio.jp/auth?mode=signup"): string {
   return [
     `OPINIO（オピニオ）に、${companyName}の社員として経歴を登録していただけませんか。`,
     "",
     "1. 次のURLから無料で登録します（3分ほど）",
-    "   https://opinio.jp/auth?mode=signup",
-    `2. 経歴の「お勤め先」で「${companyName}」を選びます`,
+    `   ${joinUrl}`,
+    `2. 経歴の「お勤め先」に「${companyName}」が入っていることを確かめて保存します`,
     "",
     `登録すると、${companyName}の企業ページに社員として表示されます（見えるのは OPINIO にログインしている人だけです）。`,
     /* ⚠️ 実在する設定: /mypage/settings の公開範囲「非公開」。一覧と企業ページの両方から外れる
@@ -154,7 +165,7 @@ function ReportBox({ emp, reported, rejectedNote, isPending, onReport }: {
 
 export function EmployeesClient({
   current, alumni, hiddenExperienceIds, reportedExperienceIds, rejectedExperiences, companyName,
-  initialTab, initialDept, initialQuery, initialSelectedId, renderProfile = true,
+  deptOrder = [], joinUrl, initialTab, initialDept, initialQuery, initialSelectedId, renderProfile = true,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -164,6 +175,7 @@ export function EmployeesClient({
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [justReported, setJustReported] = useState<string[]>([]);
@@ -196,9 +208,44 @@ export function EmployeesClient({
     return base.filter((e) => (!activeDept || e.departmentName === activeDept) && (!q || (e.name ?? "").toLowerCase().includes(q)));
   }, [base, activeDept, query]);
 
+  /* ★部門ごとの見出しで並べる（2026-10-12）。部門・職種の設定の順 → 設定に無い部門名（五十音）→ 最後に「部門なし」 */
+  const groups = useMemo(() => {
+    const order = new Map(deptOrder.map((n, i) => [n, i]));
+    const map = new Map<string, BizEmployee[]>();
+    for (const e of list) {
+      const k = e.departmentName ?? "";
+      map.set(k, [...(map.get(k) ?? []), e]);
+    }
+    const keys = Array.from(map.keys()).sort((a, b) => {
+      if (!a) return 1; if (!b) return -1;
+      const ia = order.get(a) ?? Infinity, ib = order.get(b) ?? Infinity;
+      return ia !== ib ? ia - ib : a.localeCompare(b, "ja");
+    });
+    return keys.map((k) => ({ dept: k || null, people: map.get(k)! }));
+  }, [list, deptOrder]);
+  /* 一覧の上の1行（いまのタブ全員で数える。絞り込み・検索に関係なく） */
+  const summary = useMemo(() => {
+    const order = new Map(deptOrder.map((n, i) => [n, i]));
+    const map = new Map<string, { n: number; talk: number }>();
+    for (const e of base) {
+      const k = e.departmentName ?? "部門なし";
+      const v = map.get(k) ?? { n: 0, talk: 0 };
+      v.n++; if (e.isTalkable) v.talk++;
+      map.set(k, v);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      if (a === "部門なし") return 1; if (b === "部門なし") return -1;
+      const ia = order.get(a) ?? Infinity, ib = order.get(b) ?? Infinity;
+      return ia !== ib ? ia - ib : a.localeCompare(b, "ja");
+    });
+  }, [base, deptOrder]);
+  const noTalkDepts = tab === "current" ? summary.filter(([k, v]) => k !== "部門なし" && v.talk === 0).map(([k]) => k) : [];
+  /* 一覧の並び（部門ごと）に合わせた順 */
+  const ordered = useMemo(() => groups.flatMap((g) => g.people), [groups]);
+
   /* ★右に出す人。明示的に選んだ人（いまの一覧にいれば）→ 無ければ 1280px 以上で先頭の人 */
   const explicit = selectedId ? list.find((e) => e.experienceId === selectedId) ?? null : null;
-  const shown = explicit ?? (isWide ? list[0] ?? null : null);
+  const shown = explicit ?? (isWide ? ordered[0] ?? null : null);
 
   /* ★選択を URL に残す。⚠️ router.replace にしない（一覧を取り直すため） */
   useEffect(() => {
@@ -234,7 +281,7 @@ export function EmployeesClient({
 
   async function copyInvite() {
     try {
-      await navigator.clipboard.writeText(inviteText(companyName));
+      await navigator.clipboard.writeText(inviteText(companyName, joinUrl));
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -294,6 +341,37 @@ export function EmployeesClient({
         </div>
       )}
 
+      {!narrowDetail && base.length > 0 && (
+        <div data-state="employees-summary" style={{ marginBottom: 12, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
+          <span style={{ fontWeight: 700, color: "var(--ink)" }}>{tab === "current" ? "現役" : "OB・OG"} {base.length}名</span>
+          {"　"}
+          {summary.map(([k, v], i) => (
+            <span key={k}>{i > 0 && "・"}{k} {v.n}{tab === "current" && (i === 0 ? `（話を聞ける ${v.talk}）` : `（${v.talk}）`)}</span>
+          ))}
+          {noTalkDepts.length > 0 && (
+            <div data-state="no-talk-depts" style={{ position: "relative", fontSize: 12.5, color: "var(--ink-mute)" }}>
+              {noTalkDepts.join("・")}には話を聞ける人がいません。
+              <button type="button" onClick={() => setShowInvite((v) => !v)} aria-expanded={showInvite} data-state="open-invite"
+                style={{ border: "none", background: "none", padding: 0, fontFamily: "inherit", fontSize: 12.5, color: "var(--royal)", fontWeight: 600, cursor: "pointer" }}>
+                社員に案内する ›
+              </button>
+              {showInvite && (
+                <div role="dialog" aria-label="社員に送る案内文" data-state="invite-box"
+                  style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30, width: 460, maxWidth: "calc(100vw - 48px)", padding: "14px 16px", background: "#fff", border: "1px solid var(--line)", borderRadius: 10, boxShadow: "0 8px 24px rgba(15,23,42,0.12)" }}>
+                  <pre style={{ margin: "0 0 10px", padding: "10px 12px", background: "var(--bg-tint)", borderRadius: 8, fontFamily: "inherit", fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>{inviteText(companyName, joinUrl)}</pre>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button type="button" onClick={() => setShowInvite(false)} style={{ height: 32, padding: "0 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>閉じる</button>
+                    <button type="button" onClick={copyInvite} data-state="copy-invite" style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "none", background: "var(--royal)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                      {copied ? "コピーしました" : "案内文をコピー"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {error && (
         <div role="alert" style={{ marginBottom: 12, padding: "10px 14px", background: "var(--error-soft)", border: "1px solid #FECACA", borderRadius: 8, fontSize: 12, color: "var(--error-ink)" }}>{error}</div>
       )}
@@ -308,7 +386,7 @@ export function EmployeesClient({
             style={{ height: 36, padding: "0 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--ink)", cursor: "pointer" }}>
             {copied ? "コピーしました" : "社員に送る案内文をコピー"}
           </button>
-          <pre style={{ margin: "14px 0 0", padding: "12px 14px", background: "var(--bg-tint)", borderRadius: 8, fontFamily: "inherit", fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>{inviteText(companyName)}</pre>
+          <pre style={{ margin: "14px 0 0", padding: "12px 14px", background: "var(--bg-tint)", borderRadius: 8, fontFamily: "inherit", fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>{inviteText(companyName, joinUrl)}</pre>
         </div>
       ) : (
         <div className="emp-split">
@@ -319,22 +397,40 @@ export function EmployeesClient({
                 <p style={{ margin: 0, padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)" }}>
                   {base.length === 0 ? (tab === "current" ? "現役社員の登録はまだありません。" : "OB・OG の登録はまだありません。") : "条件に合う人はいません。"}
                 </p>
-              ) : list.map((e, i) => {
-                const active = shown?.experienceId === e.experienceId;
-                return (
-                  <button key={e.experienceId} type="button" data-item="employee" data-state={active ? "selected" : "idle"}
-                    onClick={() => setSelectedId(e.experienceId)}
-                    style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 16px", border: "none", borderTop: i === 0 ? "none" : "1px solid var(--line-soft)",
-                      background: active ? "var(--royal-50)" : "#fff", cursor: "pointer", fontFamily: "inherit",
-                      borderRadius: i === 0 ? "12px 12px 0 0" : i === list.length - 1 ? "0 0 12px 12px" : 0 }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name ?? "名前未設定"}</span>
-                      {e.isTalkable && <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>話を聞ける</span>}                    </div>
-                    {orgLine(e) && <div style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={orgLine(e)}>{orgLine(e)}</div>}
-                    <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>{periodText(e)}</div>
-                  </button>
-                );
-              })}
+              ) : groups.map((g, gi) => (
+                <div key={g.dept ?? "__none__"} data-dept-group={g.dept ?? "部門なし"}>
+                  <div style={{ padding: "10px 16px 6px", fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", background: "var(--bg-tint)",
+                    borderTop: gi === 0 ? "none" : "1px solid var(--line-soft)", borderRadius: gi === 0 ? "12px 12px 0 0" : 0 }}>
+                    {g.dept ?? "部門なし"}（{g.people.length}）
+                  </div>
+                  {g.people.map((e) => {
+                    const active = shown?.experienceId === e.experienceId;
+                    return (
+                      <div key={e.experienceId} role="button" tabIndex={0} data-item="employee" data-state={active ? "selected" : "idle"}
+                        onClick={() => setSelectedId(e.experienceId)}
+                        onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); setSelectedId(e.experienceId); } }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", borderTop: "1px solid var(--line-soft)",
+                          background: active ? "var(--royal-50)" : "#fff", cursor: "pointer", minWidth: 0 }}>
+                        <PersonAvatar name={e.name} url={e.avatarUrl} size={32} fontSize={13} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+                            {/* ★名前を押すとプロフィール（/u/[id]）を新しいタブで開く。行を押すと右に詳細 */}
+                            <a href={`/u/${e.userId}`} target="_blank" rel="noopener noreferrer" onClick={(ev) => ev.stopPropagation()} data-state="employee-name-link"
+                              style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {e.name ?? "名前未設定"}
+                            </a>
+                            {e.isTalkable && <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>話を聞ける</span>}
+                          </div>
+                          <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                            title={[orgLine(e), yearText(e)].filter(Boolean).join(" ・ ")}>
+                            {[orgLine(e), yearText(e)].filter(Boolean).join(" ・ ")}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </section>
           )}
 
@@ -360,6 +456,13 @@ export function EmployeesClient({
                 key={shown.experienceId}
                 userId={shown.userId}
                 name={shown.name ?? "名前未設定"}
+                avatarUrl={shown.avatarUrl}
+                headerRight={
+                  <a href={`/u/${shown.userId}`} target="_blank" rel="noopener noreferrer" data-state="open-profile"
+                    style={{ flexShrink: 0, alignSelf: "flex-start", height: 30, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, fontWeight: 600, color: "var(--ink)", textDecoration: "none", whiteSpace: "nowrap" }}>
+                    プロフィールを見る ↗
+                  </a>
+                }
                 meta={[orgLine(shown), periodText(shown)].filter(Boolean).join(" ・ ")}
                 headerExtra={
                   <div style={{ marginTop: 6 }}>

@@ -1280,7 +1280,7 @@ export default function CareerHistoryEditor({
   roles = [],
   onSavedCountChange,
   onExperienceDeleted,
-  openAddNonce, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
+  openAddNonce, openAddCompany = null, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
   openReasonBatchNonce, onClosed,
   onStintsChange,
 }: {
@@ -1296,6 +1296,9 @@ export default function CareerHistoryEditor({
   /** ★カードの見出しにある「＋」から追加モーダルを開くための合図（2026-08-16）。
       値が変わるたびに開く。⚠️ ref を渡さない（この部品の内部状態を外に晒さないため）。 */
   openAddNonce?: number;
+  /** ★追加を開くときに入れておく会社（会社の招待リンク /join/[slug] から来たとき。2026-10-12）。
+      本人が確認・変更して保存する（自動では保存しない） */
+  openAddCompany?: { id: string; name: string } | null;
   /** ★外（公開部品の行の鉛筆）から編集モーダルを開く行の id（2026-08-16 / 2-6） */
   openEditId?: string | null;
   /** ★外（行のゴミ箱）から削除確認を開く行の id */
@@ -1331,8 +1334,9 @@ export default function CareerHistoryEditor({
   useEffect(() => {
     if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
     lastAddNonce.current = openAddNonce;
-    setAddDraft(EMPTY_DRAFT);
+    setAddDraft(openAddCompany ? { ...EMPTY_DRAFT, companyName: openAddCompany.name, companyId: openAddCompany.id, isCurrent: true } : EMPTY_DRAFT);
     setAddingForCompanyKey("__new__");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 会社は開く瞬間の値だけ使う
   }, [openAddNonce]);
 
   const onClosedRef = useRef(onClosed);

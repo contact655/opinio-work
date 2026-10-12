@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { JOIN_COOKIE, recordJoinSignup, resolveJoinCompany } from "@/lib/companies/joinLink";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import OnboardingClient from "./OnboardingClient";
@@ -111,7 +113,7 @@ export default async function OnboardingPage() {
         実測（2026-09-14）: 実ユーザー7人のうち**2人（29%）が未完了**。 */
   const { data: owUser } = await createAdminClient()
     .from("ow_users")
-    .select("id, name, family_name, given_name, family_name_kana, given_name_kana, birth_date, location")
+    .select("id, name, family_name, given_name, family_name_kana, given_name_kana, birth_date, location, is_test")
     .eq("auth_id", user.id).maybeSingle();
 
   /* ⚠️ 生年月日は `YYYY-MM-DD`。画面は年/月/日の3つの `<select>` で、
@@ -191,6 +193,16 @@ export default async function OnboardingPage() {
     }
   }
 
+  /* ★会社の招待リンク（/join/<slug>）から来た人（2026-10-12）。「お勤め先」にその会社を入れて始める。
+        ⚠️ 既に今の職歴がある人には入れない（サーバーの職歴が正）。保存は本人（自動では保存しない）。
+        ⚠️ 会社と利用者の is_test が一致するときだけ（検証用と実アカウントの区別は今のまま）。
+        ⚠️ 登録した人数は運営画面だけで数える（recordJoinSignup。企業には出さない） */
+  let inviteCompany: { id: string; name: string; isListed: boolean } | null = null;
+  if (owUser?.id && !currentExperience) {
+    inviteCompany = await resolveJoinCompany(cookies().get(JOIN_COOKIE)?.value, owUser.is_test === true);
+    if (inviteCompany) await recordJoinSignup(inviteCompany.id, owUser.id as string);
+  }
+
   /* ★★2画面目（転職について・関心のある職種）の初期値（2026-09-11）。
      ⚠️★**2回目に来た人に空を見せないため。** 1画面目と同じ扱いにする。
      ⚠️ `ow_profiles.user_id` と `ow_profile_desired_roles.user_id` は
@@ -239,6 +251,7 @@ export default async function OnboardingPage() {
       desiredRoleOptions={desiredRoleOptions}
       roleAliases={roleAliases}
       currentExperience={currentExperience}
+      inviteCompany={inviteCompany}
       initialStance={initialStance}
       initialDesiredRoleIds={initialDesiredRoleIds}
       initialPerson={initialPerson}

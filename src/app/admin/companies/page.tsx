@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { countJoinSignups } from "@/lib/companies/joinLink";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import AdminCompaniesClient, { type Company, type CompanyAdmin } from "./AdminCompaniesClient";
 import { findPublishBlockers } from "@/lib/companies/publishable";
@@ -129,12 +130,15 @@ export default async function AdminCompaniesPage() {
     recipientsFailed ? [] : listedIds.filter((id) => !ownRecipient!.has(id)),
   );
 
+  /* ★会社の招待リンクから登録した人数（2026-10-12）。⚠️ 運営画面だけ（企業には出さない） */
+  const inviteCounts = await countJoinSignups();
   const companies: Company[] = ((companyRows ?? []) as unknown as Company[]).map((c) => ({
     ...c,
     job_count: jobCountMap.get(c.id) ?? 0,
     admins: adminMap.get(c.id) ?? [],
     publish_blockers: blockers?.get(c.id) ?? [],
     no_recipient: noRecipientIds.has(c.id),
+    invite_signups: inviteCounts?.get(c.id) ?? 0,
   }));
 
   return <AdminCompaniesClient initialCompanies={companies} blockersFailed={blockersFailed} recipientsFailed={recipientsFailed} />;

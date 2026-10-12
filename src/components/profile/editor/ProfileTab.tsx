@@ -601,6 +601,7 @@ export default function ProfileTab({
   initialMediaAppearances,
   initialSocialLinks,
   initialContentLinks,
+  initialAddCompany = null,
   onSavedChange,
   onDirtyChange,
   notifyGlobalSave,
@@ -660,6 +661,8 @@ export default function ProfileTab({
   initialMediaAppearances: MediaAppearance[];
   initialSocialLinks: SocialLinks;
   initialContentLinks: ContentLink[];
+  /** ★会社の招待リンク（/join/[slug]）から来たとき、職歴の追加をその会社が入った状態で開く（2026-10-12） */
+  initialAddCompany?: { id: string; name: string } | null;
   onSavedChange: (snapshot: ProfileSavedSnapshot) => void;
   onDirtyChange: (dirty: boolean) => void;
   notifyGlobalSave: (status: "saving" | "saved" | "error") => void;
@@ -771,7 +774,9 @@ export default function ProfileTab({
   const [aboutJustSaved, setAboutJustSaved] = useState(false);
   /* 職歴カードの「＋」→ 追加モーダルを開く合図。値が変わるたびに開く。
      ⚠️ 見出しの「＋」は 2026-09-12 に外した。いま使うのは**0件のときの丸い ＋** だけ。 */
+  /* ★招待リンクから来たときは、最初から職歴の追加を開く（会社は入れておくが保存は本人） */
   const [careerAddNonce, setCareerAddNonce] = useState(0);
+  useEffect(() => { if (initialAddCompany) setCareerAddNonce((n) => n + 1); }, [initialAddCompany]);
   /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
   /* ★会社名だけを直すモーダルを開く行の id（2026-09-12）。値はその会社の役割のどれか1件 */
@@ -1790,6 +1795,7 @@ export default function ProfileTab({
                       （マウントと同時に届いた nonce は初期値として飲み込まれる）。 */}
             <CareerHistoryEditor
               openAddNonce={careerAddNonce}
+              openAddCompany={initialAddCompany}
               openEditId={editingCareerId}
               openDeleteId={deleteCareerId}
               openAddRoleForCareerId={addRoleForId}

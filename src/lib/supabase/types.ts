@@ -1992,6 +1992,39 @@ export type Database = {
           },
         ]
       }
+      ow_company_invite_signups: {
+        Row: {
+          company_id: string
+          created_at: string
+          ow_user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          ow_user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          ow_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_invite_signups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_invite_signups_ow_user_id_fkey"
+            columns: ["ow_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_job_role_departments: {
         Row: {
           company_id: string

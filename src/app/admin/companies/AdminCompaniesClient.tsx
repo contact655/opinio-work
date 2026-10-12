@@ -100,6 +100,8 @@ export type Company = {
    *     これは「運営が動くべき」という印で、掲載にすると自動で消える
    *     （`updateListingStatus('listed')`）。掲載しないと決めたら `clearListingRequest`。 */
   listing_requested_at?: string | null;
+  /** ★会社の招待リンク（/join/<slug>）から登録した人数（2026-10-12）。運営画面だけに出す */
+  invite_signups?: number;
 };
 
 /* ⚠️ **データはサーバー（page.tsx + createAdminClient）で取る。**
@@ -605,6 +607,12 @@ export default function AdminCompaniesClient(
                                 }}
                               >
                                 掲載依頼
+                              </div>
+                            )}
+                            {/* ★招待リンクからの登録（2026-10-12）。⚠️ 運営画面だけ。0 は出さない */}
+                            {(c.invite_signups ?? 0) > 0 && (
+                              <div data-state="invite-signups" style={{ marginTop: 4, fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+                                招待からの登録 {c.invite_signups}名
                               </div>
                             )}
                           </div>

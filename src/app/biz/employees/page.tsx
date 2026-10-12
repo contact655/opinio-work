@@ -7,6 +7,8 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EmployeesClient } from "./EmployeesClient";
 import { isRegisteredUser } from "@/lib/users/registered";
+import { flattenTree } from "@/lib/business/orgTree";
+import { joinPath } from "@/lib/companies/joinLink";
 
 export const dynamic = "force-dynamic";
 
@@ -261,6 +263,18 @@ export default async function EmployeesPage({ searchParams }: {
   );
   const hiddenExperienceIds = Array.from(hiddenIds);
 
+  /* ★部門の並び（2026-10-12）。部門・職種の設定の順（木の順）。一覧を部門ごとの見出しで並べるのに使う。
+        ★会社の招待リンク（/join/<slug>）。案内文の URL に使う */
+  const [{ data: deptRows, error: deptErr }, { data: coRow, error: coErr }] = await Promise.all([
+    admin.from("ow_company_departments").select("id, parent_id, name, display_order").eq("company_id", ctx.tenantId).is("deleted_at", null),
+    admin.from("ow_companies").select("id, slug").eq("id", ctx.tenantId).maybeSingle(),
+  ]);
+  if (deptErr) console.error("[biz/employees] departments:", deptErr.message);
+  if (coErr) console.error("[biz/employees] company slug:", coErr.message);
+  const sortedDepts = [...(deptRows ?? [])].sort((a, b) => (a.display_order as number) - (b.display_order as number) || String(a.name).localeCompare(String(b.name), "ja"));
+  const deptOrder = flattenTree(sortedDepts as { id: string; parent_id: string | null; name: string }[]).map(({ node }) => node.name);
+  const joinUrl = `https://opinio.jp${joinPath({ slug: (coRow?.slug as string | null) ?? null, id: ctx.tenantId })}`;
+
   return (
     <BusinessLayout
       userName={ctx.userName}
@@ -278,6 +292,8 @@ export default async function EmployeesPage({ searchParams }: {
         rejectedExperiences={rejectedExperiences}
         companyName={ctx.tenantName ?? ""}
         companyId={ctx.tenantId}
+        deptOrder={deptOrder}
+        joinUrl={joinUrl}
         initialTab={searchParams?.tab === "alumni" ? "alumni" : "current"}
         initialDept={typeof searchParams?.dept === "string" ? searchParams.dept : ""}
         initialQuery={typeof searchParams?.q === "string" ? searchParams.q : ""}

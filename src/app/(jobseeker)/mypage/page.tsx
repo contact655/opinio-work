@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { resolveJoinCompany } from "@/lib/companies/joinLink";
 import { createClient } from "@/lib/supabase/server";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { canUserPost } from "@/lib/feed/canPost";
@@ -29,7 +30,8 @@ export default async function MypagePage({
 }: {
   /* ⚠️ `setup` は 2026-08-10 に削除した。`?setup=done` を付ける経路が
         どこにも無く（/profile/start が存在しないため）、到達不能だった。 */
-  searchParams?: { welcome?: string; tab?: string };
+  /** join … 会社の招待リンク（/join/<slug>）から来たとき、その会社の id（職歴の追加をその会社が入った状態で開く。2026-10-12） */
+  searchParams?: { welcome?: string; tab?: string; join?: string };
 }) {
   /* ⚠️ 旧 `?tab=` の転送は **`src/middleware.ts`** で返す（サーバーが 307 を返すため）。
         ここに書くと `/mypage/loading.tsx` の Suspense 境界の内側になり、
@@ -576,6 +578,14 @@ export default async function MypagePage({
   const industryMatchBlocks = owUser ? await fetchIndustryMatchBlocks(owUser.id) : [];
 
   const canPost = canUserPost(owUser?.id);
+  /* ★招待リンクから来た人（2026-10-12）。⚠️ 会社と利用者の is_test が一致するときだけ。保存は本人 */
+  let initialAddCompany: { id: string; name: string } | null = null;
+  if (searchParams?.join && owUser?.id) {
+    const { data: me, error: meErr } = await createAdminClient().from("ow_users").select("is_test").eq("id", owUser.id as string).maybeSingle();
+    if (meErr) console.error("[mypage] join is_test:", meErr.message);
+    const c = await resolveJoinCompany(searchParams.join, me?.is_test === true);
+    if (c) initialAddCompany = { id: c.id, name: c.name };
+  }
 
   return (
     <MypageClient
@@ -591,6 +601,7 @@ export default async function MypagePage({
       proposalsBadge={proposalsBadge}
       inbox={inbox}
       isNewUser={isNewUser}
+      initialAddCompany={initialAddCompany}
       ambassadorMemberships={ambassadorMemberships}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */

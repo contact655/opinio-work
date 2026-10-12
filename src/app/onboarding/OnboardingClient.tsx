@@ -228,7 +228,7 @@ export type OnboardingInitialPerson = {
 };
 
 function OnboardingInner({
-  roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  roles, desiredRoleOptions, roleAliases, currentExperience, inviteCompany = null, initialStance, initialDesiredRoleIds,
   draftKey,
   initialPerson,
 }: {
@@ -241,6 +241,8 @@ function OnboardingInner({
   roleAliases: Record<string, string[]>;
   /** ★2回目に来た人の既存の現職（`is_current` のうち最新の1件）。無ければ null */
   currentExperience: ExistingExperience | null;
+  /** ★会社の招待リンクから来たとき、「お勤め先」に入れておく会社（2026-10-12。保存は本人） */
+  inviteCompany?: CompanyLookupResult | null;
   /** ★2画面目の初期値。⚠️ 既に答えている人に空を見せないため（1画面目と同じ扱い） */
   initialStance: string | null;
   initialDesiredRoleIds: string[];
@@ -324,7 +326,7 @@ function OnboardingInner({
   const [experienceId, setExperienceId] = useState<string | null>(() => exStr("id") || null);
 
   /** ★マスタ紐づけの会社（サーバーが `__company` として渡す）。⚠️ 無ければ null */
-  const exCompany = (ex?.__company ?? null) as CompanyLookupResult | null;
+  const exCompany = ((ex?.__company ?? null) as CompanyLookupResult | null) ?? (ex ? null : inviteCompany);
   const [query, setQuery] = useState(() => exCompany?.name || exStr("company_text"));
   const [selectedCompany, setSelectedCompany] = useState<CompanyLookupResult | null>(() => exCompany);
   /** ★社内での呼び方（`role_title`）。⚠️ `rank`（役職）とは別の列。混ぜないこと（2026-09-11） */
@@ -1921,7 +1923,7 @@ function LogoMark() {
 // ─── Page export (Suspense boundary for useSearchParams) ─────────────────────
 
 export default function OnboardingPage({
-  roles, desiredRoleOptions, roleAliases, currentExperience, initialStance, initialDesiredRoleIds,
+  roles, desiredRoleOptions, roleAliases, currentExperience, inviteCompany = null, initialStance, initialDesiredRoleIds,
   draftKey,
   initialPerson,
 }: {
@@ -1929,6 +1931,8 @@ export default function OnboardingPage({
   desiredRoleOptions: OnboardingRole[];
   roleAliases: Record<string, string[]>;
   currentExperience: ExistingExperience | null;
+  /** ★会社の招待リンクから来たとき、「お勤め先」に入れておく会社（2026-10-12。保存は本人） */
+  inviteCompany?: CompanyLookupResult | null;
   initialStance: string | null;
   initialDesiredRoleIds: string[];
   /** ★企業からの声かけを受け取るか（2026-10-09）。⚠️ null は「まだ選んでいない」 */
@@ -1947,6 +1951,7 @@ export default function OnboardingPage({
         desiredRoleOptions={desiredRoleOptions}
         roleAliases={roleAliases}
         currentExperience={currentExperience}
+        inviteCompany={inviteCompany}
         initialStance={initialStance}
         initialDesiredRoleIds={initialDesiredRoleIds}
         initialPerson={initialPerson}
