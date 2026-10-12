@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { CompanyDetailClient } from './CompanyDetailClient';
 import { getAllToolMasters, getCompanyToolsForAdmin } from './toolActions';
-import { fetchBusinessDomainOptions } from '@/lib/companies/businessDomains';
+import { loadClassificationMasters, loadCompanyClassification } from '@/lib/companies/classificationMasters';
+import { stageCandidateFromEmployees } from '@/lib/companies/classification';
 
 // admin layout.tsx で認可チェック済み（isAdmin + redirect）のため再チェック不要
 
@@ -37,53 +38,13 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     .eq('is_active', true)
     .order('display_order');
 
-  /* 業種マスタ（ow_industries）。
-     ⚠️ `is_active` で絞らない。運営が無効化した業種に紐づいている企業を開いたとき、
-        セレクトに現在値が出ず、保存すると業種が消えたように見えるため。
-        無効な行はセレクト側で「（無効）」と示す。 */
-  const { data: industries } = await supabase
-    .from('ow_industries')
-    /* ★`parent_id` を取る（2026-09-05 に2階層化）。`display_order` は
-       **親ごとの相対順**なので、これが無いと並びが壊れる。 */
-    .select('id, name, slug, display_order, is_active, requires_business_domain, parent_id')
-    .order('display_order');
-
-  /* 事業領域（複数・主が1つ）。⚠️ 選択肢はマスタから。コードに書かない */
-  const businessDomains = await fetchBusinessDomainOptions(supabase, 'admin/companies/[id]');
-
-  const { data: companyDomains, error: domainsError } = await supabase
-    .from('ow_company_business_domains')
-    .select('domain_id, is_primary')
-    .eq('company_id', params.id)
-    .order('display_order');
-  // ⚠️ error を握りつぶさない。0件と取得失敗を同じ「未設定」に見せない
-  if (domainsError) {
-    console.error('[admin/companies/[id]] 事業領域の取得に失敗:', domainsError.message);
-  }
-
-  /* 対象業界（軸2 = 誰に売っているか）。⚠️ 軸1（事業領域）とは別物。
-     ⚠️ 語彙は上の `industries`（ow_industries）を業種と共有している。
-        選択肢を別に引かないこと（粒度が割れると突合が繋がらない）。 */
-  const { data: companyTargets, error: targetsError } = await supabase
-    .from('ow_company_target_industries')
-    .select('industry_id, is_primary')
-    .eq('company_id', params.id)
-    .order('display_order');
-  // ⚠️ error を握りつぶさない。0件と取得失敗を同じ「未設定」に見せない
-  if (targetsError) {
-    console.error('[admin/companies/[id]] 対象業界の取得に失敗:', targetsError.message);
-  }
-
-  /* ★無効な業種は「この企業が今使っているもの（とその親）」だけ残す（2026-10-12）。
-     分類の作り直し（段1）で、まだ使い始めていない新しい業種を無効のまま入れてある。
-     全部出すとセレクトが「（無効）」で埋まり、運営が誤って選べてしまう。
-     ⚠️ 使っている無効な業種は消さない（上の注記のとおり、消すと保存で業種が消えたように見える）。 */
-  const inUse = new Set<string>(
-    [company.industry_id as string | null, ...(companyTargets ?? []).map((t) => t.industry_id as string)]
-      .filter((v): v is string => !!v),
-  );
-  for (const i of industries ?? []) if (inUse.has(i.id) && i.parent_id) inUse.add(i.parent_id);
-  const industryOptions = (industries ?? []).filter((i) => i.is_active || inUse.has(i.id));
+  /* ★分類の4つの質問（2026-10-12）。選択肢は入力用（出す前の新しい行と、この会社が追加した確認待ちの事業を含む）。
+     ⚠️ 旧「事業領域」「対象業界」タブは外した（同じ値を2か所で編集させない） */
+  const [masters, current] = await Promise.all([
+    loadClassificationMasters(params.id),
+    loadCompanyClassification(params.id),
+  ]);
+  if (!current) notFound();
 
   // この企業に紐付け済みのジャンル（承認済み・未承認問わず全件）
   const { data: companyGenres } = await supabase
@@ -113,10 +74,9 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     <CompanyDetailClient
       initialTab={searchParams.tab}
       company={company}
-      allIndustries={industryOptions}
-      allBusinessDomains={businessDomains}
-      companyBusinessDomains={companyDomains ?? []}
-      companyTargetIndustries={companyTargets ?? []}
+      masters={masters}
+      initialClassification={current.value}
+      stageCandidate={stageCandidateFromEmployees(current.employeeCount)}
       allGenres={genres ?? []}
       companyGenres={companyGenres ?? []}
       admins={admins ?? []}

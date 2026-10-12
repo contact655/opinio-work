@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CompanyEditClient } from "./CompanyEditClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasAgreedTerms } from "@/lib/business/termsAgreement";
-import { fetchBusinessDomainOptions } from "@/lib/companies/businessDomains";
+import { loadClassificationMasters } from "@/lib/companies/classificationMasters";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function BizCompanyPage() {
         ⚠️ `publishedGenresResult`（この企業に付いているジャンル）は**引き続き要る。**
            下書きに `genres` が無いときの初期値で、これが無いと
            **「変更を公開する」を押した瞬間に既存のジャンルが消える。** */
-  const [initialPhotos, publishedGenresResult, industriesResult, businessDomainOptions, companyDomainsResult, listingRequestResult] = await Promise.all([
+  const [initialPhotos, publishedGenresResult, masters, companyDomainsResult, listingRequestResult, customersResult] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (adminClient as any)
@@ -48,20 +48,9 @@ export default async function BizCompanyPage() {
       .select("ow_genres(slug)")
       .eq("company_id", ctx.tenantId)
       .eq("is_human_approved", true),
-    adminClient
-      .from("ow_industries")
-      /* ★`parent_id` を取る（2026-09-05 に業種を2階層に戻した）。
-            ⚠️ **2段セレクトには戻していない。** 1段のまま `<optgroup>` で出している
-               （`IndustrySelectOptions`）。この列が無いと親子が組めず、
-               `display_order` は**親ごとの相対順**なので並びが壊れる。 */
-      .select("id, name, slug, display_order, parent_id, requires_business_domain")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true }),
-    /* ★事業領域の選択肢とこの企業の選択（2026-09-29）。
-          ⚠️★**`/biz` にこの入力欄が無かったせいで、企業は自分で公開ゲートを
-             満たせなかった**（実測: 主の事業領域が無い企業が14社）。
-          ⚠️ 選択肢はマスタから。**コードに書かないこと**（業種と同じ扱い）。 */
-    fetchBusinessDomainOptions(adminClient, "biz/company"),
+    /* ★分類の選択肢（2026-10-12。業種・事業）。入力用（出す前の新しい行と、この会社が追加した確認待ちの事業を含む）。
+          ⚠️ 公開側には使わない */
+    loadClassificationMasters(ctx.tenantId),
     adminClient
       .from("ow_company_business_domains")
       .select("domain_id, is_primary")
@@ -81,6 +70,8 @@ export default async function BizCompanyPage() {
       .select("listing_requested_at, listing_status, is_published, headquarters_address")
       .eq("id", ctx.tenantId)
       .maybeSingle(),
+    /* ★お客さまの業界（公開中の値）。下書きに無いときの初期値 */
+    adminClient.from("ow_company_customer_industries").select("industry_id").eq("company_id", ctx.tenantId),
     /* ⚠️ 開示充実度の計算に使っていた4本（公開求人数・公開ストーリー数・取材項目・ツール数）は
           2026-09-21 に外した。この画面から開示充実度を外したため（ダッシュボードに出している） */
   ]);
@@ -98,6 +89,7 @@ export default async function BizCompanyPage() {
     console.error("[biz/company] 事業領域の取得に失敗:", companyDomainsResult.error.message);
   }
   const companyDomainRows = (companyDomainsResult.data ?? []) as { domain_id: string; is_primary: boolean }[];
+  if (customersResult.error) console.error("[biz/company] お客さまの業界の取得に失敗:", customersResult.error.message);
 
   /* ★下書きを読み戻す（`withDraft: true`。この画面だけ）。事業領域は下書きに無ければ公開中の値で初期化する。
      ⚠️ `/biz/dashboard` は同じ関数を `withDraft` 無しで呼ぶ（開示充実度は求職者に見えている値で出すため） */
@@ -107,6 +99,7 @@ export default async function BizCompanyPage() {
       ids: companyDomainRows.map((r) => r.domain_id),
       primaryId: companyDomainRows.find((r) => r.is_primary)?.domain_id ?? null,
     },
+    publishedCustomerIds: (customersResult.data ?? []).map((r) => r.industry_id as string),
   });
 
   if (!companyRaw) redirect("/biz/dashboard");
@@ -120,17 +113,6 @@ export default async function BizCompanyPage() {
   const company = companyRaw.genres.length === 0 && publishedGenreSlugs.length > 0
     ? { ...companyRaw, genres: publishedGenreSlugs }
     : companyRaw;
-
-  /** ⚠️ `parent_id` を含める。2階層（製造業）を `<optgroup>` で出すのに要る（2026-09-05）
-   *  ⚠️ `requires_business_domain` は事業領域が必須かの判定（2026-09-29）。
-   *     **slug で判定しないこと**（`/admin` 側と同じ規則）。 */
-  type IndustryItem = {
-    id: string; name: string; slug: string; display_order: number; parent_id: string | null;
-    requires_business_domain: boolean;
-  };
-
-  const industries: IndustryItem[] = (industriesResult.data ?? []) as IndustryItem[];
-
 
   return (
     <CompanyEditClient
@@ -151,9 +133,7 @@ export default async function BizCompanyPage() {
       listingStatus={(listingRequestResult.data?.listing_status as string | null) ?? null}
       isPublished={listingRequestResult.data?.is_published === true}
       headquartersAddress={(listingRequestResult.data?.headquarters_address as string | null) ?? null}
-      businessDomainOptions={businessDomainOptions}
-      /* ⚠️ 事業領域が必須かは業種マスタの `requires_business_domain`（画面側で今の業種から引く）。slug で判定しない */
-      industries={industries}
+      masters={masters}
     />
   );
 }

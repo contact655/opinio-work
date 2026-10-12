@@ -36,6 +36,13 @@ export type BizCompany = {
    *  ⚠️ 下書きのキーは `business_domains`（`companyRequirements.ts` の DRAFT_BUSINESS_DOMAINS_KEY） */
   businessDomainIds: string[];
   primaryBusinessDomainId: string | null;
+  /** ★分類の③④（2026-10-12）。下書きに入る。値の意味は `lib/companies/classification.ts` */
+  capitalType: string;          // ow_companies.capital_type（"" = 未選択）
+  hqCountry: string;            // ISO 3166-1 alpha-2（外資系のときだけ）
+  companyStage: string;         // COMPANY_STAGES の value
+  customerIndustryIds: string[]; // 大分類の id
+  servesConsumers: boolean;
+  customerAllIndustries: boolean;
   fitPositives: string[];   // 「こんな人に向いている」ポイント
   fitNegatives: string[];   // 「注意点・向いていないかも」ポイント
   showFitNegatives: boolean;   // 「慎重に検討を」欄を公開するか

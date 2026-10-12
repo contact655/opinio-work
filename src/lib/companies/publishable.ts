@@ -53,7 +53,7 @@ export type PublishCheckOptions = {
 };
 
 /** 判定に要る列。⚠️ `toRequirementInput` が読む列と1対1にすること */
-const COLS = "id, name, industry_id, employee_count_band, location, headquarters_address, listing_status, draft_data" as const;
+const COLS = "id, name, industry_id, employee_count_band, location, headquarters_address, listing_status, draft_data, capital_type, hq_country, company_stage" as const;
 
 type Row = {
   id: string;
@@ -64,6 +64,10 @@ type Row = {
   headquarters_address: string | null;
   listing_status: string | null;
   draft_data: unknown;
+  /* ★分類（2026-10-12）。checkPublishable だけが判定に使う */
+  capital_type: string | null;
+  hq_country: string | null;
+  company_stage: string | null;
 };
 
 /** 下書きのうち判定に使うキーだけを重ねる。⚠️ キーがあれば null も上書き（利用者が消した） */
@@ -78,6 +82,9 @@ function withDraft(row: Row): Row {
     industry_id: pick("industry_id"),
     employee_count_band: pick("employee_count_band"),
     location: pick("location"),
+    capital_type: pick("capital_type"),
+    hq_country: pick("hq_country"),
+    company_stage: pick("company_stage"),
   };
 }
 
@@ -113,16 +120,20 @@ export async function checkPublishable(
 
   const row = opts.useDraft ? withDraft(raw as Row) : (raw as Row);
 
-  /* 業種マスタ（事業領域が必須か）。⚠️ 下書きで業種を変えていれば**下書きの業種**で引く */
-  let requiresBusinessDomain = false;
+  /* 業種マスタ（小分類まで選ぶ必要があるか）。⚠️ 下書きで業種を変えていれば**下書きの業種**で引く
+     ★2026-10-12 から事業は全業種で必須（requires_business_domain は見ない。判断どおり） */
+  let industryNeedsSub = false;
   if (row.industry_id) {
     const { data: ind, error: indErr } = await admin
-      .from("ow_industries").select("requires_business_domain").eq("id", row.industry_id).maybeSingle();
-    if (indErr) {
-      console.error("[checkPublishable] 業種の取得に失敗:", indErr.message);
+      .from("ow_industries").select("id, parent_id").eq("id", row.industry_id).maybeSingle();
+    const { count: kids, error: kidErr } = ind && !ind.parent_id
+      ? await admin.from("ow_industries").select("id", { count: "exact", head: true }).eq("parent_id", row.industry_id).is("retired_at", null)
+      : { count: 0, error: null };
+    if (indErr || kidErr) {
+      console.error("[checkPublishable] 業種の取得に失敗:", (indErr ?? kidErr)!.message);
       return { ok: false, missing: ["業種を確認できませんでした。時間をおいて再度お試しください。"] };
     }
-    requiresBusinessDomain = ind?.requires_business_domain === true;
+    industryNeedsSub = (kids ?? 0) > 0;
   }
 
   /* 主の事業領域。⚠️ 下書きに事業領域があれば下書きで判定する（反映の前に判定するため） */
@@ -144,7 +155,11 @@ export async function checkPublishable(
   }
 
   const requirements = missingCompanyRequirements(
-    toRequirementInput(row, requiresBusinessDomain, hasPrimaryDomain),
+    {
+      ...toRequirementInput(row, false, hasPrimaryDomain),
+      /* ★新しい条件は、公開・掲載に切り替える一手と「変更を公開する」でだけ効かせる（提案B） */
+      classification: { industryNeedsSub, capitalType: row.capital_type, hqCountry: row.hq_country, companyStage: row.company_stage },
+    },
     { forListing: opts.forListing === true },
   );
   const missing = requirements.map(requirementMessage);

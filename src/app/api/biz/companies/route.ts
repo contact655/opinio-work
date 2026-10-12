@@ -173,6 +173,7 @@ export async function POST(req: Request) {
       .from("ow_industries")
       .select("id")
       .eq("id", rawIndustryId)
+      .is("retired_at", null)  // ★使わなくなった業種は選ばせない（2026-10-12）
       .maybeSingle();
     // ⚠️ error を握りつぶさない。捨てると「マスタに無い」と区別が付かなくなる
     if (industryErr) {

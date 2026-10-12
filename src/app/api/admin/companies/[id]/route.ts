@@ -157,6 +157,7 @@ export async function PUT(
       .from('ow_industries')
       .select('id')
       .eq('id', v)
+      .is('retired_at', null)  // ★使わなくなった業種は選ばせない（2026-10-12）
       .maybeSingle();
     // ⚠️ error を握りつぶさない。捨てると「マスタに無い」と区別が付かなくなる
     if (industryErr) {

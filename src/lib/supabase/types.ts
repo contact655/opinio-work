@@ -3813,6 +3813,7 @@ export type Database = {
           name: string
           parent_id: string | null
           requires_business_domain: boolean
+          retired_at: string | null
           slug: string
           successor_id: string | null
         }
@@ -3826,6 +3827,7 @@ export type Database = {
           name: string
           parent_id?: string | null
           requires_business_domain?: boolean
+          retired_at?: string | null
           slug: string
           successor_id?: string | null
         }
@@ -3839,6 +3841,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           requires_business_domain?: boolean
+          retired_at?: string | null
           slug?: string
           successor_id?: string | null
         }

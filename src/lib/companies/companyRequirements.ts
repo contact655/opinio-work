@@ -18,7 +18,8 @@
  * ⚠️ DB や server-only のものを import しないこと（ブラウザからも読む）。
  */
 
-export type CompanyRequirementKey = "name" | "industry" | "business_domain" | "employee_count" | "headquarters";
+export type CompanyRequirementKey =
+  | "name" | "industry" | "industry_sub" | "business_domain" | "capital" | "company_stage" | "employee_count" | "headquarters";
 
 export type CompanyRequirement = {
   key: CompanyRequirementKey;
@@ -41,6 +42,18 @@ export type CompanyRequirementInput = {
   location: string | null | undefined;
   /** `headquarters_address`（運営が入れる本社の住所）。無ければ null */
   headquartersAddress?: string | null;
+  /**
+   * ★分類の4つの質問（2026-10-12）。**渡したときだけ**新しい条件で見る（提案B）:
+   *   業種は小分類まで／事業は全業種で必須（requires_business_domain を見ない）／資本（外資系なら本社の国）／事業ステージ
+   * ⚠️ 公開・掲載に切り替える一手と「変更を公開する」（checkPublishable）だけが渡す。
+   *    運営の「要対応」（findPublishBlockers）は渡さない ＝ すでに公開している会社に遡って当てない。
+   */
+  classification?: {
+    industryNeedsSub: boolean;
+    capitalType: string | null | undefined;
+    hqCountry: string | null | undefined;
+    companyStage: string | null | undefined;
+  };
 };
 
 const filled = (v: string | null | undefined) => typeof v === "string" && v.trim() !== "";
@@ -49,8 +62,25 @@ export const COMPANY_REQUIREMENTS: readonly (CompanyRequirement & { ok: (i: Comp
   { key: "name", label: "企業名", anchor: "ce-name", scope: "always", ok: (i) => filled(i.name) },
   { key: "industry", label: "業種", anchor: "ce-industry", scope: "always", ok: (i) => filled(i.industryId) },
   {
-    key: "business_domain", label: "事業領域", anchor: "ce-business-domain", scope: "always",
-    ok: (i) => !i.requiresBusinessDomain || i.hasPrimaryDomain,
+    key: "industry_sub", label: "業種（小分類）", anchor: "ce-industry-sub", scope: "always",
+    ok: (i) => !i.classification || !filled(i.industryId) || !i.classification.industryNeedsSub,
+  },
+  {
+    key: "business_domain", label: "事業", anchor: "ce-business-domain", scope: "always",
+    ok: (i) => (i.classification ? i.hasPrimaryDomain : !i.requiresBusinessDomain || i.hasPrimaryDomain),
+  },
+  {
+    key: "capital", label: "資本（外資系なら本社の国）", anchor: "ce-capital", scope: "always",
+    ok: (i) => {
+      const c = i.classification;
+      if (!c) return true;
+      if (c.capitalType === "foreign_subsidiary") return filled(c.hqCountry);
+      return c.capitalType === "japanese_independent" || c.capitalType === "japanese_group";
+    },
+  },
+  {
+    key: "company_stage", label: "事業ステージ", anchor: "ce-stage", scope: "always",
+    ok: (i) => !i.classification || filled(i.classification.companyStage),
   },
   { key: "employee_count", label: "従業員数", anchor: "ce-employee-band", scope: "listing", ok: (i) => filled(i.employeeCountBand) },
   {
@@ -75,7 +105,10 @@ export function missingCompanyRequirements(
 
 /** サーバーが利用者に返す文。⚠️ 何が足りないかを具体的に書く */
 export function requirementMessage(r: CompanyRequirement): string {
-  if (r.key === "business_domain") return "事業領域の「主」が設定されていません（この業種では必須です）。";
+  if (r.key === "business_domain") return "主な事業（★）が設定されていません。";
+  if (r.key === "industry_sub") return "業種の小分類が選ばれていません。";
+  if (r.key === "capital") return "資本（日系／外資系。外資系なら本社の国）が選ばれていません。";
+  if (r.key === "company_stage") return "事業ステージが選ばれていません。";
   return `${r.label}が入力されていません。`;
 }
 

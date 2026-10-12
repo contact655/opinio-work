@@ -9,15 +9,9 @@ import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import CompanyToolsTab from './CompanyToolsTab';
 import type { ToolMaster, CompanyToolRow } from './toolActions';
-import { MAX_BUSINESS_DOMAINS_PER_COMPANY } from '@/lib/companies/businessDomains';
-/* 対象業界（軸2）。⚠️ 3値と上限は必ずここから読む（画面に直書きしない）。
-      DB の CHECK・API の検証と3つ揃えるため。 */
-import {
-  MAX_TARGET_INDUSTRIES_PER_COMPANY,
-  TARGET_INDUSTRY_SCOPE_LABELS,
-  type TargetIndustryScope,
-} from '@/lib/companies/targetIndustries';
-import { IndustrySelectOptions } from '@/components/companies/IndustrySelectOptions';
+import { ClassificationEditor } from '@/components/companies/classification/ClassificationEditor';
+import { ClassificationPreview } from '@/components/companies/classification/ClassificationPreview';
+import { companyStageLabel, industryNeedsSub, topOf, type ClassMasters, type ClassificationValue } from '@/lib/companies/classification';
 import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
 import { EMPLOYEE_BANDS } from "@/lib/constants/employeeBand";
 
@@ -29,25 +23,6 @@ type Genre = {
   name: string;
   description: string | null;
   display_order: number;
-};
-
-/** 事業領域（ow_business_domains）。⚠️ 選択肢はマスタから props で渡る */
-type BusinessDomain = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-};
-
-/** 対象業界の明細（軸2）。⚠️ 選択肢は allIndustries（業種マスタ）と共有 */
-type CompanyTargetIndustry = {
-  industry_id: string;
-  is_primary: boolean;
-};
-
-type CompanyBusinessDomain = {
-  domain_id: string;
-  is_primary: boolean;
 };
 
 type CompanyGenre = {
@@ -78,26 +53,14 @@ type CompanyAdmin = {
  * 業種マスタ（ow_industries）。★2026-09-05 から**2階層**（有効22件 = トップ18 + 子4）。
  * 親を持つのは「製造業」だけ（子: 電子機器・半導体 / 電機・機械 / 素材・化学 / 食品・飲料）。
  */
-type Industry = {
-  id: string;
-  name: string;
-  slug: string;
-  /** ⚠️ **親ごとの相対順**。フラットに並べると親子が混ざる */
-  display_order: number;
-  is_active: boolean;
-  /** 2階層の親。⚠️ 親も選べる（`<optgroup>` のラベルは選択できないため） */
-  parent_id: string | null;
-  /** 公開ゲートで事業領域を必須にするか。⚠️ slug で判定せず、この列を読む */
-  requires_business_domain: boolean;
-};
-
 type Props = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   company: any; // ow_companies の全カラム
-  allIndustries: Industry[];
-  allBusinessDomains: BusinessDomain[];
-  companyBusinessDomains: CompanyBusinessDomain[];
-  companyTargetIndustries: CompanyTargetIndustry[];
+  /** ★分類の4つの質問（2026-10-12）。選択肢（入力用）と、いまの値 */
+  masters: ClassMasters | null;
+  initialClassification: ClassificationValue;
+  /** 従業員数から出した事業ステージの候補（表示するだけ。判断 #2） */
+  stageCandidate: string | null;
   allGenres: Genre[];
   companyGenres: CompanyGenre[];
   admins: CompanyAdmin[];
@@ -151,7 +114,7 @@ type FormData = {
 };
 
 /** ⚠️ タブのキーはここが唯一の出どころ。`?tab=` のリンク元でも必ずこの綴りを使う。 */
-export const TAB_KEYS = ['basic', 'domains', 'target', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools'] as const;
+export const TAB_KEYS = ['basic', 'classification', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
@@ -164,7 +127,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, allIndustries, allBusinessDomains, companyBusinessDomains, companyTargetIndustries, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
+export function CompanyDetailClient({ company, masters, initialClassification, stageCandidate, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -208,116 +171,10 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
   );
   const [selectedGenres, setSelectedGenres] = useState<Set<string>>(initialApproved);
 
-  // ── 事業領域 state ──────────────────────────────────────────────────────
-  /* ⚠️ 「主がちょうど1件」は画面側でも保つ。API と DB でも守っているが、
-        保存を押してから弾かれるより、選んだ瞬間に整合している方がよい。 */
-  const initialDomains = companyBusinessDomains.map((d) => d.domain_id);
-  const [selectedDomains, setSelectedDomains] = useState<string[]>(initialDomains);
-  const [primaryDomain, setPrimaryDomain] = useState<string | null>(
-    companyBusinessDomains.find((d) => d.is_primary)?.domain_id ?? null
-  );
-  /* ★対象業界の選択肢を「親 → その子」の順に並べる（2026-09-05）。
-        ⚠️ `display_order` は**親ごとの相対順**なので、DB の順のままでは親子が混ざる。 */
-  const orderedTargetIndustries = (() => {
-    const active = allIndustries.filter((i) => i.is_active);
-    const ids = new Set(active.map((i) => i.id));
-    const children = new Map<string, Industry[]>();
-    const roots: Industry[] = [];
-    for (const i of active) {
-      if (i.parent_id && ids.has(i.parent_id)) {
-        const arr = children.get(i.parent_id) ?? [];
-        arr.push(i);
-        children.set(i.parent_id, arr);
-      } else {
-        roots.push(i);
-      }
-    }
-    const out: Industry[] = [];
-    for (const r of roots) {
-      out.push(r);
-      for (const c of children.get(r.id) ?? []) out.push(c);
-    }
-    return out;
-  })();
-
-  /** この企業の業種が事業領域を必須としているか（マスタの requires_business_domain） */
-  const industryRequiresDomain = allIndustries.find(
-    (i) => i.id === formData.industry_id
-  )?.requires_business_domain ?? false;
-
-  function toggleDomain(id: string) {
-    setSelectedDomains((prev) => {
-      if (prev.includes(id)) {
-        const next = prev.filter((d) => d !== id);
-        // 主を外したら、残りの先頭を主にする（0件なら主なし）
-        setPrimaryDomain((cur) => (cur === id ? (next[0] ?? null) : cur));
-        return next;
-      }
-      if (prev.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY) return prev;
-      const next = [...prev, id];
-      setPrimaryDomain((cur) => cur ?? id);  // 最初の1つを自動で主にする
-      return next;
-    });
-  }
-
-  // ── 対象業界 state（軸2 = 誰に売っているか）───────────────────────────────
-  /* ⚠️★**軸1（事業領域）とは別物。** あちらは「何を作っているか」。
-        語彙は業種マスタ（allIndustries）を共有しており、出身業界と対象業界が
-        同じ id で繋がることが突合の前提。**粒度を割らないこと。**
-     ⚠️ 3値のうち horizontal と未確認(null)は別物。「業界を問わない」は
-        運営が判断した結果で、未確認は未着手。 */
-  const initialTargets = companyTargetIndustries.map((t) => t.industry_id);
-  /* ⚠️ scope の初期値は**明細の有無から導かない。** DB の値をそのまま使う
-        （導くと horizontal と未確認が同じ「明細0件」なので区別できない）。 */
-  const [targetScope, setTargetScope] = useState<TargetIndustryScope | null>(
-    (company.target_industry_scope as TargetIndustryScope | null) ?? null
-  );
-  const [selectedTargets, setSelectedTargets] = useState<string[]>(initialTargets);
-  const [primaryTarget, setPrimaryTarget] = useState<string | null>(
-    companyTargetIndustries.find((t) => t.is_primary)?.industry_id ?? null
-  );
-
-  function toggleTarget(id: string) {
-    setSelectedTargets((prev) => {
-      if (prev.includes(id)) {
-        const next = prev.filter((t) => t !== id);
-        setPrimaryTarget((cur) => (cur === id ? (next[0] ?? null) : cur));
-        return next;
-      }
-      if (prev.length >= MAX_TARGET_INDUSTRIES_PER_COMPANY) return prev;
-      const next = [...prev, id];
-      setPrimaryTarget((cur) => cur ?? id);  // 最初の1つを自動で主にする
-      return next;
-    });
-  }
-
-  /**
-   * 3値を切り替える。
-   *
-   * ⚠️★**vertical から離れるときは、入っている明細を消すことになる。**
-   *    黙って消さず、**業界名を出して確認する**（件数だけだと何が消えるか分からない）。
-   *    ⚠️ 400 で止めて運営に1件ずつ外させる形は採らない。外す途中で
-   *       「vertical なのに明細0件」という壊れた状態を運営自身に作らせることになる。
-   *    ⚠️ 実際の削除は保存時。**この関数は画面の state を戻すだけ**で、
-   *       DB は RPC が1トランザクションで（明細を消す → scope を書く）処理する。
-   */
-  function changeTargetScope(next: TargetIndustryScope | null) {
-    if (next === targetScope) return;
-    if (targetScope === 'vertical' && next !== 'vertical' && selectedTargets.length > 0) {
-      /* ⚠️ 区切りに「・」を使わない。**業界名自体が「・」を含む**ので
-            「建設・医療・ヘルスケア」が3件に見える（実際に読みづらかった）。 */
-      const names = selectedTargets
-        .map((id) => `「${allIndustries.find((i) => i.id === id)?.name ?? '不明'}」`)
-        .join('');
-      const label = next === null ? TARGET_INDUSTRY_SCOPE_LABELS.unknown : TARGET_INDUSTRY_SCOPE_LABELS[next];
-      if (!confirm(`「${label}」に変更すると、対象業界 ${selectedTargets.length}件（${names}）を削除します。よろしいですか？`)) {
-        return;
-      }
-      setSelectedTargets([]);
-      setPrimaryTarget(null);
-    }
-    setTargetScope(next);
-  }
+  // ── 分類（4つの質問）state（2026-10-12）────────────────────────────────
+  /* ★業種・事業・資本・ステージ・お客さまは「分類」タブの1か所で編集する（企業側と同じ部品）。
+     ⚠️ 旧「事業領域」「対象業界」タブは外した（同じ値を2か所で編集させない）。保存は下の handleSave がまとめて行う */
+  const [cls, setCls] = useState<ClassificationValue>(initialClassification);
 
   // ── UI state ──────────────────────────────────────────────────────────
   /* ⚠️ `?tab=` を受ける（2026-08-11）。知らない値は 'basic' に落とす。
@@ -325,7 +182,9 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
            別の綴りを書かないこと。`/profile/edit` で `?tab=socials` と書いて
            実在キーが `socials_content` だったため既定タブに落ちていた前例がある。 */
   const [activeTab, setActiveTab] = useState<TabKey>(
-    TAB_KEYS.includes(initialTab as TabKey) ? (initialTab as TabKey) : 'basic'
+    /* ⚠️ 旧 `?tab=domains` / `?tab=target` は「分類」へ（2026-10-12 にタブを1つにまとめた） */
+    initialTab === 'domains' || initialTab === 'target' ? 'classification'
+      : TAB_KEYS.includes(initialTab as TabKey) ? (initialTab as TabKey) : 'basic'
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -460,6 +319,8 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
       // founded_year は数値に変換
       const payload = {
         ...formData,
+        /* ★業種は「分類」タブの値（2026-10-12） */
+        industry_id: cls.industryId,
         founded_year: formData.founded_year !== '' ? Number(formData.founded_year) : null,
       };
 
@@ -483,33 +344,31 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          domain_ids: selectedDomains,
-          primary_domain_id: selectedDomains.length > 0 ? primaryDomain : null,
+          domain_ids: cls.domainIds,
+          primary_domain_id: cls.domainIds.length > 0 ? cls.primaryDomainId : null,
         }),
       });
       if (!domainsRes.ok) {
         const err = await domainsRes.json().catch(() => ({}));
-        throw new Error(err.error ?? '事業領域の保存に失敗しました');
+        throw new Error(err.error ?? '事業の保存に失敗しました');
       }
 
-      /* 2-b. 対象業界（軸2）を入れ替える（全置換）
-            ⚠️ 軸1とは別の API。同じ RPC にまとめないこと（意味が違う軸なので、
-               片方の保存が落ちたときにもう片方まで巻き戻すのは筋が悪い）。
-            ⚠️ 明細の削除と scope の更新は API の先の RPC が1トランザクションで行う。
-               ここから2回叩かないこと（複合FK の ON UPDATE RESTRICT があるので
-               順序を間違えると必ず落ちる）。 */
-      const targetsRes = await fetch(`/api/admin/companies/${company.id}/target-industries`, {
+      /* 2-b. 資本・本社の国・事業ステージ・お客さまの業界（2026-10-12。旧「対象業界」の保存は外した） */
+      const clsRes = await fetch(`/api/admin/companies/${company.id}/classification`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scope: targetScope,
-          industry_ids: targetScope === 'vertical' ? selectedTargets : [],
-          primary_industry_id: targetScope === 'vertical' && selectedTargets.length > 0 ? primaryTarget : null,
+          capital_type: cls.capitalType || null,
+          hq_country: cls.capitalType === 'foreign_subsidiary' ? (cls.hqCountry || null) : null,
+          company_stage: cls.companyStage || null,
+          customer_industry_ids: cls.customerIndustryIds,
+          serves_consumers: cls.servesConsumers,
+          customer_all_industries: cls.customerAllIndustries,
         }),
       });
-      if (!targetsRes.ok) {
-        const err = await targetsRes.json().catch(() => ({}));
-        throw new Error(err.error ?? '対象業界の保存に失敗しました');
+      if (!clsRes.ok) {
+        const err = await clsRes.json().catch(() => ({}));
+        throw new Error(err.error ?? '分類の保存に失敗しました');
       }
 
       // 3. ジャンル差分を計算して API 呼び出し
@@ -547,10 +406,7 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
   // ── タブ定義 ──────────────────────────────────────────────────────────
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'basic', label: '基本情報' },
-    { key: 'domains', label: `事業領域 (${selectedDomains.length})` },
-    /* ⚠️ 未確認は件数ではなく「未」と出す。0件と未確認は別物なので、
-          `(0)` と出すと「調べて0件だった」に見える。 */
-    { key: 'target', label: `対象業界 (${targetScope === null ? '未' : targetScope === 'horizontal' ? '横断' : targetScope === 'consumer' ? '消費者' : selectedTargets.length})` },
+    { key: 'classification', label: '分類' },
     { key: 'recruiter', label: '採用担当者' },
     { key: 'admins', label: `アクセス管理 (${adminList.length})` },
     { key: 'opinio', label: 'OPINIO独自' },
@@ -724,22 +580,11 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="acd-industry" className={labelCls}>業種</label>
-                  {/* ⚠️ **自由入力に戻さないこと。** 2026-08-25 まで <input type="text"> で、
-                        API 側の検証も長さ100字だけだった。マスタに無い綴りを保存できたため、
-                        その企業が業種フィルタから静かに消えた（実際に「IT / SaaS」
-                        「電設資材・卸売業」など4値がこの経路で残っていた）。 */}
-                  <select
-                    id="acd-industry"
-                    value={formData.industry_id}
-                    onChange={(e) => update('industry_id', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">選択してください</option>
-                    {/* ⚠️ 2階層（製造業）を出す。**親も選べる**（2026-09-05）。
-                           フラットに map すると親子が混ざるので、必ずこの部品を通すこと。 */}
-                    <IndustrySelectOptions options={allIndustries} />
-                  </select>
+                  <p className={labelCls}>業種</p>
+                  {/* ★業種は「分類」タブで編集する（2026-10-12。事業・資本・ステージと一緒に） */}
+                  <button type="button" onClick={() => setActiveTab('classification')} className="text-sm text-blue-700 underline">
+                    「分類」タブで編集する
+                  </button>
                 </div>
                 <div>
                   <label htmlFor="acd-funding-stage" className={labelCls}>資金調達ステージ</label>
@@ -914,6 +759,38 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
       )}
 
       {/* ── 採用担当者タブ ───────────────────────────────────────────────── */}
+      {/* ── 分類（4つの質問。2026-10-12）────────────────────────────────── */}
+      {activeTab === 'classification' && (
+        <section className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold mb-1">分類（4つの質問）</h2>
+          <p className="text-xs text-gray-500 mb-4">企業側（/biz/company）と同じ入力です。下の「保存する」でまとめて保存します。</p>
+          {!masters ? (
+            <p className="text-sm text-gray-500">業種・事業の一覧を取得できませんでした。再読み込みしてください。</p>
+          ) : (
+            <div className="grid gap-6" style={{ gridTemplateColumns: 'minmax(0, 1fr) 280px' }}>
+              <div style={{ minWidth: 0 }}>
+                <ClassificationEditor masters={masters} value={cls} onChange={setCls} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <ClassificationPreview masters={masters} value={cls} companyName={formData.name} />
+                {/* ★初期値の候補は表示するだけ（保存は人が押す。判断 #2・#4） */}
+                {(() => {
+                  const top = topOf(masters.industries, cls.industryId);
+                  const hints: string[] = [];
+                  if (top?.slug === 'it-software' && industryNeedsSub(masters.industries, cls.industryId)) hints.push('業種の候補: ソフトウェア・SaaS');
+                  if (!cls.companyStage && stageCandidate) hints.push(`事業ステージの候補（従業員数から）: ${companyStageLabel(stageCandidate)}`);
+                  return hints.length > 0 ? (
+                    <div className="mt-4 text-xs text-gray-500" data-state="classification-candidates">
+                      {hints.map((h) => <p key={h}>{h}</p>)}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {activeTab === 'recruiter' && (
         <section className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="text-base font-semibold mb-4">採用担当者</h2>
@@ -1109,222 +986,6 @@ export function CompanyDetailClient({ company, allIndustries, allBusinessDomains
       )}
 
       {/* ── ジャンルタブ ─────────────────────────────────────────────────── */}
-      {activeTab === 'domains' && (
-        <section className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-base font-semibold mb-1">事業領域</h2>
-          <p className="text-sm text-gray-500 mb-1">
-            この企業が「何をやっている会社か」を表します。最大 {MAX_BUSINESS_DOMAINS_PER_COMPANY} 件。
-            1つを「主」にしてください（カードや meta description に出るのは主の1件）。
-          </p>
-          {/* ⚠️ 必須かどうかは業種マスタの requires_business_domain で決まる。
-                 slug で判定しないこと。 */}
-          <p className="text-sm mb-4">
-            {industryRequiresDomain ? (
-              <span className="text-amber-700">
-                この業種では<strong>掲載に事業領域が必要</strong>です（主を1件以上）。
-              </span>
-            ) : (
-              <span className="text-gray-500">
-                この業種では任意です。IT でない企業に無理に設定しないでください。
-              </span>
-            )}
-          </p>
-
-          <div className="grid grid-cols-2 gap-3">
-            {allBusinessDomains.map((d) => {
-              const checked = selectedDomains.includes(d.id);
-              const atLimit = !checked && selectedDomains.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY;
-              return (
-                <div
-                  key={d.id}
-                  className={`p-3 border rounded-lg transition-colors ${
-                    checked ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                  } ${atLimit ? 'opacity-40' : ''}`}
-                >
-                  <label className={`flex items-start gap-3 ${atLimit ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={atLimit}
-                      onChange={() => toggleDomain(d.id)}
-                      className="mt-0.5 w-4 h-4"
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{d.name}</p>
-                      {d.description && (
-                        <p className="text-xs text-gray-500 mt-0.5">{d.description}</p>
-                      )}
-                    </div>
-                  </label>
-                  {checked && (
-                    <label className="flex items-center gap-2 mt-2 pl-7 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="primary-business-domain"
-                        checked={primaryDomain === d.id}
-                        onChange={() => setPrimaryDomain(d.id)}
-                        className="w-3.5 h-3.5"
-                      />
-                      <span className="text-xs text-gray-600">主にする</span>
-                    </label>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {allBusinessDomains.length === 0 && (
-            <p className="text-sm text-gray-400">事業領域が登録されていません</p>
-          )}
-
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-500">
-              選択中: {selectedDomains.length} / {MAX_BUSINESS_DOMAINS_PER_COMPANY} 件
-              {selectedDomains.length > 0 && primaryDomain && (
-                <> ・主: {allBusinessDomains.find((d) => d.id === primaryDomain)?.name ?? '—'}</>
-              )}
-            </p>
-            {selectedDomains.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY && (
-              <p className="text-xs text-gray-400 mt-1">
-                上限に達しています。別の領域を選ぶには、どれかの選択を外してください。
-              </p>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── 対象業界タブ（軸2 = 誰に売っているか）─────────────────────────── */}
-      {activeTab === 'target' && (
-        <section className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-base font-semibold mb-1">対象業界</h2>
-          <p className="text-sm text-gray-500 mb-1">
-            この企業が<strong>誰に売っているか</strong>を表します。
-            「何を作っているか」の事業領域とは別の軸です。
-          </p>
-          {/* ⚠️★語彙の共有はこの機能の前提。ここに注記を残す（次に触る人が最初に読む場所） */}
-          <p className="text-xs text-gray-400 mb-4">
-            選択肢は<strong>業種と同じマスタ</strong>です。求職者の出身業界と同じ id で
-            繋がることが前提なので、ここだけに粗い区分（例:「製造業」）を作らないでください。
-            製造業向けなら該当する子（電機・機械／素材・化学／食品・飲料）を選びます。
-          </p>
-
-          {/* 3値。⚠️ UI / API / DB の CHECK を3つ揃えている。ここに値を書き足さないこと */}
-          <div className="space-y-2 mb-5">
-            {([
-              { value: 'vertical' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.vertical, hint: '特定の業界向けに作っている（例: 建設向け施工管理 SaaS）' },
-              { value: 'horizontal' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.horizontal, hint: '業界を問わず、企業に売っている。★「調べた結果そうだった」という記録です' },
-              /* ⚠️★消費者向けを「業界を問わない」に混ぜない。あれは「あらゆる業界の
-                    企業に売っている」という意味で、B2C をそこに入れると嘘になる。 */
-              { value: 'consumer' as const, label: TARGET_INDUSTRY_SCOPE_LABELS.consumer, hint: '主な売り先が消費者（例: 配車アプリ）。★これも「調べた結果」の記録です' },
-              { value: null, label: TARGET_INDUSTRY_SCOPE_LABELS.unknown, hint: 'まだ調べていない。★運営の作業一覧に残ります' },
-            ]).map((opt) => (
-              <label
-                key={String(opt.value)}
-                className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  targetScope === opt.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="target-industry-scope"
-                  checked={targetScope === opt.value}
-                  onChange={() => changeTargetScope(opt.value)}
-                  className="mt-0.5 w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium text-sm">{opt.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{opt.hint}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-
-          {/* ⚠️ vertical のときだけ出す。他の状態で明細を持てないことは DB が担保している
-                 （複合FK。horizontal / 未確認 の企業には INSERT できない） */}
-          {targetScope === 'vertical' && (
-            <>
-              <p className="text-sm text-gray-500 mb-3">
-                どの業界向けかを選んでください。最大 {MAX_TARGET_INDUSTRIES_PER_COMPANY} 件。
-                1つを「主」にしてください。
-              </p>
-              {/* ⚠️ 2階層（製造業）。**親も選べる**（「製造業向け」としか言えない会社があるため。
-                     クアルコムジャパンが実際にそれで未確認のまま止まっていた）。
-                  ⚠️ `display_order` は**親ごとの相対順**なので、フラットに並べると親子が混ざる。
-                     `orderedTargetIndustries` で親 → その子 の順に並べ直している。
-                  ⚠️ 子には親の名前を小さく添える。2列グリッドでは字下げだけだと関係が読めない。 */}
-              <div className="grid grid-cols-2 gap-3">
-                {orderedTargetIndustries.map((i) => {
-                  const checked = selectedTargets.includes(i.id);
-                  const atLimit = !checked && selectedTargets.length >= MAX_TARGET_INDUSTRIES_PER_COMPANY;
-                  return (
-                    <div
-                      key={i.id}
-                      className={`p-3 border rounded-lg transition-colors ${
-                        checked ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                      } ${atLimit ? 'opacity-40' : ''}`}
-                    >
-                      <label className={`flex items-start gap-3 ${atLimit ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={atLimit}
-                          onChange={() => toggleTarget(i.id)}
-                          className="mt-0.5 w-4 h-4"
-                        />
-                        <div>
-                          {i.parent_id && (
-                            <p className="text-[11px] text-gray-500 leading-none mb-0.5">
-                              {allIndustries.find((p) => p.id === i.parent_id)?.name ?? ''}
-                            </p>
-                          )}
-                          <p className="font-medium text-sm">{i.name}</p>
-                        </div>
-                      </label>
-                      {checked && (
-                        <label className="flex items-center gap-2 mt-2 pl-7 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="primary-target-industry"
-                            checked={primaryTarget === i.id}
-                            onChange={() => setPrimaryTarget(i.id)}
-                            className="w-3.5 h-3.5"
-                          />
-                          <span className="text-xs text-gray-600">主にする</span>
-                        </label>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500">
-                  選択中: {selectedTargets.length} / {MAX_TARGET_INDUSTRIES_PER_COMPANY} 件
-                  {selectedTargets.length > 0 && primaryTarget && (
-                    <> ・主: {allIndustries.find((i) => i.id === primaryTarget)?.name ?? '—'}</>
-                  )}
-                </p>
-                {selectedTargets.length === 0 && (
-                  <p className="text-xs text-amber-700 mt-1">
-                    「特定の業界に張っている」を選んだときは、1つ以上選んでください（保存できません）。
-                  </p>
-                )}
-                {selectedTargets.length >= MAX_TARGET_INDUSTRIES_PER_COMPANY && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    上限に達しています。別の業界を選ぶには、どれかの選択を外してください。
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* ⚠️ この値は今のところ**どこにも表示されない**。次のフェーズで使う */}
-          <p className="text-xs text-gray-400 mt-5 pt-4 border-t border-gray-100">
-            ここで入れた値は、いまはまだ求職者側のどこにも出ません（表示・突合は次フェーズ）。
-          </p>
-        </section>
-      )}
-
       {activeTab === 'genres' && (
         <section className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="text-base font-semibold mb-1">ジャンルタグ</h2>

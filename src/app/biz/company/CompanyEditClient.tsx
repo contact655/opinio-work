@@ -7,15 +7,15 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { OfficePhotoSection } from "@/components/business/OfficePhotoSection";
 import { BenefitsEditor } from "@/components/business/BenefitsEditor";
 import { TERMS_VERSION } from "@/lib/constants/terms";
-import { PHASE_SELECT_OPTIONS } from "@/lib/constants/phase";
 import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
 import { companyPageStatus, companyStatusText } from "@/lib/companies/pageStatus";
 import { WORK_SCHEDULE_SELECT_OPTIONS, type BizCompany } from "@/lib/business/mockCompany";
 import { createClient } from "@/lib/supabase/client";
 import { uploadCompanyLogo, type OfficePhoto } from "@/lib/business/photos";
-import { MAX_BUSINESS_DOMAINS_PER_COMPANY, type BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { MarkdownEditor } from "@/components/business/MarkdownEditor";
-import { IndustrySelectOptions } from "@/components/companies/IndustrySelectOptions";
+import { ClassificationEditor } from "@/components/companies/classification/ClassificationEditor";
+import { ClassificationPreview } from "@/components/companies/classification/ClassificationPreview";
+import { industryNeedsSub, type ClassDomain, type ClassMasters, type ClassificationValue } from "@/lib/companies/classification";
 import { EMPLOYEE_BANDS } from "@/lib/constants/employeeBand";
 import { COMPANY_REQUIREMENTS, missingCompanyRequirements, type CompanyRequirement } from "@/lib/companies/companyRequirements";
 
@@ -37,11 +37,6 @@ import { COMPANY_REQUIREMENTS, missingCompanyRequirements, type CompanyRequireme
  */
 
 type SaveState = "idle" | "saving" | "saved" | "error";
-
-type IndustryItem = {
-  id: string; name: string; slug: string; display_order: number; parent_id: string | null;
-  requires_business_domain: boolean;
-};
 
 type Props = {
   initialCompany: BizCompany;
@@ -70,9 +65,8 @@ type Props = {
   isPublished?: boolean;
   /** `ow_companies.headquarters_address`（運営が入れる本社の住所）。本社所在地の判定に使う */
   headquartersAddress?: string | null;
-  businessDomainOptions?: BusinessDomainOption[];
-  /** ⚠️ `parent_id` は必須（2階層を `<optgroup>` で出す）。`requires_business_domain` は事業領域が必須か */
-  industries?: IndustryItem[];
+  /** ★分類の選択肢（2026-10-12。業種・事業）。取得に失敗したら null（入力欄を出さない） */
+  masters?: ClassMasters | null;
 };
 
 // ── 小コンポーネント ────────────────────────────────────────────────────────
@@ -352,8 +346,7 @@ export function CompanyEditClient({
   listingStatus = null,
   isPublished = false,
   headquartersAddress = null,
-  businessDomainOptions = [],
-  industries = [],
+  masters = null,
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<BizCompany>({ ...initialCompany });
@@ -387,14 +380,40 @@ export function CompanyEditClient({
   /* ⚠️ 掲載の状態は本番の値（isPublished / listingStatus）で決める。下書きの値を使わない */
   const pageStatus = companyPageStatus({ isPublished, listingStatus, termsAgreed, listingRequestedAt });
   const listed = pageStatus.kind === "listed";
-  const requiresDomain = industries.find((i) => i.id === form.industryId)?.requires_business_domain ?? false;
   const hasPrimaryDomain = form.primaryBusinessDomainId !== null && form.businessDomainIds.includes(form.primaryBusinessDomainId);
+  /* ★分類の4つの質問（2026-10-12）。値は form（下書き）に持つ */
+  const cls: ClassificationValue = {
+    industryId: form.industryId, domainIds: form.businessDomainIds, primaryDomainId: form.primaryBusinessDomainId,
+    capitalType: form.capitalType, hqCountry: form.hqCountry, companyStage: form.companyStage,
+    customerIndustryIds: form.customerIndustryIds, servesConsumers: form.servesConsumers, customerAllIndustries: form.customerAllIndustries,
+  };
+  function updateClassification(v: ClassificationValue) {
+    hasInteracted.current = true;
+    setForm((prev) => ({
+      ...prev, industryId: v.industryId, businessDomainIds: v.domainIds, primaryBusinessDomainId: v.primaryDomainId,
+      capitalType: v.capitalType, hqCountry: v.hqCountry, companyStage: v.companyStage,
+      customerIndustryIds: v.customerIndustryIds, servesConsumers: v.servesConsumers, customerAllIndustries: v.customerAllIndustries,
+    }));
+  }
+  async function addDomain(name: string, industryId: string): Promise<ClassDomain | null> {
+    const res = await fetch("/api/biz/company/business-domains", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, industryId }),
+    }).catch(() => null);
+    const d = await res?.json().catch(() => null);
+    if (!res?.ok || !d?.domain) { if (d?.error) showError(d.error); return null; }
+    return d.domain as ClassDomain;
+  }
   /* ★判定は companyRequirements.ts（サーバーと同じ関数）。⚠️ ここで条件を書かない */
   const missingAll = missingCompanyRequirements({
     name: form.name,
     industryId: form.industryId,
-    requiresBusinessDomain: requiresDomain,
+    requiresBusinessDomain: false,
     hasPrimaryDomain,
+    /* ★新しい条件（小分類・事業・資本・ステージ）。サーバーの公開ゲートも同じ条件で見る（提案B） */
+    classification: {
+      industryNeedsSub: masters ? industryNeedsSub(masters.industries, form.industryId) : false,
+      capitalType: form.capitalType, hqCountry: form.hqCountry, companyStage: form.companyStage,
+    },
     employeeCountBand: form.employeeCountBand,
     location: form.location,
     headquartersAddress,
@@ -473,20 +492,6 @@ export function CompanyEditClient({
       console.error("[CompanyEditClient] logo upload failed:", err);
       showError("ロゴのアップロードに失敗しました。もう一度お試しください。");
     }
-  }
-
-  // ── 事業領域（下書きに入る）────────────────────────────────────────────
-  function toggleDomain(id: string) {
-    const ids = form.businessDomainIds;
-    const checked = ids.includes(id);
-    const nextIds = checked ? ids.filter((x) => x !== id) : [...ids, id];
-    let nextPrimary = form.primaryBusinessDomainId;
-    /* 外した領域が主だったら主を空にする。残り1件・最初の1件は自動で主にする */
-    if (checked && nextPrimary === id) nextPrimary = nextIds.length === 1 ? nextIds[0] : null;
-    if (!checked && nextIds.length === 1) nextPrimary = id;
-    if (nextIds.length === 0) nextPrimary = null;
-    hasInteracted.current = true;
-    setForm((prev) => ({ ...prev, businessDomainIds: nextIds, primaryBusinessDomainId: nextPrimary }));
   }
 
   /** ★未同意なら、確認画面のチェックを受けてここで同意を記録する（サーバーは依頼・公開の API でも同意を確かめる）。
@@ -689,85 +694,6 @@ export function CompanyEditClient({
                   )}
                 </FormGroup>
                 <FormGroup>
-                  <FormLabel required htmlFor="ce-industry">業種</FormLabel>
-                  {industries.length > 0 ? (
-                    <FormSelect id="ce-industry" value={form.industryId} onChange={(v) => update("industryId", v)}>
-                      <option value="">選択してください</option>
-                      {/* ⚠️ 2階層（製造業）を出す。フラットに map すると親子が混ざる */}
-                      <IndustrySelectOptions options={industries} />
-                    </FormSelect>
-                  ) : (
-                    <FormHint>業種の一覧を取得できませんでした。時間をおいて再読み込みしてください。</FormHint>
-                  )}
-                </FormGroup>
-                {businessDomainOptions.length > 0 && (
-                  <FormGroup>
-                    <FormLabel required={requiresDomain}>事業領域</FormLabel>
-                    <FormHint>
-                      この会社が何を作っているかです（最大 {MAX_BUSINESS_DOMAINS_PER_COMPANY} 件）。
-                      1つを「主」にしてください。企業一覧のカードと検索結果に出るのは主の1件です。
-                      {!requiresDomain && " この業種では任意です。"}
-                    </FormHint>
-                    {/* ⚠️ id は「公開まであと〇つ」から移る先。tabIndex を付けてフォーカスできるようにする */}
-                    <div id="ce-business-domain" tabIndex={-1} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, outline: "none" }}>
-                      {businessDomainOptions.map((d) => {
-                        const checked = form.businessDomainIds.includes(d.id);
-                        const atLimit = !checked && form.businessDomainIds.length >= MAX_BUSINESS_DOMAINS_PER_COMPANY;
-                        return (
-                          <button
-                            key={d.id}
-                            type="button"
-                            aria-pressed={checked}
-                            onClick={() => toggleDomain(d.id)}
-                            disabled={atLimit}
-                            title={d.description ?? undefined}
-                            className="btn-fixed-size"
-                            style={{
-                              border: `1.5px solid ${checked ? "var(--royal)" : "var(--line)"}`,
-                              background: checked ? "var(--royal-50)" : "#fff",
-                              color: checked ? "var(--royal)" : "var(--ink-soft)",
-                              borderRadius: 100, padding: "6px 14px",
-                              fontSize: 13, fontWeight: checked ? 700 : 500,
-                              cursor: atLimit ? "not-allowed" : "pointer",
-                              opacity: atLimit ? 0.4 : 1, fontFamily: "inherit",
-                            }}
-                          >
-                            {d.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {form.businessDomainIds.length > 1 && (
-                      <div style={{ marginTop: 10 }}>
-                        <span style={{ fontSize: 12, color: "var(--ink-mute)", marginRight: 8 }}>主にするもの</span>
-                        <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 12 }}>
-                          {form.businessDomainIds.map((id) => {
-                            const d = businessDomainOptions.find((x) => x.id === id);
-                            if (!d) return null;
-                            return (
-                              <label key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 13, color: "var(--ink)" }}>
-                                <input type="radio" name="biz-primary-business-domain" checked={form.primaryBusinessDomainId === id}
-                                  onChange={() => update("primaryBusinessDomainId", id)} style={{ width: 14, height: 14, cursor: "pointer" }} />
-                                {d.name}
-                              </label>
-                            );
-                          })}
-                        </span>
-                      </div>
-                    )}
-                    {/* ⚠️ 主が決まっていない状態を黙って通さない（公開のときに止まる） */}
-                    {form.businessDomainIds.length > 0 && !hasPrimaryDomain && (
-                      <FormHint>主にするものを1つ選んでください。</FormHint>
-                    )}
-                  </FormGroup>
-                )}
-                <FormGroup>
-                  <FormLabel htmlFor="ce-phase">事業ステージ</FormLabel>
-                  {/* ⚠️ 選択肢の value は DB に入る値そのもの（PHASE_SELECT_OPTIONS）。日本語の配列を渡さない */}
-                  <FormSelect id="ce-phase" value={form.phase} onChange={(v) => update("phase", v)} options={PHASE_SELECT_OPTIONS} />
-                </FormGroup>
-
-                <FormGroup>
                   <FormLabel>ロゴ</FormLabel>
                   <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
                     {form.logoUrl ? (
@@ -817,6 +743,19 @@ export function CompanyEditClient({
                   </FormGroup>
                 </div>
               </Section>
+              )}
+
+              {/* ── どんな会社かを登録する（分類の4つの質問。2026-10-12）──
+                     ⚠️ 基本情報と同じく管理者だけ（COMPANY_BASIC_DRAFT_KEYS に入れてある） */}
+              {canEditBasic && (
+                <Section id="cpe-classification" title="どんな会社かを登録する"
+                  desc="4つの質問に答えると、求職者が業種・事業・会社のタイプで探したときに、この会社が見つかるようになります。">
+                  {masters ? (
+                    <ClassificationEditor masters={masters} value={cls} onChange={updateClassification} onAddDomain={addDomain} />
+                  ) : (
+                    <FormHint>業種・事業の一覧を取得できませんでした。時間をおいて再読み込みしてください。</FormHint>
+                  )}
+                </Section>
               )}
 
               {/* ── 会社紹介 ── */}
@@ -908,7 +847,6 @@ export function CompanyEditClient({
                 </div>
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                   {COMPANY_REQUIREMENTS.map((r) => {
-                    if (r.key === "business_domain" && !requiresDomain) return null;
                     const missing = missingAll.some((m) => m.key === r.key);
                     return (
                       <li key={r.key}>
@@ -934,6 +872,12 @@ export function CompanyEditClient({
                   })}
                 </ul>
               </SideCard>
+
+              {canEditBasic && masters && (
+                <SideCard state="classification-preview">
+                  <ClassificationPreview masters={masters} value={cls} companyName={form.name} showMissing={false} />
+                </SideCard>
+              )}
 
               <SideCard state="preview">
                 {/* ⚠️ 開くのは**公開中の**企業ページ（未公開の変更は含まれない）。2026-09-21 に外した「プレビュー」と同じ誤解をさせないよう書いておく */}

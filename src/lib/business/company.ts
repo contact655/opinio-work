@@ -3,6 +3,7 @@ import type { BizCompany } from "./mockCompany";
 import type { Json } from "@/lib/supabase/types";
 import { normalizeBenefits, serializeBenefits } from "@/lib/companies/benefits";
 import { DRAFT_BUSINESS_DOMAINS_KEY, readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
+import { DRAFT_CUSTOMERS_KEY, readDraftCustomers, normalizeCustomers } from "@/lib/companies/classification";
 
 export type DbCompany = {
   id: string;
@@ -17,6 +18,11 @@ export type DbCompany = {
   saas_category_id: string | null;
   phase: string | null;
   business_stage: string | null;
+  capital_type: string | null;
+  hq_country: string | null;
+  company_stage: string | null;
+  serves_consumers: boolean | null;
+  customer_all_industries: boolean | null;
   url: string | null;
   careers_url: string | null;
   logo_gradient: string | null;
@@ -59,6 +65,8 @@ export type DbCompany = {
 const SELECT_COLUMNS = [
   "id", "user_id", "name", "tagline", "mission", "why_join", "company_features",
   "industry", "industry_id", "saas_category_id", "phase", "business_stage", "url", "careers_url",
+  /* ★分類の③④（2026-10-12） */
+  "capital_type", "hq_country", "company_stage", "serves_consumers", "customer_all_industries",
   /* ⚠️ 【廃止】列は取らないこと（about_markdown / established_at / gender_ratio）。
         2026-08-26 に description / founded_year / female_ratio へ統合済み。 */
   "logo_gradient", "logo_letter", "logo_url", "description", "employee_count", "employee_count_band", "employee_count_as_of", "founded_year",
@@ -152,11 +160,14 @@ export function transformDbToForm(
     withDraft?: boolean;
     /** ★いま公開されている事業領域（`ow_company_business_domains`）。下書きに事業領域が無いときの初期値 */
     publishedDomains?: { ids: string[]; primaryId: string | null };
+    /** ★いま公開されているお客さまの業界（`ow_company_customer_industries`）。下書きに無いときの初期値 */
+    publishedCustomerIds?: string[];
   } = {},
 ): BizCompany {
   const row = opts.withDraft ? applyDraft(rawRow) : rawRow;
   /* ★事業領域: 下書きにあれば下書き、無ければ公開中の値（2026-10-12。genres と同じ考え方） */
   const draftDomains = opts.withDraft ? readDraftBusinessDomains(rawRow.draft_data) : null;
+  const draftCustomers = opts.withDraft ? readDraftCustomers(rawRow.draft_data) : null;
   // genres の優先順位: draft_data.genres > 現在公開中の genres > 空配列
   const draftGenres = row.draft_data?.genres;
   const genres: string[] = Array.isArray(draftGenres) ? (draftGenres as string[]) : currentPublishedGenres;
@@ -168,6 +179,12 @@ export function transformDbToForm(
     whyJoin: row.why_join ?? "",
     businessDomainIds: draftDomains?.domain_ids ?? opts.publishedDomains?.ids ?? [],
     primaryBusinessDomainId: draftDomains ? draftDomains.primary_domain_id : (opts.publishedDomains?.primaryId ?? null),
+    capitalType: row.capital_type ?? "",
+    hqCountry: row.hq_country ?? "",
+    companyStage: row.company_stage ?? "",
+    customerIndustryIds: draftCustomers?.industry_ids ?? opts.publishedCustomerIds ?? [],
+    servesConsumers: draftCustomers ? draftCustomers.serves_consumers : row.serves_consumers === true,
+    customerAllIndustries: draftCustomers ? draftCustomers.all_industries : row.customer_all_industries === true,
     industry: row.industry ?? "",
     industryId: (row.industry_id as string | null) ?? "",
     saasCategoryId: (row.saas_category_id as string | null) ?? "",
@@ -226,6 +243,8 @@ export function transformDbToForm(
  */
 export const COMPANY_BASIC_DRAFT_KEYS: readonly string[] = [
   "name", "tagline", DRAFT_BUSINESS_DOMAINS_KEY, "industry", "industry_id", "saas_category_id", "genres", "phase",
+  /* ★分類の③④（2026-10-12）。①②と同じく管理者だけ */
+  "capital_type", "hq_country", "company_stage", DRAFT_CUSTOMERS_KEY,
   "url", "careers_url", "logo_gradient", "logo_letter", "logo_url",
 ];
 
@@ -243,6 +262,14 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
       domain_ids: form.businessDomainIds,
       primary_domain_id: form.primaryBusinessDomainId,
     },
+    /* ★分類の③④（2026-10-12）。⚠️ 本社の国は外資系のときだけ（日系に切り替えたら消す） */
+    capital_type: form.capitalType || null,
+    hq_country: form.capitalType === "foreign_subsidiary" ? (form.hqCountry || null) : null,
+    company_stage: form.companyStage || null,
+    [DRAFT_CUSTOMERS_KEY]: (() => {
+      const c = normalizeCustomers({ industryIds: form.customerIndustryIds, servesConsumers: form.servesConsumers, allIndustries: form.customerAllIndustries });
+      return { industry_ids: c.industryIds, serves_consumers: c.servesConsumers, all_industries: c.allIndustries };
+    })(),
     industry: form.industry || null,
     industry_id: form.industryId || null,
     saas_category_id: form.saasCategoryId || null,
@@ -424,7 +451,7 @@ export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
   currentPublishedGenres: string[] = [],
-  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null } } = {},
+  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null }; publishedCustomerIds?: string[] } = {},
 ): Promise<BizCompany | null> {
   const { data, error } = await supabase
     .from("ow_companies")

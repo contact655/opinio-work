@@ -11,6 +11,8 @@ import { isEmployeeBand } from "@/lib/constants/employeeBand";
 import { setCompanyBusinessDomains } from "@/lib/companies/setBusinessDomains";
 import { readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
 import { cleanupCompanyLogoFiles } from "@/lib/companies/logoFiles";
+import { isCompanyStage, isHqCountry, isCapitalType, readDraftCustomers } from "@/lib/companies/classification";
+import { setCompanyCustomerIndustries } from "@/lib/companies/setCustomerIndustries";
 
 /**
  * ★企業ページの下書き（`draft_data`）と未公開の写真を、求職者に見える状態へ反映する（2026-10-12）。
@@ -103,10 +105,41 @@ export async function applyCompanyDraft(
     return { ok: false, status: 400, error: "従業員数の時点は年月で指定してください" };
   }
 
+  /* ★分類の③（2026-10-12）。不正値は 400 */
+  const stageIn = s(d.company_stage);
+  if (stageIn != null && stageIn !== "" && !isCompanyStage(stageIn)) {
+    return { ok: false, status: 400, error: "INVALID_STAGE", message: "事業ステージの値が不正です。" };
+  }
+  const hqIn = s(d.hq_country);
+  if (hqIn != null && hqIn !== "" && !isHqCountry(hqIn)) {
+    return { ok: false, status: 400, error: "INVALID_COUNTRY", message: "本社の国の値が不正です。" };
+  }
+  const capIn = s(d.capital_type);
+  if (capIn != null && capIn !== "" && !isCapitalType(capIn)) {
+    return { ok: false, status: 400, error: "INVALID_CAPITAL", message: "資本の値が不正です。" };
+  }
+  /* ★業種は使わなくなった行を受け付けない（2026-10-12）。⚠️ error を握りつぶさない */
+  const indIn = s(d.industry_id);
+  if (indIn) {
+    const { data: ind, error: indErr } = await createAdminClient().from("ow_industries").select("id").eq("id", indIn).is("retired_at", null).maybeSingle();
+    if (indErr) {
+      console.error(`[applyCompanyDraft:${label}] 業種の確認に失敗:`, indErr.message);
+      return { ok: false, status: 500, error: "Internal server error" };
+    }
+    if (!ind) return { ok: false, status: 400, error: "INVALID_INDUSTRY", message: "業種の値が不正です。" };
+  }
+
   /* ── ① 事業領域（本体より先）── */
   const draftDomains = readDraftBusinessDomains(d);
   if (draftDomains) {
     const r = await setCompanyBusinessDomains(companyId, draftDomains, `${label} 事業領域`);
+    if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
+  }
+
+  /* ── ①' お客さまの業界（本体より先。事業領域と同じ理由）── */
+  const draftCustomers = readDraftCustomers(d);
+  if (draftCustomers) {
+    const r = await setCompanyCustomerIndustries(companyId, draftCustomers, `${label} お客さま`);
     if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
   }
 
@@ -139,6 +172,11 @@ export async function applyCompanyDraft(
         industry_id:              s(d.industry_id),
         saas_category_id:         s(d.saas_category_id),
         phase:                    s(d.phase),
+        /* ★分類の③（2026-10-12）。⚠️ is_foreign は capital_type に揃える（読み手を capital_type へ移すまで。段6） */
+        capital_type:             capIn === "" ? null : capIn,
+        is_foreign:               capIn === undefined ? undefined : capIn === "foreign_subsidiary",
+        hq_country:               hqIn === "" ? null : hqIn,
+        company_stage:            stageIn === "" ? null : stageIn,
         logo_url:                 s(d.logo_url),
         logo_gradient:            s(d.logo_gradient),
         logo_letter:              s(d.logo_letter),
