@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 /* ⚠️ `import type` だけにすること。server.ts は admin クライアントを使うので、
       値を import するとバンドルに混ざる。 */
@@ -10,6 +10,8 @@ import {
   MATERIAL_CATEGORY_LABELS,
   MATERIAL_DOCUMENT_STATUS_LABELS,
   MATERIAL_FILE_ACCEPT,
+  MATERIAL_FILE_TYPES,
+  MATERIAL_TITLE_MAX,
   MATERIAL_VISIBILITIES,
   MATERIAL_VISIBILITY_AUDIENCE,
   MATERIAL_VISIBILITY_LABELS,
@@ -18,6 +20,8 @@ import {
   type MaterialCategory,
   type MaterialVisibility,
 } from "@/lib/constants/companyMaterials";
+import { parseMaterialUrlLines } from "@/lib/companyMaterials/links";
+import { MaterialKindIcon, materialKindOf } from "./MaterialKindIcon";
 
 type Props = {
   documents: MaterialDocument[];
@@ -125,7 +129,11 @@ export default function MaterialsClient({ documents, items, loadFailed, canEdit 
         </div>
       )}
 
-      {canEdit && <RegisterDocument busy={busy} call={call} />}
+      {canEdit && (
+        <RegisterDocument busy={busy}
+          existingUrls={documents.map((d) => d.sourceUrl).filter((u): u is string => !!u)}
+          onDone={() => router.refresh()} />
+      )}
       <DocumentList documents={documents} canEdit={canEdit} busy={busy} call={call} setError={setError} />
       {canEdit && <AddItem documents={documents} busy={busy} call={call} />}
 
@@ -158,55 +166,193 @@ type CallFn = (url: string, init: RequestInit, done?: string) => Promise<boolean
 
 // ── 資料の登録 ────────────────────────────────────────────────────────────────
 
-function RegisterDocument({ busy, call }: { busy: boolean; call: CallFn }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [fileTitle, setFileTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [urlTitle, setUrlTitle] = useState("");
-  const [localError, setLocalError] = useState<string | null>(null);
+type QueueItem = {
+  key: string;
+  file: File;
+  state: "waiting" | "uploading" | "saving" | "done" | "error";
+  /** 0〜100（アップロード中だけ） */
+  pct: number;
+  error?: string;
+};
 
-  async function submitFile() {
-    if (!file) return;
-    if (file.size > MAX_MATERIAL_FILE_BYTES) { setLocalError("ファイルは10MBまでです。"); return; }
-    setLocalError(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    if (fileTitle.trim()) fd.append("title", fileTitle.trim());
-    if (await call("/api/biz/materials/documents", { method: "POST", body: fd }, "ファイルを登録しました。")) {
-      setFile(null); setFileTitle("");
-    }
+/** ブラウザで先に弾く（担保はサーバーとバケット）。合えば null */
+function precheckFile(f: File): string | null {
+  if (f.size <= 0) return "空のファイルは登録できません";
+  if (f.size > MAX_MATERIAL_FILE_BYTES) return "10MBを超えています";
+  const ext = (f.name.match(/\.([A-Za-z0-9]+)$/)?.[1] ?? "").toLowerCase();
+  if (!MATERIAL_FILE_TYPES[ext]) return "この種類は登録できません（PDF / Word / PowerPoint / テキスト）";
+  return null;
+}
+
+/** 署名つきの書き込み URL へ直接 PUT する。進み具合を返す */
+function putWithProgress(url: string, file: File, mime: string, onPct: (n: number) => void): Promise<boolean> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", mime);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onPct(Math.round((e.loaded / e.total) * 100)); };
+    xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+    xhr.onerror = () => resolve(false);
+    xhr.send(file);
+  });
+}
+
+/**
+ * ★資料の登録（2026-10-12 / 柴さんの指示で複数まとめて登録に）。
+ *   ファイル … 複数選択・ドラッグ＆ドロップ。1件ずつ進み具合を出す（1ファイル10MBまで・種類は今のまま）
+ *              ⚠️ ファイルはブラウザから Storage へ直接置く（`/upload-url` → PUT → `/complete`）。
+ *                 Vercel の関数は 4.5MB までなので、関数を通すと 10MB が通らない。
+ *   URL      … 1行1件。http / https だけ。貼り付けの中の重複と、登録済みの URL は除く（サーバーも 409 で断る）
+ */
+function RegisterDocument({ busy, existingUrls, onDone }: { busy: boolean; existingUrls: string[]; onDone: () => void }) {
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [running, setRunning] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const [urlText, setUrlText] = useState("");
+  const [urlResult, setUrlResult] = useState<{ ok: number; failed: { url: string; error: string }[] } | null>(null);
+  const [urlRunning, setUrlRunning] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const parsed = useMemo(() => parseMaterialUrlLines(urlText, existingUrls), [urlText, existingUrls]);
+
+  function patch(key: string, p: Partial<QueueItem>) {
+    setQueue((q) => q.map((x) => (x.key === key ? { ...x, ...p } : x)));
   }
-  async function submitUrl() {
-    if (!url.trim()) return;
-    if (await call("/api/biz/materials/documents", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: url.trim(), title: urlTitle.trim() }),
-    }, "リンクを登録しました。")) {
-      setUrl(""); setUrlTitle("");
+
+  async function addFiles(list: FileList | File[]) {
+    const files = Array.from(list);
+    if (files.length === 0) return;
+    const items: QueueItem[] = files.map((f, i) => {
+      const err = precheckFile(f);
+      return { key: `${Date.now()}-${i}-${f.name}`, file: f, state: err ? "error" : "waiting", pct: 0, error: err ?? undefined };
+    });
+    setQueue((q) => [...q.filter((x) => x.state !== "done"), ...items]);
+    setRunning(true);
+    /* ⚠️ 1件ずつ順に送る（同時に送ると、遅い回線で全部が途中で止まって見える） */
+    let any = false;
+    for (const it of items) {
+      if (it.state === "error") continue;
+      patch(it.key, { state: "uploading", pct: 0 });
+      try {
+        const prep = await fetch("/api/biz/materials/documents/upload-url", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: it.file.name, size: it.file.size, type: it.file.type }),
+        });
+        const pj = await prep.json().catch(() => ({}));
+        if (!prep.ok) { patch(it.key, { state: "error", error: pj.error ?? "準備できませんでした" }); continue; }
+        const put = await putWithProgress(pj.signedUrl, it.file, pj.storedMime, (n) => patch(it.key, { pct: n }));
+        if (!put) { patch(it.key, { state: "error", error: "アップロードできませんでした" }); continue; }
+        patch(it.key, { state: "saving", pct: 100 });
+        const done = await fetch("/api/biz/materials/documents/complete", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: pj.id, path: pj.path, title: it.file.name }),
+        });
+        const dj = await done.json().catch(() => ({}));
+        if (!done.ok) { patch(it.key, { state: "error", error: dj.error ?? "登録できませんでした" }); continue; }
+        patch(it.key, { state: "done" });
+        any = true;
+      } catch {
+        patch(it.key, { state: "error", error: "通信に失敗しました" });
+      }
     }
+    setRunning(false);
+    if (any) onDone();
   }
+
+  async function submitUrls() {
+    if (parsed.valid.length === 0) return;
+    setUrlRunning(true); setUrlResult(null);
+    let ok = 0;
+    const failed: { url: string; error: string }[] = [];
+    for (const url of parsed.valid) {
+      try {
+        const res = await fetch("/api/biz/materials/documents", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, title: "" }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok) ok++; else failed.push({ url, error: j.error ?? "登録できませんでした" });
+      } catch {
+        failed.push({ url, error: "通信に失敗しました" });
+      }
+    }
+    setUrlRunning(false);
+    setUrlResult({ ok, failed });
+    /* 登録できたものは欄から消し、失敗したものだけ残す（打ち直さずに済むように） */
+    setUrlText(failed.map((f) => f.url).join("\n"));
+    if (ok > 0) onDone();
+  }
+
+  const stateLabel = (q: QueueItem) =>
+    q.state === "waiting" ? "待機中" : q.state === "uploading" ? `${q.pct}%` : q.state === "saving" ? "登録中…" : q.state === "done" ? "登録しました" : q.error ?? "失敗";
 
   return (
     <section style={card} aria-label="資料を登録する">
       <h2 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700 }}>資料を登録する</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>ファイル（PDF / Word / PowerPoint / テキスト・10MBまで）</div>
-          <input type="file" accept={MATERIAL_FILE_ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ fontSize: 12.5, marginBottom: 8, maxWidth: "100%" }} />
-          <input style={{ ...input, marginBottom: 8 }} placeholder="資料名（任意。空ならファイル名）" value={fileTitle} onChange={(e) => setFileTitle(e.target.value)} />
-          <button type="button" style={primaryBtn} disabled={busy || !file} onClick={submitFile}>ファイルを登録</button>
+          <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>ファイル（PDF / Word / PowerPoint / テキスト・1ファイル10MBまで）</div>
+          <div
+            data-state={drag ? "drop-active" : "drop-idle"}
+            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); if (!busy && !running) void addFiles(e.dataTransfer.files); }}
+            style={{
+              border: `1.5px dashed ${drag ? "var(--royal)" : "var(--line)"}`, borderRadius: 10, padding: "18px 14px",
+              background: drag ? "var(--royal-50)" : "var(--bg-tint)", textAlign: "center",
+            }}
+          >
+            <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--ink-soft)" }}>ここにファイルをドラッグ＆ドロップ（複数可）</p>
+            <input ref={fileRef} type="file" multiple accept={MATERIAL_FILE_ACCEPT} hidden
+              onChange={(e) => { if (e.target.files) void addFiles(e.target.files); e.target.value = ""; }} />
+            <button type="button" style={btn} disabled={busy || running} onClick={() => fileRef.current?.click()}>ファイルを選ぶ</button>
+          </div>
+          {queue.length > 0 && (
+            <ul data-state="upload-queue" style={{ listStyle: "none", margin: "10px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+              {queue.map((q) => (
+                <li key={q.key} data-upload-state={q.state} style={{ fontSize: 12.5, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={q.file.name}>{q.file.name}</span>
+                    <span style={{ flexShrink: 0, color: q.state === "error" ? "var(--error-ink)" : "var(--ink-mute)" }}>{stateLabel(q)}</span>
+                  </div>
+                  {(q.state === "uploading" || q.state === "saving") && (
+                    <div style={{ height: 4, borderRadius: 2, background: "var(--line-soft)", marginTop: 3, overflow: "hidden" }}>
+                      <div style={{ width: `${q.pct}%`, height: "100%", background: "var(--royal)", transition: "width 0.2s" }} />
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>URL（http / https）</div>
-          <input style={{ ...input, marginBottom: 8 }} placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} />
-          <input style={{ ...input, marginBottom: 8 }} placeholder="資料名（任意。空なら URL）" value={urlTitle} onChange={(e) => setUrlTitle(e.target.value)} />
-          <button type="button" style={primaryBtn} disabled={busy || !url.trim()} onClick={submitUrl}>リンクを登録</button>
+          <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>URL（1行に1件・http / https）</div>
+          <textarea data-state="url-lines" value={urlText} onChange={(e) => { setUrlText(e.target.value); setUrlResult(null); }} rows={5}
+            placeholder={"https://docs.google.com/presentation/d/…\nhttps://www.notion.so/…"}
+            style={{ ...input, resize: "vertical", lineHeight: 1.6 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+            <button type="button" style={primaryBtn} disabled={busy || urlRunning || parsed.valid.length === 0} onClick={submitUrls} data-state="url-submit">
+              {urlRunning ? "登録中…" : `リンクを登録（${parsed.valid.length}件）`}
+            </button>
+            {(parsed.invalid.length > 0 || parsed.duplicate.length > 0) && (
+              <span data-state="url-skipped" style={{ fontSize: 12, color: "var(--ink-mute)" }}>
+                {parsed.duplicate.length > 0 && `重複・登録済み ${parsed.duplicate.length}件を除きます`}
+                {parsed.duplicate.length > 0 && parsed.invalid.length > 0 && "／"}
+                {parsed.invalid.length > 0 && `http / https でない ${parsed.invalid.length}件を除きます`}
+              </span>
+            )}
+          </div>
+          {urlResult && (
+            <p role="status" style={{ margin: "8px 0 0", fontSize: 12.5, color: urlResult.failed.length ? "var(--error-ink)" : "var(--ink-soft)" }}>
+              {urlResult.ok}件を登録しました。
+              {urlResult.failed.length > 0 && ` ${urlResult.failed.length}件は登録できませんでした（欄に残しています）：${urlResult.failed[0].error}`}
+            </p>
+          )}
         </div>
       </div>
-      {localError && <p role="alert" style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--error-ink)" }}>{localError}</p>}
-      {/* ⚠️ 1a では中身を読まない。読まないことを書いておく（「読み取ってくれる」と思わせない） */}
-      <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-        登録した資料は、この会社の担当者だけが開けます。いまは資料の中身を自動では読み取りません。
+      {/* ⚠️ 中身を読まないことを書いておく（「読み取ってくれる」と思わせない） */}
+      <p style={{ margin: "12px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+        登録した資料は、この会社の担当者だけが開けます。資料の中身・リンク先は読み取りません（資料名はファイル名か URL。一覧で変更できます）。
         伝えたい内容は、下の「項目を追加」から入れてください。
       </p>
     </section>
@@ -215,9 +361,21 @@ function RegisterDocument({ busy, call }: { busy: boolean; call: CallFn }) {
 
 // ── 資料一覧 ──────────────────────────────────────────────────────────────────
 
+/**
+ * ★資料一覧（2026-10-12）。種類のアイコンと種類名・資料名の変更・ドラッグで並び替え（取っ手を選んで ↑↓ でも）・削除。
+ * ⚠️ 並び替えは画面を先に動かし、保存に失敗したら元に戻して理由を出す。
+ */
 function DocumentList({ documents, canEdit, busy, call, setError }: {
   documents: MaterialDocument[]; canEdit: boolean; busy: boolean; call: CallFn; setError: (s: string | null) => void;
 }) {
+  const [order, setOrder] = useState<MaterialDocument[]>(documents);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setOrder(documents); }, [documents]);
+
   async function openFile(id: string) {
     setError(null);
     const res = await fetch(`/api/biz/materials/documents/${id}`);
@@ -225,56 +383,128 @@ function DocumentList({ documents, canEdit, busy, call, setError }: {
     if (!res.ok || !json.url) { setError(json.error ?? "ファイルを開けませんでした。"); return; }
     window.open(json.url as string, "_blank", "noopener,noreferrer");
   }
+
+  async function saveOrder(next: MaterialDocument[]) {
+    const prev = order;
+    setOrder(next);
+    setSaving(true); setError(null);
+    try {
+      const res = await fetch("/api/biz/materials/documents/order", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: next.map((d) => d.id) }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setOrder(prev); setError(j.error ?? "並び順を保存できませんでした。");
+      }
+    } catch {
+      setOrder(prev); setError("通信に失敗しました。並び順は保存されていません。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function moveTo(id: string, index: number) {
+    const from = order.findIndex((d) => d.id === id);
+    if (from < 0) return;
+    const to = Math.max(0, Math.min(index, order.length - 1));
+    if (to === from) return;
+    const next = [...order];
+    const [m] = next.splice(from, 1);
+    next.splice(to, 0, m);
+    void saveOrder(next);
+  }
+
+  async function commitRename(d: MaterialDocument) {
+    const t = editTitle.trim();
+    if (!t || t === d.title) { setEditingId(null); return; }
+    if (await call(`/api/biz/materials/documents/${d.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: t }),
+    }, "資料名を変更しました。")) setEditingId(null);
+  }
+
   return (
     <section style={card} aria-label="資料一覧">
-      <h2 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700 }}>資料一覧（{documents.length}件）</h2>
-      {documents.length === 0 ? (
+      <h2 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700 }}>資料一覧（{order.length}件）</h2>
+      {order.length === 0 ? (
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>まだ資料はありません。</p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "var(--ink-mute)", fontSize: 12 }}>
-                <th style={{ padding: "6px 8px" }}>資料</th>
-                <th style={{ padding: "6px 8px" }}>登録日</th>
-                <th style={{ padding: "6px 8px" }}>状態</th>
-                <th style={{ padding: "6px 8px" }}>項目数</th>
-                <th style={{ padding: "6px 8px" }} />
-              </tr>
-            </thead>
-            <tbody>
-              {documents.map((d) => (
-                <tr key={d.id} style={{ borderTop: "1px solid var(--line-soft)" }}>
-                  <td style={{ padding: "8px", minWidth: 200 }}>
-                    {d.sourceType === "url" && d.sourceUrl ? (
-                      /* ★外部リンクとして出す（柴さんの指示）。サーバーからは取りに行かない */
-                      <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", fontWeight: 600, overflowWrap: "anywhere" }}>{d.title}</a>
-                    ) : (
-                      <button type="button" onClick={() => openFile(d.id)} style={{ background: "none", border: "none", padding: 0, color: "var(--royal)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13, textAlign: "left", overflowWrap: "anywhere" }}>{d.title}</button>
-                    )}
-                    <div style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>
-                      {d.sourceType === "url" ? "リンク" : `ファイル ${formatBytes(d.byteSize)}`}
+        <ul data-state="document-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {order.map((d, i) => {
+            const k = materialKindOf(d);
+            return (
+              <li key={d.id} data-document-id={d.id}
+                onDragOver={(e) => { if (dragId && dragId !== d.id) { e.preventDefault(); setOverId(d.id); } }}
+                onDragLeave={() => { if (overId === d.id) setOverId(null); }}
+                onDrop={(e) => { e.preventDefault(); if (dragId) moveTo(dragId, i); setDragId(null); setOverId(null); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderTop: i === 0 ? "none" : "1px solid var(--line-soft)",
+                  boxShadow: overId === d.id ? "inset 0 2px 0 var(--royal)" : undefined, opacity: dragId === d.id ? 0.5 : 1,
+                }}>
+                {canEdit && (
+                  <button type="button" className="btn-fixed-size mat-handle" draggable={!saving}
+                    data-handle-for={d.id}
+                    onDragStart={(e) => { setDragId(d.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", d.id); }}
+                    onDragEnd={() => { setDragId(null); setOverId(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                      e.preventDefault();
+                      moveTo(d.id, e.key === "ArrowUp" ? i - 1 : i + 1);
+                      setTimeout(() => (document.querySelector(`[data-handle-for="${d.id}"]`) as HTMLElement | null)?.focus(), 0);
+                    }}
+                    disabled={saving}
+                    aria-label={`${d.title} の並び順を変える（↑ ↓ キーで移動、またはドラッグ）`} title="ドラッグで並べ替え（↑ ↓ キーでも動かせます）"
+                    style={{ width: 22, height: 30, border: "none", background: "transparent", color: "var(--ink-mute)", cursor: "grab", padding: 0, flexShrink: 0 }}>
+                    <svg width="10" height="14" viewBox="0 0 10 14" aria-hidden fill="currentColor">
+                      <circle cx="2.5" cy="2.5" r="1.3" /><circle cx="7.5" cy="2.5" r="1.3" /><circle cx="2.5" cy="7" r="1.3" />
+                      <circle cx="7.5" cy="7" r="1.3" /><circle cx="2.5" cy="11.5" r="1.3" /><circle cx="7.5" cy="11.5" r="1.3" />
+                    </svg>
+                  </button>
+                )}
+                <MaterialKindIcon kind={k.kind} label={k.label} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {editingId === d.id ? (
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input autoFocus value={editTitle} maxLength={MATERIAL_TITLE_MAX} onChange={(e) => setEditTitle(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") void commitRename(d); if (e.key === "Escape") setEditingId(null); }}
+                        aria-label="資料名" style={{ ...input, padding: "6px 8px" }} />
+                      <button type="button" style={primaryBtn} disabled={busy || !editTitle.trim()} onClick={() => void commitRename(d)}>保存</button>
+                      <button type="button" style={btn} onClick={() => setEditingId(null)}>やめる</button>
                     </div>
-                  </td>
-                  <td style={{ padding: "8px", whiteSpace: "nowrap" }}>{formatDate(d.createdAt)}</td>
-                  <td style={{ padding: "8px", whiteSpace: "nowrap" }}>
-                    {MATERIAL_DOCUMENT_STATUS_LABELS[d.status]}
-                    {d.status === "failed" && d.errorMessage && <div style={{ fontSize: 11.5, color: "var(--error-ink)" }}>{d.errorMessage}</div>}
-                  </td>
-                  <td style={{ padding: "8px" }}>{d.itemCount}</td>
-                  <td style={{ padding: "8px", textAlign: "right" }}>
-                    {canEdit && (
-                      <button type="button" style={btn} disabled={busy} onClick={() => {
-                        if (!confirm(`「${d.title}」を削除します。この資料から作った項目は残ります。`)) return;
-                        void call(`/api/biz/materials/documents/${d.id}`, { method: "DELETE" }, "資料を削除しました。");
-                      }}>削除</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  ) : (
+                    <>
+                      {d.sourceType === "url" && d.sourceUrl ? (
+                        /* ★外部リンクとして出す。サーバーからは取りに行かない */
+                        <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", fontWeight: 600, fontSize: 13, overflowWrap: "anywhere" }}>{d.title}</a>
+                      ) : (
+                        <button type="button" onClick={() => openFile(d.id)} style={{ background: "none", border: "none", padding: 0, color: "var(--royal)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13, textAlign: "left", overflowWrap: "anywhere" }}>{d.title}</button>
+                      )}
+                      <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }} data-state="document-kind">
+                        {k.label}
+                        {d.sourceType === "file" && d.byteSize != null && `・${formatBytes(d.byteSize)}`}
+                        {`・${formatDate(d.createdAt)}`}
+                        {d.itemCount > 0 && `・項目 ${d.itemCount}件`}
+                        {d.status !== "uploaded" && `・${MATERIAL_DOCUMENT_STATUS_LABELS[d.status]}`}
+                        {d.status === "failed" && d.errorMessage && <span style={{ color: "var(--error-ink)" }}>（{d.errorMessage}）</span>}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {canEdit && editingId !== d.id && (
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <button type="button" style={btn} disabled={busy} onClick={() => { setEditingId(d.id); setEditTitle(d.title); }}>名前を変更</button>
+                    <button type="button" style={btn} disabled={busy} onClick={() => {
+                      if (!confirm(`「${d.title}」を削除します。この資料から作った項目は残ります。`)) return;
+                      void call(`/api/biz/materials/documents/${d.id}`, { method: "DELETE" }, "資料を削除しました。");
+                    }}>削除</button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {canEdit && order.length > 1 && (
+        <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>左の取っ手をドラッグ（または取っ手を選んで ↑ ↓ キー）で並べ替えます。</p>
       )}
     </section>
   );

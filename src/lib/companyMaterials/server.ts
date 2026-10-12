@@ -76,7 +76,7 @@ export type PublicMaterialItem = {
 };
 
 const DOC_COLS =
-  "id, title, source_type, source_url, mime_type, byte_size, status, error_message, created_at" as const;
+  "id, title, source_type, source_url, mime_type, byte_size, status, error_message, created_at, display_order" as const;
 const ITEM_COLS =
   "id, document_id, category, content, visibility, ai_suggested_visibility, confirmed_at, restricted_flag, restricted_reason, created_at, updated_at" as const;
 
@@ -129,8 +129,16 @@ export async function listMaterials(companyId: string): Promise<{
   for (const it of itemRows) {
     if (it.documentId) countByDoc.set(it.documentId, (countByDoc.get(it.documentId) ?? 0) + 1);
   }
+  /* ★並び（2026-10-12）: 並べ替えより後に足した資料（display_order が NULL）を先頭に新しい順、そのあと番号の順 */
+  const docRows = [...(docs.data ?? [])].sort((a, b) => {
+    const ao = a.display_order as number | null, bo = b.display_order as number | null;
+    if (ao == null && bo == null) return String(b.created_at).localeCompare(String(a.created_at));
+    if (ao == null) return -1;
+    if (bo == null) return 1;
+    return ao - bo;
+  });
   return {
-    documents: (docs.data ?? []).map((d) => ({
+    documents: docRows.map((d) => ({
       id: d.id as string,
       title: d.title as string,
       sourceType: d.source_type as MaterialSourceType,
@@ -170,11 +178,22 @@ type Result<T = undefined> = { ok: true; value: T } | { ok: false; status: numbe
 /** URL をリンクとして保存する。⚠️ 1a では**中身を取りに行かない**（SSRF 対策ごと 1b） */
 export async function createUrlDocument(
   companyId: string, owUserId: string, title: string, url: string,
+  /** ★Google ドライブから選んだときの mimeType（種類の表示に使う。2026-10-12） */
+  mimeType: string | null = null,
 ): Promise<Result<{ id: string }>> {
-  const { data, error } = await createAdminClient()
+  const db = createAdminClient();
+  /* ★同じ URL は2度登録しない（2026-10-12 / 一括登録で重複を除く）。⚠️ 画面でも除くが、担保はここ */
+  const dup = await db.from("ow_company_material_documents").select("id")
+    .eq("company_id", companyId).eq("source_url", url).limit(1);
+  if (dup.error) {
+    console.error("[companyMaterials] createUrlDocument dup:", dup.error.message);
+    return { ok: false, status: 500, error: "リンクを登録できませんでした。" };
+  }
+  if ((dup.data ?? []).length > 0) return { ok: false, status: 409, error: "このリンクはすでに登録されています。" };
+  const { data, error } = await db
     .from("ow_company_material_documents")
     .insert({
-      company_id: companyId, source_type: "url", title, source_url: url,
+      company_id: companyId, source_type: "url", title, source_url: url, mime_type: mimeType,
       status: "uploaded", created_by_ow_user_id: owUserId,
     })
     .select("id")
@@ -221,6 +240,108 @@ export async function createFileDocument(
     return { ok: false, status: 500, error: "資料を登録できませんでした。" };
   }
   return { ok: true, value: { id } };
+}
+
+/** Storage のキーに使えない文字を落とす。元の名前は title に残る */
+function safeStorageName(name: string): string {
+  return name.replace(/[^A-Za-z0-9._-]+/g, "_").slice(-120) || "file";
+}
+
+/**
+ * ★ブラウザから Storage へ直接置くための、短時間の書き込み URL（2026-10-12）。
+ *   ファイルの中身をこのサーバー（Vercel の関数）に通さない。関数のリクエストは 4.5MB までで、
+ *   10MB のファイルが通らないため。⚠️ 種類と大きさの検査は**呼び出し側（API）と、完了時の `completeFileUpload`**。
+ *   バケット側も大きさと MIME を絞っている。
+ */
+export async function createFileUploadUrl(
+  companyId: string, fileName: string,
+): Promise<Result<{ id: string; path: string; signedUrl: string; token: string }>> {
+  const id = crypto.randomUUID();
+  const path = `${companyId}/${id}/${safeStorageName(fileName)}`;
+  const s = await createAdminClient().storage.from(MATERIAL_BUCKET).createSignedUploadUrl(path);
+  if (s.error || !s.data) {
+    console.error("[companyMaterials] createSignedUploadUrl:", s.error?.message);
+    return { ok: false, status: 500, error: "アップロードの準備ができませんでした。" };
+  }
+  return { ok: true, value: { id, path, signedUrl: s.data.signedUrl, token: s.data.token } };
+}
+
+/**
+ * ★直接アップロードが済んだファイルを資料として登録する（2026-10-12）。
+ * ⚠️ パスはこの会社・この id の下でなければ断る（他社のフォルダのファイルを登録させない）。
+ * ⚠️ Storage 上の実物の大きさと種類を確かめる。合わなければファイルを消して断る。
+ */
+export async function completeFileUpload(
+  companyId: string, owUserId: string, title: string,
+  input: { id: string; path: string; maxBytes: number; allowedMimes: readonly string[] },
+): Promise<Result<{ id: string }>> {
+  const db = createAdminClient();
+  const prefix = `${companyId}/${input.id}/`;
+  if (!/^[0-9a-f-]{36}$/i.test(input.id) || !input.path.startsWith(prefix) || input.path.slice(prefix.length).includes("/")) {
+    return { ok: false, status: 400, error: "ファイルの場所が正しくありません。" };
+  }
+  const name = input.path.slice(prefix.length);
+  const listed = await db.storage.from(MATERIAL_BUCKET).list(`${companyId}/${input.id}`, { limit: 10 });
+  if (listed.error) {
+    console.error("[companyMaterials] complete list:", listed.error.message);
+    return { ok: false, status: 500, error: "ファイルを確認できませんでした。" };
+  }
+  const obj = (listed.data ?? []).find((o) => o.name === name);
+  if (!obj) return { ok: false, status: 400, error: "ファイルが届いていません。もう一度お試しください。" };
+  const size = Number((obj.metadata as Record<string, unknown> | null)?.size ?? 0);
+  const mime = String((obj.metadata as Record<string, unknown> | null)?.mimetype ?? "");
+  if (!(size > 0 && size <= input.maxBytes) || !input.allowedMimes.includes(mime)) {
+    await db.storage.from(MATERIAL_BUCKET).remove([input.path]);
+    return { ok: false, status: 400, error: size > input.maxBytes ? "ファイルは10MBまでです。" : "この種類のファイルは登録できません。" };
+  }
+  const { error } = await db.from("ow_company_material_documents").insert({
+    id: input.id, company_id: companyId, source_type: "file", title, storage_path: input.path,
+    mime_type: mime, byte_size: size, status: "uploaded", created_by_ow_user_id: owUserId,
+  });
+  if (error) {
+    console.error("[companyMaterials] complete insert:", error.message);
+    const rm = await db.storage.from(MATERIAL_BUCKET).remove([input.path]);
+    if (rm.error) console.error("[companyMaterials] 片付けに失敗（ファイルが残っている）:", input.path, rm.error.message);
+    return { ok: false, status: 500, error: "資料を登録できませんでした。" };
+  }
+  return { ok: true, value: { id: input.id } };
+}
+
+/** ★資料名を変える（2026-10-12） */
+export async function renameDocument(companyId: string, documentId: string, title: string): Promise<Result> {
+  const r = await mutateOne(
+    createAdminClient().from("ow_company_material_documents")
+      .update({ title, updated_at: new Date().toISOString() })
+      .eq("id", documentId).eq("company_id", companyId),
+    "companyMaterials renameDocument",
+  );
+  if (!r.ok) return { ok: false, status: r.status === 500 ? 500 : 404, error: "資料名を変更できませんでした。" };
+  return { ok: true, value: undefined };
+}
+
+/**
+ * ★並び順を保存する（2026-10-12）。`ids` はその会社の資料**全件**を上から順に。
+ * ⚠️ 1件でも欠けている・他社の id が混ざっているときは断る（番号の無い行が残ると並びが崩れる）。
+ */
+export async function reorderDocuments(companyId: string, ids: string[]): Promise<Result> {
+  const db = createAdminClient();
+  const { data, error } = await db.from("ow_company_material_documents").select("id").eq("company_id", companyId);
+  if (error) {
+    console.error("[companyMaterials] reorder lookup:", error.message);
+    return { ok: false, status: 500, error: "並び順を保存できませんでした。" };
+  }
+  const all = new Set((data ?? []).map((d) => d.id as string));
+  if (ids.length !== all.size || new Set(ids).size !== ids.length || !ids.every((x) => all.has(x))) {
+    return { ok: false, status: 409, error: "資料の一覧が変わっています。ページを読み込み直してください。" };
+  }
+  for (let i = 0; i < ids.length; i++) {
+    const r = await mutateOne(
+      db.from("ow_company_material_documents").update({ display_order: i }).eq("id", ids[i]).eq("company_id", companyId),
+      "companyMaterials reorder",
+    );
+    if (!r.ok) return { ok: false, status: 500, error: "並び順を保存できませんでした。" };
+  }
+  return { ok: true, value: undefined };
 }
 
 /**

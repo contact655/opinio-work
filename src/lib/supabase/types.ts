@@ -2172,6 +2172,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by_ow_user_id: string | null
+          display_order: number | null
           error_message: string | null
           id: string
           mime_type: string | null
@@ -2187,6 +2188,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by_ow_user_id?: string | null
+          display_order?: number | null
           error_message?: string | null
           id?: string
           mime_type?: string | null
@@ -2202,6 +2204,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by_ow_user_id?: string | null
+          display_order?: number | null
           error_message?: string | null
           id?: string
           mime_type?: string | null
