@@ -12,16 +12,30 @@ export function chatTime(iso: string): string {
   return `${v("month")}月${v("day")}日 ${v("hour")}:${v("minute")}`;
 }
 
-export function ChatBubble({ mine, sender, at, children, plain = false }: {
+/** 「10月12日」（日本時間）。日付の区切りと「ここからやり取りが始まりました」に使う */
+export function chatDay(iso: string): string {
+  const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
+  const v = (t: string) => ps.find((x) => x.type === t)?.value ?? "";
+  return `${v("month")}月${v("day")}日`;
+}
+
+/** 日付の区切りの比較用（日本時間の年月日） */
+export function chatDayKey(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+}
+
+export function ChatBubble({ mine, sender, at, children, plain = false, avatar }: {
   mine: boolean;
   sender: string;
   at: string;
   children: ReactNode;
   /** 枠を付けずに中身だけ置く（面談の日程カードなど、自分で枠を持つもの） */
   plain?: boolean;
+  /** ★相手側の吹き出しの横に出す頭文字（24px の丸。2026-10-12 / 候補者を探すの右欄）。渡さなければ出さない。自分側には出さない */
+  avatar?: string;
 }) {
-  return (
-    <div data-state={mine ? "bubble-mine" : "bubble-theirs"} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 4, minWidth: 0 }}>
+  const bubble = (
+    <div data-state={mine ? "bubble-mine" : "bubble-theirs"} style={{ display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start", gap: 4, minWidth: 0, flex: avatar && !mine ? 1 : undefined }}>
       <span data-state="bubble-meta" style={{ fontSize: 11.5, color: "var(--ink-mute)", padding: "0 4px" }}>{sender}・{chatTime(at)}</span>
       {plain ? children : (
         <div style={{
@@ -32,6 +46,16 @@ export function ChatBubble({ mine, sender, at, children, plain = false }: {
           borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
         }}>{children}</div>
       )}
+    </div>
+  );
+  if (!avatar || mine) return bubble;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 8, minWidth: 0 }}>
+      <span aria-hidden="true" data-state="bubble-avatar" style={{
+        flexShrink: 0, width: 24, height: 24, borderRadius: "50%", background: "var(--line-soft)", color: "var(--ink-soft)",
+        fontSize: 11.5, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center",
+      }}>{avatar}</span>
+      {bubble}
     </div>
   );
 }

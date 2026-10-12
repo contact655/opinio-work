@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/pane-thread", label: "右欄のメッセージ欄（/biz/candidates。直近10通・上へスクロール）",
+    desc: "★実データは数通しか無い。30通で前の10通を読み込む動き・日付の区切り・始まりの案内をここで見る" },
   { href: "/dev/preview/candidate-touchpoints", label: "〈会社名〉と合うところ（/biz/candidates の右のプレビュー）",
     desc: "★実データは材料がほとんど無く出る側を描けない。0件と入口／材料は揃って0件／2件／5件（ほかに2件）／取得失敗をここで見る" },
   { href: "/dev/preview/approaches", label: "企業のメッセージ（/biz/messages）",

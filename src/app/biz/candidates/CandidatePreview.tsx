@@ -84,6 +84,8 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   companyLimitLine?: string | null }) {
   const [data, setData] = useState<PreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /* ★メッセージ欄を右欄いっぱいに広げているか（候補者を切り替えると key で作り直されて戻る） */
+  const [dockExpanded, setDockExpanded] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -126,7 +128,8 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
       sectioned
       before={<TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />}
       extraSections={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
-      footer={c.approach ? <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} /> : undefined}
+      footer={c.approach ? <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} expanded={dockExpanded} onExpandChange={setDockExpanded} /> : undefined}
+      footerExpanded={dockExpanded}
     />
   );
 }

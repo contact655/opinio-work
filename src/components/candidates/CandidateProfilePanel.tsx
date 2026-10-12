@@ -17,7 +17,7 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  * ★`sectioned` … 中身を節の目次（上に固定の帯）つきの1本のスクロールで出す。候補者を探すだけ（2026-10-12）。`extraSections` は右欄の側から足す節（社内メモ）
  * ★`footer` … 下に固定する段（候補者を探すのメッセージ欄）。中身だけがスクロールする
  */
-export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAction, before, onClose, sectioned = false, extraSections, footer }: {
+export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAction, before, onClose, sectioned = false, extraSections, footer, footerExpanded = false }: {
   userId: string;
   /** 名前の右（新しいタブのアイコンの隣）に置くもの。候補者を探すの★（2026-10-12） */
   nameAction?: ReactNode;
@@ -32,6 +32,8 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
   sectioned?: boolean;
   extraSections?: PanelSection[];
   footer?: ReactNode;
+  /** ★下の段（メッセージ欄）を広げているか。広げると上の名前の段だけ残し、中身を隠して下の段を全体に（2026-10-12） */
+  footerExpanded?: boolean;
 }) {
   const [content, setContent] = useState<ReactNode | null>(null);
   const [failed, setFailed] = useState(false);
@@ -73,7 +75,7 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
         {headerExtra}
       </div>
       {/* 中身（ここだけスクロール） */}
-      <div data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: sectioned ? "0 20px 20px" : "4px 20px 20px" }}>
+      <div data-state="candidate-profile-scroll" style={{ display: footerExpanded ? "none" : undefined, flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: sectioned ? "4px 20px 20px" : "4px 20px 20px" }}>
         {before}
         <PanelExtraSectionsProvider sections={extraSections ?? []}>
           {failed ? (
@@ -83,7 +85,8 @@ export function CandidateProfilePanel({ userId, name, meta, headerExtra, nameAct
           )}
         </PanelExtraSectionsProvider>
       </div>
-      {footer && <div data-state="candidate-profile-footer" style={{ flexShrink: 0, borderTop: "1px solid var(--line)", background: "#fff", maxHeight: "60%", display: "flex", flexDirection: "column", minHeight: 0 }}>{footer}</div>}
+      {/* ★下の段は右欄の高さの最大50%（中身が少なければその分だけ）。広げたら全体（2026-10-12 / 柴さんの指示） */}
+      {footer && <div data-state="candidate-profile-footer" style={{ flex: footerExpanded ? 1 : "0 1 auto", flexShrink: footerExpanded ? undefined : 0, borderTop: "1px solid var(--line)", background: "#fff", maxHeight: footerExpanded ? undefined : "50%", display: "flex", flexDirection: "column", minHeight: 0 }}>{footer}</div>}
     </div>
   );
 }

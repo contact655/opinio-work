@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { getApproachReplyExcerpt, getConversationLatest, listSentApproaches } from "@/lib/approaches/server";
-import { companyMessageTodoIds } from "@/lib/business/navBadges";
+import { getApproachReplyExcerpt, listSentApproaches } from "@/lib/approaches/server";
 import { loadCompanyThread } from "@/lib/conversations/companyThread";
 import { PANE_THREAD_RECENT } from "@/lib/constants/companyApproaches";
 
@@ -21,34 +20,31 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!r) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
   /* ★返信があれば冒頭だけ（右欄の吹き出しの下に出す）。⚠️ 自社の1件と確かめた後の conversationId だけを渡す */
   const replyExcerpt = r.status === "accepted" && r.conversationId ? await getApproachReplyExcerpt(r.conversationId, r.candidate.id) : null;
-  /* ★返信がある会話の、閉じたメッセージ欄に出すもの（2026-10-12）。⚠️ 既読は付けない。
-        unread … サイドバーのバッジと同じ集合（`companyMessageTodoIds`）に入っているか。入っていれば欄を最初から開く */
-  let latest: { at: string; excerpt: string | null } | null = null;
-  let unread = false;
-  if (r.status === "accepted" && r.conversationId) {
-    const [l, todo] = await Promise.all([
-      getConversationLatest(r.conversationId, { reason: r.reason, body: r.body }),
-      companyMessageTodoIds({ owUserId: ctx.currentOwnId, companyId: ctx.tenantId }).catch((e) => { console.error("[approaches/id] todo:", e); return null; }),
-    ]);
-    latest = l;
-    unread = todo?.all.has(r.conversationId) ?? false;
-  }
-  /* ★やり取りの最新 PANE_THREAD_RECENT 件（欄を開いたときだけ。?thread=1）。
+  /* ★やり取りを PANE_THREAD_RECENT 件ずつ（欄に出すときだけ。?thread=1）。2026-10-12 に「直近10通＋上へスクロールで前の10通」にした。
+        ?before=<メッセージid> … その1通より前の PANE_THREAD_RECENT 件（上へスクロールしたとき）。無ければ最新から。
         ⚠️ 読み込みは /biz/messages と同じ `loadCompanyThread`（会社で絞る・参加者でなければ RLS で読めない）。条件を書き足さない。
-        ⚠️ 参加者なら既読が付く（開いて読んだ＝見た、として /biz/messages と同じ扱い）。閉じているあいだは付けない */
+        ⚠️ 参加者なら既読が付く（欄に出して見た＝見た、として /biz/messages と同じ扱い）。閉じているあいだは呼ばない。
+        ⚠️ 知らない before（別の会話の id など）は最新から返さずに空で返す（取り違えたページを足さないため） */
   let thread = null;
-  if (r.status === "accepted" && r.conversationId && new URL(req.url).searchParams.get("thread") === "1") {
+  const url = new URL(req.url);
+  if (r.status === "accepted" && r.conversationId && url.searchParams.get("thread") === "1") {
     const t = await loadCompanyThread(r.conversationId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId });
     if (t) {
+      const before = url.searchParams.get("before");
+      const end = before ? t.messages.findIndex((m) => m.id === before) : t.messages.length;
+      const page = end < 0 ? [] : t.messages.slice(Math.max(0, end - PANE_THREAD_RECENT), end);
       thread = {
         conv: { id: t.conv.id }, isParticipant: t.isParticipant, messagesFailed: t.messagesFailed,
-        total: t.messages.length, messages: t.messages.slice(-PANE_THREAD_RECENT),
+        total: t.messages.length, messages: page,
+        /* 前にまだあるか（上端に「ここからやり取りが始まりました」を出すかどうか） */
+        hasMore: end > PANE_THREAD_RECENT,
+        firstAt: t.messages[0]?.sent_at ?? null,
         approachFirst: t.approachFirst, replyNote: t.replyNote,
       };
     }
   }
   return NextResponse.json({
     id: r.id, createdAt: r.createdAt, senderName: r.senderName, jobTitle: r.jobTitle, reason: r.reason, body: r.body,
-    status: r.status, conversationId: r.conversationId, replyExcerpt, latest, unread, thread,
+    status: r.status, conversationId: r.conversationId, replyExcerpt, thread,
   });
 }

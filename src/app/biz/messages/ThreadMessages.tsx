@@ -1,4 +1,4 @@
-import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubble";
+import { ChatBubble, ChatNotice, chatDay, chatDayKey, chatTime } from "@/components/messages/ChatBubble";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 import type { CompanyThread } from "@/lib/conversations/companyThread";
 
@@ -13,7 +13,13 @@ import type { CompanyThread } from "@/lib/conversations/companyThread";
 /** ★描くのに要る分だけ。候補者を探すの右欄（API から最新の数件だけ受け取る）も同じ部品で描くため */
 export type ThreadMessagesData = Pick<CompanyThread, "messages" | "approachFirst" | "replyNote" | "isParticipant" | "messagesFailed"> & { conv: { id: string } };
 
-export function ThreadMessages({ thread }: { thread: ThreadMessagesData }) {
+export function ThreadMessages({ thread, daySeparators = false, avatars = false }: {
+  thread: ThreadMessagesData;
+  /** ★日付が変わるところにだけ、中央に灰色の小さな日付（2026-10-12 / 候補者を探すの右欄だけ） */
+  daySeparators?: boolean;
+  /** ★候補者側の吹き出しの横に頭文字の丸（同上） */
+  avatars?: boolean;
+}) {
   const { messages, approachFirst, replyNote, isParticipant, conv } = thread;
   if (messages.length === 0) {
     return (
@@ -24,33 +30,42 @@ export function ThreadMessages({ thread }: { thread: ThreadMessagesData }) {
   }
   return (
     <>
-      {messages.map((msg) => {
-        if (msg.kind === "proposal_intro") {
-          return (
-            <ChatNotice key={msg.id} state="proposal-intro">
-              {msg.body}
-              <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)" }}>{chatTime(msg.sent_at)}</span>
-            </ChatNotice>
-          );
-        }
-        const isCandidate = msg.participant?.role === "candidate";
-        const sender = msg.participant?.user?.name ?? "不明";
-        const isCard = msg.kind === "meeting_slots" || msg.kind === "scheduling_link";
-        return (
-          <div key={msg.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {replyNote?.messageId === msg.id && <ChatNotice state="reply-note">{replyNote.text}</ChatNotice>}
-            <ChatBubble mine={!isCandidate} sender={sender} at={msg.sent_at} plain={isCard}>
-              {isCard ? (
-                <div style={{ width: 320, maxWidth: "min(420px, 100%)" }}>
-                  <MeetingMessageCard side="company" conversationId={conv.id} messageId={msg.id} kind={msg.kind as "meeting_slots" | "scheduling_link"} payload={msg.payload} />
-                </div>
-              ) : approachFirst?.messageId === msg.id ? (
-                <span data-state="approach-first">{[approachFirst.reason, approachFirst.body].filter(Boolean).join("\n\n")}</span>
-              ) : msg.body}
-            </ChatBubble>
-          </div>
-        );
+      {messages.map((msg, i) => {
+        const dayBreak = daySeparators && (i === 0 || chatDayKey(messages[i - 1].sent_at) !== chatDayKey(msg.sent_at))
+          ? <ChatNotice key={`day-${msg.id}`} state="day-separator"><span style={{ fontSize: 11.5 }}>{chatDay(msg.sent_at)}</span></ChatNotice>
+          : null;
+        const item = renderMessage(msg);
+        return dayBreak ? <div key={`wrap-${msg.id}`} style={{ display: "flex", flexDirection: "column", gap: 12 }}>{dayBreak}{item}</div> : item;
       })}
     </>
   );
+
+  function renderMessage(msg: ThreadMessagesData["messages"][number]) {
+    if (msg.kind === "proposal_intro") {
+      return (
+        <ChatNotice key={msg.id} state="proposal-intro">
+          {msg.body}
+          <span style={{ display: "block", fontSize: 11, color: "var(--ink-mute)" }}>{chatTime(msg.sent_at)}</span>
+        </ChatNotice>
+      );
+    }
+    const isCandidate = msg.participant?.role === "candidate";
+    const sender = msg.participant?.user?.name ?? "不明";
+    const avatar = avatars && isCandidate ? (sender.trim().charAt(0) || "?") : undefined;
+    const isCard = msg.kind === "meeting_slots" || msg.kind === "scheduling_link";
+    return (
+      <div key={msg.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {replyNote?.messageId === msg.id && <ChatNotice state="reply-note">{replyNote.text}</ChatNotice>}
+        <ChatBubble mine={!isCandidate} sender={sender} at={msg.sent_at} plain={isCard} avatar={avatar}>
+          {isCard ? (
+            <div style={{ width: 320, maxWidth: "min(420px, 100%)" }}>
+              <MeetingMessageCard side="company" conversationId={conv.id} messageId={msg.id} kind={msg.kind as "meeting_slots" | "scheduling_link"} payload={msg.payload} />
+            </div>
+          ) : approachFirst?.messageId === msg.id ? (
+            <span data-state="approach-first">{[approachFirst.reason, approachFirst.body].filter(Boolean).join("\n\n")}</span>
+          ) : msg.body}
+        </ChatBubble>
+      </div>
+    );
+  }
 }

@@ -10,9 +10,11 @@ type Props = {
   /** ★送れたあとに呼ぶ（2026-10-12。候補者を探すの右欄は自分で取り直す）。渡したときは router.refresh() しない */
   onSent?: () => void;
   placeholder?: string;
+  /** ★1行の入力欄の右に送信ボタン（候補者を探すの右欄。欄の高さが右欄の半分しか無いので。2026-10-12）。打つと最大200pxまで伸びる */
+  compact?: boolean;
 };
 
-export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props) {
+export function ReplyForm({ conversationId, tools, onSent, placeholder, compact = false }: Props) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -82,7 +84,7 @@ export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props)
     <div
       style={{
         borderTop: "1px solid var(--line-soft)",
-        padding: "14px 16px",
+        padding: compact ? "8px 16px" : "14px 16px",
         background: "#fff",
       }}
     >
@@ -107,12 +109,13 @@ export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props)
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
+            flexDirection: compact ? "row" : "column",
+            alignItems: compact ? "flex-end" : undefined,
             gap: 8,
             background: "var(--bg-tint)",
             border: "1px solid var(--line)",
             borderRadius: 10,
-            padding: "10px 12px",
+            padding: compact ? "6px 8px 6px 12px" : "10px 12px",
             transition: "border-color 0.15s",
           }}
           onFocus={() => {/* handled via CSS :focus-within */}}
@@ -125,7 +128,7 @@ export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props)
             disabled={submitting}
             placeholder={placeholder ?? "メッセージを入力… (⌘+Enter で送信)"}
             aria-label="返信メッセージ"
-            rows={2}
+            rows={compact ? 1 : 2}
             style={{
               width: "100%",
               border: "none",
@@ -136,7 +139,9 @@ export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props)
               fontSize: 14,
               color: "var(--ink)",
               lineHeight: 1.6,
-              minHeight: 52,
+              minHeight: compact ? 24 : 52,
+              flex: compact ? 1 : undefined,
+              padding: compact ? "4px 0" : undefined,
               maxHeight: 200,
               overflow: "auto",
             }}
@@ -149,6 +154,7 @@ export function ReplyForm({ conversationId, tools, onSent, placeholder }: Props)
               alignItems: "center",
               justifyContent: "flex-end",
               gap: 10,
+              flexShrink: compact ? 0 : undefined,
             }}
           >
             {tools && <div style={{ marginRight: "auto" }}>{tools}</div>}

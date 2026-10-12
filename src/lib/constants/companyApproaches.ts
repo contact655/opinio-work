@@ -51,8 +51,9 @@ export function approachConsentText(v: boolean | null | undefined): string {
 /** 理由の長さ。⚠️ 短すぎると「誰にでも送れる一言」になるので下限を置く */
 export const APPROACH_REASON_MIN = 30;
 export const APPROACH_REASON_MAX = 200;
-/** ★候補者を探すの右欄に出す、返信後のやり取りの件数（最新から）。超えたら「これまでのやり取り（n件）を見る」 */
-export const PANE_THREAD_RECENT = 3;
+/** ★候補者を探すの右欄のメッセージ欄で、1回に読み込む件数（2026-10-12 に 3 → 10）。
+ *   最初は最新の10通、欄の中で上へスクロールすると前の10通ずつ足す */
+export const PANE_THREAD_RECENT = 10;
 
 /**
  * ★返信したときに会話の1通目として入る本文（DB 関数 `reply_to_company_approach` と同じ組み立て。
