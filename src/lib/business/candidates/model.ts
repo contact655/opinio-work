@@ -17,6 +17,7 @@ import type { SavedCandidateFilters } from "@/lib/business/savedSearch";
 /** ★貴社との接点の1件。種類・表示文・根拠の参照先（画面で根拠へ飛べるように） */
 import type { FitFact } from "@/lib/evidence/fit";
 import { residenceKey } from "@/lib/utils/location";
+import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
 
 export type TouchpointKind =
   | "job_role"        // ① 求人の職種 × 経験職種（＋年数）
@@ -185,6 +186,58 @@ function textHit(c: Candidate, t: string): boolean {
 }
 
 /**
+ * ★絞り込みの軸（2026-10-13 / ステップ5）。「すべてのフィルター」で件数を出す軸。
+ *   件数は「その軸以外の条件をすべて掛けたあとの人数」（`filterCandidates(…, { skipAxis })` で数える）。
+ * ⚠️ 検索窓（q）・年齢・最近の利用は軸に入れていない（件数を出さない。いつも掛かる）。
+ */
+export type FilterAxis =
+  | "expRole" | "desiredRole" | "careerStance" | "tenure" | "prefecture"
+  | "touchpoints" | "starred" | "stanceFreshness" | "employmentType";
+
+/**
+ * ★軸ごとの絞り込み（2026-10-13 に filterCandidates から切り出した。**中身は変えていない**）。
+ * ⚠️★件数の計算もこの表を通す。**件数のために条件を書き写さないこと**（書き写すと、選んだ結果と件数が食い違う）。
+ */
+export const AXIS_FILTERS: { [A in FilterAxis]: (list: Candidate[], f: SavedCandidateFilters, now: Date) => Candidate[] } = {
+  employmentType: (list, f) => (f.employmentTypes.length > 0
+    ? list.filter((c) => c.employmentType && f.employmentTypes.includes(c.employmentType)) : list),
+  /* ⚠️ 働き方・希望年収の絞り込みは 2026-10-13 に外した（右欄に出さない値で絞れると、値が間接的に分かるため） */
+  /* 希望職種（複数は OR。2026-10-13）。候補者側が祖先まで展開済みなので、大分類でも子でも includes() で当たる */
+  desiredRole: (list, f) => (f.desiredRoleIds.length > 0
+    ? list.filter((c) => f.desiredRoleIds.some((id) => c.desiredRoleIds.includes(id))) : list),
+  /* ★経験職種（2026-10-13）。選んだ中のどれか（OR）。候補者側が親まで展開済みなので、親を選ぶと子の経験も当たる */
+  expRole: (list, f) => (f.expRoleIds.length > 0
+    ? list.filter((c) => (c.expRoleIds ?? []).some((id) => f.expRoleIds.includes(id))) : list),
+  /* 社会人年数。⚠️ 未算出（職歴0件）の人は落とさない */
+  tenure: (list, f) => {
+    const band = f.tenureBand ? TENURE_BANDS.find((b) => b.value === f.tenureBand) : undefined;
+    return band ? list.filter((c) => c.tenureMonths == null || (c.tenureMonths >= band.minMonths && c.tenureMonths <= band.maxMonths)) : list;
+  },
+  /* ★合うところあり（2026-10-12）。⚠️ 取れなかった人（undefined）は落とす */
+  touchpoints: (list, f) => (f.hasTouchpoints ? list.filter((c) => (c.touchpoints?.length ?? 0) > 0) : list),
+  /* ★★を付けた人だけ（2026-10-12） */
+  starred: (list, f) => (f.starredOnly ? list.filter((c) => c.starred === true) : list),
+  /* ★転職への意向（複数選択は OR。2026-10-12） */
+  careerStance: (list, f) => (f.careerStances.length > 0
+    ? list.filter((c) => c.careerStance != null && f.careerStances.includes(c.careerStance)) : list),
+  /* 転職意欲の更新時期。⚠️★未更新（null）は落とす */
+  stanceFreshness: (list, f, now) => {
+    const band = f.stanceFreshness ? STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness) : undefined;
+    if (!band) return list;
+    const since = now.getTime() - band.days * 24 * 60 * 60 * 1000;
+    return list.filter((c) => {
+      if (!c.careerStanceUpdatedAt) return false;
+      const t = new Date(c.careerStanceUpdatedAt).getTime();
+      return Number.isFinite(t) && t >= since;
+    });
+  },
+  /* 居住地（OR）。★自由入力の値は `residenceKey` で都道府県・「海外」に対応づけて比べる（2026-10-12）。
+     ⚠️ 対応づけられない値（「非公開」・未入力・読めない文字）は、居住地で絞ったときだけ落ちる */
+  prefecture: (list, f) => (f.prefectures.length > 0
+    ? list.filter((c) => { const k = residenceKey(c.location); return !!k && f.prefectures.includes(k); }) : list),
+};
+
+/**
  * ★絞り込み。画面と段3の新着メールが**同じ関数**を使う。
  * ⚠️ `currentCompany` は社名を伏せた人では「非公開企業」に置き換え済み（load.ts）。
  *    ここに社名の生値を渡す経路を作らないこと。
@@ -193,64 +246,45 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
   /** ★年齢の絞り込みを効かせるか（`isCandidateAgeFilterEnabled()`。本番は無効）。無効なら保存された年齢の条件も無視する
    *  ★activity … 最近の利用で絞るか（`isCandidateActivityEnabled()`。本番は無効）。無効なら保存された条件も無視する
    *  ★includeHidden … 見送った人も含めるか（2026-10-13）。**既定は含めない**（画面の「表示する」だけが true を渡す。
-   *    保存した条件の新着・メールも同じ関数なので、見送った人は数えない） */
-  opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean } = {}): Candidate[] {
+   *    保存した条件の新着・メールも同じ関数なので、見送った人は数えない）
+   *  ★skipAxis … この軸だけ掛けない（「すべてのフィルター」の件数を数えるため。2026-10-13） */
+  opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean; skipAxis?: FilterAxis } = {}): Candidate[] {
   let list = opts.includeHidden ? candidates : candidates.filter((c) => c.hidden !== true);
 
   /* ★検索窓（2026-10-13 に一本化）。含める語は AND、"-語" は OR（1つでも当たれば落とす） */
   const { include, exclude } = splitQuery(f.q);
   if (include.length > 0) list = list.filter((c) => include.every((t) => textHit(c, t)));
   if (exclude.length > 0) list = list.filter((c) => !exclude.some((t) => textHit(c, t)));
-  if (f.employmentTypes.length > 0) {
-    list = list.filter((c) => c.employmentType && f.employmentTypes.includes(c.employmentType));
-  }
-  /* ⚠️ 働き方・希望年収の絞り込みは 2026-10-13 に外した（右欄に出さない値で絞れると、値が間接的に分かるため） */
-  /* 希望職種: 候補者側が祖先まで展開済みなので、大分類でも子でも includes() で当たる */
-  const wantRole = f.childRoleId ?? f.topRoleId;
-  if (wantRole) list = list.filter((c) => c.desiredRoleIds.includes(wantRole));
-  /* ★経験職種（2026-10-13）。選んだ中のどれか（OR）。候補者側が親まで展開済みなので、親を選ぶと子の経験も当たる */
-  if (f.expRoleIds.length > 0) list = list.filter((c) => (c.expRoleIds ?? []).some((id) => f.expRoleIds.includes(id)));
-  /* 社会人年数。⚠️ 未算出（職歴0件）の人は落とさない */
-  if (f.tenureBand) {
-    const band = TENURE_BANDS.find((b) => b.value === f.tenureBand);
-    if (band) {
-      list = list.filter((c) => c.tenureMonths == null || (c.tenureMonths >= band.minMonths && c.tenureMonths <= band.maxMonths));
-    }
-  }
   /* ★年齢（2026-10-12）。⚠️★生年月日が無い人（age が null）は**落とす**（範囲に入るか分からないため。
         社会人年数と逆向き。画面には「生年月日が未登録の N 名は含みません」と人数を出す） */
   if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) {
     list = list.filter((c) => c.age != null && (f.ageMin <= 0 || c.age >= f.ageMin) && (f.ageMax <= 0 || c.age <= f.ageMax));
   }
-  /* ★合うところあり（2026-10-12）。⚠️ 取れなかった人（undefined）は落とす */
-  if (f.hasTouchpoints) list = list.filter((c) => (c.touchpoints?.length ?? 0) > 0);
-  /* ★★を付けた人だけ（2026-10-12） */
-  if (f.starredOnly) list = list.filter((c) => c.starred === true);
-  /* ★転職への意向（複数選択は OR。2026-10-12） */
-  if (f.careerStances.length > 0) list = list.filter((c) => c.careerStance != null && f.careerStances.includes(c.careerStance));
   /* ★最近の利用（2026-10-12）。⚠️ 記録が無い人（null）は落とす（画面に人数を出す） */
   if (opts.activity && f.activity in ACTIVITY_RANK) {
     const max = ACTIVITY_RANK[f.activity as ActivityBand];
     list = list.filter((c) => c.activity != null && ACTIVITY_RANK[c.activity] <= max);
   }
-  /* 転職意欲の更新時期。⚠️★未更新（null）は落とす */
-  if (f.stanceFreshness) {
-    const band = STANCE_FRESHNESS_BANDS.find((b) => b.value === f.stanceFreshness);
-    if (band) {
-      const since = now.getTime() - band.days * 24 * 60 * 60 * 1000;
-      list = list.filter((c) => {
-        if (!c.careerStanceUpdatedAt) return false;
-        const t = new Date(c.careerStanceUpdatedAt).getTime();
-        return Number.isFinite(t) && t >= since;
-      });
-    }
-  }
-  /* 居住地（OR）。★自由入力の値は `residenceKey` で都道府県・「海外」に対応づけて比べる（2026-10-12）。
-     ⚠️ 対応づけられない値（「非公開」・未入力・読めない文字）は、居住地で絞ったときだけ落ちる */
-  if (f.prefectures.length > 0) {
-    list = list.filter((c) => { const k = residenceKey(c.location); return !!k && f.prefectures.includes(k); });
+  for (const axis of Object.keys(AXIS_FILTERS) as FilterAxis[]) {
+    if (axis !== opts.skipAxis) list = AXIS_FILTERS[axis](list, f, now);
   }
   return list;
+}
+
+/**
+ * ★「その軸以外の条件をすべて掛けたあとの人数」を値ごとに数える（2026-10-13 / ステップ5）。
+ *   「すべてのフィルター」のドロワーと、一次チップの「居住地」が**この1つ**を使う（数え方を2つにしない）。
+ * @param patches 値 → その軸に入れる条件（例: { 東京都: { prefectures: ["東京都"] } }）
+ * @param opts.newSince 保存した条件の「新着だけ」。一覧と同じ母集団にするため、同じく掛ける
+ */
+export function countAxisValues(
+  candidates: Candidate[], f: SavedCandidateFilters, axis: FilterAxis,
+  patches: Record<string, Partial<SavedCandidateFilters>>, now: Date,
+  opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean; newSince?: string | null } = {},
+): Record<string, number> {
+  let pop = filterCandidates(candidates, f, now, { ...opts, skipAxis: axis });
+  if (opts.newSince) { const since = opts.newSince; pop = pop.filter((c) => isNewSince(c, since)); }
+  return Object.fromEntries(Object.entries(patches).map(([k, patch]) => [k, AXIS_FILTERS[axis](pop, { ...f, ...patch }, now).length]));
 }
 
 export const CANDIDATE_SORT_OPTIONS = [
@@ -381,13 +415,13 @@ export function isNewSince(c: Candidate, sinceIso: string): boolean {
   return (Number.isFinite(t1) && t1 > since) || (Number.isFinite(t2) && t2 > since);
 }
 
-export const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
-  full_time: "正社員",
-  contract: "契約社員",
-  part_time: "パート・アルバイト",
-  freelance: "フリーランス",
-  intern: "インターン",
-};
+/**
+ * ★雇用形態の選択肢（現職の `ow_experiences.employment_type`）。**DB の値そのもの**（日本語）。
+ * ⚠️★2026-10-13 まで英語のキー（full_time など）を選択肢にしていて、DB の値（正社員など）と一致せず
+ *    **選んでも必ず0人**だった（件数を出したことで分かった）。正は `lib/constants/careerOptions.ts` の EMPLOYMENT_TYPES。
+ *    古い保存・URL の英語のキーは `parseSavedFilters` が日本語に読み替える。
+ */
+export const CANDIDATE_EMPLOYMENT_OPTIONS: readonly string[] = EMPLOYMENT_TYPES;
 
 /**
  * ★保存した条件をチップの言葉にする（段3。保存した条件の一覧ページで使う）。
@@ -405,13 +439,13 @@ export function describeFilters(
   if (f.q.trim()) out.push(`検索: ${f.q.trim()}`);
   const expNames = f.expRoleIds.map((id) => roleNameById.get(id)).filter((n): n is string => !!n);
   if (expNames.length) out.push(`経験職種: ${expNames.join("・")}`);
-  const role = f.childRoleId ?? f.topRoleId;
-  if (role && roleNameById.get(role)) out.push(`希望職種: ${roleNameById.get(role)!}`);
+  const desiredNames = f.desiredRoleIds.map((id) => roleNameById.get(id)).filter((n): n is string => !!n);
+  if (desiredNames.length) out.push(`希望職種: ${desiredNames.join("・")}`);
   const tb = TENURE_BANDS.find((b) => b.value === f.tenureBand);
   if (tb) out.push(`社会人 ${tb.label}`);
   /* ★年齢（2026-10-12）。⚠️ 無効な環境（本番）では出さない（年齢が画面に一切出ない状態にする。柴さんの指示） */
   if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) out.push(ageRangeLabel(f.ageMin, f.ageMax));
-  for (const v of f.employmentTypes) out.push(EMPLOYMENT_TYPE_LABELS[v] ?? v);
+  for (const v of f.employmentTypes) out.push(v);
   for (const p of f.prefectures) out.push(p);
   if (f.hasTouchpoints) out.push("合うところあり");
   if (f.starredOnly) out.push("気になる");

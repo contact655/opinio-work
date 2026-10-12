@@ -28,9 +28,10 @@ export type SavedCandidateFilters = {
   /* ⚠️★2026-10-13 に外したキー（読み込み時に変換・無視する。`parseSavedFilters`）:
         excludeQuery・roleQuery・companyQuery → q に入れる（除外は "-語"）
         workStyle・salaryMin・includeNoSalary → 無視（右欄に出さない値で絞れると、値が間接的に分かるため） */
-  /** ★希望職種（関心のある職種。2026-10-13 に「職種」から名前だけ改めた。キーは変えていない＝保存済みの意味を変えない） */
-  topRoleId: string | null;
-  childRoleId: string | null;
+  /** ★希望職種（関心のある職種）。複数は OR（2026-10-13 / ステップ5 で複数選択にした）。
+   *  ⚠️ それまでは `topRoleId` / `childRoleId`（単一）。古い保存・URL は `parseSavedFilters` が
+   *     `childRoleId ?? topRoleId` を1件の配列として読み替える（DB の JSON は書き換えない） */
+  desiredRoleIds: string[];
   /** ★経験職種（職歴の職種。現職・前職すべて。複数は OR。親を選ぶと子も含む。2026-10-13） */
   expRoleIds: string[];
   employmentTypes: string[];
@@ -66,8 +67,7 @@ export type SavedCandidateFilters = {
  */
 export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   q: "",
-  topRoleId: null,
-  childRoleId: null,
+  desiredRoleIds: [],
   expRoleIds: [],
   employmentTypes: [],
   tenureBand: "",
@@ -83,6 +83,8 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
 };
 
 const str = (v: unknown, d: string): string => (typeof v === "string" ? v : d);
+/** 雇用形態の旧キー → DB の値（2026-10-13） */
+const LEGACY_EMPLOYMENT: Record<string, string> = { full_time: "正社員", contract: "契約社員", part_time: "アルバイト・パート", freelance: "業務委託" };
 const nullableStr = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
 const strArr = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
@@ -102,6 +104,7 @@ const num = (v: unknown, d: number): number =>
  *      ⚠️ 意味は少し広がる（その欄だけ → 名前・職種・会社・居住地のどれか）。2026-10-13 時点で値の入った保存は0件
  *    - workStyle・salaryMin・includeNoSalary は捨てる
  *    - 職種（topRoleId・childRoleId）は「希望職種」のまま（意味を変えない）
+ *    - ★希望職種は複数選択になった（desiredRoleIds）。単一の topRoleId / childRoleId は1件の配列に読み替える
  * @param opts.missingSort sort が無いときの値。**DB の保存した条件は "new"**（保存した人の意図を変えない）。
  *        URL（`?f=`）は既定値（合うところが多い順）。既定値のキーは URL に書かない作りのため
  */
@@ -116,10 +119,15 @@ export function parseSavedFilters(raw: unknown, opts: { missingSort?: string } =
   ].join(" ");
   return {
     q,
-    topRoleId: nullableStr(o.topRoleId),
-    childRoleId: nullableStr(o.childRoleId),
+    /* ⚠️ 2026-10-13 より前の保存・URL は単一の topRoleId / childRoleId。子を優先して1件の配列にする
+          （それまでの絞り込みが `childRoleId ?? topRoleId` を見ていたのと同じ値） */
+    desiredRoleIds: Array.isArray(o.desiredRoleIds)
+      ? strArr(o.desiredRoleIds)
+      : (() => { const one = nullableStr(o.childRoleId) ?? nullableStr(o.topRoleId); return one ? [one] : []; })(),
     expRoleIds: strArr(o.expRoleIds),
-    employmentTypes: strArr(o.employmentTypes),
+    /* ⚠️ 2026-10-13 より前の選択肢は英語のキーで、DB の値（日本語）と一致せず0人になっていた。日本語に読み替える
+          （インターンは職歴の選択肢に無いので、そのまま残す＝0人のまま） */
+    employmentTypes: Array.from(new Set(strArr(o.employmentTypes).map((v) => LEGACY_EMPLOYMENT[v] ?? v))),
     tenureBand: str(o.tenureBand, ""),
     ageMin: num(o.ageMin, 0),
     ageMax: num(o.ageMax, 0),

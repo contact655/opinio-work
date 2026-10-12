@@ -119,6 +119,36 @@ const FULL: Candidate[] = [
   }),
 ];
 
+/* ★「すべてのフィルター」の件数を手で数えられる6名（2026-10-13 / ステップ5）。
+      ⚠️ 実データでは経験職種・雇用形態・★の組み合わせが薄く、0件の灰色や「その軸以外」の数え方を踏めない。
+      ⚠️ 雇用形態は DB の値（日本語）。経験・希望職種は親まで展開した形（load.ts と同じ） */
+const H = 3600e3, D = 86400e3;
+const tp = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: "company_role" as const, text: `合うところ${i + 1}`, ref: null, weight: 5 - i,
+  row: { item: "職種", person: "営業", ours: "インサイドセールス（営業部）" } }));
+const FACET: Candidate[] = [
+  cand({ id: "f1", name: "青木 一郎", location: "東京都港区", careerStance: "active", careerStanceUpdatedAt: new Date(Date.now() - 2 * H).toISOString(),
+    tenureMonths: 148, currentRole: "AE", currentCompany: "株式会社サンプル", employmentType: "正社員",
+    expRoleIds: ["r-sales", "r-ae"], desiredRoleIds: ["r-sales", "r-ae"], desiredRoleNames: ["アカウントエグゼクティブ"],
+    touchpoints: tp(2), starred: true, createdAt: "2026-10-01T00:00:00Z" }),
+  cand({ id: "f2", name: "井上 二郎", location: "大阪府大阪市", careerStance: "researching", careerStanceUpdatedAt: new Date(Date.now() - 20 * D).toISOString(),
+    tenureMonths: 40, currentRole: "FS", currentCompany: "株式会社ZAP", employmentType: "正社員",
+    expRoleIds: ["r-sales", "r-fs"], desiredRoleIds: ["r-sales", "r-fs"], desiredRoleNames: ["フィールドセールス"],
+    touchpoints: [], createdAt: "2026-09-30T00:00:00Z" }),
+  cand({ id: "f3", name: "上田 三郎", location: null, careerStance: "open", tenureMonths: null,
+    desiredRoleIds: ["r-eng", "r-be"], desiredRoleNames: ["バックエンドエンジニア"], createdAt: "2026-09-29T00:00:00Z" }),
+  cand({ id: "f4", name: "江藤 四郎", location: "神奈川県横浜市", careerStance: "active", careerStanceUpdatedAt: new Date(Date.now() - 5 * D).toISOString(),
+    tenureMonths: 11, currentRole: "IS", currentCompany: "株式会社アルファ", employmentType: "契約社員",
+    expRoleIds: ["r-sales", "r-is"], desiredRoleIds: ["r-sales", "r-is"], desiredRoleNames: ["インサイドセールス"],
+    touchpoints: tp(1), createdAt: "2026-09-28T00:00:00Z" }),
+  cand({ id: "f5", name: "大野 五郎", location: "東京都新宿区", careerStance: "open", careerStanceUpdatedAt: new Date(Date.now() - 40 * D).toISOString(),
+    tenureMonths: 70, currentRole: "バックエンド", currentCompany: "株式会社ベータ", employmentType: "正社員",
+    expRoleIds: ["r-eng", "r-be"], desiredRoleIds: ["r-eng", "r-be"], desiredRoleNames: ["バックエンドエンジニア"],
+    touchpoints: tp(1), starred: true, createdAt: "2026-09-27T00:00:00Z" }),
+  cand({ id: "f6", name: "加藤 六郎", location: "福岡県福岡市", careerStance: "researching", careerStanceUpdatedAt: null,
+    tenureMonths: 30, currentRole: "CS", currentCompany: "株式会社ガンマ", employmentType: "業務委託",
+    expRoleIds: ["r-cs"], desiredRoleIds: ["r-cs", "r-sales"], desiredRoleNames: ["カスタマーサクセス", "営業"],
+    touchpoints: tp(1), createdAt: "2026-09-26T00:00:00Z" }),
+];
 
 export default function CandidatesPreview() {
   if (!IS_DEV) return null;
@@ -127,8 +157,8 @@ export default function CandidatesPreview() {
       <PreviewHeader title="候補者を探す（/biz/candidates）">
         有料プランのゲートの<strong>内側</strong>です。<strong>実画面は有料プラン0社で誰も開けません。</strong>
         <br />
-        見るところ：条件が<strong>上部の「詳細検索」1つ</strong>に畳まれていること／
-        閉じると<strong>選択中の条件がチップで外に出る</strong>こと／並び替えがあること／
+        見るところ：条件が<strong>右のドロワー「すべてのフィルター」</strong>に畳まれていること（2026-10-13）／
+        選択中の条件が<strong>チップの値</strong>と<strong>ボタンの数字</strong>で分かること／並び替えがあること／
         <strong>「転職検討中」が緑でない</strong>・<strong>「メンター」バッジが出ない</strong>こと／
         <strong>「できること」（職種 × 年数）</strong>が出ること（YOUTRUST を参考にした。
         ⚠️ 本人の入力ではなく<strong>職歴からの計算</strong>）。
@@ -136,9 +166,17 @@ export default function CandidatesPreview() {
 
       <Variant
         label="4名（通常）"
-        note="⚠️ 詳細検索を開くと条件が横に並ぶこと。閉じるとチップだけが残ること"
+        note="⚠️「すべてのフィルター」で右からドロワーが出ること"
       >
         <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} />
+      </Variant>
+
+      {/* ★すべてのフィルターの件数（2026-10-13 / ステップ5）。6名を手で数えて照合する */}
+      <Variant
+        label="すべてのフィルター（件数の数え方・6名）"
+        note="⚠️ 件数は「その軸以外の条件を掛けたあとの人数」。例：転職への意向で「積極的」を選ぶと、経験職種の「営業」は2（青木・江藤）、意向の「積極的」自身は2のまま、「情報収集」は2（他の軸だけで数える）。0件は灰色で選べない。結果を表示（○名）は下書きで変わり、✕・Esc・外側で閉じると一覧は変わらない"
+      >
+        <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
       </Variant>
 
       {/* ★送れない理由（2026-10-11 / 柴さんの指示）。実アカウントで検証用の会社を見た状態は、実アカウントでログインしないと

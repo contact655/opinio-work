@@ -1,13 +1,14 @@
 "use client";
 
 import { ResidenceFilter } from "./ResidenceFilter";
-import { OVERSEAS, residenceKey } from "@/lib/utils/location";
+import { CandidateFilterDrawer, drawerFilterCount } from "./CandidateFilterDrawer";
+import { OVERSEAS, PREFECTURE_REGIONS, residenceKey } from "@/lib/utils/location";
 import { ApproachButton } from "@/components/approaches/ApproachButton";
 /* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
-  ACTIVITY_FILTER_OPTIONS, ACTIVITY_SORTS, AGE_FILTER_OPTIONS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, EMPLOYMENT_TYPE_LABELS, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
-  filterCandidates, formatJstSlashMonthDay, isNewSince, sortCandidates,
+  ACTIVITY_SORTS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, TENURE_BANDS,
+  countAxisValues, filterCandidates, formatJstSlashMonthDay, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
@@ -157,9 +158,8 @@ export default function CandidatesClient({
         保存した条件・URL の旧キーは `parseSavedFilters` が検索窓の文字列に直す */
 
   // ── 経歴・雇用形態 ──────────────────────────────────────────────────
-  /* ★希望職種（関心のある職種。2026-10-13 に「職種」から改名・詳細検索へ。キーは変えていない） */
-  const [topRoleId, setTopRoleId] = useState<string | null>(init.topRoleId);
-  const [childRoleId, setChildRoleId] = useState<string | null>(init.childRoleId);
+  /* ★希望職種（関心のある職種）。複数は OR（2026-10-13 / ステップ5。「すべてのフィルター」の中だけ） */
+  const [desiredRoleIds, setDesiredRoleIds] = useState<string[]>(init.desiredRoleIds);
   /* ★経験職種（職歴の職種・複数は OR。2026-10-13）。よく使う行の先頭 */
   const [expRoleIds, setExpRoleIds] = useState<string[]>(init.expRoleIds);
   const [selectedEmploymentTypes, setSelectedEmploymentTypes] = useState<string[]>(init.employmentTypes);
@@ -213,12 +213,12 @@ export default function CandidatesClient({
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
         保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
 
-  /* ── ★詳細検索の開閉（2026-09-20）───────────────────────────────────
-     ⚠️★**280px の常時開きサイドバーに戻さないこと。** 条件12個を縦に並べていたが、
-        `/jobs` が 2026-09-09 に同じ形を畳んでおり、この画面だけ旧型で残っていた。
-     ⚠️★閉じていても、条件はチップの値表示（よく使う行）とボタンの数字で分かる（2026-10-13 に「絞り込み中」の行を外した）。旧: 消すと
-        「絞り込んだ結果を見ている最中に、絞った理由が画面から消える」。 */
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  /* ⚠️★280px の常時開きサイドバーに戻さないこと（2026-09-20 に畳んだ）。
+     ⚠️★条件は、チップの値表示（よく使う行）と「すべてのフィルター（N）」の数字で分かる。 */
+  /* ★「すべてのフィルター」の右ドロワー（2026-10-13 / ステップ5。それまでの「詳細検索」パネルを置き換えた）。
+        ⚠️ 中の変更は下書き。「結果を表示」で反映、閉じたら捨てる（CandidateFilterDrawer） */
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerBtnRef = useRef<HTMLButtonElement | null>(null);
   const [sort, setSort] = useState<string>(init.sort);
   /* ⚠️ 開いているチップは1つだけ。**チップごとに開閉 state を持たせないこと**
         （`/companies` と同じ形）。2つ同時に開くとメニューが重なる。 */
@@ -310,61 +310,17 @@ export default function CandidatesClient({
     updateSelected(id);
   }, [updateSelected]);
 
-  // ── 都道府県・スキルタグを candidates から動的生成 ───────────────────
-  /* ★居住地ごとの人数（2026-10-12）。母集合（絞り込み前）で数える。⚠️ 選択肢は人数に関わらず47＋海外を全部出す */
-  const residenceCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const c of candidates) {
-      const k = residenceKey(c.location);
-      if (k) counts[k] = (counts[k] ?? 0) + 1;
-    }
-    return counts;
-  }, [candidates]);
 
-  /* ★「更新時期」で絞ったときに、更新日時が無くて落ちた人数（2026-09-19）。
-        ⚠️ `filtered` の**後**では数えられない（既に落ちている）ので、母集合から数える。
-        ⚠️ 0 のときは注記を出さない（出すと常に注記が居座る）。 */
-  /* ★年齢で絞ったときに、生年月日が無くて落ちた人数（2026-10-12）。母集合から数える */
-  const droppedNoAge = useMemo(
-    () => (ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? candidates.filter((c) => c.age == null).length : 0),
-    [candidates, ageFilterEnabled, ageMin, ageMax]
-  );
-  /* ★最近の利用で絞ったときに、記録が無くて落ちた人数（2026-10-12） */
-  const droppedNoActivity = useMemo(
-    () => (activityEnabled && activity ? candidates.filter((c) => c.activity == null).length : 0),
-    [candidates, activityEnabled, activity]
-  );
-  const droppedNoStanceTs = useMemo(
-    () => (stanceFreshness ? candidates.filter((c) => !c.careerStanceUpdatedAt).length : 0),
-    [candidates, stanceFreshness]
-  );
+  /* ⚠️ 落ちる人数の注記（更新時期・年齢・最近の利用・社会人年数）は 2026-10-13 にドロワーの中へ移した（CandidateFilterDrawer） */
 
-  const jobTypeFilterActive = topRoleId !== null;
-  const activeFilterCount = [
-    q.trim() ? "x" : "",
-    expRoleIds.length ? "x" : "",
-    jobTypeFilterActive ? "x" : "",
-    selectedEmploymentTypes.length ? "x" : "",
-    tenureBand ? "x" : "",
-    ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? "x" : "",
-    careerStances.length ? "x" : "",
-    activityEnabled && activity ? "x" : "",
-    stanceFreshness ? "x" : "",
-    selectedPrefectures.length ? "x" : "",
-    hasTouchpoints ? "x" : "",
-    starredOnly ? "x" : "",
-  ].filter(Boolean).length;
-  /** ★詳細検索の中にある条件の数（ボタンに出す）。⚠️ よく使う行に出ている条件は数えない（同じものを2か所で数えない） */
-  const advancedCount = [
-    jobTypeFilterActive ? "x" : "",
-    ageFilterEnabled && (ageMin > 0 || ageMax > 0) ? "x" : "",
-    selectedEmploymentTypes.length ? "x" : "",
-    stanceFreshness, activityEnabled && activity ? "x" : "",
-  ].filter(Boolean).length;
+  const activeFilterCount = (q.trim() ? 1 : 0) + drawerFilterCount(
+    { ...EMPTY_SAVED_FILTERS, expRoleIds, desiredRoleIds, careerStances, tenureBand, prefectures: selectedPrefectures,
+      hasTouchpoints, starredOnly, stanceFreshness, employmentTypes: selectedEmploymentTypes, ageMin, ageMax, activity },
+    { ageFilter: ageFilterEnabled, activity: activityEnabled });
 
   /* ⚠️★「絞り込み中：…」の行（activeChips）は 2026-10-13 に外した（柴さんの指示）。
         代わりに**各チップが選択中の値を出し**（「経験職種: 営業 +2」）、右端の ✕ でその軸だけ外せる。
-        「すべて解除」は件数の横。詳細検索の中の条件は、閉じていてもボタンの数字（advancedCount）で分かる */
+        「すべて解除」は件数の横。ドロワーの中の条件は「すべてのフィルター（N）」の数字で分かる */
 
   /* ── ★保存した条件（2026-09-21）────────────────────────────────────────
      ⚠️★**この表がこの機能の歯止め。** マップ型なので、
@@ -374,8 +330,7 @@ export default function CandidatesClient({
      ⚠️ `sort` も入れてある。並び替えまで戻さないと「その画面」の再現にならない。 */
   const FILTER_SETTERS: { [K in keyof SavedCandidateFilters]: (v: SavedCandidateFilters[K]) => void } = {
     q: setQ,
-    topRoleId: setTopRoleId,
-    childRoleId: setChildRoleId,
+    desiredRoleIds: setDesiredRoleIds,
     expRoleIds: setExpRoleIds,
     employmentTypes: setSelectedEmploymentTypes,
     tenureBand: setTenureBand,
@@ -392,12 +347,12 @@ export default function CandidatesClient({
 
   /** いま効いている条件。⚠️ 保存もクリアも比較も、すべてこの形を通す */
   const currentFilters: SavedCandidateFilters = useMemo(() => ({
-    q, topRoleId, childRoleId, expRoleIds,
+    q, desiredRoleIds, expRoleIds,
     employmentTypes: selectedEmploymentTypes,
     tenureBand, ageMin, ageMax, prefectures: selectedPrefectures, careerStances, stanceFreshness, activity,
     hasTouchpoints, starredOnly,
     sort,
-  }), [q, topRoleId, childRoleId, expRoleIds,
+  }), [q, desiredRoleIds, expRoleIds,
        selectedEmploymentTypes,
        tenureBand, ageMin, ageMax, selectedPrefectures, careerStances, stanceFreshness, activity,
        hasTouchpoints, starredOnly,
@@ -453,6 +408,14 @@ export default function CandidatesClient({
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
   }, [withStars, currentFilters, newSince, ageFilterEnabled, activityEnabled]);
   const filtered = useMemo(() => (showHidden ? filteredWithHidden : filteredWithHidden.filter((c) => c.hidden !== true)), [filteredWithHidden, showHidden]);
+  /* ★一次チップ「居住地」の件数（2026-10-13 / 柴さんの判断でドロワーと同じ数え方に揃えた）。
+        「居住地以外の条件をすべて掛けたあとの人数」。0件は灰色で選べない（選択中なら外せる）。
+     ⚠️★数え方は model.ts の countAxisValues の1つ（ドロワーと同じ関数）。ここに条件を書き写さないこと */
+  const residenceCounts = useMemo(() => countAxisValues(
+    withStars, currentFilters, "prefecture",
+    Object.fromEntries([...PREFECTURE_REGIONS.flatMap((r) => r.prefectures), OVERSEAS].map((p) => [p, { prefectures: [p] }])),
+    new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden: showHidden, newSince },
+  ), [withStars, currentFilters, ageFilterEnabled, activityEnabled, showHidden, newSince]);
   /** いまの条件に合う人のうち、見送った人数（末尾の「見送った○名は非表示」） */
   const hiddenCount = useMemo(() => filteredWithHidden.filter((c) => c.hidden === true).length, [filteredWithHidden]);
   /* ⚠️ 見送った人が0人になったら「表示する」を戻す。戻さないと切り替えが画面から消えたまま表示中が残り、
@@ -485,7 +448,8 @@ export default function CandidatesClient({
     document.querySelector(`[data-candidate-card="${next.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "instant" });
   }, [sorted, shownIndex, shownId, updateSelected]);
   useEffect(() => {
-    if (!isWide) return;
+    /* ⚠️ ドロワーが開いている間は一覧を動かさない（背景の候補者が切り替わるのを防ぐ） */
+    if (!isWide || drawerOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const t = e.target as HTMLElement | null;
@@ -498,7 +462,7 @@ export default function CandidatesClient({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isWide, sorted.length, moveSelection]);
+  }, [isWide, drawerOpen, sorted.length, moveSelection]);
 
   /* ★見送り（2026-10-13）。付ける・外す。⚠️ 失敗したら戻す。⚠️ 候補者本人には何も届かない
         付けたとき、その人を右欄で見ていて見送った人を隠しているなら、次の人（無ければ前の人）を選ぶ */
@@ -527,9 +491,6 @@ export default function CandidatesClient({
     return () => clearTimeout(t);
   }, [undoHidden]);
 
-  /** 絞り込み後に残っている「社会人年数が未算出」の人数。注記に出す */
-  const unknownTenureCount = useMemo(() => filtered.filter((c) => c.tenureMonths == null).length, [filtered]);
-
   const applyFilters = useCallback((f: SavedCandidateFilters) => {
     /* ⚠️ キーを列挙せず表から回す。列挙すると、ここだけ足し忘れる余地が戻る。 */
     (Object.keys(FILTER_SETTERS) as (keyof SavedCandidateFilters)[]).forEach((k) => {
@@ -553,8 +514,12 @@ export default function CandidatesClient({
 
   /* ⚠️★「クリア」も同じ経路。**空の定義を2つ持たない**
         （持つと「クリアしたのに1つだけ残る」が起きる）。 */
+  /* ★役割の分担（2026-10-13 / 柴さんの判断）:
+        件数の横の「すべて解除」… 検索窓も含めて全部消す。**並び替えは残す**
+        ドロワーの「すべてクリア」… ドロワーに出ている条件だけ（下書き）。検索窓と並び替えは残す（CandidateFilterDrawer）
+     ⚠️ 空の定義は EMPTY_SAVED_FILTERS の1つだけ（並び替えだけ今の値で上書きする） */
   function clearAllFilters() {
-    applyFilters(EMPTY_SAVED_FILTERS);
+    applyFilters({ ...EMPTY_SAVED_FILTERS, sort });
     setNewSince(null);
     setOpenedSaved(null);
   }
@@ -665,11 +630,10 @@ export default function CandidatesClient({
   }
 
 
-  /* ── ★詳細検索パネルの中身（2026-09-20 にサイドバーから移した）──────────
+  /* ★経験職種のチップの選択肢（大分類＋子）。
      ⚠️★**チップは `components/common/FilterChip.tsx` を使う。** `/companies` と
         `/people` が同じものを使っており、**同じ名前の別実装を作らない**（3つ目を作らない）。
-     ⚠️ （2026-10-13 に「絞り込み中」の行＝activeChips を外したので、並びを揃える相手は無くなった）
-     ⚠️ 自由入力（社内での呼び方・会社名）だけはチップにできないので、先頭に小さな欄として置く。 */
+     ⚠️ 「詳細検索」のパネルは 2026-10-13 に外した（右のドロワー「すべてのフィルター」に置き換え）。 */
   const roleChipOptions = roleFilterTree.flatMap((top) => [
     { value: top.id, label: top.name },
     /* ⚠️ 子は `parent` を付けて親の直下にぶら下げる（フェーズと同じ形）。
@@ -677,149 +641,10 @@ export default function CandidatesClient({
     ...top.children.map((child) => ({ value: child.id, label: child.name, parent: top.id })),
   ]);
 
-  /* ── ★詳細検索パネルは「項目の種類ごとの行」に分けた（2026-09-21 / 柴さん）────
-     それまでは入力欄3つとチップ9つが**見出しなしで1つの塊に折り返して**並んでおり、
-     どれが経歴の条件でどれが希望の条件か読めなかった（YOUTRUST の絞り込みを参考に整理）。
-     ⚠️★**280px の常時開きサイドバーには戻していない**（2026-09-20 の判断はそのまま）。
-        変えたのは「畳んだパネルの中の並べ方」だけ。
-     ⚠️ 「絞り込み中」の行は 2026-10-13 に外した。 */
-
-  const filterRow = (label: string, children: React.ReactNode) => (
-    <div className="cand-filter-row" style={{ display: "grid", gridTemplateColumns: "96px minmax(0, 1fr)", alignItems: "center", gap: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>{label}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>{children}</div>
-    </div>
-  );
-
-  const advancedPanel = (
-    <div style={{
-      flexBasis: "100%", display: "flex", flexDirection: "column", gap: 12,
-      background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 12, padding: "16px 18px",
-    }}>
-      {/* ⚠️ 「キーワード」の行（社内での呼び方・現在の会社名・除外するワード）は 2026-10-13 に外した（検索窓に一本化。除外は "-語"） */}
-      {filterRow("経歴", <>
-        {/* ★年齢（下限・上限）。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ出す（本番は無効） */}
-        {ageFilterEnabled && (<>
-          <FilterChip
-            label="年齢（下限）" value={ageMin ? String(ageMin) : ""}
-            labelPrefix clearLabel="年齢（下限）の条件を外す"
-            options={AGE_FILTER_OPTIONS.filter((a) => !ageMax || a <= ageMax).map((a) => ({ value: String(a), label: `${a}歳以上` }))}
-            onSelect={(v) => setAgeMin(v ? Number(v) : 0)}
-            isOpen={openChip === "ageMin"} onToggle={() => setOpenChip(openChip === "ageMin" ? null : "ageMin")}
-          />
-          <FilterChip
-            label="年齢（上限）" value={ageMax ? String(ageMax) : ""}
-            labelPrefix clearLabel="年齢（上限）の条件を外す"
-            options={AGE_FILTER_OPTIONS.filter((a) => !ageMin || a >= ageMin).map((a) => ({ value: String(a), label: `${a}歳以下` }))}
-            onSelect={(v) => setAgeMax(v ? Number(v) : 0)}
-            isOpen={openChip === "ageMax"} onToggle={() => setOpenChip(openChip === "ageMax" ? null : "ageMax")}
-          />
-        </>)}
-        <FilterChip
-          label="雇用形態" value="" values={selectedEmploymentTypes}
-          labelPrefix clearLabel="雇用形態の条件を外す" onClear={() => setSelectedEmploymentTypes([])}
-          options={Object.entries(EMPLOYMENT_TYPE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
-          onSelect={() => {}}
-          onToggleValue={(v) => setSelectedEmploymentTypes(toggleMulti(selectedEmploymentTypes, v))}
-          isOpen={openChip === "emp"} onToggle={() => setOpenChip(openChip === "emp" ? null : "emp")}
-        />
-      </>)}
-
-      {/* ★希望職種（関心のある職種。2026-10-13 に「職種」から改名し、詳細検索へ移した）。
-             ⚠️ 働き方・希望年収の絞り込みは外した（右欄に出さない値で絞れると、値が間接的に分かるため） */}
-      {filterRow("希望", <>
-        <FilterChip
-          label="希望職種" value={childRoleId ?? topRoleId ?? ""}
-          options={roleChipOptions} searchable labelPrefix clearLabel="希望職種の条件を外す"
-          onSelect={(v) => {
-            if (!v) { setTopRoleId(null); setChildRoleId(null); return; }
-            const parent = roleFilterTree.find((t) => t.id === v);
-            if (parent) { setTopRoleId(v); setChildRoleId(null); return; }
-            /* 子を選んだら、親も一緒に立てる。⚠️ 絞り込みは `childRoleId ?? topRoleId` を見る */
-            const owner = roleFilterTree.find((t) => t.children.some((c) => c.id === v));
-            setTopRoleId(owner?.id ?? null); setChildRoleId(v);
-          }}
-          isOpen={openChip === "desiredRole"} onToggle={() => setOpenChip(openChip === "desiredRole" ? null : "desiredRole")}
-        />
-      </>)}
-
-      {/* ★転職意欲と更新時期。⚠️★**2つは対。片方だけ外さないこと**（更新時期だけだと
-             「意欲は問わないが最近更新した人」になり、条件として成立しない）。 */}
-      {filterRow("意向の更新・利用", <>
-        <FilterChip
-          label="意向を更新した時期" value={stanceFreshness}
-          labelPrefix clearLabel="意向を更新した時期の条件を外す"
-          options={STANCE_FRESHNESS_BANDS.map((b) => ({ value: b.value, label: b.label }))}
-          onSelect={(v) => setStanceFreshness(v ?? "")}
-          isOpen={openChip === "fresh"} onToggle={() => setOpenChip(openChip === "fresh" ? null : "fresh")}
-        />
-        {/* ★最近の利用（2026-10-12）。⚠️ CANDIDATE_ACTIVITY_ENABLED のときだけ（本番は無効） */}
-        {activityEnabled && (
-          <FilterChip
-            label="最近の利用" value={activity}
-            labelPrefix clearLabel="最近の利用の条件を外す"
-            options={ACTIVITY_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            onSelect={(v) => setActivity(v ?? "")}
-            isOpen={openChip === "activity"} onToggle={() => setOpenChip(openChip === "activity" ? null : "activity")}
-          />
-        )}
-        {/* ⚠️★「声かけを受け取る方のみ」は 2026-10-10（段2）に1段目のトグルへ移した。ここに戻さないこと（入口を2つにしない） */}
-      </>)}
-
-      {/* ⚠️★黙って減らさない／黙って混ぜない。**理由と人数を画面に出す。**
-             ⚠️ 2つは向きが逆（更新時期は落とす・社会人年数は通す）。**揃えていないのは意図的。** */}
-      {stanceFreshness && droppedNoStanceTs > 0 && (
-        <div style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-          更新日時が記録されていない {droppedNoStanceTs} 名は含みません。
-          この記録は 2026-09-19 から取り始めたため、それ以前に答えた方は対象外です。
-        </div>
-      )}
-      {droppedNoAge > 0 && (
-        <div data-state="age-dropped-note" style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-          生年月日が未登録の {droppedNoAge} 名は含みません。
-        </div>
-      )}
-      {droppedNoActivity > 0 && (
-        <div data-state="activity-dropped-note" style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-          利用の記録が無い {droppedNoActivity} 名は含みません。この記録は 2026-10-12 から取り始めました。
-        </div>
-      )}
-      {tenureBand && unknownTenureCount > 0 && (
-        <div style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-          職歴が未登録の {unknownTenureCount} 名は年数を算出できないため、そのまま表示しています。
-        </div>
-      )}
-
-      {/* フッター：その他の条件と、まとめて外す */}
-      {activeFilterCount > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", paddingTop: 12, borderTop: "1px solid var(--line-soft)" }}>
-          {activeFilterCount > 0 && (
-            <button type="button" onClick={clearAllFilters}
-              style={{
-                marginLeft: "auto", height: 32, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)",
-                background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer",
-                fontFamily: "inherit", fontWeight: 600, flexShrink: 0,
-              }}>
-              条件をすべて外す（{activeFilterCount}）
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ⚠️ 狭い画面では見出しを上に積む（96px の列を取ると入力欄が潰れる） */}
-      <style>{`
-        @media (max-width: 640px) {
-          .cand-filter-row { grid-template-columns: 1fr !important; gap: 6px !important; }
-        }
-      `}</style>
-    </div>
-  );
-
-
   /* ── ★よく使う条件の行（2026-10-12 / 柴さんの指示）──────────────────────────
-     検索窓の下に1行：職種／転職への意向／社会人年数／居住地／合うところあり／気になる（n）／詳細検索。
-     ⚠️ 年齢・最近の利用は詳細検索の中（スイッチがオンのときだけ）。
+     検索窓の下に1行：経験職種／転職への意向／社会人年数／居住地／合うところあり／気になる（n）／すべてのフィルター。
+     ⚠️ 希望職種・意向を更新した時期・雇用形態・年齢・最近の利用はドロワーの中だけ（年齢・最近の利用はスイッチがオンのとき）。
+     ⚠️★一次チップとドロワーは同じ state（currentFilters）を見る。ドロワーは開いた時点の値から下書きを作る
      ⚠️ 画面のラベルは「居住地」（指示は「勤務地」だったが、見ているのは本人のお住まい `ow_users.location`。
         希望勤務地とは別の列なので「勤務地」と書くと別のもので絞っているように読める） */
   const toggleStyle = (on: boolean): React.CSSProperties => ({
@@ -864,31 +689,26 @@ export default function CandidatesClient({
       <button type="button" aria-pressed={starredOnly} data-state="toggle-starred" onClick={() => setStarredOnly((v) => !v)} style={toggleStyle(starredOnly)}>
         <StarIcon filled={starredOnly} />気になる（{starredCount}）
       </button>
-        {/* 詳細検索。⚠️ 効いている条件の数をボタンに出す（閉じていても分かるように） */}
-      <button
-        type="button" onClick={() => setShowAdvanced((v) => !v)}
-        aria-expanded={showAdvanced}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-          height: 34, padding: "0 14px", borderRadius: 999, cursor: "pointer",
-          fontFamily: "inherit", fontSize: 13,
-          fontWeight: showAdvanced || advancedCount > 0 ? 700 : 500,
-          border: `1px solid ${showAdvanced || advancedCount > 0 ? "var(--royal)" : "var(--line)"}`,
-          background: showAdvanced || advancedCount > 0 ? "var(--royal-50)" : "#fff",
-          color: showAdvanced || advancedCount > 0 ? "var(--royal)" : "var(--ink-soft)",
-        }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
-        </svg>
-        詳細検索
-        {advancedCount > 0 && (
-          <span style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999,
-            background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 800,
-          }}>{advancedCount}</span>
-        )}
-      </button>
+      {/* ★すべてのフィルター（2026-10-13 / ステップ5）。右のドロワーに全部の軸。⚠️ 効いている条件の数をボタンに出す（検索窓は数えない） */}
+      {(() => {
+        const n = drawerFilterCount(currentFilters, { ageFilter: ageFilterEnabled, activity: activityEnabled });
+        return (
+          <button ref={drawerBtnRef} type="button" onClick={() => { setOpenChip(null); setDrawerOpen(true); }}
+            aria-haspopup="dialog" aria-expanded={drawerOpen} data-state="open-all-filters"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
+              height: 34, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+              fontFamily: "inherit", fontSize: 13, fontWeight: n > 0 ? 700 : 500,
+              border: `1px solid ${n > 0 ? "var(--royal)" : "var(--line)"}`,
+              background: n > 0 ? "var(--royal-50)" : "#fff", color: n > 0 ? "var(--royal)" : "var(--ink-soft)",
+            }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
+            </svg>
+            {n > 0 ? `すべてのフィルター（${n}）` : "すべてのフィルター"}
+          </button>
+        );
+      })()}
 
     </div>
   );
@@ -898,7 +718,7 @@ export default function CandidatesClient({
 
       {/* ── ★ツールバー（2026-09-20）─────────────────────────────────────────
              `/companies`・`/jobs`・`/people` と同じ並び：
-               検索窓 → 詳細検索 → 並び替え → 件数
+               検索窓 → 並び替え → 件数（「すべてのフィルター」は次の行の末尾。2026-10-13）
              ⚠️★**280px のサイドバーに戻さないこと。** 条件12個を常時開きで縦に
                 並べていたのを畳んだ（`/jobs` が 2026-09-09 にやったのと同じ）。 */}
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -1170,7 +990,6 @@ export default function CandidatesClient({
           </div>
         )}
 
-        {showAdvanced && advancedPanel}
       </div>
 
       {/* ── 一覧＋右のプレビュー（2026-10-10 / 段1）──────────────────────────────
@@ -1339,6 +1158,16 @@ export default function CandidatesClient({
         </aside>
       </div>
 
+      {/* ★すべてのフィルター（2026-10-13 / ステップ5）。⚠️ body に出る（一覧の幅・右欄に影響させない）。
+             件数・下書き・反映は CandidateFilterDrawer。一次チップと同じ state（currentFilters）を共有する */}
+      <CandidateFilterDrawer
+        open={drawerOpen} onClose={() => setDrawerOpen(false)}
+        applied={currentFilters} onApply={applyFilters}
+        candidates={withStars} newSince={newSince} includeHidden={showHidden}
+        ageFilterEnabled={ageFilterEnabled} activityEnabled={activityEnabled}
+        roleFilterTree={roleFilterTree} returnFocusRef={drawerBtnRef}
+      />
+
       {/* ★見送った直後の「元に戻す」（2026-10-13）。⚠️ 6秒で消える。押すと DELETE を呼ぶ */}
       {undoHidden && (
         <div role="status" data-state="hidden-undo-toast" style={{
@@ -1428,7 +1257,7 @@ export default function CandidatesClient({
       `}</style>
 
       {/* ⚠️★2026-09-20 に `.candidates-sidebar` / `.candidates-mobile-toggle` を削除した。
-             サイドバーをやめ、条件は上部の「詳細検索」に畳んである。
+             サイドバーをやめ、条件は右のドロワー「すべてのフィルター」に畳んである（2026-10-13）。
              ⚠️ ツールバーは flex-wrap で折り返すので、狭い画面用の出し分け CSS は要らない。 */}
     </div>
   );

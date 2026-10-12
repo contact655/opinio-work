@@ -7857,6 +7857,7 @@ curl -s https://opinio.jp/api/health
 
 ## 🔧 将来の改善課題
 
+- ⚠️★/biz/candidates の希望職種は 2026-10-13 に複数選択（保存した条件のキー `desiredRoleIds`）にした。旧キー `topRoleId`/`childRoleId` は読むときに1件の配列へ読み替える。**このコミットを差し戻すときは、その間に保存した条件（`ow_saved_candidate_searches.filters` の `desiredRoleIds`）を確認すること**（旧コードは知らないキーを捨てるので、希望職種だけ黙って効かなくなる）
 - ⚠️ /biz/candidates の「経験職種」の選択肢は IT の職種（is_it_saas の大分類11＋子）だけ（2026-10-13）。職歴に IT 以外の職種を持てるようにするときに見直す（希望職種と同じ選択肢を使っている）
 
 ### ⚠️★★/biz の除外パスからクライアント遷移すると、サイドバーが空・「管理者」が出ない（2026-10-13）

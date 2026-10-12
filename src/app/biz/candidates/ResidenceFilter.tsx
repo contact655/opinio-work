@@ -6,7 +6,10 @@ import { OVERSEAS, PREFECTURE_REGIONS } from "@/lib/utils/location";
 /**
  * ★候補者を探すの「居住地」の絞り込み（2026-10-12 / 柴さんの指示）。
  *   47都道府県を地方ごとに**常に全部**出す（データの有無に関わらない）＋「海外」。複数選択。
- *   地方ごとの「すべて」でまとめて選択・解除。各選択肢の横に該当人数、0人はグレー（選べる）。
+ *   地方ごとの「すべて」でまとめて選択・解除。各選択肢の横に該当人数。
+ *   ★人数は「居住地以外の条件をすべて掛けたあとの人数」（2026-10-13。ドロワーと同じ `countAxisValues`）。
+ *   ★0人は灰色で選べない。**ただし選択中のものは0人でも外せる**（2026-10-13 / 柴さんの判断。ドロワーと同じ）。
+ *   地方の「すべて」も0人の県は足さない（選べないものを選ばせない）。
  *   「クリア」「適用」。押すまで一覧は変わらない（開いている間は下書き）。
  *
  * ⚠️ 判定（候補者の居住地 → 都道府県・海外）は `lib/utils/location.ts` の `residenceKey` の1か所。
@@ -15,7 +18,7 @@ import { OVERSEAS, PREFECTURE_REGIONS } from "@/lib/utils/location";
  */
 export function ResidenceFilter({ selected, counts, onApply, isOpen, onToggle }: {
   selected: string[];
-  /** 都道府県・海外 → 人数（いまの絞り込み前の母集合で数える） */
+  /** 都道府県・海外 → 人数（居住地以外の条件をすべて掛けたあとの人数。CandidatesClient が countAxisValues で数える） */
   counts: Record<string, number>;
   onApply: (next: string[]) => void;
   isOpen: boolean;
@@ -35,9 +38,12 @@ export function ResidenceFilter({ selected, counts, onApply, isOpen, onToggle }:
 
   const has = (v: string) => draft.includes(v);
   const toggle = (v: string) => setDraft((d) => (d.includes(v) ? d.filter((x) => x !== v) : [...d, v]));
+  /* ⚠️ 0人で選んでいない県は「すべて」でも足さない（選べないものを選ばせない）。外すときは地方の選択中をすべて外す */
+  const selectable = (p: string) => (counts[p] ?? 0) > 0 || draft.includes(p);
   const toggleRegion = (prefs: readonly string[]) => setDraft((d) => {
-    const all = prefs.every((p) => d.includes(p));
-    return all ? d.filter((x) => !prefs.includes(x)) : Array.from(new Set([...d, ...prefs]));
+    const pickable = prefs.filter((p) => (counts[p] ?? 0) > 0 || d.includes(p));
+    const all = pickable.length > 0 && pickable.every((p) => d.includes(p));
+    return all ? d.filter((x) => !prefs.includes(x)) : Array.from(new Set([...d, ...pickable]));
   });
 
   const active = selected.length > 0;
@@ -66,13 +72,14 @@ export function ResidenceFilter({ selected, counts, onApply, isOpen, onToggle }:
             background: "#fff", border: "1px solid var(--line)", borderRadius: 12, boxShadow: "0 8px 28px rgba(15,23,42,0.14)" }}>
           <div style={{ maxHeight: 440, overflowY: "auto", padding: "12px 14px", display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px 14px" }}>
             {PREFECTURE_REGIONS.map((r) => {
-              const all = r.prefectures.every((p) => has(p));
+              const pickable = r.prefectures.filter(selectable);
+              const all = pickable.length > 0 && pickable.every((p) => has(p));
               return (
                 <section key={r.region} data-region={r.region} style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginBottom: 4 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)" }}>{r.region}</span>
-                    <button type="button" onClick={() => toggleRegion(r.prefectures)} data-state="region-all"
-                      style={{ border: "none", background: "none", padding: 0, fontSize: 11.5, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit" }}>
+                    <button type="button" onClick={() => toggleRegion(r.prefectures)} data-state="region-all" disabled={pickable.length === 0}
+                      style={{ border: "none", background: "none", padding: 0, fontSize: 11.5, fontWeight: 600, color: pickable.length === 0 ? "var(--ink-mute)" : "var(--royal)", cursor: pickable.length === 0 ? "default" : "pointer", fontFamily: "inherit" }}>
                       {all ? "すべて外す" : "すべて"}
                     </button>
                   </div>
@@ -102,9 +109,11 @@ export function ResidenceFilter({ selected, counts, onApply, isOpen, onToggle }:
 }
 
 function Opt({ label, n, checked, onChange }: { label: string; n: number; checked: boolean; onChange: () => void }) {
+  /* ⚠️ 0人は選べない。ただし選択中なら外せる（ドロワーの FilterOption と同じ規則） */
+  const disabled = n === 0 && !checked;
   return (
-    <label data-zero={n === 0 ? "1" : "0"} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", fontSize: 13, cursor: "pointer", color: n === 0 ? "var(--ink-mute)" : "var(--ink)" }}>
-      <input type="checkbox" checked={checked} onChange={onChange} style={{ accentColor: "var(--royal)", margin: 0 }} />
+    <label data-zero={n === 0 ? "1" : "0"} data-disabled={disabled ? "1" : "0"} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", fontSize: 13, cursor: disabled ? "default" : "pointer", color: n === 0 ? "var(--ink-mute)" : "var(--ink)" }}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={onChange} style={{ accentColor: "var(--royal)", margin: 0 }} />
       <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
       <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{n}</span>
     </label>
