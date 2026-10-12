@@ -168,7 +168,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={`${inter.variable} ${notoSerifJP.variable}`}>
+    /* ⚠️ suppressHydrationWarning は <html> 自身の属性だけに効く（子には効かない）。/biz のサイドバーの開閉
+          （data-biz-sidebar）を描画の前にスクリプトで付けるので、その1つの属性の食い違いを許すため（2026-10-12） */
+    <html lang="ja" className={`${inter.variable} ${notoSerifJP.variable}`} suppressHydrationWarning>
       <head>
         {/* PWA */}
         {/* ⚠️ content / color は CSS ではないので var(--royal) は解決されない。16進で書く（--royal と同値） */}

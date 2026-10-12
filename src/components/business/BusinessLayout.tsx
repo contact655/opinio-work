@@ -7,11 +7,19 @@ import React, { useState, useEffect, useRef, createContext, useContext } from "r
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut, PanelLeft } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
+
+/* ★サイドバーをしまう（2026-10-12 / 柴さんの指示）。状態は <html data-biz-sidebar="collapsed"> と localStorage。
+      ⚠️ 最初の表示で「開いた → しまった」に切り替わって見えないよう、**描画の前に**この小さなスクリプトで属性を付ける
+         （見た目は CSS が属性を見て決める。React の state は aria-expanded とツールチップのためだけ）。
+      ⚠️ 読み書きは try/catch。保存できない環境では開いた状態のまま。
+      ⚠️ 1024px 未満では効かない（CSS のメディアクエリの中だけで切り替える）。 */
+const SIDEBAR_KEY = "biz-sidebar";
+const SIDEBAR_INIT = `try{if(localStorage.getItem("${SIDEBAR_KEY}")==="collapsed")document.documentElement.setAttribute("data-biz-sidebar","collapsed")}catch(e){}`;
 
 type Props = {
   userName: string;
@@ -240,6 +248,35 @@ function BusinessChrome({
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   useEffect(() => { setPendingHref(null); }, [pathname]);
   const currentPath = pendingHref ?? pathname;
+
+  /* ★サイドバーをしまう（2026-10-12）。見た目は CSS（html の属性）が決める。ここは押したときの切り替えと aria-expanded だけ */
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => { setCollapsed(document.documentElement.getAttribute("data-biz-sidebar") === "collapsed"); }, []);
+  function toggleSidebar() {
+    const next = !collapsed;
+    setCollapsed(next);
+    const html = document.documentElement;
+    html.classList.add("biz-sidebar-anim");  // ⚠️ 押したときだけ動かす（最初の表示では動かさない）
+    if (next) html.setAttribute("data-biz-sidebar", "collapsed"); else html.removeAttribute("data-biz-sidebar");
+    try { localStorage.setItem(SIDEBAR_KEY, next ? "collapsed" : "expanded"); } catch { /* 保存できない環境では次回は開いた状態 */ }
+  }
+  /* しまっているときの項目名（ツールチップ）。⚠️ サイドバーは縦にスクロールするので、はみ出す吹き出しは position: fixed で出す */
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+  useEffect(() => { setTip(null); }, [pathname, collapsed]);
+  /* 窓の大きさが変わったり、サイドバーや本文がスクロールしたら消す（位置が古くなるため） */
+  useEffect(() => {
+    if (!tip) return;
+    const clear = () => setTip(null);
+    window.addEventListener("resize", clear);
+    window.addEventListener("scroll", clear, true);
+    return () => { window.removeEventListener("resize", clear); window.removeEventListener("scroll", clear, true); };
+  }, [tip]);
+  function showTip(e: React.SyntheticEvent<HTMLElement>, label: string) {
+    if (!collapsed || window.innerWidth < 1024) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 8 });
+  }
+  const hideTip = () => setTip(null);
   function isActive(href: string) {
     return currentPath === href || currentPath.startsWith(href + "/");
   }
@@ -440,7 +477,10 @@ function BusinessChrome({
       {/* ── Body: sidebar + main ── */}
       {/* ⚠️ 企業が無いときは1列。列だけ残すと本文が右に寄り、
              「サイドバーが読み込み中」に見える。 */}
-      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: hasCompany ? "240px 1fr" : "1fr", minHeight: "calc(100vh - var(--biz-header-h))" }}>
+      {/* ★サイドバーの開閉を描画の前に決める（上の SIDEBAR_INIT）。⚠️ 消すと、しまった人に毎回「開いた → しまった」の切り替えが見える */}
+      {hasCompany && <script dangerouslySetInnerHTML={{ __html: SIDEBAR_INIT }} />}
+      {/* ⚠️ サイドバーの幅は CSS の変数（--biz-sidebar-w）。しまうと 64px。数字をここに書かない */}
+      <div className="biz-layout-grid" style={{ display: "grid", gridTemplateColumns: hasCompany ? "var(--biz-sidebar-w) 1fr" : "1fr", minHeight: "calc(100vh - var(--biz-header-h))" }}>
 
         {/* Sidebar
             ⚠️★**企業が紐付いていないときは丸ごと出さない**（2026-09-04 / 柴さんの指摘）。
@@ -458,13 +498,33 @@ function BusinessChrome({
           height: "calc(100vh - var(--biz-header-h))",
           overflowY: "auto",
           outline: "none",
+          /* ★sticky は重なりの層を作るので、層の順を本文より上にする（2026-10-12）。
+                無いと、会社の切り替えのメニュー（position: fixed）が本文の下に隠れる */
+          zIndex: 20,
         }}>
           {/* ★企業の切り替えをサイドバーの最上段へ（2026-09-21。YOUTRUST / LinkedIn と同じ位置）。
                  ⚠️ 狭い画面ではサイドバーが横スクロールの列になるので、ここは隠して
                     ヘッダー側を出す（CSS の `.biz-sidebar-company` / `.biz-header-company-switch`）。
                     **どちらか一方しか見えない**ようにしてある。 */}
+          {/* ★しまう／開くボタン（2026-10-12）。⚠️ 1024px 未満では出さない（CSS） */}
+          <div className="biz-sidebar-toggle-row">
+            <button
+              type="button"
+              className="biz-sidebar-toggle btn-fixed-size"
+              onClick={toggleSidebar}
+              aria-label={collapsed ? "サイドバーを開く" : "サイドバーをしまう"}
+              aria-expanded={!collapsed}
+              aria-controls="biz-sidebar-nav"
+              onMouseEnter={(e) => showTip(e, "サイドバーを開く")}
+              onFocus={(e) => showTip(e, "サイドバーを開く")}
+              onMouseLeave={hideTip}
+              onBlur={hideTip}
+            >
+              <PanelLeft size={18} strokeWidth={2} />
+            </button>
+          </div>
           {tenantName && memberships && currentTenantId && (
-            <div className="biz-sidebar-company" style={{ height: 58, boxSizing: "border-box", padding: "0 12px 14px", marginBottom: 6, borderBottom: "1px solid var(--line-soft)" }}>
+            <div className="biz-sidebar-company">
               <CompanySwitcher
                 placement="sidebar"
                 currentCompany={{ id: currentTenantId, name: tenantName, logoGradient: tenantLogoGradient, logoLetter: tenantLogoLetter }}
@@ -473,7 +533,7 @@ function BusinessChrome({
             </div>
           )}
 
-          <nav>
+          <nav id="biz-sidebar-nav">
             {/* ★権限が無い項目は出さない（押せない状態で残さない。2026-10-12）。見出しは中身が残るときだけ */}
             {NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((it) => it.needs.some((a) => can(shell.permission, a))) }))
               .filter((g) => g.items.length > 0).map((group, gi) => (
@@ -482,12 +542,9 @@ function BusinessChrome({
                    ⚠️ 見出しと項目は **nav の直下に兄弟として**並べる。グループを div で包むと、
                       狭い画面の横並び（nav が flex）で1グループが1かたまりになり崩れる。 */}
             {group.heading && (
-              <div className="biz-nav-heading" style={{
-                fontSize: 11, fontWeight: 700, color: "var(--ink-mute)",
-                letterSpacing: "0.04em",
-                padding: "16px 20px 6px",
-              }}>
-                {group.heading}
+              /* ⚠️ 文字の大きさ・余白はインラインに書かない（しまったときに細い区切り線にするため。下の style タグ） */
+              <div className="biz-nav-heading" role="presentation">
+                <span className="biz-nav-label">{group.heading}</span>
               </div>
             )}
             {group.items.map((item) => {
@@ -505,17 +562,22 @@ function BusinessChrome({
                 <div key={item.href} className="biz-nav-item">
                   <Link
                     href={item.href}
+                    className="biz-nav-link"
                     aria-current={active ? "page" : undefined}
+                    /* ⚠️ しまうと項目名が見えなくなる（display: none）ので、名前は aria-label でも持つ。件数も入れる */
+                    aria-label={badgeCount > 0 ? `${item.label}（${item.badge === "proposals" ? "未回答" : "未読・新しい返信"} ${badgeCount}件）` : item.label}
+                    onFocus={(e) => showTip(e, item.label)}
+                    onBlur={hideTip}
                     onClick={(e) => {
                       /* ⚠️ ⌘・中クリック（別タブ）では選択を変えない */
                       if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                       if (!(pathname === item.href)) setPendingHref(item.href);
                     }}
                     style={{
-                      /* ★各項目の高さを固定（2026-10-12）。バッジの有無・読み込みで行の高さが変わらないように */
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      /* ★各項目の高さを固定（2026-10-12）。バッジの有無・読み込みで行の高さが変わらないように
+                         ⚠️ 横の余白と寄せ方は CSS（.biz-nav-link）。しまったときにアイコンを真ん中へ寄せるため */
+                      display: "flex", alignItems: "center",
                       height: 38, boxSizing: "border-box",
-                      padding: "0 20px",
                       fontSize: 13, fontWeight: active ? 600 : 500,
                       color: active ? "var(--royal)" : "var(--ink-soft)",
                       textDecoration: "none",
@@ -524,33 +586,38 @@ function BusinessChrome({
                       transition: "all 0.15s",
                     }}
                     onMouseEnter={(e) => {
+                      showTip(e, item.label);
                       if (!showFullActive) {
                         (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
                         if (!childActive) (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink)";
                       }
                     }}
                     onMouseLeave={(e) => {
+                      hideTip();
                       if (!showFullActive) {
                         (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
                         if (!childActive) (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
                       }
                     }}
                   >
-                    <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      {/* ⚠️ position: relative は件数の点（しまったとき）の基準 */}
+                      <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0, position: "relative", display: "inline-flex" }}>
                         {item.icon}
+                        {badgeCount > 0 && <span className="biz-nav-dot" aria-hidden="true" />}
                       </span>
-                      {item.label}
+                      <span className="biz-nav-label">{item.label}</span>
                     </span>
                     {/* ★バッジの場所は常に取っておく（2026-10-12）。読み込みで出たり消えたりしても項目が動かないように。
                            ⚠️ 0件・未取得のときは中身ごと出さない（visibility ではなく空の箱。読み上げにも出さない） */}
-                    {item.badge && badgeCount <= 0 && <span aria-hidden="true" style={{ width: 18, height: 18, flexShrink: 0 }} />}
+                    {item.badge && badgeCount <= 0 && <span className="biz-nav-badge" aria-hidden="true" style={{ width: 18, height: 18, flexShrink: 0 }} />}
                     {badgeCount > 0 && (
-                      <span style={{
+                      <span className="biz-nav-badge" style={{
                         minWidth: 18, height: 18, borderRadius: 100,
                         background: "var(--error)", color: "#fff",
                         fontSize: 10, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
+                        /* ⚠️ display はインラインに書かない（しまったときに CSS で隠すため。.biz-nav-badge） */
+                        alignItems: "center", justifyContent: "center",
                         padding: "0 5px", flexShrink: 0,
                         /* ⚠️★position: relative を外さないこと（2026-10-11）。中の .sr-only（position: absolute）の基準を
                               このバッジにする。無いと、狭い画面の横スクロールのナビの外まで基準が抜けて、
@@ -621,27 +688,35 @@ function BusinessChrome({
           {/* ★2026-10-12: 404 にならないプレビュー（/preview/company）に変えた。掲載前・検証用でも開ける。
                  ⚠️ そのため hasPublicPage の条件は外した（担当者なら必ず開ける） */}
           {shell.tenantId && can(shell.permission, "company.page") && (
-            <div className="biz-sidebar-footer" style={{ margin: "14px 12px 0", paddingTop: 12, borderTop: "1px solid var(--line-soft)" }}>
+            <div className="biz-sidebar-footer">
               <a
                 href="/preview/company"
                 target="_blank"
                 data-state="sidebar-company-preview"
                 rel="noopener noreferrer"
+                className="biz-sidebar-footer-link"
+                aria-label="求職者から見た企業ページ（新しいタブで開く）"
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "8px 8px", borderRadius: 8,
+                  borderRadius: 8,
                   fontSize: 13, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; e.currentTarget.style.color = "var(--ink)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-soft)"; }}
+                onFocus={(e) => showTip(e, "求職者から見た企業ページ")}
+                onBlur={hideTip}
+                onMouseEnter={(e) => { showTip(e, "求職者から見た企業ページ"); e.currentTarget.style.background = "var(--bg-tint)"; e.currentTarget.style.color = "var(--ink)"; }}
+                onMouseLeave={(e) => { hideTip(); e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-soft)"; }}
               >
                 <ExternalLink size={16} strokeWidth={2.2} style={{ color: "var(--ink-mute)", flexShrink: 0 }} />
-                求職者から見た企業ページ ↗
+                <span className="biz-nav-label">求職者から見た企業ページ ↗</span>
               </a>
             </div>
           )}
 
         </aside>
+        )}
+        {/* ★しまっているときの項目名（2026-10-12）。⚠️ 読み上げは aria-label が担うので aria-hidden */}
+        {collapsed && tip && (
+          <div className="biz-sidebar-tip" aria-hidden="true" style={{ top: tip.top, left: tip.left }}>{tip.label}</div>
         )}
 
         {/* Main content */}
@@ -675,7 +750,7 @@ function BusinessChrome({
              画面いっぱいの高さ（面談・企業情報の編集・求人の編集）はすべてこの変数から計算する。
              ⚠️ 値は中身（アカウントのボタン 49px か 44px）＋上下の余白＋下の線 1px。余白やボタンの大きさを変えたら、ここも変える。
              ⚠️ 切り替える幅は、ヘッダーの余白を変えている 768px と 480px に合わせてある。 */
-        :root { --biz-header-h: 74px; }
+        :root { --biz-header-h: 74px; --biz-sidebar-w: 240px; }
         /* ★スクロールバーの有無で全体の幅が変わらないように（2026-10-12） */
         html { scrollbar-gutter: stable; }
         .biz-nav-progress { position: sticky; top: var(--biz-header-h); z-index: 90; height: 2px; margin-bottom: -2px;
@@ -738,6 +813,45 @@ function BusinessChrome({
           /* ⚠️ アバターのボタンだけ。ボタン全般にするとメニューのログアウトまで潰れる
                 （2026-09-21 に実際に踏んだ）。子の結合子の記号はここに書かないこと */
           .biz-header-avatar-btn { padding: 6px !important; gap: 0 !important; }
+        }
+
+        /* ★サイドバーをしまう（2026-10-12）。⚠️ 見出し・項目・会社の切り替えの余白は、しまったときに変えるのでここに置く */
+        .biz-sidebar-toggle-row { display: none; }
+        .biz-sidebar-company { height: 58px; box-sizing: border-box; padding: 0 12px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
+        .biz-nav-heading { font-size: 11px; font-weight: 700; color: var(--ink-mute); letter-spacing: 0.04em; padding: 16px 20px 6px; }
+        .biz-nav-link { justify-content: space-between; padding: 0 20px; }
+        .biz-nav-dot { display: none; }
+        .biz-nav-badge { display: flex; }
+        .biz-sidebar-footer { margin: 14px 12px 0; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+        .biz-sidebar-footer-link { padding: 8px; }
+        .biz-sidebar-tip { position: fixed; z-index: 400; transform: translateY(-50%); pointer-events: none;
+          padding: 5px 10px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+        @media (min-width: 1024px) {
+          .biz-sidebar-toggle-row { display: flex; justify-content: flex-end; padding: 0 12px 8px; }
+          .biz-sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+            border: none; border-radius: 8px; background: transparent; color: var(--ink-mute); cursor: pointer; }
+          .biz-sidebar-toggle:hover { background: var(--bg-tint); color: var(--ink); }
+          .biz-sidebar-toggle:focus-visible { outline: 2px solid var(--royal); outline-offset: 1px; }
+          html[data-biz-sidebar=collapsed] { --biz-sidebar-w: 64px; }
+          html[data-biz-sidebar=collapsed] .biz-sidebar-toggle-row { justify-content: center; padding: 0 0 8px; }
+          html[data-biz-sidebar=collapsed] .biz-layout-sidebar { overflow-x: hidden; }
+          html[data-biz-sidebar=collapsed] .biz-nav-label { display: none; }
+          html[data-biz-sidebar=collapsed] .biz-nav-heading { height: 1px; padding: 0; margin: 10px 14px; background: var(--line-soft); }
+          html[data-biz-sidebar=collapsed] .biz-nav-link { justify-content: center; padding: 0; }
+          html[data-biz-sidebar=collapsed] .biz-nav-badge { display: none; }
+          html[data-biz-sidebar=collapsed] .biz-nav-dot { display: block; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px;
+            border-radius: 50%; background: var(--error); box-shadow: 0 0 0 2px #fff; }
+          html[data-biz-sidebar=collapsed] .biz-nav-child { display: none; }
+          html[data-biz-sidebar=collapsed] .biz-sidebar-company { padding: 0 0 14px; display: flex; justify-content: center; }
+          html[data-biz-sidebar=collapsed] .biz-csw-name, html[data-biz-sidebar=collapsed] .biz-csw-chev { display: none; }
+          html[data-biz-sidebar=collapsed] .biz-csw-btn { width: auto; padding: 4px; border-color: transparent; }
+          html[data-biz-sidebar=collapsed] .biz-sidebar-footer { margin: 14px 8px 0; }
+          html[data-biz-sidebar=collapsed] .biz-sidebar-footer-link { justify-content: center; }
+          html.biz-sidebar-anim .biz-layout-grid { transition: grid-template-columns 150ms ease; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          html.biz-sidebar-anim .biz-layout-grid { transition: none; }
         }
 
         @media (max-width: 768px) {

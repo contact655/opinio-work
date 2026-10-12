@@ -24,6 +24,9 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  /* ★サイドバーに置くときはメニューを position: fixed で出す（2026-10-12）。サイドバーをしまうと幅が 64px になり、
+        縦スクロールの箱（overflow）の中では右へはみ出したメニューが切れるため */
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -70,9 +73,19 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
       : { position: "relative", paddingLeft: 20, borderLeft: "1px solid var(--line)", minWidth: 0 }}>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (inSidebar && !open && ref.current) {
+            const r = ref.current.getBoundingClientRect();
+            setMenuPos({ top: r.bottom + 6, left: r.left });
+          }
+          setOpen(!open);
+        }}
         aria-haspopup="true"
         aria-expanded={open}
+        /* ⚠️ サイドバーをしまうと会社名が見えなくなる（ロゴだけ）。名前は aria-label でも持つ */
+        aria-label={inSidebar ? `${currentCompany.name}（会社を切り替える）` : undefined}
+        title={inSidebar ? currentCompany.name : undefined}
+        className={inSidebar ? "biz-csw-btn" : undefined}
         style={{
           display: "flex", alignItems: "center", gap: 8, minWidth: 0, maxWidth: "100%",
           background: "transparent", cursor: "pointer",
@@ -93,11 +106,11 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
           {logoLetter}
         </div>
         {/* ⚠️ 幅の上限はインラインに書かない（狭い画面で縮めるため。下の style タグの中） */}
-        <span className={inSidebar ? undefined : "company-switcher-name"} style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flex: inSidebar ? 1 : undefined, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className={inSidebar ? "biz-csw-name" : "company-switcher-name"} style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", flex: inSidebar ? 1 : undefined, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {currentCompany.name}
         </span>
         {/* Chevron */}
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: "var(--ink-mute)", flexShrink: 0, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>
+        <svg className={inSidebar ? "biz-csw-chev" : undefined} width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ color: "var(--ink-mute)", flexShrink: 0, transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>
           <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
@@ -106,7 +119,9 @@ export function CompanySwitcher({ currentCompany, memberships, placement = "head
         <div
           role="menu"
           style={{
-            position: "absolute", left: 0, top: inSidebar ? 48 : 40,
+            ...(inSidebar && menuPos
+              ? { position: "fixed" as const, left: menuPos.left, top: menuPos.top }
+              : { position: "absolute" as const, left: 0, top: inSidebar ? 48 : 40 }),
             minWidth: 240, maxWidth: 320,
             background: "#fff",
             borderRadius: 10,
