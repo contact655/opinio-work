@@ -177,6 +177,19 @@ export default function CandidatesPreview() {
         </div>
       </Variant>
 
+      {/* ★メッセージの状態と見送り（2026-10-13）。未読ありの人・見送った人は実データで作ると書き込みが要るので、ここで見る */}
+      <Variant
+        label="メッセージの状態と見送り（2026-10-13）"
+        note="⚠️ カードに「送信済み」「返信あり」「返信あり・未読」（数字なし）。未読ありの人を選ぶとタブ「メッセージ」の右に小さな丸。末尾に「見送った1名は非表示 ／ 表示する」→ 押すと薄く「山田 花子さんが見送り・10/13」と「解除」"
+      >
+        <CandidatesClient candidates={[
+          { ...FULL[0], approach: { eligible: false, sent: { id: "a1", conversationId: "cv1", sentAt: "2026-10-01T00:00:00Z", senderName: "山田 花子", state: "accepted", resendAt: "2027-03-30T00:00:00Z" }, unreadCount: 2, unseenReply: false } },
+          { ...FULL[1], approach: { eligible: false, sent: { id: "a2", conversationId: "cv2", sentAt: "2026-10-02T00:00:00Z", senderName: "山田 花子", state: "accepted", resendAt: "2027-03-31T00:00:00Z" }, unreadCount: 0, unseenReply: false } },
+          { ...FULL[2], approach: { eligible: false, sent: { id: "a3", conversationId: null, sentAt: "2026-10-05T00:00:00Z", senderName: "山田 花子", state: "pending", resendAt: "2027-04-03T00:00:00Z" }, unreadCount: 0, unseenReply: false } },
+          { ...FULL[3], hidden: true, hiddenBy: { name: "山田 花子", at: "2026-10-13T03:00:00Z" }, approach: { eligible: true, sent: null } },
+        ]} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
+      </Variant>
+
       <Variant
         label="0名（母集合が空）"
         note="⚠️ 文言が「『転職について』に答えている求職者がまだいません」であること（古い『スカウトを受け取る設定』ではない）"

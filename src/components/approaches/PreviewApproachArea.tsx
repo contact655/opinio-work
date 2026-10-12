@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApproachBubble } from "@/components/approaches/ApproachBubble";
 import { PaneThread, type PaneThreadPage } from "@/components/approaches/PaneThread";
@@ -33,15 +33,24 @@ const GRAY: React.CSSProperties = { fontSize: 13, color: "var(--ink-mute)", line
 const DOCK: React.CSSProperties = { padding: "4px 0", minHeight: 0, display: "flex", flexDirection: "column" };
 const TOGGLE: React.CSSProperties = { flexShrink: 0, background: "none", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" };
 
-export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink }: {
+export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, openNonce }: {
   candidate: Candidate;
+  /** ★外から送る欄を開く（右欄の上の段の「メッセージを送る」。2026-10-13）。値が変わったときだけ開く（ui-debugging ⑭） */
+  openNonce?: number;
   jobs: { id: string; title: string }[];
   /** 企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
   limitLine: string | null;
   profileLink?: React.ReactNode;
 }) {
   const a = candidate.approach;
-  const [open, setOpen] = useState(false);
+  /* ⚠️ 初期値は「0 より大きいか」。タブを初めて開いたときに既に押されている（マウントと同時に届く）ため */
+  const [open, setOpen] = useState(!!openNonce);
+  const lastOpenNonce = useRef(openNonce);
+  useEffect(() => {
+    if (openNonce === undefined || openNonce === lastOpenNonce.current) return;
+    lastOpenNonce.current = openNonce;
+    setOpen(true);
+  }, [openNonce]);
   const [sentNow, setSentNow] = useState(false);
   const [reason, setReason] = useState("");
   const [body, setBody] = useState("");

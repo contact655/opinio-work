@@ -12,40 +12,24 @@ import { ACTIVITY_LABELS } from "@/lib/business/candidates/model";
 /**
  * ★候補者検索の右のプレビュー（2026-10-10 / 候補者探し 段1・キャンバス1）。
  *
- * ⚠️ 中身は `/api/biz/candidates/[userId]/preview` から取る（一覧と同じ判定を通った人だけ返る）。
+ * ★2026-10-13（柴さんの指示）: **一覧が持っている Candidate をそのまま描く。** それまでは1人分のために
+ *   `/api/biz/candidates/[userId]/preview` が `loadCompanyCandidates` を丸ごと呼び直していた（1人あたり約30本）。
+ *   いま API から取るのは一覧に無いもの（この会社との接点）だけ。プロフィールの中身は `renderCandidateProfile`。
  * ⚠️★声かけのボタンは `ApproachButton`（一覧と同じ部品）。送れるかは `approach.eligible` だけを見る。
  * ⚠️ 「プロフィール全体を見る」は**同じタブ**で /u/[id]。
- * ⚠️ 接点（見出し「〈会社名〉と合うところ（〇）」）は強い順に3つまで。4つ以上なら「ほかに N件」で全部。
- *    ★0件のときは見出しごと出さない（2026-10-11 / 柴さんの指示。それまでは空でも欄を出し、材料への入口を出していた）。
+ * ⚠️ 接点（見出し「〈会社名〉と合うところ（〇）」）は強い順に2つまで。それより多ければ「ほか N件」で全部。
+ *    ★0件のときは見出しごと出さない（2026-10-11 / 柴さんの指示）。
  * ⚠️★送れない人は、ボタンの代わりに灰色の1行で理由だけ出す（2026-10-11 / 柴さんの指示。`PreviewApproachArea`）。状態のチップは出さない。
  */
-export type PreviewData = {
-  candidate: Candidate;
-  aboutMe: string | null;
-  experiences: { id: string; company: string | null; roleTitle: string | null; roleName: string | null; startedAt: string | null; endedAt: string | null; isCurrent: boolean }[];
-  skills: string[];
-  touchpointMaterials: TouchpointMaterials | null;
-  approachJobs: { id: string; title: string }[];
-  /** ★「〈会社名〉と合うところ」の会社名（法人格を外した表示名）。取れなければ null（「貴社と合うところ」） */
-  companyShortName?: string | null;
-  /** ★社内メモの欄を出すか（CANDIDATE_NOTES_ENABLED） */
-  notesEnabled?: boolean;
-  /** ★この会社との接点（選考管理と同じ）。最新1件＋ほかの件数。無ければ null */
-  contacts?: { latest: { at: string; title: string }; more: number } | null;
-  /** ★未読の返信がある（開いたときにメッセージのタブで開き、タブに点を出す。2026-10-13） */
-  messagesUnread?: boolean;
-};
+/** この会社との接点（選考管理と同じ）。最新1件＋ほかの件数。無ければ null */
+export type PreviewContacts = { latest: { at: string; title: string }; more: number } | null;
 
 /* ★「プロフィール／メッセージ」のタブ（2026-10-13 / 柴さんの指示）。
-      最初に開くタブ … 返信がある（未読・やり取りが続いている）人はメッセージ、それ以外はプロフィール。
-      ⚠️ タブは URL の `?tab=` に残す（戻る・リンクの共有で同じタブ）。⚠️ プロフィールも書く —— 既定が人によって違う
-         （返信がある人はメッセージ）ので、書かないとリロードで既定に戻ってしまう。
-         書き方は `?selected=` と同じ history.replaceState（履歴を積まない・一覧を取り直さない）。
-         別の人を選ぶと一覧側が `tab` を外す（`updateSelected`）＝その人の既定のタブで開く。
-      ⚠️ それまでの「メッセージ（返信あり）↓」のボタンと、未読のときにメッセージまでスクロールする処理はタブに置き換えた */
-function defaultTab(data: PreviewData): PanelTab {
-  return data.messagesUnread || data.candidate.approach?.sent?.state === "accepted" ? "messages" : "profile";
-}
+      ★最初に開くタブは**常にプロフィール**（2026-10-13 に変えた。それまでは返信がある人はメッセージで開いていた）。
+      ⚠️★メッセージのタブの中身は**一度開くまで描かない**。描くとやり取りを取りに行き、そこで既読が付く
+         （`GET /api/biz/approaches/[id]?thread=1`）。選んだだけで既読にしない。
+      ⚠️ タブは URL の `?tab=` に残す（戻る・リンクの共有で同じタブ）。書き方は `?selected=` と同じ history.replaceState。
+         別の人を選ぶと一覧側が `tab` を外す（`updateSelected`）＝プロフィールで開く */
 function tabFromUrl(userId: string): PanelTab | null {
   try {
     const sp = new URL(window.location.href).searchParams;
@@ -169,46 +153,61 @@ export function TransferPrefsBox({ candidate }: { candidate: Candidate }) {
   );
 }
 
-export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLimitLine = null, nameAction, canAct = true }: { userId: string; onClose: () => void; onNoteCountChange?: (count: number) => void;
+/** ★右欄の上の段に固定する操作（2026-10-13）。状態は一覧（CandidatesClient）が持つ */
+export type PreviewActions = {
+  starred: boolean;
+  onToggleStar: () => void;
+  hidden: boolean;
+  onToggleHidden: () => void;
+  /** 一覧の中の位置（0始まり）。一覧に居なければ -1 */
+  index: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
+};
+
+export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, companyLimitLine = null, canAct = true,
+  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions }: {
+  /** ★一覧が持っている候補者（2026-10-13。API で取り直さない） */
+  candidate: Candidate;
+  onClose: () => void; onNoteCountChange?: (count: number) => void;
   /** ★メッセージを送れるか（2026-10-12。閲覧のみは false。送る欄ごと出さない） */
   canAct?: boolean;
-  /** ★名前の右に置くもの（★ボタン。状態は一覧側が持つ） */
-  nameAction?: React.ReactNode;
   /** ★企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
-  companyLimitLine?: string | null }) {
-  const [data, setData] = useState<PreviewData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  /* ★タブ（2026-10-13）。null のあいだは既定（データが来てから決まる） */
+  companyLimitLine?: string | null;
+  /** ★「〈会社名〉と合うところ」の会社名。取れなければ null（「貴社と合うところ」） */
+  companyShortName?: string | null;
+  touchpointMaterials?: TouchpointMaterials | null;
+  approachJobs?: { id: string; title: string }[];
+  /** ★社内メモの欄を出すか（CANDIDATE_NOTES_ENABLED） */
+  notesEnabled?: boolean;
+  actions: PreviewActions;
+}) {
+  const [contacts, setContacts] = useState<PreviewContacts>(null);
+  /* ★タブ。null のあいだは URL（`?tab=`）→ 無ければプロフィール */
   const [tab, setTab] = useState<PanelTab | null>(null);
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
-  const changeTab = useCallback((t: PanelTab) => { setTab(t); writeTabToUrl(t); }, []);
-  /* ★メッセージのタブを一度開いたら点を消す（開いた時点で既読が付く） */
-  const [messagesSeen, setMessagesSeen] = useState(false);
+  const activeTab: PanelTab = tab ?? tabFromUrl(c.id) ?? "profile";
+  /* ★メッセージのタブを一度でも開いたか。⚠️ 開くまで中身を描かない（描くと既読が付く） */
+  const [messagesMounted, setMessagesMounted] = useState(activeTab === "messages");
+  /* ★「メッセージを送る」から来たら送る欄を開いた状態にする（値が変わったときだけ。ui-debugging ⑭） */
+  const [openFormNonce, setOpenFormNonce] = useState(0);
+  const changeTab = useCallback((t: PanelTab) => { setTab(t); writeTabToUrl(t); if (t === "messages") setMessagesMounted(true); }, []);
 
+  /* ★この会社との接点だけを取る（一覧に無い唯一のもの）。⚠️ 取れなければ行を出さない */
   useEffect(() => {
     let alive = true;
-    setData(null); setError(null);
-    (async () => {
-      try {
-        const res = await fetch(`/api/biz/candidates/${userId}/preview`);
-        const json = await res.json().catch(() => ({}));
-        if (!alive) return;
-        if (!res.ok) { setError(res.status === 404 ? "この方は表示できません。" : (json.error ?? "読み込めませんでした")); return; }
-        setData(json as PreviewData);
-      } catch {
-        if (alive) setError("読み込めませんでした");
-      }
-    })();
+    setContacts(null);
+    fetch(`/api/biz/candidates/${c.id}/preview`)
+      .then(async (res) => { const j = await res.json().catch(() => null); if (alive && res.ok && j) setContacts((j.contacts ?? null) as PreviewContacts); })
+      .catch(() => { /* 行を出さないだけ */ });
     return () => { alive = false; };
-  }, [userId]);
-
-  const activeTab: PanelTab = tab ?? tabFromUrl(userId) ?? (data ? defaultTab(data) : "profile");
+  }, [c.id]);
 
   /* ★メッセージのタブを開いたら、いちばん新しいやり取り（と返信欄）までスクロールする（2026-10-13）。
         ⚠️ やり取りは後から読み込まれるので、出るまで待ってから動かす。⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪） */
   useEffect(() => {
-    if (!data || activeTab !== "messages") return;
-    setMessagesSeen(true);
+    if (activeTab !== "messages") return;
     let tries = 0;
     const t = setInterval(() => {
       tries++;
@@ -217,23 +216,25 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
       else if (tries > 50) clearInterval(t);
     }, 100);
     return () => clearInterval(t);
-  }, [data, activeTab]);
+  }, [activeTab]);
 
-  if (error) return <div data-state="preview-error" style={{ padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>{error}</div>;
-  if (!data) return <div data-state="preview-loading" style={{ padding: 20, fontSize: 13, color: "var(--ink-mute)" }}>読み込み中…</div>;
-
-  const c = data.candidate;
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
-  /* ★年齢（2026-10-12 から出す）。⚠️ サーバーで計算した数（Candidate.age）。生年月日が無い人は出さない */
   /* ★メッセージのタブは送れる人（`approach` がある）にだけ。閲覧のみ・判定が取れない人はプロフィールだけ */
   const showMessages = canAct && !!c.approach;
-  const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
-  /* ★右欄は「上：誰か／中：プロフィール／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
-        上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・最近の利用）・4行目（この会社との接点）
-        中（ここだけスクロール）… 先頭に「〈会社名〉と合うところ」（開閉なし）、続けて 職歴 → スキル → 自己紹介 → 学歴 → その他
-          （＋社内メモが有効なら「メモ」）を1本で。上に節へのリンクの帯。中身と判定は /u/[id] と同じ
-        下（固定）… メッセージ欄（`PreviewApproachArea`） */
+  /* ★未読（2026-10-13）。あるときだけタブのラベル右に小さな丸（数字は出さない。ui-conventions「タブ」）。
+        見ている担当者の未読 ∪ 自社の誰も開いていない返信。⚠️ 一度開いたら消す */
+  const unreadDot = !messagesMounted && ((c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true);
+  const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join("　");
+
+  /* ★メッセージのボタン（上の段）。やり取りがあれば「メッセージを続ける」、送れる人は「メッセージを送る」。
+        ⚠️ 送れない人・送り済みで返信の無い人には「送る」を出さない（理由はメッセージのタブに灰色の1行で出る） */
+  const a = c.approach;
+  const messageButton = !showMessages || !a ? null
+    : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: () => changeTab("messages") }
+    : a.eligible && !companyLimitLine ? { label: "メッセージを送る", onClick: () => { changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
+    : null;
+
   return (
     <CandidateProfilePanel
       userId={c.id}
@@ -241,27 +242,84 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
       avatarUrl={c.avatarUrl ?? null}
       meta={meta || null}
       onClose={onClose}
-      nameAction={nameAction}
-      headerExtra={<PreviewHeaderLines candidate={c} contacts={data.contacts ?? null} />}
+      topBar={<PreviewActionBar canAct={canAct} actions={actions} messageButton={messageButton} />}
+      headerExtra={<PreviewHeaderLines candidate={c} contacts={contacts} />}
       sectioned
       before={<>
         <TransferPrefsBox candidate={c} />
-        <TouchpointSection touchpoints={c.touchpoints} companyShortName={data.companyShortName ?? null} />
-        <TouchpointGuide touchpoints={c.touchpoints} materials={data.touchpointMaterials} />
+        <TouchpointSection touchpoints={c.touchpoints} companyShortName={companyShortName} />
+        <TouchpointGuide touchpoints={c.touchpoints} materials={touchpointMaterials} />
       </>}
-      extraSections={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
+      extraSections={notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
       tabs={showMessages ? {
         active: activeTab,
         onChange: changeTab,
-        messagesDot: !!data.messagesUnread && !messagesSeen,
+        messagesDot: unreadDot,
         messagesScrollRef,
-        messages: (
+        messages: messagesMounted ? (
           <section data-panel-section="messages">
-            <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} />
+            <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} />
           </section>
-        ),
+        ) : null,
       } : undefined}
     />
+  );
+}
+
+/**
+ * ★右欄の上の段（2026-10-13 / 柴さんの指示）。［メッセージ］［☆ 気になる］［見送り］ … 右端に［‹］「2 / 19」［›］。
+ * ⚠️ ‹ › は一覧の J/K と同じ移動（`CandidatesClient` の moveSelection）。端では押せない。
+ * ⚠️ アイコンだけのボタンには aria-label。⚠️ 閲覧のみ（canAct=false）は ‹ › だけ。
+ * ⚠️ 「選考に追加」は置かない（API が無い。2026-10-13）。
+ */
+function PreviewActionBar({ canAct, actions, messageButton }: {
+  canAct: boolean; actions: PreviewActions;
+  messageButton: { label: string; onClick: () => void } | null;
+}) {
+  const btn: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 12px", borderRadius: 8,
+    border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600,
+    fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+  };
+  const nav = (disabled: boolean): React.CSSProperties => ({
+    ...btn, width: 32, padding: 0, justifyContent: "center", fontSize: 16,
+    cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.35 : 1,
+  });
+  const { index, total } = actions;
+  const prevDisabled = index <= 0;
+  const nextDisabled = index < 0 || index >= total - 1;
+  return (
+    <div data-state="preview-action-bar" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+      {canAct && messageButton && (
+        <button type="button" onClick={messageButton.onClick} data-state="bar-message" className="btn-fixed-size"
+          style={{ ...btn, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 700 }}>
+          {messageButton.label}
+        </button>
+      )}
+      {canAct && (
+        <button type="button" onClick={actions.onToggleStar} aria-pressed={actions.starred} data-state={actions.starred ? "bar-star-on" : "bar-star-off"}
+          title="社内で共有・ご本人には通知されません" className="btn-fixed-size"
+          style={{ ...btn, color: actions.starred ? "var(--royal)" : "var(--ink-soft)", borderColor: actions.starred ? "var(--royal)" : "var(--line)" }}>
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={actions.starred ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+            <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
+          </svg>
+          気になる
+        </button>
+      )}
+      {canAct && (
+        <button type="button" onClick={actions.onToggleHidden} aria-pressed={actions.hidden} data-state={actions.hidden ? "bar-unhide" : "bar-hide"}
+          title="一覧から外します（社内だけ・ご本人には伝わりません）" className="btn-fixed-size" style={btn}>
+          {actions.hidden ? "見送りを解除" : "見送り"}
+        </button>
+      )}
+      <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <button type="button" onClick={actions.onPrev} disabled={prevDisabled} aria-label="前の候補者" data-state="bar-prev" className="btn-fixed-size" style={nav(prevDisabled)}>‹</button>
+        <span data-state="bar-position" style={{ fontSize: 12.5, color: "var(--ink-mute)", minWidth: 48, textAlign: "center", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+          {index >= 0 ? `${index + 1} / ${total}` : `– / ${total}`}
+        </span>
+        <button type="button" onClick={actions.onNext} disabled={nextDisabled} aria-label="次の候補者" data-state="bar-next" className="btn-fixed-size" style={nav(nextDisabled)}>›</button>
+      </div>
+    </div>
   );
 }
 
@@ -274,7 +332,7 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
  */
 export function PreviewHeaderLines({ candidate, contacts }: {
   candidate: Candidate;
-  contacts: PreviewData["contacts"];
+  contacts: PreviewContacts;
 }) {
   const stanceLabel = candidate.careerStance ? CAREER_STANCE_LABELS[candidate.careerStance] ?? null : null;
   /* ★「情報収集として（9月30日に更新）」（2026-10-12）。⚠️ 更新日時が無い（不明）なら日付を付けない */

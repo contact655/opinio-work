@@ -60,8 +60,21 @@ export async function unreadConversationIds(
   owUserId: string,
   opts: { companyId?: string } = {},
 ): Promise<Set<string>> {
+  return new Set((await unreadMessageCounts(owUserId, opts)).keys());
+}
+
+/**
+ * ★会話ごとの未読の**通数**（2026-10-13。候補者を探すの一覧とタブ「メッセージ（n）」用）。
+ * ⚠️★判定は `unreadConversationIds` と同じ（同じ関数から作っている）。未読の無い会話は入らない。
+ * ⚠️ バッジとドットは引き続き**会話数**（`unreadConversationIds`）。通数を出すのは候補者1人の会話の中だけ。
+ * ⚠️ 失敗したら空の Map（ログは出す）。
+ */
+export async function unreadMessageCounts(
+  owUserId: string,
+  opts: { companyId?: string } = {},
+): Promise<Map<string, number>> {
   const admin = createAdminClient();
-  const result = new Set<string>();
+  const result = new Map<string, number>();
 
   /* ① 自分の参加者行。**ここが可視性の絞り込み**（RLS には任せない。admin なので効かない） */
   const { data: allParts, error: partErr } = await admin
@@ -104,14 +117,14 @@ export async function unreadConversationIds(
   }
 
   for (const p of parts) {
-    const hit = (msgs ?? []).some((m) =>
+    const n = (msgs ?? []).filter((m) =>
       isUnreadMessage(m as MessageLike, {
         participantId: p.id as string,
         conversationId: p.conversation_id as string,
         lastReadAt: (p.last_read_at as string | null) ?? null,
       }),
-    );
-    if (hit) result.add(p.conversation_id as string);
+    ).length;
+    if (n > 0) result.set(p.conversation_id as string, (result.get(p.conversation_id as string) ?? 0) + n);
   }
   return result;
 }

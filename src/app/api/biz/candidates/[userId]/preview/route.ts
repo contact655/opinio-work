@@ -3,73 +3,46 @@ import { can } from "@/lib/auth/roles";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
-import { loadCompanyCandidates } from "@/lib/business/candidates/load";
-import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
-import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
-import { companyDisplayName } from "@/lib/companies/displayName";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getSelectionHistory } from "@/lib/business/selectionHistory";
-import { unreadConversationIds } from "@/lib/conversations/unread";
-import { unseenRepliedConversationIds } from "@/lib/approaches/server";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 /**
  * ★候補者検索の右のプレビュー（2026-10-10 / 候補者探し 段1）。候補者1人ぶん。
  *
- * ⚠️★見せてよいかは**一覧と同じ関数**（`loadCompanyCandidates` を1人に絞って呼ぶ）。
- *    一覧に出ない人（can_send_scout が false・転職意欲が未設定など）は 404。ここで条件を組み立てない。
- * ⚠️ ゲートは /biz/candidates のページと同じ（審査済み・プランが引ける・candidateSearch が使える）。
- * ⚠️ 自己紹介・経歴・スキルは `getCandidateProfileForCompany`（「声かけを書く」と同じ関数。社名を伏せた職歴は出さない）。
+ * ★2026-10-13 に軽くした（柴さんの指示）。それまでは1人分のために `loadCompanyCandidates` を丸ごと呼び、
+ *    合うところの材料まで取り直していた（1人あたり約30本）。
+ *    いまは**一覧が持っている Candidate をそのまま右欄に渡し**、ここは一覧に無いもの（この会社との接点）だけを返す。
+ *    ⚠️ 未読・合うところ・メッセージの状態は一覧の `loadCompanyCandidates` が持つ。ここで取り直さない。
+ *    ⚠️ プロフィールの中身は `renderCandidateProfile`（/u/[id] と同じ判定）が別に取る。
+ * ⚠️ 返すのは**自社の記録だけ**。`getSelectionHistory` は admin クライアントで読むので RLS は効かない。
+ *    5本の取得すべてが `company_id = ctx.tenantId` で絞っている（応募は `ow_jobs.company_id`）。⚠️ この絞り込みを外さないこと。
+ * ★所属の確認は2重（2026-10-13 / 柴さんの指示）:
+ *    ① `getTenantContext()` … ログインしていなければ null（401）。tenantId は**本人の所属の中から**決まる
+ *       （クッキーの会社が所属に無ければ null）。他社の担当者が叩いても、tenantId はその人の会社になる
+ *    ② `auth_company_can(company_id, 'view')` … ★の表の読み取りと同じ判定を、本人のセッションで DB に聞く
+ * ⚠️ 見せてよいかの判定は一覧（`can_send_scout`）。ゲートは /biz/candidates のページと同じ。
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(_req: NextRequest, { params }: { params: { userId: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  /* ★役割（2026-10-12）。候補者を見られるのは 管理者・採用担当・閲覧のみ（面接官は候補者を探せない） */
   if (!can(ctx.currentPermission, "candidates.viewProfile")) return NextResponse.json({ error: "この操作の権限がありません。" }, { status: 403 });
   if (!isCompanyReviewed(ctx) || ctx.planType === null || !canUse(ctx.planType, "candidateSearch")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+  if (!UUID_RE.test(params.userId)) return NextResponse.json({ error: "not found" }, { status: 404 });
+  /* ② 所属をセッションで確かめる。⚠️ 失敗・false は 403（fail-closed） */
+  const { data: canView, error: canErr } = await createClient().rpc("auth_company_can", { p_company_id: ctx.tenantId, p_action: "view" });
+  if (canErr) console.error("[candidates/preview] auth_company_can:", canErr.message);
+  if (canView !== true) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const loaded = await loadCompanyCandidates({
-    companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType, onlyOwUserId: params.userId,
-  });
-  const candidate = loaded.candidates.find((c) => c.id === params.userId);
-  if (!candidate) return NextResponse.json({ error: "not found" }, { status: 404 });
-
-  const [profile, { data: co, error: coErr }, history] = await Promise.all([
-    getCandidateProfileForCompany(params.userId),
-    /* ★「〈会社名〉と合うところ」の会社名（2026-10-11）。短い表示名（株式会社などを外す）。取れなければ null */
-    createAdminClient().from("ow_companies").select("name, name_en").eq("id", ctx.tenantId).maybeSingle(),
-    /* ★この会社との接点（2026-10-12）。選考管理の「この会社とのこれまで」と同じ関数。自社のものだけ */
-    getSelectionHistory(ctx.tenantId, params.userId),
-  ]);
-  if (coErr) console.error("[candidates/preview] company:", coErr.message);
-  /* ★未読の返信があるか（2026-10-12）。右欄を開いたとき、最初からメッセージの位置で開くため。
-        サイドバーのバッジ・/biz/messages と同じ関数（未読の会話 ∪ 返信があってまだ開いていない会話）。⚠️ 取れなければ false */
-  const convId = candidate.approach?.sent?.conversationId ?? null;
-  let messagesUnread = false;
-  if (convId) {
-    const [unread, unseen] = await Promise.all([
-      unreadConversationIds(ctx.currentOwnId, { companyId: ctx.tenantId }).catch(() => new Set<string>()),
-      unseenRepliedConversationIds(ctx.tenantId).catch(() => new Set<string>()),
-    ]);
-    messagesUnread = unread.has(convId) || unseen.has(convId);
-  }
-  if (!profile) return NextResponse.json({ error: "取得できませんでした" }, { status: 500 });
-
+  /* ★この会社との接点（2026-10-12）。選考管理の「この会社とのこれまで」と同じ関数。自社のものだけ */
+  const history = await getSelectionHistory(ctx.tenantId, params.userId);
   return NextResponse.json({
-    candidate,
-    aboutMe: profile.aboutMe,
-    experiences: profile.experiences,
-    skills: profile.skills,
-    touchpointMaterials: loaded.touchpointMaterials,
-    approachJobs: loaded.approachJobs,
-    companyShortName: co ? companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName : null,
-    /* ★社内メモの欄を出すか。⚠️ フラグがオフなら出さない（API も 404） */
-    notesEnabled: isCandidateNotesEnabled(),
-    messagesUnread,
-    /* ★最新1件＋ほかの件数。⚠️ 送ったメッセージと返信は右欄の下のメッセージ欄に出すので、ここでは数えない（二重にしない）。
+    /* ★最新1件＋ほかの件数。⚠️ 送ったメッセージと返信は右欄のメッセージのタブに出すので、ここでは数えない（二重にしない）。
           取れなければ null（行を出さない） */
     contacts: (() => {
       if (!history) return null;

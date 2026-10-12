@@ -14,7 +14,8 @@ import { resolveTopRole } from "@/lib/roles/jobRoles";
       `company_id` から引くので、社名を伏せた職歴から企業側へ漏れる（関数の注記）。 */
 import { buildRoleAutoSkills } from "@/lib/profile/autoSkillsServer";
 import { canUse, type PlanType } from "@/lib/constants/plans";
-import { getRecentlyApproached, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
+import { getRecentlyApproached, listApproachableJobs, unseenRepliedConversationIds, type RecentApproach } from "@/lib/approaches/server";
+import { unreadMessageCounts } from "@/lib/conversations/unread";
 import { isCandidateNotesEnabled, listCandidateNoteCounts, listCandidateStages } from "@/lib/candidateNotes/server";
 import { getCompanyCandidateTouchpoints, type TouchpointMaterials } from "@/lib/business/candidates/touchpoints";
 import type { Candidate } from "@/lib/business/candidates/model";
@@ -194,13 +195,38 @@ export async function loadCompanyCandidates(params: {
     isCandidateNotesEnabled() ? listCandidateNoteCounts(companyId, userIds) : Promise.resolve(null),
   ]);
 
-  /* ★★（気になる。2026-10-12）。この会社の分だけ。⚠️ 取れなければ全員 false（ログは出す） */
+  /* ★★（気になる。2026-10-12）と見送り（2026-10-13）。この会社の分だけ。⚠️ 取れなければ全員 false（ログは出す）。
+        ★未読（2026-10-13）。メッセージを送った人がいるときだけ、一覧の分を**まとめて1回**取る（1人ずつ取らない）。
+        ⚠️ 見ている担当者の未読（`unreadMessageCounts`）と、自社の誰も開いていない返信（`unseenRepliedConversationIds`）。
+           右欄のタブ「メッセージ（n）」と一覧の「返信あり」が同じ値を見る */
   const starred = new Set<string>();
-  if (userIds.length) {
-    const { data: stars, error: starErr } = await adminClient.from("ow_candidate_stars")
-      .select("candidate_user_id").eq("company_id", companyId).in("candidate_user_id", userIds);
-    if (starErr) console.error("[candidates] ow_candidate_stars:", starErr.message);
-    for (const r of stars ?? []) starred.add(r.candidate_user_id as string);
+  const hiddenIds = new Set<string>();
+  const hasConversation = Array.from(recentlyApproached?.values() ?? []).some((a) => !!a.conversationId);
+  const [starsR, hiddenR, unreadCounts, unseenConvs] = await Promise.all([
+    userIds.length
+      ? adminClient.from("ow_candidate_stars").select("candidate_user_id").eq("company_id", companyId).in("candidate_user_id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+    userIds.length
+      ? adminClient.from("ow_candidate_hidden").select("candidate_user_id, hidden_by, created_at").eq("company_id", companyId).in("candidate_user_id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+    approachAllowed && hasConversation ? unreadMessageCounts(params.viewerOwUserId, { companyId }) : Promise.resolve(new Map<string, number>()),
+    approachAllowed && hasConversation ? unseenRepliedConversationIds(companyId) : Promise.resolve(new Set<string>()),
+  ]);
+  if (starsR.error) console.error("[candidates] ow_candidate_stars:", starsR.error.message);
+  if (hiddenR.error) console.error("[candidates] ow_candidate_hidden:", hiddenR.error.message);
+  for (const r of starsR.data ?? []) starred.add(r.candidate_user_id as string);
+  for (const r of hiddenR.data ?? []) hiddenIds.add(r.candidate_user_id as string);
+  /* ★誰がいつ見送ったか（2026-10-13）。見送った担当者の名前はまとめて1回。⚠️ 取れなければ名前なし（「見送り・日付」） */
+  const hiddenInfo = new Map<string, { name: string | null; at: string }>();
+  const hiderIds = Array.from(new Set((hiddenR.data ?? []).map((r) => r.hidden_by as string | null).filter((v): v is string => !!v)));
+  const hiderNames = new Map<string, string>();
+  if (hiderIds.length) {
+    const { data: hs, error: hsErr } = await adminClient.from("ow_users").select("id, name").in("id", hiderIds);
+    if (hsErr) console.error("[candidates] hidden_by names:", hsErr.message);
+    for (const h of hs ?? []) hiderNames.set(h.id as string, ((h.name as string | null) ?? "").trim());
+  }
+  for (const r of hiddenR.data ?? []) {
+    hiddenInfo.set(r.candidate_user_id as string, { name: (r.hidden_by && hiderNames.get(r.hidden_by as string)) || null, at: r.created_at as string });
   }
 
   const candidates: Candidate[] = users.map((u) => {
@@ -253,13 +279,20 @@ export async function loadCompanyCandidates(params: {
               : companyIsTest && viewerIsTest === false ? "test_company" as const
               : profile?.career_stance === "no_contact" ? "not_looking" as const
               : "other" as const;
-            return { eligible, sent, ...(blocked ? { blocked } : {}) };
+            const conv = sent?.conversationId ?? null;
+            return {
+              eligible, sent, ...(blocked ? { blocked } : {}),
+              unreadCount: conv ? unreadCounts.get(conv) ?? 0 : 0,
+              unseenReply: conv ? unseenConvs.has(conv) : false,
+            };
           })()
         : undefined,
       stage: stages ? (stages.get(u.id as string) ?? null) : undefined,
       noteCount: noteCounts ? (noteCounts.get(u.id as string) ?? 0) : undefined,
       touchpoints: touch ? (touch.byCandidate.get(u.id as string) ?? []) : undefined,
       starred: starred.has(u.id as string),
+      hidden: hiddenIds.has(u.id as string),
+      hiddenBy: hiddenInfo.get(u.id as string) ?? null,
     };
   });
 

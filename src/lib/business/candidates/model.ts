@@ -71,6 +71,11 @@ export type Candidate = {
   tenureMonths: number | null;
   /** ★この会社の「★」（気になる。会社の管理者で共有。2026-10-12）。⚠️ 取れなかったときは false */
   starred?: boolean;
+  /** ★この会社が「見送り」にした（一覧から外す。会社の担当者で共有。2026-10-13）。⚠️ 取れなかったときは false。
+   *  ⚠️ 候補者本人には伝えない（企業の内部情報） */
+  hidden?: boolean;
+  /** ★誰がいつ見送ったか（hidden_by の名前と created_at。2026-10-13）。見送っていなければ null。名前が引けなければ name は null */
+  hiddenBy?: { name: string | null; at: string } | null;
   /** ★最近の利用（4段階の帯。2026-10-12）。⚠️ 正確な日時は渡さない（activity.ts でサーバーが帯にする）。
    *  undefined = スイッチ（CANDIDATE_ACTIVITY_ENABLED）が無効 ／ null = 記録が無い（不明） */
   activity?: ActivityBand | null;
@@ -107,6 +112,10 @@ export type Candidate = {
     /** ★送れない理由（eligible でも送り済みでもないとき。2026-10-11）
      *   test_company … 検証用の会社を実アカウントで見ている ／ not_looking … 「今は考えていない」 ／ other … 区別しない（範囲外・受け取らない企業など） */
     blocked?: "test_company" | "not_looking" | "other";
+    /** ★見ている担当者にとって未読のメッセージの通数（2026-10-13。一覧でまとめて1回取る）。0 = 未読なし。undefined = 取れなかった */
+    unreadCount?: number;
+    /** ★返信があって、まだ自社の誰も開いていない（`unseenRepliedConversationIds`。参加者でなくても立つ）。2026-10-13 */
+    unseenReply?: boolean;
   };
   /** ★社内の状態。undefined = 社内メモのフラグがオフ（出さない） */
   stage?: CandidateStage | null;
@@ -163,9 +172,11 @@ function textHit(c: Candidate, t: string): boolean {
  */
 export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilters, now: Date = new Date(),
   /** ★年齢の絞り込みを効かせるか（`isCandidateAgeFilterEnabled()`。本番は無効）。無効なら保存された年齢の条件も無視する
-   *  ★activity … 最近の利用で絞るか（`isCandidateActivityEnabled()`。本番は無効）。無効なら保存された条件も無視する */
-  opts: { ageFilter?: boolean; activity?: boolean } = {}): Candidate[] {
-  let list = candidates;
+   *  ★activity … 最近の利用で絞るか（`isCandidateActivityEnabled()`。本番は無効）。無効なら保存された条件も無視する
+   *  ★includeHidden … 見送った人も含めるか（2026-10-13）。**既定は含めない**（画面の「表示する」だけが true を渡す。
+   *    保存した条件の新着・メールも同じ関数なので、見送った人は数えない） */
+  opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean } = {}): Candidate[] {
+  let list = opts.includeHidden ? candidates : candidates.filter((c) => c.hidden !== true);
 
   if (f.q.trim()) {
     const terms = f.q.toLowerCase().split(/\s+/).filter(Boolean);

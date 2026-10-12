@@ -9,6 +9,7 @@ import CandidatesClient from "./CandidatesClient";
 import { canUse } from "@/lib/constants/plans";
 import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
+import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { getApproachQuota } from "@/lib/approaches/server";
@@ -217,7 +218,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const [{ candidates, roleFilterTree }, approachQuota, coRow] = await Promise.all([
+  const [{ candidates, roleFilterTree, approachJobs, touchpointMaterials }, approachQuota, coRow] = await Promise.all([
     loadCompanyCandidates({
       companyId: ctx.tenantId,
       viewerOwUserId: ctx.currentOwnId,
@@ -270,6 +271,12 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         initialFilters={initialFilters}
         companyShortName={companyShortName}
         companyLimitLine={companyLimitLine}
+        /* ★右欄が使う会社の材料（2026-10-13）。右欄は一覧の Candidate とこれで描く（1人ずつ取り直さない） */
+        approachJobs={approachJobs}
+        touchpointMaterials={touchpointMaterials}
+        notesEnabled={isCandidateNotesEnabled()}
+        /* ⚠️ 名前が引けないときの「ご担当者」（getTenantContext の最後の倒し先）は名前として渡さない */
+        viewerName={ctx.userName && ctx.userName !== "ご担当者" ? ctx.userName : null}
         /* ★年齢の絞り込み・並び替え（本番は無効。CANDIDATE_AGE_FILTER_ENABLED） */
         ageFilterEnabled={isCandidateAgeFilterEnabled()}
         /* ★最近の利用（本番は無効。CANDIDATE_ACTIVITY_ENABLED） */

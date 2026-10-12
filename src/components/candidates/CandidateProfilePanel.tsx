@@ -24,7 +24,9 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  */
 export type PanelTab = "profile" | "messages";
 
-export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs }: {
+export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs, topBar }: {
+  /** ★固定の段のいちばん上に置く操作の帯（候補者を探すの［メッセージ］［☆ 気になる］［見送り］［‹ ›］。2026-10-13） */
+  topBar?: ReactNode;
   userId: string;
   /** 名前の右（新しいタブのアイコンの隣）に置くもの。候補者を探すの★（2026-10-12） */
   nameAction?: ReactNode;
@@ -74,6 +76,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
     <div data-state="candidate-profile-panel" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* 固定の段 */}
       <div style={{ flexShrink: 0, padding: tabs ? "16px 20px 0" : "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
+        {topBar}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} /></div>}
           <div style={{ flex: 1, minWidth: 0 }}>
