@@ -65,7 +65,8 @@ function toRow(r: Record<string, unknown>, ownerName: string | null): SavedSearc
   return {
     id: r.id as string,
     name: r.name as string,
-    filters: parseSavedFilters(r.filters),
+    /* ⚠️ DB の保存した条件は sort が無ければ「新着順」（2026-10-13 に既定を合う順にしたが、保存した人の意図を変えない） */
+    filters: parseSavedFilters(r.filters, { missingSort: "new" }),
     ownerUserId: r.owner_user_id as string,
     ownerName,
     isShared: r.is_shared === true,

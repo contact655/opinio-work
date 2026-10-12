@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
   const saved: SavedSearch = {
     id: data.id as string,
     name: data.name as string,
-    filters: parseSavedFilters(data.filters),
+    filters: parseSavedFilters(data.filters, { missingSort: "new" }),
     updatedAt: data.updated_at as string,
   };
   return NextResponse.json({ saved, overwritten: isOverwrite });

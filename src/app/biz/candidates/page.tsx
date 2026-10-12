@@ -184,9 +184,10 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
                 /* ⚠️★「現在の役職」と書かないこと（2026-10-01 に直した）。絞り込んでいるのは
                       自由入力の `role_title` で、5択の役職（`rank`）ではない。
                       `CandidatesClient` の入力欄と**必ず同じ語**にする。 */
-                "職種（大分類・小分類）", "現在の会社名", "社内での呼び方",
-                "雇用形態", "社会人年数", "希望勤務地", "希望年収",
-                "希望する職種", "働き方",
+                /* ★2026-10-13: 職種は経験職種と希望職種の2軸。会社名・社内での呼び方は検索窓に一本化。
+                      希望年収・働き方の絞り込みは外した。居住地は本人のお住まい（希望勤務地ではない） */
+                "経験職種", "希望職種", "キーワード（名前・職種・会社・居住地）",
+                "雇用形態", "社会人年数", "居住地",
                 /* ★2026-09-19 追加。⚠️ 絞り込み（CandidatesClient）と必ず一致させること。 */
                 "転職意欲", "転職意欲の更新時期",
               ].map((t) => (
@@ -218,7 +219,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const [{ candidates, roleFilterTree, approachJobs, touchpointMaterials }, approachQuota, coRow] = await Promise.all([
+  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials }, approachQuota, coRow] = await Promise.all([
     loadCompanyCandidates({
       companyId: ctx.tenantId,
       viewerOwUserId: ctx.currentOwnId,
@@ -276,6 +277,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         approachJobs={approachJobs}
         touchpointMaterials={touchpointMaterials}
         notesEnabled={isCandidateNotesEnabled()}
+        limitReached={limitReached}
         /* ⚠️ 名前が引けないときの「ご担当者」（getTenantContext の最後の倒し先）は名前として渡さない */
         viewerName={ctx.userName && ctx.userName !== "ご担当者" ? ctx.userName : null}
         /* ★段（一覧と詳細の幅）を覚えるキーに使う（会社・担当者ごと。2026-10-13） */

@@ -94,6 +94,9 @@ export type Candidate = {
   topRoleName: string | null;
   /** 希望職種。**祖先まで展開済み**の role_id（絞り込み用） */
   desiredRoleIds: string[];
+  /** ★経験職種（職歴の職種。現職・前職すべて）。**親まで展開済み**の role_id（絞り込み用・2026-10-13）。
+   *  ⚠️ 社名を伏せた職歴の職種も含む（職種は伏せる対象ではない。「できること」・合うところと同じ） */
+  expRoleIds?: string[];
   /** 表示用。本人が選んだ職種名（展開前） */
   desiredRoleNames: string[];
   workStyles: string[] | null;
@@ -155,7 +158,17 @@ export const ACTIVITY_FILTER_OPTIONS = [
 ] as const;
 const ACTIVITY_RANK: Record<ActivityBand, number> = { "3d": 0, "1w": 1, "1m": 2, older: 3 };
 
-/* フリーワードと除外ワードが見る項目。⚠️★**同じ対象**を見る（片方だけ足すと「検索では当たるのに除外できない」語ができる） */
+/** ★検索窓の文字列を、含める語と除外する語（先頭が "-" / "－"）に分ける（2026-10-13）。⚠️ "-" だけの語は捨てる */
+export function splitQuery(q: string): { include: string[]; exclude: string[] } {
+  const include: string[] = [], exclude: string[] = [];
+  for (const raw of q.toLowerCase().split(/\s+/).filter(Boolean)) {
+    if (raw.startsWith("-") || raw.startsWith("－")) { const w = raw.slice(1); if (w) exclude.push(w); }
+    else include.push(raw);
+  }
+  return { include, exclude };
+}
+
+/* フリーワードと除外する語が見る項目。⚠️★**同じ対象**を見る（片方だけ足すと「検索では当たるのに除外できない」語ができる） */
 function textHit(c: Candidate, t: string): boolean {
   return c.name.toLowerCase().includes(t) ||
     (c.currentRole ?? "").toLowerCase().includes(t) ||
@@ -178,30 +191,19 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
   opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean } = {}): Candidate[] {
   let list = opts.includeHidden ? candidates : candidates.filter((c) => c.hidden !== true);
 
-  if (f.q.trim()) {
-    const terms = f.q.toLowerCase().split(/\s+/).filter(Boolean);
-    list = list.filter((c) => terms.every((t) => textHit(c, t)));
-  }
-  /* 除外ワード: スペース区切りは OR（1つでも当たれば落とす） */
-  if (f.excludeQuery.trim()) {
-    const ng = f.excludeQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    list = list.filter((c) => !ng.some((t) => textHit(c, t)));
-  }
-  if (f.roleQuery.trim()) {
-    const r = f.roleQuery.toLowerCase();
-    list = list.filter((c) => (c.currentRole ?? "").toLowerCase().includes(r));
-  }
-  if (f.companyQuery.trim()) {
-    const co = f.companyQuery.toLowerCase();
-    list = list.filter((c) => (c.currentCompany ?? "").toLowerCase().includes(co));
-  }
+  /* ★検索窓（2026-10-13 に一本化）。含める語は AND、"-語" は OR（1つでも当たれば落とす） */
+  const { include, exclude } = splitQuery(f.q);
+  if (include.length > 0) list = list.filter((c) => include.every((t) => textHit(c, t)));
+  if (exclude.length > 0) list = list.filter((c) => !exclude.some((t) => textHit(c, t)));
   if (f.employmentTypes.length > 0) {
     list = list.filter((c) => c.employmentType && f.employmentTypes.includes(c.employmentType));
   }
-  if (f.workStyle) list = list.filter((c) => (c.workStyles ?? []).includes(f.workStyle));
-  /* 職種: 候補者側が祖先まで展開済みなので、大分類でも子でも includes() で当たる */
+  /* ⚠️ 働き方・希望年収の絞り込みは 2026-10-13 に外した（右欄に出さない値で絞れると、値が間接的に分かるため） */
+  /* 希望職種: 候補者側が祖先まで展開済みなので、大分類でも子でも includes() で当たる */
   const wantRole = f.childRoleId ?? f.topRoleId;
   if (wantRole) list = list.filter((c) => c.desiredRoleIds.includes(wantRole));
+  /* ★経験職種（2026-10-13）。選んだ中のどれか（OR）。候補者側が親まで展開済みなので、親を選ぶと子の経験も当たる */
+  if (f.expRoleIds.length > 0) list = list.filter((c) => (c.expRoleIds ?? []).some((id) => f.expRoleIds.includes(id)));
   /* 社会人年数。⚠️ 未算出（職歴0件）の人は落とさない */
   if (f.tenureBand) {
     const band = TENURE_BANDS.find((b) => b.value === f.tenureBand);
@@ -242,22 +244,15 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
   if (f.prefectures.length > 0) {
     list = list.filter((c) => { const k = residenceKey(c.location); return !!k && f.prefectures.includes(k); });
   }
-  if (f.salaryMin > 0) {
-    list = list.filter((c) => {
-      const v = c.desiredSalaryMax ?? c.desiredSalaryMin;
-      if (v === null) return f.includeNoSalary;
-      return v >= f.salaryMin;
-    });
-  }
   return list;
 }
 
 export const CANDIDATE_SORT_OPTIONS = [
+  /* ★2026-10-13 に既定にした（EMPTY_SAVED_FILTERS.sort）。⚠️ 接点が取れなかった（undefined）人は 0 件として扱わず末尾 */
+  { value: "touchpoints", label: "合うところが多い順" },
   { value: "new",         label: "新着順" },
   { value: "stance",      label: "意向の更新が新しい順" },
   { value: "tenure",      label: "社会人年数が長い順" },
-  /* ★段1。⚠️ 接点が取れなかった（undefined）人は 0 件として扱わず末尾 */
-  { value: "touchpoints", label: "合うところが多い順" },
   /* ★2026-10-12。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ選べる（画面が `AGE_SORTS` を外す）。生年月日が無い人は末尾 */
   { value: "age_young", label: "年齢が若い順" },
   { value: "age_old", label: "年齢が高い順" },
@@ -396,24 +391,21 @@ export const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
 export function describeFilters(
   f: SavedCandidateFilters,
   roleNameById: Map<string, string>,
-  labels: { workStyles: Record<string, string>; careerStances: { value: string; label: string }[] },
+  labels: { careerStances: { value: string; label: string }[] },
   /** ★年齢の絞り込みが使える環境か（`isCandidateAgeFilterEnabled()`）。無効なら年齢の条件を言葉にしない（2026-10-12）。activity も同じ */
   opts: { ageFilter?: boolean; activity?: boolean } = {},
 ): string[] {
   const out: string[] = [];
   if (f.q.trim()) out.push(`検索: ${f.q.trim()}`);
-  if (f.roleQuery.trim()) out.push(`社内での呼び方: ${f.roleQuery.trim()}`);
-  if (f.companyQuery.trim()) out.push(`会社: ${f.companyQuery.trim()}`);
-  if (f.excludeQuery.trim()) out.push(`除外: ${f.excludeQuery.trim()}`);
+  const expNames = f.expRoleIds.map((id) => roleNameById.get(id)).filter((n): n is string => !!n);
+  if (expNames.length) out.push(`経験職種: ${expNames.join("・")}`);
   const role = f.childRoleId ?? f.topRoleId;
-  if (role && roleNameById.get(role)) out.push(roleNameById.get(role)!);
+  if (role && roleNameById.get(role)) out.push(`希望職種: ${roleNameById.get(role)!}`);
   const tb = TENURE_BANDS.find((b) => b.value === f.tenureBand);
   if (tb) out.push(`社会人 ${tb.label}`);
   /* ★年齢（2026-10-12）。⚠️ 無効な環境（本番）では出さない（年齢が画面に一切出ない状態にする。柴さんの指示） */
   if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) out.push(ageRangeLabel(f.ageMin, f.ageMax));
   for (const v of f.employmentTypes) out.push(EMPLOYMENT_TYPE_LABELS[v] ?? v);
-  if (f.workStyle) out.push(labels.workStyles[f.workStyle] ?? f.workStyle);
-  if (f.salaryMin > 0) out.push(`${f.salaryMin}万〜`);
   for (const p of f.prefectures) out.push(p);
   if (f.hasTouchpoints) out.push("合うところあり");
   if (f.starredOnly) out.push("気になる");

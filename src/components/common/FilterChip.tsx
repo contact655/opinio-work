@@ -33,7 +33,10 @@ export function FilterChip({
   onToggleValue,
   onClear,
   labelPrefix = false,
+  clearLabel,
 }: {
+  /** ★✕ の読み上げ名（2026-10-13 / 候補者を探す。例「経験職種の条件を外す」）。渡さなければ従来どおり「クリア」 */
+  clearLabel?: string;
   label: string;
   value: string;
   /** ⚠️ フェーズは2段階。`parent` を持つものが子で、親の直後にインデントして並ぶ。
@@ -134,7 +137,7 @@ export function FilterChip({
               if (multi) { if (onClear) onClear(); else values!.forEach((v) => onToggleValue?.(v)); } else { onSelect(null); }
             }}
             style={{ fontSize: 12, marginLeft: 1, opacity: 0.75, lineHeight: 1 }}
-            aria-label="クリア"
+            aria-label={clearLabel ?? "クリア"}
           >
             ✕
           </span>

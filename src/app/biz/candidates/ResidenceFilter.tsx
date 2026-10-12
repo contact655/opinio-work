@@ -41,7 +41,8 @@ export function ResidenceFilter({ selected, counts, onApply, isOpen, onToggle }:
   });
 
   const active = selected.length > 0;
-  const chipLabel = !active ? "居住地" : selected.length === 1 ? selected[0] : `居住地 ${selected.length}`;
+  /* ★選択中は「居住地: 東京都 +1」（2026-10-13。ほかのチップの labelPrefix と同じ形） */
+  const chipLabel = !active ? "居住地" : `居住地: ${selected[0]}${selected.length > 1 ? ` +${selected.length - 1}` : ""}`;
 
   return (
     <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>

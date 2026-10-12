@@ -7857,6 +7857,8 @@ curl -s https://opinio.jp/api/health
 
 ## 🔧 将来の改善課題
 
+- ⚠️ /biz/candidates の「経験職種」の選択肢は IT の職種（is_it_saas の大分類11＋子）だけ（2026-10-13）。職歴に IT 以外の職種を持てるようにするときに見直す（希望職種と同じ選択肢を使っている）
+
 ### ⚠️★★/biz の除外パスからクライアント遷移すると、サイドバーが空・「管理者」が出ない（2026-10-13）
 
 **原因:** `app/biz/layout.tsx` は除外パス（`/biz/auth`・`/biz/companies/add`・`/biz/select-company` など）では

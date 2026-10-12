@@ -8,7 +8,7 @@ import { describeFilters } from "@/lib/business/candidates/model";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { getRoleTree } from "@/lib/supabase/queries";
-import { DESIRED_WORK_STYLE_LABELS, CAREER_STANCES } from "@/lib/constants/careerPreferences";
+import { CAREER_STANCES } from "@/lib/constants/careerPreferences";
 import SavedSearchesClient, { type SavedSearchView } from "./SavedSearchesClient";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +53,7 @@ export default async function SavedSearchesPage({ searchParams }: { searchParams
   const views: SavedSearchView[] | null = rows?.map((r) => ({
     id: r.id, name: r.name, ownerName: r.ownerName, isMine: r.isMine, isShared: r.isShared,
     notifyFrequency: r.notifyFrequency, canEdit: r.canEdit, canDelete: r.canDelete, newCount: r.newCount,
-    chips: describeFilters(r.filters, roleNameById, { workStyles: DESIRED_WORK_STYLE_LABELS, careerStances: [...CAREER_STANCES] }, { ageFilter: isCandidateAgeFilterEnabled(), activity: isCandidateActivityEnabled() }),
+    chips: describeFilters(r.filters, roleNameById, { careerStances: [...CAREER_STANCES] }, { ageFilter: isCandidateAgeFilterEnabled(), activity: isCandidateActivityEnabled() }),
   })) ?? null;
   const editId = searchParams?.edit && views?.some((v) => v.id === searchParams.edit && v.canEdit) ? searchParams.edit : null;
 

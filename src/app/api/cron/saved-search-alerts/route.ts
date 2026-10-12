@@ -74,7 +74,7 @@ export async function GET(request: Request) {
     const lastViewed = (await ensureLastViewed([s.id as string], ownerId)).get(s.id as string) ?? new Date().toISOString();
     const lastNotified = (s.last_notified_at as string | null) ?? null;
     const since = lastNotified && lastNotified > lastViewed ? lastNotified : lastViewed;
-    const count = countNew(candidates, parseSavedFilters(s.filters), since);
+    const count = countNew(candidates, parseSavedFilters(s.filters, { missingSort: "new" }), since);
     if (count === 0) { summary.zero++; continue; }
 
     const { data: owner } = await db.from("ow_users").select("email").eq("id", ownerId).maybeSingle();

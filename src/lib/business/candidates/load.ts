@@ -30,8 +30,13 @@ import type { Candidate } from "@/lib/business/candidates/model";
  *    ここで条件を組み立てないこと。
  * ⚠️ 取得に失敗した部分は fail-closed（見せない／ボタンを出さない）。
  */
+/** ★候補者を取る上限（登録の新しい順）。⚠️ 達したら画面に「最新の500名を表示しています」と出す（2026-10-13） */
+export const CANDIDATE_LOAD_LIMIT = 500;
+
 export type LoadedCandidates = {
   candidates: Candidate[];
+  /** ★取得件数が上限（CANDIDATE_LOAD_LIMIT）に達したか。⚠️ 達していれば古い登録の人が一覧に出ていない */
+  limitReached: boolean;
   roleFilterTree: { id: string; name: string; children: { id: string; name: string }[] }[];
   approachJobs: { id: string; title: string }[];
   /** 接点の材料が自社に揃っているか。null = 取れなかった */
@@ -96,7 +101,7 @@ export async function loadCompanyCandidates(params: {
     .neq("visibility", "private")
     .not("is_system", "eq", true)
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(CANDIDATE_LOAD_LIMIT);
   if (params.onlyOwUserId) usersQ = usersQ.eq("id", params.onlyOwUserId);
   const { data: rawUsers, error: rawUsersError } = await usersQ;
   if (rawUsersError) console.error("[candidates] ow_users:", rawUsersError.message);
@@ -259,6 +264,17 @@ export async function loadCompanyCandidates(params: {
       topRoleName: resolveTopRole(roleTree, currentExp?.role_category_id)?.name ?? null,
       /* ⚠️ 絞り込みは expandedIds（職種＋祖先）、表示は names（選ばれたものだけ） */
       desiredRoleIds: desiredByAuthId.get(authId)?.expandedIds ?? [],
+      /* ★経験職種（2026-10-13）。既にある職歴の取得（allExps）から作る（クエリを増やさない）。親まで展開する */
+      expRoleIds: (() => {
+        const ids = new Set<string>();
+        for (const e of expRowsByUser.get(u.id as string) ?? []) {
+          if (!e.role_category_id) continue;
+          ids.add(e.role_category_id);
+          const parent = roleTree.byId.get(e.role_category_id)?.parentId;
+          if (parent) ids.add(parent);
+        }
+        return Array.from(ids);
+      })(),
       desiredRoleNames: desiredByAuthId.get(authId)?.names ?? [],
       workStyles: (profile?.desired_work_styles as string[] | null) || null,
       desiredPrefectures: (profile?.desired_prefectures as string[] | null) || null,
@@ -311,5 +327,5 @@ export async function loadCompanyCandidates(params: {
         .map((r) => ({ id: r.id, name: r.name })),
     }));
 
-  return { candidates, roleFilterTree, approachJobs, touchpointMaterials: touch?.materials ?? null };
+  return { candidates, limitReached: (rawUsers ?? []).length >= CANDIDATE_LOAD_LIMIT, roleFilterTree, approachJobs, touchpointMaterials: touch?.materials ?? null };
 }

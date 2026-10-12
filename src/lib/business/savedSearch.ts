@@ -23,20 +23,17 @@
 
 /** 保存する絞り込みの中身。⚠️ ここにキーを足すと `FILTER_SETTERS` が型エラーになる（意図どおり） */
 export type SavedCandidateFilters = {
-  /** フリーワード（スペース区切りで AND） */
+  /** フリーワード（スペース区切りで AND）。★先頭に "-" を付けた語は除外（1つでも当たれば落とす。2026-10-13 に一本化） */
   q: string;
-  /** 除外ワード（スペース区切りで OR） */
-  excludeQuery: string;
-  roleQuery: string;
-  companyQuery: string;
+  /* ⚠️★2026-10-13 に外したキー（読み込み時に変換・無視する。`parseSavedFilters`）:
+        excludeQuery・roleQuery・companyQuery → q に入れる（除外は "-語"）
+        workStyle・salaryMin・includeNoSalary → 無視（右欄に出さない値で絞れると、値が間接的に分かるため） */
+  /** ★希望職種（関心のある職種。2026-10-13 に「職種」から名前だけ改めた。キーは変えていない＝保存済みの意味を変えない） */
   topRoleId: string | null;
   childRoleId: string | null;
+  /** ★経験職種（職歴の職種。現職・前職すべて。複数は OR。親を選ぶと子も含む。2026-10-13） */
+  expRoleIds: string[];
   employmentTypes: string[];
-  workStyle: string;
-  /** 万円単位。0 = 指定なし */
-  salaryMin: number;
-  /** 年収未設定の候補者も通すか。⚠️ 既定は true（落とさない側） */
-  includeNoSalary: boolean;
   tenureBand: string;
   /** ★年齢の下限・上限（2026-10-12）。0 = 指定なし。⚠️ 効くのは CANDIDATE_AGE_FILTER_ENABLED のときだけ */
   ageMin: number;
@@ -55,7 +52,8 @@ export type SavedCandidateFilters = {
         DB に残っている値は下の `parseSavedFilters` が捨てる（知らないキーは捨てる約束）。 */
   /* ⚠️ `approachOnly`（メッセージを受け取る方のみ）は 2026-10-11 に外した（全員が最初から受け取る形にしたため）。
         DB に残っている値は下の `parseSavedFilters` が捨てる。 */
-  /** ⚠️ 並び替えも保存する。「どう見ていたか」まで戻せないと再現にならない */
+  /** ⚠️ 並び替えも保存する。「どう見ていたか」まで戻せないと再現にならない。
+   *  ★既定は「合うところが多い順」（2026-10-13）。⚠️ 保存した条件で sort が無いものは「新着順」として読む（`parseSavedFilters` の missingSort） */
   sort: string;
 };
 
@@ -68,15 +66,10 @@ export type SavedCandidateFilters = {
  */
 export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   q: "",
-  excludeQuery: "",
-  roleQuery: "",
-  companyQuery: "",
   topRoleId: null,
   childRoleId: null,
+  expRoleIds: [],
   employmentTypes: [],
-  workStyle: "",
-  salaryMin: 0,
-  includeNoSalary: true,
   tenureBand: "",
   ageMin: 0,
   ageMax: 0,
@@ -86,7 +79,7 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   starredOnly: false,
   activity: "",
   stanceFreshness: "",
-  sort: "new",
+  sort: "touchpoints",
 };
 
 const str = (v: unknown, d: string): string => (typeof v === "string" ? v : d);
@@ -104,20 +97,29 @@ const num = (v: unknown, d: number): number =>
  *    保存した日と条件の顔ぶれが違っても、呼び出しが失敗しないようにするため。
  * ⚠️ 値の**妥当性**（存在する職種 id か等）はここで見ない。
  *    存在しない値は絞り込みが 0 件になるだけで、壊れはしない。
+ * ★2026-10-13 の読み替え（DB の JSON は書き換えない。読むときだけ）:
+ *    - roleQuery・companyQuery の語は q に足す。excludeQuery の語は "-語" にして q に足す
+ *      ⚠️ 意味は少し広がる（その欄だけ → 名前・職種・会社・居住地のどれか）。2026-10-13 時点で値の入った保存は0件
+ *    - workStyle・salaryMin・includeNoSalary は捨てる
+ *    - 職種（topRoleId・childRoleId）は「希望職種」のまま（意味を変えない）
+ * @param opts.missingSort sort が無いときの値。**DB の保存した条件は "new"**（保存した人の意図を変えない）。
+ *        URL（`?f=`）は既定値（合うところが多い順）。既定値のキーは URL に書かない作りのため
  */
-export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
+export function parseSavedFilters(raw: unknown, opts: { missingSort?: string } = {}): SavedCandidateFilters {
   const o = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  const words = (v: unknown) => str(v, "").split(/\s+/).filter(Boolean);
+  const q = [
+    ...words(o.q),
+    ...words(o.roleQuery),
+    ...words(o.companyQuery),
+    ...words(o.excludeQuery).map((w) => (w.startsWith("-") ? w : `-${w}`)),
+  ].join(" ");
   return {
-    q: str(o.q, ""),
-    excludeQuery: str(o.excludeQuery, ""),
-    roleQuery: str(o.roleQuery, ""),
-    companyQuery: str(o.companyQuery, ""),
+    q,
     topRoleId: nullableStr(o.topRoleId),
     childRoleId: nullableStr(o.childRoleId),
+    expRoleIds: strArr(o.expRoleIds),
     employmentTypes: strArr(o.employmentTypes),
-    workStyle: str(o.workStyle, ""),
-    salaryMin: num(o.salaryMin, 0),
-    includeNoSalary: bool(o.includeNoSalary, true),
     tenureBand: str(o.tenureBand, ""),
     ageMin: num(o.ageMin, 0),
     ageMax: num(o.ageMax, 0),
@@ -129,7 +131,7 @@ export function parseSavedFilters(raw: unknown): SavedCandidateFilters {
     activity: str(o.activity, ""),
     /* ⚠️ 2026-10-12 に帯を 7日／30日／90日 にした。古い値（1d/1w → 7d、1m → 30d、3m → 90d）は読み替える */
     stanceFreshness: ({ "1d": "7d", "1w": "7d", "1m": "30d", "3m": "90d" } as Record<string, string>)[str(o.stanceFreshness, "")] ?? str(o.stanceFreshness, ""),
-    sort: str(o.sort, "new"),
+    sort: str(o.sort, opts.missingSort ?? EMPTY_SAVED_FILTERS.sort),
   };
 }
 
