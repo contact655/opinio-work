@@ -313,16 +313,36 @@ function BusinessChrome({
     if (d.collapsed) { d.collapsed = false; setSidebarCollapsed(false, false); }
     applySidebarW(clampSidebarW(x), false);
   }
-  function onHandlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+  /* ⚠️★ドラッグの後片付けは必ずここを通す。片付けが漏れると、カーソルが画面じゅう「幅を変える」形のまま残り、
+        線も濃いままになる（2026-10-12 に本番で実際に起きた）。pointerup が要素に届かない終わり方
+        （ウィンドウの外で離す・キャプチャが外れる・タブを切り替える）があるので、要素のイベントだけに頼らない */
+  function endDrag(): { moved: boolean; collapsed: boolean } | null {
     const d = dragRef.current;
     dragRef.current = null;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     document.documentElement.classList.remove("biz-sidebar-resizing");
     setResizing(false);
+    return d;
+  }
+  function onHandlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    /* ⚠️ 先に片付けてからキャプチャを外す。外すと lostpointercapture が走るので、逆だと押しただけの開閉が消える */
+    const d = endDrag();
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     if (!d) return;
     if (!d.moved) { toggleSidebar(); return; }
     if (!d.collapsed) applySidebarW(sidebarWNow(), true);
   }
+  /* 要素に届かなかった終わり方の保険。幅はそのとき見えている値で保存する */
+  function abandonDrag() {
+    const d = endDrag();
+    if (d && d.moved && !d.collapsed) applySidebarW(sidebarWNow(), true);
+  }
+  useEffect(() => {
+    if (!resizing) return;
+    window.addEventListener("pointerup", abandonDrag);
+    window.addEventListener("blur", abandonDrag);
+    return () => { window.removeEventListener("pointerup", abandonDrag); window.removeEventListener("blur", abandonDrag); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resizing]);
   function sidebarWNow() {
     const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--biz-sidebar-open-w"), 10);
     return v >= SIDEBAR_W_MIN && v <= SIDEBAR_W_MAX ? v : SIDEBAR_W_DEFAULT;
@@ -806,7 +826,8 @@ function BusinessChrome({
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerUp}
-            onPointerCancel={onHandlePointerUp}
+            onPointerCancel={abandonDrag}
+            onLostPointerCapture={abandonDrag}
             onPointerLeave={() => { if (!dragRef.current) setHandleTip(null); }}
             onKeyDown={onHandleKeyDown}
           />
