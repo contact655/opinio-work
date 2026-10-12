@@ -632,6 +632,49 @@ export type Database = {
           },
         ]
       }
+      ow_candidate_hidden: {
+        Row: {
+          candidate_user_id: string
+          company_id: string
+          created_at: string
+          hidden_by: string | null
+        }
+        Insert: {
+          candidate_user_id: string
+          company_id: string
+          created_at?: string
+          hidden_by?: string | null
+        }
+        Update: {
+          candidate_user_id?: string
+          company_id?: string
+          created_at?: string
+          hidden_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_candidate_hidden_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_hidden_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_candidate_hidden_hidden_by_fkey"
+            columns: ["hidden_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_candidate_notes: {
         Row: {
           author_id: string | null
