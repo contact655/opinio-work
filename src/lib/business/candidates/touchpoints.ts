@@ -274,7 +274,9 @@ export async function getCompanyCandidateTouchpoints(
       const fact: FitFact = met && roleName
         ? { kind: "job_role", jobId: j.id, jobTitle: j.title, months, requiredYears: j.requiredYears as number, roleName }
         : { kind: "job_role", jobId: j.id, jobTitle: j.title, months };
-      out.push({ kind: "job_role", weight: met && roleName ? WEIGHT.job_experience : WEIGHT.job_role, ref: { type: "job", id: j.id }, fact, text: fitText(fact, "company") });
+      const expLabel = roleName ? (months >= 12 ? `${roleName} ${Math.floor(months / 12)}年` : roleName) : (months >= 12 ? `経験${Math.floor(months / 12)}年` : "経験あり");
+      out.push({ kind: "job_role", weight: met && roleName ? WEIGHT.job_experience : WEIGHT.job_role, ref: { type: "job", id: j.id }, fact, text: fitText(fact, "company"),
+        row: { item: met && roleName ? "経験年数" : "職種", person: expLabel, ours: `求人『${j.title}』${met ? `（${j.requiredYears}年以上）` : ""}` } });
     }
     // ★ポジションのレベル（2026-10-12）× 職歴の役職。同じかそれ以上の役職を経験していれば
     const myRank = exps.reduce<number | null>((m, e) => {
@@ -291,7 +293,8 @@ export async function getCompanyCandidateTouchpoints(
         const needLabel = j.level ? RANK_LABELS[j.level] : null;
         if (!mineLabel || !needLabel) continue;
         out.push({ kind: "position_level", weight: WEIGHT.position_level, ref: { type: "job", id: j.id },
-          text: `${mineLabel}の経験があります（求人『${j.title}』のレベル：${needLabel}）` });
+          text: `${mineLabel}の経験があります（求人『${j.title}』のレベル：${needLabel}）`,
+          row: { item: "レベル", person: mineLabel, ours: `${needLabel}（求人『${j.title}』）` } });
       }
     }
     // ② 自社が登録した職種（部門）
@@ -307,7 +310,9 @@ export async function getCompanyCandidateTouchpoints(
         ...(expHit && roleNameOf(expHit) ? { expRoleName: roleNameOf(expHit) } : {}),
         ...(desiredHit && roleNameOf(desiredHit) ? { desiredRoleName: roleNameOf(desiredHit) } : {}),
       };
-      out.push({ kind: "company_role", weight: WEIGHT.company_role, ref: { type: "company_job_role", id: r.id }, fact, text: fitText(fact, "company") });
+      const personRole = byExp ? (roleNameOf(expHit!) ?? "経験あり") : `${roleNameOf(desiredHit!) ?? "—"}（関心）`;
+      out.push({ kind: "company_role", weight: WEIGHT.company_role, ref: { type: "company_job_role", id: r.id }, fact, text: fitText(fact, "company"),
+        row: { item: "職種", person: personRole, ours: r.departments.length ? `${r.name}（${r.departments.join("・")}）` : r.name } });
     }
     // ⑤ 社員とのつながり（社名を出している職歴だけ。is_test が候補者と一致する社員だけ数える）
     const seenKeys = new Set<string>();
@@ -321,7 +326,8 @@ export async function getCompanyCandidateTouchpoints(
       const n = people ? Array.from(people).filter((uid) => uid !== c.owUserId).length : 0;
       if (n === 0) continue;
       out.push({ kind: "alumni", weight: WEIGHT.alumni, ref: e.company_id ? { type: "company", id: e.company_id } : null,
-        text: `${e.companyName}の出身者が、貴社に${n}名在籍しています` });
+        text: `${e.companyName}の出身者が、貴社に${n}名在籍しています`,
+        row: { item: "出身", person: e.companyName, ours: `${e.companyName}の出身者 ${n}名` } });
     }
     // ④a 顧客の業界 × 職歴の業種（本人側だけ祖先へ展開）
     if (needIndustry) {
@@ -336,7 +342,8 @@ export async function getCompanyCandidateTouchpoints(
         const name = industryTree.byId.get(id)?.name;
         if (!name) continue; // ⚠️ 名前が引けない業種は出さない（「—」で埋めない）
         const fact: FitFact = { kind: "target_industry", industryId: id, industryName: name };
-        out.push({ kind: "target_industry", weight: WEIGHT.target_industry, ref: { type: "industry", id }, fact, text: fitText(fact, "company") });
+        out.push({ kind: "target_industry", weight: WEIGHT.target_industry, ref: { type: "industry", id }, fact, text: fitText(fact, "company"),
+          row: { item: "業界", person: `${name}の経験`, ours: `顧客の業界：${name}` } });
       }
     }
     // ④b 事業領域 × 前の勤務先の事業領域（自社以外・社名を出している職歴）
@@ -349,7 +356,9 @@ export async function getCompanyCandidateTouchpoints(
       const ids = Array.from(hit).filter((d) => domainName.has(d));
       if (ids.length) {
         const fact: FitFact = { kind: "business_domain", domainIds: ids, domainNames: ids.map((d) => domainName.get(d) as string) };
-        out.push({ kind: "business_domain", weight: WEIGHT.business_domain, ref: { type: "business_domain", id: ids[0] }, fact, text: fitText(fact, "company") });
+        const names = ids.map((d) => domainName.get(d) as string).join("・");
+        out.push({ kind: "business_domain", weight: WEIGHT.business_domain, ref: { type: "business_domain", id: ids[0] }, fact, text: fitText(fact, "company"),
+          row: { item: "事業領域", person: `${names}の会社での経験`, ours: names } });
       }
     }
     // ③ 勤務地（同じ都道府県は1件にまとめる）
@@ -357,14 +366,16 @@ export async function getCompanyCandidateTouchpoints(
     if (pref) {
       const j = jobs.find((x) => x.pref === pref);
       if (j) out.push({ kind: "location", weight: WEIGHT.location, ref: { type: "job", id: j.id },
-        text: `求人の勤務地（${pref}）とお住まいが合っています` });
+        text: `求人の勤務地（${pref}）とお住まいが合っています`,
+        row: { item: "勤務地", person: `${pref}在住`, ours: `${pref}（求人『${j.title}』）` } });
     }
     // ★事業ステージ（2026-10-12）。細かい段が同じ会社の経験があるときだけ・いちばん下に
     if (ownFinePhase) {
       const e = exps.find((x) => x.company_id && x.company_id !== companyId && x.visibility_company === "real" && x.companyPhase === ownFinePhase && x.companyName);
       const label = phaseLabel(ownFinePhase);
       if (e && label) out.push({ kind: "business_stage", weight: WEIGHT.business_stage, ref: null,
-        text: `同じ事業ステージ（${label}）の会社（${e.companyName}）での経験があります` });
+        text: `同じ事業ステージ（${label}）の会社（${e.companyName}）での経験があります`,
+        row: { item: "事業ステージ", person: `${e.companyName}（${label}）`, ours: label } });
     }
     out.sort((a, b) => b.weight - a.weight);
     byCandidate.set(c.owUserId, out);

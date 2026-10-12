@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { StanceMeter } from "@/components/candidates/StanceMeter";
+import { StanceBadge } from "@/components/candidates/StanceMeter";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
-import { CAREER_STANCE_LABELS } from "@/lib/constants/careerPreferences";
 import { ACTIVITY_LABELS } from "@/lib/business/candidates/model";
 
 /**
@@ -48,8 +47,7 @@ function writeTabToUrl(tab: PanelTab) {
   } catch { /* URL を書けなくても表示は続ける */ }
 }
 
-/** ★最初に全文で出す件数（2026-10-12 に 3 → 2）。それより多ければ「ほかn件」で、押すとその場で全部 */
-const TOUCHPOINT_INITIAL = 2;
+/* ⚠️ 2026-10-13: 右欄の「合うところ」は「ほか○件」で隠さず全件（表）。カードは一番重い理由1つ＋「ほか○件」 */
 
 
 function formatTenure(months: number | null): string | null {
@@ -97,31 +95,42 @@ export function TouchpointGuide({ touchpoints, materials }: { touchpoints: Touch
  * ⚠️ プレビューの部品として切り出してある（/dev/preview から使う）
  */
 export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
-  const [showAll, setShowAll] = useState(false);
+  /* ★2026-10-13（ステップ4 / モックに合わせた）: 項目／この人／自社 の3列の表で**全件**出す（「ほか○件」で隠さない）。
+        行は `Touchpoint.row`（8種類すべて）。⚠️ row が無い古い形（/dev/preview の固定データ）は分類と文で1行にする */
   if (!touchpoints || touchpoints.length === 0) return null;
-  const shown = showAll ? touchpoints : touchpoints.slice(0, TOUCHPOINT_INITIAL);
-  const rest = touchpoints.length - TOUCHPOINT_INITIAL;
+  const cell: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, lineHeight: 1.55, verticalAlign: "top", borderTop: "1px solid var(--royal-100)", overflowWrap: "anywhere" };
   return (
-    <section data-state="touchpoints" style={{ marginTop: 12, padding: "12px 14px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
-      <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
+    <section data-state="touchpoints" style={{ marginTop: 12, padding: "12px 12px 8px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+      <h3 style={{ margin: "0 0 6px 2px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
         {companyShortName ?? "貴社"}と合うところ（{touchpoints.length}）
       </h3>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-        {shown.map((t, i) => (
-          <li key={`${t.kind}:${t.ref?.id ?? i}`} data-touchpoint={t.kind}
-            style={{ display: "flex", alignItems: "baseline", gap: 6, fontSize: 13, lineHeight: 1.6, color: "var(--ink)", overflowWrap: "anywhere" }}>
-            <span aria-hidden="true" style={{ flexShrink: 0, color: "var(--royal)", fontWeight: 700 }}>✓</span>
-            <span style={{ flexShrink: 0, fontWeight: 700, whiteSpace: "nowrap" }}>{touchpointCategory(t)}</span>
-            <span style={{ minWidth: 0 }}>{t.text}</span>
-          </li>
-        ))}
-      </ul>
-      {rest > 0 && !showAll && (
-        <button type="button" onClick={() => setShowAll(true)} data-state="touchpoints-more"
-          style={{ marginTop: 6, padding: 0, border: "none", background: "none", fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", color: "var(--royal)", cursor: "pointer" }}>
-          ほか{rest}件
-        </button>
-      )}
+      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+        <colgroup><col style={{ width: "22%" }} /><col style={{ width: "39%" }} /><col style={{ width: "39%" }} /></colgroup>
+        <thead>
+          <tr>
+            {["項目", "この人", companyShortName ?? "貴社"].map((h) => (
+              <th key={h} scope="col" style={{ ...cell, borderTop: "none", fontSize: 11.5, fontWeight: 700, color: "var(--ink-mute)", textAlign: "left", paddingTop: 2, paddingBottom: 4 }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {touchpoints.map((t, i) => (
+            <tr key={`${t.kind}:${t.ref?.id ?? i}:${i}`} data-touchpoint={t.kind}>
+              <th scope="row" style={{ ...cell, fontWeight: 700, color: "var(--ink)", textAlign: "left" }}>
+                <span aria-hidden="true" style={{ color: "var(--royal)", marginRight: 4 }}>✓</span>{t.row?.item ?? touchpointCategory(t)}
+              </th>
+              {t.row ? (
+                <>
+                  <td style={{ ...cell, color: "var(--ink)" }}>{t.row.person}</td>
+                  <td style={{ ...cell, color: "var(--ink)" }}>{t.row.ours}</td>
+                </>
+              ) : (
+                <td colSpan={2} style={{ ...cell, color: "var(--ink)" }}>{t.text}</td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
@@ -235,7 +244,13 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
   /* ★未読（2026-10-13）。あるときだけタブのラベル右に小さな丸（数字は出さない。ui-conventions「タブ」）。
         見ている担当者の未読 ∪ 自社の誰も開いていない返信。⚠️ 一度開いたら消す */
   const unreadDot = !readNow && ((c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true);
-  const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join("　");
+  /* ★項目ごとに折り返さない（「東京／都」のように1つの項目の途中で割れない。2026-10-13）。項目と項目の間でだけ折り返す */
+  const metaItems = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter((x): x is string => !!x);
+  const meta = metaItems.length ? (
+    <span data-state="preview-meta" style={{ display: "inline-flex", flexWrap: "wrap", columnGap: 12, rowGap: 2 }}>
+      {metaItems.map((m) => <span key={m} style={{ whiteSpace: "nowrap" }}>{m}</span>)}
+    </span>
+  ) : null;
 
   /* ★メッセージのボタン（上の段）。やり取りがあれば「メッセージを続ける」、送れる人は「メッセージを送る」。
         ⚠️ 送れない人・送り済みで返信の無い人には「送る」を出さない（理由はメッセージのタブに灰色の1行で出る） */
@@ -250,7 +265,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
       userId={c.id}
       name={c.name}
       avatarUrl={c.avatarUrl ?? null}
-      meta={meta || null}
+      meta={meta}
       onClose={onClose}
       topBar={<PreviewActionBar canAct={canAct} actions={actions} messageButton={messageButton} />}
       headerExtra={<PreviewHeaderLines candidate={c} contacts={contacts} />}
@@ -308,30 +323,34 @@ function PreviewActionBar({ canAct, actions, messageButton }: {
   const prevDisabled = index <= 0;
   const nextDisabled = index < 0 || index >= total - 1;
   return (
-    <div data-state="preview-action-bar" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+    /* ★1行に収める（2026-10-13）。右欄が狭いときはボタンを**アイコンだけ**にする（CSS のコンテナクエリで .cand-bar-label を隠す）。
+          ⚠️ アイコンだけのときも読み上げ名（aria-label）は残す */
+    <div data-state="preview-action-bar" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", marginBottom: 12, minWidth: 0 }}>
       {canAct && messageButton && (
-        <button type="button" onClick={messageButton.onClick} data-state="bar-message" className="btn-fixed-size"
+        <button type="button" onClick={messageButton.onClick} data-state="bar-message" className="btn-fixed-size" aria-label={messageButton.label} title={messageButton.label}
           style={{ ...btn, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 700 }}>
-          {messageButton.label}
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span className="cand-bar-label">{messageButton.label}</span>
         </button>
       )}
       {canAct && (
         <button type="button" onClick={actions.onToggleStar} aria-pressed={actions.starred} data-state={actions.starred ? "bar-star-on" : "bar-star-off"}
-          title="社内で共有・ご本人には通知されません" className="btn-fixed-size"
+          title="社内で共有・ご本人には通知されません" className="btn-fixed-size" aria-label="気になる"
           style={{ ...btn, color: actions.starred ? "var(--royal)" : "var(--ink-soft)", borderColor: actions.starred ? "var(--royal)" : "var(--line)" }}>
           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={actions.starred ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
             <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
           </svg>
-          気になる
+          <span className="cand-bar-label">気になる</span>
         </button>
       )}
       {canAct && (
         <button type="button" onClick={actions.onToggleHidden} aria-pressed={actions.hidden} data-state={actions.hidden ? "bar-unhide" : "bar-hide"}
-          title="一覧から外します（社内だけ・ご本人には伝わりません）" className="btn-fixed-size" style={btn}>
-          {actions.hidden ? "見送りを解除" : "見送り"}
+          title="一覧から外します（社内だけ・ご本人には伝わりません）" className="btn-fixed-size" style={btn} aria-label={actions.hidden ? "見送りを解除" : "見送り"}>
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>
+          <span className="cand-bar-label">{actions.hidden ? "見送りを解除" : "見送り"}</span>
         </button>
       )}
-      <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         <button type="button" onClick={actions.onPrev} disabled={prevDisabled} aria-label="前の候補者" data-state="bar-prev" className="btn-fixed-size" style={nav(prevDisabled)}>‹</button>
         <span data-state="bar-position" style={{ fontSize: 12.5, color: "var(--ink-mute)", minWidth: 48, textAlign: "center", fontFamily: "var(--font-inter), var(--font-noto)" }}>
           {index >= 0 ? `${index + 1} / ${total}` : `– / ${total}`}
@@ -353,35 +372,60 @@ export function PreviewHeaderLines({ candidate, contacts }: {
   candidate: Candidate;
   contacts: PreviewContacts;
 }) {
-  const stanceLabel = candidate.careerStance ? CAREER_STANCE_LABELS[candidate.careerStance] ?? null : null;
-  /* ★「情報収集として（9月30日に更新）」（2026-10-12）。⚠️ 更新日時が無い（不明）なら日付を付けない */
-  const stanceDate = formatJstMonthDay(candidate.careerStanceUpdatedAt);
-  const stance = stanceLabel;
+  /* ★2026-10-13（ステップ4 / モックに合わせた）: 意向は3段のバッジ（`StanceBadge`。それまでの4段ドットを置き換えた）。
+        その下に4マスの要約：現職の在籍期間／居住地／意向の更新（相対表記）／自社との接点。
+     ⚠️ 希望年収・働き方は出さない（規約。企業の画面に出さない項目）。⚠️ 値が無いマスは「—」（推測で埋めない） */
   /* ★最近の利用（2026-10-12）。⚠️ スイッチが無効なら undefined で何も出さない。記録が無い（null）も出さない */
   const activityText = candidate.activity ? ACTIVITY_LABELS[candidate.activity] : null;
-  const gray: React.CSSProperties = { fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.6 };
-  if (!stance && !contacts && !activityText) return null;
+  const cells: { label: string; value: string; state: string }[] = [
+    { label: "現職の在籍期間", value: tenureSince(candidate.startedAt) ?? "—", state: "summary-current-tenure" },
+    { label: "居住地", value: candidate.location || "—", state: "summary-location" },
+    { label: "意向の更新", value: relativeJa(candidate.careerStanceUpdatedAt) ?? "—", state: "summary-stance-updated" },
+    { label: "自社との接点", value: contacts ? `${formatYm(contacts.latest.at)} ${contacts.latest.title}${contacts.more > 0 ? `（ほか${contacts.more}件）` : ""}` : "なし", state: "summary-contacts" },
+  ];
   return (
-    <div data-state="preview-header-lines" style={{ marginTop: 4 }}>
-      {(stance || activityText) && (
-        <div style={{ ...gray, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          {stance && (
-            <span data-state="header-stance" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <StanceMeter stance={candidate.careerStance} size={8} />
-              <span>{stance}</span>
-              {stanceDate && <span>{stanceDate}に更新</span>}
-            </span>
-          )}
-          {activityText && <>{stance && <span aria-hidden="true">・</span>}<span data-state="header-activity">{activityText}</span></>}
+    <div data-state="preview-header-lines" style={{ marginTop: 6 }}>
+      {(candidate.careerStance || activityText) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <span data-state="header-stance"><StanceBadge stance={candidate.careerStance} /></span>
+          {activityText && <span data-state="header-activity" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>{activityText}</span>}
         </div>
       )}
-      {contacts && (
-        <div data-state="header-contacts" style={gray}>
-          この会社との接点：{formatYm(contacts.latest.at)} {contacts.latest.title}{contacts.more > 0 ? `（ほか${contacts.more}件）` : ""}
-        </div>
-      )}
+      {/* ⚠️ 列数は CSS（.cand-summary）。右欄が狭いと 2×2 にする（インラインに書くと切り替えられない）。区切り線は gap と背景で描く */}
+      <dl data-state="preview-summary" className="cand-summary"
+        style={{ margin: 0, display: "grid", gap: 1, background: "var(--line)", border: "1px solid var(--line)", borderRadius: 10, overflow: "hidden" }}>
+        {cells.map((c) => (
+          <div key={c.label} data-state={c.state} style={{ padding: "6px 10px", background: "#fff", minWidth: 0 }}>
+            <dt style={{ fontSize: 11, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>{c.label}</dt>
+            <dd style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.value}>{c.value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
+}
+
+/** 現職の在籍期間（入社年月から今日まで）。「3年2か月」「8か月」。⚠️ 入社年月が無ければ null */
+function tenureSince(startedAt: string | null): string | null {
+  if (!startedAt) return null;
+  const s = new Date(startedAt.length === 7 ? `${startedAt}-01` : startedAt);
+  if (!Number.isFinite(s.getTime())) return null;
+  const now = new Date();
+  const months = Math.max(0, (now.getFullYear() - s.getFullYear()) * 12 + (now.getMonth() - s.getMonth()));
+  const y = Math.floor(months / 12), m = months % 12;
+  return y > 0 ? `${y}年${m > 0 ? `${m}か月` : ""}` : `${m}か月`;
+}
+
+/** 「今日」「3日前」「2か月前」「1年前」。⚠️ 日時が無ければ null（「不明」で埋めない。画面は「—」） */
+function relativeJa(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const days = Math.floor((Date.now() - t) / 86400000);
+  if (days <= 0) return "今日";
+  if (days < 31) return `${days}日前`;
+  if (days < 365) return `${Math.floor(days / 30)}か月前`;
+  return `${Math.floor(days / 365)}年前`;
 }
 
 /** 「2025年3月」（日本時間） */

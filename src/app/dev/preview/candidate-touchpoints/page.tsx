@@ -32,6 +32,19 @@ const ordered: Touchpoint[] = [
   tp("location", "求人の勤務地（東京都）とお住まいが合っています", 2),
   tp("business_stage", "同じ事業ステージ（シリーズB）の会社（株式会社サンプルテック）での経験があります", 1),
 ];
+/* ★2026-10-13（ステップ4）: 8種類すべてを「項目／この人／自社」の表で。row は touchpoints.ts が作る形と同じ */
+const r8 = (kind: Touchpoint["kind"], weight: number, item: string, person: string, ours: string): Touchpoint =>
+  ({ kind, weight, ref: null, text: `${item}：${person} ↔ ${ours}`, row: { item, person, ours } });
+const eight: Touchpoint[] = [
+  r8("job_role", 9, "経験年数", "フィールドセールス 5年", "求人『法人営業（SaaS）』（3年以上）"),
+  r8("position_level", 7, "レベル", "課長・マネージャークラス", "課長・マネージャークラス（求人『法人営業（SaaS）』）"),
+  r8("company_role", 6, "職種", "フィールドセールス", "フィールドセールス（営業部）"),
+  r8("target_industry", 5, "業界", "製造業の経験", "顧客の業界：製造業"),
+  r8("alumni", 3, "出身", "株式会社サンプルテック", "株式会社サンプルテックの出身者 2名"),
+  r8("location", 2, "勤務地", "東京都在住", "東京都（求人『法人営業（SaaS）』）"),
+  r8("business_domain", 2, "事業領域", "CRM・営業支援・マーケティングの会社での経験", "CRM・営業支援・マーケティング"),
+  r8("business_stage", 1, "事業ステージ", "株式会社サンプルテック（シリーズB）", "シリーズB"),
+];
 const mat = (m: Partial<TouchpointMaterials>): TouchpointMaterials => ({ hasJobs: false, hasCompanyRoles: true, hasPublicEmployees: false, ...m });
 
 /* 右欄の上の段（3・4行目）に要る項目だけ。⚠️ 部品は本番と同じ */
@@ -41,8 +54,10 @@ export default function Page() {
   devOnly();
   return (
     <div>
+      {/* 右欄の要約の列数は /biz/candidates の CSS が持つ。ここでは同じ既定（4列）を置く */}
+      <style>{`.cand-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }`}</style>
       <PreviewHeader title="〈会社名〉と合うところ（/biz/candidates の右のプレビュー）">
-        <p>2026-10-11 に「貴社との接点」から改めた。右欄のプロフィールの先頭に開閉なしで出す（2026-10-12）。強い順に2つまで全文。3つ以上は「ほか N件」で、押すとその場で全部。（〇）は項目の数。0件・取得失敗は見出しごと出さない。</p>
+        <p>2026-10-11 に「貴社との接点」から改めた。右欄のプロフィールの先頭に開閉なしで出す（2026-10-12）。2026-10-13 から「項目／この人／自社」の表で全件出す。（〇）は項目の数。0件・取得失敗は見出しごと出さない。</p>
       </PreviewHeader>
       <Variant label="0件" note="見出しごと出ない（何も描かれないのが正しい）">
         <TouchpointSection touchpoints={[]} companyShortName="Third Box" />
@@ -50,7 +65,7 @@ export default function Page() {
       <Variant label="2件" note="「Third Boxと合うところ（2）」。「ほか」は出ない">
         <TouchpointSection touchpoints={two} companyShortName="Third Box" />
       </Variant>
-      <Variant label="5件" note="（5）・2件と「ほか3件」。押すとその場で全部">
+      <Variant label="5件" note="（5）・5行すべて出る（2026-10-13 から「ほか」で隠さない）">
         <TouchpointSection touchpoints={five} companyShortName="Third Box" />
       </Variant>
       <Variant label="会社名が取れない" note="「貴社と合うところ（2）」">
@@ -58,6 +73,9 @@ export default function Page() {
       </Variant>
       <Variant label="取得に失敗（undefined）" note="欄ごと出さない（0件と言わない）">
         <TouchpointSection touchpoints={undefined} companyShortName="Third Box" />
+      </Variant>
+      <Variant label="8種類・表（2026-10-13）" note="項目／この人／Third Box の3列。全件出す（ほか○件で隠さない）。row が無い古い形は下の7件のように1行の文で出る">
+        <TouchpointSection touchpoints={eight} companyShortName="Third Box" />
       </Variant>
       <Variant label="7件・並び順（2026-10-12）" note="仕事（経験年数・レベル・職種）→ 業界 → 人 → 条件 → 事業ステージ。経験年数を満たすものは分類が「経験年数」">
         <TouchpointSection touchpoints={ordered} companyShortName="Third Box" />
