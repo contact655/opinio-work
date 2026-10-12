@@ -613,11 +613,14 @@ function BusinessChrome({
                     `hasPublicCompanyPage` で決めて `BizShellContext` に入れている。
                     **ここで条件を書き直さないこと。**
                  ⚠️ 狭い画面では隠す（ダッシュボードの企業カードに同じボタンがある）。 */}
-          {shell.hasPublicPage && shell.tenantId && (
+          {/* ★2026-10-12: 404 にならないプレビュー（/preview/company）に変えた。掲載前・検証用でも開ける。
+                 ⚠️ そのため hasPublicPage の条件は外した（担当者なら必ず開ける） */}
+          {shell.tenantId && (
             <div className="biz-sidebar-footer" style={{ margin: "14px 12px 0", paddingTop: 12, borderTop: "1px solid var(--line-soft)" }}>
               <a
-                href={`/companies/${shell.tenantId}`}
+                href="/preview/company"
                 target="_blank"
+                data-state="sidebar-company-preview"
                 rel="noopener noreferrer"
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
@@ -628,7 +631,7 @@ function BusinessChrome({
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--ink-soft)"; }}
               >
                 <ExternalLink size={16} strokeWidth={2.2} style={{ color: "var(--ink-mute)", flexShrink: 0 }} />
-                公開ページを見る
+                求職者から見た企業ページ ↗
               </a>
             </div>
           )}

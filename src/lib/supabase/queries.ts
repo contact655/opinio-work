@@ -883,8 +883,10 @@ export async function getCompanies(): Promise<Company[]> {
 const getCompanyById = cache(async function getCompanyById(
   id: string,
   /** ★検証用アカウント専用の表示（/t/companies。2026-10-12）。検証用の会社と、その公開中の求人だけを出す。
-   *  ⚠️ 呼んでよいのは「見ている人が検証用」と確かめた後だけ（getTestCompanyBySlugOrId 経由） */
-  testMode = false,
+   *  ⚠️ 呼んでよいのは「見ている人が検証用」と確かめた後だけ（getTestCompanyBySlugOrId 経由）
+   *  ★"preview" は /biz/company/preview（その会社の担当者だけ。2026-10-12）。掲載状態・検証用かどうかに関わらず出す。
+   *  ⚠️ 呼んでよいのは「見ている人がその会社の担当者」と確かめた後だけ（getCompanyForPreview 経由） */
+  testMode: boolean | "preview" = false,
 ): Promise<{ company: Company; detail: CompanyDetail } | null> {
   const supabase = createAdminClient();
 
@@ -893,9 +895,11 @@ const getCompanyById = cache(async function getCompanyById(
     .select(COMPANY_DETAIL_COLS)
     .eq("id", id);
   // 詳細の軸。ディレクトリ非掲載（listing_status='draft'）でもページは見える
-  companyQuery = testMode
-    ? companyQuery.eq("is_published", true).eq("is_test", true)
-    : filterVisibleCompanies(companyQuery);
+  companyQuery = testMode === "preview"
+    ? companyQuery
+    : testMode
+      ? companyQuery.eq("is_published", true).eq("is_test", true)
+      : filterVisibleCompanies(companyQuery);
   const { data, error } = await companyQuery.single();
 
   if (error || !data) {
@@ -915,7 +919,7 @@ const getCompanyById = cache(async function getCompanyById(
       .select("id, slug, title, job_category, role_category_id, salary_min, salary_max, salary_negotiable, published_at, urgency, description, requirements, selection_process, why_hire, catch_copy, work_style, employment_type, location")
       .eq("company_id", id)
       /* ★検証用の表示では、その検証用の会社の公開中の求人（求人も必ず is_test。DB のトリガーが保証） */
-      .match(testMode ? { status: "published", is_test: true } : PUBLIC_JOB_MATCH),
+      .match(testMode === "preview" ? { status: "published" } : testMode ? { status: "published", is_test: true } : PUBLIC_JOB_MATCH),
     /* ⚠️ 職種マスタは企業ごとに変わらないので、企業ページごとに引かない（2026-08-23）。
           ここを素で引いていたため、**1ビルドで `ow_roles` に166回**飛んでいた
           （異なるクエリは2種類だけ＝83倍の重複）。本番の企業ページ表示でも
@@ -1033,6 +1037,24 @@ export async function getTestCompanyBySlugOrId(
 }
 
 /** ★検証用アカウント専用（/t/jobs/[id]）。検証用の公開中の求人の id を slug か id から引く。無ければ null */
+/**
+ * ★企業ページのプレビュー（/biz/company/preview。2026-10-12）。掲載状態・検証用かどうかに関わらず、その会社のページを組む。
+ * ⚠️ 呼んでよいのは「見ている人がその会社の担当者」と確かめた後だけ（getTenantContext の tenantId を渡す）。
+ * ⚠️ 出すのは公開済みの値（ow_companies の列）。下書き（draft_data）は混ぜない。
+ */
+export async function getCompanyForPreview(
+  companyId: string
+): Promise<{ company: Company; detail: CompanyDetail; resolvedId: string; slug: string | null; listingStatus: string | null; isPublished: boolean; isTest: boolean } | null> {
+  const { data: row, error } = await createAdminClient()
+    .from("ow_companies").select("id, slug, listing_status, is_published, is_test").eq("id", companyId).maybeSingle();
+  if (error) { console.error("[getCompanyForPreview]", error.message); return null; }
+  if (!row) return null;
+  const result = await getCompanyById(row.id as string, "preview");
+  if (!result) return null;
+  return { ...result, resolvedId: row.id as string, slug: (row.slug as string | null) ?? null,
+    listingStatus: (row.listing_status as string | null) ?? null, isPublished: row.is_published === true, isTest: row.is_test === true };
+}
+
 export async function resolveTestJobId(slugOrId: string): Promise<string | null> {
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
   const { data, error } = await createAdminClient()

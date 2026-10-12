@@ -920,19 +920,19 @@ export function CompanyEditClient({
 
               <SideCard state="preview">
                 {/* ⚠️ 開くのは**公開中の**企業ページ（未公開の変更は含まれない）。2026-09-21 に外した「プレビュー」と同じ誤解をさせないよう書いておく */}
-                <button type="button" disabled={!pageStatus.pageVisible}
-                  onClick={() => window.open(`/companies/${companyId}`, "_blank", "noopener")}
+                {/* ★2026-10-12: サイドバーと同じプレビュー（/preview/company）。掲載前・検証用でも開ける */}
+                <button type="button"
+                  onClick={() => window.open("/preview/company", "_blank", "noopener")}
                   className="btn-fixed-size"
                   style={{
                     width: "100%", padding: "9px 12px", borderRadius: 8, fontFamily: "inherit", fontSize: 13, fontWeight: 600,
                     background: "#fff", border: "1px solid var(--line)",
-                    color: pageStatus.pageVisible ? "var(--ink)" : "var(--ink-mute)",
-                    cursor: pageStatus.pageVisible ? "pointer" : "default",
+                    color: "var(--ink)", cursor: "pointer",
                   }}>
                   求職者からの見え方
                 </button>
                 <div style={{ fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6, marginTop: 8 }}>
-                  {pageStatus.pageVisible ? "公開中の企業ページを新しいタブで開きます。未公開の変更は含まれません。" : "企業ページが公開されると見られます。"}
+                  {pageStatus.pageVisible ? "公開中の企業ページを新しいタブで開きます。未公開の変更は含まれません。" : "まだ求職者には表示されていません。いまの公開済みの内容でどう見えるかを確かめられます（未公開の変更は含まれません）。"}
                 </div>
               </SideCard>
 

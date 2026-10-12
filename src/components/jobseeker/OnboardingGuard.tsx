@@ -110,6 +110,9 @@ export function OnboardingGuard() {
     // ⚠️ `/onboarding/stance` もここに含まれる（前方一致）。含めないと、
     //    その画面自身が自分へリダイレクトし続ける。
     if (pathname.startsWith("/onboarding") || pathname.startsWith("/auth")) return;
+    /* ★企業の担当者が自社ページのプレビューを見る画面（2026-10-12）。求職者としてのオンボーディングに飛ばさない
+          （担当者は「転職について」に答えていないことが多く、押すと転職の質問に連れて行かれていた） */
+    if (pathname.startsWith("/preview/")) return;
 
     const supabase = createClient();
 

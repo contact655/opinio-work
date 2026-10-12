@@ -8,7 +8,7 @@ import type React from "react";
 import { permanentRedirect } from "next/navigation";
 import {
   getCompanyBySlugOrId,
-  getTestCompanyBySlugOrId,
+  getTestCompanyBySlugOrId, getCompanyForPreview,
   getListedCompanyParams,
   getCompanyPhotosCached,
   getCompanyRecruitersCached,
@@ -1795,7 +1795,10 @@ function Sidebar({
  *   true のとき: 検証用の会社だけを引き、リンクを /t/… に向け、上部に灰色の一行を出す。閲覧は数えない。
  * ⚠️ この公開ページ（ISR）は testMode = false のまま。ここで認証を読まないこと（下の注記）。
  */
-export async function renderCompanyDetailPage(params: { id: string }, testMode: boolean) {
+export async function renderCompanyDetailPage(params: { id: string }, mode: boolean | { preview: { companyId: string; banner: React.ReactNode } }) {
+  /* ★mode: false … 公開ページ ／ true … 検証用アカウント（/t/companies）／ { preview } … 担当者のプレビュー（/biz/company/preview） */
+  const preview = typeof mode === "object" ? mode.preview : null;
+  const testMode = mode === true;
   if (testMode) enterTestViewMode();
   /* ⚠️ 認証はここで読まない（2026-08-09）。読むとルートが動的化して
         `export const revalidate = 300` が効かなくなる。
@@ -1804,7 +1807,9 @@ export async function renderCompanyDetailPage(params: { id: string }, testMode: 
         ⚠️ ここに `createClient()` や `auth.getUser()` を足さないこと。 */
   const adminSupabase = createAdminClient();
 
-  const companyResult = testMode ? await getTestCompanyBySlugOrId(params.id) : await getCompanyBySlugOrIdCached(params.id);
+  const companyResult = preview
+    ? await getCompanyForPreview(preview.companyId)
+    : testMode ? await getTestCompanyBySlugOrId(params.id) : await getCompanyBySlugOrIdCached(params.id);
 
   if (!companyResult) return notFound();
 
@@ -1814,7 +1819,7 @@ export async function renderCompanyDetailPage(params: { id: string }, testMode: 
 
   // UUID が渡されてスラッグがある場合は 308 リダイレクト
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id);
-  if (isUUID && companySlug) {
+  if (!preview && isUUID && companySlug) {
     permanentRedirect(companyPath(companySlug));
   }
 
@@ -1934,7 +1939,8 @@ export async function renderCompanyDetailPage(params: { id: string }, testMode: 
         </p>
       )}
       {/* ★閲覧を数える（2026-10-09 / 段階D）。数えるかどうかはサーバーが決める */}
-      {!testMode && <ViewBeacon type="company" id={company.id} />}
+      {preview?.banner}
+      {!testMode && !preview && <ViewBeacon type="company" id={company.id} />}
       <BackToTop aboveMobileCta={hasMobileBottomCta(company)} />
       <script
         type="application/ld+json"
