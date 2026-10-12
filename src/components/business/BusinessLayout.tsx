@@ -19,7 +19,19 @@ type BusinessLayoutVariant = "default" | "fullBleed";
       ⚠️ 読み書きは try/catch。保存できない環境では開いた状態のまま。
       ⚠️ 1024px 未満では効かない（CSS のメディアクエリの中だけで切り替える）。 */
 const SIDEBAR_KEY = "biz-sidebar";
-const SIDEBAR_INIT = `try{if(localStorage.getItem("${SIDEBAR_KEY}")==="collapsed")document.documentElement.setAttribute("data-biz-sidebar","collapsed")}catch(e){}`;
+/* ★サイドバーの幅を変える（2026-10-12 / 柴さんの指示。Claude と同じ形）。右端の線をドラッグすると幅が変わり、押すとしまう／開く。
+      幅は <html style="--biz-sidebar-open-w: …px"> と localStorage。⚠️ 開閉と同じく描画の前に付ける（読み込みで幅が動いて見えないように）。
+      ⚠️ 1024px 以上だけで効く（CSS は --biz-sidebar-open-w をメディアクエリの中でだけ読む）。 */
+const SIDEBAR_W_KEY = "biz-sidebar-w";
+const SIDEBAR_W_DEFAULT = 240;
+/* ⚠️ 下限は既定と同じ 240。これより狭いと「求職者から見た企業ページ ↗」が2行に折れる（実測で 235px 要る）。
+      狭くしたいときは、しまう（64px）を使う */
+const SIDEBAR_W_MIN = 240;
+const SIDEBAR_W_MAX = 400;
+/** 開いた状態でこれより左まで引いたら、しまう */
+const SIDEBAR_SNAP_COLLAPSE = 140;
+const clampSidebarW = (w: number) => Math.min(SIDEBAR_W_MAX, Math.max(SIDEBAR_W_MIN, Math.round(w)));
+const SIDEBAR_INIT = `try{var d=document.documentElement;if(localStorage.getItem("${SIDEBAR_KEY}")==="collapsed")d.setAttribute("data-biz-sidebar","collapsed");var w=parseInt(localStorage.getItem("${SIDEBAR_W_KEY}")||"",10);if(w>=${SIDEBAR_W_MIN}&&w<=${SIDEBAR_W_MAX})d.style.setProperty("--biz-sidebar-open-w",w+"px")}catch(e){}`;
 
 type Props = {
   userName: string;
@@ -252,13 +264,78 @@ function BusinessChrome({
   /* ★サイドバーをしまう（2026-10-12）。見た目は CSS（html の属性）が決める。ここは押したときの切り替えと aria-expanded だけ */
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => { setCollapsed(document.documentElement.getAttribute("data-biz-sidebar") === "collapsed"); }, []);
-  function toggleSidebar() {
-    const next = !collapsed;
+  function setSidebarCollapsed(next: boolean, animate = true) {
     setCollapsed(next);
     const html = document.documentElement;
-    html.classList.add("biz-sidebar-anim");  // ⚠️ 押したときだけ動かす（最初の表示では動かさない）
+    if (animate) html.classList.add("biz-sidebar-anim");  // ⚠️ 押したときだけ動かす（最初の表示・ドラッグ中は動かさない）
+    else html.classList.remove("biz-sidebar-anim");
     if (next) html.setAttribute("data-biz-sidebar", "collapsed"); else html.removeAttribute("data-biz-sidebar");
     try { localStorage.setItem(SIDEBAR_KEY, next ? "collapsed" : "expanded"); } catch { /* 保存できない環境では次回は開いた状態 */ }
+  }
+  function toggleSidebar() { setSidebarCollapsed(!collapsed); }
+
+  /* ★右端の線（2026-10-12）。ドラッグで幅、押すと開閉。幅は html の CSS 変数を直接書き換える（ドラッグ中に React を描き直さない） */
+  const [sidebarW, setSidebarW] = useState(SIDEBAR_W_DEFAULT);
+  useEffect(() => {
+    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--biz-sidebar-open-w"), 10);
+    if (v >= SIDEBAR_W_MIN && v <= SIDEBAR_W_MAX) setSidebarW(v);
+  }, []);
+  function applySidebarW(w: number, save: boolean) {
+    document.documentElement.style.setProperty("--biz-sidebar-open-w", `${w}px`);
+    setSidebarW(w);
+    if (save) { try { localStorage.setItem(SIDEBAR_W_KEY, String(w)); } catch { /* 保存できない環境では次回は既定の幅 */ } }
+  }
+  const [handleTip, setHandleTip] = useState<number | null>(null);
+  const [resizing, setResizing] = useState(false);
+  const dragRef = useRef<{ startX: number; moved: boolean; collapsed: boolean } | null>(null);
+  function onHandlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, moved: false, collapsed };
+  }
+  function onHandlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    if (!d) { setHandleTip(e.clientY); return; }
+    if (!d.moved) {
+      if (Math.abs(e.clientX - d.startX) < 4) return;  // ⚠️ 押しただけ（わずかなぶれ）はドラッグにしない
+      d.moved = true;
+      setResizing(true);
+      setHandleTip(null);
+      document.documentElement.classList.add("biz-sidebar-resizing");
+    }
+    /* ⚠️ サイドバーは画面の左端から始まるので、マウスの x がそのまま幅になる */
+    const x = e.clientX;
+    if (x < SIDEBAR_SNAP_COLLAPSE) {
+      if (!d.collapsed) { d.collapsed = true; setSidebarCollapsed(true, false); }
+      return;
+    }
+    if (d.collapsed) { d.collapsed = false; setSidebarCollapsed(false, false); }
+    applySidebarW(clampSidebarW(x), false);
+  }
+  function onHandlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    document.documentElement.classList.remove("biz-sidebar-resizing");
+    setResizing(false);
+    if (!d) return;
+    if (!d.moved) { toggleSidebar(); return; }
+    if (!d.collapsed) applySidebarW(sidebarWNow(), true);
+  }
+  function sidebarWNow() {
+    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--biz-sidebar-open-w"), 10);
+    return v >= SIDEBAR_W_MIN && v <= SIDEBAR_W_MAX ? v : SIDEBAR_W_DEFAULT;
+  }
+  /* キーボード: ←→ で幅（16px ずつ）、Enter / Space で開閉 */
+  function onHandleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSidebar(); return; }
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    if (collapsed) { if (e.key === "ArrowRight") setSidebarCollapsed(false); return; }
+    const next = clampSidebarW(sidebarW + (e.key === "ArrowRight" ? 16 : -16));
+    document.documentElement.classList.remove("biz-sidebar-anim");
+    applySidebarW(next, true);
   }
   /* しまっているときの項目名（ツールチップ）。⚠️ サイドバーは縦にスクロールするので、はみ出す吹き出しは position: fixed で出す */
   const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
@@ -714,6 +791,32 @@ function BusinessChrome({
 
         </aside>
         )}
+        {/* ★右端の線（2026-10-12）。ドラッグで幅、押すと開閉。⚠️ 1024px 未満では出さない（CSS） */}
+        {hasCompany && (
+          <div
+            className={`biz-sidebar-handle${resizing ? " is-active" : ""}`}
+            role="separator"
+            aria-orientation="vertical"
+            aria-controls="biz-sidebar-nav"
+            aria-label={collapsed ? "サイドバーを開く（ドラッグで幅を変える）" : "サイドバーの幅（ドラッグで変える・押すとしまう）"}
+            aria-valuemin={SIDEBAR_W_MIN}
+            aria-valuemax={SIDEBAR_W_MAX}
+            aria-valuenow={collapsed ? SIDEBAR_W_MIN : sidebarW}
+            tabIndex={0}
+            onPointerDown={onHandlePointerDown}
+            onPointerMove={onHandlePointerMove}
+            onPointerUp={onHandlePointerUp}
+            onPointerCancel={onHandlePointerUp}
+            onPointerLeave={() => { if (!dragRef.current) setHandleTip(null); }}
+            onKeyDown={onHandleKeyDown}
+          />
+        )}
+        {handleTip !== null && !resizing && (
+          <div className="biz-sidebar-tip biz-sidebar-handle-tip" aria-hidden="true" style={{ top: handleTip, left: "calc(var(--biz-sidebar-w) + 10px)" }}>
+            {collapsed ? "押すと開く" : "押すとしまう"}
+            <span>ドラッグで幅を変える</span>
+          </div>
+        )}
         {/* ★しまっているときの項目名（2026-10-12）。⚠️ 読み上げは aria-label が担うので aria-hidden */}
         {collapsed && tip && (
           <div className="biz-sidebar-tip" aria-hidden="true" style={{ top: tip.top, left: tip.left }}>{tip.label}</div>
@@ -817,6 +920,9 @@ function BusinessChrome({
 
         /* ★サイドバーをしまう（2026-10-12）。⚠️ 見出し・項目・会社の切り替えの余白は、しまったときに変えるのでここに置く */
         .biz-sidebar-toggle { display: none; }
+        .biz-sidebar-handle { display: none; }
+        .biz-sidebar-handle-tip { display: flex; flex-direction: column; gap: 1px; }
+        .biz-sidebar-handle-tip span { font-size: 11px; font-weight: 500; opacity: 0.75; }
         .biz-sidebar-company { height: 58px; box-sizing: border-box; padding: 0 12px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
         .biz-nav-heading { font-size: 11px; font-weight: 700; color: var(--ink-mute); letter-spacing: 0.04em; padding: 16px 20px 6px; }
         .biz-nav-link { justify-content: space-between; padding: 0 20px; }
@@ -832,7 +938,20 @@ function BusinessChrome({
             margin: 0 -12px 0 -12px; border: none; border-radius: 8px; background: transparent; color: var(--ink-mute); cursor: pointer; }
           .biz-sidebar-toggle:hover { background: var(--bg-tint); color: var(--ink); }
           .biz-sidebar-toggle:focus-visible { outline: 2px solid var(--royal); outline-offset: 1px; }
+          :root { --biz-sidebar-w: var(--biz-sidebar-open-w, 240px); }
           html[data-biz-sidebar=collapsed] { --biz-sidebar-w: 64px; }
+          /* ★右端の線（2026-10-12）。当たりは 8px、見た目は hover で濃い線 2px。⚠️ サイドバーは左端から始まるので left は幅そのもの
+                ⚠️ 線は背景のグラデーションで描く。疑似要素の content に引用符を書くと、style タグの中でサーバーだけがエスケープし
+                   ハイドレーションが丸ごと失敗する（実際に踏んだ。ui-debugging ⑲） */
+          .biz-sidebar-handle { display: block; position: fixed; z-index: 30; top: var(--biz-header-h); bottom: 0;
+            left: calc(var(--biz-sidebar-w) - 4px); width: 8px; cursor: col-resize; touch-action: none; outline: none;
+            --biz-handle-line: transparent;
+            background: linear-gradient(to right, transparent 3px, var(--biz-handle-line) 3px, var(--biz-handle-line) 5px, transparent 5px); }
+          .biz-sidebar-handle:hover, .biz-sidebar-handle.is-active { --biz-handle-line: var(--ink-mute); }
+          .biz-sidebar-handle:focus-visible { --biz-handle-line: var(--royal); }
+          html[data-biz-sidebar=collapsed] .biz-sidebar-handle { cursor: e-resize; }
+          html.biz-sidebar-resizing, html.biz-sidebar-resizing * { cursor: col-resize !important; user-select: none !important; }
+          html.biz-sidebar-anim .biz-sidebar-handle { transition: left 150ms ease; }
           html[data-biz-sidebar=collapsed] .biz-layout-sidebar { overflow-x: hidden; }
           html[data-biz-sidebar=collapsed] .biz-nav-label { display: none; }
           html[data-biz-sidebar=collapsed] .biz-nav-heading { height: 1px; padding: 0; margin: 10px 14px; background: var(--line-soft); }
@@ -850,6 +969,7 @@ function BusinessChrome({
         }
         @media (prefers-reduced-motion: reduce) {
           html.biz-sidebar-anim .biz-layout-grid { transition: none; }
+          html.biz-sidebar-anim .biz-sidebar-handle { transition: none; }
         }
 
         @media (max-width: 768px) {
