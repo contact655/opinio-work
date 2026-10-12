@@ -209,6 +209,8 @@ export default function CandidatesClient({
     try {
       const url = new URL(window.location.href);
       if (id) url.searchParams.set("selected", id); else url.searchParams.delete("selected");
+      /* ★別の人を選んだら右欄のタブ（`?tab=`）は外す＝その人の既定のタブで開く（2026-10-13。CandidatePreview） */
+      url.searchParams.delete("tab");
       window.history.replaceState(window.history.state, "", url.toString());
     } catch { /* URL を書けなくても表示は続ける */ }
   }, []);

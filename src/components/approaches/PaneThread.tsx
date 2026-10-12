@@ -94,7 +94,9 @@ export function PaneThread({ initial, loadOlder, footer }: {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <ThreadMessages thread={thread} daySeparators avatars />
       </div>
-      {footer && <div style={{ marginTop: 12 }}>{footer}</div>}
+      {/* ★返信欄は下に貼り付ける（2026-10-13。右欄をタブに分けたので、やり取りが長くても返信欄が見える）。
+            ⚠️ 位置の基準はいちばん近いスクロールする祖先（右欄のメッセージのタブ） */}
+      {footer && <div data-state="pane-thread-footer" style={{ marginTop: 12, position: "sticky", bottom: -20, zIndex: 1, background: "#fff", paddingTop: 8, paddingBottom: 20 }}>{footer}</div>}
     </div>
   );
 }

@@ -17,8 +17,14 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  * ⚠️ 状態はバッジにしない（灰色の文字）。
  * ★`sectioned` … 中身を節の目次（上に固定の帯）つきの1本のスクロールで出す。候補者を探すだけ（2026-10-12）。`extraSections` は右欄の側から足す節（社内メモ）
  * ★`after` … プロフィールの後に出す項目（候補者を探すの「メッセージ」）。下に固定する段は 2026-10-12 にやめた（1本のスクロールにした）
+ * ★`tabs` … 中身を「プロフィール／メッセージ」のタブに分ける（2026-10-13 / 柴さんの指示。候補者を探すだけ）。
+ *   ⚠️ 上の段（名前・年齢・意向・接点）はタブの外に固定で残す（誰とやり取りしているかが常に見える）。
+ *   ⚠️ 2つのタブの中身は両方とも描いたまま隠すだけ（切り替えでプロフィールを読み直さない・書きかけの返信を消さない）。
+ *   ⚠️ 選択中は下線だけ（ui-conventions「タブ」）。返信があるときはメッセージのタブに小さな点。
  */
-export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef }: {
+export type PanelTab = "profile" | "messages";
+
+export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs }: {
   userId: string;
   /** 名前の右（新しいタブのアイコンの隣）に置くもの。候補者を探すの★（2026-10-12） */
   nameAction?: ReactNode;
@@ -40,6 +46,17 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
   headerRight?: ReactNode;
   /** ★中身のスクロールの要素（ジャンプに使う） */
   scrollRef?: React.Ref<HTMLDivElement>;
+  /** ★「プロフィール／メッセージ」のタブ（2026-10-13）。渡したときは `after` を使わない */
+  tabs?: {
+    active: PanelTab;
+    onChange: (tab: PanelTab) => void;
+    /** メッセージのタブの中身 */
+    messages: ReactNode;
+    /** 返信があるとき、メッセージのタブに点を出す */
+    messagesDot?: boolean;
+    /** メッセージのタブのスクロールの要素（開いたときに最新までスクロールする） */
+    messagesScrollRef?: React.Ref<HTMLDivElement>;
+  };
 }) {
   const [content, setContent] = useState<ReactNode | null>(null);
   const [failed, setFailed] = useState(false);
@@ -56,7 +73,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
   return (
     <div data-state="candidate-profile-panel" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* 固定の段 */}
-      <div style={{ flexShrink: 0, padding: "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
+      <div style={{ flexShrink: 0, padding: tabs ? "16px 20px 0" : "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} /></div>}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -81,9 +98,37 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
           )}
         </div>
         {headerExtra}
+        {tabs && (
+          <div role="tablist" aria-label="表示する内容" data-state="panel-tabs" style={{ display: "flex", gap: 20, marginTop: 10 }}>
+            {(["profile", "messages"] as const).map((t) => {
+              const on = tabs.active === t;
+              return (
+                <button key={t} type="button" role="tab" id={`cpp-tab-${t}`} aria-selected={on} aria-controls={`cpp-panel-${t}`}
+                  data-state={`tab-${t}${on ? "-active" : ""}`} onClick={() => tabs.onChange(t)}
+                  style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 2px 9px", background: "none", border: "none",
+                    borderBottom: on ? "2px solid var(--royal)" : "2px solid transparent", marginBottom: -1,
+                    fontSize: 13, fontWeight: on ? 700 : 500, color: on ? "var(--ink)" : "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}>
+                  {t === "profile" ? "プロフィール" : "メッセージ"}
+                  {t === "messages" && tabs.messagesDot && (
+                    <span data-state="tab-messages-dot" aria-label="返信があります" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)" }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+      {/* ★メッセージのタブ（2026-10-13）。⚠️ 隠すだけで描いたまま（書きかけの返信を消さない） */}
+      {tabs && (
+        <div ref={tabs.messagesScrollRef} role="tabpanel" id="cpp-panel-messages" aria-labelledby="cpp-tab-messages" data-state="candidate-messages-scroll"
+          style={{ display: tabs.active === "messages" ? "block" : "none", flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "12px 20px 20px" }}>
+          {tabs.messages}
+        </div>
+      )}
       {/* 中身（ここだけスクロール） */}
-      <div ref={scrollRef} data-state="candidate-profile-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
+      <div ref={scrollRef} data-state="candidate-profile-scroll" role={tabs ? "tabpanel" : undefined} id={tabs ? "cpp-panel-profile" : undefined}
+        aria-labelledby={tabs ? "cpp-tab-profile" : undefined}
+        style={{ display: tabs && tabs.active !== "profile" ? "none" : "block", flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
         {before}
         <PanelExtraSectionsProvider sections={extraSections ?? []}>
           {failed ? (
@@ -93,7 +138,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
           )}
         </PanelExtraSectionsProvider>
         {/* ⚠️ プロフィールが読めるまで出さない（先に出すと、読み込み後に位置が下へずれる） */}
-        {(content || failed) && after}
+        {!tabs && (content || failed) && after}
       </div>
     </div>
   );

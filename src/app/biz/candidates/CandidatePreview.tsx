@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StanceMeter } from "@/components/candidates/StanceMeter";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
-import { CandidateProfilePanel } from "@/components/candidates/CandidateProfilePanel";
+import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
 import { CAREER_STANCE_LABELS } from "@/lib/constants/careerPreferences";
@@ -32,17 +32,34 @@ export type PreviewData = {
   notesEnabled?: boolean;
   /** ★この会社との接点（選考管理と同じ）。最新1件＋ほかの件数。無ければ null */
   contacts?: { latest: { at: string; title: string }; more: number } | null;
-  /** ★未読の返信がある（開いたときにメッセージの位置までスクロールする。2026-10-12） */
+  /** ★未読の返信がある（開いたときにメッセージのタブで開き、タブに点を出す。2026-10-13） */
   messagesUnread?: boolean;
 };
 
-/** ★名前の段の「メッセージ…↓」の文言（2026-10-12）。送れない人・判定が取れない人には出さない */
-function messageJumpLabel(c: Candidate, limitLine: string | null): string | null {
-  const a = c.approach;
-  if (!a) return null;
-  if (a.sent) return a.sent.state === "accepted" ? "メッセージ（返信あり）↓" : a.sent.state === "pending" ? "メッセージ（返信待ち）↓" : "メッセージ（返信なし）↓";
-  if (a.eligible && !limitLine) return "メッセージを送る ↓";
-  return null;
+/* ★「プロフィール／メッセージ」のタブ（2026-10-13 / 柴さんの指示）。
+      最初に開くタブ … 返信がある（未読・やり取りが続いている）人はメッセージ、それ以外はプロフィール。
+      ⚠️ タブは URL の `?tab=` に残す（戻る・リンクの共有で同じタブ）。⚠️ プロフィールも書く —— 既定が人によって違う
+         （返信がある人はメッセージ）ので、書かないとリロードで既定に戻ってしまう。
+         書き方は `?selected=` と同じ history.replaceState（履歴を積まない・一覧を取り直さない）。
+         別の人を選ぶと一覧側が `tab` を外す（`updateSelected`）＝その人の既定のタブで開く。
+      ⚠️ それまでの「メッセージ（返信あり）↓」のボタンと、未読のときにメッセージまでスクロールする処理はタブに置き換えた */
+function defaultTab(data: PreviewData): PanelTab {
+  return data.messagesUnread || data.candidate.approach?.sent?.state === "accepted" ? "messages" : "profile";
+}
+function tabFromUrl(userId: string): PanelTab | null {
+  try {
+    const sp = new URL(window.location.href).searchParams;
+    if (sp.get("selected") !== userId) return null;
+    const t = sp.get("tab");
+    return t === "messages" || t === "profile" ? t : null;
+  } catch { return null; }
+}
+function writeTabToUrl(tab: PanelTab) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    window.history.replaceState(window.history.state, "", url.toString());
+  } catch { /* URL を書けなくても表示は続ける */ }
 }
 
 /** ★最初に全文で出す件数（2026-10-12 に 3 → 2）。それより多ければ「ほかn件」で、押すとその場で全部 */
@@ -161,15 +178,12 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   companyLimitLine?: string | null }) {
   const [data, setData] = useState<PreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /* ★右欄のスクロールとメッセージの項目（ジャンプ・未読の返信があるときの初期位置。2026-10-12） */
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const jumpToMessages = useCallback((smooth = true) => {
-    const box = scrollRef.current, sec = box?.querySelector<HTMLElement>("[data-panel-section=messages]");
-    if (!box || !sec) return;
-    /* ⚠️ offsetTop は使わない（基準が右欄のスクロールとは限らない）。見えている位置の差で測る */
-    const top = box.scrollTop + (sec.getBoundingClientRect().top - box.getBoundingClientRect().top) - 8;
-    box.scrollTo({ top, behavior: smooth ? "smooth" : "instant" as ScrollBehavior });
-  }, []);
+  /* ★タブ（2026-10-13）。null のあいだは既定（データが来てから決まる） */
+  const [tab, setTab] = useState<PanelTab | null>(null);
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
+  const changeTab = useCallback((t: PanelTab) => { setTab(t); writeTabToUrl(t); }, []);
+  /* ★メッセージのタブを一度開いたら点を消す（開いた時点で既読が付く） */
+  const [messagesSeen, setMessagesSeen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -188,19 +202,22 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
     return () => { alive = false; };
   }, [userId]);
 
-  /* ★未読の返信がある候補者は、最初からメッセージの位置で開く（2026-10-12）。
-        ⚠️ プロフィールは後から読み込まれる（メッセージの項目はその後に出る）ので、出るまで待ってから動かす。
-        ⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪） */
+  const activeTab: PanelTab = tab ?? tabFromUrl(userId) ?? (data ? defaultTab(data) : "profile");
+
+  /* ★メッセージのタブを開いたら、いちばん新しいやり取り（と返信欄）までスクロールする（2026-10-13）。
+        ⚠️ やり取りは後から読み込まれるので、出るまで待ってから動かす。⚠️ rAF にしない（非表示のタブでは発火しない。ui-debugging ⑪） */
   useEffect(() => {
-    if (!data?.messagesUnread) return;
+    if (!data || activeTab !== "messages") return;
+    setMessagesSeen(true);
     let tries = 0;
     const t = setInterval(() => {
       tries++;
-      if (scrollRef.current?.querySelector("[data-panel-section=messages]")) { clearInterval(t); setTimeout(() => jumpToMessages(false), 60); }
+      const box = messagesScrollRef.current;
+      if (box?.querySelector("[data-state=pane-thread]")) { clearInterval(t); setTimeout(() => { box.scrollTop = box.scrollHeight; }, 60); }
       else if (tries > 50) clearInterval(t);
     }, 100);
     return () => clearInterval(t);
-  }, [data, jumpToMessages]);
+  }, [data, activeTab]);
 
   if (error) return <div data-state="preview-error" style={{ padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>{error}</div>;
   if (!data) return <div data-state="preview-loading" style={{ padding: 20, fontSize: 13, color: "var(--ink-mute)" }}>読み込み中…</div>;
@@ -209,7 +226,8 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
   /* ★年齢（2026-10-12 から出す）。⚠️ サーバーで計算した数（Candidate.age）。生年月日が無い人は出さない */
-  const jumpLabel = canAct ? messageJumpLabel(c, companyLimitLine) : null;
+  /* ★メッセージのタブは送れる人（`approach` がある）にだけ。閲覧のみ・判定が取れない人はプロフィールだけ */
+  const showMessages = canAct && !!c.approach;
   const meta = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter(Boolean).join(" ・ ");
   /* ★右欄は「上：誰か／中：プロフィール／下：メッセージ」の3段（2026-10-12 / 柴さんの指示）。
         上（固定）… 名前・2行目（今のまま）・3行目（転職への意向・最近の利用）・4行目（この会社との接点）
@@ -232,20 +250,17 @@ export function CandidatePreview({ userId, onClose, onNoteCountChange, companyLi
         <TouchpointGuide touchpoints={c.touchpoints} materials={data.touchpointMaterials} />
       </>}
       extraSections={data.notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
-      scrollRef={scrollRef}
-      headerRight={jumpLabel ? (
-        <button type="button" onClick={() => jumpToMessages()} data-state="jump-messages"
-          style={{ flexShrink: 0, alignSelf: "center", background: "none", border: "1px solid var(--line)", borderRadius: 999, padding: "4px 10px", fontSize: 12, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-          {jumpLabel}
-        </button>
-      ) : undefined}
-      after={canAct && c.approach ? (
-        /* ★「メッセージ」は1本のスクロールの最後の項目（2026-10-12 / 柴さんの指示）。プロフィールの節と同じ見出し・区切り線 */
-        <section data-panel-section="messages" style={{ padding: "14px 0 0", borderTop: "1px solid var(--line)" }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>メッセージ</h3>
-          <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} />
-        </section>
-      ) : undefined}
+      tabs={showMessages ? {
+        active: activeTab,
+        onChange: changeTab,
+        messagesDot: !!data.messagesUnread && !messagesSeen,
+        messagesScrollRef,
+        messages: (
+          <section data-panel-section="messages">
+            <PreviewApproachArea candidate={c} jobs={data.approachJobs} limitLine={companyLimitLine} />
+          </section>
+        ),
+      } : undefined}
     />
   );
 }
