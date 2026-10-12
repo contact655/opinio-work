@@ -147,6 +147,13 @@ export type CompanyDetail = {
   market_note?: string | null;
   // ⑦ 資本関係・グループ
   capitalType?: string | null;
+  /* ★分類の4つの質問（2026-10-12）。値が無ければ行ごと出さない */
+  industryPath?: string | null;
+  companyStage?: string | null;
+  hqCountry?: string | null;
+  customerIndustryNames?: string[];
+  servesConsumers?: boolean;
+  customerAllIndustries?: boolean;
   parentCompanyName?: string | null;
   parentCompanyCountry?: string | null;
   listedExchange?: string | null;

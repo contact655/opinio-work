@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Company } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
-import type { CompanyTargetIndustry } from "@/types/genre";
 import { primaryBusinessDomain } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
@@ -9,6 +8,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 import { phaseLabel } from "@/lib/constants/phase";
+import { companyStageLabel } from "@/lib/companies/classification";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { CompanyPaneEmployees } from "@/components/companies/CompanyPaneEmployees";
 import { splitParenSuffix } from "@/lib/utils/parenSuffix";
@@ -49,13 +49,11 @@ import { splitParenSuffix } from "@/lib/utils/parenSuffix";
 export function CompanyPane({
   company,
   detail,
-  targetIndustries = [],
   activity = [],
   href,
 }: {
   company: Company;
   detail: CompanyDetail;
-  targetIndustries?: CompanyTargetIndustry[];
   /** ★記事・投稿（2026-09-18）。**上位数件だけ**。無ければ見出しごと出さない */
   activity?: { id: string; title: string; href: string; kind: string }[];
   /** 「詳細を見る」の遷移先。省略時は slug（無ければ id）から組む */
@@ -81,7 +79,8 @@ export function CompanyPane({
         SHA-256 を突き合わせている）。ここはペイン専用のバッジ。
      ⚠️ 未知の値（自由記述の残骸）は `phaseLabel` が null を返す。**そのときは出さない**
         ——生の値をそのまま画面に出さないため。 */
-  const phase = phaseLabel(company.phase);
+  /* ★事業ステージ（新7段。2026-10-12）を先に出す。空の会社だけ旧 phase に落とす（2つの語彙を同時に出さない） */
+  const phase = companyStageLabel(detail.companyStage) ?? phaseLabel(company.phase);
 
   /* ★企業説明の冒頭（2026-09-09 に追加）。
      ⚠️★**タグライン1行だけでは「何をしている会社か」が分からない。** 見比べるための
@@ -237,7 +236,7 @@ export function CompanyPane({
       {/* ── 企業情報。⚠️ サイドバー／モバイル本文と**同じ部品**を使う ──
              メディアクエリを持たず `minmax` と `minWidth: 0` で組まれているので、
              ペインの幅でもそのまま動く（2026-09-08 に確認）。 */}
-      <CompanyInfoBox company={company} detail={detail} targetIndustries={targetIndustries} />
+      <CompanyInfoBox company={company} detail={detail} />
 
       {/* ── 募集中の求人（上位3件） ── */}
       {topJobs.length > 0 && (

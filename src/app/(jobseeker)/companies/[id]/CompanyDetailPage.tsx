@@ -15,7 +15,6 @@ import {
   getArticlesByCompanyCached,
   getCompanyEmployeesCached,
   getCompanyToolsCached,
-  getCompanyTargetIndustriesCached,
   getCompanyStoriesCached,
   getPublicAmbassadorsCached,
   type PublicAmbassador,
@@ -29,6 +28,7 @@ import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStageCfg } from "@/lib/utils/stageCfg";
+import { companyStageLabel } from "@/lib/companies/classification";
 import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
@@ -71,7 +71,6 @@ import { cleanEnName } from "@/lib/companies/displayName";
       **全部**出すのは `CompanyInfoBox`（サイドバーと本文が共有）で、そちらが
       `orderedBusinessDomains` を持つ。混同しないこと。 */
 import { primaryBusinessDomain } from "@/types/genre";
-import type { CompanyTargetIndustry } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
 import { CompanyStoryCard } from "@/components/companies/CompanyStoryCard";
 import { StoryViewObserver } from "@/components/views/StoryViewObserver";
@@ -473,6 +472,10 @@ function Hero({
                     </span>
                   ))}
                   {(() => {
+                    /* ★事業ステージ（新7段。2026-10-12）があればそれをグレーの文字で出す（バッジにしない）。
+                          空の会社だけ旧 phase のバッジに落とす（2つの語彙を同時に出さない） */
+                    const stage = companyStageLabel(detail.companyStage);
+                    if (stage) return <span data-state="hero-stage" style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 600 }}>{stage}</span>;
                     const sc = getStageCfg(company.phase);
                     if (!sc) return null;
                     return (
@@ -1539,13 +1542,10 @@ function Sidebar({
   company,
   detail,
   ambassadors = [],
-  targetIndustries = [],
 }: {
   company: Company;
   detail: CompanyDetail;
   ambassadors?: PublicAmbassador[];
-  /** 顧客の業界（軸2）。⚠️ `vertical` の企業だけが値を持つ。空なら行ごと出さない */
-  targetIndustries?: CompanyTargetIndustry[];
 }) {
   return (
     <aside
@@ -1738,7 +1738,7 @@ function Sidebar({
              サイドバーは `hidden lg:flex` で 1023px 以下では消えるので、
              ここだけに置くと**モバイルで中身が丸ごと消える**。複製を作らないこと。
              実体は components/companies/CompanyInfoBox.tsx（切り出した理由もそこに書いてある）。 */}
-      <CompanyInfoBox company={company} detail={detail} targetIndustries={targetIndustries} />
+      <CompanyInfoBox company={company} detail={detail} />
     </aside>
   );
 }
@@ -1783,7 +1783,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
-         targetIndustries, articleIdRowsResult, materialItems] = await Promise.all([
+         articleIdRowsResult, materialItems] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -1796,10 +1796,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     getCompanyStoriesCached(companyId) as Promise<CompanyPost[]>,
     getPublicAmbassadorsCached(companyId),
     getCompanyToolsCached(companyId),
-    /* 顧客の業界（軸2 = 誰に売っているか）。⚠️ 事業領域（軸1）とは別物。
-       ⚠️ 値を持つのは `vertical` の企業だけなので、大半は空配列で返る。
-          サイドバーは値が無ければ行ごと出さない（`.filter((item) => item.value)`）。 */
-    getCompanyTargetIndustriesCached(companyId),
+    /* ⚠️ 旧「顧客の業界」（ow_company_target_industries）は 2026-10-12 から読まない。
+          お客さまの業界は detail（getCompanyById）が新しい表から組む */
     /* ⚠️ 記事IDは companyId しか要らないのでここに相乗りさせる。
           閲覧者の ow_users はもう引かない（認証を読まないため）。 */
     adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
@@ -1965,7 +1963,6 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
               <CompanyInfoBox
                 company={company}
                 detail={detail}
-                targetIndustries={targetIndustries}
                 title={
                   <SecTitle
                     iconColor="default"
@@ -2277,7 +2274,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
           </main>
 
-          <Sidebar company={company} detail={detail} ambassadors={ambassadors} targetIndustries={targetIndustries} />
+          <Sidebar company={company} detail={detail} ambassadors={ambassadors} />
         </div>
       </div>
 

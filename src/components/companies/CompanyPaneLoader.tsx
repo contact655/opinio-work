@@ -1,4 +1,4 @@
-import { getCompanyBySlugOrId, getCompanyTargetIndustriesCached } from "@/lib/supabase/queries";
+import { getCompanyBySlugOrId } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CompanyPane } from "@/components/companies/CompanyPane";
 
@@ -21,8 +21,7 @@ export async function CompanyPaneLoader({ slugOrId }: { slugOrId: string }) {
         URL を直接叩いた人に**一覧とペインで食い違う**画面を見せることになる。 */
   if (!result) return null;
 
-  const [targets, articles] = await Promise.all([
-    getCompanyTargetIndustriesCached(result.resolvedId),
+  const [articles] = await Promise.all([
     (async () => {
       const db = createAdminClient();
       const { data, error } = await db
@@ -50,7 +49,6 @@ export async function CompanyPaneLoader({ slugOrId }: { slugOrId: string }) {
       <CompanyPane
         company={result.company}
         detail={result.detail}
-        targetIndustries={targets}
         activity={articles}
       />
     </>

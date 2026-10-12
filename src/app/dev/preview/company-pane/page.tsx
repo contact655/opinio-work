@@ -40,7 +40,6 @@ function Row({ label, data }: { label: string; data: typeof PANE_RICH }) {
             <CompanyPane
               company={data.company}
               detail={data.detail}
-              targetIndustries={data.targetIndustries}
             />
           </div>
         </div>

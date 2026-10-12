@@ -424,6 +424,10 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     market_note: (row.market_note as string | null) ?? null,
     // ⑦ 資本関係・グループ
     capitalType: (row.capital_type as string | null) ?? null,
+    companyStage: (row.company_stage as string | null) ?? null,
+    hqCountry: (row.hq_country as string | null) ?? null,
+    servesConsumers: row.serves_consumers === true,
+    customerAllIndustries: row.customer_all_industries === true,
     parentCompanyName: (row.parent_company_name as string | null) ?? null,
     parentCompanyCountry: (row.parent_company_country as string | null) ?? null,
     listedExchange: (row.listed_exchange as string | null) ?? null,
@@ -542,7 +546,8 @@ export async function fetchBusinessDomainsByCompany(
 
   const { data, error } = await db
     .from("ow_company_business_domains")
-    .select("company_id, is_primary, ow_business_domains(id, name, slug)")
+    /* ★is_active を取る（2026-10-12）。企業が追加して確認待ちの事業（is_active=false）を求職者に出さない */
+    .select("company_id, is_primary, ow_business_domains(id, name, slug, is_active)")
     .in("company_id", companyIds)
     .order("display_order", { ascending: true });
 
@@ -552,13 +557,45 @@ export async function fetchBusinessDomainsByCompany(
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const row of (data ?? []) as any[]) {
-    const d = row.ow_business_domains as { id: string; name: string; slug: string } | null;
-    if (!d) continue;
+    const d = row.ow_business_domains as { id: string; name: string; slug: string; is_active: boolean } | null;
+    if (!d || d.is_active !== true) continue;
     const cid = row.company_id as string;
     if (!out.has(cid)) out.set(cid, []);
     out.get(cid)!.push({ id: d.id, name: d.name, slug: d.slug, is_primary: !!row.is_primary });
   }
   return out;
+}
+
+/**
+ * ★企業ページに出す業種（大分類 › 小分類）とお客さまの業界の名前（2026-10-12）。
+ * ⚠️ 公開側なので**有効な業種だけ**（まだ出していない新しい業種・使わなくなった業種は出さない）。
+ * ⚠️ 取れなければ空（行ごと出さない）。既定値で埋めない。
+ */
+export async function fetchClassificationDisplay(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  companyId: string,
+  industryId: string | null,
+): Promise<{ industryPath: string | null; customerNames: string[] }> {
+  const [ind, cust] = await Promise.all([
+    industryId ? db.from("ow_industries").select("id, name, parent_id, is_active").eq("id", industryId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    db.from("ow_company_customer_industries").select("ow_industries(name, display_order, is_active)").eq("company_id", companyId),
+  ]);
+  if (ind.error) console.error("[fetchClassificationDisplay] 業種:", ind.error.message);
+  if (cust.error) console.error("[fetchClassificationDisplay] お客さま:", cust.error.message);
+  let industryPath: string | null = null;
+  if (ind.data && ind.data.is_active) {
+    industryPath = ind.data.name as string;
+    if (ind.data.parent_id) {
+      const { data: p, error } = await db.from("ow_industries").select("name, is_active").eq("id", ind.data.parent_id).maybeSingle();
+      if (error) console.error("[fetchClassificationDisplay] 大分類:", error.message);
+      if (p?.is_active) industryPath = `${p.name} › ${industryPath}`;
+    }
+  }
+  const customerNames = ((cust.data ?? []) as { ow_industries: { name: string; display_order: number; is_active: boolean } | null }[])
+    .map((r) => r.ow_industries).filter((i): i is { name: string; display_order: number; is_active: boolean } => !!i && i.is_active)
+    .sort((a, b) => a.display_order - b.display_order).map((i) => i.name);
+  return { industryPath, customerNames };
 }
 
 /**
@@ -849,6 +886,8 @@ const COMPANY_DETAIL_COLS = [
   // ⑦ 資本関係・グループ — migration 20260728053104
   "capital_type", "parent_company_name", "parent_company_country",
   "listed_exchange", "capital_notes", "global_employee_count",
+  // ★分類の③④（2026-10-12）
+  "company_stage", "hq_country", "serves_consumers", "customer_all_industries",
   // ⑧ 拠点・勤務地
   "headquarters_address", "branch_locations",
 ].join(", ");
@@ -965,6 +1004,13 @@ const getCompanyById = cache(async function getCompanyById(
     data, jobRows?.length ?? 0, genres, companyDomains.get(companyId) ?? [],
   );
   const detail = buildCompanyDetail(data, jobRows ?? [], roleRows);
+  /* ★業種（大分類 › 小分類）とお客さまの業界（2026-10-12）。⚠️ 公開側なので有効な業種だけ */
+  {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const disp = await fetchClassificationDisplay(supabase, companyId, ((data as any).industry_id as string | null) ?? null);
+    detail.industryPath = disp.industryPath;
+    detail.customerIndustryNames = disp.customerNames;
+  }
 
   /* ⚠️ 面談の可否は**フラグ単独では決めない**（2026-08-11）。宛先が無ければ閉じる。
         ここで潰しておくと、企業ページの CTA・バッジ・申込ページが同じ値を見るので

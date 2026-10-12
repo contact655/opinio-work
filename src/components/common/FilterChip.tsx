@@ -41,7 +41,11 @@ export function FilterChip({
    *     **並び順は渡された順のまま。ここで並べ替えないこと。** */
   options: { value: string; label: string; color?: string; bg?: string; dot?: string; desc?: string; parent?: string; group?: string;
     /** 縦リストのメニューにだけ出す件数（2026-10-09 / /jobs の職種）。⚠️ チップの表示名には入れない */
-    count?: number }[];
+    count?: number;
+    /** ★検索欄に入力したときだけ出す（2026-10-12。事業の search 区分）。searchable のときだけ効く */
+    searchOnly?: boolean;
+    /** ★検索で当てる別名（空白区切り）。表示はしない */
+    keywords?: string }[];
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -240,7 +244,8 @@ export function FilterChip({
                 </div>
               )}
               {options
-                .filter(o => !q || o.label.toLowerCase().includes(q.toLowerCase()))
+                /* ★入力が空のときは searchOnly を隠す。入力したら名前と別名（keywords）で探す（2026-10-12） */
+                .filter(o => !q ? !(searchable && o.searchOnly) : (o.label + " " + (o.keywords ?? "")).toLowerCase().includes(q.toLowerCase()))
                 .map((o, i, shown) => {
                   const sel = multi ? values!.includes(o.value) : value === o.value;
                   /* ⚠️ グループが変わるところにだけ見出しを出す。
@@ -283,6 +288,11 @@ export function FilterChip({
                   );
                 })
               }
+              {searchable && !q && options.some((o) => o.searchOnly) && (
+                <p style={{ margin: 0, padding: "8px 16px 6px", fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                  ほかの項目は上の欄に入力すると探せます
+                </p>
+              )}
             </div>
           ) : (
             // ピル形式（勤務形態など）

@@ -1,9 +1,8 @@
 import { Fragment } from "react";
 import type { Company } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
-import type { CompanyTargetIndustry } from "@/types/genre";
 import { orderedBusinessDomains } from "@/types/genre";
-import { CAPITAL_TYPE_LABELS } from "@/lib/constants/capitalType";
+import { companyTypeText } from "@/lib/companies/classification";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
@@ -61,13 +60,10 @@ function ParenAwareText({ text }: { text: string }) {
 export function CompanyInfoBox({
   company,
   detail,
-  targetIndustries = [],
   title,
 }: {
   company: Company;
   detail: CompanyDetail;
-  /** 顧客の業界（軸2）。⚠️ `vertical` の企業だけが値を持つ。空なら行ごと出さない */
-  targetIndustries?: CompanyTargetIndustry[];
   /**
    * 見出し。**省略するとサイドバー用の小さい見出し（現行の見た目）** を出す。
    * ⚠️ 本文（モバイル）は隣のセクションと揃える必要があるので `SecTitle` を渡す。
@@ -146,27 +142,15 @@ export function CompanyInfoBox({
                   事業領域の名前は「HR・人材」「AI・データ」のように**それ自体が `・` を含む**ので、
                   `・` で繋ぐと「HR・人材・基幹業務システム」となり3件に読める。
                   顧客の業界（「建設」「金融・保険」）とは事情が違う。 */
-            { key: "事業領域", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
-            /* 顧客の業界（＝軸2「誰に売っているか」。内部の呼び名は「対象業界」）。
-               ⚠️★**事業領域のすぐ下に置く。** 2つ並んで初めて軸の違いが伝わる
-                  （「プロジェクト管理 を 建設 に売っている会社」と1組で読める）。
-                  離して置くと、`/companies` の絞り込みに2つチップがある理由が
-                  結果ページ側で説明されないままになる —— それが 2026-09-06 に
-                  「事業領域と対象業界はわかりづらい」と言われた形。
-               ⚠️ **ラベルは「顧客の業界」。**「対象業界」に戻さないこと
-                  （その会社自身の業界と読める。CLAUDE.md の判断）。
-               ⚠️ 値が無ければ下の `.filter((item) => item.value)` が行ごと落とす。
-                  「業界を問わない」等のフォールバックを書かないこと ——
-                  0件は `horizontal` / `consumer` / **未確認**のどれでもありうる。 */
-            { key: "顧客の業界", value: targetIndustries.map((t) => t.name).join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
-            /* ⚠️ `capital_notes` の置き場所は2箇所ある（2026-08-13）。
-                  **`capital_notes` はここに出さない。**「拠点・資本関係」セクション
-                  （本文）の資本関係カードに移した（2026-08-13）。
-               ⚠️ 値カラムは実測 **172px** しかなく、注記は3行に折り返していた。
-                  サイドバーは「ラベル：短い値」を拾う場所で、文章を読む場所ではない。
-               ⚠️ `listed_exchange` は使わない。**未使用カラム**で描画先が無い。
-                  上場市場・証券コードは capital_notes の文中に書く。 */
-            ...(detail.capitalType ? [{ key: "資本区分", value: CAPITAL_TYPE_LABELS[detail.capitalType] ?? detail.capitalType, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> }] : []),
+            /* ★分類の4つの質問（2026-10-12）: 業種 → 事業 → タイプ → お客さまの業界 の順。値が無い行は下の filter が落とす。
+               ⚠️ 事業の区切りは `／`（名前そのものが「・」を含む。「AI・データ」）。主な事業を先頭にする。
+               ⚠️ タイプ（日系・外資系（国）・ステージ）が旧「資本区分」の行を置き換えた（同じことを2行で出さない）。
+               ⚠️ お客さまの業界は「業界を問わない」を明示の値として持てる（判断 #19）。空＝未確認は行ごと出さない。
+               ⚠️ ラベルは「お客さま」。「お客さまの業界」はラベルの列（90px）で折り返すため短くした（列を広げると値の列が狭まる）。 */
+            { key: "業種", value: detail.industryPath ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> },
+            { key: "事業", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+            { key: "タイプ", value: companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> },
+            { key: "お客さま", value: detail.customerAllIndustries ? "業界を問わない" : [...(detail.customerIndustryNames ?? []), ...(detail.servesConsumers ? ["個人のお客さま"] : [])].join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
             /* ⚠️ ラベルは「親会社」。値は parent_company_name（**親会社名**）で、
                   所在地ではない。直下に「所在地」行が並ぶため、
                   「本社」だと本社所在地と誤読される（2026-08-13 改称）。

@@ -18,10 +18,14 @@ export type BusinessDomainOption = {
   slug: string;
   /** ⚠️ 暫定値には理由が書いてある（「業種特化」は軸2を入れる日に解体する） */
   description: string | null;
+  /** ★2026-10-12。main=業種を選んだときにチップで出す / search=検索したときだけ出す */
+  display_kind?: "main" | "search";
+  /** ★2026-10-12。検索だけに使う別名 */
+  aliases?: string[];
 };
 
 /** ⚠️ `.select()` には文字列リテラルを渡す（配列を join すると型が落ちる）。 */
-export const BUSINESS_DOMAIN_OPTION_COLS = "id, name, slug, description" as const;
+export const BUSINESS_DOMAIN_OPTION_COLS = "id, name, slug, description, display_kind, aliases" as const;
 
 /**
  * 1社あたりの上限。

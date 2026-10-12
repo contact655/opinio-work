@@ -52,7 +52,7 @@
 
 import { cache } from "react";
 import { getRoleAliases, getRoleTree, type SearchAlias } from "@/lib/supabase/queries";
-import { getBusinessDomainOptions } from "@/lib/companies/businessDomainsCached";
+import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
@@ -269,7 +269,9 @@ const DOMAIN_PART_MIN_LEN = 4;
 const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary> {
   const [roleAliases, domainRows, companyRows, skillRows, languageRows] = await Promise.all([
     getRoleAliases(),
-    getBusinessDomainOptions(),
+    /* ★掲載中の会社がある事業だけ（2026-10-12）。新しい分類で事業が約190になり、マスタ全件だと
+          「教育」「建設」「music」のような語が0件の事業の条件に化けるため。チップと同じ母数にそろえる */
+    getBusinessDomainFacets(),
     loadCompanyNames(),
     loadSkills(),
     loadLanguages(),

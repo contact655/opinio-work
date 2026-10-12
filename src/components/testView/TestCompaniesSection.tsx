@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { viewerIsTestUser } from "@/lib/users/testViewer";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { resolveDomainCompanyIds, resolveIndustryFilterIds } from "@/lib/search/companies";
+import { isCompanyStage } from "@/lib/companies/classification";
 
 /**
  * ★検証用の会社と、その公開中の求人（検証用アカウントにだけ出す。2026-10-12 / 柴さんの指示）。
@@ -11,12 +13,23 @@ import { companyDisplayName } from "@/lib/companies/displayName";
  * ⚠️ 通常の一覧・検索・件数には混ぜない（混ぜると絞り込みや件数の判定を全部書き換えることになる）。
  * ⚠️ 対象は「ページ表示（is_published）かつ is_test」の会社だけ。求人は「公開中かつ is_test」だけ（下書きは出さない）。
  */
-export async function TestCompaniesSection({ kind }: { kind: "companies" | "jobs" }) {
+/** ★分類の絞り込み（2026-10-12）。/companies の業種・事業・外資系・事業ステージを、検証用の会社にも同じ条件で当てる */
+export type TestClassificationFilter = { ind?: string; industry?: string; foreign?: boolean; stage?: string };
+
+export async function TestCompaniesSection({ kind, filter }: { kind: "companies" | "jobs"; filter?: TestClassificationFilter }) {
   if (!(await viewerIsTestUser())) return null;
   const admin = createAdminClient();
   const [{ data: companies, error: ce }, { data: jobs, error: je }] = await Promise.all([
-    admin.from("ow_companies").select("id, slug, name, name_en")
-      .eq("is_published", true).eq("is_test", true).order("name"),
+    (async () => {
+      /* ⚠️ 条件の解決は一覧と同じ関数（resolveIndustryFilterIds / resolveDomainCompanyIds）。書き写さない */
+      let q = admin.from("ow_companies").select("id, slug, name, name_en").eq("is_published", true).eq("is_test", true);
+      const none = "00000000-0000-0000-0000-000000000000";
+      if (filter?.ind) { const ids = await resolveIndustryFilterIds(admin, filter.ind); q = q.in("industry_id", ids.length > 0 ? ids : [none]); }
+      if (filter?.industry) { const ids = await resolveDomainCompanyIds(admin, filter.industry); q = q.in("id", ids.length > 0 ? ids : [none]); }
+      if (filter?.foreign) q = q.eq("capital_type", "foreign_subsidiary");
+      if (filter?.stage && isCompanyStage(filter.stage)) q = q.eq("company_stage", filter.stage);
+      return q.order("name");
+    })(),
     admin.from("ow_jobs").select("id, slug, title, company_id")
       .eq("status", "published").eq("is_test", true).order("published_at", { ascending: false }),
   ]);

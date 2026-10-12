@@ -24,6 +24,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CompanyForCarousel, CompanyBusinessDomain } from "@/types/genre";
 import { PHASE_FILTER_MAP } from "@/lib/constants/phase";
+import { isCompanyStage } from "@/lib/companies/classification";
 import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { normalizeCompanyName } from "@/lib/companies/normalizeName";
 
@@ -40,7 +41,11 @@ export type CompanySearchParams = {
   industry?: string;   // 事業領域フィルタ（値は ow_business_domains.slug）
   /** 対象業界（軸2）。値は `ow_industries.slug`。⚠️ `industry`（事業領域）とは別の軸。 */
   targetIndustry?: string;
-  foreign?: boolean;   // 外資系のみ表示
+  foreign?: boolean;   // 外資系のみ表示（2026-10-12 から capital_type = foreign_subsidiary）
+  /** ★業種（2026-10-12 / `?ind=`）。値は `ow_industries.slug`。大分類なら小分類と**大分類だけの会社**も含む（提案A） */
+  ind?: string;
+  /** ★事業ステージ（2026-10-12 / `?stage=`）。値は COMPANY_STAGES の value */
+  stage?: string;
   /** 「話を聞ける人」がいる企業だけ（2026-10-09 / `?talk=1`）。判定は `fetchTalkableCompanyIds` */
   talk?: boolean;
   /** ★会社規模（2026-10-10）。4つのまとまり（`COMPANY_SIZE_GROUPS`）。帯が空の企業は当たらない */
@@ -67,6 +72,41 @@ export type CompanySearchResult = {
  * 内部実装: Supabase + ILIKE（ローンチ時 34社規模で十分高速）
  * 将来: `searchCompanies` のシグネチャを変えずに内部を差し替え可能
  */
+/**
+ * ★業種の絞り込みで当てる industry_id（2026-10-12 / `?ind=`）。**一覧と検証用の会社の欄が同じ関数を通る。**
+ *   大分類なら、その小分類と大分類そのもの（＝大分類だけの会社も当たる。提案A）。小分類ならそれだけ。
+ * ⚠️ 公開側なので有効な業種だけ。解決できなければ空配列（＝該当0。呼び出し側はダミー id で .in() する）。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function resolveIndustryFilterIds(db: any, slug: string): Promise<string[]> {
+  const { data: ind, error: indErr } = await db.from("ow_industries").select("id, parent_id").eq("slug", slug).eq("is_active", true).maybeSingle();
+  if (indErr) console.error("[resolveIndustryFilterIds] 業種の解決に失敗:", indErr.message);
+  if (!ind) return [];
+  const ids = [ind.id as string];
+  if (!ind.parent_id) {
+    const { data: kids, error: kidErr } = await db.from("ow_industries").select("id").eq("parent_id", ind.id).eq("is_active", true);
+    if (kidErr) console.error("[resolveIndustryFilterIds] 小分類の取得に失敗:", kidErr.message);
+    ids.push(...((kids ?? []) as { id: string }[]).map((k) => k.id));
+  }
+  return ids;
+}
+
+/**
+ * ★事業（`?industry=`）で当たる会社の id（主以外も当たる）。**一覧と検証用の会社の欄が同じ関数を通る。**
+ * ⚠️ 旧 key は resolveIndustryKey で読み替える。⚠️ 公開側なので有効な事業だけ。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function resolveDomainCompanyIds(db: any, industryParam: string): Promise<string[]> {
+  const slug = resolveIndustryKey(industryParam);
+  const { data, error } = await db
+    .from("ow_company_business_domains")
+    .select("company_id, ow_business_domains!inner(slug, is_active)")
+    .eq("ow_business_domains.slug", slug)
+    .eq("ow_business_domains.is_active", true);
+  if (error) console.error("[resolveDomainCompanyIds] 事業での絞り込みに失敗:", error.message);
+  return Array.from(new Set(((data ?? []) as { company_id: string }[]).map((r) => r.company_id)));
+}
+
 export async function searchCompanies(
   params: CompanySearchParams
 ): Promise<CompanySearchResult> {
@@ -151,9 +191,12 @@ export async function searchCompanies(
     /* ⚠️ 事業領域での絞り込みは `applyFilters` の外で company_id を解決し、
           `domainCompanyIds` として渡す（下）。ここで `industry`(text) を見ない。 */
     if (domainCompanyIds) q = q.in("id", domainCompanyIds);
-    /* ★外資系も DB 側の条件（2026-10-09）。⚠️ 資本区分は `capital_type` だが、絞り込みは
-          従来どおり `is_foreign` を見る（判定を変えない段なので列も変えない） */
-    if (params.foreign) q = q.eq("is_foreign", true);
+    /* ★外資系（2026-10-12 から `capital_type` が正。判断 #20・提案C。is_foreign は読まない） */
+    if (params.foreign) q = q.eq("capital_type", "foreign_subsidiary");
+    /* ★業種（2026-10-12）。⚠️ 空配列を .in() に渡さない（全件になる）。解決できなければダミー */
+    if (industryIds) q = q.in("industry_id", industryIds.length > 0 ? industryIds : ["00000000-0000-0000-0000-000000000000"]);
+    /* ★事業ステージ（2026-10-12）。⚠️ 旧 `?phase=` はそのまま効く（被リンクのため） */
+    if (params.stage && isCompanyStage(params.stage)) q = q.eq("company_stage", params.stage);
     return q;
   }
 
@@ -167,17 +210,14 @@ export async function searchCompanies(
         渡すと PostgREST が「絞り込み無し」と解釈して**全件返す**（0件のはずが全件になる）。
      ⚠️ 結果を `.in("id", ...)` で **DB 側の条件**にするので、ページネーションは維持される。 */
   let domainCompanyIds: string[] | null = null;
+
+  /* ── 業種（`?ind=`。2026-10-12）────────────────────────────────────────────
+     ⚠️ 大分類を選んだら、その小分類の会社と**大分類だけの会社**（まだ小分類が付いていない会社）も出す（提案A）。
+     ⚠️ 公開側なので有効な業種だけ（RLS でも anon には有効な行しか見えない）。 */
+  const industryIds: string[] | null = params.ind ? await resolveIndustryFilterIds(supabase, params.ind) : null;
+
   if (params.industry) {
-    const slug = resolveIndustryKey(params.industry);
-    const { data: domainRows, error: domainErr } = await supabase
-      .from("ow_company_business_domains")
-      .select("company_id, ow_business_domains!inner(slug)")
-      .eq("ow_business_domains.slug", slug);
-    if (domainErr) {
-      // ⚠️ 握りつぶさない。空にすると「該当0社」と「取得失敗」が区別できない
-      console.error("[getCompanies] 事業領域での絞り込みに失敗:", domainErr.message);
-    }
-    const ids = Array.from(new Set((domainRows ?? []).map((r) => r.company_id as string)));
+    const ids = await resolveDomainCompanyIds(supabase, params.industry);
     domainCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
   }
 
@@ -696,6 +736,47 @@ export const fetchAvailableTargetIndustries = unstable_cache(
   },
   ["available-target-industries"],
   { revalidate: 300 }
+);
+
+/**
+ * ★業種の絞り込みの選択肢（2026-10-12 / `?ind=`）。掲載中の会社が1社以上ある業種だけ（0件の選択肢を出さない）。
+ *   大分類は「（すべて）」として出し、件数は**小分類の会社と大分類だけの会社**を足したもの（提案A）。
+ * ⚠️ 掲載の判定は filterListedCompanies（一覧と同じ）。⚠️ 公開側なので有効な業種だけ。
+ * ⚠️ 取得に失敗したら空（チップを出さない）。
+ */
+export const fetchIndustryFacets = unstable_cache(
+  async (): Promise<{ value: string; label: string; group: string; count: number }[]> => {
+    const supabase = createPublicClient();
+    const [{ data: cos, error: cErr }, { data: inds, error: iErr }] = await Promise.all([
+      filterListedCompanies(supabase.from("ow_companies").select("industry_id")),
+      supabase.from("ow_industries").select("id, slug, name, parent_id, display_order").eq("is_active", true),
+    ]);
+    if (cErr || iErr) {
+      console.error("[fetchIndustryFacets]", (cErr ?? iErr)!.message);
+      return [];
+    }
+    const byId = new Map((inds ?? []).map((i) => [i.id as string, i]));
+    const direct = new Map<string, number>();
+    for (const c of cos ?? []) {
+      const id = c.industry_id as string | null;
+      if (id && byId.has(id)) direct.set(id, (direct.get(id) ?? 0) + 1);
+    }
+    const tops = (inds ?? []).filter((i) => !i.parent_id).sort((a, b) => (a.display_order as number) - (b.display_order as number));
+    const out: { value: string; label: string; group: string; count: number }[] = [];
+    for (const t of tops) {
+      const kids = (inds ?? []).filter((i) => i.parent_id === t.id).sort((a, b) => (a.display_order as number) - (b.display_order as number));
+      const total = (direct.get(t.id as string) ?? 0) + kids.reduce((n, k) => n + (direct.get(k.id as string) ?? 0), 0);
+      if (total === 0) continue;
+      out.push({ value: t.slug as string, label: `${t.name}（すべて）`, group: t.name as string, count: total });
+      for (const k of kids) {
+        const n = direct.get(k.id as string) ?? 0;
+        if (n > 0) out.push({ value: k.slug as string, label: k.name as string, group: t.name as string, count: n });
+      }
+    }
+    return out;
+  },
+  ["industry-facets"],
+  { revalidate: 300, tags: ["industries"] }
 );
 
 /**

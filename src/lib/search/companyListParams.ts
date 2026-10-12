@@ -21,12 +21,16 @@ export type CompanyListQuery = {
   talk?: string;
   /** ★会社規模（`?size=`。2026-10-10）。値は `COMPANY_SIZE_GROUPS` の value */
   size?: string;
+  /** ★業種（`?ind=`。2026-10-12）。値は ow_industries.slug */
+  ind?: string;
+  /** ★事業ステージ（`?stage=`。2026-10-12） */
+  stage?: string;
   sort?: string;
 };
 
 /** 絞り込みがあるか。⚠️ 外資系は含めない（外資系だけのときは一覧グリッドのままページ分けする） */
 export function hasCompanyFilter(sp: CompanyListQuery): boolean {
-  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.talk || sp.size);
+  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.talk || sp.size || sp.ind || sp.stage);
 }
 
 /** 絞り込みの条件（並び替えを含む・ページ分けは含まない） */
@@ -43,6 +47,9 @@ export function companyFilterParams(sp: CompanyListQuery) {
     talk: sp.talk === "1" ? true : undefined,
     /* ⚠️ 知らない値は無視する（絞り込まない）。400 にしない —— URL を手で書き換えた人を落とさない */
     size: isCompanySizeGroup(sp.size) ? sp.size : undefined,
+    /* ⚠️ 知らない値は searchCompanies 側が無視する（業種は該当0、ステージは絞り込まない） */
+    ind: sp.ind || undefined,
+    stage: sp.stage || undefined,
     sort: sp.sort ?? "newest",
   };
 }

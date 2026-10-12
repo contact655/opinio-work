@@ -12,6 +12,7 @@ import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
 /* ⚠️ フェーズは**マスタ全件**を出す（該当0社の段も出す）。実データから絞らないこと
       —— 段階の梯子が歯抜けに見える。経緯は lib/constants/phase.ts のコメント。 */
 import { PHASE_OPTIONS } from "@/lib/constants/phase";
+import { COMPANY_STAGES } from "@/lib/companies/classification";
 
 /**
  * 勤務形態フィルターを出すか。
@@ -30,9 +31,8 @@ type Props = {
   /** 事業領域の選択肢。⚠️ **マスタが唯一の出どころ。** ここに値を書かない。
    *  ⚠️ 実データに1社でもあるものだけをサーバ側が渡す（0件の選択肢を出さない）。 */
   industryOptions: BusinessDomainOption[];
-  /** 対象業界（軸2）の選択肢。⚠️ 事業領域とは**別の軸**（誰に売っているか）。
-   *  ⚠️ こちらも実データにあるものだけ。0件の選択肢を出さない。 */
-  targetIndustryOptions: { slug: string; name: string }[];
+  /** ★業種の選択肢（2026-10-12 / `?ind=`）。掲載中の会社がある業種だけ（fetchIndustryFacets） */
+  industryTreeOptions: { value: string; label: string; group: string; count: number }[];
   companySuggestions?: { id: string; name: string }[];
   /** ★「話を聞ける人」がいる掲載企業の数（2026-10-09）。⚠️ 0 ならトグルを出さない
    *  （0件の選択肢を出さない原則）。null は取得失敗で、これも出さない */
@@ -48,7 +48,7 @@ type Props = {
 // ── メインコンポーネント ──────────────────────────────────────────────────────
 export function CompanySearchBar({
   industryOptions,
-  targetIndustryOptions,
+  industryTreeOptions,
   companySuggestions = [],
   talkableCount = null,
   sizeOptions = [],
@@ -133,6 +133,8 @@ export function CompanySearchBar({
   const currentLocation   = searchParams.get("location") ?? "";
   const currentIndustry   = searchParams.get("industry") ?? "";
   const currentTarget     = searchParams.get("target") ?? "";
+  const currentInd        = searchParams.get("ind") ?? "";
+  const currentStage      = searchParams.get("stage") ?? "";
   const currentHiring     = searchParams.get("hiring") === "1";
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
@@ -174,9 +176,12 @@ export function CompanySearchBar({
   /* ★詳細検索の中にある条件だけを出す（2026-10-09 の軸の入れ替え）。
         事業領域・都道府県・話を聞ける人は1段目に常に見えていて、選択状態をチップ自身が持つ。
         ここに入れると同じ語が2回並ぶ。⚠️ 並びは詳細検索の中の並びと同じ順にしてある */
+  /* ⚠️ フェーズ（旧 ?phase=）と顧客の業界（旧 ?target=）はチップを外した（2026-10-12）。
+        被リンクで来たときに外せるよう、選択中なら効いている条件として出す */
   if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
+  if (currentStage) activeChips.push({ key: "stage", label: labelOf(COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label })), currentStage), clear: () => updateParam("stage", null) });
   if (currentSize) activeChips.push({ key: "size", label: labelOf(sizeChipOptions, currentSize), clear: () => updateParam("size", null) });
-  if (currentTarget) activeChips.push({ key: "target", label: labelOf(targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name })), currentTarget), clear: () => updateParam("target", null) });
+  if (currentTarget) activeChips.push({ key: "target", label: `顧客の業界: ${currentTarget}`, clear: () => updateParam("target", null) });
   if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
   if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
   if (currentHiring) activeChips.push({ key: "hiring", label: "募集あり", clear: () => updateParam("hiring", null) });
@@ -231,16 +236,40 @@ export function CompanySearchBar({
                  **すぐ隣の「対象業界」チップがそちらのマスタ**。名前が衝突する。
               ⚠️ URL のキーは `?industry=` のまま。2026-08-26 の移行で被リンクを
                  切らないためで、**キーとラベルが一致していないのは承知のうえ。** */}
+          {/* ★業種（2026-10-12 / `?ind=`）。大分類を選ぶと、その小分類と大分類だけの会社も出る（提案A）。
+                 ⚠️ 掲載中の会社がある業種だけ（0件の選択肢を出さない） */}
+          {(industryTreeOptions.length > 0 || currentInd) && (
+            <FilterChip
+              label="業種"
+              value={currentInd}
+              options={industryTreeOptions}
+              onSelect={(v) => { updateParam("ind", v); setOpenChip(null); }}
+              isOpen={openChip === "ind"}
+              onToggle={() => toggleChip("ind")}
+              listStyle
+              searchable
+            />
+          )}
+
+          {/* ★事業（2026-10-12 に「事業領域」から改名。中身は ow_business_domains・URL は `?industry=` のまま）。
+                 ⚠️ 主な事業以外（2つ目・3つ目）にも当たる（searchCompanies は全部の紐付けを見る）。
+                 ⚠️ 全部を並べない。main の事業を先に出し、search の事業は入力して探す（searchOnly）。
+                 ⚠️ 掲載中の会社がある事業だけ（getBusinessDomainFacets）。 */}
           <FilterChip
-            label="事業領域"
+            label="事業"
             value={currentIndustry}
-            options={industryOptions.map((d) => ({ value: d.slug, label: d.name }))}
+            options={industryOptions.map((d) => ({
+              value: d.slug, label: d.name,
+              searchOnly: d.display_kind === "search",
+              keywords: (d.aliases ?? []).join(" "),
+              count: "count" in d ? (d as { count: number }).count : undefined,
+            }))}
             onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
             isOpen={openChip === "industry"}
             onToggle={() => toggleChip("industry")}
             listStyle
-            /* ⚠️ 隣の「顧客の業界」の hint と**対で読ませる**。片方だけ変えないこと。 */
-            hint="この会社が何を作っているか"
+            searchable
+            hint="2つ目・3つ目の事業にも当たります"
           />
 
           {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
@@ -287,15 +316,15 @@ export function CompanySearchBar({
             unit="社"
           >
 
-          {/* フェーズ */}
+          {/* ★事業ステージ（2026-10-12。旧「フェーズ」を置き換えた）。7つとも出す（段階の梯子が歯抜けに見えないように。フェーズと同じ扱い） */}
           <FilterChip
-            label="フェーズ"
-            value={currentPhase}
-            options={PHASE_OPTIONS}
-            onSelect={(v) => { updateParam("phase", v); setOpenChip(null); }}
-            isOpen={openChip === "phase"}
-            onToggle={() => toggleChip("phase")}
-            phaseStyle
+            label="事業ステージ"
+            value={currentStage}
+            options={COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label, desc: x.desc }))}
+            onSelect={(v) => { updateParam("stage", v); setOpenChip(null); }}
+            isOpen={openChip === "stage"}
+            onToggle={() => toggleChip("stage")}
+            listStyle
           />
 
           {/* ★会社規模（2026-10-10）。従業員数の帯を4つにまとめて出す（`COMPANY_SIZE_GROUPS`）。
@@ -312,38 +341,6 @@ export function CompanySearchBar({
           )}
 
 
-          {/* 顧客の業界（誰に売っているか＝軸2）
-              ⚠️★**事業領域と別の軸。** 統合しないこと。
-                 例: アンドパッドは 事業領域「プロジェクト管理」× 顧客の業界「建設」。
-
-              ⚠️★**画面のラベルは「顧客の業界」。内部の呼び名は「対象業界」**（2026-09-06）。
-                 ずらしてあるのは意図的:
-                   ・「対象業界」だと**その会社自身の業界**とも読める。とくに選択肢に
-                     「IT・ソフトウェア」があり、実際は「IT企業に売っている会社」の意味なので
-                     まず誤読される。「顧客の」を付けるだけで消える。
-                   ・「事業領域」と「対象業界」は日常語だとほぼ同義で、
-                     **チップを開くまで違いが分からなかった**（柴さんの指摘）。
-                 ⚠️ DB（`ow_company_target_industries`）・URL（`?target=`）・
-                    CLAUDE.md・`/admin` は「対象業界」のまま。`?industry=` とラベルが
-                    一致していないのと同じ形で、**承知のうえ。**
-              ⚠️ 実データにあるものだけを出す（サーバ側の `fetchAvailableTargetIndustries`）。
-                 該当が無ければチップごと出さない。 */}
-          {targetIndustryOptions.length > 0 && (
-            <FilterChip
-              label="顧客の業界"
-              value={currentTarget}
-              options={targetIndustryOptions.map((i) => ({ value: i.slug, label: i.name }))}
-              onSelect={(v) => { updateParam("target", v); setOpenChip(null); }}
-              isOpen={openChip === "target"}
-              onToggle={() => toggleChip("target")}
-              listStyle
-              /* ⚠️ 「その会社自身の業界」と読まれるのを防ぐのがこの一言の目的。
-                    選択肢に「IT・ソフトウェア」があるため、無いと必ず誤読される。
-                 ⚠️ **隣の hint と同じ言い回しで書く**（「この会社が◯◯」）。
-                    揃っていないと2つが同じ軸の言い換えに見え、比べられない。 */
-              hint="この会社が誰に売っているか"
-            />
-          )}
 
 
           {/* ③ 勤務形態フィルター
