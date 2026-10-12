@@ -1,5 +1,6 @@
 "use client";
 
+import { shortLocation } from "@/lib/jobs/shortLocation";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -57,7 +58,8 @@ function subLine(j: BizJob): string {
   const role = j.companyRoleName || (j.jobRoleNames ?? [])[0] || j.jobCategory;
   const dept = j.departmentName || j.department || "";
   const head = dept && role ? `${dept} › ${role}` : dept || role || "";
-  return [head || null, j.employmentType || null, j.location || null].filter(Boolean).join(" ・ ");
+  /* ★勤務地は都道府県＋市区町村まで（2026-10-12）。番地・建物名は出さない。詳細・編集画面は元の値のまま */
+  return [head || null, j.employmentType || null, shortLocation(j.location)].filter(Boolean).join(" ・ ");
 }
 
 /** 「部門なし」の値（?dept=none）。⚠️ 部門の id（uuid）と重ならない文字列 */
@@ -167,14 +169,20 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
     window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}`);
   }, [activeStatus, activeDept]);
 
+  /* ★職種の選択肢は、部門を選んでいればその部門の求人の職種だけ（2026-10-12 / 柴さんの指示）。未選択なら全部 */
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
-    jobs.forEach((j) => {
+    const inDept = jobs.filter((j) => !activeDept || (activeDept === NO_DEPT ? !j.departmentId : j.departmentId === activeDept));
+    inDept.forEach((j) => {
       (j.jobRoleNames ?? []).forEach((n) => set.add(n));
       if (j.jobCategory) set.add(j.jobCategory);
     });
     return Array.from(set).sort();
-  }, [jobs]);
+  }, [jobs, activeDept]);
+  /* ⚠️ 部門を変えて、選択中の職種がその部門に無ければ職種の選択を外す */
+  useEffect(() => {
+    if (categoryFilter && !categoryOptions.includes(categoryFilter)) setCategoryFilter("");
+  }, [categoryFilter, categoryOptions]);
 
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
@@ -277,14 +285,6 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             style={{ width: "100%", height: 36, boxSizing: "border-box", padding: "0 14px", border: "1px solid var(--line)", borderRadius: 999, fontFamily: "inherit", fontSize: 13, background: "#fff", outline: "none" }}
           />
         </div>
-        {categoryOptions.length > 0 && (
-          <FilterChip
-            label="職種" value={categoryFilter}
-            options={categoryOptions.map((c) => ({ value: c, label: c }))}
-            onSelect={(v) => setCategoryFilter(v ?? "")}
-            isOpen={openChip === "category"} onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
-          />
-        )}
         {/* ★求人が1件以上あれば常に出す（2026-10-12）。部門が1つも無い会社は登録への入口だけ */}
         {jobs.length > 0 && (noDepartments ? (
           <a href="/biz/organization" data-state="dept-register-link" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none", whiteSpace: "nowrap" }}>部門・職種を登録する ›</a>
@@ -296,6 +296,15 @@ export function JobsClient({ jobs: initialJobs, isAdmin = true, initialStatus = 
             isOpen={openChip === "dept"} onToggle={() => setOpenChip(openChip === "dept" ? null : "dept")}
           />
         ))}
+        {/* ★部門 → 職種 の順（2026-10-12）。職種の選択肢は選んだ部門に絞る */}
+        {categoryOptions.length > 0 && (
+          <FilterChip
+            label="職種" value={categoryFilter}
+            options={categoryOptions.map((c) => ({ value: c, label: c }))}
+            onSelect={(v) => setCategoryFilter(v ?? "")}
+            isOpen={openChip === "category"} onToggle={() => setOpenChip(openChip === "category" ? null : "category")}
+          />
+        )}
         {hasNarrowing && (
           <button type="button" onClick={() => { setSearchQuery(""); setCategoryFilter(""); setDeptFilter(""); }}
             style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, color: "var(--ink-soft)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
