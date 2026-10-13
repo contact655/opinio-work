@@ -282,6 +282,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         viewerName={ctx.userName && ctx.userName !== "ご担当者" ? ctx.userName : null}
         /* ★段（一覧と詳細の幅）を覚えるキーに使う（会社・担当者ごと。2026-10-13） */
         stageStorageKey={`biz-cand-stage:${ctx.tenantId}:${ctx.currentOwnId}`}
+        /* ★右欄の2列表示（プロフィール｜メッセージ）の比率を覚えるキー（外側とは別。2026-10-13） */
+        columnsStorageKey={`biz-cand-cols:${ctx.tenantId}:${ctx.currentOwnId}`}
         /* ★年齢の絞り込み・並び替え（本番は無効。CANDIDATE_AGE_FILTER_ENABLED） */
         ageFilterEnabled={isCandidateAgeFilterEnabled()}
         /* ★最近の利用（本番は無効。CANDIDATE_ACTIVITY_ENABLED） */

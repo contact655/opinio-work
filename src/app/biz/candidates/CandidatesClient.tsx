@@ -22,6 +22,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { FilterPopoverChip } from "@/components/common/FilterPopoverChip";
 import { ResidenceOptions, RoleTreeOptions, STANCE_OPTIONS, StanceOptions, TenureOptions, computeAxisCounts, residenceChipLabel, roleChipLabel } from "./filterAxes";
 import { SortSelect } from "@/components/common/SortSelect";
+import { SplitDivider } from "@/components/common/SplitDivider";
 import { PersonAvatar } from "@/components/common/PersonAvatar";
 /* ★保存した条件（2026-09-21）。⚠️ 型・既定値・上限は
       [lib/business/savedSearch.ts](../../../lib/business/savedSearch.ts) の1箇所。
@@ -117,9 +118,12 @@ export default function CandidatesClient({
   limitReached = false,
   viewerName = null,
   stageStorageKey = null,
+  columnsStorageKey = null,
 }: {
   /** ★段（一覧と詳細の幅）を覚える localStorage のキー（会社・担当者ごと。2026-10-13）。null なら覚えない */
   stageStorageKey?: string | null;
+  /** ★右欄の2列表示（プロフィール｜メッセージ）の比率を覚えるキー（会社・担当者ごと。外側とは別。2026-10-13）。null なら覚えない */
+  columnsStorageKey?: string | null;
   /** ★取得件数が上限（500名）に達したか（2026-10-13） */
   limitReached?: boolean;
   /** ★見ている担当者の名前（見送った直後の「○○さんが見送り」に使う。2026-10-13） */
@@ -1114,14 +1118,16 @@ export default function CandidatesClient({
 
         {/* ★区切り線（2026-10-13 ステップ4）。どこを掴んでもドラッグでき、離した位置で止まる（段への吸い付きはやめた）。
                ダブルクリックで 50:50、←→ で 40px。⚠️ 1280px 未満では CSS で隠す */}
-        <CandDivider listPx={listPx} splitW={splitW} splitRef={splitRef}
+        <SplitDivider containerRef={splitRef} firstPx={listPx} totalPx={splitW !== null ? splitW - CAND_DIVIDER_W : null}
+          width={CAND_DIVIDER_W} step={CAND_KEY_STEP} grip="sticky" className="cand-divider" dataState="cand-divider"
+          ariaLabel="一覧と詳細の幅" valueLabel="一覧" title="ドラッグで幅を変える（ダブルクリックで半々に戻す）"
           onMove={setListPx} onReset={() => { if (splitW !== null) setListPx(Math.round((splitW - CAND_DIVIDER_W) / 2), true); }} />
 
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownCandidate ? (
             <CandidatePreview key={shownCandidate.id} candidate={shownCandidate} companyLimitLine={companyLimitLine} canAct={canAct}
-              layout={isWide && paneColumns ? "columns" : "tabs"}
+              layout={isWide && paneColumns ? "columns" : "tabs"} columnsStorageKey={columnsStorageKey}
               onMessagesRead={() => setReadOverride((prev) => ({ ...prev, [shownCandidate.id]: true }))}
               companyShortName={companyShortName} touchpointMaterials={touchpointMaterials} approachJobs={approachJobs} notesEnabled={notesEnabled}
               onClose={() => { setAutoPick(false); updateSelected(null); }}
@@ -1249,17 +1255,8 @@ export default function CandidatesClient({
         .cand-divider { display: none; }
         @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr); gap: 0; align-items: start; }
-          /* 区切り線: 掴める幅 12px・見た目は 1px。ホバーとドラッグ中は 2px の濃紺 */
-          .cand-divider { display: block; align-self: stretch; position: relative; cursor: col-resize; touch-action: none; outline: none; user-select: none; }
-          /* ★普段から見える線（2026-10-13 / 柴さんの指示）。--line より一段濃い #CBD5E1。ホバー・ドラッグ中・フォーカスは 2px の濃紺 */
-          .cand-divider-line { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-50%); background: #CBD5E1; transition: width 0.12s, background 0.12s; }
-          .cand-divider:hover .cand-divider-line, .cand-divider.is-dragging .cand-divider-line { width: 2px; background: var(--royal); }
-          .cand-divider:focus-visible .cand-divider-line { width: 2px; background: var(--royal); }
-          /* ★つまみ（縦の点3つ）。動かせることが分かるように常時出す。画面の縦の中央に貼り付く（一覧が長くても見える） */
-          .cand-divider-grip { position: sticky; top: calc(50vh - 14px); z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 10px; height: 28px; margin: 0 auto; box-sizing: border-box; border: 1px solid #CBD5E1; border-radius: 5px; background: #fff; pointer-events: none; transition: border-color 0.12s; }
-          .cand-divider-grip span { width: 2.5px; height: 2.5px; border-radius: 50%; background: #94A3B8; transition: background 0.12s; }
-          .cand-divider:hover .cand-divider-grip, .cand-divider.is-dragging .cand-divider-grip, .cand-divider:focus-visible .cand-divider-grip { border-color: var(--royal); }
-          .cand-divider:hover .cand-divider-grip span, .cand-divider.is-dragging .cand-divider-grip span, .cand-divider:focus-visible .cand-divider-grip span { background: var(--royal); }
+          /* 区切り線（見た目と操作は components/common/SplitDivider.tsx。右欄の2列表示の線と同じ部品）。ここは出す・出さないだけ */
+          .cand-divider { display: block; }
           .cand-wrap { max-width: none; }
           /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと）。
              ★2026-10-11: 高さを決めて外側はスクロールさせず、中（CandidateProfilePanel）の本文だけをスクロールさせる（名前とボタンの段を固定するため） */
@@ -1329,70 +1326,3 @@ export function StarButton({ starred, onToggle, size = 28 }: { starred: boolean;
   );
 }
 
-/**
- * ★一覧と詳細の区切り線（2026-10-13 ステップ4 / 柴さんの指示。Claude の画面と同じ動き）。
- * - 線のどこを掴んでもドラッグでき、離した位置でそのまま止まる（段への吸い付きはしない）
- * - 範囲は 一覧 260px 以上・右欄 380px 以上（親の setListPx が丸める）
- * - ダブルクリックで 50:50 に戻す ／ Tab で入り ←→ で 40px ずつ
- * - 見た目は 1px の線。ホバーとドラッグ中は 2px の濃紺（CSS）
- * ⚠️ ドラッグ中は文字の選択を止める（body の user-select）。pointer capture で線から外れても追う
- * ⚠️ 保存（localStorage）は離したとき・キーを押したときだけ（動かしている間は書かない）
- */
-function CandDivider({ listPx, splitW, splitRef, onMove, onReset }: {
-  listPx: number | null; splitW: number | null;
-  splitRef: React.RefObject<HTMLDivElement>;
-  onMove: (px: number, save: boolean) => void;
-  onReset: () => void;
-}) {
-  const [dragging, setDragging] = useState(false);
-  const lastPx = useRef<number | null>(null);
-  const prevSelect = useRef<string>("");
-  const pxAt = (clientX: number) => {
-    const el = splitRef.current;
-    if (!el) return null;
-    return clientX - el.getBoundingClientRect().left - CAND_DIVIDER_W / 2;
-  };
-  const end = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setDragging(false);
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* 既に外れている */ }
-    document.body.style.userSelect = prevSelect.current;
-    if (lastPx.current !== null) onMove(lastPx.current, true);
-    lastPx.current = null;
-  };
-  const inner = splitW !== null ? splitW - CAND_DIVIDER_W : null;
-  const pct = inner && listPx !== null ? Math.round((listPx / inner) * 100) : 50;
-  return (
-    <div role="separator" aria-orientation="vertical" aria-label="一覧と詳細の幅"
-      aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-valuetext={`一覧 ${pct}%`}
-      tabIndex={0} data-state="cand-divider"
-      className={`cand-divider${dragging ? " is-dragging" : ""}`}
-      title="ドラッグで幅を変える（ダブルクリックで半々に戻す）"
-      onPointerDown={(e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        e.currentTarget.setPointerCapture(e.pointerId);
-        prevSelect.current = document.body.style.userSelect;
-        document.body.style.userSelect = "none";
-        setDragging(true);
-      }}
-      onPointerMove={(e) => {
-        if (!dragging) return;
-        const px = pxAt(e.clientX);
-        if (px === null) return;
-        lastPx.current = px;
-        onMove(px, false);
-      }}
-      onPointerUp={end}
-      onPointerCancel={end}
-      onDoubleClick={onReset}
-      onKeyDown={(e) => {
-        if (listPx === null) return;
-        if (e.key === "ArrowLeft") { e.preventDefault(); onMove(listPx - CAND_KEY_STEP, true); }
-        else if (e.key === "ArrowRight") { e.preventDefault(); onMove(listPx + CAND_KEY_STEP, true); }
-      }}>
-      <span className="cand-divider-line" aria-hidden="true" />
-      <span className="cand-divider-grip" aria-hidden="true"><span /><span /><span /></span>
-    </div>
-  );
-}

@@ -1,7 +1,8 @@
 "use client";
 
 import { PersonAvatar } from "@/components/common/PersonAvatar";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { SplitDivider } from "@/components/common/SplitDivider";
 import { renderCandidateProfile } from "@/lib/profile/profileViewAction";
 import { PanelExtraSectionsProvider, type PanelSection } from "@/components/profile/view/PanelProfileScroll";
 /* ⚠️ この部品を使うページは、page.tsx で `PROFILE_CLIENT_MODULES` を参照すること（profileClientModules.ts の注記） */
@@ -32,6 +33,8 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByNa
     /** 未読があるとき、見出しの右に小さな丸（数字は出さない。ui-conventions） */
     messagesDot?: boolean;
     messagesScrollRef?: React.Ref<HTMLDivElement>;
+    /** ★2列の比率を覚える localStorage のキー（会社×利用者ごと。一覧｜右欄の比率とは別。2026-10-13）。null なら覚えない */
+    storageKey?: string | null;
   };
   /** ★固定の段のいちばん上に置く操作の帯（候補者を探すの［メッセージ］［☆ 気になる］［見送り］［‹ ›］。2026-10-13） */
   topBar?: ReactNode;
@@ -134,8 +137,8 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByNa
       {/* ★段3（2026-10-13）。左：プロフィール ／ 右：メッセージ。⚠️ どちらも overflow:auto のスクロール容器
             （メッセージの「前を読む」がページ全体を動かさないように。PaneThread の scrollParent がここを拾う） */}
       {columns && (
-        <div data-state="candidate-columns" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(320px, 1.2fr) minmax(300px, 1fr)" }}>
-          <div ref={scrollRef} data-state="candidate-profile-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px", borderRight: "1px solid var(--line)" }}>
+        <ColumnsSplit storageKey={columns.storageKey ?? null}>
+          <div ref={scrollRef} data-state="candidate-profile-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", padding: "4px 20px 20px" }}>
             {before}
             <PanelExtraSectionsProvider sections={extraSections ?? []}>
               {failed ? (
@@ -153,7 +156,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByNa
             <p style={{ margin: "2px 0 10px", fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>既読は、この欄で入力やスクロールをしたときに付きます</p>
             {columns.messages}
           </div>
-        </div>
+        </ColumnsSplit>
       )}
       {/* ★メッセージのタブ（2026-10-13）。⚠️ 隠すだけで描いたまま（書きかけの返信を消さない） */}
       {tabs && !columns && (
@@ -177,6 +180,60 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByNa
         {/* ⚠️ プロフィールが読めるまで出さない（先に出すと、読み込み後に位置が下へずれる） */}
         {!tabs && (content || failed) && after}
       </div>}
+    </div>
+  );
+}
+
+/* ── ★2列表示の「プロフィール｜メッセージ」の幅（2026-10-13 / 柴さんの指示）───────────────────────────
+   一覧｜右欄と同じ区切り線（`SplitDivider`）。最小幅は プロフィール 320px・メッセージ 300px。既定はプロフィール 55%（それまでの 1.2fr : 1fr に合わせた）。
+   比率は外側（一覧｜右欄）とは別に、会社×利用者ごとに localStorage へ覚える（読めなければ既定）。
+   ⚠️ 割合で持つので、外側の線を動かして右欄の幅が変わっても比率は保たれる。
+   ⚠️ 2列になるのは右欄が 680px 以上のときだけ（それ未満はタブ。CandidatesClient の CAND_COLUMNS_MIN_PANE）。タブのときはこの線は描かない。
+   ⚠️ 線を動かしても既読は付けない（既読はメッセージ欄の中での入力・ホイール・キー操作だけ。PreviewApproachArea）。 */
+const COLS_DIVIDER_W = 12;
+const COLS_PROFILE_MIN = 320;
+const COLS_MESSAGES_MIN = 300;
+const COLS_DEFAULT_RATIO = 0.55;
+
+function ColumnsSplit({ storageKey, children }: { storageKey: string | null; children: [ReactNode, ReactNode] }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [w, setW] = useState<number | null>(null);
+  const [ratio, setRatio] = useState(COLS_DEFAULT_RATIO);
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const v = Number(window.localStorage.getItem(storageKey) ?? NaN);
+      if (Number.isFinite(v) && v > 0 && v < 1) setRatio(v);
+    } catch { /* 既定のまま */ }
+  }, [storageKey]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setW(el.clientWidth);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, []);
+  const inner = w !== null ? w - COLS_DIVIDER_W : null;
+  const clamp = useCallback((px: number, total: number) => Math.max(COLS_PROFILE_MIN, Math.min(total - COLS_MESSAGES_MIN, px)), []);
+  const profilePx = inner !== null ? clamp(Math.round(ratio * inner), inner) : null;
+  const setProfilePx = useCallback((px: number, save: boolean) => {
+    if (inner === null || inner <= 0) return;
+    const r = clamp(px, inner) / inner;
+    setRatio(r);
+    if (save && storageKey) { try { window.localStorage.setItem(storageKey, r.toFixed(4)); } catch { /* 覚えられなくても続ける */ } }
+  }, [inner, clamp, storageKey]);
+  return (
+    <div ref={ref} data-state="candidate-columns"
+      style={{ flex: 1, minHeight: 0, display: "grid",
+        gridTemplateColumns: profilePx !== null ? `${profilePx}px ${COLS_DIVIDER_W}px minmax(${COLS_MESSAGES_MIN}px, 1fr)` : `minmax(${COLS_PROFILE_MIN}px, 1.2fr) ${COLS_DIVIDER_W}px minmax(${COLS_MESSAGES_MIN}px, 1fr)` }}>
+      {children[0]}
+      <SplitDivider containerRef={ref} firstPx={profilePx} totalPx={inner} width={COLS_DIVIDER_W} grip="center"
+        dataState="cand-columns-divider" ariaLabel="プロフィールとメッセージの幅" valueLabel="プロフィール"
+        title="ドラッグで幅を変える（ダブルクリックで元に戻す）"
+        onMove={setProfilePx} onReset={() => { if (inner !== null) setProfilePx(Math.round(inner * COLS_DEFAULT_RATIO), true); }} />
+      {children[1]}
     </div>
   );
 }

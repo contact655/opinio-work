@@ -219,7 +219,9 @@ export type PreviewActions = {
 };
 
 export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, companyLimitLine = null, canAct = true,
-  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead }: {
+  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead, columnsStorageKey = null }: {
+  /** ★2列表示の比率を覚えるキー（CandidatesClient から。2026-10-13） */
+  columnsStorageKey?: string | null;
   /** ★右欄の形（2026-10-13）。"tabs" … 段1・段2（プロフィール／メッセージのタブ）／ "columns" … 段3（2列を同時に） */
   layout?: "tabs" | "columns";
   /** ★既読を付けたあと（一覧の「返信あり・未読」を消す） */
@@ -330,6 +332,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
       columns={showMessages && columns ? {
         messagesDot: unreadDot,
         messagesScrollRef,
+        storageKey: columnsStorageKey,
         messages: (
           <section data-panel-section="messages">
             <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} onRead={handleRead} />

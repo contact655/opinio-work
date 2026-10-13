@@ -181,6 +181,18 @@ export default function CandidatesPreview() {
         <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
       </Variant>
 
+      {/* ★右欄の2列表示の区切り線（2026-10-13）。⚠️ このページの枠（980px）では右欄が 680px に届かずタブになるので、
+             この1つだけ画面の幅いっぱいに広げる。比率は localStorage（dev-preview のキー）に覚えるので、再読み込みで保たれる */}
+      <Variant
+        label="右欄の2列表示（プロフィール｜メッセージの区切り線）・画面いっぱい"
+        note="⚠️ 1920px で開く。内側の線：ドラッグで動く・プロフィール 320px／メッセージ 300px で止まる・ダブルクリックで 55% に戻る・Tab → ←→ で 40px。外側の線を動かしても内側の比率が保たれる。右欄が 680px 未満になるとタブに変わり、内側の線は消える"
+      >
+        <div data-state="preview-fullbleed" style={{ width: "calc(100vw - 40px)", marginLeft: "calc(50% - 50vw + 20px)" }}>
+          <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE} companyShortName="Third Box"
+            stageStorageKey="dev-preview-cand-stage" columnsStorageKey="dev-preview-cand-cols" />
+        </div>
+      </Variant>
+
       {/* ★送れない理由（2026-10-11 / 柴さんの指示）。実アカウントで検証用の会社を見た状態は、実アカウントでログインしないと
              実画面では作れない（実アカウントの状態を変えないため、ここで見る） */}
       <Variant
