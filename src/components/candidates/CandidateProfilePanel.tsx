@@ -24,7 +24,7 @@ import { PanelExtraSectionsProvider, type PanelSection } from "@/components/prof
  */
 export type PanelTab = "profile" | "messages";
 
-export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs, topBar, columns }: {
+export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByName = false, meta, headerExtra, nameAction, headerRight, before, after, onClose, sectioned = false, extraSections, scrollRef, tabs, topBar, columns }: {
   /** ★段3（詳細を広く）の2列（2026-10-13）。渡したときはタブを使わず、左：プロフィール ／ 右：メッセージ を同時に出す。
    *   ⚠️ 各列は独立してスクロールする（ページ全体を動かさない）。列幅は プロフィール 最低320px・メッセージ 最低300px で残りを分け合う */
   columns?: {
@@ -41,6 +41,8 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
   name: string;
   /** ★名前の段の写真（48px。2026-10-12）。undefined なら出さない／null なら頭文字の丸 */
   avatarUrl?: string | null;
+  /** ★頭文字の丸を名前から決まった色で塗る（候補者を探すだけ。2026-10-13）。/biz/employees は渡さない */
+  avatarColorByName?: boolean;
   /** 名前の下の灰色の1行（社会人〇年・職種など）。無ければ出さない */
   meta?: ReactNode;
   /** 固定の段に出すもの（メッセージを送る・送れない理由など） */
@@ -86,7 +88,7 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, meta, headerExt
       <div style={{ flexShrink: 0, padding: tabs && !columns ? "16px 20px 0" : "16px 20px 12px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
         {topBar}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} /></div>}
+          {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} colorByName={avatarColorByName} /></div>}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>{name}</h2>

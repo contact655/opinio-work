@@ -298,6 +298,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
       userId={c.id}
       name={c.name}
       avatarUrl={c.avatarUrl ?? null}
+      avatarColorByName
       meta={meta}
       onClose={onClose}
       topBar={<PreviewActionBar canAct={canAct} actions={actions} messageButton={messageButton} />}

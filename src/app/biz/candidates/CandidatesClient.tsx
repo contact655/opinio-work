@@ -1026,7 +1026,7 @@ export default function CandidatesClient({
                       3行目 年齢・性別・社会人年数・居住地・経験職種と年数（小さい灰色）
                       4行目 合う理由の1行「✓ 職種　営業 ↔ インサイドセールス」＋「ほか○件」（一番重い理由1つ）
                    ⚠️ 一覧が 420px 以下（`compactCards`）では 1・2行目だけ（意向は短い表記）。
-                   ⚠️ 状態ラベルは灰色の文字（バッジにしない）。意向だけが色のバッジ（3段の濃淡。StanceBadge） */
+                   ★状態ラベルは細い枠線の小さな札（2026-10-13 / 柴さんの指示。意向の塗りの札と見分けるため）。意向だけが色の札（StanceBadge） */
                 const pref = residenceLabel(c.location);
                 const ageText = c.age != null ? `${c.age}歳` : null;
                 const roleText = c.currentRole || (!c.currentCompany && c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
@@ -1044,13 +1044,14 @@ export default function CandidatesClient({
                     <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
                     {!(compactCards && isWide) && (
                       <div className="cand-card-avatar" aria-hidden="true">
-                        <PersonAvatar name={c.name} url={c.avatarUrl} size={32} fontSize={13} />
+                        <PersonAvatar name={c.name} url={c.avatarUrl} size={32} fontSize={13} colorByName />
                       </div>
                     )}
                     <div className="cand-card-main">
                       <div className="cand-card-row1">
                         <span className="cand-card-name" title={c.name}>{c.name}</span>
-                        <StanceBadge stance={c.careerStance} short={compactCards && !!isWide} />
+                        {/* ★カードは常に短い表記・枠線なしの札（2026-10-13 / 柴さんの指示）。右欄は長い表記 */}
+                        <StanceBadge stance={c.careerStance} short plain />
                         {msgLabel && <span className="cand-card-msg" data-state={sentState === "accepted" ? "card-replied" : "card-sent"}>{msgLabel}</span>}
                         <span className="cand-card-star">
                           {canAct && <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />}
@@ -1174,7 +1175,9 @@ export default function CandidatesClient({
         .cand-wrap { padding: 0 32px 16px; max-width: 1400px; margin: 0 auto; }
         .cand-card { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 6px 12px 6px 14px; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.15s, background 0.15s; }
         .cand-card { scroll-margin-top: calc(var(--biz-header-h, 64px) + 12px); scroll-margin-bottom: 12px; }
-        .cand-card.is-selected { border-color: var(--royal); background: var(--royal-50); }
+        /* ★選択中は白のまま、紺の 2px の枠だけ（2026-10-13 / 柴さんの指示。青い要素を減らす）。
+              ⚠️ 枠を 2px にすると中身が 1px ずれるので、1px の枠＋内側の影 1px で 2px に見せる */
+        .cand-card.is-selected { border-color: var(--royal); background: #fff; box-shadow: inset 0 0 0 1px var(--royal); }
         .cand-card .cand-card-link:focus-visible { outline: none !important; }
         .cand-card:has(.cand-card-link:focus-visible) { border-color: var(--royal); }
         .cand-card:hover { border-color: var(--royal-100); }
@@ -1187,20 +1190,22 @@ export default function CandidatesClient({
         /* 1行目: 氏名・意向バッジ・状態ラベル・右端に★。縮む順番は 状態ラベル → 氏名（バッジと★は縮めない） */
         .cand-card-row1 { display: flex; align-items: center; gap: 6px; min-width: 0; height: 22px; }
         .cand-card-name { font-size: 15px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 2em; flex: 0 1 auto; }
-        .cand-card-msg { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; line-height: 17px; color: var(--ink-mute); white-space: nowrap; }
+        /* ★状態ラベル（送信済み・返信あり…）は細い枠線の小さな札（2026-10-13）。意向の塗りの札と見分ける */
+        .cand-card-msg { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 16px; color: var(--ink-mute); white-space: nowrap; border: 1px solid #CBD5E1; border-radius: 4px; padding: 0 6px; background: #fff; }
         .cand-card-star { margin-left: auto; margin-right: -4px; height: 22px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
         /* 2行目: 職種 @ 会社 ／ 3行目: 年齢・性別・社会人年数・居住地・経験職種と年数 */
         .cand-card-roleco { font-size: 13px; line-height: 19px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         .cand-card-sub3 { font-size: 12px; line-height: 17px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        /* 4行目: 合う理由の1行（淡い青の帯。2026-10-13 に緑から変えた。緑は金銭的にプラスの条件だけに使う規則のため）。
-           背景は royal-100。選択中のカードの背景が royal-50 なので、それより一段濃くしないと帯が溶ける。
-           文字 #0B2A66 は 10.79:1、ほか○件 #2C4373 は 7.69:1、チェック royal は 11.59:1（いずれも royal-100 の上） */
-        .cand-card-reason { display: flex; align-items: center; gap: 6px; margin-top: 3px; padding: 2px 8px; border-radius: 6px; background: var(--royal-100); color: #0B2A66; font-size: 12px; line-height: 18px; min-width: 0; }
+        /* 4行目: 合う理由の札（2026-10-13 / 柴さんの指示で改修モックに合わせた）。
+           ★帯をやめ、文字の長さだけの札（最大はカード幅）。「ほか○件」も札の中。
+           ★色は淡い緑に濃い緑（UIルールの変更: 緑＝プラスの一致。.claude/skills/ui-conventions）。
+           文字 #14532D on #ECF6EF = 8.24 ／ ほか○件 #3F6B4E = 5.55 ／ チェックも #14532D */
+        .cand-card-reason { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; margin-top: 4px; padding: 3px 8px; border-radius: 6px; background: #ECF6EF; color: #14532D; font-size: 12px; line-height: 18px; min-width: 0; }
         .cand-card-reason.is-empty { background: var(--bg-tint); color: var(--ink-mute); }
-        .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: var(--royal); }
+        .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: #14532D; }
         .cand-card-reason-item { flex-shrink: 0; font-weight: 700; }
         .cand-card-reason-text { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cand-card-reason-more { flex-shrink: 0; margin-left: auto; padding-left: 6px; color: #2C4373; white-space: nowrap; }
+        .cand-card-reason-more { flex-shrink: 0; padding-left: 4px; color: #3F6B4E; white-space: nowrap; }
         .cand-card.is-hidden { opacity: 0.55; }
         .cand-card.is-hidden:hover { opacity: 0.8; }
         .cand-card-hidden-row { display: flex; align-items: center; gap: 6px; min-width: 0; }

@@ -51,7 +51,7 @@ export const AVATAR_COLOR: AvatarColor = {
  *
  * ⚠️★しかも各配列には**役割の決まっている色**が混ざっていた
  *    （`.claude/skills/ui-conventions`「色の役割」）:
- *      緑 `--success` … **金銭的にプラスの条件のみ**（年収・退職金・SO）
+ *      緑 `--success` … **金銭的にプラスの条件のみ**（年収・退職金・SO）※2026-10-13 に「プラスの一致」へ広げた
  *      紫 #7C3AED     … **使わないと決めている色**
  *      赤 / ピンク     … エラー・警告
  *    条件を満たしていない人にまで緑や赤を配っていた。
@@ -79,4 +79,25 @@ export function neutralAvatarStyle(size: number, fontSize: number): React.CSSPro
     fontSize,
     fontWeight: 700,
   };
+}
+
+/**
+ * ★候補者を探す（/biz/candidates）だけの、人ごとの頭文字の色（2026-10-13 / 柴さんの決定）。
+ *
+ * ⚠️★**上の「人ごとに色を振る実装を新しく作らないこと」（2026-09-21）を、この画面に限って変えた。**
+ *    柴さんが改修モック（Design キャンバス「候補者を探す 改修モック」）と見比べ、一覧の見分けやすさを優先した。
+ *    **他の画面には広げない**（`PersonAvatar` の `colorByName` を渡すのは候補者を探すの一覧と右欄だけ）。
+ * ⚠️★色に意味を持たせない。**役割の決まっている色を入れない**（ui-conventions「色の役割」）:
+ *    緑（プラスの一致）・橙（カジュアル面談）・黄（注意・待ち）・紫（使わない）・赤（エラー）は除いた。
+ *    6色: 藍 #3B4A7A ／ 青 #245F8A ／ 灰 #5B6270 ／ からし #8A6A1F ／ えんじ #7A3B5A ／ 茶 #6B4F3A。
+ *    白文字のコントラストはどれも 4.5 以上（8.58 / 6.82 / 6.13 / 5.05 / 8.07 / 7.49）。
+ * ⚠️ 色は**名前から決める**（同じ人はいつも同じ色）。並び順や id では決めない。
+ * ⚠️ 写真（本人が設定した画像）がある人はそのまま。
+ */
+export const PERSON_AVATAR_PALETTE = ["#3B4A7A", "#245F8A", "#5B6270", "#8A6A1F", "#7A3B5A", "#6B4F3A"] as const;
+
+export function personAvatarStyle(name: string, size: number, fontSize: number): React.CSSProperties {
+  let h = 0;
+  for (const ch of name.trim()) h = (h * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
+  return { ...neutralAvatarStyle(size, fontSize), background: PERSON_AVATAR_PALETTE[h % PERSON_AVATAR_PALETTE.length], color: "#FFFFFF" };
 }
