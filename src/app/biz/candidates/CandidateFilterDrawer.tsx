@@ -105,7 +105,7 @@ export function CandidateFilterDrawer({
       </FilterDrawerSection>
 
       <FilterDrawerSection title="居住地" state="fdr-residence">
-        <ResidenceOptions selected={draft.prefectures} counts={counts.pref} onToggle={(p) => toggleIn("prefectures", p)} />
+        <ResidenceOptions selected={draft.prefectures} counts={counts.pref} regionCounts={counts.region} onChange={(next) => set("prefectures", next)} />
         {droppedNoResidence > 0 && <p className="fdr-note">居住地が未登録・非公開の {droppedNoResidence} 名は、居住地で絞ると含みません。</p>}
       </FilterDrawerSection>
 

@@ -145,7 +145,7 @@ export function FilterDrawerSection({ title, children, state }: { title: string;
  * ⚠️ 件数を出さない選択肢は `count` を渡さない（undefined は件数なし・選べる）。
  * ⚠️ 行の中（label の中）にボタンを入れないこと。押すとチェックも切り替わる。開閉ボタンは行の外に置く
  */
-export function FilterOption({ type = "checkbox", label, count, checked, onChange, child = false, name, state }: {
+export function FilterOption({ type = "checkbox", label, count, checked, onChange, child = false, name, state, indeterminate = false }: {
   type?: "checkbox" | "radio";
   label: string;
   count?: number;
@@ -156,12 +156,17 @@ export function FilterOption({ type = "checkbox", label, count, checked, onChang
   /** ラジオの name */
   name?: string;
   state?: string;
+  /** ★配下の一部だけ選んでいる親（チェックボックスの「−」。2026-10-13 / 居住地の地方）。⚠️ 0件でも外せる側に倒す */
+  indeterminate?: boolean;
 }) {
-  const disabled = count === 0 && !checked;
+  const disabled = count === 0 && !checked && !indeterminate;
+  const ref = useRef<HTMLInputElement | null>(null);
+  /* indeterminate は属性で渡せない（DOM のプロパティだけ）。描くたびに合わせる */
+  useEffect(() => { if (ref.current) ref.current.indeterminate = indeterminate && !checked; }, [indeterminate, checked]);
   return (
     <label className={["fdr-opt", child ? "is-child" : "", disabled ? "is-disabled" : ""].filter(Boolean).join(" ")}
-      data-state={state} data-zero={count === 0 ? "1" : "0"} data-checked={checked ? "1" : "0"}>
-      <input type={type} name={name} checked={checked} disabled={disabled} onChange={onChange} />
+      data-state={state} data-zero={count === 0 ? "1" : "0"} data-checked={checked ? "1" : indeterminate ? "partial" : "0"}>
+      <input ref={ref} type={type} name={name} checked={checked} disabled={disabled} onChange={onChange} />
       <span className="fdr-opt-label">{label}</span>
       {count !== undefined && <span className="fdr-opt-count">{count}</span>}
     </label>

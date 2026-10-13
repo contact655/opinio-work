@@ -20,7 +20,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
       ここに似た実装を作らないこと ——`FilterChip` は 2026-09-18 に
       「同じ名前の別実装が2つあった」のを1つに畳んだもので、**3つ目を作らない**。 */
 import { FilterPopoverChip } from "@/components/common/FilterPopoverChip";
-import { ResidenceOptions, RoleTreeOptions, STANCE_OPTIONS, StanceOptions, TenureOptions, computeAxisCounts, roleChipLabel } from "./filterAxes";
+import { ResidenceOptions, RoleTreeOptions, STANCE_OPTIONS, StanceOptions, TenureOptions, computeAxisCounts, residenceChipLabel, roleChipLabel } from "./filterAxes";
 import { SortSelect } from "@/components/common/SortSelect";
 import { PersonAvatar } from "@/components/common/PersonAvatar";
 /* ★保存した条件（2026-09-21）。⚠️ 型・既定値・上限は
@@ -660,12 +660,12 @@ export default function CandidatesClient({
           isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}>
           <TenureOptions name="chip-tenure" value={tenureBand} counts={chipCounts.tenure} onChange={setTenureBand} />
         </FilterPopoverChip>
-        {/* ★居住地。件数のある地域を上に、0名の都道府県は畳む（ドロワーと同じ部品）。⚠️ 2026-10-13 に「適用」ボタンの形をやめ、その場で効く形にした */}
+        {/* ★居住地。地方（親）→ 都道府県（子）。件数のある地方を上に、0名は畳む（ドロワーと同じ部品）。⚠️ 2026-10-13 に「適用」ボタンの形をやめ、その場で効く形にした */}
         <FilterPopoverChip label="居住地" active={selectedPrefectures.length > 0}
-          activeLabel={`居住地: ${selectedPrefectures[0] ?? ""}${selectedPrefectures.length > 1 ? ` +${selectedPrefectures.length - 1}` : ""}`}
+          activeLabel={residenceChipLabel(selectedPrefectures)}
           onClear={() => setSelectedPrefectures([])} clearLabel="居住地の絞り込みを外す" state="residence-chip" width={300}
           isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}>
-          <ResidenceOptions selected={selectedPrefectures} counts={chipCounts.pref} onToggle={(p) => setSelectedPrefectures(toggleMulti(selectedPrefectures, p))} />
+          <ResidenceOptions selected={selectedPrefectures} counts={chipCounts.pref} regionCounts={chipCounts.region} onChange={setSelectedPrefectures} />
         </FilterPopoverChip>
       <button type="button" aria-pressed={hasTouchpoints} data-state="toggle-touchpoints" onClick={() => setHasTouchpoints((v) => !v)} style={toggleStyle(hasTouchpoints)}>
         合うところあり
