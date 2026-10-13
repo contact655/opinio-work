@@ -1237,8 +1237,24 @@ export default function CandidatesClient({
         .cand-pane { container-type: inline-size; container-name: candpane; }
         .cand-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         @container candpane (max-width: 560px) {
-          .cand-bar-label { display: none; }
           .cand-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        /* ★操作の帯（2026-10-13 / 柴さんの指示）。⚠️ コンテナの幅は右欄の枠線の内側（右欄の幅 − 2px）。
+              右欄 510px 未満で「気になる」だけ ☆ のみ、462px 未満で余白を詰める、420px 未満で全部アイコンだけ。
+              ⚠️ 「メッセージを送る」「見送り」の文字は 420px 以上では消さない（実測: 文字をすべて出すと 468px 要る） */
+        .cand-bar { gap: 6px; }
+        .cand-bar-btn { padding: 0 12px; }
+        .cand-bar-pos { min-width: 48px; }
+        @container candpane (max-width: 507.98px) {
+          .cand-bar-label-star { display: none; }
+        }
+        @container candpane (max-width: 459.98px) {
+          .cand-bar { gap: 4px; }
+          .cand-bar-btn { padding: 0 8px; }
+          .cand-bar-pos { min-width: 0; }
+        }
+        @container candpane (max-width: 417.98px) {
+          .cand-bar-label { display: none; }
         }
         .cand-divider { display: none; }
         @media (min-width: 1280px) {

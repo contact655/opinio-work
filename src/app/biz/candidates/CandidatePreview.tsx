@@ -311,7 +311,8 @@ function PreviewActionBar({ canAct, actions, messageButton }: {
   messageButton: { label: string; onClick: () => void } | null;
 }) {
   const btn: React.CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 12px", borderRadius: 8,
+    /* ⚠️ 左右の padding は CSS（.cand-bar-btn。CandidatesClient）。右欄の幅で詰めるのでインラインに書かない */
+    display: "inline-flex", alignItems: "center", gap: 6, height: 32, borderRadius: 8,
     border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600,
     fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
   };
@@ -323,11 +324,13 @@ function PreviewActionBar({ canAct, actions, messageButton }: {
   const prevDisabled = index <= 0;
   const nextDisabled = index < 0 || index >= total - 1;
   return (
-    /* ★1行に収める（2026-10-13）。右欄が狭いときはボタンを**アイコンだけ**にする（CSS のコンテナクエリで .cand-bar-label を隠す）。
-          ⚠️ アイコンだけのときも読み上げ名（aria-label）は残す */
-    <div data-state="preview-action-bar" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "nowrap", marginBottom: 12, minWidth: 0 }}>
+    /* ★1行に収める（2026-10-13 / 柴さんの指示で段を分けた。CSS のコンテナクエリは CandidatesClient）:
+          右欄 510px 以上 … 全部に文字 ／ 510px 未満 … 「気になる」だけ ☆ のみ ／ 462px 未満 … 余白を詰める ／
+          420px 未満 … 全部アイコンだけ。⚠️ アイコンだけのときも title と aria-label は残す
+       ⚠️ gap・padding・位置の幅は CSS（.cand-bar / .cand-bar-btn / .cand-bar-pos）。インラインに書かない（詰められなくなる） */
+    <div data-state="preview-action-bar" className="cand-bar" style={{ display: "flex", alignItems: "center", flexWrap: "nowrap", marginBottom: 12, minWidth: 0 }}>
       {canAct && messageButton && (
-        <button type="button" onClick={messageButton.onClick} data-state="bar-message" className="btn-fixed-size" aria-label={messageButton.label} title={messageButton.label}
+        <button type="button" onClick={messageButton.onClick} data-state="bar-message" className="btn-fixed-size cand-bar-btn" aria-label={messageButton.label} title={messageButton.label}
           style={{ ...btn, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 700 }}>
           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span className="cand-bar-label">{messageButton.label}</span>
@@ -335,24 +338,26 @@ function PreviewActionBar({ canAct, actions, messageButton }: {
       )}
       {canAct && (
         <button type="button" onClick={actions.onToggleStar} aria-pressed={actions.starred} data-state={actions.starred ? "bar-star-on" : "bar-star-off"}
-          title="社内で共有・ご本人には通知されません" className="btn-fixed-size" aria-label="気になる"
+          title="気になる（社内で共有・ご本人には通知されません）" className="btn-fixed-size cand-bar-btn" aria-label="気になる"
           style={{ ...btn, color: actions.starred ? "var(--royal)" : "var(--ink-soft)", borderColor: actions.starred ? "var(--royal)" : "var(--line)" }}>
           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={actions.starred ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
             <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
           </svg>
-          <span className="cand-bar-label">気になる</span>
+          <span className="cand-bar-label cand-bar-label-star">気になる</span>
         </button>
       )}
       {canAct && (
         <button type="button" onClick={actions.onToggleHidden} aria-pressed={actions.hidden} data-state={actions.hidden ? "bar-unhide" : "bar-hide"}
-          title="一覧から外します（社内だけ・ご本人には伝わりません）" className="btn-fixed-size" style={btn} aria-label={actions.hidden ? "見送りを解除" : "見送り"}>
+          title={`${actions.hidden ? "見送りを解除" : "見送り"}（一覧から外します。社内だけ・ご本人には伝わりません）`} className="btn-fixed-size cand-bar-btn" aria-label={actions.hidden ? "見送りを解除" : "見送り"}
+          /* ⚠️「見送りを解除」は文字が長く、右欄 510〜546px で帯からはみ出す。このボタンだけ縮めて末尾を「…」にする（全文は title） */
+          style={{ ...btn, flexShrink: 1, minWidth: 0 }}>
           <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>
-          <span className="cand-bar-label">{actions.hidden ? "見送りを解除" : "見送り"}</span>
+          <span className="cand-bar-label" style={{ overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{actions.hidden ? "見送りを解除" : "見送り"}</span>
         </button>
       )}
-      <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      <div className="cand-bar" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
         <button type="button" onClick={actions.onPrev} disabled={prevDisabled} aria-label="前の候補者" data-state="bar-prev" className="btn-fixed-size" style={nav(prevDisabled)}>‹</button>
-        <span data-state="bar-position" style={{ fontSize: 12.5, color: "var(--ink-mute)", minWidth: 48, textAlign: "center", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+        <span data-state="bar-position" className="cand-bar-pos" style={{ fontSize: 12.5, color: "var(--ink-mute)", textAlign: "center", fontFamily: "var(--font-inter), var(--font-noto)" }}>
           {index >= 0 ? `${index + 1} / ${total}` : `– / ${total}`}
         </span>
         <button type="button" onClick={actions.onNext} disabled={nextDisabled} aria-label="次の候補者" data-state="bar-next" className="btn-fixed-size" style={nav(nextDisabled)}>›</button>
