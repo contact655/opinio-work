@@ -94,6 +94,14 @@ export function TouchpointGuide({ touchpoints, materials }: { touchpoints: Touch
  * ⚠️ （〇）は項目の数。％や点数は出さない。⚠️ 0件・取れなかった（undefined）ときは枠ごと出さない。
  * ⚠️ プレビューの部品として切り出してある（/dev/preview から使う）
  */
+/* ★「合うところ」の箱の色（2026-10-13 柴さん判断で変更：青 → 緑。カードの「合う理由」の札と揃える。
+      それまでは royal-50 / royal-100 の青で、選択中のカード・意向「話を聞く」の青と見分けにくかった。緑は「プラスの一致」の色（ui-conventions）。
+      ⚠️ 値はカードの札（CandidatesClient の .cand-card-reason）と同じ。片方だけ変えないこと。
+      コントラスト: 見出し・本文 --ink #0F172A on #ECF6EF = 17.0 ／ 列見出し --ink-mute #475569 = 6.93 ／ チェック #14532D = 8.24 */
+const TP_BG = "#ECF6EF";
+const TP_LINE = "#D3E8DA";
+const TP_CHECK = "#14532D";
+
 export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
   /* ★2026-10-13（ステップ4 / モックに合わせた）: 項目／この人／自社 の3列の表で**全件**出す（「ほか○件」で隠さない）。
         行は `Touchpoint.row`（8種類すべて）。⚠️ row が無い古い形（/dev/preview の固定データ）は分類と文で1行にする
@@ -102,9 +110,9 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
         ⚠️ 値の途中で折り返さない（値ごとに inline-block。折り返すのは ↔ の前後だけ。1つの値が行より長いときだけ値の中で折り返す）
         ⚠️ 切り替えはコンテナクエリ（この枠の幅）。画面の幅では決めない */
   if (!touchpoints || touchpoints.length === 0) return null;
-  const cell: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, lineHeight: 1.55, verticalAlign: "top", borderTop: "1px solid var(--royal-100)", overflowWrap: "anywhere" };
+  const cell: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, lineHeight: 1.55, verticalAlign: "top", borderTop: `1px solid ${TP_LINE}`, overflowWrap: "anywhere" };
   return (
-    <section data-state="touchpoints" className="cand-tp" style={{ marginTop: 12, padding: "12px 12px 8px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+    <section data-state="touchpoints" className="cand-tp" style={{ marginTop: 12, padding: "12px 12px 8px", borderRadius: 10, background: TP_BG, border: `1px solid ${TP_LINE}` }}>
       <h3 style={{ margin: "0 0 6px 2px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
         {companyShortName ?? "貴社"}と合うところ（{touchpoints.length}）
       </h3>
@@ -121,7 +129,7 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
           {touchpoints.map((t, i) => (
             <tr key={`${t.kind}:${t.ref?.id ?? i}:${i}`} data-touchpoint={t.kind}>
               <th scope="row" style={{ ...cell, fontWeight: 700, color: "var(--ink)", textAlign: "left" }}>
-                <span aria-hidden="true" style={{ color: "var(--royal)", marginRight: 4 }}>✓</span>{t.row?.item ?? touchpointCategory(t)}
+                <span aria-hidden="true" style={{ color: TP_CHECK, marginRight: 4 }}>✓</span>{t.row?.item ?? touchpointCategory(t)}
               </th>
               {t.row ? (
                 <>
@@ -154,8 +162,8 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
       <style>{`
         .cand-tp { container-type: inline-size; container-name: candtp; }
         .cand-tp-lines { display: none; }
-        .cand-tp-line { padding: 6px 2px; border-top: 1px solid var(--royal-100); font-size: 12.5px; line-height: 1.6; color: var(--ink); }
-        .cand-tp-check { color: var(--royal); font-weight: 700; margin-right: 4px; }
+        .cand-tp-line { padding: 6px 2px; border-top: 1px solid #D3E8DA; font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+        .cand-tp-check { color: #14532D; font-weight: 700; margin-right: 4px; }
         .cand-tp-item { font-weight: 700; margin-right: 10px; white-space: nowrap; }
         .cand-tp-val { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; }
         .cand-tp-arrow { color: var(--ink-mute); }
@@ -278,10 +286,14 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
         見ている担当者の未読 ∪ 自社の誰も開いていない返信。⚠️ 一度開いたら消す */
   const unreadDot = !readNow && ((c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true);
   /* ★項目ごとに折り返さない（「東京／都」のように1つの項目の途中で割れない。2026-10-13）。項目と項目の間でだけ折り返す */
-  const metaItems = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null].filter((x): x is string => !!x);
+  /* ★最近の利用（2026-10-12）は 2026-10-13 にこの行の末尾へ移した（意向バッジを名前の行へ移し、バッジと並べていた行が無くなったため）。
+        ⚠️ スイッチが無効なら undefined で何も出さない。記録が無い（null）も出さない */
+  const activityText = c.activity ? ACTIVITY_LABELS[c.activity] : null;
+  const metaItems = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null, activityText].filter((x): x is string => !!x);
   const meta = metaItems.length ? (
-    <span data-state="preview-meta" style={{ display: "inline-flex", flexWrap: "wrap", columnGap: 12, rowGap: 2 }}>
-      {metaItems.map((m) => <span key={m} style={{ whiteSpace: "nowrap" }}>{m}</span>)}
+    <span data-state="preview-meta" style={{ display: "flex", flexWrap: "wrap", columnGap: 12, rowGap: 2, minWidth: 0 }}>
+      {/* ⚠️ 1項目が行より長いとき（長い役職・社名）は省略記号で切る（全文は title）。2026-10-13 に枠からはみ出していたのを直した */}
+      {metaItems.map((m) => <span key={m} title={m} style={{ whiteSpace: "nowrap", maxWidth: "100%", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{m}</span>)}
     </span>
   ) : null;
 
@@ -300,6 +312,11 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
       avatarUrl={c.avatarUrl ?? null}
       avatarColorByName
       meta={meta}
+      /* ★意向バッジは名前の行（氏名・新しいタブのアイコンの右）に置く（2026-10-13 柴さん判断で変更：
+            それまでは要約の上に単独の行を使っていた。1行ぶん縦が詰まり、名前と一緒に読める）。
+            見た目はカードと同じ枠線なしの塗りの札（plain）。表記は右欄では長いまま。
+            ⚠️「○日前に更新」はバッジの横に添えない。下の要約の「意向の更新」と重複するため、要約の方だけ残した */
+      nameAction={c.careerStance ? <span data-state="header-stance" style={{ display: "inline-flex", marginLeft: 2 }}><StanceBadge stance={c.careerStance} plain /></span> : undefined}
       onClose={onClose}
       topBar={<PreviewActionBar canAct={canAct} actions={actions} messageButton={messageButton} />}
       headerExtra={<PreviewHeaderLines candidate={c} contacts={contacts} />}
@@ -412,10 +429,8 @@ export function PreviewHeaderLines({ candidate, contacts }: {
   contacts: PreviewContacts;
 }) {
   /* ★2026-10-13（ステップ4 / モックに合わせた）: 意向は3段のバッジ（`StanceBadge`。それまでの4段ドットを置き換えた）。
-        その下に4マスの要約：現職の在籍期間／居住地／意向の更新（相対表記）／自社との接点。
+        ⚠️ バッジは 2026-10-13 に名前の行へ移した（CandidatePreview の nameAction）。ここは4マスの要約だけ：現職の在籍期間／居住地／意向の更新（相対表記）／自社との接点。
      ⚠️ 希望年収・働き方は出さない（規約。企業の画面に出さない項目）。⚠️ 値が無いマスは「—」（推測で埋めない） */
-  /* ★最近の利用（2026-10-12）。⚠️ スイッチが無効なら undefined で何も出さない。記録が無い（null）も出さない */
-  const activityText = candidate.activity ? ACTIVITY_LABELS[candidate.activity] : null;
   const cells: { label: string; value: string; state: string }[] = [
     { label: "現職の在籍期間", value: tenureSince(candidate.startedAt) ?? "—", state: "summary-current-tenure" },
     { label: "居住地", value: candidate.location || "—", state: "summary-location" },
@@ -424,12 +439,6 @@ export function PreviewHeaderLines({ candidate, contacts }: {
   ];
   return (
     <div data-state="preview-header-lines" style={{ marginTop: 6 }}>
-      {(candidate.careerStance || activityText) && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-          <span data-state="header-stance"><StanceBadge stance={candidate.careerStance} /></span>
-          {activityText && <span data-state="header-activity" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>{activityText}</span>}
-        </div>
-      )}
       {/* ⚠️ 列数は CSS（.cand-summary）。右欄が狭いと 2×2 にする（インラインに書くと切り替えられない）。区切り線は gap と背景で描く */}
       <dl data-state="preview-summary" className="cand-summary"
         style={{ margin: 0, display: "grid", gap: 1, background: "var(--line)", border: "1px solid var(--line)", borderRadius: 10, overflow: "hidden" }}>

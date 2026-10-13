@@ -21,7 +21,8 @@ export const STANCE_BADGE: Record<string, { short: string; bg: string; fg: strin
 
 /**
  * @param short 短い表記（積極的／話を聞く／情報収集）。★一覧のカードは常に short（2026-10-13 / 柴さんの指示）。右欄は長い表記
- * @param plain 枠線なしの塗りの札（一覧のカード。2026-10-13 / 改修モックに合わせた）。右欄は枠線あり
+ * @param plain 枠線なしの塗りの札（2026-10-13 / 改修モックに合わせた）。★一覧のカードと右欄の名前の行の両方で使う
+ *   （2026-10-13 柴さん判断で変更：右欄も枠線なしに揃えた。理由: 同じものが2つの見た目にならないように）。枠線ありは今は使っていない
  */
 export function StanceBadge({ stance, short = false, plain = false }: { stance: string | null | undefined; short?: boolean; plain?: boolean }) {
   const b = stance ? STANCE_BADGE[stance] : undefined;
