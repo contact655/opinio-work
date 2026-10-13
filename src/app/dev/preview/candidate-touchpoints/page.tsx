@@ -36,14 +36,14 @@ const ordered: Touchpoint[] = [
 const r8 = (kind: Touchpoint["kind"], weight: number, item: string, person: string, ours: string): Touchpoint =>
   ({ kind, weight, ref: null, text: `${item}：${person} ↔ ${ours}`, row: { item, person, ours } });
 const eight: Touchpoint[] = [
-  r8("job_role", 9, "経験年数", "フィールドセールス 5年", "求人『法人営業（SaaS）』（3年以上）"),
-  r8("position_level", 7, "レベル", "課長・マネージャークラス", "課長・マネージャークラス（求人『法人営業（SaaS）』）"),
-  r8("company_role", 6, "職種", "フィールドセールス", "フィールドセールス（営業部）"),
-  r8("target_industry", 5, "業界", "製造業の経験", "顧客の業界：製造業"),
-  r8("alumni", 3, "出身", "株式会社サンプルテック", "株式会社サンプルテックの出身者 2名"),
-  r8("location", 2, "勤務地", "東京都在住", "東京都（求人『法人営業（SaaS）』）"),
-  r8("business_domain", 2, "事業領域", "CRM・営業支援・マーケティングの会社での経験", "CRM・営業支援・マーケティング"),
-  r8("business_stage", 1, "事業ステージ", "株式会社サンプルテック（シリーズB）", "シリーズB"),
+  r8("job_role", 9, "経験年数", "フィールドセールス 5年（経験）", "求人『法人営業（SaaS）』（3年以上）"),
+  r8("position_level", 7, "レベル", "課長・マネージャークラス（経験）", "課長・マネージャークラス（求人『法人営業（SaaS）』）"),
+  r8("company_role", 6, "職種", "フィールドセールス（経験）", "フィールドセールス（営業部）"),
+  r8("target_industry", 5, "業界", "製造業（経験）", "顧客の業界：製造業"),
+  r8("alumni", 3, "出身", "株式会社サンプルテック（経験）", "株式会社サンプルテックの出身者 2名"),
+  r8("location", 2, "勤務地", "東京都（居住地）", "東京都（求人『法人営業（SaaS）』）"),
+  r8("business_domain", 2, "事業領域", "CRM・営業支援・マーケティングの会社（経験）", "CRM・営業支援・マーケティング"),
+  r8("business_stage", 1, "事業ステージ", "株式会社サンプルテック・シリーズB（経験）", "シリーズB"),
 ];
 const mat = (m: Partial<TouchpointMaterials>): TouchpointMaterials => ({ hasJobs: false, hasCompanyRoles: true, hasPublicEmployees: false, ...m });
 

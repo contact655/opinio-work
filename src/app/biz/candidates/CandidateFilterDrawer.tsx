@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { FilterDrawer, FilterDrawerSection, FilterOption } from "@/components/common/FilterDrawer";
 import {
-  ACTIVITY_FILTER_OPTIONS, AGE_FILTER_OPTIONS, CANDIDATE_EMPLOYMENT_OPTIONS, countAxisValues, STANCE_FRESHNESS_BANDS, TENURE_BANDS,
-  filterCandidates, isNewSince, type Candidate, type FilterAxis,
+  ACTIVITY_FILTER_OPTIONS, AGE_FILTER_OPTIONS, CANDIDATE_EMPLOYMENT_OPTIONS, STANCE_FRESHNESS_BANDS,
+  filterCandidates, isNewSince, type Candidate,
 } from "@/lib/business/candidates/model";
 import { EMPTY_SAVED_FILTERS, type SavedCandidateFilters } from "@/lib/business/savedSearch";
-import { CAREER_STANCES } from "@/lib/constants/careerPreferences";
-import { OVERSEAS, PREFECTURE_REGIONS, residenceKey } from "@/lib/utils/location";
+import { residenceKey } from "@/lib/utils/location";
+import { ResidenceOptions, RoleTreeOptions, StanceOptions, TenureOptions, computeAxisCounts, type RoleTree } from "./filterAxes";
 
 /**
  * ★候補者を探すの「すべてのフィルター」（2026-10-13 / ステップ5）。
@@ -31,8 +31,6 @@ export function drawerFilterCount(f: SavedCandidateFilters, opts: { ageFilter: b
   ].filter(Boolean).length;
 }
 
-const STANCE_OPTIONS = CAREER_STANCES.filter((o) => o.value !== "no_contact");
-type RoleTree = { id: string; name: string; children: { id: string; name: string }[] }[];
 
 export function CandidateFilterDrawer({
   open, onClose, applied, onApply, candidates, newSince, includeHidden, ageFilterEnabled, activityEnabled, roleFilterTree, returnFocusRef,
@@ -62,35 +60,13 @@ export function CandidateFilterDrawer({
 
   /* ── 件数 ───────────────────────────────────────────────────────── */
   const now = useMemo(() => new Date(), [open]); // eslint-disable-line react-hooks/exhaustive-deps
-  const opts = { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden };
-  const base = (f: SavedCandidateFilters, skipAxis?: FilterAxis) => {
-    const l = filterCandidates(candidates, f, now, { ...opts, skipAxis });
-    return newSince ? l.filter((c) => isNewSince(c, newSince)) : l;
-  };
-  /** 軸ごとに、値 → 人数（その軸以外を掛けた母集団で数える。model.ts の countAxisValues。一次チップの居住地と同じ関数）。
-   *  ⚠️ 軸ごとに1回で数える（値ごとに母集団を作り直さない） */
-  const countAxis = (axis: FilterAxis, patches: Record<string, Partial<SavedCandidateFilters>>) =>
-    countAxisValues(candidates, draft, axis, patches, now, { ...opts, newSince });
-  /* ⚠️ 開いている間だけ数える（閉じているときは数えない） */
+  /* ⚠️ 開いている間だけ数える（閉じているときは数えない）。数え方は filterAxes.ts の computeAxisCounts（一次チップと同じ） */
   const counts = useMemo(() => {
     if (!open) return null;
-    const roleIds = roleFilterTree.flatMap((t) => [t.id, ...t.children.map((c) => c.id)]);
-    const prefs = [...PREFECTURE_REGIONS.flatMap((r) => r.prefectures), OVERSEAS];
-    const by = <T,>(vals: readonly T[], key: (v: T) => string, patch: (v: T) => Partial<SavedCandidateFilters>) =>
-      Object.fromEntries(vals.map((v) => [key(v), patch(v)]));
-    return {
-      exp: countAxis("expRole", by(roleIds, (id) => id, (id) => ({ expRoleIds: [id] }))),
-      desired: countAxis("desiredRole", by(roleIds, (id) => id, (id) => ({ desiredRoleIds: [id] }))),
-      stance: countAxis("careerStance", by(STANCE_OPTIONS, (o) => o.value, (o) => ({ careerStances: [o.value] }))),
-      tenure: countAxis("tenure", by(TENURE_BANDS, (b) => b.value, (b) => ({ tenureBand: b.value }))),
-      pref: countAxis("prefecture", by(prefs, (p) => p, (p) => ({ prefectures: [p] }))),
-      touchpoints: countAxis("touchpoints", { on: { hasTouchpoints: true } }).on,
-      starred: countAxis("starred", { on: { starredOnly: true } }).on,
-      fresh: countAxis("stanceFreshness", by(STANCE_FRESHNESS_BANDS, (b) => b.value, (b) => ({ stanceFreshness: b.value }))),
-      emp: countAxis("employmentType", by(CANDIDATE_EMPLOYMENT_OPTIONS, (v) => v, (v) => ({ employmentTypes: [v] }))),
-      result: base(draft).filter((c) => includeHidden || c.hidden !== true).length,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const o = { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden, newSince };
+    let all = filterCandidates(candidates, draft, now, o);
+    if (newSince) all = all.filter((c) => isNewSince(c, newSince));
+    return { ...computeAxisCounts(candidates, draft, now, o, roleFilterTree), result: all.length };
   }, [open, draft, candidates, newSince, includeHidden, ageFilterEnabled, activityEnabled, roleFilterTree, now]);
 
   /* ── 落ちる人の注記（一覧の詳細検索にあったもの。下書きの条件で数える） ── */
@@ -120,18 +96,11 @@ export function CandidateFilterDrawer({
       </FilterDrawerSection>
 
       <FilterDrawerSection title="転職への意向" state="fdr-stance">
-        {STANCE_OPTIONS.map((o) => (
-          <FilterOption key={o.value} label={o.label} count={counts.stance[o.value]} checked={draft.careerStances.includes(o.value)}
-            onChange={() => toggleIn("careerStances", o.value)} state={`opt-stance-${o.value}`} />
-        ))}
+        <StanceOptions selected={draft.careerStances} counts={counts.stance} onToggle={(v) => toggleIn("careerStances", v)} />
       </FilterDrawerSection>
 
       <FilterDrawerSection title="社会人年数" state="fdr-tenure">
-        <FilterOption type="radio" name="fdr-tenure" label="指定しない" checked={!draft.tenureBand} onChange={() => set("tenureBand", "")} />
-        {TENURE_BANDS.map((b) => (
-          <FilterOption key={b.value} type="radio" name="fdr-tenure" label={b.label} count={counts.tenure[b.value]}
-            checked={draft.tenureBand === b.value} onChange={() => set("tenureBand", b.value)} state={`opt-tenure-${b.value}`} />
-        ))}
+        <TenureOptions name="fdr-tenure" value={draft.tenureBand} counts={counts.tenure} onChange={(v) => set("tenureBand", v)} />
         {unknownTenure > 0 && <p className="fdr-note">職歴が未登録の {unknownTenure} 名は年数を算出できないため、そのまま含みます（件数にも含みます）。</p>}
       </FilterDrawerSection>
 
@@ -198,76 +167,3 @@ export function CandidateFilterDrawer({
 }
 
 const selectStyle: React.CSSProperties = { height: 34, padding: "0 8px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", color: "var(--ink)", background: "#fff" };
-
-/**
- * 職種の木（大分類＋子）。子は ▸ で開く。⚠️ 選択中の子がある大分類は最初から開く。
- * ⚠️ 開閉のボタンは label の外に置く（label の中にボタンを入れると、押したときにチェックも切り替わる）
- */
-function RoleTreeOptions({ tree, selected, counts, onToggle, stateKey }: {
-  tree: RoleTree; selected: string[]; counts: Record<string, number>; onToggle: (id: string) => void; stateKey: string;
-}) {
-  const [openIds, setOpenIds] = useState<string[]>(() => tree.filter((t) => t.children.some((c) => selected.includes(c.id))).map((t) => t.id));
-  return (
-    <div>
-      {tree.map((t) => {
-        const isOpen = openIds.includes(t.id);
-        return (
-          <div key={t.id}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <FilterOption label={t.name} count={counts[t.id]} checked={selected.includes(t.id)} onChange={() => onToggle(t.id)} state={`opt-${stateKey}-${t.id}`} />
-              </div>
-              {t.children.length > 0 && (
-                <button type="button" className="btn-fixed-size" aria-expanded={isOpen} aria-label={`${t.name}の内訳を${isOpen ? "閉じる" : "開く"}`}
-                  onClick={() => setOpenIds((o) => (o.includes(t.id) ? o.filter((x) => x !== t.id) : [...o, t.id]))}
-                  style={{ flexShrink: 0, width: 28, height: 28, border: "none", background: "none", color: "var(--ink-mute)", cursor: "pointer", fontSize: 12, borderRadius: 6 }}>
-                  {isOpen ? "▾" : "▸"}
-                </button>
-              )}
-            </div>
-            {isOpen && t.children.map((c) => (
-              <div key={c.id} style={{ paddingRight: 32 }}>
-                <FilterOption child label={c.name} count={counts[c.id]} checked={selected.includes(c.id)} onChange={() => onToggle(c.id)} state={`opt-${stateKey}-${c.id}`} />
-              </div>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/**
- * 居住地。★件数のある地域（と選択中）を上に、0件の都道府県は「ほかの都道府県」に折りたたむ（2026-10-13）。
- * ⚠️ 0件は灰色で選べない（選択中のものは上に出るので外せる）。
- */
-function ResidenceOptions({ selected, counts, onToggle }: { selected: string[]; counts: Record<string, number>; onToggle: (p: string) => void }) {
-  const [showZero, setShowZero] = useState(false);
-  const regions = [...PREFECTURE_REGIONS, { region: "海外", prefectures: [OVERSEAS] as readonly string[] }];
-  const visible = (p: string) => (counts[p] ?? 0) > 0 || selected.includes(p);
-  const shown = regions.map((r) => ({ region: r.region, prefs: r.prefectures.filter(visible) })).filter((r) => r.prefs.length > 0);
-  const zero = regions.flatMap((r) => r.prefectures.filter((p) => !visible(p)));
-  return (
-    <div>
-      {shown.length === 0 && <p className="fdr-note" style={{ marginTop: 0 }}>いまの条件で該当する居住地はありません。</p>}
-      {shown.map((r) => (
-        <div key={r.region} data-region={r.region}>
-          <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 6 }}>{r.region}</div>
-          {r.prefs.map((p) => <FilterOption key={p} label={p} count={counts[p] ?? 0} checked={selected.includes(p)} onChange={() => onToggle(p)} state={`opt-pref-${p}`} />)}
-        </div>
-      ))}
-      {zero.length > 0 && (
-        <>
-          <button type="button" className="fdr-more" aria-expanded={showZero} onClick={() => setShowZero((v) => !v)} data-state="residence-zero-toggle">
-            {showZero ? "0名の都道府県を隠す" : `0名の都道府県（${zero.length}）を表示`}
-          </button>
-          {showZero && (
-            <div data-state="residence-zero-list" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", columnGap: 12 }}>
-              {zero.map((p) => <FilterOption key={p} label={p} count={0} checked={false} onChange={() => onToggle(p)} />)}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}

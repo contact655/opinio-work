@@ -98,25 +98,36 @@ export function FilterDrawer({
         .fdr-clear { border: none; background: none; padding: 8px 4px; font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: inherit; }
         .fdr-apply { height: 40px; padding: 0 20px; border-radius: 8px; border: none; background: var(--royal); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
         .fdr-apply:disabled { opacity: 0.6; cursor: default; }
-        .fdr-section { padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
-        .fdr-section:last-child { border-bottom: none; }
-        .fdr-section-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ink); }
-        .fdr-note { margin: 6px 0 0; font-size: 12px; line-height: 1.6; color: var(--ink-mute); }
-        .fdr-opt { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; color: var(--ink); cursor: pointer; min-width: 0; }
-        .fdr-opt.is-disabled { color: var(--ink-mute); cursor: default; }
-        .fdr-opt input { margin: 0; accent-color: var(--royal); flex-shrink: 0; }
-        .fdr-opt-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-        .fdr-opt-count { flex-shrink: 0; font-size: 12px; color: var(--ink-mute); font-family: var(--font-inter), var(--font-noto); }
-        .fdr-opt.is-child { padding-left: 22px; }
-        .fdr-more { border: none; background: none; padding: 6px 0 0; font-size: 12.5px; font-weight: 600; color: var(--royal); cursor: pointer; font-family: inherit; }
         @media (max-width: 640px) {
           .fdr-panel { width: 100%; }
         }
       `}</style>
+      <style>{FILTER_OPTION_CSS}</style>
     </div>,
     document.body,
   );
 }
+
+/**
+ * ★選択肢の行（FilterDrawerSection / FilterOption）の見た目。ドロワーと、一次チップのドロップダウン（FilterPopoverChip）が
+ *   **同じ文字列**を描く（2026-10-13。軸ごとの描画部品をドロワーとチップで共通にしたため）。
+ * ⚠️ style タグの中身なので、山かっこ・引用符を書かない
+ */
+export const FILTER_OPTION_CSS = `
+.fdr-section { padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
+.fdr-section:last-child { border-bottom: none; }
+.fdr-section-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.fdr-note { margin: 6px 0 0; font-size: 12px; line-height: 1.6; color: var(--ink-mute); }
+.fdr-opt { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; color: var(--ink); cursor: pointer; min-width: 0; }
+.fdr-opt.is-disabled { color: var(--ink-mute); cursor: default; }
+.fdr-opt input { margin: 0; accent-color: var(--royal); flex-shrink: 0; }
+.fdr-opt-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fdr-opt-count { flex-shrink: 0; font-size: 12px; color: var(--ink-mute); font-family: var(--font-inter), var(--font-noto); }
+.fdr-opt.is-child { padding-left: 22px; }
+.fdr-more { border: none; background: none; padding: 6px 0 0; font-size: 12.5px; font-weight: 600; color: var(--royal); cursor: pointer; font-family: inherit; }
+.fdr-search { width: 100%; height: 34px; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-family: inherit; color: var(--ink); outline: none; margin-bottom: 6px; }
+.fdr-search:focus { border-color: var(--royal); }
+`;
 
 /** ドロワーの中の1区画（見出し＋選択肢） */
 export function FilterDrawerSection({ title, children, state }: { title: string; children: ReactNode; state?: string }) {

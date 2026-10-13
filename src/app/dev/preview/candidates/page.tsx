@@ -124,7 +124,7 @@ const FULL: Candidate[] = [
       ⚠️ 雇用形態は DB の値（日本語）。経験・希望職種は親まで展開した形（load.ts と同じ） */
 const H = 3600e3, D = 86400e3;
 const tp = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: "company_role" as const, text: `合うところ${i + 1}`, ref: null, weight: 5 - i,
-  row: { item: "職種", person: "営業", ours: "インサイドセールス（営業部）" } }));
+  row: { item: "職種", person: i === 0 ? "営業（経験）" : "インサイドセールス（関心）", ours: "インサイドセールス（営業部）" } }));
 const FACET: Candidate[] = [
   cand({ id: "f1", name: "青木 一郎", location: "東京都港区", careerStance: "active", careerStanceUpdatedAt: new Date(Date.now() - 2 * H).toISOString(),
     tenureMonths: 148, currentRole: "AE", currentCompany: "株式会社サンプル", employmentType: "正社員",

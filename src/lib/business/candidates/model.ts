@@ -45,6 +45,10 @@ export type Touchpoint = {
    * ★比較の1行（2026-10-13 / ステップ4）。8種類すべてに入る。カードの「✓ 職種　営業 ↔ インサイドセールス」と
    *   右欄の表（項目／この人／自社）がこれを使う。⚠️ 文（text）を分解して作らないこと
    * ⚠️ `fact`（FitFact）とは別。あちらは提案の根拠として保存されるので形を変えない
+   * ★`person`（候補者側の値）には**必ず出どころを末尾に付ける**（2026-10-13 / 柴さんの指示）:
+   *    （経験）… 職歴から（job_role・position_level・company_role の経験・alumni・target_industry・business_domain・business_stage）
+   *    （関心）… 関心のある職種から（company_role の関心）
+   *    （居住地）… お住まいから（location）
    */
   row?: { item: string; person: string; ours: string };
 };

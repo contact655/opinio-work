@@ -96,15 +96,19 @@ export function TouchpointGuide({ touchpoints, materials }: { touchpoints: Touch
  */
 export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
   /* ★2026-10-13（ステップ4 / モックに合わせた）: 項目／この人／自社 の3列の表で**全件**出す（「ほか○件」で隠さない）。
-        行は `Touchpoint.row`（8種類すべて）。⚠️ row が無い古い形（/dev/preview の固定データ）は分類と文で1行にする */
+        行は `Touchpoint.row`（8種類すべて）。⚠️ row が無い古い形（/dev/preview の固定データ）は分類と文で1行にする
+     ★2026-10-13（柴さんの指示）: 枠が狭いとき（460px 未満。右欄の2列表示など）は表をやめ、1理由1行で
+        「✓ 職種　営業（関心） ↔ インサイドセールス（営業部）」と流す（カードの理由行と同じ書き方）。
+        ⚠️ 値の途中で折り返さない（値ごとに inline-block。折り返すのは ↔ の前後だけ。1つの値が行より長いときだけ値の中で折り返す）
+        ⚠️ 切り替えはコンテナクエリ（この枠の幅）。画面の幅では決めない */
   if (!touchpoints || touchpoints.length === 0) return null;
   const cell: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, lineHeight: 1.55, verticalAlign: "top", borderTop: "1px solid var(--royal-100)", overflowWrap: "anywhere" };
   return (
-    <section data-state="touchpoints" style={{ marginTop: 12, padding: "12px 12px 8px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
+    <section data-state="touchpoints" className="cand-tp" style={{ marginTop: 12, padding: "12px 12px 8px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)" }}>
       <h3 style={{ margin: "0 0 6px 2px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
         {companyShortName ?? "貴社"}と合うところ（{touchpoints.length}）
       </h3>
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <table className="cand-tp-table" style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <colgroup><col style={{ width: "22%" }} /><col style={{ width: "39%" }} /><col style={{ width: "39%" }} /></colgroup>
         <thead>
           <tr>
@@ -131,6 +135,35 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
           ))}
         </tbody>
       </table>
+      <ul className="cand-tp-lines" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {touchpoints.map((t, i) => (
+          <li key={`${t.kind}:${t.ref?.id ?? i}:${i}`} data-touchpoint-line={t.kind} className="cand-tp-line">
+            <span aria-hidden="true" className="cand-tp-check">✓</span>
+            <span className="cand-tp-item">{t.row?.item ?? touchpointCategory(t)}</span>
+            {t.row ? (
+              <>
+                <span className="cand-tp-val">{t.row.person}</span>
+                {" "}<span className="cand-tp-arrow">↔</span>{" "}
+                <span className="cand-tp-val">{t.row.ours}</span>
+              </>
+            ) : <span className="cand-tp-val">{t.text}</span>}
+          </li>
+        ))}
+      </ul>
+      {/* ⚠️ style タグの中に山かっこ・引用符を書かない（ハイドレーションが壊れる） */}
+      <style>{`
+        .cand-tp { container-type: inline-size; container-name: candtp; }
+        .cand-tp-lines { display: none; }
+        .cand-tp-line { padding: 6px 2px; border-top: 1px solid var(--royal-100); font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+        .cand-tp-check { color: var(--royal); font-weight: 700; margin-right: 4px; }
+        .cand-tp-item { font-weight: 700; margin-right: 10px; white-space: nowrap; }
+        .cand-tp-val { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; }
+        .cand-tp-arrow { color: var(--ink-mute); }
+        @container candtp (max-width: 459.98px) {
+          .cand-tp-table { display: none; }
+          .cand-tp-lines { display: block; }
+        }
+      `}</style>
     </section>
   );
 }

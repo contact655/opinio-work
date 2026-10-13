@@ -1,14 +1,13 @@
 "use client";
 
-import { ResidenceFilter } from "./ResidenceFilter";
 import { CandidateFilterDrawer, drawerFilterCount } from "./CandidateFilterDrawer";
-import { OVERSEAS, PREFECTURE_REGIONS, residenceKey } from "@/lib/utils/location";
+import { OVERSEAS, residenceKey } from "@/lib/utils/location";
 import { ApproachButton } from "@/components/approaches/ApproachButton";
 /* ★候補者の形・絞り込み・並び替えは lib/business/candidates/model.ts の1か所（2026-10-10）。
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
   ACTIVITY_SORTS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, TENURE_BANDS,
-  countAxisValues, filterCandidates, formatJstSlashMonthDay, isNewSince, sortCandidates,
+  filterCandidates, formatJstSlashMonthDay, isNewSince, sortCandidates,
   type Candidate,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
@@ -17,11 +16,11 @@ import type { TouchpointMaterials } from "@/lib/business/candidates/model";
 import { APPROACH_TEST_COMPANY_MESSAGE } from "@/lib/constants/companyApproaches";
 import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { CAREER_STANCES } from "@/lib/constants/careerPreferences";
 /* ⚠️★**他の3画面（/companies・/jobs・/people）と同じ部品**（2026-09-20）。
       ここに似た実装を作らないこと ——`FilterChip` は 2026-09-18 に
       「同じ名前の別実装が2つあった」のを1つに畳んだもので、**3つ目を作らない**。 */
-import { FilterChip } from "@/components/common/FilterChip";
+import { FilterPopoverChip } from "@/components/common/FilterPopoverChip";
+import { ResidenceOptions, RoleTreeOptions, STANCE_OPTIONS, StanceOptions, TenureOptions, computeAxisCounts, roleChipLabel } from "./filterAxes";
 import { SortSelect } from "@/components/common/SortSelect";
 import { PersonAvatar } from "@/components/common/PersonAvatar";
 /* ★保存した条件（2026-09-21）。⚠️ 型・既定値・上限は
@@ -36,7 +35,7 @@ import {
 } from "@/lib/business/savedSearch";
 
 /**
- * ★転職意欲の選択肢（2026-09-19 / 柴さんの指示）。
+ * ★転職意欲の選択肢（2026-09-19 / 柴さんの指示）。⚠️ 実体は filterAxes.tsx の STANCE_OPTIONS（2026-10-13 に移した）。
  *
  * ⚠️★**ラベルを書き写さないこと。** 正は `lib/constants/careerPreferences.ts` の
  *    `CAREER_STANCES` で、オンボーディングと `/mypage` も同じ定数を見る。
@@ -44,7 +43,6 @@ import {
  *    選択肢に出すと**必ず0件になる条件**を並べることになる。
  *    ⚠️ 母集合の条件を変えるときは、ここも一緒に見ること。
  */
-const CAREER_STANCE_FILTER_OPTIONS = CAREER_STANCES.filter((o) => o.value !== "no_contact");
 
 /**
  * ★転職意欲の更新時期の帯（2026-09-19 / 柴さんの指示）。
@@ -408,14 +406,13 @@ export default function CandidatesClient({
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
   }, [withStars, currentFilters, newSince, ageFilterEnabled, activityEnabled]);
   const filtered = useMemo(() => (showHidden ? filteredWithHidden : filteredWithHidden.filter((c) => c.hidden !== true)), [filteredWithHidden, showHidden]);
-  /* ★一次チップ「居住地」の件数（2026-10-13 / 柴さんの判断でドロワーと同じ数え方に揃えた）。
-        「居住地以外の条件をすべて掛けたあとの人数」。0件は灰色で選べない（選択中なら外せる）。
-     ⚠️★数え方は model.ts の countAxisValues の1つ（ドロワーと同じ関数）。ここに条件を書き写さないこと */
-  const residenceCounts = useMemo(() => countAxisValues(
-    withStars, currentFilters, "prefecture",
-    Object.fromEntries([...PREFECTURE_REGIONS.flatMap((r) => r.prefectures), OVERSEAS].map((p) => [p, { prefectures: [p] }])),
-    new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden: showHidden, newSince },
-  ), [withStars, currentFilters, ageFilterEnabled, activityEnabled, showHidden, newSince]);
+  /* ★一次チップ（経験職種・転職への意向・社会人年数・居住地）の件数（2026-10-13 / 柴さんの指示でドロワーと揃えた）。
+        「その軸以外の条件をすべて掛けたあとの人数」。0件は灰色で選べない（選択中なら外せる）。
+     ⚠️★数え方は filterAxes.tsx の computeAxisCounts の1つ（ドロワーと同じ関数）。ここに条件を書き写さないこと */
+  const chipCounts = useMemo(() => computeAxisCounts(
+    withStars, currentFilters, new Date(),
+    { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden: showHidden, newSince }, roleFilterTree,
+  ), [withStars, currentFilters, ageFilterEnabled, activityEnabled, showHidden, newSince, roleFilterTree]);
   /** いまの条件に合う人のうち、見送った人数（末尾の「見送った○名は非表示」） */
   const hiddenCount = useMemo(() => filteredWithHidden.filter((c) => c.hidden === true).length, [filteredWithHidden]);
   /* ⚠️ 見送った人が0人になったら「表示する」を戻す。戻さないと切り替えが画面から消えたまま表示中が残り、
@@ -630,17 +627,6 @@ export default function CandidatesClient({
   }
 
 
-  /* ★経験職種のチップの選択肢（大分類＋子）。
-     ⚠️★**チップは `components/common/FilterChip.tsx` を使う。** `/companies` と
-        `/people` が同じものを使っており、**同じ名前の別実装を作らない**（3つ目を作らない）。
-     ⚠️ 「詳細検索」のパネルは 2026-10-13 に外した（右のドロワー「すべてのフィルター」に置き換え）。 */
-  const roleChipOptions = roleFilterTree.flatMap((top) => [
-    { value: top.id, label: top.name },
-    /* ⚠️ 子は `parent` を付けて親の直下にぶら下げる（フェーズと同じ形）。
-          **18の親チップ＋子パネル**という旧実装に戻さないこと。 */
-    ...top.children.map((child) => ({ value: child.id, label: child.name, parent: top.id })),
-  ]);
-
   /* ── ★よく使う条件の行（2026-10-12 / 柴さんの指示）──────────────────────────
      検索窓の下に1行：経験職種／転職への意向／社会人年数／居住地／合うところあり／気になる（n）／すべてのフィルター。
      ⚠️ 希望職種・意向を更新した時期・雇用形態・年齢・最近の利用はドロワーの中だけ（年齢・最近の利用はスイッチがオンのとき）。
@@ -654,34 +640,33 @@ export default function CandidatesClient({
   });
   const quickRow = (
     <div data-state="quick-filters" style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        {/* ★経験職種（職歴の職種。現職・前職すべて。2026-10-13）。複数選ぶと OR。親を選ぶと子の経験も含む（候補者側が親まで展開済み） */}
-        <FilterChip
-        label="経験職種" value="" values={expRoleIds}
-        options={roleChipOptions} searchable labelPrefix clearLabel="経験職種の条件を外す"
-        onSelect={() => {}}
-        onToggleValue={(v) => setExpRoleIds(toggleMulti(expRoleIds, v))}
-        onClear={() => setExpRoleIds([])}
-        isOpen={openChip === "expRole"} onToggle={() => setOpenChip(openChip === "expRole" ? null : "expRole")}
-      />
-        <FilterChip
-        label="転職への意向" value="" values={careerStances}
-        options={CAREER_STANCE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        labelPrefix clearLabel="転職への意向の条件を外す"
-        onSelect={() => {}}
-        onToggleValue={(v) => setCareerStances(toggleMulti(careerStances, v))}
-        onClear={() => setCareerStances([])}
-        isOpen={openChip === "stance"} onToggle={() => setOpenChip(openChip === "stance" ? null : "stance")}
-      />
-        <FilterChip
-        label="社会人年数" value={tenureBand}
-        options={TENURE_BANDS.map((b) => ({ value: b.value, label: b.label }))}
-        labelPrefix clearLabel="社会人年数の条件を外す"
-        onSelect={(v) => setTenureBand(v ?? "")}
-        isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}
-      />
-        {/* ★居住地（2026-10-12）。47都道府県を地方ごとに常に全部＋海外。複数選択・地方ごとの「すべて」・クリア／適用 */}
-        <ResidenceFilter selected={selectedPrefectures} counts={residenceCounts} onApply={setSelectedPrefectures}
-          isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")} />
+        {/* ★一次チップのドロップダウンは、ドロワーと同じ軸の部品（filterAxes.tsx）を使う（2026-10-13 / 柴さんの指示）。
+               件数・0件の灰色・畳み方・職種の検索窓がドロワーと同じ。⚠️ 選択はその場で効く（ドロワーと違い下書きを持たない） */}
+        {/* ★経験職種（職歴の職種。現職・前職すべて）。複数選ぶと OR。親を選ぶと子の経験も含む（候補者側が親まで展開済み） */}
+        <FilterPopoverChip label="経験職種" active={expRoleIds.length > 0} activeLabel={roleChipLabel("経験職種", roleFilterTree, expRoleIds)}
+          onClear={() => setExpRoleIds([])} clearLabel="経験職種の条件を外す" state="chip-exp-role"
+          isOpen={openChip === "expRole"} onToggle={() => setOpenChip(openChip === "expRole" ? null : "expRole")}>
+          <RoleTreeOptions tree={roleFilterTree} selected={expRoleIds} counts={chipCounts.exp} onToggle={(id) => setExpRoleIds(toggleMulti(expRoleIds, id))} stateKey="chip-exp" />
+        </FilterPopoverChip>
+        <FilterPopoverChip label="転職への意向" active={careerStances.length > 0}
+          activeLabel={(() => { const p = STANCE_OPTIONS.filter((o) => careerStances.includes(o.value)); return p.length ? `転職への意向: ${p[0].label}${p.length > 1 ? ` +${p.length - 1}` : ""}` : "転職への意向"; })()}
+          onClear={() => setCareerStances([])} clearLabel="転職への意向の条件を外す" state="chip-stance" width={280}
+          isOpen={openChip === "stance"} onToggle={() => setOpenChip(openChip === "stance" ? null : "stance")}>
+          <StanceOptions selected={careerStances} counts={chipCounts.stance} onToggle={(v) => setCareerStances(toggleMulti(careerStances, v))} />
+        </FilterPopoverChip>
+        <FilterPopoverChip label="社会人年数" active={!!tenureBand}
+          activeLabel={`社会人年数: ${TENURE_BANDS.find((b) => b.value === tenureBand)?.label ?? tenureBand}`}
+          onClear={() => setTenureBand("")} clearLabel="社会人年数の条件を外す" state="chip-tenure" width={240}
+          isOpen={openChip === "tenure"} onToggle={() => setOpenChip(openChip === "tenure" ? null : "tenure")}>
+          <TenureOptions name="chip-tenure" value={tenureBand} counts={chipCounts.tenure} onChange={setTenureBand} />
+        </FilterPopoverChip>
+        {/* ★居住地。件数のある地域を上に、0名の都道府県は畳む（ドロワーと同じ部品）。⚠️ 2026-10-13 に「適用」ボタンの形をやめ、その場で効く形にした */}
+        <FilterPopoverChip label="居住地" active={selectedPrefectures.length > 0}
+          activeLabel={`居住地: ${selectedPrefectures[0] ?? ""}${selectedPrefectures.length > 1 ? ` +${selectedPrefectures.length - 1}` : ""}`}
+          onClear={() => setSelectedPrefectures([])} clearLabel="居住地の絞り込みを外す" state="residence-chip" width={300}
+          isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}>
+          <ResidenceOptions selected={selectedPrefectures} counts={chipCounts.pref} onToggle={(p) => setSelectedPrefectures(toggleMulti(selectedPrefectures, p))} />
+        </FilterPopoverChip>
       <button type="button" aria-pressed={hasTouchpoints} data-state="toggle-touchpoints" onClick={() => setHasTouchpoints((v) => !v)} style={toggleStyle(hasTouchpoints)}>
         合うところあり
       </button>
@@ -1261,9 +1246,15 @@ export default function CandidatesClient({
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr); gap: 0; align-items: start; }
           /* 区切り線: 掴める幅 12px・見た目は 1px。ホバーとドラッグ中は 2px の濃紺 */
           .cand-divider { display: block; align-self: stretch; position: relative; cursor: col-resize; touch-action: none; outline: none; user-select: none; }
-          .cand-divider-line { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-50%); background: var(--line); transition: width 0.12s, background 0.12s; }
+          /* ★普段から見える線（2026-10-13 / 柴さんの指示）。--line より一段濃い #CBD5E1。ホバー・ドラッグ中・フォーカスは 2px の濃紺 */
+          .cand-divider-line { position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-50%); background: #CBD5E1; transition: width 0.12s, background 0.12s; }
           .cand-divider:hover .cand-divider-line, .cand-divider.is-dragging .cand-divider-line { width: 2px; background: var(--royal); }
           .cand-divider:focus-visible .cand-divider-line { width: 2px; background: var(--royal); }
+          /* ★つまみ（縦の点3つ）。動かせることが分かるように常時出す。画面の縦の中央に貼り付く（一覧が長くても見える） */
+          .cand-divider-grip { position: sticky; top: calc(50vh - 14px); z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 10px; height: 28px; margin: 0 auto; box-sizing: border-box; border: 1px solid #CBD5E1; border-radius: 5px; background: #fff; pointer-events: none; transition: border-color 0.12s; }
+          .cand-divider-grip span { width: 2.5px; height: 2.5px; border-radius: 50%; background: #94A3B8; transition: background 0.12s; }
+          .cand-divider:hover .cand-divider-grip, .cand-divider.is-dragging .cand-divider-grip, .cand-divider:focus-visible .cand-divider-grip { border-color: var(--royal); }
+          .cand-divider:hover .cand-divider-grip span, .cand-divider.is-dragging .cand-divider-grip span, .cand-divider:focus-visible .cand-divider-grip span { background: var(--royal); }
           .cand-wrap { max-width: none; }
           /* プレビューはヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと）。
              ★2026-10-11: 高さを決めて外側はスクロールさせず、中（CandidateProfilePanel）の本文だけをスクロールさせる（名前とボタンの段を固定するため） */
@@ -1396,6 +1387,7 @@ function CandDivider({ listPx, splitW, splitRef, onMove, onReset }: {
         else if (e.key === "ArrowRight") { e.preventDefault(); onMove(listPx + CAND_KEY_STEP, true); }
       }}>
       <span className="cand-divider-line" aria-hidden="true" />
+      <span className="cand-divider-grip" aria-hidden="true"><span /><span /><span /></span>
     </div>
   );
 }
