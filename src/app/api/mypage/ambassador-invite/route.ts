@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
+import { acceptInvitePatch } from "@/lib/companyMembers/invite";
 
 export const dynamic = "force-dynamic";
 
@@ -113,16 +114,24 @@ export async function POST(req: NextRequest) {
 
        ⚠️ 有効期限（invited_at から N 日）は**入れていない**。列の追加が要るうえ、
           期限切れの招待をどう見せるかの判断が要るため別タスク。 */
+    /* ★display_consent を true にするのは、承諾した人がその行の本人のときだけ
+          （lib/companyMembers/invite.ts）。admin クライアントで書くので DB のトリガーは
+          素通しする —— 本人確認はここと上の .eq("user_id", owUser.id) が本体。 */
+    const patch = acceptInvitePatch({
+      memberUserId: member.user_id as string,
+      actorOwUserId: owUser.id,
+      roleTitle: role_title,
+      newToken: crypto.randomUUID(),
+      now: new Date().toISOString(),
+    });
+    if (!patch) {
+      return NextResponse.json({ error: "この招待はあなた宛ではありません" }, { status: 403 });
+    }
     const { error } = await adminSupabase
       .from("ow_company_members")
-      .update({
-        display_consent: true,
-        consent_at: new Date().toISOString(),
-        is_public: true,
-        role_title: role_title?.trim() || undefined,
-        invite_token: crypto.randomUUID(),
-      })
-      .eq("id", member.id);
+      .update(patch)
+      .eq("id", member.id)
+      .eq("user_id", owUser.id);
 
     if (error) {
       console.error("[ambassador accept]", error.message);
