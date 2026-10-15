@@ -234,6 +234,46 @@ export function casualMeetingAdminTemplate(params: {
  *    （`greetingName()` は人に呼びかけるときだけ）。
  * ⚠️ 倒す操作はここからさせない。**`/admin` を見て、人が migration を書く。**
  */
+/**
+ * ★「あなたに合う順」で、担当者のいない企業に「興味あり」が押された（2026-10-15 / 柴さんの指示）。1件ずつ運営へ。
+ * ⚠️ 件名は【興味あり・担当者未登録】＋社名（柴さんの指示）。検証用アカウントなら先頭に【検証】。
+ * ⚠️ 組み立てと送信は lib/forYou/notifyOps.ts の1か所から呼ぶ（1日10件を超えたらまとめての通知に切り替える前提）。
+ */
+export function forYouInterestOpsTemplate(params: {
+  companyId: string;
+  companyName: string;
+  candidateName: string | null;
+  rank: number;
+  reasons: string[];
+  /** 押した人が検証用アカウントか */
+  candidateIsTest: boolean;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  const name = greetingName(params.candidateName);
+  const who = name ? `${name}さん` : "利用者の方";
+  return {
+    to: ADMIN_EMAIL,
+    subject: `${params.candidateIsTest ? "【検証】" : ""}【興味あり・担当者未登録】${params.companyName}`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">担当者のいない企業に「興味あり」が届きました</h2>
+      <p style="margin:0 0 20px;color:#475569">
+        ${esc(who)}が「あなたに合う順」で <strong style="color:#0f172a">${esc(params.companyName)}</strong> に「興味あり」を押しました。
+        この企業には OPINIO の担当者が登録されていないため、運営に届いています。
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        <tr><td style="${TD_LABEL}">押した人</td><td style="${TD_VALUE}">${esc(who)}${params.candidateIsTest ? "（検証用アカウント）" : ""}</td></tr>
+        <tr><td style="${TD_LABEL}">押した時点の順位</td><td style="${TD_VALUE}">${params.rank}位</td></tr>
+        ${params.reasons.length > 0 ? `<tr><td style="${TD_LABEL}">表示した理由</td><td style="${TD_VALUE}">${params.reasons.map(esc).join("<br>")}</td></tr>` : ""}
+      </table>
+      <p style="margin:0 0 20px;color:#475569;font-size:13px">
+        ⚠️ 運営は受け取るが取り次がない（2026-09-15 の取り決め）。企業へは担当者の登録を案内してください。
+      </p>
+      <a href="${siteUrl}/admin/companies/${params.companyId}" style="${BTN}">運営画面で企業を開く →</a>
+    `),
+  };
+}
+
 export function testLeftoversAdminTemplate(params: {
   users: string[];
   companies: { name: string; createdBy: string | null }[];

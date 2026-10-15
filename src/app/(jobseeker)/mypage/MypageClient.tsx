@@ -377,6 +377,21 @@ export default function MypageClient({
              ⚠️ 出せるブロックが無ければ**何も描かない**（部品が null を返す）。
                 「該当なし」も出さない。
              ⚠️ 意思表示カードの下・企業向け導線の上に置く。 */}
+      {/* ★「あなたに合う順」への入口（2026-10-15）。⚠️ モバイルのタブバーには足していないので、スマホからはここが入口 */}
+      <a
+        href="/mypage/for-you"
+        data-state="for-you-entry"
+        style={{
+          display: "block", textDecoration: "none", color: "var(--ink)",
+          border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", background: "#fff",
+        }}
+      >
+        <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>あなたに合う順</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.7 }}>
+          掲載中の会社を、あなたの職歴や希望から合う順に並べています →
+        </span>
+      </a>
+
       <IndustryMatchSection blocks={industryMatchBlocks} />
 
       {/* ⚠️ 「プロフィール完成度」「最近の申込」「ブックマーク」を外した（2026-08-16）。

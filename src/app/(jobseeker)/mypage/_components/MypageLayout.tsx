@@ -123,6 +123,8 @@ export type MypageActiveKey =
   | "conversations"
   | "applications"
   | "proposals"
+  /* ★「あなたに合う順」（2026-10-15）。⚠️ モバイルのタブバーには足していない（7項目にすると 375px で溢れる。上の注記） */
+  | "for_you"
   // プロフィール編集ページ (/profile/edit)
   // ν-8 段階1: "settings" → "profile" に役割再定義。"settings" は過渡期互換のため残す。
   | "profile"
@@ -348,6 +350,8 @@ export default function MypageLayout({
             <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
             <SidebarItem icon={Icons.application} label="応募・面談"    active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
             <SidebarItem icon={Icons.proposal}    label="おすすめ"        active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
+            {/* ★「あなたに合う順」（2026-10-15）。⚠️ モバイルはタブバーに足さず、/mypage のカードとヘッダーのメニューから入る */}
+            <SidebarItem icon={Icons.proposal}    label="あなたに合う順"  active={activeKey === "for_you"}        href="/mypage/for-you" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
           </nav>

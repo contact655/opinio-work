@@ -3812,6 +3812,70 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_for_you_reactions: {
+        Row: {
+          company_id: string
+          conversation_id: string | null
+          created_at: string
+          interested_at: string | null
+          ops_notified_at: string | null
+          rank_at: number
+          reaction: string
+          reason: string | null
+          signals: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          conversation_id?: string | null
+          created_at?: string
+          interested_at?: string | null
+          ops_notified_at?: string | null
+          rank_at: number
+          reaction: string
+          reason?: string | null
+          signals?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          interested_at?: string | null
+          ops_notified_at?: string | null
+          rank_at?: number
+          reaction?: string
+          reason?: string | null
+          signals?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_for_you_reactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_for_you_reactions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_for_you_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_genres: {
         Row: {
           created_at: string
