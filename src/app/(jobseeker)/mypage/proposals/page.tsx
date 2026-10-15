@@ -6,6 +6,11 @@ import { companyLinkStateFor } from "@/lib/companies/linkState";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
+import ForYouSection, { type ForYouView } from "./ForYouSection";
+import FitPageIntro from "./FitPageIntro";
+import { FIT_PAGE_TITLE } from "./fitPageText";
+import { buildForYou } from "@/lib/forYou/rank";
+import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 import { isVisiblePair, phaseInputOf, PROPOSAL_PHASE_COLS, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 import { proposalPhase } from "@/lib/constants/proposalResponses";
 import { jobListingStateFor } from "@/lib/jobs/publicJobs";
@@ -17,7 +22,7 @@ export const metadata = {
   /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
         `template: "%s | OPINIO"` が後ろに足すので、素の `title` だと
         「… | OPINIO | OPINIO」になる。 */
-  title: { absolute: "あなたに合いそうな会社 | OPINIO" },
+  title: { absolute: `${FIT_PAGE_TITLE} | OPINIO` },
   /* ⚠️ 本人にしか出ない画面。検索結果に出す意味が無い */
   robots: { index: false, follow: false },
 };
@@ -113,15 +118,56 @@ export default async function ProposalsPage() {
   /* ⚠️ 答えられる提案だけ数える（`/mypage` のバッジ `countOpenProposals` と同じ条件＝段が candidate_pending） */
   const unanswered = error ? undefined : proposals.filter((p) => p.status === "pending").length;
 
+  /* ★下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から統合）。
+        ⚠️ 上段に出ている会社は下段に重ねて出さない（提案の段に関係なく、上段に1件でもあれば除く） */
+  const forYou = await buildForYou(me.id as string);
+  const proposedCompanyIds = new Set((rows ?? []).map((p) => p.company_id as string));
+  const viewerIsTest = me.is_test === true;
+  const allCompanies: ForYouView[] = forYou.ok
+    ? forYou.companies
+        .filter((c) => !proposedCompanyIds.has(c.id))
+        /* ⚠️ 順位は除いたあとで振り直す（1位が欠けた形にしない） */
+        .map((c, i) => ({
+          id: c.id,
+          rank: i + 1,
+          name: c.name,
+          /* ★見ている人と会社がどちらも検証用なら文字だけ（企業ページは検証用の会社を誰にも開かない） */
+          href: companyLinkStateFor({ isTest: c.isTest, isPublished: c.isPublished }, { viewerIsTest }) === "open"
+            ? `/companies/${c.slug ?? c.id}` : null,
+          tagline: c.tagline,
+          reasons: c.reasons,
+          hasTalkable: c.hasTalkable,
+          hasOpenJobs: c.hasOpenJobs,
+          phaseLabel: c.phaseLabel,
+          cautions: c.cautions,
+          hasResponder: c.hasResponder,
+          reaction: c.reaction?.reaction ?? null,
+          conversationId: c.reaction?.conversationId ?? null,
+          interested: !!c.reaction?.interestedAt,
+        }))
+    : [];
+  /* ⚠️ 理由の有無は「下段に残った会社」で数える */
+  const noReasons = forYou.ok && allCompanies.length > 0 && allCompanies.every((c) => c.reasons.length === 0);
+
   return (
     <MypageLayout activeKey="proposals" proposalsBadge={unanswered}>
-      <ProposalsClient
-        proposals={proposals}
-        minEvidence={MIN_EVIDENCE_FOR_PROPOSAL}
-        /* ⚠️ 取得に失敗したときに「0社でした」と言わない。CLAUDE.md
-              「取得に失敗したら『0件』と表示しない」 */
-        loadFailed={!!error}
-      />
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
+        <FitPageIntro showNoResponderNote={allCompanies.some((c) => !c.hasResponder)} />
+        {/* ★提案が0件の人には上段を出さない（柴さんの指示）。⚠️ 取得に失敗したときは出して失敗を伝える（0件に見せない） */}
+        {(proposals.length > 0 || !!error) && (
+          <ProposalsClient
+            proposals={proposals}
+            minEvidence={MIN_EVIDENCE_FOR_PROPOSAL}
+            loadFailed={!!error}
+          />
+        )}
+        <ForYouSection
+          companies={allCompanies}
+          loadFailed={!forYou.ok}
+          noReasons={noReasons}
+          declineReasons={CANDIDATE_DECLINE_REASONS.map((o) => ({ value: o.value, label: o.label }))}
+        />
+      </main>
     </MypageLayout>
   );
 }

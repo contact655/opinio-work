@@ -110,6 +110,14 @@ export async function middleware(request: NextRequest) {
     url.pathname = "/mypage/proposals";
     return NextResponse.redirect(url);
   }
+  /* ★「あなたに合う順」（/mypage/for-you）は 2026-10-15 に /mypage/proposals（あなたに合う会社）へ統合した。
+     ⚠️ 残す向きは /mypage/proposals（通知・バッジ・受信箱のカード・メールの行き先がすべてこちら）。
+     ⚠️ ページ側の redirect() にしない（loading.tsx の内側だと 200 のままになる） */
+  if (pathname === "/mypage/for-you" || pathname.startsWith("/mypage/for-you/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mypage/proposals";
+    return NextResponse.redirect(url);
+  }
 
   /* ★★スカウトは廃止した（2026-10-08 / 柴さんの判断）。提案に一本化。**復活させないこと。**
         画面（`/biz/scouts` と `/mypage/scouts`）は削除したので、ブックマークと過去のメールを

@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import EvidenceList, { type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
 import DeclineSheet from "@/components/proposals/DeclineSheet";
-import { PROPOSAL_NOTE_MAX, PROPOSAL_RESPONSE_DAYS } from "@/lib/constants/proposalResponses";
+import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
+import { PROPOSALS_SECTION_TITLE } from "./fitPageText";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 export type ProposalView = {
@@ -83,32 +84,11 @@ export default function ProposalsClient({
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 6px" }}>あなたに合いそうな会社</h1>
-
-      {/* ★★中立の明示。消さないこと */}
-      <p
-        style={{
-          fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)",
-          background: "#F5F7FD", border: "1px solid #DCE3F5",
-          borderRadius: 8, padding: "10px 12px", margin: "0 0 8px",
-        }}
-      >
-        このおすすめは <strong>OPINIO が行っています。人材紹介会社は関わっていません。</strong><br />
-        根拠にしているのは、OPINIO に登録された職歴と、在籍している方がご自身で答えた内容だけです。
-      </p>
-
-      {/* ★★何が・いつ・どこまで渡るかを書く（2026-10-11 に「求職者が先に答える」形へ書き直した）。
-             ⚠️★選択肢を持たせない以上、告知は厚くする。消さないこと。
-             ⚠️★「提案のことは企業に伝わらない」は**提案について**の話。候補者検索に出ているかは別
-                （そちらは「転職について」の設定で決まる）。混ぜて「企業から見えません」と書かないこと */}
-      <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 0 20px" }}>
-        <strong>このおすすめはあなたにだけ届いています。</strong>
-        あなたが「話を聞いてみたい」と答えるまで、このおすすめのことは企業に伝わりません（企業の候補者検索に表示されるかどうかは、これとは別に「転職について」の設定で決まります）。
-        答えると、企業にあなたの公開プロフィール（お名前・顔写真・見出し・職歴など）と、書いた場合はひとことが届きます。
-        応募にはなりません。「今回は見送る」を選んでも、企業には伝わりません。
-        おすすめは届いてから{PROPOSAL_RESPONSE_DAYS}日で終了します。
-      </p>
+    /* ★2026-10-15 に「あなたに合う順」と1ページに統合した（ページ名「あなたに合う会社」）。
+          この部品は上段だけを描く。見出し・冒頭の説明・「詳しく」の折りたたみは page.tsx（FitPageIntro）。
+          ⚠️ 提案が0件の人には page.tsx がこの部品ごと出さない（空のときの説明はここに置かない） */
+    <section aria-labelledby="proposals-heading" style={{ marginBottom: 32 }}>
+      <h2 id="proposals-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 4px" }}>{PROPOSALS_SECTION_TITLE}</h2>
 
       {err && (
         <p role="alert" style={{ fontSize: 13, color: "#B3261E", background: "#FDF2F2", border: "1px solid #F0C7C7", borderRadius: 8, padding: "10px 12px", marginBottom: 16 }}>
@@ -116,27 +96,11 @@ export default function ProposalsClient({
         </p>
       )}
 
-      {/* ── 空のとき ★ここで手を抜かない ────────────────────────────────── */}
       {loadFailed ? (
         <p style={{ fontSize: 14, lineHeight: 1.9, color: "#B3261E" }}>
           おすすめの読み込みに失敗しました。<strong>「0社」という意味ではありません。</strong>
           しばらくしてから開き直してください。
         </p>
-      ) : items.length === 0 ? (
-        <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "20px 18px", lineHeight: 1.9, fontSize: 14 }}>
-          <p style={{ margin: "0 0 10px", fontWeight: 600 }}>
-            いまおすすめできる会社はありません。
-          </p>
-          <p style={{ margin: "0 0 10px", color: "var(--ink-soft)", fontSize: 13 }}>
-            OPINIO は、<strong>根拠を {minEvidence} 件以上そろえられた会社だけ</strong>をおすすめします。
-            「近そうだから」という理由では出しません。
-          </p>
-          <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 13 }}>
-            {/* ★2026-10-10 に会社の求人・部門の職種・業界を足した。⚠️ 企業側（BizProposalsClient）と同じ事実を向きだけ変えて書いている */}
-            {"根拠になるのは、同じ職種から移った方の人数・在籍している方が挙げた入社の決め手・話を聞ける方の人数・あなたの経験と同じ職種の求人や部門・あなたの希望条件との一致・あなたが経験した業界や事業領域との一致です（業界の一致だけではおすすめしません）。"}
-            <strong>職歴と希望条件を登録していただくほど、そろいやすくなります。</strong>
-          </p>
-        </div>
       ) : (
         <>
           {/* ★件数は出す。黙って消さない */}
@@ -148,13 +112,13 @@ export default function ProposalsClient({
             {items.map((p) => (
               <article key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "16px 16px 14px" }}>
                 <header style={{ marginBottom: 10 }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 2px" }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 2px" }}>
                     {p.companyHref ? (
                       <Link href={p.companyHref} style={{ color: "inherit", textDecoration: "none" }}>
                         {p.companyName}
                       </Link>
                     ) : p.companyName}
-                  </h2>
+                  </h3>
                   {p.tagline && (
                     <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: 0 }}>{p.tagline}</p>
                   )}
@@ -276,6 +240,6 @@ export default function ProposalsClient({
           onSubmit={(reason, note) => respond(declining, "declined", reason, note)}
         />
       )}
-    </main>
+    </section>
   );
 }

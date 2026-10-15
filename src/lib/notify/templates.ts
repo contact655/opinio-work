@@ -235,7 +235,7 @@ export function casualMeetingAdminTemplate(params: {
  * ⚠️ 倒す操作はここからさせない。**`/admin` を見て、人が migration を書く。**
  */
 /**
- * ★「あなたに合う順」で、担当者のいない企業に「興味あり」が押された（2026-10-15 / 柴さんの指示）。1件ずつ運営へ。
+ * ★「あなたに合う会社」（下段）で、担当者のいない企業に「話を聞いてみたい」（記録上は interested）が押された（2026-10-15）。1件ずつ運営へ。
  * ⚠️ 件名は【興味あり・担当者未登録】＋社名（柴さんの指示）。検証用アカウントなら先頭に【検証】。
  * ⚠️ 組み立てと送信は lib/forYou/notifyOps.ts の1か所から呼ぶ（1日10件を超えたらまとめての通知に切り替える前提）。
  */
@@ -257,7 +257,7 @@ export function forYouInterestOpsTemplate(params: {
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">担当者のいない企業に「興味あり」が届きました</h2>
       <p style="margin:0 0 20px;color:#475569">
-        ${esc(who)}が「あなたに合う順」で <strong style="color:#0f172a">${esc(params.companyName)}</strong> に「興味あり」を押しました。
+        ${esc(who)}が「あなたに合う会社」で <strong style="color:#0f172a">${esc(params.companyName)}</strong> に「話を聞いてみたい」を押しました。
         この企業には OPINIO の担当者が登録されていないため、運営に届いています。
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">

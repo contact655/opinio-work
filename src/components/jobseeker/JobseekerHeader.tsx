@@ -711,15 +711,15 @@ export function JobseekerHeader() {
                       >
                         マイページ
                       </Link>
-                      {/* ★「あなたに合う順」（2026-10-15）。⚠️ 下のモバイルメニューにも同じ行がある。片方だけ消さないこと */}
+                      {/* ★「あなたに合う会社」（2026-10-15）。⚠️ 下のモバイルメニューにも同じ行がある。片方だけ消さないこと */}
                       <Link
-                        href="/mypage/for-you"
+                        href="/mypage/proposals"
                         onClick={() => setDropdownOpen(false)}
                         style={{ display: "block", padding: "10px 16px", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500, textDecoration: "none" }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)"; }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
                       >
-                        あなたに合う順
+                        あなたに合う会社
                       </Link>
                       {/* ⚠️★**全員に出す。ただし行き先は所属で変える**（2026-09-05）。
                              ログイン中は求職者側から企業側へ戻る導線が、これと下の
@@ -1005,13 +1005,13 @@ export function JobseekerHeader() {
               >
                 マイページ
               </Link>
-              {/* ★「あなたに合う順」（2026-10-15）。⚠️ 上のドロップダウンと同じ行き先・同じ文言 */}
+              {/* ★「あなたに合う会社」（2026-10-15）。⚠️ 上のドロップダウンと同じ行き先・同じ文言 */}
               <Link
-                href="/mypage/for-you"
+                href="/mypage/proposals"
                 onClick={() => setMobileMenuOpen(false)}
                 style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
               >
-                あなたに合う順
+                あなたに合う会社
               </Link>
               {/* ⚠️ デスクトップのドロップダウンと同じ条件・同じ行き先・同じ文言にすること。
                      片方だけに出すと「スマホからは自社の管理画面に入れない」になる。 */}
