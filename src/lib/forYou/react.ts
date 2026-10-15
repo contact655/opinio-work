@@ -2,7 +2,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
-import { proposalIntroLine } from "@/lib/constants/proposalResponses";
+import { PROPOSAL_NOTE_MAX, proposalIntroLine } from "@/lib/constants/proposalResponses";
 import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
 import { isValidDeclineReason } from "@/lib/constants/declineReasons";
 import { buildForYou } from "@/lib/forYou/rank";
@@ -34,8 +34,15 @@ export async function reactForYou(input: {
   companyId: string;
   reaction: unknown;
   reason?: unknown;
+  /** 会社へのひとこと（担当者がいる会社の「話を聞いてみたい」だけ。提案と同じ上限） */
+  note?: unknown;
+  /** ★「話を聞いてみたい」の取り消し。会話がまだ開いていないとき（担当者のいない会社）だけ */
+  undo?: unknown;
 }): Promise<ReactOutcome> {
+  if (input.undo === true) return undoInterest(input.owUserId, input.companyId);
   if (!isForYouReaction(input.reaction)) return { ok: false, status: 400, error: "操作が正しくありません" };
+  const note = typeof input.note === "string" ? input.note.trim() : "";
+  if (note.length > PROPOSAL_NOTE_MAX) return { ok: false, status: 400, error: `ひとことは${PROPOSAL_NOTE_MAX}文字までです` };
   const reaction: ForYouReaction = input.reaction;
   let reason: string | null = null;
   if (reaction === "not_interested") {
@@ -82,6 +89,8 @@ export async function reactForYou(input: {
 
   /* ── 担当者がいない企業 → 運営へ ─────────────────────────────────────────── */
   if (!company.hasResponder) {
+    /* ⚠️ 取り消してから押し直したときに二重に知らせない */
+    if (prev?.opsNotifiedAt) return { ok: true, result: "ops_notified" };
     const sent = await notifyOpsForYouInterest({
       companyId: company.id, companyName: company.name, candidateUserId: input.owUserId,
       rank: company.rank, reasons: company.reasons,
@@ -135,10 +144,21 @@ export async function reactForYou(input: {
       sent_at: new Date(t0).toISOString(),
     });
     if (iErr) console.error("[forYou/react] 案内の行:", iErr.message);
+    /* ひとことがあれば、本人の発言として1通目（introduce.ts と同じ。案内の行のあとに並ぶよう1ミリ秒ずらす） */
+    if (note && part?.id) {
+      const { error: nErr } = await db.from("ow_conversation_messages").insert({
+        conversation_id: conversationId,
+        sender_participant_id: part.id as string,
+        kind: "text",
+        body: note,
+        sent_at: new Date(t0 + 1).toISOString(),
+      });
+      if (nErr) console.error("[forYou/react] ひとこと:", nErr.message);
+    }
     /* ★本人の操作なので未読にしない */
     if (part?.id) {
       const { error: rErr } = await db.from("ow_conversation_participants")
-        .update({ last_read_at: new Date(t0 + 1).toISOString() }).eq("id", part.id as string);
+        .update({ last_read_at: new Date(t0 + 2).toISOString() }).eq("id", part.id as string);
       if (rErr) console.error("[forYou/react] 既読:", rErr.message);
     }
   } catch (e) {
@@ -148,4 +168,30 @@ export async function reactForYou(input: {
   await notifyCompanyProposalRaised({ companyId: company.id, candidateUserId: input.owUserId, conversationId });
   console.log(`[forYou/react] 会話を開いた company=${company.id} conversation=${conversationId}`);
   return { ok: true, result: "conversation", conversationId };
+}
+
+/**
+ * ★「話を聞いてみたい」の取り消し（2026-10-15）。**会話がまだ開いていないときだけ**（担当者のいない会社）。
+ *   reaction を「あとで」に戻し、interested_at を消す（会話を開く理由も消える）。
+ * ⚠️ 会話が開いている（会社にプロフィールが届いた）ものは取り消せない。届いたものは戻せないため。
+ * ⚠️ 運営に知らせた記録（ops_notified_at）は残す。メールは取り消せない。押し直しても二重に知らせない
+ */
+async function undoInterest(owUserId: string, companyId: string): Promise<ReactOutcome> {
+  const db = createAdminClient();
+  const { data: row, error } = await db.from("ow_for_you_reactions")
+    .select("interested_at, conversation_id").eq("user_id", owUserId).eq("company_id", companyId).maybeSingle();
+  if (error) {
+    console.error("[forYou/react] 取り消し 取得:", error.message);
+    return { ok: false, status: 500, error: "取り消せませんでした" };
+  }
+  if (!row?.interested_at) return { ok: false, status: 404, error: "取り消すものがありません" };
+  if (row.conversation_id) return { ok: false, status: 409, error: "メッセージが始まっているため取り消せません" };
+  const { data: saved, error: uErr } = await db.from("ow_for_you_reactions")
+    .update({ reaction: "later", reason: null, interested_at: null, updated_at: new Date().toISOString() })
+    .eq("user_id", owUserId).eq("company_id", companyId).is("conversation_id", null).select("user_id");
+  if (uErr || !saved || saved.length === 0) {
+    console.error("[forYou/react] 取り消し:", uErr?.message ?? "0行");
+    return { ok: false, status: 500, error: "取り消せませんでした" };
+  }
+  return { ok: true, result: "recorded" };
 }

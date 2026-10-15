@@ -6,7 +6,7 @@ import { reactForYou } from "@/lib/forYou/react";
 export const dynamic = "force-dynamic";
 
 /**
- * 「あなたに合う順」（/mypage/for-you）での反応（興味あり／あとで／興味なし）。
+ * 「あなたに合う会社」（/mypage/proposals）下段での反応（話を聞いてみたい＝interested／あとで／興味なし）。取り消しは body.undo。
  *
  * ⚠️★`ow_for_you_reactions` の書き込みは service_role のみ（authenticated に INSERT/UPDATE の GRANT が無い）。
  *    本人の行であることはここで確かめる（ログイン中の本人の ow_users.id でしか書かない）。
@@ -30,6 +30,8 @@ export async function POST(req: NextRequest, { params }: { params: { companyId: 
     companyId: params.companyId,
     reaction: body.reaction,
     reason: body.reason,
+    note: body.note,
+    undo: body.undo,
   });
   if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
   return NextResponse.json(out.result === "conversation"

@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { getRoleNameMap } from "@/lib/supabase/queries";
-import { phaseMatches } from "@/lib/constants/phase";
+import { phaseLabel, phaseMatches } from "@/lib/constants/phase";
 import { buildMoves, type TransitionExperience } from "@/lib/evidence/transitions";
 import {
   DESIRED_PHASE_TO_OPTION,
@@ -49,9 +49,19 @@ export type ForYouCompany = {
   reasons: string[];
   /** タグ「話を聞ける人がいます」。★点数には入れない（weights.ts） */
   hasTalkable: boolean;
-  /** 「興味あり」を押したら会話が開くか（有効な担当者がいるか。見ている人と is_test が一致する担当者だけ数える） */
+  /** 「話を聞いてみたい」を押したら会話が開くか（有効な担当者がいるか。見ている人と is_test が一致する担当者だけ数える） */
   hasResponder: boolean;
-  reaction: { reaction: ForYouReaction; reason: string | null; interestedAt: string | null; conversationId: string | null } | null;
+  /** タグ「募集あり」（公開中の求人がある） */
+  hasOpenJobs: boolean;
+  /** タグ「フェーズ」（lib/constants/phase.ts のラベル。不明なら null） */
+  phaseLabel: string | null;
+  /**
+   * ★「気をつけて見てほしいこと」。**いまは器だけで、常に空**（2026-10-15 / 柴さんの指示）。
+   *   上段（提案）の判定 `buildCounterEvidence`（lib/evidence/engine.ts）を流用できるかの調査は
+   *   docs/phase0-for-you-20261015.md §8。空なら画面は何も出さない
+   */
+  cautions: string[];
+  reaction: { reaction: ForYouReaction; reason: string | null; interestedAt: string | null; opsNotifiedAt: string | null; conversationId: string | null } | null;
 };
 
 export type ForYouResult =
@@ -85,7 +95,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     /* ★企業からのメッセージで本人がブロックした企業（ow_users 空間） */
     db.from("ow_approach_blocked_companies").select("company_id").eq("user_id", owUserId),
     db.from("ow_for_you_reactions")
-      .select("company_id, reaction, reason, interested_at, conversation_id").eq("user_id", owUserId),
+      .select("company_id, reaction, reason, interested_at, ops_notified_at, conversation_id").eq("user_id", owUserId),
     getOwnCompanyId(),
     getRoleNameMap(),
   ]);
@@ -238,8 +248,8 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     .map((p) => DESIRED_PHASE_TO_OPTION[p]).filter(Boolean);
 
   const reactionByCompany = new Map(
-    ((reactionsRes.data ?? []) as { company_id: string; reaction: ForYouReaction; reason: string | null; interested_at: string | null; conversation_id: string | null }[])
-      .map((r) => [r.company_id, { reaction: r.reaction, reason: r.reason, interestedAt: r.interested_at, conversationId: r.conversation_id }]),
+    ((reactionsRes.data ?? []) as { company_id: string; reaction: ForYouReaction; reason: string | null; interested_at: string | null; ops_notified_at: string | null; conversation_id: string | null }[])
+      .map((r) => [r.company_id, { reaction: r.reaction, reason: r.reason, interestedAt: r.interested_at, opsNotifiedAt: r.ops_notified_at, conversationId: r.conversation_id }]),
   );
 
   /* ── 3. 点数 ───────────────────────────────────────────────────────────────── */
@@ -304,6 +314,9 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     /* ★会社自身の is_test も見ている人と一致すること（会話の判定 can_contact_without_stance() が見る向きと同じ）。
           一致しないと、担当者がいても会話は開かない（検証用アカウント × 実在の企業） */
     hasResponder: responders.has(s.row.id) && (s.row.is_test === true) === viewerIsTest,
+    hasOpenJobs: jobRolesByCompany.has(s.row.id),
+    phaseLabel: phaseLabel(s.row.phase),
+    cautions: [],
     reaction: reactionByCompany.get(s.row.id) ?? null,
   }));
 
