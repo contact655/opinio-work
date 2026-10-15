@@ -3276,8 +3276,12 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 
 - 提案は**求職者にだけ届く**。「話を聞いてみたい」（任意のひとこと200字）と答えたときだけ企業に届く。
   未回答・見送り・30日経過は**企業に一切出さない**（名前も件数の内訳も）
-- 企業の設定 `ow_company_proposal_settings.mode`（**行が無ければ auto**）を、答えた時点で
-  `ow_proposals.delivery_mode` に写す。auto＝その場で会話 ／ review＝企業が14日以内に「会う」か見送る
+- ★★**企業側の設定（すぐにメッセージを始める／確認してから会うかを決める）は 2026-10-11 の同日に廃止した**（柴さんの指示）。
+  「話を聞いてみたい」と答えると、**どの企業でもその場で会話を作る**（新しく答えた提案の `delivery_mode` には `'auto'` を写す）。
+  ⚠️ `ow_company_proposal_settings` と `ow_proposals.delivery_mode` / `company_respond_by` / `company_response` / `company_seen_at` の列は
+     **残してあるが使わない**（消すかは後で決める）。`/api/biz/proposals/settings` と `/api/biz/proposals/[id]/respond` は **410**。
+  ⚠️ 以前に企業が「今回は見送る」と答えた提案（`company_response = 'declined'`）だけは記録どおり終了のまま。
+  ⚠️ この行は 2026-10-15 まで「auto＝その場で会話 ／ review＝企業が14日以内に『会う』か見送る」と書かれていた（実装より古かった）
 - 段の判定は **`proposalPhase()`**（[proposalResponses.ts](src/lib/constants/proposalResponses.ts)）の1か所。
   会話を作るのは **`introduceProposal()`**（[introduce.ts](src/lib/evidence/introduce.ts)）だけ。入口は [respond.ts](src/lib/evidence/respond.ts)
 - ⚠️★**企業側で提案を読むのは [companyProposals.ts](src/lib/evidence/companyProposals.ts) だけ。**
@@ -3424,6 +3428,26 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
       burn されるのは一度出したぶんだけ。混同しないこと。
 
 ---
+
+## ★「あなたに合う順」（/mypage/for-you。2026-10-15）
+
+**掲載企業をすべて、本人の職歴・希望から合う順に並べ、理由を添えて本人にだけ見せる。** LLM は使わない。
+材料の実測と判断は [docs/phase0-for-you-20261015.md](docs/phase0-for-you-20261015.md)。
+
+| | 実体 |
+|---|---|
+| 重み・理由文・使わないシグナルとその理由 | ★[lib/forYou/weights.ts](src/lib/forYou/weights.ts) の1ファイルだけ |
+| 並べる | [lib/forYou/rank.ts](src/lib/forYou/rank.ts) |
+| 反応（興味あり／あとで／興味なし） | [lib/forYou/react.ts](src/lib/forYou/react.ts)（入口はここだけ）→ `ow_for_you_reactions` |
+| 担当者のいない企業への「興味あり」 | [lib/forYou/notifyOps.ts](src/lib/forYou/notifyOps.ts)（1件ずつ運営へ。件名【興味あり・担当者未登録】） |
+
+- 足切りは**ブロック中・在籍中の企業だけ**（`get_blocked_companies` ＋ `ow_approach_blocked_companies`）
+- ⚠️★**S3（入社理由の重なり）と S4（元同僚）はコードに入れていない。** 理由は weights.ts の冒頭。入れる前に読むこと
+- ⚠️★**S6（話を聞ける人）はタグだけ。点数に入れない**（2社しか無く、全員の上位に同じ2社が上がる）
+- ⚠️★`ow_for_you_reactions` の書き込みは **service_role だけ**（本人は SELECT のみ）。`interested_at` は
+  **企業との会話を開く理由**（`openReason.ts` の本人発の理由。応募と同じ `can_contact_without_stance()`）なので**消さない**
+- 「担当者がいる」は**見ている人と is_test が一致する有効な担当者**がいること（検証用の担当者しかいない実在の企業は、実在の利用者には「担当者なし」）
+- 検証用アカウントには**検証用の掲載企業も並ぶ**（会話が開く経路を検証で通すため）。実在の利用者には出ない
 
 ## ⚠️ ow_transitions は導出テーブル。直接 INSERT しない（2026-08-20 追加）
 
