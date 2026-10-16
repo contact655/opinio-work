@@ -153,8 +153,7 @@ export default function BusinessPricingPage() {
                           ⚠️★**企業は自分で外すこともできない**（2026-09-18 / B7）。
                              在籍していない人は運営に**報告**するだけで
                              （POST /api/biz/member-reports）、外すかどうかは運営が判断する。
-                             それまでは `/api/biz/hidden-experiences` で企業が直接消せた。
-                          企業が招くのは「話せる人」だけ（/api/biz/ambassador/invite）。 */
+                             それまでは `/api/biz/hidden-experiences` で企業が直接消せた。 */
                     "社員・OB/OGの掲載（人数の上限なし）",
                     "応募の受付",
                   ],
@@ -171,7 +170,7 @@ export default function BusinessPricingPage() {
                     "Free のすべて",
                     "候補者検索",
                     "応募者の連絡先の表示",
-                    "話せる社員（アンバサダー）の招待",
+                    /* ⚠️ 「話せる社員（アンバサダー）の招待」は 2026-10-16 に機能ごと撤去した */
                   ],
                   /* ⚠️ 「スカウトの送信」を戻さないこと。停止中で機能表から外してある。 */
                   border: "var(--royal)",
@@ -271,7 +270,7 @@ export default function BusinessPricingPage() {
               */}
               <FaqItem q="費用はかかりますか？">
                 企業ページの作成、求人の掲載、応募の受け取りまでは無料です。
-                候補者検索と応募者の連絡先の表示、話せる社員の招待は、
+                候補者検索と応募者の連絡先の表示は、
                 月額{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円（税別）の有料プランでご利用いただけます。
                 <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
                 {" "}取引条件の全文は{" "}
