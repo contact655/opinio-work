@@ -6131,6 +6131,72 @@ export type Database = {
           },
         ]
       }
+      ow_review_axes: {
+        Row: {
+          created_at: string
+          display_order: number
+          is_active: boolean
+          key: string
+          left_headline_end: string
+          left_headline_join: string
+          left_text: string
+          name: string
+          right_headline_end: string
+          right_headline_join: string
+          right_text: string
+        }
+        Insert: {
+          created_at?: string
+          display_order: number
+          is_active?: boolean
+          key: string
+          left_headline_end: string
+          left_headline_join: string
+          left_text: string
+          name: string
+          right_headline_end: string
+          right_headline_join: string
+          right_text: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          is_active?: boolean
+          key?: string
+          left_headline_end?: string
+          left_headline_join?: string
+          left_text?: string
+          name?: string
+          right_headline_end?: string
+          right_headline_join?: string
+          right_text?: string
+        }
+        Relationships: []
+      }
+      ow_review_fit_tags: {
+        Row: {
+          created_at: string
+          display_order: number
+          is_active: boolean
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          display_order: number
+          is_active?: boolean
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          is_active?: boolean
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       ow_role_aliases: {
         Row: {
           alias: string
@@ -7535,6 +7601,154 @@ export type Database = {
           welcome_sent_at?: string | null
         }
         Relationships: []
+      }
+      ow_workplace_review_axes: {
+        Row: {
+          axis_key: string
+          created_at: string
+          review_id: string
+          value: number
+        }
+        Insert: {
+          axis_key: string
+          created_at?: string
+          review_id: string
+          value: number
+        }
+        Update: {
+          axis_key?: string
+          created_at?: string
+          review_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_workplace_review_axes_axis_key_fkey"
+            columns: ["axis_key"]
+            isOneToOne: false
+            referencedRelation: "ow_review_axes"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "ow_workplace_review_axes_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "ow_workplace_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_workplace_review_tags: {
+        Row: {
+          created_at: string
+          review_id: string
+          tag_key: string
+        }
+        Insert: {
+          created_at?: string
+          review_id: string
+          tag_key: string
+        }
+        Update: {
+          created_at?: string
+          review_id?: string
+          tag_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_workplace_review_tags_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "ow_workplace_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_workplace_review_tags_tag_key_fkey"
+            columns: ["tag_key"]
+            isOneToOne: false
+            referencedRelation: "ow_review_fit_tags"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      ow_workplace_reviews: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          english: number | null
+          experience_id: string
+          fit_score: number | null
+          gap_culture: number | null
+          gap_growth: number | null
+          gap_job: number | null
+          gap_pay: number | null
+          id: string
+          memo: string | null
+          office: number | null
+          overtime: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          english?: number | null
+          experience_id: string
+          fit_score?: number | null
+          gap_culture?: number | null
+          gap_growth?: number | null
+          gap_job?: number | null
+          gap_pay?: number | null
+          id?: string
+          memo?: string | null
+          office?: number | null
+          overtime?: number | null
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          english?: number | null
+          experience_id?: string
+          fit_score?: number | null
+          gap_culture?: number | null
+          gap_growth?: number | null
+          gap_job?: number | null
+          gap_pay?: number | null
+          id?: string
+          memo?: string | null
+          office?: number | null
+          overtime?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_workplace_reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_workplace_reviews_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: true
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_workplace_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
