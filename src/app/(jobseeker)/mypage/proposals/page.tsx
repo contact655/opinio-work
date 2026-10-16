@@ -140,6 +140,7 @@ export default async function ProposalsPage() {
           href: companyLinkStateFor({ isTest: c.isTest, isPublished: c.isPublished }, { viewerIsTest }) === "open"
             ? `/companies/${c.slug ?? c.id}` : null,
           tagline: c.tagline,
+          logoUrl: c.logoUrl,
           reasons: c.reasons,
           /* ★1番目の理由で束ねる見出し（無ければ「その他の掲載企業」へ） */
           groupLabel: c.signals[0] ? groupLabel(c.signals[0].detail) : null,

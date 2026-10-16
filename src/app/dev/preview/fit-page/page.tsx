@@ -37,7 +37,7 @@ const PROPOSAL_ANSWERED: ProposalView = {
 };
 
 const base: Omit<ForYouView, "id" | "rank" | "name"> = {
-  href: null, tagline: "チームの作業を割り当て、進捗を追う", reasons: [], groupLabel: null, hasOpenJobs: false,
+  href: null, logoUrl: null, tagline: "チームの作業を割り当て、進捗を追う", reasons: [], groupLabel: null, hasOpenJobs: false,
   phaseLabel: "上場企業", cautions: [], hasResponder: false, reaction: null, conversationId: null, interested: false,
 };
 const AI = { reasons: ["いまの勤務先と同じAI・データ領域の会社です"], groupLabel: "いまの勤務先と同じAI・データ領域" };

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
 import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
 import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
-import { BTN, CARD_STYLE, CautionBox, NameLabel, ReasonBox, TagRow } from "./FitCardParts";
+import { BTN, CARD_STYLE, CautionBox, NameLabel, ReasonBox } from "./FitCardParts";
 
 /**
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
@@ -24,6 +25,8 @@ export type ForYouView = {
   /** 企業ページへのリンク。開けない会社（検証用など）は null */
   href: string | null;
   tagline: string | null;
+  /** ow_companies.logo_url（無ければ頭文字で出す） */
+  logoUrl: string | null;
   /** 理由（最大2行）。★無い会社は枠ごと出さない。1番目は見出しになるのでカードでは出さない */
   reasons: string[];
   /** ★まとめる見出し（1番目の理由）。理由の無い会社は null（「その他の掲載企業」へ） */
@@ -106,6 +109,16 @@ export default function ForYouSection({
 
   return (
     <section aria-labelledby="for-you-heading">
+      {/* ⚠️ この <style> のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */}
+      <style>{`
+        .fy-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .fy-card { display: flex; flex-direction: column; min-width: 0; }
+        .fy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fy-tagline { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); margin: 8px 0 0;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .fy-actions { margin-top: auto; padding-top: 12px; }
+        @media (max-width: 760px) { .fy-grid { grid-template-columns: minmax(0, 1fr); } }
+      `}</style>
       <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 12px" }}>{ALL_COMPANIES_SECTION_TITLE}</h2>
 
       {loadFailed ? (
@@ -135,28 +148,37 @@ export default function ForYouSection({
                   {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
                   <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{g.items.length}社</span>
                 </h3>
-                <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
+                {/* ★2026-10-16: 1列の縦長カードが21枚続いて読みにくかったので、広い画面は2列にした（柴さんの指示）。
+                       ⚠️ 列の幅は minmax(0, 1fr)（1fr だと長い社名で列が押し広がる）。狭い画面は CSS で1列 */}
+                <ol className="fy-grid">
                   {g.items.map((c) => (
-                    <li key={c.id} data-company-id={c.id} data-rank={c.rank} style={CARD_STYLE}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                        <h4 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
-                          {c.href
-                            ? <Link href={c.href} style={{ color: "inherit", textDecoration: "none" }}>{c.name}</Link>
-                            : c.name}
-                        </h4>
-                        {/* ★担当者の有無は小さなラベルだけ。説明は「詳しく」に1回（柴さんの指示） */}
-                        <NameLabel state={c.hasResponder ? "for-you-has-responder" : "for-you-no-responder"}>
-                          {c.hasResponder ? "担当者あり" : "担当者未登録"}
-                        </NameLabel>
+                    <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-card" style={CARD_STYLE}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
+                        <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <h4 className="fy-name" style={{ fontSize: 15, fontWeight: 700, margin: 0 }} title={c.name}>
+                            {c.href
+                              ? <Link href={c.href} style={{ color: "inherit", textDecoration: "none" }}>{c.name}</Link>
+                              : c.name}
+                          </h4>
+                          {/* ★担当者の有無は小さなラベルだけ。説明は「詳しく」に1回（柴さんの指示） */}
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 3 }}>
+                            <NameLabel state={c.hasResponder ? "for-you-has-responder" : "for-you-no-responder"}>
+                              {c.hasResponder ? "担当者あり" : "担当者未登録"}
+                            </NameLabel>
+                            {c.hasOpenJobs && <NameLabel state="fit-tag-jobs">募集あり</NameLabel>}
+                            {c.phaseLabel && <NameLabel state="fit-tag-phase">{c.phaseLabel}</NameLabel>}
+                          </div>
+                        </div>
                       </div>
-                      {c.tagline && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "2px 0 0" }}>{c.tagline}</p>}
+                      {c.tagline && <p className="fy-tagline" title={c.tagline}>{c.tagline}</p>}
 
                       {/* ★見出しにした理由（1番目）はカードで繰り返さない。2つ目以降だけ */}
                       <ReasonBox items={g.label ? c.reasons.slice(1) : c.reasons} state="for-you-reasons" />
                       {/* ★中身が空なら枠ごと出さない（CautionBox が null を返す） */}
                       <CautionBox items={c.cautions} state="for-you-cautions" />
-                      <TagRow openJobs={c.hasOpenJobs} phase={c.phaseLabel} />
 
+                      <div className="fy-actions">
                       <Actions
                         c={c}
                         busy={busy === c.id}
@@ -176,6 +198,7 @@ export default function ForYouSection({
                         onChangeReason={setDeclineReason}
                         onDecline={() => react(c.id, "not_interested", { reason: declineReason })}
                       />
+                      </div>
                       {err?.id === c.id && (
                         <p role="alert" style={{ fontSize: 12, color: "#B3261E", margin: "6px 0 0" }}>{err.text}</p>
                       )}
@@ -238,7 +261,7 @@ function Actions(props: {
   /* ── 「話を聞いてみたい」を押した後 ── */
   if (c.interested) {
     return (
-      <div data-state="for-you-interested" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7 }}>
+      <div data-state="for-you-interested" style={{ fontSize: 13, lineHeight: 1.7 }}>
         {c.conversationId ? (
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             {/* ⚠️ 上段（ProposalsClient）の回答済みと同じ1行。片方だけ変えないこと */}
@@ -265,7 +288,7 @@ function Actions(props: {
   /* ── 担当者がいる会社: ひとことを書いて送る（上段の提案と同じ形） ── */
   if (props.composing) {
     return (
-      <div data-state="for-you-composing" style={{ marginTop: 12 }}>
+      <div data-state="for-you-composing" style={{}}>
         <label htmlFor={`fy-note-${c.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
           会社へのひとこと<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（任意・{PROPOSAL_NOTE_MAX}字まで）</span>
         </label>
@@ -294,7 +317,7 @@ function Actions(props: {
   /* ── 「興味なし」の理由を選ぶ ── */
   if (props.declining) {
     return (
-      <div style={{ marginTop: 12 }}>
+      <div style={{}}>
         <label htmlFor={`decline-${c.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
           理由を1つ選んでください<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（会社には伝わりません）</span>
         </label>
@@ -318,17 +341,20 @@ function Actions(props: {
   }
 
   return (
-    <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+    /* ★2026-10-16: 同じ濃紺のボタンが21個並んで重かったので、下段は枠線にした（柴さんの指示）。
+          上段（OPINIO からの提案）は塗りのまま —— 強さの差で「提案」と「一覧」を見分けられるようにする。
+          「あとで」「興味なし」は文字だけにして、主の操作を1つに見せる */
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
       <button type="button" disabled={props.busy} onClick={props.onInterested}
-        style={{ ...btn, border: "none", background: "var(--royal)", color: "#fff", opacity: props.busy ? 0.6 : 1 }}>
+        style={{ ...btn, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: props.busy ? 0.6 : 1, marginRight: 4 }}>
         話を聞いてみたい
       </button>
       <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
-        style={{ ...btn, border: "1px solid var(--line)", background: c.reaction === "later" ? "var(--bg-tint)" : "#fff", color: "var(--ink)" }}>
+        style={{ ...btn, border: "none", background: c.reaction === "later" ? "var(--bg-tint)" : "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
         {c.reaction === "later" ? "あとで（保存済み）" : "あとで"}
       </button>
       <button type="button" disabled={props.busy} onClick={props.onStartDecline}
-        style={{ ...btn, border: "none", background: "none", color: "var(--ink-soft)" }}>
+        style={{ ...btn, border: "none", background: "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
         興味なし
       </button>
     </div>
