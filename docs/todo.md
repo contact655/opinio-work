@@ -8,6 +8,14 @@
 
 ---
 
+## ⚠️ 使わなくなった列の DROP（2026-10-16 記録・**柴さんの承認が要る**）
+
+**対象**: `ow_experiences.salary_man` / `salary_base` / `salary_bonus` / `salary_stock` / `visibility_salary`（年収は `ow_experience_salaries` へ移した）、`ow_casual_meetings.requested_user_id`（カジュアル面談の人の指名を撤去した）、`ow_company_members`（表とデータ。面談OKを撤去した）、`ow_company_admins.is_ambassador`（死にフラグ）。**なぜ残っているか**: 2026-10-16 のフェーズ1・2で参照を外したが、削除系は別途承認の方針で残した。**やるなら**: 列・表ごとに「src の参照0件／関数の本体・ビュー・制約・ポリシー0件」を数え直し（CLAUDE.md「消えたと言う前に5種類を数える」）、作業前ダンプを取ってから migration を書き、承認を得て適用する。⚠️ `salary_man` の3件は移行済み（`20261016160000` で一致を検算）。
+
+## ⚠️ つながり（企業ページ）の実データでの陽性確認（2026-10-16 記録・未実施）
+
+**対象**: `/companies/[id]` の「この会社に、あなたのつながりがいます（N人）」（`lib/companies/connections.ts`）。**なぜ残っているか**: 2026-10-16 時点で相互フォローが0組、検証用アカウントは両側とも除外されるため、DB を通る経路で「出る側」を一度も踏めていない（選び方は `scripts/check-connections.mjs` と `/dev/preview/connections` で確認済み）。**やるなら**: 実在の利用者どうしの相互フォローが生まれ、片方が「つながりとしての表示」をオンにしたら、もう片方のログインでその人の在籍企業のページを開き、枠と人数が出ることを確かめる（未ログイン・本人以外には出ないことも）。
+
 ## ⚠️ 職歴の作成・編集で `ow_users.profile_edited_at` が更新されない（2026-10-16 記録・未調査）
 
 **対象**: トリガー `trg_ow_experiences_touch_profile_edited`（`touch_profile_edited('ow')`）と、`/biz/candidates`（`lib/business/candidates/load.ts` がこの値を読む）。**なぜ残っているか**: 2026-10-16 の年収の検証で、職歴の削除では更新されたが作成・編集では更新されなかった。見立ては、作成（POST）と編集（PUT）が admin クライアント（service_role）で書くため、関数の先頭の `auth.role() <> 'authenticated'` で抜けていること（削除はセッションのクライアントで書くので通る）。＝職歴を足した・直した人が「最近更新した人」として扱われていない可能性がある。**やるなら**: 原因を実測で確かめ、API 側で明示的に更新するか、トリガーの条件を見直す（別の作業）。
