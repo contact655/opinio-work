@@ -8,25 +8,235 @@
 
 ---
 
-## ⚠️ 非公開の企業に在籍している人は、自分の職歴が「非公開」と出る（2026-09-12 実測）
+## ★★`ow_users` を作っているのは DB トリガー。`split_part(email,'@',1)` がそこに残っている（2026-09-16 記録）
 
-**対象**: `/mypage` の職歴（`src/app/(jobseeker)/mypage/page.tsx` の `companyInfoById`）。
+> ✅ **解決済み（2026-09-17 / `85d25c30`・migration `20260917090000_trigger_name_no_email`）。** フォールバックを `'ユーザー'` にした。CLAUDE.md「オンボーディングの現状」に経緯がある。（2026-10-16 に状態を追記）
 
-`ow_companies` をセッションのクライアントで引いているので、**`is_published = false` の会社は
-RLS で落ちて名前が取れない。** その結果、本人の画面で自分の勤務先が
-**「非公開」（タイムライン）／「不明な企業」（編集・理由モーダルの見出し）**になる。
+**対象**: トリガー `on_auth_user_created` → 関数 `public.handle_new_ow_user()`。
 
-実測（2026-09-12 / 実ユーザー）: **3人・3件**が該当（プルデンシャル生命保険 / Archi Village / ニトリ）。
-理由モーダルでは「**不明な企業 を選んだ理由は？**」と出る。
+```sql
+COALESCE(
+  NULLIF(TRIM(NEW.raw_user_meta_data->>'name'), ''),
+  NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''),
+  split_part(NEW.email, '@', 1)        -- ★ここ
+)
+```
 
-**なぜ残っているか**: 公開側で会社名を伏せる仕組み（`MASKED_COMPANY_LABEL`）と、
-**取得できなかったから名前が無い**のが、画面上で同じ見た目になっている。
-本人が自分で入力した勤務先なので、**本人には見せてよい**はず。
+⚠️★**CLAUDE.md は「`email.split("@")[0]` を入れる経路は 2026-09-14 に塞いだ」と書いているが、
+   塞いだのはアプリ側だけ**（`lib/auth/linkOwUser.ts` と `/auth` の `signUp`）。
+   **トリガーは塞がれていない。** `raw_user_meta_data` に名前が無い経路
+   （マジックリンク・招待）では**いまも入る**。`ow_users.name` は `/people`・企業ページ・
+   `/u/[id]`・フィードにそのまま出るので、**本人が入力していない個人情報を公開する**ことになる。
 
-**やるなら**: `/mypage` の会社名だけ admin クライアントで引く（本人の職歴に紐づく id に限る）か、
-`is_published = false` でも**名前だけ**は authenticated に返す。
-⚠️ **公開側（`/u/[id]`・企業ページ・`/people`）には広げないこと。** あちらは
-`is_published` を見てリンクを落とす仕様（CLAUDE.md「企業ページへのリンクは env に関係なく〜」）。
+**実測（2026-09-16）**: `name = split_part(email,'@',1)` の行は **1件のみ**
+（`is_test`・2026-06-28）。**実ユーザーは0人。** 登録フォームが名前を必須になったので
+主経路では起きない。＝ **いま実害は無い。**
+
+**やるなら**: フォールバックを `'ユーザー'` にする（アプリ側と同じ）。
+⚠️★**トリガーの中で例外を投げないこと。** 関数のコメントに
+   「ここが例外を投げると `auth.users` の INSERT ごと失敗し、サインアップが止まる」とある。
+⚠️ 既存1件は `is_test` なので**触らない**。
+
+---
+
+## ★`lib/auth/linkOwUser.ts` の INSERT が `visibility: "public"` を書く（2026-09-16 記録）
+
+> ✅ **解決済み（2026-09-16 / `e215bd88`）。** INSERT から `visibility` を外し、列の既定値（`login_only`）に任せた。（2026-10-16 に状態を追記）
+
+**対象**: [src/lib/auth/linkOwUser.ts](../src/lib/auth/linkOwUser.ts) の新規作成。
+
+上のトリガーが**先に**行を作るので、この INSERT には**ほぼ到達しない**
+（`resolveOrLinkOwUser` は `"existing"` を返す）。
+実測（2026-09-16）: この行が入った 2026-08-03 以降に作られた **23人全員が `login_only`**
+（＝ 列の既定値。トリガーは `visibility` を書かない）。
+
+⚠️★**到達したら、その人は `public` で始まる** ——氏名・所属・職歴が
+   **未ログインと検索エンジンに見える**状態。設定画面（`profileVisibility.ts`）は
+   `login_only` を既定として説明しており、**食い違っている。**
+   ⚠️ いま実害は無いが、**トリガーを消した日に静かに発火する。**
+
+**やるなら**: この INSERT から `visibility: "public"` を落とし、**列の既定値に任せる**
+（`handle_new_ow_user` が `scout_enabled` を書かない理由と同じ ——
+「既定値との二重管理になり、片方だけ変えたときにずれる」）。
+
+---
+
+## ⚠️ middleware が `/agent` をガードしているが、`src/app/agent` が存在しない（2026-09-16 記録）
+
+> ⏳ **未対応（2026-10-16 時点）。** `src/middleware.ts` に `/agent` のガードが残り、`src/app/agent` は無いまま。
+
+**対象**: [src/middleware.ts](../src/middleware.ts) の
+`AGENT_PUBLIC_PATHS = ["/agent/auth"]` と `pathname.startsWith("/agent")`。
+
+**いまの状態**: `src/app/agent` ディレクトリが**無い**ので、`/agent/*` はすべて 404。
+ガードは誰も通らない経路に掛かっている。`ow_career_agent_leads`（12列・**0行**）も
+**src から読み書きするコードが0件**で、baseline にテーブルだけ残っている。
+
+**なぜ残っているか**: Career Agent 側へ移設する前提で先に置かれたもの。
+`/people` の人物帯（`lpGuestMembers.ts` / `SHOW_PEOPLE_BAND = false`）も同じ経緯。
+
+**やるなら**: 作る予定が無いなら **middleware の1行とテーブルを一緒に**落とす。
+⚠️ **片方だけ消さないこと。** ガードだけ消すと、あとで `/agent` を作った日に
+   **認証なしで開く**状態から始まる。
+⚠️ テーブルを落とすなら CLAUDE.md「テーブル・カラム・関数を DROP するときのチェックリスト」に従う
+   （関数の本文・ポリシー・ビューまで検索してから）。
+
+---
+
+## ⚠️ `POST /api/biz/ambassador/self-register` は CHECK 制約で必ず 500（2026-08-23 記録・未修正）
+
+> ✅ **解決済み（2026-08-23 / `330f6d20`）。** `display_consent: true, is_public: true` で入れる形に直した。見出しの「未修正」は記録した時点の状態。（2026-10-16 に状態を追記）
+
+**対象**: [src/app/api/biz/ambassador/self-register/route.ts](../src/app/api/biz/ambassador/self-register/route.ts)。
+
+企業の管理者が「自分も面談対応者になる」を押すと**必ず失敗する**。
+INSERT が `display_consent: false, is_public: true` を入れようとするが、
+`check_public_requires_consent` は `is_public = false OR display_consent = true` を要求する。
+RLS の「INSERT は `display_consent=false` のみ許可」に合わせた実装が、CHECK と矛盾している。
+
+**なぜ残っているか**: 行は残らない（INSERT ごと落ちる）のでデータは汚れておらず、
+実害が「その機能が使えない」に留まっているため。⚠️ **`approved_at` が本番0件**なのとも整合する。
+
+**やるなら**: INSERT を `is_public = false` で通し、**そのあと本人として UPDATE** で
+`display_consent` と `is_public` を立てる2段にする（`/api/mypage/ambassador-self-register` と同じ形）。
+⚠️ **CHECK を緩める方向で直さないこと。**「同意なしに掲載されない」を DB で保証している制約。
+⚠️ トリガー `guard_member_consent` の空間取り違え（CLAUDE.md 参照）とは**別の不具合**。混同しない。
+
+---
+
+## ★DM に「本人の意思表示」のゲートが無い（2026-09-16 記録・未実装）
+
+> ❓ **要確認（2026-10-16）。** その後、DM は「メッセージリクエスト」の形になった（2026-10-09〜11。受け手が返信するまで会話にならない・ブロック・運営への報告・`contactGate`）。ただし**本人が「誰から受け取るか」を選ぶ設定は無いまま**。下の表のスカウトの行は、スカウトの廃止（2026-10-08）で古くなっている。
+
+**対象**: `POST /api/dm/start` / `POST /api/dm/message` / `/u/[id]` の「メッセージ」ボタン。
+
+**いまの状態**: DM の相手を絞っているのは **`ow_users.visibility` だけ**
+（`private` と、未ログインでの `login_only` を弾く）。`career_stance`（転職についての意思表示）も、
+面談対応可（`ow_company_members`）も**参照していない**。
+`/u/[id]` の「メッセージ」は**ログイン済みの非オーナー全員**に出る（実測 2026-09-16）。
+
+「声がかかる」経路は3つあり、ゲートがそれぞれ違う。
+
+| 経路 | ゲート |
+|---|---|
+| スカウト（企業→本人） | `can_send_scout()`（`career_stance` / 在籍企業 / ブロック / 勧奨禁止）＋ 有料プラン ＋ env |
+| カジュアル面談（本人指名） | 本人が面談対応者として掲載中 ＋ 企業が受付中 |
+| **DM（個人→個人）** | ★**`visibility` だけ。実質ゲート無し** |
+
+**なぜ残っているか**: トップページの在籍者向けセクションに
+「**話すかどうかも自分で決められる**」と書く案があったが、**裏が取れないので文言ごと落とした**
+（2026-09-16 / フェーズ1）。**実装より先に文言を書かない**という判断で、機能側は保留。
+
+**やるなら**: 「誰から DM を受け取るか」を本人が選べる設定を作り、
+`POST /api/dm/start` と `/u/[id]` のボタンの**両方**に当てる。
+⚠️★**片方だけにしないこと。** ボタンを隠しても API を直接叩けば届く
+（`share_profile` のチェックボックスが「守れない約束」になっていたのと同じ形）。
+⚠️ `career_stance` を流用してよいかは別途判断が要る。あれは**企業のスカウト**についての
+意思表示で、「個人から話しかけられてよいか」とは別の軸。
+⚠️ 実装したら、トップページの在籍者向けセクションと FAQ に3項目目を足せる。
+
+---
+
+## ★`companyDisplayName()` が日本企業も英語名で出す（2026-09-16 記録・今回は触っていない）
+
+> ⏳ **未対応（2026-10-16 時点）。** 表示名は今も `name_en` を優先する（`src/lib/companies/displayName.ts`）。
+
+**対象**: [src/lib/companies/displayName.ts](../src/lib/companies/displayName.ts)。
+
+`name_en` があればそれを優先するので、**日本企業も英語名になる**。実例:
+
+| name | name_en | 表示名 |
+|---|---|---|
+| 伊藤忠テクノソリューションズ株式会社 | ITOCHU Techno-Solutions Corporation | **ITOCHU Techno-Solutions** |
+
+`brand_name` には「CTC」が入っているが、**表示名は `brand_name` を見ない**。
+
+**なぜ残っているか**: 2026-09-16 に LP を共通関数へ寄せたとき、
+**LP だけ `brand_name ?? name` を使っていた**ので「CTC」と出ていた。
+`/companies` `/search` `/companies/[id]` は前から「ITOCHU Techno-Solutions」なので、
+**LP を揃えるほうを選んだ**（柴さんの判断）。ルールそのものの見直しは別件。
+
+**やるなら**: 「`brand_name` があればそれを最優先する」に変えるかどうかを決める。
+⚠️★**`brand_name` を単純に最優先にしないこと。** 空文字の行がある（下の項目）ので、
+`nullif(brand_name, '')` 相当の扱いが要る。
+⚠️ 変えると**一覧・詳細・検索・LP の4つが同時に動く**。1社ずつ見て決めること。
+
+---
+
+## ★`ow_companies.brand_name` に空文字の行がある／`?? ` が空文字を拾えない形（2026-09-16 記録）
+
+> ⏳ **未対応（2026-10-16 実測：`brand_name` が空文字の行 1件）。**
+
+**対象**: `ow_companies.brand_name`。**株式会社Opinio が `''`（NULL ではない）。**
+
+`brand_name ?? name` は**空文字を拾わない**ので、LP のカードの社名が**空のまま**出ていた。
+しかも `updated_at` が最新なので**必ず先頭**だった（2026-09-16 に実測して発見）。
+
+**いまの状態**: **表示は解消した**（LP を `companyDisplayName()` に寄せたので `brand_name` を見ない）。
+**データは直していない。**
+
+**やるなら（2つある。混同しないこと）**
+
+1. **データ**: `brand_name = ''` を NULL に直すか、「Opinio」を入れるか。
+   ⚠️ **一括 UPDATE をしないこと**（CLAUDE.md）。1社なので id で名指しする。
+   ⚠️ 空文字を弾く CHECK を張るかどうかも一緒に決める（`length(brand_name) > 0` など）。
+2. **同じ形が他に無いか**: 「**`??` で空文字を拾えていない**」箇所の洗い出し。
+   ⚠️★**プロパティ名の grep では見つからない。** `?? ""` を挟んだ後の `??` を探す
+   （CLAUDE.md「`?? ""` を挟んだ後の `?? フォールバック` は永久に効かない」の
+   **型で洗う手順**がそのまま使える）。今回のは**それとは逆向き**
+   ——DB に空文字が入っていて `??` が素通りする形なので、
+   **`text` 列で `= ''` の行がどれだけあるか**を DB 側から数えるほうが早い。
+
+```sql
+-- 空文字が入っている text 列を数える（一例）
+select count(*) filter (where brand_name = '') as brand_empty,
+       count(*) filter (where name_en = '')    as name_en_empty,
+       count(*) filter (where slug = '')       as slug_empty
+  from ow_companies;
+```
+
+---
+
+## ★`/search` の未解決語が「材業界」と欠けて表示される（2026-09-16 記録・表示だけの不具合）
+
+> ✅ **解決済み（2026-10-09 / `c95f5c3f`）。** 伏せる範囲を `findKindMarkers` から作る形にした（`interpretQuery.ts` の `collectUnresolved`）。（2026-10-16 に状態を追記）
+
+**対象**: `src/lib/search/interpretQuery.ts` の `collectUnresolved()`。
+
+**症状**: 「**人材業界からIT営業に移った人**」で検索すると、
+未解決語のチップが **「材業界」** と出る（先頭の「人」が落ちる）。
+
+**原因**: `collectUnresolved` が `KIND_MARKER_WORDS`（主対象の合図。「人」を含む）を
+**出現位置すべて**伏せ字にしている。`findKindMarkers` 側には誤検出よけ
+（`HITO_BLOCK_AFTER = ["材", …]`）があるのに、**伏せ字を作る側はそれを通っていない。**
+
+**判定そのものは正しい**（主対象は末尾の「人」で person）。**壊れているのは表示だけ。**
+
+**やるなら**: 伏せ字にする位置を `findKindMarkers()` の戻り値（`end` と `len`）から作る。
+語の一覧で `indexOf` を回し直さない。**誤検出よけを2箇所に持たない。**
+
+⚠️ これが直るまで、トップページの例文チップに**「人材」を含む問いを載せないこと**
+（`src/lib/constants/landing.ts` に同じ注意を書いてある）。
+
+---
+
+## ⚠️ `GET /api/jobseeker/experiences` の会社名が、非公開企業で「不明な企業」に化ける
+
+> ⏳ **未対応（2026-10-16 時点）。** 会社名はセッションのクライアントで引いたまま。この GET を呼んでいる画面は今も0件（2026-10-16 に再確認）。
+
+**対象**: `src/app/api/jobseeker/experiences/route.ts`（112行あたり）。
+
+会社名をセッションのクライアントで引いているので、RLS
+（`ow_companies_published_read USING (is_published = true)`）が `is_published = false` の企業を落とし、
+`?? "不明な企業"` がその0件を埋める。**`/mypage` は 2026-09-12 に `createAdminClient` へ替えて直した。**
+
+**なぜ残っているか**: **この GET を呼んでいる箇所は src に0件**（実測 2026-09-12）。
+生きたルートなので消してもいないし直してもいない。コードにその旨のコメントを置いてある。
+
+**やるなら**: `/mypage` と同じ形（`createAdminClient` ＋ **本人の行が参照する company_id に限定** ＋
+返す列を列挙）に揃える。⚠️ **RLS を広げる案は採らない**（`ow_companies` の SELECT は
+テーブルレベル GRANT なので153列すべてを開くことになる）。
+→ 経緯は [hidden-company-name-20260912.md](hidden-company-name-20260912.md)
 
 ---
 
