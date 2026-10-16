@@ -1,7 +1,9 @@
 /**
  * ★トップページ「事業領域から探す」のまとめ方（2026-10-16 / 柴さんの判断）。
  *
- * 「**何をつくっている会社か**」で4つに分ける。キーは事業領域の **slug**（`ow_business_domains.slug`）。
+ * 「**何に使う製品か**」で4つに分ける（2026-10-16 に名前と分け方を見直した）。
+ * ⚠️★いまのトップページは**グループの見出しを出していない**（アイコン付きタイルを1つの格子に並べる形にした）。
+ *    ここは**並び順**として使っている。見出し（label）を画面に戻すときはこの定義をそのまま使える。キーは事業領域の **slug**（`ow_business_domains.slug`）。
  * ⚠️★「誰の仕事を変えるか」（部門別）で分ける案は採らなかった。AI（OpenAI・Anthropic など）は
  *    全部門が使うので「エンジニア・開発」に入れると誤りになる（柴さんの指摘）。
  *
@@ -19,10 +21,10 @@ export type BusinessDomainGroupDef = {
 };
 
 export const BUSINESS_DOMAIN_GROUPS: readonly BusinessDomainGroupDef[] = [
-  { key: "ai", label: "AI", slugs: ["ai"] },
-  { key: "foundation", label: "ITの土台をつくる", slugs: ["infra", "security", "devtools"] },
-  { key: "work-tools", label: "仕事のツールをつくる", slugs: ["crm", "marketing", "hr", "finance", "legal", "collab"] },
-  { key: "adoption", label: "導入を支援する", slugs: ["consulting"] },
+  { key: "tech", label: "AIとITの仕組み", slugs: ["ai", "infra", "security", "devtools"] },
+  { key: "revenue", label: "売上をつくる", slugs: ["crm", "marketing"] },
+  { key: "operations", label: "会社を動かす", slugs: ["hr", "finance", "legal", "collab"] },
+  { key: "adoption", label: "IT導入の支援", slugs: ["consulting"] },
 ];
 
 export const OTHER_BUSINESS_DOMAIN_GROUP = { key: "other", label: "その他" } as const;

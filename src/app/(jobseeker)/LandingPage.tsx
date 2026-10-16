@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
+import { BusinessDomainIcon } from "@/components/companies/BusinessDomainIcon";
 import { HeroSearch } from "./HeroSearch";
 import { FinalCta } from "./FinalCta";
 import { AuthAwareCta } from "./AuthAwareCta";
@@ -248,23 +249,18 @@ export default function LandingPage({
         .lp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; color: ${C.blue}; margin-bottom: 10px; }
         .lp-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
 
-        /* ★事業領域を「何をつくっている会社か」のグループで出す（2026-10-16）。
-           1グループ＝1行（左にグループ名、右に項目のタイル）。項目数が違っても空白ができない。
-           狭い幅ではグループ名を上に置く。1fr ではなく minmax(0, 1fr) */
-        .lp-facet-groups { display: flex; flex-direction: column; gap: 0; border-top: 1px solid ${C.line}; }
-        .lp-facet-group { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start;
-                          padding: 18px 0; border-bottom: 1px solid ${C.line}; min-width: 0; }
-        .lp-facet-group-title { font-size: 14px; font-weight: 700; color: ${C.navy}; margin: 0; padding-top: 12px; }
-        .lp-facet-group ul { list-style: none; margin: 0; padding: 0; display: grid;
-                             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-        .lp-facet-group li { min-width: 0; }
-        .lp-facet-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 100%;
-                         background: #fff; border: 1px solid ${C.line}; border-radius: 10px;
-                         padding: 11px 14px; text-decoration: none; min-width: 0; }
-        .lp-facet-link:hover { border-color: ${C.blue}; }
-        .lp-facet-link:hover .lp-facet-name { color: ${C.blue}; }
-        .lp-facet-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-        .lp-facet-name { min-width: 0; font-size: 13.5px; font-weight: 600; color: ${C.ink}; }
+        /* ★事業領域はアイコン付きのタイルを1つの格子に並べる（2026-10-16 / 柴さんの判断。試作した3案から選んだ）。
+           並びは lib/constants/businessDomainGroups.ts のグループ順（見出しは出さない）。
+           ⚠️ 1fr ではなく minmax で幅を決める。auto-fill なので列数は幅で決まる（1280px で4列・560px 前後で2列・375px で1列） */
+        .lp-icon-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+        .lp-icon-tile { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #fff;
+                        border: 1px solid ${C.line}; border-radius: 12px; text-decoration: none; min-width: 0; }
+        .lp-icon-tile:hover { border-color: ${C.blue}; }
+        .lp-icon-tile:hover .lp-facet-name { color: ${C.blue}; }
+        .lp-icon-tile-icon { width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px; display: inline-flex;
+                             align-items: center; justify-content: center; background: #EEF2FF; color: ${C.navy}; }
+        .lp-facet-text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .lp-facet-name { min-width: 0; font-size: 14px; font-weight: 600; color: ${C.ink}; }
         .lp-facet-blurb { min-width: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: ${C.muted}; }
 
         .lp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -357,9 +353,6 @@ export default function LandingPage({
         @media (max-width: 900px) {
           .lp-section { padding: 52px 0; }
           .lp-wrap { padding: 0 18px; }
-          .lp-facet-group { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; }
-          .lp-facet-group-title { padding-top: 0; }
-          .lp-facet-group ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .lp-cards, .lp-jobs, .lp-trust, .lp-member-points, .lp-articles { grid-template-columns: 1fr; }
           .lp-lead { margin: -8px 0 20px; }
           /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
@@ -377,10 +370,6 @@ export default function LandingPage({
              同じ理由で、この中に大なり・小なり・引用符を書かないこと。
              nth-child は元々親基準なので、子クラス指定で足りる。 */
           .lp-cards .lp-card:nth-child(n+7), .lp-jobs .lp-card:nth-child(n+7) { display: none; }
-        }
-        /* ★事業領域のタイルは 560px 以下で1列（2026-10-16） */
-        @media (max-width: 560px) {
-          .lp-facet-group ul { grid-template-columns: minmax(0, 1fr); }
         }
         /* 経歴の画像だけ 620px で切り替える。レイアウトの折り返し（900px）とは別の境目。
            900px はカードが縦積みになる点、620px は wide の切り出しが読めなくなる点。 */
@@ -548,28 +537,18 @@ export default function LandingPage({
                   `getBusinessDomainOptions()`（マスタ全件）に替えないこと。**
                   替えると 0件のタイルが混ざり、件数を消したぶん**押すまで気づけない**。
           */}
-          {/* ★「何をつくっている会社か」の4グループに分けて出す（2026-10-16 / 柴さんの判断）。
-                 各項目の下にひとこと説明（BUSINESS_DOMAIN_BLURBS）。
-                 分け方は lib/constants/businessDomainGroups.ts の1か所。ここに slug を書かない。
-                 ⚠️ そこに無い事業領域は「その他」に入る（黙って消さない）。 */}
-          <div className="lp-facet-groups">
-            {groupBusinessDomainFacets(industryFacets).map((g) => (
-              <section key={g.key} className="lp-facet-group" data-group={g.key}>
-                <h3 className="lp-facet-group-title">{g.label}</h3>
-                <ul>
-                  {g.items.map((f) => (
-                    <li key={f.key}>
-                      <Link href={f.href} className="lp-facet-link">
-                        <span className="lp-facet-text">
-                          <span className="lp-facet-name">{f.label}</span>
-                          {BUSINESS_DOMAIN_BLURBS[f.key] && <span className="lp-facet-blurb">{BUSINESS_DOMAIN_BLURBS[f.key]}</span>}
-                        </span>
-                        <span aria-hidden style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>›</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+          {/* ★アイコン付きのタイル（2026-10-16 / 柴さんの判断）。並びはグループ順、説明は BUSINESS_DOMAIN_BLURBS、
+                 アイコンは components/companies/BusinessDomainIcon.tsx。ここに slug を書かない。 */}
+          <div className="lp-icon-tiles">
+            {groupBusinessDomainFacets(industryFacets).flatMap((g) => g.items).map((f) => (
+              <Link key={f.key} href={f.href} className="lp-icon-tile" data-domain={f.key}>
+                <span className="lp-icon-tile-icon"><BusinessDomainIcon slug={f.key} /></span>
+                <span className="lp-facet-text">
+                  <span className="lp-facet-name">{f.label}</span>
+                  {BUSINESS_DOMAIN_BLURBS[f.key] && <span className="lp-facet-blurb">{BUSINESS_DOMAIN_BLURBS[f.key]}</span>}
+                </span>
+                <span aria-hidden style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>›</span>
+              </Link>
             ))}
           </div>
 
