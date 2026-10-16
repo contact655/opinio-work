@@ -38,7 +38,7 @@ import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, FollowButton } from "./CompanyDetailClient";
+import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, FollowButton, CompanyMoreMenu, CtaReveal } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-31 にページから切り出した。`/dev/preview/products` から見るため */
@@ -333,10 +333,10 @@ function Hero({
   const isFresh = company.updated_days_ago <= 30;
 
   return (
-    <section style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-      {/* Gradient cover band */}
-      <div style={{
-        height: 200,
+    <section data-cd-hero style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+      {/* Gradient cover band
+          ⚠️ 高さは CSS（.cd-cover。下の style）。スマホは 120px（2026-10-17）。インラインに戻さないこと */}
+      <div className="cd-cover" style={{
         background: (coverPhotoUrl && /^https:\/\/[a-z]+\.supabase\.co\//.test(coverPhotoUrl)) ? `url(${coverPhotoUrl}) center/cover no-repeat` : company.gradient,
         position: "relative", overflow: "hidden",
       }}>
@@ -535,13 +535,25 @@ function Hero({
                   variant="pill"
                 />
                 <FollowButton companyId={company.id} />
+                {/* ★スマホだけの「…」（2026-10-17）。下の行（公式サイト・採用情報・SNS・共有）をここにまとめる */}
+                <CompanyMoreMenu
+                  companyName={company.name}
+                  companyId={company.id}
+                  links={[
+                    ...(detail.url ? [{ label: "公式サイト", href: detail.url }] : []),
+                    ...(company.careers_url ? [{ label: "採用情報", href: company.careers_url }] : []),
+                    ...(company.x_url ? [{ label: "X (Twitter)", href: company.x_url }] : []),
+                    ...(company.linkedin_url ? [{ label: "LinkedIn", href: company.linkedin_url }] : []),
+                  ]}
+                />
               </div>
 
               {/* ⑨ Perk chips removed — work style info is shown in stats strip below */}
 
               {/* ③ SNS リンク + 共有ボタン（1行に統合） */}
               {(company.x_url || company.linkedin_url || detail.url || company.careers_url) && (
-                <div style={{ display: "flex", gap: 6, marginTop: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
+                /* ⚠️ スマホ（767px 以下）では出さない（.cd-links-row）。「…」の中に同じものがある */
+                <div className="cd-links-row" style={{ gap: 6, marginTop: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
                   {/* X: icon-only circle */}
                   {company.x_url && (
                     <a href={company.x_url} target="_blank" rel="noopener noreferrer" title="X (Twitter)"
@@ -589,9 +601,16 @@ function Hero({
       <style>{`
         .cd-hero-main { display: flex; gap: var(--space-4); align-items: flex-start; }
         .cd-hero-info { padding-top: var(--space-3); min-width: 0; }
+        .cd-cover { height: 200px; }
+        .cd-links-row { display: flex; }
+        .cd-more { display: none; }
         @media (max-width: 767px) {
           .cd-hero-main { flex-direction: column; gap: var(--space-3); }
           .cd-hero-info { padding-top: 0; width: 100%; }
+          /* 2026-10-17: スマホはカバーを低くし、リンク類は「…」へまとめる（LinkedIn型） */
+          .cd-cover { height: 120px; }
+          .cd-links-row { display: none; }
+          .cd-more { display: block; }
         }
       `}</style>
     </section>
@@ -1484,6 +1503,8 @@ function MobileBottomCTA({ company }: { company: Company }) {
   const both = hasMeeting && hasJobs;
 
   return (
+    /* ★上部が見えている間は隠す（CtaReveal。2026-10-17） */
+    <CtaReveal>
     <div className="company-mobile-cta lg:hidden bottom-16 md:bottom-0">
       <div className={`company-mobile-cta-row${both ? " company-mobile-cta-row--two" : ""}`}>
         {hasJobs && (
@@ -1527,6 +1548,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
         )}
       </div>
     </div>
+    </CtaReveal>
   );
 }
 

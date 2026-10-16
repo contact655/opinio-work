@@ -11,6 +11,7 @@ import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarCompany } from "./page";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
+import CompanyBookmarkButton, { FollowButton as CompanyFollowButton } from "@/app/(jobseeker)/companies/[id]/CompanyDetailClient";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -1852,6 +1853,13 @@ function PostCard({
         );
       })()}
 
+      {/* ★企業の新規掲載カードにも フォロー・保存 を置く（2026-10-17 / 柴さんの指示。LinkedIn の企業の投稿と同じ）。
+             人の投稿の「いいね・コメント」とは別の操作（相手が企業のため）。
+          ⚠️ 状態の取得は企業ごとに1本（useCompanyViewerState）。カードが画面に入ってから取る（FeedCompanyActions） */}
+      {post.post_type === "company_joined" && post.ref_company?.id && (
+        <FeedCompanyActions companyId={post.ref_company.id} companyName={post.ref_company.name} />
+      )}
+
       {post.post_type === "job_posted" && post.ref_job && (
         <Link
           href={`/jobs/${post.ref_job.slug ?? post.ref_job.id}`}
@@ -2595,6 +2603,35 @@ export default function FeedClient({
             myUserId={myUserId}
           />
         </div>
+      )}
+    </div>
+  );
+}
+
+
+/**
+ * ★フィードの企業カードの フォロー・保存（2026-10-17）。
+ * ⚠️ カードが画面に近づいてから部品を描く。部品は描いた時点で状態を取りに行くので、
+ *    フィードを開いた瞬間に企業カードの数だけ通信が走るのを避ける。
+ */
+function FeedCompanyActions({ companyId, companyName }: { companyId: string; companyName: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); io.disconnect(); } }, { rootMargin: "200px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 12, borderTop: "1px solid var(--line-soft, #f1f5f9)", marginTop: 4, minHeight: 49 }}>
+      {visible && (
+        <>
+          <CompanyFollowButton companyId={companyId} />
+          <CompanyBookmarkButton companyName={companyName} companyId={companyId} variant="pill" />
+        </>
       )}
     </div>
   );

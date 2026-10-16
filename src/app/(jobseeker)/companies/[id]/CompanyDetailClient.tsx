@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
@@ -469,5 +470,99 @@ export default function BookmarkButton({
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       </svg>
     </button>
+  );
+}
+
+// ─── CompanyMoreMenu（スマホの「…」。2026-10-17）──────────────────────────────
+/**
+ * ★スマホ（767px 以下）だけ、公式サイト・採用情報・X・LinkedIn・共有を「…」の中にまとめる（LinkedIn型）。
+ *   それまでは保存・フォローの下にもう1行あり、アクションが2行に折り返していた。
+ * ⚠️ 768px 以上は従来どおり横に並べる（このボタンは `.cd-more` で出さない）。
+ * ⚠️ 共有は端末の共有シート（navigator.share）。使えない端末ではリンクをコピーする。
+ */
+export function CompanyMoreMenu({ companyName, companyId, links }: {
+  companyName: string;
+  companyId: string;
+  links: { label: string; href: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+
+  async function share() {
+    const url = `${window.location.origin}/companies/${companyId}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: companyName, url }); setOpen(false); return; }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => { setCopied(false); setOpen(false); }, 1200);
+    } catch { /* 共有シートを閉じただけ。何もしない */ }
+  }
+
+  const itemStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", width: "100%", minHeight: 48, padding: "0 20px",
+    fontSize: 15, fontWeight: 600, color: "var(--ink)", textDecoration: "none",
+    background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+  };
+
+  return (
+    <div ref={ref} className="cd-more" style={{ position: "relative" }}>
+      <button type="button" aria-label="その他の操作" aria-expanded={open} onClick={() => setOpen((v) => !v)}
+        className="btn-fixed-size"
+        style={{ width: 40, height: 40, borderRadius: "50%", border: "1.5px solid var(--line)", background: "#fff", color: "var(--ink-soft)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
+      {open && (
+        <div role="menu" style={{
+          position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1300,
+          background: "#fff", borderRadius: "16px 16px 0 0",
+          padding: "8px 0 calc(12px + env(safe-area-inset-bottom))",
+          boxShadow: "0 0 0 100vmax rgba(15,23,42,0.35)",
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", padding: "8px 20px" }}>{companyName}</div>
+          {links.map((l) => (
+            <a key={l.href} role="menuitem" href={l.href} target="_blank" rel="noopener noreferrer" style={itemStyle} onClick={() => setOpen(false)}>
+              {l.label}
+            </a>
+          ))}
+          <button type="button" role="menuitem" onClick={share} style={itemStyle}>
+            {copied ? "リンクをコピーしました ✓" : "共有する"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CtaReveal（スマホの固定バーを、上部が見えている間は隠す。2026-10-17）────────
+/**
+ * ★企業ページの上部（社名・保存・フォローのある帯）が見えている間は、下の固定バー
+ *   （募集を見る／話を聞く）を隠す。上部と下部で同じ種類の操作が2段に並び、
+ *   最初の画面の下端を2本のバー（固定バー＋タブバー）が塞いでいたため（柴さんの指示）。
+ * ⚠️ 判定は `[data-cd-hero]` の IntersectionObserver。見つからなければ出す側に倒す。
+ * ⚠️ 隠すのは見た目と操作だけ（`aria-hidden` / `inert`）。下余白（body の padding）は変えない。
+ */
+export function CtaReveal({ children }: { children: React.ReactNode }) {
+  const [heroVisible, setHeroVisible] = useState(false);
+  useEffect(() => {
+    const el = document.querySelector("[data-cd-hero]");
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setHeroVisible(e.isIntersecting), { rootMargin: "0px 0px -40% 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div className={`cd-cta-reveal${heroVisible ? " is-hidden" : ""}`} aria-hidden={heroVisible || undefined}>
+      {children}
+    </div>
   );
 }
