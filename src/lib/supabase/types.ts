@@ -3622,7 +3622,7 @@ export type Database = {
           display_consent_version: number | null
           display_consented_at: string | null
           experience_id: string
-          prompt: string
+          prompt: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -3635,7 +3635,7 @@ export type Database = {
           display_consent_version?: number | null
           display_consented_at?: string | null
           experience_id: string
-          prompt: string
+          prompt?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -3648,7 +3648,7 @@ export type Database = {
           display_consent_version?: number | null
           display_consented_at?: string | null
           experience_id?: string
-          prompt?: string
+          prompt?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string

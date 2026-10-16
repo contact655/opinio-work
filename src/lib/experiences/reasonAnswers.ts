@@ -182,7 +182,7 @@ export async function loadReasonAnswers(owUserId: string, base: ExpRow): Promise
   }
   const expRows = ((exps.data ?? []) as { reason: string; is_primary: boolean; rating: number | null; created_at: string }[])
     .sort((x, y) => x.created_at.localeCompare(y.created_at));
-  const n = note.data as { prompt: string; body: string; display_consent: boolean } | null;
+  const n = note.data as { prompt: string | null; body: string; display_consent: boolean } | null;
   return {
     anchorId: id,
     version: 2,
@@ -262,7 +262,7 @@ export async function saveReasonAnswers(anchorId: string, a: ReasonAnswersV2): P
     if (!r.ok) return fail("ひとことの保存に失敗しました。");
   } else {
     const p = prevNote as null | {
-      prompt: string; body: string; status: string; reviewed_at: string | null; reviewed_by: string | null;
+      prompt: string | null; body: string; status: string; reviewed_at: string | null; reviewed_by: string | null;
       display_consent: boolean; display_consented_at: string | null; display_consent_version: number | null;
     };
     const changed = !p || p.prompt !== a.note.prompt || p.body !== a.note.body;

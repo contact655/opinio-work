@@ -252,18 +252,24 @@ export const EXPECTATION_RATING_ENDS = {
 } as const;
 
 /**
- * B: 入社前の想像と比べて、どちらにずれたか（共通6項目）。
+ * B: 入社前の想像と比べて、実際はどちら寄りだったか（共通8項目）。
  * ⚠️ 値の向き: **-3 が `left`、+3 が `right`**（DB の ow_experience_gap_shifts と同じ）。
- * ⚠️★`eval_basis` と `client_size` は旧の `evaluation`（評価の納得感）/ `client_quality`（顧客・案件の質）とは
- *    **別の問い**なのでキーを分けた。
+ * ★2026-10-16 に6項目を差し替え、2項目（英語を使う場面・役割の線引き）を足した（柴さんの判断。時点で回答0件）。
+ *   ⚠️ 答える手間を考えて8項目までにする（同日の判断）。足すなら何かを外す
+ *   ⚠️★**左右どちらも良し悪しを含まない言葉にする。** 「手厚い／少ない」「速い／遅い」「過程も見る」のように
+ *      片方が褒め言葉に聞こえる言い方は答えを誘導する。良かったかどうかは A の「期待通りか」と C で聞く。
+ *   ⚠️ 入社前でも公開情報で分かること（顧客の規模など）は入れない。入ってみないと分からないことだけ。
+ *   ⚠️ 項目を足す・言葉を変えるときは DB の CHECK（ow_experience_gap_shifts_axis_check）も同時に変える。
  */
 export const GAP_SHIFT_AXES: readonly { value: string; label: string; left: string; right: string }[] = [
-  { value: "autonomy",       label: "任される範囲",           left: "想像より大きかった", right: "想像より小さかった" },
-  { value: "onboarding",     label: "教育・オンボーディング", left: "想像より手厚かった", right: "想像より少なかった" },
-  { value: "work_hours",     label: "労働時間",               left: "想像より長かった",   right: "想像より短かった" },
-  { value: "eval_basis",     label: "評価の基準",             left: "想像より数字重視",   right: "想像より過程も見る" },
-  { value: "decision_speed", label: "意思決定のスピード",     left: "想像より速かった",   right: "想像より遅かった" },
-  { value: "client_size",    label: "顧客の規模",             left: "想像より大手中心",   right: "想像より中小中心" },
+  { value: "work_process",   label: "仕事の進め方",       left: "決まった型で進める", right: "自分で決めて進める" },
+  { value: "ramp_up",        label: "立ち上がりの支え方", left: "自分で調べて覚える", right: "研修・OJTで教わる" },
+  { value: "eval_style",     label: "評価のされ方",       left: "成果の数字が中心",   right: "行動やプロセスが中心" },
+  { value: "decision_style", label: "物事の決め方",       left: "上が決める",         right: "話し合って決める" },
+  { value: "work_hours",     label: "労働時間",           left: "短かった",           right: "長かった" },
+  { value: "change_pace",    label: "変化の多さ",         left: "落ち着いている",     right: "方針や組織がよく変わる" },
+  { value: "english_use",    label: "英語を使う場面",     left: "ほぼ使わない",       right: "日常的に使う" },
+  { value: "role_boundary",  label: "役割の線引き",       left: "はっきり分かれている", right: "兼務・越境が多い" },
 ] as const;
 
 export const VALID_GAP_SHIFT_AXES = new Set<string>(GAP_SHIFT_AXES.map((o) => o.value));
@@ -275,7 +281,8 @@ export const FIT_SCORE_MIN = 0;
 export const FIT_SCORE_MAX = 10;
 
 /**
- * D: ひとこと（任意・80字）。書き出しを3つから選び、続きを書く。
+ * D: ひとこと（任意・80字）。★2026-10-16 から自由記述（書き出しは選ばせない）。
+ *    NOTE_PROMPTS は以前に保存した行の値を受けるためだけに残す。画面に出さない。
  * ⚠️★**他の利用者には表示しない**（プライバシーポリシーの改定まで）。運営の確認状態つきで保存する。
  */
 export const NOTE_PROMPTS: readonly { value: string; label: string }[] = [
@@ -316,7 +323,7 @@ export type ReasonAnswersV2 = {
   fitScore: number | null;
   /** 離れた理由（終了した会社だけ） */
   leaveReasons: string[];
-  note: { prompt: string; body: string; displayConsent: boolean } | null;
+  note: { prompt: string | null; body: string; displayConsent: boolean } | null;
 };
 
 export const EMPTY_REASON_ANSWERS_V2: ReasonAnswersV2 = {
@@ -409,10 +416,15 @@ export function parseReasonAnswersV2(
     const n = b.note as Record<string, unknown>;
     const body = typeof n.body === "string" ? n.body.trim() : "";
     if (body !== "") {
-      if (typeof n.prompt !== "string" || !VALID_NOTE_PROMPTS.has(n.prompt)) return { ok: false, message: "ひとことの書き出しを選んでください。" };
+      /* ★書き出しは 2026-10-16 に任意にした（画面は送らない＝null）。送られたら旧形式の値だけ受ける */
+      let prompt: string | null = null;
+      if (n.prompt !== undefined && n.prompt !== null && n.prompt !== "") {
+        if (typeof n.prompt !== "string" || !VALID_NOTE_PROMPTS.has(n.prompt)) return { ok: false, message: "ひとことに不正な値が含まれています。" };
+        prompt = n.prompt;
+      }
       /* ⚠️ 文字数は DB の char_length と同じく「文字」で数える（絵文字を2と数えない） */
       if (Array.from(body).length > NOTE_MAX_LENGTH) return { ok: false, message: `ひとことは${NOTE_MAX_LENGTH}字までです。` };
-      note = { prompt: n.prompt, body, displayConsent: n.displayConsent === true };
+      note = { prompt, body, displayConsent: n.displayConsent === true };
     }
   }
 

@@ -32,7 +32,6 @@ import {
   GAP_SHIFT_MID,
   LEAVE_REASONS,
   REASON_MAX,
-  NOTE_PROMPTS,
   NOTE_MAX_LENGTH,
   NOTE_CONSENT_HINT,
   noteConsentText,
@@ -41,7 +40,7 @@ import {
   type ReasonAnswersV2,
 } from "@/lib/constants/careerReasons";
 
-const PRIVACY_NOTE = "会社には伝わりません。あなたの回答は、あなたへの提案と、個人が分からない形の集計にだけ使います";
+const PRIVACY_NOTE = "会社には伝わりません。";
 
 /** GET /api/jobseeker/experiences/[id]/reasons の形（`reasonAnswers.ts` の LoadedAnswers） */
 export type LoadedReasonAnswers = {
@@ -244,8 +243,8 @@ export function ExperienceReasonModal({
     setAnswers({ ...answers, leaveReasons: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] });
   }
 
-  /* ひとこと。⚠️ 本文が空なら保存しない（API に null で送る）。書き出しは本文より先に選ぶ */
-  const noteDraft = answers.note ?? { prompt: "", body: "", displayConsent: false };
+  /* ひとこと。⚠️ 本文が空なら保存しない（API に null で送る） */
+  const noteDraft = answers.note ?? { prompt: null, body: "", displayConsent: false };
   /* ★80字を超えた分（2026-10-16 / 案A）。超えていても「保存」は押せる。
         ⚠️ そのときは**ひとことだけ送らない**（他の回答まで保存できずに閉じられてしまわないように）。
         黙って捨てないよう、保存ボタンのすぐ上に何が保存されないかを出す。 */
@@ -400,13 +399,10 @@ export function ExperienceReasonModal({
             </section>
           )}
 
-          {/* B: 入社前の想像と比べて、どちらにずれたか（共通6項目・任意・最初は未選択）。
+          {/* B: 入社前の想像と比べて、実際はどちら寄りだったか（共通8項目・任意・最初は未選択）。
                  ★表の形。「想像通り」は見出しに1回だけ。左右の言葉は項目ごとに違うので行ごとに短く出す */}
           <section data-state="reason-shifts" style={{ minWidth: 0 }}>
-            <div style={questionStyle}>入社前の想像と比べて、どちらにずれましたか？</div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6, margin: "-4px 0 10px" }}>
-              まん中が「{GAP_SHIFT_MID}」。答えたい項目だけで大丈夫です。
-            </div>
+            <div style={questionStyle}>入社前の想像と比べて、実際はどちら寄りでしたか？</div>
             <div className="rm-matrix">
               {GAP_SHIFT_AXES.map((ax) => (
                 <div key={ax.value} className="rm-row" data-state="reason-shift">
@@ -478,28 +474,17 @@ export function ExperienceReasonModal({
               ひとこと
               <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6, whiteSpace: "nowrap" }}>（任意・{NOTE_MAX_LENGTH}字まで）</span>
             </div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "-4px 0 8px" }}>書き出しを選んで、続きを書いてください。</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, minWidth: 0, marginBottom: 10 }}>
-              {NOTE_PROMPTS.map((o) => (
-                <ReasonChip
-                  key={o.value}
-                  label={o.label}
-                  active={noteDraft.prompt === o.value}
-                  disabled={saving}
-                  onClick={() => setNote({ prompt: noteDraft.prompt === o.value && noteDraft.body.trim() === "" ? "" : o.value })}
-                />
-              ))}
-            </div>
-            {noteDraft.prompt !== "" && (
-              <>
+            {/* ★書き出し（NOTE_PROMPTS）は 2026-10-16 にやめた（柴さんの指示）。最初から自由に書く。
+                   保存する prompt は null（旧形式の行だけ値を持つ） */}
+            <>
                 <textarea
                   id="reason-note-body"
                   value={noteDraft.body}
                   disabled={saving}
                   rows={3}
-                  aria-label={NOTE_PROMPTS.find((o) => o.value === noteDraft.prompt)?.label ?? "ひとこと"}
-                  placeholder={NOTE_PROMPTS.find((o) => o.value === noteDraft.prompt)?.label}
-                  onChange={(e) => setNote({ body: e.target.value })}
+                  aria-label="ひとこと"
+                  placeholder="入る前に知りたかったこと、合うと思う人など"
+                  onChange={(e) => setNote({ prompt: null, body: e.target.value })}
                   className="reason-note-input"
                 />
                 <div
@@ -527,8 +512,7 @@ export function ExperienceReasonModal({
                     </span>
                   </label>
                 )}
-              </>
-            )}
+            </>
           </section>
         </div>
       )}
