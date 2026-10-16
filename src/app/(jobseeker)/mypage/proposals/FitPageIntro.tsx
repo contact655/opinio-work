@@ -1,10 +1,10 @@
 import { PROPOSAL_RESPONSE_DAYS } from "@/lib/constants/proposalResponses";
-import { FIT_PAGE_LEAD, FIT_PAGE_TITLE, NO_RESPONDER_NOTE } from "./fitPageText";
+import { FIT_PAGE_LEAD, FIT_PAGE_TITLE, NO_RESPONDER_NOTE, UNCHECKED_NOTE } from "./fitPageText";
 
 /**
  * ★「あなたに合う会社」の見出しと冒頭（2026-10-15）。
  *
- * 冒頭は2文だけ。以前の「おすすめ」の詳しい説明（誰が行っているか・何が届くか・応募ではないこと・30日で終了）は
+ * 冒頭は1文だけ（2026-10-15 に2文→1文。「担当者未登録」の説明は「詳しく」へ移した）。以前の「おすすめ」の詳しい説明（誰が行っているか・何が届くか・応募ではないこと・30日で終了）は
  * 「詳しく」の折りたたみに**文言を変えずに**入れた（柴さんの指示）。
  * ⚠️★中立の明示（人材紹介会社は関わっていない）と、何が・いつ・どこまで渡るかの告知は**消さないこと**。
  *    折りたたんだだけで、ページから外したわけではない。
@@ -16,14 +16,20 @@ export default function FitPageIntro({ showNoResponderNote }: { showNoResponderN
       <p data-state="fit-lead" style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink)", margin: "0 0 6px" }}>
         {FIT_PAGE_LEAD}
       </p>
-      {showNoResponderNote && (
-        <p data-state="fit-no-responder-note" style={{ fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 6px" }}>
-          {NO_RESPONDER_NOTE}
-        </p>
-      )}
       <details style={{ fontSize: 12, color: "var(--ink-soft)" }}>
         <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--royal)", padding: "4px 0" }}>詳しく</summary>
         <div style={{ marginTop: 8 }}>
+          {/* ★「担当者未登録」の説明は「詳しく」の中に1回だけ（2026-10-15 / 柴さんの指示。カードは小さなラベルだけ） */}
+          {showNoResponderNote && (
+            <p data-state="fit-no-responder-note" style={{ fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 8px" }}>
+              {NO_RESPONDER_NOTE}
+            </p>
+          )}
+          {/* ★「気をつけて見てほしいこと」が無いことの意味（2026-10-15）。カードでは確かめられなかったことを注意点として出さないので、
+                 ここで1回だけ書く。⚠️ 消すと「注意点が無い＝問題が無い」と読まれる */}
+          <p data-state="fit-unknown-note" style={{ fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 8px" }}>
+            {UNCHECKED_NOTE}
+          </p>
           {/* ★★中立の明示。消さないこと（2026-10-15 に折りたたみへ移した。文言は変えていない） */}
           <p
             style={{

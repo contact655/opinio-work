@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
 import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
-import { ALL_COMPANIES_SECTION_TITLE } from "./fitPageText";
+import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
+import { BTN, CARD_STYLE, CautionBox, NameLabel, ReasonBox, TagRow } from "./FitCardParts";
 
 /**
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
@@ -23,8 +24,10 @@ export type ForYouView = {
   /** 企業ページへのリンク。開けない会社（検証用など）は null */
   href: string | null;
   tagline: string | null;
-  /** 理由（最大2行）。★無い会社は枠ごと出さない */
+  /** 理由（最大2行）。★無い会社は枠ごと出さない。1番目は見出しになるのでカードでは出さない */
   reasons: string[];
+  /** ★まとめる見出し（1番目の理由）。理由の無い会社は null（「その他の掲載企業」へ） */
+  groupLabel: string | null;
   hasTalkable: boolean;
   hasOpenJobs: boolean;
   phaseLabel: string | null;
@@ -123,85 +126,66 @@ export default function ForYouSection({
             <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>いま表示できる会社はありません。</p>
           )}
 
-          <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 12 }}>
-            {visible.map((c) => (
-              <li key={c.id} data-company-id={c.id} data-rank={c.rank}
-                style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "baseline" }}>
-                  <span aria-label={`${c.rank}位`} style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-mute)", minWidth: 28 }}>{c.rank}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                      <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
-                        {c.href
-                          ? <Link href={c.href} style={{ color: "inherit", textDecoration: "none" }}>{c.name}</Link>
-                          : c.name}
-                      </h3>
-                      {/* ★担当者の有無は小さなラベルだけ。説明はページの冒頭に1回（柴さんの指示） */}
-                      <span data-state={c.hasResponder ? "for-you-has-responder" : "for-you-no-responder"}
-                        style={{ fontSize: 11, color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 999, padding: "0 8px" }}>
-                        {c.hasResponder ? "担当者あり" : "担当者未登録"}
-                      </span>
-                    </div>
-                    {c.tagline && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "2px 0 0" }}>{c.tagline}</p>}
-
-                    {/* ★理由は目立つ枠で。緑は「プラスの一致」（ui-conventions の色の役割） */}
-                    {c.reasons.length > 0 && (
-                      <ul data-state="for-you-reasons" style={{
-                        listStyle: "none", margin: "10px 0 0", padding: "8px 12px", display: "grid", gap: 2,
-                        background: "#ECF6EF", border: "1px solid #D3E8DA", borderRadius: 8,
-                      }}>
-                        {c.reasons.map((r) => (
-                          <li key={r} style={{ fontSize: 13, lineHeight: 1.6, color: "#14532D" }}>✓ {r}</li>
-                        ))}
-                      </ul>
-                    )}
-
-                    {/* ★「気をつけて見てほしいこと」の器。いまは常に空（rank.ts の cautions） */}
-                    {c.cautions.length > 0 && (
-                      /* ⚠️ 色は上段の EvidenceList の「気をつけて見てほしいこと」と同じ。片方だけ変えないこと */
-                      <div data-state="for-you-cautions" style={{ margin: "8px 0 0", padding: "8px 12px", background: "#FBF8F2", border: "1px solid #EADFC8", borderRadius: 8 }}>
-                        <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#8A6D3B" }}>気をつけて見てほしいこと</p>
-                        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                          {c.cautions.map((t) => <li key={t} style={{ fontSize: 12, lineHeight: 1.6, color: "var(--ink-soft)" }}>・{t}</li>)}
-                        </ul>
+          {/* ★理由ごとにまとめる（2026-10-15 / 柴さんの指示）。見出しは1番目の理由。
+                 グループの並び＝グループの中で最も順位の高い会社の順（下の groupCompanies）。
+                 理由の無い会社は最後に「その他の掲載企業」としてまとめる */}
+          <div style={{ display: "grid", gap: 20 }}>
+            {groupCompanies(visible).map((g) => (
+              <section key={g.label ?? "__other"} data-state={g.label ? "for-you-group" : "for-you-group-other"} aria-label={g.label ?? OTHER_COMPANIES_TITLE}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
+                  {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
+                  <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{g.items.length}社</span>
+                </h3>
+                <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
+                  {g.items.map((c) => (
+                    <li key={c.id} data-company-id={c.id} data-rank={c.rank} style={CARD_STYLE}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                        <h4 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                          {c.href
+                            ? <Link href={c.href} style={{ color: "inherit", textDecoration: "none" }}>{c.name}</Link>
+                            : c.name}
+                        </h4>
+                        {/* ★担当者の有無は小さなラベルだけ。説明は「詳しく」に1回（柴さんの指示） */}
+                        <NameLabel state={c.hasResponder ? "for-you-has-responder" : "for-you-no-responder"}>
+                          {c.hasResponder ? "担当者あり" : "担当者未登録"}
+                        </NameLabel>
                       </div>
-                    )}
+                      {c.tagline && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "2px 0 0" }}>{c.tagline}</p>}
 
-                    {(c.hasTalkable || c.hasOpenJobs || c.phaseLabel) && (
-                      <p style={{ margin: "8px 0 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {c.hasTalkable && <Tag state="talkable">話を聞ける人</Tag>}
-                        {c.hasOpenJobs && <Tag state="jobs">募集あり</Tag>}
-                        {c.phaseLabel && <Tag state="phase">{c.phaseLabel}</Tag>}
-                      </p>
-                    )}
+                      {/* ★見出しにした理由（1番目）はカードで繰り返さない。2つ目以降だけ */}
+                      <ReasonBox items={g.label ? c.reasons.slice(1) : c.reasons} state="for-you-reasons" />
+                      {/* ★中身が空なら枠ごと出さない（CautionBox が null を返す） */}
+                      <CautionBox items={c.cautions} state="for-you-cautions" />
+                      <TagRow talkable={c.hasTalkable} openJobs={c.hasOpenJobs} phase={c.phaseLabel} />
 
-                    <Actions
-                      c={c}
-                      busy={busy === c.id}
-                      composing={composing === c.id}
-                      note={notes[c.id] ?? ""}
-                      declining={declining === c.id}
-                      declineReason={declineReason}
-                      declineReasons={declineReasons}
-                      onInterested={() => c.hasResponder ? setComposing(c.id) : react(c.id, "interested")}
-                      onChangeNote={(v) => setNotes((n) => ({ ...n, [c.id]: v }))}
-                      onSend={() => react(c.id, "interested", { note: (notes[c.id] ?? "").trim() || null })}
-                      onCancelCompose={() => setComposing(null)}
-                      onUndo={() => undo(c.id)}
-                      onLater={() => react(c.id, "later")}
-                      onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
-                      onCancelDecline={() => setDeclining(null)}
-                      onChangeReason={setDeclineReason}
-                      onDecline={() => react(c.id, "not_interested", { reason: declineReason })}
-                    />
-                    {err?.id === c.id && (
-                      <p role="alert" style={{ fontSize: 12, color: "#B3261E", margin: "6px 0 0" }}>{err.text}</p>
-                    )}
-                  </div>
-                </div>
-              </li>
+                      <Actions
+                        c={c}
+                        busy={busy === c.id}
+                        composing={composing === c.id}
+                        note={notes[c.id] ?? ""}
+                        declining={declining === c.id}
+                        declineReason={declineReason}
+                        declineReasons={declineReasons}
+                        onInterested={() => c.hasResponder ? setComposing(c.id) : react(c.id, "interested")}
+                        onChangeNote={(v) => setNotes((n) => ({ ...n, [c.id]: v }))}
+                        onSend={() => react(c.id, "interested", { note: (notes[c.id] ?? "").trim() || null })}
+                        onCancelCompose={() => setComposing(null)}
+                        onUndo={() => undo(c.id)}
+                        onLater={() => react(c.id, "later")}
+                        onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
+                        onCancelDecline={() => setDeclining(null)}
+                        onChangeReason={setDeclineReason}
+                        onDecline={() => react(c.id, "not_interested", { reason: declineReason })}
+                      />
+                      {err?.id === c.id && (
+                        <p role="alert" style={{ fontSize: 12, color: "#B3261E", margin: "6px 0 0" }}>{err.text}</p>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </section>
             ))}
-          </ol>
+          </div>
 
           {hidden.length > 0 && (
             <section style={{ marginTop: 24 }}>
@@ -230,14 +214,6 @@ export default function ForYouSection({
   );
 }
 
-function Tag({ state, children }: { state: string; children: React.ReactNode }) {
-  return (
-    <span data-state={`for-you-tag-${state}`} style={{ display: "inline-block", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, border: "1px solid var(--line)", color: "var(--ink-soft)", background: "#fff" }}>
-      {children}
-    </span>
-  );
-}
-
 function Actions(props: {
   c: ForYouView;
   busy: boolean;
@@ -258,7 +234,7 @@ function Actions(props: {
   onDecline: () => void;
 }) {
   const { c } = props;
-  const btn = { fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 8, cursor: "pointer", minHeight: 36 } as const;
+  const btn = BTN;
 
   /* ── 「話を聞いてみたい」を押した後 ── */
   if (c.interested) {
@@ -266,9 +242,10 @@ function Actions(props: {
       <div data-state="for-you-interested" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7 }}>
         {c.conversationId ? (
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontWeight: 600 }}>「話を聞いてみたい」と答えました。メッセージでやり取りできます。</span>
+            {/* ⚠️ 上段（ProposalsClient）の回答済みと同じ1行。片方だけ変えないこと */}
+            <span style={{ fontWeight: 600 }}>「話を聞いてみたい」と答えました</span>
             <Link href={`/mypage/conversations/${c.conversationId}`}
-              style={{ padding: "8px 14px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontWeight: 600, textDecoration: "none" }}>
+              style={{ padding: "6px 12px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontWeight: 600, textDecoration: "none" }}>
               メッセージを開く
             </Link>
           </div>
@@ -357,4 +334,26 @@ function Actions(props: {
       </button>
     </div>
   );
+}
+
+/**
+ * ★理由ごとにまとめる（2026-10-15）。
+ *   - 見出し＝1番目の理由（groupLabel）。同じ見出しの会社を1つにまとめる
+ *   - グループの並び＝グループの中で最も順位の高い会社の順（rank が小さい順）
+ *   - グループの中は順位の順
+ *   - 理由の無い会社（groupLabel が null）は最後に1つ（「その他の掲載企業」）
+ */
+function groupCompanies(list: ForYouView[]): { label: string | null; items: ForYouView[] }[] {
+  const map = new Map<string, ForYouView[]>();
+  const other: ForYouView[] = [];
+  for (const c of [...list].sort((a, b) => a.rank - b.rank)) {
+    if (!c.groupLabel) { other.push(c); continue; }
+    const arr = map.get(c.groupLabel) ?? [];
+    arr.push(c);
+    map.set(c.groupLabel, arr);
+  }
+  const groups = Array.from(map.entries())
+    .map(([label, items]) => ({ label, items }))
+    .sort((a, b) => a.items[0].rank - b.items[0].rank);
+  return other.length > 0 ? [...groups, { label: null, items: other }] : groups;
 }

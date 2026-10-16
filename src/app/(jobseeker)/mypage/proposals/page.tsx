@@ -3,13 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { companyLinkStateFor } from "@/lib/companies/linkState";
-import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
+import { phaseLabel } from "@/lib/constants/phase";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
 import ForYouSection, { type ForYouView } from "./ForYouSection";
 import FitPageIntro from "./FitPageIntro";
+import AxesEntryCard from "./AxesEntryCard";
+import { fitAxesEnabledFor } from "@/lib/fitAxes/axes";
+import { loadFitAxes } from "@/lib/fitAxes/load";
 import { FIT_PAGE_TITLE } from "./fitPageText";
 import { buildForYou } from "@/lib/forYou/rank";
+import { groupLabel } from "@/lib/forYou/weights";
 import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 import { isVisiblePair, phaseInputOf, PROPOSAL_PHASE_COLS, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 import { proposalPhase } from "@/lib/constants/proposalResponses";
@@ -53,7 +57,7 @@ export default async function ProposalsPage() {
     /* ★段の判定に要る列は `PROPOSAL_PHASE_COLS` の1か所。
           ⚠️★**`company_response` / `delivery_mode` そのものはクライアントに送らない**
             （以前に企業が見送ったことを伝えない。送るのは段から作った表示用の区分だけ） */
-    .select(`id, company_id, evidence, counter_evidence, computed_at, conversation_id, candidate_note, ${PROPOSAL_PHASE_COLS}, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test), ow_jobs(id, title, slug, status, is_test)`)
+    .select(`id, company_id, evidence, counter_evidence, computed_at, conversation_id, candidate_note, ${PROPOSAL_PHASE_COLS}, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test, phase), ow_jobs(id, title, slug, status, is_test)`)
     .eq("candidate_user_id", me.id)
     .order("created_at", { ascending: false });
   /* ⚠️ 握り潰さない。失敗を「0件」に見せない（CLAUDE.md） */
@@ -79,7 +83,7 @@ export default async function ProposalsPage() {
       : "ended";
     const co = p.ow_companies as unknown as {
       id: string; name: string; name_en: string | null; slug: string | null;
-      tagline: string | null; logo_url: string | null; is_test: boolean | null;
+      tagline: string | null; logo_url: string | null; is_test: boolean | null; phase: string | null;
     } | null;
     const job = p.ow_jobs as unknown as {
       id: string; title: string | null; slug: string | null; status: string | null; is_test: boolean | null;
@@ -110,6 +114,7 @@ export default async function ProposalsPage() {
       computedAt: (p.computed_at as string).slice(0, 10),
       /* ★締め切り（2026-10-10）。⚠️ 未回答のときだけ出す */
       daysLeft: status === "pending" ? proposalDaysLeft(p.respond_by as string) : null,
+      phaseLabel: phaseLabel(co?.phase ?? null),
     };
   });
 
@@ -136,6 +141,8 @@ export default async function ProposalsPage() {
             ? `/companies/${c.slug ?? c.id}` : null,
           tagline: c.tagline,
           reasons: c.reasons,
+          /* ★1番目の理由で束ねる見出し（無ければ「その他の掲載企業」へ） */
+          groupLabel: c.signals[0] ? groupLabel(c.signals[0].detail) : null,
           hasTalkable: c.hasTalkable,
           hasOpenJobs: c.hasOpenJobs,
           phaseLabel: c.phaseLabel,
@@ -146,6 +153,8 @@ export default async function ProposalsPage() {
           interested: !!c.reaction?.interestedAt,
         }))
     : [];
+  /* ★相性のものさし（公開前は検証用アカウントだけ読む） */
+  const fitAxes = fitAxesEnabledFor({ isTest: viewerIsTest }) ? await loadFitAxes(me.id as string) : null;
   /* ⚠️ 理由の有無は「下段に残った会社」で数える */
   const noReasons = forYou.ok && allCompanies.length > 0 && allCompanies.every((c) => c.reasons.length === 0);
 
@@ -153,11 +162,12 @@ export default async function ProposalsPage() {
     <MypageLayout activeKey="proposals" proposalsBadge={unanswered}>
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
         <FitPageIntro showNoResponderNote={allCompanies.some((c) => !c.hasResponder)} />
+        {/* ★相性のものさしへの入口（2026-10-15）。⚠️ 公開前は検証用アカウントだけ（axes.ts の FIT_AXES_PUBLIC） */}
+        {fitAxesEnabledFor({ isTest: viewerIsTest }) && <AxesEntryCard values={fitAxes?.values ?? null} />}
         {/* ★提案が0件の人には上段を出さない（柴さんの指示）。⚠️ 取得に失敗したときは出して失敗を伝える（0件に見せない） */}
         {(proposals.length > 0 || !!error) && (
           <ProposalsClient
             proposals={proposals}
-            minEvidence={MIN_EVIDENCE_FOR_PROPOSAL}
             loadFailed={!!error}
           />
         )}

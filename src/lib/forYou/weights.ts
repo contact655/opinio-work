@@ -95,6 +95,24 @@ export function reasonText(s: SignalDetail): string {
   }
 }
 
+/**
+ * ★下段で会社をまとめるときの見出し（2026-10-15）。**1番目の理由（点数の最も高いシグナル）で束ねる。**
+ *   reasonText と同じ事実を、見出しの形（「〜の会社です」を外した形）で言う。
+ * ⚠️ 見出しにした理由はカードの中で繰り返さない（カードには2つ目以降の理由だけ出す）
+ */
+export function groupLabel(s: SignalDetail): string {
+  switch (s.key) {
+    case "same_domain":
+      return `${s.fromCurrent ? "いまの勤務先" : "前職"}と同じ${s.domainName}領域`;
+    case "role_opening":
+      return s.fromDesired ? `希望職種（${s.roleName}）の募集がある会社` : `あなたの経験職種（${s.roleName}）の募集がある会社`;
+    case "moved_from_domain":
+      return `${s.fromCurrent ? "いまの勤務先" : "前職"}と同じ${s.domainName}領域の会社から、人が移っている会社`;
+    case "phase_match":
+      return `希望しているフェーズ（${s.phaseLabel}）の会社`;
+  }
+}
+
 /** 本人の希望フェーズ（`ow_profiles.desired_phase` は日本語ラベル）→ `lib/constants/phase.ts` の選択肢 */
 export const DESIRED_PHASE_TO_OPTION: Record<string, { option: string; label: string }> = {
   "シリーズA": { option: "series_a", label: "シリーズA" },

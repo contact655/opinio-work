@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import EvidenceList, { type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
+import { MAX_EVIDENCE_SHOWN, type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
+import { evidenceText } from "@/lib/evidence/fit";
+import { BTN, CARD_STYLE, CautionBox, NameLabel, ReasonBox, TagRow } from "./FitCardParts";
 import DeclineSheet from "@/components/proposals/DeclineSheet";
 import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
 import { PROPOSALS_SECTION_TITLE } from "./fitPageText";
@@ -37,17 +39,21 @@ export type ProposalView = {
   computedAt: string;
   /** ★回答の締め切りまであと何日（2026-10-10）。終了・両方回答済みなら null。⚠️ 通知は送らない（表示だけ） */
   daysLeft: number | null;
+  /** タグ「フェーズ」（lib/constants/phase.ts のラベル。不明なら null） */
+  phaseLabel: string | null;
 };
 
 export default function ProposalsClient({
-  proposals, minEvidence, loadFailed,
-}: { proposals: ProposalView[]; minEvidence: number; loadFailed: boolean }) {
+  proposals, loadFailed,
+}: { proposals: ProposalView[]; loadFailed: boolean }) {
   const [items, setItems] = useState(proposals);
   const [declining, setDeclining] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   /* ★会社へのひとこと（任意）。提案ごとに持つ */
   const [notes, setNotes] = useState<Record<string, string>>({});
+  /* ★「話を聞いてみたい」を押すとひとこと欄が開く（下段と同じ並び。2026-10-15） */
+  const [composing, setComposing] = useState<string | null>(null);
 
   async function respond(id: string, response: "interested" | "declined", reason?: string, declineNote?: string) {
     setPending(true); setErr(null);
@@ -85,11 +91,10 @@ export default function ProposalsClient({
 
   return (
     /* ★2026-10-15 に「あなたに合う順」と1ページに統合した（ページ名「あなたに合う会社」）。
-          この部品は上段だけを描く。見出し・冒頭の説明・「詳しく」の折りたたみは page.tsx（FitPageIntro）。
+          この部品は上段だけを描く。冒頭の説明と「詳しく」は FitPageIntro。
+          ★カードの見た目は下段と揃えた（FitCardParts）。区別は社名の横の「OPINIO からの提案」のラベルで行う。
           ⚠️ 提案が0件の人には page.tsx がこの部品ごと出さない（空のときの説明はここに置かない） */
-    <section aria-labelledby="proposals-heading" style={{ marginBottom: 32 }}>
-      <h2 id="proposals-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 4px" }}>{PROPOSALS_SECTION_TITLE}</h2>
-
+    <section aria-label={PROPOSALS_SECTION_TITLE} style={{ marginBottom: 28 }}>
       {err && (
         <p role="alert" style={{ fontSize: 13, color: "#B3261E", background: "#FDF2F2", border: "1px solid #F0C7C7", borderRadius: 8, padding: "10px 12px", marginBottom: 16 }}>
           {err}
@@ -102,47 +107,49 @@ export default function ProposalsClient({
           しばらくしてから開き直してください。
         </p>
       ) : (
-        <>
-          {/* ★件数は出す。黙って消さない */}
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14 }}>
-            根拠を {minEvidence} 件以上そろえられたのは <strong>{items.length} 社</strong>でした。
-          </p>
-
-          <div style={{ display: "grid", gap: 14 }}>
-            {items.map((p) => (
-              <article key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "16px 16px 14px" }}>
-                <header style={{ marginBottom: 10 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 2px" }}>
-                    {p.companyHref ? (
-                      <Link href={p.companyHref} style={{ color: "inherit", textDecoration: "none" }}>
-                        {p.companyName}
-                      </Link>
-                    ) : p.companyName}
+        <div style={{ display: "grid", gap: 12 }}>
+          {items.map((p) => {
+            const shown = p.evidence.slice(0, MAX_EVIDENCE_SHOWN);
+            const rest = p.evidence.length - shown.length;
+            /* ★「確かめられなかったこと」（kind:'unknown'）は注意点として出さない（柴さんの指示・2026-10-15）。
+                  ⚠️ 確かめていないことの説明は「詳しく」に1回だけ書いてある（FitPageIntro） */
+            const cautions = p.counter.filter((c) => c.kind !== "unknown").map((c) => c.label);
+            return (
+              <article key={p.id} data-state="proposal-card" style={CARD_STYLE}>
+                <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+                    {p.companyHref
+                      ? <Link href={p.companyHref} style={{ color: "inherit", textDecoration: "none" }}>{p.companyName}</Link>
+                      : p.companyName}
                   </h3>
-                  {p.tagline && (
-                    <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: 0 }}>{p.tagline}</p>
-                  )}
-                  {/* ★運営会社の開示（2026-10-10）。運営が自社を薦める形になるので必ず出す */}
-                  {p.isOwnCompany && <OwnCompanyNote style={{ marginTop: 4 }} />}
-                </header>
+                  <NameLabel state="proposal-label" strong>{PROPOSALS_SECTION_TITLE}</NameLabel>
+                </div>
+                {p.tagline && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "2px 0 0" }}>{p.tagline}</p>}
+                {/* ★運営会社の開示（2026-10-10）。運営が自社を薦める形になるので必ず出す */}
+                {p.isOwnCompany && <OwnCompanyNote style={{ marginTop: 4 }} />}
 
-                <EvidenceList evidence={p.evidence} counter={p.counter} audience="candidate" />
+                <ReasonBox items={shown.map((e) => evidenceText(e, "candidate"))} state="proposal-reasons" />
+                {/* ⚠️ 隠した件数は出す。黙って切らない */}
+                {rest > 0 && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "4px 0 0" }}>ほかに根拠が {rest} 件あります</p>}
+                <CautionBox items={cautions} state="proposal-cautions" />
+                <TagRow
+                  talkable={p.evidence.some((e) => e.kind === "talkable")}
+                  openJobs={!!p.jobHref}
+                  phase={p.phaseLabel}
+                />
 
-                {/* ★関連する求人（2026-10-11。提案は求人つきでしか作らない） */}
+                {/* ★関連する求人（提案は求人つきでしか作らない）と、いつ時点の根拠か。小さく1行ずつ */}
                 {p.jobTitle && (
-                  <p style={{ fontSize: 13, margin: "10px 0 0" }}>
-                    <span style={{ color: "var(--ink-soft)" }}>関連する求人：</span>
-                    {p.jobHref ? (
-                      <Link href={p.jobHref} style={{ color: "var(--royal)" }}>{p.jobTitle}</Link>
-                    ) : (
-                      <span>{p.jobTitle}{p.jobClosed && <span style={{ color: "var(--ink-soft)" }}>（掲載を終了しました）</span>}</span>
-                    )}
+                  <p style={{ fontSize: 12, margin: "8px 0 0", color: "var(--ink-soft)" }}>
+                    関連する求人：
+                    {p.jobHref
+                      ? <Link href={p.jobHref} style={{ color: "var(--royal)" }}>{p.jobTitle}</Link>
+                      : <span>{p.jobTitle}{p.jobClosed && "（掲載を終了しました）"}</span>}
                   </p>
                 )}
-
                 {/* ⚠️ スナップショットである旨を書く。数字が古くなりうることを隠さない */}
-                <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "10px 0 0" }}>
-                  {p.computedAt} 時点の情報にもとづくおすすめです
+                <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0" }}>
+                  {p.computedAt} 時点の情報にもとづく提案です
                   {p.daysLeft != null && (
                     <span data-state="proposal-days-left" style={{ marginLeft: 8, fontWeight: 600 }}>
                       ・回答の締め切りまで{p.daysLeft <= 1 ? "今日まで" : `あと${p.daysLeft}日`}
@@ -151,62 +158,59 @@ export default function ProposalsClient({
                 </p>
 
                 {p.status === "pending" ? (
-                  <div data-state="proposal-pending" style={{ marginTop: 14 }}>
-                    <label htmlFor={`note-${p.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-                      会社へのひとこと<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（任意・{PROPOSAL_NOTE_MAX}字まで）</span>
-                    </label>
-                    <textarea
-                      id={`note-${p.id}`}
-                      value={notes[p.id] ?? ""}
-                      maxLength={PROPOSAL_NOTE_MAX}
-                      rows={3}
-                      onChange={(e) => setNotes((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                      placeholder="聞いてみたいことや、いまの状況など"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.6, resize: "vertical" }}
-                    />
-                    <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", textAlign: "right" }}>
-                      {(notes[p.id] ?? "").length} / {PROPOSAL_NOTE_MAX}
-                    </p>
-
-                    {/* ★★押す直前に置く。⚠️ 画面の先頭の告知は、提案が増えると押すときには視界から外れている */}
-                    <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, margin: "8px 0 0" }}>
-                      {/* ★説明は1種類（2026-10-11 に企業側の「確認してから」をなくした）。⚠️ 企業ごとに変えないこと */}
-                      押すと、{p.companyName}にあなたのプロフィールとひとことが届き、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。
-                    </p>
-
-                    <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <button
-                        onClick={() => respond(p.id, "interested")}
-                        disabled={pending}
-                        style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 600, cursor: pending ? "default" : "pointer", opacity: pending ? 0.6 : 1 }}
-                      >
+                  composing === p.id ? (
+                    <div data-state="proposal-composing" style={{ marginTop: 12 }}>
+                      <label htmlFor={`note-${p.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+                        会社へのひとこと<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（任意・{PROPOSAL_NOTE_MAX}字まで）</span>
+                      </label>
+                      <textarea
+                        id={`note-${p.id}`}
+                        value={notes[p.id] ?? ""}
+                        maxLength={PROPOSAL_NOTE_MAX}
+                        rows={3}
+                        onChange={(e) => setNotes((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                        placeholder="聞いてみたいことや、いまの状況など"
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.6, resize: "vertical" }}
+                      />
+                      <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", textAlign: "right" }}>
+                        {(notes[p.id] ?? "").length} / {PROPOSAL_NOTE_MAX}
+                      </p>
+                      {/* ★★押す直前に置く。⚠️ 文言は変えていない（説明は1種類。企業ごとに変えないこと） */}
+                      <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, margin: "6px 0 0" }}>
+                        押すと、{p.companyName}にあなたのプロフィールとひとことが届き、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。
+                      </p>
+                      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+                        <button onClick={() => respond(p.id, "interested")} disabled={pending}
+                          style={{ ...BTN, border: "none", background: "var(--royal)", color: "#fff", opacity: pending ? 0.6 : 1 }}>
+                          話を聞いてみたい
+                        </button>
+                        <button onClick={() => setComposing(null)}
+                          style={{ ...BTN, border: "none", background: "none", color: "var(--ink-soft)" }}>
+                          やめる
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div data-state="proposal-pending" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <button onClick={() => setComposing(p.id)} disabled={pending}
+                        style={{ ...BTN, border: "none", background: "var(--royal)", color: "#fff", opacity: pending ? 0.6 : 1 }}>
                         話を聞いてみたい
                       </button>
-                      {p.companyHref && (
-                        <Link href={p.companyHref} style={{ fontSize: 13, color: "var(--royal)" }}>
-                          企業ページを見る
-                        </Link>
-                      )}
-                      {/* ★小さく置く（2026-10-11）。理由は任意 */}
-                      <button
-                        onClick={() => setDeclining(p.id)}
-                        disabled={pending}
-                        style={{ marginLeft: "auto", padding: "4px 0", border: "none", background: "none", color: "var(--ink-soft)", fontSize: 12, textDecoration: "underline", cursor: "pointer" }}
-                      >
+                      <button onClick={() => setDeclining(p.id)} disabled={pending}
+                        style={{ ...BTN, border: "none", background: "none", color: "var(--ink-soft)" }}>
                         今回は見送る
                       </button>
                     </div>
-                  </div>
+                  )
                 ) : (
                   <div data-state={`proposal-${p.status}`} style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7 }}>
                     {p.status === "introduced" ? (
+                      /* ★1行にまとめる（柴さんの指示）。送ったひとことは折りたたむ */
                       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 600 }}>「話を聞いてみたい」と答えました。メッセージでやり取りできます。</span>
+                        <span style={{ fontWeight: 600 }}>「話を聞いてみたい」と答えました</span>
                         {p.conversationId && (
-                          <Link
-                            href={`/mypage/conversations/${p.conversationId}`}
-                            style={{ padding: "8px 14px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontWeight: 600, textDecoration: "none" }}
-                          >
+                          <Link href={`/mypage/conversations/${p.conversationId}`}
+                            style={{ padding: "6px 12px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontWeight: 600, textDecoration: "none" }}>
                             メッセージを開く
                           </Link>
                         )}
@@ -220,16 +224,17 @@ export default function ProposalsClient({
                       <span style={{ color: "var(--ink-soft)" }}>このおすすめは終了しました</span>
                     )}
                     {p.note && (p.status === "waiting" || p.status === "introduced") && (
-                      <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>
-                        送ったひとこと：{p.note}
-                      </p>
+                      <details style={{ marginTop: 4, fontSize: 12, color: "var(--ink-soft)" }}>
+                        <summary style={{ cursor: "pointer" }}>送ったひとこと</summary>
+                        <p style={{ margin: "4px 0 0" }}>{p.note}</p>
+                      </details>
                     )}
                   </div>
                 )}
               </article>
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
 
       {declining && (
