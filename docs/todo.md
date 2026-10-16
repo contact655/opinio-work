@@ -86,6 +86,7 @@ COALESCE(
 ## ⚠️ `POST /api/biz/ambassador/self-register` は CHECK 制約で必ず 500（2026-08-23 記録・未修正）
 
 > ✅ **解決済み（2026-08-23 / `330f6d20`）。** `display_consent: true, is_public: true` で入れる形に直した。見出しの「未修正」は記録した時点の状態。（2026-10-16 に状態を追記）
+> ⚠️ **2026-10-16 にこのルートごと削除した**（面談OKの撤去）。下の本文は経緯として残す。
 
 **対象**: [src/app/api/biz/ambassador/self-register/route.ts](../src/app/api/biz/ambassador/self-register/route.ts)。
 
@@ -140,6 +141,7 @@ RLS の「INSERT は `display_consent=false` のみ許可」に合わせた実�
 ## ★`companyDisplayName()` が日本企業も英語名で出す（2026-09-16 記録・今回は触っていない）
 
 > ⏳ **未対応（2026-10-16 時点）。** 表示名は今も `name_en` を優先する（`src/lib/companies/displayName.ts`）。
+> ⚠️ **2026-10-16 に `/people` の所属もこの規則に乗った**（面談OKの撤去で、所属を `ow_company_members` の `brand_name` ではなく職歴の表示名から作るようにしたため）。海光電業 → KAIKOU DENGYO、CTC → ITOCHU Techno-Solutions に変わった。柴さんの判断で今回はこのまま。
 
 **対象**: [src/lib/companies/displayName.ts](../src/lib/companies/displayName.ts)。
 
