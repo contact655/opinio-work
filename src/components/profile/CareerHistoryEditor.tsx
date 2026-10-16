@@ -20,7 +20,7 @@ import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
          あるので、割れると片方だけ直る形の不具合になる。 */
 import {
   ExperienceReasonModal,
-  hasReasonAnswers,
+  reasonState,
 } from "@/components/profile/editor/ExperienceReasonModal";
 import {
   postExperience,
@@ -1588,19 +1588,24 @@ export default function CareerHistoryEditor({
     setReasonId(openReasonId);
   }, [openReasonId]);
   /* ★まとめて答える（2026-09-12 / 2-5）。**古い順**に並べた未回答の会社（2026-10-16 から会社単位）。
-     ⚠️ 判定は `hasReasonAnswers`。画面のドットと**同じ関数**を見る。
+     ⚠️ 判定は `reasonState`（画面のドットが使う `hasReasonAnswers` の元）。
      ⚠️★**1社につき1件**（その会社でいちばん古い役割）。同じ会社の役割を2回聞かない。 */
+  /* ★2026-10-17 から、**旧形式だけで答えた会社（legacy）も含める**（柴さんの判断）。
+        未回答の会社を先に（古い順）、そのあとに答え直しの会社（古い順）。
+        ⚠️ ProfileTab の帯の件数（未回答 N社・答え直し M社）と**同じ並べ方・同じ判定**（`reasonState`）にしてある。 */
   const unansweredIds = useMemo(() => {
     const seen = new Set<string>();
-    const out: string[] = [];
+    const none: string[] = [];
+    const legacy: string[] = [];
     for (const x of stints.slice().sort((a, b) => a.startedAt.localeCompare(b.startedAt))) {
-      if (hasReasonAnswers(x)) continue;
+      const st = reasonState(x);
+      if (st === "answered") continue;
       const k = groupKey(x);
       if (seen.has(k)) continue;
       seen.add(k);
-      out.push(x.id);
+      (st === "legacy" ? legacy : none).push(x.id);
     }
-    return out;
+    return [...none, ...legacy];
   }, [stints]);
   /* ⚠️ **nonce は値が変わったときだけ発火させる**（`.claude/rules/ui-debugging.md` ⑭）。
         ref の初期値を現在値にしてあるので、マウントでは開かない。 */

@@ -807,8 +807,10 @@ export default function ProfileTab({
   /* ★旧形式（2026-10-16 より前の「選んだ理由」）だけで答えた職歴の数（2026-10-16 / 柴さんの判断）。
         ⚠️ 上の「未回答」には数えない（`hasReasonAnswers` が旧形式を回答済みとして扱う）。
            帯とは別に、控えめな一文で答え直しを案内する。行の印は `ReasonEntryButton` の `legacy`。 */
+  /* ★2026-10-17 から**会社単位**で数える（「まとめて答える」が1社1回なので、件数と開く回数を揃える）。
+        キーは下の legacyReasonCompanies と同じ。 */
   const unansweredReasonCount = useMemo(
-    () => careerStints.filter((s) => !hasReasonAnswers(s)).length,
+    () => new Set(careerStints.filter((s) => !hasReasonAnswers(s)).map((s) => s.companyId ?? s.companyText ?? s.displayCompanyName)).size,
     [careerStints],
   );
   /* ★★職歴の促しカード（2026-10-16 / 柴さんの判断）。
@@ -894,6 +896,25 @@ export default function ProfileTab({
       a.left !== b.left ? (a.left ? -1 : 1) : b.lastEnd.localeCompare(a.lastEnd));
   }, [careerStints, timelineCareers]);
   const legacyReasonCount = legacyReasonCompanies.length;
+  /* ★★/mypage 上部の「この会社について答えてください」カード（2026-10-17 / 柴さんの判断）。
+        未回答か答え直しの会社が1社以上ある人にだけ出す。押すと「まとめて答える」と同じ順で開く。
+     ⚠️ 閉じたら30日出さない（この端末だけ。localStorage）。職歴欄の帯は閉じても残る（そちらが常設の入口）。
+     ⚠️ 読むのはマウント後（SSR と初回描画を揃える。ui-debugging のハイドレーション）。
+     ⚠️ 職歴の促しカード（showCareerPrompt）が出ている間は出さない（同じ画面に促しを2つ並べない）。 */
+  const REASON_TOP_DISMISS_KEY = "mypage-reason-top-dismissed-at";
+  const REASON_TOP_DISMISS_DAYS = 30;
+  const [reasonTopDismissed, setReasonTopDismissed] = useState(true);
+  useEffect(() => {
+    try {
+      const at = Number(localStorage.getItem(REASON_TOP_DISMISS_KEY) ?? 0);
+      setReasonTopDismissed(at > 0 && Date.now() - at < REASON_TOP_DISMISS_DAYS * 86_400_000);
+    } catch { setReasonTopDismissed(false); }
+  }, []);
+  const dismissReasonTop = () => {
+    setReasonTopDismissed(true);
+    try { localStorage.setItem(REASON_TOP_DISMISS_KEY, String(Date.now())); } catch { /* 保存できなくても今回は閉じる */ }
+  };
+  const showReasonTop = !reasonTopDismissed && !showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0;
   /* ★本体に出す職歴は**表示単位で4つまで**（2026-08-17 / フェーズ3）。
         同じ会社の複数の役割は1つのまとまりとして数える。
      ⚠️ 切るのは `MergedTimeline` と同じ並べ替えを通したあと。 */
@@ -1656,6 +1677,35 @@ export default function ProfileTab({
               </div>
             )}
 
+            {showReasonTop && (
+              <div data-state="reason-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+                    {(() => {
+                      /* 会社名は1社だけ出す（答え直しより未回答を先に。並びは「まとめて答える」と同じ向き） */
+                      const legacyName = legacyReasonCompanies[0]?.name;
+                      const others = unansweredReasonCount + legacyReasonCount - 1;
+                      if (unansweredReasonCount === 0 && legacyName) {
+                        return `${legacyName}${others > 0 ? ` ほか${others}社` : ""}について答え直すと、あなたに合う会社の理由に使われます`;
+                      }
+                      return `これまでの会社について答えると、あなたに合う会社の理由に使われます`;
+                    })()}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>1社あたり約30秒・回答は会社には伝わりません</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button type="button" onClick={dismissReasonTop} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    あとで
+                  </button>
+                  <button type="button" onClick={() => setReasonBatchNonce((n) => n + 1)} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    答える
+                  </button>
+                </div>
+              </div>
+            )}
+
             {basicToastMsg && (
               <Toast message={basicToastMsg} variant={basicToastVariant} onDone={() => setBasicToastMsg(null)} />
             )}
@@ -1792,8 +1842,13 @@ export default function ProfileTab({
                 />
               )}
               {/* ⚠️★促しカードが出ているあいだは出さない（2026-10-16）。2つを同時に並べない */}
-              {!showCareerPrompt && unansweredReasonCount > 0 && (
+              {/* ★2026-10-17: 旧形式だけで答えた会社（答え直し）も**この帯にまとめた**（柴さんの判断）。
+                     それまでは帯の下に別の一文（「質問が新しくなりました…2分で答え直せます」）があり、
+                     「まとめて答える」は答え直しの会社を開かなかった。入口を1つにした（ui-debugging ⑧）。
+                     ⚠️ 開く順は CareerHistoryEditor の unansweredIds（未回答 → 答え直し、それぞれ古い順） */}
+              {!showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0 && (
                 <div
+                  data-state="reason-batch-band"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -1809,11 +1864,17 @@ export default function ProfileTab({
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.6 }}>
-                      {unansweredReasonCount}件の職歴が未回答です
+                      {unansweredReasonCount > 0 && legacyReasonCount > 0
+                        ? `${unansweredReasonCount}社が未回答・${legacyReasonCount}社は答え直しがあります`
+                        : unansweredReasonCount > 0
+                        ? `${unansweredReasonCount}社が未回答です`
+                        : `質問が新しくなりました（${legacyReasonCount <= 2
+                            ? legacyReasonCompanies.map((c) => c.name).join("・")
+                            : `${legacyReasonCompanies[0].name} ほか${legacyReasonCount - 1}社`}）`}
                     </div>
                     {/* ★2026-10-16 に問いを「この会社について」に変えたので文言を揃えた（モーダルの注記と同じ向き） */}
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                      回答は会社には伝わりません
+                      回答は会社には伝わりません。あなたに合う会社を探すのに使います
                     </div>
                   </div>
                   <button
@@ -1837,29 +1898,8 @@ export default function ProfileTab({
                   </button>
                 </div>
               )}
-              {/* ★旧形式で答えた職歴への案内（2026-10-16 / 柴さんの判断）。帯とは別の、控えめな一文。
-                     ★押すと、旧形式の会社のうち先頭（終了した会社が先）のモーダルを開く（2026-10-16 / 柴さんの指示）。
-                     会社名は2社まで並べ、3社以上は「◯◯ ほかN社」。
-                     ⚠️ 行の印（白抜きの輪・「質問が新しくなりました」）からも答え直せる。片方だけにしない */}
-              {!showCareerPrompt && legacyReasonCount > 0 && (
-                <button
-                  type="button"
-                  data-state="reason-legacy-note"
-                  onClick={() => setReasonCareerId(legacyReasonCompanies[0].id)}
-                  className="tap-min-h"
-                  style={{
-                    display: "block", width: "100%", textAlign: "left", margin: "0 0 12px", padding: "4px 0",
-                    background: "none", border: "none", fontFamily: "inherit", cursor: "pointer",
-                    fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7, overflowWrap: "anywhere",
-                  }}
-                >
-                  質問が新しくなりました（
-                  {legacyReasonCount <= 2
-                    ? legacyReasonCompanies.map((c) => c.name).join("・")
-                    : `${legacyReasonCompanies[0].name} ほか${legacyReasonCount - 1}社`}
-                  ）。<span style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3 }}>2分で答え直せます</span>
-                </button>
-              )}
+              {/* ⚠️ 旧形式で答えた会社への別の一文（「質問が新しくなりました…2分で答え直せます」）は
+                     2026-10-17 に上の帯へまとめて外した。行の印（白抜きの輪）は残してある。 */}
               {/* ★★行の鉛筆をここへ戻した（2026-09-12 / 柴さんの指示）。
                      2026-08-17 のフェーズ3で「1件ずつ触るのは一覧ページの仕事」と決めたが、
                      **その一覧ページを畳んだ**ので、行の操作が本体に戻る。
