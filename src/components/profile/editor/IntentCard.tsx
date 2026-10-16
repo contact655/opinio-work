@@ -307,7 +307,21 @@ export default function IntentCard({
     <>
       {/* ⚠️ 幅を自分で決めない。器（`MypageLayout` の右カラム）の幅にそのまま従う。
              実測: デスクトップ 272px（320 − 24×2）/ 375px のとき 343px（375 − 16×2）。 */}
-      <section id="intent" style={{
+      {/* ★モバイル（767px 以下）は1行に畳む（2026-10-17 / 柴さんの指示）。名前が1画面目の下端に押し出されていたため。
+             見出しと最終更新を隠し、「転職意欲　値」を1行で出す。✎ と下の案内（①②③）はそのまま出す。
+             ⚠️ この style のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */}
+      <style>{`
+        @media (max-width: 767px) {
+          .intent-card { padding: 12px 52px 12px 14px !important; }
+          .intent-title { display: none; }
+          .intent-row { border-top: none !important; padding-top: 0 !important; margin-top: 0 !important; }
+          .intent-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+          .intent-head p { margin: 0 !important; }
+          .intent-updated { display: none !important; }
+          .intent-edit { top: 50% !important; transform: translateY(-50%); }
+        }
+      `}</style>
+      <section id="intent" className="intent-card" style={{
         background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
         padding: "16px 18px", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         position: "relative",
@@ -317,7 +331,7 @@ export default function IntentCard({
                   ラベルがボタンのぶん詰まって折り返す。 */}
         <button
           type="button"
-          className="tap-target tap-target-end"
+          className="tap-target tap-target-end intent-edit"
           onClick={() => { resetToSaved(); setOpen(true); }}
           aria-label="転職の状況を編集"
           /* ⚠️ 見出しは 2026-09-12 に「意思表示」→「転職・面談の状況」に変えた。
@@ -339,22 +353,24 @@ export default function IntentCard({
                ⚠️ **`/mypage` のこのカードだけ。** `aria-label`（「意思表示を編集」）と
                   コード内の呼び名（`IntentCard`・`career_stance`）は変えていない。 */}
         {/* ★2026-10-16 に「転職・面談の状況」→「転職の状況」。面談OK の行を撤去したため */}
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+        <h2 className="intent-title" style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
           転職の状況
         </h2>
 
         {/* ── ③ 転職意欲（トグルではなく値をそのまま出す）────────────────────── */}
-        <div style={DIVIDER}>
+        <div className="intent-row" style={DIVIDER}>
           {/* ⚠️★ここは `/mypage` に**出ている行**（モーダルの CollapsibleRow とは別物）。
                  名前は「転職意欲」（2026-09-30 / 柴さんの指示）。**両方を同じ語に保つこと。**
               ⚠️ 2026-09-30 に片方（モーダル側）だけ先に直して、**画面には旧語が残っていた。**
                  素の JSX テキストなので `label="..."` の grep では見つからない。 */}
+          <div className="intent-head">
           <div style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
             転職意欲
           </div>
           {/* ⚠️ 値は**そのまま短く**出す。「設定済み」のような抽象語にしない。
                  未設定は「未設定」と出す（✎ から答えられる）。 */}
           <SubLine>{stanceText(saved.prefs.career_stance)}</SubLine>
+          </div>
 
           {/* ★★いまどの状態かを1行で出す（2026-09-10）。
               ── 設計の前提 ──────────────────────────────────────────────────
@@ -444,7 +460,7 @@ export default function IntentCard({
                   空欄は「まだ何も答えていない」を意味する（埋めるものではない）。
                ⚠️ 打ち直すのは3つの意思表示の保存だけ。希望職種や年収を直しても動かない。 */}
         {stanceDate && (
-          <div style={{ ...DIVIDER, fontSize: 12, color: "var(--ink-mute)" }}>
+          <div className="intent-updated" style={{ ...DIVIDER, fontSize: 12, color: "var(--ink-mute)" }}>
             最終更新 {stanceDate}
           </div>
         )}

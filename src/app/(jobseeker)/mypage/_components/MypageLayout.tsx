@@ -241,7 +241,9 @@ export default function MypageLayout({
             ⚠️ `minWidth: max-content` をやめる。これがあると等幅にならない。 */}
         <div style={{ display: "flex", padding: "0 4px" }}>
           {[
-            { key: "dashboard",      label: "ホーム",        href: "/mypage",               icon: Icons.dashboard },
+            /* ★「ホーム」→「プロフィール」（2026-10-17 / 柴さんの指示）。下の固定メニューの「ホーム」はフィードで、
+                  同じ語が別の行き先を指していた。⚠️ 左のサイドバーも同じ語にしてある。片方だけ戻さないこと */
+            { key: "dashboard",      label: "プロフィール",  href: "/mypage",               icon: Icons.dashboard },
             { key: "applications",   label: "応募・面談",    href: "/mypage/applications",  icon: Icons.application },
             /* ★★提案（2026-09-21）。**「スカウト」と入れ替えた**（柴さんの判断）。
                   ⚠️★**7項目にしないこと。** 375px で1項目の枠が 49.6px に落ち、
@@ -346,7 +348,7 @@ export default function MypageLayout({
             マイページ
           </div>
           <nav style={{ display: "flex", flexDirection: "column" }}>
-            <SidebarItem icon={Icons.dashboard}   label="ホーム"        active={activeKey === "dashboard"}      href="/mypage" />
+            <SidebarItem icon={Icons.dashboard}   label="プロフィール"  active={activeKey === "dashboard"}      href="/mypage" />
             <SidebarItem icon={Icons.application} label="応募・面談"    active={activeKey === "applications"}   badge={applicationsBadge}   href="/mypage/applications" />
             {/* ★2026-10-15 に「おすすめ」と「あなたに合う順」を1ページ「あなたに合う会社」に統合した。項目は1つ */}
             <SidebarItem icon={Icons.proposal}    label="あなたに合う会社" active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
@@ -507,13 +509,16 @@ export default function MypageLayout({
                ⚠️ grid（1100px 未満）側には要らない。あちらの align-self は縦方向なので
                   幅には効かない。 */
             align-self: stretch !important;
+            /* ★2026-10-17: 本文（var(--bg-tint)）と同じ地の色にする。白のままだと、右の列が終わったところで
+               白から灰色に切り替わり、画面の途中に段ができていた */
+            background: var(--bg-tint) !important;
           }
           /* 右カラムのうち**モバイルでは出さないもの**。ここで消す（本文側に控えを作らない） */
           .mypage-hide-mobile { display: none !important; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
           /* top は右の列（order: -1）より上へ */
-          /* 背景は右の列（地の色なし）に揃える。灰色のままだと右の列との境に段ができる */
-          .mypage-top-slot { order: -2; padding: 16px 16px 0 !important; background: transparent !important; }
+          /* 背景は本文と右の列（どちらも var(--bg-tint)）に揃える（2026-10-17 に白から変えた） */
+          .mypage-top-slot { order: -2; padding: 16px 16px 0 !important; background: var(--bg-tint) !important; }
           .mypage-has-top .mypage-right-aside { padding-top: 0 !important; }
         }
       `}</style>

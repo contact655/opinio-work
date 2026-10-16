@@ -864,8 +864,8 @@ export default function ProfileTab({
   /* ⚠️ `editingCareerSection` は 2026-08-17 に削除した。
         職歴セクションは**0件でも常に描かれる**ので、「追加のために開いている状態」が要らなくなった。 */
   /* `Stint`（編集用）→ `CareerEntry`（表示用）。`/u/[id]` と同じ関数を通す。
-     ⚠️ 新しく選んだ企業のロゴは `companyLogoInfo` に無い。頭文字＋既定色に落ちるだけで
-        再読み込みすれば正しく出る（`CompanyLogoIcon` が logo_url null を扱える）。 */
+     ⚠️ 新しく選んだ企業は `companyLogoInfo` に無い。名前は Stint の表示名で補い、ロゴとリンクは
+        再読み込みまで出ない（careerTimeline.ts の注記。2026-10-17 まで名前まで「非公開」になっていた）。 */
   const timelineCareers = useMemo(
     () => stintsToCareerEntries(careerStints, companyLogoInfo, roles),
     [careerStints, companyLogoInfo, roles],
@@ -1278,39 +1278,9 @@ export default function ProfileTab({
 
   return (
     <>
-        {/* ── ★アクション行（2026-08-17 / フェーズ4-3）──────────────────────
-               タブバーを畳んだので、ページの操作はこの1行にまとめる。
-            ⚠️ 「公開プロフィールを見る」は**この1つだけ**。幅で出し分けない。 */}
-        <div style={{
-          maxWidth: PROFILE_CONTENT_MAX, display: "flex", alignItems: "center", justifyContent: "flex-end",
-          gap: 8, marginBottom: 12, flexWrap: "wrap",
-        }}>
-          {owUser?.id && (
-            <a
-              href={`/u/${owUser.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="公開プロフィールを見る（新しいタブで開く）"
-              title="公開プロフィールを見る"
-              className="tap-min-h"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "7px 12px", borderRadius: 8,
-                border: "1px solid var(--line)", background: "#fff",
-                fontSize: 12, fontWeight: 700, color: "var(--royal)",
-                textDecoration: "none", whiteSpace: "nowrap",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              公開プロフィールを見る
-            </a>
-          )}
-        </div>
-
+        {/* ⚠️★「公開プロフィールを見る」のアクション行は 2026-10-17 に外した（柴さんの指示）。
+               ボタンはヘッダーのメタ行の下（`metaActions`）に移した。⚠️ **この1つだけ。** 幅で出し分けない。
+               ⚠️ 単独の行に右寄せで置いていたとき、モバイルでは何の操作か分かりにくかった。 */}
         {/* ── ヘッダー（2026-08-16 / 2-7）──────────────────────────────────
                ★`UserProfileCard` / 「プロフィール画像・カバー」/「基本情報」の3枚を
                  1つにまとめ、**公開プロフィールと同じ `ProfileHeader`** を使う。
@@ -1546,18 +1516,6 @@ export default function ProfileTab({
                 </CollapsibleRow>
             </ProfileEditModal>
 
-            {/* ★★生年月日が未入力の人への案内（2026-10-12 / 柴さんの指示）。入力するまで使えなくはしない。
-                   ⚠️ 判定は**保存済みの値**（`initialBirthYear`）。入力中の値で消さない（ui-debugging ⑦）。
-                   ⚠️ 年齢表示についての説明は足さない。黄色は「未完了」の色（ui-conventions） */}
-            {!initialBirthYear && (
-              <div data-state="birthdate-notice" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: "var(--warm-soft)", border: "1px solid #FCD34D", fontSize: 13, color: "var(--warm-ink)" }}>
-                <span style={{ flex: 1, minWidth: 0 }}>生年月日を入力してください</span>
-                <button type="button" onClick={openBirthEditor} className="btn-fixed-size"
-                  style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "1px solid #FCD34D", background: "#fff", color: "var(--warm-ink)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  入力する
-                </button>
-              </div>
-            )}
             <ProfileHeader
                 /* ⚠️ ヘッダーは**保存済みの表示名**（`.claude/rules/ui-debugging.md` ⑦）。
                       編集中の `displayName` を渡すと、保存前の入力が公開側の見た目に出る。 */
@@ -1658,7 +1616,45 @@ export default function ProfileTab({
                     <PencilIcon size={18} />
                   </button>
                 }
+                /* ★「公開プロフィールを見る」（2026-10-17 にアクション行から移した）。メタ行のすぐ下 */
+                metaActions={owUser?.id ? (
+                    <a
+                      href={`/u/${owUser.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="公開プロフィールを見る（新しいタブで開く）"
+                      title="公開プロフィールを見る"
+                      className="tap-min-h"
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "7px 12px", borderRadius: 8,
+                        border: "1px solid var(--line)", background: "#fff",
+                        fontSize: 12, fontWeight: 700, color: "var(--royal)",
+                        textDecoration: "none", whiteSpace: "nowrap",
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                      公開プロフィールを見る
+                    </a>
+                  ) : undefined}
               />
+            {/* ★★生年月日が未入力の人への案内（2026-10-12 / 柴さんの指示）。入力するまで使えなくはしない。
+                   ★2026-10-17 にヘッダーの**下**へ移した（柴さんの指示）。上にあると、モバイルで名前が1画面目の下端に押し出されていた。
+                   ⚠️ 判定は**保存済みの値**（`initialBirthYear`）。入力中の値で消さない（ui-debugging ⑦）。
+                   ⚠️ 年齢表示についての説明は足さない。黄色は「未完了」の色（ui-conventions） */}
+            {!initialBirthYear && (
+              <div data-state="birthdate-notice" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "-8px 0 16px", padding: "8px 12px", borderRadius: 10, background: "var(--warm-soft)", border: "1px solid #FCD34D", fontSize: 13, color: "var(--warm-ink)" }}>
+                <span style={{ flex: 1, minWidth: 0 }}>生年月日を入力してください</span>
+                <button type="button" onClick={openBirthEditor} className="btn-fixed-size"
+                  style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "1px solid #FCD34D", background: "#fff", color: "var(--warm-ink)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  入力する
+                </button>
+              </div>
+            )}
 
             {basicToastMsg && (
               <Toast message={basicToastMsg} variant={basicToastVariant} onDone={() => setBasicToastMsg(null)} />

@@ -363,9 +363,12 @@ export default function MypageClient({
                 「該当なし」も出さない。
              ⚠️ 意思表示カードの下・企業向け導線の上に置く。 */}
       {/* ★「あなたに合う会社」への入口（2026-10-15） */}
+      {/* ⚠️★モバイルでは出さない（2026-10-17 / 柴さんの指示）。すぐ上のタブ「合う会社」と同じ行き先で、
+             1画面目で同じ入口が2つ並んでいた（ui-debugging ⑧）。デスクトップの右の列には残す */}
       <a
         href="/mypage/proposals"
         data-state="for-you-entry"
+        className="mypage-hide-mobile"
         style={{
           display: "block", textDecoration: "none", color: "var(--ink)",
           border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", background: "#fff",
