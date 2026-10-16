@@ -292,9 +292,9 @@ export function buildCounterEvidence(facts: CounterFacts, opts: EvidenceOptions)
   // ── 年収のずれ ────────────────────────────────────────────────────────────
   if (facts.salaryGap) {
     const { jobMin, jobMax, wantMin, wantMax } = facts.salaryGap;
-    /* ⚠️★**現年収との比較は作れない。** `ow_experiences.salary_man` は
-          実ユーザー0件で、`authenticated` から SELECT の GRANT も剥がしてある
-          （2026-08-06）。ここは**希望年収との比較**。取り違えないこと。 */
+    /* ⚠️★**現年収との比較は作らない。** 本人の年収（`ow_experience_salaries`。2026-10-16〜）は
+          **本人の編集画面にしか出さない**と決めてあり、提案の根拠（企業も読む）に使えない。
+          ここは**希望年収との比較**。取り違えないこと。 */
     if (jobMax != null && wantMin != null && jobMax < wantMin) {
       out.push({
         kind: "salary_gap",

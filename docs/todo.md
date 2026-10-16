@@ -8,6 +8,10 @@
 
 ---
 
+## ⚠️ 職歴の作成・編集で `ow_users.profile_edited_at` が更新されない（2026-10-16 記録・未調査）
+
+**対象**: トリガー `trg_ow_experiences_touch_profile_edited`（`touch_profile_edited('ow')`）と、`/biz/candidates`（`lib/business/candidates/load.ts` がこの値を読む）。**なぜ残っているか**: 2026-10-16 の年収の検証で、職歴の削除では更新されたが作成・編集では更新されなかった。見立ては、作成（POST）と編集（PUT）が admin クライアント（service_role）で書くため、関数の先頭の `auth.role() <> 'authenticated'` で抜けていること（削除はセッションのクライアントで書くので通る）。＝職歴を足した・直した人が「最近更新した人」として扱われていない可能性がある。**やるなら**: 原因を実測で確かめ、API 側で明示的に更新するか、トリガーの条件を見直す（別の作業）。
+
 ## ★★`ow_users` を作っているのは DB トリガー。`split_part(email,'@',1)` がそこに残っている（2026-09-16 記録）
 
 > ✅ **解決済み（2026-09-17 / `85d25c30`・migration `20260917090000_trigger_name_no_email`）。** フォールバックを `'ユーザー'` にした。CLAUDE.md「オンボーディングの現状」に経緯がある。（2026-10-16 に状態を追記）

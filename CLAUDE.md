@@ -7484,6 +7484,22 @@ npm run dev → http://localhost:3000/dev/preview
    [docs/visibility-company-biz-20260910.md](docs/visibility-company-biz-20260910.md)。
    **4箇所目を探すときに数え直さないこと。**
 
+### ★★職歴ごとの年収は `ow_experience_salaries`。**本人の編集画面にだけ出す**（2026-10-16）
+
+| | 実体 |
+|---|---|
+| 表 | `ow_experience_salaries`（主キー＝職歴の id・`ON DELETE CASCADE`・1〜100000万円の CHECK）。**RLS 有効・ポリシー0本・anon/authenticated に権限なし** |
+| 読み書き | `lib/experiences/salary.ts` だけ。API は `GET /api/jobseeker/experiences/salaries`（本人の分）と `PUT /api/jobseeker/experiences/[id]/salary`（`requireOwnExperience` で本人確認。他人の職歴は 404） |
+| 画面 | 職歴の編集モーダルの「年収（任意）」＋「この情報は公開されず、企業にも表示されません。」。現職なら入力を勧める一文（必須にしない） |
+
+- ⚠️★**旧列 `ow_experiences.salary_man` / `salary_base` / `salary_bonus` / `salary_stock` / `visibility_salary` は読まない・書かない**（DROP していない）。
+  職歴の PUT はこの5キーが来たら `console.warn` を出して捨てる。旧 `salary_man` の実ユーザー3件は `20261016160000` で写した。
+- ⚠️★**年収を公開に切り替える画面・API・表示を作らないこと。** 他の利用者・企業・運営の一覧にも出さない。
+- ⚠️ 年収は職歴の PUT とは別に送る（`saveSalaryIfChanged`）。**理由モーダルと共通の `buildPutCoreBody` に年収を足さない**（理由の保存で年収が動く）。
+- ⚠️ 読み込みが終わるまで入力欄を押せなくしてある。外すと、空のまま保存して既存の年収を消す。
+- 実測（2026-10-16 / contact+27 の新規職歴で）: 作成時の保存・編集・削除で行が消える（CASCADE）・年収キーと `visibility_salary` を含む PUT で値が変わらない・
+  他人の職歴 404・未ログイン 401・本人の JWT でも PostgREST は 403（42501）。
+
 ### ★「この会社について」モーダル（理由の新形式 reason_version = 2。2026-10-16）
 
 **職歴ごとの「選んだ理由」を、会社ごとの「期待していたこと × 実際どうだったか」に作り直した。** 経緯と決定は

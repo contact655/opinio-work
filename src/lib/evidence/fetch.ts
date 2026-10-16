@@ -317,8 +317,10 @@ export async function gatherCompanyFacts(
       counter: {
         /* ⚠️ 退職者が0人なら `null`（測れない）。`{n:0,total:0}` にしない */
         shortTenure: left.length > 0 ? { n: short.length, total: left.length } : null,
-        /* ⚠️★**現年収は使わない**（`salary_man` は実ユーザー0件・GRANT も無い）。
-              ここは**希望年収**との比較。engine 側のコメントも参照。 */
+        /* ⚠️★**現年収は使わない。** 本人の年収は `ow_experience_salaries` にあり（2026-10-16〜）、
+              **本人の編集画面にしか出さない**と決めてある（企業にも表示されない）。
+              ここは**希望年収**との比較。engine 側のコメントも参照。
+              ⚠️ 2026-10-16 まで「salary_man は実ユーザー0件」と書いていたが誤り（実ユーザーの値が3件あった）。 */
         salaryGap:
           job && profile
             ? {
