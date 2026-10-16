@@ -1447,6 +1447,25 @@ function OnboardingInner({
                    ⚠️ 1画面目の「次へ」でも保存する（(c)）。**押さずに閉じた人は残らない。**
                    ⚠️★**2画面目だけ `disabled`。** `career_stance` は既定値で埋めないことが
                       要件なので、選ばせずに通さない（`/onboarding/stance` と同じ）。 */}
+            {/* ★★「← 戻る」と主ボタンを横に並べる（2026-10-16 / 柴さんの指示）。戻るが左・主ボタンが右。
+                   ⚠️ 1画面目は戻る先が無いので主ボタンだけ（全幅）。
+                   ⚠️ 2画面目からは戻れるようにする。`goStep` は `push` なのでブラウザの戻るでも戻れる。 */}
+            <div style={{ display: "flex", alignItems: "stretch", gap: 8, minWidth: 0 }}>
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => goStep(step - 1)}
+                disabled={saving}
+                style={{
+                  flexShrink: 0, padding: "13px 16px",
+                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, color: "var(--ink-soft)",
+                  fontSize: 13, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap",
+                  cursor: saving ? "wait" : "pointer",
+                }}
+              >
+                ← 戻る
+              </button>
+            )}
             <button
               type="button"
               /* ⚠️★最後の画面（STANCE）は `goNextFromStance` が**保存したうえで
@@ -1457,7 +1476,7 @@ function OnboardingInner({
                 : goNextFromStance}
               disabled={saving || !ctaReady}
               style={{
-                width: "100%", padding: "13px 20px",
+                flex: 1, minWidth: 0, padding: "13px 20px",
                 background: ctaReady
                   ? "linear-gradient(135deg, var(--royal), #3B5FD9)"
                   : "var(--line)",
@@ -1469,23 +1488,7 @@ function OnboardingInner({
             >
               {saving ? "保存中..." : step === STEPS.length ? "登録して始める →" : "次へ →"}
             </button>
-
-            {/* ⚠️ 2画面目からは戻れるようにする。`goStep` は `push` なのでブラウザの戻るでも戻れる。 */}
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={() => goStep(step - 1)}
-                disabled={saving}
-                style={{
-                  width: "100%", marginTop: 8, padding: "10px 20px",
-                  background: "none", border: "none", color: "var(--ink-soft)",
-                  fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-                  cursor: saving ? "wait" : "pointer",
-                }}
-              >
-                ← 戻る
-              </button>
-            )}
+            </div>
           </div>
         </div>
 
