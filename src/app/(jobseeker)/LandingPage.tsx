@@ -5,6 +5,7 @@ import { FinalCta } from "./FinalCta";
 import { AuthAwareCta } from "./AuthAwareCta";
 import { fmtMan } from "@/lib/utils/salary";
 import { phaseLabel } from "@/lib/constants/phase";
+import { groupBusinessDomainFacets, BUSINESS_DOMAIN_BLURBS } from "@/lib/constants/businessDomainGroups";
 import { LP_JOBS_MIN_TO_SHOW, LP_ARTICLES_COPY, LP_CTA_HEIGHT } from "@/lib/constants/landing";
 /* ⚠️★カテゴリのラベルと色は `TYPE_BADGE` の1箇所から引く。**ここに書き写さないこと**
       —— `/articles` の一覧・記事詳細も同じ定数を見ており、割れると同じ記事が
@@ -247,11 +248,24 @@ export default function LandingPage({
         .lp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; color: ${C.blue}; margin-bottom: 10px; }
         .lp-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
 
-        .lp-facets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .lp-facet { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-                    background: #fff; border: 1px solid ${C.line}; border-radius: 10px;
-                    padding: 12px 14px; text-decoration: none; }
-        .lp-facet:hover { border-color: ${C.blue}; }
+        /* ★事業領域を「何をつくっている会社か」のグループで出す（2026-10-16）。
+           1グループ＝1行（左にグループ名、右に項目のタイル）。項目数が違っても空白ができない。
+           狭い幅ではグループ名を上に置く。1fr ではなく minmax(0, 1fr) */
+        .lp-facet-groups { display: flex; flex-direction: column; gap: 0; border-top: 1px solid ${C.line}; }
+        .lp-facet-group { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start;
+                          padding: 18px 0; border-bottom: 1px solid ${C.line}; min-width: 0; }
+        .lp-facet-group-title { font-size: 14px; font-weight: 700; color: ${C.navy}; margin: 0; padding-top: 12px; }
+        .lp-facet-group ul { list-style: none; margin: 0; padding: 0; display: grid;
+                             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+        .lp-facet-group li { min-width: 0; }
+        .lp-facet-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 100%;
+                         background: #fff; border: 1px solid ${C.line}; border-radius: 10px;
+                         padding: 11px 14px; text-decoration: none; min-width: 0; }
+        .lp-facet-link:hover { border-color: ${C.blue}; }
+        .lp-facet-link:hover .lp-facet-name { color: ${C.blue}; }
+        .lp-facet-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .lp-facet-name { min-width: 0; font-size: 13.5px; font-weight: 600; color: ${C.ink}; }
+        .lp-facet-blurb { min-width: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: ${C.muted}; }
 
         .lp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         /* ★カードの高さを行内で揃える（2026-09-17）。
@@ -343,7 +357,9 @@ export default function LandingPage({
         @media (max-width: 900px) {
           .lp-section { padding: 52px 0; }
           .lp-wrap { padding: 0 18px; }
-          .lp-facets { grid-template-columns: repeat(2, 1fr); }
+          .lp-facet-group { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 0; }
+          .lp-facet-group-title { padding-top: 0; }
+          .lp-facet-group ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
           .lp-cards, .lp-jobs, .lp-trust, .lp-member-points, .lp-articles { grid-template-columns: 1fr; }
           .lp-lead { margin: -8px 0 20px; }
           /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
@@ -361,6 +377,10 @@ export default function LandingPage({
              同じ理由で、この中に大なり・小なり・引用符を書かないこと。
              nth-child は元々親基準なので、子クラス指定で足りる。 */
           .lp-cards .lp-card:nth-child(n+7), .lp-jobs .lp-card:nth-child(n+7) { display: none; }
+        }
+        /* ★事業領域のタイルは 560px 以下で1列（2026-10-16） */
+        @media (max-width: 560px) {
+          .lp-facet-group ul { grid-template-columns: minmax(0, 1fr); }
         }
         /* 経歴の画像だけ 620px で切り替える。レイアウトの折り返し（900px）とは別の境目。
            900px はカードが縦積みになる点、620px は wide の切り出しが読めなくなる点。 */
@@ -528,12 +548,28 @@ export default function LandingPage({
                   `getBusinessDomainOptions()`（マスタ全件）に替えないこと。**
                   替えると 0件のタイルが混ざり、件数を消したぶん**押すまで気づけない**。
           */}
-          <div className="lp-facets">
-            {industryFacets.map((f) => (
-              <Link key={f.key} href={f.href} className="lp-facet">
-                <span style={{ fontSize: 13.5, fontWeight: 500, color: C.ink }}>{f.label}</span>
-                <span aria-hidden style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>›</span>
-              </Link>
+          {/* ★「何をつくっている会社か」の4グループに分けて出す（2026-10-16 / 柴さんの判断）。
+                 各項目の下にひとこと説明（BUSINESS_DOMAIN_BLURBS）。
+                 分け方は lib/constants/businessDomainGroups.ts の1か所。ここに slug を書かない。
+                 ⚠️ そこに無い事業領域は「その他」に入る（黙って消さない）。 */}
+          <div className="lp-facet-groups">
+            {groupBusinessDomainFacets(industryFacets).map((g) => (
+              <section key={g.key} className="lp-facet-group" data-group={g.key}>
+                <h3 className="lp-facet-group-title">{g.label}</h3>
+                <ul>
+                  {g.items.map((f) => (
+                    <li key={f.key}>
+                      <Link href={f.href} className="lp-facet-link">
+                        <span className="lp-facet-text">
+                          <span className="lp-facet-name">{f.label}</span>
+                          {BUSINESS_DOMAIN_BLURBS[f.key] && <span className="lp-facet-blurb">{BUSINESS_DOMAIN_BLURBS[f.key]}</span>}
+                        </span>
+                        <span aria-hidden style={{ fontSize: 13, color: C.muted, flexShrink: 0 }}>›</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
           </div>
 
