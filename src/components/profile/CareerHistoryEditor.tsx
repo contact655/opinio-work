@@ -21,8 +21,6 @@ import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
 import {
   ExperienceReasonModal,
   hasReasonAnswers,
-  reasonAnswersFrom,
-  type ReasonAnswers,
 } from "@/components/profile/editor/ExperienceReasonModal";
 import {
   postExperience,
@@ -90,6 +88,10 @@ export type Stint = {
   joinReasonPrimary?: string;
   leaveReasons?: string[];
   gaps?: { axis: string; rating: string }[];
+  /** ★「この会社について」の回答の状態（2026-10-16 / 会社単位）。
+      2 = 新形式で答え済み ／ 1 = 旧形式だけ ／ null = 未回答 ／ undefined = まだ取れていない。
+      ⚠️ `GET /api/jobseeker/experiences/reasons-status` から入る。判定は `hasReasonAnswers` */
+  reasonVersion?: 1 | 2 | null;
 };
 
 // ── Group types and helpers ───────────────────────────────────────────────────
@@ -374,24 +376,6 @@ function buildLocationBody(d: StintDraft): ExperienceReasonBody {
 }
 
 /**
- * 保存 body 用（理由データ）。**`ExperienceReasonModal` の答えだけを送る。**
- *
- * ⚠️ 終了日が無い在籍には退職理由を送らない。画面にも出していないので、
- *    「現職に切り替えたら退職理由が残っていた」を作らない。
- * ⚠️★**`join_reasons` を送るときは `join_reason_primary` も必ず一緒に送る。**
- *    DB の CHECK（`ow_experiences_join_reason_primary_check`）が
- *    「決め手は選んだ理由の中の1つ」を要求するので、片方だけ更新すると 23514 になる。
- */
-function buildReasonAnswerBody(a: ReasonAnswers, showLeave: boolean): ExperienceReasonBody {
-  return {
-    join_reasons: a.joinReasons,
-    join_reason_primary: a.joinReasonPrimary || null,
-    leave_reasons: showLeave ? a.leaveReasons : [],
-    gaps: Object.entries(a.gaps).map(([axis, rating]) => ({ axis, rating })),
-  };
-}
-
-/**
  * 保存 body 用（出向先）。
  * ⚠️★**常に両方のキーを送る。** 片方だけ送ると、外したときに古い値が残る
  *    （サーバーは「キーが無ければ触らない」）。
@@ -415,16 +399,6 @@ function optimisticLocationFields(d: StintDraft): Partial<Stint> {
     remoteWorkStatus: d.remoteWorkStatus || undefined,
     secondmentCompanyId: d.secondmentCompanyId || undefined,
     secondmentCompanyName: d.secondmentCompanyName.trim() || undefined,
-  };
-}
-
-/** 楽観的更新用。buildReasonAnswerBody と同じ値を Stint の形にする */
-function optimisticReasonAnswers(a: ReasonAnswers, showLeave: boolean): Partial<Stint> {
-  return {
-    joinReasons: a.joinReasons,
-    joinReasonPrimary: a.joinReasonPrimary || undefined,
-    leaveReasons: showLeave ? a.leaveReasons : [],
-    gaps: Object.entries(a.gaps).map(([axis, rating]) => ({ axis, rating })),
   };
 }
 
@@ -1380,12 +1354,21 @@ export default function CareerHistoryEditor({
      ⚠️ **編集の保存後には開かない。** 既存の職歴を直すたびに設問が出ると、
         2026-08-19 に編集モーダルへ置いていたときと同じ形に戻る。 */
   const [reasonId, setReasonId] = useState<string | null>(null);
-  const [reasonSaving, setReasonSaving] = useState(false);
-  const [reasonError, setReasonError] = useState<string | null>(null);
-  /* ⚠️★**「✓ 保存しました」のボタン表示は使わない**（2026-09-12 / 2-6）。
-        保存できたらモーダル自身が「見返り」の画面へ切り替わるので、
-        フッターのボタンは**次の操作**（次の職歴 / 閉じる）に変わる。
-        ここで `justSaved` を立てるとそのボタンが押せなくなる。 */
+
+  /* ★回答の状態を会社単位で読む（2026-10-16）。⚠️ 保存も読み込みもモーダルと API が持つ。
+        ここは「回答済みか」の印（行のドット・まとめて答える・件数）だけ。
+     ⚠️ 失敗したら印は旧形式の列で判定したまま（`hasReasonAnswers` の undefined 分岐）。 */
+  const refreshReasonStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/jobseeker/experiences/reasons-status", { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const j = (await res.json()) as { status: Record<string, 1 | 2> };
+      setStints((prev) => prev.map((x) => ({ ...x, reasonVersion: j.status[x.id] ?? null })));
+    } catch (e) {
+      console.error("[career] reasons-status:", (e as Error).message);
+    }
+  }, []);
+  useEffect(() => { void refreshReasonStatus(); }, [refreshReasonStatus]);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Stint | null>(null);
@@ -1523,22 +1506,23 @@ export default function CareerHistoryEditor({
   /* ★職歴カードの吹き出しアイコンから開く（2026-09-12） */
   useEffect(() => {
     if (!openReasonId) return;
-    setReasonError(null);
     setReasonId(openReasonId);
   }, [openReasonId]);
-  /* ★まとめて答える（2026-09-12 / 2-5）。**古い順**に並べた未回答の職歴。
-     ⚠️ 判定は `hasReasonAnswers`（入社理由 / 離れた理由 / ギャップのどれか）。
-        画面のドットと**同じ関数**を見る。割れると「ドットは付いているのに
-        まとめ入口が拾わない」が起きる。 */
-  const unansweredIds = useMemo(
-    () =>
-      stints
-        .filter((x) => !hasReasonAnswers(x))
-        .slice()
-        .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
-        .map((x) => x.id),
-    [stints],
-  );
+  /* ★まとめて答える（2026-09-12 / 2-5）。**古い順**に並べた未回答の会社（2026-10-16 から会社単位）。
+     ⚠️ 判定は `hasReasonAnswers`。画面のドットと**同じ関数**を見る。
+     ⚠️★**1社につき1件**（その会社でいちばん古い役割）。同じ会社の役割を2回聞かない。 */
+  const unansweredIds = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of stints.slice().sort((a, b) => a.startedAt.localeCompare(b.startedAt))) {
+      if (hasReasonAnswers(x)) continue;
+      const k = groupKey(x);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(x.id);
+    }
+    return out;
+  }, [stints]);
   /* ⚠️ **nonce は値が変わったときだけ発火させる**（`.claude/rules/ui-debugging.md` ⑭）。
         ref の初期値を現在値にしてあるので、マウントでは開かない。 */
   const lastReasonBatchNonce = useRef(openReasonBatchNonce);
@@ -1547,7 +1531,6 @@ export default function CareerHistoryEditor({
     lastReasonBatchNonce.current = openReasonBatchNonce;
     const first = unansweredIds[0];
     if (!first) return;
-    setReasonError(null);
     setReasonId(first);
   }, [openReasonBatchNonce, unansweredIds]);
   /* ★会社の行の鉛筆から開く（2026-09-12）。渡ってくるのはその会社の役割のどれか1件の id。
@@ -1741,56 +1724,18 @@ export default function CareerHistoryEditor({
       await new Promise((r) => setTimeout(r, 800));
       cancelAdd();
       setAddJustSaved(false);
-      /* ★保存できた**新規追加のときだけ**、理由を聞く別ステップを出す（2026-09-12）。
-         ⚠️ **編集では出さない。** ⚠️ 失敗したときも出さない（この行は try の中）。 */
-      setReasonError(null);
-      setReasonId(id);
+      /* ★保存できた**新規追加のときだけ**、「この会社について」を出す（2026-09-12）。
+         ⚠️ **編集では出さない。** ⚠️ 失敗したときも出さない（この行は try の中）。
+         ⚠️★**既にある会社に役割を足したときは出さない**（2026-10-16 / 回答の単位は会社）。
+            同じ会社の役割が既にあれば、その会社は行のアイコンから答える。 */
+      const isNewCompany = !stints.some((x) => groupKey(x) === groupKey(newStint));
+      if (isNewCompany) setReasonId(id);
     } catch (e) {
       showToast((e as Error).message || "追加に失敗しました。もう一度お試しください。", "error");
     } finally {
       setAddSaving(false);
     }
-  }, [addDraft, stints.length, cancelAdd, showToast]);
-
-  // ── 理由データの保存 ────────────────────────────────────────────────────────
-  /**
-   * ⚠️★**コア body を必ず一緒に送る。** `PUT` は役職・部署・業務内容などを
-   *    キーの有無に関わらず上書きするので、理由だけの最小 body だと全部消える。
-   * ⚠️ 既存の API・検証関数（`parseReasonFields`）・DB の CHECK をそのまま使う。
-   *    選択肢・上限3つ・スラッグは変えていない。
-   */
-  const saveReasons = useCallback(async (answers: ReasonAnswers): Promise<boolean> => {
-    const target = stints.find((x) => x.id === reasonId);
-    if (!target) return false;
-    const d = draftFromStint(target);
-    const showLeave = hasLeftCompany(d);
-    setReasonSaving(true);
-    setReasonError(null);
-    try {
-      const res = await fetch(`/api/jobseeker/experiences/${target.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...buildPutCoreBody(d),
-          ...buildReasonAnswerBody(answers, showLeave),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      setStints((prev) => prev.map((x) =>
-        x.id === target.id ? { ...x, ...optimisticReasonAnswers(answers, showLeave) } : x
-      ));
-      showToast("回答を保存しました");
-      /* ⚠️★**ここで閉じない**（2026-09-12 / 2-6）。保存できたことはモーダルの
-            「見返り」の画面が示し、閉じるか次へ進むかは本人が選ぶ。
-            ⚠️ まとめて回している途中で閉じても、**ここまでの保存はもう済んでいる。** */
-      return true;
-    } catch {
-      setReasonError("保存に失敗しました。もう一度お試しください。");
-      return false;
-    } finally {
-      setReasonSaving(false);
-    }
-  }, [reasonId, stints, draftFromStint, buildPutCoreBody, showToast]);
+  }, [addDraft, stints, cancelAdd, showToast]);
 
   /**
    * ★前の役割に終了年月を入れてから、新しい役割を足す（2026-09-12）。
@@ -2043,38 +1988,35 @@ export default function CareerHistoryEditor({
                **モーダルに書き戻さないこと。** */}
       </ProfileEditModal>
 
-      {/* ★理由モーダル（2026-09-12）。⚠️ **職歴の編集モーダルとは別**。
-             `key` で作り直すのは、開くたびに「ステップ1から・その行の既存の答えで」
-             始めるため（回答済みなら復元した状態で開く）。 */}
-      {reasonStint && (
-        <ExperienceReasonModal
-          key={reasonStint.id}
-          open
-          companyName={reasonStint.displayCompanyName}
-          showLeave={hasLeftCompany(draftFromStint(reasonStint))}
-          initial={reasonAnswersFrom(reasonStint)}
-          saving={reasonSaving}
-          /* ⚠️ 保存できたら「見返り」の画面に切り替わる。ボタンを
-                「✓ 保存しました」で止めない（2026-09-12 / 2-6） */
-          justSaved={false}
-          error={reasonError}
-          /* ⚠️★自由入力の会社は `undefined` なので `null` に落とす。
-                **在籍者数の行ごと出さない**（代替文も置かない）。 */
-          companyId={reasonStint.companyId ?? null}
-          /* ⚠️ 保存後に再計算される値。楽観更新でこの行は回答済みになるので、
-                残りにはこの職歴が含まれない。 */
-          remaining={unansweredIds.length}
-          onNext={
-            unansweredIds.length > 0
-              ? () => { setReasonError(null); setReasonId(unansweredIds[0]); }
-              : null
-          }
-          onSave={saveReasons}
-          /* ⚠️ 「あとで答える」と ×。**何も保存しない**（仕様）。
-                ★まとめて回している途中で閉じても、**保存済みのぶんは残る。** */
-          onClose={() => { setReasonId(null); setReasonError(null); onClosedRef.current?.(); }}
-        />
-      )}
+      {/* ★「この会社について」モーダル（2026-10-16 に作り直した）。⚠️ **職歴の編集モーダルとは別**。
+             `key` で作り直すのは、開くたびにステップ1から・その会社の保存済みの回答で始めるため。
+             ⚠️ 読み込み・保存はモーダルと API（`/api/jobseeker/experiences/[id]/reasons`）が持つ。
+                ここは開く・閉じる・次の会社・回答済みの印の更新だけ。 */}
+      {reasonStint && (() => {
+        /* 残り = この会社を除いた未回答の会社 */
+        const rest = unansweredIds.filter((id) => {
+          const x = stints.find((y) => y.id === id);
+          return x ? groupKey(x) !== groupKey(reasonStint) : false;
+        });
+        return (
+          <ExperienceReasonModal
+            key={reasonStint.id}
+            open
+            experienceId={reasonStint.id}
+            companyName={reasonStint.displayCompanyName}
+            remaining={rest.length}
+            onNext={rest.length > 0 ? () => setReasonId(rest[0]) : null}
+            onSaved={() => {
+              /* 印をすぐ更新（同じ会社の役割すべて）してから、サーバーの値で取り直す */
+              setStints((prev) => prev.map((x) => (groupKey(x) === groupKey(reasonStint) ? { ...x, reasonVersion: 2 } : x)));
+              showToast("回答を保存しました");
+              void refreshReasonStatus();
+            }}
+            /* ⚠️ 「あとで答える」と ×。**何も保存しない**（どのステップで閉じたかだけ記録する） */
+            onClose={() => { setReasonId(null); onClosedRef.current?.(); }}
+          />
+        );
+      })()}
 
       {/* ★★会社名の変更（2026-09-12）。**会社に属する情報は会社名だけ。**
              ⚠️ 雇用形態はここに置かない（役割ごとの項目。柴さんの判断・案B）。

@@ -27,6 +27,8 @@ import { devOnly } from "./guard";
 const ITEMS = [
   { href: "/dev/preview/career-prompt", label: "職歴の促しカード（/mypage の職歴欄）",
     desc: "★職歴が現職1件だけの人に出す。長い社名・伏せ字の会社・保存の失敗をここで見る" },
+  { href: "/dev/preview/reason-modal", label: "この会社について（理由モーダル）",
+    desc: "★新形式（期待・評価・ずれ・合っていたか・離れた理由・ひとこと）。旧形式の答え直し・3つ選んでいちばん未選択・80字超をここで見る" },
   { href: "/dev/preview/job-internal-note", label: "求人の社内メモ（求人の編集・選考管理）",
     desc: "★Third Box には応募・面談が無く、選考管理での見え方を描けない。読むだけの表示（短い・長い・無い）をここで見る" },
   { href: "/dev/preview/pane-thread", label: "右欄のメッセージ欄（/biz/candidates。直近10通・上へスクロール）",

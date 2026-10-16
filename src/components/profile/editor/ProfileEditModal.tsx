@@ -70,6 +70,14 @@ export function ProfileEditModal({
       ⚠️ **呼び出し側に `setTimeout` を書いて競争させないこと。** どちらが勝つかは
          ミリ秒の差で決まり、遅いマシンで逆転する。初期 focus はここ1箇所が決める。 */
   initialFocusId,
+  /** ★パネルの最大幅（px）。既定 720。2026-10-16 / 理由モーダルは 560 */
+  width = 720,
+  /** ★本文のスクロールの外、フッターのすぐ上に固定で出す欄（2026-10-16 / 理由モーダルの「いちばん期待していたこと」）。
+      ⚠️ スクロールしなくても必ず見えるものだけを置く */
+  footerTop,
+  /** ★主ボタンを押せない状態にする（2026-10-16 / いちばんを選ぶまで「次へ」を押せない）。
+      ⚠️ `hidePrimary`（出さない）とは別。理由が画面に出ているときだけ使う */
+  primaryDisabled = false,
 }: {
   open: boolean;
   title: string;
@@ -88,6 +96,9 @@ export function ProfileEditModal({
   onDanger?: () => void;
   hidePrimary?: boolean;
   initialFocusId?: string;
+  width?: number;
+  footerTop?: React.ReactNode;
+  primaryDisabled?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -157,7 +168,7 @@ export function ProfileEditModal({
   if (!open) return null;
 
   const titleId = `profile-edit-modal-${title}`;
-  const saveLocked = (!dirty && !primaryEnabled) || saving || justSaved;
+  const saveLocked = (!dirty && !primaryEnabled) || saving || justSaved || primaryDisabled;
 
   return (
     <>
@@ -178,7 +189,7 @@ export function ProfileEditModal({
                 そちらで上限を掛ける。⚠️ `dvh` 単独にしない（未対応のブラウザで宣言ごと落ちる）。 */
           style={{
             position: "relative", zIndex: 1, background: "#fff",
-            borderRadius: 16, width: "min(720px, 96vw)", maxHeight: "min(92vh, calc(100% - 24px))",
+            borderRadius: 16, width: `min(${width}px, 96vw)`, maxHeight: "min(92vh, calc(100% - 24px))",
             overflow: "hidden", display: "flex", flexDirection: "column",
             boxShadow: "0 24px 64px rgba(0,0,0,0.25)",
           }}
@@ -209,6 +220,12 @@ export function ProfileEditModal({
           <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px", WebkitOverflowScrolling: "touch" as unknown as undefined }}>
             {children}
           </div>
+
+          {footerTop && (
+            <div style={{ flexShrink: 0, borderTop: "1px solid var(--line)", padding: "12px 24px", background: "var(--royal-50)" }}>
+              {footerTop}
+            </div>
+          )}
 
           {/* フッター（固定・保存だけ） */}
           <div style={{
