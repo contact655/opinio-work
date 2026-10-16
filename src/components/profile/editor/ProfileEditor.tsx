@@ -124,6 +124,7 @@ export default function ProfileEditor({
   initialExperiences,
   initialContentLinks,
   initialAddCompany = null,
+  initialCareerHistoryCompleteAt = null,
   roles,
   /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
         右カラムの IntentCard が持つ。プロップ自体は `/profile/edit` の呼び出し元が
@@ -165,6 +166,8 @@ export default function ProfileEditor({
   initialContentLinks: ContentLink[];
   /** ★会社の招待リンクから来たとき（2026-10-12）。職歴の追加をその会社が入った状態で開く */
   initialAddCompany?: { id: string; name: string } | null;
+  /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。職歴の促しカードの表示条件 */
+  initialCareerHistoryCompleteAt?: string | null;
   roles: RoleItem[];
   /** role_id → 別名[]。職種の検索セレクトでヒットさせる（ow_role_aliases） */
   initialScoutEnabled?: boolean | null;
@@ -395,6 +398,7 @@ export default function ProfileEditor({
             initialSocialLinks={initialSocialLinks}
             initialContentLinks={initialContentLinks}
             initialAddCompany={initialAddCompany}
+            initialCareerHistoryCompleteAt={initialCareerHistoryCompleteAt}
             onSavedChange={setProfileSaved}
             onDirtyChange={setProfileDirty}
             notifyGlobalSave={notifyGlobalSave}

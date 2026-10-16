@@ -473,11 +473,14 @@ export default async function MypagePage({
     /** 「意思表示を最後に答えた日」。⚠️ null ならカードの最終更新行ごと出さない */
     stance_updated_at: string | null;
   } | null = null;
+  /* ★「これ以上の経歴はない」を押した日時（2026-10-16）。null＝まだ答えていない。
+        職歴の促しカード（`ProfileTab`）の表示条件に使う */
+  let careerHistoryCompleteAt: string | null = null;
   if (owUser) {
     const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
       /* ⚠️ `onboarding_completed` はバナーの判定に使っていたが、バナーごと消した（2026-08-17）。 */
-      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at")
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at, career_history_complete_at")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
@@ -492,6 +495,7 @@ export default async function MypagePage({
         career_stance:       profile.career_stance ?? null,
         stance_updated_at:   profile.stance_updated_at ?? null,
       };
+      careerHistoryCompleteAt = profile.career_history_complete_at ?? null;
     }
   }
 
@@ -602,6 +606,7 @@ export default async function MypagePage({
       inbox={inbox}
       isNewUser={isNewUser}
       initialAddCompany={initialAddCompany}
+      initialCareerHistoryCompleteAt={careerHistoryCompleteAt}
       ambassadorMemberships={ambassadorMemberships}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */

@@ -24,7 +24,7 @@ import { APPROACH_DEFAULT_NOTICE } from "@/lib/constants/companyApproaches";
 import { RoleAccordionPicker, SelectedRoleChips } from "@/components/ui/RoleAccordionPicker";
 /* ⚠️★上限は定数1つ。**ここに 5 と書かないこと**（画面と API で食い違った前例がある）。 */
 import { MAX_DESIRED_ROLES } from "@/lib/constants/careerPreferences";
-import { afterOnboarding } from "@/lib/auth/redirects";
+import { afterOnboarding, withOnboardingLanding } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 /* ⚠️ 選択肢は1箇所から。ここに47件を直書きすると API の CHECK とずれる
       （CLAUDE.md「UI / API / DB の CHECK を3つ揃える」）。 */
@@ -815,7 +815,9 @@ function OnboardingInner({
              残ると、次にオンボーディングへ来たとき（あるいは別の端末で完了した後）に
              古い値が初期値に出る。 */
     clearStep2Draft(draftKey);
-    router.replace(next);
+    /* ★既定の着地（`/mypage`）のときだけ印を付ける（2026-10-16）。768px 未満で職歴欄へ1回寄せる。
+          ⚠️ `next` が本人の意図なら `withOnboardingLanding` が触らない */
+    router.replace(withOnboardingLanding(next));
   };
 
   /* ★★完了画面（「ようこそ、OPINIO へ！」＋行き先3つ）は**削除した**（2026-09-09 / A案）。

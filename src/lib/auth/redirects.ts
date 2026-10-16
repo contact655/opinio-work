@@ -21,19 +21,37 @@
  * ⚠️ `/auth` と `postAuth` は**それぞれ自前の既定**を持っている。あちらは
  *    「認証後どこへ行くか」で関心が違うので、ここに寄せていない。
  *
- * ── ★2026-10-01 に `/mypage` → `/feed`（ホーム）にした（柴さんの指示）────────
- * ⚠️★**何を手放したかを残す。** `/mypage` だったのは、2026-09-15 に
- *    オンボーディング4画面目（勤務地・勤務形態・これまでの職歴・学歴）を削除した
- *    ときに「**続きを入れる場所に着地させないと誰もたどり着かない**」と決めたため。
- *    ⇒ **いまは登録直後の人が職歴の入力画面に導かれない。** ヘッダーの
- *       「マイページ」から1クリックで行けることを前提にしている。
- *    ⚠️ 職歴を入れる人が減ったら、まずここを疑うこと。
+ * ── ★2026-10-16 に `/feed` → `/mypage` に戻した（柴さんの判断）─────────────────
+ * ⚠️★経緯: 2026-09-15〜09-30 は `/mypage`、2026-10-01 に `/feed` にした。
+ *    実測（2026-10-16 / 実ユーザー・登録1時間以内に2社目の職歴を足した人）:
+ *    `/mypage` だった期間 17人中5人 → `/feed` にしてから 17人中2人。
+ *    `/mypage` の職歴欄には促しカード（`CareerPromptCard`）を置いてある。
+ *    → docs/phase0-after-onboarding-mypage-20261016.md
+ * ⚠️ 着地直後の1回だけ、768px 未満で職歴欄へ寄せる印（`ONBOARDING_LANDING_PARAM`）を付ける。
+ *    付けるのは `withOnboardingLanding` だけ。
  *
- * ⚠️★`DEFAULT_AFTER_LOGIN` と**いまは同じ値だが、統合しないこと。**
+ * ⚠️★`DEFAULT_AFTER_LOGIN`（`/feed`）とは**別の値で、統合しないこと。**
  *    「登録を終えた直後」と「ログインし直したとき」は別の判断で、
  *    片方を変えたときにもう片方を黙って巻き込むのが一番まずい。
  */
-export const DEFAULT_AFTER_ONBOARDING = "/feed";
+export const DEFAULT_AFTER_ONBOARDING = "/mypage";
+
+/**
+ * ★着地直後の印（2026-10-16）。`/mypage?from=onboarding` で着いたときだけ、
+ *   768px 未満で職歴欄へ1回寄せる（受け側は `ProfileTab`。読んだら URL から消す）。
+ */
+export const ONBOARDING_LANDING_PARAM = "from";
+export const ONBOARDING_LANDING_VALUE = "onboarding";
+
+/**
+ * ★完了時の遷移先に印を付ける（2026-10-16）。
+ * ⚠️ **既定の着地（`/mypage` ちょうど）のときだけ**付ける。`next` が本人の意図
+ *    （`/mypage/bookmarks` など）なら触らない —— そこへ戻すのが目的なので。
+ */
+export function withOnboardingLanding(next: string): string {
+  if (next !== DEFAULT_AFTER_ONBOARDING) return next;
+  return `${next}?${ONBOARDING_LANDING_PARAM}=${ONBOARDING_LANDING_VALUE}`;
+}
 
 /**
  * ★`next` が「本人の意図」ではなく**呼び出し側が既定で付けただけ**の値（2026-09-15）。
@@ -65,8 +83,8 @@ export function afterOnboarding(raw: string | null | undefined): string {
  * ★ログイン直後の既定の行き先（2026-10-01 / 柴さんの指示で `/companies` から変更）。
  *
  * ⚠️★**`DEFAULT_AFTER_ONBOARDING`（`/mypage`）とは別。** あちらは
- *    「オンボーディングを終えた人が続きを入れる場所」で、2026-09-15 に
- *    4画面目を削除したときに決めた**別の理由**がある。**片方を変えるときに
+ *    「オンボーディングを終えた人が続きを入れる場所」で**別の理由**がある
+ *    （2026-10-01〜10-15 は両方 `/feed` だった）。**片方を変えるときに
  *    もう片方を巻き込まないこと。**
  */
 export const DEFAULT_AFTER_LOGIN = "/feed";

@@ -3,6 +3,8 @@
 /* ★カードの幅。公開プロフィール（`/u/[id]`）と同じ 1020 に揃える。
       ⚠️ 数字を直接書かないこと。片方だけ動かすとまた幅がずれる（2026-08-27）。 */
 import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
+import { ONBOARDING_LANDING_PARAM, ONBOARDING_LANDING_VALUE } from "@/lib/auth/redirects";
+import CareerPromptCard from "@/components/profile/editor/CareerPromptCard";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 /**
  * 「プロフィール」タブ（写真 / 基本情報 / 職歴〈実績・受賞を内包〉 / 学歴 / メディア掲載 / SNS / 発信コンテンツ）。
@@ -603,6 +605,7 @@ export default function ProfileTab({
   initialSocialLinks,
   initialContentLinks,
   initialAddCompany = null,
+  initialCareerHistoryCompleteAt = null,
   onSavedChange,
   onDirtyChange,
   notifyGlobalSave,
@@ -664,6 +667,8 @@ export default function ProfileTab({
   initialContentLinks: ContentLink[];
   /** ★会社の招待リンク（/join/[slug]）から来たとき、職歴の追加をその会社が入った状態で開く（2026-10-12） */
   initialAddCompany?: { id: string; name: string } | null;
+  /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。null＝まだ答えていない */
+  initialCareerHistoryCompleteAt?: string | null;
   onSavedChange: (snapshot: ProfileSavedSnapshot) => void;
   onDirtyChange: (dirty: boolean) => void;
   notifyGlobalSave: (status: "saving" | "saved" | "error") => void;
@@ -807,6 +812,53 @@ export default function ProfileTab({
     () => careerStints.filter((s) => !hasReasonAnswers(s)).length,
     [careerStints],
   );
+  /* ★★職歴の促しカード（2026-10-16 / 柴さんの判断）。
+        条件: 職歴がちょうど1件・在籍中 ／ 「これ以上の経歴はない」を押していない。
+     ⚠️ 押した日時は消さない（職歴を足しても残す）。カードは職歴が増えれば条件から外れる。
+     ⚠️★このカードが出ているあいだは「N件の職歴が未回答です」の帯を出さない。2つを同時に並べない。
+        理由は職歴を足すと保存直後に「選んだ理由」が聞かれるので、帯を後回しにしても取りこぼさないため。 */
+  const [careerHistoryCompleteAt, setCareerHistoryCompleteAt] = useState<string | null>(initialCareerHistoryCompleteAt);
+  const showCareerPrompt =
+    careerStints.length === 1 && careerStints[0].isCurrent && !careerHistoryCompleteAt;
+  const markCareerHistoryComplete = async () => {
+    const res = await fetch("/api/jobseeker/career-history-complete", { method: "PUT" });
+    const json = (await res.json().catch(() => ({}))) as { career_history_complete_at?: string; error?: string };
+    if (!res.ok || !json.career_history_complete_at) {
+      console.error("[ProfileTab] career-history-complete:", res.status, json.error);
+      throw new Error(json.error ?? "保存に失敗しました");
+    }
+    setCareerHistoryCompleteAt(json.career_history_complete_at);
+  };
+  /* ★★オンボーディング直後の着地（`/mypage?from=onboarding`）だけ、768px 未満で職歴欄へ1回寄せる（2026-10-16）。
+     ⚠️ 印は**読んだらすぐ URL から消す**（リロード・戻るで二度動かさない）。幅に関係なく消す。
+     ⚠️ 1280px では寄せない（ヘッダーの写真・肩書きの促しが隠れる）。境界は MypageLayout の 768px。
+     ⚠️ 止める位置は「職歴」の見出しの上端が、上に貼り付いたヘッダーとタブの直下に来るところ
+        （＝見出しと促しカードの上端が画面内に入る）。貼り付いた要素の高さは**実測する**（固定値にしない）。
+     ⚠️★`requestAnimationFrame` は使わない（描画されていないと発火しない。ui-debugging ⑪）。 */
+  useEffect(() => {
+    let url: URL;
+    try { url = new URL(window.location.href); } catch { return; }
+    if (url.searchParams.get(ONBOARDING_LANDING_PARAM) !== ONBOARDING_LANDING_VALUE) return;
+    url.searchParams.delete(ONBOARDING_LANDING_PARAM);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    if (window.innerWidth >= 768) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById("career");
+      if (!el) return;
+      let stickyBottom = 0;
+      document.querySelectorAll<HTMLElement>("body *").forEach((n) => {
+        const pos = getComputedStyle(n).position;
+        if (pos !== "sticky" && pos !== "fixed") return;
+        const r = n.getBoundingClientRect();
+        if (r.top <= 1 && r.height > 0 && r.height < 200 && r.bottom < window.innerHeight / 2) {
+          stickyBottom = Math.max(stickyBottom, r.bottom);
+        }
+      });
+      const y = window.scrollY + el.getBoundingClientRect().top - stickyBottom - 12;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, []);
   const [editingCareerId, setEditingCareerId] = useState<string | null>(null);
   const [deleteCareerId,  setDeleteCareerId]  = useState<string | null>(null);
   const [addRoleForId,    setAddRoleForId]    = useState<string | null>(null);
@@ -1713,7 +1765,20 @@ export default function ProfileTab({
                      ⚠️★**行のドット（`ReasonEntryButton`）は残す。** この行を読み飛ばした人と、
                         1件だけ直したい人の経路。片方だけにしないこと。
                      ⚠️ 公開範囲の一文を消さないこと ——**非公開であることが答える前提。** */}
-              {unansweredReasonCount > 0 && (
+              {showCareerPrompt && (
+                <CareerPromptCard
+                  companyName={(() => {
+                    const c = timelineCareers.find((x) => x.id === careerStints[0].id) ?? timelineCareers[0];
+                    if (!c || (c.is_placeholder_company ?? false)) return null;
+                    return c.company_name || null;
+                  })()}
+                  onAddRole={() => setAddRoleForId(careerStints[0].id)}
+                  onAddPast={() => setCareerAddNonce((n) => n + 1)}
+                  onComplete={markCareerHistoryComplete}
+                />
+              )}
+              {/* ⚠️★促しカードが出ているあいだは出さない（2026-10-16）。2つを同時に並べない */}
+              {!showCareerPrompt && unansweredReasonCount > 0 && (
                 <div
                   style={{
                     display: "flex",
