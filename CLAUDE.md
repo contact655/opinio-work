@@ -1279,7 +1279,8 @@ select c.name, c.source,
 | 企業ページの下の固定バー | **上部が見えている間は隠す** | `CtaReveal`（`[data-cd-hero]` を見る） |
 | フィードの企業カード | フォロー・保存 | `FeedCompanyActions`（画面に入ってから状態を取る） |
 | 検証用の会社の枠 | 1行に畳む（押すと開く）。⚠️ サーバーで描くので**デスクトップでも畳む** | `TestCompaniesSection` |
-| 求人詳細の下の固定バー | 話を聞く／この募集に応募する に加えて、**企業の採用ページで応募する・保存（☆）** | `JobMobileStickyBar` |
+| 求人詳細の上部（条件の下）と下の固定バー | 話を聞く／この募集に応募する／**企業の採用ページで応募する**＋**保存（☆）**。上部の行は最初の画面、固定バーは上部を過ぎてから | `JobMobileHeroActions` / `JobMobileStickyBar`（同じ `mobileCtaProps`） |
+| 入力欄の文字の大きさ | **16px 以上**（iPhone が入力時に画面を拡大しないため） | globals.css 末尾（このプロジェクトで例外的に `!important`） |
 | 記事一覧の上部 | 他の一覧と同じ1行（`.list-toolbar`） | `ArticleFilterBar` |
 | 応募・面談の件数 | 4つを1行 | `ApplicationsClient` |
 
@@ -1290,6 +1291,8 @@ select c.name, c.source,
 ⚠️ 横スクロールの行の中では `absolute` のメニューが切れる。**1行に新しいドロップダウンを足すなら fixed にすること**（`SortSelect` は元から fixed）。
 ⚠️ ビュートグル（`ViewToggle` と /people の切り替え）はスマホでは出さない（1列なので差が無い）。`ViewToggle` の `display` は `.view-toggle`（CSS）。
 ⚠️ 企業ページの固定バーは**隠すだけ**で、body の下余白（`.company-mobile-cta` 用）は変えていない。
+⚠️★**同じ対象の保存ボタンが1画面に複数あるときは、押した結果をイベント（`opinio:bookmark-changed`）で揃えている**（`BookmarkButton`）。消すと片方だけ古い状態で残る。
+⚠️★**スマホの入力欄を 16px 未満にしても、globals.css の規則が 16px に戻す。** 消さないこと（新規登録の入力欄が 15px で、iPhone で押した瞬間に拡大されていた）。
 ⚠️★**求人詳細の「企業の採用ページで応募する」と「保存する」は、2026-10-17 まで lg 以上のサイドバーにしか無かった。** スマホでは押す手段が0だった（OPINIO で応募を受けていない企業がほとんどなので、実質すべての求人）。**サイドバーに操作を足したら `JobMobileStickyBar` にも足すこと。**
 
 ## ⚠️★`/people` の絞り込み（2026-09-18）

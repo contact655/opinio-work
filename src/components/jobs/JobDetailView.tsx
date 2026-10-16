@@ -29,7 +29,7 @@ const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
 const getCompanyForJobCached = cache(getCompanyBySlugOrId);
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
-import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
+import { JobMobileStickyBar, JobMobileHeroActions } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
@@ -419,6 +419,15 @@ export async function JobDetailView({
     }
   }
 
+  /* ★スマホの操作（上部の行と下の固定バー）に渡すもの。**2つで同じ値を使う**（2026-10-17）。
+        ⚠️ 条件はサイドバー（lg 以上）と同じ。サイドバーに操作を足したらここにも足すこと */
+  const mobileCtaProps = {
+    casualHref: companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting?job_id=${job.id}` : undefined,
+    applyHref: company.application_open ? `/jobs/${job.id}/apply` : undefined,
+    externalApplyHref: !company.application_open && job.source_url && /^https?:\/\//.test(job.source_url) ? job.source_url : undefined,
+    saveJobId: job.id,
+  };
+
   return (
     <>
       <ReadingProgress />
@@ -642,6 +651,9 @@ export async function JobDetailView({
                 ))}
               </div>
 
+              {/* ★スマホの最初の画面にも押せるものを（2026-10-17）。lg 以上はサイドバー */}
+              <JobMobileHeroActions {...mobileCtaProps} />
+
             </div>
           </div>
         </div>
@@ -655,13 +667,7 @@ export async function JobDetailView({
            2つがずれると「ボタンは出るが押すと受付していません」「面談できるのに
            ボタンが出ない」が起きる。実際に非掲載企業で1社ずつ起きていた。
       */}
-      <JobMobileStickyBar
-        casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting?job_id=${job.id}` : undefined}
-        applyHref={company.application_open ? `/jobs/${job.id}/apply` : undefined}
-        /* ★サイドバー（lg 以上だけ）にしか無かった2つをスマホにも（2026-10-17）。条件はサイドバーと同じ */
-        externalApplyHref={!company.application_open && job.source_url && /^https?:\/\//.test(job.source_url) ? job.source_url : undefined}
-        saveJobId={job.id}
-      />
+      <JobMobileStickyBar {...mobileCtaProps} />
 
       {/* Body */}
       <div style={{ background: "var(--bg-tint)" }}>

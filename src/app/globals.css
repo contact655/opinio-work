@@ -2646,3 +2646,18 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
    ⚠️ 隠すのは位置（下へ逃がす）と操作だけ。body の下余白（.company-mobile-cta 用）は変えない。 */
 .cd-cta-reveal .company-mobile-cta { transition: transform 0.2s ease, opacity 0.2s ease; }
 .cd-cta-reveal.is-hidden .company-mobile-cta { transform: translateY(140%); opacity: 0; pointer-events: none; }
+
+/* ── ★iPhone で入力欄を押すと画面が拡大される問題（2026-10-17）──────────────────
+   iOS Safari は、文字の大きさが 16px 未満の入力欄にフォーカスすると画面ごと拡大し、入力後も戻らない。
+   新規登録（/auth）の入力欄が 15px で、登録しようとした瞬間に拡大されていた。
+   ⚠️★**このプロジェクトで例外的に !important を使う箇所。** 入力欄の大きさは各画面がインラインで持っており、
+      インラインに勝つ手段がこれしか無い（ui-debugging の「インラインstyle と CSS」）。スマホ（767px 以下）だけに効く。
+   ⚠️ 消さないこと。入力欄を足すたびに 16px を守らせる形だと必ず漏れる。
+   ⚠️ maximum-scale で拡大自体を止める方法は使わない（利用者が自分で拡大できなくなる）。 */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

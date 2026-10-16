@@ -4,6 +4,7 @@
 // IntersectionObserver でヒーロー下端のセンチネルを監視する
 
 import { useEffect, useRef, useState } from "react";
+import type React from "react";
 import Link from "next/link";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
@@ -162,5 +163,51 @@ export function JobMobileStickyBar({ casualHref, applyHref, externalApplyHref, s
       </div>
       )}
     </>
+  );
+}
+
+/**
+ * ★求人詳細の上部（タイトルと条件の下）に出す、スマホの操作の行（2026-10-17 / 柴さんの指示）。
+ *   下の固定バーは上部を過ぎてから出るので、最初の画面に押せるものが1つも無かった。
+ * ⚠️ 中身は固定バーと**同じ props・同じ条件**（話を聞く／この募集に応募する／企業の採用ページで応募する＋保存）。
+ *    片方だけ変えないこと。lg 以上はサイドバーがあるので出さない。
+ * ⚠️ `display` はインラインに書かない（lg:hidden が効かなくなる）。外側は class だけ、中を flex にする。
+ */
+export function JobMobileHeroActions({ casualHref, applyHref, externalApplyHref, saveJobId }: Props) {
+  const primary = casualHref
+    ? { href: casualHref, label: "話を聞く（カジュアル面談）", external: false, kind: "meeting" as const }
+    : applyHref
+    ? { href: applyHref, label: "この募集に応募する", external: false, kind: "apply" as const }
+    : externalApplyHref
+    ? { href: externalApplyHref, label: "企業の採用ページで応募する", external: true, kind: "external" as const }
+    : null;
+  if (!primary && !saveJobId) return null;
+  const style: React.CSSProperties = primary?.kind === "meeting"
+    ? { background: MEETING_CTA_BG, color: "#fff", border: "none" }
+    : primary?.kind === "apply"
+    ? { background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)", color: "#fff", border: "none" }
+    : { background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)" };
+  const common: React.CSSProperties = {
+    flex: 1, minWidth: 0, height: 44, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+    fontSize: 14, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", ...style,
+  };
+  return (
+    <div className="lg:hidden" data-state="job-hero-actions" style={{ marginTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {primary && (primary.external ? (
+          <a href={primary.href} target="_blank" rel="noopener noreferrer nofollow" style={common}>
+            {primary.label}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden><path d="M7 17L17 7M8 7h9v9" /></svg>
+          </a>
+        ) : (
+          <Link href={primary.href} style={common}>{primary.label}</Link>
+        ))}
+        {saveJobId && (
+          <div style={{ flexShrink: 0 }}>
+            <BookmarkButton targetType="job" targetId={saveJobId} label="保存する" />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -20,6 +20,9 @@ import {
  *             サーバーで引くとページが動的化して ISR が効かなくなるため、
  *             **詳細ページでは渡さないこと。**
  */
+/** 同じ対象の保存ボタンどうしで結果を揃えるためのイベント名（2026-10-17） */
+const BOOKMARK_CHANGED_EVENT = "opinio:bookmark-changed";
+
 export function BookmarkButton({
   targetType,
   targetId,
@@ -54,6 +57,18 @@ export function BookmarkButton({
     if (!selfManaged && initialBookmarked !== undefined) setBookmarked(initialBookmarked);
   }, [selfManaged, initialBookmarked]);
 
+  /* ★同じ対象の ♡/☆ が1画面に複数あるとき、押した結果を揃える（2026-10-17）。
+        求人詳細はスマホで上部の行と下の固定バーの2か所に出るので、片方で保存してももう片方が古いままだった。
+     ⚠️ 届けるのは保存に成功したあとだけ（失敗して戻した値は流さない） */
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ targetType: string; targetId: string; bookmarked: boolean }>).detail;
+      if (d && d.targetType === targetType && d.targetId === targetId) setBookmarked(d.bookmarked);
+    };
+    window.addEventListener(BOOKMARK_CHANGED_EVENT, on);
+    return () => window.removeEventListener(BOOKMARK_CHANGED_EVENT, on);
+  }, [targetType, targetId]);
+
   const authed = selfManaged ? fetched.authenticated : !!isAuthenticated;
 
   const toggle = async () => {
@@ -72,7 +87,10 @@ export function BookmarkButton({
         body: JSON.stringify({ target_type: targetType, target_id: targetId }),
       });
       if (!res.ok) setBookmarked(!next);
-      else invalidateBookmarks(targetType);
+      else {
+        invalidateBookmarks(targetType);
+        window.dispatchEvent(new CustomEvent(BOOKMARK_CHANGED_EVENT, { detail: { targetType, targetId, bookmarked: next } }));
+      }
     } catch {
       setBookmarked(!next);
     } finally {
