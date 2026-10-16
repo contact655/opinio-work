@@ -370,6 +370,11 @@ export function JobseekerHeader() {
     };
   }, [mobileMenuOpen]);
 
+  /* ★スマホ（768px 未満）かつログイン中（2026-10-17）。この形だけ LinkedIn 型のヘッダーにする:
+       [自分のアバター（引き出し）] [検索欄（幅いっぱい）] [メッセージ] [ベル]
+     ⚠️ 未ログインのスマホは従来どおり（ロゴ・🔍・無料登録・ハンバーガー）。 */
+  const mobileSignedIn = isNarrow && !loading && !!user;
+
   async function handleLogout() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -405,12 +410,25 @@ export function JobseekerHeader() {
               ⚠️ 中身は左寄せのまま（この箱が伸びるだけ）。
               ⚠️ 狭い画面ではこの箱が縮み、**検索窓だけが細くなる**
                  （1024px で 360 → 202px。実測）。ロゴと🔍は縮まない。 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 24, flex: "1 1 0", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: mobileSignedIn ? 10 : 24, flex: "1 1 0", minWidth: 0 }}>
 
-          {/* Logo */}
+          {/* ★スマホ・ログイン中は、ロゴの代わりに自分のアバター（2026-10-17 / 柴さんの指示。LinkedIn型）。
+              押すと左から引き出しが開く（ハンバーガーの役目を引き継ぐ）。
+              ⚠️ ロゴ（→ トップ）はホームタブ（/feed）と行き先が近く、狭い画面で検索欄の幅を食うので外した。
+              ⚠️ 未ログイン・768px 以上はロゴのまま。 */}
+          {mobileSignedIn && user ? (
+            <button type="button" className="btn-fixed-size"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? "メニューを閉じる" : "メニューを開く"}
+              aria-expanded={mobileMenuOpen}
+              style={{ width: 36, height: 36, padding: 0, border: "none", background: "none", borderRadius: "50%", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <InitialAvatar name={user.name || user.email} size={32} />
+            </button>
+          ) : (
           <Link href="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center", color: "var(--brand-ink)" }}>
             <OpinioLogo height={24} />
           </Link>
+          )}
 
           {/* ★横断検索の窓（1024px 以上・常設）。2026-10-01 / 柴さんの指示（LinkedIn型）。
               ⚠️★**トップページ（/）では、ヒーローの窓が見えているあいだは出さない**（`hideHeaderSearch`）。
@@ -497,7 +515,28 @@ export function JobseekerHeader() {
               ⚠️★**消さないこと。** 1024px 未満では**これが唯一の横断検索の入口**で、
                  外すとモバイル・タブレットから /search へ行く手段が無くなる
                  （モバイルのタブバーにも引き出しにも検索は無い）。 */}
-          {!hideHeaderSearch && (
+          {/* ★スマホ・ログイン中は、🔍の四角ではなく**幅いっぱいの検索欄の形**にする（2026-10-17 / LinkedIn型）。
+              押すと開くのは下の🔍と**同じオーバーレイ**（入力は1か所）。見た目だけ欄の形にしている。 */}
+          {!hideHeaderSearch && mobileSignedIn && (
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="検索"
+            style={{
+              flex: "1 1 auto", minWidth: 0, height: 36,
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "0 12px", borderRadius: 8,
+              border: "1px solid var(--line)", background: "var(--bg-tint)",
+              color: "var(--ink-mute)", fontSize: 14, cursor: "pointer", textAlign: "left",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
+            </svg>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>検索</span>
+          </button>
+          )}
+          {!hideHeaderSearch && !mobileSignedIn && (
           <button
             type="button"
             className="flex lg:hidden"
@@ -530,9 +569,7 @@ export function JobseekerHeader() {
               ⚠️ 描くのは 768px 未満のときだけ（上の `isNarrow`）。右の列のベルと
                  同時に描かない（未読の取得が二重になる）。
               ⚠️ トップページ（検索を出さない）でも出す。 */}
-          {!loading && user && isNarrow && (
-            <NotificationBell compactPanel />
-          )}
+          {/* ⚠️ 2026-10-17 にスマホのベルを右端（メッセージの隣）へ移した。下の「Mobile」の列。 */}
 
           </div>{/* /左のかたまり */}
 
@@ -610,7 +647,8 @@ export function JobseekerHeader() {
                        ⚠️★**ヘッダーの引き出しには「メッセージ」が無い**（実測 2026-10-01）。
                           モバイルの入口は**引き出しの「マイページ」→ サイドバーの「メッセージ」**
                           （`MypageLayout`。未読バッジ付き）。**そちらを消さないこと。** */}
-                <MessagesButton />
+                {/* ⚠️ スマホは右端の列に別に描くので、ここでは描かない（未読の取得を二重にしない。2026-10-17） */}
+                {!isNarrow && <MessagesButton />}
 
                 {!isNarrow && <NotificationBell />}
                 {/* ⚠️★**企業担当者の常設スイッチ**（2026-09-05）。ベルとアバターの間。
@@ -809,9 +847,18 @@ export function JobseekerHeader() {
                 無料登録
               </Link>
             )}
-            {!loading && user && (
-              <InitialAvatar name={user.name || user.email} size={30} />
+            {/* ★スマホ・ログイン中は右端に メッセージ → ベル（2026-10-17 / LinkedIn型）。
+                ⚠️ メッセージは未読バッジ付き（`MessagesButton`。デスクトップと同じ部品・同じ数え方）。
+                   それまでスマホにはメッセージの入口がヘッダーに無く、マイページのタブからしか行けなかった。
+                ⚠️ ベルは `isNarrow` のときだけ描く（右の列のベルと同時に描かない。未読の取得が二重になる）。
+                ⚠️ ハンバーガーは出さない（左のアバターが引き出しを開く）。 */}
+            {mobileSignedIn && (
+              <>
+                <MessagesButton />
+                <NotificationBell compactPanel />
+              </>
             )}
+            {!mobileSignedIn && (
             <button
               type="button"
               onClick={() => setMobileMenuOpen((v) => !v)}
@@ -839,6 +886,7 @@ export function JobseekerHeader() {
                 transition: "transform 0.2s",
               }} />
             </button>
+            )}
           </div>
         </div>
       </header>
@@ -940,33 +988,40 @@ export function JobseekerHeader() {
         aria-label="ナビゲーションメニュー"
         aria-hidden={!mobileMenuOpen}
         className="md:hidden"
+        /* ★ログイン中は左から（アバターが左にあるため。2026-10-17）。未ログインは従来どおり右から。 */
         style={{
-          position: "fixed", top: 60, right: 0, bottom: 0, zIndex: 100,
+          position: "fixed", top: 60, bottom: 0, zIndex: 100,
+          ...(mobileSignedIn ? { left: 0, borderRight: "1px solid var(--line)" } : { right: 0, borderLeft: "1px solid var(--line)" }),
           width: 280, maxWidth: "90vw",
           background: "#fff",
-          borderLeft: "1px solid var(--line)",
           overflowY: "auto",
-          transform: mobileMenuOpen ? "translateX(0)" : "translateX(100%)",
+          transform: mobileMenuOpen ? "translateX(0)" : (mobileSignedIn ? "translateX(-100%)" : "translateX(100%)"),
           transition: "transform 0.25s ease",
           display: "flex", flexDirection: "column",
         }}
       >
         {/* User info (if logged in) */}
         {!loading && user && (
-          <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid var(--line)" }}>
+          /* ★押すとマイページへ（2026-10-17 / LinkedIn の「プロフィールを表示」に当たる） */
+          <Link href="/mypage" onClick={() => setMobileMenuOpen(false)}
+            style={{ display: "block", padding: "20px 20px 16px", borderBottom: "1px solid var(--line)", textDecoration: "none" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <InitialAvatar name={user.name || user.email} size={40} />
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{user.name}</div>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2 }}>{user.email}</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", marginTop: 6 }}>マイページを見る</div>
               </div>
             </div>
-          </div>
+          </Link>
         )}
 
         {/* Nav links */}
         <nav aria-label="モバイルナビゲーション" style={{ padding: "8px 0", flex: 1 }}>
-          {NAV_LINKS.map(({ href, label }) => {
+          {/* ★ログイン中のスマホは、下のタブバーにある5つ（ホーム・企業・募集・ユーザー・マイページ）を
+              ここに並べない（2026-10-17）。同じ行き先が画面の上と下に2つずつ並んでいた。
+              ⚠️ タブバーに無い「記事」だけ残す。⚠️ 未ログインは従来どおり全部出す。 */}
+          {NAV_LINKS.filter(({ href }) => !mobileSignedIn || href === "/articles").map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab
@@ -997,14 +1052,7 @@ export function JobseekerHeader() {
           {/* Logged-in extras */}
           {!loading && user && (
             <>
-              <div style={{ height: 1, background: "var(--line)", margin: "8px 0" }} />
-              <Link
-                href="/mypage"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
-              >
-                マイページ
-              </Link>
+              {/* ⚠️ 「マイページ」の行は外した（2026-10-17）。上の名前の欄とタブバーの両方から行けるため。 */}
               {/* ★「あなたに合う会社」（2026-10-15）。⚠️ 上のドロップダウンと同じ行き先・同じ文言 */}
               <Link
                 href="/mypage/proposals"
