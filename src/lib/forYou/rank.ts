@@ -10,7 +10,10 @@ import {
   DESIRED_PHASE_TO_OPTION,
   MAX_REASONS_PER_COMPANY,
   SIGNAL_WEIGHTS,
+  SAME_DOMAIN_LIKED_POINTS,
+  domainFitStatus,
   reasonText,
+  type DomainFitStatus,
   type ForYouReaction,
   type SignalDetail,
   type SignalKey,
@@ -84,8 +87,10 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const viewerIsTest = me.is_test === true;
   const authId = me.auth_id as string;
 
-  const [myExpRes, desiredRes, profileRes, blockedRes, approachBlockRes, reactionsRes, ownCompanyId, roleMap] = await Promise.all([
+  const [myExpRes, myReviewRes, desiredRes, profileRes, blockedRes, approachBlockRes, reactionsRes, ownCompanyId, roleMap] = await Promise.all([
     db.from("ow_experiences").select("id, company_id, role_category_id, is_current").eq("user_id", owUserId),
+    /* ★本人の入社後レビューのフィット度（2026-10-17。weights.ts の domainFitStatus）。本人の回答だけ */
+    db.from("ow_workplace_reviews").select("company_id, fit_score").eq("user_id", owUserId),
     db.from("ow_profile_desired_roles").select("role_id").eq("user_id", authId),
     db.from("ow_profiles").select("desired_phase").eq("user_id", authId).maybeSingle(),
     /* ★在籍中（自由入力の社名の突合を含む）と手動ブロック。⚠️ 引数は auth 空間 */
@@ -98,7 +103,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     getRoleNameMap(),
   ]);
   for (const [label, r] of [
-    ["ow_experiences", myExpRes], ["ow_profile_desired_roles", desiredRes], ["ow_profiles", profileRes],
+    ["ow_experiences", myExpRes], ["ow_workplace_reviews", myReviewRes], ["ow_profile_desired_roles", desiredRes], ["ow_profiles", profileRes],
     ["get_blocked_companies", blockedRes], ["ow_approach_blocked_companies", approachBlockRes], ["ow_for_you_reactions", reactionsRes],
   ] as const) {
     if (r.error) console.error(`[forYou] ${label}:`, r.error.message);
@@ -170,13 +175,23 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   }
   /* 本人の職歴の事業領域。domain → 現職だけで一致したか（過去の職歴があれば「前職」） */
   const myDomains = new Map<string, { name: string; onlyCurrent: boolean }>();
+  /* ★domain → その領域に当たる本人の勤務先のフィット度（会社ごとに1つ。未回答は null） */
+  const fitByCompany = new Map<string, number>();
+  for (const rv of (myReviewRes.data ?? []) as { company_id: string | null; fit_score: number | null }[]) {
+    if (rv.company_id && typeof rv.fit_score === "number") fitByCompany.set(rv.company_id, rv.fit_score);
+  }
+  const domainCompanyFits = new Map<string, Map<string, number | null>>();
   for (const e of myExps) {
     if (!e.company_id) continue;
     for (const [d, name] of Array.from(domainsByCompany.get(e.company_id)?.entries() ?? [])) {
       const prev = myDomains.get(d);
       myDomains.set(d, { name, onlyCurrent: (prev ? prev.onlyCurrent : true) && e.is_current });
+      if (!domainCompanyFits.has(d)) domainCompanyFits.set(d, new Map());
+      domainCompanyFits.get(d)!.set(e.company_id, fitByCompany.get(e.company_id) ?? null);
     }
   }
+  const domainStatus = (d: string): DomainFitStatus =>
+    domainFitStatus(Array.from(domainCompanyFits.get(d)?.values() ?? []));
 
   /* S2: 本人の職種（職歴を先に。希望は後）。★判定は getJobEmployees と同じ（兄弟は拾わない） */
   const myRoles: { id: string; fromDesired: boolean }[] = [];
@@ -256,11 +271,19 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     /* S1′（自分の在籍した会社自身は母集団に入っていても、在籍中なら足切り済み。前職の会社は「同じ領域」と言えるので出す） */
     const coDomains = domainsByCompany.get(c.id);
     if (coDomains) {
-      /* 過去の職歴で一致したものを優先（「前職と同じ」） */
-      const hits = Array.from(coDomains.keys()).map((d) => myDomains.get(d)).filter(Boolean) as { name: string; onlyCurrent: boolean }[];
-      const best = hits.find((h) => !h.onlyCurrent) ?? hits[0];
+      /* ★「合っていた」と答えた会社の領域を最優先、次に過去の職歴（「前職と同じ」）。
+            「合っていなかった」とだけ答えた領域は理由にしない（2026-10-17。weights.ts の domainFitStatus） */
+      const hits = Array.from(coDomains.keys())
+        .map((d) => { const m = myDomains.get(d); return m ? { ...m, status: domainStatus(d) } : null; })
+        .filter((h): h is { name: string; onlyCurrent: boolean; status: DomainFitStatus } => !!h && h.status !== "disliked");
+      const best = hits.find((h) => h.status === "liked") ?? hits.find((h) => !h.onlyCurrent) ?? hits[0];
       if (best && !myCompanyIds.includes(c.id)) {
-        signals.push({ key: "same_domain", points: SIGNAL_WEIGHTS.same_domain, detail: { key: "same_domain", domainName: best.name, fromCurrent: best.onlyCurrent } });
+        const liked = best.status === "liked";
+        signals.push({
+          key: "same_domain",
+          points: liked ? SAME_DOMAIN_LIKED_POINTS : SIGNAL_WEIGHTS.same_domain,
+          detail: { key: "same_domain", domainName: best.name, fromCurrent: best.onlyCurrent, liked },
+        });
       }
     }
     /* S5 */

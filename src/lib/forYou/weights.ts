@@ -26,6 +26,16 @@
  * S6（話を聞ける人）… ★2026-10-16 に撤去した（面談OKの撤去）。それまではタグとしてだけ出していた。
  *
  * S7（有効な担当者）… 並び順には使わない。「興味あり」を押したときの行き先の判定にだけ使う。
+ *
+ * ★入社後レビュー（「株式会社◯◯について」）は**本人の回答だけ**を使う（2026-10-17 / 柴さんの判断。A案）。
+ *   本人が前の勤務先に付けたフィット度（0〜10）で、S1′（同じ事業領域）の重みを変える。下の `domainFitStatus`。
+ *
+ * B案（他の人の回答で、次の会社の職場の実態を見る）… ★**入れていない**。
+ *   ① 同じ会社の回答が3人以上ある会社が0社（2026-10-17 実測。実在の利用者の回答も0件）
+ *   ② 1〜2人分の回答から並びや理由を作ると、その人の非公開の回答が推測できる（S3 と同じ理由）
+ *   ③ モーダルは「回答は公開されず、会社にも伝わりません」と書いている。他の人に理由として見せるなら、
+ *      言い方とプライバシーポリシーの扱いを先に決める
+ *   ⚠️ 入れるなら、軸のキーが「相性のものさし」と同じ名前で意味が違うことに注意（docs/axis-key-collision-20261016.md）
  */
 
 export type SignalKey = "same_domain" | "role_opening" | "moved_from_domain" | "phase_match";
@@ -51,6 +61,30 @@ export const SIGNAL_WEIGHTS: Record<SignalKey, number> = {
   phase_match: 5,
 };
 
+/* ── ★入社後レビューのフィット度で S1′ を変える（2026-10-17）──────────────────────── */
+
+/** これ以上なら「合っていた」。その会社と同じ事業領域を強める */
+export const FIT_LIKED_MIN = 7;
+/** これ以下なら「合っていなかった」。その会社だけで当たる事業領域は理由にしない */
+export const FIT_DISLIKED_MAX = 3;
+/** 「合っていた」と答えた会社と同じ事業領域の点数（ふつうの same_domain は 30） */
+export const SAME_DOMAIN_LIKED_POINTS = 40;
+
+export type DomainFitStatus = "liked" | "neutral" | "disliked";
+
+/**
+ * ある事業領域に当たる本人の勤務先たちのフィット度（未回答は null）から、その領域の扱いを決める。
+ *   - 1社でも 7 以上 → liked（強める）
+ *   - **すべて回答済みで、すべて 3 以下** → disliked（理由にしない）
+ *   - それ以外（未回答を含む・4〜6）→ neutral（従来どおり）
+ * ⚠️ 未回答が1社でもあれば disliked にしない（答えていない会社のことを決めつけない）。
+ */
+export function domainFitStatus(fits: (number | null)[]): DomainFitStatus {
+  if (fits.some((f) => f !== null && f >= FIT_LIKED_MIN)) return "liked";
+  if (fits.length > 0 && fits.every((f) => f !== null && f <= FIT_DISLIKED_MAX)) return "disliked";
+  return "neutral";
+}
+
 /** 理由文として出す最大数（カードの最大2行） */
 export const MAX_REASONS_PER_COMPANY = 2;
 
@@ -66,7 +100,7 @@ export const TIE_BREAK_NOTE = "score desc → signal count desc → display name
 /* ── 理由文 ─────────────────────────────────────────────────────────────────── */
 
 export type SignalDetail =
-  | { key: "same_domain"; domainName: string; fromCurrent: boolean }
+  | { key: "same_domain"; domainName: string; fromCurrent: boolean; liked?: boolean }
   | { key: "role_opening"; roleName: string; fromDesired: boolean }
   | { key: "moved_from_domain"; domainName: string; fromCurrent: boolean }
   | { key: "phase_match"; phaseLabel: string };
@@ -77,6 +111,8 @@ export type SignalDetail =
 export function reasonText(s: SignalDetail): string {
   switch (s.key) {
     case "same_domain":
+      /* ★本人が「合っていた」と答えた会社と同じ領域（2026-10-17）。⚠️ 誰の回答かは本人だけなので書いてよい */
+      if (s.liked) return `合っていたと答えた会社と同じ${s.domainName}領域です`;
       /* 一致した職歴が現職なら「いまの勤務先」。⚠️ 現職を「前職」と書かない */
       return s.fromCurrent
         ? `いまの勤務先と同じ${s.domainName}領域の会社です`
@@ -102,6 +138,7 @@ export function reasonText(s: SignalDetail): string {
 export function groupLabel(s: SignalDetail): string {
   switch (s.key) {
     case "same_domain":
+      if (s.liked) return `合っていたと答えた会社と同じ${s.domainName}領域`;
       return `${s.fromCurrent ? "いまの勤務先" : "前職"}と同じ${s.domainName}領域`;
     case "role_opening":
       return s.fromDesired ? `希望職種（${s.roleName}）の募集がある会社` : `あなたの経験職種（${s.roleName}）の募集がある会社`;
