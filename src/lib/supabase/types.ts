@@ -5889,6 +5889,7 @@ export type Database = {
           name_kana: string | null
           onboarding_completed: boolean | null
           photo_url: string | null
+          show_as_connection: boolean
           stance_updated_at: string | null
           transfer_timing: string | null
           transfer_timing_updated_at: string | null
@@ -5917,6 +5918,7 @@ export type Database = {
           name_kana?: string | null
           onboarding_completed?: boolean | null
           photo_url?: string | null
+          show_as_connection?: boolean
           stance_updated_at?: string | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null
@@ -5945,6 +5947,7 @@ export type Database = {
           name_kana?: string | null
           onboarding_completed?: boolean | null
           photo_url?: string | null
+          show_as_connection?: boolean
           stance_updated_at?: string | null
           transfer_timing?: string | null
           transfer_timing_updated_at?: string | null

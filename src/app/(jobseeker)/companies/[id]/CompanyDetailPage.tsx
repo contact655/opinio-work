@@ -22,6 +22,7 @@ import { SecTitle } from "./SecTitle";
 import MeetingFlowNote from "./MeetingFlowNote";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
+import { CompanyConnections } from "@/components/companies/CompanyConnections";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStageCfg } from "@/lib/utils/stageCfg";
@@ -2018,6 +2019,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                    ここでサーバーから渡すと `auth.getUser()` が要り、
                    ページが動的化して `revalidate = 300` が効かなくなる。
                    絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
+            {/* ★5-0. つながり（2026-10-16 / フェーズ3）。閲覧者と相互フォローで在籍中・表示を許可した人だけ。
+                   ⚠️ 閲覧者ごとに違うのでクライアントから取る（ページは ISR のまま）。0人なら何も出ない */}
+            <CompanyConnections companyId={company.id} />
+
             <CompanyEmployeeSections
               companyId={company.id}
             />
