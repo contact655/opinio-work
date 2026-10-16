@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getJobBySlugOrId, getJobForPreview, resolveTestJobId } from "@/lib/supabase/queries";
 import { viewerIsTestUser } from "@/lib/users/testViewer";
 import ApplicationForm from "./ApplicationForm";
-import { APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
+import { APPLICATION_CLOSED_MESSAGE, hasApplicationStaff } from "@/lib/jobs/application";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -81,6 +81,8 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
     );
   }
 
+  /* ★担当者がまだいない企業（2026-10-17）。応募は受けるが、企業が見られるのは担当者が登録してから。送る前に伝える */
+  const hasStaff = await hasApplicationStaff(company.id);
   const authName = (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const authEmail = user.email ?? "";
 
@@ -113,6 +115,17 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
           <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 28 }}>
             {company.name} への応募
           </p>
+
+          {!hasStaff && (
+            <div data-state="apply-no-staff" role="note" style={{
+              margin: "0 0 20px", padding: "12px 16px", borderRadius: 10,
+              background: "#fff", border: "1px solid var(--royal-100)",
+              fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)",
+            }}>
+              <strong style={{ color: "var(--ink)" }}>この企業の担当者は、まだ OPINIO に登録していません。</strong><br />
+              応募は OPINIO が預かり、担当者が登録した時点で企業に届きます。届くまで、企業はあなたの応募を見られません。
+            </div>
+          )}
 
           <ApplicationForm
             jobId={job.id}

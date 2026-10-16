@@ -10,7 +10,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *
  * 使うところ（⚠️ 条件を書き写さないこと）:
  *   - 提案の相手（`lib/evidence/generate.ts`。相手は掲載中＝実在の企業だけなので「検証用でない担当者がいる」と同じ）
- *   - 応募を受けるか（`lib/jobs/application.ts`）
+ *   - 応募フォームの「担当者がまだいません」の案内（`lib/jobs/application.ts` の hasApplicationStaff）
+ *     ⚠️ 2026-10-17 から**応募を受けるかどうかには使わない**（担当者がいなくても OPINIO で受ける。柴さんの指示）
  *   - カジュアル面談の申込を受けるか（`lib/company/casualMeeting.ts`）
  *
  * ⚠️★なぜ: 検証用の担当者しかいない実在の企業（2026-10-10 時点でセールスフォース・株式会社エージェント）に

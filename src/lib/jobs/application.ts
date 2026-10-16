@@ -1,4 +1,4 @@
-import { filterCompaniesWithRespondingStaff, hasRespondingStaff } from "@/lib/companies/respondingStaff";
+import { hasRespondingStaff } from "@/lib/companies/respondingStaff";
 import {
   getCompanyNotificationRecipients,
   filterCompaniesWithRecipients,
@@ -30,12 +30,21 @@ import {
  */
 export async function isJobApplicationOpen(companyId: string): Promise<boolean> {
   if (!companyId) return false;
-  /* ★答えられる担当者がいない企業は受けない（2026-10-10。lib/companies/respondingStaff.ts） */
-  const [recipients, staff] = await Promise.all([
-    getCompanyNotificationRecipients(companyId, "applications"),
-    hasRespondingStaff(companyId),
-  ]);
-  return recipients.length > 0 && staff;
+  /* ★★2026-10-17: 担当者がいない企業でも OPINIO で応募を受ける（柴さんの指示。2026-10-10 の「受けない」を戻した）。
+        応募は保存され、通知は宛先の規則どおり（企業の宛先が無ければ運営 ADMIN_EMAIL）に届く。
+        担当者が承認されると /biz/applications に新着として出る。
+     ⚠️ 応募者には、担当者がまだいないことを応募フォームで伝える（`hasApplicationStaff`）。黙って受けない。
+     ⚠️ 運営は応募を企業へ取り次がない（/admin/applications は閲覧のみ）。企業に担当者の登録を案内するだけ。 */
+  const recipients = await getCompanyNotificationRecipients(companyId, "applications");
+  return recipients.length > 0;
+}
+
+/**
+ * ★その企業に、応募に答えられる担当者がいるか（2026-10-17）。応募フォームの案内の出し分けだけに使う。
+ * ⚠️ 応募を受けるかどうかの判定には使わない（上の isJobApplicationOpen）。
+ */
+export async function hasApplicationStaff(companyId: string): Promise<boolean> {
+  return hasRespondingStaff(companyId);
 }
 
 /**
@@ -46,12 +55,8 @@ export async function isJobApplicationOpen(companyId: string): Promise<boolean> 
 export async function filterCompaniesAcceptingApplications(
   companyIds: string[],
 ): Promise<Set<string>> {
-  const [withRecipients, staff] = await Promise.all([
-    filterCompaniesWithRecipients(companyIds, "applications"),
-    filterCompaniesWithRespondingStaff(companyIds),
-  ]);
-  /* ⚠️ 担当者を引けなければ（null）受けない側に倒す */
-  return new Set(Array.from(withRecipients).filter((id) => staff?.has(id) === true));
+  /* ★2026-10-17: 担当者の有無は見ない（isJobApplicationOpen と同じ規則） */
+  return filterCompaniesWithRecipients(companyIds, "applications");
 }
 
 /** 応募を受け付けていないときに画面へ出す文言。**理由や再開見込みは書かない**（把握していない） */

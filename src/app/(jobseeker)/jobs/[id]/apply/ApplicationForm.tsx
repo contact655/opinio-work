@@ -122,12 +122,25 @@ export default function ApplicationForm({
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "flex-start" }}>
+    /* ★段組みは CSS（.apply-grid）。2026-10-17 まで「1fr 320px」がインラインで、
+          スマホでは右の 320px が残ってフォームが数文字幅に潰れていた（縦書きのように見えた）。
+       ⚠️ gridTemplateColumns と padding をインラインに戻さないこと（メディアクエリが効かなくなる） */
+    <div className="apply-grid">
+      <style>{`
+        .apply-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: flex-start; }
+        .apply-card { padding: 32px 36px; }
+        .apply-side { position: sticky; top: 80px; }
+        @media (max-width: 899px) {
+          .apply-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+          .apply-card { padding: 20px 18px; }
+          .apply-side { position: static; }
+        }
+      `}</style>
       {/* Main form */}
-      <form onSubmit={handleSubmit}>
-        <div style={{
+      <form onSubmit={handleSubmit} style={{ minWidth: 0 }}>
+        <div className="apply-card" style={{
           background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 16, padding: "32px 36px", marginBottom: 16,
+          borderRadius: 16, marginBottom: 16,
         }}>
           <h2 style={{
             fontFamily: 'var(--font-noto-serif)', fontSize: 20, fontWeight: 700,
@@ -267,10 +280,10 @@ export default function ApplicationForm({
         </div>
       </form>
 
-      {/* Sidebar: job summary */}
-      <div style={{
+      {/* Sidebar: job summary（スマホではフォームの下） */}
+      <div className="apply-side" style={{
         background: "#fff", border: "1px solid var(--line)",
-        borderRadius: 14, padding: "20px", position: "sticky", top: 80,
+        borderRadius: 14, padding: "20px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid var(--line)" }}>
           <div style={{
