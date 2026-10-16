@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/connections", label: "つながり（企業ページ。相互フォローで在籍中・表示を許可した人）",
+    desc: "★実データは相互フォロー0組。出る側はここでしか見られない。0人・1人・14人・長い名前" },
   { href: "/dev/preview/career-prompt", label: "職歴の促しカード（/mypage の職歴欄）",
     desc: "★職歴が現職1件だけの人に出す。長い社名・伏せ字の会社・保存の失敗をここで見る" },
   { href: "/dev/preview/reason-modal", label: "この会社について（理由モーダル）",

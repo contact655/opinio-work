@@ -7500,6 +7500,25 @@ npm run dev → http://localhost:3000/dev/preview
 - 実測（2026-10-16 / contact+27 の新規職歴で）: 作成時の保存・編集・削除で行が消える（CASCADE）・年収キーと `visibility_salary` を含む PUT で値が変わらない・
   他人の職歴 404・未ログイン 401・本人の JWT でも PostgREST は 403（42501）。
 
+### ★★企業ページの「この会社に、あなたのつながりがいます（N人）」（2026-10-16 / フェーズ3）
+
+**つながり＝閲覧者と相互フォロー（`ow_user_follows` が両向き）で、その会社に `is_current` の職歴がある人。友達リクエストは作らない。**
+
+| | 実体 |
+|---|---|
+| 判定 | `lib/companies/connections.ts`（DB から集める）＋ `connectionsPick.ts`（選ぶ。純粋な関数） |
+| 母集団 | 企業ページの現役社員 `getCompanyEmployeesCached().current` ＝ **`isSeedRow` と同じ除外**。⚠️ 条件を書き写さないこと |
+| 本人の同意 | **`ow_profiles.show_as_connection`（初期値 false）**。設定は `/mypage/settings`「つながりとしての表示」→ `/api/jobseeker/connection-setting` |
+| API | `GET /api/jobseeker/companies/[id]/connections`（ログイン必須・`private, no-store`）。検証用・システムの閲覧者には空を返す |
+| 画面 | 社員セクションの直前の `CompanyConnections`。**未ログインでは API を叩かない**（`useCompanyViewerState` を見てから）。0人なら何も出さない |
+
+- ⚠️★`ow_profiles.user_id` は **auth 空間**。同意は `ow_users.auth_id` で写してから引く。
+- ⚠️★企業ページは ISR。**閲覧者ごとの中身をページ本体に混ぜないこと**（`auth.getUser()` を足すと ISR が死ぬ）。
+- ⚠️ 「話を聞ける」「面談OK」とは書かない（撤去した意味づけ）。
+- ⚠️★★**実データでの陽性確認は未実施**（2026-10-16 時点で相互フォロー0組、検証用アカウントは両側とも除外されるため）。
+  選び方は `node scripts/check-connections.mjs`（固定データ・`--self-test` で検出力を確認）と `/dev/preview/connections` で確かめた。
+  **相互フォローが生まれたら、企業ページで実際に出ることを確認すること。**
+
 ### ★「この会社について」モーダル（理由の新形式 reason_version = 2。2026-10-16）
 
 **職歴ごとの「選んだ理由」を、会社ごとの「期待していたこと × 実際どうだったか」に作り直した。** 経緯と決定は
