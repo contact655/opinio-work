@@ -658,6 +658,9 @@ export async function JobDetailView({
       <JobMobileStickyBar
         casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting?job_id=${job.id}` : undefined}
         applyHref={company.application_open ? `/jobs/${job.id}/apply` : undefined}
+        /* ★サイドバー（lg 以上だけ）にしか無かった2つをスマホにも（2026-10-17）。条件はサイドバーと同じ */
+        externalApplyHref={!company.application_open && job.source_url && /^https?:\/\//.test(job.source_url) ? job.source_url : undefined}
+        saveJobId={job.id}
       />
 
       {/* Body */}

@@ -2627,7 +2627,8 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .list-toolbar .jobs-toolbar-sort { flex-basis: auto; }
   .view-toggle { display: none; }
   /* 1行のときは件数の左の縦罫も要らない（切り替えが無いので区切る相手が無い） */
-  .list-toolbar .view-toggle + div[style*="width: 1px"] { display: none; }
+  /* ⚠️ 縦罫は中身の無い div。style 属性の文字列で当てない（SSR は "width:1px" と空白なしで出す） */
+  .list-toolbar .view-toggle + div:empty { display: none; }
 
   .list-toolbar .fc-menu {
     /* 下のタブバー（64px）の上に出す。一覧の上部の帯が z-index を持つので、シートはタブバーより前に出られない */

@@ -6,18 +6,24 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
+import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 
 type Props = {
   casualHref?: string;
   /** 宛先がある企業のときだけ渡す。undefined なら応募ボタンを出さない
    *  ⚠️ published でも応募が届く先があるとは限らない（lib/jobs/application.ts） */
   applyHref?: string;
+  /** ★OPINIO で応募を受けていない企業の、企業の採用ページ（2026-10-17）。
+   *  ⚠️ デスクトップのサイドバーにしか無く、スマホでは押す手段が無かった */
+  externalApplyHref?: string;
+  /** ★保存（2026-10-17）。同じ理由でスマホに無かった。渡すと右端に ♡ を出す */
+  saveJobId?: string;
 };
 
-export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
-  /* ⚠️ どちらのCTAも出せないなら、バーごと出さない（2026-08-11）。
+export function JobMobileStickyBar({ casualHref, applyHref, externalApplyHref, saveJobId }: Props) {
+  /* ⚠️ どれも出せないなら、バーごと出さない（2026-08-11）。
         空の固定バーが画面下に居座り、コンテンツを隠すだけになる。 */
-  const hasAnyCta = !!casualHref || !!applyHref;
+  const hasAnyCta = !!casualHref || !!applyHref || !!externalApplyHref || !!saveJobId;
   const [visible, setVisible] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -62,10 +68,10 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
         }}
         aria-hidden={!visible}
       >
+        <div style={{ maxWidth: 480, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
-          maxWidth: 480,
-          margin: "0 auto",
-          padding: "10px 16px",
+          flex: 1,
+          minWidth: 0,
           display: "flex",
           flexDirection: "column",
           gap: 6,
@@ -125,6 +131,33 @@ export function JobMobileStickyBar({ casualHref, applyHref }: Props) {
           </svg>
         </Link>
         ) : null}
+        {/* ★企業の採用ページ（OPINIO で応募を受けていない企業。2026-10-17）。⚠️ nofollow はサイドバーと同じ理由 */}
+        {!applyHref && externalApplyHref ? (
+        <a
+          href={externalApplyHref}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          tabIndex={visible ? 0 : -1}
+          data-state="external-apply-mobile"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+            height: casualHref ? 38 : 48,
+            background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
+            borderRadius: 10, fontSize: casualHref ? 12 : 14, fontWeight: 700, textDecoration: "none",
+          }}
+        >
+          企業の採用ページで応募する
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+            <path d="M7 17L17 7M8 7h9v9" />
+          </svg>
+        </a>
+        ) : null}
+        </div>
+        {saveJobId && (
+          <div style={{ flexShrink: 0 }}>
+            <BookmarkButton targetType="job" targetId={saveJobId} label="保存する" />
+          </div>
+        )}
         </div>
       </div>
       )}

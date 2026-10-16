@@ -96,7 +96,9 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                   以前は行そのものがスクロール容器だったので、検索窓ごと流れていた。
 
             ⚠️ 右端に寄せるのは `marginLeft: auto`。**行を折ったときだけ効く。** */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17。/companies・/jobs・/people と同じ）。
+               ⚠️ flexWrap をインラインに戻さないこと */}
+        <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
                  components/common/ListSearchButton —— **4つの一覧で同じ部品**。
               ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 789px を占めていた。 */}
@@ -162,8 +164,9 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                         迷う、という判断（柴さん）。**「グリッド / リスト」に戻さないこと。**
                      ⚠️ 記事の「詳細」が省スペースな行である点は変わっていない。
                         情報量を増やすかどうかは別の判断。 */}
-              <div style={{
-                display: "flex", gap: 2,
+              {/* ⚠️ display は CSS（.view-toggle）。スマホでは出さない（2026-10-17） */}
+              <div className="view-toggle" style={{
+                gap: 2,
                 background: "var(--line-soft)", borderRadius: 8, padding: 2,
               }}>
                 {([

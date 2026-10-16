@@ -70,7 +70,8 @@ export default function ApplicationsClient({
           color: "var(--ink)", marginBottom: 24,
         }}>応募・面談</h1>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* ★スマホでも4つを1行に（2026-10-17）。2×2 だと4枚で画面の4割を使っていた */}
+        <div className="grid grid-cols-4 gap-2 md:gap-4 mb-6">
           {/* ★4つとも同じ色にした（2026-09-01）。理由は3つ。
                 ① **`text-yellow-600`(#CA8A04) が白の上で 2.94。** 数字は 24px なので基準は 3.0
                    だが届かない（実測）。
@@ -81,14 +82,15 @@ export default function ApplicationsClient({
                    ここで情報を運んでいるのは**数字の下のラベル**であって、色ではない。
              ⚠️ 1つだけ色を残す案は採らない。**どれかが上位だという序列**になる。 */}
           {[
-            { label: "カジュアル面談", count: counts.meeting },
-            { label: "募集への応募", count: counts.job },
-            { label: "進行中", count: counts.open },
-            { label: "内定", count: counts.offered },
+            /* ⚠️ スマホの4列だと1行に収まらないので、折れる位置を「カジュアル／面談」に決めておく */
+            { label: <>カジュアル<wbr />面談</>, key: "meeting", count: counts.meeting },
+            { label: "募集への応募", key: "job", count: counts.job },
+            { label: "進行中", key: "open", count: counts.open },
+            { label: "内定", key: "offered", count: counts.offered },
           ].map((card) => (
-            <div key={card.label} className="bg-white rounded-card p-4 border border-card-border text-center">
-              <p className="text-2xl font-bold" style={{ color: "var(--ink)" }}>{card.count}</p>
-              <p className="text-xs text-gray-500 mt-1">{card.label}</p>
+            <div key={card.key} className="bg-white rounded-card px-1 py-3 md:p-4 border border-card-border text-center" style={{ minWidth: 0 }}>
+              <p className="text-xl md:text-2xl font-bold" style={{ color: "var(--ink)" }}>{card.count}</p>
+              <p className="text-[11px] md:text-xs text-gray-500 mt-1" style={{ lineHeight: 1.3, wordBreak: "keep-all" }}>{card.label}</p>
             </div>
           ))}
         </div>
