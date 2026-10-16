@@ -13,8 +13,12 @@ import {
  * ⚠️ **`/mypage` の本体と `/mypage/details/experience` の両方が使う**（2026-08-17）。
  *    片方に書き写すと、`Stint` に列が増えたときに**どちらか一方だけ直る**形になる。
  *
- * ⚠️ 新しく選んだ企業のロゴは `companyLogoInfo` に無い。頭文字＋既定色に落ちるだけで、
- *    再読み込みすれば正しく出る（`CompanyLogoIcon` が logo_url null を扱える）。
+ * ⚠️ 新しく選んだ企業は `companyLogoInfo`（ページを開いたときにサーバーが作る一覧）に無い。
+ *    ★2026-10-17 まで、そのとき**会社名まで「非公開」になっていた**（timeline.ts が名前を引けない行を
+ *       匿名企業の扱いに落とすため）。いまは Stint が持っている表示名で補う。
+ *    補った行は、再読み込みするまで次のとおり:
+ *      ・ロゴは頭文字＋既定色（`CompanyLogoIcon` が logo_url null を扱える）
+ *      ・企業ページへのリンクを付けない（isPublished: false）。まだ公開していない企業で 404 にしないため
  */
 export function stintsToCareerEntries(
   stints: Stint[],
@@ -22,6 +26,16 @@ export function stintsToCareerEntries(
   roles: { id: string; name: string; parent_id: string | null }[],
 ): CareerEntry[] {
   const companyMap = new Map<string, CompanyLogoInfo>(companyLogoInfo.map((c) => [c.id, c]));
+  /* ★一覧に無い会社（このページで新しく足した会社）は、表示名だけで補う（上の注記） */
+  for (const s of stints) {
+    if (s.companyId && !companyMap.has(s.companyId) && s.displayCompanyName) {
+      companyMap.set(s.companyId, { name: s.displayCompanyName, logoUrl: null, logoLetter: null, logoGradient: null, isPublished: false });
+    }
+    /* 出向先も同じ一覧で名前を引くので、同じように補う */
+    if (s.secondmentCompanyId && !companyMap.has(s.secondmentCompanyId) && s.secondmentCompanyName) {
+      companyMap.set(s.secondmentCompanyId, { name: s.secondmentCompanyName, logoUrl: null, logoLetter: null, logoGradient: null, isPublished: false });
+    }
+  }
   const roleMap = new Map<string, RoleInfo>(
     roles.map((r) => [r.id, {
       name: r.name,
