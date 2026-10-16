@@ -37,9 +37,9 @@
  * session クライアントで select するとクエリごと 403 になる。
  *
  * ⚠️ **年収4列（salary_man / salary_base / salary_bonus / salary_stock）は意図的に入れていない。**
- *    2026-08-06 に入力UIを撤去し authenticated から SELECT 権限も剥奪した。
- *    PUT 側も `"salary_x" in body` のときだけ書く形なので、
- *    取らない＝消えるではない。ここに足すと撤去した意図と食い違う。
+ *    ★2026-10-16 から年収は別の表 `ow_experience_salaries` にあり、旧列は**読まない・書かない**
+ *    （DROP はしていない）。PUT も旧列を書かないので、取らない＝消えるではない。
+ *    ⚠️ ここに足さないこと。authenticated に SELECT が無いので、足すとクエリごと 403 になる。
  */
 /*
   ⚠️ **1本の文字列リテラル + `as const` で書くこと。**
@@ -49,4 +49,4 @@
      見た目より型が通ることを優先する。
 */
 export const EXPERIENCE_EDITOR_COLS =
-  "id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, rank_title, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_salary, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons, secondment_company_id, secondment_company_text" as const;
+  "id, company_id, company_text, company_anonymized, role_category_id, role_title, department, rank, rank_title, started_at, ended_at, is_current, description, join_reason, employment_type, display_order, visibility_company, visibility_reason, prefecture, remote_work_status, join_reasons, join_reason_primary, leave_reasons, secondment_company_id, secondment_company_text" as const;

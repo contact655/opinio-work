@@ -3739,6 +3739,35 @@ export type Database = {
           },
         ]
       }
+      ow_experience_salaries: {
+        Row: {
+          amount_man: number
+          created_at: string
+          experience_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_man: number
+          created_at?: string
+          experience_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_man?: number
+          created_at?: string
+          experience_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_salaries_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: true
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_experience_stories: {
         Row: {
           created_at: string

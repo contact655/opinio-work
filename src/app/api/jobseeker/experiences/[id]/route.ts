@@ -26,10 +26,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         ここに Set を直書きすると UI の選択肢とずれる（2026-07-01 に実際にずれ、
         「派遣社員」「アルバイト・パート」が黙って null に落ちていた）。 */
   const VALID_EMPLOYMENT = new Set<string>(EMPLOYMENT_TYPES);
-  function safeSalary(v: unknown): number | null {
-    if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100000) return null;
-    return Math.floor(v);
-  }
 
   const hasCompanyId = !!body.company_id;
   const hasCompanyText = !!body.company_text;
@@ -70,12 +66,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   /*
-    ⚠️ 年収系（salary_base / salary_bonus / salary_stock / salary_man / visibility_salary）は
-       **body にキーが来たときだけ**更新する。
-       2026-08-06 に職歴の年収入力UIを外したので、クライアントはこれらを送らなくなった。
-       無条件に safeSalary(undefined) を書くと null で潰れ、既存の年収が黙って消える
-       （実データ3件はいずれも salary_man だけに値があり、内訳は null なので確実に消える）。
-    ⚠️ 列とデータは残す方針。UI を外しただけで、保存経路が値を壊してはいけない。
+    ⚠️★年収の金額（salary_base / salary_bonus / salary_stock / salary_man）は**ここでは読まない・書かない**（2026-10-16）。
+       年収は別の表 `ow_experience_salaries` に移し、本人確認つきの
+       `PUT /api/jobseeker/experiences/[id]/salary` だけが書く。ow_experiences の旧列は残してある（DROP していない）。
+       送られてきても無視する（列が null で潰れて既存の値が消えないように）。
+    ⚠️★visibility_salary（年収の公開設定）も読まない・書かない（2026-10-16）。年収は完全非公開で、
+       公開に切り替える経路を持たない。列は残してある（DROP していない。DB の既定は false）。
   */
   /* ⚠️ 年月は正規化してから入れる。以前は無検証で `-01` を足しており、
         形式が違うと date のパースエラーで 500 になっていた（educations と同じ形）。 */
@@ -129,12 +125,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: reasons.error, message: reasons.message }, { status: 400 });
   }
 
-  const salaryPatch: Record<string, unknown> = {};
-  for (const k of ["salary_base", "salary_bonus", "salary_stock", "salary_man"] as const) {
-    if (k in body) salaryPatch[k] = safeSalary(body[k]);
-  }
-  if ("visibility_salary" in body) {
-    salaryPatch.visibility_salary = (body.visibility_salary as boolean | undefined) ?? false;
+  for (const k of ["salary_base", "salary_bonus", "salary_stock", "salary_man", "visibility_salary"] as const) {
+    if (k in body) console.warn(`[PUT experiences] ${k} は受け付けない（年収は /salary へ・公開設定は持たない）。無視した`);
   }
 
   /* ⚠️★**更新前の company_id を控える**（2026-09-08）。所属先を訂正した場合、
@@ -178,7 +170,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         ? undefined
         : (body.visibility_reason as boolean),
       updated_at: new Date().toISOString(),
-      ...salaryPatch,
       ...secondment.patch,
       ...reasons.patch,
     })

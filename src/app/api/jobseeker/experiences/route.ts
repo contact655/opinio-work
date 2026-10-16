@@ -43,8 +43,8 @@ export async function GET() {
   const { data: rows, error: rowsErr } = await createAdminClient()
     .from("ow_experiences")
     /* ⚠️ 年収4列（salary_base / salary_bonus / salary_stock / salary_man）は SELECT しない。
-          2026-08-06 に authenticated から SELECT 権限を剥奪したので、含めると
-          permission denied で職歴一覧が丸ごと空になる。入力UIも既に無い。 */
+          ★2026-10-16 から年収は `ow_experience_salaries`（`GET /api/jobseeker/experiences/salaries`）。
+          旧列は読まない（DROP はしていない）。 */
     /* ⚠️ 列リストは lib/experiences/columns.ts の1箇所に置く。ここに直書きしない。
           mypage/page.tsx と**同じ定数**を見る（2026-08-16 に移設）。割れると
           「片方の経路では保存できるがもう片方では消える」が起きる。
@@ -163,7 +163,6 @@ export async function GET() {
       employmentType: r.employment_type as string | undefined || undefined,
       displayOrder: (r.display_order as number) ?? 0,
       visibilityCompany: (r.visibility_company as "real" | "masked" | "hidden" | undefined) ?? "real",
-      visibilitySalary: (r.visibility_salary as boolean | undefined) ?? false,
       visibilityReason: (r.visibility_reason as boolean | undefined) ?? true,
       // ── 勤務地（表示する）
       prefecture: (r.prefecture as string | null) ?? null,
@@ -355,11 +354,11 @@ export async function POST(req: Request) {
       join_reason: joinReason,
       employment_type: employmentType,
       display_order: (body.display_order as number | undefined) ?? 0,
-      /* ⚠️ 年収は新規作成時も書かない。入力UIが無いので常に null になるが、
-            「送られてきたら書く」形を残すと、権限を剥奪した意図と食い違う */
+      /* ⚠️ 年収は新規作成時も書かない（2026-10-16〜 `ow_experience_salaries` へ、作成の後に
+            `PUT /api/jobseeker/experiences/[id]/salary` で別に送る）。旧列は書かない。 */
       ...secondment.patch,
       visibility_company: visibilityCompany,
-      visibility_salary: (body.visibility_salary as boolean | undefined) ?? false,
+      /* ⚠️★visibility_salary は書かない（2026-10-16。年収は完全非公開。DB の既定 false で入る） */
       /* ★「送られてこなければ列を書かない」（2026-09-11）。**`?? true` に戻さないこと。**
          ⚠️★以前は `?? true` で、**値が無いときに公開側へ倒していた。**
             DB の既定も 2026-09-11 に `false` へ変えたので、書かなければ**非公開で入る。**

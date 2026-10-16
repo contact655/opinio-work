@@ -28,6 +28,7 @@ import {
   type ExperienceReasonBody,
 } from "@/lib/experiences/createExperience";
 import { HighlightedName } from "@/components/companies/HighlightedName";
+import { EXPERIENCE_SALARY_PRIVACY_NOTE, EXPERIENCE_SALARY_MAX_MAN, parseExperienceSalary } from "@/lib/constants/experienceSalary";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -69,9 +70,8 @@ export type Stint = {
   */
   visibilityCompany: "real" | "masked" | "hidden";
   visibilityReason: boolean;
-  /* ⚠️ visibility_salary は optional のまま。PUT が `"visibility_salary" in body` の
-        ときだけ書き、エディタは送らないので往復の対象外（年収UIは 2026-08-06 に撤去）。 */
-  visibilitySalary?: boolean;
+  /* ⚠️★visibility_salary（年収の公開設定）は持たない（2026-10-16）。年収は完全非公開で、
+        PUT も読まない。列は残してある。 */
   // ── 勤務地（表示する）
   prefecture?: string;
   remoteWorkStatus?: string;
@@ -249,7 +249,6 @@ type StintDraft = {
   salaryStock: string;
   salaryMan: string;           // 自動計算 = salaryBase + salaryBonus + salaryStock
   visibilityCompany: "real" | "masked" | "hidden";
-  visibilitySalary: boolean;
   visibilityReason: boolean;
   prefecture: string;
   remoteWorkStatus: string;
@@ -329,7 +328,6 @@ const EMPTY_DRAFT: StintDraft = {
   salaryStock: "",
   salaryMan: "",
   visibilityCompany: "real",
-  visibilitySalary: false,
   /* ⚠️★**既定は「出さない」**（2026-09-11 に `true` から変えた）。行ごとの設定なので、
         **選び忘れが同意なき公開にならない向き**に倒す。DB の既定も同日 `false` にした。
         ⚠️ **片方だけ戻さないこと**（CLAUDE.md「UI / API / DB を揃える」）。 */
@@ -813,7 +811,9 @@ export function canSaveStint(draft: StintDraft): boolean {
   const endedAt = draftEndedAt(draft);
   const periodInvalid = !draft.isCurrent && !!endedAt && !!startedAt && startedAt > endedAt;
   const descOver = draft.description.length > 500;
-  return !!draft.companyName.trim() && !!draft.roleCategoryId && !!startedAt && !descOver && !periodInvalid;
+  /* ★年収は任意。⚠️ 入っているなら整数・範囲内でないと保存させない（API が 400 を返すため） */
+  const salaryInvalid = parseExperienceSalary(draft.salaryMan) === "invalid";
+  return !!draft.companyName.trim() && !!draft.roleCategoryId && !!startedAt && !descOver && !periodInvalid && !salaryInvalid;
 }
 
 /**
@@ -826,12 +826,15 @@ function StintForm({
   isSaving,
   roles,
   companyLocked = false,
+  salaryState = "ok",
 }: {
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
   isSaving: boolean;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   companyLocked?: boolean;
+  /** 保存済みの年収を読み終えたか。⚠️ 読み終える前は入力させない（空のまま保存すると消える） */
+  salaryState?: "loading" | "ok" | "error";
 }) {
   const set = useCallback(
     (key: keyof StintDraft, val: string | boolean) =>
@@ -1221,19 +1224,55 @@ function StintForm({
       </div>
 
       {/*
-        年収（内訳）の入力欄は 2026-08-06 に外した。
-        ユーザー投稿の給与データを畳む方針（ow_salary_reports の削除）に合わせ、
-        公開プロフィールに年収を載せない。
-        ⚠️ salary_man / visibility_salary の**列とデータは残してある**。
-           既存3件（うち公開設定 true が2件）はそのまま。
-           get_public_career_steps() や anon への列単位 GRANT にも手を付けていない。
-           入力欄が無いので、保存時は既存値がそのまま送られる（下の toMan 参照）。
+        ★★年収（2026-10-16 / フェーズ2）。**本人の編集画面にだけ出す。**
+        ⚠️★保存先は `ow_experience_salaries`（本人確認つきの `PUT /api/jobseeker/experiences/[id]/salary`）。
+           `ow_experiences.salary_man` などの旧列は**読まない・書かない**（DROP はしていない）。
+        ⚠️★任意。現職のときだけ入力を勧める一文を出すが、**必須にしない。**
+        ⚠️ 保存済みの値を読み終える前は入力させない。空のまま保存すると、既存の年収を消すことになる。
       */}
+      <div>
+        <label htmlFor="stint-salary-man" style={labelStyle()}>年収（任意）</label>
+        {draft.isCurrent && !draft.salaryMan && salaryState === "ok" && (
+          <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "0 0 6px", lineHeight: 1.6 }}>
+            いまの年収を入れておくと、今後の比較に使えます。
+          </p>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            id="stint-salary-man"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={EXPERIENCE_SALARY_MAX_MAN}
+            step={1}
+            value={draft.salaryMan}
+            onChange={(e) => set("salaryMan", e.target.value)}
+            disabled={isSaving || salaryState !== "ok"}
+            placeholder={salaryState === "loading" ? "読み込み中…" : "例: 600"}
+            style={{ ...fieldStyle(), maxWidth: 160 }}
+          />
+          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>万円</span>
+        </div>
+        {parseExperienceSalary(draft.salaryMan) === "invalid" && (
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>
+            1〜{EXPERIENCE_SALARY_MAX_MAN}（万円）の整数で入力してください。
+          </div>
+        )}
+        {salaryState === "error" && (
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 4 }}>
+            保存済みの年収を読み込めませんでした。時間をおいて開き直してください。
+          </div>
+        )}
+        <p style={{ fontSize: 12, color: "var(--ink-mute)", margin: "6px 0 0", lineHeight: 1.6 }}>
+          {EXPERIENCE_SALARY_PRIVACY_NOTE}
+        </p>
+      </div>
+
 
       {/* ⚠️ **「公開設定（この職歴を、どの画面に出すか）」の入力欄は 2026-08-16 に外した。**
              `visibilityCompany` / `visibilityReason` の
              **列とデータは残している**。入力欄が無いので、保存時は
-             `draft` が持つ既存値がそのまま送られる（年収の `visibility_salary` と同じ扱い）。
+             `draft` が持つ既存値がそのまま送られる。
 
           ⚠️ **画面側のフィルタは生きている。** `queries.ts` は
              `visibility_company = 'hidden'` の職歴を企業ページの現役社員 / OB・OG から
@@ -1298,6 +1337,47 @@ export default function CareerHistoryEditor({
 }) {
   const [stints, setStints] = useState<Stint[]>(() => sortStints(initialExperiences));
 
+  /* ★★年収を読み込む（2026-10-16 / フェーズ2）。本人の分だけ返す API。
+        ⚠️ 読み終えるまで年収の入力欄は使えない（空のまま保存して既存の値を消さないため）。
+        ⚠️ 失敗したら "error"。空（{}）と区別する。 */
+  const [salaryState, setSalaryState] = useState<"loading" | "ok" | "error">("loading");
+  /* ⚠️ 読み込み前に編集を開いた人の下書きにも、読み終えた値を入れる（入れないと空のまま保存して消える） */
+  const editingIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/jobseeker/experiences/salaries", { cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const { salaries } = (await res.json()) as { salaries: Record<string, number> };
+        if (!alive) return;
+        setStints((prev) => prev.map((x) => ({ ...x, salaryMan: salaries[x.id] ?? null })));
+        const eid = editingIdRef.current;
+        if (eid && salaries[eid] != null) {
+          setEditDraft((d) => (d.salaryMan === "" ? { ...d, salaryMan: String(salaries[eid]) } : d));
+        }
+        setSalaryState("ok");
+      } catch (e) {
+        console.error("[CareerHistoryEditor] salaries:", (e as Error).message);
+        if (alive) setSalaryState("error");
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  /** ★年収が変わっていたら `/salary` に送る。成功したら保存した値、失敗したら例外 */
+  const saveSalaryIfChanged = useCallback(async (experienceId: string, next: string, prev: number | null | undefined) => {
+    const amount = parseExperienceSalary(next);
+    if (amount === "invalid") throw new Error("年収は1〜100000（万円）の整数で入力してください。");
+    if (amount === (prev ?? null)) return amount;
+    const res = await fetch(`/api/jobseeker/experiences/${experienceId}/salary`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount_man: amount }),
+    });
+    if (!res.ok) throw new Error("職歴は保存しましたが、年収の保存に失敗しました。もう一度お試しください。");
+    return amount;
+  }, []);
+
   /* 見出しの「＋」から開く。★初回マウント時（undefined / 0）は開かない。
      ⚠️ **nonce は消費しても 0 に戻らない**（`.claude/rules/ui-debugging.md` ⑭）。
         他の意図（行の鉛筆・ゴミ箱・役割追加）で開いたときは発火させない。 */
@@ -1324,6 +1404,7 @@ export default function CareerHistoryEditor({
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
+  editingIdRef.current = editingId;
   const [editDraft,    setEditDraft]    = useState<StintDraft>(EMPTY_DRAFT);
   const [editSaving,   setEditSaving]   = useState(false);
   const [editJustSaved, setEditJustSaved] = useState(false);
@@ -1416,7 +1497,6 @@ export default function CareerHistoryEditor({
           Stint 側で必須にしてあるので、ここは素通しでよい。 */
     visibilityCompany: s.visibilityCompany,
     visibilityReason: s.visibilityReason,
-    visibilitySalary: s.visibilitySalary ?? false,
     /* ⚠️ ここで拾い忘れると、編集して保存した瞬間に値が消える
           （draft の空値がそのまま PUT で送られるため）。
           サーバー側（mypage/page.tsx・2026-08-16 に移設）の SELECT と対で見ること。 */
@@ -1472,8 +1552,7 @@ export default function CareerHistoryEditor({
     salaryStock: "",
     salaryMan: "",
     visibilityCompany: "real",
-    visibilitySalary: false,
-    /* ⚠️ 既定は「出さない」（`EMPTY_DRAFT` と同じ。理由はあちらのコメント） */
+      /* ⚠️ 既定は「出さない」（`EMPTY_DRAFT` と同じ。理由はあちらのコメント） */
     visibilityReason: false,
     /* ⚠️ 同じ会社への追加ポジションでも勤務地・理由は引き継がない。
           異動で勤務地が変わることがあり、前の値を既定にすると
@@ -1575,9 +1654,9 @@ export default function CareerHistoryEditor({
             サーバーは「キーが無ければ触らない」ので、既存の値が残る。
             **列とデータは消していない**（migration を作っていない）。 */
       employment_type: d.employmentType || undefined,
-      /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
-            送ると API 側で null に潰れ、既存の salary_man が消える。
-            API は body にキーが無ければその列を更新しない作りにしてある。 */
+      /* ⚠️★年収はここで送らない（2026-10-16）。職歴の PUT は年収を読まない。
+            年収は保存の後に `/salary` へ別に送る（`saveSalaryIfChanged`）。
+            ⚠️ この関数は理由モーダルも使う。ここに年収を足すと、理由の保存で年収が動く。 */
       department: d.department || null,
       rank: d.rank || null,
       rank_title: d.rankTitle || null,
@@ -1603,6 +1682,15 @@ export default function CareerHistoryEditor({
       });
       if (!res.ok) throw new Error(await apiMessage(res));
 
+      /* ★年収は職歴の後に別に送る。⚠️ 読み込みに失敗しているときは触らない */
+      const prevSalary = stints.find((x) => x.id === editingId)?.salaryMan;
+      let salaryErr: Error | null = null;
+      let savedSalary: number | null | undefined = prevSalary;
+      if (salaryState === "ok") {
+        try { savedSalary = await saveSalaryIfChanged(editingId, editDraft.salaryMan, prevSalary); }
+        catch (e) { salaryErr = e as Error; }
+      }
+
       // Optimistic update + re-sort
       setStints((prev) =>
         sortStints(prev.map((s) =>
@@ -1622,11 +1710,13 @@ export default function CareerHistoryEditor({
                 rank: (editDraft.rank || null) as Stint["rank"],
                 rankTitle: editDraft.rankTitle || undefined,
                 visibilityCompany: editDraft.visibilityCompany,
+                salaryMan: savedSalary ?? null,
                 ...optimisticLocationFields(editDraft),
               }
             : s
         ))
       );
+      if (salaryErr) throw salaryErr;
       showToast("職歴を更新しました");
       setEditJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
@@ -1639,7 +1729,7 @@ export default function CareerHistoryEditor({
     } finally {
       setEditSaving(false);
     }
-  }, [editingId, editDraft, cancelEdit, showToast, buildPutCoreBody]);
+  }, [editingId, editDraft, cancelEdit, showToast, buildPutCoreBody, stints, salaryState, saveSalaryIfChanged]);
 
   // ── Add handlers ─────────────────────────────────────────────────────────────
   const cancelAdd = useCallback(() => {
@@ -1684,9 +1774,7 @@ export default function CareerHistoryEditor({
               送らなければ DB の既定（null / false）で入る。 */
         employment_type: addDraft.employmentType || undefined,
         display_order: stints.length,
-        /* ⚠️ 年収系は送らない（2026-08-06 に入力UIを撤去）。
-              送ると API 側で null に潰れ、既存の salary_man が消える。
-              API は body にキーが無ければその列を更新しない作りにしてある。 */
+        /* ⚠️★年収はここで送らない（2026-10-16）。作成の後に `/salary` へ別に送る。 */
         department: addDraft.department || null,
         rank: addDraft.rank || null,
         rank_title: addDraft.rankTitle || null,
@@ -1698,6 +1786,14 @@ export default function CareerHistoryEditor({
       });
       if (!res.ok) throw new Error(await apiMessage(res));
       const { id } = (await res.json()) as { id: string };
+
+      /* ★年収は作成の後に別に送る（入っているときだけ） */
+      let salaryErr: Error | null = null;
+      let savedSalary: number | null = null;
+      if (salaryState === "ok") {
+        try { savedSalary = await saveSalaryIfChanged(id, addDraft.salaryMan, null); }
+        catch (e) { salaryErr = e as Error; }
+      }
 
       const newStint: Stint = {
         id,
@@ -1715,11 +1811,14 @@ export default function CareerHistoryEditor({
         rank: (addDraft.rank || null) as Stint["rank"],
         rankTitle: addDraft.rankTitle || undefined,
         visibilityReason: addDraft.visibilityReason,
+        salaryMan: savedSalary,
         ...optimisticLocationFields(addDraft),
       };
 
       setStints((prev) => sortStints([...prev, newStint]));
-      showToast("職歴を追加しました");
+      /* ⚠️ 年収だけ失敗しても職歴はできているので閉じる（もう一度押すと職歴が2件になる）。
+            年収は鉛筆から入れ直してもらう。 */
+      showToast(salaryErr ? "職歴は追加しましたが、年収の保存に失敗しました。編集から入れ直してください。" : "職歴を追加しました", salaryErr ? "error" : undefined);
       setAddJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
       cancelAdd();
@@ -1735,7 +1834,7 @@ export default function CareerHistoryEditor({
     } finally {
       setAddSaving(false);
     }
-  }, [addDraft, stints, cancelAdd, showToast]);
+  }, [addDraft, stints, cancelAdd, showToast, salaryState, saveSalaryIfChanged]);
 
   /**
    * ★前の役割に終了年月を入れてから、新しい役割を足す（2026-09-12）。
@@ -1982,6 +2081,7 @@ export default function CareerHistoryEditor({
           isSaving={careerIsEditing ? editSaving : addSaving}
           roles={roles}
           companyLocked={!careerIsEditing && addingForCompanyKey !== null && addingForCompanyKey !== "__new__"}
+          salaryState={salaryState}
         />
         {/* ⚠️★「＋ この会社での異動・昇進を追加」は 2026-09-12 に**本体（会社の行の下）へ移した**
                （柴さんの指示）。モーダルの中にあると、鉛筆を押して開かないと辿り着けない。
