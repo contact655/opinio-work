@@ -185,7 +185,7 @@ export default async function HomePage() {
     id: string; slug: string | null; name: string; brand_name: string | null;
     name_en: string | null; industry: string | null;
     phase: string | null; logo_url: string | null; logo_letter: string | null;
-    logo_gradient: string | null; url: string | null;
+    logo_gradient: string | null; url: string | null; tagline: string | null;
   }[];
   const previewIds = companyRows.map((c) => c.id);
 
@@ -238,6 +238,8 @@ export default async function HomePage() {
     logoLetter: c.logo_letter,
     logoGradient: c.logo_gradient,
     companyUrl: c.url,
+    /* ★ひとことの説明（2026-10-16）。空なら出さない（「—」で埋めない） */
+    tagline: c.tagline?.trim() || null,
     // 0 でもそのまま出す
     articleCount: articleByCompany.get(c.id) ?? 0,
     jobCount: jobByCompany.get(c.id) ?? 0,

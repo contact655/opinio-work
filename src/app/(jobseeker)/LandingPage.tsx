@@ -138,6 +138,8 @@ export type LPCompanyCard = {
   logoLetter: string | null;
   logoGradient: string | null;
   companyUrl: string | null;
+  /** ★ow_companies.tagline（何をしている会社か）。2026-10-16 からカードに出す。空なら null */
+  tagline: string | null;
   articleCount: number;
   jobCount: number;
 };
@@ -272,6 +274,15 @@ export default function LandingPage({
            ⚠️★この style タグの中にバッククォートを書かないこと（同日2回踏んだ）。 */
         .lp-card { background: #fff; border: 1px solid ${C.line}; border-radius: 12px; padding: 20px; text-decoration: none; display: block; height: 100%; }
         .lp-card:hover { border-color: ${C.blue}; box-shadow: 0 6px 20px rgba(14,33,72,.07); }
+        /* ★企業カードの中身（2026-10-16）。⚠️ p 要素は globals.css の p の色に負けるので色を明示する */
+        .lp-company-card { padding: 16px 18px; display: flex; flex-direction: column; }
+        .lp-company-name { display: block; min-width: 0; font-size: 15px; font-weight: 700; color: ${C.navy}; line-height: 1.45;
+                           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lp-company-tagline { margin: 10px 0 0; font-size: 12.5px; font-weight: 500; line-height: 1.6; color: ${C.ink};
+                              display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .lp-company-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 10px; }
+        .lp-company-tag { font-size: 12px; font-weight: 600; color: ${C.muted}; background: ${C.paper2};
+                          border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
 
         .lp-jobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
@@ -354,6 +365,8 @@ export default function LandingPage({
           .lp-section { padding: 52px 0; }
           .lp-wrap { padding: 0 18px; }
           .lp-cards, .lp-jobs, .lp-trust, .lp-member-points, .lp-articles { grid-template-columns: 1fr; }
+          /* ★企業カードは 900px 以下でも2列（2026-10-16）。1列だと6枚で画面を何枚もスクロールさせていた */
+          .lp-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
           .lp-lead { margin: -8px 0 20px; }
           /* 狭い画面では経歴カードも縦積みにする（画像はテキストの下）。
              620px までは wide の切り出しのまま。ここでは表示幅が 600px 前後あり、
@@ -370,6 +383,10 @@ export default function LandingPage({
              同じ理由で、この中に大なり・小なり・引用符を書かないこと。
              nth-child は元々親基準なので、子クラス指定で足りる。 */
           .lp-cards .lp-card:nth-child(n+7), .lp-jobs .lp-card:nth-child(n+7) { display: none; }
+        }
+        /* ★企業カードは 560px 以下で1列（2026-10-16） */
+        @media (max-width: 560px) {
+          .lp-cards { grid-template-columns: minmax(0, 1fr); }
         }
         /* 経歴の画像だけ 620px で切り替える。レイアウトの折り返し（900px）とは別の境目。
            900px はカードが縦積みになる点、620px は wide の切り出しが読めなくなる点。 */
@@ -576,8 +593,12 @@ export default function LandingPage({
 
           <div className="lp-cards">
             {companies.map((c) => (
-              <Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="lp-card">
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+              <Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="lp-card lp-company-card">
+                {/* ★2026-10-16: ひとことの説明（tagline）を足し、事業領域とフェーズを小さな札にした。
+                       下の空白（見出し行の marginBottom）は外した。⚠️ .lp-card は求人・記事と共用なので
+                       余白はこのカードの中だけで決める */}
+                {/* ⚠️ ロゴと社名を1行に、説明と札はカードの全幅で出す（ロゴの列のぶん文字欄が狭くならないように） */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                   <CompanyLogo
                     name={c.name}
                     logoUrl={c.logoUrl}
@@ -586,14 +607,15 @@ export default function LandingPage({
                     companyUrl={c.companyUrl}
                     size="sm"
                   />
-                  <div style={{ minWidth: 0 }}>
-                    <b style={{ display: "block", fontSize: 15, fontWeight: 700, color: C.navy, lineHeight: 1.45 }}>{c.name}</b>
-                    {/* 淡色(muted)を 12px で使うので weight 600。12px 未満は作らない */}
-                    <small style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.muted }}>
-                      {[c.businessDomain, phaseLabel(c.phase)].filter(Boolean).join(" ／ ") || "—"}
-                    </small>
-                  </div>
+                  <b className="lp-company-name">{c.name}</b>
                 </div>
+                {c.tagline && <p className="lp-company-tagline" title={c.tagline}>{c.tagline}</p>}
+                {(c.businessDomain || phaseLabel(c.phase)) && (
+                  <div className="lp-company-tags">
+                    {c.businessDomain && <span className="lp-company-tag">{c.businessDomain}</span>}
+                    {phaseLabel(c.phase) && <span className="lp-company-tag">{phaseLabel(c.phase)}</span>}
+                  </div>
+                )}
                 {/*
                   ⚠️★カード下段（区切り線と「記事 N」「求人 N」）は **2026-09-17 に外した。**
 

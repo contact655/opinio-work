@@ -78,7 +78,7 @@ export type PickedCompanyRow = {
 };
 
 const COMPANY_COLS =
-  "id, slug, name, brand_name, name_en, industry, phase, logo_url, logo_letter, logo_gradient, url";
+  "id, slug, name, brand_name, name_en, industry, phase, logo_url, logo_letter, logo_gradient, url, tagline";
 
 export async function pickLpCompanies(
   db: ReturnType<typeof createAdminClient>,
