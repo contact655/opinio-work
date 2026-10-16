@@ -167,6 +167,13 @@ export function PeopleCardStyles() {
                   「狭い画面ほどカードが細い」わけではないので、境界は列数から逆算すること。 */
             @media (max-width: 560px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
 
+            /* ★スマホのコンパクトな行（2026-10-17）。カードの中身と同じものを横に並べる */
+            .ppl-compact-list { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+            .ppl-compact-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; }
+            .ppl-compact-row + .ppl-compact-row { border-top: 1px solid var(--line-soft); }
+            .ppl-compact-aff .ppl-company { justify-content: flex-start; margin: 2px 0 0; font-size: 13px; }
+            .ppl-compact-role { font-size: 12px; color: var(--ink-mute); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
             /* グリッドカード */
             .ppl-grid-card {
               background: #fff;
@@ -487,6 +494,44 @@ export function GridCard({ card, myUserId, followedUserIds }: {
 }
 
 /**
+ * ★スマホ（560px 以下）の行（2026-10-17 / 柴さんの指示。LinkedIn の「人」の一覧の形）。
+ *   [アバター 52px] 名前 / 会社 / 職種 [＋フォロー]
+ *
+ * ⚠️ 中身は `GridCard` と**同じ**（名前・会社・職種・フォロー）。並べ方だけを変える。
+ *    情報を足し引きしないこと（ビュートグルで情報が増減する形にしない、と同じ理由）。
+ * ⚠️ スマホではビュートグルを出さず、常にこの行で出す（1列なので「一覧／詳細」の差が無い）。
+ */
+export function CompactRow({ card, myUserId, followedUserIds }: {
+  card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+}) {
+  const router = useRouter();
+  return (
+    <div onClick={() => router.push(`/u/${card.userId}`)} className="ppl-compact-row">
+      <Avatar card={card} size={52} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {card.name}
+        </div>
+        <div className="ppl-compact-aff"><AffiliationBlock card={card} /></div>
+        {card.roleName && <div className="ppl-compact-role">{card.roleName}</div>}
+      </div>
+      {myUserId !== null && card.userId !== myUserId && (
+        <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexShrink: 0 }}>
+          {/* ⚠️★`refreshOnChange` を外さないこと（GridCard と同じ理由） */}
+          <FollowUserButton
+            targetUserId={card.userId}
+            initialFollowed={followedUserIds.includes(card.userId)}
+            isAuthenticated
+            compact
+            refreshOnChange
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * 1列表示の行（2026-08-23）。
  *
  * ⚠️ **カードより情報を増やすこと。** 2026-08-04 に「一覧/詳細」トグルを撤去した理由が
@@ -686,6 +731,16 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
      ⚠️ localStorage は**マウント後**に読む。初期値に使うとサーバーと食い違って
         hydration mismatch になる。 */
   const [view, setView] = useState<"grid" | "list">("grid");
+  /* ★560px 以下か（2026-10-17）。スマホはコンパクトな行で出す（CompactRow）。
+     ⚠️ 初期値 false（SSR と揃える）。.ppl-grid が1列になる境界（560px）と合わせてある */
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 560px)");
+    const sync = () => setIsNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   useEffect(() => {
     const saved = window.localStorage.getItem("people-view");
     if (saved === "list" || saved === "grid") setView(saved);
@@ -845,7 +900,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         }}
       >
         <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
+          <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
                    components/common/ListSearchButton —— **4つの一覧で同じ部品**。
                 ⚠️★ここに入力欄を書き戻さないこと。
@@ -918,6 +974,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               ⚠️ state の値（`grid` / `list`）と localStorage のキー（`people-view`）は
                  変えていない。**見た目だけの変更。** 保存済みの設定がそのまま効く。 */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {/* ⚠️ 560px 以下では出さない（isNarrow）。スマホは常にコンパクトな行のため */}
+            {!isNarrow && (<>
             <div role="group" aria-label="表示の切り替え" style={{
               display: "flex", gap: 2,
               background: "var(--line-soft)", borderRadius: 8, padding: 2,
@@ -954,6 +1012,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               </button>
             </div>
             <div style={{ width: 1, height: 20, background: "var(--line)" }} />
+            </>)}
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 16 }}>
                 {sorted.length}
@@ -1038,7 +1097,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             <SearchAllLink q={keyword} />
           </div>
         ) : (
-          view === "list" ? (
+          isNarrow ? (
+            /* ★スマホは常にコンパクトな行（2026-10-17）。ビュートグルも出さない */
+            <div className="ppl-compact-list">
+              {sorted.map((card) => (
+                <CompactRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
+              ))}
+            </div>
+          ) : view === "list" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {sorted.map((card) => (
                 <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />

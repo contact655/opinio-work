@@ -49,10 +49,17 @@ export async function TestCompaniesSection({ kind, filter }: { kind: "companies"
 
   return (
     <div className="mx-auto page-gutter" style={{ maxWidth: "var(--max-w-page)" }}>
-    <section data-state="test-companies-section" aria-label="検証用の会社"
-      style={{ margin: "16px 0", padding: "12px 16px", background: "#fff", border: "1px dashed var(--line)", borderRadius: 12 }}>
-      <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>検証用の会社</h2>
-      <p style={{ margin: "2px 0 8px", fontSize: 12, color: "var(--ink-mute)" }}>
+    {/* ★1行に畳んで出す（2026-10-17 / 柴さんの指示）。押すと開く。
+          それまでスマホでは画面の上3分の1を使い、一覧が2画面目から始まっていた。
+       ⚠️ 幅で出し分けられない（サーバーで描くため）ので、デスクトップでも畳んで出る。検証用アカウントにしか出ない。
+       ⚠️ data-state は残す（検証の判定に使う）。 */}
+    <details data-state="test-companies-section" aria-label="検証用の会社"
+      style={{ margin: "12px 0", padding: "10px 14px", background: "#fff", border: "1px dashed var(--line)", borderRadius: 12 }}>
+      <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+        検証用の会社（{rows.length}社）
+        <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>あなたにだけ表示</span>
+      </summary>
+      <p style={{ margin: "6px 0 8px", fontSize: 12, color: "var(--ink-mute)" }}>
         検証用アカウントでログインしているため表示しています（一般の利用者には表示されません）
       </p>
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -77,7 +84,7 @@ export async function TestCompaniesSection({ kind, filter }: { kind: "companies"
           );
         })}
       </ul>
-    </section>
+    </details>
     </div>
   );
 }

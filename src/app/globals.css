@@ -2591,3 +2591,57 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 @media (max-width: 1023px) {
   .cd-body { --cd-pad-x: 24px; }
 }
+
+/* ── ★一覧の上部の行（/companies・/jobs・/people）と、チップのメニュー（2026-10-17 / LinkedIn型）──
+   スマホ（767px 以下）では、検索・詳細検索・チップ・並び替え・件数を**1行に並べて横にスクロール**する。
+   それまでは2〜3行に折り返し、一覧が始まるまでに画面の上4分の1を使っていた。
+   ⚠️ 例外: 一覧内の検索を開いているとき・選択中の条件のチップがあるときは、従来どおり折り返す
+      （横スクロールの中だと入力欄とチップが画面の外に隠れるため）。
+   ⚠️ 横スクロールの中では absolute のメニューが切れるので、チップのメニュー（.fc-menu）は
+      スマホでは**下から出るシート**（fixed）にする。並び替え（SortSelect）は元から fixed。
+   ⚠️ 位置・枠・影・余白は .fc-menu が持つ（FilterChip のインラインに戻さないこと）。 */
+.list-toolbar--wrap { flex-wrap: wrap; }
+.view-toggle { display: flex; }
+.fc-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+  min-width: var(--fc-min-w, 180px); max-height: var(--fc-max-h, none);
+  padding: var(--fc-pad, 12px 16px);
+  border: 1.5px solid var(--royal); border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0,35,102,0.14);
+}
+@media (max-width: 767px) {
+  .list-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto; overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* はみ出したフォーカスリングが切れないよう、少しだけ内側に余白を持たせる */
+    padding-top: 2px; padding-bottom: 2px;
+  }
+  .list-toolbar::-webkit-scrollbar { display: none; }
+  .list-toolbar > * { flex-shrink: 0; }
+  .list-toolbar:has(.lsb--open),
+  .list-toolbar:has(.csb-active-chips) { flex-wrap: wrap; overflow: visible; }
+  .list-toolbar:has(.lsb--open) > *,
+  .list-toolbar:has(.csb-active-chips) > * { flex-shrink: 1; }
+  .list-toolbar .jobs-toolbar-sort { flex-basis: auto; }
+  .view-toggle { display: none; }
+  /* 1行のときは件数の左の縦罫も要らない（切り替えが無いので区切る相手が無い） */
+  .list-toolbar .view-toggle + div[style*="width: 1px"] { display: none; }
+
+  .list-toolbar .fc-menu {
+    /* 下のタブバー（64px）の上に出す。一覧の上部の帯が z-index を持つので、シートはタブバーより前に出られない */
+    position: fixed; top: auto; left: 0; right: 0; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 1300;
+    min-width: 0; max-height: 70vh;
+    border-radius: 16px 16px 0 0;
+    border-width: 0;
+    padding-bottom: 12px;
+    /* 背面を暗くする。要素を足さずに影で敷く（外側を押すと各ページの「外を押したら閉じる」が効く） */
+    box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.35);
+  }
+}
+
+/* ── 企業ページの固定バーを、上部が見えている間は隠す（CtaReveal。2026-10-17）──
+   ⚠️ 隠すのは位置（下へ逃がす）と操作だけ。body の下余白（.company-mobile-cta 用）は変えない。 */
+.cd-cta-reveal .company-mobile-cta { transition: transform 0.2s ease, opacity 0.2s ease; }
+.cd-cta-reveal.is-hidden .company-mobile-cta { transform: translateY(140%); opacity: 0; pointer-events: none; }

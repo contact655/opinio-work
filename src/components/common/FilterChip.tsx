@@ -149,15 +149,15 @@ export function FilterChip({
       </button>
 
       {isOpen && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200,
+        /* ★位置は CSS（`.fc-menu`）が持つ（2026-10-17）。スマホで一覧の上部の行
+              （`.list-toolbar`。横にスクロールする）に置いたチップは、下から出るシートになるため。
+              ⚠️ `position` / `top` / `left` / `minWidth` / `maxHeight` をインラインに戻さないこと
+                 （インラインは CSS に勝つので、シートにできなくなる。ui-debugging の「インラインstyle と CSS」）。 */
+        <div className="fc-menu" style={{
+          ["--fc-min-w" as string]: `${phaseStyle ? 268 : listStyle ? 220 : 180}px`,
+          ["--fc-max-h" as string]: phaseStyle ? "420px" : listStyle ? "320px" : "none",
+          ["--fc-pad" as string]: phaseStyle ? "8px" : listStyle ? "8px 0" : "12px 16px",
           background: "#fff",
-          border: "1.5px solid var(--royal)",
-          borderRadius: 12,
-          padding: phaseStyle ? "8px" : listStyle ? "8px 0" : "12px 16px",
-          boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          minWidth: phaseStyle ? 268 : listStyle ? 220 : 180,
-          maxHeight: phaseStyle ? 420 : listStyle ? 320 : "none",
           overflowY: (phaseStyle || listStyle) ? "auto" : "visible",
         }}>
           {/* ⚠️ メニューの外側 padding は形ごとに違う（listStyle は左右0）ので、

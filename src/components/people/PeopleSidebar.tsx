@@ -123,16 +123,20 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
       {/* ── 狭い画面の開閉。⚠️ 広い画面では display:none ── */}
       <button type="button" className="pps-toggle" onClick={() => setOpen(!open)} aria-expanded={open}
         style={{ marginBottom: 10 }}>
-        <span>自分のつながり</span>
+        {/* ⚠️ 畳んでいても数が読めるよう、フォロー中・フォロワーの数を見出しに添える（2026-10-17） */}
+        <span>自分のつながり <span style={{ fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6 }}>フォロー中 {p.counts.following}・フォロワー {p.counts.followers}</span></span>
         <span aria-hidden>{open ? "閉じる" : "開く"}</span>
       </button>
 
-      {/* ⚠️ 畳むのは**ミニプロフィールと「次に埋める1件」だけ**。
-             数字（フォロー中／フォロワー）は `topClassName` の外なので畳まれない。 */}
-      <ProfileCard
-        me={p.me} counts={p.counts} nextStep={p.nextStep} activeRel={p.rel}
-        topClassName={`pps-collapsible${open ? " is-open" : ""}`}
-      />
+      {/* ★2026-10-17 から**数字（フォロー中／フォロワー／企業／募集）も畳む**（柴さんの指示。LinkedIn型）。
+             それまで狭い画面では数字のカード（4行・約200px）が畳みの外にあり、一覧が2画面目から始まっていた。
+          ⚠️ 中身は消していない（開けば出る）。⚠️ 899px 以上はこの div があっても見た目は変わらない
+             （`.pps-collapsible` が効くのは 899px 以下だけ）。 */}
+      <div className={`pps-collapsible${open ? " is-open" : ""}`}>
+        <ProfileCard
+          me={p.me} counts={p.counts} nextStep={p.nextStep} activeRel={p.rel}
+        />
+      </div>
 
       {/* ── ⑤ 近い人。⚠️ 自分の職種・職歴が無ければ、その行ごと出さない ── */}
       {(p.myRole || p.hasCompanyHistory) && (

@@ -983,7 +983,9 @@ export default function JobsClient({
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="page-gutter">
 
           {/* ツールバー本体（企業ページ .csb-bar と同等） */}
-          <div ref={filterPillsRef} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "0 0 12px" }}>
+          {/* ★折り返しは CSS（`.list-toolbar`）が持つ。スマホでは1行に並べて横にスクロール（2026-10-17）。
+                ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}
+          <div ref={filterPillsRef} className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 0 12px" }}>
 
             {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
                    components/common/ListSearchButton —— **4つの一覧で同じ部品**。

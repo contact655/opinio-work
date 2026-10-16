@@ -31,8 +31,10 @@ export function ViewToggle({
   onChange: (v: "card" | "list") => void;
 }) {
   return (
-    <div style={{
-      display: "flex", gap: 2,
+    /* ⚠️ `display` は CSS（`.view-toggle`）。スマホ（767px 以下）では出さないため（2026-10-17。
+          スマホの一覧は1列なので切り替える意味が薄い）。インラインに戻さないこと */
+    <div className="view-toggle" style={{
+      gap: 2,
       background: "var(--line-soft)", borderRadius: 8, padding: 2,
       flexShrink: 0,
     }}>

@@ -191,7 +191,8 @@ export function CompanySearchBar({
     <>
 
       <div ref={wrapRef} style={{ marginBottom: 4 }}>
-        <div className="csb-bar">
+        {/* ★`list-toolbar`: スマホでは1行に並べ、横にスクロールする（2026-10-17。globals.css 末尾） */}
+        <div className="csb-bar list-toolbar">
 
           {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
                  components/common/ListSearchButton —— **4つの一覧で同じ部品**。
