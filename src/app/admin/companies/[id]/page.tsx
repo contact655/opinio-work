@@ -5,6 +5,7 @@ import { CompanyDetailClient } from './CompanyDetailClient';
 import { getAllToolMasters, getCompanyToolsForAdmin } from './toolActions';
 import { loadClassificationMasters, loadCompanyClassification } from '@/lib/companies/classificationMasters';
 import { stageCandidateFromEmployees } from '@/lib/companies/classification';
+import { loadAiFillData } from '@/lib/admin/aiFill/load';
 
 // admin layout.tsx で認可チェック済み（isAdmin + redirect）のため再チェック不要
 
@@ -62,9 +63,10 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     .order('created_at');
 
   // ツール・技術スタックタブ用
-  const [allToolMasters, companyTools] = await Promise.all([
+  const [allToolMasters, companyTools, aiFill] = await Promise.all([
     getAllToolMasters(),
     getCompanyToolsForAdmin(params.id),
+    loadAiFillData(params.id),
   ]);
 
   return (
@@ -82,6 +84,7 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
       admins={admins ?? []}
       allToolMasters={allToolMasters}
       companyTools={companyTools}
+      aiFill={aiFill}
     />
     </>
   );

@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import type { Company } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
+import { OPERATOR_CREATED_NOTE, OPERATOR_CREATED_NOTE_PARTIAL } from "@/lib/admin/aiFill/fields";
 import { orderedBusinessDomains } from "@/types/genre";
 import { companyTypeText } from "@/lib/companies/classification";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
@@ -61,6 +62,7 @@ export function CompanyInfoBox({
   company,
   detail,
   title,
+  operatorCreated = [],
 }: {
   company: Company;
   detail: CompanyDetail;
@@ -70,6 +72,11 @@ export function CompanyInfoBox({
    * ⚠️★**省略時の分岐を消さないこと。** デスクトップのサイドバーを1pxも変えないための既定。
    */
   title?: React.ReactNode;
+  /**
+   * ★運営が「AIで埋める」で作成し、企業がまだ変えていない項目（2026-10-15）。該当する行に小さく一言出す。
+   * ⚠️ 判定は lib/companies/operatorCreated.ts の1か所。ここで条件を書かない。渡さなければ何も出さない。
+   */
+  operatorCreated?: readonly string[];
 }) {
   return (
     <div
@@ -148,7 +155,7 @@ export function CompanyInfoBox({
                ⚠️ お客さまの業界は「業界を問わない」を明示の値として持てる（判断 #19）。空＝未確認は行ごと出さない。
                ⚠️ ラベルは「お客さま」。「お客さまの業界」はラベルの列（90px）で折り返すため短くした（列を広げると値の列が狭まる）。 */
             { key: "業種", value: detail.industryPath ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> },
-            { key: "事業", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+            { key: "事業", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／"), subText: operatorCreated.includes("business_domains_secondary") ? OPERATOR_CREATED_NOTE_PARTIAL : undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
             { key: "タイプ", value: companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> },
             { key: "お客さま", value: detail.customerAllIndustries ? "業界を問わない" : [...(detail.customerIndustryNames ?? []), ...(detail.servesConsumers ? ["個人のお客さま"] : [])].join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
             /* ⚠️ ラベルは「親会社」。値は parent_company_name（**親会社名**）で、
@@ -168,7 +175,7 @@ export function CompanyInfoBox({
                ⚠️ 「拠点」「最寄り駅」はここから削除した。どちらも本文の
                   「拠点・資本関係」セクションに移してある。 */
             ...(detail.headquartersAddress ? [] : [{ key: "所在地", value: detail.hq, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> }]),
-            ...(detail.remoteWorkStatus ? [{ key: "リモート状況", value: WORK_STYLE_LABELS[detail.remoteWorkStatus] ?? detail.remoteWorkStatus, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> }] : []),
+            ...(detail.remoteWorkStatus ? [{ key: "リモート状況", value: WORK_STYLE_LABELS[detail.remoteWorkStatus] ?? detail.remoteWorkStatus, subText: operatorCreated.includes("remote_work_status") ? OPERATOR_CREATED_NOTE : undefined, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> }] : []),
             { key: "設立", value: detail.established, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
             { key: "代表者", value: detail.ceo, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
             ...(detail.url ? [{ key: "公式サイト", value: detail.url, isLink: true, icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> }] : []),

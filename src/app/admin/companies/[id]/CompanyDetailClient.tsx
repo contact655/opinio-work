@@ -14,6 +14,8 @@ import { ClassificationPreview } from '@/components/companies/classification/Cla
 import { companyStageLabel, industryNeedsSub, topOf, type ClassMasters, type ClassificationValue } from '@/lib/companies/classification';
 import { COMPANY_REMOTE_WORK_SELECT_OPTIONS } from "@/lib/constants/workStyle";
 import { EMPLOYEE_BANDS } from "@/lib/constants/employeeBand";
+import { CompanyAiFillTab } from './CompanyAiFillTab';
+import type { AiFillData } from '@/lib/admin/aiFill/load';
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────
 
@@ -68,6 +70,8 @@ type Props = {
   companyTools: CompanyToolRow[];
   /** `?tab=` の値。知らない綴りは 'basic' に落とす */
   initialTab?: string;
+  /** ★「AIで埋める」タブ（2026-10-15）。読み込みに失敗したら null */
+  aiFill: AiFillData | null;
 };
 
 type FormData = {
@@ -114,7 +118,7 @@ type FormData = {
 };
 
 /** ⚠️ タブのキーはここが唯一の出どころ。`?tab=` のリンク元でも必ずこの綴りを使う。 */
-export const TAB_KEYS = ['basic', 'classification', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools'] as const;
+export const TAB_KEYS = ['basic', 'classification', 'recruiter', 'admins', 'opinio', 'logo', 'genres', 'publish', 'tools', 'ai_fill'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 type ToastState = { message: string; variant: 'default' | 'error' } | null;
@@ -127,7 +131,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, masters, initialClassification, stageCandidate, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
+export function CompanyDetailClient({ company, masters, initialClassification, stageCandidate, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab, aiFill }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -414,6 +418,7 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
     { key: 'genres', label: 'ジャンル' },
     { key: 'publish', label: '公開設定' },
     { key: 'tools', label: 'ツール' },
+    { key: 'ai_fill', label: 'AIで埋める' },
   ];
 
   /* ── 「保存する」を出すか ────────────────────────────────────────────────
@@ -430,7 +435,7 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
         こちらなら、書き忘れても「不要なボタンが出る」だけで済む。
 
      ⚠️ `handleSave` に新しい保存先を足したら、そのタブをこの配列から**外す**こと。 */
-  const SELF_SAVING_TABS: TabKey[] = ['tools', 'admins'];
+  const SELF_SAVING_TABS: TabKey[] = ['tools', 'admins', 'ai_fill'];
   const showSaveBar = !SELF_SAVING_TABS.includes(activeTab);
 
   // ── 入力スタイル ──────────────────────────────────────────────────────
@@ -1117,6 +1122,9 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
       )}
 
       {/* ── ツールタブ ───────────────────────────────────────────────────── */}
+      {/* ★運営の「AIで埋める」（2026-10-15）。反映は自前の API。保存バーは出さない（SELF_SAVING_TABS） */}
+      {activeTab === 'ai_fill' && <CompanyAiFillTab companyId={company.id} data={aiFill} />}
+
       {activeTab === 'tools' && (
         <CompanyToolsTab
           companyId={company.id}

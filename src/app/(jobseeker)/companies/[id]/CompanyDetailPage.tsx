@@ -79,6 +79,8 @@ import { getPublicMaterialItemsCached, type PublicMaterialItem } from "@/lib/com
 import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_LABELS } from "@/lib/constants/companyMaterials";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
+import { loadOperatorCreatedFields } from "@/lib/companies/operatorCreated";
+import { OPERATOR_CREATED_NOTE } from "@/lib/admin/aiFill/fields";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -669,7 +671,7 @@ function AboutSection({
 // ─── ProductsCultureSection ────────────────────────────────────────────────────
 
 
-function BenefitsSection({ detail }: { detail: CompanyDetail }) {
+function BenefitsSection({ detail, operatorCreated = false }: { detail: CompanyDetail; operatorCreated?: boolean }) {
   // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
 
   const hasBenefits = !!(detail.benefits && detail.benefits.length > 0);
@@ -712,7 +714,11 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
              求人詳細はセクションごと出さないので、部品には持たせていない。 */}
       <div>
         {detail.benefits && detail.benefits.length > 0 ? (
-          <BenefitsList benefits={detail.benefits} />
+          <>
+            <BenefitsList benefits={detail.benefits} />
+            {/* ★運営が「AIで埋める」で作成し、企業がまだ変えていない（2026-10-15） */}
+            {operatorCreated && <p style={{ margin: "var(--space-3) 0 0", fontSize: 12, color: "var(--ink-soft)" }}>{OPERATOR_CREATED_NOTE}</p>}
+          </>
         ) : (
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 6,
@@ -1542,10 +1548,12 @@ function Sidebar({
   company,
   detail,
   ambassadors = [],
+  operatorCreated = [],
 }: {
   company: Company;
   detail: CompanyDetail;
   ambassadors?: PublicAmbassador[];
+  operatorCreated?: readonly string[];
 }) {
   return (
     <aside
@@ -1738,7 +1746,7 @@ function Sidebar({
              サイドバーは `hidden lg:flex` で 1023px 以下では消えるので、
              ここだけに置くと**モバイルで中身が丸ごと消える**。複製を作らないこと。
              実体は components/companies/CompanyInfoBox.tsx（切り出した理由もそこに書いてある）。 */}
-      <CompanyInfoBox company={company} detail={detail} />
+      <CompanyInfoBox company={company} detail={detail} operatorCreated={operatorCreated} />
     </aside>
   );
 }
@@ -1783,7 +1791,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
-         articleIdRowsResult, materialItems] = await Promise.all([
+         articleIdRowsResult, materialItems, operatorCreated] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -1805,6 +1813,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           ⚠️ 条件は `getPublicMaterialItemsCached` の1か所。ここで絞り直さないこと。
           ⚠️ 確定・変更時は `revalidateCompanyPages()` がこのキャッシュごと落とす。 */
     getPublicMaterialItemsCached(companyId),
+    /* ★運営が「AIで埋める」で作成し、企業がまだ変えていない項目（2026-10-15）。項目名だけを受ける */
+    loadOperatorCreatedFields(companyId),
   ]);
 
   const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
@@ -1963,6 +1973,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
               <CompanyInfoBox
                 company={company}
                 detail={detail}
+                operatorCreated={operatorCreated}
                 title={
                   <SecTitle
                     iconColor="default"
@@ -1993,7 +2004,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             <JobsSection company={company} detail={detail} />
 
             {/* 4. 働く環境（benefits → org-teams） */}
-            <BenefitsSection detail={detail} />
+            <BenefitsSection detail={detail} operatorCreated={operatorCreated.includes("benefits")} />
 
             {/* ★企業が公開を確定した情報（2026-10-09 / 依頼②）。0件ならセクションごと出さない */}
             <CompanyMaterialsSection items={materialItems} />
@@ -2274,7 +2285,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
           </main>
 
-          <Sidebar company={company} detail={detail} ambassadors={ambassadors} />
+          <Sidebar company={company} detail={detail} ambassadors={ambassadors} operatorCreated={operatorCreated} />
         </div>
       </div>
 
