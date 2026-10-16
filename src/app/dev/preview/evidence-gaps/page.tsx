@@ -19,26 +19,24 @@ import type { EvidenceGapsResult } from "@/lib/admin/evidenceGaps";
  * ⚠️ 取得失敗のときに「0社」と書かないこと。
  */
 
-const T = { path: 3, motive: 3, talkable: 1, proposal: 2 };
+const T = { path: 3, motive: 3, proposal: 2 };
 
 const co = (
   companyName: string,
   pathCurrent: number, pathAlumni: number,
   motiveCurrent: number, motiveAlumni: number,
-  talkable: number, openJobs: number,
+  openJobs: number,
 ) => {
   const standing =
     (pathCurrent + pathAlumni >= T.path ? 1 : 0) +
-    (motiveCurrent + motiveAlumni >= T.motive ? 1 : 0) +
-    (talkable >= T.talkable ? 1 : 0);
+    (motiveCurrent + motiveAlumni >= T.motive ? 1 : 0);
   const needs: string[] = [];
   if (pathCurrent + pathAlumni < T.path) needs.push(`経路があと${T.path - pathCurrent - pathAlumni}件`);
   if (motiveCurrent + motiveAlumni < T.motive) needs.push(`決め手があと${T.motive - motiveCurrent - motiveAlumni}件`);
-  if (talkable < T.talkable) needs.push(`話せる人があと${T.talkable - talkable}名`);
   const short = T.proposal - standing;
   return {
     companyId: companyName, companyName,
-    pathCurrent, pathAlumni, motiveCurrent, motiveAlumni, talkable, openJobs, standing,
+    pathCurrent, pathAlumni, motiveCurrent, motiveAlumni, openJobs, standing,
     gapLine: standing < T.proposal && needs.length
       ? `${needs.slice(0, short).join("と")}そろえば、根拠が${T.proposal}本立ちます`
       : null,
@@ -68,7 +66,6 @@ export default function Page() {
         </p>
         <p>
           ★<strong>経路と決め手は在籍者でなくても積み上がる</strong>（出身者の職歴でも増える）。
-          「話せる人」だけが在籍中を要る。列が分かれていることを見ること。
         </p>
       </PreviewHeader>
 
@@ -79,10 +76,10 @@ export default function Page() {
         <EvidenceGapsClient
           data={mk(
             [
-              co("伊藤忠テクノソリューションズ", 0, 1, 0, 0, 1, 0),
-              co("日本ヒューレット・パッカード", 0, 0, 0, 0, 1, 0),
-              co("セールスフォース・ジャパン", 0, 1, 0, 1, 0, 2),
-              co("Ubie", 0, 0, 0, 0, 0, 0),
+              co("伊藤忠テクノソリューションズ", 0, 1, 0, 0, 0),
+              co("日本ヒューレット・パッカード", 0, 0, 0, 0, 0),
+              co("セールスフォース・ジャパン", 0, 1, 0, 1, 2),
+              co("Ubie", 0, 0, 0, 0, 0),
             ],
             [
               person("木村雅樹", "k.***@gmail.com", 4, "2026-06-25", ["セールスフォース・ジャパン", "伊藤忠テクノソリューションズ"]),
@@ -101,9 +98,9 @@ export default function Page() {
         <EvidenceGapsClient
           data={mk(
             [
-              co("セールスフォース・ジャパン", 2, 3, 3, 2, 4, 2), // 3本とも達成
-              co("Ubie", 1, 2, 1, 2, 0, 1),                      // 経路と決め手で2本
-              co("SmartHR", 0, 1, 3, 0, 0, 0),                   // 決め手だけ → あと1本
+              co("セールスフォース・ジャパン", 2, 3, 3, 2, 2), // 2本とも達成
+              co("Ubie", 1, 2, 1, 2, 1),                      // 経路と決め手で2本
+              co("SmartHR", 0, 1, 3, 0, 0),                   // 決め手だけ → あと1本
             ],
             [person("回答していない人", "x***@example.com", 2, "2026-09-17", ["Ubie"])],
           )}
@@ -114,7 +111,7 @@ export default function Page() {
         label="未回答者が0名"
         note="「該当なし」とだけ出る。企業表は残る"
       >
-        <EvidenceGapsClient data={mk([co("Ubie", 1, 0, 0, 0, 0, 0)], [])} />
+        <EvidenceGapsClient data={mk([co("Ubie", 1, 0, 0, 0, 0)], [])} />
       </Variant>
 
       <Variant

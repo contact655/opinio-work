@@ -5,7 +5,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { revalidatePath } from "next/cache";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
-import { revalidateCompanyAmbassadors } from "@/lib/supabase/queries";
 import {
   VALID_MEMBER_REPORT_RESOLUTIONS,
   MEMBER_REPORT_RESOLUTION_NOTE_MAX,
@@ -56,10 +55,6 @@ async function applyHidden(companyId: string, experienceId: string, hidden: bool
   }
 
   await revalidateCompanyPages(companyId);
-  /* ⚠️★**面談対応者のキャッシュも捨てる**（2026-09-18）。B7 で
-        `getPublicAmbassadorsCached` が非表示を見るようになったので、
-        呼ばないと「外したのに『話を聞ける人』には残る」が最大300秒続く。 */
-  revalidateCompanyAmbassadors(companyId);
   return null;
 }
 

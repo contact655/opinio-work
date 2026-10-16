@@ -20,7 +20,7 @@ import type { BizEmployee } from "./page";
  *    中身は /u/[id] と同じ関数（UserProfileContent）で描き、**見せてよい範囲の判定も同じ1か所**。
  *    この画面のために取得の経路を足さないこと。
  * ⚠️ 一覧に出す人の条件は page.tsx（企業ページの `getCompanyEmployees` と同じ条件）。ここで足さない・削らない。
- * ⚠️ 状態はバッジにしない（灰色の文字）。「話を聞ける」も灰色の文字。
+ * ⚠️ 状態はバッジにしない（灰色の文字）。⚠️「話を聞ける」の表示は 2026-10-16 に撤去した（面談OKの撤去）。
  * ⚠️ 選択は URL に残す（tab / dept / q / id）。`history.replaceState`（履歴を積まない。一覧を取り直さない）。
  * ⚠️ 企業から追加・削除はできない。在籍していない人は運営に報告する（報告の API・語彙は従来どおり）。
  */
@@ -175,7 +175,6 @@ export function EmployeesClient({
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [justReported, setJustReported] = useState<string[]>([]);
@@ -226,11 +225,11 @@ export function EmployeesClient({
   /* 一覧の上の1行（いまのタブ全員で数える。絞り込み・検索に関係なく） */
   const summary = useMemo(() => {
     const order = new Map(deptOrder.map((n, i) => [n, i]));
-    const map = new Map<string, { n: number; talk: number }>();
+    const map = new Map<string, { n: number }>();
     for (const e of base) {
       const k = e.departmentName ?? "部門なし";
-      const v = map.get(k) ?? { n: 0, talk: 0 };
-      v.n++; if (e.isTalkable) v.talk++;
+      const v = map.get(k) ?? { n: 0 };
+      v.n++;
       map.set(k, v);
     }
     return Array.from(map.entries()).sort(([a], [b]) => {
@@ -239,7 +238,6 @@ export function EmployeesClient({
       return ia !== ib ? ia - ib : a.localeCompare(b, "ja");
     });
   }, [base, deptOrder]);
-  const noTalkDepts = tab === "current" ? summary.filter(([k, v]) => k !== "部門なし" && v.talk === 0).map(([k]) => k) : [];
   /* 一覧の並び（部門ごと）に合わせた順 */
   const ordered = useMemo(() => groups.flatMap((g) => g.people), [groups]);
 
@@ -295,8 +293,6 @@ export function EmployeesClient({
   /** 企業ページでの見え方（灰色の文字） */
   const visibilityText = (e: BizEmployee) =>
     hiddenIds.has(e.experienceId) ? "企業ページには表示されていません"
-    : e.isTalkable ? "企業ページに表示中・話を聞ける"
-    /* ⚠️ 話を聞けない人も企業ページの社員一覧には出ている。「表示されていません」と書かない */
     : "企業ページに表示されています";
 
   const segBtn = (key: Tab, label: string, n: number) => (
@@ -346,29 +342,8 @@ export function EmployeesClient({
           <span style={{ fontWeight: 700, color: "var(--ink)" }}>{tab === "current" ? "現役" : "OB・OG"} {base.length}名</span>
           {"　"}
           {summary.map(([k, v], i) => (
-            <span key={k}>{i > 0 && "・"}{k} {v.n}{tab === "current" && (i === 0 ? `（話を聞ける ${v.talk}）` : `（${v.talk}）`)}</span>
+            <span key={k}>{i > 0 && "・"}{k} {v.n}</span>
           ))}
-          {noTalkDepts.length > 0 && (
-            <div data-state="no-talk-depts" style={{ position: "relative", fontSize: 12.5, color: "var(--ink-mute)" }}>
-              {noTalkDepts.join("・")}には話を聞ける人がいません。
-              <button type="button" onClick={() => setShowInvite((v) => !v)} aria-expanded={showInvite} data-state="open-invite"
-                style={{ border: "none", background: "none", padding: 0, fontFamily: "inherit", fontSize: 12.5, color: "var(--royal)", fontWeight: 600, cursor: "pointer" }}>
-                社員に案内する ›
-              </button>
-              {showInvite && (
-                <div role="dialog" aria-label="社員に送る案内文" data-state="invite-box"
-                  style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30, width: 460, maxWidth: "calc(100vw - 48px)", padding: "14px 16px", background: "#fff", border: "1px solid var(--line)", borderRadius: 10, boxShadow: "0 8px 24px rgba(15,23,42,0.12)" }}>
-                  <pre style={{ margin: "0 0 10px", padding: "10px 12px", background: "var(--bg-tint)", borderRadius: 8, fontFamily: "inherit", fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>{inviteText(companyName, joinUrl)}</pre>
-                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <button type="button" onClick={() => setShowInvite(false)} style={{ height: 32, padding: "0 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>閉じる</button>
-                    <button type="button" onClick={copyInvite} data-state="copy-invite" style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "none", background: "var(--royal)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                      {copied ? "コピーしました" : "案内文をコピー"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -419,7 +394,6 @@ export function EmployeesClient({
                               style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {e.name ?? "名前未設定"}
                             </a>
-                            {e.isTalkable && <span style={{ fontSize: 12, color: "var(--ink-mute)", flexShrink: 0 }}>話を聞ける</span>}
                           </div>
                           <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                             title={[orgLine(e), yearText(e)].filter(Boolean).join(" ・ ")}>

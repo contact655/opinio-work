@@ -183,10 +183,6 @@ export function casualMeetingAdminTemplate(params: {
   intent: string | null;
   interestReason: string | null;
   questions: string | null;
-  /** ★指名された社員の氏名（2026-08-30）。**任意。null なら行ごと出さない。**
-      ⚠️ 「値が無いことを、ある値に置き換えない」——「（指名なし）」とは書かない。
-         指名は任意の機能で、無いことに意味がある。 */
-  requestedName?: string | null;
 }) {
   const intentLabel: Record<string, string> = {
     info_gathering: "情報収集中",
@@ -203,7 +199,6 @@ export function casualMeetingAdminTemplate(params: {
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
-        ${params.requestedName ? `<tr><td style="${TD_LABEL}">指名</td><td style="${TD_VALUE}"><strong>${esc(params.requestedName)}</strong> さんに聞きたい</td></tr>` : ""}
         <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
         <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
         <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
@@ -860,52 +855,8 @@ export function newCompanyAdminTemplate(params: {
   };
 }
 
-// ── 「面談OK」への招待（本人宛）─────────────────────────────────────────────
-/* ⚠️ 本人が受け取る文面なので、/mypage・/people と同じ語彙にする（2026-08-23 / B-1）。
-      「面談対応者」は**企業・運営向けの語**。本人宛には出さない。
-   ⚠️ /biz・/admin 側の「面談対応者」「面談受付中」は変えないこと（確定済み）。
-   ⚠️★**状態のラベルは 2026-09-18 に「面談OK」へ統一した。**
-      本人宛・企業宛・運営画面のすべてが同じ語。**一部だけ戻さないこと。** */
-export function ambassadorInviteTemplate(params: {
-  to: string;
-  userName: string;
-  companyName: string;
-  roleTitle: string;
-  token: string;
-}) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  const approveUrl = `${siteUrl}/mypage/ambassador-invite/${params.token}`;
-
-  return {
-    to: params.to,
-    subject: `【OPINIO】${esc(params.companyName)} の話を聞く相手として招待されています`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">面談OKとして掲載してよいか、確認させてください</h2>
-      <p style="margin:0 0 20px;color:#475569">
-        ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>の採用担当者より、
-        あなたを「この会社の話を聞ける人」として掲載したいという申請がありました。
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">企業名</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
-        <tr><td style="${TD_LABEL}">役職</td><td style="${TD_VALUE}">${esc(params.roleTitle)}</td></tr>
-      </table>
-      <p style="margin:0 0 16px;color:#475569;font-size:14px">
-        掲載されると:<br>
-        ・OPINIOに「この会社の話を聞ける人」としてプロフィールが表示されます<br>
-        ・転職を検討している方から、カジュアル面談の申込みが届きます<br>
-        ・あなたの氏名・役職・所属企業が公開されます
-      </p>
-      <p style="margin:0 0 24px">
-        <a href="${approveUrl}" style="${BTN}">承認する（または断る）→</a>
-      </p>
-      <p style="color:#94a3b8;font-size:12px;margin:0">
-        ※ 承認は任意です。承認しない場合、あなたの情報が公開されることはありません。<br>
-        ※ 承認後も、いつでも設定を解除できます。<br>
-        ※ 管理画面へのアクセス権は付与されません。
-      </p>
-    `),
-  };
-}
+// ── 「面談OK」への招待（本人宛）── ★2026-10-16 に廃止（面談OKの撤去）──────────
+/* ⚠️ `ambassadorInviteTemplate` は削除した。文面が要るときは git 履歴から（`3014e638` 時点まで） */
 
 // ── カジュアル面談通知（企業管理者宛） ─────────────────────────────────────────
 export function casualMeetingCompanyAdminTemplate(params: {
@@ -915,10 +866,6 @@ export function casualMeetingCompanyAdminTemplate(params: {
   intent: string | null;
   interestReason: string | null;
   questions: string | null;
-  /** ★指名された社員の氏名（2026-08-30）。**任意。null なら行ごと出さない。**
-      ⚠️ 「値が無いことを、ある値に置き換えない」——「（指名なし）」とは書かない。
-         指名は任意の機能で、無いことに意味がある。 */
-  requestedName?: string | null;
   /** 運営に回った通知か。⚠️ getCompanyNotificationTarget の viaOps をそのまま渡す */
   viaOps?: boolean;
 }) {
@@ -936,7 +883,6 @@ export function casualMeetingCompanyAdminTemplate(params: {
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
-        ${params.requestedName ? `<tr><td style="${TD_LABEL}">指名</td><td style="${TD_VALUE}"><strong>${esc(params.requestedName)}</strong> さんに聞きたい</td></tr>` : ""}
         <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
         <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
         <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
@@ -1019,111 +965,9 @@ export function joinRequestApprovedTemplate(params: {
   };
 }
 
-// ── 面談対応者の申請（企業/運営宛）── ★★2026-09-30 に廃止 ──────────────────
-/*
- * ⚠️★★`ambassadorRequestTemplate` は削除した（2026-09-30 / 柴さんの判断）。
- *    **企業への通知そのものをやめたため。復活させないこと。**
- *
- *    理由は「面談OK は**現職のことに限らず、利用者どうしが気軽に話すためのもの**で、
- *    企業が管轄することではない」。⚠️ **企業ページの掲載と人数は残してある**ので、
- *    企業は自社ページと `/biz/members` で見られるし、非掲載にもできる。
- *    変わったのは push で知らせるのをやめたことだけ。
- *
- * ⚠️ 運営の検知は `/admin` の要対応「面談対応者（自己申告）未確認 N名」と
- *    `/admin/ambassador-requests`（`ops_reviewed_at`）が担う。**メールと重複していた。**
- * ⚠️ 実測（2026-09-30）: 面談OK が ON の8社すべてで `notification_emails` 0件・
- *    実在する管理者0人。**実在の企業担当者に届いたことは一度も無かった。**
- *
- * ⚠️ 文面が要るときは git 履歴から（`188bbe34` 時点まで）。
- */
-
-// ── 「話を聞かれてもよい」の申請に対する企業の判断（本人宛）───────────────────
-/*
- * ⚠️★件名に結果を書かない（2026-08-23 確定）。
- *    件名は受信箱の一覧やスマホのプッシュ通知に出るため、
- *    「見送られました」が**本人以外の目に触れうる場所**に出てしまう。
- *    結果は本文で伝える。承認側も同じ形に揃えている。
- *
- * ⚠️ 本文に役職・職歴・企業の内部事情を書かない。企業がなぜそう判断したかの
- *    記録は存在しない（却下理由を残す器を作っていない）ので、書けるのは結果だけ。
- *
- * ⚠️ 配信停止の列は持たない。**本人の操作（申請）に対する結果通知**なので、
- *    週次メール（`email_weekly_enabled`）とは別の取引通知として扱う。
- */
-
-/** 企業が承認した（初回のみ。再掲載では送らない） */
-export function ambassadorApprovedTemplate(params: {
-  to: string;
-  userName: string;
-  companyName: string;
-}) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  return {
-    to: params.to,
-    /* ★2026-08-24: 会社の事前承認を廃止したので、**「承認されました」と書かない**。
-          この通知が飛ぶのは「企業が初めて掲載した」ときだけで、本人は申請していない
-          （自分でONにしただけ）。⚠️ 承認の語に戻すと、存在しない審査があったように読める。 */
-    subject: `【OPINIO】${esc(params.companyName)} のページに掲載されました`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">話を聞く相手として掲載されました</h2>
-      <p style="margin:0 0 20px;color:#475569">
-        ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>のページに、
-        「面談OK」の登録が掲載されました。
-      </p>
-      <p style="margin:0 0 16px;color:#475569;font-size:14px">
-        これから起きること:<br>
-        ・${esc(params.companyName)}のページに、あなたのプロフィールが表示されます<br>
-        ・転職を検討している方から、カジュアル面談の申込みが届きます
-      </p>
-      <p style="margin:0 0 24px">
-        <a href="${siteUrl}/mypage" style="${BTN}">マイページを見る →</a>
-      </p>
-      <p style="color:#94a3b8;font-size:12px;margin:0">
-        ※ マイページのトグルで、いつでも掲載を止められます。
-      </p>
-    `),
-  };
-}
-
-/** 企業（または運営）が掲載を取り消した。
-    ⚠️ 2026-08-24 時点では `pending_company` の行が消えたときだけ送る作りだが、
-       その状態には到達しなくなったため実質送られていない（decide.ts の表を参照）。 */
-export function ambassadorDismissedTemplate(params: {
-  to: string;
-  userName: string;
-  companyName: string;
-}) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  return {
-    to: params.to,
-    /* ★2026-08-25: 「見送り（申請の却下）」から「掲載の取り消し」へ書き直した。
-          会社の事前承認を廃止したので、**申請という段階が無い**。この通知が飛ぶのは
-          「本人が同意して載っていた行が消えたとき」だけ。
-       ⚠️★**理由は書けない。** 却下の理由を記録する器が無く、企業の運用も様々。
-          書けない以上、**書かない**（推測を本人に伝えない）。代わりに
-          **もう一度ONにできる**ことを必ず伝える——これが本人に残された唯一の手。
-       ⚠️ 非掲載（`unlistMember`）ではこのメールは飛ばない。往復するため。 */
-    subject: `【OPINIO】${esc(params.companyName)} のページの掲載が取り消されました`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">会社のページに出なくなりました</h2>
-      <p style="margin:0 0 20px;color:#475569">
-        ${greet(params.userName, "inline")}<strong style="color:#0f172a">${esc(params.companyName)}</strong>のページでの
-        「面談OK」の登録が取り消され、ページに出なくなりました。
-      </p>
-      <p style="margin:0 0 16px;color:#475569;font-size:14px">
-        取り消しは会社または OPINIO の判断によるもので、
-        <strong style="color:#0f172a">理由をお伝えすることはできません。</strong><br>
-        いま在籍している会社であれば、マイページからもう一度ONにできます。
-      </p>
-      <p style="margin:0 0 24px">
-        <a href="${siteUrl}/mypage" style="${BTN}">マイページを見る →</a>
-      </p>
-      <p style="color:#94a3b8;font-size:12px;margin:0">
-        ※ プロフィール自体は消えていません。公開範囲はマイページから変更できます。
-      </p>
-    `),
-  };
-}
+// ── 面談対応者の申請・承認・取り消し（企業/運営/本人宛）── ★2026-10-16 にすべて廃止 ──────
+/* ⚠️ `ambassadorRequestTemplate`（2026-09-30 に廃止）・`ambassadorApprovedTemplate`・
+      `ambassadorDismissedTemplate` は削除した（面談OKの撤去）。文面が要るときは git 履歴から（`3014e638` 時点まで） */
 
 /* ⚠️★`scoutTemplate`（スカウトが届いたお知らせ）は 2026-10-08 にスカウトごと廃止した。
       送信実績は0件。**戻さないこと。** */

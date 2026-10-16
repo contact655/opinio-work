@@ -7,8 +7,8 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
  *
  * ── ★★経路と決め手は「在籍者登録」を必要としない ───────────────────────────
  * どちらも `ow_experiences` から積み上がるので、**その会社を辞めた人（出身者）の
- * 職歴でも増える。** 一方「話せる人」は `ow_company_members` ＋ **在籍中**の職歴が要る。
- *   → **誰に声をかけるかの判断が変わる**ので、在籍中と出身者を**分けて数える。**
+ * 職歴でも増える。** → **誰に声をかけるかの判断が変わる**ので、在籍中と出身者を**分けて数える。**
+ * ⚠️ 「話せる人」（`ow_company_members` 由来）の列は 2026-10-16 に撤去した（面談OKの撤去）。
  *
  * ── ★`ow_transitions` を読まない ───────────────────────────────────────────
  * あれは導出テーブルで**洗い替えが手動**（2026-09-18 時点で最終 2026-08-26 / 以後
@@ -31,9 +31,6 @@ import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import { buildMoves, countMovesInto } from "@/lib/evidence/transitions";
 
-/** 「話せる人」が立つ最低人数。⚠️ 経路・決め手（3）とは別の基準 */
-export const TALKABLE_TARGET = 1;
-
 export type CompanyGap = {
   companyId: string;
   companyName: string;
@@ -43,9 +40,8 @@ export type CompanyGap = {
   /** 決め手を答えた職歴。★同上 */
   motiveCurrent: number;
   motiveAlumni: number;
-  talkable: number;
   openJobs: number;
-  /** いま基準を満たしている根拠の本数（経路 / 決め手 / 話せる人 のうち） */
+  /** いま基準を満たしている根拠の本数（経路 / 決め手 のうち） */
   standing: number;
   /** 「あと何が足りないか」の1行。★満たしていれば null */
   gapLine: string | null;
@@ -68,7 +64,7 @@ export type EvidenceGapsResult = {
   unanswered: UnansweredPerson[];
   /** ★いつ数えたか。数字だけ持ち出されないように画面に出す */
   computedAt: string;
-  targets: { path: number; motive: number; talkable: number; proposal: number };
+  targets: { path: number; motive: number; proposal: number };
 };
 
 type ExpRow = {
@@ -112,11 +108,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   const listed = (companyRows ?? []) as { id: string; name: string; name_en: string | null }[];
   const listedIds = new Set(listed.map((c) => c.id));
 
-  const [{ data: members, error: memErr }, { data: jobs, error: jobErr }] = await Promise.all([
-    db.from("ow_company_members").select("user_id, company_id").eq("display_consent", true).eq("is_public", true),
-    db.from("ow_jobs").select("company_id").match(PUBLIC_JOB_MATCH),
-  ]);
-  if (memErr) console.error("[evidenceGaps] ow_company_members:", memErr.message);
+  const { data: jobs, error: jobErr } = await db.from("ow_jobs").select("company_id").match(PUBLIC_JOB_MATCH);
   if (jobErr) console.error("[evidenceGaps] ow_jobs:", jobErr.message);
 
   // ── 経路: 隣接ペアを組む（★②⑨と同じ関数を通す）────────────────────────
@@ -136,20 +128,13 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
     })),
   );
 
-  // ── 決め手 / 話せる人 / 求人 ────────────────────────────────────────────────
+  // ── 決め手 / 求人 ────────────────────────────────────────────────
   const motiveCur = new Map<string, number>(), motiveAlu = new Map<string, number>();
   for (const e of exps) {
     if (!e.company_id || !listedIds.has(e.company_id)) continue;
     if ((e.join_reasons?.length ?? 0) === 0) continue;
     const m = e.is_current ? motiveCur : motiveAlu;
     m.set(e.company_id, (m.get(e.company_id) ?? 0) + 1);
-  }
-  const currentAt = new Set(exps.filter((e) => e.is_current && e.company_id).map((e) => `${e.user_id}:${e.company_id}`));
-  const talkable = new Map<string, number>();
-  for (const m of (members ?? []) as { user_id: string; company_id: string }[]) {
-    if (!listedIds.has(m.company_id)) continue;
-    if (!currentAt.has(`${m.user_id}:${m.company_id}`)) continue;
-    talkable.set(m.company_id, (talkable.get(m.company_id) ?? 0) + 1);
   }
   const jobCount = new Map<string, number>();
   for (const j of (jobs ?? []) as { company_id: string }[]) {
@@ -161,14 +146,12 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
     const mv = countMovesInto(moves, c.id);
     const pc = mv.current, pa = mv.alumni;
     const mc = motiveCur.get(c.id) ?? 0, ma = motiveAlu.get(c.id) ?? 0;
-    const tk = talkable.get(c.id) ?? 0;
     /* ⚠️ `pc + pa` にしないこと。出戻り（同じ人が2回）が2人に見える */
     const path = mv.total, motive = mc + ma;
 
     const standing =
       (path >= MIN_AGGREGATE_COUNT ? 1 : 0) +
-      (motive >= MIN_AGGREGATE_COUNT ? 1 : 0) +
-      (tk >= TALKABLE_TARGET ? 1 : 0);
+      (motive >= MIN_AGGREGATE_COUNT ? 1 : 0);
 
     /* ★「あと何が足りないか」。**満たしている本数から逆算して1行で言う。** */
     let gapLine: string | null = null;
@@ -176,7 +159,6 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
       const needs: string[] = [];
       if (path < MIN_AGGREGATE_COUNT) needs.push(`経路があと${MIN_AGGREGATE_COUNT - path}件`);
       if (motive < MIN_AGGREGATE_COUNT) needs.push(`決め手があと${MIN_AGGREGATE_COUNT - motive}件`);
-      if (tk < TALKABLE_TARGET) needs.push(`話せる人があと${TALKABLE_TARGET - tk}名`);
       /* 立てたい本数に届くまでに必要な「いちばん近い組み合わせ」を出す */
       const short = MIN_EVIDENCE_FOR_PROPOSAL - standing;
       gapLine = needs.length
@@ -189,7 +171,6 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
       companyName: companyDisplayName(c.name, c.name_en).displayName,
       pathCurrent: pc, pathAlumni: pa,
       motiveCurrent: mc, motiveAlumni: ma,
-      talkable: tk,
       openJobs: jobCount.get(c.id) ?? 0,
       standing,
       gapLine,
@@ -256,7 +237,6 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
     targets: {
       path: MIN_AGGREGATE_COUNT,
       motive: MIN_AGGREGATE_COUNT,
-      talkable: TALKABLE_TARGET,
       proposal: MIN_EVIDENCE_FOR_PROPOSAL,
     },
   };

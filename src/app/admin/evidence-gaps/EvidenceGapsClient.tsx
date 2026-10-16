@@ -69,8 +69,6 @@ export default function EvidenceGapsClient({ data }: { data: EvidenceGapsResult 
         <strong>経路と決め手は、在籍者でなくても積み上がります。</strong>
         その会社を辞めた人（出身者）の職歴でも増えるので、
         <strong>いま在籍している人に限らず声をかけられます。</strong><br />
-        一方 <strong>「話せる人」は在籍中であることが要ります</strong>
-        （面談対応者の同意 ＋ 在籍中の職歴）。だから列を分けてあります。<br />
         <span style={{ color: "var(--ink-mute)" }}>
           経路 = その会社へ移ってきた人の数（職歴の隣接から算出）／
           決め手 = その会社の職歴で入社理由が答えられている件数
@@ -83,7 +81,6 @@ export default function EvidenceGapsClient({ data }: { data: EvidenceGapsResult 
             <th style={TH}>企業</th>
             <th style={TH}>経路<span style={{ fontWeight: 400, color: "var(--ink-mute)" }}>（在籍/出身）</span></th>
             <th style={TH}>決め手<span style={{ fontWeight: 400, color: "var(--ink-mute)" }}>（在籍/出身）</span></th>
-            <th style={TH}>話せる人</th>
             <th style={TH}>公開求人</th>
             <th style={TH}>あと何が足りないか</th>
           </tr>
@@ -96,7 +93,6 @@ export default function EvidenceGapsClient({ data }: { data: EvidenceGapsResult 
                 <td style={{ ...TD, fontWeight: 600 }}>{c.companyName}</td>
                 <td style={TD}><Count n={c.pathCurrent + c.pathAlumni} need={targets.path} sub={`${c.pathCurrent} / ${c.pathAlumni}`} /></td>
                 <td style={TD}><Count n={c.motiveCurrent + c.motiveAlumni} need={targets.motive} sub={`${c.motiveCurrent} / ${c.motiveAlumni}`} /></td>
-                <td style={TD}><Count n={c.talkable} need={targets.talkable} /></td>
                 <td style={{ ...TD, color: c.openJobs > 0 ? undefined : "var(--ink-mute)" }}>{c.openJobs}</td>
                 <td style={{ ...TD, fontSize: 12, lineHeight: 1.7 }}>
                   {standing

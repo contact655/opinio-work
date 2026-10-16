@@ -60,19 +60,14 @@ const NAV_GROUPS = [
     items: [
       { label: "応募管理",            href: "/admin/applications",     icon: <Inbox         size={16} strokeWidth={2} /> },
       { label: "面談管理",            href: "/admin/meetings",         icon: <CalendarCheck size={16} strokeWidth={2} /> },
-      /* ⚠️ 2026-08-24 に「申請」から改名（会社の事前承認を廃止したため）。
-            ⚠️★2026-08-25 に「掲載」を外した。**運営は1人で「企業の掲載」「求人の掲載」
-               「人の掲載」を全部扱う**ので、`掲載` だけでは何の掲載か読めない。
-               人を指すときは `面談対応者` を使う（`/biz` と同じ語彙で、企業や求人と衝突しない）。 */
-      { label: "面談対応者（自己申告）", href: "/admin/ambassador-requests", icon: <UserCheck    size={16} strokeWidth={2} /> },
+      /* ⚠️ 「面談対応者（自己申告）」（/admin/ambassador-requests）は 2026-10-16 に撤去した */
       /* ★2026-09-04 追加。「勝手に載っている人がいないか」（上）とは**別の問い**で、
             こちらは「企業に入りたい人を入れるか」。統合しないこと。
             ⚠️ 依頼メールが届く企業は掲載中79社のうち2社だけ（2026-09-04 実測）。
                残りは運営が見なければどこにも着かない。 */
       { label: "企業への参加依頼",     href: "/admin/company-join-requests", icon: <UserPlus     size={16} strokeWidth={2} /> },
       /* ★2026-09-18 追加（B7）。企業が「この人は在籍していない」と報告したもの。
-            ⚠️ 上の2つとは**向きが違う**。面談対応者＝勝手に載っている人がいないか、
-               参加依頼＝入れるか、ここ＝**企業が「違う」と言っている人**。
+            ⚠️ 上とは**向きが違う**。参加依頼＝入れるか、ここ＝**企業が「違う」と言っている人**。
             ⚠️★**外せるのは運営だけ**（`ow_company_hidden_experiences` は運営専用）。
                企業側の非表示ボタンは 2026-09-18 に削除した。 */
       { label: "在籍していない人の報告", href: "/admin/member-reports", icon: <UserX        size={16} strokeWidth={2} /> },

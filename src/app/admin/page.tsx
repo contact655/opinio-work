@@ -2,7 +2,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { findTestLeftovers, countTestLeftovers } from "@/lib/admin/testLeftovers";
 import { TestLeftoversCard } from "@/components/admin/TestLeftoversCard";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
-import { countSelfListedUnreviewed } from "@/lib/companyMembers/selfListed";
 /* ⚠️★件数も一覧も同じ関数を通す。条件を書き分けると
       「1件と出ているのに開くと空」が起きる（`fetchSelfListed` と同じ理由）。 */
 import { fetchOpenJoinRequests } from "@/lib/business/joinRequests";
@@ -19,7 +18,6 @@ async function getStats() {
     users, testUsers, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
     /* ⚠️ 順番は下の Promise.all と1対1。ずれても型が同じなのでエラーにならない */
-    selfListed,
     onboardingCompleted, profileFilled, appliedOrMet,
   ] = await Promise.all([
     /* ⚠️★ここは `supabase`（運営本人のセッション）で数えていた（〜2026-08-29）。
@@ -45,8 +43,8 @@ async function getStats() {
              **コード側では知っていた**が、**画面には一切出ていなかった。**
              ダッシュボードを見た人には「登録ユーザー 38 / オンボーディング完了率 79%」
              としか見えず、**84% が検証用アカウントであることを知る手段が無かった。**
-          ⚠️ 隠すのではなく**内訳を出す**。`/admin/ambassador-requests` が
-             `is_test` を隠さず「検証用アカウント」とラベルを付けているのと同じ方針
+          ⚠️ 隠すのではなく**内訳を出す**（2026-10-16 に撤去した `/admin/ambassador-requests` が
+             `is_test` を隠さず「検証用アカウント」とラベルを付けていたのと同じ方針）
              （CLAUDE.md「完全に隠さないこと」）。 */
     admin.from("ow_users").select("id", { count: "exact", head: true })
       .eq("is_system", false).eq("is_test", true),
@@ -62,12 +60,7 @@ async function getStats() {
     /* ⚠️★ただし 2026-08-05 より前の招待は is_active=true で作られており、1行残っていた。
           `user_id` の NULL も明示的に除く（2026-10-08） */
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true).not("user_id", "is", null),
-    /* ★自己申告で掲載されていて、**運営がまだ確認していない**人（2026-08-25）。
-          ⚠️★条件は `lib/companyMembers/selfListed.ts` に集約している。**ここに書かないこと。**
-             一覧ページと同じ関数を通さないと、**数字と中身が食い違う**
-             （とくに「在籍しているか」の突き合わせを落としやすい）。
-          ⚠️ 「掲載中の総数」に戻さないこと。あれは0にならないので要対応にできない。 */
-    countSelfListedUnreviewed(),
+    /* ⚠️ 「面談対応者（自己申告）の未確認」は 2026-10-16 に撤去した（面談OKの撤去） */
     // オンボーディングファネル
     admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
     // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
@@ -229,10 +222,6 @@ async function getStats() {
 
 
     bizAdminsCount: bizAdmins.count ?? 0,
-    selfUnreviewedCount: selfListed.count,
-    /* ★未確認のうち**最も古いものの経過日数**。0件なら null（0 ではない）。
-          ⚠️ 件数だけだと「放置されている」ことが読み取れない（2026-08-30）。 */
-    selfUnreviewedOldestDays: selfListed.oldestDays,
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
@@ -266,9 +255,6 @@ export default async function AdminDashboard() {
         このプロジェクトに存在せず、常に0件を足していただけだったため。 */
   const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount
     + (stats.neverLoggedInBizCount > 0 ? 1 : 0)
-    /* ⚠️ 未確認は0にできるので**要対応に数える**（2026-08-25）。
-          掲載中の総数を足さないこと。あれは0にならない。 */
-    + stats.selfUnreviewedCount
     /* ⚠️ 取得に失敗したときは 1件として数える（下のカードが「失敗」を出すため）。
           0 にすると、壊れているのに要対応が消える。 */
     + (stats.joinRequestsFailed ? 1 : stats.joinRequestsCount)
@@ -809,47 +795,6 @@ export default async function AdminDashboard() {
                         : <>企業からの報告です ・ 外すかどうかは運営が判断します{stats.memberReportsOldestDays !== null ? ` ・ 最も古い報告から ${stats.memberReportsOldestDays}日` : ""}</>}
                     </p>
                   </div>
-                </div>
-              </Link>
-            )}
-
-            {stats.selfUnreviewedCount > 0 && (
-              <Link href="/admin/ambassador-requests" style={{ textDecoration: "none" }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 14px", borderRadius: 10,
-                  background: "#FFFBEB", border: "1px solid #FDE68A",
-                  transition: "background 0.15s", cursor: "pointer",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#FEF3C7", color: "var(--warm-ink)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
-                      面談対応者（自己申告） 未確認 {stats.selfUnreviewedCount}名
-                    </p>
-                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
-                      {/* ★何日誰も見ていないかを出す（2026-08-30）。
-                             ⚠️ しきい値で色を変えない。**何日で問題かは決めていない**
-                                （見る人と頻度が未決）。数字だけ出して判断は運営に委ねる。
-                             ⚠️ 一覧の「◯日前」と**同じ起点**（consent_at ?? created_at）。
-                                別々に計算すると数字が食い違う。 */}
-                      {stats.selfUnreviewedOldestDays !== null && stats.selfUnreviewedOldestDays >= 1 && (
-                        <>最も古いもので {stats.selfUnreviewedOldestDays} 日前 ・ </>
-                      )}
-                      企業ページに出ている人です。在籍確認はしていません
-                    </p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
                 </div>
               </Link>
             )}

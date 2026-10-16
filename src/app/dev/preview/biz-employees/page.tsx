@@ -6,19 +6,17 @@ import { Variant, PreviewHeader } from "../Variant";
 /**
  * `/biz/employees`（社員・OB/OG）のプレビュー（2026-09-18）。
  *
- * ⚠️★**この画面を作った理由。** B6 で足した3つ——管理者バッジ・面談OKバッジ・
+ * ⚠️★**この画面を作った理由。** B6 で足した3つ——管理者バッジ・面談OKバッジ（2026-10-16 に撤去）・
  *    職種の併記——は、**ログインできるどの企業にも該当者が居ない**ので実データで
  *    一度も描画できない。実測（2026-09-18 / 本番）: この管理者が入れる3社
  *    （Third Box / 【テスト】サンプルワークス / 株式会社Opinio）はいずれも
  *    `visibility_company='real'` かつ `is_test=false` の経歴が **0件**。
  *
- * ⚠️ 面談OKは**現役にだけ**出る（退職しても `ow_company_members` の行は残るため）。
  *    OB・OG のタブにオレンジのバッジが出ていたら、それは不具合。
  */
 const base = {
   avatarUrl: null,
   isAdmin: false,
-  isTalkable: false,
   startedAt: "2021-04-01",
   endedAt: null,
   isCurrent: true,
@@ -31,9 +29,9 @@ const CURRENT: BizEmployee[] = [
   { ...base, experienceId: "e2", userId: "u2", name: "佐藤 花子",
     roleName: "フィールドセールス", roleTitle: null, isAdmin: true },
   { ...base, experienceId: "e3", userId: "u3", name: "鈴木 一郎", departmentName: "インサイドセールス部",
-    roleName: "インサイドセールス", roleTitle: "SDR", isTalkable: true },
+    roleName: "インサイドセールス", roleTitle: "SDR" },
   { ...base, experienceId: "e4", userId: "u4", name: "高橋 二郎",
-    roleName: "カスタマーサクセス", roleTitle: "CSM", isAdmin: true, isTalkable: true },
+    roleName: "カスタマーサクセス", roleTitle: "CSM", isAdmin: true },
   /* ⚠️ マスタ名も呼び方も無い行。**行ごと出ない**のが正しい（氏名と期間だけになる） */
   { ...base, experienceId: "e5", userId: "u5", name: "田中 三郎",
     roleName: null, roleTitle: null },
@@ -45,15 +43,13 @@ const CURRENT: BizEmployee[] = [
     name: "サンプル 長々しい氏名ですここで折り返るかを見る",
     roleName: "ソリューションエンジニア・セールスエンジニア",
     roleTitle: "エンタープライズ営業統括本部 第2ソリューション部 / プリセールス（金融担当）",
-    isAdmin: true, isTalkable: true },
+    isAdmin: true },
 ];
 
 const ALUMNI: BizEmployee[] = [
   { ...base, experienceId: "a1", userId: "u8", name: "退職 太郎", departmentName: "金融営業本部",
     roleName: "フィールドセールス", roleTitle: "AE",
     isCurrent: false, endedAt: "2024-03-31" },
-  /* ⚠️★`ow_company_members` の行が残っている退職者。**面談OKを出さない**のが正しい。
-        `isTalkable` はサーバー側で `isCurrent` と AND を取ってあるので false で渡る。 */
   { ...base, experienceId: "a2", userId: "u9", name: "退職 花子",
     roleName: "カスタマーサクセス", roleTitle: null,
     isCurrent: false, endedAt: "2023-09-30", isAdmin: true },
@@ -70,7 +66,7 @@ export default function BizEmployeesPreview() {
         どちらも無い行は<strong>職種の行ごと出ません</strong>。
       </PreviewHeader>
 
-      <Variant label="現役7件（管理者・面談OK・職種の3パターン）" note="⚠️ 5人目は職種の行が丸ごと無いこと。6人目は小さい方だけ出ること">
+      <Variant label="現役7件（管理者・職種のパターン）" note="⚠️ 5人目は職種の行が丸ごと無いこと。6人目は小さい方だけ出ること">
         <EmployeesClient current={CURRENT} alumni={ALUMNI} hiddenExperienceIds={[]} reportedExperienceIds={[]} rejectedExperiences={[]} companyName="株式会社サンプル" companyId="c1" initialTab="current" initialDept="" initialQuery="" initialSelectedId={null} renderProfile={false} />
       </Variant>
 

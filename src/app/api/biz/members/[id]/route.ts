@@ -7,7 +7,7 @@ import { getCompanyContext } from "@/lib/business/company";
 import { requireCompanyAction, permissionDeniedResponse, roleIn } from "@/lib/auth/permissions";
 import { can, isCompanyRole } from "@/lib/auth/roles";
 
-type Action = "permission" | "deactivate" | "reactivate" | "update_profile" | "ambassador";
+type Action = "permission" | "deactivate" | "reactivate" | "update_profile";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -56,7 +56,7 @@ export async function PATCH(
 
   const isSelf = target.user_id === actorOwUserId;
 
-  // ambassador の設定は admin 必須
+  // メンバーの変更は admin 必須
   try { requireCompanyAction(allMemberships, companyId, "members.manage"); } catch { return permissionDeniedResponse(); }
 
   // 最後の admin を数える共通ヘルパー
@@ -186,21 +186,7 @@ export async function PATCH(
     }
   }
 
-  // ── action: ambassador ────────────────────────────────────────────
-  else if (body.action === "ambassador") {
-    const isAmbassador = body.value === "true";
-    const res = await mutateOne(
-      supabase.from("ow_company_admins").update({ is_ambassador: isAmbassador }).eq("id", adminRecordId),
-      "members PATCH ambassador",
-    );
-    const error = res.ok ? null : { message: res.error };
-
-    if (error) {
-      console.error("[members PATCH ambassador]", error.message);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
-  }
-
+  /* ⚠️ action: ambassador（`ow_company_admins.is_ambassador`）は 2026-10-16 に撤去した。死にフラグだった */
   else {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }

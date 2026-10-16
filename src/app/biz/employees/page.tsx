@@ -44,8 +44,6 @@ export type BizEmployee = {
   isCurrent: boolean;
   /** この企業の有効な管理者（`ow_company_admins`）でもあるか */
   isAdmin: boolean;
-  /** この企業で面談OK（`ow_company_members` が掲載中）か */
-  isTalkable: boolean;
 };
 
 export default async function EmployeesPage({ searchParams }: {
@@ -162,15 +160,6 @@ export default async function EmployeesPage({ searchParams }: {
   if (adminErr) console.error("[biz/employees] admins fetch failed:", adminErr.message);
   const adminUserIds = new Set((adminRows ?? []).map((r: any) => r.user_id as string));
 
-  /* ★面談OK（`ow_company_members` が掲載中）。
-     ⚠️★**条件は `display_consent && is_public` の両方。** 片方だけだと
-        「本人が同意していないのに掲載中」「本人はONだが企業が非掲載」を
-        取り違える（状態は5つある。`lib/constants/companyMembers.ts` の `memberState`）。
-     ⚠️★**現役（`is_current`）にだけ出す**（下のカード側で判定）。
-        `lib/companyMembers/talkable.ts` の②と同じ ——行は退職しても残るので、
-        これが無いと**辞めた人が「面談OK」のまま**出る。
-     ⚠️ 企業の受付状態（`accepting_casual_meetings`）は**見ない**。
-        人が出るかは本人の同意で決まり、申込導線が出るかは企業の受付で決まる。 */
   /* ★報告の状態（2026-09-18 / B7 → C-9 で結果まで持つようにした）。
      ⚠️ **1つの経歴に複数行ありうる**（却下されたあとの再報告は新しい行になる。
         一意なのは「未対応の行」だけ ——`uq_company_member_reports_open`）。
@@ -201,15 +190,6 @@ export default async function EmployeesPage({ searchParams }: {
     .filter(([, v]) => v.resolution === "rejected")
     .map(([experienceId, v]) => ({ experienceId, note: v.note }));
 
-  const { data: memberRows, error: memberErr } = await admin
-    .from("ow_company_members")
-    .select("user_id, display_consent, is_public")
-    .eq("company_id", ctx.tenantId)
-    .eq("display_consent", true)
-    .eq("is_public", true);
-  if (memberErr) console.error("[biz/employees] members fetch failed:", memberErr.message);
-  const talkableUserIds = new Set((memberRows ?? []).map((r: any) => r.user_id as string));
-
   const employees: BizEmployee[] = (rows ?? []).flatMap((row: any) => {
     const user = row.ow_users;
     if (!user) return [];
@@ -235,8 +215,6 @@ export default async function EmployeesPage({ searchParams }: {
       endedAt: row.ended_at as string | null,
       isCurrent,
       isAdmin: adminUserIds.has(userId),
-      /* ★退職者には出さない（上の注記の②）。 */
-      isTalkable: isCurrent && talkableUserIds.has(userId),
     }];
   });
 

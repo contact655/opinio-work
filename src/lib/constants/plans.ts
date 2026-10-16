@@ -54,8 +54,7 @@ export const PLAN_MONTHLY_FEE: Record<PlanType, number> = {
 export const PLAN_FEATURES = [
   /** 候補者検索（/biz/candidates）で個人を特定できるデータを見る */
   "candidateSearch",
-  /** 「話せる人」（アンバサダー）を招待する */
-  "ambassadorInvite",
+  /* ⚠️ `ambassadorInvite`（「話せる人」の招待）は 2026-10-16 に撤去した（面談OKの撤去） */
   /**
    * ★企業資料を**マッチング（提案）の材料に使う**（2026-10-09 / 依頼②）。
    * ⚠️★ゲートを掛けるのは「マッチングへの利用」だけ。資料の登録・項目の確認と確定・
@@ -109,9 +108,8 @@ const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
         または利用できる機能を制限することができます」と定めているので、規約上は可能。
         ⚠️ 戻すときは `/biz/candidates` の**未設定（planType が null）の分岐と
            取り違えないこと**（あちらは異常、こちらは売り物の案内）。
-     ⚠️★**面談対応者の招待は `free` では閉じたまま。**「ベータ中だから全部開ける」に
-        広げないこと —— ここで開けたのは「登録者を探せないと企業が何もできない」入口の1つだけ。
-        （応募者の連絡先は 2026-10-08 にゲートごと外した。スカウトは同日に廃止） */
+     ⚠️ 応募者の連絡先は 2026-10-08 にゲートごと外した。スカウトは同日に廃止。
+        面談対応者の招待（`ambassadorInvite`）は 2026-10-16 に機能ごと撤去した */
   /* ★★`companyMaterials` も free で true（2026-10-09 / 柴さんの判断。**ベータ版期間中の状態**）。
         理由は `candidateSearch` と同じ —— 掲載利用規約 第4条2項がベータ期間中の無料提供を
         定めており、閉じると「有料の機能です」と案内しながら誰も買えない状態になる。
@@ -120,8 +118,8 @@ const MATRIX: Record<PlanType, Record<PlanFeature, boolean>> = {
         だけで、登録・確認・公開表示はそのまま使える（ゲートの外に置いてあるため）。 */
   /* ★★`companyApproach` も free で true（2026-10-09 / 柴さんの判断。**ベータ版期間中の状態**）。
         理由と戻す条件は `candidateSearch` と同じ（掲載利用規約 第4条2項・5項）。 */
-  free: { candidateSearch: true,  ambassadorInvite: false, companyMaterials: true, companyApproach: true },
-  paid: { candidateSearch: true,  ambassadorInvite: true,  companyMaterials: true, companyApproach: true },
+  free: { candidateSearch: true, companyMaterials: true, companyApproach: true },
+  paid: { candidateSearch: true, companyMaterials: true, companyApproach: true },
 };
 
 /**

@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCompanyEmployees, getPublicAmbassadorsCached } from "@/lib/supabase/queries";
+import { getCompanyEmployees } from "@/lib/supabase/queries";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 
@@ -20,7 +20,7 @@ import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
  *    並んでいれば、名前を見なくても1秒で分かる。
  *
  * ⚠️ **判定を書き写さない。** 公開ページが実際に使っている関数
- *    （`getCompanyEmployees` / `getPublicAmbassadorsCached` / `getDirectoryPeople`）を
+ *    （`getCompanyEmployees` / `getDirectoryPeople`）を
  *    そのまま呼ぶ。ここに条件を書くと、公開側を直したときにこの一覧だけ古くなり、
  *    **「一覧はきれいなのに実際は出ている」**という最悪の形になる。
  *    （CLAUDE.md「判定は `findPublishBlockers`（ゲートと同じ条件関数）を呼ぶ」と同じ考え方）
@@ -33,7 +33,7 @@ import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 export type PublicFacePlace = {
   /** どこに出ているか。企業名 or "/people" */
   where: string;
-  /** 現役社員 / OB・OG / 面談対応者 / ユーザー一覧 */
+  /** 現役社員 / OB・OG / ユーザー一覧（面談対応者は 2026-10-16 に撤去） */
   as: string;
 };
 
@@ -60,21 +60,20 @@ export async function getPublicFaces(): Promise<PublicFace[] | null> {
            `filterVisibleCompanies` のほうは **dev で素通りする**ので、
            ローカルと本番で違う結果になり、確認にならない。
         ⚠️ 79社すべてを回さない。人が紐づいている企業だけで足りる。 */
-  const [{ data: companies, error: cErr }, { data: expRows, error: eErr }, { data: memRows, error: mErr }] =
+  const [{ data: companies, error: cErr }, { data: expRows, error: eErr }] =
     await Promise.all([
       filterVisibleCompaniesStrict(admin.from("ow_companies").select("id, name")),
       admin.from("ow_experiences").select("company_id").not("company_id", "is", null),
-      admin.from("ow_company_members").select("company_id").eq("is_public", true).eq("display_consent", true),
     ]);
 
-  if (cErr || eErr || mErr) {
-    console.error("[getPublicFaces]", (cErr ?? eErr ?? mErr)!.message);
+  if (cErr || eErr) {
+    console.error("[getPublicFaces]", (cErr ?? eErr)!.message);
     return null;
   }
 
   const nameById = new Map((companies ?? []).map((c) => [c.id as string, c.name as string]));
   const targets = new Set<string>();
-  for (const r of [...(expRows ?? []), ...(memRows ?? [])]) {
+  for (const r of expRows ?? []) {
     const id = (r as { company_id: string | null }).company_id;
     if (id && nameById.has(id)) targets.add(id);
   }
@@ -90,13 +89,9 @@ export async function getPublicFaces(): Promise<PublicFace[] | null> {
   try {
     for (const companyId of Array.from(targets)) {
       const where = nameById.get(companyId)!;
-      const [emps, ambassadors] = await Promise.all([
-        getCompanyEmployees(companyId),
-        getPublicAmbassadorsCached(companyId),
-      ]);
+      const emps = await getCompanyEmployees(companyId);
       for (const e of emps.current) add(e.userId, { where, as: "現役社員" });
       for (const e of emps.alumni) add(e.userId, { where, as: "OB・OG" });
-      for (const a of ambassadors) add(a.user_id, { where, as: "面談対応者" });
     }
 
     /* ③ ユーザー一覧（/people）。ここも同じ関数を呼ぶ。

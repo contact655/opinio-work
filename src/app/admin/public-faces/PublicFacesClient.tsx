@@ -19,7 +19,7 @@ export function PublicFacesClient({ faces }: { faces: PublicFace[] | null }) {
         公開面に出ている人
       </h1>
       <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7, marginBottom: 16 }}>
-        企業ページ（現役社員・OB/OG・面談対応者）と <code>/people</code> に、
+        企業ページ（現役社員・OB/OG）と <code>/people</code> に、
         <strong>いま実際に出ている人</strong>の一覧です。判定は公開ページと同じ関数を通しています。
         <br />
         <strong>見覚えのないアカウントが無いかを、メールと登録日で確かめてください。</strong>

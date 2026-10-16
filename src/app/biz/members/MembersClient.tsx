@@ -9,10 +9,6 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 import Toast from "@/components/ui/Toast";
-import { memberState, MEMBER_CREATED_VIA, MEMBER_STATE_BIZ_LABEL, type MemberState } from "@/lib/constants/companyMembers";
-
-/** この画面の一覧に出す状態。⚠️ `pending_user`（招待に未応答）は下の招待中の区分が持つ */
-const LISTED_STATES: MemberState[] = ["listed", "unlisted", "paused"];
 
 type ActionType = "permission" | "deactivate" | "reactivate";
 
@@ -27,61 +23,8 @@ const PERMISSION_LABEL = ROLE_LABELS;
 const PERMISSION_HINT = ROLE_DESCRIPTIONS;
 type ProfileEditTarget = { id: string; role_title: string | null; department: string | null };
 
-/**
- * 面談対応者の行から状態を出す。**判定は `memberState()` に任せる。**
- *
- * ⚠️ `/biz` 側で「display_consent が true なら承認済み」のような判定を書き直さないこと。
- *    2026-08-23 まで実際にそう書かれていて、**本人からの申請（未承認）が
- *    「承認済み」に混ざっていた**（企業担当者は開くまで気づけない）。
- * ⚠️ 表示名は `MEMBER_STATE_BIZ_LABEL`。本人視点の名前をそのまま出すと主語が反転する。
- */
-function stateOf(a: AmbassadorRecord) {
-  return memberState({
-    display_consent: a.display_consent,
-    is_public: a.is_public,
-    approved_at: a.approved_at,
-    created_via: a.created_via,
-    /* ⚠️ 2026-08-24 追加。`pending_user`（招待に未応答）と `paused`（本人がOFF）の判別に要る */
-    consent_at: a.consent_at,
-  });
-}
-
-export type AmbassadorRecord = {
-  id: string;
-  user_id: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  avatar_url: string | null;
-  role_title: string | null;
-  display_consent: boolean;
-  is_public: boolean;
-  approved_at: string | null;
-  consent_at: string | null;
-  created_via: string | null;
-  invited_at: string | null;
-  /** ★その人が**いまもこの会社に在籍していると申告しているか**（2026-08-25）。
-   *  ⚠️ false なら、公開側では既に降りている（`is_public` が true でも出ていない）。
-   *     「公開中」と表示しないこと。 */
-  isCurrentEmployee: boolean;
-};
-
-export type AmbassadorCandidate = {
-  user_id: string;
-  name: string;
-  initial: string;
-  gradient: string;
-  avatar_url: string | null;
-  role_title: string | null;
-  current_company: string | null;
-};
-
-export type MeetingStat = {
-  user_id: string;
-  total: number;
-  completed: number;
-  this_month_completed: number;
-};
+/* ⚠️ 「面談対応者」「面談を依頼できる社員」の2タブ（`ow_company_members` の招待・掲載・解除）は
+      2026-10-16 に撤去した（面談OKの撤去・柴さんの判断）。この画面は採用担当だけ */
 
 type Props = {
   /** ★通知の宛先（2026-10-12 に /biz/company から移した）。採用担当タブの下に出す */
@@ -93,21 +36,6 @@ type Props = {
   initialPendingInvites: PendingInviteRecord[];
   currentUserId: string;
   isAdmin?: boolean;
-  ambassadors?: AmbassadorRecord[];
-  ambassadorCandidates?: AmbassadorCandidate[];
-  /**
-   * 「話せる人」を招待できるプランか。
-   * ⚠️ **見た目の出し分けにしか使わない。ゲートではない。**
-   *    本体は POST /api/biz/ambassador/invite の 403。
-   *    ここを true にしても API は通らない。
-   */
-  canInviteAmbassador?: boolean;
-  /** ★自分がこの会社に「在籍中」の経歴を持っているか（2026-08-23）。
-   *  ⚠️ 無いまま登録すると、**登録は成功するのに企業ページに出ない**
-   *     （表示条件は `ow_company_members` に載っていること ＋ `is_current` の経歴、
-   *      `lib/companyMembers/talkable.ts`）。だから入口ごと出し分ける。 */
-  selfHasCurrentExperience?: boolean;
-  meetingStats?: MeetingStat[];
 };
 
 function formatDate(iso: string): string {
@@ -1137,9 +1065,8 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ slackSettings = null, notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, currentUserId, isAdmin = true, ambassadors: initialAmbassadors = [], ambassadorCandidates = [], meetingStats = [], canInviteAmbassador = false, selfHasCurrentExperience = false }: Props) {
+export function MembersClient({ slackSettings = null, notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, currentUserId, isAdmin = true }: Props) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<"staff" | "field" | "employees">("staff");
 
   // edit profile dialog state
   const [editProfileTarget, setEditProfileTarget] = useState<ProfileEditTarget | null>(null);
@@ -1163,150 +1090,6 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [pendingInvites, setPendingInvites] = useState(initialPendingInvites);
-
-  // 面談対応者セクション state
-  const [ambassadors, setAmbassadors] = useState(initialAmbassadors);
-  const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
-  /* ★依頼の前の確認（2026-09-21）。押すと相手にメールが届くので、送る前に必ず伝える */
-  const [confirmInviteUserId, setConfirmInviteUserId] = useState<string | null>(null);
-  const [revokingMemberId, setRevokingMemberId] = useState<string | null>(null);
-  /* ⚠️ 「見送る」の確認（`dismissConfirmId`）は 2026-08-24 に**申請の区分ごと削除した**。
-        会社の事前承認を廃止したので、見送る対象（未承認の申請）が存在しない。
-     ⚠️ **他人の行を消す操作をこの画面に戻すなら、確認も一緒に戻すこと。**
-        「解除」は自社が作った行を消す操作だが、本人が自分で登録した行を企業が消すのは
-        取り消せず（却下を記録する器が無い）、本人にメールも届く。 */
-
-  // メールアドレス招待 state
-  const [emailInviteOpen, setEmailInviteOpen] = useState(false);
-  const [emailInviteEmail, setEmailInviteEmail] = useState("");
-  const [emailInviteRole, setEmailInviteRole] = useState("");
-  const [emailInviting, setEmailInviting] = useState(false);
-
-
-  // is_public トグル pending state
-  const [togglingPublicId, setTogglingPublicId] = useState<string | null>(null);
-
-  // HR 自己申告 state
-  const [selfRoleTitle, setSelfRoleTitle] = useState("");
-  const [selfRegistering, setSelfRegistering] = useState(false);
-  const selfIsAmbassador = ambassadors.some((a) => a.user_id === currentUserId);
-
-  async function handleSelfRegister() {
-    if (!selfRoleTitle.trim()) return;
-    setSelfRegistering(true);
-    try {
-      const res = await fetch("/api/biz/ambassador/self-register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role_title: selfRoleTitle }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setToastMessage(data.error ?? "エラーが発生しました");
-      } else {
-        setToastMessage("面談対応者として登録しました");
-        router.refresh();
-      }
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setSelfRegistering(false);
-    }
-  }
-
-  async function handleInviteAmbassador(userId: string) {
-    setInvitingUserId(userId);
-    try {
-      const res = await fetch("/api/biz/ambassador/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setToastMessage(data.error ?? "エラーが発生しました");
-      } else {
-        setToastMessage("招待メールを送信しました");
-        router.refresh();
-      }
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setInvitingUserId(null);
-    }
-  }
-
-  async function handleRevokeAmbassador(memberId: string) {
-    setRevokingMemberId(memberId);
-    try {
-      const res = await fetch("/api/biz/ambassador/revoke", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_id: memberId }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setToastMessage(data.error ?? "エラーが発生しました");
-      } else {
-        setAmbassadors((prev) => prev.filter((a) => a.id !== memberId));
-        setToastMessage("解除しました");
-      }
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setRevokingMemberId(null);
-    }
-  }
-  async function handleEmailInvite() {
-    const email = emailInviteEmail.trim();
-    const roleTitle = emailInviteRole.trim();
-    if (!email || !roleTitle) return;
-    setEmailInviting(true);
-    try {
-      const res = await fetch("/api/biz/ambassador/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role_title: roleTitle }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setToastMessage(data.error ?? "エラーが発生しました");
-      } else {
-        setToastMessage("招待メールを送信しました");
-        setEmailInviteEmail("");
-        setEmailInviteRole("");
-        setEmailInviteOpen(false);
-        router.refresh();
-      }
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setEmailInviting(false);
-    }
-  }
-
-  async function handleTogglePublic(memberId: string, current: boolean) {
-    setTogglingPublicId(memberId);
-    try {
-      const res = await fetch("/api/biz/ambassador/update", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ member_id: memberId, is_public: !current }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setToastMessage(data.error ?? "エラーが発生しました");
-      } else {
-        setAmbassadors((prev) =>
-          prev.map((a) => a.id === memberId ? { ...a, is_public: !current } : a)
-        );
-      }
-    } catch {
-      setToastMessage("通信エラーが発生しました");
-    } finally {
-      setTogglingPublicId(null);
-    }
-  }
 
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
@@ -1462,26 +1245,17 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
               メンバーと権限
             </h1>
           </div>
-          {/* ★3つのタブぜんぶの説明にした（2026-09-21。それまで採用担当のことしか書いていなかった） */}
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>
-            採用担当のメンバーと、候補者との面談に対応する社員を管理します。
+            採用担当のメンバーと権限を管理します。
           </p>
         </div>
         {isAdmin && (
           <button
             type="button"
             onClick={() => {
-              /* ⚠️ メールの招待欄は「面談対応者」タブの中にしか無い。
-                    「面談を依頼できる社員」タブで押したときは、そのタブへ移ってから開く
-                    （2026-09-21 まで、そのタブでは押しても何も起きなかった） */
-              if (activeSection === "field" || activeSection === "employees") {
-                setActiveSection("field");
-                setEmailInviteOpen(activeSection === "employees" ? true : (v) => !v);
-              } else {
-                setAddDialogPermission("recruiter");
-                setAddError(null);
-                setShowAddDialog(true);
-              }
+              setAddDialogPermission("recruiter");
+              setAddError(null);
+              setShowAddDialog(true);
             }}
             style={{
               display: "inline-flex", alignItems: "center", gap: 7,
@@ -1491,65 +1265,13 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
               boxShadow: "0 2px 6px rgba(0,35,102,0.2)",
             }}
           >
-            {/* ★タブごとに中身どおりの名前にした（2026-09-21）。同じ「メールで招待」が
-                   タブによって別のことをしていた */}
-            {activeSection === "staff" ? "+ 採用担当を追加" : "+ 面談対応者を招待"}
+            + 採用担当を追加
           </button>
         )}
       </div>
 
-      {/* ── タブ バー ─────────────────────────────────────────── */}
-      {/* ⚠️ 狭い画面ではタブを折り返さず横に流す（2026-09-22。375px で「面談 / 対応 / 者」と3行に割れていた） */}
-      <div role="tablist" aria-label="メンバーと権限の区分" style={{
-        display: "flex", gap: 0, marginBottom: 20,
-        borderBottom: "1px solid var(--line)", overflowX: "auto",
-      }}>
-        {([
-          { key: "staff" as const, label: "採用担当", count: activeMembers.length },
-          /* ⚠️ display_consent で数えると**本人からの申請（未承認）が混ざる**。
-             このタブには3区分すべてが出るので、出ている件数（＝全件）を出す。 */
-          /* ★2026-09-21 に「現場」「社員」から改名。中身を表していなかったうえ、
-                「社員」はサイドバーの「社員・OB/OG」とぶつかっていた */
-          { key: "field" as const, label: "面談対応者", count: ambassadors.length },
-          { key: "employees" as const, label: "面談を依頼できる社員", count: ambassadorCandidates.length },
-        ]).map((tab) => {
-          const isSelected = activeSection === tab.key;
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={isSelected}
-              onClick={() => setActiveSection(tab.key)}
-              style={{
-                padding: "10px 18px",
-                background: "none", border: "none",
-                borderBottom: isSelected ? "2px solid var(--royal)" : "2px solid transparent",
-                fontFamily: "inherit", fontSize: 14,
-                fontWeight: isSelected ? 700 : 400,
-                color: isSelected ? "var(--royal)" : "var(--ink-mute)",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
-                whiteSpace: "nowrap", flexShrink: 0,
-                marginBottom: -1, transition: "all 0.15s",
-              }}
-            >
-              {tab.label}
-              <span style={{
-                fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 11, fontWeight: 700,
-                padding: "1px 6px", borderRadius: 100,
-                background: isSelected ? "var(--royal-50)" : "var(--line-soft)",
-                color: isSelected ? "var(--royal)" : "var(--ink-mute)",
-              }}>
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── 採用担当 タブ ── */}
-      {activeSection === "staff" && (
-        <>
+      {/* ── 採用担当 ── */}
+      <>
           {activeMembers.length === 0 ? (
             <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13, background: "var(--bg-tint)", border: "1px dashed var(--line)", borderRadius: 10, marginBottom: 24 }}>
               採用担当メンバーがいません
@@ -1627,398 +1349,7 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
           <NotificationRecipientsCard members={notificationMembers} initialEmails={notificationEmails} canEdit={isAdmin} />
           {/* ★Slack 通知（2026-10-12）。管理者だけ（設定は管理者しか読めない） */}
           {isAdmin && slackSettings && <SlackNotificationCard initial={slackSettings} />}
-        </>
-      )}
-
-      {/* ── 現場 タブ ── */}
-      {activeSection === "field" && (
-        <>
-          {/* ⚠️ 「面談を依頼できる社員」タブと同じ案内。メールの招待も同じ API で止まる */}
-          {isAdmin && !canInviteAmbassador && (
-            <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              面談対応者の招待・依頼は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。
-            </div>
-          )}
-
-        {/* メールアドレス招待フォーム */}
-        {isAdmin && emailInviteOpen && (
-          <div style={{
-            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-            borderRadius: 10, padding: "16px 20px", marginBottom: 20,
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--royal)", marginBottom: 12 }}>
-              メールアドレスで招待
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
-              <div style={{ flex: "1 1 200px" }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>メールアドレス</label>
-                <input
-                  type="email"
-                  placeholder="user@example.com"
-                  value={emailInviteEmail}
-                  onChange={(e) => setEmailInviteEmail(e.target.value)}
-                  style={{ width: "100%", padding: "8px 12px", border: "1.5px solid var(--royal-100)", borderRadius: 7, fontSize: 13, outline: "none", boxSizing: "border-box" }}
-                />
-              </div>
-              <div style={{ flex: "1 1 160px" }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-soft)", display: "block", marginBottom: 4 }}>役職（公開されます）</label>
-                <input
-                  type="text"
-                  placeholder="例：エンジニア"
-                  value={emailInviteRole}
-                  onChange={(e) => setEmailInviteRole(e.target.value)}
-                  style={{ width: "100%", padding: "8px 12px", border: "1.5px solid var(--royal-100)", borderRadius: 7, fontSize: 13, outline: "none", boxSizing: "border-box" }}
-                />
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={handleEmailInvite}
-                  disabled={emailInviting || !emailInviteEmail.trim() || !emailInviteRole.trim()}
-                  style={{
-                    background: emailInviting || !emailInviteEmail.trim() || !emailInviteRole.trim() ? "var(--line)" : "var(--royal)",
-                    color: emailInviting || !emailInviteEmail.trim() || !emailInviteRole.trim() ? "var(--ink-mute)" : "#fff",
-                    border: "none", borderRadius: 7, padding: "8px 16px", fontWeight: 700, fontSize: 13,
-                    cursor: emailInviting ? "wait" : "pointer", whiteSpace: "nowrap",
-                  }}
-                >
-                  {emailInviting ? "送信中..." : "招待メールを送る"}
-                </button>
-                <button
-                  onClick={() => { setEmailInviteOpen(false); setEmailInviteEmail(""); setEmailInviteRole(""); }}
-                  style={{ background: "none", border: "1px solid var(--line)", borderRadius: 7, padding: "8px 12px", fontSize: 13, color: "var(--ink-mute)", cursor: "pointer" }}
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
-            <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 8 }}>
-              ※ OPINIOに登録済みのメールアドレスのみ招待できます
-            </div>
-          </div>
-        )}
-
-        {/* ★在籍中の経歴が無いと、登録できても企業ページに出ない（2026-08-23）。
-               登録させずに、先に職歴を登録してもらう。
-               ⚠️ 「押せたのに出ない」を作らないための出し分け。API 側にも同じ判定がある
-                  （こちらは見た目だけ。消しても API が 409 を返す）。 */}
-        {isAdmin && !selfIsAmbassador && !selfHasCurrentExperience && (
-          <div style={{
-            background: "var(--bg-tint)", border: "1px dashed var(--line)",
-            borderRadius: 10, padding: "12px 16px", marginBottom: 16,
-            fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7,
-          }}>
-            自分も面談対応者になるには、<strong style={{ color: "var(--ink)" }}>この会社に在籍中の職歴</strong>が要ります。
-            <br />
-            職歴は求職者向けのプロフィールで登録します。
-            {/* ⚠️★行き先は `/mypage`。**`/profile/edit?tab=career` に戻さないこと**（2026-09-27）。
-                   あれは転送だけのページで、実測すると
-                   `/profile/edit?tab=career` → 307 → `/mypage?tab=career` → 307 → `/mypage`
-                   の**3ホップ**になる（`?tab=` は middleware が捨てるだけで何も効かない）。
-                ⚠️ `/profile/edit/page.tsx` は「アプリ内のリンクは全部 `/mypage` へ向け直した」
-                   と書いてあるが、**このリンクだけが残っていた。** あのページは
-                   過去のメールとブックマークのために残すもので、新しく指さない。 */}
-            <a href="/mypage" style={{ color: "var(--royal)", fontWeight: 700, textDecoration: "none", marginLeft: 4 }}>
-              職歴を登録する →
-            </a>
-          </div>
-        )}
-
-        {/* HR 自己申告（管理者自身を面談対応者に追加） */}
-        {isAdmin && !selfIsAmbassador && selfHasCurrentExperience && (
-          <div style={{
-            background: "#fff", border: "1px dashed var(--royal-100)",
-            borderRadius: 10, padding: "12px 16px", marginBottom: 16,
-            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-          }}>
-            <span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, flex: "0 0 auto" }}>
-              自分も面談対応者になる
-            </span>
-            <input
-              type="text"
-              placeholder="役職（例：採用担当）"
-              value={selfRoleTitle}
-              onChange={(e) => setSelfRoleTitle(e.target.value)}
-              style={{
-                flex: 1, minWidth: 160, padding: "7px 12px",
-                border: "1.5px solid var(--royal-100)", borderRadius: 7, fontSize: 13, outline: "none",
-              }}
-            />
-            <button
-              onClick={handleSelfRegister}
-              disabled={selfRegistering || !selfRoleTitle.trim()}
-              style={{
-                background: selfRegistering || !selfRoleTitle.trim() ? "var(--line)" : "var(--royal)",
-                color: selfRegistering || !selfRoleTitle.trim() ? "var(--ink-mute)" : "#fff",
-                border: "none", borderRadius: 7, padding: "7px 16px",
-                fontWeight: 700, fontSize: 13,
-                cursor: selfRegistering || !selfRoleTitle.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap",
-              }}
-            >
-              {selfRegistering ? "登録中..." : "登録する"}
-            </button>
-          </div>
-        )}
-
-        {/* ★面談対応者（掲載中 / 非掲載 / 本人が停止中）。
-               ⚠️★ここにあった「本人からの申請（未承認）」の区分は 2026-08-24 に**撤去した**。
-                  同日に会社の事前承認を廃止したので `pending_company` には到達せず、
-                  **永久に0件の区分**になっていた（企業担当者からは「申請が来ていない」と読める）。
-                  ⚠️ 承認の区分を戻さないこと。承認する対象がもう無い。
-               ⚠️ `paused`（本人がOFF）も**出す**。出さないと、載っていた人が
-                  黙って消えたように見える。ただし企業側からは戻せない（下記）。 */}
-        {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              面談対応者 {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).length}件
-            </div>
-            {/* ⚠️ 在籍確認をしていないことを企業にも書く。**画面ごとに言い方を変えない。** */}
-            <p style={{ margin: "0 0 10px", fontSize: 12, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-              本人が「面談OK」をONにすると、貴社のページに掲載されます。
-              在籍は本人の申告で、OPINIO は在籍確認を行っていません。
-              <strong style={{ color: "var(--ink)" }}>掲載を止めたいときは公開トグルを切ってください。</strong>
-            </p>
-            <div className="biz-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {ambassadors.filter((a) => LISTED_STATES.includes(stateOf(a))).map((a) => (
-                <div key={a.id} style={{
-                  background: "#fff", border: "1px solid var(--line)",
-                  borderRadius: 12, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
-                }}>
-                  {/* 上段: アバター + 名前 */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 38, height: 38, borderRadius: "50%", background: a.gradient,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: "hidden",
-                    }}>
-                      {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</span>
-                        {/* ★誰が載せたのかを出す（2026-08-24）。事前承認が無くなったので、
-                               企業から見て「自分たちが招いた人」と「本人が自分で載せた人」の
-                               区別が付かなくなっていた。⚠️ 招待した人には出さない。 */}
-                        {a.created_via === MEMBER_CREATED_VIA.SELF && (
-                          <span style={{
-                            flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-                            background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)",
-                            whiteSpace: "nowrap",
-                          }}>本人が登録</span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "役職未設定"}</div>
-                    </div>
-                  </div>
-                  {/* 面談統計 */}
-                  {(() => {
-                    const stat = meetingStats.find((s) => s.user_id === a.user_id);
-                    if (!stat) return null;
-                    return (
-                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)" }}>担当{stat.total}件</span>
-                        {stat.completed > 0 && <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 100, background: "var(--success-soft)", color: "var(--success-ink)" }}>完了{stat.completed}件</span>}
-                      </div>
-                    );
-                  })()}
-                  {/* 下段: トグル + 解除 */}
-                  {isAdmin && (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
-                      {!a.isCurrentEmployee ? (
-                        /* ★在籍の申告が無い（退職など / 2026-08-25）。
-                              ⚠️ **公開側では既に降りている。**「公開中」と出さないこと。
-                              ⚠️ 公開トグルも出さない。ONに戻しても表示されないので、
-                                 押せるのに何も起きないボタンになる。
-                              ⚠️ 行は残るので「解除」だけは出す（右側の既存ボタン）。 */
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
-                          在籍の申告なし（掲載されていません）
-                        </span>
-                      ) : stateOf(a) === "paused" ? (
-                        /* ★本人が自分でOFFにしている（2026-08-24）。
-                              ⚠️★**公開トグルを出さないこと。** 企業側から公開に戻すと
-                                 `check_public_requires_consent`（is_public=false OR display_consent=true）に
-                                 弾かれて 23514 で落ちる。押せるのに必ず失敗するボタンになる。
-                              ⚠️ 戻せるのは本人だけ。企業に操作を促す文言にしない。 */
-                        <span style={{ fontSize: 11, color: "var(--ink-mute)", fontWeight: 600 }}>
-                          {MEMBER_STATE_BIZ_LABEL.paused}（本人が戻すまで掲載されません）
-                        </span>
-                      ) : (
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ fontSize: 11, color: a.is_public ? "var(--success-ink)" : "var(--ink-mute)", fontWeight: 600 }}>{a.is_public ? "公開中" : "非公開"}</span>
-                        <button
-                          onClick={() => handleTogglePublic(a.id, a.is_public)}
-                          disabled={togglingPublicId === a.id}
-                          title={a.is_public ? "非公開にする" : "公開する"}
-                          style={{
-                            width: 28, height: 16, borderRadius: 8, border: "none",
-                            background: a.is_public ? "var(--success)" : "var(--line)",
-                            cursor: "pointer", position: "relative", transition: "background 0.2s",
-                            flexShrink: 0, padding: 0,
-                          }}
-                        >
-                          <span style={{
-                            position: "absolute", top: 2, left: a.is_public ? 14 : 2,
-                            width: 12, height: 12, borderRadius: "50%", background: "#fff",
-                            transition: "left 0.2s", display: "block",
-                          }} />
-                        </button>
-                      </div>
-                      )}
-                      <button
-                        onClick={() => handleRevokeAmbassador(a.id)}
-                        disabled={revokingMemberId === a.id}
-                        style={{
-                          background: "none", border: "1px solid var(--line)", borderRadius: 6,
-                          padding: "3px 8px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer",
-                        }}
-                      >
-                        {revokingMemberId === a.id ? "..." : "解除"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 招待中（本人の確認待ち）＝ pending_user */}
-        {ambassadors.filter((a) => stateOf(a) === "pending_user").length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              招待中（本人の確認待ち） {ambassadors.filter((a) => stateOf(a) === "pending_user").length}件
-            </div>
-            <div className="biz-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {ambassadors.filter((a) => stateOf(a) === "pending_user").map((a) => (
-                <div key={a.id} style={{
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px", opacity: 0.85,
-                  display: "flex", flexDirection: "column", gap: 10,
-                }}>
-                  {/* 上段: アバター + 名前 */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: "50%", background: a.gradient,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0, overflow: "hidden",
-                    }}>
-                      {a.avatar_url ? <img src={a.avatar_url} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.initial}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.role_title ?? "—"}</div>
-                    </div>
-                  </div>
-                  {/* 下段: 招待中バッジ + 取消 */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ background: "var(--warm-soft)", color: "#92400e", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>
-                      {MEMBER_STATE_BIZ_LABEL.pending_user}
-                    </span>
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleRevokeAmbassador(a.id)}
-                        disabled={revokingMemberId === a.id}
-                        style={{ background: "none", border: "1px solid var(--line)", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "var(--ink-mute)", cursor: "pointer" }}
-                      >
-                        {revokingMemberId === a.id ? "..." : "取消"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {ambassadors.length === 0 && !emailInviteOpen && (
-          <div style={{
-            background: "var(--bg-tint)", border: "1px dashed var(--line)",
-            borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
-          }}>
-            まだ面談対応者がいません。<br />
-            {/* ⚠️ ボタンの名前と揃える（2026-09-22 まで実在しない「メールで招待」ボタンを指していた） */}
-            右上の「＋ 面談対応者を招待」から、OPINIOに登録済みの社員をメールで招待できます。
-          </div>
-        )}
-        </>
-      )}
-
-      {/* ── 社員 タブ ── */}
-      {activeSection === "employees" && (
-        <>
-          {/* ★面談対応者の招待が有料プランの機能であることを、押す前に出す（2026-09-22）。
-                 それまでは「面談を依頼する」が灰色になるだけで、理由は hover の title にしか無かった。
-                 ⚠️ ゲートの本体は POST /api/biz/ambassador/invite（メールの招待も同じ API） */}
-          {isAdmin && !canInviteAmbassador && (
-            <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-              面談対応者の招待・依頼は有料プランの機能です。ご相談は contact@opinio.co.jp までご連絡ください。
-            </div>
-          )}
-          {ambassadorCandidates.length === 0 ? (
-            <div style={{
-              background: "var(--bg-tint)", border: "1px dashed var(--line)",
-              borderRadius: 10, padding: "24px", textAlign: "center", color: "var(--ink-mute)", fontSize: 13,
-            }}>
-              OPINIOに登録している自社の社員がいません。
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {ambassadorCandidates.map((c) => (
-                <div key={c.user_id} style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "12px 16px",
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", background: c.gradient,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: "hidden",
-                  }}>
-                    {c.avatar_url ? <img src={c.avatar_url} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : c.initial}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{c.name}</div>
-                    {c.role_title && <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>{c.role_title}</div>}
-                  </div>
-                  {/* ★スイッチの見た目をやめ、「面談を依頼する」ボタンにした（2026-09-21）。
-                         ⚠️ それまでは ON/OFF のスイッチに見えたが、押すと**本人に招待メールが届く**
-                            （本人の同意が要る「お願い」で、会社側で切り替えるものではない）。
-                         ⚠️ 送る前に、メールが届くことを必ず伝える */}
-                  {isAdmin && (confirmInviteUserId === c.user_id ? (
-                    <div role="alertdialog" aria-label="面談の依頼" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                        {c.name}さんに依頼のメールが届きます
-                      </span>
-                      <button type="button"
-                        onClick={() => { setConfirmInviteUserId(null); void handleInviteAmbassador(c.user_id); }}
-                        style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                        送る
-                      </button>
-                      <button type="button" onClick={() => setConfirmInviteUserId(null)}
-                        style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                        やめる
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmInviteUserId(c.user_id)}
-                      disabled={invitingUserId === c.user_id || !canInviteAmbassador}
-                      title={canInviteAmbassador ? undefined : "面談対応者の依頼は有料プランの機能です"}
-                      style={{
-                        flexShrink: 0, padding: "6px 14px", borderRadius: 8,
-                        border: "1px solid var(--royal-100)", background: "var(--royal-50)", color: "var(--royal)",
-                        fontSize: 12, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap",
-                        cursor: invitingUserId === c.user_id || !canInviteAmbassador ? "default" : "pointer",
-                        opacity: !canInviteAmbassador ? 0.55 : 1,
-                      }}
-                    >
-                      {invitingUserId === c.user_id ? "送信中..." : "面談を依頼する"}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      </>
 
       {/* 役職・部署編集ダイアログ */}
       {editProfileTarget && (

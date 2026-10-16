@@ -6,9 +6,7 @@ import { getTenantContext } from "@/lib/business/dashboard";
 import { fetchMembersForCompany, fetchPendingInvitesForCompany } from "@/lib/business/members";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSlackSettingsView } from "@/lib/notify/slack";
-import { MembersClient, type AmbassadorRecord, type AmbassadorCandidate, type MeetingStat } from "./MembersClient";
-import { canUse } from "@/lib/constants/plans";
-import { isRegisteredUser } from "@/lib/users/registered";
+import { MembersClient } from "./MembersClient";
 import { fetchNotificationSettings } from "@/lib/business/notificationTeam";
 
 export const dynamic = "force-dynamic";
@@ -17,144 +15,8 @@ export const metadata = {
   title: { absolute: "メンバーと権限 | OPINIO Business" },
 };
 
-const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-
-/* ★企業ページ（`getCompanyEmployees` の `isSeedRow`）と**同じ条件**で人を外す（2026-09-21）。
-      それまで「現場」「社員」の2タブは何も外しておらず、セールスフォースでは
-      現場4件が**全員**、社員11件のうち**10件**が企業ページに出ない人（検証用・本人未登録）だった。
-      「掲載中」と表示しながら企業ページには出ていない、という状態になっていた。
-   ⚠️★`is_test` / `visibility` / `auth_id` を select から落とさないこと。落とすと undefined になり、
-      `isRegisteredUser` が全員を外して**一覧が丸ごと空になる**（型では気づけない）。 */
-type PersonFlags = { is_test?: boolean | null; visibility?: string | null; auth_id?: string | null } | null | undefined;
-function isHiddenFromCompanyPage(u: PersonFlags): boolean {
-  return !u || u.is_test === true || u.visibility === "private" || !isRegisteredUser(u);
-}
-
-async function fetchAmbassadors(companyId: string): Promise<AmbassadorRecord[]> {
-  const adminSupabase = createAdminClient();
-  const { data, error } = await adminSupabase
-    .from("ow_company_members")
-    /* ⚠️ created_via も取る。無いと「本人からの申請」と「企業が招待した行」を区別できない。 */
-    .select("id, user_id, role_title, display_consent, is_public, created_via, approved_at, consent_at, invited_at, ow_users!user_id(name, avatar_color, avatar_url, is_test, visibility, auth_id)")
-    .eq("company_id", companyId)
-    .order("invited_at", { ascending: false });
-
-  if (error) {
-    console.error("[ambassadors] fetch error:", error.message);
-    return [];
-  }
-
-  /* ★在籍しているかを突き合わせる（2026-08-25）。
-        ⚠️ 公開側（企業ページ・/people・/u）は `is_current = true` を要求しており、
-           **退職した人は既に降りている**。この画面は `is_public` だけを見ていたので、
-           降りている人を「公開中」と表示していた（**画面だけが嘘をつく**）。
-        ⚠️ 行の `is_public` は書き換えない。判定は `talkable.ts` の考え方に合わせ、
-           **読むときに突き合わせる**（同じ判定を2通りに書かない）。 */
-  const memberUserIds = Array.from(new Set((data ?? []).map((r) => (r as { user_id: string }).user_id)));
-  const currentUserIds = new Set<string>();
-  if (memberUserIds.length > 0) {
-    const { data: exps, error: expErr } = await adminSupabase
-      .from("ow_experiences")
-      .select("user_id")
-      .eq("company_id", companyId)
-      .eq("is_current", true)
-      .in("user_id", memberUserIds);
-    /* ⚠️ 握り潰さない。空で素通りすると**全員が退職済み**に見える */
-    if (expErr) console.error("[ambassadors] ow_experiences:", expErr.message);
-    for (const e of exps ?? []) currentUserIds.add((e as { user_id: string }).user_id);
-  }
-
-  type Row = {
-    id: string;
-    user_id: string;
-    role_title: string | null;
-    display_consent: boolean;
-    is_public: boolean;
-    approved_at: string | null;
-    consent_at: string | null;
-    created_via: string | null;
-    invited_at: string | null;
-    ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null; is_test: boolean | null; visibility: string | null; auth_id: string | null } | null;
-  };
-
-  return (data ?? []).filter((row) => !isHiddenFromCompanyPage((row as unknown as Row).ow_users)).map((row) => {
-    const r = row as unknown as Row;
-    const gradient = r.ow_users?.avatar_color?.startsWith("linear-gradient")
-      ? r.ow_users.avatar_color
-      : FALLBACK_GRADIENT;
-    return {
-      id: r.id,
-      user_id: r.user_id,
-      name: r.ow_users?.name ?? "—",
-      initial: r.ow_users?.name?.charAt(0) ?? "?",
-      gradient,
-      avatar_url: r.ow_users?.avatar_url ?? null,
-      role_title: r.role_title,
-      display_consent: r.display_consent,
-      is_public: r.is_public,
-      approved_at: r.approved_at,
-      consent_at: r.consent_at,
-      created_via: r.created_via,
-      invited_at: r.invited_at,
-      isCurrentEmployee: currentUserIds.has(r.user_id),
-    };
-  });
-}
-
-async function fetchAmbassadorCandidates(
-  companyId: string,
-  existingUserIds: string[]
-): Promise<AmbassadorCandidate[]> {
-  const adminSupabase = createAdminClient();
-
-  // ow_experiences.company_id = companyId AND is_current = true
-  const { data: exps, error } = await adminSupabase
-    .from("ow_experiences")
-    .select("user_id, role_title, ow_users!user_id(id, name, avatar_color, avatar_url, is_test, visibility, auth_id)")
-    .eq("company_id", companyId)
-    .eq("is_current", true)
-    /* ⚠️★勤務先を伏せた人を出さない（CLAUDE.md「createAdminClient で ow_experiences を引く
-          企業側の画面は visibility_company を必ず見る」。過去に3回漏れている）。
-          2026-09-21 までこの条件が無かった。 */
-    .eq("visibility_company", "real");
-
-  if (error) {
-    console.error("[ambassador candidates] fetch error:", error.message);
-    return [];
-  }
-
-  type ExpRow = {
-    user_id: string;
-    role_title: string | null;
-    ow_users: { id: string; name: string | null; avatar_color: string | null; avatar_url: string | null; is_test: boolean | null; visibility: string | null; auth_id: string | null } | null;
-  };
-
-  const seen = new Set<string>();
-  const results: AmbassadorCandidate[] = [];
-
-  for (const row of (exps ?? []) as unknown as ExpRow[]) {
-    if (!row.ow_users || seen.has(row.user_id)) continue;
-    if (isHiddenFromCompanyPage(row.ow_users)) continue;
-    if (existingUserIds.includes(row.user_id)) continue;
-    seen.add(row.user_id);
-
-    const gradient = row.ow_users.avatar_color?.startsWith("linear-gradient")
-      ? row.ow_users.avatar_color
-      : FALLBACK_GRADIENT;
-
-    results.push({
-      user_id: row.user_id,
-      name: row.ow_users.name ?? "名前未設定",
-      initial: row.ow_users.name?.charAt(0) ?? "?",
-      gradient,
-      avatar_url: row.ow_users.avatar_url ?? null,
-      role_title: row.role_title,
-      current_company: null,
-    });
-  }
-
-  return results;
-}
+/* ⚠️ 「面談対応者」「面談を依頼できる社員」の取得（fetchAmbassadors / fetchAmbassadorCandidates /
+      面談の件数）は 2026-10-16 に撤去した（面談OKの撤去）。この画面は採用担当だけ */
 
 export default async function MembersPage() {
   const ctx = await getTenantContext();
@@ -164,61 +26,15 @@ export default async function MembersPage() {
 
   const adminSupabase = createAdminClient();
 
-  const [members, pendingInvites, ambassadors, notification] = await Promise.all([
+  const [members, pendingInvites, notification] = await Promise.all([
     /* ⚠️ admin クライアントを渡す。担当者一覧は他メンバーの email を表示するが、
           2026-08-06 に authenticated から ow_users.email の SELECT 権限を剥がした。
           会社の管理者であることは上の getTenantContext で確認済み。 */
     fetchMembersForCompany(adminSupabase, ctx.tenantId),
     fetchPendingInvitesForCompany(adminSupabase, ctx.tenantId),
-    fetchAmbassadors(ctx.tenantId),
     /* ★通知の宛先（2026-10-12 に /biz/company から移した） */
     fetchNotificationSettings(ctx.tenantId),
   ]);
-
-  const existingUserIds = ambassadors.map((a) => a.user_id);
-  const [candidates, meetingStatsRaw, selfCurrentExp] = await Promise.all([
-    fetchAmbassadorCandidates(ctx.tenantId, existingUserIds),
-    adminSupabase
-      .from("ow_casual_meetings")
-      .select("assignee_user_id, status, completed_at")
-      .eq("company_id", ctx.tenantId)
-      .not("assignee_user_id", "is", null),
-    /* ★自分がこの会社に「在籍中」の経歴を持っているか（2026-08-23）。
-          ⚠️ 面談対応者として**表示される条件**が `ow_company_members` に載っていることと
-             `is_current = true` の経歴があることの両方だから（lib/companyMembers/talkable.ts）。
-             経歴が無い人を登録できてしまうと、**登録は成功するのにページに出ない**。
-          ⚠️ 実測（2026-08-23）: 有効な企業管理者10人のうち、自社に在籍中の経歴が
-             あるのは1人だけ。**大半がこの状態に落ちる。** */
-    adminSupabase
-      .from("ow_experiences")
-      .select("id")
-      .eq("user_id", ctx.currentOwnId)
-      .eq("company_id", ctx.tenantId)
-      .eq("is_current", true)
-      .limit(1),
-  ]);
-
-  /* ⚠️ 握り潰さない。引けなかったときに「経歴あり」に倒すと、
-        出ない登録を作らせることになる。取れなければ false（＝入口を出さない）。 */
-  if (selfCurrentExp.error) {
-    console.error("[biz/members] self current experience:", selfCurrentExp.error.message);
-  }
-  const selfHasCurrentExperience = (selfCurrentExp.data ?? []).length > 0;
-
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const statsMap = new Map<string, MeetingStat>();
-  for (const row of (meetingStatsRaw.data ?? [])) {
-    const uid = row.assignee_user_id as string;
-    if (!statsMap.has(uid)) statsMap.set(uid, { user_id: uid, total: 0, completed: 0, this_month_completed: 0 });
-    const s = statsMap.get(uid)!;
-    s.total += 1;
-    if (row.status === "completed") {
-      s.completed += 1;
-      if (row.completed_at && row.completed_at >= monthStart) s.this_month_completed += 1;
-    }
-  }
-  const meetingStats = Array.from(statsMap.values());
 
   return (
     <BusinessLayout
@@ -237,14 +53,6 @@ export default async function MembersPage() {
         initialPendingInvites={pendingInvites}
         currentUserId={ctx.currentOwnId}
         isAdmin={can(ctx.currentPermission, "members.manage")}
-        ambassadors={ambassadors}
-        ambassadorCandidates={candidates}
-        meetingStats={meetingStats}
-        /* ⚠️ これは**見た目だけ**。実際のゲートは POST /api/biz/ambassador/invite にある。
-              ここを消しても API 側が 403 を返す。逆は成り立たない。 */
-        canInviteAmbassador={canUse(ctx.planType, "ambassadorInvite")}
-        /* ⚠️ これも**見た目だけ**。実際のゲートは POST /api/biz/ambassador/self-register にある。 */
-        selfHasCurrentExperience={selfHasCurrentExperience}
       />
     </BusinessLayout>
   );
