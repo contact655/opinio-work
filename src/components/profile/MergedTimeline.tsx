@@ -13,7 +13,9 @@ import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { buildOverlapMap } from "@/lib/profile/parallel";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
-function shortCompanyName(name: string): string {
+/* ★export は 2026-10-16（/mypage の「質問が新しくなりました（◯◯）」の社名を行と揃えるため）。
+     ⚠️ 書き写さないこと。行と一文で短縮の規則が割れる */
+export function shortCompanyName(name: string): string {
   return name
     .replace(/^株式会社\s*/, "")
     .replace(/\s*株式会社$/, "")

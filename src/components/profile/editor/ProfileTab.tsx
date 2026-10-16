@@ -52,10 +52,10 @@ import {
 } from "./recordTypes";
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 /* ★職歴カードの「理由」入口（2026-09-12）。⚠️ **本人の /mypage だけに出す。** */
-import { ReasonEntryButton, hasReasonAnswers } from "@/components/profile/editor/ExperienceReasonModal";
+import { ReasonEntryButton, hasReasonAnswers, reasonState } from "@/components/profile/editor/ExperienceReasonModal";
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
-import MergedTimeline, { limitCareersForDisplay } from "@/components/profile/MergedTimeline";
+import MergedTimeline, { limitCareersForDisplay, shortCompanyName } from "@/components/profile/MergedTimeline";
 import { stintsToCareerEntries } from "./careerTimeline";
 import { SectionShowAllToggle, SectionAddButton, RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
 import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
@@ -808,6 +808,9 @@ export default function ProfileTab({
      ⚠️ **追加の取得は要らない。** 理由データ3種（入社理由 / 離れた理由 / ギャップ）は
         `/mypage/page.tsx` が職歴と一緒に読んで `careerStints` に載せている。
      ⚠️ 判定は `hasReasonAnswers`。行のドットと**同じ関数**を見る。 */
+  /* ★旧形式（2026-10-16 より前の「選んだ理由」）だけで答えた職歴の数（2026-10-16 / 柴さんの判断）。
+        ⚠️ 上の「未回答」には数えない（`hasReasonAnswers` が旧形式を回答済みとして扱う）。
+           帯とは別に、控えめな一文で答え直しを案内する。行の印は `ReasonEntryButton` の `legacy`。 */
   const unansweredReasonCount = useMemo(
     () => careerStints.filter((s) => !hasReasonAnswers(s)).length,
     [careerStints],
@@ -871,6 +874,30 @@ export default function ProfileTab({
     () => stintsToCareerEntries(careerStints, companyLogoInfo, roles),
     [careerStints, companyLogoInfo, roles],
   );
+  /* ★会社単位にまとめる（回答の単位は会社）。並びは**終了した会社が先**（終了年月の新しい順）、次に現職。
+        押すと先頭の会社のモーダルを開く（2026-10-16 / 柴さんの指示）。 */
+  const legacyReasonCompanies = useMemo(() => {
+    const byKey = new Map<string, { id: string; name: string; left: boolean; lastEnd: string }>();
+    for (const s of careerStints) {
+      if (reasonState(s) !== "legacy") continue;
+      const key = s.companyId ?? s.companyText ?? s.displayCompanyName;
+      const cur = byKey.get(key);
+      const ended = !s.isCurrent && !!s.endedAt;
+      if (!cur) {
+        /* ⚠️ 社名は職歴の行と同じ出し方（`shortCompanyName`）。そのままだと「株式会社Opinio」になり、
+              すぐ下の行の「Opinio」「Box」と食い違う */
+        const shown = timelineCareers.find((x) => x.id === s.id);
+        const name = shortCompanyName(shown && !(shown.is_placeholder_company ?? false) && shown.company_name ? shown.company_name : s.displayCompanyName);
+        byKey.set(key, { id: s.id, name, left: ended, lastEnd: s.endedAt ?? "" });
+      } else {
+        cur.left = cur.left && ended;
+        if ((s.endedAt ?? "") > cur.lastEnd) cur.lastEnd = s.endedAt ?? "";
+      }
+    }
+    return Array.from(byKey.values()).sort((a, b) =>
+      a.left !== b.left ? (a.left ? -1 : 1) : b.lastEnd.localeCompare(a.lastEnd));
+  }, [careerStints, timelineCareers]);
+  const legacyReasonCount = legacyReasonCompanies.length;
   /* ★本体に出す職歴は**表示単位で4つまで**（2026-08-17 / フェーズ3）。
         同じ会社の複数の役割は1つのまとまりとして数える。
      ⚠️ 切るのは `MergedTimeline` と同じ並べ替えを通したあと。 */
@@ -1797,8 +1824,9 @@ export default function ProfileTab({
                     <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.6 }}>
                       {unansweredReasonCount}件の職歴が未回答です
                     </div>
+                    {/* ★2026-10-16 に問いを「この会社について」に変えたので文言を揃えた（モーダルの注記と同じ向き） */}
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                      選んだ理由と離れた理由は、あなた以外には表示されません
+                      回答は会社には伝わりません
                     </div>
                   </div>
                   <button
@@ -1821,6 +1849,29 @@ export default function ProfileTab({
                     まとめて答える
                   </button>
                 </div>
+              )}
+              {/* ★旧形式で答えた職歴への案内（2026-10-16 / 柴さんの判断）。帯とは別の、控えめな一文。
+                     ★押すと、旧形式の会社のうち先頭（終了した会社が先）のモーダルを開く（2026-10-16 / 柴さんの指示）。
+                     会社名は2社まで並べ、3社以上は「◯◯ ほかN社」。
+                     ⚠️ 行の印（白抜きの輪・「質問が新しくなりました」）からも答え直せる。片方だけにしない */}
+              {!showCareerPrompt && legacyReasonCount > 0 && (
+                <button
+                  type="button"
+                  data-state="reason-legacy-note"
+                  onClick={() => setReasonCareerId(legacyReasonCompanies[0].id)}
+                  className="tap-min-h"
+                  style={{
+                    display: "block", width: "100%", textAlign: "left", margin: "0 0 12px", padding: "4px 0",
+                    background: "none", border: "none", fontFamily: "inherit", cursor: "pointer",
+                    fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7, overflowWrap: "anywhere",
+                  }}
+                >
+                  質問が新しくなりました（
+                  {legacyReasonCount <= 2
+                    ? legacyReasonCompanies.map((c) => c.name).join("・")
+                    : `${legacyReasonCompanies[0].name} ほか${legacyReasonCount - 1}社`}
+                  ）。<span style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3 }}>2分で答え直せます</span>
+                </button>
               )}
               {/* ★★行の鉛筆をここへ戻した（2026-09-12 / 柴さんの指示）。
                      2026-08-17 のフェーズ3で「1件ずつ触るのは一覧ページの仕事」と決めたが、
@@ -1850,6 +1901,7 @@ export default function ProfileTab({
                   return (
                     <ReasonEntryButton
                       answered={hasReasonAnswers(st)}
+                      legacy={reasonState(st) === "legacy"}
                       onClick={() => setReasonCareerId(careerId)}
                     />
                   );
