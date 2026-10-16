@@ -68,7 +68,7 @@ const GENERIC_NEXT = "/companies";
  *
  * ⚠️★**中断された人は元の場所へ戻す。** `OnboardingGuard` や `postAuth` が付ける `next` は
  *    「その人が開こうとしていたURL」なので、勝手に変えない。
- * ⚠️ ただし `next` が `GENERIC_NEXT` のときは**意図とみなさず**既定へ寄せる。
+ * ⚠️ ただし `next` が `GENERIC_NEXT`・`DEFAULT_AFTER_LOGIN`（`/feed`）・`/` のときは**意図とみなさず**既定へ寄せる。
  *    2026-09-15 に4画面目（職歴・学歴・勤務地）を削除したので、
  *    続きを入れる場所（`/mypage`）に着地させないと**誰もたどり着かない**。
  * ⚠️ 代償: `/companies` を見ていて中断された人も `/mypage` に着く。
@@ -76,7 +76,12 @@ const GENERIC_NEXT = "/companies";
  */
 export function afterOnboarding(raw: string | null | undefined): string {
   const v = safeNext(raw, DEFAULT_AFTER_ONBOARDING);
-  return v === GENERIC_NEXT ? DEFAULT_AFTER_ONBOARDING : v;
+  /* ★★`/feed`（ログインの既定 `DEFAULT_AFTER_LOGIN`）と `/` も「指定なし」とみなす（2026-10-16）。
+        ⚠️ これが無いと、**Google での新規登録**（`/auth/callback` が `afterLogin` で `/feed` を付ける）と
+           **未完了の人のパスワードでのログイン**が、完了後に `/mypage` ではなく `/feed` に着く。
+           2026-10-16 に contact+31 の確認で `/onboarding?next=%2Ffeed` を見て気づいた。
+        ⚠️ 代償は `/companies` と同じ（`/feed` を開いていて中断された人も `/mypage` に着く）。 */
+  return v === GENERIC_NEXT || v === DEFAULT_AFTER_LOGIN || v === "/" ? DEFAULT_AFTER_ONBOARDING : v;
 }
 
 /**
