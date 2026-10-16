@@ -20,7 +20,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { ConditionRow } from "@/components/jobs/ConditionRow";
-import { getJobBySlugOrId, getJobForPreview, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getPublicAmbassadorsCached, getCompanyRecruitersCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobForPreview, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getCompanyRecruitersCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
@@ -187,12 +187,16 @@ function PositionMembersSection({ members, jobCategory }: { members: JobPosition
         </span>
         <div>
           {/* ⚠️ 18px。SecTitle と同じ大きさに揃える（2026-08-30。--text-lg は 20px）。 */}
+          {/* ★2026-10-16 に「このポジションを経験した先輩 /（職種）の経験者に話を聞けます」から
+                 事実だけの見出しにした（面談OKの撤去）。「話を聞ける」という約束を書かない */}
           <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
-            このポジションを経験した先輩
+            この職種の経験者
           </h2>
-          <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 2 }}>
-            {jobCategory} の経験者に話を聞けます
-          </p>
+          {jobCategory && (
+            <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 2 }}>
+              {jobCategory}
+            </p>
+          )}
         </div>
       </div>
 
@@ -328,16 +332,12 @@ export async function JobDetailView({
      ⚠️ `getJobEmployees` は `getCompanyEmployees` を職種で絞ったものなので、
         **同じ元から引いて差集合を取る**（別々に引くと基準がずれる）。
      ⚠️ どちらも `unstable_cache` 付き。ここで生のクライアントを使わない。 */
-  const [allEmployees, companyTools, companyResult, ambassadors, recruiters] = await Promise.all([
+  const [allEmployees, companyTools, companyResult, recruiters] = await Promise.all([
     getCompanyEmployeesCached(job.company_id),
     getCompanyToolsCached(job.company_id),
     /* ⚠️ `detail`（拠点・資本関係）はここからしか取れない。
           企業詳細ページと同じ `getCompanyBySlugOrIdCached` を使う。 */
     getCompanyForJobCached(job.company_id),
-    /* ★「話を聞ける人」の一覧（2026-08-30）。企業詳細と同じ関数。
-          ⚠️ これが無いと**誰を指名できるか判断できない**。判断できないまま
-             セクション末尾に一括CTAを置いていたのが、今回直す誤解の原因。 */
-    getPublicAmbassadorsCached(job.company_id),
     /* ★採用担当者（2026-09-03）。企業詳細と同じ関数・同じキャッシュ。
           ⚠️ `unstable_cache` 付きのほうを呼ぶ。生の `getCompanyRecruiters` を使わない。 */
     getCompanyRecruitersCached(job.company_id),
@@ -346,10 +346,6 @@ export async function JobDetailView({
   const matchedIds = new Set<string>(
     [...jobEmployees.current, ...jobEmployees.alumni].map((e) => e.userId),
   );
-  /* ⚠️ 面談可かどうかは `ow_company_members`（本人の同意 + 掲載）で決まる。
-        `CompanyEmployee` 型には入っていないので、ここで突き合わせる。 */
-  const talkableIds = new Set<string>((ambassadors ?? []).map((a) => a.user_id));
-
   /* ⚠️★`alumni` は組み立てない（2026-08-30 に取りやめ / 柴さん）。
         会社全体のOB・OGを求人ページに出すと、求人の職種と無関係な人が
         「OB・OG」として並び、「この求人を経験した人」と区別が付かなかった。
@@ -1264,8 +1260,6 @@ export async function JobDetailView({
                 current={jobEmployees.current}
                 alumni={jobEmployees.alumni}
                 companyId={job.company_id}
-                casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting` : null}
-                talkableIds={talkableIds}
                 alwaysShowAlumni
               />
 
@@ -1289,8 +1283,6 @@ export async function JobDetailView({
                 current={otherEmployees.current}
                 alumni={[]}
                 companyId={job.company_id}
-                casualHref={companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting` : null}
-                talkableIds={talkableIds}
                 currentTitle={`${company.name} の他の現役社員`}
                 currentSubtitle="この募集の職種とは違う人たちです"
               />

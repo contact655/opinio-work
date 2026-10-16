@@ -137,6 +137,14 @@ export async function middleware(request: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url);
   }
+  /* ★面談OK は撤去した（2026-10-16 / 柴さんの判断）。過去の招待メールのリンク（/mypage/ambassador-invite/<token>）を
+        404 にせず /mypage へ送る。⚠️ ページ側の redirect() にしない（上と同じ理由） */
+  if (pathname === "/mypage/ambassador-invite" || pathname.startsWith("/mypage/ambassador-invite/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mypage";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   // /biz/ または /admin/ 配下かつ public ページでない場合に認証チェックが必要
   const needsAuth =

@@ -43,7 +43,6 @@ function flattenRefCompany(co: any): any {
 }
 
 export type SidebarCompany = { id: string; slug: string | null; name: string; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
-export type SidebarMentor = { id: string; name: string; avatar_color: string | null; photo_url: string | null; current_role: string | null; current_company: string | null };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
@@ -236,7 +235,7 @@ export default async function FeedPage() {
   });
 
   // ── サイドバーデータ（並列取得） ─────────────────────────────────────────────
-  const [followResult, userFollowResult, bookmarkResult, listedCompanies, mentorResult] = await Promise.all([
+  const [followResult, userFollowResult, bookmarkResult, listedCompanies] = await Promise.all([
     // (a) フォロー中の企業 (全件)
     myOwUserId
       ? adminSupabase
@@ -269,40 +268,16 @@ export default async function FeedPage() {
           （公開79社・2026-08-13 実測）、運営が意図して並べた状態ではないため。
           「掲載中」なら並び順が何であっても表示と実態がずれない。 */
     getCompaniesForList(),
-    // (c) 話を聞ける人 (max 3) — ow_company_members から取得
-    adminSupabase
-      .from("ow_company_members")
-      .select(`
-        id,
-        role_title,
-        ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_test),
-        ow_companies!company_id(id, name, brand_name)
-      `)
-      .eq("display_consent", true)
-      .eq("is_public", true)
-      .limit(6),
   ]);
 
   const sidebarFollows: SidebarFollow[] = (followResult.data ?? [])
     .map((r: Record<string, unknown>) => r["ow_companies"])
     .filter(Boolean) as SidebarFollow[];
 
-  // 右レール「話を聞ける人」のフォローボタンの初期状態。
-  // ⚠️ (a2) の userFollowResult は ow_users を JOIN した行なので、ここでは ID だけを別に取る。
-  //    JOIN 結果から拾うと、対象ユーザーが消えていた場合に ID を落としてしまう。
-  let followedUserIds: string[] = [];
   /* 投稿できる人だけにコンポーザーを出す。条件は lib/feed/canPost に集約している。
-     ★2026-10-01 から「ログインしていること」だけ。**ここに条件を書き足さないこと。** */
-  let canPost = false;
-  if (myOwUserId) {
-    const { data: fRows, error: fErr } = await adminSupabase
-      .from("ow_user_follows")
-      .select("target_user_id")
-      .eq("follower_user_id", myOwUserId);
-    if (fErr) console.error("[feed followedUserIds]", fErr.message);
-    followedUserIds = (fRows ?? []).map((r: { target_user_id: string }) => r.target_user_id);
-    canPost = canUserPost(myOwUserId);
-  }
+     ★2026-10-01 から「ログインしていること」だけ。**ここに条件を書き足さないこと。**
+     ⚠️ 右レール「話を聞ける人」のフォロー状態（followedUserIds）は 2026-10-16 にパネルごと撤去した */
+  const canPost = myOwUserId ? canUserPost(myOwUserId) : false;
 
   const sidebarUserFollows: SidebarUserFollow[] = (userFollowResult.data ?? [])
     .map((r: Record<string, unknown>) => {
@@ -341,47 +316,6 @@ export default async function FeedPage() {
     });
   }
 
-  // ow_company_members から SidebarMentor 型に変換
-  // 非ログイン: public のみ / ログイン済: public + login_only（private は常に除外、is_test も除外）
-  // 表示順: DB のデフォルト順（INSERT 順）。.limit(6) 取得後 .slice(0,3) で最大3名に絞る。
-  type MemberRow = {
-    id: string;
-    role_title: string | null;
-    ow_users: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_test: boolean | null } | null;
-    ow_companies: { id: string; name: string; brand_name: string | null } | null;
-  };
-  const eligibleMembers = (mentorResult.data ?? [] as MemberRow[])
-    .map((r) => r as unknown as MemberRow)
-    .filter((r) => {
-      const u = r.ow_users;
-      if (!u) return false;
-      if (u.is_test === true) return false;
-      if (u.visibility === "private") return false;
-      return true;
-    });
-
-  // ログイン状態に依存しないカウント（is_test=false かつ visibility!='private'）
-  const hiddenMembersCount = user ? 0 : eligibleMembers.length;
-
-  const sidebarMentors: SidebarMentor[] = eligibleMembers
-    .filter((r) => {
-      if (r.ow_users?.visibility === "login_only" && !user) return false;
-      return true;
-    })
-    .slice(0, 3)
-    .map((r) => {
-      const u = r.ow_users!;
-      const co = r.ow_companies;
-      return {
-        id: u.id,
-        name: u.name,
-        avatar_color: u.avatar_color,
-        photo_url: u.avatar_url,
-        current_role: r.role_title,
-        current_company: co?.brand_name ?? co?.name ?? null,
-      };
-    });
-
   /* ⚠️ タグは**事業領域**。`industry`(text) は廃止予定で新規企業では空になる。 */
   const sidebarDomains = await fetchBusinessDomainsByCompany(
     adminSupabase, listedCompanies.slice(0, 3).map((c) => c.id), "feed sidebar",
@@ -405,9 +339,6 @@ export default async function FeedPage() {
       sidebarUserFollows={sidebarUserFollows}
       sidebarSavedJobs={sidebarSavedJobs}
       sidebarCompanies={sidebarCompanies}
-      sidebarMentors={sidebarMentors}
-      hiddenMembersCount={hiddenMembersCount}
-      followedUserIds={followedUserIds}
       canPost={canPost}
     />
   );

@@ -8,7 +8,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
  * Articles: mock継続 (ow_articles テーブルなし)
  */
 
-import { unstable_cache, revalidateTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { isRegisteredUser } from "@/lib/users/registered";
 import type { CompanyBusinessDomain, CompanyTargetIndustry } from "@/types/genre";
 import { cache } from "react";
@@ -2305,143 +2305,8 @@ export const getCompanyStoriesCached = (companyId: string) =>
     { revalidate: 300 }
   )();
 
-/** 公開中のアンバサダー（本人同意 + 公開設定の両方が立っている人だけ）
- *
- * ⚠️ **閲覧者に依存しない条件だけを書く。** `unstable_cache` の中なので、
- *    ログイン状態で結果を変えると全閲覧者で結果が混ざる。
- *
- * ⚠️ 2026-08-22 まで `is_test` も `visibility` も見ていなかった。
- *    同じ「面談OK」を出す他の経路は全部見ている:
- *      - `getCompanyEmployees`（同ファイル）… `is_test === true || visibility === "private"` を除外
- *      - `feed/(list)/page.tsx` … 同じ2つを除外
- *      - `lib/people/directory.ts` … 上記に加えて `is_system` も除外
- *    ここは**企業ページの同僚である `getCompanyEmployees` に揃えてある**。
- *    条件を新しく発明しないこと。
- *
- * ⚠️ **`login_only` はここでは絞らない**（閲覧者依存なので、キャッシュの中に書くと
- *    先に来た人の結果が後の人に配られる＝キャッシュ汚染になる）。
- *    **`visibility` を呼び出し側へ返し、閲覧者が誰かを知っている層で絞る。**
- *    `getCompanyEmployees` ＋ `/api/jobseeker/companies/[id]/employees` と同じ形。
- */
-export type PublicAmbassador = {
-  id: string;
-  user_id: string;
-  role_title: string | null;
-  /* ⚠️ 呼び出し側が未ログインを絞るために使う。**private はここで既に落としてある**ので
-        残るのは public か login_only の2値だけ。 */
-  visibility: "public" | "login_only";
-  ow_users: { name: string | null; avatar_color: string | null; avatar_url: string | null } | null;
-};
-
-/**
- * `getPublicAmbassadorsCached` のキャッシュタグ。
- *
- * ⚠️ **面談対応者の行を動かす経路は、必ず `revalidateTag(companyAmbassadorsTag(companyId))` を呼ぶこと。**
- *    呼び忘れると最大60秒ズレる。しかも**ページと API が別のキャッシュエントリを持つ**ため、
- *    その間「見出し2名・カード1名」のように**同じ画面の中で食い違う**（2026-08-23 に実測）。
- *    「操作によっては60秒ズレる」は一番デバッグしづらい形なので、
- *    **1箇所でも漏らさない**こと。現在の呼び出し元:
- *      - POST   /api/biz/ambassador/invite
- *      - PATCH  /api/biz/ambassador/update      （承認・非公開トグル）
- *      - DELETE /api/biz/ambassador/revoke
- *      - POST   /api/biz/ambassador/self-register
- *      - POST   /api/mypage/ambassador-self-register （本人がONにする＝新規作成）
- *      - PATCH  /api/mypage/ambassador-visibility     （本人の ON / OFF）
- *      - POST   /api/mypage/ambassador-invite         （承認・辞退）
- */
-export const companyAmbassadorsTag = (companyId: string) => `company-ambassadors:${companyId}`;
-
-/** 面談対応者のキャッシュを捨てる。**行を動かしたら必ず呼ぶ。** */
-export function revalidateCompanyAmbassadors(companyId: string) {
-  revalidateTag(companyAmbassadorsTag(companyId));
-}
-
-export const getPublicAmbassadorsCached = (companyId: string): Promise<PublicAmbassador[]> =>
-  unstable_cache(
-    async (): Promise<PublicAmbassador[]> => {
-      const { data, error } = await createAdminClient()
-        .from("ow_company_members")
-        .select("id, user_id, role_title, ow_users!user_id(auth_id, name, avatar_color, avatar_url, is_test, visibility)")
-        .eq("company_id", companyId)
-        .eq("display_consent", true)
-        .eq("is_public", true);
-      if (error) {
-        console.error("[getPublicAmbassadorsCached]", error.message);
-        return [];
-      }
-      /* ★在籍中の経歴があることを要求する（2026-08-23 / B-1）。
-            ⚠️ `ow_company_members` は経歴と連動していない。退職して `is_current` を
-               false にしても行は残るため、**辞めた会社の「話を聞ける人」として出続ける**。
-               申請時の RLS は `is_current = true` を要求するが、それは申請の瞬間だけ。
-            ⚠️ 判定の定義は `lib/companyMembers/talkable.ts`。ここに条件を書き直さない。 */
-      const userIds = Array.from(new Set((data ?? []).map((r) => (r as { user_id: string }).user_id)));
-      const currentUserIds = new Set<string>();
-      if (userIds.length > 0) {
-        /* ⚠️★`id` を落とさないこと（2026-09-18）。下で非表示の経歴を除くのに要る。 */
-        const { data: expRows, error: expErr } = await createAdminClient()
-          .from("ow_experiences")
-          .select("id, user_id")
-          .eq("company_id", companyId)
-          .eq("is_current", true)
-          .in("user_id", userIds);
-        /* ⚠️ 握り潰さない。空になると全員が消え、「0名」に化ける。 */
-        if (expErr) {
-          console.error("[getPublicAmbassadorsCached] ow_experiences:", expErr.message);
-          return [];
-        }
-        /* ★運営が企業ページから外した経歴は「在籍中」に数えない（2026-09-18 に追加）。
-           ⚠️★**面談対応者だけが外れずに残っていた。** 企業ページの社員一覧
-              （`getCompanyEmployees`）は 2026-08-02 から非表示を見ているのに、
-              **同じページの「この会社の話を聞ける人」は見ていなかった**
-              ——外したはずの人が、別のセクションに出たままになる。
-           ⚠️ 握り潰さない。失敗したら「非表示は0件」として数えることになる。 */
-        const { data: hiddenRows, error: hiddenErr } = await createAdminClient()
-          .from("ow_company_hidden_experiences")
-          .select("experience_id")
-          .eq("company_id", companyId);
-        if (hiddenErr) {
-          console.error("[getPublicAmbassadorsCached] hidden:", hiddenErr.message);
-          return [];
-        }
-        const hiddenIds = new Set((hiddenRows ?? []).map((r) => (r as { experience_id: string }).experience_id));
-        for (const e of (expRows ?? []) as { id: string; user_id: string }[]) {
-          if (hiddenIds.has(e.id)) continue;
-          currentUserIds.add(e.user_id);
-        }
-      }
-
-      /* 除外条件は getCompanyEmployees と同じ形にしてある（上のコメント）。
-         ⚠️ ow_users が引けなかった行（null）も落とす。名前もアバターも出せないので
-            「N名」の N だけを水増しすることになる。 */
-      return (data ?? []).flatMap((r) => {
-        const row = r as unknown as {
-          id: string; user_id: string; role_title: string | null;
-          ow_users: { auth_id: string | null; name: string | null; avatar_color: string | null; avatar_url: string | null;
-                      is_test: boolean | null; visibility: string | null } | null;
-        };
-        const u = row.ow_users;
-        if (!u) return [];
-        if (u.is_test === true || u.visibility === "private") return [];
-        /* ★本人が登録していない行（auth_id IS NULL）は出さない。lib/users/registered.ts */
-        if (!isRegisteredUser(u)) return [];
-        /* ★その企業に在籍中でなければ出さない（退職者が自動で降りる） */
-        if (!currentUserIds.has(row.user_id)) return [];
-        return [{
-          id: row.id,
-          user_id: row.user_id,
-          role_title: row.role_title,
-          visibility: (u.visibility === "public" ? "public" : "login_only") as "public" | "login_only",
-          ow_users: { name: u.name, avatar_color: u.avatar_color, avatar_url: u.avatar_url },
-        }];
-      });
-    },
-    ["company-ambassadors", companyId],
-    /* ⚠️ `tags` が無いと revalidateTag で捨てられない。60秒待つしかなくなる。 */
-    /* ⚠️★300 に揃えた（2026-09-08）。理由は company-articles の注記と同じ。
-          ⚠️ ここは**タグを持っている**ので、承認・解除は `revalidateTag` で即時のまま。
-             秒数が伸びても「触っていないときの上限」が変わるだけ。 */
-    { revalidate: 300, tags: [companyAmbassadorsTag(companyId)] }
-  )();
+/* ⚠️ 面談対応者（`getPublicAmbassadorsCached` / `companyAmbassadorsTag` / `revalidateCompanyAmbassadors`）は
+      2026-10-16 に撤去した（面談OKの撤去）。`ow_company_members` の表とデータは残してある */
 
 /* ─── Company employee categories (ow_company_employee_categories) ─────────────
    ⚠️★**2026-09-12 時点で、この表を読む画面は無い。**

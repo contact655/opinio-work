@@ -19,7 +19,7 @@ const meeting = (id: string, over: Partial<MeetingApplication>): MeetingApplicat
   applicantAge: "—", applicantCurrentCompany: "検証株式会社", applicantCurrentRole: "アカウントエグゼクティブ",
   jobTitle: null, jobSalary: null, intent: "良い機会があれば", intentDetail: "", interestReason: "（検証）営業の体制づくりに関心があります。",
   questions: "（検証）チームの構成を伺いたいです。", preferredFormat: "オンライン", submittedAt: "2日前", createdAt: ago(2), status: "pending",
-  isUnread: true, assigneeId: null, assigneeName: null, requestedName: null, assigneeInitial: null, assigneeGradient: null, companyMemo: "", career: [], ...over,
+  isUnread: true, assigneeId: null, assigneeName: null, assigneeInitial: null, assigneeGradient: null, companyMemo: "", career: [], ...over,
 });
 const app = (id: string, over: Partial<BizApplication>): BizApplication => ({
   id, jobId: "j1", jobTitle: "エンタープライズ営業", userId: `u-${id}`, name: "検証 次郎", email: null, phone: null,

@@ -1,8 +1,6 @@
 import React from "react";
-import Link from "next/link";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
-import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 
 /**
  * 求人詳細の「現役社員 / OB・OG」セクション（2026-08-30 に求人ページから切り出した）。
@@ -43,30 +41,19 @@ import { MEETING_CTA_BG } from "@/lib/constants/meetingCta";
 /**
  * 求人詳細の社員カード。
  *
- * ⚠️★**面談CTAはカードの中に置く**（2026-08-30 に変更）。
- *    それまではセクションの末尾に「話を聞く（カジュアル面談）」を1つだけ置いていたが、
- *    **リンクに `?person=` が無く企業宛の申込**だった。人物カードのすぐ下にあるので
- *    「この人と話せる」と誤解される（柴さんの指摘）。
- *    ⚠️ 企業詳細（`CompanyEmployeeSections`）は**元からカードごとに指名付き**。
- *       同じ部品の見た目と挙動を2つ持たないよう、そちらに揃えた。
- *
- * ⚠️ CTA を出す条件は2つとも要る。
- *      ① その人が**面談可**（`ow_company_members` の同意＋掲載）
- *      ② 企業が**受付中**（`accepting_casual_meetings`）
- *    ②が無いと、押した先が「現在受け付けていません」になる。
+ * ⚠️★カードの「◯◯さんに話を聞く →」（`?person=` の指名）は 2026-10-16 に撤去した（面談OKの撤去）。
+ *    カードはプロフィールへのリンクだけ。
  */
-export function JobEmployeeCard({ emp, companyId, casualBase }: {
+export function JobEmployeeCard({ emp, companyId }: {
   emp: CompanyEmployee;
   companyId: string;
-  /** `/companies/{id}/casual-meeting`。受付停止・非公開企業では null */
-  casualBase: string | null;
 }) {
   /* ⚠️ 企業ページの社員カードと**同じ関数**を使う。色は職種で決まる（上のコメント）。 */
   const color = AVATAR_COLOR;
   const initial = emp.avatarInitial ?? emp.name.charAt(0);
   void companyId;
 
-  const card = (
+  return (
     <a
       href={`/u/${emp.userId}`}
       style={{
@@ -102,33 +89,6 @@ export function JobEmployeeCard({ emp, companyId, casualBase }: {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
     </a>
   );
-
-  if (!casualBase) return card;
-
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", gap: 10,
-      padding: "12px 14px", borderRadius: 12,
-      /* ⚠️ 面のオレンジで塗らない。面談であることはバッジとリンクが示す
-            （企業詳細の同じカードと同じ判断）。 */
-      background: "#fff", border: "1px solid #FED7AA",
-    }}>
-      {card}
-      <Link
-        /* ★`person` は `ow_users.id`。API 側で「その企業に在籍中かつ掲載中の面談対応者」を
-              検証してから記録する（`POST /api/casual-meetings`）。URL の値をそのまま信じない。 */
-        href={`${casualBase}?person=${emp.userId}`}
-        style={{
-          display: "block", textAlign: "center", padding: "8px 16px",
-          background: MEETING_CTA_BG,
-          color: "#fff", borderRadius: 8,
-          fontSize: 12, fontWeight: 700, textDecoration: "none",
-        }}
-      >
-        {emp.name.split(/[\s　]/)[0]}さんに話を聞く →
-      </Link>
-    </div>
-  );
 }
 
 /**
@@ -146,8 +106,6 @@ export function JobEmployeesSection({
   current,
   alumni,
   companyId,
-  casualHref,
-  talkableIds,
   currentTitle,
   alumniTitle,
   currentSubtitle,
@@ -156,10 +114,6 @@ export function JobEmployeesSection({
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
   companyId: string;
-  /** 非公開企業・受付停止では null。飛べない導線を置かないため CTA ごと出さない */
-  casualHref: string | null;
-  /** 面談可の `ow_users.id`。⚠️ ここに居る人だけ指名CTAを出す */
-  talkableIds: Set<string>;
   /** 既定「この職種の現役メンバー」。会社全体を出すときは必ず渡す */
   currentTitle?: string;
   /** 既定「この職種のOB・OG」 */
@@ -216,8 +170,7 @@ export function JobEmployeesSection({
             </p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
-            {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId}
-              casualBase={casualHref && talkableIds.has(emp.userId) ? casualHref : null} />)}
+            {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
           </div>
           {/* ⚠️★セクション末尾の一括CTA「話を聞く（カジュアル面談）」は削除した（2026-08-30）。
                  **リンクに `?person=` が無く企業宛の申込**だったのに、人物カードのすぐ下に
@@ -264,7 +217,7 @@ export function JobEmployeesSection({
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
               {/* ⚠️ OB/OG には指名CTAを出さない。**退職者に「話を聞く」導線は出さない**
                       （企業詳細も現役社員にしか出していない）。 */}
-              {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} casualBase={null} />)}
+              {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
             </div>
           ) : (
             /* ⚠️★空状態。**「まだ居ない」を、それ以外の何かで埋めない。**

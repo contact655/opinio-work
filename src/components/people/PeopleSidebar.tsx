@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { ProfileCard, type ProfileCardData } from "@/components/common/ProfileCard";
 
 /*
@@ -11,7 +10,7 @@ import { ProfileCard, type ProfileCardData } from "@/components/common/ProfileCa
  *   ① ミニプロフィール（＋「プロフィールを見る」）
  *   ② 次に埋めるとよい項目を**1つだけ**
  *   ③ フォロー中 / フォロワー / フォロー中の企業
- *   ④ 面談OKだけ見る（＋自分の状態と設定への入口）＋ 面談OKの注意書き
+ *   ④ （面談OKだけ見る。2026-10-16 に撤去）
  *   ⑤ 近い人（同じ職種 / 同じ会社にいた人）
  *
  * ⚠️★**%（完成度）を出さないこと**（2026-09-18 / 柴さんの判断）。
@@ -31,15 +30,8 @@ import { ProfileCard, type ProfileCardData } from "@/components/common/ProfileCa
  *    ⚠️ 実測（2026-09-18 / 本番）: `ow_user_follows` も `ow_company_follows` も **0行**。
  *       つまり今日はどの利用者が押しても 0件 になる。**これは仕様であって不具合ではない。**
  *
- * ⚠️★**④のトグル本体はここに作らないこと。** ONの操作は「在籍中の全社ぶんの行を
- *    作る／有効化する」多段処理で、実体は `components/profile/editor/IntentCard.tsx` の
- *    `runTalk` にある。複製すると片方だけ直る形になる。
- *    ここは**いまの状態を出して `/mypage` へ送るだけ**。
- *    ⚠️ 行が無い人（在籍中かつ企業マスタに紐づく会社が無い人）には **`meetingOk` に
- *       `null` が来る。そのときは行ごと出さない**（2026-09-18 / 柴さんの判断）。
- *
  * ⚠️★**狭い画面で中身ごと消さないこと。** `hidden lg:flex` の形にしない。
- *    900px 未満では一覧の上に畳んで出し、**③と④だけは畳まずに見せる**。
+ *    900px 未満では一覧の上に畳んで出し、**③だけは畳まずに見せる**。
  */
 
 export type PeopleSidebarProps = {
@@ -49,13 +41,9 @@ export type PeopleSidebarProps = {
   counts: ProfileCardData["counts"];
   /** 次に埋めるとよい項目。**1件だけ**。無ければ null（「完了！」は出さない） */
   nextStep: { label: string; href: string } | null;
-  /** 自分の面談OK。**`null` は「行が無い」＝この行ごと出さない** */
-  meetingOk: boolean | null;
   /** いま効いている関係の絞り込み。"" / "following" / "followers" / "coworkers" */
   rel: string;
   onRel: (v: string) => void;
-  meetingFilter: boolean;
-  onMeetingFilter: (v: boolean) => void;
   /** 自分の現職の職種。**無ければ「同じ職種の人」を出さない**（推測で埋めない） */
   myRole: { slug: string; label: string } | null;
   roleFilter: string[];
@@ -145,20 +133,6 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
         me={p.me} counts={p.counts} nextStep={p.nextStep} activeRel={p.rel}
         topClassName={`pps-collapsible${open ? " is-open" : ""}`}
       />
-
-      {/* ── ④ 畳まない ────────────────────────────────────────────────── */}
-      <div className="pps-card">
-        <Row label="面談OKだけ見る" active={p.meetingFilter} onClick={() => p.onMeetingFilter(!p.meetingFilter)} />
-        {/* ⚠️ 行が無い人（meetingOk === null）には出さない（冒頭の注記） */}
-        {p.meetingOk !== null && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "7px 8px" }}>
-            <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>
-              自分の面談OK：<strong style={{ color: p.meetingOk ? "var(--royal)" : "var(--ink-mute)" }}>{p.meetingOk ? "ON" : "OFF"}</strong>
-            </span>
-            <Link href="/mypage" className="pps-link" style={{ fontSize: 11.5 }}>設定</Link>
-          </div>
-        )}
-      </div>
 
       {/* ── ⑤ 近い人。⚠️ 自分の職種・職歴が無ければ、その行ごと出さない ── */}
       {(p.myRole || p.hasCompanyHistory) && (

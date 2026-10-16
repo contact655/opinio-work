@@ -34,9 +34,6 @@ type Props = {
   /** ★業種の選択肢（2026-10-12 / `?ind=`）。掲載中の会社がある業種だけ（fetchIndustryFacets） */
   industryTreeOptions: { value: string; label: string; group: string; count: number }[];
   companySuggestions?: { id: string; name: string }[];
-  /** ★「話を聞ける人」がいる掲載企業の数（2026-10-09）。⚠️ 0 ならトグルを出さない
-   *  （0件の選択肢を出さない原則）。null は取得失敗で、これも出さない */
-  talkableCount?: number | null;
   /** ★会社規模の選択肢（2026-10-10）。⚠️ 掲載中の企業が1社以上あるまとまりだけ（0件の選択肢を出さない）。
    *  空ならチップごと出さない（ただし選択中なら外せるように出す） */
   sizeOptions?: { value: string; label: string; count: number }[];
@@ -50,7 +47,6 @@ export function CompanySearchBar({
   industryOptions,
   industryTreeOptions,
   companySuggestions = [],
-  talkableCount = null,
   sizeOptions = [],
   /**
    * ★並び替え・表示形式・件数（2026-09-17）。**同じ行に入れるために受け取る。**
@@ -138,7 +134,6 @@ export function CompanySearchBar({
   const currentHiring     = searchParams.get("hiring") === "1";
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
-  const currentTalk       = searchParams.get("talk") === "1";
   const currentSize       = searchParams.get("size") ?? "";
   /* ⚠️ 選択肢は「掲載中の企業がある」まとまりだけ。選択中のものが消えていたら外せるように足す */
   const sizeChipOptions = sizeOptions.map((o) => ({ value: o.value, label: o.label }));
@@ -147,8 +142,6 @@ export function CompanySearchBar({
     if (g) sizeChipOptions.push({ value: g.value, label: g.label });
   }
   const currentSortLabel  = companySortLabel(searchParams.get("sort"));
-  /* ⚠️ 該当0社なら出さない。ただし選択中なら外せるように出す */
-  const showTalk = (talkableCount ?? 0) > 0 || currentTalk;
 
   /*
     都道府県は **47件すべて**を「よく選ばれる」→「すべての都道府県」の順で出す。
@@ -174,7 +167,7 @@ export function CompanySearchBar({
     opts.find((o) => o.value === v)?.label ?? v;
 
   /* ★詳細検索の中にある条件だけを出す（2026-10-09 の軸の入れ替え）。
-        事業領域・都道府県・話を聞ける人は1段目に常に見えていて、選択状態をチップ自身が持つ。
+        事業領域・都道府県は1段目に常に見えていて、選択状態をチップ自身が持つ。
         ここに入れると同じ語が2回並ぶ。⚠️ 並びは詳細検索の中の並びと同じ順にしてある */
   /* ⚠️ フェーズ（旧 ?phase=）と顧客の業界（旧 ?target=）はチップを外した（2026-10-12）。
         被リンクで来たときに外せるよう、選択中なら効いている条件として出す */
@@ -284,19 +277,7 @@ export function CompanySearchBar({
             searchable
           />
 
-          {/* ★話を聞ける人（2026-10-09 / 柴さんの判断）。1段目に常に出す。
-                 ⚠️ 判定は lib/companies/talkableCompanies.ts（企業ページの「この会社の話を聞ける人」と同じ条件）。
-                 ⚠️ 該当0社なら出さない（0件の選択肢を出さない原則）。 */}
-          {showTalk && (
-            <button
-              type="button"
-              className={`foreign-toggle${currentTalk ? " active" : ""}`}
-              onClick={() => updateParam("talk", currentTalk ? null : "1")}
-              aria-pressed={currentTalk}
-            >
-              話を聞ける人{currentTalk && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-            </button>
-          )}
+          {/* ⚠️ 「話を聞ける人」（`?talk=1`）のトグルは 2026-10-16 に撤去した（面談OKの撤去） */}
 
           {/* ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）。
                  ⚠️ 出すかどうかと件数はページが決める。ここは置き場所だけ。 */}

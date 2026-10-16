@@ -82,7 +82,7 @@ const ITEMS = [
   { href: "/dev/preview/biz-home", label: "企業ホーム（/biz/dashboard）",
     desc: "★対応が多い状態・はじめにやることが全部済んだ状態（枠ごと消える）・一部を取得できなかった状態。検証用の企業では作れない" },
   { href: "/dev/preview/biz-employees", label: "社員・OB/OG（/biz/employees）",
-    desc: "⚠️ 管理者バッジ・面談OKバッジ・職種の併記は、ログインできるどの企業にも該当者が居ない。ここでしか見られない" },
+    desc: "⚠️ 管理者バッジ・職種の併記は、ログインできるどの企業にも該当者が居ない。ここでしか見られない" },
   { href: "/dev/preview/employees", label: "現役社員 / OB・OG",
     desc: "0件の空状態、1件、3件、12件。長い氏名・役職での折り返し" },
   { href: "/dev/preview/tools",     label: "ツール",

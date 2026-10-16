@@ -17,8 +17,6 @@ export type CompanyListQuery = {
   industry?: string;
   target?: string;
   foreign?: string;
-  /** 話を聞ける人（`?talk=1`） */
-  talk?: string;
   /** ★会社規模（`?size=`。2026-10-10）。値は `COMPANY_SIZE_GROUPS` の value */
   size?: string;
   /** ★業種（`?ind=`。2026-10-12）。値は ow_industries.slug */
@@ -30,7 +28,7 @@ export type CompanyListQuery = {
 
 /** 絞り込みがあるか。⚠️ 外資系は含めない（外資系だけのときは一覧グリッドのままページ分けする） */
 export function hasCompanyFilter(sp: CompanyListQuery): boolean {
-  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.talk || sp.size || sp.ind || sp.stage);
+  return Boolean(sp.q || sp.phase || sp.workStyle || sp.hiring || sp.location || sp.industry || sp.target || sp.size || sp.ind || sp.stage);
 }
 
 /** 絞り込みの条件（並び替えを含む・ページ分けは含まない） */
@@ -44,7 +42,6 @@ export function companyFilterParams(sp: CompanyListQuery) {
     industry: sp.industry || undefined,
     targetIndustry: sp.target || undefined,
     foreign: sp.foreign === "1" ? true : undefined,
-    talk: sp.talk === "1" ? true : undefined,
     /* ⚠️ 知らない値は無視する（絞り込まない）。400 にしない —— URL を手で書き換えた人を落とさない */
     size: isCompanySizeGroup(sp.size) ? sp.size : undefined,
     /* ⚠️ 知らない値は searchCompanies 側が無視する（業種は該当0、ステージは絞り込まない） */

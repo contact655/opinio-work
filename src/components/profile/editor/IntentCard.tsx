@@ -1,17 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow, FormGroup, selectStyle, inputStyle } from "./formKit";
 import { PencilIcon } from "@/components/profile/view/RowActions";
 /* ⚠️★**ここにローカル実装を戻さないこと**（2026-09-12 に共通部品へ出した）。
       オンボーディングの「関心のある職種」でも同じものを使っている。 */
 import { RoleAccordionPicker, SelectedRoleChips } from "@/components/ui/RoleAccordionPicker";
-import { memberState, type CompanyMemberRow } from "@/lib/constants/companyMembers";
-/* ⚠️ 会社名は必ずここを通す。法人格（株式会社…）と末尾の " Japan" が落ちる。
-      ⚠️ 正規表現をコピーして持ってこないこと。3箇所に割れていたのを集約した経緯がある。 */
-import { companyDisplayName } from "@/lib/companies/displayName";
 import {
   DESIRED_WORK_STYLES, SALARY_MAX_MAN, MAX_DESIRED_ROLES,
   CAREER_STANCES, CAREER_STANCE_LABELS, isReachableByCompanies,
@@ -40,7 +35,6 @@ import { APPROACH_DEFAULT_NOTICE } from "@/lib/constants/companyApproaches";
  * ⚠️ **同じ列を触る操作を2つ作らない**（CLAUDE.md ルール⑧）。この画面での分担は:
  *    | 列 | 操作できる場所 |
  *    |---|---|
- *    | `ow_company_members`             | **カードのトグルだけ**（モーダルは説明のみ） |
  *    | `ow_profiles.career_stance`      | **モーダルだけ**（カードは値を出すだけ） |
  *    | `ow_profiles` の希望条件          | **モーダルだけ** |
  *
@@ -48,7 +42,6 @@ import { APPROACH_DEFAULT_NOTICE } from "@/lib/constants/companyApproaches";
  *    | 系統 | 何を保存するか |
  *    |---|---|
  *    | `PUT /api/jobseeker/career-preferences`| **`career_stance`** ＋ 希望職種・勤務地・勤務スタイル・時期・年収・フェーズ |
- *    | `POST /api/mypage/ambassador-self-register` / `PATCH .../ambassador-visibility` | 面談対応者の行 |
  *
  * ⚠️ 「最終更新」の行は**フェーズ1では出さない**（柴さんの判断）。`stance_updated_at` は
  *    いまは「スカウト可否をいつ答えたか」だけを指しており、カード全体の最終更新ではない。
@@ -141,53 +134,6 @@ const DIVIDER: React.CSSProperties = {
   borderTop: "1px solid var(--line-soft)", paddingTop: 14, marginTop: 14,
 };
 
-/**
- * トグル1つ。**見た目は3枚のカードにあったものをそのまま持ってきている。**
- *
- * ⚠️ `role="switch"` ＋ `aria-checked` を必ず付ける（見た目だけで状態を伝えない）。
- * ⚠️ `.btn-fixed-size` を付けないこと。付けると `min-height: 0` になり、
- *    767px 以下でタップ対象が **22px** まで潰れる（統合前はこれで潰れていた）。
- *    代わりに `.tap-min-h` で 44px を確保する。
- */
-function ToggleRow({
-  label, on, busy, disabled = false, ariaLabel, onToggle,
-}: {
-  label: string; on: boolean; busy: boolean; disabled?: boolean;
-  ariaLabel: string; onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={ariaLabel}
-      disabled={busy || disabled}
-      onClick={onToggle}
-      className="tap-min-h"
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        gap: 12, width: "100%", padding: 0, background: "none", border: "none",
-        cursor: disabled ? "default" : busy ? "wait" : "pointer",
-        fontFamily: "inherit", textAlign: "left",
-      }}
-    >
-      <span style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
-        {busy ? "保存中…" : label}
-      </span>
-      <span aria-hidden style={{
-        width: 40, height: 22, borderRadius: 999, flexShrink: 0,
-        background: on ? "var(--royal)" : "var(--line)",
-        display: "inline-flex", alignItems: "center",
-        justifyContent: on ? "flex-end" : "flex-start",
-        padding: 2, transition: "background 0.15s",
-        opacity: busy || disabled ? 0.5 : 1,
-      }}>
-        <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff" }} />
-      </span>
-    </button>
-  );
-}
-
 /** 下段（状態）。⚠️ 説明を書かない。**値・保留・停止だけ** */
 function SubLine({ children }: { children: React.ReactNode }) {
   return (
@@ -199,27 +145,16 @@ function SubLine({ children }: { children: React.ReactNode }) {
 
 export default function IntentCard({
   initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions,
-  currentCompanies, memberships, experienceCount = 0,
+  experienceCount = 0,
 }: {
   initialPrefs: IntentPrefs;
   /** 「意思表示を最後に答えた日」。⚠️ `null` なら**最終更新の行ごと出さない** */
   stanceUpdatedAt: string | null;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  /** 在籍中かつ企業マスタに紐づく会社。**0件なら「話を聞かれてもよい」の行ごと出ない**
-   *
-   * ⚠️ 在籍先が自由入力の人（2026-08-26 時点で実ユーザー11人中**5人**）には行が出ない。
-   *    `ow_company_members.company_id` が `ow_companies` への FK なので行を作れないため。
-   *    ⚠️ **理由を画面に出す案は採らなかった**（利用者側では直せず、案内先が無い）。 */
-  currentCompanies: { id: string; name: string }[];
-  memberships: CompanyMemberRow[];
-  /** 職歴の件数（`ow_experiences`）。⚠️ `currentCompanies` で代用しないこと ——
-   *  あれは**在籍中かつ企業マスタに紐づく**会社だけで、自由入力の在籍先や過去の職歴を
-   *  数えない（実ユーザー11人中5人が自由入力）。0件のときだけ下の案内に使う。 */
+  /** 職歴の件数（`ow_experiences`）。0件のときだけ下の案内に使う。 */
   experienceCount?: number;
 }) {
-  const router = useRouter();
-
   /* ⚠️★「企業から声をかけられる」のトグルは 2026-08-27 に**削除した**（フェーズ3）。
         スカウトの送信可否は「転職について」＝ `ow_profiles.career_stance` が決める
         （`いまは声をかけられたくない` と未設定だけが止める）。
@@ -228,89 +163,10 @@ export default function IntentCard({
         ⚠️ `scout_enabled` の列は残っているが、**読む側も書く側もいない。**
            `PUT /api/jobseeker/scout-settings` も同時に削除した。 */
 
-  /* ── ② 面談対応者（`ow_company_members`）──────────────────────────────────── */
-  const [memberBusyId, setMemberBusyId] = useState<string | null>(null);
-  const [memberError, setMemberError] = useState<string | null>(null);
-
-  /* 在籍している会社と、その会社の行（あれば）を突き合わせる。
-     ⚠️ 行があるが在籍申告が無い会社（退職済みなど）も**出す**。
-        出さないと、行が残っているのに本人が始末できなくなる。
-     ★`isCurrent` を持たせる。「話を聞ける人」は**現職についての話**なので、
-       在籍が切れた行は公開側（`talkable.ts`）が既に降ろしている。 */
-  const memberRows = useMemo(() => {
-    const byCompany = new Map(memberships.map((m) => [m.company_id, m]));
-    return [
-      ...currentCompanies.map((c) => ({ company: c, m: byCompany.get(c.id) ?? null, isCurrent: true })),
-      ...memberships
-        .filter((m) => !currentCompanies.some((c) => c.id === m.company_id))
-        .map((m) => ({ company: { id: m.company_id, name: m.company_name }, m, isCurrent: false })),
-    ];
-  }, [currentCompanies, memberships]);
-
-  /* ★1つのトグルにまとめるための導出（2026-08-27）。**行は会社ごとのまま。**
-     ⚠️ `unlisted`（企業が非掲載にした）でも **ON のまま**にする。ここで OFF に見せると
-        「自分で切ったのか会社が切ったのか」が分からなくなる（会社ごとの頃と同じ判断）。 */
-  const TALK_BUSY_ID = "__talk__";
-  const talkStates = useMemo(
-    () => memberRows.map((r) => ({ ...r, state: memberState(r.m) })),
-    [memberRows],
-  );
-  /** 1社でも掲載中／企業が非掲載なら ON。＝「本人はよいと言っている」 */
-  const talkOn = talkStates.some((r) => r.state === "listed" || r.state === "unlisted");
-  /** 招待に未応答の行があれば、トグルではなく確認への導線を出す（1件目） */
-  const talkInvite = talkStates.find((r) => r.isCurrent && r.state === "pending_user" && r.m)?.m ?? null;
-  /** ⚠️ 状態は**言うことがあるときだけ**。掲載中・OFF はトグルが言っている */
-  const talkStateLine = useMemo(() => {
-    const hidden = talkStates.filter((r) => r.state === "unlisted");
-    if (hidden.length > 0) {
-      const names = hidden.map((r) => companyDisplayName(r.company.name, null).displayName).join("・");
-      return `${names}が非公開にしています`;
-    }
-    if (!talkOn && currentCompanies.length === 0) return "職歴に在籍中の会社がありません";
-    return null;
-  }, [talkStates, talkOn, currentCompanies.length]);
-
-  /**
-   * ★ONで在籍中の全社に出し、OFFで持っている行すべてを止める。
-   * ⚠️ **1件でも失敗したら止めて知らせる。** 途中まで反映された状態を
-   *    「保存できた」と見せない（半分だけ公開されるのが一番まずい）。
-   */
-  const runTalk = useCallback(async (next: boolean) => {
-    setMemberBusyId(TALK_BUSY_ID);
-    setMemberError(null);
-    try {
-      const targets = next
-        /* ON: 在籍中の会社。行が無ければ作る、あれば有効化する */
-        ? memberRows.filter((r) => r.isCurrent)
-        /* OFF: 行があるものすべて（在籍が切れた会社も含む） */
-        : memberRows.filter((r) => r.m);
-      for (const r of targets) {
-        const res = !r.m
-          ? await fetch("/api/mypage/ambassador-self-register", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ company_id: r.company.id }),
-            })
-          : await fetch("/api/mypage/ambassador-visibility", {
-              method: "PATCH", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ member_id: r.m.id, enabled: next }),
-            });
-        if (!res.ok) {
-          const d = await res.json().catch(() => null);
-          setMemberError(d?.message ?? "保存できませんでした。もう一度お試しください。");
-          return;
-        }
-      }
-      /* ★ON / OFF の**どちらでも**進める（API 側も同じ）。片方だけにすると止めた日が残らない */
-      setStanceTs(new Date().toISOString());
-      /* ⚠️ 楽観更新しない。サーバーの行を取り直してから表示を変える。 */
-      router.refresh();
-    } catch {
-      setMemberError("保存できませんでした。もう一度お試しください。");
-    } finally {
-      setMemberBusyId(null);
-    }
-  }, [memberRows, router]);
-
+  /* ⚠️★「面談OK」のトグル（`ow_company_members` の本人による申告）は 2026-10-16 に
+        **撤去した**（柴さんの判断）。人の表示は職歴から作る事実として残し、
+        「話を聞ける」という意味づけと、それに紐づく導線だけを消した。
+        ⚠️ 表とデータは残してある（DROP していない）。 */
 
   /* ── ③ 転職について＋希望条件（モーダル）────────────────────────────────────
         ★保存済みの値。カードの下段はここだけを見る */
@@ -463,12 +319,12 @@ export default function IntentCard({
           type="button"
           className="tap-target tap-target-end"
           onClick={() => { resetToSaved(); setOpen(true); }}
-          aria-label="転職・面談の状況を編集"
+          aria-label="転職の状況を編集"
           /* ⚠️ 見出しは 2026-09-12 に「意思表示」→「転職・面談の状況」に変えた。
                 aria-label と title だけ古いままだったので 2026-09-17 に揃えた。
              ⚠️★**画面の見出しと同じ語にすること。** 目で見える語と読み上げの語が違うと、
                 音声で操作する人は「意思表示」を探して見つけられない。 */
-          title="転職・面談の状況を編集"
+          title="転職の状況を編集"
           style={{
             position: "absolute", top: 12, right: 14,
             color: "var(--royal)", background: "none", border: "none",
@@ -482,78 +338,10 @@ export default function IntentCard({
         {/* ⚠️★見出しは 2026-09-12 に「意思表示」→「転職・面談の状況」に変えた（柴さんの指示）。
                ⚠️ **`/mypage` のこのカードだけ。** `aria-label`（「意思表示を編集」）と
                   コード内の呼び名（`IntentCard`・`career_stance`）は変えていない。 */}
+        {/* ★2026-10-16 に「転職・面談の状況」→「転職の状況」。面談OK の行を撤去したため */}
         <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
-          転職・面談の状況
+          転職の状況
         </h2>
-
-        {/* ── ② 話を聞かれてもよい（会社ごとではなく**1つ**）────────────────────
-               ★2026-08-27 に会社ごとの行をやめた（柴さんの指示）。
-                 決めることは「面談対応をするかどうか」の1つで、会社ごとに違う答えを
-                 持ちたいという要望が実際に無かった。
-               ⚠️ **データは会社ごとの行のまま**（`ow_company_members`）。まとめたのは操作だけ。
-                  行を1本にすると、なりすまし対策（在籍申告のある会社にしか出せない RLS）と
-                  企業側の非公開トグルが成立しなくなる。
-               ⚠️ ONで**在籍中の全社**に出す。OFFで**持っている行すべて**を止める
-                  （在籍が切れた会社の行も止められないと、本人が始末できなくなる）。 */}
-        {memberRows.length > 0 && (
-          <div style={DIVIDER}>
-            {talkInvite ? (
-              /* ⚠️ 招待に未応答のときは既存の着地ページへ送る。**新しい承認導線を作らない。**
-                    依頼の中身（どの会社から・どんな依頼か）を見ないまま応じさせないため。 */
-              <a
-                href={`/mypage/ambassador-invite/${talkInvite.invite_token}`}
-                className="tap-min-h"
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  gap: 12, width: "100%", textDecoration: "none",
-                }}
-              >
-                <span style={{ fontSize: LABEL_SIZE, fontWeight: 600, color: "var(--ink)" }}>
-                  面談OK
-                </span>
-                <span style={{ fontSize: SUB_SIZE, fontWeight: 700, color: "var(--royal)", flexShrink: 0 }}>
-                  確認する →
-                </span>
-              </a>
-            ) : (
-              <ToggleRow
-                /* ⚠️★ラベルは **2026-09-18 に「面談OK」へ統一した**（柴さんの指示）。
-                      経緯: 「話を聞かれてもよい」→ 2026-09-12「面談対応可能」→ 2026-09-18「面談OK」。
-                   ⚠️★**今度は全部そろえてある。** 本人の `/mypage`・訪問者向けのバッジ・
-                      企業ページの社員カード・`/u/[id]`・招待メール・`ambassador-invite` の
-                      着地ページ・`/biz/members`・`/admin` のすべてが「面談OK」。
-                      **一部だけ別の語に戻さないこと。**
-                   ⚠️ 語を変えるときは `面談OK` を grep して**画面に出る全箇所**を数えること
-                      （過去2回、片方だけ残して同じ設定が2つの名前で呼ばれた）。
-                   ⚠️ **「話を聞く（カジュアル面談）」は動作なので変えていない。**
-                      あれは申し込むボタンで、状態のラベルではない。 */
-                label="面談OK"
-                on={talkOn}
-                busy={memberBusyId === TALK_BUSY_ID}
-                /* ⚠️ 在籍中の会社が1社も無いときは**ONにできない**（RLS の在籍チェックに
-                      弾かれる）。OFF にする更新は通るので、ONのときだけ操作させる。 */
-                disabled={!talkOn && currentCompanies.length === 0}
-                /* ⚠️ 読み上げも画面と同じ語にする（2026-09-12）。片方だけ残すと
-                      スクリーンリーダーにだけ古い語が読まれる。 */
-                ariaLabel="現職で面談OK"
-                onToggle={() => { void runTalk(!talkOn); }}
-              />
-            )}
-            {/* ⚠️ 下段は**状態だけ**。説明は書かない（このカードの約束）。
-                   ⚠️ 会社ごとの事情（企業が非公開にした等）は、社名を出さないと
-                      意味が通らないので**ここでだけ社名を出す**。 */}
-            {talkStateLine && <SubLine>{talkStateLine}</SubLine>}
-            {/* ⚠️ 失敗は必ず画面に出す。**トグルが元に戻るだけ**だと、
-                   保存できなかったのか自分が押し間違えたのか分からない。
-                   ⚠️ 途中で失敗したときは、そこで止めて残りを送っていない
-                      （`runTalk`）。半分だけ公開された状態を「保存できた」と見せない。 */}
-            {memberError && (
-              <p style={{ margin: "8px 0 0", fontSize: SUB_SIZE, fontWeight: 600, color: "var(--error)" }}>
-                {memberError}
-              </p>
-            )}
-          </div>
-        )}
 
         {/* ── ③ 転職意欲（トグルではなく値をそのまま出す）────────────────────── */}
         <div style={DIVIDER}>
@@ -668,7 +456,7 @@ export default function IntentCard({
                 ここにあるのは「その設定が何をするか」の説明だけ。 */}
       <ProfileEditModal
         open={open}
-        title="転職・面談の状況"
+        title="転職の状況"
         dirty={dirty}
         saving={saving}
         justSaved={justSaved}
@@ -676,39 +464,6 @@ export default function IntentCard({
         onSave={handleSave}
         onClose={() => { setOpen(false); setError(null); }}
       >
-        {/* ⚠️ `first` は**先頭の行だけ**に付ける（上の区切り線を出さないため）。
-               「話を聞かれてもよい」は在籍中の会社が無い人には出ないので、
-               その場合は次の「転職について」が先頭になる。
-            ⚠️★**ラベルはカードのトグルと同じ語にすること**（2026-08-28 に揃えた）。
-               カードを変えたとき**ここだけ旧ラベルが残り**、同じ設定が2つの名前で
-               呼ばれていた。片方だけ変えないこと。
-            ⚠️★**2026-09-12 に同じことを繰り返した**（カード側だけ変えて、ここが残った）。
-               **2026-09-18 に「面談OK」へ統一したときは両方直してある。**
-               注記があっても2回防げていない。**次に語を変えるときは必ず両方を grep すること。** */}
-        {memberRows.length > 0 && (
-          <CollapsibleRow first label="面談OK" state={
-            memberRows.some(({ m }) => memberState(m) === "listed") ? "ON" : "OFF"
-          }>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
-              ONにすると、<strong style={{ color: "var(--ink)" }}>在籍している会社すべて</strong>のページに
-              「面談OK」として出ます。
-              仕事の内容や社内の様子について、転職を考えている人から聞かれる側になります。
-              選考の面談ではありません。
-              <br />
-              OFFにしても登録は消えません。いつでもONに戻せます。
-              <br />
-              {/* ★なりすまし対策の3つ目（RLS の在籍チェック・企業側の非掲載トグルと合わせて3つ）。
-                     ⚠️ **消さないこと。** ①②はコードで守れるが、これは文言でしか守れない。
-                     ⚠️ 語彙は `/people` の注記と揃える。同じ事実を2つの画面で別々に言わない。 */}
-              <strong style={{ color: "var(--ink)" }}>
-                在籍は自己申告で、OPINIO は確認していません。会社の判断で出ないこともあります。
-              </strong>
-              <br />
-              <strong style={{ color: "var(--ink)" }}>切り替えは、このカードのトグルから行えます。</strong>
-            </p>
-          </CollapsibleRow>
-        )}
-
         {/* ★4択（2026-08-26 / フェーズ2）。**チェックボックス1つ（boolean）から変えた。**
                ⚠️ ラジオにする。選択肢を全部見せたいので `select` にしない
                   （4つのうちどれを選べるのかが、開くまで分からない形にしない）。
@@ -719,7 +474,7 @@ export default function IntentCard({
                   「転職を考えていない」と書き換えないこと（転職しない人も登録する前提が壊れる）。 */}
         {/* ⚠️ 行の名前は「転職意欲」（2026-09-30 / 柴さんの指示）。オンボーディング3画面目・
                /onboarding/stance と**同じ語**にしてある。片方だけ戻さないこと。 */}
-        <CollapsibleRow first={memberRows.length === 0} defaultOpen label="転職意欲" state={stanceText(stance)}>
+        <CollapsibleRow first defaultOpen label="転職意欲" state={stanceText(stance)}>
           {/* ★2026-08-27（フェーズ3）: **この設問がスカウトの可否そのものになった。**
                  ⚠️ 何が起きるかを**選ぶ前に**書く。以前は別のトグル
                     （「企業から声をかけられる」）が持っていた説明で、

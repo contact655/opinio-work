@@ -20,7 +20,6 @@ import { buildDesiredRoleOptions } from "@/lib/roles/desiredRoleOptions";
 import { rowsToStints } from "@/lib/experiences/toStint";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
-import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
 import { getMypageNavBadges } from "@/lib/mypage/navBadges";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
@@ -76,8 +75,6 @@ export default async function MypagePage({
     enrolled_at: string | null; graduated_at: string | null; is_current: boolean; sort_order: number;
   }[] = [];
   let timelineCareers: CareerEntry[] = [];
-  /** 在籍中かつ企業マスタに紐づく会社（面談対応者を申請できる先） */
-  let currentCompanies: { id: string; name: string }[] = [];
   /* ★職歴カードの表示は `MergedTimeline`（公開部品）が描く。編集で職歴が変わったら
         クライアント側で `CareerEntry[]` を組み直す必要があるので、その材料を渡す。
      ⚠️ `Map` は RSC の props を渡れない（直列化できない）。**配列で渡してクライアントで Map に戻す。** */
@@ -308,23 +305,6 @@ export default async function MypagePage({
 
     companyLogoInfo = Array.from(companyInfoById.entries()).map(([id, v]) => ({ id, ...v }));
 
-    /* 面談対応者を本人から申請できる会社＝**在籍中かつ企業マスタに紐づいている**もの。
-       ⚠️ **追加のクエリを投げない**（このブロックの原則）。上で引いた expRows と
-          companyInfoById から作る。
-       ⚠️ `company_id` が無い（在籍先が自由入力）行は**申請できない**。
-          `ow_company_members.company_id` が ow_companies への FK なので行を作れない。
-          実ユーザーで is_current がある11人のうち5人がこれに当たる。 */
-    currentCompanies = Array.from(
-      new Map(
-        (expRows ?? [])
-          .filter((r) => r.is_current === true && r.company_id)
-          .map((r) => [
-            r.company_id as string,
-            { id: r.company_id as string, name: companyInfoById.get(r.company_id as string)?.name ?? "—" },
-          ]),
-      ).values(),
-    );
-
     timelineCareers = buildTimelineCareerEntriesFromRaw(
       (expRows ?? []) as RawExperienceRow[],
       roleNameById,
@@ -518,45 +498,6 @@ export default async function MypagePage({
     inbox = { proposals: badges.proposals, messageRequests: badges.messageRequests, approaches: badges.approaches };
   }
 
-  // Fetch ambassador memberships (面談対応者として登録されているか)
-  /* ⚠️ 状態の判定に必要な列を**全部**取る。`display_consent` だけでは4状態を区別できない。
-        `memberState()`（lib/constants/companyMembers.ts）が要求するのは
-        display_consent / is_public / created_via の3つ。
-        `invite_token` は「企業に招待されたが本人未承認」のときに
-        既存の着地ページ（/mypage/ambassador-invite/[token]）へ送るのに要る。 */
-  let ambassadorMemberships: CompanyMemberRow[] = [];
-  if (owUser) {
-    const adminSupabase = createAdminClient();
-    const { data: memberRows, error: memberErr } = await adminSupabase
-      .from("ow_company_members")
-      .select("id, company_id, role_title, display_consent, is_public, created_via, approved_at, consent_at, invite_token, ow_companies!company_id(name, brand_name)")
-      .eq("user_id", owUser.id);
-    /* ⚠️ 握り潰さない。空になると「まだ登録していない」と誤って表示され、
-          既に公開中の人に「申請する」を出すことになる。 */
-    if (memberErr) console.error("[mypage] ambassadorMemberships:", memberErr.message);
-    type MRow = {
-      id: string; company_id: string; role_title: string | null;
-      display_consent: boolean; is_public: boolean; created_via: string | null;
-      approved_at: string | null; consent_at: string | null; invite_token: string;
-      ow_companies: { name: string | null; brand_name: string | null } | null;
-    };
-    ambassadorMemberships = (memberRows ?? []).map((r) => {
-      const row = r as unknown as MRow;
-      return {
-        id: row.id,
-        company_id: row.company_id,
-        company_name: row.ow_companies?.brand_name ?? row.ow_companies?.name ?? "—",
-        role_title: row.role_title,
-        display_consent: row.display_consent,
-        is_public: row.is_public,
-        created_via: row.created_via,
-        approved_at: row.approved_at,
-        consent_at: row.consent_at,
-        invite_token: row.invite_token,
-      };
-    });
-  }
-
   const isNewUser = searchParams?.welcome === "1";
 
   // 投稿できる人か。できないなら「アクティビティ」セクションごと畳む
@@ -598,7 +539,6 @@ export default async function MypagePage({
       followCounts={followCounts}
       educations={educations}
       timelineCareers={timelineCareers}
-      currentCompanies={currentCompanies}
       companyLogoInfo={companyLogoInfo}
       conversationsBadge={conversationsBadge}
       applicationsBadge={applicationsBadge}
@@ -607,7 +547,6 @@ export default async function MypagePage({
       isNewUser={isNewUser}
       initialAddCompany={initialAddCompany}
       initialCareerHistoryCompleteAt={careerHistoryCompleteAt}
-      ambassadorMemberships={ambassadorMemberships}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

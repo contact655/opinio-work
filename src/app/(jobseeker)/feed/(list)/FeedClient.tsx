@@ -6,10 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProfileCard, type ProfileCardProps } from "@/components/common/ProfileCard";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
-import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarMentor, SidebarCompany } from "./page";
+import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarCompany } from "./page";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 
@@ -50,7 +49,7 @@ const AUTO_POST_TYPES = new Set(["company_joined", "job_posted", "article_publis
  *       （3種を濃紺に揃え、`--royal-100` という中間トークンがそのまま使えるため）。
  *       **種別ごとに色を分ける形に戻さないこと**（下の `BADGE_STYLE` のコメント）。
  *
- * ⚠️ `mentor_post` はここに入れない。名前の右に既に「面談OK」バッジがあり、二重になる。
+ * ⚠️ `mentor_post` はここに入れない（2026-10-16 まで名前の右に「面談OK」バッジがあった。撤去済み）。
  */
 /* ⚠️★**3種とも同じ色（濃紺）にした（2026-08-31）。色で出し分けないこと。**
       それまでは 新規掲載＝緑 / 新着求人＝橙 / 取材記事＝濃紺 だった。
@@ -145,11 +144,7 @@ type Props = {
   sidebarFollows: SidebarFollow[];
   sidebarUserFollows: SidebarUserFollow[];
   sidebarSavedJobs: SidebarJob[];
-  sidebarMentors: SidebarMentor[];
   sidebarCompanies: SidebarCompany[];
-  hiddenMembersCount: number;
-  /** 閲覧者が既にフォローしている ow_users.id。右レールのフォローボタンの初期状態に使う */
-  followedUserIds: string[];
   /** 投稿してよい人か。false ならコンポーザーを出さない（lib/feed/canPost） */
   canPost: boolean;
 };
@@ -1307,31 +1302,16 @@ function FeedSidebar({
   follows,
   userFollows,
   savedJobs,
-  mentors,
   companies,
-  hiddenMembersCount,
   myUserId,
-  followedUserIds,
 }: {
   follows: SidebarFollow[];
   userFollows: SidebarUserFollow[];
   savedJobs: SidebarJob[];
-  mentors: SidebarMentor[];
   companies: SidebarCompany[];
-  hiddenMembersCount: number;
   /** ow_users.id。未ログインは null */
   myUserId: string | null;
-  /** 閲覧者が既にフォローしている ow_users.id */
-  followedUserIds: string[];
 }) {
-  const EMPTY_STYLE: React.CSSProperties = {
-    fontFamily: "var(--font-inter), var(--font-noto)",
-    fontSize: 12,
-    color: "var(--ink-mute)",
-    margin: "4px 0 8px",
-    lineHeight: 1.6,
-  };
-
   return (
     <div style={{ width: 340, flexShrink: 0 }}>
       {/*
@@ -1339,77 +1319,8 @@ function FeedSidebar({
         ⚠️ 「まだ空」ではなく構造上必ず空。3枚とも ow_company_follows / ow_user_follows /
            ow_saved_jobs を引くもので、未ログインではそもそも登録できない。
            ログインしても埋まらない箱を並べることになるので、代わりに登録訴求を1枚置く。
-           「話を聞ける人」だけは残す（ログインすれば4名が見えるので、空箱ではない）。
       */}
-      {/* (c) 話を聞ける人（見出しは 2026-10-09 に「面談OKな人」から変えた。企業ページの
-             「この会社の話を聞ける人」と揃える。⚠️ 中の人に付くバッジ「面談OK」は状態のラベルなので残す）。
-             ⚠️ marginTop を 0 に。**このパネルが最上部に来ることがある**ため
-             （ログイン直後はフォローも保存も0件で、上の3パネルが出ない）。 */}
-      <div style={PANEL_STYLE}>
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>話を聞ける人</p>
-        {mentors.length === 0 ? (
-          hiddenMembersCount > 0 ? (
-            <div style={{ textAlign: "center", padding: "12px 0 8px" }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🔐</div>
-              <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 10, lineHeight: 1.6 }}>
-                ログインすると{hiddenMembersCount}名のプロフィールが見られます
-              </div>
-              <a href="/auth" style={{ display: "inline-block", padding: "7px 18px", borderRadius: 100, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-                ログイン / 会員登録 →
-              </a>
-            </div>
-          ) : (
-            <p style={EMPTY_STYLE}>まだ登録がありません</p>
-          )
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {mentors.map((m) => (
-              // ⚠️ 行全体を Link で包まないこと。中にフォローボタン（button）を置くため。
-              //    a の中に button を入れると不正な HTML になり、クリックが両方に飛ぶ。
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                {/* ⚠️ 遷移先は /u/[id]。2026-08-05 まで /mentors/{id} を指していたが、
-                    /mentors は next.config.mjs で /people へ 301 されるため、
-                    誰を押しても一覧に飛んで個人に辿り着けなかった。 */}
-                <Link
-                  href={`/u/${m.id}`}
-                  style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flex: 1, minWidth: 0 }}
-                >
-                  {m.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.photo_url} alt={m.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: m.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0 }}>
-                      {(m.name ?? "?").charAt(0)}
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {m.name}
-                    </div>
-                    {(m.current_role || m.current_company) && (
-                      <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {[m.current_role, m.current_company].filter(Boolean).join(" · ")}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                {/* 自分自身には出さない（API も 400 で弾くが、押せるボタンを出さないのが先） */}
-                {m.id !== myUserId && (
-                  <FollowUserButton
-                    targetUserId={m.id}
-                    initialFollowed={followedUserIds.includes(m.id)}
-                    isAuthenticated={myUserId !== null}
-                    compact
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {/* /mentors は /people への 308 リダイレクト。行き先に合わせた文言にする（2026-08-04） */}
-        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
-      </div>
-
+      {/* ⚠️ (c)「話を聞ける人」は 2026-10-16 に撤去した（面談OKの撤去・柴さんの判断） */}
       {/* (d) 掲載中の企業
              ⚠️ **常に中身がある枠**。フォロー・保存はログイン直後は必ず0件で、
                 以前はその空箱が右レールの縦の大半を占めていた。
@@ -1782,11 +1693,7 @@ function PostCard({
                   企業
                 </span>
               )}
-              {!post.user.is_system && post.post_type === "mentor_post" && (
-                <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--success-ink)", background: "var(--success-soft)", border: "1px solid #a7f3d0", borderRadius: 4, padding: "1px 5px" }}>
-                  面談OK
-                </span>
-              )}
+              {/* ⚠️ mentor_post の「面談OK」バッジは 2026-10-16 に撤去した */}
               {/* ⚠️ 投稿種別のバッジ。**本文から定型文を外した代わりに、ここが「何の出来事か」を担う**
                      （2026-08-13）。文字を増やさずに種別を伝えるのが役割なので、
                      文言は2〜4字に収めること。 */}
@@ -2103,36 +2010,7 @@ function PostCard({
         </div>
       )}
 
-      {/* メンター投稿: カジュアル面談CTA */}
-      {post.post_type === "mentor_post" && !post.user.is_system && (
-        <div
-          style={{
-            background: "var(--success-soft)",
-            border: "1px solid #a7f3d0",
-            borderRadius: 10,
-            padding: "10px 14px",
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-          }}
-        >
-          <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, color: "var(--success-ink)" }}>
-            {post.user.name}さんに話を聞いてみる
-          </span>
-          <Link
-            href={`/u/${post.user.id}`}
-            style={{
-              fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 12,
-              color: "var(--success-ink)", background: "#fff", border: "1px solid #a7f3d0",
-              borderRadius: 6, padding: "5px 12px", textDecoration: "none", whiteSpace: "nowrap",
-            }}
-          >
-            プロフィールを見る →
-          </Link>
-        </div>
-      )}
+      {/* ⚠️ メンター投稿の「◯◯さんに話を聞いてみる」は 2026-10-16 に撤去した */}
 
       {/* 画像 */}
       {post.image_url && (
@@ -2360,10 +2238,7 @@ export default function FeedClient({
   sidebarFollows,
   sidebarUserFollows,
   sidebarSavedJobs,
-  sidebarMentors,
   sidebarCompanies,
-  hiddenMembersCount,
-  followedUserIds,
   canPost,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
@@ -2716,11 +2591,8 @@ export default function FeedClient({
             follows={sidebarFollows}
             userFollows={sidebarUserFollows}
             savedJobs={sidebarSavedJobs}
-            mentors={sidebarMentors}
             companies={sidebarCompanies}
-            hiddenMembersCount={hiddenMembersCount}
             myUserId={myUserId}
-            followedUserIds={followedUserIds}
           />
         </div>
       )}

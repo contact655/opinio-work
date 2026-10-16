@@ -14,7 +14,7 @@ import type { EmployeesResponse } from "@/app/(jobseeker)/companies/[id]/Company
  * ── なぜこのファイルが要るか（2026-09-07）────────────────────────────────────
  * ⚠️★**同じページの2つのコンポーネントが、同じエンドポイントを別々に叩いていた。**
  *      - `CompanyEmployeeSections`（本文の「社員・OB/OG」）
- *      - `AmbassadorWidget`（サイドバーの「カジュアル面談OK」）
+ *      - `AmbassadorWidget`（サイドバーの「カジュアル面談OK」。2026-10-16 に撤去）
  *    実測（**本番** opinio.jp / `/companies/salesforce`）:
  *      viewer-state … 1回（`useCompanyViewerState` が同じ形で束ねているため）
  *      employees    … **2回**（start 489ms / 490ms・所要 133ms / 218ms）

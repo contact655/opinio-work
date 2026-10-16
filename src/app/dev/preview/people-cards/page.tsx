@@ -33,7 +33,6 @@ function person(over: Partial<AmbassadorCard> & { userId: string; name: string }
     hasForeignExperience: false,
     firstIndustry: null, currentIndustry: null,
     companyIds: [],
-    canTalk: false, acceptingCasualMeetings: false,
     publicScore: 0, experienceMonths: null, ageBand: null,
     createdAt: "2026-09-01T00:00:00Z", updatedAt: null,
     ...over,
@@ -47,10 +46,10 @@ const HEADLINE_40 = "SaaSの法人営業／ISからFSまで10年。次はエン�
 const PEOPLE: AmbassadorCard[] = [
   person({
     userId: "p1", name: "五十嵐 健二",
-    affiliation: { kind: "verified", companyId: "c-sfdc", companyName: "株式会社セールスフォース・ジャパン", roleTitle: "マネージャー" },
+    affiliation: { kind: "self", companyName: "株式会社セールスフォース・ジャパン", roleTitle: "マネージャー" },
     headline: HEADLINE_40,
     roleName: "アカウントエグゼクティブ",
-    canTalk: true, currentIndustry: "IT・ソフトウェア",
+    currentIndustry: "IT・ソフトウェア",
   }),
   person({
     userId: "p2", name: "安藤 誠司",

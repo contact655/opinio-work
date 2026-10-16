@@ -26,7 +26,7 @@ const ROLE_MAP: Record<string, {
   sales: {
     label: "エンタープライズ営業",
     labelEn: "Sales / Account Executive",
-    description: "外資系SaaS・IT企業の営業職経験者。新規開拓・商談・クロージングのリアルな話を聞けます。",
+    description: "外資系SaaS・IT企業の営業職経験者のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "📈",
     roleSlug: "sales",
     salarySlug: "enterprise-sales",
@@ -34,7 +34,7 @@ const ROLE_MAP: Record<string, {
   cs: {
     label: "カスタマーサクセス",
     labelEn: "Customer Success",
-    description: "顧客の継続・活用支援を担うCS職経験者。日々の業務や必要なスキルセットについて直接聞けます。",
+    description: "顧客の継続・活用支援を担うCS職経験者のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "🤝",
     roleSlug: "cs",
     salarySlug: "customer-success",
@@ -42,7 +42,7 @@ const ROLE_MAP: Record<string, {
   mkt: {
     label: "マーケティング",
     labelEn: "Marketing",
-    description: "B2B・SaaSマーケティング経験者。コンテンツ・需要創出・ブランド戦略など多彩なキャリアについて聞けます。",
+    description: "B2B・SaaSマーケティング経験者のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "📣",
     roleSlug: "marketing",
     salarySlug: null,
@@ -50,7 +50,7 @@ const ROLE_MAP: Record<string, {
   eng: {
     label: "ソフトウェアエンジニア",
     labelEn: "Software Engineer",
-    description: "IT企業の開発・インフラエンジニア経験者。技術スタック・開発文化・キャリアパスを直接確認できます。",
+    description: "IT企業の開発・インフラエンジニア経験者のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "⚙️",
     roleSlug: "engineer",
     salarySlug: "backend-engineer",
@@ -58,7 +58,7 @@ const ROLE_MAP: Record<string, {
   pm: {
     label: "プロダクトマネージャー",
     labelEn: "Product Manager",
-    description: "SaaS・IT企業のPM・PdM経験者。プロダクト戦略・ロードマップ・ステークホルダー調整の実態を聞けます。",
+    description: "SaaS・IT企業のPM・PdM経験者のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "🗂️",
     roleSlug: "product",
     salarySlug: "product-manager",
@@ -66,7 +66,7 @@ const ROLE_MAP: Record<string, {
   hr: {
     label: "人事・採用",
     labelEn: "HR / Talent Acquisition",
-    description: "IT企業で採用・HRBPを経験した方。組織づくり・採用の内側・キャリアの広がりについて聞けます。",
+    description: "IT企業で採用・HRBPを経験した方のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "👥",
     roleSlug: "corporate",
     salarySlug: null,
@@ -74,7 +74,7 @@ const ROLE_MAP: Record<string, {
   exec: {
     label: "経営・役員",
     labelEn: "Executive / Leadership",
-    description: "CEO・CTO・VP・事業部長など経営層経験者。意思決定・事業戦略・スタートアップの実態について聞けます。",
+    description: "CEO・CTO・VP・事業部長など経営層経験者のキャリア。どんな経歴の人が、どの会社で働いているかが分かります。",
     icon: "🏆",
     roleSlug: "exec",
     salarySlug: null,

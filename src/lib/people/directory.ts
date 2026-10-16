@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { talkableCompanyIds } from "@/lib/companyMembers/talkable";
 import { calcPublicScore } from "@/lib/profile/completion";
 import { isRegisteredUser } from "@/lib/users/registered";
 import {
@@ -32,30 +31,13 @@ import { resolveTopRole, expandWithAncestors } from "@/lib/roles/jobRoles";
  * visibility は従来どおり。private は常に除外、login_only はログイン時のみ。
  * is_test / is_system も除外する。
  *
- * ── 所属の出どころは2系統ある ───────────────────────────────────────────────
- *   verified … ow_company_members。企業ページに掲載されている所属
- *   self     … ow_experiences の is_current。本人の自己申告
- * カード側でロゴの有無を変えて区別する。混ぜて同じ見た目にしないこと。
- *
- * ⚠️ verified は「企業が在籍を確認した」という意味ではない。名前に反するので注意。
- *    2026-08-04 実測で、公開中の4件はすべて invited_at / invited_by が空＝
- *    運営が直接作った行。企業側の招待フロー（/api/biz/ambassador/invite）を
- *    通っておらず、ドメイン認証済みの企業も 85社中0社。
- *    この kind を根拠に「確認済み」と表示しないこと。
+ * ── 所属の出どころ ──────────────────────────────────────────────────────────
+ *   self … ow_experiences の is_current。本人の自己申告
+ * ⚠️★2026-10-16 まで `verified`（`ow_company_members`＝企業ページに「面談OK」として
+ *    掲載されている所属）があった。面談OKを撤去したので**職歴だけ**から作る。
  */
 
 export type Affiliation =
-  | {
-      kind: "verified";
-      companyId: string;
-      companyName: string;
-      roleTitle: string | null;
-      /* ⚠️★企業ロゴ（logoUrl / logoGradient / logoLetter）と `phase` は
-            2026-09-20 に落とした。カードからロゴを外した（柴さんの指示）ので
-            読み手が0になり、人数ぶんクライアントへ運ぶだけになっていたため。
-            `phase` はそれ以前から読み手が0件だった。
-            **足し戻さないこと** —— ロゴは足すとカードに画像を出す口が復活する。 */
-    }
   | {
       kind: "self";
       companyName: string;
@@ -76,7 +58,7 @@ export type Affiliation =
    * 職歴がまったく無い人の受け皿。最終学歴の学校名を出す。
    *
    * 想定は「登録直後でまだ職歴を入れていない人」。
-   * 職歴を入れれば past / self / verified のいずれかに変わるので、
+   * 職歴を入れれば past / self のいずれかに変わるので、
    * 定常的にはほとんど使われない。
    * ⚠️ 自由記述ではなく ow_user_educations.school を使う。品質が揃うため。
    */
@@ -157,30 +139,6 @@ export type DirectoryPerson = {
    *    出すと、本人が伏せた勤務先が id 経由で漏れる。
    */
   companyIds: string[];
-  /** ★「この会社の話を聞ける人」か（`lib/companyMembers/talkable.ts`）。
-   *  ⚠️ 旧 `canCasualMeeting`（`ow_users.can_casual_meeting`）から 2026-08-23 に置き換えた。
-   *     **名前ごと変えてある。** 同じ名前で意味だけ変えると、次に読む人が
-   *     運営フラグのつもりで参照する。 */
-  canTalk: boolean;
-  /**
-   * ★`canTalk` の人が在籍する企業が、いまカジュアル面談を受け付けているか。
-   *
-   * ⚠️ **2026-08-23 時点でどこからも使われていない。**
-   *    一度はバッジの文言を出し分けるのに使っていた（受付中だけ「面談可」、
-   *    それ以外は「話を聞けます」）が、柴さんの判断で**バッジは「面談可」に一本化**した。
-   * ⚠️★**2026-09-18 に `/people` の注釈も削除した**（柴さんの指示）ので、
-   *    申込可否を伝えているのは**企業ページの申込導線だけ**になった。
-   * ⚠️ **これを使ってバッジを出し分ける実装を勝手に戻さないこと。**
-   * ⚠️ 追加のクエリは発生していない（既存の JOIN に列を1つ足しただけ）ので、
-   *    残しておく費用は無い。
-   *
-   * ⚠️ **`canTalk` の判定に混ぜないこと。** 人が出るかどうかは本人の同意で決まり、
-   *    受付状態は企業の都合で変わる。混ぜると、企業が受付を止めた瞬間に
-   *    「本人が同意した事実」まで画面から消える（`lib/companyMembers/talkable.ts` の方針D）。
-   * ⚠️ 2026-08-23 実測: バッジが出る4名のうち受付中は1社だけ。
-   *    だから全員を「面談可」と書くと 3/4 が誤表示になる。
-   */
-  acceptingCasualMeetings: boolean;
   /** 公開項目だけの完成度（81点満点）。既定の並び順に使う */
   publicScore: number;
   /** 最初の職歴の開始から現在（または最後の終了）までの月数。職歴が無ければ null */
@@ -248,17 +206,6 @@ type ExpRow = {
   company_text: string | null;
   company_anonymized: string | null;
   ow_companies: { name: string | null } | { name: string | null }[] | null;
-};
-
-type MemberRow = {
-  user_id: string;
-  role_title: string | null;
-  company_id: string;
-  ow_companies: {
-    id: string; name: string | null; brand_name: string | null;
-    /** バッジの文言の出し分けにだけ使う。**`canTalk` の判定には混ぜない**（下記） */
-    accepting_casual_meetings: boolean | null;
-  } | null;
 };
 
 /**
@@ -345,7 +292,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   // 完成度と所属の材料をまとめて引く。
   // ⚠️ 希望条件（ow_profiles）は引かない。公開されない情報を並び順に混ぜないため
   //    （src/lib/profile/completion.ts の PUBLIC_KEYS を参照）。
-  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, foreignRes, industryRes, memberRes, roleTree] = await Promise.all([
+  const [expRes, eduRes, linkRes, achRes, awdRes, medRes, foreignRes, industryRes, roleTree] = await Promise.all([
     /* ⚠️★**並び順を指定すること**（2026-09-18）。下の `myExps.find((e) => e.is_current)`
           （所属）と `find((e) => e.is_current && e.role_category_id)`（職種）は
           **配列の先頭の現職**を採るので、順序を空けると**並行在籍の人のカードが
@@ -377,16 +324,13 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
           （複合FKの `ow_company_target_industries` とは違う）。
        ⚠️ 企業数は105件（2026-09-18）なので1回引いても軽い。 */
     db.from("ow_companies").select("id, ow_industries!industry_id(name)"),
-    db.from("ow_company_members")
-      .select("user_id, role_title, company_id, ow_companies!company_id(id, name, brand_name, accepting_casual_meetings)")
-      .eq("display_consent", true).eq("is_public", true).in("user_id", ids),
     getRoleTree(),
   ]);
 
   for (const [label, res] of Object.entries({
     experiences: expRes, educations: eduRes, links: linkRes,
     achievements: achRes, awards: awdRes, media: medRes,
-    members: memberRes, foreignCompanies: foreignRes, companyIndustries: industryRes,
+    foreignCompanies: foreignRes, companyIndustries: industryRes,
   })) {
     if (res.error) console.error(`[people] ${label} fetch error:`, res.error.message);
   }
@@ -412,7 +356,6 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     ...((awdRes.data ?? []) as { user_id: string }[]),
     ...((medRes.data ?? []) as { user_id: string }[]),
   ]);
-  const members = byUser((memberRes.data ?? []) as unknown as MemberRow[]);
   const foreignCompanyIds = new Set(((foreignRes.data ?? []) as { id: string }[]).map((c) => c.id));
 
   /* ★会社 → 業種名。業種が未設定の企業は入れない（下で null になり、行ごと出なくなる）。 */
@@ -450,22 +393,11 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     const currentIndustry = industryPath[0] ?? null;
     const firstIndustry   = industryPath[industryPath.length - 1] ?? null;
 
-    const myMembers = members.get(u.id) ?? [];
-
-    // ── 所属。企業側の掲載 > 現職 > 直近の退職済み > なし ────────────────
+    // ── 所属。現職 > 直近の退職済み > なし ────────────────
     //    ⚠️ どの経路でも visibility_company を尊重する。hidden の経歴は社名を出さない。
     let affiliation: Affiliation = { kind: "none" };
 
-    const verified = myMembers.find((m) => m.ow_companies?.name || m.ow_companies?.brand_name);
-    if (verified && verified.ow_companies) {
-      const c = verified.ow_companies;
-      affiliation = {
-        kind: "verified",
-        companyId: c.id,
-        companyName: c.brand_name ?? c.name ?? "",
-        roleTitle: shortenRoleTitle(verified.role_title),
-      };
-    } else {
+    {
       const current = myExps.find((e) => e.is_current);
       const currentLabel = current ? resolveExperienceCompanyLabel(current) : null;
       if (currentLabel) {
@@ -538,16 +470,6 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
         Object.values(u.social_links ?? {}).filter(Boolean).length + (links.get(u.id) ?? []).length,
     });
 
-    /* ★「話を聞ける会社」の id。バッジの有無（canTalk）と文言（受付中か）の
-          両方がここから決まるので、1回だけ計算して使い回す。
-       ⚠️ 判定は `lib/companyMembers/talkable.ts`。ここに書き直さないこと。
-       ⚠️ 企業の受付状態は **talkableCompanyIds の中に入れない**（方針D）。
-          受付は下の acceptingCasualMeetings で別に見る。 */
-    const talkableIds = talkableCompanyIds(
-      (members.get(u.id) ?? []).map((m) => m.company_id),
-      (exps.get(u.id) ?? []).flatMap((e) => (e.is_current && e.company_id ? [e.company_id] : [])),
-    );
-
     return {
       userId: u.id,
       name: u.name!,
@@ -565,14 +487,6 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
       currentIndustry,
       /* ★在籍した企業の id（「同じ会社にいた人」用）。⚠️ 画面に出さない（型のコメント参照） */
       companyIds: Array.from(new Set(myExps.flatMap((e) => (e.company_id ? [e.company_id] : [])))),
-      /* ★「話を聞ける人」の判定（2026-08-23 / B-1）。
-            ⚠️ 判定は `lib/companyMembers/talkable.ts` に置いてある。ここに書き直さないこと。
-            ⚠️ 企業の受付状態は見ない（方針D）。人の表示は本人の同意で決まる。 */
-      canTalk: talkableIds.length > 0,
-      /* ★バッジの文言用。**判定そのものは上の canTalk と別建てにしてある**（型のコメント参照） */
-      acceptingCasualMeetings: (members.get(u.id) ?? []).some(
-        (m) => talkableIds.includes(m.company_id) && m.ow_companies?.accepting_casual_meetings === true,
-      ),
       publicScore,
       /* ⚠️ 空文字は null に畳む。呼び出し側が `card.headline && …` で描くので、
             空文字のまま渡すと**空の行が1本出る**（高さだけ増える）。 */

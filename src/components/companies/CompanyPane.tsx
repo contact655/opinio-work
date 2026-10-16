@@ -272,7 +272,7 @@ export function CompanyPane({
         </div>
       )}
 
-      {/* ── ★社員・OB/OG、面談OKの人（2026-09-18）──────────────────────────────
+      {/* ── ★社員・OB/OG（2026-09-18）──────────────────────────────
              ⚠️ 閲覧者で中身が変わるのでクライアントで取る。取得は `useCompanyEmployees`
                 （企業IDごとに1本だけ飛ばす仕組み）。**素の fetch を書かないこと。** */}
       <CompanyPaneEmployees companyId={company.id} detailHref={detailHref} />

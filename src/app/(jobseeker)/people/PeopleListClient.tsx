@@ -199,7 +199,7 @@ export function PeopleCardStyles() {
               margin-bottom: 6px; overflow-wrap: anywhere;
             }
             /* 元所属（元◯◯）と学校名。現職の社名より弱く出す。
-               ⚠️★**現職（verified / self）には付けない。** 2026-09-20 に企業ロゴを外すまで、
+               ⚠️★**現職（self）には付けない。** 2026-09-20 に企業ロゴを外すまで、
                   この弱い見た目は「ロゴが無い＝自己申告」の補助だった。ロゴが無くなった今は
                   「現職の社名」と「それ以外」を分けるためだけに使う。
                ⚠️★.ppl-company-logo と .ppl-company-logo-fallback は同日に削除した。
@@ -281,7 +281,7 @@ export function PeopleCardStyles() {
             }
             .ppl-chip:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
             /* ⚠️★active の見た目は components/common/FilterChip と揃えてある（2026-09-18）。
-                  同じ行に「詳細検索 / 外資 / 面談OK」（このクラス）と
+                  同じ行に「詳細検索 / 外資」（このクラス）と
                   「職種 / 年代」（FilterChip）が並ぶので、ずれると2種類のチップに見える。
                ⚠️ 以前あった box-shadow と font-weight:700 はそのために外した。片方だけ戻さないこと。
                ⚠️ ここは style タグのテンプレートリテラルの中。バッククォートを書かないこと。 */
@@ -333,17 +333,12 @@ function Avatar({ card, size }: { card: AmbassadorCard; size: number }) {
 /**
  * 所属の表示。出どころで見た目を変える。
  *
- *   verified … ow_company_members 由来。社名のテキストのみ
- *   self     … ow_experiences の現職。verified と同じ見た目
+ *   self      … ow_experiences の現職。社名のテキストのみ
  *   past      … 現職が無い人の直近の所属。「元 Salesforce」の形
  *   education … 職歴がまだ無い人の最終学歴。学帽アイコン + 学校名
  *   none      … 何も出さない（この人はそもそも一覧に出ない）
  *
- * ⚠️ verified は「企業が在籍を確認した」という意味ではない。2026-08-04 実測で、
- *    公開中の4件はすべて invited_at / invited_by が空＝運営が直接作った行であり、
- *    企業側の招待フローを通っていない。ドメイン認証済みの企業も 85社中0社。
- *    在籍確認済みを示す ✓ を出していたが、根拠が無いため同日削除した。
- *    企業側の確認フローが実際に回り始めるまで、確認済みを示す印を復活させないこと。
+ * ⚠️ 在籍確認済みを示す ✓ を出さないこと（OPINIO は在籍確認をしていない）。
  *
  * ⚠️ カードに自由記述（自己紹介 / 役職名）は出さない。人によって品質がばらつき、
  *    一覧の比較軸が崩れるため。出すのは所属企業と ow_roles の職種だけ。
@@ -376,26 +371,9 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
     );
   }
 
-  if (a.kind === "self") {
-    /* ⚠️★verified と**同じ見た目**にしてある（2026-09-20）。
-          それまで self だけ弱く出していたが、区別の担い手はロゴだった
-          （CSS に「企業ロゴを付けない = 承認済みと区別が付く」と書いてあった）。
-          ロゴを外した以上、**文字の太さだけが違う**状態は読み手に解読できない。
-       ⚠️ そもそも verified は「企業が在籍を確認した」という意味ではない（冒頭の注記）。
-          **弱く出し直さないこと。** */
-    return (
-      <div className="ppl-company">
-        <span>{a.companyName}</span>
-      </div>
-    );
-  }
-
-  /* verified。⚠️★**企業ロゴを出さないこと**（2026-09-20 / 柴さんの指示）。
-        それまでは社名の左に 22px のロゴ（画像が無い企業は「K」「A」の文字四角）を
-        置いていたが、**文字四角は隣の社名と同じ情報しか運んでいない**うえ、
-        実ロゴを持つ企業（HPE・CTC）と持たない企業（KOSKA・Archi Village）で
-        **同じ一覧の中に「アイコン付きの行」と「テキストだけの行」が混在**していた。
-        LinkedIn の「つながりの提案」も社名はテキストだけ。**画像を足し戻さない。** */
+  /* self。⚠️★**企業ロゴを出さないこと**（2026-09-20 / 柴さんの指示）。
+        文字四角は隣の社名と同じ情報しか運ばず、実ロゴの有無で行の形が混在していた。
+     ⚠️ 2026-10-16 に `verified`（`ow_company_members` 由来）を撤去した。所属は職歴だけから作る。 */
   return (
     <div className="ppl-company">
       <span>{a.companyName}</span>
@@ -419,44 +397,12 @@ export function GridCard({ card, myUserId, followedUserIds }: {
   //    同じ職種でも読み手が毎回解釈することになるため（2026-08-04）。
   //    肩書きそのものに意味がある /u/[id] と /biz/candidates では役職名を残している。
   const role = card.roleName;
-  /* ★判定は `ow_company_members` で公開中 ＋ その企業に在籍中の経歴（2026-08-23 / B-1）。
-        ⚠️ 以前は `ow_users.can_casual_meeting`（運営が個別に立てるフラグ）だった。
-           本人の申請＋企業の承認へ一本化したので、運営フラグは見ない。
-        ⚠️ **企業の受付状態は見ない**（方針D）。バッジは「申し込める」ではなく
-           「この会社について話してよいと言っている人」を意味する。 */
-  const isAvailable = card.canTalk;
-
   return (
     <div
       onClick={() => router.push(`/u/${card.userId}`)}
       className="ppl-grid-card"
       style={{ position: "relative" }}
     >
-      {/* 右上 面談可バッジ */}
-      {isAvailable && (
-        <span style={{
-          position: "absolute", top: 10, right: 10,
-          display: "inline-flex", alignItems: "center", gap: 4,
-          fontSize: 12, fontWeight: 700,
-          padding: "3px 9px", borderRadius: 100,
-          background: "#FFF7ED", color: "#C2410C",
-          border: "1px solid #FED7AA", whiteSpace: "nowrap",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          zIndex: 1,
-        }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-          {/* ★バッジは**本人が同意していれば「面談可」**（2026-08-23 に方針変更）。
-                 会社の受付状態では出し分けない。
-              ⚠️ **一度は受付状態で出し分けていた**（受付中だけ「面談可」、
-                 それ以外は「話を聞けます」）が、柴さんの判断で一本化した。
-              ⚠️ そのぶん**申し込めない相手にも「面談可」と出る。**
-                 実測（2026-08-23）でバッジが出る4名のうち会社が受付中なのは1社だけ。
-                 画面下の注釈で「申込可否は会社ごとに異なる」ことを必ず書いておくこと。
-              ⚠️ 文言は企業ページ・`/u/[id]` のバッジと揃える（出所が同じ）。 */}
-          面談OK
-        </span>
-      )}
-
       {/* アバター */}
       <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
         <Avatar card={card} size={88} />
@@ -590,18 +536,7 @@ export function ListRow({ card, myUserId, followedUserIds }: {
       <div style={{ flex: "0 1 auto", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span className="ppl-row-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", transition: "color 0.15s" }}>{card.name}</span>
-          {card.canTalk && (
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 100,
-              background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA",
-              whiteSpace: "nowrap",
-            }}>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-              {/* ⚠️ 文言はカード・企業ページ・/u/[id] と揃える（出所が同じ） */}
-              面談OK
-            </span>
-          )}
+          {/* ⚠️ 名前の右の「面談OK」バッジは 2026-10-16 に撤去した */}
         </div>
 
         {/* ★会社 → 職種 → 業種の移り変わりを**1行に畳んである**（2026-09-18）。
@@ -710,7 +645,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     [searchParams],
   );
   const rel = searchParams.get("rel") ?? "";
-  const meetingOnly = searchParams.get("meeting") === "1";
+  /* ⚠️ `?meeting=1`（面談OKだけ）は 2026-10-16 に撤去した。古いURLは無視される */
   /* ★詳細検索の条件（2026-09-18）。**すべて URL**。共有・リロード・戻るで同じ結果になる。
      ⚠️ 同じ項目の中は OR、項目どうしは AND（`/companies` と同じ約束）。 */
   const ages = useMemo(
@@ -737,7 +672,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   /* ★詳細検索パネルの開閉。⚠️ URL には入れない（条件ではなく画面の状態）。
         ⚠️ 条件が付いているときは**開いた状態で始める**。閉じたまま結果だけ絞られていると
            理由が画面から読めない（`/jobs` で 2026-09-09 に同じ判断をしている）。 */
-  const activeFilterCount = roles.length + ages.length + (foreignOnly ? 1 : 0) + (meetingOnly ? 1 : 0);
+  const activeFilterCount = roles.length + ages.length + (foreignOnly ? 1 : 0);
   const [detailOpen, setDetailOpen] = useState(false);
 
   /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
@@ -817,9 +752,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     const q = keyword.trim().toLowerCase();
     return ambassadors.filter((a) => {
       if (!matchRole(a, roles, roleSlugToId)) return false;
-      /* ★面談OK。⚠️ 判定は directory.ts の `canTalk`（lib/companyMembers/talkable.ts）。
-            ここで display_consent 等の条件を書き直さないこと。 */
-      if (meetingOnly && !a.canTalk) return false;
       /* ★外資。⚠️ 判定は directory.ts の `hasForeignExperience`（`ow_companies.is_foreign`）。
             `/companies` の「外資系」と同じ元データ。会社名から推測しない。
          ⚠️ マスタに紐付いていない職歴（自由入力の社名）の人は false になり、
@@ -858,7 +790,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       return byText || byAlias;
     });
   }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
-      meetingOnly, rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet,
+      rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet,
       foreignOnly, ages]);
 
   const sorted = useMemo(() => {
@@ -1058,10 +990,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                   onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
                   外資
                 </button>
-                <button type="button" className={`ppl-chip${meetingOnly ? " active" : ""}`}
-                  onClick={() => setParam({ meeting: meetingOnly ? "" : "1" })} aria-pressed={meetingOnly}>
-                  面談OK
-                </button>
             </DetailSearchPanel>
             </div>
 
@@ -1077,7 +1005,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                   ...ages.map((v) => ({ key: `a-${v}`, label: AGE_OPTIONS.find((o) => o.value === v)?.label ?? v,
                     clear: () => setAges(ages.filter((x) => x !== v)) })),
                   ...(foreignOnly ? [{ key: "foreign", label: "外資", clear: () => setParam({ foreign: "" }) }] : []),
-                  ...(meetingOnly ? [{ key: "meeting", label: "面談OK", clear: () => setParam({ meeting: "" }) }] : []),
                 ]} />
               </div>
             )}
@@ -1088,17 +1015,14 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       <div className="ppl-wrap" style={{ margin: "0 auto", padding: "16px 24px 80px" }}>
        <div className="ppl-layout">
         {/* ⚠️ `sidebar` が null なのは未ログイン（middleware で入れないはず）か
-               自分の行が引けなかったとき。そのときは出さず、面談OKの注意書きだけ下で補う。 */}
+               自分の行が引けなかったとき。そのときは出さない。 */}
         {sidebar && (
           <PeopleSidebar
             me={sidebar.me}
             counts={sidebar.counts}
             nextStep={sidebar.nextStep}
-            meetingOk={sidebar.meetingOk}
             rel={rel}
             onRel={(v) => setParam({ rel: v })}
-            meetingFilter={meetingOnly}
-            onMeetingFilter={(v) => setParam({ meeting: v ? "1" : "" })}
             myRole={sidebar.myRole}
             roleFilter={roles}
             onRole={setRoles}

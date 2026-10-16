@@ -31,8 +31,6 @@ export type PeopleSidebarData = {
   /** ⚠️★型は `ProfileCard` に集約している。ここで作り直さないこと（割れると片方だけ直る） */
   counts: ProfileCardData["counts"];
   nextStep: { label: string; href: string } | null;
-  /** ⚠️ `null` は「`ow_company_members` の行が無い」＝サイドバーに行ごと出さない */
-  meetingOk: boolean | null;
   myRole: { slug: string; label: string } | null;
   /** 在籍した企業の id（現職・過去）。⚠️ 画面に出さない。突き合わせにだけ使う */
   myCompanyIds: string[];
@@ -73,7 +71,7 @@ function pickNextStep(d: {
 export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSidebarData | null> {
   const db = createAdminClient();
 
-  const [userRes, expRes, eduRes, memberRes, companyFollowRes, savedJobRes, counts, roleTree] = await Promise.all([
+  const [userRes, expRes, eduRes, companyFollowRes, savedJobRes, counts, roleTree] = await Promise.all([
     db.from("ow_users").select("id, name, avatar_url, avatar_color, headline, about_me").eq("id", owUserId).maybeSingle(),
     /* ⚠️★**並び順を指定すること**（2026-09-18）。下で `find(is_current)` が
           **配列の先頭の現職**を代表に採るので、順序を空けると
@@ -90,7 +88,6 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       .order("started_at", { ascending: false })
       .order("id", { ascending: true }),
     db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owUserId),
-    db.from("ow_company_members").select("id, is_public, display_consent").eq("user_id", owUserId),
     db.from("ow_company_follows").select("id", { count: "exact", head: true }).eq("follower_user_id", owUserId),
     /* ★保存した募集（♡）。⚠️ **フォローではない。** 募集に「フォロー」は存在せず、
           `ow_bookmarks` の `target_type='job'` が唯一の実体（2026-09-18 に確認）。
@@ -106,7 +103,6 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
   if (userRes.error) console.error("[peopleSidebar ow_users]", userRes.error.message);
   if (expRes.error) console.error("[peopleSidebar ow_experiences]", expRes.error.message);
   if (eduRes.error) console.error("[peopleSidebar ow_user_educations]", eduRes.error.message);
-  if (memberRes.error) console.error("[peopleSidebar ow_company_members]", memberRes.error.message);
   if (companyFollowRes.error) console.error("[peopleSidebar ow_company_follows]", companyFollowRes.error.message);
   if (savedJobRes.error) console.error("[peopleSidebar ow_bookmarks]", savedJobRes.error.message);
 
@@ -130,7 +126,6 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
     ? resolveTopRole(roleTree, current.role_category_id as string)
     : null;
 
-  const members = memberRes.data ?? [];
 
   return {
     me: {
@@ -155,10 +150,6 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       hasHeadline: !!(u.headline as string | null)?.trim(),
       educationCount: eduRes.count ?? 0,
     }),
-    /* ⚠️ 行が無ければ null（サイドバーは行ごと出さない）。false と混ぜないこと */
-    meetingOk: members.length === 0
-      ? null
-      : members.some((m) => m.is_public === true && m.display_consent === true),
     myRole: topRole?.slug ? { slug: topRole.slug, label: topRole.name } : null,
     myCompanyIds: Array.from(new Set(exps.flatMap((e) => (e.company_id ? [e.company_id as string] : [])))),
   };

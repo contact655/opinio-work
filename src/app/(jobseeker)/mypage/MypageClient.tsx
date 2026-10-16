@@ -8,9 +8,6 @@ import MypageLayout from "./_components/MypageLayout";
 import IntentCard from "@/components/profile/editor/IntentCard";
 /* ★公開プロフィール（`/u/[id]`）と同じ部品（2026-08-25）。**似た見た目を書き足さない** */
 import { ActivitySection, ProfileArticlesSection } from "@/components/profile/view/ProfileSections";
-import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
-import { isTalkable } from "@/lib/companyMembers/talkable";
-import type { CompanyMemberRow } from "@/lib/constants/companyMembers";
 /* ⚠️ プロフィール編集の本体。2026-08-16 に `/profile/edit` からここへ移した。
       **中身は書き換えていない**（置き場所を変えただけ）。 */
 import ProfileEditor from "@/components/profile/editor/ProfileEditor";
@@ -208,10 +205,6 @@ function DashboardView({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-/* ⚠️ 型は `memberState()` が要求する形をそのまま使う。
-      ここで別に定義すると、列を足したときに片方だけ古くなる。 */
-type AmbassadorMembership = CompanyMemberRow;
-
 /** `ProfileEditor` にそのまま渡すプロップ。★親で1つずつ数え直さない */
 type ProfileEditorProps = Omit<ComponentProps<typeof ProfileEditor>, "owUser">;
 
@@ -226,8 +219,6 @@ export default function MypageClient({
   /* ⚠️ 分割代入で取り出す。取り出さないと `...editorProps` に入って ProfileEditor へ流れる */
   inbox,
   isNewUser = false,
-  ambassadorMemberships = [],
-  currentCompanies = [],
   schoolPeerCounts = {},
   recentPosts = [],
   likedPostIds = [],
@@ -262,8 +253,6 @@ export default function MypageClient({
   /** ★「届いているもの」のカード（2026-10-09）。数え方は lib/mypage/navBadges.ts */
   inbox?: { proposals: number | null; messageRequests: number; approaches?: number | null };
   isNewUser?: boolean;
-  ambassadorMemberships?: AmbassadorMembership[];
-  currentCompanies?: { id: string; name: string }[];
   schoolPeerCounts?: Record<string, number>;
   /* ── ★公開プロフィールと同じ構成にするための3つ（2026-08-25 / 柴さんの指示）──
         ⚠️ 取得は `page.tsx` が持つ。ここは**受け取って渡すだけ**。 */
@@ -331,9 +320,7 @@ export default function MypageClient({
              ⚠️ **右カラムの先頭に置く。** 767px 以下では右カラムごと `order: -1` で
                 本文の上に来るので、モバイルでは最初に目に入る。
              ⚠️ 値は `editorProps` から読む。`ProfileEditor` → `ProfileTab` の
-                受け渡しは外したので、**本文に戻すならここから外すこと。**
-             ⚠️ 「話を聞かれてもよい」の行は**在籍中かつ企業マスタに紐づく会社がある人だけ**に出る
-                （0件なら行ごと出ない。判定は `IntentCard` 側）。 */}
+                受け渡しは外したので、**本文に戻すならここから外すこと。** */}
       <IntentCard
         stanceUpdatedAt={intentProps.initialProfilePrefs?.stance_updated_at ?? null}
         initialPrefs={{
@@ -349,8 +336,6 @@ export default function MypageClient({
         }}
         roles={intentProps.roles ?? []}
         desiredRoleOptions={intentProps.desiredRoleOptions}
-        currentCompanies={currentCompanies}
-        memberships={ambassadorMemberships}
         /* ★職歴の件数（2026-09-10）。⚠️ `currentCompanies` で代用しないこと ——
               あれは**在籍中かつ企業マスタに紐づく**会社だけで、自由入力の在籍先や
               過去の職歴を数えない（実ユーザー11人中5人が自由入力）。 */
@@ -474,7 +459,7 @@ export default function MypageClient({
             {[
               { step: 1, label: "企業を1社お気に入りに追加する", href: "/companies", cta: "企業一覧を見る →" },
               { step: 2, label: "募集を1件確認する", href: "/jobs", cta: "募集を見る →" },
-              { step: 3, label: "面談OKの人を探してみる", href: "/people", cta: "登録ユーザーを見る →" },
+              { step: 3, label: "登録ユーザーのキャリアを見てみる", href: "/people", cta: "登録ユーザーを見る →" },
             ].map(({ step, label, href, cta }) => (
               <div key={step} style={{
                 display: "flex", alignItems: "center", gap: 12,
@@ -541,15 +526,6 @@ export default function MypageClient({
                 />
               }
               articlesSlot={<ProfileArticlesSection featuredArticles={featuredArticles} />}
-              /* ★「面談可」（2026-08-25 / 柴さんの指示）。
-                    ⚠️ 判定は `/u[id]` `/people` と**同じ関数**（`isTalkable`）を通す。
-                       ここで `display_consent` だけを見る等、別の条件を書かないこと。
-                    ⚠️ 在籍中であることも要る。退職して `is_current` を false にすると
-                       自動で降りる（`talkable.ts` の②）。 */
-              talkableBadge={isTalkable(
-                ambassadorMemberships.filter((m) => m.display_consent && m.is_public).map((m) => m.company_id),
-                currentCompanies.map((c) => c.id),
-              ) ? <TalkableBadge /> : null}
             />
           )}
         />

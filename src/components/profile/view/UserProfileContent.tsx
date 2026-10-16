@@ -7,13 +7,10 @@
  */
 import { CandidateNotesPanel } from "@/components/candidateNotes/CandidateNotesPanel";
 import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
-import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { notFound } from "next/navigation";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isTalkable } from "@/lib/companyMembers/talkable";
-import { TalkableBadge } from "@/components/profile/view/TalkableBadge";
 import Link from "next/link";
 import { type SocialPlatform } from "@/components/SocialIcon";
 import MergedTimeline from "@/components/profile/MergedTimeline";
@@ -27,7 +24,6 @@ import {
   type CompanyLogoInfo,
 } from "@/lib/utils/timeline";
 import { getAllRoleRowsCached } from "@/lib/supabase/queries";
-import { filterOpenCasualMeetingCompanies } from "@/lib/company/casualMeeting";
 import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
@@ -50,13 +46,11 @@ import {
   ProfileSkillsSection,
   ProfileMediaSection,
   ProfileTimelineSection,
-  SectionTitle,
   ProfileArticlesSection,
   ActivitySection,
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
-import { ProfileHeader, shortCompanyName } from "@/components/profile/view/ProfileHeader";
-import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
+import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -449,19 +443,14 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   );
 
   const companyInfoById = new Map<string, CompanyLogoInfo>();
-  /** company_id → slug（null 可）。`/jobs?company=` を組むためだけに持つ */
-  const companySlugById = new Map<string, string | null>();
   if (allCompanyIds.length > 0) {
     // adminSupabase を使い is_published=false の企業名も取得（プロフィール表示用）
     const { data: expCompanies, error: expCompaniesErr } = await adminSupabase
       .from("ow_companies")
-      /* ⚠️ slug は `/jobs?company=` を組むために足した（2026-08-15）。
-            CompanyLogoInfo には載せない（タイムライン側では使わないため）。 */
-      .select("id, slug, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
+      .select("id, name, logo_url, logo_letter, logo_gradient, industry, phase, employee_count, is_published")
       .in("id", allCompanyIds);
     if (expCompaniesErr) console.error("[u/[id]] ow_companies:", expCompaniesErr.message);
     for (const c of expCompanies ?? []) {
-      companySlugById.set(c.id as string, (c.slug as string | null) ?? null);
       companyInfoById.set(c.id as string, {
         name: c.name as string,
         logoUrl: (c.logo_url as string | null) ?? null,
@@ -507,75 +496,13 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   // → company_id が非 null = 企業ページへのリンクが有効
   const isCurrentCompanyKnown = !!currentCareer?.company_id;
 
-  /* ⚠️ 面談CTAは「企業が判明している」だけでは出さない（2026-08-11）。
-        在籍企業が面談を受け付けていない（＝宛先が無い）と、押した先が
-        「受け付けていません」になる。
-        ⚠️ 2026-08-11 時点では実害が出ていなかった。在籍企業が受付停止の3人は
-           たまたま全員 can_casual_meeting = false で、既存の条件に救われていた。
-           **その偶然に頼らない。** 片方が true になった瞬間に死にリンクになる。
-        判定は lib/company/casualMeeting.ts に一本化してある。 */
-  /* ★「この会社の話を聞ける人」か（2026-08-23 / B-1）。
-        判定は `lib/companyMembers/talkable.ts`：`ow_company_members` で公開中 ＋
-        その企業に在籍中の経歴があること。**企業の受付状態は見ない**（方針D）。
-        ⚠️ 以前は `ow_users.can_casual_meeting`（運営が個別に立てるフラグ）だった。
-        ⚠️ 掲載可否の判定なので admin クライアントで引く。`ow_company_members` は
-           anon/authenticated に列単位でしか開いておらず、閲覧者によって欠ける。 */
-  const { data: memberRows, error: memberErr } = await adminSupabase
-    .from("ow_company_members")
-    .select("company_id")
-    .eq("user_id", owUser.id)
-    .eq("display_consent", true)
-    .eq("is_public", true);
-  /* ⚠️ 握り潰さない。空になると「話を聞けません」と誤って出る。 */
-  if (memberErr) console.error("[u/[id]] ow_company_members:", memberErr.message);
+  /* ⚠️★「この会社の話を聞ける人」のバッジ・カジュアル面談の指名ボタン・在籍企業の求人の宣伝は
+        2026-10-16 に**撤去した**（柴さんの判断。面談OKの撤去）。
+        宣伝は「本人が話を聞かれてもよいと登録している」ことを条件にしていたので、その登録が
+        無くなった以上、個人のプロフィールを在籍企業の求人広告にしない（汎用の案内だけ出す）。
+        ⚠️ ヘッダーの会社ブロック（在籍している会社へのリンク）は肩書きの一部なので残してある。 */
 
-  const isTalkableHere = isTalkable(
-    ((memberRows ?? []) as { company_id: string }[]).map((m) => m.company_id),
-    [currentCareer?.company_id ?? null],
-  );
-
-  const currentCompanyMeetingOpen =
-    currentCareer?.company_id
-      ? (await filterOpenCasualMeetingCompanies([currentCareer.company_id])).has(currentCareer.company_id)
-      : false;
-
-  /**
-   * ★在籍企業の宣伝（求人一覧・企業ページへの誘導）を、このページに出してよいか（2026-08-23）。
-   *
-   * **バッジが「面談可」になる条件と同じ**（本人が話を聞かれてもよいと登録していて、
-   * かつ企業が面談を受け付けている）。
-   *
-   * ⚠️ **本人の同意が無いのに、個人のプロフィールを企業の求人広告にしない。**
-   *    「話を聞ける人」の掲載は本人の申請＋企業の承認で成り立っており
-   *    （`lib/companyMembers/talkable.ts` 方針D）、同意していない人のページに
-   *    在籍企業の募集を並べると、本人が企業の窓口であるかのように読まれる。
-   *
-   * ⚠️ 満たさないときは**汎用のフッター**（IT求人を見る / 企業を見る）に落ちる。
-   *    フッターごと消さないのは、ページの終わりが唐突になるため。
-   *
-   * ⚠️ **ヘッダーの「〇〇 の企業ページ」リンクはこの判定の対象外。**
-   *    あれは「この人はここに在籍している」という肩書きの一部で、宣伝ではない。
-   */
-  const canPromoteCurrentCompany = isTalkableHere;
-
-  /* ⚠️ この2本も互いに独立なので並列にする（2026-08-09）。
-        求人は在籍企業に、記事は本人にぶら下がっており、参照し合わない。 */
-  const [jobsRes, articlesRes] = await Promise.all([
-    /* 在籍企業の募集中求人（本文カラム最下部の求人セクション用）
-       ⚠️ `count: "exact"` を付けるのは、見出しの「N件」を**総数**にするため。
-          2026-08-15 まで `limit(3)` で取った行数をそのまま「N件」と出していたので、
-          10件募集していても「3件」と表示されていた（実データでは
-          Salesforce が公開5件なので「3件」と出ていた）。
-       ⚠️ 表示条件は status='published' かつ is_test=false の2つだけ。
-          ここを増やすと企業ページ側の求人一覧と件数が食い違う。 */
-    currentCareer?.company_id
-      ? supabase
-          .from("ow_jobs")
-          .select("id, title", { count: "exact" })
-          .eq("company_id", currentCareer.company_id)
-          .match(PUBLIC_JOB_MATCH)
-          .limit(3)
-      : Promise.resolve({ data: null as Array<{ id: string; title: string }> | null, count: null as number | null }),
+  const [articlesRes] = await Promise.all([
     // OPINIO掲載記事（ow_articles.user_id でリンクされたもの）
     supabase
       .from("ow_articles")
@@ -586,10 +513,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
       .limit(6),
   ]);
 
-  const currentCompanyJobs = (jobsRes.data ?? []) as Array<{ id: string; title: string }>;
-  /** 在籍企業の公開求人の**総数**。取れなければ表示済みの件数に倒す（0件を捏造しない） */
-  const currentCompanyJobCount =
-    (jobsRes as { count?: number | null }).count ?? currentCompanyJobs.length;
   const featuredArticlesRaw = articlesRes.data;
   const featuredArticles = (featuredArticlesRaw ?? []) as Array<{
     id: string; slug: string; title: string; subtitle: string | null;
@@ -706,13 +629,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
           socialLinks={socialLinks}
           currentCareer={currentCareer}
           isCurrentCompanyKnown={isCurrentCompanyKnown}
-          /* ★「この会社の話を聞けます」（2026-08-23 / B-1）。
-                ⚠️ **申込CTAとは独立**。企業が受付を止めていても出す。
-                   人が出るかは本人の同意で決まり、申込導線は企業の受付で決まる（方針D）。
-                ⚠️ 本人が自分のページを見たときも出す。自分の登録状態が確認できるほうがよい
-                   （申込CTAは本人には出さない ＝ `!viewerIsOwner`）。
-                ⚠️ 様式は /people のバッジに合わせてある（訪問者はそこから来る）。 */
-          talkableBadge={isTalkableHere ? <TalkableBadge /> : null}
           topRight={embed ? undefined : <ProfileShareButton userId={owUser.id} name={owUser.name} userSlug={profileUsername} />}
           /* ★CTA 群。**メタ行（36歳・埼玉県・フォロー数）のすぐ下**に出す（2026-08-23）。
                 ⚠️ **右側へ戻さないこと。** 右は在籍企業のブロックだけにする（LinkedIn と同じ形）。
@@ -724,25 +640,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                 ⚠️ minWidth: 0 は残す。可変長のボタンが並ぶ行なので、狭い画面で親を押し広げる。 */
           metaActions={embed ? undefined : <>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
-                {/* カジュアル面談ボタン（非オーナー かつ 在籍企業の話を聞ける人 かつ 在籍企業が受付中） */}
-                {/* ⚠️ 企業の担当者が見ているときは出さない（主のボタンを会社としての「メッセージを送る」1つにする。2026-10-11） */}
-                {!viewerIsOwner && !approach && isTalkableHere && isCurrentCompanyKnown && currentCompanyMeetingOpen && (
-                  <Link href={`/companies/${currentCareer.company_id}/casual-meeting?person=${owUser.id}`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 18px", borderRadius: 8,
-                    background: MEETING_CTA_BG,
-                    color: MEETING_CTA_FG, fontSize: "var(--text-sm)", fontWeight: 700,
-                    textDecoration: "none", flexShrink: 0,
-                    boxShadow: `0 4px 14px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
-                    whiteSpace: "nowrap",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    カジュアル面談
-                  </Link>
-                )}
-
                 {/* ★企業の担当者が見たとき（2026-10-11 / 柴さんの指示）。一番目立つボタンは会社としての
                        「メッセージを送る」1つ。下に小さく「◯◯として送ります」。個人の DM は「…」の中へ。
                        ⚠️ 送れない相手にはボタンを出さず、理由を区別しない1文だけ（`APPROACH_UNAVAILABLE_MESSAGE`） */}
@@ -962,82 +859,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
             {/* ── 発信コンテンツ (外部リンク) ── */}
             {/* ★同上。0件のときセクションごと出さない・「＋ 追加」も出さない */}
             <ProfileContentLinksSection contentLinks={contentLinks} viewerIsOwner={false} />
-          {/* ── 在籍企業の募集中求人 ──────────────────────────────────
-              2026-08-15 に右サイドバーから本文カラム最下部へ移設した。
-
-              ⚠️ 遷移先は **`/jobs?company=<slug>`**（2026-08-15 に企業ページから変更）。
-                 `/companies/[id]/jobs` は 2026-07-01 にルートごと削除されて 404 のままなので、
-                 そちらには**戻さないこと**。
-                 値は slug 優先・UUID も可（JobsClient 側が両方受ける）。
-              ⚠️ 見出しの件数は取得行数ではなく総数（currentCompanyJobCount）。
-                 ここに currentCompanyJobs.length を書かないこと（最大3にしかならない）。 */}
-          {/* ⚠️ 面談可のときだけ出す（2026-08-23）。判定は `canPromoteCurrentCompany`。
-                 同意していない人のプロフィールを企業の求人広告にしない。 */}
-          {canPromoteCurrentCompany && isCurrentCompanyKnown && currentCompanyJobs.length > 0 && (
-            <section style={{
-              background: "#fff", border: "1px solid var(--line)",
-              borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-              boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-            }}>
-              {/* ⚠ 見出しは他のセクションと同じ形にする（2026-08-29）。
-                     ここだけ Inter 16px で、件数がオレンジ（#D97706）だった。
-                  ⚠★オレンジは**カジュアル面談だけの色**（.claude/skills/ui-conventions）。
-                     求人の件数に使うと、凡例の無い色分けが増える。件数は他節と同じ
-                     ニュートラル（--ink-mute）にした。 */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                {/* ⚠️ `SectionTitle` の `latin` は使わない。ここの2つ目は**件数**で、
-                       大文字化（`textTransform: uppercase`）も字間も要らないため。
-                    ⚠️ ただし**足元を揃える包みは同じ**にする（`alignItems: baseline`）。
-                       `center` だと 15px と 12px でベースラインが 4px ずれる。 */}
-                <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-                  <SectionTitle title={`${shortCompanyName(currentCareer!.company_name)}の募集中のポジション`} />
-                  <span style={{
-                    fontSize: 12, color: "var(--ink-mute)", fontWeight: 600,
-                    fontFamily: "var(--font-inter), var(--font-noto)", flexShrink: 0,
-                  }}>
-                    {currentCompanyJobCount}件
-                  </span>
-                </span>
-                <div style={{ flex: 1, height: 1, background: "var(--line)", minWidth: 0 }} />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {currentCompanyJobs.map((job) => (
-                  <Link key={job.id} href={`/jobs/${job.id}`} style={{
-                    display: "flex", alignItems: "center", gap: "var(--space-3)",
-                    padding: "12px 14px", borderRadius: 9,
-                    background: "var(--bg-tint)", border: "1px solid var(--line)",
-                    textDecoration: "none",
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                    {/* ⚠️ minWidth:0 が無いと ellipsis が効かず親を押し広げる */}
-                    <span style={{
-                      fontSize: 14, color: "var(--ink)", fontWeight: 500, minWidth: 0,
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }} title={job.title}>
-                      {job.title}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-
-              {/* UI規約: 濃紺塗り・白文字・中央配置・コンパクト幅 */}
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
-                <Link href={`/jobs?company=${encodeURIComponent(companySlugById.get(currentCareer!.company_id!) ?? currentCareer!.company_id!)}`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "10px 22px", borderRadius: 8,
-                  background: "var(--royal)", color: "#fff",
-                  fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
-                }}>
-                  すべての募集を見る →
-                </Link>
-              </div>
-            </section>
-          )}
-
           {/* Footer CTA — パーソナライズ
               ⚠️ 2026-08-08 まで .profile-grid の**外**にあり、常に 1020px
                  （コンテナ全幅）だった。サイドバーが出るページでは職歴・学歴カードが
@@ -1053,92 +874,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
             textAlign: "center",
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
           }}>
-            {/* ⚠️ 企業名を出す分岐（1・2）は面談可のときだけ。満たさなければ
-                   下の汎用分岐（IT求人を見る / 企業を見る）へ落ちる。 */}
-            {canPromoteCurrentCompany && isCurrentCompanyKnown && currentCompanyJobs.length > 0 ? (
-              <>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px", lineHeight: 1.5 }}>
-                  {shortCompanyName(currentCareer!.company_name)}への転職に興味はありますか？
-                </p>
-                <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                  {owUser.name}さんのように活躍できる募集を見てみましょう
-                </p>
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "10px 22px", borderRadius: 8,
-                    background: "var(--royal)", color: "#fff",
-                    fontSize: 13, fontWeight: 700, textDecoration: "none",
-                    boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                    企業ページを見る
-                  </Link>
-                  {/* ⚠️ `!viewerIsOwner` を必ず入れる（2026-08-23 に抜けを修正）。
-                         ヘッダーのボタンには最初から入っていたが、
-                         ここだけ抜けており、**本人が自分のページから自分の在籍企業へ
-                         カジュアル面談を申し込める**状態だった。
-                         ⚠️ 落ちた側は「企業を探す」になる。本人には申込導線を出さない。 */}
-                  {!viewerIsOwner && isTalkableHere && currentCompanyMeetingOpen ? (
-                    <Link href={`/companies/${currentCareer!.company_id!}/casual-meeting`} style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "10px 22px", borderRadius: 8,
-                      /* ⚠️ 面談の色でよいが、**黄色寄りの #FCD34D / #FFFBEB / #92400E ではなく
-                            面談の淡い版に揃える**（2026-08-30）。この3色は
-                            `TalkableBadge` / `PeopleListClient` / `CompanyEmployeeSections` が
-                            使っている「話を聞けます」の淡い版と同じもの。
-                         ⚠️ このページ上部の面談ボタン（metaActions）は**塗り**で主、こちらは**淡い版**で従。
-                            塗りと淡いで主従を示す形は変えないこと。 */
-                      border: "1.5px solid #FED7AA", background: "#FFF7ED",
-                      color: "#C2410C", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                    }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                      </svg>
-                      カジュアル面談
-                    </Link>
-                  ) : (
-                    <Link href="/companies" style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "10px 22px", borderRadius: 8,
-                      border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                      color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                    }}>
-                      企業を探す
-                    </Link>
-                  )}
-                </div>
-              </>
-            ) : canPromoteCurrentCompany && isCurrentCompanyKnown ? (
-              <>
-                <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
-                  {shortCompanyName(currentCareer!.company_name)}についてもっと詳しく知りたい方はこちら
-                </p>
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                  <Link href={`/companies/${currentCareer!.company_id!}`} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 20px", borderRadius: 8,
-                    background: "var(--royal)", color: "#fff",
-                    fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                    </svg>
-                    企業ページを見る
-                  </Link>
-                  <Link href="/feed" style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    padding: "9px 20px", borderRadius: 8,
-                    border: "1.5px solid var(--royal-100)", background: "var(--royal-50)",
-                    color: "var(--royal)", fontSize: 13, fontWeight: 700, textDecoration: "none",
-                  }}>
-                    ホームを見る
-                  </Link>
-                </div>
-              </>
-            ) : (
               <>
                 <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
                   IT業界で働く人のリアルなキャリアが集まっています
@@ -1168,7 +903,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   </Link>
                 </div>
               </>
-            )}
             <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "16px 0 0" }}>
               <Link href="/companies" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>OPINIO</Link>
               {" "}のプロフィールページ

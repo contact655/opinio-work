@@ -67,7 +67,7 @@ const ROWS = [
     fg: "#fff",
     shadow: "0 4px 14px rgba(194,65,12,0.35)",
     ratio: "5.18",
-    note: "白文字のまま。⚠️ 明るい橙より落ち着く。「話を聞けます」バッジの #C2410C と同色",
+    note: "白文字のまま。⚠️ 明るい橙より落ち着く。#C2410C（2026-10-16 に撤去したバッジと同色）",
   },
   {
     key: "案C ── 単色 #C2410C（グラデをやめる）",
@@ -215,22 +215,7 @@ export default function MeetingCtaPreview() {
         </Variant>
       ))}
 
-      <div style={{ marginTop: 8, padding: "16px 18px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>参考 ── 同じ画面に出る「面談OK」バッジ</div>
-        <span style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          fontSize: 13, fontWeight: 700, padding: "4px 11px", borderRadius: 100,
-          background: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA", whiteSpace: "nowrap",
-        }}>
-          <span aria-hidden style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316", flexShrink: 0 }} />
-          面談OK
-        </span>
-        <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-          こちらは <strong style={{ color: "var(--ink)" }}>#C2410C on #FFF7ED = 4.88</strong> で基準を満たしています。
-          案B・案C はこのバッジと<strong style={{ color: "var(--ink)" }}>同じ橙</strong>なので、
-          バッジとボタンの色が揃います。
-        </p>
-      </div>
+      {/* ⚠️ 参考に並べていた「面談OK」バッジは 2026-10-16 に撤去した（面談OKの撤去） */}
     </div>
   );
 }

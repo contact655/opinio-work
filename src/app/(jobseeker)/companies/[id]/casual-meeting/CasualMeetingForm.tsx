@@ -111,8 +111,6 @@ export default function CasualMeetingForm({
   companyGradient,
   authEmail,
   jobId,
-  requestedUserId,
-  requestedName,
 }: {
   /** ★本人のプロフィールで「この企業に在籍中」になっているか（2026-08-29）。
    *  ⚠️ **申し込みは止めない。** 注意書きを出すためだけに使う。
@@ -124,11 +122,6 @@ export default function CasualMeetingForm({
   companyGradient: string;
   authEmail: string;
   jobId: string | null;
-  /** ★指名された「話を聞きたい人」（`ow_users.id`）。ページ側で**実在と掲載を確認済み**。
-   *  ⚠️ ここで URL から読み直さないこと。検証はサーバー側でしかできない。 */
-  requestedUserId: string | null;
-  /** 指名された人の表示名。null なら名前を出さない（値が無いものを埋めない） */
-  requestedName: string | null;
 }) {
   const [intent, setIntent] = useState<Intent>("info_gathering");
   const [interestReason, setInterestReason] = useState("");
@@ -160,9 +153,6 @@ export default function CasualMeetingForm({
           questions: questions || null,
           preferred_format: preferredFormat,
           job_id: jobId || null,
-          /* ★誰に聞きたいか（2026-08-25）。⚠️ API 側でも掲載を確認し直す
-                （クライアントの値をそのまま信じない）。 */
-          requested_user_id: requestedUserId,
         }),
       });
       if (!res.ok) {
@@ -275,20 +265,6 @@ export default function CasualMeetingForm({
           <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2 }}>
             このフォームの内容は<strong>直接企業の採用担当に届きます</strong>
           </div>
-          {/* ★指名（2026-08-25）。⚠️ **「〇〇さんとの面談が確定する」とは書かない。**
-                 申込が届くのは企業で、誰が対応するかは企業が決める
-                 （`assignee_user_id` は後から企業側が入れる）。
-                 ここで確約すると、別の人が対応したときに約束を破ることになる。 */}
-          {requestedName && (
-            <div style={{
-              marginTop: 8, padding: "8px 10px", borderRadius: 8,
-              background: "var(--bg-tint)", border: "1px solid var(--line)",
-              fontSize: 12, lineHeight: 1.6, color: "var(--ink-soft)",
-            }}>
-              <strong style={{ color: "var(--ink)" }}>{requestedName} さん</strong>に聞きたい、として申し込みます。
-              <br />対応する方は会社が決めるため、別の方になることがあります。
-            </div>
-          )}
         </div>
       </div>
 

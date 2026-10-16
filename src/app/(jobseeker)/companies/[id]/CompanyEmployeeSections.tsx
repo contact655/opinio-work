@@ -14,13 +14,10 @@
 
 import type React from "react";
 import { useCompanyEmployees } from "@/lib/companies/useCompanyEmployees";
-import Link from "next/link";
 import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
-
-type AmbassadorInfo = { memberId: string };
 
 /*
  * ⚠️ 2026-08-13 に「社員の声」セクション（EmployeeVoicesSection）を削除した。復活させないこと。
@@ -64,7 +61,6 @@ function PersonRow({
   badge,
   title,
   sub,
-  talkHref,
 }: {
   employee: CompanyEmployee;
   badge?: React.ReactNode;
@@ -72,8 +68,6 @@ function PersonRow({
   title?: string | null;
   /** 3行目（補足）。1行で省略 */
   sub?: string | null;
-  /** 面談に応じる人への申込リンク。**企業が受け付けているときだけ**渡す */
-  talkHref?: string | null;
 }) {
   const avatarColor = AVATAR_COLOR;
   return (
@@ -98,52 +92,17 @@ function PersonRow({
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </a>
-      {/* ⚠️ リンクの中にリンクを入れられないので、申込リンクは行の下に兄弟として置く */}
-      {talkHref && (
-        <Link href={talkHref} className="person-row-talk">
-          {employee.name.split(/[\s　]/)[0]}さんに話を聞く →
-        </Link>
-      )}
     </div>
   );
 }
 
-/* ★「面談OK」バッジ。⚠️ 色と文言は /people・/u/[id] と揃える（2026-08-23 / 2026-09-18）。
-   ⚠️ 本人が同意していれば出す。企業の受付状態では出し分けない（申込リンクは別）。 */
-const TalkBadge = (
-  <span className="person-row-badge person-row-badge--talk">💬 面談OK</span>
-);
-
-function EmployeeCard({
-  employee,
-  ambassadorInfo,
-  companyId,
-  acceptingMeetings,
-}: {
-  employee: CompanyEmployee;
-  showEndedAt?: boolean;
-  ambassadorInfo?: { memberId: string } | null;
-  companyId?: string;
-  /** ★企業が申込を受け付けているか。**申込リンクの出し分けだけに使う**（2026-08-23 / 方針D）。
-   *  ⚠️ バッジと社員の行はこの値で消さない。人が出ているのは本人の同意による事実で、
-   *     企業が受付を止めていることとは別。 */
-  acceptingMeetings?: boolean;
-}) {
-  const isAmbassador = !!ambassadorInfo;
-  return (
-    <PersonRow
-      employee={employee}
-      badge={isAmbassador ? TalkBadge : undefined}
-      title={employee.roleTitle}
-      /* ★`person`（`ow_users.id`）で渡す（2026-08-25）。受付中のときだけ（方針D） */
-      talkHref={isAmbassador && companyId && acceptingMeetings
-        ? `/companies/${companyId}/casual-meeting?person=${employee.userId}`
-        : null}
-    />
-  );
+/* ★「面談OK」バッジと「◯◯さんに話を聞く」は 2026-10-16 に撤去した（面談OKの撤去 / 柴さんの判断）。
+   現役社員・OB/OG の行（職歴から作る事実）は残す。 */
+function EmployeeCard({ employee }: { employee: CompanyEmployee; showEndedAt?: boolean }) {
+  return <PersonRow employee={employee} title={employee.roleTitle} />;
 }
 
-// person-card-grid: 全人物カードセクション共通（面談OK/現役社員/OBOG）
+// person-card-grid: 全人物カードセクション共通（現役社員/OBOG）
 const EMPLOYEE_GRID_CSS = `
   /* 人物カードのグリッドは 1fr ではなく minmax(0, 1fr) を使う（2026-08-08）。
      grid item は既定が min-width: auto なので、1fr だと中身の min-content まで
@@ -170,17 +129,10 @@ export function CurrentEmployeesSection({
   employees,
   hiddenCount = 0,
   totalCount,
-  ambassadorMap,
-  companyId,
-  acceptingMeetings,
 }: {
   employees: CompanyEmployee[];
   hiddenCount?: number;
   totalCount?: number;
-  ambassadorMap: Map<string, { memberId: string }>;
-  companyId: string;
-  /** ★申込リンクの出し分けだけに使う（方針D）。社員カードはこの値で消さない。 */
-  acceptingMeetings: boolean;
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
 
@@ -366,7 +318,7 @@ export function CurrentEmployeesSection({
         // 小さい会社・職種が1種類 → 素のグリッド
         <div className="person-list">
           {employees.map((emp) => (
-            <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
+            <EmployeeCard key={emp.userId} employee={emp} />
           ))}
         </div>
       ) : (
@@ -406,7 +358,7 @@ export function CurrentEmployeesSection({
                 {group.direct.length > 0 && (
                   <div className="person-list">
                     {group.direct.map((emp) => (
-                      <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
+                      <EmployeeCard key={emp.userId} employee={emp} />
                     ))}
                   </div>
                 )}
@@ -437,7 +389,7 @@ export function CurrentEmployeesSection({
                     </div>
                     <div className="person-list">
                       {cat.emps.map((emp) => (
-                        <EmployeeCard key={emp.userId} employee={emp} ambassadorInfo={ambassadorMap.get(emp.userId) ?? null} companyId={companyId} acceptingMeetings={acceptingMeetings} />
+                        <EmployeeCard key={emp.userId} employee={emp} />
                       ))}
                     </div>
                   </div>
@@ -448,24 +400,8 @@ export function CurrentEmployeesSection({
         </div>
       )}
 
-      {/* ★★「在籍・職種はご本人の登録内容です。OPINIO は在籍確認を行っていません。」は
-             **2026-10-01 に柴さんの指示で削除した。**
-
-             ⚠️★**戻すかどうかを判断するために、何のためにあったかを残す。**
-                2026-08-24 に「会社の事前承認」を廃止し、**本人がONにすればここに出る**形に
-                した。なりすましは3つで受ける約束で、その③がこの注記だった:
-                  ① 在籍として申告している会社にしか出せない（RLS）
-                  ② 企業がいつでも非掲載にできる（/biz/members）
-                  ③ 画面に「本人の申告です」と出す  ← **これを外した**
-                ⇒ いまは①②だけ。⚠️★**②が効くのは企業に担当者がいる会社だけ**で、
-                   掲載中の面談対応者を持つ5社のうち**4社は宛先0件**（2026-09-15 実測）。
-                   気づく経路は **`/admin/ambassador-requests`** が実質唯一。
-
-             ⚠️ 同じ趣旨の注記は他の画面に**残っている**（言い方は画面ごとに違う）:
-                `/people` ／ `/biz/members` ／ `/admin` 4箇所。
-                **ここだけ消えた状態。** 揃えるかどうかは別途の判断。
-
-             ⚠️ 戻すときは 12px 未満にしないこと（2026-08-30 の判断）。 */}
+      {/* ⚠️ 「在籍・職種はご本人の登録内容です。OPINIO は在籍確認を行っていません。」は 2026-10-01 に削除した。
+             面談OK（本人の申告で企業ページに出る仕組み）は 2026-10-16 に撤去した */}
       </div>
     </section>
     </>
@@ -741,14 +677,6 @@ export type EmployeesResponse = {
   hiddenAlumniCount: number;
   totalCurrentCount: number;
   totalAlumniCount: number;
-  /* ⚠️ **閲覧者で絞られたもの**（未ログインには login_only の人が入らない）。
-        サーバーから props で受け取らないこと。ISR の静的HTMLに焼かれる。 */
-  ambassadors: { id: string; user_id: string }[];
-  /* ⚠️ **閲覧者に依らない総数**。「ログインすると N名」の N に使う（route.ts:118）。
-        ⚠️★この行は 2026-09-07 に足した。**API は最初から返していたのに型に無かった**
-           ——`r.json()` の戻りが `any` のまま `AmbassadorWidget` が読んでいたので、
-           tsc も lint も何も言わなかった。型を経由するようにして初めて出た。 */
-  totalAmbassadorCount: number;
   relation: ViewerRelation;
 };
 
@@ -761,28 +689,14 @@ export type EmployeesResponse = {
  */
 export function CompanyEmployeeSections({
   companyId,
-  acceptingMeetings,
 }: {
   companyId: string;
-  /** ★企業が申込を受け付けているか（`isCasualMeetingOpen()` 通過後の値）。
-   *  申込リンクの出し分けだけに使う。**社員カードとバッジはこの値で消さない。** */
-  acceptingMeetings: boolean;
 }) {
-  /* ⚠️★**素の `fetch` に戻さないこと**（2026-09-07）。サイドバーの `AmbassadorWidget` が
-        同じエンドポイントを叩いており、両方が素の fetch だったため**本番で毎回2回**
-        飛んでいた（実測: start 489ms / 490ms）。企業IDごとに1本へ束ねるのは
+  /* ⚠️★**素の `fetch` に戻さないこと**（2026-09-07）。企業IDごとに1本へ束ねるのは
         `useCompanyEmployees` の役目。失敗時のログもあちらが出す。 */
   const data = useCompanyEmployees(companyId);
 
   if (!data) return null;
-
-  /* ⚠️ 面談OKバッジの元。**サーバーから渡さず、ここで組み立てる**（2026-08-22）。
-        props で受け取っていた頃は、未ログインに配られる静的HTMLに
-        面談対応者の user_id が載っていた。バッジが出るのはログイン時だけなので
-        （未ログインには社員カードが1枚も出ない）、ここで作れば足りる。 */
-  const ambassadorMap = new Map<string, AmbassadorInfo>(
-    (data.ambassadors ?? []).map((a) => [a.user_id, { memberId: a.id }])
-  );
 
   const showAlumni = data.alumni.length > 0 || data.hiddenAlumniCount > 0;
   /* ⚠️★`data.relation.kind === "affiliated"` は 2026-09-12 に外した。
@@ -804,9 +718,6 @@ export function CompanyEmployeeSections({
         employees={data.current}
         hiddenCount={data.hiddenCurrentCount}
         totalCount={data.totalCurrentCount}
-        ambassadorMap={ambassadorMap}
-        companyId={companyId}
-        acceptingMeetings={acceptingMeetings}
       />
       {showAlumni && (
         <AlumniSection

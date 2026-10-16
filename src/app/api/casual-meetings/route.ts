@@ -50,7 +50,6 @@ export async function POST(req: NextRequest) {
   const {
     company_id, job_id,
     intent, interest_reason, questions, preferred_format,
-    requested_user_id,
   } = body;
 
   if (!company_id || typeof company_id !== "string") {
@@ -107,27 +106,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "already_applied", id: existing.id }, { status: 409 });
   }
 
-  /* ── 指名された「話を聞きたい人」（2026-08-25）────────────────────────────
-        ⚠️★**クライアントの値をそのまま入れない。** 申込画面でも確認しているが、
-           API は直接叩けるので**ここでも確かめ直す**。確かめないと、
-           掲載していない人・別会社の人を指名として記録できてしまう。
-        ⚠️ 条件は公開側と同じ2つ（公開中 ＋ その企業に在籍中の経歴）。
-        ⚠️ 不正な値は**黙って null に落とす**（400 で申込ごと止めない）。
-           指名は任意で、企業宛の申込としては成立するため。 */
-  let requestedUserId: string | null = null;
-  if (typeof requested_user_id === "string" && UUID_RE.test(requested_user_id)) {
-    const [{ data: member }, { data: exp }] = await Promise.all([
-      supabase.from("ow_company_members").select("user_id")
-        .eq("company_id", company_id).eq("user_id", requested_user_id)
-        .eq("is_public", true).eq("display_consent", true).maybeSingle(),
-      supabase.from("ow_experiences").select("id")
-        .eq("company_id", company_id).eq("user_id", requested_user_id)
-        .eq("is_current", true).limit(1).maybeSingle(),
-    ]);
-    if (member && exp) requestedUserId = requested_user_id;
-    else console.warn("[POST /api/casual-meetings] 指名が無効なので落とした:", requested_user_id);
-  }
-
+  /* ⚠️ 人の指名（`requested_user_id`）は 2026-10-16 に撤去した（面談OKの撤去）。
+        送られてきても読まない。列は残してある（DROP していない） */
   const { data: meeting, error } = await supabase
     .from("ow_casual_meetings")
     .insert({
@@ -140,7 +120,6 @@ export async function POST(req: NextRequest) {
       questions: typeof questions === "string" ? questions : null,
       preferred_format: typeof preferred_format === "string" ? preferred_format : null,
       status: "pending",
-      requested_user_id: requestedUserId,
     })
     .select("id, status")
     .single();
@@ -177,24 +156,6 @@ export async function POST(req: NextRequest) {
     .eq("id", company_id as string)
     .maybeSingle();
 
-  /* ★指名された人の氏名を通知にも入れる（2026-08-30）。
-     ⚠️ **企業が最初に受け取るのはメール**で、そこに「誰に聞きたいか」が無かった。
-        DB には `requested_user_id` として入り、`/biz/meetings` の詳細パネルには
-        「◯◯さんに聞きたい」と出ていたが、**メールだけが落としていた。**
-        担当者は企業側が自己アサインする仕組みなので、最初の通知に指名が無いと
-        別の人が付く。
-     ⚠️ `requestedUserId` は**検証を通った値だけ**（在籍中かつ掲載中の面談対応者）。
-        ここで引き直さず、その値をそのまま使う。
-     ⚠️ 氏名が引けなくても通知は送る（`null` のままテンプレート側が行ごと省く）。
-        通知を止めるほうが害が大きい。 */
-  let requestedName: string | null = null;
-  if (requestedUserId) {
-    const { data: ru, error: ruErr } = await supabase
-      .from("ow_users").select("name").eq("id", requestedUserId).maybeSingle();
-    if (ruErr) console.error("[casual-meetings] 指名の氏名取得に失敗:", ruErr.message);
-    requestedName = (ru?.name as string | null) ?? null;
-  }
-
   if (companyForNotify) {
     // OPINIO 運営への通知
     await notify(
@@ -204,7 +165,6 @@ export async function POST(req: NextRequest) {
         intent: (intent as string | null) ?? null,
         interestReason: (interest_reason as string | null) ?? null,
         questions: (questions as string | null) ?? null,
-        requestedName,
       })
     );
     // 申込者本人への確認メール
@@ -236,7 +196,6 @@ export async function POST(req: NextRequest) {
           intent: (intent as string | null) ?? null,
           interestReason: (interest_reason as string | null) ?? null,
           questions: (questions as string | null) ?? null,
-          requestedName,
           /* ⚠️ 印は同じ判定から出す */
           viaOps: companyEmails.viaOps,
         })

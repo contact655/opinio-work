@@ -16,12 +16,9 @@ import {
   getCompanyEmployeesCached,
   getCompanyToolsCached,
   getCompanyStoriesCached,
-  getPublicAmbassadorsCached,
-  type PublicAmbassador,
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
-import AmbassadorWidget from "./AmbassadorWidget";
 import MeetingFlowNote from "./MeetingFlowNote";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
@@ -1541,11 +1538,9 @@ function MobileBottomCTA({ company }: { company: Company }) {
 function Sidebar({
   company,
   detail,
-  ambassadors = [],
 }: {
   company: Company;
   detail: CompanyDetail;
-  ambassadors?: PublicAmbassador[];
 }) {
   return (
     <aside
@@ -1715,20 +1710,9 @@ function Sidebar({
         );
       })()}
 
-      {/* カジュアル面談OKウィジェット
-             ⚠️ **サーバーで人物を描かない。** 面談対応者は実ユーザーが全員 `login_only` で、
-                このページは ISR（`revalidate = 300`）なので、ここで描くと
-                **未ログインに配られる静的HTMLへ名前と顔が焼き付く**（2026-08-22 まで実際にそうだった）。
-             ⚠️ かといってここで `auth.getUser()` を読むとページが動的化する（2026-08-09 の設計）。
-                → 数字だけ渡し、人物はクライアントが `/api/.../employees` 越しに出す。 */}
-      <AmbassadorWidget
-        companyId={company.id}
-        publicAmbassadors={ambassadors.filter((a) => a.visibility === "public")}
-        totalCount={ambassadors.length}
-        /* ⚠️ ここで渡す値は既に `isCasualMeetingOpen()` を通っている
-              （queries.ts の getCompanyBySlugOrId が潰している）。判定し直さないこと。 */
-        acceptingMeetings={company.accepting_casual_meetings === true}
-      />
+      {/* ★「この会社の話を聞ける人」ウィジェットは 2026-10-16 に撤去した（面談OKの撤去 / 柴さんの判断）。
+             話を聞かれる側に時間を作る理由が無く、運用に乗らなかったため。
+             ⚠️ 現役社員・OB/OG（職歴から作る事実）は本文の CompanyEmployeeSections に残している。 */}
 
       {/* 申し込みの流れ — コンパクト1行表示。
              ⚠️★**本文（1023px 以下）と同じ部品**（2026-10-09 に切り出した）。複製を作らないこと。 */}
@@ -1782,7 +1766,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   // Phase 2: 残りのデータを companyId（UUID）で並列取得
   const companyId = resolvedId;
 
-  const [photos, recruiters, companyArticles, employees, companyPosts, ambassadorsResult, companyTools,
+  const [photos, recruiters, companyArticles, employees, companyPosts, companyTools,
          articleIdRowsResult, materialItems] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
@@ -1794,7 +1778,6 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     getArticlesByCompanyCached(companyId),
     getCompanyEmployeesCached(companyId),
     getCompanyStoriesCached(companyId) as Promise<CompanyPost[]>,
-    getPublicAmbassadorsCached(companyId),
     getCompanyToolsCached(companyId),
     /* ⚠️ 旧「顧客の業界」（ow_company_target_industries）は 2026-10-12 から読まない。
           お客さまの業界は detail（getCompanyById）が新しい表から組む */
@@ -1806,12 +1789,6 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           ⚠️ 確定・変更時は `revalidateCompanyPages()` がこのキャッシュごと落とす。 */
     getPublicMaterialItemsCached(companyId),
   ]);
-
-  const ambassadors = (ambassadorsResult as unknown as PublicAmbassador[]);
-
-  /* ⚠️ ここで userId→ambassador のマップを作って渡していたが、やめた（2026-08-22）。
-        ISR の静的HTMLに面談対応者の user_id が載るため。
-        バッジは CompanyEmployeeSections が API のレスポンスから自分で組み立てる。 */
 
   /* ⚠️ 社員一覧の出し分けはここでは行わない（2026-08-09）。
         絞り込みは /api/jobseeker/companies/[id]/employees が
@@ -1998,25 +1975,6 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             {/* ★企業が公開を確定した情報（2026-10-09 / 依頼②）。0件ならセクションごと出さない */}
             <CompanyMaterialsSection items={materialItems} />
 
-            {/* ★「この会社の話を聞ける人」を本文にも出す（2026-10-09 / 柴さんの指示）。
-                   右の列は `hidden lg:flex` で 1023px 以下では消えるので、そこだけだと
-                   **スマホ・タブレットからは見えなかった。** 同じ部品を `lg:hidden` 付きで置く。
-                ⚠️ 置き場所は面談の CTA の直前（話を聞ける人 → 申し込む、の順に読める）。
-                ⚠️ 受付を止めている企業でも人は出す（方針D）。申込ボタンだけ部品の中で消える。
-                   だから下の CTA（受付中だけ）の**外**に置く。
-                ⚠️ 0名なら部品が null を返し、この div は空で高さ0になる（余白は部品側に持たせた）。
-                ⚠️ 取得は `useCompanyEmployees` で企業ごとに1本に束ねてあるので、
-                   右の列と2つマウントしても API は1回しか飛ばない。 */}
-            <div className="lg:hidden">
-              <AmbassadorWidget
-                companyId={company.id}
-                publicAmbassadors={ambassadors.filter((a) => a.visibility === "public")}
-                totalCount={ambassadors.length}
-                acceptingMeetings={company.accepting_casual_meetings === true}
-                outerStyle={{ marginBottom: "var(--space-6)" }}
-              />
-            </div>
-
             {/* Mid-page CTA after Benefits */}
             {company.accepting_casual_meetings && (
               /* ⚠️ 背景で目立たせないこと（2026-08-23）。オレンジは
@@ -2062,8 +2020,6 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                    絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
             <CompanyEmployeeSections
               companyId={company.id}
-              /* ⚠️ 申込リンクの出し分けだけに使う。社員カードは消さない（方針D）。 */
-              acceptingMeetings={company.accepting_casual_meetings === true}
             />
 
             {/* 5-2. 拠点・資本関係
@@ -2274,7 +2230,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
           </main>
 
-          <Sidebar company={company} detail={detail} ambassadors={ambassadors} />
+          <Sidebar company={company} detail={detail} />
         </div>
       </div>
 
