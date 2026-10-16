@@ -46,7 +46,6 @@ const EMPTY_FACTS = {
   companyName: "テスト株式会社",
   samePath: null,
   sharedMotive: null,
-  talkable: null,
   preference: null,
 };
 
@@ -131,19 +130,7 @@ test("shared_motive … k=0 なら根拠にしない（一致が無い）", () =
   assert.equal(ev.length, 0);
 });
 
-// ── talkable ────────────────────────────────────────────────────────────────
-
-test("talkable n=0 … 根拠にしない", () => {
-  assert.equal(buildEvidence({ ...EMPTY_FACTS, talkable: { n: 0 } }, OPTS).length, 0);
-});
-
-for (const n of [1, 2, 3, 5]) {
-  test(`talkable n=${n} … 件数を出す`, () => {
-    const ev = buildEvidence({ ...EMPTY_FACTS, talkable: { n } }, OPTS);
-    assert.equal(ev.length, 1);
-    assert.match(ev[0].label, new RegExp(`話を聞ける人が ${n}名`));
-  });
-}
+/* ⚠️ talkable（話を聞ける人の数）は 2026-10-16 に撤去した（面談OKの撤去） */
 
 // ── preference_match ────────────────────────────────────────────────────────
 
@@ -175,7 +162,6 @@ test("★★ラベルに人称を入れない（②と⑨で同じスナップ�
     companyName: "テスト株式会社",
     samePath: { n: 5, fromRoleName: "営業", fromIndustryName: "IT・ソフトウェア" },
     sharedMotive: { n: 5, k: 3, reasonLabel: "裁量の大きさ" },
-    talkable: { n: 4 },
     preference: { matchedLabels: ["年収"] },
   };
   for (const e of buildEvidence(facts, OPTS)) {
@@ -194,26 +180,25 @@ test("同じ事実からは同じ根拠が出る（呼び出し側で結果が�
 
 // ── 並び順 ──────────────────────────────────────────────────────────────────
 
-test("根拠は kind の優先順（same_path → shared_motive → talkable → preference）", () => {
+test("根拠は kind の優先順（same_path → shared_motive → preference）", () => {
   const ev = buildEvidence(
     {
       ...EMPTY_FACTS,
       preference: { matchedLabels: ["年収"] },
-      talkable: { n: 3 },
       sharedMotive: { n: 5, k: 3, reasonLabel: "裁量の大きさ" },
       samePath: { n: 1, fromRoleName: "営業", fromIndustryName: null },
     },
     OPTS,
   );
   assert.deepEqual(ev.map((e) => e.kind), [
-    "same_path", "shared_motive", "talkable", "preference_match",
+    "same_path", "shared_motive", "preference_match",
   ]);
 });
 
 test("sortByEvidenceCount … 根拠の本数が多い順、同数は社名で安定", () => {
   const mk = (companyName, count) => ({
     companyName,
-    evidence: Array.from({ length: count }, () => ({ kind: "talkable", n: 1, label: "", sourceQuery: "" })),
+    evidence: Array.from({ length: count }, () => ({ kind: "preference_match", n: 1, label: "", sourceQuery: "" })),
   });
   const sorted = sortByEvidenceCount([mk("B社", 2), mk("C社", 4), mk("A社", 2)]);
   assert.deepEqual(sorted.map((r) => r.companyName), ["C社", "A社", "B社"]);
@@ -223,7 +208,7 @@ test("sortByEvidenceCount … 根拠の本数が多い順、同数は社名で�
 
 test("isProposable … 根拠2件未満は提案に出さない", () => {
   const mk = (count) =>
-    Array.from({ length: count }, () => ({ kind: "talkable", n: 1, label: "", sourceQuery: "" }));
+    Array.from({ length: count }, () => ({ kind: "preference_match", n: 1, label: "", sourceQuery: "" }));
   assert.equal(MIN_EVIDENCE_FOR_PROPOSAL, 2);
   assert.equal(isProposable(mk(0)), false);
   assert.equal(isProposable(mk(1)), false);
@@ -357,9 +342,9 @@ test("★業界の経験だけでは提案にならない（顧客の業界で�
 });
 
 test("★業界の経験＋ほかの根拠1つで提案になる", () => {
-  const ev = buildEvidence({ ...EMPTY_FACTS, talkable: { n: 1 }, fit: { jobRole: null, companyRole: null, industry: DOMAIN } }, OPTS);
+  const ev = buildEvidence({ ...EMPTY_FACTS, preference: { matchedLabels: ["年収"] }, fit: { jobRole: null, companyRole: null, industry: DOMAIN } }, OPTS);
   assert.equal(isProposable(ev), true);
-  assert.deepEqual(ev.map((e) => e.kind), ["talkable", "industry_experience"]);
+  assert.deepEqual(ev.map((e) => e.kind), ["preference_match", "industry_experience"]);
 });
 
 test("★求人の職種＋部門と職種は種類ごとに1件で、2件そろえば提案になる", () => {
@@ -380,10 +365,10 @@ test("★接点の根拠は文を保存しない（事実だけ）。人称は�
   assert.equal(fitText(JOB, "candidate"), "あなたの経験と同じ職種の求人『AE』があります（あなたの経験：3年）");
 });
 
-test("★既存の4種類の文は変わらない（label をそのまま出す）", () => {
-  const ev = buildEvidence({ ...EMPTY_FACTS, talkable: { n: 2 } }, OPTS);
-  assert.equal(evidenceText(ev[0], "company"), "テスト株式会社には、話を聞ける人が 2名います");
-  assert.equal(evidenceText(ev[0], "candidate"), "テスト株式会社には、話を聞ける人が 2名います");
+test("★既存の種類の文は変わらない（label をそのまま出す）", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, preference: { matchedLabels: ["年収"] } }, OPTS);
+  assert.equal(evidenceText(ev[0], "company"), "年収に合っています");
+  assert.equal(evidenceText(ev[0], "candidate"), "年収に合っています");
 });
 
 // ── ★具体的な文（2026-10-12）──────────────────────────────────────────────────

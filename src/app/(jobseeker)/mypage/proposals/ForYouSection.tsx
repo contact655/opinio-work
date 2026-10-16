@@ -28,7 +28,6 @@ export type ForYouView = {
   reasons: string[];
   /** ★まとめる見出し（1番目の理由）。理由の無い会社は null（「その他の掲載企業」へ） */
   groupLabel: string | null;
-  hasTalkable: boolean;
   hasOpenJobs: boolean;
   phaseLabel: string | null;
   /** ★「気をつけて見てほしいこと」。いまは器だけで常に空（rank.ts） */
@@ -156,7 +155,7 @@ export default function ForYouSection({
                       <ReasonBox items={g.label ? c.reasons.slice(1) : c.reasons} state="for-you-reasons" />
                       {/* ★中身が空なら枠ごと出さない（CautionBox が null を返す） */}
                       <CautionBox items={c.cautions} state="for-you-cautions" />
-                      <TagRow talkable={c.hasTalkable} openJobs={c.hasOpenJobs} phase={c.phaseLabel} />
+                      <TagRow openJobs={c.hasOpenJobs} phase={c.phaseLabel} />
 
                       <Actions
                         c={c}

@@ -71,7 +71,7 @@ export type Audience = "candidate" | "company";
 export type EvidenceKind =
   | "same_path"        // ある職種・業界から、その企業へ移った人の数
   | "shared_motive"    // その人たちが挙げた入社の決め手と、候補者の希望の一致
-  | "talkable"         // その企業で isTalkable() を通る人の数
+  /* ⚠️ "talkable"（話を聞ける人の数）は 2026-10-16 に撤去した（面談OKの撤去）。保存済みの提案に0件 */
   | "preference_match" // 候補者の希望条件と企業属性の一致
   /* ★2026-10-10 に足した3種類（候補者探しの「貴社との接点」と同じ判定。`fit.ts`）。
      ⚠️★文は保存しない。`fact` だけを保存し、表示するときに見る人に合わせて作る（`evidenceText`） */
@@ -137,7 +137,6 @@ export type EvidenceFacts = {
     /** 一致した決め手のラベル（例「裁量の大きさ」） */
     reasonLabel: string;
   } | null;
-  talkable: { n: number } | null;
   preference: {
     /** 一致した条件のラベル（scoreJob の reasonParts をそのまま渡す） */
     matchedLabels: string[];
@@ -225,17 +224,6 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
     });
   }
 
-  // ── ③ talkable ────────────────────────────────────────────────────────────
-  if (facts.talkable && facts.talkable.n > 0) {
-    const { n } = facts.talkable;
-    out.push({
-      kind: "talkable",
-      n,
-      label: `${facts.companyName}には、話を聞ける人が ${n}名います`,
-      sourceQuery: "ow_company_members + ow_experiences(is_current)",
-    });
-  }
-
   // ── ④ preference_match ────────────────────────────────────────────────────
   if (facts.preference && facts.preference.matchedLabels.length > 0) {
     const labels = facts.preference.matchedLabels;
@@ -265,7 +253,7 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
   /* ★件数ではなく「根拠の本数」で並べるので、ここでは kind の優先順で安定させる。
      ⚠️ `n` の降順にしないこと。④の n は人数ではないので混ざる。
      ⚠️ 業界の経験は弱い根拠なので最後（画面は上から3件だけ出す） */
-  const ORDER: EvidenceKind[] = ["same_path", "shared_motive", "talkable", "job_role", "company_role", "preference_match", "industry_experience"];
+  const ORDER: EvidenceKind[] = ["same_path", "shared_motive", "job_role", "company_role", "preference_match", "industry_experience"];
   return out.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
 }
 

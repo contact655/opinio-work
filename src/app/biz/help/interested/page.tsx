@@ -31,7 +31,6 @@ export default async function ProposalHelpPage() {
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
             <li style={li}>貴社に移ってきた方の人数</li>
             <li style={li}>在籍している方・していた方が挙げた入社の決め手</li>
-            <li style={li}>話を聞ける方の人数</li>
             <li style={li}>貴社の求人や部門の職種と同じ経験</li>
             <li style={li}>ご本人の希望条件との一致</li>
             <li style={li}>貴社の顧客の業界や事業領域での経験（業界の経験だけではおすすめしません）</li>

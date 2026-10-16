@@ -35,12 +35,11 @@ export function CautionBox({ items, state = "fit-cautions" }: { items: string[];
   );
 }
 
-/** タグ（話を聞ける人・募集あり・フェーズ）の行。どれも無ければ出さない */
-export function TagRow({ talkable, openJobs, phase }: { talkable: boolean; openJobs: boolean; phase: string | null }) {
-  if (!talkable && !openJobs && !phase) return null;
+/** タグ（募集あり・フェーズ）の行。どれも無ければ出さない。⚠️「話を聞ける人」は 2026-10-16 に撤去した */
+export function TagRow({ openJobs, phase }: { openJobs: boolean; phase: string | null }) {
+  if (!openJobs && !phase) return null;
   return (
     <p style={{ margin: "8px 0 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
-      {talkable && <Tag state="talkable">話を聞ける人</Tag>}
       {openJobs && <Tag state="jobs">募集あり</Tag>}
       {phase && <Tag state="phase">{phase}</Tag>}
     </p>

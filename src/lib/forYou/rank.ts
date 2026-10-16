@@ -47,8 +47,6 @@ export type ForYouCompany = {
   /** 点数の高い順。理由文は上位 MAX_REASONS_PER_COMPANY 件 */
   signals: { key: SignalKey; points: number; detail: SignalDetail }[];
   reasons: string[];
-  /** タグ「話を聞ける人がいます」。★点数には入れない（weights.ts） */
-  hasTalkable: boolean;
   /** 「話を聞いてみたい」を押したら会話が開くか（有効な担当者がいるか。見ている人と is_test が一致する担当者だけ数える） */
   hasResponder: boolean;
   /** タグ「募集あり」（公開中の求人がある） */
@@ -134,7 +132,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const myExps = (myExpRes.data ?? []) as { id: string; company_id: string | null; role_category_id: string | null; is_current: boolean }[];
   const myCompanyIds = Array.from(new Set(myExps.map((e) => e.company_id).filter(Boolean) as string[]));
 
-  const [domainRes, jobsRes, allExpRes, membersRes, adminsRes] = await Promise.all([
+  const [domainRes, jobsRes, allExpRes, adminsRes] = await Promise.all([
     /* S1′ 事業領域。本人の職歴の会社と、母集団の会社の両方 */
     db.from("ow_company_business_domains")
       .select("company_id, domain_id, ow_business_domains!domain_id(name, is_active)")
@@ -146,10 +144,6 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     /* S5 移った人。★`ow_transitions` を読まない（lib/evidence/transitions.ts の注記）。正は ow_experiences */
     db.from("ow_experiences")
       .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)"),
-    /* S6 話を聞ける人（タグだけ） */
-    db.from("ow_company_members")
-      .select("company_id, ow_users!user_id(auth_id, is_test, is_system, visibility)")
-      .in("company_id", companyIds).eq("is_public", true).eq("display_consent", true),
     /* S7 担当者（「興味あり」の行き先） */
     db.from("ow_company_admins")
       .select("company_id, ow_users!user_id(auth_id, is_test)")
@@ -157,7 +151,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   ]);
   for (const [label, r] of [
     ["business_domains", domainRes], ["ow_jobs", jobsRes], ["ow_experiences(all)", allExpRes],
-    ["ow_company_members", membersRes], ["ow_company_admins", adminsRes],
+    ["ow_company_admins", adminsRes],
   ] as const) {
     if (r.error) console.error(`[forYou] ${label}:`, r.error.message);
   }
@@ -231,11 +225,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     }
   }
 
-  /* S6 / S7 */
-  const talkable = new Set<string>();
-  for (const r of (membersRes.data ?? []) as unknown as { company_id: string; ow_users: UserRef }[]) {
-    if (visibleUser(r.ow_users)) talkable.add(r.company_id);
-  }
+  /* S7 */
   const responders = new Set<string>();
   for (const r of (adminsRes.data ?? []) as unknown as { company_id: string; ow_users: UserRef }[]) {
     /* ★見ている人と is_test が一致する担当者だけ。検証用の担当者しかいない実在の企業（セールスフォース）は
@@ -310,7 +300,6 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     score: s.score,
     signals: s.signals,
     reasons: s.signals.slice(0, MAX_REASONS_PER_COMPANY).map((x) => reasonText(x.detail)),
-    hasTalkable: talkable.has(s.row.id),
     /* ★会社自身の is_test も見ている人と一致すること（会話の判定 can_contact_without_stance() が見る向きと同じ）。
           一致しないと、担当者がいても会話は開かない（検証用アカウント × 実在の企業） */
     hasResponder: responders.has(s.row.id) && (s.row.is_test === true) === viewerIsTest,

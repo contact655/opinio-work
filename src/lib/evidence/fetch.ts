@@ -167,7 +167,7 @@ export async function gatherCompanyFacts(
     }
   }
 
-  // ── 3. 在籍者の職歴（shared_motive / talkable / short_tenure）─────────────
+  // ── 3. 在籍者の職歴（shared_motive / short_tenure）─────────────
   const { data: exps, error: expErr } = await db
     .from("ow_experiences")
     .select("id, user_id, company_id, is_current, started_at, ended_at, join_reasons, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility)")
@@ -179,15 +179,6 @@ export async function gatherCompanyFacts(
       isVisibleUser(e.ow_users as unknown as UserRow) &&
       e.visibility_company !== "hidden",
   );
-
-  // ── 4. 面談対応者（talkable）──────────────────────────────────────────────
-  const { data: members, error: memErr } = await db
-    .from("ow_company_members")
-    .select("user_id, company_id, display_consent, is_public")
-    .in("company_id", ids)
-    .eq("display_consent", true)
-    .eq("is_public", true);
-  if (memErr) console.error("[evidence/fetch] ow_company_members:", memErr.message);
 
   // ── 5. 候補者の希望条件（preference / salary / work style）────────────────
   const authId = (me?.auth_id as string | null) ?? null;
@@ -289,14 +280,6 @@ export async function gatherCompanyFacts(
       };
     }
 
-    /* ③ talkable … 公開中の面談対応者のうち、その会社に現職の経歴がある人 */
-    const currentUserIds = new Set(
-      visibleExps.filter((e) => e.company_id === cid && e.is_current).map((e) => e.user_id as string),
-    );
-    const talkableN = (members ?? []).filter(
-      (m) => m.company_id === cid && currentUserIds.has(m.user_id as string),
-    ).length;
-
     /* ④ preference_match … 求人があれば求人の勤務形態、無ければ企業の値 */
     const fit = fitByCompany.get(cid) ?? null;
     /* ★求人の職種の根拠が立った求人だけ。⚠️ 立たなければ null（根拠と関係ない求人を付けない） */
@@ -328,7 +311,6 @@ export async function gatherCompanyFacts(
         companyName: displayName,
         samePath: samePath.n > 0 ? samePath : null,
         sharedMotive,
-        talkable: talkableN > 0 ? { n: talkableN } : null,
         preference: matchedLabels.length > 0 ? { matchedLabels } : null,
         fit,
       },

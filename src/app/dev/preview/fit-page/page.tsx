@@ -13,7 +13,7 @@ import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
  * 何を見るか:
  *   ・冒頭は2文＋「担当者未登録」の説明1回＋「詳しく」
  *   ・カードは「担当者あり／担当者未登録」の小さなラベルだけ
- *   ・理由は緑の枠・タグ（話を聞ける人・募集あり・フェーズ）
+ *   ・理由は緑の枠・タグ（募集あり・フェーズ）
  *   ・押した後（会話あり／運営に記録＋取り消す）・「気をつけて見てほしいこと」の器
  */
 const PROPOSAL: ProposalView = {
@@ -21,7 +21,7 @@ const PROPOSAL: ProposalView = {
   logoUrl: null, isOwnCompany: false,
   evidence: [
     { kind: "same_path", n: 2, label: "アカウントエグゼクティブから、サンプルワークスへ 2人が移っています" },
-    { kind: "talkable", n: 1, label: "話を聞ける人が 1人います" },
+    { kind: "preference_match", n: 1, label: "希望フェーズ（シリーズB）に合っています" },
   ],
   /* ★確かめられなかったこと（unknown）だけ → 枠は出ない */
   counter: [{ kind: "unknown", label: "都合の悪い点は確かめていません（在籍期間・年収・勤務形態のデータが足りていません）" }],
@@ -37,12 +37,12 @@ const PROPOSAL_ANSWERED: ProposalView = {
 };
 
 const base: Omit<ForYouView, "id" | "rank" | "name"> = {
-  href: null, tagline: "チームの作業を割り当て、進捗を追う", reasons: [], groupLabel: null, hasTalkable: false, hasOpenJobs: false,
+  href: null, tagline: "チームの作業を割り当て、進捗を追う", reasons: [], groupLabel: null, hasOpenJobs: false,
   phaseLabel: "上場企業", cautions: [], hasResponder: false, reaction: null, conversationId: null, interested: false,
 };
 const AI = { reasons: ["いまの勤務先と同じAI・データ領域の会社です"], groupLabel: "いまの勤務先と同じAI・データ領域" };
 const COMPANIES: ForYouView[] = [
-  { ...base, id: "c1", rank: 1, name: "担当者のいる会社（未回答）", hasResponder: true, hasOpenJobs: true, hasTalkable: true,
+  { ...base, id: "c1", rank: 1, name: "担当者のいる会社（未回答）", hasResponder: true, hasOpenJobs: true,
     reasons: ["あなたの経験職種（エンタープライズセールス）の募集があります", "前職と同じCRM・営業支援領域の会社です"],
     groupLabel: "あなたの経験職種（エンタープライズセールス）の募集がある会社" },
   { ...base, id: "c2", rank: 2, name: "AI・データの会社A（担当者未登録）", ...AI,

@@ -133,7 +133,6 @@ export default function ProposalsClient({
                 {rest > 0 && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "4px 0 0" }}>ほかに根拠が {rest} 件あります</p>}
                 <CautionBox items={cautions} state="proposal-cautions" />
                 <TagRow
-                  talkable={p.evidence.some((e) => e.kind === "talkable")}
                   openJobs={!!p.jobHref}
                   phase={p.phaseLabel}
                 />

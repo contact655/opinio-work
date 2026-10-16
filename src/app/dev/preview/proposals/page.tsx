@@ -39,7 +39,6 @@ function facts(n: number, opts?: Partial<EvidenceFacts>): EvidenceFacts {
     companyName: "サンプルワークス",
     samePath: n > 0 ? { n, fromRoleName: "アカウントエグゼクティブ", fromIndustryName: "IT・ソフトウェア" } : null,
     sharedMotive: n > 0 ? { n, k: Math.max(1, n - 1), reasonLabel: "裁量の大きさ" } : null,
-    talkable: n > 0 ? { n } : null,
     preference: { matchedLabels: ["希望フェーズ（上場企業）にマッチ"] },
     fit: null,
     ...opts,
@@ -115,10 +114,10 @@ export default function Page() {
 
       <Variant
         label="根拠2件未満で除外"
-        note="話を聞ける人だけ（1件）→ 提案に出さない"
+        note="希望条件の一致だけ（1件）→ 提案に出さない"
       >
         <Card
-          f={{ companyName: "サンプルワークス", samePath: null, sharedMotive: null, talkable: { n: 2 }, preference: null, fit: null }}
+          f={{ companyName: "サンプルワークス", samePath: null, sharedMotive: null, preference: { matchedLabels: ["希望フェーズ（上場企業）にマッチ"] }, fit: null }}
           counter={COUNTER_FULL}
         />
       </Variant>
@@ -131,7 +130,7 @@ export default function Page() {
           f={{
             companyName: "サンプルワークス",
             samePath: { n: 4, fromRoleName: null, fromIndustryName: null },
-            sharedMotive: null, talkable: { n: 3 }, preference: null, fit: null,
+            sharedMotive: null, preference: { matchedLabels: ["希望フェーズ（上場企業）にマッチ"] }, fit: null,
           }}
           counter={COUNTER_NONE}
         />
@@ -160,7 +159,7 @@ export default function Page() {
 
 const FIT_TARGET = { kind: "target_industry" as const, industryId: "x", industryName: "建設" };
 const FIT_DOMAIN = { kind: "business_domain" as const, domainIds: ["y"], domainNames: ["CRM・営業支援", "AI・データ"] };
-const FIT_NONE_BASE: EvidenceFacts = { companyName: "サンプルワークス", samePath: null, sharedMotive: null, talkable: null, preference: null, fit: null };
+const FIT_NONE_BASE: EvidenceFacts = { companyName: "サンプルワークス", samePath: null, sharedMotive: null, preference: null, fit: null };
 const FIT_ALL: EvidenceFacts = {
   ...FIT_NONE_BASE,
   fit: {

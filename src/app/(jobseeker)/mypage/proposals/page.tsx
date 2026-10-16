@@ -143,7 +143,6 @@ export default async function ProposalsPage() {
           reasons: c.reasons,
           /* ★1番目の理由で束ねる見出し（無ければ「その他の掲載企業」へ） */
           groupLabel: c.signals[0] ? groupLabel(c.signals[0].detail) : null,
-          hasTalkable: c.hasTalkable,
           hasOpenJobs: c.hasOpenJobs,
           phaseLabel: c.phaseLabel,
           cautions: c.cautions,
