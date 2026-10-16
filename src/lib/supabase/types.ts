@@ -2095,6 +2095,57 @@ export type Database = {
           },
         ]
       }
+      ow_company_field_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          company_id: string
+          field: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          source_url: string | null
+          via: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          company_id: string
+          field: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          source_url?: string | null
+          via: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          company_id?: string
+          field?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          source_url?: string | null
+          via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_field_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_field_changes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_follows: {
         Row: {
           company_id: string
@@ -3492,6 +3543,67 @@ export type Database = {
           },
         ]
       }
+      ow_experience_expectations: {
+        Row: {
+          created_at: string
+          experience_id: string
+          is_primary: boolean
+          rating: number | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          experience_id: string
+          is_primary?: boolean
+          rating?: number | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          experience_id?: string
+          is_primary?: boolean
+          rating?: number | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_expectations_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_experience_gap_shifts: {
+        Row: {
+          axis: string
+          created_at: string
+          experience_id: string
+          value: number
+        }
+        Insert: {
+          axis: string
+          created_at?: string
+          experience_id: string
+          value: number
+        }
+        Update: {
+          axis?: string
+          created_at?: string
+          experience_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_gap_shifts_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_experience_gaps: {
         Row: {
           axis: string
@@ -3522,6 +3634,124 @@ export type Database = {
             foreignKeyName: "ow_experience_gaps_experience_id_fkey"
             columns: ["experience_id"]
             isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_experience_leave_reasons: {
+        Row: {
+          created_at: string
+          experience_id: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          experience_id: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          experience_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_leave_reasons_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_experience_notes: {
+        Row: {
+          body: string
+          created_at: string
+          display_consent: boolean
+          display_consent_version: number | null
+          display_consented_at: string | null
+          experience_id: string
+          prompt: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          display_consent?: boolean
+          display_consent_version?: number | null
+          display_consented_at?: string | null
+          experience_id: string
+          prompt: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          display_consent?: boolean
+          display_consent_version?: number | null
+          display_consented_at?: string | null
+          experience_id?: string
+          prompt?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_notes_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: true
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_experience_notes_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_experience_reviews: {
+        Row: {
+          answered_at: string | null
+          created_at: string
+          experience_id: string
+          fit_score: number | null
+          reason_version: number
+          updated_at: string
+        }
+        Insert: {
+          answered_at?: string | null
+          created_at?: string
+          experience_id: string
+          fit_score?: number | null
+          reason_version: number
+          updated_at?: string
+        }
+        Update: {
+          answered_at?: string | null
+          created_at?: string
+          experience_id?: string
+          fit_score?: number | null
+          reason_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_experience_reviews_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: true
             referencedRelation: "ow_experiences"
             referencedColumns: ["id"]
           },
@@ -3811,6 +4041,41 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      ow_fit_axis_answers: {
+        Row: {
+          axes_version: number
+          axis_key: string
+          source: string
+          updated_at: string
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          axes_version: number
+          axis_key: string
+          source: string
+          updated_at?: string
+          user_id: string
+          value?: number | null
+        }
+        Update: {
+          axes_version?: number
+          axis_key?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_fit_axis_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ow_for_you_reactions: {
         Row: {
@@ -5627,6 +5892,7 @@ export type Database = {
         Row: {
           accept_company_approaches: boolean | null
           bio: string | null
+          career_history_complete_at: string | null
           career_stance: string | null
           career_stance_updated_at: string | null
           created_at: string | null
@@ -5654,6 +5920,7 @@ export type Database = {
         Insert: {
           accept_company_approaches?: boolean | null
           bio?: string | null
+          career_history_complete_at?: string | null
           career_stance?: string | null
           career_stance_updated_at?: string | null
           created_at?: string | null
@@ -5681,6 +5948,7 @@ export type Database = {
         Update: {
           accept_company_approaches?: boolean | null
           bio?: string | null
+          career_history_complete_at?: string | null
           career_stance?: string | null
           career_stance_updated_at?: string | null
           created_at?: string | null
@@ -5836,6 +6104,48 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_reason_modal_closes: {
+        Row: {
+          created_at: string
+          experience_id: string | null
+          id: string
+          step: string
+          user_id: string
+          via: string
+        }
+        Insert: {
+          created_at?: string
+          experience_id?: string | null
+          id?: string
+          step: string
+          user_id: string
+          via: string
+        }
+        Update: {
+          created_at?: string
+          experience_id?: string | null
+          id?: string
+          step?: string
+          user_id?: string
+          via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_reason_modal_closes_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_reason_modal_closes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]
