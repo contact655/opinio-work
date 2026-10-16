@@ -2105,6 +2105,7 @@ export default function CareerHistoryEditor({
             experienceId={reasonStint.id}
             companyName={reasonStint.displayCompanyName}
             remaining={rest.length}
+            nextCompanyName={rest.length > 0 ? (stints.find((y) => y.id === rest[0])?.displayCompanyName ?? null) : null}
             onNext={rest.length > 0 ? () => setReasonId(rest[0]) : null}
             onSaved={() => {
               /* 印をすぐ更新（同じ会社の役割すべて）してから、サーバーの値で取り直す */

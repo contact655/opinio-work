@@ -1,61 +1,72 @@
 "use client";
 
 /**
- * ★「この会社について」モーダル（新形式 reason_version = 2。2026-10-16 に作り直した）。
- *   設計は docs/phase0-reason-modal-20261016.md。
+ * ★入社後レビュー「株式会社◯◯について」（2026-10-16 に作り直した。フェーズ1）。
+ *   データは ow_workplace_reviews ほか（migration 20261016190000）。決めごとは lib/workplaceReview/constants.ts。
  *
  * ── 流れ ─────────────────────────────────────────────────────────────────────
- *   ステップ1 … 入社するとき、期待していたこと（15個から3つまで）＋ いちばん期待していたこと
- *   ステップ2 … A 期待への評価 ／ B 入社前とのずれ（6項目）／ C 合っていたか（0〜10）／ D ひとこと ／ 離れた理由
- *   保存後   … まだ答えていない会社が残っていれば「次の会社にも答える」。無ければそのまま閉じる
+ *   ① 必須（約30秒）… 合っていたか（0〜10）／入社前の期待と比べて（4項目 × 3択）
+ *   ② 任意 … 実際はどちら寄りだったか（6軸 × 5段階。軸はマスタ）
+ *   ③ 任意 … 働き方の事実（3項目 × 4択）／合う人（タグ）／入る前に知りたかったこと（80字）
+ *   ④ 完了 … あなたが合う職場の傾向（本人の回答だけ。ルールで組む。lib/workplaceReview/tendency.ts）
  *
- * ⚠️★回答の単位は**会社**。どの役割の行から開いても、サーバーが保存先の行を決める（`reasonAnswers.ts`）。
- * ⚠️★旧形式（2026-10-16 より前の「選んだ理由」）の列には書かない。旧の回答がある会社は
- *    **初期値として出して答え直してもらう**（旧の回答は消さない）。
- * ⚠️ 「あとで答える」と × は**何も保存せず閉じる**。ただし、どのステップで閉じたかは記録する。
- * ⚠️ この内容は会社にも他の利用者にも出さない。文言（`PRIVACY_NOTE`）に他の利用者への表示をにおわせる言葉を入れない
- *    （プライバシーポリシーの改定まで）。
+ * ⚠️★「次へ」「ここで保存」のたびに保存する。①を答えて「次へ」を押した時点で①は残る（②で閉じても消えない）。
+ * ⚠️★開き直したら続きから: 未回答→① ／ ①まで→②（②に回答があれば③）／ 最後まで→①（見直し）。
+ * ⚠️ 回答は公開しない。会社にも伝えない。文言に「公開」「表示」をにおわせる言葉を足さない。
+ * ⚠️ 選択肢はすべて button。もう一度押すと外れる。
+ * ⚠️ 旧形式（ow_experience_reviews ほか・旧の列）には書かない。
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { ProfileEditModal } from "./ProfileEditModal";
 import {
-  EXPECTATIONS,
-  EXPECTATION_LABELS,
-  EXPECTATION_MAX,
-  EXPECTATION_UNRATED,
-  EXPECTATION_RATING_ENDS,
-  SCALE_VALUES,
-  FIT_SCORE_MIN,
+  AXIS_SCALE,
+  EMPTY_ANSWERS,
+  FACT_ITEMS,
+  FIT_SCORE_ENDS,
   FIT_SCORE_MAX,
-  GAP_SHIFT_AXES,
-  GAP_SHIFT_MID,
-  LEAVE_REASONS,
-  REASON_MAX,
-  NOTE_MAX_LENGTH,
-  NOTE_CONSENT_HINT,
-  noteConsentText,
-  EMPTY_REASON_ANSWERS_V2,
-  needsPrimary,
-  type ReasonAnswersV2,
-} from "@/lib/constants/careerReasons";
+  FIT_SCORE_MIN,
+  GAP_CHOICES,
+  GAP_ITEMS,
+  MEMO_MAX,
+  memoLength,
+  requiredDone,
+  type ReviewAxis,
+  type ReviewFitTag,
+  type ReviewStatus,
+  type WorkplaceReviewAnswers,
+} from "@/lib/workplaceReview/constants";
+import type { Tendency } from "@/lib/workplaceReview/tendency";
+import { LEAVE_REASONS } from "@/lib/constants/careerReasons";
+import { LEAVE_REASON_MAX } from "@/lib/workplaceReview/constants";
+import { CAREER_CONSULT_URL } from "@/lib/constants/externalLinks";
 
-const PRIVACY_NOTE = "会社には伝わりません。";
+const PRIVACY_NOTE = "回答は公開されず、会社にも伝わりません。あなたに合う会社を探すためだけに使います。";
 
-/** GET /api/jobseeker/experiences/[id]/reasons の形（`reasonAnswers.ts` の LoadedAnswers） */
-export type LoadedReasonAnswers = {
+/** ④のボタンの行き先（2026-10-16 / フェーズ0の調査で決めた） */
+const FIT_COMPANIES_HREF = "/mypage/proposals";
+/* ★キャリア相談の予約ページは lib/constants/externalLinks.ts の CAREER_CONSULT_URL（1か所）。
+      null のあいだは「キャリア相談する」を出さない。値が入れば新しいタブで開く */
+
+/** GET /api/jobseeker/experiences/[id]/review の形（lib/workplaceReview/server.ts の LoadedReview） */
+export type LoadedWorkplaceReview = {
   anchorId: string;
-  version: 1 | 2 | null;
+  /** 終了した会社か（③の末尾に「離れた理由」を出すか） */
   canLeave: boolean;
-  answers: ReasonAnswersV2;
+  status: ReviewStatus | null;
+  answers: WorkplaceReviewAnswers;
+  masters: { axes: ReviewAxis[]; tags: ReviewFitTag[] };
 };
 
-// ── 回答済みの判定 ────────────────────────────────────────────────────────────
+/** 互換のため残す（dev/preview の古い import 用）。中身は新しい形 */
+export type LoadedReasonAnswers = LoadedWorkplaceReview;
+
+// ── 回答済みの判定（行の印）──────────────────────────────────────────────────
 
 /**
  * ⚠️ `Stint` を import しない（`CareerHistoryEditor` ↔ ここで循環する）。構造だけを受ける。
  * `reasonVersion` は `GET /api/jobseeker/experiences/reasons-status` から来る（会社単位）。
- *   2 = 新形式で答え済み ／ 1 = 旧形式だけ ／ null = 未回答 ／ undefined = まだ取れていない
+ *   2 = 新しい入社後レビューで答え済み ／ 1 = それより前の形式だけ ／ null = 未回答 ／ undefined = まだ取れていない
  */
 export type ReasonSource = {
   joinReasons?: string[];
@@ -64,14 +75,6 @@ export type ReasonSource = {
   reasonVersion?: 1 | 2 | null;
 };
 
-/**
- * ★回答の状態（2026-10-16）。
- *   "answered" … 新形式（reason_version = 2）で答え済み
- *   "legacy"   … 旧形式だけ（質問が新しくなった。答え直してもらう）
- *   "none"     … 一度も答えていない
- * ⚠️ 状態がまだ取れていない間（`reasonVersion` が undefined）は、ページが読んだ旧形式の列で判定する
- *    （読み込み直後に印が揺れないように。旧形式の列があれば "legacy"）。
- */
 export type ReasonState = "answered" | "legacy" | "none";
 
 export function reasonState(src: ReasonSource | null | undefined): ReasonState {
@@ -86,71 +89,87 @@ export function reasonState(src: ReasonSource | null | undefined): ReasonState {
   return old ? "legacy" : "none";
 }
 
-/**
- * 「未回答」に数えないか。★**旧形式で答えた会社も数えない**（2026-10-16 / 柴さんの判断）。
- *   ＝「N件の職歴が未回答です」の帯の件数・「まとめて答える」・保存後の「次の会社にも答える」から外す。
- *   旧形式の会社には、帯とは別に控えめな一文と行の印（「質問が新しくなりました」）で答え直しを案内する。
- * ⚠️ 名前は互換のため残している。意味は「一度でも答えたか」。
- */
+/** 「未回答」に数えないか（一度でも答えたか）。⚠️ 名前は互換のため */
 export function hasReasonAnswers(src: ReasonSource | null | undefined): boolean {
   return reasonState(src) !== "none";
 }
 
-// ── チップ ────────────────────────────────────────────────────────────────────
+// ── 部品 ──────────────────────────────────────────────────────────────────────
 
-/**
- * ⚠️★タップ領域は 44px（2026-08-28）。`reason-chip` は計測用の目印（当たる CSS は無い）。消さないこと。
- */
-function ReasonChip({
-  label,
-  active,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
+/** 選べるボタン。⚠️ 高さ44px。もう一度押すと外れる（呼び出し側が null を渡す） */
+function Choice({ label, active, disabled, onClick, ariaLabel, className = "wr-choice" }: {
+  label: React.ReactNode; active: boolean; disabled?: boolean; onClick: () => void; ariaLabel?: string; className?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active}
-      className="reason-chip"
-      style={{
-        minHeight: 44,
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "7px 14px",
-        borderRadius: 100,
-        border: `1.5px solid ${active ? "var(--royal)" : "var(--line)"}`,
-        background: active ? "var(--royal-50)" : "#fff",
-        color: active ? "var(--royal)" : "var(--ink-soft)",
-        fontSize: 13,
-        fontWeight: active ? 700 : 500,
-        fontFamily: "inherit",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        lineHeight: 1.4,
-        transition: "border-color 0.12s, background 0.12s, color 0.12s",
-      }}
-    >
+    <button type="button" className={`btn-fixed-size ${className}`} aria-pressed={active} aria-label={ariaLabel}
+      disabled={disabled} onClick={onClick} data-active={active ? "on" : "off"}>
       {label}
     </button>
   );
 }
 
-// ── モーダル ──────────────────────────────────────────────────────────────────
+function Progress({ step }: { step: 1 | 2 | 3 }) {
+  return (
+    <div data-state={`wr-progress-${step}`} style={{ margin: "0 0 14px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
+        <span>{step} / 3{step === 1 ? "　必須・約30秒" : "　任意"}</span>
+        <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>2・3 は任意です</span>
+      </div>
+      <div aria-hidden="true" style={{ marginTop: 6, height: 4, borderRadius: 999, background: "var(--line)", overflow: "hidden" }}>
+        <div style={{ width: `${(step / 3) * 100}%`, height: "100%", background: "var(--royal)", transition: "width 0.2s" }} />
+      </div>
+    </div>
+  );
+}
 
-type Step = 1 | 2 | "done";
+const Q = { fontSize: 15, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px", lineHeight: 1.6 } as const;
+
+/* ⚠️ この style のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる）。
+      ⚠️ 属性セレクタの値に引用符を書かない（サーバーだけ実体参照に変わり、ハイドレーションが壊れる） */
+const CSS = `
+  .wr-choice { min-height: 44px; min-width: 0; padding: 6px 4px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #fff; color: var(--ink-soft); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+    line-height: 1.3; transition: border-color 0.12s, background 0.12s, color 0.12s; }
+  .wr-choice[data-active=on] { border-color: var(--royal); background: var(--royal-50); color: var(--royal); font-weight: 700; }
+  .wr-choice:disabled { cursor: default; opacity: 0.5; }
+  .wr-fit { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
+  .wr-fit .wr-choice { padding: 6px 0; font-size: 14px; }
+  @media (max-width: 639px) {
+    .wr-fit { grid-template-columns: repeat(6, minmax(44px, 1fr)); row-gap: 6px; }
+  }
+  .wr-ends { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--ink-mute); }
+  .wr-gap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+  .wr-axis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+  .wr-axis .wr-choice { font-size: 12px; white-space: nowrap; }
+  .wr-sides { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.5; }
+  .wr-sides span:last-child { text-align: right; }
+  .wr-fact { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+  .wr-fact .wr-choice { font-size: 12px; }
+  .wr-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wr-tags .wr-choice { padding: 6px 14px; border-radius: 999px; }
+  .wr-memo { width: 100%; min-height: 72px; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line);
+    font-size: 14px; line-height: 1.6; font-family: inherit; resize: vertical; box-sizing: border-box; }
+  .wr-dots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+  .wr-dot { height: 22px; display: flex; align-items: center; justify-content: center; }
+  .wr-dot span { width: 14px; height: 14px; border-radius: 50%; }
+  @media (max-width: 400px) {
+    .wr-axis .wr-choice, .wr-fact .wr-choice { font-size: 11px; }
+  }
+`;
+
+type Step = 1 | 2 | 3 | "done";
+
+/** 開き直したときに始めるステップ */
+function startStep(loaded: LoadedWorkplaceReview): 1 | 2 | 3 {
+  if (loaded.status === "required_done") return Object.keys(loaded.answers.axes).length > 0 ? 3 : 2;
+  return 1;
+}
 
 export function ExperienceReasonModal({
   open,
   experienceId,
   companyName,
-  remaining,
+  nextCompanyName = null,
   onNext,
   onSaved,
   onClose,
@@ -161,27 +180,28 @@ export function ExperienceReasonModal({
   /** 開いた行の id（どの役割でもよい。保存先の行はサーバーが決める） */
   experienceId: string;
   companyName: string;
-  /** この会社を除いて、まだ答えていない会社の数。0 なら保存後にそのまま閉じる */
-  remaining: number;
-  /** 次の未回答の会社へ。⚠️ `remaining === 0` のときは渡らない */
+  /** 互換のため受ける（未使用）。⚠️ 残りの会社は nextCompanyName と onNext で出す */
+  remaining?: number;
+  /** ④の下に出す「◯◯もふり返ると…」の会社名。無ければ出さない */
+  nextCompanyName?: string | null;
+  /** その会社のレビューを開く */
   onNext: (() => void) | null;
   /** 保存できたら呼ぶ（呼び出し側が「回答済み」の印を更新する） */
   onSaved: () => void;
-  /** 閉じる（「あとで答える」・×・保存後の「閉じる」） */
   onClose: () => void;
   /** ★`/dev/preview` 用。渡すとサーバーから読まない */
-  preload?: LoadedReasonAnswers;
-  /** ★`/dev/preview` 用。渡すとサーバーに保存しない */
-  onSaveOverride?: (a: ReasonAnswersV2) => Promise<boolean>;
+  preload?: LoadedWorkplaceReview;
+  /** ★`/dev/preview` 用。渡すとサーバーに保存しない。④の傾向を返す */
+  onSaveOverride?: (a: WorkplaceReviewAnswers, complete: boolean) => Promise<{ ok: boolean; tendency: Tendency | null }>;
 }) {
-  const [loaded, setLoaded] = useState<LoadedReasonAnswers | null>(preload ?? null);
+  const [loaded, setLoaded] = useState<LoadedWorkplaceReview | null>(preload ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [answers, setAnswers] = useState<ReasonAnswersV2>(preload?.answers ?? EMPTY_REASON_ANSWERS_V2);
-  const [step, setStep] = useState<Step>(1);
+  const [answers, setAnswers] = useState<WorkplaceReviewAnswers>(preload?.answers ?? EMPTY_ANSWERS);
+  const [saved, setSaved] = useState<WorkplaceReviewAnswers | null>(preload ? preload.answers : null);
+  const [step, setStep] = useState<Step>(preload ? startStep(preload) : 1);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  /** 上限に当たったことを伝える注記。次の操作で消える */
-  const [limitNote, setLimitNote] = useState<null | "expect" | "leave">(null);
+  const [tendency, setTendency] = useState<Tendency | null>(null);
 
   /* 開いたときに会社単位の回答を読む。⚠️ 失敗したら答えさせない（保存すると上書きになるため） */
   useEffect(() => {
@@ -189,556 +209,357 @@ export function ExperienceReasonModal({
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`/api/jobseeker/experiences/${experienceId}/reasons`, { cache: "no-store" });
+        const res = await fetch(`/api/jobseeker/experiences/${experienceId}/review`, { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
-        const j = (await res.json()) as LoadedReasonAnswers;
+        const j = (await res.json()) as LoadedWorkplaceReview;
         if (!alive) return;
         setLoaded(j);
         setAnswers(j.answers);
+        setSaved(j.answers);
+        setStep(startStep(j));
       } catch (e) {
-        console.error("[reason-modal] load:", (e as Error).message);
+        console.error("[workplace-review] load:", (e as Error).message);
         if (alive) setLoadError("回答を読み込めませんでした。時間をおいてもう一度開いてください。");
       }
     })();
     return () => { alive = false; };
   }, [open, experienceId, preload]);
 
-  const dirty = useMemo(
-    () => !!loaded && JSON.stringify(answers) !== JSON.stringify(loaded.answers),
-    [answers, loaded],
-  );
+  const dirty = useMemo(() => !!saved && JSON.stringify(answers) !== JSON.stringify(saved), [answers, saved]);
+  const ready = !!loaded && !loadError;
+  const canSave = ready && requiredDone(answers);
+  const memoOver = memoLength(answers.memo) > MEMO_MAX;
 
-  /** 閉じたときの記録。⚠️ 結果を待たない（記録の失敗で閉じる操作を止めない） */
-  function recordClose(via: "later" | "close") {
-    if (preload || step === "done") return;
-    void fetch(`/api/jobseeker/experiences/${experienceId}/reasons/close`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ step: step === 1 ? "step1" : "step2", via }),
-      keepalive: true,
-    }).catch((e) => console.error("[reason-modal] close:", (e as Error).message));
-  }
-
-  function toggleExpectation(value: string) {
-    const cur = answers.expectations;
-    if (!cur.includes(value) && cur.length >= EXPECTATION_MAX) { setLimitNote("expect"); return; }
-    setLimitNote(null);
-    const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
-    /* いちばん: 1つだけなら自動でそれ。外した項目がいちばんだったら空に戻す。
-       ⚠️★1つ → 2つに増えたときは空に戻す。1つ目で自動に決まった「いちばん」が残ると、
-          2つ以上選んだのに本人が選ばないまま「次へ」に進めてしまう */
-    const primary =
-      next.length === 1 ? next[0]
-        : cur.length === 1 && next.length > 1 ? null
-          : answers.primary && next.includes(answers.primary) ? answers.primary : null;
-    /* 外した項目の評価も消す（DB の CHECK が「選んだ項目だけ」を要求するわけではないが、API が弾く） */
-    const ratings = Object.fromEntries(Object.entries(answers.ratings).filter(([k]) => next.includes(k)));
-    setAnswers({ ...answers, expectations: next, primary, ratings });
-  }
-
-  function toggleLeave(value: string) {
-    const cur = answers.leaveReasons;
-    if (!cur.includes(value) && cur.length >= REASON_MAX) { setLimitNote("leave"); return; }
-    setLimitNote(null);
-    setAnswers({ ...answers, leaveReasons: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] });
-  }
-
-  /* ひとこと。⚠️ 本文が空なら保存しない（API に null で送る） */
-  const noteDraft = answers.note ?? { prompt: null, body: "", displayConsent: false };
-  /* ★80字を超えた分（2026-10-16 / 案A）。超えていても「保存」は押せる。
-        ⚠️ そのときは**ひとことだけ送らない**（他の回答まで保存できずに閉じられてしまわないように）。
-        黙って捨てないよう、保存ボタンのすぐ上に何が保存されないかを出す。 */
-  const noteOver = Math.max(0, Array.from(noteDraft.body.trim()).length - NOTE_MAX_LENGTH);
-  function setNote(patch: Partial<NonNullable<ReasonAnswersV2["note"]>>) {
-    setAnswers({ ...answers, note: { ...noteDraft, ...patch } });
-  }
-
-  async function save() {
+  /** 保存して次へ進む。⚠️ 失敗したら進まない（入力は残る） */
+  async function saveAndGo(next: Step, complete: boolean) {
+    if (!canSave || memoOver) return;
     setSaving(true);
     setSaveError(null);
     try {
-      let ok: boolean;
-      if (onSaveOverride) ok = await onSaveOverride(payloadFor(answers));
-      else {
-        const res = await fetch(`/api/jobseeker/experiences/${experienceId}/reasons`, {
+      let t: Tendency | null = null;
+      if (onSaveOverride) {
+        const r = await onSaveOverride(answers, complete);
+        if (!r.ok) { setSaveError("保存に失敗しました。もう一度お試しください。"); return; }
+        t = r.tendency;
+      } else {
+        const res = await fetch(`/api/jobseeker/experiences/${experienceId}/review`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payloadFor(answers)),
+          body: JSON.stringify({ answers, complete }),
         });
-        if (!res.ok) {
-          let msg = "";
-          try { msg = ((await res.json()) as { message?: string }).message ?? ""; } catch { /* 本文が無い */ }
-          setSaveError(msg || "保存に失敗しました。もう一度お試しください。");
-          return;
-        }
-        ok = true;
+        const j = (await res.json().catch(() => ({}))) as { message?: string; tendency?: Tendency | null };
+        if (!res.ok) { setSaveError(j.message || "保存に失敗しました。もう一度お試しください。"); return; }
+        t = j.tendency ?? null;
       }
-      if (!ok) { setSaveError("保存に失敗しました。もう一度お試しください。"); return; }
+      setSaved(answers);
+      setTendency(t);
       onSaved();
-      if (onNext) setStep("done");
-      else onClose();
+      setStep(next);
     } finally {
       setSaving(false);
     }
   }
 
-  const blockedByPrimary = step === 1 && needsPrimary(answers);
-  const ready = !!loaded && !loadError;
+  const setGap = (k: (typeof GAP_ITEMS)[number]["key"], v: number) =>
+    setAnswers((a) => ({ ...a, gaps: { ...a.gaps, [k]: a.gaps[k] === v ? null : v } }));
+  const setAxis = (k: string, v: number) =>
+    setAnswers((a) => {
+      const axes = { ...a.axes };
+      if (axes[k] === v) delete axes[k]; else axes[k] = v;
+      return { ...a, axes };
+    });
+  const setFact = (k: (typeof FACT_ITEMS)[number]["key"], v: number) =>
+    setAnswers((a) => ({ ...a, facts: { ...a.facts, [k]: a.facts[k] === v ? null : v } }));
+  const toggleTag = (k: string) =>
+    setAnswers((a) => ({ ...a, tags: a.tags.includes(k) ? a.tags.filter((x) => x !== k) : [...a.tags, k] }));
+  const [leaveLimit, setLeaveLimit] = useState(false);
+  const toggleLeave = (k: string) => {
+    if (!answers.leaveReasons.includes(k) && answers.leaveReasons.length >= LEAVE_REASON_MAX) { setLeaveLimit(true); return; }
+    setLeaveLimit(false);
+    setAnswers((a) => ({ ...a, leaveReasons: a.leaveReasons.includes(k) ? a.leaveReasons.filter((x) => x !== k) : [...a.leaveReasons, k] }));
+  };
+
+  /* フッター */
+  const footer = step === 1
+    ? { save: "次へ（任意・約1分）", onSave: () => void saveAndGo(2, false), extra: "ここで保存", onExtra: () => void saveAndGo("done", false) }
+    : step === 2
+      ? { save: "次へ", onSave: () => void saveAndGo(3, false), extra: "ここで保存して終える", onExtra: () => void saveAndGo("done", false) }
+      : step === 3
+        ? { save: "保存する", onSave: () => void saveAndGo("done", true), extra: undefined, onExtra: undefined }
+        : { save: "この傾向に合う会社を見る", onSave: () => { window.location.assign(FIT_COMPANIES_HREF); }, extra: undefined, onExtra: undefined };
 
   return (
     <ProfileEditModal
       open={open}
       title={`${companyName}について`}
-      width={560}
+      width={600}
       dirty={step === "done" ? false : dirty}
       saving={saving}
       justSaved={false}
       error={saveError ?? loadError}
-      saveLabel={step === 1 ? "次へ" : step === 2 ? "保存" : `次の会社にも答える（残り${remaining}社）`}
+      saveLabel={footer.save}
       primaryEnabled
-      primaryDisabled={!ready || blockedByPrimary}
-      /* ⚠️ 何も答えていないときは「保存」を出さない（不活性のボタンは置かない。2026-09-12 の判断を引き継ぐ） */
-      hidePrimary={step === 2 && !hasAnyAnswer(answers)}
-      secondaryLabel={step === "done" ? "閉じる" : "あとで答える"}
-      onSecondary={() => { recordClose("later"); onClose(); }}
-      onSave={() => {
-        if (step === 1) { setStep(2); return; }
-        if (step === "done") { onNext?.(); return; }
-        void save();
+      primaryDisabled={step !== "done" && (!canSave || memoOver)}
+      extraLabel={footer.extra}
+      onExtra={footer.onExtra}
+      extraDisabled={!canSave || memoOver}
+      secondaryLabel={step === "done" ? (CAREER_CONSULT_URL ? "キャリア相談する" : undefined) : "あとで答える"}
+      onSecondary={() => {
+        if (step === "done") {
+          if (CAREER_CONSULT_URL) window.open(CAREER_CONSULT_URL, "_blank", "noopener,noreferrer");
+          return;
+        }
+        onClose();
       }}
-      onClose={() => { recordClose("close"); onClose(); }}
-      footerTop={step === 1 && answers.expectations.length > 0 ? (
-        <PrimaryPicker answers={answers} disabled={saving} onPick={(v) => setAnswers({ ...answers, primary: v })} />
-      ) : step === 2 && noteOver > 0 ? (
-        <div data-state="note-over-warning" role="status" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", lineHeight: 1.6 }}>
-          ひとことが{NOTE_MAX_LENGTH}字を超えているため、ひとことだけ保存されません（あと{noteOver}字削ると保存されます）
-        </div>
-      ) : undefined}
+      onSave={footer.onSave}
+      onClose={onClose}
     >
-      {step !== "done" && (
-        <p
-          data-testid="reason-privacy-note"
-          style={{ margin: "0 0 16px", fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}
-        >
-          {PRIVACY_NOTE}
-        </p>
-      )}
+      <style>{CSS}</style>
+      {!ready && !loadError && <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>読み込んでいます…</div>}
 
-      {!ready && !loadError && (
-        <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>読み込んでいます…</div>
-      )}
+      {ready && step !== "done" && <Progress step={step} />}
 
       {ready && step === 1 && (
-        <div data-state="reason-step1">
-          {loaded!.version === 1 && (
-            <div style={{ fontSize: 12, lineHeight: 1.7, color: "var(--ink-soft)", background: "var(--line-soft)", borderRadius: 8, padding: "8px 12px", marginBottom: 14 }}>
-              質問が変わりました。以前の回答をもとに入れてあるので、見直して答え直してください。
+        <div data-state="wr-step-1" style={{ display: "grid", gap: 22, minWidth: 0 }}>
+          <p data-testid="reason-privacy-note" style={{ margin: 0, fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+            {PRIVACY_NOTE}
+          </p>
+          <section style={{ minWidth: 0 }}>
+            <h3 style={Q}>この会社は、あなたに合っていましたか？</h3>
+            <div className="wr-fit" role="group" aria-label="合っていた度合い（0〜10）">
+              {Array.from({ length: FIT_SCORE_MAX - FIT_SCORE_MIN + 1 }, (_, i) => FIT_SCORE_MIN + i).map((n) => (
+                <Choice key={n} label={n} active={answers.fitScore === n} disabled={saving}
+                  onClick={() => setAnswers((a) => ({ ...a, fitScore: a.fitScore === n ? null : n }))} />
+              ))}
             </div>
-          )}
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5, overflowWrap: "anywhere", marginBottom: 12 }}>
-            {companyName}に入るとき、期待していたことは？（{EXPECTATION_MAX}つまで）
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, minWidth: 0 }}>
-            {EXPECTATIONS.map((o) => (
-              <ReasonChip
-                key={o.value}
-                label={o.label}
-                active={answers.expectations.includes(o.value)}
-                disabled={saving}
-                onClick={() => toggleExpectation(o.value)}
-              />
-            ))}
-          </div>
-          {limitNote === "expect" && (
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 8 }}>
-              {EXPECTATION_MAX}つまでです。ほかを外してから選んでください。
-            </div>
-          )}
-        </div>
-      )}
-
-      {ready && step === 2 && (
-        <div data-state="reason-step2" style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            disabled={saving}
-            style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", fontFamily: "inherit", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
-          >
-            ← 期待していたことに戻る
-          </button>
-
-          {/* A: 期待していたことへの評価（選んだ項目だけ。「タイミング・個人の事情」は聞かない）。
-                 ★2026-10-16 に表の形にした（柴さんの指示）。問いは1回、言葉は見出しの行に1回だけ。
-                 ⚠️「期待していた◯◯は」の文に項目名を埋め込まない（名詞によっては日本語として不自然になる） */}
-          {answers.expectations.some((v) => !EXPECTATION_UNRATED.has(v)) && (
-            <section data-state="reason-ratings" style={{ minWidth: 0 }}>
-              <div style={questionStyle}>入社前に期待していたことは、実際どうでしたか？</div>
-              <div className="rm-matrix">
-                <div className="rm-row rm-head" aria-hidden="true">
-                  <span />
-                  <ScaleEnds low={EXPECTATION_RATING_ENDS.low} mid={EXPECTATION_RATING_ENDS.mid} high={EXPECTATION_RATING_ENDS.high} />
-                </div>
-                {answers.expectations.filter((v) => !EXPECTATION_UNRATED.has(v)).map((v) => (
-                  <div key={v} className="rm-row" data-state="reason-rating">
-                    <span className="rm-label">{EXPECTATION_LABELS[v] ?? v}</span>
-                    <ScaleDots
-                      name={EXPECTATION_LABELS[v] ?? v}
-                      value={answers.ratings[v] ?? null}
-                      ends={EXPECTATION_RATING_ENDS}
-                      disabled={saving}
-                      onChange={(n) => {
-                        const ratings = { ...answers.ratings };
-                        if (n === null) delete ratings[v]; else ratings[v] = n;
-                        setAnswers({ ...answers, ratings });
-                      }}
-                    />
+            <div className="wr-ends"><span>{FIT_SCORE_ENDS.low}</span><span>{FIT_SCORE_ENDS.high}</span></div>
+          </section>
+          <section style={{ minWidth: 0 }}>
+            <h3 style={Q}>入社前の期待と比べて、実際はどうでしたか？</h3>
+            <div style={{ display: "grid", gap: 14 }}>
+              {GAP_ITEMS.map((g) => (
+                <div key={g.key} data-state="wr-gap-item" style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+                    {g.label}
+                    <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 500, color: "var(--ink-mute)" }}>{g.hint}</span>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* B: 入社前の想像と比べて、実際はどちら寄りだったか（共通8項目・任意・最初は未選択）。
-                 ★表の形。「想像通り」は見出しに1回だけ。左右の言葉は項目ごとに違うので行ごとに短く出す */}
-          <section data-state="reason-shifts" style={{ minWidth: 0 }}>
-            <div style={questionStyle}>入社前の想像と比べて、実際はどちら寄りでしたか？</div>
-            <div className="rm-matrix">
-              {GAP_SHIFT_AXES.map((ax) => (
-                <div key={ax.value} className="rm-row" data-state="reason-shift">
-                  <span className="rm-label">{ax.label}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <ScaleDots
-                      name={ax.label}
-                      value={answers.shifts[ax.value] ?? null}
-                      ends={{ low: ax.left, mid: GAP_SHIFT_MID, high: ax.right }}
-                      disabled={saving}
-                      onChange={(n) => {
-                        const shifts = { ...answers.shifts };
-                        if (n === null) delete shifts[ax.value]; else shifts[ax.value] = n;
-                        setAnswers({ ...answers, shifts });
-                      }}
-                    />
-                    <div className="rm-sides" aria-hidden="true">
-                      <span>{ax.left.replace(/^想像より/, "")}</span>
-                      <span>{ax.right.replace(/^想像より/, "")}</span>
-                    </div>
+                  <div className="wr-gap" role="group" aria-label={g.label}>
+                    {GAP_CHOICES.map((label, v) => (
+                      <Choice key={v} label={label} active={answers.gaps[g.key] === v} disabled={saving} onClick={() => setGap(g.key, v)} />
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
           </section>
+          {!requiredDone(answers) && (
+            <p data-state="wr-required-hint" style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>
+              すべてに答えると保存できます。
+            </p>
+          )}
+        </div>
+      )}
 
-          {/* C: 合っていたか（0〜10・任意） */}
-          <section data-state="reason-fit" style={{ minWidth: 0 }}>
-            <div style={questionStyle}>
-              この会社は、あなたに合っていましたか？
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6, whiteSpace: "nowrap" }}>（任意）</span>
-            </div>
-            <FitScale
-              value={answers.fitScore}
-              disabled={saving}
-              onChange={(n) => setAnswers({ ...answers, fitScore: n })}
-            />
-          </section>
-
-          {/* 離れた理由（終了した会社だけ・任意・今の選択肢のまま） */}
-          {loaded!.canLeave && (
-            <section data-state="reason-leave" style={{ minWidth: 0 }}>
-              <div style={questionStyle}>
-                この会社を離れた理由は？（{REASON_MAX}つまで）
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6, whiteSpace: "nowrap" }}>（任意）</span>
+      {ready && step === 2 && loaded && (
+        <div data-state="wr-step-2" style={{ minWidth: 0 }}>
+          <h3 style={Q}>実際はどちら寄りでしたか？</h3>
+          <p style={{ margin: "-4px 0 16px", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+            良い・悪いではなく、実態に近いほうを選んでください。わからない項目は飛ばして大丈夫です。
+          </p>
+          <div style={{ display: "grid", gap: 18 }}>
+            {loaded.masters.axes.map((ax) => (
+              <div key={ax.key} data-state="wr-axis" style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 4 }}>{ax.name}</div>
+                <div className="wr-sides"><span>{ax.leftText}</span><span>{ax.rightText}</span></div>
+                <div className="wr-axis" role="group" aria-label={ax.name}>
+                  {AXIS_SCALE.map((label, v) => (
+                    <Choice key={v} label={label} active={answers.axes[ax.key] === v} disabled={saving} onClick={() => setAxis(ax.key, v)}
+                      ariaLabel={`${ax.name}: ${label.replace(/[←→]/g, "").trim()}${v < 2 ? `（${ax.leftText}）` : v > 2 ? `（${ax.rightText}）` : ""}`} />
+                  ))}
+                </div>
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, minWidth: 0 }}>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ready && step === 3 && loaded && (
+        <div data-state="wr-step-3" style={{ display: "grid", gap: 22, minWidth: 0 }}>
+          <section style={{ minWidth: 0 }}>
+            <h3 style={Q}>働き方について教えてください</h3>
+            <div style={{ display: "grid", gap: 14 }}>
+              {FACT_ITEMS.map((f) => (
+                <div key={f.key} data-state="wr-fact" style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{f.label}</div>
+                  <div className="wr-fact" role="group" aria-label={f.label}>
+                    {f.choices.map((label, v) => (
+                      <Choice key={v} label={label} active={answers.facts[f.key] === v} disabled={saving} onClick={() => setFact(f.key, v)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section style={{ minWidth: 0 }}>
+            <h3 style={{ ...Q, marginBottom: 4 }}>どんな人に合う会社だと思いますか？</h3>
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--ink-mute)" }}>いくつでも選べます</p>
+            <div className="wr-tags">
+              {loaded.masters.tags.map((t) => (
+                <Choice key={t.key} label={t.label} active={answers.tags.includes(t.key)} disabled={saving} onClick={() => toggleTag(t.key)} />
+              ))}
+            </div>
+          </section>
+          <section style={{ minWidth: 0 }}>
+            <label htmlFor="wr-memo" style={{ ...Q, display: "block" }}>
+              入る前に知りたかったこと
+              <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>（任意・{MEMO_MAX}字まで）</span>
+            </label>
+            <textarea id="wr-memo" className="wr-memo" value={answers.memo} disabled={saving} rows={3}
+              placeholder="例：最初の3ヶ月は商材理解のインプットが多い"
+              onChange={(e) => setAnswers((a) => ({ ...a, memo: e.target.value }))} />
+            <div data-state={memoOver ? "memo-over" : "memo-ok"}
+              style={{ fontSize: 11, textAlign: "right", marginTop: 2, color: memoOver ? "var(--error)" : "var(--ink-mute)" }}>
+              {memoLength(answers.memo)} / {MEMO_MAX}
+            </div>
+          </section>
+          {/* ★離れた理由（終了した会社だけ・任意）。選択肢と保存先は以前のまま（2026-10-16 / 柴さんの指示） */}
+          {loaded.canLeave && (
+            <section data-state="wr-leave" style={{ minWidth: 0 }}>
+              <h3 style={{ ...Q, marginBottom: 4 }}>この会社を離れた理由は？</h3>
+              <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--ink-mute)" }}>任意・{LEAVE_REASON_MAX}つまで</p>
+              <div className="wr-tags">
                 {LEAVE_REASONS.map((o) => (
-                  <ReasonChip
-                    key={o.value}
-                    label={o.label}
-                    active={answers.leaveReasons.includes(o.value)}
-                    disabled={saving}
-                    onClick={() => toggleLeave(o.value)}
-                  />
+                  <Choice key={o.value} label={o.label} active={answers.leaveReasons.includes(o.value)} disabled={saving} onClick={() => toggleLeave(o.value)} />
                 ))}
               </div>
-              {limitNote === "leave" && (
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginTop: 8 }}>
-                  {REASON_MAX}つまでです。ほかを外してから選んでください。
-                </div>
+              {leaveLimit && (
+                <p role="status" style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)" }}>
+                  {LEAVE_REASON_MAX}つまでです。ほかを外してから選んでください。
+                </p>
               )}
             </section>
           )}
-
-          {/* D: ひとこと（任意・80字）。⚠️ 他の利用者には表示しない（規約の改定まで）。表示への同意は任意 */}
-          <section data-state="reason-note" style={{ minWidth: 0 }}>
-            <div style={questionStyle}>
-              ひとこと
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginLeft: 6, whiteSpace: "nowrap" }}>（任意・{NOTE_MAX_LENGTH}字まで）</span>
-            </div>
-            {/* ★書き出し（NOTE_PROMPTS）は 2026-10-16 にやめた（柴さんの指示）。最初から自由に書く。
-                   保存する prompt は null（旧形式の行だけ値を持つ） */}
-            <>
-                <textarea
-                  id="reason-note-body"
-                  value={noteDraft.body}
-                  disabled={saving}
-                  rows={3}
-                  aria-label="ひとこと"
-                  placeholder="入る前に知りたかったこと、合うと思う人など"
-                  onChange={(e) => setNote({ prompt: null, body: e.target.value })}
-                  className="reason-note-input"
-                />
-                <div
-                  data-state={Array.from(noteDraft.body.trim()).length > NOTE_MAX_LENGTH ? "note-over" : "note-ok"}
-                  style={{ fontSize: 11, textAlign: "right", marginTop: 2, color: Array.from(noteDraft.body.trim()).length > NOTE_MAX_LENGTH ? "var(--error)" : "var(--ink-mute)" }}
-                >
-                  {Array.from(noteDraft.body.trim()).length} / {NOTE_MAX_LENGTH}
-                </div>
-                {noteDraft.body.trim() !== "" && (
-                  <label style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 8, cursor: "pointer", minWidth: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={noteDraft.displayConsent}
-                      disabled={saving}
-                      onChange={(e) => setNote({ displayConsent: e.target.checked })}
-                      style={{ marginTop: 3, width: 16, height: 16, flexShrink: 0 }}
-                    />
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6, overflowWrap: "anywhere" }}>
-                        {noteConsentText(companyName)}
-                      </span>
-                      <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-                        {NOTE_CONSENT_HINT}
-                      </span>
-                    </span>
-                  </label>
-                )}
-            </>
-          </section>
         </div>
       )}
 
       {step === "done" && (
-        <div data-state="reason-done" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>回答を保存しました</div>
-          <div style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-            まだ答えていない会社が {remaining} 社あります。
-          </div>
-        </div>
+        <TendencyView tendency={tendency} nextCompanyName={onNext ? nextCompanyName : null} onNext={onNext} />
       )}
     </ProfileEditModal>
   );
 }
 
-const questionStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 700,
-  color: "var(--ink)",
-  lineHeight: 1.6,
-  overflowWrap: "anywhere",
-  marginBottom: 8,
-};
+// ── ④ あなたが合う職場の傾向 ───────────────────────────────────────────────
 
-/** 保存で送る形。⚠️ ひとことは空・80字超なら送らない（null） */
-function noteLength(a: ReasonAnswersV2): number {
-  return a.note ? Array.from(a.note.body.trim()).length : 0;
-}
-function payloadFor(a: ReasonAnswersV2): ReasonAnswersV2 {
-  const n = noteLength(a);
-  return { ...a, note: a.note && n > 0 && n <= NOTE_MAX_LENGTH ? a.note : null };
-}
-
-/** 何か1つでも答えているか（「保存」を出すかの判定）。⚠️ 80字超のひとことは数えない（保存されないため） */
-function hasAnyAnswer(a: ReasonAnswersV2): boolean {
-  return (
-    a.expectations.length > 0 ||
-    Object.keys(a.ratings).length > 0 ||
-    Object.keys(a.shifts).length > 0 ||
-    a.fitScore !== null ||
-    a.leaveReasons.length > 0 ||
-    (noteLength(a) > 0 && noteLength(a) <= NOTE_MAX_LENGTH)
-  );
-}
-
-/** 目盛りの名前（読み上げ用）。⚠️ 画面に言葉を出すのは見出しの両端と真ん中だけ */
-function scaleLabel(n: number, ends: { low: string; mid: string; high: string }): string {
-  if (n === 0) return ends.mid;
-  const side = n < 0 ? ends.low : ends.high;
-  const k = Math.abs(n);
-  return k === 3 ? side : k === 2 ? `かなり${side}` : `少し${side}`;
-}
-
-/**
- * ★7段階（-3〜+3）の丸だけ。言葉は呼び出し側（見出しの行 `ScaleEnds`／行の左右 `rm-sides`）が出す。
- * 同じ目盛りをもう一度押すと未選択に戻る。⚠️ 未回答という値は作らない（キーごと無い）。
- * ⚠️ 幅は CSS の grid で7等分する（インラインに書かない）。375px で1つ約41px。
- */
-function ScaleDots({
-  name,
-  value,
-  ends,
-  disabled,
-  onChange,
-}: {
-  name: string;
-  value: number | null;
-  ends: { low: string; mid: string; high: string };
-  disabled?: boolean;
-  onChange: (v: number | null) => void;
+export function TendencyView({ tendency, nextCompanyName, onNext }: {
+  tendency: Tendency | null;
+  nextCompanyName: string | null;
+  onNext: (() => void) | null;
 }) {
   return (
-    <div role="radiogroup" aria-label={name} className="rm-dots">
-      {SCALE_VALUES.map((n) => {
-        const on = value === n;
-        const label = scaleLabel(n, ends);
-        return (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            aria-label={label}
-            title={label}
-            disabled={disabled}
-            onClick={() => onChange(on ? null : n)}
-            className="btn-fixed-size reason-scale-btn"
-            data-on={on ? "1" : "0"}
-            data-mid={n === 0 ? "1" : "0"}
-          >
-            <span aria-hidden="true" className="reason-scale-dot" />
-          </button>
-        );
-      })}
-      <style>{SCALE_CSS}</style>
-    </div>
-  );
-}
-
-/** 見出しの行の言葉（7列にそろえて、左端・まん中・右端にだけ置く） */
-function ScaleEnds({ low, mid, high }: { low: string; mid: string; high: string }) {
-  return (
-    <div className="rm-ends">
-      <span style={{ gridColumn: "1 / span 2", textAlign: "left" }}>{low}</span>
-      <span style={{ gridColumn: "3 / span 3", textAlign: "center" }}>{mid}</span>
-      <span style={{ gridColumn: "6 / span 2", textAlign: "right" }}>{high}</span>
-    </div>
-  );
-}
-
-/** ★0〜10（任意）。押した数字をもう一度押すと未選択に戻る */
-function FitScale({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: number | null;
-  disabled?: boolean;
-  onChange: (v: number | null) => void;
-}) {
-  const nums = Array.from({ length: FIT_SCORE_MAX - FIT_SCORE_MIN + 1 }, (_, i) => FIT_SCORE_MIN + i);
-  return (
-    <div role="radiogroup" aria-label="この会社は、あなたに合っていましたか" className="reason-scale11">
-      {nums.map((n) => {
-        const on = value === n;
-        return (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            disabled={disabled}
-            onClick={() => onChange(on ? null : n)}
-            className="btn-fixed-size reason-fit-btn"
-            data-on={on ? "1" : "0"}
-          >
-            {n}
-          </button>
-        );
-      })}
-      <style>{SCALE_CSS}</style>
-    </div>
-  );
-}
-
-/* ⚠️ この文字列は style タグの中に出る。コメントにバッククォートと不等号を書かないこと（ui-debugging の19） */
-const SCALE_CSS = `
-.rm-matrix { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.rm-row { display: grid; grid-template-columns: minmax(0, 8.5em) minmax(0, 1fr); align-items: center; column-gap: 10px; min-width: 0; }
-.rm-head { align-items: end; }
-.rm-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); line-height: 1.5; overflow-wrap: anywhere; }
-.rm-dots { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 0; }
-.rm-ends { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); font-size: 11px; font-weight: 500; color: var(--ink-mute); line-height: 1.4; min-width: 0; }
-.rm-sides { display: flex; justify-content: space-between; gap: 8px; margin-top: -4px; font-size: 11px; font-weight: 500; color: var(--ink-mute); line-height: 1.4; }
-.reason-scale-btn { height: 40px; border: none; background: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit; }
-.reason-scale-btn:disabled { cursor: default; }
-.reason-scale-dot { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff; transition: background 0.12s, border-color 0.12s; }
-.reason-scale-btn[data-on="1"] .reason-scale-dot { background: var(--royal); border-color: var(--royal); }
-.reason-scale-btn:hover .reason-scale-dot { border-color: var(--royal); }
-.reason-scale-btn[data-mid="1"] .reason-scale-dot { border-width: 2px; }
-.reason-scale11 { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
-.reason-fit-btn { height: 44px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; color: var(--ink-soft); font-size: 14px; font-weight: 600; font-family: var(--font-inter), var(--font-noto); cursor: pointer; padding: 0; }
-.reason-fit-btn[data-on="1"] { background: var(--royal); border-color: var(--royal); color: #fff; }
-.reason-fit-btn:disabled { cursor: default; }
-.reason-note-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--ink); resize: vertical; }
-.reason-note-input:focus { outline: none; border-color: var(--royal); }
-@media (max-width: 479px) {
-  .reason-scale11 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .rm-row { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
-  .rm-head > span:first-child { display: none; }
-  .rm-label { margin-top: 6px; }
-}
-`;
-
-/**
- * ★「いちばん期待していたこと」。フッターのすぐ上に固定で出す（スクロールしなくても必ず見える）。
- * 1つだけ選んだときは自動でそれ（押せない表示にする）。2つ以上で未選択なら「次へ」を押せない理由を出す。
- */
-function PrimaryPicker({
-  answers,
-  disabled,
-  onPick,
-}: {
-  answers: ReasonAnswersV2;
-  disabled: boolean;
-  onPick: (v: string) => void;
-}) {
-  const missing = needsPrimary(answers);
-  return (
-    <div data-state={missing ? "primary-missing" : "primary-set"}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: missing ? 2 : 6 }}>
-        いちばん期待していたこと
+    <div data-state="wr-done" style={{ display: "grid", gap: 16, minWidth: 0 }}>
+      <style>{CSS}</style>
+      <div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>ありがとうございました</div>
+        <p style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>
+          これまでの回答から、あなたが合う職場の傾向をまとめました。この結果はあなたにだけ表示されます。
+        </p>
       </div>
-      {missing && (
-        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", marginBottom: 6 }}>1つ選ぶと「次へ」に進めます</div>
+
+      {tendency === null ? (
+        <p data-state="wr-tendency-failed" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>
+          回答は保存しました。傾向の表示に失敗したので、時間をおいてもう一度開いてください。
+        </p>
+      ) : tendency.kind === "none" ? (
+        <Box state="wr-tendency-none">
+          「実際はどちら寄りでしたか？」に答えると、あなたに合う職場の傾向がわかります。
+        </Box>
+      ) : tendency.kind === "single" ? (
+        <Box state="wr-tendency-single">
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>{tendency.company.name}（{tendency.company.fitScore}点）での回答</div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 4 }}>
+            {tendency.summary.map((s) => (
+              <li key={s.key} style={{ fontSize: 13 }}>
+                <span style={{ color: "var(--ink-mute)", marginRight: 6 }}>{s.name}</span>{s.label}
+              </li>
+            ))}
+          </ul>
+          <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>
+            ほかの職歴もふり返ると、あなたに合う職場の傾向がわかります
+          </p>
+        </Box>
+      ) : tendency.kind === "small_gap" ? (
+        <Box state="wr-tendency-small">
+          {tendency.high.name}（{tendency.high.fitScore}点）と{tendency.low.name}（{tendency.low.fitScore}点）の差が小さく、傾向はまだ出ていません。
+        </Box>
+      ) : (
+        <div data-state="wr-tendency-compare" style={{ display: "grid", gap: 12, minWidth: 0 }}>
+          {tendency.headline && (
+            <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.7, color: "var(--ink)" }}>{tendency.headline}</div>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 12, color: "var(--ink-soft)" }}>
+            <span><Mark filled /> {tendency.high.name}（{tendency.high.fitScore}点）</span>
+            <span><Mark /> {tendency.low.name}（{tendency.low.fitScore}点）</span>
+          </div>
+          <div style={{ display: "grid", gap: 14 }}>
+            {tendency.axes.map((a) => (
+              <div key={a.key} data-state={`wr-compare-${a.level}`} style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11, fontWeight: 700, color: "var(--ink-mute)" }}>
+                  <span>{a.name}</span>
+                  <span>{a.level === "large" ? "差が大きい" : a.level === "small" ? "差は小さい" : "差なし"}</span>
+                </div>
+                <div className="wr-sides" style={{ fontWeight: 500, fontSize: 11, marginTop: 2 }}><span>{a.leftText}</span><span>{a.rightText}</span></div>
+                <div className="wr-dots" aria-label={`${a.name}: ${a.level}`}>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="wr-dot" style={{ background: "var(--bg-tint, #F7F9FC)", borderRadius: 6 }}>
+                      {i === a.high && <Mark filled />}
+                      {i === a.low && i !== a.high && <Mark />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {tendency.axes.length === 0 && (
+            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-soft)" }}>両方の会社で答えた軸がないため、比べられませんでした。</p>
+          )}
+        </div>
       )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
-        {answers.expectations.map((v) => (
-          <ReasonChip
-            key={v}
-            label={EXPECTATION_LABELS[v] ?? v}
-            active={answers.primary === v}
-            disabled={disabled}
-            onClick={() => onPick(v)}
-          />
-        ))}
-      </div>
+
+      {nextCompanyName && onNext && (
+        <div data-state="wr-next" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap",
+          padding: "12px 14px", borderRadius: 10, border: "1px solid var(--line)", fontSize: 13 }}>
+          <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{nextCompanyName}もふり返ると、傾向の精度が上がります</span>
+          <button type="button" onClick={onNext}
+            style={{ border: "none", background: "none", color: "var(--royal)", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: "8px 0", fontFamily: "inherit" }}>
+            ふり返る →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── 職歴カードの入口アイコン ──────────────────────────────────────────────────
+function Box({ state, children }: { state: string; children: React.ReactNode }) {
+  return (
+    <div data-state={state} style={{ padding: "14px 16px", borderRadius: 10, background: "var(--bg-tint, #F7F9FC)", border: "1px solid var(--line)", fontSize: 13, lineHeight: 1.8, color: "var(--ink)" }}>
+      {children}
+    </div>
+  );
+}
 
-/**
- * ★職歴カードの右端に置く、本人だけの入口（2026-09-12）。
- *
- * ⚠️★**本人の `/mypage` にだけ出す。** `/u/[id]`・企業ページ・`/people` には出さない
- *    （理由データは非公開。`careerReasons.ts` の「公開範囲」）。
- *    `MergedTimeline` は公開画面と共用の部品なので、**渡されたときだけ描く**形にしてある。
- *
- * ⚠️ **回答内容（選んだチップ）はカードに出さない。** 出すと非公開のはずの答えが
- *    画面共有やスクリーンショットで漏れる経路になる。
- *
- * ⚠️ 文字は置かない。ツールチップ（`title`）と `aria-label` を**同じ文言**にする。
- */
+/** 高フィット側＝塗り、低フィット側＝白抜き */
+function Mark({ filled = false }: { filled?: boolean }) {
+  return (
+    <span aria-hidden="true" style={{
+      display: "inline-block", width: 14, height: 14, borderRadius: "50%", verticalAlign: "-2px",
+      background: filled ? "var(--royal)" : "#fff", border: "2px solid var(--royal)", boxSizing: "border-box",
+    }} />
+  );
+}
+
+// ── 行の印 ──────────────────────────────────────────────────────────────────
+
 export function ReasonEntryButton({
   answered,
   legacy = false,

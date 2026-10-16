@@ -32,7 +32,7 @@ import {
  *    保存すると新しい表に入り、旧の列はそのまま残る。
  */
 
-type ExpRow = {
+export type ExpRow = {
   id: string;
   user_id: string;
   company_id: string | null;
@@ -80,14 +80,14 @@ export async function requireOwnExperience(experienceId: string): Promise<OwnExp
 }
 
 /** 同じ会社かを決めるキー。⚠️ 匿名企業は名前で束ねる（入力欄は 2026-09-12 に削除済み・本番0件） */
-function companyKey(r: Pick<ExpRow, "company_id" | "company_text" | "company_anonymized">): string {
+export function companyKey(r: Pick<ExpRow, "company_id" | "company_text" | "company_anonymized">): string {
   if (r.company_id) return `id:${r.company_id}`;
   if (r.company_text) return `text:${r.company_text.trim()}`;
   return `anon:${(r.company_anonymized ?? "").trim()}`;
 }
 
 /** 本人の、同じ会社の行（役割）をすべて */
-async function companyRows(owUserId: string, base: ExpRow): Promise<ExpRow[] | null> {
+export async function companyRows(owUserId: string, base: ExpRow): Promise<ExpRow[] | null> {
   const admin = createAdminClient();
   const { data, error } = await admin.from("ow_experiences").select(EXP_COLS).eq("user_id", owUserId);
   if (error) { console.error("[reasonAnswers] company rows:", error.message); return null; }
@@ -96,11 +96,11 @@ async function companyRows(owUserId: string, base: ExpRow): Promise<ExpRow[] | n
 }
 
 /** 終了した会社か = どの役割も現職でなく、終了年月が入っている（`hasLeftCompany` を会社に広げたもの） */
-function hasLeft(rows: ExpRow[]): boolean {
+export function hasLeft(rows: ExpRow[]): boolean {
   return rows.length > 0 && rows.every((r) => !r.is_current && !!r.ended_at);
 }
 
-function oldest(rows: ExpRow[]): ExpRow {
+export function oldest(rows: ExpRow[]): ExpRow {
   return rows.slice().sort((a, b) => a.started_at.localeCompare(b.started_at) || a.id.localeCompare(b.id))[0];
 }
 
@@ -320,10 +320,15 @@ export async function reasonStatusForUser(owUserId: string): Promise<Record<stri
   const { data: revs, error: rErr } = await admin
     .from("ow_experience_reviews").select("experience_id, reason_version").in("experience_id", list.map((r) => r.id));
   if (rErr) { console.error("[reasonAnswers] status reviews:", rErr.message); return null; }
-  const byRow = new Map(((revs ?? []) as { experience_id: string; reason_version: number }[]).map((r) => [r.experience_id, r.reason_version]));
+  /* ★2026-10-16（フェーズ1）: 「答え済み（2）」は新しい入社後レビュー（ow_workplace_reviews）があること。
+        それより前の形式（ow_experience_reviews の 1・2 と、旧の列）はすべて「旧形式（1）」＝答え直しの案内 */
+  const { data: wrs, error: wErr } = await admin.from("ow_workplace_reviews").select("experience_id").eq("user_id", owUserId);
+  if (wErr) { console.error("[reasonAnswers] status workplace reviews:", wErr.message); return null; }
+  const reviewed = new Set(((wrs ?? []) as { experience_id: string }[]).map((r) => r.experience_id));
+  const byRow = new Map(((revs ?? []) as { experience_id: string }[]).map((r) => [r.experience_id, 1 as const]));
   const byCompany = new Map<string, 1 | 2>();
   for (const r of list) {
-    const v = byRow.get(r.id) as 1 | 2 | undefined
+    const v = (reviewed.has(r.id) ? 2 : byRow.get(r.id)) as 1 | 2 | undefined
       /* 旧形式の印が無い旧回答（適用からデプロイまでの間に旧画面で答えたもの）も旧形式として扱う */
       ?? ((r.join_reasons?.length ?? 0) > 0 || (r.leave_reasons?.length ?? 0) > 0 ? 1 : undefined);
     if (!v) continue;

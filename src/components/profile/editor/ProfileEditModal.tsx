@@ -78,6 +78,11 @@ export function ProfileEditModal({
   /** ★主ボタンを押せない状態にする（2026-10-16 / いちばんを選ぶまで「次へ」を押せない）。
       ⚠️ `hidePrimary`（出さない）とは別。理由が画面に出ているときだけ使う */
   primaryDisabled = false,
+  /** ★主ボタンの左に置く副ボタン（枠線）。2026-10-16 / 入社後レビューの「ここで保存」。
+      ⚠️ `secondaryLabel`（フッター左の文字だけのボタン）とは別。押せない条件は `extraDisabled` */
+  extraLabel,
+  onExtra,
+  extraDisabled = false,
 }: {
   open: boolean;
   title: string;
@@ -99,6 +104,9 @@ export function ProfileEditModal({
   width?: number;
   footerTop?: React.ReactNode;
   primaryDisabled?: boolean;
+  extraLabel?: string;
+  onExtra?: () => void;
+  extraDisabled?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -231,7 +239,8 @@ export function ProfileEditModal({
           <div style={{
             padding: "14px 20px", borderTop: "1px solid var(--line)",
             display: "flex", alignItems: "center", justifyContent: "flex-end",
-            gap: 12, flexShrink: 0,
+            /* ★狭い画面でボタンが3つ並ぶと文字が折り返すので、行ごと折り返す（2026-10-16） */
+            gap: 12, flexShrink: 0, flexWrap: "wrap", rowGap: 8,
           }}>
             {error && (
               <span role="alert" style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 600, color: "var(--error)" }}>
@@ -260,12 +269,28 @@ export function ProfileEditModal({
                 disabled={saving}
                 className="tap-min-h"
                 style={{
-                  marginRight: "auto", padding: "10px 4px", fontSize: "var(--text-sm)", fontWeight: 600,
+                  marginRight: "auto", padding: "10px 4px", fontSize: "var(--text-sm)", fontWeight: 600, whiteSpace: "nowrap",
                   background: "none", border: "none", color: "var(--ink-mute)", fontFamily: "inherit",
                   cursor: saving ? "default" : "pointer", textDecoration: "underline", textUnderlineOffset: 3,
                 }}
               >
                 {secondaryLabel}
+              </button>
+            )}
+            {extraLabel && onExtra && (
+              <button
+                type="button"
+                onClick={onExtra}
+                disabled={saving || extraDisabled}
+                className="tap-min-h"
+                style={{
+                  padding: "10px 18px", fontSize: "var(--text-sm)", fontWeight: 700, whiteSpace: "nowrap",
+                  background: "#fff", color: saving || extraDisabled ? "var(--ink-mute)" : "var(--royal)",
+                  border: `1.5px solid ${saving || extraDisabled ? "var(--line)" : "var(--royal)"}`, borderRadius: 999,
+                  fontFamily: "inherit", cursor: saving || extraDisabled ? "default" : "pointer",
+                }}
+              >
+                {extraLabel}
               </button>
             )}
             {!hidePrimary && (
@@ -275,7 +300,7 @@ export function ProfileEditModal({
                 disabled={saveLocked}
                 className="tap-min-h"
                 style={{
-                  padding: "10px 28px", fontSize: "var(--text-sm)", fontWeight: 700, minWidth: 120,
+                  padding: "10px 28px", fontSize: "var(--text-sm)", fontWeight: 700, minWidth: 120, whiteSpace: "nowrap",
                   background: justSaved ? "var(--success-strong)" : saveLocked ? "var(--ink-mute)" : "var(--royal)",
                   color: "#fff", border: "none", borderRadius: 999, fontFamily: "inherit",
                   cursor: saveLocked ? "default" : "pointer", transition: "background 0.2s",
