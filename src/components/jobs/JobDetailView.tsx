@@ -1292,7 +1292,8 @@ export async function JobDetailView({
                 current={otherEmployees.current}
                 alumni={[]}
                 companyId={job.company_id}
-                currentTitle={`${company.name} の他の現役社員`}
+                /* ★社名は上の見出し（企業名）で分かるので「この会社の」にした（2026-10-17）。社名を入れると長い社名で2行に折れていた */
+                currentTitle="この会社の他の現役社員"
                 currentSubtitle="この募集の職種とは違う人たちです"
               />
 

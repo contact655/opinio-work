@@ -53,41 +53,25 @@ export function JobEmployeeCard({ emp, companyId }: {
   const initial = emp.avatarInitial ?? emp.name.charAt(0);
   void companyId;
 
+  /* ★2026-10-17: 企業ページの社員一覧（`PersonRow`）と同じ行の形にした（柴さんの指摘「見づらい」）。
+        それまでは1人ずつ枠付きのカードで、スマホでは1人 72px の箱が縦に並び、外側の枠と二重になっていた。
+     ⚠️ 見た目は globals.css の .person-list / .person-row（企業ページと共有）。ここに style を書き戻さないこと */
   return (
-    <a
-      href={`/u/${emp.userId}`}
-      style={{
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "12px 14px", borderRadius: 12,
-        border: "1px solid var(--line)",
-        background: "#fff",
-        textDecoration: "none",
-        transition: "border-color 0.15s, box-shadow 0.15s",
-      }}
-      className="job-emp-card"
-    >
-      <div style={{
-        width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
-        background: emp.avatarUrl ? undefined : color.bg,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18,
-        color: color.text, overflow: "hidden", border: "2px solid var(--line)",
-      }}>
-        {emp.avatarUrl ? (
-          <img src={emp.avatarUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : initial}
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{emp.name}</div>
-        {emp.roleTitle && (
-          <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.roleTitle}</div>
-        )}
-        {emp.catchphrase && (
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, marginTop: 2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>{emp.catchphrase}</div>
-        )}
-      </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
-    </a>
+    <div className="person-row">
+      <a href={`/u/${emp.userId}`} className="person-row-main">
+        <div className="person-row-avatar" style={{ background: emp.avatarUrl ? undefined : color.bg, color: color.text }}>
+          {emp.avatarUrl ? (
+            <img src={emp.avatarUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : initial}
+        </div>
+        <div className="person-row-text">
+          <div className="person-row-head"><span className="person-row-name">{emp.name}</span></div>
+          {emp.roleTitle && <div className="person-row-title">{emp.roleTitle}</div>}
+          {emp.catchphrase && <div className="person-row-sub">{emp.catchphrase}</div>}
+        </div>
+        <svg className="person-row-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+    </div>
   );
 }
 
@@ -136,14 +120,12 @@ export function JobEmployeesSection({
 
   return (
     <>
-      <style>{`
-        .job-emp-card:hover { border-color: var(--royal-100) !important; box-shadow: 0 2px 8px rgba(0,35,102,0.08) !important; }
-      `}</style>
 
       {/* 現役社員 */}
       {current.length > 0 && (
-        <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+          {/* ★件数は見出しの右端ではなく、見出しのすぐ後ろ（2026-10-17）。右端だと長い見出しが折れ、件数が縦に潰れていた */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
                      `var(--text-lg)` は 20px で、ここだけ他のセクション見出しより
                      大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
@@ -169,7 +151,7 @@ export function JobEmployeesSection({
               {currentSubtitle}
             </p>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
+          <div className="person-list">
             {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
           </div>
           {/* ⚠️★セクション末尾の一括CTA「話を聞く（カジュアル面談）」は削除した（2026-08-30）。
@@ -184,8 +166,9 @@ export function JobEmployeesSection({
 
       {/* OB/OG */}
       {(alumni.length > 0 || alwaysShowAlumni) && (
-        <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+          {/* ★件数は見出しの右端ではなく、見出しのすぐ後ろ（2026-10-17）。右端だと長い見出しが折れ、件数が縦に潰れていた */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
                      `var(--text-lg)` は 20px で、ここだけ他のセクション見出しより
                      大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
@@ -214,7 +197,7 @@ export function JobEmployeesSection({
             )}
           </div>
           {alumni.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
+            <div className="person-list">
               {/* ⚠️ OB/OG には指名CTAを出さない。**退職者に「話を聞く」導線は出さない**
                       （企業詳細も現役社員にしか出していない）。 */}
               {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
