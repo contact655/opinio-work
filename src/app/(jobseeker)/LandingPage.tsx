@@ -295,6 +295,8 @@ export default function LandingPage({
            ⚠️★この style タグの中にバッククォートを書かないこと。テンプレートリテラルが
               その場で閉じる（.claude/rules/ui-debugging.md ⑲①。2026-09-17 に実際に踏んだ）。 */
         .lp-hero-h1 span { display: inline-block; }
+        .lp-hero-h1 .lp-hero-en { display: block; font-family: var(--font-inter), var(--font-noto); }
+        .lp-hero-h1 .lp-hero-ja { display: block; margin-top: 10px; font-size: clamp(15px, 1.4vw, 18px); font-weight: 600; letter-spacing: 0.02em; color: var(--ink-soft); }
 
         /* 検索窓の下のボタン。⚠️ 窓（1000px）の中で中央に置く。
            ⚠️ flex-wrap を外さないこと。375px では2段になる。 */
@@ -410,6 +412,13 @@ export default function LandingPage({
                   375〜1060px の範囲ではこの値が効いている（3.2vw が 34px を超えるのは
                   約1063px から）。
           */}
+          {/* ★★2026-10-16 に「募集要項の向こうにいる現役社員」から「Every Company Is Its People.」へ差し替えた
+                 （柴さんの指示。英語のタイトル＋日本語の1行。日本語は h1 の中に置いて検索にも効かせる）。
+                 ⚠️ 人数や「話を聞ける」を約束しない言い方にしてある（面談OKは 2026-10-16 に撤去）。
+                 ⚠️★今回はトップの見出しだけを変えた（柴さんの判断）。`page.tsx` の title と
+                    `/business` の「求職者は、OPINIOで『求人票の向こうにいる現役社員』を見ています」は**未変更**で、
+                    対になっていない。揃えるかは別に決める。
+              以下は 2026-09-20 の注記（経緯）。 */}
           {/* ★2026-09-20 に「会社を、そこで働く人から知る。」から差し替えた（柴さんの指示）。
                  ⚠️★**4箇所すべて同時に変えること。** ここ／`page.tsx` の title と
                     openGraph.title ／ `/business` の「求職者は、OPINIOで…」。
@@ -426,9 +435,10 @@ export default function LandingPage({
                  ⚠️ span は inline-block（`.lp-hero-h1 span`）。**折り返しを句の境目に固定するため。**
                     狭い幅では1行に収まらないので「募集要項の向こうにいる／現役社員」で折る。
                     ⚠️ 塊にしないと「現役社／員」のように語の途中で割れる。 */}
-          <h1 className="lp-hero-h1" style={{ fontSize: "clamp(30px, 3.0vw, 42px)", fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 14 }}>
-            <span>募集要項の向こうにいる</span>
-            <span>現役社員</span>
+          <h1 className="lp-hero-h1" style={{ fontSize: "clamp(30px, 3.0vw, 42px)", fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 20 }}>
+            {/* ⚠️ 狭い幅では「Every Company／Is Its People.」で折る（「People.」だけが2行目に落ちないように） */}
+            <span className="lp-hero-en"><span>Every Company</span> <span>Is Its People.</span></span>
+            <span className="lp-hero-ja">会社は、働く人でできている。</span>
           </h1>
 
           {/*
