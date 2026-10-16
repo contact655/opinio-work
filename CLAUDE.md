@@ -1264,6 +1264,30 @@ select c.name, c.source,
 
 ---
 
+## ★スマホ（767px 以下）の画面の決めごと（2026-10-17 / 柴さんの指示。LinkedIn を参考に整えた）
+
+**デスクトップは変えていない。** どれも 767px 以下（ユーザー一覧の行だけ 560px 以下）で効く。
+
+| どこ | 形 | 実体 |
+|---|---|---|
+| ヘッダー（ログイン中） | [自分のアバター] [検索欄] [メッセージ] [ベル] | `JobseekerHeader.tsx` の `mobileSignedIn` |
+| 引き出し | アバターを押すと**左から**。名前（→ マイページ）・記事・あなたに合う会社・企業の管理画面／企業の方はこちら・ログアウト | 同上 |
+| 一覧の上部（/companies・/jobs・/people） | 検索・詳細検索・チップ・並び替え・件数を**1行で横にスクロール** | `.list-toolbar`（globals.css 末尾） |
+| 1行の中のチップのメニュー | **下から出るシート**（タブバーの上） | `.list-toolbar .fc-menu` |
+| /people | アバター・名前・会社・職種・フォローの**行**。フォロー数は「自分のつながり」に畳む | `CompactRow` / `PeopleSidebar` |
+| 企業ページ | カバー 120px。公式サイト・採用情報・SNS・共有は「…」のシート | `.cd-cover` / `CompanyMoreMenu` |
+| 企業ページの下の固定バー | **上部が見えている間は隠す** | `CtaReveal`（`[data-cd-hero]` を見る） |
+| フィードの企業カード | フォロー・保存 | `FeedCompanyActions`（画面に入ってから状態を取る） |
+| 検証用の会社の枠 | 1行に畳む（押すと開く）。⚠️ サーバーで描くので**デスクトップでも畳む** | `TestCompaniesSection` |
+
+⚠️★**引き出しにタブバーと同じ項目（ホーム・企業・募集・ユーザー・マイページ）を戻さないこと。** 同じ行き先が上下に2つずつ並んでいた。⚠️ 未ログインのスマホは従来どおり（ロゴ・🔍・無料登録・ハンバーガー。引き出しは右から全項目）。
+⚠️★**メッセージとベルはスマホでも1つずつしか描かない**（`isNarrow` で出し分け）。CSS だけで隠すと2つマウントされ、未読の取得が二重に走る。
+⚠️★**`.fc-menu` の位置・枠・影・余白は CSS が持つ**（`FilterChip` はサイズを `--fc-min-w` / `--fc-max-h` / `--fc-pad` で渡すだけ）。インラインに戻すとスマホでシートにできなくなる。
+⚠️★**一覧の上部の折り返しは `.list-toolbar--wrap` が持つ。** `flexWrap` をインラインに戻さないこと（スマホで1行にできなくなる）。一覧内の検索を開いたとき・選択中の条件のチップがあるときだけ、スマホでも折り返す（`:has()`）。
+⚠️ 横スクロールの行の中では `absolute` のメニューが切れる。**1行に新しいドロップダウンを足すなら fixed にすること**（`SortSelect` は元から fixed）。
+⚠️ ビュートグル（`ViewToggle` と /people の切り替え）はスマホでは出さない（1列なので差が無い）。`ViewToggle` の `display` は `.view-toggle`（CSS）。
+⚠️ 企業ページの固定バーは**隠すだけ**で、body の下余白（`.company-mobile-cta` 用）は変えていない。
+
 ## ⚠️★`/people` の絞り込み（2026-09-18）
 
 ⚠️★★**2026-10-16 に「面談OK」の絞り込み・バッジ・サイドバーの行を撤去した**（「面談OK（話を聞ける人）は撤去した」の節）。以下の面談OKの記述は経緯。
@@ -7519,7 +7543,30 @@ npm run dev → http://localhost:3000/dev/preview
   選び方は `node scripts/check-connections.mjs`（固定データ・`--self-test` で検出力を確認）と `/dev/preview/connections` で確かめた。
   **相互フォローが生まれたら、企業ページで実際に出ることを確認すること。**
 
-### ★「この会社について」モーダル（理由の新形式 reason_version = 2。2026-10-16）
+### ★★「株式会社◯◯について」は入社後レビュー（`ow_workplace_reviews`）。2026-10-17 に作り直した
+
+**2026-10-16 の reason_version = 2（下の節）を、その翌日にもう一度作り直した。** いまモーダルが読み書きするのはこちら。
+
+| | 実体 |
+|---|---|
+| 画面 | `ExperienceReasonModal.tsx`（①フィット度0〜10と入社前の期待とのずれ（必須） → ②職場の実態6軸 → ③事実・タグ・メモ・退職理由（任意） → ④傾向） |
+| 選択肢・検証 | `src/lib/workplaceReview/constants.ts`（`parseAnswers` / `requiredDone`） |
+| 傾向（④） | `src/lib/workplaceReview/tendency.ts`（**何も import しない**。`npm test` が直接読む。テスト8件） |
+| 読み書き | `src/lib/workplaceReview/server.ts`。API は `GET/PUT /api/jobseeker/experiences/[id]/review`（本人確認は `requireOwnExperience`） |
+| 表 | `ow_workplace_reviews`（職歴1件につき1行）／`_axes`／`_tags`。マスタ `ow_review_axes`（6軸）・`ow_review_fit_tags`（8タグ） |
+| 権限 | **RLS は操作ごと（FOR ALL なし）・本人の行だけ・anon は権限なし**。マスタは authenticated が `is_active` の行だけ読める |
+
+⚠️★**退職理由だけは新しい表に入れない。** 保存先は従来どおり `ow_experience_leave_reasons`（読むときは旧列 `ow_experiences.leave_reasons` に落ちる）。③の末尾の任意の1問で、退職済みの会社にだけ出す。
+⚠️★**企業からは読めない**（2026-10-17 に別アカウントで実測: 0行。anon は 401）。**回答を企業・他の利用者に出す画面を作らないこと。** モーダルの「回答は公開されず、会社にも伝わりません」と食い違う。
+⚠️★**軸のキーは「相性のものさし」と同じ名前で意味が違うものがある**（`work_style` は向きが逆、`decision` は別の問い）。**キーだけで突き合わせないこと。** → [docs/axis-key-collision-20261016.md](docs/axis-key-collision-20261016.md)
+⚠️ ④の見出しの言い回しはマスタの4列（`left/right_headline_join/end`）。全組み合わせの文は [docs/workplace-review-headlines-20261016.md](docs/workplace-review-headlines-20261016.md)。**言い回しを変えたら作り直して「方針」の重複が0か確かめる。**
+⚠️ キャリア相談のボタンは `src/lib/constants/externalLinks.ts` の `CAREER_CONSULT_URL` が null の間は出さない（2026-10-17 時点で null）。
+⚠️★**「あなたに合う会社」の並び（`lib/forYou`）はまだこの回答を使っていない**（2026-10-17）。モーダルは「あなたに合う会社を探すためだけに使います」と書いているので、使い始めるまでは約束が半分しか果たされていない。
+⚠️ 下の節の reason_version = 2 の6表は**残してある**（行もそのまま）。`reasons-status` は「レビューがあれば 2、旧形式だけなら 1」を返す。`/api/jobseeker/experiences/[id]/reasons` は**画面からは呼ばれていない。**
+
+### （経緯）「この会社について」モーダル（理由の新形式 reason_version = 2。2026-10-16）
+
+⚠️★**2026-10-17 に上の入社後レビューへ置き換えた。この節は経緯。**
 
 **職歴ごとの「選んだ理由」を、会社ごとの「期待していたこと × 実際どうだったか」に作り直した。** 経緯と決定は
 [docs/phase0-reason-modal-20261016.md](docs/phase0-reason-modal-20261016.md) の §8。
