@@ -2095,57 +2095,6 @@ export type Database = {
           },
         ]
       }
-      ow_company_field_changes: {
-        Row: {
-          changed_at: string
-          changed_by: string | null
-          company_id: string
-          field: string
-          id: string
-          new_value: Json | null
-          old_value: Json | null
-          source_url: string | null
-          via: string
-        }
-        Insert: {
-          changed_at?: string
-          changed_by?: string | null
-          company_id: string
-          field: string
-          id?: string
-          new_value?: Json | null
-          old_value?: Json | null
-          source_url?: string | null
-          via: string
-        }
-        Update: {
-          changed_at?: string
-          changed_by?: string | null
-          company_id?: string
-          field?: string
-          id?: string
-          new_value?: Json | null
-          old_value?: Json | null
-          source_url?: string | null
-          via?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_company_field_changes_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "ow_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_company_field_changes_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ow_company_follows: {
         Row: {
           company_id: string
