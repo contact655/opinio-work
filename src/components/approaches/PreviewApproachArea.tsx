@@ -53,7 +53,8 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
     lastOpenNonce.current = openNonce;
     setOpen(true);
   }, [openNonce]);
-  const [sentNow, setSentNow] = useState(false);
+  /* ★送った直後のリクエストの id（2026-10-18）。送った内容をその場で開いて見せるため。id が取れなかったときは true */
+  const [sentNow, setSentNow] = useState<string | true | null>(null);
   const [reason, setReason] = useState("");
   const [body, setBody] = useState("");
   const [jobId, setJobId] = useState("");
@@ -70,7 +71,13 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
 
   /* ⚠️ メッセージが使えないプラン・判定が取れなかったとき（approach が undefined）は欄を出さない */
   if (!a) return profileLink ? <div style={DOCK}>{profileLink}</div> : null;
-  if (sentNow) return gray("メッセージを送りました", "approach-sent-now");
+  /* ★送った直後は、送った内容を開いた状態で出す（2026-10-18 / 柴さんの指示）。それまでは「メッセージを送りました」の1行だけで、
+        何を送ったかを見るには再読み込みが要った */
+  if (sentNow === true) return gray("メッセージを送りました", "approach-sent-now");
+  if (sentNow) {
+    return <SentDock key={sentNow} justSent onRead={onRead}
+      sent={{ id: sentNow, conversationId: null, sentAt: new Date().toISOString(), senderName: null, state: "pending", resendAt: "" }} />;
+  }
   /* ⚠️ key で候補者ごとに作り直す（別の人の内容が一瞬残らないように。開閉もここで戻る） */
   if (a.sent) return <SentDock key={a.sent.id} sent={a.sent} onRead={onRead} />;
   if (!a.eligible) {
@@ -94,7 +101,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) { setError(j?.error ?? "送信に失敗しました。もう一度お試しください。"); setErrorAction(j?.action ?? null); return; }
-      setSentNow(true); setOpen(false);
+      setSentNow(typeof j?.id === "string" ? j.id : true); setOpen(false);
     } catch {
       setError("送信に失敗しました。もう一度お試しください。");
     } finally {
@@ -176,15 +183,17 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
  *   ホームの「返信していません」は最後に送ったのが候補者かで判定しているので、既読では消えない（actionItems.ts）。
  */
 const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
-function SentDock({ sent, onRead }: {
+function SentDock({ sent, onRead, justSent = false }: {
   sent: NonNullable<NonNullable<Candidate["approach"]>["sent"]>;
   onRead?: () => void;
+  /** ★送った直後（2026-10-18）。送った内容を最初から開き、「送りました」と添える */
+  justSent?: boolean;
 }) {
   type Detail = { createdAt: string; senderName: string | null; jobTitle: string | null; reason: string; body: string | null;
     status: CompanyApproachStatus; conversationId: string | null };
   const [detail, setDetail] = useState<Detail | null>(null);
   const [failed, setFailed] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(justSent);
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let alive = true;
@@ -258,7 +267,9 @@ function SentDock({ sent, onRead }: {
     <div data-state={open ? "dock-open" : "dock-closed"} style={{ ...DOCK, padding: 0 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "4px 0", flexShrink: 0 }}>
         <div data-state="dock-status" style={{ ...GRAY, minWidth: 0, flex: 1 }}>
-          {detail.status === "pending" ? `返信を待っています（あと${approachDaysLeft(detail.createdAt)}日）` : "返信はありませんでした"}
+          {detail.status === "pending"
+            ? `${justSent ? "送りました。" : ""}返信を待っています（あと${approachDaysLeft(detail.createdAt)}日）`
+            : "返信はありませんでした"}
         </div>
         <button type="button" onClick={() => setOpen((x) => !x)} aria-expanded={open} data-state="dock-toggle" style={TOGGLE}>{open ? "閉じる" : "開く"}</button>
       </div>
@@ -266,6 +277,10 @@ function SentDock({ sent, onRead }: {
         <div data-state="dock-body" style={{ padding: "4px 0 8px" }}>
           <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
             status={detail.status} reply={null} />
+          {/* ★メッセージ画面の「返事待ち」でこの1通を開く（2026-10-18） */}
+          <Link href={threadHref} data-state="pane-open-messages" style={{ display: "block", textAlign: "right", marginTop: 8, fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}>
+            メッセージ画面で開く ›
+          </Link>
         </div>
       )}
     </div>
