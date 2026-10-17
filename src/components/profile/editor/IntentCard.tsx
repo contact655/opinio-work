@@ -143,6 +143,9 @@ function SubLine({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** スマホの1枚の各行。1行に収め、はみ出したら「…」 */
+const NARROW_LINE: React.CSSProperties = { lineHeight: 1.6, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+
 export default function IntentCard({
   initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions,
 }: {
@@ -294,10 +297,10 @@ export default function IntentCard({
   /* ★スマホの1枚（2026-10-18 / LinkedIn の「仕事の機会に関心あり・採用担当者のみ」に寄せた）。
         2行目は希望の職種と勤務地（それぞれ2つまで）。入れていなければ出さない。⚠️ 保存済みの値から作る */
   const roleNameById = new Map([...(roles ?? []), ...(desiredRoleOptions ?? [])].map((r) => [r.id, r.name]));
-  const narrowSummary = [
-    saved.prefs.desired_role_ids.map((id) => roleNameById.get(id)).filter(Boolean).slice(0, 2).join("・"),
-    (saved.prefs.desired_prefectures ?? []).slice(0, 2).join("・"),
-  ].filter(Boolean).join("｜");
+  /* ★項目名つきで1行に1つ（2026-10-18 / 柴さんの指示）。1つ目だけ出し、残りは「ほか◯件」 */
+  const firstAndRest = (xs: string[]) => (xs.length === 0 ? null : xs.length === 1 ? xs[0] : `${xs[0]} ほか${xs.length - 1}件`);
+  const narrowRoles = firstAndRest(saved.prefs.desired_role_ids.map((id) => roleNameById.get(id)).filter((x): x is string => !!x));
+  const narrowPrefs = firstAndRest(saved.prefs.desired_prefectures ?? []);
 
   /* ⚠️ **タイムゾーンを明示する**。省くとサーバー（UTC）と手元（JST）で
         日付が1日ずれ、hydration mismatch になる。 */
@@ -389,13 +392,14 @@ export default function IntentCard({
           </div>
           {/* ★スマホだけの1枚（.intent-narrow。767px 以下で上の intent-head と下の intent-audience の代わりに出す） */}
           <div className="intent-narrow">
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
-              <span style={{ whiteSpace: "nowrap" }}>{stanceText(saved.prefs.career_stance)}</span>
-              {/* ⚠️ 語の途中で改行しないよう、「状態」と「採用担当者のみ」をそれぞれまとめる（折り返すなら「・」の前） */}
-              {isReachableByCompanies(saved.prefs.career_stance) && <span style={{ whiteSpace: "nowrap" }}>・採用担当者のみ</span>}
+            {/* ⚠️ 各行は1行に収める（長いと末尾を「…」で切る）。項目名を外さないこと（何の値か分からなくなる） */}
+            <div style={{ ...NARROW_LINE, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
+              転職意欲：{stanceText(saved.prefs.career_stance)}
             </div>
-            {narrowSummary && (
-              <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.6 }}>{narrowSummary}</div>
+            {narrowRoles && <div style={{ ...NARROW_LINE, fontSize: 13, color: "var(--ink-soft)" }} title={narrowRoles}>希望職種：{narrowRoles}</div>}
+            {narrowPrefs && <div style={{ ...NARROW_LINE, fontSize: 13, color: "var(--ink-soft)" }} title={narrowPrefs}>希望勤務地：{narrowPrefs}</div>}
+            {isReachableByCompanies(saved.prefs.career_stance) && (
+              <div style={{ ...NARROW_LINE, fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>採用担当者にだけ表示されます</div>
             )}
           </div>
           {/* ★誰に見えるかの一言（2026-10-18 / 柴さんの指示。LinkedIn の「採用担当者のみ」と同じ）。
