@@ -2203,7 +2203,13 @@ body {
           .pf-intent-slot { display: block; margin-bottom: 16px; }
         }
         @media (max-width: 639px) {
-          .pf-intent-slot { margin: 0 calc(-1 * var(--pf-gutter, 0px)); }
+          /* ★プロフィールの見出しカードの続き（同じ白の中）に見せる。区切りの帯は見出しではなくこちらの下に付ける */
+          .pf-intent-slot {
+            margin: 0 calc(-1 * var(--pf-gutter, 0px)); background: #fff;
+            padding: 0 16px 16px; border-bottom: 8px solid #E9ECF0;
+          }
+          .pf-intent-slot:empty { display: none; }
+          .pf-card-head:has(+ .pf-intent-slot:not(:empty)) { border-bottom: 0; }
         }
         /* 生年月日の案内（黄色）。⚠️ 余白・枠はここ。スマホでは端まで広げる */
         .pf-notice { margin: -8px 0 16px; padding: 8px 12px; border-radius: 10px; border: 1px solid #FCD34D; }

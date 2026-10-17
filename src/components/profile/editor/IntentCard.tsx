@@ -291,6 +291,13 @@ export default function IntentCard({
         2026-08-26 までは boolean だったので、触ったことのない人が全員
         「情報収集として」と表示されていた（本人が言っていないことを画面が言っていた）。 */
   const stanceText = (v: string | null) => (v ? CAREER_STANCE_LABELS[v] ?? v : "未設定");
+  /* ★スマホの1枚（2026-10-18 / LinkedIn の「仕事の機会に関心あり・採用担当者のみ」に寄せた）。
+        2行目は希望の職種と勤務地（それぞれ2つまで）。入れていなければ出さない。⚠️ 保存済みの値から作る */
+  const roleNameById = new Map([...(roles ?? []), ...(desiredRoleOptions ?? [])].map((r) => [r.id, r.name]));
+  const narrowSummary = [
+    saved.prefs.desired_role_ids.map((id) => roleNameById.get(id)).filter(Boolean).slice(0, 2).join("・"),
+    (saved.prefs.desired_prefectures ?? []).slice(0, 2).join("・"),
+  ].filter(Boolean).join("｜");
 
   /* ⚠️ **タイムゾーンを明示する**。省くとサーバー（UTC）と手元（JST）で
         日付が1日ずれ、hydration mismatch になる。 */
@@ -318,11 +325,15 @@ export default function IntentCard({
           .intent-edit { top: 50% !important; transform: translateY(-50%); }
           .intent-head { width: 100%; }
         }
-        /* プロフィールの見出しの下に差し込んだとき（スマホ・639px 以下）は、他のセクションと同じく端まで広げる */
-        @media (max-width: 639px) {
+        /* スマホの1枚（intent-narrow）と、広い画面の表示（intent-head / intent-audience）の出し分け */
+        .intent-narrow { display: none; }
+        @media (max-width: 767px) {
+          .intent-head, .intent-audience { display: none !important; }
+          .intent-narrow { display: block; }
+          /* プロフィールの見出しの下に差し込んだときは、LinkedIn の「仕事の機会に関心あり」と同じ薄い青の角丸カード */
           .pf-intent-slot .intent-card {
-            border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
-            border-bottom: 8px solid #E9ECF0 !important; padding-left: 16px !important;
+            background: var(--royal-50) !important; border: 0 !important; box-shadow: none !important;
+            border-radius: 12px !important;
           }
         }
       `}</style>
@@ -375,6 +386,17 @@ export default function IntentCard({
           {/* ⚠️ 値は**そのまま短く**出す。「設定済み」のような抽象語にしない。
                  未設定は「未設定」と出す（✎ から答えられる）。 */}
           <SubLine>{stanceText(saved.prefs.career_stance)}</SubLine>
+          </div>
+          {/* ★スマホだけの1枚（.intent-narrow。767px 以下で上の intent-head と下の intent-audience の代わりに出す） */}
+          <div className="intent-narrow">
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+              <span style={{ whiteSpace: "nowrap" }}>{stanceText(saved.prefs.career_stance)}</span>
+              {/* ⚠️ 語の途中で改行しないよう、「状態」と「採用担当者のみ」をそれぞれまとめる（折り返すなら「・」の前） */}
+              {isReachableByCompanies(saved.prefs.career_stance) && <span style={{ whiteSpace: "nowrap" }}>・採用担当者のみ</span>}
+            </div>
+            {narrowSummary && (
+              <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.6 }}>{narrowSummary}</div>
+            )}
           </div>
           {/* ★誰に見えるかの一言（2026-10-18 / 柴さんの指示。LinkedIn の「採用担当者のみ」と同じ）。
                  転職意欲は企業の候補者一覧（/biz/candidates）にだけ出る。他の利用者の公開プロフィールには出ない。

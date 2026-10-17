@@ -1774,14 +1774,16 @@ export default function ProfileTab({
                       /* 会社名は1社だけ出す（答え直しより未回答を先に。並びは「まとめて答える」と同じ向き） */
                       const legacyName = legacyReasonCompanies[0]?.name;
                       const others = unansweredReasonCount + legacyReasonCount - 1;
+                      /* ★文言を短くした（2026-10-18 / 柴さんの指示。3行・約50字 → 2行・約30字）。
+                            「あなたにだけ表示されています」は外した（「会社には伝わりません」と内容が重なる） */
                       if (unansweredReasonCount === 0 && legacyName) {
-                        return `${legacyName}${others > 0 ? ` ほか${others}社` : ""}について答え直すと、あなたに合う会社の理由に使われます`;
+                        return `${legacyName}${others > 0 ? ` ほか${others}社` : ""}について答え直してください`;
                       }
-                      return `これまでの会社について答えると、あなたに合う会社の理由に使われます`;
+                      /* ⚠️ 未回答が今の会社だけの人に「前の会社」と書かない */
+                      return careerStints.some((x) => !hasReasonAnswers(x) && !x.isCurrent) ? "前の会社はどうでしたか？" : "今の会社はどうですか？";
                     })()}
                   </div>
-                  <PrivateNote />
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>1社あたり約30秒・回答は会社には伝わりません</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>合う会社探しに使います（1社30秒・会社には伝わりません）</div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button type="button" onClick={dismissReasonTop} className="btn-fixed-size"
