@@ -1074,10 +1074,14 @@ export default function CandidatesClient({
                           {canAct && <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />}
                         </span>
                       </div>
-                      {roleCo && <div className="cand-card-roleco" data-state="card-roleco" title={roleCo}>{roleCo}</div>}
-                      {!(compactCards && isWide) && subItems.length > 0 && (
-                        <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
-                      )}
+                      {/* ★値が無くても行の高さは残す（2026-10-18 / 柴さんの指示。カードの高さを揃えるため）。
+                            ⚠️ 空の行に「未登録」などの文字を入れないこと（値が無いことを、ある値に置き換えない） */}
+                      {roleCo
+                        ? <div className="cand-card-roleco" data-state="card-roleco" title={roleCo}>{roleCo}</div>
+                        : <div className="cand-card-roleco" aria-hidden="true" />}
+                      {!(compactCards && isWide) && (subItems.length > 0
+                        ? <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
+                        : <div className="cand-card-sub3" aria-hidden="true" />)}
                       {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は灰色で「合うところ：なし」（2026-10-18 に「〇〇と合うところはまだありません」から変えた。自社名が三人称で出て、「まだ」がいつか出るように読めたため。絞り込み「合うところあり」・並び替え「合うところが多い順」と同じ語）。取れなかった（undefined）ときは出さない */}
                       {!(compactCards && isWide) && (topTp ? (
                         <div className="cand-card-reason" data-state="card-reason"
@@ -1213,8 +1217,8 @@ export default function CandidatesClient({
         .cand-card-msg { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 16px; color: var(--ink-mute); white-space: nowrap; border: 1px solid #CBD5E1; border-radius: 4px; padding: 0 6px; background: #fff; }
         .cand-card-star { margin-left: auto; margin-right: -4px; height: 22px; display: flex; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
         /* 2行目: 職種 @ 会社 ／ 3行目: 年齢・性別・社会人年数・居住地・経験職種と年数 */
-        .cand-card-roleco { font-size: 13px; line-height: 19px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        .cand-card-sub3 { font-size: 12px; line-height: 17px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cand-card-roleco { min-height: 19px; font-size: 13px; line-height: 19px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cand-card-sub3 { min-height: 17px; font-size: 12px; line-height: 17px; color: var(--ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         /* 4行目: 合う理由の札（2026-10-13 / 柴さんの指示で改修モックに合わせた）。
            ★帯をやめ、文字の長さだけの札（最大はカード幅）。「ほか○件」も札の中。
            ★色は淡い緑に濃い緑（UIルールの変更: 緑＝プラスの一致。.claude/skills/ui-conventions）。
