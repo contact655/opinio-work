@@ -6,6 +6,8 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubble";
+import { FirstTopicNotice } from "@/components/messages/FirstMessage";
+import { MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
 
 export type MessageRow = {
   id: string;
@@ -36,6 +38,8 @@ export type ConversationDetail = {
   /** ★DM の「メッセージのお願い」の段（段階3）。ここを開けるのは参加者だけなので、
    *  DM で accepted でなければ「自分が送って承認待ち」（断られていても同じ） */
   request_status?: string | null;
+  /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
+  request_topic?: string | null;
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -210,6 +214,9 @@ export default function ConversationDetailClient({
                   求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                   ⚠️ 状態の言葉・アバター・日付の区切りは出さない（会社側と揃える）。 */
             <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {conversation.kind === "direct_message" && MESSAGE_TOPICS.some((t) => t.value === conversation.request_topic) && (
+                <FirstTopicNotice topic={conversation.request_topic as MessageTopic} />
+              )}
               {messages.map((msg) => {
                 if (msg.kind === "proposal_intro") {
                   /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */

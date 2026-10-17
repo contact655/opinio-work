@@ -115,6 +115,17 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
   );
 }
 
+/** ★会話の先頭に出す1行（2026-10-17）。最初の1通で選んだテーマ。送り手・受け手の両方の会話画面で使う */
+export function FirstTopicNotice({ topic }: { topic: MessageTopic }) {
+  return (
+    <div data-state="first-topic-notice" style={{ display: "flex", justifyContent: "center" }}>
+      <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700 }}>
+        最初のメッセージで聞きたいこと: {topicLabel(topic)}
+      </span>
+    </div>
+  );
+}
+
 /** 受け取った側の見え方（返信欄つき） */
 export function FirstMessageCard({ sender, topic, note, dateText, sample = false, onSend, onDecline }: {
   sender: FirstMessageSender;

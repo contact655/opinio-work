@@ -447,6 +447,10 @@ button, [role="button"] {
   background: #fff;
 }
 .person-row + .person-row { border-top: 1px solid var(--line-soft); }
+/* ★行の右に「メッセージ」の丸ボタン（2026-10-17）。リンク（.person-row-main）が残りの幅を取る */
+.person-row { display: flex; align-items: center; min-width: 0; }
+.person-row > .person-row-main { flex: 1; min-width: 0; }
+.person-row-dm { flex-shrink: 0; padding-right: 14px; }
 .person-row-main {
   display: flex;
   align-items: center;

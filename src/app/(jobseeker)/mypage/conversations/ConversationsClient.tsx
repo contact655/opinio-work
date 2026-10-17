@@ -15,7 +15,8 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
-import { topicLabel } from "@/lib/constants/messageTopics";
+import { topicLabel, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
+import { FirstTopicNotice } from "@/components/messages/FirstMessage";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
 const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
@@ -32,6 +33,8 @@ export type Conversation = {
   /** ★DM の「メッセージのお願い」の段（段階3）。この一覧に出るのは自分が参加者の会話だけなので、
    *  pending ＝ 自分が送って承認待ち（断られていても pending のまま見える） */
   request_status?: string | null;
+  /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
+  request_topic?: string | null;
   ow_companies: {
     id: string;
     name: string;
@@ -90,6 +93,9 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
     </div>
   );
 }
+
+/** 保存されているテーマが、いまの語彙にあるか（無い値は出さない） */
+const isKnownTopic = (v: string | null | undefined): v is MessageTopic => !!v && MESSAGE_TOPICS.some((t) => t.value === v);
 
 const isPendingRequest = (c: Conversation | null | undefined) =>
   !!c && c.kind === "direct_message" && c.request_status !== "accepted";
@@ -788,6 +794,7 @@ export default function ConversationsClient({
                         求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                         ⚠️ /mypage/conversations/[id] と同じ並べ方。片方だけ書き換えない */
                   <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {selectedConv?.kind === "direct_message" && isKnownTopic(selectedConv.request_topic) && <FirstTopicNotice topic={selectedConv.request_topic} />}
                     {messages.map((msg) => {
                       const isMe = msg.sender_participant_id === myParticipantId;
                       const sender = isMe ? (myName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "相手");

@@ -9,6 +9,7 @@ import Image from "next/image";
 import type { DirectoryPerson } from "@/lib/people/directory";
 import type { SearchAlias } from "@/lib/supabase/queries";
 import { FollowUserButton } from "../u/[id]/FollowUserButton";
+import { DMButton } from "@/components/profile/DMButton";
 import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
@@ -455,6 +456,12 @@ export function GridCard({ card, myUserId, followedUserIds }: {
           ⚠️ onClick の伝播を止める。カード全体が router.push を持っているため、
              止めないとフォローと同時にプロフィールへ遷移する。 */}
       <div style={{ marginTop: "auto", width: "100%", display: "flex", gap: 6, alignItems: "stretch" }}>
+        {/* ★他の人のカードでは「プロフィール」の代わりに「メッセージ」（2026-10-17）。カード自体がプロフィールへの導線なので、
+               プロフィールのボタンは自分のカード（とログインしていないとき）だけに残す。
+            ⚠️ 意匠は「プロフィール」と同じ白（塗らない。一覧が主導線だらけになるため） */}
+        {myUserId !== null && card.userId !== myUserId ? (
+          <DMButton targetUserId={card.userId} targetName={card.name} variant="card" />
+        ) : (
         <Link
           href={`/u/${card.userId}`}
           target="_blank"
@@ -472,6 +479,7 @@ export function GridCard({ card, myUserId, followedUserIds }: {
         >
           プロフィール
         </Link>
+        )}
         {myUserId !== null && card.userId !== myUserId && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -516,7 +524,9 @@ export function CompactRow({ card, myUserId, followedUserIds }: {
         {card.roleName && <div className="ppl-compact-role">{card.roleName}</div>}
       </div>
       {myUserId !== null && card.userId !== myUserId && (
-        <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexShrink: 0 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexShrink: 0, gap: 6, alignItems: "center" }}>
+          {/* ★メッセージ（2026-10-17）。⚠️ GridCard と情報をそろえる（ビュートグルで操作が増減しないように） */}
+          <DMButton targetUserId={card.userId} targetName={card.name} variant="icon" />
           {/* ⚠️★`refreshOnChange` を外さないこと（GridCard と同じ理由） */}
           <FollowUserButton
             targetUserId={card.userId}
@@ -620,6 +630,12 @@ export function ListRow({ card, myUserId, followedUserIds }: {
           ⚠️ 意匠は白のまま。navy 塗りにしないこと（グリッドカードと同じ判断。
              行全体が /u/[id] への導線なので、ここを塗ると一覧が主導線だらけになる）。 */}
       <div className="ppl-row-cta">
+        {/* ★GridCard と同じく、他の人には「プロフィール」の代わりに「メッセージ」（2026-10-17） */}
+        {myUserId !== null && card.userId !== myUserId ? (
+          <div className="ppl-row-follow" style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+            <DMButton targetUserId={card.userId} targetName={card.name} variant="card" />
+          </div>
+        ) : (
         <Link
           href={`/u/${card.userId}`}
           target="_blank"
@@ -634,6 +650,7 @@ export function ListRow({ card, myUserId, followedUserIds }: {
         >
           プロフィール
         </Link>
+        )}
         {myUserId !== null && card.userId !== myUserId && (
           /* ⚠️ `flexDirection: column` にすること。row のままだと中のボタンが
                 内容幅（実測 102px）のままになり、上のプロフィール（列幅124px）と

@@ -52,6 +52,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     listing?: "public" | "login_only" | "hidden";
     experienceCount?: number;
   } = { kind: "anonymous" };
+  /* ★閲覧者自身の ow_users.id（2026-10-17）。社員の行の「メッセージ」を自分の行に出さないためだけに使う。
+        ⚠️ 返すのは本人の id だけ（このルートは force-dynamic で閲覧者ごとに作る） */
+  let viewerUserId: string | null = null;
 
   if (user) {
     relation = { kind: "unrelated" };
@@ -65,6 +68,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (viewerErr) {
       console.error("[companies/employees] viewer lookup", viewerErr.message);
     } else if (viewerRow) {
+      viewerUserId = viewerRow.id as string;
       const { data: ownExps, error: ownErr } = await admin
         .from("ow_experiences")
         .select("id, visibility_company")
@@ -102,5 +106,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     totalCurrentCount: employees.current.length,
     totalAlumniCount: employees.alumni.length,
     relation,
+    viewerUserId,
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { GridCard, ListRow, PeopleCardStyles, type AmbassadorCard } from "@/app/(jobseeker)/people/PeopleListClient";
+import { GridCard, ListRow, CompactRow, PeopleCardStyles, type AmbassadorCard } from "@/app/(jobseeker)/people/PeopleListClient";
 import { Variant, PreviewHeader } from "../Variant";
 
 /**
@@ -103,6 +103,29 @@ export default function PeopleCardsPreview() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {PEOPLE.map((c) => (
             <ListRow key={c.userId} card={c} myUserId={null} followedUserIds={[]} />
+          ))}
+        </div>
+      </Variant>
+
+      {/* ★ログイン中の見え方（2026-10-17）。他の人のカードは「プロフィール」の代わりに「メッセージ」。
+             myUserId は固定の id（どのカードとも一致しない）。⚠️ ボタンを押すと実際の API を呼ぶので押さないこと */}
+      <Variant
+        label="ログイン中（グリッド・一覧・スマホの行）"
+        note="他の人には「メッセージ」と「フォロー」。カードの高さと下端が揃うこと。375px で行がはみ出さないこと"
+      >
+        <div className="ppl-grid">
+          {PEOPLE.map((c) => (
+            <GridCard key={c.userId} card={c} myUserId="00000000-0000-0000-0000-000000000000" followedUserIds={[]} />
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          {PEOPLE.map((c) => (
+            <ListRow key={c.userId} card={c} myUserId="00000000-0000-0000-0000-000000000000" followedUserIds={[]} />
+          ))}
+        </div>
+        <div style={{ marginTop: 16 }}>
+          {PEOPLE.map((c) => (
+            <CompactRow key={c.userId} card={c} myUserId="00000000-0000-0000-0000-000000000000" followedUserIds={[]} />
           ))}
         </div>
       </Variant>

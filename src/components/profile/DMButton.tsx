@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FirstMessageComposer } from "@/components/messages/FirstMessage";
@@ -18,8 +19,19 @@ type Props = {
    */
   label?: string;
   /** ★「…」メニューの中に置く形（2026-10-11 / 企業の担当者が /u/[id] を見たとき。「個人としてメッセージを送る」） */
-  variant?: "button" | "menuItem";
+  variant?: "button" | "menuItem" | "card" | "icon";
 };
+
+/* ★一覧のカードに置く形（2026-10-17 / /people）。
+   card … カードの CTA 行の「プロフィール」と同じ見た目（白・細い枠・幅いっぱい）
+   icon … スマホの行の右に置く丸いアイコンだけの形
+   ⚠️ カードは全体がクリックでプロフィールへ飛ぶ。押した操作・ダイアログの中の操作が
+      カードまで伝わらないよう、ここで伝播を止めている（呼び出し側で包まなくてよい）。 */
+const ICON = (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
 
 /**
  * ★DM の入口。2026-10-09 に「メッセージのお願い」へ作り替えた（段階3）。
@@ -47,7 +59,8 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
   const toAuth = () =>
     router.push(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
 
-  async function handleClick() {
+  async function handleClick(e?: React.MouseEvent) {
+    e?.stopPropagation();
     setLoading(true);
     setNotice(null);
     try {
@@ -112,9 +125,32 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
     return () => window.removeEventListener("keydown", onKey);
   }, [composing, sending]);
 
+  /* ★一覧の形では、止まった理由をボタンの横ではなく画面下の小さな帯で出す（カードの高さを崩さない）。4秒で消す */
+  const floatingNotice = variant === "card" || variant === "icon";
+  useEffect(() => {
+    if (!notice || !floatingNotice) return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice, floatingNotice]);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   return (
     <>
-      {variant === "menuItem" ? (
+      {variant === "card" ? (
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-card"
+          style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px 10px", background: "#fff",
+            color: loading ? "var(--ink-mute)" : "var(--royal)", borderRadius: 9, fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+            border: "1.5px solid var(--royal-100)", whiteSpace: "nowrap", cursor: loading ? "default" : "pointer" }}>
+          {ICON}{loading ? "準備中..." : (label ?? "メッセージ")}
+        </button>
+      ) : variant === "icon" ? (
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-icon" aria-label={`${targetName}さんにメッセージを送る`} className="btn-fixed-size"
+          style={{ width: 34, height: 34, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "#fff",
+            color: loading ? "var(--ink-mute)" : "var(--royal)", border: "1.5px solid var(--royal-100)", cursor: loading ? "default" : "pointer", padding: 0 }}>
+          {ICON}
+        </button>
+      ) : variant === "menuItem" ? (
         <button type="button" role="menuitem" onClick={handleClick} disabled={loading} data-action="personal-dm"
           style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, color: loading ? "var(--ink-mute)" : "var(--ink)", cursor: loading ? "default" : "pointer", whiteSpace: "nowrap" }}>
           {loading ? "準備中..." : (label ?? "個人としてメッセージを送る")}
@@ -141,7 +177,18 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
           {loading ? "準備中..." : (label ?? `${targetName} にDMを送る`)}
         </button>
       )}
-      {notice && (
+      {notice && floatingNotice && mounted && createPortal(
+        <div data-state="dm-notice" role="status" onClick={(e) => e.stopPropagation()}
+          style={{ position: "fixed", left: "50%", bottom: 88, transform: "translateX(-50%)", zIndex: 1100, maxWidth: "calc(100vw - 32px)", padding: "10px 14px",
+            borderRadius: 10, background: "var(--ink)", color: "#fff", fontSize: 12.5, fontWeight: 600, lineHeight: 1.6, boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}>
+          {notice.text}
+          {notice.requestsLink && (
+            <>{" "}<Link href="/mypage/conversations?tab=unreplied" style={{ color: "#fff", fontWeight: 700, textDecoration: "underline" }}>未返信のメッセージを見る →</Link></>
+          )}
+        </div>,
+        document.body,
+      )}
+      {notice && !floatingNotice && (
         <span data-state="dm-notice" role="status" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6 }}>
           {notice.text}
           {notice.requestsLink && (
@@ -150,12 +197,12 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
         </span>
       )}
 
-      {composing && (
+      {composing && mounted && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="dm-request-title"
-          onClick={(e) => { if (e.target === e.currentTarget && !sending) setComposing(false); }}
+          onClick={(e) => { e.stopPropagation(); if (e.target === e.currentTarget && !sending) setComposing(false); }}
           style={{
             position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.45)",
             display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto",
@@ -165,7 +212,8 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
             <FirstMessageComposer titleId="dm-request-title" recipientName={targetName} recipientLine={null}
               sections={topicSections} onSend={handleSend} onCancel={() => { if (!sending) setComposing(false); }} />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
