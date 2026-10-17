@@ -9,6 +9,8 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { MemberRecord, PendingInviteRecord } from "@/lib/business/members";
 import Toast from "@/components/ui/Toast";
+import type { CompanyJoinRequest } from "@/lib/business/joinRequests";
+import { JoinRequestsCard } from "./JoinRequestsCard";
 
 type ActionType = "permission" | "deactivate" | "reactivate";
 
@@ -34,6 +36,8 @@ type Props = {
   notificationEmails?: string[];
   initialMembers: MemberRecord[];
   initialPendingInvites: PendingInviteRecord[];
+  /** ★参加の依頼（2026-10-18）。取得に失敗したら null。管理者でなければ渡さない */
+  joinRequests?: CompanyJoinRequest[] | null;
   currentUserId: string;
   isAdmin?: boolean;
 };
@@ -1065,7 +1069,7 @@ function PendingInvitesSection({
 }
 
 // ── MembersClient ───────────────────────────────────────────────────
-export function MembersClient({ slackSettings = null, notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, currentUserId, isAdmin = true }: Props) {
+export function MembersClient({ slackSettings = null, notificationMembers = [], notificationEmails = [], initialMembers, initialPendingInvites, joinRequests = [], currentUserId, isAdmin = true }: Props) {
   const router = useRouter();
 
   // edit profile dialog state
@@ -1269,6 +1273,9 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
           </button>
         )}
       </div>
+
+      {/* ★参加の依頼（2026-10-18）。管理者だけ */}
+      {isAdmin && <JoinRequestsCard requests={joinRequests} onToast={setToastMessage} />}
 
       {/* ── 採用担当 ── */}
       <>

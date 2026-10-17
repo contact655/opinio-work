@@ -71,7 +71,7 @@ type NavItem = {
   label: string;
   icon: React.ReactElement;
   /** ★未読バッジの出どころ（2026-09-21）。値は `BizShellContext` の `badges` */
-  badge?: "messages" | "proposals";
+  badge?: "messages" | "proposals" | "members";
   /** ★この項目を出す条件（2026-10-12）。いずれかの操作ができれば出す。⚠️ 判定は can() の1か所 */
   needs: CompanyAction[];
   children?: { href: string; label: string }[];
@@ -138,7 +138,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "管理",
     items: [
       { href: "/biz/analytics", label: "分析", needs: ["analytics.view"], icon: <BarChart2 size={16} strokeWidth={2.2} /> },
-      { href: "/biz/members", label: "メンバーと権限", needs: ["members.manage"], icon: <Users size={16} strokeWidth={2.2} /> },
+      { href: "/biz/members", label: "メンバーと権限", needs: ["members.manage"], icon: <Users size={16} strokeWidth={2.2} />, badge: "members" },
     ],
   },
 ];
@@ -211,7 +211,7 @@ function BusinessChrome({
         ⚠️ 取得に失敗したら出さない（0 と同じ扱い）。**「0件」とは言わない** ——
            バッジが出ないことを「未読なし」の根拠にしないこと。
         ⚠️ 企業が無い人（`hasCompany = false`）はサイドバーごと無いので叩かない。 */
-  const [badges, setBadges] = useState<{ messages: number; proposals: number } | null>(null);
+  const [badges, setBadges] = useState<{ messages: number; proposals: number; members: number } | null>(null);
   useEffect(() => {
     if (!hasCompany) return;
     let cancelled = false;
@@ -663,7 +663,7 @@ function BusinessChrome({
                     className="biz-nav-link"
                     aria-current={active ? "page" : undefined}
                     /* ⚠️ しまうと項目名が見えなくなる（display: none）ので、名前は aria-label でも持つ。件数も入れる */
-                    aria-label={badgeCount > 0 ? `${item.label}（${item.badge === "proposals" ? "未回答" : "未読・新しい返信"} ${badgeCount}件）` : item.label}
+                    aria-label={badgeCount > 0 ? `${item.label}（${item.badge === "proposals" ? "未回答" : item.badge === "members" ? "参加の依頼" : "未読・新しい返信"} ${badgeCount}件）` : item.label}
                     onFocus={(e) => showTip(e, item.label)}
                     onBlur={hideTip}
                     onClick={(e) => {
@@ -723,7 +723,7 @@ function BusinessChrome({
                         position: "relative",
                       }}>
                         <span aria-hidden="true">{badgeCount > 99 ? "99+" : badgeCount}</span>
-                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : "未読・新しい返信"} {badgeCount}件）</span>
+                        <span className="sr-only">（{item.badge === "proposals" ? "未回答" : item.badge === "members" ? "参加の依頼" : "未読・新しい返信"} {badgeCount}件）</span>
                       </span>
                     )}
                   </Link>

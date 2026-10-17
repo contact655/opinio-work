@@ -19,6 +19,6 @@ export async function GET() {
   const ctx = await getTenantContext().catch(() => null);
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const badges = await getBizNavBadges({ owUserId: ctx.currentOwnId, companyId: ctx.tenantId });
+  const badges = await getBizNavBadges({ owUserId: ctx.currentOwnId, companyId: ctx.tenantId, permission: ctx.currentPermission });
   return NextResponse.json(badges, { headers: { "Cache-Control": "no-store" } });
 }

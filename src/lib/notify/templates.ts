@@ -922,8 +922,8 @@ export function joinRequestTemplate(params: {
           : `<strong>${esc(params.requesterEmail)}</strong> の方が`}
         「${esc(params.companyName)}」への参加を希望しています。
       </p>
-      <p>メンバー管理画面からメールアドレスを入力して招待を完了してください。</p>
-      <a href="https://opinio.jp/biz/members" style="${BTN}">メンバーを招待する →</a>
+      <p>「メンバーと権限」の画面の上に依頼が出ています。権限を選んで「担当者に追加」を押すと、その場で追加されます。心当たりがなければ「見送る」を押してください（相手には知らせません）。</p>
+      <a href="https://opinio.jp/biz/members" style="${BTN}">依頼を確認する →</a>
       <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
         心当たりのない場合は、このメールを無視してください。
       </p>
@@ -977,6 +977,8 @@ export function joinRequestApprovedTemplate(params: {
   to: string;
   requesterName: string;
   companyName: string;
+  /** ★企業が承認したときの権限の名前（2026-10-18）。無ければ従来の文（運営の承認） */
+  roleLabel?: string;
 }) {
   return {
     to: params.to,
@@ -984,8 +986,10 @@ export function joinRequestApprovedTemplate(params: {
     html: htmlWrap(`
       ${greet(params.requesterName, "h2")}
       <p>
-        「<strong>${esc(params.companyName)}</strong>」の採用担当者として登録されました。
-        企業情報の編集や求人の掲載ができます。
+        ${params.roleLabel
+          ? `「<strong>${esc(params.companyName)}</strong>」の担当者（${esc(params.roleLabel)}）として登録されました。`
+          : `「<strong>${esc(params.companyName)}</strong>」の採用担当者として登録されました。
+        企業情報の編集や求人の掲載ができます。`}
       </p>
       <a href="https://opinio.jp/biz/dashboard" style="${BTN}">OPINIO Business を開く →</a>
       <p style="margin-top:24px;font-size:12px;color:#94a3b8;">

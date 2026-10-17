@@ -9,6 +9,7 @@ import { countUnconfirmedMaterialItems } from "@/lib/companyMaterials/server";
 import { canUse, type PlanType } from "@/lib/constants/plans";
 import { listCompanyMeetings } from "@/lib/meetings/server";
 import { MEETING_FORMATS } from "@/lib/constants/meetings";
+import { fetchCompanyJoinRequests } from "@/lib/business/joinRequests";
 import type { HomeActionItem, HomeActions, HomeMeeting } from "@/lib/business/homeTypes";
 
 /**
@@ -24,6 +25,7 @@ import type { HomeActionItem, HomeActions, HomeMeeting } from "@/lib/business/ho
  * | 保存した条件の新着 | `listSavedSearchesWithCounts`（保存した条件の画面と同じ。候補者検索を使える企業だけ） |
  * | 運営が停止した求人 | 呼び出し側の `getJobStatusCounts().stoppedByOps`（求人管理の「停止中（運営が停止）」と同じ `jobState`） |
  * | 企業資料の未確定 | `countUnconfirmedMaterialItems` |
+ * | 参加の依頼 | `fetchCompanyJoinRequests`（メンバーと権限の画面・サイドバーの件数と同じ。管理者だけ） |
  *
  * ⚠️★旧ホームで「新しい返信 0」と「〇〇さんから返信があります」が食い違っていたのは、前者が「返信を誰もまだ開いていない」、
  *    後者が「最後のメッセージが求職者から（＝こちらがまだ返していない）」を数えていたため。いまはメッセージ画面の
@@ -163,6 +165,15 @@ export async function getBizActionItems(params: {
     items.push({ kind: "materials", at: now, title: `企業資料の未確定の項目 ${materials}件`, sub: "確定するまで求職者には出ません", action: "確認する", href: "/biz/materials" });
   }
 
+  /* ★参加の依頼（2026-10-18）。`members.manage` の人だけ取りに行く（メンバーと権限の画面と同じ関数） */
+  if (can(params.permission, "members.manage")) {
+    const reqs = await fetchCompanyJoinRequests(db, params.companyId);
+    if (reqs === null) failed.push("参加の依頼");
+    else for (const r of reqs) {
+      items.push({ kind: "joinRequest", at: r.sentAt, title: `${r.userName}さんから、担当者への追加の依頼`, sub: relDays(r.sentAt), action: "確認する", href: "/biz/members" });
+    }
+  }
+
   /* ★役割で出すものを絞る（2026-10-12。判定は can() の1か所）。押した先が開けない行を出さない。
         面接官の応募は「担当の応募」だけ */
   const role = params.permission;
@@ -180,6 +191,7 @@ export async function getBizActionItems(params: {
       case "savedSearch": return can(role, "candidates.search");
       case "stoppedJobs": return can(role, "jobs.edit");
       case "materials": return can(role, "materials.edit");
+      case "joinRequest": return can(role, "members.manage");
       default: return false;
     }
   };

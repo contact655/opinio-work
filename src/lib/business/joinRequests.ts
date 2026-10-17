@@ -256,3 +256,82 @@ export async function fetchOpenJoinRequests(admin: Client): Promise<OpenJoinRequ
   }
   return out;
 }
+
+/** 企業の「メンバーと権限」に出す1件（2026-10-18）。⚠️ 判断の材料を載せる。判定はしない */
+export type CompanyJoinRequest = {
+  id: string;
+  userName: string;
+  userEmail: string | null;
+  /** 検証用アカウントか。⚠️ 一覧から外さない。区別を出すだけ（運営の一覧と同じ） */
+  isTest: boolean;
+  /** 最後に依頼を送った日時 */
+  sentAt: string;
+  /** メールのドメインが企業サイトと重なるか。比べられないときは null（false に倒さない） */
+  domainMatch: boolean | null;
+};
+
+/**
+ * ★その企業に届いている「担当者に追加してください」という依頼（2026-10-18）。
+ *
+ * ⚠️★**画面の一覧・サイドバーの件数・ホームの「やること」はこの関数を通すこと。**
+ *    条件を書き分けると「1件と出ているのに開くと空」になる（`fetchOpenJoinRequests` と同じ理由）。
+ * ⚠️ 既にその企業の有効な担当者になっている人は除く（承認済みでも status が pending のまま残る行があるため）。
+ * ⚠️ 失敗したら `null`（0件に見せない）。
+ */
+export async function fetchCompanyJoinRequests(
+  admin: Client,
+  companyId: string,
+): Promise<CompanyJoinRequest[] | null> {
+  const { data, error } = await admin
+    .from("ow_company_join_requests")
+    .select("id, user_id, updated_at")
+    .eq("target_company_id", companyId)
+    .eq("status", "pending")
+    .eq("request_type", "join_existing")
+    .order("updated_at", { ascending: true });
+  if (error) {
+    console.error("[biz/join-requests] 依頼の取得に失敗:", error.message);
+    return null;
+  }
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+
+  const userIds = Array.from(new Set(rows.map((r) => r.user_id as string)));
+  const [{ data: users, error: uErr }, { data: company, error: cErr }, { data: members, error: mErr }] =
+    await Promise.all([
+      admin.from("ow_users").select("id, name, email, is_test").in("id", userIds),
+      admin.from("ow_companies").select("url").eq("id", companyId).maybeSingle(),
+      admin.from("ow_company_admins").select("user_id").eq("company_id", companyId).eq("is_active", true),
+    ]);
+  if (uErr || cErr || mErr) {
+    console.error("[biz/join-requests] 付随情報の取得に失敗:", uErr?.message ?? cErr?.message ?? mErr?.message);
+    return null;
+  }
+
+  const userById = new Map((users ?? []).map((u) => [
+    (u as { id: string }).id,
+    u as { id: string; name: string | null; email: string | null; is_test: boolean | null },
+  ]));
+  const memberIds = new Set((members ?? []).map((m) => m.user_id as string | null).filter(Boolean) as string[]);
+  const companyUrl = (company?.url as string | null | undefined) ?? null;
+
+  const seen = new Set<string>();
+  const out: CompanyJoinRequest[] = [];
+  /* 古い順に並べてから、同じ人の重複は新しいほうに寄せる（再送で行が増えた場合） */
+  for (const r of [...rows].reverse()) {
+    const userId = r.user_id as string;
+    if (memberIds.has(userId) || seen.has(userId)) continue;
+    const user = userById.get(userId);
+    if (!user) continue;   /* 名前を出せないものは書かない */
+    seen.add(userId);
+    out.push({
+      id: r.id as string,
+      userName: user.name ?? "—",
+      userEmail: user.email,
+      isTest: user.is_test === true,
+      sentAt: r.updated_at as string,
+      domainMatch: emailMatchesCompanyDomain(user.email, companyUrl),
+    });
+  }
+  return out.reverse();
+}

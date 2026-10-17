@@ -1,6 +1,9 @@
 import { unreadConversationIds } from "@/lib/conversations/unread";
 import { unseenProposalConversationIds } from "@/lib/evidence/companyProposals";
 import { unseenRepliedConversationIds } from "@/lib/approaches/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchCompanyJoinRequests } from "@/lib/business/joinRequests";
+import { can, type CompanyRole } from "@/lib/auth/roles";
 
 /**
  * ★`/biz` サイドバーの未読バッジ（2026-09-21 / 柴さんの指示）。
@@ -15,7 +18,8 @@ import { unseenRepliedConversationIds } from "@/lib/approaches/server";
  * ⚠️ 呼ぶのは `GET /api/biz/nav-badges` の1箇所だけ。サイドバーがページを移るたびに取る。
  *    ⚠️★layout で数えないこと —— layout はページ移動で描き直されず、数字が古いまま残る。
  */
-export type BizNavBadges = { messages: number; proposals: number };
+/* ★members … 参加の依頼（2026-10-18）。`members.manage` の人だけ数える（それ以外は 0）。数え方は `fetchCompanyJoinRequests` */
+export type BizNavBadges = { messages: number; proposals: number; members: number };
 
 /**
  * ★「対応が必要なメッセージ」の会話（2026-10-12 / 柴さんの指示で1つにまとめた）。
@@ -40,10 +44,18 @@ export async function companyMessageTodoIds(params: { owUserId: string; companyI
 export async function getBizNavBadges(params: {
   owUserId: string;
   companyId: string;
+  permission: CompanyRole;
 }): Promise<BizNavBadges> {
-  const { all } = await companyMessageTodoIds(params);
+  const [{ all }, joinRequests] = await Promise.all([
+    companyMessageTodoIds(params),
+    can(params.permission, "members.manage")
+      ? fetchCompanyJoinRequests(createAdminClient(), params.companyId)
+      : Promise.resolve([]),
+  ]);
   return {
     messages: all.size,
+    /* ⚠️ 取れなければ 0（バッジのために落とさない。ログは fetchCompanyJoinRequests が出す） */
+    members: joinRequests?.length ?? 0,
     /* ★2026-10-11 から企業が答える紹介は無い（届いた方はその場で会話になり、上の messages で数える）。常に 0 */
     proposals: 0,
   };

@@ -4,7 +4,7 @@
  */
 
 /** 対応が必要なもの1行。ボタンは1つ（返信する／確認する） */
-export type HomeActionKind = "message" | "reply" | "interest" | "unanswered" | "meetingRequest" | "application" | "savedSearch" | "stoppedJobs" | "materials";
+export type HomeActionKind = "message" | "reply" | "interest" | "unanswered" | "meetingRequest" | "application" | "savedSearch" | "stoppedJobs" | "materials" | "joinRequest";
 
 export type HomeActionItem = {
   kind: HomeActionKind;

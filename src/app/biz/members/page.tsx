@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSlackSettingsView } from "@/lib/notify/slack";
 import { MembersClient } from "./MembersClient";
 import { fetchNotificationSettings } from "@/lib/business/notificationTeam";
+import { fetchCompanyJoinRequests } from "@/lib/business/joinRequests";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function MembersPage() {
 
   const adminSupabase = createAdminClient();
 
-  const [members, pendingInvites, notification] = await Promise.all([
+  const [members, pendingInvites, notification, joinRequests] = await Promise.all([
     /* ⚠️ admin クライアントを渡す。担当者一覧は他メンバーの email を表示するが、
           2026-08-06 に authenticated から ow_users.email の SELECT 権限を剥がした。
           会社の管理者であることは上の getTenantContext で確認済み。 */
@@ -34,6 +35,8 @@ export default async function MembersPage() {
     fetchPendingInvitesForCompany(adminSupabase, ctx.tenantId),
     /* ★通知の宛先（2026-10-12 に /biz/company から移した） */
     fetchNotificationSettings(ctx.tenantId),
+    /* ★参加の依頼（2026-10-18）。この画面は members.manage の人しか開けない（上の guard） */
+    fetchCompanyJoinRequests(adminSupabase, ctx.tenantId),
   ]);
 
   return (
@@ -51,6 +54,7 @@ export default async function MembersPage() {
         notificationEmails={notification.emails}
         initialMembers={members}
         initialPendingInvites={pendingInvites}
+        joinRequests={joinRequests}
         currentUserId={ctx.currentOwnId}
         isAdmin={can(ctx.currentPermission, "members.manage")}
       />
