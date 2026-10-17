@@ -14,7 +14,6 @@ import {
   approachFirstMessageBody,
   APPROACH_BODY_MAX,
   APPROACH_EXPIRE_DAYS,
-  APPROACH_MONTHLY_LIMIT,
   APPROACH_OPEN_LIMIT,
   APPROACH_REASON_MAX,
   APPROACH_REASON_MIN,
@@ -45,8 +44,8 @@ import {
  *   ⚠️★送れない相手にはボタンを出さず、API も理由を返さない（`APPROACH_BLOCKED_MESSAGE`）。
  *
  * ── 上限（企業単位）──────────────────────────────────────────────────
- *   ・月10件（日本時間の月初区切り）。断られたものも数える
- *   ・承認待ち10件。⚠️★「承認されていない かつ 送ってから30日以内」を数える。
+ *   ・~~月10件~~ → 2026-10-17 に外した（柴さんの判断。`companyApproaches.ts` の注記）
+ *   ・返事待ち10件。⚠️★「承認されていない かつ 送ってから30日以内」を数える。
  *     断られたものも数える（枠の増減から断られたことが分からないように）。
  *     30日で数えなくなるのは、求職者の一覧から消える期限と同じ。断ったかどうかに関係なく
  *     一律に時間で外れるので、企業には区別がつかない。⚠️ 外さないと、断られた10件で永久に送れなくなる。
@@ -62,7 +61,6 @@ const MSG = {
   reasonShort: `理由は${APPROACH_REASON_MIN}文字以上で入力してください`,
   reasonLong: `理由は${APPROACH_REASON_MAX}文字以内で入力してください`,
   bodyLong: `メッセージは${APPROACH_BODY_MAX}文字以内で入力してください`,
-  monthly: `今月はこれ以上メッセージを送れません（1社あたり毎月${APPROACH_MONTHLY_LIMIT}通まで）`,
   open: `返事待ちのメッセージが${APPROACH_OPEN_LIMIT}件あるため、これ以上送れません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
   reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方にメッセージを送りたい理由を書いてください`,
 } as const;
@@ -120,8 +118,8 @@ export async function approachTargets(params: {
 }
 
 export type ApproachQuota = {
-  monthlyUsed: number;
-  monthlyLimit: number;
+  /** 今月（日本時間の月初から）送った数。⚠️ 上限ではない（表示用。月の上限は 2026-10-17 に外した） */
+  sentThisMonth: number;
   openCount: number;
   openLimit: number;
 };
@@ -141,15 +139,13 @@ export async function getApproachQuota(companyId: string): Promise<ApproachQuota
     return null;
   }
   return {
-    monthlyUsed: monthly.count ?? 0,
-    monthlyLimit: APPROACH_MONTHLY_LIMIT,
+    sentThisMonth: monthly.count ?? 0,
     openCount: open.count ?? 0,
     openLimit: APPROACH_OPEN_LIMIT,
   };
 }
 
 export function quotaBlockMessage(q: ApproachQuota): string | null {
-  if (q.monthlyUsed >= q.monthlyLimit) return MSG.monthly;
   if (q.openCount >= q.openLimit) return MSG.open;
   return null;
 }

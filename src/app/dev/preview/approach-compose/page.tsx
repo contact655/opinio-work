@@ -21,10 +21,10 @@ export default function Page() {
   return (
     <div>
       <PreviewHeader title="メッセージを送る（/biz/messages/new）">
-        <p>右の ①今月あと〇通・返事待ちのバー ②〇〇さんにはこう見えます（返信欄つき） ③送る前に を見る（2026-10-11 にモックに合わせた）。</p>
+        <p>右の ①返事待ちのバー ②〇〇さんにはこう見えます（返信欄つき） ③送る前に を見る（2026-10-11 にモックに合わせた）。</p>
       </PreviewHeader>
-      <Variant label="残り8通・返事待ち2件" note="今月あと8通送れます・返事待ち 2件／10件">
-        <ApproachComposeClient {...base} quota={{ monthlyUsed: 2, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
+      <Variant label="返事待ち2件" note="返事待ち 2件／10件">
+        <ApproachComposeClient {...base} quota={{ sentThisMonth: 2, openCount: 2, openLimit: 10 }} />
       </Variant>
       <Variant label="枠を取れなかった" note="「送れる数を確認できませんでした」と出る">
         <ApproachComposeClient {...base} quota={null} />

@@ -177,15 +177,15 @@ export default function ApproachComposeClient(p: Props) {
 
         {/* ── 右: 枠・見え方・充実度・注意 ── */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-          {/* ① 今月の残りと返事待ち（2026-10-11 / モックに合わせた）。言い方は /biz/messages と同じ */}
+          {/* ① 返事待ち（2026-10-11 / モックに合わせた）。言い方は /biz/messages と同じ。
+                 ⚠️ 「今月あと〇通」は 2026-10-17 に月の上限ごと外した */}
           <div style={card} data-state="approach-quota">
             {p.quota ? (
               <>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>今月あと{approachQuotaTexts(p.quota, new Date()).remaining}通送れます</div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(p.quota, new Date()).remainingSub}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ink-soft)", marginTop: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
                   <span>返事待ち</span><span data-state="compose-open-count">{p.quota.openCount}件／{p.quota.openLimit}件</span>
                 </div>
+                <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(p.quota).openSub}</div>
                 <div aria-hidden style={{ height: 6, borderRadius: 999, background: "var(--line-soft, #eef0f3)", marginTop: 4, overflow: "hidden" }}>
                   <div style={{ width: `${Math.min(100, Math.round((p.quota.openCount / Math.max(1, p.quota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
                 </div>

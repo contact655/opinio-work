@@ -75,8 +75,12 @@ export function approachFirstDisplayText(reason: string, body: string | null): s
 /** 本文の長さ（任意）。⚠️ DM のお願い（`MAX_MESSAGE_REQUEST_LENGTH`）と同じ値 */
 export const APPROACH_BODY_MAX = 2000;
 
-/** 1社あたり、1か月（日本時間の月初区切り）に送れる数。⚠️ 断られたものも数える */
-export const APPROACH_MONTHLY_LIMIT = 10;
+/*
+ * ⚠️★1か月あたりの上限（月10通）は 2026-10-17 に外した（柴さんの判断）。同じ人への連投は
+ *    「返信まで追加で送れない」「同じ人へは180日」で止まっており、月の上限が止めていたのは幅だけだった。
+ *    幅は下の「返事待ち」の上限で抑える（返信をもらえば次を送れる＝丁寧に送る企業ほど多く送れる）。
+ *    ⚠️ 戻すなら `getApproachQuota` / `quotaBlockMessage` / 表示（/biz/messages・書く画面・ホーム・ルール）を一緒に戻す。
+ */
 /**
  * 1社あたり、承認待ちのまま並べられる数。
  * ⚠️★断られたものも「承認待ち」として数える。企業には断ったことを伝えない決まりなので、
@@ -202,27 +206,20 @@ export function approachAlreadySentLine(sentAtIso: string): string {
   const v = (t: string) => ps.find((x) => x.type === t)?.value ?? "";
   return `${v("month")}月${v("day")}日に送っています`;
 }
-/** ★企業側の上限に当たっているときの1行（今月の送信数 → 返信待ちの順に見る）。当たっていなければ null */
-export function approachCompanyLimitLine(q: { monthlyUsed: number; monthlyLimit: number; openCount: number; openLimit: number } | null, now: Date): string | null {
+/** ★企業側の上限（返事待ち）に当たっているときの1行。当たっていなければ null */
+export function approachCompanyLimitLine(q: { openCount: number; openLimit: number } | null): string | null {
   if (!q) return null;
-  if (q.monthlyUsed >= q.monthlyLimit) return `今月の送信数が上限（${q.monthlyLimit}通）に達しました。${approachMonthlyResetLabel(now)}から送れます`;
   if (q.openCount >= q.openLimit) return `返信待ちが${q.openLimit}件あります。返信が来るか、${APPROACH_EXPIRE_DAYS}日たつと送れます`;
   return null;
 }
 
 /**
- * ★枠の言い方（2026-10-11 / 柴さんの指示。企業側の表示だけ）。/biz/approaches・書く画面・ホームが同じ関数を見る。
- *   「今月送った数 N/10」→「今月の残り N通」、「承認待ち N/10」→「返事待ち N件」。
- * ⚠️ DB の値・API の数え方は変えていない（`getApproachQuota` の monthlyUsed / openCount のまま）。
+ * ★枠の言い方（2026-10-11 / 柴さんの指示。企業側の表示だけ）。/biz/messages・書く画面・ホームが同じ関数を見る。
+ *   「承認待ち N/10」→「返事待ち N件」。⚠️ 月の残り（「今月あと N通」）は 2026-10-17 に月の上限ごと外した。
  */
-export function approachMonthlyResetLabel(now: Date): string {
-  const m = Number(new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric" }).format(now).replace(/\D/g, ""));
-  return `${(m % 12) + 1}月1日`;
-}
-export function approachQuotaTexts(q: { monthlyUsed: number; monthlyLimit: number; openCount: number; openLimit: number }, now: Date) {
+export function approachQuotaTexts(q: { openCount: number; openLimit: number }) {
   return {
-    remaining: Math.max(0, q.monthlyLimit - q.monthlyUsed),
-    remainingSub: `毎月${q.monthlyLimit}通・${approachMonthlyResetLabel(now)}に戻ります`,
+    openLine: `返事待ち ${q.openCount}件（${q.openLimit}件まで）`,
     openSub: `同時に${q.openLimit}件まで・${APPROACH_EXPIRE_DAYS}日で枠に戻ります`,
   };
 }

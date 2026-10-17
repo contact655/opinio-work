@@ -232,7 +232,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   ]);
   if (coRow.error) console.error("[biz/candidates] ow_companies:", coRow.error.message);
   const companyShortName = coRow.data ? companyDisplayName(coRow.data.name as string, (coRow.data.name_en as string | null) ?? null).displayName : null;
-  const companyLimitLine = approachCompanyLimitLine(approachQuota, new Date());
+  const companyLimitLine = approachCompanyLimitLine(approachQuota);
 
   /* ★保存した条件で開く（段3）。`?saved=<id>`（この条件で探す）／`&new=1`（新着を見る）。
      ⚠️ 見られる条件（自分のもの・共有）だけ。新着の基準は**開く前**の前回見た日時

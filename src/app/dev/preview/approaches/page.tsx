@@ -36,8 +36,8 @@ const expired: SentApproach = {
   body: null, acceptedAt: null, unseen: false, jobTitle: null,
 };
 
-const quotaEmpty: ApproachQuota = { monthlyUsed: 0, monthlyLimit: 10, openCount: 0, openLimit: 10 };
-const quotaFull: ApproachQuota = { monthlyUsed: 2, monthlyLimit: 10, openCount: 2, openLimit: 10 };
+const quotaEmpty: ApproachQuota = { sentThisMonth: 0, openCount: 0, openLimit: 10 };
+const quotaFull: ApproachQuota = { sentThisMonth: 2, openCount: 2, openLimit: 10 };
 
 const NOW = new Date().toISOString();
 
@@ -78,18 +78,18 @@ export default function Page() {
         <MessagesView autoSelect={false} now={NOW} allowed initialTab="pending" conversations={[]} sent={[pending3, pending25]} quota={quotaFull} />
       </Variant>
       <Variant label="すべてタブ・会話3件（新しい返信1・未参加1）" note="「新しい返信」の印・未読のドット">
-        <MessagesView autoSelect={false} now={NOW} allowed conversations={convs} sent={[accepted]} quota={{ ...quotaEmpty, monthlyUsed: 1 }} />
+        <MessagesView autoSelect={false} now={NOW} allowed conversations={convs} sent={[accepted]} quota={{ ...quotaEmpty, sentThisMonth: 1 }} />
       </Variant>
       <Variant label="30日を過ぎたもの1件（すべてに並ぶ）" note="灰色で「返信はありませんでした・〇年〇月〇日から再び送れます」。バッジは無い">
         <MessagesView autoSelect={false} now={NOW} allowed conversations={[]} sent={[expired]} quota={quotaEmpty} />
       </Variant>
       <Variant label="結果の出たメッセージ 10件" note="返信あり4・30日を過ぎた6">
-        <MessagesView autoSelect={false} now={NOW} allowed conversations={[]} quota={{ monthlyUsed: 10, monthlyLimit: 10, openCount: 0, openLimit: 10 }}
+        <MessagesView autoSelect={false} now={NOW} allowed conversations={[]} quota={{ sentThisMonth: 10, openCount: 0, openLimit: 10 }}
           sent={[...Array.from({ length: 4 }, (_, i) => ({ ...accepted, id: `a${i}`, unseen: false, candidate: person(`ua${i}`, `検証 受入${i + 1}`, null) })),
             ...Array.from({ length: 6 }, (_, i) => ({ ...expired, id: `e${i}`, candidate: person(`ue${i}`, `検証 期限${i + 1}`, null) }))]} />
       </Variant>
       <Variant label="混在（すべてタブ）" note="会話3件＋返事待ち2・30日1">
-        <MessagesView autoSelect={false} now={NOW} allowed conversations={convs} sent={[pending3, accepted, pending25, expired]} quota={{ monthlyUsed: 3, monthlyLimit: 10, openCount: 2, openLimit: 10 }} />
+        <MessagesView autoSelect={false} now={NOW} allowed conversations={convs} sent={[pending3, accepted, pending25, expired]} quota={{ sentThisMonth: 3, openCount: 2, openLimit: 10 }} />
       </Variant>
     </div>
   );

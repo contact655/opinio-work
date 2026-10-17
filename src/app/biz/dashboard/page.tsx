@@ -145,15 +145,13 @@ export default async function BizDashboardPage({
     pageEditedByStaff,
   });
 
-  const now = new Date();
   const side: HomeSide = {
     show: { jobs: can(ctx.currentPermission, "jobs.view"), company: can(ctx.currentPermission, "company.page") },
     quota: !quotaAllowed || !can(ctx.currentPermission, "messages.use") ? undefined : quota ? {
-      sentText: `${quota.monthlyUsed}/${quota.monthlyLimit}`,
-      sentSub: approachQuotaTexts(quota, now).remainingSub,
-      sentPct: Math.round((quota.monthlyUsed / Math.max(1, quota.monthlyLimit)) * 100),
+      /* ⚠️ 送った数は上限ではない（月の上限は 2026-10-17 に外した）。分母・バー・補足を出さない（見出しが「今月のメッセージ」） */
+      sentText: `${quota.sentThisMonth}通`,
       openText: `${quota.openCount}/${quota.openLimit}`,
-      openSub: approachQuotaTexts(quota, now).openSub,
+      openSub: approachQuotaTexts(quota).openSub,
       openPct: Math.round((quota.openCount / Math.max(1, quota.openLimit)) * 100),
     } : null,
     jobs: { published: jobStatusCounts.published, draft: jobStatusCounts.draft, stopped: jobStatusCounts.stopped },

@@ -58,7 +58,7 @@ export type ConversationRow = {
  * ★企業のメッセージ（2026-10-11 / 柴さんの指示。「メッセージリクエスト」を「メッセージ」にまとめた）。
  *   旧 /biz/conversations（会話の一覧）と旧 /biz/approaches（送ったリクエスト）を1つの画面にした。
  *   1本の一覧（会話と、送って返信のないもの）。タブ: すべて／未読／返事待ち。状態のバッジは使わない（2026-10-11）。
- * ⚠️ ルール（月10通・返事待ち10件・30日・180日・見送りは見せない）は変えていない。言葉と URL だけ。
+ * ⚠️ ルール（返事待ち10件・30日・180日・見送りは見せない）は変えていない（月10通は 2026-10-17 に外した）。言葉と URL だけ。
  * ⚠️ 旧 URL は next.config.mjs で 301 転送（/biz/conversations → ここ、/biz/approaches → ?tab=pending）。
  */
 export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string; filter?: string } }) {

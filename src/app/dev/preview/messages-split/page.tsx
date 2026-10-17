@@ -16,7 +16,7 @@ import { proposalIntroLine } from "@/lib/constants/proposalResponses";
  */
 const daysAgo = (n: number, h = 0) => new Date(Date.now() - n * 24 * 60 * 60 * 1000 - h * 60 * 60 * 1000).toISOString();
 const NOW = new Date().toISOString();
-const quota: ApproachQuota = { monthlyUsed: 2, monthlyLimit: 10, openCount: 1, openLimit: 10 };
+const quota: ApproachQuota = { sentThisMonth: 2, openCount: 1, openLimit: 10 };
 
 const conv = (id: string, name: string, extra: Partial<ConversationRow> = {}): ConversationRow => ({
   id, kind: "company", stage: "active", status: "active", last_message_at: daysAgo(0, 1), created_at: daysAgo(5),

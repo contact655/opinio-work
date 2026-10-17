@@ -205,7 +205,7 @@ export default function CandidatesPreview() {
         label="企業側の上限に当たっている（一覧の上の1行）"
         note="⚠️ 一覧の上に灰色で上限の文言"
       >
-        <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} companyLimitLine="今月の送信数が上限（10通）に達しました。11月1日から送れます" />
+        <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} companyLimitLine="返信待ちが10件あります。返信が来るか、30日たつと送れます" />
       </Variant>
       <Variant
         label="右のプレビューのボタンの位置（状態ごと）"
@@ -217,7 +217,6 @@ export default function CandidatesPreview() {
             ["検証用の会社を実アカウントで見ている", { eligible: false, sent: null, blocked: "test_company" }, null],
             ["今は転職を考えていない", { eligible: false, sent: null, blocked: "not_looking" }, null],
             ["その他（範囲外など。区別しない）", { eligible: false, sent: null, blocked: "other" }, null],
-            ["今月の上限", { eligible: true, sent: null }, "今月の送信数が上限（10通）に達しました。11月1日から送れます"],
             ["返信待ちの上限", { eligible: true, sent: null }, "返信待ちが10件あります。返信が来るか、30日たつと送れます"],
           ] as const).map(([label, approach, limit]) => (
             <div key={label}>

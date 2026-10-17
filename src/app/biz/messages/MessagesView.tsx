@@ -25,7 +25,7 @@ import type { ConversationRow } from "./page";
  *     返信があった会話   … 何も付けない（普通の会話）
  * ⚠️★状態のバッジ（色付きのラベル）を使わないこと（2026-10-11 / 柴さんの指示）。
  * ⚠️★タブは「すべて」「未読」「返事待ち」の3つ。「30日を過ぎました」のタブは作らない（すべての中に並ぶ）。
- * ⚠️ 上は1行だけ:「今月あと〇通送れます・返事待ち 〇件（10件まで）」＋「ルール」。数字のカードを出さない。
+ * ⚠️ 上は1行だけ:「返事待ち 〇件（10件まで）」＋「ルール」。数字のカードを出さない（「今月あと〇通」は 2026-10-17 に月の上限ごと外した）。
  * ⚠️ 1通も送っていない（かつ会話も無い）ときは、上の1行も出さずに案内（3つの手順・ボタン・見本）を出す。
  * ⚠️★画面に「リクエスト」「受け入れ」「確認する」と書かない。
  * ⚠️★見送られたかどうかは出さない（`SentApproach` に declined_at は無い）。見送りも30日までは「返信を待っています」。
@@ -130,7 +130,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
 
   const neverSent = sent !== null && sent.length === 0;
   const just = sentId ? (sent ?? []).find((r) => r.id === sentId) : undefined;
-  const q = quota ? approachQuotaTexts(quota, now) : null;
+  const q = quota ? approachQuotaTexts(quota) : null;
   /* ★1通も送っていない（かつ会話も無い）なら、一覧の代わりに案内を出す。⚠️ このときは上の1行も出さない */
   const showBigGuide = allowed && neverSent && conversations.length === 0;
   const changeTab = (t: MessagesTab) => {
@@ -210,7 +210,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
                  ⚠️ 一覧の下にあった長い注意書き（返事がない場合〜）は削除した。同じ内容は「ルール」（/biz/help/messages）にある */}
           {allowed && (
             <div data-state="messages-quota" style={{ display: "flex", alignItems: "baseline", gap: "4px 12px", flexWrap: "wrap", fontSize: 13, color: "var(--ink-soft)" }}>
-              <span>{quota && q ? `今月あと${q.remaining}通送れます・返事待ち ${quota.openCount}件（${quota.openLimit}件まで）` : "送れる数を確認できませんでした"}</span>
+              <span>{q ? q.openLine : "送れる数を確認できませんでした"}</span>
               <Link href="/biz/help/messages" data-state="messages-help-link" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>ルール</Link>
             </div>
           )}

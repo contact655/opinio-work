@@ -4,7 +4,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { ApproachStepsLarge, ApproachTipsList } from "@/components/approaches/ApproachGuide";
 import {
-  APPROACH_EXPIRE_DAYS, APPROACH_HEADLINE, APPROACH_SILENCE_NOTE, APPROACH_MONTHLY_LIMIT, APPROACH_OPEN_LIMIT, APPROACH_RESEND_DAYS,
+  APPROACH_EXPIRE_DAYS, APPROACH_HEADLINE, APPROACH_SILENCE_NOTE, APPROACH_OPEN_LIMIT, APPROACH_RESEND_DAYS,
 } from "@/lib/constants/companyApproaches";
 
 export const metadata = {
@@ -44,7 +44,6 @@ export default async function ApproachHelpPage() {
         <section style={card}>
           <h2 style={h2}>送れる数</h2>
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
-            <li style={li}>1社あたり毎月{APPROACH_MONTHLY_LIMIT}通まで送れます。毎月1日に戻ります。</li>
             <li style={li}>返事待ちのメッセージは、同時に{APPROACH_OPEN_LIMIT}件までです。返信があるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと枠に戻ります。</li>
             <li style={li}>返信が来るまでは、同じ方に続けて送ることはできません。</li>
             <li style={li}>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び送れません。</li>

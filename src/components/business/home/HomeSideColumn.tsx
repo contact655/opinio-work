@@ -48,8 +48,7 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
             <div style={{ fontSize: 13, color: "var(--ink)" }}>
               <RowLink href="/biz/messages?filter=sent_this_month" state="home-sent-row">
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span>送った数</span><strong data-state="home-sent">{side.quota.sentText}</strong></div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{side.quota.sentSub}</div>
-                <Bar pct={side.quota.sentPct} />
+                {side.quota.sentSub && <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{side.quota.sentSub}</div>}
               </RowLink>
               <RowLink href="/biz/messages?tab=pending" state="home-open-row">
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span>返事待ち</span><strong data-state="home-open">{side.quota.openText}</strong></div>

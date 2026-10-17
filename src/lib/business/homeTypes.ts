@@ -42,7 +42,7 @@ export type HomeChecklistItem = {
 /** 右の細い列 */
 export type HomeSide = {
   /** 今月のメッセージ。使えないプランでは undefined（枠ごと出さない）／取れなければ null */
-  quota?: { sentText: string; sentSub: string; sentPct: number; openText: string; openSub: string; openPct: number } | null;
+  quota?: { sentText: string; sentSub?: string; openText: string; openSub: string; openPct: number } | null;
   /** 求人の数。取れなければ null */
   jobs: { published: number; draft: number; stopped: number } | null;
   /** 企業ページの状態の1行（「公開中」「非公開・公開まであと2つ」など） */
