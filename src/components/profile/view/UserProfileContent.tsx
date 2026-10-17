@@ -752,19 +752,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                    「セクションを追加」に集約した（2026-08-16）。 */}
             <ProfileAboutSection aboutMe={owUser.about_me} viewerIsOwner={false} />
 
-            {/* ★アクティビティの抜粋（2026-08-23）。**自己紹介と職歴の間**に置く。
-                   LinkedIn と同じ並びで、その人が何を発信しているかを
-                   経歴を読む前に見せる。
-                ⚠️ **0件でも出す。** 「まだ投稿していません」と書くことで、
-                   投稿していないのか置き場所が無いのかを読み手が区別できる。
-                ⚠️ 初期表示は3件。**残りはこのセクションの中で展開する**
-                   （タブへ飛ばさない）。 */}
-            <ActivitySection
-              posts={recentPostsTyped}
-              likedPostIds={likedPostIds}
-              viewerIsOwner={viewerIsOwner}
-              displayName={owUser.name}
-            />
             {/* ── 職歴セクション ──
                    ⚠️ 枠・見出しは `ProfileTimelineSection` に切り出した（2026-08-16 / 2-6）。
                       `/mypage` が同じものを使う。DOM は切り出す前と同一（実測済み）。 */}
@@ -822,6 +809,21 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   </div>
                 ))}
               </ProfileTimelineSection>
+            )}
+
+            {/* ★アクティビティ。**学歴の下**に置く（2026-10-17 / 柴さんの判断。それまでは自己紹介と職歴の間）。
+                   OPINIO はキャリアが主役なので、職歴・学歴を先に読ませる。並びは /mypage（ProfileTab）と揃える。
+                ⚠️★**他の人が見るときは、投稿が0件なら出さない**（同日に変更）。それまでは「まだ投稿していません」を
+                   出していたが、見る人にとって中身の無いセクションがキャリアの間に挟まっていた。
+                   本人が見るとき（viewerIsOwner）は0件でも出す。
+                ⚠️ 初期表示は3件。残りはこのセクションの中で展開する（タブへ飛ばさない）。 */}
+            {(recentPostsTyped.length > 0 || viewerIsOwner) && (
+              <ActivitySection
+                posts={recentPostsTyped}
+                likedPostIds={likedPostIds}
+                viewerIsOwner={viewerIsOwner}
+                displayName={owUser.name}
+              />
             )}
 
             {/* ── 数値実績 / 受賞・表彰 ──

@@ -1879,14 +1879,6 @@ export default function ProfileTab({
             </FormGroup>
           </ProfileEditModal>
 
-        {/* ★アクティビティ（2026-08-25 / 柴さんの指示）。
-               **`/u/[id]` と同じ位置（自己紹介の直後）**に出す。中身も同じ部品。
-            ⚠️ 中身と取得は `/mypage/page.tsx` が持ち、ここは**置き場所だけ**。
-               ProfileTab から `ow_posts` を引かないこと。
-            ⚠️ 渡されなければ何も出ない。投稿できない人には `/mypage` 側が渡さない
-               （見出しだけが残る形を作らない）。 */}
-        {activitySlot}
-
         {/* 職歴・学歴タブ */}
           <div style={{ maxWidth: PROFILE_CONTENT_MAX }}>
 
@@ -2164,6 +2156,15 @@ export default function ProfileTab({
               openDeleteId={deleteEduId}
               onClosed={() => { setEditingEduId(null); setDeleteEduId(null); }}
             />
+
+            {/* ★アクティビティ（2026-08-25 / 柴さんの指示）。中身は /u/[id] と同じ部品。
+                   ★2026-10-17 に**学歴の下**へ移した（柴さんの判断。それまでは自己紹介の直後）。
+                   OPINIO はキャリアが主役なので職歴・学歴を先に出す。**並びは /u/[id] と揃えること。**
+                ⚠️ 中身と取得は `/mypage/page.tsx` が持ち、ここは**置き場所だけ**。
+                   ProfileTab から `ow_posts` を引かないこと。
+                ⚠️ 渡されなければ何も出ない。投稿できない人には `/mypage` 側が渡さない
+                   （見出しだけが残る形を作らない）。 */}
+            {activitySlot}
 
             {/* ★数値実績 / 受賞・表彰（2026-08-16 / 2-4、2026-08-24 に**学歴の直下へ移動**）。
                      公開プロフィールと同じ**独立した2セクション**。
