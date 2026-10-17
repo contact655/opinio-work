@@ -137,6 +137,8 @@ export function CreateCompanyClient({
   const [conflictSource, setConflictSource] = useState<"suggestion" | null>(null);
   const [joinRequestLoading, setJoinRequestLoading] = useState(false);
   const [joinRequestSent, setJoinRequestSent] = useState(false);
+  /* ★誰が承認するか（2026-10-17）。担当者がいない企業は OPINIO（ops）、いる企業は既存の担当者（company） */
+  const [joinReviewer, setJoinReviewer] = useState<"ops" | "company">("company");
 
   // メールドメインマッチング（LinkedIn的）
   const [domainMatch, setDomainMatch] = useState<SearchResult | null>(null);
@@ -284,12 +286,8 @@ export function CreateCompanyClient({
       }
       if (res.ok) {
         const data = await res.json();
-        if (data.auto_approved) {
-          // 管理者ゼロ → 即時承認 → ダッシュボードへ（★ページごと読み込む。上と同じ理由）
-          window.location.assign("/biz/dashboard");
-          return;
-        }
-        // 管理者あり → 既存担当者へ通知済み
+        /* ⚠️ 即時承認（auto_approved）は 2026-10-17 に廃止した。担当者がいない企業は運営の承認待ち（review: "ops"） */
+        setJoinReviewer(data.review === "ops" ? "ops" : "company");
         setJoinRequestSent(true);
       } else {
         setError("リクエストの送信に失敗しました。時間をおいて再度お試しください。");
@@ -729,7 +727,7 @@ export function CreateCompanyClient({
             </div>
             <div style={{ fontSize: 12, color: bodyColor, lineHeight: 1.7, marginBottom: 14 }}>
               {isFirst ? (
-                <><strong>{conflict.name}</strong> は OPINIO に登録済みですが、まだ担当者がいません。最初の担当者として参加できます。</>
+                <><strong>{conflict.name}</strong> は OPINIO に登録済みですが、まだ担当者がいません。最初の担当者として参加を依頼できます。OPINIO が確認して承認すると、担当者になります。</>
               ) : (
                 <>
                   <strong>{conflict.name}</strong> には
@@ -745,10 +743,8 @@ export function CreateCompanyClient({
                 borderRadius: 8, marginBottom: 10,
               }}>
                 {/*
-                  ⚠️ **ここを `isFirst` で分岐させないこと。**
-                     即時承認されたかどうかを決めるのはサーバー（`auto_approved`）で、
-                     承認された場合は上の handleJoinRequest が /biz/dashboard へ遷移する。
-                     つまりこの枝に来た時点で「承認されていない＝リクエストを送っただけ」が確定する。
+                  ⚠️ **ここを `isFirst` で分岐させないこと。** 誰が承認するかはサーバーの応答（`review`）で決める。
+                     ★2026-10-17 から即時承認は無いので、この枝に来たら必ず「依頼を送っただけ」。
 
                      2026-08-13 まで `isFirst` で文言を出し分けていたため、
                      担当者が2名いる企業に参加リクエストを送っただけなのに
@@ -757,7 +753,9 @@ export function CreateCompanyClient({
                      ow_company_admins に行は作られておらず、/biz/dashboard は
                      「企業が紐付いていません」を出す。**成功したと嘘をついていた。**
                 */}
-                ✓ 依頼を送信しました。既存の担当者が承認すると、この企業を操作できるようになります。
+                {joinReviewer === "ops"
+                  ? "✓ 依頼を送信しました。OPINIO が確認して承認すると、この企業を操作できるようになります。承認されたらメールでお知らせします。"
+                  : "✓ 依頼を送信しました。既存の担当者が承認すると、この企業を操作できるようになります。"}
               </div>
             ) : (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
@@ -780,7 +778,7 @@ export function CreateCompanyClient({
                        担当者がいる企業では、押しても参加は完了しない（承認待ちになる）。
                        「参加する」ではなく「依頼する」と書く。
                   */}
-                  {joinRequestLoading ? "処理中..." : (isFirst ? "最初の担当者として参加する" : "担当者への追加を依頼する")}
+                  {joinRequestLoading ? "処理中..." : (isFirst ? "最初の担当者として参加を依頼する" : "担当者への追加を依頼する")}
                 </button>
                 <button
                   type="button"

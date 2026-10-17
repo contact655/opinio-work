@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/notify/email";
-import { joinRequestTemplate } from "@/lib/notify/templates";
+import { joinRequestTemplate, joinRequestOpsTemplate, ADMIN_EMAIL } from "@/lib/notify/templates";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 /* ⚠️ 依頼は**メールを送るだけで、どこにも残っていなかった**（2026-09-04 に配線）。
       本人が画面を開き直すと、依頼した事実が消えていた。 */
@@ -12,7 +12,9 @@ import { recordJoinRequest } from "@/lib/business/joinRequests";
  * POST /api/biz/join-request
  *
  * 既存企業への参加リクエスト。
- * - 管理者ゼロ（OPINIO側で先行登録済み）の場合 → 即時承認して admin に追加、auto_approved: true を返す
+ * - 管理者ゼロ → ★運営の承認待ちにする（2026-10-17 / 柴さんの判断）。依頼を記録して運営にメール、review: "ops" を返す
+ *   ⚠️★即時承認に戻さないこと。2026-10-17 まで、ログインしていれば誰でも押した瞬間に管理者になり、
+ *      その企業の応募者の氏名・メール・職歴を見られた（運営への通知も無かった）。
  * - 管理者あり → 既存 admin 全員にメール通知
  */
 export async function POST(req: Request) {
@@ -106,54 +108,28 @@ export async function POST(req: Request) {
     return u?.email ? [{ name: u.name ?? "管理者", email: u.email }] : [];
   });
 
-  // ── 管理者ゼロ = OPINIO側先行登録済み企業 → 即時承認 ──────────────────────
+  // ── 管理者ゼロ → 運営の承認待ち（2026-10-17）──────────────────────────────
+  /* ⚠️★記録が運営の承認画面（/admin/company-join-requests）の唯一の入口。記録できなければ 500 にする
+        （メールだけ飛んで承認画面に出ない、を作らない）。メールは best-effort。
+     ⚠️ ここに以前あった「即時承認＋ ow_user_roles への upsert」の経緯は git の履歴（bd292298 以前）にある。
+        企業ロールは ow_company_admins の行で決まる（lib/roles.ts）。 */
   if (adminList.length === 0) {
-    const { error: insertError } = await admin
-      .from("ow_company_admins")
-      .insert({
-        company_id: companyId,
-        user_id: requester.id,
-        permission: "admin",
-        is_active: true,
-        // ⚠️ 自動承認で作られた行だと分かるようにする。
-        //    2026-08-05 に権限昇格の穴を直したあと「過去に誤承認された行が無いか」を
-        //    調べたが、経路を記録していなかったため行の形からは判別できなかった。
-        created_via: "join_request",
-      });
-
-    if (insertError) {
-      console.error("[join-request] auto-approve failed", insertError);
-      return NextResponse.json({ error: "自動承認に失敗しました。時間をおいて再度お試しください。" }, { status: 500 });
+    const recorded = await recordJoinRequest(admin, { owUserId: requester.id, companyId, approved: false });
+    if (!recorded) {
+      return NextResponse.json({ error: "依頼を記録できませんでした。時間をおいて再度お試しください。" }, { status: 500 });
     }
-
-    /*
-      ⚠️ ここには `ow_user_roles` への upsert があったが、**一度も成功していなかった**
-         ので消した（2026-08-23）。コメントは「biz dashboard のテナント解決に必要」と
-         書いてあったが、事実と違う。
-
-      壊れていた点が2つ:
-        ① `role: "company_admin"` は CHECK 違反。
-           `ow_user_roles_role_check` が許すのは candidate / company / admin の3つだけ
-        ② `onConflict: "user_id,role,tenant_id"` に対応する一意制約が無い。
-           実在するのは `UNIQUE (user_id, role)`
-
-      しかも `await` の戻り値を捨てていたので、**エラーが出ても誰も気づけない**
-      （CLAUDE.md「Supabase の呼び出しで error を捨てない」）。
-
-      実測（2026-08-23 / 本番）: `ow_user_roles` は candidate 34 / admin 2 の計36行で、
-      **`company_admin` も `company` も0行、`tenant_id` は全行 NULL。**
-
-      ⚠️ **書き直す必要は無い。** 企業ロールは設計上 `ow_user_roles` に持たない
-         （`lib/roles.ts`: 「company: ow_company_admins の is_active=true 行の存在で判定」）。
-         テナント解決も `ow_company_admins` 経由で、**その行はすぐ上の INSERT で作っている。**
-         `api/biz/companies/route.ts` のコメントも同じことを書いている。
-    */
-    /* ⚠️ 即時承認でも記録する。「いつ誰がどの経路で入ったか」を後から追えるようにする
-          （`created_via: "join_request"` と同じ理由）。 */
-    await recordJoinRequest(admin, { owUserId: requester.id, companyId, approved: true });
-
-    console.info(`[join-request] auto-approved user=${requester.id} for company=${companyId}`);
-    return NextResponse.json({ success: true, auto_approved: true });
+    try {
+      await sendEmail(joinRequestOpsTemplate({
+        to: ADMIN_EMAIL,
+        companyName: company.name,
+        requesterName: requester.name ?? "",
+        requesterEmail: requester.email ?? user.email ?? "",
+      }));
+    } catch (e) {
+      console.error("[join-request] 運営へのメールに失敗:", e instanceof Error ? e.message : e);
+    }
+    console.info(`[join-request] ops review user=${requester.id} company=${companyId}`);
+    return NextResponse.json({ success: true, review: "ops" });
   }
 
   /*

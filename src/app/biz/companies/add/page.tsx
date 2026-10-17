@@ -137,7 +137,7 @@ export default async function AddCompanyPage() {
               ))}
             </ul>
             <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              既存の担当者が承認すると、この企業を操作できるようになります。
+              既存の担当者（担当者がまだいない企業では OPINIO）が承認すると、この企業を操作できるようになります。
               承認されるまでは、上の一覧に残ります。
               {/* ⚠️ 待ち時間を約束しない。承認するのは OPINIO ではなく相手の企業。 */}
             </p>

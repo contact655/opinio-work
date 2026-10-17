@@ -932,6 +932,36 @@ export function joinRequestTemplate(params: {
 }
 
 /**
+ * ★担当者がまだいない企業への参加依頼を、運営に知らせる（2026-10-17 / 柴さんの判断）。
+ *
+ * それまでは押した瞬間に管理者になっていた（誰でも、確認なしで、応募者の個人情報まで見られた）。
+ * いまは依頼として残り、運営が /admin/company-join-requests で承認したら担当者になる。
+ * ⚠️ 承認は在籍の証明ではない。承認画面のメールドメインと企業サイトの一致を材料に判断する。
+ */
+export function joinRequestOpsTemplate(params: {
+  to: string;
+  companyName: string;
+  requesterName: string;
+  requesterEmail: string;
+}) {
+  const who = greetingName(params.requesterName)
+    ? `<strong>${esc(params.requesterName)}</strong>（${esc(params.requesterEmail)}）さん`
+    : `<strong>${esc(params.requesterEmail)}</strong> の方`;
+  return {
+    to: params.to,
+    subject: `${OPS_SUBJECT_PREFIX}「${esc(params.companyName)}」の最初の担当者になりたいという依頼が届いています`,
+    html: htmlWrap(`
+      <p>${who}が、「${esc(params.companyName)}」の最初の担当者として参加を希望しています。</p>
+      <p>この企業にはまだ担当者がいないため、運営が承認するまで担当者にはなりません（応募者の情報も見られません）。</p>
+      <a href="https://opinio.jp/admin/company-join-requests" style="${BTN}">依頼を確認する →</a>
+      <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+        承認の前に、メールのドメインと企業サイトが一致しているかを確認してください。一致していても在籍の証明にはなりません。
+      </p>
+    `),
+  };
+}
+
+/**
  * 依頼が承認され、担当者になったことを**本人**に知らせる（2026-09-04）。
  *
  * ⚠️★これが無いと、承認されたことが本人に伝わらない。運営が承認する経路

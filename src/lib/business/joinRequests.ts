@@ -46,7 +46,7 @@ export type PendingJoinRequest = {
 export async function recordJoinRequest(
   admin: Client,
   { owUserId, companyId, approved }: { owUserId: string; companyId: string; approved: boolean },
-): Promise<void> {
+): Promise<boolean> {
   const status = approved ? "approved" : "pending";
 
   /* ⚠️ (user_id, target_company_id) の一意制約は無いので、再送で行が増えないよう
@@ -62,7 +62,7 @@ export async function recordJoinRequest(
 
   if (selErr) {
     console.error("[join-request] 既存の依頼を確認できませんでした:", selErr.message);
-    return;
+    return false;
   }
 
   if (existing) {
@@ -72,7 +72,7 @@ export async function recordJoinRequest(
       .eq("id", existing.id)
       .select("id");
     if (error) console.error("[join-request] 依頼の更新に失敗:", error.message);
-    return;
+    return !error;
   }
 
   const { error } = await admin
@@ -86,6 +86,9 @@ export async function recordJoinRequest(
     })
     .select("id");
   if (error) console.error("[join-request] 依頼の記録に失敗:", error.message);
+  /* ★成否を返す（2026-10-17）。担当者がいない企業への依頼は、この記録が運営の承認画面の唯一の入口になるので、
+        呼び出し側が失敗を 500 にできるようにする */
+  return !error;
 }
 
 /**
