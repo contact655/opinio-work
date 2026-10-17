@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/message-topics", label: "最初の1通（テーマ＋ひとこと。メッセージの一本化の見本）",
+    desc: "★個人どうしの DM の書く画面は本番でもこの部品。採用のこと・企業宛ては見本だけ。関係ごとのテーマの出し分け・受け取った側・受信箱の1行をここで見る" },
   { href: "/dev/preview/connections", label: "つながり（企業ページ。相互フォローで在籍中・表示を許可した人）",
     desc: "★実データは相互フォロー0組。出る側はここでしか見られない。0人・1人・14人・長い名前" },
   { href: "/dev/preview/career-prompt", label: "職歴の促しカード（/mypage の職歴欄）",
@@ -44,7 +46,7 @@ const ITEMS = [
   { href: "/dev/preview/jobseeker-messages", label: "メッセージ（/mypage/conversations）",
     desc: "★企業から届いた未返信を開いたところ。実データでは受け取る設定がオンの検証用アカウントが揃わない" },
   { href: "/dev/preview/approach-compose", label: "メッセージを送る（/biz/messages/new）",
-    desc: "★いま送れる候補者が居ないと実画面を開けない。右の枠（今月の残り・返事待ち）と「送る前に」をここで見る" },
+    desc: "★いま送れる候補者が居ないと実画面を開けない。右の枠（返事待ち）と「送る前に」をここで見る" },
   { href: "/dev/preview/approach-analytics", label: "メッセージの振り返り（/biz/analytics のメッセージタブ）",
     desc: "★実画面は検証用を除くので出る側を描けない。0件／送ったが結果0件／結果あり／取得失敗をここで見る" },
   { href: "/dev/preview/detail-search", label: "詳細検索（パネル／ドロワー）",

@@ -15,6 +15,7 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
+import { topicLabel } from "@/lib/constants/messageTopics";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
 const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
@@ -104,6 +105,8 @@ const linkBtn: React.CSSProperties = { background: "none", border: "none", paddi
 function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selected: boolean; onOpen: () => void }) {
   const name = item.kind === "company" ? item.approach.companyName : item.request.requester.name;
   const preview = item.kind === "company" ? item.approach.reason : (item.request.body ?? "");
+  /* ★個人からの1通目のテーマ（2026-10-17）。それより前のものは無い */
+  const topic = item.kind === "person" && item.request.topic ? topicLabel(item.request.topic) : null;
   return (
     <button type="button" onClick={onOpen} data-unreplied={item.kind} data-unreplied-id={item.key} aria-expanded={selected}
       style={{
@@ -134,7 +137,10 @@ function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selecte
         </div>
         {/* ★状態は灰色の小さな文字（2026-10-11 / 柴さんの指示）。⚠️ バッジ・「企業から」の印を付けない */}
         <div data-state="item-status" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>まだ返信していません</div>
-        <div style={{ marginTop: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{preview}</div>
+        <div style={{ marginTop: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+          {topic && <span data-state="request-topic-inline" style={{ color: "var(--royal)", fontWeight: 700 }}>{topic}　</span>}
+          {preview}
+        </div>
       </div>
       <div aria-hidden style={{ width: 8, height: 8, marginTop: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
     </button>
@@ -197,6 +203,13 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
               )}
             </div>
           </div>
+          {item.request.topic && (
+            <div style={{ marginTop: 12 }}>
+              <span data-state="request-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
+                聞きたいこと: {topicLabel(item.request.topic)}
+              </span>
+            </div>
+          )}
           <p data-state="request-body" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.8, color: item.request.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
             {item.request.body ?? "（本文を読み込めませんでした）"}
           </p>

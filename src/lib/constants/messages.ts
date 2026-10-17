@@ -24,6 +24,8 @@ export const MAX_BULK_RECIPIENTS = 20;
       ⚠️ 件数の上限（濃度）なので、DB の CHECK は張らない。UI と API の2層で守る。 */
 
 /** お願いの本文の長さ。⚠️ `/api/dm/start` の既存の上限と同じ値 */
+/* ⚠️ 2026-10-17 から、個人どうしの最初の1通は「ひとこと」100字（FIRST_NOTE_MAX / lib/constants/messageTopics.ts）。
+   この値は企業からのメッセージの本文の上限（APPROACH_BODY_MAX）と揃えるために残してある */
 export const MAX_MESSAGE_REQUEST_LENGTH = 2000;
 
 /** 1日（日本時間の0時区切り）に送れる新しいお願いの数 */

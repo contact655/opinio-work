@@ -10,6 +10,7 @@ import {
   sendMessageRequest,
   stateBlockMessage,
 } from "@/lib/conversations/messageRequest";
+import { dmTopicSections } from "@/lib/conversations/dmTopics";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -78,7 +79,10 @@ export async function GET(request: NextRequest) {
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return NextResponse.json({ action: "blocked", message: quotaMsg });
 
-  return NextResponse.json({ action: "compose", quota });
+  /* ★書く画面に出すテーマ（送信の検証と同じ関数。2026-10-17） */
+  const topicSections = await dmTopicSections(targetUserId);
+  if (!topicSections) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+  return NextResponse.json({ action: "compose", quota, topicSections });
 }
 
 export async function POST(request: NextRequest) {
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
   const meId = await resolveMe();
   if (!meId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { targetUserId?: unknown; message?: unknown };
+  let body: { targetUserId?: unknown; topic?: unknown; message?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -103,6 +107,7 @@ export async function POST(request: NextRequest) {
   const result = await sendMessageRequest({
     senderId: meId,
     recipientId: targetUserId,
+    topic: typeof body.topic === "string" ? body.topic : "",
     body: typeof body.message === "string" ? body.message : "",
   });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });

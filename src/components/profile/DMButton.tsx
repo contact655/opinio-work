@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MAX_MESSAGE_REQUEST_LENGTH } from "@/lib/constants/messages";
+import { FirstMessageComposer } from "@/components/messages/FirstMessage";
+import type { MessageTopic, TopicSection } from "@/lib/constants/messageTopics";
 
 type Props = {
   targetUserId: string;
@@ -32,14 +33,15 @@ type Props = {
  *    `/mypage/conversations` へ移っていた（何が起きたか分からない）。
  * ⚠️★**空の会話を作らない。** 本文が無ければ送らない（以前は押しただけで空の会話ができた）。
  * ⚠️ 文言はサーバーが返したものをそのまま出す。相手に関わる理由は返ってこない。
+ * ★2026-10-17: 書く画面は「聞きたいテーマ＋ひとこと（100字）」（FirstMessageComposer）。
+ *   テーマは GET /api/dm/start が相手ごとに返すもの（送信の検証と同じ関数 dmTopicSections）。
  */
 export function DMButton({ targetUserId, targetName, label, variant = "button" }: Props) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ text: string; requestsLink?: boolean } | null>(null);
   const [composing, setComposing] = useState(false);
-  const [body, setBody] = useState("");
+  const [topicSections, setTopicSections] = useState<TopicSection[]>([]);
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
   const router = useRouter();
 
   const toAuth = () =>
@@ -61,8 +63,13 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
         return;
       }
       if (data.action === "compose") {
+        /* ⚠️ テーマが取れなければ書かせない（選べないまま送れない画面になる） */
+        if (!Array.isArray(data.topicSections) || data.topicSections.length === 0) {
+          setNotice({ text: "現在メッセージを送れません" });
+          return;
+        }
+        setTopicSections(data.topicSections as TopicSection[]);
         setComposing(true);
-        setSendError(null);
         return;
       }
       setNotice({ text: data.message ?? "現在メッセージを送れません", requestsLink: data.action === "incoming" });
@@ -73,27 +80,26 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
     }
   }
 
-  async function handleSend() {
-    const text = body.trim();
-    if (!text || sending) return;
+  /** 送る。エラーの文言を返す（成功したら会話へ移る） */
+  async function handleSend(topic: MessageTopic, note: string): Promise<string | null> {
+    if (sending) return null;
     setSending(true);
-    setSendError(null);
     try {
       const res = await fetch("/api/dm/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId, message: text }),
+        body: JSON.stringify({ targetUserId, topic, message: note }),
       });
-      if (res.status === 401) { toAuth(); return; }
+      if (res.status === 401) { toAuth(); return null; }
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.conversationId) {
         /* ⚠️ 止まったときは移らない。理由をここに出す */
-        setSendError(data?.error ?? "送信に失敗しました。もう一度お試しください");
-        return;
+        return data?.error ?? "送信に失敗しました。もう一度お試しください";
       }
       router.push(`/mypage/conversations?open=${data.conversationId}`);
+      return null;
     } catch {
-      setSendError("送信に失敗しました。もう一度お試しください");
+      return "送信に失敗しました。もう一度お試しください";
     } finally {
       setSending(false);
     }
@@ -152,54 +158,12 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
           onClick={(e) => { if (e.target === e.currentTarget && !sending) setComposing(false); }}
           style={{
             position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.45)",
-            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
-            <h2 id="dm-request-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
-              {targetName} さんにメッセージを送る
-            </h2>
-            {/* ★何が起きるかを先に言う。送ったあとで気づく形にしない */}
-            <p style={{ margin: "8px 0 12px", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-              相手が返信すると、続きのやりとりができます。返信があるまでは、この1通だけが届きます。
-            </p>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              maxLength={MAX_MESSAGE_REQUEST_LENGTH}
-              rows={6}
-              autoFocus
-              disabled={sending}
-              aria-label="最初のメッセージ"
-              placeholder="自己紹介と、話したいことを書いてください"
-              style={{
-                width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 8,
-                border: "1.5px solid var(--line)", fontFamily: "inherit", fontSize: 14,
-                lineHeight: 1.7, color: "var(--ink)", resize: "vertical",
-              }}
-            />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                {body.length} / {MAX_MESSAGE_REQUEST_LENGTH}
-              </span>
-            </div>
-            {sendError && (
-              <p data-state="dm-send-error" role="alert" style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{sendError}</p>
-            )}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button type="button" onClick={() => setComposing(false)} disabled={sending} style={{
-                padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff",
-                color: "var(--ink-soft)", fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-                cursor: sending ? "default" : "pointer",
-              }}>やめる</button>
-              <button type="button" onClick={() => { void handleSend(); }} disabled={sending || !body.trim()} style={{
-                padding: "9px 18px", borderRadius: 8, border: "none",
-                background: sending || !body.trim() ? "var(--line)" : "var(--royal)",
-                color: sending || !body.trim() ? "var(--ink-mute)" : "#fff",
-                fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-                cursor: sending || !body.trim() ? "default" : "pointer",
-              }}>{sending ? "送信中…" : "送る"}</button>
-            </div>
+          <div style={{ width: "100%", maxWidth: 560, maxHeight: "100%", overflowY: "auto", borderRadius: 12, boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
+            <FirstMessageComposer titleId="dm-request-title" recipientName={targetName} recipientLine={null}
+              sections={topicSections} onSend={handleSend} onCancel={() => { if (!sending) setComposing(false); }} />
           </div>
         </div>
       )}

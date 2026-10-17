@@ -4,8 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
+import { dmTopicSections, isTopicOffered } from "@/lib/conversations/dmTopics";
+import { FIRST_NOTE_MAX, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
-  MAX_MESSAGE_REQUEST_LENGTH,
   MESSAGE_REQUEST_DAILY_LIMIT,
   MESSAGE_REQUEST_OPEN_LIMIT,
 } from "@/lib/constants/messages";
@@ -134,17 +135,23 @@ export type SendResult =
   | { ok: true; conversationId: string }
   | { ok: false; status: number; error: string };
 
-/** お願いを送る（会話・送り手の参加者行・最初の1通・受け手への通知） */
+/**
+ * お願いを送る（会話・送り手の参加者行・最初の1通・受け手への通知）。
+ * ★2026-10-17 から、最初の1通は「聞きたいテーマ」＋「ひとこと（100字まで）」（docs/messaging-unification-20261017.md 段階1）。
+ *   テーマは `dmTopicSections()` が相手ごとに出すものだけ受け付ける（書く画面と同じ関数）。
+ */
 export async function sendMessageRequest(params: {
   senderId: string;
   recipientId: string;
+  topic: string;
   body: string;
 }): Promise<SendResult> {
   const { senderId, recipientId } = params;
   const body = params.body.trim();
-  if (!body) return { ok: false, status: 400, error: "メッセージを入力してください" };
-  if (body.length > MAX_MESSAGE_REQUEST_LENGTH) {
-    return { ok: false, status: 400, error: `メッセージは${MAX_MESSAGE_REQUEST_LENGTH}文字以内で入力してください` };
+  if (!params.topic) return { ok: false, status: 400, error: "聞きたいことを選んでください" };
+  if (!body) return { ok: false, status: 400, error: "ひとことを入力してください" };
+  if (body.length > FIRST_NOTE_MAX) {
+    return { ok: false, status: 400, error: `ひとことは${FIRST_NOTE_MAX}文字以内で入力してください` };
   }
   if (senderId === recipientId) return { ok: false, status: 400, error: "自分には送れません" };
 
@@ -164,6 +171,11 @@ export async function sendMessageRequest(params: {
   if (!quota) return { ok: false, status: 500, error: MSG.failed };
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return { ok: false, status: 429, error: quotaMsg };
+  /* ④ テーマ（この相手に選べるものか） */
+  const sections = await dmTopicSections(recipientId);
+  if (!sections) return { ok: false, status: 500, error: MSG.failed };
+  if (!isTopicOffered(sections, params.topic)) return { ok: false, status: 400, error: "聞きたいことを選び直してください" };
+  const topic: MessageTopic = params.topic;
 
   const db = createAdminClient();
   const now = new Date().toISOString();
@@ -177,6 +189,7 @@ export async function sendMessageRequest(params: {
       partner_user_id: recipientId,
       request_status: "pending",
       requested_at: now,
+      request_topic: topic,
     })
     .select("id")
     .single();
@@ -356,6 +369,8 @@ export type IncomingRequest = {
   requestedAt: string | null;
   /** ★1通目の本文（2026-10-11）。返信する前に読めるよう、サーバーから渡す。取れなかったら null */
   body: string | null;
+  /** ★最初の1通で選んだテーマ（2026-10-17）。それより前の行は null */
+  topic: MessageTopic | null;
   requester: {
     id: string;
     name: string;
@@ -371,7 +386,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_conversations")
-    .select("id, requested_at, requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
+    .select("id, requested_at, request_topic, requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
     .eq("kind", "direct_message")
     .eq("partner_user_id", meId)
     .eq("request_status", "pending")
@@ -409,6 +424,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
         conversationId: r.id as string,
         requestedAt: (r.requested_at as string | null) ?? null,
         body: bodies.get(r.id as string) ?? null,
+        topic: (r.request_topic as MessageTopic | null) ?? null,
         requester: {
           id: (u?.id as string) ?? "",
           name: (u?.name as string) ?? "",
