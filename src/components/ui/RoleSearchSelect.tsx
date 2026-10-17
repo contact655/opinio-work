@@ -254,7 +254,13 @@ export function RoleSearchSelect({
     const kids = parentId ? (childrenOf.get(parentId) ?? []) : [];
     return (
       <>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {/* ★スマホでは縦に並べる（2026-10-17）。入力欄が 16px になったので、横2列（各138px）だと
+               「選んでください」や「カスタマーサクセス」が切れていた。段組みはクラスが持つ（インラインに戻さない） */}
+        <style>{`
+          .role-two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+          @media (max-width: 767px) { .role-two-col { grid-template-columns: minmax(0, 1fr); } }
+        `}</style>
+        <div className="role-two-col">
           <div>
             <div style={subLabelStyle}>大分類</div>
             <select

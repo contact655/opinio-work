@@ -193,6 +193,10 @@ const selectStyle: React.CSSProperties = {
   fontSize: 14, fontFamily: "inherit", background: "#fff", color: "var(--ink)",
 };
 
+/* ★年の選択だけ幅を多めに取る（2026-10-17）。スマホでは入力欄が 16px になる（globals.css。iPhone の拡大を止めるため）ので、
+      3つ均等だと 390px で「1990年」の「年」が矢印に隠れていた（89px）。 */
+const yearSelectStyle: React.CSSProperties = { ...selectStyle, flex: 1.5 };
+
 /**
  * ★オンボーディング1画面目の初期値（2026-09-14）。
  *
@@ -991,7 +995,7 @@ function OnboardingInner({
               生年月日
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={selectStyle} aria-label="生年">
+              <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={yearSelectStyle} aria-label="生年">
                 <option value="">年</option>
                 {birthYears.map((y) => <option key={y} value={String(y)}>{y}年</option>)}
               </select>
@@ -1229,7 +1233,7 @@ function OnboardingInner({
                 <select
                   value={startedYear}
                   onChange={(e) => setStartedYear(e.target.value)}
-                  style={selectStyle}
+                  style={yearSelectStyle}
                   aria-label="入社年"
                 >
                   <option value="">年</option>
@@ -1271,7 +1275,7 @@ function OnboardingInner({
                     <select
                       value={endedYear}
                       onChange={(e) => setEndedYear(e.target.value)}
-                      style={selectStyle}
+                      style={yearSelectStyle}
                       aria-label="退職年"
                     >
                       <option value="">年</option>
