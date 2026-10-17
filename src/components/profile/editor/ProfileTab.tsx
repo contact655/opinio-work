@@ -1568,7 +1568,7 @@ export default function ProfileTab({
                     前の会社も入れてください
                   </div>
                   <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
-                    会社名・職種・在籍期間だけで登録できます。これまでの職歴は、あなたに合う会社の並びと理由に使われます
+                    会社名・職種・在籍期間だけで登録できます
                   </div>
                   {pastTopError && (
                     <div role="alert" style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{pastTopError}</div>
