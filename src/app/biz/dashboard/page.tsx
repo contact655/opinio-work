@@ -94,7 +94,7 @@ export default async function BizDashboardPage({
     getJobStatusCounts(ctx.tenantId),
     /* ★下書きの「公開まであと〇つ」（publishMissingCount）。求人管理と同じ関数 */
     fetchJobsForCompany(supabase, ctx.tenantId, { meetings: {}, applications: {} }).catch((e) => { console.error("[dashboard] jobs:", e); return null; }),
-    createAdminClient().from("ow_companies").select("listing_requested_at, accepting_casual_meetings").eq("id", ctx.tenantId).maybeSingle(),
+    createAdminClient().from("ow_companies").select("listing_requested_at, accepting_casual_meetings, source").eq("id", ctx.tenantId).maybeSingle(),
     /* ★企業ページの「公開まであと〇つ」。/biz/company・掲載の依頼と同じ判定（下書きを重ね、掲載に要る項目まで見る）。
           ⚠️ `{ kind: "admin" }` ＝規約同意は数えない（同意は項目ではなく、押す人の状態） */
     checkPublishable(ctx.tenantId, { kind: "admin" }, { useDraft: true, forListing: true }),
@@ -103,6 +103,17 @@ export default async function BizDashboardPage({
     quotaAllowed ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
   ]);
   if (companyRow.error) console.error("[dashboard] company:", companyRow.error.message);
+
+  /* ★担当者が企業ページを一度でも保存したか（「OPINIO が作った企業ページの内容を確認する」の済み。2026-10-17） */
+  const pageBuiltByOpinio = !companyRow.error && (companyRow.data?.source as string | null | undefined) !== "biz_self";
+  let pageEditedByStaff: boolean | null = null;
+  if (pageBuiltByOpinio) {
+    const { count, error } = await createAdminClient().from("ow_activities")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", ctx.tenantId).eq("type", "company_info_updated");
+    if (error) console.error("[dashboard] activities:", error.message);
+    else pageEditedByStaff = (count ?? 0) > 0;
+  }
 
   const actions = await getBizActionItems({
     companyId: ctx.tenantId, owUserId: ctx.currentOwnId, permission: ctx.currentPermission,
@@ -130,6 +141,8 @@ export default async function BizDashboardPage({
     roles: materials?.roles ?? null,
     employees: employees ? employees.current.length + employees.alumni.length : null,
     acceptingCasualMeetings: companyRow.error ? null : companyRow.data?.accepting_casual_meetings === true,
+    pageBuiltByOpinio,
+    pageEditedByStaff,
   });
 
   const now = new Date();

@@ -28,7 +28,7 @@ export type HomeActions = {
 export type HomeMeeting = { id: string; dayLabel: "今日" | "明日"; time: string; name: string; detail: string; href: string };
 
 /** はじめにやること1項目 */
-export type HomeChecklistKey = "listing" | "jobCreate" | "jobPublish" | "roles" | "employees" | "casualMeeting";
+export type HomeChecklistKey = "review" | "listing" | "jobCreate" | "jobPublish" | "roles" | "employees" | "casualMeeting";
 
 export type HomeChecklistItem = {
   key: HomeChecklistKey;
