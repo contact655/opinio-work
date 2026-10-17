@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import MypageLayout from "./_components/MypageLayout";
 /* ★意思表示（2026-08-26 / フェーズ1）。`StanceCard` / `CareerIntentBox` /
@@ -311,31 +312,50 @@ export default function MypageClient({
 
   /* ⚠️★企業からのメッセージを受け取るかの一度だけの確認カードは 2026-10-11 に外した（全員が最初から受け取る形） */
 
+  /* ★★スマホ（767px 以下）では「転職意欲」のカードを、右の列（画面の最上部）ではなく
+        プロフィールの見出しの下（ProfileTab の #mypage-intent-slot）に出す（2026-10-18 / 柴さんの指示）。
+     ⚠️ IntentCard は**1つだけ**マウントする（2つあると保存の状態が割れる）。狭い画面と分かってから差し込み先へ移す。
+     ⚠️ 判定前（サーバーの描画・最初の描画）は右の列に置き、767px 以下では CSS（mypage-hide-mobile）で隠す。
+        こうすると、スマホで一瞬だけ最上部に出てから下へ動く、ということが起きない */
+  const [intentSlot, setIntentSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIntentSlot(mq.matches ? document.getElementById("mypage-intent-slot") : null);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const intentCard = (
+    <IntentCard
+      stanceUpdatedAt={intentProps.initialProfilePrefs?.stance_updated_at ?? null}
+      initialPrefs={{
+        /* ⚠️ `?? ""` や `?? 既定値` に倒さない。**null は「まだ答えていない」** */
+        career_stance:       intentProps.initialProfilePrefs?.career_stance ?? null,
+        desired_role_ids:    intentProps.initialDesiredRoleIds ?? [],
+        desired_prefectures: intentProps.initialProfilePrefs?.desired_prefectures ?? null,
+        desired_work_styles: intentProps.initialProfilePrefs?.desired_work_styles ?? null,
+        transfer_timing:     intentProps.initialProfilePrefs?.transfer_timing ?? null,
+        desired_salary_min:  intentProps.initialProfilePrefs?.desired_salary_min ?? null,
+        desired_salary_max:  intentProps.initialProfilePrefs?.desired_salary_max ?? null,
+        desired_phase:       intentProps.initialProfilePrefs?.desired_phase ?? null,
+      }}
+      roles={intentProps.roles ?? []}
+      desiredRoleOptions={intentProps.desiredRoleOptions}
+    />
+  );
+
   const dashboardRightColumn = (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       {/* ★「意思表示」（2026-08-26 / フェーズ1・柴さんの指示）。**1枚だけ。**
              ⚠️ 統合前は3枚（声をかけられてもよいか / 転職について / 話を聞かれてもよいか）で、
                 1つのスイッチに5段の文字が乗っていた。**3枚に戻さないこと。**
-             ⚠️ **右カラムの先頭に置く。** 767px 以下では右カラムごと `order: -1` で
-                本文の上に来るので、モバイルでは最初に目に入る。
+             ⚠️ **右カラムの先頭に置く。** ★767px 以下では右カラムではなく、プロフィールの見出しの下に出す
+                （2026-10-18。上の intentSlot の注記）。
              ⚠️ 値は `editorProps` から読む。`ProfileEditor` → `ProfileTab` の
                 受け渡しは外したので、**本文に戻すならここから外すこと。** */}
-      <IntentCard
-        stanceUpdatedAt={intentProps.initialProfilePrefs?.stance_updated_at ?? null}
-        initialPrefs={{
-          /* ⚠️ `?? ""` や `?? 既定値` に倒さない。**null は「まだ答えていない」** */
-          career_stance:       intentProps.initialProfilePrefs?.career_stance ?? null,
-          desired_role_ids:    intentProps.initialDesiredRoleIds ?? [],
-          desired_prefectures: intentProps.initialProfilePrefs?.desired_prefectures ?? null,
-          desired_work_styles: intentProps.initialProfilePrefs?.desired_work_styles ?? null,
-          transfer_timing:     intentProps.initialProfilePrefs?.transfer_timing ?? null,
-          desired_salary_min:  intentProps.initialProfilePrefs?.desired_salary_min ?? null,
-          desired_salary_max:  intentProps.initialProfilePrefs?.desired_salary_max ?? null,
-          desired_phase:       intentProps.initialProfilePrefs?.desired_phase ?? null,
-        }}
-        roles={intentProps.roles ?? []}
-        desiredRoleOptions={intentProps.desiredRoleOptions}
-      />
+      {/* ⚠️ 狭い画面で差し込み先が見つかったら、こちらには描かない（下の createPortal が描く） */}
+      {!intentSlot && <div className="mypage-hide-mobile">{intentCard}</div>}
 
       {/* ⚠️★「公開まであと N つ」カードは 2026-08-25 に**撤去した**（柴さんの指示）。
              本文側が同じことを言っており、**同じ操作への入口が2つ**になっていた（ルール⑧）。
@@ -420,6 +440,8 @@ export default function MypageClient({
             ナビと同じ取得結果で数字を置き換える。0件ならカードごと出ない */
       inbox={inbox}
     >
+      {/* ★スマホではプロフィールの見出しの下へ差し込む（上の intentSlot の注記） */}
+      {intentSlot && createPortal(intentCard, intentSlot)}
       {/* ウェルカムバナー（新規登録直後） */}
       {isNewUser && !welcomeDismissed && (
         <div style={{

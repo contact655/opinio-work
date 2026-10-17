@@ -160,12 +160,12 @@ const HEADLINE_MAX = 40;
       （転職の希望のモーダルでも使うため）。ここに書き戻さない。 */
 
 
-/** 促しの「追加する →」。⚠️ 見た目はリンクだが**ボタン**（同じページのカードを開く） */
-const promoBtn: React.CSSProperties = {
-  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer", position: "relative",
-  fontSize: "inherit", fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-  textDecoration: "underline", textUnderlineOffset: 2,
+/** ★ヘッダーの「＋ ◯◯を追加」（2026-10-18）。下線のリンク風をやめ、太字の濃紺の文字にした */
+const promoAddBtn: React.CSSProperties = {
+  background: "none", border: "none", padding: 0, cursor: "pointer", position: "relative",
+  fontSize: 14, fontWeight: 700, color: "var(--royal)", fontFamily: "inherit",
 };
+
 
 /** 完成度に渡す「保存済み」の値。★入力中の値を混ぜない */
 export type ProfileSavedSnapshot = {
@@ -1621,9 +1621,11 @@ export default function ProfileTab({
                          ⚠️ SNS と同じ形（項目名＋右のボタン）。説明文を足さないこと
                             （2026-08-25 / 柴さんの指示。押せば分かることを1行使って説明しない）。 */}
                   {!initialBasicInfo.headline.trim() && (
+                    /* ★「＋ 肩書きを追加　例：…」の形（2026-10-18 / 柴さんの指示）。「肩書き　1行で書く →」では何を書くか分からなかった。
+                          ⚠️ 例は肩書きにだけ付ける（SNS・お住まいは名前で分かる） */
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                      肩書き
-                      <button type="button" onClick={openHeadlineEditor} className="btn-fixed-size tap-target-44" style={promoBtn}>1行で書く →</button>
+                      <button type="button" onClick={openHeadlineEditor} className="btn-fixed-size tap-target-44" style={promoAddBtn}>＋ 肩書きを追加</button>
+                      <span style={{ marginLeft: 8 }}>例：SaaS の法人営業</span>
                     </p>
                   )}
                   {Object.values(savedSocialLinks).filter(Boolean).length === 0 && (
@@ -1632,11 +1634,10 @@ export default function ProfileTab({
                              「SNS リンクを追加すると企業の在籍ユーザーに見てもらえます。」と
                              書いていたが、**押せば分かることを1行使って説明していた**。
                              項目名だけを置き、動作は右の「追加する →」に持たせる。 */}
-                      SNS リンク
                       {/* ★押した人は「SNS を足したい」ので、**SNS の行を開いた状態で**モーダルを出す
                              （2026-08-17 に実測して直した。畳んだまま開くと、
                              押したのに何も起きていないように見える）。 */}
-                      <button type="button" onClick={() => { setHeaderFocusSns(true); setEditingHeader(true); }} className="btn-fixed-size tap-target-44" style={promoBtn}>追加する →</button>
+                      <button type="button" onClick={() => { setHeaderFocusSns(true); setEditingHeader(true); }} className="btn-fixed-size tap-target-44" style={promoAddBtn}>＋ SNS リンクを追加</button>
                     </p>
                   )}
                   {/* ★★お住まいの促し（2026-09-27 / 柴さんの指示）。
@@ -1652,8 +1653,7 @@ export default function ProfileTab({
                          ⚠️ 説明文を足さないこと（肩書き・SNS と同じ。項目名＋右のボタンだけ）。 */}
                   {!initialBasicInfo.location.trim() && (
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-                      お住まい
-                      <button type="button" onClick={openLocationEditor} className="btn-fixed-size tap-target-44" style={promoBtn}>選ぶ →</button>
+                      <button type="button" onClick={openLocationEditor} className="btn-fixed-size tap-target-44" style={promoAddBtn}>＋ お住まいを追加</button>
                     </p>
                   )}
                 </>}
@@ -1686,8 +1686,10 @@ export default function ProfileTab({
                       href={`/u/${owUser.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label="公開プロフィールを見る（新しいタブで開く）"
-                      title="公開プロフィールを見る"
+                      /* ★文言は「他の人からの見え方を見る」（2026-10-18 / 柴さんの指示）。
+                            「公開プロフィール」では何のページか分からなかった。行き先は同じ（/u/自分） */
+                      aria-label="他の人からの見え方を見る（新しいタブで開く）"
+                      title="他の人からの見え方を見る"
                       className="tap-min-h"
                       style={{
                         display: "inline-flex", alignItems: "center", gap: 6,
@@ -1697,15 +1699,18 @@ export default function ProfileTab({
                         textDecoration: "none", whiteSpace: "nowrap",
                       }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+                        <circle cx="12" cy="12" r="3" />
                       </svg>
-                      公開プロフィールを見る
+                      他の人からの見え方を見る
                     </a>
                   ) : undefined}
               />
+            {/* ★★スマホ（767px 以下）だけ、ここに「転職意欲」のカードが入る（2026-10-18 / 柴さんの指示。LinkedIn の
+                   「仕事の機会に関心あり」と同じ位置）。中身は MypageClient が createPortal で差し込む（IntentCard は1つだけ）。
+                   ⚠️ id を変えないこと（MypageClient がこの id で探す）。広い画面では空で、表示もしない */}
+            <div id="mypage-intent-slot" className="pf-intent-slot" />
             {/* ★★職歴の促しカード2枚（職歴0件／前職）はプロフィールの見出しカードの**下**（2026-10-17 夕方 / 柴さんの指示）。
                    上にあると、スマホで開いたときに本人の名前が1画面目の下半分に押し出されていた（LinkedIn は本人が先）。
                    ⚠️ ヘッダーより上に戻さないこと。 */}

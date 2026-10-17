@@ -2197,6 +2197,14 @@ body {
           margin: 0 0 16px; padding: 12px 14px; border-radius: 12px;
           background: #fff; border: 1px solid var(--royal-100);
         }
+        /* 転職意欲の差し込み先（ProfileTab の #mypage-intent-slot）。767px 以下だけ使う */
+        .pf-intent-slot { display: none; }
+        @media (max-width: 767px) {
+          .pf-intent-slot { display: block; margin-bottom: 16px; }
+        }
+        @media (max-width: 639px) {
+          .pf-intent-slot { margin: 0 calc(-1 * var(--pf-gutter, 0px)); }
+        }
         /* 生年月日の案内（黄色）。⚠️ 余白・枠はここ。スマホでは端まで広げる */
         .pf-notice { margin: -8px 0 16px; padding: 8px 12px; border-radius: 10px; border: 1px solid #FCD34D; }
         @media (max-width: 639px) {

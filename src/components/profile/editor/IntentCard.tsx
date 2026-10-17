@@ -316,6 +316,14 @@ export default function IntentCard({
           .intent-head p { margin: 0 !important; }
           .intent-updated { display: none !important; }
           .intent-edit { top: 50% !important; transform: translateY(-50%); }
+          .intent-head { width: 100%; }
+        }
+        /* プロフィールの見出しの下に差し込んだとき（スマホ・639px 以下）は、他のセクションと同じく端まで広げる */
+        @media (max-width: 639px) {
+          .pf-intent-slot .intent-card {
+            border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
+            border-bottom: 8px solid #E9ECF0 !important; padding-left: 16px !important;
+          }
         }
       `}</style>
       <section id="intent" className="intent-card" style={{
@@ -368,6 +376,14 @@ export default function IntentCard({
                  未設定は「未設定」と出す（✎ から答えられる）。 */}
           <SubLine>{stanceText(saved.prefs.career_stance)}</SubLine>
           </div>
+          {/* ★誰に見えるかの一言（2026-10-18 / 柴さんの指示。LinkedIn の「採用担当者のみ」と同じ）。
+                 転職意欲は企業の候補者一覧（/biz/candidates）にだけ出る。他の利用者の公開プロフィールには出ない。
+              ⚠️ 企業に届く状態のときだけ出す（「今は考えていない」「未設定」の人は候補者一覧に出ないので、この一言は事実でない） */}
+          {isReachableByCompanies(saved.prefs.career_stance) && (
+            <div className="intent-audience" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
+              企業の採用担当者にだけ表示されます
+            </div>
+          )}
 
           {/* ★★いまどの状態かを1行で出す（2026-09-10）。
               ── 設計の前提 ──────────────────────────────────────────────────
