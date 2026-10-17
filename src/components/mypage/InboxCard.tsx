@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PrivateNote } from "@/components/mypage/PrivateNote";
 
 /**
  * ★/mypage のホーム最上部の「届いているもの」（2026-10-09）。
@@ -37,7 +38,8 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
       data-state="mypage-inbox"
       style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}
     >
-      <h2 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>届いているもの</h2>
+      <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>届いているもの</h2>
+      <div style={{ margin: "2px 0 6px" }}><PrivateNote /></div>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {rows.map((r, i) => (
           <Link

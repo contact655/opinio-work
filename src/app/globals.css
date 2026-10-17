@@ -2174,6 +2174,12 @@ body {
               インラインstyleに書かない」。padding はその筆頭）。 */
         .tl-content { padding-left: 8px; }
         .tl-content-edu { padding-left: 14px; }
+        /* 職歴の1社ぶんの上下の余白と、役割の列の左の余白（縦線とドットの分）。
+           ⚠️ スマホで詰めるので、インラインstyleに戻さないこと */
+        .tl-content-career { padding-top: 10px; padding-bottom: 28px; }
+        .tl-positions { padding-left: 20px; }
+        .tl-company-head { margin-bottom: 10px; gap: 8px; }
+        .tl-company-name { font-size: 18px; }
 
         /* ロゴ列のセル。
            ⚠️ **display をインラインstyleに戻さないこと。** モバイルで none に
@@ -2217,6 +2223,20 @@ body {
              本文の上を通ってしまう。モバイルでは出さない。
              エントリの区切りは .tl-row + .tl-row の境界線が担う。 */
           .merged-timeline::before { display: none; }
+
+          /* ── 職歴を詰める（2026-10-17 / LinkedIn のモバイルを参考に）──────────────
+             1社1役割の行が 375px で 273px あった。
+             ・会社の在籍期間の行は、役割が1つなら役割の期間と同じ値なので出さない
+             ・役割が1つなら縦線とドットは要らない（つなぐ相手がいない）。左の 20px も詰める
+             ・1社ぶんの下の余白 28px → 16px
+             ⚠️ 役割が2つ以上の会社は変えない（縦線で役割の並びを見せている） */
+          .tl-content-career { padding-bottom: 16px; }
+          .tl-company-head { margin-bottom: 6px; column-gap: 6px; row-gap: 4px; }
+          .tl-company-name { font-size: 16px; }
+          .tl-tenure-single { display: none; }
+          .tl-positions-single { padding-left: 0; }
+          .tl-positions-single .tl-pos-line,
+          .tl-positions-single .tl-pos-dot { display: none; }
         }
 
         /* Company name hover link */

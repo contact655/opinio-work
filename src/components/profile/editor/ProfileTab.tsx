@@ -5,6 +5,7 @@
 import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
 import { ONBOARDING_LANDING_PARAM, ONBOARDING_LANDING_VALUE } from "@/lib/auth/redirects";
 import CareerPromptCard from "@/components/profile/editor/CareerPromptCard";
+import { PrivateNote } from "@/components/mypage/PrivateNote";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 /**
  * 「プロフィール」タブ（写真 / 基本情報 / 職歴〈実績・受賞を内包〉 / 学歴 / メディア掲載 / SNS / 発信コンテンツ）。
@@ -1567,6 +1568,7 @@ export default function ProfileTab({
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
                     前の会社も入れてください
                   </div>
+                  <PrivateNote />
                   <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
                     会社名・職種・在籍期間だけで登録できます
                   </div>
@@ -1751,6 +1753,7 @@ export default function ProfileTab({
                       return `これまでの会社について答えると、あなたに合う会社の理由に使われます`;
                     })()}
                   </div>
+                  <PrivateNote />
                   <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>1社あたり約30秒・回答は会社には伝わりません</div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

@@ -1169,9 +1169,11 @@ export default function MergedTimeline({
                     company_name={head.company_name}
                   />
                 </div>
-                <div className="tl-content" style={{ paddingTop: 10, paddingBottom: 28 }}>
+                {/* ⚠️ 上下の余白は CSS（.tl-content-career）。スマホで詰めるのでインラインに戻さない */}
+                <div className="tl-content tl-content-career">
                   {/* 会社名ヘッダー */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap", lineHeight: 1.3 }}>
+                  {/* ⚠️ 下の余白と社名の大きさは CSS（.tl-company-head / .tl-company-name）。スマホで詰める */}
+                  <div className="tl-company-head" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", lineHeight: 1.3 }}>
                     <span className="tl-inline-logo">
                       <CompanyLogoIcon
                         isCurrent={anyIsCurrent}
@@ -1183,12 +1185,12 @@ export default function MergedTimeline({
                       />
                     </span>
                     {head.company_id ? (
-                      <Link href={`/companies/${head.company_id}`} className="company-name-link"
-                        style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
+                      <Link href={`/companies/${head.company_id}`} className="company-name-link tl-company-name"
+                        style={{ fontWeight: 700, color: "var(--ink)", textDecoration: "none" }}>
                         {shortCompanyName(head.company_name)}
                       </Link>
                     ) : (
-                      <span style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>
+                      <span className="tl-company-name" style={{ fontWeight: 700, color: "var(--ink)" }}>
                         {shortCompanyName(head.company_name)}
                       </span>
                     )}
@@ -1213,7 +1215,8 @@ export default function MergedTimeline({
                          ⚠️ 開始はいちばん古い開始年月、終了は現職があれば「現在」、
                             なければいちばん新しい終了年月。`companyTenure` の1箇所で決める。
                          ⚠️ 書式は役割の行・学歴と同じ `PeriodLine`。ここで書き分けない。 */}
-                  <div style={{ marginTop: -8, marginBottom: single ? 8 : 14 }}>
+                  {/* ★役割が1つの会社では、スマホでこの行を出さない（2026-10-17）。すぐ下の役割の期間と同じ値なので */}
+                  <div className={single ? "tl-tenure-single" : undefined} style={{ marginTop: -8, marginBottom: single ? 8 : 14 }}>
                     <PeriodLine
                       start={formatYM(tenure.startedAt)}
                       end={tenure.isCurrent ? "現在" : tenure.endedAt ? formatYM(tenure.endedAt) : ""}
@@ -1222,9 +1225,10 @@ export default function MergedTimeline({
                   </div>
 
                   {/* ポジションリスト — LinkedIn スタイル（縦線＋ドット） */}
-                  <div style={{ position: "relative", paddingLeft: 20 }}>
+                  {/* ⚠️ 左の余白は CSS（.tl-positions）。役割が1つの会社はスマホで縦線とドットを外して詰める（2026-10-17） */}
+                  <div className={`tl-positions${single ? " tl-positions-single" : ""}`} style={{ position: "relative" }}>
                     {/* 縦線 */}
-                    <div style={{
+                    <div className="tl-pos-line" style={{
                       position: "absolute", left: 5, top: 8, bottom: 8,
                       width: 2, background: "var(--royal-100)",
                     }} />
@@ -1238,7 +1242,7 @@ export default function MergedTimeline({
                       return (
                         <div key={c.id} style={{ position: "relative", paddingBottom: isLast ? 0 : 20 }}>
                           {/* ドットマーカー */}
-                          <div style={{
+                          <div className="tl-pos-dot" style={{
                             position: "absolute", left: -20 + 5 - 4, top: 6,
                             width: 8, height: 8, borderRadius: "50%",
                             background: c.is_current ? "var(--success)" : "var(--royal-100)",
