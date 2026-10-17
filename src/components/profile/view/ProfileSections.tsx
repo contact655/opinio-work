@@ -27,7 +27,7 @@ import { CollapsibleList } from "@/app/(jobseeker)/companies/[id]/CollapsibleLis
       `platformMeta.ts` のような移動は要らない（2026-08-16 に確認）。 */
 import { SocialIcon, SOCIAL_META, SNS_PLATFORMS, type SocialPlatform } from "@/components/SocialIcon";
 /* ⚠️ 行の操作（鉛筆・ゴミ箱）は `MergedTimeline` とも共有する。ここには置かない */
-import { type RowActions, RowActionButtons, SectionManageLink, SectionShowAll, sectionAddBtn, emptyAddBtn, PlusIcon, PencilIcon } from "./RowActions";
+import { type RowActions, RowActionButtons, SectionManageLink, SectionShowAll, sectionAddBtn, PlusIcon, PencilIcon } from "./RowActions";
 export type { RowActions };
 
 /* ── 行の型。⚠️ page.tsx の `as Array<{...}>` と同じ形にすること ────────────── */
@@ -198,12 +198,14 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: achievements.length === 0 ? 0 : 18 }}>
             <SectionTitle title="数値実績" latin="ACHIEVEMENTS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
-            {actions?.onAdd && achievements.length > 0 && (
+                        {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
+                   ⚠️ 入口はこの1つだけ（本文の「まだ◯◯を登録していません。◯◯を追加する」は外した。ルール⑧） */}
+            {actions?.onAdd && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -213,17 +215,6 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
             )}
           </div>
 
-          {/* 0件で本人のときだけ。`/u/[id]` ではセクションごと出ない */}
-          {achievements.length === 0 && hasActions && (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              まだ数値実績を登録していません。
-              {actions?.onAdd && (
-                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
-                  数値実績を追加する
-                </button>
-              )}
-            </p>
-          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "var(--space-3)" }}>
             {achievements.map((a) => (
               <div key={a.id} style={{
@@ -309,7 +300,7 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: awards.length === 0 ? 0 : 18 }}>
             <SectionTitle title="受賞・表彰" latin="AWARDS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 0件のときは出さない（2026-08-24）。他のセクションは元からそうしており、
@@ -321,7 +312,9 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
             )}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
-            {actions?.onAdd && awards.length > 0 && (
+                        {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
+                   ⚠️ 入口はこの1つだけ（本文の「まだ◯◯を登録していません。◯◯を追加する」は外した。ルール⑧） */}
+            {actions?.onAdd && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -331,16 +324,6 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
             )}
           </div>
 
-          {awards.length === 0 && hasActions && (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              まだ受賞・表彰を登録していません。
-              {actions?.onAdd && (
-                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
-                  受賞・表彰を追加する
-                </button>
-              )}
-            </p>
-          )}
 
           <div style={{ display: "flex", flexDirection: "column" }}>
             {awards.map((award, i) => (
@@ -442,7 +425,7 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: certifications.length === 0 ? 0 : 18 }}>
             <SectionTitle title="資格" latin="CERTIFICATIONS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {certifications.length > 0 && (
@@ -452,7 +435,9 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
             )}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
-            {actions?.onAdd && certifications.length > 0 && (
+                        {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
+                   ⚠️ 入口はこの1つだけ（本文の「まだ◯◯を登録していません。◯◯を追加する」は外した。ルール⑧） */}
+            {actions?.onAdd && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -462,16 +447,6 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
             )}
           </div>
 
-          {certifications.length === 0 && hasActions && (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              まだ資格を登録していません。
-              {actions?.onAdd && (
-                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
-                  資格を追加する
-                </button>
-              )}
-            </p>
-          )}
 
           <div style={{ display: "flex", flexDirection: "column" }}>
             {certifications.map((cert, i) => (
@@ -583,7 +558,7 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: languages.length === 0 ? 0 : 18 }}>
             <SectionTitle title="言語" latin="LANGUAGES" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {languages.length > 0 && (
@@ -593,7 +568,9 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
             )}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
-            {actions?.onAdd && languages.length > 0 && (
+                        {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
+                   ⚠️ 入口はこの1つだけ（本文の「まだ◯◯を登録していません。◯◯を追加する」は外した。ルール⑧） */}
+            {actions?.onAdd && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -603,16 +580,6 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
             )}
           </div>
 
-          {languages.length === 0 && hasActions && (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              まだ言語を登録していません。
-              {actions?.onAdd && (
-                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
-                  言語を追加する
-                </button>
-              )}
-            </p>
-          )}
 
           <div style={{ display: "flex", flexDirection: "column" }}>
             {languages.map((lang, i) => {
@@ -718,7 +685,7 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: totalCount === 0 ? 0 : 18 }}>
             <SectionTitle title="スキル" latin="SKILLS" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {totalCount > 0 && (
@@ -728,7 +695,9 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
             )}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧）。 */}
-            {actions?.onAdd && totalCount > 0 && (
+                        {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
+                   ⚠️ 入口はこの1つだけ（本文の「まだ◯◯を登録していません。◯◯を追加する」は外した。ルール⑧） */}
+            {actions?.onAdd && (
               <button type="button" className="tap-target" onClick={actions.onAdd} style={sectionAddBtn}>
                 <PlusIcon />追加
               </button>
@@ -738,17 +707,6 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
             )}
           </div>
 
-          {/* ⚠️ 空のときは**1行だけ**。説明を足さないこと（柴さんの指示） */}
-          {totalCount === 0 && hasActions && (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              まだスキルを登録していません。
-              {actions?.onAdd && (
-                <button type="button" onClick={actions.onAdd} style={emptyAddBtn}>
-                  スキルを追加する
-                </button>
-              )}
-            </p>
-          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* ★自動値。⚠️ **削除ボタンを出さない**（保存されていないので消せない）。
@@ -841,13 +799,15 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: mediaAppearances.length === 0 ? 0 : 18 }}>
             <SectionTitle title="メディア掲載" latin="MEDIA" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ 本人のときだけ。`/u/[id]` は `actions` を渡さないので出ない＝DOM 不変 */}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
-            {actions?.onAdd && mediaAppearances.length > 0 && (
+                        {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
+                   ⚠️ 入口はこの1つだけ（本文の「まだ◯◯を登録していません。◯◯を追加する」は外した。ルール⑧） */}
+            {actions?.onAdd && (
               /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
                     複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
                     （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
@@ -863,21 +823,6 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
             )}
           </div>
 
-          {/* 0件で本人のときだけ（`/u/[id]` では起きない。`/mypage` の空状態） */}
-          {mediaAppearances.length === 0 && hasActions && (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              まだメディア掲載を登録していません。
-              {actions?.onAdd && (
-                <button type="button" onClick={actions.onAdd} style={{
-                  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
-                  fontSize: 13, fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
-                  textDecoration: "underline", textUnderlineOffset: 2,
-                }}>
-                  メディア掲載を追加する
-                </button>
-              )}
-            </p>
-          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {mediaAppearances.map((m) => {
               const inner = (
@@ -1067,14 +1012,14 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
           borderRadius: 14, padding: "22px 28px", marginBottom: 20,
           boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: contentLinks.length === 0 ? 0 : "var(--space-4)" }}>
             <SectionTitle title="発信コンテンツ" latin="CONTENT" />
             <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
             {/* ⚠️ `/mypage` では同じページなので**リンクにしない**（押しても何も起きない）。
                    `onAdd` が渡されたときだけボタンにする。 */}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
-            {viewerIsOwner && contentLinks.length > 0 && (actions?.onAdd ? (
+            {viewerIsOwner && (actions?.onAdd ? (
               /* ⚠️ `sectionAddBtn` を直書きで複製していた（2026-08-16 に統合）。
                     複製のせいで、当たり判定を広げる `.tap-target` がこの2箇所
                     （メディア掲載・発信コンテンツ）にだけ効かなかった。 */
@@ -1099,37 +1044,6 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
               <SectionManageLink href={actions.manageHref} label={actions.manageLabel ?? "編集"} />
             )}
           </div>
-
-          {contentLinks.length === 0 && viewerIsOwner && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: "var(--space-2)" }}>
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-              <p style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", margin: "0 0 10px" }}>
-                note・Zenn・YouTube等の発信URLを登録しましょう
-              </p>
-              {actions?.onAdd ? (
-                <button type="button" onClick={actions.onAdd} style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "7px 16px", borderRadius: 8,
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                }}>
-                  コンテンツを追加する →
-                </button>
-              ) : (
-                <Link href="/mypage" style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "7px 16px", borderRadius: 8,
-                  background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-                  color: "var(--royal)", fontSize: 12, fontWeight: 600, textDecoration: "none",
-                }}>
-                  コンテンツを追加する →
-                </Link>
-              )}
-            </div>
-          )}
 
           {/* 横並びリスト（LinkedIn Featured 風） */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
