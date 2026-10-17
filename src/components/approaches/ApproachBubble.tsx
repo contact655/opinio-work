@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { approachDaysLeft, type CompanyApproachStatus } from "@/lib/constants/companyApproaches";
+import { type CompanyApproachStatus } from "@/lib/constants/companyApproaches";
 
 /**
  * ★送ったメッセージを吹き出しで出す（2026-10-11 / 柴さんの指示）。
@@ -10,7 +10,7 @@ import { approachDaysLeft, type CompanyApproachStatus } from "@/lib/constants/co
  *
  *   1行目（灰色）「柴久人が10月11日 22:13に送信」
  *   本文（吹き出し）… 送った理由と本文。4行を超えたら4行で切り、「続きを読む」でその場で開く
- *   最終行（灰色）  … 返信待ち「返信を待っています（あと〇日）」／30日経過「返信はありませんでした」
+ *   最終行（灰色）  … 返信待ちは出さない（2026-10-18）／30日経過「返信はありませんでした」
  *                     返信あり … 返信の冒頭（2行まで）と「メッセージを開く」
  * ⚠️「送った人」「送った理由」のラベルを出さない。状態をバッジにしない（灰色の文字）。
  * ⚠️ 見送られたかどうかは出さない（状態は `companyApproachStatus`。見送りは返信待ち→30日経過と同じに見える）。
@@ -72,10 +72,9 @@ export function ApproachBubble({ senderName, sentAt, jobTitle, reason, body, sta
             </Link>
           )}
         </div>
-      ) : (
-        <div data-state="approach-status-line" style={{ ...gray, marginTop: 6 }}>
-          {status === "pending" ? `返信を待っています（あと${approachDaysLeft(sentAt)}日）` : "返信はありませんでした"}
-        </div>
+      ) : status === "pending" ? null : (
+        /* ★返信待ちは何も出さない（2026-10-18 / 柴さんの指示。「返信を待っています（あと〇日）」は外した） */
+        <div data-state="approach-status-line" style={{ ...gray, marginTop: 6 }}>返信はありませんでした</div>
       )}
       {footer}
     </div>

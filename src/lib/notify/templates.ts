@@ -905,13 +905,14 @@ export function joinRequestTemplate(params: {
 }) {
   return {
     to: params.to,
-    /* ⚠️★件名と本文の「◯◯さんが」は**宛名ではなく第三者への言及**なので、
+    /* ★「◯◯への参加」ではなく「◯◯の採用チームへの参加」（2026-10-18 / 柴さんの指示。会社に入りたいのではなく、担当者として加わりたい）
+       ⚠️★件名と本文の「◯◯さんが」は**宛名ではなく第三者への言及**なので、
           「行ごと出さない」は当てられない（文が成り立たなくなる）。
           名前が使えないときは**メールアドレスだけで示す**。 */
     subject: opsSubject(
       greetingName(params.requesterName)
-        ? `[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」への参加を希望しています`
-        : `[OPINIO] 「${esc(params.companyName)}」への参加の希望が届いています`,
+        ? `[OPINIO] ${esc(params.requesterName)}さんが「${esc(params.companyName)}」の採用チームへの参加を希望しています`
+        : `[OPINIO] 「${esc(params.companyName)}」の採用チームへの参加の希望が届いています`,
       params.viaOps === true,
     ),
     html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
@@ -920,7 +921,7 @@ export function joinRequestTemplate(params: {
         ${greetingName(params.requesterName)
           ? `<strong>${esc(params.requesterName)}</strong>（${esc(params.requesterEmail)}）さんが`
           : `<strong>${esc(params.requesterEmail)}</strong> の方が`}
-        「${esc(params.companyName)}」への参加を希望しています。
+        「${esc(params.companyName)}」の採用チームへの参加を希望しています。
       </p>
       <p>「メンバーと権限」の画面の上に依頼が出ています。権限を選んで「担当者に追加」を押すと、その場で追加されます。心当たりがなければ「見送る」を押してください（相手には知らせません）。</p>
       <a href="https://opinio.jp/biz/members" style="${BTN}">依頼を確認する →</a>
