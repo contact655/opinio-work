@@ -611,7 +611,8 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         </div>
       </div>}
 
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: embed ? "0 0 24px" : "32px 20px 80px" }}>
+      {/* ★--pf-gutter は左右の余白。スマホでセクションを画面の端まで広げるときに使う（globals.css の .pf-card） */}
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: embed ? "0 0 24px" : "32px 20px 80px", ["--pf-gutter" as string]: embed ? "0px" : "20px" }}>
 
         {/* Cover + Avatar header
                ⚠️ 中身は `ProfileHeader` に切り出した（2026-08-16 / 2-7）。`/mypage` が同じものを使う。

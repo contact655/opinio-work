@@ -155,10 +155,10 @@ export function AddRoleLink({ careerId, onAddRole }: { careerId: string; onAddRo
       onClick={() => onAddRole(careerId)}
       /* ⚠️★767px 以下で 44px にする（2026-09-12）。モーダルの中の補助リンクだった頃は
             36px でよかったが、本体に出して**役割を足す唯一の入口**になったので下限を満たす。 */
-      className="tap-min-h"
+      className="tap-min-h pf-add-role"
       style={{
         marginTop: 10, display: "inline-flex", alignItems: "center", gap: 4,
-        padding: "8px 12px", background: "transparent", border: "1px dashed var(--line)",
+        background: "transparent",
         borderRadius: 8, fontSize: 12, fontWeight: 600, color: "var(--ink-soft)",
         cursor: "pointer", fontFamily: "inherit",
       }}
@@ -238,11 +238,11 @@ export function SectionAddButton({ label, onClick }: { label: string; onClick: (
         type="button"
         onClick={onClick}
         aria-label={label}
-        className="tap-min-h"
+        /* ⚠️ 枠と余白は CSS（.pf-add-btn）。スマホでは点線の枠を外すので、インラインに戻さない */
+        className="tap-min-h pf-add-btn"
         style={{
           display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "9px 16px", borderRadius: 8,
-          border: "1.5px dashed var(--line)", background: "#fff",
+          borderRadius: 8, background: "#fff",
           color: "var(--royal)", fontSize: 13, fontWeight: 700,
           cursor: "pointer", fontFamily: "inherit",
         }}

@@ -112,11 +112,12 @@ export function SectionTitle({ title, latin }: { title: string; latin?: string }
              （.claude/rules/ui-debugging.md「横はみ出し」）。
           ⚠️ `latin` 側の nowrap は残す。あれは CAREER / SKILLS のような短い固定文で、
              途中で折り返ると読めなくなる。 */}
-      <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+      {/* ⚠️ 書体と大きさは CSS（.pf-title）。スマホのプロフィールではゴシック 20px にするので、インラインに戻さない */}
+      <span className="pf-title" style={{ fontWeight: 700, color: "var(--ink)" }}>
         {title}
       </span>
       {latin && (
-        <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+        <span className="pf-title-latin" style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
           {latin}
         </span>
       )}
@@ -146,14 +147,10 @@ export function ProfileAboutSection({ aboutMe, viewerIsOwner, onEdit }: {
 }) {
   if (!aboutMe && !viewerIsOwner) return null;
   return (
-    <section id="about" style={{
-      background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-    }}>
+    <section id="about" className="pf-card pf-card-roomy">
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-4)" }}>
         <SectionTitle title="自己紹介" latin="ABOUT" />
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        <div className="pf-rule" />
         {onEdit && (
           <button type="button" className="tap-target tap-target-end" onClick={onEdit} aria-label="自己紹介を編集" title="自己紹介を編集" style={sectionAddBtn}>
             <PencilIcon />
@@ -193,14 +190,10 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
   return (
     <>
       {(achievements.length > 0 || hasActions) && (
-        <section style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: achievements.length === 0 ? 0 : 18 }}>
             <SectionTitle title="数値実績" latin="ACHIEVEMENTS" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
                         {/* ★2026-10-17: 0件でも見出しの「追加」を出す（柴さんの判断・A案）。空のときは本文を出さず、見出し1行だけにした。
@@ -295,14 +288,10 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
   return (
     <>
       {(awards.length > 0 || hasActions) && (
-        <section style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: awards.length === 0 ? 0 : 18 }}>
             <SectionTitle title="受賞・表彰" latin="AWARDS" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {/* ⚠️ 0件のときは出さない（2026-08-24）。他のセクションは元からそうしており、
                    ここだけ「0件」と出ていた。空であることは本文の空状態が伝えている。 */}
             {awards.length > 0 && (
@@ -420,14 +409,10 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
   return (
     <>
       {(certifications.length > 0 || hasActions) && (
-        <section id="certifications" style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section id="certifications" className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: certifications.length === 0 ? 0 : 18 }}>
             <SectionTitle title="資格" latin="CERTIFICATIONS" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {certifications.length > 0 && (
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
                 {certifications.length}件
@@ -553,14 +538,10 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
   return (
     <>
       {(languages.length > 0 || hasActions) && (
-        <section id="languages" style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section id="languages" className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: languages.length === 0 ? 0 : 18 }}>
             <SectionTitle title="言語" latin="LANGUAGES" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {languages.length > 0 && (
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
                 {languages.length}件
@@ -680,14 +661,10 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
   return (
     <>
       {(totalCount > 0 || hasActions) && (
-        <section id="skills" style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section id="skills" className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: totalCount === 0 ? 0 : 18 }}>
             <SectionTitle title="スキル" latin="SKILLS" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {totalCount > 0 && (
               <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)" }}>
                 {totalCount}件
@@ -794,14 +771,10 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
   return (
     <>
       {(mediaAppearances.length > 0 || hasActions) && (
-        <section style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: mediaAppearances.length === 0 ? 0 : 18 }}>
             <SectionTitle title="メディア掲載" latin="MEDIA" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {/* ⚠️ 本人のときだけ。`/u/[id]` は `actions` を渡さないので出ない＝DOM 不変 */}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
                    同じカードに追加の入口が2つ並ぶため（ルール⑧・2026-08-24）。 */}
@@ -927,14 +900,10 @@ export function ProfileArticlesSection({ featuredArticles }: { featuredArticles:
   return (
     <>
       {featuredArticles.length > 0 && (
-        <section style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
             <SectionTitle title="OPINIO掲載記事" latin="FEATURED" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             {featuredArticles.map((article) => (
@@ -1007,14 +976,10 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
   return (
     <>
       {(contentLinks.length > 0 || viewerIsOwner) && (
-        <section id="content" style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-          boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-        }}>
+        <section id="content" className="pf-card">
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: contentLinks.length === 0 ? 0 : "var(--space-4)" }}>
             <SectionTitle title="発信コンテンツ" latin="CONTENT" />
-            <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+            <div className="pf-rule" />
             {/* ⚠️ `/mypage` では同じページなので**リンクにしない**（押しても何も起きない）。
                    `onAdd` が渡されたときだけボタンにする。 */}
             {/* ⚠️ 0件のときは出さない。空状態が同じ入口を本文に出しており、
@@ -1210,18 +1175,14 @@ export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, mana
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} style={{
-      background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 14, padding: "24px 28px", marginBottom: 20,
-      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-    }}>
+    <section id={id} className="pf-card pf-card-roomy">
       {/* ⚠★見出しは**他のセクションと同じ形**にすること（2026-08-29）。
              以前はここだけ **Inter の 16px・ラテン副題なし**で、同じページに
              書体もサイズも違う見出しが並んでいた。
              他11節は「Noto Serif 15px ＋ Inter のラテン副題 ＋ 罫線」。 */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <SectionTitle title={title} latin={latin} />
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        <div className="pf-rule" />
         {onAdd && (
           <button type="button" className="tap-target" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
             {emptyUsesPencil ? <PencilIcon /> : <PlusIcon />}
@@ -1291,14 +1252,10 @@ export function ActivitySection({
   composer?: React.ReactNode;
 }) {
   return (
-    <section id="activity" style={{
-      background: "#fff", border: "1px solid var(--line)",
-      borderRadius: 14, padding: "22px 28px", marginBottom: 20,
-      boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
-    }}>
+    <section id="activity" className="pf-card">
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
         <SectionTitle title="アクティビティ" latin="ACTIVITY" />
-        <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        <div className="pf-rule" />
         {posts.length > 0 && (
           <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 600, color: "var(--ink-mute)" }}>
             {posts.length}件

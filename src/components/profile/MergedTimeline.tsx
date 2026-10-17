@@ -893,8 +893,9 @@ function PeriodLine({ start, end, duration, marginBottom = 0 }: {
   marginBottom?: number;
 }) {
   return (
-    <div style={{
-      fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500,
+    /* ⚠️ 文字の大きさは CSS（.tl-small）。スマホで大きくするので、インラインに戻さない */
+    <div className="tl-small" style={{
+      fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 500,
       color: "var(--ink-mute)", marginBottom, lineHeight: 1.4,
       display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
     }}>
@@ -948,9 +949,9 @@ function WorkPlaceLine({ prefecture, remoteWorkStatus, marginBottom = 0 }: {
   const parts = [prefecture, remote].filter(Boolean) as string[];
   if (parts.length === 0) return null;
   return (
-    <div style={{
+    <div className="tl-small" style={{
       display: "flex", alignItems: "center", gap: 5,
-      fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
+      fontWeight: 500, color: "var(--ink-mute)",
       lineHeight: 1.4, marginBottom, minWidth: 0,
     }}>
       {/* ⚠️ プロフィールヘッダーの所在地と同じピン。別の絵にしない */}
@@ -1049,19 +1050,18 @@ function EducationContent({ data }: { data: EducationEntry }) {
           <Link
             href={`/schools/${data.school_id}`}
             style={{
-              fontSize: 18,
               fontWeight: 700,
               color: "var(--ink)",
               textDecoration: "none",
             }}
-            className="school-name-link"
+            className="school-name-link tl-company-name"
           >
             {data.school}
           </Link>
         ) : (
           <span
+            className="tl-company-name"
             style={{
-              fontSize: 18,
               fontWeight: 700,
               color: "var(--ink)",
             }}
@@ -1261,7 +1261,8 @@ export default function MergedTimeline({
                               )}
                             </span>
                           )}
-                          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35, overflowWrap: "anywhere" }}>
+                          {/* ⚠️ 文字の大きさは CSS（.tl-role-head / .tl-role-sub）。スマホで大きくする */}
+                          <div className="tl-role-head" style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 4, lineHeight: 1.35, overflowWrap: "anywhere" }}>
                             {lines.heading}
                             {/* ★雇用形態は**役割ごと**。会社の見出しには出さない（3経路のうちの3つ目）。
                                    ⚠️ 同じ会社でも役割ごとに違いうる（正社員 → 業務委託）。
@@ -1279,7 +1280,7 @@ export default function MergedTimeline({
 
                           {/* 役職ランク → 職種。空の行は出さない */}
                           {lines.sub.map((line, i) => (
-                            <div key={i} style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.45, overflowWrap: "anywhere" }}>
+                            <div key={i} className="tl-role-sub" style={{ color: "var(--ink-soft)", marginBottom: 3, lineHeight: 1.45, overflowWrap: "anywhere" }}>
                               {line}
                             </div>
                           ))}

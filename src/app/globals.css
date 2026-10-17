@@ -2153,6 +2153,49 @@ body {
           z-index: 0;
         }
 
+        /* ── プロフィールのセクションの箱（/mypage と /u/[id] 共通。2026-10-17）────────────
+           ⚠️ 箱の見た目はここだけ。ProfileSections / ProfileHeader のインラインに戻さないこと
+              （スマホで画面の端まで広げるため。インラインだとメディアクエリが勝てない）。
+           スマホ（639px 以下）は LinkedIn に寄せて、角丸・左右の枠・影をやめて画面の端まで広げ、
+           セクションの間は背景の灰色の帯（8px）で区切る。
+           ⚠️ 端まで広げるのは外側の余白（--pf-gutter）を打ち消す負のマージン。
+              /mypage は .mypage-main-content の 16px、/u/[id] は 20px（UserProfileContent が渡す）。 */
+        .mypage-main-content { --pf-gutter: 16px; }
+        .pf-card {
+          background: #fff; border: 1px solid var(--line);
+          border-radius: 14px; padding: 22px 28px; margin-bottom: 20px;
+          box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+        }
+        .pf-card-roomy { padding: 24px 28px; }
+        .pf-card-head {
+          background: #fff; border: 1px solid var(--line);
+          border-radius: 16px; overflow: hidden; margin-bottom: var(--space-6);
+          box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+        }
+        @media (max-width: 639px) {
+          .pf-card, .pf-card-head {
+            border-radius: 0; border-left: 0; border-right: 0; box-shadow: none;
+            margin-left: calc(-1 * var(--pf-gutter, 0px));
+            margin-right: calc(-1 * var(--pf-gutter, 0px));
+            margin-bottom: 8px;
+          }
+          .pf-card, .pf-card-roomy { padding: 20px 16px; }
+          /* 見出し: ゴシック 20px。英字の副題と罫線は出さない（罫線は場所だけ残して、右のボタンを右端に寄せる） */
+          .pf-card .pf-title { font-family: inherit; font-size: 20px; }
+          .pf-card .pf-title-latin { display: none; }
+          .pf-card .pf-rule { background: transparent; }
+        }
+        .pf-title { font-family: var(--font-noto-serif); font-size: 15px; }
+        /* 「＋ 職歴を追加」と「＋ この会社での異動・昇進を追加」の枠。スマホでは点線の枠を外して文字だけにする */
+        .pf-add-btn { padding: 9px 16px; border: 1.5px dashed var(--line); }
+        .pf-add-role { padding: 8px 12px; border: 1px dashed var(--line); }
+        @media (max-width: 639px) {
+          .pf-add-btn, .pf-add-role { border-color: transparent; padding-left: 0; padding-right: 0; }
+          /* 現職の行の緑のグラデーションも外す（行の間の細い線だけで区切る） */
+          .merged-timeline .tl-row-current { background: none; }
+        }
+        .pf-rule { flex: 1; height: 1px; background: var(--line); }
+
         .tl-row {
           display: grid;
           grid-template-columns: 80px 1fr;
@@ -2180,6 +2223,10 @@ body {
         .tl-positions { padding-left: 20px; }
         .tl-company-head { margin-bottom: 10px; gap: 8px; }
         .tl-company-name { font-size: 18px; }
+        /* 役割の見出し・その下の行・期間と勤務地。⚠️ スマホで大きくするので、インラインに戻さない */
+        .tl-role-head { font-size: 15px; }
+        .tl-role-sub { font-size: 13px; }
+        .tl-small { font-size: 12px; }
 
         /* ロゴ列のセル。
            ⚠️ **display をインラインstyleに戻さないこと。** モバイルで none に
@@ -2232,7 +2279,11 @@ body {
              ⚠️ 役割が2つ以上の会社は変えない（縦線で役割の並びを見せている） */
           .tl-content-career { padding-bottom: 16px; }
           .tl-company-head { margin-bottom: 6px; column-gap: 6px; row-gap: 4px; }
-          .tl-company-name { font-size: 16px; }
+          .tl-company-name { font-size: 17px; }
+          /* ★文字を大きくする（2026-10-17 / LinkedIn に寄せて）。12〜13px が多く小さかった */
+          .tl-role-head { font-size: 16px; }
+          .tl-role-sub { font-size: 14px; }
+          .tl-small { font-size: 13px; }
           .tl-tenure-single { display: none; }
           .tl-positions-single { padding-left: 0; }
           .tl-positions-single .tl-pos-line,
