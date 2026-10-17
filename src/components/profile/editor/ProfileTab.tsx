@@ -781,6 +781,8 @@ export default function ProfileTab({
      ⚠️ 見出しの「＋」は 2026-09-12 に外した。いま使うのは**0件のときの丸い ＋** だけ。 */
   /* ★招待リンクから来たときは、最初から職歴の追加を開く（会社は入れておくが保存は本人） */
   const [careerAddNonce, setCareerAddNonce] = useState(0);
+  /* ★「前職を追加」（2026-10-17）。短い形（会社名・職種・在籍期間）で追加モーダルを開く */
+  const [careerAddPastNonce, setCareerAddPastNonce] = useState(0);
   useEffect(() => { if (initialAddCompany) setCareerAddNonce((n) => n + 1); }, [initialAddCompany]);
   /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
@@ -915,6 +917,27 @@ export default function ProfileTab({
     try { localStorage.setItem(REASON_TOP_DISMISS_KEY, String(Date.now())); } catch { /* 保存できなくても今回は閉じる */ }
   };
   const showReasonTop = !reasonTopDismissed && !showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0;
+  /* ★★/mypage 上部の「前の会社も入れてください」（2026-10-17 / 柴さんの判断）。
+        職歴欄の促しカード（showCareerPrompt）と同じ条件のときだけ、ページの最初の画面にも出す。
+        職歴欄はスクロールしないと見えず、オンボーディング直後の人が気づかないため。
+     ⚠️ 「あとで」は30日出さない（この端末だけ。localStorage）。職歴欄の促しカードは残る（そちらが常設の入口）。
+     ⚠️ 「前職はない」は職歴欄の「これ以上の経歴はない」と同じ保存（両方のカードが消える）。
+     ⚠️ 書いてよい効果は事実だけ: 職歴の事業領域は「あなたに合う会社」の並びと理由に使われる（lib/forYou/rank.ts）。 */
+  const PAST_TOP_DISMISS_KEY = "mypage-past-career-top-dismissed-at";
+  const [pastTopDismissed, setPastTopDismissed] = useState(true);
+  useEffect(() => {
+    try {
+      const at = Number(localStorage.getItem(PAST_TOP_DISMISS_KEY) ?? 0);
+      setPastTopDismissed(at > 0 && Date.now() - at < REASON_TOP_DISMISS_DAYS * 86_400_000);
+    } catch { setPastTopDismissed(false); }
+  }, []);
+  const dismissPastTop = () => {
+    setPastTopDismissed(true);
+    try { localStorage.setItem(PAST_TOP_DISMISS_KEY, String(Date.now())); } catch { /* 保存できなくても今回は閉じる */ }
+  };
+  const [pastTopSaving, setPastTopSaving] = useState(false);
+  const [pastTopError, setPastTopError] = useState<string | null>(null);
+  const showPastTop = showCareerPrompt && !pastTopDismissed;
   /* ★本体に出す職歴は**表示単位で4つまで**（2026-08-17 / フェーズ3）。
         同じ会社の複数の役割は1つのまとまりとして数える。
      ⚠️ 切るのは `MergedTimeline` と同じ並べ替えを通したあと。 */
@@ -1537,6 +1560,43 @@ export default function ProfileTab({
                 </CollapsibleRow>
             </ProfileEditModal>
 
+            {/* ★プロフィールの見出しカードより上（最初の画面に入れるため。2026-10-17） */}
+            {showPastTop && (
+              <div data-state="past-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+                    前の会社も入れてください
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
+                    会社名・職種・在籍期間だけで登録できます。これまでの職歴は、あなたに合う会社の並びと理由に使われます
+                  </div>
+                  {pastTopError && (
+                    <div role="alert" style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{pastTopError}</div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" onClick={dismissPastTop} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 8px", border: "none", background: "none", color: "var(--ink-mute)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    あとで
+                  </button>
+                  <button type="button" disabled={pastTopSaving} className="btn-fixed-size"
+                    onClick={async () => {
+                      setPastTopSaving(true); setPastTopError(null);
+                      try { await markCareerHistoryComplete(); }
+                      catch { setPastTopError("保存に失敗しました。もう一度お試しください。"); }
+                      finally { setPastTopSaving(false); }
+                    }}
+                    style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: pastTopSaving ? "default" : "pointer", fontFamily: "inherit" }}>
+                    {pastTopSaving ? "保存中..." : "前職はない"}
+                  </button>
+                  <button type="button" onClick={() => setCareerAddPastNonce((n) => n + 1)} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    前職を追加
+                  </button>
+                </div>
+              </div>
+            )}
+
             <ProfileHeader
                 /* ⚠️ ヘッダーは**保存済みの表示名**（`.claude/rules/ui-debugging.md` ⑦）。
                       編集中の `displayName` を渡すと、保存前の入力が公開側の見た目に出る。 */
@@ -1837,7 +1897,7 @@ export default function ProfileTab({
                     return c.company_name || null;
                   })()}
                   onAddRole={() => setAddRoleForId(careerStints[0].id)}
-                  onAddPast={() => setCareerAddNonce((n) => n + 1)}
+                  onAddPast={() => setCareerAddPastNonce((n) => n + 1)}
                   onComplete={markCareerHistoryComplete}
                 />
               )}
@@ -1953,6 +2013,7 @@ export default function ProfileTab({
                       （マウントと同時に届いた nonce は初期値として飲み込まれる）。 */}
             <CareerHistoryEditor
               openAddNonce={careerAddNonce}
+              openAddPastNonce={careerAddPastNonce}
               openAddCompany={initialAddCompany}
               openEditId={editingCareerId}
               openDeleteId={deleteCareerId}

@@ -827,6 +827,7 @@ function StintForm({
   roles,
   companyLocked = false,
   salaryState = "ok",
+  compact = false,
 }: {
   draft: StintDraft;
   onDraftChange: (d: StintDraft) => void;
@@ -835,7 +836,12 @@ function StintForm({
   companyLocked?: boolean;
   /** 保存済みの年収を読み終えたか。⚠️ 読み終える前は入力させない（空のまま保存すると消える） */
   salaryState?: "loading" | "ok" | "error";
+  /** ★前職の追加（2026-10-17）。会社名・職種・入社年月・退職年月だけ先に出し、残りは「…なども入力する」で開く。
+   *  ⚠️ 隠すだけ。値は draft に残るので、開けばそのまま入っている（保存される値も変わらない） */
+  compact?: boolean;
 }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const detail = !compact || showDetail;
   const set = useCallback(
     (key: keyof StintDraft, val: string | boolean) =>
       onDraftChange({ ...draft, [key]: val }),
@@ -899,6 +905,7 @@ function StintForm({
       </div>
 
       {/* 部署名 */}
+      {detail && (
       <div>
         <label style={labelStyle()}>部署名</label>
         <input
@@ -911,6 +918,7 @@ function StintForm({
           maxLength={100}
         />
       </div>
+      )}
 
       {/*
         職種
@@ -965,6 +973,7 @@ function StintForm({
         ⚠️ この欄はフェーズ2で「会社独自の呼称」を集める入口になる。
            ow_company_job_roles（company_id + name + standard_role_id）が受け皿。
       */}
+      {detail && (<>
       <div>
         <label style={labelStyle()}>社内での呼び方</label>
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 6, lineHeight: 1.4 }}>
@@ -1026,6 +1035,7 @@ function StintForm({
           style={fieldStyle()}
         />
       </div>
+      </>)}
 
       {/* Period — 年/月 separate selects */}
       <div>
@@ -1108,6 +1118,7 @@ function StintForm({
                 入力欄が無い以上、本人が直せない値を公開し続けないため。 */}
 
       {/* 雇用形態 */}
+      {detail && (<>
       <div>
         <label style={labelStyle()}>雇用形態</label>
         <select
@@ -1267,6 +1278,7 @@ function StintForm({
           {EXPERIENCE_SALARY_PRIVACY_NOTE}
         </p>
       </div>
+      </>)}
 
 
       {/* ⚠️ **「公開設定（この職歴を、どの画面に出すか）」の入力欄は 2026-08-16 に外した。**
@@ -1282,6 +1294,17 @@ function StintForm({
              戻すときは、ここに戻すのではなく「職歴全体をどう見せるか」の1設定として
              設定タブに置くこと（1件ずつ選ばせると、選び忘れが同意なき公開になる）。 */}
 
+      {/* ★前職の追加（compact）では、必須の4項目だけ先に出す（2026-10-17）。残りはここから開く */}
+      {compact && !showDetail && (
+        <button
+          type="button"
+          onClick={() => setShowDetail(true)}
+          disabled={isSaving}
+          style={{ alignSelf: "flex-start", padding: 0, border: "none", background: "none", color: "var(--royal)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}
+        >
+          部署・役職・業務内容なども入力する
+        </button>
+      )}
     </div>
   );
 }
@@ -1293,7 +1316,7 @@ export default function CareerHistoryEditor({
   roles = [],
   onSavedCountChange,
   onExperienceDeleted,
-  openAddNonce, openAddCompany = null, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
+  openAddNonce, openAddPastNonce, openAddCompany = null, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
   openReasonBatchNonce, onClosed,
   onStintsChange,
 }: {
@@ -1309,6 +1332,8 @@ export default function CareerHistoryEditor({
   /** ★カードの見出しにある「＋」から追加モーダルを開くための合図（2026-08-16）。
       値が変わるたびに開く。⚠️ ref を渡さない（この部品の内部状態を外に晒さないため）。 */
   openAddNonce?: number;
+  /** ★「前職を追加」から開く（2026-10-17）。必須の4項目だけ先に出す短い形で開く。発火は値の変化だけ（ルール⑭） */
+  openAddPastNonce?: number;
   /** ★追加を開くときに入れておく会社（会社の招待リンク /join/[slug] から来たとき。2026-10-12）。
       本人が確認・変更して保存する（自動では保存しない） */
   openAddCompany?: { id: string; name: string } | null;
@@ -1389,9 +1414,24 @@ export default function CareerHistoryEditor({
     if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
     lastAddNonce.current = openAddNonce;
     setAddDraft(openAddCompany ? { ...EMPTY_DRAFT, companyName: openAddCompany.name, companyId: openAddCompany.id, isCurrent: true } : EMPTY_DRAFT);
+    setAddPast(false);
     setAddingForCompanyKey("__new__");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- 会社は開く瞬間の値だけ使う
   }, [openAddNonce]);
+
+  /* ★「前職を追加」（2026-10-17）。⚠️ 退職済みが既定（EMPTY_DRAFT の isCurrent は false） */
+  const [addPast, setAddPast] = useState(false);
+  const lastAddPastNonce = useRef(openAddPastNonce);
+  useEffect(() => {
+    if (openAddPastNonce === undefined || openAddPastNonce === lastAddPastNonce.current) return;
+    lastAddPastNonce.current = openAddPastNonce;
+    setAddDraft(EMPTY_DRAFT);
+    setAddPast(true);
+    setAddFormKey((k) => k + 1);
+    setAddingForCompanyKey("__new__");
+  }, [openAddPastNonce]);
+  /* 開くたびに「…なども入力する」を畳んだ状態から始める */
+  const [addFormKey, setAddFormKey] = useState(0);
 
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
@@ -2052,7 +2092,7 @@ export default function CareerHistoryEditor({
              `ProfileEditModal` に寄せた（保存は右下の1つだけ・破棄の確認つき）。 */}
       <ProfileEditModal
         open={careerIsEditing || addingForCompanyKey !== null}
-        title={careerIsEditing ? "職歴を編集" : addingForCompanyKey && addingForCompanyKey !== "__new__" ? "この会社に役割を追加" : "職歴を追加"}
+        title={careerIsEditing ? "職歴を編集" : addingForCompanyKey && addingForCompanyKey !== "__new__" ? "この会社に役割を追加" : addPast ? "前職を追加" : "職歴を追加"}
         dirty={careerDirty}
         saving={careerIsEditing ? editSaving : addSaving}
         justSaved={careerIsEditing ? editJustSaved : addJustSaved}
@@ -2081,6 +2121,8 @@ export default function CareerHistoryEditor({
         onClose={() => { if (careerIsEditing) cancelEdit(); else cancelAdd(); }}
       >
         <StintForm
+          key={careerIsEditing ? "edit" : `add-${addFormKey}`}
+          compact={!careerIsEditing && addPast && addingForCompanyKey === "__new__"}
           draft={careerDraft}
           onDraftChange={careerIsEditing ? setEditDraft : setAddDraft}
           isSaving={careerIsEditing ? editSaving : addSaving}
