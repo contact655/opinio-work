@@ -12,7 +12,7 @@ export const metadata = {
   title: { absolute: "新しい会社を作成 | OPINIO Business" },
 };
 
-export default async function CreateCompanyPage() {
+export default async function CreateCompanyPage({ searchParams }: { searchParams?: { company?: string } }) {
   const ctx = await getTenantContext();
 
   // ログインユーザー情報（テナントの有無に関わらず取得）
@@ -91,6 +91,20 @@ export default async function CreateCompanyPage() {
           }
         }
       }
+    }
+  }
+
+  /* ★企業ページの「この会社の採用担当の方へ」から来たとき（?company=<id>。2026-10-17）。
+        その会社を選んだ状態で開く。ほかの初期値（登録時の会社名・現職）より優先する。
+        ⚠️ uuid の形でなければ無視する。検証用の企業は出さない（求職者側と同じ） */
+  const fromCompany = searchParams?.company ?? "";
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fromCompany)) {
+    const { data: co, error: coErr } = await createAdminClient()
+      .from("ow_companies").select("id, name").eq("id", fromCompany).eq("is_test", false).maybeSingle();
+    if (coErr) console.error("[biz/companies/add/new] ?company:", coErr.message);
+    if (co) {
+      prefilledCompanyName = co.name as string;
+      prefilledCompanyId = co.id as string;
     }
   }
 

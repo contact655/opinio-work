@@ -77,6 +77,7 @@ import { getPublicMaterialItemsCached, type PublicMaterialItem } from "@/lib/com
 import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_LABELS } from "@/lib/constants/companyMaterials";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
+import { CompanyStaffEntry } from "@/components/companies/CompanyStaffEntry";
 
 // Deduplicate getCompanyBySlugOrId calls within a single request
 // (generateMetadata and CompanyDetailPage both call it)
@@ -2254,7 +2255,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
               />
             )}
 
-
+            {/* ★この会社の担当者の入口（2026-10-17）。運営会社・検証用・担当者のプレビューでは出さない */}
+            {!testMode && !preview && !(ownCompanyId !== null && ownCompanyId === resolvedId) && (
+              <CompanyStaffEntry companyId={company.id} />
+            )}
           </main>
 
           <Sidebar company={company} detail={detail} />
