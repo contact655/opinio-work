@@ -82,7 +82,8 @@ export function ClassificationEditor({ masters, value, onChange, onAddDomain, di
   // ── ④ お客さま ─────────────────────────────────────────────────────
   function toggleCustomer(id: string) {
     const has = value.customerIndustryIds.includes(id);
-    set({ customerIndustryIds: has ? value.customerIndustryIds.filter((x) => x !== id) : [...value.customerIndustryIds, id], customerAllIndustries: false });
+    /* ★業界を問わないを選んでいても外さない（2026-10-18）。そのときは「とくに多い業界」の意味になる */
+    set({ customerIndustryIds: has ? value.customerIndustryIds.filter((x) => x !== id) : [...value.customerIndustryIds, id] });
   }
   function toggleAll() {
     const c = normalizeCustomers({ industryIds: value.customerIndustryIds, servesConsumers: value.servesConsumers, allIndustries: !value.customerAllIndustries });
@@ -275,6 +276,11 @@ export function ClassificationEditor({ masters, value, onChange, onAddDomain, di
             onClick={() => set({ servesConsumers: !value.servesConsumers, customerAllIndustries: false })}>個人のお客さま</button>
           <button type="button" className="clsf-chip" aria-pressed={value.customerAllIndustries} disabled={disabled} onClick={toggleAll}>業界を問わない</button>
         </div>
+        {value.customerAllIndustries && (
+          <p data-state="customers-all-hint" style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+            業界を問わない場合も、とくにお客さまが多い業界を選べます。選んだ業界の経験がある候補者に「合うところ」として表示されます。
+          </p>
+        )}
       </section>
     </div>
   );

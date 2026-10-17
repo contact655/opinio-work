@@ -11,7 +11,7 @@ import {
 /**
  * PUT /api/admin/companies/[id]/target-industries — 対象業界（軸2）の入れ替え
  *
- * body: { scope: "vertical" | "horizontal" | null,
+ * body: { scope: "vertical" | "horizontal" | "consumer" | null,
  *         industry_ids: string[], primary_industry_id: string | null }
  *
  * ⚠️ **全置換。** 差分（追加/削除）を受けない。途中状態（主が0件 / 2件）を作らないため。
@@ -88,9 +88,10 @@ export async function PUT(
   /* ⚠️ 以下は RPC も見るが、ここでも見る。画面に返す文言を揃えたいのと、
         RPC まで行かずに弾けるため。**片方だけにしないこと**（RPC 側は
         直接 SQL で叩かれたときの最後の砦で、こちらは利用者向けの説明）。 */
-  if (scope !== "vertical" && unique.length > 0) {
+  /* ★2026-10-18 から horizontal（業界を問わない）も「主な顧客の業界」を 0〜3件持てる。消費者向け・未確認は持てない */
+  if (scope !== "vertical" && scope !== "horizontal" && unique.length > 0) {
     return NextResponse.json(
-      { error: "「業界を問わない」「未確認」のときは対象業界を指定できません。" },
+      { error: "「消費者向け」「未確認」のときは顧客の業界を指定できません。" },
       { status: 400 },
     );
   }

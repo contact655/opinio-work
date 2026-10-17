@@ -58,7 +58,7 @@ export const TARGET_INDUSTRY_SCOPE_LABELS: Record<TargetIndustryScope | "unknown
  *    トリガーにすると、テーブル定義を読んでも気づけない隠れた挙動が増える）。
  *    **API 側で検証する。** DB が保証するのは
  *    「主がちょうど1件（部分UNIQUE）」「マスタに実在すること（FK）」
- *    「明細を持てるのは vertical だけ（複合FK）」の3つ。
+ *    「明細を持てるのは vertical と horizontal だけ（CHECK と複合FK。2026-10-18 に horizontal を足した）」の3つ。
  *
  * ⚠️ 同じ理由で「**vertical なのに明細0件**」も DB では止められない。
  *    RPC が 22023 で弾き、破れたものは `/admin/companies` の一覧で見つける。
@@ -68,6 +68,7 @@ export const MAX_TARGET_INDUSTRIES_PER_COMPANY = 3;
 /** 企業1社の対象業界（表示用にまとめた形） */
 export type CompanyTargetIndustries = {
   scope: TargetIndustryScope | null;
-  /** ⚠️ `scope !== "vertical"` のときは必ず空配列（複合FKで DB が保証している。`consumer` も同じ） */
+  /** ⚠️ `consumer` と未確認のときは必ず空配列（DB の CHECK と複合FKが保証している）。
+   *  ★`horizontal` は 2026-10-18 から「主な顧客の業界」を 0〜3件持てる（`vertical` は1件以上） */
   items: { industryId: string; name: string; isPrimary: boolean }[];
 };

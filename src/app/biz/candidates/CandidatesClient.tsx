@@ -1078,7 +1078,7 @@ export default function CandidatesClient({
                       {!(compactCards && isWide) && subItems.length > 0 && (
                         <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
                       )}
-                      {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は灰色で「合うところはまだありません」。取れなかった（undefined）ときは出さない */}
+                      {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は灰色で「合うところ：なし」（2026-10-18 に「〇〇と合うところはまだありません」から変えた。自社名が三人称で出て、「まだ」がいつか出るように読めたため。絞り込み「合うところあり」・並び替え「合うところが多い順」と同じ語）。取れなかった（undefined）ときは出さない */}
                       {!(compactCards && isWide) && (topTp ? (
                         <div className="cand-card-reason" data-state="card-reason"
                           title={topTp.row ? `${topTp.row.item}：${topTp.row.person} ↔ ${topTp.row.ours}` : topTp.text}>
@@ -1088,7 +1088,7 @@ export default function CandidatesClient({
                           {tps && tps.length > 1 && <span className="cand-card-reason-more">ほか{tps.length - 1}件</span>}
                         </div>
                       ) : tps ? (
-                        <div className="cand-card-reason is-empty" data-state="card-reason-empty">{companyShortName ?? "貴社"}と合うところはまだありません</div>
+                        <div className="cand-card-reason is-empty" data-state="card-reason-empty">合うところ：なし</div>
                       ) : null)}
                       {/* ★見送った人（「表示する」のときだけ出る）。誰がいつ見送ったか＋その場で解除 */}
                       {c.hidden && (

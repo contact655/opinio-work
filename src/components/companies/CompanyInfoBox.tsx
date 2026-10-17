@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import type { Company } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { orderedBusinessDomains } from "@/types/genre";
-import { companyTypeText } from "@/lib/companies/classification";
+import { companyTypeText, customersText } from "@/lib/companies/classification";
 import { formatEmployeeCount } from "@/lib/utils/employeeCount";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
@@ -150,7 +150,7 @@ export function CompanyInfoBox({
             { key: "業種", value: detail.industryPath ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> },
             { key: "事業", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
             { key: "タイプ", value: companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage) ?? "", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg> },
-            { key: "お客さま", value: detail.customerAllIndustries ? "業界を問わない" : [...(detail.customerIndustryNames ?? []), ...(detail.servesConsumers ? ["個人のお客さま"] : [])].join("・"), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
+            { key: "お客さま", value: customersText({ allIndustries: detail.customerAllIndustries === true, industryNames: detail.customerIndustryNames ?? [], servesConsumers: detail.servesConsumers === true }), icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> },
             /* ⚠️ ラベルは「親会社」。値は parent_company_name（**親会社名**）で、
                   所在地ではない。直下に「所在地」行が並ぶため、
                   「本社」だと本社所在地と誤読される（2026-08-13 改称）。

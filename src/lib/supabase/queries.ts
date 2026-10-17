@@ -604,9 +604,9 @@ export async function fetchClassificationDisplay(
  * ⚠️★**事業領域（軸1「何を作っているか」）とは別物。** 統合しないこと。
  *    例: アンドパッドは 事業領域「プロジェクト管理」× 顧客の業界「建設」。
  *
- * ⚠️★**返るのは `scope = 'vertical'` の企業だけ。** 明細を持てるのは vertical だけで、
- *    `horizontal`（業界を問わない）/ `consumer`（消費者向け）/ NULL（未確認）は
- *    **DB の複合FKによって明細が0件**になる（lib/companies/targetIndustries.ts）。
+ * ⚠️★**返るのは `scope` が `vertical` か `horizontal` の企業だけ**（2026-10-18 から horizontal も
+ *    「主な顧客の業界」を持てる）。`consumer`（消費者向け）/ NULL（未確認）は
+ *    **DB の CHECK と複合FKによって明細が0件**になる（lib/companies/targetIndustries.ts）。
  *    したがって「0件 = 顧客の業界の行を出さない」で正しい。
  *    ⚠️ `horizontal` を「業界を問わない」という**値**として出したくなったら、
  *       ここではなく `target_industry_scope` を別に読むこと。`consumer` を

@@ -114,3 +114,11 @@ export function industryAncestorDistance(
   }
   return null;
 }
+
+/**
+ * ★2つの業種が「同じか、親子（どちらかが祖先）」か（2026-10-18）。兄弟は関係なしとする。
+ *   顧客の業界の一致から「自社と同じ業界」を外すときに使う（IT の会社が IT 業界に売っている、は合う理由にならない）。
+ */
+export function industriesRelated(tree: IndustryTree, a: string, b: string): boolean {
+  return industryAncestorDistance(tree, a, b) !== null || industryAncestorDistance(tree, b, a) !== null;
+}

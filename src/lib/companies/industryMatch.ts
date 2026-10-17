@@ -117,7 +117,9 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   /* 本人の業種 ＋ その祖先。これで「製造業向け」の企業に当たるようになる */
   const industryIds = expandIndustryWithAncestors(tree, ownIndustryIds);
 
-  /* ② その業界を対象業界に持つ掲載中の企業。⚠️ vertical だけ（scope は複合FKで保証済み）
+  /* ② その業界を対象業界に持つ掲載中の企業。⚠️★vertical だけ。2026-10-18 から horizontal（業界を問わない）の会社も
+        「主な顧客の業界」を持てるようになったので、**ここで scope を絞る**（それまでは複合FKで vertical しか行が無かった）。
+        外すと「あなたの業界だから」という見出しが成り立たなくなる（上の注記）
      ⚠️★**ここで `ow_companies` を埋め込み（`ow_companies!company_id(...)`）で取らないこと。**
         `ow_company_target_industries` から `ow_companies` への外部キーは
         **複合FK**（`(company_id, target_industry_scope) → (id, target_industry_scope)`）で、
@@ -129,6 +131,7 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   const { data: targets, error: tErr } = await db
     .from("ow_company_target_industries")
     .select("industry_id, company_id")
+    .eq("target_industry_scope", "vertical")
     .in("industry_id", industryIds);
 
   if (tErr) {

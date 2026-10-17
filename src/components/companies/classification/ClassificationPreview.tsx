@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  companyTypeText, industryNeedsSub, industryPath, topOf,
+  companyTypeText, customersText, industryNeedsSub, industryPath, topOf,
   type ClassMasters, type ClassificationValue,
 } from "@/lib/companies/classification";
 import { missingCompanyRequirements } from "@/lib/companies/companyRequirements";
@@ -48,10 +48,12 @@ export function ClassificationPreview({ masters, value, companyName, onJump, sho
     .filter((id): id is string => !!id && id !== top?.id)
     .map((id) => masters.industries.find((i) => i.id === id)?.name)
     .filter((n): n is string => !!n)));
-  const customers = value.customerAllIndustries
-    ? "業界を問わない"
-    : [...value.customerIndustryIds.map((id) => masters.industries.find((i) => i.id === id)?.name).filter((n): n is string => !!n),
-       ...(value.servesConsumers ? ["個人のお客さま"] : [])].join("・") || null;
+  /* ★文言は customersText の1か所（企業ページのサイドバーと同じ） */
+  const customers = customersText({
+    allIndustries: value.customerAllIndustries,
+    industryNames: value.customerIndustryIds.map((id) => masters.industries.find((i) => i.id === id)?.name).filter((n): n is string => !!n),
+    servesConsumers: value.servesConsumers,
+  }) || null;
   const missing = classificationMissing(masters, value);
   const row = (label: string, text: string | null) => (
     <div style={{ display: "flex", gap: 10, fontSize: 13, lineHeight: 1.7, minWidth: 0 }}>

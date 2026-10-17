@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoleTree } from "@/lib/supabase/queries";
 import type { RoleTree } from "@/lib/roles/jobRoles";
 import { companyKey } from "@/lib/evidence/transitions";
-import { buildIndustryTree, expandIndustryWithAncestors, type IndustryNode } from "@/lib/companies/industryTree";
+import { buildIndustryTree, expandIndustryWithAncestors, industriesRelated, type IndustryNode } from "@/lib/companies/industryTree";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 import { isRegisteredUser } from "@/lib/users/registered";
 import type { Touchpoint, TouchpointMaterials } from "@/lib/business/candidates/model";
@@ -22,6 +22,8 @@ export type { TouchpointMaterials };
  *   ② company_role（4）   自社が登録した職種（職種マスタに紐づくもの・部門つき）× 経験職種／関心のある職種
  *   ⑤ alumni（3）         自社の現役社員（企業ページの「現役社員」の範囲）の前職 × 候補者の勤務先
  *   ④a target_industry（3）自社の「顧客の業界」× 候補者の職歴の業種（祖先まで展開）
+ *        ★読むのは「主なお客さまの業界」（ow_company_customer_industries）。業界を問わない会社の「とくに多い業界」も含む（2026-10-18）。
+ *        ⚠️ 自社の業種と同じか親子の業界は数えない
  *   ④b business_domain（2）自社の事業領域 × 候補者の前の勤務先の事業領域
  *   ③ location（1）       自社の求人の勤務地 × 候補者の居住地
  *
@@ -115,7 +117,9 @@ export async function getCompanyCandidateTouchpoints(
       .eq("company_id", companyId).is("deleted_at", null).not("standard_role_id", "is", null),
     db.from("ow_company_job_role_departments").select("job_role_id, department_id").eq("company_id", companyId),
     db.from("ow_company_departments").select("id, name").eq("company_id", companyId).is("deleted_at", null),
-    db.from("ow_company_target_industries").select("industry_id").eq("company_id", companyId),
+    /* ★主なお客さまの業界（2026-10-12 からの分類。企業と運営が入れる）を読む（2026-10-18）。
+          それまでは旧「対象業界」（ow_company_target_industries。運営しか入れられず、業界特化の会社しか持てない）を読んでいた */
+    db.from("ow_company_customer_industries").select("industry_id").eq("company_id", companyId),
     db.from("ow_company_business_domains").select("domain_id").eq("company_id", companyId),
     /* 自社の現役社員（企業ページの「現役社員」と同じ範囲: is_current・社名を伏せていない） */
     db.from("ow_experiences").select("id, user_id")
@@ -126,7 +130,7 @@ export async function getCompanyCandidateTouchpoints(
     db.from("ow_company_job_roles").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).is("deleted_at", null).is("standard_role_id", null),
     /* ★自社の事業ステージ（2026-10-12） */
-    db.from("ow_companies").select("phase").eq("id", companyId).maybeSingle(),
+    db.from("ow_companies").select("phase, industry_id").eq("id", companyId).maybeSingle(),
   ]);
   for (const r of [jobsR, rolesR, linksR, deptR, targetR, domainR, empExpR, hiddenR, unlinkedR, ownCoR]) {
     if (r.error) { console.error("[touchpoints] 自社の材料:", r.error.message); return null; }
@@ -139,6 +143,8 @@ export async function getCompanyCandidateTouchpoints(
     level: (j.position_level as string | null) ?? null,
   }));
   const ownPhase = (ownCoR.data?.phase as string | null) ?? null;
+  /* ★自社の業種（2026-10-18）。顧客の業界のうち、これと同じか親子のものは合うところに数えない */
+  const ownIndustryId = (ownCoR.data?.industry_id as string | null) ?? null;
   const ownFinePhase = ownPhase && !COARSE_PHASES.has(ownPhase) ? ownPhase : null;
   const deptName = new Map((deptR.data ?? []).map((d) => [d.id as string, d.name as string]));
   const deptsByRole = new Map<string, string[]>();
@@ -340,6 +346,9 @@ export async function getCompanyCandidateTouchpoints(
       }
       for (const id of expandIndustryWithAncestors(industryTree, Array.from(own))) {
         if (!targetIndustryIds.has(id)) continue;
+        /* ★自社と同じ業界（親子を含む）は数えない（2026-10-18 / 柴さんの判断）。IT の会社が IT 業界に売っていると、
+              IT 業界の経験がある候補者（ほぼ全員）に当たり、合う理由にならなかった */
+        if (ownIndustryId && industriesRelated(industryTree, id, ownIndustryId)) continue;
         const name = industryTree.byId.get(id)?.name;
         if (!name) continue; // ⚠️ 名前が引けない業種は出さない（「—」で埋めない）
         const fact: FitFact = { kind: "target_industry", industryId: id, industryName: name };

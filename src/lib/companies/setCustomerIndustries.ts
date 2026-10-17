@@ -8,7 +8,7 @@ import type { DraftCustomers } from "./classification";
  *   明細（ow_company_customer_industries）と、ow_companies の「個人のお客さま」「業界を問わない」を一緒に書く。
  * ⚠️ admin クライアント（明細の書き込みポリシーは運営だけ。呼ぶ前に役割を確かめること）。
  * ⚠️ 大分類だけ・使わなくなった業種は不可（DB のトリガーでも大分類だけを受ける）。
- * ⚠️ 「業界を問わない」を選んだら、ほかは空にする（判断どおり）。
+ * ⚠️ 「業界を問わない」を選んだら「個人のお客さま」は外す。業界は残す（2026-10-18 から。とくに多い業界として使う）。
  */
 export async function setCompanyCustomerIndustries(
   companyId: string,
@@ -17,7 +17,8 @@ export async function setCompanyCustomerIndustries(
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const db = createAdminClient();
   const all = v.all_industries === true;
-  const ids = all ? [] : Array.from(new Set(v.industry_ids));
+  /* ★業界を問わない会社も「とくに多い業界」を持てる（2026-10-18）。業界は外さない */
+  const ids = Array.from(new Set(v.industry_ids));
   if (ids.length > 0) {
     const { data, error } = await db.from("ow_industries").select("id").in("id", ids).is("parent_id", null).is("retired_at", null);
     if (error) {

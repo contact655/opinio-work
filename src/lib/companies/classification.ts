@@ -163,9 +163,19 @@ export function readDraftCustomers(draft: unknown): DraftCustomers | null {
   };
 }
 
-/** 「業界を問わない」を選んだら、ほかの業界は外す（判断どおり） */
+/** 「業界を問わない」を選んだら「個人のお客さま」は外す。
+ *  ★業界は残す（2026-10-18 / 柴さんの判断 A）。業界を問わない会社でも「とくに多い業界」を持てるようにした
+ *   （それまでは業界も外していたので、製造業・小売に多く売っている会社が候補者の「合うところ」に業界を出せなかった）。
+ *   ⚠️ 「個人のお客さま」と「業界を問わない（企業向け）」は両立させない（判断 #19 のまま） */
 export function normalizeCustomers(v: { industryIds: string[]; servesConsumers: boolean; allIndustries: boolean }) {
-  return v.allIndustries ? { industryIds: [], servesConsumers: false, allIndustries: true } : v;
+  return v.allIndustries ? { industryIds: v.industryIds, servesConsumers: false, allIndustries: true } : v;
+}
+
+/** ★お客さまの1行（企業ページのサイドバー・プレビュー）。業界を問わない会社は「業界を問わない（主に A・B）」。値が無ければ空文字 */
+export function customersText(v: { allIndustries: boolean; industryNames: string[]; servesConsumers: boolean }): string {
+  /* ⚠️ 区切りは「、」。業界名そのものに「・」が入る（商社・小売・流通）ので、「・」でつなぐと切れ目が分からない */
+  if (v.allIndustries) return v.industryNames.length > 0 ? `業界を問わない（主に${v.industryNames.join("、")}）` : "業界を問わない";
+  return [...v.industryNames, ...(v.servesConsumers ? ["個人のお客さま"] : [])].join("、");
 }
 
 /** 求職者に見せるタイプの1行（日系・外資系（国）・ステージ）。値が無いところは出さない */
