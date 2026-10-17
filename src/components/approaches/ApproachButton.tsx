@@ -120,10 +120,13 @@ export function ApproachButton({
       href={`/biz/messages/new?candidate=${encodeURIComponent(candidateUserId)}`}
       data-state="approach-button"
       onClick={(e) => e.stopPropagation()}
-      className="tap-min-h"
+      /* ★カード（compact）では高さを 32px に固定する（2026-10-18 / 柴さんの指摘）。スマホの共通規則（.tap-min-h の 44px）で
+            文字に対して背が高すぎ、カードの3分の1を占めていた。カード自体が押せるので、ここを大きくする必要は無い */
+      className={compact ? "btn-fixed-size" : "tap-min-h"}
       style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-        padding: compact ? "6px 12px" : "9px 18px", borderRadius: 8,
+        ...(compact ? { height: 32, boxSizing: "border-box" as const } : {}),
+        padding: compact ? "0 12px" : "9px 18px", borderRadius: 8,
         border: "none", background: "var(--royal)", color: "#fff",
         fontSize: compact ? 12 : 13, fontWeight: 700, fontFamily: "inherit",
         textDecoration: "none", whiteSpace: "nowrap",

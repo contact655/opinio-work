@@ -387,7 +387,7 @@ export function DepartmentsWorkspace({ initialDepartments, initialRoles, standar
           </div>
           {!readOnly && (
             <p style={{ margin: "10px 2px 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              行を押すと右で編集できます。左の取っ手をドラッグ（または取っ手を選んで ↑ ↓ キー）で同じ階層の中を並べ替えます。階層を変えるときは「親の部門」を選び直してください（最大{MAX_ORG_DEPTH}階層）。
+              行を押すと編集できます。左の取っ手をドラッグ（または取っ手を選んで ↑ ↓ キー）で同じ階層の中を並べ替えます。階層を変えるときは「親の部門」を選び直してください（最大{MAX_ORG_DEPTH}階層）。
               ここで登録した部門と職種は、求人作成の「所属部門」「職種」から選べます。
             </p>
           )}

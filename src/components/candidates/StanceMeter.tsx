@@ -13,14 +13,17 @@ import { CAREER_STANCE_LABELS } from "@/lib/constants/careerPreferences";
  * ⚠️ 回答なし・「今は考えていない」は何も出さない（その人は一覧に出ない）。
  * ⚠️ `short` は細いカード（一覧 420px 以下）用。元の表記は title に入れる。
  */
+/* ★短い表記に「転職：」を付けた（2026-10-18 / 柴さんの指摘）。「話を聞く」だけだと、何についての札か
+      （転職への意向なのか、面談を受けるのか）が分からなかった。⚠️ 撤去した「面談OK（話を聞ける人）」と紛らわしいので
+      「話を聞く」に戻さないこと */
 export const STANCE_BADGE: Record<string, { short: string; bg: string; fg: string; border: string }> = {
-  active: { short: "積極的", bg: "#1F2937", fg: "#FFFFFF", border: "#1F2937" },
-  open: { short: "話を聞く", bg: "#93C5FD", fg: "#172554", border: "#60A5FA" },
-  researching: { short: "情報収集", bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1" },
+  active: { short: "転職：積極的", bg: "#1F2937", fg: "#FFFFFF", border: "#1F2937" },
+  open: { short: "転職：良い話なら", bg: "#93C5FD", fg: "#172554", border: "#60A5FA" },
+  researching: { short: "転職：情報収集", bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1" },
 };
 
 /**
- * @param short 短い表記（積極的／話を聞く／情報収集）。★一覧のカードは常に short（2026-10-13 / 柴さんの指示）。右欄は長い表記
+ * @param short 短い表記（転職：積極的／転職：良い話なら／転職：情報収集）。★一覧のカードは常に short（2026-10-13 / 柴さんの指示）。右欄は長い表記
  * @param plain 枠線なしの塗りの札（2026-10-13 / 改修モックに合わせた）。★一覧のカードと右欄の名前の行の両方で使う
  *   （2026-10-13 柴さん判断で変更：右欄も枠線なしに揃えた。理由: 同じものが2つの見た目にならないように）。枠線ありは今は使っていない
  */

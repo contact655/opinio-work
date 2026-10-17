@@ -955,7 +955,7 @@ export default function CandidatesClient({
         <span style={{ fontSize: 13, color: "var(--ink-soft)", flexShrink: 0, marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span>
             <strong style={{ fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)", color: "var(--royal)" }}>{filtered.length}</strong>
-            {" "}名 / 全{populationCount}名
+            {" "}名<span className="cand-count-total"> / 全{populationCount}名</span>
           </span>
           {/* ★取得の上限（500名）に達したとき（2026-10-13）。⚠️ 達していれば古い登録の人が一覧に出ていない */}
           {limitReached && <span data-state="load-limit-note" style={{ fontSize: 12, color: "var(--ink-mute)" }}>最新の500名を表示しています</span>}
@@ -1241,6 +1241,8 @@ export default function CandidatesClient({
           .cand-quick { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 4px; scrollbar-width: none; }
           .cand-quick::-webkit-scrollbar { display: none; }
           .cand-quick-all { order: -1; }
+          /* 件数は「22 名」だけにして、並び替え・保存した条件と同じ行に収める（全体の人数は PC と詳細で分かる） */
+          .cand-count-total { display: none; }
         }
         /* カードの詰め方は一覧の幅で決める（コンテナクエリ）。スマホでは3行目を折り返してよい */
         .cand-list-col { container-type: inline-size; container-name: candlist; }

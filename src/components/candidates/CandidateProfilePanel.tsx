@@ -93,7 +93,8 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByNa
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
           {avatarUrl !== undefined && <div style={{ marginRight: 4 }}><PersonAvatar name={name} url={avatarUrl} size={48} fontSize={18} colorByName={avatarColorByName} /></div>}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            {/* ★折り返す（2026-10-18）。狭い幅で名前が1文字ずつ割れていた（「堀部 隼／人」）。札が入らなければ次の行へ回す */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, rowGap: 4, flexWrap: "wrap", minWidth: 0 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", overflowWrap: "anywhere" }}>{name}</h2>
               {/* ★「プロフィール全体を見る」ボタンの代わり。新しいタブで /u/[id] を開く小さなアイコン */}
               <a href={`/u/${userId}`} target="_blank" rel="noopener noreferrer" aria-label={`${name}さんのプロフィールを新しいタブで開く`} title="新しいタブで開く"

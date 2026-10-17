@@ -55,9 +55,19 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
         ) : (
           <>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-              公開まであと{missing.length}つ
+              公開まであと{missing.length}{missing.length < 10 ? "つ" : "項目"}
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {/* ★スマホ（767px 以下）は横に1行でスクロール（2026-10-18）。16項目が6行に折り返し、最初の画面が埋まっていた。
+                   ⚠️ 折り返しは CSS（.jesn-missing）。インラインに戻さないこと */}
+            <style>{`
+              .jesn-missing { display: flex; flex-wrap: wrap; gap: 6px; }
+              @media (max-width: 767px) {
+                .jesn-missing { flex-wrap: nowrap; overflow-x: auto; margin: 0 -18px; padding: 0 18px 2px; scrollbar-width: none; }
+                .jesn-missing::-webkit-scrollbar { display: none; }
+                .jesn-missing button { flex-shrink: 0; white-space: nowrap; }
+              }
+            `}</style>
+            <div className="jesn-missing">
               {missing.map((r) => (
                 <button
                   key={r.key}
