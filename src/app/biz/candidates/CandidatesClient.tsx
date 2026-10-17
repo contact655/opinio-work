@@ -503,6 +503,85 @@ export default function CandidatesClient({
     return () => clearTimeout(t);
   }, [undoHidden]);
 
+  /* ── ★まとめて☆・見送り（2026-10-18 / 柴さんの指示）────────────────────────
+     チェックした人に、まとめて☆（気になる）を付ける／見送る。1人ずつの操作と同じ API を1人ずつ呼ぶ（同時に4件まで）。
+     ⚠️ まとめてメッセージは作らない（理由を1人ずつ書く前提。一斉送信にしない）。
+     ⚠️ 選択は「いま一覧に見えている人」だけに効く（条件を変えて見えなくなった人には何もしない）。 */
+  const [checked, setChecked] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkNote, setBulkNote] = useState<string | null>(null);
+  const [undoBulk, setUndoBulk] = useState<string[] | null>(null);
+  const visibleIds = useMemo(() => sorted.map((c) => c.id), [sorted]);
+  const checkedVisible = useMemo(() => visibleIds.filter((id) => checked.has(id)), [visibleIds, checked]);
+  const allChecked = visibleIds.length > 0 && checkedVisible.length === visibleIds.length;
+  const toggleChecked = useCallback((id: string) => {
+    setChecked((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }, []);
+  const runBulk = useCallback(async (ids: string[], call: (id: string) => Promise<boolean>) => {
+    let failed = 0;
+    for (let i = 0; i < ids.length; i += 4) {
+      const r = await Promise.all(ids.slice(i, i + 4).map((id) => call(id).catch(() => false)));
+      failed += r.filter((ok) => !ok).length;
+    }
+    return failed;
+  }, []);
+  const bulkStar = useCallback(async () => {
+    const ids = checkedVisible.filter((id) => !withStars.find((c) => c.id === id)?.starred);
+    if (ids.length === 0) { setBulkNote("選んだ方は、すでに☆が付いています"); return; }
+    setBulkBusy(true); setBulkNote(null);
+    setStarOverride((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, true])) }));
+    const failedIds: string[] = [];
+    const failed = await runBulk(ids, async (id) => {
+      const res = await fetch(`/api/biz/candidates/${id}/star`, { method: "POST" });
+      if (!res.ok) failedIds.push(id);
+      return res.ok;
+    });
+    /* ⚠️ 失敗した人は戻す（押したのに保存されていない状態を残さない） */
+    if (failedIds.length) setStarOverride((prev) => ({ ...prev, ...Object.fromEntries(failedIds.map((id) => [id, false])) }));
+    setBulkBusy(false);
+    setChecked(new Set());
+    setBulkNote(failed ? `${ids.length - failed}名に☆を付けました（${failed}名は保存できませんでした）` : `${ids.length}名に☆を付けました`);
+  }, [checkedVisible, withStars, runBulk]);
+  const bulkHide = useCallback(async () => {
+    const ids = checkedVisible.filter((id) => !withStars.find((c) => c.id === id)?.hidden);
+    if (ids.length === 0) { setBulkNote("選んだ方は、すでに見送っています"); return; }
+    setBulkBusy(true); setBulkNote(null);
+    /* 右欄で見ている人を見送ったら、右欄は閉じる（次の人へ移るのは1人ずつのときだけ） */
+    if (shownId && ids.includes(shownId) && !showHidden) { setAutoPick(false); updateSelected(null); }
+    const at = new Date().toISOString();
+    setHiddenOverride((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, { hidden: true, at }])) }));
+    const failedIds: string[] = [];
+    await runBulk(ids, async (id) => {
+      const res = await fetch(`/api/biz/candidates/${id}/hide`, { method: "POST" });
+      if (!res.ok) failedIds.push(id);
+      return res.ok;
+    });
+    if (failedIds.length) setHiddenOverride((prev) => { const rest = { ...prev }; failedIds.forEach((id) => delete rest[id]); return rest; });
+    const done = ids.filter((id) => !failedIds.includes(id));
+    setBulkBusy(false);
+    setChecked(new Set());
+    setUndoHidden(null);
+    setUndoBulk(done.length ? done : null);
+    setBulkNote(failedIds.length ? `${failedIds.length}名は見送れませんでした` : null);
+  }, [checkedVisible, withStars, runBulk, shownId, showHidden, updateSelected]);
+  const undoBulkHide = useCallback(async () => {
+    const ids = undoBulk ?? [];
+    setUndoBulk(null);
+    setHiddenOverride((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, { hidden: false, at: new Date().toISOString() }])) }));
+    const failed = await runBulk(ids, async (id) => (await fetch(`/api/biz/candidates/${id}/hide`, { method: "DELETE" })).ok);
+    if (failed) setBulkNote(`${failed}名は元に戻せませんでした。画面を読み込み直してください`);
+  }, [undoBulk, runBulk]);
+  useEffect(() => {
+    if (!undoBulk) return;
+    const t = setTimeout(() => setUndoBulk(null), 6000);
+    return () => clearTimeout(t);
+  }, [undoBulk]);
+  useEffect(() => {
+    if (!bulkNote) return;
+    const t = setTimeout(() => setBulkNote(null), 5000);
+    return () => clearTimeout(t);
+  }, [bulkNote]);
+
   const applyFilters = useCallback((f: SavedCandidateFilters) => {
     /* ⚠️ キーを列挙せず表から回す。列挙すると、ここだけ足し忘れる余地が戻る。 */
     (Object.keys(FILTER_SETTERS) as (keyof SavedCandidateFilters)[]).forEach((k) => {
@@ -1026,6 +1105,32 @@ export default function CandidatesClient({
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {/* ★まとめて操作の帯（2026-10-18）。⚠️ 操作できる人（canAct）だけ */}
+              {canAct && (
+                <div className="cand-bulk" data-state={checkedVisible.length > 0 ? "bulk-active" : "bulk-idle"}>
+                  <label className="cand-bulk-all">
+                    <input type="checkbox" checked={allChecked} disabled={bulkBusy}
+                      ref={(el) => { if (el) el.indeterminate = checkedVisible.length > 0 && !allChecked; }}
+                      onChange={() => setChecked(allChecked ? new Set() : new Set(visibleIds))}
+                      aria-label="表示中の候補者をすべて選ぶ" />
+                    <span>{checkedVisible.length > 0 ? `${checkedVisible.length}名を選択中` : "すべて選択"}</span>
+                  </label>
+                  {checkedVisible.length > 0 && (
+                    <div className="cand-bulk-actions">
+                      <button type="button" className="cand-bulk-btn btn-fixed-size" disabled={bulkBusy} onClick={() => void bulkStar()} data-state="bulk-star">
+                        <StarIcon filled={false} />気になるに追加
+                      </button>
+                      <button type="button" className="cand-bulk-btn btn-fixed-size" disabled={bulkBusy} onClick={() => void bulkHide()} data-state="bulk-hide">
+                        見送る
+                      </button>
+                      <button type="button" className="cand-bulk-clear btn-fixed-size" disabled={bulkBusy} onClick={() => setChecked(new Set())}>
+                        選択を解除
+                      </button>
+                    </div>
+                  )}
+                  {bulkNote && <span role="status" className="cand-bulk-note" data-state="bulk-note">{bulkNote}</span>}
+                </div>
+              )}
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
               {sorted.map((c) => {
                 const tenure = formatTenure(c.tenureMonths);
@@ -1059,6 +1164,13 @@ export default function CandidatesClient({
                   >
                     {/* ⚠️ ボタン類（★・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
                     <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
+                    {/* ★まとめて操作のチェック（2026-10-18）。⚠️ リンクの外・リンクより上（z-index）に置く。押しても詳細は開かない */}
+                    {canAct && (
+                      <label className="cand-card-check" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={checked.has(c.id)} onChange={() => toggleChecked(c.id)} disabled={bulkBusy}
+                          aria-label={`${c.name}を選ぶ`} data-state="card-check" />
+                      </label>
+                    )}
                     {!(compactCards && isWide) && (
                       <div className="cand-card-avatar" aria-hidden="true">
                         <PersonAvatar name={c.name} url={c.avatarUrl} size={32} fontSize={13} colorByName />
@@ -1082,7 +1194,7 @@ export default function CandidatesClient({
                       {!(compactCards && isWide) && (subItems.length > 0
                         ? <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
                         : <div className="cand-card-sub3" aria-hidden="true" />)}
-                      {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は灰色で「合うところ：なし」（2026-10-18 に「〇〇と合うところはまだありません」から変えた。自社名が三人称で出て、「まだ」がいつか出るように読めたため。絞り込み「合うところあり」・並び替え「合うところが多い順」と同じ語）。取れなかった（undefined）ときは出さない */}
+                      {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は何も書かない（2026-10-18 / 柴さんの指示。「合うところ：なし」でも強すぎた）。カードの高さを揃えるため、同じ高さの空きだけ残す（.is-empty は見えない）。取れなかった（undefined）ときは出さない */}
                       {!(compactCards && isWide) && (topTp ? (
                         <div className="cand-card-reason" data-state="card-reason"
                           title={topTp.row ? `${topTp.row.item}：${topTp.row.summary ?? `${topTp.row.person} ↔ ${topTp.row.ours}`}` : topTp.text}>
@@ -1092,7 +1204,7 @@ export default function CandidatesClient({
                           {tps && tps.length > 1 && <span className="cand-card-reason-more">ほか{tps.length - 1}件</span>}
                         </div>
                       ) : tps ? (
-                        <div className="cand-card-reason is-empty" data-state="card-reason-empty">合うところ：なし</div>
+                        <div className="cand-card-reason is-empty" data-state="card-reason-empty" aria-hidden="true">{"\u00a0"}</div>
                       ) : null)}
                       {/* ★見送った人（「表示する」のときだけ出る）。誰がいつ見送ったか＋その場で解除 */}
                       {c.hidden && (
@@ -1177,6 +1289,21 @@ export default function CandidatesClient({
         roleFilterTree={roleFilterTree} returnFocusRef={drawerBtnRef}
       />
 
+      {/* ★まとめて見送った直後の「元に戻す」（2026-10-18）。⚠️ 6秒で消える */}
+      {undoBulk && (
+        <div role="status" data-state="bulk-undo-toast" style={{
+          position: "fixed", left: "50%", bottom: "calc(24px + var(--biz-tabbar-h, 0px))", transform: "translateX(-50%)", zIndex: 60,
+          display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderRadius: 10,
+          background: "#0F172A", color: "#fff", fontSize: 13, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", maxWidth: "calc(100vw - 32px)",
+        }}>
+          <span>{undoBulk.length}名を見送りました</span>
+          <button type="button" data-state="bulk-undo" className="btn-fixed-size" onClick={() => void undoBulkHide()}
+            style={{ border: "none", background: "none", padding: 0, color: "#93C5FD", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+            元に戻す
+          </button>
+        </div>
+      )}
+
       {/* ★見送った直後の「元に戻す」（2026-10-13）。⚠️ 6秒で消える。押すと DELETE を呼ぶ */}
       {undoHidden && (
         <div role="status" data-state="hidden-undo-toast" style={{
@@ -1208,6 +1335,17 @@ export default function CandidatesClient({
         .cand-pane { display: none; }
         /* カード全体をリンクにする（中のボタンは z-index で上に出す） */
         .cand-card-link { position: absolute; inset: 0; border-radius: 12px; z-index: 0; }
+        /* ★まとめて操作（2026-10-18）。チェックはリンクより上（押しても詳細を開かない） */
+        .cand-card-check { position: relative; z-index: 1; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 20px; height: 32px; margin-right: -2px; cursor: pointer; }
+        .cand-card-check input, .cand-bulk-all input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--royal); }
+        .cand-bulk { position: sticky; top: calc(var(--biz-header-h) + 4px); z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 40px; padding: 4px 12px 4px 14px; margin-bottom: 2px; background: var(--bg-tint); border-radius: 10px; }
+        .cand-bulk[data-state=bulk-active] { background: var(--royal-50); box-shadow: inset 0 0 0 1px var(--royal-100); }
+        .cand-bulk-all { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+        .cand-bulk-actions { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .cand-bulk-btn { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .cand-bulk-btn:hover { border-color: var(--royal); color: var(--royal); }
+        .cand-bulk-clear { height: 30px; padding: 0 6px; border: none; background: none; color: var(--ink-mute); font: inherit; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+        .cand-bulk-note { font-size: 12.5px; color: var(--ink-soft); }
         .cand-card-avatar { flex-shrink: 0; }
         .cand-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; justify-content: center; min-height: 32px; }
         /* 1行目: 氏名・意向バッジ・状態ラベル・右端に★。縮む順番は 状態ラベル → 氏名（バッジと★は縮めない） */
@@ -1224,7 +1362,7 @@ export default function CandidatesClient({
            ★色は淡い緑に濃い緑（UIルールの変更: 緑＝プラスの一致。.claude/skills/ui-conventions）。
            文字 #14532D on #ECF6EF = 8.24 ／ ほか○件 #3F6B4E = 5.55 ／ チェックも #14532D */
         .cand-card-reason { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; margin-top: 4px; padding: 3px 8px; border-radius: 6px; background: #ECF6EF; color: #14532D; font-size: 12px; line-height: 18px; min-width: 0; }
-        .cand-card-reason.is-empty { background: var(--bg-tint); color: var(--ink-mute); }
+        .cand-card-reason.is-empty { visibility: hidden; }
         .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: #14532D; }
         .cand-card-reason-item { flex-shrink: 0; font-weight: 700; }
         .cand-card-reason-text { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
