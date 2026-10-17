@@ -1185,7 +1185,8 @@ export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, mana
         <div className="pf-rule" />
         {onAdd && (
           <button type="button" className="tap-target" onClick={onAdd} aria-label={addLabel ?? `${title}を追加`} title={addLabel ?? `${title}を追加`} style={sectionAddBtn}>
-            {emptyUsesPencil ? <PencilIcon /> : <PlusIcon />}
+            {/* ★「＋ 追加」と文字も出す（2026-10-17）。他のセクションの見出しと同じ形 */}
+            {emptyUsesPencil ? <PencilIcon /> : <><PlusIcon />追加</>}
           </button>
         )}
         {manageHref && (

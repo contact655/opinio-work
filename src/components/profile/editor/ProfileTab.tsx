@@ -58,7 +58,7 @@ import { ReasonEntryButton, hasReasonAnswers, reasonState } from "@/components/p
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline, { limitCareersForDisplay, shortCompanyName } from "@/components/profile/MergedTimeline";
 import { stintsToCareerEntries } from "./careerTimeline";
-import { SectionShowAllToggle, SectionAddButton, RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
+import { SectionShowAllToggle, RowActionButtons, PencilIcon } from "@/components/profile/view/RowActions";
 import { ROWS_ON_PROFILE } from "@/lib/constants/profileSections";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow } from "./formKit";
@@ -1899,10 +1899,14 @@ export default function ProfileTab({
                    `/mypage` へ転送するようにしたので、見出しの ✎ には行き先が無い。
                 ⚠️ 前回（2026-09-12 午前）に入れた「✎ を大きくする」指定も、使い手が
                    いなくなったので削除した。 */}
+            {/* ★★追加は見出しの右の「＋ 追加」（2026-10-17 / 柴さんの指示）。他のセクションと同じ位置に揃えた。
+                   それまで（2026-09-12〜）はセクションの下の「＋ 職歴を追加」だった。⚠️ 入口は1つ（下には置かない） */}
             <ProfileTimelineSection
               id="career"
               title="職歴"
               latin="CAREER"
+              onAdd={() => setCareerAddNonce((n) => n + 1)}
+              addLabel="職歴を追加"
             >
               {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
                      「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
@@ -2044,8 +2048,6 @@ export default function ProfileTab({
                   onToggle={() => setCareerExpanded((v) => !v)}
                 />
               )}
-              {/* ★★追加はここ1つ（2026-09-12）。**0件でも1件以上でも常に出す。** */}
-              <SectionAddButton label="職歴を追加" onClick={() => setCareerAddNonce((n) => n + 1)} />
             </ProfileTimelineSection>
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
@@ -2082,10 +2084,13 @@ export default function ProfileTab({
             {/* ★学歴も 0件で枠を出す（職歴と同じ理由）。
                 ⚠️★★見出しの「＋」と「✎」は**両方外した**（2026-09-12 / 柴さんの指示）。
                    職歴と同じ形にする。編集は行の鉛筆、追加は下の「＋ 学歴を追加」。 */}
+            {/* ★追加は見出しの右（2026-10-17。職歴と同じ） */}
             <ProfileTimelineSection
               id="education"
               title="学歴"
               latin="EDUCATION"
+              onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
+              addLabel="学歴を追加"
             >
               {/* ★0件のときの「まだ学歴を登録していません。」は外した（2026-10-09。職歴と同じ理由）。 */}
               {shownEducations.length > 0 && (
@@ -2143,8 +2148,6 @@ export default function ProfileTab({
                   </div>
                 </div>
               )}
-              {/* ★★追加はここ1つ（2026-09-12）。**0件でも1件以上でも常に出す。** */}
-              <SectionAddButton label="学歴を追加" onClick={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }} />
             </ProfileTimelineSection>
             {/* ★編集フォーム・削除確認の置き場。**常にマウントしておく**（モーダル）。
                    学校マスタへの追加リクエストのバナーもこの中から出る。 */}
