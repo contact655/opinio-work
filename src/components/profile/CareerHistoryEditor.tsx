@@ -1316,7 +1316,7 @@ export default function CareerHistoryEditor({
   roles = [],
   onSavedCountChange,
   onExperienceDeleted,
-  openAddNonce, openAddPastNonce, openAddCompany = null, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
+  openAddNonce, openAddPastNonce, openAddFirstNonce, openAddCompany = null, openEditId, openDeleteId, openAddRoleForCareerId, openReasonId, openEditCompanyId,
   openReasonBatchNonce, onClosed,
   onStintsChange,
 }: {
@@ -1334,6 +1334,8 @@ export default function CareerHistoryEditor({
   openAddNonce?: number;
   /** ★「前職を追加」から開く（2026-10-17）。必須の4項目だけ先に出す短い形で開く。発火は値の変化だけ（ルール⑭） */
   openAddPastNonce?: number;
+  /** ★職歴が0件の人の「職歴を追加」（2026-10-17）。短い形で、「現在も勤務している」にチェックを入れて開く */
+  openAddFirstNonce?: number;
   /** ★追加を開くときに入れておく会社（会社の招待リンク /join/[slug] から来たとき。2026-10-12）。
       本人が確認・変更して保存する（自動では保存しない） */
   openAddCompany?: { id: string; name: string } | null;
@@ -1414,22 +1416,32 @@ export default function CareerHistoryEditor({
     if (openAddNonce === undefined || openAddNonce === lastAddNonce.current) return;
     lastAddNonce.current = openAddNonce;
     setAddDraft(openAddCompany ? { ...EMPTY_DRAFT, companyName: openAddCompany.name, companyId: openAddCompany.id, isCurrent: true } : EMPTY_DRAFT);
-    setAddPast(false);
+    setAddShort(null);
     setAddingForCompanyKey("__new__");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- 会社は開く瞬間の値だけ使う
   }, [openAddNonce]);
 
   /* ★「前職を追加」（2026-10-17）。⚠️ 退職済みが既定（EMPTY_DRAFT の isCurrent は false） */
-  const [addPast, setAddPast] = useState(false);
+  /* ★短い形で開いたか。"past"＝前職を追加 ／ "first"＝職歴0件からの最初の1件 ／ null＝ふつうの追加 */
+  const [addShort, setAddShort] = useState<"past" | "first" | null>(null);
   const lastAddPastNonce = useRef(openAddPastNonce);
   useEffect(() => {
     if (openAddPastNonce === undefined || openAddPastNonce === lastAddPastNonce.current) return;
     lastAddPastNonce.current = openAddPastNonce;
     setAddDraft(EMPTY_DRAFT);
-    setAddPast(true);
+    setAddShort("past");
     setAddFormKey((k) => k + 1);
     setAddingForCompanyKey("__new__");
   }, [openAddPastNonce]);
+  const lastAddFirstNonce = useRef(openAddFirstNonce);
+  useEffect(() => {
+    if (openAddFirstNonce === undefined || openAddFirstNonce === lastAddFirstNonce.current) return;
+    lastAddFirstNonce.current = openAddFirstNonce;
+    setAddDraft({ ...EMPTY_DRAFT, isCurrent: true });
+    setAddShort("first");
+    setAddFormKey((k) => k + 1);
+    setAddingForCompanyKey("__new__");
+  }, [openAddFirstNonce]);
   /* 開くたびに「…なども入力する」を畳んだ状態から始める */
   const [addFormKey, setAddFormKey] = useState(0);
 
@@ -2092,7 +2104,7 @@ export default function CareerHistoryEditor({
              `ProfileEditModal` に寄せた（保存は右下の1つだけ・破棄の確認つき）。 */}
       <ProfileEditModal
         open={careerIsEditing || addingForCompanyKey !== null}
-        title={careerIsEditing ? "職歴を編集" : addingForCompanyKey && addingForCompanyKey !== "__new__" ? "この会社に役割を追加" : addPast ? "前職を追加" : "職歴を追加"}
+        title={careerIsEditing ? "職歴を編集" : addingForCompanyKey && addingForCompanyKey !== "__new__" ? "この会社に役割を追加" : addShort === "past" ? "前職を追加" : "職歴を追加"}
         dirty={careerDirty}
         saving={careerIsEditing ? editSaving : addSaving}
         justSaved={careerIsEditing ? editJustSaved : addJustSaved}
@@ -2122,7 +2134,7 @@ export default function CareerHistoryEditor({
       >
         <StintForm
           key={careerIsEditing ? "edit" : `add-${addFormKey}`}
-          compact={!careerIsEditing && addPast && addingForCompanyKey === "__new__"}
+          compact={!careerIsEditing && addShort !== null && addingForCompanyKey === "__new__"}
           draft={careerDraft}
           onDraftChange={careerIsEditing ? setEditDraft : setAddDraft}
           isSaving={careerIsEditing ? editSaving : addSaving}

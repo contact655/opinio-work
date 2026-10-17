@@ -784,6 +784,8 @@ export default function ProfileTab({
   const [careerAddNonce, setCareerAddNonce] = useState(0);
   /* ★「前職を追加」（2026-10-17）。短い形（会社名・職種・在籍期間）で追加モーダルを開く */
   const [careerAddPastNonce, setCareerAddPastNonce] = useState(0);
+  /* ★職歴0件の人の「職歴を追加」（2026-10-17）。短い形で、現職として開く */
+  const [careerAddFirstNonce, setCareerAddFirstNonce] = useState(0);
   useEffect(() => { if (initialAddCompany) setCareerAddNonce((n) => n + 1); }, [initialAddCompany]);
   /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
@@ -939,6 +941,23 @@ export default function ProfileTab({
   const [pastTopSaving, setPastTopSaving] = useState(false);
   const [pastTopError, setPastTopError] = useState<string | null>(null);
   const showPastTop = showCareerPrompt && !pastTopDismissed;
+  /* ★★職歴が0件の人の「職歴を入れてください」（2026-10-17 / 柴さんの判断）。
+        オンボーディングの2画面目で「後で設定する」を押した人など。前職のカードと同じ置き場所・同じ形。
+     ⚠️ 「あとで」は30日出さない（この端末だけ）。職歴欄の「＋ 職歴を追加」は常にある（そちらが常設の入口）。
+     ⚠️ 「職歴はない」は置かない（学生など本当に無い人は「あとで」で閉じる。記録する列も無い）。 */
+  const FIRST_TOP_DISMISS_KEY = "mypage-first-career-top-dismissed-at";
+  const [firstTopDismissed, setFirstTopDismissed] = useState(true);
+  useEffect(() => {
+    try {
+      const at = Number(localStorage.getItem(FIRST_TOP_DISMISS_KEY) ?? 0);
+      setFirstTopDismissed(at > 0 && Date.now() - at < REASON_TOP_DISMISS_DAYS * 86_400_000);
+    } catch { setFirstTopDismissed(false); }
+  }, []);
+  const dismissFirstTop = () => {
+    setFirstTopDismissed(true);
+    try { localStorage.setItem(FIRST_TOP_DISMISS_KEY, String(Date.now())); } catch { /* 保存できなくても今回は閉じる */ }
+  };
+  const showFirstTop = careerStints.length === 0 && !firstTopDismissed;
   /* ★本体に出す職歴は**表示単位で4つまで**（2026-08-17 / フェーズ3）。
         同じ会社の複数の役割は1つのまとまりとして数える。
      ⚠️ 切るのは `MergedTimeline` と同じ並べ替えを通したあと。 */
@@ -1561,6 +1580,30 @@ export default function ProfileTab({
                 </CollapsibleRow>
             </ProfileEditModal>
 
+            {showFirstTop && (
+              <div data-state="first-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+                    職歴を入れてください
+                  </div>
+                  <PrivateNote />
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
+                    会社名・職種・入社年月だけで登録できます
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" onClick={dismissFirstTop} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 8px", border: "none", background: "none", color: "var(--ink-mute)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    あとで
+                  </button>
+                  <button type="button" onClick={() => setCareerAddFirstNonce((n) => n + 1)} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    職歴を追加
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ★プロフィールの見出しカードより上（最初の画面に入れるため。2026-10-17） */}
             {showPastTop && (
               <div data-state="past-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
@@ -2017,6 +2060,7 @@ export default function ProfileTab({
             <CareerHistoryEditor
               openAddNonce={careerAddNonce}
               openAddPastNonce={careerAddPastNonce}
+              openAddFirstNonce={careerAddFirstNonce}
               openAddCompany={initialAddCompany}
               openEditId={editingCareerId}
               openDeleteId={deleteCareerId}
