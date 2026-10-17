@@ -190,7 +190,7 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
   return (
     <>
       {(achievements.length > 0 || hasActions) && (
-        <section className="pf-card">
+        <section className={`pf-card${achievements.length === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: achievements.length === 0 ? 0 : 18 }}>
             <SectionTitle title="数値実績" latin="ACHIEVEMENTS" />
             <div className="pf-rule" />
@@ -288,7 +288,7 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
   return (
     <>
       {(awards.length > 0 || hasActions) && (
-        <section className="pf-card">
+        <section className={`pf-card${awards.length === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: awards.length === 0 ? 0 : 18 }}>
             <SectionTitle title="受賞・表彰" latin="AWARDS" />
             <div className="pf-rule" />
@@ -409,7 +409,7 @@ export function ProfileCertificationsSection({ certifications, actions, showAll 
   return (
     <>
       {(certifications.length > 0 || hasActions) && (
-        <section id="certifications" className="pf-card">
+        <section id="certifications" className={`pf-card${certifications.length === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: certifications.length === 0 ? 0 : 18 }}>
             <SectionTitle title="資格" latin="CERTIFICATIONS" />
             <div className="pf-rule" />
@@ -538,7 +538,7 @@ export function ProfileLanguagesSection({ languages, actions, showAll }: {
   return (
     <>
       {(languages.length > 0 || hasActions) && (
-        <section id="languages" className="pf-card">
+        <section id="languages" className={`pf-card${languages.length === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: languages.length === 0 ? 0 : 18 }}>
             <SectionTitle title="言語" latin="LANGUAGES" />
             <div className="pf-rule" />
@@ -661,7 +661,7 @@ export function ProfileSkillsSection({ skills, autoSkills = [], actions, showAll
   return (
     <>
       {(totalCount > 0 || hasActions) && (
-        <section id="skills" className="pf-card">
+        <section id="skills" className={`pf-card${totalCount === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: totalCount === 0 ? 0 : 18 }}>
             <SectionTitle title="スキル" latin="SKILLS" />
             <div className="pf-rule" />
@@ -771,7 +771,7 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
   return (
     <>
       {(mediaAppearances.length > 0 || hasActions) && (
-        <section className="pf-card">
+        <section className={`pf-card${mediaAppearances.length === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: mediaAppearances.length === 0 ? 0 : 18 }}>
             <SectionTitle title="メディア掲載" latin="MEDIA" />
             <div className="pf-rule" />
@@ -976,7 +976,7 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
   return (
     <>
       {(contentLinks.length > 0 || viewerIsOwner) && (
-        <section id="content" className="pf-card">
+        <section id="content" className={`pf-card${contentLinks.length === 0 ? " pf-card-empty" : ""}`}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: contentLinks.length === 0 ? 0 : "var(--space-4)" }}>
             <SectionTitle title="発信コンテンツ" latin="CONTENT" />
             <div className="pf-rule" />
@@ -1153,7 +1153,7 @@ export function ProfileSocialLinks({ socialLinks }: { socialLinks: Partial<Recor
  * ⚠️ 中身（年表）は `MergedTimeline` が描く。ここは枠・見出し・アンカーだけ。
  * ⚠️ `onAdd` を渡さなければ DOM は `page.tsx` にあったものと1バイトも変わらない。
  */
-export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, manageHref, manageLabel, emptyUsesPencil = false, children }: {
+export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, manageHref, manageLabel, emptyUsesPencil = false, empty = false, children }: {
   /** アンカー（`#career` / `#education`）。ページ内ナビが指す */
   id: string;
   title: string;
@@ -1172,15 +1172,17 @@ export function ProfileTimelineSection({ id, title, latin, onAdd, addLabel, mana
          「転職の希望」ボックスは常に ✎ なので、そこと揃わない。
       ⚠️ 一覧ページへは送らない。行が無いので空の画面に着くだけ。 */
   emptyUsesPencil?: boolean;
+  /** ★0件（2026-10-18）。見出しだけの1行に詰める（他のセクションの空のときと同じ） */
+  empty?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="pf-card pf-card-roomy">
+    <section id={id} className={`pf-card pf-card-roomy${empty ? " pf-card-empty" : ""}`}>
       {/* ⚠★見出しは**他のセクションと同じ形**にすること（2026-08-29）。
              以前はここだけ **Inter の 16px・ラテン副題なし**で、同じページに
              書体もサイズも違う見出しが並んでいた。
              他11節は「Noto Serif 15px ＋ Inter のラテン副題 ＋ 罫線」。 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: empty ? 0 : 20 }}>
         <SectionTitle title={title} latin={latin} />
         <div className="pf-rule" />
         {onAdd && (

@@ -162,7 +162,7 @@ const HEADLINE_MAX = 40;
 
 /** 促しの「追加する →」。⚠️ 見た目はリンクだが**ボタン**（同じページのカードを開く） */
 const promoBtn: React.CSSProperties = {
-  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer",
+  background: "none", border: "none", padding: 0, marginLeft: 6, cursor: "pointer", position: "relative",
   fontSize: "inherit", fontWeight: 600, color: "var(--royal)", fontFamily: "inherit",
   textDecoration: "underline", textUnderlineOffset: 2,
 };
@@ -1623,7 +1623,7 @@ export default function ProfileTab({
                   {!initialBasicInfo.headline.trim() && (
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                       肩書き
-                      <button type="button" onClick={openHeadlineEditor} style={promoBtn}>1行で書く →</button>
+                      <button type="button" onClick={openHeadlineEditor} className="btn-fixed-size tap-target-44" style={promoBtn}>1行で書く →</button>
                     </p>
                   )}
                   {Object.values(savedSocialLinks).filter(Boolean).length === 0 && (
@@ -1636,7 +1636,7 @@ export default function ProfileTab({
                       {/* ★押した人は「SNS を足したい」ので、**SNS の行を開いた状態で**モーダルを出す
                              （2026-08-17 に実測して直した。畳んだまま開くと、
                              押したのに何も起きていないように見える）。 */}
-                      <button type="button" onClick={() => { setHeaderFocusSns(true); setEditingHeader(true); }} style={promoBtn}>追加する →</button>
+                      <button type="button" onClick={() => { setHeaderFocusSns(true); setEditingHeader(true); }} className="btn-fixed-size tap-target-44" style={promoBtn}>追加する →</button>
                     </p>
                   )}
                   {/* ★★お住まいの促し（2026-09-27 / 柴さんの指示）。
@@ -1653,7 +1653,7 @@ export default function ProfileTab({
                   {!initialBasicInfo.location.trim() && (
                     <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
                       お住まい
-                      <button type="button" onClick={openLocationEditor} style={promoBtn}>選ぶ →</button>
+                      <button type="button" onClick={openLocationEditor} className="btn-fixed-size tap-target-44" style={promoBtn}>選ぶ →</button>
                     </p>
                   )}
                 </>}
@@ -1710,7 +1710,7 @@ export default function ProfileTab({
                    上にあると、スマホで開いたときに本人の名前が1画面目の下半分に押し出されていた（LinkedIn は本人が先）。
                    ⚠️ ヘッダーより上に戻さないこと。 */}
             {showFirstTop && (
-              <div data-state="first-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+              <div data-state="first-career-top-card" className="pf-prompt" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
                     職歴を入れてください
@@ -1735,7 +1735,7 @@ export default function ProfileTab({
 
             {/* ★前職のカード */}
             {showPastTop && (
-              <div data-state="past-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+              <div data-state="past-career-top-card" className="pf-prompt" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
                     前の会社も入れてください
@@ -1776,7 +1776,7 @@ export default function ProfileTab({
                    ⚠️ 判定は**保存済みの値**（`initialBirthYear`）。入力中の値で消さない（ui-debugging ⑦）。
                    ⚠️ 年齢表示についての説明は足さない。黄色は「未完了」の色（ui-conventions） */}
             {!initialBirthYear && (
-              <div data-state="birthdate-notice" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "-8px 0 16px", padding: "8px 12px", borderRadius: 10, background: "var(--warm-soft)", border: "1px solid #FCD34D", fontSize: 13, color: "var(--warm-ink)" }}>
+              <div data-state="birthdate-notice" className="pf-notice" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "var(--warm-soft)", fontSize: 13, color: "var(--warm-ink)" }}>
                 <span style={{ flex: 1, minWidth: 0 }}>生年月日を入力してください</span>
                 <button type="button" onClick={openBirthEditor} className="btn-fixed-size"
                   style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "1px solid #FCD34D", background: "#fff", color: "var(--warm-ink)", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1786,7 +1786,7 @@ export default function ProfileTab({
             )}
 
             {showReasonTop && (
-              <div data-state="reason-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+              <div data-state="reason-top-card" className="pf-prompt" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
                     {(() => {
@@ -1907,6 +1907,7 @@ export default function ProfileTab({
               latin="CAREER"
               onAdd={() => setCareerAddNonce((n) => n + 1)}
               addLabel="職歴を追加"
+              empty={careerStints.length === 0}
             >
               {/* ★社会人経験年数（2026-08-17 / フェーズ4-3）。
                      「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
@@ -1934,7 +1935,8 @@ export default function ProfileTab({
                      ⚠️★**行のドット（`ReasonEntryButton`）は残す。** この行を読み飛ばした人と、
                         1件だけ直したい人の経路。片方だけにしないこと。
                      ⚠️ 公開範囲の一文を消さないこと ——**非公開であることが答える前提。** */}
-              {showCareerPrompt && (
+              {/* ★上の「前の会社も入れてください」（showPastTop）が出ている間は出さない（2026-10-18）。同じお願いが1ページに2回出ていた */}
+              {showCareerPrompt && !showPastTop && (
                 <CareerPromptCard
                   companyName={(() => {
                     const c = timelineCareers.find((x) => x.id === careerStints[0].id) ?? timelineCareers[0];
@@ -2091,6 +2093,7 @@ export default function ProfileTab({
               latin="EDUCATION"
               onAdd={() => { setEditingEduId(null); setEduAddNonce((n) => n + 1); }}
               addLabel="学歴を追加"
+              empty={educations.length === 0}
             >
               {/* ★0件のときの「まだ学歴を登録していません。」は外した（2026-10-09。職歴と同じ理由）。 */}
               {shownEducations.length > 0 && (
