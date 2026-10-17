@@ -282,6 +282,26 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
     return () => clearInterval(t);
   }, [activeTab, columns]);
 
+  /* ★「送ったメッセージを見る」「メッセージを続ける」（2026-10-18 / 柴さんの指摘「押しても反応しない」）。
+        2列表示（columns）とメッセージのタブを開いたままのときは、タブが変わらないので何も起きなかった。
+        → タブを切り替えたうえで、メッセージの欄を画面に入れ、いちばん新しいやり取りまで送り、一瞬だけ枠を光らせる。
+        ⚠️ rAF にしない（ui-debugging ⑪）。⚠️ やり取りは後から読み込まれるので、出るまで待つ */
+  const focusMessages = useCallback(() => {
+    if (!columns) changeTab("messages");
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      const box = messagesScrollRef.current;
+      const target = box?.querySelector<HTMLElement>("[data-state=dock-open], [data-state=pane-thread]");
+      if (!box || (!target && tries < 30)) return;
+      clearInterval(t);
+      box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+      const el = target ?? box;
+      el.animate?.([{ boxShadow: "0 0 0 3px var(--royal-100)" }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1200, easing: "ease-out" });
+    }, 100);
+  }, [columns, changeTab]);
+
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
   /* ★メッセージのタブは送れる人（`approach` がある）にだけ。閲覧のみ・判定が取れない人はプロフィールだけ */
@@ -305,7 +325,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
         ⚠️ 送れない人・送り済みで返信の無い人には「送る」を出さない（理由はメッセージのタブに灰色の1行で出る） */
   const a = c.approach;
   const messageButton = !showMessages || !a ? null
-    : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: () => { if (!columns) changeTab("messages"); } }
+    : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: focusMessages }
     : a.eligible && !companyLimitLine ? { label: "メッセージを送る", onClick: () => { if (!columns) changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
     : null;
 
