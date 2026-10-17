@@ -1580,68 +1580,6 @@ export default function ProfileTab({
                 </CollapsibleRow>
             </ProfileEditModal>
 
-            {showFirstTop && (
-              <div data-state="first-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
-                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
-                    職歴を入れてください
-                  </div>
-                  <PrivateNote />
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
-                    会社名・職種・入社年月だけで登録できます
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
-                  <button type="button" onClick={dismissFirstTop} className="btn-fixed-size"
-                    style={{ height: 36, padding: "0 8px", border: "none", background: "none", color: "var(--ink-mute)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                    あとで
-                  </button>
-                  <button type="button" onClick={() => setCareerAddFirstNonce((n) => n + 1)} className="btn-fixed-size"
-                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    職歴を追加
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ★プロフィールの見出しカードより上（最初の画面に入れるため。2026-10-17） */}
-            {showPastTop && (
-              <div data-state="past-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
-                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
-                    前の会社も入れてください
-                  </div>
-                  <PrivateNote />
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
-                    会社名・職種・在籍期間だけで登録できます
-                  </div>
-                  {pastTopError && (
-                    <div role="alert" style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{pastTopError}</div>
-                  )}
-                </div>
-                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
-                  <button type="button" onClick={dismissPastTop} className="btn-fixed-size"
-                    style={{ height: 36, padding: "0 8px", border: "none", background: "none", color: "var(--ink-mute)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                    あとで
-                  </button>
-                  <button type="button" disabled={pastTopSaving} className="btn-fixed-size"
-                    onClick={async () => {
-                      setPastTopSaving(true); setPastTopError(null);
-                      try { await markCareerHistoryComplete(); }
-                      catch { setPastTopError("保存に失敗しました。もう一度お試しください。"); }
-                      finally { setPastTopSaving(false); }
-                    }}
-                    style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: pastTopSaving ? "default" : "pointer", fontFamily: "inherit" }}>
-                    {pastTopSaving ? "保存中..." : "前職はない"}
-                  </button>
-                  <button type="button" onClick={() => setCareerAddPastNonce((n) => n + 1)} className="btn-fixed-size"
-                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    前職を追加
-                  </button>
-                </div>
-              </div>
-            )}
-
             <ProfileHeader
                 /* ⚠️ ヘッダーは**保存済みの表示名**（`.claude/rules/ui-debugging.md` ⑦）。
                       編集中の `displayName` を渡すと、保存前の入力が公開側の見た目に出る。 */
@@ -1768,6 +1706,71 @@ export default function ProfileTab({
                     </a>
                   ) : undefined}
               />
+            {/* ★★職歴の促しカード2枚（職歴0件／前職）はプロフィールの見出しカードの**下**（2026-10-17 夕方 / 柴さんの指示）。
+                   上にあると、スマホで開いたときに本人の名前が1画面目の下半分に押し出されていた（LinkedIn は本人が先）。
+                   ⚠️ ヘッダーより上に戻さないこと。 */}
+            {showFirstTop && (
+              <div data-state="first-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+                    職歴を入れてください
+                  </div>
+                  <PrivateNote />
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
+                    会社名・職種・入社年月だけで登録できます
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" onClick={dismissFirstTop} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 8px", border: "none", background: "none", color: "var(--ink-mute)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    あとで
+                  </button>
+                  <button type="button" onClick={() => setCareerAddFirstNonce((n) => n + 1)} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    職歴を追加
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ★前職のカード */}
+            {showPastTop && (
+              <div data-state="past-career-top-card" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "0 0 16px", padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--royal-100)" }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
+                    前の会社も入れてください
+                  </div>
+                  <PrivateNote />
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, lineHeight: 1.6 }}>
+                    会社名・職種・在籍期間だけで登録できます
+                  </div>
+                  {pastTopError && (
+                    <div role="alert" style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{pastTopError}</div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" onClick={dismissPastTop} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 8px", border: "none", background: "none", color: "var(--ink-mute)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    あとで
+                  </button>
+                  <button type="button" disabled={pastTopSaving} className="btn-fixed-size"
+                    onClick={async () => {
+                      setPastTopSaving(true); setPastTopError(null);
+                      try { await markCareerHistoryComplete(); }
+                      catch { setPastTopError("保存に失敗しました。もう一度お試しください。"); }
+                      finally { setPastTopSaving(false); }
+                    }}
+                    style={{ height: 36, padding: "0 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: pastTopSaving ? "default" : "pointer", fontFamily: "inherit" }}>
+                    {pastTopSaving ? "保存中..." : "前職はない"}
+                  </button>
+                  <button type="button" onClick={() => setCareerAddPastNonce((n) => n + 1)} className="btn-fixed-size"
+                    style={{ height: 36, padding: "0 16px", borderRadius: 999, border: "none", background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    前職を追加
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ★★生年月日が未入力の人への案内（2026-10-12 / 柴さんの指示）。入力するまで使えなくはしない。
                    ★2026-10-17 にヘッダーの**下**へ移した（柴さんの指示）。上にあると、モバイルで名前が1画面目の下端に押し出されていた。
                    ⚠️ 判定は**保存済みの値**（`initialBirthYear`）。入力中の値で消さない（ui-debugging ⑦）。

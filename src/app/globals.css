@@ -2161,6 +2161,9 @@ body {
            ⚠️ 端まで広げるのは外側の余白（--pf-gutter）を打ち消す負のマージン。
               /mypage は .mypage-main-content の 16px、/u/[id] は 20px（UserProfileContent が渡す）。 */
         .mypage-main-content { --pf-gutter: 16px; }
+        /* /u/[id] の本文の器。スマホでは上の余白を 0 にする（パンくずとカバーの間に灰色の隙間が出ていた） */
+        .u-page-wrap { padding: 32px 20px 80px; }
+        @media (max-width: 639px) { .u-page-wrap { padding-top: 0; } }
         .pf-card {
           background: #fff; border: 1px solid var(--line);
           border-radius: 14px; padding: 22px 28px; margin-bottom: 20px;
@@ -2173,11 +2176,12 @@ body {
           box-shadow: 0 1px 4px rgba(15,23,42,0.06);
         }
         @media (max-width: 639px) {
+          /* ★区切りの帯は各セクションの下の 8px の枠で描く（2026-10-17）。地の色（#f8fafc）だと薄くて区切りが弱かった */
           .pf-card, .pf-card-head {
-            border-radius: 0; border-left: 0; border-right: 0; box-shadow: none;
+            border-radius: 0; border: 0; border-bottom: 8px solid #E9ECF0; box-shadow: none;
             margin-left: calc(-1 * var(--pf-gutter, 0px));
             margin-right: calc(-1 * var(--pf-gutter, 0px));
-            margin-bottom: 8px;
+            margin-bottom: 0;
           }
           .pf-card, .pf-card-roomy { padding: 20px 16px; }
           /* 見出し: ゴシック 20px。英字の副題と罫線は出さない（罫線は場所だけ残して、右のボタンを右端に寄せる） */
@@ -2186,6 +2190,16 @@ body {
           .pf-card .pf-rule { background: transparent; }
         }
         .pf-title { font-family: var(--font-noto-serif); font-size: 15px; }
+        /* プロフィールの見出し（ProfileHeader）。名前の書体と、会社の置き場所。
+           広い画面: 名前は明朝・会社は右のブロック。スマホ: 名前はゴシック・会社は肩書きの下の1行 */
+        .profile-name { font-family: var(--font-noto-serif); }
+        .profile-company-inline { display: none; }
+        .profile-company-block { display: flex; }
+        @media (max-width: 639px) {
+          .profile-name { font-family: inherit; }
+          .profile-company-inline { display: flex; }
+          .profile-company-block { display: none; }
+        }
         /* 「＋ 職歴を追加」と「＋ この会社での異動・昇進を追加」の枠。スマホでは点線の枠を外して文字だけにする */
         .pf-add-btn { padding: 9px 16px; border: 1.5px dashed var(--line); }
         .pf-add-role { padding: 8px 12px; border: 1px dashed var(--line); }

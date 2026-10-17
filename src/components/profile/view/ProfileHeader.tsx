@@ -241,8 +241,8 @@ export function ProfileHeader({
                ⚠️ basis は 300px。0 や auto にすると狭い画面でも折り返さなくなり、
                   375px で氏名の列が潰れる。300px を切る器では今までどおり折り返す。 */}
         <div style={{ flex: "1 1 300px", minWidth: 0 }}>
+          {/* ⚠️ 書体は CSS（globals.css の .profile-name）。スマホではゴシックにするので、インラインに戻さない */}
           <div className="profile-name" style={{
-            fontFamily: 'var(--font-noto-serif)',
             fontSize: 30, fontWeight: 700, color: "var(--ink)",
             marginBottom: 6, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
           }}>
@@ -281,6 +281,32 @@ export function ProfileHeader({
                      要点なので会社名から離さない、という条件はそちらで満たしている。 */}
             </div>
           )}
+          {/* ★★スマホだけの会社の行（2026-10-17 / LinkedIn に寄せて）。名前 → 肩書き → 会社 → ボタン の順にする。
+                 広い画面は右の会社ブロック（.profile-company-block）が出し、スマホではそちらを隠す（globals.css）。
+                 ⚠️ 判定は右の会社ブロックと同じ条件。片方だけ変えないこと */}
+          {currentCareer?.company_name &&
+            !(currentCareer.is_placeholder_company ?? isPlaceholderCompanyName(currentCareer.company_name)) && (
+            <div className="profile-company-inline" style={{ alignItems: "center", gap: 8, marginBottom: 6, minWidth: 0 }}>
+              {isCurrentCompanyKnown && (
+                <CompanyLogoImg
+                  logoUrl={currentCareer.logo_url}
+                  logoLetter={currentCareer.logo_letter ?? null}
+                  logoGradient={currentCareer.logo_gradient ?? null}
+                  name={currentCareer.company_name}
+                  size={24}
+                />
+              )}
+              {isCurrentCompanyKnown ? (
+                <Link href={`/companies/${currentCareer.company_id!}`} style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", textDecoration: "none", minWidth: 0 }}>
+                  {shortCompanyName(currentCareer.company_name)}
+                </Link>
+              ) : (
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", minWidth: 0 }}>
+                  {shortCompanyName(currentCareer.company_name)}
+                </span>
+              )}
+            </div>
+          )}
           <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap" }}>
             {/* ★年齢は 2026-08-29 に外した（柴さんの判断）。⚠️ **戻さないこと。**
                    同日にタイムラインの年チップ（年＋年齢）も外しており、
@@ -316,8 +342,9 @@ export function ProfileHeader({
                   `isPlaceholderCompanyName()` の1箇所。定数を改名しても追従する。 */}
         {currentCareer?.company_name &&
           !(currentCareer.is_placeholder_company ?? isPlaceholderCompanyName(currentCareer.company_name)) && (
+          /* ⚠️ display は CSS（.profile-company-block）。スマホで隠すので、インラインに戻さない */
           <div className="profile-company-block" style={{
-            display: "flex", alignItems: "center", gap: 10,
+            alignItems: "center", gap: 10,
             flexShrink: 0, minWidth: 0,
           }}>
             {isCurrentCompanyKnown && (
