@@ -145,15 +145,12 @@ function SubLine({ children }: { children: React.ReactNode }) {
 
 export default function IntentCard({
   initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions,
-  experienceCount = 0,
 }: {
   initialPrefs: IntentPrefs;
   /** 「意思表示を最後に答えた日」。⚠️ `null` なら**最終更新の行ごと出さない** */
   stanceUpdatedAt: string | null;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
-  /** 職歴の件数（`ow_experiences`）。0件のときだけ下の案内に使う。 */
-  experienceCount?: number;
 }) {
   /* ⚠️★「企業から声をかけられる」のトグルは 2026-08-27 に**削除した**（フェーズ3）。
         スカウトの送信可否は「転職について」＝ `ow_profiles.career_stance` が決める
@@ -431,21 +428,9 @@ export default function IntentCard({
             )
           )}
 
-          {/* ③ 声はかかる状態だが、職歴が無い。
-              ⚠️★**①②と同時に出さない。** 一度に2つ言うと、どちらを先にやればよいか
-                 分からなくなる。まず「表示される状態」にしてから職歴を促す。
-              ⚠️★公開範囲の言い回しは**オンボーディングと同じ文に揃える**
-                 （`OnboardingClient` の h2 直下）。別の言い回しを増やすと、
-                 同じことを2通りで説明することになる。 */}
-          {isReachableByCompanies(saved.prefs.career_stance) && experienceCount === 0 && (
-            <div style={{
-              marginTop: 8, fontSize: 12.5, lineHeight: 1.75, color: "var(--ink-soft)",
-            }}>
-              職歴を1件入れると、
-              <strong style={{ color: "var(--ink)" }}>その会社の企業ページに、あなたの名前が実名で表示されます</strong>
-              （見えるのは OPINIO にログインしている人だけです）。
-            </div>
-          )}
+          {/* ⚠️★③「職歴を1件入れると、その会社の企業ページに、あなたの名前が実名で表示されます（見えるのは OPINIO に
+                 ログインしている人だけです）」は 2026-10-18 に外した（柴さんの指示）。わざわざ言うことではない、という判断。
+                 職歴を入れる促しは /mypage の「職歴を入れてください」のカードが持つ。戻さないこと */}
 
           {/* ⚠️★「企業の候補者検索での見え方を見る →」リンクは 2026-09-12 に外した
                  （柴さんの指示）。行き先（`/mypage/settings`）は残っている。 */}
