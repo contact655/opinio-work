@@ -1,4 +1,5 @@
 import type { MeetingApplication, MeetingStatus } from "@/lib/business/mockMeetings";
+import { casualMeetingFormatLabel } from "@/lib/constants/casualMeetingFormats";
 import type { createClient } from "@/lib/supabase/server";
 import { getUserAge } from "@/lib/age";
 import { resolveExperienceCompanyName } from "@/lib/experiences/companyName";
@@ -154,7 +155,8 @@ export function transformMeeting(
     intentDetail: "",
     interestReason: row.interest_reason ?? "",
     questions: row.questions ?? "",
-    preferredFormat: row.preferred_format ?? "—",
+    /* ★表示名にする（2026-10-18。それまで「any」がそのまま出ていた）。知らない値・未記入は空（画面で行ごと出さない） */
+    preferredFormat: casualMeetingFormatLabel(row.preferred_format) ?? "",
     submittedAt: formatRelativeTime(row.created_at),
     createdAt: row.created_at,
     status: row.status as MeetingStatus,

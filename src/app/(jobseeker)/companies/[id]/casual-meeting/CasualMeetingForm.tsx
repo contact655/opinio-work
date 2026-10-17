@@ -1,10 +1,11 @@
 "use client";
 
+import { CASUAL_MEETING_FORMAT_OPTIONS, type CasualMeetingFormat } from "@/lib/constants/casualMeetingFormats";
 import { useState } from "react";
 import Link from "next/link";
 
 type Intent = "info_gathering" | "good_opportunity" | "within_6" | "within_3";
-type Format = "any" | "zoom" | "meet" | "in_person_office" | "in_person_cafe";
+type Format = CasualMeetingFormat;
 
 const INTENT_OPTIONS: { value: Intent; label: string; desc: string }[] = [
   { value: "info_gathering",  label: "情報収集中",            desc: "まだ転職を決めておらず、情報を集めている段階" },
@@ -13,13 +14,8 @@ const INTENT_OPTIONS: { value: Intent; label: string; desc: string }[] = [
   { value: "within_3",        label: "3ヶ月以内に転職したい", desc: "すでに本格的に転職活動中" },
 ];
 
-const FORMAT_OPTIONS: { value: Format; label: string }[] = [
-  { value: "any",             label: "どちらでも構わない" },
-  { value: "zoom",            label: "Zoom" },
-  { value: "meet",            label: "Google Meet" },
-  { value: "in_person_office", label: "対面（企業オフィス）" },
-  { value: "in_person_cafe",  label: "対面（カフェ等）" },
-];
+/* ★選択肢は lib/constants/casualMeetingFormats.ts（企業側の表示と同じ定数。2026-10-18） */
+const FORMAT_OPTIONS = CASUAL_MEETING_FORMAT_OPTIONS;
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 

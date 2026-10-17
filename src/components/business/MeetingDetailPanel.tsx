@@ -2,6 +2,7 @@
 
 import { JobInternalNote } from "@/components/business/JobInternalNote";
 import { useState, useEffect } from "react";
+import type { MeetingStatus } from "@/lib/business/mockMeetings";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import { MeetingStatusBadge } from "./MeetingStatusBadge";
 
@@ -21,10 +22,13 @@ type Props = {
   onProfileDetail?: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  /* ⚠️ onScheduleAdjust・onProfileDetail は 2026-10-18 から使っていない（返信と同じ行き先・名前の横の ↗ と同じ）。呼び出し側の互換のため型だけ残す */
   /** ★選考管理の右側に入れるとき（2026-10-11）。名前・年齢・前後の移動の段を出さない（上の共通の段が名前を出す）。操作と確認はそのまま */
   embedded?: boolean;
   /** ★閲覧のみの役割（2026-10-12）。返信・日程・状態の変更・担当・メモの編集を出さない（見るだけ） */
   readOnly?: boolean;
+  /** ★この人とのメッセージのやり取りがあるか（2026-10-18）。無ければ返信の横に小さく「まだやり取りはありません」 */
+  hasConversation?: boolean;
 };
 
 function IconBtn({ children, onClick, disabled, ariaLabel, title }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; ariaLabel?: string; title?: string }) {
@@ -61,78 +65,6 @@ function IconBtn({ children, onClick, disabled, ariaLabel, title }: { children: 
     >
       {children}
     </button>
-  );
-}
-
-function ActionBtn({
-  children,
-  variant = "default",
-  onClick,
-}: {
-  children: React.ReactNode;
-  variant?: "default" | "primary" | "danger";
-  onClick?: () => void;
-}) {
-  const base: React.CSSProperties = {
-    padding: "8px 14px",
-    fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-    borderRadius: 7, cursor: "pointer",
-    display: "inline-flex", alignItems: "center", gap: 6,
-    transition: "all 0.2s",
-    whiteSpace: "nowrap",
-  };
-  const styles: Record<string, React.CSSProperties> = {
-    default: { ...base, border: "1px solid var(--line)", background: "#fff", color: "var(--ink)" },
-    primary: { ...base, border: "1px solid var(--royal)", background: "var(--royal)", color: "#fff" },
-    danger:  { ...base, border: "1px solid var(--line)", background: "#fff", color: "var(--error)" },
-  };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={styles[variant]}
-      onMouseEnter={(e) => {
-        if (variant === "primary") {
-          e.currentTarget.style.background = "#001233";
-        } else if (variant === "danger") {
-          e.currentTarget.style.background = "var(--error-soft)";
-          e.currentTarget.style.borderColor = "var(--error)";
-        } else {
-          e.currentTarget.style.borderColor = "var(--royal-100)";
-          e.currentTarget.style.background = "var(--royal-50)";
-          e.currentTarget.style.color = "var(--royal)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (variant === "primary") {
-          e.currentTarget.style.background = "var(--royal)";
-        } else if (variant === "danger") {
-          e.currentTarget.style.background = "#fff";
-          e.currentTarget.style.borderColor = "var(--line)";
-        } else {
-          e.currentTarget.style.borderColor = "var(--line)";
-          e.currentTarget.style.background = "#fff";
-          e.currentTarget.style.color = "var(--ink)";
-        }
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontFamily: "var(--font-inter), var(--font-noto)",
-      fontSize: 12, fontWeight: 700,
-      color: "var(--ink-mute)",
-      letterSpacing: "0.15em",
-      textTransform: "uppercase",
-      marginBottom: 8,
-    }}>
-      {children}
-    </div>
   );
 }
 
@@ -180,13 +112,13 @@ export function MeetingDetailPanel({
   onAssignToMe,
   onMemoChange,
   onReply,
-  onScheduleAdjust,
-  onProfileDetail,
   onPrev,
   onNext,
   embedded = false,
   readOnly = false,
+  hasConversation = true,
 }: Props) {
+  const [moreOpen, setMoreOpen] = useState(false);
   const [declineConfirming, setDeclineConfirming] = useState(false);
   /* ★「日程が決まった」の確認（2026-09-21）。`scheduled` にすると候補者へ
         「日程が確定しました」のメールが届くので、押す前に必ず伝える。 */
@@ -197,7 +129,17 @@ export function MeetingDetailPanel({
   useEffect(() => {
     setScheduleConfirming(false);
     setDeclineConfirming(false);
+    setMoreOpen(false);
   }, [selectedMeetingId]);
+  /* 「その他」のメニューは外を押したら閉じる */
+  useEffect(() => {
+    if (!moreOpen) return;
+    const close = (e: MouseEvent) => { if (!(e.target as HTMLElement | null)?.closest?.(".mdp-more")) setMoreOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [moreOpen]);
 
   if (!m) {
     return (
@@ -271,409 +213,267 @@ export function MeetingDetailPanel({
         </div>
       </div>}
 
-      {/* ★閲覧のみでは操作の段を出さない（2026-10-12） */}
-      {!readOnly && (<>
-      {/* ── action-bar ── */}
-      <div style={{
-        background: "#fff",
-        padding: "12px 28px",
-        borderBottom: "1px solid var(--line)",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexWrap: "wrap",
-        flexShrink: 0,
-      }}>
-        <ActionBtn variant="primary" onClick={onReply}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="m22 2-7 20-4-9-9-4 20-7z"/>
-          </svg>
-          返信する
-        </ActionBtn>
-        <ActionBtn onClick={onScheduleAdjust}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-          </svg>
-          日程を調整する
-        </ActionBtn>
-        {/* ★日程の確定は別のボタン（2026-09-21）。確定前の状態のときだけ出す */}
-        {(m.status === "pending" || m.status === "company_contacted") && (
-          scheduleConfirming ? (
-            <div role="alertdialog" aria-label="日程の確定" style={{
-              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-              padding: "6px 12px", background: "var(--royal-50)",
-              border: "1px solid var(--royal-100)", borderRadius: 8,
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>
-                候補者に「日程が確定しました」とメールが届きます
+      {/* ── ★操作の段（2026-10-18 / 柴さんの指示で作り直した）──────────────────────────
+             1行目: 進み具合（新規受信 → 確認中 → 面談予定 → 完了。見送りはその旨）
+             2行目: 対応者（未定なら「自分が対応する」）／次にやること1つ／その他（日程が決まった・面談完了・見送る）
+             ⚠️ それまでは6個のボタンが同じ重さで並び、何から押せばよいか分からなかった。
+             ⚠️ メールが飛ぶ操作（日程が決まった・見送る）は以前と同じく確認を1段挟む。API と流れは変えていない。
+             ⚠️ 閲覧のみの役割は進み具合と対応者だけ（操作は出さない） */}
+      <div className="mdp-head" data-state="meeting-actions">
+        <MeetingProgress status={m.status} />
+        <div className="mdp-actions">
+          <div className="mdp-assignee" data-state={m.assigneeId ? "assignee-set" : "assignee-none"}>
+            <span className="mdp-assignee-label">対応者</span>
+            {m.assigneeId ? (
+              <span className="mdp-assignee-who">
+                <span aria-hidden="true" className="mdp-assignee-avatar" style={{ background: m.assigneeGradient ?? "var(--royal)" }}>{m.assigneeInitial}</span>
+                {m.assigneeName}
               </span>
-              <button type="button"
-                onClick={() => { setScheduleConfirming(false); onStatusChange?.("scheduled"); }}
-                style={{ padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, borderRadius: 6, cursor: "pointer", border: "none", background: "var(--royal)", color: "#fff", whiteSpace: "nowrap" }}>
-                確定する
-              </button>
-              <button type="button" onClick={() => setScheduleConfirming(false)}
-                style={{ padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 600, borderRadius: 6, cursor: "pointer", border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
-                やめる
-              </button>
-            </div>
-          ) : (
-            <ActionBtn onClick={() => setScheduleConfirming(true)}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M9 15l2 2 4-4"/>
-              </svg>
-              日程が決まった
-            </ActionBtn>
-          )
-        )}
-        <ActionBtn onClick={onProfileDetail}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-          </svg>
-          プロフィール詳細
-        </ActionBtn>
-        <div style={{ flex: 1 }} />
-        <ActionBtn onClick={() => onStatusChange?.("completed")}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-          面談完了をマーク
-        </ActionBtn>
-        {declineConfirming ? (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "6px 12px",
-            background: "var(--error-soft)",
-            border: "1px solid var(--error)",
-            borderRadius: 8,
-          }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", whiteSpace: "nowrap" }}>
-              見送りますか？候補者にお知らせのメールが届きます
-            </span>
-            <button
-              type="button"
-              onClick={() => { setDeclineConfirming(false); onStatusChange?.("declined"); }}
-              style={{
-                padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                borderRadius: 6, cursor: "pointer", border: "none",
-                background: "var(--error)", color: "#fff", whiteSpace: "nowrap",
-              }}
-            >
-              見送る
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeclineConfirming(false)}
-              style={{
-                padding: "4px 10px", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                borderRadius: 6, cursor: "pointer",
-                border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              やめる
-            </button>
-          </div>
-        ) : (
-          <ActionBtn variant="danger" onClick={() => setDeclineConfirming(true)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <path d="M18 6 6 18M6 6l12 12"/>
-            </svg>
-            見送る
-          </ActionBtn>
-        )}
-      </div>
-      </>)}
-
-      {/* ── detail-content ── */}
-      <div style={{
-        /* ★embedded のときは外側（選考管理の右側）がまとめてスクロールする */
-        flex: embedded ? undefined : 1,
-        overflowY: embedded ? undefined : "auto",
-        padding: "24px 28px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}>
-
-        {/* 1: 対応者 */}
-        <DetailSection>
-          <div style={{
-            display: "flex", alignItems: "center",
-            justifyContent: "space-between", marginBottom: 12,
-          }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>対応者</div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
-                この申込を対応するメンバー
-              </div>
-            </div>
-          </div>
-
-          {/* ⚠️ 求職者からの指名（「◯◯さんに聞きたい」）は 2026-10-16 に撤去した（面談OKの撤去） */}
-
-          {m.assigneeId ? (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 12px",
-              background: "var(--bg-tint)",
-              borderRadius: 8, border: "1px solid var(--line)",
-            }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: "50%",
-                background: m.assigneeGradient ?? "var(--royal)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontWeight: 700, fontSize: 13,
-                flexShrink: 0,
-              }}>
-                {m.assigneeInitial}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{m.assigneeName}</div>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>担当者</div>
-              </div>
-              <div style={{ flex: 1 }} />
-              <button
-                type="button"
-                disabled
-                title="この機能は現在準備中です"
-                style={{
-                  padding: "5px 10px",
-                  fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                  border: "1px solid var(--line)", borderRadius: 6,
-                  background: "#fff", color: "var(--ink-mute)", cursor: "not-allowed",
-                  opacity: 0.6,
-                }}>
-                対応者を変更
-              </button>
-            </div>
-          ) : (
-            <div>
-              <div style={{
-                padding: "14px",
-                background: "var(--bg-tint)",
-                borderRadius: 8, border: "1px dashed var(--line)",
-                display: "flex", alignItems: "center", gap: 10,
-                marginBottom: 10,
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--ink-mute)", flexShrink: 0 }}>
-                  <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                </svg>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>まだ対応者がいません</span>
-              </div>
-              {!readOnly && <button
-                type="button"
-                onClick={onAssignToMe}
-                style={{
-                  padding: "8px 14px",
-                  fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                  border: "none", borderRadius: 7,
-                  background: "var(--accent)", color: "#fff", cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                }}>
-                ✓ 自分が対応する
-              </button>}
-            </div>
-          )}
-        </DetailSection>
-
-        {/* 2: 興味を持った求人 */}
-        {m.jobTitle && (
-          <DetailSection>
-            <SectionLabel>Interested Position</SectionLabel>
-            <div style={{
-              display: "flex", gap: 12,
-              padding: "12px 14px",
-              background: "var(--bg-tint)",
-              border: "1px solid var(--line)",
-              borderRadius: 10,
-              alignItems: "center",
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8,
-                background: "var(--royal-50)",
-                color: "var(--royal)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 2 }}>
-                  興味を持った求人
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
-                  {m.jobTitle}
-                </div>
-              </div>
-              {m.jobSalary && (
-                <div style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                  fontSize: 12, fontWeight: 700, color: "var(--royal)",
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}>
-                  {m.jobSalary}
-                </div>
-              )}
-            </div>
-            {/* ★この求人の社内メモ（2026-10-12）。読むだけ・開閉。メモが無ければ何も出さない。⚠️ 求職者には出さない */}
-            {m.jobId && <JobInternalNote jobId={m.jobId} variant="readonly" />}
-          </DetailSection>
-        )}
-
-        {/* 3: 申込内容 */}
-        <DetailSection>
-          <SectionLabel>Application Details</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <BlockField label="いまの転職意向">
-              <strong style={{ color: "var(--royal)", fontWeight: 700 }}>{m.intent}</strong>
-              <br />
-              {m.intentDetail}
-            </BlockField>
-            <BlockField label="興味を持ったきっかけ">
-              {m.interestReason}
-            </BlockField>
-            <BlockField label="面談で聞いてみたいこと">
-              {questions.map((q, i) => (
-                <span key={i}>
-                  {q}{i < questions.length - 1 && <br />}
-                </span>
-              ))}
-            </BlockField>
-            <BlockField label="希望する面談形式">
-              {m.preferredFormat}
-            </BlockField>
-          </div>
-        </DetailSection>
-
-        {/* 4: 候補者のキャリア */}
-        <DetailSection>
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            marginBottom: 14,
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-              候補者のキャリア
-            </div>
-            {m.applicantUserId ? (
-              <a
-                href={`/u/${m.applicantUserId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
-              >
-                詳細プロフィール →
-              </a>
             ) : (
-              <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>
-                詳細プロフィール
-              </span>
+              <span className="mdp-assignee-none">未定</span>
             )}
           </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {m.career.map((c, i) => (
-              <div key={i} style={{
-                display: "grid",
-                // ⚠️ 期間は formatPeriod が "2020.04 — 2023.03"（em ダッシュ込み17字）を返す。
-                //    12px では約118px 必要で、90px だとはみ出す。11px でも既にはみ出していた。
-                gridTemplateColumns: "124px 1fr",
-                gap: 14,
-                padding: "8px 0",
-                borderBottom: i < m.career.length - 1 ? "1px dashed var(--line)" : "none",
-                fontSize: 12,
-              }}>
-                <div style={{
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                  fontSize: 12, fontWeight: 500, color: "var(--ink-mute)",
-                }}>
-                  {c.period}
+          {!readOnly && (() => {
+            const closed = m.status === "completed" || m.status === "declined";
+            const canSchedule = m.status === "pending" || m.status === "company_contacted";
+            /* 次にやること（1つだけ主ボタン） */
+            const primary: { label: string; onClick: () => void; state: string } | null =
+              closed ? null
+              : !m.assigneeId ? { label: "自分が対応する", onClick: () => onAssignToMe?.(), state: "next-assign" }
+              : m.status === "scheduled" ? { label: "面談完了にする", onClick: () => onStatusChange?.("completed"), state: "next-complete" }
+              : { label: "返信する", onClick: () => onReply?.(), state: "next-reply" };
+            return (
+              <div className="mdp-buttons">
+                {primary && (
+                  <button type="button" className="mdp-btn mdp-btn-primary btn-fixed-size" data-state={primary.state} onClick={primary.onClick}>{primary.label}</button>
+                )}
+                {primary?.state !== "next-reply" && (
+                  <button type="button" className="mdp-btn btn-fixed-size" data-state="action-reply" onClick={() => onReply?.()}>返信する</button>
+                )}
+                <div className="mdp-more">
+                  <button type="button" className="mdp-btn btn-fixed-size" aria-haspopup="menu" aria-expanded={moreOpen} data-state="action-more"
+                    onClick={() => setMoreOpen((v) => !v)}>その他 ▾</button>
+                  {moreOpen && (
+                    <div role="menu" className="mdp-menu" data-state="action-menu">
+                      {canSchedule && (
+                        <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setScheduleConfirming(true); }}>日程が決まった</button>
+                      )}
+                      {m.status !== "completed" && m.status !== "declined" && primary?.state !== "next-complete" && (
+                        <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); onStatusChange?.("completed"); }}>面談完了にする</button>
+                      )}
+                      {m.status !== "declined" && (
+                        <button type="button" role="menuitem" className="is-danger" onClick={() => { setMoreOpen(false); setDeclineConfirming(true); }}>見送る</button>
+                      )}
+                      {closed && m.status === "declined" && (
+                        <span className="mdp-menu-note">見送り済みです</span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={{ color: "var(--ink)", lineHeight: 1.6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                    <strong style={{ color: "var(--royal)", fontWeight: 600 }}>{c.role}</strong>
-                    {c.isCurrent && (
-                      <span style={{
-                        background: "var(--success-soft)", color: "var(--success-ink)",
-                        padding: "1px 6px", borderRadius: 4,
-                        fontWeight: 700, fontSize: 12, letterSpacing: "0.05em",
-                      }}>
-                        CURRENT
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ color: "var(--ink-soft)", marginTop: 2 }}>{c.company}</div>
-                </div>
+                {!hasConversation && <span className="mdp-hint" data-state="no-message">まだメッセージのやり取りはありません</span>}
               </div>
-            ))}
-          </div>
-        </DetailSection>
-
-        {/* 5: 社内共有メモ */}
-        <div style={{
-          background: "var(--warm-soft)",
-          border: "1px solid #FDE68A",
-          borderRadius: 12,
-          padding: "16px 20px",
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-            </svg>
-            <span style={{
-              fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 12, fontWeight: 700, color: "var(--warm-ink)", letterSpacing: "0.15em",
-            }}>
-              INTERNAL NOTE
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#78350F" }}>
-              · 社内共有メモ
-            </span>
-            <span aria-live="polite" style={{ marginLeft: "auto" }}>
-              {memoSaveState === "saving" && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>保存中…</span>
-              )}
-              {memoSaveState === "saved" && (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)" }}>✓ 保存済み</span>
-              )}
-            </span>
-          </div>
-
-          <textarea
-            value={memoValue}
-            onChange={(e) => onMemoChange?.(e.target.value)}
-            readOnly={readOnly}
-            aria-label="社内共有メモ"
-            placeholder="チームメンバーと共有するメモを書いてください..."
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: "1px solid #FDE68A",
-              borderRadius: 8,
-              background: "#fff",
-              fontFamily: "inherit",
-              fontSize: 12, fontWeight: 500,
-              color: "var(--ink)",
-              lineHeight: 1.7,
-              minHeight: 70,
-              resize: "vertical",
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "var(--warm-ink)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "#FDE68A"; }}
-          />
-
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#78350F", marginTop: 6 }}>
-            ※ このメモは貴社チームのみが閲覧できます。候補者には共有されません。
-          </div>
+            );
+          })()}
         </div>
-
+        {/* 確認（メールが飛ぶ操作だけ） */}
+        {!readOnly && scheduleConfirming && (
+          <div role="alertdialog" aria-label="日程の確定" className="mdp-confirm" data-state="confirm-schedule">
+            <span>候補者に「日程が確定しました」とメールが届きます</span>
+            <button type="button" className="mdp-btn mdp-btn-primary btn-fixed-size" onClick={() => { setScheduleConfirming(false); onStatusChange?.("scheduled"); }}>確定する</button>
+            <button type="button" className="mdp-btn btn-fixed-size" onClick={() => setScheduleConfirming(false)}>やめる</button>
+          </div>
+        )}
+        {!readOnly && declineConfirming && (
+          <div role="alertdialog" aria-label="見送りの確認" className="mdp-confirm is-danger" data-state="confirm-decline">
+            <span>見送りますか？候補者にお知らせのメールが届きます</span>
+            <button type="button" className="mdp-btn mdp-btn-danger btn-fixed-size" onClick={() => { setDeclineConfirming(false); onStatusChange?.("declined"); }}>見送る</button>
+            <button type="button" className="mdp-btn btn-fixed-size" onClick={() => setDeclineConfirming(false)}>やめる</button>
+          </div>
+        )}
       </div>
+
+      {/* ── 中身。★広い枠では左＝申込の内容・経歴、右＝社内メモ（2026-10-18）。狭い枠では縦に並ぶ（コンテナクエリ） ── */}
+      <div className="mdp-body" style={{ flex: embedded ? undefined : 1, overflowY: embedded ? undefined : "auto" }}>
+        <div className="mdp-grid">
+          <div className="mdp-main">
+            {/* 興味を持った求人 */}
+            {m.jobTitle && (
+              <DetailSection>
+                <SectionTitle>興味を持った求人</SectionTitle>
+                <div style={{ display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>{m.jobTitle}</div>
+                  {m.jobSalary && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", whiteSpace: "nowrap" }}>{m.jobSalary}</div>}
+                </div>
+                {/* ★この求人の社内メモ（2026-10-12）。読むだけ・開閉。メモが無ければ何も出さない。⚠️ 求職者には出さない */}
+                {m.jobId && <JobInternalNote jobId={m.jobId} variant="readonly" />}
+              </DetailSection>
+            )}
+
+            {/* 申込の内容。★空の項目は出さない（2026-10-18。見出しだけ並んでいた） */}
+            <DetailSection>
+              <SectionTitle>申込の内容</SectionTitle>
+              {(() => {
+                const intent = m.intent && m.intent !== "—" ? m.intent : null;
+                const fields: { label: string; node: React.ReactNode }[] = [];
+                if (intent || m.intentDetail) fields.push({ label: "いまの転職意向", node: <>{intent && <strong style={{ color: "var(--royal)", fontWeight: 700 }}>{intent}</strong>}{m.intentDetail && <><br />{m.intentDetail}</>}</> });
+                if (m.interestReason.trim()) fields.push({ label: "興味を持ったきっかけ", node: <span style={{ whiteSpace: "pre-wrap" }}>{m.interestReason}</span> });
+                if (questions.length) fields.push({ label: "面談で聞いてみたいこと", node: questions.map((q, i) => <span key={i}>{q}{i < questions.length - 1 && <br />}</span>) });
+                if (m.preferredFormat && m.preferredFormat !== "—") fields.push({ label: "希望する面談形式", node: m.preferredFormat });
+                if (fields.length === 0) return <p data-state="application-empty" style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>申込時の記入はありません</p>;
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {fields.map((f) => <BlockField key={f.label} label={f.label}>{f.node}</BlockField>)}
+                  </div>
+                );
+              })()}
+            </DetailSection>
+
+            {/* 候補者のキャリア */}
+            <DetailSection>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <SectionTitle style={{ marginBottom: 0 }}>経歴</SectionTitle>
+                {m.applicantUserId && (
+                  <a href={`/u/${m.applicantUserId}`} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                    プロフィールを見る ↗
+                  </a>
+                )}
+              </div>
+              {m.career.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>職歴の登録はありません</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {m.career.map((c, i) => (
+                    <div key={i} style={{
+                      display: "grid",
+                      // ⚠️ 期間は formatPeriod が "2020.04 — 2023.03"（em ダッシュ込み17字）を返す。12px で約118px 要る
+                      gridTemplateColumns: "124px minmax(0, 1fr)",
+                      gap: 14, padding: "8px 0",
+                      borderBottom: i < m.career.length - 1 ? "1px dashed var(--line)" : "none",
+                      fontSize: 12,
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{c.period}</div>
+                      <div style={{ color: "var(--ink)", lineHeight: 1.6, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{c.role}</strong>
+                          {c.isCurrent && (
+                            <span style={{ background: "var(--success-soft)", color: "var(--success-ink)", padding: "0 6px", borderRadius: 4, fontWeight: 700, fontSize: 11 }}>現職</span>
+                          )}
+                        </div>
+                        <div style={{ color: "var(--ink-soft)", marginTop: 2 }}>{c.company}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </DetailSection>
+          </div>
+
+          {/* 社内メモ（右の列） */}
+          <aside className="mdp-side">
+            <div style={{ background: "var(--warm-soft)", border: "1px solid #FDE68A", borderRadius: 12, padding: "14px 16px" }} data-state="meeting-memo">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#78350F" }}>社内メモ</span>
+                <span aria-live="polite" style={{ marginLeft: "auto" }}>
+                  {memoSaveState === "saving" && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warm-ink)" }}>保存中…</span>}
+                  {memoSaveState === "saved" && <span style={{ fontSize: 12, fontWeight: 500, color: "var(--success-ink)" }}>✓ 保存しました</span>}
+                </span>
+              </div>
+              <textarea
+                value={memoValue}
+                onChange={(e) => onMemoChange?.(e.target.value)}
+                readOnly={readOnly}
+                aria-label="社内メモ"
+                placeholder="面談の前に確認したいこと、話した内容などを書いておけます"
+                className="mdp-memo"
+              />
+              <div style={{ fontSize: 12, color: "#78350F", marginTop: 6, lineHeight: 1.6 }}>
+                貴社の担当者だけが読めます。候補者には見えません。
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <style>{`
+        .mdp-head { position: sticky; top: 0; z-index: 3; background: #fff; border-bottom: 1px solid var(--line); padding: 12px 24px; display: flex; flex-direction: column; gap: 10px; }
+        .mdp-step-line { width: 22px; margin: 0 6px; flex-shrink: 1; }
+        .mdp-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .mdp-assignee { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); min-width: 0; }
+        .mdp-assignee-label { font-size: 12px; color: var(--ink-mute); }
+        .mdp-assignee-who { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+        .mdp-assignee-avatar { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+        .mdp-assignee-none { font-weight: 600; color: var(--ink-mute); }
+        .mdp-buttons { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+        .mdp-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .mdp-btn:hover { border-color: var(--royal-100); background: var(--royal-50); color: var(--royal); }
+        .mdp-btn-primary { background: var(--royal); border-color: var(--royal); color: #fff; }
+        .mdp-btn-primary:hover { background: #001233; border-color: #001233; color: #fff; }
+        .mdp-btn-danger { background: var(--error); border-color: var(--error); color: #fff; }
+        .mdp-btn-danger:hover { background: var(--error); color: #fff; opacity: 0.9; }
+        .mdp-more { position: relative; }
+        .mdp-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; min-width: 180px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; }
+        .mdp-menu button { text-align: left; padding: 9px 10px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+        .mdp-menu button:hover { background: var(--bg-tint); }
+        .mdp-menu button.is-danger { color: var(--error); }
+        .mdp-menu-note { padding: 9px 10px; font-size: 12px; color: var(--ink-mute); }
+        .mdp-hint { font-size: 12px; color: var(--ink-mute); }
+        .mdp-confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-radius: 8px; background: var(--royal-50); border: 1px solid var(--royal-100); font-size: 13px; font-weight: 600; color: var(--royal); }
+        .mdp-confirm.is-danger { background: var(--error-soft); border-color: #FCA5A5; color: var(--error); }
+        .mdp-confirm span { flex: 1 1 220px; min-width: 0; }
+        .mdp-body { container-type: inline-size; padding: 20px 24px; }
+        .mdp-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        .mdp-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+        .mdp-side { min-width: 0; }
+        .mdp-memo { width: 100%; padding: 10px 12px; border: 1px solid #FDE68A; border-radius: 8px; background: #fff; font: inherit; font-size: 13px; color: var(--ink); line-height: 1.7; min-height: 120px; resize: vertical; outline: none; box-sizing: border-box; }
+        .mdp-memo:focus { border-color: var(--warm-ink); }
+        @container (min-width: 700px) {
+          .mdp-grid { grid-template-columns: minmax(0, 1fr) 280px; align-items: start; }
+          .mdp-side { position: sticky; top: 96px; }
+          .mdp-memo { min-height: 220px; }
+        }
+        @media (max-width: 767px) {
+          .mdp-head { padding: 10px 14px; }
+          .mdp-step-line { width: 10px; margin: 0 4px; }
+          .mdp-progress li span { font-size: 12px; gap: 4px; }
+          .mdp-body { padding: 14px; }
+          .mdp-buttons { margin-left: 0; width: 100%; }
+        }
+      `}</style>
     </div>
   );
+}
+
+/** ★進み具合（2026-10-18）。新規受信 → 確認中 → 面談予定 → 完了。見送りはその旨を1行で */
+const PROGRESS_STEPS: { status: MeetingStatus; label: string }[] = [
+  { status: "pending", label: "新規受信" },
+  { status: "company_contacted", label: "確認中" },
+  { status: "scheduled", label: "面談予定" },
+  { status: "completed", label: "完了" },
+];
+function MeetingProgress({ status }: { status: MeetingStatus }) {
+  if (status === "declined") {
+    return <div data-state="progress-declined" style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-mute)" }}>見送りました</div>;
+  }
+  const at = PROGRESS_STEPS.findIndex((s) => s.status === status);
+  return (
+    <ol data-state="meeting-progress" aria-label="進み具合" className="mdp-progress" style={{ display: "flex", alignItems: "center", gap: 0, margin: 0, padding: 0, listStyle: "none", minWidth: 0 }}>
+      {PROGRESS_STEPS.map((s, i) => {
+        const done = i < at, current = i === at;
+        return (
+          <li key={s.status} aria-current={current ? "step" : undefined} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            {i > 0 && <span aria-hidden="true" className="mdp-step-line" style={{ height: 2, background: i <= at ? "var(--royal)" : "var(--line)" }} />}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: current ? 700 : 500, color: current ? "var(--royal)" : done ? "var(--ink-soft)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>
+              <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: "50%", flexShrink: 0, background: done || current ? "var(--royal)" : "#fff", border: `2px solid ${done || current ? "var(--royal)" : "var(--line)"}`, boxSizing: "border-box" }} />
+              {s.label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function SectionTitle({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "var(--ink)", ...style }}>{children}</h3>;
 }

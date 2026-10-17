@@ -73,6 +73,16 @@ function fmtListDate(iso: string, now: Date): string {
   }
   return `${v(pd, "year") === v(pn, "year") ? "" : `${v(pd, "year")}/`}${v(pd, "month")}/${v(pd, "day")}`;
 }
+/** ★未対応の経過時間（「3時間」「2日」）。分からなければ null */
+function waitingText(iso: string, now: Date): string | null {
+  const t = new Date(iso).getTime();
+  if (!iso || !Number.isFinite(t)) return null;
+  const min = Math.max(0, Math.floor((now.getTime() - t) / 60000));
+  if (min < 60) return `${Math.max(1, min)}分`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}時間`;
+  return `${Math.floor(h / 24)}日`;
+}
 function fmtDate(iso: string): string {
   const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
   const v = (t: string) => ps.find((p) => p.type === t)?.value ?? "";
@@ -363,11 +373,23 @@ export function SelectionView({
                       {it.at && <span style={{ flexShrink: 0, fontSize: 12, color: "var(--ink-mute)" }}>{fmtListDate(it.at, now)}</span>}
                     </div>
                     <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {it.kind === "meeting" ? `カジュアル面談・${it.jobTitle ?? "ポジション指定なし"}` : `応募・${it.jobTitle ?? "求人"}`}
+                      {/* ★ポジションの指定が無いときは「カジュアル面談」だけ（2026-10-18。「ポジション指定なし」を一覧・上の段で繰り返していた） */}
+                      {it.kind === "meeting" ? (it.jobTitle ? `カジュアル面談・${it.jobTitle}` : "カジュアル面談") : `応募・${it.jobTitle ?? "求人"}`}
                     </div>
-                    <div data-state="item-status" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>
-                      {status}{others > 0 && <span data-state="item-others">・ほかにも{others}件</span>}
-                    </div>
+                    {/* ★3行目: 状態・対応者（未定なら経過時間）（2026-10-18）。1日を過ぎて未対応のものは太字（赤くしない） */}
+                    {(() => {
+                      const waiting = it.kind === "meeting" && !it.closed && !it.m.assigneeId ? waitingText(it.at, now) : null;
+                      const stale = waiting !== null && it.at && now.getTime() - new Date(it.at).getTime() > 24 * 3600 * 1000;
+                      return (
+                        <div data-state="item-status" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {status}
+                          {it.kind === "meeting" && !it.closed && (it.m.assigneeName
+                            ? <span data-state="item-assignee">・対応：{it.m.assigneeName}</span>
+                            : <span data-state={stale ? "item-waiting-stale" : "item-waiting"} style={stale ? { fontWeight: 700, color: "var(--ink)" } : undefined}>・未対応{waiting ? ` ${waiting}` : ""}</span>)}
+                          {others > 0 && <span data-state="item-others">・ほかにも{others}件</span>}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </button>
               );
@@ -383,6 +405,7 @@ export function SelectionView({
               {selected.kind === "meeting" ? (
                 <MeetingDetailPanel
                   embedded
+                  hasConversation={!!selected.conversationId}
                   readOnly={!perms.canEdit}
                   meeting={selected.m}
                   memoDraft={memoDrafts[selected.m.id] ?? selected.m.companyMemo}
@@ -448,7 +471,7 @@ function SelectedPane({ it, now, fixtures, onBack, messageHref, showMessage = tr
   }, [it.userId, fx]);
 
   const kindLine = it.kind === "meeting"
-    ? `カジュアル面談・${it.jobTitle ?? "ポジション指定なし"}`
+    ? (it.jobTitle ? `カジュアル面談・${it.jobTitle}` : "カジュアル面談（ポジションの指定なし）")
     : `応募・${it.jobTitle ?? "求人"}`;
   return (
     <>
@@ -468,9 +491,10 @@ function SelectedPane({ it, now, fixtures, onBack, messageHref, showMessage = tr
               {kindLine}{it.at ? `・${fmtDate(it.at)}に受付` : ""}
             </div>
           </div>
+          {/* ⚠️ 面談の申込では「まだやり取りはありません」を出さない（詳細パネルの返信ボタンの横に出す。2026-10-18） */}
           {!showMessage ? null : messageHref ? (
             <Link href={messageHref} data-state="open-message" className="btn-fixed-size" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", padding: "8px 14px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>メッセージを開く</Link>
-          ) : (
+          ) : it.kind === "meeting" ? null : (
             <span data-state="no-message" style={{ flexShrink: 0, fontSize: 12.5, color: "var(--ink-mute)", paddingTop: 6 }}>メッセージのやり取りはまだありません</span>
           )}
         </div>
