@@ -8,7 +8,7 @@ import { ThreadReplyArea } from "@/app/biz/messages/[id]/ThreadReplyArea";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,
-  APPROACH_UNAVAILABLE_MESSAGE, approachDaysLeft, approachResendNotice, type CompanyApproachStatus,
+  APPROACH_UNAVAILABLE_MESSAGE, approachResendNotice, type CompanyApproachStatus,
 } from "@/lib/constants/companyApproaches";
 
 /**
@@ -31,7 +31,6 @@ import {
  */
 const GRAY: React.CSSProperties = { fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 };
 const DOCK: React.CSSProperties = { padding: "4px 0", minHeight: 0, display: "flex", flexDirection: "column" };
-const TOGGLE: React.CSSProperties = { flexShrink: 0, background: "none", border: "none", padding: "4px 0", fontSize: 13, fontWeight: 700, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" };
 
 export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, openNonce, onRead }: {
   candidate: Candidate;
@@ -193,7 +192,6 @@ function SentDock({ sent, onRead, justSent = false }: {
     status: CompanyApproachStatus; conversationId: string | null };
   const [detail, setDetail] = useState<Detail | null>(null);
   const [failed, setFailed] = useState(false);
-  const [open, setOpen] = useState(justSent);
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let alive = true;
@@ -262,27 +260,19 @@ function SentDock({ sent, onRead, justSent = false }: {
     );
   }
 
-  /* ── 返信待ち・30日返信なし：閉じた1行（「開く」で送った内容） ── */
+  /* ── 返信待ち・30日返信なし：最初から送った内容を出す（2026-10-18 / 柴さんの指示。開く・閉じるは無くした）。
+        ⚠️ 状態（返信を待っています・返信はありませんでした）は吹き出しの最後の行に出る。上にもう1行出さない（同じ文が2回並んでいた） */
   return (
-    <div data-state={open ? "dock-open" : "dock-closed"} style={{ ...DOCK, padding: 0 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "4px 0", flexShrink: 0 }}>
-        <div data-state="dock-status" style={{ ...GRAY, minWidth: 0, flex: 1 }}>
-          {detail.status === "pending"
-            ? `${justSent ? "送りました。" : ""}返信を待っています（あと${approachDaysLeft(detail.createdAt)}日）`
-            : "返信はありませんでした"}
-        </div>
-        <button type="button" onClick={() => setOpen((x) => !x)} aria-expanded={open} data-state="dock-toggle" style={TOGGLE}>{open ? "閉じる" : "開く"}</button>
+    <div data-state="dock-open" style={{ ...DOCK, padding: 0 }}>
+      {justSent && <div data-state="dock-status" style={{ ...GRAY, padding: "4px 0" }}>送りました。</div>}
+      <div data-state="dock-body" style={{ padding: "4px 0 8px" }}>
+        <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
+          status={detail.status} reply={null} />
+        {/* ★メッセージ画面の「返事待ち」でこの1通を開く（2026-10-18） */}
+        <Link href={threadHref} data-state="pane-open-messages" style={{ display: "block", textAlign: "right", marginTop: 8, fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}>
+          メッセージ画面で開く ›
+        </Link>
       </div>
-      {open && (
-        <div data-state="dock-body" style={{ padding: "4px 0 8px" }}>
-          <ApproachBubble senderName={detail.senderName} sentAt={detail.createdAt} jobTitle={detail.jobTitle} reason={detail.reason} body={detail.body}
-            status={detail.status} reply={null} />
-          {/* ★メッセージ画面の「返事待ち」でこの1通を開く（2026-10-18） */}
-          <Link href={threadHref} data-state="pane-open-messages" style={{ display: "block", textAlign: "right", marginTop: 8, fontSize: 12, color: "var(--ink-mute)", textDecoration: "none" }}>
-            メッセージ画面で開く ›
-          </Link>
-        </div>
-      )}
     </div>
   );
 }

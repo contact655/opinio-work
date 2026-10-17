@@ -154,7 +154,8 @@ export function CandidateProfilePanel({ userId, name, avatarUrl, avatarColorByNa
               メッセージ
               {columns.messagesDot && <span data-state="col-messages-dot" aria-label="未読があります" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--royal)" }} />}
             </h3>
-            <p style={{ margin: "2px 0 10px", fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>既読は、この欄で入力やスクロールをしたときに付きます</p>
+            {/* ★既読の付き方の説明（「既読は、この欄で入力やスクロールをしたときに付きます」）は 2026-10-18 に外した（柴さんの指示） */}
+            <div style={{ height: 10 }} />
             {columns.messages}
           </div>
         </ColumnsSplit>
