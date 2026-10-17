@@ -25,7 +25,7 @@ export const metadata = {
   title: { absolute: "候補者を探す | OPINIO Business" },
 };
 
-export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string; approach?: string; f?: string } }) {
+export default async function CandidatesPage({ searchParams }: { searchParams?: { selected?: string; saved?: string; new?: string; approach?: string; f?: string; position?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) {
     return (
@@ -219,7 +219,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials }, approachQuota, coRow] = await Promise.all([
+  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials, positions, positionFits }, approachQuota, coRow] = await Promise.all([
     loadCompanyCandidates({
       companyId: ctx.tenantId,
       viewerOwUserId: ctx.currentOwnId,
@@ -275,6 +275,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         companyLimitLine={companyLimitLine}
         /* ★右欄が使う会社の材料（2026-10-13）。右欄は一覧の Candidate とこれで描く（1人ずつ取り直さない） */
         approachJobs={approachJobs}
+        positions={positions}
+        positionFits={positionFits}
+        initialPosition={/^[0-9a-f-]{36}$/.test(searchParams?.position ?? "") ? searchParams!.position! : null}
         touchpointMaterials={touchpointMaterials}
         notesEnabled={isCandidateNotesEnabled()}
         limitReached={limitReached}

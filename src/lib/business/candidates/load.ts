@@ -18,6 +18,8 @@ import { getRecentlyApproached, listApproachableJobs, unseenRepliedConversationI
 import { unreadMessageCounts } from "@/lib/conversations/unread";
 import { isCandidateNotesEnabled, listCandidateNoteCounts, listCandidateStages } from "@/lib/candidateNotes/server";
 import { getCompanyCandidateTouchpoints, type TouchpointMaterials } from "@/lib/business/candidates/touchpoints";
+import { getCompanyPositionFits } from "@/lib/business/candidates/positionFit";
+import type { PositionFits, PositionOption } from "@/lib/business/candidates/positionFitModel";
 import type { Candidate } from "@/lib/business/candidates/model";
 
 /**
@@ -41,6 +43,9 @@ export type LoadedCandidates = {
   approachJobs: { id: string; title: string }[];
   /** 接点の材料が自社に揃っているか。null = 取れなかった */
   touchpointMaterials: TouchpointMaterials | null;
+  /** ★ポジションで見る（2026-10-18）。自社の求人（下書きも含む）と、求人ごとの合うところ。null = 取れなかった */
+  positions: PositionOption[] | null;
+  positionFits: PositionFits;
 };
 
 export async function loadCompanyCandidates(params: {
@@ -186,7 +191,7 @@ export async function loadCompanyCandidates(params: {
       else approachOk = new Map(((data ?? []) as { candidate_ow_user_id: string; ok: boolean }[]).map((r) => [r.candidate_ow_user_id, r.ok === true]));
     }
   }
-  const [approachJobs, recentlyApproached, stages, touch, noteCounts] = await Promise.all([
+  const [approachJobs, recentlyApproached, stages, touch, noteCounts, positionFit] = await Promise.all([
     approachAllowed ? listApproachableJobs(companyId) : Promise.resolve([] as { id: string; title: string }[]),
     approachAllowed ? getRecentlyApproached(companyId, userIds) : Promise.resolve(new Map<string, RecentApproach>()),
     isCandidateNotesEnabled() ? listCandidateStages(companyId, userIds) : Promise.resolve(null),
@@ -198,6 +203,13 @@ export async function loadCompanyCandidates(params: {
     }))),
     /* ★社内メモの件数（カードの「社内メモ 〇」。2026-10-11）。⚠️ フラグがオフなら引かない */
     isCandidateNotesEnabled() ? listCandidateNoteCounts(companyId, userIds) : Promise.resolve(null),
+    /* ★ポジションで見る（2026-10-18）。⚠️ 突き合わせは positionFit.ts の1か所 */
+    getCompanyPositionFits(companyId, companyIsTest, users.map((u) => ({
+      owUserId: u.id as string,
+      location: (u.location as string | null) ?? null,
+      desiredRoleIds: desiredByAuthId.get(u.auth_id as string)?.ids ?? [],
+      desiredPrefectures: (profilesByAuthId.get(u.auth_id as string)?.desired_prefectures as string[] | null) ?? null,
+    }))),
   ]);
 
   /* ★★（気になる。2026-10-12）と見送り（2026-10-13）。この会社の分だけ。⚠️ 取れなければ全員 false（ログは出す）。
@@ -327,5 +339,6 @@ export async function loadCompanyCandidates(params: {
         .map((r) => ({ id: r.id, name: r.name })),
     }));
 
-  return { candidates, limitReached: (rawUsers ?? []).length >= CANDIDATE_LOAD_LIMIT, roleFilterTree, approachJobs, touchpointMaterials: touch?.materials ?? null };
+  return { candidates, limitReached: (rawUsers ?? []).length >= CANDIDATE_LOAD_LIMIT, roleFilterTree, approachJobs, touchpointMaterials: touch?.materials ?? null,
+    positions: positionFit?.positions ?? null, positionFits: positionFit?.fits ?? {} };
 }

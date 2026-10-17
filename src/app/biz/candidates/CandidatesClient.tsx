@@ -56,6 +56,7 @@ import {
  */
 /* ★並び替えの選択肢・社会人年数の帯・更新時期の帯は model.ts（2026-10-10 に移した）。
    ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
+import { sortByPositionFit, type PositionFits, type PositionOption } from "@/lib/business/candidates/positionFitModel";
 const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
@@ -113,6 +114,9 @@ export default function CandidatesClient({
   activityEnabled = false,
   initialFilters = null,
   approachJobs = [],
+  positions = null,
+  positionFits = {},
+  initialPosition = null,
   touchpointMaterials = null,
   notesEnabled = false,
   limitReached = false,
@@ -130,6 +134,11 @@ export default function CandidatesClient({
   viewerName?: string | null;
   /** ★右欄が使う会社の材料（2026-10-13。page.tsx が loadCompanyCandidates の結果から渡す） */
   approachJobs?: { id: string; title: string }[];
+  /** ★ポジションで見る（2026-10-18）。自社の求人（下書きも含む）。null = 取れなかった（欄を出さない） */
+  positions?: PositionOption[] | null;
+  positionFits?: PositionFits;
+  /** `?position=` から。一覧に無い id なら選ばない */
+  initialPosition?: string | null;
   touchpointMaterials?: TouchpointMaterials | null;
   notesEnabled?: boolean;
   /** ★URL（`?f=`）から復元した条件（2026-10-12）。保存した条件と同じ形（`parseSavedFilters` を通したもの） */
@@ -437,7 +446,24 @@ export default function CandidatesClient({
   const populationCount = useMemo(() => withStars.filter((c) => c.hidden !== true).length, [withStars]);
   /* ⚠️ 年齢の並び替えは無効な環境では使わない（保存した条件に残っていても新着順に戻す） */
   const effectiveSort = (!ageFilterEnabled && AGE_SORTS.includes(sort)) || (!activityEnabled && ACTIVITY_SORTS.includes(sort)) ? "new" : sort;
-  const sorted = useMemo(() => sortCandidates(filtered, effectiveSort), [filtered, effectiveSort]);
+  /* ★ポジションで見る（2026-10-18 / 柴さんの指示・段1）。選ぶと、カードの理由の行がそのポジションに対する合うところに変わり、合う順に並ぶ。
+        ⚠️ URL（`?position=`）は replaceState（履歴を積まない。`?selected=` と同じ）。⚠️ 点数は出さない（並べるだけ） */
+  const [positionId, setPositionId] = useState<string | null>(
+    initialPosition && positions?.some((p) => p.id === initialPosition) ? initialPosition : null);
+  const position = positionId ? positions?.find((p) => p.id === positionId) ?? null : null;
+  const positionFit = position ? positionFits[position.id] : undefined;
+  const changePosition = useCallback((id: string | null) => {
+    setPositionId(id);
+    try {
+      const url = new URL(window.location.href);
+      if (id) url.searchParams.set("position", id); else url.searchParams.delete("position");
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch { /* URL を書けなくても表示は続ける */ }
+  }, []);
+  const sorted = useMemo(() => {
+    const base = sortCandidates(filtered, effectiveSort);
+    return positionFit ? sortByPositionFit(base, positionFit) : base;
+  }, [filtered, effectiveSort, positionFit]);
   /* ★プレビューに出す人。明示的に選んだ人 → 無ければ（1280px 以上で、閉じていなければ）先頭の人 */
   const shownId: string | null = selected ?? (isWide && autoPick ? sorted[0]?.id ?? null : null);
   /* ★右欄に渡す候補者（2026-10-13）。一覧が持っている値をそのまま渡す（右欄で取り直さない）。
@@ -823,6 +849,19 @@ export default function CandidatesClient({
           </p>
         )}
 
+        {/* ★ポジションで見る（2026-10-18）。自社の求人が1件も無ければ出さない（取れなかったときも出さない） */}
+        {positions && positions.length > 0 && (
+          <label className="cand-position" data-state={position ? "position-on" : "position-off"}>
+            <span className="cand-position-label">ポジション</span>
+            <select value={positionId ?? ""} onChange={(e) => changePosition(e.target.value || null)} aria-label="ポジションで見る">
+              <option value="">選ばない（全体で見る）</option>
+              {positions.map((p) => (
+                <option key={p.id} value={p.id}>{p.title}{p.statusLabel ? `（${p.statusLabel}）` : ""}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
         {/* フリーワード。★ボタン類と同じ行に置く（2026-10-11）。幅が足りなければ折り返して2行になる */}
         <div style={{ position: "relative", flex: "1 1 180px", minWidth: 0 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -849,7 +888,10 @@ export default function CandidatesClient({
         </div>
 
         {/* ⚠️★「メッセージを受け取る方のみ（〇名）」の切り替えは 2026-10-11 に外した。戻さないこと */}
-        <SortSelect value={effectiveSort} options={SORT_OPTIONS.filter((o) => (ageFilterEnabled || !AGE_SORTS.includes(o.value)) && (activityEnabled || !ACTIVITY_SORTS.includes(o.value)))} onChange={setSort} />
+        {/* ★ポジションを選んでいるときは「このポジションに合う順」で並ぶ（並び替えの選択は効かないので出さない） */}
+        {position
+          ? <span className="cand-position-sort" data-state="position-sort">このポジションに合う順</span>
+          : <SortSelect value={effectiveSort} options={SORT_OPTIONS.filter((o) => (ageFilterEnabled || !AGE_SORTS.includes(o.value)) && (activityEnabled || !ACTIVITY_SORTS.includes(o.value)))} onChange={setSort} />}
 
         {/* ★「この条件を保存」（2026-10-10 / 段2）。**条件を選んでいるときだけ**出す。
                ⚠️ 保存の入口はここ1つ（「保存した条件」の中から保存フォームを外した。入口を2つにしない）。 */}
@@ -1195,7 +1237,32 @@ export default function CandidatesClient({
                         ? <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
                         : <div className="cand-card-sub3" aria-hidden="true" />)}
                       {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は何も書かない（2026-10-18 / 柴さんの指示。「合うところ：なし」でも強すぎた）。カードの高さを揃えるため、同じ高さの空きだけ残す（.is-empty は見えない）。取れなかった（undefined）ときは出さない */}
-                      {!(compactCards && isWide) && (topTp ? (
+                      {/* ★ポジションを選んでいるときは、そのポジションに対する合うところ（✓ 1つ＋ほか件数）と足りない点1つ（灰色）。2026-10-18 */}
+                      {!(compactCards && isWide) && positionFit ? (() => {
+                        const items = positionFit[c.id]?.items ?? [];
+                        const oks = items.filter((x) => x.ok);
+                        const gap = items.find((x) => !x.ok) ?? null;
+                        const all = items.map((x) => `${x.ok ? "✓" : "△"} ${x.item}：${x.text}`).join("\n");
+                        if (!oks.length && !gap) return <div className="cand-card-reason is-empty" data-state="card-position-empty" aria-hidden="true">{"\u00a0"}</div>;
+                        return (
+                          <div className="cand-card-pos" data-state="card-position" title={all}>
+                            {oks.length > 0 && (
+                              <div className="cand-card-reason" data-state="card-position-ok">
+                                <span aria-hidden="true" className="cand-card-reason-check">✓</span>
+                                <span className="cand-card-reason-item">{oks[0].item}</span>
+                                <span className="cand-card-reason-text">{oks[0].text}</span>
+                                {oks.length > 1 && <span className="cand-card-reason-more">ほか{oks.length - 1}件</span>}
+                              </div>
+                            )}
+                            {gap && (
+                              <div className="cand-card-gap" data-state="card-position-gap">
+                                <span className="cand-card-reason-item">{gap.item}</span>
+                                <span className="cand-card-reason-text">{gap.text}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })() : !(compactCards && isWide) && (topTp ? (
                         <div className="cand-card-reason" data-state="card-reason"
                           title={topTp.row ? `${topTp.row.item}：${topTp.row.summary ?? `${topTp.row.person} ↔ ${topTp.row.ours}`}` : topTp.text}>
                           <span aria-hidden="true" className="cand-card-reason-check">✓</span>
@@ -1255,7 +1322,8 @@ export default function CandidatesClient({
         {/* 右のプレビュー。⚠️ 1280px 未満では CSS で隠す */}
         <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownCandidate ? (
-            <CandidatePreview key={shownCandidate.id} candidate={shownCandidate} companyLimitLine={companyLimitLine} canAct={canAct}
+            <CandidatePreview key={shownCandidate.id} candidate={shownCandidate}
+              positionFit={position && positionFit ? { title: position.title, items: positionFit[shownCandidate.id]?.items ?? [] } : null} companyLimitLine={companyLimitLine} canAct={canAct}
               layout={isWide && paneColumns ? "columns" : "tabs"} columnsStorageKey={columnsStorageKey}
               onMessagesRead={() => setReadOverride((prev) => ({ ...prev, [shownCandidate.id]: true }))}
               companyShortName={companyShortName} touchpointMaterials={touchpointMaterials} approachJobs={approachJobs} notesEnabled={notesEnabled}
@@ -1363,6 +1431,19 @@ export default function CandidatesClient({
            文字 #14532D on #ECF6EF = 8.24 ／ ほか○件 #3F6B4E = 5.55 ／ チェックも #14532D */
         .cand-card-reason { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; margin-top: 4px; padding: 3px 8px; border-radius: 6px; background: #ECF6EF; color: #14532D; font-size: 12px; line-height: 18px; min-width: 0; }
         .cand-card-reason.is-empty { visibility: hidden; }
+        /* ★ポジションで見る（2026-10-18） */
+        .cand-position { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 6px 0 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; flex: 0 1 300px; min-width: 0; cursor: pointer; }
+        .cand-position[data-state=position-on] { border-color: var(--royal); background: var(--royal-50); }
+        .cand-position-label { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+        .cand-position[data-state=position-on] .cand-position-label { color: var(--royal); }
+        .cand-position select { flex: 1; min-width: 0; height: 34px; border: none; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; text-overflow: ellipsis; outline: none; }
+        .cand-position-sort { display: inline-flex; align-items: center; height: 38px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--royal); white-space: nowrap; flex-shrink: 0; }
+        /* ⚠️ 1行に収める（折り返すとカードの高さがそろわない）。両方とも縮み、文は省略記号で切る（全文は title） */
+        .cand-card-pos { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 0; max-width: 100%; }
+        .cand-card-pos .cand-card-reason { flex: 0 1 auto; max-width: 65%; }
+        .cand-card-pos .cand-card-reason:only-child { max-width: 100%; }
+        .cand-card-gap { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; box-sizing: border-box; margin-top: 4px; padding: 3px 8px; border-radius: 6px; background: var(--bg-tint); color: var(--ink-mute); font-size: 12px; line-height: 18px; overflow: hidden; }
+        .cand-card-gap .cand-card-reason-item { flex-shrink: 0; }
         .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: #14532D; }
         .cand-card-reason-item { flex-shrink: 0; font-weight: 700; }
         .cand-card-reason-text { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StanceBadge } from "@/components/candidates/StanceMeter";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
+import { PositionFitBox } from "@/components/candidates/PositionFitBox";
+import type { PositionFitItem } from "@/lib/business/candidates/positionFitModel";
 import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
@@ -221,7 +223,9 @@ export type PreviewActions = {
 };
 
 export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, companyLimitLine = null, canAct = true,
-  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead, columnsStorageKey = null }: {
+  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead, columnsStorageKey = null, positionFit = null }: {
+  /** ★一覧の上で選んでいるポジションに対する合うところ（2026-10-18）。選んでいなければ null */
+  positionFit?: { title: string; items: PositionFitItem[] } | null;
   /** ★2列表示の比率を覚えるキー（CandidatesClient から。2026-10-13） */
   columnsStorageKey?: string | null;
   /** ★右欄の形（2026-10-13）。"tabs" … 段1・段2（プロフィール／メッセージのタブ）／ "columns" … 段3（2列を同時に） */
@@ -347,6 +351,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
       sectioned
       before={<>
         <TransferPrefsBox candidate={c} />
+        {positionFit && <PositionFitBox title={positionFit.title} items={positionFit.items} />}
         <TouchpointSection touchpoints={c.touchpoints} companyShortName={companyShortName} />
         <TouchpointGuide touchpoints={c.touchpoints} materials={touchpointMaterials} />
       </>}
