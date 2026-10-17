@@ -75,13 +75,22 @@ export const PREFECTURE_FILTER_GROUPS: { group: string; prefectures: readonly st
   { group: "すべての都道府県", prefectures: OTHER_PREFECTURES },
 ];
 
-/** 本人が住まいとして選べる「都道府県以外」の値。⚠️ 絞り込みには出さない（下記）。 */
-export const RESIDENCE_EXTRA_OPTIONS = ["海外", "非公開"] as const;
+/** 本人が住まいとして選べる「都道府県以外」の値。⚠️ 絞り込みには出さない（下記）。
+ *  ⚠️★「非公開」は 2026-10-17 に選択肢から外した（柴さんの指示）。出したくない人は「選択しない」（＝未登録として保存）。
+ *     保存済みの「非公開」（実在2件・2026-10-17）は書き換えず、読むときに未登録として扱う（`parseResidence`）。 */
+export const RESIDENCE_EXTRA_OPTIONS = ["海外"] as const;
+
+/** 以前の選択肢「非公開」。⚠️ 新しく保存しない。読むときは未登録と同じ扱い */
+export const LEGACY_RESIDENCE_DECLINED = "非公開";
+
+/** ★オンボーディング1画面目の「選択しない」（2026-10-17）。⚠️ 画面の中だけの印で、保存するときは空（未登録）にする。
+ *    「まだ選んでいない」（空）と区別するためにある（1画面目は「選ぶ／選ばないを決める」まで進めない） */
+export const RESIDENCE_NONE = "__none__";
 
 /**
  * ★本人が**自分の居住地を選ぶ**ときの選択肢（2026-09-15）。
  *
- * **47都道府県 ＋「海外」「非公開」。** `PREFECTURE_FILTER_GROUPS` から**導出する**。
+ * **47都道府県 ＋「海外」。**（「非公開」は 2026-10-17 に外した） `PREFECTURE_FILTER_GROUPS` から**導出する**。
  * ⚠️★**2つ目の一覧を手で書かないこと。** これを足した理由がまさにそれで、
  *    `/mypage` の「所在地」が `lib/profile/mockProfileData.ts` の `LOCATIONS`（**11件**）、
  *    `/mypage/settings` の「居住地」が `PREFECTURE_FILTER_GROUPS`（**47件**）を見ており、
@@ -111,8 +120,8 @@ export const RESIDENCE_EXTRA_OPTIONS = ["海外", "非公開"] as const;
  *       「所在地」に戻さないこと —— `/biz/company` と `/admin` が**会社の住所**に
  *       使っている。「居住地」は `/biz/candidates` の**企業向けの語**で、本人向けには使わない。
  *
- * ⚠️★**「非公開」を選択肢から外さないこと。** オンボーディング1画面目が
- *    この項目を**必須**にできているのは、出したくない人の逃げ道がここにあるから。
+ * ⚠️★**「非公開」は 2026-10-17 に外した**（柴さんの指示）。逃げ道はオンボーディング1画面目の
+ *    「選択しない」（`RESIDENCE_NONE`。未登録として保存）。1画面目は「選ぶか、選択しないか」を決めるまで進めない。
  */
 export const RESIDENCE_OPTION_GROUPS: { group: string; prefectures: readonly string[] }[] = [
   ...PREFECTURE_FILTER_GROUPS,
@@ -176,6 +185,8 @@ export function parseResidence(location: string | null | undefined): { choice: s
     const country = m ? m[1] : s.slice(OVERSEAS.length).replace(/^[\s・:：/-]+/, "");
     return { choice: OVERSEAS, country: country.trim(), raw: null };
   }
+  /* ⚠️ 以前の「非公開」は未登録として開く（選択肢に無いので、そのまま choice にすると空欄に見える） */
+  if (s === LEGACY_RESIDENCE_DECLINED) return { choice: "", country: "", raw: null };
   if ((RESIDENCE_EXTRA_OPTIONS as readonly string[]).includes(s)) return { choice: s, country: "", raw: null };
   /* 都道府県の正式名ちょうど → そのまま。それ以外（「東京」「東京都渋谷区」）は対応づけた県を選んだ状態で開く（次に保存すると選択式の値になる） */
   const key = residenceKey(s);

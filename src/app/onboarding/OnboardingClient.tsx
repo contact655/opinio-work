@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { readStep2Draft, writeStep2Draft, clearStep2Draft } from "@/lib/onboarding/step2Draft";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { ResidenceSelect } from "@/components/profile/ResidenceSelect";
-import { parseResidence } from "@/lib/utils/location";
+import { LEGACY_RESIDENCE_DECLINED, RESIDENCE_NONE, parseResidence } from "@/lib/utils/location";
 import { birthYearOptions, birthDateRangeError } from "@/lib/age";
 import { RANKS } from "@/lib/constants/careerOptions";
 /* ⚠️★「転職について」の問い・説明・選択肢はこの部品にある。**ここに書き写さないこと。**
@@ -408,12 +408,14 @@ function OnboardingInner({
         この列には DB の CHECK が無く、**語彙の担保が入力欄だけ**。2026-09-15 に
         `/mypage`（11件）と `/mypage/settings`（47件）が同じ列に別の語彙を書いていて、
         片方で選ぶともう片方で空欄に見え、保存すると値が消える状態だった。
-     ⚠️★**「非公開」が選択肢にあるので、必須にしても開示は強制しない。**
-        逃げ道のない生年月日より弱い要求。この関係を崩さないこと。
+     ⚠️★**「選択しない」があるので、必須にしても開示は強制しない**（2026-10-17 に「非公開」から置き換えた）。
+        「選ぶか、選択しないか」を決めるまで進めない。選択しないは未登録（null）として保存する。
      ⚠️★**変数名を `location` にしない**（`window.location` を隠す）。
      ⚠️★**勤務地（`ow_experiences.prefecture`）とは別の列。** あちらは
         2026-09-15 に聞く画面ごと消してあり、**足し戻さないと決めている。** */
-  const [residence, setResidence] = useState(() => initialPerson.residence);
+  /* ⚠️ 以前の「非公開」は「選択しない」として開く（2026-10-17 に選択肢から外した） */
+  const [residence, setResidence] = useState(() =>
+    initialPerson.residence.trim() === LEGACY_RESIDENCE_DECLINED ? RESIDENCE_NONE : initialPerson.residence);
 
   /* ★★氏名とふりがな（2026-09-14 / 柴さんの指示で1画面目に足した）。
      ⚠️★**`ow_users.name` は消さない。** 表示の正は今も `name`（NOT NULL）で、
@@ -632,14 +634,13 @@ function OnboardingInner({
   /* ★★1画面目は**6項目すべて必須**（2026-09-14 / 柴さんの指示。2026-09-23 にお住まいを追加）。
         ⚠️★この画面だけ「後で設定する」を出していない。出すと必須にならない。
         ⚠️ 生年月日は3つ揃って初めて日付になる（`YYYY-MM-DD`）。1つでも空なら未入力。
-        ⚠️★お住まいを必須にできるのは**選択肢に「非公開」があるから**。
-           選択肢からあれを外すなら、必須をやめるかどうかを先に決めること。 */
+        ⚠️★お住まいを必須にできるのは**「選択しない」があるから**（2026-10-17）。外すなら必須もやめること。 */
   const youReady = !!(
     familyName.trim() && givenName.trim() &&
     familyNameKana.trim() && givenNameKana.trim() &&
     birthYear && birthMonth && birthDay && !birthRangeError &&
     /* ⚠️ 読めない古い値のままでは進めない（選び直してもらう） */
-    parseResidence(residence).choice
+    (residence === RESIDENCE_NONE || parseResidence(residence).choice)
   );
 
   /** 1画面目の「次へ」。⚠️ `ow_users` への保存なので `PUT /api/jobseeker/profile` を呼ぶ。 */
@@ -658,7 +659,7 @@ function OnboardingInner({
       birth_date: `${birthYear}-${birthMonth}-${birthDay}`,
       /* ★お住まい。⚠️ `ow_users.location` の1系統で、**保存先も同じ PUT**。
             経歴の POST に相乗りさせない（生年月日と同じ理由）。 */
-      location: residence,
+      location: residence === RESIDENCE_NONE ? "" : residence,
     }, "お名前と生年月日とお住まい", failures);
     setSaving(false);
     /* ⚠️★失敗したら**進めない**。ここは必須項目なので、黙って次へ行くと
@@ -1011,16 +1012,7 @@ function OnboardingInner({
             {birthRangeError && (
               <p role="alert" style={{ fontSize: 12, color: "var(--error)", marginTop: 8, lineHeight: 1.6 }}>{birthRangeError}</p>
             )}
-            {/* ⚠️★**この一文を消さないこと。** 生年月日が誰に見えるかの説明がここにしか無い。
-                ★2026-10-13 に書き直した（柴さんの指示）。それまでの「ユーザー一覧には表示されません。年齢はプロフィールの
-                   詳細ページにだけ出ます。」は2点とも事実と違っていた ——
-                   ・`/u/[id]` の年齢表示は 2026-08-29 に外してある（ほかのユーザーには年齢も出ない）
-                   ・企業には年齢が出る（候補者を探す。2026-10-12 の規約改定・`CANDIDATE_AGE_DISPLAY_ENABLED`。面談の申込の詳細にも出る）
-                ⚠️ 生年月日そのものはどこにも出さない（年齢だけ）。年齢での絞り込みは本番では無効（弁護士の確認待ち）なので書かない。
-                ⚠️★**「登録ユーザー一覧に表示されます」と書かないこと。** 実態と逆。 */}
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
-              ほかのユーザーには表示されません。企業には、生年月日から計算した年齢だけが表示されます（生年月日そのものは表示されません）。
-            </p>
+            {/* ★説明文は 2026-10-17 に外した（柴さんの指示）。⚠️ 生年月日そのものはどこにも出さない（企業には年齢だけ） */}
           </div>
 
           {/* ★★お住まい（2026-09-23 / 柴さんの指示）。**生年月日のすぐ下。**
@@ -1051,22 +1043,10 @@ function OnboardingInner({
               お住まい
             </div>
             {/* ⚠️★選択肢・海外の国名・古い値の扱いは共通部品（ResidenceSelect）。ここで展開し直さない */}
-            <ResidenceSelect id="ob-residence" value={residence} onChange={setResidence} selectStyle={{ ...selectStyle, width: "100%" }} />
-            {/* ⚠️★**この一文を消さないこと。** 必須にしておきながら
-                   「出したくない人の逃げ道」がここにしか書いていない。
-                ⚠️ 「企業に見られます」と書かないこと —— 企業側で見えるのは
-                   `/biz/candidates` の候補者一覧で、**都道府県までに丸めて**出る。 */}
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 8, lineHeight: 1.7 }}>
-              プロフィールに表示されます。出したくない場合は「非公開」を選んでください。
-            </p>
+            <ResidenceSelect id="ob-residence" value={residence} onChange={setResidence} selectStyle={{ ...selectStyle, width: "100%" }} noneOption />
+            {/* ★説明文は 2026-10-17 に外した（柴さんの指示）。出したくない人は「選択しない」 */}
           </div>
 
-            {/* ⚠️★**この一文を消さないこと。** 本名を求める理由がここにしか無い。
-                   ⚠️ 「企業に見られます」と書かないこと —— 実際に企業へ渡るのは
-                      応募・面談を**本人が申し込んだとき**だけで、一覧に並ぶわけではない。 */}
-            <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 14, lineHeight: 1.7 }}>
-              お名前は、あなたのプロフィールに表示されます。ふりがなは企業には表示されません。
-            </p>
 
             {saveError && (
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--error)", marginTop: 14 }}>{saveError}</p>

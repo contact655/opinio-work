@@ -24,7 +24,7 @@ test("入力欄の形に分けて、組み立て直せる", () => {
   assert.equal(buildResidence("海外", " "), "海外");
   assert.equal(buildResidence("大阪府", "x"), "大阪府");
   assert.deepEqual(parseResidence("東京都渋谷区"), { choice: "東京都", country: "", raw: "東京都渋谷区" });
-  assert.deepEqual(parseResidence("非公開"), { choice: "非公開", country: "", raw: null });
+  assert.deepEqual(parseResidence("非公開"), { choice: "", country: "", raw: null });
   assert.deepEqual(parseResidence("どこか"), { choice: "", country: "", raw: "どこか" });
 });
 
