@@ -424,15 +424,24 @@ export function CreateCompanyClient({
   ) : null;
 
   return (
-    <div style={{ maxWidth: 860, paddingLeft: 24 }}>
+    <div className="ccc-wrap" style={{ maxWidth: 860 }}>
+      {/* ★スマホ（767px 以下）では1列にする（2026-10-18）。それまで「1fr 260px」の2列のままで、
+            375px では入力欄が約40px に潰れ、見出しが1文字ずつ折り返していた。
+            ⚠️ 列・余白・並び順は CSS が持つ。インラインに戻すとメディアクエリが効かなくなる */}
+      <style>{`
+        .ccc-wrap { padding-left: 24px; }
+        .ccc-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+        .ccc-grid[data-sidebar=yes] { grid-template-columns: minmax(0, 1fr) 260px; }
+        .ccc-side { position: sticky; top: calc(var(--biz-header-h) + 24px); }
+        @media (max-width: 767px) {
+          .ccc-wrap { padding-left: 0; }
+          .ccc-grid[data-sidebar=yes] { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+          .ccc-side { position: static; order: -1; }
+        }
+      `}</style>
 
-      {/* 2カラムレイアウト */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: sidebar ? "1fr 260px" : "1fr",
-        gap: 32,
-        alignItems: "start",
-      }}>
+      {/* 2カラムレイアウト（スマホでは作成アカウントが上・フォームが下の1列） */}
+      <div className="ccc-grid" data-sidebar={sidebar ? "yes" : "no"}>
       {/* メインフォーム */}
       <div>
 
@@ -904,7 +913,7 @@ export function CreateCompanyClient({
       {/* サイドバー */}
       {sidebar && (
         /* ⚠️ ヘッダーの下に固定する。ヘッダーの高さは BusinessLayout の --biz-header-h（数字で書かないこと） */
-        <div style={{ position: "sticky", top: "calc(var(--biz-header-h) + 24px)" }}>
+        <div className="ccc-side">
           {sidebar}
         </div>
       )}
