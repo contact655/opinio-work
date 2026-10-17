@@ -11,13 +11,15 @@ import { topicsFor, type MessageTopic, type TopicSection } from "@/lib/constants
  *    企業担当者が個人として採用の話を送れると、企業からのメッセージの上限（返事待ち10件）が素通りになる。
  *    採用のテーマは段階2（送り主を人にそろえ、採用テーマは企業の枠を使う）で入れる。
  * ⚠️ 相手の現職が会社マスタに紐付けば社名（表示名）を見出しに出す。自由入力なら「いまの会社のこと」。
+ * ⚠️★社名を出すのは visibility_company = 'real' の行だけ（/u/[id] で社名が見えるのと同じ条件）。
+ *    それ以外は「いまの会社のこと」にする。プロフィールで見えない社名をここから漏らさない。
  * ⚠️ 取得に失敗したら null（呼び出し側は止める。テーマを黙って減らさない）。
  */
 export async function dmTopicSections(recipientId: string): Promise<TopicSection[] | null> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_experiences")
-    .select("company_id, company_text, started_at, ow_companies!company_id(name, name_en)")
+    .select("company_id, company_text, started_at, visibility_company, ow_companies!company_id(name, name_en)")
     .eq("user_id", recipientId)
     .eq("is_current", true)
     .order("started_at", { ascending: false, nullsFirst: false });
@@ -25,8 +27,8 @@ export async function dmTopicSections(recipientId: string): Promise<TopicSection
     console.error("[dmTopics] ow_experiences:", error.message);
     return null;
   }
-  const rows = (data ?? []) as unknown as { company_id: string | null; company_text: string | null; ow_companies: { name: string; name_en: string | null } | null }[];
-  const linked = rows.find((r) => r.ow_companies?.name);
+  const rows = (data ?? []) as unknown as { company_id: string | null; company_text: string | null; visibility_company: string | null; ow_companies: { name: string; name_en: string | null } | null }[];
+  const linked = rows.find((r) => r.ow_companies?.name && r.visibility_company === "real");
   const currentCompanyName = linked?.ow_companies ? companyDisplayName(linked.ow_companies.name, linked.ow_companies.name_en).displayName : null;
   return topicsFor({
     recipient: { kind: "person", currentCompanyName, hasCurrentCompany: rows.length > 0 },
