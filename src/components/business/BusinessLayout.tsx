@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from "r
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut, PanelLeft } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut, PanelLeft, Menu, X } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -863,6 +863,18 @@ function BusinessChrome({
         )}
       </div>
 
+      {/* ★スマホ（768px 以下）は下のタブバー（2026-10-18 / 柴さんの指示）。それまでは上に13項目の横スクロールの列で、
+             よく使う「候補者・メッセージ・選考」が画面の外に隠れていた */}
+      {hasCompany && (
+        <BizMobileTabBar
+          permission={shell.permission}
+          badges={badges}
+          isActive={isActive}
+          onNavigate={(href) => { if (pathname !== href) setPendingHref(href); }}
+          showCompanyPreview={!!shell.tenantId && can(shell.permission, "company.page")}
+        />
+      )}
+
       {/* Mobile fallback nav (≤768px) */}
       <style>{`
         /* ── ヘッダー（2026-08-31 追加）──────────────────────────────────
@@ -1034,7 +1046,165 @@ function BusinessChrome({
           .biz-nav-child { display: none !important; }
           .biz-layout-main { padding: 20px 16px 48px !important; }
         }
+
+        /* ★スマホの下のタブバー（2026-10-18）。⚠️ 境界は上の横並びのナビと同じ 768px。
+              ⚠️ 下に固定するもの（トースト・選択中の操作バー・画面いっぱいの高さ）は --biz-tabbar-h のぶん上げる。
+                 広い画面では 0px なので、計算に足しても変わらない */
+        :root { --biz-tabbar-h: 0px; }
+        .biz-tabbar { display: none; }
+        .biz-sheet-backdrop { display: none; }
+        @media (max-width: 768px) {
+          :root { --biz-tabbar-h: calc(58px + env(safe-area-inset-bottom, 0px)); }
+          .biz-layout-sidebar { display: none !important; }
+          .biz-layout-grid { padding-bottom: var(--biz-tabbar-h); }
+          .biz-tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 85;
+            height: var(--biz-tabbar-h); padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box;
+            background: #fff; border-top: 1px solid var(--line); }
+          .biz-tab { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+            border: 0; background: none; font: inherit; font-size: 10.5px; font-weight: 600; color: var(--ink-mute);
+            text-decoration: none; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+          .biz-tab[aria-current=page], .biz-tab[data-active=yes] { color: var(--royal); }
+          .biz-tab-icon { position: relative; display: inline-flex; }
+          .biz-tab-badge { position: absolute; top: -6px; left: 12px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+            border-radius: 100px; background: var(--error); color: #fff; font-size: 9.5px; font-weight: 700; line-height: 16px; text-align: center; }
+          .biz-tab-dot { position: absolute; top: -2px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--error); box-shadow: 0 0 0 2px #fff; }
+          .biz-sheet-backdrop { display: block; position: fixed; inset: 0; z-index: 95; background: rgba(15,23,42,0.4); }
+          .biz-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 96; max-height: 82vh; overflow-y: auto;
+            background: #fff; border-radius: 16px 16px 0 0; padding: 8px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.15); }
+          .biz-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px 8px 20px; }
+          .biz-sheet-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+          .biz-sheet-close { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+            border: 0; background: none; color: var(--ink-mute); cursor: pointer; }
+          .biz-sheet-heading { padding: 14px 20px 4px; font-size: 11px; font-weight: 700; color: var(--ink-mute); letter-spacing: 0.04em; }
+          .biz-sheet-link { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 20px;
+            font-size: 15px; font-weight: 500; color: var(--ink); text-decoration: none; }
+          .biz-sheet-link[aria-current=page] { color: var(--royal); font-weight: 700; background: var(--royal-50); }
+          .biz-sheet-link svg { color: var(--ink-mute); flex-shrink: 0; }
+          .biz-sheet-count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 100px;
+            background: var(--error); color: #fff; font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; }
+        }
       `}</style>
     </div>
+  );
+}
+
+
+/* ── スマホの下のタブバー（2026-10-18 / 柴さんの指示）────────────────────────────
+   ★人事の方が移動中にスマホで「候補者を見る → メッセージを返す → 選考を進める」を回せるようにする。
+   よく使う4つを下に固定し、残りは「メニュー」のシートに入れる。
+   ⚠️ 項目・権限・バッジはサイドバーと同じ NAV_GROUPS と can() から作る。ここに別の一覧を書かないこと
+      （書くと、サイドバーにあってスマホに無い項目が生まれる）。
+   ⚠️ 権限が無い項目は出さない（サイドバーと同じ）。4つのうち出せないものは詰める。 */
+const TAB_PRIMARY: { href: string; short: string }[] = [
+  { href: "/biz/dashboard", short: "ホーム" },
+  { href: "/biz/candidates", short: "候補者" },
+  { href: "/biz/messages", short: "メッセージ" },
+  { href: "/biz/meetings", short: "選考" },
+];
+
+function BizMobileTabBar({ permission, badges, isActive, onNavigate, showCompanyPreview }: {
+  permission: Parameters<typeof can>[0];
+  badges: { messages: number; proposals: number; members: number } | null;
+  isActive: (href: string) => boolean;
+  onNavigate: (href: string) => void;
+  showCompanyPreview: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  /* ページを移ったら閉じる */
+  useEffect(() => { setOpen(false); }, [pathname]);
+  /* 開いているあいだは背面をスクロールさせない・Esc で閉じる */
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    const t = setTimeout(() => closeRef.current?.focus(), 30);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); clearTimeout(t); };
+  }, [open]);
+
+  const groups = NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((it) => it.needs.some((a) => can(permission, a))) }))
+    .filter((g) => g.items.length > 0);
+  const allItems = groups.flatMap((g) => g.items);
+  const primary = TAB_PRIMARY.map((t) => ({ t, item: allItems.find((it) => it.href === t.href) }))
+    .filter((x): x is { t: typeof TAB_PRIMARY[number]; item: NavItem } => !!x.item);
+  const primaryHrefs = new Set(primary.map((p) => p.item.href));
+  const menuGroups = groups.map((g) => ({ ...g, items: g.items.filter((it) => !primaryHrefs.has(it.href)) })).filter((g) => g.items.length > 0);
+  const menuActive = menuGroups.some((g) => g.items.some((it) => isActive(it.href)));
+  const countOf = (it: NavItem) => (it.badge && badges ? badges[it.badge] ?? 0 : 0);
+  const menuHasBadge = menuGroups.some((g) => g.items.some((it) => countOf(it) > 0));
+
+  return (
+    <>
+      <nav className="biz-tabbar" aria-label="主なメニュー">
+        {primary.map(({ t, item }) => {
+          const n = countOf(item);
+          const active = isActive(item.href);
+          return (
+            <Link key={item.href} href={item.href} className="biz-tab" aria-current={active ? "page" : undefined}
+              aria-label={n > 0 ? `${item.label}（未読・新しい返信 ${n}件）` : item.label}
+              onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; onNavigate(item.href); }}>
+              <span className="biz-tab-icon">
+                {React.cloneElement(item.icon, { size: 22 })}
+                {n > 0 && <span className="biz-tab-badge" aria-hidden="true">{n > 99 ? "99+" : n}</span>}
+              </span>
+              <span>{t.short}</span>
+            </Link>
+          );
+        })}
+        {menuGroups.length > 0 && (
+          <button type="button" className="biz-tab btn-fixed-size" data-active={menuActive ? "yes" : "no"}
+            aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}
+            aria-label={menuHasBadge ? "メニュー（お知らせあり）" : "メニュー"}>
+            <span className="biz-tab-icon">
+              <Menu size={22} strokeWidth={2.2} />
+              {menuHasBadge && <span className="biz-tab-dot" aria-hidden="true" />}
+            </span>
+            <span>メニュー</span>
+          </button>
+        )}
+      </nav>
+
+      {open && (
+        <>
+          <div className="biz-sheet-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="biz-sheet" role="dialog" aria-modal="true" aria-labelledby="biz-sheet-title">
+            <div className="biz-sheet-head">
+              <span id="biz-sheet-title" className="biz-sheet-title">メニュー</span>
+              <button ref={closeRef} type="button" className="biz-sheet-close btn-fixed-size" aria-label="閉じる" onClick={() => setOpen(false)}>
+                <X size={22} strokeWidth={2.2} />
+              </button>
+            </div>
+            {menuGroups.map((g, gi) => (
+              <div key={g.heading ?? `g${gi}`}>
+                {g.heading && <div className="biz-sheet-heading">{g.heading}</div>}
+                {g.items.map((it) => {
+                  const n = countOf(it);
+                  const active = isActive(it.href);
+                  return (
+                    <Link key={it.href} href={it.href} className="biz-sheet-link" aria-current={active ? "page" : undefined}
+                      onClick={() => { onNavigate(it.href); setOpen(false); }}>
+                      {React.cloneElement(it.icon, { size: 20 })}
+                      <span>{it.label}</span>
+                      {n > 0 && <span className="biz-sheet-count" aria-label={`${n}件`}>{n > 99 ? "99+" : n}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+            {showCompanyPreview && (
+              <a href="/preview/company" target="_blank" rel="noopener noreferrer" className="biz-sheet-link" style={{ marginTop: 8 }}>
+                <ExternalLink size={20} strokeWidth={2.2} />
+                <span>求職者から見た企業ページ ↗</span>
+              </a>
+            )}
+          </div>
+        </>
+      )}
+    </>
   );
 }

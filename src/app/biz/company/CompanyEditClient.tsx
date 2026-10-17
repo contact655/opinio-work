@@ -625,7 +625,7 @@ export function CompanyEditClient({
       memberships={memberships}
       currentTenantId={companyId}
     >
-      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - var(--biz-header-h))" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - var(--biz-header-h) - var(--biz-tabbar-h, 0px))" }}>
         {/* ── 上部: 見出し・状態（灰色の文字）・主ボタン ── */}
         <div className="cpe-head" style={{ background: "#fff", borderBottom: "1px solid var(--line)", flexShrink: 0, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業ページ</h1>

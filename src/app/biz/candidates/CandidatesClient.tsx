@@ -307,10 +307,21 @@ export default function CandidatesClient({
   const onCardLinkClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     /* ⌘・中クリック・新しいタブは素通し（ブラウザに任せる） */
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    if (window.innerWidth < CANDIDATE_SPLIT_MIN_WIDTH) return;
+    /* ★1280px 未満も企業の画面の中で開く（2026-10-18 / 柴さんの指示）。それまでは求職者側の /u/ へ移り、
+          求職者のタブバーに切り替わって、一覧・条件から外れていた。いまは右欄を画面いっぱいに重ねて出す（CSS の .cand-split[data-overlay=yes]） */
     e.preventDefault();
     updateSelected(id);
   }, [updateSelected]);
+  /* ★狭い画面で詳細を重ねているあいだは、下の一覧をスクロールさせない */
+  const overlayOpen = isWide === false && !!selected;
+  useEffect(() => {
+    if (!overlayOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (ev: KeyboardEvent) => { if (ev.key === "Escape") updateSelected(null); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [overlayOpen, updateSelected]);
 
 
   /* ⚠️ 落ちる人数の注記（更新時期・年齢・最近の利用・社会人年数）は 2026-10-13 にドロワーの中へ移した（CandidateFilterDrawer） */
@@ -643,7 +654,9 @@ export default function CandidatesClient({
     color: on ? "#fff" : "var(--ink-soft)", fontSize: 13, fontWeight: on ? 600 : 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
   });
   const quickRow = (
-    <div data-state="quick-filters" style={{ flexBasis: "100%", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    /* ★スマホ（767px 以下）では横に1行でスクロールする（2026-10-18 / 柴さんの指示）。それまで3行に折り返し、
+          1人目の候補者が画面の下3分の1まで押し出されていた。⚠️ 折り返し・並びは CSS（.cand-quick）。インラインに戻さないこと */
+    <div data-state="quick-filters" className="cand-quick">
         {/* ★一次チップのドロップダウンは、ドロワーと同じ軸の部品（filterAxes.tsx）を使う（2026-10-13 / 柴さんの指示）。
                件数・0件の灰色・畳み方・職種の検索窓がドロワーと同じ。⚠️ 選択はその場で効く（ドロワーと違い下書きを持たない） */}
         {/* ★経験職種（職歴の職種。現職・前職すべて）。複数選ぶと OR。親を選ぶと子の経験も含む（候補者側が親まで展開済み） */}
@@ -682,7 +695,7 @@ export default function CandidatesClient({
       {(() => {
         const n = drawerFilterCount(currentFilters, { ageFilter: ageFilterEnabled, activity: activityEnabled });
         return (
-          <button ref={drawerBtnRef} type="button" onClick={() => { setOpenChip(null); setDrawerOpen(true); }}
+          <button ref={drawerBtnRef} type="button" className="cand-quick-all" onClick={() => { setOpenChip(null); setDrawerOpen(true); }}
             aria-haspopup="dialog" aria-expanded={drawerOpen} data-state="open-all-filters"
             style={{
               display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
@@ -984,7 +997,7 @@ export default function CandidatesClient({
       {/* ── 一覧＋右のプレビュー（2026-10-10 / 段1）──────────────────────────────
              ⚠️★分割は 1280px 以上（CSS の @media と `CANDIDATE_SPLIT_MIN_WIDTH` を手で合わせている）。一覧とプレビューは 1：1。
              ⚠️ 1024〜1279px 用の「カードを詰める・2行目以降を隠す」作りは 2026-10-11 に外した（1279px 以下では分割しないので不要）。 */}
-      <div ref={splitRef} className="cand-split" data-selected={shownId ? "1" : "0"} data-list-px={listPx ?? ""} data-pane-columns={paneColumns ? "1" : "0"}
+      <div ref={splitRef} className="cand-split" data-overlay={overlayOpen ? "yes" : "no"} data-selected={shownId ? "1" : "0"} data-list-px={listPx ?? ""} data-pane-columns={paneColumns ? "1" : "0"}
         style={isWide && listPx !== null ? { gridTemplateColumns: `${listPx}px ${CAND_DIVIDER_W}px minmax(0, 1fr)` } : undefined}>
         <div className="cand-list-col" style={{ minWidth: 0 }}>
           {filtered.length === 0 ? (
@@ -1163,7 +1176,7 @@ export default function CandidatesClient({
       {/* ★見送った直後の「元に戻す」（2026-10-13）。⚠️ 6秒で消える。押すと DELETE を呼ぶ */}
       {undoHidden && (
         <div role="status" data-state="hidden-undo-toast" style={{
-          position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 60,
+          position: "fixed", left: "50%", bottom: "calc(24px + var(--biz-tabbar-h, 0px))", transform: "translateX(-50%)", zIndex: 60,
           display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderRadius: 10,
           background: "#0F172A", color: "#fff", fontSize: 13, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", maxWidth: "calc(100vw - 32px)",
         }}>
@@ -1221,7 +1234,13 @@ export default function CandidatesClient({
         .cand-card.is-compact { padding: 6px 10px 6px 12px; }
         .cand-card.is-compact .cand-card-main { min-height: 0; }
         @media (max-width: 640px) {
-          .cand-wrap { padding: 0 16px 12px; }
+          .cand-wrap { padding: 0 0 12px; }
+        }
+        .cand-quick { flex-basis: 100%; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+        @media (max-width: 767px) {
+          .cand-quick { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 4px; scrollbar-width: none; }
+          .cand-quick::-webkit-scrollbar { display: none; }
+          .cand-quick-all { order: -1; }
         }
         /* カードの詰め方は一覧の幅で決める（コンテナクエリ）。スマホでは3行目を折り返してよい */
         .cand-list-col { container-type: inline-size; container-name: candlist; }
@@ -1253,6 +1272,12 @@ export default function CandidatesClient({
           .cand-bar-label { display: none; }
         }
         .cand-divider { display: none; }
+        /* ★1280px 未満で候補者を選んだら、詳細を画面いっぱいに重ねる（2026-10-18）。ヘッダーと下のタブバーは残す。
+              ⚠️ 1280px 以上の分割表示とは別の規則。境界は CANDIDATE_SPLIT_MIN_WIDTH と手で合わせている */
+        @media (max-width: 1279.98px) {
+          .cand-split[data-overlay=yes] .cand-pane { display: block; position: fixed; z-index: 70; left: 0; right: 0;
+            top: var(--biz-header-h); bottom: var(--biz-tabbar-h, 0px); overflow-y: auto; overscroll-behavior: contain; background: #fff; }
+        }
         @media (min-width: 1280px) {
           .cand-split { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr); gap: 0; align-items: start; }
           /* 区切り線（見た目と操作は components/common/SplitDivider.tsx。右欄の2列表示の線と同じ部品）。ここは出す・出さないだけ */

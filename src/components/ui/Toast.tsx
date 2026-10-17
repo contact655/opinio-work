@@ -20,7 +20,8 @@ export default function Toast({ message, onDone, variant = "default" }: ToastPro
     <div
       style={{
         position: "fixed",
-        bottom: 32,
+        /* ★企業の管理画面のスマホでは下のタブバー（--biz-tabbar-h）のぶん上げる。それ以外の画面では変数が無いので 0 */
+        bottom: "calc(32px + var(--biz-tabbar-h, 0px))",
         left: "50%",
         transform: "translateX(-50%)",
         background: bg,

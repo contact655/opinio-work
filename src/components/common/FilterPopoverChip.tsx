@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import React, { useEffect, useRef, type ReactNode } from "react";
 import { FILTER_OPTION_CSS } from "./FilterDrawer";
 
 /**
@@ -63,17 +63,39 @@ export function FilterPopoverChip({ label, activeLabel, active, onClear, clearLa
       </button>
 
       {isOpen && (
+        /* ★位置・大きさは CSS（.fpc-panel）が持つ（2026-10-18）。スマホ（767px 以下）では下から出るシートにする。
+              チップの行が横スクロールになったので、absolute のままだと行の外で切れる。
+              ⚠️ インラインに戻すとメディアクエリが効かなくなる。幅は --fpc-w で渡すだけ */
         <div role="dialog" aria-label={`${label}で絞り込む`} data-state={state ? `${state}-panel` : undefined}
-          style={{
-            position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 200, width, maxWidth: "calc(100vw - 32px)",
-            maxHeight: 440, overflowY: "auto", overscrollBehavior: "contain",
-            background: "#fff", border: "1.5px solid var(--royal)", borderRadius: 12, padding: "10px 14px",
-            boxShadow: "0 8px 28px rgba(0,35,102,0.14)",
-          }}>
+          className="fpc-panel" style={{ ["--fpc-w" as string]: `${width}px` } as React.CSSProperties}>
+          <div className="fpc-sheet-head">
+            <span>{label}</span>
+            <button type="button" className="btn-fixed-size fpc-sheet-close" onClick={onToggle}>完了</button>
+          </div>
           {children}
           <style>{FILTER_OPTION_CSS}</style>
+          <style>{FPC_PANEL_CSS}</style>
         </div>
       )}
     </div>
   );
 }
+
+/* ⚠️ 引用符・山かっこ・バッククォートを書かないこと（style タグの中。ハイドレーションが壊れる / ui-debugging ⑲） */
+const FPC_PANEL_CSS = `
+  .fpc-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 200; width: var(--fpc-w, 320px); max-width: calc(100vw - 32px);
+    max-height: 440px; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box;
+    background: #fff; border: 1.5px solid var(--royal); border-radius: 12px; padding: 10px 14px;
+    box-shadow: 0 8px 28px rgba(0,35,102,0.14); }
+  .fpc-sheet-head { display: none; }
+  @media (max-width: 767px) {
+    .fpc-panel { position: fixed; top: auto; left: 0; right: 0; bottom: var(--biz-tabbar-h, 0px); width: auto; max-width: none;
+      max-height: 70vh; border: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 0 16px 16px;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.18); }
+    .fpc-sheet-head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1;
+      margin: 0 -16px 8px; padding: 12px 8px 8px 16px; background: #fff; border-bottom: 1px solid var(--line-soft);
+      font-size: 15px; font-weight: 700; color: var(--ink); }
+    .fpc-sheet-close { height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--royal); color: #fff;
+      font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  }
+`;
