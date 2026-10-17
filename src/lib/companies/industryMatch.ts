@@ -9,10 +9,10 @@ import {
 } from "@/lib/companies/industryTree";
 
 /**
- * 「あなたの◯◯の経験が活きる会社」— 職歴の業界 × 企業の対象業界（軸2）の突合。
+ * 「あなたの◯◯の経験が活きる会社」— 職歴の業界 × 企業の「主なお客さまの業界」（軸2）の突合。
  *
- * ⚠️★**`vertical` の企業だけを出す。** `horizontal`（業界を問わない）や
- *    `consumer`（消費者向け）を混ぜないこと。混ぜると「あなたの業界だから」という
+ * ⚠️★**業界特化の企業だけを出す**（`customer_all_industries = false`。2026-10-18 までは `vertical`）。
+ *    業界を問わない会社や個人向けの会社を混ぜないこと。混ぜると「あなたの業界だから」という
  *    主張が成り立たなくなる（2026-09-04 の判断）。混ぜたいなら**別の見出し**にする。
  *
  * ⚠️ 遷移データ由来の「◯人が移った」は入れない。`ow_transitions` が5行しかなく、
@@ -117,25 +117,21 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   /* 本人の業種 ＋ その祖先。これで「製造業向け」の企業に当たるようになる */
   const industryIds = expandIndustryWithAncestors(tree, ownIndustryIds);
 
-  /* ② その業界を対象業界に持つ掲載中の企業。⚠️★vertical だけ。2026-10-18 から horizontal（業界を問わない）の会社も
-        「主な顧客の業界」を持てるようになったので、**ここで scope を絞る**（それまでは複合FKで vertical しか行が無かった）。
-        外すと「あなたの業界だから」という見出しが成り立たなくなる（上の注記）
-     ⚠️★**ここで `ow_companies` を埋め込み（`ow_companies!company_id(...)`）で取らないこと。**
-        `ow_company_target_industries` から `ow_companies` への外部キーは
-        **複合FK**（`(company_id, target_industry_scope) → (id, target_industry_scope)`）で、
-        PostgREST は複合FKを埋め込みの関係として解決できない。実際に踏んだ（2026-09-04）:
-          Could not find a relationship between 'ow_company_target_industries' and 'ow_companies'
-        ⚠️ **エラーは出るが 200 で返り、`?? []` で受けると「0件」に化ける。**
-           ここは `error` を見ているので気づけた（CLAUDE.md「error を握りつぶさない」）。
-        → **2段に分けて `.in("id", ...)` で引く。** */
+  /* ② その業界を「主なお客さまの業界」に持つ企業（2026-10-18 に新しい表へ移した）。
+     ★読むのは `ow_company_customer_industries`（企業と運営が入力する。**大分類だけ**）。
+        旧「対象業界」（`ow_company_target_industries`）は読まない。
+     ⚠️ 新しい表は大分類だけなので、本人の業種を**祖先展開**しておけば（上の①.5）小分類の人にも当たる。
+        ⚠️ そのぶん、同じ大分類の別の小分類の人にも当たる（例: 不動産出身の人に建設向けの会社）。旧表は小分類を持てたので、ここは粒度が粗くなった。
+     ⚠️★**業界を問わない会社（`customer_all_industries = true`）は下の③で落とす。** その会社の「とくに多い業界」も
+        この表に入るので、落とさないと「あなたの業界だから」という見出しが成り立たなくなる（上の注記）。
+     ⚠️ 個人のお客さま（`serves_consumers`）は業界を持たないので、この表に行が無い。 */
   const { data: targets, error: tErr } = await db
-    .from("ow_company_target_industries")
+    .from("ow_company_customer_industries")
     .select("industry_id, company_id")
-    .eq("target_industry_scope", "vertical")
     .in("industry_id", industryIds);
 
   if (tErr) {
-    console.error("[industryMatch] 対象業界の取得に失敗:", tErr.message);
+    console.error("[industryMatch] お客さまの業界の取得に失敗:", tErr.message);
     return [];
   }
 
@@ -145,7 +141,7 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   /* ⚠️ `.select()` には**1本の文字列リテラル**を渡す（配列 join や `+` の連結だと型が落ちる）。 */
   const { data: companyRows, error: cErr } = await db
     .from("ow_companies")
-    .select("id, slug, name, name_en, tagline, logo_url, logo_letter, logo_gradient, listing_status, is_test, is_published")
+    .select("id, slug, name, name_en, tagline, logo_url, logo_letter, logo_gradient, listing_status, is_test, is_published, customer_all_industries")
     .in("id", candidateIds);
 
   if (cErr) {
@@ -184,6 +180,8 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
     /* 掲載中のものだけ。⚠️ `filterListedCompanies` と同じ条件をここで書いているのは、
        埋め込みで取っているため（あちらはクエリビルダに当てる形）。条件を変えるなら両方。 */
     if (co.listing_status !== "listed" || co.is_test === true || co.is_published !== true) continue;
+    /* ★業界特化の会社だけ（業界を問わない会社は出さない）。⚠️ `!== false` で見る（列を取り損ねたら出さない向き） */
+    if (co.customer_all_industries !== false) continue;
     /* ③ 本人が在籍した企業を除く */
     if (employerIds.has(co.id)) continue;
     /* ④ 自社を除く。⚠️ ownCompanyId が null のときは既に console.error が出ている */

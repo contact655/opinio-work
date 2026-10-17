@@ -1067,9 +1067,6 @@ export const PANE_RICH = {
       ] },
     ],
   }),
-  targetIndustries: [
-    { id: "ti-1", name: "建設", slug: "construction", is_primary: true },
-  ] as import("@/types/genre").CompanyTargetIndustry[],
 };
 
 /** ★薄い側（フォトラクション相当）。求人0件・顧客の業界なし・任意項目が空 */
@@ -1083,7 +1080,6 @@ export const PANE_THIN = {
     accepting_casual_meetings: false,
   }),
   detail: paneDetail({ id: "pane-thin", established: null, ceo: null, hq: null, jobs: [] }),
-  targetIndustries: [] as import("@/types/genre").CompanyTargetIndustry[],
 };
 
 /** ★すべて空。⚠️「値が無い行は出さない」が守られているかを見るため */
@@ -1095,5 +1091,4 @@ export const PANE_EMPTY = {
     accepting_casual_meetings: false,
   }),
   detail: paneDetail({ id: "pane-empty", established: null, ceo: null, hq: null, url: "", jobs: [] }),
-  targetIndustries: [] as import("@/types/genre").CompanyTargetIndustry[],
 };

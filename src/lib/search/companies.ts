@@ -218,25 +218,30 @@ export async function searchCompanies(
     domainCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
   }
 
-  /* ── 対象業界（軸2）の絞り込み（2026-09-06 に求職者側へ出した）───────────────
+  /* ── 顧客の業界（軸2）の絞り込み（`?target=`。2026-09-06 に求職者側へ出した）────
      ⚠️★**事業領域（`?industry=`）とは別の軸。** あちらは「何を作っているか」、
         こちらは「誰に売っているか」。混ぜないこと。値は `ow_industries.slug`。
-     ⚠️ **祖先展開しない。** 業種の祖先展開は**本人側**に掛ける規則で（CLAUDE.md）、
-        企業の対象業界は展開しない。選んだ業種そのものだけに当てる。
-     ⚠️ `ow_industries` は埋め込んでよい（`industry_id` は単純FK）。
-        **`ow_companies` は埋め込めない** —— そちらは複合FKで PostgREST が解決できない。
+     ★2026-10-18 から読むのは「主なお客さまの業界」（`ow_company_customer_industries`。企業と運営が入力する）。
+        旧「対象業界」（`ow_company_target_industries`）は読まない。
+     ⚠️ 新しい表は**大分類だけ**を持つ。小分類の slug（旧表の `construction` など。被リンク・ブックマークに残る）は
+        `resolveCustomerIndustryId` で大分類に読み替える。
+     ⚠️ 「業界を問わない」会社の「とくに多い業界」も当てる（企業ページの「お客さまの業界」と揃える）。
      ⚠️ 事業領域と同時に指定されたら **積集合**にする（両方の条件を満たすものだけ）。 */
   let targetCompanyIds: string[] | null = null;
   if (params.targetIndustry) {
-    const { data: targetRows, error: targetErr } = await supabase
-      .from("ow_company_target_industries")
-      .select("company_id, ow_industries!inner(slug)")
-      .eq("ow_industries.slug", params.targetIndustry);
-    if (targetErr) {
-      // ⚠️ 握りつぶさない。空にすると「該当0社」と「取得失敗」が区別できない
-      console.error("[getCompanies] 対象業界での絞り込みに失敗:", targetErr.message);
+    const targetId = await resolveCustomerIndustryId(supabase, params.targetIndustry);
+    let ids: string[] = [];
+    if (targetId) {
+      const { data: targetRows, error: targetErr } = await supabase
+        .from("ow_company_customer_industries")
+        .select("company_id")
+        .eq("industry_id", targetId);
+      if (targetErr) {
+        // ⚠️ 握りつぶさない。空にすると「該当0社」と「取得失敗」が区別できない
+        console.error("[getCompanies] 顧客の業界での絞り込みに失敗:", targetErr.message);
+      }
+      ids = Array.from(new Set((targetRows ?? []).map((r) => r.company_id as string)));
     }
-    const ids = Array.from(new Set((targetRows ?? []).map((r) => r.company_id as string)));
     targetCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
   }
 
@@ -653,10 +658,8 @@ const PREF_TO_BRANCH_KEYS: Record<string, string[]> = Object.entries(BRANCH_TO_P
  *    ここが出すのは**どこかの企業に実際に設定されている業種だけ**。
  *    マスタ全件にすると、一度も使われていない業種まで並ぶ。
  *
- * ⚠️★**`ow_companies` を埋め込まないこと。** `ow_company_target_industries` から
- *    `ow_companies` への FK は**複合FK**で、PostgREST は関係を解決できない
- *    （`Could not find a relationship ...`）。2段に分けて `.in()` で引く。
- *    `ow_industries` 側は単純FKなので埋め込んでよい。
+ * ★2026-10-18 から読むのは「主なお客さまの業界」（`ow_company_customer_industries`。大分類だけ）。
+ *    旧「対象業界」（`ow_company_target_industries`）は読まない。
  * ⚠️ 並びは業種マスタの `display_order`。**件数順にしない**（親子の順序が崩れる）。
  */
 /**
@@ -703,9 +706,9 @@ export const fetchAvailableTargetIndustries = unstable_cache(
     const visibleIds = new Set((visible ?? []).map((r) => r.id as string));
     if (visibleIds.size === 0) return [];
 
-    // ② 明細 → 業種（ここは単純FKなので埋め込める）
+    // ② 明細 → 業種。★2026-10-18 から「主なお客さまの業界」（ow_company_customer_industries）を読む
     const { data: rows, error } = await supabase
-      .from("ow_company_target_industries")
+      .from("ow_company_customer_industries")
       .select("company_id, ow_industries!inner(slug, name, display_order, is_active)");
     if (error) {
       console.error("[fetchAvailableTargetIndustries]", error.message);
@@ -723,7 +726,7 @@ export const fetchAvailableTargetIndustries = unstable_cache(
       .sort((a, b) => a.order - b.order)
       .map(({ slug, name }) => ({ slug, name }));
   },
-  ["available-target-industries"],
+  ["available-customer-industries"],
   { revalidate: 300 }
 );
 
@@ -806,3 +809,19 @@ export const fetchCompanySuggestions = unstable_cache(
  *    出すなら**件数だけをサーバー、人物はクライアント**（詳細ページと同じ形）。
  */
 
+/**
+ * `?target=` の slug → 「主なお客さまの業界」の業種 id（2026-10-18）。
+ * ⚠️ 新しい表は大分類だけを持つので、小分類の slug（旧「対象業界」の `construction` など）は親の大分類に読み替える。
+ * ⚠️ 見つからない・使っていない業種なら null（呼び出し側は0件にする）。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveCustomerIndustryId(supabase: any, slug: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("ow_industries").select("id, parent_id, is_active").eq("slug", slug).maybeSingle();
+  if (error) {
+    console.error("[resolveCustomerIndustryId]", error.message);
+    return null;
+  }
+  if (!data || data.is_active !== true) return null;
+  return (data.parent_id as string | null) ?? (data.id as string);
+}
