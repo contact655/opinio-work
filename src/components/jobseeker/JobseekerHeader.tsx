@@ -1133,6 +1133,16 @@ export function JobseekerHeader() {
                   無料登録
                 </Link>
               </div>
+              {/* ★企業の担当者の入口（2026-10-18 / 柴さんの指示）。スマホの未ログインには、それまで企業側へのログインの入口が無かった
+                     （PC は 1024px 以上のヘッダーに「企業の方はこちら」がある）。行き先は企業のログイン画面 */}
+              <div style={{ height: 1, background: "var(--line)", margin: "8px 0" }} />
+              <Link
+                href="/biz/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{ display: "block", padding: "14px 24px", fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", textDecoration: "none" }}
+              >
+                企業の担当者としてログイン
+              </Link>
             </>
           )}
         </nav>
