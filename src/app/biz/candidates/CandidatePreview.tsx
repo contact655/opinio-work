@@ -58,7 +58,7 @@ function formatTenure(months: number | null): string | null {
 
 /** ★合うところの分類（太字で頭に出す）。判定の種類（kind）を名前にしただけで、判定は変えていない */
 const TOUCHPOINT_CATEGORY: Record<Touchpoint["kind"], string> = {
-  job_role: "職種", company_role: "職種", location: "勤務地", target_industry: "業界", business_domain: "事業領域", alumni: "出身",
+  job_role: "職種", company_role: "職種", location: "勤務地", target_industry: "業界", business_domain: "同業の経験", alumni: "出身",
   position_level: "レベル", business_stage: "事業ステージ",
 };
 /** ★求人の職種のうち、求める経験年数を満たしたもの（2026-10-12）は「経験年数」と出す */
@@ -148,7 +148,9 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
           <li key={`${t.kind}:${t.ref?.id ?? i}:${i}`} data-touchpoint-line={t.kind} className="cand-tp-line">
             <span aria-hidden="true" className="cand-tp-check">✓</span>
             <span className="cand-tp-item">{t.row?.item ?? touchpointCategory(t)}</span>
-            {t.row ? (
+            {t.row?.summary ? (
+              <span className="cand-tp-val">{t.row.summary}</span>
+            ) : t.row ? (
               <>
                 <span className="cand-tp-val">{t.row.person}</span>
                 {" "}<span className="cand-tp-arrow">↔</span>{" "}

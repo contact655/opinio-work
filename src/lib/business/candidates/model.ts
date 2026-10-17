@@ -50,7 +50,11 @@ export type Touchpoint = {
    *    （関心）… 関心のある職種から（company_role の関心）
    *    （居住地）… お住まいから（location）
    */
-  row?: { item: string; person: string; ours: string };
+  /**
+   * ★`summary`（任意・2026-10-18）: 1行の形（カードの理由行・右欄の狭い表示）で「person ↔ ours」の代わりに出す文。
+   *   左右に同じ語が並ぶもの（同業の経験）にだけ入れる。右欄の表（3列）は従来どおり person と ours を出す
+   */
+  row?: { item: string; person: string; ours: string; summary?: string };
 };
 
 /** 自社で接点の材料が揃っているか（空のときの入口を出し分ける。⚠️ クライアントからも読むのでここに置く） */

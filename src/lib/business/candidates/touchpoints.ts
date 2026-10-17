@@ -12,6 +12,7 @@ import { fitText, type FitFact } from "@/lib/evidence/fit";
 import { RANK_LABELS } from "@/lib/constants/careerOptions";
 import { rankOrder } from "@/lib/constants/jobFit";
 import { phaseLabel } from "@/lib/constants/phase";
+import { companyDisplayName } from "@/lib/companies/displayName";
 export type { TouchpointMaterials };
 
 /**
@@ -91,6 +92,8 @@ type Exp = {
   role_category_id: string | null; started_at: string | null; ended_at: string | null;
   is_current: boolean; visibility_company: string | null;
   companyName: string | null;
+  /** ★画面に出す社名（companyDisplayName。「SmartHR」など）。⚠️ 突き合わせには companyName を使う（こちらは表示だけ） */
+  companyShortName: string | null;
   /** 役職（RANKS の値）。⚠️ 会社を伏せた職歴でも使う（職種と同じく、伏せる対象は社名） */
   rank: string | null;
   /** 勤務先の事業ステージ（マスタの会社のときだけ） */
@@ -172,7 +175,7 @@ export async function getCompanyCandidateTouchpoints(
   const [expR, empUsersR] = await Promise.all([
     allUserIds.length
       ? db.from("ow_experiences")
-          .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, industry_id, phase)")
+          .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, name_en, industry_id, phase)")
           .in("user_id", allUserIds)
       : Promise.resolve({ data: [], error: null }),
     empIds.length
@@ -186,7 +189,7 @@ export async function getCompanyCandidateTouchpoints(
   const industryOfCompany = new Map<string, string | null>();
   const expsByUser = new Map<string, Exp[]>();
   for (const e of (expR.data ?? []) as Record<string, unknown>[]) {
-    const co = e.ow_companies as { name: string | null; industry_id: string | null; phase: string | null } | null;
+    const co = e.ow_companies as { name: string | null; name_en: string | null; industry_id: string | null; phase: string | null } | null;
     if (e.company_id) industryOfCompany.set(e.company_id as string, co?.industry_id ?? null);
     const row: Exp = {
       id: e.id as string, user_id: e.user_id as string,
@@ -195,6 +198,7 @@ export async function getCompanyCandidateTouchpoints(
       started_at: (e.started_at as string | null) ?? null, ended_at: (e.ended_at as string | null) ?? null,
       is_current: e.is_current === true, visibility_company: (e.visibility_company as string | null) ?? "real",
       companyName: (co?.name ?? (e.company_text as string | null) ?? "").trim() || null,
+      companyShortName: co?.name ? companyDisplayName(co.name, co.name_en).displayName : ((e.company_text as string | null) ?? "").trim() || null,
       rank: (e.rank as string | null) ?? null,
       companyPhase: co?.phase ?? null,
     };
@@ -357,18 +361,32 @@ export async function getCompanyCandidateTouchpoints(
       }
     }
     // ④b 事業領域 × 前の勤務先の事業領域（自社以外・社名を出している職歴）
+    // ★画面では「同業の経験　SmartHR（HR Tech）」（2026-10-18 / 柴さんの指示）。それまでは
+    //   「事業領域　HR Techの会社（経験） ↔ HR Tech」で、左右に同じ語が出て、どの会社かが分からなかった。
+    //   ⚠️ 社名を出すのは visibility_company = real の職歴だけ（下の条件）。条件を緩めないこと
     if (needDomain) {
       const hit = new Set<string>();
+      const coNames: string[] = [];
       for (const e of exps) {
         if (!e.company_id || e.company_id === companyId || e.visibility_company !== "real") continue;
-        domainsOfCompany.get(e.company_id)?.forEach((d) => { if (domainIds.has(d)) hit.add(d); });
+        let matched = false;
+        domainsOfCompany.get(e.company_id)?.forEach((d) => { if (domainIds.has(d) && domainName.has(d)) { hit.add(d); matched = true; } });
+        if (matched && e.companyShortName && !coNames.includes(e.companyShortName)) coNames.push(e.companyShortName);
       }
-      const ids = Array.from(hit).filter((d) => domainName.has(d));
+      const ids = Array.from(hit);
       if (ids.length) {
         const fact: FitFact = { kind: "business_domain", domainIds: ids, domainNames: ids.map((d) => domainName.get(d) as string) };
         const names = ids.map((d) => domainName.get(d) as string).join("・");
+        /* 社名は2社まで。3社目からは「ほか N社」 */
+        const coText = coNames.length === 0 ? null
+          : coNames.slice(0, 2).join("・") + (coNames.length > 2 ? ` ほか${coNames.length - 2}社` : "");
         out.push({ kind: "business_domain", weight: WEIGHT.business_domain, ref: { type: "business_domain", id: ids[0] }, fact, text: fitText(fact, "company"),
-          row: { item: "事業領域", person: `${names}の会社（経験）`, ours: names } });
+          row: {
+            item: "同業の経験",
+            person: `${coText ?? `${names}の会社`}（経験）`,
+            ours: names,
+            summary: coText ? `${coText}（${names}）` : `${names}の会社`,
+          } });
       }
     }
     // ③ 勤務地（同じ都道府県は1件にまとめる）

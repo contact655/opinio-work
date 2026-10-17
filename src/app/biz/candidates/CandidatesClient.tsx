@@ -1085,10 +1085,10 @@ export default function CandidatesClient({
                       {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は灰色で「合うところ：なし」（2026-10-18 に「〇〇と合うところはまだありません」から変えた。自社名が三人称で出て、「まだ」がいつか出るように読めたため。絞り込み「合うところあり」・並び替え「合うところが多い順」と同じ語）。取れなかった（undefined）ときは出さない */}
                       {!(compactCards && isWide) && (topTp ? (
                         <div className="cand-card-reason" data-state="card-reason"
-                          title={topTp.row ? `${topTp.row.item}：${topTp.row.person} ↔ ${topTp.row.ours}` : topTp.text}>
+                          title={topTp.row ? `${topTp.row.item}：${topTp.row.summary ?? `${topTp.row.person} ↔ ${topTp.row.ours}`}` : topTp.text}>
                           <span aria-hidden="true" className="cand-card-reason-check">✓</span>
                           <span className="cand-card-reason-item">{topTp.row?.item ?? "合うところ"}</span>
-                          <span className="cand-card-reason-text">{topTp.row ? `${topTp.row.person} ↔ ${topTp.row.ours}` : topTp.text}</span>
+                          <span className="cand-card-reason-text">{topTp.row ? (topTp.row.summary ?? `${topTp.row.person} ↔ ${topTp.row.ours}`) : topTp.text}</span>
                           {tps && tps.length > 1 && <span className="cand-card-reason-more">ほか{tps.length - 1}件</span>}
                         </div>
                       ) : tps ? (
