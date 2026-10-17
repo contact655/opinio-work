@@ -195,6 +195,24 @@ export default function MypageLayout({
         ⚠️ 数え方は `lib/mypage/navBadges.ts` の1か所（API はそれを呼ぶだけ）。
         ⚠️ ページが渡した値は最初の表示に使い、取れたら API の値で置き換える。
         ⚠️ 取得に失敗したら渡された値のまま（0 で上書きしない）。 */
+  /* ★スマホのタブ（プロフィール／応募・面談…）は、下へスクロールしたら隠し、上へ戻したら出す（2026-10-17 / LinkedIn に寄せて）。
+        上に固定されたものが検索の帯とタブの2本で約130px あり、画面の16%を使っていた。
+     ⚠️ 隠すのは見た目だけ（ヘッダーの裏へ平行移動）。広い画面ではタブ自体が出ないので影響しない。
+     ⚠️ requestAnimationFrame は使わない（描画されていないと動かない。ui-debugging ⑪） */
+  const [tabHidden, setTabHidden] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const dy = y - lastY;
+      if (y < 80) setTabHidden(false);
+      else if (dy > 6) setTabHidden(true);
+      else if (dy < -6) setTabHidden(false);
+      if (Math.abs(dy) > 6 || y < 80) lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null; messageRequests: number; approaches?: number | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -228,7 +246,7 @@ export default function MypageLayout({
       {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} />}
 
       {/* モバイル: 横スクロールタブバー */}
-      <nav aria-label="マイページナビゲーション" className="mypage-mobile-tabbar" style={{
+      <nav aria-label="マイページナビゲーション" className={`mypage-mobile-tabbar${tabHidden ? " is-hidden" : ""}`} style={{
         background: "#fff", borderBottom: "1px solid var(--line)",
         overflowX: "auto", WebkitOverflowScrolling: "touch" as unknown as undefined,
         position: "sticky", top: topOffset, zIndex: 40,
@@ -439,6 +457,10 @@ export default function MypageLayout({
       */}
       <style>{`
         .mypage-nav-item:hover { background: var(--bg-tint) !important; color: var(--ink) !important; }
+        /* スマホのタブを隠すとき（tabHidden）。ヘッダー（z-index 100）の裏へ上げる */
+        .mypage-mobile-tabbar { transition: transform 0.2s ease, opacity 0.2s ease; }
+        /* ヘッダーは半透明（ぼかし）なので、裏へ上げるだけだと選択中の下線が透けて見える。消しておく */
+        .mypage-mobile-tabbar.is-hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 
         /* 右カラムが畳まれる幅で、本文側に置いた控えと入れ替える。
            .mypage-narrow-only は rightColumnCollapse に hide を渡すのとセットで使う。 */
