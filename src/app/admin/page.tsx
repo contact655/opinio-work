@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadRealFunnel, ACTIVE_WINDOW_DAYS } from "@/lib/admin/realFunnel";
 import { findTestLeftovers, countTestLeftovers } from "@/lib/admin/testLeftovers";
 import { TestLeftoversCard } from "@/components/admin/TestLeftoversCard";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
@@ -17,8 +18,6 @@ async function getStats() {
   const [
     users, testUsers, activeCompanies, activeJobs, totalApplications,
     pendingJobs, pendingMeetings, bizAdmins,
-    /* ⚠️ 順番は下の Promise.all と1対1。ずれても型が同じなのでエラーにならない */
-    onboardingCompleted, profileFilled, appliedOrMet,
   ] = await Promise.all([
     /* ⚠️★ここは `supabase`（運営本人のセッション）で数えていた（〜2026-08-29）。
           **運営も `authenticated` ロールで来るので RLS が効く。**
@@ -61,11 +60,8 @@ async function getStats() {
           `user_id` の NULL も明示的に除く（2026-10-08） */
     admin.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("is_active", true).not("user_id", "is", null),
     /* ⚠️ 「面談対応者（自己申告）の未確認」は 2026-10-16 に撤去した（面談OKの撤去） */
-    // オンボーディングファネル
-    admin.from("ow_profiles").select("id", { count: "exact", head: true }).eq("onboarding_completed", true),
-    // 希望職種は ow_profile_desired_roles（複数可）に移った。人数で数える（2026-08-07）
-    admin.from("ow_profile_desired_roles").select("user_id"),
-    admin.from("ow_job_applications").select("id", { count: "exact", head: true }),
+    /* ⚠️ 旧ファネルの3本（オンボーディング完了・希望職種・応募の行数）は 2026-10-17 に外した。
+          ファネルは lib/admin/realFunnel.ts が実ユーザーだけ・人数で数える */
   ]);
 
   // 未ログインBIZ担当者数を算出（auth.admin → ow_users.auth_id でジョイン）
@@ -225,11 +221,6 @@ async function getStats() {
     neverLoggedInBizCount,
     recentUsers: recentUsers ?? [],
     recentCompanies: recentCompanies ?? [],
-    // ファネル
-    onboardingCompletedCount: onboardingCompleted.count ?? 0,
-    // 希望職種を1件以上入れている**人数**（行数ではない。複数選択できるため）
-    profileFilledCount: new Set(((profileFilled.data ?? []) as { user_id: string }[]).map((r) => r.user_id)).size,
-    appliedOrMetCount: appliedOrMet.count ?? 0,
   };
 }
 
@@ -250,7 +241,7 @@ export default async function AdminDashboard() {
   if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
 
 
-  const stats = await getStats();
+  const [stats, realFunnel] = await Promise.all([getStats(), loadRealFunnel()]);
   /* ⚠️ 口コミ承認待ちは 2026-08-07 に外した。参照していた ow_company_reviews が
         このプロジェクトに存在せず、常に0件を足していただけだったため。 */
   const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount
@@ -275,8 +266,10 @@ export default async function AdminDashboard() {
       /* ⚠️★実測（2026-09-01）: 38人中 **32人が検証用**。実ユーザーは6人。
             内訳を出さないと、この画面の数字とファネルの%が**何を測っているのか
             読み取れない。** 隠すのではなく**内訳で示す**。 */
+      /* ★実ユーザーの数は下のファネルと同じ数え方（lib/admin/realFunnel.ts。本人が登録した人だけ）にした（2026-10-17）。
+            それまでは「全体 − 検証用」で、運営が履歴書から作った（本人未登録の）人も入り、ファネルと1人ずれていた */
       note: stats.testUsersCount > 0
-        ? `うち検証用 ${stats.testUsersCount} ／ 実ユーザー ${stats.usersCount - stats.testUsersCount}`
+        ? `うち検証用 ${stats.testUsersCount} ／ 実ユーザー ${realFunnel ? realFunnel.registered : "—"}`
         : null,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -462,79 +455,54 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* ── オンボーディングファネル ── */}
+      {/* ── ★実ユーザーのファネル（2026-10-17 / 柴さんの指示）──────────────────────────
+             それまでのファネルは検証用アカウントを母数に含み、注記で断っていた。
+             「応募・面談実績あり」も応募の**行数**で、人数ではなかった。
+             ⚠️ 数え方は lib/admin/realFunnel.ts の1か所。ここに条件を書かない。
+             ⚠️ 取得に失敗したら「取得できませんでした」。0人と出さない。 */}
       {(() => {
-        const total = stats.usersCount;
-        const funnel = [
-          { label: "登録完了", count: total, color: "var(--royal)", bg: "#EFF3FC" },
-          { label: "オンボーディング完了", count: stats.onboardingCompletedCount, color: "#7C3AED", bg: "#F5F3FF" },
-          { label: "プロフィール記入済み", count: stats.profileFilledCount, color: "var(--success-ink)", bg: "#ECFDF5" },
-          { label: "応募・面談実績あり", count: stats.appliedOrMetCount, color: "var(--warm-ink)", bg: "#FEF3C7" },
+        const f = realFunnel;
+        if (!f) {
+          return (
+            <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, padding: "16px 22px", marginBottom: 16, fontSize: 13, color: "var(--error-ink)" }}>
+              実ユーザーのファネルを取得できませんでした（0人という意味ではありません）。
+            </div>
+          );
+        }
+        const total = f.registered;
+        const steps = [
+          { label: "登録", count: f.registered, note: "本人が登録した人" },
+          { label: "オンボーディング完了", count: f.onboarded, note: null },
+          { label: "職歴あり", count: f.withCareer, note: null },
+          { label: "入社後レビューに回答", count: f.reviewed, note: "「この会社について」" },
+          { label: `直近${ACTIVE_WINDOW_DAYS}日に利用`, count: f.activeLast7d, note: f.lastActiveAt ? `最終 ${new Date(f.lastActiveAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}` : "記録なし" },
         ];
         return (
-          <div style={{
-            background: "#fff", border: "1px solid #E2E8F0",
-            borderRadius: 14, padding: "20px 22px", marginBottom: 16,
-          }}>
-            <div style={{
-              fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 16,
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-              </svg>
-              ユーザーファネル（オンボーディング完了率）
-            </div>
-            {/* ★★母数に検証用アカウントが入っていることを画面に出す（2026-09-01）。
-                   ⚠️ 実測（2026-09-01）: 母数38のうち**32が検証用**で、
-                      「オンボーディング完了 79%」は**実ユーザーだけなら 50%（3/6）**。
-                      比率の意味がまるで違う。**注記が無いと成長の指標として誤読される。**
-                   ⚠️ 検証用を母数から外す案は採らない。運営画面はテストデータも
-                      見えるほうが正しい（CLAUDE.md「完全に隠さないこと」）。
-                      **見せ方の問題なので、注記で解く。** */}
-            {stats.testUsersCount > 0 && (
-              <div style={{
-                fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.8,
-                marginBottom: 12, paddingBottom: 10, borderBottom: "1px solid var(--line-soft)",
-              }}>
-                ⚠️ 母数 {stats.usersCount} 人のうち <strong style={{ color: "var(--ink)" }}>{stats.testUsersCount} 人が検証用アカウント</strong>です。
-                この比率は成長の指標として使えません。
+          <div data-state="real-funnel" style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, padding: "20px 22px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>実ユーザーのファネル</div>
+              <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
+                検証用・システムを除く ／ 応募・面談をした人 <strong style={{ color: "var(--ink)" }}>{f.appliedOrMet}人</strong>
               </div>
-            )}
-            <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
-              {funnel.map((step, i) => {
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+              {steps.map((step, i) => {
                 const pct = total > 0 ? Math.round((step.count / total) * 100) : 0;
+                const prev = i > 0 ? steps[i - 1].count : null;
+                const stepPct = prev && prev > 0 ? Math.round((step.count / prev) * 100) : null;
                 return (
-                  <div key={step.label} style={{ flex: 1, position: "relative" }}>
-                    {/* Arrow connector */}
-                    {i > 0 && (
-                      <div style={{
-                        position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)",
-                        color: "#CBD5E1", fontSize: 18, zIndex: 1, lineHeight: 1,
-                      }}>›</div>
-                    )}
-                    <div style={{
-                      background: step.bg, borderRadius: 10,
-                      padding: "14px 16px", marginLeft: i > 0 ? 12 : 0,
-                    }}>
-                      <div style={{
-                        fontFamily: "var(--font-inter), var(--font-noto)",
-                        fontSize: 28, fontWeight: 800, color: step.color, lineHeight: 1, marginBottom: 4,
-                      }}>
-                        {step.count}
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "#94A3B8", marginLeft: 4 }}>人</span>
-                      </div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 6 }}>
-                        {step.label}
-                      </div>
-                      {/* Progress bar */}
-                      <div style={{ height: 4, background: "#E2E8F0", borderRadius: 2, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, background: step.color, borderRadius: 2, transition: "width 0.5s" }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: step.color, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", marginTop: 4 }}>
-                        {pct}%
-                      </div>
+                  <div key={step.label} style={{ background: "#F8FAFC", border: "1px solid #EEF2F7", borderRadius: 10, padding: "12px 14px", minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 26, fontWeight: 800, color: "var(--royal)", lineHeight: 1 }}>
+                      {step.count}<span style={{ fontSize: 12, fontWeight: 600, color: "#94A3B8", marginLeft: 4 }}>人</span>
                     </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#334155", marginTop: 6 }}>{step.label}</div>
+                    <div style={{ height: 4, background: "#E2E8F0", borderRadius: 2, overflow: "hidden", marginTop: 8 }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: "var(--royal)", borderRadius: 2 }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--ink-mute)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                      登録の {pct}%{stepPct !== null ? ` ／ 前の段の ${stepPct}%` : ""}
+                    </div>
+                    {step.note && <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 2 }}>{step.note}</div>}
                   </div>
                 );
               })}
