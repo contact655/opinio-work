@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadRealFunnel, ACTIVE_WINDOW_DAYS } from "@/lib/admin/realFunnel";
+import { loadWaitingCompanies } from "@/lib/admin/waitingCompanies";
 import { findTestLeftovers, countTestLeftovers } from "@/lib/admin/testLeftovers";
 import { TestLeftoversCard } from "@/components/admin/TestLeftoversCard";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
@@ -241,7 +242,10 @@ export default async function AdminDashboard() {
   if (!(await viewerIsAdmin())) return null; // 画面はレイアウトの「権限がありません」が出す
 
 
-  const [stats, realFunnel] = await Promise.all([getStats(), loadRealFunnel()]);
+  const [stats, realFunnel, waiting] = await Promise.all([getStats(), loadRealFunnel(), loadWaitingCompanies()]);
+  /* ★担当者のいない企業で、実在の利用者が待っている（2026-10-17）。検証用だけが待つ企業は要対応に数えない
+        （一覧には出る）。失敗は1件として数える（0に倒すと壊れているのに消える） */
+  const waitingReal = waiting === null ? null : waiting.filter((w) => !w.testOnly);
   /* ⚠️ 口コミ承認待ちは 2026-08-07 に外した。参照していた ow_company_reviews が
         このプロジェクトに存在せず、常に0件を足していただけだったため。 */
   const totalPending = stats.pendingJobsCount + stats.pendingMeetingsCount
@@ -256,7 +260,8 @@ export default async function AdminDashboard() {
     /* ★未紹介の提案（2026-09-21）。0件が正常。失敗は1件として数える */
     + (stats.stuckIntrosFailed ? 1 : stats.stuckIntrosCount)
     /* ★企業からの掲載依頼（2026-09-29）。0件が正常。失敗は1件として数える */
-    + (stats.listingRequestsFailed ? 1 : stats.listingRequestsCount);
+    + (stats.listingRequestsFailed ? 1 : stats.listingRequestsCount)
+    + (waitingReal === null ? 1 : waitingReal.length);
 
   const kpis = [
     {
@@ -597,6 +602,38 @@ export default async function AdminDashboard() {
                     <p style={{ fontSize: 11, color: "#3B5FD9", margin: 0 }}>{stats.pendingMeetingsCount}件</p>
                   </div>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </Link>
+            )}
+
+            {/* ★担当者のいない企業で待っている人（2026-10-17）。数え方は lib/admin/waitingCompanies.ts */}
+            {(waitingReal === null || waitingReal.length > 0) && (
+              <Link href="/admin/waiting-companies" style={{ textDecoration: "none" }}>
+                <div data-state="todo-waiting-companies" style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#FEF3C7", color: "var(--warm-ink)",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22" /><path d="M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
+                      {waitingReal === null ? "担当者のいない企業で待っている人 取得に失敗" : `担当者のいない企業で待っている人 ${waitingReal.length}社`}
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>
+                      {waitingReal === null ? "0社という意味ではありません。開いて確認してください" : "応募・面談の申込・興味あり。企業に担当者の登録を案内してください"}
+                    </p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>

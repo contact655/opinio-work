@@ -30,7 +30,7 @@ export default async function CompanyJoinRequestsPage() {
         企業への参加依頼
       </h1>
       <p style={{ margin: "0 0 4px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)" }}>既存の担当者がいる企業に「担当者に追加してほしい」と送られた依頼</strong>
+        <strong style={{ color: "var(--ink)" }}>企業の担当者になりたいという依頼</strong>（担当者がまだいない企業への「最初の担当者」としての依頼を含む。2026-10-17 から運営の承認制）
         のうち、まだ担当者になれていないものです。<strong style={{ color: "var(--ink)" }}>古いものが上に並びます。</strong>
       </p>
       <p style={{ margin: "0 0 20px", fontSize: 12, color: "#92400e", lineHeight: 1.7, fontWeight: 600 }}>
