@@ -116,7 +116,7 @@ export default function ProposalsAdminClient({
             /* ★本人が企業からの連絡を受け取らない設定。**黙って0件にしない**（2026-09-21） */
             <>
               <strong>提案は作りませんでした。</strong><br />
-              この方は「転職について」を
+              この方は「転職意欲」を
               <strong>
                 {msg.result.blockedByStance.stance
                   ? `「${CAREER_STANCE_LABELS[msg.result.blockedByStance.stance] ?? msg.result.blockedByStance.stance}」`

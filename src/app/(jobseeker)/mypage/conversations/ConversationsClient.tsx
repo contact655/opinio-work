@@ -662,8 +662,8 @@ export default function ConversationsClient({
           {/* ★一覧の一番下に、止め方の1行（2026-10-11 に受け取りの設定から置き換えた。全員が最初から受け取る形） */}
           {!bulkMode && (
             <div data-state="approach-setting-line" style={{ marginTop: "auto", padding: "12px 14px", borderTop: "1px solid var(--line-soft)", fontSize: 12, color: "var(--ink-mute)", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
-              <span>企業からのメッセージは「転職について」で止められます。</span>
-              <Link href="/mypage#intent" style={{ fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>転職についてを変える</Link>
+              <span>企業からのメッセージは、マイページの「転職の状況」で止められます。</span>
+              <Link href="/mypage#intent" style={{ fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>転職の状況を変える</Link>
             </div>
           )}
         </div>

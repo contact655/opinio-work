@@ -590,7 +590,7 @@ export function companyMessageCandidateTemplate(params: {
       <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;line-height:1.7">
         このあと30分以内に同じ相手から届いたメッセージは、改めてお知らせしません。OPINIO でまとめてご覧ください。<br>
         このお知らせは <a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「企業からのメッセージをメールで受け取る」で止められます。
-        企業からのメッセージそのものを止めるには、「転職について」で「今は考えていない」を選んでください。
+        企業からのメッセージそのものを止めるには、マイページの「転職の状況」で「転職意欲」を「今は考えていない」にしてください。
       </p>
     `),
   };

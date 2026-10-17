@@ -192,7 +192,7 @@ export function TransferPrefsBox({ candidate }: { candidate: Candidate }) {
   if (rows.length === 0) return null;
   return (
     <section data-state="transfer-prefs" style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-      <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>転職について</h3>
+      <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>転職意欲</h3>
       <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", columnGap: 14, rowGap: 4, fontSize: 13, lineHeight: 1.6 }}>
         {rows.map((r) => (
           <div key={r.label} style={{ display: "contents" }}>

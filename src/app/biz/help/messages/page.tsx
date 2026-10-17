@@ -70,7 +70,7 @@ export default async function ApproachHelpPage() {
         <section style={card} data-state="help-inmail-diff">
           <h2 style={h2}>LinkedIn の InMail との違い</h2>
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
-            <li style={li}><strong>転職を考えていない方には届きません。</strong>「転職について」で「今は考えていない」を選んだ方は、候補者検索に表示されず、メッセージも届きません。</li>
+            <li style={li}><strong>転職を考えていない方には届きません。</strong>「転職意欲」で「今は考えていない」を選んだ方は、候補者検索に表示されず、メッセージも届きません。</li>
             <li style={li}><strong>理由が必須です。</strong>経歴を見て、話を聞きたい理由を書いてから送ります。</li>
             <li style={li}><strong>返事がない理由は表示されません。</strong>返事が来ない場合、その理由は企業には表示されません。</li>
             <li style={li}><strong>{APPROACH_EXPIRE_DAYS}日で外れます。</strong>返事が無いまま{APPROACH_EXPIRE_DAYS}日たつと「返信はありませんでした」と表示され、相手も返信できなくなります。返事待ちの枠も戻ります。</li>
