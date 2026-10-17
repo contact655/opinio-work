@@ -1088,6 +1088,9 @@ export function JobseekerHeader() {
               <Link href="/mypage/bookmarks" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}>
                 ブックマーク
               </Link>
+              <Link href="/mypage/follows" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}>
+                フォロー中
+              </Link>
               <Link href="/mypage/settings" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}>
                 設定
               </Link>

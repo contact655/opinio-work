@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
+import MypageLayout from "../_components/MypageLayout";
 
 /**
  * ★`gone_label` は「フォローしたときはあったが、いま開けない」（2026-09-27）。
@@ -57,6 +58,8 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
 
   /* ⚠️ 中央寄せにしない（2026-08-25）。器はレイアウトが持つ */
   return (
+    /* ★マイページの左のメニューの枠に入れた（2026-10-18）。それまでは枠の外の単独のページだった */
+    <MypageLayout activeKey="follows">
     <div style={{ maxWidth: 720, paddingBottom: 64 }}>
       <h1 style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: "0 0 18px" }}>
         フォロー中
@@ -147,6 +150,7 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
         </div>
       )}
     </div>
+    </MypageLayout>
   );
 }
 

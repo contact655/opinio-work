@@ -98,6 +98,7 @@ const Icons = {
   briefcase:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"/></svg>,
   application: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>,
   message:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  follow:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>,
   bookmark:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
   inbox:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
   /* ★提案（②）。既存のどれとも読み違えない形にする（受信箱＝スカウトと紛れない） */
@@ -123,6 +124,7 @@ export type MypageActiveKey =
   | "conversations"
   | "applications"
   | "proposals"
+  | "follows"
   // プロフィール編集ページ (/profile/edit)
   // ν-8 段階1: "settings" → "profile" に役割再定義。"settings" は過渡期互換のため残す。
   | "profile"
@@ -265,6 +267,9 @@ export default function MypageLayout({
             <SidebarItem icon={Icons.proposal}    label="あなたに合う会社" active={activeKey === "proposals"}      badge={proposalsBadge}      href="/mypage/proposals" />
             <SidebarItem icon={Icons.message}     label="メッセージ"    active={activeKey === "conversations"}  badge={conversationsBadge}  href="/mypage/conversations" />
             <SidebarItem icon={Icons.bookmark}    label="ブックマーク"  active={activeKey === "bookmarks"}      href="/mypage/bookmarks" />
+            {/* ★フォロー中（2026-10-18 / 柴さんの指示）。それまで入口が /people のサイドバーと /feed の左の列だけで見つけにくかった。
+                   ⚠️ スマホの入口はアバターの引き出し（JobseekerHeader）。片方だけ消さないこと */}
+            <SidebarItem icon={Icons.follow}      label="フォロー中"    active={activeKey === "follows"}        href="/mypage/follows" />
           </nav>
 
           {/* ⚠️ 「アカウント > プロフィール」は 2026-08-16 に削除した。
