@@ -374,6 +374,20 @@ export function JobseekerHeader() {
        [自分のアバター（引き出し）] [検索欄（幅いっぱい）] [メッセージ] [ベル]
      ⚠️ 未ログインのスマホは従来どおり（ロゴ・🔍・無料登録・ハンバーガー）。 */
   const mobileSignedIn = isNarrow && !loading && !!user;
+  /* ★スマホの引き出しに出す未読の数（2026-10-18）。マイページのタブ（応募・面談 など）をスマホで外したので、
+        数字の置き場をここへ移した。数え方は /api/jobseeker/mypage-badges（マイページの左のメニューと同じ）。
+     ⚠️ スマホでログインしているときだけ取る（PC はマイページの左のメニューが出す） */
+  const [drawerBadges, setDrawerBadges] = useState<{ applications: number; proposals: number | null } | null>(null);
+  useEffect(() => {
+    if (!mobileSignedIn) return;
+    let cancelled = false;
+    fetch("/api/jobseeker/mypage-badges")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setDrawerBadges({ applications: d.applications ?? 0, proposals: d.proposals ?? null }); })
+      .catch((e) => console.error("[JobseekerHeader] badges:", e));
+    return () => { cancelled = true; };
+  }, [mobileSignedIn, pathname]);
+  const drawerDot = (drawerBadges?.applications ?? 0) + (drawerBadges?.proposals ?? 0) > 0;
 
   async function handleLogout() {
     const supabase = createClient();
@@ -421,8 +435,12 @@ export function JobseekerHeader() {
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={mobileMenuOpen ? "メニューを閉じる" : "メニューを開く"}
               aria-expanded={mobileMenuOpen}
-              style={{ width: 36, height: 36, padding: 0, border: "none", background: "none", borderRadius: "50%", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              style={{ position: "relative", width: 36, height: 36, padding: 0, border: "none", background: "none", borderRadius: "50%", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <InitialAvatar name={user.name || user.email} size={32} />
+              {/* ★引き出しの中に未読があるときの印（応募・面談／あなたに合う会社） */}
+              {drawerDot && (
+                <span aria-label="未読があります" style={{ position: "absolute", top: 1, right: 1, width: 10, height: 10, borderRadius: "50%", background: "var(--error, #DC2626)", border: "2px solid #fff" }} />
+              )}
             </button>
           ) : (
           <Link href="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center", color: "var(--brand-ink)" }}>
@@ -1056,9 +1074,22 @@ export function JobseekerHeader() {
               <Link
                 href="/mypage/proposals"
                 onClick={() => setMobileMenuOpen(false)}
-                style={{ display: "block", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}
               >
                 あなたに合う会社
+                <DrawerCount n={drawerBadges?.proposals ?? 0} />
+              </Link>
+              {/* ★★応募・面談／ブックマーク／設定（2026-10-18 / 柴さんの指示）。スマホではマイページのタブを外したので、
+                     ここが入口。⚠️ PC はマイページの左のメニュー（MypageLayout）。片方だけ消さないこと */}
+              <Link href="/mypage/applications" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}>
+                応募・面談
+                <DrawerCount n={drawerBadges?.applications ?? 0} />
+              </Link>
+              <Link href="/mypage/bookmarks" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}>
+                ブックマーク
+              </Link>
+              <Link href="/mypage/settings" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", fontSize: 15, fontWeight: 500, color: "var(--ink)", textDecoration: "none" }}>
+                設定
               </Link>
               {/* ⚠️ デスクトップのドロップダウンと同じ条件・同じ行き先・同じ文言にすること。
                      片方だけに出すと「スマホからは自社の管理画面に入れない」になる。 */}
@@ -1104,5 +1135,15 @@ export function JobseekerHeader() {
         </nav>
       </div>
     </>
+  );
+}
+
+/** 引き出しの行の右に出す未読の数。0 のときは何も出さない */
+function DrawerCount({ n }: { n: number }) {
+  if (n <= 0) return null;
+  return (
+    <span style={{ minWidth: 20, height: 20, padding: "0 6px", borderRadius: 10, background: "var(--error, #DC2626)", color: "#fff", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      {n > 99 ? "99+" : n}
+    </span>
   );
 }

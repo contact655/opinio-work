@@ -195,24 +195,6 @@ export default function MypageLayout({
         ⚠️ 数え方は `lib/mypage/navBadges.ts` の1か所（API はそれを呼ぶだけ）。
         ⚠️ ページが渡した値は最初の表示に使い、取れたら API の値で置き換える。
         ⚠️ 取得に失敗したら渡された値のまま（0 で上書きしない）。 */
-  /* ★スマホのタブ（プロフィール／応募・面談…）は、下へスクロールしたら隠し、上へ戻したら出す（2026-10-17 / LinkedIn に寄せて）。
-        上に固定されたものが検索の帯とタブの2本で約130px あり、画面の16%を使っていた。
-     ⚠️ 隠すのは見た目だけ（ヘッダーの裏へ平行移動）。広い画面ではタブ自体が出ないので影響しない。
-     ⚠️ requestAnimationFrame は使わない（描画されていないと動かない。ui-debugging ⑪） */
-  const [tabHidden, setTabHidden] = useState(false);
-  useEffect(() => {
-    let lastY = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const dy = y - lastY;
-      if (y < 80) setTabHidden(false);
-      else if (dy > 6) setTabHidden(true);
-      else if (dy < -6) setTabHidden(false);
-      if (Math.abs(dy) > 6 || y < 80) lastY = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
   const [live, setLive] = useState<{ conversations: number; applications: number; proposals: number | null; messageRequests: number; approaches?: number | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -245,100 +227,11 @@ export default function MypageLayout({
       {/* ⚠️ グリッドより前に置く。全幅で敷きたいので、サイドバーの外側になる */}
       {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} />}
 
-      {/* モバイル: 横スクロールタブバー */}
-      <nav aria-label="マイページナビゲーション" className={`mypage-mobile-tabbar${tabHidden ? " is-hidden" : ""}`} style={{
-        background: "#fff", borderBottom: "1px solid var(--line)",
-        overflowX: "auto", WebkitOverflowScrolling: "touch" as unknown as undefined,
-        position: "sticky", top: topOffset, zIndex: 40,
-        display: "none", // hidden on desktop via CSS below
-      }}>
-        {/* ★アイコンを上・ラベルを下の2段組にして、5項目を等幅で収める（2026-08-16）。
-               横並び1段では中身 502px に対して枠が 375px しかなく、
-               **「ブックマーク」が初期表示で完全に隠れていた**（`overflow-x: auto`
-               なのでスクロールはできるが、あることに気づけない）。
-            ⚠️ `minWidth: max-content` をやめる。これがあると等幅にならない。 */}
-        <div style={{ display: "flex", padding: "0 4px" }}>
-          {[
-            /* ★「ホーム」→「プロフィール」（2026-10-17 / 柴さんの指示）。下の固定メニューの「ホーム」はフィードで、
-                  同じ語が別の行き先を指していた。⚠️ 左のサイドバーも同じ語にしてある。片方だけ戻さないこと */
-            { key: "dashboard",      label: "プロフィール",  href: "/mypage",               icon: Icons.dashboard },
-            { key: "applications",   label: "応募・面談",    href: "/mypage/applications",  icon: Icons.application },
-            /* ★★提案（2026-09-21）。**「スカウト」と入れ替えた**（柴さんの判断）。
-                  ⚠️★**7項目にしないこと。** 375px で1項目の枠が 49.6px に落ち、
-                     実測で **応募・面談 −0.4 / メッセージ −0.4 / ブックマーク −9.6** と
-                     3つ溢れる。実画面では「メッセージ」と「ブックマーク」が
-                     **くっついて1語に見えた**。
-                  ⚠️★**スカウトは 2026-10-08 に廃止した**（提案に一本化）。
-                     `/mypage/scouts` は削除し、middleware が `/mypage` へ転送する。
-                     PC のサイドバーからも外した。**戻さないこと。** */
-            /* ★ページ名は「あなたに合う会社」（2026-10-15）。⚠️ モバイルのタブは1項目 61px・10px なので短い「合う会社」にしてある */
-            { key: "proposals",      label: "合う会社",      href: "/mypage/proposals",     icon: Icons.proposal },
-            { key: "conversations",  label: "メッセージ",    href: "/mypage/conversations", icon: Icons.message },
-            { key: "bookmarks",      label: "ブックマーク",  href: "/mypage/bookmarks",     icon: Icons.bookmark },
-            /* ★設定（2026-08-17 / フェーズ4-1）。
-                  ⚠️ **モバイルにも出す。** 左のサイドバーは 960px 未満で消えるので、
-                     ここに無いと**スマホから設定に行く手段が1つも無くなる**。
-                     6項目でも 375px で1項目 62px、ラベルは10pxなので収まる（実測）。 */
-            { key: "settings",       label: "設定",          href: "/mypage/settings",      icon: Icons.settings },
-          ].map((item) => {
-            const isActive = activeKey === item.key || (item.key === "profile" && (activeKey === "settings"));
-            const badge =
-              item.key === "applications" ? applicationsBadge
-              : item.key === "conversations" ? conversationsBadge
-              : item.key === "proposals" ? proposalsBadge
-              : undefined;
-            return (
-              <a
-                key={item.key}
-                href={item.href}
-                aria-current={isActive ? "page" : undefined}
-                style={{
-                  /* ★等幅。375px なら6項目で1項目 61px に収まる（実測 2026-08-30）
-                     ⚠️★**ここだけ 10px。「12px 未満を作らない」の意図的な例外。**
-                        12px にすると「ブックマーク」が **66px 必要**で 61px の枠に入らない
-                        （11px でも 63px で入らない。字間 -0.06em・padding 削減でも 67px）。
-                     ⚠️ 代案はどれも採らないと決めた（2026-08-30 / 柴さん）:
-                        ・折り返す      … 12px で入るが**バーが 49px → 73px**。
-                                          親が `sticky` なので**画面を24px 恒久的に食う**
-                        ・「保存」に改名 … 入るが、ページ見出し・サイドバー・空状態が
-                                          「ブックマーク」なので**語彙が割れる**
-                        ・項目を5つに   … 75px で入るが、スカウトの0件は
-                                          `SCOUT_SENDING_ENABLED` で**意図的に止めている**ぶん。
-                                          再開時に戻す作業になる
-                     ⚠️ **切れてはいない**（全項目 61px で収まっている）。アイコン＋ラベルの
-                        タブバーは 10px が慣例（iOS 標準のタブバーが 10pt）で、
-                        意味はアイコンが担いラベルは補助。**本文の可読性の規則とは別。**
-                     ⚠️ 上げるなら**ラベルを短くするしかない。** サイズだけ変えると溢れる。 */
-                  flex: "1 1 0", minWidth: 0,
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                  padding: "6px 2px", fontSize: 10, fontWeight: isActive ? 700 : 500,
-                  color: isActive ? "var(--royal)" : "var(--ink-soft)",
-                  borderBottom: isActive ? "2px solid var(--royal)" : "2px solid transparent",
-                  textDecoration: "none", whiteSpace: "nowrap",
-                  transition: "color 0.15s",
-                }}
-              >
-                {/* バッジはアイコンの右上に重ねる（1段目に置くと等幅が崩れる） */}
-                <span style={{ position: "relative", display: "flex", lineHeight: 0 }}>
-                  {item.icon}
-                  {/* ⚠️ `badge &&` にしない。**`badge` が 0 のとき React は `0` を描く**
-                         （2026-08-16 に実測。ラベルの横に「0」が出ていた）。
-                         左のサイドバー（38行目）は最初から `!== undefined` で書けている。 */}
-                  {badge !== undefined && badge > 0 && (
-                    <span style={{
-                      position: "absolute", top: -6, left: 10,
-                      background: "var(--error)", color: "#fff",
-                      borderRadius: 100, fontSize: 10, fontWeight: 700,
-                      padding: "0 4px", fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: "14px",
-                    }}>{formatBadgeCount(badge)}</span>
-                  )}
-                </span>
-                {item.label}
-              </a>
-            );
-          })}
-        </div>
-      </nav>
+      {/* ⚠️★スマホのタブ（プロフィール／応募・面談／合う会社／メッセージ／ブックマーク／設定）は 2026-10-18 に外した
+             （柴さんの指示。上に帯が2本重なって混んで見えた。LinkedIn にも無い）。
+             行き先: プロフィール＝下の「マイページ」／メッセージ＝ヘッダーの吹き出し／
+             あなたに合う会社・応募・面談・ブックマーク・設定＝アバターの引き出し（JobseekerHeader。未読の数もそこ）。
+             ⚠️ 戻すなら引き出しの行と二重にならないようにすること */}
 
       {/* デスクトップ: グリッドレイアウト */}
       {/* ⚠️ minmax(0, 1fr) にすること。1fr のままだと中身の最小幅で本文が押し広げられ、
@@ -457,10 +350,6 @@ export default function MypageLayout({
       */}
       <style>{`
         .mypage-nav-item:hover { background: var(--bg-tint) !important; color: var(--ink) !important; }
-        /* スマホのタブを隠すとき（tabHidden）。ヘッダー（z-index 100）の裏へ上げる */
-        .mypage-mobile-tabbar { transition: transform 0.2s ease, opacity 0.2s ease; }
-        /* ヘッダーは半透明（ぼかし）なので、裏へ上げるだけだと選択中の下線が透けて見える。消しておく */
-        .mypage-mobile-tabbar.is-hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 
         /* 右カラムが畳まれる幅で、本文側に置いた控えと入れ替える。
            .mypage-narrow-only は rightColumnCollapse に hide を渡すのとセットで使う。 */
@@ -514,7 +403,6 @@ export default function MypageLayout({
              同じ要素を order で本文の上へ動かす。同じ内容を2箇所に持つと、
              片方だけ直る形の不具合になる（/profile/edit の完成度バーで一度やった）。 */
         @media (max-width: 767px) {
-          .mypage-mobile-tabbar { display: block !important; }
           .mypage-desktop-grid  { display: flex !important; flex-direction: column !important; grid-template-columns: none !important; }
           .mypage-left-aside { display: none !important; }
           .mypage-right-aside {
