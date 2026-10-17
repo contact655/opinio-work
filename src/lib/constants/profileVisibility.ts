@@ -27,8 +27,15 @@ export const PROFILE_VISIBILITY_VALUES = ["public", "login_only", "private"] as 
 
 export type ProfileVisibility = (typeof PROFILE_VISIBILITY_VALUES)[number];
 
+/**
+ * ★本人が選べる値（2026-10-17 / 柴さんの指示で「非公開」を外した。LinkedIn にもプロフィール全体を
+ *   自分だけにする設定は無い）。⚠️ `private` は DB の値として残す ——システムユーザーと、
+ *   運営が /admin/candidates で非公開にした人が使う。**本人の設定画面と PUT /api/jobseeker/profile には出さない。**
+ */
+export const USER_SELECTABLE_VISIBILITIES = ["public", "login_only"] as const satisfies readonly ProfileVisibility[];
+
 export const PROFILE_VISIBILITY_OPTIONS: {
-  value: ProfileVisibility;
+  value: (typeof USER_SELECTABLE_VISIBILITIES)[number];
   /** 設定画面のラジオの見出し */
   label: string;
   /** 設定画面のラジオの説明。同意の範囲 */
@@ -56,10 +63,8 @@ export const PROFILE_VISIBILITY_OPTIONS: {
     desc: "ログインしていない人や検索エンジンには表示されません。",
     line: "ログインしていない人や検索エンジンには表示されません。",
   },
-  {
-    value: "private",
-    label: "非公開",
-    desc: "自分だけが閲覧できます。企業の候補者検索にも表示されません。",
-    line: "いまは自分だけが閲覧できます。企業の候補者検索にも出ません。",
-  },
+  /* ⚠️★「非公開」（private）は 2026-10-17 に本人の選択肢から外した（`USER_SELECTABLE_VISIBILITIES`）。戻さないこと */
 ];
+
+/** ★運営が非公開にした人の設定画面に出す1行（本人は変えられない） */
+export const OPS_PRIVATE_NOTE = "運営の判断で、プロフィールを非公開にしています。変更をご希望の場合はお問い合わせください。";

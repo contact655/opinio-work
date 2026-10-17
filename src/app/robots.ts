@@ -7,7 +7,8 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: ["/", "/biz"],        // /biz ランディングページは公開（企業向けLP）
         disallow: [
-          "/u/",
+          /* ★`/u/` は外した（2026-10-18）。「公開」の人のページだけ index にする
+                （`/u/[id]/page.tsx` の generateMetadata）。それ以外の人のページは未ログインには開かない */
           "/people",
           /* ★横断検索。クエリごとに無限にURLが生えるうえ、中身は
                 /companies /jobs /people の再掲。入力がそのままURLに出るので

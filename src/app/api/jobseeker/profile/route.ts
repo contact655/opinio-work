@@ -7,6 +7,8 @@ import { optionalText, optionalUrlMap, requiredText, InvalidInputError } from "@
 import { normalizeUsername, validateUsername, USERNAME_ERROR_MESSAGE } from "@/lib/constants/username";
 import { isGender } from "@/lib/constants/gender";
 import { NAME_PART_MAX, PHONE_MAX, buildDisplayName, isValidPhone } from "@/lib/constants/personName";
+import { OPS_PRIVATE_NOTE, USER_SELECTABLE_VISIBILITIES } from "@/lib/constants/profileVisibility";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { birthDateRangeError } from "@/lib/age";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +29,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const VALID_VISIBILITY = new Set(["public", "login_only", "private"]);
+  /* ⚠️ 本人が選べるのは公開とログインユーザーのみ（「非公開」は 2026-10-17 に外した）。値は profileVisibility.ts の1か所 */
+  const VALID_VISIBILITY = new Set<string>(USER_SELECTABLE_VISIBILITIES);
   const BIRTH_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
   const patch: {
@@ -219,6 +222,17 @@ export async function PUT(req: Request) {
     if ("visibility" in body) {
       if (typeof body.visibility !== "string" || !VALID_VISIBILITY.has(body.visibility)) {
         return NextResponse.json({ error: "INVALID_VISIBILITY", message: "公開範囲の値が不正です。" }, { status: 400 });
+      }
+      /* ★運営が非公開にした人は、本人が戻せない（2026-10-17）。画面で選択肢を隠すだけでは API から戻せるので、ここでも止める。
+            ⚠️ 読むのは admin（`ow_users` は列単位 GRANT の表。select に足すと 403 で静かに素通りしうる） */
+      const { data: cur, error: curErr } = await createAdminClient()
+        .from("ow_users").select("visibility").eq("auth_id", user.id).maybeSingle();
+      if (curErr) {
+        console.error("[profile PUT] visibility の確認に失敗:", curErr.message);
+        return NextResponse.json({ error: "SAVE_FAILED", message: "保存に失敗しました。" }, { status: 500 });
+      }
+      if (cur?.visibility === "private") {
+        return NextResponse.json({ error: "VISIBILITY_LOCKED", message: OPS_PRIVATE_NOTE }, { status: 403 });
       }
       patch.visibility = body.visibility;
     }

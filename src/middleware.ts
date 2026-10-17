@@ -151,7 +151,10 @@ export async function middleware(request: NextRequest) {
     (pathname.startsWith("/biz") && !BIZ_PUBLIC_PATHS.includes(pathname)) ||
     pathname.startsWith("/admin") ||
     (pathname.startsWith("/agent") && !AGENT_PUBLIC_PATHS.includes(pathname)) ||
-    pathname.startsWith("/u/") ||
+    /* ★★`/u/` は外した（2026-10-18 / 柴さんの判断）。公開範囲が「公開」の人は
+          ログインしていない人にも見せる（LinkedIn と同じ）。見せてよいかはページ側が決める
+          （`ow_users` の RLS で「公開」以外は未ログインに返らない → `/u/[id]/page.tsx` がログインへ送る）。
+       ⚠️ `/people` はログイン必須のまま（人の一覧は出さない） */
     // ⚠️ 完全一致にしないこと。/people/role/[slug] の7ページも同じ個人情報を出す。
     //    2026-07-13 の 7dd4eff4 では === "/people" だったため子が素通りしていた（2026-08-04 修正）。
     pathname === "/people" || pathname.startsWith("/people/") ||

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PROFILE_VISIBILITY_OPTIONS, type ProfileVisibility } from "@/lib/constants/profileVisibility";
+import { OPS_PRIVATE_NOTE, PROFILE_VISIBILITY_OPTIONS, type ProfileVisibility } from "@/lib/constants/profileVisibility";
 import { isReachableByCompanies } from "@/lib/constants/careerPreferences";
 import { FormSection } from "@/components/profile/editor/formKit";
 import { useCompanyLookup, type CompanyLookupResult } from "@/components/companies/useCompanyLookup";
@@ -160,6 +160,10 @@ export default function PrivacySettings({
     <>
       {/* ── 公開範囲 ───────────────────────────────────────────────────── */}
       <FormSection title="公開範囲">
+        {/* ⚠️ 運営が非公開にした人には選択肢を出さない（本人が戻せると運営の措置が無効になる） */}
+        {saved === "private" ? (
+          <p data-state="visibility-ops-private" style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>{OPS_PRIVATE_NOTE}</p>
+        ) : (<>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {PROFILE_VISIBILITY_OPTIONS.map((o) => (
             <label
@@ -208,6 +212,7 @@ export default function PrivacySettings({
           {visDone && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)" }}>保存しました</span>}
           {visError && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--error)" }}>{visError}</span>}
         </div>
+        </>)}
       </FormSection>
 
       {/* ── ★企業の候補者検索での見え方（2026-09-10）──────────────────────
@@ -296,8 +301,10 @@ export default function PrivacySettings({
             {/* ★「年齢も表示されます」は 2026-10-09 に削除した。`/u/[id]` の年齢表示は
                    2026-08-29 に外してあり、**事実と違っていた。** 年齢を戻すならここも戻す。 */}
             顔写真・見出し・自己紹介・職歴・学歴・スキルなどが表示されます。
-            {/* ⚠️ この一文はオンボーディングと IntentCard と同じ。揃えてある */}
-            見えるのは OPINIO にログインしている人だけです。
+            {/* ★2026-10-18: 公開範囲で書き分ける（同日の改定で新規登録の初期設定が「公開」になった） */}
+            {saved === "public"
+              ? "公開範囲が「公開」なので、ログインしていない人や検索エンジンからも見えます（職歴の業務内容と投稿は、ログインしている人にだけ表示されます）。"
+              : "公開範囲が「ログインユーザーのみ」なので、見えるのは OPINIO にログインしている人だけです。"}
           </li>
         </ol>
 

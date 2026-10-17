@@ -817,7 +817,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                    出していたが、見る人にとって中身の無いセクションがキャリアの間に挟まっていた。
                    本人が見るとき（viewerIsOwner）は0件でも出す。
                 ⚠️ 初期表示は3件。残りはこのセクションの中で展開する（タブへ飛ばさない）。 */}
-            {(recentPostsTyped.length > 0 || viewerIsOwner) && (
+            {/* ★ログインしていない人にはアクティビティ（投稿）を出さない（2026-10-18）。
+                   「公開」の人のページで未ログインに見せるのはプロフィールだけ。投稿はログインしてから */}
+            {!!authUser && (recentPostsTyped.length > 0 || viewerIsOwner) && (
               <ActivitySection
                 posts={recentPostsTyped}
                 likedPostIds={likedPostIds}
