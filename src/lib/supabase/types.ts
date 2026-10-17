@@ -3165,48 +3165,6 @@ export type Database = {
           },
         ]
       }
-      ow_company_target_industries: {
-        Row: {
-          company_id: string
-          created_at: string
-          display_order: number
-          industry_id: string
-          is_primary: boolean
-          target_industry_scope: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          display_order?: number
-          industry_id: string
-          is_primary?: boolean
-          target_industry_scope?: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          display_order?: number
-          industry_id?: string
-          is_primary?: boolean
-          target_industry_scope?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ow_company_target_industries_industry_id_fkey"
-            columns: ["industry_id"]
-            isOneToOne: false
-            referencedRelation: "ow_industries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ow_cti_company_scope_fkey"
-            columns: ["company_id", "target_industry_scope"]
-            isOneToOne: false
-            referencedRelation: "ow_companies"
-            referencedColumns: ["id", "target_industry_scope"]
-          },
-        ]
-      }
       ow_company_tools: {
         Row: {
           company_id: string
@@ -8085,15 +8043,6 @@ export type Database = {
           p_company_id: string
           p_domain_ids: string[]
           p_primary_domain_id: string
-        }
-        Returns: number
-      }
-      set_company_target_industries: {
-        Args: {
-          p_company_id: string
-          p_industry_ids: string[]
-          p_primary_industry_id: string
-          p_scope: string
         }
         Returns: number
       }
