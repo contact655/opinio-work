@@ -95,7 +95,7 @@ export function ClassificationEditor({ masters, value, onChange, onAddDomain, di
   return (
     <div className="clsf">
       <style>{`
-        .clsf { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+        .clsf { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
         .clsf-q { min-width: 0; }
         .clsf-qt { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--ink); }
         .clsf-hint { margin: 0 0 10px; font-size: 12px; color: var(--ink-mute); line-height: 1.7; }
@@ -119,12 +119,12 @@ export function ClassificationEditor({ masters, value, onChange, onAddDomain, di
         .clsf-chip:disabled { cursor: default; opacity: 0.5; }
         .clsf-note { margin: 8px 0 0; font-size: 12px; color: var(--ink-mute); line-height: 1.7; }
         .clsf-radio { display: flex; gap: 8px; flex-wrap: wrap; }
-        .clsf-stages { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+        .clsf-stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; } /* ★2026-10-18: 2列固定から、幅に合わせて並べる形へ（縦に長かった） */
         .clsf-card { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; min-width: 0; }
         .clsf-card[data-on=true] { border-color: var(--royal); }
         .clsf-card-t { font-size: 13.5px; font-weight: 600; color: var(--ink); }
         .clsf-card-d { font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
-        @media (max-width: 560px) { .clsf-row2, .clsf-stages { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 560px) { .clsf-row2 { grid-template-columns: minmax(0, 1fr); } }
       `}</style>
 
       {/* ① 業種 */}

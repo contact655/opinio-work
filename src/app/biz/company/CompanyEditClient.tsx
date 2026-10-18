@@ -95,12 +95,13 @@ function FormLabel({
 }
 
 function FormGroup({ children }: { children: React.ReactNode }) {
-  return <div style={{ marginBottom: 18 }}>{children}</div>;
+  /* ★2026-10-18（柴さんの指示）: 余白を詰めた（18 → 14）。上の方がスクロールしないと見えなかった */
+  return <div style={{ marginBottom: 14 }}>{children}</div>;
 }
 
 function FormHint({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 6, lineHeight: 1.7 }}>
+    <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>
       {children}
     </div>
   );
@@ -305,16 +306,17 @@ function FormTextarea({
 /** 本文の節（基本情報・会社紹介・働き方・写真）。⚠️ `id` は「公開まであと〇つ」から飛ぶ先ではない（飛ぶのは入力欄の id） */
 function Section({ id, title, desc, children }: { id: string; title: string; desc?: string; children: React.ReactNode }) {
   return (
-    <section id={id} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "24px 28px", marginBottom: 18, scrollMarginTop: 16 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: desc ? "0 0 4px" : "0 0 18px" }}>{title}</h2>
-      {desc && <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 18px" }}>{desc}</p>}
+    /* ★2026-10-18（柴さんの指示）: 余白を詰めた（padding 24/28 → 18/22・節の間 18 → 14・見出しの下 18 → 12） */
+    <section id={id} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px 22px 6px", marginBottom: 14, scrollMarginTop: 16 }}>
+      <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: desc ? "0 0 2px" : "0 0 12px" }}>{title}</h2>
+      {desc && <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6, margin: "0 0 12px" }}>{desc}</p>}
       {children}
     </section>
   );
 }
 
 function SubHeading({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: "22px 0 12px", paddingTop: 18, borderTop: "1px solid var(--line-soft)" }}>{children}</div>;
+  return <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", margin: "16px 0 10px", paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>{children}</div>;
 }
 
 /** 右側の小さな箱 */
@@ -350,6 +352,7 @@ export function CompanyEditClient({
 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<BizCompany>({ ...initialCompany });
+  const [showDoneReqs, setShowDoneReqs] = useState(false);
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
   const [listingRequestedAt, setListingRequestedAt] = useState<string | null>(initialListingRequestedAt);
@@ -696,16 +699,16 @@ export function CompanyEditClient({
                 </FormGroup>
                 <FormGroup>
                   <FormLabel>ロゴ</FormLabel>
-                  <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                     {form.logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={form.logoUrl} alt="企業ロゴ" style={{ width: 72, height: 72, borderRadius: 14, objectFit: "cover", flexShrink: 0, border: "1px solid var(--line)" }} />
+                      <img src={form.logoUrl} alt="企業ロゴ" style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", flexShrink: 0, border: "1px solid var(--line)" }} />
                     ) : (
                       <div style={{
-                        width: 72, height: 72, borderRadius: 14, flexShrink: 0,
+                        width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                         background: form.logoGradient || "linear-gradient(135deg, var(--royal), var(--accent))", color: "#fff",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 30,
+                        fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 22,
                       }}>
                         {form.logoLetter || form.name?.[0] || "?"}
                       </div>
@@ -768,7 +771,7 @@ export function CompanyEditClient({
                     value={form.descriptionMarkdown}
                     onChange={(v) => update("descriptionMarkdown", v)}
                     placeholder="事業の内容、創業の背景、社内の雰囲気、これからの展望などを書いてください。"
-                    minHeight={260}
+                    minHeight={160}
                   />
                   <FormHint>企業ページの「企業について」に出ます。上のボタンで見出し・太字・箇条書き・リンクを付けられます。</FormHint>
                 </FormGroup>
@@ -846,8 +849,10 @@ export function CompanyEditClient({
                 <div style={{ fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 10 }}>
                   {listed ? "掲載中です。従業員数・本社所在地が空でも公開は止まりませんが、入力してください。" : "すべてそろうと「掲載を依頼する」を押せます。"}
                 </div>
+                {/* ★2026-10-18（柴さんの指示）: 入力済みの項目は畳む（8行並ぶと右側が長く、下の箱が画面から外れていた）。
+                      未入力の項目だけを出し、入力済みは「入力済み N項目」を押すと開く */}
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {COMPANY_REQUIREMENTS.map((r) => {
+                  {COMPANY_REQUIREMENTS.filter((r) => showDoneReqs || missingAll.some((m) => m.key === r.key)).map((r) => {
                     const missing = missingAll.some((m) => m.key === r.key);
                     return (
                       <li key={r.key}>
@@ -872,6 +877,12 @@ export function CompanyEditClient({
                     );
                   })}
                 </ul>
+                {COMPANY_REQUIREMENTS.length - missingAll.filter((m) => COMPANY_REQUIREMENTS.some((r) => r.key === m.key)).length > 0 && (
+                  <button type="button" data-state="requirements-done-toggle" aria-expanded={showDoneReqs} onClick={() => setShowDoneReqs((x) => !x)}
+                    style={{ marginTop: 4, padding: "4px", background: "none", border: "none", fontFamily: "inherit", fontSize: 12, color: "var(--ink-mute)", cursor: "pointer" }}>
+                    {showDoneReqs ? "入力済みの項目を隠す" : `入力済み ${COMPANY_REQUIREMENTS.length - missingAll.filter((m) => COMPANY_REQUIREMENTS.some((r) => r.key === m.key)).length}項目を見る`}
+                  </button>
+                )}
               </SideCard>
 
               {canEditBasic && masters && (
@@ -970,7 +981,7 @@ export function CompanyEditClient({
       {/* ⚠️ style タグの中に不等号・バッククォートを書かない（ハイドレーションが壊れる） */}
       <style>{`
         .cpe-head { padding: 14px 32px; }
-        .cpe-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; max-width: 1180px; padding: 24px 32px 48px; }
+        .cpe-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; max-width: 1360px; padding: 18px 28px 48px; }
         .cpe-side { position: sticky; top: 24px; align-self: start; }
         .cpe-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
         @media (max-width: 1023px) {
