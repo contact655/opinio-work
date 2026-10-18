@@ -4,15 +4,11 @@ import { CASUAL_MEETING_FORMAT_OPTIONS, type CasualMeetingFormat } from "@/lib/c
 import { useState } from "react";
 import Link from "next/link";
 
-type Intent = "info_gathering" | "good_opportunity" | "within_6" | "within_3";
 type Format = CasualMeetingFormat;
 
-const INTENT_OPTIONS: { value: Intent; label: string; desc: string }[] = [
-  { value: "info_gathering",  label: "情報収集中",            desc: "まだ転職を決めておらず、情報を集めている段階" },
-  { value: "good_opportunity", label: "良い機会があれば検討", desc: "積極的ではないが、良い出会いがあれば前向きに" },
-  { value: "within_6",        label: "半年以内に転職したい",  desc: "6ヶ月以内の転職を視野に入れて活動中" },
-  { value: "within_3",        label: "3ヶ月以内に転職したい", desc: "すでに本格的に転職活動中" },
-];
+/* ⚠️★「いまの転職意向」は 2026-10-18 に外した（柴さんの指示）。申し込む時点で聞いても、会ってみて変わる
+      （会って早く移りたくなる、など）ので意味が無い。⚠️ 戻さないこと。
+      列 ow_casual_meetings.intent と API の受け口は残してある（過去の申込の値を企業側の画面とメールが出すため。新しい申込は null） */
 
 /* ★選択肢は lib/constants/casualMeetingFormats.ts（企業側の表示と同じ定数。2026-10-18） */
 const FORMAT_OPTIONS = CASUAL_MEETING_FORMAT_OPTIONS;
@@ -119,7 +115,6 @@ export default function CasualMeetingForm({
   authEmail: string;
   jobId: string | null;
 }) {
-  const [intent, setIntent] = useState<Intent>("info_gathering");
   const [interestReason, setInterestReason] = useState("");
   const [questions, setQuestions] = useState("");
   const [contactEmail, setContactEmail] = useState(authEmail);
@@ -144,7 +139,6 @@ export default function CasualMeetingForm({
         body: JSON.stringify({
           company_id: companyId,
           contact_email: contactEmail,
-          intent,
           interest_reason: interestReason || null,
           questions: questions || null,
           preferred_format: preferredFormat,
@@ -279,45 +273,6 @@ export default function CasualMeetingForm({
           <p style={sectionDescStyle}>
             お申し込みにあたり、あなたのプロフィール情報（氏名・職歴など）が企業側に共有されます。企業側が事前にあなたのキャリアを確認できるため、<strong>面談当日の対話がスムーズ</strong>になります。
           </p>
-        </section>
-
-        {/* Section 2: Intent */}
-        <section style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>いまの転職意向</h2>
-          <p style={sectionDescStyle}>
-            企業の採用担当が面談前の参考にします。正直にお答えください。
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {INTENT_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                style={{
-                  display: "flex", alignItems: "flex-start", gap: 12,
-                  padding: "12px 16px", borderRadius: 10, cursor: "pointer",
-                  border: `1px solid ${intent === opt.value ? "var(--royal)" : "var(--line)"}`,
-                  background: intent === opt.value ? "var(--royal-50)" : "#fff",
-                  transition: "all 0.15s",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="intent"
-                  value={opt.value}
-                  checked={intent === opt.value}
-                  onChange={() => setIntent(opt.value)}
-                  style={{ marginTop: 3, accentColor: "var(--royal)", flexShrink: 0 }}
-                />
-                <span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", display: "block", marginBottom: 2 }}>
-                    {opt.label}
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-                    {opt.desc}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
         </section>
 
         {/* Section 3: Interest reason + questions */}

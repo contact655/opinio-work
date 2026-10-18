@@ -199,7 +199,7 @@ export function casualMeetingAdminTemplate(params: {
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${params.companyName}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
-        <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
+        ${params.intent ? `<tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${esc(intentLabel[params.intent] ?? params.intent)}</td></tr>` : "" /* ★申込フォームで聞くのをやめた（2026-10-18）。無ければ行ごと出さない */}
         <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
         <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
       </table>
@@ -883,7 +883,7 @@ export function casualMeetingCompanyAdminTemplate(params: {
       <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> へのカジュアル面談申し込みがありました。</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">申込者</td><td style="${TD_VALUE}">${esc(params.contactEmail)}</td></tr>
-        <tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${params.intent ? esc(intentLabel[params.intent] ?? params.intent) : "未回答"}</td></tr>
+        ${params.intent ? `<tr><td style="${TD_LABEL}">転職意向</td><td style="${TD_VALUE}">${esc(intentLabel[params.intent] ?? params.intent)}</td></tr>` : "" /* ★申込フォームで聞くのをやめた（2026-10-18）。無ければ行ごと出さない */}
         <tr><td style="${TD_LABEL}">志望理由</td><td style="${TD_VALUE}">${esc(params.interestReason) || "（未記入）"}</td></tr>
         <tr><td style="${TD_LABEL}">質問内容</td><td style="${TD_VALUE}">${esc(params.questions) || "（未記入）"}</td></tr>
       </table>
