@@ -57,6 +57,7 @@ import {
 /* ★並び替えの選択肢・社会人年数の帯・更新時期の帯は model.ts（2026-10-10 に移した）。
    ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
 import { sortByPositionFit, type PositionFits, type PositionOption } from "@/lib/business/candidates/positionFitModel";
+import { groupTouchpoints } from "@/lib/business/candidates/touchpointView";
 const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
@@ -1263,14 +1264,18 @@ export default function CandidatesClient({
                           </div>
                         );
                       })() : !(compactCards && isWide) && (topTp ? (
-                        <div className="cand-card-reason" data-state="card-reason"
-                          title={topTp.row ? `${topTp.row.item}：${topTp.row.summary ?? `${topTp.row.person}　${companyShortName ?? "貴社"}：${topTp.row.ours}`}` : topTp.text}>
-                          <span aria-hidden="true" className="cand-card-reason-check">✓</span>
-                          <span className="cand-card-reason-item">{topTp.row?.item ?? "合うところ"}</span>
-                          {/* ★「↔」をやめた（2026-10-18）。この人の値のあとに「〈会社名〉：」を添えて、どちら側の値かを示す */}
-                          <span className="cand-card-reason-text">{topTp.row ? (topTp.row.summary ?? <>{topTp.row.person}<span className="cand-card-reason-co">　{companyShortName ?? "貴社"}：</span>{topTp.row.ours}</>) : topTp.text}</span>
-                          {tps && tps.length > 1 && <span className="cand-card-reason-more">ほか{tps.length - 1}件</span>}
-                        </div>
+                        /* ★この人の強みだけを並べる（2026-10-18 / 柴さんの指示）。自社側の名前は出さない（見ているのは自社の人事なので自明）。
+                              「営業の経験・プロダクトに関心・同業の経験（Salesforce）」。全文（合う先まで）は title。並べ方は touchpointView.ts */
+                        (() => {
+                          const groups = groupTouchpoints(tps);
+                          return (
+                            <div className="cand-card-reason" data-state="card-reason"
+                              title={groups.map((g) => (g.detail ? `${g.label}：${g.detail}` : g.label)).join("\n")}>
+                              <span aria-hidden="true" className="cand-card-reason-check">✓</span>
+                              <span className="cand-card-reason-text">{groups.map((g) => g.short).join("・")}</span>
+                            </div>
+                          );
+                        })()
                       ) : tps ? (
                         <div className="cand-card-reason is-empty" data-state="card-reason-empty" aria-hidden="true">{"\u00a0"}</div>
                       ) : null)}
@@ -1448,7 +1453,6 @@ export default function CandidatesClient({
         .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: #14532D; }
         .cand-card-reason-item { flex-shrink: 0; font-weight: 700; }
         .cand-card-reason-text { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .cand-card-reason-co { color: #3F6B4E; }
         .cand-card-reason-more { flex-shrink: 0; padding-left: 4px; color: #3F6B4E; white-space: nowrap; }
         .cand-card.is-hidden { opacity: 0.55; }
         .cand-card.is-hidden:hover { opacity: 0.8; }

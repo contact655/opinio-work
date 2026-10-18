@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StanceBadge } from "@/components/candidates/StanceMeter";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { PositionFitBox } from "@/components/candidates/PositionFitBox";
+import { groupTouchpoints } from "@/lib/business/candidates/touchpointView";
 import type { PositionFitItem } from "@/lib/business/candidates/positionFitModel";
 import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
@@ -58,17 +59,6 @@ function formatTenure(months: number | null): string | null {
   return `社会人${Math.floor(months / 12)}年`;
 }
 
-/** ★合うところの分類（太字で頭に出す）。判定の種類（kind）を名前にしただけで、判定は変えていない */
-const TOUCHPOINT_CATEGORY: Record<Touchpoint["kind"], string> = {
-  job_role: "職種", company_role: "職種", location: "勤務地", target_industry: "業界", business_domain: "同業の経験", alumni: "出身",
-  position_level: "レベル", business_stage: "事業ステージ",
-};
-/** ★求人の職種のうち、求める経験年数を満たしたもの（2026-10-12）は「経験年数」と出す */
-function touchpointCategory(t: Touchpoint): string {
-  if (t.fact?.kind === "job_role" && t.fact.requiredYears) return "経験年数";
-  return TOUCHPOINT_CATEGORY[t.kind] ?? "";
-}
-
 /**
  * ★「合うところ」が0件の候補者に出す案内（2026-10-12 / 柴さんの指示）。灰色の1行。
  *   会社側のデータが足りないときだけ出す（足しても合う人が増えないなら出さない）。
@@ -102,7 +92,6 @@ export function TouchpointGuide({ touchpoints, materials }: { touchpoints: Touch
       コントラスト: 見出し・本文 --ink #0F172A on #ECF6EF = 17.0 ／ 列見出し --ink-mute #475569 = 6.93 ／ チェック #14532D = 8.24 */
 const TP_BG = "#ECF6EF";
 const TP_LINE = "#D3E8DA";
-const TP_CHECK = "#14532D";
 
 export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
   /* ★2026-10-13（ステップ4 / モックに合わせた）: 項目／この人／自社 の3列の表で**全件**出す（「ほか○件」で隠さない）。
@@ -111,70 +100,34 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
         「✓ 職種」の下に「この人 営業（関心）」「〈会社名〉 インサイドセールス（営業部）」の2行で出す（2026-10-18 に「↔」をやめた）。
         ⚠️ 切り替えはコンテナクエリ（この枠の幅）。画面の幅では決めない */
   if (!touchpoints || touchpoints.length === 0) return null;
-  const cell: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, lineHeight: 1.55, verticalAlign: "top", borderTop: `1px solid ${TP_LINE}`, overflowWrap: "anywhere" };
+  /* ★2026-10-18（柴さんの指示）: この人の事実を主語にして、合う先をまとめる（touchpointView.ts）。
+        それまでの「項目／この人／自社」の3列の表と、狭いときの2行の形はやめた（同じ語が何度も並んでいた）。
+        広い枠は「事実｜合う先」の2列、狭い枠（460px 未満）は縦に積む。⚠️ 切り替えはコンテナクエリ */
+  const groups = groupTouchpoints(touchpoints);
   return (
-    <section data-state="touchpoints" className="cand-tp" style={{ marginTop: 12, padding: "12px 12px 8px", borderRadius: 10, background: TP_BG, border: `1px solid ${TP_LINE}` }}>
-      <h3 style={{ margin: "0 0 6px 2px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
-        {companyShortName ?? "貴社"}と合うところ（{touchpoints.length}）
+    <section data-state="touchpoints" className="cand-tp" style={{ marginTop: 12, padding: "12px 14px 8px", borderRadius: 10, background: TP_BG, border: `1px solid ${TP_LINE}` }}>
+      <h3 style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
+        {companyShortName ?? "貴社"}と合うところ（{groups.length}）
       </h3>
-      <table className="cand-tp-table" style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-        <colgroup><col style={{ width: "22%" }} /><col style={{ width: "39%" }} /><col style={{ width: "39%" }} /></colgroup>
-        <thead>
-          <tr>
-            {["項目", "この人", companyShortName ?? "貴社"].map((h) => (
-              <th key={h} scope="col" style={{ ...cell, borderTop: "none", fontSize: 11.5, fontWeight: 700, color: "var(--ink-mute)", textAlign: "left", paddingTop: 2, paddingBottom: 4 }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {touchpoints.map((t, i) => (
-            <tr key={`${t.kind}:${t.ref?.id ?? i}:${i}`} data-touchpoint={t.kind}>
-              <th scope="row" style={{ ...cell, fontWeight: 700, color: "var(--ink)", textAlign: "left" }}>
-                <span aria-hidden="true" style={{ color: TP_CHECK, marginRight: 4 }}>✓</span>{t.row?.item ?? touchpointCategory(t)}
-              </th>
-              {t.row ? (
-                <>
-                  <td style={{ ...cell, color: "var(--ink)" }}>{t.row.person}</td>
-                  <td style={{ ...cell, color: "var(--ink)" }}>{t.row.ours}</td>
-                </>
-              ) : (
-                <td colSpan={2} style={{ ...cell, color: "var(--ink)" }}>{t.text}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ul className="cand-tp-lines" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {touchpoints.map((t, i) => (
-          <li key={`${t.kind}:${t.ref?.id ?? i}:${i}`} data-touchpoint-line={t.kind} className="cand-tp-line">
-            <span aria-hidden="true" className="cand-tp-check">✓</span>
-            <span className="cand-tp-item">{t.row?.item ?? touchpointCategory(t)}</span>
-            {t.row?.summary ? (
-              <span className="cand-tp-val">{t.row.summary}</span>
-            ) : t.row ? (
-              /* ★「↔」をやめ、表の列見出しと同じ「この人／〈会社名〉」を添えて2行で出す（2026-10-18 / 柴さんの指摘。矢印では何がどう合うのか読めなかった） */
-              <span className="cand-tp-pair">
-                <span className="cand-tp-side"><span className="cand-tp-who">この人</span><span className="cand-tp-val">{t.row.person}</span></span>
-                <span className="cand-tp-side"><span className="cand-tp-who">{companyShortName ?? "貴社"}</span><span className="cand-tp-val">{t.row.ours}</span></span>
-              </span>
-            ) : <span className="cand-tp-val">{t.text}</span>}
+      <ul className="cand-tp-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {groups.map((g) => (
+          <li key={g.key} className="cand-tp-row" data-touchpoint-group={g.key}>
+            <span className="cand-tp-label"><span aria-hidden="true" className="cand-tp-check">✓</span>{g.label}</span>
+            {g.detail && <span className="cand-tp-detail">{g.detail}</span>}
           </li>
         ))}
       </ul>
       {/* ⚠️ style タグの中に山かっこ・引用符を書かない（ハイドレーションが壊れる） */}
       <style>{`
         .cand-tp { container-type: inline-size; container-name: candtp; }
-        .cand-tp-lines { display: none; }
-        .cand-tp-line { padding: 6px 2px; border-top: 1px solid #D3E8DA; font-size: 12.5px; line-height: 1.6; color: var(--ink); }
-        .cand-tp-check { color: #14532D; font-weight: 700; margin-right: 4px; }
-        .cand-tp-item { font-weight: 700; margin-right: 10px; white-space: nowrap; }
-        .cand-tp-val { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; }
-        .cand-tp-pair { display: block; margin: 2px 0 0 16px; }
-        .cand-tp-side { display: flex; gap: 8px; align-items: baseline; }
-        .cand-tp-who { flex-shrink: 0; width: 5.5em; font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cand-tp-row { display: grid; grid-template-columns: minmax(0, 13em) minmax(0, 1fr); gap: 2px 14px; padding: 7px 0; border-top: 1px solid #D3E8DA; font-size: 13px; line-height: 1.6; }
+        .cand-tp-row:first-child { border-top: none; }
+        .cand-tp-label { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+        .cand-tp-check { color: #14532D; font-weight: 700; margin-right: 6px; }
+        .cand-tp-detail { color: var(--ink-soft); overflow-wrap: anywhere; }
         @container candtp (max-width: 459.98px) {
-          .cand-tp-table { display: none; }
-          .cand-tp-lines { display: block; }
+          .cand-tp-row { grid-template-columns: minmax(0, 1fr); }
+          .cand-tp-detail { padding-left: 20px; font-size: 12.5px; }
         }
       `}</style>
     </section>
