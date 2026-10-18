@@ -15,12 +15,15 @@ import { CandidateProfileDrawerButton } from "@/components/candidates/CandidateP
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { MESSAGES_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
+import { ConversationColumn } from "@/components/business/ConversationColumn";
 
 /**
  * ★選考管理（/biz/meetings）の左右2画面（2026-10-11 / 柴さんの指示。メッセージ画面と同じ形）。
  *   左 … カジュアル面談と選考・応募を1本の一覧に（新しい順）。タブ すべて／カジュアル面談／選考・応募、その下で「対応中／終了」
  *         1行目 名前＋時刻 ／ 2行目 種類・ポジション ／ 3行目 灰色の状態（バッジにしない）
- *   右 … 上の段（固定）: 名前＋↗（プロフィール欄をドロワーで）・2行目の要約・「メッセージを開く」・種類とポジションと受付日
+ *   右 … 上の段（固定）: 名前＋↗（プロフィール欄をドロワーで）・2行目の要約・種類とポジションと受付日
+ *         ★2026-10-18（柴さんの指示）: 右側をさらに2列に分け、右の列にメッセージ（その場で読んで返信できる。`ConversationColumn`）。
+ *           右側が 760px 未満のときは、詳細の下にメッセージを並べる。「メッセージを開く」ボタンは外した（列の下に「メッセージ画面で開く ›」）
  *         中身: **今の詳細パネルをそのまま**（面談: 日程確定・見送りの確認・担当・社内メモ ／ 応募: 状態の変更・採用確定）
  *               ＋「この会社とのこれまで」（同じアカウントの応募・面談・送ったメッセージ・おすすめを時系列で）
  * ⚠️ 操作（状態の変更・メールが飛ぶ確認・担当・メモ）は以前の MeetingsClient / ApplicationsClient と同じ API・同じ流れ。ここで変えない。
@@ -287,7 +290,15 @@ export function SelectionView({
         .sel-item[data-selected=true] { border-left-color: var(--royal); background: var(--royal-50); }
         .sel-pane-head { flex-shrink: 0; padding: 14px 20px 12px; border-bottom: 1px solid var(--line); background: #fff; }
         .sel-pane-back { display: inline-block; margin-bottom: 6px; background: none; border: 0; padding: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--royal); cursor: pointer; }
-        .sel-pane-body { flex: 1; min-height: 0; overflow-y: auto; background: var(--bg-tint, #f6f7f9); }
+        .sel-pane-body { flex: 1; min-height: 0; overflow-y: auto; background: var(--bg-tint, #f6f7f9); container-type: inline-size; container-name: selpane; }
+        .sel-col-msg { margin: 0 24px 24px; padding: 16px 0 0; border-top: 1px solid var(--line); }
+        /* ★右側が広いとき（760px 以上）は 詳細｜メッセージ の2列。どちらも中だけスクロールする（2026-10-18） */
+        @container selpane (min-width: 760px) {
+          .sel-cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr); height: 100%; }
+          .sel-cols[data-cols=one] { display: block; height: auto; }
+          .sel-col-main { min-width: 0; min-height: 0; overflow-y: auto; }
+          .sel-cols[data-cols=two] .sel-col-msg { min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 16px 20px 20px; border-top: 0; border-left: 1px solid var(--line); background: #fff; }
+        }
         @media (min-width: 1280px) {
           .sel-root { height: calc(100vh - var(--biz-header-h)); box-sizing: border-box; }
           .sel-split { grid-template-columns: 360px minmax(0, 1fr); flex: 1; min-height: 480px; }
@@ -401,7 +412,7 @@ export function SelectionView({
           {selected ? (
             <SelectedPane key={selected.key} it={selected} now={now} fixtures={fixtures}
               onBack={() => { setSelectedKey(null); if (autoSelect) router.replace(urlOf(null), { scroll: false }); }}
-              messageHref={perms.canMessage ? messageHref(selected.conversationId) : null} showMessage={perms.canMessage}>
+              conversationId={perms.canMessage ? selected.conversationId ?? null : null} showMessage={perms.canMessage}>
               {selected.kind === "meeting" ? (
                 <MeetingDetailPanel
                   embedded
@@ -454,9 +465,9 @@ export function SelectionView({
 }
 
 /** 右側。上の段（固定）＋中身（今の詳細パネル）＋この会社とのこれまで */
-function SelectedPane({ it, now, fixtures, onBack, messageHref, showMessage = true, children }: {
+function SelectedPane({ it, now, fixtures, onBack, conversationId, showMessage = true, children }: {
   it: Item; now: Date; fixtures?: Record<string, { meta: string | null; history: HistoryItem[] }>;
-  onBack: () => void; messageHref: string | null; showMessage?: boolean; children: React.ReactNode;
+  onBack: () => void; conversationId: string | null; showMessage?: boolean; children: React.ReactNode;
 }) {
   const fx = it.userId ? fixtures?.[it.userId] : undefined;
   const [data, setData] = useState<{ meta: string | null; history: HistoryItem[] } | null>(fx ?? null);
@@ -491,15 +502,16 @@ function SelectedPane({ it, now, fixtures, onBack, messageHref, showMessage = tr
               {kindLine}{it.at ? `・${fmtDate(it.at)}に受付` : ""}
             </div>
           </div>
-          {/* ⚠️ 面談の申込では「まだやり取りはありません」を出さない（詳細パネルの返信ボタンの横に出す。2026-10-18） */}
-          {!showMessage ? null : messageHref ? (
-            <Link href={messageHref} data-state="open-message" className="btn-fixed-size" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", padding: "8px 14px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>メッセージを開く</Link>
-          ) : it.kind === "meeting" ? null : (
+          {/* ⚠️ 面談の申込では「まだやり取りはありません」を出さない（詳細パネルの返信ボタンの横に出す。2026-10-18）。
+                ★会話があるときはメッセージの列に出すので、ここにはボタンを出さない（2026-10-18） */}
+          {!showMessage || conversationId || it.kind === "meeting" ? null : (
             <span data-state="no-message" style={{ flexShrink: 0, fontSize: 12.5, color: "var(--ink-mute)", paddingTop: 6 }}>メッセージのやり取りはまだありません</span>
           )}
         </div>
       </div>
       <div className="sel-pane-body">
+        <div className="sel-cols" data-cols={conversationId ? "two" : "one"}>
+        <div className="sel-col-main">
         {children}
         <section data-state="selection-history" style={{ margin: "0 24px 24px", padding: "16px 0 0", borderTop: "1px solid var(--line)" }}>
           <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>この会社とのこれまで</h3>
@@ -517,6 +529,14 @@ function SelectedPane({ it, now, fixtures, onBack, messageHref, showMessage = tr
             )}
           <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>同じアカウントでのやり取りだけを表示しています。</p>
         </section>
+        </div>
+        {conversationId && (
+          <section className="sel-col-msg" data-state="selection-messages">
+            <h3 style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>メッセージ</h3>
+            <ConversationColumn key={conversationId} conversationId={conversationId} />
+          </section>
+        )}
+        </div>
       </div>
     </>
   );
