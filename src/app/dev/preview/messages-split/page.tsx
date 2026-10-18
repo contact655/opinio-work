@@ -16,7 +16,7 @@ import { proposalIntroLine } from "@/lib/constants/proposalResponses";
  */
 const daysAgo = (n: number, h = 0) => new Date(Date.now() - n * 24 * 60 * 60 * 1000 - h * 60 * 60 * 1000).toISOString();
 const NOW = new Date().toISOString();
-const quota: ApproachQuota = { sentThisMonth: 2, openCount: 1, openLimit: 10 };
+const quota: ApproachQuota = { sentThisMonth: 2, openCount: 1 };
 
 const conv = (id: string, name: string, extra: Partial<ConversationRow> = {}): ConversationRow => ({
   id, kind: "company", stage: "active", status: "active", last_message_at: daysAgo(0, 1), created_at: daysAgo(5),
@@ -73,7 +73,7 @@ export default function Page() {
       </Variant>
       <Variant label="返事待ち" note="入力欄を出さず、下に中央の灰色「返信を待っています（あと〇日）」「返信が来るまで、続けては送れません」">
         <MessagesView autoSelect={false} linkBase={L} now={NOW} allowed conversations={[convReplied]} sent={[pending]} quota={quota}
-          selectedKey="s:p1" pane={<PendingPane sent={pending} meta="社会人8年・AE・検証株式会社・東京都" backHref={L} now={new Date()} />} />
+          selectedKey="s:p1" pane={<PendingPane sent={pending} meta="社会人8年・AE・検証株式会社・東京都" backHref={L} />} />
       </Variant>
       <Variant label="空（未読タブで0件）" note="右側に「まだメッセージはありません」と「候補者を探して送る」">
         <MessagesView autoSelect={false} linkBase={L} now={NOW} allowed initialTab="unread" conversations={[convReplied]} sent={[]} quota={quota}

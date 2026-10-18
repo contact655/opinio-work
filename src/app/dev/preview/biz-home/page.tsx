@@ -34,7 +34,7 @@ const ACTIONS: HomeActions = {
 };
 
 const SIDE: HomeSide = {
-  quota: { sentText: "3通", openText: "2/10", openSub: "同時に10件まで・30日で枠に戻ります", openPct: 20 },
+  quota: { sentText: "3通", openText: "2件" },
   jobs: { published: 2, draft: 1, stopped: 1 },
   companyStatus: "公開中",
 };

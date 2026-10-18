@@ -176,7 +176,7 @@ export type PreviewActions = {
   onNext: () => void;
 };
 
-export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, companyLimitLine = null, canAct = true,
+export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, canAct = true,
   companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead, columnsStorageKey = null, positionFit = null }: {
   /** ★一覧の上で選んでいるポジションに対する合うところ（2026-10-18）。選んでいなければ null */
   positionFit?: { title: string; items: PositionFitItem[] } | null;
@@ -191,8 +191,6 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
   onClose: () => void; onNoteCountChange?: (count: number) => void;
   /** ★メッセージを送れるか（2026-10-12。閲覧のみは false。送る欄ごと出さない） */
   canAct?: boolean;
-  /** ★企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
-  companyLimitLine?: string | null;
   /** ★「〈会社名〉と合うところ」の会社名。取れなければ null（「貴社と合うところ」） */
   companyShortName?: string | null;
   touchpointMaterials?: TouchpointMaterials | null;
@@ -284,7 +282,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
   const a = c.approach;
   const messageButton = !showMessages || !a ? null
     : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: focusMessages }
-    : a.eligible && !companyLimitLine ? { label: "メッセージを送る", onClick: () => { if (!columns) changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
+    : a.eligible ? { label: "メッセージを送る", onClick: () => { if (!columns) changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
     : null;
 
   return (
@@ -316,7 +314,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
         storageKey: columnsStorageKey,
         messages: (
           <section data-panel-section="messages">
-            <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} onRead={handleRead} />
+            <PreviewApproachArea candidate={c} jobs={approachJobs} openNonce={openFormNonce} onRead={handleRead} />
           </section>
         ),
       } : undefined}
@@ -327,7 +325,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, com
         messagesScrollRef,
         messages: messagesMounted ? (
           <section data-panel-section="messages">
-            <PreviewApproachArea candidate={c} jobs={approachJobs} limitLine={companyLimitLine} openNonce={openFormNonce} onRead={handleRead} />
+            <PreviewApproachArea candidate={c} jobs={approachJobs} openNonce={openFormNonce} onRead={handleRead} />
           </section>
         ) : null,
       } : undefined}

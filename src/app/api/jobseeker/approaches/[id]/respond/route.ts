@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * body: { action: "decline" | "block" | "report" }
  * ⚠️★2026-10-11 から「受け入れる」は無い。返信は POST /api/jobseeker/approaches/[id]/reply（返信した時点でやり取りが始まる）。
  *
- * ⚠️ 本人宛てか・未回答か・期限内か・いま見せてよい企業かは `respondToApproach` が見る。
+ * ⚠️ 本人宛てか・未回答か・いま見せてよい企業かは `respondToApproach` が見る。
  * ⚠️★見送ったことは企業に伝えない（通知を出さない・企業の画面は「承認待ち」のまま）。
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

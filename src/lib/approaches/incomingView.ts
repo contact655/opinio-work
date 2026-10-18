@@ -8,7 +8,7 @@ import type { IncomingApproachView } from "@/components/approaches/incomingAppro
 /**
  * ★求職者に届いている、まだ返信していない企業からのメッセージを画面用の形にする（2026-10-11）。
  *   /mypage/conversations の「未返信」が使う（旧 /mypage/approaches はここへ 301 転送）。
- * ⚠️ 何を出すかは `listIncomingApproaches`（まだ答えていない・30日以内・いま見せてよい企業）。ここで条件を足さない。
+ * ⚠️ 何を出すかは `listIncomingApproaches`（まだ答えていない・いま見せてよい企業。期限は無い）。ここで条件を足さない。
  * ⚠️★理由と本文は返信前でも全文見せる（2026-10-09 / 柴さんの判断）。
  * 取得に失敗したら null（0件と区別する）。
  */

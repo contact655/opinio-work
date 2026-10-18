@@ -109,7 +109,6 @@ export default function CandidatesClient({
   initialSelected = null,
   initialSaved = null,
   companyShortName = null,
-  companyLimitLine = null,
   canAct = true,
   ageFilterEnabled = false,
   activityEnabled = false,
@@ -150,8 +149,6 @@ export default function CandidatesClient({
   ageFilterEnabled?: boolean;
   /** ★カードの「〈会社名〉と合うところ（〇）」の会社名。取れなければ null（「貴社」） */
   companyShortName?: string | null;
-  /** ★企業側の上限（今月の送信数・返信待ち）に当たっているときの1行。当たっていなければ null */
-  companyLimitLine?: string | null;
   /** ★候補者への操作（★・メッセージ・条件の保存）ができるか（2026-10-12 / candidates.search。閲覧のみは false） */
   canAct?: boolean;
   /** ★保存した条件で開いたとき（段3）。newSince があれば「新着だけ」を出す */
@@ -220,7 +217,7 @@ export default function CandidatesClient({
      ★送れる人が0人のときだけ一文を出す。⚠️ 判定は `c.approach.eligible`（`can_send_company_approach()`）だけ */
   /* ★一覧の上の灰色の1行（2026-10-11 / 柴さんの指示）。「いま、メッセージを送れる候補者はいません。」は外した。
         検証用の会社を実アカウントで見ているとき → その旨。企業側の上限に当たっているとき → 上限の文言。それ以外は出さない */
-  const topNotice = candidates.some((c) => c.approach?.blocked === "test_company") ? APPROACH_TEST_COMPANY_MESSAGE : companyLimitLine;
+  const topNotice = candidates.some((c) => c.approach?.blocked === "test_company") ? APPROACH_TEST_COMPANY_MESSAGE : null;
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
         保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
@@ -1329,7 +1326,7 @@ export default function CandidatesClient({
         <aside ref={paneRef} className="cand-pane" aria-live="polite" aria-label="候補者のプレビュー">
           {shownCandidate ? (
             <CandidatePreview key={shownCandidate.id} candidate={shownCandidate}
-              positionFit={position && positionFit ? { title: position.title, items: positionFit[shownCandidate.id]?.items ?? [] } : null} companyLimitLine={companyLimitLine} canAct={canAct}
+              positionFit={position && positionFit ? { title: position.title, items: positionFit[shownCandidate.id]?.items ?? [] } : null} canAct={canAct}
               layout={isWide && paneColumns ? "columns" : "tabs"} columnsStorageKey={columnsStorageKey}
               onMessagesRead={() => setReadOverride((prev) => ({ ...prev, [shownCandidate.id]: true }))}
               companyShortName={companyShortName} touchpointMaterials={touchpointMaterials} approachJobs={approachJobs} notesEnabled={notesEnabled}

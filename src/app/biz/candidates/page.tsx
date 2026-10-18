@@ -12,8 +12,6 @@ import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
-import { getApproachQuota } from "@/lib/approaches/server";
-import { approachCompanyLimitLine } from "@/lib/constants/companyApproaches";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { ensureLastViewed, getSavedSearchForViewer } from "@/lib/business/savedSearchServer";
@@ -219,20 +217,18 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials, positions, positionFits }, approachQuota, coRow] = await Promise.all([
+  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials, positions, positionFits }, coRow] = await Promise.all([
     loadCompanyCandidates({
       companyId: ctx.tenantId,
       viewerOwUserId: ctx.currentOwnId,
       planType: ctx.planType,
     }),
-    /* ★企業側の上限（今月の送信数・返信待ち）。当たっていれば一覧の上とプレビューに1行出す（2026-10-11） */
-    canUse(ctx.planType, "companyApproach") ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
+    /* ⚠️ 企業側の上限（返事待ち10件）の1行は 2026-10-18 に枠ごと外した */
     /* ★カードの「〈会社名〉と合うところ（〇）」の会社名（プレビューと同じ表示名。2026-10-11） */
     createAdminClient().from("ow_companies").select("name, name_en").eq("id", ctx.tenantId).maybeSingle(),
   ]);
   if (coRow.error) console.error("[biz/candidates] ow_companies:", coRow.error.message);
   const companyShortName = coRow.data ? companyDisplayName(coRow.data.name as string, (coRow.data.name_en as string | null) ?? null).displayName : null;
-  const companyLimitLine = approachCompanyLimitLine(approachQuota);
 
   /* ★保存した条件で開く（段3）。`?saved=<id>`（この条件で探す）／`&new=1`（新着を見る）。
      ⚠️ 見られる条件（自分のもの・共有）だけ。新着の基準は**開く前**の前回見た日時
@@ -272,7 +268,6 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         initialSaved={initialSaved}
         initialFilters={initialFilters}
         companyShortName={companyShortName}
-        companyLimitLine={companyLimitLine}
         /* ★右欄が使う会社の材料（2026-10-13）。右欄は一覧の Candidate とこれで描く（1人ずつ取り直さない） */
         approachJobs={approachJobs}
         positions={positions}

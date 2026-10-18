@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
-import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
 import {
-  APPROACH_BODY_MAX, APPROACH_EXPIRE_DAYS, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_RESEND_DAYS,
+  APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_RESEND_DAYS,
 } from "@/lib/constants/companyApproaches";
 import type { ApproachQuota } from "@/lib/approaches/server";
 
@@ -177,21 +176,7 @@ export default function ApproachComposeClient(p: Props) {
 
         {/* ── 右: 枠・見え方・充実度・注意 ── */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-          {/* ① 返事待ち（2026-10-11 / モックに合わせた）。言い方は /biz/messages と同じ。
-                 ⚠️ 「今月あと〇通」は 2026-10-17 に月の上限ごと外した */}
-          <div style={card} data-state="approach-quota">
-            {p.quota ? (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-                  <span>返事待ち</span><span data-state="compose-open-count">{p.quota.openCount}件／{p.quota.openLimit}件</span>
-                </div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{approachQuotaTexts(p.quota).openSub}</div>
-                <div aria-hidden style={{ height: 6, borderRadius: 999, background: "var(--line-soft, #eef0f3)", marginTop: 4, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(100, Math.round((p.quota.openCount / Math.max(1, p.quota.openLimit)) * 100))}%`, height: "100%", background: "var(--royal)" }} />
-                </div>
-              </>
-            ) : <div style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>送れる数を確認できませんでした</div>}
-          </div>
+          {/* ⚠️ ① 返事待ちの枠（N件／10件・バー）は 2026-10-18 に枠ごと外した（柴さんの判断。送る数の上限は無い） */}
 
           {/* ② 見え方。⚠️ 求職者の画面と同じ部品（手紙＋返信欄）。返信欄は見本で押せない */}
           <div style={card} data-state="approach-preview">
@@ -208,8 +193,8 @@ export default function ApproachComposeClient(p: Props) {
             <div style={{ fontSize: 13, fontWeight: 800, color: "var(--ink)", marginBottom: 6 }}>送る前に</div>
             <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc", fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.8 }}>
               <li>返信があると、メールでお知らせします。</li>
-              <li>返事がない場合、その理由は表示されません。{APPROACH_EXPIRE_DAYS}日たつと「返信はありませんでした」になり、返事待ちの枠に戻ります。</li>
-              <li>同じ方には、{APPROACH_RESEND_DAYS}日間もう一度送れません。</li>
+              <li>返事がない場合、その理由は表示されません。返事が来るまで、同じ方には続けて送れません。</li>
+              <li>返信があった方へは、送ってから{APPROACH_RESEND_DAYS}日間もう一度送れません。</li>
             </ul>
           </div>
         </aside>

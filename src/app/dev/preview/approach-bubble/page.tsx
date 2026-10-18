@@ -28,8 +28,8 @@ export default function Page() {
         <div style={box}><ApproachBubble senderName="柴久人" sentAt={daysAgo(3)} reason={SHORT} body={null} status="accepted"
           reply={{ excerpt: "ご連絡ありがとうございます。ちょうど次のキャリアを考えていたところでした。来週でしたらお時間を合わせられますので、候補日をいくつかいただけますか。", href: "/biz/messages" }} /></div>
       </Variant>
-      <Variant label="30日経過" note="最後の行が「返信はありませんでした」（見送りと区別しない）">
-        <div style={box}><ApproachBubble senderName="柴久人" sentAt={daysAgo(35)} reason={SHORT} body={null} status="expired" /></div>
+      <Variant label="35日前に送って返信なし" note="期限は無い（2026-10-18）。最後の行は「返信を待っています」のまま。残り日数は出さない">
+        <div style={box}><ApproachBubble senderName="柴久人" sentAt={daysAgo(35)} reason={SHORT} body={null} status="pending" /></div>
       </Variant>
       <Variant label="本文が長い（理由＋本文・求人つき）" note="4行で切れて「続きを読む」。押すとその場で全文">
         <div style={box}><ApproachBubble senderName="柴久人" sentAt={daysAgo(1)} jobTitle="エンタープライズ営業" reason={LONG} body={BODY} status="pending" /></div>

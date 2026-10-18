@@ -13,8 +13,6 @@ import {
   approachFirstDisplayText,
   approachFirstMessageBody,
   APPROACH_BODY_MAX,
-  APPROACH_EXPIRE_DAYS,
-  APPROACH_OPEN_LIMIT,
   APPROACH_REASON_MAX,
   APPROACH_REASON_MIN,
   APPROACH_REASON_REUSE_DAYS,
@@ -45,11 +43,8 @@ import {
  *
  * ── 上限（企業単位）──────────────────────────────────────────────────
  *   ・~~月10件~~ → 2026-10-17 に外した（柴さんの判断。`companyApproaches.ts` の注記）
- *   ・返事待ち10件。⚠️★「承認されていない かつ 送ってから30日以内」を数える。
- *     断られたものも数える（枠の増減から断られたことが分からないように）。
- *     30日で数えなくなるのは、求職者の一覧から消える期限と同じ。断ったかどうかに関係なく
- *     一律に時間で外れるので、企業には区別がつかない。⚠️ 外さないと、断られた10件で永久に送れなくなる。
- *   ・同じ人へは送ってから180日間は再送できない（承認待ち・断られた・承認済みを区別しない）
+ *   ・~~返事待ち10件・30日の期限~~ → 2026-10-18 に外した（柴さんの判断）
+ *   ・同じ人へは、返事が来るまで送れない（期限なし。断られたものも区別しない）。返信があった相手へは送ってから180日
  *   ・同じ理由（空白を詰めて完全一致）は30日間使い回せない
  */
 
@@ -61,7 +56,6 @@ const MSG = {
   reasonShort: `理由は${APPROACH_REASON_MIN}文字以上で入力してください`,
   reasonLong: `理由は${APPROACH_REASON_MAX}文字以内で入力してください`,
   bodyLong: `メッセージは${APPROACH_BODY_MAX}文字以内で入力してください`,
-  open: `返事待ちのメッセージが${APPROACH_OPEN_LIMIT}件あるため、これ以上送れません（返事があるか、送ってから${APPROACH_EXPIRE_DAYS}日たつと枠に戻ります）`,
   reused: `同じ理由は${APPROACH_REASON_REUSE_DAYS}日間使えません。この方にメッセージを送りたい理由を書いてください`,
 } as const;
 
@@ -120,39 +114,31 @@ export async function approachTargets(params: {
 export type ApproachQuota = {
   /** 今月（日本時間の月初から）送った数。⚠️ 上限ではない（表示用。月の上限は 2026-10-17 に外した） */
   sentThisMonth: number;
+  /** 返事待ちの数（返信の無いもの。⚠️ 見送られたものを含む）。⚠️ 上限ではない（表示用。返事待ち10件の枠は 2026-10-18 に外した） */
   openCount: number;
-  openLimit: number;
 };
 
-/** 企業の残り枠。取得に失敗したら null（呼び出し側は止める） */
+/** 企業が送った数（表示用）。取得に失敗したら null */
 export async function getApproachQuota(companyId: string): Promise<ApproachQuota | null> {
   const db = createAdminClient();
   const [monthly, open] = await Promise.all([
     db.from("ow_company_approaches").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).gte("created_at", startOfMonthJst()),
-    /* ⚠️ 断られたものも数える（declined_at を条件に入れない）。期限の30日で外れる */
+    /* ⚠️ 断られたものも数える（declined_at を条件に入れない。企業に見送りを伝えない） */
     db.from("ow_company_approaches").select("id", { count: "exact", head: true })
-      .eq("company_id", companyId).is("accepted_at", null).gte("created_at", daysAgoIso(APPROACH_EXPIRE_DAYS)),
+      .eq("company_id", companyId).is("accepted_at", null),
   ]);
   if (monthly.error || open.error) {
     console.error("[approaches] quota:", monthly.error?.message ?? open.error?.message);
     return null;
   }
-  return {
-    sentThisMonth: monthly.count ?? 0,
-    openCount: open.count ?? 0,
-    openLimit: APPROACH_OPEN_LIMIT,
-  };
-}
-
-export function quotaBlockMessage(q: ApproachQuota): string | null {
-  if (q.openCount >= q.openLimit) return MSG.open;
-  return null;
+  return { sentThisMonth: monthly.count ?? 0, openCount: open.count ?? 0 };
 }
 
 /**
- * ★この企業が180日以内に声をかけた相手（2026-10-10 / 段5 で中身を足した）。
- * 送信の API の「180日は再送できない」と、画面の重複防止の表示が**同じ関数**を見る。
+ * ★この企業が、いま送れない相手（2026-10-10 / 段5 で中身を足した）。
+ *   = 返事待ち（期限なし。2026-10-18〜）＋ 返信があって送ってから180日以内。
+ * 送信の API の「続けて送れない」と、画面の重複防止の表示が**同じ関数**を見る。
  * 返すもの: 送った日・送った担当者の名前・状態（承認待ち／やり取り中）・再び送れる日。
  * ⚠️★状態は /biz/approaches と同じ `companyApproachStatus`（見送りは区別しない）。
  * 取得に失敗したら null（呼び出し側はボタンを出さない）。
@@ -172,8 +158,9 @@ export type RecentApproach = {
 
 export async function getRecentlyApproached(companyId: string, candidateOwUserIds?: string[]): Promise<Map<string, RecentApproach> | null> {
   const db = createAdminClient();
+  /* ★返事待ちは日数に関係なく含める（期限が無いので。外すと、180日を過ぎた返事待ちの相手へ2通目が届き、受信一覧に2件並ぶ） */
   let q = db.from("ow_company_approaches").select("id, candidate_user_id, created_at, accepted_at, sender_user_id, conversation_id")
-    .eq("company_id", companyId).gte("created_at", daysAgoIso(APPROACH_RESEND_DAYS))
+    .eq("company_id", companyId).or(`accepted_at.is.null,created_at.gte.${daysAgoIso(APPROACH_RESEND_DAYS)}`)
     .order("created_at", { ascending: false });
   if (candidateOwUserIds) {
     if (candidateOwUserIds.length === 0) return new Map();
@@ -236,7 +223,7 @@ export async function sendApproach(params: {
 
   /* ① 同じ人へ180日以内（企業自身の事実なので、事実どおりに返す）。
         ★返信が来るまで（と送ってから一定の期間）は同じ方に続けて送れない。⚠️ 2026-10-11 に 409 から 403 に（柴さんの指示）
-        ★言い方は状態で分ける（返事待ち／返信あり／30日経過。`approachResendNotice`。2026-10-11）。
+        ★言い方は状態で分ける（返事待ち／返信あり。`approachResendNotice`。2026-10-11）。
         ⚠️★**相手に関わる理由（②）より先に見る。** 先にブロックを見ると、送り済みの相手がブロックしたときだけ
            答えが変わり、ブロックされたと分かってしまう（DM の 409 を先に返すのと同じ考え方）。 */
   const recent = await getRecentlyApproached(params.companyId, [params.candidateOwUserId]);
@@ -252,11 +239,7 @@ export async function sendApproach(params: {
     return { ok: false, status: 403, error: APPROACH_BLOCKED_MESSAGE };
   }
 
-  /* ③ 企業の枠 */
-  const quota = await getApproachQuota(params.companyId);
-  if (!quota) return { ok: false, status: 500, error: MSG.failed };
-  const qMsg = quotaBlockMessage(quota);
-  if (qMsg) return { ok: false, status: 429, error: qMsg };
+  /* ③ ~~企業の枠（返事待ち10件）~~ → 2026-10-18 に外した */
 
   /* ④ 同じ理由の使い回し（企業単位・30日） */
   const db = createAdminClient();
@@ -336,7 +319,7 @@ export type IncomingApproach = {
 
 /**
  * 求職者に届いている、まだ答えていない声かけ（新しい順）。
- * ⚠️★送ってから30日たったものは出さない（企業側は「承認待ち」のまま。区別させない）。
+ * ⚠️ 期限は無い（2026-10-18〜。それまでは送ってから30日で出さなくしていた）。
  * ⚠️★いまその企業から見せてはいけない状態（ブロックした・在籍が判明した 等）になったものも出さない
  *    （`can_send_scout()`）。承認しても会話を開けないので、押せる形で残さない。
  * 取得に失敗したら null（呼び出し側は「0件」と出さない）。
@@ -354,7 +337,6 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
     .eq("candidate_user_id", candidateOwUserId)
     .is("accepted_at", null)
     .is("declined_at", null)
-    .gte("created_at", daysAgoIso(APPROACH_EXPIRE_DAYS))
     .order("created_at", { ascending: false });
   if (error) {
     console.error("[approaches] incoming:", error.message);
@@ -452,7 +434,7 @@ export async function countIncomingApproaches(candidateOwUserId: string): Promis
 export type RespondApproachAction = "decline" | "block" | "report";
 
 /**
- * 求職者が「今回は見送る」を押す。⚠️ 本人宛て・未回答・30日以内・いま見せてよい企業 のものだけ。
+ * 求職者が「今回は見送る」を押す。⚠️ 本人宛て・未回答・いま見せてよい企業 のものだけ。
  * ⚠️★見送ったことは企業に伝えない（通知も出さない。企業の画面は「返事待ち」のまま）。
  * ⚠️ 返信は `replyToApproach`（2026-10-11 から「受け入れる」は無い。返信した時点でやり取りが始まる）。
  */
@@ -462,7 +444,7 @@ export async function respondToApproach(params: {
   action: RespondApproachAction;
 }): Promise<{ ok: true; conversationId: null } | { ok: false; status: number; error: string }> {
   const notFound = { ok: false as const, status: 404, error: "このメッセージは見つかりません" };
-  /* ⚠️ 一覧と同じ条件で引き直す（期限切れ・答え済み・いま見せてはいけない企業を押せない形にする） */
+  /* ⚠️ 一覧と同じ条件で引き直す（答え済み・いま見せてはいけない企業を押せない形にする） */
   const list = await listIncomingApproaches(params.candidateOwUserId);
   if (list === null) return { ok: false, status: 500, error: MSG.failed };
   const target = list.find((a) => a.id === params.approachId);
@@ -520,7 +502,7 @@ export const APPROACH_REPLY_MAX = 2000;
  *    返信済み（accepted_at。★列名はそのまま、意味は「返信した日時」）→ 会話を開く → 送った担当者を参加者に
  *    → 1通目（理由＋本文。送った担当者の名前のまま。もう有効でなくても）→ 2通目（返信）→ conversation_id。
  *    途中で失敗したら全部戻る（会話だけ開いて返信が無い、を残さない）。
- * ⚠️ 一覧と同じ条件（本人宛て・未回答・30日以内・いま見せてよい企業）で先に引き直す。DB 関数も同じことを見る（二重）。
+ * ⚠️ 一覧と同じ条件（本人宛て・未回答・いま見せてよい企業）で先に引き直す。DB 関数も同じことを見る（二重）。
  * ⚠️ メールは書き込みが済んでから（best-effort）。返信の中身は書かない。
  */
 export async function replyToApproach(params: {
@@ -658,7 +640,7 @@ export type SentApproach = {
   id: string;
   createdAt: string;
   reason: string;
-  /** ★企業に見せる状態（`companyApproachStatus`。承認待ち／30日を過ぎました／やり取り中）。⚠️ 見送りは区別しない */
+  /** ★企業に見せる状態（`companyApproachStatus`。返事待ち／やり取り中）。⚠️ 見送りは区別しない */
   status: CompanyApproachStatus;
   conversationId: string | null;
   candidate: { id: string; name: string; headline: string | null; avatarUrl: string | null; avatarColor: string | null; username: string | null };

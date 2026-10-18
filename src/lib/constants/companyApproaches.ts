@@ -76,26 +76,17 @@ export function approachFirstDisplayText(reason: string, body: string | null): s
 export const APPROACH_BODY_MAX = 2000;
 
 /*
- * ⚠️★1か月あたりの上限（月10通）は 2026-10-17 に外した（柴さんの判断）。同じ人への連投は
- *    「返信まで追加で送れない」「同じ人へは180日」で止まっており、月の上限が止めていたのは幅だけだった。
- *    幅は下の「返事待ち」の上限で抑える（返信をもらえば次を送れる＝丁寧に送る企業ほど多く送れる）。
- *    ⚠️ 戻すなら `getApproachQuota` / `quotaBlockMessage` / 表示（/biz/messages・書く画面・ホーム・ルール）を一緒に戻す。
+ * ⚠️★企業から送る数の上限は無い。
+ *    ・月10通は 2026-10-17 に外した（柴さんの判断）
+ *    ・返事待ち10件の枠と、30日の期限は 2026-10-18 に外した（柴さんの判断。「メッセージに期限を設けない」）
+ *    同じ人への連投は「返事が来るまで同じ人へは送れない」（期限なし）で止まる。
+ *    ⚠️ 期限が無いので、返事の無いメッセージはずっと「返信を待っています」のまま。求職者はいつでも返信できる
+ *       （DB 関数 `reply_to_company_approach` の30日の判定も外した。supabase/pending/20261018040000）。
  */
-/**
- * 1社あたり、承認待ちのまま並べられる数。
- * ⚠️★断られたものも「承認待ち」として数える。企業には断ったことを伝えない決まりなので、
- *    断られた分だけ枠が空くと、枠の増減から断られたことが分かってしまう。
- */
-export const APPROACH_OPEN_LIMIT = 10;
-/** 同じ企業から同じ人へ、送ってから再送できない日数（承認待ちと断られたを区別しない） */
+/** 返信があった相手へ、送ってから次に送れるまでの日数（返事待ちのあいだは日数に関係なく送れない） */
 export const APPROACH_RESEND_DAYS = 180;
 /** 同じ理由（空白を詰めて完全一致）を使い回せない日数 */
 export const APPROACH_REASON_REUSE_DAYS = 30;
-/**
- * 承認待ちのまま、求職者の一覧から消すまでの日数。
- * ⚠️ 企業側は「まだ承認されていません」のまま（断ったのか期限で消えたのかを区別させない）。
- */
-export const APPROACH_EXPIRE_DAYS = 30;
 
 /** 使い回し判定のための正規化。⚠️ 空白（全角を含む）を詰めるだけ。似た文は見ない */
 export function normalizeApproachReason(s: string): string {
@@ -104,20 +95,18 @@ export function normalizeApproachReason(s: string): string {
 
 /**
  * ★企業に見せる声かけの状態（2026-10-10）。/biz/approaches・候補者検索のカード・/u/[id] の「声かけ済み」が**同じ関数**を見る。
- *   pending  … 送ってから30日以内で、承認されていない（⚠️ 見送られたものを含む。企業には見送りを伝えない）
- *   expired  … 30日を過ぎて承認されていない（見送り・返事なしを区別しない）
- *   accepted … 承認済み（やり取り中）
+ *   pending  … 返信が無い（⚠️ 見送られたものを含む。企業には見送りを伝えない。期限は無いのでずっとこのまま）
+ *   accepted … 返信あり（やり取り中）
  * ⚠️ declined_at を引数に取らないこと（見送ったかどうかで表示を変えない）。
+ * ⚠️ 2026-10-18 まで「expired（30日を過ぎました）」があった。期限をなくしたので外した。
  */
-export type CompanyApproachStatus = "pending" | "expired" | "accepted";
+export type CompanyApproachStatus = "pending" | "accepted";
 export const COMPANY_APPROACH_STATUS_LABELS: Record<CompanyApproachStatus, string> = {
   pending: "返事待ち",
-  expired: `${APPROACH_EXPIRE_DAYS}日を過ぎました`,
   accepted: "返信あり",
 };
-export function companyApproachStatus(p: { createdAt: string; acceptedAt: string | null }, now = new Date()): CompanyApproachStatus {
-  if (p.acceptedAt) return "accepted";
-  return now.getTime() - new Date(p.createdAt).getTime() > APPROACH_EXPIRE_DAYS * 24 * 60 * 60 * 1000 ? "expired" : "pending";
+export function companyApproachStatus(p: { createdAt: string; acceptedAt: string | null }): CompanyApproachStatus {
+  return p.acceptedAt ? "accepted" : "pending";
 }
 
 /**
@@ -126,8 +115,7 @@ export function companyApproachStatus(p: { createdAt: string; acceptedAt: string
  *   状態は `companyApproachStatus`（見送りは区別しない）:
  *     pending  … 「◯月◯日に送ったメッセージリクエストの返事を待っています。…」＋「送った内容を見る」
  *     accepted … 「すでにやり取りが始まっています。」＋「メッセージを開く」（★送る画面ではなく会話へ）
- *     expired  … 「この方へは◯年◯月◯日から、もう一度送れます。」（30日経過と見送りを区別しない）
- * ⚠️ 判定（403 で断る・180日・枠）は変えていない。変えたのは言い方と案内先だけ。
+ * ⚠️ 判定（403 で断る・180日）は変えていない。変えたのは言い方と案内先だけ。
  * ⚠️★ブロックされている相手に送り済みなら、ブロックではなくこの案内を返す（`sendApproach` が先に見る）。
  *    ＝ ブロックされた場合も「返事待ち」と見分けがつかない。
  */
@@ -155,37 +143,23 @@ export function approachResendNotice(s: ApproachResendSubject): {
       action: { label: "メッセージを開く", href: s.conversationId ? `/biz/messages/${s.conversationId}` : `/biz/messages?tab=pending&show=${s.id}` },
     };
   }
-  if (s.state === "pending") {
-    const p = jstParts(s.sentAt);
-    const md = `${jstPart(p, "month")}月${jstPart(p, "day")}日`;
-    return {
-      label: `返事待ち（${md}に送信）`,
-      message: `${md}に送ったメッセージの返事を待っています。返事が来る前に、続けて送ることはできません。`,
-      action: { label: "送った内容を見る", href: `/biz/messages?tab=pending&show=${s.id}` },
-    };
-  }
-  const r = jstParts(s.resendAt);
-  const ymd = `${jstPart(r, "year")}年${jstPart(r, "month")}月${jstPart(r, "day")}日`;
-  return { label: `${ymd}から送れます`, message: `この方へは${ymd}から、もう一度送れます。`, action: null };
+  const p = jstParts(s.sentAt);
+  const md = `${jstPart(p, "month")}月${jstPart(p, "day")}日`;
+  return {
+    label: `返事待ち（${md}に送信）`,
+    message: `${md}に送ったメッセージの返事を待っています。返事が来る前に、続けて送ることはできません。`,
+    action: { label: "送った内容を見る", href: `/biz/messages?tab=pending&show=${s.id}` },
+  };
 }
 
 /**
  * ★送ったあとの状態を言う灰色の1行（2026-10-11 / モックに合わせた）。/biz/messages の一覧・候補者検索のカード・
  *   候補者の詳細が同じ関数を見る。 色付きのバッジにしない（灰色の文字で出す）。
- *     pending  … 「返信を待っています・あと〇日」
- *     expired  … 「返信はありませんでした・〇年〇月〇日から再び送れます」（見送りと30日経過を区別しない）
+ *     pending  … 「返信を待っています」（⚠️ 期限が無いので残り日数は出さない。2026-10-18）
  *     accepted … 「返信がありました」
  */
-const DAY_MS = 24 * 60 * 60 * 1000;
-export function approachDaysLeft(sentAt: string, now = new Date()): number {
-  const elapsed = Math.floor((now.getTime() - new Date(sentAt).getTime()) / DAY_MS);
-  return Math.max(1, APPROACH_EXPIRE_DAYS - elapsed);
-}
-export function approachStatusLine(state: CompanyApproachStatus, sentAt: string, now = new Date()): string {
-  if (state === "accepted") return "返信がありました";
-  if (state === "pending") return `返信を待っています・あと${approachDaysLeft(sentAt, now)}日`;
-  const r = jstParts(new Date(new Date(sentAt).getTime() + APPROACH_RESEND_DAYS * DAY_MS).toISOString());
-  return `返信はありませんでした・${jstPart(r, "year")}年${jstPart(r, "month")}月${jstPart(r, "day")}日から再び送れます`;
+export function approachStatusLine(state: CompanyApproachStatus): string {
+  return state === "accepted" ? "返信がありました" : "返信を待っています";
 }
 
 /** ★送れない相手への一文（2026-10-11 / 柴さんの指示）。**理由ごとに分けない**（受け取らない設定・ブロック・
@@ -199,33 +173,16 @@ export const APPROACH_UNAVAILABLE_MESSAGE = "現在、この方にはメッセ�
 export const APPROACH_TEST_COMPANY_MESSAGE = "検証用の会社のため、このアカウントからは送れません";
 /** 「転職について」が「今は考えていない」の方 */
 export const APPROACH_NOT_LOOKING_MESSAGE = "今は転職を考えていない方です";
-/** 180日以内にこの会社から送っている方（送った日） */
+/** この会社から送っている方（送った日） */
 export function approachAlreadySentLine(sentAtIso: string): string {
   /* ⚠️ 「10/11」ではなく「10月11日」（柴さんの指示）。日本時間で区切る */
   const ps = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" }).formatToParts(new Date(sentAtIso));
   const v = (t: string) => ps.find((x) => x.type === t)?.value ?? "";
   return `${v("month")}月${v("day")}日に送っています`;
 }
-/** ★企業側の上限（返事待ち）に当たっているときの1行。当たっていなければ null */
-export function approachCompanyLimitLine(q: { openCount: number; openLimit: number } | null): string | null {
-  if (!q) return null;
-  if (q.openCount >= q.openLimit) return `返信待ちが${q.openLimit}件あります。返信が来るか、${APPROACH_EXPIRE_DAYS}日たつと送れます`;
-  return null;
-}
-
 /**
- * ★枠の言い方（2026-10-11 / 柴さんの指示。企業側の表示だけ）。/biz/messages・書く画面・ホームが同じ関数を見る。
- *   「承認待ち N/10」→「返事待ち N件」。⚠️ 月の残り（「今月あと N通」）は 2026-10-17 に月の上限ごと外した。
- */
-export function approachQuotaTexts(q: { openCount: number; openLimit: number }) {
-  return {
-    openLine: `返事待ち ${q.openCount}件（${q.openLimit}件まで）`,
-    openSub: `同時に${q.openLimit}件まで・${APPROACH_EXPIRE_DAYS}日で枠に戻ります`,
-  };
-}
-
-/**
- * ★返信率を出し始める件数（2026-10-11）。結果の出たリクエスト（返信あり＋30日を過ぎた）がこれ未満なら「—」。
+ * ★返信率を出し始める件数（2026-10-11）。送った件数がこれ未満なら「—」。
+ *   ⚠️ 2026-10-18 に分母を「送った件数」にした（それまでは「返信あり＋30日を過ぎた」。期限をなくしたため）。
  * ⚠️ 分析タブの「参考値」の境（`REFERENCE_ONLY_BELOW`）とは別。こちらは数字を出さない。
  */
 export const APPROACH_RATE_MIN_RESOLVED = 10;
@@ -234,5 +191,5 @@ export const APPROACH_RATE_MIN_RESOLVED = 10;
  *  ⚠️ 「リクエスト」「受け入れ」「確認する」と書かない */
 export const APPROACH_HEADLINE = "気になる候補者に、理由を添えてメッセージを送れます。相手が返信すると、そのままメッセージでやり取りが始まります。";
 /** ★返事がないときの説明（2026-10-11 / 柴さんの文言）。⚠️「見送られたかどうかは〜」という書き方をしない */
-/*  ⚠️ 2026-10-11（バッジをやめた日）に「『30日を過ぎました』になります」から変えた。一覧の灰色の文字（返信はありませんでした）と揃える */
-export const APPROACH_SILENCE_NOTE = `返事がない場合、その理由は表示されません。${APPROACH_EXPIRE_DAYS}日たつと「返信はありませんでした」と表示されます。`;
+/*  ⚠️ 2026-10-18 に期限の一文（「30日たつと『返信はありませんでした』」）を外した */
+export const APPROACH_SILENCE_NOTE = "返事がない場合、その理由は表示されません。返事が来るまで「返信を待っています」と表示されます。";

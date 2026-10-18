@@ -202,12 +202,6 @@ export default function CandidatesPreview() {
         <CandidatesClient candidates={FULL.map((c) => ({ ...c, approach: { eligible: false, sent: null, blocked: "test_company" as const } }))} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
       </Variant>
       <Variant
-        label="企業側の上限に当たっている（一覧の上の1行）"
-        note="⚠️ 一覧の上に灰色で上限の文言"
-      >
-        <CandidatesClient candidates={FULL} roleFilterTree={ROLE_TREE} companyLimitLine="返信待ちが10件あります。返信が来るか、30日たつと送れます" />
-      </Variant>
-      <Variant
         label="右のプレビューのボタンの位置（状態ごと）"
         note="⚠️ 送れる人だけ主ボタン。送れない人は灰色の1行（バッジにしない）。「プロフィール全体を見る」は白地・枠線で横に並ぶ"
       >
@@ -217,11 +211,10 @@ export default function CandidatesPreview() {
             ["検証用の会社を実アカウントで見ている", { eligible: false, sent: null, blocked: "test_company" }, null],
             ["今は転職を考えていない", { eligible: false, sent: null, blocked: "not_looking" }, null],
             ["その他（範囲外など。区別しない）", { eligible: false, sent: null, blocked: "other" }, null],
-            ["返信待ちの上限", { eligible: true, sent: null }, "返信待ちが10件あります。返信が来るか、30日たつと送れます"],
-          ] as const).map(([label, approach, limit]) => (
+          ] as const).map(([label, approach]) => (
             <div key={label}>
               <div style={{ fontSize: 11, color: "#94a3b8" }}>{label}</div>
-              <PreviewApproachArea candidate={{ ...FULL[0], approach: approach as NonNullable<Candidate["approach"]> }} jobs={[]} limitLine={limit}
+              <PreviewApproachArea candidate={{ ...FULL[0], approach: approach as NonNullable<Candidate["approach"]> }} jobs={[]}
                 profileLink={<span style={{ fontSize: 13, color: "var(--royal)", fontWeight: 700, padding: "9px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff" }}>プロフィール全体を見る</span>} />
             </div>
           ))}

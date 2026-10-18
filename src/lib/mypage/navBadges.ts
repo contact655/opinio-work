@@ -15,7 +15,7 @@ export type MypageNavBadges = {
   /** 内訳（「届いているもの」のカードで使う） */
   unreadConversations: number;
   messageRequests: number;
-  /** ★企業からの声かけ（まだ答えていない・30日以内）。取得に失敗したら null（2026-10-09） */
+  /** ★企業からの声かけ（まだ答えていない。期限は無い）。取得に失敗したら null（2026-10-09） */
   approaches: number | null;
 };
 

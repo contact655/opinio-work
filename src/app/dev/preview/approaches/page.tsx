@@ -30,14 +30,15 @@ const accepted: SentApproach = {
   status: "accepted", conversationId: "c1", candidate: person("u3", "検証 三郎", "カスタマーサクセス"), senderName: "検証 一郎",
   body: null, acceptedAt: daysAgo(2), unseen: true, jobTitle: "フィールドセールス（リクルーティングアドバイザー）",
 };
+/* ★期限は無い（2026-10-18）。40日前に送って返信の無いものも「返事待ち」のまま */
 const expired: SentApproach = {
   id: "e1", createdAt: daysAgo(40), reason: "マーケティングの組織づくりの経験を伺いたいと考えました。",
-  status: "expired", conversationId: null, candidate: person("u4", "検証 四郎", null), senderName: null,
+  status: "pending", conversationId: null, candidate: person("u4", "検証 四郎", null), senderName: null,
   body: null, acceptedAt: null, unseen: false, jobTitle: null,
 };
 
-const quotaEmpty: ApproachQuota = { sentThisMonth: 0, openCount: 0, openLimit: 10 };
-const quotaFull: ApproachQuota = { sentThisMonth: 2, openCount: 2, openLimit: 10 };
+const quotaEmpty: ApproachQuota = { sentThisMonth: 0, openCount: 0 };
+const quotaFull: ApproachQuota = { sentThisMonth: 2, openCount: 2 };
 
 const NOW = new Date().toISOString();
 
@@ -84,12 +85,12 @@ export default function Page() {
         <MessagesView autoSelect={false} now={NOW} allowed conversations={[]} sent={[expired]} quota={quotaEmpty} />
       </Variant>
       <Variant label="結果の出たメッセージ 10件" note="返信あり4・30日を過ぎた6">
-        <MessagesView autoSelect={false} now={NOW} allowed conversations={[]} quota={{ sentThisMonth: 10, openCount: 0, openLimit: 10 }}
+        <MessagesView autoSelect={false} now={NOW} allowed conversations={[]} quota={{ sentThisMonth: 10, openCount: 0 }}
           sent={[...Array.from({ length: 4 }, (_, i) => ({ ...accepted, id: `a${i}`, unseen: false, candidate: person(`ua${i}`, `検証 受入${i + 1}`, null) })),
             ...Array.from({ length: 6 }, (_, i) => ({ ...expired, id: `e${i}`, candidate: person(`ue${i}`, `検証 期限${i + 1}`, null) }))]} />
       </Variant>
       <Variant label="混在（すべてタブ）" note="会話3件＋返事待ち2・30日1">
-        <MessagesView autoSelect={false} now={NOW} allowed conversations={convs} sent={[pending3, accepted, pending25, expired]} quota={{ sentThisMonth: 3, openCount: 2, openLimit: 10 }} />
+        <MessagesView autoSelect={false} now={NOW} allowed conversations={convs} sent={[pending3, accepted, pending25, expired]} quota={{ sentThisMonth: 3, openCount: 2 }} />
       </Variant>
     </div>
   );

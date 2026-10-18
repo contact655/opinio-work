@@ -1,10 +1,9 @@
 import { acceptRate, medianReplyDays, REFERENCE_ONLY_BELOW, ROW_RATE_MIN, type AnalyticsCell, type AnalyticsRow, type ApproachAnalytics } from "@/lib/approaches/analytics";
 import Link from "next/link";
-import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
 /**
  * ★/biz/analytics の「声かけ」タブ（2026-10-10 / 段6）。集計は lib/approaches/analytics.ts。
- * ⚠️ 返信率の分母は「結果の出た件数」（返信あり＋送って30日を過ぎた返事待ち）。10件未満は「参考値」、行ごとに5件未満は率を「—」。
+ * ⚠️ 返信率の分母は「送った件数」（2026-10-18 に期限をなくしてから）。10件未満は「参考値」、行ごとに5件未満は率を「—」。
  */
 export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | null; periodLabel: string }) {
   if (!data) {
@@ -18,7 +17,7 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
   const noResults = t.resolved === 0;
   const emptyNote = (
     <div data-state="approach-analytics-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-      まだ結果の出たメッセージがありません。返信があるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと、ここに出ます。
+      まだ送ったメッセージがありません。
       <Link href="/biz/candidates" style={{ color: "var(--royal)", fontWeight: 700, marginLeft: 6 }}>候補者を探す →</Link>
     </div>
   );
@@ -34,8 +33,8 @@ export function ApproachTab({ data, periodLabel }: { data: ApproachAnalytics | n
       {noResults ? emptyNote : (<>
       <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 16px" }}>
         {/* ★先頭の2文はモックの文言（2026-10-11）。⚠️ 参考値・率を出さない条件の説明は残す（画面に出る「参考値」「—」の理由） */}
-        返事待ちのうち送ってから{APPROACH_EXPIRE_DAYS}日以内のものは、返信率の計算に入れていません。返信がなかったものは、理由を区別せず「返信なし」として数えます。
-        結果の出た件数が{REFERENCE_ONLY_BELOW}件未満のときは参考値、表の行ごとに{ROW_RATE_MIN}件未満のときは率を出していません。
+        返信率は、送ったメッセージのうち返信があった割合です。返事待ちのものも含めて数えます。
+        送った件数が{REFERENCE_ONLY_BELOW}件未満のときは参考値、表の行ごとに{ROW_RATE_MIN}件未満のときは率を出していません。
         検証用アカウントの分は含みません。
       </p>
       <Table title="送った人ごと" rows={data.bySender} />

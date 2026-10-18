@@ -8,7 +8,7 @@ import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { messagePreviewLine } from "@/lib/conversations/previewLine";
 import {
-  APPROACH_HEADLINE, approachQuotaTexts,
+  APPROACH_HEADLINE,
 } from "@/lib/constants/companyApproaches";
 import { ApproachStepsLarge, ApproachTipsList } from "@/components/approaches/ApproachGuide";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
@@ -21,14 +21,13 @@ import type { ConversationRow } from "./page";
  * ★一覧は1本（LinkedIn の受信箱と同じ考え方）。1行 ＝ 顔写真・名前・最後のメッセージの冒頭1行・日付・未読の点。
  *   状態は名前の下に灰色の小さな文字で出す:
  *     送って返信がない   … 「返信を待っています・あと〇日」
- *     30日を過ぎた       … 「返信はありませんでした・〇年〇月〇日から再び送れます」
  *     返信があった会話   … 何も付けない（普通の会話）
  * ⚠️★状態のバッジ（色付きのラベル）を使わないこと（2026-10-11 / 柴さんの指示）。
- * ⚠️★タブは「すべて」「未読」「返事待ち」の3つ。「30日を過ぎました」のタブは作らない（すべての中に並ぶ）。
+ * ⚠️★タブは「すべて」「未読」「返事待ち」の3つ。（期限は無いので「30日を過ぎました」は無い。2026-10-18）
  * ⚠️ 上は1行だけ:「返事待ち 〇件（10件まで）」＋「ルール」。数字のカードを出さない（「今月あと〇通」は 2026-10-17 に月の上限ごと外した）。
  * ⚠️ 1通も送っていない（かつ会話も無い）ときは、上の1行も出さずに案内（3つの手順・ボタン・見本）を出す。
  * ⚠️★画面に「リクエスト」「受け入れ」「確認する」と書かない。
- * ⚠️★見送られたかどうかは出さない（`SentApproach` に declined_at は無い）。見送りも30日までは「返信を待っています」。
+ * ⚠️★見送られたかどうかは出さない（`SentApproach` に declined_at は無い）。見送りもずっと「返信を待っています」。
  * ⚠️ DB を読まない。/dev/preview/approaches から固定データで描くための部品。
  */
 export type MessagesTab = "all" | "unread" | "pending";
@@ -130,7 +129,6 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
 
   const neverSent = sent !== null && sent.length === 0;
   const just = sentId ? (sent ?? []).find((r) => r.id === sentId) : undefined;
-  const q = quota ? approachQuotaTexts(quota) : null;
   /* ★1通も送っていない（かつ会話も無い）なら、一覧の代わりに案内を出す。⚠️ このときは上の1行も出さない */
   const showBigGuide = allowed && neverSent && conversations.length === 0;
   const changeTab = (t: MessagesTab) => {
@@ -210,7 +208,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
                  ⚠️ 一覧の下にあった長い注意書き（返事がない場合〜）は削除した。同じ内容は「ルール」（/biz/help/messages）にある */}
           {allowed && (
             <div data-state="messages-quota" style={{ display: "flex", alignItems: "baseline", gap: "4px 12px", flexWrap: "wrap", fontSize: 13, color: "var(--ink-soft)" }}>
-              <span>{q ? q.openLine : "送れる数を確認できませんでした"}</span>
+              <span>{quota ? `返事待ち ${quota.openCount}件` : "返事待ちの件数を確認できませんでした"}</span>
               <Link href="/biz/help/messages" data-state="messages-help-link" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>ルール</Link>
             </div>
           )}
@@ -298,7 +296,7 @@ function ConvItem({ c, now, href, selected, unread }: { c: ConversationRow; now:
   );
 }
 
-/** 送って返信がないもの（30日以内・30日を過ぎたもの）。押すと右側に送った内容 */
+/** 送って返信がないもの（期限は無い）。押すと右側に送った内容 */
 function SentItem({ r, now, href, selected }: { r: SentApproach; now: Date; href: string; selected: boolean }) {
   const name = r.candidate.name || "名前未設定";
   /* ★返信がなかった行は、顔写真と名前を少し薄く */

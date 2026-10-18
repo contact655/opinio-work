@@ -1,13 +1,12 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
 /**
  * ★声かけの振り返り（2026-10-10 / 声かけまわり 段6）。/biz/analytics の「声かけ」タブ。
  *
- * - **承認率の分母は「結果の出た件数」** = 承認された ＋ 送ってから30日を過ぎた承認待ち。
- *   見送りと返事なしは区別しない（見送られても30日までは「承認待ち」で、分母に入らない）。
+ * - **返信率の分母は「送った件数」**（2026-10-18 に期限をなくしてから。それまでは「返信あり＋送ってから30日を過ぎた返事待ち」）。
+ *   見送りと返事なしは区別しない。`resolved` は分母の数として残してある（いまは sent と同じ）。
  * - 結果の出た件数が10件未満なら、承認率に「参考値」を付ける（`REFERENCE_ONLY_BELOW`）。
  * - 表の行ごとに、結果の出た件数が5件未満なら率は「—」にして件数だけ出す（`ROW_RATE_MIN`）。
  * - 「面談につながった」= 承認された声かけのうち、その会話に面談（ow_meetings。取り消しを除く）があるもの。
@@ -89,8 +88,6 @@ export async function getApproachAnalytics(companyId: string, sinceMs: number | 
     });
   }
 
-  const now = (opts.now ?? new Date()).getTime();
-  const expireMs = APPROACH_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
   const total = empty();
   const bySender = new Map<string, AnalyticsRow>();
   const byJob = new Map<string, AnalyticsRow>();
@@ -103,7 +100,8 @@ export async function getApproachAnalytics(companyId: string, sinceMs: number | 
 
   for (const r of rows) {
     const accepted = !!r.accepted_at;
-    const resolved = accepted || now - new Date(r.created_at as string).getTime() > expireMs;
+    /* ★2026-10-18 に期限をなくしたので、返信率の分母は「送った件数」（それまでは「返信あり＋30日を過ぎた返事待ち」） */
+    const resolved = true;
     const meeting = accepted && !!r.conversation_id && meetingConvs.has(r.conversation_id as string);
     const replyDays = accepted ? Math.max(0, (new Date(r.accepted_at as string).getTime() - new Date(r.created_at as string).getTime()) / (24 * 60 * 60 * 1000)) : null;
     const apply = (c: AnalyticsCell) => { c.sent++; if (accepted) c.accepted++; if (resolved) c.resolved++; if (meeting) c.meetings++; if (replyDays !== null) c.replyDays.push(replyDays); };

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  *
  * ⚠️ 返信した時点でやり取りが始まる（会話が開き、企業の理由と本文が1通目、返信が2通目）。
  * ⚠️ 書き込みは DB 関数 `reply_to_company_approach` の1トランザクション（`replyToApproach`）。ここに条件を書かない。
- * ⚠️ 返す status: 404（見つからない・30日を過ぎた）／409（すでに返信・見送り済み）／403（いま開けない）／400（本文）。
+ * ⚠️ 返す status: 404（見つからない）／409（すでに返信・見送り済み）／403（いま開けない）／400（本文）。
  */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();

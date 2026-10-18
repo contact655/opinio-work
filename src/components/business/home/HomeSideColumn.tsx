@@ -23,14 +23,6 @@ function RowLink({ href, state, children }: { href: string; state: string; child
   );
 }
 
-function Bar({ pct }: { pct: number }) {
-  return (
-    <div aria-hidden="true" style={{ height: 6, borderRadius: 3, background: "var(--line-soft)", margin: "4px 0 10px", overflow: "hidden" }}>
-      <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: "100%", background: "var(--royal)" }} />
-    </div>
-  );
-}
-
 export function HomeSideColumn({ side }: { side: HomeSide }) {
   const j = side.jobs;
   const jobRows = [
@@ -52,8 +44,6 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
               </RowLink>
               <RowLink href="/biz/messages?tab=pending" state="home-open-row">
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span>返事待ち</span><strong data-state="home-open">{side.quota.openText}</strong></div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>{side.quota.openSub}</div>
-                <Bar pct={side.quota.openPct} />
               </RowLink>
               <Link href="/biz/analytics?tab=messages" style={LINK}>振り返りを見る →</Link>
             </div>

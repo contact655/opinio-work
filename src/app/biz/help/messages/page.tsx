@@ -4,7 +4,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { ApproachStepsLarge, ApproachTipsList } from "@/components/approaches/ApproachGuide";
 import {
-  APPROACH_EXPIRE_DAYS, APPROACH_HEADLINE, APPROACH_SILENCE_NOTE, APPROACH_OPEN_LIMIT, APPROACH_RESEND_DAYS,
+  APPROACH_HEADLINE, APPROACH_SILENCE_NOTE, APPROACH_RESEND_DAYS,
 } from "@/lib/constants/companyApproaches";
 
 export const metadata = {
@@ -44,9 +44,9 @@ export default async function ApproachHelpPage() {
         <section style={card}>
           <h2 style={h2}>送れる数</h2>
           <ul style={{ margin: 0, paddingLeft: 18, listStyle: "disc" }}>
-            <li style={li}>返事待ちのメッセージは、同時に{APPROACH_OPEN_LIMIT}件までです。返信があるか、送ってから{APPROACH_EXPIRE_DAYS}日たつと枠に戻ります。</li>
+            <li style={li}>送れる数に上限はありません。</li>
             <li style={li}>返信が来るまでは、同じ方に続けて送ることはできません。</li>
-            <li style={li}>同じ方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び送れません。</li>
+            <li style={li}>返信があった方へは、送ってから{APPROACH_RESEND_DAYS}日間は再び送れません。</li>
           </ul>
         </section>
 
@@ -56,7 +56,7 @@ export default async function ApproachHelpPage() {
             <li style={li}>相手は理由と本文を読んで、返信するかを決めます。相手はメッセージ一覧の「未返信」から開き、下の欄にそのまま返信を書いて送れます。</li>
             <li style={li}>返信があると、メールでお知らせします。そのままメッセージでやり取りが続きます（貴社の理由と本文が1通目、相手の返信が2通目）。会話は貴社の有効な担当者なら誰でも見て返信できます。</li>
             <li style={li}>{APPROACH_SILENCE_NOTE}</li>
-            <li style={li}>返事が無いまま{APPROACH_EXPIRE_DAYS}日たつと、相手も返信できなくなります。</li>
+            <li style={li}>メッセージに期限はありません。相手はいつでも返信できます。</li>
           </ul>
         </section>
 
@@ -72,8 +72,7 @@ export default async function ApproachHelpPage() {
             <li style={li}><strong>転職を考えていない方には届きません。</strong>「転職意欲」で「今は考えていない」を選んだ方は、候補者検索に表示されず、メッセージも届きません。</li>
             <li style={li}><strong>理由が必須です。</strong>経歴を見て、話を聞きたい理由を書いてから送ります。</li>
             <li style={li}><strong>返事がない理由は表示されません。</strong>返事が来ない場合、その理由は企業には表示されません。</li>
-            <li style={li}><strong>{APPROACH_EXPIRE_DAYS}日で外れます。</strong>返事が無いまま{APPROACH_EXPIRE_DAYS}日たつと「返信はありませんでした」と表示され、相手も返信できなくなります。返事待ちの枠も戻ります。</li>
-            <li style={li}><strong>返事待ちは{APPROACH_OPEN_LIMIT}件までです。</strong>同時に返事を待てるメッセージは{APPROACH_OPEN_LIMIT}件までで、返信が来るまで同じ方に続けて送ることはできません。</li>
+            <li style={li}><strong>返信が来るまで、同じ方に続けて送れません。</strong>送ったメッセージに期限はなく、相手はいつでも返信できます。</li>
           </ul>
         </section>
 
@@ -81,7 +80,7 @@ export default async function ApproachHelpPage() {
           <h2 style={h2}>貴社に興味を持った方</h2>
           {/* ⚠️ 企業向けでは「紹介」「提案」と書かない（2026-10-11 / 柴さんの指示） */}
           <p style={{ margin: 0, ...li }}>
-            OPINIO が経歴の合う方に貴社をおすすめし、「話を聞いてみたい」と答えた方も、このメッセージに届きます（一覧に「貴社に興味があります」と出ます）。貴社から送る必要はなく、送れる数の枠も使いません。
+            OPINIO が経歴の合う方に貴社をおすすめし、「話を聞いてみたい」と答えた方も、このメッセージに届きます（一覧に「貴社に興味があります」と出ます）。貴社から送る必要はありません。
             {" "}<Link href="/biz/help/interested" style={{ color: "var(--royal)", fontWeight: 600 }}>しくみを見る</Link>
           </p>
         </section>

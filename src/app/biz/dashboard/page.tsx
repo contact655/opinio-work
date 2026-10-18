@@ -11,7 +11,6 @@ import type { HomeSide } from "@/lib/business/homeTypes";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
-import { approachQuotaTexts } from "@/lib/constants/companyApproaches";
 import { isCompanyReviewed } from "@/lib/business/scoutGate";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -150,9 +149,8 @@ export default async function BizDashboardPage({
     quota: !quotaAllowed || !can(ctx.currentPermission, "messages.use") ? undefined : quota ? {
       /* ⚠️ 送った数は上限ではない（月の上限は 2026-10-17 に外した）。分母・バー・補足を出さない（見出しが「今月のメッセージ」） */
       sentText: `${quota.sentThisMonth}通`,
-      openText: `${quota.openCount}/${quota.openLimit}`,
-      openSub: approachQuotaTexts(quota).openSub,
-      openPct: Math.round((quota.openCount / Math.max(1, quota.openLimit)) * 100),
+      /* ⚠️ 返事待ちも上限ではない（返事待ち10件の枠は 2026-10-18 に外した）。分母・バー・補足を出さない */
+      openText: `${quota.openCount}件`,
     } : null,
     jobs: { published: jobStatusCounts.published, draft: jobStatusCounts.draft, stopped: jobStatusCounts.stopped },
     /* ★/biz/company の上部と同じ1行（`companyStatusText`）。⚠️ ホームでは「未公開の変更あり」を見ない */

@@ -4,7 +4,6 @@ import { CandidateProfileDrawerButton } from "@/components/candidates/CandidateP
 import { ChatBubble } from "@/components/messages/ChatBubble";
 import type { CompanyThread } from "@/lib/conversations/companyThread";
 import type { SentApproach } from "@/lib/approaches/server";
-import { approachDaysLeft } from "@/lib/constants/companyApproaches";
 import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings";
 import { ThreadMessages } from "./ThreadMessages";
 import { ThreadReplyArea } from "./[id]/ThreadReplyArea";
@@ -63,19 +62,15 @@ export function ThreadPane({ thread, meta, backHref, myOwUserId }: { thread: Com
   );
 }
 
-/** 送って返信がないもの（返事待ち・30日経過）。⚠️ 入力欄を出さない */
-export function PendingPane({ sent, meta, backHref, now }: { sent: SentApproach; meta: string | null; backHref: string; now: Date }) {
+/** 送って返信がないもの（返事待ち。期限は無い）。⚠️ 入力欄を出さない */
+export function PendingPane({ sent, meta, backHref }: { sent: SentApproach; meta: string | null; backHref: string }) {
   const name = sent.candidate.name || "名前未設定";
   return (
     <PaneShell candidateId={sent.candidate.id} name={name} meta={meta} backHref={backHref}
       footer={
         <div data-state="pending-foot" style={{ textAlign: "center", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8, padding: "6px 0" }}>
-          {sent.status === "pending" ? (
-            <>
-              <div data-state="pending-status">返信を待っています（あと{approachDaysLeft(sent.createdAt, now)}日）</div>
-              <div>返信が来るまで、続けては送れません</div>
-            </>
-          ) : <div data-state="pending-status">返信はありませんでした</div>}
+          <div data-state="pending-status">返信を待っています</div>
+          <div>返信が来るまで、続けては送れません</div>
         </div>
       }>
       <ChatBubble mine sender={sent.senderName ?? "担当者"} at={sent.createdAt}>

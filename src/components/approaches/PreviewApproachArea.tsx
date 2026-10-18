@@ -19,28 +19,26 @@ import {
  *
  * 閉じた状態（1〜2行）:
  *   未送信 …「メッセージを送る」（押すと送信フォームがこの欄の上に広がる）
- *   返信待ち …「返信を待っています（あと〇日）」 ／ 30日返信なし …「返信はありませんでした」
+ *   返信待ち …「返信を待っています」（期限は無い。2026-10-18）
  *   送れない … 灰色の1行の理由（送り済み・検証用の会社・今は考えていない・上限・その他）
  * ★返信あり（やり取りがある人）は最初から開いた状態（2026-10-12 / 柴さんの指示。右欄の高さの最大50%・中身が少なければその分だけ）:
  *   最新10通の吹き出し（`PaneThread`。上へスクロールで前の10通）・右上に「広げる／元に戻す」・小さく「メッセージ画面で開く ›」・
  *   いちばん下に返信欄（`ReplyForm`）。参加者でない人は「メッセージ画面で参加する」
  *   ⚠️「これまでのやり取り（n件）を見る」は外した
- * 返信待ち・30日 … 閉じた1行。「開く」で送った内容（`ApproachBubble`）
+ * 返信待ち … 最初から送った内容（`ApproachBubble`）を出す（2026-10-18 / 柴さんの指示。それまでは閉じた1行で「開く」）
  * ⚠️ やり取りは欄に出したときに読む（既読もそのときに付く）。
  * ⚠️ 送れるかの最終判断はサーバー（`sendApproach`）。ここは字数だけ見る。⚠️ 状態をバッジにしない（灰色の文字）。
  */
 const GRAY: React.CSSProperties = { fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 };
 const DOCK: React.CSSProperties = { padding: "4px 0", minHeight: 0, display: "flex", flexDirection: "column" };
 
-export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, openNonce, onRead }: {
+export function PreviewApproachArea({ candidate, jobs, profileLink, openNonce, onRead }: {
   candidate: Candidate;
   /** ★既読を付けたあと（右欄の点・一覧の「未読」を消す。2026-10-13） */
   onRead?: () => void;
   /** ★外から送る欄を開く（右欄の上の段の「メッセージを送る」。2026-10-13）。値が変わったときだけ開く（ui-debugging ⑭） */
   openNonce?: number;
   jobs: { id: string; title: string }[];
-  /** 企業側の上限に当たっているときの1行（`approachCompanyLimitLine`）。当たっていなければ null */
-  limitLine: string | null;
   profileLink?: React.ReactNode;
 }) {
   const a = candidate.approach;
@@ -85,7 +83,6 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
       : APPROACH_UNAVAILABLE_MESSAGE;
     return gray(text, `approach-blocked-${a.blocked ?? "other"}`);
   }
-  if (limitLine) return gray(limitLine, "approach-company-limit");
 
   const len = reason.trim().length;
   const ok = len >= APPROACH_REASON_MIN && len <= APPROACH_REASON_MAX;
@@ -174,7 +171,7 @@ export function PreviewApproachArea({ candidate, jobs, limitLine, profileLink, o
  * ★送ってある場合。中身は /biz/messages と同じ取得（`GET /api/biz/approaches/[id]`）から。
  *   返信あり … 最初から開いた状態でやり取りを出す（`PaneThread`。最新10通・上へスクロールで前の10通）。
  *              欄の右上に「広げる／元に戻す」、いちばん下に返信欄（参加者でなければ「メッセージ画面で参加する」）。
- *   返信待ち・30日返信なし … 閉じた1行。「開く」で送った内容（`ApproachBubble`）
+ *   返信待ち … 最初から送った内容（`ApproachBubble`）。⚠️ 開いても既読は付かない（既読は返信ありのやり取りだけ）
  * ★既読（2026-10-13 / 柴さんの指示）。やり取りは**既読を付けずに**読む（`?thread=1&read=0`）。
  *   既読を付けるのは、この欄で ①入力欄にフォーカスした ②スクロールした（ホイール・タッチ・キー）③送信した ときだけ
  *   （`POST /api/biz/approaches/[id]/read`）。表示されただけでは付けない（段3で J/K で流すと全員に付くため）。
@@ -260,8 +257,8 @@ function SentDock({ sent, onRead, justSent = false }: {
     );
   }
 
-  /* ── 返信待ち・30日返信なし：最初から送った内容を出す（2026-10-18 / 柴さんの指示。開く・閉じるは無くした）。
-        ⚠️ 状態（返信を待っています・返信はありませんでした）は吹き出しの最後の行に出る。上にもう1行出さない（同じ文が2回並んでいた） */
+  /* ── 返信待ち：最初から送った内容を出す（2026-10-18 / 柴さんの指示。開く・閉じるは無くした）。
+        ⚠️ 「返信を待っています」は吹き出しの最後の行に出る（上にもう1行出さない。同じ文が2回並んでいた） */
   return (
     <div data-state="dock-open" style={{ ...DOCK, padding: 0 }}>
       {justSent && <div data-state="dock-status" style={{ ...GRAY, padding: "4px 0" }}>送りました。</div>}

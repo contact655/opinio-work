@@ -24,7 +24,7 @@ export default function Page() {
         <p>右の ①返事待ちのバー ②〇〇さんにはこう見えます（返信欄つき） ③送る前に を見る（2026-10-11 にモックに合わせた）。</p>
       </PreviewHeader>
       <Variant label="返事待ち2件" note="返事待ち 2件／10件">
-        <ApproachComposeClient {...base} quota={{ sentThisMonth: 2, openCount: 2, openLimit: 10 }} />
+        <ApproachComposeClient {...base} quota={{ sentThisMonth: 2, openCount: 2 }} />
       </Variant>
       <Variant label="枠を取れなかった" note="「送れる数を確認できませんでした」と出る">
         <ApproachComposeClient {...base} quota={null} />

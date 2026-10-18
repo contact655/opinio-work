@@ -58,7 +58,7 @@ export type ConversationRow = {
  * ★企業のメッセージ（2026-10-11 / 柴さんの指示。「メッセージリクエスト」を「メッセージ」にまとめた）。
  *   旧 /biz/conversations（会話の一覧）と旧 /biz/approaches（送ったリクエスト）を1つの画面にした。
  *   1本の一覧（会話と、送って返信のないもの）。タブ: すべて／未読／返事待ち。状態のバッジは使わない（2026-10-11）。
- * ⚠️ ルール（返事待ち10件・30日・180日・見送りは見せない）は変えていない（月10通は 2026-10-17 に外した）。言葉と URL だけ。
+ * ⚠️ ルール（180日・見送りは見せない）。月10通は 2026-10-17、返事待ち10件と30日の期限は 2026-10-18 に外した。言葉と URL だけ。
  * ⚠️ 旧 URL は next.config.mjs で 301 転送（/biz/conversations → ここ、/biz/approaches → ?tab=pending）。
  */
 export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string; filter?: string } }) {
@@ -90,7 +90,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   if (partErr) console.error("[biz/messages] participants:", partErr.message);
   const joined = new Set((myParts ?? []).map((p) => p.conversation_id as string));
 
-  /* ★送ったメッセージ（企業からの1通目）。返事待ち・30日を過ぎましたのタブと、新しい返信の印に使う */
+  /* ★送ったメッセージ（企業からの1通目）。返事待ちのタブと、新しい返信の印に使う */
   const allowed = canUse(ctx.planType, "companyApproach");
   const [sent, quota] = allowed
     ? await Promise.all([listSentApproaches(ctx.tenantId), getApproachQuota(ctx.tenantId)])
@@ -202,7 +202,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   const backHref = tab === "all" ? "/biz/messages" : `/biz/messages?tab=${tab}`;
   const nowDate = new Date();
   const pane = thread ? <ThreadPane thread={thread} meta={paneMeta} backHref={backHref} myOwUserId={ctx.currentOwnId} />
-    : selectedSent ? <PendingPane sent={selectedSent} meta={paneMeta} backHref={backHref} now={nowDate} />
+    : selectedSent ? <PendingPane sent={selectedSent} meta={paneMeta} backHref={backHref} />
     : null;
   const selectedKey = thread ? `c:${thread.conv.id}` : selectedSent ? `s:${selectedSent.id}` : null;
 

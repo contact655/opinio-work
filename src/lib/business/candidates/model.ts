@@ -399,7 +399,7 @@ export function candidateApproachLabel(approach: Candidate["approach"]): { state
       state: "sent",
       text: `${who}が${formatJstMonthDay(approach.sent.sentAt) ?? "—"}にメッセージを送りました`,
       /* ★カードは灰色の状態の1行（2026-10-11 / モックに合わせた。/biz/messages の一覧と同じ関数） */
-      short: approachStatusLine(approach.sent.state, approach.sent.sentAt),
+      short: approachStatusLine(approach.sent.state),
     };
   }
   if (approach.eligible) return { state: "eligible", text: "メッセージを送れます", short: "メッセージを送れます" };

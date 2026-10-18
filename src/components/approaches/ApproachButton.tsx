@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { approachDaysLeft, approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
+import { approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
 import type { RecentApproach } from "@/lib/approaches/server";
 
 const jst = (iso: string) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date(iso));
@@ -17,7 +17,6 @@ function formatJaMonthDay(iso: string): string { const ps = jst(iso); return `${
  * | 送れる | 「メッセージを送る」（→ /biz/messages/new） |
  * | 返事待ち | 「返事待ち（◯月◯日に送信）」＋「送った内容を見る」 |
  * | 返信あり | 「メッセージを開く」（→ 会話） |
- * | 30日を過ぎた | 「◯年◯月◯日から送れます」（ボタンなし） |
  * | 送れない | ボタンなし・`APPROACH_UNAVAILABLE_MESSAGE` の1文。⚠️★**理由ごとに分けない**（同じ文言・同じ見た目） |
  *
  * ⚠️ 文言と行き先は送信の API と同じ `approachResendNotice`。⚠️ 見送りは区別しない（企業には伝えない）。
@@ -66,13 +65,13 @@ export function ApproachButton({
     );
     /* ★候補者の詳細（右のプレビュー・/u/[id]）で返事待ちのとき（2026-10-11 / モックに合わせた）:
           注意の帯 → 押せない「返事待ち（◯月◯日に送信）」＋「送った内容を見る」 → 「返信があると…」の一文。
-          ⚠️ 帯は黄色（注意・待ち）。文言の日付と残り日数は一覧と同じ関数（`approachDaysLeft`） */
+          ⚠️ 帯は黄色（注意・待ち）。期限は無いので残り日数は出さない（2026-10-18） */
     if (!compact && sent.state === "pending") {
       const md = formatJaMonthDay(sent.sentAt);
       return (
         <span data-state="approach-sent" data-approach-state="pending" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", minWidth: 0 }}>
           {!hidePendingNotice && <span data-state="approach-pending-band" role="status" style={{ display: "block", padding: "10px 12px", borderRadius: 8, background: "var(--warm-soft)", color: "var(--warm-ink)", fontSize: 12.5, fontWeight: 600, lineHeight: 1.7, whiteSpace: "normal" }}>
-            {who}が{md}にメッセージを送っています。返信を待っています（あと{approachDaysLeft(sent.sentAt)}日）。返事が来る前に、続けて送ることはできません。
+            {who}が{md}にメッセージを送っています。返信を待っています。返事が来る前に、続けて送ることはできません。
           </span>}
           <span style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <button type="button" disabled data-state="approach-pending-button" className="tap-min-h"

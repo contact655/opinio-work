@@ -2,7 +2,6 @@
 
 import { Fragment, useState } from "react";
 import { ChevronRight, MessageSquare, Send, Clock } from "lucide-react";
-import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
 
 /**
  * ★声かけの仕組み（3ステップ）と、返信をもらいやすい理由の書き方（2026-10-11 / 柴さんの指示。LinkedIn Recruiter の InMail 画面を参考）。
@@ -12,7 +11,7 @@ import { APPROACH_EXPIRE_DAYS } from "@/lib/constants/companyApproaches";
  */
 export const APPROACH_STEPS = [
   { Icon: Send, title: "理由を添えて送る", note: "経歴を見て、話を聞きたい理由を書いて送ります。" },
-  { Icon: Clock, title: `相手が読んで、返信する（${APPROACH_EXPIRE_DAYS}日以内）`, note: "相手は理由と本文を読んで、返信するかを決めます。" },
+  { Icon: Clock, title: "相手が読んで、返信する", note: "相手は理由と本文を読んで、返信するかを決めます。" },
   { Icon: MessageSquare, title: "返信が来たら、やり取りを続ける", note: "メッセージで、日程や話したいことを相談できます。" },
 ] as const;
 
