@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/resume", label: "職務経歴書（/mypage/resume）",
+    desc: "★入れた職歴から作る書類。すべて入っている・空・長い社名や期間なし" },
   { href: "/dev/preview/message-topics", label: "最初の1通（テーマ＋ひとこと。メッセージの一本化の見本）",
     desc: "★個人どうしの DM の書く画面は本番でもこの部品。採用のこと・企業宛ては見本だけ。関係ごとのテーマの出し分け・受け取った側・受信箱の1行をここで見る" },
   { href: "/dev/preview/connections", label: "つながり（企業ページ。相互フォローで在籍中・表示を許可した人）",

@@ -1311,6 +1311,7 @@ details > summary:hover { background: var(--bg-tint); }
   header, footer, nav,
   [data-print-hide],
   .mypage-mobile-tabbar,
+  .mobile-bottom-nav-root,
   .biz-layout-sidebar,
   button[aria-label="ブックマーク追加"],
   button[aria-label="ブックマーク解除"] {

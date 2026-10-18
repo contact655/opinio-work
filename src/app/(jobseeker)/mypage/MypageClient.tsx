@@ -395,6 +395,21 @@ export default function MypageClient({
         </span>
       </a>
 
+      {/* ★職務経歴書（2026-10-18）。入れた職歴から作り、印刷・PDF で保存できる。⚠️ 入口はここ1つ（モバイルでも出す） */}
+      <a
+        href="/mypage/resume"
+        data-state="resume-entry"
+        style={{
+          display: "block", textDecoration: "none", color: "var(--ink)",
+          border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", background: "#fff",
+        }}
+      >
+        <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>職務経歴書</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.7 }}>
+          入れた職歴から職務経歴書を作ります。PDF で保存できます →
+        </span>
+      </a>
+
       <IndustryMatchSection blocks={industryMatchBlocks} />
 
       {/* ⚠️ 「プロフィール完成度」「最近の申込」「ブックマーク」を外した（2026-08-16）。
