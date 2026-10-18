@@ -10,6 +10,8 @@ import { BizShellProvider } from "@/components/business/BizShellContext";
 import { BizFrame } from "@/components/business/BusinessLayout";
 
 export const metadata: Metadata = {
+  /* ★題名を持たない /biz の画面（ログインなど）の既定（2026-10-18）。それまで求職者向けの「OPINIO | IT業界の転職・求人情報」が出ていた */
+  title: { absolute: "OPINIO Business" },
   robots: { index: false, follow: false },
 };
 

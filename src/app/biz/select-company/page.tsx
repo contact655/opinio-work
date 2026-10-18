@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCompanyContext } from "@/lib/business/company";
 import SelectCompanyClient from "./SelectCompanyClient";
 
+/* ★タブの題名（2026-10-18）。それまで求職者向けの既定「OPINIO | IT業界の転職・求人情報」が出ていた */
+export const metadata = { title: { absolute: "企業アカウントを選択 | OPINIO Business" } };
+
 export default async function SelectCompanyPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
