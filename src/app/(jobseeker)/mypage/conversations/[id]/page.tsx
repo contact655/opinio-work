@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     admin.from("ow_conversation_participants").select("id").eq("conversation_id", params.id).eq("user_id", me.id).maybeSingle(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any).from("ow_conversations")
-      .select("kind, candidate_user_id, partner_user_id, ow_companies(name), partner:ow_users!partner_user_id(name), candidate:ow_users!candidate_user_id(name)")
+      .select("kind, candidate_user_id, partner_user_id, ow_companies!company_id(name), partner:ow_users!partner_user_id(name), candidate:ow_users!candidate_user_id(name)")
       .eq("id", params.id).maybeSingle(),
   ]);
   if (!part || !conv) return fallback;
@@ -72,7 +72,7 @@ export default async function ConversationDetailPage({
       .from("ow_conversations")
       .select(
         `id, kind, stage, status, company_id, candidate_user_id, partner_user_id, request_status, request_topic, request_format,
-         ow_companies(name, logo_url, logo_letter),
+         ow_companies!company_id(name, logo_url, logo_letter),
          partner:ow_users!partner_user_id(name),
          starter:ow_users!candidate_user_id(name)`
       )
