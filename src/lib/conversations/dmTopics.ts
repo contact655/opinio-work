@@ -15,25 +15,50 @@ import { topicsFor, type MessageTopic, type TopicSection } from "@/lib/constants
  *    それ以外は「いまの会社のこと」にする。プロフィールで見えない社名をここから漏らさない。
  * ⚠️ 取得に失敗したら null（呼び出し側は止める。テーマを黙って減らさない）。
  */
-export async function dmTopicSections(recipientId: string): Promise<TopicSection[] | null> {
+export async function dmTopicSections(recipientId: string, aboutCompanyId?: string | null): Promise<TopicSection[] | null> {
+  const r = await dmTopicContext(recipientId, aboutCompanyId);
+  return r ? r.sections : null;
+}
+
+/**
+ * ★テーマと、確かめた「どの会社の話か」（2026-10-18 / 企業ページの社員の行から送るとき）。
+ *   aboutCompanyId は、相手がその会社の職歴を「会社名を出す」で持っていて、その会社のページが公開されているときだけ採る。
+ *   それ以外は黙って null にする（ふつうの DM と同じテーマになる。止めない）。
+ * ⚠️ 取得に失敗したら null（呼び出し側は止める）。
+ */
+export async function dmTopicContext(recipientId: string, aboutCompanyId?: string | null): Promise<{ sections: TopicSection[]; aboutCompanyId: string | null } | null> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_experiences")
-    .select("company_id, company_text, started_at, visibility_company, ow_companies!company_id(name, name_en)")
+    .select("company_id, company_text, started_at, visibility_company, is_current, ow_companies!company_id(name, name_en, is_published, is_test)")
     .eq("user_id", recipientId)
-    .eq("is_current", true)
     .order("started_at", { ascending: false, nullsFirst: false });
   if (error) {
     console.error("[dmTopics] ow_experiences:", error.message);
     return null;
   }
-  const rows = (data ?? []) as unknown as { company_id: string | null; company_text: string | null; visibility_company: string | null; ow_companies: { name: string; name_en: string | null } | null }[];
+  type Row = { company_id: string | null; company_text: string | null; visibility_company: string | null; is_current: boolean; ow_companies: { name: string; name_en: string | null; is_published: boolean; is_test: boolean } | null };
+  const all = (data ?? []) as unknown as Row[];
+  const rows = all.filter((r) => r.is_current);
   const linked = rows.find((r) => r.ow_companies?.name && r.visibility_company === "real");
   const currentCompanyName = linked?.ow_companies ? companyDisplayName(linked.ow_companies.name, linked.ow_companies.name_en).displayName : null;
-  return topicsFor({
-    recipient: { kind: "person", currentCompanyName, hasCurrentCompany: rows.length > 0 },
-    senderIsRecruiter: false,
-  });
+
+  let about: { name: string; isCurrent: boolean } | null = null;
+  let aboutId: string | null = null;
+  if (aboutCompanyId) {
+    const at = all.filter((r) => r.company_id === aboutCompanyId && r.visibility_company === "real" && r.ow_companies?.is_published && !r.ow_companies.is_test);
+    if (at.length > 0 && at[0].ow_companies) {
+      about = { name: companyDisplayName(at[0].ow_companies.name, at[0].ow_companies.name_en).displayName, isCurrent: at.some((r) => r.is_current) };
+      aboutId = aboutCompanyId;
+    }
+  }
+  return {
+    sections: topicsFor({
+      recipient: { kind: "person", currentCompanyName, hasCurrentCompany: rows.length > 0, aboutCompany: about },
+      senderIsRecruiter: false,
+    }),
+    aboutCompanyId: aboutId,
+  };
 }
 
 /** そのテーマが、この相手に選べるものか */

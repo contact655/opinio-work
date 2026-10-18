@@ -60,6 +60,8 @@ import type { CompanyEmployee } from "@/lib/supabase/queries";
    ⚠️ 行全体が /u/[id] へのリンク（新しいタブ）。これは変更前と同じ。 */
 /* ★社員の行の「メッセージ」（2026-10-17）。閲覧者（ログイン中）の id を渡す。null なら出さない（未ログイン・取得前） */
 const ViewerIdContext = createContext<string | null>(null);
+/* ★この企業ページの会社（2026-10-18）。メッセージの「会社のこと」のテーマをこの会社にする（OB・OG なら「〈社名〉にいた頃のこと」） */
+const PageCompanyIdContext = createContext<string | null>(null);
 
 function PersonRow({
   employee,
@@ -76,6 +78,7 @@ function PersonRow({
 }) {
   const avatarColor = AVATAR_COLOR;
   const viewerId = useContext(ViewerIdContext);
+  const pageCompanyId = useContext(PageCompanyIdContext);
   return (
     <div className="person-row">
       <a href={`/u/${employee.userId}`} target="_blank" className="person-row-main">
@@ -100,7 +103,7 @@ function PersonRow({
       </a>
       {/* ★メッセージ（2026-10-17）。⚠️ 「話を聞ける」「面談OK」とは書かない（撤去した意味づけ）。ただの個人どうしのメッセージ */}
       {viewerId && viewerId !== employee.userId && (
-        <span className="person-row-dm"><DMButton targetUserId={employee.userId} targetName={employee.name} variant="icon" /></span>
+        <span className="person-row-dm"><DMButton targetUserId={employee.userId} targetName={employee.name} variant="icon" aboutCompanyId={pageCompanyId} /></span>
       )}
     </div>
   );
@@ -723,6 +726,7 @@ export function CompanyEmployeeSections({
 
   return (
     <ViewerIdContext.Provider value={data.viewerUserId ?? null}>
+    <PageCompanyIdContext.Provider value={companyId}>
       {/* ⚠️★掲載設定パネル（`ListingStatusPanel`）は 2026-09-12 に企業詳細から外した（柴さんの指示）。
              **部品と型は消していない** ——`/dev/preview/listing-status` が3状態を描くのに使う。
              戻すときはここに1行足すだけでよい。 */}
@@ -738,6 +742,7 @@ export function CompanyEmployeeSections({
           totalCount={data.totalAlumniCount}
         />
       )}
+    </PageCompanyIdContext.Provider>
     </ViewerIdContext.Provider>
   );
 }

@@ -3392,6 +3392,7 @@ export type Database = {
           kind: string
           last_message_at: string | null
           partner_user_id: string | null
+          request_company_id: string | null
           request_format: string | null
           request_status: string | null
           request_topic: string | null
@@ -3408,6 +3409,7 @@ export type Database = {
           kind: string
           last_message_at?: string | null
           partner_user_id?: string | null
+          request_company_id?: string | null
           request_format?: string | null
           request_status?: string | null
           request_topic?: string | null
@@ -3424,6 +3426,7 @@ export type Database = {
           kind?: string
           last_message_at?: string | null
           partner_user_id?: string | null
+          request_company_id?: string | null
           request_format?: string | null
           request_status?: string | null
           request_topic?: string | null
@@ -3452,6 +3455,13 @@ export type Database = {
             columns: ["partner_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_conversations_request_company_id_fkey"
+            columns: ["request_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
         ]

@@ -80,7 +80,9 @@ export async function GET(request: NextRequest) {
   if (quotaMsg) return NextResponse.json({ action: "blocked", message: quotaMsg });
 
   /* ★書く画面に出すテーマ（送信の検証と同じ関数。2026-10-17） */
-  const topicSections = await dmTopicSections(targetUserId);
+  /* ★企業ページの社員の行から押したときは、その会社（2026-10-18）。確かめられなければ使わない */
+  const aboutRaw = request.nextUrl.searchParams.get("aboutCompanyId");
+  const topicSections = await dmTopicSections(targetUserId, aboutRaw && UUID_RE.test(aboutRaw) ? aboutRaw : null);
   if (!topicSections) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
   return NextResponse.json({ action: "compose", quota, topicSections });
 }
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
   const meId = await resolveMe();
   if (!meId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; message?: unknown };
+  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; message?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
     senderId: meId,
     recipientId: targetUserId,
     topic: typeof body.topic === "string" ? body.topic : "",
+    aboutCompanyId: typeof body.aboutCompanyId === "string" && UUID_RE.test(body.aboutCompanyId) ? body.aboutCompanyId : null,
     format: typeof body.format === "string" ? body.format : undefined,
     body: typeof body.message === "string" ? body.message : "",
   });

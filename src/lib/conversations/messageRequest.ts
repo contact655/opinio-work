@@ -4,8 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
-import { dmTopicSections, isTopicOffered } from "@/lib/conversations/dmTopics";
-import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, isMessageFormat, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
+import { dmTopicContext, isTopicOffered } from "@/lib/conversations/dmTopics";
+import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, isMessageFormat, requestCompanyName, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
   MESSAGE_REQUEST_DAILY_LIMIT,
   MESSAGE_REQUEST_OPEN_LIMIT,
@@ -146,6 +146,8 @@ export async function sendMessageRequest(params: {
   topic: string;
   /** ★話を聞く形（2026-10-18）。省略・空なら「メッセージで」。知らない値は 400 */
   format?: string;
+  /** ★企業ページから送ったとき、その会社（2026-10-18）。確かめられなければ黙って使わない */
+  aboutCompanyId?: string | null;
   body: string;
 }): Promise<SendResult> {
   const { senderId, recipientId } = params;
@@ -176,10 +178,13 @@ export async function sendMessageRequest(params: {
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return { ok: false, status: 429, error: quotaMsg };
   /* ④ テーマ（この相手に選べるものか） */
-  const sections = await dmTopicSections(recipientId);
-  if (!sections) return { ok: false, status: 500, error: MSG.failed };
-  if (!isTopicOffered(sections, params.topic)) return { ok: false, status: 400, error: "聞きたいことを選び直してください" };
+  const ctx = await dmTopicContext(recipientId, params.aboutCompanyId ?? null);
+  if (!ctx) return { ok: false, status: 500, error: MSG.failed };
+  if (!isTopicOffered(ctx.sections, params.topic)) return { ok: false, status: 400, error: "聞きたいことを選び直してください" };
   const topic: MessageTopic = params.topic;
+  /* ★どの会社の話か。会社のテーマを選んだときだけ記録する（キャリアの相談に社名を付けない） */
+  const isCompanyTopic = MESSAGE_TOPICS.some((t) => t.value === topic && t.group === "company");
+  const requestCompanyId = isCompanyTopic ? ctx.aboutCompanyId : null;
 
   const db = createAdminClient();
   const now = new Date().toISOString();
@@ -195,6 +200,7 @@ export async function sendMessageRequest(params: {
       requested_at: now,
       request_topic: topic,
       request_format: format,
+      request_company_id: requestCompanyId,
     })
     .select("id")
     .single();
@@ -378,6 +384,8 @@ export type IncomingRequest = {
   topic: MessageTopic | null;
   /** ★話を聞く形（2026-10-18）。それより前の行は null */
   format: MessageFormat | null;
+  /** ★どの会社の話か（表示名）。企業ページから会社のテーマで送ったときだけ（2026-10-18） */
+  aboutCompanyName: string | null;
   requester: {
     id: string;
     name: string;
@@ -393,7 +401,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_conversations")
-    .select("id, requested_at, request_topic, request_format, requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
+    .select("id, requested_at, request_topic, request_format, request_company:ow_companies!request_company_id(name, name_en), requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
     .eq("kind", "direct_message")
     .eq("partner_user_id", meId)
     .eq("request_status", "pending")
@@ -433,6 +441,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
         body: bodies.get(r.id as string) ?? null,
         topic: (r.request_topic as MessageTopic | null) ?? null,
         format: isMessageFormat(r.request_format) ? r.request_format : null,
+        aboutCompanyName: requestCompanyName(r.request_company),
         requester: {
           id: (u?.id as string) ?? "",
           name: (u?.name as string) ?? "",
@@ -455,3 +464,4 @@ export function isDmSendable(conv: { kind: string | null; request_status?: strin
 export async function countIncomingRequests(meId: string): Promise<number> {
   return (await listIncomingRequests(meId)).length;
 }
+

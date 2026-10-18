@@ -136,21 +136,22 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
 }
 
 /** ★会話の先頭に出す1行（2026-10-17）。最初の1通で選んだテーマ。送り手・受け手の両方の会話画面で使う */
-export function FirstTopicNotice({ topic, format = null }: { topic: MessageTopic; format?: MessageFormat | null }) {
+export function FirstTopicNotice({ topic, format = null, aboutCompanyName = null }: { topic: MessageTopic; format?: MessageFormat | null; aboutCompanyName?: string | null }) {
   return (
     <div data-state="first-topic-notice" style={{ display: "flex", justifyContent: "center" }}>
       <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700 }}>
-        最初のメッセージで聞きたいこと: {topicLabel(topic)}{format ? `・${formatLabel(format)}` : ""}
+        最初のメッセージで聞きたいこと: {topicLabel(topic, aboutCompanyName)}{format ? `・${formatLabel(format)}` : ""}
       </span>
     </div>
   );
 }
 
 /** 受け取った側の見え方（返信欄つき） */
-export function FirstMessageCard({ sender, topic, format = null, note, dateText, sample = false, onSend, onDecline }: {
+export function FirstMessageCard({ sender, topic, format = null, aboutCompanyName = null, note, dateText, sample = false, onSend, onDecline }: {
   sender: FirstMessageSender;
   topic: MessageTopic;
   format?: MessageFormat | null;
+  aboutCompanyName?: string | null;
   note: string;
   dateText: string;
   sample?: boolean;
@@ -168,7 +169,7 @@ export function FirstMessageCard({ sender, topic, format = null, note, dateText,
       </div>
       <div style={{ marginTop: 10 }}>
         <span data-state="first-message-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
-          聞きたいこと: {topicLabel(topic)}
+          聞きたいこと: {topicLabel(topic, aboutCompanyName)}
         </span>
         {format && (
           <span data-state="first-message-format" style={{ display: "inline-block", marginLeft: 6, padding: "3px 10px", borderRadius: 999, background: "var(--bg-tint)", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600 }}>
@@ -184,8 +185,8 @@ export function FirstMessageCard({ sender, topic, format = null, note, dateText,
 }
 
 /** 受信箱の一覧の1行 */
-export function FirstMessageRow({ sender, topic, format = null, note, dateText, unread }: {
-  sender: FirstMessageSender; topic: MessageTopic; format?: MessageFormat | null; note: string; dateText: string; unread: boolean;
+export function FirstMessageRow({ sender, topic, format = null, aboutCompanyName = null, note, dateText, unread }: {
+  sender: FirstMessageSender; topic: MessageTopic; format?: MessageFormat | null; aboutCompanyName?: string | null; note: string; dateText: string; unread: boolean;
 }) {
   return (
     <div data-state="first-message-row" style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderBottom: "1px solid var(--line)", minWidth: 0, background: unread ? "var(--royal-50)" : "#fff" }}>
@@ -197,7 +198,7 @@ export function FirstMessageRow({ sender, topic, format = null, note, dateText, 
           <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: "auto", flexShrink: 0 }}>{dateText}</span>
         </div>
         <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={note}>
-          <strong style={{ fontWeight: 700, color: "var(--royal)" }}>{topicLabel(topic)}{format ? `・${formatLabel(format)}` : ""}</strong>　{note}
+          <strong style={{ fontWeight: 700, color: "var(--royal)" }}>{topicLabel(topic, aboutCompanyName)}{format ? `・${formatLabel(format)}` : ""}</strong>　{note}
         </div>
       </div>
     </div>

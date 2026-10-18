@@ -72,6 +72,7 @@ export default async function ConversationDetailPage({
       .from("ow_conversations")
       .select(
         `id, kind, stage, status, company_id, candidate_user_id, partner_user_id, request_status, request_topic, request_format,
+         request_company:ow_companies!request_company_id(name, name_en),
          ow_companies!company_id(name, logo_url, logo_letter),
          partner:ow_users!partner_user_id(name),
          starter:ow_users!candidate_user_id(name)`

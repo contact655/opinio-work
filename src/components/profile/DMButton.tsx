@@ -20,6 +20,8 @@ type Props = {
   label?: string;
   /** ★「…」メニューの中に置く形（2026-10-11 / 企業の担当者が /u/[id] を見たとき。「個人としてメッセージを送る」） */
   variant?: "button" | "menuItem" | "card" | "icon";
+  /** ★企業ページの社員の行から送るとき、その会社の id（2026-10-18）。「会社のこと」のテーマがこの会社になる */
+  aboutCompanyId?: string | null;
 };
 
 /* ★一覧のカードに置く形（2026-10-17 / /people）。
@@ -48,7 +50,7 @@ const ICON = (
  * ★2026-10-17: 書く画面は「聞きたいテーマ＋ひとこと（100字）」（FirstMessageComposer）。
  *   テーマは GET /api/dm/start が相手ごとに返すもの（送信の検証と同じ関数 dmTopicSections）。
  */
-export function DMButton({ targetUserId, targetName, label, variant = "button" }: Props) {
+export function DMButton({ targetUserId, targetName, label, variant = "button", aboutCompanyId = null }: Props) {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ text: string; requestsLink?: boolean } | null>(null);
   const [composing, setComposing] = useState(false);
@@ -64,7 +66,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
     setLoading(true);
     setNotice(null);
     try {
-      const res = await fetch(`/api/dm/start?targetUserId=${targetUserId}`);
+      const res = await fetch(`/api/dm/start?targetUserId=${targetUserId}${aboutCompanyId ? `&aboutCompanyId=${encodeURIComponent(aboutCompanyId)}` : ""}`);
       if (res.status === 401) { toAuth(); return; }
       const data = await res.json().catch(() => null);
       if (!res.ok || !data) {
@@ -101,7 +103,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
       const res = await fetch("/api/dm/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId, topic, format, message: note }),
+        body: JSON.stringify({ targetUserId, topic, format, aboutCompanyId, message: note }),
       });
       if (res.status === 401) { toAuth(); return null; }
       const data = await res.json().catch(() => null);

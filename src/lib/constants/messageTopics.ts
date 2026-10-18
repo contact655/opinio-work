@@ -7,6 +7,8 @@
  * ⚠️ 出し分けは `topicsFor()` の1か所。画面側で条件を書かない。
  */
 
+import { companyDisplayName } from "@/lib/companies/displayName";
+
 export type MessageTopicGroup = "company" | "career" | "hiring" | "join";
 
 export const MESSAGE_TOPICS = [
@@ -62,7 +64,15 @@ export type TopicSection = { group: MessageTopicGroup; title: string; topics: { 
  */
 export function topicsFor(input: {
   recipient:
-    | { kind: "person"; currentCompanyName: string | null; hasCurrentCompany: boolean }
+    | {
+        kind: "person"; currentCompanyName: string | null; hasCurrentCompany: boolean;
+        /**
+         * ★企業ページから送るとき、その会社（2026-10-18）。相手がその会社にいた（いる）ことを確かめた値だけ渡す。
+         *   あれば「会社のこと」の見出しはこの会社にする（OB・OG なら「〈社名〉にいた頃のこと」）。現職の会社の見出しは出さない
+         *   （テーマの値は会社を区別しないので、2社並べると受け手がどちらの話か分からない）。
+         */
+        aboutCompany?: { name: string; isCurrent: boolean } | null;
+      }
     | { kind: "company"; companyName: string };
   senderIsRecruiter: boolean;
 }): TopicSection[] {
@@ -74,7 +84,10 @@ export function topicsFor(input: {
     return out;
   }
   if (input.senderIsRecruiter) out.push({ group: "hiring", title: "採用のこと", topics: of("hiring") });
-  if (input.recipient.hasCurrentCompany) {
+  const about = input.recipient.aboutCompany;
+  if (about) {
+    out.push({ group: "company", title: about.isCurrent ? `${about.name}のこと` : `${about.name}にいた頃のこと`, topics: of("company") });
+  } else if (input.recipient.hasCurrentCompany) {
     out.push({
       group: "company",
       title: input.recipient.currentCompanyName ? `${input.recipient.currentCompanyName}のこと` : "いまの会社のこと",
@@ -85,6 +98,18 @@ export function topicsFor(input: {
   return out;
 }
 
-export function topicLabel(value: MessageTopic): string {
-  return MESSAGE_TOPICS.find((t) => t.value === value)?.label ?? "";
+/**
+ * テーマの表示名。★会社のテーマで、どの会社の話かが記録されていれば社名を添える（「働き方（Salesforce）」。2026-10-18）。
+ * ⚠️ 社名を添えるのは会社のテーマだけ。キャリアのテーマには付けない（会社の話ではない）
+ */
+export function topicLabel(value: MessageTopic, aboutCompanyName?: string | null): string {
+  const t = MESSAGE_TOPICS.find((x) => x.value === value);
+  if (!t) return "";
+  return t.group === "company" && aboutCompanyName ? `${t.label}（${aboutCompanyName}）` : t.label;
+}
+
+/** 埋め込みで取った「どの会社の話か」を表示名にする（一覧・詳細・届いたものの3か所で同じ形） */
+export function requestCompanyName(v: unknown): string | null {
+  const c = (Array.isArray(v) ? v[0] : v) as { name?: string; name_en?: string | null } | null | undefined;
+  return c?.name ? companyDisplayName(c.name, c.name_en ?? null).displayName : null;
 }
