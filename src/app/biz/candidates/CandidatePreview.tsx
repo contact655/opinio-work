@@ -108,8 +108,7 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
   /* ★2026-10-13（ステップ4 / モックに合わせた）: 項目／この人／自社 の3列の表で**全件**出す（「ほか○件」で隠さない）。
         行は `Touchpoint.row`（8種類すべて）。⚠️ row が無い古い形（/dev/preview の固定データ）は分類と文で1行にする
      ★2026-10-13（柴さんの指示）: 枠が狭いとき（460px 未満。右欄の2列表示など）は表をやめ、1理由1行で
-        「✓ 職種　営業（関心） ↔ インサイドセールス（営業部）」と流す（カードの理由行と同じ書き方）。
-        ⚠️ 値の途中で折り返さない（値ごとに inline-block。折り返すのは ↔ の前後だけ。1つの値が行より長いときだけ値の中で折り返す）
+        「✓ 職種」の下に「この人 営業（関心）」「〈会社名〉 インサイドセールス（営業部）」の2行で出す（2026-10-18 に「↔」をやめた）。
         ⚠️ 切り替えはコンテナクエリ（この枠の幅）。画面の幅では決めない */
   if (!touchpoints || touchpoints.length === 0) return null;
   const cell: React.CSSProperties = { padding: "6px 8px", fontSize: 12.5, lineHeight: 1.55, verticalAlign: "top", borderTop: `1px solid ${TP_LINE}`, overflowWrap: "anywhere" };
@@ -153,11 +152,11 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
             {t.row?.summary ? (
               <span className="cand-tp-val">{t.row.summary}</span>
             ) : t.row ? (
-              <>
-                <span className="cand-tp-val">{t.row.person}</span>
-                {" "}<span className="cand-tp-arrow">↔</span>{" "}
-                <span className="cand-tp-val">{t.row.ours}</span>
-              </>
+              /* ★「↔」をやめ、表の列見出しと同じ「この人／〈会社名〉」を添えて2行で出す（2026-10-18 / 柴さんの指摘。矢印では何がどう合うのか読めなかった） */
+              <span className="cand-tp-pair">
+                <span className="cand-tp-side"><span className="cand-tp-who">この人</span><span className="cand-tp-val">{t.row.person}</span></span>
+                <span className="cand-tp-side"><span className="cand-tp-who">{companyShortName ?? "貴社"}</span><span className="cand-tp-val">{t.row.ours}</span></span>
+              </span>
             ) : <span className="cand-tp-val">{t.text}</span>}
           </li>
         ))}
@@ -170,7 +169,9 @@ export function TouchpointSection({ touchpoints, companyShortName }: { touchpoin
         .cand-tp-check { color: #14532D; font-weight: 700; margin-right: 4px; }
         .cand-tp-item { font-weight: 700; margin-right: 10px; white-space: nowrap; }
         .cand-tp-val { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; }
-        .cand-tp-arrow { color: var(--ink-mute); }
+        .cand-tp-pair { display: block; margin: 2px 0 0 16px; }
+        .cand-tp-side { display: flex; gap: 8px; align-items: baseline; }
+        .cand-tp-who { flex-shrink: 0; width: 5.5em; font-size: 11.5px; color: var(--ink-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @container candtp (max-width: 459.98px) {
           .cand-tp-table { display: none; }
           .cand-tp-lines { display: block; }

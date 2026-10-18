@@ -1264,10 +1264,11 @@ export default function CandidatesClient({
                         );
                       })() : !(compactCards && isWide) && (topTp ? (
                         <div className="cand-card-reason" data-state="card-reason"
-                          title={topTp.row ? `${topTp.row.item}：${topTp.row.summary ?? `${topTp.row.person} ↔ ${topTp.row.ours}`}` : topTp.text}>
+                          title={topTp.row ? `${topTp.row.item}：${topTp.row.summary ?? `${topTp.row.person}　${companyShortName ?? "貴社"}：${topTp.row.ours}`}` : topTp.text}>
                           <span aria-hidden="true" className="cand-card-reason-check">✓</span>
                           <span className="cand-card-reason-item">{topTp.row?.item ?? "合うところ"}</span>
-                          <span className="cand-card-reason-text">{topTp.row ? (topTp.row.summary ?? `${topTp.row.person} ↔ ${topTp.row.ours}`) : topTp.text}</span>
+                          {/* ★「↔」をやめた（2026-10-18）。この人の値のあとに「〈会社名〉：」を添えて、どちら側の値かを示す */}
+                          <span className="cand-card-reason-text">{topTp.row ? (topTp.row.summary ?? <>{topTp.row.person}<span className="cand-card-reason-co">　{companyShortName ?? "貴社"}：</span>{topTp.row.ours}</>) : topTp.text}</span>
                           {tps && tps.length > 1 && <span className="cand-card-reason-more">ほか{tps.length - 1}件</span>}
                         </div>
                       ) : tps ? (
@@ -1447,6 +1448,7 @@ export default function CandidatesClient({
         .cand-card-reason-check { flex-shrink: 0; font-weight: 700; color: #14532D; }
         .cand-card-reason-item { flex-shrink: 0; font-weight: 700; }
         .cand-card-reason-text { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cand-card-reason-co { color: #3F6B4E; }
         .cand-card-reason-more { flex-shrink: 0; padding-left: 4px; color: #3F6B4E; white-space: nowrap; }
         .cand-card.is-hidden { opacity: 0.55; }
         .cand-card.is-hidden:hover { opacity: 0.8; }
