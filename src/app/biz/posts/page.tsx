@@ -8,7 +8,7 @@ import { PostsClient } from "./PostsClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "企業ストーリー | OPINIO Business" },
+  title: { absolute: "企業記事 | OPINIO Business" },
 };
 
 /**

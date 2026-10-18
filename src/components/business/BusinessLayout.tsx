@@ -116,22 +116,24 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: "会社を伝える",
     items: [
-      { href: "/biz/jobs", label: "求人管理", needs: ["jobs.view"], icon: <Briefcase size={16} strokeWidth={2.2} /> },
-      /* ★2026-09-21 に「組織体制」から改名し、求人管理の直下へ移した。
+      /* ★並び（2026-10-18 / 柴さんの指示）: 企業ページ → 部門・職種 → 求人管理 → 企業資料 → 社員・OB/OG → 企業記事 */
+      /* ⚠️ 2026-09-21 に「企業情報」から改名。求職者に見える**公開ページの編集**だと
+            分かるようにするため。パスは `/biz/company` のまま（変えていない）。 */
+      { href: "/biz/company", label: "企業ページ", needs: ["company.page"], icon: <Building2 size={16} strokeWidth={2.2} /> },
+      /* ★2026-09-21 に「組織体制」から改名し、求人管理の直下へ移した（2026-10-18 から企業ページの直下・求人管理の上）。
             ここで登録する部門・職種は**求人作成の選択肢としてだけ**使われる（社員登録・
             求職者向けのページには出ない）。旧名は企業ページの「組織体制」欄と同じ名前だった。
          ⚠️ パスは /biz/organization のまま（変えていない） */
       { href: "/biz/organization", label: "部門・職種", needs: ["organization.manage"], icon: <Layers size={16} strokeWidth={2.2} /> },
-      /* ⚠️ 2026-09-21 に「企業情報」から改名。求職者に見える**公開ページの編集**だと
-            分かるようにするため。パスは `/biz/company` のまま（変えていない）。 */
-      { href: "/biz/company", label: "企業ページ", needs: ["company.page"], icon: <Building2 size={16} strokeWidth={2.2} /> },
+      { href: "/biz/jobs", label: "求人管理", needs: ["jobs.view"], icon: <Briefcase size={16} strokeWidth={2.2} /> },
       /* ★企業資料（2026-10-09 / 依頼②）。資料を登録し、項目ごとに公開範囲を決めて確定する。
             ⚠️ 企業ページのタブにしなかった理由: 「内部のみ」の項目（企業ページに出ないもの）を含み、
                確定も項目ごとに即時に保存する（企業ページの下書き → 「変更を公開する」とは作りが違う） */
       { href: "/biz/materials", label: "企業資料", needs: ["materials.view"], icon: <FileText size={16} strokeWidth={2.2} /> },
       { href: "/biz/employees", label: "社員・OB/OG", needs: ["employees.manage"], icon: <UsersRound size={16} strokeWidth={2.2} /> },
-      /* ★2026-09-21 に「投稿・発信」から改名（外部リンクのタブを外し、中身がストーリーだけになった） */
-      { href: "/biz/posts", label: "企業ストーリー", needs: ["stories.edit"], icon: <Newspaper size={16} strokeWidth={2.2} /> },
+      /* ★2026-09-21 に「投稿・発信」から改名（外部リンクのタブを外し、中身がストーリーだけになった）。
+            ★2026-10-18 に「企業ストーリー」から「企業記事」へ（柴さんの指示）。パスは /biz/posts のまま */
+      { href: "/biz/posts", label: "企業記事", needs: ["stories.edit"], icon: <Newspaper size={16} strokeWidth={2.2} /> },
     ],
   },
   {

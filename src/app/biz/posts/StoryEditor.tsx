@@ -264,7 +264,7 @@ export function StoryEditor({ initial }: { initial: StoryWithDraft | null }) {
 
       {/* ── 上部: 戻る・状態・公開 ── */}
       <div className="se-top">
-        <Link href="/biz/posts" style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "none" }}>← ストーリー一覧</Link>
+        <Link href="/biz/posts" style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", textDecoration: "none" }}>← 記事の一覧</Link>
         <span data-state={isPublished ? "published" : "draft"} style={{ fontSize: 13, color: "var(--ink-mute)" }}>
           {isPublished ? "公開中" : "下書き"}
         </span>

@@ -589,7 +589,8 @@ export function CompanyEditClient({
   // ── 主ボタン ───────────────────────────────────────────────────────────
   const primary = (() => {
     if (listed) {
-      if (!hasChanges) return { label: "公開済み", enabled: false, onClick: undefined as (() => void) | undefined, state: "published" };
+      /* ★変更が無いときは「変更はありません」（2026-10-18。上の「公開中」と同じことを「公開済み」で繰り返していた） */
+      if (!hasChanges) return { label: "変更はありません", enabled: false, onClick: undefined as (() => void) | undefined, state: "published" };
       return {
         label: busy ? "公開中..." : "変更を公開する", enabled: isAdmin && blocking.length === 0 && !busy, state: "publish",
         /* 押した人がまだ掲載利用規約に同意していなければ、確認画面で同意を取ってから公開する */

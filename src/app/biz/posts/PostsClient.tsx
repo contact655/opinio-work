@@ -85,16 +85,16 @@ export function PostsClient({ initialStories, views }: {
       `}</style>
 
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業ストーリー</h1>
+        <h1 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業記事</h1>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-          公開したストーリーは、求職者向けの企業ページに表示されます。
+          公開した記事は、求職者向けの企業ページに表示されます。
           {views && <span style={{ color: "var(--ink-mute)" }}>　閲覧数は2026年10月12日から数えています。</span>}
         </p>
       </div>
 
       {initialStories === null && (
         <div role="alert" style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--error-soft)", fontSize: 13, color: "var(--error-ink)" }}>
-          ストーリーを読み込めませんでした。時間をおいて開き直してください。
+          記事を読み込めませんでした。時間をおいて開き直してください。
         </div>
       )}
       {error && (
@@ -102,7 +102,7 @@ export function PostsClient({ initialStories, views }: {
       )}
       {!shell.hasPublicPage && publishedCount > 0 && (
         <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-          企業ページがまだ公開されていないため、公開中のストーリーも求職者には表示されていません。
+          企業ページがまだ公開されていないため、公開中の記事も求職者には表示されていません。
         </div>
       )}
 
@@ -127,7 +127,7 @@ export function PostsClient({ initialStories, views }: {
       <div className="sl-grid" data-state="story-grid">
         <Link href="/biz/posts/new" className="sl-new" data-state="story-new">
           <span style={{ fontSize: 26, lineHeight: 1 }}>＋</span>
-          新しいストーリー
+          新しい記事を書く
           <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>社員インタビュー・カルチャーなど</span>
         </Link>
         {visible.map((s) => (
@@ -145,7 +145,7 @@ export function PostsClient({ initialStories, views }: {
 
       {stories.length > 0 && visible.length === 0 && (
         <p style={{ margin: "16px 0 0", fontSize: 13, color: "var(--ink-mute)" }}>
-          {tab === "published" ? "公開中のストーリーはありません。" : "下書きはありません。"}
+          {tab === "published" ? "公開中の記事はありません。" : "下書きはありません。"}
         </p>
       )}
     </div>
@@ -228,7 +228,7 @@ function StoryMenu({ title, publicHref, isPublished, busy, onUnpublish, onDelete
         <div role="menu" style={{ position: "absolute", top: 36, right: 0, zIndex: 20, minWidth: 200, background: "#fff", border: "1px solid var(--line)", borderRadius: 10, boxShadow: "0 8px 24px rgba(15,23,42,0.14)", overflow: "hidden" }}>
           {confirming ? (
             <div style={{ padding: 12 }}>
-              <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>このストーリーを削除しますか？元に戻せません。</p>
+              <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>この記事を削除しますか？元に戻せません。</p>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button type="button" onClick={() => setConfirming(false)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>やめる</button>
                 <button type="button" onClick={() => { setOpen(false); setConfirming(false); onDelete(); }} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "var(--error)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>削除する</button>

@@ -142,7 +142,18 @@ export default function MaterialsClient({ documents, items, loadFailed, canEdit,
 
       <UnconfirmedItems items={unconfirmed} canEdit={canEdit} busy={busy} call={call} docTitle={docTitle} />
 
-      {MATERIAL_VISIBILITIES.map((v) => (
+      {/* ★確定した項目が1件も無いときは、空の3区分（「まだありません」×3）を並べず1枚にまとめる（2026-10-18） */}
+      {MATERIAL_VISIBILITIES.every((v) => confirmedByVis[v].length === 0) ? (
+        <section style={card} aria-label="確定済みの項目" data-state="confirmed-empty">
+          <h2 style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700 }}>確定済みの項目（0件）</h2>
+          <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>確定すると、選んだ公開範囲に応じてここに並びます。</p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
+            {MATERIAL_VISIBILITIES.map((v) => (
+              <li key={v}><strong style={{ color: "var(--ink-soft)" }}>{MATERIAL_VISIBILITY_LABELS[v]}</strong>：{MATERIAL_VISIBILITY_AUDIENCE[v]}</li>
+            ))}
+          </ul>
+        </section>
+      ) : MATERIAL_VISIBILITIES.map((v) => (
         <ConfirmedGroup key={v} visibility={v} items={confirmedByVis[v]} canEdit={canEdit} busy={busy} call={call} docTitle={docTitle} />
       ))}
 

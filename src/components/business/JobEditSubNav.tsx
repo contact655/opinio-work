@@ -6,7 +6,7 @@ import type { PublishRequirement } from "@/lib/jobs/publishRequirements";
 /**
  * 求人の作成・編集画面の左の目次（2026-10-11 に作り直した）。
  *
- * ⚠️★**「公開まであと〇つ」は `missingForPublish()`（lib/jobs/publishRequirements.ts）の結果をそのまま出す。**
+ * ⚠️★**ステップの横の「あと N」は `missingForPublish()`（lib/jobs/publishRequirements.ts）の結果をステップごとに数えたもの。**
  *    ここで条件を足したり数え直したりしないこと。割れると「目次は0なのに申請できない」になる。
  * ⚠️ 旧版の「入力進捗 %」と「推奨項目」は外した。%は「何を書けば公開できるか」を言っていなかった。
  */
@@ -48,44 +48,14 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
       flexDirection: "column",
       overflowY: "auto",
     }}>
-      {/* ★公開まであと〇つ。押すとその入力欄へ移る */}
+      {/* ★項目の並び（「公開まであと16項目」）は 2026-10-18 に外した（柴さんの指示。下の1〜6と同じことを2回言っていた）。
+             足りないものは各ステップの横に「あと N」で出し、押すとそのステップの最初の未入力の欄へ移る。
+             ⚠️ 数は missingForPublish() の結果をステップごとに数えるだけ（ここで条件を足さない） */}
       <div data-state={missing.length === 0 ? "ready" : "missing"} style={{ padding: "18px 18px 14px", borderBottom: "1px solid var(--line)" }}>
-        {missing.length === 0 ? (
-          <div data-state="subnav-ready" style={{ fontSize: 13, fontWeight: 700, color: readyNote ? "var(--ink)" : "var(--success-ink)" }}>{readyNote ?? "公開できます"}</div>
-        ) : (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
-              公開まであと{missing.length}{missing.length < 10 ? "つ" : "項目"}
-            </div>
-            {/* ★スマホ（767px 以下）は横に1行でスクロール（2026-10-18）。16項目が6行に折り返し、最初の画面が埋まっていた。
-                   ⚠️ 折り返しは CSS（.jesn-missing）。インラインに戻さないこと */}
-            <style>{`
-              .jesn-missing { display: flex; flex-wrap: wrap; gap: 6px; }
-              @media (max-width: 767px) {
-                .jesn-missing { flex-wrap: nowrap; overflow-x: auto; margin: 0 -18px; padding: 0 18px 2px; scrollbar-width: none; }
-                .jesn-missing::-webkit-scrollbar { display: none; }
-                .jesn-missing button { flex-shrink: 0; white-space: nowrap; }
-              }
-            `}</style>
-            <div className="jesn-missing">
-              {missing.map((r) => (
-                <button
-                  key={r.key}
-                  type="button"
-                  onClick={() => onMissingClick(r)}
-                  style={{
-                    fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 100,
-                    border: "1px solid var(--line)", background: "#fff", color: "var(--royal)",
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </>
+        {missing.length === 0 && (
+          <div data-state="subnav-ready" style={{ fontSize: 13, fontWeight: 700, color: readyNote ? "var(--ink)" : "var(--success-ink)", marginBottom: 6 }}>{readyNote ?? "公開できます"}</div>
         )}
-        <div className="jef-subnav-note" style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6, marginTop: 10 }}>
+        <div className="jef-subnav-note" style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
           入力した内容は自動で保存されます。公開後も運営が内容を確認し、問題がある場合は停止することがあります。
         </div>
       </div>
@@ -107,11 +77,14 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
       <nav ref={navRef} className="jef-steps" aria-label="求人の入力ステップ">
         {steps.map((s, i) => {
           const isActive = s.id === activeStep;
+          const left = missing.filter((r) => r.step === s.id);
           return (
             <button
               key={s.id}
               type="button"
-              onClick={() => onStepClick(s.id)}
+              /* 足りない項目があるステップは、その最初の欄へ移る */
+              onClick={() => (left.length > 0 ? onMissingClick(left[0]) : onStepClick(s.id))}
+              title={left.length > 0 ? `未入力：${left.map((r) => r.label).join("・")}` : undefined}
               aria-current={isActive ? "step" : undefined}
               data-state={s.status ?? "none"}
               className="jef-step"
@@ -122,7 +95,9 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
               }}
             >
               <span style={{ minWidth: 0 }}>{i + 1}. {s.label}</span>
-              {s.status && (
+              {left.length > 0 ? (
+                <span data-state="step-left" style={{ fontSize: 11, fontWeight: 700, flexShrink: 0, color: "var(--warm-ink)" }}>あと{left.length}</span>
+              ) : s.status && (
                 <span style={{
                   fontSize: 11, fontWeight: 600, flexShrink: 0,
                   color: s.status === "done" ? "var(--success-ink)" : s.status === "todo" ? "var(--warm-ink)" : "var(--ink-mute)",

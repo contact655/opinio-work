@@ -9,7 +9,7 @@ import { StoryEditor } from "../StoryEditor";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: { absolute: "ストーリーを編集 | OPINIO Business" },
+  title: { absolute: "記事を編集 | OPINIO Business" },
 };
 
 /**
