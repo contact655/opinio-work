@@ -3392,6 +3392,7 @@ export type Database = {
           kind: string
           last_message_at: string | null
           partner_user_id: string | null
+          request_format: string | null
           request_status: string | null
           request_topic: string | null
           requested_at: string | null
@@ -3407,6 +3408,7 @@ export type Database = {
           kind: string
           last_message_at?: string | null
           partner_user_id?: string | null
+          request_format?: string | null
           request_status?: string | null
           request_topic?: string | null
           requested_at?: string | null
@@ -3422,6 +3424,7 @@ export type Database = {
           kind?: string
           last_message_at?: string | null
           partner_user_id?: string | null
+          request_format?: string | null
           request_status?: string | null
           request_topic?: string | null
           requested_at?: string | null

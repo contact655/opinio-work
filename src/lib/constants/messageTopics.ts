@@ -1,8 +1,8 @@
 /**
  * ★最初の1通で選ぶ「聞きたいテーマ」（2026-10-17 / 設計メモ docs/messaging-unification-20261017.md の段階1）。
  *
- * ⚠️★**いまは見本（/dev/preview/message-topics）だけが使う。** DB にも API にもまだ無い。
- *    本番に入れるときは、値（value）を DB の CHECK と API の許容値にも書く（UI・API・DB の3層）。
+ * ★2026-10-17 から本番で使っている（個人どうしの DM の書く画面・API・DB の CHECK `ow_conversations.request_topic`）。
+ *    値を足すときは DB の CHECK も同時に広げる（UI・API・DB の3層）。
  * ⚠️ **value は削除も改名もしない。** 末尾に足すだけ（集計の前後比較ができなくなるため）。
  * ⚠️ 出し分けは `topicsFor()` の1か所。画面側で条件を書かない。
  */
@@ -28,6 +28,26 @@ export const MESSAGE_TOPICS = [
 ] as const satisfies readonly { value: string; label: string; group: MessageTopicGroup }[];
 
 export type MessageTopic = (typeof MESSAGE_TOPICS)[number]["value"];
+
+/**
+ * ★話を聞く形（2026-10-18 / 柴さんの判断。キャリアの先輩に話を聞く依頼を、最初の1通に乗せる）。
+ *   DB は `ow_conversations.request_format` の CHECK（supabase/migrations/20261018070000）。⚠️ 値は削除も改名もしない。末尾に足す
+ *   ⚠️ 対面は入れない（知らない人と1対1になるため。最初はオンラインかメッセージだけ）
+ *   ⚠️ 日程を決める仕組みは作らない（話がまとまったら、メッセージの中で決めてもらう）
+ */
+export const MESSAGE_FORMATS = [
+  { value: "message", label: "メッセージで" },
+  { value: "online_15", label: "オンラインで15分" },
+  { value: "online_30", label: "オンラインで30分" },
+] as const satisfies readonly { value: string; label: string }[];
+export type MessageFormat = (typeof MESSAGE_FORMATS)[number]["value"];
+export const DEFAULT_MESSAGE_FORMAT: MessageFormat = "message";
+export function isMessageFormat(v: unknown): v is MessageFormat {
+  return typeof v === "string" && MESSAGE_FORMATS.some((f) => f.value === v);
+}
+export function formatLabel(value: MessageFormat): string {
+  return MESSAGE_FORMATS.find((f) => f.value === value)?.label ?? "";
+}
 
 /** 一言の上限（100字程度）。⚠️ 本番では DB の CHECK でも縛る */
 export const FIRST_NOTE_MAX = 100;

@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   const meId = await resolveMe();
   if (!meId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { targetUserId?: unknown; topic?: unknown; message?: unknown };
+  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; message?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
     senderId: meId,
     recipientId: targetUserId,
     topic: typeof body.topic === "string" ? body.topic : "",
+    format: typeof body.format === "string" ? body.format : undefined,
     body: typeof body.message === "string" ? body.message : "",
   });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });

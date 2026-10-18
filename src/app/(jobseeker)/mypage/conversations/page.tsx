@@ -100,7 +100,7 @@ export default async function ConversationsPage({
         .from("ow_conversations")
         .select(
           `id, kind, stage, status, last_message_at, created_at,
-           company_id, candidate_user_id, partner_user_id, request_status, request_topic,
+           company_id, candidate_user_id, partner_user_id, request_status, request_topic, request_format,
            ow_companies(id, name, logo_url, logo_letter),
            partner:ow_users!partner_user_id(id, name),
            starter:ow_users!candidate_user_id(id, name)`

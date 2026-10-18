@@ -5,7 +5,7 @@ import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { dmTopicSections, isTopicOffered } from "@/lib/conversations/dmTopics";
-import { FIRST_NOTE_MAX, type MessageTopic } from "@/lib/constants/messageTopics";
+import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, isMessageFormat, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
   MESSAGE_REQUEST_DAILY_LIMIT,
   MESSAGE_REQUEST_OPEN_LIMIT,
@@ -144,11 +144,15 @@ export async function sendMessageRequest(params: {
   senderId: string;
   recipientId: string;
   topic: string;
+  /** ★話を聞く形（2026-10-18）。省略・空なら「メッセージで」。知らない値は 400 */
+  format?: string;
   body: string;
 }): Promise<SendResult> {
   const { senderId, recipientId } = params;
   const body = params.body.trim();
   if (!params.topic) return { ok: false, status: 400, error: "聞きたいことを選んでください" };
+  if (params.format && !isMessageFormat(params.format)) return { ok: false, status: 400, error: "話を聞く形を選び直してください" };
+  const format: MessageFormat = isMessageFormat(params.format) ? params.format : DEFAULT_MESSAGE_FORMAT;
   if (!body) return { ok: false, status: 400, error: "ひとことを入力してください" };
   if (body.length > FIRST_NOTE_MAX) {
     return { ok: false, status: 400, error: `ひとことは${FIRST_NOTE_MAX}文字以内で入力してください` };
@@ -190,6 +194,7 @@ export async function sendMessageRequest(params: {
       request_status: "pending",
       requested_at: now,
       request_topic: topic,
+      request_format: format,
     })
     .select("id")
     .single();
@@ -371,6 +376,8 @@ export type IncomingRequest = {
   body: string | null;
   /** ★最初の1通で選んだテーマ（2026-10-17）。それより前の行は null */
   topic: MessageTopic | null;
+  /** ★話を聞く形（2026-10-18）。それより前の行は null */
+  format: MessageFormat | null;
   requester: {
     id: string;
     name: string;
@@ -386,7 +393,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_conversations")
-    .select("id, requested_at, request_topic, requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
+    .select("id, requested_at, request_topic, request_format, requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
     .eq("kind", "direct_message")
     .eq("partner_user_id", meId)
     .eq("request_status", "pending")
@@ -425,6 +432,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
         requestedAt: (r.requested_at as string | null) ?? null,
         body: bodies.get(r.id as string) ?? null,
         topic: (r.request_topic as MessageTopic | null) ?? null,
+        format: isMessageFormat(r.request_format) ? r.request_format : null,
         requester: {
           id: (u?.id as string) ?? "",
           name: (u?.name as string) ?? "",

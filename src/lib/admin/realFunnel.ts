@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * 段（どれも「人数」。行数ではない）:
  *   登録 → オンボーディング完了 → 職歴あり → 入社後レビューに回答 → 直近7日に利用
  *   ＋ 別枠: 応募・面談をした人
+ *   ＋ 別枠: 実ユーザーどうしの最初のメッセージ（件数）と、そのうち返信があったもの（2026-10-18。キャリアの先輩に話を聞く依頼を測る）
  *
  * ⚠️ 空間に注意。`ow_profiles.user_id` は auth 空間、それ以外（職歴・レビュー・応募・面談）は ow_users 空間。
  * ⚠️ 取得に失敗したら null を返す（0 に倒すと壊れているのに「0人」と読まれる）。
@@ -22,6 +23,10 @@ export type RealFunnel = {
   reviewed: number;
   activeLast7d: number;
   appliedOrMet: number;
+  /** ★実ユーザーどうしの最初のメッセージ（件数。送り手・受け手とも実ユーザー）。2026-10-18〜 */
+  dmRequests: number;
+  /** そのうち返信があったもの（request_status = accepted） */
+  dmReplied: number;
   /** 直近の利用（last_active_at の最大）。誰も記録が無ければ null */
   lastActiveAt: string | null;
 };
@@ -44,17 +49,19 @@ export async function loadRealFunnel(): Promise<RealFunnel | null> {
   const ids = rows.map((u) => u.id);
   const authIds = rows.map((u) => u.auth_id);
   if (ids.length === 0) {
-    return { registered: 0, onboarded: 0, withCareer: 0, reviewed: 0, activeLast7d: 0, appliedOrMet: 0, lastActiveAt: null };
+    return { registered: 0, onboarded: 0, withCareer: 0, reviewed: 0, activeLast7d: 0, appliedOrMet: 0, dmRequests: 0, dmReplied: 0, lastActiveAt: null };
   }
 
-  const [prof, exp, rev, app, meet] = await Promise.all([
+  const [prof, exp, rev, app, meet, dm] = await Promise.all([
     db.from("ow_profiles").select("user_id").in("user_id", authIds).eq("onboarding_completed", true),
     db.from("ow_experiences").select("user_id").in("user_id", ids),
     db.from("ow_workplace_reviews").select("user_id").in("user_id", ids),
     db.from("ow_job_applications").select("user_id").in("user_id", ids),
     db.from("ow_casual_meetings").select("user_id").in("user_id", ids),
+    /* ⚠️ 受け手も実ユーザーに絞るのは下で（.in を2本並べると URL が長くなるため送り手だけここで絞る） */
+    db.from("ow_conversations").select("partner_user_id, request_status").eq("kind", "direct_message").not("requested_at", "is", null).in("candidate_user_id", ids),
   ]);
-  for (const [label, r] of [["ow_profiles", prof], ["ow_experiences", exp], ["ow_workplace_reviews", rev], ["ow_job_applications", app], ["ow_casual_meetings", meet]] as const) {
+  for (const [label, r] of [["ow_profiles", prof], ["ow_experiences", exp], ["ow_workplace_reviews", rev], ["ow_job_applications", app], ["ow_casual_meetings", meet], ["ow_conversations", dm]] as const) {
     if (r.error) {
       console.error(`[realFunnel] ${label}:`, r.error.message);
       return null;
@@ -71,6 +78,9 @@ export async function loadRealFunnel(): Promise<RealFunnel | null> {
       .map((x) => x.user_id).filter(Boolean),
   ).size;
 
+  const realIds = new Set(ids);
+  const dmRows = ((dm.data ?? []) as { partner_user_id: string | null; request_status: string | null }[]).filter((r) => r.partner_user_id && realIds.has(r.partner_user_id));
+
   return {
     registered: rows.length,
     onboarded: distinct(prof),
@@ -78,6 +88,8 @@ export async function loadRealFunnel(): Promise<RealFunnel | null> {
     reviewed: distinct(rev),
     activeLast7d: actives,
     appliedOrMet,
+    dmRequests: dmRows.length,
+    dmReplied: dmRows.filter((r) => r.request_status === "accepted").length,
     lastActiveAt: last,
   };
 }

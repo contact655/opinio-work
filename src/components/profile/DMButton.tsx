@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FirstMessageComposer } from "@/components/messages/FirstMessage";
-import type { MessageTopic, TopicSection } from "@/lib/constants/messageTopics";
+import type { MessageFormat, MessageTopic, TopicSection } from "@/lib/constants/messageTopics";
 
 type Props = {
   targetUserId: string;
@@ -94,14 +94,14 @@ export function DMButton({ targetUserId, targetName, label, variant = "button" }
   }
 
   /** 送る。エラーの文言を返す（成功したら会話へ移る） */
-  async function handleSend(topic: MessageTopic, note: string): Promise<string | null> {
+  async function handleSend(topic: MessageTopic, note: string, format: MessageFormat): Promise<string | null> {
     if (sending) return null;
     setSending(true);
     try {
       const res = await fetch("/api/dm/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId, topic, message: note }),
+        body: JSON.stringify({ targetUserId, topic, format, message: note }),
       });
       if (res.status === 401) { toAuth(); return null; }
       const data = await res.json().catch(() => null);

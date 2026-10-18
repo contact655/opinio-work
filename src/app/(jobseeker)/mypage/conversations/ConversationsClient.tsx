@@ -15,7 +15,7 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
-import { topicLabel, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
+import { formatLabel, isMessageFormat, topicLabel, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
 import { FirstTopicNotice } from "@/components/messages/FirstMessage";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
@@ -35,6 +35,7 @@ export type Conversation = {
   request_status?: string | null;
   /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
   request_topic?: string | null;
+  request_format?: string | null;
   ow_companies: {
     id: string;
     name: string;
@@ -112,7 +113,8 @@ function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selecte
   const name = item.kind === "company" ? item.approach.companyName : item.request.requester.name;
   const preview = item.kind === "company" ? item.approach.reason : (item.request.body ?? "");
   /* ★個人からの1通目のテーマ（2026-10-17）。それより前のものは無い */
-  const topic = item.kind === "person" && item.request.topic ? topicLabel(item.request.topic) : null;
+  const topic = item.kind === "person" && item.request.topic
+    ? `${topicLabel(item.request.topic)}${item.request.format ? `・${formatLabel(item.request.format)}` : ""}` : null;
   return (
     <button type="button" onClick={onOpen} data-unreplied={item.kind} data-unreplied-id={item.key} aria-expanded={selected}
       style={{
@@ -214,6 +216,11 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
               <span data-state="request-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
                 聞きたいこと: {topicLabel(item.request.topic)}
               </span>
+              {item.request.format && (
+                <span data-state="request-format" style={{ display: "inline-block", marginLeft: 6, padding: "3px 10px", borderRadius: 999, background: "var(--bg-tint)", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600 }}>
+                  {formatLabel(item.request.format)}
+                </span>
+              )}
             </div>
           )}
           <p data-state="request-body" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.8, color: item.request.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
@@ -794,7 +801,7 @@ export default function ConversationsClient({
                         求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                         ⚠️ /mypage/conversations/[id] と同じ並べ方。片方だけ書き換えない */
                   <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {selectedConv?.kind === "direct_message" && isKnownTopic(selectedConv.request_topic) && <FirstTopicNotice topic={selectedConv.request_topic} />}
+                    {selectedConv?.kind === "direct_message" && isKnownTopic(selectedConv.request_topic) && <FirstTopicNotice topic={selectedConv.request_topic} format={isMessageFormat(selectedConv.request_format) ? selectedConv.request_format : null} />}
                     {messages.map((msg) => {
                       const isMe = msg.sender_participant_id === myParticipantId;
                       const sender = isMe ? (myName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "相手");

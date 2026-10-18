@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { FromTag } from "@/components/mypage/InboxCard";
 import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
-import { FIRST_NOTE_MAX, topicLabel, type MessageTopic, type TopicSection } from "@/lib/constants/messageTopics";
+import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_FORMATS, formatLabel, topicLabel, type MessageFormat, type MessageTopic, type TopicSection } from "@/lib/constants/messageTopics";
 
 /**
  * ★最初の1通（テーマ＋一言）の部品（2026-10-17 / 設計メモ docs/messaging-unification-20261017.md の段階1）。
@@ -30,7 +30,7 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
   recipientLine: string | null;
   sections: TopicSection[];
   /** エラーの文言を返す（成功なら null）。見本では渡さない */
-  onSend?: (topic: MessageTopic, note: string) => Promise<string | null>;
+  onSend?: (topic: MessageTopic, note: string, format: MessageFormat) => Promise<string | null>;
   /** 「やめる」（ダイアログの中で使うとき） */
   onCancel?: () => void;
   sample?: boolean;
@@ -39,6 +39,8 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
 }) {
   const [topic, setTopic] = useState<MessageTopic | null>(null);
   const [note, setNote] = useState("");
+  /* ★話を聞く形（2026-10-18）。既定は「メッセージで」（押さなくても送れる） */
+  const [format, setFormat] = useState<MessageFormat>(DEFAULT_MESSAGE_FORMAT);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const noteId = useId();
@@ -49,7 +51,7 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
   const send = async () => {
     if (!canSend || !topic || !onSend) return;
     setBusy(true); setError(null);
-    try { const e = await onSend(topic, note.trim()); if (e) setError(e); } finally { setBusy(false); }
+    try { const e = await onSend(topic, note.trim(), format); if (e) setError(e); } finally { setBusy(false); }
   };
 
   return (
@@ -83,6 +85,24 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
         </div>
       </fieldset>
 
+      {/* ★話を聞く形（2026-10-18 / 柴さんの判断。キャリアの先輩に話を聞く依頼）。⚠️ 対面は無い。日程は決めない（返信があったらメッセージで） */}
+      <fieldset style={{ border: "none", margin: 0, padding: 0, minWidth: 0 }}>
+        <legend style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", padding: 0, marginBottom: 8 }}>どんな形で</legend>
+        <div role="radiogroup" aria-label="どんな形で" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {MESSAGE_FORMATS.map((f) => {
+            const on = format === f.value;
+            return (
+              <button key={f.value} type="button" role="radio" aria-checked={on} data-format={f.value} className="btn-fixed-size"
+                onClick={() => setFormat(f.value)}
+                style={{ padding: "6px 12px", borderRadius: 999, fontSize: 13, fontWeight: on ? 700 : 500, fontFamily: "inherit", cursor: "pointer",
+                  border: `1.5px solid ${on ? "var(--royal)" : "var(--line)"}`, background: on ? "var(--royal-50)" : "#fff", color: on ? "var(--royal)" : "var(--ink-soft)" }}>
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <div style={{ minWidth: 0 }}>
         <label htmlFor={noteId} style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>ひとこと</label>
         <textarea id={noteId} value={note} rows={2} onChange={(e) => setNote(e.target.value)}
@@ -93,7 +113,7 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)", minWidth: 0, flex: "1 1 240px" }}>
-          相手が返信すると、そのままメッセージでやり取りが始まります。返信があるまで、続けて送ることはできません。
+          相手が返信すると、そのままメッセージでやり取りが始まります。オンラインで話す日時は、返信のあとにメッセージで決めてください。返信があるまで、続けて送ることはできません。
         </p>
         <span style={{ display: "inline-flex", gap: 8, marginLeft: "auto" }}>
         {onCancel && (
@@ -116,20 +136,21 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
 }
 
 /** ★会話の先頭に出す1行（2026-10-17）。最初の1通で選んだテーマ。送り手・受け手の両方の会話画面で使う */
-export function FirstTopicNotice({ topic }: { topic: MessageTopic }) {
+export function FirstTopicNotice({ topic, format = null }: { topic: MessageTopic; format?: MessageFormat | null }) {
   return (
     <div data-state="first-topic-notice" style={{ display: "flex", justifyContent: "center" }}>
       <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12, fontWeight: 700 }}>
-        最初のメッセージで聞きたいこと: {topicLabel(topic)}
+        最初のメッセージで聞きたいこと: {topicLabel(topic)}{format ? `・${formatLabel(format)}` : ""}
       </span>
     </div>
   );
 }
 
 /** 受け取った側の見え方（返信欄つき） */
-export function FirstMessageCard({ sender, topic, note, dateText, sample = false, onSend, onDecline }: {
+export function FirstMessageCard({ sender, topic, format = null, note, dateText, sample = false, onSend, onDecline }: {
   sender: FirstMessageSender;
   topic: MessageTopic;
+  format?: MessageFormat | null;
   note: string;
   dateText: string;
   sample?: boolean;
@@ -149,6 +170,11 @@ export function FirstMessageCard({ sender, topic, note, dateText, sample = false
         <span data-state="first-message-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
           聞きたいこと: {topicLabel(topic)}
         </span>
+        {format && (
+          <span data-state="first-message-format" style={{ display: "inline-block", marginLeft: 6, padding: "3px 10px", borderRadius: 999, background: "var(--bg-tint)", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600 }}>
+            {formatLabel(format)}
+          </span>
+        )}
       </div>
       <p style={{ margin: "10px 0 0", fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{note}</p>
       <RequestReplyBox sample={sample} onSend={onSend} onDecline={onDecline} declineNote="見送っても、相手には伝わりません。" />
@@ -157,8 +183,8 @@ export function FirstMessageCard({ sender, topic, note, dateText, sample = false
 }
 
 /** 受信箱の一覧の1行 */
-export function FirstMessageRow({ sender, topic, note, dateText, unread }: {
-  sender: FirstMessageSender; topic: MessageTopic; note: string; dateText: string; unread: boolean;
+export function FirstMessageRow({ sender, topic, format = null, note, dateText, unread }: {
+  sender: FirstMessageSender; topic: MessageTopic; format?: MessageFormat | null; note: string; dateText: string; unread: boolean;
 }) {
   return (
     <div data-state="first-message-row" style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderBottom: "1px solid var(--line)", minWidth: 0, background: unread ? "var(--royal-50)" : "#fff" }}>
@@ -170,7 +196,7 @@ export function FirstMessageRow({ sender, topic, note, dateText, unread }: {
           <span style={{ fontSize: 12, color: "var(--ink-mute)", marginLeft: "auto", flexShrink: 0 }}>{dateText}</span>
         </div>
         <div style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={note}>
-          <strong style={{ fontWeight: 700, color: "var(--royal)" }}>{topicLabel(topic)}</strong>　{note}
+          <strong style={{ fontWeight: 700, color: "var(--royal)" }}>{topicLabel(topic)}{format ? `・${formatLabel(format)}` : ""}</strong>　{note}
         </div>
       </div>
     </div>

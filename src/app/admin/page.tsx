@@ -488,6 +488,7 @@ export default async function AdminDashboard() {
               <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>実ユーザーのファネル</div>
               <div style={{ fontSize: 11, color: "var(--ink-mute)" }}>
                 検証用・システムを除く ／ 応募・面談をした人 <strong style={{ color: "var(--ink)" }}>{f.appliedOrMet}人</strong>
+                {" "}／ ユーザーどうしの最初のメッセージ <strong data-state="real-funnel-dm" style={{ color: "var(--ink)" }}>{f.dmRequests}件</strong>（返信あり {f.dmReplied}件）
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>

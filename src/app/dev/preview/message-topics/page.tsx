@@ -47,7 +47,7 @@ export default function Page() {
 
       <h2 style={{ fontSize: 15, fontWeight: 700, margin: "24px 0 12px" }}>受け取った側</h2>
       <Variant label="個人から（キャリアの相談）" note="送り主の名前と所属・聞きたいこと・ひとこと・返信欄。「今回は見送る」は相手に伝わらない">
-        <FirstMessageCard sender={person} topic="career_manager" note="来年マネージャーになる予定で、最初の1年のことを伺いたいです。" dateText="10月17日" sample />
+        <FirstMessageCard sender={person} topic="career_manager" format="online_30" note="来年マネージャーになる予定で、最初の1年のことを伺いたいです。" dateText="10月17日" sample />
       </Variant>
       <Variant label="企業担当者から（採用のこと）" note="採用のテーマのときだけ「企業から」の印">
         <FirstMessageCard sender={recruiter} topic="hiring_casual" note="インサイドセールスの立ち上げ経験を拝見しました。一度カジュアルにお話しできませんか。" dateText="10月17日" sample />
@@ -64,7 +64,7 @@ export default function Page() {
       <Variant label="企業から・個人からが混ざる" note="印で見分ける。テーマが先頭、ひとことは1行で切る">
         <div style={{ border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
           <FirstMessageRow sender={recruiter} topic="hiring_position" note="フィールドセールスのポジションをご紹介させてください。経歴を拝見して、ぜひお話ししたいと思いました。" dateText="10/17" unread />
-          <FirstMessageRow sender={person} topic="career_manager" note="来年マネージャーになる予定で、最初の1年のことを伺いたいです。" dateText="10/17" unread />
+          <FirstMessageRow sender={person} topic="career_manager" format="online_30" note="来年マネージャーになる予定で、最初の1年のことを伺いたいです。" dateText="10/17" unread />
           <FirstMessageRow sender={noCompany} topic="company_workstyle" note="リモートの比率を伺いたいです。" dateText="10/15" unread={false} />
         </div>
       </Variant>
