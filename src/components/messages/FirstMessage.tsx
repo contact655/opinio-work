@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { FromTag } from "@/components/mypage/InboxCard";
-import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
+import { RequestReplyBox, personReplyTemplates } from "@/components/approaches/RequestReplyBox";
 import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_FORMATS, formatLabel, topicLabel, type MessageFormat, type MessageTopic, type TopicSection } from "@/lib/constants/messageTopics";
 
 /**
@@ -177,7 +177,8 @@ export function FirstMessageCard({ sender, topic, format = null, note, dateText,
         )}
       </div>
       <p style={{ margin: "10px 0 0", fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{note}</p>
-      <RequestReplyBox sample={sample} onSend={onSend} onDecline={onDecline} declineNote="見送っても、相手には伝わりません。" />
+      <RequestReplyBox sample={sample} onSend={onSend} onDecline={onDecline} declineNote="見送っても、相手には伝わりません。"
+        templates={sender.isRecruiter && topic.startsWith("hiring_") ? undefined : personReplyTemplates(format)} />
     </div>
   );
 }

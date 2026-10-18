@@ -1,6 +1,6 @@
 "use client";
 
-import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
+import { RequestReplyBox, personReplyTemplates } from "@/components/approaches/RequestReplyBox";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 import type { IncomingApproachView } from "@/components/approaches/incomingApproachView";
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
@@ -233,6 +233,7 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
         declineNote={item.kind === "company" ? "見送っても企業には伝わりません。" : "見送っても相手には伝わりません。"}
         onSend={(body) => onReply(item, body)}
         onDecline={() => onAction(item, "decline")}
+        templates={item.kind === "company" ? undefined : personReplyTemplates(item.request.format)}
         extra={extra} />
       {/* ★注記（2026-10-11 / モックの文言） */}
       {item.kind === "company" && (

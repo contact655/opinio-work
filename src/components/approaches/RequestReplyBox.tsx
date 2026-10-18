@@ -14,6 +14,15 @@ import { useId, useState } from "react";
  * - extra … 個人からのリクエストの「ブロック」「運営に報告」など、見送りの横に置くもの
  */
 export const REPLY_TEMPLATES = ["話を聞いてみたいです", "まず質問させてください"] as const;
+/**
+ * ★個人どうしの最初の1通（キャリアの先輩に話を聞く依頼）への返信のひな形（2026-10-18 / 柴さんの判断）。
+ *   受け取るのは「話を聞かせてほしい」と頼まれた側なので、企業向けの「話を聞いてみたいです」は立場が逆になる。
+ *   形（オンライン／メッセージ）で書き出しを変える。⚠️ 企業からのメッセージには使わない
+ */
+export function personReplyTemplates(format: "message" | "online_15" | "online_30" | null): readonly string[] {
+  if (format === "online_15" || format === "online_30") return ["いいですよ。都合のよい日時をいくつか教えてください", "メッセージでよければお答えします"];
+  return ["いいですよ。聞きたいことを教えてください", "オンラインで少し話しましょうか"];
+}
 export const REPLY_MAX = 2000;
 
 export function RequestReplyBox({
@@ -22,6 +31,7 @@ export function RequestReplyBox({
   declineNote,
   sample = false,
   extra,
+  templates = REPLY_TEMPLATES,
 }: {
   /** 送信。エラーの文言を返す（成功なら null。成功したら呼び出し側が画面を移す） */
   onSend?: (body: string) => Promise<string | null>;
@@ -30,6 +40,8 @@ export function RequestReplyBox({
   declineNote: string;
   sample?: boolean;
   extra?: React.ReactNode;
+  /** 返信のひな形。既定は企業からのメッセージ向け（REPLY_TEMPLATES）。個人どうしは personReplyTemplates() */
+  templates?: readonly string[];
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -65,7 +77,7 @@ export function RequestReplyBox({
   return (
     <div data-state={sample ? "reply-box-sample" : "reply-box"} style={{ marginTop: 14, minWidth: 0 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-        {REPLY_TEMPLATES.map((t) => (
+        {templates.map((t) => (
           <button key={t} type="button" className="btn-fixed-size" aria-disabled={sample || undefined} data-template={t}
             onClick={(e) => { if (sample) { inert(e); return; } setText((cur) => (cur.trim() ? `${cur.trimEnd()}\n${t}` : t)); }}
             style={{ padding: "5px 12px", borderRadius: 999, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", cursor: sample ? "default" : "pointer", opacity: sample ? 0.6 : 1 }}>
