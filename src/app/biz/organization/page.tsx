@@ -137,15 +137,16 @@ export default async function OrganizationPage({
         {/* ⚠️★「社員登録」と書かないこと。社員登録の部署は自由入力で、ここと繋がっていない
                （部門タブのヒントからは 2026-09-19 に外していたのに、この一文だけ残っていた）。
             ⚠️ 求職者向けのページ（企業ページ・求人ページ）には出ない。2026-09-21 に確認 */}
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 20px" }}>
-          求人を作るときに選ぶ部門と職種を登録します。「標準の職種」を選んだ職種は、その経験・関心がある候補者の「合うところ」として「候補者を探す」に表示されます（求職者向けのページには表示されません）。
+        <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "0 0 12px" }}>
+          {/* ★2026-10-18: 短くした（柴さんの指示。説明が長く、一覧が下に押されていた） */}
+          求人を作るときに選ぶ部門と職種です。「標準の職種」を選ぶと、候補者を探すの「合うところ」に使われます。求職者には表示されません。
         </p>
         <OrganizationTabs activeTab={activeTab} />
       </div>
 
       {/* ⚠️★外側の余白はここが持つ。`DepartmentsWorkspace` 側に書き戻さないこと
              （`/dev/preview/org-tree` に置いたときに余白が入り込む）。 */}
-      <div style={{ maxWidth: 1240, paddingTop: 20 }}>
+      <div style={{ maxWidth: 1240, paddingTop: 16 }}>
         {activeTab === "departments" ? (
           <DepartmentsWorkspace
             initialDepartments={(deptResult.data ?? []) as Department[]}

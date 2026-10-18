@@ -104,6 +104,16 @@ export function DepartmentsWorkspace({ initialDepartments, initialRoles, standar
     }
   }, [selection]);
 
+  /* ★広い画面（1280px 以上）で何も選んでいなければ、いちばん上の部門を開く（2026-10-18 / 柴さんの指示。
+        右半分が空いたままで、何をする画面か分かりにくかった）。⚠️ 狭い画面では開かない（パネルが一覧の上に出て一覧が隠れる） */
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current || selection || tree.length === 0) return;
+    autoOpened.current = true;
+    if (window.matchMedia("(min-width: 1280px)").matches) setSelection({ mode: "edit", id: tree[0].id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
+
   /* ⋯ の外を押したら閉じる */
   useEffect(() => {
     if (!menuId) return;
@@ -304,10 +314,14 @@ export function DepartmentsWorkspace({ initialDepartments, initialRoles, standar
               </div>
             )}
           </div>
-          {(deptRoles.length > 0 || missing > 0) && (
-            <div className="orgws-sub">
-              {deptRoles.length > 0 && <span>この部門の職種：<span style={{ color: "var(--ink-soft)" }}>{deptRoles.map((r) => r.name).join("、")}</span></span>}
-              {missing > 0 && <span data-state="dept-standard-missing" style={{ marginLeft: deptRoles.length > 0 ? 10 : 0 }}>標準の職種が未設定（{missing}）</span>}
+          {/* ★職種は小さな札で並べる（2026-10-18）。職種が無い部門は灰色で「職種なし」（無いことが分かるように）。
+                ⚠️ 紐付けが読めなかったとき（links が無い）は何も出さない（「職種なし」と見せない） */}
+          {links && (
+            <div className="orgws-sub" data-state="dept-roles">
+              {deptRoles.length > 0
+                ? deptRoles.map((r) => <span key={r.id} className="orgws-role">{r.name}</span>)
+                : <span data-state="dept-no-roles">職種なし</span>}
+              {missing > 0 && <span data-state="dept-standard-missing">標準の職種が未設定（{missing}）</span>}
             </div>
           )}
         </div>
@@ -347,7 +361,8 @@ export function DepartmentsWorkspace({ initialDepartments, initialRoles, standar
         .orgws-menuitem { display: block; width: 100%; text-align: left; padding: 8px 10px; font-size: 13px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-family: inherit; color: var(--ink); }
         .orgws-menuitem:hover:not(:disabled) { background: var(--bg-tint); }
         .orgws-menuitem:disabled { color: var(--ink-mute); cursor: default; }
-        .orgws-sub { padding: 0 0 4px 52px; font-size: 12px; color: var(--ink-mute); overflow-wrap: anywhere; }
+        .orgws-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 0 6px 52px; font-size: 12px; color: var(--ink-mute); overflow-wrap: anywhere; }
+        .orgws-role { padding: 1px 8px; border-radius: 999px; background: var(--bg-tint); border: 1px solid var(--line-soft); color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
         .orgws-children { margin-left: 30px; padding-left: 8px; border-left: 1px solid var(--line); }
         .orgws-btn-ghost { padding: 5px 12px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink-soft); cursor: pointer; font-family: inherit; }
         .orgws-btn-danger { padding: 5px 12px; font-size: 12.5px; font-weight: 700; border: none; border-radius: 7px; background: var(--error); color: #fff; cursor: pointer; font-family: inherit; }
@@ -387,8 +402,7 @@ export function DepartmentsWorkspace({ initialDepartments, initialRoles, standar
           </div>
           {!readOnly && (
             <p style={{ margin: "10px 2px 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              行を押すと編集できます。左の取っ手をドラッグ（または取っ手を選んで ↑ ↓ キー）で同じ階層の中を並べ替えます。階層を変えるときは「親の部門」を選び直してください（最大{MAX_ORG_DEPTH}階層）。
-              ここで登録した部門と職種は、求人作成の「所属部門」「職種」から選べます。
+              行を押すと右側で編集できます。左の ⠿ をドラッグ（または ↑ ↓ キー）で並べ替え。階層は「親の部門」で変えます（最大{MAX_ORG_DEPTH}階層）。
             </p>
           )}
         </div>
