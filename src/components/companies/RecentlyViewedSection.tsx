@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 import type { CompanyForCarousel } from "@/types/genre";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
+import { companyDisplayName } from "@/lib/companies/displayName";
 
 /* ⚠️★ここにあった「資金調達ステージ」のバッジは 2026-08-29 に削除した。**戻さないこと。**
 
@@ -123,7 +124,10 @@ export function RecentlyViewedSection() {
       {/* 横スクロールカルーセル */}
       <div className="rv-scroll">
         {companies.map((c) => {
-          const initial = c.logo_letter ?? c.name.slice(0, 1);
+          /* ★社名は一覧のカードと同じ表示名（2026-10-20）。正式名（株式会社セールスフォース・ジャパン）のまま出していて、
+                すぐ上の一覧の「Salesforce」と別の会社に見えた */
+          const name = companyDisplayName(c.name, c.name_en).displayName;
+          const initial = c.logo_letter ?? name.slice(0, 1);
           const gradient = c.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
 
           return (
@@ -144,7 +148,7 @@ export function RecentlyViewedSection() {
                 }}>{initial}</span>
                 {usableLogoUrl(c.logo_url) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={usableLogoUrl(c.logo_url)!} alt={c.name}
+                  <img src={usableLogoUrl(c.logo_url)!} alt={name}
                     style={{
                       width: 32, height: 32, objectFit: "contain",
                       background: "#fff", borderRadius: 6, padding: 4, boxSizing: "border-box",
@@ -173,7 +177,7 @@ export function RecentlyViewedSection() {
                     transition: "color 0.15s",
                   }}
                 >
-                  {c.name}
+                  {name}
                 </div>
 
                 {/* バッジ */}
