@@ -1000,6 +1000,50 @@ export function joinRequestApprovedTemplate(params: {
   };
 }
 
+// ── 企業の審査完了・企業ページの公開（企業宛）── 2026-10-19 ─────────────────────────
+/**
+ * ★運営が企業を承認したとき（`is_approved` が false → true）。
+ *   企業の画面は「審査が完了次第メールでご連絡します」と書いているので、その約束を守る（2026-10-19 まで送っていなかった）。
+ * ⚠️ 承認で開くのは候補者を探す・メッセージ。求人の公開は企業ページの公開（掲載）のあと（`publishGate.ts`）なので、そう書く。
+ */
+export function companyApprovedTemplate(params: { to: string; companyName: string }) {
+  return {
+    to: params.to,
+    subject: `[OPINIO] 「${esc(params.companyName)}」の審査が完了しました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 16px;font-size:18px;">審査が完了しました</h2>
+      <p>「<strong>${esc(params.companyName)}</strong>」の OPINIO 運営による審査が完了しました。
+        候補者を探して、メッセージを送れるようになりました。</p>
+      <p>求人は、企業ページの公開後に公開できます。企業ページの公開は運営が行い、公開したときにあらためてお知らせします。
+        まだ「掲載を依頼する」を押していない場合は、企業ページの編集画面から依頼してください。</p>
+      <a href="https://opinio.jp/biz/candidates" style="${BTN}">候補者を探す →</a>
+      <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+        心当たりのない場合は、このメールに返信してお知らせください。
+      </p>
+    `),
+  };
+}
+
+/**
+ * ★運営が企業ページを掲載にしたとき（`listing_status` が draft → listed）。求人の公開ができるようになる。
+ */
+export function companyListedTemplate(params: { to: string; companyName: string; companyPath: string }) {
+  return {
+    to: params.to,
+    subject: `[OPINIO] 「${esc(params.companyName)}」の企業ページを公開しました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 16px;font-size:18px;">企業ページを公開しました</h2>
+      <p>「<strong>${esc(params.companyName)}</strong>」の企業ページを公開しました。
+        求職者が企業の一覧から見られるようになり、求人も公開できるようになりました。</p>
+      <a href="https://opinio.jp${params.companyPath}" style="${BTN}">企業ページを見る →</a>
+      <p style="margin-top:12px;"><a href="https://opinio.jp/biz/jobs/new">求人を作る →</a></p>
+      <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+        心当たりのない場合は、このメールに返信してお知らせください。
+      </p>
+    `),
+  };
+}
+
 // ── 面談対応者の申請・承認・取り消し（企業/運営/本人宛）── ★2026-10-16 にすべて廃止 ──────
 /* ⚠️ `ambassadorRequestTemplate`（2026-09-30 に廃止）・`ambassadorApprovedTemplate`・
       `ambassadorDismissedTemplate` は削除した（面談OKの撤去）。文面が要るときは git 履歴から（`3014e638` 時点まで） */

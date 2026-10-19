@@ -239,13 +239,22 @@ export default async function BizDashboardPage({
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <div>
+          {/* ★何をすれば審査が始まるかを書く（2026-10-19）。それまでは「運営審査中です」だけで、
+                 審査のきっかけが「掲載を依頼する」だと分からなかった。依頼前と依頼後で文を分ける */}
+          <div data-state={listingRequestedAt ? "review-requested" : "review-not-requested"} style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>
-              運営審査中です
+              {listingRequestedAt ? "運営が審査しています" : "「掲載を依頼する」を押すと、運営の審査が始まります"}
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
-              承認後、候補者検索・求人公開をご利用いただけます。審査が完了次第メールでご連絡します。
+              {listingRequestedAt
+                ? "掲載の依頼を受け付けました。審査が完了すると候補者を探してメッセージを送れるようになり、企業ページの公開後に求人も公開できます。結果はメールでお知らせします。"
+                : "企業ページの必要な項目を入れて「掲載を依頼する」を押すと、OPINIO 運営が内容を確認します。審査が完了すると候補者を探してメッセージを送れるようになり、企業ページの公開後に求人も公開できます。結果はメールでお知らせします。"}
             </div>
+            {!listingRequestedAt && canOpenBizPath(ctx.currentPermission, "/biz/company") && (
+              <Link href="/biz/company" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--warm-ink)" }}>
+                企業ページを編集する →
+              </Link>
+            )}
           </div>
         </div>
       )}

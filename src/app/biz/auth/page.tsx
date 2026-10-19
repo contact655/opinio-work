@@ -44,7 +44,8 @@ function BizAuthInner() {
 
   // 招待コンテキストのみ signup を初期表示。通常はログインのみ
   const [mode, setMode] = useState<Mode>(isInviteContext ? "signup" : "login");
-  const [checkingSession, setCheckingSession] = useState(false);
+  /* ★?mode=signup のときは、登録の画面へ移る前にログインのフォームを一瞬見せない（2026-10-19） */
+  const [checkingSession, setCheckingSession] = useState(modeParam === "signup" && !isInviteContext);
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; email: string } | null>(null);
 
   function handleSetMode(m: Mode) {
@@ -86,6 +87,12 @@ function BizAuthInner() {
       settled = true;
       clearTimeout(fallback);
       if (!session) {
+        /* ★LP の「企業ページをつくる」（?mode=signup）から来た初めての人は、登録の画面へ（2026-10-19）。
+              この画面は招待のとき以外ログインしか出さないので、ここで「おかえりなさい」を見せない */
+        if (modeParam === "signup" && !isInviteContext) {
+          window.location.replace(BIZ_SIGNUP_URL);
+          return;
+        }
         setCheckingSession(false);
         return;
       }
@@ -865,17 +872,25 @@ function LoginForm({ prefillEmail, next, router, inviteContext }: LoginFormProps
       </form>
 
       <div style={{ textAlign: "center", fontSize: 13, color: "var(--ink-mute)", marginTop: 20 }}>
-        アカウントをお持ちでない方は{" "}
+        初めての方は{" "}
         <a
-          href="/auth?next=/biz/companies/add/new"
+          href={BIZ_SIGNUP_URL}
+          data-state="biz-signup-link"
           style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}
         >
-          無料会員登録はこちら →
+          企業の担当者として登録する（無料） →
         </a>
       </div>
     </div>
   );
 }
+
+/**
+ * ★企業の担当者の新規登録（2026-10-19）。登録の画面は求職者と共通の /auth で、next が /biz 配下なら
+ *   「企業の担当者として登録します」と出し、登録後（確認メールのあとも）求職者のオンボーディングを通さずに会社の登録へ進む
+ *   （/auth の isBizSignup・/auth/confirm の bizSignupNext・/auth/callback）。
+ */
+const BIZ_SIGNUP_URL = "/auth?mode=signup&next=%2Fbiz%2Fcompanies%2Fadd%2Fnew";
 
 // ── 共通 UI パーツ ─────────────────────────────────────────────────────────
 

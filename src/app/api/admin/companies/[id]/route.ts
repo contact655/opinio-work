@@ -9,6 +9,8 @@ import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publish
 import { cleanupCompanyLogoFiles } from '@/lib/companies/logoFiles';
 import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
+import { notifyCompanyStatus } from '@/lib/notify/companyStatus';
+
 
 // PUT /api/admin/companies/[id] — 企業情報全フィールド更新
 // service_role を使用（ow_companies の UPDATE RLS は owner only のため）
@@ -190,6 +192,14 @@ export async function PUT(
       ⚠️ 2026-08-13 に is_published から listing_status に移した。
          ページの存在は既定になったので、お知らせは掲載に対して出す。 */
   const turningListed = updates.listing_status === 'listed';
+  /* ★掲載に切り替える前の状態（2026-10-19）。draft → listed に変わったときだけ企業へメールする。
+        ⚠️ この画面は保存のたびに listing_status を送りうるので、値だけで判定しない */
+  let listedBefore: boolean | null = null;
+  if (turningListed) {
+    const { data: prevListing, error: prevErr } = await supabase.from('ow_companies').select('listing_status').eq('id', params.id).maybeSingle();
+    if (prevErr) console.error('[PUT /api/admin/companies/[id]] listing before:', prevErr.message);
+    listedBefore = prevListing ? prevListing.listing_status === 'listed' : null;
+  }
   if ('is_published' in updates) {
     const { data: cur } = await supabase
       .from('ow_companies').select('published_at').eq('id', params.id).maybeSingle();
@@ -243,6 +253,8 @@ export async function PUT(
       console.error('[feed company_joined]', feedErr);
     }
   }
+
+  if (turningListed && data && listedBefore === false) await notifyCompanyStatus(params.id, 'listed');
 
   /* ★ロゴを変えたら、使われなくなったロゴのファイルを消す（2026-10-12。ロゴは毎回別のファイル名で入る）。
      ⚠️ この画面は保存のたびに logo_url を送るので、**値が変わったときだけ**消す（他の項目の保存で消さない） */

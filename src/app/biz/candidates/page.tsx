@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
@@ -76,8 +77,12 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
           </h2>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 0 }}>
             候補者検索は、運営による企業審査が完了した後にご利用いただけます。<br />
-            審査が完了次第、メールでご連絡します。
+            審査は、企業ページの「掲載を依頼する」から始まります。審査が完了次第、メールでご連絡します。
           </p>
+          {/* ★審査のきっかけへの道（2026-10-19） */}
+          <Link href="/biz/company" style={{ display: "inline-block", marginTop: 16, fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>
+            企業ページを編集する →
+          </Link>
         </div>
       </BusinessLayout>
     );

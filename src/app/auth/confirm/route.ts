@@ -199,6 +199,13 @@ export async function GET(request: Request) {
   if (next.startsWith("/biz")) {
     return NextResponse.redirect(`${origin}${next}`);
   }
+  /* ★企業の担当者として登録した人（2026-10-19）。確認メールのリンクは next を /companies に固定で持つので、
+        登録時に user_metadata.signup_next に残した /biz 配下の行き先へ送る。
+        ⚠️ 新規登録の確認（type=email / signup）だけ。safeNext を通し、/biz で始まるときだけ採る */
+  const signupNext = bizSignupNext(session.user.user_metadata, type);
+  if (signupNext) {
+    return NextResponse.redirect(`${origin}${signupNext}`);
+  }
 
   const destination = await jobseekerDestination({
     supabase,
@@ -210,4 +217,12 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.redirect(destination);
+}
+
+/** 登録時に残した企業側の行き先（無ければ null）。/auth/callback（Google）は next をそのまま持ち回るので使わない */
+function bizSignupNext(meta: Record<string, unknown> | undefined, type: string | null): string | null {
+  if (type !== "email" && type !== "signup") return null;
+  const raw = typeof meta?.signup_next === "string" ? meta.signup_next : "";
+  const safe = safeNext(raw, "");
+  return safe.startsWith("/biz") ? safe : null;
 }

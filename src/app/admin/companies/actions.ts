@@ -9,6 +9,7 @@ import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 import { applyCompanyDraft } from "@/lib/companies/applyDraft";
+import { notifyCompanyStatus } from "@/lib/notify/companyStatus";
 
 async function assertAdmin(): Promise<void> {
   const supabase = createClient();
@@ -207,6 +208,9 @@ export async function updateListingStatus(
            動いた時点で意味を失う。取り下げ（draft）では消さない
            ——依頼が残っているほうが「まだ対応していない」と分かる。
         ⚠️ 同じ UPDATE に混ぜる。別の UPDATE にすると片方だけ通る余地ができる。 */
+  /* ★切り替える前の状態（2026-10-19）。draft → listed に変わったときだけ企業へ知らせる（同じ値を押し直しても送らない） */
+  const { data: before, error: beforeErr } = await admin.from("ow_companies").select("listing_status").eq("id", companyId).maybeSingle();
+  if (beforeErr) console.error("[updateListingStatus] before:", beforeErr.message);
   const patch: Record<string, unknown> = { listing_status: newValue, updated_at: new Date().toISOString() };
   if (newValue === "listed") patch.listing_requested_at = null;
 
@@ -225,6 +229,7 @@ export async function updateListingStatus(
   }
 
   if (newValue === "listed") await insertCompanyJoined(companyId);
+  if (newValue === "listed" && before && before.listing_status !== "listed") await notifyCompanyStatus(companyId, "listed");
 
   revalidatePath("/admin/companies");
   await revalidateCompanyPages(companyId);
@@ -269,6 +274,9 @@ export async function updateApproval(companyId: string): Promise<ActionResult> {
   if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
   await assertAdmin();
   const admin = createAdminClient();
+  /* ★承認する前の状態（2026-10-19）。false → true に変わったときだけ企業へ知らせる */
+  const { data: before, error: beforeErr } = await admin.from("ow_companies").select("is_approved").eq("id", companyId).maybeSingle();
+  if (beforeErr) console.error("[updateApproval] before:", beforeErr.message);
   const { error } = await admin
     .from("ow_companies")
     .update({ is_approved: true, updated_at: new Date().toISOString() })
@@ -277,6 +285,7 @@ export async function updateApproval(companyId: string): Promise<ActionResult> {
     console.error("[updateApproval]", error.message);
     return { ok: false, error: toMessage(error) };
   }
+  if (before && before.is_approved !== true) await notifyCompanyStatus(companyId, "approved");
   revalidatePath("/admin/companies");
   await revalidateCompanyPages(companyId);
   return { ok: true };
@@ -410,3 +419,4 @@ export async function setCompanyWithdrawn(companyId: string, withdrawn: boolean)
   revalidatePath(`/admin/companies/${companyId}`);
   return { ok: true };
 }
+

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { afterLogin, confirmRedirectTo, safeNext, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
+import { afterLogin, confirmRedirectTo, safeNext, sameOriginPath, DEFAULT_AFTER_ONBOARDING } from "@/lib/auth/redirects";
 import { AUTH_ERROR_DISPLAY, toAuthErrorCode, type AuthErrorCode } from "@/lib/constants/authErrors";
 import OpinioLogo from "@/components/common/OpinioLogo";
 import { buildDisplayName, NAME_PART_MAX } from "@/lib/constants/personName";
@@ -82,6 +82,8 @@ function AuthPageInner() {
   const searchParams = useSearchParams();
   const rawNext = searchParams.get("next") ?? "";
   const nextUrl = safeNext(rawNext, "/");
+  /* ★企業の担当者としての登録（/biz/auth の「企業の担当者として登録する」から来た）。2026-10-19 */
+  const isBizSignup = nextUrl.startsWith("/biz");
 
   // 認証リンクから弾かれて戻ってきた人は「登録できていない」のではなく
   // 「ログインすれば済む」ことが多い。mode の明示指定が無ければログインタブで迎える。
@@ -164,7 +166,12 @@ function AuthPageInner() {
              ⚠️ 入力欄を `required` にしたので、ここは空にならない。 */
           /* ★`name` は姓＋名の派生値。**組み立ては `buildDisplayName` の1箇所**で、
                 ここで `${a} ${b}` と書かない（区切りが割れる）。 */
-          data: { name: buildDisplayName(familyName, givenName) },
+          data: {
+            name: buildDisplayName(familyName, givenName),
+            /* ★企業の担当者として登録した人の行き先（2026-10-19）。確認メールのリンクは `next` をテンプレートに
+                  固定で持つ（/companies）ので、ここに残して /auth/confirm が読む。⚠️ /biz 配下のときだけ入れる */
+            ...(isBizSignup ? { signup_next: nextUrl } : {}),
+          },
           emailRedirectTo: confirmRedirectTo(location.origin, nextUrl),
         },
       });
@@ -191,6 +198,11 @@ function AuthPageInner() {
       }
 
       if (data.session) {
+        /* ★企業の担当者として登録した人は、求職者のオンボーディングを通さずに企業の画面へ（2026-10-19） */
+        if (isBizSignup) {
+          window.location.assign(sameOriginPath(nextUrl, "/biz/companies/add/new", location.origin));
+          return;
+        }
         await fetch("/api/roles", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -350,8 +362,8 @@ function AuthPageInner() {
     <div className="min-h-screen flex items-start justify-center">
       {/* form */}
       <div style={s.formSide}>
-        {/* ⑧ 企業担当者向けリンク — 右上固定 */}
-        <a href="/biz/auth" style={{
+        {/* ⑧ 企業担当者向けリンク — 右上固定。★企業の担当者として登録している最中は出さない（戻るだけになる。2026-10-19） */}
+        {!isBizSignup && <a href="/biz/auth" style={{
           position: "fixed", top: 16, right: 20, zIndex: 50,
           display: "inline-flex", alignItems: "center", gap: 6,
           padding: "7px 14px",
@@ -366,7 +378,7 @@ function AuthPageInner() {
             <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
           </svg>
           採用担当者・企業の方はこちら
-        </a>
+        </a>}
 
         <div style={s.formWrap}>
           {/* ロゴ。**サイトへ戻る唯一の導線**なので消さないこと（2026-08-23）。
@@ -380,6 +392,14 @@ function AuthPageInner() {
               <OpinioLogo height={22} label={null} />
             </a>
           </div>
+
+          {/* ★企業の担当者として来た人への一言（2026-10-19）。この画面は求職者と共通なので、何の登録かを先に伝える */}
+          {isBizSignup && (
+            <div data-state="biz-signup-note" style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)", fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
+              <strong style={{ fontWeight: 700 }}>企業の担当者として登録します。</strong>
+              登録が終わると、会社の登録に進みます。
+            </div>
+          )}
 
           {/* ⑦ Mode tabs — active tab is solid royal blue */}
           <div style={s.modeTabs}>

@@ -59,5 +59,6 @@ export function isCompanyListedForJobs(co: { is_published?: boolean | null; list
   return !!co && co.is_published === true && co.listing_status === "listed";
 }
 
-export const COMPANY_NOT_LISTED_MESSAGE = "企業ページの公開後に、求人を公開できます。企業ページの公開は OPINIO 運営が行います。";
+/* ★次に何をするかまで書く（2026-10-19）。「掲載を依頼する」が審査と公開のきっかけだと分からなかった */
+export const COMPANY_NOT_LISTED_MESSAGE = "企業ページの公開後に、求人を公開できます。企業ページの編集画面で「掲載を依頼する」を押すと、OPINIO 運営が確認して公開します。";
 export const POST_PUBLISH_NOTE = "公開後も運営が内容を確認し、問題がある場合は停止することがあります。";

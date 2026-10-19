@@ -66,6 +66,12 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/auth/update-password`);
   }
 
+  /* ★/auth から企業の担当者として Google で登録した人（next が /biz 配下。2026-10-19）。
+        求職者のオンボーディングを通さず、そのまま企業の画面へ */
+  if (!isBiz && next.startsWith("/biz")) {
+    return NextResponse.redirect(`${origin}${next}`);
+  }
+
   // biz側からのOAuth: ダッシュボードへリダイレクト（role登録・onboarding不要）
   if (isBiz) {
     return NextResponse.redirect(`${origin}/biz/dashboard`);
