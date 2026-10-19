@@ -155,6 +155,11 @@ export function MobileBottomNav() {
           boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
         }}
       >
+        {/* ★バーの下の白い帯（2026-10-19）。iPhone の Safari で下のツールバーが縮むと、固定したバーが新しい下端まで
+               下がらず、バーの下からページの中身が見えていた（実機のスクリーンショットで確認）。
+               帯をバーと一緒に固定しておけば、隙間ができても白く見える。⚠️ 消さないこと */}
+        <span aria-hidden data-state="bottom-nav-underlay"
+          style={{ position: "absolute", left: 0, right: 0, top: "100%", height: 120, background: "#fff", pointerEvents: "none" }} />
         {tabs.map((tab) => {
           /* ⚠️ 登録タブの href はクエリ付き（`/auth?mode=signup`）なので、この判定では
                 **決して active にならない。** 実害は無い ——`/auth` 配下ではこのナビ自体を
