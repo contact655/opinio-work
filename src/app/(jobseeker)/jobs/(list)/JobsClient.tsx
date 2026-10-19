@@ -9,7 +9,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Job } from "@/app/jobs/mockJobData";
 import { createClient } from "@/lib/supabase/client";
-import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getVisibleRoles } from "@/lib/constants/roleTracks";
 import type { BusinessDomainFacet } from "@/lib/companies/businessDomainsCached";
 import { JOB_EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
@@ -41,7 +40,7 @@ const SALARY_PILL_TIERS = [
 import type { JobsListCompany } from "@/lib/jobs/listCompany";
 import { extractPrefecture, PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
 import { employeeBandRank } from "@/lib/constants/employeeBand";
-import { fmtMan } from "@/lib/utils/salary";
+import { JobsForYouPanel, type JobsForYouState } from "@/components/jobs/JobsForYouPanel";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
 import { JobPane } from "@/components/jobs/JobPane";
 import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
@@ -194,6 +193,10 @@ export default function JobsClient({
        allJobs 側でフィルタし直すと順序が失われる。
   */
   const [recommendedIds, setRecommendedIds] = useState<string[]>([]);
+  /* ★/jobs の一番上の枠（2026-10-20）。null ＝ 未ログインか未取得（枠を出さない） */
+  const [forYou, setForYou] = useState<null | {
+    reasons: Record<string, string>; summary: string | null; connections: Record<string, number>;
+  }>(null);
 
   useEffect(() => {
     let active = true;
@@ -203,8 +206,14 @@ export default function JobsClient({
         if (!session || !active) return;
         const res = await fetch("/api/jobseeker/recommendations");
         if (!res.ok || !active) return;
-        const data = (await res.json()) as { jobIds?: string[] };
-        if (active) setRecommendedIds(data.jobIds ?? []);
+        const data = (await res.json()) as {
+          jobIds?: string[]; reasons?: Record<string, string>; summary?: string | null;
+          connections?: Record<string, number>; failed?: boolean;
+        };
+        if (!active) return;
+        setRecommendedIds(data.jobIds ?? []);
+        /* ⚠️ 取得に失敗したときは枠ごと出さない（「希望が未入力」と言わない） */
+        if (!data.failed) setForYou({ reasons: data.reasons ?? {}, summary: data.summary ?? null, connections: data.connections ?? {} });
       } catch {
         // おすすめが出ないだけ。求人一覧の表示は妨げない
       }
@@ -415,6 +424,33 @@ export default function JobsClient({
     () => new Map(companies.map((c) => [c.id, c])),
     [companies]
   );
+
+  /* ★一番上の枠の中身（2026-10-20）。並びは API の順（スコア降順）のまま */
+  const forYouState: JobsForYouState = useMemo(() => {
+    if (!forYou?.summary) return { kind: "no_settings" };
+    if (recommendations.length === 0) return { kind: "empty", summary: forYou.summary };
+    return {
+      kind: "list",
+      summary: forYou.summary,
+      items: recommendations.slice(0, 3).map((job) => {
+        const c = companyMap.get(job.company_id);
+        return {
+          id: job.id,
+          href: `/jobs/${job.slug ?? job.id}`,
+          title: job.role,
+          /* ⚠️ 社名は一覧のカード（JobListItem）と同じ出し方 */
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          companyName: c ? ((c as any).brand_name ?? c.name) : "",
+          logoUrl: c?.logo_url ?? null,
+          logoLetter: c?.logo_letter ?? null,
+          logoGradient: c?.gradient ?? null,
+          location: job.location || null,
+          reason: forYou.reasons[job.id] ?? null,
+          connections: forYou.connections[job.company_id] ?? 0,
+        };
+      }),
+    };
+  }, [forYou, recommendations, companyMap]);
 
   /* ⚠️ フェーズの選択肢は**実データから作る**（2026-08-08）。
         固定の3段（listed/unicorn/startup）を出していたが、
@@ -766,10 +802,6 @@ export default function JobsClient({
   }, [filterKey]);
 
   const paged = filteredForDisplay.slice(0, displayCount);
-  /* ★おすすめが、すぐ上の一覧に出ている募集だけなら出さない（2026-10-19。公開2件のいま、同じ2件が上下に2回並んでいた）。
-        ⚠️ 1件でも一覧に出ていないものがあれば、これまでどおり出す（並べるのは一覧に出ていないものに限らない） */
-  const pagedIdSet = new Set(paged.map((j) => j.id));
-  const recommendationsAddSomething = recommendations.some((j) => !pagedIdSet.has(j.id));
 
   /* ── ★分割ビュー（2026-09-09。柴さんの要望）──────────────────────────────
      ⚠️★**サーバーへ取りに行かない。** 求人は既に全件クライアントに載っている
@@ -1299,10 +1331,13 @@ export default function JobsClient({
             {/* ─ Results column ─ */}
             <main id="jobs-results-top" style={{ minWidth: 0 }}>
 
-          {/* ⚠️★「あなたへのおすすめ」は 2026-09-09 に**最下部へ移した**（柴さんの要望）。
-                 ここに戻さないこと —— 一覧を開いた人が最初に見るのは検索結果で、
-                 上に置くとおすすめ2件が結果より先に出て、本題が下へ押される。
-                 実体は `</main>` の直前。 */}
+          {/* ★「あなたの希望に合う募集」（2026-10-20 / 柴さんの要望。LinkedIn の「設定に基づく求人」を参考に、一番上に戻した）。
+                 ⚠️ 2026-09-09 に「上に置くとおすすめが結果より先に出て、本題が下へ押される」として最下部へ移した経緯がある。
+                    そのため**最大3件の行**にしてある（JobsForYouPanel）。件数を増やさないこと。
+                 ⚠️ 出す条件: ログイン中・絞り込みも検索語も無いとき（絞り込み中に出すと「絞ったのに関係ない募集」になる） */}
+          {forYou && !hasFilter && !q && (
+            <JobsForYouPanel state={forYouState} />
+          )}
 
           {/* ⚠️ ここにあった「あなたの希望職種にマッチ」セクションは 2026-08-07 に削除した。
                  recommendations.length === 0 のときだけ出るフォールバックだったが、
@@ -1438,76 +1473,7 @@ export default function JobsClient({
             </>
           )}
 
-          {/* ── ★パーソナライズ: あなたへのおすすめ（2026-09-09 に最上部から移動）──
-                 ⚠️ 出す条件は変えていない（絞り込みも検索語も無く、推薦が1件以上あるとき）。
-                    絞り込み中に出すと「絞ったのに関係ない求人が出た」になる。
-                 ⚠️ `marginBottom` を `marginTop` に変えてある。最下部では上に間が要る。 */}
-          {!hasFilter && !q && recommendations.length > 0 && recommendationsAddSomething && (
-            <div style={{ marginTop: 28 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>あなたへのおすすめ</span>
-                <span style={{ fontSize: 12, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", fontWeight: 600 }}>
-                  {recommendations.length}件
-                </span>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
-                {recommendations.slice(0, 6).map((job) => {
-                  const recCompany = companyMap.get(job.company_id);
-                  return (
-                    <a
-                      key={job.id}
-                      href={`/jobs/${job.slug ?? job.id}`}
-                      style={{
-                        padding: "12px 14px", borderRadius: 12,
-                        background: "#fff", color: "var(--ink)",
-                        border: "1.5px solid var(--line)",
-                        textDecoration: "none", display: "flex", alignItems: "flex-start", gap: 10,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-                        transition: "border-color .15s, box-shadow .15s",
-                      }}
-                    >
-                      <div style={{ flexShrink: 0, marginTop: 1 }}>
-                        {recCompany && (
-                          <CompanyLogo
-                            name={recCompany.name}
-                            logoUrl={recCompany.logo_url}
-                            logoLetter={recCompany.logo_letter}
-                            logoGradient={recCompany.gradient}
-                            size={36}
-                            borderRadius={8}
-                          />
-                        )}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {job.role}
-                        </div>
-                        {recCompany && (
-                          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {(recCompany as any).brand_name ?? recCompany.name}
-                          </div>
-                        )}
-                        {(job.salary_min ?? 0) > 0 && (
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--success-ink)", marginTop: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                            {fmtMan(job.salary_min)}
-                            {job.salary_max && job.salary_max > job.salary_min! ? `〜${fmtMan(job.salary_max)}` : ""}万円
-                          </div>
-                        )}
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-              {recommendations.length > 4 && (
-                <div style={{ marginTop: 8, textAlign: "right" }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>他 +{recommendations.length - 4}件</span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* ⚠️ ここにあった「あなたへのおすすめ」（最下部）は 2026-10-20 に一番上の JobsForYouPanel へ移した。2つ出さないこと */}
 
             </main>
           </div>{/* jobs-layout end */}

@@ -93,6 +93,8 @@ const ITEMS = [
     desc: "⚠️ 管理者バッジ・職種の併記は、ログインできるどの企業にも該当者が居ない。ここでしか見られない" },
   { href: "/dev/preview/employees", label: "現役社員 / OB・OG",
     desc: "0件の空状態、1件、3件、12件。長い氏名・役職での折り返し" },
+  { href: "/dev/preview/jobs-for-you", label: "あなたの希望に合う募集（/jobs の一番上）",
+    desc: "見本（2026-10-20）。合う3件／1件／0件／希望が未入力" },
   { href: "/dev/preview/job-people", label: "求人詳細の人（縦長のカード）",
     desc: "見本（2026-10-20）。1人・2人は左寄せ、3人以上は横スクロール。いまの行の形と並べて比べる" },
   { href: "/dev/preview/tools",     label: "ツール",

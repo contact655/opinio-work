@@ -4,6 +4,25 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getJobs } from "@/lib/supabase/queries";
 import { getDesiredRoles } from "@/lib/profile/desiredRoles";
 import { computeRecommendations } from "@/lib/matching/scoreJob";
+import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { getCompanyConnections } from "@/lib/companies/connections";
+
+/** ★/jobs の一番上の枠（JobsForYouPanel）に出す上位の件数。⚠️ 部品側の上限（3件）と揃える */
+const PANEL_TOP = 3;
+
+/** ★本人の希望を1行に畳む（「営業・CS ／ ハイブリッド ／ 年収 600万円〜」）。何も無ければ null */
+function summarize(p: {
+  roleNames: string[]; workStyles: string[] | null; salaryMin: number | null; salaryMax: number | null; phase: string[] | null;
+}): string | null {
+  const parts: string[] = [];
+  if (p.roleNames.length) parts.push(p.roleNames.join("・"));
+  if (p.workStyles?.length) parts.push(p.workStyles.map((w) => WORK_STYLE_LABELS[w] ?? w).join("・"));
+  if (p.salaryMin || p.salaryMax) {
+    parts.push(`年収 ${p.salaryMin ? `${p.salaryMin}万円` : ""}〜${p.salaryMax ? `${p.salaryMax}万円` : ""}`);
+  }
+  if (p.phase?.length) parts.push(p.phase.join("・"));
+  return parts.length ? parts.join(" ／ ") : null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +55,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ jobIds: [] });
+  /* ★2026-10-20: /jobs の一番上の枠のために、理由・希望の要約・つながりの人数も返す。
+        ⚠️ jobIds は残す（並び＝スコア降順）。求人の中身は返さない（呼び出し元が持っている） */
+  if (!user) return NextResponse.json({ jobIds: [], reasons: {}, summary: null, connections: {} });
 
   try {
     const admin = createAdminClient();
@@ -52,7 +73,14 @@ export async function GET() {
       getDesiredRoles(user.id),
     ]);
 
-    if (!profile && desired.ids.length === 0) return NextResponse.json({ jobIds: [] });
+    const summary = summarize({
+      roleNames: desired.names,
+      workStyles: (profile?.desired_work_styles as string[] | null) ?? null,
+      salaryMin: profile?.desired_salary_min ? Number(profile.desired_salary_min) : null,
+      salaryMax: profile?.desired_salary_max ? Number(profile.desired_salary_max) : null,
+      phase: (profile?.desired_phase as string[] | null) ?? null,
+    });
+    if (!summary) return NextResponse.json({ jobIds: [], reasons: {}, summary: null, connections: {} });
 
     const scoringProfile = {
       // ⚠️ 突き合わせは展開後（祖先込み）。表示は展開前の名前
@@ -69,11 +97,27 @@ export async function GET() {
     );
 
     const recs = computeRecommendations(jobs, phaseMap, scoringProfile);
-    return NextResponse.json({ jobIds: recs.map((r) => r.job.id) });
+
+    /* ★つながり（相互フォロー・本人の同意あり。企業ページと同じ getCompanyConnections）を上位の会社だけ数える。
+          ⚠️ 失敗（null）は 0 として扱い、行を出さないだけ（人数を推測しない） */
+    const connections: Record<string, number> = {};
+    const { data: me } = await admin.from("ow_users").select("id, is_test, is_system").eq("auth_id", user.id).maybeSingle();
+    if (me && !me.is_test && !me.is_system) {
+      const companyIds = Array.from(new Set(recs.slice(0, PANEL_TOP).map((r) => r.job.company_id)));
+      const counts = await Promise.all(companyIds.map((cid) => getCompanyConnections(cid, me.id as string)));
+      companyIds.forEach((cid, i) => { connections[cid] = counts[i]?.length ?? 0; });
+    }
+
+    return NextResponse.json({
+      jobIds: recs.map((r) => r.job.id),
+      reasons: Object.fromEntries(recs.map((r) => [r.job.id, r.reasonText])),
+      summary,
+      connections,
+    });
   } catch (err) {
     /* ⚠️ 握り潰さずログに出す（CLAUDE.md「エラーと失敗を握りつぶさない原則」）。
           おすすめが出ないだけで求人一覧は見えるので、画面は空配列で続行する。 */
     console.error("[recommendations]", err instanceof Error ? err.message : String(err));
-    return NextResponse.json({ jobIds: [] });
+    return NextResponse.json({ jobIds: [], reasons: {}, summary: null, connections: {}, failed: true });
   }
 }
