@@ -1276,7 +1276,7 @@ select c.name, c.source,
 | 引き出し | アバターを押すと**左から**。名前（→ マイページ）・記事・あなたに合う会社・企業の管理画面／企業の方はこちら・ログアウト | 同上 |
 | 一覧の上部（/companies・/jobs・/people） | 検索・詳細検索・チップ・並び替え・件数を**1行で横にスクロール** | `.list-toolbar`（globals.css 末尾） |
 | 1行の中のチップのメニュー | **下から出るシート**（タブバーの上） | `.list-toolbar .fc-menu` |
-| /people | アバター・名前・会社・職種・フォローの**行**。フォロー数は「自分のつながり」に畳む | `CompactRow` / `PeopleSidebar` |
+| /people | ★**縦長のカード2列**（2026-10-19 / 柴さんの判断。それまでは1人1行の `CompactRow`）。フォロー数は「自分のつながり」に畳む | `PeopleListClient`（`.ppl-grid`）/ `PeopleSidebar` |
 | 企業ページ | カバー 120px。公式サイト・採用情報・SNS・共有は「…」のシート | `.cd-cover` / `CompanyMoreMenu` |
 | 企業ページの下の固定バー | **上部が見えている間は隠す** | `CtaReveal`（`[data-cd-hero]` を見る） |
 | フィードの企業カード | フォロー・保存 | `FeedCompanyActions`（画面に入ってから状態を取る） |
