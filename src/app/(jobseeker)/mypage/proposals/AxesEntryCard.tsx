@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FIT_AXES, type FitAxisValue } from "@/lib/fitAxes/axes";
 import { AxesSummary } from "./axes/AxesClient";
+import { Phrases } from "./FitCardParts";
 
 /**
  * ★「相性のものさし」への入口（2026-10-15）。「あなたに合う会社」の冒頭の下にカード1枚。
@@ -25,7 +26,7 @@ export default function AxesEntryCard({ values }: { values: Record<string, FitAx
         </>
       ) : (
         <Link href="/mypage/proposals/axes" style={{ display: "block", textDecoration: "none", color: "var(--ink)" }}>
-          <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>自分のAIで、相性のものさしを作る（約3分）</span>
+          <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}><Phrases text="自分のAIで、相性のものさしを作る（約3分）" /></span>
           <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.7 }}>
             ふだん使っている Claude や ChatGPT に質問文を貼り、答えを貼り戻すだけです。会社には表示されません。 →
           </span>

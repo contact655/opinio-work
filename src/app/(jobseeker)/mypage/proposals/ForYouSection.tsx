@@ -6,7 +6,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
 import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
 import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
-import { BTN, CARD_STYLE, CautionBox, NameLabel, ReasonBox } from "./FitCardParts";
+import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./FitCardParts";
 
 /**
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
@@ -129,7 +129,7 @@ export default function ForYouSection({
         <>
           {noReasons && (
             <div data-state="for-you-no-reasons" style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", marginBottom: 14, background: "var(--bg-tint)", fontSize: 14, lineHeight: 1.8 }}>
-              <p style={{ margin: "0 0 6px", fontWeight: 600 }}>{NO_REASON_PROMPT}</p>
+              <p style={{ margin: "0 0 6px", fontWeight: 600 }}><Phrases text={NO_REASON_PROMPT} /></p>
               <Link href="/mypage#career" style={{ color: "var(--royal)", fontWeight: 600, fontSize: 13 }}>職歴を追加する →</Link>
             </div>
           )}

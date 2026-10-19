@@ -72,3 +72,14 @@ export const CARD_STYLE = { border: "1px solid var(--line)", borderRadius: 10, p
 
 /** ボタン */
 export const BTN = { fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 8, cursor: "pointer", minHeight: 36 } as const;
+
+/**
+ * ★句読点（、。）の後ろでだけ折り返す（2026-10-20）。
+ *   スマホ幅で「ん。」「3分）」のように1〜2文字だけ次の行に落ちていたため。
+ *   句読点までのまとまりを inline-block にするので、まとまりの途中では折り返さない。
+ * ⚠️ まとまりが1行より長いと、その中では普通に折り返す（はみ出さない）。
+ */
+export function Phrases({ text }: { text: string }) {
+  const parts = text.match(/[^、。]+[、。]?/g) ?? [text];
+  return <>{parts.map((t, i) => <span key={i} style={{ display: "inline-block" }}>{t}</span>)}</>;
+}
