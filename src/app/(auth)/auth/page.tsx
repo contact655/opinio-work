@@ -468,6 +468,22 @@ function AuthPageInner() {
           {/* ── SIGNUP ── */}
           {mode === "signup" && (
             <>
+              {/* ★見出しと一言（2026-10-20）。ログインのタブには「おかえりなさい。」があるのに、新規登録のタブには何も無く、
+                     初めて来た人がいきなり Google のボタンから見ていた。
+                     ⚠️ 書いてよいのは今できることだけ（職歴は /people、合う会社は /mypage/proposals で見られる）。
+                     ⚠️ 語句ごとに inline-block にして、行の途中で語が割れないようにしてある */}
+              {/* ⚠️ 企業の担当者として来たとき（isBizSignup）は出さない。上に「企業の担当者として登録します」の枠があり、
+                     この一言（職歴・合う会社）は求職者向けなので食い違う */}
+              {!isBizSignup && (
+              <div style={{ marginBottom: 20 }}>
+                <h1 style={s.formTitle}>はじめまして。</h1>
+                <p style={s.formSubtitle}>
+                  <span style={{ display: "inline-block" }}>登録は無料です。</span>
+                  <span style={{ display: "inline-block" }}>IT企業で働く人の職歴や、</span>
+                  <span style={{ display: "inline-block" }}>あなたに合う会社を見られます。</span>
+                </p>
+              </div>
+              )}
               {/* ② Google button — primary, prominent, with 推奨 badge */}
               <button type="button" style={s.oauthBtn} onClick={handleGoogleAuth}>
                 <GoogleLogo />
@@ -715,7 +731,11 @@ function AuthPageInner() {
               <>
               <div style={{ marginBottom: 24 }}>
                 <h1 style={s.formTitle}>おかえりなさい。</h1>
-                <p style={s.formSubtitle}>メールアドレスとパスワードでログインしてください。</p>
+                {/* ★語句ごとに折り返す（2026-10-20。390px で「…ください／い。」と最後の1文字だけ次の行に落ちていた） */}
+                <p style={s.formSubtitle}>
+                  <span style={{ display: "inline-block" }}>メールアドレスとパスワードで</span>
+                  <span style={{ display: "inline-block" }}>ログインしてください。</span>
+                </p>
               </div>
 
               {/* ② Google button */}
