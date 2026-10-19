@@ -1930,13 +1930,13 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
           { id: "about", label: "企業概要" },
-          ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
-          ...(company.job_count > 0 ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
-          ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
-          /* ⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
+          /* ★本文の並びに合わせて企業概要の次（2026-10-19）。⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
                 分からない（絞り込みはクライアント側のAPIが行うため）。
                 未ログインには中身が空になりうるが、タブは案内なので許容する。 */
           ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
+          ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
+          ...(company.job_count > 0 ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
+          ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
           ...(companyPosts.length > 0 || companyArticles.length > 0 || activityPosts.length > 0 ? [{ id: "articles", label: "記事・更新情報" }] : []),
         ]} />
         <div
@@ -1984,6 +1984,21 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             <AboutSection
               detail={detail}
               photos={photos}
+            />
+
+            {/* ★1-2. 社員・OB/OG（current-employees → alumni）。2026-10-19 に企業概要のすぐ下へ移した（柴さんの判断）。
+                   それまでは製品・事例・組織・福利厚生・ツールのあと（スマホで約8画面下）で、OPINIO の強み
+                   （実際にいる人・いた人）がほとんど読まれない位置にあった。⚠️ 下へ戻さないこと。タブの並びも合わせてある
+                ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
+                   ここでサーバーから渡すと `auth.getUser()` が要り、
+                   ページが動的化して `revalidate = 300` が効かなくなる。
+                   絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
+            {/* ★つながり（2026-10-16 / フェーズ3）。閲覧者と相互フォローで在籍中・表示を許可した人だけ。
+                   ⚠️ 閲覧者ごとに違うのでクライアントから取る（ページは ISR のまま）。0人なら何も出ない */}
+            <CompanyConnections companyId={company.id} />
+
+            <CompanyEmployeeSections
+              companyId={company.id}
             />
 
             {/* 2. 製品・導入事例 */}
@@ -2037,18 +2052,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
             <ToolsSection tools={companyTools} />
 
-            {/* 5. 社員・OB/OG（current-employees → alumni）
-                ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
-                   ここでサーバーから渡すと `auth.getUser()` が要り、
-                   ページが動的化して `revalidate = 300` が効かなくなる。
-                   絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
-            {/* ★5-0. つながり（2026-10-16 / フェーズ3）。閲覧者と相互フォローで在籍中・表示を許可した人だけ。
-                   ⚠️ 閲覧者ごとに違うのでクライアントから取る（ページは ISR のまま）。0人なら何も出ない */}
-            <CompanyConnections companyId={company.id} />
-
-            <CompanyEmployeeSections
-              companyId={company.id}
-            />
+            {/* ⚠️ 社員・OB/OG は 2026-10-19 に企業概要のすぐ下へ移した（上の「1-2」） */}
 
             {/* 5-2. 拠点・資本関係
                     ⚠️ サイドバーでは 172px しかなく3行に折り返していた項目をここに集める。

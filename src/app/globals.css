@@ -641,6 +641,11 @@ button, [role="button"] {
 .back-to-top--above-cta {
   bottom: calc(145px + env(safe-area-inset-bottom));
 }
+/* ★スマホ（767px 以下）で固定CTAバーがあるページでは出さない（2026-10-19 / 柴さんの判断）。
+      下のバー・固定CTAバー・この丸ボタンの3つが重なり、画面の約2割を覆っていた */
+@media (max-width: 767px) {
+  .back-to-top--above-cta { display: none !important; }
+}
 @media (min-width: 768px) {
   .back-to-top--above-cta { bottom: calc(81px + env(safe-area-inset-bottom)); }
 }

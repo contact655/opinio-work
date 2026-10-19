@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { ShowMoreButton } from "./ShowMoreButton";
 import { CHIP_STYLES } from "@/lib/utils/chipVariant";
 
 const INITIAL_CASES = 3;
+/** ★スマホ（767px 以下）では最初に2件（2026-10-19。カードが大きく、3件で約2画面あった） */
+const INITIAL_CASES_MOBILE = 2;
 
 /**
  * ⚠️ 製品ピルの色は出し分けない（2026-08-23）。
@@ -114,8 +116,17 @@ function CaseCard({ c }: { c: CustomerCase }) {
 export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases: NonNullable<CompanyDetail["customer_cases"]>; defaultCollapsed?: boolean }) {
   const [showAll, setShowAll] = useState(!defaultCollapsed);
 
-  const visible = showAll ? cases : cases.slice(0, INITIAL_CASES);
-  const hiddenCount = cases.length - INITIAL_CASES;
+  /* ⚠️ 初期値は 3（サーバーの描画と揃える）。マウント後にスマホなら 2 に減らす */
+  const [initial, setInitial] = useState(INITIAL_CASES);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setInitial(mq.matches ? INITIAL_CASES_MOBILE : INITIAL_CASES);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  const visible = showAll ? cases : cases.slice(0, initial);
+  const hiddenCount = cases.length - initial;
 
   return (
     <div>
@@ -136,7 +147,7 @@ export default function CustomerCasesClient({ cases, defaultCollapsed }: { cases
         />
       )}
 
-      {showAll && cases.length > INITIAL_CASES && (
+      {showAll && cases.length > initial && (
         <ShowMoreButton
           variant="expand"
           label="折りたたむ"

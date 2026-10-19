@@ -392,83 +392,14 @@ const ALL_CATEGORIES = [
 
 // ─── Main export ───────────────────────────────────────────────────────────────
 
-// ─── Sample photos (shown when no real photos exist) ──────────────────────────
-
-const SAMPLE_PHOTOS = [
-  {
-    url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&fit=crop&crop=entropy",
-    label: "オフィス",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&fit=crop&crop=entropy",
-    label: "働く様子",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&fit=crop&crop=entropy",
-    label: "チームミーティング",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1497366412874-3415097a27e7?w=800&fit=crop&crop=entropy",
-    label: "オープンスペース",
-  },
-];
-
-function SamplePhotoGrid() {
-  return (
-    <div style={{ marginTop: 4, marginBottom: "var(--space-4)" }}>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "2fr 1fr 1fr",
-        gridTemplateRows: "160px 160px",
-        gap: 6,
-        borderRadius: 14,
-        overflow: "hidden",
-      }}>
-        {/* Large left photo */}
-        <div style={{ gridRow: "1 / 3", position: "relative", overflow: "hidden" }}>
-          <Image
-            src={SAMPLE_PHOTOS[0].url}
-            alt="オフィス写真サンプル"
-            fill
-            sizes="400px"
-            style={{ objectFit: "cover" }}
-          />
-          <div style={{
-            position: "absolute", top: 10, left: 10,
-            background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
-            color: "#fff", fontSize: 12, fontWeight: 700,
-            padding: "3px 8px", borderRadius: 100, letterSpacing: "0.05em",
-          }}>
-            サンプル写真
-          </div>
-        </div>
-        {/* Right 3 cells */}
-        {SAMPLE_PHOTOS.slice(1).map((p, i) => (
-          <div key={i} style={{ position: "relative", overflow: "hidden" }}>
-            <Image
-              src={p.url}
-              alt={`${p.label}サンプル`}
-              fill
-              sizes="200px"
-              style={{ objectFit: "cover" }}
-            />
-          </div>
-        ))}
-      </div>
-      <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", textAlign: "right" }}>
-        ※ 実際の写真は準備中です。上記はイメージ画像です。
-      </p>
-    </div>
-  );
-}
+// ⚠️★見本の写真（Unsplash の素材）は 2026-10-19 に外した（柴さんの判断）。実際の写真が無い企業にも、他社のオフィスに見える
+//    画像を1画面ぶん出していた（「値が無いことを、ある値に置き換えない」に反する）。写真が無ければ何も出さない。戻さないこと。
 
 export function PhotoCarousel({ photos }: { photos: CompanyPhoto[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  if (photos.length === 0) {
-    return <SamplePhotoGrid />;
-  }
+  if (photos.length === 0) return null;
 
   // Compute available categories (only show tabs with at least 1 photo)
   const categoryCounts = photos.reduce<Record<string, number>>((acc, p) => {
