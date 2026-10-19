@@ -243,12 +243,17 @@ export default async function BizDashboardPage({
                  審査のきっかけが「掲載を依頼する」だと分からなかった。依頼前と依頼後で文を分ける */}
           <div data-state={listingRequestedAt ? "review-requested" : "review-not-requested"} style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>
-              {listingRequestedAt ? "運営が審査しています" : "「掲載を依頼する」を押すと、運営の審査が始まります"}
+              {/* ★語句ごとに折り返す（2026-10-20。390px で「…始まり／ます」と割れていた） */}
+              {listingRequestedAt ? "運営が審査しています" : (
+                <><span style={{ display: "inline-block" }}>「掲載を依頼する」を押すと、</span><span style={{ display: "inline-block" }}>運営の審査が始まります</span></>
+              )}
             </div>
             <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
+              {/* ★2026-10-20: 短くした（スマホで6行あり、すぐ下の「はじめにやること」が画面の外に押し出されていた）。
+                     伝えることは同じ（審査のきっかけ・審査後にできること・結果はメール） */}
               {listingRequestedAt
-                ? "掲載の依頼を受け付けました。審査が完了すると候補者を探してメッセージを送れるようになり、企業ページの公開後に求人も公開できます。結果はメールでお知らせします。"
-                : "企業ページの必要な項目を入れて「掲載を依頼する」を押すと、OPINIO 運営が内容を確認します。審査が完了すると候補者を探してメッセージを送れるようになり、企業ページの公開後に求人も公開できます。結果はメールでお知らせします。"}
+                ? "掲載の依頼を受け付けました。審査が終わると候補者にメッセージを送れ、企業ページの公開後は求人も出せます。結果はメールでお知らせします。"
+                : "必要な項目を入れて依頼すると、OPINIO 運営が内容を確認します。審査が終わると候補者にメッセージを送れ、企業ページの公開後は求人も出せます。結果はメールでお知らせします。"}
             </div>
             {!listingRequestedAt && canOpenBizPath(ctx.currentPermission, "/biz/company") && (
               <Link href="/biz/company" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--warm-ink)" }}>
