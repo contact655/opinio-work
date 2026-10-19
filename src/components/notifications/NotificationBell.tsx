@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled";
+  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled";
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
@@ -87,6 +87,13 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   if (notif.type === "meeting_canceled") {
     return { who: notif.actorCompany?.name ?? "企業", what: " が面談の日程を取り消しました" };
+  }
+  /* ★コメントへの返信・いいね（2026-10-20）。押すと元の投稿（/feed/[postId]）へ。⚠️ コメントの本文は出さない */
+  if (notif.type === "reply") {
+    return { who: notif.actor?.name ?? "誰か", what: " があなたのコメントに返信しました" };
+  }
+  if (notif.type === "comment_like") {
+    return { who: notif.actor?.name ?? "誰か", what: " があなたのコメントにいいねしました" };
   }
   return {
     who: notif.actor?.name ?? "誰か",

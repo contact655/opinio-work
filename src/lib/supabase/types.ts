@@ -5555,11 +5555,48 @@ export type Database = {
           },
         ]
       }
+      ow_post_comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_post_comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "ow_post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_post_comment_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_post_comments: {
         Row: {
           content: string
           created_at: string
           id: string
+          parent_comment_id: string | null
           post_id: string
           user_id: string
         }
@@ -5567,6 +5604,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          parent_comment_id?: string | null
           post_id: string
           user_id: string
         }
@@ -5574,10 +5612,18 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          parent_comment_id?: string | null
           post_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_post_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "ow_post_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_post_comments_post_id_fkey"
             columns: ["post_id"]

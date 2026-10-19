@@ -133,6 +133,10 @@ type CommentItem = {
   id: string;
   content: string;
   created_at: string;
+  /** ★返信先の親コメント（2026-10-20）。null ＝ 投稿へのコメント */
+  parent_comment_id: string | null;
+  like_count: number;
+  liked_by_me: boolean;
   user: PostUser;
 };
 
@@ -780,6 +784,88 @@ function PostComposer({
 }
 
 // ─── CommentSection ───────────────────────────────────────────────────────────
+/* ★返信といいね（2026-10-20 / 柴さんの要望）。
+     ・返信は1段だけ（返信への返信は、元のコメントの下に並べる。API が親に付け替える）
+     ・コメントにも返信にもいいねできる（自分のものにもできる。通知は自分には送らない）
+     ・親を消すと返信も消える（DB の ON DELETE CASCADE）。件数もその分減らす
+   ⚠️ 書き込みはすべて API 経由。ここで並びを作り直さない（API は古い順で返す） */
+
+const COMMENT_FONT = "var(--font-inter), var(--font-noto)";
+
+function CommentBubble({
+  c, myUserId, small, onLike, onReply, onDelete,
+}: {
+  c: CommentItem; myUserId: string | null; small?: boolean;
+  onLike: () => void; onReply: (() => void) | null; onDelete: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }} data-state={small ? "comment-reply" : "comment"}>
+      <Avatar user={c.user} size={small ? 26 : 32} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ background: "var(--bg-tint)", borderRadius: 10, padding: small ? "8px 12px" : "10px 14px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+            <Link href={`/u/${c.user.id}`} style={{ fontFamily: COMMENT_FONT, fontWeight: 700, fontSize: 13, color: "var(--royal)", textDecoration: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {c.user.name}
+            </Link>
+            <span style={{ fontFamily: COMMENT_FONT, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", flexShrink: 0 }}>
+              {relativeTime(c.created_at)}
+            </span>
+          </div>
+          <p style={{ margin: 0, fontFamily: COMMENT_FONT, fontSize: small ? 13.5 : 14, color: "var(--ink)", lineHeight: 1.65, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {c.content}
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 2 }}>
+          {myUserId && (
+            <button type="button" onClick={onLike} className="cmt-act" aria-pressed={c.liked_by_me}
+              style={{ color: c.liked_by_me ? "var(--royal)" : "var(--ink-mute)", fontWeight: c.liked_by_me ? 700 : 500 }}>
+              いいね{c.like_count > 0 ? `（${c.like_count}）` : ""}
+            </button>
+          )}
+          {!myUserId && c.like_count > 0 && (
+            <span className="cmt-act" style={{ cursor: "default" }}>いいね（{c.like_count}）</span>
+          )}
+          {myUserId && onReply && (
+            <button type="button" onClick={onReply} className="cmt-act">返信</button>
+          )}
+          {myUserId && c.user.id === myUserId && (
+            <button type="button" onClick={onDelete} className="cmt-act">削除</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommentInput({
+  value, onChange, onSubmit, submitting, placeholder, me, autoFocus, small,
+}: {
+  value: string; onChange: (v: string) => void; onSubmit: () => void; submitting: boolean;
+  placeholder: string; me: PostUser; autoFocus?: boolean; small?: boolean;
+}) {
+  const ready = !!value.trim() && !submitting;
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+      <Avatar user={me} size={small ? 26 : 32} />
+      <div style={{ flex: 1, display: "flex", gap: 8, alignItems: "flex-end", minWidth: 0 }}>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          maxLength={300}
+          rows={small ? 1 : 2}
+          autoFocus={autoFocus}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(); } }}
+          style={{ flex: 1, minWidth: 0, border: "1px solid var(--line)", borderRadius: 10, padding: "10px 14px", fontFamily: COMMENT_FONT, fontSize: 14, color: "var(--ink)", background: "var(--bg-tint)", outline: "none", resize: "none", lineHeight: 1.6, boxSizing: "border-box" }}
+        />
+        <button type="button" onClick={onSubmit} disabled={!ready}
+          style={{ background: ready ? "var(--royal)" : "var(--line)", color: ready ? "#fff" : "var(--ink-mute)", border: "none", borderRadius: 8, padding: "10px 16px", fontFamily: COMMENT_FONT, fontWeight: 700, fontSize: 13, cursor: ready ? "pointer" : "not-allowed", whiteSpace: "nowrap", transition: "background 0.2s" }}>
+          {submitting ? "送信中" : "送信"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function CommentSection({
   postId,
@@ -802,6 +888,12 @@ function CommentSection({
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* 返信欄を開いている親コメント（返信を押したコメントの「親」）と、返信先の名前 */
+  const [replyTo, setReplyTo] = useState<{ rootId: string; targetId: string; name: string } | null>(null);
+  const [replyInput, setReplyInput] = useState("");
+  const [replying, setReplying] = useState(false);
+
+  const me: PostUser = { id: myUserId ?? "", name: myName ?? "自分", avatar_color: myAvatarColor, avatar_url: myAvatarUrl };
 
   // 初回展開時にコメント取得
   const loadComments = useCallback(async () => {
@@ -826,243 +918,133 @@ function CommentSection({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSubmit = async () => {
-    if (!input.trim() || submitting || !myUserId) return;
-    setSubmitting(true);
+  const send = async (content: string, parentCommentId: string | null): Promise<boolean> => {
     setError(null);
     try {
       const res = await fetch(`/api/jobseeker/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: input.trim() }),
+        body: JSON.stringify(parentCommentId ? { content, parentCommentId } : { content }),
       });
       if (!res.ok) {
-        const j = await res.json();
+        const j = await res.json().catch(() => ({}));
         throw new Error(j.message ?? "コメントの送信に失敗しました");
       }
       const { comment } = await res.json();
-      setComments((prev) => [
-        ...prev,
-        {
-          ...comment,
-          user: {
-            id: myUserId,
-            name: myName ?? "自分",
-            avatar_color: myAvatarColor,
-            avatar_url: myAvatarUrl,
-          },
-        },
-      ]);
+      setComments((prev) => [...prev, { ...comment, like_count: 0, liked_by_me: false, user: me }]);
       onCommentCountChange(1);
-      setInput("");
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "コメントの送信に失敗しました");
-    } finally {
-      setSubmitting(false);
+      return false;
     }
+  };
+
+  const handleSubmit = async () => {
+    if (!input.trim() || submitting || !myUserId) return;
+    setSubmitting(true);
+    if (await send(input.trim(), null)) setInput("");
+    setSubmitting(false);
+  };
+
+  const handleReply = async () => {
+    if (!replyTo || !replyInput.trim() || replying || !myUserId) return;
+    setReplying(true);
+    if (await send(replyInput.trim(), replyTo.targetId)) { setReplyInput(""); setReplyTo(null); }
+    setReplying(false);
   };
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const res = await fetch(
-        `/api/jobseeker/posts/${postId}/comments/${commentId}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`/api/jobseeker/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
       if (!res.ok) return;
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      onCommentCountChange(-1);
+      /* 親を消すと返信も消える（DB の CASCADE）。画面と件数も同じだけ減らす */
+      const removed = comments.filter((c) => c.id === commentId || c.parent_comment_id === commentId).length;
+      setComments((prev) => prev.filter((c) => c.id !== commentId && c.parent_comment_id !== commentId));
+      onCommentCountChange(-removed);
     } catch {
       // best-effort
     }
   };
 
+  /* いいねは先に画面を変え、失敗したら戻す */
+  const toggleLike = async (c: CommentItem) => {
+    const next = !c.liked_by_me;
+    const apply = (liked: boolean) => setComments((prev) => prev.map((x) => x.id !== c.id ? x : {
+      ...x, liked_by_me: liked, like_count: Math.max(0, x.like_count + (liked === x.liked_by_me ? 0 : liked ? 1 : -1)),
+    }));
+    apply(next);
+    try {
+      const res = await fetch(`/api/jobseeker/posts/${postId}/comments/${c.id}/like`, { method: next ? "POST" : "DELETE" });
+      if (!res.ok) throw new Error();
+    } catch {
+      apply(!next);
+      setError("いいねできませんでした");
+    }
+  };
+
+  const roots = comments.filter((c) => !c.parent_comment_id);
+  const repliesOf = (rootId: string) => comments.filter((c) => c.parent_comment_id === rootId);
+
   return (
-    <div
-      style={{
-        borderTop: "1px solid var(--line)",
-        marginTop: 12,
-        paddingTop: 16,
-      }}
-    >
+    <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 16 }}>
+      <style>{`
+        .cmt-act { background: none; border: none; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--ink-mute); padding: 4px 6px; font-family: var(--font-inter), var(--font-noto); border-radius: 6px; }
+        .cmt-act:hover { background: var(--bg-tint); }
+      `}</style>
+
       {loading && (
-        <p
-          style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontSize: 13,
-            color: "var(--ink-mute)",
-            marginBottom: 12,
-          }}
-        >
-          読み込み中…
-        </p>
+        <p style={{ fontFamily: COMMENT_FONT, fontSize: 13, color: "var(--ink-mute)", marginBottom: 12 }}>読み込み中…</p>
       )}
 
-      {/* コメント一覧 */}
-      {comments.map((c) => (
-        <div
-          key={c.id}
-          style={{
-            display: "flex",
-            gap: 10,
-            marginBottom: 14,
-            alignItems: "flex-start",
-          }}
-        >
-          <Avatar user={c.user} size={32} />
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                background: "var(--bg-tint)",
-                borderRadius: 10,
-                padding: "10px 14px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 4,
-                }}
-              >
-                <Link
-                  href={`/u/${c.user.id}`}
-                  style={{
-                    fontFamily: "var(--font-inter), var(--font-noto)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: "var(--royal)",
-                    textDecoration: "none",
-                  }}
-                >
-                  {c.user.name}
-                </Link>
-                <span
-                  style={{
-                    fontFamily: "var(--font-inter), var(--font-noto)",
-                    fontSize: 12, fontWeight: 500,
-                    color: "var(--ink-mute)",
-                  }}
-                >
-                  {relativeTime(c.created_at)}
-                </span>
-              </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                  fontSize: 14,
-                  color: "var(--ink)",
-                  lineHeight: 1.65,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {c.content}
-              </p>
+      {/* コメント一覧（親 → その返信） */}
+      {roots.map((root) => (
+        <div key={root.id} style={{ marginBottom: 14 }}>
+          <CommentBubble
+            c={root} myUserId={myUserId}
+            onLike={() => toggleLike(root)}
+            onReply={() => { setReplyTo({ rootId: root.id, targetId: root.id, name: root.user.name ?? "" }); setReplyInput(""); }}
+            onDelete={() => handleDeleteComment(root.id)}
+          />
+          {(repliesOf(root.id).length > 0 || replyTo?.rootId === root.id) && (
+            <div style={{ marginLeft: 42, marginTop: 8, display: "grid", gap: 10 }}>
+              {repliesOf(root.id).map((r) => (
+                <CommentBubble
+                  key={r.id} c={r} myUserId={myUserId} small
+                  onLike={() => toggleLike(r)}
+                  onReply={() => { setReplyTo({ rootId: root.id, targetId: r.id, name: r.user.name ?? "" }); setReplyInput(""); }}
+                  onDelete={() => handleDeleteComment(r.id)}
+                />
+              ))}
+              {myUserId && replyTo?.rootId === root.id && (
+                <div>
+                  <CommentInput
+                    small autoFocus me={me}
+                    value={replyInput} onChange={setReplyInput} onSubmit={handleReply} submitting={replying}
+                    placeholder={replyTo.name ? `${replyTo.name}さんに返信…` : "返信を書く…"}
+                  />
+                  <button type="button" className="cmt-act" style={{ marginLeft: 30 }} onClick={() => setReplyTo(null)}>やめる</button>
+                </div>
+              )}
             </div>
-            {myUserId && c.user.id === myUserId && (
-              <button
-                onClick={() => handleDeleteComment(c.id)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 12, fontWeight: 500,
-                  color: "var(--ink-mute)",
-                  marginTop: 4,
-                  padding: "2px 4px",
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                }}
-              >
-                削除
-              </button>
-            )}
-          </div>
+          )}
         </div>
       ))}
 
       {error && (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--error)",
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            marginBottom: 8,
-          }}
-        >
-          {error}
-        </p>
+        <p style={{ fontSize: 13, color: "var(--error)", fontFamily: COMMENT_FONT, marginBottom: 8 }}>{error}</p>
       )}
 
       {/* コメント入力欄（ログイン済みのみ）。
           ⚠️ 投稿権限（canPost）とは別。コメントは全ログインユーザーに開けている */}
       {myUserId ? (
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-          <Avatar
-            user={{ name: myName, avatar_color: myAvatarColor, avatar_url: myAvatarUrl }}
-            size={32}
-          />
-          <div style={{ flex: 1, display: "flex", gap: 8, alignItems: "flex-end" }}>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="コメントを書く…"
-              maxLength={300}
-              rows={2}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-              style={{
-                flex: 1,
-                border: "1px solid var(--line)",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontSize: 14,
-                color: "var(--ink)",
-                background: "var(--bg-tint)",
-                outline: "none",
-                resize: "none",
-                lineHeight: 1.6,
-                boxSizing: "border-box",
-              }}
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim() || submitting}
-              style={{
-                background: input.trim() && !submitting ? "var(--royal)" : "var(--line)",
-                color: input.trim() && !submitting ? "#fff" : "var(--ink-mute)",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 16px",
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: input.trim() && !submitting ? "pointer" : "not-allowed",
-                whiteSpace: "nowrap",
-                transition: "background 0.2s",
-              }}
-            >
-              {submitting ? "送信中" : "送信"}
-            </button>
-          </div>
-        </div>
+        <CommentInput
+          me={me} value={input} onChange={setInput} onSubmit={handleSubmit} submitting={submitting}
+          placeholder="コメントを書く…"
+        />
       ) : (
-        <p
-          style={{
-            fontFamily: "var(--font-inter), var(--font-noto)",
-            fontSize: 13,
-            color: "var(--ink-mute)",
-          }}
-        >
-          <Link href="/auth?next=/feed" style={{ color: "var(--accent)" }}>
-            ログイン
-          </Link>
+        <p style={{ fontFamily: COMMENT_FONT, fontSize: 13, color: "var(--ink-mute)" }}>
+          <Link href="/auth?next=/feed" style={{ color: "var(--accent)" }}>ログイン</Link>
           するとコメントできます
         </p>
       )}
