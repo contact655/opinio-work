@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { canUse, toPlanType } from "@/lib/constants/plans";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { countNew, ensureLastViewed, isNotifyFrequency } from "@/lib/business/savedSearchServer";
@@ -10,6 +11,10 @@ import type { Candidate } from "@/lib/business/candidates/model";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
+/* ★企業・条件が増えても途中で落ちないように（2026-10-19）。時間の上限を延ばし、上限の手前で止める。
+      止めたぶんは翌日に先に回る（前回のお知らせが古い順に処理する） */
+export const maxDuration = 300;
+const TIME_BUDGET_MS = 270_000;
 
 /**
  * ★保存した条件の新着のお知らせ（2026-10-10 / 候補者探し 段3）。
@@ -33,17 +38,24 @@ export async function GET(request: Request) {
   const jstWeekday = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCDay(); // 1 = 月曜
   const freqs = jstWeekday === 1 ? ["daily", "weekly"] : ["daily"];
 
-  const { data: searches, error } = await db.from("ow_saved_candidate_searches")
+  const startedAt = Date.now();
+  /* ★1,000 行ずつ最後まで。前回のお知らせが古い順（まだ送ったことが無いものが先） */
+  const { data: searches, error } = await fetchAllRows((from, to) => db.from("ow_saved_candidate_searches")
     .select("id, name, filters, owner_user_id, company_id, notify_frequency, last_notified_at")
-    .in("notify_frequency", freqs);
+    .in("notify_frequency", freqs)
+    .order("last_notified_at", { ascending: true, nullsFirst: true })
+    .order("id")
+    .range(from, to), "saved-search-alerts");
   if (error) {
-    console.error("[cron/saved-search-alerts]", error.message);
-    return Response.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("[cron/saved-search-alerts]", error);
+    return Response.json({ ok: false, error }, { status: 500 });
   }
 
-  const summary = { checked: 0, sent: 0, zero: 0, skippedOwnerInactive: 0, skippedCompany: 0, failed: 0 };
+  const summary = { checked: 0, sent: 0, zero: 0, skippedOwnerInactive: 0, skippedCompany: 0, failed: 0, deferred: 0 };
   const candidatesCache = new Map<string, Candidate[] | null>();
-  for (const s of searches ?? []) {
+  for (const s of searches) {
+    /* ⚠️ 時間の上限の手前で止める（残りは翌日に先に回る）。止めた数はログに出す */
+    if (Date.now() - startedAt > TIME_BUDGET_MS) { summary.deferred++; continue; }
     summary.checked++;
     if (!isNotifyFrequency(s.notify_frequency)) continue;
     const companyId = s.company_id as string, ownerId = s.owner_user_id as string;

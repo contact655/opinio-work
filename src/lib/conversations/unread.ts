@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/paging";
 
 /**
  * メッセージの未読判定。**サイドバーのバッジと一覧のドットが同じ式を見る。**
@@ -106,13 +107,15 @@ export async function unreadMessageCounts(
   const convIds = parts.map((p) => p.conversation_id as string);
 
   /* ② その会話のメッセージだけ。⚠️ `.in()` の絞り込みが唯一の防波堤（admin なので） */
-  const { data: msgs, error: msgErr } = await admin
+  /* ★会話 id を分けて、1,000 行ずつ最後まで引く（2026-10-19。超えると未読の数が黙って少なく出ていた） */
+  const { data: msgs, error: msgErr } = await inChunks(convIds, (part, from, to) => admin
     .from("ow_conversation_messages")
-    .select("conversation_id, sender_participant_id, sent_at")
-    .in("conversation_id", convIds)
-    .is("deleted_at", null);
+    .select("id, conversation_id, sender_participant_id, sent_at")
+    .in("conversation_id", part)
+    .is("deleted_at", null)
+    .order("id").range(from, to), "unread messages");
   if (msgErr) {
-    console.error("[unread] メッセージの取得に失敗:", msgErr.message);
+    console.error("[unread] メッセージの取得に失敗:", msgErr);
     return result;
   }
 

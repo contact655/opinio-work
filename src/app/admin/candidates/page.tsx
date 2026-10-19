@@ -34,7 +34,17 @@ async function getUsers(query?: string) {
 
   const [{ data: users }, authResult, { data: bizAdmins }] = await Promise.all([
     q.limit(500),
-    admin.auth.admin.listUsers({ perPage: 1000 }),
+    /* ★auth の利用者は 1,000 人ずつ最後まで（2026-10-19。1ページだけだと、超えた人の最終ログインが空になった） */
+    (async () => {
+      const all: { id: string; last_sign_in_at?: string | null }[] = [];
+      for (let page = 1; page < 100; page++) {
+        const { data } = await admin.auth.admin.listUsers({ perPage: 1000, page });
+        const batch = (data as { users?: { id: string; last_sign_in_at?: string | null }[] } | null)?.users ?? [];
+        all.push(...batch);
+        if (batch.length < 1000) break;
+      }
+      return { data: { users: all } };
+    })(),
     admin.from("ow_company_admins").select("user_id").eq("is_active", true),
   ]);
 
@@ -92,6 +102,8 @@ export default async function AdminCandidatesPage({
             <strong style={{ color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
               {users.length}
             </strong>{" "}名
+            {/* ★表示の上限（500名）に達したときは、そう書く（2026-10-19。黙って切らない） */}
+            {users.length >= 500 && <span data-state="admin-candidates-capped" style={{ marginLeft: 6, color: "var(--warm-ink)" }}>（新しい順に500名まで表示。検索で絞り込んでください）</span>}
           </span>
           {bizAdminCount > 0 && (
             <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>

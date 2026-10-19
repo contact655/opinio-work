@@ -2,6 +2,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
@@ -168,9 +169,11 @@ export default async function FeedPage() {
           .in("user_id", userIds).eq("is_current", true)
       : Promise.resolve({ data: null, error: null }),
     visibleIds.length > 0
-      ? adminSupabase.from("ow_post_likes")
-          .select("post_id, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
-          .in("post_id", visibleIds).order("created_at", { ascending: false })
+      /* ★1,000 行ずつ最後まで（2026-10-19。人気の投稿が増えると「いいね」が黙って欠けた） */
+      ? fetchAllRows((from, to) => adminSupabase.from("ow_post_likes")
+          .select("post_id, created_at, user:ow_users!user_id(id, name, avatar_color, avatar_url)")
+          .in("post_id", visibleIds).order("created_at", { ascending: false }).order("post_id").order("user_id").range(from, to), "feed likes")
+          .then((r) => ({ data: r.data }))
       : Promise.resolve({ data: null }),
   ]);
 

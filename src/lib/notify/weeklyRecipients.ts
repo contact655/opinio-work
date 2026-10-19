@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 
 /**
  * 週次メールの宛先を1箇所で決める。
@@ -39,10 +40,12 @@ export type WeeklyRecipientsResult = {
 export async function getWeeklyRecipients(supabase: SupabaseClient<any, any, any>): Promise<WeeklyRecipientsResult> {
   const excluded = { optedOut: 0, noOwUser: 0, testOrSystem: 0, noEmail: 0 };
 
-  const { data: profiles, error: pErr } = await supabase
+  /* ★1,000 行ずつ最後まで引く（2026-10-19。超えたぶんの人に黙って届かなかった） */
+  const { data: profiles, error: pErr } = await fetchAllRows((from, to) => supabase
     .from("ow_profiles")
-    .select("user_id, name, email_weekly_enabled");
-  if (pErr) throw new Error(`ow_profiles の取得に失敗: ${pErr.message}`);
+    .select("user_id, name, email_weekly_enabled")
+    .order("user_id").range(from, to), "weekly profiles");
+  if (pErr) throw new Error(`ow_profiles の取得に失敗: ${pErr}`);
 
   const all = (profiles ?? []) as { user_id: string; name: string | null; email_weekly_enabled: boolean | null }[];
 
@@ -52,11 +55,12 @@ export async function getWeeklyRecipients(supabase: SupabaseClient<any, any, any
   excluded.optedOut = all.length - optedIn.length;
   if (optedIn.length === 0) return { recipients: [], excluded };
 
-  const { data: users, error: uErr } = await supabase
+  const { data: users, error: uErr } = await inChunks(optedIn.map((p) => p.user_id), (part, from, to) => supabase
     .from("ow_users")
     .select("auth_id, email, is_test, is_system")
-    .in("auth_id", optedIn.map((p) => p.user_id));
-  if (uErr) throw new Error(`ow_users の取得に失敗: ${uErr.message}`);
+    .in("auth_id", part)
+    .order("auth_id").range(from, to), "weekly users");
+  if (uErr) throw new Error(`ow_users の取得に失敗: ${uErr}`);
 
   const byAuthId = new Map(
     ((users ?? []) as { auth_id: string | null; email: string | null; is_test: boolean | null; is_system: boolean | null }[])

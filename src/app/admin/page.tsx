@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { loadRealFunnel, ACTIVE_WINDOW_DAYS } from "@/lib/admin/realFunnel";
 import { loadWaitingCompanies } from "@/lib/admin/waitingCompanies";
 import { findTestLeftovers, countTestLeftovers } from "@/lib/admin/testLeftovers";
@@ -70,7 +71,8 @@ async function getStats() {
   try {
     const [{ data: adminRows }, { data: owUsers }, authResult] = await Promise.all([
       admin.from("ow_company_admins").select("user_id").eq("is_active", true).not("user_id", "is", null),
-      admin.from("ow_users").select("id, auth_id"),
+      /* ★1,000 行ずつ最後まで（2026-10-19。超えると「未ログインの担当者」の数が黙って少なく出た） */
+      fetchAllRows((from, to) => admin.from("ow_users").select("id, auth_id").order("id").range(from, to), "admin ow_users"),
       (async () => {
         // Paginate through all auth users to avoid the 1000-user hard cap
         const allUsers: { id: string; last_sign_in_at?: string | null }[] = [];

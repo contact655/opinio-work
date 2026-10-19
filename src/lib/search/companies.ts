@@ -21,6 +21,7 @@ import { COMPANY_SIZE_GROUPS, employeeBandRank, sizeGroupOfBand, type CompanySiz
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/paging";
 import type { CompanyForCarousel, CompanyBusinessDomain } from "@/types/genre";
 import { PHASE_FILTER_MAP } from "@/lib/constants/phase";
 import { isCompanyStage } from "@/lib/companies/classification";
@@ -360,42 +361,47 @@ export async function searchCompanies(
   const liveObogCountMap: Record<string, number> = {};
 
   if (companyIds.length > 0) {
+    /* ★会社の数・社員の数が増えても黙って切れないよう、会社 id を分けて 1,000 行ずつ最後まで引く（2026-10-19）。
+          形は supabase-js と同じ { data, error: { message } } にそろえる（下の処理を変えないため） */
+    const asRes = <T,>(r: { data: T[]; error: string | null }) => ({ data: r.data, error: r.error ? { message: r.error } : null });
+    const admin = createAdminClient();
     const [activeJobsResult, articlesResult, expResult, hiddenResult, domainsResult] = await Promise.all([
-      supabase
+      inChunks(companyIds, (part, from, to) => supabase
         .from("ow_jobs")
-        .select("company_id, title, salary_min, salary_max")
-        .in("company_id", companyIds)
-        .match(PUBLIC_JOB_MATCH),
-      supabase
+        .select("id, company_id, title, salary_min, salary_max")
+        .in("company_id", part)
+        .match(PUBLIC_JOB_MATCH)
+        .order("id").range(from, to), "companies jobs").then(asRes),
+      inChunks(companyIds, (part, from, to) => supabase
         .from("ow_articles")
-        .select("company_id")
-        .in("company_id", companyIds)
-        .eq("is_published", true),
+        .select("id, company_id")
+        .in("company_id", part)
+        .eq("is_published", true)
+        .order("id").range(from, to), "companies articles").then(asRes),
       // login_only ユーザーも集計に含めるため adminSupabase を使用（RLS バイパス）
       /* ⚠️★`id`（経歴の id）を落とさないこと（2026-09-18 に追加）。
             下で `ow_company_hidden_experiences` と突き合わせるのに要る。 */
-      createAdminClient()
+      inChunks(companyIds, (part, from, to) => admin
         .from("ow_experiences")
         .select("id, company_id, user_id, is_current, ow_users!inner(id, auth_id, is_test, visibility)")
-        .in("company_id", companyIds),
+        .in("company_id", part)
+        .order("id").range(from, to), "companies experiences").then(asRes),
       /* ★運営が企業ページから外した経歴（2026-09-18 に追加）。
          ⚠️★**これを見ないと、企業ページから外した人がカードの「現役社員 N名」に
-            残り続ける。** 企業ページ本体（`getCompanyEmployees`）は 2026-08-02 から
-            見ているのに、**一覧のカードだけが見ていなかった**
-            ——同じ人数が画面によって違う、という形の食い違い。
-         ⚠️ 実データは 2026-09-18 時点で **0行**なので、いまは結果が変わらない。
-            **0件だから足さない、ではない**（1行入った日に静かにズレる）。 */
-      createAdminClient()
+            残り続ける。** */
+      inChunks(companyIds, (part, from, to) => admin
         .from("ow_company_hidden_experiences")
         .select("experience_id")
-        .in("company_id", companyIds),
+        .in("company_id", part)
+        .order("experience_id").range(from, to), "companies hidden").then(asRes),
       /* 事業領域。⚠️ N+1 にしない（表示企業ぶんを1クエリで引く）。
-            並び順は display_order（主が1番）なので、そのまま出せば主が先頭に来る。 */
-      supabase
+            並び順は display_order（主が1番）。⚠️ 分けて引くので、下で会社ごとに display_order で並べ直す */
+      inChunks(companyIds, (part, from, to) => supabase
         .from("ow_company_business_domains")
-        .select("company_id, is_primary, ow_business_domains(id, name, slug)")
-        .in("company_id", companyIds)
-        .order("display_order", { ascending: true }),
+        .select("company_id, is_primary, display_order, ow_business_domains(id, name, slug)")
+        .in("company_id", part)
+        .order("display_order", { ascending: true }).order("company_id").range(from, to), "companies domains")
+        .then((r) => asRes({ ...r, data: [...r.data].sort((a, b) => ((a.display_order as number) ?? 0) - ((b.display_order as number) ?? 0)) })),
     ]);
 
     /* ⚠️ error を握りつぶさない。空で返すと「事業領域が未設定の企業」と

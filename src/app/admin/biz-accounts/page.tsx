@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -67,12 +68,13 @@ async function getBizAccounts(): Promise<BizAccount[]> {
 
   const [{ data: adminRows }, { data: users }, { data: companies }, authResult] =
     await Promise.all([
-      admin
+      /* ★1,000 行ずつ最後まで（2026-10-19） */
+      fetchAllRows((from, to) => admin
         .from("ow_company_admins")
         .select("id, company_id, user_id, permission, department, role_title, is_active, accepted_at, created_at")
-        .order("created_at", { ascending: false }),
-      admin.from("ow_users").select("id, auth_id, name, email, avatar_color"),
-      admin.from("ow_companies").select("id, name, engagement_status, is_published"),
+        .order("created_at", { ascending: false }).order("id").range(from, to), "biz-accounts admins"),
+      fetchAllRows((from, to) => admin.from("ow_users").select("id, auth_id, name, email, avatar_color").order("id").range(from, to), "biz-accounts users"),
+      fetchAllRows((from, to) => admin.from("ow_companies").select("id, name, engagement_status, is_published").order("id").range(from, to), "biz-accounts companies"),
       (async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allUsers: any[] = [];

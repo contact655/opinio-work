@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { candidateApproachFirst } from "@/lib/approaches/server";
 import ConversationDetailClient, {
   type ConversationDetail,
@@ -107,8 +108,8 @@ export default async function ConversationDetailPage({
 
   // Fetch initial messages + mark as read in parallel
   const [msgsResult] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (adminSupabase as any)
+    /* ★1,000 行ずつ最後まで引く（2026-10-19。1回の問い合わせは最大 1,000 行で、長い会話では新しいメッセージが黙って出なかった） */
+    fetchAllRows((from, to) => adminSupabase
       .from("ow_conversation_messages")
       .select(
         `id, body, kind, payload, sent_at, sender_participant_id,
@@ -119,7 +120,10 @@ export default async function ConversationDetailPage({
       )
       .eq("conversation_id", conversationId)
       .is("deleted_at", null)
-      .order("sent_at", { ascending: true }),
+      .order("sent_at", { ascending: true })
+      .order("id")
+      .range(from, to), "conversation thread")
+      .then((r) => ({ data: r.data, error: r.error ? { message: r.error } : null })),
     // Mark as read (best-effort, don't block render)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (adminSupabase as any)
@@ -128,7 +132,7 @@ export default async function ConversationDetailPage({
       .eq("id", myParticipant.id),
   ]);
 
-  const messages = (msgsResult.data as MessageRow[]) ?? [];
+  const messages = (msgsResult.data as unknown as MessageRow[]) ?? [];
   const myUserName = owUser.name ?? user.email?.split("@")[0] ?? null;
 
   /* ★企業から届いたメッセージに返信して始まった会話は、1通目を見出し（【送った理由】）なしで出す（2026-10-12）。

@@ -10,6 +10,10 @@ import { getDesiredRolesFor } from "@/lib/profile/desiredRoles";
 import { senderFooterHtml, MAIL_SUCCESS_FILL } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
+/* ★宛先が増えても途中で切れないよう、時間の上限を延ばす（2026-10-19。1通ずつ間を空けて送るため） */
+export const maxDuration = 300;
+/** ★1通ごとに空ける時間。Resend の既定の上限（毎秒2通）を超えないように */
+const SEND_INTERVAL_MS = 600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.co.jp";
 
@@ -160,13 +164,20 @@ export async function GET(request: Request) {
       }
 
       try {
-        await getResend().emails.send({
+        /* ⚠️★Resend は失敗しても例外を投げず { error } を返す。見ないと失敗も「送った」に数える（2026-10-19 に直した） */
+        const { error } = await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: r.email,
           subject: "【OPINIO】希望条件に合う求人が届いています",
           html: generateWeeklyEmail(recs.slice(0, 3), companyById),
         });
-        sent++;
+        if (error) {
+          console.error(`[weekly-match] Failed to send email:`, error.message);
+          errors.push("send_failed");
+        } else {
+          sent++;
+        }
+        await new Promise((res) => setTimeout(res, SEND_INTERVAL_MS));
       } catch (err: any) {
         console.error(`[weekly-match] Failed to send email:`, err.message);
         errors.push("send_failed");

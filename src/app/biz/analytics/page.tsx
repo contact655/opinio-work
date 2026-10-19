@@ -7,6 +7,7 @@ import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { countByJob, fetchCompanyReactions, type Fetched, type ReactionRow } from "@/lib/business/reactionCounts";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { getApproachAnalytics } from "@/lib/approaches/analytics";
 import { ApproachTab } from "./ApproachTab";
 import { ProposalTab } from "./ProposalTab";
@@ -100,13 +101,15 @@ type SaveRow = { target_type: string; target_id: string; created_at: string };
 async function fetchSaves(tenantId: string, jobIds: string[]): Promise<Fetched<SaveRow>> {
   const admin = createAdminClient();
   const targets = [tenantId, ...jobIds];
-  const { data, error } = await admin
+  /* ★1,000 行ずつ最後まで（2026-10-19。超えると保存の数が黙って少なく出た） */
+  const { data, error } = await fetchAllRows((from, to) => admin
     .from("ow_bookmarks")
-    .select("target_type, target_id, created_at, ow_users!inner(is_test)")
+    .select("id, target_type, target_id, created_at, ow_users!inner(is_test)")
     .in("target_type", ["company", "job"])
     .in("target_id", targets)
-    .eq("ow_users.is_test", false);
-  if (error) { console.error("[biz/analytics] bookmarks:", error.message); return { ok: false }; }
+    .eq("ow_users.is_test", false)
+    .order("id").range(from, to), "biz analytics bookmarks");
+  if (error) { console.error("[biz/analytics] bookmarks:", error); return { ok: false }; }
   return {
     ok: true,
     rows: (data ?? [])

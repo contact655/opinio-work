@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/paging";
 import ConversationsClient, { type Conversation } from "./ConversationsClient";
 import type { Metadata } from "next";
 import { isUnreadMessage, type MessageLike } from "@/lib/conversations/unread";
@@ -109,12 +110,14 @@ export default async function ConversationsPage({
         .in("id", conversationIds)
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (adminSupabase as any)
+      /* ★会話 id を分けて、1,000 行ずつ最後まで引く（2026-10-19。超えると未読と冒頭1行が黙って欠けていた） */
+      inChunks(conversationIds, (part, from, to) => adminSupabase
         .from("ow_conversation_messages")
-        .select("conversation_id, sender_participant_id, sent_at, body")
-        .in("conversation_id", conversationIds)
-        .is("deleted_at", null),
+        .select("id, conversation_id, sender_participant_id, sent_at, body")
+        .in("conversation_id", part)
+        .is("deleted_at", null)
+        .order("sent_at", { ascending: true }).order("id").range(from, to), "mypage conversations messages")
+        .then((r) => ({ data: r.data, error: r.error ? { message: r.error } : null })),
     ]);
 
   if (convError) {

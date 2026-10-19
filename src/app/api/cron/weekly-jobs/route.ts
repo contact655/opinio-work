@@ -9,6 +9,10 @@ import { fmtMan } from "@/lib/utils/salary";
 import { senderFooterHtml, MAIL_SUCCESS_FILL, MAIL_WARM_GRADIENT } from "@/lib/notify/templates";
 
 export const dynamic = "force-dynamic";
+/* ★宛先が増えても途中で切れないよう、時間の上限を延ばす（2026-10-19。1通ずつ間を空けて送るため） */
+export const maxDuration = 300;
+/** ★1通ごとに空ける時間。Resend の既定の上限（毎秒2通）を超えないように */
+const SEND_INTERVAL_MS = 600;
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://opinio.co.jp";
 
@@ -158,17 +162,24 @@ export async function GET(request: Request) {
 
     for (const { email } of recipients) {
       try {
-        await getResend().emails.send({
+        /* ⚠️★Resend は失敗しても例外を投げず { error } を返す。見ないと失敗も「送った」に数える（2026-10-19 に直した） */
+        const { error } = await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: email,
           subject: `今週の注目求人・企業${totalCount}選 — OPINIO`,
           html,
         });
-        sent++;
+        if (error) {
+          console.error("[weekly-jobs] send error:", error.message);
+          errors.push("send_failed");
+        } else {
+          sent++;
+        }
       } catch (err: any) {
         console.error("[weekly-jobs] send error:", err.message);
         errors.push("send_failed");
       }
+      await new Promise((r) => setTimeout(r, SEND_INTERVAL_MS));
     }
 
     return NextResponse.json({

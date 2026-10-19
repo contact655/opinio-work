@@ -7,6 +7,7 @@ import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/paging";
 import { canUse } from "@/lib/constants/plans";
 import { getApproachQuota, listSentApproaches, startOfMonthJst } from "@/lib/approaches/server";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
@@ -131,11 +132,13 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   const lastBody = new Map<string, string>();
   const lastSenderPid = new Map<string, string>();
   if (convIds.length > 0) {
-    const { data: msgs, error: mErr } = await supabase
-      .from("ow_conversation_messages").select("conversation_id, body, sent_at, sender_participant_id")
-      .in("conversation_id", convIds).is("deleted_at", null).order("sent_at", { ascending: false });
-    if (mErr) console.error("[biz/messages] last messages:", mErr.message);
-    for (const m of msgs ?? []) {
+    /* ★会話 id を分けて、1,000 行ずつ最後まで引く（2026-10-19。超えると古い会話の冒頭1行が黙って空になっていた）。
+          ⚠️ 分けるのは会話の単位なので、1つの会話のメッセージは同じかたまりに入り、新しい順が保たれる */
+    const { data: msgs, error: mErr } = await inChunks(convIds, (part, from, to) => supabase
+      .from("ow_conversation_messages").select("id, conversation_id, body, sent_at, sender_participant_id")
+      .in("conversation_id", part).is("deleted_at", null).order("sent_at", { ascending: false }).order("id").range(from, to), "biz messages last");
+    if (mErr) console.error("[biz/messages] last messages:", mErr);
+    for (const m of msgs) {
       if (lastBody.has(m.conversation_id as string)) continue;
       lastBody.set(m.conversation_id as string, m.body as string);
       if (m.sender_participant_id) lastSenderPid.set(m.conversation_id as string, m.sender_participant_id as string);
