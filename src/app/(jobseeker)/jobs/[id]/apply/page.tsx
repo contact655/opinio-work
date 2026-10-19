@@ -8,6 +8,7 @@ import ApplicationForm from "./ApplicationForm";
 import { APPLICATION_CLOSED_MESSAGE, hasApplicationStaff } from "@/lib/jobs/application";
 
 export const metadata: Metadata = {
+  title: "募集に応募する",
   robots: { index: false, follow: false },
 };
 
@@ -135,6 +136,7 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
             companyInitial={company.name.charAt(0).toUpperCase()}
             authName={authName}
             authEmail={authEmail}
+            hasStaff={hasStaff}
           />
         </div>
       </div>

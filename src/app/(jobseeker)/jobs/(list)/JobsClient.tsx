@@ -766,6 +766,10 @@ export default function JobsClient({
   }, [filterKey]);
 
   const paged = filteredForDisplay.slice(0, displayCount);
+  /* ★おすすめが、すぐ上の一覧に出ている募集だけなら出さない（2026-10-19。公開2件のいま、同じ2件が上下に2回並んでいた）。
+        ⚠️ 1件でも一覧に出ていないものがあれば、これまでどおり出す（並べるのは一覧に出ていないものに限らない） */
+  const pagedIdSet = new Set(paged.map((j) => j.id));
+  const recommendationsAddSomething = recommendations.some((j) => !pagedIdSet.has(j.id));
 
   /* ── ★分割ビュー（2026-09-09。柴さんの要望）──────────────────────────────
      ⚠️★**サーバーへ取りに行かない。** 求人は既に全件クライアントに載っている
@@ -1438,7 +1442,7 @@ export default function JobsClient({
                  ⚠️ 出す条件は変えていない（絞り込みも検索語も無く、推薦が1件以上あるとき）。
                     絞り込み中に出すと「絞ったのに関係ない求人が出た」になる。
                  ⚠️ `marginBottom` を `marginTop` に変えてある。最下部では上に間が要る。 */}
-          {!hasFilter && !q && recommendations.length > 0 && (
+          {!hasFilter && !q && recommendations.length > 0 && recommendationsAddSomething && (
             <div style={{ marginTop: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">

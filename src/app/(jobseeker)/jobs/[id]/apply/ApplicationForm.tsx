@@ -11,6 +11,8 @@ type Props = {
   companyInitial: string;
   authName: string;
   authEmail: string;
+  /** この会社に有効な担当者がいるか（page.tsx の hasApplicationStaff）。下の一文を出し分ける */
+  hasStaff: boolean;
 };
 
 export default function ApplicationForm({
@@ -21,6 +23,7 @@ export default function ApplicationForm({
   companyInitial,
   authName,
   authEmail,
+  hasStaff,
 }: Props) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
@@ -275,7 +278,11 @@ export default function ApplicationForm({
           </button>
 
           <p style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500, textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-            応募後、採用担当者からメールにて連絡が届きます。
+            {/* ★2026-10-19: 「採用担当者からメールにて連絡が届きます」をやめた。応募するとこの会社とのメッセージが始まり、
+                   返事はメッセージに届く（メールではない）。担当者がいない会社では、その場で連絡が来るとも読めていた */}
+            {hasStaff
+              ? "企業からの返事は、OPINIO のメッセージに届きます。"
+              : "担当者が登録すると応募が届きます。返事は OPINIO のメッセージに届きます。"}
           </p>
         </div>
       </form>

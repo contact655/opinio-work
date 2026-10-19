@@ -757,11 +757,10 @@ export async function JobDetailView({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                     必須スキル
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <div className="jd-skills">
                     {job.required_skills.map((s, i) => (
-                      <span key={i} style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        padding: "6px 14px", borderRadius: 100,
+                      <span key={i} className="jd-skill" style={{
+                        gap: 5,
                         /* ⚠️ 黄色にしない（2026-08-30）。ui-conventions「色の役割」で
                               **黄色背景は使わない**。すぐ下の歓迎スキルは royal なので、
                               必須だけ色が違うと「必須＝警告」に読める。
@@ -770,7 +769,7 @@ export async function JobDetailView({
                         background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
                         color: "var(--royal)", fontSize: 13, fontWeight: 600,
                       }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={3} style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
                         {s}
                       </span>
                     ))}
@@ -784,21 +783,32 @@ export async function JobDetailView({
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     歓迎スキル
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <div className="jd-skills">
                     {job.preferred_skills.map((s, i) => (
-                      <span key={i} style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        padding: "6px 14px", borderRadius: 100,
+                      <span key={i} className="jd-skill" style={{
+                        gap: 5,
                         background: "var(--royal-50)", border: "1.5px solid var(--royal-100)",
                         color: "var(--royal)", fontSize: 13, fontWeight: 600,
                       }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={3} style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
                         {s}
                       </span>
                     ))}
                   </div>
                 </div>
                 )}
+                {/* ★スキルの並べ方（2026-10-19）。パソコンは丸いタグ、スマホ（640px 以下）は縦の箇条書き。
+                       文章のように長い項目がタグの中で折り返して「…連携提案経／験」と読みにくかった。
+                       ⚠️ 形（display・角の丸み・余白）はここが持つ。インラインに戻すとスマホで切り替わらない。
+                       ⚠️ style タグの中に不等号・引用符を書かない（ハイドレーションが壊れる） */}
+                <style>{`
+                  .jd-skills { display: flex; flex-wrap: wrap; gap: 8px; }
+                  .jd-skill { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 100px; }
+                  @media (max-width: 640px) {
+                    .jd-skills { flex-direction: column; gap: 6px; }
+                    .jd-skill { display: flex; align-items: baseline; padding: 8px 12px; border-radius: 8px; line-height: 1.5; }
+                  }
+                `}</style>
               </section>
               )}
 
