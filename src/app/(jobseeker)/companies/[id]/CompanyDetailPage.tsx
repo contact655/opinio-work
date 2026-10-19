@@ -63,7 +63,7 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { employeeBandRange, formatEmployeeSize } from "@/lib/constants/employeeBand";
-import { isJobPostAlive } from "@/lib/feed/visibility";
+import { isJobPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 /* ⚠️ `primaryBusinessDomain` は meta・OGPバッジ・Hero が使う（**1つに絞る場所**）。
       **全部**出すのは `CompanyInfoBox`（サイドバーと本文が共有）で、そちらが
@@ -1807,7 +1807,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           お客さまの業界は detail（getCompanyById）が新しい表から組む */
     /* ⚠️ 記事IDは companyId しか要らないのでここに相乗りさせる。
           閲覧者の ow_users はもう引かない（認証を読まないため）。 */
-    adminSupabase.from("ow_articles").select("id").eq("company_id", companyId),
+    /* ⚠️ 公開中の記事だけ（2026-10-20）。非公開の記事の「公開しました」を更新情報に出さないため */
+    adminSupabase.from("ow_articles").select("id").eq("company_id", companyId).eq("is_published", true),
     /* ★企業資料の「公開」項目（2026-10-09 / 依頼②）。**確定済み・公開・restricted でない**ものだけ。
           ⚠️ 条件は `getPublicMaterialItemsCached` の1か所。ここで絞り直さないこと。
           ⚠️ 確定・変更時は `revalidateCompanyPages()` がこのキャッシュごと落とす。 */
@@ -1833,7 +1834,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     ref_article_id: string | null;
     ref_company_id: string | null;
     ow_jobs: { id: string; title: string; status: string | null } | null;
-    ow_articles: { id: string; slug: string; title: string } | null;
+    ow_articles: { id: string; slug: string; title: string; is_published: boolean | null } | null;
   };
 
   const companyJobIds = detail.jobs.flatMap((c) => c.items.map((j) => j.id));
@@ -1853,7 +1854,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const activityPostsRaw = await adminSupabase
     // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
     .from("ow_posts_visible")
-    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status), ow_articles!ref_article_id(id, slug, title)")
+    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status), ow_articles!ref_article_id(id, slug, title, is_published)")
     .or(orParts.join(","))
     .neq("post_type", "company_joined")
     .order("created_at", { ascending: false })
@@ -1862,7 +1863,9 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   /* ⚠️ 掲載を下ろした求人の「募集を開始しました」は出さない（2026-08-11）。
         残すと 404 になるリンクが企業ページの更新情報に並ぶ。判定は lib/feed/visibility に集約。 */
   const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[])
-    .filter((p) => isJobPostAlive({ post_type: p.post_type, ref_job: p.ow_jobs }));
+    .filter((p) => isJobPostAlive({ post_type: p.post_type, ref_job: p.ow_jobs })
+      // 非公開にした記事の「公開しました」も出さない（2026-10-20）
+      && isArticlePostAlive({ post_type: p.post_type, ref_article: p.ow_articles }));
 
   // Group posts by (YYYY-MM-DD, post_type) for 更新情報 display
   type ActivityGroup = { date: string; dateLabel: string; post_type: string; posts: ActivityPost[] };

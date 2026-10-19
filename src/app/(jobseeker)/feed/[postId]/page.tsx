@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { truncateAtBoundary } from "@/lib/utils/truncate";
@@ -15,7 +15,8 @@ type ActorCompany = { id: string; slug: string | null; name: string; brand_name:
 
 const ACTOR_SELECT = `
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_published, is_test),
-  ref_job:ow_jobs!ref_job_id(status, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url))
+  ref_job:ow_jobs!ref_job_id(status, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
+  ref_article:ow_articles!ref_article_id(is_published)
 `;
 
 /** 表示上の主体。一覧側の resolveActor と同じ規則にすること */
@@ -40,6 +41,7 @@ type RawPost = {
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null; is_test: boolean | null } | null;
   ref_company: ActorCompany;
   ref_job: { status: string | null; company: ActorCompany } | null;
+  ref_article: { is_published: boolean | null } | null;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -140,6 +142,8 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   if (!isJobPostAlive(p)) notFound();
   // 取り下げた企業の「参加しました」投稿も同じく（2026-08-13）
   if (!isCompanyPostAlive(p)) notFound();
+  // 非公開にした記事の「公開しました」投稿も同じく（2026-10-20）
+  if (!isArticlePostAlive(p)) notFound();
 
   const actorCo = actorCompany(p);
   const actorName = actorCo ? (actorCo.brand_name ?? actorCo.name) : (p.user?.name ?? "不明");

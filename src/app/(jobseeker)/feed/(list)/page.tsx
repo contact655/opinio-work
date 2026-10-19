@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
 import { getFeedSidebarCompanies } from "@/lib/supabase/queries";
@@ -52,7 +52,7 @@ type RefJob = { id: string; slug?: string | null; title: string; status?: string
 /* ⚠️ `ow_articles` に画像カラムは1つも無い（2026-08-13 に全28列を確認）。
       サムネイルは作れないので、記事ごとに違う `eyecatch_gradient` /
       `company_gradient_text` と `company_initial_text` で絵を作る。 */
-type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
+type RefArticle = { id: string; slug: string; title: string; is_published: boolean | null; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
 type RawPost = {
   id: string;
@@ -122,7 +122,7 @@ export default async function FeedPage() {
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))),
       ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
-      ref_article:ow_articles!ref_article_id(id, slug, title, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
+      ref_article:ow_articles!ref_article_id(id, slug, title, is_published, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `)
@@ -152,7 +152,9 @@ export default async function FeedPage() {
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
       isJobPostAlive(p) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）
-      isCompanyPostAlive(p),
+      isCompanyPostAlive(p) &&
+      // 非公開にした記事の「公開しました」投稿も出さない（2026-10-20）
+      isArticlePostAlive(p),
   );
 
   // 現職情報を別クエリで取得

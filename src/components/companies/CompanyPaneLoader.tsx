@@ -28,6 +28,8 @@ export async function CompanyPaneLoader({ slugOrId }: { slugOrId: string }) {
         .from("ow_articles")
         .select("id, slug, title")
         .eq("company_id", result.resolvedId)
+        /* ⚠️ 公開中の記事だけ（2026-10-20）。非公開の記事を出すと押した先が 404 になる */
+        .eq("is_published", true)
         .order("published_at", { ascending: false })
         .limit(5);
       /* ⚠️ error を捨てない。権限や列名の間違いが「0件」に化ける（CLAUDE.md） */

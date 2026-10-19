@@ -70,6 +70,22 @@ export function isCompanyPostAlive(post: {
   return c.is_published === true && c.is_test !== true;
 }
 
+/**
+ * 「記事を公開しました」の投稿が、まだ有効か（2026-10-20）。
+ *
+ * ⚠️ **記事を非公開にしたら、その告知も一緒に消えること。** 残すと 404 の記事へのリンクが
+ *    フィードと企業ページの更新情報に並ぶ（isJobPostAlive / isCompanyPostAlive と同じ形の穴）。
+ * ⚠️ 判定に使う ref_article.is_published を select から落とすと undefined になり、告知が消える側（false）に倒れる。
+ *    2026-10-20 に、見本データだった記事11本を非公開にしたときに足した。
+ */
+export function isArticlePostAlive(post: {
+  post_type?: string | null;
+  ref_article?: { is_published?: boolean | null } | null;
+}): boolean {
+  if (post.post_type !== "article_published") return true;
+  return post.ref_article?.is_published === true;
+}
+
 export type PostVisibilityInput = {
   /** ow_posts.visibility */
   postVisibility: string | null | undefined;
