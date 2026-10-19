@@ -7599,7 +7599,10 @@ npm run dev → http://localhost:3000/dev/preview
 ⚠️★**軸のキーは「相性のものさし」と同じ名前で意味が違うものがある**（`work_style` は向きが逆、`decision` は別の問い）。**キーだけで突き合わせないこと。** → [docs/axis-key-collision-20261016.md](docs/axis-key-collision-20261016.md)
 ⚠️ ④の見出しの言い回しはマスタの4列（`left/right_headline_join/end`）。全組み合わせの文は [docs/workplace-review-headlines-20261016.md](docs/workplace-review-headlines-20261016.md)。**言い回しを変えたら作り直して「方針」の重複が0か確かめる。**
 ⚠️ キャリア相談のボタンは `src/lib/constants/externalLinks.ts` の `CAREER_CONSULT_URL` が null の間は出さない（2026-10-17 時点で null）。
-⚠️★**「あなたに合う会社」の並び（`lib/forYou`）はまだこの回答を使っていない**（2026-10-17）。モーダルは「あなたに合う会社を探すためだけに使います」と書いているので、使い始めるまでは約束が半分しか果たされていない。
+⚠️★**「あなたに合う会社」の並び（`lib/forYou`）は本人のフィット度だけを使っている**（`1d227090` / 2026-10-17。A案）。
+   「合っていた」（7以上）と答えた会社と同じ事業領域を強め、「合っていなかった」（すべて3以下）だけの領域は理由にしない（`weights.ts` の `domainFitStatus`）。
+   ⚠️ 6軸・タグ・他の人の回答は使っていない（B案は不採用。理由は `weights.ts` の冒頭）。
+   ⚠️ この行は 2026-10-19 まで「まだこの回答を使っていない」のまま古くなっていた。**記録を根拠に作業を提案する前に、コードを確かめること。**
 ⚠️ 下の節の reason_version = 2 の6表は**残してある**（行もそのまま）。`reasons-status` は「レビューがあれば 2、旧形式だけなら 1」を返す。`/api/jobseeker/experiences/[id]/reasons` は**画面からは呼ばれていない。**
 
 ### （経緯）「この会社について」モーダル（理由の新形式 reason_version = 2。2026-10-16）
