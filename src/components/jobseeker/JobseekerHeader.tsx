@@ -473,9 +473,10 @@ export function JobseekerHeader() {
               }}
               style={{
                 display: "flex", alignItems: "center", gap: 8, height: 36,
-                padding: "0 12px", borderRadius: 8,
-                border: `1px solid ${inlineOpen ? "var(--royal)" : "var(--line)"}`,
-                background: inlineOpen ? "#fff" : "var(--bg-tint)",
+                /* ★丸い枠（ピル型）。スマホの検索欄と揃える（2026-10-19） */
+                padding: "0 14px", borderRadius: 999,
+                border: `1px solid ${inlineOpen ? "var(--royal)" : "#c7ccd4"}`,
+                background: "#fff",
                 transition: "border-color 0.15s, background 0.15s",
               }}
             >
@@ -541,10 +542,11 @@ export function JobseekerHeader() {
             onClick={() => setSearchOpen(true)}
             aria-label="検索"
             style={{
+              /* ★丸い枠（ピル型）にした（2026-10-19 / LinkedIn と同じ。四角い灰色の箱は重く見えた） */
               flex: "1 1 auto", minWidth: 0, height: 36,
               display: "flex", alignItems: "center", gap: 8,
-              padding: "0 12px", borderRadius: 8,
-              border: "1px solid var(--line)", background: "var(--bg-tint)",
+              padding: "0 14px", borderRadius: 999,
+              border: "1px solid #c7ccd4", background: "#fff",
               color: "var(--ink-mute)", fontSize: 14, cursor: "pointer", textAlign: "left",
             }}
           >

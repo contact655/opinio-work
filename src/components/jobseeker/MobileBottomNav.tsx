@@ -38,7 +38,7 @@ const TABS = [
     href: "/feed",
     label: "ホーム",
     icon: (active: boolean) => (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 12h18M3 6h18M3 18h12" stroke={active ? "var(--royal)" : "currentColor"}/>
       </svg>
     ),
@@ -47,7 +47,7 @@ const TABS = [
     href: "/companies",
     label: "企業",
     icon: (active: boolean) => (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
         <polyline points="9 22 9 12 15 12 15 22"/>
       </svg>
@@ -57,7 +57,7 @@ const TABS = [
     href: "/jobs",
     label: "募集",
     icon: (active: boolean) => (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
       </svg>
@@ -67,7 +67,7 @@ const TABS = [
     href: "/people",
     label: "ユーザー",
     icon: (active: boolean) => (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" fill={active ? "currentColor" : "none"}/>
         <circle cx="9" cy="7" r="4" fill={active ? "currentColor" : "none"}/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -78,7 +78,7 @@ const TABS = [
     href: "/mypage",
     label: "マイページ",
     icon: (active: boolean) => (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
         <circle cx="12" cy="7" r="4"/>
       </svg>
@@ -91,7 +91,7 @@ const SIGNUP_TAB = {
   href: "/auth?mode=signup",
   label: "無料登録",
   icon: (active: boolean) => (
-    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.4 : 1.8} strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
       <circle cx="9" cy="7" r="4"/>
       <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
@@ -176,8 +176,10 @@ export function MobileBottomNav() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 3,
+                position: "relative",
                 textDecoration: "none",
-                color: active ? "var(--royal)" : "var(--ink-mute)",
+                /* ★選んでいないタブも読める濃さに（2026-10-19。--ink-mute だと薄くて押せる場所に見えなかった） */
+                color: active ? "var(--royal)" : "var(--ink-soft)",
                 // 12px未満のテキストを作らない方針（2026-08-03）。9px は読めない小ささだった。
                 // 5タブ × 375px でも「マイページ」が折り返さないことを実機で確認済み。
                 fontSize: 12,
@@ -188,6 +190,8 @@ export function MobileBottomNav() {
                 WebkitTapHighlightColor: "transparent",
               }}
             >
+              {/* ★いまの画面のタブの上に線（2026-10-19 / LinkedIn と同じ見せ方）。色だけだと見分けにくかった */}
+              {active && <span aria-hidden data-state="bottom-nav-active" style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 36, height: 3, borderRadius: "0 0 3px 3px", background: "var(--royal)" }} />}
               {tab.icon(active)}
               {tab.label}
             </Link>

@@ -1689,7 +1689,8 @@ function PostCard({
                 </Link>
               )}
               {/* バッジ。企業が主体のときもシステム名義のときも「企業」のまま */}
-              {(actor.kind === "company" || actor.kind === "system") && (
+              {/* ★種別の印（新規掲載など）があるときは「企業」を出さない（2026-10-19）。バッジが2つ並ぶと名前の行が折り返していた */}
+              {(actor.kind === "company" || actor.kind === "system") && !POST_TYPE_BADGE[post.post_type] && (
                 <span style={{ fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", border: "1px solid var(--royal-100)", borderRadius: 4, padding: "1px 5px", letterSpacing: "0.03em" }}>
                   企業
                 </span>
@@ -1698,22 +1699,7 @@ function PostCard({
               {/* ⚠️ 投稿種別のバッジ。**本文から定型文を外した代わりに、ここが「何の出来事か」を担う**
                      （2026-08-13）。文字を増やさずに種別を伝えるのが役割なので、
                      文言は2〜4字に収めること。 */}
-              {POST_TYPE_BADGE[post.post_type] && (() => {
-                const b = POST_TYPE_BADGE[post.post_type]!;
-                return (
-                  <span style={{
-                    fontSize: 12, fontFamily: "var(--font-inter), var(--font-noto)",
-                    fontWeight: 700, color: b.color, background: b.bg,
-                    border: `1px solid ${b.border}`, borderRadius: 4, padding: "1px 5px",
-                  }}>
-                    {b.label}
-                  </span>
-                );
-              })()}
-              {/* 日付インライン */}
-              <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                · {relativeTime(post.created_at)}
-              </span>
+              {/* ★種別の印と日付は名前の下の行へ移した（2026-10-19 / LinkedIn と同じ「名前 → 肩書き → 時刻」）。 */}
               {/* ⚠️★投稿ごとの公開範囲バッジは 2026-09-18 に外した。
                      選択肢が無くなり**全投稿が同じ値**になったので、出すと毎行に
                      同じ文字が並ぶだけになる。どこまで出るかは投稿欄の一文で伝える。
@@ -1726,6 +1712,15 @@ function PostCard({
                 {post.user.roleTitle ?? post.user.company}
               </div>
             )}
+            {/* ★種別（新規掲載・新着求人・取材記事）と日付を1行で（2026-10-19）。
+                   ⚠️ 種別は色の文字だけ（枠付きのバッジにしない）。名前の行を折り返させないため */}
+            <div data-state="post-subline" style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--ink-mute)", marginTop: 2, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              {POST_TYPE_BADGE[post.post_type] && (
+                <span style={{ fontWeight: 700, color: POST_TYPE_BADGE[post.post_type]!.color }}>{POST_TYPE_BADGE[post.post_type]!.label}</span>
+              )}
+              {POST_TYPE_BADGE[post.post_type] && <span aria-hidden>·</span>}
+              <span style={{ fontWeight: 500 }}>{relativeTime(post.created_at)}</span>
+            </div>
           </div>
         </div>
 
@@ -2626,11 +2621,12 @@ function FeedCompanyActions({ companyId, companyName }: { companyId: string; com
     return () => io.disconnect();
   }, []);
   return (
-    <div ref={ref} style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 12, borderTop: "1px solid var(--line-soft, #f1f5f9)", marginTop: 4, minHeight: 49 }}>
+    <div ref={ref} style={{ display: "flex", gap: 8, alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--line-soft, #f1f5f9)", marginTop: 4, minHeight: 45 }}>
       {visible && (
         <>
-          <CompanyFollowButton companyId={companyId} />
-          <CompanyBookmarkButton companyName={companyName} companyId={companyId} variant="pill" />
+          {/* ★主なボタンはフォロー（青い枠）、保存は丸いハートだけ（2026-10-19）。同じ強さの灰色の枠が2つ並ぶと目が止まらなかった */}
+          <CompanyFollowButton companyId={companyId} tone="primary" />
+          <CompanyBookmarkButton companyName={companyName} companyId={companyId} variant="heart" />
         </>
       )}
     </div>

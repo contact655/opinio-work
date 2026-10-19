@@ -309,7 +309,8 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
 
 // ─── FollowButton ─────────────────────────────────────────────────────────────
 
-export function FollowButton({ companyId }: { companyId: string }) {
+/** @param tone primary … 未フォローのときに青い枠（主なボタンとして目立たせる。ホームの企業カード。2026-10-19） */
+export function FollowButton({ companyId, tone = "default" }: { companyId: string; tone?: "default" | "primary" }) {
   /* ⚠️ 状態はサーバーから props で受け取らずここで取る。
         サーバーで引くとページ全体が動的化して ISR が効かなくなるため。 */
   const viewer = useCompanyViewerState(companyId);
@@ -352,9 +353,9 @@ export function FollowButton({ companyId }: { companyId: string }) {
       style={{
         display: "inline-flex", alignItems: "center", gap: 5,
         padding: "6px 14px", borderRadius: 100, fontSize: 12, fontWeight: 700,
-        border: `1px solid ${followed ? "var(--royal)" : "var(--line)"}`,
+        border: tone === "primary" && !followed ? "1.5px solid var(--royal)" : `1px solid ${followed ? "var(--royal)" : "var(--line)"}`,
         background: followed ? "var(--royal-50)" : "rgba(255,255,255,0.9)",
-        color: followed ? "var(--royal)" : "var(--ink-soft)",
+        color: followed || tone === "primary" ? "var(--royal)" : "var(--ink-soft)",
         cursor: loading ? "default" : "pointer",
         transition: "all 0.2s",
         opacity: loading ? 0.7 : 1,
@@ -377,7 +378,8 @@ export default function BookmarkButton({
 }: {
   companyName: string;
   companyId: string;
-  variant?: "icon" | "pill";
+  /** heart … 丸いハートのアイコンだけ（ホームの企業カード。主なボタン「フォロー」の横に控えめに置く。2026-10-19） */
+  variant?: "icon" | "pill" | "heart";
 }) {
   // ⚠️ FollowButton と同じ取得を共有する（企業IDごとに1本しか飛ばない）
   const viewer = useCompanyViewerState(companyId);
@@ -414,6 +416,32 @@ export default function BookmarkButton({
       setLoading(false);
     }
   };
+
+  if (variant === "heart") {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={loading}
+        className="btn-fixed-size"
+        title={bookmarked ? "保存済" : `${companyName}を保存`}
+        aria-label={bookmarked ? "保存済" : `${companyName}を保存`}
+        aria-pressed={bookmarked}
+        style={{
+          width: 34, height: 34, borderRadius: "50%", padding: 0, flexShrink: 0,
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          border: `1px solid ${bookmarked ? "var(--royal-100)" : "var(--line)"}`,
+          background: bookmarked ? "var(--royal-50)" : "#fff",
+          color: bookmarked ? "var(--royal)" : "var(--ink-soft)",
+          cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1,
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </button>
+    );
+  }
 
   if (variant === "pill") {
     return (
