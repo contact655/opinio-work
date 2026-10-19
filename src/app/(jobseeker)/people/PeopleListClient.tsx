@@ -166,7 +166,17 @@ export function PeopleCardStyles() {
             /* ⚠️ 1列に落とすのは 560px。420px にすると 421〜560px の帯で
                   2列 × 180〜250px になり、5列時（235px）より細いカードが出てしまう。
                   「狭い画面ほどカードが細い」わけではないので、境界は列数から逆算すること。 */
-            @media (max-width: 560px)  { .ppl-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+            /* ★スマホ（560px 以下）は縦長のカードを2列（2026-10-19 / 柴さんの判断「ユーザーは縦型の方が見やすい」）。
+                  それまでは1人1行（CompactRow）だった。カードは小さめにし、ボタンは縦に積む */
+            @media (max-width: 560px)  {
+              .ppl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+              .ppl-grid-card { padding: 16px 10px 12px; border-radius: 14px; }
+              .ppl-grid-card .ppl-company { font-size: 12.5px; }
+              .ppl-grid-card .ppl-role { font-size: 12px; }
+              .ppl-grid-cta { flex-direction: column; }
+              .ppl-grid-follow button { width: 100%; justify-content: center; }
+              .ppl-grid-name { font-size: 14.5px !important; }
+            }
 
             /* ★スマホのコンパクトな行（2026-10-17）。カードの中身と同じものを横に並べる */
             .ppl-compact-list { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -395,8 +405,10 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
       （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
 // ── グリッドカード ────────────────────────────────────────────────────
-export function GridCard({ card, myUserId, followedUserIds }: {
+export function GridCard({ card, myUserId, followedUserIds, narrow = false }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+  /** ★スマホの2列（2026-10-19）。顔を小さくする */
+  narrow?: boolean;
 }) {
   const router = useRouter();
   // ⚠️ ow_company_members.role_title（自由記述）ではなく ow_roles の職種名を出す。
@@ -413,12 +425,12 @@ export function GridCard({ card, myUserId, followedUserIds }: {
     >
       {/* アバター */}
       <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
-        <Avatar card={card} size={88} />
+        <Avatar card={card} size={narrow ? 64 : 88} />
       </div>
 
       {/* 名前・役職・所属 */}
       <div style={{ textAlign: "center", marginBottom: 12, marginTop: 6, width: "100%" }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3 }}>
+        <div className="ppl-grid-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3, overflowWrap: "anywhere" }}>
           {card.name}
         </div>
         {/* ★並びは **名前 → 会社 → 職種**（2026-08-18）。
@@ -455,7 +467,7 @@ export function GridCard({ card, myUserId, followedUserIds }: {
              ここを塗ると一覧が主導線だらけになる。
           ⚠️ onClick の伝播を止める。カード全体が router.push を持っているため、
              止めないとフォローと同時にプロフィールへ遷移する。 */}
-      <div style={{ marginTop: "auto", width: "100%", display: "flex", gap: 6, alignItems: "stretch" }}>
+      <div className="ppl-grid-cta" style={{ marginTop: "auto", width: "100%", display: "flex", gap: 6, alignItems: "stretch" }}>
         {/* ★他の人のカードでは「プロフィール」の代わりに「メッセージ」（2026-10-17）。カード自体がプロフィールへの導線なので、
                プロフィールのボタンは自分のカード（とログインしていないとき）だけに残す。
             ⚠️ 意匠は「プロフィール」と同じ白（塗らない。一覧が主導線だらけになるため） */}
@@ -482,6 +494,7 @@ export function GridCard({ card, myUserId, followedUserIds }: {
         )}
         {myUserId !== null && card.userId !== myUserId && (
           <div
+            className="ppl-grid-follow"
             onClick={(e) => e.stopPropagation()}
             style={{ display: "flex", flexShrink: 0 }}
           >
@@ -1115,10 +1128,10 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           </div>
         ) : (
           isNarrow ? (
-            /* ★スマホは常にコンパクトな行（2026-10-17）。ビュートグルも出さない */
-            <div className="ppl-compact-list">
+            /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
+            <div className="ppl-grid">
               {sorted.map((card) => (
-                <CompactRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
+                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} narrow />
               ))}
             </div>
           ) : view === "list" ? (
