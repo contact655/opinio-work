@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
+import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,7 @@ type RawPost = {
   event_location: string | null;
   created_at: string;
   visibility: string;
-  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
+  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null; is_test: boolean | null } | null;
   ref_company: RefCompany;
   ref_job: RefJob;
   ref_article: RefArticle;
@@ -85,10 +86,10 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
 }
 
 // ⚠️ 判定は lib/feed/visibility に集約している。ここに if を増やさない
-function filterVisible(posts: RawPost[], myOwUserId: string | null): RawPost[] {
+function filterVisible(posts: RawPost[], myOwUserId: string | null, viewerIsTest: boolean): RawPost[] {
   return posts.filter(
     (p) =>
-      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId) &&
+      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId, viewerIsTest) &&
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
       isJobPostAlive(p) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）
@@ -119,11 +120,12 @@ async function getTopLikers(
 function formatPosts(
   posts: RawPost[],
   myOwUserId: string | null,
+  viewerIsTest: boolean,
   likedIds: Set<string>,
   expByUser: Map<string, { roleTitle: string | null; company: string | null }>,
   topLikersMap: Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]> = new Map()
 ) {
-  return filterVisible(posts, myOwUserId).map((p) => {
+  return filterVisible(posts, myOwUserId, viewerIsTest).map((p) => {
     const exp = p.user ? expByUser.get(p.user.id) : undefined;
     return {
       id: p.id,
@@ -157,7 +159,7 @@ const POST_SELECT = `
   id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
   image_url, link_url, link_title, link_image_url, link_description, link_domain,
   event_title, event_starts_at, event_location, created_at, visibility,
-  user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
+  user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, employee_count_band, location, founded_year, is_published, is_test),
   ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
   ref_article:ow_articles!ref_article_id(id, slug, title),
@@ -188,6 +190,8 @@ export async function GET(req: Request) {
   if (user) {
     myOwUserId = await resolveOwUserId(supabase, user.id);
   }
+  /* ★検証用アカウントの投稿は検証用アカウントにだけ見せる（2026-10-20。lib/feed/viewerIsTest） */
+  const viewerIsTest = await viewerIsTestByAuthId(user?.id);
 
   // ── フォロー中タブ ────────────────────────────────────────────────────────
   if (tab === "followed") {
@@ -266,7 +270,7 @@ export async function GET(req: Request) {
       getExpByUser(adminSupabase, fposts),
       getTopLikers(adminSupabase, fposts),
     ]);
-    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, fLiked, fExp, fTopLikers) });
+    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, viewerIsTest, fLiked, fExp, fTopLikers) });
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -293,7 +297,7 @@ export async function GET(req: Request) {
     getTopLikers(adminSupabase, posts),
   ]);
 
-  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, likedIds, expByUser, topLikersMap) });
+  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, viewerIsTest, likedIds, expByUser, topLikersMap) });
 }
 
 // POST /api/jobseeker/posts — 投稿作成

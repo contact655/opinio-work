@@ -6,6 +6,7 @@ import { fetchAllRows } from "@/lib/supabase/paging";
 import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
+import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
 import { getFeedSidebarCompanies } from "@/lib/supabase/queries";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
@@ -71,7 +72,7 @@ type RawPost = {
   event_location: string | null;
   created_at: string;
   visibility: string;
-  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
+  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null; is_test: boolean | null } | null;
   ref_company: RefCompany;
   ref_job: RefJob;
   ref_article: RefArticle;
@@ -109,15 +110,16 @@ export default async function FeedPage() {
   // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
   // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
   //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
-  const [sidebarResult, rawPostsResult] = await Promise.all([
+  const [sidebarResult, viewerIsTest, rawPostsResult] = await Promise.all([
     myOwUserId ? getPeopleSidebarData(myOwUserId) : Promise.resolve(null),
+    viewerIsTestByAuthId(user?.id),
     adminSupabase
     .from("ow_posts_visible")
     .select(`
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
       image_url, link_url, link_title, link_image_url, link_description, link_domain,
       event_title, event_starts_at, event_location, created_at, visibility,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
+      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))),
       ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
       ref_article:ow_articles!ref_article_id(id, slug, title, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
@@ -146,7 +148,7 @@ export default async function FeedPage() {
   //    （3箇所に散っていた結果、パーマリンクだけ is_system の例外が抜けていた）
   const visiblePosts = posts.filter(
     (p) =>
-      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user) &&
+      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, viewerIsTest) &&
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
       isJobPostAlive(p) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）

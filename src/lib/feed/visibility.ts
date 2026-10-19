@@ -74,16 +74,24 @@ export type PostVisibilityInput = {
   /** ow_posts.visibility */
   postVisibility: string | null | undefined;
   /** 投稿者の ow_users */
-  author: { visibility?: string | null; is_system?: boolean | null } | null | undefined;
+  author: { visibility?: string | null; is_system?: boolean | null; is_test?: boolean | null } | null | undefined;
 };
 
 export function isPostVisibleTo(
   { postVisibility, author }: PostVisibilityInput,
   isLoggedIn: boolean,
+  /** ★見ている人が検証用アカウントか（`viewerIsTestByAuthId`）。⚠️ 必須にしてある（渡し忘れを型で止める） */
+  viewerIsTest: boolean,
 ): boolean {
   // 1. システム投稿は素通し。システムユーザーは visibility='private' なので、
   //    この例外が無いと170件すべてが消える。
   if (author?.is_system) return true;
+
+  /* 1-2. 検証用アカウントの投稿は、実在の利用者に見せない（2026-10-20）。
+        ⚠️ 片方向。検証用アカウントからは実在の利用者の投稿も見える（運営が検証用アカウントで本番の見え方を確かめるため）。
+           careerMoves の「見ている人と is_test が同じ」とは違う。揃えないこと
+        ⚠️ 投稿者の select から is_test を落とすと undefined になり、検証用の投稿が実在の利用者に出る。落とさないこと */
+  if (author?.is_test === true && !viewerIsTest) return false;
 
   // 2. 投稿者が private なら投稿の設定に関わらず出さない。
   //    「本人を出さない」意思のほうが強い。

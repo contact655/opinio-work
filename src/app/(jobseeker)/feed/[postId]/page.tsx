@@ -7,6 +7,7 @@ import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
+import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { truncateAtBoundary } from "@/lib/utils/truncate";
 
@@ -36,7 +37,7 @@ type RawPost = {
   created_at: string;
   post_type: string;
   visibility: string;
-  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null } | null;
+  user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null; is_test: boolean | null } | null;
   ref_company: ActorCompany;
   ref_job: { status: string | null; company: ActorCompany } | null;
   likes: { count: number }[];
@@ -114,7 +115,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     .select(`
       id, content, image_url, link_url, link_title, link_image_url, link_description, link_domain, created_at,
       post_type, visibility,
-      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system),
+      user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
       ${ACTOR_SELECT},
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -134,7 +135,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   //    この例外が無いとシステム投稿170件すべてのパーマリンクが 404 になる。
   //    一覧には出ているのにシェアURLだけ 404 という状態だった（2026-08-05 修正）。
   // ⚠️ 判定は lib/feed/visibility に集約している。一覧と食い違わせない
-  if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user)) notFound();
+  if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, await viewerIsTestByAuthId(user?.id))) notFound();
   // 掲載を下ろした求人の「公開しました」投稿は、パーマリンクでも出さない
   if (!isJobPostAlive(p)) notFound();
   // 取り下げた企業の「参加しました」投稿も同じく（2026-08-13）
