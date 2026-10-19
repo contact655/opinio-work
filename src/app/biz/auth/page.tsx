@@ -314,9 +314,15 @@ function FormSide({ mode, setMode, prefillEmail, onSwitchToLogin, next, router, 
       }}
     >
       <div style={{ maxWidth: 440, margin: "0 auto", width: "100%" }}>
-        {/* ⑨ 求職者リンク — visible on all screens */}
-        <div style={{ textAlign: "right", marginBottom: 10 }}>
-          <a href="/" style={{ fontSize: 11, color: "var(--ink-mute)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+        {/* ★ロゴ（2026-10-20）。左のブランドの欄を外したあと、この画面にはロゴがどこにも無く、
+               初めて来た企業の担当者にはどこの何の画面か分からなかった。⚠️ 求職者リンクは同じ行の右へ */}
+        <div data-state="biz-auth-brand" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 28 }}>
+          <a href="/business" aria-label="OPINIO Business" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8, color: "var(--brand-ink)" }}>
+            <OpinioLogo height={20} />
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", padding: "2px 7px", borderRadius: 4, background: "var(--royal)", color: "#fff" }}>BUSINESS</span>
+          </a>
+          {/* ⑨ 求職者リンク — visible on all screens */}
+          <a href="/" style={{ fontSize: 11, color: "var(--ink-mute)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
             求職者の方はこちら →
           </a>
         </div>
@@ -811,6 +817,20 @@ function LoginForm({ prefillEmail, next, router, inviteContext }: LoginFormProps
         <p style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 6 }}>求職者アカウントをお持ちの方も同じメール・パスワードでログインできます。</p>
       </div>
 
+      {/* ★初めての方への案内を上に出す（2026-10-20）。それまではログイン欄のいちばん下だけで、
+             初めて来た企業の担当者がログイン欄を見て止まっていた。⚠️ 招待で来た人には出さない（下の行のまま） */}
+      {!inviteContext && (
+        <a href={BIZ_SIGNUP_URL} data-state="biz-signup-link"
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 20, padding: "12px 14px",
+            borderRadius: 10, background: "var(--royal-50)", border: "1px solid var(--royal-100)", textDecoration: "none" }}>
+          <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>
+            <strong style={{ fontWeight: 700 }}>初めての方</strong>
+            <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)" }}>企業の担当者として登録する（無料）</span>
+          </span>
+          <span aria-hidden style={{ color: "var(--royal)", fontWeight: 700 }}>→</span>
+        </a>
+      )}
+
       {inviteContext && <InviteBanner companyName={inviteContext.companyName || "企業"} subtitle={`ログインすると自動的にチームに参加します。（${inviteContext.email}）`} />}
 
       {error && <ErrorBox message={error} />}
@@ -871,6 +891,8 @@ function LoginForm({ prefillEmail, next, router, inviteContext }: LoginFormProps
         </button>
       </form>
 
+      {/* ⚠️ 招待で来た人にだけ下に出す（それ以外は上の案内。入口を2つにしない） */}
+      {inviteContext && (
       <div style={{ textAlign: "center", fontSize: 13, color: "var(--ink-mute)", marginTop: 20 }}>
         初めての方は{" "}
         <a
@@ -881,6 +903,7 @@ function LoginForm({ prefillEmail, next, router, inviteContext }: LoginFormProps
           企業の担当者として登録する（無料） →
         </a>
       </div>
+      )}
     </div>
   );
 }
