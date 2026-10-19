@@ -124,7 +124,15 @@ export function ClassificationEditor({ masters, value, onChange, onAddDomain, di
         .clsf-card[data-on=true] { border-color: var(--royal); }
         .clsf-card-t { font-size: 13.5px; font-weight: 600; color: var(--ink); }
         .clsf-card-d { font-size: 12px; color: var(--ink-mute); line-height: 1.5; }
-        @media (max-width: 560px) { .clsf-row2 { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 560px) {
+          .clsf-row2 { grid-template-columns: minmax(0, 1fr); }
+          /* ★スマホでは事業ステージを1つの枠の中の行にする（2026-10-19。8枚のカードで約600pxあった） */
+          .clsf-stages { gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+          .clsf-card { border: 0; border-radius: 0; border-top: 1px solid var(--line-soft, #f1f1f1); padding: 8px 12px; line-height: 1.4; }
+          .clsf-card:first-child { border-top: 0; }
+          .clsf-card[data-on=true] { background: var(--royal-50, #f2f5fb); }
+          .clsf-card-d { line-height: 1.4; }
+        }
       `}</style>
 
       {/* ① 業種 */}

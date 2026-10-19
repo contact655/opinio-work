@@ -320,9 +320,11 @@ function SubHeading({ children }: { children: React.ReactNode }) {
 }
 
 /** 右側の小さな箱 */
-function SideCard({ children, state }: { children: React.ReactNode; state?: string }) {
+function SideCard({ children, state, first }: { children: React.ReactNode; state?: string; first?: boolean }) {
+  /* ★スマホ（1023px 以下）では「公開まであと〇つ」だけを本文の上に、ほかは本文の下に出す（2026-10-19。
+        4枚とも本文の上に出していて、最初の入力欄まで約1.2画面スクロールが要った）。並びは CSS の order */
   return (
-    <div data-state={state} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
+    <div data-state={state} className={first ? "cpe-side-card cpe-side-first" : "cpe-side-card"} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
       {children}
     </div>
   );
@@ -613,7 +615,7 @@ export function CompanyEditClient({
     : primary.state === "request" && !canRequestListing
     ? "掲載の依頼は管理者が行います。"
     : primary.state !== "published" && primary.state !== "requested" && blocking.length > 0
-      ? `必要な項目があと${blocking.length}つあります（右側から移動できます）。`
+      ? `必要な項目があと${blocking.length}つあります。`
       : null;
 
   const saveText = saveState === "saving" ? "保存中..." : saveState === "saved" ? "下書きを保存しました" : saveState === "error" ? "保存できませんでした" : "";
@@ -629,7 +631,8 @@ export function CompanyEditClient({
       memberships={memberships}
       currentTenantId={companyId}
     >
-      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - var(--biz-header-h) - var(--biz-tabbar-h, 0px))" }}>
+      {/* ★高さは CSS（.cpe-frame）。iPhone では 100vh がアドレスバーの裏まで含むので、dvh を優先する（2026-10-19） */}
+      <div className="cpe-frame" style={{ display: "flex", flexDirection: "column" }}>
         {/* ── 上部: 見出し・状態（灰色の文字）・主ボタン ── */}
         <div className="cpe-head" style={{ background: "#fff", borderBottom: "1px solid var(--line)", flexShrink: 0, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業ページ</h1>
@@ -842,7 +845,7 @@ export function CompanyEditClient({
 
             {/* ── 右側（固定）── */}
             <aside className="cpe-side">
-              <SideCard state="requirements">
+              <SideCard state="requirements" first>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
                   {blocking.length > 0 ? `公開まであと${blocking.length}つ` : "公開に必要な項目はそろっています"}
                 </div>
@@ -980,13 +983,16 @@ export function CompanyEditClient({
 
       {/* ⚠️ style タグの中に不等号・バッククォートを書かない（ハイドレーションが壊れる） */}
       <style>{`
+        .cpe-frame { height: calc(100vh - var(--biz-header-h) - var(--biz-tabbar-h, 0px)); height: calc(100dvh - var(--biz-header-h) - var(--biz-tabbar-h, 0px)); }
         .cpe-head { padding: 14px 32px; }
         .cpe-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; max-width: 1360px; padding: 18px 28px 48px; }
         .cpe-side { position: sticky; top: 24px; align-self: start; }
         .cpe-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
         @media (max-width: 1023px) {
-          .cpe-grid { grid-template-columns: minmax(0, 1fr); padding: 16px; }
-          .cpe-side { position: static; order: -1; }
+          .cpe-grid { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 0; }
+          .cpe-side { display: contents; }
+          .cpe-side-card { order: 1; }
+          .cpe-side-first { order: -1; }
           .cpe-head { padding: 12px 16px; }
         }
         @media (max-width: 640px) {
