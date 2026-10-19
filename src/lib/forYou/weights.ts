@@ -143,7 +143,8 @@ export function groupLabel(s: SignalDetail): string {
     case "role_opening":
       return s.fromDesired ? `希望職種（${s.roleName}）の募集がある会社` : `あなたの経験職種（${s.roleName}）の募集がある会社`;
     case "moved_from_domain":
-      return `${s.fromCurrent ? "いまの勤務先" : "前職"}と同じ${s.domainName}領域の会社から、人が移っている会社`;
+      /* 2026-10-20: 「〜領域の会社から、人が移っている会社」は「会社」が2回出て回りくどかったので短くした */
+      return `${s.fromCurrent ? "いまの勤務先" : "前職"}と同じ${s.domainName}領域から、人が移っている会社`;
     case "phase_match":
       return `希望しているフェーズ（${s.phaseLabel}）の会社`;
   }
