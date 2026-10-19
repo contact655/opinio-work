@@ -256,7 +256,8 @@ export default function ConversationDetailClient({
           {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
             /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
             <p data-state="request-pending-banner" className="text-sm text-gray-500 text-center py-1">
-              まだ返信がありません。返信があると続きを送れます
+              {/* ★文ごとに折り返す（2026-10-19。390px で「…送れま／す」と最後の1文字だけ次の行に落ちていた） */}
+              <span className="inline-block">まだ返信がありません。</span><span className="inline-block">返信があると続きを送れます</span>
             </p>
           ) : myParticipantId ? (
             <div className="flex gap-2 items-end">
@@ -264,7 +265,8 @@ export default function ConversationDetailClient({
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="メッセージを入力… (Cmd+Enter で送信)"
+                placeholder="メッセージを入力…"
+                title="Cmd+Enter（Windows は Ctrl+Enter）でも送信できます"
                 aria-label="メッセージを入力"
                 rows={2}
                 className="flex-1 resize-none border border-card-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
