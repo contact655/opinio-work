@@ -123,7 +123,8 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   useEffect(() => {
     if (!autoSelect || selectedKey || !firstId) return;
     if (!window.matchMedia(`(min-width: ${MESSAGES_SPLIT_MIN_WIDTH}px)`).matches) return;
-    router.replace(hrefOf(firstId), { scroll: false });
+    /* ★auto=1 … 自動で開いたことをサーバーに伝える。既読は触ったときに付ける（2026-10-20 / A案。page.tsx・ReadOnInteraction） */
+    router.replace(`${hrefOf(firstId)}&auto=1`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey, firstId]);
 

@@ -62,7 +62,7 @@ export type ConversationRow = {
  * ⚠️ ルール（180日・見送りは見せない）。月10通は 2026-10-17、返事待ち10件と30日の期限は 2026-10-18 に外した。言葉と URL だけ。
  * ⚠️ 旧 URL は next.config.mjs で 301 転送（/biz/conversations → ここ、/biz/approaches → ?tab=pending）。
  */
-export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string; filter?: string } }) {
+export default async function BizMessagesPage({ searchParams }: { searchParams?: { tab?: string; sent?: string; show?: string; filter?: string; auto?: string } }) {
   const ctx = await getTenantContext();
   if (!ctx) return <BizNoTenantPage />;
   /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
@@ -111,7 +111,10 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
     }
   }
   /* ★開いた会話は、ここで既読にする（`loadCompanyThread`。参加者のときだけ）。⚠️ 一覧の未読を数えるより先に読む */
-  const thread = selectedConvId ? await loadCompanyThread(selectedConvId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId }) : null;
+  /* ★一覧のいちばん上を自動で開いたとき（?auto=1。MessagesView が付ける）は既読にしない（2026-10-20 / 柴さんの判断 A案）。
+        開いただけで届いたばかりの返信の未読が消え、担当者が気づかないまま残っていた。触ったときに既読にする（ReadOnInteraction） */
+  const autoOpened = searchParams?.auto === "1";
+  const thread = selectedConvId ? await loadCompanyThread(selectedConvId, { tenantId: ctx.tenantId, currentOwnId: ctx.currentOwnId }, { markRead: !autoOpened }) : null;
   const selectedCandidateId = thread?.candidate?.id ?? selectedSent?.candidate.id ?? null;
   const paneMeta = selectedCandidateId ? await candidateHeaderMeta(selectedCandidateId) : null;
 
@@ -124,7 +127,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   for (const id of Array.from(await unseenProposalConversationIds(ctx.tenantId))) newReplyConvIds.add(id);
   const interestIds = await interestConversationIds(ctx.tenantId);
   /* ⚠️ いま開いた会話は、上で企業が見た印を付けた（参加者のとき）。この描画の「新しい」印からも外す */
-  if (thread?.isParticipant) newReplyConvIds.delete(thread.conv.id);
+  if (thread?.isParticipant && !autoOpened) newReplyConvIds.delete(thread.conv.id);
 
   /* ★一覧の「最後のメッセージの冒頭1行」（2026-10-11 / 柴さんの指示。LinkedIn の受信箱と同じ）。
         ⚠️★admin で読まないこと。セッションのクライアントで読めば、参加していない会話は RLS で落ちる（読めない人に本文を出さない） */
@@ -204,7 +207,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   const tab = searchParams?.tab === "pending" || searchParams?.tab === "unread" ? searchParams.tab : "all";
   const backHref = tab === "all" ? "/biz/messages" : `/biz/messages?tab=${tab}`;
   const nowDate = new Date();
-  const pane = thread ? <ThreadPane thread={thread} meta={paneMeta} backHref={backHref} myOwUserId={ctx.currentOwnId} />
+  const pane = thread ? <ThreadPane thread={thread} meta={paneMeta} backHref={backHref} myOwUserId={ctx.currentOwnId} deferRead={autoOpened} />
     : selectedSent ? <PendingPane sent={selectedSent} meta={paneMeta} backHref={backHref} />
     : null;
   const selectedKey = thread ? `c:${thread.conv.id}` : selectedSent ? `s:${selectedSent.id}` : null;

@@ -8,6 +8,7 @@ import { formatMeetingDateTime, MEETING_FORMATS } from "@/lib/constants/meetings
 import { ThreadMessages } from "./ThreadMessages";
 import { ThreadReplyArea } from "./[id]/ThreadReplyArea";
 import { RecordMeetingButton, SchedulingTools } from "./[id]/SchedulingTools";
+import { ReadOnInteraction } from "./ReadOnInteraction";
 
 /**
  * ★/biz/messages の右側（2026-10-11 / 柴さんの指示。LinkedIn のメッセージと同じ左右2画面）。
@@ -42,10 +43,15 @@ function PaneShell({ candidateId, name, meta, backHref, children, footer }: {
 }
 
 /** 返信後・興味あり・応募などの会話 */
-export function ThreadPane({ thread, meta, backHref, myOwUserId }: { thread: CompanyThread; meta: string | null; backHref: string; myOwUserId: string }) {
+export function ThreadPane({ thread, meta, backHref, myOwUserId, deferRead = false }: {
+  thread: CompanyThread; meta: string | null; backHref: string; myOwUserId: string;
+  /** ★自動で開いたとき（?auto=1）は既読を付けずに読んでいる。触ったときに既読にする（ReadOnInteraction） */
+  deferRead?: boolean;
+}) {
   const name = thread.candidate?.name ?? "名前未設定";
   const m = thread.meetingState;
   return (
+    <ReadOnInteraction conversationId={thread.conv.id} enabled={deferRead && thread.isParticipant}>
     <PaneShell candidateId={thread.candidate?.id ?? null} name={name} meta={meta} backHref={backHref}
       footer={
         <ThreadReplyArea conversationId={thread.conv.id} isParticipant={thread.isParticipant} canReply={thread.canReply} sendBlocked={thread.sendBlocked}
@@ -59,6 +65,7 @@ export function ThreadPane({ thread, meta, backHref, myOwUserId }: { thread: Com
       ) : thread.isParticipant && m?.linkSent ? <RecordMeetingButton conversationId={thread.conv.id} /> : null}
       <ThreadMessages thread={thread} />
     </PaneShell>
+    </ReadOnInteraction>
   );
 }
 
