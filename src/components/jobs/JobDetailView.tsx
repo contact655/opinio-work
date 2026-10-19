@@ -730,6 +730,20 @@ export async function JobDetailView({
               </section>
               )}
 
+              {/* 現役社員・OB/OG — 職種マッチ
+                     ★2026-10-20（柴さんの指示）: 仕事内容のすぐ下へ移した。それまでは選考フローの下（スマホで上から約4,000px）で、
+                       「この職種で働く実在の人が見える」という OPINIO の特徴が、ほとんど読まれない位置にあった。
+                       ⚠️ 「この会社の他の現役社員」は下に残す（職種と無関係の人なので、求人の中身より先に出さない）
+                     ⚠️★OB・OG は**0件でも枠ごと出す**（`alwaysShowAlumni`）。
+                        「この求人の職種を経験して退職した人」という項目そのものを
+                        見せたい、という判断（柴さん・2026-08-30）。 */}
+              <JobEmployeesSection
+                current={jobEmployees.current}
+                alumni={jobEmployees.alumni}
+                companyId={job.company_id}
+                alwaysShowAlumni
+              />
+
               {/* Skills */}
               {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
               <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
@@ -1271,19 +1285,8 @@ export async function JobDetailView({
                 <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
               </div>
 
-              {/* 現役社員・OB/OG — 職種マッチ
-                     ⚠️★OB・OG は**0件でも枠ごと出す**（`alwaysShowAlumni`）。
-                        「この求人の職種を経験して退職した人」という項目そのものを
-                        見せたい、という判断（柴さん・2026-08-30）。 */}
-              <JobEmployeesSection
-                current={jobEmployees.current}
-                alumni={jobEmployees.alumni}
-                companyId={job.company_id}
-                alwaysShowAlumni
-              />
-
               {/* ★この会社の他の現役社員（職種一致を除く）── 2026-08-30 追加
-                     ⚠️★**上の `JobEmployeesSection` と同じ人を出さない。**
+                     ⚠️★**職種マッチの `JobEmployeesSection`（仕事内容の下）と同じ人を出さない。**
                         `otherEmployees` は職種一致した人を差し引いた残り。
                         差し引かないと、生藤さんのように「この職種の現役メンバー」と
                         ここの両方に出る（2026-08-30 に「企業について」で消した重複と同じ形）。
