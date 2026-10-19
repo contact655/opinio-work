@@ -416,7 +416,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
                             .companies-grid4 { grid-template-columns: repeat(2, 1fr); gap: 14px; }
                           }
                           @media (max-width: 600px) {
-                            .companies-grid4 { grid-template-columns: repeat(1, 1fr); gap: 8px; }
+                            /* ★スマホは縦長のカードを2列（2026-10-19。カード側は CompanyCardList の 600px 以下の CSS） */
+                            .companies-grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
                           }
                         `}</style>
                         {isGridView ? (

@@ -42,10 +42,15 @@ export async function CompanySearchResults({ companies, industry, selectedKey = 
   return (
     <>
       <style>{`
+        /* ★スマホ（600px 以下）は縦長のカードを2列（2026-10-19。一覧の .companies-grid4 と揃える）。
+              601〜640px はカードが横並びに戻るので1列のまま */
         .search-results-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 10px;
+        }
+        @media (max-width: 600px) {
+          .search-results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (min-width: 641px) {
           .search-results-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }

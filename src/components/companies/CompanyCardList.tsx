@@ -160,9 +160,18 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
           .clv-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,35,102,0.14) !important; }
           .clv-card:hover .clv-name { color: var(--royal) !important; }
           @media (max-width: 600px) {
-            /* ⚠️ gap は縦積みの行間になった（2026-08-11 に横並びから変更） */
-            .clv-card { gap: 8px !important; min-height: 0 !important; }
-            .clv-logo { width: 44px !important; height: 44px !important; min-width: 44px !important; }
+            /* ★スマホは縦長のカード（2列）。2026-10-19 / 柴さんの判断「企業情報は縦型の方が見やすい」。
+                  上に色帯・帯に重ねたロゴ・社名（2行まで）・事業領域と規模・募集中。見本は /dev/preview/company-rows。
+               ⚠️ ここの !important はカード側のインライン指定（横並び用）を上書きするため。600px 以下だけに効く */
+            .clv-card { gap: 6px !important; min-height: 0 !important; padding: 0 0 12px !important; align-items: center; text-align: center; }
+            .clv-band { display: block !important; align-self: stretch; height: 40px; background: linear-gradient(135deg, var(--royal-50), #dbe4f7); }
+            .clv-head { flex-direction: column; gap: 6px !important; padding: 0 8px !important; margin-top: -30px; width: 100%; }
+            .clv-namebox { width: 100%; }
+            .clv-logo { width: 56px !important; height: 56px !important; min-width: 56px !important; border: 3px solid #fff !important; background: #fff; }
+            .clv-name { white-space: normal !important; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; font-size: 14px !important; min-height: 2.5em; }
+            .clv-sub, .clv-div, .clv-tag { display: none !important; }
+            .clv-meta { flex-direction: column; gap: 6px !important; padding: 0 8px; }
+            .clv-jobs { margin-left: 0 !important; }
           }
         `}</style>
         <Link
@@ -202,11 +211,14 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                 box-shadow を上書きするので、**カーソルを乗せた瞬間に帯が消える。** */}
           {/* ⚠️ 表示するかは globals.css の `.cl-selected-band`（分割レイアウトの中だけ）。 */}
           {selected && <span aria-hidden="true" className="cl-selected-band" />}
+          {/* ★スマホの縦長カードの上の色帯（600px 以下だけ表示）。⚠️ ::before で書かない —— style タグの中の
+                 引用符（content の値）がサーバーだけ実体参照になり、ハイドレーションが失敗する（ui-debugging ⑲） */}
+          <span aria-hidden="true" className="clv-band" style={{ display: "none" }} />
 
           {/* ── ヘッダー行: ロゴ ＋ 名前（ロゴと名前が同じ行にあるので基準線が1本になる）──
               ⚠️ 右に paddingRight を取ってあるのは、右上のハート（絶対配置）の下に
                  長い社名が潜り込まないようにするため。 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, paddingRight: 30 }}>
+          <div className="clv-head" style={{ display: "flex", alignItems: "center", gap: 14, paddingRight: 30 }}>
           <CompanyLogo
             name={company.name}
             logoUrl={company.logo_url}
@@ -253,7 +265,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
           {/* ブランド名（大・濃）＋ 正式名称（小・薄）
               ⚠️ 正式名称は重複していても省略しない。ブランド名と正式名称が
                  別物の企業があるため（例: Kong / コング・ジャパン株式会社）。 */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="clv-namebox" style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span className="clv-name" style={{
                 fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.25,
@@ -264,7 +276,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                 display: "block",
               }}>{displayName}</span>
               {showSubtitle && company.name && (
-                <span style={{
+                <span className="clv-sub" style={{
                   fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.3,
                   fontFamily: "var(--font-inter), var(--font-noto)",
                   overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis",
@@ -276,7 +288,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
           </div>
 
           {/* ── 区切り線: ここから下は全幅 ── */}
-          <div style={{ borderTop: "1px solid var(--line-soft)" }} />
+          <div className="clv-div" style={{ borderTop: "1px solid var(--line-soft)" }} />
 
           {/* タグライン（全幅・2行まで）
               ⚠️ ここがカードで一番情報量のある行。2行に広げるために全幅へ回した。 */}
@@ -286,7 +298,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                  1行固定にすると全カードの行数が構造的に揃う。
               ⚠️ 省略で失われる「何をする会社か」は、下のメタ行の industry タグで補う。
               ⚠️ `minHeight` は不要になったので外した（1行固定＝高さが常に一定）。 */}
-          <span style={{
+          <span className="clv-tag" style={{
             fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.55,
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -301,7 +313,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                  その大半は外資系日本法人で、「上場」は実質**親会社**の上場を指す。
                  一覧にバッジで並べると誤読を生むため詳細ページに残す（2026-08-11 判断）。
               ⚠️ 在籍者（この会社の人）は入れない。76社中2社にしかデータが無いため。 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "auto" }}>
+          <div className="clv-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "auto" }}>
             {/* 業種タグ — 塗りなし・淡い背景。募集中バッジと強さで差をつける */}
             {/* ⚠️ **主の事業領域を1件だけ出す。** 最大3件持てるが、この行は
                    `whiteSpace: nowrap` の1行なので複数出すと横幅が破綻する。
@@ -340,7 +352,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
             {/* 募集中 — 一覧で最も行動につながる情報なので**塗り**にして右端に固定。
                 ⚠️ 上の業種タグを同じ強さで塗らないこと。どちらを見ればいいか分からなくなる。 */}
             {company.job_count > 0 && (
-              <span style={{
+              <span className="clv-jobs" style={{
                 marginLeft: "auto", flexShrink: 0,
                 display: "inline-flex", alignItems: "center", gap: 3,
                 /* ⚠️ 12px 未満にしない（2026-08-30）。375px の実機で 12px でも切れ・はみ出し・横スクロールとも0件だった。 */
