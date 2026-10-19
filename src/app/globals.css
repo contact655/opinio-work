@@ -2789,3 +2789,9 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
     font-size: 16px !important;
   }
 }
+
+/* ★「あなたに合う会社」の社名（2026-10-20）。会社ページへのリンクだと分かるように青字にし、ホバーで下線。
+   黒字・下線なしだと押せることに気づけず、「話を聞いてみたい」の前に会社を見られなかった。
+   上段（ProposalsClient）と下段（ForYouSection）で同じ見た目にする */
+.fit-company-link { color: var(--royal); text-decoration: none; }
+.fit-company-link:hover, .fit-company-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }

@@ -119,7 +119,7 @@ export default function ProposalsClient({
                 <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
                   <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
                     {p.companyHref
-                      ? <Link href={p.companyHref} style={{ color: "inherit", textDecoration: "none" }}>{p.companyName}</Link>
+                      ? <Link href={p.companyHref} className="fit-company-link">{p.companyName}</Link>
                       : p.companyName}
                   </h3>
                   <NameLabel state="proposal-label" strong>{PROPOSALS_SECTION_TITLE}</NameLabel>

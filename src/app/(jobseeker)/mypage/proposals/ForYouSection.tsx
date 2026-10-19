@@ -158,7 +158,7 @@ export default function ForYouSection({
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <h4 className="fy-name" style={{ fontSize: 15, fontWeight: 700, margin: 0 }} title={c.name}>
                             {c.href
-                              ? <Link href={c.href} style={{ color: "inherit", textDecoration: "none" }}>{c.name}</Link>
+                              ? <Link href={c.href} className="fit-company-link">{c.name}</Link>
                               : c.name}
                           </h4>
                           {/* ★担当者の有無は小さなラベルだけ。説明は「詳しく」に1回（柴さんの指示） */}
