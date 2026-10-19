@@ -15,6 +15,7 @@ import CompanyBookmarkButton, { FollowButton as CompanyFollowButton } from "@/ap
 import { DMButton } from "@/components/profile/DMButton";
 import { NewCompaniesCarousel, NEW_COMPANIES_CSS, type NewCompanyItem } from "@/components/feed/NewCompaniesCarousel";
 import { CareerMovesSection, CAREER_MOVES_CSS } from "@/components/people/CareerMovesSection";
+import { NewJobsCarousel, ArticlesBlock, FEED_BLOCKS_CSS, type FeedJobItem, type FeedArticleItem } from "@/components/feed/FeedSectionBlocks";
 import type { CareerMoveBlock } from "@/lib/feed/careerMoves";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
@@ -142,6 +143,8 @@ type CommentItem = {
 
 type Props = {
   initialPosts: PostItem[];
+  /** ★募集と記事の枠だけに使う告知（2026-10-20）。投稿の流れには入れない（page.tsx で別に引いている） */
+  blockPosts: PostItem[];
   myUserId: string | null;
   myName: string | null;
   myAvatarColor: string | null;
@@ -2218,10 +2221,9 @@ function PostCard({
 
 // ─── FeedClient（メイン） ─────────────────────────────────────────────────────
 
-type Tab = "all" | "followed";
-
 export default function FeedClient({
   initialPosts,
+  blockPosts,
   myUserId,
   myName,
   myAvatarColor,
@@ -2236,7 +2238,9 @@ export default function FeedClient({
   careerMoveBlocks,
   listedCompanyCount,
 }: Props) {
-  const [tab, setTab] = useState<Tab>("all");
+  /* ★「すべて／フォロー中」のタブは 2026-10-20 になくした（柴さんの指示）。1本の流れにし、フォローしている人・企業の投稿を先に出す。
+        ⚠️ `tab` は "all" 固定の名残。API の tab=followed は残してある（使い手は無い） */
+  const tab = "all" as "all" | "followed";
   // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
   const [isDesktop, setIsDesktop] = useState(false);
   const [isWide, setIsWide] = useState(false);
@@ -2253,15 +2257,60 @@ export default function FeedClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length > 0);
 
-  // フォロー中タブの状態
+  // フォロー中タブの状態（⚠️ タブは 2026-10-20 になくした。下の分岐が参照するので値だけ残す。読み込む経路は無い）
   const [followedPosts, setFollowedPosts] = useState<PostItem[] | null>(null); // null = 未ロード
-  const [followedLoading, setFollowedLoading] = useState(false);
+  const followedLoading = false;
   const [followedHasMore, setFollowedHasMore] = useState(false);
 
   const activePosts = tab === "all" ? posts : (followedPosts ?? []);
-  /* ★「すべて」タブでは、企業の新規掲載を1枚の横に送るカードにまとめる（2026-10-19 / 柴さんの判断）。
-        それまでは同じ形の「新規掲載」カードが縦に延々と続いていた。⚠️ 「フォロー中」タブはそのまま */
-  const streamPosts = tab === "all" ? activePosts.filter((p) => p.post_type !== "company_joined") : activePosts;
+  /* ★企業の新規掲載・募集の開始・記事の公開は、見出し付きの枠にまとめる（企業は 2026-10-19、募集と記事は 2026-10-20 / 柴さんの指示）。
+        それまでは同じ形のカードが1件ずつ縦に続いていた。投稿の流れに残すのは人の投稿だけ。
+     ★並びは「フォローしている人・企業の投稿」が先、そのあとは新しい順（2026-10-20）。⚠️ sort は安定なので、同じ組の中は新しい順のまま */
+  const followedUserIds = new Set(sidebarUserFollows.map((u) => u.id));
+  const followedCompanyIds = new Set(sidebarFollows.map((c) => c.id));
+  const isFollowedPost = (p: PostItem) =>
+    (!!p.user?.id && followedUserIds.has(p.user.id)) || (!!p.ref_company?.id && followedCompanyIds.has(p.ref_company.id));
+  const BLOCK_TYPES = new Set(["company_joined", "job_posted", "article_published"]);
+  const streamPosts = activePosts
+    .filter((p) => !BLOCK_TYPES.has(p.post_type))
+    .sort((a, b) => Number(isFollowedPost(b)) - Number(isFollowedPost(a)));
+
+  /* 新着の募集（job_posted から。同じ募集は1回だけ） */
+  const newJobs: FeedJobItem[] = [];
+  {
+    const seen = new Set<string>();
+    for (const p of [...activePosts, ...blockPosts]) {
+      const j = p.post_type === "job_posted" ? p.ref_job : null;
+      if (!j || seen.has(j.id)) continue;
+      seen.add(j.id);
+      const c = j.company;
+      const name = c ? (c.brand_name ?? c.name) : "";
+      const salary = j.salary_min && j.salary_max && j.salary_max > j.salary_min
+        ? `${j.salary_min.toLocaleString()}〜${j.salary_max.toLocaleString()}万円`
+        : j.salary_min ? `${j.salary_min.toLocaleString()}万円〜` : null;
+      newJobs.push({
+        id: j.id, href: `/jobs/${j.slug ?? j.id}`, title: j.title, companyName: name,
+        logoUrl: c?.logo_url ?? null, logoLetter: c?.logo_letter ?? name.charAt(0), salary,
+      });
+    }
+  }
+  /* 記事（article_published から。同じ記事は1回だけ） */
+  const newArticles: FeedArticleItem[] = [];
+  {
+    const seen = new Set<string>();
+    for (const p of [...activePosts, ...blockPosts]) {
+      const a = p.post_type === "article_published" ? p.ref_article : null;
+      if (!a || seen.has(a.id)) continue;
+      seen.add(a.id);
+      const d = new Date(p.created_at);
+      newArticles.push({
+        id: a.id, href: `/articles/${a.slug}`, title: a.title,
+        meta: `取材記事・${d.getMonth() + 1}月${d.getDate()}日`,
+        gradient: a.eyecatch_gradient ?? null,
+        initial: (a.company_initial_text ?? a.company_name_text ?? a.title).charAt(0),
+      });
+    }
+  }
   const newCompanies: NewCompanyItem[] = [];
   if (tab === "all") {
     const seen = new Set<string>();
@@ -2284,35 +2333,24 @@ export default function FeedClient({
         renderFollow={(c) => <CompanyFollowButton companyId={c.id} tone="primary" />} />
     ) });
   }
+  /* ★並び（2026-10-20）: 企業（1件目の後）→ 募集（2件目の後）→ 人（3件目の後）→ 記事（4件目の後）→ 人の2つ目（6件目の後）。
+        投稿が足りなければ、この順で最後にまとめて出る */
+  if (newJobs.length > 0) {
+    inserts.push({ after: 1, node: <NewJobsCarousel key="new-jobs" items={newJobs} totalCount={newJobs.length} moreHref="/jobs" /> });
+  }
   if (tab === "all") {
-    careerMoveBlocks.forEach((b, bi) => inserts.push({ after: bi === 0 ? 2 : 6, node: (
+    careerMoveBlocks.forEach((b, bi) => inserts.push({ after: bi === 0 ? 2 : 5, node: (
       <CareerMovesSection key={`moves-${b.key}`} title={b.title} sub={b.sub} people={b.people} hideFrom={b.hideFrom}
         renderAction={(p) => <DMButton targetUserId={p.id} targetName={p.name} variant="card" label="メッセージ" aboutCompanyId={p.aboutCompanyId} />} />
     ) }));
   }
+  if (newArticles.length > 0) {
+    inserts.push({ after: 3, node: <ArticlesBlock key="articles" items={newArticles} moreHref="/articles" /> });
+  }
+  /* ⚠️ 投稿が足りないときに後ろへまとめる分は、after の小さい順（＝上の並び）に出す */
+  inserts.sort((a, b) => a.after - b.after);
   const insertsAfter = (i: number) => inserts.filter((x) => x.after === i).map((x) => x.node);
   const leftoverInserts = inserts.filter((x) => x.after >= streamPosts.length).map((x) => x.node);
-
-  const loadFollowed = useCallback(async () => {
-    if (followedPosts !== null || followedLoading) return;
-    setFollowedLoading(true);
-    try {
-      const res = await fetch("/api/jobseeker/posts?tab=followed&limit=20");
-      if (!res.ok) return;
-      const { posts: data } = await res.json();
-      setFollowedPosts(data ?? []);
-      setFollowedHasMore((data ?? []).length >= 20);
-    } catch {
-      setFollowedPosts([]);
-    } finally {
-      setFollowedLoading(false);
-    }
-  }, [followedPosts, followedLoading]);
-
-  const handleTabChange = (t: Tab) => {
-    setTab(t);
-    if (t === "followed" && followedPosts === null) loadFollowed();
-  };
 
   const handlePostCreated = useCallback((newPost: PostItem) => {
     setPosts((prev) => [newPost, ...prev]);
@@ -2400,42 +2438,6 @@ export default function FeedClient({
 
       {/* 中央フィードカラム */}
       <div style={{ flex: 1, minWidth: 0 }}>
-      {/* タブ */}
-      <div
-        style={{
-          display: "flex",
-          borderBottom: "1px solid var(--line)",
-          marginBottom: 16,
-          gap: 0,
-        }}
-      >
-        {(["all", "followed"] as const).map((t) => {
-          const label = t === "all" ? "すべて" : "フォロー中";
-          const active = tab === t;
-          return (
-            <button
-              key={t}
-              onClick={() => handleTabChange(t)}
-              style={{
-                background: "none",
-                border: "none",
-                borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
-                padding: "8px 18px",
-                fontFamily: "var(--font-inter), var(--font-noto)",
-                fontSize: 14,
-                fontWeight: active ? 700 : 400,
-                color: active ? "var(--royal)" : "var(--ink-soft)",
-                cursor: "pointer",
-                transition: "color 0.15s, border-color 0.15s",
-                marginBottom: -1,
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* 投稿コンポーザー。
           ⚠️ 投稿できない人には入力欄を出さない（2026-08-05）。
              「投稿できません」等の表示は出さず、静かに出さないだけにする。 */}
@@ -2566,7 +2568,7 @@ export default function FeedClient({
            ⚠️ カードを分けるのはサイトの慣習に合わせたもの（/u/[id] の投稿一覧、
               /people のユーザーカード、企業ページのツール等はすべて独立カード）。 */
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
-          <style>{NEW_COMPANIES_CSS + CAREER_MOVES_CSS}</style>
+          <style>{NEW_COMPANIES_CSS + CAREER_MOVES_CSS + FEED_BLOCKS_CSS}</style>
           {streamPosts.map((post, i) => (
             <Fragment key={post.id}>
               <PostCard

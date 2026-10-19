@@ -110,12 +110,10 @@ export default async function FeedPage() {
   // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
   // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
   //    ow_posts を直に引かないこと。除外条件はビュー1箇所に置いている。
-  const [sidebarResult, viewerIsTest, rawPostsResult] = await Promise.all([
-    myOwUserId ? getPeopleSidebarData(myOwUserId) : Promise.resolve(null),
-    viewerIsTestByAuthId(user?.id),
-    adminSupabase
-    .from("ow_posts_visible")
-    .select(`
+  /* ★募集と記事の告知は、投稿の読み込み（新しい順 20件）とは別に引く（2026-10-20）。
+        最初の20件はほぼ企業の掲載告知で、募集・記事の枠がスクロールするまで出なかった。
+        ⚠️ initialPosts に混ぜないこと。続きの読み込みは最後の投稿の時刻を手がかりにするので、古い告知が混ざると途中の投稿が飛ぶ */
+  const POST_SELECT = `
       id, content, post_type, ref_company_id, ref_job_id, ref_article_id,
       image_url, link_url, link_title, link_image_url, link_description, link_domain,
       event_title, event_starts_at, event_location, created_at, visibility,
@@ -125,10 +123,23 @@ export default async function FeedPage() {
       ref_article:ow_articles!ref_article_id(id, slug, title, is_published, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
-    `)
+    `;
+  const [sidebarResult, viewerIsTest, rawPostsResult, rawBlockResult] = await Promise.all([
+    myOwUserId ? getPeopleSidebarData(myOwUserId) : Promise.resolve(null),
+    viewerIsTestByAuthId(user?.id),
+    adminSupabase
+    .from("ow_posts_visible")
+    .select(POST_SELECT)
     .order("created_at", { ascending: false })
     .limit(20),
+    adminSupabase
+      .from("ow_posts_visible")
+      .select(POST_SELECT)
+      .in("post_type", ["job_posted", "article_published"])
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
+  if (rawBlockResult.error) console.error("[feed] block posts:", rawBlockResult.error.message);
 
   /* ⚠️ 取得に失敗したら null のまま（カードごと出さない）。
         `getPeopleSidebarData` の中で列ごとに console.error を出している。 */
@@ -137,6 +148,8 @@ export default async function FeedPage() {
   }
 
   const posts = (rawPostsResult.data ?? []) as unknown as RawPost[];
+  const mainIds = new Set(posts.map((p) => p.id));
+  const blockOnly = ((rawBlockResult.data ?? []) as unknown as RawPost[]).filter((p) => !mainIds.has(p.id));
 
   // liked_by_me
   let likedPostIds = new Set<string>();
@@ -146,7 +159,7 @@ export default async function FeedPage() {
 
   // 可視判定。⚠️ ここに if を増やさない。判定は lib/feed/visibility に集約している
   //    （3箇所に散っていた結果、パーマリンクだけ is_system の例外が抜けていた）
-  const visiblePosts = posts.filter(
+  const visiblePosts = [...posts, ...blockOnly].filter(
     (p) =>
       isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, viewerIsTest) &&
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
@@ -210,7 +223,7 @@ export default async function FeedPage() {
     }
   }
 
-  const initialPosts = visiblePosts.map((p) => {
+  const formattedPosts = visiblePosts.map((p) => {
     const exp = p.user ? expByUser.get(p.user.id) : undefined;
     return {
       id: p.id,
@@ -241,6 +254,8 @@ export default async function FeedPage() {
       top_likers: topLikersMap.get(p.id) ?? [],
     };
   });
+  const initialPosts = formattedPosts.filter((p) => mainIds.has(p.id));
+  const blockPosts = formattedPosts.filter((p) => !mainIds.has(p.id));
 
   // ── サイドバーデータ（並列取得） ─────────────────────────────────────────────
   const [followResult, userFollowResult, bookmarkResult, listedCompanies, careerMoveBlocks] = await Promise.all([
@@ -339,6 +354,7 @@ export default async function FeedPage() {
   return (
     <FeedClient
       initialPosts={initialPosts}
+      blockPosts={blockPosts}
       myUserId={myOwUserId}
       myName={owUser?.name ?? null}
       myAvatarColor={owUser?.avatar_color ?? null}
