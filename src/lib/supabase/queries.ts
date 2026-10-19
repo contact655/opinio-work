@@ -511,13 +511,6 @@ export type CompanyListRow = {
   url: string | null;
 };
 
-const COMPANY_LISTPAGE_COLS = [
-  "id", "slug", "name", "name_en", "tagline", "industry", "phase", "employee_count", "employee_count_band", "employee_count_as_of",
-  "avg_salary", "logo_gradient", "logo_letter", "logo_url",
-  "location", "url", "accepting_casual_meetings", "remote_work_status",
-  "is_published", "jobs_public", "updated_at", "company_features",
-].join(", ");
-
 /**
  * Companies list for the /companies jobseeker page.
  * dev環境ではis_publishedフィルターを無効化（テストデータが少ないため全15件表示）。
@@ -655,114 +648,34 @@ export async function getListedCompanyParams(): Promise<{ id: string; slug: stri
   }));
 }
 
-export async function getCompaniesForList(): Promise<CompanyListRow[]> {
+/**
+ * ★ホーム（/feed）の右の「掲載中の企業」3社と掲載社数だけ（2026-10-19）。
+ *   それまでは getCompaniesForList() を使っており、3社を出すために**全社の求人・写真・全員の職歴**まで引いていた
+ *   （職歴は1回の問い合わせの上限 1,000 行で黙って切れる）。並びは getCompaniesForList() と同じ。
+ */
+export async function getFeedSidebarCompanies(limit = 3): Promise<{ companies: { id: string; slug: string | null; name: string; tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }[]; total: number }> {
   const supabase = createAdminClient();
-
-  let query = supabase
-    .from("ow_companies")
-    .select(COMPANY_LISTPAGE_COLS)
-    .order("sort_order", { ascending: true, nullsFirst: false })
-    .order("updated_at", { ascending: false });
-
-  /* ⚠️ ディレクトリの軸。**dev でも絞る**（以前は dev だけ素通りしていた）。
-        「一覧に出ないこと」は dev で確認できなければ検証にならない。 */
-  query = filterListedCompanies(query);
-
-  const { data: companyRows, error } = await query;
-  if (error) {
-    console.error("[getCompaniesForList]", error.message);
-    return [];
-  }
-
-  /* ⚠️ `COMPANY_LISTPAGE_COLS` は `join(", ")` 製なので supabase-js が行の型を解決できず、
-        `GenericStringError` に化ける（CLAUDE.md「.select() には文字列リテラルを渡す」）。
-        既存の mapper と同じく any 経由で扱う。列リストの直し方は別タスク。 */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const listedIds = ((companyRows ?? []) as any[]).map((c) => c.id as string);
-  const domainsByCompany = await fetchBusinessDomainsByCompany(supabase, listedIds, "getCompaniesForList");
-
-  // Fetch active job counts + first office photo + registered member counts in parallel
-  const [{ data: jobRows }, { data: photoRows }, { data: expRows }] = await Promise.all([
-    supabase
-      .from("ow_jobs")
-      .select("company_id")
-      .match(PUBLIC_JOB_MATCH),
-    supabase
-      .from("ow_company_office_photos")
-      .select("company_id, image_url, display_order")
-      /* ⚠️★未公開（企業が「公開する」を押す前）の写真を出さない（2026-10-12） */
-      .eq("is_draft", false)
-      .order("display_order", { ascending: true }),
-    // is_test=true ユーザーを除外するため ow_users を JOIN
-    supabase
-      .from("ow_experiences")
-      .select("company_id, user_id, ow_users!user_id(id, auth_id, is_test)")
-      .eq("ow_users.is_test", false),
+  const [rows, count] = await Promise.all([
+    filterListedCompanies(supabase.from("ow_companies")
+      .select("id, slug, name, tagline, logo_letter, logo_gradient, logo_url"))
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .limit(limit),
+    filterListedCompanies(supabase.from("ow_companies").select("id", { count: "exact", head: true })),
   ]);
-
-  const jobCountMap = new Map<string, number>();
-  for (const j of jobRows ?? []) {
-    const cid = j.company_id as string;
-    jobCountMap.set(cid, (jobCountMap.get(cid) ?? 0) + 1);
-  }
-
-  // 各社の最初の写真を 1 枚だけ保持（display_order 昇順なので最初に出現したもの）
-  const coverPhotoMap = new Map<string, string>();
-  for (const p of photoRows ?? []) {
-    const cid = p.company_id as string;
-    if (!coverPhotoMap.has(cid)) {
-      coverPhotoMap.set(cid, p.image_url as string);
-    }
-  }
-
-  // ow_experiences のユニークユーザー数（登録メンバー数）— is_test=true ユーザーを除外済み
-  const memberCountMap = new Map<string, Set<string>>();
-  for (const e of expRows ?? []) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const owUser = (e as any).ow_users;
-    if (!owUser || owUser.is_test) continue;
-    /* ★本人が登録していない行（auth_id IS NULL）は人数に数えない。lib/users/registered.ts */
-    if (!isRegisteredUser(owUser)) continue;
-    const cid = e.company_id as string;
-    const uid = e.user_id as string;
-    if (!memberCountMap.has(cid)) memberCountMap.set(cid, new Set());
-    memberCountMap.get(cid)!.add(uid);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (companyRows ?? []).map((row: Record<string, any>): CompanyListRow => ({
-    id: row.id as string,
-    business_domains: domainsByCompany.get(row.id as string) ?? [],
-    slug: (row.slug as string | null) ?? null,
-    name: (row.name as string) ?? "",
-    name_en: (row.name_en as string) ?? null,
-    tagline: (row.tagline as string) ?? "",
-    industry: (row.industry as string) ?? "",
-    phase: (row.phase as string) ?? "",
-    employee_count: (row.employee_count as string) ?? "",
-    employee_count_band: (row.employee_count_band as string | null) ?? null,
-    employee_count_as_of: (row.employee_count_as_of as string | null) ?? null,
-    avg_salary: (row.avg_salary as string) ?? null,
-    location: (row.location as string) ?? "",
-    logo_gradient: (row.logo_gradient as string) ?? null,
-    logo_letter: (row.logo_letter as string) ?? null,
-    logo_url: (row.logo_url as string) ?? null,
-    accepting_casual_meetings: (row.accepting_casual_meetings as boolean) ?? false,
-    remote_work_status: (row.remote_work_status as string) ?? null,
-    is_published: (row.is_published as boolean) ?? false,
-    /* ⚠️ 2026-08-06: null フォールバックを削除した。jobs_public は NOT NULL DEFAULT false
-          なので null になりえず、分岐は発火しなかった。
-       ⚠️ jobs_public 自体の参照は同日にゼロになっている（面談CTAは
-          accepting_casual_meetings に統一）。この値を新しい判定に使わないこと。 */
-    jobs_public: (row.jobs_public as boolean) ?? false,
-    updated_at: (row.updated_at as string) ?? "",
-    job_count: jobCountMap.get(row.id as string) ?? 0,
-    cover_photo_url: coverPhotoMap.get(row.id as string) ?? null,
-    company_features: Array.isArray(row.company_features) ? (row.company_features as string[]) : null,
-    member_count: memberCountMap.get(row.id as string)?.size ?? 0,
-    url: (row.url as string | null) ?? null,
-  }));
+  if (rows.error) console.error("[getFeedSidebarCompanies]", rows.error.message);
+  if (count.error) console.error("[getFeedSidebarCompanies] count", count.error.message);
+  return {
+    companies: (rows.data ?? []).map((c) => ({
+      id: c.id as string, slug: (c.slug as string | null) ?? null, name: c.name as string, tagline: (c.tagline as string | null) ?? null,
+      logo_letter: (c.logo_letter as string | null) ?? null, logo_gradient: (c.logo_gradient as string | null) ?? null, logo_url: (c.logo_url as string | null) ?? null,
+    })),
+    total: count.count ?? (rows.data ?? []).length,
+  };
 }
+
+/* ⚠️ getCompaniesForList() は 2026-10-19 に削除した（呼び出し元が0になった）。ホームは getFeedSidebarCompanies() を使う。
+      全社の求人・写真・全員の職歴を引く作りで、職歴は 1,000 行で黙って切れていた。戻さないこと */
 
 // ─── Company queries ──────────────────────────────────────────────────────────
 

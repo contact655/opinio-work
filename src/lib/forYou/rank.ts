@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { getRoleNameMap } from "@/lib/supabase/queries";
@@ -147,8 +148,11 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
       ? db.from("ow_jobs").select("id, company_id, ow_job_roles(role_id)").eq("status", "published").in("company_id", companyIds)
       : db.from("ow_jobs").select("id, company_id, ow_job_roles(role_id)").eq("status", "published").eq("is_test", false).in("company_id", companyIds)),
     /* S5 移った人。★`ow_transitions` を読まない（lib/evidence/transitions.ts の注記）。正は ow_experiences */
-    db.from("ow_experiences")
-      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)"),
+    /* ★全員ぶんを 1,000 行ずつ最後まで引く（2026-10-19。1回の問い合わせは最大 1,000 行で、超えると「移った人」が黙って欠けていた） */
+    fetchAllRows((from, to) => db.from("ow_experiences")
+      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)")
+      .order("id").range(from, to), "forYou all exps")
+      .then((r) => ({ data: r.data, error: r.error ? { message: r.error } : null })),
     /* S7 担当者（「興味あり」の行き先） */
     db.from("ow_company_admins")
       .select("company_id, ow_users!user_id(auth_id, is_test)")

@@ -18,6 +18,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { JOIN_REASON_LABELS } from "@/lib/constants/careerReasons";
@@ -130,10 +131,12 @@ export async function gatherCompanyFacts(
            両方が**同じ関数**で組む形にした（`lib/evidence/transitions.ts`）。
         ⚠️ `ow_transitions` 自体は残してある（SQL 用・`age_at_move` などを持つ）。
            鮮度は `/api/cron/rebuild-transitions` が保つ。**製品の画面からは読まない。** */
-  const { data: allExpRows, error: allExpErr } = await db
+  /* ★全員ぶんを 1,000 行ずつ最後まで引く（2026-10-19。超えると「移った人」の数が黙って少なく出ていた） */
+  const { data: allExpRows, error: allExpErr } = await fetchAllRows((from, to) => db
     .from("ow_experiences")
-    .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility)");
-  if (allExpErr) console.error("[evidence/fetch] 全職歴（遷移用）:", allExpErr.message);
+    .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility)")
+    .order("id").range(from, to), "evidence all exps");
+  if (allExpErr) console.error("[evidence/fetch] 全職歴（遷移用）:", allExpErr);
   const moves: Move[] = buildMoves(
     (allExpRows ?? [])
       .filter((e) => isVisibleUser(e.ow_users as unknown as UserRow) && e.visibility_company !== "hidden")

@@ -6,7 +6,7 @@ import FeedClient from "./FeedClient";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive } from "@/lib/feed/visibility";
 import { canUserPost } from "@/lib/feed/canPost";
-import { getCompaniesForList } from "@/lib/supabase/queries";
+import { getFeedSidebarCompanies } from "@/lib/supabase/queries";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
@@ -268,7 +268,7 @@ export default async function FeedPage() {
           「注目」と名乗らないのは、`sort_order` の異なる値が6種類しかなく
           （公開79社・2026-08-13 実測）、運営が意図して並べた状態ではないため。
           「掲載中」なら並び順が何であっても表示と実態がずれない。 */
-    getCompaniesForList(),
+    getFeedSidebarCompanies(3),
     /* (e) ★「◯◯から次に進んだ人」（2026-10-19）。ログイン中だけ。失敗しても空で返る */
     myOwUserId ? getCareerMoveBlocks(myOwUserId) : Promise.resolve([] as CareerMoveBlock[]),
   ]);
@@ -321,9 +321,9 @@ export default async function FeedPage() {
 
   /* ⚠️ タグは**事業領域**。`industry`(text) は廃止予定で新規企業では空になる。 */
   const sidebarDomains = await fetchBusinessDomainsByCompany(
-    adminSupabase, listedCompanies.slice(0, 3).map((c) => c.id), "feed sidebar",
+    adminSupabase, listedCompanies.companies.map((c) => c.id), "feed sidebar",
   );
-  const sidebarCompanies: SidebarCompany[] = listedCompanies.slice(0, 3).map((c) => ({
+  const sidebarCompanies: SidebarCompany[] = listedCompanies.companies.map((c) => ({
     id: c.id, slug: c.slug, name: c.name, tagline: c.tagline || null,
     industry: primaryBusinessDomain(sidebarDomains.get(c.id))?.name ?? null,
     logo_letter: c.logo_letter, logo_gradient: c.logo_gradient, logo_url: c.logo_url,
@@ -344,7 +344,7 @@ export default async function FeedPage() {
       sidebarCompanies={sidebarCompanies}
       canPost={canPost}
       careerMoveBlocks={careerMoveBlocks}
-      listedCompanyCount={listedCompanies.length}
+      listedCompanyCount={listedCompanies.total}
     />
   );
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import type { CareerMovePerson, MoveCompany } from "@/components/people/CareerMovesSection";
@@ -58,34 +59,36 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
     /* ① 移る前の候補（その会社・その職種にいた職歴）を持つ人 */
     const seeds: string[] = [];
     if (myCompanyId) {
-      const { data, error } = await db.from("ow_experiences").select("user_id").eq("company_id", myCompanyId).eq("visibility_company", "real").limit(500);
-      if (error) { console.error("[careerMoves] by company:", error.message); return []; }
-      for (const r of data ?? []) seeds.push(r.user_id as string);
+      /* ★件数の上限で黙って切らない（2026-10-19。並びの無い .limit(500) で、誰が入るかが毎回違っていた） */
+      const { data, error } = await fetchAllRows((from, to) => db.from("ow_experiences").select("id, user_id").eq("company_id", myCompanyId).eq("visibility_company", "real").order("id").range(from, to), "careerMoves by company");
+      if (error) { console.error("[careerMoves] by company:", error); return []; }
+      for (const r of data) seeds.push(r.user_id as string);
     }
     if (myRoleId) {
-      const { data, error } = await db.from("ow_experiences").select("user_id").eq("role_category_id", myRoleId).eq("visibility_company", "real").limit(500);
-      if (error) { console.error("[careerMoves] by role:", error.message); return []; }
-      for (const r of data ?? []) seeds.push(r.user_id as string);
+      const { data, error } = await fetchAllRows((from, to) => db.from("ow_experiences").select("id, user_id").eq("role_category_id", myRoleId).eq("visibility_company", "real").order("id").range(from, to), "careerMoves by role");
+      if (error) { console.error("[careerMoves] by role:", error); return []; }
+      for (const r of data) seeds.push(r.user_id as string);
     }
     const seedIds = Array.from(new Set(seeds)).filter((id) => id !== viewerOwId);
     if (seedIds.length === 0) return [];
 
     /* ② 人の条件 */
-    const { data: users, error: uErr } = await db.from("ow_users")
-      .select("id, name, avatar_url, auth_id, is_test, is_system, visibility").in("id", seedIds);
-    if (uErr) { console.error("[careerMoves] users:", uErr.message); return []; }
-    const okUsers = new Map((users ?? [])
+    /* ★id を分けて引く（何百もの id を1回で渡すと URL が長すぎて失敗する） */
+    const { data: users, error: uErr } = await inChunks(seedIds, (part, from, to) => db.from("ow_users")
+      .select("id, name, avatar_url, auth_id, is_test, is_system, visibility").in("id", part).order("id").range(from, to), "careerMoves users");
+    if (uErr) { console.error("[careerMoves] users:", uErr); return []; }
+    const okUsers = new Map(users
       .filter((u) => isRegisteredUser(u) && u.is_system !== true && u.visibility !== "private" && (u.is_test === true) === (viewer.is_test === true))
       .map((u) => [u.id as string, u]));
     if (okUsers.size === 0) return [];
 
     /* ③ その人たちの職歴をすべて引いて、隣り合う2社（移った）を作る */
-    const { data: exps, error: eErr } = await db.from("ow_experiences")
+    const { data: exps, error: eErr } = await inChunks(Array.from(okUsers.keys()), (part, from, to) => db.from("ow_experiences")
       .select("id, user_id, company_id, company_text, role_category_id, role_title, started_at, is_current, visibility_company")
-      .in("user_id", Array.from(okUsers.keys()));
-    if (eErr) { console.error("[careerMoves] experiences:", eErr.message); return []; }
+      .in("user_id", part).order("id").range(from, to), "careerMoves experiences");
+    if (eErr) { console.error("[careerMoves] experiences:", eErr); return []; }
     const byUser = new Map<string, Exp[]>();
-    for (const e of (exps ?? []) as Exp[]) {
+    for (const e of exps as Exp[]) {
       if (!e.started_at) continue;
       byUser.set(e.user_id, [...(byUser.get(e.user_id) ?? []), e]);
     }
@@ -121,10 +124,10 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
     const companyIds = Array.from(new Set(all.flatMap((m) => [m.from.company_id, m.to.company_id, myCompanyId]).filter((x): x is string => !!x)));
     const roleIds = Array.from(new Set([...all.map((m) => m.latest.role_category_id), myRoleId].filter((x): x is string => !!x)));
     const [{ data: cos, error: cErr }, { data: roles, error: rErr }] = await Promise.all([
-      companyIds.length ? db.from("ow_companies").select("id, name, name_en, logo_url").in("id", companyIds) : Promise.resolve({ data: [], error: null }),
-      roleIds.length ? db.from("ow_roles").select("id, name").in("id", roleIds) : Promise.resolve({ data: [], error: null }),
+      inChunks(companyIds, (part, from, to) => db.from("ow_companies").select("id, name, name_en, logo_url").in("id", part).order("id").range(from, to), "careerMoves companies"),
+      inChunks(roleIds, (part, from, to) => db.from("ow_roles").select("id, name").in("id", part).order("id").range(from, to), "careerMoves roles"),
     ]);
-    if (cErr || rErr) { console.error("[careerMoves] names:", cErr?.message ?? rErr?.message); return []; }
+    if (cErr || rErr) { console.error("[careerMoves] names:", cErr ?? rErr); return []; }
     const coById = new Map(((cos ?? []) as { id: string; name: string; name_en: string | null; logo_url: string | null }[]).map((c) => [c.id, c]));
     const roleById = new Map(((roles ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
     const co = (e: Exp): MoveCompany => {
