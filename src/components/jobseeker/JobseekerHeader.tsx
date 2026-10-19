@@ -1015,7 +1015,11 @@ export function JobseekerHeader() {
           background: "#fff",
           overflowY: "auto",
           transform: mobileMenuOpen ? "translateX(0)" : (mobileSignedIn ? "translateX(-100%)" : "translateX(100%)"),
-          transition: "transform 0.25s ease",
+          /* ★閉じているあいだは見えなくする（2026-10-19）。ページを開くと最初は「未ログイン＝右」に置かれ、
+                ログインが分かった瞬間に左へ動くので、**閉じたままの引き出しが画面を横切って見えていた**。
+                閉じるときは動き終わってから隠す（visibility を 0.25s 遅らせる） */
+          visibility: mobileMenuOpen ? "visible" : "hidden",
+          transition: mobileMenuOpen ? "transform 0.25s ease, visibility 0s" : "transform 0.25s ease, visibility 0s linear 0.25s",
           display: "flex", flexDirection: "column",
         }}
       >
