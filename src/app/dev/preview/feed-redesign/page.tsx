@@ -1,5 +1,6 @@
 import { NewCompaniesCarousel, NEW_COMPANIES_CSS, type NewCompanyItem } from "@/components/feed/NewCompaniesCarousel";
 import { CareerMovesSection, CAREER_MOVES_CSS, type CareerMovePerson, type MoveCompany } from "@/components/people/CareerMovesSection";
+import { NewJobsCarousel, ArticlesBlock, FEED_BLOCKS_CSS, type FeedJobItem, type FeedArticleItem } from "@/components/feed/FeedSectionBlocks";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 
@@ -33,6 +34,16 @@ const SAME_ROLE = [
   move("f", "田中 健", "アカウントエグゼクティブ", { name: "株式会社リクルート", logoUrl: null }, co(1), 2022),
 ];
 
+/* ★2026-10-20 案の見本データ（募集・記事）。募集名・記事名は架空 */
+const JOBS: FeedJobItem[] = [
+  { id: "j1", href: "#", title: "Account Executive（エンタープライズ営業）", companyName: COMPANIES[0].name, logoUrl: COMPANIES[0].logoUrl, logoLetter: "O", salary: "900〜1,800万円" },
+  { id: "j2", href: "#", title: "Solution Engineer", companyName: COMPANIES[1].name, logoUrl: COMPANIES[1].logoUrl, logoLetter: "D", salary: "800〜1,300万円" },
+  { id: "j3", href: "#", title: "カスタマーサクセスマネージャー（大手企業担当・リーダー候補）", companyName: COMPANIES[3].name, logoUrl: COMPANIES[3].logoUrl, logoLetter: "H", salary: null },
+];
+const ARTICLES: FeedArticleItem[] = [
+  { id: "a1", href: "#", title: "「スカウトなし、真剣な対話だけ」OPINIOが目指す、IT転職の新しいスタンダード", meta: "取材記事・3月1日", gradient: "linear-gradient(135deg,#001233,#3B5FD9)", initial: "O" },
+];
+
 /* 普段の投稿の見本（見た目を合わせるため。本物は FeedClient の PostCard） */
 function SamplePost() {
   return (
@@ -56,13 +67,24 @@ export default function FeedRedesignPreview() {
   devOnly();
   return (
     <div>
-      <style>{NEW_COMPANIES_CSS + CAREER_MOVES_CSS}</style>
+      <style>{NEW_COMPANIES_CSS + CAREER_MOVES_CSS + FEED_BLOCKS_CSS}</style>
       <PreviewHeader title="ホームの見直し（見本）">
         「新規掲載」の企業カードが1社ずつ縦に続いていたのを、1枚の横に送るカードにまとめ、そのあいだに
         <strong>「◯◯から次に進んだ人」</strong>（キャリアの移り変わりと「メッセージで聞く」）を差し込んだ見本です。
         <strong>ブラウザを 375px にして見てください。</strong>
       </PreviewHeader>
-      <Variant label="ホームの並び（スマホ）" note="上から: 投稿 → 新しく掲載された企業（横に送る）→ Salesforce から次に進んだ人 → 投稿 → 同じ職種から次に進んだ人">
+      <Variant label="★2026-10-20 案：タブなし・投稿の合間に4つの枠" note="上から: 投稿 → 新しく掲載された企業 → 投稿 → 新着の募集 → ◯◯から次に進んだ人 → 投稿 → 記事。⚠️「フォロー中」タブはなくす。投稿はフォローしている人のものを先に">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 560, margin: "0 auto", background: "var(--bg, #f4f5f7)", padding: 12, borderRadius: 12 }}>
+          <SamplePost />
+          <NewCompaniesCarousel items={COMPANIES} totalCount={21} moreHref="/companies" />
+          <SamplePost />
+          <NewJobsCarousel items={JOBS} totalCount={2} moreHref="/jobs" />
+          <CareerMovesSection title="Salesforce から次に進んだ人" sub="いまの勤務先と同じ会社にいた人が、次にどこへ進んだか" people={FROM_SF} moreHref="/people" hideFrom />
+          <SamplePost />
+          <ArticlesBlock items={ARTICLES} moreHref="/articles" />
+        </div>
+      </Variant>
+      <Variant label="（前の案）ホームの並び（スマホ）" note="上から: 投稿 → 新しく掲載された企業（横に送る）→ Salesforce から次に進んだ人 → 投稿 → 同じ職種から次に進んだ人">
         <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 560, margin: "0 auto", background: "var(--bg, #f4f5f7)", padding: 12, borderRadius: 12 }}>
           <SamplePost />
           <NewCompaniesCarousel items={COMPANIES} totalCount={21} moreHref="/companies" />
