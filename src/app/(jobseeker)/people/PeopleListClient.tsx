@@ -893,6 +893,21 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     return [...filtered].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   }, [filtered, sort]);
 
+  /* ★一度に描くのは PAGE_SIZE 人まで（2026-10-19。利用者が増えても画面が重くならないように）。
+        絞り込み・並び替えを変えたら先頭に戻す。⚠️ 件数の表示（N名）は sorted の全件のまま */
+  const PAGE_SIZE = 60;
+  const [shownCount, setShownCount] = useState(PAGE_SIZE);
+  useEffect(() => { setShownCount(PAGE_SIZE); }, [filtered, sort]);
+  const shown = sorted.slice(0, shownCount);
+  const moreButton = sorted.length > shownCount ? (
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+      <button type="button" data-state="people-more" onClick={() => setShownCount((n) => n + PAGE_SIZE)}
+        style={{ padding: "10px 24px", borderRadius: 999, border: "1.5px solid var(--royal-100)", background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>
+        もっと見る（残り{sorted.length - shownCount}名）
+      </button>
+    </div>
+  ) : null;
+
   /* ⚠️ かつてここに `hasFilter` と `clearAll` があった（「✕ すべてクリア」用）。
         2026-09-06 にボタンごと廃止したので消した。
         ⚠️ 復活させるなら **絞り込みを全部含めること**。2026-08-15 まで漏れがあり、
@@ -1129,23 +1144,23 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         ) : (
           isNarrow ? (
             /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
-            <div className="ppl-grid">
-              {sorted.map((card) => (
+            <><div className="ppl-grid">
+              {shown.map((card) => (
                 <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} narrow />
               ))}
-            </div>
+            </div>{moreButton}</>
           ) : view === "list" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {sorted.map((card) => (
+            <><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {shown.map((card) => (
                 <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
               ))}
-            </div>
+            </div>{moreButton}</>
           ) : (
-          <div className="ppl-grid">
-            {sorted.map((card) => (
+          <><div className="ppl-grid">
+            {shown.map((card) => (
               <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
             ))}
-          </div>
+          </div>{moreButton}</>
           )
         )}
 

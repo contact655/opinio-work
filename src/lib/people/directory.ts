@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { calcPublicScore } from "@/lib/profile/completion";
 import { isRegisteredUser } from "@/lib/users/registered";
 import {
@@ -250,17 +251,20 @@ export const getDirectoryPeople = unstable_cache(
 async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerson[]> {
   const db = createAdminClient();
 
-  const { data: userRows, error } = await db
+  /* ★1,000 行ずつ最後まで引く（2026-10-19。1回の問い合わせは最大 1,000 行で、超えたぶんは黙って消える） */
+  const { data: userRows, error } = await fetchAllRows((from, to) => db
     .from("ow_users")
     /* ★`birth_date` は 2026-09-18 に取り直した（年代の絞り込みのため）。
        ⚠️★**この値をそのまま返さないこと。** 下で10年刻みの `ageBand` に畳んでから返す。
           クライアントへ実年齢や生年月日を送る必要はない。
        ⚠️ `authenticated` には SELECT を配っていない列なので、セッションクライアントだと
           クエリごと 403 になる。ここは createAdminClient なので取れる。 */
-    .select("id, auth_id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, birth_date, created_at, updated_at");
+    .select("id, auth_id, name, avatar_color, avatar_url, visibility, is_test, is_system, headline, about_me, location, social_links, birth_date, created_at, updated_at")
+    .order("id", { ascending: true })
+    .range(from, to), "people users");
 
   if (error) {
-    console.error("[people] ow_users fetch error:", error.message);
+    console.error("[people] ow_users fetch error:", error);
     return [];
   }
 
@@ -301,29 +305,32 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
           **現職側だけが空いていた。**
        ⚠️★**`id` のタイブレーカーを外さないこと**（同着は実在する）。
           `sidebarData.ts` と**同じ並び**にしてある。片方だけ変えない。 */
-    db.from("ow_experiences")
-      .select(`user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
-      .in("user_id", ids)
+    /* ★id は IN_CHUNK 個ずつに分けて引く（2026-10-19。何百もの id を1回で渡すと URL が長すぎて失敗する）。
+          ⚠️ 分けるのは利用者の単位なので、**1人ぶんの職歴は必ず同じかたまりに入り、並び（started_at 降順・id 昇順）は保たれる** */
+    inChunks(ids, (part, from, to) => db.from("ow_experiences")
+      .select(`id, user_id, is_current, started_at, ended_at, role_title, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
+      .in("user_id", part)
       .order("started_at", { ascending: false })
-      .order("id", { ascending: true }),
+      .order("id", { ascending: true })
+      .range(from, to), "people experiences"),
     // sort_order 昇順の先頭が最終学歴（/profile/edit の入力順がそうなっている）。
     // graduated_at は欠けている行があるので並べ替えの主キーにしない。
-    db.from("ow_user_educations").select("user_id, school, sort_order").in("user_id", ids).order("sort_order"),
-    db.from("ow_user_content_links").select("user_id").in("user_id", ids),
+    inChunks(ids, (part, from, to) => db.from("ow_user_educations").select("id, user_id, school, sort_order").in("user_id", part).order("sort_order").order("id").range(from, to), "people educations"),
+    inChunks(ids, (part, from, to) => db.from("ow_user_content_links").select("id, user_id").in("user_id", part).order("id").range(from, to), "people links"),
     // 「実績・受賞」3点。資格は 2026-08-04 に廃止したのでこの3テーブルだけ見る
-    db.from("ow_user_achievements").select("user_id").in("user_id", ids),
-    db.from("ow_user_awards").select("user_id").in("user_id", ids),
-    db.from("ow_user_media_appearances").select("user_id").in("user_id", ids),
+    inChunks(ids, (part, from, to) => db.from("ow_user_achievements").select("id, user_id").in("user_id", part).order("id").range(from, to), "people achievements"),
+    inChunks(ids, (part, from, to) => db.from("ow_user_awards").select("id, user_id").in("user_id", part).order("id").range(from, to), "people awards"),
+    inChunks(ids, (part, from, to) => db.from("ow_user_media_appearances").select("id, user_id").in("user_id", part).order("id").range(from, to), "people media"),
     /* 外資系の企業ID。⚠️ 経歴側の JOIN に列を足すと共有定数
        （EXPERIENCE_COMPANY_COLS）を触ることになるので、ここだけ別に引く。
        企業数は79件（2026-08-14）なので1回引いても軽い。 */
-    db.from("ow_companies").select("id").eq("is_foreign", true),
+    fetchAllRows((from, to) => db.from("ow_companies").select("id").eq("is_foreign", true).order("id").range(from, to), "people foreign"),
     /* ★会社 → 業種。⚠️ 外資系と同じ理由で**ここだけ別に引く**
           （経歴側の JOIN に足すと共有定数 EXPERIENCE_COMPANY_COLS を触ることになる）。
        ⚠️ `ow_industries` への FK は1本なので埋め込んでよい
           （複合FKの `ow_company_target_industries` とは違う）。
        ⚠️ 企業数は105件（2026-09-18）なので1回引いても軽い。 */
-    db.from("ow_companies").select("id, ow_industries!industry_id(name)"),
+    fetchAllRows((from, to) => db.from("ow_companies").select("id, ow_industries!industry_id(name)").order("id").range(from, to), "people industries"),
     getRoleTree(),
   ]);
 
@@ -332,7 +339,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
     achievements: achRes, awards: awdRes, media: medRes,
     foreignCompanies: foreignRes, companyIndustries: industryRes,
   })) {
-    if (res.error) console.error(`[people] ${label} fetch error:`, res.error.message);
+    if (res.error) console.error(`[people] ${label} fetch error:`, res.error);
   }
 
   const byUser = <T extends { user_id: string }>(rows: T[] | null): Map<string, T[]> => {
@@ -347,7 +354,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
   /* ⚠️★`error` を捨てない（2026-09-12）。ここが落ちると所属が付かず、
         `affiliation.kind === "none"` の人が一覧から**丸ごと消える**
         （実際に PGRST201 で実ユーザー3人が消えた）。 */
-  if (expRes.error) console.error("[people/directory] ow_experiences:", expRes.error.message);
+  if (expRes.error) console.error("[people/directory] ow_experiences:", expRes.error);
   const exps    = byUser((expRes.data ?? []) as unknown as ExpRow[]);
   const edus    = byUser((eduRes.data ?? []) as { user_id: string; school: string | null }[]);
   const links   = byUser((linkRes.data ?? []) as { user_id: string }[]);

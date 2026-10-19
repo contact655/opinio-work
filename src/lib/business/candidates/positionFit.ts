@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/paging";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { rolesRelated } from "@/lib/business/candidates/touchpoints";
 import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
@@ -84,10 +85,11 @@ export async function getCompanyPositionFits(
   if (jobs.length === 0 || candidates.length === 0) return { positions, fits: {} };
 
   const ids = Array.from(new Set(candidates.map((c) => c.owUserId)));
-  const expR = await db.from("ow_experiences")
-    .select("user_id, role_category_id, started_at, ended_at, rank")
-    .in("user_id", ids);
-  if (expR.error) { console.error("[positionFit] ow_experiences:", expR.error.message); return null; }
+  /* ★id を分けて、1,000 行ずつ最後まで引く（2026-10-19） */
+  const expR = await inChunks(ids, (part, from, to) => db.from("ow_experiences")
+    .select("id, user_id, role_category_id, started_at, ended_at, rank")
+    .in("user_id", part).order("id").range(from, to), "positionFit exps");
+  if (expR.error) { console.error("[positionFit] ow_experiences:", expR.error); return null; }
   const expsByUser = new Map<string, { role: string | null; months: number; rank: string | null }[]>();
   for (const e of expR.data ?? []) {
     const arr = expsByUser.get(e.user_id as string) ?? [];

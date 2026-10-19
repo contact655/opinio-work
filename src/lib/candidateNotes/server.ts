@@ -1,4 +1,5 @@
 /* ★サーバー専用。admin クライアントを使う */
+import { inChunks } from "@/lib/supabase/paging";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CANDIDATE_NOTE_MAX, isCandidateStage, type CandidateStage } from "@/lib/constants/candidateNotes";
@@ -129,19 +130,21 @@ export async function setCandidateTracking(companyId: string, candidateOwUserId:
 /** 候補者検索のカード用: 状態だけまとめて。失敗したら null */
 export async function listCandidateStages(companyId: string, candidateOwUserIds: string[]): Promise<Map<string, CandidateStage> | null> {
   if (candidateOwUserIds.length === 0) return new Map();
-  const { data, error } = await createAdminClient().from("ow_candidate_tracking").select("candidate_user_id, stage")
-    .eq("company_id", companyId).in("candidate_user_id", candidateOwUserIds).not("stage", "is", null);
-  if (error) { console.error("[candidateNotes] stages:", error.message); return null; }
-  return new Map((data ?? []).map((r) => [r.candidate_user_id as string, r.stage as CandidateStage]));
+  const db = createAdminClient();
+  const { data, error } = await inChunks(candidateOwUserIds, (part, from, to) => db.from("ow_candidate_tracking").select("candidate_user_id, stage")
+    .eq("company_id", companyId).in("candidate_user_id", part).not("stage", "is", null).order("candidate_user_id").range(from, to), "candidateNotes stages");
+  if (error) { console.error("[candidateNotes] stages:", error); return null; }
+  return new Map(data.map((r) => [r.candidate_user_id as string, r.stage as CandidateStage]));
 }
 
 /** ★候補者検索のカード用: 社内メモの件数をまとめて（2026-10-11）。メモが無い人は入れない。失敗したら null */
 export async function listCandidateNoteCounts(companyId: string, candidateOwUserIds: string[]): Promise<Map<string, number> | null> {
   if (candidateOwUserIds.length === 0) return new Map();
-  const { data, error } = await createAdminClient().from("ow_candidate_notes").select("candidate_user_id")
-    .eq("company_id", companyId).in("candidate_user_id", candidateOwUserIds);
-  if (error) { console.error("[candidateNotes] counts:", error.message); return null; }
+  const db = createAdminClient();
+  const { data, error } = await inChunks(candidateOwUserIds, (part, from, to) => db.from("ow_candidate_notes").select("id, candidate_user_id")
+    .eq("company_id", companyId).in("candidate_user_id", part).order("id").range(from, to), "candidateNotes counts");
+  if (error) { console.error("[candidateNotes] counts:", error); return null; }
   const out = new Map<string, number>();
-  for (const r of data ?? []) out.set(r.candidate_user_id as string, (out.get(r.candidate_user_id as string) ?? 0) + 1);
+  for (const r of data) out.set(r.candidate_user_id as string, (out.get(r.candidate_user_id as string) ?? 0) + 1);
   return out;
 }

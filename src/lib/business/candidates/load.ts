@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { calcTotalExperience } from "@/lib/profile/tenure";
 import { getUserAge } from "@/lib/age";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
@@ -60,7 +61,8 @@ export async function loadCompanyCandidates(params: {
   const { companyId } = params;
 
   const [profileRows, blockedPlacements, companyRow] = await Promise.all([
-    adminClient
+    /* ★1,000 行ずつ最後まで引く（2026-10-19。超えたぶんが黙って消え、母集団が欠けていた） */
+    fetchAllRows((from, to) => adminClient
       .from("ow_profiles")
       /* ⚠️★`desired_phase` / `transfer_timing` は引かない（本人側の入力欄を 2026-08-27 に消した）。
          ★`career_stance_updated_at` を使う（`stance_updated_at` は面談OK の操作でも動く）。 */
@@ -68,14 +70,18 @@ export async function loadCompanyCandidates(params: {
       /* ⚠️★未設定（null）と no_contact は入れない。`can_send_scout()` と**同じ条件**。片方だけ変えないこと */
       .not("career_stance", "is", null)
       .neq("career_stance", "no_contact")
-      .then((r) => { if (r.error) console.error("[candidates] ow_profiles:", r.error.message); return r.data ?? []; }),
+      .order("user_id")
+      .range(from, to), "candidates profiles")
+      .then((r) => { if (r.error) console.error("[candidates] ow_profiles:", r.error); return r.data; }),
     /* 転職勧奨禁止（就職後2年以内かつ在職中）。⚠️ candidate_id は auth 空間 */
-    adminClient
+    fetchAllRows((from, to) => adminClient
       .from("ow_placements")
       .select("candidate_id")
       .is("resigned_at", null)
       .gte("joined_at", new Date(Date.now() - 2 * 365.25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
-      .then((r) => { if (r.error) console.error("[candidates] ow_placements:", r.error.message); return r.data ?? []; }),
+      .order("candidate_id")
+      .range(from, to), "candidates placements")
+      .then((r) => { if (r.error) console.error("[candidates] ow_placements:", r.error); return r.data; }),
     adminClient.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle(),
   ]);
   const companyIsTest = companyRow.data?.is_test === true;
@@ -98,18 +104,26 @@ export async function loadCompanyCandidates(params: {
   /* ★性別（2026-10-12）。⚠️ 無効（本番）なら gender を読まない。有効でも表示用の文字だけを Candidate に入れる（絞り込みには使わない） */
   const genderDisplay = isCandidateGenderDisplayEnabled();
   const userCols = ["id, name, headline, avatar_url, location, created_at, auth_id, is_test, profile_edited_at", ageDisplay ? "birth_date" : null, activityOn ? "last_active_at" : null, genderDisplay ? "gender" : null].filter(Boolean).join(", ");
-  let usersQ = adminClient
+  /* ★auth_id は分けて引き、新しい順に並べ直してから上限で切る（2026-10-19。何百もの id を1回で渡すと URL が長すぎて失敗する） */
+  const usersBase = () => adminClient
     .from("ow_users")
     /* ⚠️ 型は列が多いほうに合わせる（無効のときは birth_date が返らず、下で読まない） */
     .select(userCols as "id, name, headline, avatar_url, location, created_at, auth_id, is_test, profile_edited_at, birth_date, last_active_at, gender")
-    .in("auth_id", stanceAuthIds.length ? stanceAuthIds : ["00000000-0000-0000-0000-000000000000"])
     .neq("visibility", "private")
-    .not("is_system", "eq", true)
-    .order("created_at", { ascending: false })
-    .limit(CANDIDATE_LOAD_LIMIT);
-  if (params.onlyOwUserId) usersQ = usersQ.eq("id", params.onlyOwUserId);
-  const { data: rawUsers, error: rawUsersError } = await usersQ;
-  if (rawUsersError) console.error("[candidates] ow_users:", rawUsersError.message);
+    .not("is_system", "eq", true);
+  /* ⚠️ 1人ぶん（右のプレビュー）は id で1回だけ引き、転職意欲の条件（stanceAuthIds）で絞る */
+  const stanceSet = new Set(stanceAuthIds);
+  const usersRes = params.onlyOwUserId
+    ? await usersBase().eq("id", params.onlyOwUserId).then((r) => ({
+        data: (r.data ?? []).filter((u) => stanceSet.has(u.auth_id as string)),
+        error: r.error ? r.error.message : null,
+      }))
+    : await inChunks(stanceAuthIds, (part, from, to) =>
+        usersBase().in("auth_id", part).order("created_at", { ascending: false }).order("id").range(from, to), "candidates users");
+  if (usersRes.error) console.error("[candidates] ow_users:", usersRes.error);
+  const rawUsers = [...usersRes.data]
+    .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+    .slice(0, CANDIDATE_LOAD_LIMIT);
 
   const profilesByAuthId = new Map(profileRows.map((p) => [p.user_id as string, p]));
   const eligibleUsers = (rawUsers ?? []).filter((u) => u.auth_id && !blockedCandidateIds.has(u.auth_id as string));
@@ -129,18 +143,15 @@ export async function loadCompanyCandidates(params: {
 
   /* 現職。⚠️ error を捨てない（埋め込みが PGRST201 になって社名が全員空になった前例） */
   const [{ data: currentExps, error: currentExpsErr }, { data: allExps, error: allExpErr }] = await Promise.all([
-    userIds.length
-      ? adminClient.from("ow_experiences")
-          .select(`user_id, role_title, role_category_id, employment_type, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
-          .in("user_id", userIds).eq("is_current", true)
-      : Promise.resolve({ data: [], error: null }),
+    /* ★id を分けて、1,000 行ずつ最後まで引く（2026-10-19） */
+    inChunks(userIds, (part, from, to) => adminClient.from("ow_experiences")
+      .select(`id, user_id, role_title, role_category_id, employment_type, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
+      .in("user_id", part).eq("is_current", true).order("id").range(from, to), "candidates current exps"),
     /* 社会人年数と「できること」の材料。⚠️★`company_id` は取らない（伏せた職歴の事業領域が漏れる） */
-    userIds.length
-      ? adminClient.from("ow_experiences").select("user_id, started_at, ended_at, role_category_id").in("user_id", userIds)
-      : Promise.resolve({ data: [], error: null }),
+    inChunks(userIds, (part, from, to) => adminClient.from("ow_experiences").select("id, user_id, started_at, ended_at, role_category_id").in("user_id", part).order("id").range(from, to), "candidates all exps"),
   ]);
-  if (currentExpsErr) console.error("[candidates] ow_experiences:", currentExpsErr.message);
-  if (allExpErr) console.error("[candidates] ow_experiences(all):", allExpErr.message);
+  if (currentExpsErr) console.error("[candidates] ow_experiences:", currentExpsErr);
+  if (allExpErr) console.error("[candidates] ow_experiences(all):", allExpErr);
 
   const startedAtsByUser = new Map<string, string[]>();
   const expRowsByUser = new Map<string, { started_at: string | null; ended_at: string | null; role_category_id: string | null }[]>();
@@ -220,17 +231,13 @@ export async function loadCompanyCandidates(params: {
   const hiddenIds = new Set<string>();
   const hasConversation = Array.from(recentlyApproached?.values() ?? []).some((a) => !!a.conversationId);
   const [starsR, hiddenR, unreadCounts, unseenConvs] = await Promise.all([
-    userIds.length
-      ? adminClient.from("ow_candidate_stars").select("candidate_user_id").eq("company_id", companyId).in("candidate_user_id", userIds)
-      : Promise.resolve({ data: [], error: null }),
-    userIds.length
-      ? adminClient.from("ow_candidate_hidden").select("candidate_user_id, hidden_by, created_at").eq("company_id", companyId).in("candidate_user_id", userIds)
-      : Promise.resolve({ data: [], error: null }),
+    inChunks(userIds, (part, from, to) => adminClient.from("ow_candidate_stars").select("candidate_user_id").eq("company_id", companyId).in("candidate_user_id", part).order("candidate_user_id").range(from, to), "candidates stars"),
+    inChunks(userIds, (part, from, to) => adminClient.from("ow_candidate_hidden").select("candidate_user_id, hidden_by, created_at").eq("company_id", companyId).in("candidate_user_id", part).order("candidate_user_id").range(from, to), "candidates hidden"),
     approachAllowed && hasConversation ? unreadMessageCounts(params.viewerOwUserId, { companyId }) : Promise.resolve(new Map<string, number>()),
     approachAllowed && hasConversation ? unseenRepliedConversationIds(companyId) : Promise.resolve(new Set<string>()),
   ]);
-  if (starsR.error) console.error("[candidates] ow_candidate_stars:", starsR.error.message);
-  if (hiddenR.error) console.error("[candidates] ow_candidate_hidden:", hiddenR.error.message);
+  if (starsR.error) console.error("[candidates] ow_candidate_stars:", starsR.error);
+  if (hiddenR.error) console.error("[candidates] ow_candidate_hidden:", hiddenR.error);
   for (const r of starsR.data ?? []) starred.add(r.candidate_user_id as string);
   for (const r of hiddenR.data ?? []) hiddenIds.add(r.candidate_user_id as string);
   /* ★誰がいつ見送ったか（2026-10-13）。見送った担当者の名前はまとめて1回。⚠️ 取れなければ名前なし（「見送り・日付」） */
@@ -238,8 +245,8 @@ export async function loadCompanyCandidates(params: {
   const hiderIds = Array.from(new Set((hiddenR.data ?? []).map((r) => r.hidden_by as string | null).filter((v): v is string => !!v)));
   const hiderNames = new Map<string, string>();
   if (hiderIds.length) {
-    const { data: hs, error: hsErr } = await adminClient.from("ow_users").select("id, name").in("id", hiderIds);
-    if (hsErr) console.error("[candidates] hidden_by names:", hsErr.message);
+    const { data: hs, error: hsErr } = await inChunks(hiderIds, (part, from, to) => adminClient.from("ow_users").select("id, name").in("id", part).order("id").range(from, to), "candidates hiders");
+    if (hsErr) console.error("[candidates] hidden_by names:", hsErr);
     for (const h of hs ?? []) hiderNames.set(h.id as string, ((h.name as string | null) ?? "").trim());
   }
   for (const r of hiddenR.data ?? []) {

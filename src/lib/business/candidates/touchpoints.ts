@@ -1,6 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { getRoleTree } from "@/lib/supabase/queries";
 import type { RoleTree } from "@/lib/roles/jobRoles";
 import { companyKey } from "@/lib/evidence/transitions";
@@ -125,8 +126,8 @@ export async function getCompanyCandidateTouchpoints(
     db.from("ow_company_customer_industries").select("industry_id").eq("company_id", companyId),
     db.from("ow_company_business_domains").select("domain_id").eq("company_id", companyId),
     /* 自社の現役社員（企業ページの「現役社員」と同じ範囲: is_current・社名を伏せていない） */
-    db.from("ow_experiences").select("id, user_id")
-      .eq("company_id", companyId).eq("is_current", true).neq("visibility_company", "hidden"),
+    fetchAllRows((from, to) => db.from("ow_experiences").select("id, user_id")
+      .eq("company_id", companyId).eq("is_current", true).neq("visibility_company", "hidden").order("id").range(from, to), "touchpoints employees"),
     db.from("ow_company_hidden_experiences").select("experience_id").eq("company_id", companyId),
     getRoleTree(),
     /* ★標準の職種が未選択の自社職種（案内の出し分けだけに使う。2026-10-12） */
@@ -136,7 +137,7 @@ export async function getCompanyCandidateTouchpoints(
     db.from("ow_companies").select("phase, industry_id").eq("id", companyId).maybeSingle(),
   ]);
   for (const r of [jobsR, rolesR, linksR, deptR, targetR, domainR, empExpR, hiddenR, unlinkedR, ownCoR]) {
-    if (r.error) { console.error("[touchpoints] 自社の材料:", r.error.message); return null; }
+    if (r.error) { console.error("[touchpoints] 自社の材料:", typeof r.error === "string" ? r.error : r.error.message); return null; }
   }
   const jobs = (jobsR.data ?? []).map((j) => ({
     id: j.id as string, title: (j.title as string) ?? "",
@@ -173,17 +174,14 @@ export async function getCompanyCandidateTouchpoints(
   // ── 候補者と社員の職歴（まとめて）─────────────────────────────────────────
   const allUserIds = Array.from(new Set([...ids, ...empIds]));
   const [expR, empUsersR] = await Promise.all([
-    allUserIds.length
-      ? db.from("ow_experiences")
-          .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, name_en, industry_id, phase)")
-          .in("user_id", allUserIds)
-      : Promise.resolve({ data: [], error: null }),
-    empIds.length
-      ? db.from("ow_users").select("id, auth_id, is_test, is_system, visibility").in("id", empIds)
-      : Promise.resolve({ data: [], error: null }),
+    /* ★id を分けて、1,000 行ずつ最後まで引く（2026-10-19） */
+    inChunks(allUserIds, (part, from, to) => db.from("ow_experiences")
+      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, name_en, industry_id, phase)")
+      .in("user_id", part).order("id").range(from, to), "touchpoints exps"),
+    inChunks(empIds, (part, from, to) => db.from("ow_users").select("id, auth_id, is_test, is_system, visibility").in("id", part).order("id").range(from, to), "touchpoints emp users"),
   ]);
   if (expR.error || empUsersR.error) {
-    console.error("[touchpoints] 職歴:", expR.error?.message ?? empUsersR.error?.message);
+    console.error("[touchpoints] 職歴:", expR.error ?? empUsersR.error);
     return null;
   }
   const industryOfCompany = new Map<string, string | null>();
@@ -238,7 +236,10 @@ export async function getCompanyCandidateTouchpoints(
   }
   const [indR, domR, domNameR] = await Promise.all([
     needIndustry ? db.from("ow_industries").select("id, name, slug, parent_id, display_order, description").eq("is_active", true) : Promise.resolve({ data: [], error: null }),
-    needDomain && candCompanyIds.size ? db.from("ow_company_business_domains").select("company_id, domain_id").in("company_id", Array.from(candCompanyIds)) : Promise.resolve({ data: [], error: null }),
+    needDomain && candCompanyIds.size
+      ? inChunks(Array.from(candCompanyIds), (part, from, to) => db.from("ow_company_business_domains").select("company_id, domain_id").in("company_id", part).order("company_id").order("domain_id").range(from, to), "touchpoints domains")
+          .then((r) => ({ data: r.data, error: r.error ? { message: r.error } : null }))
+      : Promise.resolve({ data: [], error: null }),
     needDomain ? db.from("ow_business_domains").select("id, name").in("id", Array.from(domainIds)) : Promise.resolve({ data: [], error: null }),
   ]);
   if (indR.error || domR.error || domNameR.error) {

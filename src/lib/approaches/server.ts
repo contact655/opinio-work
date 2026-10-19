@@ -1,4 +1,5 @@
 /* ★サーバー専用。admin クライアントを使う */
+import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyLinkStateFor, type CompanyLinkState } from "@/lib/companies/linkState";
@@ -159,25 +160,25 @@ export type RecentApproach = {
 export async function getRecentlyApproached(companyId: string, candidateOwUserIds?: string[]): Promise<Map<string, RecentApproach> | null> {
   const db = createAdminClient();
   /* ★返事待ちは日数に関係なく含める（期限が無いので。外すと、180日を過ぎた返事待ちの相手へ2通目が届き、受信一覧に2件並ぶ） */
-  let q = db.from("ow_company_approaches").select("id, candidate_user_id, created_at, accepted_at, sender_user_id, conversation_id")
-    .eq("company_id", companyId).or(`accepted_at.is.null,created_at.gte.${daysAgoIso(APPROACH_RESEND_DAYS)}`)
-    .order("created_at", { ascending: false });
-  if (candidateOwUserIds) {
-    if (candidateOwUserIds.length === 0) return new Map();
-    q = q.in("candidate_user_id", candidateOwUserIds);
-  }
-  const { data, error } = await q;
-  if (error) {
-    console.error("[approaches] recent:", error.message);
+  /* ★id は分けて、行は 1,000 行ずつ最後まで引く（2026-10-19。利用者が増えても黙って切れないように）。
+        ⚠️ 分けて引いたあと created_at 降順に並べ直す（下で「最新の1件」を採るため） */
+  const base = () => db.from("ow_company_approaches").select("id, candidate_user_id, created_at, accepted_at, sender_user_id, conversation_id")
+    .eq("company_id", companyId).or(`accepted_at.is.null,created_at.gte.${daysAgoIso(APPROACH_RESEND_DAYS)}`);
+  if (candidateOwUserIds && candidateOwUserIds.length === 0) return new Map();
+  const res = candidateOwUserIds
+    ? await inChunks(candidateOwUserIds, (part, from, to) => base().in("candidate_user_id", part).order("created_at", { ascending: false }).order("id").range(from, to), "approaches recent")
+    : await fetchAllRows((from, to) => base().order("created_at", { ascending: false }).order("id").range(from, to), "approaches recent");
+  if (res.error) {
+    console.error("[approaches] recent:", res.error);
     return null;
   }
-  const rows = data ?? [];
+  const rows = [...res.data].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
   const senderIds = Array.from(new Set(rows.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
   const names = new Map<string, string>();
   if (senderIds.length > 0) {
-    const { data: us, error: uErr } = await db.from("ow_users").select("id, name").in("id", senderIds);
-    if (uErr) console.error("[approaches] recent senders:", uErr.message);
-    for (const u of us ?? []) names.set(u.id as string, ((u.name as string | null) ?? "").trim());
+    const { data: us, error: uErr } = await inChunks(senderIds, (part, from, to) => db.from("ow_users").select("id, name").in("id", part).order("id").range(from, to), "approaches senders");
+    if (uErr) console.error("[approaches] recent senders:", uErr);
+    for (const u of us) names.set(u.id as string, ((u.name as string | null) ?? "").trim());
   }
   const m = new Map<string, RecentApproach>();
   for (const r of rows) {

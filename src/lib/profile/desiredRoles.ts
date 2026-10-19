@@ -1,3 +1,4 @@
+import { inChunks } from "@/lib/supabase/paging";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
@@ -64,18 +65,21 @@ export async function getDesiredRolesFor(
   if (authUserIds.length === 0) return out;
 
   const admin = createNoStoreAdminClient();
-  const { data, error } = await admin
+  /* ★id を分けて、1,000 行ずつ最後まで引く（2026-10-19） */
+  const { data, error } = await inChunks(authUserIds, (part, from, to) => admin
     .from("ow_profile_desired_roles")
     .select("user_id, role_id")
-    .in("user_id", authUserIds);
+    .in("user_id", part)
+    .order("user_id").order("role_id")
+    .range(from, to), "desiredRolesFor");
 
   if (error) {
-    console.error("[getDesiredRolesFor]", error.message);
+    console.error("[getDesiredRolesFor]", error);
     return out;
   }
 
   const byUser = new Map<string, string[]>();
-  for (const r of data ?? []) {
+  for (const r of data) {
     const uid = r.user_id as string;
     if (!byUser.has(uid)) byUser.set(uid, []);
     byUser.get(uid)!.push(r.role_id as string);
