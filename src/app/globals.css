@@ -2795,3 +2795,20 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
    上段（ProposalsClient）と下段（ForYouSection）で同じ見た目にする */
 .fit-company-link { color: var(--royal); text-decoration: none; }
 .fit-company-link:hover, .fit-company-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── ★一覧の上部の見直し（2026-10-20 / 柴さんの要望。見本 /dev/preview/list-toolbar）──────
+   1行目に検索欄（常に開いている ListSearchButton）、2行目に「絞り込み」と条件のチップ、
+   3行目に件数（左）と並び替え（右・文字だけ）。/companies から順に切り替える。
+   ⚠️ 既定の形（🔍 ボタン・丸い並び替え）は、まだ切り替えていない画面のために残してある */
+.lsb.lsb--always { display: flex; width: 100%; flex: 1 1 auto; }
+.lsb.lsb--always .lsb-field { height: 42px; background: var(--bg-tint, #f4f6fb); border-color: transparent; }
+.lsb.lsb--always .lsb-field:focus-within { background: #fff; }
+.lsb.lsb--always .lsb-input { font-size: 14.5px; }
+.lt-search-row { padding: 2px 0 10px; }
+/* ⚠️ 広い画面で検索欄を横いっぱいにしない（2026-10-01 に「1440px で 879px を占めていた」としてボタンにした経緯がある） */
+@media (min-width: 768px) { .lt-search-row .lsb.lsb--always { max-width: 560px; } }
+.lt-result-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0 10px; border-top: 1px solid var(--line-soft, #eef1f6); }
+.sort-select-btn.sort-select-btn--text { border: none; background: none; height: auto; min-height: 0; padding: 4px 0; gap: 3px; font-size: 13px; color: var(--ink); }
+.sort-select-btn.sort-select-btn--text:hover { background: none; color: var(--royal); }
+.sort-select-btn.sort-select-btn--text > svg:first-child,
+.sort-select-btn.sort-select-btn--text .sort-select-label { display: none; }

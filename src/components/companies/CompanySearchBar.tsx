@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChip } from "@/components/common/FilterChip";
 import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel, type ActiveFilter } from "@/components/common/DetailSearch";
-import { CompanySortSelect, companySortLabel } from "@/components/companies/GridSortBar";
+import { companySortLabel } from "@/components/companies/GridSortBar";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
@@ -178,8 +178,8 @@ export function CompanySearchBar({
   if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
   if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
   if (currentHiring) activeChips.push({ key: "hiring", label: "募集あり", clear: () => updateParam("hiring", null) });
-  /* 並び替えも詳細検索の中に移したので、既定以外のときは外に出す（閉じていると何順か分からないため） */
-  if (currentSortLabel) activeChips.push({ key: "sort", label: currentSortLabel, clear: () => updateParam("sort", null) });
+  /* ⚠️ 並び替えは 2026-10-20 から件数の右に常に出しているので、選択中の条件には入れない（同じ語が2回並ぶ） */
+  void currentSortLabel;
 
   /* ⚠️ かつてここで `activeFilters`（「絞り込み中」行のチップ）を組み立てていた。
         2026-09-06 に行ごと廃止したので消した。理由はこのファイル下部のコメント。
@@ -190,17 +190,12 @@ export function CompanySearchBar({
   return (
     <>
 
-      <div ref={wrapRef} style={{ marginBottom: 4 }}>
-        {/* ★`list-toolbar`: スマホでは1行に並べ、横にスクロールする（2026-10-17。globals.css 末尾） */}
-        <div className="csb-bar list-toolbar">
-
-          {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
-                 components/common/ListSearchButton —— **4つの一覧で同じ部品**。
-              ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 879px を占めていて、
-                 **狭い画面ほど潰れる**（768px で 207px / 375px で 173px。ステップ0 の実測）。
-              ⚠️ サジェストの材料（企業名の一覧）はページが持っているので、
-                 入力中の値（`inputValue`）もページが持つ。 */}
+      <div ref={wrapRef} style={{ marginBottom: 0 }}>
+        {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar）。
+               1行目 検索欄（常に開いている）／2行目 絞り込み＋条件のチップ／3行目 件数と並び替え（sortBar） */}
+        <div className="lt-search-row">
           <ListSearchButton
+            alwaysOpen
             value={currentQuery}
             draft={inputValue}
             onDraftChange={(v) => { setInputValue(v); setOpenChip(null); }}
@@ -211,11 +206,18 @@ export function CompanySearchBar({
             suggestions={filtered.map((c) => ({ key: c.id, label: c.name }))}
             onPickSuggestion={(sg) => commitQuery(sg.label)}
           />
+        </div>
+        {/* ★`list-toolbar`: スマホでは1行に並べ、横にスクロールする（2026-10-17。globals.css 末尾） */}
+        <div className="csb-bar list-toolbar" style={{ paddingTop: 0, paddingBottom: 10 }}>
+
+          {/* ⚠️ 「一覧内を検索」のボタンは 2026-10-20 に上の行（常に開いた検索欄）へ移した */}
 
           {/* ★絞り込みのトグル（2026-09-17 に**全幅**で出すようにした）。
                  文言は `/jobs` と揃えて「詳細検索」。**片方だけ変えないこと。**
               ⚠️ 選択中の数をバッジで出す（閉じていても効いている件数が分かる）。 */}
           <DetailSearchToggle
+            label="絞り込み"
+            alwaysShowLabel
             open={filtersExpanded}
             count={activeChips.length}
             onToggle={() => setFiltersExpanded(!filtersExpanded)}
@@ -280,9 +282,6 @@ export function CompanySearchBar({
 
           {/* ⚠️ 「話を聞ける人」（`?talk=1`）のトグルは 2026-10-16 に撤去した（面談OKの撤去） */}
 
-          {/* ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）。
-                 ⚠️ 出すかどうかと件数はページが決める。ここは置き場所だけ。 */}
-          {sortBar}
 
           {/* ★選択中の条件。⚠️★**閉じているときだけ出す。** 開いているときは
                  ピル自身が選択状態を持っているので、同じ語が2回並ぶ
@@ -296,6 +295,7 @@ export function CompanySearchBar({
             onClose={() => setFiltersExpanded(false)}
             countUrl={`/api/companies/count?${searchParams.toString()}`}
             unit="社"
+            title="絞り込み"
           >
 
           {/* ★事業ステージ（2026-10-12。旧「フェーズ」を置き換えた）。7つとも出す（段階の梯子が歯抜けに見えないように。フェーズと同じ扱い） */}
@@ -412,8 +412,7 @@ export function CompanySearchBar({
               ⚠️ 戻すなら、検索欄の ✕ と役割が重ならないようにすること
                  （あちらは検索文字だけを消す）。 */}
 
-          {/* 並び替え（2026-10-09 に詳細検索の中へ移した）。⚠️ 選択肢は GridSortBar.tsx の1か所 */}
-          <CompanySortSelect />
+          {/* ⚠️ 並び替えは 2026-10-20 に詳細検索の中から件数の右（sortBar）へ移した */}
 
           </DetailSearchPanel>
 
@@ -426,7 +425,7 @@ export function CompanySearchBar({
                       `.sort-bar-row` にも auto があり、**2つあると余白が等分されて
                       並び替えが右端まで行かない。** あるときは並び替えの直後に並ぶ。
                    ⚠️ 並び替えが無いとき（絞り込み中）は**こちらが右端役**。外さないこと。 */
-                marginLeft: sortBar ? undefined : "auto",
+                marginLeft: "auto",
                 flexShrink: 0,
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "6px 12px", borderRadius: 999,
@@ -441,6 +440,9 @@ export function CompanySearchBar({
             </a>
           )}
         </div>
+
+        {/* ★3行目: 件数（左）と並び替え（右）。⚠️ 出すかどうかと件数はページが決める */}
+        {sortBar}
 
         {/* ⚠️★**「絞り込み中」のサマリー行は廃止した**（2026-09-06 / 柴さんの判断）。
                絞り込みはチップ自体が選択状態（濃紺 + ✕）で示すので、

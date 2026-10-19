@@ -38,7 +38,11 @@ export function ListSearchButton({
   label = "一覧内を検索",
   suggestions = [],
   onPickSuggestion,
+  alwaysOpen = false,
 }: {
+  /** ★常に入力欄を出す（2026-10-20 / 一覧の上部の見直し）。🔍 だけのボタンにしない形。
+   *  確定した語は入力欄にそのまま残る（チップにしない）。✕ で消すと絞り込みも外れる */
+  alwaysOpen?: boolean;
   /** 確定済みのキーワード（チップに出る値） */
   value: string;
   /** 入力中の値。⚠️ ページが持つ（サジェストの計算に使うため） */
@@ -53,25 +57,30 @@ export function ListSearchButton({
   suggestions?: ListSearchSuggestion[];
   onPickSuggestion?: (s: ListSearchSuggestion) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  const open = alwaysOpen || openState;
+  /* alwaysOpen のときは、入力欄に触れているあいだだけサジェストを出す */
+  const [focused, setFocused] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
+    if (openState) inputRef.current?.focus();
+  }, [openState]);
 
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         setOpen(false);
-        onDraftChange(value);
+        setFocused(false);
+        /* ⚠️ 確定していない打ちかけは、外を押したら確定済みの値に戻す（チップ・URL と食い違わせない） */
+        if (draft !== value) onDraftChange(value);
       }
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
-  }, [open, value, onDraftChange]);
+  }, [open, value, draft, onDraftChange]);
 
   function closeWithoutCommit() {
     setOpen(false);
@@ -81,12 +90,14 @@ export function ListSearchButton({
   function commit() {
     const next = draft.trim();
     setOpen(false);
+    setFocused(false);
+    if (alwaysOpen) inputRef.current?.blur();
     if (next) onCommit(next);
     else onClear();
   }
 
   return (
-    <div ref={wrapRef} className={`lsb${open ? " lsb--open" : ""}`}>
+    <div ref={wrapRef} className={`lsb${open ? " lsb--open" : ""}${alwaysOpen ? " lsb--always" : ""}`}>
       {open ? (
         <>
           <div role="search" className="search-shell lsb-field">
@@ -101,6 +112,7 @@ export function ListSearchButton({
               placeholder={placeholder}
               value={draft}
               onChange={(e) => onDraftChange(e.target.value)}
+              onFocus={() => setFocused(true)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") { e.preventDefault(); commit(); }
                 if (e.key === "Escape") { e.preventDefault(); closeWithoutCommit(); }
@@ -112,7 +124,12 @@ export function ListSearchButton({
                 type="button"
                 className="btn-fixed-size"
                 aria-label="入力を消す"
-                onClick={() => { onDraftChange(""); inputRef.current?.focus(); }}
+                onClick={() => {
+                  onDraftChange("");
+                  /* ★常に開いている形では、✕ で絞り込みも外す（チップの ✕ と同じ役目） */
+                  if (alwaysOpen && value) onClear();
+                  inputRef.current?.focus();
+                }}
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 0, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", color: "#8b95a3", flexShrink: 0 }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -120,7 +137,7 @@ export function ListSearchButton({
             )}
           </div>
 
-          {suggestions.length > 0 && onPickSuggestion && (
+          {suggestions.length > 0 && onPickSuggestion && (!alwaysOpen || focused) && (
             <div className="lsb-menu" role="listbox">
               {suggestions.map((s) => (
                 <button
@@ -160,7 +177,7 @@ export function ListSearchButton({
       )}
 
       {/* 確定済みのキーワード。⚠️ 開いているときは出さない（入力欄と同じ語が2つ並ぶ） */}
-      {!open && value && (
+      {!open && !alwaysOpen && value && (
         <button
           type="button"
           className="lsb-chip"

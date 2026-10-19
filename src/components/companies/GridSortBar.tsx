@@ -85,7 +85,10 @@ export function CompanySortSelect() {
   );
 }
 
-export function GridSortBar({ totalCount, showViewToggle = true, showSort = true }: Props) {
+export function GridSortBar({ totalCount, showViewToggle = true, showSort = true, layout = "row" }: Props & {
+  /** ★"result" ＝ 件数（左）と並び替え（右・文字だけ）の行（2026-10-20 / 一覧の上部の見直し） */
+  layout?: "row" | "result";
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const current = searchParams.get("sort") ?? "newest";
@@ -99,6 +102,29 @@ export function GridSortBar({ totalCount, showViewToggle = true, showSort = true
     else p.set("view", v);
     router.replace(`/companies?${p.toString()}`);
   };
+
+  if (layout === "result") {
+    return (
+      <div className="lt-result-row" data-state="companies-result-row">
+        <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
+          <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 15 }}>{totalCount}</strong>
+          <span style={{ marginLeft: 3 }}>社</span>
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          {/* ⚠️ 767px 以下は .companies-view-toggle ごと隠れる（従来どおり） */}
+          {showViewToggle && (
+            <div className="companies-view-toggle">
+              <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
+            </div>
+          )}
+          {showSort && (
+            <SortSelect variant="text" value={current} onChange={setSort}
+              options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

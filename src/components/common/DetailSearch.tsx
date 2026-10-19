@@ -22,7 +22,13 @@ export function DetailSearchToggle({
   open,
   count,
   onToggle,
+  label = "詳細検索",
+  alwaysShowLabel = false,
 }: {
+  /** ★2026-10-20: 一覧の上部の見直しで「絞り込み」と呼ぶ画面がある（/companies から順に切り替え中） */
+  label?: string;
+  /** ★スマホでも文字を出す（アイコンだけにしない）。⚠️ 既定は従来どおり 767px 以下でアイコンだけ */
+  alwaysShowLabel?: boolean;
   open: boolean;
   /** いま効いている条件の数。0 ならバッジを出さない */
   count: number;
@@ -31,8 +37,8 @@ export function DetailSearchToggle({
   return (
     <button
       type="button"
-      className={`csb-filter-toggle tb-collapse-label${open || count > 0 ? " active" : ""}`}
-      aria-label="詳細検索"
+      className={`csb-filter-toggle${alwaysShowLabel ? "" : " tb-collapse-label"}${open || count > 0 ? " active" : ""}`}
+      aria-label={label}
       aria-expanded={open}
       onClick={onToggle}
     >
@@ -41,7 +47,7 @@ export function DetailSearchToggle({
         <line x1="8" y1="12" x2="16" y2="12" />
         <line x1="11" y1="18" x2="13" y2="18" />
       </svg>
-      <span className="tb-label">詳細検索</span>
+      <span className="tb-label">{label}</span>
       {count > 0 && (
         <span style={{
           fontSize: 11, fontWeight: 800, padding: "1px 7px", borderRadius: 100,
@@ -146,7 +152,10 @@ export function DetailSearchPanel({
   count,
   countUrl,
   unit = "件",
+  title = "詳細検索",
 }: {
+  /** ★見出し（2026-10-20）。ボタンを「絞り込み」と呼ぶ画面ではそれに合わせる */
+  title?: string;
   open: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -174,9 +183,9 @@ export function DetailSearchPanel({
   return createPortal(
     <div data-detail-search-drawer onMouseDown={(e) => e.nativeEvent.stopPropagation()}>
       <div className="ds-backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="ds-drawer" role="dialog" aria-modal="true" aria-label="詳細検索">
+      <div className="ds-drawer" role="dialog" aria-modal="true" aria-label={title}>
         <div className="ds-drawer-head">
-          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>詳細検索</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{title}</span>
           <button type="button" className="ds-drawer-close btn-fixed-size" onClick={onClose} aria-label="閉じる">✕</button>
         </div>
         <div className="ds-drawer-body">{children}</div>

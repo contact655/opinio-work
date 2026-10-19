@@ -331,7 +331,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                 /* ⚠️ 絞り込み中も出す（2026-10-09）。表示形式の切り替えだけ隠す
                       ——絞り込み結果は常にグリッドで、?view=list に切り替わらないため */
                 <Suspense fallback={null}>
-                  <GridSortBar totalCount={allCompaniesResult.totalCount} showViewToggle={!hasFilter} showSort={false} />
+                  <GridSortBar layout="result" totalCount={allCompaniesResult.totalCount} showViewToggle={!hasFilter} />
                 </Suspense>
               }
             />

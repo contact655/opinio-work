@@ -35,7 +35,10 @@ export function SortSelect({
   options,
   onChange,
   label = "並び替え",
+  variant = "pill",
 }: {
+  /** ★"text" ＝ 枠の無い文字だけの見た目（2026-10-20 / 件数の右に置く形）。既定は従来の丸いボタン */
+  variant?: "pill" | "text";
   value: string;
   options: readonly { value: string; label: string }[];
   onChange: (v: string) => void;
@@ -83,11 +86,12 @@ export function SortSelect({
         /* ⚠️★狭い画面ではラベルの語を隠す（下）ので、**読み上げ名はここで固定する**。
               付けないと、隠れたときに「新着順」としか読まれず何の操作か分からない。 */
         aria-label={label}
-        className="sort-select-btn"
+        className={`sort-select-btn${variant === "text" ? " sort-select-btn--text" : ""}`}
         onClick={() => {
           if (open) { setOpen(false); return; }
           const r = btnRef.current?.getBoundingClientRect();
-          if (r) setAnchor({ top: r.bottom + 6, left: r.left });
+          /* ⚠️ 文字だけの形は右端に置くので、メニューが画面の右へはみ出さないよう左へ寄せる */
+          if (r) setAnchor({ top: r.bottom + 6, left: variant === "text" ? Math.max(8, Math.min(r.left, window.innerWidth - 208)) : r.left });
           setOpen(true);
         }}
       >
