@@ -865,7 +865,9 @@ function OnboardingInner({
           <h2 style={{
             fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700,
             color: "var(--ink)", marginBottom: 6, lineHeight: 1.45,
-          }}>
+            /* ★2026-10-19: 375〜390px で「直近のお勤め先を教えてください」の「い」が1文字だけ次の行に落ちていた。行の長さを揃える */
+            textWrap: "balance",
+          } as React.CSSProperties}>
             {/* ★★見出しは画面ごとに変える（2026-09-11）。
                    ⚠️★**1画面目のまま据え置かないこと。** ステップを分けた直後は
                       2画面目でも「直近のお勤め先を教えてください」と出ていた
