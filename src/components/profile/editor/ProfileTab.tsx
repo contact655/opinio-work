@@ -2033,6 +2033,16 @@ export default function ProfileTab({
                   onToggle={() => setCareerExpanded((v) => !v)}
                 />
               )}
+              {/* ★職務経歴書への入口（スマホだけ。2026-10-19）。パソコンは右の列のカード（MypageClient）。
+                     ⚠️ 右の列はスマホでプロフィールより上に出るので、そこに置くと名前と写真を押し下げていた。
+                     ⚠️ 入口は画面幅ごとに1つ（右の列のカードは `mypage-hide-mobile`）。職歴が0件なら出さない（作るものが無い） */}
+              {careerStints.length > 0 && (
+                <a href="/mypage/resume" data-state="resume-entry-mobile" className="mypage-mobile-only"
+                  style={{ marginTop: 14, padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 10, textDecoration: "none", color: "var(--ink)", background: "#fff" }}>
+                  <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>職務経歴書を作る</span>
+                  <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.6 }}>この職歴から作ります。PDF で保存できます →</span>
+                </a>
+              )}
             </ProfileTimelineSection>
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。

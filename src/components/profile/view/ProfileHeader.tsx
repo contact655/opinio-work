@@ -259,8 +259,10 @@ export function ProfileHeader({
           )}
           {/* Current role subtitle */}
           {currentCareer && (
-            <div style={{ marginBottom: "var(--space-2)", lineHeight: 1.5 }}>
-              <span className="u-role-title" style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+            /* ★2行で切る指定（.u-role-title）は行全体に付ける（2026-10-19）。肩書きの span に付けると
+                  span がブロックになり、「· 職種名」が必ず次の行に落ちて行頭が「·」になっていた */
+            <div className="u-role-title" style={{ marginBottom: "var(--space-2)", lineHeight: 1.5 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
                 {currentCareer.role_title || currentCareer.role_label}
               </span>
               {/* ⚠️ 括弧をやめて中点にした（2026-08-23）。会社ブロックを右へ出したぶん

@@ -395,10 +395,11 @@ export default function MypageClient({
         </span>
       </a>
 
-      {/* ★職務経歴書（2026-10-18）。入れた職歴から作り、印刷・PDF で保存できる。⚠️ 入口はここ1つ（モバイルでも出す） */}
+      {/* ★職務経歴書（2026-10-18）。入れた職歴から作り、印刷・PDF で保存できる。⚠️ スマホでは出さない（2026-10-19）。右の列がプロフィールより上に出るため、職歴の欄の下（ProfileTab の `resume-entry-mobile`）に置いた */}
       <a
         href="/mypage/resume"
         data-state="resume-entry"
+        className="mypage-hide-mobile"
         style={{
           display: "block", textDecoration: "none", color: "var(--ink)",
           border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", background: "#fff",

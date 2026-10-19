@@ -359,6 +359,8 @@ export default function MypageLayout({
         /* 右カラムが畳まれる幅で、本文側に置いた控えと入れ替える。
            .mypage-narrow-only は rightColumnCollapse に hide を渡すのとセットで使う。 */
         .mypage-narrow-only { display: none; }
+        /* ★767px 以下だけ出すもの（2026-10-19。職務経歴書の入口）。.mypage-hide-mobile と同じ幅で切り替える */
+        .mypage-mobile-only { display: none; }
 
         /* ★top を渡したときだけ、行を2つにして本文の上へ置く（2026-10-09）。
            左右の列は2行ぶん伸ばす。2行目を 1fr にしないと最小高さぶんの余白が
@@ -430,6 +432,7 @@ export default function MypageLayout({
           }
           /* 右カラムのうち**モバイルでは出さないもの**。ここで消す（本文側に控えを作らない） */
           .mypage-hide-mobile { display: none !important; }
+          .mypage-mobile-only { display: block; }
           .mypage-main-content  { padding: 20px 16px 60px !important; }
           /* top は右の列（order: -1）より上へ */
           /* 背景は本文と右の列（どちらも var(--bg-tint)）に揃える（2026-10-17 に白から変えた） */

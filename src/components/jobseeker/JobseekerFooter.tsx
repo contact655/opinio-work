@@ -13,7 +13,9 @@ export async function JobseekerFooter() {
       {/* ── Main grid ────────────────────────────────────────────────────────── */}
       <div style={{
         borderBottom: "1px solid rgba(255,255,255,0.08)",
-        padding: "48px 48px 40px",
+        /* ★左右の余白は className（px-5 md:px-12）が持つ（2026-10-19）。インラインの padding に左右 48px を書いていたため
+              クラスが効かず、スマホでも左右 48px になって列が 127px に狭まり「プライバシーポリシ／ー」で折り返していた */
+        paddingTop: 48, paddingBottom: 40,
       }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto" }}
           className="grid grid-cols-2 gap-10 sm:[grid-template-columns:1.6fr_1fr_1fr_1fr]">
@@ -138,7 +140,7 @@ export async function JobseekerFooter() {
       {/* ⚠️ 取得できなかった／0件のときは**見出しごと出さない。**
              空の見出しだけが残ると「リンクが消えた」ように見える。 */}
       {industryFacets.length > 0 && (
-      <div style={{ padding: "0 48px 28px" }} className="px-5 md:px-12">
+      <div style={{ paddingBottom: 28 }} className="px-5 md:px-12">
         <div style={{ maxWidth: 1200, margin: "0 auto", paddingTop: 28, borderTop: "1px solid rgba(255,255,255,0.12)" }}>
           <h4 style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
             事業領域から探す
@@ -155,7 +157,7 @@ export async function JobseekerFooter() {
       )}
 
       {/* ── Bottom bar ──────────────────────────────────────────────────────── */}
-      <div style={{ padding: "20px 48px" }} className="px-5 md:px-12">
+      <div style={{ paddingTop: 20, paddingBottom: 20 }} className="px-5 md:px-12">
         <div style={{
           maxWidth: 1200, margin: "0 auto",
           display: "flex", justifyContent: "space-between", alignItems: "center",

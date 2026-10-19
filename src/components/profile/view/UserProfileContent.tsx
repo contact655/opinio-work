@@ -881,7 +881,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
             boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
           }}>
               <>
-                <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: "var(--ink-soft)", margin: "0 0 16px", lineHeight: 1.6, textWrap: "balance" } as React.CSSProperties}>
                   IT業界で働く人のリアルなキャリアが集まっています
                 </p>
                 <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
