@@ -706,7 +706,7 @@ export function JobEditForm({
             <FormSection>
               <FormGroup>
                 <FormLabel required={req("title")} htmlFor="jef-title">求人タイトル</FormLabel>
-                <FormInput id="jef-title" value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：プロダクトマネージャー（タイミーキャリアプラス）" />
+                <FormInput id="jef-title" value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：法人営業（SaaS）" />
                 <Hint>求職者が最初に目にする項目です。ポジション名と補足を書いてください。タイトルを入れると下書きとして保存されます。</Hint>
               </FormGroup>
 
@@ -725,7 +725,7 @@ export function JobEditForm({
                       selectableParent={false}
                       onSelect={(id) => addRoleById(id)}
                       ariaLabel="職種を検索して追加"
-                      placeholder="職種名で検索して追加（例: 法人営業、マーケティング、動画）"
+                      placeholder="職種名で検索（例: マーケティング）"
                     />
                   </div>
                   {selectedRoles.length > 0 && (
@@ -1155,7 +1155,7 @@ export function JobEditForm({
                 </>
               ) : (
                 <>
-                  <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：タイミーキャリアプラス事業部" />
+                  <FormInput id="jef-department" value={form.department} onChange={(v) => updateForm("department", v)} placeholder="例：プロダクト本部" />
                   <Hint><a href="/biz/organization" target="_blank" rel="noopener" style={{ color: "var(--royal)", textDecoration: "underline" }}>部門・職種</a> で部門を登録すると、ここで選べるようになります。</Hint>
                 </>
               )}
@@ -1329,6 +1329,11 @@ export function JobEditForm({
         .jef-more summary::-webkit-details-marker { display: none; }
         .jef-more[open] .jef-more-plus { display: none; }
         .jef-more:not([open]) .jef-more-minus { display: none; }
+        /* ★スマホでは BusinessLayout が本文に余白（20px 16px 48px）を足す。この画面は自分で余白を持つので打ち消す（2026-10-20）。
+              打ち消さないと、上の帯と目次が両端16pxずつ浮いて見えた。⚠️ 境界は BusinessLayout と同じ 768px */
+        @media (max-width: 768px) {
+          .jef-root { margin: -20px -16px -48px; }
+        }
         @media (max-width: 767px) {
           .jef-root { height: auto; }
           .jef-body { grid-template-columns: minmax(0,1fr); overflow: visible; }

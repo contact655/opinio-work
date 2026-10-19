@@ -51,9 +51,9 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
       {/* ★項目の並び（「公開まであと16項目」）は 2026-10-18 に外した（柴さんの指示。下の1〜6と同じことを2回言っていた）。
              足りないものは各ステップの横に「あと N」で出し、押すとそのステップの最初の未入力の欄へ移る。
              ⚠️ 数は missingForPublish() の結果をステップごとに数えるだけ（ここで条件を足さない） */}
-      <div data-state={missing.length === 0 ? "ready" : "missing"} style={{ padding: "18px 18px 14px", borderBottom: "1px solid var(--line)" }}>
+      <div className="jef-subnav-head" data-state={missing.length === 0 ? "ready" : "missing"}>
         {missing.length === 0 && (
-          <div data-state="subnav-ready" style={{ fontSize: 13, fontWeight: 700, color: readyNote ? "var(--ink)" : "var(--success-ink)", marginBottom: 6 }}>{readyNote ?? "公開できます"}</div>
+          <div className="jef-subnav-ready" data-state="subnav-ready" style={{ fontSize: 13, fontWeight: 700, color: readyNote ? "var(--ink)" : "var(--success-ink)", marginBottom: 6 }}>{readyNote ?? "公開できます"}</div>
         )}
         <div className="jef-subnav-note" style={{ fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.6 }}>
           入力した内容は自動で保存されます。公開後も運営が内容を確認し、問題がある場合は停止することがあります。
@@ -63,6 +63,7 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
       {/* ⚠️ 767px 以下は横に並べて1行でスクロールさせる（縦に並べるとフォームが1画面下に落ちる） */}
       <style>{`
         .jef-subnav { border-right: 1px solid var(--line); }
+        .jef-subnav-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
         .jef-steps { display: flex; flex-direction: column; position: relative; }
         .jef-step { display: flex; align-items: center; gap: 8px; justify-content: space-between; width: 100%; padding: 10px 18px; border: none; border-left: 3px solid transparent; text-align: left; cursor: pointer; font-family: inherit; }
         .jef-step[aria-current] { border-left-color: var(--royal); }
@@ -72,6 +73,9 @@ export function JobEditSubNav({ steps, activeStep, onStepClick, missing, onMissi
           .jef-step { width: auto; flex-shrink: 0; white-space: nowrap; padding: 10px 14px; border-left: none; border-bottom: 3px solid transparent; }
           .jef-step[aria-current] { border-bottom-color: var(--royal); }
           .jef-subnav-note { display: none; }
+          /* ★説明文を隠すので枠の余白も消す（2026-10-20。空の帯が約32px残っていた）。公開できる表示があるときだけ余白を戻す */
+          .jef-subnav-head { padding: 0; border-bottom: none; }
+          .jef-subnav-head:has(.jef-subnav-ready) { padding: 10px 14px 4px; }
         }
       `}</style>
       <nav ref={navRef} className="jef-steps" aria-label="求人の入力ステップ">
