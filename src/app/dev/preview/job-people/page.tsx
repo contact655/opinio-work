@@ -7,7 +7,7 @@ import { EMPLOYEES_1, EMPLOYEES_3, EMPLOYEES_12, ALUMNI_3 } from "../fixtures";
 
 /**
  * ★求人詳細の「人」を縦長のカードにする見本（2026-10-20）。
- *   部品は components/jobs/JobPeopleCards。⚠️ 本物の求人詳細にはまだ入れていない。
+ *   部品は components/jobs/JobPeopleCards。★2026-10-20 に求人詳細へ入れた。
  * ⚠️ この配下で DB を読まない（固定データだけ）。
  */
 
@@ -61,13 +61,13 @@ export default function JobPeoplePreview() {
         {people("この会社の他の現役社員", EMPLOYEES_12, "この募集の職種とは違う人たちです")}
       </Variant>
 
-      <Variant label="比べる: いまの行の形（5人）" note="本番のいまの表示（JobEmployeesSection）">
+      <Variant label="本物の部品（JobEmployeesSection）で5人" note="求人詳細で実際に使う形（見出し・人数・説明の1行つき）">
         <JobEmployeesSection current={EMPLOYEES_5} alumni={[]} companyId="preview-company"
           currentTitle="この会社の他の現役社員" currentSubtitle="この募集の職種とは違う人たちです" />
       </Variant>
 
-      <Variant label="比べる: いまの行の形（3人）" note="本番のいまの表示">
-        <JobEmployeesSection current={EMPLOYEES_3} alumni={[]} companyId="preview-company" />
+      <Variant label="本物の部品で OB・OG 0人" note="「まだ登録されていません」はそのまま">
+        <JobEmployeesSection current={EMPLOYEES_3} alumni={[]} companyId="preview-company" alwaysShowAlumni />
       </Variant>
     </div>
   );

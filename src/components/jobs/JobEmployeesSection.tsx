@@ -1,6 +1,7 @@
 import React from "react";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
+import { JobPeopleCards, JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
 
 /**
  * 求人詳細の「現役社員 / OB・OG」セクション（2026-08-30 に求人ページから切り出した）。
@@ -89,7 +90,8 @@ export function JobEmployeeCard({ emp, companyId }: {
 export function JobEmployeesSection({
   current,
   alumni,
-  companyId,
+  /* ⚠️ カードにしてから使っていない（2026-10-20）。呼び出し側を変えないため受け口は残す */
+  companyId: _companyId,
   currentTitle,
   alumniTitle,
   currentSubtitle,
@@ -120,10 +122,12 @@ export function JobEmployeesSection({
 
   return (
     <>
+      {/* ⚠️ カードの見た目（JobPeopleCards）。同じページで2回描かれるが中身は同じなので害は無い */}
+      <style>{JOB_PEOPLE_CSS}</style>
 
       {/* 現役社員 */}
       {current.length > 0 && (
-        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
           {/* ★件数は見出しの右端ではなく、見出しのすぐ後ろ（2026-10-17）。右端だと長い見出しが折れ、件数が縦に潰れていた */}
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
@@ -151,9 +155,9 @@ export function JobEmployeesSection({
               {currentSubtitle}
             </p>
           )}
-          <div className="person-list">
-            {current.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
-          </div>
+          {/* ★2026-10-20（柴さんの指示）: 行の一覧から縦長のカードにした（1〜2人は左寄せ・3人以上は横スクロール）。
+                 見本は /dev/preview/job-people。⚠️ 行の形（JobEmployeeCard / .person-list）に戻さないこと */}
+          <JobPeopleCards people={current} />
           {/* ⚠️★セクション末尾の一括CTA「話を聞く（カジュアル面談）」は削除した（2026-08-30）。
                  **リンクに `?person=` が無く企業宛の申込**だったのに、人物カードのすぐ下に
                  あるため「この人と話せる」と誤解される（柴さんの指摘）。
@@ -166,7 +170,7 @@ export function JobEmployeesSection({
 
       {/* OB/OG */}
       {(alumni.length > 0 || alwaysShowAlumni) && (
-        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
           {/* ★件数は見出しの右端ではなく、見出しのすぐ後ろ（2026-10-17）。右端だと長い見出しが折れ、件数が縦に潰れていた */}
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
@@ -197,11 +201,7 @@ export function JobEmployeesSection({
             )}
           </div>
           {alumni.length > 0 ? (
-            <div className="person-list">
-              {/* ⚠️ OB/OG には指名CTAを出さない。**退職者に「話を聞く」導線は出さない**
-                      （企業詳細も現役社員にしか出していない）。 */}
-              {alumni.map((emp) => <JobEmployeeCard key={emp.userId} emp={emp} companyId={companyId} />)}
-            </div>
+            <JobPeopleCards people={alumni} />
           ) : (
             /* ⚠️★空状態。**「まだ居ない」を、それ以外の何かで埋めない。**
                   以前はここに会社全体のOB・OGを出していたが、求人の職種と関係の無い人が
