@@ -20,6 +20,7 @@ import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
+import { PeopleCardRow, JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
 
 /*
  * ⚠️ 2026-08-13 に「社員の声」セクション（EmployeeVoicesSection）を削除した。復活させないこと。
@@ -63,56 +64,53 @@ const ViewerIdContext = createContext<string | null>(null);
 /* ★この企業ページの会社（2026-10-18）。メッセージの「会社のこと」のテーマをこの会社にする（OB・OG なら「〈社名〉にいた頃のこと」） */
 const PageCompanyIdContext = createContext<string | null>(null);
 
-function PersonRow({
+/* ⚠️ 行の形（PersonRow）は 2026-10-20 に縦長のカード（下の PersonCard）へ置き換えて削除した。 */
+
+/**
+ * ★縦長のカード（2026-10-20 / 柴さんの指示。求人詳細と同じ形）。並べ方は PeopleCardRow（3枚から横スクロール）。
+ *   見本は /dev/preview/company-employees。カードの見た目は JOB_PEOPLE_CSS（components/jobs/JobPeopleCards）。
+ * ⚠️ 中身は行の形（PersonRow）と同じ: 顔・名前・バッジ・2行目。メッセージ（ログイン中・本人以外）も残す。
+ * ⚠️ メッセージのボタンはリンクの外に置く（中に入れると押したときにプロフィールへ飛ぶ）。
+ */
+function PersonCard({
   employee,
   badge,
   title,
-  sub,
 }: {
   employee: CompanyEmployee;
   badge?: React.ReactNode;
-  /** 2行目（職種など）。2行まで出して省略 */
   title?: string | null;
-  /** 3行目（補足）。1行で省略 */
-  sub?: string | null;
 }) {
   const avatarColor = AVATAR_COLOR;
   const viewerId = useContext(ViewerIdContext);
   const pageCompanyId = useContext(PageCompanyIdContext);
   return (
-    <div className="person-row">
-      <a href={`/u/${employee.userId}`} target="_blank" className="person-row-main">
-        <span className="person-row-avatar" style={{ background: avatarColor.bg, color: avatarColor.text }}>
+    <div className="jpc-card" data-state="person-card">
+      <a href={`/u/${employee.userId}`} target="_blank" className="jpc-link" title={[employee.name, title].filter(Boolean).join(" / ")}>
+        <span className="jpc-avatar" style={{ background: avatarColor.bg, color: avatarColor.text }}>
           {employee.avatarUrl ? (
             <EmployeeAvatarImg src={employee.avatarUrl} alt={employee.name}
               fallbackBg={avatarColor.bg} fallbackText={employee.avatarInitial ?? employee.name.charAt(0)}
-              fallbackColor={avatarColor.text} fontSize={16} />
+              fallbackColor={avatarColor.text} fontSize={24} />
           ) : (employee.avatarInitial ?? employee.name.charAt(0))}
         </span>
-        <span className="person-row-text">
-          <span className="person-row-head">
-            <span className="person-row-name">{employee.name}</span>
-            {badge}
-          </span>
-          {title && <span className="person-row-title" title={title}>{title}</span>}
-          {sub && <span className="person-row-sub" title={sub}>{sub}</span>}
-        </span>
-        <svg className="person-row-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden="true">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <span className="jpc-name">{employee.name}</span>
+        {badge}
+        <span className="jpc-role">{title ?? ""}</span>
       </a>
-      {/* ★メッセージ（2026-10-17）。⚠️ 「話を聞ける」「面談OK」とは書かない（撤去した意味づけ）。ただの個人どうしのメッセージ */}
       {viewerId && viewerId !== employee.userId && (
-        <span className="person-row-dm"><DMButton targetUserId={employee.userId} targetName={employee.name} variant="icon" aboutCompanyId={pageCompanyId} /></span>
+        <div className="jpc-act"><DMButton targetUserId={employee.userId} targetName={employee.name} variant="card" aboutCompanyId={pageCompanyId} /></div>
       )}
     </div>
   );
 }
 
 /* ★「面談OK」バッジと「◯◯さんに話を聞く」は 2026-10-16 に撤去した（面談OKの撤去 / 柴さんの判断）。
-   現役社員・OB/OG の行（職歴から作る事実）は残す。 */
+   現役社員・OB/OG の行（職歴から作る事実）は残す。
+   ★2026-10-20: 行（PersonRow）から縦長のカード（PersonCard）にした */
 function EmployeeCard({ employee }: { employee: CompanyEmployee; showEndedAt?: boolean }) {
-  return <PersonRow employee={employee} title={employee.roleTitle} />;
+  /* 2行目は社内での呼び方。無ければ職種の名前（職種で段を分けないので、職種はここで分かるようにする） */
+  return <PersonCard employee={employee} title={employee.roleTitle ?? employee.roleCategoryName ?? null} />;
 }
 
 // person-card-grid: 全人物カードセクション共通（現役社員/OBOG）
@@ -204,13 +202,13 @@ export function CurrentEmployeesSection({
       || byCountThenName<RoleGroup>((g) => g.total)(a, b));
   for (const g of groups) g.children.sort(byCountThenName<{ name: string; emps: CompanyEmployee[] }>((c) => c.emps.length));
 
-  /* ★★小さい会社では分けない（2026-09-12）。
-     ⚠️★3名を3グループに割ると「1名ずつ」が並ぶだけで、**分けないほうが読みやすい。**
-        実測（2026-09-12 / 本番）: 現役社員が3名の企業が1社、1名の企業が4社。
-        いま分割が効く企業は存在しない。**人が増えたら自動で切り替わる。**
-     ⚠️ しきい値を下げるなら、実データで「1名だけのグループ」が何割になるかを見てから。 */
-  const GROUP_MIN_EMPLOYEES = 5;
-  const useGroups = employees.length >= GROUP_MIN_EMPLOYEES && groups.length >= 2;
+  /* ★★職種ごとの段分けはやめた（2026-10-20 / 柴さんの判断 B案）。カードにしたため、職種ごとに段を分けると
+        1〜2人の段が縦に重なり、行の形のときより長くなった（9人・4職種の見本で約1,270px、セールスフォース6人で約740px）。
+        いまは**全員を1段の横スクロール**にし、職種の内訳は上の構成バーで伝える（セールスフォースで約400px）。
+     ⚠️ 並びは職種のまとまりの順（人数の多い職種から。同じ職種の人が隣り合う）。`groups` はそのために残してある。
+     ⚠️ 2026-09-12 の「5名以上 ＋ 職種2種類以上で職種ごとに分ける」はこの判断で置き換えた。分ける形に戻すなら、
+        カードで1人だけの段が縦に重なる問題に別の答えを用意すること */
+  const orderedEmployees = groups.flatMap((g) => [...g.direct, ...g.children.flatMap((c) => c.emps)]);
 
   const SECTION_ICON = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -223,6 +221,7 @@ export function CurrentEmployeesSection({
   return (
     <>
     <style>{EMPLOYEE_GRID_CSS}</style>
+    <style>{JOB_PEOPLE_CSS}</style>
     <section
       id="current-employees"
       style={{
@@ -258,7 +257,7 @@ export function CurrentEmployeesSection({
       {/* ⚠️ 余白は globals.css の .person-section-body（767px 以下だけ左右を詰める） */}
       <div className="person-section-body">
       {/* ── ★職種の構成バー（3名以上 ＋ 職種が2種類以上）──────────────────────
-             ⚠️★**分割表示（`useGroups`）より条件をゆるくしてある。** 3名でも
+             ⚠️★（2026-10-20 に職種ごとの段分けをやめたので、いまは内訳を伝えるのはこのバーだけ）**分割表示より条件をゆるくしてあった。** 3名でも
                 「どんな職種の人が載っているか」は一目で分かるほうがよく、
                 バーは1行なので場所を取らない。**分割と同じしきい値にしないこと。**
              ⚠️ ラベルは親職種。親が無い人は子、どちらも無ければ「その他」。 */}
@@ -327,90 +326,12 @@ export function CurrentEmployeesSection({
             </>
           )}
         </div>
-      ) : !useGroups ? (
-        // 小さい会社・職種が1種類 → 素のグリッド
-        <div className="person-list">
-          {employees.map((emp) => (
+      ) : (
+        <PeopleCardRow count={orderedEmployees.length}>
+          {orderedEmployees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} />
           ))}
-        </div>
-      ) : (
-        // ★職種ごとに分けて表示（本人が登録した職種から導出）
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-          {groups.map((group) => (
-            <div key={group.key}>
-              {/* 親職種の見出し */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 6,
-                  marginBottom: "var(--space-3)",
-                  paddingBottom: "var(--space-2)",
-                  borderBottom: "1px solid var(--line-soft)",
-                }}
-              >
-                <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--ink)" }}>
-                  {group.name}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-inter), var(--font-noto)",
-                    fontSize: "var(--text-xs)",
-                    fontWeight: 400,
-                    color: "var(--ink-mute)",
-                  }}
-                >
-                  {group.total}名
-                </span>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                {/* ⚠️★大分類のまま登録した人は**子見出しを付けずに**親の直下へ。
-                       「営業 > 営業」のような見出しを作らない。 */}
-                {group.direct.length > 0 && (
-                  <div className="person-list">
-                    {group.direct.map((emp) => (
-                      <EmployeeCard key={emp.userId} employee={emp} />
-                    ))}
-                  </div>
-                )}
-
-                {group.children.map((cat) => (
-                  <div key={cat.key}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 5,
-                        marginBottom: "var(--space-2)",
-                      }}
-                    >
-                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--ink-soft)" }}>
-                        {cat.name}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-inter), var(--font-noto)",
-                          fontSize: "var(--text-xs)",
-                          fontWeight: 400,
-                          color: "var(--ink-mute)",
-                        }}
-                      >
-                        {cat.emps.length}名
-                      </span>
-                    </div>
-                    <div className="person-list">
-                      {cat.emps.map((emp) => (
-                        <EmployeeCard key={emp.userId} employee={emp} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        </PeopleCardRow>
       )}
 
       {/* ⚠️ 「在籍・職種はご本人の登録内容です。OPINIO は在籍確認を行っていません。」は 2026-10-01 に削除した。
@@ -444,7 +365,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   /* ⚠️ 「💬 DM可」バッジは 2026-08-08 に削除した。条件なしで全員に出ており、情報量が無かった。
      ★「在籍」を付けた（2026-10-03）。「2年」だけだと、この会社の期間か今の会社の期間か分からなかった。 */
   const badge = tenure ? (
-    <span className="person-row-badge person-row-badge--tenure">在籍{tenure}</span>
+    <span className="jpc-badge">在籍{tenure}</span>
   ) : null;
 
   /* ★今の会社と職種は**1行にまとめて「現在：」を付ける**（2026-10-03）。
@@ -454,7 +375,7 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   const current = [currentDisplayName, employee.currentRoleTitle].filter(Boolean).join("・");
 
   return (
-    <PersonRow
+    <PersonCard
       employee={employee}
       badge={badge}
       title={current ? `現在：${current}` : null}
@@ -630,13 +551,14 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni:
       </div>
       {/* ⚠️ 余白は globals.css の .person-section-body（767px 以下だけ左右を詰める） */}
       <div className="person-section-body">
+      <style>{JOB_PEOPLE_CSS}</style>
       {alumni.length > 0 ? (
         <>
-          <div className="person-list">
+          <PeopleCardRow count={alumni.length}>
             {alumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
-          </div>
+          </PeopleCardRow>
         </>
       ) : (
         <div style={{

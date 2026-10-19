@@ -30,11 +30,11 @@ export default function CompanyEmployeesPreview() {
   return (
     <div>
       <PreviewHeader title="現役社員（企業ページ）">
-        5名以上 ＋ 職種が2種類以上で<strong>職種ごとに分かれます</strong>。
-        それ未満は素のグリッドのままです。構成バーは<strong>3名から</strong>出ます。
+        縦長のカード（2026-10-20）。<strong>職種で段を分けず、全員を1段</strong>に並べます（3人以上は横スクロール・1〜2人は左寄せ）。
+        職種の内訳は構成バー（<strong>3名から</strong>）で伝えます。並びは人数の多い職種から。
       </PreviewHeader>
 
-      <Variant label="1名" note="⚠️ 構成バーも分割も出ない。1枚だけ">
+      <Variant label="1名" note="⚠️ 構成バーは出ない。カード1枚を左寄せ">
         <CurrentEmployeesSection
           employees={EMPLOYEES_1} totalCount={EMPLOYEES_1.length}
         />
@@ -45,21 +45,21 @@ export default function CompanyEmployeesPreview() {
              （アバターの色を散らすため）。**グループは id で作り、見出しは名前で出す**ので、
              あれを渡すと「営業」という同じ見出しが3つ並ぶ。実データでは id と名前が
              1対1なので起きないが、**プレビューで確かめたいのはそこではない。** */}
-      <Variant label="3名・職種は1種類" note="⚠️ 構成バーも分割も出ない（職種が1種類なので分ける意味が無い）">
+      <Variant label="3名・職種は1種類" note="⚠️ 構成バーは出ない（職種が1種類）。3人なので横スクロール">
         <CurrentEmployeesSection
           employees={EMPLOYEES_SAME_ROLE.slice(0, 3)} totalCount={3}
         />
       </Variant>
 
-      <Variant label="5名・全員同じ職種" note="⚠️★人数は足りるが職種が1種類。**分割されない**のが正しい">
+      <Variant label="5名・全員同じ職種" note="⚠️ 職種が1種類なので構成バーは出ない。1段の横スクロール">
         <CurrentEmployeesSection
           employees={EMPLOYEES_SAME_ROLE} totalCount={EMPLOYEES_SAME_ROLE.length}
         />
       </Variant>
 
       <Variant
-        label="9名・職種がばらける（分割表示）"
-        note="⚠️★本番では見られない側。親のまま登録した人が子見出し無しで出るか／職種が無い人が「その他」に残るか"
+        label="9名・職種がばらける"
+        note="⚠️ 構成バーで内訳が出て、カードは1段の横スクロール。同じ職種の人が隣り合い、職種が無い人（その他）は最後"
       >
         <CurrentEmployeesSection
           employees={EMPLOYEES_GROUPED} totalCount={EMPLOYEES_GROUPED.length}
