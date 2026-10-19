@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/feed-redesign", label: "ホームの見直し（見本）",
+    desc: "★新しく掲載された企業（横に送る）と「◯◯から次に進んだ人」（キャリアの移り変わり）。まだ本物のホームには入れていない" },
   { href: "/dev/preview/resume", label: "職務経歴書（/mypage/resume）",
     desc: "★入れた職歴から作る書類。すべて入っている・空・長い社名や期間なし" },
   { href: "/dev/preview/message-topics", label: "最初の1通（テーマ＋ひとこと。メッセージの一本化の見本）",
