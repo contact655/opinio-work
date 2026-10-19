@@ -707,7 +707,8 @@ export function JobEditForm({
               <FormGroup>
                 <FormLabel required={req("title")} htmlFor="jef-title">求人タイトル</FormLabel>
                 <FormInput id="jef-title" value={form.title} onChange={(v) => updateForm("title", v)} placeholder="例：法人営業（SaaS）" />
-                <Hint>求職者が最初に目にする項目です。ポジション名と補足を書いてください。タイトルを入れると下書きとして保存されます。</Hint>
+                {/* ★「下書きとして保存されます」は、まだ下書きが無いとき（新規作成）だけ出す（2026-10-20。既存の求人の編集画面では当てはまらない） */}
+                <Hint>求職者が最初に目にする項目です。ポジション名と補足を書いてください。{!currentJobId && "タイトルを入れると下書きとして保存されます。"}</Hint>
               </FormGroup>
 
               {roles.length > 0 && (
