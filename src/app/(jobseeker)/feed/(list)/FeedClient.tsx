@@ -12,6 +12,10 @@ import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarCompany } fro
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import CompanyBookmarkButton, { FollowButton as CompanyFollowButton } from "@/app/(jobseeker)/companies/[id]/CompanyDetailClient";
+import { DMButton } from "@/components/profile/DMButton";
+import { NewCompaniesCarousel, NEW_COMPANIES_CSS, type NewCompanyItem } from "@/components/feed/NewCompaniesCarousel";
+import { CareerMovesSection, CAREER_MOVES_CSS } from "@/components/people/CareerMovesSection";
+import type { CareerMoveBlock } from "@/lib/feed/careerMoves";
 
 // ─── 型定義 ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +152,10 @@ type Props = {
   sidebarCompanies: SidebarCompany[];
   /** 投稿してよい人か。false ならコンポーザーを出さない（lib/feed/canPost） */
   canPost: boolean;
+  /** ★「◯◯から次に進んだ人」（2026-10-19。ログイン中だけ。サーバーで作る lib/feed/careerMoves.ts） */
+  careerMoveBlocks: CareerMoveBlock[];
+  /** 掲載中の企業の数（「新しく掲載された企業」の「N社すべて見る」） */
+  listedCompanyCount: number;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -2243,6 +2251,8 @@ export default function FeedClient({
   sidebarSavedJobs,
   sidebarCompanies,
   canPost,
+  careerMoveBlocks,
+  listedCompanyCount,
 }: Props) {
   const [tab, setTab] = useState<Tab>("all");
   // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
@@ -2267,6 +2277,39 @@ export default function FeedClient({
   const [followedHasMore, setFollowedHasMore] = useState(false);
 
   const activePosts = tab === "all" ? posts : (followedPosts ?? []);
+  /* ★「すべて」タブでは、企業の新規掲載を1枚の横に送るカードにまとめる（2026-10-19 / 柴さんの判断）。
+        それまでは同じ形の「新規掲載」カードが縦に延々と続いていた。⚠️ 「フォロー中」タブはそのまま */
+  const streamPosts = tab === "all" ? activePosts.filter((p) => p.post_type !== "company_joined") : activePosts;
+  const newCompanies: NewCompanyItem[] = [];
+  if (tab === "all") {
+    const seen = new Set<string>();
+    for (const p of activePosts) {
+      const c = p.post_type === "company_joined" ? p.ref_company : null;
+      if (!c || seen.has(c.id)) continue;
+      seen.add(c.id);
+      newCompanies.push({
+        id: c.id, href: `/companies/${c.slug ?? c.id}`, name: c.brand_name ?? c.name,
+        logoUrl: c.logo_url, logoLetter: c.logo_letter ?? (c.brand_name ?? c.name).charAt(0),
+        domain: c.industry ?? null, tagline: c.tagline ?? null,
+      });
+    }
+  }
+  /* ★投稿のあいだに差し込むもの（何件目の投稿の後ろか）。投稿が足りなければ最後にまとめて出す */
+  const inserts: { after: number; node: React.ReactNode }[] = [];
+  if (newCompanies.length > 0) {
+    inserts.push({ after: 0, node: (
+      <NewCompaniesCarousel key="new-companies" items={newCompanies} totalCount={Math.max(listedCompanyCount, newCompanies.length)} moreHref="/companies"
+        renderFollow={(c) => <CompanyFollowButton companyId={c.id} tone="primary" />} />
+    ) });
+  }
+  if (tab === "all") {
+    careerMoveBlocks.forEach((b, bi) => inserts.push({ after: bi === 0 ? 2 : 6, node: (
+      <CareerMovesSection key={`moves-${b.key}`} title={b.title} sub={b.sub} people={b.people} hideFrom={b.hideFrom}
+        renderAction={(p) => <DMButton targetUserId={p.id} targetName={p.name} variant="card" label="メッセージ" aboutCompanyId={p.aboutCompanyId} />} />
+    ) }));
+  }
+  const insertsAfter = (i: number) => inserts.filter((x) => x.after === i).map((x) => x.node);
+  const leftoverInserts = inserts.filter((x) => x.after >= streamPosts.length).map((x) => x.node);
 
   const loadFollowed = useCallback(async () => {
     if (followedPosts !== null || followedLoading) return;
@@ -2541,7 +2584,8 @@ export default function FeedClient({
            ⚠️ カードを分けるのはサイトの慣習に合わせたもの（/u/[id] の投稿一覧、
               /people のユーザーカード、企業ページのツール等はすべて独立カード）。 */
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
-          {activePosts.map((post, i) => (
+          <style>{NEW_COMPANIES_CSS + CAREER_MOVES_CSS}</style>
+          {streamPosts.map((post, i) => (
             <Fragment key={post.id}>
               <PostCard
                 post={post}
@@ -2562,11 +2606,13 @@ export default function FeedClient({
                   ⚠️ `marginBottom` を 0 に潰す。パネル自身が 12 を持っており、
                      このリストは `gap: 10` なので、そのままだとここだけ行間が広くなる。 */}
               {!isDesktop && myUserId === null
-                && i === Math.min(GUEST_PANEL_AFTER_POSTS, activePosts.length) - 1 && (
+                && i === Math.min(GUEST_PANEL_AFTER_POSTS, streamPosts.length) - 1 && (
                 <GuestSignupPanel style={{ marginBottom: 0 }} />
               )}
+              {insertsAfter(i)}
             </Fragment>
           ))}
+          {leftoverInserts}
         </div>
       )}
 

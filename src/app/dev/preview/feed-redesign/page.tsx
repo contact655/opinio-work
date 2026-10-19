@@ -26,6 +26,7 @@ const FROM_SF = [
   move("b", "佐藤 花子", "カスタマーサクセス", SF, co(3), 2021),
   move("c", "鈴木 一郎", "エンタープライズ営業", SF, co(2), 2023),
   move("d", "Alexander Johnson", "Solutions Engineer", SF, co(4), 2020),
+  move("g", "伊藤 さくら", "パートナーセールス", SF, co(0), 2024),
 ];
 const SAME_ROLE = [
   move("e", "高橋 美咲", "アカウントエグゼクティブ", { name: "Sansan", logoUrl: COMPANIES[5].logoUrl }, co(0), 2024),

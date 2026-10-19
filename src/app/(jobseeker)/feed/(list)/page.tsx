@@ -11,6 +11,7 @@ import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
 import type { ProfileCardProps } from "@/components/common/ProfileCard";
+import { getCareerMoveBlocks, type CareerMoveBlock } from "@/lib/feed/careerMoves";
 
 export const metadata: Metadata = {
   /* ⚠️ **`| OPINIO` を自分で書くなら `absolute` にする。** ルートの
@@ -235,7 +236,7 @@ export default async function FeedPage() {
   });
 
   // ── サイドバーデータ（並列取得） ─────────────────────────────────────────────
-  const [followResult, userFollowResult, bookmarkResult, listedCompanies] = await Promise.all([
+  const [followResult, userFollowResult, bookmarkResult, listedCompanies, careerMoveBlocks] = await Promise.all([
     // (a) フォロー中の企業 (全件)
     myOwUserId
       ? adminSupabase
@@ -268,6 +269,8 @@ export default async function FeedPage() {
           （公開79社・2026-08-13 実測）、運営が意図して並べた状態ではないため。
           「掲載中」なら並び順が何であっても表示と実態がずれない。 */
     getCompaniesForList(),
+    /* (e) ★「◯◯から次に進んだ人」（2026-10-19）。ログイン中だけ。失敗しても空で返る */
+    myOwUserId ? getCareerMoveBlocks(myOwUserId) : Promise.resolve([] as CareerMoveBlock[]),
   ]);
 
   const sidebarFollows: SidebarFollow[] = (followResult.data ?? [])
@@ -340,6 +343,8 @@ export default async function FeedPage() {
       sidebarSavedJobs={sidebarSavedJobs}
       sidebarCompanies={sidebarCompanies}
       canPost={canPost}
+      careerMoveBlocks={careerMoveBlocks}
+      listedCompanyCount={listedCompanies.length}
     />
   );
 }
