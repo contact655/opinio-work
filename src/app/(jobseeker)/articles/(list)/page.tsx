@@ -210,7 +210,7 @@ function ArticleCard({ article }: { article: Article }) {
 
 
             <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
-              {article.date.replace(/-/g, "/").slice(2)}
+              {article.date.replace(/-/g, "/")}
             </span>
           </div>
         </div>
@@ -278,7 +278,7 @@ function ArticleListRow({ article }: { article: Article }) {
               </span>
             )}
             <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", whiteSpace: "nowrap", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-              {article.date.replace(/-/g, "/").slice(2)}
+              {article.date.replace(/-/g, "/")}
             </span>
           </div>
         </div>
@@ -289,10 +289,11 @@ function ArticleListRow({ article }: { article: Article }) {
             {mainSubject.role_at_interview}
           </div>
         )}
-        <div style={{
+        {/* ★題名は2行まで（2026-10-20）。1行で切ると、スマホでは題名の半分も読めなかった。全文は title 属性で読める */}
+        <div title={article.title} style={{
           fontSize: 14, fontWeight: 700, color: "var(--ink)",
           lineHeight: 1.45, fontFamily: "var(--font-noto-serif)",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
         }}>
           {article.title}
         </div>
@@ -413,7 +414,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                             {featured.company_name}
                           </span>
                           <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)" }}>
-                            · {featured.date.replace(/-/g, "/").slice(2)}
+                            · {featured.date.replace(/-/g, "/")}
                           </span>
                         </div>
                         <h2 style={{
