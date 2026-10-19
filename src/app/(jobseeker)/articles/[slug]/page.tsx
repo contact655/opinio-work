@@ -547,8 +547,13 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         {/* Hero */}
         <div style={{ marginBottom: 40 }}>
           {/* Eyecatch image */}
-          <div style={{
-            height: 260, background: article.eyecatch_gradient,
+          {/* ★高さは CSS（.article-eyecatch）。スマホでは写真の無いアイキャッチが最初の1画面の半分を占めていたので低くする（2026-10-20） */}
+          <style>{`
+            .article-eyecatch { height: 260px; }
+            @media (max-width: 640px) { .article-eyecatch { height: 140px; } }
+          `}</style>
+          <div className="article-eyecatch" style={{
+            background: article.eyecatch_gradient,
             borderRadius: 16, marginBottom: "var(--space-6)",
             display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative",
@@ -601,10 +606,11 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             <span style={{ color: INK_MUTE }}>
               {article.date.replace(/-/g, "/")}
             </span>
-            {/* ⚠️ 未入力なら**この span ごと出さない**。「 min read」だけが残らないように */}
+            {/* ⚠️ 未入力なら**この span ごと出さない**。「読了 分」だけが残らないように
+                  ★日本語にした（2026-10-20）。一覧は「9分」なのに、ここだけ「9 min read」だった */}
             {article.read_min ? (
               <span style={{ color: INK_MUTE }}>
-                {article.read_min} min read
+                読了 {article.read_min}分
               </span>
             ) : null}
           </div>
