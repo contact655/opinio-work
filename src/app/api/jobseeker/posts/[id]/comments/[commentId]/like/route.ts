@@ -84,5 +84,11 @@ export async function DELETE(_req: Request, { params }: { params: { id: string; 
     console.error("[DELETE comment like]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+  /* ★いいねを外したら、そのいいねの通知も消す（2026-10-21。投稿のいいねと同じ。柴さんの指示）。
+     ⚠️ 消すのは「この人が・このコメントに付けた」いいね通知だけ。best-effort（失敗はログ）。 */
+  const { error: notifErr } = await createAdminClient()
+    .from("ow_notifications").delete()
+    .eq("type", "comment_like").eq("actor_user_id", ctx.myId).eq("comment_id", params.commentId);
+  if (notifErr) console.error("[comment like unnotify]", notifErr.message);
   return NextResponse.json({ liked: false });
 }

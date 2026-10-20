@@ -119,5 +119,16 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  /* ★フォローを外したら「あなたをフォローしました」の通知も消す（2026-10-21 / 柴さんの指示）。
+       残すと、外したあとも相手のベルに出続け、付け外しを繰り返すたびに増える。
+     ⚠️ 消すのは「この人から・この相手への」フォロー通知だけ。best-effort（失敗はログ）。 */
+  const { error: notifErr } = await adminSupabase
+    .from("ow_notifications")
+    .delete()
+    .eq("type", "follow")
+    .eq("actor_user_id", owUserId)
+    .eq("recipient_user_id", params.id);
+  if (notifErr) console.error("[user follow unnotify]", notifErr.message);
+
   return NextResponse.json({ followed: false }, { status: 200 });
 }
