@@ -1278,6 +1278,104 @@ function FeedLeftPanel({
   );
 }
 
+// ─── 右の列の枠（2026-10-20 / 柴さんの指示）────────────────────────────────────
+/* ★PC（768px 以上）では、企業・募集・人・記事の枠を投稿の間ではなく右の列に置く。
+     投稿の間に横スクロールの大きな枠が挟まると読みづらかったため。スマホは投稿の5件おきに挟む（FeedClient）。
+   ⚠️ 見た目は右の列のほかの枠（PANEL_STYLE）にそろえる。横スクロールにしない（縦に3件ほど） */
+const RAIL_ROW: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0, color: "var(--ink)" };
+const RAIL_NAME: React.CSSProperties = { fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const RAIL_SUB: React.CSSProperties = { fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const RAIL_LIMIT = 3;
+
+function RailCompanies({ items, totalCount }: { items: NewCompanyItem[]; totalCount: number }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={PANEL_STYLE} data-state="rail-new-companies">
+      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>新しく掲載された企業</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {items.slice(0, RAIL_LIMIT + 2).map((c) => (
+          <Link key={c.id} href={c.href} style={RAIL_ROW} title={c.tagline ?? c.name}>
+            <CompanyLogoImg logoUrl={c.logoUrl} logoLetter={c.logoLetter} logoGradient={null} name={c.name} size={32} borderRadius={7} />
+            <div style={{ minWidth: 0 }}>
+              <div style={RAIL_NAME}>{c.name}</div>
+              {c.domain && <div style={RAIL_SUB}>{c.domain}</div>}
+            </div>
+          </Link>
+        ))}
+      </div>
+      <Link href="/companies" style={MORE_LINK_STYLE}>{totalCount}社すべて見る →</Link>
+    </div>
+  );
+}
+
+function RailJobs({ items }: { items: FeedJobItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={PANEL_STYLE} data-state="rail-new-jobs">
+      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>新着の募集</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.slice(0, RAIL_LIMIT).map((j) => (
+          <Link key={j.id} href={j.href} style={{ ...RAIL_ROW, alignItems: "flex-start" }} title={j.title}>
+            <CompanyLogoImg logoUrl={j.logoUrl} logoLetter={j.logoLetter} logoGradient={null} name={j.companyName} size={32} borderRadius={7} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ ...RAIL_NAME, whiteSpace: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.45 }}>{j.title}</div>
+              <div style={RAIL_SUB}>{j.companyName}</div>
+              {j.salary && <div style={{ ...RAIL_SUB, color: "var(--success-ink)", fontWeight: 700 }}>{j.salary}</div>}
+            </div>
+          </Link>
+        ))}
+      </div>
+      <Link href="/jobs" style={MORE_LINK_STYLE}>{items.length}件すべて見る →</Link>
+    </div>
+  );
+}
+
+function RailMoves({ block }: { block: CareerMoveBlock }) {
+  if (block.people.length === 0) return null;
+  return (
+    <div style={PANEL_STYLE} data-state={`rail-moves-${block.key}`}>
+      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0, marginBottom: 4 }}>{block.title}</p>
+      {block.sub && <p style={{ ...RAIL_SUB, whiteSpace: "normal", margin: "0 0 12px" }}>{block.sub}</p>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {block.people.slice(0, RAIL_LIMIT).map((p) => (
+          <Link key={p.id} href={p.href} style={RAIL_ROW}>
+            <Avatar user={{ name: p.name, avatar_color: null, avatar_url: p.avatarUrl }} size={32} />
+            <div style={{ minWidth: 0 }}>
+              <div style={RAIL_NAME}>{p.name}</div>
+              <div style={RAIL_SUB}>
+                {/* ⚠️ hideFrom（いまの勤務先の枠）では移る前の社名を出さない（CareerMovesSection と同じ） */}
+                {block.hideFrom ? `次は ${p.to.name}` : `${p.from.name} → ${p.to.name}`}{p.movedYear ? `（${p.movedYear}年）` : ""}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      <Link href="/people" style={MORE_LINK_STYLE}>ユーザーを探す →</Link>
+    </div>
+  );
+}
+
+function RailArticles({ items }: { items: FeedArticleItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div style={PANEL_STYLE} data-state="rail-articles">
+      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>記事</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {items.slice(0, RAIL_LIMIT).map((a) => (
+          <Link key={a.id} href={a.href} style={{ ...RAIL_ROW, alignItems: "flex-start" }} title={a.title}>
+            <span style={{ width: 48, height: 36, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.9)", fontWeight: 800, fontSize: 14, background: a.gradient ?? "linear-gradient(135deg,#001233,#002366)" }}>{a.initial}</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ ...RAIL_NAME, whiteSpace: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.45 }}>{a.title}</div>
+              {a.meta && <div style={RAIL_SUB}>{a.meta}</div>}
+            </div>
+          </Link>
+        ))}
+      </div>
+      <Link href="/articles" style={MORE_LINK_STYLE}>記事一覧を見る →</Link>
+    </div>
+  );
+}
+
 // ─── フォロー中サマリーパネル ──────────────────────────────────────────────────
 
 // ─── 右サイドバー ─────────────────────────────────────────────────────────────
@@ -1298,7 +1396,13 @@ function FeedSidebar({
   savedJobs,
   companies,
   myUserId,
+  rail,
+  hasNewCompanies,
 }: {
+  /** ★企業・募集・人・記事の枠（2026-10-20）。一番上に出す */
+  rail?: React.ReactNode;
+  /** 「新しく掲載された企業」を出しているなら、下の「掲載中の企業」は出さない（中身が重なる） */
+  hasNewCompanies?: boolean;
   follows: SidebarFollow[];
   userFollows: SidebarUserFollow[];
   savedJobs: SidebarJob[];
@@ -1325,7 +1429,9 @@ function FeedSidebar({
                 `getCompaniesForList()`（sort_order 昇順 → updated_at 降順）のままで、
                 `sort_order` は公開79社で**異なる値が6種類しかない**＝運営が
                 意図して並べた状態ではない。「掲載中」なら並び順が何でも実態とずれない。 */}
-      {companies.length > 0 && (
+      {rail}
+      {/* ⚠️ 2026-10-20: 「新しく掲載された企業」を出しているときは出さない（中身が重なる）。無いときだけの控え */}
+      {!hasNewCompanies && companies.length > 0 && (
         <div style={PANEL_STYLE}>
           <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>掲載中の企業</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -2307,7 +2413,8 @@ export default function FeedClient({
         id: a.id, href: `/articles/${a.slug}`, title: a.title,
         meta: `取材記事・${d.getMonth() + 1}月${d.getDate()}日`,
         gradient: a.eyecatch_gradient ?? null,
-        initial: (a.company_initial_text ?? a.company_name_text ?? a.title).charAt(0),
+        /* ⚠️ 題名の「「」などの記号を頭文字にしない（2026-10-20 に「「」が出ていた） */
+        initial: ((a.company_initial_text ?? a.company_name_text ?? a.title).match(/[A-Za-z0-9\u3040-\u30ff\u4e00-\u9fff]/)?.[0] ?? "記").toUpperCase(),
       });
     }
   }
@@ -2325,28 +2432,40 @@ export default function FeedClient({
       });
     }
   }
-  /* ★投稿のあいだに差し込むもの（何件目の投稿の後ろか）。投稿が足りなければ最後にまとめて出す */
+  /* ★投稿のあいだに差し込むもの（何件目の投稿の後ろか）。投稿が足りなければ最後にまとめて出す。
+        ★2026-10-20: **スマホ（768px 未満）だけ**、投稿の5件おき（5・10・15・20・25件目の後ろ）に挟む（柴さんの指示）。
+        PC は右の列に置く（下の railNode）。⚠️ isDesktop の境界は右の列と同じ 768。別々に書かないこと */
   const inserts: { after: number; node: React.ReactNode }[] = [];
-  if (newCompanies.length > 0) {
-    inserts.push({ after: 0, node: (
+  const EVERY = 5;
+  const slot = (n: number) => EVERY * (n + 1) - 1;
+  if (!isDesktop && newCompanies.length > 0) {
+    inserts.push({ after: slot(0), node: (
       <NewCompaniesCarousel key="new-companies" items={newCompanies} totalCount={Math.max(listedCompanyCount, newCompanies.length)} moreHref="/companies"
         renderFollow={(c) => <CompanyFollowButton companyId={c.id} tone="primary" />} />
     ) });
   }
-  /* ★並び（2026-10-20）: 企業（1件目の後）→ 募集（2件目の後）→ 人（3件目の後）→ 記事（4件目の後）→ 人の2つ目（6件目の後）。
-        投稿が足りなければ、この順で最後にまとめて出る */
-  if (newJobs.length > 0) {
-    inserts.push({ after: 1, node: <NewJobsCarousel key="new-jobs" items={newJobs} totalCount={newJobs.length} moreHref="/jobs" /> });
+  /* ★並び（スマホ）: 企業 → 募集 → 人 → 記事 → 人の2つ目。投稿が足りなければ、この順で最後にまとめて出る */
+  if (!isDesktop && newJobs.length > 0) {
+    inserts.push({ after: slot(1), node: <NewJobsCarousel key="new-jobs" items={newJobs} totalCount={newJobs.length} moreHref="/jobs" /> });
   }
-  if (tab === "all") {
-    careerMoveBlocks.forEach((b, bi) => inserts.push({ after: bi === 0 ? 2 : 5, node: (
+  if (!isDesktop && tab === "all") {
+    careerMoveBlocks.forEach((b, bi) => inserts.push({ after: bi === 0 ? slot(2) : slot(4), node: (
       <CareerMovesSection key={`moves-${b.key}`} title={b.title} sub={b.sub} people={b.people} hideFrom={b.hideFrom}
         renderAction={(p) => <DMButton targetUserId={p.id} targetName={p.name} variant="card" label="メッセージ" aboutCompanyId={p.aboutCompanyId} />} />
     ) }));
   }
-  if (newArticles.length > 0) {
-    inserts.push({ after: 3, node: <ArticlesBlock key="articles" items={newArticles} moreHref="/articles" /> });
+  if (!isDesktop && newArticles.length > 0) {
+    inserts.push({ after: slot(3), node: <ArticlesBlock key="articles" items={newArticles} moreHref="/articles" /> });
   }
+  /* ★PC の右の列（2026-10-20）。並びは 企業 → 募集 → 人 → 記事 */
+  const railNode = isDesktop ? (
+    <>
+      <RailCompanies items={newCompanies} totalCount={Math.max(listedCompanyCount, newCompanies.length)} />
+      <RailJobs items={newJobs} />
+      {careerMoveBlocks.map((b) => <RailMoves key={`rail-moves-${b.key}`} block={b} />)}
+      <RailArticles items={newArticles} />
+    </>
+  ) : null;
   /* ⚠️ 投稿が足りないときに後ろへまとめる分は、after の小さい順（＝上の並び）に出す */
   inserts.sort((a, b) => a.after - b.after);
   const insertsAfter = (i: number) => inserts.filter((x) => x.after === i).map((x) => x.node);
@@ -2618,9 +2737,12 @@ export default function FeedClient({
       </div>{/* /中央フィードカラム */}
 
       {/* 右サイドバー (≥768px) */}
+      {/* ★2026-10-20: 右の列は貼り付けない（企業・募集・人・記事の枠を足して画面より長くなり、下が切れるため） */}
       {isDesktop && (
-        <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
+        <div style={{ flexShrink: 0 }}>
           <FeedSidebar
+            rail={railNode}
+            hasNewCompanies={newCompanies.length > 0}
             follows={sidebarFollows}
             userFollows={sidebarUserFollows}
             savedJobs={sidebarSavedJobs}
