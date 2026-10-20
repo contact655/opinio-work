@@ -306,6 +306,11 @@ const GRID: React.CSSProperties = { display: "grid", gap: 10, gridTemplateColumn
 // ── ページ本体 ───────────────────────────────────────────────────────────────
 
 export default async function SearchPage({ searchParams }: Props) {
+  /* ★左右の列（ホームと同じ）の読み込みは、検索と**並べて**走らせる（2026-10-21）。
+        検索のあとに待っていたため、ログイン中の表示がホームのぶん（約0.3秒）まるごと遅れていた。
+     ⚠️ catch を先に付けておく（下で await するまでに失敗すると、未処理の失敗として記録されるため）。下の await で失敗はそのまま上がる */
+  const feedPromise = loadFeedProps();
+  feedPromise.catch(() => {});
   const raw = (searchParams.q ?? "").slice(0, 200);
   const interpreted = await interpretQuery(raw);
 
@@ -403,7 +408,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
 
   /* ★左右の列はホームと同じ（2026-10-21 / 柴さんの指示）。中身は loadFeedProps（ホームと同じ読み込み） */
-  const feed = await loadFeedProps();
+  const feed = await feedPromise;
 
   return (
     <div style={{ background: "#f0f4f8", minHeight: "70vh" }}>
