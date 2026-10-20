@@ -14,7 +14,7 @@ import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
  */
 type Liker = {
   id: string; name: string; username: string | null; headline: string | null;
-  avatarUrl: string | null; avatarColor: string | null; isMe: boolean; followed: boolean;
+  avatarUrl: string | null; avatarColor: string | null; isMe: boolean; followed: boolean; followsMe?: boolean;
 };
 
 export function LikersDialog({ postId, onClose }: { postId: string; onClose: () => void }) {
@@ -88,7 +88,7 @@ export function LikersDialog({ postId, onClose }: { postId: string; onClose: () 
                     </div>
                     {!u.isMe && (
                       <div style={{ flexShrink: 0 }}>
-                        <FollowUserButton targetUserId={u.id} initialFollowed={u.followed} isAuthenticated compact />
+                        <FollowUserButton targetUserId={u.id} initialFollowed={u.followed} followsMe={u.followsMe === true} isAuthenticated compact />
                       </div>
                     )}
                   </li>

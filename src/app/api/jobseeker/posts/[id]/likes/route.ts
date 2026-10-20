@@ -192,11 +192,17 @@ export async function GET(
   /* 自分がフォローしている人（ボタンの初期表示） */
   const ids = shown.map((u) => u.id).filter((id) => id !== me.id);
   const following = new Set<string>();
+  /* ★自分をフォローしている人（ボタンが「つながり」「フォローし返す」になる。2026-10-21） */
+  const followers = new Set<string>();
   if (ids.length > 0) {
-    const { data: f, error: fErr } = await admin
-      .from("ow_user_follows").select("target_user_id").eq("follower_user_id", me.id).in("target_user_id", ids);
-    if (fErr) console.error("[GET likes] follows:", fErr.message);
-    for (const x of f ?? []) following.add(x.target_user_id as string);
+    const [out, inc] = await Promise.all([
+      admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", me.id).in("target_user_id", ids),
+      admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", me.id).in("follower_user_id", ids),
+    ]);
+    if (out.error) console.error("[GET likes] follows:", out.error.message);
+    if (inc.error) console.error("[GET likes] followers:", inc.error.message);
+    for (const x of out.data ?? []) following.add(x.target_user_id as string);
+    for (const x of inc.data ?? []) followers.add(x.follower_user_id as string);
   }
 
   const total = count ?? shown.length;
@@ -212,6 +218,7 @@ export async function GET(
       avatarColor: u.avatar_color,
       isMe: u.id === me.id,
       followed: following.has(u.id),
+      followsMe: followers.has(u.id),
     })),
   });
 }

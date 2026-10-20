@@ -404,8 +404,10 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
       （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
 // ── グリッドカード ────────────────────────────────────────────────────
-export function GridCard({ card, myUserId, followedUserIds, narrow = false }: {
+export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+  /** ★自分をフォローしている人（ボタンが「つながり」「フォローし返す」になる。2026-10-21） */
+  followerUserIds?: string[];
   /** ★スマホの2列（2026-10-19）。顔を小さくする */
   narrow?: boolean;
 }) {
@@ -502,6 +504,7 @@ export function GridCard({ card, myUserId, followedUserIds, narrow = false }: {
             <FollowUserButton
               targetUserId={card.userId}
               initialFollowed={followedUserIds.includes(card.userId)}
+              followsMe={followerUserIds.includes(card.userId)}
               isAuthenticated
               compact
               refreshOnChange
@@ -521,8 +524,8 @@ export function GridCard({ card, myUserId, followedUserIds, narrow = false }: {
  *    情報を足し引きしないこと（ビュートグルで情報が増減する形にしない、と同じ理由）。
  * ⚠️ スマホではビュートグルを出さず、常にこの行で出す（1列なので「一覧／詳細」の差が無い）。
  */
-export function CompactRow({ card, myUserId, followedUserIds }: {
-  card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = [] }: {
+  card: AmbassadorCard; myUserId: string | null; followedUserIds: string[]; followerUserIds?: string[];
 }) {
   const router = useRouter();
   return (
@@ -543,6 +546,7 @@ export function CompactRow({ card, myUserId, followedUserIds }: {
           <FollowUserButton
             targetUserId={card.userId}
             initialFollowed={followedUserIds.includes(card.userId)}
+              followsMe={followerUserIds.includes(card.userId)}
             isAuthenticated
             compact
             refreshOnChange
@@ -565,10 +569,11 @@ export function CompactRow({ card, myUserId, followedUserIds }: {
  *
  * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
  */
-export function ListRow({ card, myUserId, followedUserIds }: {
+export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [] }: {
   card: AmbassadorCard;
   myUserId: string | null;
   followedUserIds: string[];
+  followerUserIds?: string[];
 }) {
   const router = useRouter();
   /* ★新卒入社（職歴のいちばん古い行）の業種 → 現在（いちばん新しい行）の業種
@@ -673,6 +678,7 @@ export function ListRow({ card, myUserId, followedUserIds }: {
             <FollowUserButton
               targetUserId={card.userId}
               initialFollowed={followedUserIds.includes(card.userId)}
+              followsMe={followerUserIds.includes(card.userId)}
               isAuthenticated
               refreshOnChange
             />
@@ -1069,19 +1075,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
             <><div className="ppl-grid">
               {shown.map((card) => (
-                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} narrow />
+                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow />
               ))}
             </div>{moreButton}</>
           ) : view === "list" ? (
             <><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {shown.map((card) => (
-                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
+                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} />
               ))}
             </div>{moreButton}</>
           ) : (
           <><div className="ppl-grid">
             {shown.map((card) => (
-              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} />
+              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} />
             ))}
           </div>{moreButton}</>
           )

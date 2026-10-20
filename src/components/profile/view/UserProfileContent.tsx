@@ -214,14 +214,16 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   // フォロー状態。本人・未ログインには問い合わせない（どちらもボタンを出さないか、
   // 出しても押した時点で /auth に飛ばすため）。
   let isFollowingUser = false;
+  /* ★相手が自分をフォローしているか（2026-10-21）。ボタンが「つながり」「フォローし返す」になる */
+  let followsViewer = false;
   if (viewerOwUserId && !viewerIsOwner) {
-    const { data: fol } = await adminSupabase
+    const { data: fols, error: folErr } = await adminSupabase
       .from("ow_user_follows")
-      .select("id")
-      .eq("follower_user_id", viewerOwUserId)
-      .eq("target_user_id", owUser.id)
-      .maybeSingle();
-    isFollowingUser = !!fol;
+      .select("follower_user_id")
+      .or(`and(follower_user_id.eq.${viewerOwUserId},target_user_id.eq.${owUser.id}),and(follower_user_id.eq.${owUser.id},target_user_id.eq.${viewerOwUserId})`);
+    if (folErr) console.error("[UserProfileContent] follows:", folErr.message);
+    isFollowingUser = (fols ?? []).some((f) => f.follower_user_id === viewerOwUserId);
+    followsViewer = (fols ?? []).some((f) => f.follower_user_id === owUser.id);
   }
 
 
@@ -689,6 +691,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   <FollowUserButton
                     targetUserId={owUser.id}
                     initialFollowed={isFollowingUser}
+                    followsMe={followsViewer}
                     isAuthenticated={!!authUser}
                     refreshOnChange
                   />

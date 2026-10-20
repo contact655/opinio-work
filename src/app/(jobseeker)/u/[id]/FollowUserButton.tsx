@@ -16,7 +16,15 @@ export function FollowUserButton({
   isAuthenticated,
   compact = false,
   refreshOnChange = false,
+  followsMe = false,
 }: {
+  /**
+   * ★相手が自分をフォローしているか（2026-10-21）。ボタンの言い方だけが変わる:
+   *   自分もフォロー済み → 「つながり」（相互フォロー。返事待ちなしでメッセージを始められる関係）
+   *   自分はまだ        → 「フォローし返す」（ベルの通知と同じ言い方）
+   * ⚠️ 押したときの動き（フォローする／外す）は変えない。分からないときは渡さない（false＝従来どおり）
+   */
+  followsMe?: boolean;
   targetUserId: string;
   initialFollowed: boolean;
   isAuthenticated: boolean;
@@ -73,6 +81,8 @@ export function FollowUserButton({
       onClick={toggle}
       disabled={loading}
       aria-pressed={followed}
+      data-state={followed && followsMe ? "connected" : followed ? "following" : followsMe ? "follow-back" : "not-following"}
+      title={followed && followsMe ? "お互いにフォローしています（押すとフォローを外します）" : undefined}
       style={{
         display: "inline-flex", alignItems: "center", gap: compact ? 3 : 5,
         padding: compact ? "5px 11px" : "8px 16px", borderRadius: 100,
@@ -92,14 +102,14 @@ export function FollowUserButton({
           <svg width={compact ? 11 : 13} height={compact ? 11 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          フォロー中
+          {followsMe ? "つながり" : "フォロー中"}
         </>
       ) : (
         <>
           <svg width={compact ? 11 : 13} height={compact ? 11 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          フォロー
+          {followsMe ? "フォローし返す" : "フォロー"}
         </>
       )}
     </button>

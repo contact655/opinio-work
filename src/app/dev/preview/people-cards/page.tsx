@@ -130,6 +130,29 @@ export default function PeopleCardsPreview() {
         </div>
       </Variant>
 
+      {/* ★フォローの関係でボタンの言い方が変わる（2026-10-21）。PEOPLE の順に
+             フォローしていない／自分だけフォロー（フォロー中）／相手だけフォロー（フォローし返す）／お互い（つながり）。
+             ⚠️ ボタンを押すと実際の API を呼ぶので押さないこと */}
+      <Variant
+        label="フォローの関係（フォロー／フォロー中／フォローし返す／つながり）"
+        note="左から順に4通り。ボタンの幅で行が崩れないこと"
+      >
+        <div className="ppl-grid">
+          {PEOPLE.slice(0, 4).map((c, i) => (
+            <GridCard key={c.userId} card={c} myUserId="00000000-0000-0000-0000-000000000000"
+              followedUserIds={i === 1 || i === 3 ? [c.userId] : []}
+              followerUserIds={i === 2 || i === 3 ? [c.userId] : []} />
+          ))}
+        </div>
+        <div style={{ marginTop: 16 }}>
+          {PEOPLE.slice(0, 4).map((c, i) => (
+            <CompactRow key={c.userId} card={c} myUserId="00000000-0000-0000-0000-000000000000"
+              followedUserIds={i === 1 || i === 3 ? [c.userId] : []}
+              followerUserIds={i === 2 || i === 3 ? [c.userId] : []} />
+          ))}
+        </div>
+      </Variant>
+
       {/* ⚠️ 「肩書きが全員にある場合」の Variant は 2026-09-30 に落とした。
              カードが `headline` を描かなくなり、**グリッドと同じ絵しか出なくなった**ため
              （「確かめられないものを確かめたことにする」形になる）。
