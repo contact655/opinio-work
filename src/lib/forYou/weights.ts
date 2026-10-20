@@ -70,6 +70,13 @@ export const FIT_DISLIKED_MAX = 3;
 /** 「合っていた」と答えた会社と同じ事業領域の点数（ふつうの same_domain は 30） */
 export const SAME_DOMAIN_LIKED_POINTS = 40;
 
+/**
+ * ★本人の勤務先の「主な事業領域」と一致したときの上乗せ（2026-10-20 / 柴さんに任された判断）。
+ *   セールスフォース（主: CRM・営業支援）の人に、AI・データのまとまりが先に出ていた。主の領域を少しだけ先にする。
+ * ⚠️ 小さくしてある（求人の職種 40・ふつうの同じ領域 30 の順は崩さない。同じ領域どうしの並びだけを変える）
+ */
+export const SAME_DOMAIN_PRIMARY_BONUS = 3;
+
 export type DomainFitStatus = "liked" | "neutral" | "disliked";
 
 /**

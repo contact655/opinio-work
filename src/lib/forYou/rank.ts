@@ -12,6 +12,7 @@ import {
   MAX_REASONS_PER_COMPANY,
   SIGNAL_WEIGHTS,
   SAME_DOMAIN_LIKED_POINTS,
+  SAME_DOMAIN_PRIMARY_BONUS,
   domainFitStatus,
   reasonText,
   type DomainFitStatus,
@@ -141,7 +142,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const [domainRes, jobsRes, allExpRes, adminsRes] = await Promise.all([
     /* S1′ 事業領域。本人の職歴の会社と、母集団の会社の両方 */
     db.from("ow_company_business_domains")
-      .select("company_id, domain_id, ow_business_domains!domain_id(name, is_active)")
+      .select("company_id, domain_id, is_primary, ow_business_domains!domain_id(name, is_active)")
       .in("company_id", Array.from(new Set([...companyIds, ...myCompanyIds]))),
     /* S2 公開求人の職種。⚠️ 実在の利用者には is_test の求人を出さない（PUBLIC_JOB_MATCH と同じ向き） */
     (viewerIsTest
@@ -172,8 +173,12 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
 
   /* S1′: 会社 → 有効な事業領域 */
   const domainsByCompany = new Map<string, Map<string, string>>();
-  for (const r of (domainRes.data ?? []) as unknown as { company_id: string; domain_id: string; ow_business_domains: { name: string; is_active: boolean } | null }[]) {
+  /* ★本人の勤務先（職歴の会社）の「主な事業領域」（2026-10-20）。同じ領域の理由を選ぶとき・点数で少し優先する */
+  const myCompanyIdSet = new Set(myCompanyIds);
+  const myPrimaryDomains = new Set<string>();
+  for (const r of (domainRes.data ?? []) as unknown as { company_id: string; domain_id: string; is_primary: boolean | null; ow_business_domains: { name: string; is_active: boolean } | null }[]) {
     if (!r.ow_business_domains?.is_active) continue;
+    if (r.is_primary && myCompanyIdSet.has(r.company_id)) myPrimaryDomains.add(r.domain_id);
     if (!domainsByCompany.has(r.company_id)) domainsByCompany.set(r.company_id, new Map());
     domainsByCompany.get(r.company_id)!.set(r.domain_id, r.ow_business_domains.name);
   }
@@ -278,14 +283,15 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
       /* ★「合っていた」と答えた会社の領域を最優先、次に過去の職歴（「前職と同じ」）。
             「合っていなかった」とだけ答えた領域は理由にしない（2026-10-17。weights.ts の domainFitStatus） */
       const hits = Array.from(coDomains.keys())
-        .map((d) => { const m = myDomains.get(d); return m ? { ...m, status: domainStatus(d) } : null; })
-        .filter((h): h is { name: string; onlyCurrent: boolean; status: DomainFitStatus } => !!h && h.status !== "disliked");
-      const best = hits.find((h) => h.status === "liked") ?? hits.find((h) => !h.onlyCurrent) ?? hits[0];
+        .map((d) => { const m = myDomains.get(d); return m ? { ...m, status: domainStatus(d), primary: myPrimaryDomains.has(d) } : null; })
+        .filter((h): h is { name: string; onlyCurrent: boolean; status: DomainFitStatus; primary: boolean } => !!h && h.status !== "disliked");
+      /* ★選ぶ順: 「合っていた」→ 本人の勤務先の主な事業領域（2026-10-20）→ 過去の職歴 → 最初のもの */
+      const best = hits.find((h) => h.status === "liked") ?? hits.find((h) => h.primary) ?? hits.find((h) => !h.onlyCurrent) ?? hits[0];
       if (best && !myCompanyIds.includes(c.id)) {
         const liked = best.status === "liked";
         signals.push({
           key: "same_domain",
-          points: liked ? SAME_DOMAIN_LIKED_POINTS : SIGNAL_WEIGHTS.same_domain,
+          points: (liked ? SAME_DOMAIN_LIKED_POINTS : SIGNAL_WEIGHTS.same_domain) + (best.primary ? SAME_DOMAIN_PRIMARY_BONUS : 0),
           detail: { key: "same_domain", domainName: best.name, fromCurrent: best.onlyCurrent, liked },
         });
       }
