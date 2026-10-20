@@ -945,7 +945,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           padding: "12px 0 0",
         }}
       >
-        <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
+        {/* ★lt-compact: 1024px 以上では検索・チップ・件数を1行にまとめる（2026-10-21。globals.css） */}
+        <div className="ppl-wrap lt-compact" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
           {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar。/companies・/jobs と同じ形）。
                  1行目 検索欄（常に開いている）／2行目 条件のチップ（職種・年代・外資）／3行目 件数と並び替え
               ⚠️★**「絞り込み」ボタンは置かない。** 条件が3つしか無く、3つとも外に出したので中身が空になる
@@ -965,7 +966,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           </div>
 
           {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
-          <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 10 }}>
+          {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
+          <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。
                 ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる**（現職なし → 職種／生年月日なし → 年代／
                    マスタ紐付きの職歴なし → 外資）。他の条件では落とさない。 */}
