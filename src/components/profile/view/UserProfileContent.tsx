@@ -214,7 +214,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   // フォロー状態。本人・未ログインには問い合わせない（どちらもボタンを出さないか、
   // 出しても押した時点で /auth に飛ばすため）。
   let isFollowingUser = false;
-  /* ★相手が自分をフォローしているか（2026-10-21）。ボタンが「つながり」「フォローし返す」になる */
+  /* ★相手が自分をフォローしているか（2026-10-21）。ボタンが「つながり」になる */
   let followsViewer = false;
   if (viewerOwUserId && !viewerIsOwner) {
     const { data: fols, error: folErr } = await adminSupabase

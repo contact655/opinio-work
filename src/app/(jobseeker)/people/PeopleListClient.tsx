@@ -406,7 +406,7 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
 // ── グリッドカード ────────────────────────────────────────────────────
 export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
-  /** ★自分をフォローしている人（ボタンが「つながり」「フォローし返す」になる。2026-10-21） */
+  /** ★自分をフォローしている人（ボタンが「つながり」になる。2026-10-21） */
   followerUserIds?: string[];
   /** ★スマホの2列（2026-10-19）。顔を小さくする */
   narrow?: boolean;

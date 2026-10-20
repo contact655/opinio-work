@@ -192,7 +192,7 @@ export async function GET(
   /* 自分がフォローしている人（ボタンの初期表示） */
   const ids = shown.map((u) => u.id).filter((id) => id !== me.id);
   const following = new Set<string>();
-  /* ★自分をフォローしている人（ボタンが「つながり」「フォローし返す」になる。2026-10-21） */
+  /* ★自分をフォローしている人（ボタンが「つながり」になる。2026-10-21） */
   const followers = new Set<string>();
   if (ids.length > 0) {
     const [out, inc] = await Promise.all([

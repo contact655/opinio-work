@@ -200,7 +200,7 @@ function FollowBackButton({ userId, initialFollowing, onFollowed }: { userId: st
         background: done ? "#fff" : "var(--royal)", color: done ? "var(--ink-mute)" : "#fff",
       }}
     >
-      {done ? "フォロー中" : state === "error" ? "もう一度" : state === "saving" ? "…" : "フォローし返す"}
+      {done ? "フォロー中" : state === "error" ? "もう一度" : state === "saving" ? "…" : "フォロー"}
     </button>
   );
 }
