@@ -132,6 +132,18 @@ export async function DELETE(
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
+  /* ★いいねを外したら、そのいいねの通知も消す（2026-10-21 / 柴さんの指示）。
+       残すと、外したあとも相手のベルに「いいねしました」が出続ける。
+     ⚠️ 消すのは「この人が・この投稿に付けた」いいね通知だけ（既読かどうかは問わない）。
+     ⚠️ best-effort。失敗してもいいねの解除は成功として返す（ログは出す）。 */
+  const { error: notifErr } = await createAdminClient()
+    .from("ow_notifications")
+    .delete()
+    .eq("type", "like")
+    .eq("actor_user_id", owUserId)
+    .eq("post_id", postId);
+  if (notifErr) console.error("[likes unnotify]", notifErr.message);
+
   return NextResponse.json({ liked: false });
 }
 
