@@ -2339,6 +2339,65 @@ function PostCard({
 
 // ─── FeedClient（メイン） ─────────────────────────────────────────────────────
 
+/**
+ * ★右の列（と、スマホで投稿のあいだに挟む枠）に出す企業・募集・記事を、投稿から作る（2026-10-21 に切り出した）。
+ *   ホームと検索結果（HomeSideShell）が同じものを出すため。⚠️ ここを変えると両方が変わる
+ */
+function buildHomeRailItems(activePosts: PostItem[], blockPosts: PostItem[], includeCompanies: boolean) {
+  /* 新着の募集（job_posted から。同じ募集は1回だけ） */
+  const newJobs: FeedJobItem[] = [];
+  {
+    const seen = new Set<string>();
+    for (const p of [...activePosts, ...blockPosts]) {
+      const j = p.post_type === "job_posted" ? p.ref_job : null;
+      if (!j || seen.has(j.id)) continue;
+      seen.add(j.id);
+      const c = j.company;
+      const name = c ? (c.brand_name ?? c.name) : "";
+      const salary = j.salary_min && j.salary_max && j.salary_max > j.salary_min
+        ? `${j.salary_min.toLocaleString()}〜${j.salary_max.toLocaleString()}万円`
+        : j.salary_min ? `${j.salary_min.toLocaleString()}万円〜` : null;
+      newJobs.push({
+        id: j.id, href: `/jobs/${j.slug ?? j.id}`, title: j.title, companyName: name,
+        logoUrl: c?.logo_url ?? null, logoLetter: c?.logo_letter ?? name.charAt(0), salary,
+      });
+    }
+  }
+  /* 記事（article_published から。同じ記事は1回だけ） */
+  const newArticles: FeedArticleItem[] = [];
+  {
+    const seen = new Set<string>();
+    for (const p of [...activePosts, ...blockPosts]) {
+      const a = p.post_type === "article_published" ? p.ref_article : null;
+      if (!a || seen.has(a.id)) continue;
+      seen.add(a.id);
+      const d = new Date(p.created_at);
+      newArticles.push({
+        id: a.id, href: `/articles/${a.slug}`, title: a.title,
+        meta: `取材記事・${d.getMonth() + 1}月${d.getDate()}日`,
+        gradient: a.eyecatch_gradient ?? null,
+        /* ⚠️ 題名の「「」などの記号を頭文字にしない（2026-10-20 に「「」が出ていた） */
+        initial: ((a.company_initial_text ?? a.company_name_text ?? a.title).match(/[A-Za-z0-9\u3040-\u30ff\u4e00-\u9fff]/)?.[0] ?? "記").toUpperCase(),
+      });
+    }
+  }
+  const newCompanies: NewCompanyItem[] = [];
+  if (includeCompanies) {
+    const seen = new Set<string>();
+    for (const p of activePosts) {
+      const c = p.post_type === "company_joined" ? p.ref_company : null;
+      if (!c || seen.has(c.id)) continue;
+      seen.add(c.id);
+      newCompanies.push({
+        id: c.id, href: `/companies/${c.slug ?? c.id}`, name: c.brand_name ?? c.name,
+        logoUrl: c.logo_url, logoLetter: c.logo_letter ?? (c.brand_name ?? c.name).charAt(0),
+        domain: c.industry ?? null, tagline: c.tagline ?? null,
+      });
+    }
+  }
+  return { newJobs, newArticles, newCompanies };
+}
+
 export default function FeedClient({
   initialPosts,
   blockPosts,
@@ -2393,57 +2452,7 @@ export default function FeedClient({
     .filter((p) => !BLOCK_TYPES.has(p.post_type))
     .sort((a, b) => Number(isFollowedPost(b)) - Number(isFollowedPost(a)));
 
-  /* 新着の募集（job_posted から。同じ募集は1回だけ） */
-  const newJobs: FeedJobItem[] = [];
-  {
-    const seen = new Set<string>();
-    for (const p of [...activePosts, ...blockPosts]) {
-      const j = p.post_type === "job_posted" ? p.ref_job : null;
-      if (!j || seen.has(j.id)) continue;
-      seen.add(j.id);
-      const c = j.company;
-      const name = c ? (c.brand_name ?? c.name) : "";
-      const salary = j.salary_min && j.salary_max && j.salary_max > j.salary_min
-        ? `${j.salary_min.toLocaleString()}〜${j.salary_max.toLocaleString()}万円`
-        : j.salary_min ? `${j.salary_min.toLocaleString()}万円〜` : null;
-      newJobs.push({
-        id: j.id, href: `/jobs/${j.slug ?? j.id}`, title: j.title, companyName: name,
-        logoUrl: c?.logo_url ?? null, logoLetter: c?.logo_letter ?? name.charAt(0), salary,
-      });
-    }
-  }
-  /* 記事（article_published から。同じ記事は1回だけ） */
-  const newArticles: FeedArticleItem[] = [];
-  {
-    const seen = new Set<string>();
-    for (const p of [...activePosts, ...blockPosts]) {
-      const a = p.post_type === "article_published" ? p.ref_article : null;
-      if (!a || seen.has(a.id)) continue;
-      seen.add(a.id);
-      const d = new Date(p.created_at);
-      newArticles.push({
-        id: a.id, href: `/articles/${a.slug}`, title: a.title,
-        meta: `取材記事・${d.getMonth() + 1}月${d.getDate()}日`,
-        gradient: a.eyecatch_gradient ?? null,
-        /* ⚠️ 題名の「「」などの記号を頭文字にしない（2026-10-20 に「「」が出ていた） */
-        initial: ((a.company_initial_text ?? a.company_name_text ?? a.title).match(/[A-Za-z0-9\u3040-\u30ff\u4e00-\u9fff]/)?.[0] ?? "記").toUpperCase(),
-      });
-    }
-  }
-  const newCompanies: NewCompanyItem[] = [];
-  if (tab === "all") {
-    const seen = new Set<string>();
-    for (const p of activePosts) {
-      const c = p.post_type === "company_joined" ? p.ref_company : null;
-      if (!c || seen.has(c.id)) continue;
-      seen.add(c.id);
-      newCompanies.push({
-        id: c.id, href: `/companies/${c.slug ?? c.id}`, name: c.brand_name ?? c.name,
-        logoUrl: c.logo_url, logoLetter: c.logo_letter ?? (c.brand_name ?? c.name).charAt(0),
-        domain: c.industry ?? null, tagline: c.tagline ?? null,
-      });
-    }
-  }
+  const { newJobs, newArticles, newCompanies } = buildHomeRailItems(activePosts, blockPosts, tab === "all");
   /* ★投稿のあいだに差し込むもの（何件目の投稿の後ろか）。投稿が足りなければ最後にまとめて出す。
         ★2026-10-20: **スマホ（768px 未満）だけ**、投稿の5件おき（5・10・15・20・25件目の後ろ）に挟む（柴さんの指示）。
         PC は右の列に置く（下の railNode）。⚠️ isDesktop の境界は右の列と同じ 768。別々に書かないこと */
@@ -2792,6 +2801,58 @@ function FeedCompanyActions({ companyId, companyName }: { companyId: string; com
           <CompanyFollowButton companyId={companyId} tone="primary" />
           <CompanyBookmarkButton companyName={companyName} companyId={companyId} variant="heart" />
         </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * ★ホームと同じ左右の列で、真ん中だけを差し替えて出す（2026-10-21 / 柴さんの指示。検索結果で使う）。
+ *   左（1024px 以上）: ミニプロフィール ／ 右（768px 以上）: 企業・募集・人・記事の枠とフォロー中など。
+ * ⚠️ 中身はホームと同じ部品・同じデータ（loadFeedProps）。ここで別に組み立てないこと
+ * ⚠️ 幅の境界（768 / 1024）もホームと同じ。片方だけ変えないこと
+ */
+export function HomeSideShell({ feed, children }: { feed: Props; children: React.ReactNode }) {
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [isWide, setIsWide] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      setIsDesktop(window.innerWidth >= 768);
+      setIsWide(window.innerWidth >= 1024);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  const { newJobs, newArticles, newCompanies } = buildHomeRailItems(feed.initialPosts, feed.blockPosts, true);
+  const rail = isDesktop ? (
+    <>
+      <RailCompanies items={newCompanies} totalCount={Math.max(feed.listedCompanyCount, newCompanies.length)} />
+      <RailJobs items={newJobs} />
+      {feed.careerMoveBlocks.map((b) => <RailMoves key={`rail-moves-${b.key}`} block={b} />)}
+      <RailArticles items={newArticles} />
+    </>
+  ) : null;
+  return (
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
+      {isWide && (
+        <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
+          <FeedLeftPanel profileCard={feed.profileCard} />
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      {isDesktop && (
+        <div style={{ flexShrink: 0 }}>
+          <FeedSidebar
+            rail={rail}
+            hasNewCompanies={newCompanies.length > 0}
+            follows={feed.sidebarFollows}
+            userFollows={feed.sidebarUserFollows}
+            savedJobs={feed.sidebarSavedJobs}
+            companies={feed.sidebarCompanies}
+            myUserId={feed.myUserId}
+          />
+        </div>
       )}
     </div>
   );

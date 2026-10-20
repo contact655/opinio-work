@@ -12,6 +12,8 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { PersonHitCard } from "./PersonHitCard";
 import { searchPostHits, type PostHit } from "@/lib/search/postHits";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
+import { loadFeedProps } from "../feed/(list)/loadFeedProps";
+import { HomeSideShell } from "../feed/(list)/FeedClient";
 
 /**
  * 横断検索。企業・求人・人をまとめて引き、**主対象を1つだけ**見出し付きで出す。
@@ -279,20 +281,22 @@ function ResultSection({
   return (
     <section
       data-state="search-section"
-      style={{ marginTop: 16, background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 16px 14px" }}
+      style={{ marginTop: 16, background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 16px 14px", overflow: "hidden" }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0 }}>{title}</h2>
         {count !== null && (
           <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", background: "var(--line-soft)", borderRadius: 100, padding: "2px 9px" }}>{count}</span>
         )}
-        {moreHref && (
-          <Link href={moreHref} style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--royal)", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
-            すべて表示 →
-          </Link>
-        )}
       </div>
       <div style={{ marginTop: 12 }}>{children}</div>
+      {/* ★「すべて表示」は区切りの下に横いっぱいで置く（2026-10-21 / 柴さんの指示。LinkedIn と同じ。読み終えたところで押せる） */}
+      {moreHref && (
+        <Link href={moreHref} data-state="search-more"
+          style={{ display: "block", margin: "14px -16px -14px", padding: "12px 16px", borderTop: "1px solid var(--line)", textAlign: "center", fontSize: 13.5, color: "var(--ink-soft)", fontWeight: 700, textDecoration: "none", borderRadius: "0 0 14px 14px" }}>
+          すべて表示 →
+        </Link>
+      )}
     </section>
   );
 }
@@ -398,9 +402,13 @@ export default async function SearchPage({ searchParams }: Props) {
   }
 
 
+  /* ★左右の列はホームと同じ（2026-10-21 / 柴さんの指示）。中身は loadFeedProps（ホームと同じ読み込み） */
+  const feed = await loadFeedProps();
+
   return (
     <div style={{ background: "#f0f4f8", minHeight: "70vh" }}>
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px 48px" }}>
+      <HomeSideShell feed={feed}>
+      <div>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: 0 }}>
           {raw.trim() ? `「${raw.trim()}」の検索結果` : "検索"}
         </h1>
@@ -524,8 +532,14 @@ export default async function SearchPage({ searchParams }: Props) {
                   {gated ? (
                     <LoginGate total={results.person.total} />
                   ) : k === "person" ? (
-                    <PersonGroups items={items as typeof results.person.items} totals={results.person.tenureTotals}
-                      byCompany={conditions.some((c) => c.kind === "company")} />
+                    <>
+                      <PersonGroups items={items as typeof results.person.items} totals={results.person.tenureTotals}
+                        byCompany={conditions.some((c) => c.kind === "company")} />
+                      {results.person.destinations && (
+                        <DestinationsBlock d={results.person.destinations}
+                          companyLabel={conditions.find((c) => c.kind === "company")?.label ?? null} />
+                      )}
+                    </>
                   ) : (
                     <div style={GRID}>
                       {k === "company" && (items as typeof results.company.items).map((it) => <CompanyCard key={it.id} item={it} />)}
@@ -570,6 +584,40 @@ export default async function SearchPage({ searchParams }: Props) {
                いまは上のセクションが全種別を出すので、同じ数字が2回出ることになる。
             ⚠️ 0件の種別への導線（`/companies` などの一覧へ）は**タブが担う**。 */}
       </div>
+      </HomeSideShell>
+    </div>
+  );
+}
+
+/**
+ * ★「この会社を出た人のいま」（2026-10-21 / 柴さんの指示。OPINIO らしさ＝実際に移った先が見える）。
+ *   OB・OG のいまの会社と職種を並べる。人数は3人以上のときだけ（runSearch の Destinations）。
+ * ⚠️ ログインしているときだけ（人の欄と同じ）。会社名を出してよい職歴だけを数えている
+ */
+function DestinationsBlock({ d, companyLabel }: { d: NonNullable<SearchResults["person"]["destinations"]>; companyLabel: string | null }) {
+  const chip = chipStyle("neutral");
+  const Row = ({ title, list }: { title: string; list: { label: string; count: number | null }[] }) =>
+    list.length === 0 ? null : (
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>{title}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {list.map((x) => (
+            <span key={x.label} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: chip.bg, color: chip.color, border: `1px solid ${chip.border}`, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {x.label}
+              {x.count !== null && <span style={{ fontWeight: 700, color: "var(--ink-soft)" }}>{x.count}人</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  return (
+    <div data-state="search-destinations" style={{ marginTop: 16, padding: "14px 14px 12px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--ink)" }}>
+        {companyLabel ? `${companyLabel}を出た人の、いま` : "この会社を出た人の、いま"}
+      </div>
+      <Row title="いま働いている会社" list={d.companies} />
+      <Row title="いまの職種" list={d.roles} />
+      <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--ink-mute)" }}>人数は3人以上のときだけ表示しています。</p>
     </div>
   );
 }

@@ -120,6 +120,19 @@ export type KindResult<T> = {
   total: number;
   /** ★人だけ。現役／OB・OG それぞれの総数（items は上限で切るので、そこから数えない） */
   tenureTotals?: { current: number; former: number };
+  /** ★人だけ・社名で引いたときだけ。OB・OG のいまの行き先（会社・職種）。ログイン時のみ */
+  destinations?: Destinations;
+};
+
+/**
+ * ★「この会社を出た人の行き先」（2026-10-21 / 柴さんの指示）。
+ *   OB・OG の**いまの**職歴の会社と職種を集める。
+ * ⚠️ 人数は MIN_AGGREGATE_COUNT（3）以上のときだけ出す（柴さんの判断）。それ未満は null（名前だけ並べる）
+ * ⚠️ いまの職歴の会社名を出してよい人（visibility_company = 'real'）だけ数える
+ */
+export type Destinations = {
+  companies: { label: string; count: number | null }[];
+  roles: { label: string; count: number | null }[];
 };
 
 export type SearchResults = {
@@ -146,6 +159,7 @@ const HIT_LIMIT = 24;
  *    ⚠️ **この行を消さないこと。** 消すと `/search` が丸ごと落ちる。
  */
 export { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
+import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
@@ -539,6 +553,10 @@ export async function searchPersonHits(
   );
 
   const hits: PersonHit[] = [];
+  /* ★行き先の集計（社名で引いたときだけ）。人ごとに1回ずつ数える */
+  const byCompanyCond = cond.some((c) => c.kind === "company" && c.matchOn === "experience");
+  const destCompanies = new Map<string, number>();
+  const destRoles = new Map<string, number>();
   for (const u of candidates) {
     const exps = [...(expsByUser.get(u.id) ?? [])].sort((a, b) =>
       (a.started_at ?? "").localeCompare(b.started_at ?? ""),
@@ -597,7 +615,22 @@ export async function searchPersonHits(
       matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds),
       tenure: expConds.length === 0 ? null : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
     });
+    if (byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true)) {
+      const now = exps.filter((e) => e.is_current === true && e.visibility_company === "real");
+      const cos = new Set(now.map((e) => resolveExperienceCompanyLabel(e)).filter((x): x is string => !!x));
+      const roles = new Set(now.map((e) => (e.role_category_id ? tree.byId.get(e.role_category_id)?.name : null)).filter((x): x is string => !!x));
+      for (const c of Array.from(cos)) destCompanies.set(c, (destCompanies.get(c) ?? 0) + 1);
+      for (const r of Array.from(roles)) destRoles.set(r, (destRoles.get(r) ?? 0) + 1);
+    }
   }
+  const toList = (m: Map<string, number>) =>
+    Array.from(m.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
+      .map(([label, n]) => ({ label, count: n >= MIN_AGGREGATE_COUNT ? n : null }));
+  const destinations: Destinations | undefined =
+    isLoggedIn && byCompanyCond && (destCompanies.size > 0 || destRoles.size > 0)
+      ? { companies: toList(destCompanies), roles: toList(destRoles) }
+      : undefined;
 
   /* ★現役を先に並べる（上限で切ったときに、グループの途中で切れないように）。
         ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */
@@ -610,6 +643,7 @@ export async function searchPersonHits(
       current: hits.filter((h) => h.tenure === "current").length,
       former: hits.filter((h) => h.tenure === "former").length,
     },
+    destinations,
   };
 }
 
