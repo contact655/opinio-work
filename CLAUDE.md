@@ -6588,8 +6588,11 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 ⚠️★**ベルに本文を出さない。** 誰から来たかと、押せば読めることだけ。ヘッダーに常設で
    開いたままになるので、本文の冒頭を出すと肩越しに読まれる。
 
-⚠️ **メールはまだ送っていない。** `ow_profiles` の `email_*_enabled` と対にする必要がある
-   （週次・スカウトと同じ形）。**未読バッジもまだ**（会話一覧の側の話）。
+✅★**個人どうしのメッセージはメールでも知らせる**（2026-10-20）。判定は
+   [lib/notify/personMessageEmail.ts](src/lib/notify/personMessageEmail.ts) の1か所
+   （設定 `ow_profiles.email_person_message_enabled`・同じ会話は30分に1通・検証用と実在のあいだは送らない・本文は入れない）。
+   ⚠️ 最初の1通は `sendMessageRequest`、それ以外は `notifyNewMessage`（返信済みの DM のときだけ）が呼ぶ。**経路ごとに書き写さないこと。**
+   ⚠️ 企業との会話は `companyMessageEmail.ts` が別に送る（二重にしない）。**未読バッジはまだ**（会話一覧の側の話）。
 
 ⚠️ 通知は **1メッセージにつき1行**。まとめない（何件届いたかが消え、既読で古い通知まで消える）。
 

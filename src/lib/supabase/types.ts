@@ -5901,6 +5901,7 @@ export type Database = {
           desired_work_style: string | null
           desired_work_styles: string[] | null
           email_company_message_enabled: boolean
+          email_person_message_enabled: boolean
           email_weekly_enabled: boolean
           id: string
           job_type: string | null
@@ -5930,6 +5931,7 @@ export type Database = {
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
           email_company_message_enabled?: boolean
+          email_person_message_enabled?: boolean
           email_weekly_enabled?: boolean
           id?: string
           job_type?: string | null
@@ -5959,6 +5961,7 @@ export type Database = {
           desired_work_style?: string | null
           desired_work_styles?: string[] | null
           email_company_message_enabled?: boolean
+          email_person_message_enabled?: boolean
           email_weekly_enabled?: boolean
           id?: string
           job_type?: string | null

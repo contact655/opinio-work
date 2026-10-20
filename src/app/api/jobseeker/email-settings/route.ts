@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
    ⚠️ ここに無い項目を UI に出さないこと。実在するメールと1対1で対応させている。
         email_weekly_enabled … 週次ダイジェスト（weekly-jobs / weekly-match）
         email_company_message_enabled … 企業からのメッセージ（2026-10-11）
+        email_person_message_enabled … 個人からのメッセージ（2026-10-20）
       2026-08-10 以前は localStorage に保存していて、cron から読めなかった。 */
 
 export async function GET() {
@@ -23,7 +24,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("ow_profiles")
-    .select("email_weekly_enabled, email_company_message_enabled")
+    .select("email_weekly_enabled, email_company_message_enabled, email_person_message_enabled")
     .eq("user_id", user.id) // ⚠️ auth 空間
     .maybeSingle();
 
@@ -37,6 +38,7 @@ export async function GET() {
   return NextResponse.json({
     email_weekly_enabled: data?.email_weekly_enabled ?? EMAIL_SETTING_DEFAULTS.email_weekly_enabled,
     email_company_message_enabled: data?.email_company_message_enabled ?? EMAIL_SETTING_DEFAULTS.email_company_message_enabled,
+    email_person_message_enabled: data?.email_person_message_enabled ?? EMAIL_SETTING_DEFAULTS.email_person_message_enabled,
   });
 }
 

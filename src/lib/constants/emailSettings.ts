@@ -10,10 +10,11 @@
  *
  *    email_weekly_enabled … 週次ダイジェスト（weekly-jobs / weekly-match）
  *    email_company_message_enabled … 企業からのメッセージ（lib/notify/companyMessageEmail.ts。2026-10-11）
+ *    email_person_message_enabled … 個人からのメッセージ（lib/notify/personMessageEmail.ts。2026-10-20）
  *
  * 項目を足すときは DB の列・API・UI の3つを同時に足す。
  */
-export const EMAIL_SETTING_KEYS = ["email_weekly_enabled", "email_company_message_enabled"] as const;
+export const EMAIL_SETTING_KEYS = ["email_weekly_enabled", "email_company_message_enabled", "email_person_message_enabled"] as const;
 
 /* ⚠️★`email_scout_enabled`（スカウトのお知らせ）は 2026-10-08 に外した。スカウトを
       廃止し、送るメールが存在しなくなったため（「実在するメールと1対1」の原則）。
@@ -26,4 +27,6 @@ export const EMAIL_SETTING_DEFAULTS: Record<EmailSettingKey, boolean> = {
   email_weekly_enabled: true,
   /* ⚠️ DB の DEFAULT（migration 20261011120000）と一致させること */
   email_company_message_enabled: true,
+  /* ⚠️ DB の DEFAULT（migration 20261020130000）と一致させること */
+  email_person_message_enabled: true,
 };

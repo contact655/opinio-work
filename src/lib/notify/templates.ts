@@ -597,6 +597,46 @@ export function companyMessageCandidateTemplate(params: {
 }
 
 /**
+ * ★個人からメッセージが届いたことを知らせる（2026-10-20 / 柴さんの判断）。
+ *   request … 最初の1通（キャリアの相談・メッセージ）。返信するとやり取りが始まる
+ *   message … やり取りの中の新しいメッセージ（返信・つながっている人からのメッセージ）
+ * ⚠️★**本文は1文字も入れない。** 誰から届いたかと、開くためのリンクだけ（ベルと同じ方針）。
+ *    最初の1通の「相談：〈テーマ〉」「メッセージ」の見出しだけは出す（本文ではなく、本人が選んだ種類）。
+ * ⚠️ 送り主の名前は第三者への言及なので `greet()` を使わない。
+ * ⚠️ 送るかどうか（設定・30分まとめ・検証用と実在）は lib/notify/personMessageEmail.ts が決める。ここは文面だけ。
+ */
+export function personMessageTemplate(params: {
+  to: string;
+  userName: string | null | undefined;
+  senderName: string;
+  kind: "request" | "message";
+  /** request のとき「相談：管理職・マネジメント」「メッセージ」など */
+  headline?: string | null;
+  /** 開く先（https://opinio.jp/… の絶対 URL） */
+  url: string;
+}) {
+  const who = params.senderName.trim() || "OPINIO の利用者";
+  const subject = params.kind === "request" ? `${who}さんからメッセージが届きました` : `${who}さんから新しいメッセージが届きました`;
+  const lead = params.kind === "request"
+    ? `${who}さんからメッセージが届きました。返信すると、そのままやり取りを始められます。`
+    : `${who}さんから新しいメッセージが届きました。`;
+  return {
+    to: params.to,
+    subject,
+    html: htmlWrap(`${greet(params.userName, "line")}
+      <p style="margin:0 0 16px;color:#475569">${esc(lead)}</p>
+      ${params.kind === "request" && params.headline ? `<p style="margin:0 0 20px"><span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#eef2ff;color:#002366;font-size:12.5px;font-weight:700">${esc(params.headline)}</span></p>` : ""}
+      <a href="${esc(params.url)}" style="${BTN}">OPINIOで読む →</a>
+      <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;line-height:1.7">
+        このあと30分以内に同じ方から届いたメッセージは、改めてお知らせしません。OPINIO でまとめてご覧ください。<br>
+        このお知らせは <a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「個人からのメッセージをメールで受け取る」で止められます。
+        特定の方からのメッセージを止めたいときは、その方をブロックしてください。
+      </p>
+    `),
+  };
+}
+
+/**
  * ★求職者が OPINIO のおすすめを見て「話を聞いてみたい」と答えた（会話はその場でできている）。
  * ⚠️★企業向けでは「紹介」「提案」と書かない（2026-10-11 / 柴さんの指示。人材紹介と紛らわしいため）。
  * ⚠️★ひとことの中身は書かない（名前とリンクだけ。approachRepliedCompanyTemplate と同じ方針）。

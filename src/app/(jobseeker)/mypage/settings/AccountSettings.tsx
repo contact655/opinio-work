@@ -37,6 +37,7 @@ function NotificationSettingsSection() {
         setPrefs({
           email_weekly_enabled: json.email_weekly_enabled !== false,
           email_company_message_enabled: json.email_company_message_enabled !== false,
+          email_person_message_enabled: json.email_person_message_enabled !== false,
         });
       } catch {
         /* ⚠️ 読めなかったときに既定値のトグルを操作可能にしない。
@@ -73,6 +74,8 @@ function NotificationSettingsSection() {
     { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着の募集と、希望条件に合う募集をまとめてお送りします", icon: "💼" },
     /* ★2026-10-11。企業からの1通目・紹介で企業が「会う」と答えたとき・会話での返信。30分以内はまとめて1通 */
     { key: "email_company_message_enabled", label: "企業からのメッセージをメールで受け取る", desc: "企業からメッセージや返事が届いたときにお知らせします。同じ相手から30分以内に続いて届いたぶんは、まとめて1通にします", icon: "✉️" },
+    /* ★2026-10-20。個人からの最初の1通・返信・つながっている人からのメッセージ。30分以内はまとめて1通 */
+    { key: "email_person_message_enabled", label: "個人からのメッセージをメールで受け取る", desc: "ほかの利用者からメッセージや返信が届いたときにお知らせします。同じ相手から30分以内に続いて届いたぶんは、まとめて1通にします", icon: "💬" },
     /* ⚠️ 「スカウトのお知らせ」は 2026-10-08 に外した（スカウト廃止。送るメールが無い） */
   ];
 

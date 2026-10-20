@@ -3,9 +3,10 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
+import { emailPersonMessage } from "@/lib/notify/personMessageEmail";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { dmTopicContext, isTopicOffered } from "@/lib/conversations/dmTopics";
-import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, isMessageFormat, requestCompanyName, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
+import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, isMessageFormat, requestCompanyName, requestHeadline, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
   GENERAL_FIRST_MESSAGE_MAX,
   MESSAGE_REQUEST_DAILY_LIMIT,
@@ -364,6 +365,11 @@ export async function sendMessageRequest(params: {
     conversation_id: conversationId,
   });
   if (nErr) console.error("[messageRequest] notify request:", nErr.message);
+  /* ★メールでも知らせる（2026-10-20）。本文は入れない。条件は personMessageEmail.ts の1か所 */
+  await emailPersonMessage({
+    kind: "request", recipientOwUserId: recipientId, senderOwUserId: senderId, conversationId,
+    headline: requestHeadline(topic), source: "dm/request",
+  });
 
   return { ok: true, conversationId };
 }

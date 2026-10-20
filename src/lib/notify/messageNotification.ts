@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emailPersonMessage } from "@/lib/notify/personMessageEmail";
 
 /**
  * ★メッセージが届いたことを受信者の通知に積む（2026-09-16）。
@@ -71,5 +72,19 @@ export async function notifyNewMessage(params: {
     /* ⚠️ `ow_notifications_target_check` に引っかかるとここに出る（type ごとの必須が欠けている）。
           メッセージ自体は既に保存済みなので、**送信は成功のまま**にする。 */
     console.error(`[notify-message:${source}] insert:`, insertErr.message);
+  }
+
+  /* ★個人どうしの会話なら、メールでも知らせる（2026-10-20）。条件は personMessageEmail.ts の1か所。
+       ⚠️ 企業との会話のメールは companyMessageEmail.ts が別に送る（ここでは送らない＝二重にしない）。
+       ⚠️ 返事待ち（pending）の会話にはここは通らない。最初の1通のメールは sendMessageRequest が送る */
+  const { data: conv, error: convErr } = await admin
+    .from("ow_conversations").select("kind, request_status").eq("id", conversationId).maybeSingle();
+  if (convErr) {
+    console.error(`[notify-message:${source}] conversation:`, convErr.message);
+    return;
+  }
+  if (conv?.kind !== "direct_message" || conv.request_status !== "accepted") return;
+  for (const rid of recipients) {
+    await emailPersonMessage({ kind: "message", recipientOwUserId: rid, senderOwUserId, conversationId, source });
   }
 }
