@@ -91,6 +91,12 @@ export type PersonHit = {
    * ⚠️ 判定は「当たった職歴」で行う。その人の現職ではない（別の会社の現職を見ると、OB・OG が現役に化ける）
    */
   tenure: "current" | "former" | null;
+  /**
+   * ★条件に当たった職歴（2026-10-21）。カードに「現在: 会社 - 職種」「以前: 会社 - 職種」と出す（LinkedIn と同じ形）。
+   *   現役なら当たった職歴のうち現職、OB・OG なら当たった職歴のうち最後のもの。職歴の条件が無いときは null
+   * ⚠️ 会社名は本人の公開設定どおり（resolveExperienceCompanyLabel）
+   */
+  matched: { company: string | null; role: string | null } | null;
 };
 
 /**
@@ -622,6 +628,14 @@ export async function searchPersonHits(
       currentLabel: resolveExperienceCompanyLabel(exps.find((e) => e.is_current) ?? null),
       matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds, gradsByUser.get(u.id) ?? []),
       tenure: expConds.length === 0 ? null : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
+      matched: (() => {
+        const e = matchedExps.find((x) => x.is_current === true) ?? latestMatch;
+        if (!e) return null;
+        return {
+          company: resolveExperienceCompanyLabel(e),
+          role: e.role_category_id ? tree.byId.get(e.role_category_id)?.name ?? null : null,
+        };
+      })(),
     });
     if (byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true)) {
       const now = exps.filter((e) => e.is_current === true && e.visibility_company === "real");

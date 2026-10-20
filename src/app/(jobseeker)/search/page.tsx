@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { interpretQuery, type Condition, type SearchKind } from "@/lib/search/interpretQuery";
 import {
   runSearch, skillBandsForCompanies, MIN_AGGREGATE_COUNT,
@@ -281,7 +282,7 @@ function ResultSection({
   return (
     <section
       data-state="search-section"
-      style={{ marginTop: 16, background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 16px 14px", overflow: "hidden" }}
+      className="search-section"
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0 }}>{title}</h2>
@@ -293,7 +294,7 @@ function ResultSection({
       {/* ★「すべて表示」は区切りの下に横いっぱいで置く（2026-10-21 / 柴さんの指示。LinkedIn と同じ。読み終えたところで押せる） */}
       {moreHref && (
         <Link href={moreHref} data-state="search-more"
-          style={{ display: "block", margin: "14px -16px -14px", padding: "12px 16px", borderTop: "1px solid var(--line)", textAlign: "center", fontSize: 13.5, color: "var(--ink-soft)", fontWeight: 700, textDecoration: "none", borderRadius: "0 0 14px 14px" }}>
+          style={{ display: "block", margin: "14px -16px -14px", padding: "12px 16px", borderTop: "1px solid var(--line)", textAlign: "center", fontSize: 13.5, color: "var(--ink-soft)", fontWeight: 700, textDecoration: "none" }}>
           すべて表示 →
         </Link>
       )}
@@ -410,9 +411,38 @@ export default async function SearchPage({ searchParams }: Props) {
   /* ★左右の列はホームと同じ（2026-10-21 / 柴さんの指示）。中身は loadFeedProps（ホームと同じ読み込み） */
   const feed = await feedPromise;
 
+  /* ★人の行のフォローボタン（2026-10-21）。見ている人がフォローしている人／フォローされている人（「つながり」の表示に使う） */
+  const follow: FollowInfo = { me: feed.myUserId, following: new Set(), followers: new Set() };
+  const personIds = results.person.items.map((p) => p.userId).filter((id) => id !== feed.myUserId);
+  if (feed.myUserId && personIds.length > 0) {
+    const admin = createAdminClient();
+    const [out, inc] = await Promise.all([
+      admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", feed.myUserId).in("target_user_id", personIds),
+      admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", feed.myUserId).in("follower_user_id", personIds),
+    ]);
+    if (out.error) console.error("[search] follows:", out.error.message);
+    if (inc.error) console.error("[search] followers:", inc.error.message);
+    for (const r of out.data ?? []) follow.following.add(r.target_user_id as string);
+    for (const r of inc.data ?? []) follow.followers.add(r.follower_user_id as string);
+  }
+
   return (
     <div style={{ background: "#f0f4f8", minHeight: "70vh" }}>
       <HomeSideShell feed={feed}>
+      {/* ⚠️ style タグの中に不等号や山かっこを書かないこと（ハイドレーションが壊れる。ui-debugging ⑲） */}
+      <style>{`
+        .search-tabs { margin-top: 18px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+          position: sticky; top: 60px; z-index: 5; background: #f0f4f8; padding: 8px 0; margin-bottom: -8px; }
+        .search-tabs::-webkit-scrollbar { display: none; }
+        .search-tabs a { flex-shrink: 0; white-space: nowrap; }
+        /* ★区切りの箱。⚠️ インラインに戻さないこと（スマホで端まで広げる指定が効かなくなる） */
+        .search-section { margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
+          padding: 16px 16px 14px; overflow: hidden; }
+        @media (max-width: 767px) {
+          .search-section { margin-left: -16px; margin-right: -16px; border-radius: 0; border-left: none; border-right: none; margin-top: 8px; }
+          .search-tabs { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+        }
+      `}</style>
       <div>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: 0 }}>
           {raw.trim() ? `「${raw.trim()}」の検索結果` : "検索"}
@@ -453,7 +483,8 @@ export default async function SearchPage({ searchParams }: Props) {
                （リポジトリの「0件の選択肢を出さない」とは逆向き。ここはタブ＝目次なので）。
             ⚠️ 人の件数は未ログインだと下限未満で伏せる（既存の `MIN_AGGREGATE_COUNT`）。 */}
         {(!nothingResolved || posts.total > 0) && raw.trim() && (
-          <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 8 }}>
+          /* ★1行で横にスクロールし、ヘッダーの下に貼り付く（2026-10-21 / 柴さんの指示。LinkedIn と同じ）。位置と並びは CSS（.search-tabs） */
+          <div className="search-tabs" data-state="search-tabs">
             {(["all", ...KIND_ORDER] as const).map((k) => {
               const active = activeKind === k;
               const n = k === "all" ? totalAll : totalOf(k);
@@ -539,7 +570,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   ) : k === "person" ? (
                     <>
                       <PersonGroups items={items as typeof results.person.items} totals={results.person.tenureTotals}
-                        byCompany={conditions.some((c) => c.kind === "company")} />
+                        byCompany={conditions.some((c) => c.kind === "company")} f={follow} />
                       {results.person.destinations && (
                         <DestinationsBlock d={results.person.destinations}
                           companyLabel={conditions.find((c) => c.kind === "company")?.label ?? null} />
@@ -643,12 +674,25 @@ function Truncated({ total, shown }: { total: number; shown: number }) {
  * ⚠️ 判定は条件に当たった職歴（`PersonHit.tenure`）。分けられない（tenure が null）ときは分けずに出す
  * ⚠️ 人数は上限で切る前の総数（`tenureTotals`）を出す。表示中の件数を数えない
  */
+type FollowInfo = { me: string | null; following: Set<string>; followers: Set<string> };
+
+/** ★人は1人1行で縦に並べる（2026-10-21。LinkedIn と同じ。カードの格子にしない） */
+function PersonList({ items, f }: { items: SearchResults["person"]["items"]; f: FollowInfo }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)" }}>
+      {items.map((it) => (
+        <PersonHitCard key={it.userId} person={it} me={f.me} followed={f.following.has(it.userId)} followsMe={f.followers.has(it.userId)} />
+      ))}
+    </div>
+  );
+}
+
 function PersonGroups({
-  items, totals, byCompany,
-}: { items: SearchResults["person"]["items"]; totals: SearchResults["person"]["tenureTotals"]; byCompany: boolean }) {
+  items, totals, byCompany, f,
+}: { items: SearchResults["person"]["items"]; totals: SearchResults["person"]["tenureTotals"]; byCompany: boolean; f: FollowInfo }) {
   const grouped = items.some((p) => p.tenure !== null);
   if (!grouped) {
-    return <div style={GRID}>{items.map((it) => <PersonHitCard key={it.userId} person={it} />)}</div>;
+    return <PersonList items={items} f={f} />;
   }
   const groups = [
     { key: "current" as const, label: byCompany ? "現役社員" : "いまの仕事", n: totals?.current ?? 0 },
@@ -666,7 +710,7 @@ function PersonGroups({
               {g.label}<span style={{ marginLeft: 6, color: "var(--ink-mute)", fontWeight: 600 }}>{g.n}人</span>
             </div>
             {list.length > 0 ? (
-              <div style={GRID}>{list.map((it) => <PersonHitCard key={it.userId} person={it} />)}</div>
+              <PersonList items={list} f={f} />
             ) : (
               <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>「すべて表示」から見られます。</p>
             )}
