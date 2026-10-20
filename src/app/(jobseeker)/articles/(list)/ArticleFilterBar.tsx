@@ -98,11 +98,11 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             ⚠️ 右端に寄せるのは `marginLeft: auto`。**行を折ったときだけ効く。** */}
         {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17。/companies・/jobs・/people と同じ）。
                ⚠️ flexWrap をインラインに戻さないこと */}
-        <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
-                 components/common/ListSearchButton —— **4つの一覧で同じ部品**。
-              ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 789px を占めていた。 */}
+        {/* ★2026-10-20: /companies・/jobs・/people と同じ3行にした（柴さんの指示）。
+               1行目 検索欄（常に開いている。広い画面では最大 560px）／2行目 カテゴリ／3行目 件数と表示切替・並び替え */}
+        <div className="lt-search-row">
           <ListSearchButton
+            alwaysOpen
             value={currentQ}
             draft={localQ}
             onDraftChange={setLocalQ}
@@ -111,6 +111,8 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             placeholder="タイトル・企業名で検索"
             inputAriaLabel="記事を検索"
           />
+        </div>
+        <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 10 }}>
 
           {/* ★カテゴリ（2026-09-17 にピル5つからドロップダウンへ / 柴さんの指示）。
                  実体は components/common/SortSelect —— 並び替えと**同じ部品**。
@@ -131,24 +133,19 @@ export default function ArticleFilterBar({ total }: { total: number }) {
             onChange={(v) => updateParam("type", v)}
           />
 
-          {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
-              ⚠️★`flexShrink: 0` にしないこと。375px で親を超える（`/people` で実際に踏んだ）。
-                 `flexWrap` で中を折り、`minWidth: 0` で縮めさせる。 */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12, rowGap: 8,
-            flexWrap: "wrap", minWidth: 0, marginLeft: "auto",
-          }}>
+        </div>
+
+        {/* ★3行目: 件数（左）と、表示切替・並び替え（文字だけ）（右） */}
+        <div className="lt-result-row" data-state="articles-result-row">
+          <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
+            <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 15, fontFamily: "var(--font-inter), var(--font-noto)" }}>{total}</strong> 本
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             {/* ★並び替え（2026-09-17 にドロップダウンへ）。実体は components/common/SortSelect。
                 `/jobs`・`/companies`・`/people` と**同じ部品**。⚠️ ここに直書きしないこと。
                 ⚠️ ラベルは部品の既定の「並び替え」。**以前の「並び順:」に戻さないこと**
                    —— 同じ操作が4画面で違う語になる。
                 ⚠️ `updateParam` が "latest" を消すので、既定に戻すと `?sort=` が落ちる（意図どおり）。 */}
-            <SortSelect
-              value={currentSort}
-              options={ARTICLE_SORT_OPTIONS}
-              onChange={(v) => updateParam("sort", v)}
-            />
-
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               {/* ⚠️★**表示切替は `/companies` の `GridSortBar` と同じ見た目にする**（2026-09-06）。
                      それまでは articles だけ「白い箱 + 影 + royal の文字」で、
@@ -201,11 +198,13 @@ export default function ArticleFilterBar({ total }: { total: number }) {
                   </button>
                 ))}
               </div>
-              <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-              <span aria-live="polite" aria-atomic="true" style={{ fontSize: 13, color: INK_MUTE, whiteSpace: "nowrap", fontWeight: 500 }}>
-                <strong style={{ color: "var(--ink)", fontWeight: 800, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)" }}>{total}</strong> 本
-              </span>
             </div>
+            <SortSelect
+              variant="text"
+              value={currentSort}
+              options={ARTICLE_SORT_OPTIONS}
+              onChange={(v) => updateParam("sort", v)}
+            />
           </div>
         </div>
 
