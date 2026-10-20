@@ -108,6 +108,21 @@ export function topicLabel(value: MessageTopic, aboutCompanyName?: string | null
   return t.group === "company" && aboutCompanyName ? `${t.label}（${aboutCompanyName}）` : t.label;
 }
 
+/**
+ * ★受け取った側の一覧に出す、最初の1通の見出し（2026-10-20 / 柴さんの判断）。
+ *   キャリア相談（会社・キャリアのテーマ）… 「相談：〈テーマ〉」
+ *   採用・この会社で働くこと                … テーマ名のまま（相談ではない）
+ *   テーマなし（「メッセージを送る」・それより前の行） … 「メッセージ」
+ * ⚠️ 印（バッジ）にはしない。いままでのテーマの文字と同じ形で出す（2026-10-11 の「印を付けない」と揃える）
+ */
+export function requestHeadline(value: MessageTopic | null, aboutCompanyName?: string | null): string {
+  if (!value) return "メッセージ";
+  const t = MESSAGE_TOPICS.find((x) => x.value === value);
+  if (!t) return "メッセージ";
+  const label = topicLabel(value, aboutCompanyName);
+  return t.group === "company" || t.group === "career" ? `相談：${label}` : label;
+}
+
 /** 埋め込みで取った「どの会社の話か」を表示名にする（一覧・詳細・届いたものの3か所で同じ形） */
 export function requestCompanyName(v: unknown): string | null {
   const c = (Array.isArray(v) ? v[0] : v) as { name?: string; name_en?: string | null } | null | undefined;

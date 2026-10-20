@@ -2269,6 +2269,12 @@ function PostCard({
           <span>コメント{commentCount > 0 ? ` ${commentCount}` : ""}</span>
         </button>
 
+        {/* ★投稿した人にメッセージ（2026-10-20 / 柴さんの要望）。人の投稿で、自分以外・ログイン中のときだけ。
+               つながっていればすぐ会話、そうでなければ最初のメッセージ（返事待ち）になる（DMButton と /api/dm/start が決める） */}
+        {actor.kind === "user" && myUserId && !isOwner && !post.user.is_system && (
+          <DMButton targetUserId={post.user.id} targetName={post.user.name} variant="action" />
+        )}
+
         {/* シェアボタン + ブックマークボタン (右端) */}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 2 }}>
           <button

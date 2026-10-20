@@ -4,13 +4,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import {
+  CONNECTION_FIRST_MESSAGE_MAX,
   getDmState,
   getRequestQuota,
+  isMutualFollow,
   quotaBlockMessage,
+  sendDirectToConnection,
   sendMessageRequest,
   stateBlockMessage,
 } from "@/lib/conversations/messageRequest";
 import { dmTopicSections } from "@/lib/conversations/dmTopics";
+import { GENERAL_FIRST_MESSAGE_MAX } from "@/lib/constants/messages";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -34,6 +38,25 @@ async function resolveMe() {
   const admin = createAdminClient();
   const { data: owMe } = await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
   return (owMe?.id as string | undefined) ?? null;
+}
+
+/**
+ * ★止まったときに出す文言（2026-10-20 / 柴さんの要望）。
+ *   原則は理由を返さない（`CONTACT_BLOCKED_MESSAGE`）。**例外は送り手が検証用で相手が実在のときだけ**で、
+ *   そのときは理由をそのまま出す（検証で「なぜ送れないのか」が分からず止まっていたため）。
+ * ⚠️ 実在の利用者には今までどおり理由を出さない（ブロック・受け取り設定などが分かってしまう）。
+ */
+const TEST_TO_REAL_MESSAGE = "検証用アカウントからは、実在の利用者には送れません";
+async function blockedMessageFor(meId: string, targetUserId: string): Promise<string> {
+  const { data, error } = await createAdminClient()
+    .from("ow_users").select("id, is_test").in("id", [meId, targetUserId]);
+  if (error) {
+    console.error("[dm/start] is_test:", error.message);
+    return CONTACT_BLOCKED_MESSAGE;
+  }
+  const testOf = new Map((data ?? []).map((u) => [u.id as string, u.is_test === true]));
+  if (testOf.get(meId) === true && testOf.get(targetUserId) === false) return TEST_TO_REAL_MESSAGE;
+  return CONTACT_BLOCKED_MESSAGE;
 }
 
 async function targetExists(targetUserId: string): Promise<boolean> {
@@ -72,7 +95,12 @@ export async function GET(request: NextRequest) {
 
   /* これから送る。⚠️ 相手に関わる理由で止まるなら、書かせる前に止める */
   if (await isMessagingBlocked(meId, targetUserId)) {
-    return NextResponse.json({ action: "blocked", message: CONTACT_BLOCKED_MESSAGE });
+    return NextResponse.json({ action: "blocked", message: await blockedMessageFor(meId, targetUserId) });
+  }
+  /* ★つながっている（相互フォロー）なら、返事待ちを挟まずにすぐ始められる（2026-10-20）。
+       テーマは聞かず、ふつうのメッセージ欄を出す（`connected`）。返事待ちの枠も見ない */
+  if ((await isMutualFollow(meId, targetUserId)) === true) {
+    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX });
   }
   const quota = await getRequestQuota(meId);
   if (!quota) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
@@ -84,7 +112,7 @@ export async function GET(request: NextRequest) {
   const aboutRaw = request.nextUrl.searchParams.get("aboutCompanyId");
   const topicSections = await dmTopicSections(targetUserId, aboutRaw && UUID_RE.test(aboutRaw) ? aboutRaw : null);
   if (!topicSections) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-  return NextResponse.json({ action: "compose", quota, topicSections });
+  return NextResponse.json({ action: "compose", quota, topicSections, messageMaxLength: GENERAL_FIRST_MESSAGE_MAX });
 }
 
 export async function POST(request: NextRequest) {
@@ -94,7 +122,7 @@ export async function POST(request: NextRequest) {
   const meId = await resolveMe();
   if (!meId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; message?: unknown };
+  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; message?: unknown; connected?: unknown; kind?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -106,14 +134,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 404 });
   }
 
+  /* ★つながっている相手へ（GET が connected を返したときだけ画面が付けてくる）。
+       ⚠️ 画面の申告は信じない。sendDirectToConnection が相互フォローを確かめ直す */
+  if (body.connected === true) {
+    const direct = await sendDirectToConnection({
+      senderId: meId,
+      recipientId: targetUserId,
+      body: typeof body.message === "string" ? body.message : "",
+    });
+    if (!direct.ok) {
+      const error = direct.error === CONTACT_BLOCKED_MESSAGE ? await blockedMessageFor(meId, targetUserId) : direct.error;
+      return NextResponse.json({ error }, { status: direct.status });
+    }
+    return NextResponse.json({ conversationId: direct.conversationId }, { status: 201 });
+  }
+
   const result = await sendMessageRequest({
     senderId: meId,
     recipientId: targetUserId,
+    /* ★「キャリアの相談をする」か「メッセージを送る」か（2026-10-20）。知らない値は相談として扱う（テーマが無ければ 400） */
+    kind: body.kind === "message" ? "message" : "consult",
     topic: typeof body.topic === "string" ? body.topic : "",
     aboutCompanyId: typeof body.aboutCompanyId === "string" && UUID_RE.test(body.aboutCompanyId) ? body.aboutCompanyId : null,
     format: typeof body.format === "string" ? body.format : undefined,
     body: typeof body.message === "string" ? body.message : "",
   });
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  if (!result.ok) {
+    const error = result.error === CONTACT_BLOCKED_MESSAGE ? await blockedMessageFor(meId, targetUserId) : result.error;
+    return NextResponse.json({ error }, { status: result.status });
+  }
   return NextResponse.json({ conversationId: result.conversationId }, { status: 201 });
 }

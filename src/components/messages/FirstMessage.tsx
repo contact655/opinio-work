@@ -24,7 +24,9 @@ function senderLine(s: FirstMessageSender): string {
 }
 
 /** 書く画面 */
-export function FirstMessageComposer({ recipientName, recipientLine, sections, onSend, onCancel, sample = false, titleId }: {
+export function FirstMessageComposer({ recipientName, recipientLine, sections, onSend, onCancel, onBack, sample = false, titleId }: {
+  /** ★「種類を選び直す」（2026-10-20。DMButton が「キャリアの相談をする」を選んだあとに出す） */
+  onBack?: () => void;
   recipientName: string;
   /** 相手の見出し（「Salesforce ／ アカウントエグゼクティブ」など） */
   recipientLine: string | null;
@@ -56,6 +58,12 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
 
   return (
     <div data-state="first-message-composer" style={{ ...card, display: "grid", gap: 16 }}>
+      {onBack && (
+        <button type="button" onClick={onBack} data-action="dm-back"
+          style={{ justifySelf: "start", background: "none", border: "none", padding: 0, fontSize: 12.5, color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}>
+          ← 種類を選び直す
+        </button>
+      )}
       <div style={{ minWidth: 0 }}>
         <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
         {recipientLine && <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={recipientLine}>{recipientLine}</div>}

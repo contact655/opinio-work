@@ -7,6 +7,7 @@ import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations
 import { dmTopicContext, isTopicOffered } from "@/lib/conversations/dmTopics";
 import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, isMessageFormat, requestCompanyName, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
+  GENERAL_FIRST_MESSAGE_MAX,
   MESSAGE_REQUEST_DAILY_LIMIT,
   MESSAGE_REQUEST_OPEN_LIMIT,
 } from "@/lib/constants/messages";
@@ -131,6 +132,108 @@ export function stateBlockMessage(state: DmState): string | null {
   }
 }
 
+/**
+ * ★相互フォロー（つながり）か（2026-10-20 / 柴さんの要望）。
+ *   つながっている2人は、返事待ちを挟まずにすぐ会話を始められる（`sendDirectToConnection`）。
+ * ⚠️ 取得に失敗したら null（呼び出し側は「つながっていない」として返事待ちの経路に倒す。広げる向きに倒さない）。
+ */
+export async function isMutualFollow(aId: string, bId: string): Promise<boolean | null> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("ow_user_follows").select("follower_user_id")
+    .or(`and(follower_user_id.eq.${aId},target_user_id.eq.${bId}),and(follower_user_id.eq.${bId},target_user_id.eq.${aId})`);
+  if (error) {
+    console.error("[messageRequest] mutual follow:", error.message);
+    return null;
+  }
+  const followers = new Set((data ?? []).map((r) => r.follower_user_id as string));
+  return followers.has(aId) && followers.has(bId);
+}
+
+/** つながっている相手への最初の1通の長さ。ふつうのメッセージ（返信）と同じ */
+export const CONNECTION_FIRST_MESSAGE_MAX = 2000;
+
+/**
+ * ★つながっている相手に、返事待ちを挟まずに会話を始める（2026-10-20）。
+ *
+ * - 会話は最初から `request_status='accepted'`。両者を参加者に入れ、通知はふつうのメッセージ（`message`）
+ * - 「聞きたいこと」（テーマ）は聞かない。知っている相手に送るふつうのメッセージなので
+ * - ⚠️★**止める規則はそのまま**（`isMessagingBlocked`: ブロック・検証用と実在の組・企業の担当者の規則）。
+ *   つながっていても、その規則で止まる相手には送れない
+ * - ⚠️ 返事待ちの枠（1日10件・20件）は数えない。返事待ちを作らないので。
+ *   ⚠️ ただし `requested_at` は入る（DM は必須の列）ので、**その日の「新しい方へ」の件数には数えられる**（1日10件のほうだけ）
+ */
+export async function sendDirectToConnection(params: {
+  senderId: string;
+  recipientId: string;
+  body: string;
+}): Promise<SendResult> {
+  const { senderId, recipientId } = params;
+  const body = params.body.trim();
+  if (!body) return { ok: false, status: 400, error: "メッセージを入力してください" };
+  if (body.length > CONNECTION_FIRST_MESSAGE_MAX) {
+    return { ok: false, status: 400, error: `メッセージは${CONNECTION_FIRST_MESSAGE_MAX}文字以内で入力してください` };
+  }
+  if (senderId === recipientId) return { ok: false, status: 400, error: "自分には送れません" };
+
+  const state = await getDmState(senderId, recipientId);
+  if (!state) return { ok: false, status: 500, error: MSG.failed };
+  const stateMsg = stateBlockMessage(state);
+  if (stateMsg) return { ok: false, status: state.kind === "incoming_declined" ? 403 : 409, error: stateMsg };
+  if (await isMessagingBlocked(senderId, recipientId)) {
+    return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
+  }
+  /* ⚠️ つながりを外した直後に押された場合など。返事待ちの経路へ戻させる */
+  const mutual = await isMutualFollow(senderId, recipientId);
+  if (mutual !== true) return { ok: false, status: 409, error: "つながりが確認できませんでした。もう一度お試しください" };
+
+  const db = createAdminClient();
+  const now = new Date().toISOString();
+  const { data: conv, error: convErr } = await db
+    .from("ow_conversations")
+    .insert({
+      kind: "direct_message",
+      stage: "active",
+      status: "active",
+      candidate_user_id: senderId,
+      partner_user_id: recipientId,
+      request_status: "accepted",
+      requested_at: now,
+      responded_at: now,
+    })
+    .select("id")
+    .single();
+  if (convErr || !conv) {
+    if (convErr?.code === "23505") return { ok: false, status: 409, error: MSG.exists };
+    console.error("[messageRequest] direct conversation insert:", convErr?.message);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+  const conversationId = conv.id as string;
+
+  const parts = await ensureDmParticipants(db, conversationId, [senderId, recipientId]);
+  const senderParticipantId = parts.ok ? parts.byUserId.get(senderId) : undefined;
+  if (!senderParticipantId || !(parts.ok && parts.byUserId.get(recipientId))) {
+    console.error("[messageRequest] direct participants:", parts.ok ? "missing" : parts.error);
+    await db.from("ow_conversations").delete().eq("id", conversationId);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+
+  const { error: msgErr } = await db.from("ow_conversation_messages").insert({
+    conversation_id: conversationId,
+    sender_participant_id: senderParticipantId,
+    body,
+  });
+  if (msgErr) {
+    console.error("[messageRequest] direct message insert:", msgErr.message);
+    /* ⚠️ 本文の無い会話を残さない */
+    await db.from("ow_conversations").delete().eq("id", conversationId);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+
+  await notifyNewMessage({ conversationId, senderOwUserId: senderId, source: "dm/connection-start" });
+  return { ok: true, conversationId };
+}
+
 export type SendResult =
   | { ok: true; conversationId: string }
   | { ok: false; status: number; error: string };
@@ -143,6 +246,13 @@ export type SendResult =
 export async function sendMessageRequest(params: {
   senderId: string;
   recipientId: string;
+  /**
+   * ★最初の1通の種類（2026-10-20 / 柴さんの判断）。
+   *   consult … キャリア相談（テーマ＋ひとこと100字＋話す形）。省略時はこれ
+   *   message … メッセージ（テーマを選ばない。本文500字まで）。request_topic / request_format は null のまま
+   * ⚠️ どちらも返信までは1通だけ・同じ上限（1日10件・返事待ち20件）。種類で決まりを変えない
+   */
+  kind?: "consult" | "message";
   topic: string;
   /** ★話を聞く形（2026-10-18）。省略・空なら「メッセージで」。知らない値は 400 */
   format?: string;
@@ -152,13 +262,21 @@ export async function sendMessageRequest(params: {
 }): Promise<SendResult> {
   const { senderId, recipientId } = params;
   const body = params.body.trim();
-  if (!params.topic) return { ok: false, status: 400, error: "聞きたいことを選んでください" };
-  if (params.format && !isMessageFormat(params.format)) return { ok: false, status: 400, error: "話を聞く形を選び直してください" };
-  const format: MessageFormat = isMessageFormat(params.format) ? params.format : DEFAULT_MESSAGE_FORMAT;
-  if (!body) return { ok: false, status: 400, error: "ひとことを入力してください" };
-  if (body.length > FIRST_NOTE_MAX) {
-    return { ok: false, status: 400, error: `ひとことは${FIRST_NOTE_MAX}文字以内で入力してください` };
+  const isConsult = params.kind !== "message";
+  if (isConsult) {
+    if (!params.topic) return { ok: false, status: 400, error: "聞きたいことを選んでください" };
+    if (params.format && !isMessageFormat(params.format)) return { ok: false, status: 400, error: "話を聞く形を選び直してください" };
+    if (!body) return { ok: false, status: 400, error: "ひとことを入力してください" };
+    if (body.length > FIRST_NOTE_MAX) {
+      return { ok: false, status: 400, error: `ひとことは${FIRST_NOTE_MAX}文字以内で入力してください` };
+    }
+  } else {
+    if (!body) return { ok: false, status: 400, error: "メッセージを入力してください" };
+    if (body.length > GENERAL_FIRST_MESSAGE_MAX) {
+      return { ok: false, status: 400, error: `メッセージは${GENERAL_FIRST_MESSAGE_MAX}文字以内で入力してください` };
+    }
   }
+  const format: MessageFormat | null = isConsult ? (isMessageFormat(params.format) ? params.format : DEFAULT_MESSAGE_FORMAT) : null;
   if (senderId === recipientId) return { ok: false, status: 400, error: "自分には送れません" };
 
   /* ① 既にある DM。⚠️★ブロックより先に見る（2026-10-11）。
@@ -177,14 +295,19 @@ export async function sendMessageRequest(params: {
   if (!quota) return { ok: false, status: 500, error: MSG.failed };
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return { ok: false, status: 429, error: quotaMsg };
-  /* ④ テーマ（この相手に選べるものか） */
-  const ctx = await dmTopicContext(recipientId, params.aboutCompanyId ?? null);
-  if (!ctx) return { ok: false, status: 500, error: MSG.failed };
-  if (!isTopicOffered(ctx.sections, params.topic)) return { ok: false, status: 400, error: "聞きたいことを選び直してください" };
-  const topic: MessageTopic = params.topic;
-  /* ★どの会社の話か。会社のテーマを選んだときだけ記録する（キャリアの相談に社名を付けない） */
-  const isCompanyTopic = MESSAGE_TOPICS.some((t) => t.value === topic && t.group === "company");
-  const requestCompanyId = isCompanyTopic ? ctx.aboutCompanyId : null;
+  /* ④ テーマ（この相手に選べるものか）。⚠️ メッセージ（kind=message）はテーマを持たない */
+  let topic: MessageTopic | null = null;
+  let requestCompanyId: string | null = null;
+  if (isConsult) {
+    const ctx = await dmTopicContext(recipientId, params.aboutCompanyId ?? null);
+    if (!ctx) return { ok: false, status: 500, error: MSG.failed };
+    if (!isTopicOffered(ctx.sections, params.topic)) return { ok: false, status: 400, error: "聞きたいことを選び直してください" };
+    const chosen: MessageTopic = params.topic;
+    topic = chosen;
+    /* ★どの会社の話か。会社のテーマを選んだときだけ記録する（キャリアの相談に社名を付けない） */
+    const isCompanyTopic = MESSAGE_TOPICS.some((t) => t.value === chosen && t.group === "company");
+    requestCompanyId = isCompanyTopic ? ctx.aboutCompanyId : null;
+  }
 
   const db = createAdminClient();
   const now = new Date().toISOString();

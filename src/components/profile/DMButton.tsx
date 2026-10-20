@@ -19,7 +19,8 @@ type Props = {
    */
   label?: string;
   /** ★「…」メニューの中に置く形（2026-10-11 / 企業の担当者が /u/[id] を見たとき。「個人としてメッセージを送る」） */
-  variant?: "button" | "menuItem" | "card" | "icon";
+  /** ★action … フィードの投稿の下の操作行（いいね・コメントと並ぶ。2026-10-20） */
+  variant?: "button" | "menuItem" | "card" | "icon" | "action";
   /** ★企業ページの社員の行から送るとき、その会社の id（2026-10-18）。「会社のこと」のテーマがこの会社になる */
   aboutCompanyId?: string | null;
 };
@@ -55,6 +56,12 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
   const [notice, setNotice] = useState<{ text: string; requestsLink?: boolean } | null>(null);
   const [composing, setComposing] = useState(false);
   const [topicSections, setTopicSections] = useState<TopicSection[]>([]);
+  /* ★書く画面の段（2026-10-20 / 柴さんの判断）。
+       connected … つながっている（相互フォロー）相手。テーマを聞かずにふつうのメッセージ欄。送るとすぐ会話になる
+       choose    … それ以外の相手。最初に「キャリアの相談をする」「メッセージを送る」を選ぶ
+       consult   … キャリア相談（テーマ＋ひとこと）／ message … メッセージ（テーマなし）。どちらも返信までは1通だけ */
+  const [mode, setMode] = useState<"connected" | "choose" | "consult" | "message">("choose");
+  const [maxLength, setMaxLength] = useState(2000);
   const [sending, setSending] = useState(false);
   const router = useRouter();
 
@@ -77,7 +84,15 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
         router.push(`/mypage/conversations?open=${data.conversationId}`);
         return;
       }
+      if (data.action === "compose" && data.connected === true) {
+        setMode("connected");
+        setMaxLength(typeof data.maxLength === "number" ? data.maxLength : 2000);
+        setComposing(true);
+        return;
+      }
       if (data.action === "compose") {
+        setMode("choose");
+        setMaxLength(typeof data.messageMaxLength === "number" ? data.messageMaxLength : 500);
         /* ⚠️ テーマが取れなければ書かせない（選べないまま送れない画面になる） */
         if (!Array.isArray(data.topicSections) || data.topicSections.length === 0) {
           setNotice({ text: "現在メッセージを送れません" });
@@ -97,13 +112,24 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
 
   /** 送る。エラーの文言を返す（成功したら会話へ移る） */
   async function handleSend(topic: MessageTopic, note: string, format: MessageFormat): Promise<string | null> {
+    return post({ targetUserId, topic, format, aboutCompanyId, message: note });
+  }
+  /** つながっている相手へ（テーマなし。すぐ会話になる） */
+  async function handleSendConnected(message: string): Promise<string | null> {
+    return post({ targetUserId, connected: true, message });
+  }
+  /** メッセージ（テーマなし。返信までは1通だけ） */
+  async function handleSendMessage(message: string): Promise<string | null> {
+    return post({ targetUserId, kind: "message", message });
+  }
+  async function post(payload: Record<string, unknown>): Promise<string | null> {
     if (sending) return null;
     setSending(true);
     try {
       const res = await fetch("/api/dm/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetUserId, topic, format, aboutCompanyId, message: note }),
+        body: JSON.stringify(payload),
       });
       if (res.status === 401) { toAuth(); return null; }
       const data = await res.json().catch(() => null);
@@ -128,7 +154,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
   }, [composing, sending]);
 
   /* ★一覧の形では、止まった理由をボタンの横ではなく画面下の小さな帯で出す（カードの高さを崩さない）。4秒で消す */
-  const floatingNotice = variant === "card" || variant === "icon";
+  const floatingNotice = variant === "card" || variant === "icon" || variant === "action";
   useEffect(() => {
     if (!notice || !floatingNotice) return;
     const t = setTimeout(() => setNotice(null), 4000);
@@ -139,7 +165,13 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
 
   return (
     <>
-      {variant === "card" ? (
+      {variant === "action" ? (
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-post-author" title={`${targetName}さんにメッセージを送る`} aria-label={`${targetName}さんにメッセージを送る`}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: loading ? "default" : "pointer",
+            padding: "6px 12px", borderRadius: 8, color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 500 }}>
+          {ICON}<span className="dm-action-label">{loading ? "準備中..." : (label ?? "メッセージ")}</span>
+        </button>
+      ) : variant === "card" ? (
         <button type="button" onClick={handleClick} disabled={loading} data-action="dm-card"
           style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px 10px", background: "#fff",
             color: loading ? "var(--ink-mute)" : "var(--royal)", borderRadius: 9, fontSize: 12, fontWeight: 600, fontFamily: "inherit",
@@ -211,12 +243,122 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
           }}
         >
           <div style={{ width: "100%", maxWidth: 560, maxHeight: "100%", overflowY: "auto", borderRadius: 12, boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
-            <FirstMessageComposer titleId="dm-request-title" recipientName={targetName} recipientLine={null}
-              sections={topicSections} onSend={handleSend} onCancel={() => { if (!sending) setComposing(false); }} />
+            {mode === "connected" ? (
+              <PlainComposer titleId="dm-request-title" recipientName={targetName} maxLength={maxLength} state="connection-composer"
+                note="つながっている方なので、送るとすぐにやり取りを始められます。"
+                onSend={handleSendConnected} onCancel={() => { if (!sending) setComposing(false); }} />
+            ) : mode === "choose" ? (
+              <ChooseKind titleId="dm-request-title" recipientName={targetName} onChoose={setMode} onCancel={() => setComposing(false)} />
+            ) : mode === "message" ? (
+              <PlainComposer titleId="dm-request-title" recipientName={targetName} maxLength={maxLength} state="message-composer"
+                note="あいさつ・お礼・連絡など。返信があるまでは、続けて送れません。"
+                onBack={() => { if (!sending) setMode("choose"); }}
+                onSend={handleSendMessage} onCancel={() => { if (!sending) setComposing(false); }} />
+            ) : (
+              <FirstMessageComposer titleId="dm-request-title" recipientName={targetName} recipientLine={null}
+                sections={topicSections} onSend={handleSend} onCancel={() => { if (!sending) setComposing(false); }}
+                onBack={() => { if (!sending) setMode("choose"); }} />
+            )}
           </div>
         </div>,
         document.body,
       )}
     </>
+  );
+}
+
+/**
+ * ★最初に用件の種類を選ぶ（2026-10-20 / 柴さんの判断）。
+ *   キャリア相談は「聞く側だけが相手の時間をもらう」ので、テーマとひとことを添えてもらう。
+ *   それ以外（あいさつ・お礼・連絡）はテーマを選ばずに書ける。
+ * ⚠️ どちらも返信までは1通だけ。種類で決まりを変えない（決まりは lib/conversations/messageRequest.ts）
+ */
+function ChooseKind({ recipientName, onChoose, onCancel, titleId }: {
+  recipientName: string;
+  onChoose: (m: "consult" | "message") => void;
+  onCancel: () => void;
+  titleId: string;
+}) {
+  const option = (m: "consult" | "message", title: string, desc: string) => (
+    <button type="button" data-kind={m} onClick={() => onChoose(m)}
+      style={{ display: "block", width: "100%", textAlign: "left", border: "1.5px solid var(--line)", borderRadius: 10, padding: "12px 14px", background: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
+      <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{title}</span>
+      <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-mute)", marginTop: 3, lineHeight: 1.6 }}>{desc}</span>
+    </button>
+  );
+  return (
+    <div data-state="dm-choose-kind" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", background: "#fff", display: "grid", gap: 10, minWidth: 0 }}>
+      <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
+      {option("consult", "キャリアの相談をする", "聞きたいことを選んで、ひとこと添えて送ります。")}
+      {option("message", "メッセージを送る", "あいさつ・お礼・連絡など、相談以外の用件です。")}
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>どちらも、相手から返信があるまでは1通だけ送れます。</div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button type="button" onClick={onCancel}
+          style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          やめる
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ★テーマを選ばずに書く画面（2026-10-20）。つながっている相手へ／「メッセージを送る」を選んだときに使う。
+ * ⚠️ `note` で、送ったあとどうなるか（すぐ会話になる／返信までは1通だけ）を一言で伝える。
+ */
+function PlainComposer({ recipientName, maxLength, note, state, onSend, onCancel, onBack, titleId }: {
+  recipientName: string;
+  maxLength: number;
+  note: string;
+  state: string;
+  onSend: (message: string) => Promise<string | null>;
+  onCancel: () => void;
+  onBack?: () => void;
+  titleId: string;
+}) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const tooLong = text.length > maxLength;
+  const canSend = text.trim().length > 0 && !tooLong && !busy;
+  const send = async () => {
+    if (!canSend) return;
+    setBusy(true); setError(null);
+    try { const e = await onSend(text.trim()); if (e) setError(e); } finally { setBusy(false); }
+  };
+  return (
+    <div data-state={state} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", background: "#fff", display: "grid", gap: 12, minWidth: 0 }}>
+      {onBack && (
+        <button type="button" onClick={onBack} data-action="dm-back"
+          style={{ justifySelf: "start", background: "none", border: "none", padding: 0, fontSize: 12.5, color: "var(--ink-mute)", cursor: "pointer", fontFamily: "inherit" }}>
+          ← 種類を選び直す
+        </button>
+      )}
+      <div style={{ minWidth: 0 }}>
+        <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
+        <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>{note}</div>
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={5}
+        aria-label="メッセージ"
+        placeholder="メッセージを入力"
+        style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", fontSize: 14, lineHeight: 1.6, fontFamily: "inherit", resize: "vertical" }}
+      />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: tooLong ? "var(--danger-ink, #b91c1c)" : "var(--ink-mute)" }}>{text.length} / {maxLength}</span>
+        <span style={{ flex: 1 }} />
+        <button type="button" onClick={onCancel} disabled={busy}
+          style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          やめる
+        </button>
+        <button type="button" onClick={send} disabled={!canSend} data-action="plain-send"
+          style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: canSend ? "var(--royal)" : "var(--line)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: canSend ? "pointer" : "default" }}>
+          {busy ? "送信中…" : "送る"}
+        </button>
+      </div>
+      {error && <div role="alert" style={{ fontSize: 12.5, color: "var(--danger-ink, #b91c1c)" }}>{error}</div>}
+    </div>
   );
 }

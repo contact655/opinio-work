@@ -28,6 +28,13 @@ export const MAX_BULK_RECIPIENTS = 20;
    この値は企業からのメッセージの本文の上限（APPROACH_BODY_MAX）と揃えるために残してある */
 export const MAX_MESSAGE_REQUEST_LENGTH = 2000;
 
+/**
+ * ★「メッセージを送る」（キャリア相談ではない最初の1通。あいさつ・お礼・連絡など）の本文の長さ（2026-10-20）。
+ *   キャリア相談の「ひとこと」（FIRST_NOTE_MAX = 100）より長くしてある。テーマを選ばない代わりに、用件を本文で伝えるため。
+ *   ⚠️ 返信までは1通だけ・1日10件・返事待ち20件の決まりはキャリア相談と同じ（messageRequest.ts）
+ */
+export const GENERAL_FIRST_MESSAGE_MAX = 500;
+
 /** 1日（日本時間の0時区切り）に送れる新しいお願いの数 */
 export const MESSAGE_REQUEST_DAILY_LIMIT = 10;
 

@@ -2812,3 +2812,10 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 .sort-select-btn.sort-select-btn--text:hover { background: none; color: var(--royal); }
 .sort-select-btn.sort-select-btn--text > svg:first-child,
 .sort-select-btn.sort-select-btn--text .sort-select-label { display: none; }
+
+/* ★フィードの投稿の下の「メッセージ」（2026-10-20）。いいねの数と顔が並ぶと、狭い画面では1行に収まらないので文字だけ畳む。
+   ⚠️ 高さは変えない（.tb-collapse-label を使うと 44px になり、操作の行が伸びる） */
+@media (max-width: 400px) {
+  .dm-action-label { display: none; }
+}
+

@@ -15,7 +15,7 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
-import { formatLabel, isMessageFormat, requestCompanyName, topicLabel, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
+import { formatLabel, isMessageFormat, requestCompanyName, requestHeadline, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
 import { FirstTopicNotice } from "@/components/messages/FirstMessage";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
@@ -114,9 +114,9 @@ const linkBtn: React.CSSProperties = { background: "none", border: "none", paddi
 function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selected: boolean; onOpen: () => void }) {
   const name = item.kind === "company" ? item.approach.companyName : item.request.requester.name;
   const preview = item.kind === "company" ? item.approach.reason : (item.request.body ?? "");
-  /* ★個人からの1通目のテーマ（2026-10-17）。それより前のものは無い */
-  const topic = item.kind === "person" && item.request.topic
-    ? `${topicLabel(item.request.topic, item.request.aboutCompanyName)}${item.request.format ? `・${formatLabel(item.request.format)}` : ""}` : null;
+  /* ★個人からの1通目の見出し（2026-10-17 / 2026-10-20 に「相談：」「メッセージ」を足した） */
+  const topic = item.kind === "person"
+    ? `${requestHeadline(item.request.topic, item.request.aboutCompanyName)}${item.request.format ? `・${formatLabel(item.request.format)}` : ""}` : null;
   return (
     <button type="button" onClick={onOpen} data-unreplied={item.kind} data-unreplied-id={item.key} aria-expanded={selected}
       style={{
@@ -213,18 +213,16 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
               )}
             </div>
           </div>
-          {item.request.topic && (
-            <div style={{ marginTop: 12 }}>
-              <span data-state="request-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
-                聞きたいこと: {topicLabel(item.request.topic, item.request.aboutCompanyName)}
+          <div style={{ marginTop: 12 }}>
+            <span data-state="request-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
+              {requestHeadline(item.request.topic, item.request.aboutCompanyName)}
+            </span>
+            {item.request.format && (
+              <span data-state="request-format" style={{ display: "inline-block", marginLeft: 6, padding: "3px 10px", borderRadius: 999, background: "var(--bg-tint)", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600 }}>
+                {formatLabel(item.request.format)}
               </span>
-              {item.request.format && (
-                <span data-state="request-format" style={{ display: "inline-block", marginLeft: 6, padding: "3px 10px", borderRadius: 999, background: "var(--bg-tint)", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600 }}>
-                  {formatLabel(item.request.format)}
-                </span>
-              )}
-            </div>
-          )}
+            )}
+          </div>
           <p data-state="request-body" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.8, color: item.request.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
             {item.request.body ?? "（本文を読み込めませんでした）"}
           </p>
