@@ -1,3 +1,4 @@
+import { LikersCountButton } from "@/components/feed/LikersDialog";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -310,7 +311,8 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
             color: "var(--ink-soft)",
           }}
         >
-          <span>❤️ {likeCount}</span>
+          {/* ★押すといいねした人の一覧（2026-10-21） */}
+          <LikersCountButton postId={p.id} count={likeCount}>❤️ {likeCount}</LikersCountButton>
           <span>💬 {commentCount}</span>
           <Link
             href="/feed"

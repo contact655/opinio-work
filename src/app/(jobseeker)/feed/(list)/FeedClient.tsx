@@ -13,6 +13,7 @@ import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import CompanyBookmarkButton, { FollowButton as CompanyFollowButton } from "@/app/(jobseeker)/companies/[id]/CompanyDetailClient";
 import { DMButton } from "@/components/profile/DMButton";
+import { LikersDialog } from "@/components/feed/LikersDialog";
 import { NewCompaniesCarousel, NEW_COMPANIES_CSS, type NewCompanyItem } from "@/components/feed/NewCompaniesCarousel";
 import { CareerMovesSection, CAREER_MOVES_CSS } from "@/components/people/CareerMovesSection";
 import { NewJobsCarousel, ArticlesBlock, FEED_BLOCKS_CSS, type FeedJobItem, type FeedArticleItem } from "@/components/feed/FeedSectionBlocks";
@@ -1606,6 +1607,8 @@ function PostCard({
   onLikeToggle: (id: string, liked: boolean, delta: number) => void;
 }) {
   const [showComments, setShowComments] = useState(false);
+  /* ★いいねした人の一覧（2026-10-21） */
+  const [showLikers, setShowLikers] = useState(false);
   const [liking, setLiking] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -2204,9 +2207,11 @@ function PostCard({
           <span>いいね{post.like_count > 0 ? ` ${post.like_count}` : ""}</span>
         </button>
 
-        {/* リアクションしたユーザーのアバター (1件以上のとき) */}
+        {/* リアクションしたユーザーのアバター (1件以上のとき)。★押すといいねした人の一覧が開く（2026-10-21） */}
         {post.like_count > 0 && post.top_likers && post.top_likers.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", marginLeft: 2 }}>
+          <button type="button" data-action="open-likers" onClick={() => setShowLikers(true)}
+            aria-label={`いいねした人を見る（${post.like_count}人）`} title="いいねした人を見る"
+            style={{ display: "flex", alignItems: "center", marginLeft: 2, background: "none", border: "none", padding: "4px 6px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>
             {post.top_likers.slice(0, 3).map((liker, i) => (
               <div
                 key={liker.id}
@@ -2233,8 +2238,9 @@ function PostCard({
                 +{post.like_count - 3}
               </span>
             )}
-          </div>
+          </button>
         )}
+        {showLikers && <LikersDialog postId={post.id} onClose={() => setShowLikers(false)} />}
 
         {/* コメントボタン */}
         <button

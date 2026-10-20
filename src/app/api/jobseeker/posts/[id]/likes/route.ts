@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { isRegisteredUser } from "@/lib/users/registered";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -132,3 +134,85 @@ export async function DELETE(
 
   return NextResponse.json({ liked: false });
 }
+
+/**
+ * GET /api/jobseeker/posts/[id]/likes — いいねした人の一覧（2026-10-21 / 柴さんの要望。LinkedIn の「リアクション」と同じ形）
+ *
+ * - ログインしている人だけ（人の一覧なので。/people と同じ扱い）
+ * - 投稿そのものが見えない人には 404（フィードと同じ判定 `isPostVisibleTo`）
+ * - 出さない人: 非公開（private）・システム・本人が登録していない行・
+ *   ★検証用アカウント（見ている人が実在の利用者のとき。フィードと同じ片方向）
+ *   ⚠️ 出さなかった人は `hiddenCount` に数だけ返す（いいねの数と一覧の人数が合わないと「消えた」と読まれる）
+ * - 新しい順。最大 200 人（それ以上は数だけ）
+ */
+export async function GET(
+  _req: Request,
+  { params }: { params: { id: string } }
+) {
+  if (!UUID_RE.test(params.id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const admin = createAdminClient();
+  const { data: me, error: meErr } = await admin
+    .from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
+  if (meErr) { console.error("[GET likes] me:", meErr.message); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
+  if (!me) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const viewerIsTest = me.is_test === true;
+
+  const { data: post, error: pErr } = await admin
+    .from("ow_posts_visible")
+    .select("id, visibility, user:ow_users!user_id(visibility, is_test, is_system)")
+    .eq("id", params.id).maybeSingle();
+  if (pErr) { console.error("[GET likes] post:", pErr.message); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
+  const author = (post?.user ?? null) as unknown as { visibility: string | null; is_test: boolean | null; is_system: boolean | null } | null;
+  if (!post || !isPostVisibleTo({ postVisibility: post.visibility as string | null, author }, true, viewerIsTest)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const LIMIT = 200;
+  const { data: rows, error: lErr, count } = await admin
+    .from("ow_post_likes")
+    .select("user_id, created_at, liker:ow_users!user_id(id, name, username, headline, avatar_url, avatar_color, visibility, is_test, is_system, auth_id)", { count: "exact" })
+    .eq("post_id", params.id)
+    .order("created_at", { ascending: false })
+    .limit(LIMIT);
+  if (lErr) { console.error("[GET likes] likes:", lErr.message); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
+
+  type Liker = { id: string; name: string; username: string | null; headline: string | null; avatar_url: string | null; avatar_color: string | null; visibility: string | null; is_test: boolean | null; is_system: boolean | null; auth_id: string | null };
+  const shown = (rows ?? [])
+    .map((r) => (Array.isArray(r.liker) ? r.liker[0] : r.liker) as unknown as Liker | null)
+    .filter((u): u is Liker => !!u
+      && isRegisteredUser(u)
+      && u.is_system !== true
+      && u.visibility !== "private"
+      && (viewerIsTest || u.is_test !== true));
+
+  /* 自分がフォローしている人（ボタンの初期表示） */
+  const ids = shown.map((u) => u.id).filter((id) => id !== me.id);
+  const following = new Set<string>();
+  if (ids.length > 0) {
+    const { data: f, error: fErr } = await admin
+      .from("ow_user_follows").select("target_user_id").eq("follower_user_id", me.id).in("target_user_id", ids);
+    if (fErr) console.error("[GET likes] follows:", fErr.message);
+    for (const x of f ?? []) following.add(x.target_user_id as string);
+  }
+
+  const total = count ?? shown.length;
+  return NextResponse.json({
+    total,
+    hiddenCount: Math.max(0, total - shown.length),
+    likers: shown.map((u) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      headline: u.headline,
+      avatarUrl: u.avatar_url,
+      avatarColor: u.avatar_color,
+      isMe: u.id === me.id,
+      followed: following.has(u.id),
+    })),
+  });
+}
+
