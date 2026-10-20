@@ -868,7 +868,9 @@ export default function CandidatesClient({
           </svg>
           <input
             type="search" value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="名前・職種・会社・居住地で検索（除外は -語）"
+            /* ★スマホでは入力欄が 16px になり長い案内が切れていたので短くした（2026-10-20）。除外の使い方は title と読み上げ用の名前に残す */
+            placeholder="名前・職種・会社・居住地で検索"
+            title="先頭に - を付けた語は除外できます（例: -営業）"
             aria-label="名前・職種・会社・居住地で検索。先頭に - を付けた語は除外"
             style={{
               width: "100%", height: 38, padding: "0 32px 0 34px",
@@ -1462,6 +1464,12 @@ export default function CandidatesClient({
         @media (max-width: 640px) {
           .cand-wrap { padding: 0 0 12px; }
         }
+        /* ★（気になる）。PC は見た目どおりの大きさ。スマホは押しやすいよう当たり判定だけ 44px に広げ、
+           広げたぶんは負のマージンで打ち消す（行の高さとカードの並びを変えない。2026-10-20） */
+        .cand-star { width: var(--star-size); height: var(--star-size); }
+        @media (max-width: 767px) {
+          .cand-star { width: 44px; height: 44px; margin: calc((var(--star-size) - 44px) / 2); }
+        }
         .cand-quick { flex-basis: 100%; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
         @media (max-width: 767px) {
           .cand-quick { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 4px; scrollbar-width: none; }
@@ -1571,9 +1579,10 @@ export function StarButton({ starred, onToggle, size = 28 }: { starred: boolean;
     <button type="button" aria-pressed={starred} aria-label={starred ? "気になるから外す" : "気になるに保存"} title={starred ? "気になるから外す" : "気になる（社内で共有・本人には通知されません）"}
       data-state={starred ? "star-on" : "star-off"}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-      className="btn-fixed-size"
-      style={{ width: size, height: size, borderRadius: "50%", border: "none", background: "none", padding: 0, cursor: "pointer",
-        display: "inline-flex", alignItems: "center", justifyContent: "center", color: starred ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 }}>
+      className="btn-fixed-size cand-star"
+      /* ⚠️ 幅と高さは CSS 変数で渡す（スマホでは .cand-star が当たり判定だけ 44px に広げるため。インラインに直書きすると効かない） */
+      style={{ ["--star-size" as string]: `${size}px`, borderRadius: "50%", border: "none", background: "none", padding: 0, cursor: "pointer",
+        display: "inline-flex", alignItems: "center", justifyContent: "center", color: starred ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 } as React.CSSProperties}>
       <StarIcon filled={starred} size={Math.round(size * 0.6)} />
     </button>
   );
