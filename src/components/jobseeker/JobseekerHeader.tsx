@@ -374,6 +374,12 @@ export function JobseekerHeader() {
        [自分のアバター（引き出し）] [検索欄（幅いっぱい）] [メッセージ] [ベル]
      ⚠️ 未ログインのスマホは従来どおり（ロゴ・🔍・無料登録・ハンバーガー）。 */
   const mobileSignedIn = isNarrow && !loading && !!user;
+  /* ★一覧ページ（2026-10-21 / 柴さんの判断）。スマホでは、すぐ下に一覧の中を絞る検索欄があるので、
+       ヘッダーの横断検索は欄の形をやめて🔍のアイコンにする（同じ形の入力欄が縦に2つ並び、どちらに打つか迷わせていた）。
+     ⚠️ 消さないこと。押すと今と同じ横断検索が開く（スマホではこれが横断検索の唯一の入口）。
+     ⚠️ 一覧のトップだけ（/companies/xxx などの詳細は今までどおり欄の形） */
+  const isListPage = pathname === "/companies" || pathname === "/jobs" || pathname === "/people" || pathname === "/articles";
+  const mobileSearchAsIcon = mobileSignedIn && isListPage;
   /* ★スマホの引き出しに出す未読の数（2026-10-18）。マイページのタブ（応募・面談 など）をスマホで外したので、
         数字の置き場をここへ移した。数え方は /api/jobseeker/mypage-badges（マイページの左のメニューと同じ）。
      ⚠️ スマホでログインしているときだけ取る（PC はマイページの左のメニューが出す） */
@@ -536,7 +542,28 @@ export function JobseekerHeader() {
                  （モバイルのタブバーにも引き出しにも検索は無い）。 */}
           {/* ★スマホ・ログイン中は、🔍の四角ではなく**幅いっぱいの検索欄の形**にする（2026-10-17 / LinkedIn型）。
               押すと開くのは下の🔍と**同じオーバーレイ**（入力は1か所）。見た目だけ欄の形にしている。 */}
-          {!hideHeaderSearch && mobileSignedIn && (
+          {!hideHeaderSearch && mobileSearchAsIcon && (
+          <button
+            type="button"
+            className="btn-fixed-size"
+            onClick={() => setSearchOpen(true)}
+            aria-label="企業・募集・ユーザー・記事を検索"
+            data-state="header-search-icon"
+            /* ⚠️ margin-left: auto で右（メッセージの隣）へ寄せる。左の箱は flex: 1 なので、真ん中が空く。
+               ⚠️ margin-right: -16 は、左右の箱のあいだ（gap 24）をメッセージとベルの間隔（8）に揃えるため（実測 2026-10-21） */
+            style={{
+              marginLeft: "auto", marginRight: -16, width: 36, height: 36, flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: 0, border: "none", background: "none", borderRadius: "50%",
+              color: "var(--ink-soft)", cursor: "pointer",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
+            </svg>
+          </button>
+          )}
+          {!hideHeaderSearch && mobileSignedIn && !mobileSearchAsIcon && (
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
