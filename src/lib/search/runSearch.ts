@@ -474,7 +474,7 @@ export async function searchPersonHits(
   const db = createAdminClient();
   const tree = await getRoleTree();
 
-  const [userRes, expRes, foreignRes, domainRes, skillRes, langRes] = await Promise.all([
+  const [userRes, expRes, foreignRes, domainRes, skillRes, langRes, eduRes] = await Promise.all([
     /* ⚠️★`auth_id` を落とさないこと。落とすと `undefined` になり
           `isRegisteredUser` が**全員 false** を返して、人の検索が丸ごと空になる。 */
     db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, auth_id"),
@@ -492,10 +492,12 @@ export async function searchPersonHits(
           ⚠️ 引くのは `language_id`。**`name` では引かない**——あれはマスタの
              複製で、正は `language_id`（docs/todo.md）。 */
     db.from("ow_user_languages").select("user_id, language_id"),
+    /* ★卒業年月（2026-10-21）。「新卒」と書いてよいかの根拠にだけ使う（buildMatchReason） */
+    db.from("ow_user_educations").select("user_id, graduated_at").not("graduated_at", "is", null),
   ]);
   for (const [label, res] of Object.entries({
     users: userRes, experiences: expRes, companies: foreignRes, domains: domainRes,
-    userSkills: skillRes, userLanguages: langRes,
+    userSkills: skillRes, userLanguages: langRes, educations: eduRes,
   })) {
     if (res.error) console.error(`[searchPersonHits] ${label}:`, res.error.message);
   }
@@ -527,6 +529,12 @@ export async function searchPersonHits(
     const set = langsByUser.get(r.user_id) ?? new Set<string>();
     set.add(r.language_id);
     langsByUser.set(r.user_id, set);
+  }
+
+  const gradsByUser = new Map<string, string[]>();
+  for (const r of (eduRes.data ?? []) as { user_id: string; graduated_at: string | null }[]) {
+    if (!r.graduated_at) continue;
+    gradsByUser.set(r.user_id, [...(gradsByUser.get(r.user_id) ?? []), r.graduated_at]);
   }
 
   const expsByUser = new Map<string, ExpRow[]>();
@@ -612,7 +620,7 @@ export async function searchPersonHits(
       gradient: u.avatar_color?.startsWith("linear-gradient") ? u.avatar_color : FALLBACK_GRADIENT,
       avatarUrl: u.avatar_url,
       currentLabel: resolveExperienceCompanyLabel(exps.find((e) => e.is_current) ?? null),
-      matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds),
+      matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds, gradsByUser.get(u.id) ?? []),
       tenure: expConds.length === 0 ? null : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
     });
     if (byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true)) {
@@ -724,12 +732,22 @@ function experienceMatches(
  * ⚠️ 会社名は `resolveExperienceCompanyLabel` を通す。`visibility_company` が
  *    hidden の職歴の社名をここで漏らさないため（masked は「非公開」になる）。
  */
+/** その職歴が新卒での入社と言えるか（いちばん最初の職歴で、卒業年月から1年以内に始まっている） */
+function isNewGradStart(e: ExpRow, indexInCareer: number, graduations: string[]): boolean {
+  if (indexInCareer !== 0 || !e.started_at || graduations.length === 0) return false;
+  const months = (d: string) => { const [y, m] = d.split("-").map(Number); return y * 12 + (m - 1); };
+  const start = months(e.started_at);
+  return graduations.some((g) => { const diff = start - months(g); return diff >= -1 && diff <= 12; });
+}
+
 function buildMatchReason(
   exps: ExpRow[],
   earliest: ExpRow | null,
   latest: ExpRow | null,
   tree: Awaited<ReturnType<typeof getRoleTree>>,
   personConds: Condition[],
+  /** 学歴の卒業年月（YYYY-MM-DD）。「新卒」と書いてよいかの根拠 */
+  graduations: string[] = [],
 ): string | null {
   /* ★職歴側の条件が1つも当たっていないとき（人側の条件だけで出た人）。
      ⚠️ 職歴から理由を作れないので、**当たった条件そのもの**を並べる。
@@ -753,7 +771,11 @@ function buildMatchReason(
   if (!to) return null;
   const idx = exps.indexOf(earliest);
   const prev = idx > 0 ? exps[idx - 1] : null;
-  const from = prev ? resolveExperienceCompanyLabel(prev) : "新卒";
+  /* ★前の職歴が無いときに「新卒」と決めつけない（2026-10-21 / 柴さんの指摘）。
+        前の職歴を登録していないだけの人が「新卒 →」と出ていた（34歳で入社した人など）。
+        ⚠️ 「新卒」と書くのは、その職歴がいちばん最初の職歴で、卒業年月から1年以内（卒業の1か月前〜12か月後）に
+           始まっているときだけ。根拠が無ければ職種だけを出す（分からないことを書かない） */
+  const from = prev ? resolveExperienceCompanyLabel(prev) : isNewGradStart(earliest, idx, graduations) ? "新卒" : null;
   return from ? `${from} → ${to}` : to;
 }
 
