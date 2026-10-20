@@ -14,7 +14,6 @@ import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
-import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel } from "@/components/common/DetailSearch";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 
 /**
@@ -744,11 +743,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   /** 複数選択の1件を入れ替える。⚠️ 同じ項目の中は OR なので、単に足し引きするだけ */
   const toggleIn = (arr: string[], v: string) => arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
-  /* ★詳細検索パネルの開閉。⚠️ URL には入れない（条件ではなく画面の状態）。
-        ⚠️ 条件が付いているときは**開いた状態で始める**。閉じたまま結果だけ絞られていると
-           理由が画面から読めない（`/jobs` で 2026-09-09 に同じ判断をしている）。 */
-  const activeFilterCount = roles.length + ages.length + (foreignOnly ? 1 : 0);
-  const [detailOpen, setDetailOpen] = useState(false);
+  /* ⚠️ 詳細検索のパネルは 2026-10-20 に外した（職種・年代・外資を3つとも上部の行に出したため） */
 
   /* ★既定は「新着順」（2026-08-18 に「プロフィール順」を外したため） */
   const [sort, setSort] = useState("newest");
@@ -945,173 +940,101 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         }}
       >
         <div className="ppl-wrap" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
-          {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
-          <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
-                   components/common/ListSearchButton —— **4つの一覧で同じ部品**。
-                ⚠️★ここに入力欄を書き戻さないこと。
-                ⚠️ サジェストは持たない（`/people` は元から候補を出していない）。 */}
+          {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar。/companies・/jobs と同じ形）。
+                 1行目 検索欄（常に開いている）／2行目 条件のチップ（職種・年代・外資）／3行目 件数と並び替え
+              ⚠️★**「絞り込み」ボタンは置かない。** 条件が3つしか無く、3つとも外に出したので中身が空になる
+                 （押しても何も起きないボタンになる）。条件を足して外に出しきれなくなったら /jobs と同じ形にすること
+              ⚠️ 選択中の条件の行（ActiveFilterChips）も置かない。3つともチップ自身が選択状態を持つため */}
+          <div className="lt-search-row">
             <ListSearchButton
+              alwaysOpen
               value={keyword}
               draft={kwDraft}
               onDraftChange={setKwDraft}
               onCommit={(v) => setParam({ q: v })}
               onClear={() => setParam({ q: "" })}
-              placeholder="名前・会社・職種で検索"
+              placeholder="名前・会社名・職種で検索"
               inputAriaLabel="ユーザーを検索"
             />
+          </div>
 
-            {/* ★「詳細検索」（2026-09-18）。**`/companies` と同じ形**にした。
-                   ⚠️ 2026-09-17 の注記が「2つ目の絞り込みを足して1行に収まらなくなったら
-                      `/companies` と同じ『詳細検索』にすること（**選択中の条件を外に出す**のも
-                      セット）」と予告していた形そのもの。予告どおり両方やっている。
-                ⚠️★**職種はここへ移した。** 上部に単独で出さないこと（入口が2つになる）。 */}
-            <DetailSearchToggle
-              open={detailOpen}
-              count={activeFilterCount}
-              onToggle={() => setDetailOpen(!detailOpen)}
+          {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
+          <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 10 }}>
+            {/* ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。
+                ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる**（現職なし → 職種／生年月日なし → 年代／
+                   マスタ紐付きの職歴なし → 外資）。他の条件では落とさない。 */}
+            <FilterChip
+              label="職種" labelPrefix value="" values={roles}
+              options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              onSelect={() => setRoles([])} onClear={() => setRoles([])}
+              onToggleValue={(v) => setRoles(toggleIn(roles, v))}
+              isOpen={openChip === "role"} onToggle={() => toggleChip("role")}
             />
+            {/* ⚠️ 0人の年代も出す（AGE_OPTIONS の注記）。実データから作らないこと */}
+            <FilterChip
+              label="年代" labelPrefix value="" values={ages} options={AGE_OPTIONS}
+              onSelect={() => setAges([])} onClear={() => setAges([])}
+              onToggleValue={(v) => setAges(toggleIn(ages, v))}
+              isOpen={openChip === "age"} onToggle={() => toggleChip("age")}
+            />
+            {/* ON/OFF は選択肢が2つしか無いのでチップにしない（開く意味が無い） */}
+            <button type="button" className={`ppl-chip${foreignOnly ? " active" : ""}`}
+              onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
+              外資{foreignOnly && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+            </button>
+          </div>
 
-            {/* ── ★並び替え・表示形式・件数（2026-09-17 に下の帯からここへ移した）──────
-                   それまで sticky な帯が2本あり、一覧が始まるのは 275px 前後だった。
-                   `/jobs`（162px）・`/companies`（164px）を同日に1本にしたのと同じ形に揃えた。
-
-                ⚠️★**白いカードの装飾（枠・影・角丸）は外した。** 帯が1本になったので、
-                   同じ行の中にもう1枚カードを置くと「窓の中の窓」になり、
-                   行の高さが跳ね上がる（`/companies` で実測 62px → ツールバー 121px）。
-
-                ⚠️★**`/companies` と違い、チップは畳んでいない。** あちらは6つあって
-                   1行に収まらなかったが、ここは**職種の1つだけ**（2026-09-17 に
-                   外資系を外した）。畳むと、**唯一の絞り込みをクリックの奥に隠す**ことになる。
-                   ⚠️ 2つ目のチップを足して収まらなくなったら、そのときに
-                      `/companies` と同じ「詳細検索」の形にすること
-                      （**選択中の条件を外に出す**のもセット）。
-
-                ⚠️ 件数を右端に寄せるのは `marginLeft: auto`。**行を折ったときだけ効く。** */}
-            {/* ⚠️★`flexShrink: 0` にしないこと（2026-09-17 に入れて 375px で実際にはみ出した）。
-                   この群の intrinsic は **383px** で、375px のときの親は **327px**。
-                   縮めないと親を 56px 超える。`flexWrap` で中を折り、`minWidth: 0` で縮めさせる。
-                ⚠️ `marginLeft: auto` は**行を折ったときだけ効く**（1行のときは余白が無いので 0）。 */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 12, rowGap: 8,
-              flexWrap: "wrap", minWidth: 0, marginLeft: "auto",
-            }}>
-          {/* ★並び替え（2026-09-17 にドロップダウンへ）。実体は components/common/SortSelect。
-                 `/jobs`・`/companies` と**同じ部品**。⚠️ ここに直書きしないこと。
-
-              ⚠️★**選択肢は2つしかないので、1クリックが2クリックになる。** 承知のうえで
-                 揃えた（柴さんの指示）。**3つの一覧で同じ操作が同じ見た目であること**を
-                 優先している —— ビュートグルを 2026-08-27 に揃えたのと同じ理由。
-              ⚠️ 3つ目の選択肢を足す日が来ても、ここは変えなくてよい（SORT_OPTIONS に足すだけ）。 */}
-          <SortSelect value={sort} options={SORT_OPTIONS} onChange={setSort} />
-          {/* 表示モードと件数。
-              ★意匠は `/companies` のビュートグル（`components/companies/GridSortBar.tsx`）と
-                揃えてある（2026-08-27）。**同じ操作が2つの一覧で別の見た目だったため。**
-                `.view-btn` は globals.css の共通クラスで、あちらと同じものを使っている。
-                ⚠️ **片方だけ変えないこと。** 揃えたのが目的なので、ずらすと意味が無くなる。
-
-              ⚠️ ラベルを「一覧 / 詳細」にしたが、**2026-08-04 に撤去した同名のトグルとは別物。**
-                 あれは詳細ビューのほうが**情報量が少なく**、差が伝わらないので外した。
-                 いまの1列表示は**カードより情報が増える**（業種の移り変わり）ので、
-                 「詳細」という語が実態と合っている。
-                 ⚠️ **情報が減る切り替えを作らないこと**（この制約は変わっていない）。
-
-              ⚠️ state の値（`grid` / `list`）と localStorage のキー（`people-view`）は
-                 変えていない。**見た目だけの変更。** 保存済みの設定がそのまま効く。 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            {/* ⚠️ 560px 以下では出さない（isNarrow）。スマホは常にコンパクトな行のため */}
-            {!isNarrow && (<>
-            <div role="group" aria-label="表示の切り替え" style={{
-              display: "flex", gap: 2,
-              background: "var(--line-soft)", borderRadius: 8, padding: 2,
-            }}>
-              <button type="button" onClick={() => changeView("grid")}
-                aria-pressed={view === "grid"} className="view-btn" title="コンパクト一覧"
-                style={{
-                  background: view === "grid" ? "var(--royal)" : "transparent",
-                  color: view === "grid" ? "#fff" : "var(--ink-mute)",
-                }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-                  <rect x="3" y="3" width="7" height="7" rx="1"/>
-                  <rect x="14" y="3" width="7" height="7" rx="1"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1"/>
-                  <rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-                一覧
-              </button>
-              <button type="button" onClick={() => changeView("list")}
-                aria-pressed={view === "list"} className="view-btn" title="詳細リストビュー"
-                style={{
-                  background: view === "list" ? "var(--royal)" : "transparent",
-                  color: view === "list" ? "#fff" : "var(--ink-mute)",
-                }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
-                  <line x1="8" y1="6" x2="21" y2="6"/>
-                  <line x1="8" y1="12" x2="21" y2="12"/>
-                  <line x1="8" y1="18" x2="21" y2="18"/>
-                  <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
-                  <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-                  <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
-                </svg>
-                詳細
-              </button>
-            </div>
-            <div style={{ width: 1, height: 20, background: "var(--line)" }} />
-            </>)}
+          {/* ★3行目: 件数（左）と、表示切替・並び替え（文字だけ）（右） */}
+          <div className="lt-result-row" data-state="people-result-row">
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 16 }}>
+              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 15 }}>
                 {sorted.length}
               </strong> 名
             </span>
-          </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              {/* 表示モード。★意匠は `/companies` のビュートグルと揃えてある（2026-08-27）。⚠️ 片方だけ変えないこと。
+                  ⚠️ 情報が減る切り替えを作らないこと。⚠️ 560px 以下では出さない（isNarrow） */}
+              {!isNarrow && (
+                <div role="group" aria-label="表示の切り替え" style={{
+                  display: "flex", gap: 2,
+                  background: "var(--line-soft)", borderRadius: 8, padding: 2,
+                }}>
+                  <button type="button" onClick={() => changeView("grid")}
+                    aria-pressed={view === "grid"} className="view-btn" title="コンパクト一覧"
+                    style={{
+                      background: view === "grid" ? "var(--royal)" : "transparent",
+                      color: view === "grid" ? "#fff" : "var(--ink-mute)",
+                    }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                      <rect x="3" y="3" width="7" height="7" rx="1"/>
+                      <rect x="14" y="3" width="7" height="7" rx="1"/>
+                      <rect x="3" y="14" width="7" height="7" rx="1"/>
+                      <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    一覧
+                  </button>
+                  <button type="button" onClick={() => changeView("list")}
+                    aria-pressed={view === "list"} className="view-btn" title="詳細リストビュー"
+                    style={{
+                      background: view === "list" ? "var(--royal)" : "transparent",
+                      color: view === "list" ? "#fff" : "var(--ink-mute)",
+                    }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                      <line x1="8" y1="6" x2="21" y2="6"/>
+                      <line x1="8" y1="12" x2="21" y2="12"/>
+                      <line x1="8" y1="18" x2="21" y2="18"/>
+                      <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/>
+                      <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+                      <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+                    </svg>
+                    詳細
+                  </button>
+                </div>
+              )}
+              {/* ★並び替え。⚠️ 選択肢は SORT_OPTIONS に足すだけ（部品は表示と開閉だけ） */}
+              <SortSelect variant="text" value={sort} options={SORT_OPTIONS} onChange={setSort} />
             </div>
           </div>
-
-            {/* ── ★詳細検索のパネル（2026-09-18）。押すと下に1行で開く ──────────────
-                   ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。
-                   ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる。**
-                      現職なし → 職種のときだけ／生年月日なし → 年代のときだけ／
-                      マスタ紐付きの職歴なし → 外資のときだけ。他の条件では落とさない。 */}
-            {/* ★中身の入れ物は共通（2026-10-09）。1024px 未満は右からのドロワー */}
-            <div style={{ flexBasis: "100%", paddingTop: detailOpen ? 10 : 0 }}>
-            <DetailSearchPanel open={detailOpen} onClose={() => setDetailOpen(false)} count={sorted.length} unit="名">
-                <FilterChip
-                  label="職種" value="" values={roles}
-                  options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                  onSelect={() => setRoles([])}
-                  onToggleValue={(v) => setRoles(toggleIn(roles, v))}
-                  isOpen={openChip === "role"} onToggle={() => toggleChip("role")}
-                />
-                {/* ⚠️ 0人の年代も出す（AGE_OPTIONS の注記）。実データから作らないこと */}
-                <FilterChip
-                  label="年代" value="" values={ages} options={AGE_OPTIONS}
-                  onSelect={() => setAges([])}
-                  onToggleValue={(v) => setAges(toggleIn(ages, v))}
-                  isOpen={openChip === "age"} onToggle={() => toggleChip("age")}
-                />
-                {/* ON/OFF は選択肢が2つしか無いのでチップにしない（開く意味が無い） */}
-                <button type="button" className={`ppl-chip${foreignOnly ? " active" : ""}`}
-                  onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
-                  外資
-                </button>
-            </DetailSearchPanel>
-            </div>
-
-            {/* ── ★選択中の条件（2026-09-18）。**閉じていても出す。消さないこと。**
-                   8条件を畳んだ `/jobs` と同じ理由 —— これが無いと、絞り込んだ結果を
-                   見ている最中に理由が画面から消える。
-                ⚠️ ✕ は近道であって唯一の入口ではない（パネルを開けばチップからも外せる）。 */}
-            {!detailOpen && activeFilterCount > 0 && (
-              <div style={{ paddingTop: 8 }}>
-                <ActiveFilterChips chips={[
-                  ...roles.map((v) => ({ key: `r-${v}`, label: ROLE_OPTIONS.find((o) => o.value === v)?.label ?? v,
-                    clear: () => setRoles(roles.filter((x) => x !== v)) })),
-                  ...ages.map((v) => ({ key: `a-${v}`, label: AGE_OPTIONS.find((o) => o.value === v)?.label ?? v,
-                    clear: () => setAges(ages.filter((x) => x !== v)) })),
-                  ...(foreignOnly ? [{ key: "foreign", label: "外資", clear: () => setParam({ foreign: "" }) }] : []),
-                ]} />
-              </div>
-            )}
         </div>
       </div>
 
