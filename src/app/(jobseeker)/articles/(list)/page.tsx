@@ -343,10 +343,21 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Sea
                   <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" /><path d="M18 14h-8" /><path d="M15 18h-5" /><path d="M10 6h8v4h-8V6z" />
                 </svg>
               </div>
-              <p style={{ fontSize: "var(--text-md)", fontWeight: 600, marginBottom: "var(--space-2)", color: "var(--ink-soft)" }}>
-                該当する記事が見つかりませんでした
-              </p>
-              <p style={{ fontSize: "var(--text-base)" }}>カテゴリを変更してみてください</p>
+              {/* ★絞り込んでいないのに0件＝公開中の記事が1本も無い（2026-10-21 / 柴さんの指示）。
+                     「絞り込みを変えて」と案内すると、何を変えても出ないので嘘になる。準備中と書く。
+                  ⚠️ 判定は「種別もことばも指定していない」こと。絞り込んで0件のときは従来の文言 */}
+              {!typeParam && !qParam ? (
+                <p data-state="articles-preparing" style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--ink-soft)" }}>
+                  記事は準備中です。公開までお待ちください。
+                </p>
+              ) : (
+                <>
+                  <p style={{ fontSize: "var(--text-md)", fontWeight: 600, marginBottom: "var(--space-2)", color: "var(--ink-soft)" }}>
+                    該当する記事が見つかりませんでした
+                  </p>
+                  <p style={{ fontSize: "var(--text-base)" }}>カテゴリを変更してみてください</p>
+                </>
+              )}
             </div>
           ) : (
             <>
