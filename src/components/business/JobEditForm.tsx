@@ -1330,11 +1330,8 @@ export function JobEditForm({
         .jef-more summary::-webkit-details-marker { display: none; }
         .jef-more[open] .jef-more-plus { display: none; }
         .jef-more:not([open]) .jef-more-minus { display: none; }
-        /* ★スマホでは BusinessLayout が本文に余白（20px 16px 48px）を足す。この画面は自分で余白を持つので打ち消す（2026-10-20）。
-              打ち消さないと、上の帯と目次が両端16pxずつ浮いて見えた。⚠️ 境界は BusinessLayout と同じ 768px */
-        @media (max-width: 768px) {
-          .jef-root { margin: -20px -16px -48px; }
-        }
+        /* ⚠️ スマホで BusinessLayout の余白を負のマージンで打ち消していたが、2026-10-20 に元（fullBleed には
+              スマホの余白を掛けない。.biz-layout-main--bleed）で直したので外した。戻すと両端が16pxずつはみ出す */
         @media (max-width: 767px) {
           .jef-root { height: auto; }
           .jef-body { grid-template-columns: minmax(0,1fr); overflow: visible; }

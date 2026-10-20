@@ -308,7 +308,8 @@ export function SelectionView({
           .sel-pane-back { display: none; }
         }
         @media (max-width: 767px) {
-          .sel-root { padding: 12px; }
+          /* ★左右は他の画面と同じ 16px（2026-10-20。外側の余白が二重に掛かっていたのを外したので、ここで持つ） */
+          .sel-root { padding: 12px 16px; }
           .sel-pane-head { padding-left: 14px; padding-right: 14px; }
         }
       `}</style>

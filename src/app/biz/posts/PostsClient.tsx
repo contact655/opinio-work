@@ -88,7 +88,8 @@ export function PostsClient({ initialStories, views }: {
         <h1 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業記事</h1>
         <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
           公開した記事は、求職者向けの企業ページに表示されます。
-          {views && <span style={{ color: "var(--ink-mute)" }}>　閲覧数は2026年10月12日から数えています。</span>}
+          {/* ⚠️ 全角スペースで区切らない。行末に来るとはみ出して、スマホで横に13pxスクロールしていた（2026-10-20）。別の行にする */}
+          {views && <span style={{ color: "var(--ink-mute)", display: "block" }}>閲覧数は2026年10月12日から数えています。</span>}
         </p>
       </div>
 

@@ -92,15 +92,15 @@ export default function MaterialsClient({ documents, items, loadFailed, canEdit,
   const unconfirmedCount = items.filter((i) => !i.confirmedAt).length;
   const docTitle = (id: string | null) => documents.find((d) => d.id === id)?.title ?? null;
 
+  /* ★余白は BusinessLayout の本文（main）が持つ（2026-10-20）。ここでも足していたので、PC は左右68px・スマホは32pxと他の画面の倍になっていた */
   return (
-    <div className="mat-root" style={{ padding: "20px 32px 60px", maxWidth: 1040, margin: "0 auto" }}>
+    <div className="mat-root" style={{ maxWidth: 1040, margin: "0 auto" }}>
       {/* ★押せない間は薄くする。⚠️ インラインの背景色だけだと、0件選択中の「確定」が
              押せそうな濃紺のまま見えた（2026-10-09 に実画面で確認）。
           ⚠️ ui-conventions: style 要素の中で子孫セレクタの「>」と引用符を使わない */}
       <style>{`
         .mat-root button { cursor: pointer; }
         .mat-root button:disabled { opacity: 0.45; cursor: not-allowed; }
-        @media (max-width: 640px) { .mat-root { padding: 16px 16px 48px !important; } }
       `}</style>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業資料</h1>

@@ -161,6 +161,16 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
  */
 const BizFrameContext = createContext(false);
 
+/**
+ * ★画面いっぱいの画面（fullBleed）には印の class を付ける（2026-10-20）。
+ *   スマホの `.biz-layout-main { padding: … !important }` が fullBleed の padding: 0 まで上書きし、
+ *   企業ページの編集などで上に20px・下に48pxの余白が足されて、ページ自体が少しスクロールし
+ *   編集欄の下端がタブバーの裏に隠れていた。
+ */
+function mainClassOf(variant: BusinessLayoutVariant): string {
+  return variant === "fullBleed" ? "biz-layout-main biz-layout-main--bleed" : "biz-layout-main";
+}
+
 function mainStyleOf(variant: BusinessLayoutVariant, hasCompany: boolean, mainMaxWidth: number | "none"): React.CSSProperties {
   return variant === "fullBleed"
     ? { padding: 0, minWidth: 0, overflow: "hidden" }
@@ -173,7 +183,7 @@ export function BusinessLayout(props: Props) {
   const framed = useContext(BizFrameContext);
   if (framed) {
     return (
-      <main id="main-content" className="biz-layout-main" style={mainStyleOf(props.variant ?? "default", props.hasCompany ?? true, props.mainMaxWidth ?? 1200)}>
+      <main id="main-content" className={mainClassOf(props.variant ?? "default")} style={mainStyleOf(props.variant ?? "default", props.hasCompany ?? true, props.mainMaxWidth ?? 1200)}>
         {props.children}
       </main>
     );
@@ -859,7 +869,7 @@ function BusinessChrome({
             {children}
           </div>
         ) : (
-          <main id="main-content" className="biz-layout-main" style={mainStyleOf(variant, hasCompany, mainMaxWidth)}>
+          <main id="main-content" className={mainClassOf(variant)} style={mainStyleOf(variant, hasCompany, mainMaxWidth)}>
             {children}
           </main>
         )}
@@ -1046,7 +1056,8 @@ function BusinessChrome({
                 横スクロールの列に混ぜると、親と子の区別が付かなくなる。 */
           .biz-nav-heading { display: none !important; }
           .biz-nav-child { display: none !important; }
-          .biz-layout-main { padding: 20px 16px 48px !important; }
+          /* ⚠️ 画面いっぱいの画面（.biz-layout-main--bleed）には掛けない。自分で高さと余白を持つため */
+          .biz-layout-main:not(.biz-layout-main--bleed) { padding: 20px 16px 48px !important; }
         }
 
         /* ★スマホの下のタブバー（2026-10-18）。⚠️ 境界は上の横並びのナビと同じ 768px。
