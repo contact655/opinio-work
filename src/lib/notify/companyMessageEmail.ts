@@ -2,6 +2,7 @@ import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { notify } from "@/lib/notify/email";
 import { companyMessageCandidateTemplate } from "@/lib/notify/templates";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { unsubscribeFor } from "@/lib/notify/unsubscribe";
 
 /**
  * ★企業からメッセージが届いたことを、求職者にメールで知らせる（2026-10-11 / 柴さんの指示）。
@@ -106,14 +107,20 @@ export async function emailCandidateCompanyMessage(params: {
       ? `${SITE}/mypage/conversations?tab=unreplied`
       : `${SITE}/mypage/conversations?open=${encodeURIComponent(params.conversationId as string)}`;
 
-    await notify(companyMessageCandidateTemplate({
-      to: user.email as string,
-      userName: user.name as string | null,
-      companyName,
-      kind: params.kind,
-      reason: params.kind === "approach" ? params.reason ?? null : null,
-      url,
-    }));
+    /* ★ログインせずに止めるリンクと、メールソフトの「配信停止」（2026-10-20） */
+    const stop = unsubscribeFor(user.auth_id as string, "email_company_message_enabled");
+    await notify({
+      ...companyMessageCandidateTemplate({
+        to: user.email as string,
+        userName: user.name as string | null,
+        companyName,
+        kind: params.kind,
+        reason: params.kind === "approach" ? params.reason ?? null : null,
+        url,
+        stopUrl: stop?.url ?? null,
+      }),
+      ...(stop ? { headers: stop.headers } : {}),
+    });
     console.log(`${tag} 送った user=${user.id} ${threadKey}`);
     return { sent: true };
   } catch (e) {

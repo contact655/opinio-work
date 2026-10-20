@@ -1,6 +1,7 @@
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { notify } from "@/lib/notify/email";
 import { personMessageTemplate } from "@/lib/notify/templates";
+import { unsubscribeFor } from "@/lib/notify/unsubscribe";
 
 /**
  * ★個人からメッセージが届いたことを、メールでも知らせる（2026-10-20 / 柴さんの判断）。
@@ -88,14 +89,20 @@ export async function emailPersonMessage(params: {
       ? `${SITE}/mypage/conversations?tab=unreplied`
       : `${SITE}/mypage/conversations?open=${encodeURIComponent(params.conversationId)}`;
 
-    await notify(personMessageTemplate({
-      to: recipient.email as string,
-      userName: recipient.name as string | null,
-      senderName: (sender.name as string | null) ?? "",
-      kind: params.kind,
-      headline: params.kind === "request" ? params.headline ?? null : null,
-      url,
-    }));
+    /* ★ログインせずに止めるリンクと、メールソフトの「配信停止」（2026-10-20） */
+    const stop = unsubscribeFor(recipient.auth_id as string, "email_person_message_enabled");
+    await notify({
+      ...personMessageTemplate({
+        to: recipient.email as string,
+        userName: recipient.name as string | null,
+        senderName: (sender.name as string | null) ?? "",
+        kind: params.kind,
+        headline: params.kind === "request" ? params.headline ?? null : null,
+        url,
+        stopUrl: stop?.url ?? null,
+      }),
+      ...(stop ? { headers: stop.headers } : {}),
+    });
     console.log(`${tag} 送った user=${recipient.id} ${threadKey}`);
     return { sent: true };
   } catch (e) {

@@ -572,6 +572,8 @@ export function companyMessageCandidateTemplate(params: {
   reason?: string | null;
   /** 開く先（https://opinio.jp/… の絶対 URL） */
   url: string;
+  /** ★ログインせずにこのお知らせを止めるリンク（lib/notify/unsubscribe.ts。2026-10-20）。無ければ設定へのリンクだけ */
+  stopUrl?: string | null;
 }) {
   const co = params.companyName;
   const flat = (params.reason ?? "").replace(/\s+/g, " ").trim();
@@ -589,7 +591,7 @@ export function companyMessageCandidateTemplate(params: {
       <a href="${esc(params.url)}" style="${BTN}">${button}</a>
       <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;line-height:1.7">
         このあと30分以内に同じ相手から届いたメッセージは、改めてお知らせしません。OPINIO でまとめてご覧ください。<br>
-        このお知らせは <a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「企業からのメッセージをメールで受け取る」で止められます。
+        ${params.stopUrl ? `<a href="${esc(params.stopUrl)}" style="color:#94a3b8">このお知らせを止める</a>（ログインは要りません）／` : ""}<a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「企業からのメッセージをメールで受け取る」でも止められます。
         企業からのメッセージそのものを止めるには、マイページの「転職の状況」で「転職意欲」を「今は考えていない」にしてください。
       </p>
     `),
@@ -614,6 +616,8 @@ export function personMessageTemplate(params: {
   headline?: string | null;
   /** 開く先（https://opinio.jp/… の絶対 URL） */
   url: string;
+  /** ★ログインせずにこのお知らせを止めるリンク（lib/notify/unsubscribe.ts）。無ければ設定へのリンクだけ */
+  stopUrl?: string | null;
 }) {
   const who = params.senderName.trim() || "OPINIO の利用者";
   const subject = params.kind === "request" ? `${who}さんからメッセージが届きました` : `${who}さんから新しいメッセージが届きました`;
@@ -629,7 +633,7 @@ export function personMessageTemplate(params: {
       <a href="${esc(params.url)}" style="${BTN}">OPINIOで読む →</a>
       <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;line-height:1.7">
         このあと30分以内に同じ方から届いたメッセージは、改めてお知らせしません。OPINIO でまとめてご覧ください。<br>
-        このお知らせは <a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「個人からのメッセージをメールで受け取る」で止められます。
+        ${params.stopUrl ? `<a href="${esc(params.stopUrl)}" style="color:#94a3b8">このお知らせを止める</a>（ログインは要りません）／` : ""}<a href="https://opinio.jp/mypage/settings" style="color:#94a3b8">設定</a> の「個人からのメッセージをメールで受け取る」でも止められます。
         特定の方からのメッセージを止めたいときは、その方をブロックしてください。
       </p>
     `),

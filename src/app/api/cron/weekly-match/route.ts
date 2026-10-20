@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
+import { unsubscribeFor } from "@/lib/notify/unsubscribe";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
 import { getJobs } from "@/lib/supabase/queries";
@@ -165,11 +166,14 @@ export async function GET(request: Request) {
 
       try {
         /* ⚠️★Resend は失敗しても例外を投げず { error } を返す。見ないと失敗も「送った」に数える（2026-10-19 に直した） */
+        /* ★ログインせずに止めるリンクと、メールソフトの「配信停止」（2026-10-20） */
+        const stop = unsubscribeFor(r.authId, "email_weekly_enabled");
         const { error } = await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: r.email,
           subject: "【OPINIO】希望条件に合う求人が届いています",
-          html: generateWeeklyEmail(recs.slice(0, 3), companyById),
+          html: generateWeeklyEmail(recs.slice(0, 3), companyById, stop?.url ?? null),
+          ...(stop ? { headers: stop.headers } : {}),
         });
         if (error) {
           console.error(`[weekly-match] Failed to send email:`, error.message);
@@ -221,7 +225,8 @@ function escapeHtml(str: string): string {
  */
 function generateWeeklyEmail(
   recs: RecommendedJob[],
-  companyById: Map<string, { id: string; name: string }>
+  companyById: Map<string, { id: string; name: string }>,
+  stopUrl: string | null = null,
 ): string {
   const jobsHtml = recs
     .map(({ job, reasonText }) => {
@@ -273,7 +278,7 @@ function generateWeeklyEmail(
       </div>
       <p style="font-size:11px;color:#94a3b8;margin-top:20px">
         OPINIO &middot; IT業界のキャリアインフラ<br>
-        配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>から変更できます
+        ${stopUrl ? `<a href="${escapeHtml(stopUrl)}" style="color:#94a3b8">このお知らせを止める</a>（ログインは要りません）／` : ""}配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>からも変更できます
       </p>
       ${senderFooterHtml()}
     </body>

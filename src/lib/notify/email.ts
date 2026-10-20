@@ -10,6 +10,8 @@ type EmailParams = {
   html: string;
   /** ★添付ファイル（2026-10-10。面談の .ics）。⚠️ 省略可。既存の呼び出しは変わらない */
   attachments?: { filename: string; content: string; contentType?: string }[];
+  /** ★追加のヘッダー（2026-10-20。メールソフトの「配信停止」用の List-Unsubscribe）。⚠️ 省略可 */
+  headers?: Record<string, string>;
 };
 
 /**
@@ -73,6 +75,7 @@ export async function sendEmail(params: EmailParams): Promise<void> {
     subject: params.subject,
     html: params.html,
     ...(params.attachments?.length ? { attachments: params.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, "utf8"), contentType: a.contentType })) } : {}),
+    ...(params.headers ? { headers: params.headers } : {}),
   });
 
   if (error) {

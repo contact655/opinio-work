@@ -30,3 +30,10 @@ export const EMAIL_SETTING_DEFAULTS: Record<EmailSettingKey, boolean> = {
   /* ⚠️ DB の DEFAULT（migration 20261020130000）と一致させること */
   email_person_message_enabled: true,
 };
+
+/** ★お知らせの名前（メールから止めるページ /unsubscribe で出す。2026-10-20）。⚠️ 設定画面の見出しと同じ語にする */
+export const EMAIL_SETTING_LABELS: Record<EmailSettingKey, string> = {
+  email_weekly_enabled: "週1回のおすすめメール",
+  email_company_message_enabled: "企業からのメッセージのお知らせ",
+  email_person_message_enabled: "個人からのメッセージのお知らせ",
+};

@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import { getWeeklyRecipients, unsubscribeUrl } from "@/lib/notify/weeklyRecipients";
+import { unsubscribeFor } from "@/lib/notify/unsubscribe";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
 import { timingSafeEqual } from "crypto";
 import { fmtMan } from "@/lib/utils/salary";
@@ -155,19 +156,22 @@ export async function GET(request: Request) {
     // 送信対象を構築
     const topJobs = recentJobs.slice(0, 3);
     const totalCount = recentJobs.length;
-    const html = generateWeeklyJobsEmail(topJobs, totalCount);
 
     let sent = 0;
     const errors: string[] = [];
 
-    for (const { email } of recipients) {
+    for (const { email, authId } of recipients) {
       try {
+        /* ★ログインせずに止めるリンクと、メールソフトの「配信停止」（2026-10-20）。リンクが人ごとなので本文も人ごとに作る */
+        const stop = unsubscribeFor(authId, "email_weekly_enabled");
+        const html = generateWeeklyJobsEmail(topJobs, totalCount, stop?.url ?? null);
         /* ⚠️★Resend は失敗しても例外を投げず { error } を返す。見ないと失敗も「送った」に数える（2026-10-19 に直した） */
         const { error } = await getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "contact@opinio.co.jp",
           to: email,
           subject: `今週の注目求人・企業${totalCount}選 — OPINIO`,
           html,
+          ...(stop ? { headers: stop.headers } : {}),
         });
         if (error) {
           console.error("[weekly-jobs] send error:", error.message);
@@ -210,7 +214,7 @@ function formatSalary(min: number | null, max: number | null): string {
   return "応相談";
 }
 
-function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
+function generateWeeklyJobsEmail(jobs: any[], totalCount: number, stopUrl: string | null = null): string {
   const jobCards = jobs
     .map((j) => {
       const company = j.ow_companies;
@@ -289,7 +293,7 @@ function generateWeeklyJobsEmail(jobs: any[], totalCount: number): string {
         </p>
         <p style="font-size:11px;color:#94a3b8;line-height:1.6">
           OPINIO &middot; IT業界のキャリアインフラ<br>
-          配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>から変更できます
+          ${stopUrl ? `<a href="${escapeHtml(stopUrl)}" style="color:#94a3b8">このお知らせを止める</a>（ログインは要りません）／` : ""}配信停止は<a href="${unsubscribeUrl(BASE_URL)}" style="color:#94a3b8">設定</a>からも変更できます
         </p>
         ${senderFooterHtml()}
       </div>
