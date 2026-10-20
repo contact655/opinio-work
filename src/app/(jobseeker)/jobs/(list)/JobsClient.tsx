@@ -506,6 +506,11 @@ export default function JobsClient({
   }, [categorySet, category, parentRoles, phaseSet, phaseLabels, industry, industryOptions,
       prefecture, workStyleSet, work_style, empTypeSet, empType, salary, companyStageSet]);
 
+  /* ★「絞り込み」の中にある条件だけ（2026-10-20）。職種・勤務地・年収・働き方は外の行のチップ自身が選択状態を持つので、
+        ここ（選択中の条件・バッジの数）には入れない（同じ語が2回並ぶ）。/companies と同じ考え方 */
+  const OUTSIDE_KEYS = (key: string) => key.startsWith("category:") || key === "prefecture" || key === "salary" || key.startsWith("ws:");
+  const panelChips = activeChips.filter((c) => !OUTSIDE_KEYS(c.key));
+
   // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
   const suggestions = useMemo(() => {
     /* ⚠️ 確定済み（`q`）ではなく**入力中**（`qDraft`）から作る。
@@ -1021,74 +1026,102 @@ export default function JobsClient({
           {/* ツールバー本体（企業ページ .csb-bar と同等） */}
           {/* ★折り返しは CSS（`.list-toolbar`）が持つ。スマホでは1行に並べて横にスクロール（2026-10-17）。
                 ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}
-          <div ref={filterPillsRef} className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 0 12px" }}>
-
-            {/* ★「一覧内を検索」（2026-10-01 / ステップ2）。実体は
-                   components/common/ListSearchButton —— **4つの一覧で同じ部品**。
-                ⚠️★ここに入力欄を書き戻さないこと。1440px で検索窓が 971px を占めていた。
-                ⚠️ サジェストの材料（求人のタイトルと企業名）はページが持っているので、
-                   入力中の値（`qDraft`）もページが持つ。 */}
+          {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar。/companies と同じ形）。
+                 1行目 検索欄（常に開いている）／2行目 絞り込み＋よく使う条件（職種・勤務地・年収・働き方）／3行目 件数と並び替え
+              ⚠️ 外側クリックで条件のメニューを閉じる判定は filterPillsRef（この3行の入れ物）で見ている */}
+          <div ref={filterPillsRef}>
+          <div className="lt-search-row">
             <ListSearchButton
+              alwaysOpen
               value={q}
               draft={qDraft}
               onDraftChange={setQDraft}
               onCommit={(v) => setParam("q", v)}
               onClear={() => setParam("q", "")}
-              placeholder="職種・企業名で検索"
+              placeholder="職種・会社名で検索"
               inputAriaLabel="募集を検索"
               suggestions={suggestions.map((sg, i) => ({ key: `${i}:${sg.q}`, label: sg.label, sub: sg.sub }))}
               onPickSuggestion={(sg) => setParam("q", suggestions.find((x, i) => `${i}:${x.q}` === sg.key)?.q ?? sg.label)}
             />
+          </div>
 
-            {/* ── ★詳細検索（2026-09-09。柴さんの要望）────────────────────────────
-                   条件が3箇所（上のピル行 / 左サイドバー / モバイルの職種ピル）に
-                   散っていたのを1つに畳んだ。**サイドバーは削除した**（職種はここへ、
-                   勤務地は削除）。
-                ⚠️★**閉じていても `activeChips` は外に出す。** 隠しきると
-                   「なぜこの件数なのか」が画面から消える。 */}
-            {/* ⚠️★ボタンだけを1つの flex item にする（2026-09-09）。
-                   チップを同じ item に入れていたら、**開くとチップが消えて検索窓が広がり、
-                   「詳細検索」ボタン自身が 98px 右へ動いていた**（実測）。
-                   押した控えが動くのは、押した本人には何が起きたか分からない。 */}
+          {/* ★折り返しは CSS（`.list-toolbar`）が持つ。スマホでは1行に並べて横にスクロール（2026-10-17）。
+                ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}
+          <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 0 10px" }}>
+            {/* ⚠️★ボタンだけを1つの flex item にする（2026-09-09。開閉でボタンが左右に動かないように） */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <DetailSearchToggle
+                label="絞り込み"
+                alwaysShowLabel
                 open={showAdvanced}
-                count={activeChips.length}
+                count={panelChips.length}
                 onToggle={() => setShowAdvanced((v) => !v)}
               />
-
             </div>
 
-            {/* ── ★並び替え＋件数（2026-09-17 に下の帯からここへ移した）──────────
-                   ⚠️★**白いカードの装飾（枠・影・角丸）は外した。** 帯が1本になったので、
-                      同じ行の中にもう1枚カードを置くと「窓の中の窓」になる。
-                      区切りは縦罫だけにしてある。
-                   ⚠️★**折り返しの制御は `.jobs-toolbar-sort` の `flex-basis` 1箇所だけ。**
-                      分割しない幅では 100% で**自分から行を折る**（＝従来どおりの2行）。
-                      分割表示の幅でだけ `auto` になって検索窓と同じ行に収まる。
-                   ⚠️ 中身・ハンドラ・`jobs-sort-btn` の見た目は移す前と1文字も変えていない。
-                   ⚠️★件数の塊に `marginLeft: auto` が要る。**行を折ったときだけ効く**
-                      （1行のときは余白が無いので 0）。外すと、折れた行で件数が
-                      ピルの直後に寄って右端が空く。 */}
-            <div className="jobs-toolbar-sort">
-              {/* ★ピル4つ（**513px**）から畳んだ（2026-09-17 / 柴さんの要望）。
-                     ツールバーを1行にしたので、ここが一番かさばっていた。約140px になる。
-                  ⚠️★**いま何順かは閉じていても見える**（ボタンに現在値が出る）。
-                     隠れるのは他の選択肢だけ。絞り込みのチップとは事情が違う
-                     （あちらは効いている条件が消えるので `activeChips` が要る）。
-                  ⚠️ 選択肢と既定値はここが持つ。**部品は表示と開閉だけ。**
-                  ⚠️★アイコンは部品側にある。ここで別のものを足さないこと。 */}
-              <SortSelect
-                value={sort}
-                onChange={(v) => setSort(v as typeof sort)}
-                options={[
-                  { value: "updated",    label: "新着順" },
-                  { value: "salary",     label: "年収順" },
-                  { value: "employees",  label: "社員数順" },
-                  { value: "disclosure", label: "開示充実順" },
-                ]}
-              />
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
+            {/* ★外に出す条件（2026-10-20）。⚠️ `labelPrefix` を外さないこと（値だけだと何の条件か分からない）。
+                   ⚠️ 職種は親職種だけ（子まで出すと148件になり選べない）。件数は公開求人の数で 0 も出す */}
+            <FilterChip label="職種" labelPrefix listStyle value="" values={Array.from(categorySet)}
+              options={parentRoles.map((r) => ({ value: r.id, label: r.name, count: roleCounts.get(r.id) ?? 0 }))}
+              onSelect={() => setParam("category", "")} onClear={() => setParam("category", "")}
+              onToggleValue={(v) => toggleParam("category", v, category)}
+              isOpen={openFilter === "category"} onToggle={() => toggleFilter("category")} />
+            {/* 勤務地（中身は都道府県。⚠️ 選択肢は PREFECTURE_FILTER_GROUPS の1か所） */}
+            <FilterChip label="勤務地" labelPrefix listStyle searchable value={prefecture}
+              options={PREFECTURE_FILTER_GROUPS.flatMap((g) => g.prefectures.map((p) => ({ value: p, label: p, group: g.group })))}
+              onSelect={(v) => setParam("prefecture", v ?? "")}
+              isOpen={openFilter === "prefecture"} onToggle={() => toggleFilter("prefecture")} />
+            <FilterChip label="年収" labelPrefix listStyle value={salary}
+              options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
+              onSelect={(v) => setParam("salary", v ?? "")}
+              isOpen={openFilter === "salary"} onToggle={() => toggleFilter("salary")} />
+            {/* 働き方（中身は勤務形態。複数選択） */}
+            <FilterChip label="働き方" labelPrefix value="" values={Array.from(workStyleSet)}
+              options={WORK_STYLE_FILTERS.map((v) => ({ value: v, label: v }))}
+              onSelect={() => setParam("work_style", "")} onClear={() => setParam("work_style", "")}
+              onToggleValue={(v) => toggleParam("work_style", v, work_style)}
+              isOpen={openFilter === "work_style"} onToggle={() => toggleFilter("work_style")} />
+
+            {/* 選択中の条件（「絞り込み」の中のものだけ）。⚠️★開いているときは出さない（同じ語が2回並ぶ） */}
+            {!showAdvanced && <ActiveFilterChips chips={panelChips} />}
+
+            {/* ★中身の入れ物は共通（2026-10-09）。1024px 未満は右からのドロワー */}
+            <DetailSearchPanel open={showAdvanced} onClose={() => setShowAdvanced(false)} count={filteredForDisplay.length} title="絞り込み">
+              {/* フェーズ（複数選択）。⚠️ ✕ は外資系を消さない（clearPhases） */}
+              <FilterChip label="フェーズ" labelPrefix phaseStyle value="" values={Array.from(phaseSet)}
+                options={phaseOptions}
+                onSelect={clearPhases} onClear={clearPhases} onToggleValue={toggleStage}
+                isOpen={openFilter === "phase"} onToggle={() => toggleFilter("phase")} />
+              <FilterChip label="事業領域" labelPrefix listStyle value={industry}
+                options={industryOptions.map((g) => ({ value: g.slug, label: g.name }))}
+                onSelect={(v) => setParam("industry", v ?? "")}
+                isOpen={openFilter === "industry"} onToggle={() => toggleFilter("industry")} />
+              {/* 雇用形態（複数選択）。⚠️ 選択肢は careerOptions.ts の JOB_EMPLOYMENT_TYPES */}
+              <FilterChip label="雇用形態" labelPrefix value="" values={Array.from(empTypeSet)}
+                options={JOB_EMPLOYMENT_TYPES.map((v) => ({ value: v, label: v }))}
+                onSelect={() => setParam("emp_type", "")} onClear={() => setParam("emp_type", "")}
+                onToggleValue={(v) => toggleParam("emp_type", v, empType)}
+                isOpen={openFilter === "empType"} onToggle={() => toggleFilter("empType")} />
+              {/* 外資系 トグル。⚠️ 見た目は /companies と同じ .foreign-toggle */}
+              <button type="button"
+                className={`foreign-toggle${companyStageSet.has("foreign") ? " active" : ""}`}
+                onClick={() => toggleStage("foreign")}
+                aria-pressed={companyStageSet.has("foreign")}
+              >
+                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+              </button>
+              {/* ⚠️ 「面談受付中」ピル（2026-08-06）と「✕ リセット」（2026-09-06）は廃止済み。戻さないこと */}
+            </DetailSearchPanel>
+          </div>
+
+          {/* ★3行目: 件数（左）と並び替え（右・文字だけ）。⚠️ 選択肢と既定値はここが持つ（部品は表示と開閉だけ） */}
+          <div className="lt-result-row" data-state="jobs-result-row">
+            <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
+              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 15 }}>{filteredForDisplay.length}</strong>
+              <span style={{ marginLeft: 3 }}>件</span>
+              {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               {maxPerCompany > 3 && (
                 <>
                   <button
@@ -1107,106 +1140,21 @@ export default function JobsClient({
                   )}
                 </>
               )}
-              {/* ★ビュートグル（2026-10-01）。⚠️★見た目は `components/common/ViewToggle.tsx`
-                     の1箇所。`/companies` と同じ部品で、**ここに書き写さないこと。**
-                  ⚠️ 置き場所は件数の**左**。`/companies` と同じ並び（並び替え → 切替 → 件数）。 */}
-              {/* ⚠️★**既定（グリッド）のときは `?view=` を URL から消す**。`/companies` の
-                     `GridSortBar` と同じ向き。残すと、既定を将来入れ替えたときに
-                     **古い共有リンクが意図しない側を開く。** */}
+              {/* ⚠️★既定（グリッド）のときは `?view=` を URL から消す（/companies の GridSortBar と同じ向き） */}
               <ViewToggle value={view} onChange={(v) => setParam("view", v === "list" ? "list" : "")} />
-              <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0 }} />
-              <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-                <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 16 }}>{filteredForDisplay.length}</strong>
-                <span style={{ marginLeft: 2 }}>件</span>
-                {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
-              </span>
-              </div>
+              <SortSelect
+                variant="text"
+                value={sort}
+                onChange={(v) => setSort(v as typeof sort)}
+                options={[
+                  { value: "updated",    label: "新着順" },
+                  { value: "salary",     label: "年収順" },
+                  { value: "employees",  label: "社員数順" },
+                  { value: "disclosure", label: "開示充実順" },
+                ]}
+              />
             </div>
-
-            {/* 選択中の条件。⚠️ ✕ で1つずつ外せる。件数のバッジとは別の役割（何で絞っているか）
-                   ⚠️★**開いているときは出さない**（2026-09-09）。ピル自身が選択状態を
-                      持っているので、「事業開発 ✕」の隣に「事業開発 ⌄」が並んで
-                      **同じ語が2回**出ていた。閉じているときだけの近道にする。
-                   ⚠️★**検索窓と同じ行に置かない。** 同じ行だと、開閉のたびに検索窓の幅が
-                      変わって「詳細検索」ボタンが左右に動く。`flexBasis: 100%` で必ず折る。 */}
-            {!showAdvanced && <ActiveFilterChips chips={activeChips} />}
-
-            {/* フィルターピル群。
-                ⚠️ 詳細検索を開いたときだけ出す。メニューは各 FilterChip の直下に開く。
-                ⚠️★**検索窓と同じ行に並べないこと**（2026-09-09）。以前は
-                   検索窓・詳細検索・チップ・8ピルが**全部1行**に詰まり、
-                   どこまでが詳細検索の中身なのか読めなかった。
-                   `flexBasis: "100%"` で必ず行を折り、薄い面を敷いて塊として見せる。 */}
-            {/* ★中身の入れ物は共通（2026-10-09）。1024px 未満は右からのドロワー */}
-            <DetailSearchPanel open={showAdvanced} onClose={() => setShowAdvanced(false)} count={filteredForDisplay.length}>
-
-              {/* ★2026-10-09 に共通の FilterChip に寄せた（それまで /jobs だけ独自のピルと
-                     position: fixed のメニュー1枚を持っていた）。
-                  ⚠️ `labelPrefix` を外さないこと。8つ並ぶので、値だけだと何の条件か分からない。
-                  ⚠️ 単一選択（事業領域・都道府県・年収）は選ぶと閉じる。複数選択は閉じない。
-                  ⚠️ 「すべて」の行は無くした。外すのはチップの ✕（/companies と同じ）。 */}
-              {/* 職種（複数選択）。⚠️ 親職種だけ。子まで出すと148件になり選べない。
-                  ⚠️ 件数は公開求人（allJobs）の数。0 も出す */}
-              <FilterChip label="職種" labelPrefix listStyle value="" values={Array.from(categorySet)}
-                options={parentRoles.map((r) => ({ value: r.id, label: r.name, count: roleCounts.get(r.id) ?? 0 }))}
-                onSelect={() => setParam("category", "")} onClear={() => setParam("category", "")}
-                onToggleValue={(v) => toggleParam("category", v, category)}
-                isOpen={openFilter === "category"} onToggle={() => toggleFilter("category")} />
-              {/* フェーズ（複数選択）。⚠️ ✕ は外資系を消さない（clearPhases） */}
-              <FilterChip label="フェーズ" labelPrefix phaseStyle value="" values={Array.from(phaseSet)}
-                options={phaseOptions}
-                onSelect={clearPhases} onClear={clearPhases} onToggleValue={toggleStage}
-                isOpen={openFilter === "phase"} onToggle={() => toggleFilter("phase")} />
-              <FilterChip label="事業領域" labelPrefix listStyle value={industry}
-                options={industryOptions.map((g) => ({ value: g.slug, label: g.name }))}
-                onSelect={(v) => setParam("industry", v ?? "")}
-                isOpen={openFilter === "industry"} onToggle={() => toggleFilter("industry")} />
-              <FilterChip label="都道府県" labelPrefix listStyle searchable value={prefecture}
-                options={PREFECTURE_FILTER_GROUPS.flatMap((g) => g.prefectures.map((p) => ({ value: p, label: p, group: g.group })))}
-                onSelect={(v) => setParam("prefecture", v ?? "")}
-                isOpen={openFilter === "prefecture"} onToggle={() => toggleFilter("prefecture")} />
-              {/* 勤務形態（複数選択。2026-08-08 に単一選択から変えた） */}
-              <FilterChip label="勤務形態" labelPrefix value="" values={Array.from(workStyleSet)}
-                options={WORK_STYLE_FILTERS.map((v) => ({ value: v, label: v }))}
-                onSelect={() => setParam("work_style", "")} onClear={() => setParam("work_style", "")}
-                onToggleValue={(v) => toggleParam("work_style", v, work_style)}
-                isOpen={openFilter === "work_style"} onToggle={() => toggleFilter("work_style")} />
-              {/* 雇用形態（複数選択）。⚠️ 選択肢は careerOptions.ts の JOB_EMPLOYMENT_TYPES */}
-              <FilterChip label="雇用形態" labelPrefix value="" values={Array.from(empTypeSet)}
-                options={JOB_EMPLOYMENT_TYPES.map((v) => ({ value: v, label: v }))}
-                onSelect={() => setParam("emp_type", "")} onClear={() => setParam("emp_type", "")}
-                onToggleValue={(v) => toggleParam("emp_type", v, empType)}
-                isOpen={openFilter === "empType"} onToggle={() => toggleFilter("empType")} />
-              <FilterChip label="年収" labelPrefix listStyle value={salary}
-                options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
-                onSelect={(v) => setParam("salary", v ?? "")}
-                isOpen={openFilter === "salary"} onToggle={() => toggleFilter("salary")} />
-
-              {/* 外資系 トグル。⚠️ 見た目は /companies と同じ .foreign-toggle */}
-              <button type="button"
-                className={`foreign-toggle${companyStageSet.has("foreign") ? " active" : ""}`}
-                onClick={() => toggleStage("foreign")}
-                aria-pressed={companyStageSet.has("foreign")}
-              >
-                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-              </button>
-
-              {/*
-                ⚠️ 2026-08-06 に「面談受付中」ピルを削除した。
-                   フィルタピルと並んでいたが実体は並び替え（sort="meeting"）で、
-                   面談を受け付ける企業を上に寄せるだけ。掲載中76社が全て
-                   accepting_casual_meetings = true なので1件も順番が変わらず、
-                   押しても何も起きないのに絞り込めるように見えていた。
-                   面談の可否で絞りたくなったら、sort ではなくフィルタとして作ること。
-              */}
-
-              {/* ⚠️★**「✕ リセット」は廃止した**（2026-09-06 / 柴さんの判断・`/companies` と揃えた）。
-                     絞り込みが1つ付くたびに現れて右端の並びが動くうえ、**すべて個別に外せる**:
-                       各ピル → 開いて「すべて」／ 外資系 → もう一度押す（元からトグル）
-                       検索文字 → 入力欄の ✕ ／ 職種（サイドバー）→ もう一度押す
-                  ⚠️ 0件のときの「すべてリセット」は**残してある**（別の場所・別の役割）。
-                  ⚠️ サイドバーは 2026-09-09 に削除したので、そこの「検索条件をリセットする」も無い。 */}
-            </DetailSearchPanel>
+          </div>
           </div>
         </div>
       </div>
