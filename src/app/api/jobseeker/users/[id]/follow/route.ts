@@ -19,6 +19,38 @@ async function resolveOwUserId(
   return data?.id ?? null;
 }
 
+async function notifyFollowed(
+  admin: ReturnType<typeof createAdminClient>,
+  followerId: string,
+  targetId: string,
+): Promise<void> {
+  try {
+    const { data: pair, error: pErr } = await admin
+      .from("ow_users").select("id, is_test").in("id", [followerId, targetId]);
+    if (pErr) { console.error("[user follow notify] users:", pErr.message); return; }
+    const testOf = new Map((pair ?? []).map((u) => [u.id as string, u.is_test === true]));
+    if (!testOf.has(followerId) || !testOf.has(targetId)) return;
+    if (testOf.get(followerId) !== testOf.get(targetId)) return;
+
+    const { data: existing, error: eErr } = await admin
+      .from("ow_notifications").select("id")
+      .eq("recipient_user_id", targetId).eq("actor_user_id", followerId)
+      .eq("type", "follow").eq("is_read", false)
+      .limit(1);
+    if (eErr) { console.error("[user follow notify] existing:", eErr.message); return; }
+    if ((existing ?? []).length > 0) return;
+
+    const { error: nErr } = await admin.from("ow_notifications").insert({
+      recipient_user_id: targetId,
+      actor_user_id: followerId,
+      type: "follow",
+    });
+    if (nErr) console.error("[user follow notify] insert:", nErr.message);
+  } catch (e) {
+    console.error("[user follow notify]", e);
+  }
+}
+
 // POST /api/jobseeker/users/[id]/follow — フォロー
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -56,6 +88,12 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     console.error("[user follow POST]", error.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+
+  /* ★フォローされたことをベルに出す（2026-10-20）。⚠️ best-effort（フォロー自体は成功させる）。
+       ・新しくフォローしたときだけ（既にフォロー済み＝23505 では出さない）
+       ・未読の同じ通知があれば重ねない（外して付け直すたびに増やさない）
+       ・⚠️ 検証用と実在のアカウントのあいだでは出さない（フィードが検証用の投稿を実在の人に見せないのと同じ） */
+  if (!error) await notifyFollowed(adminSupabase, owUserId, params.id);
 
   return NextResponse.json({ followed: true }, { status: 200 });
 }

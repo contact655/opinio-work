@@ -110,9 +110,29 @@ export async function GET() {
       case "company_approach": return !!r.approach_id;
       /* ★企業が面談・候補日を取り消した（2026-10-10 / 段4）。押すと会話へ */
       case "meeting_canceled": return !!r.conversation_id;
+      /* ★フォローされた（2026-10-20）。押すと /u/[actor]。フォローした人が引けなければ落とす */
+      case "follow": return !!(Array.isArray(r.actor) ? r.actor[0] : r.actor);
       default: return !!r.post_id && postPreviews.has(r.post_id);
     }
   };
+
+  /* ⚠️ 埋め込みは実際には1件のオブジェクトで返る（型は配列と書いてある）。両方を受ける */
+  const actorIdOf = (r: RawRow): string | null => {
+    const a = (Array.isArray(r.actor) ? r.actor[0] : r.actor) as { id?: string } | null | undefined;
+    return a?.id ?? null;
+  };
+  /* ★フォロー通知の「フォローし返す」用。自分が既にフォローしている相手（2026-10-20） */
+  const followActorIds = Array.from(new Set(
+    (rows ?? []).filter((r: RawRow) => r.type === "follow").map(actorIdOf).filter((x): x is string => !!x),
+  ));
+  const followingBack = new Set<string>();
+  if (followActorIds.length > 0) {
+    const { data: fb, error: fbErr } = await adminSupabase
+      .from("ow_user_follows").select("target_user_id")
+      .eq("follower_user_id", owUserId).in("target_user_id", followActorIds);
+    if (fbErr) console.error("[notifications] following back:", fbErr.message);
+    for (const f of fb ?? []) followingBack.add(f.target_user_id as string);
+  }
 
   const notifications = (rows ?? [])
     .filter(survives)
@@ -137,6 +157,8 @@ export async function GET() {
         : null,
       commentId: r.comment_id,
       isRead: r.is_read,
+      /* フォロー通知のときだけ意味を持つ（自分がその人をフォロー済みか） */
+      followingBack: r.type === "follow" ? followingBack.has(actorIdOf(r) ?? "") : undefined,
       createdAt: r.created_at,
       actor: actorRaw
         ? { id: actorRaw.id, name: actorRaw.name, avatarColor: actorRaw.avatar_color, avatarUrl: actorRaw.avatar_url }

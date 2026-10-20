@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type MouseEvent as ReactMouseEvent } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled";
+  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled" | "follow";
+  /** フォロー通知のときだけ入る。自分がその人を既にフォローしているか（2026-10-20） */
+  followingBack?: boolean;
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
   postId: string | null;
   postPreview: string | null;
@@ -51,6 +53,8 @@ function notifHref(notif: NotificationItem): string {
   if (notif.type === "company_approach") return "/mypage/conversations?tab=unreplied";
   /* ★面談・候補日の取り消し（2026-10-10 / 段4）。会話へ */
   if (notif.type === "meeting_canceled") return `/mypage/conversations/${notif.conversationId}`;
+  /* ★フォローされた（2026-10-20）。その人のプロフィールへ */
+  if (notif.type === "follow") return `/u/${notif.actor?.id ?? ""}`;
   return `/feed/${notif.postId}`;
 }
 
@@ -89,6 +93,9 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
     return { who: notif.actorCompany?.name ?? "企業", what: " が面談の日程を取り消しました" };
   }
   /* ★コメントへの返信・いいね（2026-10-20）。押すと元の投稿（/feed/[postId]）へ。⚠️ コメントの本文は出さない */
+  if (notif.type === "follow") {
+    return { who: notif.actor?.name ?? "ユーザー", what: " があなたをフォローしました" };
+  }
   if (notif.type === "reply") {
     return { who: notif.actor?.name ?? "誰か", what: " があなたのコメントに返信しました" };
   }
@@ -155,6 +162,49 @@ function ActorAvatar({ notif }: { notif: NotificationItem }) {
  *   ⚠️ 通常の 320px 幅・右寄せのままだと、375px ではベルの位置によって左へはみ出す。
  *      true のときは画面の左右 12px に合わせて固定配置にする。
  */
+/**
+ * フォロー通知の「フォローし返す」（2026-10-20）。
+ * ⚠️ 通知の行は <Link> なので、押したときに遷移させない（preventDefault / stopPropagation）。
+ * ⚠️ 外す操作は置かない（ベルでは「し返す」だけ。外すのはプロフィールから）。
+ */
+function FollowBackButton({ userId, initialFollowing, onFollowed }: { userId: string; initialFollowing: boolean; onFollowed: () => void }) {
+  const [state, setState] = useState<"idle" | "saving" | "done" | "error">(initialFollowing ? "done" : "idle");
+  useEffect(() => { if (initialFollowing) setState("done"); }, [initialFollowing]);
+  const onClick = async (e: ReactMouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state === "saving" || state === "done") return;
+    setState("saving");
+    try {
+      const res = await fetch(`/api/jobseeker/users/${userId}/follow`, { method: "POST" });
+      if (!res.ok) throw new Error(String(res.status));
+      setState("done");
+      onFollowed();
+    } catch (err) {
+      console.error("[NotificationBell] follow back:", err);
+      setState("error");
+    }
+  };
+  const done = state === "done";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={state === "saving" || done}
+      data-state={done ? "following" : state}
+      className="btn-fixed-size"
+      style={{
+        alignSelf: "center", flexShrink: 0, height: 28, padding: "0 10px", borderRadius: 100,
+        fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", cursor: done ? "default" : "pointer",
+        border: done ? "1px solid var(--line)" : "1px solid var(--royal)",
+        background: done ? "#fff" : "var(--royal)", color: done ? "var(--ink-mute)" : "#fff",
+      }}
+    >
+      {done ? "フォロー中" : state === "error" ? "もう一度" : state === "saving" ? "…" : "フォローし返す"}
+    </button>
+  );
+}
+
 export function NotificationBell({ compactPanel = false }: { compactPanel?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -375,6 +425,14 @@ export function NotificationBell({ compactPanel = false }: { compactPanel?: bool
                         {timeAgo(notif.createdAt)}
                       </div>
                     </div>
+                    {notif.type === "follow" && notif.actor && (
+                      <FollowBackButton
+                        userId={notif.actor.id}
+                        initialFollowing={notif.followingBack === true}
+                        onFollowed={() => setNotifications((prev) => prev.map((n) =>
+                          n.type === "follow" && n.actor?.id === notif.actor?.id ? { ...n, followingBack: true } : n))}
+                      />
+                    )}
                   </div>
                 </Link>
               ))
