@@ -10,6 +10,8 @@ import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { PersonHitCard } from "./PersonHitCard";
+import { searchPostHits, type PostHit } from "@/lib/search/postHits";
+import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 
 /**
  * 横断検索。企業・求人・人をまとめて引き、**主対象を1つだけ**見出し付きで出す。
@@ -46,15 +48,19 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: { q?: string; drop?: string; kind?: string } };
 
-const KIND_LABEL: Record<SearchKind, string> = {
+/** ★画面の種別。条件で引く4つ（SearchKind）に、ことばで引く「投稿」を足したもの（2026-10-21） */
+type PageKind = SearchKind | "post";
+
+const KIND_LABEL: Record<PageKind, string> = {
   company: "企業",
   job: "募集",
   person: "人",
+  post: "投稿",
   article: "記事",
 };
 
 /** タブの並び。⚠️ ヘッダーのナビ（企業・募集・ユーザー・フィード・記事）と同じ順にしてある */
-const KIND_ORDER: SearchKind[] = ["company", "job", "person", "article"];
+const KIND_ORDER: PageKind[] = ["company", "job", "person", "post", "article"];
 
 /** 「すべて」タブで、主対象**以外**を何件まで出すか。⚠️ 主対象は HIT_LIMIT まで出す */
 const PREVIEW_PER_KIND = 3;
@@ -213,6 +219,86 @@ function ArticleCard({ item }: { item: SearchResults["article"]["items"][number]
   );
 }
 
+/** 抜粋の中の当たった語を太字にする（大文字小文字は区別しない） */
+function Highlight({ text, terms }: { text: string; terms: string[] }) {
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).filter(Boolean);
+  if (escaped.length === 0) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${escaped.join("|")})`, "gi"));
+  return (
+    <>
+      {parts.map((p, i) =>
+        terms.some((t) => t.toLowerCase() === p.toLowerCase())
+          ? <strong key={i} style={{ color: "var(--ink)", fontWeight: 700 }}>{p}</strong>
+          : <span key={i}>{p}</span>,
+      )}
+    </>
+  );
+}
+
+/**
+ * 投稿のカード（2026-10-21）。押すと投稿の個別ページ（/feed/[id]）。
+ * ⚠️ 本文は抜粋だけ。全文は個別ページで読む
+ */
+function PostCard({ item }: { item: PostHit }) {
+  const d = new Date(item.createdAt);
+  const date = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  return (
+    <Link
+      href={`/feed/${item.id}`}
+      style={{
+        display: "flex", gap: 12, alignItems: "flex-start", padding: 14,
+        borderRadius: 12, border: "1px solid var(--line)", background: "#fff",
+        textDecoration: "none", color: "inherit",
+      }}
+    >
+      {item.author.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.author.avatarUrl} alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+      ) : (
+        <span aria-hidden="true" style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: item.author.gradient, color: "#fff", fontWeight: 700, display: "grid", placeItems: "center", fontSize: 14 }}>
+          {item.author.initial}
+        </span>
+      )}
+      <span style={{ minWidth: 0, display: "block", flex: 1 }}>
+        <span style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+          <span style={{ fontWeight: 700, fontSize: 13.5, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.author.name}</span>
+          <span style={{ fontSize: 11.5, color: "var(--ink-mute)", flexShrink: 0 }}>{date}</span>
+        </span>
+        <span style={{ display: "block", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.65, marginTop: 4, overflowWrap: "anywhere" }}>
+          <Highlight text={item.excerpt} terms={item.terms} />
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+/** ★結果の1区切り（白い板）。見出しの右に「すべて表示」を置く（2026-10-21） */
+function ResultSection({
+  title, count, moreHref, children,
+}: { title: string; count: number | null; moreHref: string | null; children: React.ReactNode }) {
+  return (
+    <section
+      data-state="search-section"
+      style={{ marginTop: 16, background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 16px 14px" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0 }}>{title}</h2>
+        {count !== null && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", background: "var(--line-soft)", borderRadius: 100, padding: "2px 9px" }}>{count}</span>
+        )}
+        {moreHref && (
+          <Link href={moreHref} style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--royal)", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
+            すべて表示 →
+          </Link>
+        )}
+      </div>
+      <div style={{ marginTop: 12 }}>{children}</div>
+    </section>
+  );
+}
+
+const GRID: React.CSSProperties = { display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))" };
+
 // ── ページ本体 ───────────────────────────────────────────────────────────────
 
 export default async function SearchPage({ searchParams }: Props) {
@@ -248,6 +334,12 @@ export default async function SearchPage({ searchParams }: Props) {
     article: { items: [], total: 0 },
   };
   const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn) : EMPTY;
+  /* ★投稿は条件ではなく「ことば」で引く。条件が1つも立たなかったときも引く
+        （投稿は自由文なので、職種などに読めない語こそ当たりうる）。ログインしているときだけ */
+  const posts = raw.trim()
+    ? await searchPostHits(raw, { isLoggedIn, isTest: isLoggedIn ? await viewerIsTestByAuthId(user?.id) : false })
+    : { items: [], total: 0 };
+  const totalOf = (k: PageKind) => (k === "post" ? posts.total : results[k].total);
 
   /* ★社名として解決した語が標準スキルにもあるとき、「そのスキルを持つ人」への橋渡しを出す。
      ⚠️ 条件には混ぜない（同じ語で company と skill を両方立てると AND で潰れる）。
@@ -261,27 +353,29 @@ export default async function SearchPage({ searchParams }: Props) {
 
   /* ★どのタブを見ているか（2026-10-01）。`?kind=` が無ければ「すべて」。
      ⚠️ 知らない値は「すべて」に倒す（URL を手で書き換えられても壊れない）。 */
-  const activeKind: SearchKind | "all" =
+  const activeKind: PageKind | "all" =
     (KIND_ORDER as string[]).includes(searchParams.kind ?? "")
-      ? (searchParams.kind as SearchKind)
+      ? (searchParams.kind as PageKind)
       : "all";
 
   /* ★「すべて」では**主対象を先頭に**置く。`interpretQuery` が決めた優先順を捨てない。
      ⚠️ 残りは `KIND_ORDER`（ヘッダーのナビと同じ並び）。**件数順にしないこと** ——
         同じ語で引いても日によって並びが変わる。 */
-  const visibleKinds: SearchKind[] =
+  const visibleKinds: PageKind[] =
     activeKind === "all" ? [primary, ...KIND_ORDER.filter((k) => k !== primary)] : [activeKind];
-  const totalAll = KIND_ORDER.reduce((n, k) => n + results[k].total, 0);
+  const totalAll = KIND_ORDER.reduce((n, k) => n + totalOf(k), 0);
+  /* 条件で引く4種の合計（「条件を1つ外す」の判定に使う。投稿は条件と無関係なので混ぜない） */
+  const totalByConditions = (["company", "job", "person", "article"] as const).reduce((n, k) => n + results[k].total, 0);
 
   /* 0件のときだけ「条件を1つ外すと」を計算する。
      ⚠️ 条件ごとに引き直すので、当たっているときはやらない（無駄な往復を作らない）。 */
   const relaxations: { label: string; index: number; count: number }[] = [];
-  if (raw.trim() && !nothingResolved && totalAll === 0 && conditions.length >= 2) {
+  if (raw.trim() && !nothingResolved && totalByConditions === 0 && conditions.length >= 2) {
     for (let i = 0; i < interpreted.conditions.length; i++) {
       const rest = interpreted.conditions.filter((_, j) => j !== i);
       if (rest.length === 0) continue;
       const r = await runSearch(rest, isLoggedIn);
-      const n = KIND_ORDER.reduce((m, k) => m + r[k].total, 0);
+      const n = (["company", "job", "person", "article"] as const).reduce((m, k) => m + r[k].total, 0);
       if (n > 0) relaxations.push({ label: interpreted.conditions[i].label, index: i, count: n });
     }
   }
@@ -345,11 +439,11 @@ export default async function SearchPage({ searchParams }: Props) {
             ⚠️★0件の種別もタブは出す。押すと0件だが、**何を横断しているかが分かる**
                （リポジトリの「0件の選択肢を出さない」とは逆向き。ここはタブ＝目次なので）。
             ⚠️ 人の件数は未ログインだと下限未満で伏せる（既存の `MIN_AGGREGATE_COUNT`）。 */}
-        {!nothingResolved && raw.trim() && (
+        {(!nothingResolved || posts.total > 0) && raw.trim() && (
           <div style={{ marginTop: 18, display: "flex", flexWrap: "wrap", gap: 8 }}>
             {(["all", ...KIND_ORDER] as const).map((k) => {
               const active = activeKind === k;
-              const n = k === "all" ? totalAll : results[k].total;
+              const n = k === "all" ? totalAll : totalOf(k);
               const hideCount = k === "person" && !isLoggedIn && results.person.total < MIN_AGGREGATE_COUNT;
               return (
                 <Link
@@ -382,58 +476,68 @@ export default async function SearchPage({ searchParams }: Props) {
             ⚠️★**主対象は今までどおり全部出す**（`HIT_LIMIT` まで）。他が3件ずつ増えるだけで、
                **今まで見えていたものは1つも減らない。**
             ⚠️ 人は未ログインだと個票を出さない（`LoginGate`）。既存の規則をそのまま適用する。 */}
-        {nothingResolved ? (
+        {totalAll === 0 ? (
           <section style={{ marginTop: 22 }}>
-            <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />
-          </section>
-        ) : totalAll === 0 ? (
-          <section style={{ marginTop: 22 }}>
-            <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()} />
+            {nothingResolved
+              ? <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />
+              : <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()} />}
           </section>
         ) : (
-          visibleKinds.map((k) => {
-            const full = activeKind !== "all" || k === primary;
-            const items = full ? results[k].items : results[k].items.slice(0, PREVIEW_PER_KIND);
-            const gated = k === "person" && !isLoggedIn;
-            if (results[k].total === 0) return null;
-            return (
-              <section key={k} style={{ marginTop: 22 }}>
-                <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  {KIND_LABEL[k]}
-                  {(k !== "person" || isLoggedIn || results.person.total >= MIN_AGGREGATE_COUNT) && (
-                    <span style={{
-                      fontSize: 12, fontWeight: 700, color: "var(--ink-soft)",
-                      background: "var(--line-soft)", borderRadius: 100, padding: "2px 9px",
-                    }}>{results[k].total}</span>
-                  )}
-                </h2>
-                <div style={{ marginTop: 12 }}>
+          <>
+            {/* ★条件が読めず投稿だけが当たったとき。企業・募集・人が無い理由を書く（黙って0件にしない） */}
+            {nothingResolved && (
+              <p data-state="search-posts-only" style={{ marginTop: 14, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+                企業・募集・人は、職種・事業領域・外資系／日系・年収などの条件で探します。
+                このことばは条件として読めなかったので、投稿だけを表示しています。
+              </p>
+            )}
+            {visibleKinds.map((k) => {
+              if (totalOf(k) === 0) return null;
+              const full = activeKind !== "all" || k === primary;
+              const moreHref = activeKind === "all" ? `/search?q=${encodeURIComponent(raw)}&kind=${k}` : null;
+              if (k === "post") {
+                const items = full ? posts.items : posts.items.slice(0, PREVIEW_PER_KIND);
+                return (
+                  <ResultSection key={k} title={KIND_LABEL[k]} count={posts.total} moreHref={posts.total > items.length ? moreHref : null}>
+                    <div style={{ display: "grid", gap: 10, gridTemplateColumns: "minmax(0, 1fr)" }}>
+                      {items.map((it) => <PostCard key={it.id} item={it} />)}
+                    </div>
+                    <Truncated total={posts.total} shown={items.length} />
+                  </ResultSection>
+                );
+              }
+              const res = results[k];
+              /* ★人は「すべて」でも現役・OB・OG をそれぞれ3人まで出す（片方だけになるのを防ぐ。2026-10-21） */
+              const items = full
+                ? res.items
+                : k === "person"
+                  ? [
+                      ...results.person.items.filter((p) => p.tenure !== "former").slice(0, PREVIEW_PER_KIND),
+                      ...results.person.items.filter((p) => p.tenure === "former").slice(0, PREVIEW_PER_KIND),
+                    ]
+                  : res.items.slice(0, PREVIEW_PER_KIND);
+              const gated = k === "person" && !isLoggedIn;
+              const showCount = k !== "person" || isLoggedIn || results.person.total >= MIN_AGGREGATE_COUNT;
+              return (
+                <ResultSection key={k} title={KIND_LABEL[k]} count={showCount ? res.total : null}
+                  moreHref={!gated && res.total > items.length ? moreHref : null}>
                   {gated ? (
                     <LoginGate total={results.person.total} />
+                  ) : k === "person" ? (
+                    <PersonGroups items={items as typeof results.person.items} totals={results.person.tenureTotals}
+                      byCompany={conditions.some((c) => c.kind === "company")} />
                   ) : (
-                    <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+                    <div style={GRID}>
                       {k === "company" && (items as typeof results.company.items).map((it) => <CompanyCard key={it.id} item={it} />)}
                       {k === "job" && (items as typeof results.job.items).map((it) => <JobCard key={it.id} item={it} />)}
-                      {k === "person" && (items as typeof results.person.items).map((it) => <PersonHitCard key={it.userId} person={it} />)}
                       {k === "article" && (items as typeof results.article.items).map((it) => <ArticleCard key={it.id} item={it} />)}
                     </div>
                   )}
-                </div>
-                {/* ⚠️★切ったことを黙らない。押す先はこの種別のタブ（検索条件を保ったまま） */}
-                {!gated && results[k].total > items.length && (
-                  <p style={{ marginTop: 10, fontSize: 12.5, color: "var(--ink-mute)" }}>
-                    {results[k].total}件のうち {items.length}件を表示しています。
-                    {activeKind === "all" && (
-                      <Link href={`/search?q=${encodeURIComponent(raw)}&kind=${k}`}
-                        style={{ color: "var(--royal)", fontWeight: 600, marginLeft: 6 }}>
-                        すべて表示 →
-                      </Link>
-                    )}
-                  </p>
-                )}
-              </section>
-            );
-          })
+                  {!gated && <Truncated total={res.total} shown={items.length} />}
+                </ResultSection>
+              );
+            })}
+          </>
         )}
 
         {/* ── ★スキルの帯。社名として解決した語がスキルにもあるときだけ ── */}
@@ -466,6 +570,56 @@ export default async function SearchPage({ searchParams }: Props) {
                いまは上のセクションが全種別を出すので、同じ数字が2回出ることになる。
             ⚠️ 0件の種別への導線（`/companies` などの一覧へ）は**タブが担う**。 */}
       </div>
+    </div>
+  );
+}
+
+/** ⚠️★切ったことを黙らない（上限や「すべて」の3件で切ったとき） */
+function Truncated({ total, shown }: { total: number; shown: number }) {
+  if (total <= shown) return null;
+  return (
+    <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>
+      {total}件のうち {shown}件を表示しています。
+    </p>
+  );
+}
+
+/**
+ * ★人を「いま／過去」で分けて出す（2026-10-21 / 柴さんの指示）。
+ *   社名で引いたときは「現役社員」「OB・OG」、職種などで引いたときは「いまの仕事」「以前の仕事」。
+ * ⚠️ 判定は条件に当たった職歴（`PersonHit.tenure`）。分けられない（tenure が null）ときは分けずに出す
+ * ⚠️ 人数は上限で切る前の総数（`tenureTotals`）を出す。表示中の件数を数えない
+ */
+function PersonGroups({
+  items, totals, byCompany,
+}: { items: SearchResults["person"]["items"]; totals: SearchResults["person"]["tenureTotals"]; byCompany: boolean }) {
+  const grouped = items.some((p) => p.tenure !== null);
+  if (!grouped) {
+    return <div style={GRID}>{items.map((it) => <PersonHitCard key={it.userId} person={it} />)}</div>;
+  }
+  const groups = [
+    { key: "current" as const, label: byCompany ? "現役社員" : "いまの仕事", n: totals?.current ?? 0 },
+    { key: "former" as const, label: byCompany ? "OB・OG" : "以前の仕事", n: totals?.former ?? 0 },
+  ];
+  return (
+    /* ⚠️ minmax(0, 1fr) にすること。既定（auto）だと長い理由の行で列が広がり、スマホではみ出す（実測 375px で 422px） */
+    <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr)" }}>
+      {groups.map((g) => {
+        const list = items.filter((p) => p.tenure === g.key);
+        if (g.n === 0) return null;
+        return (
+          <div key={g.key} data-state={`person-group-${g.key}`}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8 }}>
+              {g.label}<span style={{ marginLeft: 6, color: "var(--ink-mute)", fontWeight: 600 }}>{g.n}人</span>
+            </div>
+            {list.length > 0 ? (
+              <div style={GRID}>{list.map((it) => <PersonHitCard key={it.userId} person={it} />)}</div>
+            ) : (
+              <p style={{ margin: 0, fontSize: 12, color: "var(--ink-mute)" }}>「すべて表示」から見られます。</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

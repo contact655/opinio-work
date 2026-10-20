@@ -83,6 +83,14 @@ export type PersonHit = {
    *    「営業で引いたのにカードはコーポレート」が起きる。
    */
   matchReason: string | null;
+  /**
+   * ★条件に当たった職歴が、いまのものか過去のものか（2026-10-21 / 柴さんの指示）。
+   *   current … 当たった職歴のどれかが現職（社名で引いたなら現役社員）
+   *   former  … 当たったのは過去の職歴だけ（社名で引いたなら OB・OG）
+   *   null    … 職歴の条件が無い（スキル・言語だけで引いた）。分けない
+   * ⚠️ 判定は「当たった職歴」で行う。その人の現職ではない（別の会社の現職を見ると、OB・OG が現役に化ける）
+   */
+  tenure: "current" | "former" | null;
 };
 
 /**
@@ -110,6 +118,8 @@ export type KindResult<T> = {
   /** 表示する件数。人は未ログインだと空になるが total は返る */
   items: T[];
   total: number;
+  /** ★人だけ。現役／OB・OG それぞれの総数（items は上限で切るので、そこから数えない） */
+  tenureTotals?: { current: number; former: number };
 };
 
 export type SearchResults = {
@@ -585,12 +595,21 @@ export async function searchPersonHits(
       avatarUrl: u.avatar_url,
       currentLabel: resolveExperienceCompanyLabel(exps.find((e) => e.is_current) ?? null),
       matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds),
+      tenure: expConds.length === 0 ? null : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
     });
   }
 
+  /* ★現役を先に並べる（上限で切ったときに、グループの途中で切れないように）。
+        ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */
+  const order = (t: PersonHit["tenure"]) => (t === "former" ? 1 : 0);
+  hits.sort((a, b) => order(a.tenure) - order(b.tenure));
   return {
     items: isLoggedIn ? hits.slice(0, HIT_LIMIT) : [],
     total: hits.length,
+    tenureTotals: {
+      current: hits.filter((h) => h.tenure === "current").length,
+      former: hits.filter((h) => h.tenure === "former").length,
+    },
   };
 }
 
