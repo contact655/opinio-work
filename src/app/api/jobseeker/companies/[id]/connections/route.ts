@@ -14,7 +14,7 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
  * 閲覧者と相互フォローで、この会社に在籍中の人（本人が表示を許可した人だけ）。
  * ⚠️★**ログイン必須・キャッシュしない。** 閲覧者ごとに中身が違う。企業ページ（ISR）に混ぜないこと。
  * ⚠️ 判定は `lib/companies/connections.ts` の1か所。ここに条件を書かない。
- * ⚠️ 検証用アカウントの閲覧者には返さない（実在の人のつながりを検証用から見せない）。
+ * ⚠️ 検証用アカウントの閲覧者には、検証用の人のつながりだけを返す（実在の人は出さない。2026-10-21）。
  */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -27,11 +27,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     console.error("[connections] viewer:", error.message);
     return NextResponse.json({ error: "取得に失敗しました" }, { status: 500, headers: NO_STORE });
   }
-  if (!viewer || !isRegisteredUser(viewer) || viewer.is_test || viewer.is_system) {
+  if (!viewer || !isRegisteredUser(viewer) || viewer.is_system) {
     return NextResponse.json({ connections: [] }, { headers: NO_STORE });
   }
 
-  const connections = await getCompanyConnections(params.id, viewer.id as string);
+  const connections = await getCompanyConnections(params.id, viewer.id as string, viewer.is_test === true);
   if (!connections) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500, headers: NO_STORE });
   return NextResponse.json({ connections }, { headers: NO_STORE });
 }

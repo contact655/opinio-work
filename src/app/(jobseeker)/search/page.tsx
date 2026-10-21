@@ -474,7 +474,9 @@ export default async function SearchPage({ searchParams }: Props) {
   const companyConnections = new Map<string, CompanyConnection[] | null>();
   if (feed.myUserId && results.company.items.length > 0) {
     const ids = results.company.items.slice(0, 6).map((c) => c.id);
-    const lists = await Promise.all(ids.map((id) => getCompanyConnections(id, feed.myUserId as string)));
+    /* ⚠️ 検証用アカウントには検証用の人のつながりだけ（getCompanyConnections の注記） */
+    const viewerTest = await viewerIsTestByAuthId(user?.id);
+    const lists = await Promise.all(ids.map((id) => getCompanyConnections(id, feed.myUserId as string, viewerTest)));
     ids.forEach((id, i) => companyConnections.set(id, lists[i]));
   }
 

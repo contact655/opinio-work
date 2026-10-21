@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyEmployeesCached } from "@/lib/supabase/queries";
 import { pickConnections } from "@/lib/companies/connectionsPick";
+import { isRegisteredUser } from "@/lib/users/registered";
 
 /**
  * ★企業ページの「この会社に、あなたのつながりがいます」（2026-10-16 / フェーズ3）。
@@ -30,9 +31,18 @@ export type CompanyConnection = {
 export async function getCompanyConnections(
   companyId: string,
   viewerOwUserId: string,
+  /**
+   * ★見ている人が検証用アカウントか（2026-10-21 / 柴さんの判断）。
+   *   true なら候補は**検証用の人だけ**（その会社に在籍中の検証用アカウント）。実在の人は出さない。
+   *   企業ページの現役社員は検証用を除くので、そのままでは検証用アカウントで「出る側」を一度も確かめられなかったため。
+   *   ⚠️ 実在の利用者（false）の見え方は変えていない。検証用の人は実在の利用者には出ない
+   */
+  viewerIsTest = false,
 ): Promise<CompanyConnection[] | null> {
-  const employees = await getCompanyEmployeesCached(companyId);
-  const current = employees.current.filter((e) => e.userId && e.userId !== viewerOwUserId);
+  const current = viewerIsTest
+    ? await testEmployeesOf(companyId, viewerOwUserId)
+    : (await getCompanyEmployeesCached(companyId)).current.filter((e) => e.userId && e.userId !== viewerOwUserId);
+  if (current === null) return null;
   if (current.length === 0) return [];
   const ids = current.map((e) => e.userId);
 
@@ -73,4 +83,29 @@ export async function getCompanyConnections(
       avatarInitial: e.avatarInitial,
       avatarGradient: e.avatarGradient,
     }));
+}
+
+/**
+ * 検証用アカウントの閲覧者のための候補: その会社に在籍中（is_current）の**検証用**アカウント。
+ * ⚠️ 現役社員の一覧（getCompanyEmployees）と同じく、非公開（private）・会社名を伏せた職歴（hidden）・未登録の人は除く
+ */
+async function testEmployeesOf(companyId: string, viewerOwUserId: string) {
+  const { data, error } = await createAdminClient()
+    .from("ow_experiences")
+    .select("visibility_company, ow_users!user_id(id, name, avatar_url, avatar_color, visibility, is_test, auth_id)")
+    .eq("company_id", companyId).eq("is_current", true);
+  if (error) { console.error("[connections] test employees:", error.message); return null; }
+  type U = { id: string; name: string | null; avatar_url: string | null; avatar_color: string | null; visibility: string | null; is_test: boolean | null; auth_id: string | null };
+  const out: { userId: string; name: string; avatarUrl: string | null; avatarInitial: string; avatarGradient: string }[] = [];
+  for (const r of data ?? []) {
+    const u = (Array.isArray(r.ow_users) ? r.ow_users[0] : r.ow_users) as unknown as U | null;
+    if (!u || u.is_test !== true || u.visibility === "private" || !isRegisteredUser(u) || r.visibility_company === "hidden") continue;
+    if (u.id === viewerOwUserId) continue;
+    const name = u.name ?? "—";
+    out.push({
+      userId: u.id, name, avatarUrl: u.avatar_url, avatarInitial: name.charAt(0),
+      avatarGradient: u.avatar_color ? `linear-gradient(135deg, ${u.avatar_color}99, ${u.avatar_color})` : "linear-gradient(135deg, var(--royal), #3B5FD9)",
+    });
+  }
+  return out;
 }

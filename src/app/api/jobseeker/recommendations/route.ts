@@ -102,9 +102,10 @@ export async function GET() {
           ⚠️ 失敗（null）は 0 として扱い、行を出さないだけ（人数を推測しない） */
     const connections: Record<string, number> = {};
     const { data: me } = await admin.from("ow_users").select("id, is_test, is_system").eq("auth_id", user.id).maybeSingle();
-    if (me && !me.is_test && !me.is_system) {
+    if (me && !me.is_system) {
       const companyIds = Array.from(new Set(recs.slice(0, PANEL_TOP).map((r) => r.job.company_id)));
-      const counts = await Promise.all(companyIds.map((cid) => getCompanyConnections(cid, me.id as string)));
+      /* ⚠️ 検証用アカウントには検証用の人のつながりだけ（2026-10-21。getCompanyConnections の注記） */
+      const counts = await Promise.all(companyIds.map((cid) => getCompanyConnections(cid, me.id as string, me.is_test === true)));
       companyIds.forEach((cid, i) => { connections[cid] = counts[i]?.length ?? 0; });
     }
 
