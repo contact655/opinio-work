@@ -294,6 +294,7 @@ export type RawEducation = {
     logo_letter: string | null;
     logo_gradient: string | null;
     logo_url: string | null;
+    type?: string | null;
   } | null;
   faculty: string | null;
   degree: string | null;

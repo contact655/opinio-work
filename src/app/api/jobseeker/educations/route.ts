@@ -32,7 +32,7 @@ export async function GET() {
     .from("ow_user_educations")
     .select(`
       id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
-      school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
+      school_master:ow_schools!school_id(id, name, type, logo_letter, logo_gradient, logo_url)
     `)
     .eq("user_id", owUserId)
     .order("sort_order", { ascending: true });
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
     })
     .select(`
       id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
-      school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
+      school_master:ow_schools!school_id(id, name, type, logo_letter, logo_gradient, logo_url)
     `)
     .single();
 

@@ -12,6 +12,8 @@ export type EducationSchoolMaster = {
   logo_letter: string | null;
   logo_gradient: string | null;
   logo_url: string | null;
+  /** ★学校の種別（2026-10-21）。学校のページへのリンクを大学・大学院・高校だけにするため。取っていない経路では undefined */
+  type?: string | null;
 };
 
 export type Education = {

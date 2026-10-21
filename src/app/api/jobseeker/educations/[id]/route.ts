@@ -96,7 +96,7 @@ export async function PUT(
     .eq("user_id", owUser.id)
     .select(`
       id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order,
-      school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)
+      school_master:ow_schools!school_id(id, name, type, logo_letter, logo_gradient, logo_url)
     `)
     .single();
 

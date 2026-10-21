@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { isSearchableSchoolType } from "@/lib/constants/schools";
 /* ⚠️ 行の操作は `view/RowActions` に置く（セクション定義に依存させない） */
 import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
@@ -176,6 +177,8 @@ export interface EducationSchoolMaster {
   logo_letter: string | null;
   logo_gradient: string | null;
   logo_url: string | null;
+  /** ★学校の種別（2026-10-21）。学校のページへのリンクを大学・大学院・高校だけにするため */
+  type?: string | null;
 }
 
 export interface EducationEntry {
@@ -1046,7 +1049,8 @@ function EducationContent({ data }: { data: EducationEntry }) {
         <span className="tl-inline-logo">
           <SchoolLogoImg schoolMaster={data.school_master ?? null} size={28} />
         </span>
-        {data.school_id ? (
+        {/* ★学校のページへのリンクは大学・大学院・高校だけ（2026-10-21）。それ以外のページには出身者を並べないので、押しても空のページになる */}
+        {data.school_id && isSearchableSchoolType(data.school_master?.type) ? (
           <Link
             href={`/schools/${data.school_id}`}
             style={{

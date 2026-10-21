@@ -128,7 +128,7 @@ export default async function MypagePage({
     ] = await Promise.all([
       supabase
         .from("ow_user_educations")
-        .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
+        .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, type, logo_letter, logo_gradient, logo_url)`)
         .eq("user_id", owUser.id)
         .order("sort_order", { ascending: true }),
       /* ⚠️ **admin で引く。** session クライアントだと join_reason / 年収4列で

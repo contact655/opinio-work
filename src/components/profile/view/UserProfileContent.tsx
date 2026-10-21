@@ -284,7 +284,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
     */
     adminSupabase
       .from("ow_user_educations")
-      .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, logo_letter, logo_gradient, logo_url)`)
+      .select(`id, school, school_id, faculty, degree, enrolled_at, graduated_at, is_current, sort_order, school_master:ow_schools!school_id(id, name, type, logo_letter, logo_gradient, logo_url)`)
       .eq("user_id", owUser.id)
       .order("sort_order", { ascending: true }),
     /* ⚠️ 実績・受賞・メディア掲載・発信コンテンツは **admin クライアントで引く**（2026-08-15）。
