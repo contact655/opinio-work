@@ -43,6 +43,8 @@ type Props = {
   posts: SchoolPost[];
   /** ⚠️ 空状態の文言だけに使う。既定 false（fail-closed＝「登録がありません」と断定しない側） */
   isLoggedIn?: boolean;
+  /** ★出身者を並べる学校か（大学・大学院・高校だけ。2026-10-21） */
+  listable?: boolean;
 };
 type Tab = "graduates" | "posts";
 
@@ -300,7 +302,7 @@ function PostsEmptyState() {
 
 // ─── メインコンポーネント ─────────────────────────────────────────────────────
 
-export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false }: Props) {
+export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false, listable = true }: Props) {
   const [tab, setTab] = useState<Tab>("graduates");
 
   return (
@@ -395,7 +397,9 @@ export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = f
             </svg>
             {/* ⚠️ 未ログインには「登録されていません」と言わない。
                    実ユーザーは全員 `login_only` なので、未ログインには必ず0件になる。 */}
-            <p>{isLoggedIn
+            <p>{!listable
+              ? "出身者を表示しているのは、大学・大学院・高校だけです。"
+              : isLoggedIn
               ? "この学校の出身者はまだ登録されていません。"
               : "出身者はログインすると表示されます。"}</p>
           </div>

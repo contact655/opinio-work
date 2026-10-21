@@ -531,7 +531,8 @@ export async function searchPersonHits(
              複製で、正は `language_id`（docs/todo.md）。 */
     db.from("ow_user_languages").select("user_id, language_id"),
     /* ★卒業年月（2026-10-21）。「新卒」と書いてよいかの根拠にだけ使う（buildMatchReason） */
-    db.from("ow_user_educations").select("user_id, graduated_at").not("graduated_at", "is", null),
+    /* ★学校の条件（2026-10-21）にも使うので卒業年月が無い行も引く（「新卒」の判定は gradsByUser が卒業年月のある行だけを見る） */
+    db.from("ow_user_educations").select("user_id, graduated_at, school_id, is_current, faculty"),
   ]);
   for (const [label, res] of Object.entries({
     users: userRes, experiences: expRes, companies: foreignRes, domains: domainRes,
@@ -570,7 +571,14 @@ export async function searchPersonHits(
   }
 
   const gradsByUser = new Map<string, string[]>();
-  for (const r of (eduRes.data ?? []) as { user_id: string; graduated_at: string | null }[]) {
+  type EduRow = { user_id: string; graduated_at: string | null; school_id: string | null; is_current: boolean | null; faculty: string | null };
+  const schoolEdusByUser = new Map<string, EduRow[]>();
+  const schoolsByUser = new Map<string, Set<string>>();
+  for (const r of (eduRes.data ?? []) as EduRow[]) {
+    if (r.school_id) {
+      schoolEdusByUser.set(r.user_id, [...(schoolEdusByUser.get(r.user_id) ?? []), r]);
+      schoolsByUser.set(r.user_id, (schoolsByUser.get(r.user_id) ?? new Set<string>()).add(r.school_id));
+    }
     if (!r.graduated_at) continue;
     gradsByUser.set(r.user_id, [...(gradsByUser.get(r.user_id) ?? []), r.graduated_at]);
   }
@@ -601,6 +609,8 @@ export async function searchPersonHits(
   const hits: PersonHit[] = [];
   /* ★行き先の集計（社名で引いたときだけ）。人ごとに1回ずつ数える */
   const byCompanyCond = cond.some((c) => c.kind === "company" && c.matchOn === "experience");
+  /* ★学校で引いたとき（2026-10-21）。在学中／卒業生に分け、卒業生のいまの会社を「行き先」に数える */
+  const schoolCond = cond.find((c): c is Extract<Condition, { kind: "school" }> => c.kind === "school") ?? null;
   const destCompanies = new Map<string, number>();
   const destCompanyIds = new Map<string, string>();
   const destRoles = new Map<string, number>();
@@ -642,7 +652,10 @@ export async function searchPersonHits(
     if (expConds.length > 0 && matchedExps.length === 0) continue;
 
     // ② 人側
-    if (!personConds.every((c) => personMatches(u.id, c, skillsByUser, langsByUser))) continue;
+    if (!personConds.every((c) => personMatches(u.id, c, skillsByUser, langsByUser, schoolsByUser))) continue;
+    /* 学校で当たった学歴（在学中かどうか・学部・卒業年）。⚠️ 職歴の条件があるときは職歴側で分ける */
+    const schoolEdus = schoolCond ? (schoolEdusByUser.get(u.id) ?? []).filter((e) => e.school_id === schoolCond.schoolId) : [];
+    const schoolTenure: PersonHit["tenure"] = schoolEdus.length === 0 ? null : schoolEdus.some((e) => e.is_current === true) ? "current" : "former";
 
     /* `exps` は started_at 昇順なので `matchedExps` もその順序を保つ */
     const earliestMatch: ExpRow | null = matchedExps[0] ?? null;
@@ -659,8 +672,10 @@ export async function searchPersonHits(
       gradient: u.avatar_color?.startsWith("linear-gradient") ? u.avatar_color : FALLBACK_GRADIENT,
       avatarUrl: u.avatar_url,
       currentLabel: resolveExperienceCompanyLabel(exps.find((e) => e.is_current) ?? null),
-      matchReason: buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds, gradsByUser.get(u.id) ?? []),
-      tenure: expConds.length === 0 ? null : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
+      matchReason: expConds.length === 0 && schoolEdus.length > 0
+        ? schoolReason(schoolEdus)
+        : buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds, gradsByUser.get(u.id) ?? []),
+      tenure: expConds.length === 0 ? schoolTenure : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
       matched: (() => {
         const e = matchedExps.find((x) => x.is_current === true) ?? latestMatch;
         if (!e) return null;
@@ -677,7 +692,9 @@ export async function searchPersonHits(
         return node ? { key: node.slug ?? node.id, name: node.name } : null;
       })(),
     });
-    if (byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true)) {
+    const leftCompany = byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true);
+    const graduated = !byCompanyCond && schoolTenure === "former";
+    if (leftCompany || graduated) {
       const now = exps.filter((e) => e.is_current === true && e.visibility_company === "real");
       for (const e of now) {
         const l = resolveExperienceCompanyLabel(e);
@@ -694,7 +711,7 @@ export async function searchPersonHits(
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
       .map(([label, n]) => ({ label, count: n >= MIN_AGGREGATE_COUNT ? n : null }));
   let destinations: Destinations | undefined;
-  if (isLoggedIn && byCompanyCond && (destCompanies.size > 0 || destRoles.size > 0)) {
+  if (isLoggedIn && (byCompanyCond || !!schoolCond) && (destCompanies.size > 0 || destRoles.size > 0)) {
     const ids = Array.from(new Set(destCompanyIds.values()));
     const logos = new Map<string, { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }>();
     const hrefs = new Map<string, string>();
@@ -775,8 +792,11 @@ function personMatches(
   c: Condition,
   skillsByUser: Map<string, Set<string>>,
   langsByUser: Map<string, Set<string>>,
+  schoolsByUser: Map<string, Set<string>>,
 ): boolean {
   switch (c.kind) {
+    case "school":
+      return schoolsByUser.get(owUserId)?.has(c.schoolId) ?? false;
     case "skill":
       return skillsByUser.get(owUserId)?.has(c.skillId) ?? false;
     case "language":
@@ -842,6 +862,13 @@ function isNewGradStart(e: ExpRow, indexInCareer: number, graduations: string[])
   const months = (d: string) => { const [y, m] = d.split("-").map(Number); return y * 12 + (m - 1); };
   const start = months(e.started_at);
   return graduations.some((g) => { const diff = start - months(g); return diff >= -1 && diff <= 12; });
+}
+
+/** ★学校で引いた人の理由の1行（2026-10-21）。例:「政治経済学部・2015年卒業」「在学中」 */
+function schoolReason(edus: { is_current: boolean | null; faculty: string | null; graduated_at: string | null }[]): string {
+  const e = edus.find((x) => x.is_current === true) ?? [...edus].sort((a, b) => (b.graduated_at ?? "").localeCompare(a.graduated_at ?? ""))[0];
+  const status = e.is_current === true ? "在学中" : e.graduated_at ? `${e.graduated_at.slice(0, 4)}年卒業` : "卒業";
+  return [e.faculty?.trim() || null, status].filter(Boolean).join("・");
 }
 
 function buildMatchReason(

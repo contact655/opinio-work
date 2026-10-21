@@ -598,6 +598,12 @@ export default async function SearchPage({ searchParams }: Props) {
               /* ★人タブで絞っているときは、絞ったあとの人数（filteredTotal）を出す */
               const shownTotal = k === "person" ? results.person.filteredTotal ?? res.total : res.total;
               const byCompany = conditions.some((c) => c.kind === "company");
+              /* ★現役／過去の呼び方。社名なら 現役社員・OB/OG、学校なら 在学中・卒業生、それ以外は いまの仕事・以前の仕事 */
+              const tenureLabels: TenureLabels = byCompany
+                ? ["現役社員", "OB・OG"]
+                : conditions.some((c) => c.kind === "school") && !conditions.some((c) => c.matchOn === "experience")
+                  ? ["在学中", "卒業生"]
+                  : ["いまの仕事", "以前の仕事"];
               const tt = results.person.tenureTotals;
               return (
                 <ResultSection key={k} title={KIND_LABEL[k]} count={showCount ? shownTotal : null}
@@ -607,7 +613,7 @@ export default async function SearchPage({ searchParams }: Props) {
                   ) : k === "person" ? (
                     <>
                       {activeKind === "person" && (
-                        <PersonFilterBar raw={raw} filter={personFilter} byCompany={byCompany}
+                        <PersonFilterBar raw={raw} filter={personFilter} labels={tenureLabels}
                           tenureTotals={tt} roleFacets={results.person.roleFacets ?? []} />
                       )}
                       {shownTotal === 0 ? (
@@ -617,11 +623,11 @@ export default async function SearchPage({ searchParams }: Props) {
                       ) : (
                         <PersonGroups items={items as typeof results.person.items}
                           totals={personFilter.tenure && tt ? { current: personFilter.tenure === "current" ? tt.current : 0, former: personFilter.tenure === "former" ? tt.former : 0 } : tt}
-                          byCompany={byCompany} f={follow} />
+                          labels={tenureLabels} f={follow} />
                       )}
                       {results.person.destinations && (
                         <DestinationsBlock d={results.person.destinations}
-                          companyLabel={conditions.find((c) => c.kind === "company")?.label ?? null} />
+                          companyLabel={conditions.find((c) => c.kind === "company" || c.kind === "school")?.label ?? null} />
                       )}
                     </>
                   ) : (
@@ -755,9 +761,9 @@ function Truncated({ total, shown }: { total: number; shown: number }) {
  * ⚠️ 選んでいる職種は、人数が0でも出す（外せなくなるため）
  */
 function PersonFilterBar({
-  raw, filter, byCompany, tenureTotals, roleFacets,
+  raw, filter, labels, tenureTotals, roleFacets,
 }: {
-  raw: string; filter: PersonFilter; byCompany: boolean;
+  raw: string; filter: PersonFilter; labels: TenureLabels;
   tenureTotals: SearchResults["person"]["tenureTotals"];
   roleFacets: { key: string; name: string; count: number }[];
 }) {
@@ -770,8 +776,8 @@ function PersonFilterBar({
   const cur = tenureTotals?.current ?? 0;
   const fmr = tenureTotals?.former ?? 0;
   const tenureOpts = [
-    { key: "current" as const, label: byCompany ? "現役社員" : "いまの仕事", n: cur },
-    { key: "former" as const, label: byCompany ? "OB・OG" : "以前の仕事", n: fmr },
+    { key: "current" as const, label: labels[0], n: cur },
+    { key: "former" as const, label: labels[1], n: fmr },
   ].filter((o) => o.n > 0 || filter.tenure === o.key);
   const roles = [
     ...roleFacets,
@@ -833,6 +839,7 @@ function PersonFilterBar({
  * ⚠️ 判定は条件に当たった職歴（`PersonHit.tenure`）。分けられない（tenure が null）ときは分けずに出す
  * ⚠️ 人数は上限で切る前の総数（`tenureTotals`）を出す。表示中の件数を数えない
  */
+type TenureLabels = [current: string, former: string];
 type FollowInfo = { me: string | null; following: Set<string>; followers: Set<string> };
 
 /** ★人は1人1行で縦に並べる（2026-10-21。LinkedIn と同じ。カードの格子にしない） */
@@ -847,15 +854,15 @@ function PersonList({ items, f }: { items: SearchResults["person"]["items"]; f: 
 }
 
 function PersonGroups({
-  items, totals, byCompany, f,
-}: { items: SearchResults["person"]["items"]; totals: SearchResults["person"]["tenureTotals"]; byCompany: boolean; f: FollowInfo }) {
+  items, totals, labels, f,
+}: { items: SearchResults["person"]["items"]; totals: SearchResults["person"]["tenureTotals"]; labels: TenureLabels; f: FollowInfo }) {
   const grouped = items.some((p) => p.tenure !== null);
   if (!grouped) {
     return <PersonList items={items} f={f} />;
   }
   const groups = [
-    { key: "current" as const, label: byCompany ? "現役社員" : "いまの仕事", n: totals?.current ?? 0 },
-    { key: "former" as const, label: byCompany ? "OB・OG" : "以前の仕事", n: totals?.former ?? 0 },
+    { key: "current" as const, label: labels[0], n: totals?.current ?? 0 },
+    { key: "former" as const, label: labels[1], n: totals?.former ?? 0 },
   ];
   return (
     /* ⚠️ minmax(0, 1fr) にすること。既定（auto）だと長い理由の行で列が広がり、スマホではみ出す（実測 375px で 422px） */

@@ -55,6 +55,8 @@ import { getRoleAliases, getRoleTree, type SearchAlias } from "@/lib/supabase/qu
 import { withEngineerKin } from "./engineerKin";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { createPublicClient } from "@/lib/supabase/public";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { SEARCHABLE_SCHOOL_TYPES } from "@/lib/constants/schools";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
 
@@ -103,7 +105,9 @@ export type Condition =
   | { kind: "skill"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; skillId: string }
   /* ★言語。スキルと同じく**人にしか当てられない**（2026-08-27 追加）。
      求人に「英語必須」は自由記述でしか書かれておらず、マスタの ID と突き合わせられない。 */
-  | { kind: "language"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; languageId: string };
+  | { kind: "language"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; languageId: string }
+  /* ★学校（2026-10-21 / 柴さんの指示）。**人にしか当てられない**（学歴の school_id）。対象は大学・大学院・高校だけ（SEARCHABLE_SCHOOL_TYPES） */
+  | { kind: "school"; label: string; appliesTo: SearchKind[]; matchOn: ConditionScope; schoolId: string };
 
 export type InterpretResult = {
   primaryKind: SearchKind;
@@ -232,6 +236,9 @@ type Vocabulary = {
   skills: { id: string; label: string; terms: string[] }[];
   /** 話せる言語。⚠️ `iso_639_1` は**入れない**（2文字コードは誤爆源） */
   languages: { id: string; label: string; terms: string[] }[];
+  /** ★学校名 → 学校（社名と同じ照合キー）。同じ綴りが2校以上なら解決しない */
+  schoolIndex: Map<string, { id: string; label: string }[]>;
+  schoolMaxLen: number;
 };
 
 /**
@@ -268,7 +275,7 @@ const COMPANY_KEY_MIN_LEN = 3;
 const DOMAIN_PART_MIN_LEN = 4;
 
 const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary> {
-  const [roleAliases, domainRows, companyRows, skillRows, languageRows] = await Promise.all([
+  const [roleAliases, domainRows, companyRows, skillRows, languageRows, schoolRows] = await Promise.all([
     getRoleAliases(),
     /* ★掲載中の会社がある事業だけ（2026-10-12）。新しい分類で事業が約190になり、マスタ全件だと
           「教育」「建設」「music」のような語が0件の事業の条件に化けるため。チップと同じ母数にそろえる */
@@ -276,6 +283,7 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
     loadCompanyNames(),
     loadSkills(),
     loadLanguages(),
+    loadSchoolNames(),
   ]);
   const domains = domainRows.map((d) => {
     const parts = d.name.split(/[・/]/).map((s) => s.trim()).filter(Boolean);
@@ -327,7 +335,18 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
       terms: Array.from(new Set([r.label, ...(r.aliases ?? [])])).filter((t) => t.length >= 2),
     }));
 
-  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages };
+  const schoolIndex = new Map<string, { id: string; label: string }[]>();
+  let schoolMaxLen = 0;
+  for (const sc of schoolRows) {
+    const key = companyKey(sc.name);
+    if (key.length < COMPANY_KEY_MIN_LEN || companyIndex.has(key)) continue;
+    const prev = schoolIndex.get(key) ?? [];
+    if (!prev.some((x) => x.id === sc.id)) prev.push({ id: sc.id, label: sc.name });
+    schoolIndex.set(key, prev);
+    if (key.length > schoolMaxLen) schoolMaxLen = key.length;
+  }
+
+  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen };
 });
 
 type SkillRow = { id: string; label: string; aliases: string[] | null };
@@ -367,6 +386,22 @@ async function loadLanguages(): Promise<LanguageRow[]> {
 type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null };
 
 /** 掲載中の企業の社名。⚠️ ディレクトリの軸なので `filterListedCompanies` を通す */
+/**
+ * ★学校名（2026-10-21）。**学歴に登録されている学校だけ**を引く（マスタは5万校あり、全件を照合に載せない）。
+ * ⚠️ 種別は大学・大学院・高校だけ（SEARCHABLE_SCHOOL_TYPES。小中・幼稚園は本人の同意の仕組みができるまで出さない / 柴さんの判断）
+ * ⚠️ 学歴の表は authenticated 以外から読めないので admin で引く。返すのは学校の id と名前だけ
+ */
+async function loadSchoolNames(): Promise<{ id: string; name: string }[]> {
+  const db = createAdminClient();
+  const { data: edu, error: eduErr } = await db.from("ow_user_educations").select("school_id").not("school_id", "is", null);
+  if (eduErr) console.error("[interpretQuery] 学歴の取得に失敗:", eduErr.message);
+  const ids = Array.from(new Set(((edu ?? []) as { school_id: string }[]).map((r) => r.school_id)));
+  if (ids.length === 0) return [];
+  const { data, error } = await db.from("ow_schools").select("id, name").in("id", ids).in("type", [...SEARCHABLE_SCHOOL_TYPES]);
+  if (error) console.error("[interpretQuery] 学校名の取得に失敗:", error.message);
+  return (data ?? []) as { id: string; name: string }[];
+}
+
 async function loadCompanyNames(): Promise<CompanyNameRow[]> {
   const { data, error } = await filterListedCompanies(
     createPublicClient().from("ow_companies").select("id, name, name_en, brand_name, slug"),
@@ -497,7 +532,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     return { primaryKind: "company", conditions: [], unresolved: [], normalized: "" };
   }
 
-  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages }, roleTree] = await Promise.all([
+  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen }, roleTree] = await Promise.all([
     loadVocabulary(),
     getRoleTree(),
   ]);
@@ -551,6 +586,32 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
           appliesTo: ["company", "job", "person", "article"],
           companyId: hit[0].id,
         });
+      }
+    }
+  }
+
+  // ── ★学校名 → ow_schools.id（2026-10-21）。社名と同じ照合（長い名前から・境界を見る）────
+  {
+    const { compact, map } = compactWithMap(normalized);
+    const taken: boolean[] = new Array(compact.length).fill(false);
+    /* ⚠️ 社名として使った範囲は使わない */
+    for (const sp of consumed) for (let i = 0; i < compact.length; i++) if (map[i] >= sp.start && map[i] < sp.end) taken[i] = true;
+    const maxLen = Math.min(schoolMaxLen, compact.length);
+    for (let len = maxLen; len >= COMPANY_KEY_MIN_LEN; len--) {
+      for (let i = 0; i + len <= compact.length; i++) {
+        const hit = schoolIndex.get(compact.slice(i, i + len));
+        if (!hit) continue;
+        if (taken.slice(i, i + len).some(Boolean)) continue;
+        const beforeSame = charClass(compact[i - 1]) === charClass(compact[i]) && charClass(compact[i]) !== "other";
+        const afterSame = charClass(compact[i + len]) === charClass(compact[i + len - 1]) && charClass(compact[i + len - 1]) !== "other";
+        if (beforeSame || afterSame) continue;
+        for (let k = i; k < i + len; k++) taken[k] = true;
+        const origStart = map[i];
+        const origEnd = map[i + len - 1] + 1;
+        consumed.push({ start: origStart, end: origEnd });
+        /* ⚠️ 同じ名前が2校以上（都道府県違いの高校など）なら決めない */
+        if (hit.length > 1) { ambiguousCompanyWords.push(normalized.slice(origStart, origEnd)); continue; }
+        conditions.push({ kind: "school", matchOn: "person", label: hit[0].label, appliesTo: ["person"], schoolId: hit[0].id });
       }
     }
   }

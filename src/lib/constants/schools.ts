@@ -32,6 +32,16 @@ export const SCHOOL_TYPES = [
 export type SchoolType = (typeof SCHOOL_TYPES)[number]["value"];
 
 /**
+ * ★学校で人を探せる・学校のページに人を並べる種別（2026-10-21 / 柴さんの判断）。大学・大学院・高校だけ。
+ * ⚠️ 小学校・中学校は、生年月日と組み合わせると本人が分かりやすい。本人が「同じ学校の人に見せる」を選べる仕組みを作るまで出さない。
+ * ⚠️ 幼稚園は同じ名前が705組あり見分けられないので出さない
+ */
+export const SEARCHABLE_SCHOOL_TYPES = ["highschool", "university", "graduate_school"] as const;
+export function isSearchableSchoolType(type: string | null | undefined): boolean {
+  return (SEARCHABLE_SCHOOL_TYPES as readonly string[]).includes(type ?? "");
+}
+
+/**
  * ⚠️★**`kindergarten` のラベルは「幼稚園・こども園」。「保育園」と書かないこと**（2026-09-28）。
  *
  * 文部科学省の学校コードは**幼稚園（A1）と幼保連携型認定こども園（A2）まで**で、

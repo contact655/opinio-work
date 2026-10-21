@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { schoolTypeLabel } from "@/lib/constants/schools";
+import { schoolTypeLabel, isSearchableSchoolType } from "@/lib/constants/schools";
+import { isRegisteredUser } from "@/lib/users/registered";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GraduationCap, Users } from "lucide-react";
@@ -40,7 +41,14 @@ async function getSchool(id: string): Promise<SchoolRow | null> {
 // 同じ解決を必要とする箇所が他に6つあり、そのすべてが JOIN を張り忘れて
 // マスタ紐づけの社名を出せていなかったため @/lib/experiences/companyName へ移した。
 
-async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Graduate[]> {
+/**
+ * ★出身者を並べる条件（2026-10-21 / 柴さんの判断）。
+ *   ① ログインしている人にだけ見せる（企業ページの社員の欄と同じ扱い）
+ *   ② 大学・大学院・高校だけ（isSearchableSchoolType）。小学校・中学校は本人が選べる仕組みができるまで出さない。幼稚園は同名が多く見分けられない
+ * ⚠️ 本人が登録していない行（auth_id が NULL）・システムの行・検証用は出さない
+ */
+async function getGraduates(schoolId: string, isLoggedIn: boolean, schoolType: string | null): Promise<Graduate[]> {
+  if (!isLoggedIn || !isSearchableSchoolType(schoolType)) return [];
   const supabase = createAdminClient();
 
   // ── STEP 1: この学校の education 一覧 ─────────────────────────────────────
@@ -57,6 +65,8 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Grad
         avatar_url,
         visibility,
         is_test,
+        is_system,
+        auth_id,
         catchphrase
       )
     `)
@@ -81,6 +91,9 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean): Promise<Grad
     if (u.visibility === "private") return false;
     if (u.visibility === "login_only" && !isLoggedIn) return false;
     if ((u.is_test as boolean | null) === true) return false;
+    if ((u.is_system as boolean | null) === true) return false;
+    /* ⚠️ auth_id を select から落とさないこと（落とすと全員が外れる） */
+    if (!isRegisteredUser({ auth_id: (u.auth_id as string | null) ?? null })) return false;
     return true;
   });
 
@@ -234,12 +247,10 @@ export default async function SchoolPage(
   const { id } = await params;
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [school, graduates] = await Promise.all([
-    getSchool(id),
-    getGraduates(id, !!user),
-  ]);
-
+  const school = await getSchool(id);
   if (!school) notFound();
+  const listable = isSearchableSchoolType(school.type);
+  const graduates = await getGraduates(id, !!user, school.type);
 
   const userIds = graduates.map((g) => g.userId);
   const schoolPosts = await getSchoolPosts(userIds);
@@ -320,7 +331,9 @@ export default async function SchoolPage(
                          ⚠️ 未ログインには**件数を出さない**。0 と出すこと自体が
                             「居ない」の主張になる。居るか居ないかも言わない
                             （`login_only` の人の存在を漏らさない）。 */}
-                  {!user
+                  {!listable
+                    ? "この学校の出身者は表示していません"
+                    : !user
                     ? "出身者はログインすると表示されます"
                     : graduates.length > 0
                       ? `OPINIO登録中の出身者 ${graduates.length}名`
@@ -339,7 +352,7 @@ export default async function SchoolPage(
 
       {/* ── 出身者一覧 / 投稿タブ ────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px" }}>
-        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} isLoggedIn={!!user} />
+        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} isLoggedIn={!!user} listable={listable} />
       </div>
     </main>
   );
