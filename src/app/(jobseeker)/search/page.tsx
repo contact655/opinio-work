@@ -386,6 +386,8 @@ export default async function SearchPage({ searchParams }: Props) {
   const visibleKinds: PageKind[] =
     activeKind === "all" ? [primary, ...KIND_ORDER.filter((k) => k !== primary)] : [activeKind];
   const totalAll = KIND_ORDER.reduce((n, k) => n + totalOf(k), 0);
+  /* 条件が1つも読めず、何も当たらなかったとき。説明は下の箱に1回だけ出す（上のチップと説明文は出さない） */
+  const noConditionEmpty = nothingResolved && totalAll === 0;
   /* 条件で引く4種の合計（「条件を1つ外す」の判定に使う。投稿は条件と無関係なので混ぜない） */
   const totalByConditions = (["company", "job", "person", "article"] as const).reduce((n, k) => n + results[k].total, 0);
 
@@ -477,7 +479,7 @@ export default async function SearchPage({ searchParams }: Props) {
         {/* ★入力したことばがそのまま1つの条件になっただけなら、チップを出さない（2026-10-21 / 柴さんの指摘）。
                見出しの「「Salesforce」の検索結果」と同じことを2回言うことになる。
             ⚠️ 読み替えた（「営業職」→「営業」）・複数に分けた・効かない語がある・効く対象が限られる、のどれかなら出す */}
-        {(conditions.length > 0 || interpreted.unresolved.length > 0) && !echoesQuery && (
+        {(conditions.length > 0 || interpreted.unresolved.length > 0) && !echoesQuery && !noConditionEmpty && (
           <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
             {conditions.map((c, i) => (
               <ResolvedChip key={`c-${i}`} c={c} primaryKind={primary} />
@@ -489,7 +491,7 @@ export default async function SearchPage({ searchParams }: Props) {
         )}
 
         {/* ⚠️ 解決できなかった語を黙って落とさない。何が効いていないかを必ず書く */}
-        {interpreted.unresolved.length > 0 && (
+        {interpreted.unresolved.length > 0 && !noConditionEmpty && (
           <p style={{ marginTop: 8, fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
             点線のことばは、いまの OPINIO のデータでは絞り込みに使えません（
             {interpreted.unresolved.join("・")}）。検索結果には反映されていません。
@@ -876,48 +878,89 @@ function PersonGroups({
 }
 
 /**
- * ★解決できた条件が1つも無かったとき。
- *
- * ⚠️ **全件を並べない。** 条件が無いまま検索すると掲載79社が丸ごと返るが、
- *    それは「検索結果」ではない。件数が多いぶん**当たっているように見えてしまう**ので、
- *    絞り込めなかったことを明示して次の一手を出す。
- * ⚠️ いま解決できるのは職種・事業領域・外資/日系・年収の4つだけ。
- *    社名・勤務地・業種・従業員数は**まだ条件にできない**（受け皿が無いか、
- *    絞りとして機能しない）。ここの文言はその実態と揃えること。
+ * ★結果が無いときに出す「次の一手」（2026-10-21 / 柴さんの指示で見直した）。
+ *   ① 探せることばの例（押すとそのまま検索）② 一覧への入口。
+ * ⚠️ 例は**実際に結果が出ることば**だけにする（2026-10-21 実測: 営業35・外資系31・セキュリティ4・年収800万円以上2・Salesforce14。
+ *    エンジニア・マーケティング・カスタマーサクセスは0件だったので入れていない）。足すときは先に検索して確かめること
  */
-function NoConditionState({ unresolved, hasQuery }: { unresolved: string[]; hasQuery: boolean }) {
+const SEARCH_EXAMPLES = ["営業", "外資系", "セキュリティ", "Salesforce", "年収800万円以上"] as const;
+
+function NextSteps() {
+  const pill: React.CSSProperties = {
+    padding: "6px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "#fff",
+    color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
+  };
   return (
-    <div style={{ padding: "26px 20px", borderRadius: 12, border: "1px solid var(--line)", background: "#fff" }}>
-      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-        {hasQuery ? "絞り込める条件が見つかりませんでした" : "調べたいことばを入力してください"}
-      </p>
-      {hasQuery && (
-        <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-          {unresolved.length > 0 && <>入力された{unresolved.join("・")}は、いまの OPINIO では絞り込みに使えません。<br /></>}
-          職種（営業・エンジニアなど）、事業領域（セキュリティ・マーケティングなど）、
-          外資系／日系、年収 のいずれかを入れると絞り込めます。
-        </p>
-      )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-        {(
-          [
-            ["/companies", "企業一覧を見る"],
-            ["/jobs", "募集一覧を見る"],
-          ] as const
-        ).map(([href, label]) => (
-          <Link
-            key={href}
-            href={href}
-            style={{
-              padding: "6px 13px", borderRadius: 100, border: "1px solid var(--line)",
-              background: "#fff", color: "var(--ink-soft)", fontSize: 12.5,
-              fontWeight: 600, textDecoration: "none",
-            }}
-          >
-            {label}
+    <>
+      <p style={{ margin: "16px 0 8px", fontSize: 12.5, fontWeight: 700, color: "var(--ink-soft)" }}>こんなことばで探せます</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} data-state="search-examples">
+        {SEARCH_EXAMPLES.map((q) => (
+          <Link key={q} href={`/search?q=${encodeURIComponent(q)}`} style={{ ...pill, color: "var(--royal)", borderColor: "var(--royal-100, var(--line))" }}>
+            {q}
           </Link>
         ))}
       </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+        {([["/companies", "企業一覧"], ["/jobs", "募集一覧"], ["/people", "ユーザー一覧"]] as const).map(([href, label]) => (
+          <Link key={href} href={href} style={pill}>{label}を見る</Link>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const EMPTY_BOX: React.CSSProperties = { padding: "22px 20px", borderRadius: 12, border: "1px solid var(--line)", background: "#fff" };
+
+/**
+ * ★解決できた条件が1つも無かったとき。
+ * ⚠️ **全件を並べない。** 条件が無いまま検索すると掲載企業が丸ごと返るが、それは「検索結果」ではない。
+ * ⚠️★説明は1回だけ。上の点線のチップと説明文は、このときは出さない（同じことを2回言っていた。2026-10-21）
+ */
+function NoConditionState({ unresolved, hasQuery }: { unresolved: string[]; hasQuery: boolean }) {
+  return (
+    <div style={EMPTY_BOX} data-state="search-no-condition">
+      <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>
+        {/* ⚠️ ことばは繰り返さない（上の見出しに出ている） */}
+        {hasQuery ? "当てはまるものは見つかりませんでした" : "調べたいことばを入力してください"}
+      </p>
+      {hasQuery && unresolved.length > 0 && (
+        <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          {unresolved.map((w) => `「${w}」`).join("")}では、まだ絞り込めません。職種・事業領域・会社名・外資系／日系・年収で探せます。
+        </p>
+      )}
+      <NextSteps />
+    </div>
+  );
+}
+
+function EmptyState({
+  raw, relaxations, hasQuery,
+}: {
+  raw: string;
+  relaxations: { label: string; index: number; count: number }[];
+  hasQuery: boolean;
+}) {
+  return (
+    <div style={EMPTY_BOX} data-state="search-empty">
+      <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>
+        {/* ⚠️ ことばは繰り返さない（上の見出しに出ている） */}
+        {hasQuery ? "当てはまるものは見つかりませんでした" : "調べたいことばを入力してください"}
+      </p>
+      {relaxations.length > 0 && (
+        <>
+          <p style={{ margin: "12px 0 8px", fontSize: 12.5, color: "var(--ink-mute)" }}>条件を1つ外すと見つかります。</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {relaxations.map((r) => (
+              <Link key={r.index} href={`/search?q=${encodeURIComponent(raw)}&drop=${r.index}`}
+                style={{ padding: "6px 13px", borderRadius: 100, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>
+                「{r.label}」を外す（{r.count}件）
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+      {/* ⚠️ 条件を外せば見つかるときは、例を出さない（やることが2つに分かれて迷う） */}
+      {relaxations.length === 0 && <NextSteps />}
     </div>
   );
 }
@@ -963,65 +1006,3 @@ function LoginGate({ total }: { total: number }) {
 }
 
 /** ⚠️ 0件のときに空白を出さない。次の一手を必ず置く */
-function EmptyState({
-  raw, relaxations, hasQuery,
-}: {
-  raw: string;
-  relaxations: { label: string; index: number; count: number }[];
-  hasQuery: boolean;
-}) {
-  return (
-    <div
-      style={{
-        padding: "26px 20px", borderRadius: 12, border: "1px solid var(--line)",
-        background: "#fff",
-      }}
-    >
-      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>
-        {hasQuery ? "条件に当てはまるものが見つかりませんでした" : "調べたいことばを入力してください"}
-      </p>
-      {relaxations.length > 0 && (
-        <>
-          <p style={{ margin: "12px 0 8px", fontSize: 12.5, color: "var(--ink-mute)" }}>
-            条件を1つ外すと見つかります。
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {relaxations.map((r) => (
-              <Link
-                key={r.index}
-                href={`/search?q=${encodeURIComponent(raw)}&drop=${r.index}`}
-                style={{
-                  padding: "6px 13px", borderRadius: 100, border: "1px solid var(--line)",
-                  background: "#fff", color: "var(--ink-soft)", fontSize: 12.5,
-                  fontWeight: 600, textDecoration: "none",
-                }}
-              >
-                「{r.label}」を外す（{r.count}件）
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: relaxations.length > 0 ? 14 : 12 }}>
-        {(
-          [
-            ["/companies", "企業一覧を見る"],
-            ["/jobs", "募集一覧を見る"],
-          ] as const
-        ).map(([href, label]) => (
-          <Link
-            key={href}
-            href={href}
-            style={{
-              padding: "6px 13px", borderRadius: 100, border: "1px solid var(--line)",
-              background: "#fff", color: "var(--ink-soft)", fontSize: 12.5,
-              fontWeight: 600, textDecoration: "none",
-            }}
-          >
-            {label}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
