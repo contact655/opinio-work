@@ -340,9 +340,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
           </Suspense>
         </div>
       </StickyListBar>
-    </div>
 
-    <div style={{ background: "#f0f4f8" }}>
+      {/* ⚠️★上部と一覧を同じ入れ物に入れる（2026-10-21）。それまで上部だけを包む div があり、
+             入れ物が上部と同じ高さしかないので sticky が効かず、上部がページと一緒に流れて消えていた
+             （/people・/jobs とは動きが違っていた）。入れ物を分け直さないこと */}
       {/* ★検証用アカウントにだけ、検証用の会社を出す（2026-10-12）。それ以外には何も描かない */}
       <TestCompaniesSection kind="companies" filter={{ ind: searchParams.ind, industry: searchParams.industry, foreign: searchParams.foreign === "1", stage: searchParams.stage }} />
       <div className="mx-auto page-gutter pt-4 pb-8" style={{ maxWidth: "var(--max-w-page)" }}>
