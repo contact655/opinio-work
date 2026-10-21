@@ -51,13 +51,15 @@
  */
 
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { getRoleAliases, getRoleTree, type SearchAlias } from "@/lib/supabase/queries";
 import { withEngineerKin } from "./engineerKin";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SEARCHABLE_SCHOOL_TYPES } from "@/lib/constants/schools";
-import { SCHOOL_ALIASES } from "@/lib/constants/schoolAliases";
+import { SCHOOL_ALIASES, SCHOOL_STEM_STOPWORDS } from "@/lib/constants/schoolAliases";
 import { PREFECTURES } from "@/lib/utils/location";
 
 const PREFECTURE_STEMS = new Set(PREFECTURES.map((p) => p.replace(/[都道府県]$/, "")));
@@ -344,10 +346,21 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
   const schoolIndex = new Map<string, { id: string; label: string }[]>();
   const schoolExactShort = new Map<string, { id: string; label: string }[]>();
   let schoolMaxLen = 0;
+  /* ★職種・事業領域の言葉と同じになる学校の呼び方は使わない（全校を読むので、短い呼び方が普通の言葉とぶつかりうる）。
+        ⚠️ 正式名そのもの（「〜大学」「〜高等学校」）はぶつからないので落とさない */
+  const vocabKeys = new Set<string>([
+    ...roleAliases.map((a) => companyKey(a.alias)),
+    ...domains.flatMap((d) => d.terms.map((t) => companyKey(t))),
+    ...skills.flatMap((sk) => sk.terms.map((t) => companyKey(t))),
+    ...languages.flatMap((l) => l.terms.map((t) => companyKey(t))),
+  ]);
   for (const sc of schoolRows) {
     for (const raw of schoolSearchNames(sc.name, sc.type)) {
       const key = companyKey(raw);
       if (companyIndex.has(key)) continue;
+      if (raw !== sc.name && vocabKeys.has(key)) continue;
+      /* ★地名・地方名・よく使う言葉と同じ短い呼び方は使わない（「名古屋で働く人」→名古屋大学 を防ぐ。2026-10-21） */
+      if (raw !== sc.name && (SCHOOL_STEM_STOPWORDS.has(raw) || PREFECTURE_STEMS.has(raw) || (PREFECTURES as readonly string[]).includes(raw))) continue;
       /* ★2文字の短い名前（「獨協」「上智」）は、それだけを打ったときにしか使わない（文の中だと「東京」「明治」などに化ける） */
       if (key.length < COMPANY_KEY_MIN_LEN) {
         /* ⚠️ 都道府県と同じ名前（東京・京都・大阪…）は外す。地名として打った人に学校が出るため */
@@ -406,11 +419,6 @@ type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_
 
 /** 掲載中の企業の社名。⚠️ ディレクトリの軸なので `filterListedCompanies` を通す */
 /**
- * ★学校名（2026-10-21）。**学歴に登録されている学校だけ**を引く（マスタは5万校あり、全件を照合に載せない）。
- * ⚠️ 種別は大学・大学院・高校だけ（SEARCHABLE_SCHOOL_TYPES。小中・幼稚園は本人の同意の仕組みができるまで出さない / 柴さんの判断）
- * ⚠️ 学歴の表は authenticated 以外から読めないので admin で引く。返すのは学校の id と名前だけ
- */
-/**
  * ★学校名の短い打ち方（2026-10-21 / 柴さんの指示）。正式名に加えて照合に載せる。
  *   大学: 「獨協大学」→「獨協」「獨協大」「獨協大卒」／大学院: 「〇〇大学大学院」→「〇〇大学院」
  *   高校: 「埼玉県立朝霞西高等学校」→「朝霞西高等学校」「朝霞西高校」「朝霞西高」
@@ -437,16 +445,27 @@ function schoolSearchNames(name: string, type: string | null): string[] {
   return Array.from(out);
 }
 
-async function loadSchoolNames(): Promise<{ id: string; name: string; type: string | null }[]> {
-  const db = createAdminClient();
-  const { data: edu, error: eduErr } = await db.from("ow_user_educations").select("school_id").not("school_id", "is", null);
-  if (eduErr) console.error("[interpretQuery] 学歴の取得に失敗:", eduErr.message);
-  const ids = Array.from(new Set(((edu ?? []) as { school_id: string }[]).map((r) => r.school_id)));
-  if (ids.length === 0) return [];
-  const { data, error } = await db.from("ow_schools").select("id, name, type").in("id", ids).in("type", [...SEARCHABLE_SCHOOL_TYPES]);
-  if (error) console.error("[interpretQuery] 学校名の取得に失敗:", error.message);
-  return (data ?? []) as { id: string; name: string; type: string | null }[];
-}
+/**
+ * ★学校名（2026-10-21）。**大学・大学院・高校の全校**を引く（約6,000校）。
+ *   ⚠️ 2026-10-21 の最初の版は「学歴に登録がある学校だけ」で、誰も登録していない学校（早稲田など）を打つと
+ *      「まだ絞り込めません」と出ていた（学校として読めていないように見える）。全校を読むようにした。
+ * ⚠️ 種別は大学・大学院・高校だけ（SEARCHABLE_SCHOOL_TYPES）。小中・幼稚園は本人の同意の仕組みができるまで出さない
+ * ⚠️ 1,000行ずつ最後まで引く（fetchAllRows。PostgREST は1回1,000行で黙って切れる）。学校の一覧はめったに変わらないので1日キャッシュする
+ * ⚠️ ow_schools は anon から読めない（RLS）ので admin で引く。返すのは id・名前・種別だけ
+ */
+const loadSchoolNames = unstable_cache(
+  async (): Promise<{ id: string; name: string; type: string | null }[]> => {
+    const db = createAdminClient();
+    const { data, error } = await fetchAllRows<{ id: string; name: string; type: string | null }>(
+      (from, to) => db.from("ow_schools").select("id, name, type").in("type", [...SEARCHABLE_SCHOOL_TYPES]).order("id").range(from, to),
+      "interpretQuery schools",
+    );
+    if (error) console.error("[interpretQuery] 学校名の取得に失敗:", error);
+    return data;
+  },
+  ["search-school-names-v2"],
+  { revalidate: 86400 },
+);
 
 async function loadCompanyNames(): Promise<CompanyNameRow[]> {
   const { data, error } = await filterListedCompanies(

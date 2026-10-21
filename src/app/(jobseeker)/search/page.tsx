@@ -557,7 +557,8 @@ export default async function SearchPage({ searchParams }: Props) {
           <section style={{ marginTop: 22 }}>
             {nothingResolved
               ? <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />
-              : <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()} />}
+              : <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()}
+                  schoolLabel={conditions.length === 1 && conditions[0].kind === "school" ? conditions[0].label : null} />}
           </section>
         ) : (
           <>
@@ -887,18 +888,27 @@ function NoConditionState({ unresolved, hasQuery }: { unresolved: string[]; hasQ
 }
 
 function EmptyState({
-  raw, relaxations, hasQuery,
+  raw, relaxations, hasQuery, schoolLabel = null,
 }: {
   raw: string;
   relaxations: { label: string; index: number; count: number }[];
   hasQuery: boolean;
+  /** ★学校だけで探して0人だったとき、その学校名（2026-10-21）。「読み取れなかった」のではなく「まだいない」と伝える */
+  schoolLabel?: string | null;
 }) {
   return (
     <div style={EMPTY_BOX} data-state="search-empty">
       <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>
         {/* ⚠️ ことばは繰り返さない（上の見出しに出ている） */}
-        {hasQuery ? "当てはまるものは見つかりませんでした" : "調べたいことばを入力してください"}
+        {schoolLabel ? `${schoolLabel}の出身者は、まだ OPINIO にいません` : hasQuery ? "当てはまるものは見つかりませんでした" : "調べたいことばを入力してください"}
       </p>
+      {schoolLabel && (
+        <p data-state="search-school-empty" style={{ margin: "6px 0 0", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          {schoolLabel}の出身なら、
+          <Link href="/mypage" style={{ color: "var(--royal)", fontWeight: 600 }}>学歴を登録</Link>
+          すると、出身者が増えたときに見つけてもらえます。
+        </p>
+      )}
       {relaxations.length > 0 && (
         <>
           <p style={{ margin: "12px 0 8px", fontSize: 12.5, color: "var(--ink-mute)" }}>条件を1つ外すと見つかります。</p>
