@@ -29,7 +29,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
-import { filterListedCompanies } from "@/lib/companies/visibility";
+import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -159,7 +159,8 @@ export type KindResult<T> = {
  */
 export type Destinations = {
   /** ★ロゴ（2026-10-21）。マスタにある会社だけ。自由入力の会社は null（頭文字で出す） */
-  companies: { label: string; count: number | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null }[];
+  /** `href` は会社ページが開ける会社だけ（filterVisibleCompaniesStrict）。開けない会社は null（リンクにしない） */
+  companies: { label: string; count: number | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null; href: string | null }[];
   roles: { label: string; count: number | null }[];
 };
 
@@ -692,16 +693,23 @@ export async function searchPersonHits(
   if (isLoggedIn && byCompanyCond && (destCompanies.size > 0 || destRoles.size > 0)) {
     const ids = Array.from(new Set(destCompanyIds.values()));
     const logos = new Map<string, { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }>();
+    const hrefs = new Map<string, string>();
     if (ids.length > 0) {
-      const { data, error } = await db.from("ow_companies").select("id, logo_url, logo_letter, logo_gradient").in("id", ids);
-      if (error) console.error("[searchPersonHits] destination logos:", error.message);
-      for (const r of (data ?? []) as { id: string; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }[]) logos.set(r.id, r);
+      const [logoRes, visRes] = await Promise.all([
+        db.from("ow_companies").select("id, logo_url, logo_letter, logo_gradient").in("id", ids),
+        /* ★会社ページへのリンク（2026-10-21）。⚠️ 404 になる会社（非公開・検証用）にはリンクを付けない */
+        filterVisibleCompaniesStrict(db.from("ow_companies").select("id, slug").in("id", ids)),
+      ]);
+      if (logoRes.error) console.error("[searchPersonHits] destination logos:", logoRes.error.message);
+      if (visRes.error) console.error("[searchPersonHits] destination links:", visRes.error.message);
+      for (const r of (logoRes.data ?? []) as { id: string; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }[]) logos.set(r.id, r);
+      for (const r of (visRes.data ?? []) as { id: string; slug: string | null }[]) hrefs.set(r.id, `/companies/${r.slug ?? r.id}`);
     }
     destinations = {
       companies: toList(destCompanies).map((c) => {
         const id = destCompanyIds.get(c.label);
         const lg = id ? logos.get(id) : undefined;
-        return { ...c, logoUrl: lg?.logo_url ?? null, logoLetter: lg?.logo_letter ?? null, logoGradient: lg?.logo_gradient ?? null };
+        return { ...c, logoUrl: lg?.logo_url ?? null, logoLetter: lg?.logo_letter ?? null, logoGradient: lg?.logo_gradient ?? null, href: id ? hrefs.get(id) ?? null : null };
       }),
       roles: toList(destRoles),
     };

@@ -743,13 +743,22 @@ function DestinationsBlock({ d, companyLabel }: { d: NonNullable<SearchResults["
         <div style={{ marginTop: 10 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>転職先</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {d.companies.map((x) => (
-              <span key={x.label} data-state="destination-company" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 4px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: "#fff", color: "var(--ink)", border: `1px solid ${chip.border}`, maxWidth: "100%", minWidth: 0 }}>
-                <CompanyLogo logoUrl={x.logoUrl} name={x.label} logoLetter={x.logoLetter} logoGradient={x.logoGradient} size={22} />
-                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.label}</span>
-                {x.count !== null && <span style={{ fontWeight: 700, color: "var(--ink-soft)", flexShrink: 0 }}>{x.count}人</span>}
-              </span>
-            ))}
+            {d.companies.map((x) => {
+              const style: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 4px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: "#fff", color: "var(--ink)", border: `1px solid ${chip.border}`, maxWidth: "100%", minWidth: 0, textDecoration: "none" };
+              const inner = (
+                <>
+                  <CompanyLogo logoUrl={x.logoUrl} name={x.label} logoLetter={x.logoLetter} logoGradient={x.logoGradient} size={22} />
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.label}</span>
+                  {x.count !== null && <span style={{ fontWeight: 700, color: "var(--ink-soft)", flexShrink: 0 }}>{x.count}人</span>}
+                </>
+              );
+              /* ★会社ページが開ける会社だけリンクにする（href は runSearch が filterVisibleCompaniesStrict で決める） */
+              return x.href ? (
+                <Link key={x.label} href={x.href} data-state="destination-company-link" style={style}>{inner}</Link>
+              ) : (
+                <span key={x.label} data-state="destination-company" style={style}>{inner}</span>
+              );
+            })}
           </div>
         </div>
       )}
