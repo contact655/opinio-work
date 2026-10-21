@@ -501,6 +501,22 @@ export default async function SearchPage({ searchParams }: Props) {
           </p>
         )}
 
+        {/* ★同じ名前の学校が2校以上あって決められなかったとき、どちらかを選ばせる（2026-10-21）。押すと学校のページ */}
+        {interpreted.ambiguousSchools.map((a) => (
+          <div key={a.word} data-state="search-ambiguous-school" style={{ marginTop: 12, padding: "12px 14px", borderRadius: 12, background: "#fff", border: "1px solid var(--line)" }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+              「{a.word}」は同じ名前の学校が{a.options.length}校あります。どちらの学校ですか。
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+              {[...a.options].sort((x, y) => Number(x.closed) - Number(y.closed)).map((o) => (
+                <Link key={o.id} href={`/schools/${o.id}`} style={{ padding: "6px 13px", borderRadius: 100, border: "1px solid var(--royal)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700, textDecoration: "none", background: "#fff" }}>
+                  {o.label}{[o.prefecture, o.closed ? "廃止" : null].filter(Boolean).length ? `（${[o.prefecture, o.closed ? "廃止" : null].filter(Boolean).join("・")}）` : ""}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+
         {dropped && (
           <p style={{ marginTop: 8, fontSize: 12.5, color: "var(--ink-mute)" }}>
             「{dropped.label}」の条件を外して検索しています。
@@ -553,7 +569,7 @@ export default async function SearchPage({ searchParams }: Props) {
             ⚠️★**主対象は今までどおり全部出す**（`HIT_LIMIT` まで）。他が3件ずつ増えるだけで、
                **今まで見えていたものは1つも減らない。**
             ⚠️ 人は未ログインだと個票を出さない（`LoginGate`）。既存の規則をそのまま適用する。 */}
-        {totalAll === 0 ? (
+        {totalAll === 0 && nothingResolved && interpreted.ambiguousSchools.length > 0 ? null : totalAll === 0 ? (
           <section style={{ marginTop: 22 }}>
             {nothingResolved
               ? <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />

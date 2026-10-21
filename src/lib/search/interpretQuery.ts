@@ -122,7 +122,15 @@ export type InterpretResult = {
   unresolved: string[];
   /** 正規化後のクエリ。ログ用 */
   normalized: string;
+  /**
+   * ★同じ名前の学校が2校以上あって決められなかった語（2026-10-21）。画面で「どちらの学校ですか」と選ばせる。
+   * ⚠️ unresolved には入れない（読めなかったのではなく、決められなかっただけ）
+   */
+  ambiguousSchools: AmbiguousSchool[];
 };
+
+export type SchoolOption = { id: string; label: string; prefecture: string | null; closed: boolean };
+export type AmbiguousSchool = { word: string; options: SchoolOption[] };
 
 // ── 正規化 ───────────────────────────────────────────────────────────────────
 
@@ -243,10 +251,10 @@ type Vocabulary = {
   /** 話せる言語。⚠️ `iso_639_1` は**入れない**（2文字コードは誤爆源） */
   languages: { id: string; label: string; terms: string[] }[];
   /** ★学校名 → 学校（社名と同じ照合キー）。同じ綴りが2校以上なら解決しない */
-  schoolIndex: Map<string, { id: string; label: string }[]>;
+  schoolIndex: Map<string, SchoolOption[]>;
   schoolMaxLen: number;
   /** 2文字の短い名前（入力がそれだけのときにしか使わない） */
-  schoolExactShort: Map<string, { id: string; label: string }[]>;
+  schoolExactShort: Map<string, SchoolOption[]>;
 };
 
 /**
@@ -343,8 +351,8 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
       terms: Array.from(new Set([r.label, ...(r.aliases ?? [])])).filter((t) => t.length >= 2),
     }));
 
-  const schoolIndex = new Map<string, { id: string; label: string }[]>();
-  const schoolExactShort = new Map<string, { id: string; label: string }[]>();
+  const schoolIndex = new Map<string, SchoolOption[]>();
+  const schoolExactShort = new Map<string, SchoolOption[]>();
   let schoolMaxLen = 0;
   /* ★職種・事業領域の言葉と同じになる学校の呼び方は使わない（全校を読むので、短い呼び方が普通の言葉とぶつかりうる）。
         ⚠️ 正式名そのもの（「〜大学」「〜高等学校」）はぶつからないので落とさない */
@@ -366,13 +374,13 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
         /* ⚠️ 都道府県と同じ名前（東京・京都・大阪…）は外す。地名として打った人に学校が出るため */
         if (key.length === 2 && !PREFECTURE_STEMS.has(key)) {
           const prevShort = schoolExactShort.get(key) ?? [];
-          if (!prevShort.some((x) => x.id === sc.id)) prevShort.push({ id: sc.id, label: sc.name });
+          if (!prevShort.some((x) => x.id === sc.id)) prevShort.push({ id: sc.id, label: sc.name, prefecture: sc.prefecture, closed: !!sc.closed_at });
           schoolExactShort.set(key, prevShort);
         }
         continue;
       }
       const prev = schoolIndex.get(key) ?? [];
-      if (!prev.some((x) => x.id === sc.id)) prev.push({ id: sc.id, label: sc.name });
+      if (!prev.some((x) => x.id === sc.id)) prev.push({ id: sc.id, label: sc.name, prefecture: sc.prefecture, closed: !!sc.closed_at });
       schoolIndex.set(key, prev);
       if (key.length > schoolMaxLen) schoolMaxLen = key.length;
     }
@@ -429,7 +437,8 @@ type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_
 function schoolSearchNames(name: string, type: string | null): string[] {
   /* ★通称（「慶應」「早大」など）は lib/constants/schoolAliases.ts に書いたものだけ */
   const out = new Set<string>([name, ...(SCHOOL_ALIASES[name] ?? [])]);
-  const noPref = name.replace(/^(?:.{2,3}?[都道府県]立|.{1,4}?[市区町村]立|国立|私立)/, "");
+  /* ⚠️ 北海道の道立高校は「北海道◯◯高等学校」で「道立」が付かないので、先頭の「北海道」も外す（「富良野高校」で見つかるように） */
+  const noPref = name.replace(/^(?:.{2,3}?[都道府県]立|.{1,4}?[市区町村]立|国立|私立|北海道(?=.{2,}高等学校$))/, "");
   if (type === "university") {
     const stem = name.replace(/大学$/, "");
     if (stem !== name) { out.add(stem); out.add(`${stem}大`); out.add(`${stem}大卒`); }
@@ -453,17 +462,18 @@ function schoolSearchNames(name: string, type: string | null): string[] {
  * ⚠️ 1,000行ずつ最後まで引く（fetchAllRows。PostgREST は1回1,000行で黙って切れる）。学校の一覧はめったに変わらないので1日キャッシュする
  * ⚠️ ow_schools は anon から読めない（RLS）ので admin で引く。返すのは id・名前・種別だけ
  */
+type SchoolNameRow = { id: string; name: string; type: string | null; prefecture: string | null; closed_at: string | null };
 const loadSchoolNames = unstable_cache(
-  async (): Promise<{ id: string; name: string; type: string | null }[]> => {
+  async (): Promise<SchoolNameRow[]> => {
     const db = createAdminClient();
-    const { data, error } = await fetchAllRows<{ id: string; name: string; type: string | null }>(
-      (from, to) => db.from("ow_schools").select("id, name, type").in("type", [...SEARCHABLE_SCHOOL_TYPES]).order("id").range(from, to),
+    const { data, error } = await fetchAllRows<SchoolNameRow>(
+      (from, to) => db.from("ow_schools").select("id, name, type, prefecture, closed_at").in("type", [...SEARCHABLE_SCHOOL_TYPES]).order("id").range(from, to),
       "interpretQuery schools",
     );
     if (error) console.error("[interpretQuery] 学校名の取得に失敗:", error);
     return data;
   },
-  ["search-school-names-v2"],
+  ["search-school-names-v3"],
   { revalidate: 86400 },
 );
 
@@ -594,7 +604,7 @@ const FOREIGN_TERMS: { term: string; isForeign: boolean; label: string }[] = [
 export async function interpretQuery(rawText: string): Promise<InterpretResult> {
   const normalized = normalizeQuery(rawText).slice(0, 200);
   if (!normalized) {
-    return { primaryKind: "company", conditions: [], unresolved: [], normalized: "" };
+    return { primaryKind: "company", conditions: [], unresolved: [], normalized: "", ambiguousSchools: [] };
   }
 
   const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort }, roleTree] = await Promise.all([
@@ -607,6 +617,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
   /* 社名として当たったが**2社以上に一致して決められなかった**語。
      ⚠️ 黙って1社に決めない。未解決として画面に出す。 */
   const ambiguousCompanyWords: string[] = [];
+  const ambiguousSchools: AmbiguousSchool[] = [];
 
   // ── 社名 → ow_companies.id ───────────────────────────────────────────────
   {
@@ -662,7 +673,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     const short = consumed.length === 0 ? schoolExactShort.get(compact) : undefined;
     if (short) {
       consumed.push({ start: 0, end: normalized.length });
-      if (short.length > 1) ambiguousCompanyWords.push(normalized);
+      if (short.length > 1) ambiguousSchools.push({ word: rawText.trim(), options: short });
       else conditions.push({ kind: "school", matchOn: "person", label: short[0].label, appliesTo: ["person"], schoolId: short[0].id });
     }
     const taken: boolean[] = new Array(compact.length).fill(!!short);
@@ -674,15 +685,18 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
         const hit = schoolIndex.get(compact.slice(i, i + len));
         if (!hit) continue;
         if (taken.slice(i, i + len).some(Boolean)) continue;
-        const beforeSame = charClass(compact[i - 1]) === charClass(compact[i]) && charClass(compact[i]) !== "other";
-        const afterSame = charClass(compact[i + len]) === charClass(compact[i + len - 1]) && charClass(compact[i + len - 1]) !== "other";
+        /* ⚠️ 元の文で空白や記号を挟んでいたら、そこは区切り（「北海道富良野高等学校 営業」の「校」と「営」はつながっていない） */
+        const joinedBefore = i > 0 && map[i] - map[i - 1] === 1;
+        const joinedAfter = i + len < compact.length && map[i + len] - map[i + len - 1] === 1;
+        const beforeSame = joinedBefore && charClass(compact[i - 1]) === charClass(compact[i]) && charClass(compact[i]) !== "other";
+        const afterSame = joinedAfter && charClass(compact[i + len]) === charClass(compact[i + len - 1]) && charClass(compact[i + len - 1]) !== "other";
         if (beforeSame || afterSame) continue;
         for (let k = i; k < i + len; k++) taken[k] = true;
         const origStart = map[i];
         const origEnd = map[i + len - 1] + 1;
         consumed.push({ start: origStart, end: origEnd });
         /* ⚠️ 同じ名前が2校以上（都道府県違いの高校など）なら決めない */
-        if (hit.length > 1) { ambiguousCompanyWords.push(normalized.slice(origStart, origEnd)); continue; }
+        if (hit.length > 1) { ambiguousSchools.push({ word: normalizeForDisplay(rawText).slice(origStart, origEnd), options: hit }); continue; }
         conditions.push({ kind: "school", matchOn: "person", label: hit[0].label, appliesTo: ["person"], schoolId: hit[0].id });
       }
     }
@@ -884,6 +898,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     conditions,
     unresolved,
     normalized,
+    ambiguousSchools,
   };
 }
 
