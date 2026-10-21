@@ -11,6 +11,7 @@ import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { SearchPostCard } from "./SearchPostCard";
+import { NEW_COMPANIES_CSS } from "@/components/feed/NewCompaniesCarousel";
 import { PersonHitCard } from "./PersonHitCard";
 import { searchPostHits } from "@/lib/search/postHits";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
@@ -699,24 +700,26 @@ function DestinationsBlock({ d, companyLabel }: { d: NonNullable<SearchResults["
       <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--ink)" }}>
         {companyLabel ? `${companyLabel}を出た人の、いま` : "この会社を出た人の、いま"}
       </div>
+      {/* ★転職先はホームの「新しく掲載された企業」と同じカードで横に並べる（2026-10-21 / 柴さんの指示）。
+             ⚠️ フォローは会社ページが開ける会社だけ（id が null の会社は出さない） */}
       {d.companies.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>転職先</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div style={{ marginTop: 10, marginLeft: -14, marginRight: -14 }}>
+          <style>{NEW_COMPANIES_CSS}</style>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", margin: "0 14px 6px" }}>転職先</div>
+          <div className="ncc-row" style={{ paddingLeft: 14, paddingRight: 14 }}>
             {d.companies.map((x) => {
-              const style: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 4px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: "#fff", color: "var(--ink)", border: `1px solid ${chip.border}`, maxWidth: "100%", minWidth: 0, textDecoration: "none" };
-              const inner = (
+              const head = (
                 <>
-                  <CompanyLogo logoUrl={x.logoUrl} name={x.label} logoLetter={x.logoLetter} logoGradient={x.logoGradient} size={22} />
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.label}</span>
-                  {x.count !== null && <span style={{ fontWeight: 700, color: "var(--ink-soft)", flexShrink: 0 }}>{x.count}人</span>}
+                  <CompanyLogo logoUrl={x.logoUrl} name={x.label} logoLetter={x.logoLetter} logoGradient={x.logoGradient} size={56} />
+                  <span className="ncc-name">{x.label}</span>
                 </>
               );
-              /* ★会社ページが開ける会社だけリンクにする（href は runSearch が filterVisibleCompaniesStrict で決める） */
-              return x.href ? (
-                <Link key={x.label} href={x.href} data-state="destination-company-link" style={style}>{inner}</Link>
-              ) : (
-                <span key={x.label} data-state="destination-company" style={style}>{inner}</span>
+              return (
+                <div key={x.label} className="ncc-card" data-state={x.href ? "destination-company-link" : "destination-company"}>
+                  {x.href ? <Link href={x.href} className="ncc-link">{head}</Link> : <span className="ncc-link">{head}</span>}
+                  <span className="ncc-domain">{[x.domain, x.count !== null ? `${x.count}人` : null].filter(Boolean).join(" ・ ")}</span>
+                  {x.id && <div className="ncc-act"><CompanyFollowButton companyId={x.id} tone="primary" /></div>}
+                </div>
               );
             })}
           </div>

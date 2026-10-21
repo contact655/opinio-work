@@ -160,7 +160,11 @@ export type KindResult<T> = {
 export type Destinations = {
   /** ★ロゴ（2026-10-21）。マスタにある会社だけ。自由入力の会社は null（頭文字で出す） */
   /** `href` は会社ページが開ける会社だけ（filterVisibleCompaniesStrict）。開けない会社は null（リンクにしない） */
-  companies: { label: string; count: number | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null; href: string | null }[];
+  companies: {
+    label: string; count: number | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null; href: string | null;
+    /** ★会社の id（フォローに使う）と主の事業領域（2026-10-21。ホームの「新しく掲載された企業」と同じカードにするため） */
+    id: string | null; domain: string | null;
+  }[];
   roles: { label: string; count: number | null }[];
 };
 
@@ -694,12 +698,19 @@ export async function searchPersonHits(
     const ids = Array.from(new Set(destCompanyIds.values()));
     const logos = new Map<string, { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }>();
     const hrefs = new Map<string, string>();
+    const domains = new Map<string, string>();
     if (ids.length > 0) {
-      const [logoRes, visRes] = await Promise.all([
+      const [logoRes, visRes, domRes] = await Promise.all([
         db.from("ow_companies").select("id, logo_url, logo_letter, logo_gradient").in("id", ids),
         /* ★会社ページへのリンク（2026-10-21）。⚠️ 404 になる会社（非公開・検証用）にはリンクを付けない */
         filterVisibleCompaniesStrict(db.from("ow_companies").select("id, slug").in("id", ids)),
+        db.from("ow_company_business_domains").select("company_id, ow_business_domains(name, is_active)").eq("is_primary", true).in("company_id", ids),
       ]);
+      if (domRes.error) console.error("[searchPersonHits] destination domains:", domRes.error.message);
+      for (const r of (domRes.data ?? []) as unknown as { company_id: string; ow_business_domains: { name: string; is_active: boolean } | { name: string; is_active: boolean }[] | null }[]) {
+        const d = Array.isArray(r.ow_business_domains) ? r.ow_business_domains[0] : r.ow_business_domains;
+        if (d?.is_active) domains.set(r.company_id, d.name);
+      }
       if (logoRes.error) console.error("[searchPersonHits] destination logos:", logoRes.error.message);
       if (visRes.error) console.error("[searchPersonHits] destination links:", visRes.error.message);
       for (const r of (logoRes.data ?? []) as { id: string; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }[]) logos.set(r.id, r);
@@ -709,7 +720,9 @@ export async function searchPersonHits(
       companies: toList(destCompanies).map((c) => {
         const id = destCompanyIds.get(c.label);
         const lg = id ? logos.get(id) : undefined;
-        return { ...c, logoUrl: lg?.logo_url ?? null, logoLetter: lg?.logo_letter ?? null, logoGradient: lg?.logo_gradient ?? null, href: id ? hrefs.get(id) ?? null : null };
+        return { ...c, logoUrl: lg?.logo_url ?? null, logoLetter: lg?.logo_letter ?? null, logoGradient: lg?.logo_gradient ?? null, href: id ? hrefs.get(id) ?? null : null,
+          /* ⚠️ id はページが開ける会社だけ渡す（開けない会社をフォローさせない） */
+          id: id && hrefs.has(id) ? id : null, domain: id ? domains.get(id) ?? null : null };
       }),
       roles: toList(destRoles),
     };
