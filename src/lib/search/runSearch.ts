@@ -158,7 +158,8 @@ export type KindResult<T> = {
  * ⚠️ いまの職歴の会社名を出してよい人（visibility_company = 'real'）だけ数える
  */
 export type Destinations = {
-  companies: { label: string; count: number | null }[];
+  /** ★ロゴ（2026-10-21）。マスタにある会社だけ。自由入力の会社は null（頭文字で出す） */
+  companies: { label: string; count: number | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null }[];
   roles: { label: string; count: number | null }[];
 };
 
@@ -596,6 +597,7 @@ export async function searchPersonHits(
   /* ★行き先の集計（社名で引いたときだけ）。人ごとに1回ずつ数える */
   const byCompanyCond = cond.some((c) => c.kind === "company" && c.matchOn === "experience");
   const destCompanies = new Map<string, number>();
+  const destCompanyIds = new Map<string, string>();
   const destRoles = new Map<string, number>();
   for (const u of candidates) {
     const exps = [...(expsByUser.get(u.id) ?? [])].sort((a, b) =>
@@ -672,6 +674,10 @@ export async function searchPersonHits(
     });
     if (byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true)) {
       const now = exps.filter((e) => e.is_current === true && e.visibility_company === "real");
+      for (const e of now) {
+        const l = resolveExperienceCompanyLabel(e);
+        if (l && e.company_id && !destCompanyIds.has(l)) destCompanyIds.set(l, e.company_id);
+      }
       const cos = new Set(now.map((e) => resolveExperienceCompanyLabel(e)).filter((x): x is string => !!x));
       const roles = new Set(now.map((e) => (e.role_category_id ? tree.byId.get(e.role_category_id)?.name : null)).filter((x): x is string => !!x));
       for (const c of Array.from(cos)) destCompanies.set(c, (destCompanies.get(c) ?? 0) + 1);
@@ -682,10 +688,24 @@ export async function searchPersonHits(
     Array.from(m.entries())
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
       .map(([label, n]) => ({ label, count: n >= MIN_AGGREGATE_COUNT ? n : null }));
-  const destinations: Destinations | undefined =
-    isLoggedIn && byCompanyCond && (destCompanies.size > 0 || destRoles.size > 0)
-      ? { companies: toList(destCompanies), roles: toList(destRoles) }
-      : undefined;
+  let destinations: Destinations | undefined;
+  if (isLoggedIn && byCompanyCond && (destCompanies.size > 0 || destRoles.size > 0)) {
+    const ids = Array.from(new Set(destCompanyIds.values()));
+    const logos = new Map<string, { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }>();
+    if (ids.length > 0) {
+      const { data, error } = await db.from("ow_companies").select("id, logo_url, logo_letter, logo_gradient").in("id", ids);
+      if (error) console.error("[searchPersonHits] destination logos:", error.message);
+      for (const r of (data ?? []) as { id: string; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }[]) logos.set(r.id, r);
+    }
+    destinations = {
+      companies: toList(destCompanies).map((c) => {
+        const id = destCompanyIds.get(c.label);
+        const lg = id ? logos.get(id) : undefined;
+        return { ...c, logoUrl: lg?.logo_url ?? null, logoLetter: lg?.logo_letter ?? null, logoGradient: lg?.logo_gradient ?? null };
+      }),
+      roles: toList(destRoles),
+    };
+  }
 
   /* ★現役を先に並べる（上限で切ったときに、グループの途中で切れないように）。
         ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */

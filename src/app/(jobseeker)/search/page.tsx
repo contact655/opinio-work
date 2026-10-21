@@ -61,7 +61,8 @@ type PageKind = SearchKind | "post";
 const KIND_LABEL: Record<PageKind, string> = {
   company: "企業",
   job: "募集",
-  person: "人",
+  /* ★「ユーザー」（2026-10-21 / 柴さんの指示。下のタブバー・ヘッダーのナビと同じ語に揃えた） */
+  person: "ユーザー",
   post: "投稿",
   article: "記事",
 };
@@ -738,7 +739,20 @@ function DestinationsBlock({ d, companyLabel }: { d: NonNullable<SearchResults["
       <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--ink)" }}>
         {companyLabel ? `${companyLabel}を出た人の、いま` : "この会社を出た人の、いま"}
       </div>
-      <Row title="いま働いている会社" list={d.companies} />
+      {d.companies.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>転職先</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {d.companies.map((x) => (
+              <span key={x.label} data-state="destination-company" style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 4px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: "#fff", color: "var(--ink)", border: `1px solid ${chip.border}`, maxWidth: "100%", minWidth: 0 }}>
+                <CompanyLogo logoUrl={x.logoUrl} name={x.label} logoLetter={x.logoLetter} logoGradient={x.logoGradient} size={22} />
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.label}</span>
+                {x.count !== null && <span style={{ fontWeight: 700, color: "var(--ink-soft)", flexShrink: 0 }}>{x.count}人</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <Row title="いまの職種" list={d.roles} />
       <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--ink-mute)" }}>人数は3人以上のときだけ表示しています。</p>
     </div>
@@ -757,6 +771,7 @@ function Truncated({ total, shown }: { total: number; shown: number }) {
 
 /**
  * ★人タブの絞り込み（2026-10-21 / 柴さんの指示）。在籍（現役・OB/OG）と職種（大分類）。
+ *   押すと絞り、もう一度押すと外す（✕ が付く）。⚠️「すべて」のボタンは置かない（2行の「すべて」が紛らわしかった。柴さんの指摘）
  *   押すと URL の `?tenure=` / `?role=` が変わるだけ（リンク）。サーバーで上限の前に絞る（runSearch の PersonFilter）
  * ⚠️ 人数は「もう一方の絞り込みを当てたあと」で数える。押して0人になる選択肢を出さない
  * ⚠️ 在籍の選択肢は、職歴の条件で引いたとき（現役・OB/OG に分けられるとき）だけ出す
@@ -777,16 +792,18 @@ function PersonFilterBar({
   };
   const cur = tenureTotals?.current ?? 0;
   const fmr = tenureTotals?.former ?? 0;
-  const showTenure = cur + fmr > 0;
   const tenureOpts = [
-    { key: undefined, label: "すべて", n: cur + fmr },
     { key: "current" as const, label: byCompany ? "現役社員" : "いまの仕事", n: cur },
     { key: "former" as const, label: byCompany ? "OB・OG" : "以前の仕事", n: fmr },
-  ].filter((o) => o.key === undefined || o.n > 0 || filter.tenure === o.key);
-  const roles = roleFacets.length > 0 || filter.role
-    ? [...roleFacets, ...(filter.role && !roleFacets.some((r) => r.key === filter.role) ? [{ key: filter.role, name: "選択中の職種", count: 0 }] : [])]
-    : [];
-  if (!showTenure && roles.length < 2 && !filter.role) return null;
+  ].filter((o) => o.n > 0 || filter.tenure === o.key);
+  const roles = [
+    ...roleFacets,
+    ...(filter.role && !roleFacets.some((r) => r.key === filter.role) ? [{ key: filter.role, name: "選択中の職種", count: 0 }] : []),
+  ];
+  /* ⚠️ 選択肢が1つしかない行は出さない（押しても絞れない）。選んでいる行は外せるように出す */
+  const showTenure = tenureOpts.length >= 2 || !!filter.tenure;
+  const showRole = roles.length >= 2 || !!filter.role;
+  if (!showTenure && !showRole) return null;
   const chip = (active: boolean): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, whiteSpace: "nowrap",
     padding: "5px 12px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, textDecoration: "none",
@@ -796,33 +813,34 @@ function PersonFilterBar({
   const num = (n: number, active: boolean) => (
     <span style={{ fontSize: 11.5, fontWeight: 700, opacity: active ? 0.85 : 0.55 }}>{n}</span>
   );
+  const rowLabel = (t: string) => (
+    <span style={{ flexShrink: 0, alignSelf: "center", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", width: 30 }}>{t}</span>
+  );
   return (
     <div data-state="person-filter" style={{ display: "grid", gap: 8, margin: "12px 0 6px", gridTemplateColumns: "minmax(0, 1fr)" }}>
       {showTenure && (
         <div className="search-filter-row" aria-label="在籍">
+          {rowLabel("在籍")}
           {tenureOpts.map((o) => {
             const active = filter.tenure === o.key;
             return (
-              <Link key={o.label} href={href({ tenure: o.key, role: filter.role })} style={chip(active)}
-                data-state={`person-filter-tenure-${o.key ?? "all"}${active ? "-active" : ""}`} aria-current={active ? "true" : undefined}>
-                {o.label}{num(o.n, active)}
+              <Link key={o.key} href={href({ tenure: active ? undefined : o.key, role: filter.role })} style={chip(active)}
+                data-state={`person-filter-tenure-${o.key}${active ? "-active" : ""}`} aria-pressed={active}>
+                {o.label}{num(o.n, active)}{active && <span aria-hidden="true">✕</span>}
               </Link>
             );
           })}
         </div>
       )}
-      {(roles.length >= 2 || filter.role) && (
+      {showRole && (
         <div className="search-filter-row" aria-label="職種">
-          <Link href={href({ tenure: filter.tenure })} style={chip(!filter.role)}
-            data-state={`person-filter-role-all${!filter.role ? "-active" : ""}`}>
-            すべての職種
-          </Link>
+          {rowLabel("職種")}
           {roles.map((r) => {
             const active = filter.role === r.key;
             return (
               <Link key={r.key} href={href({ tenure: filter.tenure, role: active ? undefined : r.key })} style={chip(active)}
-                data-state={`person-filter-role${active ? "-active" : ""}`} aria-current={active ? "true" : undefined}>
-                {r.name}{num(r.count, active)}
+                data-state={`person-filter-role${active ? "-active" : ""}`} aria-pressed={active}>
+                {r.name}{num(r.count, active)}{active && <span aria-hidden="true">✕</span>}
               </Link>
             );
           })}
