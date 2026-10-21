@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown, LayoutGrid } from "lucide-react";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { AVATAR_CHANGED_EVENT } from "@/lib/constants/events";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MessagesButton } from "@/components/notifications/MessagesButton";
 import OpinioLogo from "@/components/common/OpinioLogo";
@@ -216,7 +217,17 @@ export function JobseekerHeader() {
   const router = useRouter();
   /* `isBizMember` は「有効な企業所属が1件以上あるか」。true のときだけ
      ユーザーメニューに /biz/dashboard を出す（2026-09-05）。 */
-  const [user, setUser] = useState<{ email: string; name: string; isBizMember: boolean } | null>(null);
+  const [user, setUser] = useState<{ email: string; name: string; isBizMember: boolean; avatarUrl: string | null } | null>(null);
+  /* ★マイページで顔写真を変えたら、読み込み直さなくてもヘッダーの写真を変える（2026-10-22）。
+        送り手は ProfileTab の onAvatarSaved（AVATAR_CHANGED_EVENT） */
+  useEffect(() => {
+    const onChanged = (e: Event) => {
+      const url = (e as CustomEvent<string | null>).detail ?? null;
+      setUser((u) => (u ? { ...u, avatarUrl: url } : u));
+    };
+    window.addEventListener(AVATAR_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(AVATAR_CHANGED_EVENT, onChanged);
+  }, []);
   const [searchOpen, setSearchOpen] = useState(false);
   /* ★デスクトップ（1024px 以上）の常設の検索窓に付くドロップダウン（2026-10-01）。
      ⚠️ `searchOpen`（🔍から開くオーバーレイ）と**別の state**。1024px 未満だけが
@@ -287,7 +298,7 @@ export function JobseekerHeader() {
       */
       const { data: owUser, error: owUserErr } = await supabase
         .from("ow_users")
-        .select("name, ow_company_admins!ow_company_admins_user_id_fkey(is_active)")
+        .select("name, avatar_url, ow_company_admins!ow_company_admins_user_id_fkey(is_active)")
         .eq("auth_id", authUser.id)
         .maybeSingle();
       if (owUserErr) console.error("[JobseekerHeader] ow_users:", owUserErr.message);
@@ -298,6 +309,7 @@ export function JobseekerHeader() {
         email: authUser.email ?? "",
         name: owUser?.name ?? authUser.email?.split("@")[0] ?? "",
         isBizMember: memberships.some((m) => m.is_active === true),
+        avatarUrl: (owUser?.avatar_url as string | null | undefined) ?? null,
       });
     }
 
@@ -467,7 +479,7 @@ export function JobseekerHeader() {
               aria-label={mobileMenuOpen ? "メニューを閉じる" : "メニューを開く"}
               aria-expanded={mobileMenuOpen}
               style={{ position: "relative", width: 36, height: 36, padding: 0, border: "none", background: "none", borderRadius: "50%", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <InitialAvatar name={user.name || user.email} size={32} />
+              <InitialAvatar name={user.name || user.email} imageUrl={user.avatarUrl} size={32} />
               {/* ★引き出しの中に未読があるときの印（応募・面談／あなたに合う会社） */}
               {drawerDot && (
                 <span aria-label="未読があります" style={{ position: "absolute", top: 1, right: 1, width: 10, height: 10, borderRadius: "50%", background: "var(--error, #DC2626)", border: "2px solid #fff" }} />
@@ -783,7 +795,7 @@ export function JobseekerHeader() {
                     onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-tint)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
-                    <InitialAvatar name={user.name || user.email} size={32} />
+                    <InitialAvatar name={user.name || user.email} imageUrl={user.avatarUrl} size={32} />
                     <ChevronDown
                       size={14}
                       style={{
@@ -1081,7 +1093,7 @@ export function JobseekerHeader() {
           <Link href="/mypage" onClick={() => setMobileMenuOpen(false)}
             style={{ display: "block", padding: "20px 20px 16px", borderBottom: "1px solid var(--line)", textDecoration: "none" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <InitialAvatar name={user.name || user.email} size={40} />
+              <InitialAvatar name={user.name || user.email} imageUrl={user.avatarUrl} size={40} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{user.name}</div>
                 <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>

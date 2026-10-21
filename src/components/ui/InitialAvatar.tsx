@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 /**
  * イニシャル円アバター — 共通コンポーネント
  *
@@ -16,6 +18,8 @@ type InitialAvatarProps = {
   bgStyle?: string;
   /** テキストカラー。デフォルト = #fff */
   textColor?: string;
+  /** ★顔写真（2026-10-22）。あれば写真を出し、読めなければ頭文字に戻す */
+  imageUrl?: string | null;
 };
 
 export function InitialAvatar({
@@ -23,8 +27,18 @@ export function InitialAvatar({
   size = 32,
   bgStyle = "linear-gradient(135deg, var(--royal), var(--accent))",
   textColor = "#fff",
+  imageUrl = null,
 }: InitialAvatarProps) {
   const initial = (name ?? "").trim().charAt(0).toUpperCase() || "?";
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [imageUrl]);
+  if (imageUrl && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={imageUrl} alt="" aria-hidden="true" onError={() => setBroken(true)}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0, display: "block" }} />
+    );
+  }
 
   return (
     <div

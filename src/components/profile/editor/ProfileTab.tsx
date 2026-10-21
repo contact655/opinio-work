@@ -2,6 +2,7 @@
 
 /* ★カードの幅。公開プロフィール（`/u/[id]`）と同じ 1020 に揃える。
       ⚠️ 数字を直接書かないこと。片方だけ動かすとまた幅がずれる（2026-08-27）。 */
+import { AVATAR_CHANGED_EVENT } from "@/lib/constants/events";
 import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
 import { ONBOARDING_LANDING_PARAM, ONBOARDING_LANDING_VALUE } from "@/lib/auth/redirects";
 import CareerPromptCard from "@/components/profile/editor/CareerPromptCard";
@@ -1397,7 +1398,11 @@ export default function ProfileTab({
                     owUser={owUser}
                     basicInfoName={displayName}
                     settings={settings}
-                    onAvatarSaved={setSavedAvatarUrl}
+                    onAvatarSaved={(u) => {
+                      setSavedAvatarUrl(u);
+                      /* ★ヘッダーなど、同じ画面の他の場所の写真も変える（2026-10-22） */
+                      window.dispatchEvent(new CustomEvent(AVATAR_CHANGED_EVENT, { detail: u }));
+                    }}
                     onCoverSaved={setSavedCoverPhotoUrl}
                     savedAvatarUrl={savedAvatarUrl}
                     savedCoverPhotoUrl={savedCoverPhotoUrl}
