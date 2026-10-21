@@ -29,10 +29,11 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
-import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
+import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
+import { destinationsForUsers } from "./destinations";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import {
   resolveExperienceCompanyLabel,
@@ -192,7 +193,6 @@ const HIT_LIMIT = 24;
  *    ⚠️ **この行を消さないこと。** 消すと `/search` が丸ごと落ちる。
  */
 export { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
-import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
@@ -611,9 +611,8 @@ export async function searchPersonHits(
   const byCompanyCond = cond.some((c) => c.kind === "company" && c.matchOn === "experience");
   /* ★学校で引いたとき（2026-10-21）。在学中／卒業生に分け、卒業生のいまの会社を「行き先」に数える */
   const schoolCond = cond.find((c): c is Extract<Condition, { kind: "school" }> => c.kind === "school") ?? null;
-  const destCompanies = new Map<string, number>();
-  const destCompanyIds = new Map<string, string>();
-  const destRoles = new Map<string, number>();
+  /* ★「出た人」（会社を離れた人・学校の卒業生）。いまの会社と職種は destinationsForUsers が数える */
+  const leftUserIds: string[] = [];
   for (const u of candidates) {
     const exps = [...(expsByUser.get(u.id) ?? [])].sort((a, b) =>
       (a.started_at ?? "").localeCompare(b.started_at ?? ""),
@@ -694,56 +693,11 @@ export async function searchPersonHits(
     });
     const leftCompany = byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true);
     const graduated = !byCompanyCond && schoolTenure === "former";
-    if (leftCompany || graduated) {
-      const now = exps.filter((e) => e.is_current === true && e.visibility_company === "real");
-      for (const e of now) {
-        const l = resolveExperienceCompanyLabel(e);
-        if (l && e.company_id && !destCompanyIds.has(l)) destCompanyIds.set(l, e.company_id);
-      }
-      const cos = new Set(now.map((e) => resolveExperienceCompanyLabel(e)).filter((x): x is string => !!x));
-      const roles = new Set(now.map((e) => (e.role_category_id ? tree.byId.get(e.role_category_id)?.name : null)).filter((x): x is string => !!x));
-      for (const c of Array.from(cos)) destCompanies.set(c, (destCompanies.get(c) ?? 0) + 1);
-      for (const r of Array.from(roles)) destRoles.set(r, (destRoles.get(r) ?? 0) + 1);
-    }
+    if (leftCompany || graduated) leftUserIds.push(u.id);
   }
-  const toList = (m: Map<string, number>) =>
-    Array.from(m.entries())
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
-      .map(([label, n]) => ({ label, count: n >= MIN_AGGREGATE_COUNT ? n : null }));
-  let destinations: Destinations | undefined;
-  if (isLoggedIn && (byCompanyCond || !!schoolCond) && (destCompanies.size > 0 || destRoles.size > 0)) {
-    const ids = Array.from(new Set(destCompanyIds.values()));
-    const logos = new Map<string, { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }>();
-    const hrefs = new Map<string, string>();
-    const domains = new Map<string, string>();
-    if (ids.length > 0) {
-      const [logoRes, visRes, domRes] = await Promise.all([
-        db.from("ow_companies").select("id, logo_url, logo_letter, logo_gradient").in("id", ids),
-        /* ★会社ページへのリンク（2026-10-21）。⚠️ 404 になる会社（非公開・検証用）にはリンクを付けない */
-        filterVisibleCompaniesStrict(db.from("ow_companies").select("id, slug").in("id", ids)),
-        db.from("ow_company_business_domains").select("company_id, ow_business_domains(name, is_active)").eq("is_primary", true).in("company_id", ids),
-      ]);
-      if (domRes.error) console.error("[searchPersonHits] destination domains:", domRes.error.message);
-      for (const r of (domRes.data ?? []) as unknown as { company_id: string; ow_business_domains: { name: string; is_active: boolean } | { name: string; is_active: boolean }[] | null }[]) {
-        const d = Array.isArray(r.ow_business_domains) ? r.ow_business_domains[0] : r.ow_business_domains;
-        if (d?.is_active) domains.set(r.company_id, d.name);
-      }
-      if (logoRes.error) console.error("[searchPersonHits] destination logos:", logoRes.error.message);
-      if (visRes.error) console.error("[searchPersonHits] destination links:", visRes.error.message);
-      for (const r of (logoRes.data ?? []) as { id: string; logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }[]) logos.set(r.id, r);
-      for (const r of (visRes.data ?? []) as { id: string; slug: string | null }[]) hrefs.set(r.id, `/companies/${r.slug ?? r.id}`);
-    }
-    destinations = {
-      companies: toList(destCompanies).map((c) => {
-        const id = destCompanyIds.get(c.label);
-        const lg = id ? logos.get(id) : undefined;
-        return { ...c, logoUrl: lg?.logo_url ?? null, logoLetter: lg?.logo_letter ?? null, logoGradient: lg?.logo_gradient ?? null, href: id ? hrefs.get(id) ?? null : null,
-          /* ⚠️ id はページが開ける会社だけ渡す（開けない会社をフォローさせない） */
-          id: id && hrefs.has(id) ? id : null, domain: id ? domains.get(id) ?? null : null };
-      }),
-      roles: toList(destRoles),
-    };
-  }
+  /* ⚠️ 検索結果と学校のページで同じ関数（lib/search/destinations.ts）。ここに数え方を書き写さない */
+  const destinations: Destinations | undefined =
+    isLoggedIn && (byCompanyCond || !!schoolCond) ? await destinationsForUsers(leftUserIds) : undefined;
 
   /* ★現役を先に並べる（上限で切ったときに、グループの途中で切れないように）。
         ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */

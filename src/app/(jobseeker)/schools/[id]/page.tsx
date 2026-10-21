@@ -7,6 +7,8 @@ import { GraduationCap, Users } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import SchoolGraduatesClient, { type Graduate, type SchoolPost } from "./SchoolGraduatesClient";
+import { destinationsForUsers } from "@/lib/search/destinations";
+import { DestinationsBlock } from "@/components/search/DestinationsBlock";
 import { resolveExperienceCompanyName, resolveExperienceCompanyLabel, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +60,7 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean, schoolType: s
       faculty,
       degree,
       graduated_at,
+      is_current,
       ow_users!inner(
         id,
         name,
@@ -120,6 +123,7 @@ async function getGraduates(schoolId: string, isLoggedIn: boolean, schoolType: s
       faculty: (r.faculty as string | null) ?? null,
       degree: (r.degree as string | null) ?? null,
       graduatedAt: (r.graduated_at as string | null) ?? null,
+      isCurrent: (r.is_current as boolean | null) === true,
     });
     return acc;
   }, []);
@@ -253,7 +257,11 @@ export default async function SchoolPage(
   const graduates = await getGraduates(id, !!user, school.type);
 
   const userIds = graduates.map((g) => g.userId);
-  const schoolPosts = await getSchoolPosts(userIds);
+  /* ★卒業生のいま（検索の「〈学校〉を出た人の、いま」と同じ関数。2026-10-21）。在学中の人は数えない */
+  const [schoolPosts, destinations] = await Promise.all([
+    getSchoolPosts(userIds),
+    destinationsForUsers(graduates.filter((g) => !g.isCurrent).map((g) => g.userId)),
+  ]);
 
   const typeLabel = schoolTypeLabel(school.type);
 
@@ -352,7 +360,8 @@ export default async function SchoolPage(
 
       {/* ── 出身者一覧 / 投稿タブ ────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px" }}>
-        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} isLoggedIn={!!user} listable={listable} />
+        <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} isLoggedIn={!!user} listable={listable}
+          destinations={destinations ? <DestinationsBlock d={destinations} companyLabel={school.name} /> : null} />
       </div>
     </main>
   );

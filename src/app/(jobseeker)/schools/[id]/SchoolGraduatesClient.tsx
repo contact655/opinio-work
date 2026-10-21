@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import type React from "react";
 import Link from "next/link";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
+import { PeopleCardRow, JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
+import { AVATAR_COLOR } from "@/lib/avatarColor";
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -17,6 +19,8 @@ export type Graduate = {
   faculty: string | null;
   degree: string | null;
   graduatedAt: string | null;
+  /** ★在学中か（学歴の is_current。2026-10-21） */
+  isCurrent: boolean;
   currentCompany: string | null;
   currentRoleTitle: string | null;
   careerSummary: string | null;
@@ -45,6 +49,8 @@ type Props = {
   isLoggedIn?: boolean;
   /** ★出身者を並べる学校か（大学・大学院・高校だけ。2026-10-21） */
   listable?: boolean;
+  /** ★「〈学校〉を出た人の、いま」（サーバーで描いた DestinationsBlock。無ければ null） */
+  destinations?: React.ReactNode;
 };
 type Tab = "graduates" | "posts";
 
@@ -97,125 +103,7 @@ function Avatar({ name, gradient, url, size }: { name: string; gradient: string;
   );
 }
 
-// ─── グリッドカード（3名以上） ────────────────────────────────────────────────
 
-function GridCard({ g }: { g: Graduate }) {
-  const router = useRouter();
-  const sub = subText(g);
-  return (
-    <div onClick={() => router.push(`/u/${g.userId}`)} className="sch-grid-card">
-      <div style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}>
-        <Avatar name={g.name} gradient={g.avatarGradient} url={g.avatarUrl} size={68} />
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4, textAlign: "center" }}>
-        {g.name}
-      </div>
-      {(g.currentRoleTitle || g.currentCompany) && (
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: "var(--royal)",
-          marginBottom: 4, textAlign: "center", lineHeight: 1.4,
-          overflow: "hidden", display: "-webkit-box",
-          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-        }}>
-          {[g.currentRoleTitle, g.currentCompany].filter(Boolean).join(" @ ")}
-        </div>
-      )}
-      {sub && (
-        <div style={{
-          fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 5 : 8,
-          textAlign: "center", lineHeight: 1.5,
-        }}>
-          {sub}
-        </div>
-      )}
-      {g.careerSummary && (
-        <div style={{
-          fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5,
-          marginBottom: 8, textAlign: "center",
-          overflow: "hidden", display: "-webkit-box",
-          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-        }}>
-          {g.careerSummary}
-        </div>
-      )}
-      {g.catchphrase && (
-        <div style={{
-          fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6,
-          marginBottom: 10, textAlign: "center",
-          overflow: "hidden", display: "-webkit-box",
-          WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-        }}>
-          {g.catchphrase}
-        </div>
-      )}
-      <div style={{ marginTop: "auto", width: "100%" }}>
-        <Link href={`/u/${g.userId}`} onClick={(e) => e.stopPropagation()} style={{
-          display: "block", textAlign: "center", padding: "8px 14px",
-          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-          color: "var(--royal)", borderRadius: 9, fontSize: 12, fontWeight: 600, textDecoration: "none",
-        }}>
-          プロフィールを見る
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ─── 横帯カード（1〜2名） ────────────────────────────────────────────────────
-
-function BandCard({ g }: { g: Graduate }) {
-  const router = useRouter();
-  const sub = subText(g);
-  return (
-    <div onClick={() => router.push(`/u/${g.userId}`)}
-      style={{
-        background: "#fff", border: "1px solid var(--line)", borderRadius: 14,
-        padding: "20px 24px", display: "flex", alignItems: "center", gap: 20,
-        cursor: "pointer", transition: "box-shadow 0.15s, border-color 0.15s",
-      }}
-      className="sch-band-card"
-    >
-      <div style={{ flexShrink: 0 }}>
-        <Avatar name={g.name} gradient={g.avatarGradient} url={g.avatarUrl} size={72} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", marginBottom: 3 }}>{g.name}</div>
-        {(g.currentRoleTitle || g.currentCompany) && (
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", marginBottom: 4, lineHeight: 1.4 }}>
-            {[g.currentRoleTitle, g.currentCompany].filter(Boolean).join(" @ ")}
-          </div>
-        )}
-        {sub && (
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginBottom: g.careerSummary ? 4 : 0 }}>{sub}</div>
-        )}
-        {g.careerSummary && (
-          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.5, marginBottom: g.catchphrase ? 6 : 0 }}>
-            {g.careerSummary}
-          </div>
-        )}
-        {g.catchphrase && (
-          <div style={{
-            fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.6,
-            overflow: "hidden", display: "-webkit-box",
-            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-          }}>
-            {g.catchphrase}
-          </div>
-        )}
-      </div>
-      <div style={{ flexShrink: 0 }}>
-        <Link href={`/u/${g.userId}`} onClick={(e) => e.stopPropagation()} style={{
-          display: "inline-flex", alignItems: "center", padding: "9px 18px",
-          background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-          color: "var(--royal)", borderRadius: 9, fontSize: 12, fontWeight: 600,
-          textDecoration: "none", whiteSpace: "nowrap",
-        }}>
-          プロフィールを見る
-        </Link>
-      </div>
-    </div>
-  );
-}
 
 // ─── 投稿カード（read-only） ──────────────────────────────────────────────────
 
@@ -300,49 +188,50 @@ function PostsEmptyState() {
   );
 }
 
+// ─── 人のカード（2026-10-21 / 会社ページの社員と同じ縦長のカード） ───────────────
+
+/**
+ * ★会社ページの現役社員・OB/OG と同じカード（JOB_PEOPLE_CSS の .jpc-*）。3人以上は横スクロール（PeopleCardRow）。
+ *   2行目は、卒業生ならいまの会社と職種、在学中なら学部。
+ * ⚠️ 「メッセージ」ボタンは付けない（JobPeopleCards の注記と同じ理由）
+ */
+function SchoolPersonCard({ g }: { g: Graduate }) {
+  const now = [g.currentCompany, g.currentRoleTitle].filter(Boolean).join(" / ");
+  const second = g.isCurrent ? (g.faculty ?? "") : (now || subText(g));
+  return (
+    <a href={`/u/${g.userId}`} className="jpc-card" data-state="school-person-card" title={[g.name, second, g.isCurrent ? null : subText(g)].filter(Boolean).join(" / ")}>
+      <span className="jpc-avatar" style={{ background: g.avatarUrl ? undefined : AVATAR_COLOR.bg, color: AVATAR_COLOR.text }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {g.avatarUrl ? <img src={g.avatarUrl} alt="" /> : g.avatarInitial}
+      </span>
+      <span className="jpc-name">{g.name}</span>
+      <span className="jpc-role">{second}</span>
+    </a>
+  );
+}
+
+function PeopleGroup({ title, list }: { title: string; list: Graduate[] }) {
+  if (list.length === 0) return null;
+  return (
+    <section data-state="school-people-group" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 24px 18px", marginBottom: 16, overflow: "hidden" }}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", marginBottom: 12 }}>
+        {title}<span style={{ marginLeft: 6, fontSize: 13, fontWeight: 500, color: "var(--ink-mute)" }}>({list.length}名)</span>
+      </div>
+      <PeopleCardRow count={list.length}>
+        {list.map((g) => <SchoolPersonCard key={g.userId} g={g} />)}
+      </PeopleCardRow>
+    </section>
+  );
+}
+
 // ─── メインコンポーネント ─────────────────────────────────────────────────────
 
-export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false, listable = true }: Props) {
+export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false, listable = true, destinations = null }: Props) {
   const [tab, setTab] = useState<Tab>("graduates");
 
   return (
     <>
       <style>{`
-        .sch-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 16px;
-        }
-        @media (max-width: 1100px) { .sch-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        @media (max-width: 768px)  { .sch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
-        @media (max-width: 480px)  { .sch-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
-
-        .sch-grid-card {
-          background: #fff;
-          border: 1px solid var(--line);
-          border-radius: 14px;
-          padding: 20px 16px 16px;
-          cursor: pointer;
-          transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .sch-grid-card:hover {
-          box-shadow: 0 4px 20px rgba(0,0,0,0.09);
-          border-color: var(--royal-100);
-          transform: translateY(-1px);
-        }
-
-        .sch-band-stack { display: flex; flex-direction: column; gap: 12px; }
-        .sch-band-card:hover {
-          box-shadow: 0 4px 20px rgba(0,0,0,0.09);
-          border-color: var(--royal-100);
-        }
-        @media (max-width: 600px) {
-          .sch-band-card { flex-direction: column !important; align-items: flex-start !important; }
-        }
-
         .sch-tab-btn {
           padding: 10px 20px;
           border: none; background: transparent; cursor: pointer;
@@ -403,14 +292,14 @@ export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = f
               ? "この学校の出身者はまだ登録されていません。"
               : "出身者はログインすると表示されます。"}</p>
           </div>
-        ) : graduates.length <= 2 ? (
-          <div className="sch-band-stack">
-            {graduates.map((g) => <BandCard key={g.userId} g={g} />)}
-          </div>
         ) : (
-          <div className="sch-grid">
-            {graduates.map((g) => <GridCard key={g.userId} g={g} />)}
-          </div>
+          /* ★在学中・卒業生に分けて、会社ページと同じカードで並べる。下に「〈学校〉を出た人の、いま」（2026-10-21） */
+          <>
+            <style>{JOB_PEOPLE_CSS}</style>
+            <PeopleGroup title="在学中" list={graduates.filter((g) => g.isCurrent)} />
+            <PeopleGroup title="卒業生" list={graduates.filter((g) => !g.isCurrent)} />
+            {destinations}
+          </>
         )
       )}
 
