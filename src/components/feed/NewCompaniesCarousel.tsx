@@ -21,7 +21,7 @@ export const NEW_COMPANIES_CSS = `
   .ncc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 16px 10px; }
   .ncc-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ncc-more { font-size: 12.5px; font-weight: 600; color: var(--royal); text-decoration: none; white-space: nowrap; }
-  .ncc-row { display: flex; gap: 10px; overflow-x: auto; padding: 2px 16px 4px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .ncc-row { display: flex; gap: 10px; overflow-x: auto; padding: 2px 16px 4px; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-padding-inline: 16px; }
   .ncc-row::-webkit-scrollbar { display: none; }
   .ncc-card { flex: 0 0 132px; scroll-snap-align: start; border: 1px solid var(--line); border-radius: 12px; padding: 14px 12px 12px;
     display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; text-decoration: none; color: var(--ink); background: #fff; }

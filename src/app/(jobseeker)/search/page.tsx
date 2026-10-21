@@ -708,7 +708,7 @@ function DestinationsBlock({ d, companyLabel }: { d: NonNullable<SearchResults["
         <div style={{ marginTop: 10, marginLeft: -14, marginRight: -14 }}>
           <style>{NEW_COMPANIES_CSS}</style>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", margin: "0 14px 6px" }}>転職先</div>
-          <div className="ncc-row" style={{ paddingLeft: 14, paddingRight: 14 }}>
+          <div className="ncc-row" style={{ paddingLeft: 14, paddingRight: 14, scrollPaddingInline: 14 }}>
             {d.companies.map((x) => {
               const head = (
                 <>

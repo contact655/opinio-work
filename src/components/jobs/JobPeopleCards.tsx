@@ -17,7 +17,9 @@ import { AVATAR_COLOR } from "@/lib/avatarColor";
  */
 export const JOB_PEOPLE_CSS = `
   .jpc-row { display: flex; gap: 10px; }
-  .jpc-row.jpc-scroll { overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 2px 24px 4px; margin: 0 -24px; }
+  /* ★scroll-padding を左右の余白と同じにする（2026-10-21）。無いと止まる位置が余白を無視して
+     読み込み直後に約14px右へずれ、左端のカードが切れて見えた */
+  .jpc-row.jpc-scroll { overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 2px 24px 4px; margin: 0 -24px; scroll-padding-inline: 24px; }
   .jpc-row.jpc-scroll::-webkit-scrollbar { display: none; }
   .jpc-row.jpc-scroll .jpc-card { flex: 0 0 132px; }
   .jpc-card { flex: 0 1 132px; scroll-snap-align: start; border: 1px solid var(--line); border-radius: 12px; padding: 16px 10px 14px;
@@ -32,7 +34,7 @@ export const JOB_PEOPLE_CSS = `
   .jpc-badge { font-size: 11px; font-weight: 600; color: var(--ink-soft); background: var(--bg-tint); border-radius: 999px; padding: 1px 8px; margin-top: 2px; }
   .jpc-act { margin-top: 8px; width: 100%; display: flex; }
   @media (max-width: 767px) {
-    .jpc-row.jpc-scroll { padding: 2px 14px 4px; margin: 0 -14px; }
+    .jpc-row.jpc-scroll { padding: 2px 14px 4px; margin: 0 -14px; scroll-padding-inline: 14px; }
   }
 `;
 
