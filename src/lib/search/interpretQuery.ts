@@ -57,6 +57,9 @@ import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SEARCHABLE_SCHOOL_TYPES } from "@/lib/constants/schools";
+import { PREFECTURES } from "@/lib/utils/location";
+
+const PREFECTURE_STEMS = new Set(PREFECTURES.map((p) => p.replace(/[都道府県]$/, "")));
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
 
@@ -239,6 +242,8 @@ type Vocabulary = {
   /** ★学校名 → 学校（社名と同じ照合キー）。同じ綴りが2校以上なら解決しない */
   schoolIndex: Map<string, { id: string; label: string }[]>;
   schoolMaxLen: number;
+  /** 2文字の短い名前（入力がそれだけのときにしか使わない） */
+  schoolExactShort: Map<string, { id: string; label: string }[]>;
 };
 
 /**
@@ -336,17 +341,30 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
     }));
 
   const schoolIndex = new Map<string, { id: string; label: string }[]>();
+  const schoolExactShort = new Map<string, { id: string; label: string }[]>();
   let schoolMaxLen = 0;
   for (const sc of schoolRows) {
-    const key = companyKey(sc.name);
-    if (key.length < COMPANY_KEY_MIN_LEN || companyIndex.has(key)) continue;
-    const prev = schoolIndex.get(key) ?? [];
-    if (!prev.some((x) => x.id === sc.id)) prev.push({ id: sc.id, label: sc.name });
-    schoolIndex.set(key, prev);
-    if (key.length > schoolMaxLen) schoolMaxLen = key.length;
+    for (const raw of schoolSearchNames(sc.name, sc.type)) {
+      const key = companyKey(raw);
+      if (companyIndex.has(key)) continue;
+      /* ★2文字の短い名前（「獨協」「上智」）は、それだけを打ったときにしか使わない（文の中だと「東京」「明治」などに化ける） */
+      if (key.length < COMPANY_KEY_MIN_LEN) {
+        /* ⚠️ 都道府県と同じ名前（東京・京都・大阪…）は外す。地名として打った人に学校が出るため */
+        if (key.length === 2 && !PREFECTURE_STEMS.has(key)) {
+          const prevShort = schoolExactShort.get(key) ?? [];
+          if (!prevShort.some((x) => x.id === sc.id)) prevShort.push({ id: sc.id, label: sc.name });
+          schoolExactShort.set(key, prevShort);
+        }
+        continue;
+      }
+      const prev = schoolIndex.get(key) ?? [];
+      if (!prev.some((x) => x.id === sc.id)) prev.push({ id: sc.id, label: sc.name });
+      schoolIndex.set(key, prev);
+      if (key.length > schoolMaxLen) schoolMaxLen = key.length;
+    }
   }
 
-  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen };
+  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort };
 });
 
 type SkillRow = { id: string; label: string; aliases: string[] | null };
@@ -391,15 +409,41 @@ type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_
  * ⚠️ 種別は大学・大学院・高校だけ（SEARCHABLE_SCHOOL_TYPES。小中・幼稚園は本人の同意の仕組みができるまで出さない / 柴さんの判断）
  * ⚠️ 学歴の表は authenticated 以外から読めないので admin で引く。返すのは学校の id と名前だけ
  */
-async function loadSchoolNames(): Promise<{ id: string; name: string }[]> {
+/**
+ * ★学校名の短い打ち方（2026-10-21 / 柴さんの指示）。正式名に加えて照合に載せる。
+ *   大学: 「獨協大学」→「獨協」「獨協大」「獨協大卒」／大学院: 「〇〇大学大学院」→「〇〇大学院」
+ *   高校: 「埼玉県立朝霞西高等学校」→「朝霞西高等学校」「朝霞西高校」「朝霞西高」
+ * ⚠️ 3文字未満の短い名前は照合に載せない（COMPANY_KEY_MIN_LEN。「東京」のような語が学校に化けるのを防ぐ）
+ * ⚠️ 同じ短い名前が2校以上に当たるときは決めない（呼び出し側の hit.length > 1）
+ * ⚠️ 「慶應」→慶應義塾大学 のような通称は作れない（名前から機械的に導けないため）。要るなら別名の表が要る
+ */
+function schoolSearchNames(name: string, type: string | null): string[] {
+  const out = new Set<string>([name]);
+  const noPref = name.replace(/^(?:.{2,3}?[都道府県]立|.{1,4}?[市区町村]立|国立|私立)/, "");
+  if (type === "university") {
+    const stem = name.replace(/大学$/, "");
+    if (stem !== name) { out.add(stem); out.add(`${stem}大`); out.add(`${stem}大卒`); }
+  } else if (type === "graduate_school") {
+    out.add(name.replace(/大学大学院$/, "大学院"));
+  } else if (type === "highschool") {
+    for (const n of [name, noPref]) {
+      out.add(n);
+      const stem = n.replace(/(?:高等学校|高校)$/, "");
+      if (stem !== n) { out.add(`${stem}高校`); out.add(`${stem}高`); }
+    }
+  }
+  return Array.from(out);
+}
+
+async function loadSchoolNames(): Promise<{ id: string; name: string; type: string | null }[]> {
   const db = createAdminClient();
   const { data: edu, error: eduErr } = await db.from("ow_user_educations").select("school_id").not("school_id", "is", null);
   if (eduErr) console.error("[interpretQuery] 学歴の取得に失敗:", eduErr.message);
   const ids = Array.from(new Set(((edu ?? []) as { school_id: string }[]).map((r) => r.school_id)));
   if (ids.length === 0) return [];
-  const { data, error } = await db.from("ow_schools").select("id, name").in("id", ids).in("type", [...SEARCHABLE_SCHOOL_TYPES]);
+  const { data, error } = await db.from("ow_schools").select("id, name, type").in("id", ids).in("type", [...SEARCHABLE_SCHOOL_TYPES]);
   if (error) console.error("[interpretQuery] 学校名の取得に失敗:", error.message);
-  return (data ?? []) as { id: string; name: string }[];
+  return (data ?? []) as { id: string; name: string; type: string | null }[];
 }
 
 async function loadCompanyNames(): Promise<CompanyNameRow[]> {
@@ -532,7 +576,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     return { primaryKind: "company", conditions: [], unresolved: [], normalized: "" };
   }
 
-  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen }, roleTree] = await Promise.all([
+  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort }, roleTree] = await Promise.all([
     loadVocabulary(),
     getRoleTree(),
   ]);
@@ -593,7 +637,14 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
   // ── ★学校名 → ow_schools.id（2026-10-21）。社名と同じ照合（長い名前から・境界を見る）────
   {
     const { compact, map } = compactWithMap(normalized);
-    const taken: boolean[] = new Array(compact.length).fill(false);
+    /* ★入力が2文字の短い学校名だけのとき（「獨協」） */
+    const short = consumed.length === 0 ? schoolExactShort.get(compact) : undefined;
+    if (short) {
+      consumed.push({ start: 0, end: normalized.length });
+      if (short.length > 1) ambiguousCompanyWords.push(normalized);
+      else conditions.push({ kind: "school", matchOn: "person", label: short[0].label, appliesTo: ["person"], schoolId: short[0].id });
+    }
+    const taken: boolean[] = new Array(compact.length).fill(!!short);
     /* ⚠️ 社名として使った範囲は使わない */
     for (const sp of consumed) for (let i = 0; i < compact.length; i++) if (map[i] >= sp.start && map[i] < sp.end) taken[i] = true;
     const maxLen = Math.min(schoolMaxLen, compact.length);
