@@ -169,7 +169,8 @@ function CompanyCard({ item, connections }: { item: SearchResults["company"]["it
             ))}
           </span>
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
-            {connections[0].name}さん{connections.length > 1 ? `ほか${connections.length - 1}人` : ""}のつながりがここで働いています
+            {/* ⚠️「〜さんのつながりが」と書かない（その人のつながりと読める。2026-10-21 に実画面で気づいた） */}
+            あなたのつながりの{connections[0].name}さん{connections.length > 1 ? `ほか${connections.length - 1}人` : ""}がここで働いています
           </span>
         </div>
       )}
