@@ -13,7 +13,7 @@
  */
 
 import type React from "react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import { DMButton } from "@/components/profile/DMButton";
 import { useCompanyEmployees } from "@/lib/companies/useCompanyEmployees";
 import { SecTitle } from "./SecTitle";
@@ -133,6 +133,44 @@ const EMPLOYEE_GRID_CSS = `
 `;
 
 
+/* ★職種で絞る（2026-10-21 / 柴さんの判断 A案）。カードの形は変えず、職種の凡例を押すとその職種のカードだけにする。
+   ⚠️ 職種のラベルは構成バーと同じ（親 → 子 → 「その他」）。**別の選択肢の行を足さない**（凡例と同じものが2回並ぶ）
+   ⚠️ もう一度押すと外れる（検索の「ユーザー」タブと同じ）。⚠️ 色は構成バーの色を指すだけ。選択中は枠で示す */
+const roleLabelOf = (e: CompanyEmployee) => e.roleParentName ?? e.roleCategoryName ?? "その他";
+function roleEntries(list: CompanyEmployee[]): [string, number][] {
+  const m = new Map<string, number>();
+  for (const e of list) m.set(roleLabelOf(e), (m.get(roleLabelOf(e)) ?? 0) + 1);
+  return Array.from(m.entries()).sort((a, b) => (a[0] === "その他" ? 1 : 0) - (b[0] === "その他" ? 1 : 0) || b[1] - a[1] || a[0].localeCompare(b[0], "ja"));
+}
+const ROLE_COLORS = ["var(--royal)", "#3B5FD9", "#7C3AED", "var(--success)", "#F59E0B", "#DC2626", "#6b7280"];
+function RoleFilterChips({ entries, selected, onSelect, colored }: {
+  entries: [string, number][]; selected: string | null; onSelect: (v: string | null) => void; colored: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }} data-state="company-role-filter" aria-label="職種で絞る">
+      {entries.map(([name, count], i) => {
+        const active = selected === name;
+        return (
+          <button key={name} type="button" className="btn-fixed-size" aria-pressed={active}
+            data-state={`company-role-chip${active ? "-active" : ""}`}
+            onClick={() => onSelect(active ? null : name)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 100, cursor: "pointer",
+              fontSize: 12, fontWeight: active ? 700 : 500, fontFamily: "inherit",
+              background: active ? "var(--royal-50)" : "#fff", color: active ? "var(--royal)" : "var(--ink-soft)",
+              border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+            }}>
+            {colored && <span style={{ width: 8, height: 8, borderRadius: 2, background: ROLE_COLORS[i % ROLE_COLORS.length], flexShrink: 0, display: "inline-block" }} />}
+            {name}
+            <span style={{ fontWeight: 700, color: active ? "var(--royal)" : "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{count}</span>名
+            {active && <span aria-hidden="true" style={{ marginLeft: 2 }}>✕</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ⚠️★**`export` を外さないこと**（2026-09-12）。`/dev/preview/company-employees` が
       この関数を直接描画している。**職種でグループ分けする側は本番に該当企業が無く、
       そこでしか見られない**（CLAUDE.md「データが薄い画面は /dev/preview で見る」）。 */
@@ -146,6 +184,8 @@ export function CurrentEmployeesSection({
   totalCount?: number;
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
+  const [roleSel, setRoleSel] = useState<string | null>(null);
+  /* ⚠️ 下の PeopleCardRow は key={roleSel} で作り直す（絞ったとき横スクロールの位置が前のまま残らないように） */
 
   /* ── ★★グループは**本人が登録した職種から作る**（2026-09-12 / 柴さんの指示）────
      ⚠️★**企業ごとの設定テーブル（`ow_company_employee_categories`）を読むのをやめた。**
@@ -208,7 +248,8 @@ export function CurrentEmployeesSection({
      ⚠️ 並びは職種のまとまりの順（人数の多い職種から。同じ職種の人が隣り合う）。`groups` はそのために残してある。
      ⚠️ 2026-09-12 の「5名以上 ＋ 職種2種類以上で職種ごとに分ける」はこの判断で置き換えた。分ける形に戻すなら、
         カードで1人だけの段が縦に重なる問題に別の答えを用意すること */
-  const orderedEmployees = groups.flatMap((g) => [...g.direct, ...g.children.flatMap((c) => c.emps)]);
+  const orderedEmployees = groups.flatMap((g) => [...g.direct, ...g.children.flatMap((c) => c.emps)])
+    .filter((e) => !roleSel || roleLabelOf(e) === roleSel);
 
   const SECTION_ICON = (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -262,38 +303,26 @@ export function CurrentEmployeesSection({
                 バーは1行なので場所を取らない。**分割と同じしきい値にしないこと。**
              ⚠️ ラベルは親職種。親が無い人は子、どちらも無ければ「その他」。 */}
       {employees.length >= 3 && groups.length >= 2 && (() => {
-        const catCounts = new Map<string, number>();
-        for (const emp of employees) {
-          const label = emp.roleParentName ?? emp.roleCategoryName ?? "その他";
-          catCounts.set(label, (catCounts.get(label) ?? 0) + 1);
-        }
-        const entries = Array.from(catCounts.entries()).sort((a, b) => b[1] - a[1]);
+        const entries = roleEntries(employees);
         const total = employees.length;
-        const COLORS = ["var(--royal)", "#3B5FD9", "#7C3AED", "var(--success)", "#F59E0B", "#DC2626", "#6b7280"];
         return (
           <div style={{ marginBottom: "var(--space-6)" }}>
-            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: "var(--space-2)", gap: 2 }}>
+            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: "var(--space-3)", gap: 2 }}>
               {entries.map(([name, count], i) => (
                 <div
                   key={name}
                   title={`${name}: ${count}名 (${Math.round((count / total) * 100)}%)`}
                   style={{
                     flex: `${count} 0 0`,
-                    background: COLORS[i % COLORS.length],
+                    background: ROLE_COLORS[i % ROLE_COLORS.length],
                     borderRadius: 100,
+                    opacity: roleSel && roleSel !== name ? 0.3 : 1,
                   }}
                 />
               ))}
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 16px" }}>
-              {entries.map(([name, count], i) => (
-                <div key={name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: COLORS[i % COLORS.length], flexShrink: 0, display: "inline-block" }} />
-                  {name}
-                  <span style={{ fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>{count}</span>名
-                </div>
-              ))}
-            </div>
+            {/* ★凡例が絞り込みのボタンを兼ねる（2026-10-21） */}
+            <RoleFilterChips entries={entries} selected={roleSel} onSelect={setRoleSel} colored />
           </div>
         );
       })()}
@@ -327,7 +356,7 @@ export function CurrentEmployeesSection({
           )}
         </div>
       ) : (
-        <PeopleCardRow count={orderedEmployees.length}>
+        <PeopleCardRow key={roleSel ?? "all"} count={orderedEmployees.length}>
           {orderedEmployees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} />
           ))}
@@ -510,6 +539,10 @@ export function ListingStatusPanel({
 }
 
 export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
+  /* ★職種で絞る（2026-10-21。現役社員と同じ。3名以上・職種が2種類以上のときだけ） */
+  const [roleSel, setRoleSel] = useState<string | null>(null);
+  const alumniRoles = roleEntries(alumni);
+  const shownAlumni = roleSel ? alumni.filter((e) => roleLabelOf(e) === roleSel) : alumni;
   return (
     <section
       id="alumni"
@@ -554,8 +587,13 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni:
       <style>{JOB_PEOPLE_CSS}</style>
       {alumni.length > 0 ? (
         <>
-          <PeopleCardRow count={alumni.length}>
-            {alumni.map((emp) => (
+          {alumni.length >= 3 && alumniRoles.length >= 2 && (
+            <div style={{ marginBottom: "var(--space-4)" }}>
+              <RoleFilterChips entries={alumniRoles} selected={roleSel} onSelect={setRoleSel} colored={false} />
+            </div>
+          )}
+          <PeopleCardRow key={roleSel ?? "all"} count={shownAlumni.length}>
+            {shownAlumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
           </PeopleCardRow>
