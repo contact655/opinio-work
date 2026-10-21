@@ -706,13 +706,14 @@ export async function searchPersonHits(
   return {
     items: isLoggedIn ? filtered.slice(0, HIT_LIMIT) : [],
     total: hits.length,
-    filteredTotal: filtered.length,
+    /* ⚠️ 未ログインには絞った人数を返さない（下限で伏せる規則を回り込まれないように） */
+    filteredTotal: isLoggedIn ? filtered.length : hits.length,
     roleFacets: isLoggedIn ? roleFacets : [],
     /* ⚠️ 職種で絞ったあと・在籍で絞る前に数える（在籍の選択肢の人数と、見出しの人数に使う） */
-    tenureTotals: {
+    tenureTotals: isLoggedIn ? {
       current: byRole.filter((h) => h.tenure === "current").length,
       former: byRole.filter((h) => h.tenure === "former").length,
-    },
+    } : undefined,
     destinations,
   };
 }

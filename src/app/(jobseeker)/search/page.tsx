@@ -391,7 +391,8 @@ export default async function SearchPage({ searchParams }: Props) {
   /* ★人タブの絞り込み（2026-10-21）。人タブを開いているときだけ効かせる（「すべて」では絞らない）。
      ⚠️ 知らない値は無視する（URL を手で書き換えられても壊れない） */
   const personFilter: PersonFilter = {};
-  if (searchParams.kind === "person") {
+  /* ⚠️★未ログインでは絞らない。絞ると3人未満の人数がタブの外に出る（人の件数は MIN_AGGREGATE_COUNT 未満を伏せる規則） */
+  if (searchParams.kind === "person" && isLoggedIn) {
     if (searchParams.tenure === "current" || searchParams.tenure === "former") personFilter.tenure = searchParams.tenure;
     if (searchParams.role && /^[a-z0-9_-]{1,64}$/i.test(searchParams.role)) personFilter.role = searchParams.role;
   }
