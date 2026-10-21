@@ -94,6 +94,17 @@ function EducationForm({
      ⚠️ `authenticated` は `ow_schools` を `USING (true)` で読めるので、
         ブラウザから直接引く（以前と同じ経路。API を新設していない）。 */
   const [candidates, setCandidates] = useState<School[]>([]);
+  /* ★名前を最後まで打てば、一覧の学校に自動でつなぐ（2026-10-21）。候補は少し遅れて届くので、
+        打ち終えた時点ではつながっていないことがあった（手で打った扱いの学歴が増えた原因の1つ）。
+     ⚠️ つなぐのは「本人がこの画面で打った」かつ「打った名前と同じ学校が一覧に1校だけ」のときだけ。
+        同じ名前が2校以上（都道府県違い）なら、下の「とつなぐ」ボタンで本人に選んでもらう。
+     ⚠️ 開いただけ（打っていない）ではつながない。開いた瞬間に「変更あり」になって保存が押せてしまうため（ui-debugging ⑦）。
+     ⚠️ 候補が届くまでに他の欄を触っても消えないよう、最新の draft を ref で持つ */
+  const typedRef = useRef(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const onDraftChangeRef = useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
   useEffect(() => {
     const q = draft.school.trim();
     if (q.length < MIN_SCHOOL_QUERY_LENGTH) {
@@ -118,7 +129,14 @@ function EducationForm({
         .then(({ data, error }) => {
           /* ⚠️ error を捨てない。捨てると権限エラーが「候補なし」に見える */
           if (error) console.error("[EducationForm] 学校の候補:", error.message);
-          if (!cancelled && data) setCandidates(data as School[]);
+          if (!cancelled && data) {
+            setCandidates(data as School[]);
+            const cur = draftRef.current;
+            const exact = (data as School[]).filter((c) => c.name === q);
+            if (typedRef.current && !cur.school_id && cur.school.trim() === q && exact.length === 1) {
+              onDraftChangeRef.current({ ...cur, school: exact[0].name, school_id: exact[0].id });
+            }
+          }
         });
     }, 200);
     return () => { cancelled = true; clearTimeout(timer); };
@@ -158,6 +176,7 @@ function EducationForm({
           value={draft.school}
           onChange={(e) => {
             const newSchool = e.target.value;
+            typedRef.current = true;
             /* ⚠️★**`value` は校名そのものにしてある**（2026-09-28）。
                   以前は「校名 (よみ)」を value に入れ、選ばれたあとに校名へ戻していた
                   ——datalist はブラウザ側で value を照合するので、よみで探させるには
