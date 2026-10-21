@@ -103,7 +103,15 @@ export type PersonHit = {
    * ⚠️ 会社名は本人の公開設定どおり（resolveExperienceCompanyLabel）
    */
   matched: { company: string | null; role: string | null } | null;
+  /** ★当たった職歴の職種の大分類（2026-10-21）。人タブの「職種」の絞り込みに使う。`key` は slug（無ければ id） */
+  matchedRoleTop: { key: string; name: string } | null;
 };
+
+/**
+ * ★人タブの絞り込み（2026-10-21 / 柴さんの指示）。URL の `?tenure=` / `?role=` から来る。
+ * ⚠️ 上限（HIT_LIMIT）で切る**前に**絞る。画面で items を絞ると、25人目以降が永久に出ない
+ */
+export type PersonFilter = { tenure?: "current" | "former"; role?: string };
 
 /**
  * ★記事のヒット（2026-10-01）。
@@ -134,6 +142,13 @@ export type KindResult<T> = {
   tenureTotals?: { current: number; former: number };
   /** ★人だけ・社名で引いたときだけ。OB・OG のいまの行き先（会社・職種）。ログイン時のみ */
   destinations?: Destinations;
+  /**
+   * ★人だけ。絞り込み（PersonFilter）を当てたあとの総数。`total` は絞る前のまま（タブの件数・ログインの案内に使う）
+   * ⚠️ 絞り込みが無いときは total と同じ
+   */
+  filteredTotal?: number;
+  /** ★人だけ。職種（大分類）ごとの人数。在籍の絞り込みを当てたあとで数える（組み合わせて0人の選択肢を出さない） */
+  roleFacets?: { key: string; name: string; count: number }[];
 };
 
 /**
@@ -485,6 +500,7 @@ type ExpRow = {
 export async function searchPersonHits(
   conditions: Condition[],
   isLoggedIn: boolean,
+  filter: PersonFilter = {},
 ): Promise<KindResult<PersonHit>> {
   const cond = pick(conditions, "person");
   const db = createAdminClient();
@@ -646,6 +662,13 @@ export async function searchPersonHits(
           role: e.role_category_id ? tree.byId.get(e.role_category_id)?.name ?? null : null,
         };
       })(),
+      matchedRoleTop: (() => {
+        const e = matchedExps.find((x) => x.is_current === true) ?? latestMatch;
+        let node = e?.role_category_id ? tree.byId.get(e.role_category_id) ?? null : null;
+        /* 大分類まで親を辿る（⚠️ 循環に備えて回数で切る） */
+        for (let i = 0; node?.parentId && i < 5; i++) node = tree.byId.get(node.parentId) ?? node;
+        return node ? { key: node.slug ?? node.id, name: node.name } : null;
+      })(),
     });
     if (byCompanyCond && matchedExps.length > 0 && !matchedExps.some((e) => e.is_current === true)) {
       const now = exps.filter((e) => e.is_current === true && e.visibility_company === "real");
@@ -668,12 +691,27 @@ export async function searchPersonHits(
         ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */
   const order = (t: PersonHit["tenure"]) => (t === "former" ? 1 : 0);
   hits.sort((a, b) => order(a.tenure) - order(b.tenure));
+  /* ★人タブの絞り込み。⚠️ 在籍で絞ってから職種の人数を数え、最後に職種で絞る */
+  const byTenure = filter.tenure ? hits.filter((h) => h.tenure === filter.tenure) : hits;
+  const facetMap = new Map<string, { key: string; name: string; count: number }>();
+  for (const h of byTenure) {
+    if (!h.matchedRoleTop) continue;
+    const f = facetMap.get(h.matchedRoleTop.key) ?? { ...h.matchedRoleTop, count: 0 };
+    f.count += 1;
+    facetMap.set(f.key, f);
+  }
+  const roleFacets = Array.from(facetMap.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ja"));
+  const filtered = filter.role ? byTenure.filter((h) => h.matchedRoleTop?.key === filter.role) : byTenure;
+  const byRole = filter.role ? hits.filter((h) => h.matchedRoleTop?.key === filter.role) : hits;
   return {
-    items: isLoggedIn ? hits.slice(0, HIT_LIMIT) : [],
+    items: isLoggedIn ? filtered.slice(0, HIT_LIMIT) : [],
     total: hits.length,
+    filteredTotal: filtered.length,
+    roleFacets: isLoggedIn ? roleFacets : [],
+    /* ⚠️ 職種で絞ったあと・在籍で絞る前に数える（在籍の選択肢の人数と、見出しの人数に使う） */
     tenureTotals: {
-      current: hits.filter((h) => h.tenure === "current").length,
-      former: hits.filter((h) => h.tenure === "former").length,
+      current: byRole.filter((h) => h.tenure === "current").length,
+      former: byRole.filter((h) => h.tenure === "former").length,
     },
     destinations,
   };
@@ -918,6 +956,7 @@ const ARTICLE_TYPE_LABEL: Record<string, string> = {
 export async function runSearch(
   conditions: Condition[],
   isLoggedIn: boolean,
+  personFilter: PersonFilter = {},
 ): Promise<SearchResults> {
   /* ★その対象に効く条件が1つも無いなら、**引かずに0件を返す。**
      ⚠️ 引いてしまうと絞り込みゼロの全件が「検索結果」として出る。
@@ -933,7 +972,7 @@ export async function runSearch(
   const [company, job, person, article] = await Promise.all([
     applies("company") ? searchCompanyHits(conditions) : { items: [], total: 0 },
     applies("job") ? searchJobHits(conditions) : { items: [], total: 0 },
-    applies("person") ? searchPersonHits(conditions, isLoggedIn) : { items: [], total: 0 },
+    applies("person") ? searchPersonHits(conditions, isLoggedIn, personFilter) : { items: [], total: 0 },
     applies("article") ? searchArticleHits(conditions) : { items: [], total: 0 },
   ]);
   return { company, job, person, article };

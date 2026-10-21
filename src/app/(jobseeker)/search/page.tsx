@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { interpretQuery, type Condition, type SearchKind } from "@/lib/search/interpretQuery";
 import {
   runSearch, skillBandsForCompanies, MIN_AGGREGATE_COUNT,
-  type SearchResults, type SkillBand,
+  type SearchResults, type SkillBand, type PersonFilter,
 } from "@/lib/search/runSearch";
 import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Props = { searchParams: { q?: string; drop?: string; kind?: string } };
+type Props = { searchParams: { q?: string; drop?: string; kind?: string; tenure?: string; role?: string } };
 
 /** ★画面の種別。条件で引く4つ（SearchKind）に、ことばで引く「投稿」を足したもの（2026-10-21） */
 type PageKind = SearchKind | "post";
@@ -388,7 +388,14 @@ export default async function SearchPage({ searchParams }: Props) {
     person: { items: [], total: 0 },
     article: { items: [], total: 0 },
   };
-  const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn) : EMPTY;
+  /* ★人タブの絞り込み（2026-10-21）。人タブを開いているときだけ効かせる（「すべて」では絞らない）。
+     ⚠️ 知らない値は無視する（URL を手で書き換えられても壊れない） */
+  const personFilter: PersonFilter = {};
+  if (searchParams.kind === "person") {
+    if (searchParams.tenure === "current" || searchParams.tenure === "former") personFilter.tenure = searchParams.tenure;
+    if (searchParams.role && /^[a-z0-9_-]{1,64}$/i.test(searchParams.role)) personFilter.role = searchParams.role;
+  }
+  const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn, personFilter) : EMPTY;
   /* ★投稿は条件ではなく「ことば」で引く。条件が1つも立たなかったときも引く
         （投稿は自由文なので、職種などに読めない語こそ当たりうる）。ログインしているときだけ */
   const posts = raw.trim()
@@ -490,6 +497,9 @@ export default async function SearchPage({ searchParams }: Props) {
           position: sticky; top: 60px; z-index: 5; background: #f0f4f8; padding: 8px 0; margin-bottom: -8px; }
         .search-tabs::-webkit-scrollbar { display: none; }
         .search-tabs a { flex-shrink: 0; white-space: nowrap; }
+        /* ★人タブの絞り込みの行。1行で横にスクロールする */
+        .search-filter-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+        .search-filter-row::-webkit-scrollbar { display: none; }
         /* ★区切りの箱。⚠️ インラインに戻さないこと（スマホで端まで広げる指定が効かなくなる） */
         .search-section { margin-top: 16px; background: #fff; border: 1px solid var(--line); border-radius: 14px;
           padding: 16px 16px 14px; overflow: hidden; }
@@ -617,15 +627,30 @@ export default async function SearchPage({ searchParams }: Props) {
                   : res.items.slice(0, PREVIEW_PER_KIND);
               const gated = k === "person" && !isLoggedIn;
               const showCount = k !== "person" || isLoggedIn || results.person.total >= MIN_AGGREGATE_COUNT;
+              /* ★人タブで絞っているときは、絞ったあとの人数（filteredTotal）を出す */
+              const shownTotal = k === "person" ? results.person.filteredTotal ?? res.total : res.total;
+              const byCompany = conditions.some((c) => c.kind === "company");
+              const tt = results.person.tenureTotals;
               return (
-                <ResultSection key={k} title={KIND_LABEL[k]} count={showCount ? res.total : null}
+                <ResultSection key={k} title={KIND_LABEL[k]} count={showCount ? shownTotal : null}
                   moreHref={!gated && res.total > items.length ? moreHref : null}>
                   {gated ? (
                     <LoginGate total={results.person.total} />
                   ) : k === "person" ? (
                     <>
-                      <PersonGroups items={items as typeof results.person.items} totals={results.person.tenureTotals}
-                        byCompany={conditions.some((c) => c.kind === "company")} f={follow} />
+                      {activeKind === "person" && (
+                        <PersonFilterBar raw={raw} filter={personFilter} byCompany={byCompany}
+                          tenureTotals={tt} roleFacets={results.person.roleFacets ?? []} />
+                      )}
+                      {shownTotal === 0 ? (
+                        <p data-state="person-filter-empty" style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-mute)" }}>
+                          この条件に当たる人はいません。
+                        </p>
+                      ) : (
+                        <PersonGroups items={items as typeof results.person.items}
+                          totals={personFilter.tenure && tt ? { current: personFilter.tenure === "current" ? tt.current : 0, former: personFilter.tenure === "former" ? tt.former : 0 } : tt}
+                          byCompany={byCompany} f={follow} />
+                      )}
                       {results.person.destinations && (
                         <DestinationsBlock d={results.person.destinations}
                           companyLabel={conditions.find((c) => c.kind === "company")?.label ?? null} />
@@ -644,7 +669,7 @@ export default async function SearchPage({ searchParams }: Props) {
                       </div>
                     )
                   )}
-                  {!gated && <Truncated total={res.total} shown={items.length} />}
+                  {!gated && <Truncated total={shownTotal} shown={items.length} />}
                 </ResultSection>
               );
             })}
@@ -726,6 +751,83 @@ function Truncated({ total, shown }: { total: number; shown: number }) {
     <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--ink-mute)" }}>
       {total}件のうち {shown}件を表示しています。
     </p>
+  );
+}
+
+/**
+ * ★人タブの絞り込み（2026-10-21 / 柴さんの指示）。在籍（現役・OB/OG）と職種（大分類）。
+ *   押すと URL の `?tenure=` / `?role=` が変わるだけ（リンク）。サーバーで上限の前に絞る（runSearch の PersonFilter）
+ * ⚠️ 人数は「もう一方の絞り込みを当てたあと」で数える。押して0人になる選択肢を出さない
+ * ⚠️ 在籍の選択肢は、職歴の条件で引いたとき（現役・OB/OG に分けられるとき）だけ出す
+ * ⚠️ 選んでいる職種は、人数が0でも出す（外せなくなるため）
+ */
+function PersonFilterBar({
+  raw, filter, byCompany, tenureTotals, roleFacets,
+}: {
+  raw: string; filter: PersonFilter; byCompany: boolean;
+  tenureTotals: SearchResults["person"]["tenureTotals"];
+  roleFacets: { key: string; name: string; count: number }[];
+}) {
+  const href = (next: PersonFilter) => {
+    const p = new URLSearchParams({ q: raw, kind: "person" });
+    if (next.tenure) p.set("tenure", next.tenure);
+    if (next.role) p.set("role", next.role);
+    return `/search?${p.toString()}`;
+  };
+  const cur = tenureTotals?.current ?? 0;
+  const fmr = tenureTotals?.former ?? 0;
+  const showTenure = cur + fmr > 0;
+  const tenureOpts = [
+    { key: undefined, label: "すべて", n: cur + fmr },
+    { key: "current" as const, label: byCompany ? "現役社員" : "いまの仕事", n: cur },
+    { key: "former" as const, label: byCompany ? "OB・OG" : "以前の仕事", n: fmr },
+  ].filter((o) => o.key === undefined || o.n > 0 || filter.tenure === o.key);
+  const roles = roleFacets.length > 0 || filter.role
+    ? [...roleFacets, ...(filter.role && !roleFacets.some((r) => r.key === filter.role) ? [{ key: filter.role, name: "選択中の職種", count: 0 }] : [])]
+    : [];
+  if (!showTenure && roles.length < 2 && !filter.role) return null;
+  const chip = (active: boolean): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, whiteSpace: "nowrap",
+    padding: "5px 12px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, textDecoration: "none",
+    background: active ? "var(--royal)" : "#fff", color: active ? "#fff" : "var(--ink)",
+    border: `1px solid ${active ? "var(--royal)" : "var(--line)"}`,
+  });
+  const num = (n: number, active: boolean) => (
+    <span style={{ fontSize: 11.5, fontWeight: 700, opacity: active ? 0.85 : 0.55 }}>{n}</span>
+  );
+  return (
+    <div data-state="person-filter" style={{ display: "grid", gap: 8, margin: "12px 0 6px", gridTemplateColumns: "minmax(0, 1fr)" }}>
+      {showTenure && (
+        <div className="search-filter-row" aria-label="在籍">
+          {tenureOpts.map((o) => {
+            const active = filter.tenure === o.key;
+            return (
+              <Link key={o.label} href={href({ tenure: o.key, role: filter.role })} style={chip(active)}
+                data-state={`person-filter-tenure-${o.key ?? "all"}${active ? "-active" : ""}`} aria-current={active ? "true" : undefined}>
+                {o.label}{num(o.n, active)}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+      {(roles.length >= 2 || filter.role) && (
+        <div className="search-filter-row" aria-label="職種">
+          <Link href={href({ tenure: filter.tenure })} style={chip(!filter.role)}
+            data-state={`person-filter-role-all${!filter.role ? "-active" : ""}`}>
+            すべての職種
+          </Link>
+          {roles.map((r) => {
+            const active = filter.role === r.key;
+            return (
+              <Link key={r.key} href={href({ tenure: filter.tenure, role: active ? undefined : r.key })} style={chip(active)}
+                data-state={`person-filter-role${active ? "-active" : ""}`} aria-current={active ? "true" : undefined}>
+                {r.name}{num(r.count, active)}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
