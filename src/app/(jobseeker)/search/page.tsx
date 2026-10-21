@@ -367,6 +367,10 @@ export default async function SearchPage({ searchParams }: Props) {
     : (await skillBandsForCompanies(conditions)).filter((b) => b.count >= MIN_AGGREGATE_COUNT);
 
   const primary = interpreted.primaryKind;
+  const norm = (x: string) => x.toLowerCase().replace(/[\s　]+/g, "");
+  const echoesQuery =
+    !dropped && interpreted.unresolved.length === 0 && conditions.length === 1 &&
+    conditions[0].appliesTo.includes(primary) && norm(conditions[0].label) === norm(raw);
 
   /* ★どのタブを見ているか（2026-10-01）。`?kind=` が無ければ「すべて」。
      ⚠️ 知らない値は「すべて」に倒す（URL を手で書き換えられても壊れない）。 */
@@ -469,7 +473,10 @@ export default async function SearchPage({ searchParams }: Props) {
         </h1>
 
         {/* ── 解釈した条件 ── */}
-        {(conditions.length > 0 || interpreted.unresolved.length > 0) && (
+        {/* ★入力したことばがそのまま1つの条件になっただけなら、チップを出さない（2026-10-21 / 柴さんの指摘）。
+               見出しの「「Salesforce」の検索結果」と同じことを2回言うことになる。
+            ⚠️ 読み替えた（「営業職」→「営業」）・複数に分けた・効かない語がある・効く対象が限られる、のどれかなら出す */}
+        {(conditions.length > 0 || interpreted.unresolved.length > 0) && !echoesQuery && (
           <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
             {conditions.map((c, i) => (
               <ResolvedChip key={`c-${i}`} c={c} primaryKind={primary} />
