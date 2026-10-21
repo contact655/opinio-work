@@ -61,9 +61,11 @@ function pickNextStep(d: {
 }): { label: string; href: string } | null {
   if (d.experienceCount === 0) return { label: "職歴を追加する", href: "/mypage" };
   if (!d.hasAvatar) return { label: "プロフィール写真を追加する", href: "/mypage" };
+  /* ★学歴は写真の次（2026-10-21。それまでは最後）。同じ学校の人が見つかるようになったので、埋める理由を一言添える。
+     ⚠️ 学校名を手で打った人に「一覧から選び直す」を出すのは、大学を学校の一覧に入れてから（いまは大学が32校しか無く、選び直せない人が多い） */
+  if (d.educationCount === 0) return { label: "学歴を追加して、同じ学校の人を見つける", href: "/mypage" };
   if (!d.hasHeadline) return { label: "肩書きを1行で書く", href: "/mypage" };
   if (!d.hasAboutMe) return { label: "自己紹介を書く", href: "/mypage" };
-  if (d.educationCount === 0) return { label: "学歴を追加する", href: "/mypage" };
   /* ⚠️ 全部埋まっていたら **null**。「完了！」を出さない（達成の演出は情報を増やさない） */
   return null;
 }
