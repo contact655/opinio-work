@@ -52,6 +52,7 @@
 
 import { cache } from "react";
 import { getRoleAliases, getRoleTree, type SearchAlias } from "@/lib/supabase/queries";
+import { withEngineerKin } from "./engineerKin";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
@@ -726,13 +727,14 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     if (seenRoleKey.has(key)) continue;
     seenRoleKey.add(key);
     const label = roleTree.byId.get(h.roleIds[0])?.name ?? h.alias;
+    const roleIds = withEngineerKin(h.roleIds, roleTree);
     conditions.push({
       kind: "role",
       /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
       matchOn: "experience",
       label, // ★マスタの職種名。入力文字列ではない
       appliesTo: ["company", "job", "person"],
-      roleIds: h.roleIds,
+      roleIds,
     });
     consumed.push({ start: h.at, end: h.at + h.alias.length });
   }
