@@ -66,6 +66,12 @@ export type JobHit = {
   salaryMax: number | null;
   workStyle: string | null;
   location: string | null;
+  /** ★掲載日（2026-10-21。行に「N日前」と出す）。無ければ null */
+  publishedAt: string | null;
+  /** ★会社のロゴ（行の左に出す） */
+  logoUrl: string | null;
+  logoLetter: string | null;
+  logoGradient: string | null;
 };
 
 export type PersonHit = {
@@ -352,7 +358,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
 
   /* 掲載中の企業に限る。⚠️ 求人が published でも企業が非掲載なら出さない。 */
   const { data: compRows, error: compErr } = await filterListedCompanies(
-    admin.from("ow_companies").select("id, slug, name, name_en, is_foreign"),
+    admin.from("ow_companies").select("id, slug, name, name_en, is_foreign, logo_url, logo_letter, logo_gradient"),
   );
   if (compErr) console.error("[searchJobHits] companies:", compErr.message);
   const companies = new Map(
@@ -405,7 +411,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
 
   let q = admin
     .from("ow_jobs")
-    .select("id, slug, title, company_id, salary_min, salary_max, work_style, location", {
+    .select("id, slug, title, company_id, salary_min, salary_max, work_style, location, published_at", {
       count: "exact",
     })
     .match(PUBLIC_JOB_MATCH);
@@ -435,6 +441,10 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
       salaryMax: (j.salary_max as number | null) ?? null,
       workStyle: (j.work_style as string | null) ?? null,
       location: (j.location as string | null) ?? null,
+      publishedAt: (j.published_at as string | null) ?? null,
+      logoUrl: (c?.logo_url as string | null) ?? null,
+      logoLetter: (c?.logo_letter as string | null) ?? null,
+      logoGradient: (c?.logo_gradient as string | null) ?? null,
     };
   });
   return { items, total: count ?? items.length };

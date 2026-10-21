@@ -15,6 +15,10 @@ import { searchPostHits, type PostHit } from "@/lib/search/postHits";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { loadFeedProps } from "../feed/(list)/loadFeedProps";
 import { HomeSideShell } from "../feed/(list)/FeedClient";
+import { FollowButton as CompanyFollowButton } from "../companies/[id]/CompanyDetailClient";
+import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
+import { getCompanyConnections, type CompanyConnection } from "@/lib/companies/connections";
+import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 
 /**
  * 横断検索。企業・求人・人をまとめて引き、**主対象を1つだけ**見出し付きで出す。
@@ -112,81 +116,121 @@ function UnresolvedChip({ word }: { word: string }) {
 
 // ── 結果カード ───────────────────────────────────────────────────────────────
 
-function CompanyCard({ item }: { item: SearchResults["company"]["items"][number] }) {
+/**
+ * 会社のカード（2026-10-21 に LinkedIn に寄せた / 柴さんの指示）。
+ *   右上にフォロー、下に「あなたのつながり N人がここで働いています」（いるときだけ）。
+ * ⚠️ リンクとボタンは並べる（入れ子にしない。押したときに遷移しないように）
+ * ⚠️ つながりは企業ページと同じ getCompanyConnections（本人が表示を許した相互フォローの現役社員だけ）
+ */
+function CompanyCard({ item, connections }: { item: SearchResults["company"]["items"][number]; connections: CompanyConnection[] | null }) {
+  const href = `/companies/${item.slug ?? item.id}`;
   return (
-    <Link
-      href={`/companies/${item.slug ?? item.id}`}
-      style={{
-        display: "flex", gap: 12, alignItems: "flex-start", padding: 14,
-        borderRadius: 12, border: "1px solid var(--line)", background: "#fff",
-        textDecoration: "none", color: "inherit",
-      }}
-    >
-      <CompanyLogo
-        logoUrl={item.logoUrl} name={item.name}
-        logoLetter={item.logoLetter} logoGradient={item.logoGradient} size={44}
-      />
-      <span style={{ minWidth: 0, display: "block" }}>
-        <span style={{ display: "block", fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>
-          {item.name}
-        </span>
-        {/* ⚠️ 事業領域が無いときは行ごと出さない（「—」で埋めない） */}
-        {item.domain && (
-          <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>
-            {item.domain}
+    <div data-state="company-card" style={{ padding: 14, borderRadius: 12, border: "1px solid var(--line)", background: "#fff" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <Link href={href} style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+          <CompanyLogo
+            logoUrl={item.logoUrl} name={item.name}
+            logoLetter={item.logoLetter} logoGradient={item.logoGradient} size={48}
+          />
+          <span style={{ minWidth: 0, display: "block" }}>
+            <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: "var(--ink)" }}>
+              {item.name}
+            </span>
+            {/* ⚠️ 事業領域が無いときは行ごと出さない（「—」で埋めない） */}
+            {item.domain && (
+              <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>
+                {item.domain}
+              </span>
+            )}
+            {item.tagline && (
+              <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.tagline}
+              </span>
+            )}
+            {item.jobCount > 0 && (
+              <span style={{ display: "block", fontSize: 12, color: "var(--royal)", fontWeight: 600, marginTop: 4 }}>
+                募集 {item.jobCount}件
+              </span>
+            )}
           </span>
-        )}
-        {item.tagline && (
-          <span
-            style={{
-              display: "block", fontSize: 12.5, color: "var(--ink-soft)", marginTop: 4,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}
-          >
-            {item.tagline}
+        </Link>
+        <div style={{ flexShrink: 0 }}>
+          <CompanyFollowButton companyId={item.id} />
+        </div>
+      </div>
+      {connections && connections.length > 0 && (
+        <div data-state="company-connections" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line-soft)" }}>
+          <span style={{ display: "flex" }}>
+            {connections.slice(0, 3).map((c, i) => (
+              c.avatarUrl
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img key={c.userId} src={c.avatarUrl} alt="" width={22} height={22} style={{ borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", marginLeft: i === 0 ? 0 : -6 }} />
+                : <span key={c.userId} aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", background: c.avatarGradient, color: "#fff", fontSize: 11, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid #fff", marginLeft: i === 0 ? 0 : -6 }}>{c.avatarInitial}</span>
+            ))}
           </span>
-        )}
-        {item.jobCount > 0 && (
-          <span style={{ display: "block", fontSize: 12, color: "var(--royal)", fontWeight: 600, marginTop: 4 }}>
-            募集 {item.jobCount}件
+          <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
+            {connections[0].name}さん{connections.length > 1 ? `ほか${connections.length - 1}人` : ""}のつながりがここで働いています
           </span>
-        )}
-      </span>
-    </Link>
+        </div>
+      )}
+    </div>
   );
 }
 
+/** 掲載からの日数（「今日」「3日前」「2か月前」） */
+function sinceLabel(iso: string | null): string | null {
+  if (!iso) return null;
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days < 0) return null;
+  if (days === 0) return "今日";
+  if (days < 30) return `${days}日前`;
+  if (days < 365) return `${Math.floor(days / 30)}か月前`;
+  return `${Math.floor(days / 365)}年前`;
+}
+
+/**
+ * 募集の行（2026-10-21 に1件1行へ作り直した / 柴さんの指示。LinkedIn と同じ形）。
+ *   [ロゴ] 題名 / 会社 / 勤務地・働き方 / 年収 ・ 掲載から N日   [保存]
+ * ⚠️ リンクと保存ボタンは並べる（入れ子にしない）
+ */
 function JobCard({ item }: { item: SearchResults["job"]["items"][number] }) {
   const money = chipStyle("money");
+  /* 「東京都（ハイブリッド）」。片方しか無ければその片方だけ */
+  const ws = item.workStyle ? WORK_STYLE_LABELS[item.workStyle] ?? null : null;
+  const place = item.location && ws ? `${item.location}（${ws}）` : item.location ?? ws;
+  const since = sinceLabel(item.publishedAt);
   return (
-    <Link
-      href={`/jobs/${item.slug ?? item.id}`}
-      style={{
-        display: "block", padding: 14, borderRadius: 12,
-        border: "1px solid var(--line)", background: "#fff",
-        textDecoration: "none", color: "inherit",
-      }}
-    >
-      <span style={{ display: "block", fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>
-        {item.title}
-      </span>
-      <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-mute)", marginTop: 3 }}>
-        {item.companyName}
-      </span>
-      {item.salaryMin !== null && (
-        /* ⚠️ 緑は金銭的にプラスの条件だけ（chipVariant.ts）。ここは年収なので money */
-        <span
-          style={{
-            display: "inline-block", marginTop: 7, padding: "3px 9px", borderRadius: 100,
-            background: money.bg, color: money.color, border: `1px solid ${money.border}`,
-            fontSize: 12, fontWeight: 600,
-          }}
-        >
-          {item.salaryMin}
-          {item.salaryMax !== null && item.salaryMax !== item.salaryMin ? `〜${item.salaryMax}` : ""}万円
+    <div data-state="job-row" style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid var(--line-soft)" }}>
+      <Link href={`/jobs/${item.slug ?? item.id}`} style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+        <CompanyLogo logoUrl={item.logoUrl} name={item.companyName} logoLetter={item.logoLetter} logoGradient={item.logoGradient} size={44} />
+        <span style={{ minWidth: 0, display: "block", flex: 1 }}>
+          <span style={{ display: "block", fontWeight: 700, fontSize: 14.5, color: "var(--ink)", lineHeight: 1.45 }}>
+            {item.title}
+          </span>
+          <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-soft)", marginTop: 2 }}>
+            {item.companyName}
+          </span>
+          {place && (
+            <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>{place}</span>
+          )}
+          {(item.salaryMin !== null || since) && (
+            <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+              {item.salaryMin !== null && (
+                /* ⚠️ 緑は金銭的にプラスの条件だけ（chipVariant.ts）。ここは年収なので money */
+                <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 100, background: money.bg, color: money.color, border: `1px solid ${money.border}`, fontSize: 12, fontWeight: 600 }}>
+                  {item.salaryMin}
+                  {item.salaryMax !== null && item.salaryMax !== item.salaryMin ? `〜${item.salaryMax}` : ""}万円
+                </span>
+              )}
+              {since && <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{since}に掲載</span>}
+            </span>
+          )}
         </span>
-      )}
-    </Link>
+      </Link>
+      <div style={{ flexShrink: 0 }}>
+        <BookmarkButton targetType="job" targetId={item.id} label={item.title} />
+      </div>
+    </div>
   );
 }
 
@@ -426,6 +470,14 @@ export default async function SearchPage({ searchParams }: Props) {
     for (const r of inc.data ?? []) follow.followers.add(r.follower_user_id as string);
   }
 
+  /* ★会社のカードの「あなたのつながりがここで働いています」（2026-10-21）。ログイン中・出す会社だけ（最大6社） */
+  const companyConnections = new Map<string, CompanyConnection[] | null>();
+  if (feed.myUserId && results.company.items.length > 0) {
+    const ids = results.company.items.slice(0, 6).map((c) => c.id);
+    const lists = await Promise.all(ids.map((id) => getCompanyConnections(id, feed.myUserId as string)));
+    ids.forEach((id, i) => companyConnections.set(id, lists[i]));
+  }
+
   return (
     <div style={{ background: "#f0f4f8", minHeight: "70vh" }}>
       <HomeSideShell feed={feed}>
@@ -577,11 +629,17 @@ export default async function SearchPage({ searchParams }: Props) {
                       )}
                     </>
                   ) : (
-                    <div style={GRID}>
-                      {k === "company" && (items as typeof results.company.items).map((it) => <CompanyCard key={it.id} item={it} />)}
-                      {k === "job" && (items as typeof results.job.items).map((it) => <JobCard key={it.id} item={it} />)}
-                      {k === "article" && (items as typeof results.article.items).map((it) => <ArticleCard key={it.id} item={it} />)}
-                    </div>
+                    k === "job" ? (
+                      /* ★募集は1件1行で縦に並べる（2026-10-21） */
+                      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)" }}>
+                        {(items as typeof results.job.items).map((it) => <JobCard key={it.id} item={it} />)}
+                      </div>
+                    ) : (
+                      <div style={GRID}>
+                        {k === "company" && (items as typeof results.company.items).map((it) => <CompanyCard key={it.id} item={it} connections={companyConnections.get(it.id) ?? null} />)}
+                        {k === "article" && (items as typeof results.article.items).map((it) => <ArticleCard key={it.id} item={it} />)}
+                      </div>
+                    )
                   )}
                   {!gated && <Truncated total={res.total} shown={items.length} />}
                 </ResultSection>
