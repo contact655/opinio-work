@@ -51,6 +51,8 @@ import {
   ProfileContentLinksSection,
 } from "@/components/profile/view/ProfileSections";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
+import { ProfileSchoolmatesSection } from "@/components/profile/view/ProfileSchoolmatesSection";
+import { getSchoolmates } from "@/lib/schools/schoolmates";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -185,6 +187,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
 
   /** 閲覧者自身の ow_users.id。未ログインなら null。以降で使い回す */
   const viewerOwUserId = (viewerRowRes.data?.id as string | undefined) ?? null;
+  /* ★同じ学校の人（2026-10-21）。ログイン中・企業向けの右欄（embed）以外でだけ。⚠️ 待ちは下の描画の直前まで遅らせる */
+  const schoolmatesPromise = authUser && !embed ? getSchoolmates(owUser.id, viewerOwUserId) : Promise.resolve([]);
+  schoolmatesPromise.catch(() => {});
 
   /* ★企業からの「声かけ」（2026-10-09）。閲覧者が企業の有効な担当者のときだけ判定する。
         ⚠️★送れない相手にはボタンを出さない（理由も出さない）。判定は送信の API と同じ
@@ -560,6 +565,8 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
     );
   }
 
+  const schoolmates = await schoolmatesPromise;
+
   return (
     <div style={{ background: embed ? "transparent" : "var(--bg-tint)", minHeight: embed ? undefined : "100vh" }}>
       <style>{`
@@ -813,6 +820,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                 ))}
               </ProfileTimelineSection>
             )}
+
+            {/* ★同じ学校の人（2026-10-21 / 柴さんの指示）。学歴の下。ログイン中だけ */}
+            <ProfileSchoolmatesSection groups={schoolmates} />
 
             {/* ★アクティビティ。**学歴の下**に置く（2026-10-17 / 柴さんの判断。それまでは自己紹介と職歴の間）。
                    OPINIO はキャリアが主役なので、職歴・学歴を先に読ませる。並びは /mypage（ProfileTab）と揃える。
