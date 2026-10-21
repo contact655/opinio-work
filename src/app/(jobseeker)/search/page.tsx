@@ -11,6 +11,8 @@ import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { SearchPostCard } from "./SearchPostCard";
+import { SEARCH_EXAMPLES } from "@/lib/search/examples";
+import { RecordRecentSearch } from "./RecordRecentSearch";
 import { NEW_COMPANIES_CSS } from "@/components/feed/NewCompaniesCarousel";
 import { PersonHitCard } from "./PersonHitCard";
 import { searchPostHits } from "@/lib/search/postHits";
@@ -453,6 +455,7 @@ export default async function SearchPage({ searchParams }: Props) {
   return (
     <div style={{ background: "#f0f4f8", minHeight: "70vh" }}>
       <HomeSideShell feed={feed}>
+      {raw.trim() && <RecordRecentSearch q={raw.trim()} />}
       {/* ⚠️ style タグの中に不等号や山かっこを書かないこと（ハイドレーションが壊れる。ui-debugging ⑲） */}
       <style>{`
         .search-tabs { margin-top: 18px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
@@ -883,7 +886,6 @@ function PersonGroups({
  * ⚠️ 例は**実際に結果が出ることば**だけにする（2026-10-21 実測: 営業35・外資系31・セキュリティ4・年収800万円以上2・Salesforce14。
  *    エンジニア・マーケティング・カスタマーサクセスは0件だったので入れていない）。足すときは先に検索して確かめること
  */
-const SEARCH_EXAMPLES = ["営業", "外資系", "セキュリティ", "Salesforce", "年収800万円以上"] as const;
 
 function NextSteps() {
   const pill: React.CSSProperties = {

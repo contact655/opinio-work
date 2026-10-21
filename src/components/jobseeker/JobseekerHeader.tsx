@@ -9,6 +9,7 @@ import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MessagesButton } from "@/components/notifications/MessagesButton";
 import OpinioLogo from "@/components/common/OpinioLogo";
+import { SEARCH_EXAMPLES, readRecentSearches, clearRecentSearches } from "@/lib/search/examples";
 
 /* ⚠️★`highlight` を廃止した（2026-08-30）。**5項目すべて `false` で、
       琥珀色の分岐（デスクトップ・モバイルの2箇所）は一度も描画されていなかった。**
@@ -57,7 +58,9 @@ type SuggestResult = {
   jobs: { id: string; title: string; roleLabel: string | null; href?: string }[];
 };
 
-const POPULAR_QUERIES = ["プロダクトマネージャー", "エンジニア", "カスタマーサクセス", "営業", "フルリモート", "外資系"];
+/* ⚠️★例のことばは lib/search/examples.ts の SEARCH_EXAMPLES（検索結果の0件の画面と同じ）。
+      2026-10-21 まではここに別の6つ（プロダクトマネージャー・エンジニアなど）があり、**4つは押すと0件**だった。
+      見出しも「よく検索されるキーワード」だったが、検索の回数から選んだものではなかった */
 
 /** ⚠️★**ヘッダーの検索の候補パネルは、ここ1箇所だけ。**（2026-10-01）
     デスクトップは入力欄の下のドロップダウン、1024px 未満は🔍から開くオーバーレイで
@@ -69,14 +72,35 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
   onClose: () => void;
   router: ReturnType<typeof useRouter>;
 }) {
+  /* ★最近の検索（このブラウザにだけ残る。開くたびに読み直す） */
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => { setRecent(readRecentSearches()); }, []);
   return (
     <>
-      {/* クエリなし: 人気タグ + クイックリンク */}
+      {/* クエリなし: 最近の検索 + 例のことば + クイックリンク */}
       {!query && (
         <div style={{ padding: "12px 0 20px" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>よく検索されるキーワード</div>
+          {recent.length > 0 && (
+            <div style={{ marginBottom: 18 }} data-state="recent-searches">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em" }}>最近の検索</span>
+                <button type="button" className="btn-fixed-size" onClick={() => { clearRecentSearches(); setRecent([]); }}
+                  style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "var(--ink-mute)", cursor: "pointer" }}>
+                  消す
+                </button>
+              </div>
+              {recent.map((q) => (
+                <button key={q} type="button" onClick={() => { onClose(); router.push(`/search?q=${encodeURIComponent(q)}`); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "7px 8px", borderRadius: 8, border: "none", background: "none", cursor: "pointer", fontSize: 13, color: "var(--ink)", textAlign: "left" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: 10 }}>こんなことばで探せます</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
-            {POPULAR_QUERIES.map((q) => (
+            {SEARCH_EXAMPLES.map((q) => (
               <button key={q} type="button"
                 onClick={() => { onClose(); router.push(`/search?q=${encodeURIComponent(q)}`); }}
                 style={{ padding: "5px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "var(--bg-tint)", fontSize: 12, fontWeight: 500, cursor: "pointer", color: "var(--ink-soft)" }}>
@@ -89,6 +113,7 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
             {[
               { href: "/companies", label: "企業一覧", icon: "🏢" },
               { href: "/jobs",      label: "募集一覧", icon: "💼" },
+              { href: "/people",    label: "ユーザー一覧", icon: "👥" },
               { href: "/articles",  label: "記事",      icon: "📝" },
             ].map(({ href, label, icon }) => (
               <a key={href} href={href} onClick={() => onClose()}
