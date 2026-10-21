@@ -871,7 +871,8 @@ function CommentInput({
   );
 }
 
-function CommentSection({
+/** ⚠️ 検索結果の投稿カード（search/SearchPostCard）からも使う（2026-10-21）。ホームとコメントの挙動を揃えるため */
+export function CommentSection({
   postId,
   myUserId,
   myName,

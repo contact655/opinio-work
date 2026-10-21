@@ -10,8 +10,9 @@ import {
 import { logSearch, resolveOwUserId } from "@/lib/search/searchLog";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
+import { SearchPostCard } from "./SearchPostCard";
 import { PersonHitCard } from "./PersonHitCard";
-import { searchPostHits, type PostHit } from "@/lib/search/postHits";
+import { searchPostHits } from "@/lib/search/postHits";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { loadFeedProps } from "../feed/(list)/loadFeedProps";
 import { HomeSideShell } from "../feed/(list)/FeedClient";
@@ -268,59 +269,6 @@ function ArticleCard({ item }: { item: SearchResults["article"]["items"][number]
   );
 }
 
-/** 抜粋の中の当たった語を太字にする（大文字小文字は区別しない） */
-function Highlight({ text, terms }: { text: string; terms: string[] }) {
-  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).filter(Boolean);
-  if (escaped.length === 0) return <>{text}</>;
-  const parts = text.split(new RegExp(`(${escaped.join("|")})`, "gi"));
-  return (
-    <>
-      {parts.map((p, i) =>
-        terms.some((t) => t.toLowerCase() === p.toLowerCase())
-          ? <strong key={i} style={{ color: "var(--ink)", fontWeight: 700 }}>{p}</strong>
-          : <span key={i}>{p}</span>,
-      )}
-    </>
-  );
-}
-
-/**
- * 投稿のカード（2026-10-21）。押すと投稿の個別ページ（/feed/[id]）。
- * ⚠️ 本文は抜粋だけ。全文は個別ページで読む
- */
-function PostCard({ item }: { item: PostHit }) {
-  const d = new Date(item.createdAt);
-  const date = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-  return (
-    <Link
-      href={`/feed/${item.id}`}
-      style={{
-        display: "flex", gap: 12, alignItems: "flex-start", padding: 14,
-        borderRadius: 12, border: "1px solid var(--line)", background: "#fff",
-        textDecoration: "none", color: "inherit",
-      }}
-    >
-      {item.author.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.author.avatarUrl} alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-      ) : (
-        <span aria-hidden="true" style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: item.author.gradient, color: "#fff", fontWeight: 700, display: "grid", placeItems: "center", fontSize: 14 }}>
-          {item.author.initial}
-        </span>
-      )}
-      <span style={{ minWidth: 0, display: "block", flex: 1 }}>
-        <span style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-          <span style={{ fontWeight: 700, fontSize: 13.5, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.author.name}</span>
-          <span style={{ fontSize: 11.5, color: "var(--ink-mute)", flexShrink: 0 }}>{date}</span>
-        </span>
-        <span style={{ display: "block", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.65, marginTop: 4, overflowWrap: "anywhere" }}>
-          <Highlight text={item.excerpt} terms={item.terms} />
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 /** ★結果の1区切り（白い板）。見出しの右に「すべて表示」を置く（2026-10-21） */
 function ResultSection({
   title, count, moreHref, children,
@@ -401,7 +349,12 @@ export default async function SearchPage({ searchParams }: Props) {
   /* ★投稿は条件ではなく「ことば」で引く。条件が1つも立たなかったときも引く
         （投稿は自由文なので、職種などに読めない語こそ当たりうる）。ログインしているときだけ */
   const posts = raw.trim()
-    ? await searchPostHits(raw, { isLoggedIn, isTest: isLoggedIn ? await viewerIsTestByAuthId(user?.id) : false })
+    ? await searchPostHits(raw, {
+        isLoggedIn,
+        isTest: isLoggedIn ? await viewerIsTestByAuthId(user?.id) : false,
+        /* いいね済みかを出すため（ホームと同じ表を見る） */
+        owUserId: isLoggedIn ? await resolveOwUserId(user?.id ?? null) : null,
+      })
     : { items: [], total: 0 };
   const totalOf = (k: PageKind) => (k === "post" ? posts.total : results[k].total);
 
@@ -611,7 +564,7 @@ export default async function SearchPage({ searchParams }: Props) {
                 return (
                   <ResultSection key={k} title={KIND_LABEL[k]} count={posts.total} moreHref={posts.total > items.length ? moreHref : null}>
                     <div style={{ display: "grid", gap: 10, gridTemplateColumns: "minmax(0, 1fr)" }}>
-                      {items.map((it) => <PostCard key={it.id} item={it} />)}
+                      {items.map((it) => <SearchPostCard key={it.id} item={it} viewer={{ myUserId: feed.myUserId, myName: feed.myName, myAvatarColor: feed.myAvatarColor, myAvatarUrl: feed.myAvatarUrl }} />)}
                     </div>
                     <Truncated total={posts.total} shown={items.length} />
                   </ResultSection>

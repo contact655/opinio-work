@@ -23,6 +23,13 @@ export type PostHit = {
   terms: string[];
   createdAt: string;
   author: { id: string; name: string; initial: string; avatarUrl: string | null; gradient: string };
+  /** ★ホームと同じカードにするための中身（2026-10-21）。本文は全文（カード側で畳む） */
+  content: string;
+  imageUrl: string | null;
+  link: { url: string; title: string | null; imageUrl: string | null; description: string | null; domain: string | null } | null;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
 };
 
 const POST_LIMIT = 24;
@@ -49,14 +56,15 @@ function excerptAround(content: string, terms: string[]): string {
 
 export async function searchPostHits(
   raw: string,
-  viewer: { isLoggedIn: boolean; isTest: boolean },
+  viewer: { isLoggedIn: boolean; isTest: boolean; owUserId?: string | null },
 ): Promise<{ items: PostHit[]; total: number }> {
   const terms = splitTerms(raw);
   if (!viewer.isLoggedIn || terms.length === 0) return { items: [], total: 0 };
 
-  let q = createAdminClient()
+  const db = createAdminClient();
+  let q = db
     .from("ow_posts_visible")
-    .select("id, content, created_at, visibility, user:ow_users!user_id(id, name, avatar_url, avatar_color, visibility, is_test, is_system, auth_id)")
+    .select("id, content, created_at, visibility, image_url, link_url, link_title, link_image_url, link_description, link_domain, likes:ow_post_likes(count), comments:ow_post_comments(count), user:ow_users!user_id(id, name, avatar_url, avatar_color, visibility, is_test, is_system, auth_id)")
     .eq("post_type", "user_post");
   for (const t of terms) q = q.ilike("content", `%${escapeLike(t)}%`);
   const { data, error } = await q.order("created_at", { ascending: false }).limit(200);
@@ -71,7 +79,16 @@ export async function searchPostHits(
     const a = (Array.isArray(r.user) ? r.user[0] : r.user) as unknown as Author | null;
     if (!a || !a.name || !isRegisteredUser(a)) continue;
     if (!isPostVisibleTo({ postVisibility: r.visibility as string | null, author: a }, true, viewer.isTest)) continue;
+    const count = (x: unknown) => (Array.isArray(x) && typeof x[0]?.count === "number" ? (x[0].count as number) : 0);
     hits.push({
+      content: (r.content as string) ?? "",
+      imageUrl: (r.image_url as string | null) ?? null,
+      link: r.link_url
+        ? { url: r.link_url as string, title: (r.link_title as string | null) ?? null, imageUrl: (r.link_image_url as string | null) ?? null, description: (r.link_description as string | null) ?? null, domain: (r.link_domain as string | null) ?? null }
+        : null,
+      likeCount: count(r.likes),
+      commentCount: count(r.comments),
+      likedByMe: false,
       id: r.id as string,
       excerpt: excerptAround((r.content as string) ?? "", terms),
       terms,
@@ -82,5 +99,14 @@ export async function searchPostHits(
       },
     });
   }
-  return { items: hits.slice(0, POST_LIMIT), total: hits.length };
+  const items = hits.slice(0, POST_LIMIT);
+  /* ★自分がいいねしたか（ホームと同じ表）。⚠️ 失敗しても「押していない」に倒すだけ（ログは出す） */
+  if (viewer.owUserId && items.length > 0) {
+    const { data: liked, error: likedErr } = await db.from("ow_post_likes").select("post_id")
+      .eq("user_id", viewer.owUserId).in("post_id", items.map((i) => i.id));
+    if (likedErr) console.error("[searchPostHits] liked:", likedErr.message);
+    const set = new Set(((liked ?? []) as { post_id: string }[]).map((x) => x.post_id));
+    for (const it of items) it.likedByMe = set.has(it.id);
+  }
+  return { items, total: hits.length };
 }
