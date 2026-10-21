@@ -58,12 +58,16 @@ function pickNextStep(d: {
   hasAboutMe: boolean;
   hasHeadline: boolean;
   educationCount: number;
+  /** 学校名を手で打った（学校の一覧につながっていない）学歴の件数 */
+  freeTextEducationCount: number;
 }): { label: string; href: string } | null {
   if (d.experienceCount === 0) return { label: "職歴を追加する", href: "/mypage" };
   if (!d.hasAvatar) return { label: "プロフィール写真を追加する", href: "/mypage" };
-  /* ★学歴は写真の次（2026-10-21。それまでは最後）。同じ学校の人が見つかるようになったので、埋める理由を一言添える。
-     ⚠️ 学校名を手で打った人に「一覧から選び直す」を出すのは、大学を学校の一覧に入れてから（いまは大学が32校しか無く、選び直せない人が多い） */
+  /* ★学歴は写真の次（2026-10-21。それまでは最後）。同じ学校の人が見つかるようになったので、埋める理由を一言添える */
   if (d.educationCount === 0) return { label: "学歴を追加して、同じ学校の人を見つける", href: "/mypage" };
+  /* ★学校名を手で打った学歴は、学校のページにも「同じ学校の人」にもつながらない（2026-10-21。大学826校を一覧に入れた日に足した）。
+     ⚠️ 運営がつなぎ直さない。本人に一覧から選び直してもらう（本人の学歴を書き換えないため / 柴さんの判断） */
+  if (d.freeTextEducationCount > 0) return { label: "学歴の学校を一覧から選んで、同じ学校の人を見つける", href: "/mypage" };
   if (!d.hasHeadline) return { label: "肩書きを1行で書く", href: "/mypage" };
   if (!d.hasAboutMe) return { label: "自己紹介を書く", href: "/mypage" };
   /* ⚠️ 全部埋まっていたら **null**。「完了！」を出さない（達成の演出は情報を増やさない） */
@@ -73,7 +77,7 @@ function pickNextStep(d: {
 export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSidebarData | null> {
   const db = createAdminClient();
 
-  const [userRes, expRes, eduRes, companyFollowRes, savedJobRes, counts, roleTree] = await Promise.all([
+  const [userRes, expRes, eduRes, freeEduRes, companyFollowRes, savedJobRes, counts, roleTree] = await Promise.all([
     db.from("ow_users").select("id, name, avatar_url, avatar_color, headline, about_me").eq("id", owUserId).maybeSingle(),
     /* ⚠️★**並び順を指定すること**（2026-09-18）。下で `find(is_current)` が
           **配列の先頭の現職**を代表に採るので、順序を空けると
@@ -90,6 +94,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       .order("started_at", { ascending: false })
       .order("id", { ascending: true }),
     db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owUserId),
+    db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owUserId).is("school_id", null),
     db.from("ow_company_follows").select("id", { count: "exact", head: true }).eq("follower_user_id", owUserId),
     /* ★保存した募集（♡）。⚠️ **フォローではない。** 募集に「フォロー」は存在せず、
           `ow_bookmarks` の `target_type='job'` が唯一の実体（2026-09-18 に確認）。
@@ -105,6 +110,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
   if (userRes.error) console.error("[peopleSidebar ow_users]", userRes.error.message);
   if (expRes.error) console.error("[peopleSidebar ow_experiences]", expRes.error.message);
   if (eduRes.error) console.error("[peopleSidebar ow_user_educations]", eduRes.error.message);
+  if (freeEduRes.error) console.error("[peopleSidebar ow_user_educations free]", freeEduRes.error.message);
   if (companyFollowRes.error) console.error("[peopleSidebar ow_company_follows]", companyFollowRes.error.message);
   if (savedJobRes.error) console.error("[peopleSidebar ow_bookmarks]", savedJobRes.error.message);
 
@@ -151,6 +157,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       hasAboutMe: !!(u.about_me as string | null)?.trim(),
       hasHeadline: !!(u.headline as string | null)?.trim(),
       educationCount: eduRes.count ?? 0,
+      freeTextEducationCount: freeEduRes.count ?? 0,
     }),
     myRole: topRole?.slug ? { slug: topRole.slug, label: topRole.name } : null,
     myCompanyIds: Array.from(new Set(exps.flatMap((e) => (e.company_id ? [e.company_id as string] : [])))),

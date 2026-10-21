@@ -177,6 +177,25 @@ function EducationForm({
           disabled={isSaving}
           style={ef()}
         />
+        {/* ★手で打った学校名と同じ名前の学校が一覧にあるとき、つなぐボタンを出す（2026-10-21）。
+               大学を一覧に入れる前に手で打った人は、名前が一致していても一覧の学校につながっていない（school_id が null）。
+               ⚠️ 自動ではつながない（同じ名前の別の学校がありうる・本人が選ぶ）。押したあと保存して初めて変わる */}
+        {!draft.school_id && (() => {
+          const same = candidates.filter((c) => c.name === draft.school.trim());
+          if (same.length === 0) return null;
+          return (
+            <div data-state="edu-link-master" style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>一覧にあります:</span>
+              {same.map((c) => (
+                <button key={c.id} type="button" className="btn-fixed-size" disabled={isSaving}
+                  onClick={() => onDraftChange({ ...draft, school: c.name, school_id: c.id })}
+                  style={{ padding: "4px 10px", borderRadius: 999, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  「{c.name}」{schoolOptionLabel(c) ? `（${schoolOptionLabel(c)}）` : ""}とつなぐ
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         <datalist id="school-options">
           {candidates.map((s) => (
             /* ⚠️★`label` は**見分けるための補助**。`value`（校名）は汚さない。
