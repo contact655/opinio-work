@@ -2811,12 +2811,14 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 .lt-chip-row { padding-bottom: 10px; }
 /* ★広い画面（1024px 以上）では3行を1行にまとめる（2026-10-21 / 柴さんの指摘。/people の上部が約190px あり、
      貼り付いたまま画面の4分の1を覆っていた）。[検索欄][条件のチップ] …… [件数][表示の切替][並び替え]
-   ⚠️ いまは /people だけ（.lt-compact を付けた画面だけ）。スマホ・タブレットは従来の3行のまま */
+   ⚠️★絞り込みのパネル（.ds-panel。1024px 以上はページ内に開く）か、選択中の条件（.csb-active-chips）が出ているあいだは
+      従来の3行に戻す。1行のままだとパネルが条件の列の幅に押し込まれる（/companies・/jobs）
+   ⚠️ 対象は .lt-compact を付けた画面（/people・/companies・/jobs）。スマホ・タブレットは従来の3行のまま */
 @media (min-width: 1024px) {
-  .lt-compact { display: flex; align-items: center; gap: 12px; }
-  .lt-compact > .lt-search-row { padding: 0; flex: 0 1 340px; min-width: 0; }
-  .lt-compact > .lt-chip-row { padding-bottom: 0; flex: 0 1 auto; min-width: 0; }
-  .lt-compact > .lt-result-row { padding: 0; border-top: none; margin-left: auto; flex-shrink: 0; gap: 14px; }
+  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) { display: flex; align-items: center; gap: 12px; }
+  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-search-row { padding: 0; flex: 0 1 340px; min-width: 0; }
+  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-chip-row { padding-bottom: 0; flex: 0 1 auto; min-width: 0; }
+  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-result-row { padding: 0; border-top: none; margin-left: auto; flex-shrink: 0; gap: 14px; }
 }
 .sort-select-btn.sort-select-btn--text { border: none; background: none; height: auto; min-height: 0; padding: 4px 0; gap: 3px; font-size: 13px; color: var(--ink); }
 .sort-select-btn.sort-select-btn--text:hover { background: none; color: var(--royal); }

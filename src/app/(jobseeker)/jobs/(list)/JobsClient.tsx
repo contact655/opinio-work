@@ -1029,7 +1029,8 @@ export default function JobsClient({
           {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar。/companies と同じ形）。
                  1行目 検索欄（常に開いている）／2行目 絞り込み＋よく使う条件（職種・勤務地・年収・働き方）／3行目 件数と並び替え
               ⚠️ 外側クリックで条件のメニューを閉じる判定は filterPillsRef（この3行の入れ物）で見ている */}
-          <div ref={filterPillsRef}>
+          {/* ★lt-compact: 1024px 以上では検索・条件・件数を1行にまとめる（2026-10-21。globals.css） */}
+          <div ref={filterPillsRef} className="lt-compact">
           <div className="lt-search-row">
             <ListSearchButton
               alwaysOpen
@@ -1047,7 +1048,8 @@ export default function JobsClient({
 
           {/* ★折り返しは CSS（`.list-toolbar`）が持つ。スマホでは1行に並べて横にスクロール（2026-10-17）。
                 ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}
-          <div className="list-toolbar list-toolbar--wrap" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 0 10px" }}>
+          {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
+          <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* ⚠️★ボタンだけを1つの flex item にする（2026-09-09。開閉でボタンが左右に動かないように） */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <DetailSearchToggle

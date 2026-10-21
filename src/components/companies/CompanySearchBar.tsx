@@ -190,7 +190,8 @@ export function CompanySearchBar({
   return (
     <>
 
-      <div ref={wrapRef} style={{ marginBottom: 0 }}>
+      {/* ★lt-compact: 1024px 以上では検索・条件・件数を1行にまとめる（2026-10-21。globals.css）。⚠️ sortBar をこの直下に置くこと */}
+      <div ref={wrapRef} className="lt-compact" style={{ marginBottom: 0 }}>
         {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar）。
                1行目 検索欄（常に開いている）／2行目 絞り込み＋条件のチップ／3行目 件数と並び替え（sortBar） */}
         <div className="lt-search-row">
@@ -208,7 +209,8 @@ export function CompanySearchBar({
           />
         </div>
         {/* ★`list-toolbar`: スマホでは1行に並べ、横にスクロールする（2026-10-17。globals.css 末尾） */}
-        <div className="csb-bar list-toolbar" style={{ paddingTop: 0, paddingBottom: 10 }}>
+        {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
+        <div className="csb-bar list-toolbar lt-chip-row" style={{ paddingTop: 0 }}>
 
           {/* ⚠️ 「一覧内を検索」のボタンは 2026-10-20 に上の行（常に開いた検索欄）へ移した */}
 
