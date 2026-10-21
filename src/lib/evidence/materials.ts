@@ -1,4 +1,5 @@
 /* ★サーバー専用。admin クライアントを使う */
+import { readAll } from "@/lib/supabase/paging";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMoves, countMovesInto } from "@/lib/evidence/transitions";
@@ -52,8 +53,11 @@ export async function getEvidenceMaterials(companyId: string): Promise<EvidenceM
   const [{ data: expRows, error: expErr }, { count: jobs, error: jobErr }, { count: roles, error: roleErr }] = await Promise.all([
     /* ⚠️ 移ってきた方は「前の会社 → 御社」の隣接ペアなので、御社以外の職歴も要る（全件を引く。
           `/admin/evidence-gaps` と同じ。2026-10-10 時点で数十行） */
-    db.from("ow_experiences")
-      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, join_reasons, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)"),
+    /* ★1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("evidence/materials experiences", (f, t) => db.from("ow_experiences")
+      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, join_reasons, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)")
+      .order("id")
+      .range(f, t)),
     db.from("ow_jobs").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).eq("status", "published").eq("is_test", co.is_test === true),
     db.from("ow_company_job_roles").select("id", { count: "exact", head: true })

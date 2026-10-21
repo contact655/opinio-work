@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyEmployees } from "@/lib/supabase/queries";
 import { getDirectoryPeople } from "@/lib/people/directory";
@@ -63,7 +64,8 @@ export async function getPublicFaces(): Promise<PublicFace[] | null> {
   const [{ data: companies, error: cErr }, { data: expRows, error: eErr }] =
     await Promise.all([
       filterVisibleCompaniesStrict(admin.from("ow_companies").select("id, name")),
-      admin.from("ow_experiences").select("company_id").not("company_id", "is", null),
+      /* ★1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+      readAll("publicFaces experiences", (f, t) => admin.from("ow_experiences").select("company_id").not("company_id", "is", null).order("id").range(f, t)),
     ]);
 
   if (cErr || eErr) {

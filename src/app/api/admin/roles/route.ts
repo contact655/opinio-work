@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,11 +30,12 @@ export async function GET() {
     /* ⚠️ display_order を返すこと。/admin/roles は大分類ごとのセクション表示で、
        並び順は display_order を正にしている（五十音順にしない）。 */
     admin.from("ow_roles").select("id, name, slug, parent_id, level, is_active, is_it_saas, merged_into_id, display_order").order("level").order("display_order", { nullsFirst: false }).order("name"),
-    admin.from("ow_role_aliases").select("role_id"),
+    /* ★件数が増える表は1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("admin/roles aliases", (f, t) => admin.from("ow_role_aliases").select("role_id").order("id").range(f, t)),
     admin.from("ow_roles").select("id, name").eq("is_active", true),
-    admin.from("ow_experiences").select("id, role_category_id").not("role_category_id", "is", null),
-    admin.from("ow_jobs").select("id, role_category_id").not("role_category_id", "is", null),
-    admin.from("ow_job_roles").select("job_id, role_id"),
+    readAll("admin/roles experiences", (f, t) => admin.from("ow_experiences").select("id, role_category_id").not("role_category_id", "is", null).order("id").range(f, t)),
+    readAll("admin/roles jobs", (f, t) => admin.from("ow_jobs").select("id, role_category_id").not("role_category_id", "is", null).order("id").range(f, t)),
+    readAll("admin/roles job_roles", (f, t) => admin.from("ow_job_roles").select("job_id, role_id").order("job_id").order("role_id").range(f, t)),
   ]);
 
   for (const [label, res] of [
