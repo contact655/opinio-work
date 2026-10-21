@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { fetchOgp } from "@/lib/og/fetchOgp";
 import { inferTypeFromUrl, type ContentType } from "@/lib/og/inferType";
 import { createAdminPost } from "./_actions/createAdminPost";
@@ -541,16 +541,16 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
             </thead>
             <tbody>
               {filteredPosts.map((post) => (
-                <>
+                /* ⚠️ key は外側の Fragment に付ける（中の行に付けても React は見分けに使わない） */
+                <Fragment key={post.id}>
                   <AdminPostRow
-                    key={post.id}
                     post={post}
                     isPending={isPending}
                     onEdit={() => handleEdit(post)}
                     onDelete={() => handleDelete(post.id)}
                   />
                   {pendingDeleteId === post.id && (
-                    <tr key={`${post.id}-confirm`} className="bg-red-50">
+                    <tr className="bg-red-50">
                       <td colSpan={6} className="px-4 py-3 border-b border-red-200">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-red-700">
@@ -576,7 +576,7 @@ export default function PostsAdminClient({ companies, initialPosts }: Props) {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
