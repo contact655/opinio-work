@@ -57,6 +57,7 @@ import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import { createPublicClient } from "@/lib/supabase/public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SEARCHABLE_SCHOOL_TYPES } from "@/lib/constants/schools";
+import { SCHOOL_ALIASES } from "@/lib/constants/schoolAliases";
 import { PREFECTURES } from "@/lib/utils/location";
 
 const PREFECTURE_STEMS = new Set(PREFECTURES.map((p) => p.replace(/[都道府県]$/, "")));
@@ -418,7 +419,8 @@ type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_
  * ⚠️ 「慶應」→慶應義塾大学 のような通称は作れない（名前から機械的に導けないため）。要るなら別名の表が要る
  */
 function schoolSearchNames(name: string, type: string | null): string[] {
-  const out = new Set<string>([name]);
+  /* ★通称（「慶應」「早大」など）は lib/constants/schoolAliases.ts に書いたものだけ */
+  const out = new Set<string>([name, ...(SCHOOL_ALIASES[name] ?? [])]);
   const noPref = name.replace(/^(?:.{2,3}?[都道府県]立|.{1,4}?[市区町村]立|国立|私立)/, "");
   if (type === "university") {
     const stem = name.replace(/大学$/, "");

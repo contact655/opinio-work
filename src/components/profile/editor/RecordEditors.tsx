@@ -31,6 +31,7 @@ import { RoleSearchSelect, type RoleOption } from "@/components/ui/RoleSearchSel
 import { SKILL_CATEGORIES, MAX_USER_SKILLS, skillCategoryRank } from "@/lib/constants/skills";
 import { MAX_USER_LANGUAGES } from "@/lib/constants/languages";
 import { SCHOOL_SUGGEST_LIMIT, MIN_SCHOOL_QUERY_LENGTH, schoolOptionLabel } from "@/lib/constants/schools";
+import { SCHOOL_ALIAS_TO_NAME } from "@/lib/constants/schoolAliases";
 import { createClient } from "@/lib/supabase/client";
 
 type EducationDraft = {
@@ -123,7 +124,8 @@ function EducationForm({
       createClient()
         .from("ow_schools")
         .select("id, name, name_kana, prefecture, closed_at, logo_letter, logo_gradient, logo_url, type")
-        .or(`name.ilike.%${safe}%,name_kana.ilike.%${safe}%`)
+        /* ★通称（「早大」「慶應」など）で打ったときは、正式名の学校も候補に入れる（lib/constants/schoolAliases.ts） */
+        .or([`name.ilike.%${safe}%`, `name_kana.ilike.%${safe}%`, ...(SCHOOL_ALIAS_TO_NAME.has(safe.toLowerCase()) ? [`name.eq.${SCHOOL_ALIAS_TO_NAME.get(safe.toLowerCase())}`] : [])].join(","))
         .order("name", { ascending: true })
         .limit(SCHOOL_SUGGEST_LIMIT)
         .then(({ data, error }) => {
@@ -200,7 +202,11 @@ function EducationForm({
                大学を一覧に入れる前に手で打った人は、名前が一致していても一覧の学校につながっていない（school_id が null）。
                ⚠️ 自動ではつながない（同じ名前の別の学校がありうる・本人が選ぶ）。押したあと保存して初めて変わる */}
         {!draft.school_id && (() => {
-          const same = candidates.filter((c) => c.name === draft.school.trim());
+          /* ★通称（「早大」など）で打ったときは正式名の学校を出す。⚠️ ブラウザの候補一覧は打った文字を含むものしか出さないので、
+                通称では一覧に出てこない。ここで出す（自動ではつながない＝打ちかけで名前が書き換わらないように） */
+          const typed = draft.school.trim();
+          const official = SCHOOL_ALIAS_TO_NAME.get(typed.toLowerCase());
+          const same = candidates.filter((c) => c.name === typed || (official !== undefined && c.name === official));
           if (same.length === 0) return null;
           return (
             <div data-state="edu-link-master" style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
