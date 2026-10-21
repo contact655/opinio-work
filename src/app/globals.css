@@ -2831,3 +2831,10 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .dm-action-label { display: none; }
 }
 
+
+/* ★一覧の上部（検索・条件・件数）をスマホで下へスクロールしたら隠す（2026-10-21）。付け外しは lib/hooks/useHideOnScroll.ts
+   ⚠️ 隠すのは 767px 以下だけ（フックの側でも同じ境目で見ている） */
+.lt-sticky { transition: transform 0.2s ease; will-change: transform; }
+@media (max-width: 767px) {
+  .lt-sticky.lt-sticky--hidden { transform: translateY(calc(-100% - 2px)); }
+}

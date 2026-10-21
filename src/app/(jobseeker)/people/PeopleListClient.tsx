@@ -15,6 +15,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
+import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -793,6 +794,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   useEffect(() => { setKwDraft(keyword); }, [keyword]);
   const [openChip, setOpenChip] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  /* ★スマホで下へスクロールしたら上部を隠す（2026-10-21） */
+  useHideOnScroll(wrapRef);
 
   useEffect(() => {
     function onOutside(e: MouseEvent) {
@@ -935,6 +938,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       {/* ── 検索 + フィルタバー ── */}
       <div
         ref={wrapRef}
+        className="lt-sticky"
         style={{
           position: "sticky", top: 60, zIndex: 30,
           background: "#fff",

@@ -47,6 +47,7 @@ import { CompanySplitLayout } from "@/components/companies/CompanySplitLayout";
 import { JobCardGrid } from "@/components/jobs/JobCardGrid";
 import { ViewToggle } from "@/components/common/ViewToggle";
 import { SortSelect } from "@/components/common/SortSelect";
+import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -871,6 +872,8 @@ export default function JobsClient({
      ⚠️ 分割しない幅では誰もこの変数を読まない（CSS が `@media` の中にある）ので、
         測っておくだけで害は無い。 */
   const toolbarRef = useRef<HTMLDivElement>(null);
+  /* ★スマホで下へスクロールしたら上部を隠す（2026-10-21） */
+  useHideOnScroll(toolbarRef);
   const [splitTop, setSplitTop] = useState(162);
   useEffect(() => {
     const el = toolbarRef.current;
@@ -1009,6 +1012,7 @@ export default function JobsClient({
              変数に寄せるなら5画面まとめて直すこと。ここだけ変えると段差になる。 */}
       <div
         ref={toolbarRef}
+        className="lt-sticky"
         style={{
           background: "#fff",
           borderBottom: "1px solid var(--line)",

@@ -1,3 +1,4 @@
+import { StickyListBar } from "@/components/common/StickyListBar";
 import type { Metadata } from "next";
 import { TestCompaniesSection } from "@/components/testView/TestCompaniesSection";
 import { Suspense } from "react";
@@ -319,7 +320,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
           ⚠️★**並び替えと件数はここが決める**（2026-10-09 から絞り込み中も出す）。
              `CompanySearchBar` は置き場所を貸すだけ。**判定を2箇所に増やさないこと。**
           ⚠️ 上の余白を 20px から 12px に詰めた。詰めすぎると検索窓がヘッダーに貼り付く。 */}
-      <div style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
+      {/* ★スマホで下へスクロールしたら隠す（2026-10-21。StickyListBar） */}
+      <StickyListBar style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "12px 0 0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", position: "sticky", top: 60, zIndex: 30 }}>
         <div className="mx-auto page-gutter" style={{ maxWidth: "var(--max-w-page)" }}>
           <Suspense>
             <CompanySearchBar
@@ -337,7 +339,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
             />
           </Suspense>
         </div>
-      </div>
+      </StickyListBar>
     </div>
 
     <div style={{ background: "#f0f4f8" }}>
