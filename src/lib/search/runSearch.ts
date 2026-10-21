@@ -28,6 +28,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/paging";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
@@ -179,6 +180,18 @@ export type SearchResults = {
 /** 一覧に出す上限。**超えた分は total に出す**（黙って切らない） */
 const HIT_LIMIT = 24;
 
+/**
+ * ★表を全件読むときはこれを通す（2026-10-22）。PostgREST は1回1,000行で**黙って切れる**ので、1,000行ずつ最後まで読む。
+ *   利用者・職歴・会社が1,000行を超えた日に、検索から人や会社が静かに抜け始めるのを防ぐ（lib/supabase/paging.ts）。
+ * ⚠️ build は毎回新しい問い合わせを組み、並び順（一意になる列）と `.range(from, to)` を付けること
+ * ⚠️ 戻りは supabase と同じ形（data / error）。呼び出し側の error の扱いはそのまま
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function readAll(label: string, build: (from: number, to: number) => PromiseLike<{ data: any[] | null; error: { message: string } | null }>) {
+  const r = await fetchAllRows(build, `runSearch ${label}`);
+  return { data: r.data, error: r.error ? { message: r.error } : null };
+}
+
 /*
  * ★集計を出してよい下限（未ログインの人検索）。
  *
@@ -298,8 +311,8 @@ async function companyIdsByRole(roleIds: string[]): Promise<string[]> {
   const [expRes, jobRoleRes] = await Promise.all([
     /* 在籍者。⚠️ admin で引くのは `login_only` の人の在籍も企業の絞り込みには
           使ってよいため（人そのものは出さない。企業が出るだけ）。 */
-    admin.from("ow_experiences").select("company_id, role_category_id"),
-    admin.from("ow_job_roles").select("job_id, role_id"),
+    readAll("companyIdsByRole experiences", (f, t) => admin.from("ow_experiences").select("company_id, role_category_id").order("id").range(f, t)),
+    readAll("companyIdsByRole job_roles", (f, t) => admin.from("ow_job_roles").select("job_id, role_id").order("job_id").order("role_id").range(f, t)),
   ]);
   if (expRes.error) console.error("[companyIdsByRole] experiences:", expRes.error.message);
   if (jobRoleRes.error) console.error("[companyIdsByRole] job_roles:", jobRoleRes.error.message);
@@ -378,9 +391,9 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
   const tree = await getRoleTree();
 
   /* 掲載中の企業に限る。⚠️ 求人が published でも企業が非掲載なら出さない。 */
-  const { data: compRows, error: compErr } = await filterListedCompanies(
+  const { data: compRows, error: compErr } = await readAll("searchJobHits companies", (f, t) => filterListedCompanies(
     admin.from("ow_companies").select("id, slug, name, name_en, is_foreign, logo_url, logo_letter, logo_gradient"),
-  );
+  ).order("id").range(f, t));
   if (compErr) console.error("[searchJobHits] companies:", compErr.message);
   const companies = new Map(
     ((compRows ?? []) as Record<string, unknown>[]).map((c) => [c.id as string, c]),
@@ -412,7 +425,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
   const roleConds = cond.filter((c) => c.kind === "role") as Extract<Condition, { kind: "role" }>[];
   const roleJobSets: Set<string>[] = [];
   if (roleConds.length > 0) {
-    const { data, error } = await admin.from("ow_job_roles").select("job_id, role_id");
+    const { data, error } = await readAll("searchJobHits job_roles", (f, t) => admin.from("ow_job_roles").select("job_id, role_id").order("job_id").order("role_id").range(f, t));
     if (error) console.error("[searchJobHits] job_roles:", error.message);
     const byJob = new Map<string, string[]>();
     for (const r of data ?? []) {
@@ -515,24 +528,24 @@ export async function searchPersonHits(
   const [userRes, expRes, foreignRes, domainRes, skillRes, langRes, eduRes] = await Promise.all([
     /* ⚠️★`auth_id` を落とさないこと。落とすと `undefined` になり
           `isRegisteredUser` が**全員 false** を返して、人の検索が丸ごと空になる。 */
-    db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, auth_id"),
-    db
+    readAll("person users", (f, t) => db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, auth_id").order("id").range(f, t)),
+    readAll("person experiences", (f, t) => db
       .from("ow_experiences")
       .select(
         `user_id, is_current, started_at, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`,
-      ),
-    db.from("ow_companies").select("id, is_foreign"),
-    db.from("ow_company_business_domains").select("company_id, domain_id"),
+      ).order("id").range(f, t)),
+    readAll("person companies", (f, t) => db.from("ow_companies").select("id, is_foreign").order("id").range(f, t)),
+    readAll("person domains", (f, t) => db.from("ow_company_business_domains").select("company_id, domain_id").order("company_id").order("domain_id").range(f, t)),
     /* ★人が持つスキル。⚠️ `matchOn: "person"` の条件はここから判定する。
           職歴とは無関係なので `experienceMatches` には渡さない。 */
-    db.from("ow_user_skills").select("user_id, skill_id"),
+    readAll("person skills", (f, t) => db.from("ow_user_skills").select("user_id, skill_id").order("id").range(f, t)),
     /* ★人が話せる言語（2026-08-27）。スキルと同じく `matchOn: "person"`。
           ⚠️ 引くのは `language_id`。**`name` では引かない**——あれはマスタの
              複製で、正は `language_id`（docs/todo.md）。 */
-    db.from("ow_user_languages").select("user_id, language_id"),
+    readAll("person languages", (f, t) => db.from("ow_user_languages").select("user_id, language_id").order("id").range(f, t)),
     /* ★卒業年月（2026-10-21）。「新卒」と書いてよいかの根拠にだけ使う（buildMatchReason） */
     /* ★学校の条件（2026-10-21）にも使うので卒業年月が無い行も引く（「新卒」の判定は gradsByUser が卒業年月のある行だけを見る） */
-    db.from("ow_user_educations").select("user_id, graduated_at, school_id, is_current, faculty"),
+    readAll("person educations", (f, t) => db.from("ow_user_educations").select("user_id, graduated_at, school_id, is_current, faculty").order("id").range(f, t)),
   ]);
   for (const [label, res] of Object.entries({
     users: userRes, experiences: expRes, companies: foreignRes, domains: domainRes,
@@ -900,7 +913,7 @@ export async function skillBandsForCompanies(conditions: Condition[]): Promise<S
   const [{ data: links, error: linkErr }, { data: users, error: userErr }] = await Promise.all([
     db.from("ow_user_skills").select("user_id, skill_id").in("skill_id", skills.map((s) => s.id)),
     /* ⚠️ `auth_id` を落とさない（`searchPersonHits` と同じ理由） */
-    db.from("ow_users").select("id, visibility, is_test, is_system, auth_id"),
+    readAll("skillBands users", (f, t) => db.from("ow_users").select("id, visibility, is_test, is_system, auth_id").order("id").range(f, t)),
   ]);
   if (linkErr) console.error("[skillBandsForCompanies] ow_user_skills:", linkErr.message);
   if (userErr) console.error("[skillBandsForCompanies] ow_users:", userErr.message);
