@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import { PeopleCardRow, JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
+import { FollowUserButton } from "../../u/[id]/FollowUserButton";
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -51,6 +52,10 @@ type Props = {
   listable?: boolean;
   /** ★「〈学校〉を出た人の、いま」（サーバーで描いた DestinationsBlock。無ければ null） */
   destinations?: React.ReactNode;
+  /** ★フォローボタン（ログイン中のときだけ。自分のカードには出さない） */
+  viewerId?: string | null;
+  following?: string[];
+  followers?: string[];
 };
 type Tab = "graduates" | "posts";
 
@@ -195,22 +200,32 @@ function PostsEmptyState() {
  *   2行目は、卒業生ならいまの会社と職種、在学中なら学部。
  * ⚠️ 「メッセージ」ボタンは付けない（JobPeopleCards の注記と同じ理由）
  */
-function SchoolPersonCard({ g }: { g: Graduate }) {
+type FollowState = { viewerId: string | null; following: Set<string>; followers: Set<string> };
+
+function SchoolPersonCard({ g, f }: { g: Graduate; f: FollowState }) {
   const now = [g.currentCompany, g.currentRoleTitle].filter(Boolean).join(" / ");
   const second = g.isCurrent ? (g.faculty ?? "") : (now || subText(g));
   return (
-    <a href={`/u/${g.userId}`} className="jpc-card" data-state="school-person-card" title={[g.name, second, g.isCurrent ? null : subText(g)].filter(Boolean).join(" / ")}>
-      <span className="jpc-avatar" style={{ background: g.avatarUrl ? undefined : AVATAR_COLOR.bg, color: AVATAR_COLOR.text }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {g.avatarUrl ? <img src={g.avatarUrl} alt="" /> : g.avatarInitial}
-      </span>
-      <span className="jpc-name">{g.name}</span>
-      <span className="jpc-role">{second}</span>
-    </a>
+    <div className="jpc-card" data-state="school-person-card">
+      {/* ⚠️ ボタンをリンクの中に入れない（押したらプロフィールへ飛んでしまう） */}
+      <a href={`/u/${g.userId}`} className="jpc-link" title={[g.name, second, g.isCurrent ? null : subText(g)].filter(Boolean).join(" / ")}>
+        <span className="jpc-avatar" style={{ background: g.avatarUrl ? undefined : AVATAR_COLOR.bg, color: AVATAR_COLOR.text }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {g.avatarUrl ? <img src={g.avatarUrl} alt="" /> : g.avatarInitial}
+        </span>
+        <span className="jpc-name">{g.name}</span>
+        <span className="jpc-role">{second}</span>
+      </a>
+      {f.viewerId && f.viewerId !== g.userId && (
+        <div className="jpc-act" style={{ justifyContent: "center" }}>
+          <FollowUserButton targetUserId={g.userId} initialFollowed={f.following.has(g.userId)} followsMe={f.followers.has(g.userId)} isAuthenticated compact />
+        </div>
+      )}
+    </div>
   );
 }
 
-function PeopleGroup({ title, list }: { title: string; list: Graduate[] }) {
+function PeopleGroup({ title, list, f }: { title: string; list: Graduate[]; f: FollowState }) {
   if (list.length === 0) return null;
   return (
     <section data-state="school-people-group" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 24px 18px", marginBottom: 16, overflow: "hidden" }}>
@@ -218,7 +233,7 @@ function PeopleGroup({ title, list }: { title: string; list: Graduate[] }) {
         {title}<span style={{ marginLeft: 6, fontSize: 13, fontWeight: 500, color: "var(--ink-mute)" }}>({list.length}名)</span>
       </div>
       <PeopleCardRow count={list.length}>
-        {list.map((g) => <SchoolPersonCard key={g.userId} g={g} />)}
+        {list.map((g) => <SchoolPersonCard key={g.userId} g={g} f={f} />)}
       </PeopleCardRow>
     </section>
   );
@@ -226,8 +241,9 @@ function PeopleGroup({ title, list }: { title: string; list: Graduate[] }) {
 
 // ─── メインコンポーネント ─────────────────────────────────────────────────────
 
-export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false, listable = true, destinations = null }: Props) {
+export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = false, listable = true, destinations = null, viewerId = null, following = [], followers = [] }: Props) {
   const [tab, setTab] = useState<Tab>("graduates");
+  const f: FollowState = { viewerId, following: new Set(following), followers: new Set(followers) };
 
   return (
     <>
@@ -296,8 +312,8 @@ export default function SchoolGraduatesClient({ graduates, posts, isLoggedIn = f
           /* ★在学中・卒業生に分けて、会社ページと同じカードで並べる。下に「〈学校〉を出た人の、いま」（2026-10-21） */
           <>
             <style>{JOB_PEOPLE_CSS}</style>
-            <PeopleGroup title="在学中" list={graduates.filter((g) => g.isCurrent)} />
-            <PeopleGroup title="卒業生" list={graduates.filter((g) => !g.isCurrent)} />
+            <PeopleGroup title="在学中" list={graduates.filter((g) => g.isCurrent)} f={f} />
+            <PeopleGroup title="卒業生" list={graduates.filter((g) => !g.isCurrent)} f={f} />
             {destinations}
           </>
         )

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import SchoolGraduatesClient, { type Graduate, type SchoolPost } from "./SchoolGraduatesClient";
 import { destinationsForUsers } from "@/lib/search/destinations";
 import { DestinationsBlock } from "@/components/search/DestinationsBlock";
+import { resolveOwUserId } from "@/lib/search/searchLog";
 import { resolveExperienceCompanyName, resolveExperienceCompanyLabel, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 
 export const dynamic = "force-dynamic";
@@ -258,10 +259,26 @@ export default async function SchoolPage(
 
   const userIds = graduates.map((g) => g.userId);
   /* ★卒業生のいま（検索の「〈学校〉を出た人の、いま」と同じ関数。2026-10-21）。在学中の人は数えない */
-  const [schoolPosts, destinations] = await Promise.all([
+  const [schoolPosts, destinations, viewerId] = await Promise.all([
     getSchoolPosts(userIds),
     destinationsForUsers(graduates.filter((g) => !g.isCurrent).map((g) => g.userId)),
+    resolveOwUserId(user?.id ?? null),
   ]);
+  /* ★カードのフォローボタン（2026-10-21 / 企業のカードと同じ形に）。見ている人がフォローしている人／フォローされている人 */
+  const following: string[] = [];
+  const followers: string[] = [];
+  const others = userIds.filter((id) => id !== viewerId);
+  if (viewerId && others.length > 0) {
+    const admin = createAdminClient();
+    const [out, inc] = await Promise.all([
+      admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", viewerId).in("target_user_id", others),
+      admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", viewerId).in("follower_user_id", others),
+    ]);
+    if (out.error) console.error("[schools/[id]] follows:", out.error.message);
+    if (inc.error) console.error("[schools/[id]] followers:", inc.error.message);
+    for (const r of out.data ?? []) following.push(r.target_user_id as string);
+    for (const r of inc.data ?? []) followers.push(r.follower_user_id as string);
+  }
 
   const typeLabel = schoolTypeLabel(school.type);
 
@@ -361,7 +378,8 @@ export default async function SchoolPage(
       {/* ── 出身者一覧 / 投稿タブ ────────────────────────────────────────── */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px" }}>
         <SchoolGraduatesClient graduates={graduates} posts={schoolPosts} isLoggedIn={!!user} listable={listable}
-          destinations={destinations ? <DestinationsBlock d={destinations} companyLabel={school.name} /> : null} />
+          destinations={destinations ? <DestinationsBlock d={destinations} companyLabel={school.name} /> : null}
+          viewerId={viewerId} following={following} followers={followers} />
       </div>
     </main>
   );
