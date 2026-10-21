@@ -18,19 +18,23 @@ import { hasResendKey } from "@/lib/notify/email";
  *    それに**設定が入っているかの真偽**だけ。認証は不要にしてある。
  *    ⚠️★真偽であっても、**入っているかどうか自体が秘密になるもの**は足さないこと。
  *
- * ⚠️ モジュールスコープで評価する。`force-dynamic` にすると `BUILT_AT` が
- *    ビルド時刻ではなくコールドスタート時刻になり、意味が変わる。
+ * ⚠️★**毎回その場で返す（force-dynamic）。外さないこと**（2026-10-22）。
+ *    それまでは GET の結果がビルドで固定され、Vercel のキャッシュ（x-vercel-cache: HIT）が
+ *    **新しいデプロイが出たあとも前の版の commit を返していた**（実測: 本番は cb4a8939 なのに 1cbc99a2 を返した）。
+ *    このエンドポイントでデプロイを確かめる前提が崩れる。
+ * ⚠️ ビルド時刻は next.config.mjs の env（OPINIO_BUILT_AT）でビルドのときに埋め込む。
+ *    モジュールの中で new Date() すると、force-dynamic ではサーバーが起動した時刻になってしまう。
  */
-const BUILT_AT = new Date().toISOString();
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   return NextResponse.json({
     /** Vercel のビルド環境変数。ローカルでは undefined なので null を返す */
     commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? null,
-    builtAt: BUILT_AT,
+    builtAt: process.env.OPINIO_BUILT_AT ?? null,
     /* ★メールの送信設定が入っているか（2026-09-10）。**値は出さない。**
        ⚠️ これが false のまま `SCOUT_SENDING_ENABLED` を開けると、
           メールは1通も届かないまま「送信しました」と出る。**開ける前にここを見る。** */
     hasResendKey: hasResendKey(),
-  });
+  }, { headers: { "Cache-Control": "no-store" } });
 }

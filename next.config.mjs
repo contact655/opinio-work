@@ -2,6 +2,9 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  /* ★ビルド時刻（2026-10-22）。/api/health が返す。ビルドのときに値を埋め込むので、
+        ルートを毎回その場で返す形（force-dynamic）にしても「サーバーが起動した時刻」に変わらない */
+  env: { OPINIO_BUILT_AT: new Date().toISOString() },
   images: {
     remotePatterns: [
       {

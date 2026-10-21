@@ -8170,6 +8170,13 @@ curl -s https://opinio.jp/api/health
 実体は [src/app/api/health/route.ts](src/app/api/health/route.ts)。
 **返すのはコミットの先頭8桁とビルド時刻だけ**で、環境変数の中身は出さない。
 
+⚠️★★**2026-10-22 まで、このエンドポイント自体が古い commit を返していた。** GET の結果がビルドで固定され、
+Vercel のキャッシュ（`x-vercel-cache: HIT`）が**新しいデプロイが出たあとも前の版を返した**
+（実測: 本番は `cb4a8939` なのに `1cbc99a2` を返し、「デプロイが止まった」と誤読しかけた）。
+→ `force-dynamic` ＋ `Cache-Control: no-store` にした。ビルド時刻は `next.config.mjs` の `env.OPINIO_BUILT_AT` で埋め込む。
+⚠️ **`force-dynamic` を外さないこと。** 外すと「デプロイを確かめる手段」が黙って嘘をつく。
+⚠️ 疑わしいときは `curl -s -H "Cache-Control: no-cache" "https://opinio.jp/api/health?cb=$(date +%s)"` で取り直す。
+
 
 #### ⚠️ ステージングはファイルパスを列挙する（2026-08-15 確立）
 
