@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminArticlesClient, {
   type Article,
@@ -29,21 +30,28 @@ export default async function AdminArticlesPage() {
       .from("ow_articles")
       .select("id, slug, title, subtitle, type, company_name_text, eyecatch_gradient, read_min, is_published, published_at, created_at, user_id, company_id")
       .order("created_at", { ascending: false }),
-    supabase.from("ow_users").select("id, name").order("name", { ascending: true }),
-    supabase
+    /* ★全件は1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("admin/articles users", (f, t) => supabase.from("ow_users").select("id, name").order("name", { ascending: true }).order("id").range(f, t)),
+    readAll("admin/articles companies", (f, t) => supabase
       .from("ow_companies")
       .select("id, name")
       .eq("is_published", true)
-      .order("name", { ascending: true }),
-    supabase
+      .order("name", { ascending: true })
+      .order("id")
+      .range(f, t)),
+    readAll("admin/articles experiences", (f, t) => supabase
       .from("ow_experiences")
       .select("company_id, user_id")
       .not("company_id", "is", null)
-      .not("user_id", "is", null),
-    supabase
+      .not("user_id", "is", null)
+      .order("id")
+      .range(f, t)),
+    readAll("admin/articles admins", (f, t) => supabase
       .from("ow_company_admins")
       .select("company_id, user_id")
-      .not("user_id", "is", null),
+      .not("user_id", "is", null)
+      .order("id")
+      .range(f, t)),
   ]);
 
   /* ⚠️ error を握り潰さない。空配列で「0件」を装うと、

@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { countJoinSignups } from "@/lib/companies/joinLink";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
@@ -33,7 +34,8 @@ export default async function AdminCompaniesPage() {
     { data: adminRows, error: aErr },
     { data: userRows, error: uErr },
   ] = await Promise.all([
-    supabase
+    /* ★会社・求人・担当者・ユーザーは全件を1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("admin/companies companies", (f, t) => supabase
       .from("ow_companies")
       /* ⚠️ `target_industry_scope`（軸2の3値）も取る。運営がここを埋めていく作業画面なので、
             未確認が何社あるかが一目で分かる必要がある（2026-09-04 追加）。 */
@@ -43,10 +45,12 @@ export default async function AdminCompaniesPage() {
             運営が動く対象なので、この一覧に出さないと誰も気づけない（2026-09-29 追加）。 */
       .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url, url, target_industry_scope, is_test, source, listing_requested_at")
       .order("sort_order", { ascending: true, nullsFirst: false })
-      .order("updated_at", { ascending: false }),
-    supabase.from("ow_jobs").select("company_id"),
-    supabase.from("ow_company_admins").select("company_id, user_id, is_active"),
-    supabase.from("ow_users").select("id, name"),
+      .order("updated_at", { ascending: false })
+      .order("id")
+      .range(f, t)),
+    readAll("admin/companies jobs", (f, t) => supabase.from("ow_jobs").select("company_id").order("id").range(f, t)),
+    readAll("admin/companies admins", (f, t) => supabase.from("ow_company_admins").select("company_id, user_id, is_active").order("id").range(f, t)),
+    readAll("admin/companies users", (f, t) => supabase.from("ow_users").select("id, name").order("id").range(f, t)),
   ]);
 
   /* ⚠️ error を握り潰さない。空配列で「0件」を装うと、

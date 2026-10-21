@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import type { Metadata } from "next";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,18 +27,10 @@ export default async function PlacementsPage() {
       .from("ow_placements")
       .select("id, candidate_id, company_id, job_id, joined_at, channel, annual_salary, fee_amount, resigned_at, resignation_reason, created_at")
       .order("joined_at", { ascending: false }),
-    admin
-      .from("ow_users")
-      .select("id, name")
-      .order("name"),
-    admin
-      .from("ow_companies")
-      .select("id, name")
-      .order("name"),
-    admin
-      .from("ow_jobs")
-      .select("id, title, company_id")
-      .order("title"),
+    /* ★全件は1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("admin/placements users", (f, t) => admin.from("ow_users").select("id, name").order("name").order("id").range(f, t)),
+    readAll("admin/placements companies", (f, t) => admin.from("ow_companies").select("id, name").order("name").order("id").range(f, t)),
+    readAll("admin/placements jobs", (f, t) => admin.from("ow_jobs").select("id, title, company_id").order("title").order("id").range(f, t)),
   ]);
 
   // ユーザー・企業・求人をマップ化

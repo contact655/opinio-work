@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -24,10 +25,13 @@ export async function GET(
       .select("id, company_id, company_text, company_anonymized, role_title, started_at, ended_at, is_current, ow_companies!company_id(name)")
       .eq("user_id", params.userId)
       .order("started_at", { ascending: false }),
-    admin
+    /* ★1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("admin/user experiences companies", (f, t) => admin
       .from("ow_companies")
       .select("id, name, is_published")
-      .order("name", { ascending: true }),
+      .order("name", { ascending: true })
+      .order("id")
+      .range(f, t)),
   ]);
 
   const experiences = (expResult.data ?? []).map((e) => ({

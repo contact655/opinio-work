@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRegisteredUser } from "@/lib/users/registered";
 
@@ -30,9 +31,12 @@ export async function getSignupRefFunnel(): Promise<SignupRefRow[] | null> {
 
   /* ⚠️ `auth_id` / `is_test` / `is_system` / `visibility` を select から落とさないこと。
         落とすと `undefined` になり、**除外が静かに効かなくなる**（型では気づけない）。 */
-  const { data: users, error: usersErr } = await db
+  /* ★1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+  const { data: users, error: usersErr } = await readAll("signupRefFunnel users", (f, t) => db
     .from("ow_users")
-    .select("id, auth_id, is_test, is_system, visibility, signup_ref");
+    .select("id, auth_id, is_test, is_system, visibility, signup_ref")
+    .order("id")
+    .range(f, t));
   if (usersErr) {
     console.error("[signupRefFunnel] ow_users:", usersErr.message);
     return null;

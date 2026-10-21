@@ -50,3 +50,15 @@ export async function inChunks<T>(ids: readonly string[], build: (ids: string[],
   }
   return { data: out, error: null };
 }
+
+/**
+ * ★全件を読む問い合わせを、supabase と同じ形（`{ data, error }`）で返す（2026-10-22）。
+ *   置き換える側の `data ?? []` / `error` の扱いをそのまま使えるようにするためのもの。
+ * ⚠️ build は毎回新しい問い合わせを組み、**一意になる並び順**と `.range(from, to)` を付けること。
+ *    並び順を変えたい画面は、表示側で並べ直さずに build の order をそのまま使ってよい（最後に id を足して一意にする）
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function readAll(label: string, build: (from: number, to: number) => PromiseLike<Page<any>>): Promise<{ data: any[]; error: { message: string } | null }> {
+  const r = await fetchAllRows(build, label);
+  return { data: r.data, error: r.error ? { message: r.error } : null };
+}

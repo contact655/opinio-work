@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 /**
  * 「あと何をすれば根拠が立つか」を企業ごとに数える（運営専用 / 2026-09-18）。
@@ -93,9 +94,12 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   const [{ data: companyRows, error: coErr }, { data: expRows, error: expErr }] = await Promise.all([
     /* ⚠️ `.eq("listing_status","listed")` を直書きしないこと（CLAUDE.md） */
     filterListedCompanies(db.from("ow_companies").select("id, name, name_en")),
-    db
+    /* ★職歴は全件を1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+    readAll("evidenceGaps experiences", (f, t) => db
       .from("ow_experiences")
-      .select("user_id, company_id, company_text, started_at, ended_at, is_current, join_reasons, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)"),
+      .select("user_id, company_id, company_text, started_at, ended_at, is_current, join_reasons, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)")
+      .order("id")
+      .range(f, t)),
   ]);
   if (coErr) console.error("[evidenceGaps] ow_companies:", coErr.message);
   if (expErr) console.error("[evidenceGaps] ow_experiences:", expErr.message);
@@ -196,9 +200,11 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
 
   const nameById = new Map(listed.map((c) => [c.id, companyDisplayName(c.name, c.name_en).displayName]));
   const unansweredMap = new Map<string, UnansweredPerson>();
-  const { data: users, error: uErr } = await db
+  const { data: users, error: uErr } = await readAll("evidenceGaps users", (f, t) => db
     .from("ow_users")
-    .select("id, name, email, auth_id, is_test, is_system, visibility");
+    .select("id, name, email, auth_id, is_test, is_system, visibility")
+    .order("id")
+    .range(f, t));
   if (uErr) console.error("[evidenceGaps] ow_users:", uErr.message);
   const userById = new Map(((users ?? []) as { id: string; name: string; email: string | null; auth_id: string | null }[]).map((u) => [u.id, u]));
 

@@ -8,6 +8,7 @@
  * - 公開ページへの反映は最大5分（ISR キャッシュ）
  */
 
+import { readAll } from "@/lib/supabase/paging";
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateSortOrder } from "@/app/admin/companies/actions";
@@ -52,11 +53,14 @@ export function CompanyAdminDndOverlay() {
     if (!showPanel) return;
     (async () => {
       const supabase = createClient();
-      const { data } = await supabase
+      /* ★1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+      const { data } = await readAll("CompanyAdminDndOverlay companies", (f, t) => supabase
         .from("ow_companies")
         .select("id, name, sort_order")
         .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("updated_at", { ascending: false });
+        .order("updated_at", { ascending: false })
+        .order("id")
+        .range(f, t));
       setCompanies(
         (data ?? []).map((c) => ({
           id:         c.id as string,

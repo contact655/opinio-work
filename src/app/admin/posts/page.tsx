@@ -1,3 +1,4 @@
+import { readAll } from "@/lib/supabase/paging";
 import { createClient } from "@/lib/supabase/server";
 import PostsAdminClient from "./PostsAdminClient";
 
@@ -11,10 +12,13 @@ export default async function AdminPostsPage() {
   const supabase = createClient();
 
   // 全企業を名前順で取得
-  const { data: companies } = await supabase
+  /* ★1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
+  const { data: companies } = await readAll("admin/posts companies", (f, t) => supabase
     .from("ow_companies")
     .select("id, name")
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .order("id")
+    .range(f, t));
 
   // 全発信リンクを取得（会社名も JOIN）
   const { data: posts } = await supabase
