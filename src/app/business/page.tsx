@@ -105,6 +105,29 @@ const ON_PAGE_ROWS = [
   },
 ];
 
+/* ── ★御社から声をかける（2026-10-22 / 柴さんの了承）。候補者検索（/biz/candidates）と最初のメッセージ（/biz/approaches）。
+      ⚠️★料金を書かないこと。いまは無料プランでも使えるが、ベータ期間の無料を定めた規約の改定は未公開（CLAUDE.md「契約プランと機能のゲート」）。
+      ⚠️ 絞り込みの項目は CandidateFilterDrawer と揃える。年齢・性別は書かない（本番で絞り込めない・絞り込ませない）。
+      ⚠️ 「10人」は APPROACH の返事待ちの上限（lib/constants/companyApproaches.ts）。変えたらここも直す。
+      ⚠️ 「スカウト」と書かない（2026-10-08 に廃止した機能の名前）。 ───── */
+const REACH_OUT_ROWS = [
+  {
+    title: "登録している人を探す",
+    body: "経験した職種・希望する職種・社会人年数・お住まい・転職への意向で絞り込めます。いまお勤めの会社の人は、その会社の画面には出ません。",
+    tag: "条件は保存できます",
+  },
+  {
+    title: "最初のメッセージを送る",
+    body: "なぜその人に声をかけたのかを添えて送ります。返信があるまでは、同じ人へ続けて送ることはできません。",
+    tag: "返事待ちは10人まで",
+  },
+  {
+    title: "やり取りを始める",
+    body: "相手が返信すると会話が開き、そのままメッセージを続けられます。返信がなければ、やり取りは始まりません。",
+    tag: null,
+  },
+];
+
 /** 求人票が伝えること / 働く人が伝えること */
 const SPEC_ITEMS = ["職種と仕事内容", "年収レンジと勤務地", "必須・歓迎要件"];
 const PEOPLE_ITEMS = [
@@ -288,6 +311,27 @@ export default async function ForCompaniesPage() {
                   <div className="lpv3-row-title">{title}</div>
                   <div className="lpv3-row-body">{body}</div>
                   <div className="lpv3-row-tag">{tag}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─── ★御社から声をかける（2026-10-22）──────────────────────────── */}
+        <section id="reach-out" className="lpv3-section" style={{ borderTop: "1px solid var(--line)" }}>
+          <div className="lpv3-inner">
+            <h2 className="lpv3-h2" style={{ marginBottom: 14 }}>
+              <span>気になる人には、</span><span>御社から声をかけられます。</span>
+            </h2>
+            <p className="lpv3-lead" style={{ marginBottom: 40, maxWidth: 640 }}>
+              OPINIOに登録している人を、職種や経験で探せます。気になる人には、理由を添えて最初のメッセージを送れます。相手が返信すると、そのままやり取りが始まります。
+            </p>
+            <div className="lpv3-rows">
+              {REACH_OUT_ROWS.map(({ title, body, tag }) => (
+                <div key={title} className="lpv3-row">
+                  <div className="lpv3-row-title">{title}</div>
+                  <div className="lpv3-row-body">{body}</div>
+                  {tag ? <div className="lpv3-row-tag">{tag}</div> : <div aria-hidden="true" />}
                 </div>
               ))}
             </div>
