@@ -122,9 +122,6 @@ export default function ForYouSection({
   const responders = visible.filter((c) => c.hasResponder);
   const others = visible.filter((c) => !c.hasResponder);
 
-  /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
-  /* ⚠️ 理由の無い会社だけのとき（＝まとめの見出しが「その他の掲載企業」1つだけ）は、その見出しを出さない（2026-10-23）。
-        上の「気になる会社 N社」と同じ会社を指す見出しが2つ並んでいた */
   /* 会社ごとの操作（話を聞いてみたい／気になる・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
   const actionsFor = (c: ForYouView) => (
     <Actions
@@ -211,20 +208,37 @@ export default function ForYouSection({
     );
   };
 
-  /* ★タイル（2026-10-23）。ロゴと社名だけを多く並べ、押すとその場でカードに開く */
-  const tile = (c: ForYouView, g: { label: string | null }) => expanded === c.id
-    ? fullCard(c, g, () => setExpanded(null))
-    : (
+  /* ★タイル（2026-10-23）。ロゴ・社名・理由（無ければ一言）と、主の操作1つを並べる。
+        ロゴや社名を押すとその場でカードに開き、「あとで」「興味なし」も選べる。
+        ⚠️ 主の操作をタイルから外さないこと（並べるだけでは押す先が無く、アクションにつながらなかった。柴さんの指摘） */
+  const tile = (c: ForYouView, g: { label: string | null }) => {
+    if (expanded === c.id) return fullCard(c, g, () => setExpanded(null));
+    const reason = (g.label ? c.reasons[1] : c.reasons[0]) ?? null;
+    const text = reason ? `✓ ${reason}` : c.tagline;
+    return (
       <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-tile">
-        <button type="button" onClick={() => setExpanded(c.id)} aria-expanded={false} data-action="tile-open">
+        <button type="button" className="fy-tile-head" onClick={() => setExpanded(c.id)} aria-expanded={false} data-action="tile-open"
+          title={`${c.name}の詳しい内容を開く`}>
           <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
-          <span className="fy-name" style={{ fontSize: 13.5, fontWeight: 700, maxWidth: "100%" }} title={c.name}>{c.name}</span>
-          <span style={{ fontSize: 11.5, color: c.interested ? "var(--royal)" : "var(--ink-mute)" }}>
-            {c.interested ? (c.hasResponder ? "話を聞いてみたい済み" : "気になる済み") : c.reaction === "later" ? "あとで" : (c.phaseLabel ?? "")}
-          </span>
+          <span className="fy-name" style={{ fontSize: 13.5, fontWeight: 700, maxWidth: "100%" }}>{c.name}</span>
+          {c.phaseLabel && <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.phaseLabel}</span>}
+          {text && <span className="fy-tile-text" style={reason ? { color: "#14532D" } : undefined}>{text}</span>}
         </button>
+        <div className="fy-tile-foot">
+          {c.interested ? (
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{c.hasResponder ? "話を聞いてみたい済み" : "気になる済み"}</span>
+          ) : (
+            <button type="button" disabled={busy === c.id} data-action="tile-primary"
+              onClick={() => { if (c.hasResponder) { setExpanded(c.id); setComposing(c.id); } else void react(c.id, "interested"); }}
+              style={{ ...BTN, width: "100%", border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: busy === c.id ? 0.6 : 1 }}>
+              {c.hasResponder ? "話を聞いてみたい" : "気になる"}
+            </button>
+          )}
+        </div>
+        {errFor(c)}
       </li>
     );
+  };
 
   /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
   /* ⚠️ 理由の無い会社だけのとき（＝まとめの見出しが「その他の掲載企業」1つだけ）は、その見出しを出さない（2026-10-23）。
@@ -264,9 +278,12 @@ export default function ForYouSection({
         .fy-row-text { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .fy-row-actions { flex: 0 0 auto; margin-left: auto; }
         .fy-row-actions.is-open { flex-basis: 100%; margin-left: 0; }
-        .fy-tiles { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); grid-auto-flow: dense; }
-        .fy-tile button { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font-family: inherit; color: var(--ink); min-width: 0; text-align: center; }
-        .fy-tile button:hover { border-color: var(--royal-100); }
+        .fy-tiles { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); grid-auto-flow: dense; }
+        .fy-tile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: #fff; min-width: 0; overflow: hidden; }
+        .fy-tile:hover { border-color: var(--royal-100); }
+        .fy-tile-head { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 10px 8px; border: none; background: none; cursor: pointer; font-family: inherit; color: var(--ink); min-width: 0; text-align: center; }
+        .fy-tile-text { font-size: 11.5px; line-height: 1.5; color: var(--ink-soft); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 2px; }
+        .fy-tile-foot { padding: 0 10px 12px; text-align: center; }
         @media (max-width: 760px) { .fy-row-actions { flex-basis: 100%; margin-left: 0; } .fy-tiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } }
       `}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "0 0 12px" }}>
