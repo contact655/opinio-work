@@ -14,7 +14,7 @@ import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./Fi
  *
  * ボタンは上段と同じ「話を聞いてみたい」に揃えた（柴さんの指示）:
  *   担当者あり … 押すと「会社へのひとこと」の欄が開き、送ると会話ができる（上段と同じ形）
- *   担当者未登録 … 押すとその場で記録して運営に知らせる（説明はページの冒頭に1回だけ。カードはラベルだけ）
+ *   担当者未登録 … 「気になる」。押すとその場で記録して運営に知らせる（2026-10-23。担当者がいる会社と見出しで分けた）
  * ⚠️ 記録は ow_for_you_reactions（上段の ow_proposals とは別の表のまま。統合するかは別途判断）。
  */
 
@@ -106,43 +106,13 @@ export default function ForYouSection({
 
   const visible = items.filter((c) => c.reaction !== "not_interested");
   const hidden = items.filter((c) => c.reaction === "not_interested");
+  const responders = visible.filter((c) => c.hasResponder);
+  const others = visible.filter((c) => !c.hasResponder);
 
-  return (
-    <section aria-labelledby="for-you-heading">
-      {/* ⚠️ この <style> のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */}
-      <style>{`
-        .fy-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .fy-card { display: flex; flex-direction: column; min-width: 0; }
-        .fy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fy-tagline { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); margin: 8px 0 0;
-          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .fy-actions { margin-top: auto; padding-top: 12px; }
-        @media (max-width: 760px) { .fy-grid { grid-template-columns: minmax(0, 1fr); } }
-      `}</style>
-      <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 12px" }}>{ALL_COMPANIES_SECTION_TITLE}</h2>
-
-      {loadFailed ? (
-        <p role="alert" style={{ fontSize: 14, lineHeight: 1.9, color: "#B3261E" }}>
-          一覧を表示できませんでした。<strong>「0社」という意味ではありません。</strong>時間をおいて開き直してください。
-        </p>
-      ) : (
-        <>
-          {noReasons && (
-            <div data-state="for-you-no-reasons" style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", marginBottom: 14, background: "var(--bg-tint)", fontSize: 14, lineHeight: 1.8 }}>
-              <p style={{ margin: "0 0 6px", fontWeight: 600 }}><Phrases text={NO_REASON_PROMPT} /></p>
-              <Link href="/mypage#career" style={{ color: "var(--royal)", fontWeight: 600, fontSize: 13 }}>職歴を追加する →</Link>
-            </div>
-          )}
-
-          {visible.length === 0 && hidden.length === 0 && (
-            <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>いま表示できる会社はありません。</p>
-          )}
-
-          {/* ★理由ごとにまとめる（2026-10-15 / 柴さんの指示）。見出しは1番目の理由。
-                 グループの並び＝グループの中で最も順位の高い会社の順（下の groupCompanies）。
-                 理由の無い会社は最後に「その他の掲載企業」としてまとめる */}
+  /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
+  const renderGroups = (list: ForYouView[]) => (
           <div style={{ display: "grid", gap: 20 }}>
-            {groupCompanies(visible).map((g) => (
+            {groupCompanies(list).map((g) => (
               <section key={g.label ?? "__other"} data-state={g.label ? "for-you-group" : "for-you-group-other"} aria-label={g.label ?? OTHER_COMPANIES_TITLE}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
                   {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
@@ -161,11 +131,8 @@ export default function ForYouSection({
                               ? <Link href={c.href} className="fit-company-link">{c.name}</Link>
                               : c.name}
                           </h4>
-                          {/* ★担当者の有無は小さなラベルだけ。説明は「詳しく」に1回（柴さんの指示） */}
+                          {/* ⚠️ 担当者の有無のラベルは 2026-10-23 に外した（見出しで分けたため） */}
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 3 }}>
-                            <NameLabel state={c.hasResponder ? "for-you-has-responder" : "for-you-no-responder"}>
-                              {c.hasResponder ? "担当者あり" : "担当者未登録"}
-                            </NameLabel>
                             {c.hasOpenJobs && <NameLabel state="fit-tag-jobs">募集あり</NameLabel>}
                             {c.phaseLabel && <NameLabel state="fit-tag-phase">{c.phaseLabel}</NameLabel>}
                           </div>
@@ -208,6 +175,56 @@ export default function ForYouSection({
               </section>
             ))}
           </div>
+  );
+
+  return (
+    <section aria-labelledby="for-you-heading">
+      {/* ⚠️ この <style> のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */}
+      <style>{`
+        .fy-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .fy-card { display: flex; flex-direction: column; min-width: 0; }
+        .fy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fy-tagline { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); margin: 8px 0 0;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .fy-actions { margin-top: auto; padding-top: 12px; }
+        @media (max-width: 760px) { .fy-grid { grid-template-columns: minmax(0, 1fr); } }
+      `}</style>
+      <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 12px" }}>{ALL_COMPANIES_SECTION_TITLE}</h2>
+
+      {loadFailed ? (
+        <p role="alert" style={{ fontSize: 14, lineHeight: 1.9, color: "#B3261E" }}>
+          一覧を表示できませんでした。<strong>「0社」という意味ではありません。</strong>時間をおいて開き直してください。
+        </p>
+      ) : (
+        <>
+          {noReasons && (
+            <div data-state="for-you-no-reasons" style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "14px 16px", marginBottom: 14, background: "var(--bg-tint)", fontSize: 14, lineHeight: 1.8 }}>
+              <p style={{ margin: "0 0 6px", fontWeight: 600 }}><Phrases text={NO_REASON_PROMPT} /></p>
+              <Link href="/mypage#career" style={{ color: "var(--royal)", fontWeight: 600, fontSize: 13 }}>職歴を追加する →</Link>
+            </div>
+          )}
+
+          {visible.length === 0 && hidden.length === 0 && (
+            <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>いま表示できる会社はありません。</p>
+          )}
+
+          {/* ★2026-10-23（柴さんの指示）: 担当者がいる会社を上にまとめ、いない会社は下に「気になる会社」として並べる。
+                 担当者がいる会社の「話を聞いてみたい」は必ずその会社に届く。いない会社は「気になる」（記録して運営に知らせる）。
+                 ⚠️ 判定は c.hasResponder（サーバーの rank.ts。見ている人と is_test が一致する有効な担当者がいるか） */}
+          {responders.length > 0 && (
+            <section data-state="for-you-responders" style={{ marginBottom: 28 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>担当者がいる会社<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{responders.length}社</span></h3>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>「話を聞いてみたい」を押すと、この会社に届き、メッセージでやり取りできます。</p>
+              {renderGroups(responders)}
+            </section>
+          )}
+          {others.length > 0 && (
+            <section data-state="for-you-no-responders">
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>気になる会社<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{others.length}社</span></h3>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>まだ OPINIO に担当者がいない会社です。「気になる」を押した記録は、運営に届きます。</p>
+              {renderGroups(others)}
+            </section>
+          )}
 
           {hidden.length > 0 && (
             <section style={{ marginTop: 24 }}>
@@ -274,7 +291,7 @@ function Actions(props: {
         ) : (
           /* ⚠️★担当者が登録されたら知らせる仕組みはまだ無い。守れない約束を書かない */
           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ color: "var(--ink-soft)" }}>「話を聞いてみたい」と記録し、運営に伝えました。</span>
+            <span style={{ color: "var(--ink-soft)" }}>「気になる」と記録しました。</span>
             <button type="button" disabled={props.busy} onClick={props.onUndo}
               style={{ padding: "4px 0", border: "none", background: "none", color: "var(--ink-soft)", fontSize: 12, textDecoration: "underline", cursor: "pointer" }}>
               取り消す
@@ -347,7 +364,8 @@ function Actions(props: {
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
       <button type="button" disabled={props.busy} onClick={props.onInterested}
         style={{ ...btn, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: props.busy ? 0.6 : 1, marginRight: 4 }}>
-        話を聞いてみたい
+        {/* ★担当者がいない会社は「気になる」（2026-10-23）。押しても会社には届かないので「話を聞いてみたい」と言わない */}
+        {c.hasResponder ? "話を聞いてみたい" : "気になる"}
       </button>
       <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
         style={{ ...btn, border: "none", background: c.reaction === "later" ? "var(--bg-tint)" : "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
