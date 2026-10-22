@@ -3289,6 +3289,9 @@ export type Database = {
       }
       ow_conversation_messages: {
         Row: {
+          ask_company_id: string | null
+          ask_format: string | null
+          ask_topic: string | null
           body: string
           conversation_id: string
           deleted_at: string | null
@@ -3300,6 +3303,9 @@ export type Database = {
           sent_at: string
         }
         Insert: {
+          ask_company_id?: string | null
+          ask_format?: string | null
+          ask_topic?: string | null
           body: string
           conversation_id: string
           deleted_at?: string | null
@@ -3311,6 +3317,9 @@ export type Database = {
           sent_at?: string
         }
         Update: {
+          ask_company_id?: string | null
+          ask_format?: string | null
+          ask_topic?: string | null
           body?: string
           conversation_id?: string
           deleted_at?: string | null
@@ -3322,6 +3331,13 @@ export type Database = {
           sent_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ow_conversation_messages_ask_company_id_fkey"
+            columns: ["ask_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ow_conversation_messages_conversation_id_fkey"
             columns: ["conversation_id"]

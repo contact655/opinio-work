@@ -28,7 +28,7 @@ export async function dmTopicSections(recipientId: string, aboutCompanyId?: stri
  *   それ以外は黙って null にする（ふつうの DM と同じテーマになる。止めない）。
  * ⚠️ 取得に失敗したら null（呼び出し側は止める）。
  */
-export async function dmTopicContext(recipientId: string, aboutCompanyId?: string | null): Promise<{ sections: TopicSection[]; aboutCompanyId: string | null } | null> {
+export async function dmTopicContext(recipientId: string, aboutCompanyId?: string | null): Promise<{ sections: TopicSection[]; aboutCompanyId: string | null; currentCompanyId: string | null } | null> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_experiences")
@@ -60,6 +60,8 @@ export async function dmTopicContext(recipientId: string, aboutCompanyId?: strin
       senderIsRecruiter: false,
     }),
     aboutCompanyId: aboutId,
+    /* ★書く画面の「〈社名〉のこと」に出ている会社（2026-10-22。1通ごとの札に会社名を添えるため） */
+    currentCompanyId: linked?.company_id ?? null,
   };
 }
 

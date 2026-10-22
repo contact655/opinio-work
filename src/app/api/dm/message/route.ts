@@ -8,6 +8,7 @@ import { notifyCompanySlack } from "@/lib/notify/slack";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
+import { NO_ASK, resolveAsk, type AskColumns } from "@/lib/conversations/askTopic";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -16,7 +17,8 @@ export async function POST(request: NextRequest) {
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { conversationId: string; message: string };
+  /* ★topic / format（2026-10-22）… この1通に付ける「聞きたいこと」。省けばふつうのメッセージ。確かめるのは resolveAsk の1か所 */
+  let body: { conversationId: string; message: string; topic?: string | null; format?: string | null };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -111,10 +113,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  /* ★聞きたいこと（2026-10-22）。個人どうしの会話だけ。企業との会話に付けて送られてきたら 400（黙って捨てない） */
+  let ask: AskColumns = NO_ASK;
+  if (body.topic) {
+    if (conv.kind !== "direct_message" || !recipientId) {
+      return NextResponse.json({ error: "この会話には聞きたいことを付けられません" }, { status: 400 });
+    }
+    const r = await resolveAsk({ recipientId: recipientId as string, topic: body.topic, format: body.format ?? null });
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    ask = r.cols;
+  }
+
   // メッセージ挿入（admin client で RLS バイパス）
   const { error: insertErr } = await admin
     .from("ow_conversation_messages")
-    .insert({ conversation_id: conversationId, sender_participant_id: senderParticipantId, body: message.trim() });
+    .insert({ conversation_id: conversationId, sender_participant_id: senderParticipantId, body: message.trim(), ...ask });
 
   if (insertErr) {
     console.error("[dm/message] insert error:", insertErr.message);

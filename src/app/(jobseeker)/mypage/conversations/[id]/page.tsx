@@ -112,7 +112,8 @@ export default async function ConversationDetailPage({
     fetchAllRows((from, to) => adminSupabase
       .from("ow_conversation_messages")
       .select(
-        `id, body, kind, payload, sent_at, sender_participant_id,
+        `id, body, kind, payload, sent_at, sender_participant_id, ask_topic, ask_format,
+         ask_company:ow_companies!ask_company_id(name),
          ow_conversation_participants!sender_participant_id(
            role,
            ow_users(name)

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: messages } = await (admin as any)
     .from("ow_conversation_messages")
-    .select(`id, body, kind, payload, sent_at, sender_participant_id, ow_conversation_participants!sender_participant_id(ow_users(name))`)
+    .select(`id, body, kind, payload, sent_at, sender_participant_id, ask_topic, ask_format, ask_company:ow_companies!ask_company_id(name), ow_conversation_participants!sender_participant_id(ow_users(name))`)
     .eq("conversation_id", conversationId)
     .is("deleted_at", null)
     .order("sent_at", { ascending: true });

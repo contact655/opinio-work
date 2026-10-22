@@ -6,8 +6,8 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubble";
-import { FirstTopicNotice } from "@/components/messages/FirstMessage";
-import { isMessageFormat, requestCompanyName, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
+import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
+import { askCompanyName, isMessageFormat, isMessageTopic } from "@/lib/constants/messageTopics";
 
 export type MessageRow = {
   id: string;
@@ -15,6 +15,10 @@ export type MessageRow = {
   /** ★種類（2026-10-10 / 段4）。text / meeting_slots / scheduling_link / proposal_intro（2026-10-11）。⚠️ 古い応答では無いことがある */
   kind?: string;
   payload?: unknown;
+  /* ★この1通の「聞きたいこと」（2026-10-22）。無ければふつうのメッセージ */
+  ask_topic?: string | null;
+  ask_format?: string | null;
+  ask_company?: { name: string } | { name: string }[] | null;
   sent_at: string;
   sender_participant_id: string | null;
   ow_conversation_participants: {
@@ -73,6 +77,9 @@ export default function ConversationDetailClient({
   const [myParticipantId] = useState<string | null>(initialMyParticipantId);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
+  /* ★この1通に添える「聞きたいこと」（2026-10-22）。askKey は送ったあとに選択欄を閉じ直すため */
+  const [ask, setAsk] = useState<AskValue>(null);
+  const [askKey, setAskKey] = useState(0);
   const [sending, setSending] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -107,13 +114,15 @@ export default function ConversationDetailClient({
     const res = await fetch("/api/dm/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId, message: inputText.trim() }),
+      body: JSON.stringify({ conversationId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null }),
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
       setError(d.error ?? "メッセージの送信に失敗しました");
     } else {
       setInputText("");
+      setAsk(null);
+      setAskKey((k) => k + 1);
       await refreshMessages();
     }
     setSending(false);
@@ -216,9 +225,6 @@ export default function ConversationDetailClient({
                   求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                   ⚠️ 状態の言葉・アバター・日付の区切りは出さない（会社側と揃える）。 */
             <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {conversation.kind === "direct_message" && MESSAGE_TOPICS.some((t) => t.value === conversation.request_topic) && (
-                <FirstTopicNotice topic={conversation.request_topic as MessageTopic} format={isMessageFormat(conversation.request_format) ? conversation.request_format : null} aboutCompanyName={requestCompanyName(conversation.request_company)} />
-              )}
               {messages.map((msg) => {
                 if (msg.kind === "proposal_intro") {
                   /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
@@ -243,7 +249,14 @@ export default function ConversationDetailClient({
                     ) : approachFirst?.messageId === msg.id ? (
                       /* ★企業から届いたメッセージの1通目は、見出し（【送った理由】）なしで理由と本文だけ */
                       <span data-state="approach-first">{approachFirst.text}</span>
-                    ) : msg.body}
+                    ) : (
+                      <>
+                        {isMessageTopic(msg.ask_topic) && (
+                          <AskTag topic={msg.ask_topic} format={isMessageFormat(msg.ask_format) ? msg.ask_format : null} companyName={askCompanyName(msg.ask_company)} />
+                        )}
+                        {msg.body}
+                      </>
+                    )}
                   </ChatBubble>
                 );
               })}
@@ -260,6 +273,10 @@ export default function ConversationDetailClient({
               <span className="inline-block">まだ返信がありません。</span><span className="inline-block">返信があると続きを送れます</span>
             </p>
           ) : myParticipantId ? (
+            <div className="flex flex-col gap-2">
+            {conversation.kind === "direct_message" && (
+              <AskPicker key={askKey} conversationId={conversationId} value={ask} onChange={setAsk} disabled={sending} />
+            )}
             <div className="flex gap-2 items-end">
               <textarea
                 value={inputText}
@@ -280,6 +297,7 @@ export default function ConversationDetailClient({
               >
                 {sending ? "送信中…" : "送信"}
               </button>
+            </div>
             </div>
           ) : (
             <p className="text-sm text-gray-400 text-center py-1">

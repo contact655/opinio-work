@@ -299,6 +299,9 @@ export async function sendMessageRequest(params: {
   /* ④ テーマ（この相手に選べるものか）。⚠️ メッセージ（kind=message）はテーマを持たない */
   let topic: MessageTopic | null = null;
   let requestCompanyId: string | null = null;
+  /* ★最初の1通の札（2026-10-22）。会社のテーマなら会社名を添える（企業ページから来た会社 → なければ相手のいまの勤務先）。
+        ⚠️ 2通目以降は lib/conversations/askTopic.ts の resolveAsk（同じ dmTopicContext を見る） */
+  let askCompanyId: string | null = null;
   if (isConsult) {
     const ctx = await dmTopicContext(recipientId, params.aboutCompanyId ?? null);
     if (!ctx) return { ok: false, status: 500, error: MSG.failed };
@@ -308,6 +311,7 @@ export async function sendMessageRequest(params: {
     /* ★どの会社の話か。会社のテーマを選んだときだけ記録する（キャリアの相談に社名を付けない） */
     const isCompanyTopic = MESSAGE_TOPICS.some((t) => t.value === chosen && t.group === "company");
     requestCompanyId = isCompanyTopic ? ctx.aboutCompanyId : null;
+    askCompanyId = isCompanyTopic ? (ctx.aboutCompanyId ?? ctx.currentCompanyId) : null;
   }
 
   const db = createAdminClient();
@@ -349,6 +353,9 @@ export async function sendMessageRequest(params: {
     conversation_id: conversationId,
     sender_participant_id: senderParticipantId,
     body,
+    ask_topic: topic,
+    ask_format: topic ? format : null,
+    ask_company_id: askCompanyId,
   });
   if (msgErr) {
     console.error("[messageRequest] message insert:", msgErr.message);

@@ -7,7 +7,7 @@
  * ⚠️ 出し分けは `topicsFor()` の1か所。画面側で条件を書かない。
  */
 
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyDisplayName, stripLegalSuffix } from "@/lib/companies/displayName";
 
 export type MessageTopicGroup = "company" | "career" | "hiring" | "join";
 
@@ -127,4 +127,26 @@ export function requestHeadline(value: MessageTopic | null, aboutCompanyName?: s
 export function requestCompanyName(v: unknown): string | null {
   const c = (Array.isArray(v) ? v[0] : v) as { name?: string; name_en?: string | null } | null | undefined;
   return c?.name ? companyDisplayName(c.name, c.name_en ?? null).displayName : null;
+}
+
+/**
+ * ★1通ごとの札（2026-10-22 / 柴さんの了承）。「聞きたいこと：海光電業の事業・プロダクト」＋「メッセージで」。
+ *   会社のテーマで会社が分かれば「〈社名〉の〈テーマ〉」、それ以外はテーマ名だけ。
+ *   ⚠️ 社名はプロフィールと同じ日本語名（法人格を落とす）。英語名を優先しない（KAIKOU DENGYO と出た）
+ */
+export function askTagLines(topic: MessageTopic, format: MessageFormat | null, companyName: string | null): { topic: string; format: string | null } {
+  const t = MESSAGE_TOPICS.find((x) => x.value === topic);
+  const label = t ? (t.group === "company" && companyName ? `${companyName}の${t.label}` : t.label) : "";
+  return { topic: `聞きたいこと：${label}`, format: format ? formatLabel(format) : null };
+}
+
+/** 埋め込みで取った ask_company（name）を札の社名にする。法人格を落とした日本語名 */
+export function askCompanyName(v: unknown): string | null {
+  const c = (Array.isArray(v) ? v[0] : v) as { name?: string } | null | undefined;
+  if (!c?.name) return null;
+  return stripLegalSuffix(c.name) || c.name;
+}
+
+export function isMessageTopic(v: unknown): v is MessageTopic {
+  return typeof v === "string" && MESSAGE_TOPICS.some((t) => t.value === v);
 }

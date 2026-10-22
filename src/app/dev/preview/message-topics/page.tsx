@@ -1,6 +1,7 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { FirstMessageComposer, FirstMessageCard, FirstMessageRow, type FirstMessageSender } from "@/components/messages/FirstMessage";
+import { AskTag, FirstMessageComposer, FirstMessageCard, FirstMessageRow, type FirstMessageSender } from "@/components/messages/FirstMessage";
+import { ChatBubble } from "@/components/messages/ChatBubble";
 import { topicsFor } from "@/lib/constants/messageTopics";
 
 /**
@@ -22,6 +23,21 @@ export default function Page() {
           テーマは送り主と相手の関係で出し分ける。★個人どうしの DM の書く画面は本番でもこの部品（2026-10-17）。採用のこと（企業担当者）と企業宛ては段階2・3で、まだ見本だけ。ここでは送信できない。
         </p>
       </PreviewHeader>
+
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: "8px 0 12px" }}>会話の中の札（2026-10-22〜。1通ごと）</h2>
+      <Variant label="札つき・ふつう・2通目以降の札" note="札は送った1通の吹き出しの中。札の無い1通はふつうのメッセージ。会話の上の帯は出さない">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 560 }}>
+          <ChatBubble mine sender="鈴木 太郎" at="2026-10-22T09:48:00Z">
+            <AskTag topic="company_business" format="message" companyName="海光電業" />
+            お願いします！
+          </ChatBubble>
+          <ChatBubble mine={false} sender="大塚悠貴" at="2026-10-22T10:30:00Z">ありがとうございます。どんなことが気になりますか？</ChatBubble>
+          <ChatBubble mine sender="鈴木 太郎" at="2026-10-23T01:10:00Z">
+            <AskTag topic="career_manager" format="online_15" companyName={null} />
+            来月、少しお時間いただけますか。
+          </ChatBubble>
+        </div>
+      </Variant>
 
       <h2 style={{ fontSize: 15, fontWeight: 700, margin: "8px 0 12px" }}>書く画面</h2>
       <Variant label="個人 → 個人（相手の現職が分かる）" note="「〈社名〉のこと」と「キャリアのこと」が出る。採用のことは出ない">

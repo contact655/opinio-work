@@ -15,8 +15,8 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
-import { formatLabel, isMessageFormat, requestCompanyName, requestHeadline, MESSAGE_TOPICS, type MessageTopic } from "@/lib/constants/messageTopics";
-import { FirstTopicNotice } from "@/components/messages/FirstMessage";
+import { askCompanyName, formatLabel, isMessageFormat, isMessageTopic, requestHeadline } from "@/lib/constants/messageTopics";
+import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
 const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
@@ -56,6 +56,10 @@ export type Conversation = {
 type MessageRow = {
   id: string;
   body: string;
+  /* ★この1通の「聞きたいこと」（2026-10-22）。無ければふつうのメッセージ */
+  ask_topic?: string | null;
+  ask_format?: string | null;
+  ask_company?: { name: string } | { name: string }[] | null;
   sent_at: string;
   sender_participant_id: string | null;
   ow_conversation_participants: {
@@ -98,7 +102,6 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
 }
 
 /** 保存されているテーマが、いまの語彙にあるか（無い値は出さない） */
-const isKnownTopic = (v: string | null | undefined): v is MessageTopic => !!v && MESSAGE_TOPICS.some((t) => t.value === v);
 
 const isPendingRequest = (c: Conversation | null | undefined) =>
   !!c && c.kind === "direct_message" && c.request_status !== "accepted";
@@ -346,6 +349,10 @@ export default function ConversationsClient({
   const [conversations] = useState<Conversation[]>(initialConversations);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(initialOpenConvId ?? null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
+  /* ★この1通に添える「聞きたいこと」（2026-10-22）。askKey は送ったあと・会話を切り替えたときに選択欄を閉じ直すため */
+  const [ask, setAsk] = useState<AskValue>(null);
+  const [askKey, setAskKey] = useState(0);
+  useEffect(() => { setAsk(null); }, [selectedConvId]);
   /** ★企業から届いたメッセージの1通目（見出しなしで出す本文）。API が送ったメッセージの行と照合して返す */
   const [approachFirst, setApproachFirst] = useState<{ messageId: string; text: string } | null>(null);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
@@ -482,12 +489,14 @@ export default function ConversationsClient({
       const res = await fetch("/api/dm/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId: selectedConvId, message: inputText.trim() }),
+        body: JSON.stringify({ conversationId: selectedConvId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null }),
       });
       if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "送信に失敗しました");
       setInputText("");
+      setAsk(null);
+      setAskKey((k) => k + 1);
       await fetchMessages(selectedConvId);
     } catch (e: unknown) {
       setSendError(e instanceof Error ? e.message : "送信に失敗しました");
@@ -802,7 +811,6 @@ export default function ConversationsClient({
                         求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                         ⚠️ /mypage/conversations/[id] と同じ並べ方。片方だけ書き換えない */
                   <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {selectedConv?.kind === "direct_message" && isKnownTopic(selectedConv.request_topic) && <FirstTopicNotice topic={selectedConv.request_topic} format={isMessageFormat(selectedConv.request_format) ? selectedConv.request_format : null} aboutCompanyName={requestCompanyName(selectedConv.request_company)} />}
                     {messages.map((msg) => {
                       const isMe = msg.sender_participant_id === myParticipantId;
                       const sender = isMe ? (myName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "相手");
@@ -810,7 +818,14 @@ export default function ConversationsClient({
                         <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at}>
                           {approachFirst?.messageId === msg.id
                             ? <span data-state="approach-first">{approachFirst.text}</span>
-                            : msg.body}
+                            : (
+                              <>
+                                {isMessageTopic(msg.ask_topic) && (
+                                  <AskTag topic={msg.ask_topic} format={isMessageFormat(msg.ask_format) ? msg.ask_format : null} companyName={askCompanyName(msg.ask_company)} />
+                                )}
+                                {msg.body}
+                              </>
+                            )}
                         </ChatBubble>
                       );
                     })}
@@ -832,10 +847,11 @@ export default function ConversationsClient({
                 }}>{NOT_ACCEPTED_TEXT}</div>
               ) : (
               /* 入力エリア */
-              <div style={{
-                borderTop: "1px solid var(--line)", padding: "12px 16px",
-                display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0,
-              }}>
+              <div style={{ borderTop: "1px solid var(--line)", padding: "10px 16px 12px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+              {selectedConv?.kind === "direct_message" && selectedConvId && (
+                <AskPicker key={`${selectedConvId}-${askKey}`} conversationId={selectedConvId} value={ask} onChange={setAsk} disabled={sending} />
+              )}
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                 <textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
@@ -865,6 +881,7 @@ export default function ConversationsClient({
                 >
                   {sending ? "送信中…" : "送信"}
                 </button>
+              </div>
               </div>
               )}
             </>
