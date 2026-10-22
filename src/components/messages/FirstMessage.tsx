@@ -2,7 +2,6 @@
 
 import { useId, useState } from "react";
 import { FromTag } from "@/components/mypage/InboxCard";
-import { PENDING_FOLLOW_UP_AFTER_DAYS } from "@/lib/constants/messages";
 import { RequestReplyBox, personReplyTemplates } from "@/components/approaches/RequestReplyBox";
 import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_FORMATS, askTagLines, formatLabel, topicLabel, type MessageFormat, type MessageTopic, type TopicSection } from "@/lib/constants/messageTopics";
 
@@ -128,7 +127,7 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
               {!topic ? "聞きたいことを1つ選んでください。" : tooLong ? `ひとことは${FIRST_NOTE_MAX}字までです。` : "ひとことを書いてください。"}
             </span>
           ) : null}
-          返信があるとやり取りが始まります。返信が無くても、{PENDING_FOLLOW_UP_AFTER_DAYS}日後にもう1通だけ送れます。{format !== DEFAULT_MESSAGE_FORMAT && "話す日時は、返信のあとに決めます。"}
+          返信があるとやり取りが始まります。返信が無くても、続けて送れます。{format !== DEFAULT_MESSAGE_FORMAT && "話す日時は、返信のあとに決めます。"}
         </p>
         <span style={{ display: "inline-flex", gap: 8, marginLeft: "auto" }}>
         {onCancel && (

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { AskPicker, type AskValue } from "@/components/messages/FirstMessage";
 import { PENDING_FOLLOW_UP_MAX_LENGTH } from "@/lib/constants/messages";
 
-type State = { kind: "none" } | { kind: "allowed" } | { kind: "wait"; from: string } | { kind: "used" };
+type State = { kind: "none" } | { kind: "allowed" };
 
 /**
  * ★返事待ちの会話の入力欄（2026-10-22 / 柴さんの判断・A案）。
- *   返信が無くても、1通目から3日たてばもう1通だけ送れる。送れないときは理由の1行だけ出す。
- *   判定は GET /api/dm/follow-up（送る API と同じ pendingFollowUpState）。⚠️ 画面で日数を数えない
+ *   返信が無くても続けて送れる（2026-10-23 に回数と日数の制限を外した / 柴さんの指示）。送れないときは理由の1行だけ出す。
+ *   判定は GET /api/dm/follow-up（送る API と同じ pendingFollowUpState）
  *   ⚠️ 一覧と並んだ画面（ConversationsClient）と会話だけの画面（ConversationDetailClient）の両方で使う。片方だけ変えないこと
  */
 export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
@@ -63,12 +63,12 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
   return (
     <div data-state="follow-up-composer" style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
       <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6 }}>
-        まだ返信がありません。返信が無くても、もう1通だけ送れます。
+        まだ返信がありません。返信が無くても、続けて送れます。
       </p>
       <AskPicker conversationId={conversationId} value={ask} onChange={setAsk} disabled={sending} />
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} disabled={sending}
-          aria-label="もう1通のメッセージ" placeholder="メッセージを入力…"
+          aria-label="メッセージを入力" placeholder="メッセージを入力…"
           style={{ flex: 1, minWidth: 0, boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${tooLong ? "var(--error)" : "var(--line)"}`, fontSize: 13, lineHeight: 1.5, resize: "none", fontFamily: "inherit", color: "var(--ink)" }} />
         <button type="button" onClick={() => void send()} disabled={sending || !text.trim() || tooLong} data-action="send-follow-up"
           style={{ padding: "9px 18px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, flexShrink: 0, fontFamily: "inherit",
@@ -78,7 +78,7 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
         </button>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, color: tooLong ? "var(--error)" : "var(--ink-mute)" }}>
-        <span>{error ? <span role="alert" style={{ color: "var(--error)", fontWeight: 600 }}>{error}</span> : "送ったあとは、返信があるまで送れません。"}</span>
+        <span>{error ? <span role="alert" style={{ color: "var(--error)", fontWeight: 600 }}>{error}</span> : null}</span>
         <span>{text.trim().length} / {PENDING_FOLLOW_UP_MAX_LENGTH}</span>
       </div>
     </div>

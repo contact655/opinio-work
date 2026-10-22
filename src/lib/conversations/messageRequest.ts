@@ -11,8 +11,6 @@ import {
   GENERAL_FIRST_MESSAGE_MAX,
   MESSAGE_REQUEST_DAILY_LIMIT,
   MESSAGE_REQUEST_OPEN_LIMIT,
-  PENDING_FOLLOW_UP_AFTER_DAYS,
-  PENDING_FOLLOW_UP_MAX,
   PENDING_FOLLOW_UP_MAX_LENGTH,
 } from "@/lib/constants/messages";
 import type { AskColumns } from "@/lib/conversations/askTopic";
@@ -35,8 +33,6 @@ import type { AskColumns } from "@/lib/conversations/askTopic";
  */
 
 export const NOT_ACCEPTED_MESSAGE = "まだ返信がありません。返信があると続きを送れます";
-/** ★返事待ちで、もう1通も送り終えたとき（2026-10-22） */
-export const FOLLOW_UP_USED_MESSAGE = "まだ返信がありません。返信があるまで、これ以上は送れません";
 
 const MSG = {
   daily: `本日はこれ以上、新しい方へメッセージを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
@@ -619,20 +615,16 @@ export async function countIncomingRequests(meId: string): Promise<number> {
 }
 
 
-/* ── ★返信が無くても、もう1通（2026-10-22 / 柴さんの判断・A案）──────────────────────── */
+/* ── ★返信が無くても、続けて送れる（2026-10-22 に「3日後にもう1通」、2026-10-23 に制限を外した / 柴さんの指示）── */
 
 export type FollowUpState =
   /** 返事待ちではない（返信済み・自分が受け手・個人どうしでない） */
   | { kind: "none" }
-  /** いま送れる */
-  | { kind: "allowed" }
-  /** この日時から送れる */
-  | { kind: "wait"; from: string }
-  /** もう送った */
-  | { kind: "used" };
+  /** いま送れる（返事待ちの会話の送り手） */
+  | { kind: "allowed" };
 
 /**
- * 返事待ちの会話で、送り手がもう1通送れるか。判定はここの1か所（API と画面が同じ関数を見る）。
+ * 返事待ちの会話で、送り手が続けて送れるか。判定はここの1か所（API と画面が同じ関数を見る）。
  * ⚠️ 断られた・ブロックされたことは**見ない**（送り手に伝えない決まり）。届けるかどうかは送るときに決める
  * ⚠️ 取得に失敗したら null（呼び出し側は送れない側に倒す）
  */
@@ -645,33 +637,16 @@ export async function pendingFollowUpState(conversationId: string, meId: string)
     return null;
   }
   if (!conv || conv.kind !== "direct_message" || conv.request_status !== "pending" || conv.candidate_user_id !== meId) return { kind: "none" };
-  /* ⚠️ 返事待ちのあいだは受け手が参加者にいないので、この会話のメッセージはすべて送り手のもの */
-  const { data: msgs, error: mErr } = await db.from("ow_conversation_messages")
-    .select("sent_at").eq("conversation_id", conversationId).is("deleted_at", null).order("sent_at", { ascending: true });
-  if (mErr) {
-    console.error("[messageRequest] followUp msgs:", mErr.message);
-    return null;
-  }
-  const list = msgs ?? [];
-  if (list.length === 0) return { kind: "none" };
-  if (list.length >= 1 + PENDING_FOLLOW_UP_MAX) return { kind: "used" };
-  const from = new Date(new Date(list[0].sent_at as string).getTime() + PENDING_FOLLOW_UP_AFTER_DAYS * 24 * 60 * 60 * 1000);
-  return from.getTime() <= Date.now() ? { kind: "allowed" } : { kind: "wait", from: from.toISOString() };
+  return { kind: "allowed" };
 }
 
 /** 送れないときの文言（送り手に見せる） */
 export function followUpBlockMessage(s: FollowUpState): string | null {
-  if (s.kind === "allowed") return null;
-  if (s.kind === "used") return FOLLOW_UP_USED_MESSAGE;
-  if (s.kind === "wait") {
-    const p = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(s.from));
-    return `まだ返信がありません。${p}から、もう1通だけ送れます`;
-  }
-  return NOT_ACCEPTED_MESSAGE;
+  return s.kind === "allowed" ? null : NOT_ACCEPTED_MESSAGE;
 }
 
 /**
- * 返事待ちの会話に、送り手がもう1通送る。
+ * 返事待ちの会話に、送り手が続けて送る。
  * ⚠️★受け手を参加者に足さない（返信するまで本文は「未返信」の欄でサーバーから見せる）
  * ⚠️★相手が見送った・ブロックした・いま送れない相手なら、**保存はするが知らせない**（受け手の一覧にも出ない）。
  *    送り手には同じ答えを返す（断られたと分からないように。最初の1通と同じ決まり）
