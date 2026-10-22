@@ -121,7 +121,13 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <p style={{ margin: 0, fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)", minWidth: 0, flex: "1 1 240px" }}>
-          相手が返信すると、そのままメッセージでやり取りが始まります。オンラインで話す日時は、返信のあとにメッセージで決めてください。返信があるまで、続けて送ることはできません。
+          {/* ★2026-10-22 に短くした。⚠️ 押せない理由を先に出す（何を選べば送れるかが画面に無かった） */}
+          {!ready && !sample ? (
+            <span data-state="first-message-missing" style={{ display: "block", fontWeight: 600, color: "var(--ink-soft)" }}>
+              {!topic ? "聞きたいことを1つ選んでください。" : tooLong ? `ひとことは${FIRST_NOTE_MAX}字までです。` : "ひとことを書いてください。"}
+            </span>
+          ) : null}
+          返信があるとやり取りが始まります。返信までは1通だけ送れます。{format !== DEFAULT_MESSAGE_FORMAT && "話す日時は、返信のあとに決めます。"}
         </p>
         <span style={{ display: "inline-flex", gap: 8, marginLeft: "auto" }}>
         {onCancel && (

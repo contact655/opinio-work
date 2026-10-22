@@ -1,6 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+/* ★会社名はプロフィールの職歴と同じ日本語名（法人格を落とす）。英語名を優先する companyDisplayName にすると
+      「KAIKOU DENGYOのこと」のように、プロフィールの「海光電業」と別の名前に見える（2026-10-22） */
+import { stripLegalSuffix } from "@/lib/companies/displayName";
 import { topicsFor, type MessageTopic, type TopicSection } from "@/lib/constants/messageTopics";
 
 /**
@@ -41,14 +43,14 @@ export async function dmTopicContext(recipientId: string, aboutCompanyId?: strin
   const all = (data ?? []) as unknown as Row[];
   const rows = all.filter((r) => r.is_current);
   const linked = rows.find((r) => r.ow_companies?.name && r.visibility_company === "real");
-  const currentCompanyName = linked?.ow_companies ? companyDisplayName(linked.ow_companies.name, linked.ow_companies.name_en).displayName : null;
+  const currentCompanyName = linked?.ow_companies ? (stripLegalSuffix(linked.ow_companies.name) || linked.ow_companies.name) : null;
 
   let about: { name: string; isCurrent: boolean } | null = null;
   let aboutId: string | null = null;
   if (aboutCompanyId) {
     const at = all.filter((r) => r.company_id === aboutCompanyId && r.visibility_company === "real" && r.ow_companies?.is_published && !r.ow_companies.is_test);
     if (at.length > 0 && at[0].ow_companies) {
-      about = { name: companyDisplayName(at[0].ow_companies.name, at[0].ow_companies.name_en).displayName, isCurrent: at.some((r) => r.is_current) };
+      about = { name: (stripLegalSuffix(at[0].ow_companies.name) || at[0].ow_companies.name), isCurrent: at.some((r) => r.is_current) };
       aboutId = aboutCompanyId;
     }
   }
