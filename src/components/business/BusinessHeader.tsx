@@ -28,11 +28,13 @@ import OpinioLogo from "@/components/common/OpinioLogo";
  */
 const BUSINESS_TOP = "/business";
 
+/* ★2026-10-22 に v4 のページに合わせた。⚠️ 行き先の id は /business の FEATURES と START_STEPS の節（page.tsx） */
 const NAV_LINKS: { href: string; label: string }[] = [
-  { href: `${BUSINESS_TOP}#people`,   label: "人で伝わること" },
-  { href: `${BUSINESS_TOP}#onpage`,   label: "企業ページ" },
-  { href: `${BUSINESS_TOP}#proposal`, label: "紹介のしくみ" },
-  { href: "/business/pricing",        label: "料金" },
+  { href: `${BUSINESS_TOP}#features`,  label: "できること" },
+  { href: `${BUSINESS_TOP}#reach-out`, label: "人を探す" },
+  { href: `${BUSINESS_TOP}#proposal`,  label: "紹介" },
+  { href: `${BUSINESS_TOP}#start`,     label: "はじめ方" },
+  { href: "/business/pricing",         label: "料金" },
 ];
 
 /*
