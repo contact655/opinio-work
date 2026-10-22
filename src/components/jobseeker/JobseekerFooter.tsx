@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { getBusinessDomainFacets } from "@/lib/companies/businessDomainsCached";
 import OpinioLogo from "@/components/common/OpinioLogo";
-import { hasPublishedArticles } from "@/lib/articles/hasPublished";
 
 /* ⚠️ **サーバーコンポーネント。** 事業領域の一覧を自分で引く。
       全ページに出るので `getBusinessDomainFacets()` は unstable_cache 済み（300s）。
       素で引くと1ページ表示ごとに1クエリ増える。 */
 export async function JobseekerFooter() {
-  const [industryFacets, showArticles] = await Promise.all([getBusinessDomainFacets(), hasPublishedArticles()]);
+  const industryFacets = await getBusinessDomainFacets();
   return (
     <footer role="contentinfo" style={{ background: "var(--ink)", color: "#fff", marginTop: "auto" }}>
 
@@ -53,8 +52,7 @@ export async function JobseekerFooter() {
                 // /salary（年収相場）は年収データを増やす予定が無く、育たない導線なので削除。
                 { href: "/companies", label: "企業を探す" },
                 { href: "/jobs",      label: "募集を探す" },
-                /* ★公開中の記事が0本なら出さない（2026-10-22。lib/articles/hasPublished.ts） */
-                ...(showArticles ? [{ href: "/articles", label: "記事" }] : []),
+                { href: "/articles",  label: "記事" },
                 { href: "/auth",      label: "無料登録" },
               ].map(({ href, label }) => (
                 <Link key={href} href={href} className="footer-link" style={{
