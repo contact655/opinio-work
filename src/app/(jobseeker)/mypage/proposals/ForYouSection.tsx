@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
@@ -17,6 +17,8 @@ import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./Fi
  *   担当者未登録 … 「気になる」。押すとその場で記録して運営に知らせる（2026-10-23。担当者がいる会社と見出しで分けた）
  * ⚠️ 記録は ow_for_you_reactions（上段の ow_proposals とは別の表のまま。統合するかは別途判断）。
  */
+
+const VIEW_KEY = "opinio-for-you-view";
 
 export type ForYouView = {
   id: string;
@@ -59,6 +61,17 @@ export default function ForYouSection({
   const [composing, setComposing] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [showHidden, setShowHidden] = useState(false);
+  /* ★表示の形（2026-10-23 / 柴さんの指示）。リスト（1社1行）とタイル（ロゴと社名。押すと開く）。
+        ⚠️ 選んだ形はこの端末にだけ覚える（localStorage。読めなければリスト） */
+  const [view, setView] = useState<"list" | "tiles">("list");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  useEffect(() => {
+    try { const v = localStorage.getItem(VIEW_KEY); if (v === "list" || v === "tiles") setView(v); } catch { /* 読めなければリストのまま */ }
+  }, []);
+  const changeView = (v: "list" | "tiles") => {
+    setView(v); setExpanded(null);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* 覚えられなくても表示は切り替わる */ }
+  };
 
   async function post(id: string, body: Record<string, unknown>): Promise<{ ok: boolean; conversationId?: string }> {
     setBusy(id);
@@ -112,19 +125,41 @@ export default function ForYouSection({
   /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
   /* ⚠️ 理由の無い会社だけのとき（＝まとめの見出しが「その他の掲載企業」1つだけ）は、その見出しを出さない（2026-10-23）。
         上の「気になる会社 N社」と同じ会社を指す見出しが2つ並んでいた */
-  const renderGroups = (list: ForYouView[]) => (
-          <div style={{ display: "grid", gap: 20 }}>
-            {groupCompanies(list).map((g) => (
-              <section key={g.label ?? "__other"} data-state={g.label ? "for-you-group" : "for-you-group-other"} aria-label={g.label ?? OTHER_COMPANIES_TITLE}>
-                {(g.label || groupCompanies(list).length > 1) && <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
-                  {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
-                  <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{g.items.length}社</span>
-                </h3>}
-                {/* ★2026-10-16: 1列の縦長カードが21枚続いて読みにくかったので、広い画面は2列にした（柴さんの指示）。
-                       ⚠️ 列の幅は minmax(0, 1fr)（1fr だと長い社名で列が押し広がる）。狭い画面は CSS で1列 */}
-                <ol className="fy-grid">
-                  {g.items.map((c) => (
-                    <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-card" style={CARD_STYLE}>
+  /* 会社ごとの操作（話を聞いてみたい／気になる・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
+  const actionsFor = (c: ForYouView) => (
+    <Actions
+      c={c}
+      busy={busy === c.id}
+      composing={composing === c.id}
+      note={notes[c.id] ?? ""}
+      declining={declining === c.id}
+      declineReason={declineReason}
+      declineReasons={declineReasons}
+      onInterested={() => c.hasResponder ? setComposing(c.id) : react(c.id, "interested")}
+      onChangeNote={(v) => setNotes((n) => ({ ...n, [c.id]: v }))}
+      onSend={() => react(c.id, "interested", { note: (notes[c.id] ?? "").trim() || null })}
+      onCancelCompose={() => setComposing(null)}
+      onUndo={() => undo(c.id)}
+      onLater={() => react(c.id, "later")}
+      onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
+      onCancelDecline={() => setDeclining(null)}
+      onChangeReason={setDeclineReason}
+      onDecline={() => react(c.id, "not_interested", { reason: declineReason })}
+    />
+  );
+  const errFor = (c: ForYouView) => err?.id === c.id
+    ? <p role="alert" style={{ fontSize: 12, color: "#B3261E", margin: "6px 0 0", flexBasis: "100%" }}>{err.text}</p>
+    : null;
+
+  /* カード（タイルを開いたとき）。g.label があれば1番目の理由は見出しにあるので繰り返さない */
+  const fullCard = (c: ForYouView, g: { label: string | null }, onClose?: () => void) => (
+    <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-card" style={{ ...CARD_STYLE, ...(onClose ? { gridColumn: "1 / -1" } : {}) }}>
+      {onClose && (
+        <button type="button" onClick={onClose} data-action="tile-close" aria-label={`${c.name}を閉じる`}
+          style={{ alignSelf: "flex-end", background: "none", border: "none", padding: 0, fontSize: 12, color: "var(--ink-soft)", cursor: "pointer", marginBottom: 4 }}>
+          閉じる ×
+        </button>
+      )}
                       <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
                         <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
                         <div style={{ minWidth: 0, flex: 1 }}>
@@ -147,33 +182,65 @@ export default function ForYouSection({
                       {/* ★中身が空なら枠ごと出さない（CautionBox が null を返す） */}
                       <CautionBox items={c.cautions} state="for-you-cautions" />
 
-                      <div className="fy-actions">
-                      <Actions
-                        c={c}
-                        busy={busy === c.id}
-                        composing={composing === c.id}
-                        note={notes[c.id] ?? ""}
-                        declining={declining === c.id}
-                        declineReason={declineReason}
-                        declineReasons={declineReasons}
-                        onInterested={() => c.hasResponder ? setComposing(c.id) : react(c.id, "interested")}
-                        onChangeNote={(v) => setNotes((n) => ({ ...n, [c.id]: v }))}
-                        onSend={() => react(c.id, "interested", { note: (notes[c.id] ?? "").trim() || null })}
-                        onCancelCompose={() => setComposing(null)}
-                        onUndo={() => undo(c.id)}
-                        onLater={() => react(c.id, "later")}
-                        onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
-                        onCancelDecline={() => setDeclining(null)}
-                        onChangeReason={setDeclineReason}
-                        onDecline={() => react(c.id, "not_interested", { reason: declineReason })}
-                      />
-                      </div>
-                      {err?.id === c.id && (
-                        <p role="alert" style={{ fontSize: 12, color: "#B3261E", margin: "6px 0 0" }}>{err.text}</p>
-                      )}
-                    </li>
-                  ))}
-                </ol>
+                      <div className="fy-actions">{actionsFor(c)}</div>
+      {errFor(c)}
+    </li>
+  );
+
+  /* ★リスト（2026-10-23 / 柴さんの指示）。1社1行で流し読みできる形。説明は理由（無ければ一言）を1行だけ */
+  const row = (c: ForYouView, g: { label: string | null }) => {
+    const reason = (g.label ? c.reasons[1] : c.reasons[0]) ?? null;
+    const text = reason ? `✓ ${reason}` : c.tagline;
+    const open = composing === c.id || declining === c.id;
+    return (
+      <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-row">
+        <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
+        <div className="fy-row-main">
+          <div style={{ display: "flex", gap: 6, alignItems: "center", minWidth: 0 }}>
+            <span className="fy-name" style={{ fontSize: 14.5, fontWeight: 700 }} title={c.name}>
+              {c.href ? <Link href={c.href} className="fit-company-link">{c.name}</Link> : c.name}
+            </span>
+            {c.hasOpenJobs && <NameLabel state="fit-tag-jobs">募集あり</NameLabel>}
+            {c.phaseLabel && <NameLabel state="fit-tag-phase">{c.phaseLabel}</NameLabel>}
+          </div>
+          {text && <div className="fy-row-text" title={text} style={reason ? { color: "#14532D" } : undefined}>{text}</div>}
+        </div>
+        <div className={open || c.interested ? "fy-row-actions is-open" : "fy-row-actions"}>{actionsFor(c)}</div>
+        {errFor(c)}
+      </li>
+    );
+  };
+
+  /* ★タイル（2026-10-23）。ロゴと社名だけを多く並べ、押すとその場でカードに開く */
+  const tile = (c: ForYouView, g: { label: string | null }) => expanded === c.id
+    ? fullCard(c, g, () => setExpanded(null))
+    : (
+      <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-tile">
+        <button type="button" onClick={() => setExpanded(c.id)} aria-expanded={false} data-action="tile-open">
+          <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
+          <span className="fy-name" style={{ fontSize: 13.5, fontWeight: 700, maxWidth: "100%" }} title={c.name}>{c.name}</span>
+          <span style={{ fontSize: 11.5, color: c.interested ? "var(--royal)" : "var(--ink-mute)" }}>
+            {c.interested ? (c.hasResponder ? "話を聞いてみたい済み" : "気になる済み") : c.reaction === "later" ? "あとで" : (c.phaseLabel ?? "")}
+          </span>
+        </button>
+      </li>
+    );
+
+  /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
+  /* ⚠️ 理由の無い会社だけのとき（＝まとめの見出しが「その他の掲載企業」1つだけ）は、その見出しを出さない（2026-10-23）。
+        上の「気になる会社 N社」と同じ会社を指す見出しが2つ並んでいた */
+  const renderGroups = (list: ForYouView[]) => (
+          /* ⚠️ 列は minmax(0, 1fr)。1fr だとリストの行の最小幅で枠が押し広がり、スマホで横にはみ出した（2026-10-23） */
+          <div style={{ display: "grid", gap: 20, gridTemplateColumns: "minmax(0, 1fr)" }}>
+            {groupCompanies(list).map((g) => (
+              <section key={g.label ?? "__other"} data-state={g.label ? "for-you-group" : "for-you-group-other"} aria-label={g.label ?? OTHER_COMPANIES_TITLE}>
+                {(g.label || groupCompanies(list).length > 1) && <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
+                  {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
+                  <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{g.items.length}社</span>
+                </h3>}
+                {view === "list"
+                  ? <ol className="fy-list" data-state="for-you-list">{g.items.map((c) => row(c, g))}</ol>
+                  : <ol className="fy-tiles" data-state="for-you-tiles">{g.items.map((c) => tile(c, g))}</ol>}
               </section>
             ))}
           </div>
@@ -190,8 +257,30 @@ export default function ForYouSection({
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .fy-actions { margin-top: auto; padding-top: 12px; }
         @media (max-width: 760px) { .fy-grid { grid-template-columns: minmax(0, 1fr); } }
+        .fy-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
+        .fy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px; border-top: 1px solid var(--line-soft); min-width: 0; }
+        .fy-row:first-child { border-top: none; }
+        .fy-row-main { flex: 1 1 260px; min-width: 0; }
+        .fy-row-text { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fy-row-actions { flex: 0 0 auto; margin-left: auto; }
+        .fy-row-actions.is-open { flex-basis: 100%; margin-left: 0; }
+        .fy-tiles { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); grid-auto-flow: dense; }
+        .fy-tile button { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font-family: inherit; color: var(--ink); min-width: 0; text-align: center; }
+        .fy-tile button:hover { border-color: var(--royal-100); }
+        @media (max-width: 760px) { .fy-row-actions { flex-basis: 100%; margin-left: 0; } .fy-tiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } }
       `}</style>
-      <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 12px" }}>{ALL_COMPANIES_SECTION_TITLE}</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "0 0 12px" }}>
+        <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{ALL_COMPANIES_SECTION_TITLE}</h2>
+        <div role="group" aria-label="表示の形" data-state="for-you-view-toggle" style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
+          {([["list", "リスト"], ["tiles", "タイル"]] as const).map(([v, label]) => (
+            <button key={v} type="button" aria-pressed={view === v} onClick={() => changeView(v)} data-view={v}
+              style={{ padding: "6px 14px", fontSize: 12.5, fontWeight: 600, border: "none", fontFamily: "inherit", cursor: "pointer",
+                background: view === v ? "var(--royal)" : "#fff", color: view === v ? "#fff" : "var(--ink-soft)" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loadFailed ? (
         <p role="alert" style={{ fontSize: 14, lineHeight: 1.9, color: "#B3261E" }}>
