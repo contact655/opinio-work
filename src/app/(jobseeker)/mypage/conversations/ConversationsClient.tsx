@@ -417,6 +417,16 @@ export default function ConversationsClient({
     if (box) box.scrollTop = box.scrollHeight;
   }, [messages]);
 
+  /* ★開いたらページは一番上から（2026-10-22）。ブラウザは読み込み直したとき前の位置へ戻すので、
+        前に下へずれた位置が残っていると、読み込み直すたびにそこへ戻っていた（柴さんの指摘）。
+        この画面はメッセージ欄の中でスクロールするので、ページの位置を覚えておく必要が無い */
+  useEffect(() => {
+    const prev = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    return () => { window.history.scrollRestoration = prev; };
+  }, []);
+
   /* ── ★複数の宛先へ送る（2026-08-27）────────────────────────────────────────
         ⚠️ **グループ会話ではない。** 宛先ごとに既存の1対1の会話へ1通ずつ入る。
            受け取った側からは通常のメッセージと区別がつかず、**他の宛先も見えない。**
