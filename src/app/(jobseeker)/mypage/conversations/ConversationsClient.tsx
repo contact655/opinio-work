@@ -17,6 +17,7 @@ import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
 import { askCompanyName, formatLabel, isMessageFormat, isMessageTopic, requestHeadline } from "@/lib/constants/messageTopics";
 import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
+import { PendingFollowUp } from "@/components/messages/PendingFollowUp";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
 const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
@@ -229,6 +230,16 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
           <p data-state="request-body" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.8, color: item.request.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
             {item.request.body ?? "（本文を読み込めませんでした）"}
           </p>
+          {/* ★返信が無いあいだに届いた、もう1通（2026-10-22 / A案） */}
+          {item.request.followUps.map((f) => (
+            <div key={f.sentAt} data-state="request-follow-up" style={{ marginTop: 12, paddingTop: 10, borderTop: "1px dashed var(--line)" }}>
+              <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>{fmt(f.sentAt)}に届いたメッセージ</div>
+              {isMessageTopic(f.askTopic) && (
+                <AskTag topic={f.askTopic} format={isMessageFormat(f.askFormat) ? f.askFormat : null} companyName={f.askCompanyName} />
+              )}
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{f.body}</p>
+            </div>
+          ))}
         </>
       )}
       {/* ★返信欄は企業の見本と同じ部品（RequestReplyBox）。⚠️ 片方だけ書き換えない */}
@@ -853,10 +864,11 @@ export default function ConversationsClient({
 
               {/* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める） */}
               {isPendingRequest(selectedConv) ? (
-                <div data-state="request-pending-banner" style={{
-                  borderTop: "1px solid var(--line)", padding: "14px 16px", flexShrink: 0,
-                  fontSize: 13, fontWeight: 600, color: "var(--ink-soft)", background: "var(--line-soft)",
-                }}>{NOT_ACCEPTED_TEXT}</div>
+                /* ★返信が無くても、1通目から3日たてばもう1通だけ送れる（2026-10-22 / A案）。判定は API の1か所 */
+                <div style={{ borderTop: "1px solid var(--line)", padding: "12px 16px", flexShrink: 0, background: "var(--line-soft)" }}>
+                  <PendingFollowUp key={selectedConvId ?? ""} conversationId={selectedConvId ?? ""} fallbackText={NOT_ACCEPTED_TEXT}
+                    onSent={() => (selectedConvId ? fetchMessages(selectedConvId) : undefined)} />
+                </div>
               ) : (
               /* 入力エリア */
               <div style={{ borderTop: "1px solid var(--line)", padding: "10px 16px 12px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>

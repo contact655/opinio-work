@@ -7,7 +7,7 @@ import { emailCandidateIfCompanySent } from "@/lib/notify/companyMessageEmail";
 import { notifyCompanySlack } from "@/lib/notify/slack";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
-import { NOT_ACCEPTED_MESSAGE, isDmSendable } from "@/lib/conversations/messageRequest";
+import { NOT_ACCEPTED_MESSAGE, isDmSendable, sendPendingFollowUp } from "@/lib/conversations/messageRequest";
 import { NO_ASK, resolveAsk, type AskColumns } from "@/lib/conversations/askTopic";
 
 export async function POST(request: NextRequest) {
@@ -54,6 +54,19 @@ export async function POST(request: NextRequest) {
         ブロックを先に見ると、ブロックされた送り手だけ 403 になり、ふつうの返事待ちと答えが変わって
         ブロックされたと分かってしまう。どちらにしても続きは送れない。 */
   if (conv.kind === "direct_message" && !isDmSendable(conv)) {
+    /* ★返信が無くても、送り手はもう1通だけ送れる（2026-10-22 / A案）。判定と書き込みは sendPendingFollowUp の1か所。
+          ⚠️ 受け手を参加者に足さない・断られた/ブロックされたことは伝えない（同じ答えを返す） */
+    if (conv.candidate_user_id === owMe.id && conv.partner_user_id) {
+      let ask: AskColumns = NO_ASK;
+      if (body.topic) {
+        const r = await resolveAsk({ recipientId: conv.partner_user_id as string, topic: body.topic, format: body.format ?? null });
+        if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+        ask = r.cols;
+      }
+      const r = await sendPendingFollowUp({ conversationId, senderId: owMe.id as string, body: message, ask });
+      if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+      return NextResponse.json({ ok: true });
+    }
     return NextResponse.json({ error: NOT_ACCEPTED_MESSAGE }, { status: 409 });
   }
   const recipientId = conv.candidate_user_id === owMe.id ? conv.partner_user_id : conv.candidate_user_id;

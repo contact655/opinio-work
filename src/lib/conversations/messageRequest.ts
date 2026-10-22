@@ -6,12 +6,16 @@ import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { emailPersonMessage } from "@/lib/notify/personMessageEmail";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
 import { dmTopicContext, isTopicOffered } from "@/lib/conversations/dmTopics";
-import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, isMessageFormat, requestCompanyName, requestHeadline, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
+import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, askCompanyName, isMessageFormat, requestCompanyName, requestHeadline, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
   GENERAL_FIRST_MESSAGE_MAX,
   MESSAGE_REQUEST_DAILY_LIMIT,
   MESSAGE_REQUEST_OPEN_LIMIT,
+  PENDING_FOLLOW_UP_AFTER_DAYS,
+  PENDING_FOLLOW_UP_MAX,
+  PENDING_FOLLOW_UP_MAX_LENGTH,
 } from "@/lib/constants/messages";
+import type { AskColumns } from "@/lib/conversations/askTopic";
 
 /**
  * ★DM の「メッセージのお願い」（2026-10-09 / 段階3）。**判定と書き込みはここの1か所。**
@@ -31,11 +35,13 @@ import {
  */
 
 export const NOT_ACCEPTED_MESSAGE = "まだ返信がありません。返信があると続きを送れます";
+/** ★返事待ちで、もう1通も送り終えたとき（2026-10-22） */
+export const FOLLOW_UP_USED_MESSAGE = "まだ返信がありません。返信があるまで、これ以上は送れません";
 
 const MSG = {
   daily: `本日はこれ以上、新しい方へメッセージを送れません（1日${MESSAGE_REQUEST_DAILY_LIMIT}件まで）`,
   open: `返事待ちのメッセージが${MESSAGE_REQUEST_OPEN_LIMIT}件あるため、これ以上新しい方へ送れません`,
-  outgoing: "この方にはすでにメッセージを送っています。返信があると続きを送れます",
+  outgoing: "この方にはすでにメッセージを送っています。メッセージ一覧から続きを送れます",
   incoming: "この方からメッセージが届いています。メッセージ一覧の「未返信」から返信できます",
   exists: "この方とのメッセージはすでに始まっています",
   failed: "送信に失敗しました。もう一度お試しください",
@@ -516,6 +522,8 @@ export type IncomingRequest = {
   requestedAt: string | null;
   /** ★1通目の本文（2026-10-11）。返信する前に読めるよう、サーバーから渡す。取れなかったら null */
   body: string | null;
+  /** ★返信が無いあいだに届いた、もう1通（2026-10-22 / A案）。古い順。⚠️ 1通目は含まない */
+  followUps: { body: string; sentAt: string; askTopic: string | null; askFormat: string | null; askCompanyName: string | null }[];
   /** ★最初の1通で選んだテーマ（2026-10-17）。それより前の行は null */
   topic: MessageTopic | null;
   /** ★話を聞く形（2026-10-18）。それより前の行は null */
@@ -559,12 +567,20 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
   }
   const shownIds = ids.filter((id) => !declined.has(id));
   const bodies = new Map<string, string>();
+  const followUps = new Map<string, IncomingRequest["followUps"]>();
   if (shownIds.length > 0) {
     const { data: msgs, error: mErr } = await db.from("ow_conversation_messages")
-      .select("conversation_id, body, sent_at").in("conversation_id", shownIds).is("deleted_at", null)
+      .select("conversation_id, body, sent_at, ask_topic, ask_format, ask_company:ow_companies!ask_company_id(name)").in("conversation_id", shownIds).is("deleted_at", null)
       .order("sent_at", { ascending: true });
     if (mErr) console.error("[messageRequest] incoming bodies:", mErr.message);
-    for (const m of msgs ?? []) if (!bodies.has(m.conversation_id as string)) bodies.set(m.conversation_id as string, m.body as string);
+    for (const m of msgs ?? []) {
+      const cid = m.conversation_id as string;
+      if (!bodies.has(cid)) { bodies.set(cid, m.body as string); continue; }
+      const list = followUps.get(cid) ?? [];
+      list.push({ body: m.body as string, sentAt: m.sent_at as string, askTopic: (m.ask_topic as string | null) ?? null,
+        askFormat: (m.ask_format as string | null) ?? null, askCompanyName: askCompanyName(m.ask_company) });
+      followUps.set(cid, list);
+    }
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((data ?? []) as any[])
@@ -575,6 +591,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
         conversationId: r.id as string,
         requestedAt: (r.requested_at as string | null) ?? null,
         body: bodies.get(r.id as string) ?? null,
+        followUps: followUps.get(r.id as string) ?? [],
         topic: (r.request_topic as MessageTopic | null) ?? null,
         format: isMessageFormat(r.request_format) ? r.request_format : null,
         aboutCompanyName: requestCompanyName(r.request_company),
@@ -601,3 +618,108 @@ export async function countIncomingRequests(meId: string): Promise<number> {
   return (await listIncomingRequests(meId)).length;
 }
 
+
+/* ── ★返信が無くても、もう1通（2026-10-22 / 柴さんの判断・A案）──────────────────────── */
+
+export type FollowUpState =
+  /** 返事待ちではない（返信済み・自分が受け手・個人どうしでない） */
+  | { kind: "none" }
+  /** いま送れる */
+  | { kind: "allowed" }
+  /** この日時から送れる */
+  | { kind: "wait"; from: string }
+  /** もう送った */
+  | { kind: "used" };
+
+/**
+ * 返事待ちの会話で、送り手がもう1通送れるか。判定はここの1か所（API と画面が同じ関数を見る）。
+ * ⚠️ 断られた・ブロックされたことは**見ない**（送り手に伝えない決まり）。届けるかどうかは送るときに決める
+ * ⚠️ 取得に失敗したら null（呼び出し側は送れない側に倒す）
+ */
+export async function pendingFollowUpState(conversationId: string, meId: string): Promise<FollowUpState | null> {
+  const db = createAdminClient();
+  const { data: conv, error } = await db.from("ow_conversations")
+    .select("kind, candidate_user_id, request_status").eq("id", conversationId).maybeSingle();
+  if (error) {
+    console.error("[messageRequest] followUp conv:", error.message);
+    return null;
+  }
+  if (!conv || conv.kind !== "direct_message" || conv.request_status !== "pending" || conv.candidate_user_id !== meId) return { kind: "none" };
+  /* ⚠️ 返事待ちのあいだは受け手が参加者にいないので、この会話のメッセージはすべて送り手のもの */
+  const { data: msgs, error: mErr } = await db.from("ow_conversation_messages")
+    .select("sent_at").eq("conversation_id", conversationId).is("deleted_at", null).order("sent_at", { ascending: true });
+  if (mErr) {
+    console.error("[messageRequest] followUp msgs:", mErr.message);
+    return null;
+  }
+  const list = msgs ?? [];
+  if (list.length === 0) return { kind: "none" };
+  if (list.length >= 1 + PENDING_FOLLOW_UP_MAX) return { kind: "used" };
+  const from = new Date(new Date(list[0].sent_at as string).getTime() + PENDING_FOLLOW_UP_AFTER_DAYS * 24 * 60 * 60 * 1000);
+  return from.getTime() <= Date.now() ? { kind: "allowed" } : { kind: "wait", from: from.toISOString() };
+}
+
+/** 送れないときの文言（送り手に見せる） */
+export function followUpBlockMessage(s: FollowUpState): string | null {
+  if (s.kind === "allowed") return null;
+  if (s.kind === "used") return FOLLOW_UP_USED_MESSAGE;
+  if (s.kind === "wait") {
+    const p = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(s.from));
+    return `まだ返信がありません。${p}から、もう1通だけ送れます`;
+  }
+  return NOT_ACCEPTED_MESSAGE;
+}
+
+/**
+ * 返事待ちの会話に、送り手がもう1通送る。
+ * ⚠️★受け手を参加者に足さない（返信するまで本文は「未返信」の欄でサーバーから見せる）
+ * ⚠️★相手が見送った・ブロックした・いま送れない相手なら、**保存はするが知らせない**（受け手の一覧にも出ない）。
+ *    送り手には同じ答えを返す（断られたと分からないように。最初の1通と同じ決まり）
+ */
+export async function sendPendingFollowUp(params: { conversationId: string; senderId: string; body: string; ask: AskColumns }):
+  Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const body = params.body.trim();
+  if (!body) return { ok: false, status: 400, error: "メッセージを入力してください" };
+  if (body.length > PENDING_FOLLOW_UP_MAX_LENGTH) return { ok: false, status: 400, error: `メッセージは${PENDING_FOLLOW_UP_MAX_LENGTH}文字以内で入力してください` };
+  const state = await pendingFollowUpState(params.conversationId, params.senderId);
+  if (!state) return { ok: false, status: 500, error: MSG.failed };
+  const blocked = followUpBlockMessage(state);
+  if (blocked) return { ok: false, status: 409, error: blocked };
+
+  const db = createAdminClient();
+  const { data: conv, error: cErr } = await db.from("ow_conversations")
+    .select("partner_user_id").eq("id", params.conversationId).maybeSingle();
+  if (cErr || !conv?.partner_user_id) {
+    console.error("[messageRequest] followUp partner:", cErr?.message ?? "missing");
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+  const recipientId = conv.partner_user_id as string;
+  const parts = await ensureDmParticipants(db, params.conversationId, [params.senderId]);
+  const senderParticipantId = parts.ok ? parts.byUserId.get(params.senderId) : undefined;
+  if (!senderParticipantId) {
+    console.error("[messageRequest] followUp participant:", parts.ok ? "missing" : parts.error);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+  const { error: insErr } = await db.from("ow_conversation_messages").insert({
+    conversation_id: params.conversationId, sender_participant_id: senderParticipantId, body, ...params.ask,
+  });
+  if (insErr) {
+    console.error("[messageRequest] followUp insert:", insErr.message);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+
+  /* 届けてよい相手にだけ知らせる。⚠️ best-effort */
+  const declined = await isDeclined(params.conversationId);
+  const blockedNow = await isMessagingBlocked(params.senderId, recipientId);
+  if (declined === false && !blockedNow) {
+    const { error: nErr } = await db.from("ow_notifications").insert({
+      recipient_user_id: recipientId, actor_user_id: params.senderId, type: "message_request", conversation_id: params.conversationId,
+    });
+    if (nErr) console.error("[messageRequest] followUp notify:", nErr.message);
+    await emailPersonMessage({
+      kind: "request", recipientOwUserId: recipientId, senderOwUserId: params.senderId, conversationId: params.conversationId,
+      headline: "メッセージ", source: "dm/follow-up",
+    });
+  }
+  return { ok: true };
+}

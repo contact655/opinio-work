@@ -7,6 +7,7 @@ import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubble";
 import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
+import { PendingFollowUp } from "@/components/messages/PendingFollowUp";
 import { askCompanyName, isMessageFormat, isMessageTopic } from "@/lib/constants/messageTopics";
 
 export type MessageRow = {
@@ -268,10 +269,8 @@ export default function ConversationDetailClient({
         <div className="bg-white rounded-b-card border border-t-0 border-card-border px-4 py-3 flex-shrink-0">
           {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
             /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
-            <p data-state="request-pending-banner" className="text-sm text-gray-500 text-center py-1">
-              {/* ★文ごとに折り返す（2026-10-19。390px で「…送れま／す」と最後の1文字だけ次の行に落ちていた） */}
-              <span className="inline-block">まだ返信がありません。</span><span className="inline-block">返信があると続きを送れます</span>
-            </p>
+            /* ★返信が無くても、1通目から3日たてばもう1通だけ送れる（2026-10-22 / A案）。判定は API の1か所 */
+            <PendingFollowUp conversationId={conversationId} fallbackText="まだ返信がありません。返信があると続きを送れます" onSent={() => refreshMessages()} />
           ) : myParticipantId ? (
             <div className="flex flex-col gap-2">
             {conversation.kind === "direct_message" && (

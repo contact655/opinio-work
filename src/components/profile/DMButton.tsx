@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PENDING_FOLLOW_UP_AFTER_DAYS } from "@/lib/constants/messages";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -59,7 +60,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
   /* ★書く画面の段（2026-10-20 / 柴さんの判断）。
        connected … つながっている（相互フォロー）相手。テーマを聞かずにふつうのメッセージ欄。送るとすぐ会話になる
        choose    … それ以外の相手。最初に「キャリアの相談をする」「メッセージを送る」を選ぶ
-       consult   … キャリア相談（テーマ＋ひとこと）／ message … メッセージ（テーマなし）。どちらも返信までは1通だけ */
+       consult   … キャリア相談（テーマ＋ひとこと）／ message … メッセージ（テーマなし）。どちらも返信が無いあいだは、3日後にもう1通だけ（2026-10-22 / A案。PENDING_FOLLOW_UP_*） */
   const [mode, setMode] = useState<"connected" | "choose" | "consult" | "message">("choose");
   const [maxLength, setMaxLength] = useState(2000);
   const [sending, setSending] = useState(false);
@@ -251,7 +252,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
               <ChooseKind titleId="dm-request-title" recipientName={targetName} onChoose={setMode} onCancel={() => setComposing(false)} />
             ) : mode === "message" ? (
               <PlainComposer titleId="dm-request-title" recipientName={targetName} maxLength={maxLength} state="message-composer"
-                note="あいさつ・お礼・連絡など。返信があるまでは、続けて送れません。"
+                note={`あいさつ・お礼・連絡など。返信が無くても、${PENDING_FOLLOW_UP_AFTER_DAYS}日後にもう1通だけ送れます。`}
                 onBack={() => { if (!sending) setMode("choose"); }}
                 onSend={handleSendMessage} onCancel={() => { if (!sending) setComposing(false); }} />
             ) : (
@@ -291,7 +292,7 @@ function ChooseKind({ recipientName, onChoose, onCancel, titleId }: {
       <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
       {option("consult", "キャリアの相談をする", "聞きたいことを選んで、ひとこと添えて送ります。")}
       {option("message", "メッセージを送る", "あいさつ・お礼・連絡など、相談以外の用件です。")}
-      <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>どちらも、相手から返信があるまでは1通だけ送れます。</div>
+      <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>どちらも、返信が無くても{PENDING_FOLLOW_UP_AFTER_DAYS}日後にもう1通だけ送れます。</div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <button type="button" onClick={onCancel}
           style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>

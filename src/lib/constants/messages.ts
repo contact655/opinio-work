@@ -44,3 +44,15 @@ export const MESSAGE_REQUEST_DAILY_LIMIT = 10;
  *    断られた分だけ枠が空くと、枠の増減から断られたことが分かってしまう。
  */
 export const MESSAGE_REQUEST_OPEN_LIMIT = 20;
+
+/* ── ★返信が無くても、もう1通（2026-10-22 / 柴さんの判断・A案）────────────────────────
+      個人どうしの返事待ちのメッセージに、追いのメッセージを1通だけ足せる。1通目から3日あける。
+      ⚠️ 企業からのメッセージ（ow_company_approaches）には効かない。あちらは「返信があるまで同じ人へ続けて送れない」のまま
+      ⚠️ 判定は lib/conversations/messageRequest.ts の pendingFollowUpState の1か所。画面に数字を書き写さない */
+
+/** 返事待ちのあいだに、最初の1通のほかに送れる数 */
+export const PENDING_FOLLOW_UP_MAX = 1;
+/** 1通目から何日あければ送れるか */
+export const PENDING_FOLLOW_UP_AFTER_DAYS = 3;
+/** 追いのメッセージの本文の長さ（「メッセージを送る」の1通目と同じ） */
+export const PENDING_FOLLOW_UP_MAX_LENGTH = GENERAL_FIRST_MESSAGE_MAX;
