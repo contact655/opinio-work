@@ -110,14 +110,16 @@ export default function ForYouSection({
   const others = visible.filter((c) => !c.hasResponder);
 
   /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
+  /* ⚠️ 理由の無い会社だけのとき（＝まとめの見出しが「その他の掲載企業」1つだけ）は、その見出しを出さない（2026-10-23）。
+        上の「気になる会社 N社」と同じ会社を指す見出しが2つ並んでいた */
   const renderGroups = (list: ForYouView[]) => (
           <div style={{ display: "grid", gap: 20 }}>
             {groupCompanies(list).map((g) => (
               <section key={g.label ?? "__other"} data-state={g.label ? "for-you-group" : "for-you-group-other"} aria-label={g.label ?? OTHER_COMPANIES_TITLE}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
+                {(g.label || groupCompanies(list).length > 1) && <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
                   {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
                   <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{g.items.length}社</span>
-                </h3>
+                </h3>}
                 {/* ★2026-10-16: 1列の縦長カードが21枚続いて読みにくかったので、広い画面は2列にした（柴さんの指示）。
                        ⚠️ 列の幅は minmax(0, 1fr)（1fr だと長い社名で列が押し広がる）。狭い画面は CSS で1列 */}
                 <ol className="fy-grid">
