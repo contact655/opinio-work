@@ -47,11 +47,11 @@ export const revalidate = 600;
 export const metadata: Metadata = {
   title: { absolute: "料金 | OPINIO for Business" },
   description:
-    "OPINIO の企業向け料金。企業ページの作成・求人掲載・応募の受付は無料です。候補者検索などの有料プランは月額のみで、成果報酬は発生しません。",
+    "OPINIO の企業向け料金。ベータ版の間は、すべての機能を無料でお使いいただけます。企業ページの作成・求人掲載・応募の受付はいつでも無料で、成果報酬は発生しません。",
   alternates: { canonical: "/business/pricing" },
   openGraph: {
     title: "料金 | OPINIO for Business",
-    description: "企業ページの作成・求人掲載・応募の受付は無料。有料プランは月額のみで、成果報酬は発生しません。",
+    description: "ベータ版の間は、すべての機能が無料。企業ページの作成・求人掲載・応募の受付はいつでも無料で、成果報酬は発生しません。",
     type: "website",
     url: "https://opinio.jp/business/pricing",
     images: [{ url: "https://opinio.jp/api/og?name=OPINIO+for+Business&sub=%E6%96%99%E9%87%91&v=2", width: 1200, height: 630 }],
@@ -132,13 +132,14 @@ export default function BusinessPricingPage() {
               }}>
                 {/* ⚠️ 和文は文節を無視してどこでも改行される。割りたくない塊を
                        inline-block で包んでいる（トップの h1 と同じ扱い）。 */}
-                {/* ★2026-10-22 に書き直した（柴さんの了承・A案。「出す」「取りに行く」は分かりにくかった） */}
-                <span style={{ display: "inline-block" }}>掲載は無料です。</span>
-                <span style={{ display: "inline-block" }}>人を探して声をかける機能は、</span>
-                <span style={{ display: "inline-block" }}>有料プランです。</span>
+                {/* ★2026-10-22: ベータ版の間はすべての機能を無料にしている（plans.ts の MATRIX。柴さんの指示で、その事実を先頭に出した）。
+                       ⚠️★正式版へ移るときは、この見出し・有料プランの枠・FAQ「費用」をまとめて書き直すこと */}
+                <span style={{ display: "inline-block" }}>ベータ版の間は、</span>
+                <span style={{ display: "inline-block" }}>すべての機能を無料で</span>
+                <span style={{ display: "inline-block" }}>お使いいただけます。</span>
               </h1>
               <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.9, maxWidth: 620 }}>
-                企業ページの作成、求人の掲載、応募とカジュアル面談の受け取りまでは、費用がかかりません。
+                人を探してメッセージを送る機能も、ベータ版の間は無料です。正式版に移る30日前までにお知らせし、お申し込みをいただかない限り料金は発生しません。
               </p>
             </div>
 
@@ -146,9 +147,11 @@ export default function BusinessPricingPage() {
               {[
                 {
                   key: "free",
-                  label: "Free",
+                  label: "無料プラン",
                   price: "0円",
-                  priceNote: "ずっと無料",
+                  priceNote: "正式版のあとも無料",
+                  badge: null as string | null,
+                  after: null as string | null,
                   items: [
                     "企業ページの作成・公開",
                     "求人掲載（件数の上限なし）",
@@ -169,11 +172,14 @@ export default function BusinessPricingPage() {
                 {
                   key: "paid",
                   label: "有料プラン",
-                  /* ⚠️ 金額は定数から。ここに数字を書かない */
-                  price: `月額 ${PAID_PLAN_MONTHLY_FEE.toLocaleString()}円`,
-                  priceNote: "税別",
+                  /* ★ベータ版の間は0円（plans.ts の MATRIX で free でも開けている）。
+                        ⚠️ 正式版の金額は定数から。ここに数字を書かない */
+                  price: "0円",
+                  priceNote: "ベータ版の間",
+                  badge: "ベータ版の間は無料",
+                  after: `正式版の料金：月額 ${PAID_PLAN_MONTHLY_FEE.toLocaleString()}円（税別）`,
                   /* ★有料の側は plans.ts の PLAN_FEATURES と1対1（candidateSearch / companyApproach / companyMaterials）。
-                        ⚠️ ベータ期間中は free でも開けているが、それを無料と書く規約の改定は未公開（A案の理由） */
+                        ⚠️ ベータ期間中は free でも開けている。掲載利用規約（2026-08-21 版）は有料プランの料金を「本サービス上に表示するところによる」としているので、ベータ版の間の0円はこのページで示す（2026-10-22 / 柴さんの指示） */
                   items: [
                     "無料の機能すべて",
                     "登録している人の検索",
@@ -185,15 +191,18 @@ export default function BusinessPricingPage() {
                   border: "var(--royal)",
                   accent: "var(--royal)",
                 },
-              ].map(({ key, label, price, priceNote, items, border, accent }) => (
+              ].map(({ key, label, price, priceNote, badge, after, items, border, accent }) => (
                 <div key={key} style={{
                   padding: "28px 26px", background: "#fff",
                   border: `1.5px solid ${border}`, borderRadius: 14,
                   boxShadow: "0 12px 32px rgba(11,26,51,0.08)",
                   display: "flex", flexDirection: "column",
                 }}>
-                  <div style={{ marginBottom: 10 }}>
+                  <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{label}</span>
+                    {badge && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", background: "var(--royal-50)", borderRadius: 99, padding: "3px 10px", whiteSpace: "nowrap" }}>{badge}</span>
+                    )}
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 22, flexWrap: "wrap" }}>
                     <span style={{
@@ -213,6 +222,9 @@ export default function BusinessPricingPage() {
                       </div>
                     ))}
                   </div>
+                  {after && (
+                    <p style={{ margin: "20px 0 0", paddingTop: 16, borderTop: "1px solid var(--line)", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>{after}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -225,7 +237,7 @@ export default function BusinessPricingPage() {
             }}>
               <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: 0 }}>
                 <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
-                採用人数にかかわらず月額のみです。
+                正式版の有料プランも、採用人数にかかわらず月額のみです。
               </p>
               {/* ⚠️ 2026-08-31 に mailto から /business/contact（フォーム）へ変えた。
                      mailto に戻さないこと。メーラーの無い環境では押しても何も起きない。 */}
@@ -273,15 +285,22 @@ export default function BusinessPricingPage() {
                    書かないことによって誤解させることになる）。
               */}
               <FaqItem q="費用はかかりますか？">
-                企業ページの作成、求人の掲載、応募とカジュアル面談の受け取り、応募者の連絡先の表示までは無料です。
-                登録している人の検索と、企業からのメッセージの送信は、
-                月額{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円（税別）の有料プランでご利用いただけます。
+                ベータ版の間は、すべての機能を無料でお使いいただけます。
+                正式版では、登録している人の検索・企業からのメッセージの送信・企業資料を紹介の材料に使う機能が、
+                月額{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円（税別）の有料プランになります。
+                企業ページの作成、求人の掲載、応募とカジュアル面談の受け取り、応募者の連絡先の表示は、正式版のあとも無料です。
+                正式版に移る30日前までにお知らせし、お申し込みをいただかない限り料金は発生しません。
                 <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
                 {" "}取引条件の全文は{" "}
                 <Link href="/terms/listing" style={{ color: "var(--royal)", textDecoration: "underline", fontWeight: 600 }}>
                   掲載利用規約
                 </Link>
                 {" "}に定めています。ご不明な点は contact@opinio.co.jp までお問い合わせください。
+              </FaqItem>
+
+              {/* ⚠️ 終了日を書かないこと（2026-10-22 時点で決まっていない）。「30日前まで」は掲載利用規約 第5条5項（料金を不利益に変える通知）に合わせた */}
+              <FaqItem q="ベータ版はいつまでですか？">
+                終了日はまだ決まっていません。決まりましたら、OPINIO の画面かメールでお知らせします。
               </FaqItem>
 
               <FaqItem q="どのような業界・職種に対応していますか？">
