@@ -6,6 +6,7 @@ import { MobileBottomNav } from "@/components/jobseeker/MobileBottomNav";
 import { GlobalToast } from "@/components/ui/GlobalToast";
 import { OnboardingGuard } from "@/components/jobseeker/OnboardingGuard";
 import { ActivityPing } from "@/components/jobseeker/ActivityPing";
+import { hasPublishedArticles } from "@/lib/articles/hasPublished";
 
 export const metadata: Metadata = {
   title: {
@@ -58,10 +59,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function JobseekerLayout({ children }: { children: React.ReactNode }) {
+export default async function JobseekerLayout({ children }: { children: React.ReactNode }) {
+  /* ★公開中の記事が0本なら、ヘッダー・メニューの「記事」を出さない（2026-10-22） */
+  const showArticles = await hasPublishedArticles();
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <Suspense fallback={null}><JobseekerHeader /></Suspense>
+      <Suspense fallback={null}><JobseekerHeader showArticles={showArticles} /></Suspense>
       <main id="main-content" style={{ flex: 1 }}>
         {children}
       </main>

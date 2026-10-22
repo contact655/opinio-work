@@ -67,11 +67,13 @@ type SuggestResult = {
     デスクトップは入力欄の下のドロップダウン、1024px 未満は🔍から開くオーバーレイで
     **同じものを出す。** 文言・並び・行き先を片方だけ変えないこと。
     ⚠️ 「まとめて検索 →」は `SearchAllLink.tsx` と文言を揃えてある（部品側に注記あり）。 */
-function SearchSuggestPanel({ query, suggestions, onClose, router }: {
+function SearchSuggestPanel({ query, suggestions, onClose, router, showArticles }: {
   query: string;
   suggestions: SuggestResult | null;
   onClose: () => void;
   router: ReturnType<typeof useRouter>;
+  /** 公開中の記事があるか。false ならクイックナビから「記事」を外す */
+  showArticles: boolean;
 }) {
   /* ★最近の検索（このブラウザにだけ残る。開くたびに読み直す） */
   const [recent, setRecent] = useState<string[]>([]);
@@ -115,7 +117,7 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
               { href: "/companies", label: "企業一覧", icon: "🏢" },
               { href: "/jobs",      label: "募集一覧", icon: "💼" },
               { href: "/people",    label: "ユーザー一覧", icon: "👥" },
-              { href: "/articles",  label: "記事",      icon: "📝" },
+              ...(showArticles ? [{ href: "/articles",  label: "記事",      icon: "📝" }] : []),
             ].map(({ href, label, icon }) => (
               <a key={href} href={href} onClick={() => onClose()}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid var(--line)", textDecoration: "none", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>
@@ -194,7 +196,11 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
   );
 }
 
-export function JobseekerHeader() {
+/**
+ * @param showArticles ★公開中の記事があるか（2026-10-22）。false なら「記事」をナビ・メニュー・クイックナビから外す。
+ *   ⚠️ 既定は true（/business の各ページは渡していないので、従来どおり出る）
+ */
+export function JobseekerHeader({ showArticles = true }: { showArticles?: boolean } = {}) {
   const pathname = usePathname();
   /* トップページだけ、ヒーローの検索窓が見えているあいだはヘッダーの検索を出さない（2026-10-09 / 柴さんの判断）。
      役割の分担: ヘッダー＝候補を見ながら社名・人名へ素早く移る ／ ヒーロー＝文章で条件を書く。
@@ -203,6 +209,8 @@ export function JobseekerHeader() {
      ⚠️ 判定は `[data-hero-search]`（HeroSearch の form）の IntersectionObserver。
         見つからなければ出す側に倒す（検索の入口が消えるより、重なるほうがまし）。 */
   const isTop = pathname === "/";
+  /* ★公開中の記事が0本なら「記事」を出さない（2026-10-22。判定は layout の hasPublishedArticles） */
+  const navLinks = showArticles ? NAV_LINKS : NAV_LINKS.filter((l) => l.href !== "/articles");
   const [heroInView, setHeroInView] = useState(true);
   useEffect(() => {
     if (!isTop) return;
@@ -566,6 +574,7 @@ export function JobseekerHeader() {
                   suggestions={suggestions}
                   router={router}
                   onClose={() => setInlineOpen(false)}
+                  showArticles={showArticles}
                 />
               </div>
             )}
@@ -666,7 +675,7 @@ export function JobseekerHeader() {
                   釣り合いの上にもう一段ずれが乗る。
                ⚠️ `flex: 1` にもしないこと。タブが伸びて字間が開く。 */
             style={{ gap: 8, alignItems: "center", flexShrink: 0 }}>
-            {NAV_LINKS.map(({ href, label }) => {
+            {navLinks.map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
               const active = hrefTab
@@ -1046,6 +1055,7 @@ export function JobseekerHeader() {
                 suggestions={suggestions}
                 router={router}
                 onClose={() => setSearchOpen(false)}
+                showArticles={showArticles}
               />
             </div>
           </div>
@@ -1108,7 +1118,7 @@ export function JobseekerHeader() {
           {/* ★ログイン中のスマホは、下のタブバーにある5つ（ホーム・企業・募集・ユーザー・マイページ）を
               ここに並べない（2026-10-17）。同じ行き先が画面の上と下に2つずつ並んでいた。
               ⚠️ タブバーに無い「記事」だけ残す。⚠️ 未ログインは従来どおり全部出す。 */}
-          {NAV_LINKS.filter(({ href }) => !mobileSignedIn || href === "/articles").map(({ href, label }) => {
+          {navLinks.filter(({ href }) => !mobileSignedIn || href === "/articles").map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab
