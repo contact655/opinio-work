@@ -111,8 +111,8 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
   }
 
   /** 送る。エラーの文言を返す（成功したら会話へ移る） */
-  async function handleSend(topic: MessageTopic, note: string, format: MessageFormat): Promise<string | null> {
-    return post({ targetUserId, topic, format, aboutCompanyId, message: note });
+  async function handleSend(topic: MessageTopic, note: string, format: MessageFormat, companyId: string | null): Promise<string | null> {
+    return post({ targetUserId, topic, format, aboutCompanyId, askCompanyId: companyId, message: note });
   }
   /** つながっている相手へ（テーマなし。すぐ会話になる） */
   async function handleSendConnected(message: string): Promise<string | null> {

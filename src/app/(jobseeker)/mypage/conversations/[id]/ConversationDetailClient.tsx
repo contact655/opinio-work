@@ -115,7 +115,7 @@ export default function ConversationDetailClient({
     const res = await fetch("/api/dm/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null }),
+      body: JSON.stringify({ conversationId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null, askCompanyId: ask?.companyId ?? null }),
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));

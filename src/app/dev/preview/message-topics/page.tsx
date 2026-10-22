@@ -40,6 +40,17 @@ export default function Page() {
       </Variant>
 
       <h2 style={{ fontSize: 15, fontWeight: 700, margin: "8px 0 12px" }}>書く画面</h2>
+      <Variant label="個人 → 個人（相手が3社経験している）" note="見出しは「会社のこと」。「どの会社のこと？」で選ぶ。最初はいまの勤務先（2026-10-23）">
+        <FirstMessageComposer recipientName="大塚 悠貴" recipientLine="海光電業 ／ 法人営業" sample
+          sections={topicsFor({ recipient: { kind: "person", currentCompanyName: "海光電業", hasCurrentCompany: true }, senderIsRecruiter: false }).map((sec) =>
+            sec.group === "company"
+              ? { ...sec, title: "会社のこと", defaultCompanyId: "c1", companies: [
+                  { id: "c1", name: "海光電業", isCurrent: true, period: "いま" },
+                  { id: "c2", name: "〇〇商事", isCurrent: false, period: "2015〜2021" },
+                  { id: "c3", name: "△△物産", isCurrent: false, period: "2012〜2015" },
+                ] }
+              : sec)} />
+      </Variant>
       <Variant label="個人 → 個人（相手の現職が分かる）" note="「〈社名〉のこと」と「キャリアのこと」が出る。採用のことは出ない">
         <FirstMessageComposer recipientName="木村 雅樹" recipientLine="Salesforce ／ アカウントエグゼクティブ" sample
           sections={topicsFor({ recipient: { kind: "person", currentCompanyName: "Salesforce", hasCurrentCompany: true }, senderIsRecruiter: false })} />

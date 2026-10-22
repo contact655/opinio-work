@@ -43,7 +43,7 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
     try {
       const r = await fetch("/api/dm/message", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, message: text.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null }),
+        body: JSON.stringify({ conversationId, message: text.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null, askCompanyId: ask?.companyId ?? null }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error ?? "送信に失敗しました"); return; }

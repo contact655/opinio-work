@@ -513,7 +513,7 @@ export default function ConversationsClient({
       const res = await fetch("/api/dm/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId: selectedConvId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null }),
+        body: JSON.stringify({ conversationId: selectedConvId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null, askCompanyId: ask?.companyId ?? null }),
       });
       if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
       const data = await res.json();

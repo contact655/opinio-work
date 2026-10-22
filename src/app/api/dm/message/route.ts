@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   /* ★topic / format（2026-10-22）… この1通に付ける「聞きたいこと」。省けばふつうのメッセージ。確かめるのは resolveAsk の1か所 */
-  let body: { conversationId: string; message: string; topic?: string | null; format?: string | null };
+  let body: { conversationId: string; message: string; topic?: string | null; format?: string | null; askCompanyId?: string | null };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (conv.candidate_user_id === owMe.id && conv.partner_user_id) {
       let ask: AskColumns = NO_ASK;
       if (body.topic) {
-        const r = await resolveAsk({ recipientId: conv.partner_user_id as string, topic: body.topic, format: body.format ?? null });
+        const r = await resolveAsk({ recipientId: conv.partner_user_id as string, topic: body.topic, format: body.format ?? null, askCompanyId: body.askCompanyId ?? null });
         if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
         ask = r.cols;
       }
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     if (conv.kind !== "direct_message" || !recipientId) {
       return NextResponse.json({ error: "この会話には聞きたいことを付けられません" }, { status: 400 });
     }
-    const r = await resolveAsk({ recipientId: recipientId as string, topic: body.topic, format: body.format ?? null });
+    const r = await resolveAsk({ recipientId: recipientId as string, topic: body.topic, format: body.format ?? null, askCompanyId: body.askCompanyId ?? null });
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
     ask = r.cols;
   }

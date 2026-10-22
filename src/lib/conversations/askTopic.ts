@@ -1,6 +1,6 @@
 /* ★サーバー専用（admin クライアントを使う dmTopics を読む） */
 import "server-only";
-import { dmTopicContext, isTopicOffered } from "@/lib/conversations/dmTopics";
+import { dmTopicContext, isTopicOffered, pickAskCompany } from "@/lib/conversations/dmTopics";
 import { DEFAULT_MESSAGE_FORMAT, MESSAGE_TOPICS, isMessageFormat } from "@/lib/constants/messageTopics";
 
 export type AskColumns = { ask_topic: string | null; ask_format: string | null; ask_company_id: string | null };
@@ -14,7 +14,7 @@ export const NO_ASK: AskColumns = { ask_topic: null, ask_format: null, ask_compa
  *   - 形を省いたら「メッセージで」
  * ⚠️ topic が空なら札なし（ふつうのメッセージ）。不正な値は 400 で返す（黙って捨てない）
  */
-export async function resolveAsk(params: { recipientId: string; topic?: string | null; format?: string | null; aboutCompanyId?: string | null }):
+export async function resolveAsk(params: { recipientId: string; topic?: string | null; format?: string | null; aboutCompanyId?: string | null; askCompanyId?: string | null }):
   Promise<{ ok: true; cols: AskColumns; aboutCompanyId: string | null } | { ok: false; status: number; error: string }> {
   if (!params.topic) return { ok: true, cols: NO_ASK, aboutCompanyId: null };
   if (params.format && !isMessageFormat(params.format)) return { ok: false, status: 400, error: "話を聞く形を選び直してください" };
@@ -29,7 +29,7 @@ export async function resolveAsk(params: { recipientId: string; topic?: string |
     cols: {
       ask_topic: topic,
       ask_format: isMessageFormat(params.format) ? params.format : DEFAULT_MESSAGE_FORMAT,
-      ask_company_id: isCompanyTopic ? (ctx.aboutCompanyId ?? ctx.currentCompanyId) : null,
+      ask_company_id: isCompanyTopic ? pickAskCompany(ctx, params.askCompanyId) : null,
     },
   };
 }

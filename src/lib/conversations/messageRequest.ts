@@ -5,7 +5,7 @@ import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { emailPersonMessage } from "@/lib/notify/personMessageEmail";
 import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations/contactGate";
-import { dmTopicContext, isTopicOffered } from "@/lib/conversations/dmTopics";
+import { dmTopicContext, isTopicOffered, pickAskCompany } from "@/lib/conversations/dmTopics";
 import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_TOPICS, askCompanyName, isMessageFormat, requestCompanyName, requestHeadline, type MessageFormat, type MessageTopic } from "@/lib/constants/messageTopics";
 import {
   GENERAL_FIRST_MESSAGE_MAX,
@@ -261,6 +261,8 @@ export async function sendMessageRequest(params: {
   format?: string;
   /** ★企業ページから送ったとき、その会社（2026-10-18）。確かめられなければ黙って使わない */
   aboutCompanyId?: string | null;
+  /** ★「会社のこと」で選んだ会社（2026-10-23）。相手の職歴の会社でなければ黙って使わない（pickAskCompany） */
+  askCompanyId?: string | null;
   body: string;
 }): Promise<SendResult> {
   const { senderId, recipientId } = params;
@@ -313,7 +315,7 @@ export async function sendMessageRequest(params: {
     /* ★どの会社の話か。会社のテーマを選んだときだけ記録する（キャリアの相談に社名を付けない） */
     const isCompanyTopic = MESSAGE_TOPICS.some((t) => t.value === chosen && t.group === "company");
     requestCompanyId = isCompanyTopic ? ctx.aboutCompanyId : null;
-    askCompanyId = isCompanyTopic ? (ctx.aboutCompanyId ?? ctx.currentCompanyId) : null;
+    askCompanyId = isCompanyTopic ? pickAskCompany(ctx, params.askCompanyId) : null;
   }
 
   const db = createAdminClient();

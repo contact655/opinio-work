@@ -54,7 +54,15 @@ export function formatLabel(value: MessageFormat): string {
 /** 一言の上限（100字程度）。⚠️ 本番では DB の CHECK でも縛る */
 export const FIRST_NOTE_MAX = 100;
 
-export type TopicSection = { group: MessageTopicGroup; title: string; topics: { value: MessageTopic; label: string }[] };
+/** ★「会社のこと」で選べる会社（2026-10-23）。相手が会社名を出している職歴の会社。いまの勤務先が先 */
+export type TopicCompany = { id: string; name: string; isCurrent: boolean; period: string | null };
+export type TopicSection = {
+  group: MessageTopicGroup; title: string; topics: { value: MessageTopic; label: string }[];
+  /** ★会社のテーマで、2社以上から選べるとき（2026-10-23）。1社以下なら無い（見出しに社名が出る） */
+  companies?: TopicCompany[];
+  /** 最初に選ばれている会社 */
+  defaultCompanyId?: string | null;
+};
 
 /**
  * 送り主と相手の関係で、出すテーマを決める。

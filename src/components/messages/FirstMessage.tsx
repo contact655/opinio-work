@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { FromTag } from "@/components/mypage/InboxCard";
 import { RequestReplyBox, personReplyTemplates } from "@/components/approaches/RequestReplyBox";
-import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_FORMATS, askTagLines, formatLabel, topicLabel, type MessageFormat, type MessageTopic, type TopicSection } from "@/lib/constants/messageTopics";
+import { DEFAULT_MESSAGE_FORMAT, FIRST_NOTE_MAX, MESSAGE_FORMATS, askTagLines, formatLabel, topicLabel, type MessageFormat, type MessageTopic, type TopicCompany, type TopicSection } from "@/lib/constants/messageTopics";
 
 /**
  * ★最初の1通（テーマ＋一言）の部品（2026-10-17 / 設計メモ docs/messaging-unification-20261017.md の段階1）。
@@ -32,7 +32,7 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
   recipientLine: string | null;
   sections: TopicSection[];
   /** エラーの文言を返す（成功なら null）。見本では渡さない */
-  onSend?: (topic: MessageTopic, note: string, format: MessageFormat) => Promise<string | null>;
+  onSend?: (topic: MessageTopic, note: string, format: MessageFormat, companyId: string | null) => Promise<string | null>;
   /** 「やめる」（ダイアログの中で使うとき） */
   onCancel?: () => void;
   sample?: boolean;
@@ -40,6 +40,9 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
   titleId?: string;
 }) {
   const [topic, setTopic] = useState<MessageTopic | null>(null);
+  /* ★「会社のこと」で選んだ会社（2026-10-23）。2社以上あるときだけ使う */
+  const companySection = sections.find((s) => s.group === "company" && s.companies && s.companies.length >= 2);
+  const [companyId, setCompanyId] = useState<string | null>(companySection?.defaultCompanyId ?? null);
   const [note, setNote] = useState("");
   /* ★話を聞く形（2026-10-18）。既定は「メッセージで」（押さなくても送れる） */
   const [format, setFormat] = useState<MessageFormat>(DEFAULT_MESSAGE_FORMAT);
@@ -53,7 +56,7 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
   const send = async () => {
     if (!canSend || !topic || !onSend) return;
     setBusy(true); setError(null);
-    try { const e = await onSend(topic, note.trim(), format); if (e) setError(e); } finally { setBusy(false); }
+    try { const e = await onSend(topic, note.trim(), format, companyId); if (e) setError(e); } finally { setBusy(false); }
   };
 
   return (
@@ -75,6 +78,9 @@ export function FirstMessageComposer({ recipientName, recipientLine, sections, o
           {sections.map((s) => (
             <div key={s.group} data-topic-group={s.group} style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 6 }}>{s.title}</div>
+              {s.companies && s.companies.length >= 2 && (
+                <CompanyChoice companies={s.companies} value={companyId} onChange={setCompanyId} />
+              )}
               <div role="radiogroup" aria-label={s.title} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {s.topics.map((t) => {
                   const on = topic === t.value;
@@ -234,7 +240,7 @@ export function AskTag({ topic, format, companyName }: { topic: MessageTopic; fo
   );
 }
 
-export type AskValue = { topic: MessageTopic; format: MessageFormat } | null;
+export type AskValue = { topic: MessageTopic; format: MessageFormat; companyId?: string | null } | null;
 
 /**
  * ★返信欄の「＋ 聞きたいことを添える」（2026-10-22）。押すと選択肢が開く。選ばなければふつうのメッセージ。
@@ -246,6 +252,8 @@ export function AskPicker({ conversationId, value, onChange, disabled = false }:
   const [open, setOpen] = useState(false);
   const [sections, setSections] = useState<TopicSection[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /* ★聞きたいことを選ぶ前に会社だけ選んだとき（2026-10-23） */
+  const [companyPick, setCompanyPick] = useState<string | null>(null);
 
   const openPicker = async () => {
     setOpen(true);
@@ -283,12 +291,16 @@ export function AskPicker({ conversationId, value, onChange, disabled = false }:
       {sections?.map((s) => (
         <div key={s.group} style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>{s.title}</div>
+          {s.companies && s.companies.length >= 2 && (
+            <CompanyChoice companies={s.companies} value={value?.companyId ?? companyPick ?? s.defaultCompanyId ?? null}
+              onChange={(id) => { setCompanyPick(id); if (value) onChange({ ...value, companyId: id }); }} />
+          )}
           <div role="radiogroup" aria-label={s.title} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {s.topics.map((t) => {
               const on = value?.topic === t.value;
               return (
                 <button key={t.value} type="button" role="radio" aria-checked={on} data-topic={t.value} className="btn-fixed-size" style={chip(on)}
-                  onClick={() => onChange(on ? null : { topic: t.value, format: value?.format ?? DEFAULT_MESSAGE_FORMAT })}>
+                  onClick={() => onChange(on ? null : { topic: t.value, format: value?.format ?? DEFAULT_MESSAGE_FORMAT, companyId: value?.companyId ?? companyPick ?? s.defaultCompanyId ?? null })}>
                   {t.label}
                 </button>
               );
@@ -303,13 +315,35 @@ export function AskPicker({ conversationId, value, onChange, disabled = false }:
             const on = value.format === f.value;
             return (
               <button key={f.value} type="button" role="radio" aria-checked={on} data-format={f.value} className="btn-fixed-size" style={chip(on)}
-                onClick={() => onChange({ topic: value.topic, format: f.value })}>
+                onClick={() => onChange({ ...value, format: f.value })}>
                 {f.label}
               </button>
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * ★「どの会社のこと？」（2026-10-23 / 柴さんの指示）。相手が2社以上経験しているとき、会社のテーマの上に出す。
+ *   いまの勤務先が先・最初はいまの勤務先（企業ページから来たときはその会社）が選ばれている
+ */
+function CompanyChoice({ companies, value, onChange }: { companies: TopicCompany[]; value: string | null; onChange: (id: string) => void }) {
+  return (
+    <div role="radiogroup" aria-label="どの会社のこと" data-state="ask-company-choice" style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 }}>
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-mute)", marginRight: 2 }}>どの会社のこと？</span>
+      {companies.map((c) => {
+        const on = value === c.id;
+        return (
+          <button key={c.id} type="button" role="radio" aria-checked={on} data-company={c.id} className="btn-fixed-size" onClick={() => onChange(c.id)}
+            style={{ padding: "4px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: on ? 700 : 500, fontFamily: "inherit", cursor: "pointer",
+              border: `1.5px solid ${on ? "var(--royal)" : "var(--line)"}`, background: on ? "var(--royal-50)" : "#fff", color: on ? "var(--royal)" : "var(--ink-soft)" }}>
+            {c.name}{c.period && <span style={{ fontWeight: 500, color: "var(--ink-mute)" }}>（{c.period}）</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }

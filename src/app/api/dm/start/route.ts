@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   const meId = await resolveMe();
   if (!meId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; message?: unknown; connected?: unknown; kind?: unknown };
+  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; askCompanyId?: unknown; message?: unknown; connected?: unknown; kind?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -156,6 +156,7 @@ export async function POST(request: NextRequest) {
     kind: body.kind === "message" ? "message" : "consult",
     topic: typeof body.topic === "string" ? body.topic : "",
     aboutCompanyId: typeof body.aboutCompanyId === "string" && UUID_RE.test(body.aboutCompanyId) ? body.aboutCompanyId : null,
+    askCompanyId: typeof body.askCompanyId === "string" && UUID_RE.test(body.askCompanyId) ? body.askCompanyId : null,
     format: typeof body.format === "string" ? body.format : undefined,
     body: typeof body.message === "string" ? body.message : "",
   });
