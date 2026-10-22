@@ -361,7 +361,7 @@ export default function ConversationsClient({
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesBoxRef = useRef<HTMLDivElement>(null);
 
   /* ★狭い画面（768px 未満）では会話を詳細ページで開く（2026-10-09）。
         判定は押した時点の幅で行う（state に持たない）。 */
@@ -410,8 +410,11 @@ export default function ConversationsClient({
     return () => clearInterval(timer);
   }, [selectedConvId, fetchMessages]);
 
+  /* ★メッセージ欄の中だけを一番下へ送る（2026-10-22）。⚠️ scrollIntoView に戻さないこと。
+        あれはページ全体（window）までスクロールするので、開いた瞬間に画面が下へずれていた（柴さんの指摘） */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const box = messagesBoxRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [messages]);
 
   /* ── ★複数の宛先へ送る（2026-08-27）────────────────────────────────────────
@@ -797,7 +800,7 @@ export default function ConversationsClient({
               </div>
 
               {/* メッセージエリア */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "16px", minHeight: 0 }}>
+              <div ref={messagesBoxRef} data-state="messages-box" style={{ flex: 1, overflowY: "auto", padding: "16px", minHeight: 0 }}>
                 {panelLoading ? (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
                     <span style={{ fontSize: 13, color: "var(--ink-mute)" }}>読み込み中...</span>
@@ -829,7 +832,6 @@ export default function ConversationsClient({
                         </ChatBubble>
                       );
                     })}
-                    <div ref={bottomRef} />
                   </div>
                 )}
               </div>
