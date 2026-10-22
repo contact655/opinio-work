@@ -27,9 +27,10 @@ export function CompanyPageMock() {
     <div style={{ ...CARD, borderRadius: 16, boxShadow: "0 24px 60px rgba(11,26,51,0.12)" }} aria-hidden="true">
       <div style={{ height: 60, background: "#0b1a33" }} />
       <div style={{ padding: "0 22px 22px" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, marginTop: -26 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 12, background: "#2f5bd3", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 22, border: "3px solid #fff" }}>A</div>
-          <div style={{ paddingBottom: 2, minWidth: 0 }}>
+        {/* ⚠️ 浮かせるのはロゴだけ。行ごと上げると社名が濃紺の帯に重なって読めなくなる（2026-10-22 に踏んだ） */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 12, background: "#2f5bd3", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 22, border: "3px solid #fff", marginTop: -26, flexShrink: 0 }}>A</div>
+          <div style={{ paddingTop: 8, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 16 }}>株式会社サンプル</div>
             <div style={{ fontSize: 12, ...MUTE }}>CRM・営業支援 ／ 東京都</div>
           </div>
