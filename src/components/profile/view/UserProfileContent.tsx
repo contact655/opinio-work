@@ -28,7 +28,7 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
-import { ApproachButton } from "@/components/approaches/ApproachButton";
+import { approachResendNotice } from "@/lib/constants/companyApproaches";
 import { ProfileMoreMenu } from "@/components/profile/ProfileMoreMenu";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
@@ -651,25 +651,12 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                 ⚠️ minWidth: 0 は残す。可変長のボタンが並ぶ行なので、狭い画面で親を押し広げる。 */
           metaActions={embed ? undefined : <>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
-                {/* ★企業の担当者が見たとき（2026-10-11 / 柴さんの指示）。一番目立つボタンは会社としての
-                       「メッセージを送る」1つ。下に小さく「◯◯として送ります」。個人の DM は「…」の中へ。
-                       ⚠️ 送れない相手にはボタンを出さず、理由を区別しない1文だけ（`APPROACH_UNAVAILABLE_MESSAGE`） */}
-                {approach && !viewerIsOwner && (
-                  <div data-state="company-message-cta" style={{ display: "inline-flex", flexDirection: "column", gap: 4, minWidth: 0, maxWidth: "100%" }}>
-                    <ApproachButton candidateUserId={owUser.id} sent={approach.sent} eligible={approach.eligible} />
-                    {!approach.sent && approach.eligible && (
-                      <span data-state="send-as-company" style={{ fontSize: 11.5, color: "var(--ink-mute)", overflowWrap: "anywhere" }}>{approach.companyName}として送ります</span>
-                    )}
-                  </div>
-                )}
-                {approach && !viewerIsOwner && authUser && (
-                  <ProfileMoreMenu>
-                    <DMButton targetUserId={owUser.id} targetName={owUser.name} label="個人としてメッセージを送る" variant="menuItem" />
-                  </ProfileMoreMenu>
-                )}
-
-                {/* DMボタン（企業の担当者でない人。企業の担当者は上の「…」の中） */}
-                {approach ? null : !viewerIsOwner && authUser ? (
+                {/* ★2026-10-22 に LinkedIn の並びにした（柴さんの指示）。プロフィールの「メッセージ」は
+                       **誰が見ても個人として送るもの**。企業の担当者が会社として送るのは「…」の中か、
+                       企業の管理画面の「候補者を探す」から（LinkedIn の Recruiter と同じ置き方）。
+                       ⚠️ 2026-10-11〜10-22 は会社として送るボタンが一番目立つ位置にあり、個人は「…」の中だった。
+                       ⚠️ 会社として送れない相手には「…」の中に何も出さない（理由を区別しない。送れない一文も出さない） */}
+                {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
                 ) : !viewerIsOwner && !authUser ? (
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{
@@ -702,6 +689,22 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                     isAuthenticated={!!authUser}
                     refreshOnChange
                   />
+                )}
+
+                {/* ★会社として送る入口（企業の担当者だけ・「…」の中）。送れる → 「◯◯としてメッセージを送る」、
+                       送り済み → 「送った内容を見る」「メッセージを開く」（approachResendNotice）。送れない → 出さない */}
+                {approach && !viewerIsOwner && (approach.sent || approach.eligible) && (
+                  <ProfileMoreMenu>
+                    <Link role="menuitem" data-state="company-message-menu"
+                      href={approach.sent
+                        ? (approachResendNotice(approach.sent).action?.href ?? "/biz/messages")
+                        : `/biz/messages/new?candidate=${encodeURIComponent(owUser.id)}`}
+                      style={{ display: "block", padding: "10px 14px", fontSize: 13.5, fontWeight: 600, color: "var(--ink)", textDecoration: "none", whiteSpace: "nowrap" }}>
+                      {approach.sent
+                        ? `${approach.companyName}から送った${approach.sent.state === "accepted" ? "メッセージを開く" : "内容を見る"}`
+                        : `${approach.companyName}としてメッセージを送る`}
+                    </Link>
+                  </ProfileMoreMenu>
                 )}
 
                 {/* ⚠️ ここにあった「〇〇 の企業ページ」と「IT 求人を見る」は 2026-08-23 に外した。
