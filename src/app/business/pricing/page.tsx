@@ -4,7 +4,6 @@ import Link from "next/link";
 import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { JobseekerFooter } from "@/components/jobseeker/JobseekerFooter";
 import { PAID_PLAN_MONTHLY_FEE } from "@/lib/constants/plans";
-import { isScoutSendingEnabled } from "@/lib/business/scoutGate";
 
 export const revalidate = 600;
 
@@ -133,11 +132,13 @@ export default function BusinessPricingPage() {
               }}>
                 {/* ⚠️ 和文は文節を無視してどこでも改行される。割りたくない塊を
                        inline-block で包んでいる（トップの h1 と同じ扱い）。 */}
-                <span style={{ display: "inline-block" }}>「出す」は無料。</span>
-                <span style={{ display: "inline-block" }}>「取りに行く」から有料です。</span>
+                {/* ★2026-10-22 に書き直した（柴さんの了承・A案。「出す」「取りに行く」は分かりにくかった） */}
+                <span style={{ display: "inline-block" }}>掲載は無料です。</span>
+                <span style={{ display: "inline-block" }}>人を探して声をかける機能は、</span>
+                <span style={{ display: "inline-block" }}>有料プランです。</span>
               </h1>
               <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.9, maxWidth: 620 }}>
-                自社の情報を置いて、応募を受け取るところまでは費用がかかりません。
+                企業ページの作成、求人の掲載、応募とカジュアル面談の受け取りまでは、費用がかかりません。
               </p>
             </div>
 
@@ -157,8 +158,10 @@ export default function BusinessPricingPage() {
                              在籍していない人は運営に**報告**するだけで
                              （POST /api/biz/member-reports）、外すかどうかは運営が判断する。
                              それまでは `/api/biz/hidden-experiences` で企業が直接消せた。 */
-                    "社員・OB/OGの掲載（人数の上限なし）",
-                    "応募の受付",
+                    "社員・元社員の掲載（人数の上限なし）",
+                    "応募とカジュアル面談の受け取り",
+                    /* ★応募者の連絡先は 2026-10-08 から全企業に無料（plans.ts の注記）。有料の側に戻さないこと */
+                    "応募者の連絡先の表示",
                   ],
                   border: "var(--royal-100)",
                   accent: "var(--success)",
@@ -169,10 +172,13 @@ export default function BusinessPricingPage() {
                   /* ⚠️ 金額は定数から。ここに数字を書かない */
                   price: `月額 ${PAID_PLAN_MONTHLY_FEE.toLocaleString()}円`,
                   priceNote: "税別",
+                  /* ★有料の側は plans.ts の PLAN_FEATURES と1対1（candidateSearch / companyApproach / companyMaterials）。
+                        ⚠️ ベータ期間中は free でも開けているが、それを無料と書く規約の改定は未公開（A案の理由） */
                   items: [
-                    "Free のすべて",
-                    "候補者検索",
-                    "応募者の連絡先の表示",
+                    "無料の機能すべて",
+                    "登録している人の検索",
+                    "企業からのメッセージの送信",
+                    "企業資料を紹介の材料に使う",
                     /* ⚠️ 「話せる社員（アンバサダー）の招待」は 2026-10-16 に機能ごと撤去した */
                   ],
                   /* ⚠️ 「スカウトの送信」を戻さないこと。停止中で機能表から外してある。 */
@@ -267,8 +273,8 @@ export default function BusinessPricingPage() {
                    書かないことによって誤解させることになる）。
               */}
               <FaqItem q="費用はかかりますか？">
-                企業ページの作成、求人の掲載、応募の受け取りまでは無料です。
-                候補者検索と応募者の連絡先の表示は、
+                企業ページの作成、求人の掲載、応募とカジュアル面談の受け取り、応募者の連絡先の表示までは無料です。
+                登録している人の検索と、企業からのメッセージの送信は、
                 月額{PAID_PLAN_MONTHLY_FEE.toLocaleString()}円（税別）の有料プランでご利用いただけます。
                 <strong style={{ color: "var(--ink)" }}>成果報酬は発生しません。</strong>
                 {" "}取引条件の全文は{" "}
@@ -294,9 +300,10 @@ export default function BusinessPricingPage() {
                    運営が確認するまで求人を published にできない（403 で弾かれる）。
               */}
               <FaqItem q="登録に審査はありますか？すぐに始められますか？">
-                登録自体はメールアドレスだけで完了し、その場で企業ページの編集を始められます。
-                ただし求人を公開するには運営による内容の確認が必要で、通常2〜3営業日いただいています。
-                確認が済めば、以降は「公開」の操作だけで反映されます。
+                {/* ⚠️ 日数を書かないこと（約束できる根拠が無い。2026-10-22 に「通常2〜3営業日」を外した） */}
+                登録はメールアドレスだけで完了し、その場で企業ページの編集を始められます。
+                企業ページは、OPINIOが内容を確認してから企業一覧に掲載します。
+                掲載したあとは、必要な項目を入れれば求人をすぐに公開できます。
               </FaqItem>
 
               <FaqItem q="OPINIO が向いていないのは、どのような場合ですか？">
@@ -305,19 +312,10 @@ export default function BusinessPricingPage() {
                 </span>
                 <span style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <CrossItem>短期間で採用数を最大化したい</CrossItem>
-                  {/*
-                    ⚠️ 「スカウトを送りたい」を残さないこと。スカウト送信は
-                       SCOUT_SENDING_ENABLED 未設定で停止中（2026-08-21）。
-                    ★★2026-09-10: **手で直す形をやめ、フラグに連動させた。**
-                       ⚠️ 「開けたら直す」は消し忘れと消しすぎの両方が起きる。
-                       ⚠️★**開けても行ごと消さない。** スカウトを「主な手段」にしたい会社に
-                          向いていないのは、開けたあとも変わらない（OPINIO は対話から始める設計）。
-                          変わるのは**使えるかどうか**の但し書きだけ。
-                       ⚠️ 判定は `isScoutSendingEnabled()` の1本。ここで env を読まない。
-                  */}
+                  {/* ★2026-10-22: スカウトは廃止したので「スカウト送信」の行を、メッセージの仕組みに合わせて書き換えた。
+                         ⚠️ 「10人」は返事待ちの上限（lib/constants/companyApproaches.ts）。変えたらここも直す */}
                   <CrossItem>
-                    候補者へのスカウト送信を主な手段にしたい
-                    {isScoutSendingEnabled() ? "" : "（スカウト送信機能は現在ご利用いただけません）"}
+                    同じ文面のメッセージを、大勢に一斉に送りたい（返事待ちは10人までで、返信があるまで同じ人へ続けて送れません）
                   </CrossItem>
                   <CrossItem>IT 以外の業界での採用が中心</CrossItem>
                 </span>

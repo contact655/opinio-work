@@ -3,31 +3,7 @@
       `SCOUT_PLAN_BLOCKED_MESSAGE`、`PLAN_FEATURES` の `scoutSend` は削除した。**戻さないこと。**
    ⚠️ このファイルを残しているのは、候補者検索が使う `isCompanyReviewed()` が同居しているため。 */
 
-/**
- * ★「スカウト機能そのものが開いているか」（`SCOUT_SENDING_ENABLED`）。
- *
- * ⚠️★**この判定を各画面で書き写さないこと**（2026-09-10）。それまで
- *    `process.env.SCOUT_SENDING_ENABLED === "true"` が**4箇所に直書き**されており、
- *    さらに**文言だけ固定で書かれた画面が2つ**（LP の FAQ・料金ページ）あった。
- *    開ける日に「消し忘れ」と「消しすぎ」の両方が起きる形だった。
- *
- * ⚠️★**サーバー専用。** `SCOUT_SENDING_ENABLED` は `NEXT_PUBLIC_` ではないので、
- *    **クライアント側で呼ぶと常に false になる**（しかもエラーにならない）。
- *    クライアントに伝えるときは**サーバーで判定して props で渡す**こと
- *    （`/mypage/scouts` と `/biz/candidates` が既にその形）。
- *    ⚠️ このファイルを `"use client"` の部品から import しないこと。
- *
- * ⚠️ `canSendScout()`（プラン）とは**別の軸**。両方が要る。
- *
- * ⚠️ 反映には**再デプロイが要る**（Vercel の環境変数はデプロイ単位）。
- *    加えて LP は ISR（`revalidate = 300`）なので、最大5分は古い文言が出る。
- */
-/* ⚠️★2026-10-08 の時点で残っている読み手は `/business/pricing` の FAQ だけ
-      （並行セッションの作業中ファイルなので触っていない）。あちらから
-      「（スカウト送信機能は現在ご利用いただけません）」の行を外したら、**この関数ごと削除する。** */
-export function isScoutSendingEnabled(): boolean {
-  return process.env.SCOUT_SENDING_ENABLED === "true";
-}
+/* ★`isScoutSendingEnabled()` は 2026-10-22 に削除した（最後の読み手だった /business/pricing の FAQ を書き換えたため）。 */
 
 /**
  * ★「運営の審査が終わっているか」（2026-09-20）。
