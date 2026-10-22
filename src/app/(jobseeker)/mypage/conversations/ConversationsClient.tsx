@@ -558,9 +558,11 @@ export default function ConversationsClient({
              **入力欄が 27px 幅**しかなく送れなかった（実測）。
              狭い画面では一覧だけを出し、押したら会話の詳細ページへ移る。
           ⚠️ 幅で変える値（display・width・height）はインラインに書かない（ui-debugging ②）。
-          ⚠️ style タグの中には不等号・バッククォート・二重引用符を書かない（ui-debugging ⑲。属性セレクタの引用符でハイドレーションが壊れた）。 */}
+          ⚠️ style タグの中には不等号・バッククォート・二重引用符を書かない（ui-debugging ⑲。属性セレクタの引用符でハイドレーションが壊れた）。 
+          ★枠の高さは「画面の高さ − 210px」（2026-10-23）。枠はヘッダーとページの余白の下、約180px から始まるので、160px では下端が画面からはみ出し、
+            高さ約670px の画面で入力欄が見えなかった（柴さんの指摘）。下限の 500px も同じ理由で 360px に下げた */}
       <style>{`
-        .conv-shell { display: flex; height: calc(100vh - 160px); min-height: 500px; }
+        .conv-shell { display: flex; height: calc(100dvh - 210px); min-height: 360px; }
         .conv-list { width: 300px; flex-shrink: 0; border-right: 1px solid var(--line); }
         .conv-panel { display: flex; flex: 1; flex-direction: column; min-width: 0; }
         .conv-inline-detail { display: none; }
