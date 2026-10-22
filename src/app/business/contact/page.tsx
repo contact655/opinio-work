@@ -52,19 +52,22 @@ export default function BusinessContactPage() {
       <BusinessHeader />
       {/* ⚠️ `id="main-content"` はルート layout のスキップリンクの着地点。外さないこと
              （理由は /business の同じ箇所のコメント）。 */}
-      <main id="main-content" style={{ paddingTop: 60 }}>
+      {/* ⚠️★paddingTop を足さないこと（2026-10-22 に外した）。BusinessHeader は sticky で既に 60px を占めており、
+             足すとヘッダーの下に約60pxの白い帯ができる（実測: header bottom 61px / 最初の section top 121px）。 */}
+      <main id="main-content">
         <section style={{
-          background: "linear-gradient(180deg, var(--royal-50) 0%, var(--bg-tint) 100%)",
-          borderTop: "1px solid var(--line)",
+          /* ★企業向けトップ（v4）の最初の画面と同じ地（2026-10-22） */
+          background: "linear-gradient(180deg, #fff 0%, var(--bg-tint) 100%)",
+          borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)",
           padding: "72px 24px 88px",
         }}>
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
 
             <div style={{ marginBottom: 36 }}>
               <div style={{
-                display: "inline-block", fontSize: 12, fontWeight: 700,
-                letterSpacing: "0.1em", textTransform: "uppercase" as const,
-                color: "var(--royal)", marginBottom: 16,
+                /* ★企業向けトップ（v4）の小見出しと同じ形（2026-10-22） */
+                display: "inline-block", fontSize: 13, fontWeight: 700,
+                letterSpacing: "0.1em", color: "#2f5bd3", marginBottom: 14,
               }}>
                 お問い合わせ
               </div>
@@ -85,7 +88,8 @@ export default function BusinessContactPage() {
 
             <div style={{
               padding: "32px 28px", background: "#fff",
-              border: "1px solid var(--line)", borderRadius: 16,
+              border: "1px solid var(--line)", borderRadius: 14,
+              boxShadow: "0 12px 32px rgba(11,26,51,0.08)",
             }}>
               <BusinessContactForm />
             </div>

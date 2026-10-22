@@ -106,20 +106,23 @@ export default function BusinessPricingPage() {
       <BusinessHeader />
       {/* ⚠️ `id="main-content"` はルート layout のスキップリンクの着地点。外さないこと
              （理由は /business の同じ箇所のコメント）。 */}
-      <main id="main-content" style={{ paddingTop: 60 }}>
+      {/* ⚠️★paddingTop を足さないこと（2026-10-22 に外した）。BusinessHeader は sticky で既に 60px を占めており、
+             足すとヘッダーの下に約60pxの白い帯ができる（実測: header bottom 61px / 最初の section top 121px）。 */}
+      <main id="main-content">
 
         {/* ─── 料金 ─── */}
         <section id="pricing" style={{
-          background: "linear-gradient(180deg, var(--royal-50) 0%, var(--bg-tint) 100%)",
-          borderTop: "1px solid var(--line)",
+          /* ★企業向けトップ（v4）の最初の画面と同じ地（2026-10-22） */
+          background: "linear-gradient(180deg, #fff 0%, var(--bg-tint) 100%)",
+          borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)",
           padding: "72px 24px 80px",
         }}>
           <div style={innerStyle}>
             <div style={{ marginBottom: 44 }}>
               <div style={{
-                display: "inline-block", fontSize: 12, fontWeight: 700,
-                letterSpacing: "0.1em", textTransform: "uppercase" as const,
-                color: "var(--royal)", marginBottom: 16,
+                /* ★企業向けトップ（v4）の小見出しと同じ形（2026-10-22） */
+                display: "inline-block", fontSize: 13, fontWeight: 700,
+                letterSpacing: "0.1em", color: "#2f5bd3", marginBottom: 14,
               }}>
                 料金
               </div>
@@ -179,7 +182,8 @@ export default function BusinessPricingPage() {
               ].map(({ key, label, price, priceNote, items, border, accent }) => (
                 <div key={key} style={{
                   padding: "28px 26px", background: "#fff",
-                  border: `1.5px solid ${border}`, borderRadius: 16,
+                  border: `1.5px solid ${border}`, borderRadius: 14,
+                  boxShadow: "0 12px 32px rgba(11,26,51,0.08)",
                   display: "flex", flexDirection: "column",
                 }}>
                   <div style={{ marginBottom: 10 }}>
@@ -222,7 +226,7 @@ export default function BusinessPricingPage() {
               <Link href="/business/contact" style={{
                 display: "inline-flex", alignItems: "center", gap: 7,
                 padding: "11px 22px", background: "#fff", color: "var(--royal)",
-                border: "1.5px solid var(--royal-100)", borderRadius: 9,
+                border: "1.5px solid var(--royal-100)", borderRadius: 10,
                 fontSize: 13, fontWeight: 700, textDecoration: "none",
                 whiteSpace: "nowrap", flexShrink: 0,
               }}>
@@ -249,14 +253,8 @@ export default function BusinessPricingPage() {
         <section id="faq" style={sectionStyle("#fff")}>
           <div style={innerStyle}>
             <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <div style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: 56, height: 56, borderRadius: "50%",
-                background: "var(--royal)", marginBottom: 18,
-                boxShadow: "0 4px 16px rgba(0,35,102,0.20)",
-              }}>
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 800, fontSize: 24, color: "#fff", lineHeight: 1 }}>?</span>
-              </div>
+              {/* ★丸い「?」の飾りは外した（2026-10-22。企業向けトップに合わせて小見出しだけにした） */}
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.1em", color: "#2f5bd3", marginBottom: 10 }}>FAQ</div>
               <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 500, color: "var(--ink)", marginBottom: 10 }}>
                 よくある質問
               </h2>
@@ -342,6 +340,21 @@ export default function BusinessPricingPage() {
               }}>
                 ← 企業向けトップに戻る
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── ★最終CTA（2026-10-22。企業向けトップの最後と同じ形）。⚠️ 文言はトップと揃える ─── */}
+        <section style={{ background: "var(--royal)", textAlign: "center", padding: "80px 24px" }}>
+          <div style={{ maxWidth: 640, margin: "0 auto" }}>
+            <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: "clamp(22px, 2.6vw, 30px)", fontWeight: 500, color: "#fff", lineHeight: 1.5, margin: "0 0 16px" }}>
+              <span style={{ display: "inline-block" }}>まずは、企業ページを</span><span style={{ display: "inline-block" }}>つくってみてください。</span>
+            </h2>
+            {/* ⚠️★白の不透明度を 0.78 未満にしないこと（濃紺の上で 4.5:1 を下回る） */}
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.82)", lineHeight: 1.9, margin: "0 0 32px" }}>登録は無料です。会社名だけで始められます。</p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link href="/biz/auth?mode=signup" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "15px 28px", borderRadius: 10, background: "#fff", color: "var(--royal)", fontSize: 15, fontWeight: 700, textDecoration: "none" }}>企業ページをつくる</Link>
+              <Link href="/business/contact" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "14px 26px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.5)", color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none" }}>話を聞いてみる</Link>
             </div>
           </div>
         </section>
