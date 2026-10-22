@@ -633,6 +633,16 @@ export default function LandingPage({
               </Link>
             ))}
           </div>
+
+          {/* ★記事が0本で記事の欄を出さないときは、募集への導線をここに出す（2026-10-22）。
+                 ⚠️ 記事の欄の「募集を探す →」と同じもの。本文から /jobs へ行く導線を0本にしないため */}
+          {articles.length === 0 && (
+            <div style={{ marginTop: 22, textAlign: "center" }}>
+              <Link href="/jobs" style={{ fontSize: 13.5, color: C.navy, textDecoration: "underline", textUnderlineOffset: 4 }}>
+                募集を探す →
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -764,6 +774,9 @@ export default function LandingPage({
              **求人が20〜30件を超えたら再検討する**（柴さんの指示）。
              既存の `LP_JOBS_MIN_TO_SHOW`（10件）とは別の基準なので、
              **戻すときはしきい値も一緒に見直すこと。** */}
+      {/* ★公開記事が0本なら欄ごと出さない（2026-10-22）。見本の記事を全部非公開にした日から、
+             見出しと説明文だけの空の欄が出ていた。記事を公開すれば自動で戻る */}
+      {articles.length > 0 && (
       <section className="lp-section">
         <div className="lp-wrap">
           <div className="lp-sec-head">
@@ -845,6 +858,7 @@ export default function LandingPage({
           </div>
         </div>
       </section>
+      )}
 
       {/* ══ FAQ ══════════════════════════════════════════════════════════════ */}
       <section className="lp-section" style={{ background: C.paper2 }}>
