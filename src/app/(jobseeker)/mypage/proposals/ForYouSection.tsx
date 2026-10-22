@@ -114,13 +114,25 @@ export default function ForYouSection({
   async function undo(id: string) {
     const r = await post(id, { undo: true });
     if (!r.ok) return;
-    setItems((prev) => prev.map((c) => c.id !== id ? c : { ...c, reaction: "later", interested: false }));
+    /* ★取り消したら何も押していない状態に戻す（2026-10-23。それまでは「あとで」になっていた） */
+    setItems((prev) => prev.map((c) => c.id !== id ? c : { ...c, reaction: null, interested: false }));
+  }
+
+  /* ★「あとで」をもう一度押すと外す（2026-10-23） */
+  async function toggleLater(c: ForYouView) {
+    if (c.reaction !== "later") return react(c.id, "later");
+    const r = await post(c.id, { clear: true });
+    if (!r.ok) return;
+    setItems((prev) => prev.map((x) => x.id !== c.id ? x : { ...x, reaction: null }));
   }
 
   const visible = items.filter((c) => c.reaction !== "not_interested");
   const hidden = items.filter((c) => c.reaction === "not_interested");
-  const responders = visible.filter((c) => c.hasResponder);
-  const others = visible.filter((c) => !c.hasResponder);
+  /* ★「あとで」を押した会社は上にまとめる（2026-10-23 / 柴さんの指示）。⚠️ 気になる・話を聞いてみたい済みは入れない */
+  const later = visible.filter((c) => c.reaction === "later" && !c.interested);
+  const rest = visible.filter((c) => !(c.reaction === "later" && !c.interested));
+  const responders = rest.filter((c) => c.hasResponder);
+  const others = rest.filter((c) => !c.hasResponder);
 
   /* 会社ごとの操作（話を聞いてみたい／気になる・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
   const actionsFor = (c: ForYouView) => (
@@ -137,7 +149,7 @@ export default function ForYouSection({
       onSend={() => react(c.id, "interested", { note: (notes[c.id] ?? "").trim() || null })}
       onCancelCompose={() => setComposing(null)}
       onUndo={() => undo(c.id)}
-      onLater={() => react(c.id, "later")}
+      onLater={() => toggleLater(c)}
       onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
       onCancelDecline={() => setDeclining(null)}
       onChangeReason={setDeclineReason}
@@ -319,6 +331,13 @@ export default function ForYouSection({
           {/* ★2026-10-23（柴さんの指示）: 担当者がいる会社を上にまとめ、いない会社は下に「気になる会社」として並べる。
                  担当者がいる会社の「話を聞いてみたい」は必ずその会社に届く。いない会社は「気になる」（記録して運営に知らせる）。
                  ⚠️ 判定は c.hasResponder（サーバーの rank.ts。見ている人と is_test が一致する有効な担当者がいるか） */}
+          {later.length > 0 && (
+            <section data-state="for-you-later" style={{ marginBottom: 28 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>あとで見る<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{later.length}社</span></h3>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>「あとで」を押した会社です。もう一度「あとで」を押すと、ここから外れます。</p>
+              {renderGroups(later)}
+            </section>
+          )}
           {responders.length > 0 && (
             <section data-state="for-you-responders" style={{ marginBottom: 28 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>担当者がいる会社<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{responders.length}社</span></h3>
@@ -477,7 +496,8 @@ function Actions(props: {
       </button>
       <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
         style={{ ...btn, border: "none", background: c.reaction === "later" ? "var(--bg-tint)" : "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
-        {c.reaction === "later" ? "あとで（保存済み）" : "あとで"}
+        {/* ★「あとで見る」に入っている会社では外すボタンにする（2026-10-23） */}
+        {c.reaction === "later" ? "あとでから外す" : "あとで"}
       </button>
       <button type="button" disabled={props.busy} onClick={props.onStartDecline}
         style={{ ...btn, border: "none", background: "none", color: "var(--ink-soft)", padding: "8px 10px" }}>

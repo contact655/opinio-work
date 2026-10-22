@@ -32,6 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { companyId: 
     reason: body.reason,
     note: body.note,
     undo: body.undo,
+    clear: body.clear,
   });
   if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
   return NextResponse.json(out.result === "conversation"

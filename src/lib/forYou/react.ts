@@ -38,8 +38,11 @@ export async function reactForYou(input: {
   note?: unknown;
   /** ★「話を聞いてみたい」の取り消し。会話がまだ開いていないとき（担当者のいない会社）だけ */
   undo?: unknown;
+  /** ★「あとで」を外す（2026-10-23）。何も押していない状態に戻す */
+  clear?: unknown;
 }): Promise<ReactOutcome> {
   if (input.undo === true) return undoInterest(input.owUserId, input.companyId);
+  if (input.clear === true) return clearReaction(input.owUserId, input.companyId);
   if (!isForYouReaction(input.reaction)) return { ok: false, status: 400, error: "操作が正しくありません" };
   const note = typeof input.note === "string" ? input.note.trim() : "";
   if (note.length > PROPOSAL_NOTE_MAX) return { ok: false, status: 400, error: `ひとことは${PROPOSAL_NOTE_MAX}文字までです` };
@@ -186,12 +189,27 @@ async function undoInterest(owUserId: string, companyId: string): Promise<ReactO
   }
   if (!row?.interested_at) return { ok: false, status: 404, error: "取り消すものがありません" };
   if (row.conversation_id) return { ok: false, status: 409, error: "メッセージが始まっているため取り消せません" };
+  /* ★取り消したら「何も押していない」に戻す（2026-10-23 / 柴さんの指示）。
+        それまでは reaction を later にしていて、本人が押していない「あとで」が付いていた */
   const { data: saved, error: uErr } = await db.from("ow_for_you_reactions")
-    .update({ reaction: "later", reason: null, interested_at: null, updated_at: new Date().toISOString() })
-    .eq("user_id", owUserId).eq("company_id", companyId).is("conversation_id", null).select("user_id");
+    .delete().eq("user_id", owUserId).eq("company_id", companyId).is("conversation_id", null).select("user_id");
   if (uErr || !saved || saved.length === 0) {
     console.error("[forYou/react] 取り消し:", uErr?.message ?? "0行");
     return { ok: false, status: 500, error: "取り消せませんでした" };
   }
+  return { ok: true, result: "recorded" };
+}
+
+/** ★「あとで」を外す（2026-10-23）。「あとで」以外（気になる・興味なし・会話あり）には触らない */
+async function clearReaction(owUserId: string, companyId: string): Promise<ReactOutcome> {
+  const db = createAdminClient();
+  const { data: saved, error } = await db.from("ow_for_you_reactions")
+    .delete().eq("user_id", owUserId).eq("company_id", companyId).eq("reaction", "later")
+    .is("interested_at", null).is("conversation_id", null).select("user_id");
+  if (error) {
+    console.error("[forYou/react] あとでを外す:", error.message);
+    return { ok: false, status: 500, error: "外せませんでした" };
+  }
+  if (!saved || saved.length === 0) return { ok: false, status: 404, error: "外すものがありません" };
   return { ok: true, result: "recorded" };
 }
