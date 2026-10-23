@@ -179,7 +179,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
           {ICON}{loading ? "準備中..." : (label ?? "メッセージ")}
         </button>
       ) : variant === "icon" ? (
-        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-icon" aria-label={`${targetName}さんにメッセージを送る`} className="btn-fixed-size"
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-icon" aria-label={`${targetName}さんにメッセージを送る`} title="メッセージを送る" className="btn-fixed-size"
           style={{ width: 34, height: 34, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "#fff",
             color: loading ? "var(--ink-mute)" : "var(--royal)", border: "1.5px solid var(--royal-100)", cursor: loading ? "default" : "pointer", padding: 0 }}>
           {ICON}

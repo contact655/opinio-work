@@ -153,14 +153,12 @@ export function PeopleCardStyles() {
             .ppl-main { flex: 1; min-width: 0; }
             .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
             /* ★1440px 以上は5列（2026-10-23 / 柴さんの指示）。1枚 約188px（988px − gap 12 × 4 を5で割る）。
-                  ⚠️ この幅では「メッセージ」と「＋フォロー」が横に並ばない（9/18 の実測）ので、ボタンを縦に積み、
-                     カードの左右の余白を 20 → 12px に詰める（スマホの2列と同じ並べ方） */
+                  ⚠️ この幅では文字のボタン「メッセージ」「＋フォロー」が横に並ばない（9/18 の実測）ので、
+                     他の人のカードはアイコンだけの丸いボタン2つにした（2026-10-23）。カードの左右の余白は 20 → 12px */
             @media (min-width: 1440px) {
               .ppl-wrap { max-width: 1300px; }
               .ppl-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
               .ppl-grid-card { padding: 22px 12px 14px; }
-              .ppl-grid-cta { flex-direction: column; }
-              .ppl-grid-follow button { width: 100%; justify-content: center; }
               .ppl-grid-name { font-size: 15px !important; }
             }
             /* ⚠️ 899px 未満はサイドバーが一覧の上に畳まれる（横に並ばない）ので、
@@ -180,8 +178,6 @@ export function PeopleCardStyles() {
               .ppl-grid-card { padding: 16px 10px 12px; border-radius: 14px; }
               .ppl-grid-card .ppl-company { font-size: 12.5px; }
               .ppl-grid-card .ppl-role { font-size: 12px; }
-              .ppl-grid-cta { flex-direction: column; }
-              .ppl-grid-follow button { width: 100%; justify-content: center; }
               .ppl-grid-name { font-size: 14.5px !important; }
             }
 
@@ -480,8 +476,17 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
         {/* ★他の人のカードでは「プロフィール」の代わりに「メッセージ」（2026-10-17）。カード自体がプロフィールへの導線なので、
                プロフィールのボタンは自分のカード（とログインしていないとき）だけに残す。
             ⚠️ 意匠は「プロフィール」と同じ白（塗らない。一覧が主導線だらけになるため） */}
+        {/* ★他の人のカードは、メッセージとフォローをアイコンだけの丸いボタンで横に並べる（2026-10-23 / 柴さんの指示・B案）。
+               5列（1枚 約188px）でも1行に収まる。状態はマウスを重ねたときの文字と読み上げで伝える */}
         {myUserId !== null && card.userId !== myUserId ? (
-          <DMButton targetUserId={card.userId} targetName={card.name} variant="card" />
+          <div className="ppl-grid-icons" style={{ display: "flex", gap: 10, justifyContent: "center", width: "100%" }}>
+            <DMButton targetUserId={card.userId} targetName={card.name} variant="icon" />
+            <div className="ppl-grid-follow" onClick={(e) => e.stopPropagation()} style={{ display: "flex" }}>
+              {/* ⚠️★`refreshOnChange` を外さないこと（サイドバーのフォロー数と ?rel=following の絞り込みが取り残される） */}
+              <FollowUserButton targetUserId={card.userId} initialFollowed={followedUserIds.includes(card.userId)}
+                followsMe={followerUserIds.includes(card.userId)} isAuthenticated iconOnly refreshOnChange />
+            </div>
+          </div>
         ) : (
         <Link
           href={`/u/${card.userId}`}
@@ -500,24 +505,6 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
         >
           プロフィール
         </Link>
-        )}
-        {myUserId !== null && card.userId !== myUserId && (
-          <div
-            className="ppl-grid-follow"
-            onClick={(e) => e.stopPropagation()}
-            style={{ display: "flex", flexShrink: 0 }}
-          >
-            {/* ⚠️★`refreshOnChange` を外さないこと。外すとサイドバーの「フォロー中 N人」と
-                   `?rel=following` の絞り込みがサーバーの値のまま取り残される。 */}
-            <FollowUserButton
-              targetUserId={card.userId}
-              initialFollowed={followedUserIds.includes(card.userId)}
-              followsMe={followerUserIds.includes(card.userId)}
-              isAuthenticated
-              compact
-              refreshOnChange
-            />
-          </div>
         )}
       </div>
     </div>
