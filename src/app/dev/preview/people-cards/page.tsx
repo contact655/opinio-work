@@ -97,6 +97,17 @@ export default function PeopleCardsPreview() {
       </Variant>
 
       <Variant
+        label="グリッド（ログイン中・5列の幅 988px）"
+        note="★2026-10-23。1440px 以上の5列（1枚 約188px）で「メッセージ」「＋フォロー」が縦に積まれ、はみ出さないこと"
+      >
+        <div className="ppl-grid" style={{ maxWidth: 988 }}>
+          {PEOPLE.map((c) => (
+            <GridCard key={c.userId} card={c} myUserId="preview-viewer" followedUserIds={[]} />
+          ))}
+        </div>
+      </Variant>
+
+      <Variant
         label="一覧（4名）"
         note="⚠️ 会社・職種・業種が1行に畳まれること（肩書きは 2026-09-30 に外した）"
       >

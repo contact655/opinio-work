@@ -152,9 +152,16 @@ export function PeopleCardStyles() {
             .ppl-layout { display: flex; gap: 24px; align-items: flex-start; }
             .ppl-main { flex: 1; min-width: 0; }
             .ppl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+            /* ★1440px 以上は5列（2026-10-23 / 柴さんの指示）。1枚 約188px（988px − gap 12 × 4 を5で割る）。
+                  ⚠️ この幅では「メッセージ」と「＋フォロー」が横に並ばない（9/18 の実測）ので、ボタンを縦に積み、
+                     カードの左右の余白を 20 → 12px に詰める（スマホの2列と同じ並べ方） */
             @media (min-width: 1440px) {
               .ppl-wrap { max-width: 1300px; }
-              .ppl-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+              .ppl-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+              .ppl-grid-card { padding: 22px 12px 14px; }
+              .ppl-grid-cta { flex-direction: column; }
+              .ppl-grid-follow button { width: 100%; justify-content: center; }
+              .ppl-grid-name { font-size: 15px !important; }
             }
             /* ⚠️ 899px 未満はサイドバーが一覧の上に畳まれる（横に並ばない）ので、
                   本文が全幅に戻る。**サイドバーを display:none にしていない**（中身ごと消さない）。 */
