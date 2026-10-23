@@ -30,6 +30,7 @@ const getCompanyForJobCached = cache(getCompanyBySlugOrId);
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar, JobMobileHeroActions } from "@/components/jobs/JobMobileStickyBar";
+import { JobToc } from "@/components/jobs/JobToc";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
@@ -681,6 +682,9 @@ export async function JobDetailView({
 
             {/* ── Main column ── */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              {/* ★目次（2026-10-23）。スマホだけ。押すと各まとまりへ飛ぶ */}
+              <style>{`[data-toc] { scroll-margin-top: 72px; }`}</style>
+              <JobToc />
 
               {/* ⑩ この求人のポイント — catch_copy を冒頭に強調 */}
               {job.highlight && (
@@ -715,7 +719,7 @@ export async function JobDetailView({
 
               {/* Overview → 仕事内容 */}
               {job.overview && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section id="job-overview" data-toc="仕事内容" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -737,6 +741,8 @@ export async function JobDetailView({
                      ⚠️★OB・OG は**0件でも枠ごと出す**（`alwaysShowAlumni`）。
                         「この求人の職種を経験して退職した人」という項目そのものを
                         見せたい、という判断（柴さん・2026-08-30）。 */}
+              {/* ★目次の飛び先（2026-10-23）。この職種の人は部品の中で描くので、直前に印だけ置く */}
+              <div id="job-people" data-toc="この職種の人" aria-hidden style={{ scrollMarginTop: 72 }} />
               <JobEmployeesSection
                 current={jobEmployees.current}
                 alumni={jobEmployees.alumni}
@@ -746,7 +752,7 @@ export async function JobDetailView({
 
               {/* Skills */}
               {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section id="job-skills" data-toc="スキル" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="20 6 9 17 4 12"/>
@@ -828,7 +834,7 @@ export async function JobDetailView({
 
               {/* 勤務条件 */}
               {(job.salary_min || job.salary_max || job.location || job.work_style || job.employment_type) && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section id="job-conditions" data-toc="勤務条件" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
@@ -984,9 +990,12 @@ export async function JobDetailView({
               </section>
               )}
 
+              {/* ★勤務条件を読み終えたところにも応募の入口を置く（2026-10-23）。スマホだけ（部品が lg:hidden） */}
+              <JobMobileHeroActions {...mobileCtaProps} />
+
               {/* ── 企業について ── */}
               {(company.about || company.why_join) && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section id="job-company" data-toc="会社" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
@@ -1052,7 +1061,7 @@ export async function JobDetailView({
                      ⚠️ 内側の `<h3>福利厚生</h3>` と罫線も落とした。評価制度が無くなり
                         `SecTitle` と**同じ文字が2つ並ぶ**ため（企業詳細も SecTitle だけ）。 */}
               {company.benefits && company.benefits.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section id="job-benefits" data-toc="福利厚生" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -1147,7 +1156,7 @@ export async function JobDetailView({
 
               {/* Selection flow */}
               {job.selection_flow.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section id="job-selection" data-toc="選考" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                     <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
@@ -1263,6 +1272,9 @@ export async function JobDetailView({
                 )}
               </section>
               )}
+
+              {/* ★選考フローを読み終えたところにも応募の入口を置く（2026-10-23）。スマホだけ */}
+              <JobMobileHeroActions {...mobileCtaProps} />
 
               {/* ⚠️★「企業について」の2つ目（Company summary）は削除した（2026-08-30）。
                      **同じ見出しがページ内に2つあり、下の方は中身がほぼ重複していた。**
