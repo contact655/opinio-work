@@ -12,19 +12,77 @@
  *    そのために calcTotalExperience() は null を返す。
  */
 
-/**
- * 期間文字列を作る（例: "2年3ヶ月"）。end が null なら現在まで。
- *
- * ⚠️ "YYYY-MM" 形式の終了日は月末まで在籍を意味するため +1ヶ月して数える。
- *    例: 2013-04 〜 2017-03 → 4年ちょうど（47ヶ月 + 1 = 48ヶ月）
- */
-export function formatDuration(start: string, end: string | null): string {
-  const months = countMonths(start, end);
-  if (months === null || months <= 0) return "";
-  return formatMonths(months);
+/** "YYYY-MM" / "YYYY-MM-DD" → 通し月番号（年×12＋月−1）。読めなければ null */
+function monthIndex(ym: string | null | undefined): number | null {
+  if (!ym) return null;
+  const m = /^(\d{4})-(\d{1,2})/.exec(ym);
+  if (!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]);
+  if (!Number.isFinite(y) || mo < 1 || mo > 12) return null;
+  return y * 12 + (mo - 1);
 }
 
-/** 開始〜終了の月数。start が読めなければ null。 */
+/**
+ * ★在籍期間の月数（2026-10-26 / フェーズ1b・柴さんの決定＝案C）。**プロフィールと企業ページはこの1つを使う。**
+ *
+ *   - 期間を月単位で数え、**開始月と終了月の両方を含める**（2021-11〜2024-12 は 38ヶ月）
+ *   - 終了が null（現職）なら**今月まで**を含める
+ *   - 複数の期間は**重なりを除いて足す**（同じ月は1回だけ数える）。隣の月どうしは続けて数え、
+ *     空白の月（一度辞めて戻るまでのあいだ）は数えない
+ *   - 日は見ない。2024-12-31 → 2025-01-01 は「12月・1月」で、隣の月として続く
+ *
+ *   ⚠️ 開始が読めない期間・終了が開始より前の期間は数えない。数えられる期間が1つも無ければ null
+ *      （呼び出し側は項目ごと出さない。「0ヶ月」で埋めない）。
+ *   ⚠️ 社会人経験年数（`calcTotalExperience`）は別の概念（最も古い開始から今日まで・空白も含む）。混ぜない。
+ */
+export function tenureMonths(
+  ranges: readonly { startedAt: string | null | undefined; endedAt: string | null | undefined }[],
+  now: Date = new Date(),
+): number | null {
+  const current = now.getFullYear() * 12 + now.getMonth();
+  const spans: [number, number][] = [];
+  for (const r of ranges) {
+    const s = monthIndex(r.startedAt);
+    if (s === null) continue;
+    const e = r.endedAt ? monthIndex(r.endedAt) : current;
+    if (e === null || e < s) continue;
+    spans.push([s, e]);
+  }
+  if (spans.length === 0) return null;
+  spans.sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let [cs, ce] = spans[0];
+  for (const [s, e] of spans.slice(1)) {
+    if (s <= ce + 1) { ce = Math.max(ce, e); continue; }
+    total += ce - cs + 1;
+    [cs, ce] = [s, e];
+  }
+  return total + (ce - cs + 1);
+}
+
+/** `tenureMonths` を「N年Mヶ月」にする。数えられなければ空文字（呼び出し側は出さない） */
+export function formatTenure(
+  ranges: readonly { startedAt: string | null | undefined; endedAt: string | null | undefined }[],
+): string {
+  const months = tenureMonths(ranges);
+  return months && months > 0 ? formatMonths(months) : "";
+}
+
+/**
+ * 期間文字列を作る（例: "2年3ヶ月"）。end が null なら今月まで。
+ *
+ * ★2026-10-26 から `tenureMonths` と同じ数え方（開始月と終了月を含める）。
+ *    例: 2013-04 〜 2017-03 → 4年ちょうど（48ヶ月）。現職は**今月も含める**（以前は今月を含めていなかった）。
+ */
+export function formatDuration(start: string, end: string | null): string {
+  return formatTenure([{ startedAt: start, endedAt: end }]);
+}
+
+/**
+ * 開始〜終了の月数。start が読めなければ null。
+ * ⚠️ いまは社会人経験年数（`calcTotalExperience`）だけが使う（今日までで、今月は含めない）。
+ *    在籍期間には `tenureMonths` を使うこと。
+ */
 export function countMonths(start: string, end: string | null): number | null {
   const startDate = new Date(start);
   if (Number.isNaN(startDate.getTime())) return null;

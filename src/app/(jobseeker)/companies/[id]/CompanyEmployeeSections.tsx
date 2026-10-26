@@ -21,6 +21,7 @@ import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
 import { PeopleCardRow, JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
+import { formatMonths } from "@/lib/profile/tenure";
 
 /*
  * ⚠️ 2026-08-13 に「社員の声」セクション（EmployeeVoicesSection）を削除した。復活させないこと。
@@ -375,21 +376,11 @@ export function CurrentEmployeesSection({
 
 function AlumniCard({ employee }: { employee: CompanyEmployee }) {
 
-  /** **この会社での**在籍期間（その経歴の開始〜終了の月数）。今の会社の期間ではない */
-  function calcTenure(startedAt: string | null, endedAt: string | null): string | null {
-    if (!startedAt || !endedAt) return null;
-    const [sy, sm] = startedAt.split("-").map(Number);
-    const [ey, em] = endedAt.split("-").map(Number);
-    const months = (ey - sy) * 12 + (em - sm);
-    if (months <= 0) return null;
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    if (years === 0) return `${rem}ヶ月`;
-    if (rem === 0) return `${years}年`;
-    return `${years}年${rem}ヶ月`;
-  }
-
-  const tenure = calcTenure(employee.startedAt, employee.endedAt);
+  /* **この会社での**在籍期間。今の会社の期間ではない。
+     ★2026-10-26（フェーズ1b・案C）: サーバーがこの会社の全経歴を重なりを除いて足した月数（`tenureMonths`）を出す。
+        プロフィールと同じ関数（lib/profile/tenure.ts）。⚠️ ここで計算し直さないこと
+        （以前はここに別の計算があり、最新の1経歴だけ・終了月を含めずに数えていた）。 */
+  const tenure = employee.tenureMonths && employee.tenureMonths > 0 ? formatMonths(employee.tenureMonths) : null;
 
   /* ⚠️ 「💬 DM可」バッジは 2026-08-08 に削除した。条件なしで全員に出ており、情報量が無かった。
      ★「在籍」を付けた（2026-10-03）。「2年」だけだと、この会社の期間か今の会社の期間か分からなかった。 */

@@ -1,4 +1,5 @@
 import type { CompanyEmployee, CompanyTool } from "@/lib/supabase/queries";
+import { tenureMonths } from "@/lib/profile/tenure";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import type { Benefit } from "@/lib/companies/benefits";
 import type { CompanyForCarousel } from "@/types/genre";
@@ -115,6 +116,12 @@ const GRADIENTS = [
 const HEX = "0123456789abcdef";
 
 function emp(i: number, over: Partial<CompanyEmployee> = {}): CompanyEmployee {
+  const e = empBase(i, over);
+  /* ★OB・OG の在籍期間は本番と同じ関数で出す（2026-10-26 / フェーズ1b）。fixture は1経歴ぶん */
+  return e.endedAt && over.tenureMonths === undefined ? { ...e, tenureMonths: tenureMonths([{ startedAt: e.startedAt, endedAt: e.endedAt }]) } : e;
+}
+
+function empBase(i: number, over: Partial<CompanyEmployee> = {}): CompanyEmployee {
   const name = `検証 太郎${i}`;
   return {
     userId: `${HEX[i % HEX.length]}-preview-user-${i}`,
@@ -125,6 +132,7 @@ function emp(i: number, over: Partial<CompanyEmployee> = {}): CompanyEmployee {
     roleTitle: "エンタープライズ営業部 / アカウントエグゼクティブ",
     startedAt: "2021-04",
     endedAt: null,
+    tenureMonths: null,
     /* ⚠️★アバターの色は `resolveAvatarColor(roleParentId, roleCategoryId)` が
           **職種で**決める（2026-08-31 に企業ページと揃えた）。
           ⚠️ 全員を同じ職種にすると**色が1つしか出ず、散り方を確認できない。**

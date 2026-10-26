@@ -38,6 +38,7 @@ import type {
 } from "@/app/articles/mockArticleData";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { filterListedCompanies, filterVisibleCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
+import { tenureMonths } from "@/lib/profile/tenure";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1774,6 +1775,9 @@ export type CompanyEmployee = {
   roleTitle: string | null;
   startedAt: string | null; // "YYYY-MM" 形式
   endedAt: string | null;   // "YYYY-MM" 形式、OB のみ使用
+  /** ★この会社での在籍月数（2026-10-26 / フェーズ1b）。同じ会社の経歴を重なりを除いて足し、開始月と終了月を含める
+   *  （`lib/profile/tenure.ts` の `tenureMonths`。プロフィールと同じ関数）。OB・OG だけ。数えられなければ null */
+  tenureMonths: number | null;
   // === Phase Q-5 追加: カテゴリ情報 ===
   roleCategoryId: string | null;
   /* 複数職種（`ow_experience_roles`）。**主職種を必ず含む。**
@@ -1899,6 +1903,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       roleTitle: (row.role_title as string | null) ?? null,
       startedAt: startedAt ? (startedAt as string).slice(0, 7) : null,
       endedAt: endedAt ? (endedAt as string).slice(0, 7) : null,
+      tenureMonths: null, // OB・OG は下で全経歴から入れる
       roleCategoryId,
       /* ⚠️ 主職種を**必ず先頭に混ぜる**。junction 側の行が主職種と違う値だけを
             持っている経歴が実在するので（過去の migration が入れた6件）、
@@ -1970,6 +1975,23 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const alumniEmps  = dedupeByUser((alumniRows ?? []).filter((r: any) => !isSeedRow(r)).map((r: any) => mapEmp(r, r.ended_at, r.started_at)))
     .filter((e) => !currentUserIds.has(e.userId));
+
+  /* ★在籍期間は、この会社での**すべての経歴**を重なりを除いて足す（2026-10-26 / フェーズ1b・案C）。
+        それまでは dedupeByUser が残した**最新の1件だけ**の期間を出しており、
+        社内で職種が変わった人（BDR → AE など）は最後の職種の期間しか出ていなかった
+        （木村雅樹さんが「在籍6ヶ月」、正しくは3年9ヶ月）。
+     ⚠️ 職種（カードの肩書き）は今までどおり最新の経歴。⚠️ 足すのは上で表示に通した行だけ（hidden・非表示の行は入れない） */
+  {
+    const rangesByUser = new Map<string, { startedAt: string | null; endedAt: string | null }[]>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (alumniRows ?? []).filter((r: any) => !isSeedRow(r)) as any[]) {
+      const uid = r.ow_users?.id as string | undefined;
+      if (!uid) continue;
+      if (!rangesByUser.has(uid)) rangesByUser.set(uid, []);
+      rangesByUser.get(uid)!.push({ startedAt: (r.started_at as string | null) ?? null, endedAt: (r.ended_at as string | null) ?? null });
+    }
+    for (const e of alumniEmps) e.tenureMonths = tenureMonths(rangesByUser.get(e.userId) ?? []);
+  }
 
   // OB/OG の「退職後の現在キャリア」を取得（is_current=true の経験から）
   if (alumniEmps.length > 0) {
@@ -2081,7 +2103,9 @@ export const getCompanyRecruitersCached = unstable_cache(
 export const getCompanyEmployeesCached = (companyId: string) =>
   unstable_cache(
     () => getCompanyEmployees(companyId),
-    ["company-employees", companyId],
+    /* ★v2（2026-10-26）: `tenureMonths` を足したので、古い形のキャッシュ（最大300秒）を使わないようキーを変えた。
+          ⚠️ 返す形を変えたら、ここも変えること（古い形が残ると新しい項目だけ黙って欠ける） */
+    ["company-employees-v2", companyId],
     /* ⚠️★300 に揃えた（2026-09-08）。理由は company-articles の注記と同じ。
        ⚠️★**2026-09-08 に編集経路も配線した**（`/api/jobseeker/experiences` の
           POST / PUT / DELETE と `/api/admin/experiences/[id]` の計4箇所）。

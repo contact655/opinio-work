@@ -8,7 +8,7 @@ import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } fr
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import { isPlaceholderCompanyName } from "@/lib/experiences/companyName";
 import SchoolLogoImg from "./SchoolLogoImg";
-import { formatDuration } from "@/lib/profile/tenure";
+import { formatDuration, formatTenure } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { buildOverlapMap } from "@/lib/profile/parallel";
@@ -1143,7 +1143,10 @@ export default function MergedTimeline({
             /* ★在籍期間は共通関数から。**ここで計算し直さないこと**（2026-09-12） */
             const tenure = companyTenure(items);
             const anyIsCurrent = tenure.isCurrent;
-            const duration = formatDuration(tenure.startedAt, tenure.endedAt);
+            /* ★期間は役割ごとの期間を重なりを除いて足す（2026-10-26 / フェーズ1b・案C）。
+                  企業ページの OB・OG カードと同じ関数（lib/profile/tenure.ts の tenureMonths）。
+                  ⚠️ 表示の「開始〜終了」は companyTenure の端から端のまま（期間の数字だけが和）。 */
+            const duration = formatTenure(items.map((c) => ({ startedAt: c.started_at, endedAt: c.is_current ? null : c.ended_at })));
             /* ★雇用形態は**全役割が同じときだけ**会社の行に出す（2026-09-12）。
                ⚠️★混在しているときは会社の行に出さず、役割の行にそれぞれ出す。
                   2026-08-26 に「グループ代表を1つ出すと、同じ会社で正社員 → 業務委託 に
