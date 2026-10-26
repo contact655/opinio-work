@@ -165,7 +165,7 @@ export async function candidateHeaderMeta(owUserId: string): Promise<string | nu
   if (error) console.error("[companyThread] location:", error.message);
   const location = (u?.location as string | null | undefined) ?? null;
   if (!profile) return location ?? null;
-  const tenure = calcTotalExperience(profile.experiences.map((e) => e.startedAt));
+  const tenure = calcTotalExperience(profile.experiences);
   const tenureText = tenure ? (tenure.months < 12 ? "社会人1年未満" : `社会人${Math.floor(tenure.months / 12)}年`) : null;
   const cur = profile.experiences.find((e) => e.isCurrent);
   const role = cur ? (cur.roleTitle || cur.roleName) : null;

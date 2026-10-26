@@ -50,7 +50,7 @@ function today(): string {
  * 2件の期間が**1ヶ月以上**重なるか。
  *
  * ⚠️ 現職（`ended_at` が null）は**今日まで**として扱う。
- *    `lib/profile/tenure.ts` の `countMonths` が期間表示で使っているのと同じ考え方。
+ *    （在籍期間の `tenureMonths`（lib/profile/tenure.ts）も現職を今月まで数える。2026-10-27 に `countMonths` は削除した）
  */
 export function overlapsAtLeastOneMonth(a: ParallelCareer, b: ParallelCareer): boolean {
   const now = today();

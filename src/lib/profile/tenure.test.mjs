@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { tenureMonths, formatTenure, formatDuration } from "./tenure.ts";
+import { tenureMonths, formatTenure, formatDuration, calcTotalExperience } from "./tenure.ts";
 
 /* ★在籍期間（2026-10-26 / フェーズ1b・案C）。開始月と終了月を含め、重なりを除いて足す */
 
@@ -63,4 +63,26 @@ test("表示の文字列", () => {
   assert.equal(formatTenure([]), "");
   assert.equal(formatDuration("2013-04", "2017-03"), "4年");
   assert.equal(formatDuration("2021-11-01", "2024-12-31"), "3年2ヶ月");
+});
+
+/* ★社会人経験年数（2026-10-27）。会社を問わず全職歴を重なりを除いて足す */
+
+test("社会人経験年数は空白の月を数えない", () => {
+  const r = calcTotalExperience([
+    { startedAt: "2021-04-01", endedAt: "2025-02-01", isCurrent: false },
+    { startedAt: "2025-09-01", endedAt: null, isCurrent: true },
+  ]);
+  assert.ok(r);
+  // 2021-04〜2025-02（47）＋ 2025-09〜今月
+  const now = new Date();
+  const cur = now.getFullYear() * 12 + now.getMonth();
+  assert.equal(r.months, 47 + (cur - (2025 * 12 + 8) + 1));
+});
+
+test("社会人経験年数: 職歴が無ければ null、現職は終了日があっても今月まで", () => {
+  assert.equal(calcTotalExperience([]), null);
+  assert.equal(calcTotalExperience([{ startedAt: null, endedAt: null }]), null);
+  const a = calcTotalExperience([{ startedAt: "2020-01", endedAt: "2020-03", isCurrent: true }]);
+  const b = calcTotalExperience([{ startedAt: "2020-01", endedAt: null, isCurrent: true }]);
+  assert.equal(a?.months, b?.months);
 });

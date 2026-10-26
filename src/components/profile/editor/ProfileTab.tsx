@@ -970,7 +970,7 @@ export default function ProfileTab({
     return starts.length > 0 ? starts.reduce((a, b) => (a < b ? a : b)) : null;
   }, [careerStints]);
   const totalExperience = useMemo(
-    () => calcTotalExperience(careerStints.map((e) => e.startedAt)),
+    () => calcTotalExperience(careerStints.map((e) => ({ startedAt: e.startedAt, endedAt: e.endedAt ?? null, isCurrent: e.isCurrent }))),
     [careerStints],
   );
   const shownCareers = useMemo(
@@ -1901,7 +1901,8 @@ export default function ProfileTab({
                      「転職の希望」タブにあった6枚目のカードを、職歴の見出しの下に1行で移した。
                   ⚠️ **`ow_profiles.experience_years` は読んでいない。** あの列は
                      2026-08-07 に入力欄を廃止したまま残っている死蔵の列（49件中6件に値。読み手0）。
-                     ここに出すのは**職歴の最も古い開始日からその場で計算した値**。
+                     ここに出すのは**職歴からその場で計算した値**（2026-10-27 から全職歴の期間を重なりを除いて足す。
+                     空白の月は数えないので、「（◯年◯月 から）」の期間より短くなることがある）。
                   ⚠️ 職歴が0件なら `calcTotalExperience` が null を返すので出さない
                      （「0年」と出さない。CLAUDE.md「データ表示の原則」）。
                   ⚠️ `/u/[id]` には出さない。**`ProfileTimelineSection` の children は

@@ -78,27 +78,6 @@ export function formatDuration(start: string, end: string | null): string {
   return formatTenure([{ startedAt: start, endedAt: end }]);
 }
 
-/**
- * 開始〜終了の月数。start が読めなければ null。
- * ⚠️ いまは社会人経験年数（`calcTotalExperience`）だけが使う（今日までで、今月は含めない）。
- *    在籍期間には `tenureMonths` を使うこと。
- */
-export function countMonths(start: string, end: string | null): number | null {
-  const startDate = new Date(start);
-  if (Number.isNaN(startDate.getTime())) return null;
-
-  const endDate = end ? new Date(end) : new Date();
-  if (Number.isNaN(endDate.getTime())) return null;
-  const endAdjusted = end
-    ? new Date(endDate.getFullYear(), endDate.getMonth() + 1, 1)
-    : endDate;
-
-  return (
-    (endAdjusted.getFullYear() - startDate.getFullYear()) * 12 +
-    (endAdjusted.getMonth() - startDate.getMonth())
-  );
-}
-
 /** "YYYY-MM" / "YYYY-MM-DD" → "YYYY年M月"。読めなければそのまま返す */
 export function formatYmLabel(ym: string | null): string {
   if (!ym) return "";
@@ -119,23 +98,19 @@ export function formatMonths(totalMonths: number): string {
 }
 
 /**
- * 社会人経験年数。職歴のうち**最も古い開始日**から現在までを数える。
+ * 社会人経験年数（2026-10-27 / 柴さんの指示）。**全職歴の期間を重なりを除いて足す**（会社を問わない）。
+ *   数え方は在籍期間と同じ `tenureMonths`（開始月と終了月を含める・現職は今月まで・空白の月は数えない）。
  *
- * ⚠️ 職歴が1件も無い（または開始日が読めない）なら **null を返す**。
+ * ⚠️ 2026-10-27 まで「最も古い開始日から今日まで」（空白も含め、今月は含めない）だった。
+ *    転職の合間・休職の月は数えなくなった（柴さんの判断）。
+ * ⚠️ 職歴が1件も無い（または数えられる期間が無い）なら **null を返す**。
  *    呼び出し側は項目ごと非表示にすること。「0年」と出さない。
- *
- * ⚠️ 空白期間は差し引かない。「社会人になってからの年数」であって
- *    「在籍月数の合計」ではない。転職の合間や休職を欠落として扱わないため。
+ * ⚠️ `isCurrent` の職歴は終了日があっても今月まで数える（在籍中として扱う）。
  */
 export function calcTotalExperience(
-  startedAts: (string | null | undefined)[]
+  experiences: readonly { startedAt: string | null | undefined; endedAt?: string | null | undefined; isCurrent?: boolean | null }[],
 ): { months: number; label: string } | null {
-  const valid = startedAts.filter((s): s is string => typeof s === "string" && s.length > 0);
-  if (valid.length === 0) return null;
-
-  const oldest = valid.reduce((a, b) => (a < b ? a : b));
-  const months = countMonths(oldest, null);
-  if (months === null || months < 0) return null;
-
+  const months = tenureMonths(experiences.map((e) => ({ startedAt: e.startedAt, endedAt: e.isCurrent ? null : (e.endedAt ?? null) })));
+  if (months === null || months <= 0) return null;
   return { months, label: formatMonths(months) };
 }

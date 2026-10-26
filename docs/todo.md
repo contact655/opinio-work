@@ -8,6 +8,16 @@
 
 ---
 
+## ⚠️ 職種スキルの自動計算が、重なった職歴を二重に数える（2026-10-27 記録・未着手）
+
+- **対象**: `src/lib/profile/autoSkills.ts` の `monthsBetween`（同じ職種・同じ業界の月数を**単純に足す**）。並行職（副業・兼務）や、終了月と次の開始月が同じ職歴では、同じ月を2回数える。数え方も独自（終了月を含めない・今月を含めない）。
+- **なぜ残っているか**: 2026-10-26〜27 に在籍期間（`tenureMonths`）と社会人経験年数（`calcTotalExperience`）を「重なりを除いて足す・開始月と終了月を含める」にそろえたが、自動スキルは柴さんの指示で記録だけにした。
+- **やるなら**: 職種ごと・業界ごとに期間を集めて `tenureMonths`（`lib/profile/tenure.ts`）で数える。年数の帯（`band`）が変わる人がいるか、前後で数えてから当てる。
+- ⚠️ 同じく独自に月数を数えている箇所（2026-10-27 時点。どれも終了月・今月を含めない）:
+  `lib/business/candidates/touchpoints.ts` の `monthsBetween` ／ `lib/business/candidates/positionFit.ts` の `monthsBetween` ／
+  `lib/people/directory.ts` の `monthsBetween` ／ `components/profile/CareerHistoryEditor.tsx` の `diffInMonths`（こちらは終了月を含める）。
+  そろえるなら同じ関数に寄せる（書き写さない）。
+
 ## ⚠️ 招待の承諾ページで、ログインしていない人に招待先のメールアドレスが出る（2026-10-27 記録・未着手）
 
 - **対象**: `/biz/auth/accept-invite`（`AcceptInviteClient.tsx` の `UnauthenticatedState`）。「◯◯ 宛の招待です」と招待先のメールアドレスを出し、サーバーからも渡している。リンクを転送された人にも見える。

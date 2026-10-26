@@ -90,7 +90,7 @@ export default async function ResumePage() {
     value: (a.value as string | null) ?? null, unit: (a.unit as string | null) ?? null, description: (a.description as string | null) ?? null,
   })));
   const unlinkedAchievements = ((achs.data ?? []) as Record<string, unknown>[]).filter((a) => !a.experience_id);
-  const total = calcTotalExperience(inputs.map((e) => e.startedAt));
+  const total = calcTotalExperience(inputs);
   const autoSkills = failed ? [] : await buildAutoSkills(supabase, expRows, roleNameById, "resume");
   const skillLabels = ((skills.data ?? []) as { skill: { label: string } | { label: string }[] | null }[])
     .map((s) => (Array.isArray(s.skill) ? s.skill[0]?.label : s.skill?.label)).filter((x): x is string => !!x);

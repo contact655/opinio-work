@@ -158,19 +158,20 @@ export async function loadCompanyCandidates(params: {
       .select(`id, user_id, role_title, role_category_id, employment_type, started_at, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
       .in("user_id", part).eq("is_current", true).order("id").range(from, to), "candidates current exps"),
     /* 社会人年数と「できること」の材料。⚠️★`company_id` は取らない（伏せた職歴の事業領域が漏れる） */
-    inChunks(userIds, (part, from, to) => adminClient.from("ow_experiences").select("id, user_id, started_at, ended_at, role_category_id").in("user_id", part).order("id").range(from, to), "candidates all exps"),
+    inChunks(userIds, (part, from, to) => adminClient.from("ow_experiences").select("id, user_id, started_at, ended_at, is_current, role_category_id").in("user_id", part).order("id").range(from, to), "candidates all exps"),
   ]);
   if (currentExpsErr) console.error("[candidates] ow_experiences:", currentExpsErr);
   if (allExpErr) console.error("[candidates] ow_experiences(all):", allExpErr);
 
-  const startedAtsByUser = new Map<string, string[]>();
+  /* ★社会人年数の材料（2026-10-27: 全職歴の期間を重なりを除いて足す。calcTotalExperience）。
+        ⚠️ `is_current` を select から落とさない（現職を今月まで数える判定に使う） */
+  const careerRangesByUser = new Map<string, { startedAt: string | null; endedAt: string | null; isCurrent: boolean }[]>();
   const expRowsByUser = new Map<string, { started_at: string | null; ended_at: string | null; role_category_id: string | null }[]>();
-  for (const e of (allExps ?? []) as { user_id: string; started_at: string | null; ended_at: string | null; role_category_id: string | null }[]) {
+  for (const e of (allExps ?? []) as { user_id: string; started_at: string | null; ended_at: string | null; is_current: boolean | null; role_category_id: string | null }[]) {
     if (!expRowsByUser.has(e.user_id)) expRowsByUser.set(e.user_id, []);
     expRowsByUser.get(e.user_id)!.push(e);
-    if (!e.started_at) continue;
-    if (!startedAtsByUser.has(e.user_id)) startedAtsByUser.set(e.user_id, []);
-    startedAtsByUser.get(e.user_id)!.push(e.started_at);
+    if (!careerRangesByUser.has(e.user_id)) careerRangesByUser.set(e.user_id, []);
+    careerRangesByUser.get(e.user_id)!.push({ startedAt: e.started_at, endedAt: e.ended_at, isCurrent: e.is_current === true });
   }
 
   const currentExpByUser = new Map<string, { role_title: string | null; role_category_id: string | null; company: string | null; employment_type: string | null; started_at: string | null }>();
@@ -278,7 +279,7 @@ export async function loadCompanyCandidates(params: {
       careerStance: (profile?.career_stance as string | null) ?? null,
       careerStanceUpdatedAt: (profile?.career_stance_updated_at as string | null) ?? null,
       /* ⚠️ 職歴0件は null（0年で埋めない） */
-      tenureMonths: calcTotalExperience(startedAtsByUser.get(u.id as string) ?? [])?.months ?? null,
+      tenureMonths: calcTotalExperience(careerRangesByUser.get(u.id as string) ?? [])?.months ?? null,
       /* ★年齢（数だけ）。⚠️ 生年月日が無ければ null（推測しない）。birth_date そのものは返さない */
       age: ageDisplay ? getUserAge((u.birth_date as string | null) ?? null) : null,
       /* ★性別の表示用の文字だけ（男性・女性・その他）。「回答しない」・未登録は null。⚠️ 値は渡さない（絞り込みに使わせない） */
