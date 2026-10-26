@@ -58,14 +58,14 @@ export async function POST(req: Request) {
      ⚠️ admin クライアントで引く。2026-08-06 に authenticated から ow_users.email の
         SELECT 権限を剥がしたため、session では読めない。 */
   const admin = createAdminClient();
-  /* ⚠️★LIKE の記号（% _ \）は必ず逃がす（2026-10-26 のセキュリティレビュー）。逃がさないと
-        「%@%.%」のような入力が他人のメールに当たり、パターンでメールアドレスを探り当てられる。
-        大文字小文字だけを無視した完全一致にする。 */
-  const escapedEmail = email.replace(/[\\%_]/g, (c) => `\\${c}`);
+  /* ⚠️★パターン照合（ilike / like）を使わない（2026-10-26 のセキュリティレビュー）。
+        `%` `_` は逃がせても、PostgREST は `*` を `%` に読み替えるので逃がせない。
+        「*@*.*」のような入力が他人のメールに当たり、メールアドレスを探り当てられる形になる。
+     → 小文字にして完全一致で引く。ow_users.email は全行が小文字（2026-10-26 実測: 101行中、大文字を含む行0）。 */
   const { data: targetUser } = await admin
     .from("ow_users")
     .select("id")
-    .ilike("email", escapedEmail)
+    .eq("email", email.toLowerCase())
     .maybeSingle();
 
   if (targetUser) {
