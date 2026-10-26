@@ -2,7 +2,7 @@
 import { can, ROLE_LABELS, type CompanyAction } from "@/lib/auth/roles";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import React, { useState, useEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
@@ -214,7 +214,6 @@ function BusinessChrome({
   frame = false,
 }: Props & { frame?: boolean }) {
   const pathname = usePathname();
-  const router = useRouter();
   const shell = useBizShell();
 
   /* ★未読バッジ（2026-09-21）。**ページを移るたびに取り直す。**
@@ -395,7 +394,9 @@ function BusinessChrome({
     const supabase = createClient();
     await supabase.auth.signOut();
     setAvatarOpen(false);
-    router.push("/biz/auth");
+    /* ⚠️★ページごと読み込む（2026-10-26 / 柴さんの指示）。`router.push` だと /biz/auth は /biz の枠の外なので
+          前の枠（サイドバーと前の人の名前）が描き直されずに残った（CLAUDE.md「/biz の除外パスから…」と同じ形） */
+    window.location.assign("/biz/auth");
   }
 
   return (
