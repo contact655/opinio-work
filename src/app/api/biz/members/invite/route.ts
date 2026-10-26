@@ -80,9 +80,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "このユーザーはすでにメンバーです", code: "DUPLICATE" }, { status: 409 });
     }
   }
-  /* ⚠️ 招待先には**入力されたメール**をそのまま入れる。DB のメールを返さない（招待中の一覧に出るため）。
-        承諾の判定（accept/route.ts）は大文字小文字を無視して比べるので、表記の違いでは止まらない。 */
-  const inviteEmail = email;
+  /* ⚠️ 招待先には**入力されたメールを小文字にしたもの**を入れる。DB のメールを返さない（招待中の一覧に出るため）。
+        ⚠️ 小文字にするのは DB の CHECK（invited_email = lower(invited_email)。20261026120000）があるため。
+        承諾の判定（accept/route.ts）も大文字小文字を無視して比べるので、大文字まじりで入力されても承諾できる。 */
+  const inviteEmail = email.toLowerCase();
 
   // Case 2: 未登録ユーザー → pending 招待レコードを作成
   const { data: existingPending } = await supabase
