@@ -7,6 +7,7 @@ import { MESSAGES_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
 import { CANDIDATE_TEST_MISMATCH_MESSAGE, type CandidateTestMismatch } from "@/lib/business/candidates/model";
+import { COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
 import { messagePreviewLine } from "@/lib/conversations/previewLine";
 import {
   APPROACH_HEADLINE,
@@ -62,7 +63,7 @@ type Item =
  * ⚠️ 選択は URL の ?show= に残す（再読込・共有で同じものが開く）。開いたら既読にするのはサーバー（`loadCompanyThread`）
  * ⚠️ 広い画面で何も選んでいなければ、一覧の一番上を選ぶ（URL を置き換える）。狭い画面では選ばない（一覧を出す）
  */
-export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, approachTestMismatch = null, hasPublishedJob, sentThisMonthFrom = null }: {
+export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, approachTestMismatch = null, approachReviewPending = false, hasPublishedJob, sentThisMonthFrom = null }: {
   allowed: boolean;
   conversations: ConversationRow[];
   /** 企業から送った1通目。null = 取れなかった */
@@ -86,6 +87,8 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   approachableCount?: number | null;
   /** ★検証用かどうかが担当者と合わない候補者を外したか（2026-10-26）。0人の理由として出す */
   approachTestMismatch?: CandidateTestMismatch | null;
+  /** ★運営の審査が済んでいない（候補者の人数を数えていない。2026-10-26） */
+  approachReviewPending?: boolean;
   /** ★公開中の求人があるか（送れる人0人のときの「求人を公開する」を出すか） */
   hasPublishedJob?: boolean | null;
   /**
@@ -201,7 +204,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
           <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: 0 }}>{APPROACH_HEADLINE}</p>
           <ApproachStepsLarge />
           <div className="apx-empty">
-            <EmptyGuide approachableCount={approachableCount} hasPublishedJob={hasPublishedJob} testMismatch={approachTestMismatch} />
+            <EmptyGuide approachableCount={approachableCount} hasPublishedJob={hasPublishedJob} testMismatch={approachTestMismatch} reviewPending={approachReviewPending} />
             <SampleLetter />
           </div>
           <Link href="/biz/help/messages" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>候補者にメッセージを送るときのルール</Link>
@@ -319,13 +322,15 @@ function SentItem({ r, now, href, selected }: { r: SentApproach; now: Date; href
  * ⚠️ 人数は候補者検索の送るボタンと同じ判定（`can_send_company_approach()`）。取れなかったら「取得できませんでした」（0人と出さない）。
  * ⚠️ 送れる人が0人のときは、しくみを見る（主）・求人を公開する（公開中の求人が無いときだけ）・候補者を探す（文字リンク）。
  */
-function EmptyGuide({ approachableCount, hasPublishedJob, testMismatch = null }: { approachableCount: number | null | undefined; hasPublishedJob?: boolean | null; testMismatch?: CandidateTestMismatch | null }) {
+function EmptyGuide({ approachableCount, hasPublishedJob, testMismatch = null, reviewPending = false }: { approachableCount: number | null | undefined; hasPublishedJob?: boolean | null; testMismatch?: CandidateTestMismatch | null; reviewPending?: boolean }) {
   const unknown = approachableCount === null || approachableCount === undefined;
   const zero = approachableCount === 0;
   return (
     <section data-state="approach-empty" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
       <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>まだメッセージを送っていません。</p>
-      {unknown ? (
+      {reviewPending ? (
+        <p data-state="approachable-review-pending" style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>いまメッセージを送れる候補者：<span style={{ color: "var(--ink-mute)" }}>{COMPANY_REVIEW_BLOCKED_MESSAGE}</span></p>
+      ) : unknown ? (
         <p data-state="approachable-unknown" style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>いまメッセージを送れる候補者：<span style={{ color: "var(--ink-mute)" }}>取得できませんでした</span></p>
       ) : (
         <p data-state={zero ? "approachable-zero" : "approachable-count"} style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>

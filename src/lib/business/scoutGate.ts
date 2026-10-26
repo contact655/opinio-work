@@ -1,3 +1,4 @@
+import { canUse, type PlanType } from "@/lib/constants/plans";
 
 /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。`canSendScout()` と
       `SCOUT_PLAN_BLOCKED_MESSAGE`、`PLAN_FEATURES` の `scoutSend` は削除した。**戻さないこと。**
@@ -37,3 +38,14 @@ export function isCompanyReviewed(ctx: { isApproved: boolean }): boolean {
 /** 審査が済んでいないときの文言。⚠️ 経路ごとに書き分けないこと。 */
 export const COMPANY_REVIEW_BLOCKED_MESSAGE =
   "運営審査が完了するまでお待ちください";
+
+/**
+ * ★候補者を探す（一覧・プレビュー・☆・非表示・保存した条件）を使ってよいか（2026-10-26 / 柴さんの指示）。
+ *   審査済み（`isCompanyReviewed`）かつプランが取れていて `candidateSearch` が使えること。
+ *   ⚠️★ページ（/biz/candidates）とプレビューの API と同じ条件。**API ごとに書き写さないこと。**
+ *      2026-10-26 まで、☆・非表示・保存した条件・/biz/messages の人数は承認を見ておらず、
+ *      承認前の会社でも候補者の人数や ☆ の書き込みに届いた。
+ */
+export function canUseCandidateSearch(ctx: { isApproved: boolean; planType: PlanType | null }): boolean {
+  return isCompanyReviewed(ctx) && ctx.planType !== null && canUse(ctx.planType, "candidateSearch");
+}

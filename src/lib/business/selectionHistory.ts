@@ -73,3 +73,15 @@ export async function getSelectionHistory(companyId: string, candidateUserId: st
   }
   return items.sort((x, y) => y.at.localeCompare(x.at));
 }
+
+/**
+ * ★この会社とこの候補者に、候補者の側からの接点があるか（2026-10-26）。
+ *   応募・カジュアル面談の申込・面談・OPINIO のおすすめ・メッセージへの返信のどれか。
+ *   ⚠️ 会社が送っただけ（返信なし）のメッセージは数えない（候補者が応じていないため）。
+ *   ⚠️ 取れなければ false（fail-closed）。
+ *   使い道: 承認前の会社でも、接点のある人（選考管理の応募者など）にはメモを書けるようにする。
+ */
+export async function hasCandidateContact(companyId: string, candidateUserId: string): Promise<boolean> {
+  const history = await getSelectionHistory(companyId, candidateUserId);
+  return !!history && history.some((h) => h.kind !== "approach_sent");
+}

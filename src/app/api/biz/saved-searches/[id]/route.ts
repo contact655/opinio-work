@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { MAX_SAVED_SEARCH_NAME } from "@/lib/business/savedSearch";
 import { isNotifyFrequency } from "@/lib/business/savedSearchServer";
+import { canUseCandidateSearch } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!can(ctx.currentPermission, "candidates.search")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
+  /* ★候補者を探すと同じ条件（審査済み・プラン）。2026-10-26 */
+  if (!canUseCandidateSearch(ctx)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const patch: Record<string, unknown> = {};
   if (b?.name !== undefined) {
@@ -52,6 +55,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!can(ctx.currentPermission, "candidates.search")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
+  /* ★候補者を探すと同じ条件（審査済み・プラン）。2026-10-26 */
+  if (!canUseCandidateSearch(ctx)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   let q = createAdminClient().from("ow_saved_candidate_searches").delete()
     .eq("id", params.id).eq("company_id", ctx.tenantId);
   if (!can(ctx.currentPermission, "savedSearches.manageAll")) q = q.eq("owner_user_id", ctx.currentOwnId);

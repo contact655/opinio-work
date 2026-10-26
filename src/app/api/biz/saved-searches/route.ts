@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { canUseCandidateSearch } from "@/lib/business/scoutGate";
 import {
   parseSavedFilters,
   isEmptyFilters,
@@ -39,6 +40,11 @@ async function requireCandidateSearch(action: "candidates.viewProfile" | "candid
   }
   if (!canUse(ctx.planType, "candidateSearch")) {
     return { error: NextResponse.json({ error: "候補者検索は有料プランの機能です" }, { status: 403 }) } as const;
+  }
+  /* ★審査が済んでいない会社には返さない（2026-10-26）。⚠️ 一覧の画面は承認を見ずにここ（?counts=1）を呼ぶので、
+        ここで止めないと承認前でも新着の人数が返った */
+  if (!canUseCandidateSearch(ctx)) {
+    return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) } as const;
   }
   return { ctx } as const;
 }

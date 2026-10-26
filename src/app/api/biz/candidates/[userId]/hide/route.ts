@@ -2,6 +2,7 @@ import { can } from "@/lib/auth/roles";
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { createClient } from "@/lib/supabase/server";
+import { canUseCandidateSearch } from "@/lib/business/scoutGate";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export async function POST(_req: Request, { params }: { params: { userId: string
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!can(ctx.currentPermission, "candidates.notes")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
+  /* ★候補者を探すと同じ条件（審査済み・プラン）。2026-10-26 */
+  if (!canUseCandidateSearch(ctx)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!UUID_RE.test(params.userId)) return NextResponse.json({ error: "not found" }, { status: 404 });
   const { error } = await createClient().from("ow_candidate_hidden")
     .upsert({ company_id: ctx.tenantId, candidate_user_id: params.userId, hidden_by: ctx.currentOwnId }, { onConflict: "company_id,candidate_user_id", ignoreDuplicates: true });
@@ -30,6 +33,8 @@ export async function DELETE(_req: Request, { params }: { params: { userId: stri
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!can(ctx.currentPermission, "candidates.notes")) return NextResponse.json({ error: "この操作の権限がありません。", code: "permission_denied" }, { status: 403 });
+  /* ★候補者を探すと同じ条件（審査済み・プラン）。2026-10-26 */
+  if (!canUseCandidateSearch(ctx)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   if (!UUID_RE.test(params.userId)) return NextResponse.json({ error: "not found" }, { status: 404 });
   const { error } = await createClient().from("ow_candidate_hidden")
     .delete().eq("company_id", ctx.tenantId).eq("candidate_user_id", params.userId);
