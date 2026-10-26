@@ -80,6 +80,17 @@ export const SAME_DOMAIN_PRIMARY_BONUS = 3;
 export type DomainFitStatus = "liked" | "neutral" | "disliked";
 
 /**
+ * ★転機の3問の Q3（入って1年たったころ、合っていたか 1〜5）を、上のフィット度（0〜10）の物差しに直す（2026-10-27 / フェーズ1c）。
+ *   4〜5 → 「合った」（FIT_LIKED_MIN 以上）／ 1〜2 → 「合わなかった」（FIT_DISLIKED_MAX 以下）／ 3 → どちらでもない。
+ *   ⚠️★Q3 があればそれを使い、無いときだけ入社後レビューの fit_score を使う（柴さんの決定）。判定（domainFitStatus）は変えない。
+ */
+export function fitFromCareerTurn(q3: number): number {
+  if (q3 >= 4) return q3 === 5 ? 10 : FIT_LIKED_MIN;
+  if (q3 <= 2) return q3 === 1 ? 0 : FIT_DISLIKED_MAX;
+  return 5;
+}
+
+/**
  * ある事業領域に当たる本人の勤務先たちのフィット度（未回答は null）から、その領域の扱いを決める。
  *   - 1社でも 7 以上 → liked（強める）
  *   - **すべて回答済みで、すべて 3 以下** → disliked（理由にしない）

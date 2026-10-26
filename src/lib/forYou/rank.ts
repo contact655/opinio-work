@@ -16,6 +16,7 @@ import {
   SAME_DOMAIN_LIKED_POINTS,
   SAME_DOMAIN_PRIMARY_BONUS,
   domainFitStatus,
+  fitFromCareerTurn,
   reasonText,
   type DomainFitStatus,
   type ForYouReaction,
@@ -91,10 +92,12 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const viewerIsTest = me.is_test === true;
   const authId = me.auth_id as string;
 
-  const [myExpRes, myReviewRes, desiredRes, profileRes, blockedRes, approachBlockRes, reactionsRes, ownCompanyId, roleMap] = await Promise.all([
+  const [myExpRes, myReviewRes, myTurnRes, desiredRes, profileRes, blockedRes, approachBlockRes, reactionsRes, ownCompanyId, roleMap] = await Promise.all([
     db.from("ow_experiences").select("id, company_id, role_category_id, is_current").eq("user_id", owUserId),
     /* ★本人の入社後レビューのフィット度（2026-10-17。weights.ts の domainFitStatus）。本人の回答だけ */
     db.from("ow_workplace_reviews").select("company_id, fit_score").eq("user_id", owUserId),
+    /* ★本人の転機の3問の Q3（2026-10-27）。あればこちらを優先する。本人の回答だけ */
+    db.from("ow_career_turns").select("experience_id, fit_after_year").eq("user_id", owUserId).not("fit_after_year", "is", null),
     db.from("ow_profile_desired_roles").select("role_id").eq("user_id", authId),
     db.from("ow_profiles").select("desired_phase").eq("user_id", authId).maybeSingle(),
     /* ★在籍中（自由入力の社名の突合を含む）と手動ブロック。⚠️ 引数は auth 空間 */
@@ -190,6 +193,13 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const fitByCompany = new Map<string, number>();
   for (const rv of (myReviewRes.data ?? []) as { company_id: string | null; fit_score: number | null }[]) {
     if (rv.company_id && typeof rv.fit_score === "number") fitByCompany.set(rv.company_id, rv.fit_score);
+  }
+  /* ★Q3 があれば上書きする（Q3 が無い会社だけ旧 fit_score が残る）。⚠️ 取得に失敗したら旧のまま（ログは出す） */
+  if (myTurnRes.error) console.error("[forYou] ow_career_turns:", myTurnRes.error.message);
+  const companyByExp = new Map(myExps.map((e) => [e.id, e.company_id]));
+  for (const t of (myTurnRes.data ?? []) as { experience_id: string; fit_after_year: number | null }[]) {
+    const cid = companyByExp.get(t.experience_id);
+    if (cid && typeof t.fit_after_year === "number") fitByCompany.set(cid, fitFromCareerTurn(t.fit_after_year));
   }
   const domainCompanyFits = new Map<string, Map<string, number | null>>();
   for (const e of myExps) {

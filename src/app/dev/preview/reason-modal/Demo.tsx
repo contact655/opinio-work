@@ -9,7 +9,7 @@ import { computeTendency, type TendencyReview } from "@/lib/workplaceReview/tend
  * ★入社後レビュー（「株式会社◯◯について」）のバリエーション（2026-10-16 に作り直した）。
  * ⚠️ DB を読まない・書かない（`preload` と `onSaveOverride` を渡している）。軸とタグはマスタ（migration 20261016190000）と同じ文言。
  */
-const AXES: ReviewAxis[] = [
+export const AXES: ReviewAxis[] = [
   { key: "work_style", name: "仕事の進め方", leftText: "決まったやり方に沿って進める", rightText: "やり方は自分で決める", leftHeadlineJoin: "決まったやり方に沿って進め", leftHeadlineEnd: "決まったやり方に沿って進める", rightHeadlineJoin: "やり方を任され", rightHeadlineEnd: "やり方を任される" },
   { key: "onboarding", name: "立ち上がり", leftText: "自分で調べて覚える", rightText: "研修・先輩が教えてくれる", leftHeadlineJoin: "自分で調べて覚えていき", leftHeadlineEnd: "自分で調べて覚えていく", rightHeadlineJoin: "研修や先輩に教わりながら覚えられ", rightHeadlineEnd: "研修や先輩に教わりながら覚えられる" },
   { key: "evaluation", name: "評価", leftText: "成果の数字で見られる", rightText: "行動やプロセスも見られる", leftHeadlineJoin: "成果の数字で評価され", leftHeadlineEnd: "成果の数字で評価される", rightHeadlineJoin: "行動やプロセスも評価され", rightHeadlineEnd: "行動やプロセスも評価される" },

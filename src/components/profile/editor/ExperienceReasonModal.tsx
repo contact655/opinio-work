@@ -463,7 +463,7 @@ export function ExperienceReasonModal({
  * ⚠️ 元に戻せないので、押したらその場で確認を出す（window.confirm は使わない）。
  * ⚠️ 消したものは次回以降の集計から外れる（DELETE /api/jobseeker/experiences/[id]/review）。
  */
-function DeleteAnswers({ experienceId, disabled, onDeleted }: { experienceId: string; disabled: boolean; onDeleted: () => void }) {
+export function DeleteAnswers({ experienceId, disabled, onDeleted }: { experienceId: string; disabled: boolean; onDeleted: () => void }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -490,7 +490,7 @@ function DeleteAnswers({ experienceId, disabled, onDeleted }: { experienceId: st
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           <p style={{ margin: 0, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-            この会社について答えた内容（合っていたか・期待とのずれ・働き方・決め手・離れた理由）をすべて削除します。元に戻せません。
+            この会社について答えた内容（決め手・いちばん求めていたこと・合っていたか、以前の質問への回答）をすべて削除します。元に戻せません。
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" disabled={busy} onClick={() => void run()}
@@ -631,9 +631,10 @@ export function ReasonEntryButton({
   onClick: () => void;
 }) {
   /* ★2026-10-16 に問いを「この会社について」に変えた */
+  /* ★2026-10-27（フェーズ1c）: 転機の3問に入れ替えたので文言を合わせた */
   const label = legacy
-    ? "質問が新しくなりました（この会社について答え直す）"
-    : answered ? "この会社について回答済み・編集" : "この会社について答える（会社には伝わりません）";
+    ? "質問が新しくなりました（この会社の転機について答え直す）"
+    : answered ? "この会社の転機について回答済み・編集" : "この会社の転機について答える（誰にも表示されません）";
   const showCheck = answered && !legacy;
   return (
     <button

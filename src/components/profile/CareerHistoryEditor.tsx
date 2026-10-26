@@ -19,9 +19,9 @@ import { ProfileEditModal } from "@/components/profile/editor/ProfileEditModal";
       ⚠️ **設問をこのファイルに書き戻さないこと。** 入口が2つ（追加の直後 / カードのアイコン）
          あるので、割れると片方だけ直る形の不具合になる。 */
 import {
-  ExperienceReasonModal,
   reasonState,
 } from "@/components/profile/editor/ExperienceReasonModal";
+import { CareerTurnModal } from "@/components/profile/editor/CareerTurnModal";
 import {
   postExperience,
   type ExperienceCompanyBody,
@@ -2158,18 +2158,19 @@ export default function CareerHistoryEditor({
           return x ? groupKey(x) !== groupKey(reasonStint) : false;
         });
         return (
-          <ExperienceReasonModal
+          /* ★2026-10-27（フェーズ1c）: 入社後レビューを転機の3問に入れ替えた（柴さんの判断）。
+                ⚠️ ExperienceReasonModal（入社後レビュー）は新しい画面からは開かない。表とデータは残してある */
+          <CareerTurnModal
             key={reasonStint.id}
             open
             experienceId={reasonStint.id}
             companyName={reasonStint.displayCompanyName}
-            remaining={rest.length}
             nextCompanyName={rest.length > 0 ? (stints.find((y) => y.id === rest[0])?.displayCompanyName ?? null) : null}
             onNext={rest.length > 0 ? () => setReasonId(rest[0]) : null}
             onSaved={() => {
               /* 印をすぐ更新（同じ会社の役割すべて）してから、サーバーの値で取り直す */
               setStints((prev) => prev.map((x) => (groupKey(x) === groupKey(reasonStint) ? { ...x, reasonVersion: 2 } : x)));
-              showToast("回答を保存しました");
+              showToast("保存しました");
               void refreshReasonStatus();
             }}
             /* ⚠️ 「あとで答える」と ×。**何も保存しない**（どのステップで閉じたかだけ記録する） */

@@ -7715,7 +7715,26 @@ npm run dev → http://localhost:3000/dev/preview
   選び方は `node scripts/check-connections.mjs`（固定データ・`--self-test` で検出力を確認）と `/dev/preview/connections` で確かめた。
   **相互フォローが生まれたら、企業ページで実際に出ることを確認すること。**
 
-### ★★「株式会社◯◯について」は入社後レビュー（`ow_workplace_reviews`）。2026-10-17 に作り直した
+### ★★「株式会社◯◯について」は転機の3問（`ow_career_turns`）。2026-10-27 に入社後レビューから入れ替えた（フェーズ1c）
+
+| | 実体 |
+|---|---|
+| 3問 | Q1 その会社を選んだ決め手（v2 の15個から3つまで）／ Q2 移るとき（最初の会社は社会に出るとき）にいちばん求めていたこと（8択）／ Q3 入って1年たったころ合っていたか（1〜5・入社から1年たっていなければ出さない） |
+| 選択肢・文言・検証 | `src/lib/careerTurns/constants.ts`（DB の CHECK と同じ。**片方だけ変えない**） |
+| 傾向 | `src/lib/careerTurns/tendency.ts`（本人の回答だけ・AI なし・1つでも答えれば1文）。テスト `careerTurns.test.mjs` |
+| 読み書き | `src/lib/careerTurns/server.ts`。API は `/api/jobseeker/experiences/[id]/turn`（GET / PUT。本人確認は `requireOwnExperience`）。削除は `/review` の DELETE（会社への回答をまとめて消す） |
+| 画面 | `CareerTurnModal.tsx`（職歴を足した直後・行の吹き出し・「まとめて答える」）。3問 → 任意の段 → 傾向。`/mypage` の帯は「N つの転機のうち M つ回答済み」。見た目は `/dev/preview/career-turn` |
+
+- ⚠️★**表は anon / authenticated に権限なし・ポリシー0本**（読み書きは API の service role だけ）。`./scripts/check-career-turns-access.sh` で確かめる（2026-10-27 に全項目 ok）。**GRANT もポリシーも足さないこと。**
+- ⚠️ 転機の単位は「その会社に入った職歴1件」＝同じ会社の職歴のうちいちばん古い行。
+- ⚠️ 「この転機は答えない」は回答を消して `skipped_at` を入れる（回答済みに数える）。
+- ⚠️ 「合う会社」の並びは Q3 を優先し、無い会社だけ入社後レビューの `fit_score` を使う（`fitFromCareerTurn`）。
+- ★旧の決め手（`join_reasons`）は Q1 に写した（`20261027090100`・2026-10-27 適用・25件＝実在19件）。写した行は `answered_at` が null で「質問が新しくなりました」と出る。★一番の決め手は写していない。
+- ★3問のあとに「もう少し詳しく（任意）」（6軸・残業／出社／英語・入る前に知りたかったこと80字）。置き場所は `ow_career_turns.detail_*` と `ow_career_turn_axes`（`20261027100000`。同じく権限なし）。選択肢は入社後レビューと同じ（`lib/careerTurns/detail.ts` が `workplaceReview/constants` から読む）。飛ばしても3問は残る。
+  ⚠️ `ow_workplace_reviews` を使い続けない理由: authenticated に書き込みがあり本人が API を通さず書ける／CHECK が 0〜10 と期待との比較を必須にしている
+- ⚠️ 入社後レビュー（下の節）の表とデータは残す。**新しい画面からは書かない。**
+
+### （経緯）「株式会社◯◯について」は入社後レビュー（`ow_workplace_reviews`）。2026-10-17 に作り直した
 
 **2026-10-16 の reason_version = 2（下の節）を、その翌日にもう一度作り直した。** いまモーダルが読み書きするのはこちら。
 

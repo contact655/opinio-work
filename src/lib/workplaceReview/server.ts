@@ -284,6 +284,8 @@ async function hasStoredAnswers(rows: ExpRow[], hasReview: boolean): Promise<boo
 
 /** ★職歴にぶら下がる「回答」の表（入社後レビュー以外）。⚠️ ow_reason_modal_closes（閉じた記録）は回答ではないので入れない */
 const ANSWER_TABLES = [
+  /* ★転機の3問（2026-10-27 / フェーズ1c）。⚠️ 消すと次回以降の集計・合う会社の並びから外れる */
+  "ow_career_turns",
   "ow_experience_leave_reasons",
   "ow_experience_gaps",
   "ow_experience_reviews",
@@ -296,6 +298,7 @@ const ANSWER_TABLES = [
  * ★本人が、この会社についての回答をすべて消す（2026-10-26 / フェーズ1a-4）。
  *
  * 消すもの（同じ会社の職歴すべてについて）:
+ *   - 転機の3問（ow_career_turns。2026-10-27〜）
  *   - 入社後レビュー（ow_workplace_reviews。軸とタグは FK の CASCADE で一緒に消える）
  *   - 退職理由（ow_experience_leave_reasons）・期待とのギャップ（ow_experience_gaps）
  *   - 旧 v2 の表（ow_experience_reviews / _expectations / _gap_shifts / _notes）
@@ -329,4 +332,18 @@ export async function deleteCompanyAnswers(owUserId: string, base: ExpRow): Prom
   );
   if (!upd.ok) return { ok: false, error: upd.error };
   return { ok: true };
+}
+
+/**
+ * ★この会社について、何か回答が残っているか（転機の3問・入社後レビュー・旧形式すべて。2026-10-27）。
+ *   転機の3問のモーダルが削除の操作を出すかに使う。null は取得失敗。
+ */
+export async function companyHasStoredAnswers(owUserId: string, base: ExpRow): Promise<boolean | null> {
+  const rows = await companyRows(owUserId, base);
+  if (!rows || rows.length === 0) return null;
+  const { count, error } = await createAdminClient()
+    .from("ow_workplace_reviews").select("experience_id", { count: "exact", head: true })
+    .eq("user_id", owUserId).in("experience_id", rows.map((r) => r.id));
+  if (error) { console.error("[workplaceReview] companyHasStoredAnswers:", error.message); return null; }
+  return hasStoredAnswers(rows, (count ?? 0) > 0);
 }

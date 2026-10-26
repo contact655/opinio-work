@@ -320,12 +320,23 @@ export async function reasonStatusForUser(owUserId: string): Promise<Record<stri
   const { data: revs, error: rErr } = await admin
     .from("ow_experience_reviews").select("experience_id, reason_version").in("experience_id", list.map((r) => r.id));
   if (rErr) { console.error("[reasonAnswers] status reviews:", rErr.message); return null; }
-  /* ★2026-10-16（フェーズ1）: 「答え済み（2）」は新しい入社後レビュー（ow_workplace_reviews）があること。
-        それより前の形式（ow_experience_reviews の 1・2 と、旧の列）はすべて「旧形式（1）」＝答え直しの案内 */
-  const { data: wrs, error: wErr } = await admin.from("ow_workplace_reviews").select("experience_id").eq("user_id", owUserId);
+  /* ★2026-10-27（フェーズ1c）: 「答え済み（2）」は転機の3問（ow_career_turns）に答えたか「この転機は答えない」を選んだこと。
+        それより前の形式（入社後レビュー ow_workplace_reviews・ow_experience_reviews・旧の列、
+        旧の決め手を写しただけの転機）はすべて「旧形式（1）」＝答え直しの案内。
+     ⚠️ ow_career_turns は anon / authenticated に権限が無い。ここは admin クライアント */
+  const [{ data: wrs, error: wErr }, { data: turns, error: tErr }] = await Promise.all([
+    admin.from("ow_workplace_reviews").select("experience_id").eq("user_id", owUserId),
+    admin.from("ow_career_turns").select("experience_id, answered_at, skipped_at").eq("user_id", owUserId),
+  ]);
   if (wErr) { console.error("[reasonAnswers] status workplace reviews:", wErr.message); return null; }
-  const reviewed = new Set(((wrs ?? []) as { experience_id: string }[]).map((r) => r.experience_id));
-  const byRow = new Map(((revs ?? []) as { experience_id: string }[]).map((r) => [r.experience_id, 1 as const]));
+  if (tErr) { console.error("[reasonAnswers] status career turns:", tErr.message); return null; }
+  const turnList = (turns ?? []) as { experience_id: string; answered_at: string | null; skipped_at: string | null }[];
+  const reviewed = new Set(turnList.filter((t) => t.answered_at || t.skipped_at).map((t) => t.experience_id));
+  const byRow = new Map<string, 1>([
+    ...((revs ?? []) as { experience_id: string }[]).map((r) => [r.experience_id, 1 as const] as const),
+    ...((wrs ?? []) as { experience_id: string }[]).map((r) => [r.experience_id, 1 as const] as const),
+    ...turnList.filter((t) => !t.answered_at && !t.skipped_at).map((t) => [t.experience_id, 1 as const] as const),
+  ]);
   const byCompany = new Map<string, 1 | 2>();
   for (const r of list) {
     const v = (reviewed.has(r.id) ? 2 : byRow.get(r.id)) as 1 | 2 | undefined

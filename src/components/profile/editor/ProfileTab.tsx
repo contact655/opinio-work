@@ -55,6 +55,7 @@ import {
 import CareerHistoryEditor, { type Stint } from "@/components/profile/CareerHistoryEditor";
 /* ★職歴カードの「理由」入口（2026-09-12）。⚠️ **本人の /mypage だけに出す。** */
 import { ReasonEntryButton, hasReasonAnswers, reasonState } from "@/components/profile/editor/ExperienceReasonModal";
+import { CAREER_TURN_PRIVACY_NOTE } from "@/lib/careerTurns/constants";
 /* ★学歴の表示は公開プロフィールと同じ部品（2026-08-16 / 2-5）。
       `careers={[]}` で学歴だけを描く。並び替え・年マーカーは部品側が持つ。 */
 import MergedTimeline, { limitCareersForDisplay, shortCompanyName } from "@/components/profile/MergedTimeline";
@@ -819,6 +820,18 @@ export default function ProfileTab({
     () => new Set(careerStints.filter((s) => !hasReasonAnswers(s)).map((s) => s.companyId ?? s.companyText ?? s.displayCompanyName)).size,
     [careerStints],
   );
+  /* ★転機の進み具合（2026-10-27 / フェーズ1c）。転機 = 会社1社。「答えない」を選んだ会社も回答済みに数える
+        （reasonState が "answered" を返す。判定は行の印と同じ） */
+  const turnProgress = useMemo(() => {
+    const all = new Set<string>();
+    const done = new Set<string>();
+    for (const s of careerStints) {
+      const k = s.companyId ?? s.companyText ?? s.displayCompanyName;
+      all.add(k);
+      if (reasonState(s) === "answered") done.add(k);
+    }
+    return { total: all.size, done: done.size };
+  }, [careerStints]);
   /* ★★職歴の促しカード（2026-10-16 / 柴さんの判断）。
         条件: 職歴がちょうど1件・在籍中 ／ 「これ以上の経歴はない」を押していない。
      ⚠️ 押した日時は消さない（職歴を足しても残す）。カードは職歴が増えれば条件から外れる。
@@ -1788,7 +1801,7 @@ export default function ProfileTab({
                       return careerStints.some((x) => !hasReasonAnswers(x) && !x.isCurrent) ? "前の会社はどうでしたか？" : "今の会社はどうですか？";
                     })()}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>合う会社探しに使います（1社30秒・会社には伝わりません）</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>転機ごとに3問・1分以内（誰にも表示されません）</div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button type="button" onClick={dismissReasonTop} className="btn-fixed-size"
@@ -1959,18 +1972,18 @@ export default function ProfileTab({
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.6 }}>
-                      {unansweredReasonCount > 0 && legacyReasonCount > 0
-                        ? `${unansweredReasonCount}社が未回答・${legacyReasonCount}社は答え直しがあります`
-                        : unansweredReasonCount > 0
-                        ? `${unansweredReasonCount}社が未回答です`
-                        : `質問が新しくなりました（${legacyReasonCount <= 2
-                            ? legacyReasonCompanies.map((c) => c.name).join("・")
-                            : `${legacyReasonCompanies[0].name} ほか${legacyReasonCount - 1}社`}）`}
+                    {/* ★2026-10-27（フェーズ1c）: 転機の3問の進み具合を出す（柴さんの指示「3つの転機のうち1つ回答済み」） */}
+                    <div data-state="turn-progress" style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", lineHeight: 1.6 }}>
+                      {`${turnProgress.total}つの転機のうち${turnProgress.done}つ回答済み`}
+                      {legacyReasonCount > 0 && (
+                        <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)" }}>
+                          {`（質問が新しくなった会社が${legacyReasonCount}社）`}
+                        </span>
+                      )}
                     </div>
-                    {/* ★2026-10-16 に問いを「この会社について」に変えたので文言を揃えた（モーダルの注記と同じ向き） */}
+                    {/* ⚠️ 文言は 3問の近くに出す一文と同じ（CAREER_TURN_PRIVACY_NOTE） */}
                     <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                      回答は会社には伝わりません。あなたに合う会社を探すのに使います
+                      {CAREER_TURN_PRIVACY_NOTE}
                     </div>
                   </div>
                   <button
