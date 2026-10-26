@@ -172,6 +172,16 @@ export async function POST(req: Request) {
       already_registered: false,
       expires_at: expiresAt.toISOString(),
       email_sent: emailSent,
+      /* ★作った招待の行（2026-10-26）。画面がその場で「招待中」に足す（再読み込みを待たない）。
+            形は fetchPendingInvitesForCompany（lib/business/members.ts）と同じ。⚠️ 管理者だけがここに届く（上で確認済み） */
+      invite: {
+        id: newRow.id as string,
+        invited_email: inviteEmail,
+        invited_at: (newRow.invited_at as string | null) ?? invitedAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        permission: role,
+        invitation_token: inviteToken,
+      },
     },
     { status: 201 }
   );

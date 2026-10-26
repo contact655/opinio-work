@@ -1147,12 +1147,16 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, permission }),
       });
-      const json = await res.json() as { error?: string };
+      const json = await res.json() as { error?: string; invite?: PendingInviteRecord };
       if (!res.ok) {
         setAddError(json.error ?? "エラーが発生しました");
         return;
       }
       setShowAddDialog(false);
+      /* ★返ってきた招待をその場で「招待中」の先頭に足す（2026-10-26 / 柴さんの指示）。
+            ⚠️ 一覧は useState(initialPendingInvites) で持っているので、router.refresh() だけでは画面に出なかった */
+      const created = json.invite;
+      if (created) setPendingInvites((prev) => [created, ...prev.filter((i) => i.id !== created.id)]);
       /* ★既にアカウントがある人にも招待を送る（2026-10-26）。承諾するまで担当者にはならない */
       setToastMessage(`${email} に招待メールを送信しました。承諾すると担当者になります`);
       router.refresh();
