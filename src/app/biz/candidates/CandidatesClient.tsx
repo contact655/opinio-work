@@ -222,7 +222,7 @@ export default function CandidatesClient({
   /* ★一覧の上の灰色の1行（2026-10-11 / 柴さんの指示）。「いま、メッセージを送れる候補者はいません。」は外した。
         検証用の会社を実アカウントで見ているとき → その旨。企業側の上限に当たっているとき → 上限の文言。それ以外は出さない */
   /* ★2026-10-26: 一覧は見ている担当者と検証用かどうかが一致する人だけになった（load.ts）。
-        外した人がいればその旨を出す（一覧が0人でも出す。「その他」のまま理由が分からない形にしない） */
+        外した人がいればその旨を出す（一覧が0人なら空の表示の中に出す。「その他」のまま理由が分からない形にしない） */
   const mismatchNotice = testMismatch ? CANDIDATE_TEST_MISMATCH_MESSAGE[testMismatch] : null;
   const topNotice = mismatchNotice
     ?? (candidates.some((c) => c.approach?.blocked === "test_company") ? APPROACH_TEST_COMPANY_MESSAGE : null);
@@ -849,7 +849,8 @@ export default function CandidatesClient({
           </HelpToggle>
         </div>
         {/* ★送れない理由の1行（検証用の会社／企業側の上限）。⚠️ 灰色の文字（バッジにしない）。order で行の最後に回す */}
-        {topNotice && (candidates.length > 0 || mismatchNotice) && (
+        {/* ⚠️ 一覧が0人のときは出さない（下の空の表示が同じ文言を出す。2026-10-26 に二重に出ていた） */}
+        {topNotice && candidates.length > 0 && (
           <p data-state="approach-top-notice" style={{ order: 10, flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
             {topNotice}
           </p>
