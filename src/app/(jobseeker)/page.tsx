@@ -1,4 +1,6 @@
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
+import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
+import { meetsAggregateMin } from "@/lib/constants/aggregate";
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import LandingPage, {
@@ -120,7 +122,7 @@ export default async function HomePage() {
   // ユーザーあたり数件なので集計コストは低い。
   const schoolRowsP = db
     .from("ow_user_educations")
-    .select("user_id, school_id, ow_schools!school_id(id, name), ow_users!user_id(is_test, is_system, visibility)")
+    .select(`user_id, school_id, ow_schools!school_id(id, name), ow_users!user_id(${AGGREGATE_USER_COLUMNS})` as const)
     .not("school_id", "is", null);
 
   // ── プレビュー（各12件だけ）──────────────────────────────────────
@@ -283,23 +285,26 @@ export default async function HomePage() {
 
   // ── 出身校ファセット ────────────────────────────────────────────
   // 本人の非公開希望を優先する（private は除外）。テスト・システムユーザーも外す。
+  // ★★学校ごとの人数は集計なので、`isAggregatableUser` で外す（統計利用を停止した人・本人が登録していない行も。2026-10-26）。
+  //    人数が下限（MIN_AGGREGATE_COUNT・5人）に届かない学校はチップごと出さない（フェーズ1a-3）。
   type EduRow = {
     user_id: string;
     ow_schools: { id: string; name: string } | null;
-    ow_users: { is_test: boolean | null; is_system: boolean | null; visibility: string | null } | null;
+    ow_users: AggregateUser | null;
   };
   const bySchool = new Map<string, { name: string; users: Set<string> }>();
   for (const r of (schoolRes.data ?? []) as unknown as EduRow[]) {
     const s = r.ow_schools;
     const u = r.ow_users;
     if (!s || !u) continue;
-    if (u.is_test === true || u.is_system === true || u.visibility === "private") continue;
+    if (!isAggregatableUser(u)) continue;
     const entry = bySchool.get(s.id) ?? { name: s.name, users: new Set<string>() };
     entry.users.add(r.user_id);
     bySchool.set(s.id, entry);
   }
   const allSchoolFacets: LPFacet[] = Array.from(bySchool.entries())
     .map(([id, v]) => ({ key: id, label: v.name, count: v.users.size, href: `/schools/${id}` }))
+    .filter((f) => meetsAggregateMin(f.count))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ja"))
     .slice(0, 12);
 

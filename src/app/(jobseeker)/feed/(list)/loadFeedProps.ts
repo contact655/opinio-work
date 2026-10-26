@@ -42,7 +42,7 @@ function flattenRefCompany(co: any): any {
 
 export type SidebarCompany = { id: string; slug: string | null; name: string; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null; /* ★「新しく掲載された企業」の枠は掲載中だけ（2026-10-26。FeedClient の buildHomeRailItems） */ listing_status?: string | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
 /* ⚠️ `ow_articles` に画像カラムは1つも無い（2026-08-13 に全28列を確認）。
       サムネイルは作れないので、記事ごとに違う `eyecatch_gradient` /
@@ -113,7 +113,7 @@ export async function loadFeedProps() {
       image_url, link_url, link_title, link_image_url, link_description, link_domain,
       event_title, event_starts_at, event_location, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
-      ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))),
+      ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status, ow_company_business_domains(is_primary, ow_business_domains(name))),
       ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
       ref_article:ow_articles!ref_article_id(id, slug, title, is_published, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
       likes:ow_post_likes(count),

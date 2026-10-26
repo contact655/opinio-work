@@ -7,9 +7,8 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
  *
  * ⚠️★**admin クライアントで引く。** 他人の職歴・遷移・面談対応者を横断して数えるので
  *    セッションのクライアントでは RLS に落とされる（**403 ではなく 200 + 0件**で
- *    返るため、気づけない）。そのぶん**除外条件は手で書く**:
- *      `is_test` / `is_system` / `visibility='private'` / `auth_id IS NULL`
- *    ＝ `getCompanyEmployees` の `isSeedRow` と同じ集合。
+ *    返るため、気づけない）。そのぶん**除外条件は `isAggregatableUser` で掛ける**:
+ *      `is_test` / `is_system` / `visibility='private'` / `auth_id IS NULL` / ★`statistics_opt_out`
  *
  * ⚠️★**N+1 にしない。** 企業ごとに引かず、company_id の配列でまとめて引いて
  *    メモリで畳む。掲載22社ぶんを1社ずつ引くと1提案あたり 88 クエリになる。
@@ -20,6 +19,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
+import { isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { JOIN_REASON_LABELS } from "@/lib/constants/careerReasons";
 import { matchCompanyPreference } from "@/lib/matching/scoreJob";
@@ -62,23 +62,12 @@ export function evidenceOptions(): EvidenceOptions {
   return { minAggregate: MIN_AGGREGATE_COUNT };
 }
 
-/* ── 表示してよいユーザーか ────────────────────────────────────────────────
-   ⚠️ `getCompanyEmployees` の `isSeedRow` と同じ条件。**片方だけ変えないこと。** */
-type UserRow = {
-  id: string;
-  auth_id: string | null;
-  is_test: boolean | null;
-  is_system: boolean | null;
-  visibility: string | null;
-};
-function isVisibleUser(u: UserRow | null | undefined): boolean {
-  if (!u) return false;
-  if (u.auth_id == null) return false;      // 本人が登録していない
-  if (u.is_test === true) return false;
-  if (u.is_system === true) return false;
-  if (u.visibility === "private") return false;
-  return true;
-}
+/* ── 集計に数えてよいユーザーか ──────────────────────────────────────────
+   ★2026-10-26 から `lib/aggregate/population.ts` の `isAggregatableUser` に寄せた（フェーズ1a-2）。
+     それまでここに `isVisibleUser`（本人が登録済み・検証用でない・システムでない・非公開でない）を
+     書いていたが、**統計利用を停止した人を外していなかった。** 根拠はすべて集計なので、停止した人は
+     件数にも決め手の中身にも数えない。⚠️ 判定を書き写さないこと。 */
+type UserRow = AggregateUser;
 
 /**
  * 候補者1人 × 企業N社ぶんの事実を集める。
@@ -134,12 +123,12 @@ export async function gatherCompanyFacts(
   /* ★全員ぶんを 1,000 行ずつ最後まで引く（2026-10-19。超えると「移った人」の数が黙って少なく出ていた） */
   const { data: allExpRows, error: allExpErr } = await fetchAllRows((from, to) => db
     .from("ow_experiences")
-    .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility)")
+    .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility, statistics_opt_out)")
     .order("id").range(from, to), "evidence all exps");
   if (allExpErr) console.error("[evidence/fetch] 全職歴（遷移用）:", allExpErr);
   const moves: Move[] = buildMoves(
     (allExpRows ?? [])
-      .filter((e) => isVisibleUser(e.ow_users as unknown as UserRow) && e.visibility_company !== "hidden")
+      .filter((e) => isAggregatableUser(e.ow_users as unknown as UserRow) && e.visibility_company !== "hidden")
       .map((e) => ({
         id: e.id as string,
         user_id: e.user_id as string,
@@ -173,13 +162,13 @@ export async function gatherCompanyFacts(
   // ── 3. 在籍者の職歴（shared_motive / short_tenure）─────────────
   const { data: exps, error: expErr } = await db
     .from("ow_experiences")
-    .select("id, user_id, company_id, is_current, started_at, ended_at, join_reasons, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility)")
+    .select("id, user_id, company_id, is_current, started_at, ended_at, join_reasons, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility, statistics_opt_out)")
     .in("company_id", ids);
   if (expErr) console.error("[evidence/fetch] 在籍者の職歴:", expErr.message);
 
   const visibleExps = (exps ?? []).filter(
     (e) =>
-      isVisibleUser(e.ow_users as unknown as UserRow) &&
+      isAggregatableUser(e.ow_users as unknown as UserRow) &&
       e.visibility_company !== "hidden",
   );
 

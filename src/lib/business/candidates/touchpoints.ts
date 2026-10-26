@@ -1,5 +1,6 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
+import { meetsAggregateMin } from "@/lib/constants/aggregate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -178,7 +179,7 @@ export async function getCompanyCandidateTouchpoints(
     inChunks(allUserIds, (part, from, to) => db.from("ow_experiences")
       .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, name_en, industry_id, phase)")
       .in("user_id", part).order("id").range(from, to), "touchpoints exps"),
-    inChunks(empIds, (part, from, to) => db.from("ow_users").select("id, auth_id, is_test, is_system, visibility").in("id", part).order("id").range(from, to), "touchpoints emp users"),
+    inChunks(empIds, (part, from, to) => db.from("ow_users").select("id, auth_id, is_test, is_system, visibility, statistics_opt_out").in("id", part).order("id").range(from, to), "touchpoints emp users"),
   ]);
   if (expR.error || empUsersR.error) {
     console.error("[touchpoints] 職歴:", expR.error ?? empUsersR.error);
@@ -210,6 +211,9 @@ export async function getCompanyCandidateTouchpoints(
   for (const u of empUsersR.data ?? []) {
     if (!isRegisteredUser(u as { auth_id: string | null })) continue;
     if (u.visibility === "private" || u.is_system === true) continue;
+    /* ★★「◯◯の出身者が N名」は集計なので、統計利用を停止した社員は数えない（2026-10-26 / フェーズ1a-2）。
+          ⚠️ undefined（列の取り忘れ）も数えない向きに倒す。is_test は候補者と揃えるため、ここでは外さない（下で分ける） */
+    if ((u as { statistics_opt_out?: boolean | null }).statistics_opt_out !== false) continue;
     empUsers.set(u.id as string, u.is_test === true);
   }
   /** 前職の会社キー → 社員（is_test 別）の人数。⚠️ 社員の名前は持たない */
@@ -336,7 +340,9 @@ export async function getCompanyCandidateTouchpoints(
       const b = alumniByKey.get(k);
       const people = b ? (c.isTest ? b.test : b.real) : undefined;
       const n = people ? Array.from(people).filter((uid) => uid !== c.owUserId).length : 0;
-      if (n === 0) continue;
+      /* ★★下限（MIN_AGGREGATE_COUNT・5人）に届かなければ出さない（2026-10-26 / フェーズ1a-3）。
+            1名でも「出身者が1名在籍しています」と出ていたため、企業はどの社員がどこの出身かを推測できた */
+      if (!meetsAggregateMin(n)) continue;
       out.push({ kind: "alumni", weight: WEIGHT.alumni, ref: e.company_id ? { type: "company", id: e.company_id } : null,
         text: `${e.companyName}の出身者が、貴社に${n}名在籍しています`,
         row: { item: "出身", person: `${e.companyName}（経験）`, ours: `${e.companyName}の出身者 ${n}名` } });

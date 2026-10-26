@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOwnExperience } from "@/lib/experiences/reasonAnswers";
 import { parseAnswers } from "@/lib/workplaceReview/constants";
-import { loadReview, loadTendency, saveReview } from "@/lib/workplaceReview/server";
+import { deleteCompanyAnswers, loadReview, loadTendency, saveReview } from "@/lib/workplaceReview/server";
 
 export const dynamic = "force-dynamic";
 
@@ -38,4 +38,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   /* ⚠️ 傾向が取れなくても保存は成功（null を返し、画面は傾向の部分だけ出さない） */
   const tendency = await loadTendency(own.owUserId);
   return NextResponse.json({ ok: true, status: saved.status, anchorId: saved.anchorId, tendency });
+}
+
+// DELETE — ★本人が、この会社についての回答をすべて消す（2026-10-26 / フェーズ1a-4）。
+//   消したものは次回以降の集計から外れる（lib/workplaceReview/server.ts の deleteCompanyAnswers）
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const own = await requireOwnExperience(params.id);
+  if (!own.ok) return NextResponse.json({ error: own.error }, { status: own.status });
+  const r = await deleteCompanyAnswers(own.owUserId, own.row);
+  if (!r.ok) return NextResponse.json({ error: "DELETE_FAILED", message: "削除に失敗しました。もう一度お試しください。" }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

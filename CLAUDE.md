@@ -3376,6 +3376,26 @@ dev でリンクが出て本番で 404 になると、開発中には気づけ�
 
 ---
 
+## ★★集計は「母数から外す人を除いて、5人以上」（2026-10-26 / フェーズ1a・柴さんの決定）
+
+| | 実体 |
+|---|---|
+| 母数から外す人 | **`lib/aggregate/population.ts` の `isAggregatableUser`**（本人が登録していない・検証用・システム・非公開・`@seed.internal`・★**統計利用を停止した人**＝`ow_users.statistics_opt_out`） |
+| 人数の下限 | **`MIN_AGGREGATE_COUNT = 5`**（`lib/constants/aggregate.ts`。3 → 5）。`meetsAggregateMin(n)` |
+| 下限に届かないとき | ★**その項目ごと出さない。**「少ないので表示しません」も出さない |
+| SQL 側 | `rebuild_ow_transitions()` も同じ条件（`20261026090200`） |
+
+- ⚠️★**集計を新しく作るときは必ず `isAggregatableUser` を通し、外したあとで下限を見る。** 判定を書き写さないこと（それまで3か所に写しがあり、どれも統計利用の停止を見ていなかった）。
+- ⚠️★`statistics_opt_out` は anon / authenticated に SELECT が無い。集計は admin クライアントで。select に入れ忘れると undefined になり、`isAggregatableUser` は**数えない向き**に倒す。
+- ⚠️ **人を1人ずつ並べる一覧の件数**（企業カードの「現役社員 N名」、企業ページの見出しの人数、構成バー、ログイン中の検索結果の件数）は**統計として扱っていない**（並んでいる人数と合わなくなるため）。扱いは docs/phase1a-report-20261026.md の論点。
+- 対応した箇所の一覧は docs/phase1a-report-20261026.md。
+
+## ★★担当者は本人の承諾で有効になる（2026-10-26 / フェーズ1a-1）
+
+- 担当者を増やす入口は **`POST /api/biz/members/invite` だけ**。相手にアカウントがあっても**招待の行（user_id=null・is_active=false）**を作り、本人が `/biz/auth/accept-invite` で承諾したときだけ有効になる。
+- ⚠️ `POST /api/biz/members`（直接追加）は **410**。`addExistingUserToCompany` は削除した。**直接追加する経路を作り直さないこと。**
+- ⚠️ 「無効化した担当者を戻す」（reactivate）は、承諾の記録（`accepted_at`）か本人の参加申請（`created_via='join_request'`）がある行だけ。無い行は招待を送り直す（承諾すると同じ行が有効になる）。
+
 ## ★根拠つき提案（②⑨④）と、③双方合意 ── docs 3本の索引
 
 **②⑨④に加えて、③の「mutual になったら会話を1本作る」まで動く（2026-09-21）。

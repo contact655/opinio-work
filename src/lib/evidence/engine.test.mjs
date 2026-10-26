@@ -35,9 +35,13 @@ import {
   sortByEvidenceCount,
   MIN_EVIDENCE_FOR_PROPOSAL,
 } from "./engine.ts";
+import { MIN_AGGREGATE_COUNT } from "../constants/aggregate.ts";
 
-/** 本番と同じしきい値（`MIN_AGGREGATE_COUNT`）。★ここを下げないこと */
-const OPTS = { minAggregate: 3 };
+/** ★本番と同じしきい値（`MIN_AGGREGATE_COUNT`。2026-10-26 に 3 → 5）。定数をそのまま使う */
+const OPTS = { minAggregate: MIN_AGGREGATE_COUNT };
+test("★下限は5人（2026-10-26 / フェーズ1a-3）", () => {
+  assert.equal(MIN_AGGREGATE_COUNT, 5);
+});
 /* ⚠️ かつて `audience` で文面を出し分けていたが、**スナップショットは1つしか
       保存できない**ので企業側に「あなたと同じ」が出ていた。いまは人称を持たない。 */
 const BIZ = OPTS;
@@ -59,7 +63,17 @@ test("same_path n=0 … 根拠にしない（「0人が移っています」を�
   assert.equal(ev.length, 0);
 });
 
-for (const n of [1, 2, 3, 5]) {
+for (const n of [1, 2, 3, 4]) {
+  test(`same_path n=${n} … ★下限未満は根拠ごと出さない`, () => {
+    const ev = buildEvidence(
+      { ...EMPTY_FACTS, samePath: { n, fromRoleName: "営業", fromIndustryName: "IT・ソフトウェア" } },
+      OPTS,
+    );
+    assert.equal(ev.length, 0);
+  });
+}
+
+for (const n of [5, 8]) {
   test(`same_path n=${n} … 件数を出す`, () => {
     const ev = buildEvidence(
       { ...EMPTY_FACTS, samePath: { n, fromRoleName: "営業", fromIndustryName: "IT・ソフトウェア" } },
@@ -77,11 +91,11 @@ for (const n of [1, 2, 3, 5]) {
 
 test("same_path … 職種も業種も解決できなくても件数は出す（既定値で埋めない）", () => {
   const ev = buildEvidence(
-    { ...EMPTY_FACTS, samePath: { n: 2, fromRoleName: null, fromIndustryName: null } },
+    { ...EMPTY_FACTS, samePath: { n: 5, fromRoleName: null, fromIndustryName: null } },
     OPTS,
   );
   assert.equal(ev.length, 1);
-  assert.match(ev[0].label, /2人が移っています/);
+  assert.match(ev[0].label, /5人が移っています/);
   // 「他社」「不明」などで埋めていないこと
   assert.doesNotMatch(ev[0].label, /不明|他社|未設定/);
 });
@@ -96,22 +110,17 @@ test("shared_motive n=0 … 根拠にしない", () => {
   assert.equal(ev.length, 0);
 });
 
-for (const n of [1, 2]) {
-  test(`shared_motive n=${n} … ★比率を返さない（k は undefined・文にも出さない）`, () => {
+for (const n of [1, 2, 3, 4]) {
+  test(`shared_motive n=${n} … ★下限未満は根拠ごと出さない（「挙げた人がいます」も出さない）`, () => {
     const ev = buildEvidence(
       { ...EMPTY_FACTS, sharedMotive: { n, k: n, reasonLabel: "裁量の大きさ" } },
       OPTS,
     );
-    assert.equal(ev.length, 1);
-    assert.equal(ev[0].k, undefined, "n < minAggregate では k を返さない");
-    assert.match(ev[0].label, /「裁量の大きさ」を挙げた人がいます/);
-    // ★「N人のうち M人」の形が出ていないこと
-    assert.doesNotMatch(ev[0].label, /のうち/);
-    assert.doesNotMatch(ev[0].label, /\d+人のうち/);
+    assert.equal(ev.length, 0);
   });
 }
 
-for (const [n, k] of [[3, 2], [5, 4]]) {
+for (const [n, k] of [[5, 2], [8, 4]]) {
   test(`shared_motive n=${n} … 比率を返す`, () => {
     const ev = buildEvidence(
       { ...EMPTY_FACTS, sharedMotive: { n, k, reasonLabel: "裁量の大きさ" } },
@@ -186,7 +195,7 @@ test("根拠は kind の優先順（same_path → shared_motive → preference�
       ...EMPTY_FACTS,
       preference: { matchedLabels: ["年収"] },
       sharedMotive: { n: 5, k: 3, reasonLabel: "裁量の大きさ" },
-      samePath: { n: 1, fromRoleName: "営業", fromIndustryName: null },
+      samePath: { n: 5, fromRoleName: "営業", fromIndustryName: null },
     },
     OPTS,
   );
@@ -238,18 +247,18 @@ test("★測ったが該当0件でも unknown になる（0件は反証ではな
   assert.equal(ce[0].kind, "unknown");
 });
 
-for (const [total, n] of [[1, 1], [2, 2]]) {
-  test(`short_tenure total=${total} … ★比率を出さない`, () => {
+for (const [total, n] of [[1, 1], [2, 2], [4, 3]]) {
+  test(`short_tenure total=${total} … ★下限未満は出さない（unknown になる）`, () => {
     const ce = buildCounterEvidence(
       { shortTenure: { n, total }, salaryGap: null, workStyleGap: null },
       OPTS,
     );
-    assert.equal(ce[0].kind, "short_tenure");
-    assert.doesNotMatch(ce[0].label, /のうち/);
+    assert.equal(ce.length, 1);
+    assert.equal(ce[0].kind, "unknown");
   });
 }
 
-for (const [total, n] of [[3, 1], [5, 3]]) {
+for (const [total, n] of [[5, 1], [8, 3]]) {
   test(`short_tenure total=${total} … 比率を出す`, () => {
     const ce = buildCounterEvidence(
       { shortTenure: { n, total }, salaryGap: null, workStyleGap: null },

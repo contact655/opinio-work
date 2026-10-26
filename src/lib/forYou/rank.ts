@@ -7,6 +7,8 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { getRoleNameMap } from "@/lib/supabase/queries";
 import { phaseLabel, phaseMatches } from "@/lib/constants/phase";
 import { buildMoves, type TransitionExperience } from "@/lib/evidence/transitions";
+import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
+import { meetsAggregateMin } from "@/lib/constants/aggregate";
 import {
   DESIRED_PHASE_TO_OPTION,
   MAX_REASONS_PER_COMPANY,
@@ -151,7 +153,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     /* S5 移った人。★`ow_transitions` を読まない（lib/evidence/transitions.ts の注記）。正は ow_experiences */
     /* ★全員ぶんを 1,000 行ずつ最後まで引く（2026-10-19。1回の問い合わせは最大 1,000 行で、超えると「移った人」が黙って欠けていた） */
     fetchAllRows((from, to) => db.from("ow_experiences")
-      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)")
+      .select(`id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, ow_users!user_id(${AGGREGATE_USER_COLUMNS})` as const)
       .order("id").range(from, to), "forYou all exps")
       .then((r) => ({ data: r.data, error: r.error ? { message: r.error } : null })),
     /* S7 担当者（「興味あり」の行き先） */
@@ -167,9 +169,9 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   }
 
   type UserRef = { auth_id: string | null; is_test: boolean | null; is_system?: boolean | null; visibility?: string | null } | null;
-  /* ★人を数えるときの条件（lib/evidence/fetch.ts の isVisibleUser と同じ）。登録済み・検証用でない・システムでない・非公開でない */
-  const visibleUser = (u: UserRef) =>
-    !!u && u.auth_id != null && u.is_test !== true && u.is_system !== true && u.visibility !== "private";
+  /* ★人を数えるときの条件は `isAggregatableUser`（2026-10-26 / フェーズ1a-2。統計利用を停止した人も外す）。
+        「この会社に移った人がいる」は他の人の職歴の集計なので、停止した人の移動は数えない。 */
+  const visibleUser = (u: UserRef) => isAggregatableUser(u as AggregateUser | null);
 
   /* S1′: 会社 → 有効な事業領域 */
   const domainsByCompany = new Map<string, Map<string, string>>();
@@ -237,16 +239,26 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
       domainsOfFrom.set(r.company_id as string, arr);
     }
   }
-  /* 企業 → 移ってきた人の出身の事業領域（本人の勤務先の事業領域と一致したものだけ）。前職で一致したものを優先 */
-  const movedDomainByCompany = new Map<string, { name: string; onlyCurrent: boolean }>();
+  /* 企業 → 移ってきた人の出身の事業領域（本人の勤務先の事業領域と一致したものだけ）。前職で一致したものを優先
+     ★★その領域から移ってきた人が下限（MIN_AGGREGATE_COUNT・5人）に届いたものだけ（2026-10-26 / フェーズ1a-3）。
+        1人でも理由にしていたため、「◯◯の会社から移った人がいる」から誰が移ったかが読めた。人は1人1回だけ数える。 */
+  const moversByCompanyDomain = new Map<string, Set<string>>(); // `${toCompanyId}|${domainId}` → user_id
   for (const m of moves) {
     if (!m.toCompanyId || !m.fromCompanyId) continue;
     for (const d of domainsOfFrom.get(m.fromCompanyId) ?? []) {
-      const mine = myDomains.get(d);
-      if (!mine) continue;
-      const prev = movedDomainByCompany.get(m.toCompanyId);
-      if (!prev || (prev.onlyCurrent && !mine.onlyCurrent)) movedDomainByCompany.set(m.toCompanyId, mine);
+      if (!myDomains.has(d)) continue;
+      const key = `${m.toCompanyId}|${d}`;
+      if (!moversByCompanyDomain.has(key)) moversByCompanyDomain.set(key, new Set());
+      moversByCompanyDomain.get(key)!.add(m.userId);
     }
+  }
+  const movedDomainByCompany = new Map<string, { name: string; onlyCurrent: boolean }>();
+  for (const [key, users] of Array.from(moversByCompanyDomain.entries())) {
+    if (!meetsAggregateMin(users.size)) continue;
+    const [toCompanyId, d] = key.split("|");
+    const mine = myDomains.get(d)!;
+    const prev = movedDomainByCompany.get(toCompanyId);
+    if (!prev || (prev.onlyCurrent && !mine.onlyCurrent)) movedDomainByCompany.set(toCompanyId, mine);
   }
 
   /* S7 */

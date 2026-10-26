@@ -183,7 +183,9 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
   const out: Evidence[] = [];
 
   // ── ① same_path ───────────────────────────────────────────────────────────
-  if (facts.samePath && facts.samePath.n > 0) {
+  /* ★★下限（`opts.minAggregate`）に届かなければ出さない（2026-10-26 / フェーズ1a-3）。
+        「N人が移っています」は集計なので、n が少ないと移った人が誰か分かる。 */
+  if (facts.samePath && facts.samePath.n > 0 && facts.samePath.n >= opts.minAggregate) {
     const { n, fromRoleName, fromIndustryName } = facts.samePath;
     /* ⚠️ 職種と業種のどちらが解決できたかで文が変わる。**両方 null でも件数は出す。**
           「◯◯から」を既定値（「他社」など）で埋めないこと。 */
@@ -205,21 +207,17 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
   }
 
   // ── ② shared_motive ───────────────────────────────────────────────────────
-  if (facts.sharedMotive && facts.sharedMotive.n > 0 && facts.sharedMotive.k > 0) {
+  /* ★★n（決め手を答えた人）が下限に届かなければ**根拠ごと出さない**（2026-10-26 / フェーズ1a-3）。
+     ⚠️ それまでは下限未満でも割合だけ伏せて「「X」を挙げた人がいます」と出していた。
+        n=1 ならその1人が何を選んだかがそのまま読める（決め手は本人と集計にしか出さない約束。
+        careerReasons.ts「理由データ3種は非公開。本人と集計のみ」）。断りの文も出さない。 */
+  if (facts.sharedMotive && facts.sharedMotive.n >= opts.minAggregate && facts.sharedMotive.k > 0) {
     const { n, k, reasonLabel } = facts.sharedMotive;
-    /* ★★n が下限未満なら比率を出さない。
-       ⚠️ n=1 で「1人中1人が『裁量』を挙げた」と出すと、**その1人が何を選んだかが
-          そのまま読める。** 決め手は本人と集計にしか出さない約束
-          （careerReasons.ts「理由データ3種は非公開。本人と集計のみ」）なので、
-          ここで割合にすると約束を破る。件数だけにする。 */
-    const enough = n >= opts.minAggregate;
     out.push({
       kind: "shared_motive",
       n,
-      k: enough ? k : undefined,
-      label: enough
-        ? `入社の決め手を答えた ${n}人のうち ${k}人が「${reasonLabel}」を挙げています`
-        : `入社の決め手として「${reasonLabel}」を挙げた人がいます`,
+      k,
+      label: `入社の決め手を答えた ${n}人のうち ${k}人が「${reasonLabel}」を挙げています`,
       sourceQuery: "ow_experiences.join_reasons",
     });
   }
@@ -278,14 +276,14 @@ export function buildCounterEvidence(facts: CounterFacts, opts: EvidenceOptions)
   const out: CounterEvidence[] = [];
 
   // ── 短期離職 ──────────────────────────────────────────────────────────────
-  if (facts.shortTenure && facts.shortTenure.total > 0 && facts.shortTenure.n > 0) {
+  /* ★★退職した人（total）が下限に届かなければ出さない（2026-10-26 / フェーズ1a-3）。
+        それまでは下限未満でも「在籍1年未満で離れた人がいます」と出しており、1人なら誰か分かった。
+        ⚠️ 出さない場合は他の反証が無ければ unknown（確かめていない）になる。 */
+  if (facts.shortTenure && facts.shortTenure.total >= opts.minAggregate && facts.shortTenure.n > 0) {
     const { n, total } = facts.shortTenure;
-    const enough = total >= opts.minAggregate;
     out.push({
       kind: "short_tenure",
-      label: enough
-        ? `退職した ${total}人のうち ${n}人は、在籍1年未満で離れています`
-        : `在籍1年未満で離れた人がいます`,
+      label: `退職した ${total}人のうち ${n}人は、在籍1年未満で離れています`,
     });
   }
 

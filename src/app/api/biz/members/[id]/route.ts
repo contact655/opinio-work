@@ -41,7 +41,7 @@ export async function PATCH(
   // 対象の ow_company_admins row を取得
   const { data: target, error: fetchErr } = await supabase
     .from("ow_company_admins")
-    .select("id, user_id, permission, is_active, company_id")
+    .select("id, user_id, permission, is_active, company_id, accepted_at, created_via")
     .eq("id", adminRecordId)
     .maybeSingle();
 
@@ -147,6 +147,18 @@ export async function PATCH(
 
   // ── action: reactivate ─────────────────────────────────────────
   else if (body.action === "reactivate") {
+    /* ★本人が担当者になることに同意した行だけ戻せる（2026-10-26 / フェーズ1a-1）。
+          同意の記録は「招待を承諾した（accepted_at）」か「本人が参加を申請した（created_via='join_request'）」。
+          それ以外（承諾の記録が無い古い行）を戻すと、本人の承諾なしに担当者の権限を渡すことになる。
+       ⚠️ 戻せない行は招待を送り直す（承諾すると同じ行が有効になる。accept/route.ts）。
+       ⚠️ select から accepted_at / created_via を落とさないこと。undefined になると全員戻せなくなる。 */
+    const consented = target.accepted_at != null || target.created_via === "join_request";
+    if (!consented) {
+      return NextResponse.json(
+        { error: "本人の承諾の記録がないため、そのまま戻せません。招待を送ってください（相手が承諾すると担当者に戻ります）。", code: "CONSENT_REQUIRED" },
+        { status: 409 }
+      );
+    }
     const res = await mutateOne(
       supabase.from("ow_company_admins").update({ is_active: true }).eq("id", adminRecordId),
       "members PATCH reactivate",

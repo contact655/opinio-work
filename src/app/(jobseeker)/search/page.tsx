@@ -343,7 +343,7 @@ export default async function SearchPage({ searchParams }: Props) {
   /* ★人タブの絞り込み（2026-10-21）。人タブを開いているときだけ効かせる（「すべて」では絞らない）。
      ⚠️ 知らない値は無視する（URL を手で書き換えられても壊れない） */
   const personFilter: PersonFilter = {};
-  /* ⚠️★未ログインでは絞らない。絞ると3人未満の人数がタブの外に出る（人の件数は MIN_AGGREGATE_COUNT 未満を伏せる規則） */
+  /* ⚠️★未ログインでは絞らない。絞ると下限（MIN_AGGREGATE_COUNT・5人）未満の人数がタブの外に出る（人の件数は MIN_AGGREGATE_COUNT 未満を伏せる規則） */
   if (searchParams.kind === "person" && isLoggedIn) {
     if (searchParams.tenure === "current" || searchParams.tenure === "former") personFilter.tenure = searchParams.tenure;
     if (searchParams.role && /^[a-z0-9_-]{1,64}$/i.test(searchParams.role)) personFilter.role = searchParams.role;
@@ -401,7 +401,10 @@ export default async function SearchPage({ searchParams }: Props) {
       const rest = interpreted.conditions.filter((_, j) => j !== i);
       if (rest.length === 0) continue;
       const r = await runSearch(rest, isLoggedIn);
-      const n = (["company", "job", "person", "article"] as const).reduce((m, k) => m + r[k].total, 0);
+      /* ★★未ログインでは人の件数は統計なので、下限（MIN_AGGREGATE_COUNT・5人）に届かなければ数えない（2026-10-26）。
+            それまでは「「X」を外す（N件）」の N に人の件数がそのまま入り、下限で伏せる規則を回り込めた。 */
+      const personN = !isLoggedIn && r.person.total < MIN_AGGREGATE_COUNT ? 0 : r.person.total;
+      const n = (["company", "job", "article"] as const).reduce((m, k) => m + r[k].total, 0) + personN;
       if (n > 0) relaxations.push({ label: interpreted.conditions[i].label, index: i, count: n });
     }
   }

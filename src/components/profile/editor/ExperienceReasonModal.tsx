@@ -51,6 +51,8 @@ const FIT_COMPANIES_HREF = "/mypage/proposals";
 /** GET /api/jobseeker/experiences/[id]/review の形（lib/workplaceReview/server.ts の LoadedReview） */
 export type LoadedWorkplaceReview = {
   anchorId: string;
+  /** ★この会社について何か回答が残っているか（削除の操作を出すか。2026-10-26）。古いプレビューでは無いことがある */
+  hasStoredAnswers?: boolean;
   /** 終了した会社か（③の末尾に「離れた理由」を出すか） */
   canLeave: boolean;
   status: ReviewStatus | null;
@@ -445,7 +447,65 @@ export function ExperienceReasonModal({
       {step === "done" && (
         <TendencyView tendency={tendency} nextCompanyName={onNext ? nextCompanyName : null} onNext={onNext} />
       )}
+
+      {/* ★本人が回答を消せる（2026-10-26 / フェーズ1a-4）。回答が残っているときだけ出す */}
+      {ready && step !== "done" && loaded.hasStoredAnswers && !onSaveOverride && (
+        <DeleteAnswers experienceId={experienceId} disabled={saving} onDeleted={() => { onSaved(); onClose(); }} />
+      )}
     </ProfileEditModal>
+  );
+}
+
+// ── 回答の削除（2026-10-26 / フェーズ1a-4）──────────────────────────────────
+
+/**
+ * ★この会社についての回答（入社後レビュー・決め手・退職理由・ギャップ）をすべて消す。
+ * ⚠️ 元に戻せないので、押したらその場で確認を出す（window.confirm は使わない）。
+ * ⚠️ 消したものは次回以降の集計から外れる（DELETE /api/jobseeker/experiences/[id]/review）。
+ */
+function DeleteAnswers({ experienceId, disabled, onDeleted }: { experienceId: string; disabled: boolean; onDeleted: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function run() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/jobseeker/experiences/${experienceId}/review`, { method: "DELETE" });
+      if (!res.ok) { setError("削除に失敗しました。もう一度お試しください。"); return; }
+      onDeleted();
+    } catch {
+      setError("通信エラーが発生しました。");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div data-state={confirming ? "wr-delete-confirm" : "wr-delete"} style={{ marginTop: 24, paddingTop: 14, borderTop: "1px solid var(--line)", fontSize: 12 }}>
+      {!confirming ? (
+        <button type="button" disabled={disabled} onClick={() => setConfirming(true)}
+          style={{ background: "none", border: 0, padding: 0, color: "var(--ink-mute)", textDecoration: "underline", cursor: "pointer", fontSize: 12 }}>
+          この会社への回答を削除する
+        </button>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          <p style={{ margin: 0, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+            この会社について答えた内容（合っていたか・期待とのずれ・働き方・決め手・離れた理由）をすべて削除します。元に戻せません。
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" disabled={busy} onClick={() => void run()}
+              style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontWeight: 600, cursor: "pointer", fontSize: 12 }}>
+              {busy ? "削除しています…" : "削除する"}
+            </button>
+            <button type="button" disabled={busy} onClick={() => setConfirming(false)}
+              style={{ padding: "6px 12px", borderRadius: 8, border: 0, background: "none", color: "var(--ink-mute)", cursor: "pointer", fontSize: 12 }}>
+              やめる
+            </button>
+          </div>
+          {error && <p role="alert" style={{ margin: 0, color: "var(--ink)" }}>{error}</p>}
+        </div>
+      )}
+    </div>
   );
 }
 

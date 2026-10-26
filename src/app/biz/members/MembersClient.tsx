@@ -641,7 +641,7 @@ function AddMemberDialog({
           メンバーを追加
         </h2>
         <p style={{ fontSize: 13, color: "var(--ink-mute)", marginBottom: 20, lineHeight: 1.7 }}>
-          メールアドレスを入力してください。登録済みの場合はすぐに追加、未登録の場合は招待メールを送信します。
+          メールアドレスを入力してください。招待メールを送信します。相手が承諾すると担当者になります（既に OPINIO のアカウントがある方も同じです）。
         </p>
 
         {/* email */}
@@ -1147,18 +1147,14 @@ export function MembersClient({ slackSettings = null, notificationMembers = [], 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, permission }),
       });
-      const json = await res.json() as { error?: string; already_registered?: boolean; member?: { name?: string } };
+      const json = await res.json() as { error?: string };
       if (!res.ok) {
         setAddError(json.error ?? "エラーが発生しました");
         return;
       }
-      const name = json.member?.name ?? email;
       setShowAddDialog(false);
-      setToastMessage(
-        json.already_registered
-          ? `${name}さんをメンバーに追加しました`
-          : `${email} に招待メールを送信しました`
-      );
+      /* ★既にアカウントがある人にも招待を送る（2026-10-26）。承諾するまで担当者にはならない */
+      setToastMessage(`${email} に招待メールを送信しました。承諾すると担当者になります`);
       router.refresh();
     } catch {
       setAddError("通信エラーが発生しました");

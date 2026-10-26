@@ -31,7 +31,7 @@ type PostUser = {
   company?: string | null;
 };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; employee_count_band?: string | null; location?: string | null; founded_year?: number | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; employee_count_band?: string | null; location?: string | null; founded_year?: number | null; listing_status?: string | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
@@ -2388,6 +2388,12 @@ function buildHomeRailItems(activePosts: PostItem[], blockPosts: PostItem[], inc
     for (const p of activePosts) {
       const c = p.post_type === "company_joined" ? p.ref_company : null;
       if (!c || seen.has(c.id)) continue;
+      /* ★「新しく掲載された企業」には**掲載中の企業だけ**を出す（2026-10-26 / フェーズ1a-7）。
+            それまで PKSHA・Ubie など 2026-09-14 に非掲載にした企業が出ていた（見出しの「N社」は掲載中の数なのに、中身と合っていなかった）。
+         ⚠️ isCompanyPostAlive（lib/feed/visibility.ts）は変えていない。**投稿そのものはフィードに流れ続ける**（CLAUDE.md ⑨の判断）。
+            外すのはこの枠だけ。
+         ⚠️ select に listing_status が無いと undefined になり、全社がこの枠から消える（loadFeedProps と /api/jobseeker/posts の両方に入れてある） */
+      if (c.listing_status !== "listed") continue;
       seen.add(c.id);
       newCompanies.push({
         id: c.id, href: `/companies/${c.slug ?? c.id}`, name: c.brand_name ?? c.name,

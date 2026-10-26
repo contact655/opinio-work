@@ -86,22 +86,53 @@ export async function POST(req: NextRequest) {
 
   // 9. 受諾処理 — invitation_token をクリア、user_id + 日時をセット
   const now = new Date().toISOString();
-  const { error: updateErr } = await admin
-    .from("ow_company_admins")
-    .update({
-      user_id: owUserId,
-      accepted_at: now,
-      joined_at: now,
-      // ⚠️ 有効化はここ。招待の作成時ではない（2026-08-05）
-      is_active: true,
-      invitation_token: null,
-      invited_email: null,
-    })
-    .eq("id", inviteRow.id);
 
-  if (updateErr) {
-    console.error("[accept POST update]", updateErr.message);
-    return err(500, "DB_ERROR", "受諾処理に失敗しました");
+  /* ★同じ会社に、無効化された自分の行が既にあるとき（2026-10-26 / フェーズ1a-1）。
+        既にアカウントがある人も招待で入るようになったので、以前に外された人を招き直すとここに来る。
+        `(user_id, company_id)` は UNIQUE なので招待の行に user_id を入れられない。
+        → 既存の行を有効にして（役割は招待の内容に揃える）、使い終わった招待の行を消す。
+     ⚠️ 招待の行は「招待した」という一時的な記録で、承諾した時点で役目を終える
+        （キャンセルの DELETE と同じ扱い）。履歴は既存の行の accepted_at に残る。 */
+  const { data: inactiveOwn } = await admin
+    .from("ow_company_admins")
+    .select("id")
+    .eq("user_id", owUserId)
+    .eq("company_id", inviteRow.company_id)
+    .eq("is_active", false)
+    .maybeSingle();
+
+  if (inactiveOwn) {
+    const { data: reactivated, error: reErr } = await admin
+      .from("ow_company_admins")
+      .update({ is_active: true, permission: inviteRow.permission, accepted_at: now, joined_at: now })
+      .eq("id", inactiveOwn.id)
+      .select("id");
+    if (reErr || (reactivated ?? []).length !== 1) {
+      console.error("[accept POST reactivate]", reErr?.message ?? "0 rows");
+      return err(500, "DB_ERROR", "受諾処理に失敗しました");
+    }
+    const { error: delErr } = await admin.from("ow_company_admins").delete().eq("id", inviteRow.id);
+    if (delErr) console.error("[accept POST delete used invite]", delErr.message);
+  } else {
+    const { data: updated, error: updateErr } = await admin
+      .from("ow_company_admins")
+      .update({
+        user_id: owUserId,
+        accepted_at: now,
+        joined_at: now,
+        // ⚠️ 有効化はここ。招待の作成時ではない（2026-08-05）
+        is_active: true,
+        invitation_token: null,
+        invited_email: null,
+      })
+      .eq("id", inviteRow.id)
+      .select("id");
+
+    /* ⚠️ 0行更新を成功として扱わない（CLAUDE.md） */
+    if (updateErr || (updated ?? []).length !== 1) {
+      console.error("[accept POST update]", updateErr?.message ?? "0 rows");
+      return err(500, "DB_ERROR", "受諾処理に失敗しました");
+    }
   }
 
   // 10. 受諾した会社名を取得

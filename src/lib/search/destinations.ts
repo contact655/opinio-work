@@ -3,13 +3,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { resolveExperienceCompanyLabel, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
+import { meetsAggregateMin } from "@/lib/constants/aggregate";
+import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import type { Destinations } from "./runSearch";
 
 /**
  * ★「〈会社・学校〉を出た人の、いま」の中身（2026-10-21）。**検索結果と学校のページが同じ関数を使う。**
  *   渡した人たちの**いまの**職歴（現職・会社名を出してよいもの＝visibility_company 'real'）から、会社と職種を数える。
- * ⚠️ 1人は会社ごと・職種ごとに1回だけ数える。人数は MIN_AGGREGATE_COUNT（3）以上のときだけ出す
+ * ⚠️ 1人は会社ごと・職種ごとに1回だけ数える。
+ * ★★人数が下限（MIN_AGGREGATE_COUNT・5人）に届いた行き先だけ返す。届かない行き先は**名前ごと出さない**（2026-10-26 / フェーズ1a-3）。
+ *    それまでは人数だけ伏せて名前は並べていたので、1人だけの行き先が「誰がどこへ行ったか」をそのまま示していた。
+ * ★★統計利用を停止した人は数えない（`isAggregatableUser`。2026-10-26 / フェーズ1a-2）
  * ⚠️ 会社のリンク・フォローは会社ページが開ける会社だけ（filterVisibleCompaniesStrict）
  * ⚠️ 呼ぶ側が「誰を渡すか」（離れた人・卒業生だけ）と「ログイン中か」を決める。ここでは絞らない
  */
@@ -19,12 +23,14 @@ export async function destinationsForUsers(userIds: string[]): Promise<Destinati
   const [tree, expRes] = await Promise.all([
     getRoleTree(),
     db.from("ow_experiences")
-      .select(`user_id, is_current, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`)
+      .select(`user_id, is_current, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}, ow_users!user_id(${AGGREGATE_USER_COLUMNS})`)
       .in("user_id", userIds).eq("is_current", true).eq("visibility_company", "real"),
   ]);
   if (expRes.error) console.error("[destinations] ow_experiences:", expRes.error.message);
-  type Row = { user_id: string; company_id: string | null; role_category_id: string | null } & Parameters<typeof resolveExperienceCompanyLabel>[0];
-  const rows = (expRes.data ?? []) as unknown as Row[];
+  type Row = { user_id: string; company_id: string | null; role_category_id: string | null; ow_users: AggregateUser | null } & Parameters<typeof resolveExperienceCompanyLabel>[0];
+  /* ⚠️ 取得に失敗したら何も出さない（0件と混ぜない） */
+  if (expRes.error) return undefined;
+  const rows = ((expRes.data ?? []) as unknown as Row[]).filter((e) => isAggregatableUser(e.ow_users));
 
   const companies = new Map<string, Set<string>>();
   const companyIds = new Map<string, string>();
@@ -38,13 +44,16 @@ export async function destinationsForUsers(userIds: string[]): Promise<Destinati
     const role = e.role_category_id ? tree.byId.get(e.role_category_id)?.name : null;
     if (role) roles.set(role, (roles.get(role) ?? new Set<string>()).add(e.user_id));
   }
-  if (companies.size === 0 && roles.size === 0) return undefined;
-
   const toList = (m: Map<string, Set<string>>) =>
     Array.from(m.entries())
       .map(([label, s]) => [label, s.size] as const)
+      .filter(([, n]) => meetsAggregateMin(n))
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
-      .map(([label, n]) => ({ label, count: n >= MIN_AGGREGATE_COUNT ? n : null }));
+      .map(([label, n]) => ({ label, count: n as number | null }));
+  /* ★下限に届いた行き先が1つも無ければ、枠ごと出さない */
+  for (const [label, set] of Array.from(companies.entries())) if (!meetsAggregateMin(set.size)) { companies.delete(label); companyIds.delete(label); }
+  for (const [label, set] of Array.from(roles.entries())) if (!meetsAggregateMin(set.size)) roles.delete(label);
+  if (companies.size === 0 && roles.size === 0) return undefined;
 
   const ids = Array.from(new Set(companyIds.values()));
   const logos = new Map<string, { logo_url: string | null; logo_letter: string | null; logo_gradient: string | null }>();

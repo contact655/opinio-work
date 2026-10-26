@@ -35,6 +35,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { destinationsForUsers } from "./destinations";
+import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import {
   resolveExperienceCompanyLabel,
@@ -156,7 +157,7 @@ export type KindResult<T> = {
 /**
  * ★「この会社を出た人の行き先」（2026-10-21 / 柴さんの指示）。
  *   OB・OG の**いまの**職歴の会社と職種を集める。
- * ⚠️ 人数は MIN_AGGREGATE_COUNT（3）以上のときだけ出す（柴さんの判断）。それ未満は null（名前だけ並べる）
+ * ⚠️ 人数が MIN_AGGREGATE_COUNT（2026-10-26 から5）に届いた行き先だけ返す。届かない行き先は名前ごと出さない（destinations.ts）
  * ⚠️ いまの職歴の会社名を出してよい人（visibility_company = 'real'）だけ数える
  */
 export type Destinations = {
@@ -311,7 +312,9 @@ async function companyIdsByRole(roleIds: string[]): Promise<string[]> {
   const [expRes, jobRoleRes] = await Promise.all([
     /* 在籍者。⚠️ admin で引くのは `login_only` の人の在籍も企業の絞り込みには
           使ってよいため（人そのものは出さない。企業が出るだけ）。 */
-    readAll("companyIdsByRole experiences", (f, t) => admin.from("ow_experiences").select("company_id, role_category_id").order("id").range(f, t)),
+    /* ★★集計の母数から外す人（検証用・統計利用を停止した人など）の職歴は使わない（2026-10-26 / フェーズ1a-2）。
+          それまでは検証用アカウントの職歴でも「この職種の人がいる会社」として企業が当たっていた。 */
+    readAll("companyIdsByRole experiences", (f, t) => admin.from("ow_experiences").select(`company_id, role_category_id, ow_users!user_id(${AGGREGATE_USER_COLUMNS})`).order("id").range(f, t)),
     readAll("companyIdsByRole job_roles", (f, t) => admin.from("ow_job_roles").select("job_id, role_id").order("job_id").order("role_id").range(f, t)),
   ]);
   if (expRes.error) console.error("[companyIdsByRole] experiences:", expRes.error.message);
@@ -321,6 +324,7 @@ async function companyIdsByRole(roleIds: string[]): Promise<string[]> {
   for (const e of expRes.data ?? []) {
     const cid = e.company_id as string | null;
     if (!cid) continue;
+    if (!isAggregatableUser((e as unknown as { ow_users: AggregateUser | null }).ow_users)) continue;
     const ids = expandWithAncestors(tree, e.role_category_id ? [e.role_category_id as string] : []);
     if (ids.some((id) => want.has(id))) out.add(cid);
   }
@@ -528,7 +532,7 @@ export async function searchPersonHits(
   const [userRes, expRes, foreignRes, domainRes, skillRes, langRes, eduRes] = await Promise.all([
     /* ⚠️★`auth_id` を落とさないこと。落とすと `undefined` になり
           `isRegisteredUser` が**全員 false** を返して、人の検索が丸ごと空になる。 */
-    readAll("person users", (f, t) => db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, auth_id").order("id").range(f, t)),
+    readAll("person users", (f, t) => db.from("ow_users").select("id, name, avatar_color, avatar_url, visibility, is_test, is_system, auth_id, statistics_opt_out").order("id").range(f, t)),
     readAll("person experiences", (f, t) => db
       .from("ow_experiences")
       .select(
@@ -607,6 +611,8 @@ export async function searchPersonHits(
     id: string; name: string | null; avatar_color: string | null; avatar_url: string | null;
     visibility: string | null; is_test: boolean | null; is_system: boolean | null;
     auth_id: string | null;
+    /* ★未ログインに出す人数（統計）から外すために読む（2026-10-26）。⚠️ select から落とさないこと */
+    statistics_opt_out: boolean | null;
   };
   /* ⚠️★★**本人が登録していない行を出さない**（2026-10-01 に足した）。
         運営が履歴書から起こしたプロフィール（`auth_id` が NULL）は
@@ -728,11 +734,16 @@ export async function searchPersonHits(
   const roleFacets = Array.from(facetMap.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ja"));
   const filtered = filter.role ? byTenure.filter((h) => h.matchedRoleTop?.key === filter.role) : byTenure;
   const byRole = filter.role ? hits.filter((h) => h.matchedRoleTop?.key === filter.role) : hits;
+  /* ★★未ログインに返す人数は「統計」（一人ずつは見せず、人数だけ出す）なので、
+        統計利用を停止した人を数えない（2026-10-26 / フェーズ1a-2）。下限（5人）は画面側が見る。
+        ⚠️ ログイン中は一人ずつ並べる一覧の件数なので、ここでは外さない（並んでいる人数と合わなくなる）。 */
+  const userById = new Map(candidates.map((u) => [u.id, u]));
+  const statTotal = hits.filter((h) => isAggregatableUser(userById.get(h.userId) as AggregateUser | undefined)).length;
   return {
     items: isLoggedIn ? filtered.slice(0, HIT_LIMIT) : [],
-    total: hits.length,
+    total: isLoggedIn ? hits.length : statTotal,
     /* ⚠️ 未ログインには絞った人数を返さない（下限で伏せる規則を回り込まれないように） */
-    filteredTotal: isLoggedIn ? filtered.length : hits.length,
+    filteredTotal: isLoggedIn ? filtered.length : statTotal,
     roleFacets: isLoggedIn ? roleFacets : [],
     /* ⚠️ 職種で絞ったあと・在籍で絞る前に数える（在籍の選択肢の人数と、見出しの人数に使う） */
     tenureTotals: isLoggedIn ? {
@@ -913,16 +924,18 @@ export async function skillBandsForCompanies(conditions: Condition[]): Promise<S
   const [{ data: links, error: linkErr }, { data: users, error: userErr }] = await Promise.all([
     db.from("ow_user_skills").select("user_id, skill_id").in("skill_id", skills.map((s) => s.id)),
     /* ⚠️ `auth_id` を落とさない（`searchPersonHits` と同じ理由） */
-    readAll("skillBands users", (f, t) => db.from("ow_users").select("id, visibility, is_test, is_system, auth_id").order("id").range(f, t)),
+    readAll("skillBands users", (f, t) => db.from("ow_users").select(`id, ${AGGREGATE_USER_COLUMNS}`).order("id").range(f, t)),
   ]);
   if (linkErr) console.error("[skillBandsForCompanies] ow_user_skills:", linkErr.message);
   if (userErr) console.error("[skillBandsForCompanies] ow_users:", userErr.message);
 
   const visible = new Set(
-    ((users ?? []) as { id: string; visibility: string | null; is_test: boolean | null; is_system: boolean | null; auth_id: string | null }[])
+    ((users ?? []) as unknown as ({ id: string } & AggregateUser)[])
       /* ⚠️★本人が登録していない行を数えない（`searchPersonHits` と揃える）。
-            数が食い違うと「N名」と言いながら一覧には N-1 人しか出ない。 */
-      .filter((u) => !u.is_test && !u.is_system && u.visibility !== "private" && isRegisteredUser(u))
+            数が食い違うと「N名」と言いながら一覧には N-1 人しか出ない。
+         ★★統計利用を停止した人も数えない（`isAggregatableUser`。2026-10-26 / フェーズ1a-2）。
+            スキル帯の人数は集計なので外す（人を1人ずつ並べる検索結果からは外さない）。 */
+      .filter((u) => isAggregatableUser(u))
       .map((u) => u.id),
   );
 

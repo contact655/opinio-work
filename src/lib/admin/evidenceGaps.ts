@@ -31,6 +31,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import { buildMoves, countMovesInto } from "@/lib/evidence/transitions";
+import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 
 export type CompanyGap = {
   companyId: string;
@@ -77,12 +78,12 @@ type ExpRow = {
   is_current: boolean;
   join_reasons: string[] | null;
   visibility_company: string;
-  ow_users: { auth_id: string | null; is_test: boolean | null; is_system: boolean | null; visibility: string | null } | null;
+  ow_users: AggregateUser | null;
 };
 
+/* ★数えてよい人は `isAggregatableUser`（統計利用を停止した人も外す。2026-10-26 / フェーズ1a-2） */
 function visible(u: ExpRow["ow_users"]): boolean {
-  if (!u) return false;
-  return u.auth_id != null && u.is_test !== true && u.is_system !== true && u.visibility !== "private";
+  return isAggregatableUser(u);
 }
 
 /* ⚠️ 会社の同一性キーは `lib/evidence/transitions.ts` の `companyKey`。
@@ -97,7 +98,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
     /* ★職歴は全件を1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
     readAll("evidenceGaps experiences", (f, t) => db
       .from("ow_experiences")
-      .select("user_id, company_id, company_text, started_at, ended_at, is_current, join_reasons, visibility_company, ow_users!user_id(auth_id, is_test, is_system, visibility)")
+      .select(`user_id, company_id, company_text, started_at, ended_at, is_current, join_reasons, visibility_company, ow_users!user_id(${AGGREGATE_USER_COLUMNS})` as const)
       .order("id")
       .range(f, t)),
   ]);

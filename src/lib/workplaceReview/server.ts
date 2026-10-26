@@ -91,6 +91,8 @@ async function loadLeaveReasons(rows: ExpRow[]): Promise<string[] | null> {
 
 export type LoadedReview = {
   anchorId: string;
+  /** ★この会社について、何か回答が残っているか（入社後レビュー・旧形式の決め手・退職理由・ギャップ）。削除ボタンを出すかに使う */
+  hasStoredAnswers: boolean;
   /** 終了した会社か（「離れた理由」を出すか） */
   canLeave: boolean;
   status: ReviewStatus | null;
@@ -104,7 +106,9 @@ export async function loadReview(owUserId: string, base: ExpRow): Promise<Loaded
   const canLeave = hasLeft(r.rows);
   const leaveReasons = canLeave ? await loadLeaveReasons(r.rows) : [];
   if (leaveReasons === null) return null;
-  if (!r.review) return { anchorId: r.anchor.id, canLeave, status: null, answers: { ...EMPTY_ANSWERS, leaveReasons }, masters };
+  const stored = await hasStoredAnswers(r.rows, !!r.review);
+  if (stored === null) return null;
+  if (!r.review) return { anchorId: r.anchor.id, hasStoredAnswers: stored, canLeave, status: null, answers: { ...EMPTY_ANSWERS, leaveReasons }, masters };
 
   const admin = createAdminClient();
   const [ax, tg] = await Promise.all([
@@ -118,6 +122,7 @@ export async function loadReview(owUserId: string, base: ExpRow): Promise<Loaded
   const v = r.review;
   return {
     anchorId: r.anchor.id,
+    hasStoredAnswers: stored,
     canLeave,
     status: v.status,
     masters,
@@ -255,4 +260,73 @@ export async function reviewedExperienceIds(owUserId: string, rows: ExpRow[]): P
   const reviewedRows = new Set(((data ?? []) as { experience_id: string }[]).map((x) => x.experience_id));
   const companies = new Set(rows.filter((r) => reviewedRows.has(r.id)).map((r) => companyKey(r)));
   return new Set(rows.filter((r) => companies.has(companyKey(r))).map((r) => r.id));
+}
+
+
+/**
+ * ★この会社について回答が残っているか（2026-10-26 / フェーズ1a-4）。null は取得失敗。
+ *   旧形式（決め手・退職理由の列、ギャップ、v2 の表）も含める。どれか1つでも残っていれば削除の操作を出す。
+ */
+async function hasStoredAnswers(rows: ExpRow[], hasReview: boolean): Promise<boolean | null> {
+  if (hasReview) return true;
+  if (rows.some((r) => (r.join_reasons?.length ?? 0) > 0 || (r.leave_reasons?.length ?? 0) > 0 || !!r.join_reason_primary)) return true;
+  const ids = rows.map((r) => r.id);
+  const admin = createAdminClient();
+  const results = await Promise.all(ANSWER_TABLES.map((t) =>
+    admin.from(t).select("experience_id", { count: "exact", head: true }).in("experience_id", ids)));
+  for (let i = 0; i < results.length; i++) {
+    const res = results[i];
+    if (res.error) { console.error(`[workplaceReview] hasStoredAnswers ${ANSWER_TABLES[i]}:`, res.error.message); return null; }
+    if ((res.count ?? 0) > 0) return true;
+  }
+  return false;
+}
+
+/** ★職歴にぶら下がる「回答」の表（入社後レビュー以外）。⚠️ ow_reason_modal_closes（閉じた記録）は回答ではないので入れない */
+const ANSWER_TABLES = [
+  "ow_experience_leave_reasons",
+  "ow_experience_gaps",
+  "ow_experience_reviews",
+  "ow_experience_expectations",
+  "ow_experience_gap_shifts",
+  "ow_experience_notes",
+] as const;
+
+/**
+ * ★本人が、この会社についての回答をすべて消す（2026-10-26 / フェーズ1a-4）。
+ *
+ * 消すもの（同じ会社の職歴すべてについて）:
+ *   - 入社後レビュー（ow_workplace_reviews。軸とタグは FK の CASCADE で一緒に消える）
+ *   - 退職理由（ow_experience_leave_reasons）・期待とのギャップ（ow_experience_gaps）
+ *   - 旧 v2 の表（ow_experience_reviews / _expectations / _gap_shifts / _notes）
+ *   - 職歴の行の列（join_reasons / join_reason_primary / join_reason / leave_reasons）を null に
+ *
+ * ⚠️ 消したものは集計（提案の根拠など）から次回以降外れる。集計は保存しておらず、毎回 ow_experiences から作るため。
+ *    ow_transitions（遷移）は職歴の会社と期間だけで作り、回答は使っていない。
+ * ⚠️ 職歴そのもの（会社・期間・職種）は消さない。
+ * ⚠️ 本人確認は呼び出し側（requireOwnExperience）。ここでも user_id で絞る。
+ */
+export async function deleteCompanyAnswers(owUserId: string, base: ExpRow): Promise<{ ok: true } | { ok: false; error: string }> {
+  const rows = await companyRows(owUserId, base);
+  if (!rows || rows.length === 0) return { ok: false, error: "職歴を確認できませんでした" };
+  const ids = rows.map((r) => r.id);
+  const admin = createAdminClient();
+
+  const del = await mutateAllowNone(
+    admin.from("ow_workplace_reviews").delete().eq("user_id", owUserId).in("experience_id", ids),
+    "workplace review delete",
+  );
+  if (!del.ok) return { ok: false, error: del.error };
+  for (const t of ANSWER_TABLES) {
+    const r = await mutateAllowNone(admin.from(t).delete().in("experience_id", ids), `answers delete ${t}`, { returning: "experience_id" });
+    if (!r.ok) return { ok: false, error: r.error };
+  }
+  const upd = await mutateAllowNone(
+    admin.from("ow_experiences")
+      .update({ join_reasons: null, join_reason_primary: null, join_reason: null, leave_reasons: null })
+      .eq("user_id", owUserId).in("id", ids),
+    "experience reason columns clear",
+  );
+  if (!upd.ok) return { ok: false, error: upd.error };
+  return { ok: true };
 }
