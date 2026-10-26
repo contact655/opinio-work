@@ -10,6 +10,7 @@ import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/Ca
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
 import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
 import { ACTIVITY_LABELS } from "@/lib/business/candidates/model";
+import { tenureMonths } from "@/lib/profile/tenure";
 
 /**
  * ★候補者検索の右のプレビュー（2026-10-10 / 候補者探し 段1・キャンバス1）。
@@ -435,13 +436,12 @@ export function PreviewHeaderLines({ candidate, contacts }: {
   );
 }
 
-/** 現職の在籍期間（入社年月から今日まで）。「3年2か月」「8か月」。⚠️ 入社年月が無ければ null */
+/** 現職の在籍期間（入社月から今月まで）。「3年2か月」「8か月」。⚠️ 入社年月が無ければ null
+ *  ★2026-10-27: 数え方はプロフィール・企業ページと同じ `tenureMonths`（開始月と今月を含める）。
+ *     以前は今月を含めず、プロフィールと1ヶ月ずれていた。⚠️ ここで計算し直さないこと。表記（「か月」）だけ /biz のまま */
 function tenureSince(startedAt: string | null): string | null {
-  if (!startedAt) return null;
-  const s = new Date(startedAt.length === 7 ? `${startedAt}-01` : startedAt);
-  if (!Number.isFinite(s.getTime())) return null;
-  const now = new Date();
-  const months = Math.max(0, (now.getFullYear() - s.getFullYear()) * 12 + (now.getMonth() - s.getMonth()));
+  const months = tenureMonths([{ startedAt, endedAt: null }]);
+  if (months === null) return null;
   const y = Math.floor(months / 12), m = months % 12;
   return y > 0 ? `${y}年${m > 0 ? `${m}か月` : ""}` : `${m}か月`;
 }
