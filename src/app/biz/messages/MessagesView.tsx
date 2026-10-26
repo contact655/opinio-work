@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MESSAGES_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { CANDIDATE_TEST_MISMATCH_MESSAGE, type CandidateTestMismatch } from "@/lib/business/candidates/model";
 import { messagePreviewLine } from "@/lib/conversations/previewLine";
 import {
   APPROACH_HEADLINE,
@@ -61,7 +62,7 @@ type Item =
  * ⚠️ 選択は URL の ?show= に残す（再読込・共有で同じものが開く）。開いたら既読にするのはサーバー（`loadCompanyThread`）
  * ⚠️ 広い画面で何も選んでいなければ、一覧の一番上を選ぶ（URL を置き換える）。狭い画面では選ばない（一覧を出す）
  */
-export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, hasPublishedJob, sentThisMonthFrom = null }: {
+export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, approachTestMismatch = null, hasPublishedJob, sentThisMonthFrom = null }: {
   allowed: boolean;
   conversations: ConversationRow[];
   /** 企業から送った1通目。null = 取れなかった */
@@ -83,6 +84,8 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
   now: string;
   /** ★いまメッセージを送れる候補者の数（1通も送っていないときだけ）。null = 取れなかった */
   approachableCount?: number | null;
+  /** ★検証用かどうかが担当者と合わない候補者を外したか（2026-10-26）。0人の理由として出す */
+  approachTestMismatch?: CandidateTestMismatch | null;
   /** ★公開中の求人があるか（送れる人0人のときの「求人を公開する」を出すか） */
   hasPublishedJob?: boolean | null;
   /**
@@ -198,7 +201,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
           <p style={{ fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)", margin: 0 }}>{APPROACH_HEADLINE}</p>
           <ApproachStepsLarge />
           <div className="apx-empty">
-            <EmptyGuide approachableCount={approachableCount} hasPublishedJob={hasPublishedJob} />
+            <EmptyGuide approachableCount={approachableCount} hasPublishedJob={hasPublishedJob} testMismatch={approachTestMismatch} />
             <SampleLetter />
           </div>
           <Link href="/biz/help/messages" style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>候補者にメッセージを送るときのルール</Link>
@@ -316,7 +319,7 @@ function SentItem({ r, now, href, selected }: { r: SentApproach; now: Date; href
  * ⚠️ 人数は候補者検索の送るボタンと同じ判定（`can_send_company_approach()`）。取れなかったら「取得できませんでした」（0人と出さない）。
  * ⚠️ 送れる人が0人のときは、しくみを見る（主）・求人を公開する（公開中の求人が無いときだけ）・候補者を探す（文字リンク）。
  */
-function EmptyGuide({ approachableCount, hasPublishedJob }: { approachableCount: number | null | undefined; hasPublishedJob?: boolean | null }) {
+function EmptyGuide({ approachableCount, hasPublishedJob, testMismatch = null }: { approachableCount: number | null | undefined; hasPublishedJob?: boolean | null; testMismatch?: CandidateTestMismatch | null }) {
   const unknown = approachableCount === null || approachableCount === undefined;
   const zero = approachableCount === 0;
   return (
@@ -327,6 +330,12 @@ function EmptyGuide({ approachableCount, hasPublishedJob }: { approachableCount:
       ) : (
         <p data-state={zero ? "approachable-zero" : "approachable-count"} style={{ margin: 0, fontSize: 14, color: "var(--ink)" }}>
           いまメッセージを送れる候補者：<strong style={{ fontSize: 18 }}>{approachableCount}</strong>人
+        </p>
+      )}
+      {/* ★0人の理由が検証用かどうかの不一致なら、その旨（2026-10-26。候補者を探すと同じ文言） */}
+      {testMismatch && (
+        <p data-state="approach-test-mismatch" style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
+          {CANDIDATE_TEST_MISMATCH_MESSAGE[testMismatch]}
         </p>
       )}
       <div>

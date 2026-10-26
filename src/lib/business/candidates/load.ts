@@ -21,7 +21,7 @@ import { isCandidateNotesEnabled, listCandidateNoteCounts, listCandidateStages }
 import { getCompanyCandidateTouchpoints, type TouchpointMaterials } from "@/lib/business/candidates/touchpoints";
 import { getCompanyPositionFits } from "@/lib/business/candidates/positionFit";
 import type { PositionFits, PositionOption } from "@/lib/business/candidates/positionFitModel";
-import type { Candidate } from "@/lib/business/candidates/model";
+import type { Candidate, CandidateTestMismatch } from "@/lib/business/candidates/model";
 
 /**
  * ★候補者検索の母集団と、候補者1人ぶんの形を組む（2026-10-10 / 候補者探し 段1 でページから切り出した）。
@@ -47,6 +47,8 @@ export type LoadedCandidates = {
   /** ★ポジションで見る（2026-10-18）。自社の求人（下書きも含む）と、求人ごとの合うところ。null = 取れなかった */
   positions: PositionOption[] | null;
   positionFits: PositionFits;
+  /** ★見ている担当者と検証用かどうかが合わない人を外したか（外した人数は返さない）。null = 外していない */
+  testMismatch: CandidateTestMismatch | null;
 };
 
 export async function loadCompanyCandidates(params: {
@@ -96,7 +98,7 @@ export async function loadCompanyCandidates(params: {
         ⚠️★**読むのはこのサーバーの関数の中だけ。** 下で `getUserAge()` を通して年齢（数）にし、
            生年月日そのものは Candidate に入れない（＝ブラウザに渡さない）。admin クライアントで読む
            （authenticated には birth_date の SELECT を配っていない。開けると全員分が取れる）。
-     ⚠️★`is_test` はここで絞らない。判定は `can_send_scout()` の1箇所（見る企業と is_test が一致する人だけ） */
+     ⚠️★`is_test` はここ（クエリ）では絞らない。会社との一致は `can_send_scout()`、見ている担当者との一致は下の `users`（2026-10-26） */
   /* ★年齢の表示が無効（本番）なら birth_date を読まない（2026-10-12）。数もページに渡さない */
   const ageDisplay = isCandidateAgeDisplayEnabled();
   /* ★最近の利用（2026-10-12）。⚠️ 無効（本番）なら last_active_at を読まない。有効でも帯だけを返す（正確な日時は Candidate に入れない） */
@@ -138,7 +140,15 @@ export async function loadCompanyCandidates(params: {
     if (error) console.error("[candidates] can_send_scout_many:", error.message);
     for (const r of (data ?? []) as { candidate_id: string; ok: boolean }[]) if (r.ok === true) visibleAuth.add(r.candidate_id);
   }
-  const users = eligibleUsers.filter((u) => visibleAuth.has(u.auth_id as string));
+  /* ★見ている担当者と検証用かどうかが一致する人だけ（2026-10-26 / 柴さんの指示・案A）。
+        `can_send_scout()` は「会社 × 候補者」しか見ないので、実在の会社の検証用の担当者に
+        実在の人（氏名・現職・お住まい）が見えていた。メッセージ（`can_send_company_approach()`）と同じ規則にそろえる。
+     ⚠️ 担当者が引けなければ誰も見せない（fail-closed）。⚠️ 外した人数は返さない（種類だけ） */
+  const scoutVisible = eligibleUsers.filter((u) => visibleAuth.has(u.auth_id as string));
+  const users = viewerIsTest === null ? [] : scoutVisible.filter((u) => (u.is_test === true) === viewerIsTest);
+  const testMismatch: CandidateTestMismatch | null = viewerIsTest !== null && users.length < scoutVisible.length
+    ? (viewerIsTest ? "test_viewer" : "real_viewer")
+    : null;
   const userIds = users.map((u) => u.id as string);
 
   /* 現職。⚠️ error を捨てない（埋め込みが PGRST201 になって社名が全員空になった前例） */
@@ -347,5 +357,5 @@ export async function loadCompanyCandidates(params: {
     }));
 
   return { candidates, limitReached: (rawUsers ?? []).length >= CANDIDATE_LOAD_LIMIT, roleFilterTree, approachJobs, touchpointMaterials: touch?.materials ?? null,
-    positions: positionFit?.positions ?? null, positionFits: positionFit?.fits ?? {} };
+    positions: positionFit?.positions ?? null, positionFits: positionFit?.fits ?? {}, testMismatch };
 }

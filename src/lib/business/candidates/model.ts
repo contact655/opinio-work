@@ -470,3 +470,17 @@ export function ageRangeLabel(min: number, max: number): string {
   if (min > 0) return `${min}歳〜`;
   return `〜${max}歳`;
 }
+
+/**
+ * ★見ている担当者と検証用かどうかが合わない人を、一覧から外したか（2026-10-26 / 柴さんの指示・案A）。
+ *   一覧は「会社 × 候補者」の一致（`can_send_scout()`）に加えて、**見ている担当者 × 候補者**の一致も見る
+ *   （メッセージの `can_send_company_approach()` と同じ規則）。
+ *   test_viewer … 検証用の担当者が見ていて、実在の方を外した ／ real_viewer … 実在の担当者が見ていて、検証用の方を外した
+ *   ⚠️ 外した人数は出さない（検証用のアカウントに実在の人数を見せない）。
+ */
+export type CandidateTestMismatch = "test_viewer" | "real_viewer";
+
+export const CANDIDATE_TEST_MISMATCH_MESSAGE: Record<CandidateTestMismatch, string> = {
+  test_viewer: "このアカウントは検証用のため、実在の候補者は表示していません。",
+  real_viewer: "検証用の候補者は、検証用のアカウントにだけ表示しています。",
+};

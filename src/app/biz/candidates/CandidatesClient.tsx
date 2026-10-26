@@ -8,7 +8,8 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
 import {
   ACTIVITY_SORTS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, TENURE_BANDS,
   filterCandidates, formatJstSlashMonthDay, isNewSince, sortCandidates,
-  type Candidate,
+  CANDIDATE_TEST_MISMATCH_MESSAGE,
+  type Candidate, type CandidateTestMismatch,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
 import { StanceBadge } from "@/components/candidates/StanceMeter";
@@ -120,6 +121,7 @@ export default function CandidatesClient({
   touchpointMaterials = null,
   notesEnabled = false,
   limitReached = false,
+  testMismatch = null,
   viewerName = null,
   stageStorageKey = null,
   columnsStorageKey = null,
@@ -130,6 +132,8 @@ export default function CandidatesClient({
   columnsStorageKey?: string | null;
   /** ★取得件数が上限（500名）に達したか（2026-10-13） */
   limitReached?: boolean;
+  /** ★見ている担当者と検証用かどうかが合わない人を外したか（2026-10-26）。null = 外していない */
+  testMismatch?: CandidateTestMismatch | null;
   /** ★見ている担当者の名前（見送った直後の「○○さんが見送り」に使う。2026-10-13） */
   viewerName?: string | null;
   /** ★右欄が使う会社の材料（2026-10-13。page.tsx が loadCompanyCandidates の結果から渡す） */
@@ -217,7 +221,11 @@ export default function CandidatesClient({
      ★送れる人が0人のときだけ一文を出す。⚠️ 判定は `c.approach.eligible`（`can_send_company_approach()`）だけ */
   /* ★一覧の上の灰色の1行（2026-10-11 / 柴さんの指示）。「いま、メッセージを送れる候補者はいません。」は外した。
         検証用の会社を実アカウントで見ているとき → その旨。企業側の上限に当たっているとき → 上限の文言。それ以外は出さない */
-  const topNotice = candidates.some((c) => c.approach?.blocked === "test_company") ? APPROACH_TEST_COMPANY_MESSAGE : null;
+  /* ★2026-10-26: 一覧は見ている担当者と検証用かどうかが一致する人だけになった（load.ts）。
+        外した人がいればその旨を出す（一覧が0人でも出す。「その他」のまま理由が分からない形にしない） */
+  const mismatchNotice = testMismatch ? CANDIDATE_TEST_MISMATCH_MESSAGE[testMismatch] : null;
+  const topNotice = mismatchNotice
+    ?? (candidates.some((c) => c.approach?.blocked === "test_company") ? APPROACH_TEST_COMPANY_MESSAGE : null);
 
   /* ⚠️ 「スカウト済みを除く」は 2026-10-08 にスカウトごと廃止した（提案に一本化）。
         保存済み検索に残っている `hideAlreadyScouted` は `parseSavedFilters` が捨てる。 */
@@ -841,7 +849,7 @@ export default function CandidatesClient({
           </HelpToggle>
         </div>
         {/* ★送れない理由の1行（検証用の会社／企業側の上限）。⚠️ 灰色の文字（バッジにしない）。order で行の最後に回す */}
-        {topNotice && candidates.length > 0 && (
+        {topNotice && (candidates.length > 0 || mismatchNotice) && (
           <p data-state="approach-top-notice" style={{ order: 10, flexBasis: "100%", margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-mute)" }}>
             {topNotice}
           </p>
@@ -1135,7 +1143,7 @@ export default function CandidatesClient({
                         2026-08-27 に母集合を `scout_enabled` から `career_stance` へ
                         付け替えたのに、**文言だけ古いまま**だった。
                         いまの条件は「転職について」に答えていて `no_contact` でないこと。 */
-                  ? "「転職意欲」に答えている求職者がまだいません"
+                  ? (mismatchNotice ?? "「転職意欲」に答えている求職者がまだいません")
                   : "フィルター条件を変えてみてください"}
               </p>
               {activeFilterCount > 0 && (

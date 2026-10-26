@@ -222,7 +222,7 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials, positions, positionFits }, coRow] = await Promise.all([
+  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials, positions, positionFits, testMismatch }, coRow] = await Promise.all([
     loadCompanyCandidates({
       companyId: ctx.tenantId,
       viewerOwUserId: ctx.currentOwnId,
@@ -281,6 +281,8 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         touchpointMaterials={touchpointMaterials}
         notesEnabled={isCandidateNotesEnabled()}
         limitReached={limitReached}
+        /* ★検証用かどうかが担当者と合わない人を外したときの1行（2026-10-26） */
+        testMismatch={testMismatch}
         /* ⚠️ 名前が引けないときの「ご担当者」（getTenantContext の最後の倒し先）は名前として渡さない */
         viewerName={ctx.userName && ctx.userName !== "ご担当者" ? ctx.userName : null}
         /* ★段（一覧と詳細の幅）を覚えるキーに使う（会社・担当者ごと。2026-10-13） */
