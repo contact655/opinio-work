@@ -7,7 +7,7 @@ type Props =
   | { state: "invalid" | "expired" }
   | { state: "unauthenticated"; token: string; invitedEmail: string; companyName: string }
   | { state: "ready"; token: string; companyName: string }
-  | { state: "mismatch"; invitedEmail: string; loggedInEmail: string; token: string };
+  | { state: "mismatch"; token: string };
 
 export function AcceptInviteClient(props: Props) {
   return (
@@ -72,11 +72,7 @@ export function AcceptInviteClient(props: Props) {
             <ReadyState token={props.token} companyName={props.companyName} />
           )}
           {props.state === "mismatch" && (
-            <MismatchState
-              invitedEmail={props.invitedEmail}
-              loggedInEmail={props.loggedInEmail}
-              token={props.token}
-            />
+            <MismatchState token={props.token} />
           )}
         </div>
       </div>
@@ -253,15 +249,7 @@ function ReadyState({ token, companyName }: { token: string; companyName: string
 
 // ── Mismatch ───────────────────────────────────────────────────────
 
-function MismatchState({
-  invitedEmail,
-  loggedInEmail,
-  token,
-}: {
-  invitedEmail: string;
-  loggedInEmail: string;
-  token: string;
-}) {
+function MismatchState({ token }: { token: string }) {
   const [loading, setLoading] = useState(false);
 
   async function handleSignOut() {
@@ -276,9 +264,9 @@ function MismatchState({
     <div>
       <StatusIcon type="warning" />
       <h1 style={headingStyle}>メールアドレスが一致しません</h1>
+      {/* ⚠️★招待先・ログイン中のどちらのメールアドレスも出さない（2026-10-26 / 柴さんの指示） */}
       <p style={bodyStyle}>
-        この招待は <strong style={{ color: "var(--ink)" }}>{invitedEmail}</strong> 宛ですが、
-        現在 <strong style={{ color: "var(--ink)" }}>{loggedInEmail}</strong> でログイン中です。
+        この招待は別のメールアドレス宛てです。
       </p>
       <p style={{ ...bodyStyle, marginTop: 8 }}>
         招待されたメールアドレスでログインし直してください。

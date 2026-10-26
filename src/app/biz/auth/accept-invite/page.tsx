@@ -76,10 +76,10 @@ export default async function AcceptInvitePage({
 
   if (loggedInEmail !== invitedEmail) {
     return (
+      /* ⚠️★招待先のメールアドレスは渡さない（2026-10-26 / 柴さんの指示）。
+            別のアカウントでリンクを開いた人に、招待された人のメールアドレスが見えていた */
       <AcceptInviteClient
         state="mismatch"
-        invitedEmail={inviteRow.invited_email ?? ""}
-        loggedInEmail={user.email ?? ""}
         token={token}
       />
     );
