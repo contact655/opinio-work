@@ -55,15 +55,17 @@ export async function POST(req: Request) {
         （is_active=true で即時。応募・候補者・メッセージがその場で読めた）。
         いまは未登録の人と同じく、招待の行（user_id=null・is_active=false・トークン7日）を作り、
         本人が /biz/auth/accept-invite で承諾したときだけ有効になる。
-     ⚠️ 招待先のメールは ow_users.email（＝ログインに使うメール）に揃える。承諾の判定は
-        ログイン中のメールとの一致なので、大文字小文字などの表記がずれると承諾できなくなる。
      ⚠️ admin クライアントで引く。2026-08-06 に authenticated から ow_users.email の
         SELECT 権限を剥がしたため、session では読めない。 */
   const admin = createAdminClient();
+  /* ⚠️★LIKE の記号（% _ \）は必ず逃がす（2026-10-26 のセキュリティレビュー）。逃がさないと
+        「%@%.%」のような入力が他人のメールに当たり、パターンでメールアドレスを探り当てられる。
+        大文字小文字だけを無視した完全一致にする。 */
+  const escapedEmail = email.replace(/[\\%_]/g, (c) => `\\${c}`);
   const { data: targetUser } = await admin
     .from("ow_users")
-    .select("id, email")
-    .ilike("email", email)
+    .select("id")
+    .ilike("email", escapedEmail)
     .maybeSingle();
 
   if (targetUser) {
@@ -78,7 +80,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "このユーザーはすでにメンバーです", code: "DUPLICATE" }, { status: 409 });
     }
   }
-  const inviteEmail = (targetUser?.email as string | undefined) ?? email;
+  /* ⚠️ 招待先には**入力されたメール**をそのまま入れる。DB のメールを返さない（招待中の一覧に出るため）。
+        承諾の判定（accept/route.ts）は大文字小文字を無視して比べるので、表記の違いでは止まらない。 */
+  const inviteEmail = email;
 
   // Case 2: 未登録ユーザー → pending 招待レコードを作成
   const { data: existingPending } = await supabase
