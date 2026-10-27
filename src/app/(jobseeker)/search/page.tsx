@@ -13,6 +13,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { SearchPostCard } from "./SearchPostCard";
 import { DestinationsBlock } from "@/components/search/DestinationsBlock";
 import { SEARCH_EXAMPLES } from "@/lib/search/examples";
+import { getTransitionExamples } from "@/lib/search/transitionExamples";
 import { RecordRecentSearch } from "./RecordRecentSearch";
 import { PersonHitCard } from "./PersonHitCard";
 import { searchPostHits } from "@/lib/search/postHits";
@@ -476,6 +477,9 @@ export default async function SearchPage({ searchParams }: Props) {
   }
 
 
+  /* ★結果が無いときの例文に、いまのデータで当てはまる人がいる移動の文を足す（2026-10-27）。結果があるときは引かない */
+  const extraExamples = totalAll === 0 ? await getTransitionExamples() : [];
+
   /* ★左右の列はホームと同じ（2026-10-21 / 柴さんの指示）。中身は loadFeedProps（ホームと同じ読み込み） */
   const feed = await feedPromise;
 
@@ -631,8 +635,8 @@ export default async function SearchPage({ searchParams }: Props) {
         {totalAll === 0 && nothingResolved && interpreted.ambiguousSchools.length > 0 ? null : totalAll === 0 ? (
           <section style={{ marginTop: 22 }}>
             {nothingResolved
-              ? <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} />
-              : <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()}
+              ? <NoConditionState unresolved={interpreted.unresolved} hasQuery={!!raw.trim()} extraExamples={extraExamples} />
+              : <EmptyState raw={raw} relaxations={relaxations} hasQuery={!!raw.trim()} extraExamples={extraExamples}
                   schoolLabel={conditions.length === 1 && conditions[0].kind === "school" ? conditions[0].label : null} />}
           </section>
         ) : (
@@ -930,7 +934,7 @@ function PersonGroups({
  *    エンジニア・マーケティング・カスタマーサクセスは0件だったので入れていない）。足すときは先に検索して確かめること
  */
 
-function NextSteps() {
+function NextSteps({ extra = [] }: { extra?: string[] }) {
   const pill: React.CSSProperties = {
     padding: "6px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "#fff",
     color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
@@ -939,7 +943,7 @@ function NextSteps() {
     <>
       <p style={{ margin: "16px 0 8px", fontSize: 12.5, fontWeight: 700, color: "var(--ink-soft)" }}>こんなことばで探せます</p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} data-state="search-examples">
-        {SEARCH_EXAMPLES.map((q) => (
+        {[...SEARCH_EXAMPLES, ...extra].map((q) => (
           <Link key={q} href={`/search?q=${encodeURIComponent(q)}`} style={{ ...pill, color: "var(--royal)", borderColor: "var(--royal-100, var(--line))" }}>
             {q}
           </Link>
@@ -961,7 +965,7 @@ const EMPTY_BOX: React.CSSProperties = { padding: "22px 20px", borderRadius: 12,
  * ⚠️ **全件を並べない。** 条件が無いまま検索すると掲載企業が丸ごと返るが、それは「検索結果」ではない。
  * ⚠️★説明は1回だけ。上の点線のチップと説明文は、このときは出さない（同じことを2回言っていた。2026-10-21）
  */
-function NoConditionState({ unresolved, hasQuery }: { unresolved: string[]; hasQuery: boolean }) {
+function NoConditionState({ unresolved, hasQuery, extraExamples }: { unresolved: string[]; hasQuery: boolean; extraExamples: string[] }) {
   return (
     <div style={EMPTY_BOX} data-state="search-no-condition">
       <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>
@@ -973,15 +977,16 @@ function NoConditionState({ unresolved, hasQuery }: { unresolved: string[]; hasQ
           {unresolved.map((w) => `「${w}」`).join("")}では、まだ絞り込めません。職種・事業領域・会社名・外資系／日系・年収で探せます。
         </p>
       )}
-      <NextSteps />
+      <NextSteps extra={extraExamples} />
     </div>
   );
 }
 
 function EmptyState({
-  raw, relaxations, hasQuery, schoolLabel = null,
+  raw, relaxations, hasQuery, schoolLabel = null, extraExamples,
 }: {
   raw: string;
+  extraExamples: string[];
   relaxations: { label: string; index: number; count: number }[];
   hasQuery: boolean;
   /** ★学校だけで探して0人だったとき、その学校名（2026-10-21）。「読み取れなかった」のではなく「まだいない」と伝える */
@@ -1014,7 +1019,7 @@ function EmptyState({
         </>
       )}
       {/* ⚠️ 条件を外せば見つかるときは、例を出さない（やることが2つに分かれて迷う） */}
-      {relaxations.length === 0 && <NextSteps />}
+      {relaxations.length === 0 && <NextSteps extra={extraExamples} />}
     </div>
   );
 }

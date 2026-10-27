@@ -76,6 +76,16 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
   /* ★最近の検索（このブラウザにだけ残る。開くたびに読み直す） */
   const [recent, setRecent] = useState<string[]>([]);
   useEffect(() => { setRecent(readRecentSearches()); }, []);
+  /* ★移動の例文（「Salesforceを出た人」など。2026-10-27）。いまのデータで当てはまる人がいる文だけサーバーが返す */
+  const [moveExamples, setMoveExamples] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/search/examples")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { examples?: string[] } | null) => { if (alive && Array.isArray(j?.examples)) setMoveExamples(j.examples.slice(0, 4)); })
+      .catch((e) => console.error("[header] examples:", (e as Error).message));
+    return () => { alive = false; };
+  }, []);
   return (
     <>
       {/* クエリなし: 最近の検索 + 例のことば + クイックリンク */}
@@ -101,7 +111,7 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
           )}
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", marginBottom: 10 }}>こんなことばで探せます</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 20 }}>
-            {SEARCH_EXAMPLES.map((q) => (
+            {[...SEARCH_EXAMPLES, ...moveExamples].map((q) => (
               <button key={q} type="button"
                 onClick={() => { onClose(); router.push(`/search?q=${encodeURIComponent(q)}`); }}
                 style={{ padding: "5px 13px", borderRadius: 100, border: "1px solid var(--line)", background: "var(--bg-tint)", fontSize: 12, fontWeight: 500, cursor: "pointer", color: "var(--ink-soft)" }}>
