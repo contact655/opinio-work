@@ -910,6 +910,108 @@ export type Database = {
           },
         ]
       }
+      ow_career_turn_axes: {
+        Row: {
+          axis_key: string
+          experience_id: string
+          value: number
+        }
+        Insert: {
+          axis_key: string
+          experience_id: string
+          value: number
+        }
+        Update: {
+          axis_key?: string
+          experience_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_career_turn_axes_axis_key_fkey"
+            columns: ["axis_key"]
+            isOneToOne: false
+            referencedRelation: "ow_review_axes"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "ow_career_turn_axes_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_career_turns"
+            referencedColumns: ["experience_id"]
+          },
+        ]
+      }
+      ow_career_turns: {
+        Row: {
+          answered_at: string | null
+          copied_from_legacy_at: string | null
+          created_at: string
+          decisive_reasons: string[] | null
+          detail_english: number | null
+          detail_memo: string | null
+          detail_office: number | null
+          detail_overtime: number | null
+          experience_id: string
+          fit_after_year: number | null
+          fit_answered_at: string | null
+          next_priority: string | null
+          skipped_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          copied_from_legacy_at?: string | null
+          created_at?: string
+          decisive_reasons?: string[] | null
+          detail_english?: number | null
+          detail_memo?: string | null
+          detail_office?: number | null
+          detail_overtime?: number | null
+          experience_id: string
+          fit_after_year?: number | null
+          fit_answered_at?: string | null
+          next_priority?: string | null
+          skipped_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          copied_from_legacy_at?: string | null
+          created_at?: string
+          decisive_reasons?: string[] | null
+          detail_english?: number | null
+          detail_memo?: string | null
+          detail_office?: number | null
+          detail_overtime?: number | null
+          experience_id?: string
+          fit_after_year?: number | null
+          fit_answered_at?: string | null
+          next_priority?: string | null
+          skipped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_career_turns_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: true
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_career_turns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_casual_meetings: {
         Row: {
           assignee_user_id: string | null
@@ -4048,12 +4150,19 @@ export type Database = {
       ow_for_you_reactions: {
         Row: {
           company_id: string
+          consent_version: string | null
           conversation_id: string | null
           created_at: string
+          delivered_at: string | null
+          interest_note: string | null
+          interest_source: string | null
+          interest_status: string | null
           interested_at: string | null
+          no_reply_notified_at: string | null
           ops_notified_at: string | null
-          rank_at: number
+          rank_at: number | null
           reaction: string
+          reask_notified_at: string | null
           reason: string | null
           signals: Json
           updated_at: string
@@ -4061,12 +4170,19 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          consent_version?: string | null
           conversation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          interest_note?: string | null
+          interest_source?: string | null
+          interest_status?: string | null
           interested_at?: string | null
+          no_reply_notified_at?: string | null
           ops_notified_at?: string | null
-          rank_at: number
+          rank_at?: number | null
           reaction: string
+          reask_notified_at?: string | null
           reason?: string | null
           signals?: Json
           updated_at?: string
@@ -4074,12 +4190,19 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          consent_version?: string | null
           conversation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          interest_note?: string | null
+          interest_source?: string | null
+          interest_status?: string | null
           interested_at?: string | null
+          no_reply_notified_at?: string | null
           ops_notified_at?: string | null
-          rank_at?: number
+          rank_at?: number | null
           reaction?: string
+          reask_notified_at?: string | null
           reason?: string | null
           signals?: Json
           updated_at?: string
