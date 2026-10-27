@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ReplyForm } from "./ReplyForm";
 
@@ -30,7 +30,18 @@ export function ThreadReplyArea({ conversationId, isParticipant, canReply, sendB
   const router = useRouter();
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
-  const done = () => { if (onSent) onSent(); else router.refresh(); };
+  /* ★「返信せずに参加する」のあと（2026-10-27）。読み直しが画面に反映されず「参加が必要です」のまま残ったことがある
+        （原因は特定できず）。読み直しを transition で待ち、終わってもまだ参加していない表示ならページごと読み直す（ホームの 784e1e34 と同じ形） */
+  const [joinedRefreshing, setJoinedRefreshing] = useState(false);
+  const [refreshPending, startRefresh] = useTransition();
+  useEffect(() => {
+    if (!joinedRefreshing || refreshPending || isParticipant) return;
+    const t = setTimeout(() => {
+      console.warn("[biz/messages] 参加後の読み直しが反映されなかったので、ページごと読み直します");
+      window.location.reload();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [joinedRefreshing, refreshPending, isParticipant]);
 
   if (sendBlocked === "test_mismatch") {
     return <p data-state="reply-blocked-test" style={{ margin: 0, padding: "10px 4px", fontSize: 12.5, color: "var(--ink-mute)" }}>{TEST_MISMATCH_SEND_NOTICE}</p>;
@@ -43,7 +54,9 @@ export function ThreadReplyArea({ conversationId, isParticipant, canReply, sendB
     setJoining(true); setJoinError(null);
     const res = await fetch(`/api/biz/conversations/${conversationId}/join`, { method: "POST" }).catch(() => null);
     if (!res || !res.ok) { setJoinError("参加できませんでした"); setJoining(false); return; }
-    done();
+    if (onSent) { onSent(); return; }
+    setJoinedRefreshing(true);
+    startRefresh(() => router.refresh());
   }
 
   return (

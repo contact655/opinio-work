@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { interestCountBand, trendItems } from "@/lib/interest/constants";
 import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
@@ -27,7 +27,8 @@ export type InterestWaitingRow = {
  * ⚠️ 取得に失敗したら null（0社と出さない）。
  */
 export async function loadInterestWaiting(): Promise<InterestWaitingRow[] | null> {
-  const db = createAdminClient();
+  /* ★運営画面と週1のまとめメール（cron）が呼ぶ。キャッシュに載らない client を使う */
+  const db = createNoStoreAdminClient();
   const { data: rows, error } = await db
     .from("ow_bookmarks")
     .select("user_id, target_id, created_at, ow_users!inner(is_test)")

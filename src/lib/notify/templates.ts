@@ -261,6 +261,36 @@ export function testLeftoversAdminTemplate(params: {
   };
 }
 
+/**
+ * ★週1回（月曜 9:00 JST）の運営向けまとめ「今週の『保存』が多い企業（担当者なし）」（2026-10-27 / 柴さんの指示）。
+ *   中身は /admin/interests と同じ（企業名・保存している人の数・最初に保存された日）。⚠️ **名前は載せない。**
+ * ⚠️ 0件の週は送らない（呼び出し側の cron が出し分ける）。並びは lib/admin/interestWaiting.ts のまま（実在の企業が上・人数の多い順）。
+ */
+export function weeklySavedCompaniesAdminTemplate(params: {
+  rows: { name: string; count: number; firstAt: string; isTest: boolean }[];
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  const fmt = (iso: string) => { const d = new Date(new Date(iso).getTime() + 9 * 3600_000); return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日`; };
+  const tr = (r: { name: string; count: number; firstAt: string; isTest: boolean }) =>
+    `<tr><td style="${TD_VALUE}">${esc(r.name)}${r.isTest ? "（検証用）" : ""}</td><td style="${TD_VALUE}">${r.count}人</td><td style="${TD_VALUE}">${fmt(r.firstAt)}</td></tr>`;
+  return {
+    to: ADMIN_EMAIL,
+    subject: "今週の『保存』が多い企業（担当者なし）",
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">今週の『保存』が多い企業（担当者なし）</h2>
+      <p style="margin:0 0 16px;color:#475569">担当者がまだいない企業を「保存」している人の数です。企業には何も届いていません。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_LABEL}">保存している人</td><td style="${TD_LABEL}">最初に保存された日</td></tr>
+        ${params.rows.map(tr).join("")}
+      </table>
+      <p style="margin:0 0 20px;color:#475569;font-size:13px">
+        ⚠️ 企業へ連絡するときに使えるのは、人数の幅（1〜4人／5〜9人／10人以上）と、業界・職種の大分類の傾向（3人以上の項目だけ）まで。保存した人の名前は企業に渡さないでください。
+      </p>
+      <a href="${siteUrl}/admin/interests" style="${BTN}">「保存している人」の一覧を開く →</a>
+    `),
+  };
+}
+
 export function memberReportAdminTemplate(params: {
   companyName: string;
   /** 対象者の氏名。⚠️ 取れないことがある（経歴が消えた等）ので null を許す */

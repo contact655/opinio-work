@@ -1,5 +1,3 @@
-import { AwaitingReplyNotice } from "@/components/business/AwaitingReplyNotice";
-import { countAwaitingReply } from "@/lib/interest/server";
 import { can, canOpenBizPath } from "@/lib/auth/roles";
 import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
@@ -91,7 +89,7 @@ export default async function BizDashboardPage({
 
   const supabase = createClient();
   const quotaAllowed = canUse(ctx.planType, "companyApproach");
-  const [jobStatusCounts, jobs, companyRow, publishCheck, materials, employees, quota, awaitingReply] = await Promise.all([
+  const [jobStatusCounts, jobs, companyRow, publishCheck, materials, employees, quota] = await Promise.all([
     getJobStatusCounts(ctx.tenantId),
     /* ★下書きの「公開まであと〇つ」（publishMissingCount）。求人管理と同じ関数 */
     fetchJobsForCompany(supabase, ctx.tenantId, { meetings: {}, applications: {} }).catch((e) => { console.error("[dashboard] jobs:", e); return null; }),
@@ -102,8 +100,6 @@ export default async function BizDashboardPage({
     getEvidenceMaterials(ctx.tenantId),
     getCompanyEmployees(ctx.tenantId).catch((e) => { console.error("[dashboard] employees:", e); return null; }),
     quotaAllowed ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
-    /* ★「話を聞いてみたい」で届いて、まだ返事をしていない人（2026-10-27）。数え方は countAwaitingReply だけ */
-    countAwaitingReply(ctx.tenantId),
   ]);
   if (companyRow.error) console.error("[dashboard] company:", companyRow.error.message);
 
@@ -179,11 +175,8 @@ export default async function BizDashboardPage({
           その画面を開く権限がありません。役割は管理者が「メンバーと権限」で変更できます。
         </p>
       )}
-      {awaitingReply && awaitingReply.count > 0 && (
-        <div style={{ border: "1px solid var(--royal-100)", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
-          <AwaitingReplyNotice data={awaitingReply} now={new Date().toISOString()} />
-        </div>
-      )}
+      {/* ⚠️「あなたの返事を待っている人」の帯はホームに出さない（2026-10-27 / 柴さんの指示）。下の「対応が必要なもの」と同じことを言うため。
+            /biz/messages の「すべて」タブの上部にだけ出す */}
       {/* ── 1人目バナー（企業開設直後のみ） ── */}
       {isFirstMember && (
         <div style={{

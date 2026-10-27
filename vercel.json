@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/interest-followup",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-saved-companies",
+      "schedule": "0 0 * * 1"
     }
   ]
 }

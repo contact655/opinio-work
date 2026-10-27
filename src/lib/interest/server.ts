@@ -2,6 +2,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { proposalIntroLine } from "@/lib/constants/proposalResponses";
 import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
@@ -284,7 +285,8 @@ async function notifyCandidate(db: Db, type: "interest_no_reply" | "interest_com
 const SAVED_READY_SINCE = "2026-10-27T00:00:00+09:00";
 
 export async function notifySaversOnJoin(companyIds?: string[]): Promise<{ notified: number; checked: number }> {
-  const db = createAdminClient();
+  /* ★日次の確認（cron）から呼ぶ。キャッシュに載らない client を使う（CLAUDE.md・check-test-leftovers の注記） */
+  const db = createNoStoreAdminClient();
   let q = db.from("ow_bookmarks").select("user_id, target_id, created_at").eq("target_type", "company");
   if (companyIds && companyIds.length > 0) q = q.in("target_id", companyIds);
   const { data: rows, error } = await q;
@@ -378,7 +380,8 @@ export async function countAwaitingReply(companyId: string): Promise<AwaitingRep
  *   14日たっても届いていなければ no_reply にして本人に知らせる（1回だけ）。
  */
 export async function sweepInterestReplies(): Promise<{ replied: number; noReply: number; checked: number }> {
-  const db = createAdminClient();
+  /* ★日次の確認（cron）から呼ぶ。キャッシュに載らない client を使う（CLAUDE.md・check-test-leftovers の注記） */
+  const db = createNoStoreAdminClient();
   const { data: rows, error } = await db.from("ow_for_you_reactions")
     .select("user_id, company_id, conversation_id, delivered_at").eq("interest_status", "delivered").not("conversation_id", "is", null);
   if (error) { console.error("[interest] 返事の確認 取得:", error.message); return { replied: 0, noReply: 0, checked: 0 }; }
