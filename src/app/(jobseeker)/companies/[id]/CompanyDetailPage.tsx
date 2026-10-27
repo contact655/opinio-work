@@ -68,7 +68,7 @@ import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { employeeBandRange, formatEmployeeSize } from "@/lib/constants/employeeBand";
-import { isJobPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
+import { isJobPostAlive, isArticlePostAlive, postRefersToTest } from "@/lib/feed/visibility";
 import { cleanEnName } from "@/lib/companies/displayName";
 /* ⚠️ `primaryBusinessDomain` は meta・OGPバッジ・Hero が使う（**1つに絞る場所**）。
       **全部**出すのは `CompanyInfoBox`（サイドバーと本文が共有）で、そちらが
@@ -1844,8 +1844,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     ref_job_id: string | null;
     ref_article_id: string | null;
     ref_company_id: string | null;
-    ow_jobs: { id: string; title: string; status: string | null; company_id?: string | null } | null;
-    ow_articles: { id: string; slug: string; title: string; is_published: boolean | null } | null;
+    ow_jobs: { id: string; title: string; status: string | null; company_id?: string | null; is_test?: boolean | null; company?: { is_test?: boolean | null } | null } | null;
+    ow_articles: { id: string; slug: string; title: string; is_published: boolean | null; company?: { is_test?: boolean | null } | null } | null;
   };
 
   const companyJobIds = detail.jobs.flatMap((c) => c.items.map((j) => j.id));
@@ -1865,7 +1865,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const activityPostsRaw = await adminSupabase
     // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
     .from("ow_posts_visible")
-    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status, company_id), ow_articles!ref_article_id(id, slug, title, is_published)")
+    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status, company_id, is_test, company:ow_companies!company_id(is_test)), ow_articles!ref_article_id(id, slug, title, is_published, company:ow_companies!company_id(is_test))")
     .or(orParts.join(","))
     .neq("post_type", "company_joined")
     .order("created_at", { ascending: false })
@@ -1879,6 +1879,9 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     activityRaw.map((p) => p.ow_jobs?.company_id ?? null), "CompanyDetailPage 更新情報",
   );
   const activityPosts = activityRaw
+    /* ★検証用の会社・求人・記事を指す投稿は出さない（2026-10-27。lib/feed/visibility.ts の postRefersToTest）。
+          ⚠️ このページは ISR で全員に同じ HTML を配るので、閲覧者で出し分けられない。検証用の人にも出さない側に倒す */
+    .filter((p) => !postRefersToTest({ ref_job: p.ow_jobs, ref_article: p.ow_articles }))
     .filter((p) => isJobPostAlive({ post_type: p.post_type, ref_job: p.ow_jobs }, respondingForActivity)
       // 非公開にした記事の「公開しました」も出さない（2026-10-20）
       && isArticlePostAlive({ post_type: p.post_type, ref_article: p.ow_articles }));

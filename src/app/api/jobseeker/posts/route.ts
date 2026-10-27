@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds, postRefersToTest } from "@/lib/feed/visibility";
 import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
@@ -23,8 +23,8 @@ async function resolveOwUserId(
 }
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null } | null;
-type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
-type RefArticle = { id: string; slug: string; title: string; is_published: boolean | null } | null;
+type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; is_test?: boolean | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
+type RefArticle = { id: string; slug: string; title: string; is_published: boolean | null; /* ★検証用の判定（postRefersToTest）に使う */ company?: { is_test?: boolean | null } | null } | null;
 
 type RawPost = {
   id: string;
@@ -90,7 +90,7 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
 function filterVisible(posts: RawPost[], myOwUserId: string | null, viewerIsTest: boolean, respondingCompanies: ReadonlySet<string>): RawPost[] {
   return posts.filter(
     (p) =>
-      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId, viewerIsTest) &&
+      isPostVisibleTo({ postVisibility: p.visibility, author: p.user, refersToTest: postRefersToTest(p) }, !!myOwUserId, viewerIsTest) &&
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）。担当者がいない会社の求人も（2026-10-27）
       isJobPostAlive(p, respondingCompanies) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）
@@ -166,8 +166,8 @@ const POST_SELECT = `
   event_title, event_starts_at, event_location, created_at, visibility,
   user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status),
-  ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
-  ref_article:ow_articles!ref_article_id(id, slug, title, is_published),
+  ref_job:ow_jobs!ref_job_id(id, slug, title, status, is_test, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
+  ref_article:ow_articles!ref_article_id(id, slug, title, is_published, company:ow_companies!company_id(is_test)),
   likes:ow_post_likes(count),
   comments:ow_post_comments(count)
 `;

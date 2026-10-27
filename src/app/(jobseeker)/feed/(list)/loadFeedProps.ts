@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds, postRefersToTest } from "@/lib/feed/visibility";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
 import { getFeedSidebarCompanies } from "@/lib/supabase/queries";
@@ -44,11 +44,11 @@ function flattenRefCompany(co: any): any {
 export type SidebarCompany = { id: string; slug: string | null; name: string; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 
 type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null; /* ★「新しく掲載された企業」の枠は掲載中だけ（2026-10-26。FeedClient の buildHomeRailItems） */ listing_status?: string | null } | null;
-type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
+type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; is_test?: boolean | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
 /* ⚠️ `ow_articles` に画像カラムは1つも無い（2026-08-13 に全28列を確認）。
       サムネイルは作れないので、記事ごとに違う `eyecatch_gradient` /
       `company_gradient_text` と `company_initial_text` で絵を作る。 */
-type RefArticle = { id: string; slug: string; title: string; is_published: boolean | null; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
+type RefArticle = { id: string; slug: string; title: string; is_published: boolean | null; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null; /* ★検証用の判定（postRefersToTest）に使う */ company?: { is_test?: boolean | null } | null } | null;
 
 type RawPost = {
   id: string;
@@ -115,8 +115,8 @@ export async function loadFeedProps() {
       event_title, event_starts_at, event_location, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
       ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status, ow_company_business_domains(is_primary, ow_business_domains(name))),
-      ref_job:ow_jobs!ref_job_id(id, slug, title, status, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
-      ref_article:ow_articles!ref_article_id(id, slug, title, is_published, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text),
+      ref_job:ow_jobs!ref_job_id(id, slug, title, status, is_test, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
+      ref_article:ow_articles!ref_article_id(id, slug, title, is_published, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text, company:ow_companies!company_id(is_test)),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `;
@@ -159,7 +159,7 @@ export async function loadFeedProps() {
   const respondingForPosts = await respondingCompanyIds(jobPostCompanyIds([...posts, ...blockOnly]), "feed 求人の投稿");
   const visiblePosts = [...posts, ...blockOnly].filter(
     (p) =>
-      isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, viewerIsTest) &&
+      isPostVisibleTo({ postVisibility: p.visibility, author: p.user, refersToTest: postRefersToTest(p) }, !!user, viewerIsTest) &&
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
       isJobPostAlive(p, respondingForPosts) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）

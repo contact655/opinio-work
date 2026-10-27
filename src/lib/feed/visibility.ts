@@ -35,7 +35,7 @@
 export function isJobPostAlive(
   post: {
     post_type?: string | null;
-    ref_job?: { status?: string | null; company_id?: string | null; company?: { id?: string | null } | null } | null;
+    ref_job?: { status?: string | null; company_id?: string | null; company?: { id?: string | null; is_test?: boolean | null } | null } | null;
   },
   /**
    * ★担当者がいる会社の id（2026-10-27 / 柴さんの決定。lib/jobs/respondingJobs.ts の respondingCompanyIds で作る）。
@@ -54,7 +54,7 @@ export function isJobPostAlive(
 }
 
 /** 求人の「公開しました」投稿から会社の id を集める（isJobPostAlive に渡す集合を作るため） */
-export function jobPostCompanyIds(posts: { post_type?: string | null; ref_job?: { company_id?: string | null; company?: { id?: string | null } | null } | null }[]): string[] {
+export function jobPostCompanyIds(posts: { post_type?: string | null; ref_job?: { company_id?: string | null; company?: { id?: string | null; is_test?: boolean | null } | null } | null }[]): string[] {
   return posts
     .filter((p) => p.post_type === "job_posted")
     .map((p) => p.ref_job?.company?.id ?? p.ref_job?.company_id ?? null)
@@ -111,14 +111,43 @@ export type PostVisibilityInput = {
   postVisibility: string | null | undefined;
   /** 投稿者の ow_users */
   author: { visibility?: string | null; is_system?: boolean | null; is_test?: boolean | null } | null | undefined;
+  /**
+   * ★投稿が指す会社・求人・記事の会社のどれかが検証用か（`postRefersToTest(post)` で作る。2026-10-27 / 柴さんの指示）。
+   *   ⚠️ 必須にしてある（渡し忘れを型で止める）。指す先の select から is_test を落とすと false になり、検証用の告知が実在の人に出る。
+   */
+  refersToTest: boolean;
 };
 
+/** 投稿が指す先（埋め込みで取ったもの）。⚠️ 各 select に is_test を含めること */
+export type PostTestRefs = {
+  ref_company?: { id?: string | null; is_test?: boolean | null } | null;
+  ref_job?: { status?: string | null; is_test?: boolean | null; company?: { id?: string | null; is_test?: boolean | null } | null } | null;
+  ref_article?: { is_published?: boolean | null; company?: { id?: string | null; is_test?: boolean | null } | null } | null;
+};
+
+/**
+ * ★投稿が検証用の会社・求人に関わるか（2026-10-27 / 柴さんの指示）。**投稿の種類で分けない。**
+ *   参加しました（ref_company）・求人を公開しました（ref_job とその会社）・記事を公開しました（記事の会社）の
+ *   どれでも、指す先のどれかが is_test なら true。判定は isPostVisibleTo に渡して1か所で使う。
+ */
+export function postRefersToTest(p: PostTestRefs): boolean {
+  return p.ref_company?.is_test === true
+    || p.ref_job?.is_test === true
+    || p.ref_job?.company?.is_test === true
+    || p.ref_article?.company?.is_test === true;
+}
+
 export function isPostVisibleTo(
-  { postVisibility, author }: PostVisibilityInput,
+  { postVisibility, author, refersToTest }: PostVisibilityInput,
   isLoggedIn: boolean,
   /** ★見ている人が検証用アカウントか（`viewerIsTestByAuthId`）。⚠️ 必須にしてある（渡し忘れを型で止める） */
   viewerIsTest: boolean,
 ): boolean {
+  /* 0. ★検証用の会社・求人を指す投稿は、検証用の人にだけ見せる（2026-10-27 / 柴さんの指示）。
+        実在の人とログアウトした人には出さない。⚠️ システム投稿の素通し（1）より**前**に置く ——
+        「参加しました」「求人を公開しました」はシステムユーザーの投稿なので、後ろに置くと効かない */
+  if (refersToTest && !viewerIsTest) return false;
+
   // 1. システム投稿は素通し。システムユーザーは visibility='private' なので、
   //    この例外が無いと170件すべてが消える。
   if (author?.is_system) return true;

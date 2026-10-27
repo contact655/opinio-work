@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { isPostVisibleTo } from "@/lib/feed/visibility";
+import { isPostVisibleTo, postRefersToTest, type PostTestRefs } from "@/lib/feed/visibility";
 import { isRegisteredUser } from "@/lib/users/registered";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -175,11 +175,13 @@ export async function GET(
 
   const { data: post, error: pErr } = await admin
     .from("ow_posts_visible")
-    .select("id, visibility, user:ow_users!user_id(visibility, is_test, is_system)")
+    .select("id, visibility, user:ow_users!user_id(visibility, is_test, is_system), ref_company:ow_companies!ref_company_id(is_test), ref_job:ow_jobs!ref_job_id(is_test, company:ow_companies!company_id(is_test)), ref_article:ow_articles!ref_article_id(company:ow_companies!company_id(is_test))")
     .eq("id", params.id).maybeSingle();
   if (pErr) { console.error("[GET likes] post:", pErr.message); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }
   const author = (post?.user ?? null) as unknown as { visibility: string | null; is_test: boolean | null; is_system: boolean | null } | null;
-  if (!post || !isPostVisibleTo({ postVisibility: post.visibility as string | null, author }, true, viewerIsTest)) {
+  /* ★検証用の会社・求人を指す投稿は、実在の人には「無い」と同じに扱う（2026-10-27。lib/feed/visibility.ts） */
+  const refersToTest = post ? postRefersToTest(post as unknown as PostTestRefs) : false;
+  if (!post || !isPostVisibleTo({ postVisibility: post.visibility as string | null, author, refersToTest }, true, viewerIsTest)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

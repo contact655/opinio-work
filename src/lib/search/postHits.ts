@@ -78,7 +78,8 @@ export async function searchPostHits(
   for (const r of data ?? []) {
     const a = (Array.isArray(r.user) ? r.user[0] : r.user) as unknown as Author | null;
     if (!a || !a.name || !isRegisteredUser(a)) continue;
-    if (!isPostVisibleTo({ postVisibility: r.visibility as string | null, author: a }, true, viewer.isTest)) continue;
+    /* ⚠️ 投稿の検索は user_post だけ（会社・求人・記事を指さない）なので、検証用の指す先は無い */
+    if (!isPostVisibleTo({ postVisibility: r.visibility as string | null, author: a, refersToTest: false }, true, viewer.isTest)) continue;
     const count = (x: unknown) => (Array.isArray(x) && typeof x[0]?.count === "number" ? (x[0].count as number) : 0);
     hits.push({
       content: (r.content as string) ?? "",

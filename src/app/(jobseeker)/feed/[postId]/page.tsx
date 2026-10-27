@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds, postRefersToTest } from "@/lib/feed/visibility";
 import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
@@ -17,8 +17,8 @@ type ActorCompany = { id: string; slug: string | null; name: string; brand_name:
 
 const ACTOR_SELECT = `
   ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_published, is_test),
-  ref_job:ow_jobs!ref_job_id(status, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)),
-  ref_article:ow_articles!ref_article_id(is_published)
+  ref_job:ow_jobs!ref_job_id(status, is_test, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
+  ref_article:ow_articles!ref_article_id(is_published, company:ow_companies!company_id(is_test))
 `;
 
 /** 表示上の主体。一覧側の resolveActor と同じ規則にすること */
@@ -42,8 +42,8 @@ type RawPost = {
   visibility: string;
   user: { id: string; name: string; avatar_color: string | null; avatar_url: string | null; visibility: string | null; is_system: boolean | null; is_test: boolean | null } | null;
   ref_company: ActorCompany;
-  ref_job: { status: string | null; company: ActorCompany } | null;
-  ref_article: { is_published: boolean | null } | null;
+  ref_job: { status: string | null; is_test?: boolean | null; company: ActorCompany } | null;
+  ref_article: { is_published: boolean | null; /* ★検証用の判定（postRefersToTest）に使う */ company?: { is_test?: boolean | null } | null } | null;
   likes: { count: number }[];
   comments: { count: number }[];
 };
@@ -139,7 +139,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   //    この例外が無いとシステム投稿170件すべてのパーマリンクが 404 になる。
   //    一覧には出ているのにシェアURLだけ 404 という状態だった（2026-08-05 修正）。
   // ⚠️ 判定は lib/feed/visibility に集約している。一覧と食い違わせない
-  if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, await viewerIsTestByAuthId(user?.id))) notFound();
+  if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user, refersToTest: postRefersToTest(p) }, !!user, await viewerIsTestByAuthId(user?.id))) notFound();
   // 掲載を下ろした求人の「公開しました」投稿は、パーマリンクでも出さない
   if (!isJobPostAlive(p, await respondingCompanyIds(jobPostCompanyIds([p]), "feed/[postId]"))) notFound();
   // 取り下げた企業の「参加しました」投稿も同じく（2026-08-13）
