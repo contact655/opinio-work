@@ -222,7 +222,7 @@ function BusinessChrome({
         ⚠️ 取得に失敗したら出さない（0 と同じ扱い）。**「0件」とは言わない** ——
            バッジが出ないことを「未読なし」の根拠にしないこと。
         ⚠️ 企業が無い人（`hasCompany = false`）はサイドバーごと無いので叩かない。 */
-  const [badges, setBadges] = useState<{ messages: number; proposals: number; members: number } | null>(null);
+  const [badges, setBadges] = useState<{ messages: number; proposals: number; members: number; interestAwaiting?: number } | null>(null);
   useEffect(() => {
     if (!hasCompany) return;
     let cancelled = false;
@@ -668,6 +668,8 @@ function BusinessChrome({
               const showFullActive = active && !childActive;
 
               const badgeCount = item.badge && badges ? (badges[item.badge] ?? 0) : 0;
+              /* ★「話を聞いてみたい」で届いて返事をしていない人数（2026-10-28）。メッセージの項目にだけ、未読とは別のバッジで出す。0人なら出さない */
+              const awaitingCount = item.badge === "messages" && badges ? (badges.interestAwaiting ?? 0) : 0;
 
               return (
                 <div key={item.href} className="biz-nav-item">
@@ -676,7 +678,11 @@ function BusinessChrome({
                     className="biz-nav-link"
                     aria-current={active ? "page" : undefined}
                     /* ⚠️ しまうと項目名が見えなくなる（display: none）ので、名前は aria-label でも持つ。件数も入れる */
-                    aria-label={badgeCount > 0 ? `${item.label}（${item.badge === "proposals" ? "未回答" : item.badge === "members" ? "参加の依頼" : "未読・新しい返信"} ${badgeCount}件）` : item.label}
+                    aria-label={[
+                      item.label,
+                      badgeCount > 0 ? `（${item.badge === "proposals" ? "未回答" : item.badge === "members" ? "参加の依頼" : "未読・新しい返信"} ${badgeCount}件）` : "",
+                      awaitingCount > 0 ? `（返事を待っている「話を聞いてみたい」 ${awaitingCount}人）` : "",
+                    ].join("")}
                     onFocus={(e) => showTip(e, item.label)}
                     onBlur={hideTip}
                     onClick={(e) => {
@@ -715,12 +721,24 @@ function BusinessChrome({
                       {/* ⚠️ position: relative は件数の点（しまったとき）の基準 */}
                       <span style={{ color: active ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0, position: "relative", display: "inline-flex" }}>
                         {item.icon}
-                        {badgeCount > 0 && <span className="biz-nav-dot" aria-hidden="true" />}
+                        {(badgeCount > 0 || awaitingCount > 0) && <span className="biz-nav-dot" aria-hidden="true" />}
                       </span>
                       <span className="biz-nav-label">{item.label}</span>
                     </span>
                     {/* ★バッジの場所は常に取っておく（2026-10-12）。読み込みで出たり消えたりしても項目が動かないように。
                            ⚠️ 0件・未取得のときは中身ごと出さない（visibility ではなく空の箱。読み上げにも出さない） */}
+                    {awaitingCount > 0 && (
+                      <span className="biz-nav-badge" data-state="nav-interest-awaiting" title={`返事を待っている「話を聞いてみたい」 ${awaitingCount}人`} style={{
+                        /* ⚠️ 未読（赤）と見分けるため濃紺。display は CSS（しまったときに隠す） */
+                        minWidth: 18, height: 18, borderRadius: 100, marginRight: 4,
+                        background: "var(--royal)", color: "#fff",
+                        fontSize: 10, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)",
+                        alignItems: "center", justifyContent: "center", padding: "0 5px", flexShrink: 0, position: "relative",
+                      }}>
+                        <span aria-hidden="true">{awaitingCount > 99 ? "99+" : awaitingCount}</span>
+                        <span className="sr-only">（返事を待っている「話を聞いてみたい」 {awaitingCount}人）</span>
+                      </span>
+                    )}
                     {item.badge && badgeCount <= 0 && <span className="biz-nav-badge" aria-hidden="true" style={{ width: 18, height: 18, flexShrink: 0 }} />}
                     {badgeCount > 0 && (
                       <span className="biz-nav-badge" style={{
@@ -1119,7 +1137,7 @@ const TAB_PRIMARY: { href: string; short: string }[] = [
 
 function BizMobileTabBar({ permission, badges, isActive, onNavigate, showCompanyPreview }: {
   permission: Parameters<typeof can>[0];
-  badges: { messages: number; proposals: number; members: number } | null;
+  badges: { messages: number; proposals: number; members: number; interestAwaiting?: number } | null;
   isActive: (href: string) => boolean;
   onNavigate: (href: string) => void;
   showCompanyPreview: boolean;
@@ -1149,7 +1167,8 @@ function BizMobileTabBar({ permission, badges, isActive, onNavigate, showCompany
   const primaryHrefs = new Set(primary.map((p) => p.item.href));
   const menuGroups = groups.map((g) => ({ ...g, items: g.items.filter((it) => !primaryHrefs.has(it.href)) })).filter((g) => g.items.length > 0);
   const menuActive = menuGroups.some((g) => g.items.some((it) => isActive(it.href)));
-  const countOf = (it: NavItem) => (it.badge && badges ? badges[it.badge] ?? 0 : 0);
+  /* ⚠️ メッセージは未読と「話を聞いてみたい」の返事待ちを足す（タブバーは数字1つしか置けない） */
+  const countOf = (it: NavItem) => (it.badge && badges ? (badges[it.badge] ?? 0) + (it.badge === "messages" ? badges.interestAwaiting ?? 0 : 0) : 0);
   const menuHasBadge = menuGroups.some((g) => g.items.some((it) => countOf(it) > 0));
 
   return (
@@ -1160,7 +1179,7 @@ function BizMobileTabBar({ permission, badges, isActive, onNavigate, showCompany
           const active = isActive(item.href);
           return (
             <Link key={item.href} href={item.href} className="biz-tab" aria-current={active ? "page" : undefined}
-              aria-label={n > 0 ? `${item.label}（未読・新しい返信 ${n}件）` : item.label}
+              aria-label={n > 0 ? `${item.label}（${item.badge === "messages" ? "未読・返事待ち" : "未読・新しい返信"} ${n}件）` : item.label}
               onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; onNavigate(item.href); }}>
               <span className="biz-tab-icon">
                 {React.cloneElement(item.icon, { size: 22 })}

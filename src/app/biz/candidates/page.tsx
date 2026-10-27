@@ -14,8 +14,6 @@ import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
 import { ensureLastViewed, getSavedSearchForViewer } from "@/lib/business/savedSearchServer";
 import { parseSavedFilters, type SavedCandidateFilters } from "@/lib/business/savedSearch";
 
@@ -204,18 +202,12 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ⚠️★★スカウトは 2026-10-08 に廃止した（提案に一本化）。**戻さないこと。**
      ★母集団・判定・候補者の形は `lib/business/candidates/load.ts` の1か所（2026-10-10 に切り出した）。
         段3の新着メールも同じ関数を呼ぶ。⚠️ ここに条件を書き戻さないこと。 */
-  const [{ candidates, limitReached, roleFilterTree, approachJobs, touchpointMaterials, positions, positionFits, testMismatch }, coRow] = await Promise.all([
-    loadCompanyCandidates({
-      companyId: ctx.tenantId,
-      viewerOwUserId: ctx.currentOwnId,
-      planType: ctx.planType,
-    }),
-    /* ⚠️ 企業側の上限（返事待ち10件）の1行は 2026-10-18 に枠ごと外した */
-    /* ★カードの「〈会社名〉と合うところ（〇）」の会社名（プレビューと同じ表示名。2026-10-11） */
-    createAdminClient().from("ow_companies").select("name, name_en").eq("id", ctx.tenantId).maybeSingle(),
-  ]);
-  if (coRow.error) console.error("[biz/candidates] ow_companies:", coRow.error.message);
-  const companyShortName = coRow.data ? companyDisplayName(coRow.data.name as string, (coRow.data.name_en as string | null) ?? null).displayName : null;
+  /* ⚠️ 「〈会社名〉と合うところ」の会社名（ow_companies を引いていた）は 2026-10-28 に外した（合うところを外したため） */
+  const { candidates, limitReached, roleFilterTree, approachJobs, positions, positionFits, testMismatch } = await loadCompanyCandidates({
+    companyId: ctx.tenantId,
+    viewerOwUserId: ctx.currentOwnId,
+    planType: ctx.planType,
+  });
 
   /* ★保存した条件で開く（段3）。`?saved=<id>`（この条件で探す）／`&new=1`（新着を見る）。
      ⚠️ 見られる条件（自分のもの・共有）だけ。新着の基準は**開く前**の前回見た日時
@@ -254,19 +246,15 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         canAct={can(ctx.currentPermission, "candidates.search")}
         initialSaved={initialSaved}
         initialFilters={initialFilters}
-        companyShortName={companyShortName}
         /* ★右欄が使う会社の材料（2026-10-13）。右欄は一覧の Candidate とこれで描く（1人ずつ取り直さない） */
         approachJobs={approachJobs}
         positions={positions}
         positionFits={positionFits}
         initialPosition={/^[0-9a-f-]{36}$/.test(searchParams?.position ?? "") ? searchParams!.position! : null}
-        touchpointMaterials={touchpointMaterials}
         notesEnabled={isCandidateNotesEnabled()}
         limitReached={limitReached}
         /* ★検証用かどうかが担当者と合わない人を外したときの1行（2026-10-26） */
         testMismatch={testMismatch}
-        /* ⚠️ 名前が引けないときの「ご担当者」（getTenantContext の最後の倒し先）は名前として渡さない */
-        viewerName={ctx.userName && ctx.userName !== "ご担当者" ? ctx.userName : null}
         /* ★段（一覧と詳細の幅）を覚えるキーに使う（会社・担当者ごと。2026-10-13） */
         stageStorageKey={`biz-cand-stage:${ctx.tenantId}:${ctx.currentOwnId}`}
         /* ★右欄の2列表示（プロフィール｜メッセージ）の比率を覚えるキー（外側とは別。2026-10-13） */

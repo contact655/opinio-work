@@ -42,8 +42,7 @@ export type SavedCandidateFilters = {
   prefectures: string[];
   /** ★転職への意向（複数選択。2026-10-12 に単一の `careerStance` から変えた。古い保存は parse で配列に直す） */
   careerStances: string[];
-  /** ★「〈会社名〉と合うところ」が1件以上ある人だけ（2026-10-12） */
-  hasTouchpoints: boolean;
+  /* ⚠️ `hasTouchpoints`（合うところあり）は 2026-10-28 に外した。DB に残っている値は parseSavedFilters が捨てる */
   /** ★★（気になる）を付けた人だけ（2026-10-12。会社の管理者で共有） */
   starredOnly: boolean;
   /** ★最近の利用（"3d" / "1w" / "1m"。"" = 指定なし）。⚠️ 効くのは CANDIDATE_ACTIVITY_ENABLED のときだけ */
@@ -54,7 +53,7 @@ export type SavedCandidateFilters = {
   /* ⚠️ `approachOnly`（メッセージを受け取る方のみ）は 2026-10-11 に外した（全員が最初から受け取る形にしたため）。
         DB に残っている値は下の `parseSavedFilters` が捨てる。 */
   /** ⚠️ 並び替えも保存する。「どう見ていたか」まで戻せないと再現にならない。
-   *  ★既定は「合うところが多い順」（2026-10-13）。⚠️ 保存した条件で sort が無いものは「新着順」として読む（`parseSavedFilters` の missingSort） */
+   *  ★既定は「意向が強い順」（2026-10-28）。⚠️ 保存した条件で sort が無いものは「最近更新した順」として読む（`parseSavedFilters` の missingSort） */
   sort: string;
 };
 
@@ -75,12 +74,15 @@ export const EMPTY_SAVED_FILTERS: SavedCandidateFilters = {
   ageMax: 0,
   prefectures: [],
   careerStances: [],
-  hasTouchpoints: false,
   starredOnly: false,
   activity: "",
   stanceFreshness: "",
-  sort: "touchpoints",
+  sort: "stance_strength",
 };
+
+/* ★並び替えの古い値の読み替え（2026-10-28。DB の JSON は書き換えない）。並び替えを2つにしたため:
+      合うところが多い順・社会人年数が長い順 → 意向が強い順 ／ 新着順・意向の更新が新しい順 → 最近更新した順 */
+const LEGACY_SORT: Record<string, string> = { touchpoints: "stance_strength", tenure: "stance_strength", new: "updated", stance: "updated" };
 
 const str = (v: unknown, d: string): string => (typeof v === "string" ? v : d);
 /** 雇用形態の旧キー → DB の値（2026-10-13） */
@@ -134,12 +136,11 @@ export function parseSavedFilters(raw: unknown, opts: { missingSort?: string } =
     prefectures: strArr(o.prefectures),
     /* ⚠️ 2026-10-12 より前の保存は `careerStance`（文字列1つ）。配列に直す */
     careerStances: Array.isArray(o.careerStances) ? strArr(o.careerStances) : (typeof o.careerStance === "string" && o.careerStance ? [o.careerStance] : []),
-    hasTouchpoints: bool(o.hasTouchpoints, false),
     starredOnly: bool(o.starredOnly, false),
     activity: str(o.activity, ""),
     /* ⚠️ 2026-10-12 に帯を 7日／30日／90日 にした。古い値（1d/1w → 7d、1m → 30d、3m → 90d）は読み替える */
     stanceFreshness: ({ "1d": "7d", "1w": "7d", "1m": "30d", "3m": "90d" } as Record<string, string>)[str(o.stanceFreshness, "")] ?? str(o.stanceFreshness, ""),
-    sort: str(o.sort, opts.missingSort ?? EMPTY_SAVED_FILTERS.sort),
+    sort: (() => { const v = str(o.sort, opts.missingSort ?? EMPTY_SAVED_FILTERS.sort); return LEGACY_SORT[v] ?? v; })(),
   };
 }
 

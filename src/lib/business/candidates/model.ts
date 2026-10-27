@@ -18,6 +18,8 @@ import type { SavedCandidateFilters } from "@/lib/business/savedSearch";
 import type { FitFact } from "@/lib/evidence/fit";
 import { residenceKey } from "@/lib/utils/location";
 import { EMPLOYMENT_TYPES } from "@/lib/constants/careerOptions";
+import { compareByStance, compareByUpdated, type CompanyContactItem } from "@/lib/business/candidates/candidateGroups";
+export type { CompanyContactItem };
 
 export type TouchpointKind =
   | "job_role"        // ① 求人の職種 × 経験職種（＋年数）
@@ -86,11 +88,9 @@ export type Candidate = {
   tenureMonths: number | null;
   /** ★この会社の「★」（気になる。会社の管理者で共有。2026-10-12）。⚠️ 取れなかったときは false */
   starred?: boolean;
-  /** ★この会社が「見送り」にした（一覧から外す。会社の担当者で共有。2026-10-13）。⚠️ 取れなかったときは false。
-   *  ⚠️ 候補者本人には伝えない（企業の内部情報） */
-  hidden?: boolean;
-  /** ★誰がいつ見送ったか（hidden_by の名前と created_at。2026-10-13）。見送っていなければ null。名前が引けなければ name は null */
-  hiddenBy?: { name: string | null; at: string } | null;
+  /* ⚠️ 「見送り」（hidden / hiddenBy）は 2026-10-28 に外した（柴さんの指示。機能ごと廃止。記録の表 ow_candidate_hidden は残す） */
+  /** ★職歴の件数（全件。2026-10-28。「経歴がまだ少ない人」の判定に使う。candidateGroups.ts） */
+  experienceCount: number;
   /** ★最近の利用（4段階の帯。2026-10-12）。⚠️ 正確な日時は渡さない（activity.ts でサーバーが帯にする）。
    *  undefined = スイッチ（CANDIDATE_ACTIVITY_ENABLED）が無効 ／ null = 記録が無い（不明） */
   activity?: ActivityBand | null;
@@ -139,8 +139,10 @@ export type Candidate = {
   stage?: CandidateStage | null;
   /** ★社内メモの件数（2026-10-11）。undefined = 社内メモのフラグがオフか、取れなかった（出さない） */
   noteCount?: number;
-  /** ★貴社との接点（段1）。強い順。undefined = 取れなかった（印を出さない） */
-  touchpoints?: Touchpoint[];
+  /** ★自社との接点（2026-10-28 / 柴さんの指示）。元社員・「話を聞いてみたい」を送っている・人の流れ（5人以上）。
+   *  空配列 = 「なし」。undefined = 取れなかった（欄に「—」）。⚠️ 保存（ブックマーク）は出さない（企業に何も渡さない決め）
+   *  ⚠️ 2026-10-28 まであった「合うところ」（touchpoints）はこの画面から外した（提案の根拠では今も使う） */
+  companyContacts?: CompanyContactItem[];
 };
 
 /** 社会人年数の帯（2026-08-20）。**年齢の帯の置き換え** */
@@ -200,7 +202,7 @@ function textHit(c: Candidate, t: string): boolean {
  */
 export type FilterAxis =
   | "expRole" | "desiredRole" | "careerStance" | "tenure" | "prefecture"
-  | "touchpoints" | "starred" | "stanceFreshness" | "employmentType";
+  | "starred" | "stanceFreshness" | "employmentType";
 
 /**
  * ★軸ごとの絞り込み（2026-10-13 に filterCandidates から切り出した。**中身は変えていない**）。
@@ -221,8 +223,6 @@ export const AXIS_FILTERS: { [A in FilterAxis]: (list: Candidate[], f: SavedCand
     const band = f.tenureBand ? TENURE_BANDS.find((b) => b.value === f.tenureBand) : undefined;
     return band ? list.filter((c) => c.tenureMonths == null || (c.tenureMonths >= band.minMonths && c.tenureMonths <= band.maxMonths)) : list;
   },
-  /* ★合うところあり（2026-10-12）。⚠️ 取れなかった人（undefined）は落とす */
-  touchpoints: (list, f) => (f.hasTouchpoints ? list.filter((c) => (c.touchpoints?.length ?? 0) > 0) : list),
   /* ★★を付けた人だけ（2026-10-12） */
   starred: (list, f) => (f.starredOnly ? list.filter((c) => c.starred === true) : list),
   /* ★転職への意向（複数選択は OR。2026-10-12） */
@@ -253,11 +253,10 @@ export const AXIS_FILTERS: { [A in FilterAxis]: (list: Candidate[], f: SavedCand
 export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilters, now: Date = new Date(),
   /** ★年齢の絞り込みを効かせるか（`isCandidateAgeFilterEnabled()`。本番は無効）。無効なら保存された年齢の条件も無視する
    *  ★activity … 最近の利用で絞るか（`isCandidateActivityEnabled()`。本番は無効）。無効なら保存された条件も無視する
-   *  ★includeHidden … 見送った人も含めるか（2026-10-13）。**既定は含めない**（画面の「表示する」だけが true を渡す。
-   *    保存した条件の新着・メールも同じ関数なので、見送った人は数えない）
    *  ★skipAxis … この軸だけ掛けない（「すべてのフィルター」の件数を数えるため。2026-10-13） */
-  opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean; skipAxis?: FilterAxis } = {}): Candidate[] {
-  let list = opts.includeHidden ? candidates : candidates.filter((c) => c.hidden !== true);
+  opts: { ageFilter?: boolean; activity?: boolean; skipAxis?: FilterAxis } = {}): Candidate[] {
+  /* ⚠️ 2026-10-28 まで「見送った人」をここで外していた。見送りを廃止したので全員を対象にする */
+  let list = candidates;
 
   /* ★検索窓（2026-10-13 に一本化）。含める語は AND、"-語" は OR（1つでも当たれば落とす） */
   const { include, exclude } = splitQuery(f.q);
@@ -288,19 +287,20 @@ export function filterCandidates(candidates: Candidate[], f: SavedCandidateFilte
 export function countAxisValues(
   candidates: Candidate[], f: SavedCandidateFilters, axis: FilterAxis,
   patches: Record<string, Partial<SavedCandidateFilters>>, now: Date,
-  opts: { ageFilter?: boolean; activity?: boolean; includeHidden?: boolean; newSince?: string | null } = {},
+  opts: { ageFilter?: boolean; activity?: boolean; newSince?: string | null } = {},
 ): Record<string, number> {
   let pop = filterCandidates(candidates, f, now, { ...opts, skipAxis: axis });
   if (opts.newSince) { const since = opts.newSince; pop = pop.filter((c) => isNewSince(c, since)); }
   return Object.fromEntries(Object.entries(patches).map(([k, patch]) => [k, AXIS_FILTERS[axis](pop, { ...f, ...patch }, now).length]));
 }
 
+/* ★並び替えは「意向が強い順」（初期）と「最近更新した順」の2つ（2026-10-28 / 柴さんの指示）。
+      比べ方は candidateGroups.ts（compareByStance / compareByUpdated）。
+   ⚠️ 年齢・最近の利用の並び替えはスイッチがオンの環境だけ（本番は出ない。年齢は今のまま残す決め）。
+   ⚠️ 外した値（touchpoints・new・stance・tenure）は parseSavedFilters が読み替える */
 export const CANDIDATE_SORT_OPTIONS = [
-  /* ★2026-10-13 に既定にした（EMPTY_SAVED_FILTERS.sort）。⚠️ 接点が取れなかった（undefined）人は 0 件として扱わず末尾 */
-  { value: "touchpoints", label: "合うところが多い順" },
-  { value: "new",         label: "新着順" },
-  { value: "stance",      label: "意向の更新が新しい順" },
-  { value: "tenure",      label: "社会人年数が長い順" },
+  { value: "stance_strength", label: "意向が強い順" },
+  { value: "updated",         label: "最近更新した順" },
   /* ★2026-10-12。⚠️ CANDIDATE_AGE_FILTER_ENABLED のときだけ選べる（画面が `AGE_SORTS` を外す）。生年月日が無い人は末尾 */
   { value: "age_young", label: "年齢が若い順" },
   { value: "age_old", label: "年齢が高い順" },
@@ -314,22 +314,7 @@ export const AGE_SORTS: readonly string[] = ["age_young", "age_old"];
 export function sortCandidates(list: Candidate[], sort: string): Candidate[] {
   const out = [...list];
   const newest = (a: Candidate, b: Candidate) => b.createdAt.localeCompare(a.createdAt);
-  if (sort === "stance") {
-    return out.sort((a, b) => {
-      if (!a.careerStanceUpdatedAt && !b.careerStanceUpdatedAt) return 0;
-      if (!a.careerStanceUpdatedAt) return 1;
-      if (!b.careerStanceUpdatedAt) return -1;
-      return b.careerStanceUpdatedAt.localeCompare(a.careerStanceUpdatedAt);
-    });
-  }
-  if (sort === "tenure") {
-    return out.sort((a, b) => {
-      if (a.tenureMonths == null && b.tenureMonths == null) return 0;
-      if (a.tenureMonths == null) return 1;
-      if (b.tenureMonths == null) return -1;
-      return b.tenureMonths - a.tenureMonths;
-    });
-  }
+  if (sort === "updated") return out.sort(compareByUpdated);
   if (sort === "activity") {
     return out.sort((a, b) => {
       const ra = a.activity ? ACTIVITY_RANK[a.activity] : null, rb = b.activity ? ACTIVITY_RANK[b.activity] : null;
@@ -348,18 +333,8 @@ export function sortCandidates(list: Candidate[], sort: string): Candidate[] {
       return (a.age - b.age) * dir || newest(a, b);
     });
   }
-  if (sort === "touchpoints") {
-    /* 件数 → 強さの合計 → 新着。⚠️ 取れなかった人（undefined）は末尾 */
-    const score = (c: Candidate) => c.touchpoints ? [c.touchpoints.length, c.touchpoints.reduce((s, t) => s + t.weight, 0)] : null;
-    return out.sort((a, b) => {
-      const sa = score(a), sb = score(b);
-      if (!sa && !sb) return newest(a, b);
-      if (!sa) return 1;
-      if (!sb) return -1;
-      return sb[0] - sa[0] || sb[1] - sa[1] || newest(a, b);
-    });
-  }
-  return out.sort(newest);
+  /* ★既定（stance_strength）と知らない値は意向が強い順 */
+  return out.sort(compareByStance);
 }
 
 /** 日本時間の「M月D日」。⚠️ サーバーとブラウザで同じ値になるよう Asia/Tokyo に固定する */
@@ -455,7 +430,6 @@ export function describeFilters(
   if (opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0)) out.push(ageRangeLabel(f.ageMin, f.ageMax));
   for (const v of f.employmentTypes) out.push(v);
   for (const p of f.prefectures) out.push(p);
-  if (f.hasTouchpoints) out.push("合うところあり");
   if (f.starredOnly) out.push("気になる");
   for (const v of f.careerStances) { const cs = labels.careerStances.find((o) => o.value === v); if (cs) out.push(cs.label); }
   if (opts.activity) { const a = ACTIVITY_FILTER_OPTIONS.find((o) => o.value === f.activity); if (a) out.push(`利用 ${a.label}`); }

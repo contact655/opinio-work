@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StanceBadge } from "@/components/candidates/StanceMeter";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { PositionFitBox } from "@/components/candidates/PositionFitBox";
-import { groupTouchpoints } from "@/lib/business/candidates/touchpointView";
+import { StarButton } from "@/components/candidates/StarButton";
 import type { PositionFitItem } from "@/lib/business/candidates/positionFitModel";
 import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
-import { formatJstMonthDay, type Candidate, type Touchpoint, type TouchpointMaterials } from "@/lib/business/candidates/model";
+import { formatJstMonthDay, type Candidate, type CompanyContactItem } from "@/lib/business/candidates/model";
 import { ACTIVITY_LABELS } from "@/lib/business/candidates/model";
 import { tenureMonths } from "@/lib/profile/tenure";
 
@@ -61,76 +61,27 @@ function formatTenure(months: number | null): string | null {
 }
 
 /**
- * ★「合うところ」が0件の候補者に出す案内（2026-10-12 / 柴さんの指示）。灰色の1行。
- *   会社側のデータが足りないときだけ出す（足しても合う人が増えないなら出さない）。
- * ⚠️ 取れなかった（materials が null・touchpoints が undefined）ときは出さない。
+ * ★「自社との接点」の欄（2026-10-28 / 柴さんの指示）。それまでの緑の「合うところ」の箱と、要約の4マス目「自社との接点」をここに1つにまとめた。
+ *   ・元社員／「話を聞いてみたい」を御社に送っている／人の流れ（〇〇から御社に入社した人 N人。5人以上のときだけ）
+ *     … サーバーの lib/business/candidates/companyContacts.ts が作る（Candidate.companyContacts）
+ *   ・これまでのやり取り（応募・面談など。選考管理と同じ。最新1件＋ほかn件）… プレビューの API から
+ *   ・どれも無ければ「なし」。⚠️ 取れなかったとき（companyContacts が undefined）は「—」（「なし」と言わない）
+ * ⚠️ 保存（ブックマーク）は出さない（ポリシーの案で、保存は企業に何も渡さないと決めている）。
+ * ⚠️ 色で強調しない（灰色の枠）。緑は「プラスの一致」の色で、ここは事実を並べるだけ
  */
-export function TouchpointGuide({ touchpoints, materials }: { touchpoints: Touchpoint[] | undefined; materials: TouchpointMaterials | null }) {
-  if (!touchpoints || touchpoints.length > 0 || !materials) return null;
-  const line = materials.hasUnlinkedCompanyRoles
-    ? { href: "/biz/organization?tab=roles", text: "部門・職種で標準の職種を選ぶと、合う候補者が見つかりやすくなります" }
-    : materials.hasJobs && materials.hasJobsWithoutYears
-      ? { href: "/biz/jobs", text: "求人に経験年数を入れると、合う候補者が見つかりやすくなります" }
-      : null;
-  if (!line) return null;
+export function CompanyContactsSection({ contacts, history }: { contacts: CompanyContactItem[] | undefined; history: PreviewContacts }) {
+  const lines: { key: string; text: string }[] = (contacts ?? []).map((c, i) => ({ key: `${c.kind}-${i}`, text: c.text }));
+  if (history) lines.push({ key: "history", text: `これまでのやり取り：${formatYm(history.latest.at)} ${history.latest.title}${history.more > 0 ? `（ほか${history.more}件）` : ""}` });
   return (
-    <p data-state="touchpoint-guide" style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.6, color: "var(--ink-mute)" }}>
-      <a href={line.href} style={{ color: "inherit", textDecoration: "none" }}>{line.text} ›</a>
-    </p>
-  );
-}
-
-/**
- * 「〈会社名〉と合うところ（〇）」の枠（2026-10-11 に「貴社との接点」から改めた）。
- * ★2026-10-12（柴さんの指示）: 薄い青の背景の枠に、1件1行で「✓ 分類（太字）文」。2件まで全文、3件以上は「ほかn件」（その場で展開）。
- * ⚠️ 判定（`touchpoints.ts`）は変えていない。見せ方だけ。AI は使っていない（決まった規則で突き合わせて、決まった文を組む）。
- * ⚠️ （〇）は項目の数。％や点数は出さない。⚠️ 0件・取れなかった（undefined）ときは枠ごと出さない。
- * ⚠️ プレビューの部品として切り出してある（/dev/preview から使う）
- */
-/* ★「合うところ」の箱の色（2026-10-13 柴さん判断で変更：青 → 緑。カードの「合う理由」の札と揃える。
-      それまでは royal-50 / royal-100 の青で、選択中のカード・意向「話を聞く」の青と見分けにくかった。緑は「プラスの一致」の色（ui-conventions）。
-      ⚠️ 値はカードの札（CandidatesClient の .cand-card-reason）と同じ。片方だけ変えないこと。
-      コントラスト: 見出し・本文 --ink #0F172A on #ECF6EF = 17.0 ／ 列見出し --ink-mute #475569 = 6.93 ／ チェック #14532D = 8.24 */
-const TP_BG = "#ECF6EF";
-const TP_LINE = "#D3E8DA";
-
-export function TouchpointSection({ touchpoints, companyShortName }: { touchpoints: Touchpoint[] | undefined; companyShortName: string | null }) {
-  /* ★2026-10-13（ステップ4 / モックに合わせた）: 項目／この人／自社 の3列の表で**全件**出す（「ほか○件」で隠さない）。
-        行は `Touchpoint.row`（8種類すべて）。⚠️ row が無い古い形（/dev/preview の固定データ）は分類と文で1行にする
-     ★2026-10-13（柴さんの指示）: 枠が狭いとき（460px 未満。右欄の2列表示など）は表をやめ、1理由1行で
-        「✓ 職種」の下に「この人 営業（関心）」「〈会社名〉 インサイドセールス（営業部）」の2行で出す（2026-10-18 に「↔」をやめた）。
-        ⚠️ 切り替えはコンテナクエリ（この枠の幅）。画面の幅では決めない */
-  if (!touchpoints || touchpoints.length === 0) return null;
-  /* ★2026-10-18（柴さんの指示）: この人の事実を主語にして、合う先をまとめる（touchpointView.ts）。
-        それまでの「項目／この人／自社」の3列の表と、狭いときの2行の形はやめた（同じ語が何度も並んでいた）。
-        広い枠は「事実｜合う先」の2列、狭い枠（460px 未満）は縦に積む。⚠️ 切り替えはコンテナクエリ */
-  const groups = groupTouchpoints(touchpoints);
-  return (
-    <section data-state="touchpoints" className="cand-tp" style={{ marginTop: 12, padding: "12px 14px 8px", borderRadius: 10, background: TP_BG, border: `1px solid ${TP_LINE}` }}>
-      <h3 style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>
-        {companyShortName ?? "貴社"}と合うところ（{groups.length}）
-      </h3>
-      <ul className="cand-tp-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {groups.map((g) => (
-          <li key={g.key} className="cand-tp-row" data-touchpoint-group={g.key}>
-            <span className="cand-tp-label"><span aria-hidden="true" className="cand-tp-check">✓</span>{g.label}</span>
-            {g.detail && <span className="cand-tp-detail">{g.detail}</span>}
-          </li>
-        ))}
-      </ul>
-      {/* ⚠️ style タグの中に山かっこ・引用符を書かない（ハイドレーションが壊れる） */}
-      <style>{`
-        .cand-tp { container-type: inline-size; container-name: candtp; }
-        .cand-tp-row { display: grid; grid-template-columns: minmax(0, 13em) minmax(0, 1fr); gap: 2px 14px; padding: 7px 0; border-top: 1px solid #D3E8DA; font-size: 13px; line-height: 1.6; }
-        .cand-tp-row:first-child { border-top: none; }
-        .cand-tp-label { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
-        .cand-tp-check { color: #14532D; font-weight: 700; margin-right: 6px; }
-        .cand-tp-detail { color: var(--ink-soft); overflow-wrap: anywhere; }
-        @container candtp (max-width: 459.98px) {
-          .cand-tp-row { grid-template-columns: minmax(0, 1fr); }
-          .cand-tp-detail { padding-left: 20px; font-size: 12.5px; }
-        }
-      `}</style>
+    <section data-state="company-contacts" style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+      <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>自社との接点</h3>
+      {lines.length > 0 ? (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+          {lines.map((l) => <li key={l.key} data-state={`contact-${l.key}`} style={{ fontSize: 13, lineHeight: 1.6, color: "var(--ink)", overflowWrap: "anywhere" }}>{l.text}</li>)}
+        </ul>
+      ) : (
+        <p data-state={contacts === undefined ? "contacts-unknown" : "contacts-none"} style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>{contacts === undefined ? "—" : "なし"}</p>
+      )}
     </section>
   );
 }
@@ -168,8 +119,6 @@ export function TransferPrefsBox({ candidate }: { candidate: Candidate }) {
 export type PreviewActions = {
   starred: boolean;
   onToggleStar: () => void;
-  hidden: boolean;
-  onToggleHidden: () => void;
   /** 一覧の中の位置（0始まり）。一覧に居なければ -1 */
   index: number;
   total: number;
@@ -178,7 +127,7 @@ export type PreviewActions = {
 };
 
 export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, canAct = true,
-  companyShortName = null, touchpointMaterials = null, approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead, columnsStorageKey = null, positionFit = null }: {
+  approachJobs = [], notesEnabled = false, actions, layout = "tabs", onMessagesRead, columnsStorageKey = null, positionFit = null }: {
   /** ★一覧の上で選んでいるポジションに対する合うところ（2026-10-18）。選んでいなければ null */
   positionFit?: { title: string; items: PositionFitItem[] } | null;
   /** ★2列表示の比率を覚えるキー（CandidatesClient から。2026-10-13） */
@@ -192,9 +141,6 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
   onClose: () => void; onNoteCountChange?: (count: number) => void;
   /** ★メッセージを送れるか（2026-10-12。閲覧のみは false。送る欄ごと出さない） */
   canAct?: boolean;
-  /** ★「〈会社名〉と合うところ」の会社名。取れなければ null（「貴社と合うところ」） */
-  companyShortName?: string | null;
-  touchpointMaterials?: TouchpointMaterials | null;
   approachJobs?: { id: string; title: string }[];
   /** ★社内メモの欄を出すか（CANDIDATE_NOTES_ENABLED） */
   notesEnabled?: boolean;
@@ -208,7 +154,8 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
   /* ★メッセージのタブを一度でも開いたか。⚠️ 開くまで中身を描かない（描くと既読が付く） */
   const [messagesMounted, setMessagesMounted] = useState(activeTab === "messages");
   /* ★「メッセージを送る」から来たら送る欄を開いた状態にする（値が変わったときだけ。ui-debugging ⑭） */
-  const [openFormNonce, setOpenFormNonce] = useState(0);
+  /* ⚠️ 上の段の「メッセージを送る」を 2026-10-28 に外したので、送る欄を開く合図は今は出ない（0 のまま） */
+  const [openFormNonce] = useState(0);
   const changeTab = useCallback((t: PanelTab) => { setTab(t); writeTabToUrl(t); if (t === "messages") setMessagesMounted(true); }, []);
   const columns = layout === "columns";
   /* ★既読を付けたか（2026-10-13）。⚠️ 表示しただけ・タブを開いただけでは付かない（入力欄にフォーカス・スクロール・送信のときだけ） */
@@ -239,25 +186,6 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
     return () => clearInterval(t);
   }, [activeTab, columns]);
 
-  /* ★「送ったメッセージを見る」「メッセージを続ける」（2026-10-18 / 柴さんの指摘「押しても反応しない」）。
-        2列表示（columns）とメッセージのタブを開いたままのときは、タブが変わらないので何も起きなかった。
-        → タブを切り替えたうえで、メッセージの欄を画面に入れ、いちばん新しいやり取りまで送り、一瞬だけ枠を光らせる。
-        ⚠️ rAF にしない（ui-debugging ⑪）。⚠️ やり取りは後から読み込まれるので、出るまで待つ */
-  const focusMessages = useCallback(() => {
-    if (!columns) changeTab("messages");
-    let tries = 0;
-    const t = setInterval(() => {
-      tries++;
-      const box = messagesScrollRef.current;
-      const target = box?.querySelector<HTMLElement>("[data-state=dock-open], [data-state=pane-thread]");
-      if (!box || (!target && tries < 30)) return;
-      clearInterval(t);
-      box.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
-      const el = target ?? box;
-      el.animate?.([{ boxShadow: "0 0 0 3px var(--royal-100)" }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1200, easing: "ease-out" });
-    }, 100);
-  }, [columns, changeTab]);
 
   const tenure = formatTenure(c.tenureMonths);
   const edited = formatJstMonthDay(c.profileEditedAt);
@@ -278,13 +206,7 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
     </span>
   ) : null;
 
-  /* ★メッセージのボタン（上の段）。やり取りがあれば「メッセージを続ける」、送れる人は「メッセージを送る」。
-        ⚠️ 送れない人・送り済みで返信の無い人には「送る」を出さない（理由はメッセージのタブに灰色の1行で出る） */
-  const a = c.approach;
-  const messageButton = !showMessages || !a ? null
-    : a.sent ? { label: a.sent.state === "accepted" ? "メッセージを続ける" : "送ったメッセージを見る", onClick: focusMessages }
-    : a.eligible ? { label: "メッセージを送る", onClick: () => { if (!columns) changeTab("messages"); setOpenFormNonce((n) => n + 1); } }
-    : null;
+  /* ⚠️ 上の段の「メッセージを送る」は 2026-10-28 に外した（柴さんの指示）。送るのはメッセージの欄（右の列・タブ）から */
 
   return (
     <CandidateProfilePanel
@@ -297,16 +219,21 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
             それまでは要約の上に単独の行を使っていた。1行ぶん縦が詰まり、名前と一緒に読める）。
             見た目はカードと同じ枠線なしの塗りの札（plain）。表記は右欄では長いまま。
             ⚠️「○日前に更新」はバッジの横に添えない。下の要約の「意向の更新」と重複するため、要約の方だけ残した */
-      nameAction={c.careerStance ? <span data-state="header-stance" style={{ display: "inline-flex", marginLeft: 2 }}><StanceBadge stance={c.careerStance} plain /></span> : undefined}
+      /* ★名前の横に☆（2026-10-28 / 柴さんの指示。カードと同じ形・同じ動き。aria-label と aria-pressed は StarButton が持つ） */
+      nameAction={(c.careerStance || canAct) ? (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 2 }}>
+          {c.careerStance && <span data-state="header-stance" style={{ display: "inline-flex" }}><StanceBadge stance={c.careerStance} plain /></span>}
+          {canAct && <span data-state="header-star" style={{ display: "inline-flex" }}><StarButton starred={actions.starred} onToggle={actions.onToggleStar} size={26} /></span>}
+        </span>
+      ) : undefined}
       onClose={onClose}
-      topBar={<PreviewActionBar canAct={canAct} actions={actions} messageButton={messageButton} />}
+      topBar={<PreviewActionBar actions={actions} />}
       headerExtra={<PreviewHeaderLines candidate={c} contacts={contacts} />}
       sectioned
       before={<>
         <TransferPrefsBox candidate={c} />
         {positionFit && <PositionFitBox title={positionFit.title} items={positionFit.items} />}
-        <TouchpointSection touchpoints={c.touchpoints} companyShortName={companyShortName} />
-        <TouchpointGuide touchpoints={c.touchpoints} materials={touchpointMaterials} />
+        <CompanyContactsSection contacts={c.companyContacts} history={contacts} />
       </>}
       extraSections={notesEnabled ? [{ key: "notes", label: "メモ", body: <CandidateNotesPreview candidateUserId={c.id} candidateName={c.name} onCountChange={onNoteCountChange} /> }] : undefined}
       columns={showMessages && columns ? {
@@ -335,60 +262,21 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
 }
 
 /**
- * ★右欄の上の段（2026-10-13 / 柴さんの指示）。［メッセージ］［☆ 気になる］［見送り］ … 右端に［‹］「2 / 19」［›］。
+ * ★右欄の上の段。右端に［‹］「2 / 19」［›］。
+ * ⚠️ 2026-10-28（柴さんの指示）: 「メッセージを送る」と「見送り」を外し、「気になる」は名前の横の☆へ移した。残るのは前後の移動だけ。
  * ⚠️ ‹ › は一覧の J/K と同じ移動（`CandidatesClient` の moveSelection）。端では押せない。
- * ⚠️ アイコンだけのボタンには aria-label。⚠️ 閲覧のみ（canAct=false）は ‹ › だけ。
- * ⚠️ 「選考に追加」は置かない（API が無い。2026-10-13）。
  */
-function PreviewActionBar({ canAct, actions, messageButton }: {
-  canAct: boolean; actions: PreviewActions;
-  messageButton: { label: string; onClick: () => void } | null;
-}) {
-  const btn: React.CSSProperties = {
-    /* ⚠️ 左右の padding は CSS（.cand-bar-btn。CandidatesClient）。右欄の幅で詰めるのでインラインに書かない */
-    display: "inline-flex", alignItems: "center", gap: 6, height: 32, borderRadius: 8,
-    border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 12.5, fontWeight: 600,
-    fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-  };
+function PreviewActionBar({ actions }: { actions: PreviewActions }) {
   const nav = (disabled: boolean): React.CSSProperties => ({
-    ...btn, width: 32, padding: 0, justifyContent: "center", fontSize: 16,
-    cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.35 : 1,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, borderRadius: 8,
+    border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", fontSize: 16, fontFamily: "inherit",
+    flexShrink: 0, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.35 : 1,
   });
   const { index, total } = actions;
   const prevDisabled = index <= 0;
   const nextDisabled = index < 0 || index >= total - 1;
   return (
-    /* ★1行に収める（2026-10-13 / 柴さんの指示で段を分けた。CSS のコンテナクエリは CandidatesClient）:
-          右欄 510px 以上 … 全部に文字 ／ 510px 未満 … 「気になる」だけ ☆ のみ ／ 462px 未満 … 余白を詰める ／
-          420px 未満 … 全部アイコンだけ。⚠️ アイコンだけのときも title と aria-label は残す
-       ⚠️ gap・padding・位置の幅は CSS（.cand-bar / .cand-bar-btn / .cand-bar-pos）。インラインに書かない（詰められなくなる） */
     <div data-state="preview-action-bar" className="cand-bar" style={{ display: "flex", alignItems: "center", flexWrap: "nowrap", marginBottom: 12, minWidth: 0 }}>
-      {canAct && messageButton && (
-        <button type="button" onClick={messageButton.onClick} data-state="bar-message" className="btn-fixed-size cand-bar-btn" aria-label={messageButton.label} title={messageButton.label}
-          style={{ ...btn, border: "none", background: "var(--royal)", color: "#fff", fontWeight: 700 }}>
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span className="cand-bar-label">{messageButton.label}</span>
-        </button>
-      )}
-      {canAct && (
-        <button type="button" onClick={actions.onToggleStar} aria-pressed={actions.starred} data-state={actions.starred ? "bar-star-on" : "bar-star-off"}
-          title="気になる（社内で共有・ご本人には通知されません）" className="btn-fixed-size cand-bar-btn" aria-label="気になる"
-          style={{ ...btn, color: actions.starred ? "var(--royal)" : "var(--ink-soft)", borderColor: actions.starred ? "var(--royal)" : "var(--line)" }}>
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={actions.starred ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-            <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
-          </svg>
-          <span className="cand-bar-label cand-bar-label-star">気になる</span>
-        </button>
-      )}
-      {canAct && (
-        <button type="button" onClick={actions.onToggleHidden} aria-pressed={actions.hidden} data-state={actions.hidden ? "bar-unhide" : "bar-hide"}
-          title={`${actions.hidden ? "見送りを解除" : "見送り"}（一覧から外します。社内だけ・ご本人には伝わりません）`} className="btn-fixed-size cand-bar-btn" aria-label={actions.hidden ? "見送りを解除" : "見送り"}
-          /* ⚠️「見送りを解除」は文字が長く、右欄 510〜546px で帯からはみ出す。このボタンだけ縮めて末尾を「…」にする（全文は title） */
-          style={{ ...btn, flexShrink: 1, minWidth: 0 }}>
-          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>
-          <span className="cand-bar-label" style={{ overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{actions.hidden ? "見送りを解除" : "見送り"}</span>
-        </button>
-      )}
       <div className="cand-bar" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
         <button type="button" onClick={actions.onPrev} disabled={prevDisabled} aria-label="前の候補者" data-state="bar-prev" className="btn-fixed-size" style={nav(prevDisabled)}>‹</button>
         <span data-state="bar-position" className="cand-bar-pos" style={{ fontSize: 12.5, color: "var(--ink-mute)", textAlign: "center", fontFamily: "var(--font-inter), var(--font-noto)" }}>
@@ -407,9 +295,10 @@ function PreviewActionBar({ canAct, actions, messageButton }: {
  *   4行目 … この会社との接点（選考管理の「この会社とのこれまで」と同じ。最新1件＋「ほかn件」）
  * ⚠️ /dev/preview/candidate-touchpoints から使う（Third Box の実データには接点が無く、4行目を描けないため）
  */
-export function PreviewHeaderLines({ candidate, contacts }: {
+export function PreviewHeaderLines({ candidate }: {
   candidate: Candidate;
-  contacts: PreviewContacts;
+  /** 【2026-10-28 から使っていない】これまでのやり取りは「自社との接点」の欄（CompanyContactsSection）へ移した */
+  contacts?: PreviewContacts;
 }) {
   /* ★2026-10-13（ステップ4 / モックに合わせた）: 意向は3段のバッジ（`StanceBadge`。それまでの4段ドットを置き換えた）。
         ⚠️ バッジは 2026-10-13 に名前の行へ移した（CandidatePreview の nameAction）。ここは4マスの要約だけ：現職の在籍期間／居住地／意向の更新（相対表記）／自社との接点。
@@ -418,7 +307,6 @@ export function PreviewHeaderLines({ candidate, contacts }: {
     { label: "現職の在籍期間", value: tenureSince(candidate.startedAt) ?? "—", state: "summary-current-tenure" },
     { label: "居住地", value: candidate.location || "—", state: "summary-location" },
     { label: "意向の更新", value: relativeJa(candidate.careerStanceUpdatedAt) ?? "—", state: "summary-stance-updated" },
-    { label: "自社との接点", value: contacts ? `${formatYm(contacts.latest.at)} ${contacts.latest.title}${contacts.more > 0 ? `（ほか${contacts.more}件）` : ""}` : "なし", state: "summary-contacts" },
   ];
   return (
     <div data-state="preview-header-lines" style={{ marginTop: 6 }}>

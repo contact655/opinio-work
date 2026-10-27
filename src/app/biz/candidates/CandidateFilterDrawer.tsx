@@ -18,7 +18,7 @@ import { ResidenceOptions, RoleTreeOptions, StanceOptions, TenureOptions, comput
  *    `filterCandidates(…, { skipAxis })` で母集団を作り、その軸の値を1つずつ `AXIS_FILTERS` に通して数える。
  *    ⚠️ **件数のために条件を書き写さないこと**（選んだ結果と件数が食い違う）。
  * ⚠️★件数は**下書き**の条件で数える（開いてから選んだものも反映する）。ブラウザ側だけで数える（API は増やさない）。
- * ⚠️ 検索窓（q）・新着だけ（保存した条件）・見送った人を表示するか、はいつも掛かる（一覧と同じ母集団にする）。
+ * ⚠️ 検索窓（q）・新着だけ（保存した条件）はいつも掛かる（一覧と同じ母集団にする）。
  * ⚠️ 年齢・最近の利用はスイッチが有効なときだけ出す（件数は出さない）。
  */
 
@@ -26,14 +26,14 @@ import { ResidenceOptions, RoleTreeOptions, StanceOptions, TenureOptions, comput
 export function drawerFilterCount(f: SavedCandidateFilters, opts: { ageFilter: boolean; activity: boolean }): number {
   return [
     f.expRoleIds.length > 0, f.desiredRoleIds.length > 0, f.careerStances.length > 0, !!f.tenureBand,
-    f.prefectures.length > 0, f.hasTouchpoints, f.starredOnly, !!f.stanceFreshness, f.employmentTypes.length > 0,
+    f.prefectures.length > 0, f.starredOnly, !!f.stanceFreshness, f.employmentTypes.length > 0,
     opts.ageFilter && (f.ageMin > 0 || f.ageMax > 0), opts.activity && !!f.activity,
   ].filter(Boolean).length;
 }
 
 
 export function CandidateFilterDrawer({
-  open, onClose, applied, onApply, candidates, newSince, includeHidden, ageFilterEnabled, activityEnabled, roleFilterTree, returnFocusRef,
+  open, onClose, applied, onApply, candidates, newSince, ageFilterEnabled, activityEnabled, roleFilterTree, returnFocusRef,
 }: {
   open: boolean;
   onClose: () => void;
@@ -41,10 +41,9 @@ export function CandidateFilterDrawer({
   applied: SavedCandidateFilters;
   /** 「結果を表示」で下書きを渡す */
   onApply: (f: SavedCandidateFilters) => void;
-  /** ★・見送りを重ねた候補者（一覧と同じもの） */
+  /** ★を重ねた候補者（一覧と同じもの） */
   candidates: Candidate[];
   newSince: string | null;
-  includeHidden: boolean;
   ageFilterEnabled: boolean;
   activityEnabled: boolean;
   roleFilterTree: RoleTree;
@@ -63,11 +62,11 @@ export function CandidateFilterDrawer({
   /* ⚠️ 開いている間だけ数える（閉じているときは数えない）。数え方は filterAxes.ts の computeAxisCounts（一次チップと同じ） */
   const counts = useMemo(() => {
     if (!open) return null;
-    const o = { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden, newSince };
+    const o = { ageFilter: ageFilterEnabled, activity: activityEnabled, newSince };
     let all = filterCandidates(candidates, draft, now, o);
     if (newSince) all = all.filter((c) => isNewSince(c, newSince));
     return { ...computeAxisCounts(candidates, draft, now, o, roleFilterTree), result: all.length };
-  }, [open, draft, candidates, newSince, includeHidden, ageFilterEnabled, activityEnabled, roleFilterTree, now]);
+  }, [open, draft, candidates, newSince, ageFilterEnabled, activityEnabled, roleFilterTree, now]);
 
   /* ── 落ちる人の注記（一覧の詳細検索にあったもの。下書きの条件で数える） ── */
   const pop = useMemo(() => (open ? (newSince ? candidates.filter((c) => isNewSince(c, newSince)) : candidates) : []), [open, candidates, newSince]);
@@ -109,9 +108,8 @@ export function CandidateFilterDrawer({
         {droppedNoResidence > 0 && <p className="fdr-note">居住地が未登録・非公開の {droppedNoResidence} 名は、居住地で絞ると含みません。</p>}
       </FilterDrawerSection>
 
-      <FilterDrawerSection title="合うところ・気になる" state="fdr-flags">
-        <FilterOption label="合うところあり" count={counts.touchpoints} checked={draft.hasTouchpoints}
-          onChange={() => set("hasTouchpoints", !draft.hasTouchpoints)} state="opt-touchpoints" />
+      {/* ⚠️「合うところあり」は 2026-10-28 に外した（柴さんの指示） */}
+      <FilterDrawerSection title="気になる" state="fdr-flags">
         <FilterOption label="気になる（★を付けた方）" count={counts.starred} checked={draft.starredOnly}
           onChange={() => set("starredOnly", !draft.starredOnly)} state="opt-starred" />
       </FilterDrawerSection>

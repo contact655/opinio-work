@@ -47,6 +47,8 @@ function cand(over: Partial<Candidate> & { id: string; name: string }): Candidat
     desiredPrefectures: null, desiredSalaryMin: null, desiredSalaryMax: null,
     onboardingCompleted: true,
     createdAt: "2026-09-01T00:00:00Z", autoSkills: [],
+    /* ★既定は職歴あり（2026-10-28）。「経歴がまだ少ない人」を見せたいときだけ 0 や現職なしにする */
+    experienceCount: 2,
     ...over,
   };
 }
@@ -98,7 +100,7 @@ const FULL: Candidate[] = [
     /* ⚠️ 社会人年数が未算出（職歴0件）。**「0年」と出ないこと**／
           「社会人年数」で絞っても**落ちないこと**（注記が出る） */
     id: "c3", name: "中里 康貴", location: null,
-    careerStance: "open", tenureMonths: null,
+    careerStance: "open", tenureMonths: null, experienceCount: 0,
     desiredRoleIds: ["r-eng"], desiredRoleNames: ["バックエンドエンジニア"],
     createdAt: "2026-09-05T00:00:00Z",
   }),
@@ -123,33 +125,35 @@ const FULL: Candidate[] = [
       ⚠️ 実データでは経験職種・雇用形態・★の組み合わせが薄く、0件の灰色や「その軸以外」の数え方を踏めない。
       ⚠️ 雇用形態は DB の値（日本語）。経験・希望職種は親まで展開した形（load.ts と同じ） */
 const H = 3600e3, D = 86400e3;
-const tp = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: "company_role" as const, text: `合うところ${i + 1}`, ref: null, weight: 5 - i,
-  row: { item: "職種", person: i === 0 ? "営業（経験）" : "インサイドセールス（関心）", ours: "インサイドセールス（営業部）" } }));
+/* ★自社との接点（2026-10-28）。「合うところ」（touchpoints）は外した */
+const CONTACT_ALUMNI = { kind: "alumni" as const, text: "元社員（職歴にこの会社があります）" };
+const CONTACT_INTEREST = { kind: "interest" as const, text: "「話を聞いてみたい」を御社に送っています" };
+const CONTACT_FLOW = { kind: "flow" as const, text: "株式会社サンプルから御社に入社した人 6人" };
 const FACET: Candidate[] = [
   cand({ id: "f1", name: "青木 一郎", location: "東京都港区", careerStance: "active", careerStanceUpdatedAt: new Date(Date.now() - 2 * H).toISOString(),
     tenureMonths: 148, currentRole: "AE", currentCompany: "株式会社サンプル", employmentType: "正社員",
     expRoleIds: ["r-sales", "r-ae"], desiredRoleIds: ["r-sales", "r-ae"], desiredRoleNames: ["アカウントエグゼクティブ"],
-    touchpoints: tp(2), starred: true, createdAt: "2026-10-01T00:00:00Z" }),
+    companyContacts: [CONTACT_INTEREST, CONTACT_FLOW], starred: true, createdAt: "2026-10-01T00:00:00Z" }),
   cand({ id: "f2", name: "井上 二郎", location: "大阪府大阪市", careerStance: "researching", careerStanceUpdatedAt: new Date(Date.now() - 20 * D).toISOString(),
     tenureMonths: 40, currentRole: "FS", currentCompany: "株式会社ZAP", employmentType: "正社員",
     expRoleIds: ["r-sales", "r-fs"], desiredRoleIds: ["r-sales", "r-fs"], desiredRoleNames: ["フィールドセールス"],
-    touchpoints: [], createdAt: "2026-09-30T00:00:00Z",
+    companyContacts: [], createdAt: "2026-09-30T00:00:00Z",
     approach: { eligible: false, sent: { id: "fa2", conversationId: null, sentAt: "2026-10-05T00:00:00Z", senderName: "山田 花子", state: "pending", resendAt: "2027-04-03T00:00:00Z" }, unreadCount: 0, unseenReply: false } }),
   cand({ id: "f3", name: "上田 三郎", location: null, careerStance: "open", tenureMonths: null,
     desiredRoleIds: ["r-eng", "r-be"], desiredRoleNames: ["バックエンドエンジニア"], createdAt: "2026-09-29T00:00:00Z" }),
   cand({ id: "f4", name: "江藤 四郎", location: "神奈川県横浜市", careerStance: "active", careerStanceUpdatedAt: new Date(Date.now() - 5 * D).toISOString(),
     tenureMonths: 11, currentRole: "IS", currentCompany: "株式会社アルファ", employmentType: "契約社員",
     expRoleIds: ["r-sales", "r-is"], desiredRoleIds: ["r-sales", "r-is"], desiredRoleNames: ["インサイドセールス"],
-    touchpoints: tp(1), createdAt: "2026-09-28T00:00:00Z" }),
+    companyContacts: [], createdAt: "2026-09-28T00:00:00Z" }),
   cand({ id: "f5", name: "大野 五郎", location: "東京都新宿区", careerStance: "open", careerStanceUpdatedAt: new Date(Date.now() - 40 * D).toISOString(),
     tenureMonths: 70, currentRole: "バックエンド", currentCompany: "株式会社ベータ", employmentType: "正社員",
     expRoleIds: ["r-eng", "r-be"], desiredRoleIds: ["r-eng", "r-be"], desiredRoleNames: ["バックエンドエンジニア"],
-    touchpoints: tp(1), starred: true, createdAt: "2026-09-27T00:00:00Z",
+    companyContacts: [CONTACT_ALUMNI], starred: true, createdAt: "2026-09-27T00:00:00Z",
     approach: { eligible: false, sent: { id: "fa5", conversationId: "cv5", sentAt: "2026-10-02T00:00:00Z", senderName: "山田 花子", state: "accepted", resendAt: "2027-03-31T00:00:00Z" }, unreadCount: 1, unseenReply: false } }),
   cand({ id: "f6", name: "加藤 六郎", location: "福岡県福岡市", careerStance: "researching", careerStanceUpdatedAt: null,
     tenureMonths: 30, currentRole: "CS", currentCompany: "株式会社ガンマ", employmentType: "業務委託",
     expRoleIds: ["r-cs"], desiredRoleIds: ["r-cs", "r-sales"], desiredRoleNames: ["カスタマーサクセス", "営業"],
-    touchpoints: tp(1), createdAt: "2026-09-26T00:00:00Z" }),
+    companyContacts: [], createdAt: "2026-09-26T00:00:00Z" }),
 ];
 
 export default function CandidatesPreview() {
@@ -178,7 +182,7 @@ export default function CandidatesPreview() {
         label="すべてのフィルター（件数の数え方・6名）"
         note="⚠️ 件数は「その軸以外の条件を掛けたあとの人数」。例：転職への意向で「積極的」を選ぶと、経験職種の「営業」は2（青木・江藤）、意向の「積極的」自身は2のまま、「情報収集」は2（他の軸だけで数える）。0件は灰色で選べない。結果を表示（○名）は下書きで変わり、✕・Esc・外側で閉じると一覧は変わらない"
       >
-        <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
+        <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE} />
       </Variant>
 
       {/* ★右欄の2列表示の区切り線（2026-10-13）。⚠️ このページの枠（980px）では右欄が 680px に届かずタブになるので、
@@ -188,7 +192,7 @@ export default function CandidatesPreview() {
         note="⚠️ 1920px で開く。内側の線：ドラッグで動く・プロフィール 320px／メッセージ 300px で止まる・ダブルクリックで 55% に戻る・Tab → ←→ で 40px。外側の線を動かしても内側の比率が保たれる。右欄が 680px 未満になるとタブに変わり、内側の線は消える"
       >
         <div data-state="preview-fullbleed" style={{ width: "calc(100vw - 40px)", marginLeft: "calc(50% - 50vw + 20px)" }}>
-          <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE} companyShortName="Third Box"
+          <CandidatesClient candidates={FACET} roleFilterTree={ROLE_TREE}
             stageStorageKey="dev-preview-cand-stage" columnsStorageKey="dev-preview-cand-cols" />
         </div>
       </Variant>
@@ -199,7 +203,7 @@ export default function CandidatesPreview() {
         label="検証用の会社を実アカウントで見た状態（一覧の上の1行）"
         note="⚠️ 一覧の上に灰色で「検証用の会社のため、このアカウントからは送れません」。「いま、メッセージを送れる候補者はいません。」が出ないこと"
       >
-        <CandidatesClient candidates={FULL.map((c) => ({ ...c, approach: { eligible: false, sent: null, blocked: "test_company" as const } }))} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
+        <CandidatesClient candidates={FULL.map((c) => ({ ...c, approach: { eligible: false, sent: null, blocked: "test_company" as const } }))} roleFilterTree={ROLE_TREE} />
       </Variant>
       <Variant
         label="右のプレビューのボタンの位置（状態ごと）"
@@ -221,17 +225,19 @@ export default function CandidatesPreview() {
         </div>
       </Variant>
 
-      {/* ★メッセージの状態と見送り（2026-10-13）。未読ありの人・見送った人は実データで作ると書き込みが要るので、ここで見る */}
+      {/* ★メッセージの状態と、経歴がまだ少ない人（2026-10-28 に見送りを外して置き換えた） */}
       <Variant
-        label="メッセージの状態と見送り（2026-10-13）"
-        note="⚠️ カードに「送信済み」「返信あり」「返信あり・未読」（数字なし）。未読ありの人を選ぶとタブ「メッセージ」の右に小さな丸。末尾に「見送った1名は非表示 ／ 表示する」→ 押すと薄く「山田 花子さんが見送り・10/13」と「解除」"
+        label="メッセージの状態と、経歴がまだ少ない人（2026-10-28）"
+        note="⚠️ カードに「送信済み」「返信あり」「返信あり・未読」（数字なし）。末尾に「経歴がまだ少ない人（3人）／表示する」（初期は閉じている。中里・職歴なし・現職なし）→ 押すと3人が出る。見送りのボタンはどこにも無い"
       >
         <CandidatesClient candidates={[
           { ...FULL[0], approach: { eligible: false, sent: { id: "a1", conversationId: "cv1", sentAt: "2026-10-01T00:00:00Z", senderName: "山田 花子", state: "accepted", resendAt: "2027-03-30T00:00:00Z" }, unreadCount: 2, unseenReply: false } },
           { ...FULL[1], approach: { eligible: false, sent: { id: "a2", conversationId: "cv2", sentAt: "2026-10-02T00:00:00Z", senderName: "山田 花子", state: "accepted", resendAt: "2027-03-31T00:00:00Z" }, unreadCount: 0, unseenReply: false } },
           { ...FULL[2], approach: { eligible: false, sent: { id: "a3", conversationId: null, sentAt: "2026-10-05T00:00:00Z", senderName: "山田 花子", state: "pending", resendAt: "2027-04-03T00:00:00Z" }, unreadCount: 0, unseenReply: false } },
-          { ...FULL[3], hidden: true, hiddenBy: { name: "山田 花子", at: "2026-10-13T03:00:00Z" }, approach: { eligible: true, sent: null } },
-        ]} roleFilterTree={ROLE_TREE} companyShortName="Third Box" />
+          { ...FULL[3], approach: { eligible: true, sent: null } },
+          cand({ id: "thin1", name: "職歴なし 太郎", careerStance: "active", experienceCount: 0, desiredRoleNames: ["営業"] }),
+          cand({ id: "thin2", name: "現職なし 花子", careerStance: "open", experienceCount: 1, location: "東京都", currentRole: null, roleName: null, currentCompany: null }),
+        ]} roleFilterTree={ROLE_TREE} />
       </Variant>
 
       <Variant

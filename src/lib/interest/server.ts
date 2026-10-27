@@ -358,14 +358,25 @@ export async function repliedConversations(db: Db, convIds: string[]): Promise<S
  * ⚠️ 取得に失敗したら null（0人と出さない）。名前は返さない（数と最初の日だけ）。
  */
 export type AwaitingReply = { count: number; oldestAt: string | null; oldestConversationId: string | null };
-export async function countAwaitingReply(companyId: string): Promise<AwaitingReply | null> {
+export async function countAwaitingReply(companyId: string, opts: {
+  /** ★見ている担当者（ow_users.id）。渡すと、その人と検証用かどうかが同じ人だけを数える（2026-10-28 / 柴さんの指示。
+   *  検証用の担当者には検証用の人だけ、実在の担当者には実在の人だけ）。⚠️ 取れなければ null（数えない） */
+  viewerOwUserId?: string;
+} = {}): Promise<AwaitingReply | null> {
   const db = createAdminClient();
-  const { data: co, error: cErr } = await db.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle();
+  const [{ data: co, error: cErr }, viewer] = await Promise.all([
+    db.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle(),
+    opts.viewerOwUserId ? db.from("ow_users").select("is_test").eq("id", opts.viewerOwUserId).maybeSingle() : Promise.resolve(null),
+  ]);
   if (cErr || !co) { if (cErr) console.error("[interest] 返事待ち 企業:", cErr.message); return null; }
+  if (viewer && (viewer.error || !viewer.data)) { if (viewer.error) console.error("[interest] 返事待ち 担当者:", viewer.error.message); return null; }
+  /* ⚠️ 会社と担当者の両方と検証用かどうかがそろう人だけ。食い違うとき（実在の会社の検証用の担当者など）は0人 */
+  const companyTest = co.is_test === true;
+  if (viewer?.data && (viewer.data.is_test === true) !== companyTest) return { count: 0, oldestAt: null, oldestConversationId: null };
   const { data: rows, error } = await db.from("ow_for_you_reactions")
     .select("user_id, conversation_id, delivered_at, ow_users!inner(is_test)")
     .eq("company_id", companyId).in("interest_status", ["delivered", "no_reply"]).not("conversation_id", "is", null)
-    .eq("ow_users.is_test", co.is_test === true);
+    .eq("ow_users.is_test", companyTest);
   if (error) { console.error("[interest] 返事待ち:", error.message); return null; }
   const list = (rows ?? []) as unknown as { conversation_id: string; delivered_at: string | null }[];
   const replied = await repliedConversations(db, list.map((r) => r.conversation_id));

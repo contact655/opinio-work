@@ -18,7 +18,7 @@ import { canUse, type PlanType } from "@/lib/constants/plans";
 import { getRecentlyApproached, listApproachableJobs, unseenRepliedConversationIds, type RecentApproach } from "@/lib/approaches/server";
 import { unreadMessageCounts } from "@/lib/conversations/unread";
 import { isCandidateNotesEnabled, listCandidateNoteCounts, listCandidateStages } from "@/lib/candidateNotes/server";
-import { getCompanyCandidateTouchpoints, type TouchpointMaterials } from "@/lib/business/candidates/touchpoints";
+import { getCompanyContacts } from "@/lib/business/candidates/companyContacts";
 import { getCompanyPositionFits } from "@/lib/business/candidates/positionFit";
 import type { PositionFits, PositionOption } from "@/lib/business/candidates/positionFitModel";
 import type { Candidate, CandidateTestMismatch } from "@/lib/business/candidates/model";
@@ -42,8 +42,6 @@ export type LoadedCandidates = {
   limitReached: boolean;
   roleFilterTree: { id: string; name: string; children: { id: string; name: string }[] }[];
   approachJobs: { id: string; title: string }[];
-  /** 接点の材料が自社に揃っているか。null = 取れなかった */
-  touchpointMaterials: TouchpointMaterials | null;
   /** ★ポジションで見る（2026-10-18）。自社の求人（下書きも含む）と、求人ごとの合うところ。null = 取れなかった */
   positions: PositionOption[] | null;
   positionFits: PositionFits;
@@ -213,16 +211,12 @@ export async function loadCompanyCandidates(params: {
       else approachOk = new Map(((data ?? []) as { candidate_ow_user_id: string; ok: boolean }[]).map((r) => [r.candidate_ow_user_id, r.ok === true]));
     }
   }
-  const [approachJobs, recentlyApproached, stages, touch, noteCounts, positionFit] = await Promise.all([
+  /* ⚠️ 「合うところ」（getCompanyCandidateTouchpoints）は 2026-10-28 にこの画面から外した（柴さんの指示）。代わりに「自社との接点」 */
+  const [approachJobs, recentlyApproached, stages, contacts, noteCounts, positionFit] = await Promise.all([
     approachAllowed ? listApproachableJobs(companyId) : Promise.resolve([] as { id: string; title: string }[]),
     approachAllowed ? getRecentlyApproached(companyId, userIds) : Promise.resolve(new Map<string, RecentApproach>()),
     isCandidateNotesEnabled() ? listCandidateStages(companyId, userIds) : Promise.resolve(null),
-    getCompanyCandidateTouchpoints(companyId, companyIsTest, users.map((u) => ({
-      owUserId: u.id as string,
-      isTest: u.is_test === true,
-      location: (u.location as string | null) ?? null,
-      desiredRoleIds: desiredByAuthId.get(u.auth_id as string)?.ids ?? [],
-    }))),
+    getCompanyContacts({ companyId, companyIsTest, candidateIds: userIds }),
     /* ★社内メモの件数（カードの「社内メモ 〇」。2026-10-11）。⚠️ フラグがオフなら引かない */
     isCandidateNotesEnabled() ? listCandidateNoteCounts(companyId, userIds) : Promise.resolve(null),
     /* ★ポジションで見る（2026-10-18）。⚠️ 突き合わせは positionFit.ts の1か所 */
@@ -234,36 +228,20 @@ export async function loadCompanyCandidates(params: {
     }))),
   ]);
 
-  /* ★★（気になる。2026-10-12）と見送り（2026-10-13）。この会社の分だけ。⚠️ 取れなければ全員 false（ログは出す）。
+  /* ★★（気になる。2026-10-12）。この会社の分だけ。⚠️ 取れなければ全員 false（ログは出す）。
+        ⚠️ 見送り（ow_candidate_hidden）は 2026-10-28 に廃止したので読まない（記録の表は残す）。
         ★未読（2026-10-13）。メッセージを送った人がいるときだけ、一覧の分を**まとめて1回**取る（1人ずつ取らない）。
         ⚠️ 見ている担当者の未読（`unreadMessageCounts`）と、自社の誰も開いていない返信（`unseenRepliedConversationIds`）。
            右欄のタブ「メッセージ（n）」と一覧の「返信あり」が同じ値を見る */
   const starred = new Set<string>();
-  const hiddenIds = new Set<string>();
   const hasConversation = Array.from(recentlyApproached?.values() ?? []).some((a) => !!a.conversationId);
-  const [starsR, hiddenR, unreadCounts, unseenConvs] = await Promise.all([
+  const [starsR, unreadCounts, unseenConvs] = await Promise.all([
     inChunks(userIds, (part, from, to) => adminClient.from("ow_candidate_stars").select("candidate_user_id").eq("company_id", companyId).in("candidate_user_id", part).order("candidate_user_id").range(from, to), "candidates stars"),
-    inChunks(userIds, (part, from, to) => adminClient.from("ow_candidate_hidden").select("candidate_user_id, hidden_by, created_at").eq("company_id", companyId).in("candidate_user_id", part).order("candidate_user_id").range(from, to), "candidates hidden"),
     approachAllowed && hasConversation ? unreadMessageCounts(params.viewerOwUserId, { companyId }) : Promise.resolve(new Map<string, number>()),
     approachAllowed && hasConversation ? unseenRepliedConversationIds(companyId) : Promise.resolve(new Set<string>()),
   ]);
   if (starsR.error) console.error("[candidates] ow_candidate_stars:", starsR.error);
-  if (hiddenR.error) console.error("[candidates] ow_candidate_hidden:", hiddenR.error);
   for (const r of starsR.data ?? []) starred.add(r.candidate_user_id as string);
-  for (const r of hiddenR.data ?? []) hiddenIds.add(r.candidate_user_id as string);
-  /* ★誰がいつ見送ったか（2026-10-13）。見送った担当者の名前はまとめて1回。⚠️ 取れなければ名前なし（「見送り・日付」） */
-  const hiddenInfo = new Map<string, { name: string | null; at: string }>();
-  const hiderIds = Array.from(new Set((hiddenR.data ?? []).map((r) => r.hidden_by as string | null).filter((v): v is string => !!v)));
-  const hiderNames = new Map<string, string>();
-  if (hiderIds.length) {
-    const { data: hs, error: hsErr } = await inChunks(hiderIds, (part, from, to) => adminClient.from("ow_users").select("id, name").in("id", part).order("id").range(from, to), "candidates hiders");
-    if (hsErr) console.error("[candidates] hidden_by names:", hsErr);
-    for (const h of hs ?? []) hiderNames.set(h.id as string, ((h.name as string | null) ?? "").trim());
-  }
-  for (const r of hiddenR.data ?? []) {
-    hiddenInfo.set(r.candidate_user_id as string, { name: (r.hidden_by && hiderNames.get(r.hidden_by as string)) || null, at: r.created_at as string });
-  }
-
   const candidates: Candidate[] = users.map((u) => {
     const authId = u.auth_id as string;
     const profile = profilesByAuthId.get(authId) ?? null;
@@ -280,6 +258,8 @@ export async function loadCompanyCandidates(params: {
       careerStanceUpdatedAt: (profile?.career_stance_updated_at as string | null) ?? null,
       /* ⚠️ 職歴0件は null（0年で埋めない） */
       tenureMonths: calcTotalExperience(careerRangesByUser.get(u.id as string) ?? [])?.months ?? null,
+      /* ★職歴の件数（2026-10-28。「経歴がまだ少ない人」の判定。candidateGroups.ts） */
+      experienceCount: (expRowsByUser.get(u.id as string) ?? []).length,
       /* ★年齢（数だけ）。⚠️ 生年月日が無ければ null（推測しない）。birth_date そのものは返さない */
       age: ageDisplay ? getUserAge((u.birth_date as string | null) ?? null) : null,
       /* ★性別の表示用の文字だけ（男性・女性・その他）。「回答しない」・未登録は null。⚠️ 値は渡さない（絞り込みに使わせない） */
@@ -335,10 +315,9 @@ export async function loadCompanyCandidates(params: {
         : undefined,
       stage: stages ? (stages.get(u.id as string) ?? null) : undefined,
       noteCount: noteCounts ? (noteCounts.get(u.id as string) ?? 0) : undefined,
-      touchpoints: touch ? (touch.byCandidate.get(u.id as string) ?? []) : undefined,
+      /* ★自社との接点（2026-10-28）。⚠️ 取れなければ undefined（画面は「—」） */
+      companyContacts: contacts ? (contacts.get(u.id as string) ?? []) : undefined,
       starred: starred.has(u.id as string),
-      hidden: hiddenIds.has(u.id as string),
-      hiddenBy: hiddenInfo.get(u.id as string) ?? null,
     };
   });
 
@@ -357,6 +336,6 @@ export async function loadCompanyCandidates(params: {
         .map((r) => ({ id: r.id, name: r.name })),
     }));
 
-  return { candidates, limitReached: (rawUsers ?? []).length >= CANDIDATE_LOAD_LIMIT, roleFilterTree, approachJobs, touchpointMaterials: touch?.materials ?? null,
+  return { candidates, limitReached: (rawUsers ?? []).length >= CANDIDATE_LOAD_LIMIT, roleFilterTree, approachJobs,
     positions: positionFit?.positions ?? null, positionFits: positionFit?.fits ?? {}, testMismatch };
 }

@@ -1,8 +1,7 @@
 import { PanelProfileView, type PanelProfileData } from "@/components/profile/view/PanelProfileView";
 import { Variant, PreviewHeader } from "../Variant";
 import { PanelExtraSectionsProvider } from "@/components/profile/view/PanelProfileScroll";
-import { TouchpointSection } from "@/app/biz/candidates/CandidatePreview";
-import type { Touchpoint } from "@/lib/business/candidates/model";
+import { CompanyContactsSection } from "@/app/biz/candidates/CandidatePreview";
 import { devOnly } from "../guard";
 import { CAREERS_RICH, CAREERS_SAME_COMPANY, CAREERS_RANK, EDUCATIONS_2 } from "../fixtures";
 
@@ -44,11 +43,6 @@ const FULL: PanelProfileData = {
   posts: [{ id: "p1", content: "今日は新しいチームの立ち上げでした。最初の一週間で決めておくことを書き出しています。", created_at: "2026-10-01T09:00:00Z" }],
 };
 
-const TOUCH: Touchpoint[] = [
-  { kind: "job_role", text: "求人『法人営業（SaaS）』と同じ職種の経験があります（経験5年）", weight: 5, ref: null },
-  { kind: "location", text: "求人の勤務地（東京都）とお住まいが合っています", weight: 1, ref: null },
-  { kind: "business_domain", text: "同じ事業領域（CRM・営業支援・マーケティング）の会社での経験があります", weight: 2, ref: null },
-];
 
 export default function Page() {
   devOnly();
@@ -58,9 +52,9 @@ export default function Page() {
         帯・大きな顔アイコン・名前の段を出さず、職歴 → スキル → 自己紹介 → 学歴 → 残り → アクティビティの順に平らに並べる。
       </PreviewHeader>
       {/* ★候補者を探すの右欄（1本のスクロール。2026-10-12）。⚠️ 固定の高さの箱の中でスクロールさせる（帯と下線を確かめるため） */}
-      <Variant label="候補者を探すの右欄（1本のスクロール・全部の項目＋メモ）" note="先頭に合うところ（2件＋ほか1件）。帯は中身のある節だけ。スクロールすると下線がいまの節に移る">
+      <Variant label="候補者を探すの右欄（1本のスクロール・全部の項目＋メモ）" note="先頭に自社との接点（2026-10-28 に合うところから置き換えた）。帯は中身のある節だけ。スクロールすると下線がいまの節に移る">
         <div data-state="dev-panel-scroll" style={{ maxWidth: 560, height: 560, overflowY: "auto", padding: "0 20px 20px", border: "1px dashed var(--line)", background: "#fff" }}>
-          <TouchpointSection touchpoints={TOUCH} companyShortName="Third Box" />
+          <CompanyContactsSection contacts={[{ kind: "flow", text: "株式会社サンプルテックから御社に入社した人 7人" }]} history={null} />
           <PanelExtraSectionsProvider sections={[{ key: "notes", label: "メモ", body: <p style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>（社内メモの欄。CANDIDATE_NOTES_ENABLED のときだけ）</p> }]}>
             <PanelProfileView data={FULL} sectioned />
           </PanelExtraSectionsProvider>

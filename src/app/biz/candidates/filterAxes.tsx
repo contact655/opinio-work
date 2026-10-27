@@ -30,7 +30,7 @@ export type AxisCounts = ReturnType<typeof computeAxisCounts>;
  */
 export function computeAxisCounts(
   candidates: Candidate[], f: SavedCandidateFilters, now: Date,
-  opts: { ageFilter: boolean; activity: boolean; includeHidden: boolean; newSince: string | null },
+  opts: { ageFilter: boolean; activity: boolean; newSince: string | null },
   roleFilterTree: RoleTree,
 ) {
   const count = (axis: FilterAxis, patches: Record<string, Partial<SavedCandidateFilters>>) => countAxisValues(candidates, f, axis, patches, now, opts);
@@ -46,7 +46,6 @@ export function computeAxisCounts(
     pref: count("prefecture", by(prefs, (p) => p, (p) => ({ prefectures: [p] }))),
     /* ★地方（親）の人数＝配下の都道府県のどれかに住む人数（1人の居住地は1つなので、配下の合計と同じ） */
     region: count("prefecture", by(RESIDENCE_REGIONS, (r) => r.region, (r) => ({ prefectures: [...r.prefectures] }))),
-    touchpoints: count("touchpoints", { on: { hasTouchpoints: true } }).on,
     starred: count("starred", { on: { starredOnly: true } }).on,
     fresh: count("stanceFreshness", by(STANCE_FRESHNESS_BANDS, (b) => b.value, (b) => ({ stanceFreshness: b.value }))),
     emp: count("employmentType", by(CANDIDATE_EMPLOYMENT_OPTIONS, (v) => v, (v) => ({ employmentTypes: [v] }))),

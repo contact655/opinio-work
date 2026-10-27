@@ -7,13 +7,14 @@ import { ApproachButton } from "@/components/approaches/ApproachButton";
       段3の新着メールも同じ関数を使う。⚠️ ここに条件を書き戻さないこと。 */
 import {
   ACTIVITY_SORTS, AGE_SORTS, CANDIDATE_SORT_OPTIONS, TENURE_BANDS,
-  filterCandidates, formatJstSlashMonthDay, isNewSince, sortCandidates,
+  filterCandidates, isNewSince, sortCandidates,
   CANDIDATE_TEST_MISMATCH_MESSAGE,
   type Candidate, type CandidateTestMismatch,
 } from "@/lib/business/candidates/model";
 import { CandidatePreview } from "./CandidatePreview";
 import { StanceBadge } from "@/components/candidates/StanceMeter";
-import type { TouchpointMaterials } from "@/lib/business/candidates/model";
+import { StarButton, StarIcon } from "@/components/candidates/StarButton";
+import { splitThinProfiles } from "@/lib/business/candidates/candidateGroups";
 import { APPROACH_TEST_COMPANY_MESSAGE } from "@/lib/constants/companyApproaches";
 import { CANDIDATE_SPLIT_MIN_WIDTH } from "@/lib/constants/splitView";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
@@ -58,7 +59,6 @@ import {
 /* ★並び替えの選択肢・社会人年数の帯・更新時期の帯は model.ts（2026-10-10 に移した）。
    ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
 import { sortByPositionFit, type PositionFits, type PositionOption } from "@/lib/business/candidates/positionFitModel";
-import { groupTouchpoints } from "@/lib/business/candidates/touchpointView";
 const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
@@ -109,7 +109,6 @@ export default function CandidatesClient({
   roleFilterTree = [],
   initialSelected = null,
   initialSaved = null,
-  companyShortName = null,
   canAct = true,
   ageFilterEnabled = false,
   activityEnabled = false,
@@ -118,11 +117,9 @@ export default function CandidatesClient({
   positions = null,
   positionFits = {},
   initialPosition = null,
-  touchpointMaterials = null,
   notesEnabled = false,
   limitReached = false,
   testMismatch = null,
-  viewerName = null,
   stageStorageKey = null,
   columnsStorageKey = null,
 }: {
@@ -134,7 +131,7 @@ export default function CandidatesClient({
   limitReached?: boolean;
   /** ★見ている担当者と検証用かどうかが合わない人を外したか（2026-10-26）。null = 外していない */
   testMismatch?: CandidateTestMismatch | null;
-  /** ★見ている担当者の名前（見送った直後の「○○さんが見送り」に使う。2026-10-13） */
+  /** 【2026-10-28 から使っていない】見送りの廃止で不要になった（page.tsx が渡していても無視する） */
   viewerName?: string | null;
   /** ★右欄が使う会社の材料（2026-10-13。page.tsx が loadCompanyCandidates の結果から渡す） */
   approachJobs?: { id: string; title: string }[];
@@ -143,7 +140,6 @@ export default function CandidatesClient({
   positionFits?: PositionFits;
   /** `?position=` から。一覧に無い id なら選ばない */
   initialPosition?: string | null;
-  touchpointMaterials?: TouchpointMaterials | null;
   notesEnabled?: boolean;
   /** ★URL（`?f=`）から復元した条件（2026-10-12）。保存した条件と同じ形（`parseSavedFilters` を通したもの） */
   initialFilters?: SavedCandidateFilters | null;
@@ -151,7 +147,7 @@ export default function CandidatesClient({
   activityEnabled?: boolean;
   /** ★年齢の絞り込み・並び替えを出すか（`isCandidateAgeFilterEnabled()`。本番は無効）。⚠️ 年齢の表示はこれと関係なく出す */
   ageFilterEnabled?: boolean;
-  /** ★カードの「〈会社名〉と合うところ（〇）」の会社名。取れなければ null（「貴社」） */
+  /** 【2026-10-28 から使っていない】「〈会社名〉と合うところ」を外したため */
   companyShortName?: string | null;
   /** ★候補者への操作（★・メッセージ・条件の保存）ができるか（2026-10-12 / candidates.search。閲覧のみは false） */
   canAct?: boolean;
@@ -202,19 +198,15 @@ export default function CandidatesClient({
   const [stanceFreshness, setStanceFreshness] = useState(init.stanceFreshness);
   /* ★最近の利用（2026-10-12。`activityEnabled` のときだけ） */
   const [activity, setActivity] = useState(init.activity);
-  /* ★「合うところあり」と「気になる」（2026-10-12）。どちらも ON/OFF */
-  const [hasTouchpoints, setHasTouchpoints] = useState(init.hasTouchpoints);
+  /* ★「気になる」（2026-10-12）。ON/OFF。⚠️「合うところあり」は 2026-10-28 に外した */
   const [starredOnly, setStarredOnly] = useState(init.starredOnly);
   /* ★★（気になる）。サーバーの値より、この画面で押した値を優先する（押した直後に一覧と数を合わせる） */
   const [starOverride, setStarOverride] = useState<Record<string, boolean>>({});
-  /* ★見送り（2026-10-13）。★と同じく、この画面で押した値を優先する。⚠️ 候補者本人には何も届かない */
-  const [hiddenOverride, setHiddenOverride] = useState<Record<string, { hidden: boolean; at: string }>>({});
+  /* ⚠️「見送り」は 2026-10-28 に廃止した（柴さんの指示）。記録（ow_candidate_hidden）は残すが、一覧から隠さない */
   /* ★右欄で既読にした人（2026-10-13）。一覧の「返信あり・未読」と右欄の点を消す */
   const [readOverride, setReadOverride] = useState<Record<string, boolean>>({});
-  /* ★見送った人も一覧に出すか（末尾の「表示する」）。出すときは薄く表示し、その場で解除できる */
-  const [showHidden, setShowHidden] = useState(false);
-  /* ★見送った直後の「元に戻す」（右下の小さな知らせ）。⚠️ 6秒で消える */
-  const [undoHidden, setUndoHidden] = useState<{ id: string; name: string } | null>(null);
+  /* ★「経歴がまだ少ない人」のまとまりを開いているか（2026-10-28）。初期は閉じる。判定は candidateGroups.ts */
+  const [showThin, setShowThin] = useState(false);
   /* ⚠️★「メッセージを受け取る方のみ」の切り替えは 2026-10-11 に外した（柴さんの指示）。
         全員が最初から受け取る形にし、止める方法は「転職について」の「今は考えていない」で兼ねる
         （その人はそもそもこの一覧に出ない）。送れるかどうかは今までどおりボタンの有無だけで示す。
@@ -343,7 +335,7 @@ export default function CandidatesClient({
 
   const activeFilterCount = (q.trim() ? 1 : 0) + drawerFilterCount(
     { ...EMPTY_SAVED_FILTERS, expRoleIds, desiredRoleIds, careerStances, tenureBand, prefectures: selectedPrefectures,
-      hasTouchpoints, starredOnly, stanceFreshness, employmentTypes: selectedEmploymentTypes, ageMin, ageMax, activity },
+      starredOnly, stanceFreshness, employmentTypes: selectedEmploymentTypes, ageMin, ageMax, activity },
     { ageFilter: ageFilterEnabled, activity: activityEnabled });
 
   /* ⚠️★「絞り込み中：…」の行（activeChips）は 2026-10-13 に外した（柴さんの指示）。
@@ -368,7 +360,6 @@ export default function CandidatesClient({
     careerStances: setCareerStances,
     activity: setActivity,
     stanceFreshness: setStanceFreshness,
-    hasTouchpoints: setHasTouchpoints,
     starredOnly: setStarredOnly,
     sort: setSort,
   };
@@ -378,24 +369,22 @@ export default function CandidatesClient({
     q, desiredRoleIds, expRoleIds,
     employmentTypes: selectedEmploymentTypes,
     tenureBand, ageMin, ageMax, prefectures: selectedPrefectures, careerStances, stanceFreshness, activity,
-    hasTouchpoints, starredOnly,
+    starredOnly,
     sort,
   }), [q, desiredRoleIds, expRoleIds,
        selectedEmploymentTypes,
        tenureBand, ageMin, ageMax, selectedPrefectures, careerStances, stanceFreshness, activity,
-       hasTouchpoints, starredOnly,
+       starredOnly,
        sort]);
 
   /* ★★の状態を重ねた候補者（2026-10-12）。⚠️ 絞り込み（「気になる」）も数も、すべてこちらを通す */
   const withStars = useMemo(
-    () => (Object.keys(starOverride).length === 0 && Object.keys(hiddenOverride).length === 0 && Object.keys(readOverride).length === 0 ? candidates
-      : candidates.map((c) => (c.id in starOverride || c.id in hiddenOverride || c.id in readOverride
+    () => (Object.keys(starOverride).length === 0 && Object.keys(readOverride).length === 0 ? candidates
+      : candidates.map((c) => (c.id in starOverride || c.id in readOverride
         ? { ...c, ...(c.id in starOverride ? { starred: starOverride[c.id] } : {}),
-            /* ⚠️ この画面で見送ったときは「見ている人・いま」を入れる（サーバーの hidden_by / created_at と同じ意味） */
-            ...(c.id in hiddenOverride ? { hidden: hiddenOverride[c.id].hidden, hiddenBy: hiddenOverride[c.id].hidden ? { name: viewerName, at: hiddenOverride[c.id].at } : null } : {}),
             ...(c.id in readOverride && c.approach ? { approach: { ...c.approach, unreadCount: 0, unseenReply: false } } : {}) }
         : c))),
-    [candidates, starOverride, hiddenOverride, readOverride, viewerName]
+    [candidates, starOverride, readOverride]
   );
   const starredCount = useMemo(() => withStars.filter((c) => c.starred).length, [withStars]);
   const toggleStar = useCallback(async (id: string, next: boolean) => {
@@ -430,28 +419,22 @@ export default function CandidatesClient({
   /* ★新着だけ（段3）。⚠️ 判定は `isNewSince`（登録日と本人の編集日だけ）。×で全員に戻せる */
   const [newSince, setNewSince] = useState<string | null>(initialSaved?.newSince ?? null);
   const [openedSaved, setOpenedSaved] = useState<{ id: string; name: string } | null>(initialSaved ? { id: initialSaved.id, name: initialSaved.name } : null);
-  /* ★見送った人も含めて絞った結果（2026-10-13）。⚠️ 既定（showHidden=false）では見送った人を外したものを描く */
-  const filteredWithHidden = useMemo(() => {
-    const list = filterCandidates(withStars, currentFilters, new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden: true });
+  /* ★絞った結果。⚠️ 2026-10-28 から見送った人も含めて全員（見送りを廃止） */
+  const filtered = useMemo(() => {
+    const list = filterCandidates(withStars, currentFilters, new Date(), { ageFilter: ageFilterEnabled, activity: activityEnabled });
     return newSince ? list.filter((c) => isNewSince(c, newSince)) : list;
   }, [withStars, currentFilters, newSince, ageFilterEnabled, activityEnabled]);
-  const filtered = useMemo(() => (showHidden ? filteredWithHidden : filteredWithHidden.filter((c) => c.hidden !== true)), [filteredWithHidden, showHidden]);
   /* ★一次チップ（経験職種・転職への意向・社会人年数・居住地）の件数（2026-10-13 / 柴さんの指示でドロワーと揃えた）。
         「その軸以外の条件をすべて掛けたあとの人数」。0件は灰色で選べない（選択中なら外せる）。
      ⚠️★数え方は filterAxes.tsx の computeAxisCounts の1つ（ドロワーと同じ関数）。ここに条件を書き写さないこと */
   const chipCounts = useMemo(() => computeAxisCounts(
     withStars, currentFilters, new Date(),
-    { ageFilter: ageFilterEnabled, activity: activityEnabled, includeHidden: showHidden, newSince }, roleFilterTree,
-  ), [withStars, currentFilters, ageFilterEnabled, activityEnabled, showHidden, newSince, roleFilterTree]);
-  /** いまの条件に合う人のうち、見送った人数（末尾の「見送った○名は非表示」） */
-  const hiddenCount = useMemo(() => filteredWithHidden.filter((c) => c.hidden === true).length, [filteredWithHidden]);
-  /* ⚠️ 見送った人が0人になったら「表示する」を戻す。戻さないと切り替えが画面から消えたまま表示中が残り、
-        次に見送った人が一覧から消えず、次の人へも移らない（2026-10-13 に検証で踏んだ） */
-  useEffect(() => { if (hiddenCount === 0 && showHidden) setShowHidden(false); }, [hiddenCount, showHidden]);
-  /** 見送った人を除いた全体（「〇名 / 全〇名」の分母） */
-  const populationCount = useMemo(() => withStars.filter((c) => c.hidden !== true).length, [withStars]);
+    { ageFilter: ageFilterEnabled, activity: activityEnabled, newSince }, roleFilterTree,
+  ), [withStars, currentFilters, ageFilterEnabled, activityEnabled, newSince, roleFilterTree]);
+  /** 全体（「〇名 / 全〇名」の分母） */
+  const populationCount = withStars.length;
   /* ⚠️ 年齢の並び替えは無効な環境では使わない（保存した条件に残っていても新着順に戻す） */
-  const effectiveSort = (!ageFilterEnabled && AGE_SORTS.includes(sort)) || (!activityEnabled && ACTIVITY_SORTS.includes(sort)) ? "new" : sort;
+  const effectiveSort = (!ageFilterEnabled && AGE_SORTS.includes(sort)) || (!activityEnabled && ACTIVITY_SORTS.includes(sort)) ? "stance_strength" : sort;
   /* ★ポジションで見る（2026-10-18 / 柴さんの指示・段1）。選ぶと、カードの理由の行がそのポジションに対する合うところに変わり、合う順に並ぶ。
         ⚠️ URL（`?position=`）は replaceState（履歴を積まない。`?selected=` と同じ）。⚠️ 点数は出さない（並べるだけ） */
   const [positionId, setPositionId] = useState<string | null>(
@@ -466,14 +449,18 @@ export default function CandidatesClient({
       window.history.replaceState(window.history.state, "", url.toString());
     } catch { /* URL を書けなくても表示は続ける */ }
   }, []);
-  const sorted = useMemo(() => {
+  /* ★経歴がまだ少ない人は一覧の最後にまとめる（2026-10-28 / 柴さんの指示）。初期は閉じる。
+        ⚠️ 判定は candidateGroups.ts の isThinProfile（THIN_PROFILE_RULE）。ここに条件を書かない
+        ⚠️ `sorted` は「いま一覧に見えている人」（J/K・‹ › の移動とまとめて選ぶの対象）。閉じているあいだは少ない人を含めない */
+  const { main: mainSorted, thin: thinSorted } = useMemo(() => {
     const base = sortCandidates(filtered, effectiveSort);
-    return positionFit ? sortByPositionFit(base, positionFit) : base;
+    return splitThinProfiles(positionFit ? sortByPositionFit(base, positionFit) : base);
   }, [filtered, effectiveSort, positionFit]);
+  const sorted = useMemo(() => (showThin ? [...mainSorted, ...thinSorted] : mainSorted), [mainSorted, thinSorted, showThin]);
   /* ★プレビューに出す人。明示的に選んだ人 → 無ければ（1280px 以上で、閉じていなければ）先頭の人 */
   const shownId: string | null = selected ?? (isWide && autoPick ? sorted[0]?.id ?? null : null);
   /* ★右欄に渡す候補者（2026-10-13）。一覧が持っている値をそのまま渡す（右欄で取り直さない）。
-        ⚠️ 見送った人も探す（URL で直接開いた・見送った直後に右欄に残っている場合） */
+        ⚠️ 全員から探す（URL で直接開いた人が、閉じている「経歴がまだ少ない人」にいる場合も開く） */
   const shownCandidate = useMemo(() => (shownId ? withStars.find((c) => c.id === shownId) ?? null : null), [shownId, withStars]);
   /* ★キーボードで候補者を移る（2026-10-12 / 柴さんの指示）。↑↓ と J/K。
      ⚠️ 入力中（input・textarea・select・contenteditable）と修飾キー付きは何もしない。
@@ -508,41 +495,13 @@ export default function CandidatesClient({
     return () => window.removeEventListener("keydown", onKey);
   }, [isWide, drawerOpen, sorted.length, moveSelection]);
 
-  /* ★見送り（2026-10-13）。付ける・外す。⚠️ 失敗したら戻す。⚠️ 候補者本人には何も届かない
-        付けたとき、その人を右欄で見ていて見送った人を隠しているなら、次の人（無ければ前の人）を選ぶ */
-  const toggleHidden = useCallback(async (id: string, next: boolean, opts: { advance?: boolean } = {}) => {
-    if (next && opts.advance && !showHidden && shownId === id) {
-      const idx = sorted.findIndex((c) => c.id === id);
-      const after = sorted[idx + 1] ?? sorted[idx - 1] ?? null;
-      setAutoPick(!!after);
-      updateSelected(after ? after.id : null);
-    }
-    setHiddenOverride((prev) => ({ ...prev, [id]: { hidden: next, at: new Date().toISOString() } }));
-    if (next) setUndoHidden({ id, name: withStars.find((c) => c.id === id)?.name ?? "" });
-    else setUndoHidden((u) => (u?.id === id ? null : u));
-    try {
-      const res = await fetch(`/api/biz/candidates/${id}/hide`, { method: next ? "POST" : "DELETE" });
-      if (!res.ok) throw new Error(String(res.status));
-    } catch (e) {
-      console.error("[candidates] hide:", e);
-      setHiddenOverride((prev) => { const rest = { ...prev }; delete rest[id]; return rest; });
-      setUndoHidden(null);
-    }
-  }, [showHidden, shownId, sorted, updateSelected, withStars]);
-  useEffect(() => {
-    if (!undoHidden) return;
-    const t = setTimeout(() => setUndoHidden(null), 6000);
-    return () => clearTimeout(t);
-  }, [undoHidden]);
-
-  /* ── ★まとめて☆・見送り（2026-10-18 / 柴さんの指示）────────────────────────
-     チェックした人に、まとめて☆（気になる）を付ける／見送る。1人ずつの操作と同じ API を1人ずつ呼ぶ（同時に4件まで）。
+  /* ── ★まとめて☆（2026-10-18 / 柴さんの指示。見送りは 2026-10-28 に外した）────────────────────────
+     チェックした人に、まとめて☆（気になる）を付ける。1人ずつの操作と同じ API を1人ずつ呼ぶ（同時に4件まで）。
      ⚠️ まとめてメッセージは作らない（理由を1人ずつ書く前提。一斉送信にしない）。
      ⚠️ 選択は「いま一覧に見えている人」だけに効く（条件を変えて見えなくなった人には何もしない）。 */
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkNote, setBulkNote] = useState<string | null>(null);
-  const [undoBulk, setUndoBulk] = useState<string[] | null>(null);
   const visibleIds = useMemo(() => sorted.map((c) => c.id), [sorted]);
   const checkedVisible = useMemo(() => visibleIds.filter((id) => checked.has(id)), [visibleIds, checked]);
   const allChecked = visibleIds.length > 0 && checkedVisible.length === visibleIds.length;
@@ -574,40 +533,6 @@ export default function CandidatesClient({
     setChecked(new Set());
     setBulkNote(failed ? `${ids.length - failed}名に☆を付けました（${failed}名は保存できませんでした）` : `${ids.length}名に☆を付けました`);
   }, [checkedVisible, withStars, runBulk]);
-  const bulkHide = useCallback(async () => {
-    const ids = checkedVisible.filter((id) => !withStars.find((c) => c.id === id)?.hidden);
-    if (ids.length === 0) { setBulkNote("選んだ方は、すでに見送っています"); return; }
-    setBulkBusy(true); setBulkNote(null);
-    /* 右欄で見ている人を見送ったら、右欄は閉じる（次の人へ移るのは1人ずつのときだけ） */
-    if (shownId && ids.includes(shownId) && !showHidden) { setAutoPick(false); updateSelected(null); }
-    const at = new Date().toISOString();
-    setHiddenOverride((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, { hidden: true, at }])) }));
-    const failedIds: string[] = [];
-    await runBulk(ids, async (id) => {
-      const res = await fetch(`/api/biz/candidates/${id}/hide`, { method: "POST" });
-      if (!res.ok) failedIds.push(id);
-      return res.ok;
-    });
-    if (failedIds.length) setHiddenOverride((prev) => { const rest = { ...prev }; failedIds.forEach((id) => delete rest[id]); return rest; });
-    const done = ids.filter((id) => !failedIds.includes(id));
-    setBulkBusy(false);
-    setChecked(new Set());
-    setUndoHidden(null);
-    setUndoBulk(done.length ? done : null);
-    setBulkNote(failedIds.length ? `${failedIds.length}名は見送れませんでした` : null);
-  }, [checkedVisible, withStars, runBulk, shownId, showHidden, updateSelected]);
-  const undoBulkHide = useCallback(async () => {
-    const ids = undoBulk ?? [];
-    setUndoBulk(null);
-    setHiddenOverride((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, { hidden: false, at: new Date().toISOString() }])) }));
-    const failed = await runBulk(ids, async (id) => (await fetch(`/api/biz/candidates/${id}/hide`, { method: "DELETE" })).ok);
-    if (failed) setBulkNote(`${failed}名は元に戻せませんでした。画面を読み込み直してください`);
-  }, [undoBulk, runBulk]);
-  useEffect(() => {
-    if (!undoBulk) return;
-    const t = setTimeout(() => setUndoBulk(null), 6000);
-    return () => clearTimeout(t);
-  }, [undoBulk]);
   useEffect(() => {
     if (!bulkNote) return;
     const t = setTimeout(() => setBulkNote(null), 5000);
@@ -795,9 +720,6 @@ export default function CandidatesClient({
           isOpen={openChip === "pref"} onToggle={() => setOpenChip(openChip === "pref" ? null : "pref")}>
           <ResidenceOptions selected={selectedPrefectures} counts={chipCounts.pref} regionCounts={chipCounts.region} onChange={setSelectedPrefectures} />
         </FilterPopoverChip>
-      <button type="button" aria-pressed={hasTouchpoints} data-state="toggle-touchpoints" onClick={() => setHasTouchpoints((v) => !v)} style={toggleStyle(hasTouchpoints)}>
-        合うところあり
-      </button>
       {/* ★気になる（会社の管理者で共有の★）。⚠️ 0人でも出す（押すと0件になるが、入口があることを示す） */}
       <button type="button" aria-pressed={starredOnly} data-state="toggle-starred" onClick={() => setStarredOnly((v) => !v)} style={toggleStyle(starredOnly)}>
         <StarIcon filled={starredOnly} />気になる（{starredCount}）
@@ -825,6 +747,106 @@ export default function CandidatesClient({
 
     </div>
   );
+
+  /* ★候補者のカード（2026-10-28 に関数へ出した。経歴の少ない人のまとまりでも同じカードを使うため） */
+  const renderCard = (c: Candidate) => {
+                const tenure = formatTenure(c.tenureMonths);
+                const isSel = shownId === c.id;
+                /* ★メッセージの状態の小さなラベル（2026-10-13）。送信済み ／ 返信あり ／ 返信あり・未読（数字は出さない）。
+                      ⚠️ 灰色の文字（バッジにしない） */
+                const sentState = c.approach?.sent?.state ?? null;
+                const hasUnread = (c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true;
+                const msgLabel = !c.approach?.sent ? null
+                  : sentState === "accepted" ? (hasUnread ? "返信あり・未読" : "返信あり")
+                  : "送信済み";
+                /* ★カード（2026-10-13 ステップ4 / モックに合わせた）:
+                      1行目 氏名・意向バッジ・状態ラベル（送信済み／返信あり／返信あり・未読）・右端に★
+                      2行目 職種 @ 会社
+                      3行目 年齢・性別・社会人年数・居住地・経験職種と年数（小さい灰色）
+                      4行目 合う理由の1行「✓ 職種　営業 ↔ インサイドセールス」＋「ほか○件」（一番重い理由1つ）
+                   ⚠️ 一覧が 420px 以下（`compactCards`）では 1・2行目だけ（意向は短い表記）。
+                   ★状態ラベルは細い枠線の小さな札（2026-10-13 / 柴さんの指示。意向の塗りの札と見分けるため）。意向だけが色の札（StanceBadge） */
+                const pref = residenceLabel(c.location);
+                const ageText = c.age != null ? `${c.age}歳` : null;
+                const roleText = c.currentRole || (!c.currentCompany && c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
+                const roleCo = [roleText, c.currentCompany].filter(Boolean).join(" @ ");
+                const topSkill = (c.autoSkills ?? [])[0];
+                const subItems = [ageText, c.genderLabel ?? null, tenure, pref, topSkill ? `${topSkill.label} ${topSkill.band}` : null].filter((x): x is string => !!x);
+                return (
+                  <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"} data-compact={compactCards && isWide ? "1" : "0"}
+                    /* ⚠️ 枠線と背景は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
+                    className={["cand-card", compactCards && isWide ? "is-compact" : "", isSel ? "is-selected" : ""].filter(Boolean).join(" ")}
+                  >
+                    {/* ⚠️ ボタン類（★・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
+                    <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
+                    {/* ★まとめて操作のチェック（2026-10-18）。⚠️ リンクの外・リンクより上（z-index）に置く。押しても詳細は開かない */}
+                    {canAct && (
+                      <label className="cand-card-check" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={checked.has(c.id)} onChange={() => toggleChecked(c.id)} disabled={bulkBusy}
+                          aria-label={`${c.name}を選ぶ`} data-state="card-check" />
+                      </label>
+                    )}
+                    {!(compactCards && isWide) && (
+                      <div className="cand-card-avatar" aria-hidden="true">
+                        <PersonAvatar name={c.name} url={c.avatarUrl} size={32} fontSize={13} colorByName />
+                      </div>
+                    )}
+                    <div className="cand-card-main">
+                      <div className="cand-card-row1">
+                        <span className="cand-card-name" title={c.name}>{c.name}</span>
+                        {/* ★カードは常に短い表記・枠線なしの札（2026-10-13 / 柴さんの指示）。右欄は長い表記 */}
+                        <StanceBadge stance={c.careerStance} short plain />
+                        {msgLabel && <span className="cand-card-msg" data-state={sentState === "accepted" ? "card-replied" : "card-sent"}>{msgLabel}</span>}
+                        <span className="cand-card-star">
+                          {canAct && <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />}
+                        </span>
+                      </div>
+                      {/* ★値が無くても行の高さは残す（2026-10-18 / 柴さんの指示。カードの高さを揃えるため）。
+                            ⚠️ 空の行に「未登録」などの文字を入れないこと（値が無いことを、ある値に置き換えない） */}
+                      {roleCo
+                        ? <div className="cand-card-roleco" data-state="card-roleco" title={roleCo}>{roleCo}</div>
+                        : <div className="cand-card-roleco" aria-hidden="true" />}
+                      {!(compactCards && isWide) && (subItems.length > 0
+                        ? <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
+                        : <div className="cand-card-sub3" aria-hidden="true" />)}
+                      {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は何も書かない（2026-10-18 / 柴さんの指示。「合うところ：なし」でも強すぎた）。カードの高さを揃えるため、同じ高さの空きだけ残す（.is-empty は見えない）。取れなかった（undefined）ときは出さない */}
+                      {/* ★ポジションを選んでいるときは、そのポジションに対する合うところ（✓ 1つ＋ほか件数）と足りない点1つ（灰色）。2026-10-18 */}
+                      {!(compactCards && isWide) && positionFit ? (() => {
+                        const items = positionFit[c.id]?.items ?? [];
+                        const oks = items.filter((x) => x.ok);
+                        const gap = items.find((x) => !x.ok) ?? null;
+                        const all = items.map((x) => `${x.ok ? "✓" : "△"} ${x.item}：${x.text}`).join("\n");
+                        if (!oks.length && !gap) return <div className="cand-card-reason is-empty" data-state="card-position-empty" aria-hidden="true">{"\u00a0"}</div>;
+                        return (
+                          <div className="cand-card-pos" data-state="card-position" title={all}>
+                            {oks.length > 0 && (
+                              <div className="cand-card-reason" data-state="card-position-ok">
+                                <span aria-hidden="true" className="cand-card-reason-check">✓</span>
+                                <span className="cand-card-reason-item">{oks[0].item}</span>
+                                <span className="cand-card-reason-text">{oks[0].text}</span>
+                                {oks.length > 1 && <span className="cand-card-reason-more">ほか{oks.length - 1}件</span>}
+                              </div>
+                            )}
+                            {gap && (
+                              <div className="cand-card-gap" data-state="card-position-gap">
+                                <span className="cand-card-reason-item">{gap.item}</span>
+                                <span className="cand-card-reason-text">{gap.text}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })() : null}
+                      {/* ⚠️ 合う理由の1行（「✓ 同業の経験」など）は 2026-10-28 に外した（柴さんの指示）。詳細の「自社との接点」に置き換えた */}
+                      {/* ★メッセージのボタン。⚠️ 1280px 以上はプレビューに任せて隠す（同じ入口を2つ並べない） */}
+                      {canAct && c.approach && (c.approach.eligible || c.approach.sent) && (
+                        <div className="cand-card-actions">
+                          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact hideUnavailable />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+  };
 
   return (
     <div className="cand-wrap">
@@ -1171,9 +1193,6 @@ export default function CandidatesClient({
                       <button type="button" className="cand-bulk-btn btn-fixed-size" disabled={bulkBusy} onClick={() => void bulkStar()} data-state="bulk-star">
                         <StarIcon filled={false} />気になるに追加
                       </button>
-                      <button type="button" className="cand-bulk-btn btn-fixed-size" disabled={bulkBusy} onClick={() => void bulkHide()} data-state="bulk-hide">
-                        見送る
-                      </button>
                       <button type="button" className="cand-bulk-clear btn-fixed-size" disabled={bulkBusy} onClick={() => setChecked(new Set())}>
                         選択を解除
                       </button>
@@ -1183,145 +1202,17 @@ export default function CandidatesClient({
                 </div>
               )}
               {/* ⚠️ 描くのは `sorted`。`filtered` を直接 map しないこと（並び替えが効かなくなる） */}
-              {sorted.map((c) => {
-                const tenure = formatTenure(c.tenureMonths);
-                const isSel = shownId === c.id;
-                /* ★メッセージの状態の小さなラベル（2026-10-13）。送信済み ／ 返信あり ／ 返信あり・未読（数字は出さない）。
-                      ⚠️ 灰色の文字（バッジにしない） */
-                const sentState = c.approach?.sent?.state ?? null;
-                const hasUnread = (c.approach?.unreadCount ?? 0) > 0 || c.approach?.unseenReply === true;
-                const msgLabel = !c.approach?.sent ? null
-                  : sentState === "accepted" ? (hasUnread ? "返信あり・未読" : "返信あり")
-                  : "送信済み";
-                /* ★カード（2026-10-13 ステップ4 / モックに合わせた）:
-                      1行目 氏名・意向バッジ・状態ラベル（送信済み／返信あり／返信あり・未読）・右端に★
-                      2行目 職種 @ 会社
-                      3行目 年齢・性別・社会人年数・居住地・経験職種と年数（小さい灰色）
-                      4行目 合う理由の1行「✓ 職種　営業 ↔ インサイドセールス」＋「ほか○件」（一番重い理由1つ）
-                   ⚠️ 一覧が 420px 以下（`compactCards`）では 1・2行目だけ（意向は短い表記）。
-                   ★状態ラベルは細い枠線の小さな札（2026-10-13 / 柴さんの指示。意向の塗りの札と見分けるため）。意向だけが色の札（StanceBadge） */
-                const pref = residenceLabel(c.location);
-                const ageText = c.age != null ? `${c.age}歳` : null;
-                const roleText = c.currentRole || (!c.currentCompany && c.desiredRoleNames.length > 0 ? `希望: ${c.desiredRoleNames.join("・")}` : null);
-                const roleCo = [roleText, c.currentCompany].filter(Boolean).join(" @ ");
-                const topSkill = (c.autoSkills ?? [])[0];
-                const subItems = [ageText, c.genderLabel ?? null, tenure, pref, topSkill ? `${topSkill.label} ${topSkill.band}` : null].filter((x): x is string => !!x);
-                const tps = c.touchpoints;
-                const topTp = tps && tps.length > 0 ? tps[0] : null;
-                return (
-                  <div key={c.id} data-candidate-card={c.id} data-selected={isSel ? "1" : "0"} data-hidden={c.hidden ? "1" : "0"} data-compact={compactCards && isWide ? "1" : "0"}
-                    /* ⚠️ 枠線と背景は CSS（.cand-card / .is-selected）。選択中とフォーカスで同じ枠1本を使う（二重にしない） */
-                    className={["cand-card", compactCards && isWide ? "is-compact" : "", isSel ? "is-selected" : "", c.hidden ? "is-hidden" : ""].filter(Boolean).join(" ")}
-                  >
-                    {/* ⚠️ ボタン類（★・メッセージ）はリンクの外に置く（リンクの中にボタンを入れない） */}
-                    <a className="cand-card-link" href={`/u/${c.id}`} onClick={(e) => onCardLinkClick(e, c.id)} aria-label={`${c.name}のプロフィール`} />
-                    {/* ★まとめて操作のチェック（2026-10-18）。⚠️ リンクの外・リンクより上（z-index）に置く。押しても詳細は開かない */}
-                    {canAct && (
-                      <label className="cand-card-check" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" checked={checked.has(c.id)} onChange={() => toggleChecked(c.id)} disabled={bulkBusy}
-                          aria-label={`${c.name}を選ぶ`} data-state="card-check" />
-                      </label>
-                    )}
-                    {!(compactCards && isWide) && (
-                      <div className="cand-card-avatar" aria-hidden="true">
-                        <PersonAvatar name={c.name} url={c.avatarUrl} size={32} fontSize={13} colorByName />
-                      </div>
-                    )}
-                    <div className="cand-card-main">
-                      <div className="cand-card-row1">
-                        <span className="cand-card-name" title={c.name}>{c.name}</span>
-                        {/* ★カードは常に短い表記・枠線なしの札（2026-10-13 / 柴さんの指示）。右欄は長い表記 */}
-                        <StanceBadge stance={c.careerStance} short plain />
-                        {msgLabel && <span className="cand-card-msg" data-state={sentState === "accepted" ? "card-replied" : "card-sent"}>{msgLabel}</span>}
-                        <span className="cand-card-star">
-                          {canAct && <StarButton starred={!!c.starred} onToggle={() => void toggleStar(c.id, !c.starred)} size={26} />}
-                        </span>
-                      </div>
-                      {/* ★値が無くても行の高さは残す（2026-10-18 / 柴さんの指示。カードの高さを揃えるため）。
-                            ⚠️ 空の行に「未登録」などの文字を入れないこと（値が無いことを、ある値に置き換えない） */}
-                      {roleCo
-                        ? <div className="cand-card-roleco" data-state="card-roleco" title={roleCo}>{roleCo}</div>
-                        : <div className="cand-card-roleco" aria-hidden="true" />}
-                      {!(compactCards && isWide) && (subItems.length > 0
-                        ? <div className="cand-card-sub3" data-state="card-age-tenure" title={subItems.join("・")}>{subItems.join("・")}</div>
-                        : <div className="cand-card-sub3" aria-hidden="true" />)}
-                      {/* ★合う理由の1行（2026-10-13）。⚠️ 0件は何も書かない（2026-10-18 / 柴さんの指示。「合うところ：なし」でも強すぎた）。カードの高さを揃えるため、同じ高さの空きだけ残す（.is-empty は見えない）。取れなかった（undefined）ときは出さない */}
-                      {/* ★ポジションを選んでいるときは、そのポジションに対する合うところ（✓ 1つ＋ほか件数）と足りない点1つ（灰色）。2026-10-18 */}
-                      {!(compactCards && isWide) && positionFit ? (() => {
-                        const items = positionFit[c.id]?.items ?? [];
-                        const oks = items.filter((x) => x.ok);
-                        const gap = items.find((x) => !x.ok) ?? null;
-                        const all = items.map((x) => `${x.ok ? "✓" : "△"} ${x.item}：${x.text}`).join("\n");
-                        if (!oks.length && !gap) return <div className="cand-card-reason is-empty" data-state="card-position-empty" aria-hidden="true">{"\u00a0"}</div>;
-                        return (
-                          <div className="cand-card-pos" data-state="card-position" title={all}>
-                            {oks.length > 0 && (
-                              <div className="cand-card-reason" data-state="card-position-ok">
-                                <span aria-hidden="true" className="cand-card-reason-check">✓</span>
-                                <span className="cand-card-reason-item">{oks[0].item}</span>
-                                <span className="cand-card-reason-text">{oks[0].text}</span>
-                                {oks.length > 1 && <span className="cand-card-reason-more">ほか{oks.length - 1}件</span>}
-                              </div>
-                            )}
-                            {gap && (
-                              <div className="cand-card-gap" data-state="card-position-gap">
-                                <span className="cand-card-reason-item">{gap.item}</span>
-                                <span className="cand-card-reason-text">{gap.text}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })() : !(compactCards && isWide) && (topTp ? (
-                        /* ★この人の強みだけを並べる（2026-10-18 / 柴さんの指示）。自社側の名前は出さない（見ているのは自社の人事なので自明）。
-                              「営業の経験・プロダクトに関心・同業の経験（Salesforce）」。全文（合う先まで）は title。並べ方は touchpointView.ts */
-                        (() => {
-                          const groups = groupTouchpoints(tps);
-                          return (
-                            <div className="cand-card-reason" data-state="card-reason"
-                              title={groups.map((g) => (g.detail ? `${g.label}：${g.detail}` : g.label)).join("\n")}>
-                              <span aria-hidden="true" className="cand-card-reason-check">✓</span>
-                              <span className="cand-card-reason-text">{groups.map((g) => g.short).join("・")}</span>
-                            </div>
-                          );
-                        })()
-                      ) : tps ? (
-                        <div className="cand-card-reason is-empty" data-state="card-reason-empty" aria-hidden="true">{"\u00a0"}</div>
-                      ) : null)}
-                      {/* ★見送った人（「表示する」のときだけ出る）。誰がいつ見送ったか＋その場で解除 */}
-                      {c.hidden && (
-                        <div className="cand-card-hidden-row">
-                          <span className="cand-card-hidden-by" data-state="card-hidden-by">
-                            {[c.hiddenBy?.name ? `${c.hiddenBy.name}さんが見送り` : "見送り", formatJstSlashMonthDay(c.hiddenBy?.at ?? null)].filter(Boolean).join("・")}
-                          </span>
-                          {canAct && (
-                            <button type="button" className="cand-card-unhide btn-fixed-size" data-state="card-unhide"
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); void toggleHidden(c.id, false); }}>
-                              解除
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {/* ★メッセージのボタン。⚠️ 1280px 以上はプレビューに任せて隠す（同じ入口を2つ並べない） */}
-                      {canAct && c.approach && (c.approach.eligible || c.approach.sent) && (
-                        <div className="cand-card-actions">
-                          <ApproachButton candidateUserId={c.id} sent={c.approach.sent} eligible={c.approach.eligible} compact hideUnavailable />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {/* ★見送った人（2026-10-13）。いまの条件に合う人のうち見送った人数と、出し入れ */}
-          {hiddenCount > 0 && (
-            <div data-state={showHidden ? "hidden-shown" : "hidden-collapsed"} style={{ marginTop: 10, padding: "8px 4px", fontSize: 12.5, color: "var(--ink-mute)" }}>
-              {showHidden ? `見送った${hiddenCount}名を表示しています` : `見送った${hiddenCount}名は非表示`}
-              <span aria-hidden="true" style={{ margin: "0 6px" }}>／</span>
-              <button type="button" onClick={() => setShowHidden((v) => !v)} data-state="toggle-show-hidden" className="btn-fixed-size"
-                style={{ border: "none", background: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: "var(--royal)", textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
-                {showHidden ? "隠す" : "表示する"}
-              </button>
+              {mainSorted.map(renderCard)}
+              {/* ★経歴がまだ少ない人（2026-10-28 / 柴さんの指示）。一覧の最後にまとめ、初期は閉じる */}
+              {thinSorted.length > 0 && (
+                <div data-state={showThin ? "thin-open" : "thin-closed"} className="cand-thin-head">
+                  <span className="cand-thin-label">経歴がまだ少ない人（{thinSorted.length}人）</span>
+                  <button type="button" onClick={() => setShowThin((v) => !v)} aria-expanded={showThin} data-state="toggle-thin" className="btn-fixed-size cand-thin-toggle">
+                    {showThin ? "閉じる" : "表示する"}
+                  </button>
+                </div>
+              )}
+              {showThin && thinSorted.map(renderCard)}
             </div>
           )}
         </div>
@@ -1340,13 +1231,11 @@ export default function CandidatesClient({
               positionFit={position && positionFit ? { title: position.title, items: positionFit[shownCandidate.id]?.items ?? [] } : null} canAct={canAct}
               layout={isWide && paneColumns ? "columns" : "tabs"} columnsStorageKey={columnsStorageKey}
               onMessagesRead={() => setReadOverride((prev) => ({ ...prev, [shownCandidate.id]: true }))}
-              companyShortName={companyShortName} touchpointMaterials={touchpointMaterials} approachJobs={approachJobs} notesEnabled={notesEnabled}
+              approachJobs={approachJobs} notesEnabled={notesEnabled}
               onClose={() => { setAutoPick(false); updateSelected(null); }}
               actions={{
                 starred: !!shownCandidate.starred,
                 onToggleStar: () => void toggleStar(shownCandidate.id, !shownCandidate.starred),
-                hidden: !!shownCandidate.hidden,
-                onToggleHidden: () => void toggleHidden(shownCandidate.id, !shownCandidate.hidden, { advance: true }),
                 index: shownIndex, total: sorted.length,
                 onPrev: () => moveSelection(-1), onNext: () => moveSelection(1),
               }} />
@@ -1355,7 +1244,7 @@ export default function CandidatesClient({
             <div data-state="preview-error" style={{ padding: 20, fontSize: 13, color: "var(--ink-soft)" }}>この方は表示できません。</div>
           ) : isWide === null ? null : (
             <div data-state="preview-empty" style={{ padding: "28px 20px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.8 }}>
-              候補者を選ぶと、ここにプロフィールと貴社と合うところが表示されます。
+              候補者を選ぶと、ここにプロフィールと自社との接点が表示されます。
             </div>
           )}
         </aside>
@@ -1366,41 +1255,10 @@ export default function CandidatesClient({
       <CandidateFilterDrawer
         open={drawerOpen} onClose={() => setDrawerOpen(false)}
         applied={currentFilters} onApply={applyFilters}
-        candidates={withStars} newSince={newSince} includeHidden={showHidden}
+        candidates={withStars} newSince={newSince}
         ageFilterEnabled={ageFilterEnabled} activityEnabled={activityEnabled}
         roleFilterTree={roleFilterTree} returnFocusRef={drawerBtnRef}
       />
-
-      {/* ★まとめて見送った直後の「元に戻す」（2026-10-18）。⚠️ 6秒で消える */}
-      {undoBulk && (
-        <div role="status" data-state="bulk-undo-toast" style={{
-          position: "fixed", left: "50%", bottom: "calc(24px + var(--biz-tabbar-h, 0px))", transform: "translateX(-50%)", zIndex: 60,
-          display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderRadius: 10,
-          background: "#0F172A", color: "#fff", fontSize: 13, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", maxWidth: "calc(100vw - 32px)",
-        }}>
-          <span>{undoBulk.length}名を見送りました</span>
-          <button type="button" data-state="bulk-undo" className="btn-fixed-size" onClick={() => void undoBulkHide()}
-            style={{ border: "none", background: "none", padding: 0, color: "#93C5FD", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-            元に戻す
-          </button>
-        </div>
-      )}
-
-      {/* ★見送った直後の「元に戻す」（2026-10-13）。⚠️ 6秒で消える。押すと DELETE を呼ぶ */}
-      {undoHidden && (
-        <div role="status" data-state="hidden-undo-toast" style={{
-          position: "fixed", left: "50%", bottom: "calc(24px + var(--biz-tabbar-h, 0px))", transform: "translateX(-50%)", zIndex: 60,
-          display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderRadius: 10,
-          background: "#0F172A", color: "#fff", fontSize: 13, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", maxWidth: "calc(100vw - 32px)",
-        }}>
-          <span>{undoHidden.name ? `${undoHidden.name}さんを見送りました` : "見送りました"}</span>
-          <button type="button" data-state="hidden-undo" className="btn-fixed-size"
-            onClick={() => { const id = undoHidden.id; setUndoHidden(null); void toggleHidden(id, false); }}
-            style={{ border: "none", background: "none", padding: 0, color: "#93C5FD", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-            元に戻す
-          </button>
-        </div>
-      )}
 
       {/* ⚠️ style タグの中に山かっこや引用符を書かないこと（ハイドレーションが壊れる） */}
       <style>{`
@@ -1493,9 +1351,22 @@ export default function CandidatesClient({
           .cand-card { gap: 10px; }
           .cand-card-sub3 { white-space: normal; }
         }
+        /* ★経歴がまだ少ない人のまとまり（2026-10-28）。一覧の末尾。最初は畳んで「表示する」で開く */
+        .cand-thin-head {
+          display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          margin-top: 14px; padding: 10px 12px; border-radius: 8px;
+          background: var(--bg-tint); color: var(--ink-soft); font-size: 13px; font-weight: 600;
+        }
+        /* ⚠️ この style の中に 不等号・アンパサンド を書かないこと（サーバーが別の文字に置き換え、描き直しの不一致になる。2026-10-28 に踏んだ） */
+        .cand-thin-label { min-width: 0; }
+        .cand-thin-toggle {
+          flex-shrink: 0; height: 30px; padding: 0 12px; border-radius: 6px;
+          border: 1px solid var(--line); background: #fff; color: var(--royal);
+          font-size: 12px; font-weight: 600; cursor: pointer;
+        }
         /* 右欄が狭いときは、操作の帯のボタンをアイコンだけにする（1行に収める） */
         .cand-pane { container-type: inline-size; container-name: candpane; }
-        .cand-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .cand-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         @container candpane (max-width: 560px) {
           .cand-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
@@ -1573,27 +1444,5 @@ function HelpToggle({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-/** ★（気になる）のアイコン。⚠️ 色は塗り（royal）と線だけ。状態を色付きのバッジにしない */
-function StarIcon({ filled, size = 14 }: { filled: boolean; size?: number }) {
-  return (
-    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-      <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
-    </svg>
-  );
-}
-
-/** ★カードと右欄の★ボタン。⚠️ 押しても候補者本人には何も届かない（会社の中だけ） */
-export function StarButton({ starred, onToggle, size = 28 }: { starred: boolean; onToggle: () => void; size?: number }) {
-  return (
-    <button type="button" aria-pressed={starred} aria-label={starred ? "気になるから外す" : "気になるに保存"} title={starred ? "気になるから外す" : "気になる（社内で共有・本人には通知されません）"}
-      data-state={starred ? "star-on" : "star-off"}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-      className="btn-fixed-size cand-star"
-      /* ⚠️ 幅と高さは CSS 変数で渡す（スマホでは .cand-star が当たり判定だけ 44px に広げるため。インラインに直書きすると効かない） */
-      style={{ ["--star-size" as string]: `${size}px`, borderRadius: "50%", border: "none", background: "none", padding: 0, cursor: "pointer",
-        display: "inline-flex", alignItems: "center", justifyContent: "center", color: starred ? "var(--royal)" : "var(--ink-mute)", flexShrink: 0 } as React.CSSProperties}>
-      <StarIcon filled={starred} size={Math.round(size * 0.6)} />
-    </button>
-  );
-}
+/* ★☆の部品（StarIcon / StarButton）は 2026-10-28 に components/candidates/StarButton.tsx へ出した（詳細の名前の横でも使うため） */
 

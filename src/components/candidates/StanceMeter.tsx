@@ -11,23 +11,25 @@ import { CAREER_STANCE_LABELS } from "@/lib/constants/careerPreferences";
  * ⚠️ 色だけでなく**明度**で区別できる（背景の明るさ 0.91 ／ 0.53 ／ 0.02）。文字のコントラストはどれも 4.5 以上:
  *    #475569 on #F1F5F9 = 6.92 ／ #172554 on #93C5FD = 8.15 ／ #FFFFFF on #1F2937 = 14.68
  * ⚠️ 回答なし・「今は考えていない」は何も出さない（その人は一覧に出ない）。
- * ⚠️ `short` は細いカード（一覧 420px 以下）用。元の表記は title に入れる。
+ * ⚠️ `short` は 2026-10-28 から使っていない（短い表記をやめ、3つの言葉そのものを出す）。呼び出し側に残っていても無視する。
  */
 /* ★短い表記に「転職：」を付けた（2026-10-18 / 柴さんの指摘）。「話を聞く」だけだと、何についての札か
       （転職への意向なのか、面談を受けるのか）が分からなかった。⚠️ 撤去した「面談OK（話を聞ける人）」と紛らわしいので
       「話を聞く」に戻さないこと */
-export const STANCE_BADGE: Record<string, { short: string; bg: string; fg: string; border: string }> = {
-  active: { short: "転職：積極的", bg: "#1F2937", fg: "#FFFFFF", border: "#1F2937" },
-  open: { short: "転職：良い話なら", bg: "#93C5FD", fg: "#172554", border: "#60A5FA" },
-  researching: { short: "転職：情報収集", bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1" },
+/* ★2026-10-28: 短い表記も3つの言葉そのものにした（柴さんの指示。カード・詳細・絞り込み・設定画面で同じ言葉）。
+      言葉は CAREER_STANCE_LABELS の1か所。ここに書き写さない（short は色だけを持つ） */
+export const STANCE_BADGE: Record<string, { bg: string; fg: string; border: string }> = {
+  active: { bg: "#1F2937", fg: "#FFFFFF", border: "#1F2937" },
+  open: { bg: "#93C5FD", fg: "#172554", border: "#60A5FA" },
+  researching: { bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1" },
 };
 
 /**
- * @param short 短い表記（転職：積極的／転職：良い話なら／転職：情報収集）。★一覧のカードは常に short（2026-10-13 / 柴さんの指示）。右欄は長い表記
+ * @param short 【2026-10-28 から無視】以前の短い表記（転職：積極的 など）。いまはカードも右欄も同じ言葉
  * @param plain 枠線なしの塗りの札（2026-10-13 / 改修モックに合わせた）。★一覧のカードと右欄の名前の行の両方で使う
  *   （2026-10-13 柴さん判断で変更：右欄も枠線なしに揃えた。理由: 同じものが2つの見た目にならないように）。枠線ありは今は使っていない
  */
-export function StanceBadge({ stance, short = false, plain = false }: { stance: string | null | undefined; short?: boolean; plain?: boolean }) {
+export function StanceBadge({ stance, plain = false }: { stance: string | null | undefined; short?: boolean; plain?: boolean }) {
   const b = stance ? STANCE_BADGE[stance] : undefined;
   const label = stance ? CAREER_STANCE_LABELS[stance] : undefined;
   if (!b || !label) return null;
@@ -40,7 +42,7 @@ export function StanceBadge({ stance, short = false, plain = false }: { stance: 
           ? { height: 18, padding: "0 7px", borderRadius: 4, border: "none", fontSize: 11 }
           : { height: 20, padding: "0 8px", borderRadius: 999, border: `1px solid ${b.border}`, fontSize: 11.5 }),
       }}>
-      {short ? b.short : label}
+      {label}
     </span>
   );
 }

@@ -45,7 +45,7 @@ const ITEMS = [
     desc: "★Third Box には応募・面談が無く、選考管理での見え方を描けない。読むだけの表示（短い・長い・無い）をここで見る" },
   { href: "/dev/preview/pane-thread", label: "右欄のメッセージ欄（/biz/candidates。直近10通・上へスクロール）",
     desc: "★実データは数通しか無い。30通で前の10通を読み込む動き・日付の区切り・始まりの案内をここで見る" },
-  { href: "/dev/preview/candidate-touchpoints", label: "〈会社名〉と合うところ（/biz/candidates の右のプレビュー）",
+  { href: "/dev/preview/candidate-touchpoints", label: "自社との接点（/biz/candidates の右のプレビュー。2026-10-28 に「合うところ」から置き換えた）",
     desc: "★実データは材料がほとんど無く出る側を描けない。0件と入口／材料は揃って0件／2件／5件（ほかに2件）／取得失敗をここで見る" },
   { href: "/dev/preview/approaches", label: "企業のメッセージ（/biz/messages）",
     desc: "★検証用データでは状態が揃わない。0件（メッセージを送れる人 N人／0人／取得失敗）／すべて（新しい返信）／返事待ち（3日・25日）／30日を過ぎたものをここで見る" },

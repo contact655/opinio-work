@@ -4,6 +4,7 @@ import { unseenRepliedConversationIds } from "@/lib/approaches/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchCompanyJoinRequests } from "@/lib/business/joinRequests";
 import { can, type CompanyRole } from "@/lib/auth/roles";
+import { countAwaitingReply } from "@/lib/interest/server";
 
 /**
  * ★`/biz` サイドバーの未読バッジ（2026-09-21 / 柴さんの指示）。
@@ -12,6 +13,8 @@ import { can, type CompanyRole } from "@/lib/auth/roles";
  * |---|---|
  * | メッセージ | 未読のある会話 ∪ 送ったメッセージに返信があってまだ開いていない会話 ∪ ★提案から始まってまだ開いていない会話（**会話の数で、通数ではない**） |
  * | 提案 | ★会うかどうかを決める提案（企業の設定が「確認してから」のときだけ。2026-10-11）。判定は `lib/evidence/companyProposals.ts` |
+ * | 話を聞いてみたい（interestAwaiting） | ★「話を聞いてみたい」で届いて、まだ担当者が1通も返事をしていない人数（2026-10-28 / 柴さんの指示）。
+ *   /biz/messages の「あなたの返事を待っている人」と同じ `countAwaitingReply`（見ている担当者と検証用かどうかがそろう人だけ）。メニューの「メッセージ」に並べて出す |
  *
  * ⚠️★**失敗したら 0 を返す（ログは出す）。** バッジのために `/biz` 全体を落とさない。
  *    その代わり「0 = 無い」とは限らない。**数字が出ないことを根拠に「未読なし」と判断しないこと。**
@@ -19,7 +22,7 @@ import { can, type CompanyRole } from "@/lib/auth/roles";
  *    ⚠️★layout で数えないこと —— layout はページ移動で描き直されず、数字が古いまま残る。
  */
 /* ★members … 参加の依頼（2026-10-18）。`members.manage` の人だけ数える（それ以外は 0）。数え方は `fetchCompanyJoinRequests` */
-export type BizNavBadges = { messages: number; proposals: number; members: number };
+export type BizNavBadges = { messages: number; proposals: number; members: number; interestAwaiting: number };
 
 /**
  * ★「対応が必要なメッセージ」の会話（2026-10-12 / 柴さんの指示で1つにまとめた）。
@@ -46,11 +49,15 @@ export async function getBizNavBadges(params: {
   companyId: string;
   permission: CompanyRole;
 }): Promise<BizNavBadges> {
-  const [{ all }, joinRequests] = await Promise.all([
+  const [{ all }, joinRequests, awaiting] = await Promise.all([
     companyMessageTodoIds(params),
     can(params.permission, "members.manage")
       ? fetchCompanyJoinRequests(createAdminClient(), params.companyId)
       : Promise.resolve([]),
+    /* ⚠️ メッセージを使えない役割には数えない（メニューにメッセージが出ないため） */
+    can(params.permission, "messages.use")
+      ? countAwaitingReply(params.companyId, { viewerOwUserId: params.owUserId })
+      : Promise.resolve(null),
   ]);
   return {
     messages: all.size,
@@ -58,6 +65,8 @@ export async function getBizNavBadges(params: {
     members: joinRequests?.length ?? 0,
     /* ★2026-10-11 から企業が答える紹介は無い（届いた方はその場で会話になり、上の messages で数える）。常に 0 */
     proposals: 0,
+    /* ⚠️ 取れなければ 0（出さない）。0人と言い切る場所ではない */
+    interestAwaiting: awaiting?.count ?? 0,
   };
 }
 
