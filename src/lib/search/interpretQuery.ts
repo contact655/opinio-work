@@ -293,6 +293,19 @@ const COMPANY_KEY_MIN_LEN = 3;
  * ★別名（`search_aliases`）を空白で割ったときに出る、会社を指さない語。照合に載せない。
  * ⚠️ 「Accenture Japan」を割ると「japan」が残り、載せると「japan」を含む入力がすべてアクセンチュアになる
  */
+/**
+ * ★照合キー（companyKey 済み）から、頭か末尾の法人格を外す（2026-10-27）。
+ *   「アトラシアン株式会社」→「アトラシアン」、「株式会社boxjapan」→「boxjapan」、「salesforcejapancoltd」→「salesforcejapan」
+ * ⚠️ 外したあとが短すぎる（3文字未満）なら、呼ぶ側の COMPANY_KEY_MIN_LEN で落ちる
+ * ⚠️ 2社が同じ形になったら、照合の側が「決められない」として扱う（hit.length > 1）
+ */
+export function stripLegalForm(key: string): string {
+  return key
+    .replace(/^(?:株式会社|合同会社|有限会社|合資会社|合名会社|一般社団法人|一般財団法人)/, "")
+    .replace(/(?:株式会社|合同会社|有限会社|合資会社|合名会社)$/, "")
+    .replace(/(?:coltd|corporation|corp|inc|llc|ltd|kk|gk)$/, "");
+}
+
 const ALIAS_GENERIC_KEYS = new Set(["japan", "ジャパン", "株式会社", "合同会社", "有限会社", "inc", "corp", "ltd", "co"]);
 
 /**
@@ -342,9 +355,16 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
        ⚠️ 空白で区切った1語ずつを載せる。「Accenture Japan」のような2語の別名から出る「Japan」は
           どの会社にも当たる語なので載せない（ALIAS_GENERIC_KEYS） */
     const aliasTokens = (c.search_aliases ?? "").split(/[\s　]+/).filter((t) => t && !ALIAS_GENERIC_KEYS.has(companyKey(t)));
+    /* ★法人格を外した形も載せる（2026-10-27 / 柴さんの指示）。「アトラシアン」で「アトラシアン株式会社」に当たるように。
+          ⚠️ 正式名そのもの（法人格つき）も残す。「株式会社〇〇」と打った人にも当たる */
+    const keys = new Set<string>();
     for (const raw of [c.name, c.brand_name, c.slug, ...aliasTokens]) {
       if (!raw) continue;
       const key = companyKey(raw);
+      keys.add(key);
+      keys.add(stripLegalForm(key));
+    }
+    for (const key of Array.from(keys)) {
       if (key.length < COMPANY_KEY_MIN_LEN) continue;
       const prev = companyIndex.get(key) ?? [];
       if (!prev.some((x) => x.id === c.id)) prev.push({ id: c.id, label });
