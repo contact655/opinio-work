@@ -115,6 +115,15 @@ export const MAX_REASONS_PER_COMPANY = 2;
  */
 export const TIE_BREAK_NOTE = "score desc → signal count desc → display name (ja) → id";
 
+/**
+ * ★職歴が1件も無い人の並べ方（2026-10-27 / 柴さんの決定6）。②と③のあいだに挟む:
+ *   人の流れ（企業ページの「人の流れ」が1項目でも出る会社）→ 公開求人がある会社 → 掲載の新しい順
+ * ⚠️ 「掲載の新しい順」は published_at（最初に公開した日時）。NULL の会社が多いので、無ければ created_at で並べる
+ *    （ow_companies に「掲載した日時」の列は無い。listing_status を listed にした日時は記録されていない）
+ * ⚠️ 職歴がある人には効かせない（その人の並びは点数と③のまま）
+ */
+export const NO_EXPERIENCE_TIE_BREAK_NOTE = "score desc → signal count desc → has company flow → has open jobs → (published_at ?? created_at) desc → display name (ja) → id";
+
 /* ── 理由文 ─────────────────────────────────────────────────────────────────── */
 
 export type SignalDetail =

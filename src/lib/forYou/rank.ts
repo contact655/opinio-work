@@ -9,6 +9,8 @@ import { phaseLabel, phaseMatches } from "@/lib/constants/phase";
 import { buildMoves, type TransitionExperience } from "@/lib/evidence/transitions";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { meetsAggregateMin } from "@/lib/constants/aggregate";
+import { getCompanyFlowCached } from "@/lib/companyFlow/server";
+import { hasAnyFlowItem } from "@/lib/companyFlow/compute";
 import {
   DESIRED_PHASE_TO_OPTION,
   MAX_REASONS_PER_COMPANY,
@@ -77,6 +79,7 @@ export type ForYouResult =
 type CompanyRow = {
   id: string; slug: string | null; name: string; name_en: string | null; tagline: string | null;
   logo_url: string | null; phase: string | null; is_test: boolean | null; is_published: boolean | null;
+  published_at: string | null; created_at: string | null;
 };
 
 export async function buildForYou(owUserId: string): Promise<ForYouResult> {
@@ -128,7 +131,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
 
   /* ── 1. 母集団（掲載中の企業）──────────────────────────────────────────────── */
   let coQuery = db.from("ow_companies")
-    .select("id, slug, name, name_en, tagline, logo_url, phase, is_test, is_published")
+    .select("id, slug, name, name_en, tagline, logo_url, phase, is_test, is_published, published_at, created_at")
     .eq("listing_status", "listed").eq("is_published", true);
   if (!viewerIsTest) coQuery = coQuery.eq("is_test", false);
   const { data: coRows, error: coErr } = await coQuery;
@@ -336,9 +339,29 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   });
 
   /* ── 4. 並べる（weights.ts の TIE_BREAK_NOTE）────────────────────────────────── */
+  /* ★職歴が1件も無い人だけ、同点の並びを 人の流れ → 公開求人 → 掲載の新しい順 にする（NO_EXPERIENCE_TIE_BREAK_NOTE）。
+        ⚠️ 人の流れは企業ページと同じ関数・同じキャッシュ（300秒）。取れなかった会社は「無い」として扱う（並びが下がるだけ） */
+  const noExperience = myExps.length === 0;
+  const withFlow = new Set<string>();
+  if (noExperience) {
+    const flows = await Promise.all(scored.map((s) =>
+      getCompanyFlowCached(s.row.id).then((f) => (hasAnyFlowItem(f) ? s.row.id : null)).catch((e) => {
+        console.error("[forYou] companyFlow:", s.row.id, e);
+        return null;
+      })));
+    for (const id of flows) if (id) withFlow.add(id);
+  }
+  const listedAt = (r: CompanyRow) => r.published_at ?? r.created_at ?? "";
+  const noExpTie = (a: (typeof scored)[number], b: (typeof scored)[number]) => {
+    if (!noExperience) return 0;
+    return Number(withFlow.has(b.row.id)) - Number(withFlow.has(a.row.id))
+      || Number(jobRolesByCompany.has(b.row.id)) - Number(jobRolesByCompany.has(a.row.id))
+      || listedAt(b.row).localeCompare(listedAt(a.row));
+  };
   scored.sort((a, b) =>
     b.score - a.score
     || b.signals.length - a.signals.length
+    || noExpTie(a, b)
     || a.displayName.localeCompare(b.displayName, "ja")
     || a.row.id.localeCompare(b.row.id),
   );
