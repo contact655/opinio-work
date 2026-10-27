@@ -92,3 +92,33 @@ test("★ログインしていない人向けの形は件数だけ（内訳・�
   for (const k of ["byIndustry", "paths", "top", "avgMonths", "goodShare", "label"]) assert.ok(!keys.has(k), `件数だけの形に ${k} がある`);
   assert.deepEqual(s, { people: 3, previous: { known: 3 }, next: { known: 3 }, tenure: { alumni: 3 }, roleChanges: { people: 3 }, decisiveTop: { respondents: 5 }, fitAfterYear: { respondents: 5 } });
 });
+
+test("★検索の「出た人」の集計：OB が3人以上で出る。行き先は業界・職種の大分類。個人を特定できる値が入らない", async () => {
+  const { computeLeaverSummary, toLeaverSummaryCounts } = await import("./compute.ts");
+  const L2 = { industry: L.industry, roleTop: (id) => ({ is: "営業", ae: "営業" })[id] ?? "" };
+  const next = (u, ind, role) => [
+    X({ userId: u, companyId: C, startedAt: "2018-04-01", endedAt: "2020-03-01", roleCategoryId: "ae" }),
+    X({ userId: u, companyId: "next-" + u, startedAt: "2020-04-01", isCurrent: true, industryParentId: ind, roleCategoryId: role }),
+  ];
+  const two = [...next("user-a", "it", "is"), ...next("user-b", "fin", "ae")];
+  assert.equal(computeLeaverSummary(C, two, L2, OPT), null);
+  /* 現役は数えない */
+  const withCurrent = [...two, X({ userId: "user-c", companyId: C, startedAt: "2019-04-01", isCurrent: true })];
+  assert.equal(computeLeaverSummary(C, withCurrent, L2, OPT), null);
+  const three = [...two, ...next("user-d", "it", "is")];
+  const s = computeLeaverSummary(C, three, L2, OPT);
+  assert.deepEqual(s, {
+    alumni: 3,
+    tenure: { alumni: 3, avgMonths: 24 },
+    next: { known: 3, byIndustry: [{ label: "IT・インターネット", count: 2 }, { label: "金融", count: 1 }] },
+    nextRoles: { known: 3, byRole: [{ label: "営業", count: 3 }] },
+  });
+  const allowed = new Set(["alumni", "tenure", "avgMonths", "next", "known", "byIndustry", "label", "count", "nextRoles", "byRole"]);
+  for (const k of keysDeep(s)) assert.ok(allowed.has(k), `許可していないキー: ${k}`);
+  const json = JSON.stringify(s);
+  for (const bad of ["user-", "next-", C, "2018-", "2020-"]) assert.ok(!json.includes(bad), `返り値に ${bad} が含まれている`);
+  /* 未ログインには件数だけ */
+  const counts = toLeaverSummaryCounts(s);
+  assert.deepEqual(counts, { alumni: 3, tenure: { alumni: 3 }, next: { known: 3 }, nextRoles: { known: 3 } });
+  for (const k of ["byIndustry", "byRole", "avgMonths", "label"]) assert.ok(!keysDeep(counts).has(k), `件数だけの形に ${k} がある`);
+});

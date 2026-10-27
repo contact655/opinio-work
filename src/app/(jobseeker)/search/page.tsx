@@ -23,6 +23,9 @@ import { FollowButton as CompanyFollowButton } from "../companies/[id]/CompanyDe
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { getCompanyConnections, type CompanyConnection } from "@/lib/companies/connections";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { getCompanyLeaverSummaryCached } from "@/lib/companyFlow/server";
+import { toLeaverSummaryCounts, type LeaverSummary, type LeaverSummaryCounts } from "@/lib/companyFlow/compute";
+import { formatMonths } from "@/lib/profile/tenure";
 
 /**
  * 横断検索。企業・求人・人をまとめて引き、**主対象を1つだけ**見出し付きで出す。
@@ -353,14 +356,23 @@ export default async function SearchPage({ searchParams }: Props) {
     person: { items: [], total: 0 },
     article: { items: [], total: 0 },
   };
+  /* ★「〈会社〉を出た人」（2026-10-27 / 柴さんの決定）。人のタブを「OB・OG」で絞った状態で開く。
+     ⚠️ 「すべて」タブへ戻るリンクは `kind=all`、在籍の絞りを外すリンクは `tenure=all`（無いと既定の OB・OG に戻ってしまう） */
+  const transitionLeft = interpreted.transition?.kind === "left" ? interpreted.transition : null;
+  const openPersonTab = !!transitionLeft && !searchParams.kind;
   /* ★人タブの絞り込み（2026-10-21）。人タブを開いているときだけ効かせる（「すべて」では絞らない）。
      ⚠️ 知らない値は無視する（URL を手で書き換えられても壊れない） */
   const personFilter: PersonFilter = {};
   /* ⚠️★未ログインでは絞らない。絞ると下限（MIN_AGGREGATE_COUNT・5人）未満の人数がタブの外に出る（人の件数は MIN_AGGREGATE_COUNT 未満を伏せる規則） */
-  if (searchParams.kind === "person" && isLoggedIn) {
+  if ((searchParams.kind === "person" || openPersonTab) && isLoggedIn) {
     if (searchParams.tenure === "current" || searchParams.tenure === "former") personFilter.tenure = searchParams.tenure;
+    else if (transitionLeft && searchParams.tenure !== "all") personFilter.tenure = "former";
     if (searchParams.role && /^[a-z0-9_-]{1,64}$/i.test(searchParams.role)) personFilter.role = searchParams.role;
   }
+  /* ★未ログインで「出た人」を引いたときは、人数を OB・OG だけで数える（絞り込みの UI は出さない） */
+  if (transitionLeft && !isLoggedIn) personFilter.onlyFormer = true;
+  /* ★動き方の集計（該当人数・平均在籍・行き先の業界・行き先の職種）。「人の流れ」と同じ定義・下限（3人） */
+  const leaverSummary: LeaverSummary | null = transitionLeft ? await getCompanyLeaverSummaryCached(transitionLeft.companyId) : null;
   const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn, personFilter) : EMPTY;
   /* ★投稿は条件ではなく「ことば」で引く。条件が1つも立たなかったときも引く
         （投稿は自由文なので、職種などに読めない語こそ当たりうる）。ログインしているときだけ */
@@ -393,7 +405,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const activeKind: PageKind | "all" =
     (KIND_ORDER as string[]).includes(searchParams.kind ?? "")
       ? (searchParams.kind as PageKind)
-      : "all";
+      : openPersonTab ? "person" : "all";
 
   /* ★「すべて」では**主対象を先頭に**置く。`interpretQuery` が決めた優先順を捨てない。
      ⚠️ 残りは `KIND_ORDER`（ヘッダーのナビと同じ並び）。**件数順にしないこと** ——
@@ -564,7 +576,7 @@ export default async function SearchPage({ searchParams }: Props) {
               return (
                 <Link
                   key={k}
-                  href={`/search?q=${encodeURIComponent(raw)}${k === "all" ? "" : `&kind=${k}`}`}
+                  href={`/search?q=${encodeURIComponent(raw)}${k === "all" ? (transitionLeft ? "&kind=all" : "") : `&kind=${k}`}`}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "6px 14px", borderRadius: 100, fontSize: 13, fontWeight: 600,
@@ -607,6 +619,10 @@ export default async function SearchPage({ searchParams }: Props) {
                 企業・募集・人は、職種・事業領域・外資系／日系・年収などの条件で探します。
                 このことばは条件として読めなかったので、投稿だけを表示しています。
               </p>
+            )}
+            {leaverSummary && transitionLeft && (
+              <LeaverSummaryCard companyLabel={transitionLeft.companyLabel}
+                full={isLoggedIn ? leaverSummary : null} counts={toLeaverSummaryCounts(leaverSummary)} />
             )}
             {visibleKinds.map((k) => {
               if (totalOf(k) === 0) return null;
@@ -654,7 +670,7 @@ export default async function SearchPage({ searchParams }: Props) {
                     <>
                       {activeKind === "person" && (
                         <PersonFilterBar raw={raw} filter={personFilter} labels={tenureLabels}
-                          tenureTotals={tt} roleFacets={results.person.roleFacets ?? []} />
+                          tenureTotals={tt} roleFacets={results.person.roleFacets ?? []} tenureOffValue={transitionLeft ? "all" : undefined} />
                       )}
                       {shownTotal === 0 ? (
                         <p data-state="person-filter-empty" style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-mute)" }}>
@@ -665,7 +681,7 @@ export default async function SearchPage({ searchParams }: Props) {
                           totals={personFilter.tenure && tt ? { current: personFilter.tenure === "current" ? tt.current : 0, former: personFilter.tenure === "former" ? tt.former : 0 } : tt}
                           labels={tenureLabels} f={follow} />
                       )}
-                      {results.person.destinations && (
+                      {results.person.destinations && !transitionLeft && (
                         <DestinationsBlock d={results.person.destinations}
                           companyLabel={conditions.find((c) => c.kind === "company" || c.kind === "school")?.label ?? null} />
                       )}
@@ -745,15 +761,18 @@ function Truncated({ total, shown }: { total: number; shown: number }) {
  * ⚠️ 選んでいる職種は、人数が0でも出す（外せなくなるため）
  */
 function PersonFilterBar({
-  raw, filter, labels, tenureTotals, roleFacets,
+  raw, filter, labels, tenureTotals, roleFacets, tenureOffValue,
 }: {
   raw: string; filter: PersonFilter; labels: TenureLabels;
   tenureTotals: SearchResults["person"]["tenureTotals"];
   roleFacets: { key: string; name: string; count: number }[];
+  /** ★在籍の絞りを外したときに URL に入れる値（「出た人」では既定が OB・OG なので `all` を入れる） */
+  tenureOffValue?: string;
 }) {
   const href = (next: PersonFilter) => {
     const p = new URLSearchParams({ q: raw, kind: "person" });
     if (next.tenure) p.set("tenure", next.tenure);
+    else if (tenureOffValue) p.set("tenure", tenureOffValue);
     if (next.role) p.set("role", next.role);
     return `/search?${p.toString()}`;
   };
@@ -972,6 +991,60 @@ function EmptyState({
  * 件数も `MIN_AGGREGATE_COUNT` 未満なら出さない（n=1/2 は本人の特定に繋がる）。
  * ⚠️ 結果グリッドがあるはずの位置にログイン導線を置く。空白にしない。
  */
+/**
+ * ★「〈会社〉を出た人」の動き方の集計（2026-10-27 / 柴さんの決定）。結果の上に出す。
+ *   該当人数・平均在籍・行き先の業界（大分類）・行き先の職種（大分類）。企業ページの「人の流れ」と同じ定義・下限（3人）
+ * ⚠️ ログインしていない人には件数だけ（full を渡さない）。内訳・平均は「登録すると読めます」
+ * ⚠️ 会社名は出さない（行き先は業界の大分類まで）
+ */
+function LeaverSummaryCard({ companyLabel, full, counts }: { companyLabel: string; full: LeaverSummary | null; counts: LeaverSummaryCounts }) {
+  const chip = chipStyle("neutral");
+  const locked = (
+    <Link href="/auth" data-state="leaver-summary-locked" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>登録すると読めます →</Link>
+  );
+  const Rows = ({ rows }: { rows: { label: string; count: number }[] }) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {rows.map((r) => (
+        <span key={r.label} style={{ display: "inline-flex", gap: 5, padding: "4px 10px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: chip.bg, color: chip.color, border: `1px solid ${chip.border}` }}>
+          {r.label}<span style={{ fontWeight: 700, color: "var(--ink-soft)" }}>{r.count}人</span>
+        </span>
+      ))}
+    </div>
+  );
+  const Item = ({ title, lead, children }: { title: string; lead: string; children: React.ReactNode }) => (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{title}</div>
+      <div style={{ fontSize: 12.5, color: "var(--ink)", margin: "2px 0 6px" }}>{lead}</div>
+      {children}
+    </div>
+  );
+  return (
+    <section data-state={full ? "leaver-summary-full" : "leaver-summary-counts"} className="search-section">
+      <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0 }}>{companyLabel}を出た人の動き方</h2>
+      <p style={{ margin: "4px 0 12px", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+        OPINIO に登録した {counts.alumni} 人の経歴から数えています。人数の少ない項目は出していません。
+      </p>
+      <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))" }}>
+        {counts.tenure && (
+          <Item title="平均在籍" lead={`${counts.tenure.alumni}人`}>
+            {full?.tenure ? <strong style={{ fontSize: 18, color: "var(--ink)" }}>{formatMonths(full.tenure.avgMonths)}</strong> : locked}
+          </Item>
+        )}
+        {counts.next && (
+          <Item title="行き先の業界" lead={`行き先が分かる ${counts.next.known}人`}>
+            {full?.next ? <Rows rows={full.next.byIndustry} /> : locked}
+          </Item>
+        )}
+        {counts.nextRoles && (
+          <Item title="行き先の職種" lead={`職種が分かる ${counts.nextRoles.known}人`}>
+            {full?.nextRoles ? <Rows rows={full.nextRoles.byRole} /> : locked}
+          </Item>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function LoginGate({ total }: { total: number }) {
   const enough = total >= MIN_AGGREGATE_COUNT;
   return (

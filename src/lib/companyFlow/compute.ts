@@ -31,6 +31,8 @@ export type FlowLabels = {
   industry: (id: string) => string;
   role: (id: string) => string;
   reason: (key: string) => string;
+  /** 職種の大分類の名前（検索の「行き先の職種」だけが使う）。辿れなければ "" */
+  roleTop?: (id: string) => string;
 };
 
 export type FlowOptions = {
@@ -69,6 +71,38 @@ function tally(keys: string[], label: (k: string) => string): FlowBreakdown {
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ja"));
 }
 
+/**
+ * ★1人ぶんの「この会社の前後」。**前職・行き先・在籍月数の定義はここ1か所**（企業ページの「人の流れ」と検索の「出た人」が同じ定義を使う）。
+ *   前職   = この会社に入る前の、いちばん最後に始まった他社の職歴
+ *   行き先 = この会社を出た月以降（同じ月を含む）に始まった、いちばん早い他社の職歴（OB だけ）
+ *   在籍月数 = 開始月と終了月を含め、重なりを除いて足す（OB だけ。lib/profile/tenure.ts の tenureMonths と同じ数え方）
+ */
+function aroundCompany(rows: readonly FlowExperience[], companyId: string, current: number) {
+  const here = rows.filter((r) => r.companyId === companyId).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  if (here.length === 0) return null;
+  const others = rows.filter((r) => r.companyId !== companyId);
+  const start = here[0].startedAt;
+  const isAlumni = here.every((r) => !r.isCurrent);
+  const prev = others.filter((r) => r.startedAt < start).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null;
+  let next: FlowExperience | null = null;
+  let months = 0;
+  if (isAlumni) {
+    const endIdx = Math.max(...here.map((r) => monthIndex(r.endedAt ?? r.startedAt) ?? -Infinity));
+    next = others
+      .filter((r) => { const s = monthIndex(r.startedAt); return s !== null && s >= endIdx; })
+      .sort((a, b) => a.startedAt.localeCompare(b.startedAt))[0] ?? null;
+    const set = new Set<number>();
+    for (const r of here) {
+      const s = monthIndex(r.startedAt);
+      const e = r.isCurrent || !r.endedAt ? current : monthIndex(r.endedAt);
+      if (s === null || e === null || e < s) continue;
+      for (let m = s; m <= e; m++) set.add(m);
+    }
+    months = set.size;
+  }
+  return { here, prev, next, isAlumni, months };
+}
+
 export function computeCompanyFlow(
   companyId: string,
   /** 母数の人たちの**全**職歴（会社名を出してよい行だけ）。この会社の行と、前後の他社の行を含む */
@@ -93,34 +127,14 @@ export function computeCompanyFlow(
   let people = 0;
 
   for (const rows of Array.from(byUser.values())) {
-    const here = rows.filter((r) => r.companyId === companyId).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-    if (here.length === 0) continue;
+    const a = aroundCompany(rows, companyId, current);
+    if (!a) continue;
     people++;
-    const others = rows.filter((r) => r.companyId !== companyId);
-    const start = here[0].startedAt;
-    const isAlumni = here.every((r) => !r.isCurrent);
-
-    /* 前職 = この会社に入る前の、いちばん最後に始まった他社の職歴 */
-    const prev = others.filter((r) => r.startedAt < start).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+    const { here, prev, next, isAlumni, months } = a;
     if (prev?.industryParentId) prevIndustries.push(prev.industryParentId);
-
     if (isAlumni) {
-      const endIdx = Math.max(...here.map((r) => monthIndex(r.endedAt ?? r.startedAt) ?? -Infinity));
-      /* 行き先 = この会社を出た月以降（同じ月を含む）に始まった、いちばん早い他社の職歴 */
-      const next = others
-        .filter((r) => { const s = monthIndex(r.startedAt); return s !== null && s >= endIdx; })
-        .sort((a, b) => a.startedAt.localeCompare(b.startedAt))[0];
       if (next?.industryParentId) nextIndustries.push(next.industryParentId);
-
-      /* 在籍月数（開始月と終了月を含め、重なりを除いて足す＝lib/profile/tenure.ts の tenureMonths と同じ数え方） */
-      const months = new Set<number>();
-      for (const r of here) {
-        const s = monthIndex(r.startedAt);
-        const e = r.isCurrent || !r.endedAt ? current : monthIndex(r.endedAt);
-        if (s === null || e === null || e < s) continue;
-        for (let m = s; m <= e; m++) months.add(m);
-      }
-      if (months.size > 0) alumniMonths.push(months.size);
+      if (months > 0) alumniMonths.push(months);
     }
 
     /* 社内の職種の変化（細かい職種）。最初の職種 → 最後の職種 */
@@ -180,5 +194,71 @@ export function toFlowSummary(f: CompanyFlow): CompanyFlowSummary {
     roleChanges: f.roleChanges ? { people: f.roleChanges.people } : null,
     decisiveTop: f.decisiveTop ? { respondents: f.decisiveTop.respondents } : null,
     fitAfterYear: f.fitAfterYear ? { respondents: f.fitAfterYear.respondents } : null,
+  };
+}
+
+/**
+ * ★検索「〈会社〉を出た人」の動き方の集計（2026-10-27 / 柴さんの決定）。**企業ページの「人の流れ」と同じ定義・同じ下限。**
+ *   該当人数（OB）・平均在籍・行き先の業界（大分類）・行き先の職種（大分類）
+ * ⚠️ 下限は経歴の事実なので minCareerFact（3人）。項目の母数が届かなければ null。OB が届かなければ全体が null
+ * ⚠️ 返す形に個人を特定できる値（user_id・会社 id・会社名・個別の期間）を入れない。数と業界・職種の名前だけ
+ */
+export type LeaverSummary = {
+  alumni: number;
+  tenure: { alumni: number; avgMonths: number } | null;
+  next: { known: number; byIndustry: FlowBreakdown } | null;
+  nextRoles: { known: number; byRole: FlowBreakdown } | null;
+};
+
+export function computeLeaverSummary(
+  companyId: string,
+  experiences: readonly FlowExperience[],
+  L: Pick<FlowLabels, "industry" | "roleTop">,
+  opt: Pick<FlowOptions, "minCareerFact" | "now">,
+): LeaverSummary | null {
+  const now = opt.now ?? new Date();
+  const current = now.getFullYear() * 12 + now.getMonth();
+  const byUser = new Map<string, FlowExperience[]>();
+  for (const e of experiences) {
+    if (!byUser.has(e.userId)) byUser.set(e.userId, []);
+    byUser.get(e.userId)!.push(e);
+  }
+  let alumni = 0;
+  const months: number[] = [];
+  const nextInd: string[] = [];
+  const nextRole: string[] = [];
+  for (const rows of Array.from(byUser.values())) {
+    const a = aroundCompany(rows, companyId, current);
+    if (!a || !a.isAlumni) continue;
+    alumni++;
+    if (a.months > 0) months.push(a.months);
+    if (a.next?.industryParentId) nextInd.push(a.next.industryParentId);
+    const top = a.next?.roleCategoryId && L.roleTop ? L.roleTop(a.next.roleCategoryId) : "";
+    if (top) nextRole.push(top);
+  }
+  if (alumni < opt.minCareerFact) return null;
+  return {
+    alumni,
+    tenure: months.length >= opt.minCareerFact
+      ? { alumni: months.length, avgMonths: Math.round(months.reduce((x, y) => x + y, 0) / months.length) } : null,
+    next: nextInd.length >= opt.minCareerFact ? { known: nextInd.length, byIndustry: tally(nextInd, L.industry) } : null,
+    nextRoles: nextRole.length >= opt.minCareerFact ? { known: nextRole.length, byRole: tally(nextRole, (k) => k) } : null,
+  };
+}
+
+/** ★ログインしていない人に渡す形。件数だけで、内訳・平均は入れない */
+export type LeaverSummaryCounts = {
+  alumni: number;
+  tenure: { alumni: number } | null;
+  next: { known: number } | null;
+  nextRoles: { known: number } | null;
+};
+
+export function toLeaverSummaryCounts(s: LeaverSummary): LeaverSummaryCounts {
+  return {
+    alumni: s.alumni,
+    tenure: s.tenure ? { alumni: s.tenure.alumni } : null,
+    next: s.next ? { known: s.next.known } : null,
+    nextRoles: s.nextRoles ? { known: s.nextRoles.known } : null,
   };
 }

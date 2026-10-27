@@ -114,7 +114,15 @@ export type PersonHit = {
  * ★人タブの絞り込み（2026-10-21 / 柴さんの指示）。URL の `?tenure=` / `?role=` から来る。
  * ⚠️ 上限（HIT_LIMIT）で切る**前に**絞る。画面で items を絞ると、25人目以降が永久に出ない
  */
-export type PersonFilter = { tenure?: "current" | "former"; role?: string };
+export type PersonFilter = {
+  tenure?: "current" | "former";
+  role?: string;
+  /**
+   * ★「〈会社〉を出た人」を未ログインで引いたとき（2026-10-27）。人数を OB・OG だけで数える。
+   * ⚠️ ログイン中は tenure: "former" で絞る（現役に切り替えられるように）。こちらは母数そのものを変える
+   */
+  onlyFormer?: boolean;
+};
 
 /**
  * ★記事のヒット（2026-10-01）。
@@ -722,6 +730,8 @@ export async function searchPersonHits(
         ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */
   const order = (t: PersonHit["tenure"]) => (t === "former" ? 1 : 0);
   hits.sort((a, b) => order(a.tenure) - order(b.tenure));
+  /* ★「〈会社〉を出た人」（未ログイン）。母数を OB・OG だけにする（PersonFilter.onlyFormer） */
+  if (filter.onlyFormer) hits.splice(0, hits.length, ...hits.filter((h) => h.tenure === "former"));
   /* ★人タブの絞り込み。⚠️ 在籍で絞ってから職種の人数を数え、最後に職種で絞る */
   const byTenure = filter.tenure ? hits.filter((h) => h.tenure === filter.tenure) : hits;
   const facetMap = new Map<string, { key: string; name: string; count: number }>();

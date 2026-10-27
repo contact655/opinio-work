@@ -5,7 +5,7 @@ import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { MIN_AGGREGATE_COUNT, MIN_CAREER_FACT_COUNT } from "@/lib/constants/aggregate";
 import { DECISIVE_REASON_LABELS, FIT_GOOD_MIN } from "@/lib/careerTurns/constants";
-import { computeCompanyFlow, type CompanyFlow, type FlowExperience, type FlowTurn } from "./compute";
+import { computeCompanyFlow, computeLeaverSummary, type CompanyFlow, type FlowExperience, type FlowTurn, type LeaverSummary } from "./compute";
 
 /**
  * ★企業ページ「人の流れ」の集計をサーバーで作る（2026-10-27 / 柴さんの決定＝案A）。
@@ -18,6 +18,40 @@ import { computeCompanyFlow, type CompanyFlow, type FlowExperience, type FlowTur
  *    前後の職歴が real でなければ、その人の前職・行き先は「辿れない」（母数から外す）。古い職歴に飛ばさない。
  */
 export async function getCompanyFlow(companyId: string): Promise<CompanyFlow | null> {
+  const input = await loadFlowInput(companyId, { withTurns: true });
+  if (!input) return null;
+  return computeCompanyFlow(companyId, input.experiences, input.turns, {
+    industry: input.industryName,
+    role: input.roleName,
+    reason: (k) => DECISIVE_REASON_LABELS[k] ?? k,
+  }, { minCareerFact: MIN_CAREER_FACT_COUNT, minAnswer: MIN_AGGREGATE_COUNT, fitGoodMin: FIT_GOOD_MIN });
+}
+
+/**
+ * ★検索「〈会社〉を出た人」の動き方の集計（2026-10-27）。**読み込みは「人の流れ」と同じ loadFlowInput**（母数・会社名を伏せた行の扱いが同じ）。
+ * ⚠️ 下限は経歴の事実なので MIN_CAREER_FACT_COUNT（3人）
+ */
+export async function getCompanyLeaverSummary(companyId: string): Promise<LeaverSummary | null> {
+  const input = await loadFlowInput(companyId, { withTurns: false });
+  if (!input) return null;
+  return computeLeaverSummary(companyId, input.experiences, { industry: input.industryName, roleTop: input.roleTopName },
+    { minCareerFact: MIN_CAREER_FACT_COUNT });
+}
+
+/** ★検索用。300秒（企業ページの「人の流れ」と同じ鮮度）。⚠️ 返す形を変えたらキーの版を上げる */
+export const getCompanyLeaverSummaryCached = (companyId: string) =>
+  unstable_cache(() => getCompanyLeaverSummary(companyId), ["company-leavers-v1", companyId], { revalidate: 300 })();
+
+type FlowInput = {
+  experiences: FlowExperience[];
+  turns: FlowTurn[];
+  industryName: (id: string) => string;
+  roleName: (id: string) => string;
+  roleTopName: (id: string) => string;
+};
+
+/** ★「人の流れ」と検索の「出た人」が共有する読み込み。母数・会社名を伏せた行の扱いはここ1か所 */
+async function loadFlowInput(companyId: string, opts: { withTurns: boolean }): Promise<FlowInput | null> {
   const admin = createAdminClient();
 
   /* ① この会社に、会社名を出してよい職歴がある人 */
@@ -36,7 +70,7 @@ export async function getCompanyFlow(companyId: string): Promise<CompanyFlow | n
       .select("id, user_id, company_id, visibility_company, started_at, ended_at, is_current, role_category_id, ow_companies!company_id(industry_id)")
       .in("user_id", part).order("id").range(from, to), "companyFlow exps"),
     admin.from("ow_industries").select("id, name, parent_id"),
-    admin.from("ow_roles").select("id, name"),
+    admin.from("ow_roles").select("id, name, parent_id"),
   ]);
   if (expRes.error || indRes.error || roleRes.error) {
     console.error("[companyFlow] load:", expRes.error ?? indRes.error?.message ?? roleRes.error?.message);
@@ -48,7 +82,15 @@ export async function getCompanyFlow(companyId: string): Promise<CompanyFlow | n
     const i = industries.get(id);
     return i ? (i.parent_id ?? i.id) : null;
   };
-  const roleName = new Map(((roleRes.data ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
+  const roleRows = (roleRes.data ?? []) as { id: string; name: string; parent_id: string | null }[];
+  const roleName = new Map(roleRows.map((r) => [r.id, r.name]));
+  const roleParent = new Map(roleRows.map((r) => [r.id, r.parent_id]));
+  /* 大分類まで親を辿る（⚠️ 循環に備えて回数で切る） */
+  const roleTop = (id: string): string => {
+    let cur: string | null | undefined = id;
+    for (let i = 0; i < 5 && cur && roleParent.get(cur); i++) cur = roleParent.get(cur);
+    return (cur && roleName.get(cur)) ?? "";
+  };
 
   type Row = { id: string; user_id: string; company_id: string | null; visibility_company: string | null; started_at: string | null; ended_at: string | null; is_current: boolean | null; role_category_id: string | null; ow_companies: { industry_id: string | null } | null };
   const rows = (expRes.data ?? []) as unknown as Row[];
@@ -72,7 +114,7 @@ export async function getCompanyFlow(companyId: string): Promise<CompanyFlow | n
 
   /* ③ この会社の転機の回答（答えないを除く）。⚠️ 母数の人だけ（user_id で絞る） */
   let turns: FlowTurn[] = [];
-  if (hereExpIds.length > 0) {
+  if (opts.withTurns && hereExpIds.length > 0) {
     const tRes = await inChunks(hereExpIds, (part, from, to) => admin.from("ow_career_turns")
       .select("experience_id, user_id, decisive_reasons, fit_after_year, skipped_at")
       .in("experience_id", part).is("skipped_at", null).order("experience_id").range(from, to), "companyFlow turns");
@@ -83,11 +125,13 @@ export async function getCompanyFlow(companyId: string): Promise<CompanyFlow | n
       .map((t) => ({ decisiveReasons: t.decisive_reasons ?? [], fitAfterYear: t.fit_after_year }));
   }
 
-  return computeCompanyFlow(companyId, experiences, turns, {
-    industry: (id) => industries.get(id)?.name ?? "",
-    role: (id) => roleName.get(id) ?? "",
-    reason: (k) => DECISIVE_REASON_LABELS[k] ?? k,
-  }, { minCareerFact: MIN_CAREER_FACT_COUNT, minAnswer: MIN_AGGREGATE_COUNT, fitGoodMin: FIT_GOOD_MIN });
+  return {
+    experiences,
+    turns,
+    industryName: (id) => industries.get(id)?.name ?? "",
+    roleName: (id) => roleName.get(id) ?? "",
+    roleTopName: roleTop,
+  };
 }
 
 /**
