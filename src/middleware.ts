@@ -169,6 +169,8 @@ export async function middleware(request: NextRequest) {
        ⚠️ casual-meeting / apply を 2026-08-05 にここへ移したのと同じ理由。
           **認証の判定は middleware に一元化する。** */
     pathname === "/mypage" || pathname.startsWith("/mypage/") ||
+    /* ★ホーム「あなたの次の一手」（2026-10-27）。本人にしか出ない画面 */
+    pathname === "/home" ||
     /* ⚠️ オンボーディングも認証の内側（2026-08-27）。`/onboarding/stance` は
           `ow_profiles` を読んでから出し分けるので、未ログインで開かせない。 */
     pathname === "/onboarding" || pathname.startsWith("/onboarding/") ||

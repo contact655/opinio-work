@@ -608,6 +608,7 @@ export default function ProfileTab({
   initialSocialLinks,
   initialContentLinks,
   initialAddCompany = null,
+  initialAddFirst = false,
   initialCareerHistoryCompleteAt = null,
   onSavedChange,
   onDirtyChange,
@@ -666,6 +667,8 @@ export default function ProfileTab({
   initialContentLinks: ContentLink[];
   /** ★会社の招待リンク（/join/[slug]）から来たとき、職歴の追加をその会社が入った状態で開く（2026-10-12） */
   initialAddCompany?: { id: string; name: string } | null;
+  /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
+  initialAddFirst?: boolean;
   /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。null＝まだ答えていない */
   initialCareerHistoryCompleteAt?: string | null;
   onSavedChange: (snapshot: ProfileSavedSnapshot) => void;
@@ -789,6 +792,16 @@ export default function ProfileTab({
   /* ★職歴0件の人の「職歴を追加」（2026-10-17）。短い形で、現職として開く */
   const [careerAddFirstNonce, setCareerAddFirstNonce] = useState(0);
   useEffect(() => { if (initialAddCompany) setCareerAddNonce((n) => n + 1); }, [initialAddCompany]);
+  /* ★ホームの「職歴を1件入れる」から来たとき（2026-10-27）。短い形（現職として）で開き、印は URL から消す（リロードで二度開かない） */
+  useEffect(() => {
+    if (!initialAddFirst) return;
+    setCareerAddFirstNonce((n) => n + 1);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("add");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    } catch { /* URL が読めなくても開くのは変わらない */ }
+  }, [initialAddFirst]);
   /* ★職歴カードの吹き出しアイコン →「理由」モーダルを開く行の id（2026-09-12） */
   const [reasonCareerId, setReasonCareerId] = useState<string | null>(null);
   /* ★会社名だけを直すモーダルを開く行の id（2026-09-12）。値はその会社の役割のどれか1件 */

@@ -132,3 +132,38 @@ test("★学校を出た人の「いま」：業界・職種の大分類で、3�
   assert.deepEqual(d, { industries: { known: 3, byIndustry: [{ label: "IT・インターネット", count: 2 }, { label: "金融", count: 1 }] }, roles: null });
   assert.ok(!/u1|u2|u3|companyId|href|logo/.test(JSON.stringify(d)));
 });
+
+test("★ホームの「似た経歴」：本人を除き、似た職歴の会社を出て移った人が3人以上で出る。1年後は5人から。個人を特定できる値が無い", async () => {
+  const { computeSimilarPaths } = await import("./compute.ts");
+  const KEY = { roleTopId: "sales", industryParentId: "it" };
+  const L2 = { industry: L.industry, roleTop: (id) => ({ ae: "営業", cs: "カスタマーサクセス" })[id] ?? "" };
+  const mover = (u, nextInd, nextRole) => [
+    X({ id: `e-${u}-1`, userId: u, companyId: `co-${u}`, startedAt: "2018-04-01", endedAt: "2020-03-01", roleCategoryId: "ae", roleTopId: "sales", industryParentId: "it" }),
+    X({ id: `e-${u}-2`, userId: u, companyId: `next-${u}`, startedAt: "2020-04-01", isCurrent: true, roleCategoryId: nextRole, industryParentId: nextInd }),
+  ];
+  const viewer = mover("me", "fin", "ae");
+  const stay = [X({ id: "e-stay", userId: "stay", companyId: "co-stay", startedAt: "2018-04-01", isCurrent: true, roleTopId: "sales", industryParentId: "it" })];
+  const other = [X({ id: "e-o1", userId: "other", companyId: "co-o", startedAt: "2018-04-01", endedAt: "2020-03-01", roleTopId: "eng", industryParentId: "it" }),
+    X({ id: "e-o2", userId: "other", companyId: "next-o", startedAt: "2020-04-01", isCurrent: true, industryParentId: "fin" })];
+  const two = [...viewer, ...stay, ...other, ...mover("user-a", "it", "ae"), ...mover("user-b", "fin", "cs")];
+  /* 本人・在籍中・職種が違う人は数えないので、動いた人は2人 → 出さない */
+  assert.equal(computeSimilarPaths("me", KEY, two, new Map(), L2, OPT), null);
+  const three = [...two, ...mover("user-c", "it", "ae")];
+  const fits4 = new Map([["e-user-a-2", 5], ["e-user-b-2", 2], ["e-user-c-2", 4], ["e-me-2", 5]]);
+  const s = computeSimilarPaths("me", KEY, three, fits4, L2, OPT);
+  assert.deepEqual(s, {
+    movers: 3,
+    next: { known: 3, byIndustry: [{ label: "IT・インターネット", count: 2 }, { label: "金融", count: 1 }] },
+    nextRoles: { known: 3, byRole: [{ label: "営業", count: 2 }, { label: "カスタマーサクセス", count: 1 }] },
+    tenure: { people: 3, avgMonths: 24 },
+    fitAfterYear: null, // 本人の回答は数えないので3人 → 5人に届かない
+  });
+  const allowed = new Set(["movers", "next", "known", "byIndustry", "label", "count", "nextRoles", "byRole", "tenure", "people", "avgMonths", "fitAfterYear", "respondents", "goodShare"]);
+  for (const k of keysDeep(s)) assert.ok(allowed.has(k), `許可していないキー: ${k}`);
+  const json = JSON.stringify(s);
+  for (const bad of ["user-", "co-", "next-", "e-", "2018-", "2020-", "me"]) assert.ok(!json.includes(bad), `返り値に ${bad} が含まれている`);
+  /* 5人答えれば1年後が出る */
+  const five = [...three, ...mover("user-d", "it", "ae"), ...mover("user-e", "it", "ae")];
+  const fits5 = new Map([...fits4, ["e-user-d-2", 4], ["e-user-e-2", 1]]);
+  assert.deepEqual(computeSimilarPaths("me", KEY, five, fits5, L2, OPT).fitAfterYear, { respondents: 5, goodShare: 60 });
+});

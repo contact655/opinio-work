@@ -23,6 +23,10 @@ export type FlowExperience = {
   roleCategoryId: string | null;
   /** その職歴の会社の業界（大分類に直した id）。辿れなければ null */
   industryParentId: string | null;
+  /** 職歴の id（ホームの「似た経歴」で、移った先の転機の回答を引くのに使う） */
+  id?: string;
+  /** 職種の大分類の id（ホームの「似た経歴」の突き合わせに使う） */
+  roleTopId?: string | null;
 };
 
 export type FlowTurn = { decisiveReasons: string[]; fitAfterYear: number | null };
@@ -293,4 +297,81 @@ export function computeCurrentDestinations(
     roles: known(role) >= minCareerFact ? { known: known(role), byRole: tally(expand(role), (k) => k) } : null,
   };
   return out.industries || out.roles ? out : null;
+}
+
+/**
+ * ★ホーム「あなたと似た経歴の人は、こう動いています」（2026-10-27 / 柴さんの決定）。**「人の流れ」と同じ定義・同じ下限。**
+ *
+ *   似た経歴 = 直近の職歴の「職種の大分類 × 業界の大分類」が本人と同じ職歴を持つ人（D4）。**本人は母数に含めない**
+ *   動いた人 = その職歴の会社を出て（OB）、出た月以降に他社へ移った人。前後の定義は aroundCompany（「人の流れ」と共有）
+ *   集計    = 動いた人の 行き先の業界（大分類）・行き先の職種（大分類）・その会社での在籍（平均）・1年後に合っていた割合
+ *
+ * ⚠️ 下限: 経歴の事実（行き先・在籍）は minCareerFact（3人）、回答（1年後）は minAnswer（5人）。届かなければ項目ごと null
+ * ⚠️ 動いた人が minCareerFact に届かなければ全体が null（ホームに箱を出さない）
+ * ⚠️ 返す形に個人を特定できる値（user_id・会社 id・会社名・個別の期間）を入れない。数と業界・職種の名前だけ
+ * ⚠️ 母数の絞り込み（isAggregatableUser・visibility_company = 'real'）は呼ぶ側で済ませてから渡す
+ */
+export type SimilarPaths = {
+  /** 動いた人の数（画面の「〇人の動きから」） */
+  movers: number;
+  next: { known: number; byIndustry: FlowBreakdown } | null;
+  nextRoles: { known: number; byRole: FlowBreakdown } | null;
+  tenure: { people: number; avgMonths: number } | null;
+  fitAfterYear: { respondents: number; goodShare: number } | null;
+};
+
+export function computeSimilarPaths(
+  viewerUserId: string,
+  key: { roleTopId: string; industryParentId: string },
+  experiences: readonly FlowExperience[],
+  /** 職歴の id → 転機の Q3（1〜5）。答えないを選んだ回答は呼ぶ側で除く */
+  fitByExperienceId: ReadonlyMap<string, number>,
+  L: Pick<FlowLabels, "industry" | "roleTop">,
+  opt: FlowOptions,
+): SimilarPaths | null {
+  const now = opt.now ?? new Date();
+  const current = now.getFullYear() * 12 + now.getMonth();
+  const byUser = new Map<string, FlowExperience[]>();
+  for (const e of experiences) {
+    if (e.userId === viewerUserId) continue; // ★本人は母数に含めない
+    if (!byUser.has(e.userId)) byUser.set(e.userId, []);
+    byUser.get(e.userId)!.push(e);
+  }
+  let movers = 0;
+  const nextInd: string[] = [];
+  const nextRole: string[] = [];
+  const months: number[] = [];
+  const fits: number[] = [];
+  for (const rows of Array.from(byUser.values())) {
+    const companies = Array.from(new Set(rows
+      .filter((r) => r.companyId && r.roleTopId === key.roleTopId && r.industryParentId === key.industryParentId)
+      .map((r) => r.companyId as string)));
+    /* その人が似た職歴の会社を出て移った例のうち、いちばん最近のもの（1人は1回だけ数える） */
+    let best: { next: FlowExperience; months: number; endedAt: string } | null = null;
+    for (const companyId of companies) {
+      const a = aroundCompany(rows, companyId, current);
+      if (!a || !a.isAlumni || !a.next) continue;
+      const endedAt = a.here.map((r) => r.endedAt ?? r.startedAt).sort().slice(-1)[0];
+      if (!best || endedAt > best.endedAt) best = { next: a.next, months: a.months, endedAt };
+    }
+    if (!best) continue;
+    movers++;
+    if (best.next.industryParentId) nextInd.push(best.next.industryParentId);
+    const top = best.next.roleCategoryId && L.roleTop ? L.roleTop(best.next.roleCategoryId) : "";
+    if (top) nextRole.push(top);
+    if (best.months > 0) months.push(best.months);
+    const fit = best.next.id ? fitByExperienceId.get(best.next.id) : undefined;
+    if (typeof fit === "number") fits.push(fit);
+  }
+  if (movers < opt.minCareerFact) return null;
+  return {
+    movers,
+    next: nextInd.length >= opt.minCareerFact ? { known: nextInd.length, byIndustry: tally(nextInd, L.industry) } : null,
+    nextRoles: nextRole.length >= opt.minCareerFact ? { known: nextRole.length, byRole: tally(nextRole, (k) => k) } : null,
+    tenure: months.length >= opt.minCareerFact
+      ? { people: months.length, avgMonths: Math.round(months.reduce((x, y) => x + y, 0) / months.length) } : null,
+    /* ★回答は5人から（項目ごと）。割合は1つの値なので、行の下限は回答者の数で見る（「人の流れ」の fitAfterYear と同じ） */
+    fitAfterYear: fits.length >= opt.minAnswer
+      ? { respondents: fits.length, goodShare: Math.round((fits.filter((f) => f >= opt.fitGoodMin).length / fits.length) * 100) } : null,
+  };
 }

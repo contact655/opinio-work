@@ -30,7 +30,7 @@ export default async function MypagePage({
   /* ⚠️ `setup` は 2026-08-10 に削除した。`?setup=done` を付ける経路が
         どこにも無く（/profile/start が存在しないため）、到達不能だった。 */
   /** join … 会社の招待リンク（/join/<slug>）から来たとき、その会社の id（職歴の追加をその会社が入った状態で開く。2026-10-12） */
-  searchParams?: { welcome?: string; tab?: string; join?: string };
+  searchParams?: { welcome?: string; tab?: string; join?: string; add?: string };
 }) {
   /* ⚠️ 旧 `?tab=` の転送は **`src/middleware.ts`** で返す（サーバーが 307 を返すため）。
         ここに書くと `/mypage/loading.tsx` の Suspense 境界の内側になり、
@@ -546,6 +546,7 @@ export default async function MypagePage({
       inbox={inbox}
       isNewUser={isNewUser}
       initialAddCompany={initialAddCompany}
+      initialAddFirst={searchParams?.add === "career"}
       initialCareerHistoryCompleteAt={careerHistoryCompleteAt}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */

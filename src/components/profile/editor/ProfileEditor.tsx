@@ -124,6 +124,7 @@ export default function ProfileEditor({
   initialExperiences,
   initialContentLinks,
   initialAddCompany = null,
+  initialAddFirst = false,
   initialCareerHistoryCompleteAt = null,
   roles,
   /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
@@ -165,6 +166,8 @@ export default function ProfileEditor({
   initialContentLinks: ContentLink[];
   /** ★会社の招待リンクから来たとき（2026-10-12）。職歴の追加をその会社が入った状態で開く */
   initialAddCompany?: { id: string; name: string } | null;
+  /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
+  initialAddFirst?: boolean;
   /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。職歴の促しカードの表示条件 */
   initialCareerHistoryCompleteAt?: string | null;
   roles: RoleItem[];
@@ -395,6 +398,7 @@ export default function ProfileEditor({
             initialSocialLinks={initialSocialLinks}
             initialContentLinks={initialContentLinks}
             initialAddCompany={initialAddCompany}
+            initialAddFirst={initialAddFirst}
             initialCareerHistoryCompleteAt={initialCareerHistoryCompleteAt}
             onSavedChange={setProfileSaved}
             onDirtyChange={setProfileDirty}

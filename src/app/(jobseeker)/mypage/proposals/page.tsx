@@ -7,13 +7,13 @@ import { phaseLabel } from "@/lib/constants/phase";
 import MypageLayout from "../_components/MypageLayout";
 import ProposalsClient, { type ProposalView } from "./ProposalsClient";
 import ForYouSection, { type ForYouView } from "./ForYouSection";
+import { toForYouViews } from "./forYouViews";
 import FitPageIntro from "./FitPageIntro";
 import AxesEntryCard from "./AxesEntryCard";
 import { fitAxesEnabledFor } from "@/lib/fitAxes/axes";
 import { loadFitAxes } from "@/lib/fitAxes/load";
 import { FIT_PAGE_TITLE } from "./fitPageText";
 import { buildForYou } from "@/lib/forYou/rank";
-import { groupLabel } from "@/lib/forYou/weights";
 import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 import { isVisiblePair, phaseInputOf, PROPOSAL_PHASE_COLS, proposalDaysLeft, visiblePairs } from "@/lib/evidence/proposalEnded";
 import { proposalPhase } from "@/lib/constants/proposalResponses";
@@ -128,31 +128,7 @@ export default async function ProposalsPage() {
   const forYou = await buildForYou(me.id as string);
   const proposedCompanyIds = new Set((rows ?? []).map((p) => p.company_id as string));
   const viewerIsTest = me.is_test === true;
-  const allCompanies: ForYouView[] = forYou.ok
-    ? forYou.companies
-        .filter((c) => !proposedCompanyIds.has(c.id))
-        /* ⚠️ 順位は除いたあとで振り直す（1位が欠けた形にしない） */
-        .map((c, i) => ({
-          id: c.id,
-          rank: i + 1,
-          name: c.name,
-          /* ★見ている人と会社がどちらも検証用なら文字だけ（企業ページは検証用の会社を誰にも開かない） */
-          href: companyLinkStateFor({ isTest: c.isTest, isPublished: c.isPublished }, { viewerIsTest }) === "open"
-            ? `/companies/${c.slug ?? c.id}` : null,
-          tagline: c.tagline,
-          logoUrl: c.logoUrl,
-          reasons: c.reasons,
-          /* ★1番目の理由で束ねる見出し（無ければ「その他の掲載企業」へ） */
-          groupLabel: c.signals[0] ? groupLabel(c.signals[0].detail) : null,
-          hasOpenJobs: c.hasOpenJobs,
-          phaseLabel: c.phaseLabel,
-          cautions: c.cautions,
-          hasResponder: c.hasResponder,
-          reaction: c.reaction?.reaction ?? null,
-          conversationId: c.reaction?.conversationId ?? null,
-          interested: !!c.reaction?.interestedAt,
-        }))
-    : [];
+  const allCompanies: ForYouView[] = toForYouViews(forYou, viewerIsTest, proposedCompanyIds);
   /* ★相性のものさし（公開前は検証用アカウントだけ読む） */
   const fitAxes = fitAxesEnabledFor({ isTest: viewerIsTest }) ? await loadFitAxes(me.id as string) : null;
   /* ⚠️ 理由の有無は「下段に残った会社」で数える */

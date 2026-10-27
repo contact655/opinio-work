@@ -45,12 +45,17 @@ export type ForYouView = {
 };
 
 export default function ForYouSection({
-  companies, loadFailed, noReasons, declineReasons,
+  companies, loadFailed, noReasons, declineReasons, compact,
 }: {
   companies: ForYouView[];
   loadFailed: boolean;
   noReasons: boolean;
   declineReasons: { value: string; label: string }[];
+  /**
+   * ★ホーム（/home）用の短い形（2026-10-27 / 柴さんの決定 8）。上から limit 社だけ1社1行で出し、下に「すべて見る →」。
+   * ⚠️ 表示の切り替え・見出しでのまとめ・「興味なし」にした会社の一覧は出さない（それはマイページの役目）
+   */
+  compact?: { limit: number; moreHref: string; title: string };
 }) {
   const [items, setItems] = useState(companies);
   const [busy, setBusy] = useState<string | null>(null);
@@ -272,6 +277,22 @@ export default function ForYouSection({
           </div>
   );
 
+  if (compact) {
+    const top = visible.slice(0, compact.limit);
+    if (loadFailed || top.length === 0) return null; // ★空の箱を出さない（ホームの約束）
+    return (
+      <section aria-labelledby="for-you-heading" data-state="home-for-you">
+        <style>{FY_ROW_CSS}</style>
+        <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 12px" }}>{compact.title}</h2>
+        <ol className="fy-list" data-state="for-you-list">{top.map((c) => row(c, { label: null }))}</ol>
+        <Link href={compact.moreHref} data-state="home-for-you-more"
+          style={{ display: "inline-block", marginTop: 10, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+          すべて見る →
+        </Link>
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="for-you-heading">
       {/* ⚠️ この <style> のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */}
@@ -283,13 +304,7 @@ export default function ForYouSection({
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .fy-actions { margin-top: auto; padding-top: 12px; }
         @media (max-width: 760px) { .fy-grid { grid-template-columns: minmax(0, 1fr); } }
-        .fy-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
-        .fy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px; border-top: 1px solid var(--line-soft); min-width: 0; }
-        .fy-row:first-child { border-top: none; }
-        .fy-row-main { flex: 1 1 260px; min-width: 0; }
-        .fy-row-text { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fy-row-actions { flex: 0 0 auto; margin-left: auto; }
-        .fy-row-actions.is-open { flex-basis: 100%; margin-left: 0; }
+        ${FY_ROW_CSS}
         .fy-tiles { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); grid-auto-flow: dense; }
         .fy-tile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: #fff; min-width: 0; overflow: hidden; }
         .fy-tile:hover { border-color: var(--royal-100); }
@@ -379,6 +394,20 @@ export default function ForYouSection({
     </section>
   );
 }
+
+/* ★1社1行のリストの見た目。マイページの一覧とホームの短い形で同じものを使う。
+   ⚠️ このテンプレートのコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */
+const FY_ROW_CSS = `
+  .fy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
+  .fy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px; border-top: 1px solid var(--line-soft); min-width: 0; }
+  .fy-row:first-child { border-top: none; }
+  .fy-row-main { flex: 1 1 260px; min-width: 0; }
+  .fy-row-text { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-row-actions { flex: 0 0 auto; margin-left: auto; }
+  .fy-row-actions.is-open { flex-basis: 100%; margin-left: 0; }
+  @media (max-width: 760px) { .fy-row-actions { flex-basis: 100%; margin-left: 0; } }
+`;
 
 function Actions(props: {
   c: ForYouView;
