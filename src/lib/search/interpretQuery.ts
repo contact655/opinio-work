@@ -65,6 +65,7 @@ import { PREFECTURES } from "@/lib/utils/location";
 const PREFECTURE_STEMS = new Set(PREFECTURES.map((p) => p.replace(/[都道府県]$/, "")));
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { parseTransition, type TransitionIntent, type Span as TSpan } from "./transitionIntent";
 
 // ── 結果の型 ─────────────────────────────────────────────────────────────────
 
@@ -127,6 +128,12 @@ export type InterpretResult = {
    * ⚠️ unresolved には入れない（読めなかったのではなく、決められなかっただけ）
    */
   ambiguousSchools: AmbiguousSchool[];
+  /**
+   * ★会社・業界・職種の移動（2026-10-27）。「Salesforceを出た人」など。読めなかったら null。
+   * ⚠️ 普通の条件（conditions）には入れない。人の検索の「1つの職歴が全部満たす」AND とは別の関数で当てる
+   *    （runSearch の matchTransition）。チップには label を出す。
+   */
+  transition: TransitionIntent | null;
 };
 
 export type SchoolOption = { id: string; label: string; prefecture: string | null; closed: boolean };
@@ -615,7 +622,7 @@ const FOREIGN_TERMS: { term: string; isForeign: boolean; label: string }[] = [
 export async function interpretQuery(rawText: string): Promise<InterpretResult> {
   const normalized = normalizeQuery(rawText).slice(0, 200);
   if (!normalized) {
-    return { primaryKind: "company", conditions: [], unresolved: [], normalized: "", ambiguousSchools: [] };
+    return { primaryKind: "company", conditions: [], unresolved: [], normalized: "", ambiguousSchools: [], transition: null };
   }
 
   const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort }, roleTree] = await Promise.all([
@@ -629,6 +636,10 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
      ⚠️ 黙って1社に決めない。未解決として画面に出す。 */
   const ambiguousCompanyWords: string[] = [];
   const ambiguousSchools: AmbiguousSchool[] = [];
+  /* ★移動の読み取り（parseTransition）に渡すため、条件ごとの位置を控えておく */
+  const companySpans: { span: TSpan; companyId: string; label: string }[] = [];
+  const roleSpans: { span: TSpan; roleIds: string[]; label: string; index: number }[] = [];
+  let foreignSpan: { span: TSpan; isForeign: boolean; index: number } | null = null;
 
   // ── 社名 → ow_companies.id ───────────────────────────────────────────────
   {
@@ -663,6 +674,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
           ambiguousCompanyWords.push(normalized.slice(origStart, origEnd));
           continue;
         }
+        companySpans.push({ span: { start: origStart, end: origEnd }, companyId: hit[0].id, label: hit[0].label });
         conditions.push({
           kind: "company",
           /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
@@ -740,6 +752,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
   for (const f of FOREIGN_TERMS) {
     const i = normalized.indexOf(f.term);
     if (i < 0) continue;
+    foreignSpan = { span: { start: i, end: i + f.term.length }, isForeign: f.isForeign, index: conditions.length };
     conditions.push({
       kind: "foreign",
       /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
@@ -886,6 +899,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     seenRoleKey.add(key);
     const label = roleTree.byId.get(h.roleIds[0])?.name ?? h.alias;
     const roleIds = withEngineerKin(h.roleIds, roleTree);
+    roleSpans.push({ span: { start: h.at, end: h.at + h.alias.length }, roleIds, label, index: conditions.length });
     conditions.push({
       kind: "role",
       /* 既存の条件はすべて職歴に当てる（`matchOn` の注記を参照） */
@@ -897,19 +911,38 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     consumed.push({ start: h.at, end: h.at + h.alias.length });
   }
 
+  // ── ★移動（2026-10-27）。社名・職種を読んだあとで、その前後の言葉を見る ─────────
+  const parsed = parseTransition({
+    normalized,
+    companies: companySpans,
+    roles: roleSpans,
+    foreign: foreignSpan,
+    industries: [],
+    itIndustryId: null,
+    consumed: [...consumed],
+    moves: false,
+  });
+  consumed.push(...parsed.consumed);
+  /* 移動の片側に吸い込んだ条件（「未経験から営業」の「営業」など）は普通の条件から外す */
+  const absorbed = new Set(parsed.absorbedConditionIndexes);
+  const finalConditions = conditions.filter((_, i) => !absorbed.has(i));
+
   const unresolved = collectUnresolved(
     normalized,
     normalizeForDisplay(rawText).slice(0, 200),
     consumed,
+    parsed.ageSpans,
   );
   for (const w of ambiguousCompanyWords) if (!unresolved.includes(w)) unresolved.push(w);
 
   return {
-    primaryKind: resolvePrimaryKind(normalized, conditions),
-    conditions,
+    /* ★移動を読んだら人を探す（「Salesforceを出た人」は人の検索） */
+    primaryKind: parsed.intent ? "person" : resolvePrimaryKind(normalized, finalConditions),
+    conditions: finalConditions,
     unresolved,
     normalized,
     ambiguousSchools,
+    transition: parsed.intent,
   };
 }
 
@@ -955,7 +988,10 @@ function resolvePrimaryKind(normalized: string, conditions: Condition[]): Search
  * 漢字・カタカナ・英数を含む語だけを未解決として出す。
  */
 function isMeaningfulToken(t: string): boolean {
-  if (t.length < 2) return false;
+  /* ★漢字1文字も読めなかった語として出す（2026-10-27 / 柴さんの指示）。それまでは黙って捨てており、
+        「Salesforceを出た人」の「出」が読めなかったことが画面に出ていなかった。
+     ⚠️ 移動の言葉（出・来・入…）は parseTransition が読んだときは consumed で伏せてあるので、ここには来ない */
+  if (t.length < 2 && !/^[一-龠々〆ヵヶ]/.test(t)) return false;
   if (/^[ぁ-ん ー]+$/.test(t)) return false; // ひらがなだけ＝繋ぎ
   if (/^\d+$/.test(t)) return false;
   return true;
@@ -966,11 +1002,19 @@ function seenKey(t: string): string {
   return t.toLowerCase();
 }
 
-function collectUnresolved(normalized: string, display: string, consumed: Span[]): string[] {
+function collectUnresolved(normalized: string, display: string, consumed: Span[], forced: Span[] = []): string[] {
   /* 解決に使った範囲と、主対象の合図を伏せ字にしてから残りを切り出す。
      ⚠️ 伏せる位置は照合用（小文字）で求め、**切り出すのは display 側**。
         長さが同じなので位置はそのまま使える。 */
   const chars = display.split("");
+  /* ★必ず読めなかった語として出す範囲（年齢の言い方。2026-10-27）。先に切り出して伏せる */
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const f of forced) {
+    const w = display.slice(f.start, f.end).trim();
+    if (w && !seen.has(seenKey(w))) { seen.add(seenKey(w)); out.push(w); }
+    for (let i = f.start; i < f.end && i < chars.length; i++) chars[i] = " ";
+  }
   for (const s of consumed) {
     for (let i = s.start; i < s.end && i < chars.length; i++) chars[i] = " ";
   }
@@ -984,9 +1028,8 @@ function collectUnresolved(normalized: string, display: string, consumed: Span[]
   const rest = chars.join("");
   /* 残りを「漢字・カタカナ・英数のかたまり」に割る。
      ⚠️ ひらがなは区切りとして扱う（「関西で商社」→「関西」「商社」）。 */
-  const tokens = rest.match(/[一-龠々〆ヵヶ]+|[ァ-ヴー]+|[A-Za-z0-9]+/g) ?? [];
-  const out: string[] = [];
-  const seen = new Set<string>();
+  /* ★漢字1文字のあとに送り仮名が続くときは、送り仮名まで含めて出す（「出」ではなく「出た」と見せる） */
+  const tokens = rest.match(/[一-龠々〆ヵヶ](?=[ぁ-ん])[ぁ-ん]{0,3}|[一-龠々〆ヵヶ]+|[ァ-ヴー]+|[A-Za-z0-9]+/g) ?? [];
   for (const t of tokens) {
     if (!isMeaningfulToken(t)) continue;
     if (seen.has(seenKey(t))) continue;

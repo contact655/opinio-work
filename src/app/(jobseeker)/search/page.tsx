@@ -104,6 +104,19 @@ function ResolvedChip({ c, primaryKind }: { c: Condition; primaryKind: SearchKin
   );
 }
 
+/** ★移動の条件のチップ（2026-10-27）。普通の条件のチップより目立たせる */
+function TransitionChip({ label }: { label: string }) {
+  return (
+    <span data-state="search-transition-chip" style={{
+      display: "inline-flex", alignItems: "center",
+      padding: "5px 12px", borderRadius: 100, fontSize: 12.5, fontWeight: 700,
+      background: "var(--royal)", color: "#fff", border: "1px solid var(--royal)",
+    }}>
+      {label}
+    </span>
+  );
+}
+
 function UnresolvedChip({ word }: { word: string }) {
   return (
     <span
@@ -372,7 +385,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const primary = interpreted.primaryKind;
   const norm = (x: string) => x.toLowerCase().replace(/[\s　]+/g, "");
   const echoesQuery =
-    !dropped && interpreted.unresolved.length === 0 && conditions.length === 1 &&
+    !interpreted.transition && !dropped && interpreted.unresolved.length === 0 && conditions.length === 1 &&
     conditions[0].appliesTo.includes(primary) && norm(conditions[0].label) === norm(raw);
 
   /* ★どのタブを見ているか（2026-10-01）。`?kind=` が無ければ「すべて」。
@@ -485,11 +498,18 @@ export default async function SearchPage({ searchParams }: Props) {
         {/* ★入力したことばがそのまま1つの条件になっただけなら、チップを出さない（2026-10-21 / 柴さんの指摘）。
                見出しの「「Salesforce」の検索結果」と同じことを2回言うことになる。
             ⚠️ 読み替えた（「営業職」→「営業」）・複数に分けた・効かない語がある・効く対象が限られる、のどれかなら出す */}
-        {(conditions.length > 0 || interpreted.unresolved.length > 0) && !echoesQuery && !noConditionEmpty && (
-          <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {conditions.map((c, i) => (
-              <ResolvedChip key={`c-${i}`} c={c} primaryKind={primary} />
-            ))}
+        {(conditions.length > 0 || interpreted.unresolved.length > 0 || !!interpreted.transition) && !echoesQuery && !noConditionEmpty && (
+          <div data-state="search-read-as" style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            {/* ★読み取った条件を「こう読み取りました：」で見せる（2026-10-27 / 柴さんの指示。モック「② 遷移で探す検索」） */}
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-mute)" }}>こう読み取りました：</span>
+            {interpreted.transition && <TransitionChip label={interpreted.transition.label} />}
+            {conditions
+              /* ⚠️ 「Salesforceを出た人」と読んだときは、社名だけのチップを重ねて出さない */
+              .map((c, i) => ({ c, i }))
+              .filter(({ c }) => !(c.kind === "company" && interpreted.transition && "companyId" in interpreted.transition && interpreted.transition.companyId === c.companyId))
+              .map(({ c, i }) => (
+                <ResolvedChip key={`c-${i}`} c={c} primaryKind={primary} />
+              ))}
             {interpreted.unresolved.map((w) => (
               <UnresolvedChip key={`u-${w}`} word={w} />
             ))}
