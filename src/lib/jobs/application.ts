@@ -1,4 +1,4 @@
-import { hasRespondingStaff } from "@/lib/companies/respondingStaff";
+import { filterCompaniesWithRespondingStaff, hasRespondingStaff } from "@/lib/companies/respondingStaff";
 import {
   getCompanyNotificationRecipients,
   filterCompaniesWithRecipients,
@@ -30,21 +30,15 @@ import {
  */
 export async function isJobApplicationOpen(companyId: string): Promise<boolean> {
   if (!companyId) return false;
-  /* ★★2026-10-17: 担当者がいない企業でも OPINIO で応募を受ける（柴さんの指示。2026-10-10 の「受けない」を戻した）。
-        応募は保存され、通知は宛先の規則どおり（企業の宛先が無ければ運営 ADMIN_EMAIL）に届く。
-        担当者が承認されると /biz/applications に新着として出る。
-     ⚠️ 応募者には、担当者がまだいないことを応募フォームで伝える（`hasApplicationStaff`）。黙って受けない。
-     ⚠️ 運営は応募を企業へ取り次がない（/admin/applications は閲覧のみ）。企業に担当者の登録を案内するだけ。 */
-  const recipients = await getCompanyNotificationRecipients(companyId, "applications");
-  return recipients.length > 0;
-}
-
-/**
- * ★その企業に、応募に答えられる担当者がいるか（2026-10-17）。応募フォームの案内の出し分けだけに使う。
- * ⚠️ 応募を受けるかどうかの判定には使わない（上の isJobApplicationOpen）。
- */
-export async function hasApplicationStaff(companyId: string): Promise<boolean> {
-  return hasRespondingStaff(companyId);
+  /* ★★2026-10-27（柴さんの決定）: 担当者がいない企業への応募は受けない。名前・応募内容が企業に届くのは、
+        本人が送った時点で担当者がいる場合だけ（「担当者が登録したら届く」はやめた。2026-10-17 の「受ける」を戻した）。
+        判定は「答えられる担当者」（respondingStaff.ts。会社と is_test が一致する有効な担当者）。
+     ⚠️ 受けないことも、その理由も画面に出さない（応募ページは会社ページへ戻す・API は一般的なエラー）。 */
+  const [recipients, staff] = await Promise.all([
+    getCompanyNotificationRecipients(companyId, "applications"),
+    hasRespondingStaff(companyId),
+  ]);
+  return recipients.length > 0 && staff;
 }
 
 /**
@@ -55,11 +49,15 @@ export async function hasApplicationStaff(companyId: string): Promise<boolean> {
 export async function filterCompaniesAcceptingApplications(
   companyIds: string[],
 ): Promise<Set<string>> {
-  /* ★2026-10-17: 担当者の有無は見ない（isJobApplicationOpen と同じ規則） */
-  return filterCompaniesWithRecipients(companyIds, "applications");
+  /* ★2026-10-27: 答えられる担当者がいることも要る（isJobApplicationOpen と同じ規則） */
+  const [withRecipients, withStaff] = await Promise.all([
+    filterCompaniesWithRecipients(companyIds, "applications"),
+    filterCompaniesWithRespondingStaff(companyIds),
+  ]);
+  return new Set(Array.from(withRecipients).filter((id) => withStaff?.has(id) === true));
 }
 
 /** 応募を受け付けていないときに画面へ出す文言。**理由や再開見込みは書かない**（把握していない） */
-/* ★2026-10-10: 閉じる理由は実質「答えられる担当者がいない」だけになった（宛先は運営に落ちるので必ずある）。
-      柴さんの指示の文言にした。⚠️ 出典 URL がある求人は、この文のかわりに企業の採用ページへの外部リンクを出す */
-export const APPLICATION_CLOSED_MESSAGE = "この企業は、まだ OPINIO での応募を受け付けていません。";
+/* ★2026-10-27: 閉じる理由は「答えられる担当者がいない」だけ。⚠️ それが分かる書き方をしない（「まだ OPINIO で〜」とも書かない）。
+      いまは API のエラーにだけ使う（画面は会社ページへ戻す） */
+export const APPLICATION_CLOSED_MESSAGE = "この募集には応募できません。";

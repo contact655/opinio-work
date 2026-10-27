@@ -206,7 +206,13 @@ export async function POST(req: NextRequest) {
     const companyEmails = jobForNotify.company_id
       ? await getCompanyNotificationTarget(jobForNotify.company_id, "applications")
       : { to: [], viaOps: false };
-    for (const to of companyEmails.to) {
+    /* ★運営の受け皿（③ viaOps）には送らない（2026-10-27 / 柴さんの決定）。応募者の名前・メール・志望動機を
+          運営宛てに流さない。⚠️ 応募は担当者がいる会社にしか受けない（isJobApplicationOpen）ので、通常はここに来ない。
+          担当者が admin 以外の権限だけで通知先も未設定の会社だと ③ に落ちうるため、ここでも止める */
+    if (companyEmails.viaOps) {
+      console.warn(`[applications] 会社の宛先が無く運営に回る形だったので、応募の通知を送らない company=${jobForNotify.company_id}`);
+    }
+    for (const to of companyEmails.viaOps ? [] : companyEmails.to) {
       await notify(
         applicationCompanyTemplate({
           to,

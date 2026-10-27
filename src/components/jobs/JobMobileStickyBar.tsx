@@ -14,17 +14,14 @@ type Props = {
   /** 宛先がある企業のときだけ渡す。undefined なら応募ボタンを出さない
    *  ⚠️ published でも応募が届く先があるとは限らない（lib/jobs/application.ts） */
   applyHref?: string;
-  /** ★OPINIO で応募を受けていない企業の、企業の採用ページ（2026-10-17）。
-   *  ⚠️ デスクトップのサイドバーにしか無く、スマホでは押す手段が無かった */
-  externalApplyHref?: string;
   /** ★保存（2026-10-17）。同じ理由でスマホに無かった。渡すと右端に ♡ を出す */
   saveJobId?: string;
 };
 
-export function JobMobileStickyBar({ casualHref, applyHref, externalApplyHref, saveJobId }: Props) {
+export function JobMobileStickyBar({ casualHref, applyHref, saveJobId }: Props) {
   /* ⚠️ どれも出せないなら、バーごと出さない（2026-08-11）。
         空の固定バーが画面下に居座り、コンテンツを隠すだけになる。 */
-  const hasAnyCta = !!casualHref || !!applyHref || !!externalApplyHref || !!saveJobId;
+  const hasAnyCta = !!casualHref || !!applyHref || !!saveJobId;
   const [visible, setVisible] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -132,27 +129,7 @@ export function JobMobileStickyBar({ casualHref, applyHref, externalApplyHref, s
           </svg>
         </Link>
         ) : null}
-        {/* ★企業の採用ページ（OPINIO で応募を受けていない企業。2026-10-17）。⚠️ nofollow はサイドバーと同じ理由 */}
-        {!applyHref && externalApplyHref ? (
-        <a
-          href={externalApplyHref}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          tabIndex={visible ? 0 : -1}
-          data-state="external-apply-mobile"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-            height: casualHref ? 38 : 48,
-            background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
-            borderRadius: 10, fontSize: casualHref ? 12 : 14, fontWeight: 700, textDecoration: "none",
-          }}
-        >
-          企業の採用ページで応募する
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-            <path d="M7 17L17 7M8 7h9v9" />
-          </svg>
-        </a>
-        ) : null}
+        {/* ⚠️「企業の採用ページで応募する」（外部リンク）は 2026-10-27 に外した（柴さんの決定） */}
         </div>
         {saveJobId && (
           <div style={{ flexShrink: 0 }}>
@@ -173,13 +150,11 @@ export function JobMobileStickyBar({ casualHref, applyHref, externalApplyHref, s
  *    片方だけ変えないこと。lg 以上はサイドバーがあるので出さない。
  * ⚠️ `display` はインラインに書かない（lg:hidden が効かなくなる）。外側は class だけ、中を flex にする。
  */
-export function JobMobileHeroActions({ casualHref, applyHref, externalApplyHref, saveJobId }: Props) {
+export function JobMobileHeroActions({ casualHref, applyHref, saveJobId }: Props) {
   const primary = casualHref
     ? { href: casualHref, label: "話を聞く（カジュアル面談）", external: false, kind: "meeting" as const }
     : applyHref
     ? { href: applyHref, label: "この募集に応募する", external: false, kind: "apply" as const }
-    : externalApplyHref
-    ? { href: externalApplyHref, label: "企業の採用ページで応募する", external: true, kind: "external" as const }
     : null;
   if (!primary && !saveJobId) return null;
   const style: React.CSSProperties = primary?.kind === "meeting"

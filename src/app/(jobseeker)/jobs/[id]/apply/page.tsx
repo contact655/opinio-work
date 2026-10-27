@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getJobBySlugOrId, getJobForPreview, resolveTestJobId } from "@/lib/supabase/queries";
 import { viewerIsTestUser } from "@/lib/users/testViewer";
 import ApplicationForm from "./ApplicationForm";
-import { APPLICATION_CLOSED_MESSAGE, hasApplicationStaff } from "@/lib/jobs/application";
 
 export const metadata: Metadata = {
   title: "募集に応募する",
@@ -37,53 +36,13 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
 
   const { job, company } = result;
 
-  /* ⚠️ 応募が届く先が無ければフォームを出さない（2026-08-11）。
-        `company.application_open` は getJobById が解決した値で、
-        求人詳細の応募CTA・一覧カード・モバイル固定バーと**同じ値**。
-        表示と送信が別々の条件を見ると必ずずれる。 */
+  /* ⚠️ 応募を受けられない（答えられる担当者がいない）なら、フォームを出さずに会社ページへ戻す（2026-10-27 / 柴さんの決定）。
+        `company.application_open` は getJobById が解決した値で、求人詳細・一覧と**同じ値**。
+        ⚠️「受け付けていません」「担当者がいません」と出さない（その会社が OPINIO にいないことが分かるため） */
   if (!company.application_open) {
-    return (
-      <main style={{ maxWidth: 640, margin: "80px auto", padding: "0 24px" }}>
-        <div style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 16, padding: "48px 40px", textAlign: "center",
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: "var(--line-soft)", color: "var(--ink-mute)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px", fontSize: 24,
-          }}>
-            ✕
-          </div>
-          <h1 style={{
-            fontFamily: 'var(--font-noto-serif)', fontSize: 20,
-            fontWeight: 600, color: "var(--ink)", marginBottom: 12,
-          }}>
-            {APPLICATION_CLOSED_MESSAGE}
-          </h1>
-          {/* ⚠️ 理由も再開見込みも書かない。把握していない。 */}
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-            <strong style={{ color: "var(--ink)" }}>{job.role}</strong>（{company.name}）
-          </p>
-          <Link
-            href={`${jobBase}/${job.id}`}
-            style={{
-              display: "inline-block", padding: "10px 28px",
-              background: "var(--royal)", color: "#fff",
-              borderRadius: 8, fontSize: 13, fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            ← 募集ページに戻る
-          </Link>
-        </div>
-      </main>
-    );
+    redirect(`/companies/${encodeURIComponent(company.slug ?? company.id)}`);
   }
 
-  /* ★担当者がまだいない企業（2026-10-17）。応募は受けるが、企業が見られるのは担当者が登録してから。送る前に伝える */
-  const hasStaff = await hasApplicationStaff(company.id);
   const authName = (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const authEmail = user.email ?? "";
 
@@ -117,17 +76,6 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
             {company.name} への応募
           </p>
 
-          {!hasStaff && (
-            <div data-state="apply-no-staff" role="note" style={{
-              margin: "0 0 20px", padding: "12px 16px", borderRadius: 10,
-              background: "#fff", border: "1px solid var(--royal-100)",
-              fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)",
-            }}>
-              <strong style={{ color: "var(--ink)" }}>この企業の担当者は、まだ OPINIO に登録していません。</strong><br />
-              応募は OPINIO が預かり、担当者が登録した時点で企業に届きます。届くまで、企業はあなたの応募を見られません。
-            </div>
-          )}
-
           <ApplicationForm
             jobId={job.id}
             jobTitle={job.role}
@@ -136,7 +84,6 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
             companyInitial={company.name.charAt(0).toUpperCase()}
             authName={authName}
             authEmail={authEmail}
-            hasStaff={hasStaff}
           />
         </div>
       </div>

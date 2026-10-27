@@ -43,46 +43,10 @@ export default async function CasualMeetingPage({
         ここで生のフラグを見に行かないこと。企業ページの CTA と同じ値を見ることで
         「ボタンが出ているのに申し込めない」「出ていないのに URL 直打ちで送れる」の
         両方を防いでいる。 */
+  /* ★受け付けていなければ会社ページへ戻す（2026-10-27 / 柴さんの決定）。「受け付けていません」は出さない
+        （担当者がいないことが理由のとき、その会社が OPINIO にいないことが分かるため） */
   if (!company.accepting_casual_meetings) {
-    return (
-      <main style={{ maxWidth: 640, margin: "80px auto", padding: "0 24px" }}>
-        <div style={{
-          background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 16, padding: "48px 40px", textAlign: "center",
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: "var(--line-soft)", color: "var(--ink-mute)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 20px", fontSize: 24,
-          }}>
-            ✕
-          </div>
-          <h1 style={{
-            fontFamily: 'var(--font-noto-serif)', fontSize: 20,
-            fontWeight: 600, color: "var(--ink)", marginBottom: 12,
-          }}>
-            現在受付していません
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
-            {/* ⚠️ 「準備が整い次第、再開される予定です」と書いてあったが、
-                   再開の予定は OPINIO 側で把握していない。約束しない文言にした（2026-08-11）。 */}
-            <strong style={{ color: "var(--ink)" }}>{company.name}</strong> は現在、カジュアル面談を受け付けていません。
-          </p>
-          <a
-            href={`${companyBase}/${params.id}`}
-            style={{
-              display: "inline-block", padding: "10px 28px",
-              background: "var(--royal)", color: "#fff",
-              borderRadius: 8, fontSize: 13, fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            ← 企業ページに戻る
-          </a>
-        </div>
-      </main>
-    );
+    redirect(`${companyBase}/${params.id}`);
   }
 
   // ── 在籍企業制約チェック ──────────────────────────────────────────────────────
