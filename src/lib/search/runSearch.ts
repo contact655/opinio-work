@@ -35,6 +35,9 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { destinationsForUsers } from "./destinations";
+import type { TransitionIntent } from "./transitionIntent";
+import { matchTransition, summarizeMoves, type MatchExp, type MoveSummary, type TransitionMatch } from "./transitionMatch";
+import { MIN_CAREER_FACT_COUNT } from "@/lib/constants/aggregate";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import {
@@ -153,6 +156,11 @@ export type KindResult<T> = {
   tenureTotals?: { current: number; former: number };
   /** ★人だけ・社名で引いたときだけ。OB・OG のいまの行き先（会社・職種）。ログイン時のみ */
   destinations?: Destinations;
+  /**
+   * ★人だけ・会社を指定しない移動で引いたときだけ（2026-10-27）。移る前・移った先の業界の大分類（3人以上）。
+   * ⚠️ 集計に入れてよい人（isAggregatableUser）だけで数える。会社名は入れない。未ログインには呼ぶ側が件数だけ渡す
+   */
+  moveSummary?: MoveSummary | null;
   /**
    * ★人だけ。絞り込み（PersonFilter）を当てたあとの総数。`total` は絞る前のまま（タブの件数・ログインの案内に使う）
    * ⚠️ 絞り込みが無いときは total と同じ
@@ -499,6 +507,8 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
 // ── 人 ───────────────────────────────────────────────────────────────────────
 
 type ExpRow = {
+  id: string;
+  ended_at: string | null;
   user_id: string;
   is_current: boolean | null;
   started_at: string | null;
@@ -532,6 +542,8 @@ export async function searchPersonHits(
   conditions: Condition[],
   isLoggedIn: boolean,
   filter: PersonFilter = {},
+  /** ★移動（2026-10-27）。いまの AND とは別に matchTransition で当てる（行き先の無い left は OB・OG の絞り込みで出すので渡さない） */
+  transition: TransitionIntent | null = null,
 ): Promise<KindResult<PersonHit>> {
   const cond = pick(conditions, "person");
   const db = createAdminClient();
@@ -544,9 +556,9 @@ export async function searchPersonHits(
     readAll("person experiences", (f, t) => db
       .from("ow_experiences")
       .select(
-        `user_id, is_current, started_at, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`,
+        `id, user_id, is_current, started_at, ended_at, role_category_id, visibility_company, ${EXPERIENCE_COMPANY_COLS}`,
       ).order("id").range(f, t)),
-    readAll("person companies", (f, t) => db.from("ow_companies").select("id, is_foreign").order("id").range(f, t)),
+    readAll("person companies", (f, t) => db.from("ow_companies").select("id, is_foreign, industry_id").order("id").range(f, t)),
     readAll("person domains", (f, t) => db.from("ow_company_business_domains").select("company_id, domain_id").order("company_id").order("domain_id").range(f, t)),
     /* ★人が持つスキル。⚠️ `matchOn: "person"` の条件はここから判定する。
           職歴とは無関係なので `experienceMatches` には渡さない。 */
@@ -572,6 +584,22 @@ export async function searchPersonHits(
       c.is_foreign === true,
     ]),
   );
+  /* ★移動の当てはめ（matchTransition）に使う、会社の業界の大分類 */
+  const useTransition = !!transition && (transition.kind === "move" || (transition.kind === "left" && !!transition.to));
+  const industryParentOf = new Map<string, string>();
+  const industryName = new Map<string, string>();
+  if (useTransition) {
+    const indRes = await db.from("ow_industries").select("id, name, parent_id");
+    if (indRes.error) console.error("[searchPersonHits] industries:", indRes.error.message);
+    const rows = (indRes.data ?? []) as { id: string; name: string; parent_id: string | null }[];
+    const parent = new Map(rows.map((r) => [r.id, r.parent_id ?? r.id]));
+    for (const r of rows) industryName.set(r.id, r.name);
+    for (const c of (foreignRes.data ?? []) as { id: string; industry_id: string | null }[]) {
+      const p = c.industry_id ? parent.get(c.industry_id) : undefined;
+      if (p) industryParentOf.set(c.id, p);
+    }
+  }
+  const moveMatches: TransitionMatch[] = [];
   const domainsByCompany = new Map<string, Set<string>>();
   for (const d of (domainRes.data ?? []) as { company_id: string; domain_id: string }[]) {
     const s = domainsByCompany.get(d.company_id) ?? new Set<string>();
@@ -666,6 +694,28 @@ export async function searchPersonHits(
     const expConds = cond.filter((c) => c.matchOn === "experience");
     const personConds = cond.filter((c) => c.matchOn === "person");
 
+    /* ── ★移動（2026-10-27）。いまの AND とは別の関数で当てる（transitionMatch.ts） ── */
+    let tMatch: TransitionMatch | null = null;
+    if (useTransition && transition) {
+      const mexps: MatchExp[] = exps.filter((e) => e.started_at).map((e) => {
+        const real = e.visibility_company === "real";
+        return {
+          id: e.id,
+          /* ⚠️ 会社名を伏せた行は「別の、辿れない会社」（companyFlow と同じ扱い） */
+          key: real ? (e.company_id ?? (e.company_text?.trim().toLowerCase() || `anon:${e.id}`)) : `masked:${e.id}`,
+          companyId: real ? e.company_id : null,
+          startedAt: e.started_at as string,
+          endedAt: e.ended_at,
+          isCurrent: e.is_current === true,
+          industryParentId: real && e.company_id ? industryParentOf.get(e.company_id) ?? null : null,
+          isForeign: real && e.company_id ? foreignById.get(e.company_id) ?? null : null,
+          roleIds: expandWithAncestors(tree, e.role_category_id ? [e.role_category_id] : []),
+        };
+      });
+      tMatch = matchTransition(mexps, transition);
+      if (!tMatch) continue;
+    }
+
     /* ① 職歴側。⚠️ 条件が無いときは空にしておく。`[].every()` は true なので、
           そのまま filter すると**全職歴が「マッチした職歴」になり**、
           下のマッチ理由が的外れな職歴から作られる。 */
@@ -683,10 +733,13 @@ export async function searchPersonHits(
     const schoolEdus = schoolCond ? (schoolEdusByUser.get(u.id) ?? []).filter((e) => e.school_id === schoolCond.schoolId) : [];
     const schoolTenure: PersonHit["tenure"] = schoolEdus.length === 0 ? null : schoolEdus.some((e) => e.is_current === true) ? "current" : "former";
 
-    /* `exps` は started_at 昇順なので `matchedExps` もその順序を保つ */
-    const earliestMatch: ExpRow | null = matchedExps[0] ?? null;
-    const latestMatch: ExpRow | null =
-      matchedExps.length > 0 ? matchedExps[matchedExps.length - 1] : null;
+    /* `exps` は started_at 昇順なので `matchedExps` もその順序を保つ
+       ★移動で当てたときは、移った先の職歴を「当たった職歴」にする（理由の1行が「移る前の会社 → 職種」になる） */
+    const tCur = tMatch ? exps.find((e) => e.id === tMatch!.cur.id) ?? null : null;
+    const earliestMatch: ExpRow | null = tCur ?? matchedExps[0] ?? null;
+    const latestMatch: ExpRow | null = tCur ??
+      (matchedExps.length > 0 ? matchedExps[matchedExps.length - 1] : null);
+    if (tMatch && isAggregatableUser(u as AggregateUser)) moveMatches.push(tMatch);
     /* 条件が1つも無い（全部 unresolved だった）ときは、職歴を持つ人だけを出す。
        ⚠️ 全員返すと「検索した意味が無い一覧」になる。 */
     if (cond.length === 0 && exps.length === 0) continue;
@@ -701,7 +754,9 @@ export async function searchPersonHits(
       matchReason: expConds.length === 0 && schoolEdus.length > 0
         ? schoolReason(schoolEdus)
         : buildMatchReason(exps, earliestMatch, latestMatch, tree, personConds, gradsByUser.get(u.id) ?? []),
-      tenure: expConds.length === 0 ? schoolTenure : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
+      tenure: tCur && expConds.length === 0
+        ? (tCur.is_current === true ? "current" : "former")
+        : expConds.length === 0 ? schoolTenure : matchedExps.some((e) => e.is_current === true) ? "current" : "former",
       matched: (() => {
         const e = matchedExps.find((x) => x.is_current === true) ?? latestMatch;
         if (!e) return null;
@@ -758,6 +813,10 @@ export async function searchPersonHits(
     filteredTotal: isLoggedIn ? filtered.length : statTotal,
     roleFacets: isLoggedIn ? roleFacets : [],
     /* ⚠️ 職種で絞ったあと・在籍で絞る前に数える（在籍の選択肢の人数と、見出しの人数に使う） */
+    /* ★会社を指定しない移動の集計（業界の大分類だけ・3人以上） */
+    moveSummary: transition?.kind === "move"
+      ? summarizeMoves(moveMatches, (id) => industryName.get(id) ?? "", MIN_CAREER_FACT_COUNT)
+      : undefined,
     tenureTotals: isLoggedIn ? {
       current: byRole.filter((h) => h.tenure === "current").length,
       former: byRole.filter((h) => h.tenure === "former").length,
@@ -1018,6 +1077,8 @@ export async function runSearch(
   conditions: Condition[],
   isLoggedIn: boolean,
   personFilter: PersonFilter = {},
+  /** ★移動（2026-10-27）。会社を指定しない移動（move）は条件が無くても人を引く */
+  transition: TransitionIntent | null = null,
 ): Promise<SearchResults> {
   /* ★その対象に効く条件が1つも無いなら、**引かずに0件を返す。**
      ⚠️ 引いてしまうと絞り込みゼロの全件が「検索結果」として出る。
@@ -1033,7 +1094,9 @@ export async function runSearch(
   const [company, job, person, article] = await Promise.all([
     applies("company") ? searchCompanyHits(conditions) : { items: [], total: 0 },
     applies("job") ? searchJobHits(conditions) : { items: [], total: 0 },
-    applies("person") ? searchPersonHits(conditions, isLoggedIn, personFilter) : { items: [], total: 0 },
+    applies("person") || transition?.kind === "move"
+      ? searchPersonHits(conditions, isLoggedIn, personFilter, transition)
+      : { items: [], total: 0 },
     applies("article") ? searchArticleHits(conditions) : { items: [], total: 0 },
   ]);
   return { company, job, person, article };

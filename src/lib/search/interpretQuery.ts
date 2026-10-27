@@ -65,7 +65,7 @@ import { PREFECTURES } from "@/lib/utils/location";
 const PREFECTURE_STEMS = new Set(PREFECTURES.map((p) => p.replace(/[都道府県]$/, "")));
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { companyDisplayName } from "@/lib/companies/displayName";
-import { parseTransition, type TransitionIntent, type Span as TSpan } from "./transitionIntent";
+import { parseTransition, industryTermsFor, type IndustryVocab, type TransitionIntent, type Span as TSpan } from "./transitionIntent";
 
 // ── 結果の型 ─────────────────────────────────────────────────────────────────
 
@@ -262,6 +262,9 @@ type Vocabulary = {
   schoolMaxLen: number;
   /** 2文字の短い名前（入力がそれだけのときにしか使わない） */
   schoolExactShort: Map<string, SchoolOption[]>;
+  /** ★業界の大分類（移動の文の中でだけ読む。2026-10-27） */
+  industries: IndustryVocab;
+  itIndustryId: string | null;
 };
 
 /**
@@ -304,7 +307,7 @@ const ALIAS_GENERIC_KEYS = new Set(["japan", "ジャパン", "株式会社", "�
 const DOMAIN_PART_MIN_LEN = 4;
 
 const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary> {
-  const [roleAliases, domainRows, companyRows, skillRows, languageRows, schoolRows] = await Promise.all([
+  const [roleAliases, domainRows, companyRows, skillRows, languageRows, schoolRows, industryRows] = await Promise.all([
     getRoleAliases(),
     /* ★掲載中の会社がある事業だけ（2026-10-12）。新しい分類で事業が約190になり、マスタ全件だと
           「教育」「建設」「music」のような語が0件の事業の条件に化けるため。チップと同じ母数にそろえる */
@@ -313,7 +316,11 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
     loadSkills(),
     loadLanguages(),
     loadSchoolNames(),
+    loadIndustryParents(),
   ]);
+  const industries: IndustryVocab = industryRows.map((r) => ({ id: r.id, name: r.name, terms: industryTermsFor(r.name) }));
+  /* ⚠️ 「事業会社」「IT以外」に使う。slug で引く（名前は変わりうる） */
+  const itIndustryId = industryRows.find((r) => r.slug === "it-software")?.id ?? null;
   const domains = domainRows.map((d) => {
     const parts = d.name.split(/[・/]/).map((s) => s.trim()).filter(Boolean);
     const terms = [d.name, ...parts.filter((p) => p.length >= DOMAIN_PART_MIN_LEN)];
@@ -404,8 +411,20 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
     }
   }
 
-  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort };
+  return { roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort, industries, itIndustryId };
 });
+
+/** ★業界の大分類（有効なものだけ）。移動の文の中でだけ使う（2026-10-27） */
+async function loadIndustryParents(): Promise<{ id: string; name: string; slug: string | null }[]> {
+  const { data, error } = await createPublicClient()
+    .from("ow_industries")
+    .select("id, name, slug")
+    .is("parent_id", null)
+    .eq("is_active", true);
+  /* ⚠️ error を握りつぶさない。空で返すと「IT以外から来た人」が静かに読めなくなる */
+  if (error) console.error("[interpretQuery] 業界の取得に失敗:", error.message);
+  return (data ?? []) as { id: string; name: string; slug: string | null }[];
+}
 
 type SkillRow = { id: string; label: string; aliases: string[] | null };
 
@@ -625,7 +644,7 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     return { primaryKind: "company", conditions: [], unresolved: [], normalized: "", ambiguousSchools: [], transition: null };
   }
 
-  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort }, roleTree] = await Promise.all([
+  const [{ roleAliases, domains, companyIndex, companyMaxLen, skills, languages, schoolIndex, schoolMaxLen, schoolExactShort, industries, itIndustryId }, roleTree] = await Promise.all([
     loadVocabulary(),
     getRoleTree(),
   ]);
@@ -917,10 +936,10 @@ export async function interpretQuery(rawText: string): Promise<InterpretResult> 
     companies: companySpans,
     roles: roleSpans,
     foreign: foreignSpan,
-    industries: [],
-    itIndustryId: null,
+    industries,
+    itIndustryId,
     consumed: [...consumed],
-    moves: false,
+    moves: true,
   });
   consumed.push(...parsed.consumed);
   /* 移動の片側に吸い込んだ条件（「未経験から営業」の「営業」など）は普通の条件から外す */

@@ -26,6 +26,7 @@ import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { getCompanyLeaverSummaryCached } from "@/lib/companyFlow/server";
 import { toLeaverSummaryCounts, type LeaverSummary, type LeaverSummaryCounts } from "@/lib/companyFlow/compute";
 import { formatMonths } from "@/lib/profile/tenure";
+import { toMoveSummaryCounts, type MoveSummary } from "@/lib/search/transitionMatch";
 
 /**
  * 横断検索。企業・求人・人をまとめて引き、**主対象を1つだけ**見出し付きで出す。
@@ -349,7 +350,9 @@ export default async function SearchPage({ searchParams }: Props) {
         「関西で商社出身の人がいるIT企業」に対して**全社が答えとして並ぶ**
         （2026-08-27 に実際にそうなった）。件数が多いので**正常に見えてしまう**のが厄介。
         絞り込めなかったことは、絞り込めなかったと書く。 */
-  const nothingResolved = conditions.length === 0;
+  /* ★会社を指定しない移動（「IT以外から来た人」）は条件が無くても人を引く（2026-10-27） */
+  const transitionMove = interpreted.transition?.kind === "move" ? interpreted.transition : null;
+  const nothingResolved = conditions.length === 0 && !transitionMove;
   const EMPTY: SearchResults = {
     company: { items: [], total: 0 },
     job: { items: [], total: 0 },
@@ -377,7 +380,8 @@ export default async function SearchPage({ searchParams }: Props) {
   const companyCond = conditions.find((c): c is Extract<Condition, { kind: "company" }> => c.kind === "company") ?? null;
   const companyLeavers: LeaverSummary | null =
     !transitionLeft && companyCond && isLoggedIn ? await getCompanyLeaverSummaryCached(companyCond.companyId) : null;
-  const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn, personFilter) : EMPTY;
+  /* ★移動は普通の条件（AND）に混ぜず、別に渡す（runSearch → matchTransition） */
+  const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn, personFilter, interpreted.transition) : EMPTY;
   /* ★投稿は条件ではなく「ことば」で引く。条件が1つも立たなかったときも引く
         （投稿は自由文なので、職種などに読めない語こそ当たりうる）。ログインしているときだけ */
   const posts = raw.trim()
@@ -417,6 +421,9 @@ export default async function SearchPage({ searchParams }: Props) {
   const visibleKinds: PageKind[] =
     activeKind === "all" ? [primary, ...KIND_ORDER.filter((k) => k !== primary)] : [activeKind];
   const totalAll = KIND_ORDER.reduce((n, k) => n + totalOf(k), 0);
+  /* ★「すべて」タブに出す数（2026-10-27）。未ログインで人の数が下限（5人）に届かないときは、人の数を足さない。
+        足すと「すべて − 企業 − 募集」で、伏せている人の数が分かってしまう（それまで足していた） */
+  const totalAllShown = !isLoggedIn && results.person.total < MIN_AGGREGATE_COUNT ? totalAll - results.person.total : totalAll;
   /* 条件が1つも読めず、何も当たらなかったとき。説明は下の箱に1回だけ出す（上のチップと説明文は出さない） */
   const noConditionEmpty = nothingResolved && totalAll === 0;
   /* 条件で引く4種の合計（「条件を1つ外す」の判定に使う。投稿は条件と無関係なので混ぜない） */
@@ -575,7 +582,7 @@ export default async function SearchPage({ searchParams }: Props) {
           <div className="search-tabs" data-state="search-tabs">
             {(["all", ...KIND_ORDER] as const).map((k) => {
               const active = activeKind === k;
-              const n = k === "all" ? totalAll : totalOf(k);
+              const n = k === "all" ? totalAllShown : totalOf(k);
               const hideCount = k === "person" && !isLoggedIn && results.person.total < MIN_AGGREGATE_COUNT;
               return (
                 <Link
@@ -623,6 +630,10 @@ export default async function SearchPage({ searchParams }: Props) {
                 企業・募集・人は、職種・事業領域・外資系／日系・年収などの条件で探します。
                 このことばは条件として読めなかったので、投稿だけを表示しています。
               </p>
+            )}
+            {transitionMove && results.person.moveSummary && (
+              <MoveSummaryCard title={transitionMove.label} full={isLoggedIn ? results.person.moveSummary : null}
+                counts={toMoveSummaryCounts(results.person.moveSummary)} />
             )}
             {leaverSummary && transitionLeft && (
               <LeaverSummaryCard companyLabel={transitionLeft.companyLabel}
@@ -1081,6 +1092,51 @@ function CompanyLeaversBlock({ companyLabel, s }: { companyLabel: string; s: Lea
         会社を出た直後の職歴から数えています。人数が3人以上の項目だけ表示しています。
       </p>
     </div>
+  );
+}
+
+/**
+ * ★会社を指定しない移動（「IT以外から来た人」「未経験から営業」）の集計（2026-10-27 / 柴さんの決定 7）。
+ *   移る前・移った先の業界の大分類だけ。会社名は出さない。下限は3人（経歴の事実）
+ * ⚠️ ログインしていない人には件数だけ
+ */
+function MoveSummaryCard({ title, full, counts }: { title: string; full: MoveSummary | null; counts: ReturnType<typeof toMoveSummaryCounts> }) {
+  const chip = chipStyle("neutral");
+  const locked = (
+    <Link href="/auth" data-state="move-summary-locked" style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>登録すると読めます →</Link>
+  );
+  const Rows = ({ rows }: { rows: { label: string; count: number }[] }) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {rows.map((r) => (
+        <span key={r.label} style={{ display: "inline-flex", gap: 5, padding: "4px 10px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: chip.bg, color: chip.color, border: `1px solid ${chip.border}` }}>
+          {r.label}<span style={{ fontWeight: 700, color: "var(--ink-soft)" }}>{r.count}人</span>
+        </span>
+      ))}
+    </div>
+  );
+  return (
+    <section data-state={full ? "move-summary-full" : "move-summary-counts"} className="search-section">
+      <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: 0 }}>{title}の動き方</h2>
+      <p style={{ margin: "4px 0 12px", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+        OPINIO に登録した {counts.people} 人の経歴から数えています。業界は大分類でまとめ、人数の少ない項目は出していません。
+      </p>
+      <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))" }}>
+        {counts.from && (
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>移る前の業界</div>
+            <div style={{ fontSize: 12.5, color: "var(--ink)", margin: "2px 0 6px" }}>業界が分かる {counts.from.known}人</div>
+            {full?.from ? <Rows rows={full.from.byIndustry} /> : locked}
+          </div>
+        )}
+        {counts.to && (
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>移った先の業界</div>
+            <div style={{ fontSize: 12.5, color: "var(--ink)", margin: "2px 0 6px" }}>業界が分かる {counts.to.known}人</div>
+            {full?.to ? <Rows rows={full.to.byIndustry} /> : locked}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
