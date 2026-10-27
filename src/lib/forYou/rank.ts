@@ -232,7 +232,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const allExps = (allExpRes.data ?? []) as unknown as (TransitionExperience & { visibility_company: string | null; ow_users: UserRef })[];
   const moves = buildMoves(
     allExps
-      .filter((e) => e.user_id !== owUserId && visibleUser(e.ow_users) && e.visibility_company !== "hidden" && !!e.started_at)
+      .filter((e) => e.user_id !== owUserId && visibleUser(e.ow_users) && e.visibility_company === "real" && !!e.started_at /* ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた） */)
       .map((e) => ({
         id: e.id, user_id: e.user_id, company_id: e.company_id, company_text: e.company_text,
         role_category_id: e.role_category_id, started_at: e.started_at, ended_at: e.ended_at, is_current: e.is_current,

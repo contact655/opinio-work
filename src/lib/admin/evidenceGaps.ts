@@ -108,7 +108,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   if (coErr || expErr) return null;
 
   const exps = ((expRows ?? []) as unknown as ExpRow[]).filter(
-    (e) => visible(e.ow_users) && e.visibility_company !== "hidden",
+    (e) => visible(e.ow_users) && e.visibility_company === "real", // ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた）
   );
   const listed = (companyRows ?? []) as { id: string; name: string; name_en: string | null }[];
   const listedIds = new Set(listed.map((c) => c.id));

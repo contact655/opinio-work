@@ -125,7 +125,7 @@ export type DirectoryPerson = {
    *    （匿名化した職歴の会社ラベルと同じ粒度。粗いほうが勤務先を推測されにくい）。
    * ⚠️ マスタと紐づいた経歴（`company_id`）だけが対象。自由入力の社名は業種が引けないので
    *    `null` になる（推測しない）。`hasForeignExperience` と同じ方針。
-   * ⚠️ 社名を出さない経歴（`visibility_company === "hidden"`）は判定から外す。
+   * ⚠️ 社名を出さない経歴（`visibility_company` が real でないもの。masked も含む。2026-10-27）は判定から外す。
    * ⚠️★**「不明」「その他」などで埋めないこと。** 引けなければ画面から行ごと落とす。
    */
   firstIndustry: string | null;
@@ -385,7 +385,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
           ……ようで実はよくない。伏せた経歴から企業が推測できてしまうため、
           社名を出さない経歴（hidden）は判定から外す。 */
     const hasForeignExperience = myExps.some(
-      (e) => e.visibility_company !== "hidden" && e.company_id && foreignCompanyIds.has(e.company_id)
+      (e) => e.visibility_company === "real" && e.company_id && foreignCompanyIds.has(e.company_id)
     );
     /* ── ★新卒入社の業種 → 現在の業種（2026-09-18）─────────────────────────
           `myExps` は `started_at DESC, id ASC` で並んでいるので、
@@ -394,7 +394,7 @@ async function fetchDirectoryPeople(isLoggedIn: boolean): Promise<DirectoryPerso
           ⚠️ 業種を引けない経歴（自由入力の会社・業種未設定の企業）と、
              社名を出さない経歴（hidden）は候補から外す。**推測で埋めない。** */
     const industryPath = myExps
-      .filter((e) => e.visibility_company !== "hidden" && e.company_id)
+      .filter((e) => e.visibility_company === "real" && e.company_id)
       .map((e) => industryByCompany.get(e.company_id!))
       .filter((n): n is string => Boolean(n));
     const currentIndustry = industryPath[0] ?? null;

@@ -1818,7 +1818,8 @@ export async function getCompanyEmployees(companyId: string): Promise<{
   const hiddenIds = (hiddenRows ?? []).map((r) => r.experience_id as string);
 
   // 現役社員 (is_current = true)
-  // visibility_company='hidden' は本人が「経歴に含めない」を選んだ状態。
+  // visibility_company='hidden' は本人が「経歴に含めない」を選んだ状態、'masked' は会社名を伏せた状態。
+  // ★2026-10-27: どちらも企業ページに出さない（'real' だけ）。以前は hidden だけを外し、masked を通していた。
   // 企業側の掲載要望より本人の非公開希望を優先する（ow_career_profiles の
   // RLS が「矛盾したら厳しい方を採用」で設計されているのに揃える）。
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1827,7 +1828,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     .select("id, role_title, role_category_id, ow_users!inner(id, auth_id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", true)
-    .neq("visibility_company", "hidden");
+    .eq("visibility_company", "real");
   if (hiddenIds.length > 0) {
     currentQuery = currentQuery.not("id", "in", `(${hiddenIds.join(",")})`);
   }
@@ -1845,7 +1846,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
     .select("id, role_title, role_category_id, started_at, ended_at, ow_users!inner(id, auth_id, name, avatar_color, avatar_url, catchphrase, is_test, visibility)")
     .eq("company_id", companyId)
     .eq("is_current", false)
-    .neq("visibility_company", "hidden")
+    .eq("visibility_company", "real")
     .not("ended_at", "is", null)
     .order("ended_at", { ascending: false });
   if (hiddenIds.length > 0) {
@@ -2002,7 +2003,9 @@ export async function getCompanyEmployees(companyId: string): Promise<{
             PGRST201 で**この節が丸ごと空**になる。 */
       .select("user_id, role_title, company_text, ow_companies!company_id(name, brand_name)")
       .in("user_id", alumniUserIds)
-      .eq("is_current", true);
+      .eq("is_current", true)
+      /* ★2026-10-27: いまの職歴の会社名を伏せている人（masked / hidden）は「現在：」に出さない */
+      .eq("visibility_company", "real");
     if (currentExpRowsErr) console.error("[supabase/queries] ow_experiences:", currentExpRowsErr.message);
 
     if (currentExpRows) {

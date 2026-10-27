@@ -806,19 +806,19 @@ function experienceMatches(
   if (c.kind === "foreign") {
     /* ⚠️ 社名を伏せている経歴（hidden）は判定から外す。
           伏せた経歴から在籍企業が推測できてしまうため（directory.ts と同じ扱い）。 */
-    if (e.visibility_company === "hidden") return false;
+    if (e.visibility_company !== "real") return false; // ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた）
     if (!e.company_id) return false;
     return (foreignById.get(e.company_id) ?? false) === c.isForeign;
   }
   if (c.kind === "domain") {
-    if (e.visibility_company === "hidden") return false;
+    if (e.visibility_company !== "real") return false; // ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた）
     if (!e.company_id) return false;
     return domainsByCompany.get(e.company_id)?.has(c.domainId) ?? false;
   }
   if (c.kind === "company") {
     /* ⚠️ 社名を伏せている経歴（hidden）は判定から外す。
           「Salesforce で働いている人」で出てしまうと、伏せた在籍が露見する。 */
-    if (e.visibility_company === "hidden") return false;
+    if (e.visibility_company !== "real") return false; // ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた）
     return e.company_id === c.companyId;
   }
   return false; // salaryMin は appliesTo で除外済み

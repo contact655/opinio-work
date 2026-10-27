@@ -38,7 +38,7 @@ type ExpRow = {
 
 /* ★数えてよい人は `isAggregatableUser`（統計利用を停止した人も外す。2026-10-26） */
 function visible(e: ExpRow): boolean {
-  return isAggregatableUser(e.ow_users) && e.visibility_company !== "hidden";
+  return isAggregatableUser(e.ow_users) && e.visibility_company === "real" /* ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた） */;
 }
 
 export async function getEvidenceMaterials(companyId: string): Promise<EvidenceMaterials | null> {

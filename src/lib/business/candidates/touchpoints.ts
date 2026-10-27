@@ -128,7 +128,7 @@ export async function getCompanyCandidateTouchpoints(
     db.from("ow_company_business_domains").select("domain_id").eq("company_id", companyId),
     /* 自社の現役社員（企業ページの「現役社員」と同じ範囲: is_current・社名を伏せていない） */
     fetchAllRows((from, to) => db.from("ow_experiences").select("id, user_id")
-      .eq("company_id", companyId).eq("is_current", true).neq("visibility_company", "hidden").order("id").range(from, to), "touchpoints employees"),
+      .eq("company_id", companyId).eq("is_current", true).eq("visibility_company", "real").order("id").range(from, to), "touchpoints employees"),
     db.from("ow_company_hidden_experiences").select("experience_id").eq("company_id", companyId),
     getRoleTree(),
     /* ★標準の職種が未選択の自社職種（案内の出し分けだけに使う。2026-10-12） */

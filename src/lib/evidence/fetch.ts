@@ -128,7 +128,7 @@ export async function gatherCompanyFacts(
   if (allExpErr) console.error("[evidence/fetch] 全職歴（遷移用）:", allExpErr);
   const moves: Move[] = buildMoves(
     (allExpRows ?? [])
-      .filter((e) => isAggregatableUser(e.ow_users as unknown as UserRow) && e.visibility_company !== "hidden")
+      .filter((e) => isAggregatableUser(e.ow_users as unknown as UserRow) && e.visibility_company === "real") /* ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた） */
       .map((e) => ({
         id: e.id as string,
         user_id: e.user_id as string,
@@ -169,7 +169,7 @@ export async function gatherCompanyFacts(
   const visibleExps = (exps ?? []).filter(
     (e) =>
       isAggregatableUser(e.ow_users as unknown as UserRow) &&
-      e.visibility_company !== "hidden",
+      e.visibility_company === "real", // ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた）
   );
 
   // ── 5. 候補者の希望条件（preference / salary / work style）────────────────
