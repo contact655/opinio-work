@@ -2513,6 +2513,58 @@ GoTrue の `EmailChangeMail` は secure email change のとき
 
 ---
 
+## ★★公開は企業、停止は運営。スカウト機能は企業ごとに許可する（2026-10-28 / 柴さんの判断）
+
+**この節が、下の「企業ページの3つのスイッチ」「`listing_requested_at`」「スカウトは廃止した」より新しい。食い違ったらこちらが正。**
+調べた内容と決めた理由は、この日の会話の「フェーズ0の報告」。migration は `20261028120000`〜`20261028122000`。
+
+### 会社ページ
+
+| | 実体 |
+|---|---|
+| 企業の「公開する」「非公開にする」 | `POST /api/biz/company/listing` → **[lib/companies/listing.ts](src/lib/companies/listing.ts) の1か所**（停止中でない・掲載規約の同意・必要な項目・下書きの反映・フィードの「参加しました」・運営へのメール） |
+| 運営の「停止」「停止解除」 | `/admin/companies` の「停止」の列 → **[lib/companies/suspension.ts](src/lib/companies/suspension.ts) の1か所**。理由は必須で、企業にメール |
+| 企業の「停止解除を依頼する」 | `POST /api/biz/company/unsuspend-request`（運営にメール・`/admin` の要対応に出る） |
+| 停止の列 | `ow_companies.suspended_at` / `suspended_by` / `suspension_reason` / `suspended_prev_is_published` / `suspended_prev_listing_status` / `unsuspend_requested_at` |
+| 履歴 | `ow_moderation_actions`（会社と募集の両方。運営専用・ポリシー0本・権限なし） |
+
+- ⚠️★**`is_approved`（承認）はもう何も止めていない。** CHECK `check_listed_requires_approval` と、トリガー・PATCH の承認チェックは外した。列は残してある。**公開やスカウトの判定に戻さないこと。**
+- ⚠️★**停止すると `is_published = false`・`listing_status = 'draft'` にも倒す**（停止前の値は `suspended_prev_*` に退避し、解除で戻す）。`is_published` を直接見ている経路が約30か所あり、取りこぼさないため。RLS（`ow_companies_published_read`）と3つのヘルパー（`visibility.ts`）の `suspended_at IS NULL` は二重の守り。
+- ⚠️★**停止中は企業が公開に戻せない。DB のトリガー `guard_company_approval` でも止まる**（「このページは運営により停止されています」。2026-10-28 に運営でない検証用アカウントで PostgREST から直接書いて 403 を確認）。内容の編集と、非公開にする向きは通す。停止の列は企業が書けない（列単位 GRANT を配っていない＋トリガー）。
+- ⚠️★**運営（`auth_is_admin()`）はトリガーを素通りする。** 運営のセッションで「停止中のガード」を試しても止まらない（2026-10-28 に実際に 204 で通った）。ガードは**運営でない担当者**で試すこと。
+- ⚠️ 「非公開にする」は**一覧から外すだけ**（`listing_status = 'draft'`）。`is_published` は触らない（職歴からの会社リンクを切らないため）。
+- ⚠️ 「掲載を依頼する」（`POST /api/biz/company/listing-request`）は 410。`listing_requested_at` はもう書かない（列は残してある）。
+
+### 募集
+
+- 公開は 2026-10-12 から企業が即時に行っている（`lib/jobs/publishServer.ts`）。停止は既存の `stopped_*` のまま。**新しい列は作らなかった。** 停止・再開は `ow_moderation_actions` にも残す。
+- ★**会社が停止中のあいだ、その会社の募集は一般に出ない。** `ow_jobs.company_suspended` を DB のトリガーが会社から写し、`PUBLIC_JOB_MATCH` と RLS（`ow_jobs_published_read`）がそれを見る。**手で書かないこと**（書いても次の更新で写し直される）。
+- ⚠️ `jobListingStateFor` に渡す求人には `company_suspended` を select に入れる（無いと「停止中でない」として扱う）。
+
+### スカウト機能（企業から最初のメッセージを送る・候補者を探す）
+
+| | 実体 |
+|---|---|
+| 判定 | **[lib/business/scoutGate.ts](src/lib/business/scoutGate.ts) の `hasScoutAccess` / `canUseCandidateSearch`**（許可されていて、停止中でない。候補者検索はプランも） |
+| 状態の読み書き | **[lib/business/scoutAccess.ts](src/lib/business/scoutAccess.ts) だけ**。表は `ow_company_scout_access`（行が無い＝未申請 ／ granted ／ revoked）と `ow_scout_access_requests`（未対応は1社1件） |
+| 企業の依頼 | `/biz/candidates` の `ScoutAccessPanel` → `POST /api/biz/scout-access/request` |
+| 運営 | `/admin/scout-access`（許可・見送り・直接の付与・取り消し。結果は企業にメール） |
+
+- ⚠️★**2026-10-28 まで、この判定は `is_approved` を見ていた（`isCompanyReviewed`。削除した）。** 画面・API・cron の約16か所をすべて移した。**`is_approved` に戻さないこと。**
+- ⚠️ 引き継いだのは「承認済みで有効な担当者がいる会社」8社（実在4・検証用4）。それ以外の会社は、担当者が付いても**依頼して許可されるまで使えない**（以前は承認済みなら自動で使えた）。
+- ⚠️ ここで言う「スカウト」は 2026-10-08 に廃止した旧 `ow_scouts` とは別物（画面の言葉は「メッセージ」。下の「スカウトは廃止した」の節は旧スカウトの話）。
+- ⚠️ 2つの表は anon / authenticated に権限なし（401）。読むのは admin クライアントだけ。
+
+### 通知
+
+- 企業へはメールだけ（`lib/notify/companyEmail.ts` の `emailCompanyAdmins`。宛先は応募の通知と同じ規則で、宛先が運営に回るときと検証用の会社には送らない）。**/biz にサイト内の通知は無い。** 停止の理由とスカウト機能の状態は画面にも出す。
+- 運営へは `ADMIN_EMAIL` へのメールと `/admin` の要対応（停止解除の依頼・スカウト機能の依頼）。「企業からの掲載依頼」は要対応から外した。
+
+### ⚠️★migration の検算で、関数の本文を文字列で調べるときはブロックコメントも落とす
+
+2026-10-28 に `20261028121000` が1回止まった。`guard_company_approval` の中の `/* … */` に書いた注記の文言に、検算の LIKE が当たったため（行コメントしか落としていなかった）。
+**`regexp_replace(prosrc, '/\*.*?\*/', '', 'g')` を先に通すこと。** 当てる前に、今の関数では検出し、注記だけの本文では検出しないことを確かめてから当てた。
+
 ## ⚠️ 企業ページの3つのスイッチ（2026-08-13 確立 / **2026-09-09 に見出しを訂正**）
 
 ⚠️★**この節の見出しは「企業ページは作られた時点で見える」だった。実装と食い違っていた**
@@ -2988,6 +3040,8 @@ Ubie＝AI・データ／**医療・ヘルスケア**、セールスフォース�
    `ow_companies.industry` とは無関係。**移行の対象ではない。**
 
 ### ⚠️★4つ目の列 `listing_requested_at` ——企業からの「掲載を依頼する」（2026-09-29）
+
+⚠️★★**2026-10-28 に「掲載を依頼する」は廃止した**（企業が自分で公開する）。この列はもう書かない。上の「公開は企業、停止は運営」の節が正。
 
 **掲載状態ではない。「運営が動くべき」という印。** 上の3つと混同しないこと。
 
@@ -6561,6 +6615,8 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 ---
 
 ## ⚠️★★スカウトは廃止した。提案に一本化。**復活させないこと**（2026-10-08 / 柴さんの判断）
+
+⚠️★この節は**旧スカウト（`ow_scouts`）**の話。企業から最初のメッセージを送る機能（`/biz/messages`）と候補者検索は、2026-10-28 から**運営が企業ごとに許可する**（「公開は企業、停止は運営。スカウト機能は企業ごとに許可する」の節）。
 
 **企業が一方的に送る機能は持たない。** OPINIO が根拠をそろえて出す「提案」
 （`/biz/proposals`・`/mypage/proposals`。双方が「会いたい」と答えたらつながる）に一本化した。
