@@ -14,7 +14,8 @@ const FULL: CompanyFlow = {
   next: { known: 5, byIndustry: [{ label: "IT・インターネット", count: 4 }, { label: "コンサルティング", count: 1 }] },
   tenure: { alumni: 5, avgMonths: 52 },
   roleChanges: { people: 3, paths: [{ label: "インサイドセールス → アカウントエグゼクティブ", count: 2 }, { label: "インサイドセールス → エンタープライズセールス", count: 1 }] },
-  decisiveTop: { respondents: 6, top: [{ label: "身につくスキル", count: 4 }, { label: "年収・待遇", count: 3 }, { label: "一緒に働く仲間", count: 2 }] },
+  /* ⚠️ 回答由来は行ごとにも5人の下限（5人未満の行は compute.ts が落とす）ので、5人以上の行だけを置く */
+  decisiveTop: { respondents: 9, top: [{ label: "身につくスキル", count: 6 }, { label: "年収・待遇", count: 5 }] },
   fitAfterYear: { respondents: 5, goodShare: 80 },
 };
 const PARTIAL: CompanyFlow = { ...FULL, people: 4, previous: null, roleChanges: null, decisiveTop: null, fitAfterYear: null, next: null };

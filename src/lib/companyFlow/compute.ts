@@ -139,9 +139,12 @@ export function computeCompanyFlow(
   const roleChanges = rolePaths.length >= opt.minCareerFact
     ? { people: rolePaths.length, paths: tally(rolePaths, (k) => { const [a, b] = k.split(">"); return `${L.role(a)} → ${L.role(b)}`; }) } : null;
 
+  /* ★回答由来は項目にも行にも minAnswer（5人）の下限（2026-10-27 / 柴さんの決定）。
+        経歴由来の内訳と違い、行ごとの人数が少ないと「誰が何を選んだか」が推測できるため。5人に届く決め手が無ければ項目ごと出さない */
   const q1 = turns.filter((t) => t.decisiveReasons.length > 0);
-  const decisiveTop = q1.length >= opt.minAnswer
-    ? { respondents: q1.length, top: tally(q1.flatMap((t) => t.decisiveReasons), L.reason).slice(0, 3) } : null;
+  const decisiveRows = q1.length >= opt.minAnswer
+    ? tally(q1.flatMap((t) => t.decisiveReasons), L.reason).filter((r) => r.count >= opt.minAnswer).slice(0, 3) : [];
+  const decisiveTop = decisiveRows.length > 0 ? { respondents: q1.length, top: decisiveRows } : null;
   const q3 = turns.filter((t) => t.fitAfterYear !== null);
   const fitAfterYear = q3.length >= opt.minAnswer
     ? { respondents: q3.length, goodShare: Math.round((q3.filter((t) => (t.fitAfterYear ?? 0) >= opt.fitGoodMin).length / q3.length) * 100) } : null;

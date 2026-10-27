@@ -64,8 +64,11 @@ test("回答の項目は5人以上で出る（4人なら出ない）", () => {
   assert.equal(computeCompanyFlow(C, person("a"), four, L, OPT).fitAfterYear, null);
   const five = [...four, T(["salary"], 4)];
   const f = computeCompanyFlow(C, person("a"), five, L, OPT);
-  assert.deepEqual(f.decisiveTop, { respondents: 5, top: [{ label: "skills", count: 3 }, { label: "salary", count: 2 }, { label: "people", count: 1 }] });
+  /* ★行ごとにも5人の下限。5人答えても、5人に届く決め手が無ければ項目ごと出さない */
+  assert.equal(f.decisiveTop, null);
   assert.deepEqual(f.fitAfterYear, { respondents: 5, goodShare: 60 });
+  const six = [T(["skills", "salary"], 5), T(["skills"], 4), T(["skills", "people"], 4), T(["skills"], 2), T(["skills", "salary"], 4), T(["salary"], 1)];
+  assert.deepEqual(computeCompanyFlow(C, person("a"), six, L, OPT).decisiveTop, { respondents: 6, top: [{ label: "skills", count: 5 }] });
 });
 
 test("★返す形に、個人を特定できる値（user_id・会社 id・個別の期間）が入らない", () => {
