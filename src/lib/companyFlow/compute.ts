@@ -153,3 +153,29 @@ export function computeCompanyFlow(
 export function hasAnyFlowItem(f: CompanyFlow | null): boolean {
   return !!f && !!(f.previous || f.next || f.tenure || f.roleChanges || f.decisiveTop || f.fitAfterYear);
 }
+
+/**
+ * ★ログインしていない人と、ページの HTML に渡す形（2026-10-27 / 柴さんの決定）。件数だけで、内訳・平均・割合は入れない。
+ *   内訳は「登録すると読めます」とし、ログインしている人にだけ API（/api/jobseeker/companies/[id]/flow）から渡す。
+ */
+export type CompanyFlowSummary = {
+  people: number;
+  previous: { known: number } | null;
+  next: { known: number } | null;
+  tenure: { alumni: number } | null;
+  roleChanges: { people: number } | null;
+  decisiveTop: { respondents: number } | null;
+  fitAfterYear: { respondents: number } | null;
+};
+
+export function toFlowSummary(f: CompanyFlow): CompanyFlowSummary {
+  return {
+    people: f.people,
+    previous: f.previous ? { known: f.previous.known } : null,
+    next: f.next ? { known: f.next.known } : null,
+    tenure: f.tenure ? { alumni: f.tenure.alumni } : null,
+    roleChanges: f.roleChanges ? { people: f.roleChanges.people } : null,
+    decisiveTop: f.decisiveTop ? { respondents: f.decisiveTop.respondents } : null,
+    fitAfterYear: f.fitAfterYear ? { respondents: f.fitAfterYear.respondents } : null,
+  };
+}

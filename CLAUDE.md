@@ -7715,6 +7715,20 @@ npm run dev → http://localhost:3000/dev/preview
   選び方は `node scripts/check-connections.mjs`（固定データ・`--self-test` で検出力を確認）と `/dev/preview/connections` で確かめた。
   **相互フォローが生まれたら、企業ページで実際に出ることを確認すること。**
 
+### ★★企業ページ「人の流れ」（2026-10-27 / 柴さんの決定）
+
+| | 実体 |
+|---|---|
+| 集計 | `src/lib/companyFlow/compute.ts`（純粋な関数・テスト `companyFlow.test.mjs`）と `server.ts`（admin で読む・`getCompanyFlowCached` 300秒） |
+| 下限 | 経歴（前職・行き先・OB の平均在籍・社内の職種の変化）は **3人**（`MIN_CAREER_FACT_COUNT`）／回答（決め手の上位・1年後に合っていた割合）は **5人**（`MIN_AGGREGATE_COUNT`）。下限未満は項目ごと null（文言も出さない） |
+| 画面 | `CompanyFlowSection.tsx`（ページの一番上・ナビの先頭）。出せる項目が1つも無い会社では見出しごと出さない。見た目は `/dev/preview/company-flow` |
+| 未ログイン | ページの HTML（ISR）は件数だけ（`toFlowSummary`）。内訳・平均・割合はログインしている人にだけ `/api/jobseeker/companies/[id]/flow` から |
+
+- ⚠️★返す形に user_id・会社 id・個別の期間を入れない（テストで許可したキーだけ）。前職・行き先は**業界の大分類**で、辿れない人は「不明」にまとめず母数から外す。
+- ⚠️ 母数は `isAggregatableUser` を通し、`visibility_company = 'real'` の職歴だけ。前後の職歴が real でなければ辿れない扱い（古い職歴に飛ばさない）。
+- ⚠️ OB の在籍月数と「現在：」は「社員・OB/OG」に残す（重ねて出さない）。「話を聞ける社員・OB」は入れない。
+- ⚠️ 2026-10-27 時点で出るのは **Salesforce だけ**（前職・在籍・行き先）。ほかの21社は見出しが出ない（それが正しい状態）。
+
 ### ★★「株式会社◯◯について」は転機の3問（`ow_career_turns`）。2026-10-27 に入社後レビューから入れ替えた（フェーズ1c）
 
 | | 実体 |

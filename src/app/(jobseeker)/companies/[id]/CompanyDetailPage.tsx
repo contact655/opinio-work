@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { getCompanyFlowCached } from "@/lib/companyFlow/server";
+import { hasAnyFlowItem, toFlowSummary } from "@/lib/companyFlow/compute";
+import { CompanyFlowSection } from "./CompanyFlowSection";
 import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/lib/jobs/testViewMode";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
@@ -1791,7 +1794,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, companyTools,
-         articleIdRowsResult, materialItems] = await Promise.all([
+         articleIdRowsResult, materialItems, companyFlow] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -1813,7 +1816,11 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           ⚠️ 条件は `getPublicMaterialItemsCached` の1か所。ここで絞り直さないこと。
           ⚠️ 確定・変更時は `revalidateCompanyPages()` がこのキャッシュごと落とす。 */
     getPublicMaterialItemsCached(companyId),
+    /* ★人の流れ（2026-10-27）。⚠️ 集計（数と業界・職種の名前）だけ。下限未満は null。ページには件数だけを渡す（下の toFlowSummary） */
+    getCompanyFlowCached(companyId),
   ]);
+  /* ★人の流れの件数だけの形（2026-10-27）。出せる項目が無ければ null（見出しごと出さない） */
+  const flowSummary = hasAnyFlowItem(companyFlow) ? toFlowSummary(companyFlow!) : null;
 
   /* ⚠️ 社員一覧の出し分けはここでは行わない（2026-08-09）。
         絞り込みは /api/jobseeker/companies/[id]/employees が
@@ -1932,6 +1939,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
       <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
         <CompanyStickyNav items={[
+          /* ★人の流れを先頭に（2026-10-27 / 柴さんの決定）。⚠️ 出せる項目が1つも無い会社では出さない */
+          ...(flowSummary ? [{ id: "company-flow", label: "人の流れ" }] : []),
           { id: "about", label: "企業概要" },
           /* ★本文の並びに合わせて企業概要の次（2026-10-19）。⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
                 分からない（絞り込みはクライアント側のAPIが行うため）。
@@ -1952,6 +1961,11 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                  逃げは globals.css の `body:has(.company-mobile-cta)` が body の末尾に取る。
                  （以前は pb-48 md:pb-36 lg:pb-0 をここに付けていた） */}
           <main>
+            {/* ★人の流れ（2026-10-27 / 柴さんの決定。ページの一番上）。
+                   ⚠️ ページ（ISR）には件数だけを渡す。内訳はログインしている人にだけ部品が API から取る。
+                   ⚠️ 出せる項目が1つも無い会社では描かない（見出しごと出さない） */}
+            {flowSummary && <CompanyFlowSection companyId={companyId} summary={flowSummary} />}
+
             {/* ★企業情報（モバイルのみ）。⚠️ **サイドバーと同じ部品**を使う（2026-09-07）。
                    サイドバーは `hidden lg:flex` で 1023px 以下では消えるため、ここが無いと
                    **事業領域（83社すべてが持つ唯一の分類）がモバイルで1文字も出ない**。

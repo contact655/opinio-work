@@ -79,3 +79,13 @@ test("★返す形に、個人を特定できる値（user_id・会社 id・個�
     assert.ok(!json.includes(bad), `返り値に ${bad} が含まれている`);
   }
 });
+
+test("★ログインしていない人向けの形は件数だけ（内訳・平均・割合を含まない）", async () => {
+  const { toFlowSummary } = await import("./compute.ts");
+  const exps = ["a", "b", "c"].flatMap((u) => person(u, { roles: ["is", "ae"] }));
+  const turns = Array.from({ length: 5 }, () => ({ decisiveReasons: ["skills"], fitAfterYear: 5 }));
+  const s = toFlowSummary(computeCompanyFlow(C, exps, turns, L, OPT));
+  const keys = keysDeep(s);
+  for (const k of ["byIndustry", "paths", "top", "avgMonths", "goodShare", "label"]) assert.ok(!keys.has(k), `件数だけの形に ${k} がある`);
+  assert.deepEqual(s, { people: 3, previous: { known: 3 }, next: { known: 3 }, tenure: { alumni: 3 }, roleChanges: { people: 3 }, decisiveTop: { respondents: 5 }, fitAfterYear: { respondents: 5 } });
+});
