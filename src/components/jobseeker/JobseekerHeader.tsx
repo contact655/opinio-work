@@ -45,7 +45,10 @@ const NAV_LINKS = [
      ⚠️ ログイン後の既定の着地もここ（`DEFAULT_AFTER_LOGIN`）。**片方だけ変えないこと。**
      ⚠️ `/feed` は未ログインでも 200（middleware の `needsAuth` に入っていない）。
         先頭に置いても、ログインしていない訪問者が行き止まりに当たることはない。 */
-  { href: "/feed", label: "ホーム" },
+  /* ★★2026-10-27: 「ホーム」は `/home`（あなたの次の一手）。`/feed` は「フィード」として2番目に残す（柴さんの決定4）。
+        ⚠️ `/home` はログイン必須（middleware）。未ログインには出さない（下の `navLinks`）。 */
+  { href: "/home", label: "ホーム" },
+  { href: "/feed", label: "フィード" },
   { href: "/companies", label: "企業" },
   { href: "/jobs", label: "募集" },
   { href: "/people", label: "ユーザー" },
@@ -496,7 +499,8 @@ export function JobseekerHeader() {
               )}
             </button>
           ) : (
-          <Link href="/" style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center", color: "var(--brand-ink)" }}>
+          /* ★ロゴはログイン中なら /home（あなたの次の一手）、未ログインならトップ（/）。2026-10-27 / 柴さんの決定5 */
+          <Link href={user ? "/home" : "/"} style={{ textDecoration: "none", flexShrink: 0, display: "flex", alignItems: "center", color: "var(--brand-ink)" }}>
             <OpinioLogo height={24} />
           </Link>
           )}
@@ -676,7 +680,8 @@ export function JobseekerHeader() {
                   釣り合いの上にもう一段ずれが乗る。
                ⚠️ `flex: 1` にもしないこと。タブが伸びて字間が開く。 */
             style={{ gap: 8, alignItems: "center", flexShrink: 0 }}>
-            {NAV_LINKS.map(({ href, label }) => {
+            {/* ★未ログインには「ホーム」（/home・ログイン必須）を出さない（2026-10-27） */}
+            {NAV_LINKS.filter(({ href }) => href !== "/home" || !!user).map(({ href, label }) => {
               const [hrefPath, hrefQuery] = href.split("?");
               const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
               const active = hrefTab
@@ -1118,7 +1123,8 @@ export function JobseekerHeader() {
           {/* ★ログイン中のスマホは、下のタブバーにある5つ（ホーム・企業・募集・ユーザー・マイページ）を
               ここに並べない（2026-10-17）。同じ行き先が画面の上と下に2つずつ並んでいた。
               ⚠️ タブバーに無い「記事」だけ残す。⚠️ 未ログインは従来どおり全部出す。 */}
-          {NAV_LINKS.filter(({ href }) => !mobileSignedIn || href === "/articles").map(({ href, label }) => {
+          {/* ⚠️ 2026-10-27: タブバーに無い「フィード」（/feed）もここに置く。未ログインには「ホーム」（/home）を出さない */}
+          {NAV_LINKS.filter(({ href }) => (mobileSignedIn ? href === "/articles" || href === "/feed" : href !== "/home" || !!user)).map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab

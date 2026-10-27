@@ -34,7 +34,9 @@
  *    「登録を終えた直後」と「ログインし直したとき」は別の判断で、
  *    片方を変えたときにもう片方を黙って巻き込むのが一番まずい。
  */
-export const DEFAULT_AFTER_ONBOARDING = "/mypage";
+/* ★★2026-10-27 に `/home`（あなたの次の一手）へ変えた（柴さんの指示）。
+      ホームの状態A（職歴なし）が職歴の入力へ導くので、`/mypage` の促しの役割はホームが持つ。 */
+export const DEFAULT_AFTER_ONBOARDING = "/home";
 
 /**
  * ★着地直後の印（2026-10-16）。`/mypage?from=onboarding` で着いたときだけ、
@@ -49,7 +51,8 @@ export const ONBOARDING_LANDING_VALUE = "onboarding";
  *    （`/mypage/bookmarks` など）なら触らない —— そこへ戻すのが目的なので。
  */
 export function withOnboardingLanding(next: string): string {
-  if (next !== DEFAULT_AFTER_ONBOARDING) return next;
+  /* ⚠️ 2026-10-27 から既定は `/home`。印は `/mypage` で着いたときだけ意味があるので、`/mypage` ちょうどのときだけ付ける */
+  if (next !== "/mypage") return next;
   return `${next}?${ONBOARDING_LANDING_PARAM}=${ONBOARDING_LANDING_VALUE}`;
 }
 
@@ -81,7 +84,8 @@ export function afterOnboarding(raw: string | null | undefined): string {
            **未完了の人のパスワードでのログイン**が、完了後に `/mypage` ではなく `/feed` に着く。
            2026-10-16 に contact+31 の確認で `/onboarding?next=%2Ffeed` を見て気づいた。
         ⚠️ 代償は `/companies` と同じ（`/feed` を開いていて中断された人も `/mypage` に着く）。 */
-  return v === GENERIC_NEXT || v === DEFAULT_AFTER_LOGIN || v === "/" ? DEFAULT_AFTER_ONBOARDING : v;
+  /* ⚠️ 2026-10-27: 旧既定の `/feed` も引き続き「指定なし」とみなす（古い `next=%2Ffeed` が残っていても `/home` に着く） */
+  return v === GENERIC_NEXT || v === DEFAULT_AFTER_LOGIN || v === "/feed" || v === "/" ? DEFAULT_AFTER_ONBOARDING : v;
 }
 
 /**
@@ -92,7 +96,9 @@ export function afterOnboarding(raw: string | null | undefined): string {
  *    （2026-10-01〜10-15 は両方 `/feed` だった）。**片方を変えるときに
  *    もう片方を巻き込まないこと。**
  */
-export const DEFAULT_AFTER_LOGIN = "/feed";
+/* ★★2026-10-27 に `/feed` → `/home` へ変えた（柴さんの指示）。`/feed` は「フィード」として残る。
+      ⚠️ 企業の担当者が求職者側の /auth からログインしたときも `/home`（決定9）。 */
+export const DEFAULT_AFTER_LOGIN = "/home";
 
 /**
  * ★ログイン直後の行き先（2026-10-01）。

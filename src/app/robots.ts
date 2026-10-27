@@ -36,6 +36,7 @@ export default function robots(): MetadataRoute.Robots {
           "/biz/organization",
           "/auth",
           "/feed",
+          "/home",
           "/profile/",
           "/mypage",
           "/onboarding",
