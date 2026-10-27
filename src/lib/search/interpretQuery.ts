@@ -280,6 +280,12 @@ export function companyKey(s: string): string {
 const COMPANY_KEY_MIN_LEN = 3;
 
 /**
+ * ★別名（`search_aliases`）を空白で割ったときに出る、会社を指さない語。照合に載せない。
+ * ⚠️ 「Accenture Japan」を割ると「japan」が残り、載せると「japan」を含む入力がすべてアクセンチュアになる
+ */
+const ALIAS_GENERIC_KEYS = new Set(["japan", "ジャパン", "株式会社", "合同会社", "有限会社", "inc", "corp", "ltd", "co"]);
+
+/**
  * 事業領域の名前を照合語に割る。
  *
  * ⚠️ マスタの名前は「AI・データ」「CRM・営業支援」のように `・` で連結されている。
@@ -313,11 +319,16 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
   let companyMaxLen = 0;
   for (const c of companyRows) {
     const label = companyDisplayName(c.name, c.name_en).displayName;
-    /* ⚠️ 対象は name / brand_name / slug の3つ。
+    /* ⚠️ 対象は name / brand_name / slug と search_aliases（下）。
           `name_en` は入れていない（短い綴りが多く、誤爆の余地が大きい）。
           実データでは `slug` が短い呼称（salesforce / smarthr）を持っているので、
           「Salesforce」「SmartHR」はここで引ける。 */
-    for (const raw of [c.name, c.brand_name, c.slug]) {
+    /* ★`search_aliases`（読み方・カタカナ名・略称。空白区切り）も照合に載せる（2026-10-27 / 柴さんの指示）。
+          それまでは「セールスフォース」と打っても「株式会社セールスフォースジャパン」と完全一致せず、社名として読まれなかった。
+       ⚠️ 空白で区切った1語ずつを載せる。「Accenture Japan」のような2語の別名から出る「Japan」は
+          どの会社にも当たる語なので載せない（ALIAS_GENERIC_KEYS） */
+    const aliasTokens = (c.search_aliases ?? "").split(/[\s　]+/).filter((t) => t && !ALIAS_GENERIC_KEYS.has(companyKey(t)));
+    for (const raw of [c.name, c.brand_name, c.slug, ...aliasTokens]) {
       if (!raw) continue;
       const key = companyKey(raw);
       if (key.length < COMPANY_KEY_MIN_LEN) continue;
@@ -423,7 +434,7 @@ async function loadLanguages(): Promise<LanguageRow[]> {
   return (data ?? []) as LanguageRow[];
 }
 
-type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null };
+type CompanyNameRow = { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null; search_aliases: string | null };
 
 /** 掲載中の企業の社名。⚠️ ディレクトリの軸なので `filterListedCompanies` を通す */
 /**
@@ -479,7 +490,7 @@ const loadSchoolNames = unstable_cache(
 
 async function loadCompanyNames(): Promise<CompanyNameRow[]> {
   const { data, error } = await filterListedCompanies(
-    createPublicClient().from("ow_companies").select("id, name, name_en, brand_name, slug"),
+    createPublicClient().from("ow_companies").select("id, name, name_en, brand_name, slug, search_aliases"),
   );
   /* ⚠️ error を握りつぶさない。空で返すと「社名で引けない」が静かに起きる */
   if (error) console.error("[interpretQuery] 社名の取得に失敗:", error.message);
