@@ -2465,6 +2465,48 @@ export type Database = {
           },
         ]
       }
+      ow_company_join_notices: {
+        Row: {
+          company_id: string
+          created_at: string
+          notified_at: string | null
+          ops_notified_at: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          notified_at?: string | null
+          ops_notified_at?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          notified_at?: string | null
+          ops_notified_at?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_join_notices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_join_notices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_join_requests: {
         Row: {
           created_at: string
