@@ -6,7 +6,9 @@ import { chipStyle } from "@/lib/utils/chipVariant";
 import type { Destinations } from "@/lib/search/runSearch";
 
 /**
- * ⚠️ 検索結果（/search）と学校のページ（/schools/[id]）の両方が使う。見た目を片方だけ変えないこと。
+ * ⚠️ 検索結果（/search。学校で引いたときだけ）と学校のページ（/schools/[id]）の両方が使う。見た目を片方だけ変えないこと。
+ * ⚠️ 会社で引いたときは使わない（2026-10-27）。会社を出た人の行き先は「人の流れ」と同じ規則（業界の大分類・3人以上）で、
+ *    検索のページの CompanyLeaversBlock が出す
  * ★「この会社を出た人のいま」（2026-10-21 / 柴さんの指示。OPINIO らしさ＝実際に移った先が見える）。
  *   OB・OG のいまの会社と職種を並べる。人数は3人以上のときだけ（runSearch の Destinations）。
  * ⚠️ ログインしているときだけ（人の欄と同じ）。会社名を出してよい職歴だけを数えている

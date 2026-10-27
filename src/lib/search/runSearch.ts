@@ -722,9 +722,11 @@ export async function searchPersonHits(
     const graduated = !byCompanyCond && schoolTenure === "former";
     if (leftCompany || graduated) leftUserIds.push(u.id);
   }
-  /* ⚠️ 検索結果と学校のページで同じ関数（lib/search/destinations.ts）。ここに数え方を書き写さない */
+  /* ⚠️ 学校のページと同じ関数（lib/search/destinations.ts）。ここに数え方を書き写さない
+     ★★社名で引いたときは使わない（2026-10-27 / 柴さんの決定）。会社を出た人の行き先は企業ページの「人の流れ」と
+        同じ規則（業界の大分類・3人以上）にそろえ、検索のページが lib/companyFlow の getCompanyLeaverSummaryCached から出す */
   const destinations: Destinations | undefined =
-    isLoggedIn && (byCompanyCond || !!schoolCond) ? await destinationsForUsers(leftUserIds) : undefined;
+    isLoggedIn && !byCompanyCond && !!schoolCond ? await destinationsForUsers(leftUserIds) : undefined;
 
   /* ★現役を先に並べる（上限で切ったときに、グループの途中で切れないように）。
         ⚠️ 安定ソートなので、同じグループの中の順は今までどおり */

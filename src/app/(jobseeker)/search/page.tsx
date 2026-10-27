@@ -373,6 +373,10 @@ export default async function SearchPage({ searchParams }: Props) {
   if (transitionLeft && !isLoggedIn) personFilter.onlyFormer = true;
   /* ★動き方の集計（該当人数・平均在籍・行き先の業界・行き先の職種）。「人の流れ」と同じ定義・下限（3人） */
   const leaverSummary: LeaverSummary | null = transitionLeft ? await getCompanyLeaverSummaryCached(transitionLeft.companyId) : null;
+  /* ★社名だけで引いたときの「〈会社〉を出た人の行き先」（2026-10-27）。同じ集計の行き先だけを出す。ログイン中だけ（以前の帯と同じ） */
+  const companyCond = conditions.find((c): c is Extract<Condition, { kind: "company" }> => c.kind === "company") ?? null;
+  const companyLeavers: LeaverSummary | null =
+    !transitionLeft && companyCond && isLoggedIn ? await getCompanyLeaverSummaryCached(companyCond.companyId) : null;
   const results = raw.trim() && !nothingResolved ? await runSearch(conditions, isLoggedIn, personFilter) : EMPTY;
   /* ★投稿は条件ではなく「ことば」で引く。条件が1つも立たなかったときも引く
         （投稿は自由文なので、職種などに読めない語こそ当たりうる）。ログインしているときだけ */
@@ -681,9 +685,13 @@ export default async function SearchPage({ searchParams }: Props) {
                           totals={personFilter.tenure && tt ? { current: personFilter.tenure === "current" ? tt.current : 0, former: personFilter.tenure === "former" ? tt.former : 0 } : tt}
                           labels={tenureLabels} f={follow} />
                       )}
+                      {/* ⚠️ 学校で引いたときだけ（社名で引いたときは下の CompanyLeaversBlock） */}
                       {results.person.destinations && !transitionLeft && (
                         <DestinationsBlock d={results.person.destinations}
-                          companyLabel={conditions.find((c) => c.kind === "company" || c.kind === "school")?.label ?? null} />
+                          companyLabel={conditions.find((c) => c.kind === "school")?.label ?? null} />
+                      )}
+                      {companyLeavers && companyCond && (companyLeavers.next || companyLeavers.nextRoles) && (
+                        <CompanyLeaversBlock companyLabel={companyCond.label} s={companyLeavers} />
                       )}
                     </>
                   ) : (
@@ -1042,6 +1050,37 @@ function LeaverSummaryCard({ companyLabel, full, counts }: { companyLabel: strin
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * ★社名だけで引いたときの「〈会社〉を出た人の行き先」（2026-10-27 / 柴さんの決定）。
+ *   それまでは行き先を会社名で、5人以上のときだけ出していた（結果、どの会社でも出なかった）。
+ *   いまは企業ページの「人の流れ」と同じ規則（業界の大分類・3人以上）。会社名は出さない
+ */
+function CompanyLeaversBlock({ companyLabel, s }: { companyLabel: string; s: LeaverSummary }) {
+  const chip = chipStyle("neutral");
+  const Row = ({ title, rows }: { title: string; rows: { label: string; count: number }[] }) => (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", marginBottom: 6 }}>{title}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {rows.map((r) => (
+          <span key={r.label} style={{ display: "inline-flex", gap: 5, padding: "4px 10px", borderRadius: 100, fontSize: 12.5, fontWeight: 600, background: chip.bg, color: chip.color, border: `1px solid ${chip.border}` }}>
+            {r.label}<span style={{ fontWeight: 700, color: "var(--ink-soft)" }}>{r.count}人</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <div data-state="search-company-leavers" style={{ marginTop: 16, padding: "14px 14px 12px", borderRadius: 12, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--ink)" }}>{companyLabel}を出た人の行き先</div>
+      {s.next && <Row title="行き先の業界" rows={s.next.byIndustry} />}
+      {s.nextRoles && <Row title="行き先の職種" rows={s.nextRoles.byRole} />}
+      <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--ink-mute)" }}>
+        会社を出た直後の職歴から数えています。人数が3人以上の項目だけ表示しています。
+      </p>
+    </div>
   );
 }
 
