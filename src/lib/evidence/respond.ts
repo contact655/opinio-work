@@ -13,6 +13,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { introduceProposal } from "./introduce";
+import { recordProposalInterest } from "@/lib/interest/server";
+import { INTEREST_CONSENT_VERSION } from "@/lib/interest/constants";
 import { mutateOne } from "@/lib/supabase/mutate";
 import { PROPOSAL_PHASE_COLS, phaseInputOf, visiblePairs, isVisiblePair } from "./proposalEnded";
 import {
@@ -58,6 +60,8 @@ export async function saveCandidateResponse(input: {
   response: CandidateResponse;
   /** 「会社へのひとこと」（interested のときだけ・200字まで） */
   note?: string | null;
+  /** 押すときに見せた確認の文言の版（lib/interest/constants.ts）。「話を聞いてみたい」のときだけ確かめる */
+  consentVersion?: unknown;
   reason?: string | null;
   declineNote?: string | null;
 }): Promise<RespondOutcome> {
@@ -65,6 +69,10 @@ export async function saveCandidateResponse(input: {
   const note = (input.note ?? "").trim();
   if (input.response === "interested" && note.length > PROPOSAL_NOTE_MAX) {
     return { ok: false, status: 400, error: `ひとことは${PROPOSAL_NOTE_MAX}文字までです` };
+  }
+  /* ★見せた確認の文言の版が今のものでなければ受け付けない（企業ページ・下段と同じ。lib/interest/server.ts） */
+  if (input.response === "interested" && input.consentVersion !== INTEREST_CONSENT_VERSION) {
+    return { ok: false, status: 409, error: "画面が古くなっています。ページを読み込み直してから、もう一度お試しください。" };
   }
   if (input.response === "declined") {
     const bad = checkDeclineInput("candidate", input.reason, input.declineNote);
@@ -116,6 +124,11 @@ export async function saveCandidateResponse(input: {
   if (!r.ok) return { ok: false, status: r.status, error: r.error };
 
   const out = await introduceProposal(db, input.proposalId, { by: "candidate" });
+  /* ★企業ページ・下段と同じ記録を残す（ow_for_you_reactions。返事の確認と14日の知らせもこの行で行う） */
+  await recordProposalInterest({
+    owUserId: input.candidateUserId, companyId, note: note || null,
+    conversationId: out.introduced ? out.conversationId : null, consentVersion: input.consentVersion,
+  });
   return { ok: true, conversationId: out.introduced ? out.conversationId : null };
 }
 

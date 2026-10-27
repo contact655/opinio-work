@@ -19,6 +19,7 @@ import { candidateHeaderMeta, loadCompanyThread } from "@/lib/conversations/comp
 import type { SentApproach } from "@/lib/approaches/server";
 import { unseenProposalConversationIds, interestConversationIds } from "@/lib/evidence/companyProposals";
 import { canUseCandidateSearch, isCompanyReviewed } from "@/lib/business/scoutGate";
+import { countAwaitingReply } from "@/lib/interest/server";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +128,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   /* ★提案から始まって、まだ誰も開いていない会話も「新しい」印を付ける（2026-10-11）。
         ⚠️ 企業の担当者はまだ参加者でないので、参加者の未読では数えられない。⚠️ 提案を読むのは companyProposals.ts だけ */
   for (const id of Array.from(await unseenProposalConversationIds(ctx.tenantId))) newReplyConvIds.add(id);
-  const interestIds = await interestConversationIds(ctx.tenantId);
+  const [interestIds, awaitingReply] = await Promise.all([interestConversationIds(ctx.tenantId), countAwaitingReply(ctx.tenantId)]);
   /* ⚠️ いま開いた会話は、上で企業が見た印を付けた（参加者のとき）。この描画の「新しい」印からも外す */
   if (thread?.isParticipant && !autoOpened) newReplyConvIds.delete(thread.conv.id);
 
@@ -246,6 +247,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
         approachReviewPending={approachReviewPending}
         hasPublishedJob={hasPublishedJob}
         sentThisMonthFrom={searchParams?.filter === "sent_this_month" ? startOfMonthJst(nowDate) : null}
+        awaitingReply={awaitingReply}
       />
     </BusinessLayout>
   );

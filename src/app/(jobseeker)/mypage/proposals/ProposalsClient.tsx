@@ -1,12 +1,12 @@
 "use client";
 
+import InterestConfirmDialog from "@/components/interest/InterestConfirmDialog";
 import { useState } from "react";
 import Link from "next/link";
 import { MAX_EVIDENCE_SHOWN, type CounterView, type EvidenceView } from "@/components/proposals/EvidenceList";
 import { evidenceText } from "@/lib/evidence/fit";
 import { BTN, CARD_STYLE, CautionBox, NameLabel, ReasonBox, TagRow } from "./FitCardParts";
 import DeclineSheet from "@/components/proposals/DeclineSheet";
-import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
 import { PROPOSALS_SECTION_TITLE } from "./fitPageText";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
@@ -50,27 +50,27 @@ export default function ProposalsClient({
   const [declining, setDeclining] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  /* ★会社へのひとこと（任意）。提案ごとに持つ */
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  /* ★「話を聞いてみたい」を押すとひとこと欄が開く（下段と同じ並び。2026-10-15） */
-  const [composing, setComposing] = useState<string | null>(null);
+  /* ★「話を聞いてみたい」は確認の画面（企業ページ・下段と同じ部品）で届ける（2026-10-27） */
+  const [confirming, setConfirming] = useState<ProposalView | null>(null);
+  const [confirmErr, setConfirmErr] = useState<string | null>(null);
 
-  async function respond(id: string, response: "interested" | "declined", reason?: string, declineNote?: string) {
-    setPending(true); setErr(null);
+  async function respond(id: string, response: "interested" | "declined", reason?: string, declineNote?: string, interest?: { note: string; consentVersion: string }) {
+    setPending(true); setErr(null); setConfirmErr(null);
     try {
       const res = await fetch(`/api/jobseeker/proposals/${id}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           response === "interested"
-            ? { response, note: (notes[id] ?? "").trim() || null }
+            ? { response, note: interest?.note || null, consentVersion: interest?.consentVersion }
             : { response, reason: reason || null, declineNote: declineNote || null },
         ),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         /* ⚠️ 失敗を黙って飲まない。押したのに何も起きない状態を作らない */
-        setErr(j.error ?? "保存できませんでした");
+        if (response === "interested") setConfirmErr(j.error ?? "届けられませんでした");
+        else setErr(j.error ?? "保存できませんでした");
         return;
       }
       const j = (await res.json().catch(() => ({}))) as { conversationId?: string | null };
@@ -80,10 +80,11 @@ export default function ProposalsClient({
         if (response === "declined") return { ...p, status: "declined", daysLeft: null };
         /* ★auto ならその場で会話ができている。review なら企業の返事待ち */
         return j.conversationId
-          ? { ...p, status: "introduced", conversationId: j.conversationId, note: (notes[id] ?? "").trim() || null, daysLeft: null }
-          : { ...p, status: "waiting", note: (notes[id] ?? "").trim() || null, daysLeft: null };
+          ? { ...p, status: "introduced", conversationId: j.conversationId, note: interest?.note || null, daysLeft: null }
+          : { ...p, status: "waiting", note: interest?.note || null, daysLeft: null };
       }));
       setDeclining(null);
+      setConfirming(null);
     } finally {
       setPending(false);
     }
@@ -157,41 +158,8 @@ export default function ProposalsClient({
                 </p>
 
                 {p.status === "pending" ? (
-                  composing === p.id ? (
-                    <div data-state="proposal-composing" style={{ marginTop: 12 }}>
-                      <label htmlFor={`note-${p.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-                        会社へのひとこと<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（任意・{PROPOSAL_NOTE_MAX}字まで）</span>
-                      </label>
-                      <textarea
-                        id={`note-${p.id}`}
-                        value={notes[p.id] ?? ""}
-                        maxLength={PROPOSAL_NOTE_MAX}
-                        rows={3}
-                        onChange={(e) => setNotes((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                        placeholder="聞いてみたいことや、いまの状況など"
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.6, resize: "vertical" }}
-                      />
-                      <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", textAlign: "right" }}>
-                        {(notes[p.id] ?? "").length} / {PROPOSAL_NOTE_MAX}
-                      </p>
-                      {/* ★★押す直前に置く。⚠️ 文言は変えていない（説明は1種類。企業ごとに変えないこと） */}
-                      <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, margin: "6px 0 0" }}>
-                        押すと、{p.companyName}にあなたのプロフィールとひとことが届き、メッセージでやり取りできるようになります。応募にはなりません。見送っても会社には伝わりません。
-                      </p>
-                      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
-                        <button onClick={() => respond(p.id, "interested")} disabled={pending}
-                          style={{ ...BTN, border: "none", background: "var(--royal)", color: "#fff", opacity: pending ? 0.6 : 1 }}>
-                          話を聞いてみたい
-                        </button>
-                        <button onClick={() => setComposing(null)}
-                          style={{ ...BTN, border: "none", background: "none", color: "var(--ink-soft)" }}>
-                          やめる
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
                     <div data-state="proposal-pending" style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <button onClick={() => setComposing(p.id)} disabled={pending}
+                      <button onClick={() => { setConfirmErr(null); setConfirming(p); }} disabled={pending}
                         style={{ ...BTN, border: "none", background: "var(--royal)", color: "#fff", opacity: pending ? 0.6 : 1 }}>
                         話を聞いてみたい
                       </button>
@@ -200,7 +168,6 @@ export default function ProposalsClient({
                         今回は見送る
                       </button>
                     </div>
-                  )
                 ) : (
                   <div data-state={`proposal-${p.status}`} style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7 }}>
                     {p.status === "introduced" ? (
@@ -236,6 +203,16 @@ export default function ProposalsClient({
         </div>
       )}
 
+      {/* ★提案は担当者がいる会社にだけ作るので、確認の文言は「届きます」の方 */}
+      <InterestConfirmDialog
+        open={!!confirming}
+        companyName={confirming?.companyName ?? ""}
+        hasResponder
+        busy={pending}
+        error={confirmErr}
+        onCancel={() => { setConfirming(null); setConfirmErr(null); }}
+        onConfirm={(input) => { if (confirming) void respond(confirming.id, "interested", undefined, undefined, input); }}
+      />
       {declining && (
         <DeclineSheet
           side="candidate"

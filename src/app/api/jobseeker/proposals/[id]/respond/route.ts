@@ -37,6 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     candidateUserId: me.id as string,
     response,
     note: typeof body.note === "string" ? body.note : null,
+    consentVersion: body.consentVersion,
     reason: typeof body.reason === "string" ? body.reason : null,
     declineNote: typeof body.declineNote === "string" ? body.declineNote : null,
   });

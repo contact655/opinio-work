@@ -1,3 +1,4 @@
+import CompanyInterestButton from "@/components/interest/CompanyInterestButton";
 import type { Metadata } from "next";
 import { getCompanyFlowCached } from "@/lib/companyFlow/server";
 import { hasAnyFlowItem, toFlowSummary } from "@/lib/companyFlow/compute";
@@ -533,6 +534,8 @@ function Hero({
                     <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
                   </Link>
                 )}
+                {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
+                <CompanyInterestButton companyId={company.id} />
                 <BookmarkButton
                   companyName={company.name}
                   companyId={company.id}

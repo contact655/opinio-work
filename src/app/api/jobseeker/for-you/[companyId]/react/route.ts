@@ -31,6 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { companyId: 
     reaction: body.reaction,
     reason: body.reason,
     note: body.note,
+    consentVersion: body.consentVersion,
     undo: body.undo,
     clear: body.clear,
   });

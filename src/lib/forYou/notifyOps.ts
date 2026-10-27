@@ -22,8 +22,11 @@ export async function notifyOpsForYouInterest(params: {
   companyId: string;
   companyName: string;
   candidateUserId: string;
-  rank: number;
+  /** 合う会社から押したときの順位。企業ページから押したときは null */
+  rank: number | null;
   reasons: string[];
+  /** どこから押したか（lib/interest/constants.ts の InterestSource） */
+  source?: string;
 }): Promise<boolean> {
   const db = createAdminClient();
   try {
@@ -48,6 +51,7 @@ export async function notifyOpsForYouInterest(params: {
       candidateName: (cand?.name as string | null) ?? null,
       rank: params.rank,
       reasons: params.reasons,
+      source: params.source ?? "for_you",
       candidateIsTest: cand?.is_test === true,
     }));
     console.log(`[forYou/notifyOps] 運営に知らせた company=${params.companyId}`);

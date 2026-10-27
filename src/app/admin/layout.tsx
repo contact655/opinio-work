@@ -69,6 +69,8 @@ const NAV_GROUPS = [
       { label: "企業への参加依頼",     href: "/admin/company-join-requests", icon: <UserPlus     size={16} strokeWidth={2} /> },
       /* ★2026-10-17。担当者がいない企業に、応募・面談の申込・興味ありが届いている */
       { label: "担当者のいない企業で待っている人", href: "/admin/waiting-companies", icon: <Hourglass size={16} strokeWidth={2} /> },
+      /* ★2026-10-27。「話を聞いてみたい」を押したのに担当者がいない企業。集計だけ（名前・ひとことは出さない） */
+      { label: "話を聞きたい人（担当者の登録待ち）", href: "/admin/interests", icon: <Hourglass size={16} strokeWidth={2} /> },
       /* ★2026-09-18 追加（B7）。企業が「この人は在籍していない」と報告したもの。
             ⚠️ 上とは**向きが違う**。参加依頼＝入れるか、ここ＝**企業が「違う」と言っている人**。
             ⚠️★**外せるのは運営だけ**（`ow_company_hidden_experiences` は運営専用）。

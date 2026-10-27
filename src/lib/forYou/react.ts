@@ -1,12 +1,10 @@
 /* ★サーバー専用 */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { openCompanyConversation } from "@/lib/conversations/openReason";
-import { PROPOSAL_NOTE_MAX, proposalIntroLine } from "@/lib/constants/proposalResponses";
-import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
+import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
 import { isValidDeclineReason } from "@/lib/constants/declineReasons";
 import { buildForYou } from "@/lib/forYou/rank";
-import { notifyOpsForYouInterest } from "@/lib/forYou/notifyOps";
+import { expressInterest } from "@/lib/interest/server";
 import { isForYouReaction, type ForYouReaction } from "@/lib/forYou/weights";
 
 /**
@@ -36,6 +34,8 @@ export async function reactForYou(input: {
   reason?: unknown;
   /** 会社へのひとこと（担当者がいる会社の「話を聞いてみたい」だけ。提案と同じ上限） */
   note?: unknown;
+  /** 押すときに見せた確認の文言の版（lib/interest/constants.ts の INTEREST_CONSENT_VERSION） */
+  consentVersion?: unknown;
   /** ★「話を聞いてみたい」の取り消し。会話がまだ開いていないとき（担当者のいない会社）だけ */
   undo?: unknown;
   /** ★「あとで」を外す（2026-10-23）。何も押していない状態に戻す */
@@ -61,11 +61,28 @@ export async function reactForYou(input: {
   /* ⚠️ 一覧に出ていない会社（ブロック中・在籍中・掲載外・存在しない）は区別せず 404 */
   if (!company) return { ok: false, status: 404, error: "この会社は見つかりません" };
 
+  /* ★「話を聞いてみたい」は lib/interest/server.ts の1か所で記録して届ける（企業ページ・上段の提案と同じ。2026-10-27） */
+  if (reaction === "interested") {
+    const r = await expressInterest({
+      owUserId: input.owUserId,
+      companyId: input.companyId,
+      source: "for_you",
+      note: input.note,
+      consentVersion: input.consentVersion,
+      rank: company.rank,
+      signals: company.signals.map((s) => ({ key: s.key, points: s.points, detail: s.detail })),
+      reasons: company.reasons,
+    });
+    if (!r.ok) return r;
+    if (r.status === "awaiting_contact") return { ok: true, result: "ops_notified" };
+    return r.conversationId
+      ? { ok: true, result: "conversation", conversationId: r.conversationId }
+      : { ok: true, result: "recorded" };
+  }
+
   const db = createAdminClient();
   const now = new Date().toISOString();
   const prev = company.reaction;
-  const firstInterest = reaction === "interested" && !prev?.interestedAt;
-
   const { data: saved, error } = await db.from("ow_for_you_reactions").upsert({
     user_id: input.owUserId,
     company_id: input.companyId,
@@ -74,103 +91,14 @@ export async function reactForYou(input: {
     rank_at: company.rank,
     signals: company.signals.map((s) => ({ key: s.key, points: s.points, detail: s.detail })),
     /* ★一度入ったら消さない（会話を開く理由） */
-    interested_at: prev?.interestedAt ?? (reaction === "interested" ? now : null),
+    interested_at: prev?.interestedAt ?? null,
     updated_at: now,
   }, { onConflict: "user_id,company_id" }).select("user_id");
   if (error || !saved || saved.length === 0) {
     console.error("[forYou/react] 記録:", error?.message ?? "0行");
     return { ok: false, status: 500, error: "記録できませんでした" };
   }
-
-  if (reaction !== "interested") return { ok: true, result: "recorded" };
-  if (!firstInterest) {
-    /* 2回目以降。開いた会話があればそこへ */
-    return prev?.conversationId
-      ? { ok: true, result: "conversation", conversationId: prev.conversationId }
-      : { ok: true, result: "recorded" };
-  }
-
-  /* ── 担当者がいない企業 → 運営へ ─────────────────────────────────────────── */
-  if (!company.hasResponder) {
-    /* ⚠️ 取り消してから押し直したときに二重に知らせない */
-    if (prev?.opsNotifiedAt) return { ok: true, result: "ops_notified" };
-    const sent = await notifyOpsForYouInterest({
-      companyId: company.id, companyName: company.name, candidateUserId: input.owUserId,
-      rank: company.rank, reasons: company.reasons,
-    });
-    if (sent) {
-      const { error: nErr } = await db.from("ow_for_you_reactions")
-        .update({ ops_notified_at: new Date().toISOString() })
-        .eq("user_id", input.owUserId).eq("company_id", input.companyId);
-      if (nErr) console.error("[forYou/react] ops_notified_at:", nErr.message);
-    }
-    return { ok: true, result: "ops_notified" };
-  }
-
-  /* ── 担当者がいる企業 → 会話を開く ─────────────────────────────────────────── */
-  let conversationId: string;
-  let isNew = false;
-  try {
-    const created = await openCompanyConversation({ candidateOwUserId: input.owUserId, companyId: company.id, source: "for_you" });
-    /* ⚠️ 開けないときの理由は出さない（ブロック・在籍歴などを推測させない） */
-    if (!created) return { ok: true, result: "recorded" };
-    conversationId = created.conversationId;
-    isNew = created.created;
-  } catch (e) {
-    console.error("[forYou/react] 会話の作成:", e);
-    return { ok: true, result: "recorded" };
-  }
-
-  const { error: cErr } = await db.from("ow_for_you_reactions")
-    .update({ conversation_id: conversationId })
-    .eq("user_id", input.owUserId).eq("company_id", input.companyId);
-  if (cErr) console.error("[forYou/react] conversation_id:", cErr.message);
-
-  /* ⚠️ 既にあった会話（応募や面談の申込で開いていた）なら、案内の行も企業へのメールも足さない（二重に知らせない） */
-  if (!isNew) return { ok: true, result: "conversation", conversationId };
-
-  /* 案内の行（introduce.ts と同じ形。kind='proposal_intro'・送った人なし）。⚠️ 失敗しても会話はできている */
-  try {
-    const [{ data: cand }, { data: part, error: pErr }] = await Promise.all([
-      db.from("ow_users").select("name").eq("id", input.owUserId).maybeSingle(),
-      db.from("ow_conversation_participants").select("id").eq("conversation_id", conversationId)
-        .eq("user_id", input.owUserId).is("left_at", null).maybeSingle(),
-    ]);
-    if (pErr) console.error("[forYou/react] 参加者:", pErr.message);
-    const t0 = Date.now();
-    const { error: iErr } = await db.from("ow_conversation_messages").insert({
-      conversation_id: conversationId,
-      sender_participant_id: null,
-      kind: "proposal_intro",
-      body: proposalIntroLine((cand?.name as string | null) ?? null),
-      payload: { for_you: true },
-      sent_at: new Date(t0).toISOString(),
-    });
-    if (iErr) console.error("[forYou/react] 案内の行:", iErr.message);
-    /* ひとことがあれば、本人の発言として1通目（introduce.ts と同じ。案内の行のあとに並ぶよう1ミリ秒ずらす） */
-    if (note && part?.id) {
-      const { error: nErr } = await db.from("ow_conversation_messages").insert({
-        conversation_id: conversationId,
-        sender_participant_id: part.id as string,
-        kind: "text",
-        body: note,
-        sent_at: new Date(t0 + 1).toISOString(),
-      });
-      if (nErr) console.error("[forYou/react] ひとこと:", nErr.message);
-    }
-    /* ★本人の操作なので未読にしない */
-    if (part?.id) {
-      const { error: rErr } = await db.from("ow_conversation_participants")
-        .update({ last_read_at: new Date(t0 + 2).toISOString() }).eq("id", part.id as string);
-      if (rErr) console.error("[forYou/react] 既読:", rErr.message);
-    }
-  } catch (e) {
-    console.error("[forYou/react] メッセージ:", e);
-  }
-
-  await notifyCompanyProposalRaised({ companyId: company.id, candidateUserId: input.owUserId, conversationId });
-  console.log(`[forYou/react] 会話を開いた company=${company.id} conversation=${conversationId}`);
-  return { ok: true, result: "conversation", conversationId };
+  return { ok: true, result: "recorded" };
 }
 
 /**

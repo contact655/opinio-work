@@ -9,6 +9,7 @@ import { phaseLabel, phaseMatches } from "@/lib/constants/phase";
 import { buildMoves, type TransitionExperience } from "@/lib/evidence/transitions";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { meetsAggregateMin } from "@/lib/constants/aggregate";
+import { filterContactableCompanies } from "@/lib/interest/server";
 import { getCompanyFlowCached } from "@/lib/companyFlow/server";
 import { hasAnyFlowItem } from "@/lib/companyFlow/compute";
 import {
@@ -69,7 +70,7 @@ export type ForYouCompany = {
    *   docs/phase0-for-you-20261015.md §8。空なら画面は何も出さない
    */
   cautions: string[];
-  reaction: { reaction: ForYouReaction; reason: string | null; interestedAt: string | null; opsNotifiedAt: string | null; conversationId: string | null } | null;
+  reaction: { reaction: ForYouReaction; reason: string | null; interestedAt: string | null; opsNotifiedAt: string | null; conversationId: string | null; interestStatus: string | null } | null;
 };
 
 export type ForYouResult =
@@ -108,7 +109,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     /* ★企業からのメッセージで本人がブロックした企業（ow_users 空間） */
     db.from("ow_approach_blocked_companies").select("company_id").eq("user_id", owUserId),
     db.from("ow_for_you_reactions")
-      .select("company_id, reaction, reason, interested_at, ops_notified_at, conversation_id").eq("user_id", owUserId),
+      .select("company_id, reaction, reason, interested_at, ops_notified_at, conversation_id, interest_status").eq("user_id", owUserId),
     getOwnCompanyId(),
     getRoleNameMap(),
   ]);
@@ -139,7 +140,13 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     console.error("[forYou] ow_companies:", coErr.message);
     return { ok: false, error: "一覧を作れませんでした" };
   }
-  const companies = ((coRows ?? []) as CompanyRow[]).filter((c) => !excluded.has(c.id));
+  /* ★★「話を聞いてみたい」を押せない会社は一覧に出さない（2026-10-27 / 話を聞きたい人 フェーズ1a）。
+        判定は can_contact_without_stance()（DB）の1か所＝在籍した会社・そのグループ会社・自分が担当者の会社・
+        手動ブロック・転職勧奨禁止・検証用と実在の不一致。それまでは「在籍中」だけを外していて、
+        グループ会社や前職に「話を聞いてみたい」が出ていた（押しても会話は開かず、記録だけ残る形だった） */
+  const listed = ((coRows ?? []) as CompanyRow[]).filter((c) => !excluded.has(c.id));
+  const contactable = await filterContactableCompanies(authId, listed.map((c) => c.id), db);
+  const companies = listed.filter((c) => contactable.has(c.id));
   const companyIds = companies.map((c) => c.id);
   if (companyIds.length === 0) return { ok: true, companies: [], withReasonCount: 0 };
 
@@ -287,8 +294,8 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     .map((p) => DESIRED_PHASE_TO_OPTION[p]).filter(Boolean);
 
   const reactionByCompany = new Map(
-    ((reactionsRes.data ?? []) as { company_id: string; reaction: ForYouReaction; reason: string | null; interested_at: string | null; ops_notified_at: string | null; conversation_id: string | null }[])
-      .map((r) => [r.company_id, { reaction: r.reaction, reason: r.reason, interestedAt: r.interested_at, opsNotifiedAt: r.ops_notified_at, conversationId: r.conversation_id }]),
+    ((reactionsRes.data ?? []) as { company_id: string; reaction: ForYouReaction; reason: string | null; interested_at: string | null; ops_notified_at: string | null; conversation_id: string | null; interest_status: string | null }[])
+      .map((r) => [r.company_id, { reaction: r.reaction, reason: r.reason, interestedAt: r.interested_at, opsNotifiedAt: r.ops_notified_at, conversationId: r.conversation_id, interestStatus: r.interest_status }]),
   );
 
   /* ── 3. 点数 ───────────────────────────────────────────────────────────────── */

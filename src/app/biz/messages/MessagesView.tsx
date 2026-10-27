@@ -1,5 +1,7 @@
 "use client";
 
+import { AwaitingReplyNotice } from "@/components/business/AwaitingReplyNotice";
+import type { AwaitingReply } from "@/lib/interest/server";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -63,9 +65,11 @@ type Item =
  * ⚠️ 選択は URL の ?show= に残す（再読込・共有で同じものが開く）。開いたら既読にするのはサーバー（`loadCompanyThread`）
  * ⚠️ 広い画面で何も選んでいなければ、一覧の一番上を選ぶ（URL を置き換える）。狭い画面では選ばない（一覧を出す）
  */
-export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, approachTestMismatch = null, approachReviewPending = false, hasPublishedJob, sentThisMonthFrom = null }: {
+export function MessagesView({ allowed, conversations, sent, quota, initialTab = "all", sentId, pane = null, selectedKey = null, emptyPane, noSelectionPane, autoSelect = true, linkBase = "/biz/messages", now: nowIso, approachableCount, approachTestMismatch = null, approachReviewPending = false, hasPublishedJob, sentThisMonthFrom = null, awaitingReply = null }: {
   allowed: boolean;
   conversations: ConversationRow[];
+  /** ★「話を聞いてみたい」で届いて、まだ返事をしていない人（2026-10-27）。「すべて」タブの上部に出す */
+  awaitingReply?: AwaitingReply | null;
   /** 企業から送った1通目。null = 取れなかった */
   sent: SentApproach[] | null;
   quota: ApproachQuota | null;
@@ -241,6 +245,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
               {sent === null && allowed && (
                 <p role="alert" style={{ margin: 0, padding: "12px 14px", fontSize: 13, fontWeight: 600, color: "var(--error)" }}>送ったメッセージの一覧を取得できませんでした。時間をおいて再読み込みしてください。</p>
               )}
+              {tab === "all" && <AwaitingReplyNotice data={awaitingReply} linkBase={linkBase} now={nowIso} />}
               <div className="msg-list-scroll">
                 {shown.length === 0 ? (
                   <p data-state="messages-empty" style={{ margin: 0, padding: 20, fontSize: 13, color: "var(--ink-mute)" }}>

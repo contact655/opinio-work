@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
-import { PROPOSAL_NOTE_MAX } from "@/lib/constants/proposalResponses";
+import InterestConfirmDialog from "@/components/interest/InterestConfirmDialog";
 import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
 import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./FitCardParts";
 
@@ -12,10 +12,10 @@ import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./Fi
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
  *   並べ方は lib/forYou/（weights.ts）。上段（提案）に出ている会社は page.tsx が除いてから渡す。
  *
- * ボタンは上段と同じ「話を聞いてみたい」に揃えた（柴さんの指示）:
- *   担当者あり … 押すと「会社へのひとこと」の欄が開き、送ると会話ができる（上段と同じ形）
- *   担当者未登録 … 「気になる」。押すとその場で記録して運営に知らせる（2026-10-23。担当者がいる会社と見出しで分けた）
- * ⚠️ 記録は ow_for_you_reactions（上段の ow_proposals とは別の表のまま。統合するかは別途判断）。
+ * ★ボタンはどの会社も「話を聞いてみたい」（2026-10-27 / 話を聞きたい人 フェーズ1a）。押すと確認の画面（InterestConfirmDialog）が開く:
+ *   担当者あり … ［届ける］でその会社に名前とプロフィールが届き、会話ができる
+ *   担当者未登録 … ［届ける］で記録して運営に知らせ、担当者が登録したら届く（押してから90日以内）
+ * ⚠️ 記録と届け方は lib/interest/server.ts の1か所（企業ページ・上段の提案と同じ）。
  */
 
 const VIEW_KEY = "opinio-for-you-view";
@@ -38,6 +38,8 @@ export type ForYouView = {
   /** ★「気をつけて見てほしいこと」。いまは器だけで常に空（rank.ts） */
   cautions: string[];
   hasResponder: boolean;
+  /** 「話を聞いてみたい」の状態（lib/interest/constants.ts の InterestStatus）。押していなければ null */
+  interestStatus: "delivered" | "awaiting_contact" | "replied" | "no_reply" | "expired" | null;
   reaction: ForYouReaction | null;
   conversationId: string | null;
   /** 「話を聞いてみたい」を押した（取り消していない） */
@@ -62,9 +64,9 @@ export default function ForYouSection({
   const [err, setErr] = useState<{ id: string; text: string } | null>(null);
   const [declining, setDeclining] = useState<string | null>(null);
   const [declineReason, setDeclineReason] = useState("");
-  /* 担当者がいる会社で「話を聞いてみたい」を押したときに開く、ひとことの欄 */
-  const [composing, setComposing] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  /* ★「話を聞いてみたい」の確認の画面（2026-10-27。どの会社でも開く） */
+  const [confirming, setConfirming] = useState<ForYouView | null>(null);
+  const [confirmErr, setConfirmErr] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
   /* ★表示の形（2026-10-23 / 柴さんの指示）。リスト（1社1行）とタイル（ロゴと社名。押すと開く）。
         ⚠️ 選んだ形はこの端末にだけ覚える（localStorage。読めなければリスト） */
@@ -105,22 +107,40 @@ export default function ForYouSection({
   async function react(id: string, reaction: ForYouReaction, extra: Record<string, unknown> = {}) {
     const r = await post(id, { reaction, ...extra });
     if (!r.ok) return;
-    setItems((prev) => prev.map((c) => c.id !== id ? c : {
-      ...c,
-      reaction,
-      interested: c.interested || reaction === "interested",
-      conversationId: r.conversationId ?? c.conversationId,
-    }));
+    setItems((prev) => prev.map((c) => c.id !== id ? c : { ...c, reaction }));
     setDeclining(null);
     setDeclineReason("");
-    setComposing(null);
+  }
+
+  /* ★確認の画面の［届ける］。⚠️ 失敗は画面の中に出す（閉じない） */
+  async function deliver(c: ForYouView, input: { note: string; consentVersion: string }) {
+    setConfirmErr(null);
+    setBusy(c.id);
+    try {
+      const res = await fetch(`/api/jobseeker/for-you/${encodeURIComponent(c.id)}/react`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction: "interested", note: input.note || null, consentVersion: input.consentVersion }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string; result?: string; conversationId?: string };
+      if (!res.ok) { setConfirmErr(json.error ?? "届けられませんでした。時間をおいてもう一度お試しください。"); return; }
+      setItems((prev) => prev.map((x) => x.id !== c.id ? x : {
+        ...x, reaction: "interested", interested: true,
+        conversationId: json.conversationId ?? x.conversationId,
+        interestStatus: json.result === "conversation" ? "delivered" : json.result === "ops_notified" ? "awaiting_contact" : x.interestStatus,
+      }));
+      setConfirming(null);
+    } catch {
+      setConfirmErr("届けられませんでした。通信を確かめてもう一度お試しください。");
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function undo(id: string) {
     const r = await post(id, { undo: true });
     if (!r.ok) return;
     /* ★取り消したら何も押していない状態に戻す（2026-10-23。それまでは「あとで」になっていた） */
-    setItems((prev) => prev.map((c) => c.id !== id ? c : { ...c, reaction: null, interested: false }));
+    setItems((prev) => prev.map((c) => c.id !== id ? c : { ...c, reaction: null, interested: false, interestStatus: null }));
   }
 
   /* ★「あとで」をもう一度押すと外す（2026-10-23） */
@@ -139,20 +159,15 @@ export default function ForYouSection({
   const responders = rest.filter((c) => c.hasResponder);
   const others = rest.filter((c) => !c.hasResponder);
 
-  /* 会社ごとの操作（話を聞いてみたい／気になる・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
+  /* 会社ごとの操作（話を聞いてみたい・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
   const actionsFor = (c: ForYouView) => (
     <Actions
       c={c}
       busy={busy === c.id}
-      composing={composing === c.id}
-      note={notes[c.id] ?? ""}
       declining={declining === c.id}
       declineReason={declineReason}
       declineReasons={declineReasons}
-      onInterested={() => c.hasResponder ? setComposing(c.id) : react(c.id, "interested")}
-      onChangeNote={(v) => setNotes((n) => ({ ...n, [c.id]: v }))}
-      onSend={() => react(c.id, "interested", { note: (notes[c.id] ?? "").trim() || null })}
-      onCancelCompose={() => setComposing(null)}
+      onInterested={() => { setConfirmErr(null); setConfirming(c); }}
       onUndo={() => undo(c.id)}
       onLater={() => toggleLater(c)}
       onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
@@ -205,7 +220,7 @@ export default function ForYouSection({
   const row = (c: ForYouView, g: { label: string | null }) => {
     const reason = (g.label ? c.reasons[1] : c.reasons[0]) ?? null;
     const text = reason ? `✓ ${reason}` : c.tagline;
-    const open = composing === c.id || declining === c.id;
+    const open = declining === c.id;
     return (
       <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-row">
         <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
@@ -243,12 +258,12 @@ export default function ForYouSection({
         </button>
         <div className="fy-tile-foot">
           {c.interested ? (
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{c.hasResponder ? "話を聞いてみたい済み" : "気になる済み"}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{c.conversationId ? "届けました" : "担当者の登録待ち"}</span>
           ) : (
             <button type="button" disabled={busy === c.id} data-action="tile-primary"
-              onClick={() => { if (c.hasResponder) { setExpanded(c.id); setComposing(c.id); } else void react(c.id, "interested"); }}
+              onClick={() => { setConfirmErr(null); setConfirming(c); }}
               style={{ ...BTN, width: "100%", border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: busy === c.id ? 0.6 : 1 }}>
-              {c.hasResponder ? "話を聞いてみたい" : "気になる"}
+              話を聞いてみたい
             </button>
           )}
         </div>
@@ -277,14 +292,27 @@ export default function ForYouSection({
           </div>
   );
 
+  const confirmDialog = (
+    <InterestConfirmDialog
+      open={!!confirming}
+      companyName={confirming?.name ?? ""}
+      hasResponder={confirming?.hasResponder ?? false}
+      busy={!!confirming && busy === confirming.id}
+      error={confirmErr}
+      onCancel={() => { setConfirming(null); setConfirmErr(null); }}
+      onConfirm={(input) => { if (confirming) void deliver(confirming, input); }}
+    />
+  );
+
   if (compact) {
     const top = visible.slice(0, compact.limit);
     if (loadFailed || top.length === 0) return null; // ★空の箱を出さない（ホームの約束）
     return (
-      <section aria-labelledby="for-you-heading" data-state="home-for-you">
+      <section id="home-for-you" aria-labelledby="for-you-heading" data-state="home-for-you" style={{ scrollMarginTop: 80 }}>
         <style>{FY_ROW_CSS}</style>
         <h2 id="for-you-heading" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 12px" }}>{compact.title}</h2>
         <ol className="fy-list" data-state="for-you-list">{top.map((c) => row(c, { label: null }))}</ol>
+        {confirmDialog}
         <Link href={compact.moreHref} data-state="home-for-you-more"
           style={{ display: "inline-block", marginTop: 10, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
           すべて見る →
@@ -295,6 +323,7 @@ export default function ForYouSection({
 
   return (
     <section aria-labelledby="for-you-heading">
+      {confirmDialog}
       {/* ⚠️ この <style> のコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */}
       <style>{`
         .fy-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -344,7 +373,7 @@ export default function ForYouSection({
           )}
 
           {/* ★2026-10-23（柴さんの指示）: 担当者がいる会社を上にまとめ、いない会社は下に「気になる会社」として並べる。
-                 担当者がいる会社の「話を聞いてみたい」は必ずその会社に届く。いない会社は「気になる」（記録して運営に知らせる）。
+                 担当者がいる会社の「話を聞いてみたい」はその場で届く。いない会社は記録して運営に知らせ、担当者が登録したら届く（2026-10-27）。
                  ⚠️ 判定は c.hasResponder（サーバーの rank.ts。見ている人と is_test が一致する有効な担当者がいるか） */}
           {later.length > 0 && (
             <section data-state="for-you-later" style={{ marginBottom: 28 }}>
@@ -363,7 +392,7 @@ export default function ForYouSection({
           {others.length > 0 && (
             <section data-state="for-you-no-responders">
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>気になる会社<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{others.length}社</span></h3>
-              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>まだ OPINIO に担当者がいない会社です。「気になる」を押した記録は、運営に届きます。</p>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>まだ OPINIO に担当者がいない会社です。「話を聞いてみたい」を押すと、担当者が登録したときに、あなたの名前とプロフィールが届きます。</p>
               {renderGroups(others)}
             </section>
           )}
@@ -412,15 +441,10 @@ const FY_ROW_CSS = `
 function Actions(props: {
   c: ForYouView;
   busy: boolean;
-  composing: boolean;
-  note: string;
   declining: boolean;
   declineReason: string;
   declineReasons: { value: string; label: string }[];
   onInterested: () => void;
-  onChangeNote: (v: string) => void;
-  onSend: () => void;
-  onCancelCompose: () => void;
   onUndo: () => void;
   onLater: () => void;
   onStartDecline: () => void;
@@ -445,44 +469,15 @@ function Actions(props: {
             </Link>
           </div>
         ) : (
-          /* ⚠️★担当者が登録されたら知らせる仕組みはまだ無い。守れない約束を書かない */
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ color: "var(--ink-soft)" }}>「気になる」と記録しました。</span>
+          /* ★担当者の登録待ち（2026-10-27）。担当者が登録したら届き、本人に知らせる（lib/interest/server.ts） */
+          <div data-state="for-you-awaiting" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ color: "var(--ink-soft)" }}>担当者が登録したら、あなたの名前とプロフィールが届きます。</span>
             <button type="button" disabled={props.busy} onClick={props.onUndo}
               style={{ padding: "4px 0", border: "none", background: "none", color: "var(--ink-soft)", fontSize: 12, textDecoration: "underline", cursor: "pointer" }}>
               取り消す
             </button>
           </div>
         )}
-      </div>
-    );
-  }
-
-  /* ── 担当者がいる会社: ひとことを書いて送る（上段の提案と同じ形） ── */
-  if (props.composing) {
-    return (
-      <div data-state="for-you-composing" style={{}}>
-        <label htmlFor={`fy-note-${c.id}`} style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-          会社へのひとこと<span style={{ fontWeight: 400, color: "var(--ink-soft)" }}>（任意・{PROPOSAL_NOTE_MAX}字まで）</span>
-        </label>
-        <textarea id={`fy-note-${c.id}`} value={props.note} maxLength={PROPOSAL_NOTE_MAX} rows={3}
-          onChange={(e) => props.onChangeNote(e.target.value)} placeholder="聞いてみたいことや、いまの状況など"
-          style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 14, lineHeight: 1.6, resize: "vertical" }} />
-        <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", textAlign: "right" }}>{props.note.length} / {PROPOSAL_NOTE_MAX}</p>
-        {/* ★押す直前に置く（何が届くか）。文言は柴さんの指示 */}
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7, margin: "6px 0 0" }}>
-          押すと、この会社にあなたのプロフィールが届き、メッセージでやりとりできるようになります
-        </p>
-        <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
-          <button type="button" disabled={props.busy} onClick={props.onSend}
-            style={{ ...btn, border: "none", background: "var(--royal)", color: "#fff", opacity: props.busy ? 0.6 : 1 }}>
-            話を聞いてみたい
-          </button>
-          <button type="button" onClick={props.onCancelCompose}
-            style={{ ...btn, border: "none", background: "none", color: "var(--ink-soft)" }}>
-            やめる
-          </button>
-        </div>
       </div>
     );
   }
@@ -520,8 +515,8 @@ function Actions(props: {
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
       <button type="button" disabled={props.busy} onClick={props.onInterested}
         style={{ ...btn, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: props.busy ? 0.6 : 1, marginRight: 4 }}>
-        {/* ★担当者がいない会社は「気になる」（2026-10-23）。押しても会社には届かないので「話を聞いてみたい」と言わない */}
-        {c.hasResponder ? "話を聞いてみたい" : "気になる"}
+        {/* ★どの会社も「話を聞いてみたい」（2026-10-27）。担当者の有無は確認の画面の文言で伝える */}
+        話を聞いてみたい
       </button>
       <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
         style={{ ...btn, border: "none", background: c.reaction === "later" ? "var(--bg-tint)" : "none", color: "var(--ink-soft)", padding: "8px 10px" }}>

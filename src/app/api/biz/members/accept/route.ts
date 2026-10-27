@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deliverPendingInterests } from "@/lib/interest/server";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EXPIRY_DAYS = 7;
@@ -134,6 +135,9 @@ export async function POST(req: NextRequest) {
       return err(500, "DB_ERROR", "受諾処理に失敗しました");
     }
   }
+
+  /* ★担当者が付いたので「話を聞いてみたい」の登録待ちを届ける（90日以内）。best-effort・黙らない（lib/interest/server.ts） */
+  await deliverPendingInterests([inviteRow.company_id as string]).catch((e) => console.error("[accept POST] deliverPendingInterests:", e));
 
   // 10. 受諾した会社名を取得
   const { data: company } = await admin

@@ -238,8 +238,10 @@ export function forYouInterestOpsTemplate(params: {
   companyId: string;
   companyName: string;
   candidateName: string | null;
-  rank: number;
+  rank: number | null;
   reasons: string[];
+  /** どこから押したか（for_you / company_page / proposal） */
+  source?: string;
   /** 押した人が検証用アカウントか */
   candidateIsTest: boolean;
 }) {
@@ -252,19 +254,20 @@ export function forYouInterestOpsTemplate(params: {
     html: htmlWrap(`
       <h2 style="margin:0 0 8px;font-size:20px;color:#002366">担当者のいない企業に「興味あり」が届きました</h2>
       <p style="margin:0 0 20px;color:#475569">
-        ${esc(who)}が「あなたに合う会社」で <strong style="color:#0f172a">${esc(params.companyName)}</strong> に「話を聞いてみたい」を押しました。
-        この企業には OPINIO の担当者が登録されていないため、運営に届いています。
+        ${esc(who)}が${params.source === "company_page" ? "企業ページ" : "「あなたに合う会社」"}で <strong style="color:#0f172a">${esc(params.companyName)}</strong> に「話を聞いてみたい」を押しました。
+        この企業には OPINIO の担当者が登録されていないため、運営に届いています。担当者が登録されたら、押してから90日以内の分は自動でこの企業に届きます。
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
         <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
         <tr><td style="${TD_LABEL}">押した人</td><td style="${TD_VALUE}">${esc(who)}${params.candidateIsTest ? "（検証用アカウント）" : ""}</td></tr>
-        <tr><td style="${TD_LABEL}">押した時点の順位</td><td style="${TD_VALUE}">${params.rank}位</td></tr>
+        ${params.rank != null ? `<tr><td style="${TD_LABEL}">押した時点の順位</td><td style="${TD_VALUE}">${params.rank}位</td></tr>` : ""}
         ${params.reasons.length > 0 ? `<tr><td style="${TD_LABEL}">表示した理由</td><td style="${TD_VALUE}">${params.reasons.map(esc).join("<br>")}</td></tr>` : ""}
       </table>
       <p style="margin:0 0 20px;color:#475569;font-size:13px">
-        ⚠️ 運営は受け取るが取り次がない（2026-09-15 の取り決め）。企業へは担当者の登録を案内してください。
+        ⚠️ 企業へ連絡するときに使えるのは、人数の幅（1〜4人／5〜9人／10人以上）と、業界・職種の大分類の傾向（3人以上の項目だけ）まで。押した人の名前とひとことは企業に渡さないでください（運営画面「話を聞きたい人（担当者の登録待ち）」に一覧があります）。
       </p>
-      <a href="${siteUrl}/admin/companies/${params.companyId}" style="${BTN}">運営画面で企業を開く →</a>
+      <a href="${siteUrl}/admin/interests" style="${BTN}">「話を聞きたい人」の一覧を開く →</a>
+      <p style="margin:12px 0 0"><a href="${siteUrl}/admin/companies/${params.companyId}" style="color:#002366">運営画面で企業を開く</a></p>
     `),
   };
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne, mutateMany } from "@/lib/supabase/mutate";
+import { deliverPendingInterests } from "@/lib/interest/server";
 import { requireBizAction } from "@/lib/auth/companyAccess";
 import { isCompanyRole, ROLE_LABELS, type CompanyRole } from "@/lib/auth/roles";
 import { sendEmail } from "@/lib/notify/email";
@@ -120,6 +121,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     { returning: "id" },
   );
   if (!upd.ok) return NextResponse.json({ error: upd.error }, { status: upd.status });
+
+  /* ★担当者が付いたので「話を聞いてみたい」の登録待ちを届ける（90日以内）。best-effort・黙らない（lib/interest/server.ts） */
+  await deliverPendingInterests([companyId]).catch((e) => console.error("[biz join-request] deliverPendingInterests:", e));
 
   /* 本人に知らせる。best-effort（追加そのものは済んでいる）。⚠️ 黙らない */
   const [{ data: user }, { data: company }] = await Promise.all([

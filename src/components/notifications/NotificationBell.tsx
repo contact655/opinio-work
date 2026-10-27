@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled" | "follow";
+  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled" | "follow" | "interest_delivered" | "interest_no_reply" | "interest_reask";
   /** フォロー通知のときだけ入る。自分がその人を既にフォローしているか（2026-10-20） */
   followingBack?: boolean;
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
@@ -53,6 +53,11 @@ function notifHref(notif: NotificationItem): string {
   if (notif.type === "company_approach") return "/mypage/conversations?tab=unreplied";
   /* ★面談・候補日の取り消し（2026-10-10 / 段4）。会話へ */
   if (notif.type === "meeting_canceled") return `/mypage/conversations/${notif.conversationId}`;
+  /* ★「話を聞いてみたい」（2026-10-27）。届いた → 会話へ ／ 返事なし・もう一度押すか → 合う会社へ */
+  if (notif.type === "interest_delivered") return `/mypage/conversations/${notif.conversationId}`;
+  /* ★「ほかにも合う会社があります」から /home の「あなたに合う会社」へ（2026-10-27 / 柴さんの指示） */
+  if (notif.type === "interest_no_reply") return "/home#home-for-you";
+  if (notif.type === "interest_reask") return notif.actorCompany?.slug ? `/companies/${notif.actorCompany.slug}` : "/mypage/proposals";
   /* ★フォローされた（2026-10-20）。その人のプロフィールへ */
   if (notif.type === "follow") return `/u/${notif.actor?.id ?? ""}`;
   return `/feed/${notif.postId}`;
@@ -92,6 +97,16 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   if (notif.type === "meeting_canceled") {
     return { who: notif.actorCompany?.name ?? "企業", what: " が面談の日程を取り消しました" };
   }
+  /* ★「話を聞いてみたい」（2026-10-27）。文言は lib/interest/constants.ts の INTEREST_NOTICE_TEXT と同じ趣旨（ベルは「誰から＋何が」の2つに分ける） */
+  if (notif.type === "interest_delivered") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " に、あなたの名前とプロフィールが届きました" };
+  }
+  if (notif.type === "interest_no_reply") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " からはまだ返事がありません。ほかにも、あなたの経歴に合う会社があります" };
+  }
+  if (notif.type === "interest_reask") {
+    return { who: notif.actorCompany?.name ?? "企業", what: " の担当者が登録しました。届けるには、もう一度「話を聞いてみたい」を押してください" };
+  }
   /* ★コメントへの返信・いいね（2026-10-20）。押すと元の投稿（/feed/[postId]）へ。⚠️ コメントの本文は出さない */
   if (notif.type === "follow") {
     return { who: notif.actor?.name ?? "ユーザー", what: " があなたをフォローしました" };
@@ -119,7 +134,8 @@ function timeAgo(iso: string): string {
 function ActorAvatar({ notif }: { notif: NotificationItem }) {
   const FALLBACK = "linear-gradient(135deg, #002366, #3B5FD9)";
   /* ⚠️ 送り主が**企業**の種別。ユーザーのアバターは入っていない（2026-09-21 に2つ足した） */
-  const isCompanyActor = notif.type === "proposal" || notif.type === "introduction" || notif.type === "company_approach" || notif.type === "meeting_canceled";
+  const isCompanyActor = notif.type === "proposal" || notif.type === "introduction" || notif.type === "company_approach" || notif.type === "meeting_canceled"
+    || notif.type === "interest_delivered" || notif.type === "interest_no_reply" || notif.type === "interest_reask";
   const actor = notif.actor;
   const company = notif.actorCompany;
 
@@ -398,6 +414,9 @@ export function NotificationBell({ compactPanel = false }: { compactPanel?: bool
                       >
                         <span style={{ fontWeight: 700 }}>{notifText(notif).who}</span>
                         {notifText(notif).what}
+                        {notif.type === "interest_no_reply" && (
+                          <span data-state="notif-no-reply-link" style={{ marginLeft: 6, color: "var(--royal)", fontWeight: 600, whiteSpace: "nowrap" }}>合う会社を見る →</span>
+                        )}
                       </div>
                       {notif.postPreview && (
                         <div
