@@ -1,4 +1,5 @@
 import type { HomeChecklistItem } from "@/lib/business/homeTypes";
+import type { ScoutAccessState } from "@/lib/business/scoutGate";
 
 /**
  * ★ホームの「はじめにやること」の項目と判定（2026-10-12 / 柴さんの指示）。**純粋関数**（/dev/preview からも使う）。
@@ -29,13 +30,42 @@ export type HomeChecklistInput = {
   pageBuiltByOpinio?: boolean;
   /** 担当者が企業ページを一度でも保存したか（ow_activities の company_info_updated）。取れなければ null */
   pageEditedByStaff?: boolean | null;
+  /**
+   * ★スカウト機能（候補者を探す・最初のメッセージ）の状態（2026-10-28 / 柴さんの指示）。省略は項目を出さない。
+   *   everSent … この会社が一度でも最初のメッセージ（ow_company_approaches）を送ったか。取れなければ null（未完了に倒す）
+   * ⚠️ 停止中は出さない（上の停止中の帯が案内する）。
+   */
+  scout?: { state: ScoutAccessState; suspended: boolean; everSent: boolean | null };
 };
+
+/** ★候補者を探すへの入口（1項目）。許可済みなら「探して送る」、それ以外は「利用を依頼する」。
+ *  ⚠️ どちらも行き先は /biz/candidates（許可されていない企業には、そこに依頼のボタンがある） */
+function candidateSearchItem(s: NonNullable<HomeChecklistInput["scout"]>): HomeChecklistItem | null {
+  if (s.suspended) return null;
+  if (s.state === "granted") {
+    return {
+      key: "candidateSearch", label: "候補者を探して、最初のメッセージを送る", href: "/biz/candidates",
+      done: s.everSent === true,
+      hint: "転職を考えている登録者を条件で探し、声をかける理由を添えて送れます",
+    };
+  }
+  return {
+    key: "candidateSearch", label: "スカウト機能の利用を依頼する", href: "/biz/candidates",
+    done: false,
+    hint: s.state === "requested"
+      ? "依頼を受け付けました。運営が確認してメールでお知らせします"
+      : "許可されると、登録者を条件で探してメッセージを送れます",
+  };
+}
 
 export function buildHomeChecklist(i: HomeChecklistInput): HomeChecklistItem[] {
   const draftHint = i.nearestDraft
     ? i.nearestDraft.missing > 0 ? `下書き「${i.nearestDraft.title}」は公開まであと${i.nearestDraft.missing}つ` : `下書き「${i.nearestDraft.title}」は公開できます`
     : null;
+  const scoutItem = i.scout ? candidateSearchItem(i.scout) : null;
   return [
+    /* ★候補者を探すへの入口（2026-10-28）。いちばん上に置く（未完了の項目は配列の順に並ぶ） */
+    ...(scoutItem ? [scoutItem] : []),
     /* ★OPINIO が作った企業ページを、担当者に確かめてもらう（2026-10-17 / 柴さんの指示）。
           公開中の企業は「公開する」が最初から済みなので、説明が古い・違うことに気づく入口がほかに無い。
           ⚠️ 済みの判定は「一度でも保存したか」。直すところが無かった人は済みにならないが、

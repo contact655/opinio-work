@@ -42,10 +42,12 @@ const SIDE: HomeSide = {
 const START: HomeChecklistInput = {
   listed: false, companyMissing: 2, totalJobs: 1, publishedJobs: 0,
   nearestDraft: { id: "x", title: "フィールドセールス", missing: 3 }, roles: 0, employees: 0, acceptingCasualMeetings: true,
+  scout: { state: "granted", suspended: false, everSent: false },
 };
 const ALL_DONE: HomeChecklistInput = {
   listed: true, companyMissing: 0, totalJobs: 3, publishedJobs: 2,
   nearestDraft: null, roles: 2, employees: 4, acceptingCasualMeetings: true,
+  scout: { state: "granted", suspended: false, everSent: true },
 };
 
 function Home({ actions, checklist, side }: { actions: HomeActions; checklist: HomeChecklistInput; side: HomeSide }) {
@@ -73,6 +75,12 @@ export default function BizHomePreview() {
       </PreviewHeader>
       <Variant label="対応あり・今日と明日の面談・はじめにやることが途中" note="面談は件数に入らない。済んだ項目（カジュアル面談）はチェック付きで下へ">
         <Home actions={ACTIONS} checklist={START} side={{ ...SIDE, companyStatus: "非公開・公開まであと2つ" }} />
+      </Variant>
+      <Variant label="スカウト機能が未許可・依頼中" note="★いちばん上が「スカウト機能の利用を依頼する」。未許可は「許可されると…」、依頼中は「依頼を受け付けました…」（2026-10-28）">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <HomeChecklist items={buildHomeChecklist({ ...START, scout: { state: "none", suspended: false, everSent: null } })} />
+          <HomeChecklist items={buildHomeChecklist({ ...START, scout: { state: "requested", suspended: false, everSent: null } })} />
+        </div>
       </Variant>
       <Variant label="対応0件・はじめにやることが全部済んだ" note="⚠️ はじめにやること・面談の枠ごと出ないこと。対応は「今日の対応はありません」（灰色）">
         <Home actions={{ items: [], failed: [], meetings: [] }} checklist={ALL_DONE} side={SIDE} />

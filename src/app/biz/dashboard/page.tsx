@@ -101,6 +101,15 @@ export default async function BizDashboardPage({
     getCompanyEmployees(ctx.tenantId).catch((e) => { console.error("[dashboard] employees:", e); return null; }),
     quotaAllowed ? getApproachQuota(ctx.tenantId) : Promise.resolve(null),
   ]);
+
+  /* ★「候補者を探して、最初のメッセージを送る」の済み（2026-10-28）。一度でも送ったか。⚠️ 取れなければ null（未完了に倒す） */
+  let everSentApproach: boolean | null = null;
+  if (hasScoutAccess(ctx)) {
+    const { count, error } = await createAdminClient().from("ow_company_approaches")
+      .select("id", { count: "exact", head: true }).eq("company_id", ctx.tenantId);
+    if (error) console.error("[dashboard] approaches:", error.message);
+    else everSentApproach = (count ?? 0) > 0;
+  }
   if (companyRow.error) console.error("[dashboard] company:", companyRow.error.message);
 
   /* ★担当者が企業ページを一度でも保存したか（「OPINIO が作った企業ページの内容を確認する」の済み。2026-10-17） */
@@ -140,6 +149,7 @@ export default async function BizDashboardPage({
     acceptingCasualMeetings: companyRow.error ? null : companyRow.data?.accepting_casual_meetings === true,
     pageBuiltByOpinio,
     pageEditedByStaff,
+    scout: { state: ctx.scoutAccess, suspended: ctx.isSuspended, everSent: everSentApproach },
   });
 
   const side: HomeSide = {
