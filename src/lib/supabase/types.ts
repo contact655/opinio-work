@@ -1272,10 +1272,18 @@ export type Database = {
           sort_order: number | null
           source: string | null
           status: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_prev_is_published: boolean | null
+          suspended_prev_listing_status:
+            | Database["public"]["Enums"]["listing_status_enum"]
+            | null
+          suspension_reason: string | null
           tagline: string | null
           target_industry_scope: string | null
           top_down_ratio: number | null
           turnover_rate: string | null
+          unsuspend_requested_at: string | null
           updated_at: string | null
           url: string | null
           user_id: string | null
@@ -1436,10 +1444,18 @@ export type Database = {
           sort_order?: number | null
           source?: string | null
           status?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_prev_is_published?: boolean | null
+          suspended_prev_listing_status?:
+            | Database["public"]["Enums"]["listing_status_enum"]
+            | null
+          suspension_reason?: string | null
           tagline?: string | null
           target_industry_scope?: string | null
           top_down_ratio?: number | null
           turnover_rate?: string | null
+          unsuspend_requested_at?: string | null
           updated_at?: string | null
           url?: string | null
           user_id?: string | null
@@ -1600,10 +1616,18 @@ export type Database = {
           sort_order?: number | null
           source?: string | null
           status?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_prev_is_published?: boolean | null
+          suspended_prev_listing_status?:
+            | Database["public"]["Enums"]["listing_status_enum"]
+            | null
+          suspension_reason?: string | null
           tagline?: string | null
           target_industry_scope?: string | null
           top_down_ratio?: number | null
           turnover_rate?: string | null
+          unsuspend_requested_at?: string | null
           updated_at?: string | null
           url?: string | null
           user_id?: string | null
@@ -1634,6 +1658,13 @@ export type Database = {
             columns: ["saas_category_id"]
             isOneToOne: false
             referencedRelation: "ow_saas_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_companies_suspended_by_fkey"
+            columns: ["suspended_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]
@@ -3173,6 +3204,64 @@ export type Database = {
           {
             foreignKeyName: "ow_company_proposal_settings_updated_by_fkey"
             columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_scout_access: {
+        Row: {
+          company_id: string
+          granted_at: string | null
+          granted_by: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          granted_at?: string | null
+          granted_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_scout_access_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_scout_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_company_scout_access_revoked_by_fkey"
+            columns: ["revoked_by"]
             isOneToOne: false
             referencedRelation: "ow_users"
             referencedColumns: ["id"]
@@ -4753,6 +4842,7 @@ export type Database = {
           catch_copy: string | null
           company_id: string | null
           company_job_role_id: string | null
+          company_suspended: boolean
           contract_period: string | null
           contract_period_detail: string | null
           contract_renewal: string | null
@@ -4847,6 +4937,7 @@ export type Database = {
           catch_copy?: string | null
           company_id?: string | null
           company_job_role_id?: string | null
+          company_suspended?: boolean
           contract_period?: string | null
           contract_period_detail?: string | null
           contract_renewal?: string | null
@@ -4941,6 +5032,7 @@ export type Database = {
           catch_copy?: string | null
           company_id?: string | null
           company_job_role_id?: string | null
+          company_suspended?: boolean
           contract_period?: string | null
           contract_period_detail?: string | null
           contract_renewal?: string | null
@@ -5445,6 +5537,54 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: true
             referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_moderation_actions: {
+        Row: {
+          action: string
+          actor_company_id: string | null
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_company_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_company_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_moderation_actions_actor_company_id_fkey"
+            columns: ["actor_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_moderation_actions_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]
@@ -6770,6 +6910,64 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ow_scout_access_requests: {
+        Row: {
+          company_id: string
+          created_at: string
+          decline_reason: string | null
+          id: string
+          message: string | null
+          outcome: string | null
+          requested_by: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          decline_reason?: string | null
+          id?: string
+          message?: string | null
+          outcome?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          decline_reason?: string | null
+          id?: string
+          message?: string | null
+          outcome?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_scout_access_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_scout_access_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_scout_access_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ow_scout_blocks: {
         Row: {
