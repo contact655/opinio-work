@@ -109,7 +109,7 @@ export function PlansClient({ rows }: { rows: CompanyPlanRow[] }) {
               <div style={{ flex: 1, minWidth: 220 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{row.companyName}</div>
                 <div style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 3 }}>
-                  {row.isPublished ? "公開中" : "非公開"} / {row.isApproved ? "承認済み" : "未承認"}
+                  {row.isPublished ? "公開中" : "非公開"}
                 </div>
               </div>
 

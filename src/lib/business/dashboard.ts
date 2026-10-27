@@ -9,6 +9,8 @@ import { getCompanyContext } from "@/lib/business/company";
 import { PLAN_LABELS, type PlanType } from "@/lib/constants/plans";
 import { greetingName } from "@/lib/constants/personName";
 import { jobState, jobStateTab } from "@/lib/jobs/jobState";
+import { getScoutAccess } from "@/lib/business/scoutAccess";
+import type { ScoutAccessState } from "@/lib/business/scoutGate";
 
 /**
  * Opinio Business — Dashboard data layer
@@ -34,7 +36,16 @@ export type TenantContext = {
   isPublished: boolean;          // ow_companies.is_published
   /** ★ow_companies.listing_status（2026-10-12）。求人の即時公開の条件（企業ページが公開中か。lib/jobs/publishGate.ts） */
   listingStatus: string | null;
-  isApproved: boolean;           // ow_companies.is_approved — 運営が承認済みか
+  isApproved: boolean;           // ow_companies.is_approved — 運営が承認済みか。⚠️ 2026-10-28 から何もゲートしない（表示用に残す）
+  /** ★運営が企業ページを停止しているか（2026-10-28）。停止中は公開に戻せず、スカウト機能も使えない */
+  isSuspended: boolean;
+  /** 停止の理由（企業に見せる）。停止中でなければ null */
+  suspensionReason: string | null;
+  suspendedAt: string | null;
+  /** 企業が「停止解除を依頼する」を押した日時 */
+  unsuspendRequestedAt: string | null;
+  /** ★スカウト機能（候補者を探す・メッセージを送る）の利用許可。判定は scoutGate.ts の hasScoutAccess */
+  scoutAccess: ScoutAccessState;
   /**
    * いま有効な契約プラン。`ow_company_plans` の status='active' の行。
    * ⚠️ **プランの正はこの表。`ow_companies.plan` は廃止予定で読まない。**
@@ -117,16 +128,19 @@ async function loadTenantContext(): Promise<TenantContext | null> {
     /* ow_companies / ow_users を一括並列取得。
        ⚠️ プランはここで引かない。**`getCompanyContext` が既に解決している。**
           2箇所で引くと、片方だけ直したときに画面と API で判定が割れる。 */
-    const [companiesRes, owUserRes] = await Promise.all([
+    const [companiesRes, owUserRes, scoutAccess] = await Promise.all([
       admin.from("ow_companies")
-        .select("id, name, logo_gradient, logo_letter, is_published, is_approved, listing_status")
+        .select("id, name, logo_gradient, logo_letter, is_published, is_approved, listing_status, suspended_at, suspension_reason, unsuspend_requested_at")
         .in("id", allMembershipIds),
       admin.from("ow_users")
         .select("avatar_color, name")
         .eq("id", owUserId)
         .maybeSingle(),
+      /* ⚠️ 取れなければ "none"（使えない側）。`getScoutAccess` がログを出す */
+      getScoutAccess(tenantId),
     ]);
 
+    if (companiesRes.error) console.error("[getTenantContext] ow_companies:", companiesRes.error.message);
     const companies = companiesRes.data ?? [];
     const companyRow = companies.find((c) => c.id === tenantId);
     if (!companyRow) return null;
@@ -169,6 +183,11 @@ async function loadTenantContext(): Promise<TenantContext | null> {
       isPublished: (companyRow as any).is_published === true,
       listingStatus: ((companyRow as any).listing_status as string | null) ?? null,
       isApproved: (companyRow as any).is_approved === true,
+      isSuspended: (companyRow as any).suspended_at != null,
+      suspensionReason: ((companyRow as any).suspension_reason as string | null) ?? null,
+      suspendedAt: ((companyRow as any).suspended_at as string | null) ?? null,
+      unsuspendRequestedAt: ((companyRow as any).unsuspend_requested_at as string | null) ?? null,
+      scoutAccess: scoutAccess.state,
       planType,
       planLabel: planType ? (PLAN_LABELS[planType] ?? "—") : "未設定",
       userName,

@@ -59,7 +59,10 @@ export function filterListedCompanies<T>(query: T): T {
     /* ⚠️ 検証用の企業を公開側に出さない（2026-08-12 追加）。
           `ow_companies` を引く箇所は運営画面を除いても60以上あるので、
           個別に足さずこの2関数（と Strict）に集約する。 */
-    .eq("is_test", false) as T;
+    .eq("is_test", false)
+    /* ★運営が停止した企業を出さない（2026-10-28）。停止すると is_published も false に倒すので普段は重なるが、
+          倒し損ねた行があっても出さないための二重の守り（RLS の ow_companies_published_read も同じ条件） */
+    .is("suspended_at", null) as T;
 }
 
 /**
@@ -73,8 +76,8 @@ export function filterListedCompanies<T>(query: T): T {
  */
 export function filterVisibleCompanies<T>(query: T): T {
   if (process.env.NODE_ENV === "development") return query;
-  /* ⚠️ 検証用の企業は詳細ページも出さない（2026-08-12 追加） */
-  return (query as any).eq("is_published", true).eq("is_test", false) as T;
+  /* ⚠️ 検証用の企業は詳細ページも出さない（2026-08-12 追加）。停止中も出さない（2026-10-28） */
+  return (query as any).eq("is_published", true).eq("is_test", false).is("suspended_at", null) as T;
 }
 
 /**
@@ -114,6 +117,6 @@ export function hasPublicCompanyPage(company: { isPublished: boolean }): boolean
  * リンク生成のように「本番で404になるものを出してはいけない」箇所で使う。
  */
 export function filterVisibleCompaniesStrict<T>(query: T): T {
-  /* ⚠️ 検証用の企業へのリンクを生成しない（2026-08-12 追加） */
-  return (query as any).eq("is_published", true).eq("is_test", false) as T;
+  /* ⚠️ 検証用の企業へのリンクを生成しない（2026-08-12 追加）。停止中も（2026-10-28） */
+  return (query as any).eq("is_published", true).eq("is_test", false).is("suspended_at", null) as T;
 }

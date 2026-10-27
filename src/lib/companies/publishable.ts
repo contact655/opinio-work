@@ -11,7 +11,7 @@
  *
  * ── 呼ぶ経路（2026-10-12）──────────────────────────────────────────────────
  *   企業「変更を公開する」  PATCH /api/biz/company            useDraft・always・規約同意
- *   企業「掲載を依頼する」  POST /api/biz/company/listing-request  useDraft・forListing（規約同意は route が別に見る）
+ *   企業「公開する」        POST /api/biz/company/listing（lib/companies/listing.ts）  useDraft・forListing・規約同意（2026-10-28 から）
  *   運営「掲載」            admin/companies/actions.ts updateListingStatus  useDraft（下書きもまとめて反映する）
  *   運営「ページ公開」      admin/companies/actions.ts updateIsPublished
  *   運営 API                PUT /api/admin/companies/[id]（is_published だけ。listing_status は受け付けない）
@@ -20,7 +20,7 @@
  *
  * ── 誰が公開するかで条件が違う ──────────────────────────────────────────────
  *   企業名・業種・事業領域 … actor に関わらず必須（scope: always）
- *   従業員数・本社所在地   … 「掲載を依頼する」のときだけ（scope: listing）。掲載中は止めない
+ *   従業員数・本社所在地   … 企業の「公開する」のときだけ（scope: listing）。公開中は止めない
  *   掲載規約の同意         … **企業のときだけ必須。** 運営が代理で掲載する場面まで止めると運用が回らない
  */
 import { createAdminClient } from "@/lib/supabase/admin";

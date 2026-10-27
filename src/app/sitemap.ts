@@ -1,3 +1,4 @@
+import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { MetadataRoute } from "next";
 import { filterListedCompanies } from "@/lib/companies/visibility";
@@ -34,7 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: jobRows } = await supabase
     .from("ow_jobs")
     .select("id, slug, updated_at, company_id")
-    .eq("status", "published").eq("is_test", false);
+    .match(PUBLIC_JOB_MATCH);
   /* ★担当者がいない会社の求人は載せない（2026-10-27 / 柴さんの決定。lib/jobs/respondingJobs.ts）。求人ページは会社ページへ戻すので、URL を知らせない */
   const jobs = await keepJobsAtRespondingCompanies(jobRows ?? [], "sitemap");
 

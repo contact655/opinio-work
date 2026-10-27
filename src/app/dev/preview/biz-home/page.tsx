@@ -40,11 +40,11 @@ const SIDE: HomeSide = {
 };
 
 const START: HomeChecklistInput = {
-  listed: false, listingRequested: false, companyMissing: 2, totalJobs: 1, publishedJobs: 0,
+  listed: false, companyMissing: 2, totalJobs: 1, publishedJobs: 0,
   nearestDraft: { id: "x", title: "フィールドセールス", missing: 3 }, roles: 0, employees: 0, acceptingCasualMeetings: true,
 };
 const ALL_DONE: HomeChecklistInput = {
-  listed: true, listingRequested: false, companyMissing: 0, totalJobs: 3, publishedJobs: 2,
+  listed: true, companyMissing: 0, totalJobs: 3, publishedJobs: 2,
   nearestDraft: null, roles: 2, employees: 4, acceptingCasualMeetings: true,
 };
 

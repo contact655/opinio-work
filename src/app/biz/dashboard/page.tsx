@@ -11,7 +11,7 @@ import type { HomeSide } from "@/lib/business/homeTypes";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
-import { isCompanyReviewed } from "@/lib/business/scoutGate";
+import { hasScoutAccess } from "@/lib/business/scoutGate";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPublishable } from "@/lib/companies/publishable";
@@ -93,7 +93,7 @@ export default async function BizDashboardPage({
     getJobStatusCounts(ctx.tenantId),
     /* ★下書きの「公開まであと〇つ」（publishMissingCount）。求人管理と同じ関数 */
     fetchJobsForCompany(supabase, ctx.tenantId, { meetings: {}, applications: {} }).catch((e) => { console.error("[dashboard] jobs:", e); return null; }),
-    createAdminClient().from("ow_companies").select("listing_requested_at, accepting_casual_meetings, source").eq("id", ctx.tenantId).maybeSingle(),
+    createAdminClient().from("ow_companies").select("accepting_casual_meetings, source").eq("id", ctx.tenantId).maybeSingle(),
     /* ★企業ページの「公開まであと〇つ」。/biz/company・掲載の依頼と同じ判定（下書きを重ね、掲載に要る項目まで見る）。
           ⚠️ `{ kind: "admin" }` ＝規約同意は数えない（同意は項目ではなく、押す人の状態） */
     checkPublishable(ctx.tenantId, { kind: "admin" }, { useDraft: true, forListing: true }),
@@ -116,11 +116,10 @@ export default async function BizDashboardPage({
 
   const actions = await getBizActionItems({
     companyId: ctx.tenantId, owUserId: ctx.currentOwnId, permission: ctx.currentPermission,
-    planType: ctx.planType, reviewed: isCompanyReviewed(ctx), stoppedByOps: jobStatusCounts.stoppedByOps,
+    planType: ctx.planType, reviewed: hasScoutAccess(ctx), stoppedByOps: jobStatusCounts.stoppedByOps,
   });
 
   const listed = ctx.isPublished && ctx.listingStatus === "listed";
-  const listingRequestedAt = (companyRow.data?.listing_requested_at as string | null | undefined) ?? null;
   /* ⚠️ 取れなかったとき（ok:false なのに requirements が無い）は null（「あと〇つ」を出さない） */
   const companyMissing = publishCheck.ok ? 0 : publishCheck.requirements ? publishCheck.requirements.length : null;
   /* 掲載中は企業名・業種・事業領域だけで止める（/biz/company と同じ） */
@@ -132,7 +131,6 @@ export default async function BizDashboardPage({
 
   const checklist = buildHomeChecklist({
     listed,
-    listingRequested: listingRequestedAt !== null,
     companyMissing,
     totalJobs: jobs ? jobs.length : null,
     publishedJobs: jobs ? jobStatusCounts.published : null,
@@ -155,8 +153,8 @@ export default async function BizDashboardPage({
     jobs: { published: jobStatusCounts.published, draft: jobStatusCounts.draft, stopped: jobStatusCounts.stopped },
     /* ★/biz/company の上部と同じ1行（`companyStatusText`）。⚠️ ホームでは「未公開の変更あり」を見ない */
     companyStatus: companyStatusText(
-      companyPageStatus({ isPublished: ctx.isPublished, listingStatus: ctx.listingStatus, termsAgreed: true, listingRequestedAt }),
-      { hasChanges: false, listingRequestedAt, blockingCount },
+      companyPageStatus({ isPublished: ctx.isPublished, listingStatus: ctx.listingStatus, termsAgreed: true, suspended: ctx.isSuspended }),
+      { hasChanges: false, unsuspendRequestedAt: ctx.unsuspendRequestedAt, blockingCount },
     ),
   };
 
@@ -231,38 +229,24 @@ export default async function BizDashboardPage({
         </div>
       )}
 
-      {/* ── 審査中バナー（未承認企業のみ） ── */}
-      {!ctx.isApproved && (
-        <div style={{
+      {/* ── 停止中の帯（2026-10-28）。⚠️ 2026-10-28 まであった「審査中」の帯は外した（公開は企業、停止は運営） ── */}
+      {ctx.isSuspended && (
+        <div data-state={ctx.unsuspendRequestedAt ? "suspended-requested" : "suspended"} style={{
           background: "var(--warm-soft)", border: "1px solid #FCD34D",
-          borderRadius: 12, padding: "14px 18px", marginBottom: 16,
-          display: "flex", alignItems: "flex-start", gap: 12,
+          borderRadius: 12, padding: "14px 18px", marginBottom: 16, minWidth: 0,
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          {/* ★何をすれば審査が始まるかを書く（2026-10-19）。それまでは「運営審査中です」だけで、
-                 審査のきっかけが「掲載を依頼する」だと分からなかった。依頼前と依頼後で文を分ける */}
-          <div data-state={listingRequestedAt ? "review-requested" : "review-not-requested"} style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>
-              {/* ★語句ごとに折り返す（2026-10-20。390px で「…始まり／ます」と割れていた） */}
-              {listingRequestedAt ? "運営が審査しています" : (
-                <><span style={{ display: "inline-block" }}>「掲載を依頼する」を押すと、</span><span style={{ display: "inline-block" }}>運営の審査が始まります</span></>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
-              {/* ★2026-10-20: 短くした（スマホで6行あり、すぐ下の「はじめにやること」が画面の外に押し出されていた）。
-                     伝えることは同じ（審査のきっかけ・審査後にできること・結果はメール） */}
-              {listingRequestedAt
-                ? "掲載の依頼を受け付けました。審査が終わると候補者にメッセージを送れ、企業ページの公開後は求人も出せます。結果はメールでお知らせします。"
-                : "必要な項目を入れて依頼すると、OPINIO 運営が内容を確認します。審査が終わると候補者にメッセージを送れ、企業ページの公開後は求人も出せます。結果はメールでお知らせします。"}
-            </div>
-            {!listingRequestedAt && canOpenBizPath(ctx.currentPermission, "/biz/company") && (
-              <Link href="/biz/company" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--warm-ink)" }}>
-                企業ページを編集する →
-              </Link>
-            )}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 3 }}>このページは運営により停止されています</div>
+          {ctx.suspensionReason && <div style={{ fontSize: 12.5, color: "var(--ink)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>理由：{ctx.suspensionReason}</div>}
+          <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
+            {ctx.unsuspendRequestedAt
+              ? "停止解除の依頼を受け付けました。運営が確認してメールでお知らせします。"
+              : "企業ページと求人は求職者に表示されず、候補者へのメッセージも送れません。内容を直して「停止解除を依頼する」を押してください。"}
           </div>
+          {!ctx.unsuspendRequestedAt && canOpenBizPath(ctx.currentPermission, "/biz/company") && (
+            <Link href="/biz/company" style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--warm-ink)" }}>
+              企業ページの編集画面を開く →
+            </Link>
+          )}
         </div>
       )}
 

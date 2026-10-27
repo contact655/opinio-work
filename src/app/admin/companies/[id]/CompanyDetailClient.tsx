@@ -459,18 +459,18 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
                  status は is_approved / is_published と連動しておらず、
                  status='pending' の80社の中に公開中の企業も承認待ちの企業も混在している。
                  「pending」バッジを見た運営が承認待ちと誤読する状態は、何も出さないより悪い。
-                 掲載の可否を決めているのは is_approved と is_published の2つだけ。
+                 ★2026-10-28 から承認は公開の条件ではない（公開は企業、停止は運営）。出すのは停止と公開の状態だけ。
             */}
             <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium ${
-              !company.is_approved ? 'bg-amber-100 text-amber-800' :
+              company.suspended_at ? 'bg-amber-100 text-amber-800' :
               !company.is_published ? 'bg-gray-100 text-gray-700' :
               'bg-green-100 text-green-800'
             }`}>
-              {!company.is_approved
-                ? '承認待ち'
+              {company.suspended_at
+                ? '運営が停止中'
                 : !company.is_published
-                  ? '承認済み・非公開'
-                  : '公開中'}
+                  ? '非公開'
+                  : company.listing_status === 'listed' ? '公開中' : 'ページのみ公開（一覧に未掲載）'}
             </span>
           </p>
         </div>
@@ -1040,22 +1040,18 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
 
           <div className="space-y-4">
             {/*
-              ⚠️ 2026-08-13 に承認の掛け先が**ページ公開から一覧掲載へ移った**。
-                 DB制約は check_listed_requires_approval
-                 （CHECK (listing_status <> 'listed' OR is_approved = true)）。
-                 ページの可視性（is_published）に承認は掛かっていない。
-                 承認は企業審査の一覧（/admin/companies）の「承認」列にある
-                 「承認する」ボタンで行う（updateApproval）。このタブからは is_approved を触らない。
+              ★2026-10-28: 承認（is_approved）は公開の条件ではなくなった（CHECK も外した）。
+                 停止中の企業は公開に戻せない。停止・解除は企業一覧（/admin/companies）の「停止」列で行う。
               ⚠️ このチェックボックスは **is_published（取り下げ）** を動かす。
                  既定は公開なので、通常は触らない。
             */}
             <label className={`flex items-center gap-3 p-4 border border-gray-200 rounded-lg ${
-              company.is_approved ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed bg-gray-50 opacity-60'
+              !company.suspended_at ? 'cursor-pointer hover:bg-gray-50' : 'cursor-not-allowed bg-gray-50 opacity-60'
             }`}>
               <input
                 type="checkbox"
                 checked={formData.is_published}
-                disabled={!company.is_approved}
+                disabled={Boolean(company.suspended_at)}
                 onChange={(e) => update('is_published', e.target.checked)}
                 className="w-4 h-4"
               />
@@ -1065,16 +1061,13 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
               </div>
             </label>
 
-            {!company.is_approved && (
-              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                この企業はまだ承認されていません。承認前に公開することはできません（DB制約）。
-                <br />
-                <Link href="/admin/companies" className="underline font-medium">
-                  企業審査
-                </Link>
-                {' '}の一覧で、この企業の行の「承認」列にある「承認する」を押してください。
-                <br />
-                承認しても掲載はされません。掲載は承認後に、同じ一覧の「掲載」トグルか、このタブから行います。
+            {company.suspended_at && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3" style={{ whiteSpace: 'pre-wrap' }}>
+                この企業ページは運営が停止しています（停止の理由：{company.suspension_reason ?? '—'}）。
+                {company.unsuspend_requested_at ? '\n企業から停止解除の依頼が届いています。' : ''}
+                {'\n'}解除は{' '}
+                <Link href="/admin/companies" className="underline font-medium">企業一覧</Link>
+                {' '}の「停止」列から行ってください（停止前の公開の状態に戻ります）。
               </p>
             )}
 

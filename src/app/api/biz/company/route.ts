@@ -10,6 +10,7 @@ import { insertActivity } from "@/lib/business/activities";
 import { requireCompanyAction, permissionDeniedResponse, roleIn } from "@/lib/auth/permissions";
 import type { BizCompany } from "@/lib/business/mockCompany";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
+import { COMPANY_SUSPENDED_MESSAGE } from "@/lib/business/scoutGate";
 import { applyCompanyDraft } from "@/lib/companies/applyDraft";
 
 
@@ -40,7 +41,7 @@ export async function PUT(req: Request) {
 
   /* ★掲載中の企業は、企業名の変更を受け付けない（2026-10-12 / 柴さんの指示。運営へ連絡してもらう）。
         下書きの企業名を本番の企業名で上書きして保存する（画面も読み取り専用）。
-     ⚠️ 掲載前の企業は編集でき、運営が掲載にする操作の中で反映される（applyDraft の writeName） */
+     ⚠️ 公開前の企業は編集でき、「公開する」の中で反映される（applyDraft の writeName） */
   {
     const { data: cur, error: curErr } = await supabase
       .from("ow_companies").select("name, is_published, listing_status").eq("id", companyId).maybeSingle();
@@ -104,7 +105,7 @@ export async function PUT(req: Request) {
 //
 // ⚠️★**掲載（is_published / listing_status）はここでは動かない**（2026-09-18 に分離）。
 //    それまでは `{ isPublished: true }` の**1リクエストが両方**を駆動していた。
-//    掲載の管理は運営（/admin/companies の updateIsPublished / updateListingStatus）だけ。
+//    ★2026-10-28 から企業の公開・非公開は POST /api/biz/company/listing（lib/companies/listing.ts）。ここではない。
 export async function PATCH(req: Request) {
   const supabase = createClient();
 
@@ -118,16 +119,15 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  /* ★★掲載の切り替えは企業側から取り上げた（2026-09-18 / 柴さんの指示）。
-     ⚠️★**`isPublished` を受け付けない。** 掲載（`is_published` / `listing_status`）の
-        管理は運営（`/admin/companies`）だけが行う。
+  /* ★★掲載の切り替えはこのルートでは受けない（2026-09-18。2026-10-28 から企業の公開は POST /api/biz/company/listing）。
+     ⚠️★**`isPublished` を受け付けない。** 公開の判定（停止中・規約・必要な項目）は lib/companies/listing.ts の1か所。
      ⚠️★**黙って無視しないこと。** 無視すると「押したのに変わらない」になり、
         呼び出し側が気づけない。**400 で明示的に断る。**
      ⚠️★**このチェックを消して `isPublished` を復活させないこと。** 復活させるなら
         `checkPublishable`（掲載規約の同意を含む）を必ず通す形に戻すこと。 */
   if ("isPublished" in body) {
     return NextResponse.json(
-      { error: "PUBLISH_NOT_ALLOWED", message: "掲載の切り替えは運営が行います。" },
+      { error: "PUBLISH_NOT_ALLOWED", message: "公開・非公開は「公開する」「非公開にする」から行ってください。" },
       { status: 400 },
     );
   }
@@ -145,25 +145,25 @@ export async function PATCH(req: Request) {
 
   try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
 
-  /* ★掲載中の企業だけが自分で反映できる（2026-10-12 / 柴さんの判断）。
-        掲載前の企業は「掲載を依頼する」→ 運営が掲載にする操作の中で、下書きもまとめて反映される
-        （admin/companies/actions.ts の updateListingStatus → applyCompanyDraft）。
-     ⚠️ 未承認の企業は今までどおり反映できない（403）。 */
+  /* ★公開中の企業だけがここで反映できる（2026-10-12 / 柴さんの判断）。
+        公開前の企業は「公開する」（POST /api/biz/company/listing）の中で、下書きもまとめて反映される。
+     ⚠️ 2026-10-28 に「未承認の企業は反映できない（403）」を外した（公開は企業、停止は運営）。
+     ⚠️ 停止中の企業は listing_status が draft なので、ここで 409 になる（停止解除を依頼する）。 */
   const { data: co, error: coErr } = await supabase
     .from("ow_companies")
-    .select("is_approved, is_published, listing_status")
+    .select("is_published, listing_status, suspended_at")
     .eq("id", companyId)
     .maybeSingle();
   if (coErr) {
     console.error("[company PATCH fetch]", coErr.message);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-  if (!co?.is_approved) {
-    return NextResponse.json({ error: "Not approved by admin yet" }, { status: 403 });
+  if (co?.suspended_at) {
+    return NextResponse.json({ error: "SUSPENDED", message: COMPANY_SUSPENDED_MESSAGE }, { status: 403 });
   }
-  if (!(co.is_published === true && co.listing_status === "listed")) {
+  if (!(co?.is_published === true && co.listing_status === "listed")) {
     return NextResponse.json(
-      { error: "NOT_LISTED", message: "掲載前の企業ページは「掲載を依頼する」から公開します。" },
+      { error: "NOT_LISTED", message: "公開前の企業ページは「公開する」から公開します。" },
       { status: 409 },
     );
   }

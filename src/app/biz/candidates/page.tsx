@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { can } from "@/lib/auth/roles";
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { PROFILE_CLIENT_MODULES } from "@/components/candidates/profileClientModules";
@@ -8,7 +7,9 @@ import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import CandidatesClient from "./CandidatesClient";
 import { canUse } from "@/lib/constants/plans";
-import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
+import { hasScoutAccess } from "@/lib/business/scoutGate";
+import { getScoutAccess } from "@/lib/business/scoutAccess";
+import { ScoutAccessPanel } from "@/components/business/ScoutAccessPanel";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { isCandidateNotesEnabled } from "@/lib/candidateNotes/server";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
@@ -43,13 +44,12 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
   /* ★役割（2026-10-12）。権限が無ければホームへ（サイドバーにも出していない） */
   guardBizPage(ctx.currentPermission, "candidates.viewProfile");
 
-  /* 未承認企業は候補者検索不可。
-     ⚠️★**`ctx.isPublished` に戻さないこと**（2026-09-20 に直した）。
-        `is_published` は**ページの取り下げ用**で、審査とは別のスイッチ。
-        見ていた列と画面の文言（「運営審査が完了するまで」）が食い違っており、
-        **承認済みなのにページを下げている企業が審査待ち扱い**になっていた。
-        判定は `isCompanyReviewed` の1箇所（`lib/business/scoutGate.ts`）。 */
-  if (!isCompanyReviewed(ctx)) {
+  /* ★スカウト機能（候補者を探す・メッセージを送る）は運営が許可した企業だけ（2026-10-28 / 柴さんの判断）。
+        使えない企業には説明と「スカウト機能の利用を依頼する」を出す。
+     ⚠️ 判定は `hasScoutAccess` の1箇所（`lib/business/scoutGate.ts`）。API（プレビュー・☆・非表示・保存した条件・送信）も同じ。
+     ⚠️★2026-10-28 まで `is_approved`（運営の承認）で止めていた。承認は公開の条件から外したので、ここも許可に移した。 */
+  if (!hasScoutAccess(ctx)) {
+    const access = await getScoutAccess(ctx.tenantId);
     return (
       <BusinessLayout {...{
         userName: ctx.userName,
@@ -59,31 +59,13 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
         memberships: ctx.allCompanies,
         currentTenantId: ctx.tenantId,
       }}>
-        <div style={{
-          background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
-          padding: "48px 40px", textAlign: "center", maxWidth: 520, margin: "60px auto",
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: "var(--warm-soft)", display: "flex",
-            alignItems: "center", justifyContent: "center", margin: "0 auto 20px",
-          }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warm-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-          </div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
-            {COMPANY_REVIEW_BLOCKED_MESSAGE}
-          </h2>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 0 }}>
-            候補者検索は、運営による企業審査が完了した後にご利用いただけます。<br />
-            審査は、企業ページの「掲載を依頼する」から始まります。審査が完了次第、メールでご連絡します。
-          </p>
-          {/* ★審査のきっかけへの道（2026-10-19） */}
-          <Link href="/biz/company" style={{ display: "inline-block", marginTop: 16, fontSize: 13, fontWeight: 700, color: "var(--royal)" }}>
-            企業ページを編集する →
-          </Link>
-        </div>
+        <ScoutAccessPanel
+          state={access.state}
+          isSuspended={ctx.isSuspended}
+          requestedAt={access.openRequest?.createdAt ?? null}
+          lastDeclinedReason={access.lastDeclined?.reason ?? null}
+          revokeReason={access.revokeReason}
+        />
       </BusinessLayout>
     );
   }

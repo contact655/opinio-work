@@ -1,8 +1,7 @@
 import { guardBizPage } from "@/lib/auth/companyAccess";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { canUse } from "@/lib/constants/plans";
-import { isCompanyReviewed } from "@/lib/business/scoutGate";
+import { canUseCandidateSearch } from "@/lib/business/scoutGate";
 import { listSavedSearchesWithCounts } from "@/lib/business/savedSearchServer";
 import { describeFilters } from "@/lib/business/candidates/model";
 import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter";
@@ -35,11 +34,11 @@ export default async function SavedSearchesPage({ searchParams }: { searchParams
     userName: ctx.userName, tenantName: ctx.tenantName, tenantLogoGradient: ctx.logoGradient,
     tenantLogoLetter: ctx.logoLetter, memberships: ctx.allCompanies, currentTenantId: ctx.tenantId,
   };
-  /* ⚠️ ゲートは /biz/candidates と同じ（審査済み・プランが引ける・候補者検索が使える） */
-  if (!isCompanyReviewed(ctx) || ctx.planType === null || !canUse(ctx.planType, "candidateSearch")) {
+  /* ⚠️ ゲートは /biz/candidates と同じ（スカウト機能の許可・停止中でない・プランが引ける・候補者検索が使える） */
+  if (!canUseCandidateSearch(ctx)) {
     return (
       <BusinessLayout {...layoutProps}>
-        <p style={{ padding: 40, fontSize: 14, color: "var(--ink-soft)" }}>保存した条件は、候補者検索を使える企業でご利用いただけます。</p>
+        <p style={{ padding: 40, fontSize: 14, color: "var(--ink-soft)" }}>保存した条件は、スカウト機能を使える企業でご利用いただけます。<a href="/biz/candidates" style={{ marginLeft: 8, color: "var(--royal)", fontWeight: 700 }}>スカウト機能について →</a></p>
       </BusinessLayout>
     );
   }

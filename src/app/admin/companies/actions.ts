@@ -3,20 +3,29 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateOne } from "@/lib/supabase/mutate";
-import { buildCompanyJoinedRow } from "@/lib/feed/systemPosts";
 import { revalidatePath } from "next/cache";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { publishedAtPatch } from "@/lib/companies/publishedAt";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 import { applyCompanyDraft } from "@/lib/companies/applyDraft";
 import { notifyCompanyStatus } from "@/lib/notify/companyStatus";
+import { insertCompanyJoined } from "@/lib/companies/listing";
+import { suspendCompany, unsuspendCompany } from "@/lib/companies/suspension";
 
 async function assertAdmin(): Promise<void> {
+  await assertAdminId();
+}
+
+/** 運営か確かめ、運営の ow_users.id を返す（停止の記録に使う。取れなければ null） */
+async function assertAdminId(): Promise<string | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   const { data: isAdmin } = await supabase.rpc("auth_is_admin");
   if (!isAdmin) throw new Error("Forbidden");
+  const { data: me, error } = await createAdminClient().from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+  if (error) console.error("[admin/companies] 運営の ow_users:", error.message);
+  return (me?.id as string | undefined) ?? null;
 }
 
 /**
@@ -34,10 +43,7 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 
 /** Postgres のエラーを運営が読める日本語にする。原文も残す */
 function toMessage(err: { code?: string; message: string }): string {
-  /* ⚠️ 2026-08-13 に承認の掛け先をページ公開から一覧掲載へ移した。制約名も変わっている。 */
-  if (err.code === "23514" && err.message.includes("check_listed_requires_approval")) {
-    return "運営の承認が済んでいないため一覧に掲載できません。先に「承認」を押してください。";
-  }
+  /* ⚠️ 承認の CHECK（check_listed_requires_approval）は 2026-10-28 に外した（公開は企業、停止は運営） */
   return `${err.message}${err.code ? `（${err.code}）` : ""}`;
 }
 
@@ -128,6 +134,7 @@ export async function updateIsPublished(companyId: string, newValue: boolean): P
         4つあり、書き写すと必ず漏れる）。運営経路なので掲載規約の同意は求めない。
      ⚠️ 取り下げ（false）は常に通す。塞ぐのは「見えるようにする一手」だけ。 */
   if (newValue) {
+    if (await isSuspended(companyId)) return { ok: false, error: "停止中の企業です。先に「停止」の列から解除してください。" };
     const gate = await checkPublishable(companyId, { kind: "admin" });
     if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
   }
@@ -189,11 +196,12 @@ export async function updateListingStatus(
 
   /* ⚠️ 公開ゲート（掲載に切り替えるときだけ）。取り下げ（draft）は常に通す。
      ★**下書きの値で判定し、掲載と一緒に下書き（と未公開の写真）を反映する**（2026-10-12）。
-        掲載前の企業は自分で下書きを反映できず「掲載を依頼する」を押すので、ここで反映しないと
+        （2026-10-28 から企業は「公開する」で自分で反映する。運営が代わりに掲載するときも）ここで反映しないと
         掲載した瞬間に**依頼したときの内容ではなく古い内容**が出る。
      ⚠️ 運営の掲載では従業員数・本社所在地で止めない（止めるのは企業の「掲載を依頼する」）。 */
   const admin = createAdminClient();
   if (newValue === "listed") {
+    if (await isSuspended(companyId)) return { ok: false, error: "停止中の企業です。先に「停止」の列から解除してください。" };
     const gate = await checkPublishable(companyId, { kind: "admin" }, { useDraft: true });
     if (!gate.ok) return { ok: false, error: publishBlockedMessage(gate.missing) };
     /* ★掲載前の企業が下書きで直した企業名も、ここで反映する（掲載後は企業からは変えられない） */
@@ -248,18 +256,7 @@ export async function updateListingStatus(
  *    非掲載に戻して再度掲載しても投稿は作り直されない。23505 は「既にある」なので無視する。
  *    つまり本文は最初に公開した瞬間の brand_name / tagline で固定される。
  */
-async function insertCompanyJoined(companyId: string): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    const { data: co } = await admin
-      .from("ow_companies").select("name, brand_name, tagline").eq("id", companyId).maybeSingle();
-    if (!co) return;
-    const { error } = await admin.from("ow_posts").insert(buildCompanyJoinedRow(companyId, co));
-    if (error && error.code !== "23505") console.error("[feed company_joined]", error.message);
-  } catch (e) {
-    console.error("[feed company_joined]", e);
-  }
-}
+/* ★insertCompanyJoined は lib/companies/listing.ts に移した（2026-10-28。企業の「公開する」も同じ関数を呼ぶ） */
 
 /**
  * 承認（is_approved）。運営が掲載を許すかどうか。
@@ -420,3 +417,37 @@ export async function setCompanyWithdrawn(companyId: string, withdrawn: boolean)
   return { ok: true };
 }
 
+
+/** 停止中か（停止中は運営の掲載・ページ表示の切り替えでも戻さない。解除は suspension.ts の unsuspendCompany） */
+async function isSuspended(companyId: string): Promise<boolean> {
+  const { data, error } = await createAdminClient().from("ow_companies").select("suspended_at").eq("id", companyId).maybeSingle();
+  if (error) console.error("[admin/companies] isSuspended:", error.message);
+  return data?.suspended_at != null;
+}
+
+/**
+ * ★企業ページを停止する（2026-10-28 / 柴さんの判断。公開は企業、停止は運営）。理由は必須で、企業にメールで送る。
+ * ⚠️ 判定と書き込みは lib/companies/suspension.ts の1か所。ここは運営の確認だけ。
+ */
+export async function suspendCompanyAction(companyId: string, reason: string): Promise<ActionResult> {
+  if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
+  let adminOwUserId: string | null = null;
+  try { adminOwUserId = await assertAdminId(); } catch { return { ok: false, error: "権限がありません" }; }
+  const r = await suspendCompany(companyId, reason, adminOwUserId);
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidatePath("/admin/companies");
+  revalidatePath(`/admin/companies/${companyId}`);
+  return { ok: true };
+}
+
+/** ★停止を解除する。停止前の公開の状態に戻す。一言は任意（企業にも送る） */
+export async function unsuspendCompanyAction(companyId: string, note: string | null): Promise<ActionResult> {
+  if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
+  let adminOwUserId: string | null = null;
+  try { adminOwUserId = await assertAdminId(); } catch { return { ok: false, error: "権限がありません" }; }
+  const r = await unsuspendCompany(companyId, adminOwUserId, note);
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidatePath("/admin/companies");
+  revalidatePath(`/admin/companies/${companyId}`);
+  return { ok: true };
+}

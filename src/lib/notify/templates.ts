@@ -1202,3 +1202,119 @@ export function meetingCanceledTemplate(params: {
     `),
   };
 }
+
+// ── 会社ページの公開・停止／スカウトの利用許可（2026-10-28 / 柴さんの判断）──────────────────
+/* ★公開は企業、停止は運営。スカウト（企業から最初のメッセージ）と候補者検索は運営が企業ごとに許可する。
+   ⚠️ 画面の言葉は「公開する」「停止」「停止解除」「スカウト機能」。「審査」「承認」「掲載を依頼」と書かない */
+
+/** 運営宛: 企業が自分で企業ページを公開した（あとから確認するため。承認ではない） */
+export function companySelfListedAdminTemplate(params: {
+  companyId: string; companyName: string; actorName: string | null; actorEmail: string | null; listedAt: string;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【企業ページ公開】${params.companyName} が企業ページを公開しました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">企業ページが公開されました</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> が企業ページを公開しました。
+        内容に問題があれば、運営画面から停止できます（停止の理由は企業に送られます）。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        ${params.actorName ? `<tr><td style="${TD_LABEL}">公開した人</td><td style="${TD_VALUE}">${esc(params.actorName)}</td></tr>` : ""}
+        ${params.actorEmail ? `<tr><td style="${TD_LABEL}">連絡先</td><td style="${TD_VALUE}">${esc(params.actorEmail)}</td></tr>` : ""}
+        <tr><td style="${TD_LABEL}">日時</td><td style="${TD_VALUE}">${new Date(params.listedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</td></tr>
+      </table>
+      <a href="${siteUrl}/admin/companies/${params.companyId}" style="${BTN}">運営画面で確認する →</a>
+    `),
+  };
+}
+
+/** 企業宛: 運営が企業ページを停止した／停止を解除した */
+export function companySuspensionCompanyTemplate(params: {
+  to: string; companyName: string; kind: "suspend" | "unsuspend"; reason: string | null; viaOps?: boolean;
+}) {
+  const suspend = params.kind === "suspend";
+  return {
+    to: params.to,
+    subject: opsSubject(suspend ? `「${params.companyName}」の企業ページを停止しました` : `「${params.companyName}」の企業ページの停止を解除しました`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">${suspend ? "企業ページを停止しました" : "企業ページの停止を解除しました"}</h2>
+      <p style="margin:0 0 12px;color:#475569">${suspend
+        ? `OPINIO 運営が内容を確認し、次の理由で「${esc(params.companyName)}」の企業ページを停止しました。停止中は、企業ページと求人が求職者に表示されず、候補者へのメッセージも送れません。`
+        : `「${esc(params.companyName)}」の企業ページの停止を解除しました。停止前の公開の状態に戻っています。`}</p>
+      ${params.reason ? `<p style="margin:0 0 20px;padding:12px 14px;background:#F8FAFC;border-radius:8px;color:#0F172A;white-space:pre-wrap">${esc(params.reason)}</p>` : ""}
+      ${suspend ? `<p style="margin:0 0 20px;color:#475569">停止中も内容は編集できます。直したあと、企業ページの編集画面の「停止解除を依頼する」を押すと、運営が確認します。</p>` : ""}
+      <a href="https://opinio.jp/biz/company" style="${BTN}">企業ページの編集画面を開く →</a>
+    `),
+  };
+}
+
+/** 運営宛: 企業が停止解除を依頼した */
+export function unsuspendRequestAdminTemplate(params: {
+  companyId: string; companyName: string; requesterName: string | null; requesterEmail: string | null; message: string | null;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【停止解除の依頼】${params.companyName} から停止解除の依頼がありました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">停止解除の依頼</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> が、停止中の企業ページについて解除を依頼しました。<strong>まだ停止中です。</strong></p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        ${params.requesterName ? `<tr><td style="${TD_LABEL}">依頼した人</td><td style="${TD_VALUE}">${esc(params.requesterName)}</td></tr>` : ""}
+        ${params.requesterEmail ? `<tr><td style="${TD_LABEL}">連絡先</td><td style="${TD_VALUE}">${esc(params.requesterEmail)}</td></tr>` : ""}
+        ${params.message ? `<tr><td style="${TD_LABEL}">メッセージ</td><td style="${TD_VALUE};white-space:pre-wrap">${esc(params.message)}</td></tr>` : ""}
+      </table>
+      <a href="${siteUrl}/admin/companies/${params.companyId}" style="${BTN}">運営画面で確認する →</a>
+    `),
+  };
+}
+
+/** 運営宛: 企業がスカウト機能の利用を依頼した */
+export function scoutAccessRequestAdminTemplate(params: {
+  companyName: string; requesterName: string | null; requesterEmail: string | null; message: string | null;
+}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
+  return {
+    to: ADMIN_EMAIL,
+    subject: `【スカウト機能の依頼】${params.companyName} からスカウト機能の利用の依頼がありました`,
+    html: htmlWrap(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">スカウト機能の利用の依頼</h2>
+      <p style="margin:0 0 20px;color:#475569"><strong style="color:#0f172a">${esc(params.companyName)}</strong> が、スカウト機能（候補者を探す・メッセージを送る）の利用を依頼しました。</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
+        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
+        ${params.requesterName ? `<tr><td style="${TD_LABEL}">依頼した人</td><td style="${TD_VALUE}">${esc(params.requesterName)}</td></tr>` : ""}
+        ${params.requesterEmail ? `<tr><td style="${TD_LABEL}">連絡先</td><td style="${TD_VALUE}">${esc(params.requesterEmail)}</td></tr>` : ""}
+        ${params.message ? `<tr><td style="${TD_LABEL}">メッセージ</td><td style="${TD_VALUE};white-space:pre-wrap">${esc(params.message)}</td></tr>` : ""}
+      </table>
+      <a href="${siteUrl}/admin/scout-access" style="${BTN}">運営画面で確認する →</a>
+    `),
+  };
+}
+
+/** 企業宛: スカウト機能を使えるようにした／依頼を見送った／取り消した */
+export function scoutAccessCompanyTemplate(params: {
+  to: string; companyName: string; kind: "granted" | "declined" | "revoked"; reason: string | null; viaOps?: boolean;
+}) {
+  const title = params.kind === "granted" ? "スカウト機能を使えるようになりました"
+    : params.kind === "declined" ? "スカウト機能の利用の依頼を見送りました" : "スカウト機能の利用を取り消しました";
+  const body = params.kind === "granted"
+    ? `「${esc(params.companyName)}」で、スカウト機能（候補者を探す・候補者にメッセージを送る）を使えるようになりました。`
+    : params.kind === "declined"
+      ? `OPINIO 運営が確認し、「${esc(params.companyName)}」からのスカウト機能の利用の依頼を、次の理由で見送りました。`
+      : `OPINIO 運営が確認し、「${esc(params.companyName)}」のスカウト機能の利用を、次の理由で取り消しました。これまでのメッセージのやり取りは続けられます。`;
+  return {
+    to: params.to,
+    subject: opsSubject(`[OPINIO] ${title}`, params.viaOps === true),
+    html: htmlWrap(`${opsFallbackNotice(params.viaOps === true)}
+      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">${title}</h2>
+      <p style="margin:0 0 12px;color:#475569">${body}</p>
+      ${params.reason ? `<p style="margin:0 0 20px;padding:12px 14px;background:#F8FAFC;border-radius:8px;color:#0F172A;white-space:pre-wrap">${esc(params.reason)}</p>` : ""}
+      ${params.kind === "granted"
+        ? `<a href="https://opinio.jp/biz/candidates" style="${BTN}">候補者を探す →</a>`
+        : `<a href="https://opinio.jp/biz/candidates" style="${BTN}">スカウト機能の画面を開く →</a>`}
+    `),
+  };
+}

@@ -32,7 +32,7 @@ import { approachResendNotice } from "@/lib/constants/companyApproaches";
 import { ProfileMoreMenu } from "@/components/profile/ProfileMoreMenu";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
-import { isCompanyReviewed } from "@/lib/business/scoutGate";
+import { hasScoutAccess } from "@/lib/business/scoutGate";
 import { getRecentlyApproached, isApproachTarget, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
@@ -206,7 +206,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
       if (aErr) console.error("[u/[id]] notes admins:", aErr.message);
       else notesAdmins = (adminRows ?? []).map((r) => ({ id: r.user_id as string, name: (((r.ow_users as unknown as { name: string | null } | null)?.name) ?? "").trim() || "担当者" }));
     }
-    if (tenant && isCompanyReviewed(tenant) && canUse(tenant.planType, "companyApproach")) {
+    if (tenant && hasScoutAccess(tenant) && canUse(tenant.planType, "companyApproach")) {
       const [recent, eligible, approachJobs] = await Promise.all([
         getRecentlyApproached(tenant.tenantId, [owUser.id]),
         isApproachTarget({ companyId: tenant.tenantId, candidateOwUserId: owUser.id, senderOwUserId: tenant.currentOwnId }),

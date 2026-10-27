@@ -8,7 +8,8 @@ import { WORDING_FIELD_TARGETS, wordingMessage, type WordingHit } from "./wordin
  *   ① 公開に必要な17項目（publishRequirements.ts）が欠けている → 公開できない
  *   ② 禁止表現（wordingCheck.ts）に当たる                       → 公開できない（★2026-10-12 から。それまでは運営確認中）
  *   ③ 企業ページが公開中（listed）でない                         → 公開できない（企業ページの公開後に公開できる）
- *      ⚠️ 企業ページの初回公開は運営が行う。ここが実在の確認になっている
+ *      ⚠️ 2026-10-28 から企業ページの公開は企業が自分で行う。運営は公開後に確認し、問題があれば停止する
+ *         （停止中は listing_status が draft になるので、ここで止まる）
  *   ④ 運営が停止した求人（stopped_at）                          → 再開の依頼（pending_review。運営が戻す）
  *   ⑤ それ以外（自社で停止した求人の再開を含む）                → すぐ公開
  * ⚠️ 企業側から pending_review になるのは④だけ。
@@ -60,5 +61,5 @@ export function isCompanyListedForJobs(co: { is_published?: boolean | null; list
 }
 
 /* ★次に何をするかまで書く（2026-10-19）。「掲載を依頼する」が審査と公開のきっかけだと分からなかった */
-export const COMPANY_NOT_LISTED_MESSAGE = "企業ページの公開後に、求人を公開できます。企業ページの編集画面で「掲載を依頼する」を押すと、OPINIO 運営が確認して公開します。";
+export const COMPANY_NOT_LISTED_MESSAGE = "企業ページの公開後に、求人を公開できます。企業ページの編集画面で「公開する」を押してください。";
 export const POST_PUBLISH_NOTE = "公開後も運営が内容を確認し、問題がある場合は停止することがあります。";

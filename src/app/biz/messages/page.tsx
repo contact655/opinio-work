@@ -18,7 +18,7 @@ import { EmptyPane, NoSelectionPane, PendingPane, ThreadPane } from "./MessagePa
 import { candidateHeaderMeta, loadCompanyThread } from "@/lib/conversations/companyThread";
 import type { SentApproach } from "@/lib/approaches/server";
 import { unseenProposalConversationIds, interestConversationIds } from "@/lib/evidence/companyProposals";
-import { canUseCandidateSearch, isCompanyReviewed } from "@/lib/business/scoutGate";
+import { canUseCandidateSearch, hasScoutAccess, scoutBlockedMessage } from "@/lib/business/scoutGate";
 import { countAwaitingReply } from "@/lib/interest/server";
 
 export const dynamic = "force-dynamic";
@@ -193,9 +193,9 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
   let approachableCount: number | null | undefined;
   /* ★検証用かどうかが担当者と合わず外した人がいたか（2026-10-26）。0人の理由として出す */
   let approachTestMismatch: CandidateTestMismatch | null = null;
-  const approachReviewPending = !isCompanyReviewed(ctx);
+  const approachBlockedText = hasScoutAccess(ctx) ? null : scoutBlockedMessage(ctx);
   /* ★候補者の人数は、候補者を探すと同じ条件（審査済み・プラン）のときだけ数える（2026-10-26）。
-        ⚠️ 数えないときは「取得できませんでした」ではなく審査待ちの文言を出す（approachReviewPending） */
+        ⚠️ 数えないときは「取得できませんでした」ではなく使えない理由を出す（approachBlockedText） */
   if (allowed && sent !== null && sent.length === 0 && canUseCandidateSearch(ctx)) {
     const { candidates, testMismatch } = await loadCompanyCandidates({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType });
     approachTestMismatch = testMismatch;
@@ -244,7 +244,7 @@ export default async function BizMessagesPage({ searchParams }: { searchParams?:
         now={nowDate.toISOString()}
         approachableCount={approachableCount}
         approachTestMismatch={approachTestMismatch}
-        approachReviewPending={approachReviewPending}
+        approachBlockedText={approachBlockedText}
         hasPublishedJob={hasPublishedJob}
         sentThisMonthFrom={searchParams?.filter === "sent_this_month" ? startOfMonthJst(nowDate) : null}
         awaitingReply={awaitingReply}

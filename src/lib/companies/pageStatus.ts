@@ -1,46 +1,27 @@
 /**
- * ★企業ページの「いまどういう状態か」を1つに決める（2026-10-08）。
+ * ★企業ページの「いまどういう状態か」を1つに決める（2026-10-08。2026-10-28 に公開は企業・停止は運営へ作り替えた）。
  *
- * ⚠️★**`/biz/company` の3か所（上部バッジ・右上の案内・設定タブの「掲載状態」）は
+ * ⚠️★**`/biz/company` の3か所（上部バッジ・右上の案内・設定タブの「公開の状態」）とホームの右の列は
  *    必ずこの関数を通すこと。** 条件を画面に書き写さない。
  *
- * ── なぜ作ったか ────────────────────────────────────────────────────────
- * 株式会社Third Box の画面で、3か所が別々の値を見て食い違っていた（2026-10-08 実測）。
- *   ・上部バッジ「公開済み・最新」      … **下書きと公開内容の差分**しか見ていなかった
- *   ・右上「公開には掲載利用規約への同意が必要です」 … **見ている人の**規約同意
- *   ・設定タブ「掲載状態: 未掲載」       … `is_published` だけ（`listing_status` を見ていない）
- * 実体は `is_published = false`（ページは 404）・`listing_status = 'draft'`・未同意。
- * ＝ ページが誰にも見えていないのに「公開済み」と出ていた。
+ * ── 状態 ──────────────────────────────────────────────────────────────────
+ *   suspended   … 運営が停止中（suspended_at）。**ほかの状態より優先**。企業は公開に戻せない
+ *   listed      … 一覧に載っていて、ページも見える（＝公開中）
+ *   page_hidden … 詳細ページが 404（is_published = false）
+ *   not_listed  … ページは見えるが一覧には載っていない
  *
- * ⚠️ 3つのスイッチの意味は CLAUDE.md「企業ページの3つのスイッチ」。
- *      `is_published`    … 詳細ページが見えるか（404 ゲート）
- *      `listing_status`  … ディレクトリ（一覧）に載るか
- *      `listing_requested_at` … 企業が掲載を依頼した**記録**（状態ではない）
- *
- * ⚠️★規約同意は**会社単位ではなく、見ている人（auth ユーザー）単位**
- *    （`hasAgreedTerms(user.id, "listing")`）。同じ会社でも担当者ごとに違いうる。
+ * ⚠️ 2026-10-28 まで「掲載を依頼する」（listing_requested_at）→ 運営が掲載、だった。依頼の状態はもう無い。
+ * ⚠️★規約同意は**会社単位ではなく、見ている人（auth ユーザー）単位**（`hasAgreedTerms(user.id, "listing")`）。
  */
 
-export type CompanyPageStatusKind =
-  /** 一覧に載っていて、ページも見える */
-  | "listed"
-  /** 詳細ページが 404（`is_published = false`）。**差分のバッジより優先して出す** */
-  | "page_hidden"
-  /** ページは見えるが一覧には未掲載。掲載を依頼するには規約への同意が要る */
-  | "terms_required"
-  /** ページは見えるが一覧には未掲載。規約には同意済みで、まだ依頼していない */
-  | "not_requested"
-  /** ページは見えるが一覧には未掲載。依頼済みで運営の確認待ち */
-  | "requested";
+export type CompanyPageStatusKind = "suspended" | "listed" | "page_hidden" | "not_listed";
 
-/** 掲載に向けて企業側が次にやること。`null` は「企業側でやることは無い」 */
-export type CompanyNextStep = "agree_terms" | "request_listing" | "await_review" | null;
+/** 企業側が次にやること。`null` は「企業側でやることは無い」 */
+export type CompanyNextStep = "agree_terms" | "publish" | "request_unsuspend" | null;
 
 export type CompanyPageStatus = {
   kind: CompanyPageStatusKind;
-  /** 短いラベル（バッジ・設定タブの見出し） */
   label: string;
-  /** 1行の説明 */
   detail: string;
   nextStep: CompanyNextStep;
   /** 求職者がこの会社の詳細ページを開けるか */
@@ -51,62 +32,42 @@ export function companyPageStatus(input: {
   isPublished: boolean;
   listingStatus: string | null;
   termsAgreed: boolean;
-  listingRequestedAt: string | null;
+  suspended: boolean;
 }): CompanyPageStatus {
-  const { isPublished, listingStatus, termsAgreed, listingRequestedAt } = input;
-
-  /* ⚠️ 次の一手は「規約 → 依頼 → 運営の確認」の順。ページの公開状態とは独立に決まる */
-  const nextStep: CompanyNextStep =
-    isPublished && listingStatus === "listed" ? null
-    : !termsAgreed ? "agree_terms"
-    : listingRequestedAt ? "await_review"
-    : "request_listing";
-
-  if (isPublished && listingStatus === "listed") {
+  const { isPublished, listingStatus, termsAgreed, suspended } = input;
+  if (suspended) {
     return {
-      kind: "listed", label: "掲載中", nextStep, pageVisible: true,
-      detail: "企業一覧と企業ページの両方に出ています。",
+      kind: "suspended", label: "停止中", nextStep: "request_unsuspend", pageVisible: false,
+      detail: "運営により停止されています。企業ページと求人は求職者に表示されません。内容を直したら「停止解除を依頼する」を押してください。",
     };
   }
+  if (isPublished && listingStatus === "listed") {
+    return { kind: "listed", label: "公開中", nextStep: null, pageVisible: true, detail: "企業一覧と企業ページの両方に出ています。" };
+  }
+  const nextStep: CompanyNextStep = termsAgreed ? "publish" : "agree_terms";
   if (!isPublished) {
     return {
-      kind: "page_hidden", label: "ページ非公開", nextStep, pageVisible: false,
-      detail:
-        nextStep === "agree_terms" ? "企業ページはまだ公開されていません。掲載するには、まず掲載利用規約に同意してください。"
-        : nextStep === "await_review" ? "企業ページはまだ公開されていません。掲載の依頼は届いています（運営が確認中）。"
-        : "企業ページはまだ公開されていません。掲載するには、運営に掲載を依頼してください。",
-    };
-  }
-  if (nextStep === "agree_terms") {
-    return {
-      kind: "terms_required", label: "規約未同意", nextStep, pageVisible: true,
-      detail: "企業ページは見えますが、企業一覧には載っていません。掲載するには掲載利用規約への同意が必要です。",
-    };
-  }
-  if (nextStep === "await_review") {
-    return {
-      kind: "requested", label: "掲載依頼中", nextStep, pageVisible: true,
-      detail: "企業ページは見えますが、企業一覧にはまだ載っていません。掲載の依頼は届いています（運営が確認中）。",
+      kind: "page_hidden", label: "非公開", nextStep, pageVisible: false,
+      detail: "企業ページはまだ公開されていません。必要な項目を入れて「公開する」を押すと公開されます。",
     };
   }
   return {
-    kind: "not_requested", label: "掲載依頼前", nextStep, pageVisible: true,
-    detail: "企業ページは見えますが、企業一覧には載っていません。掲載するには運営に掲載を依頼してください。",
+    kind: "not_listed", label: "一覧に未掲載", nextStep, pageVisible: true,
+    detail: "企業ページは見えますが、企業一覧には載っていません。「公開する」を押すと一覧にも載ります。",
   };
 }
 
 /**
- * ★企業ページの状態を1行で（2026-10-12）。/biz/company の上部と、ホームの右の列「企業ページ」が**この関数**を使う。
- *   「公開中」「公開中・未公開の変更あり」「非公開・公開まであと2つ」「非公開・掲載を依頼済み（運営が確認中）」など。
- * ⚠️ `blockingCount` は companyRequirements.ts で数えた「公開まであと〇つ」（掲載中なら always の項目だけ）。ここで数えない。
+ * ★企業ページの状態を1行で。/biz/company の上部と、ホームの右の列「企業ページ」が**この関数**を使う。
+ * ⚠️ `blockingCount` は companyRequirements.ts で数えた「公開まであと〇つ」（公開中なら always の項目だけ）。ここで数えない。
  */
 export function companyStatusText(
   status: CompanyPageStatus,
-  o: { hasChanges: boolean; listingRequestedAt: string | null; blockingCount: number },
+  o: { hasChanges: boolean; unsuspendRequestedAt?: string | null; blockingCount: number },
 ): string {
+  if (status.kind === "suspended") return o.unsuspendRequestedAt ? "停止中・停止解除を依頼済み（運営が確認中）" : "停止中";
   if (status.kind === "listed") return o.hasChanges ? "公開中・未公開の変更あり" : "公開中";
   const where = status.pageVisible ? "企業一覧に未掲載" : "非公開";
-  if (o.listingRequestedAt) return `${where}・掲載を依頼済み（運営が確認中）`;
   if (o.blockingCount > 0) return `${where}・公開まであと${o.blockingCount}つ`;
-  return `${where}・掲載を依頼できます`;
+  return `${where}・公開できます`;
 }

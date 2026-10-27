@@ -1,7 +1,9 @@
 import { timingSafeEqual } from "crypto";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { fetchAllRows } from "@/lib/supabase/paging";
-import { canUse, toPlanType } from "@/lib/constants/plans";
+import { toPlanType } from "@/lib/constants/plans";
+import { canUseCandidateSearch } from "@/lib/business/scoutGate";
+import { getScoutAccess } from "@/lib/business/scoutAccess";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { countNew, ensureLastViewed, isNotifyFrequency } from "@/lib/business/savedSearchServer";
 import { parseSavedFilters } from "@/lib/business/savedSearch";
@@ -63,13 +65,14 @@ export async function GET(request: Request) {
     /* 作った人がその企業の有効な担当者か */
     const { data: adm } = await db.from("ow_company_admins").select("id").eq("company_id", companyId).eq("user_id", ownerId).eq("is_active", true).maybeSingle();
     if (!adm) { summary.skippedOwnerInactive++; continue; }
-    /* 企業のゲート（審査済み・候補者検索が使える） */
-    const [{ data: co }, { data: plan }] = await Promise.all([
-      db.from("ow_companies").select("is_approved").eq("id", companyId).maybeSingle(),
+    /* 企業のゲート（スカウト機能の許可・停止中でない・候補者検索が使える）。⚠️ 判定は画面と同じ canUseCandidateSearch */
+    const [{ data: co }, { data: plan }, access] = await Promise.all([
+      db.from("ow_companies").select("suspended_at").eq("id", companyId).maybeSingle(),
       db.from("ow_company_plans").select("plan_type").eq("company_id", companyId).eq("status", "active").maybeSingle(),
+      getScoutAccess(companyId),
     ]);
     const planType = toPlanType((plan?.plan_type as string | null) ?? null);
-    if (co?.is_approved !== true || !canUse(planType, "candidateSearch")) { summary.skippedCompany++; continue; }
+    if (!co || !canUseCandidateSearch({ scoutAccess: access.state, isSuspended: co.suspended_at != null, planType })) { summary.skippedCompany++; continue; }
 
     const key = `${companyId}:${ownerId}`;
     if (!candidatesCache.has(key)) {

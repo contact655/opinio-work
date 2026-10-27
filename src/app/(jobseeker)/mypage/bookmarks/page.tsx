@@ -105,7 +105,7 @@ export default async function BookmarksPage() {
           /* ⚠️★`status` / `is_test` を**必ず取る**（2026-09-27）。落とすと `undefined` になり、
                 下の判定が静かに「生きている」側へ倒れる（CLAUDE.md「取得していない値が
                 既定値に化ける」）。 */
-          .from("ow_jobs").select("id, title, job_category, company_id, status, is_test").in("id", ids);
+          .from("ow_jobs").select("id, title, job_category, company_id, status, is_test, company_suspended").in("id", ids);
         if (jobsErr) console.error("[mypage/bookmarks] ow_jobs:", jobsErr.message);
         if (jobs) {
           // 職種の表示は会社呼称 ?? 標準職種名。job_category は使わない
@@ -121,7 +121,7 @@ export default async function BookmarksPage() {
             const j = jMap.get(b.target_id as string);
             if (!j) return [];
             /* ★判定は `jobListingStateFor` の1か所（2026-10-11）。見ている人と企業がどちらも検証用なら掲載中として扱う */
-            const state = jobListingStateFor(j as { status: string; is_test: boolean }, { viewerIsTest, companyIsTest: cTest.get(j.company_id as string) === true });
+            const state = jobListingStateFor(j as { status: string; is_test: boolean; company_suspended?: boolean }, { viewerIsTest, companyIsTest: cTest.get(j.company_id as string) === true });
             return [{
               id: b.id as string, type: "job" as const,
               title: j.title as string,

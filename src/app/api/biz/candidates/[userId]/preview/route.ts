@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can } from "@/lib/auth/roles";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { canUse } from "@/lib/constants/plans";
-import { isCompanyReviewed } from "@/lib/business/scoutGate";
+import { canUseCandidateSearch } from "@/lib/business/scoutGate";
 import { getSelectionHistory } from "@/lib/business/selectionHistory";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: { userId: str
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!can(ctx.currentPermission, "candidates.viewProfile")) return NextResponse.json({ error: "この操作の権限がありません。" }, { status: 403 });
-  if (!isCompanyReviewed(ctx) || ctx.planType === null || !canUse(ctx.planType, "candidateSearch")) {
+  if (!canUseCandidateSearch(ctx)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   if (!UUID_RE.test(params.userId)) return NextResponse.json({ error: "not found" }, { status: 404 });

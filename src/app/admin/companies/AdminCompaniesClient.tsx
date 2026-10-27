@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { Toggle } from "@/components/ui/Toggle";
-import { updateAcceptingMeetings, updateSortOrder, updateIsPublished, updateApproval, updateCompanyLogoUrl, updateListingStatus, clearListingRequest } from "./actions";
+import { updateAcceptingMeetings, updateSortOrder, updateIsPublished, updateCompanyLogoUrl, updateListingStatus, suspendCompanyAction, unsuspendCompanyAction } from "./actions";
 
 function getCompanyGradient(str: string): string {
   const gradients = [
@@ -53,6 +53,8 @@ const STATUS_TABS = [
         ⚠️ `source='user'` かつ `listing_status='draft'` の両方で絞る。
            運営が掲載に上げた後もここに残ると、作業一覧として使えなくなる。 */
   { key: "user_draft", label: "利用者が作成" },
+  /* ★運営が停止した企業（2026-10-28）。停止解除の依頼が来たものもここで見る */
+  { key: "suspended", label: "停止中" },
 ];
 
 export type CompanyAdmin = { name: string; isActive: boolean };
@@ -100,6 +102,13 @@ export type Company = {
    *     これは「運営が動くべき」という印で、掲載にすると自動で消える
    *     （`updateListingStatus('listed')`）。掲載しないと決めたら `clearListingRequest`。 */
   listing_requested_at?: string | null;
+  /** ★運営による停止（2026-10-28）。null は停止していない */
+  suspended_at?: string | null;
+  suspension_reason?: string | null;
+  /** 企業が「停止解除を依頼する」を押した日時 */
+  unsuspend_requested_at?: string | null;
+  /** ★スカウト機能の利用許可（2026-10-28。lib/business/scoutAccess.ts）。取れなければ undefined */
+  scout_access?: "none" | "requested" | "granted" | "revoked";
   /** ★会社の招待リンク（/join/<slug>）から登録した人数（2026-10-12）。運営画面だけに出す */
   invite_signups?: number;
 };
@@ -185,18 +194,22 @@ export default function AdminCompaniesClient(
       }));
   }
 
-  /* ★掲載依頼を片付ける（2026-09-29）。**掲載しないと決めたときだけ使う。**
-     ⚠️ 掲載するなら上のトグル（`handleListingToggle`）。あちらは依頼も自動で消える。
-     ⚠️ 企業には何も通知しない。断りの連絡は運営が直接行う。 */
-  function handleClearListingRequest(company: Company) {
-    return run(company.id, () => clearListingRequest(company.id),
-      (c) => ({ ...c, listing_requested_at: null }));
+  /* ★停止・停止解除（2026-10-28）。理由は必須で、企業にメールで送る。
+     ⚠️ 判定と書き込みは lib/companies/suspension.ts。停止すると一覧掲載・ページ表示も切れ、解除で停止前に戻る */
+  function handleSuspend(company: Company) {
+    const reason = window.prompt(`「${company.name ?? ""}」の企業ページを停止します。\n企業に送る停止の理由を入力してください（必須）。`);
+    if (reason === null) return;
+    if (!reason.trim()) { setErrorMsg("停止の理由を入力してください"); return; }
+    const now = new Date().toISOString();
+    return run(company.id, () => suspendCompanyAction(company.id, reason),
+      (c) => ({ ...c, suspended_at: now, suspension_reason: reason.trim(), unsuspend_requested_at: null, is_published: false, listing_status: "draft" }));
   }
-
-  // 承認（is_approved）。掲載は別操作なので is_published は動かさない。取り消しは無し
-  function handleApprove(company: Company) {
-    return run(company.id, () => updateApproval(company.id),
-      (c) => ({ ...c, is_approved: true }));
+  function handleUnsuspend(company: Company) {
+    const note = window.prompt(`「${company.name ?? ""}」の停止を解除し、停止前の公開の状態に戻します。\n企業に添える一言があれば入力してください（任意）。`);
+    if (note === null) return;
+    /* ⚠️ 解除後の公開状態はサーバーが停止前の値で戻す。画面は再読み込みで合わせる */
+    return run(company.id, () => unsuspendCompanyAction(company.id, note),
+      (c) => ({ ...c, suspended_at: null, suspension_reason: null, unsuspend_requested_at: null }));
   }
 
   // ── ドラッグ&ドロップ並び替え（「すべて」タブ + 検索なしのときのみ有効） ──
@@ -263,14 +276,10 @@ export default function AdminCompaniesClient(
    *  ⚠️ タブや検索で絞っても全体の数を出す（上の2つと同じ理由）。 */
   const noRecipientCount = companies.filter((c) => c.no_recipient === true).length;
 
-  /** ★企業からの掲載依頼（2026-09-29）。**0件が正常な状態。**
-   *  ⚠️ 検証用（`is_test`）も出す。押せるのは実在の担当者だけなので、
-   *     `/admin/companies` の「要対応」のように積み上がることがない。
-   *  ⚠️ タブや検索で絞っても全体の数を出す（上の2つと同じ理由）。 */
-  const listingRequests = companies
-    .filter((c) => Boolean(c.listing_requested_at))
-    /* ⚠️ 古い依頼を上に。放置が見えないと「件数だけ見て終わり」になる */
-    .sort((a, b) => String(a.listing_requested_at).localeCompare(String(b.listing_requested_at)));
+  /* ★停止解除の依頼（2026-10-28）。古い順。**0件が正常な状態** */
+  const unsuspendRequests = companies
+    .filter((c) => Boolean(c.suspended_at) && Boolean(c.unsuspend_requested_at))
+    .sort((a, b) => String(a.unsuspend_requested_at).localeCompare(String(b.unsuspend_requested_at)));
 
   const targetUnknownCount = companies.filter(
     (c) => c.listing_status === "listed"
@@ -281,6 +290,7 @@ export default function AdminCompaniesClient(
   const filtered = companies.filter((c) => {
     /* ★利用者が作った未掲載の企業だけ。⚠️ 掲載に上げたものは外す（作業一覧なので） */
     if (activeTab === "user_draft" && !(c.source === "user" && c.listing_status !== "listed")) return false;
+    if (activeTab === "suspended" && !c.suspended_at) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
@@ -297,6 +307,7 @@ export default function AdminCompaniesClient(
         「利用者が作った未掲載」であることに変わりはなく、ここは作業一覧なので
         隠すと自分で見えない状態を作る（CLAUDE.md「完全に隠さないこと」）。 */
   const userDraftCount  = companies.filter((c) => c.source === "user" && c.listing_status !== "listed").length;
+  const suspendedCount = companies.filter((c) => Boolean(c.suspended_at)).length;
 
   return (
     <div style={{ padding: 32 }}>
@@ -308,7 +319,7 @@ export default function AdminCompaniesClient(
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", background: "var(--error)", color: "#fff", padding: "2px 7px", borderRadius: 4 }}>ADMIN</span>
           </div>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
-            企業の承認・掲載と、カジュアル面談CTAの出し分けを管理します
+            企業ページの停止・掲載と、カジュアル面談CTAの出し分けを管理します
           </p>
         </div>
       </div>
@@ -320,9 +331,9 @@ export default function AdminCompaniesClient(
            何もゲートしていない。実装済みと誤読させる説明を置かないこと。
       */}
       <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        <strong style={{ color: "var(--ink)" }}>企業ページは作られた時点で見えます。</strong>{" "}
-        運営が判断するのは <strong>一覧掲載</strong>（一覧・検索・sitemap に載せるか）だけです。
-        一覧に載せるには <strong>承認</strong> が要ります（DB制約）。
+        <strong style={{ color: "var(--ink)" }}>企業ページの公開は企業が自分で行います（2026-10-28 から）。</strong>{" "}
+        運営は公開後に内容を確認し、問題があれば <strong>停止</strong> します。停止の理由は企業にメールで届き、企業の画面にも出ます。
+        停止すると一覧掲載・ページ表示が切れ、その会社の求人も求職者に出なくなります。解除すると停止前の状態に戻ります。
         一覧掲載をオンにすると、求職者向けのフィードに投稿が1件作られます。
         <br />
         <strong>経歴にだけ出てくる企業</strong>（非IT企業など）は、一覧掲載をオフのままにしてください。
@@ -385,47 +396,20 @@ export default function AdminCompaniesClient(
                 この1枚で分かる必要がある。
              ⚠️ 掲載するなら表の掲載トグル（依頼は自動で消える）。
                 掲載しないと決めたときだけ「対応済みにする」。 */}
-      {listingRequests.length > 0 && (
-        <div role="status" style={{
-          background: "var(--success-soft)", border: "1px solid #A7F3D0", borderRadius: 10,
-          padding: "10px 14px", marginBottom: 16, fontSize: 12.5,
-          color: "var(--success-ink)", lineHeight: 1.7,
+      {unsuspendRequests.length > 0 && (
+        <div role="status" data-state="unsuspend-requests" style={{
+          background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 10,
+          padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "var(--warm-ink)", lineHeight: 1.7,
         }}>
-          <strong>掲載依頼 {listingRequests.length}社</strong> — 企業が <strong>/biz の「掲載を依頼する」</strong>を押しました。
-          掲載するなら表の<strong>掲載トグル</strong>を入れてください（依頼の印は自動で消えます）。
+          <strong>停止解除の依頼 {unsuspendRequests.length}社</strong> — 停止中の企業が「停止解除を依頼する」を押しました。内容を確認し、表の「解除」から戻してください。
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-            {listingRequests.map((c) => {
-              /* ⚠️ 起点は依頼日時。別の起点にすると `/admin` の要対応と数字が食い違う */
-              const days = Math.floor((Date.now() - Date.parse(String(c.listing_requested_at))) / 86_400_000);
-              return (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <Link href={`/admin/companies/${c.id}`} style={{ fontWeight: 700, color: "var(--success-ink)" }}>
-                    {c.name}
-                  </Link>
-                  <span style={{ color: "var(--ink-mute)", fontSize: 11.5 }}>
-                    {new Date(String(c.listing_requested_at)).toLocaleDateString("ja-JP")}
-                    {days > 0 ? `（${days}日前）` : "（今日）"}
-                  </span>
-                  {/* ⚠️ 検証用は隠さず**印で区別する**（`/admin/ambassador-requests` と同じ方針） */}
-                  {c.is_test === true && (
-                    <span style={{ fontSize: 10.5, color: "var(--ink-mute)" }}>検証用</span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleClearListingRequest(c)}
-                    disabled={actionLoading === c.id}
-                    title="掲載しないと決めたときに押します。掲載状態は変わりません。企業には通知されません。"
-                    style={{
-                      background: "#fff", border: "1px solid #A7F3D0", borderRadius: 100,
-                      padding: "2px 10px", fontSize: 11, fontWeight: 700,
-                      color: "var(--success-ink)", cursor: actionLoading === c.id ? "wait" : "pointer",
-                    }}
-                  >
-                    {actionLoading === c.id ? "…" : "対応済みにする"}
-                  </button>
-                </div>
-              );
-            })}
+            {unsuspendRequests.map((c) => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Link href={`/admin/companies/${c.id}`} style={{ fontWeight: 700, color: "var(--warm-ink)" }}>{c.name}</Link>
+                <span style={{ color: "var(--ink-mute)", fontSize: 11.5 }}>{new Date(String(c.unsuspend_requested_at)).toLocaleDateString("ja-JP")} に依頼</span>
+                {c.is_test === true && <span style={{ fontSize: 10.5, color: "var(--ink-mute)" }}>検証用</span>}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -468,6 +452,7 @@ export default function AdminCompaniesClient(
           const COUNTS: Record<string, number> = {
             all: companies.length,
             user_draft: userDraftCount,
+            suspended: suspendedCount,
           };
           const count = COUNTS[tab.key];
           const active = activeTab === tab.key;
@@ -510,7 +495,7 @@ export default function AdminCompaniesClient(
                 */}
                 {/* ⚠️ 2026-08-13 に「ページ公開」→「ページ」に変え、一覧掲載の後ろへ移した。
                        運営が日常的に押すのは「一覧掲載」だけなので、そちらを前に出す。 */}
-                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "承認", "一覧掲載", "ページ表示", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
+                {["", "企業名", "HP", "ロゴURL", "業界", "担当", "停止", "一覧掲載", "ページ表示", "面談受付", "求人数", "ページ", "更新日"].map((h) => (
                   <th key={h} scope="col" style={{ textAlign: "left", padding: "10px 14px", fontSize: 11, color: "var(--ink-mute)", fontWeight: 700, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
@@ -593,21 +578,34 @@ export default function AdminCompaniesClient(
                                 宛先なし
                               </div>
                             )}
-                            {/* ★企業が掲載を依頼した（2026-09-29）。
-                                   ⚠️ 琥珀（要対応＝違反）とも royal（宛先なし）とも色を分ける。
-                                      これは**壊れているのではなく、企業からの申し出**。 */}
-                            {c.listing_requested_at && (
+                            {/* ★運営が停止中（2026-10-28）。理由は title に */}
+                            {c.suspended_at && (
                               <div
-                                title={`企業が「掲載を依頼する」を押しました（${new Date(String(c.listing_requested_at)).toLocaleString("ja-JP")}）。掲載トグルを入れると、この印は自動で消えます。`}
+                                data-state="row-suspended"
+                                title={`停止の理由：${c.suspension_reason ?? ""}${c.unsuspend_requested_at ? `\n停止解除の依頼：${new Date(String(c.unsuspend_requested_at)).toLocaleString("ja-JP")}` : ""}`}
                                 style={{
                                   display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4,
                                   padding: "2px 7px", borderRadius: 100,
-                                  background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                                  fontSize: 10.5, fontWeight: 700, color: "var(--success-ink)", whiteSpace: "nowrap",
+                                  background: "#FEF3C7", border: "1px solid #FDE68A",
+                                  fontSize: 10.5, fontWeight: 700, color: "var(--warm-ink)", whiteSpace: "nowrap",
                                 }}
                               >
-                                掲載依頼
+                                停止中{c.unsuspend_requested_at ? "・解除の依頼あり" : ""}
                               </div>
+                            )}
+                            {/* ★スカウト機能（2026-10-28）。使えるときと依頼中だけ印を出す */}
+                            {(c.scout_access === "granted" || c.scout_access === "requested") && (
+                              <Link href="/admin/scout-access" data-state={`row-scout-${c.scout_access}`}
+                                style={{
+                                  display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, marginLeft: 4,
+                                  padding: "2px 7px", borderRadius: 100, textDecoration: "none",
+                                  background: c.scout_access === "granted" ? "var(--success-soft)" : "var(--royal-50)",
+                                  border: `1px solid ${c.scout_access === "granted" ? "#A7F3D0" : "var(--royal-100)"}`,
+                                  fontSize: 10.5, fontWeight: 700, color: c.scout_access === "granted" ? "var(--success-ink)" : "var(--royal)", whiteSpace: "nowrap",
+                                }}
+                              >
+                                {c.scout_access === "granted" ? "スカウト可" : "スカウト依頼中"}
+                              </Link>
                             )}
                             {/* ★招待リンクからの登録（2026-10-12）。⚠️ 運営画面だけ。0 は出さない */}
                             {(c.invite_signups ?? 0) > 0 && (
@@ -695,30 +693,21 @@ export default function AdminCompaniesClient(
                         })()}
                       </td>
 
-                      {/*
-                        承認 (is_approved) — 運営が掲載を許すかどうか。
-                        ⚠️ 2026-08-05 に追加。それまで is_approved を変える UI が
-                           アプリ全体に1つも無く（updateApproval は呼び出し元ゼロ）、
-                           承認待ちの企業を承認する手段が migration しかなかった。
-                        ⚠️ 取り消しは出さない。is_published = true の企業を未承認に戻すと
-                           CHECK 制約に違反する行が残る（制約は更新時にしか効かない）。
-                        ⚠️ 掲載（is_published）は別操作。承認しても自動では掲載されない。
-                      */}
+                      {/* ★停止・停止解除（2026-10-28）。⚠️ 承認（is_approved）の列は外した（公開の条件ではなくなったため。列は残してある） */}
                       <td style={{ padding: "10px 14px" }}>
-                        {c.is_approved ? (
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100,
-                                         background: "#ECFDF5", color: "var(--success-ink)", border: "1px solid #A7F3D0", whiteSpace: "nowrap" }}>
-                            ✓ 承認済み
-                          </span>
+                        {c.suspended_at ? (
+                          <button type="button" data-state="unsuspend" onClick={() => handleUnsuspend(c)} disabled={isLoading}
+                            title={`停止の理由：${c.suspension_reason ?? ""}`}
+                            style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
+                              background: "#fff", color: "var(--warm-ink)", border: "1px solid #FDE68A", whiteSpace: "nowrap", opacity: isLoading ? 0.5 : 1 }}>
+                            停止中・解除
+                          </button>
                         ) : (
-                          <button type="button" onClick={() => handleApprove(c)} disabled={isLoading}
-                            title="運営として掲載を承認します。取り消しはできません（掲載は別操作）"
-                            style={{
-                              fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
-                              background: "var(--warm-strong)", color: "#fff", border: "none", whiteSpace: "nowrap",
-                              opacity: isLoading ? 0.5 : 1,
-                            }}>
-                            承認する
+                          <button type="button" data-state="suspend" onClick={() => handleSuspend(c)} disabled={isLoading}
+                            title="企業ページを停止します。理由は企業にメールで送られます"
+                            style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 100, cursor: "pointer",
+                              background: "#fff", color: "var(--ink-soft)", border: "1px solid #E2E8F0", whiteSpace: "nowrap", opacity: isLoading ? 0.5 : 1 }}>
+                            停止
                           </button>
                         )}
                       </td>

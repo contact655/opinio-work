@@ -1,6 +1,7 @@
 "use server";
 
 import { markPublished, stopJob } from "@/lib/jobs/publishServer";
+import { logJobModeration } from "@/lib/companies/suspension";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -49,13 +50,16 @@ export async function republishJob(jobId: string): Promise<ActionResult> {
 
 async function publishAs(jobId: string): Promise<ActionResult> {
   if (!UUID_RE.test(jobId)) return { ok: false, error: "求人IDが不正です" };
+  let adminOwUserId: string | null = null;
   try {
-    await assertAdmin();
+    adminOwUserId = await assertAdmin();
   } catch {
     return { ok: false, error: "権限がありません" };
   }
   const r = await markPublished(jobId, { actorOwUserId: null });
   if (!r.ok) return { ok: false, error: r.error };
+  /* ★停止・再開の履歴（2026-10-28） */
+  await logJobModeration(jobId, "unsuspend", null, adminOwUserId);
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${jobId}`);
   return { ok: true };

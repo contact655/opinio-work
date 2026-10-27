@@ -26,11 +26,12 @@ import { COMPANY_REQUIREMENTS, missingCompanyRequirements, type CompanyRequireme
  *   ・**求職者に見えないものは入力させない。** 外した入力欄（平均年齢・男女比・平均年収・累計調達額・
  *     企業の特徴・「数値を最新として公開する」）の列とデータは残してある。**フォームに戻さないこと。**
  *   ・反映は「公開する」1つ。入力は下書き（draft_data）に自動保存され、写真も未公開で入る。
- *       掲載前 … 「掲載を依頼する」→ 運営が掲載にする操作の中で、下書きと写真がまとめて公開される
- *       掲載中 … 「変更を公開する」で反映（lib/companies/applyDraft.ts）
+ *       公開前 … 「公開する」で、下書きと写真がまとめて公開され、企業一覧にも載る（2026-10-28 から企業が自分で。lib/companies/listing.ts）
+ *       公開中 … 「変更を公開する」で反映（lib/companies/applyDraft.ts）。「非公開にする」で一覧から外す
+ *       停止中 … 運営が停止したページ。公開には戻せない（DB でも止まる）。内容の編集はでき、「停止解除を依頼する」を押す
  *   ・事業領域も下書きに入る（それまでは選ぶと即時保存だった）。反映のときに本体より先に書く。
  *   ・公開に必要な項目は `companyRequirements.ts` の1か所。右側の「公開まであと〇つ」とサーバーが同じ関数を呼ぶ。
- *   ・掲載利用規約の同意は、初めて「掲載を依頼する」を押したときの確認画面で取る（サーバー側の確認は2か所のまま）。
+ *   ・掲載利用規約の同意は、初めて「公開する」を押したときの確認画面で取る（サーバー側の確認は2か所のまま）。
  *   ・通知の宛先は「メンバーと権限」へ移した（即時保存）。
  *   ・タブはやめて1ページ。並び: 基本情報 → 会社紹介 → 働き方 → 写真。
  * ⚠️ 状態はバッジにしない（灰色の文字）。
@@ -51,14 +52,14 @@ type Props = {
   isAdmin?: boolean;
   /** ★基本情報（社名・ロゴ・業種など）を編集できるか（company.basic。管理者だけ） */
   canEditBasic?: boolean;
-  /** ★掲載を依頼できるか（company.listingRequest。管理者だけ） */
+  /** ★公開する・非公開にする・停止解除を依頼するを押せるか（company.listingRequest。管理者だけ） */
   canRequestListing?: boolean;
   /** 掲載利用規約に（見ている人が）同意済みか */
   initialTermsAgreed?: boolean;
   /** 同意記録用のユーザーID（auth.users.id） */
   userId?: string;
-  /** 掲載を依頼した日時。⚠️ `form`（下書き）に入れない（運営が対応したら null に戻すサーバー側の状態） */
-  initialListingRequestedAt?: string | null;
+  /** ★運営による停止（2026-10-28）。停止中でなければ null。⚠️ `form`（下書き）に入れない */
+  suspension?: { reason: string | null; suspendedAt: string | null; unsuspendRequestedAt: string | null } | null;
   /** `ow_companies.listing_status`。⚠️ 同じ理由で `form` に入れない */
   listingStatus?: string | null;
   /** `ow_companies.is_published`（本番の値）。⚠️ 下書きの値を使わない */
@@ -346,7 +347,7 @@ export function CompanyEditClient({
   canRequestListing = true,
   initialTermsAgreed = false,
   userId = "",
-  initialListingRequestedAt = null,
+  suspension = null,
   listingStatus = null,
   isPublished = false,
   headquartersAddress = null,
@@ -357,7 +358,8 @@ export function CompanyEditClient({
   const [showDoneReqs, setShowDoneReqs] = useState(false);
   const [photos, setPhotos] = useState<OfficePhoto[]>(initialPhotos);
   const [termsAgreed, setTermsAgreed] = useState(initialTermsAgreed);
-  const [listingRequestedAt, setListingRequestedAt] = useState<string | null>(initialListingRequestedAt);
+  const [unsuspendRequestedAt, setUnsuspendRequestedAt] = useState<string | null>(suspension?.unsuspendRequestedAt ?? null);
+  const [unsuspendMessage, setUnsuspendMessage] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [hasDraftChanges, setHasDraftChanges] = useState(initialCompany.hasDraftChanges);
   const [busy, setBusy] = useState(false);
@@ -367,7 +369,7 @@ export function CompanyEditClient({
         サーバーは「変更を公開する」でも同意を確かめるので、ここで取らないと行き止まりになる
         （運営が依頼なしに掲載した企業や、あとから加わった担当者）。 */
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmMode, setConfirmMode] = useState<"listing" | "publish">("listing");
+  const [confirmMode, setConfirmMode] = useState<"listing" | "publish" | "unsuspend">("listing");
   const [termsChecked, setTermsChecked] = useState(false);
 
   const hasInteracted = useRef(false);
@@ -383,7 +385,8 @@ export function CompanyEditClient({
 
   // ── 状態 ───────────────────────────────────────────────────────────────
   /* ⚠️ 掲載の状態は本番の値（isPublished / listingStatus）で決める。下書きの値を使わない */
-  const pageStatus = companyPageStatus({ isPublished, listingStatus, termsAgreed, listingRequestedAt });
+  const suspended = suspension !== null;
+  const pageStatus = companyPageStatus({ isPublished, listingStatus, termsAgreed, suspended });
   const listed = pageStatus.kind === "listed";
   const hasPrimaryDomain = form.primaryBusinessDomainId !== null && form.businessDomainIds.includes(form.primaryBusinessDomainId);
   /* ★分類の4つの質問（2026-10-12）。値は form（下書き）に持つ */
@@ -423,12 +426,12 @@ export function CompanyEditClient({
     location: form.location,
     headquartersAddress,
   }, { forListing: true });
-  /* 掲載中は企業名・業種・事業領域だけで止める（従業員数・本社所在地は「掲載を依頼する」のときだけ） */
+  /* 掲載中は企業名・業種・事業領域だけで止める（従業員数・本社所在地は公開前だけ） */
   const blocking: CompanyRequirement[] = listed ? missingAll.filter((r) => r.scope === "always") : missingAll;
   const hasChanges = hasDraftChanges || photos.some((p) => p.isDraft);
 
   /* ★1行の状態はホームの右の列と同じ関数（`companyStatusText`） */
-  const statusText = companyStatusText(pageStatus, { hasChanges, listingRequestedAt, blockingCount: blocking.length });
+  const statusText = companyStatusText(pageStatus, { hasChanges, unsuspendRequestedAt, blockingCount: blocking.length });
 
   // ── 自動保存（下書き）──────────────────────────────────────────────────
   async function putDraft(next: BizCompany): Promise<boolean> {
@@ -551,32 +554,60 @@ export function CompanyEditClient({
     }
   }
 
-  // ── 掲載の依頼（掲載前）────────────────────────────────────────────────
-  async function handleRequestListing() {
+  // ── 公開する・非公開にする（2026-10-28 から企業が自分で。lib/companies/listing.ts）────────
+  async function handleSetListed(listed: boolean) {
+    if (busy) return;
+    setBusy(true);
+    busyRef.current = true;
+    try {
+      if (listed) {
+        if (!(await flushDraft())) return;
+        if (!(await recordAgreementIfNeeded())) return;
+      }
+      const res = await fetch("/api/biz/company/listing", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ listed }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok) {
+        showError(d?.message ?? d?.error ?? (listed ? "公開できませんでした。時間をおいてもう一度お試しください。" : "非公開にできませんでした。時間をおいてもう一度お試しください。"));
+        return;
+      }
+      setConfirmOpen(false);
+      if (listed) {
+        hasInteracted.current = false;
+        setHasDraftChanges(false);
+        setPhotos((prev) => prev.map((p) => ({ ...p, isDraft: false })));
+      }
+      showToast(listed ? "企業ページを公開しました ✓" : "企業ページを非公開にしました", "default");
+      router.refresh();
+    } catch {
+      showError("通信に失敗しました。通信状況をご確認ください。");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  // ── 停止解除の依頼（停止中）────────────────────────────────────────────
+  async function handleRequestUnsuspend() {
     if (busy) return;
     setBusy(true);
     busyRef.current = true;
     try {
       if (!(await flushDraft())) return;
-      if (!(await recordAgreementIfNeeded())) return;
-      const res = await fetch("/api/biz/company/listing-request", { method: "POST" });
+      const res = await fetch("/api/biz/company/unsuspend-request", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: unsuspendMessage.trim() || null }),
+      });
       const d = await res.json().catch(() => null);
-      if (!res.ok) {
-        /* ⚠️ 409（すでに依頼済み）は失敗ではない。別の担当者が先に押した場合 */
-        if (res.status === 409 && typeof d?.requestedAt === "string") {
-          setListingRequestedAt(d.requestedAt);
-          setConfirmOpen(false);
-          showToast("すでに掲載依頼を受け付けています", "default");
-          return;
-        }
-        showError(d?.message ?? d?.error ?? "掲載依頼を送信できませんでした。時間をおいてもう一度お試しください。");
+      if (!res.ok && res.status !== 409) {
+        showError(d?.error ?? "停止解除を依頼できませんでした。時間をおいてもう一度お試しください。");
         return;
       }
-      setListingRequestedAt(typeof d?.requestedAt === "string" ? d.requestedAt : new Date().toISOString());
+      setUnsuspendRequestedAt(typeof d?.requestedAt === "string" ? d.requestedAt : new Date().toISOString());
       setConfirmOpen(false);
-      showToast("掲載を依頼しました ✓", "default");
+      showToast(res.status === 409 ? "すでに停止解除の依頼を受け付けています" : "停止解除を依頼しました ✓", "default");
     } catch {
-      showError("掲載依頼を送信できませんでした。通信状況をご確認ください。");
+      showError("停止解除を依頼できませんでした。通信状況をご確認ください。");
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -593,6 +624,13 @@ export function CompanyEditClient({
 
   // ── 主ボタン ───────────────────────────────────────────────────────────
   const primary = (() => {
+    if (suspended) {
+      if (unsuspendRequestedAt) return { label: "停止解除を依頼済み", enabled: false, onClick: undefined as (() => void) | undefined, state: "unsuspend-requested" };
+      return {
+        label: "停止解除を依頼する", enabled: canRequestListing && !busy, state: "unsuspend",
+        onClick: () => { setUnsuspendMessage(""); setConfirmMode("unsuspend"); setConfirmOpen(true); },
+      };
+    }
     if (listed) {
       /* ★変更が無いときは「変更はありません」（2026-10-18。上の「公開中」と同じことを「公開済み」で繰り返していた） */
       if (!hasChanges) return { label: "変更はありません", enabled: false, onClick: undefined as (() => void) | undefined, state: "published" };
@@ -602,19 +640,18 @@ export function CompanyEditClient({
         onClick: termsAgreed ? handlePublish : () => { setTermsChecked(false); setConfirmMode("publish"); setConfirmOpen(true); },
       };
     }
-    if (listingRequestedAt) return { label: "掲載を依頼済み", enabled: false, onClick: undefined, state: "requested" };
     return {
-      label: "掲載を依頼する",
+      label: "公開する",
       enabled: canRequestListing && blocking.length === 0 && !busy,
       onClick: () => { setTermsChecked(false); setConfirmMode("listing"); setConfirmOpen(true); },
       state: "request",
     };
   })();
   const primaryHint = !isAdmin
-    ? "公開・掲載の依頼は管理者権限の担当者が行えます。"
-    : primary.state === "request" && !canRequestListing
-    ? "掲載の依頼は管理者が行います。"
-    : primary.state !== "published" && primary.state !== "requested" && blocking.length > 0
+    ? "公開は管理者権限の担当者が行えます。"
+    : (primary.state === "request" || primary.state === "unsuspend") && !canRequestListing
+    ? (suspended ? "停止解除の依頼は管理者が行います。" : "企業ページの公開は管理者が行います。")
+    : !suspended && primary.state !== "published" && blocking.length > 0
       ? `必要な項目があと${blocking.length}つあります。`
       : null;
 
@@ -662,12 +699,31 @@ export function CompanyEditClient({
           >
             {primary.label}
           </button>
+          {/* ★非公開にする（2026-10-28）。一覧から外すだけで、ページは残す（職歴からの会社リンクを切らないため） */}
+          {listed && canRequestListing && (
+            <button type="button" data-state="unlist" disabled={busy}
+              onClick={() => { if (window.confirm("企業ページを企業一覧から外します。公開中の求人はそのままですが、新しい求人は公開できなくなります。よろしいですか？")) void handleSetListed(false); }}
+              style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 13, fontWeight: 600, fontFamily: "inherit", color: "var(--ink-soft)", cursor: busy ? "default" : "pointer" }}>
+              非公開にする
+            </button>
+          )}
         </div>
 
         <div className="cpe-scroll" style={{ flex: 1, overflowY: "auto" }}>
           <div className="cpe-grid">
             {/* ── 本文 ── */}
             <div style={{ minWidth: 0 }}>
+              {/* ★運営による停止（2026-10-28）。理由をそのまま出す */}
+              {suspended && (
+                <div role="status" data-state="company-suspended" style={{ padding: "14px 16px", marginBottom: 16, borderRadius: 10, background: "var(--warm-soft)", border: "1px solid #FCD34D", lineHeight: 1.7 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--warm-ink)", marginBottom: 4 }}>このページは運営により停止されています</div>
+                  {suspension?.reason && <div style={{ fontSize: 13, color: "var(--ink)", whiteSpace: "pre-wrap", marginBottom: 6 }}>理由：{suspension.reason}</div>}
+                  <div style={{ fontSize: 12.5, color: "#78350F" }}>
+                    停止中は、企業ページと求人が求職者に表示されず、候補者へのメッセージも送れません。内容は編集できます。
+                    {unsuspendRequestedAt ? "停止解除の依頼を受け付けました。運営が確認してメールでお知らせします。" : "直したら「停止解除を依頼する」を押してください。"}
+                  </div>
+                </div>
+              )}
               {errorMessage && (
                 <div role="alert" style={{
                   display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10,
@@ -850,7 +906,7 @@ export function CompanyEditClient({
                   {blocking.length > 0 ? `公開まであと${blocking.length}つ` : "公開に必要な項目はそろっています"}
                 </div>
                 <div style={{ fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 10 }}>
-                  {listed ? "掲載中です。従業員数・本社所在地が空でも公開は止まりませんが、入力してください。" : "すべてそろうと「掲載を依頼する」を押せます。"}
+                  {listed ? "公開中です。従業員数・本社所在地が空でも公開は止まりませんが、入力してください。" : "すべてそろうと「公開する」を押せます。"}
                 </div>
                 {/* ★2026-10-18（柴さんの指示）: 入力済みの項目は畳む（8行並ぶと右側が長く、下の箱が画面から外れていた）。
                       未入力の項目だけを出し、入力済みは「入力済み N項目」を押すと開く */}
@@ -936,21 +992,30 @@ export function CompanyEditClient({
         </div>
       </div>
 
-      {/* ── 掲載依頼の確認画面（初めてのときは掲載利用規約への同意もここで取る）── */}
+      {/* ── 公開・停止解除の依頼の確認画面（初めてのときは掲載利用規約への同意もここで取る）── */}
       {confirmOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="cpe-confirm-title" data-state="listing-confirm"
           style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}
           onClick={(e) => { if (e.target === e.currentTarget && !busy) setConfirmOpen(false); }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, padding: "24px 26px" }}>
             <h2 id="cpe-confirm-title" style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>
-              {confirmMode === "listing" ? "掲載を依頼する" : "変更を公開する"}
+              {confirmMode === "listing" ? "企業ページを公開する" : confirmMode === "unsuspend" ? "停止解除を依頼する" : "変更を公開する"}
             </h2>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8, margin: "0 0 14px" }}>
               {confirmMode === "listing"
-                ? "OPINIO 運営が内容を確認してから、企業一覧に掲載します。掲載のときに、いま入力している内容と写真がまとめて公開されます。押しただけでは掲載は始まりません。"
+                ? "いま入力している内容と写真をまとめて公開し、企業一覧にも載せます。公開後も運営が内容を確認し、問題がある場合は停止することがあります。"
+                : confirmMode === "unsuspend"
+                ? "運営に停止の解除を依頼します。運営が内容を確認し、結果をメールでお知らせします。"
                 : "いま入力している内容と未公開の写真を、企業ページに公開します。公開するには、掲載利用規約への同意が必要です。"}
             </p>
-            {!termsAgreed && (
+            {confirmMode === "unsuspend" && (
+              <>
+                <label htmlFor="cpe-unsuspend-message" style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>直したこと・運営への一言（任意）</label>
+                <textarea id="cpe-unsuspend-message" value={unsuspendMessage} onChange={(e) => setUnsuspendMessage(e.target.value)} maxLength={500} rows={3}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", fontSize: 14, fontFamily: "inherit", resize: "vertical", marginBottom: 14 }} />
+              </>
+            )}
+            {!termsAgreed && confirmMode !== "unsuspend" && (
               <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "12px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)", marginBottom: 14 }}>
                 <input type="checkbox" checked={termsChecked} onChange={(e) => setTermsChecked(e.target.checked)} style={{ marginTop: 3, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
                 <span style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.7 }}>
@@ -965,13 +1030,14 @@ export function CompanyEditClient({
                 やめる
               </button>
               {(() => {
-                const ok = !busy && (termsAgreed || termsChecked);
+                const ok = !busy && (confirmMode === "unsuspend" || termsAgreed || termsChecked);
                 return (
-                  <button type="button" onClick={confirmMode === "listing" ? handleRequestListing : handlePublish} disabled={!ok} className="btn-fixed-size"
+                  <button type="button" onClick={confirmMode === "listing" ? () => { void handleSetListed(true); } : confirmMode === "unsuspend" ? handleRequestUnsuspend : handlePublish} disabled={!ok} className="btn-fixed-size"
                     style={{ padding: "9px 18px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
                       background: ok ? "var(--royal)" : "var(--line-soft)", color: ok ? "#fff" : "var(--ink-mute)", cursor: ok ? "pointer" : "default" }}>
                     {busy ? "送信中..."
-                      : confirmMode === "listing" ? (termsAgreed ? "掲載を依頼する" : "同意して掲載を依頼する")
+                      : confirmMode === "listing" ? (termsAgreed ? "公開する" : "同意して公開する")
+                      : confirmMode === "unsuspend" ? "依頼する"
                       : "同意して公開する"}
                   </button>
                 );

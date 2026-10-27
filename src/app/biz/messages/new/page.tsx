@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { getTenantContext } from "@/lib/business/dashboard";
 import { canUse } from "@/lib/constants/plans";
-import { isCompanyReviewed, COMPANY_REVIEW_BLOCKED_MESSAGE } from "@/lib/business/scoutGate";
+import { hasScoutAccess, scoutBlockedMessage } from "@/lib/business/scoutGate";
 import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
 import { getApproachQuota, getRecentlyApproached, listApproachableJobs, listApproachSenders } from "@/lib/approaches/server";
@@ -53,7 +53,7 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
       </div>
     </BusinessLayout>
   );
-  if (!isCompanyReviewed(ctx)) return message(COMPANY_REVIEW_BLOCKED_MESSAGE);
+  if (!hasScoutAccess(ctx)) return message(scoutBlockedMessage(ctx), ctx.isSuspended ? { label: "企業ページの編集画面を開く", href: "/biz/company" } : null);
   if (!canUse(ctx.planType, "companyApproach")) return message("企業からのメッセージは、ご利用のプランでは使えません。");
   const candidateId = searchParams?.candidate ?? "";
   if (!/^[0-9a-f-]{36}$/.test(candidateId)) return message("メッセージを送る相手が指定されていません。");

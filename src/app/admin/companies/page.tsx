@@ -1,3 +1,4 @@
+import { getScoutAccessMap } from "@/lib/business/scoutAccess";
 import { readAll } from "@/lib/supabase/paging";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { countJoinSignups } from "@/lib/companies/joinLink";
@@ -43,7 +44,7 @@ export default async function AdminCompaniesPage() {
             運営が見つける唯一の入口がこの一覧なので（2026-09-05 追加）。 */
       /* ⚠️ `listing_requested_at`（企業が「掲載を依頼する」を押した日時）も取る。
             運営が動く対象なので、この一覧に出さないと誰も気づけない（2026-09-29 追加）。 */
-      .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url, url, target_industry_scope, is_test, source, listing_requested_at")
+      .select("id, slug, name, brand_name, industry, location, employee_count, is_published, is_approved, accepting_casual_meetings, listing_status, engagement_status, jobs_public, verified_at, contracted_at, created_at, updated_at, sort_order, logo_url, url, target_industry_scope, is_test, source, listing_requested_at, suspended_at, suspension_reason, unsuspend_requested_at")
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .order("id")
@@ -136,6 +137,8 @@ export default async function AdminCompaniesPage() {
 
   /* ★会社の招待リンクから登録した人数（2026-10-12）。⚠️ 運営画面だけ（企業には出さない） */
   const inviteCounts = await countJoinSignups();
+  /* ★スカウト機能の利用許可（2026-10-28）。⚠️ 取れなければ印を出さない（未申請と混ぜない） */
+  const scoutMap = await getScoutAccessMap(((companyRows ?? []) as unknown as Company[]).map((c) => c.id));
   const companies: Company[] = ((companyRows ?? []) as unknown as Company[]).map((c) => ({
     ...c,
     job_count: jobCountMap.get(c.id) ?? 0,
@@ -143,6 +146,7 @@ export default async function AdminCompaniesPage() {
     publish_blockers: blockers?.get(c.id) ?? [],
     no_recipient: noRecipientIds.has(c.id),
     invite_signups: inviteCounts?.get(c.id) ?? 0,
+    scout_access: scoutMap?.get(c.id),
   }));
 
   return <AdminCompaniesClient initialCompanies={companies} blockersFailed={blockersFailed} recipientsFailed={recipientsFailed} />;

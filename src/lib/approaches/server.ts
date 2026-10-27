@@ -3,7 +3,7 @@ import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyLinkStateFor, type CompanyLinkState } from "@/lib/companies/linkState";
-import { jobListingStateFor, type JobListingState } from "@/lib/jobs/publicJobs";
+import { PUBLIC_JOB_MATCH, jobListingStateFor, type JobListingState } from "@/lib/jobs/publicJobs";
 import { listSameTestStaff } from "@/lib/business/sameTestStaff";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
@@ -260,7 +260,7 @@ export async function sendApproach(params: {
   let jobId: string | null = null;
   if (params.jobId) {
     const { data: job, error: jErr } = await db.from("ow_jobs").select("id").eq("id", params.jobId)
-      .eq("company_id", params.companyId).eq("status", "published").eq("is_test", false).maybeSingle();
+      .eq("company_id", params.companyId).match(PUBLIC_JOB_MATCH).maybeSingle();
     if (jErr) console.error("[approaches] job:", jErr.message);
     if (!job) return { ok: false, status: 400, error: "添えられる求人ではありません" };
     jobId = job.id as string;
@@ -376,7 +376,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
       ? db.from("ow_users").select("id, name").in("id", senderIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
     jobIds.length > 0
-      ? db.from("ow_jobs").select("id, title, slug, status, is_test").in("id", jobIds)
+      ? db.from("ow_jobs").select("id, title, slug, status, is_test, company_suspended").in("id", jobIds)
       : Promise.resolve({ data: [] as { id: string; title: string; slug: string | null; status: string; is_test: boolean }[], error: null }),
     /* ★送った担当者の役職（「〇〇（役職）から」）。⚠️ 取れなくても本文は出す（役職を省くだけ） */
     senderIds.length > 0
@@ -419,7 +419,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
         if (!j) return null;
         return {
           id: j.id as string, title: (j.title as string) || "（無題の求人）", slug: (j.slug as string | null) ?? null,
-          state: jobListingStateFor(j as { status: string; is_test: boolean }, { viewerIsTest: me.is_test === true, companyIsTest: c.is_test === true }),
+          state: jobListingStateFor(j as { status: string; is_test: boolean; company_suspended?: boolean }, { viewerIsTest: me.is_test === true, companyIsTest: c.is_test === true }),
         };
       })(),
     }];
@@ -729,7 +729,7 @@ export async function listSentApproaches(companyId: string): Promise<SentApproac
 /** ★声かけに添えられる求人（その企業の公開中の求人。2026-10-10 / 段6）。失敗したら空（選択欄を出さない） */
 export async function listApproachableJobs(companyId: string): Promise<{ id: string; title: string }[]> {
   const { data, error } = await createAdminClient().from("ow_jobs").select("id, title")
-    .eq("company_id", companyId).eq("status", "published").eq("is_test", false).order("created_at", { ascending: false });
+    .eq("company_id", companyId).match(PUBLIC_JOB_MATCH).order("created_at", { ascending: false });
   if (error) { console.error("[approaches] jobs:", error.message); return []; }
   return (data ?? []).map((j) => ({ id: j.id as string, title: (j.title as string) || "（無題の求人）" }));
 }

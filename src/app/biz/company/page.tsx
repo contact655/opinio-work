@@ -56,7 +56,7 @@ export default async function BizCompanyPage() {
       .select("domain_id, is_primary")
       .eq("company_id", ctx.tenantId),
     /* ⚠️ 通知先の候補はここで引かない（2026-10-12 に「メンバーと権限」へ移した） */
-    /* ★掲載依頼の記録（2026-09-29）。
+    /* ★公開の状態（2026-10-28 から掲載依頼の記録は使わない。停止の状態は getTenantContext から）。
           ⚠️★**`fetchCompanyForTenant`（＝ `BizCompany`）に混ぜないこと。** あれは
              `draft_data` に自動保存される**企業が編集する値**で、この列は運営が
              対応したら NULL に戻す**サーバー側の状態**。混ぜると自動保存のたびに
@@ -67,7 +67,7 @@ export default async function BizCompanyPage() {
       .from("ow_companies")
       /* ★`listing_status` も引く（2026-10-08）。状態表示（`companyPageStatus`）が要る。
             ⚠️ これも `form` に入れない（下書きに混ぜると古い値で上書きされる） */
-      .select("listing_requested_at, listing_status, is_published, headquarters_address")
+      .select("listing_status, is_published, headquarters_address")
       .eq("id", ctx.tenantId)
       .maybeSingle(),
     /* ★お客さまの業界（公開中の値）。下書きに無いときの初期値 */
@@ -80,7 +80,7 @@ export default async function BizCompanyPage() {
         既に依頼済みの企業にもう一度ボタンを出すことになる（API 側は 409 で止まるが、
         押した人には理由が分からない）。 */
   if (listingRequestResult.error) {
-    console.error("[biz/company] listing_requested_at の取得に失敗:", listingRequestResult.error.message);
+    console.error("[biz/company] 公開の状態の取得に失敗:", listingRequestResult.error.message);
   }
 
   /* ⚠️ `error` を捨てない。捨てると「1件も選んでいない」と区別できず、
@@ -129,7 +129,7 @@ export default async function BizCompanyPage() {
       canRequestListing={can(ctx.currentPermission, "company.listingRequest")}
       initialTermsAgreed={termsAgreed}
       userId={user?.id ?? ""}
-      initialListingRequestedAt={(listingRequestResult.data?.listing_requested_at as string | null) ?? null}
+      suspension={ctx.isSuspended ? { reason: ctx.suspensionReason, suspendedAt: ctx.suspendedAt, unsuspendRequestedAt: ctx.unsuspendRequestedAt } : null}
       listingStatus={(listingRequestResult.data?.listing_status as string | null) ?? null}
       isPublished={listingRequestResult.data?.is_published === true}
       headquartersAddress={(listingRequestResult.data?.headquarters_address as string | null) ?? null}

@@ -12,8 +12,6 @@ import type { HomeChecklistItem } from "@/lib/business/homeTypes";
 export type HomeChecklistInput = {
   /** 企業ページが一覧に掲載中 */
   listed: boolean;
-  /** 掲載を依頼済み（運営が確認中） */
-  listingRequested: boolean;
   /** 企業ページの「公開まであと〇つ」。取れなければ null */
   companyMissing: number | null;
   /** 求人の数（全状態）。取れなければ null */
@@ -39,7 +37,7 @@ export function buildHomeChecklist(i: HomeChecklistInput): HomeChecklistItem[] {
     : null;
   return [
     /* ★OPINIO が作った企業ページを、担当者に確かめてもらう（2026-10-17 / 柴さんの指示）。
-          掲載中の企業は「掲載の依頼」が最初から済みなので、説明が古い・違うことに気づく入口がほかに無い。
+          公開中の企業は「公開する」が最初から済みなので、説明が古い・違うことに気づく入口がほかに無い。
           ⚠️ 済みの判定は「一度でも保存したか」。直すところが無かった人は済みにならないが、
              確認したという記録を持つ列が無いので、保存で代える（DB を増やさない判断）。 */
     ...(i.pageBuiltByOpinio ? [{
@@ -48,8 +46,9 @@ export function buildHomeChecklist(i: HomeChecklistInput): HomeChecklistItem[] {
       hint: "公開情報をもとに作成しています。会社の説明・従業員数・拠点などが正しいか確認し、違えば直してください",
     }] : []),
     {
-      key: "listing", label: "企業ページの掲載を依頼する", href: "/biz/company",
-      done: i.listed || i.listingRequested,
+      /* ★2026-10-28 から企業が自分で公開する（それまでは「掲載を依頼する」→ 運営が掲載） */
+      key: "listing", label: "企業ページを公開する", href: "/biz/company",
+      done: i.listed,
       hint: i.companyMissing === null ? null : i.companyMissing > 0 ? `公開まであと${i.companyMissing}つ` : "必要な項目はそろっています",
     },
     { key: "jobCreate", label: "求人を作成する", href: "/biz/jobs/new", done: (i.totalJobs ?? 0) > 0, hint: "ポジション・給与・業務内容を登録します" },

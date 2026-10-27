@@ -57,7 +57,7 @@ export default async function ProposalsPage() {
     /* ★段の判定に要る列は `PROPOSAL_PHASE_COLS` の1か所。
           ⚠️★**`company_response` / `delivery_mode` そのものはクライアントに送らない**
             （以前に企業が見送ったことを伝えない。送るのは段から作った表示用の区分だけ） */
-    .select(`id, company_id, evidence, counter_evidence, computed_at, conversation_id, candidate_note, ${PROPOSAL_PHASE_COLS}, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test, phase), ow_jobs(id, title, slug, status, is_test)`)
+    .select(`id, company_id, evidence, counter_evidence, computed_at, conversation_id, candidate_note, ${PROPOSAL_PHASE_COLS}, ow_companies(id, name, name_en, slug, tagline, logo_url, is_test, phase), ow_jobs(id, title, slug, status, is_test, company_suspended)`)
     .eq("candidate_user_id", me.id)
     .order("created_at", { ascending: false });
   /* ⚠️ 握り潰さない。失敗を「0件」に見せない（CLAUDE.md） */
@@ -86,7 +86,7 @@ export default async function ProposalsPage() {
       tagline: string | null; logo_url: string | null; is_test: boolean | null; phase: string | null;
     } | null;
     const job = p.ow_jobs as unknown as {
-      id: string; title: string | null; slug: string | null; status: string | null; is_test: boolean | null;
+      id: string; title: string | null; slug: string | null; status: string | null; is_test: boolean | null; company_suspended: boolean | null;
     } | null;
     const { displayName } = co
       ? companyDisplayName(co.name, co.name_en)

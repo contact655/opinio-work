@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       .eq("id", job_id)
       .eq("status", "published")
       .eq("is_test", true)
+      .eq("company_suspended", false)
       .maybeSingle();
     if (testJob) { job = testJob; jobDb = admin as unknown as typeof supabase; }
   }

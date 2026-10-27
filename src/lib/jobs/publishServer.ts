@@ -10,6 +10,8 @@ import { jobStoppedCompanyTemplate } from "@/lib/notify/templates";
 import { JOB_PUBLISH_COLUMNS, missingForPublishFromRow } from "./publishRequirements";
 import { WORDING_COLUMNS, checkWording, wordingFieldsFromRow, type WordingHit } from "./wordingCheck";
 import { decidePublish, isCompanyListedForJobs, type PublishDecision } from "./publishGate";
+import { COMPANY_SUSPENDED_MESSAGE } from "@/lib/business/scoutGate";
+import { logJobModeration } from "@/lib/companies/suspension";
 
 /**
  * ★求人の公開・停止をサーバーで行う（2026-10-12 / 柴さんの指示）。**状態を published にする経路はここだけ。**
@@ -33,7 +35,7 @@ export async function requestPublish(jobId: string, companyId: string, actorOwUs
   const [{ data: row, error: jErr }, { count: roleCount, error: rErr }, { data: co, error: cErr }] = await Promise.all([
     db.from("ow_jobs").select(LOAD_COLS).eq("id", jobId).eq("company_id", companyId).maybeSingle(),
     db.from("ow_job_roles").select("job_id", { count: "exact", head: true }).eq("job_id", jobId),
-    db.from("ow_companies").select("is_published, listing_status").eq("id", companyId).maybeSingle(),
+    db.from("ow_companies").select("is_published, listing_status, suspended_at").eq("id", companyId).maybeSingle(),
   ]);
   if (jErr || rErr || cErr) {
     console.error("[publishServer] 読み込み:", jErr?.message ?? rErr?.message ?? cErr?.message);
@@ -42,6 +44,10 @@ export async function requestPublish(jobId: string, companyId: string, actorOwUs
   if (!row) return { ok: false, status: 404, error: "求人が見つかりません" };
   const r = row as unknown as Record<string, unknown>;
   if (r.status === "published") return { ok: true, decision: { kind: "publish" } };
+  /* ★企業ページが運営に停止されているあいだは求人も公開できない（2026-10-28） */
+  if ((co as { suspended_at?: string | null } | null)?.suspended_at) {
+    return { ok: false, status: 403, error: `${COMPANY_SUSPENDED_MESSAGE}。停止中は求人を公開できません。` };
+  }
 
   const decision = decidePublish({
     missing: missingForPublishFromRow(r, roleCount ?? 0),
@@ -121,6 +127,8 @@ export async function stopJob(jobId: string, reason: string, adminOwUserId: stri
     console.error("[publishServer] 停止:", error?.message ?? `rows=${data?.length ?? 0}`);
     return { ok: false, error: "停止できませんでした" };
   }
+  /* ★停止の履歴（2026-10-28。会社の停止と同じ表 ow_moderation_actions）。best-effort */
+  await logJobModeration(jobId, kind === "decline_reopen" ? "decline_reopen" : "suspend", text, adminOwUserId);
   await revalidateJobPages(jobId);
   try {
     const companyId = data[0].company_id as string;

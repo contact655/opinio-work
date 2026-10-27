@@ -9,6 +9,7 @@
  * |---|---|
  * | `status = 'published'` | 運営が公開した求人 |
  * | `is_test = false` | 検証用の求人ではない。★**企業が検証用でないことも含む**（下） |
+ * | `company_suspended = false` | 企業ページが運営に停止されていない（2026-10-28） |
  *
  * ⚠️★**「企業が is_test でない」はこの `is_test = false` に含まれている。**
  *    DB のトリガー（`20261009090000`）が「企業が is_test なら求人も is_test」を保証する
@@ -22,7 +23,9 @@
  *    それは `lib/companies/visibility.ts` のヘルパーで見る。
  * ⚠️ クライアントコンポーネントからも読むので、ここにサーバー専用のものを置かない。
  */
-export const PUBLIC_JOB_MATCH = { status: "published", is_test: false } as const;
+/* ★`company_suspended = false`（2026-10-28）… 運営が企業ページを停止していない。会社の suspended_at から DB のトリガーが写す
+      （`20261028120000`）。停止中の会社の求人は status が published のままでも出さない */
+export const PUBLIC_JOB_MATCH = { status: "published", is_test: false, company_suspended: false } as const;
 
 /**
  * ★求職者の画面で、ある求人を「掲載中」と扱うか（2026-10-11 / 柴さんの指示）。
@@ -35,10 +38,12 @@ export const PUBLIC_JOB_MATCH = { status: "published", is_test: false } as const
  */
 export type JobListingState = "open" | "open_test" | "closed";
 export function jobListingStateFor(
-  job: { status: string | null; is_test: boolean | null },
+  /* ⚠️ company_suspended は select に入れて渡す（無いと「停止中でない」として扱う） */
+  job: { status: string | null; is_test: boolean | null; company_suspended?: boolean | null },
   ctx: { viewerIsTest: boolean; companyIsTest: boolean },
 ): JobListingState {
   if (job.status !== "published") return "closed";
+  if (job.company_suspended === true) return "closed";
   if (job.is_test !== true) return "open";
   return ctx.viewerIsTest && ctx.companyIsTest ? "open_test" : "closed";
 }

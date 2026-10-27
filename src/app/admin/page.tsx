@@ -152,28 +152,17 @@ async function getStats() {
     ? Math.floor((Date.now() - Date.parse(memberReports.data[0].reported_at as string)) / 86_400_000)
     : null;
 
-  /* ★企業からの掲載依頼（2026-09-29）。**0件が正常な状態。**
-     企業が `/biz/company` の「掲載を依頼する」を押すと `listing_requested_at` が入り、
-     運営が掲載にすると（`updateListingStatus('listed')`）**同じ UPDATE で消える。**
-     掲載しないと決めたときは `/admin/companies` の「対応済みにする」。
-     ⚠️ 失敗を 0 に倒さない。取得できなかったときは要対応に1件として出す
-        （参加依頼・在籍報告と同じ理由。0 にすると壊れているのに要対応が消える）。
-     ⚠️ 検証用（`is_test`）を外さない。押せるのは実在の担当者だけなので積み上がらないし、
-        外すと検証で押したものが**どこにも出ず消せなくなる。** */
-  const listingRequests = await admin
-    .from("ow_companies")
-    .select("id, listing_requested_at", { count: "exact" })
-    .not("listing_requested_at", "is", null)
-    .order("listing_requested_at", { ascending: true })
-    .limit(1);
-  if (listingRequests.error) {
-    console.error("[admin] 掲載依頼の取得に失敗:", listingRequests.error.message);
-  }
-  /* ⚠️ 最も古い依頼の経過日数。0件なら null（0 ではない）。
-        件数だけだと「放置されている」ことが読み取れない（在籍報告と同じ形）。 */
-  const listingRequestsOldestDays = listingRequests.data?.[0]?.listing_requested_at
-    ? Math.floor((Date.now() - Date.parse(listingRequests.data[0].listing_requested_at as string)) / 86_400_000)
-    : null;
+  /* ★停止解除の依頼・スカウト機能の利用の依頼（2026-10-28）。**どちらも0件が正常な状態。**
+     ⚠️ 2026-10-28 に「企業からの掲載依頼」を外した（公開は企業が自分で行う）。
+     ⚠️ 失敗を 0 に倒さない。取得できなかったときは要対応に1件として出す（参加依頼・在籍報告と同じ理由）。
+     ⚠️ 検証用（`is_test`）を外さない。外すと検証で押したものがどこにも出ず消せなくなる。 */
+  const [unsuspendRequests, scoutRequests] = await Promise.all([
+    admin.from("ow_companies").select("id", { count: "exact", head: true })
+      .not("suspended_at", "is", null).not("unsuspend_requested_at", "is", null),
+    admin.from("ow_scout_access_requests").select("id", { count: "exact", head: true }).is("resolved_at", null),
+  ]);
+  if (unsuspendRequests.error) console.error("[admin] 停止解除の依頼の取得に失敗:", unsuspendRequests.error.message);
+  if (scoutRequests.error) console.error("[admin] スカウト機能の依頼の取得に失敗:", scoutRequests.error.message);
 
   /* ★会話を作るはずなのに作られていない提案（2026-09-21・2026-10-11 に条件を変更）。**0件が正常な状態。**
      `introduceProposal()` は best-effort なので、会話の作成に失敗するとここに残る。
@@ -201,9 +190,10 @@ async function getStats() {
     memberReportsCount: memberReports.error ? 0 : (memberReports.count ?? 0),
     memberReportsFailed: Boolean(memberReports.error),
     memberReportsOldestDays,
-    listingRequestsCount: listingRequests.error ? 0 : (listingRequests.count ?? 0),
-    listingRequestsFailed: Boolean(listingRequests.error),
-    listingRequestsOldestDays,
+    unsuspendRequestsCount: unsuspendRequests.error ? 0 : (unsuspendRequests.count ?? 0),
+    unsuspendRequestsFailed: Boolean(unsuspendRequests.error),
+    scoutRequestsCount: scoutRequests.error ? 0 : (scoutRequests.count ?? 0),
+    scoutRequestsFailed: Boolean(scoutRequests.error),
     joinRequestsCount: joinRequests?.length ?? 0,
     joinRequestsFailed: joinRequests === null,
     joinRequestsOldestDays,
@@ -262,7 +252,8 @@ export default async function AdminDashboard() {
     /* ★未紹介の提案（2026-09-21）。0件が正常。失敗は1件として数える */
     + (stats.stuckIntrosFailed ? 1 : stats.stuckIntrosCount)
     /* ★企業からの掲載依頼（2026-09-29）。0件が正常。失敗は1件として数える */
-    + (stats.listingRequestsFailed ? 1 : stats.listingRequestsCount)
+    + (stats.unsuspendRequestsFailed ? 1 : stats.unsuspendRequestsCount)
+    + (stats.scoutRequestsFailed ? 1 : stats.scoutRequestsCount)
     + (waitingReal === null ? 1 : waitingReal.length);
 
   const kpis = [
@@ -734,37 +725,36 @@ export default async function AdminDashboard() {
               </Link>
             )}
 
-            {/* ★企業からの掲載依頼（2026-09-29）。
-                   ⚠️ 取得に失敗したときも出す（0件に化けさせない）。 */}
-            {(stats.listingRequestsCount > 0 || stats.listingRequestsFailed) && (
-              <Link href="/admin/companies" style={{ textDecoration: "none" }}>
+            {/* ★停止解除の依頼・スカウト機能の利用の依頼（2026-10-28）。⚠️ 取得に失敗したときも出す（0件に化けさせない） */}
+            {(stats.unsuspendRequestsCount > 0 || stats.unsuspendRequestsFailed) && (
+              <Link href="/admin/companies" data-state="task-unsuspend-requests" style={{ textDecoration: "none" }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: 12,
                   padding: "12px 14px", borderRadius: 10,
-                  background: "var(--success-soft)", border: "1px solid #A7F3D0",
-                  transition: "background 0.15s", cursor: "pointer",
+                  background: "#FFFBEB", border: "1px solid #FDE68A", cursor: "pointer",
                 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: "#D1FAE5", color: "var(--success-ink)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
-                    </svg>
-                  </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--success-ink)", margin: 0, marginBottom: 2 }}>
-                      {stats.listingRequestsFailed
-                        ? "掲載依頼の取得に失敗しました（0件という意味ではありません）"
-                        : `企業からの掲載依頼 ${stats.listingRequestsCount}社`}
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
+                      {stats.unsuspendRequestsFailed ? "停止解除の依頼の取得に失敗しました（0件という意味ではありません）" : `停止解除の依頼 ${stats.unsuspendRequestsCount}社`}
                     </p>
-                    <p style={{ fontSize: 11, color: "var(--success-ink)", margin: 0 }}>
-                      {stats.listingRequestsFailed
-                        ? "取得に失敗しています"
-                        : <>掲載トグルを入れると印は自動で消えます{stats.listingRequestsOldestDays !== null ? ` ・ 最も古い依頼から ${stats.listingRequestsOldestDays}日` : ""}</>}
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>企業一覧の「停止中」タブから確認して、解除するか決めてください</p>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {(stats.scoutRequestsCount > 0 || stats.scoutRequestsFailed) && (
+              <Link href="/admin/scout-access" data-state="task-scout-requests" style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 10,
+                  background: "#FFFBEB", border: "1px solid #FDE68A", cursor: "pointer",
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--warm-ink)", margin: 0, marginBottom: 2 }}>
+                      {stats.scoutRequestsFailed ? "スカウト機能の依頼の取得に失敗しました（0件という意味ではありません）" : `スカウト機能の利用の依頼 ${stats.scoutRequestsCount}社`}
                     </p>
+                    <p style={{ fontSize: 11, color: "var(--warm-ink)", margin: 0 }}>許可するか見送るかを決めてください（結果は企業にメールで届きます）</p>
                   </div>
                 </div>
               </Link>
