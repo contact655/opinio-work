@@ -4,6 +4,7 @@ import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
 import ConnectionSettingSection from "./ConnectionSettingSection";
+import LogoutSection from "./LogoutSection";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { isCandidateGenderDisplayEnabled } from "@/lib/business/candidates/genderDisplay";
@@ -97,6 +98,8 @@ export default async function MypageSettingsPage() {
       <ApproachSettingsSection />
       {approachRangeState && <ApproachRangeSection initial={approachRangeState} />}
       <AccountSettings authEmail={user.email ?? ""} />
+      {/* ★ログアウト（2026-10-27）。スマホの引き出しと並ぶ2つ目の入口。⚠️ 一番下に置く */}
+      <LogoutSection />
     </MypageLayout>
   );
 }

@@ -10,6 +10,7 @@ import { AVATAR_CHANGED_EVENT } from "@/lib/constants/events";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MessagesButton } from "@/components/notifications/MessagesButton";
 import OpinioLogo from "@/components/common/OpinioLogo";
+import { BOTTOM_NAV_HEIGHT, isBottomNavHiddenOn } from "@/components/jobseeker/MobileBottomNav";
 import { SEARCH_EXAMPLES, readRecentSearches, clearRecentSearches } from "@/lib/search/examples";
 
 /* ⚠️★`highlight` を廃止した（2026-08-30）。**5項目すべて `false` で、
@@ -1088,7 +1089,12 @@ export function JobseekerHeader() {
         className="md:hidden"
         /* ★ログイン中は左から（アバターが左にあるため。2026-10-17）。未ログインは従来どおり右から。 */
         style={{
-          position: "fixed", top: 60, bottom: 0, zIndex: 100,
+          /* ★★タブバーが出ている間は、引き出しの下端をタブバーの上（64px＋端末の安全領域）で止める（2026-10-27 / 柴さんの指示）。
+                ⚠️ bottom: 0 だと最後の64px がタブバー（同じ z-index で後から描かれる）の下に隠れ、
+                   一番下までスクロールしても「ログアウト」が押せなかった。 */
+          position: "fixed", top: 60,
+          bottom: isBottomNavHiddenOn(pathname) ? 0 : `calc(${BOTTOM_NAV_HEIGHT}px + env(safe-area-inset-bottom))`,
+          zIndex: 100,
           ...(mobileSignedIn ? { left: 0, borderRight: "1px solid var(--line)" } : { right: 0, borderLeft: "1px solid var(--line)" }),
           width: 280, maxWidth: "90vw",
           background: "#fff",

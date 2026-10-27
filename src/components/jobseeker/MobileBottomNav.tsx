@@ -100,6 +100,17 @@ const SIGNUP_TAB = {
   ),
 };
 
+/** タブバーの高さ（安全領域を除く）。⚠️ 引き出しの下端（JobseekerHeader）もこの値で止める */
+export const BOTTOM_NAV_HEIGHT = 64;
+
+/**
+ * ★タブバーを出さないページ。⚠️ 引き出し（JobseekerHeader）も同じ関数で「タブバーが出ているか」を判定する。
+ *    条件を書き写さないこと（割れると、タブバーが無いのに引き出しの下が空く／あるのに隠れる）
+ */
+export function isBottomNavHiddenOn(pathname: string): boolean {
+  return ["/biz", "/admin", "/auth", "/onboarding", "/profile"].some((p) => pathname.startsWith(p));
+}
+
 export function MobileBottomNav() {
   const pathname = usePathname();
   /* null = 判定中。⚠️ 判定中はマイページのまま出す（下の `tabs`）。 */
@@ -127,21 +138,13 @@ export function MobileBottomNav() {
     : TABS;
 
   // biz・admin・profile・onboarding ページでは非表示
-  if (
-    pathname.startsWith("/biz") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/profile")
-  ) {
-    return null;
-  }
+  if (isBottomNavHiddenOn(pathname)) return null;
 
   return (
     // mobile-bottom-nav-root クラスで globals.css + Tailwind の両方から制御
     <div className="mobile-bottom-nav-root md:hidden">
       {/* ボトムナビの高さ分のスペーサー（コンテンツが隠れないように） */}
-      <div style={{ height: 64 }} aria-hidden />
+      <div style={{ height: BOTTOM_NAV_HEIGHT }} aria-hidden />
 
       <nav
         aria-label="メインナビゲーション"
@@ -154,7 +157,7 @@ export function MobileBottomNav() {
           background: "#fff",
           borderTop: "1px solid var(--line)",
           display: "flex",
-          height: 64,
+          height: BOTTOM_NAV_HEIGHT,
           paddingBottom: "env(safe-area-inset-bottom)",
           boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
         }}
