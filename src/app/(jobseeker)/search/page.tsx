@@ -23,8 +23,8 @@ import { FollowButton as CompanyFollowButton } from "../companies/[id]/CompanyDe
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { getCompanyConnections, type CompanyConnection } from "@/lib/companies/connections";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
-import { getCompanyLeaverSummaryCached } from "@/lib/companyFlow/server";
-import { toLeaverSummaryCounts, type LeaverSummary, type LeaverSummaryCounts } from "@/lib/companyFlow/compute";
+import { getCompanyLeaverSummaryCached, getCompanyFlowCached } from "@/lib/companyFlow/server";
+import { toLeaverSummaryCounts, hasAnyFlowItem, type LeaverSummary, type LeaverSummaryCounts } from "@/lib/companyFlow/compute";
 import { formatMonths } from "@/lib/profile/tenure";
 import { toMoveSummaryCounts, type MoveSummary } from "@/lib/search/transitionMatch";
 
@@ -376,6 +376,19 @@ export default async function SearchPage({ searchParams }: Props) {
   if (transitionLeft && !isLoggedIn) personFilter.onlyFormer = true;
   /* ★動き方の集計（該当人数・平均在籍・行き先の業界・行き先の職種）。「人の流れ」と同じ定義・下限（3人） */
   const leaverSummary: LeaverSummary | null = transitionLeft ? await getCompanyLeaverSummaryCached(transitionLeft.companyId) : null;
+  /* ★「〈会社〉に入った人の前職」は検索では出さず、企業ページの「人の流れ」へ案内する（2026-10-27 / 柴さんの決定 4） */
+  const transitionPrevOf = interpreted.transition?.kind === "prevOf" ? interpreted.transition : null;
+  let prevOfGuide: { label: string; href: string; hasFlow: boolean } | null = null;
+  if (transitionPrevOf) {
+    const [flow, slugRes] = await Promise.all([
+      getCompanyFlowCached(transitionPrevOf.companyId),
+      createAdminClient().from("ow_companies").select("slug").eq("id", transitionPrevOf.companyId).maybeSingle(),
+    ]);
+    if (slugRes.error) console.error("[search] prevOf slug:", slugRes.error.message);
+    const base = `/companies/${(slugRes.data as { slug: string | null } | null)?.slug ?? transitionPrevOf.companyId}`;
+    const hasFlow = hasAnyFlowItem(flow);
+    prevOfGuide = { label: transitionPrevOf.companyLabel, href: hasFlow ? `${base}#company-flow` : base, hasFlow };
+  }
   /* ★社名だけで引いたときの「〈会社〉を出た人の行き先」（2026-10-27）。同じ集計の行き先だけを出す。ログイン中だけ（以前の帯と同じ） */
   const companyCond = conditions.find((c): c is Extract<Condition, { kind: "company" }> => c.kind === "company") ?? null;
   const companyLeavers: LeaverSummary | null =
@@ -631,6 +644,7 @@ export default async function SearchPage({ searchParams }: Props) {
                 このことばは条件として読めなかったので、投稿だけを表示しています。
               </p>
             )}
+            {prevOfGuide && <PrevOfGuide g={prevOfGuide} />}
             {transitionMove && results.person.moveSummary && (
               <MoveSummaryCard title={transitionMove.label} full={isLoggedIn ? results.person.moveSummary : null}
                 counts={toMoveSummaryCounts(results.person.moveSummary)} />
@@ -1136,6 +1150,28 @@ function MoveSummaryCard({ title, full, counts }: { title: string; full: MoveSum
           </div>
         )}
       </div>
+    </section>
+  );
+}
+
+/**
+ * ★「〈会社〉に入った人の前職」の案内（2026-10-27 / 柴さんの決定 4）。前職の集計は検索では出さず、企業ページの「人の流れ」へ送る。
+ * ⚠️ 人の流れが出ていない会社（人数が少ない）では、そう書いて企業ページへ送る（行き先に何も無いリンクにしない）
+ */
+function PrevOfGuide({ g }: { g: { label: string; href: string; hasFlow: boolean } }) {
+  return (
+    <section data-state={g.hasFlow ? "prev-of-guide" : "prev-of-guide-empty"} className="search-section">
+      <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
+        {g.label}に入った人の前職は、{g.label}の企業ページの「人の流れ」でまとめて見られます。
+      </p>
+      {!g.hasFlow && (
+        <p style={{ margin: "6px 0 0", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          いまは人数が少ないため、{g.label}の「人の流れ」はまだ出ていません。
+        </p>
+      )}
+      <Link href={g.href} style={{ display: "inline-block", marginTop: 10, fontSize: 13, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+        {g.hasFlow ? `${g.label}の人の流れを見る →` : `${g.label}の企業ページを見る →`}
+      </Link>
     </section>
   );
 }
