@@ -1,3 +1,4 @@
+import { decodeFeedCursor, feedCursorOrFilter, nextFeedPage } from "@/lib/feed/cursor";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
@@ -175,7 +176,7 @@ const POST_SELECT = `
 // GET /api/jobseeker/posts — フィード取得
 // クエリパラメータ:
 //   limit   (default 20)
-//   before  (ISO日時, cursor pagination)
+//   cursor  （時刻~id。lib/feed/cursor.ts。2026-10-28〜）／ before（時刻だけ。古い画面のため受ける）
 //   user_id (特定ユーザーの投稿だけ取得)
 //   tab     "followed" → ログインユーザーがフォローした企業の投稿のみ
 export async function GET(req: Request) {
@@ -183,7 +184,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") ?? "20", 10), 1), 50);
-  const before = searchParams.get("before");
+  /* ★（時刻, id）の組で続きを読む（2026-10-28。lib/feed/cursor.ts）。古い画面の before（時刻だけ）も受ける */
+  const cursor = decodeFeedCursor(searchParams.get("cursor") ?? searchParams.get("before"));
   const userId = searchParams.get("user_id");
   const tab = searchParams.get("tab"); // "followed" | null
 
@@ -202,7 +204,7 @@ export async function GET(req: Request) {
   if (tab === "followed") {
     if (!myOwUserId) {
       // 未ログインは空リストを返す
-      return NextResponse.json({ posts: [] });
+      return NextResponse.json({ posts: [], nextCursor: null, hasMore: false });
     }
 
     // フォロー中企業 ID 一覧
@@ -222,7 +224,7 @@ export async function GET(req: Request) {
     const followedUserIds = rows.filter((r) => r.target_type === "user").map((r) => r.target_id);
 
     if (followedCompanyIds.length === 0 && followedUserIds.length === 0) {
-      return NextResponse.json({ posts: [] });
+      return NextResponse.json({ posts: [], nextCursor: null, hasMore: false });
     }
 
     // ⚠️ 「フォロー中企業の公開メンバーの個人投稿も流す」条件は 2026-08-05 に外した。
@@ -253,15 +255,18 @@ export async function GET(req: Request) {
       .from("ow_posts_visible")
       .select(POST_SELECT)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .limit(limit);
 
-    if (before) followedQuery = followedQuery.lt("created_at", before);
 
     const orParts: string[] = [];
     if (followedCompanyIds.length > 0) orParts.push(`ref_company_id.in.(${followedCompanyIds.join(",")})`);
     if (followedJobIds.length > 0) orParts.push(`ref_job_id.in.(${followedJobIds.join(",")})`);
     if (followedUserIds.length > 0) orParts.push(`user_id.in.(${followedUserIds.join(",")})`);
-    followedQuery = followedQuery.or(orParts.join(","));
+    /* ★カーソルの条件とフォローの条件は1つの .or() に入れ子でまとめる（.or() を2回呼ぶと or= が2つ並ぶ形になり、効き方を当てにできない） */
+    followedQuery = cursor
+      ? followedQuery.or(`and(or(${orParts.join(",")}),or(${feedCursorOrFilter(cursor)}))`)
+      : followedQuery.or(orParts.join(","));
 
     const { data: followedData, error: followedError } = await followedQuery;
     if (followedError) {
@@ -275,7 +280,11 @@ export async function GET(req: Request) {
       getExpByUser(adminSupabase, fposts),
       getTopLikers(adminSupabase, fposts),
     ]);
-    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, viewerIsTest, fLiked, fExp, fTopLikers, await respondingCompanyIds(jobPostCompanyIds(fposts), "posts API")) });
+    return NextResponse.json({
+      posts: formatPosts(fposts, myOwUserId, viewerIsTest, fLiked, fExp, fTopLikers, await respondingCompanyIds(jobPostCompanyIds(fposts), "posts API")),
+      /* ★続きは読んだ行で決める（見せない投稿を落としたあとの件数では決めない） */
+      ...nextFeedPage(fposts, limit),
+    });
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -283,9 +292,10 @@ export async function GET(req: Request) {
     .from("ow_posts_visible")
     .select(POST_SELECT)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit);
 
-  if (before) query = query.lt("created_at", before);
+  if (cursor) query = query.or(feedCursorOrFilter(cursor));
   if (userId) query = query.eq("user_id", userId);
 
   const { data, error } = await query;
@@ -302,7 +312,11 @@ export async function GET(req: Request) {
     getTopLikers(adminSupabase, posts),
   ]);
 
-  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, viewerIsTest, likedIds, expByUser, topLikersMap, await respondingCompanyIds(jobPostCompanyIds(posts), "posts API")) });
+  return NextResponse.json({
+    posts: formatPosts(posts, myOwUserId, viewerIsTest, likedIds, expByUser, topLikersMap, await respondingCompanyIds(jobPostCompanyIds(posts), "posts API")),
+    /* ★続きは読んだ行で決める（見せない投稿を落としたあとの件数では決めない） */
+    ...nextFeedPage(posts, limit),
+  });
 }
 
 // POST /api/jobseeker/posts — 投稿作成

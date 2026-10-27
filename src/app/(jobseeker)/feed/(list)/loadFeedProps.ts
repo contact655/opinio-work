@@ -1,3 +1,4 @@
+import { nextFeedPage } from "@/lib/feed/cursor";
 import "server-only";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
@@ -76,6 +77,9 @@ type RawPost = {
   comments: { count: number }[];
 };
 
+/** フィードの1ページの件数（もっと読み込む API と同じ） */
+export const FEED_PAGE_SIZE = 20;
+
 export async function loadFeedProps() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -126,13 +130,15 @@ export async function loadFeedProps() {
     adminSupabase
     .from("ow_posts_visible")
     .select(POST_SELECT)
+    /* ★時刻 → id の2段（2026-10-28。lib/feed/cursor.ts）。同じ時刻の投稿の順を決める */
     .order("created_at", { ascending: false })
-    .limit(20),
+    .order("id", { ascending: false })
+    .limit(FEED_PAGE_SIZE),
     adminSupabase
       .from("ow_posts_visible")
       .select(POST_SELECT)
       .in("post_type", ["job_posted", "article_published"])
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }).order("id", { ascending: false })
       .limit(20),
   ]);
   if (rawBlockResult.error) console.error("[feed] block posts:", rawBlockResult.error.message);
@@ -144,6 +150,8 @@ export async function loadFeedProps() {
   }
 
   const posts = (rawPostsResult.data ?? []) as unknown as RawPost[];
+  /* ★続きの手がかりは「読んだ最後の行」から作る（見せない投稿を落としたあとの最後ではない。lib/feed/cursor.ts） */
+  const initialPage = nextFeedPage(posts, FEED_PAGE_SIZE);
   const mainIds = new Set(posts.map((p) => p.id));
   const blockOnly = ((rawBlockResult.data ?? []) as unknown as RawPost[]).filter((p) => !mainIds.has(p.id));
 
@@ -352,6 +360,8 @@ export async function loadFeedProps() {
 
   return {
     initialPosts: initialPosts,
+    initialCursor: initialPage.nextCursor,
+    initialHasMore: initialPage.hasMore,
     blockPosts: blockPosts,
     myUserId: myOwUserId,
     myName: owUser?.name ?? null,

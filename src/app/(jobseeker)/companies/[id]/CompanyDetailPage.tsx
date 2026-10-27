@@ -1868,7 +1868,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status, company_id, is_test, company:ow_companies!company_id(is_test)), ow_articles!ref_article_id(id, slug, title, is_published, company:ow_companies!company_id(is_test))")
     .or(orParts.join(","))
     .neq("post_type", "company_joined")
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(50);
 
   /* ⚠️ 掲載を下ろした求人の「募集を開始しました」は出さない（2026-08-11）。

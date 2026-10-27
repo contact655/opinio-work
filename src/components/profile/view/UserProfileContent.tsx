@@ -347,7 +347,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
       .from("ow_posts_visible")
       .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
       .eq("user_id", owUser.id)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }).order("id", { ascending: false })
       .limit(6),
   ]);
 

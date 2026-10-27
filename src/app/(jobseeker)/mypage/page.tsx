@@ -202,7 +202,7 @@ export default async function MypagePage({
         .from("ow_posts_visible")
         .select("id, content, image_url, created_at, likes:ow_post_likes(count)")
         .eq("user_id", owUser.id)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false }).order("id", { ascending: false })
         .limit(6),
       /* ★OPINIO 掲載記事（2026-08-25）。⚠️ 条件を `/u/[id]` と同じにする
             （`is_published = true`。下書きを本人にだけ見せる形にしない）。 */

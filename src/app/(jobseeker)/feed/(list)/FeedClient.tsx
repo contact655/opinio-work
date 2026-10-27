@@ -144,6 +144,9 @@ type CommentItem = {
 
 type Props = {
   initialPosts: PostItem[];
+  /** ★続きの手がかり（時刻~id。lib/feed/cursor.ts）と続きの有無。どちらも「読んだ行」から作る（2026-10-28） */
+  initialCursor?: string | null;
+  initialHasMore?: boolean;
   /** ★募集と記事の枠だけに使う告知（2026-10-20）。投稿の流れには入れない（page.tsx で別に引いている） */
   blockPosts: PostItem[];
   myUserId: string | null;
@@ -2407,6 +2410,8 @@ function buildHomeRailItems(activePosts: PostItem[], blockPosts: PostItem[], inc
 
 export default function FeedClient({
   initialPosts,
+  initialCursor = null,
+  initialHasMore,
   blockPosts,
   myUserId,
   myName,
@@ -2439,12 +2444,16 @@ export default function FeedClient({
   }, []);
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialPosts.length > 0);
+  /* ★続きの有無と手がかりはサーバーが「読んだ行」から決める（2026-10-28）。⚠️ 見せた件数で決めると、
+        見せない投稿が多いページで途中で止まる。カーソルも見せた最後の投稿から作ると、同じ時刻の投稿が飛ぶ */
+  const [hasMore, setHasMore] = useState(initialHasMore ?? initialPosts.length > 0);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
 
   // フォロー中タブの状態（⚠️ タブは 2026-10-20 になくした。下の分岐が参照するので値だけ残す。読み込む経路は無い）
   const [followedPosts, setFollowedPosts] = useState<PostItem[] | null>(null); // null = 未ロード
   const followedLoading = false;
   const [followedHasMore, setFollowedHasMore] = useState(false);
+  const [followedCursor, setFollowedCursor] = useState<string | null>(null);
 
   const activePosts = tab === "all" ? posts : (followedPosts ?? []);
   /* ★企業の新規掲載・募集の開始・記事の公開は、見出し付きの枠にまとめる（企業は 2026-10-19、募集と記事は 2026-10-20 / 柴さんの指示）。
@@ -2522,39 +2531,38 @@ export default function FeedClient({
 
   const handleLoadMore = useCallback(async () => {
     if (tab === "followed") {
-      if (loadingMore || !followedHasMore || !followedPosts?.length) return;
-      const oldest = followedPosts[followedPosts.length - 1];
+      if (loadingMore || !followedHasMore || !followedCursor) return;
       setLoadingMore(true);
       try {
-        const res = await fetch(`/api/jobseeker/posts?tab=followed&limit=20&before=${encodeURIComponent(oldest.created_at)}`);
+        const res = await fetch(`/api/jobseeker/posts?tab=followed&limit=20&cursor=${encodeURIComponent(followedCursor)}`);
         if (!res.ok) return;
-        const { posts: more } = await res.json();
-        if (!more || more.length === 0) { setFollowedHasMore(false); return; }
-        setFollowedPosts((prev) => [...(prev ?? []), ...more]);
-        if (more.length < 20) setFollowedHasMore(false);
+        const { posts: more, nextCursor, hasMore: more_ } = await res.json() as { posts?: PostItem[]; nextCursor?: string | null; hasMore?: boolean };
+        if (more && more.length > 0) setFollowedPosts((prev) => [...(prev ?? []), ...more]);
+        setFollowedCursor(nextCursor ?? null);
+        setFollowedHasMore(!!more_ && !!nextCursor);
       } catch { /* best-effort */ } finally { setLoadingMore(false); }
       return;
     }
-    if (loadingMore || !hasMore) return;
-    const oldest = posts[posts.length - 1];
-    if (!oldest) return;
+    if (loadingMore || !hasMore || !cursor) return;
     setLoadingMore(true);
     try {
-      const res = await fetch(`/api/jobseeker/posts?limit=20&before=${encodeURIComponent(oldest.created_at)}`);
+      const res = await fetch(`/api/jobseeker/posts?limit=20&cursor=${encodeURIComponent(cursor)}`);
       if (!res.ok) return;
-      const { posts: more } = await res.json();
-      if (!more || more.length === 0) { setHasMore(false); return; }
-      setPosts((prev) => [...prev, ...more]);
-      if (more.length < 20) setHasMore(false);
+      const { posts: more, nextCursor, hasMore: more_ } = await res.json() as { posts?: PostItem[]; nextCursor?: string | null; hasMore?: boolean };
+      /* ⚠️ 見せる投稿が0件でも、読んだ行が上限まであれば続きはある（見せない投稿だけのページ） */
+      if (more && more.length > 0) setPosts((prev) => [...prev, ...more]);
+      setCursor(nextCursor ?? null);
+      setHasMore(!!more_ && !!nextCursor);
     } catch {
       // best-effort
     } finally {
       setLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, loadingMore, hasMore, followedHasMore, followedPosts, posts]);
+  }, [tab, loadingMore, hasMore, followedHasMore, followedCursor, cursor]);
 
-  const showLoadMore = tab === "all" ? (hasMore && posts.length > 0) : (followedHasMore && (followedPosts ?? []).length > 0);
+  /* ⚠️ 見せた件数が0でも、読んだ行が上限まであれば続きはある（hasMore はサーバーが読んだ行から決める。2026-10-28） */
+  const showLoadMore = tab === "all" ? hasMore : followedHasMore;
 
   // 無限スクロール: センチネル要素が画面内に入ったら自動ロード
   const sentinelRef = useRef<HTMLDivElement>(null);

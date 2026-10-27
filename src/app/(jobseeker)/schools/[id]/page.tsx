@@ -197,7 +197,7 @@ async function getSchoolPosts(userIds: string[]): Promise<SchoolPost[]> {
     `)
     .in("user_id", userIds)
     .eq("post_type", "user_post")
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(30);
   if (error) {
     console.error("[schools] fetch posts error:", error.message);

@@ -67,7 +67,7 @@ export async function searchPostHits(
     .select("id, content, created_at, visibility, image_url, link_url, link_title, link_image_url, link_description, link_domain, likes:ow_post_likes(count), comments:ow_post_comments(count), user:ow_users!user_id(id, name, avatar_url, avatar_color, visibility, is_test, is_system, auth_id)")
     .eq("post_type", "user_post");
   for (const t of terms) q = q.ilike("content", `%${escapeLike(t)}%`);
-  const { data, error } = await q.order("created_at", { ascending: false }).limit(200);
+  const { data, error } = await q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(200);
   if (error) {
     console.error("[searchPostHits]", error.message);
     return { items: [], total: 0 };
