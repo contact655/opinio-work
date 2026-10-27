@@ -1,3 +1,4 @@
+import { announcementsInStream } from "@/lib/feed/streamMode";
 import { nextFeedPage } from "@/lib/feed/cursor";
 import "server-only";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
@@ -124,7 +125,7 @@ export async function loadFeedProps() {
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `;
-  const [sidebarResult, viewerIsTest, rawPostsResult, rawBlockResult] = await Promise.all([
+  const [sidebarResult, viewerIsTest, rawPostsResult, rawBlockResult, humanPostsResult] = await Promise.all([
     myOwUserId ? getPeopleSidebarData(myOwUserId) : Promise.resolve(null),
     viewerIsTestByAuthId(user?.id),
     adminSupabase
@@ -140,8 +141,21 @@ export async function loadFeedProps() {
       .in("post_type", ["job_posted", "article_published"])
       .order("created_at", { ascending: false }).order("id", { ascending: false })
       .limit(20),
+    /* ★人が書いた投稿の数（お知らせを真ん中に混ぜるかの判定用。lib/feed/streamMode.ts）。見える判定は下で isPostVisibleTo を通す。
+          ⚠️ しきい値ぶん見えれば足りるが、見えない投稿が混ざるので多めに引く */
+    adminSupabase
+      .from("ow_posts_visible")
+      .select("id, visibility, user:ow_users!user_id(visibility, is_system, is_test)")
+      .eq("post_type", "user_post")
+      .order("created_at", { ascending: false }).order("id", { ascending: false })
+      .limit(500),
   ]);
   if (rawBlockResult.error) console.error("[feed] block posts:", rawBlockResult.error.message);
+  if (humanPostsResult.error) console.error("[feed] human posts:", humanPostsResult.error.message);
+  /* ★見える「人が書いた投稿」の数 → お知らせを真ん中に混ぜるか。⚠️ 取れなかったときは混ぜる側に倒す（真ん中が空になるよりよい） */
+  const visibleHumanPostCount = ((humanPostsResult.data ?? []) as unknown as { visibility: string | null; user: { visibility: string | null; is_system: boolean | null; is_test: boolean | null } | null }[])
+    .filter((h) => isPostVisibleTo({ postVisibility: h.visibility, author: h.user, refersToTest: false }, !!user, viewerIsTest)).length;
+  const announcementsInStreamMode = humanPostsResult.error ? true : announcementsInStream(visibleHumanPostCount);
 
   /* ⚠️ 取得に失敗したら null のまま（カードごと出さない）。
         `getPeopleSidebarData` の中で列ごとに console.error を出している。 */
@@ -361,6 +375,7 @@ export async function loadFeedProps() {
   return {
     initialPosts: initialPosts,
     initialCursor: initialPage.nextCursor,
+    announcementsInStream: announcementsInStreamMode,
     initialHasMore: initialPage.hasMore,
     blockPosts: blockPosts,
     myUserId: myOwUserId,

@@ -1,5 +1,6 @@
 "use client";
 
+import { ANNOUNCEMENT_POST_TYPES } from "@/lib/feed/streamMode";
 import { Fragment, useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
@@ -147,6 +148,8 @@ type Props = {
   /** ★続きの手がかり（時刻~id。lib/feed/cursor.ts）と続きの有無。どちらも「読んだ行」から作る（2026-10-28） */
   initialCursor?: string | null;
   initialHasMore?: boolean;
+  /** ★お知らせ（参加しました・募集・記事）を真ん中の流れに混ぜるか（lib/feed/streamMode.ts。サーバーが見える「人の投稿」の数で決める） */
+  announcementsInStream?: boolean;
   /** ★募集と記事の枠だけに使う告知（2026-10-20）。投稿の流れには入れない（page.tsx で別に引いている） */
   blockPosts: PostItem[];
   myUserId: string | null;
@@ -2412,6 +2415,7 @@ export default function FeedClient({
   initialPosts,
   initialCursor = null,
   initialHasMore,
+  announcementsInStream = false,
   blockPosts,
   myUserId,
   myName,
@@ -2463,9 +2467,12 @@ export default function FeedClient({
   const followedCompanyIds = new Set(sidebarFollows.map((c) => c.id));
   const isFollowedPost = (p: PostItem) =>
     (!!p.user?.id && followedUserIds.has(p.user.id)) || (!!p.ref_company?.id && followedCompanyIds.has(p.ref_company.id));
-  const BLOCK_TYPES = new Set(["company_joined", "job_posted", "article_published"]);
+  /* ★人の投稿が少ないあいだ（しきい値未満）は、お知らせも真ん中に時系列で混ぜる（2026-10-28 / 柴さんの決定。lib/feed/streamMode.ts）。
+        そのあいだは右の箱・スマホの差し込みは重複するので出さない（下の showAnnouncementBoxes） */
+  const BLOCK_TYPES = new Set<string>(ANNOUNCEMENT_POST_TYPES);
+  const showAnnouncementBoxes = !announcementsInStream;
   const streamPosts = activePosts
-    .filter((p) => !BLOCK_TYPES.has(p.post_type))
+    .filter((p) => announcementsInStream || !BLOCK_TYPES.has(p.post_type))
     .sort((a, b) => Number(isFollowedPost(b)) - Number(isFollowedPost(a)));
 
   const { newJobs, newArticles, newCompanies } = buildHomeRailItems(activePosts, blockPosts, tab === "all");
@@ -2475,14 +2482,14 @@ export default function FeedClient({
   const inserts: { after: number; node: React.ReactNode }[] = [];
   const EVERY = 5;
   const slot = (n: number) => EVERY * (n + 1) - 1;
-  if (!isDesktop && newCompanies.length > 0) {
+  if (!isDesktop && showAnnouncementBoxes && newCompanies.length > 0) {
     inserts.push({ after: slot(0), node: (
       <NewCompaniesCarousel key="new-companies" items={newCompanies} totalCount={Math.max(listedCompanyCount, newCompanies.length)} moreHref="/companies"
         renderFollow={(c) => <CompanyFollowButton companyId={c.id} tone="primary" />} />
     ) });
   }
   /* ★並び（スマホ）: 企業 → 募集 → 人 → 記事 → 人の2つ目。投稿が足りなければ、この順で最後にまとめて出る */
-  if (!isDesktop && newJobs.length > 0) {
+  if (!isDesktop && showAnnouncementBoxes && newJobs.length > 0) {
     inserts.push({ after: slot(1), node: <NewJobsCarousel key="new-jobs" items={newJobs} totalCount={newJobs.length} moreHref="/jobs" /> });
   }
   if (!isDesktop && tab === "all") {
@@ -2491,16 +2498,16 @@ export default function FeedClient({
         renderAction={(p) => <DMButton targetUserId={p.id} targetName={p.name} variant="card" label="メッセージ" aboutCompanyId={p.aboutCompanyId} />} />
     ) }));
   }
-  if (!isDesktop && newArticles.length > 0) {
+  if (!isDesktop && showAnnouncementBoxes && newArticles.length > 0) {
     inserts.push({ after: slot(3), node: <ArticlesBlock key="articles" items={newArticles} moreHref="/articles" /> });
   }
   /* ★PC の右の列（2026-10-20）。並びは 企業 → 募集 → 人 → 記事 */
   const railNode = isDesktop ? (
     <>
-      <RailCompanies items={newCompanies} totalCount={Math.max(listedCompanyCount, newCompanies.length)} />
-      <RailJobs items={newJobs} />
+      {showAnnouncementBoxes && <RailCompanies items={newCompanies} totalCount={Math.max(listedCompanyCount, newCompanies.length)} />}
+      {showAnnouncementBoxes && <RailJobs items={newJobs} />}
       {careerMoveBlocks.map((b) => <RailMoves key={`rail-moves-${b.key}`} block={b} />)}
-      <RailArticles items={newArticles} />
+      {showAnnouncementBoxes && <RailArticles items={newArticles} />}
     </>
   ) : null;
   /* ⚠️ 投稿が足りないときに後ろへまとめる分は、after の小さい順（＝上の並び）に出す */
@@ -2765,7 +2772,8 @@ export default function FeedClient({
           </svg>
         </div>
       )}
-      {!showLoadMore && (activePosts.length > 0) && (
+      {/* ★真ん中に1件以上出したときだけ（2026-10-28）。真ん中が空なのに「すべて読み込みました」と出すと「何も無い」と読まれる */}
+      {!showLoadMore && (streamPosts.length > 0) && (
         <div style={{ textAlign: "center", padding: "16px 0 8px", color: "var(--ink-mute)", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500 }}>
           すべての投稿を読み込みました
         </div>
@@ -2778,6 +2786,7 @@ export default function FeedClient({
         <div style={{ flexShrink: 0 }}>
           <FeedSidebar
             rail={railNode}
+            /* ⚠️ お知らせを真ん中に出しているあいだも元の値を渡す（false にすると代わりの企業一覧の箱が出て、箱が増える） */
             hasNewCompanies={newCompanies.length > 0}
             follows={sidebarFollows}
             userFollows={sidebarUserFollows}
