@@ -44,3 +44,16 @@ export const MIN_AGGREGATE_COUNT = 5;
 export function meetsAggregateMin(n: number): boolean {
   return n >= MIN_AGGREGATE_COUNT;
 }
+
+/**
+ * ★経歴から出す集計の下限（2026-10-27 / 企業ページ「人の流れ」・柴さんの決定）。
+ *   前職・行き先・平均在籍・社内の職種の変化は、**この人数以上**のときだけ項目ごと出す（下限未満は文言も出さない）。
+ *   経歴はすでにプロフィールに出ている事実なので、非公開の回答（MIN_AGGREGATE_COUNT = 5）より低くしている。
+ * ⚠️ 回答から出す項目（決め手・1年後に合っていたか）は MIN_AGGREGATE_COUNT（5人）のまま。混ぜないこと。
+ * ⚠️ 人数は isAggregatableUser で外したあと、かつ会社名を出してよい職歴（visibility_company = 'real'）だけで数える。
+ */
+export const MIN_CAREER_FACT_COUNT = 3;
+
+export function meetsCareerFactMin(n: number): boolean {
+  return n >= MIN_CAREER_FACT_COUNT;
+}
