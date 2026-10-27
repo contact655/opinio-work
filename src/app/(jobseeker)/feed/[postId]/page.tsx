@@ -7,7 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { stripActorPrefix } from "@/lib/feed/postContent";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds } from "@/lib/feed/visibility";
+import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
 import { truncateAtBoundary } from "@/lib/utils/truncate";
@@ -140,7 +141,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   // ⚠️ 判定は lib/feed/visibility に集約している。一覧と食い違わせない
   if (!isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, await viewerIsTestByAuthId(user?.id))) notFound();
   // 掲載を下ろした求人の「公開しました」投稿は、パーマリンクでも出さない
-  if (!isJobPostAlive(p)) notFound();
+  if (!isJobPostAlive(p, await respondingCompanyIds(jobPostCompanyIds([p]), "feed/[postId]"))) notFound();
   // 取り下げた企業の「参加しました」投稿も同じく（2026-08-13）
   if (!isCompanyPostAlive(p)) notFound();
   // 非公開にした記事の「公開しました」投稿も同じく（2026-10-20）

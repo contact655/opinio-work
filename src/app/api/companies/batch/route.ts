@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 // GET /api/companies/batch?ids=slug1,uuid2,...
 // 「最近見た企業」カード用: 複数の企業を一括取得する。
@@ -87,7 +88,8 @@ export async function GET(req: NextRequest) {
 
   // 求人カウントマップ
   const jobCountMap: Record<string, number> = {};
-  for (const j of activeJobs ?? []) {
+  /* ★担当者がいない会社の求人は数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+  for (const j of await keepJobsAtRespondingCompanies(activeJobs ?? [], "companies/batch")) {
     const cid = j.company_id as string;
     jobCountMap[cid] = (jobCountMap[cid] || 0) + 1;
   }

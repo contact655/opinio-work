@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { createClient } from "@/lib/supabase/server";
 import { fetchJobRoleLabels } from "@/lib/jobs/roleLabel";
@@ -99,30 +100,35 @@ export async function GET(req: Request) {
         .or(companyNameOrFilter(q))
         .order("listing_status", { ascending: false })
     ).limit(4),
+    /* ★担当者がいない会社の求人は出さない（2026-10-27。lib/jobs/respondingJobs.ts）。絞ってから JOB_LIMIT 件にするので多めに引く */
     supabase
       .from("ow_jobs")
-      .select("id, title, job_category")
+      .select("id, title, job_category, company_id")
       .ilike("title", pattern)
       .match(PUBLIC_JOB_MATCH)
-      .limit(JOB_LIMIT),
+      .limit(JOB_LIMIT * 4),
     roleMatchedJobIds.length > 0
       ? supabase
           .from("ow_jobs")
-          .select("id, title, job_category")
+          .select("id, title, job_category, company_id")
           .in("id", roleMatchedJobIds.slice(0, 200))
           .match(PUBLIC_JOB_MATCH)
-          .limit(JOB_LIMIT)
-      : Promise.resolve({ data: [] as { id: string; title: string; job_category: string | null }[] }),
+          .limit(JOB_LIMIT * 4)
+      : Promise.resolve({ data: [] as { id: string; title: string; job_category: string | null; company_id: string | null }[] }),
   ]);
 
   // タイトル一致を先に、職種一致で埋める。id で重複を除く
   const seen = new Set<string>();
   const jobs: { id: string; title: string; job_category: string | null }[] = [];
-  for (const j of [...(titleJobs ?? []), ...(roleJobs ?? [])]) {
+  const visibleJobs = await keepJobsAtRespondingCompanies(
+    [...(titleJobs ?? []), ...(roleJobs ?? [])] as { id: string; title: string; job_category: string | null; company_id: string | null }[],
+    "search/suggest",
+  );
+  for (const j of visibleJobs) {
     const id = j.id as string;
     if (seen.has(id)) continue;
     seen.add(id);
-    jobs.push(j as { id: string; title: string; job_category: string | null });
+    jobs.push({ id: j.id, title: j.title, job_category: j.job_category });
     if (jobs.length >= JOB_LIMIT) break;
   }
 

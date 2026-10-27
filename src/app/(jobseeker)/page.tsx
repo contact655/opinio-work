@@ -1,4 +1,5 @@
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
+import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { meetsAggregateMin } from "@/lib/constants/aggregate";
 import type { Metadata } from "next";
@@ -112,10 +113,12 @@ export default async function HomePage() {
   const companyCountP = filterListedCompanies(
     db.from("ow_companies").select("id", { count: "exact", head: true })
   );
+  /* ★担当者がいない会社の求人は数えない（2026-10-27。lib/jobs/respondingJobs.ts）。そのため件数だけでなく company_id を引く */
   const jobCountP = db
     .from("ow_jobs")
-    .select("id", { count: "exact", head: true })
-    .match(PUBLIC_JOB_MATCH);
+    .select("company_id")
+    .match(PUBLIC_JOB_MATCH)
+    .then(async (r) => ({ count: r.error ? 0 : (await keepJobsAtRespondingCompanies(r.data ?? [], "HomePage 件数")).length, error: r.error }));
 
   // ── 出身校ファセット ────────────────────────────────────────────
   // 公開ユーザーの学歴のみ。行数はユーザー数に比例するが、学歴レコードは
@@ -145,9 +148,12 @@ export default async function HomePage() {
 
   const [companyCountRes, jobCountRes, schoolRes, industryFacetList, allArticles] =
     await Promise.all([companyCountP, jobCountP, schoolRowsP, industryFacetsP, articlesP]);
-  const jobsRes = (jobCountRes.count ?? 0) >= LP_JOBS_MIN_TO_SHOW
+  if (jobCountRes.error) console.error("[HomePage] job count failed:", jobCountRes.error.message);
+  const jobsRaw = (jobCountRes.count ?? 0) >= LP_JOBS_MIN_TO_SHOW
     ? await jobsQuery()
     : { data: [], error: null };
+  /* ★担当者がいない会社の求人はプレビューにも出さない（2026-10-27） */
+  const jobsRes = { data: await keepJobsAtRespondingCompanies(jobsRaw.data ?? [], "HomePage プレビュー"), error: jobsRaw.error };
 
   // ── ピックアップ企業の選定 ──────────────────────────────────────
   // ⚠️ 基準は src/lib/lp/pickCompanies.ts に切り出してある。
@@ -214,10 +220,13 @@ export default async function HomePage() {
 
   // ⚠️ ow_company_members は数えていない。2026-08-05 にカードから「社員」を外したため。
   //    理由は src/lib/lp/pickCompanies.ts のコメントを参照。
-  const [articleByCompany, jobByCompany] = await Promise.all([
+  const [articleByCompany, jobByCompanyAll] = await Promise.all([
     tally("ow_articles", "company_id", [["is_published", "true"]]),
     tally("ow_jobs", "company_id", [["status", "published"], ["is_test", "false"]]),
   ]);
+  /* ★担当者がいない会社の求人は「募集 N件」に数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+  const respondingForCards = await respondingCompanyIds(Array.from(jobByCompanyAll.keys()), "HomePage カード");
+  const jobByCompany = new Map(Array.from(jobByCompanyAll.entries()).filter(([id]) => respondingForCards.has(id)));
 
   /* ★表示名は `companyDisplayName()` に寄せた（2026-09-16）。
         ⚠️★**`brand_name ?? name` に戻さないこと。** 2つ壊れていた:

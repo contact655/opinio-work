@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { filterListedCompanies } from "@/lib/companies/visibility";
@@ -100,7 +101,8 @@ export async function pickLpCompanies(
         ①で12枠が埋まるときに、自社が枠を1つ食ったまま結果から消えて
         「11社しか出ない」形になる。 */
   const withContentIds = Array.from(new Set([
-    ...((jobCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
+    /* ★担当者がいない会社の求人は「中身」に数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+    ...(await keepJobsAtRespondingCompanies((jobCoRes.data ?? []) as { company_id: string | null }[], "pickLpCompanies")).map((r) => r.company_id),
     ...((articleCoRes.data ?? []) as { company_id: string | null }[]).map((r) => r.company_id),
   ].filter(Boolean) as string[])).filter((id) => id !== ownCompanyId);
 

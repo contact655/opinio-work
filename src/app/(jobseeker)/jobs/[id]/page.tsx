@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { getJobBySlugOrId, getJobs } from "@/lib/supabase/queries";
+import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { fmtMan, payLabel, payNegotiableText } from "@/lib/utils/salary";
 import { JobDetailView } from "@/components/jobs/JobDetailView";
 
@@ -21,6 +22,15 @@ export const revalidate = 60;
  * ⚠️ 60秒は掲載状態（`status`）が出るページの上限。伸ばさないこと。
  *    求人を閉じた後も流入し続ける時間になる。
  */
+/**
+ * ★担当者がいない会社の求人は、直接開かれても会社ページへ戻す（2026-10-27 / 柴さんの決定）。
+ *   404 にしない（求人のデータも status も残してあり、担当者が付けば自動で戻る）。理由は画面に出さない。
+ */
+async function redirectIfNoResponder(company: { id: string; slug?: string | null }) {
+  const ok = await respondingCompanyIds([company.id], "jobs/[id]");
+  if (!ok.has(company.id)) redirect(`/companies/${encodeURIComponent(company.slug ?? company.id)}`);
+}
+
 export async function generateStaticParams() {
   // getJobs() は { jobs, companies } を返す。公開中の求人だけが入る
   const { jobs } = await getJobs();
@@ -43,6 +53,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const result = await getJobBySlugOrIdCached(params.id);
   if (!result) notFound();
+  await redirectIfNoResponder(result.company);
   const { job, company, slug: jobSlug } = result;
   const canonicalId = jobSlug ?? params.id;
 
@@ -95,5 +106,7 @@ export async function generateMetadata({
 /* ⚠️ 本体は `components/jobs/JobDetailView.tsx`。**プレビューと同じものを描くため。**
       ここにJSXを書き戻さないこと（`/biz/jobs/[id]/preview` と食い違う）。 */
 export default async function JobDetailPage({ params }: { params: { id: string } }) {
+  const result = await getJobBySlugOrIdCached(params.id);
+  if (result) await redirectIfNoResponder(result.company);
   return <JobDetailView id={params.id} />;
 }

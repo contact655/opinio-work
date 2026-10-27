@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import { laborLines } from "@/lib/jobs/laborTerms";
 import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/lib/jobs/testViewMode";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
@@ -50,7 +51,6 @@ import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
-import { APPLICATION_CLOSED_MESSAGE } from "@/lib/jobs/application";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 
 // 5分間ページキャッシュ（ISR）
@@ -392,11 +392,15 @@ export async function JobDetailView({
           .match(PUBLIC_JOB_MATCH)
           .in("id", siblingIds)
           .order("updated_at", { ascending: false })
-          .limit(3)
+          .limit(20)
       : { data: null };
 
-    if (sameCatRaw) {
-      for (const row of sameCatRaw as unknown as Array<{
+    /* ★担当者がいない会社の求人は出さない（2026-10-27 / 柴さんの決定。lib/jobs/respondingJobs.ts）。絞ってから3件にする */
+    const sameCatVisible = sameCatRaw
+      ? (await keepJobsAtRespondingCompanies(sameCatRaw as unknown as { company_id: string }[], "jobs/[id] 同じ職種")).slice(0, 3)
+      : null;
+    if (sameCatVisible) {
+      for (const row of sameCatVisible as unknown as Array<{
         id: string;
         slug?: string | null;
         title: string;
@@ -425,7 +429,6 @@ export async function JobDetailView({
   const mobileCtaProps = {
     casualHref: companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting?job_id=${job.id}` : undefined,
     applyHref: company.application_open ? `/jobs/${job.id}/apply` : undefined,
-    externalApplyHref: !company.application_open && job.source_url && /^https?:\/\//.test(job.source_url) ? job.source_url : undefined,
     saveJobId: job.id,
   };
 
@@ -1499,29 +1502,8 @@ export async function JobDetailView({
                   </Link>
                   )}
 
-                  {/* ★OPINIO で応募を受けていない企業（2026-10-10 / 柴さんの指示）。答えられる担当者がいないため
-                         （lib/companies/respondingStaff.ts）。求人に出典 URL があれば企業の採用ページへの外部リンク、
-                         無ければ1文だけ。⚠️ 外部リンクは nofollow（OPINIO が推薦しているリンクではない） */}
-                  {!company.application_open && (
-                    job.source_url && /^https?:\/\//.test(job.source_url) ? (
-                      <a href={job.source_url} target="_blank" rel="noopener noreferrer nofollow" data-state="external-apply" style={{
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                        width: "100%", padding: "12px var(--space-6)",
-                        background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal-100)",
-                        borderRadius: 10, fontSize: "var(--text-sm)", fontWeight: 700, textDecoration: "none", textAlign: "center",
-                      }}>
-                        企業の採用ページで応募する
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
-                          <path d="M7 17L17 7M8 7h9v9" />
-                        </svg>
-                      </a>
-                    ) : (
-                      <p data-state="application-closed" style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)" }}>
-                        {APPLICATION_CLOSED_MESSAGE}
-                      </p>
-                    )
-                  )}
-
+                  {/* ⚠️ 応募を受けていない企業の「企業の採用ページで応募する」（外部リンク）は 2026-10-27 に外した（柴さんの決定）。
+                         担当者がいない会社の求人はこのページ自体を出さず、会社ページへ戻す（jobs/[id]/page.tsx） */}
                   <BookmarkButton
                     targetType="job"
                     targetId={job.id}

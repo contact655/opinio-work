@@ -1,5 +1,6 @@
 import { laborFromRow } from "@/lib/jobs/laborTerms";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
+import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 /**
  * queries.ts — Supabase data access layer for Stage 1 (read-only public pages)
  *
@@ -863,10 +864,15 @@ const getCompanyById = cache(async function getCompanyById(
   const companyDomains = await fetchBusinessDomainsByCompany(
     supabase, [companyId], "getCompanyBySlugOrId",
   );
+  /* ★担当者がいない会社の求人は出さない・数えない（2026-10-27 / 柴さんの決定。lib/jobs/respondingJobs.ts）。
+        ⚠️ 担当者のプレビュー（"preview"）だけは自社の求人を見せる */
+  const visibleJobRows = testMode === "preview"
+    ? (jobRows ?? [])
+    : (await respondingCompanyIds([companyId], "getCompanyById")).has(companyId) ? (jobRows ?? []) : [];
   const company = mapCompany(
-    data, jobRows?.length ?? 0, genres, companyDomains.get(companyId) ?? [],
+    data, visibleJobRows.length, genres, companyDomains.get(companyId) ?? [],
   );
-  const detail = buildCompanyDetail(data, jobRows ?? [], roleRows);
+  const detail = buildCompanyDetail(data, visibleJobRows, roleRows);
   /* ★業種（大分類 › 小分類）とお客さまの業界（2026-10-12）。⚠️ 公開側なので有効な業種だけ */
   {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1298,6 +1304,10 @@ export const getJobs = unstable_cache(
           2026-08-06 に会社呼称が DynamicServerError で空になっていたのを
           ログでしか気づけなかったため、全クエリで出す。 */
     if (jobErr) console.error("[getJobs] jobs", jobErr.message);
+    /* ★担当者がいない会社の求人は出さない（2026-10-27 / 柴さんの決定。lib/jobs/respondingJobs.ts）。
+          ⚠️ unstable_cache の中なので no-store の client を使わない（respondingStaff は createAdminClient で足りる） */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const visibleJobRows = await keepJobsAtRespondingCompanies((jobRows ?? []) as any[], "getJobs");
 
     /* ★企業は「公開中の求人を持つ企業」だけを引く（2026-10-09）。
           ⚠️★**全社を引いて返さないこと。** この戻り値は `/jobs` の RSC ペイロードに載る。
@@ -1308,7 +1318,7 @@ export const getJobs = unstable_cache(
           ⚠️★`is_test` の企業は落とす。求人側は DB のトリガーで is_test が引き継がれるので
              通常ここに来ないが、念のため企業の列でも見る（`lib/jobs/publicJobs.ts`）。 */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jobCompanyIds = Array.from(new Set(((jobRows ?? []) as any[]).map((r) => r.company_id as string).filter(Boolean)));
+    const jobCompanyIds = Array.from(new Set(visibleJobRows.map((r) => r.company_id as string).filter(Boolean)));
     const { data: compRowsRaw, error: compErr } = jobCompanyIds.length > 0
       ? await supabase.from("ow_companies").select(JOB_LIST_COMPANY_COLS).in("id", jobCompanyIds)
       : { data: [], error: null };
@@ -1343,7 +1353,7 @@ export const getJobs = unstable_cache(
       mapCompany(row, 0, [], domainsByCompany.get(row.id as string) ?? []),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jobs = (jobRows ?? []).filter((row: Record<string, any>) => !testCompanyIds.has(row.company_id as string)).map((row: Record<string, any>) => {
+    const jobs = visibleJobRows.filter((row: Record<string, any>) => !testCompanyIds.has(row.company_id as string)).map((row: Record<string, any>) => {
       const job = mapJob(row);
       const rows = jobRoleMap.get(job.id);
       if (rows && rows.length > 0) {

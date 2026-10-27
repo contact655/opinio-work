@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -82,7 +83,8 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
       .select("company_id")
       .match(PUBLIC_JOB_MATCH);
     if (error) console.error("[featuredCompanies] ow_jobs:", error.message);
-    for (const r of data ?? []) add(r.company_id as string | null);
+    /* ★担当者がいない会社の求人は数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+    for (const r of await keepJobsAtRespondingCompanies(data ?? [], "featuredCompanies")) add(r.company_id as string | null);
   }
   if (basis === "articles" || basis === "content") {
     const { data, error } = await db

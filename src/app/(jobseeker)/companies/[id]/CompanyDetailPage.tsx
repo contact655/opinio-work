@@ -4,6 +4,7 @@ import { getCompanyFlowCached } from "@/lib/companyFlow/server";
 import { hasAnyFlowItem, toFlowSummary } from "@/lib/companyFlow/compute";
 import { CompanyFlowSection } from "./CompanyFlowSection";
 import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/lib/jobs/testViewMode";
+import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -1843,7 +1844,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     ref_job_id: string | null;
     ref_article_id: string | null;
     ref_company_id: string | null;
-    ow_jobs: { id: string; title: string; status: string | null } | null;
+    ow_jobs: { id: string; title: string; status: string | null; company_id?: string | null } | null;
     ow_articles: { id: string; slug: string; title: string; is_published: boolean | null } | null;
   };
 
@@ -1864,7 +1865,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const activityPostsRaw = await adminSupabase
     // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
     .from("ow_posts_visible")
-    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status), ow_articles!ref_article_id(id, slug, title, is_published)")
+    .select("id, post_type, content, created_at, ref_job_id, ref_article_id, ref_company_id, ow_jobs!ref_job_id(id, title, status, company_id), ow_articles!ref_article_id(id, slug, title, is_published)")
     .or(orParts.join(","))
     .neq("post_type", "company_joined")
     .order("created_at", { ascending: false })
@@ -1872,8 +1873,13 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
   /* ⚠️ 掲載を下ろした求人の「募集を開始しました」は出さない（2026-08-11）。
         残すと 404 になるリンクが企業ページの更新情報に並ぶ。判定は lib/feed/visibility に集約。 */
-  const activityPosts = ((activityPostsRaw.data ?? []) as unknown as ActivityPost[])
-    .filter((p) => isJobPostAlive({ post_type: p.post_type, ref_job: p.ow_jobs })
+  /* ★担当者がいない会社の求人の「募集を開始しました」も出さない（2026-10-27。lib/jobs/respondingJobs.ts） */
+  const activityRaw = (activityPostsRaw.data ?? []) as unknown as ActivityPost[];
+  const respondingForActivity = await respondingCompanyIds(
+    activityRaw.map((p) => p.ow_jobs?.company_id ?? null), "CompanyDetailPage 更新情報",
+  );
+  const activityPosts = activityRaw
+    .filter((p) => isJobPostAlive({ post_type: p.post_type, ref_job: p.ow_jobs }, respondingForActivity)
       // 非公開にした記事の「公開しました」も出さない（2026-10-20）
       && isArticlePostAlive({ post_type: p.post_type, ref_article: p.ow_articles }));
 

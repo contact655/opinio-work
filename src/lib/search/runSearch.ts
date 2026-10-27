@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 // src/lib/search/runSearch.ts
 /**
@@ -352,7 +353,8 @@ async function companyIdsByRole(roleIds: string[]): Promise<string[]> {
       .in("id", Array.from(jobIds))
       .match(PUBLIC_JOB_MATCH);
     if (error) console.error("[companyIdsByRole] jobs:", error.message);
-    for (const j of data ?? []) if (j.company_id) out.add(j.company_id as string);
+    /* ★担当者がいない会社の求人は数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+    for (const j of await keepJobsAtRespondingCompanies(data ?? [], "companyIdsByRole")) if (j.company_id) out.add(j.company_id as string);
   }
   return Array.from(out);
 }
@@ -391,7 +393,8 @@ async function jobCountByCompany(companyIds: string[]): Promise<Map<string, numb
     console.error("[jobCountByCompany]", error.message);
     return out;
   }
-  for (const j of data ?? []) {
+  /* ★担当者がいない会社の求人は数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+  for (const j of await keepJobsAtRespondingCompanies(data ?? [], "jobCountByCompany")) {
     const cid = j.company_id as string;
     out.set(cid, (out.get(cid) ?? 0) + 1);
   }
@@ -469,7 +472,9 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
   if (salary && salary.kind === "salaryMin") q = q.gte("salary_min", salary.man);
   if (roleJobIds !== null) q = q.in("id", inList(roleJobIds));
   /* 掲載中の企業に限る。条件で更に絞られていればその積を使う。 */
-  q = q.in("company_id", inList(allowedCompanies ?? new Set(companies.keys())));
+  /* ★担当者がいない会社の求人は出さない（2026-10-27。lib/jobs/respondingJobs.ts）。件数（count）も合わせるため、問い合わせの前に絞る */
+  const responding = await respondingCompanyIds(Array.from(allowedCompanies ?? new Set(companies.keys())), "searchJobHits");
+  q = q.in("company_id", inList(responding));
 
   const { data, count, error } = await q.order("updated_at", { ascending: false }).limit(HIT_LIMIT);
   if (error) {

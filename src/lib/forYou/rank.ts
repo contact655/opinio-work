@@ -1,4 +1,5 @@
 /* ★サーバー専用。admin クライアントを使う */
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
@@ -232,7 +233,12 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
   const roleMatches = (mine: string, job: string) =>
     mine === job || mine === parentOf(job) || parentOf(mine) === job;
   const jobRolesByCompany = new Map<string, string[]>();
-  for (const j of (jobsRes.data ?? []) as unknown as { company_id: string; ow_job_roles: { role_id: string }[] | null }[]) {
+  /* ★担当者がいない会社の求人は「公開中の募集」にも職種の一致にも使わない（2026-10-27。lib/jobs/respondingJobs.ts）。
+        ⚠️ 判定は会社と is_test が一致する担当者（検証用の人が見る検証用の会社は、検証用の担当者がいれば使う） */
+  const visibleJobRows = await keepJobsAtRespondingCompanies(
+    (jobsRes.data ?? []) as unknown as { company_id: string; ow_job_roles: { role_id: string }[] | null }[], "forYou S2",
+  );
+  for (const j of visibleJobRows) {
     const arr = jobRolesByCompany.get(j.company_id) ?? [];
     for (const r of j.ow_job_roles ?? []) arr.push(r.role_id);
     jobRolesByCompany.set(j.company_id, arr);

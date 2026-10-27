@@ -1,10 +1,11 @@
 import "server-only";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
+import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds } from "@/lib/feed/visibility";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
 import { getFeedSidebarCompanies } from "@/lib/supabase/queries";
@@ -154,11 +155,13 @@ export async function loadFeedProps() {
 
   // 可視判定。⚠️ ここに if を増やさない。判定は lib/feed/visibility に集約している
   //    （3箇所に散っていた結果、パーマリンクだけ is_system の例外が抜けていた）
+  /* ★担当者がいない会社の求人の「公開しました」も出さない（2026-10-27。lib/jobs/respondingJobs.ts） */
+  const respondingForPosts = await respondingCompanyIds(jobPostCompanyIds([...posts, ...blockOnly]), "feed 求人の投稿");
   const visiblePosts = [...posts, ...blockOnly].filter(
     (p) =>
       isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!user, viewerIsTest) &&
       // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
-      isJobPostAlive(p) &&
+      isJobPostAlive(p, respondingForPosts) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）
       isCompanyPostAlive(p) &&
       // 非公開にした記事の「公開しました」投稿も出さない（2026-10-20）
@@ -317,11 +320,12 @@ export async function loadFeedProps() {
           ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
     const { data: jobRows, error: jobRowsErr } = await adminSupabase
       .from("ow_jobs")
-      .select("id, slug, title, salary_min, salary_max, salary_negotiable, employment_type, ow_companies!company_id(name, brand_name)")
+      .select("id, slug, title, salary_min, salary_max, salary_negotiable, employment_type, company_id, ow_companies!company_id(name, brand_name)")
       .in("id", bookmarkedJobIds)
       .match(PUBLIC_JOB_MATCH);
     if (jobRowsErr) console.error("[feed/(list)] ow_jobs:", jobRowsErr.message);
-    sidebarSavedJobs = (jobRows ?? []).map((j: Record<string, unknown>) => {
+    /* ★担当者がいない会社の求人は出さない（2026-10-27。lib/jobs/respondingJobs.ts） */
+    sidebarSavedJobs = (await keepJobsAtRespondingCompanies((jobRows ?? []) as Record<string, unknown>[] as { company_id: string | null }[], "feed 保存した求人") as unknown as Record<string, unknown>[]).map((j: Record<string, unknown>) => {
       const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;
       return {
         id: j.id as string,

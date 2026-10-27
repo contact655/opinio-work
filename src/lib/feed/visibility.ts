@@ -32,13 +32,33 @@
  * 2026-08-11: 出典の無い求人13件を draft に落とした際、この判定が無いと
  * 13枚の死にカードがフィードに残る状態だった。
  */
-export function isJobPostAlive(post: {
-  post_type?: string | null;
-  ref_job?: { status?: string | null } | null;
-}): boolean {
+export function isJobPostAlive(
+  post: {
+    post_type?: string | null;
+    ref_job?: { status?: string | null; company_id?: string | null; company?: { id?: string | null } | null } | null;
+  },
+  /**
+   * ★担当者がいる会社の id（2026-10-27 / 柴さんの決定。lib/jobs/respondingJobs.ts の respondingCompanyIds で作る）。
+   *   渡したときは、担当者がいない会社の求人の「公開しました」も出さない（求人ページは会社ページへ戻すため）。
+   *   ⚠️ このファイルは純粋な関数のまま（サーバー専用のものを import しない）。集合は呼び出し側が作る。
+   */
+  respondingCompanies?: ReadonlySet<string>,
+): boolean {
   if (post.post_type !== "job_posted") return true;
-  const status = post.ref_job?.status;
-  return status === "published";
+  if (post.ref_job?.status !== "published") return false;
+  if (respondingCompanies) {
+    const cid = post.ref_job?.company?.id ?? post.ref_job?.company_id ?? null;
+    if (!cid || !respondingCompanies.has(cid)) return false;
+  }
+  return true;
+}
+
+/** 求人の「公開しました」投稿から会社の id を集める（isJobPostAlive に渡す集合を作るため） */
+export function jobPostCompanyIds(posts: { post_type?: string | null; ref_job?: { company_id?: string | null; company?: { id?: string | null } | null } | null }[]): string[] {
+  return posts
+    .filter((p) => p.post_type === "job_posted")
+    .map((p) => p.ref_job?.company?.id ?? p.ref_job?.company_id ?? null)
+    .filter((v): v is string => !!v);
 }
 
 /**

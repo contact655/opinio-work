@@ -1,3 +1,4 @@
+import { keepJobsAtRespondingCompanies } from "@/lib/jobs/respondingJobs";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 // src/lib/search/companies.ts
 import { resolveIndustryKey } from "./industryGroups";
@@ -268,7 +269,8 @@ export async function searchCompanies(
       .select("company_id")
       .match(PUBLIC_JOB_MATCH);
     if (jobErr) throw jobErr;
-    const hiringIds = Array.from(new Set((jobRows ?? []).map((r) => r.company_id as string)));
+    /* ★担当者がいない会社は「募集あり」に入れない（2026-10-27。lib/jobs/respondingJobs.ts） */
+    const hiringIds = Array.from(new Set((await keepJobsAtRespondingCompanies(jobRows ?? [], "searchCompanies hiring")).map((r) => r.company_id as string)));
     const base = domainCompanyIds ? domainCompanyIds.filter((id) => hiringIds.includes(id)) : hiringIds;
     domainCompanyIds = base.length > 0 ? base : ["00000000-0000-0000-0000-000000000000"];
   }
@@ -463,7 +465,12 @@ export async function searchCompanies(
 
     // 企業ごとに求人中央値のリストを集める
 
-    (activeJobsResult.data ?? []).forEach((j: { company_id: string; title?: string; salary_min?: number | null; salary_max?: number | null }) => {
+    /* ★担当者がいない会社の求人は「募集中 N件」に数えない（2026-10-27。lib/jobs/respondingJobs.ts） */
+    const visibleActiveJobs = await keepJobsAtRespondingCompanies(
+      (activeJobsResult.data ?? []) as { company_id: string; title?: string; salary_min?: number | null; salary_max?: number | null }[],
+      "searchCompanies jobs",
+    );
+    visibleActiveJobs.forEach((j: { company_id: string; title?: string; salary_min?: number | null; salary_max?: number | null }) => {
       jobCountMap[j.company_id] = (jobCountMap[j.company_id] || 0) + 1;
       // #2: 最大2件のタイトルを記録
       if (j.title) {

@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { resolveExperienceCompanyName, EXPERIENCE_COMPANY_COLS } from "@/lib/experiences/companyName";
-import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive } from "@/lib/feed/visibility";
+import { isPostVisibleTo, isJobPostAlive, isCompanyPostAlive, isArticlePostAlive, jobPostCompanyIds } from "@/lib/feed/visibility";
+import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { viewerIsTestByAuthId } from "@/lib/feed/viewerIsTest";
 import { canUserPost } from "@/lib/feed/canPost";
 
@@ -86,12 +87,12 @@ async function getExpByUser(admin: AdminClient, posts: RawPost[]): Promise<Map<s
 }
 
 // ⚠️ 判定は lib/feed/visibility に集約している。ここに if を増やさない
-function filterVisible(posts: RawPost[], myOwUserId: string | null, viewerIsTest: boolean): RawPost[] {
+function filterVisible(posts: RawPost[], myOwUserId: string | null, viewerIsTest: boolean, respondingCompanies: ReadonlySet<string>): RawPost[] {
   return posts.filter(
     (p) =>
       isPostVisibleTo({ postVisibility: p.visibility, author: p.user }, !!myOwUserId, viewerIsTest) &&
-      // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）
-      isJobPostAlive(p) &&
+      // 掲載を下ろした求人の「公開しました」投稿は出さない（押すと 404 になる）。担当者がいない会社の求人も（2026-10-27）
+      isJobPostAlive(p, respondingCompanies) &&
       // 取り下げた企業の「参加しました」投稿も同じく出さない（2026-08-13）
       isCompanyPostAlive(p) &&
       // 非公開にした記事の「公開しました」投稿も出さない（2026-10-20）
@@ -125,9 +126,11 @@ function formatPosts(
   viewerIsTest: boolean,
   likedIds: Set<string>,
   expByUser: Map<string, { roleTitle: string | null; company: string | null }>,
-  topLikersMap: Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]> = new Map()
+  topLikersMap: Map<string, { id: string; name: string; avatar_color: string | null; avatar_url: string | null }[]> = new Map(),
+  /** ★担当者がいる会社（求人の「公開しました」投稿の判定用。2026-10-27） */
+  respondingCompanies: ReadonlySet<string> = new Set(),
 ) {
-  return filterVisible(posts, myOwUserId, viewerIsTest).map((p) => {
+  return filterVisible(posts, myOwUserId, viewerIsTest, respondingCompanies).map((p) => {
     const exp = p.user ? expByUser.get(p.user.id) : undefined;
     return {
       id: p.id,
@@ -272,7 +275,7 @@ export async function GET(req: Request) {
       getExpByUser(adminSupabase, fposts),
       getTopLikers(adminSupabase, fposts),
     ]);
-    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, viewerIsTest, fLiked, fExp, fTopLikers) });
+    return NextResponse.json({ posts: formatPosts(fposts, myOwUserId, viewerIsTest, fLiked, fExp, fTopLikers, await respondingCompanyIds(jobPostCompanyIds(fposts), "posts API")) });
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -299,7 +302,7 @@ export async function GET(req: Request) {
     getTopLikers(adminSupabase, posts),
   ]);
 
-  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, viewerIsTest, likedIds, expByUser, topLikersMap) });
+  return NextResponse.json({ posts: formatPosts(posts, myOwUserId, viewerIsTest, likedIds, expByUser, topLikersMap, await respondingCompanyIds(jobPostCompanyIds(posts), "posts API")) });
 }
 
 // POST /api/jobseeker/posts — 投稿作成
