@@ -36,6 +36,7 @@ import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { destinationsForUsers } from "./destinations";
 import type { TransitionIntent } from "./transitionIntent";
+import type { CurrentDestinations } from "@/lib/companyFlow/compute";
 import { matchTransition, summarizeMoves, type MatchExp, type MoveSummary, type TransitionMatch } from "./transitionMatch";
 import { MIN_CAREER_FACT_COUNT } from "@/lib/constants/aggregate";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
@@ -176,16 +177,10 @@ export type KindResult<T> = {
  * ⚠️ 人数が MIN_AGGREGATE_COUNT（2026-10-26 から5）に届いた行き先だけ返す。届かない行き先は名前ごと出さない（destinations.ts）
  * ⚠️ いまの職歴の会社名を出してよい人（visibility_company = 'real'）だけ数える
  */
-export type Destinations = {
-  /** ★ロゴ（2026-10-21）。マスタにある会社だけ。自由入力の会社は null（頭文字で出す） */
-  /** `href` は会社ページが開ける会社だけ（filterVisibleCompaniesStrict）。開けない会社は null（リンクにしない） */
-  companies: {
-    label: string; count: number | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null; href: string | null;
-    /** ★会社の id（フォローに使う）と主の事業領域（2026-10-21。ホームの「新しく掲載された企業」と同じカードにするため） */
-    id: string | null; domain: string | null;
-  }[];
-  roles: { label: string; count: number | null }[];
-};
+/**
+ * ★「〈学校〉を出た人の、いま」（2026-10-27 に「人の流れ」と同じ規則にそろえた）。業界の大分類・職種の大分類・3人以上。会社名は持たない
+ */
+export type Destinations = CurrentDestinations;
 
 export type SearchResults = {
   company: KindResult<CompanyHit>;

@@ -122,3 +122,13 @@ test("★検索の「出た人」の集計：OB が3人以上で出る。行き�
   assert.deepEqual(counts, { alumni: 3, tenure: { alumni: 3 }, next: { known: 3 }, nextRoles: { known: 3 } });
   for (const k of ["byIndustry", "byRole", "avgMonths", "label"]) assert.ok(!keysDeep(counts).has(k), `件数だけの形に ${k} がある`);
 });
+
+test("★学校を出た人の「いま」：業界・職種の大分類で、3人以上の項目だけ。会社名を持たない", async () => {
+  const { computeCurrentDestinations } = await import("./compute.ts");
+  const R = (u, ind, role) => ({ userId: u, industryParentId: ind, roleTopLabel: role });
+  assert.equal(computeCurrentDestinations([R("u1", "it", "営業"), R("u2", "fin", "営業")], L.industry, 3), null);
+  const d = computeCurrentDestinations([R("u1", "it", "営業"), R("u2", "fin", "営業"), R("u3", "it", null), R("u3", "it", null)], L.industry, 3);
+  /* 同じ人の現職が2つあっても業界ごとに1回。職種が分かるのは2人なので職種は出さない */
+  assert.deepEqual(d, { industries: { known: 3, byIndustry: [{ label: "IT・インターネット", count: 2 }, { label: "金融", count: 1 }] }, roles: null });
+  assert.ok(!/u1|u2|u3|companyId|href|logo/.test(JSON.stringify(d)));
+});

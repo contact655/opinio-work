@@ -262,3 +262,35 @@ export function toLeaverSummaryCounts(s: LeaverSummary): LeaverSummaryCounts {
     nextRoles: s.nextRoles ? { known: s.nextRoles.known } : null,
   };
 }
+
+/**
+ * ★「〈学校〉を出た人の、いま」（2026-10-27 / 柴さんの決定。「人の流れ」と同じ規則にそろえた）。
+ *   渡した人たちの**いまの**職歴（現職）の業界（大分類）と職種（大分類）。1人は業界ごと・職種ごとに1回だけ数える
+ * ⚠️ 下限は経歴の事実なので minCareerFact（3人）。項目の母数が届かなければ null。会社名は返さない
+ * ⚠️ 母数の絞り込み（isAggregatableUser・visibility_company = 'real'・現職だけ）は呼ぶ側で済ませてから渡す
+ */
+export type CurrentDestinations = {
+  industries: { known: number; byIndustry: FlowBreakdown } | null;
+  roles: { known: number; byRole: FlowBreakdown } | null;
+};
+
+export function computeCurrentDestinations(
+  rows: readonly { userId: string; industryParentId: string | null; roleTopLabel: string | null }[],
+  industryName: (id: string) => string,
+  minCareerFact: number,
+): CurrentDestinations | null {
+  const ind = new Map<string, Set<string>>();
+  const role = new Map<string, Set<string>>();
+  for (const r of rows) {
+    if (r.industryParentId) ind.set(r.industryParentId, (ind.get(r.industryParentId) ?? new Set<string>()).add(r.userId));
+    if (r.roleTopLabel) role.set(r.roleTopLabel, (role.get(r.roleTopLabel) ?? new Set<string>()).add(r.userId));
+  }
+  const usersOf = (m: Map<string, Set<string>>) => new Set(Array.from(m.values()).flatMap((x) => Array.from(x)));
+  const known = (m: Map<string, Set<string>>) => usersOf(m).size;
+  const expand = (m: Map<string, Set<string>>) => Array.from(m.entries()).flatMap(([k, set]) => Array.from(set).map(() => k));
+  const out: CurrentDestinations = {
+    industries: known(ind) >= minCareerFact ? { known: known(ind), byIndustry: tally(expand(ind), industryName) } : null,
+    roles: known(role) >= minCareerFact ? { known: known(role), byRole: tally(expand(role), (k) => k) } : null,
+  };
+  return out.industries || out.roles ? out : null;
+}
