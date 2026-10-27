@@ -113,9 +113,8 @@ export async function GET() {
       /* ★フォローされた（2026-10-20）。押すと /u/[actor]。フォローした人が引けなければ落とす */
       case "follow": return !!(Array.isArray(r.actor) ? r.actor[0] : r.actor);
       /* ★「話を聞いてみたい」（2026-10-27）。届いた → 会話へ（conversation_id が要る）／返事なし・もう一度押すか → 会社が要る */
-      case "interest_delivered": return !!r.conversation_id && !!(Array.isArray(r.actorCompany) ? r.actorCompany[0] : r.actorCompany);
       case "interest_no_reply": return !!(Array.isArray(r.actorCompany) ? r.actorCompany[0] : r.actorCompany);
-      case "interest_reask": return !!(Array.isArray(r.actorCompany) ? r.actorCompany[0] : r.actorCompany);
+      case "interest_company_joined": return !!(Array.isArray(r.actorCompany) ? r.actorCompany[0] : r.actorCompany);
       default: return !!r.post_id && postPreviews.has(r.post_id);
     }
   };

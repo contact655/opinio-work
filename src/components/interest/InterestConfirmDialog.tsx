@@ -8,11 +8,11 @@ import { INTEREST_CONSENT_VERSION, INTEREST_NOTE_MAX, interestConfirmText } from
  *   企業ページ・合う会社の下段・上段の提案で**同じ部品**を使う。文言は lib/interest/constants.ts の interestConfirmText だけ。
  * ⚠️ 送るときに consentVersion（見せた文言の版）を一緒に送る。サーバーは今の版でなければ受け付けない。
  * ⚠️ 押すまで何も届かない。［やめる］では何も記録しない。
+ * ⚠️ 担当者がいない会社では出さない（ボタンごと出さず、「保存」だけ）。
  */
 export default function InterestConfirmDialog(props: {
   open: boolean;
   companyName: string;
-  hasResponder: boolean;
   busy: boolean;
   error: string | null;
   onCancel: () => void;
@@ -30,7 +30,7 @@ export default function InterestConfirmDialog(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.open]);
   if (!props.open) return null;
-  const text = interestConfirmText(props.companyName, props.hasResponder);
+  const text = interestConfirmText(props.companyName);
   return (
     <div role="presentation" onClick={() => { if (!props.busy) props.onCancel(); }}
       style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -38,7 +38,7 @@ export default function InterestConfirmDialog(props: {
         onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxWidth: 440, background: "#fff", borderRadius: 14, padding: "20px 20px 16px", boxShadow: "0 10px 40px rgba(0,0,0,0.18)" }}>
         <h2 id="interest-confirm-title" style={{ fontSize: 17, fontWeight: 700, margin: "0 0 10px" }}>{text.title}</h2>
-        <div data-state={props.hasResponder ? "interest-confirm-deliver" : "interest-confirm-pending"} style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink)" }}>
+        <div data-state="interest-confirm-deliver" style={{ fontSize: 14, lineHeight: 1.8, color: "var(--ink)" }}>
           {text.body.map((line) => <p key={line} style={{ margin: 0 }}>{line}</p>)}
         </div>
         <label htmlFor="interest-note" style={{ display: "block", fontSize: 12, fontWeight: 600, margin: "14px 0 4px" }}>

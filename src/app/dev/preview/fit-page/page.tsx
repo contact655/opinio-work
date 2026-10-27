@@ -63,14 +63,14 @@ export default function Page() {
       <PreviewHeader title="あなたに合う会社（/mypage/proposals）"><p>実画面はログインが要り、実在の利用者の提案は0件。上段と下段が並ぶ形はここで見る。ボタンは押さない（本物の API を叩く）。</p></PreviewHeader>
       <Variant label="提案あり ＋ すべての会社" note="上段2件（未回答・回答済み）。下段は理由ごとにまとまる：募集あり1社／AI・データ3社／その他2社（＋「興味なし」1社は畳まれる）">
         <main style={{ maxWidth: 720, margin: "0 auto" }}>
-          <FitPageIntro showNoResponderNote />
+          <FitPageIntro />
           <ProposalsClient proposals={[PROPOSAL, PROPOSAL_ANSWERED]} loadFailed={false} />
           <ForYouSection companies={COMPANIES} loadFailed={false} noReasons={false} declineReasons={DECLINE} />
         </main>
       </Variant>
       <Variant label="提案0件・理由0社" note="上段は出ない。下段の上に「職歴を追加すると…」">
         <main style={{ maxWidth: 720, margin: "0 auto" }}>
-          <FitPageIntro showNoResponderNote />
+          <FitPageIntro />
           <ForYouSection companies={COMPANIES.slice(4, 6).map((c, i) => ({ ...c, reaction: null, rank: i + 1 }))} loadFailed={false} noReasons declineReasons={DECLINE} />
         </main>
       </Variant>

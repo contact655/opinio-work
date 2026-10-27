@@ -229,49 +229,6 @@ export function casualMeetingAdminTemplate(params: {
  *    （`greetingName()` は人に呼びかけるときだけ）。
  * ⚠️ 倒す操作はここからさせない。**`/admin` を見て、人が migration を書く。**
  */
-/**
- * ★「あなたに合う会社」（下段）で、担当者のいない企業に「話を聞いてみたい」（記録上は interested）が押された（2026-10-15）。1件ずつ運営へ。
- * ⚠️ 件名は【興味あり・担当者未登録】＋社名（柴さんの指示）。検証用アカウントなら先頭に【検証】。
- * ⚠️ 組み立てと送信は lib/forYou/notifyOps.ts の1か所から呼ぶ（1日10件を超えたらまとめての通知に切り替える前提）。
- */
-export function forYouInterestOpsTemplate(params: {
-  companyId: string;
-  companyName: string;
-  candidateName: string | null;
-  rank: number | null;
-  reasons: string[];
-  /** どこから押したか（for_you / company_page / proposal） */
-  source?: string;
-  /** 押した人が検証用アカウントか */
-  candidateIsTest: boolean;
-}) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://opinio.jp";
-  const name = greetingName(params.candidateName);
-  const who = name ? `${name}さん` : "利用者の方";
-  return {
-    to: ADMIN_EMAIL,
-    subject: `${params.candidateIsTest ? "【検証】" : ""}【興味あり・担当者未登録】${params.companyName}`,
-    html: htmlWrap(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#002366">担当者のいない企業に「興味あり」が届きました</h2>
-      <p style="margin:0 0 20px;color:#475569">
-        ${esc(who)}が${params.source === "company_page" ? "企業ページ" : "「あなたに合う会社」"}で <strong style="color:#0f172a">${esc(params.companyName)}</strong> に「話を聞いてみたい」を押しました。
-        この企業には OPINIO の担当者が登録されていないため、運営に届いています。担当者が登録されたら、押してから90日以内の分は自動でこの企業に届きます。
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px">
-        <tr><td style="${TD_LABEL}">企業</td><td style="${TD_VALUE}">${esc(params.companyName)}</td></tr>
-        <tr><td style="${TD_LABEL}">押した人</td><td style="${TD_VALUE}">${esc(who)}${params.candidateIsTest ? "（検証用アカウント）" : ""}</td></tr>
-        ${params.rank != null ? `<tr><td style="${TD_LABEL}">押した時点の順位</td><td style="${TD_VALUE}">${params.rank}位</td></tr>` : ""}
-        ${params.reasons.length > 0 ? `<tr><td style="${TD_LABEL}">表示した理由</td><td style="${TD_VALUE}">${params.reasons.map(esc).join("<br>")}</td></tr>` : ""}
-      </table>
-      <p style="margin:0 0 20px;color:#475569;font-size:13px">
-        ⚠️ 企業へ連絡するときに使えるのは、人数の幅（1〜4人／5〜9人／10人以上）と、業界・職種の大分類の傾向（3人以上の項目だけ）まで。押した人の名前とひとことは企業に渡さないでください（運営画面「話を聞きたい人（担当者の登録待ち）」に一覧があります）。
-      </p>
-      <a href="${siteUrl}/admin/interests" style="${BTN}">「話を聞きたい人」の一覧を開く →</a>
-      <p style="margin:12px 0 0"><a href="${siteUrl}/admin/companies/${params.companyId}" style="color:#002366">運営画面で企業を開く</a></p>
-    `),
-  };
-}
-
 export function testLeftoversAdminTemplate(params: {
   users: string[];
   companies: { name: string; createdBy: string | null }[];

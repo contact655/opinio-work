@@ -1,8 +1,15 @@
 /**
  * ★「話を聞いてみたい」の決めごと（2026-10-27 / 話を聞きたい人 フェーズ1a・柴さんの決定）。**純粋な関数と定数。何も import しない**（node のテストから読むため）。
  *
- * 押したら、その会社に名前とプロフィールが届く（担当者がまだいない会社には、担当者が登録した時点で届く）。
- * 企業ページ・合う会社（上段の提案・下段）のどこから押しても、同じ確認の文言・同じ記録（ow_for_you_reactions）・同じ届け方。
+ * 押したら、その会社に名前とプロフィールが届く。企業ページ・合う会社（上段の提案・下段）のどこから押しても、
+ * 同じ確認の文言・同じ記録（ow_for_you_reactions）・同じ届け方。
+ *
+ * ★★担当者がいない会社には、名前を届けない（2026-10-27 / 柴さんの決定）。「話を聞いてみたい」は出さず、**「保存」を出す**
+ *   （既存の ow_bookmarks。企業には何も届かない）。担当者が登録したら、その会社を保存している人に知らせるだけ。
+ *   届くのは本人が改めて「話を聞いてみたい」を押したときだけ。
+ *   ⚠️★**その会社が OPINIO にいない（担当者がいない）ことが分かる文言を、画面・通知のどこにも出さない。**
+ *      外のサイトで直接応募するきっかけになるため。「参加したら知らせる」（同日に一度入れた）は**やめた**。
+ *   ⚠️「押しておけば後で届く」形（担当者の登録待ち・90日）も**やめた**。戻さないこと。
  * ⚠️ 「双方合意」は企業から声をかける側（企業からのメッセージ）で守る。こちらは本人が自分で届ける形（応募に近い）。
  */
 
@@ -15,51 +22,40 @@ export const INTEREST_NOTE_MAX = 200;
 /** 届いてから企業の返事を待つ日数。過ぎたら本人に知らせる */
 export const INTEREST_NO_REPLY_DAYS = 14;
 
-/** 担当者の登録待ちのまま届けてよい日数。過ぎたら届けず、もう一度押すか本人に聞く */
-export const INTEREST_PENDING_VALID_DAYS = 90;
-
 export const INTEREST_SOURCES = ["for_you", "company_page", "proposal"] as const;
 export type InterestSource = (typeof INTEREST_SOURCES)[number];
 
-export const INTEREST_STATUSES = ["delivered", "awaiting_contact", "replied", "no_reply", "expired"] as const;
+/** ⚠️ 担当者の登録待ち（awaiting_contact）と期限切れ（expired）は 2026-10-27 にやめた */
+export const INTEREST_STATUSES = ["delivered", "replied", "no_reply"] as const;
 export type InterestStatus = (typeof INTEREST_STATUSES)[number];
 
-/** ★押す前の確認の文言（案。柴さんが確定する）。⚠️ 変えたら INTEREST_CONSENT_VERSION を上げる */
-export function interestConfirmText(companyName: string, hasResponder: boolean): { title: string; body: string[] } {
-  return hasResponder
-    ? {
-        title: `${companyName}に届けます`,
-        body: [
-          `${companyName}に、あなたの名前とプロフィールが届きます。`,
-          "企業からメッセージが届くことがあります。",
-        ],
-      }
-    : {
-        title: `${companyName}に届けます`,
-        body: [
-          `${companyName}の担当者がOPINIOに登録したら、あなたの名前とプロフィールが届きます。`,
-          "それまでは届きません。",
-        ],
-      };
+/** ★押す前の確認の文言（2026-10-27 に柴さんが確定）。⚠️ 変えたら INTEREST_CONSENT_VERSION を上げる
+ *  ⚠️ 担当者がいない会社ではボタンごと出さない（代わりに「保存」） */
+export function interestConfirmText(companyName: string): { title: string; body: string[] } {
+  return {
+    title: `${companyName}に届けます`,
+    body: [
+      `${companyName}に、あなたの名前とプロフィールが届きます。`,
+      "企業からメッセージが届くことがあります。",
+    ],
+  };
 }
 
 /** 押したあとの表示（本人向け） */
 export function interestStatusText(status: InterestStatus | null, companyName: string): string {
   switch (status) {
-    case "awaiting_contact": return `${companyName}の担当者が登録したら届きます。`;
     case "no_reply": return `${companyName}からはまだ返事がありません。`;
-    case "expired": return "担当者の登録まで時間がたったため、届けていません。届けるには、もう一度押してください。";
     case "replied":
     case "delivered":
     default: return `${companyName}に届けました。`;
   }
 }
 
-/** ★本人への知らせの文言（ベル）。案。柴さんが確定する */
+/** ★本人への知らせの文言（ベル）。noReply は 2026-10-27 に確定・companyJoined は案 */
 export const INTEREST_NOTICE_TEXT = {
-  delivered: (companyName: string) => `${companyName}に、あなたの名前とプロフィールが届きました。`,
   noReply: (companyName: string) => `${companyName}からはまだ返事がありません。ほかにも、あなたの経歴に合う会社があります。`,
-  reask: (companyName: string) => `${companyName}の担当者がOPINIOに登録しました。届けるには、もう一度「話を聞いてみたい」を押してください。`,
+  /** ★保存した会社に担当者が付いたとき（案）。⚠️ 「参加しました」「担当者が登録しました」と書かない（いなかったことが分かる） */
+  savedReady: (companyName: string) => `保存した${companyName}に、「話を聞いてみたい」を送れるようになりました。`,
 } as const;
 
 /**
@@ -82,13 +78,6 @@ export function trendItems(counts: Record<string, number>, min = INTEREST_TREND_
     .filter(([label, n]) => label && n >= min)
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "ja"));
-}
-
-/** 担当者の登録待ちの行を、いま届けてよいか（押してから 90日以内か） */
-export function isPendingStillValid(interestedAtIso: string, nowMs: number, days = INTEREST_PENDING_VALID_DAYS): boolean {
-  const t = Date.parse(interestedAtIso);
-  if (!Number.isFinite(t)) return false;
-  return nowMs - t <= days * 24 * 3600_000;
 }
 
 /** 届けてから返事なしと見なす時刻を過ぎたか */

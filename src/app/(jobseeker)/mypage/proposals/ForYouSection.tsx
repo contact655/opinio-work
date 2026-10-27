@@ -1,5 +1,6 @@
 "use client";
 
+import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
@@ -12,9 +13,10 @@ import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./Fi
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
  *   並べ方は lib/forYou/（weights.ts）。上段（提案）に出ている会社は page.tsx が除いてから渡す。
  *
- * ★ボタンはどの会社も「話を聞いてみたい」（2026-10-27 / 話を聞きたい人 フェーズ1a）。押すと確認の画面（InterestConfirmDialog）が開く:
- *   担当者あり … ［届ける］でその会社に名前とプロフィールが届き、会話ができる
- *   担当者未登録 … ［届ける］で記録して運営に知らせ、担当者が登録したら届く（押してから90日以内）
+ * ★ボタン（2026-10-27 / 話を聞きたい人 フェーズ1a）:
+ *   担当者あり … 「話を聞いてみたい」→ 確認の画面（InterestConfirmDialog）→［届ける］で名前とプロフィールが届き、会話ができる
+ *   担当者未登録 … 「保存」（既存の ow_bookmarks）。**名前は届けない**。担当者が付いたら保存した人に知らせるだけ
+ *                 （柴さんの決定。届くのは改めて押したときだけ）。⚠️ いないことが分かる文言は出さない（見出しで分けることもしない）
  * ⚠️ 記録と届け方は lib/interest/server.ts の1か所（企業ページ・上段の提案と同じ）。
  */
 
@@ -39,7 +41,7 @@ export type ForYouView = {
   cautions: string[];
   hasResponder: boolean;
   /** 「話を聞いてみたい」の状態（lib/interest/constants.ts の InterestStatus）。押していなければ null */
-  interestStatus: "delivered" | "awaiting_contact" | "replied" | "no_reply" | "expired" | null;
+  interestStatus: "delivered" | "replied" | "no_reply" | null;
   reaction: ForYouReaction | null;
   conversationId: string | null;
   /** 「話を聞いてみたい」を押した（取り消していない） */
@@ -126,7 +128,7 @@ export default function ForYouSection({
       setItems((prev) => prev.map((x) => x.id !== c.id ? x : {
         ...x, reaction: "interested", interested: true,
         conversationId: json.conversationId ?? x.conversationId,
-        interestStatus: json.result === "conversation" ? "delivered" : json.result === "ops_notified" ? "awaiting_contact" : x.interestStatus,
+        interestStatus: json.result === "conversation" ? "delivered" : x.interestStatus,
       }));
       setConfirming(null);
     } catch {
@@ -156,8 +158,6 @@ export default function ForYouSection({
   /* ★「あとで」を押した会社は上にまとめる（2026-10-23 / 柴さんの指示）。⚠️ 気になる・話を聞いてみたい済みは入れない */
   const later = visible.filter((c) => c.reaction === "later" && !c.interested);
   const rest = visible.filter((c) => !(c.reaction === "later" && !c.interested));
-  const responders = rest.filter((c) => c.hasResponder);
-  const others = rest.filter((c) => !c.hasResponder);
 
   /* 会社ごとの操作（話を聞いてみたい・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
   const actionsFor = (c: ForYouView) => (
@@ -258,7 +258,10 @@ export default function ForYouSection({
         </button>
         <div className="fy-tile-foot">
           {c.interested ? (
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>{c.conversationId ? "届けました" : "担当者の登録待ち"}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--royal)" }}>届けました</span>
+          ) : !c.hasResponder ? (
+            /* ★担当者がいない会社は「保存」（2026-10-27）。⚠️ いないことが分かる文言は出さない */
+            <span data-state="tile-save"><BookmarkButton targetType="company" targetId={c.id} label="保存" variant="with-text" /></span>
           ) : (
             <button type="button" disabled={busy === c.id} data-action="tile-primary"
               onClick={() => { setConfirmErr(null); setConfirming(c); }}
@@ -272,7 +275,7 @@ export default function ForYouSection({
     );
   };
 
-  /* 理由ごとにまとめた一覧（担当者がいる会社・いない会社のそれぞれで使う） */
+  /* 理由ごとにまとめた一覧 */
   /* ⚠️ 理由の無い会社だけのとき（＝まとめの見出しが「その他の掲載企業」1つだけ）は、その見出しを出さない（2026-10-23）。
         上の「気になる会社 N社」と同じ会社を指す見出しが2つ並んでいた */
   const renderGroups = (list: ForYouView[]) => (
@@ -296,7 +299,6 @@ export default function ForYouSection({
     <InterestConfirmDialog
       open={!!confirming}
       companyName={confirming?.name ?? ""}
-      hasResponder={confirming?.hasResponder ?? false}
       busy={!!confirming && busy === confirming.id}
       error={confirmErr}
       onCancel={() => { setConfirming(null); setConfirmErr(null); }}
@@ -372,9 +374,6 @@ export default function ForYouSection({
             <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>いま表示できる会社はありません。</p>
           )}
 
-          {/* ★2026-10-23（柴さんの指示）: 担当者がいる会社を上にまとめ、いない会社は下に「気になる会社」として並べる。
-                 担当者がいる会社の「話を聞いてみたい」はその場で届く。いない会社は記録して運営に知らせ、担当者が登録したら届く（2026-10-27）。
-                 ⚠️ 判定は c.hasResponder（サーバーの rank.ts。見ている人と is_test が一致する有効な担当者がいるか） */}
           {later.length > 0 && (
             <section data-state="for-you-later" style={{ marginBottom: 28 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>あとで見る<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{later.length}社</span></h3>
@@ -382,18 +381,12 @@ export default function ForYouSection({
               {renderGroups(later)}
             </section>
           )}
-          {responders.length > 0 && (
-            <section data-state="for-you-responders" style={{ marginBottom: 28 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>担当者がいる会社<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{responders.length}社</span></h3>
-              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>「話を聞いてみたい」を押すと、この会社に届き、メッセージでやり取りできます。</p>
-              {renderGroups(responders)}
-            </section>
-          )}
-          {others.length > 0 && (
-            <section data-state="for-you-no-responders">
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>気になる会社<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{others.length}社</span></h3>
-              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>まだ OPINIO に担当者がいない会社です。「話を聞いてみたい」を押すと、担当者が登録したときに、あなたの名前とプロフィールが届きます。</p>
-              {renderGroups(others)}
+          {/* ★2026-10-27（柴さんの決定）: 担当者の有無で見出しを分けない（「担当者がいる会社」「気になる会社」をやめた）。
+                 分けると、下の会社が OPINIO にいないことが分かり、外のサイトで直接応募するきっかけになる。合う順に1つにまとめる。
+                 担当者がいる会社は「話を聞いてみたい」、いない会社は「保存」（Actions が c.hasResponder で出し分ける） */}
+          {rest.length > 0 && (
+            <section data-state="for-you-all" style={{ marginBottom: 28 }}>
+              {renderGroups(rest)}
             </section>
           )}
 
@@ -469,14 +462,7 @@ function Actions(props: {
             </Link>
           </div>
         ) : (
-          /* ★担当者の登録待ち（2026-10-27）。担当者が登録したら届き、本人に知らせる（lib/interest/server.ts） */
-          <div data-state="for-you-awaiting" style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ color: "var(--ink-soft)" }}>担当者が登録したら、あなたの名前とプロフィールが届きます。</span>
-            <button type="button" disabled={props.busy} onClick={props.onUndo}
-              style={{ padding: "4px 0", border: "none", background: "none", color: "var(--ink-soft)", fontSize: 12, textDecoration: "underline", cursor: "pointer" }}>
-              取り消す
-            </button>
-          </div>
+          <span style={{ fontWeight: 600 }}>「話を聞いてみたい」と答えました</span>
         )}
       </div>
     );
@@ -513,11 +499,17 @@ function Actions(props: {
           上段（OPINIO からの提案）は塗りのまま —— 強さの差で「提案」と「一覧」を見分けられるようにする。
           「あとで」「興味なし」は文字だけにして、主の操作を1つに見せる */
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-      <button type="button" disabled={props.busy} onClick={props.onInterested}
-        style={{ ...btn, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: props.busy ? 0.6 : 1, marginRight: 4 }}>
-        {/* ★どの会社も「話を聞いてみたい」（2026-10-27）。担当者の有無は確認の画面の文言で伝える */}
-        話を聞いてみたい
-      </button>
+      {c.hasResponder ? (
+        <button type="button" disabled={props.busy} onClick={props.onInterested}
+          style={{ ...btn, border: "1px solid var(--royal)", background: "#fff", color: "var(--royal)", opacity: props.busy ? 0.6 : 1, marginRight: 4 }}>
+          話を聞いてみたい
+        </button>
+      ) : (
+        /* ★担当者がいない会社は「保存」（2026-10-27 / 柴さんの決定）。名前は届けない。⚠️ いないことが分かる文言は出さない */
+        <span data-state="for-you-save" style={{ marginRight: 4 }}>
+          <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="with-text" />
+        </span>
+      )}
       <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
         style={{ ...btn, border: "none", background: c.reaction === "later" ? "var(--bg-tint)" : "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
         {/* ★「あとで見る」に入っている会社では外すボタンにする（2026-10-23） */}

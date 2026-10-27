@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { mutateOne } from "@/lib/supabase/mutate";
-import { deliverPendingInterests } from "@/lib/interest/server";
+import { notifySaversOnJoin } from "@/lib/interest/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCompanyContext } from "@/lib/business/company";
@@ -170,8 +170,8 @@ export async function PATCH(
       console.error("[members PATCH reactivate]", error.message);
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
-    /* ★担当者に戻ったので「話を聞いてみたい」の登録待ちを届ける（90日以内）。best-effort・黙らない */
-    await deliverPendingInterests([companyId!]).catch((e) => console.error("[members PATCH reactivate] deliverPendingInterests:", e));
+    /* ★担当者に戻ったのでその会社を保存している人に「送れるようになりました」と知らせる（名前は届けない）。best-effort・黙らない */
+    await notifySaversOnJoin([companyId!]).catch((e) => console.error("[members PATCH reactivate] notifySaversOnJoin:", e));
   }
 
   // ── action: update_profile ────────────────────────────────────────

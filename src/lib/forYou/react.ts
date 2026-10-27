@@ -13,7 +13,7 @@ import { isForYouReaction, type ForYouReaction } from "@/lib/forYou/weights";
  * 「興味あり」を**初めて**押したとき:
  *   - 担当者がいる企業 … 会話を開く（提案の「話を聞いてみたい」と同じ形。案内の行＋企業へのメール）
  *     ⚠️ 会話を作るのは `openCompanyConversation()`（openReason.ts）だけ。判定は応募と同じ `can_contact_without_stance()`
- *   - 担当者がいない企業 … 記録して、運営に1件ずつメール（notifyOps.ts）
+ *   - 担当者がいない企業 … 受け付けない（409。画面には「保存」を出している。2026-10-27 / 柴さんの決定）
  *   - 担当者はいるが会話の判定が通らない … 記録だけ。★理由は利用者に出さない（openReason.ts の約束）
  *
  * ⚠️★押した時点の順位とシグナルを**サーバーで計算し直して**記録する（クライアントの値を信じない）。
@@ -23,7 +23,6 @@ import { isForYouReaction, type ForYouReaction } from "@/lib/forYou/weights";
 
 export type ReactOutcome =
   | { ok: true; result: "conversation"; conversationId: string }
-  | { ok: true; result: "ops_notified" }
   | { ok: true; result: "recorded" }
   | { ok: false; status: number; error: string };
 
@@ -74,7 +73,6 @@ export async function reactForYou(input: {
       reasons: company.reasons,
     });
     if (!r.ok) return r;
-    if (r.status === "awaiting_contact") return { ok: true, result: "ops_notified" };
     return r.conversationId
       ? { ok: true, result: "conversation", conversationId: r.conversationId }
       : { ok: true, result: "recorded" };

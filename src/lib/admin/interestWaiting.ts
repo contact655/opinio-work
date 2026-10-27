@@ -1,17 +1,16 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
-import { interestCountBand, isPendingStillValid, trendItems } from "@/lib/interest/constants";
+import { interestCountBand, trendItems } from "@/lib/interest/constants";
+import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
 
 export type InterestWaitingRow = {
   companyId: string;
   name: string;
   slug: string | null;
   isTest: boolean;
-  /** 担当者の登録待ちで、まだ届けられる（押してから90日以内）人数 */
+  /** 担当者がいない会社を保存している人数（会社と is_test が同じ人だけ） */
   count: number;
-  /** 90日を過ぎた人数（届けない。担当者が付いたら本人にもう一度押すか聞く） */
-  staleCount: number;
   firstAt: string;
   /** ★企業に伝えてよいのはこの2つだけ（人数の幅・業界と職種の大分類で3人以上の項目） */
   band: string | null;
@@ -20,21 +19,35 @@ export type InterestWaitingRow = {
 };
 
 /**
- * ★「話を聞いてみたい」を押したのに、担当者がまだいない企業（2026-10-27 / 話を聞きたい人 フェーズ1a）。
- *   ow_for_you_reactions.interest_status = 'awaiting_contact' を企業ごとに数える。
+ * ★担当者がまだいない企業を「保存」している人（2026-10-27 / 柴さんの決定）。
+ *   ow_bookmarks（target_type = 'company'）を、担当者のいない企業ごとに数える。⚠️ 企業には何も届いていない（名前も渡していない）。
+ *   ⚠️ 実在の企業は実在の人だけ、検証用の企業は検証用の人だけを数える。
  * ⚠️★返すのは集計だけ。**名前・ひとことは返さない**（運営が企業に伝えてよいのは人数の幅と大分類の傾向だけ）。
  * ⚠️ 傾向は押した人の「いまの職歴」（無ければ最も新しい職歴）の業界・職種の大分類。3人以上の項目だけ。
  * ⚠️ 取得に失敗したら null（0社と出さない）。
  */
-export async function loadInterestWaiting(nowMs = Date.now()): Promise<InterestWaitingRow[] | null> {
+export async function loadInterestWaiting(): Promise<InterestWaitingRow[] | null> {
   const db = createAdminClient();
   const { data: rows, error } = await db
-    .from("ow_for_you_reactions")
-    .select("user_id, company_id, interested_at")
-    .eq("interest_status", "awaiting_contact")
-    .not("interested_at", "is", null);
-  if (error) { console.error("[admin/interestWaiting] reactions:", error.message); return null; }
-  const list = (rows ?? []) as { user_id: string; company_id: string; interested_at: string }[];
+    .from("ow_bookmarks")
+    .select("user_id, target_id, created_at, ow_users!inner(is_test)")
+    .eq("target_type", "company");
+  if (error) { console.error("[admin/interestWaiting] bookmarks:", error.message); return null; }
+  const saved = (rows ?? []) as unknown as { user_id: string; target_id: string; created_at: string; ow_users: { is_test: boolean } | { is_test: boolean }[] }[];
+  if (saved.length === 0) return [];
+  const savedIds = Array.from(new Set(saved.map((r) => r.target_id)));
+  const responders = await filterCompaniesWithRespondingStaff(savedIds);
+  if (!responders) return null;
+  const { data: coRows, error: coErr } = await db.from("ow_companies").select("id, is_test").in("id", savedIds.filter((id) => !responders.has(id)));
+  if (coErr) { console.error("[admin/interestWaiting] companies:", coErr.message); return null; }
+  const waitingTest = new Map(((coRows ?? []) as { id: string; is_test: boolean }[]).map((c) => [c.id, c.is_test === true]));
+  const list = saved
+    .filter((r) => {
+      if (!waitingTest.has(r.target_id)) return false;
+      const u = Array.isArray(r.ow_users) ? r.ow_users[0] : r.ow_users;
+      return (u?.is_test === true) === waitingTest.get(r.target_id);
+    })
+    .map((r) => ({ user_id: r.user_id, company_id: r.target_id, created_at: r.created_at }));
   if (list.length === 0) return [];
 
   const companyIds = Array.from(new Set(list.map((r) => r.company_id)));
@@ -73,11 +86,11 @@ export async function loadInterestWaiting(nowMs = Date.now()): Promise<InterestW
   const roleTop = topName((roles.data ?? []) as { id: string; name: string; parent_id: string | null }[]);
   const indTop = topName((inds.data ?? []) as { id: string; name: string; parent_id: string | null }[]);
 
-  const byCompany = new Map<string, { users: string[]; stale: number; firstAt: string }>();
+  const byCompany = new Map<string, { users: string[]; firstAt: string }>();
   for (const r of list) {
-    const g = byCompany.get(r.company_id) ?? { users: [], stale: 0, firstAt: r.interested_at };
-    if (isPendingStillValid(r.interested_at, nowMs)) g.users.push(r.user_id); else g.stale += 1;
-    if (r.interested_at < g.firstAt) g.firstAt = r.interested_at;
+    const g = byCompany.get(r.company_id) ?? { users: [], firstAt: r.created_at };
+    g.users.push(r.user_id);
+    if (r.created_at < g.firstAt) g.firstAt = r.created_at;
     byCompany.set(r.company_id, g);
   }
 
@@ -100,7 +113,6 @@ export async function loadInterestWaiting(nowMs = Date.now()): Promise<InterestW
       slug: c?.slug ?? null,
       isTest: c?.is_test === true,
       count: g.users.length,
-      staleCount: g.stale,
       firstAt: g.firstAt,
       band: interestCountBand(g.users.length),
       industries: trendItems(indCounts).map((t) => t.label),

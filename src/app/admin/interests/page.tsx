@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { loadInterestWaiting } from "@/lib/admin/interestWaiting";
 import { viewerIsAdmin } from "@/lib/auth/adminPageGuard";
-import { INTEREST_PENDING_VALID_DAYS, INTEREST_TREND_MIN } from "@/lib/interest/constants";
+import { INTEREST_TREND_MIN } from "@/lib/interest/constants";
 
 /* ⚠️ 運営の作業一覧。キャッシュに載せない */
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: { absolute: "話を聞きたい人（担当者の登録待ち） | OPINIO 運営" } };
+export const metadata = { title: { absolute: "保存している人（担当者のいない企業） | OPINIO 運営" } };
 
 /**
- * ★「話を聞いてみたい」を押したのに、担当者がまだいない企業（2026-10-27 / 話を聞きたい人 フェーズ1a）。
+ * ★担当者がまだいない企業を「保存」している人（2026-10-27 / 柴さんの決定）。
  *   数え方は lib/admin/interestWaiting.ts の1か所。
- * ⚠️★この画面に名前・ひとことを出さない。企業に伝えてよいのは「人数の幅」と「業界・職種の大分類（3人以上の項目）」だけ。
- * ⚠️ 担当者が登録されると、押してから90日以内の人には自動で届く（本人にも知らせる）。運営が取り次ぐ必要はない。
+ * ⚠️★この画面に名前を出さない。企業に伝えてよいのは「人数の幅」と「業界・職種の大分類（3人以上の項目）」だけ。
+ * ⚠️ 企業には何も届いていない。担当者が登録されると保存した人に「送れるようになりました」と知らせるだけで、名前は届けない。
  */
 export default async function AdminInterestsPage() {
   /* ★運営権限をページ本体でも確かめる。DB を引く前に返す（lib/auth/adminPageGuard.ts）。消さないこと */
@@ -26,13 +26,13 @@ export default async function AdminInterestsPage() {
   return (
     <div style={{ maxWidth: 1000 }}>
       <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px" }}>
-        話を聞きたい人（担当者の登録待ち）
+        保存している人（担当者のいない企業）
       </h1>
       <p style={{ margin: "0 0 20px", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        「話を聞いてみたい」が押されたのに、答えられる担当者がまだいない企業です。
-        担当者が登録されると、押してから{INTEREST_PENDING_VALID_DAYS}日以内の人の名前とプロフィールが自動で届きます。
+        担当者がまだいない企業を「保存」している人です。企業には何も届いていません。
+        担当者が登録されると、保存した人に「『話を聞いてみたい』を送れるようになりました」と知らせます（名前は届けません。届くのは本人が改めて押したときだけです）。
         <br />
-        ⚠️ 企業に伝えてよいのは<strong>人数の幅</strong>と<strong>業界・職種の大分類の傾向（{INTEREST_TREND_MIN}人以上の項目）</strong>だけです。名前やひとことは伝えないでください。
+        ⚠️ 企業に伝えてよいのは<strong>人数の幅</strong>と<strong>業界・職種の大分類の傾向（{INTEREST_TREND_MIN}人以上の項目）</strong>だけです。名前は伝えないでください。
       </p>
 
       {rows === null ? (
@@ -54,12 +54,11 @@ export default async function AdminInterestsPage() {
                 </Link>
                 {r.isTest && <span style={{ marginLeft: 8, fontSize: 11, color: "var(--ink-mute)" }}>（検証用の企業）</span>}
                 <div style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 2 }}>
-                  最初に押された日: {fmtDate(r.firstAt)}
-                  {r.staleCount > 0 && <span style={{ marginLeft: 8 }}>（{INTEREST_PENDING_VALID_DAYS}日を過ぎた {r.staleCount}人は届けません）</span>}
+                  最初に保存された日: {fmtDate(r.firstAt)}
                 </div>
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-soft)", minWidth: 120 }}>
-                押した人数 <strong data-state="interests-count" style={{ color: "var(--ink)" }}>{r.count}</strong>人
+                保存している人 <strong data-state="interests-count" style={{ color: "var(--ink)" }}>{r.count}</strong>人
               </div>
               <div style={{ flex: "1 1 260px", minWidth: 0, fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
                 <div style={{ fontWeight: 600, color: "var(--ink)" }}>企業に伝えてよいこと</div>

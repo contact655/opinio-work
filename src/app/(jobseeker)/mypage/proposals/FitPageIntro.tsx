@@ -1,5 +1,5 @@
 import { PROPOSAL_RESPONSE_DAYS } from "@/lib/constants/proposalResponses";
-import { FIT_PAGE_LEAD, FIT_PAGE_TITLE, NO_RESPONDER_NOTE, UNCHECKED_NOTE } from "./fitPageText";
+import { FIT_PAGE_LEAD, FIT_PAGE_TITLE, UNCHECKED_NOTE } from "./fitPageText";
 import { Phrases } from "./FitCardParts";
 
 /**
@@ -10,7 +10,7 @@ import { Phrases } from "./FitCardParts";
  * ⚠️★中立の明示（人材紹介会社は関わっていない）と、何が・いつ・どこまで渡るかの告知は**消さないこと**。
  *    折りたたんだだけで、ページから外したわけではない。
  */
-export default function FitPageIntro({ showNoResponderNote }: { showNoResponderNote: boolean }) {
+export default function FitPageIntro() {
   return (
     <header style={{ marginBottom: 24 }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>{FIT_PAGE_TITLE}</h1>
@@ -20,12 +20,7 @@ export default function FitPageIntro({ showNoResponderNote }: { showNoResponderN
       <details style={{ fontSize: 12, color: "var(--ink-soft)" }}>
         <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--royal)", padding: "4px 0" }}>詳しく</summary>
         <div style={{ marginTop: 8 }}>
-          {/* ★「担当者未登録」の説明は「詳しく」の中に1回だけ（2026-10-15 / 柴さんの指示。カードは小さなラベルだけ） */}
-          {showNoResponderNote && (
-            <p data-state="fit-no-responder-note" style={{ fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 8px" }}>
-              {NO_RESPONDER_NOTE}
-            </p>
-          )}
+          {/* ⚠️「担当者未登録」の説明は 2026-10-27 に外した（その会社が OPINIO にいないことが分かるため / 柴さんの決定） */}
           {/* ★「気をつけて見てほしいこと」が無いことの意味（2026-10-15）。カードでは確かめられなかったことを注意点として出さないので、
                  ここで1回だけ書く。⚠️ 消すと「注意点が無い＝問題が無い」と読まれる */}
           <p data-state="fit-unknown-note" style={{ fontSize: 12, lineHeight: 1.8, color: "var(--ink-soft)", margin: "0 0 8px" }}>

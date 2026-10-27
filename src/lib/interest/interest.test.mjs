@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  interestCountBand, trendItems, isPendingStillValid, isNoReplyDue, interestConfirmText,
-  INTEREST_NOTE_MAX, INTEREST_PENDING_VALID_DAYS, INTEREST_NO_REPLY_DAYS,
+  interestCountBand, trendItems, isNoReplyDue, interestConfirmText, interestStatusText,
+  INTEREST_NOTE_MAX, INTEREST_NO_REPLY_DAYS, INTEREST_STATUSES, INTEREST_NOTICE_TEXT,
 } from "./constants.ts";
 
 const DAY = 24 * 3600_000;
@@ -23,13 +23,8 @@ test("傾向は3人以上の項目だけ。多い順", () => {
   assert.deepEqual(trendItems({ "金融": 2 }), []);
 });
 
-test("担当者の登録待ちは 90日以内なら届け、過ぎたら届けない", () => {
-  const now = Date.parse("2026-10-27T00:00:00Z");
-  assert.equal(INTEREST_PENDING_VALID_DAYS, 90);
-  assert.ok(isPendingStillValid(new Date(now - 89 * DAY).toISOString(), now));
-  assert.ok(isPendingStillValid(new Date(now - 90 * DAY).toISOString(), now));
-  assert.equal(isPendingStillValid(new Date(now - 91 * DAY).toISOString(), now), false);
-  assert.equal(isPendingStillValid("壊れた値", now), false);
+test("担当者の登録待ち・期限切れの状態は無い（後から届ける形はやめた）", () => {
+  assert.deepEqual([...INTEREST_STATUSES], ["delivered", "replied", "no_reply"]);
 });
 
 test("届けてから 14日で返事なし", () => {
@@ -39,11 +34,16 @@ test("届けてから 14日で返事なし", () => {
   assert.ok(isNoReplyDue(new Date(now - 14 * DAY).toISOString(), now));
 });
 
-test("確認の文言は担当者の有無で変わり、どちらも名前とプロフィールが届くことを書く", () => {
-  const a = interestConfirmText("A社", true).body.join("");
-  const b = interestConfirmText("A社", false).body.join("");
-  assert.ok(a.includes("名前とプロフィールが届きます"));
-  assert.ok(b.includes("担当者がOPINIOに登録したら"));
-  assert.ok(b.includes("それまでは届きません"));
+test("確認の文言は名前とプロフィールが届くことを書く", () => {
+  const a = interestConfirmText("A社").body.join("");
+  assert.ok(a.includes("A社に、あなたの名前とプロフィールが届きます"));
+  assert.ok(a.includes("企業からメッセージが届くことがあります"));
   assert.equal(INTEREST_NOTE_MAX, 200);
+});
+
+test("保存した会社の知らせは、名前が届くとも、会社がいなかったとも書かない", () => {
+  const s = INTEREST_NOTICE_TEXT.savedReady("A社");
+  assert.equal(s, "保存したA社に、「話を聞いてみたい」を送れるようになりました。");
+  for (const ng of ["参加", "担当者", "登録", "プロフィールが届"]) assert.ok(!s.includes(ng), ng);
+  assert.equal(interestStatusText("delivered", "A社"), "A社に届けました。");
 });

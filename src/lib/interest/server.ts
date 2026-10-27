@@ -5,12 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { openCompanyConversation } from "@/lib/conversations/openReason";
 import { proposalIntroLine } from "@/lib/constants/proposalResponses";
 import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
-import { notifyOpsForYouInterest } from "@/lib/forYou/notifyOps";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import {
-  INTEREST_CONSENT_VERSION, INTEREST_NOTE_MAX, isNoReplyDue, isPendingStillValid,
+  INTEREST_CONSENT_VERSION, INTEREST_NOTE_MAX, isNoReplyDue,
   type InterestSource, type InterestStatus,
 } from "./constants";
 
@@ -21,7 +20,9 @@ import {
  *   同じ記録（ow_for_you_reactions の1行）と同じ届け方を通る。
  *
  *   担当者がいる会社 … その場で会話を作る（名前とプロフィールが届く）＝ delivered
- *   担当者がいない会社 … 記録して運営に知らせる ＝ awaiting_contact。担当者が登録されたら届ける（90日以内）
+ *   担当者がいない会社 … ★届けない（2026-10-27 / 柴さんの決定）。「話を聞いてみたい」は受け付けず（409）、画面には「保存」を出す
+ *                       （既存の ow_bookmarks）。担当者が付いたら保存した人に知らせる（notifySaversOnJoin）。企業には何も届かない
+ *   ⚠️★その会社が OPINIO にいないことが分かる文言を、画面・通知・エラーのどこにも出さない（外で直接応募するきっかけになる）
  *
  * ⚠️★押せるかどうかは `can_contact_without_stance()`（DB）の1か所。在籍した会社・グループ会社・自分が担当者の会社・
  *    手動ブロック・転職勧奨禁止・検証用と実在の不一致では押せない（ボタンも出さない）。TS に条件を書き写さない。
@@ -114,6 +115,11 @@ export async function expressInterest(input: {
   const elig = await checkInterestEligibility(input.owUserId, input.companyId, db);
   /* ⚠️ 押せない理由は区別しない */
   if (!elig.ok) return { ok: false, status: 404, error: "この会社には届けられません" };
+  /* ★担当者がいない会社には名前を届けない。記録もしない（画面には「保存」を出している）。
+        ⚠️ 文言で「担当者がいない」と言わない（いないことが分かる）。押せないときと同じ文言にする */
+  if (!elig.hasResponder) {
+    return { ok: false, status: 409, error: "この会社には届けられません" };
+  }
 
   const { data: prev, error: pErr } = await db.from("ow_for_you_reactions").select(ROW_COLS)
     .eq("user_id", input.owUserId).eq("company_id", input.companyId).maybeSingle();
@@ -121,13 +127,13 @@ export async function expressInterest(input: {
   const p = prev as InterestRow | null;
 
   /* 既に届いている（会話がある）なら、そこへ。二重に届けない */
-  if (p?.conversation_id && p.interest_status && p.interest_status !== "expired" && p.interest_status !== "awaiting_contact") {
+  if (p?.conversation_id && p.interest_status) {
     return { ok: true, status: p.interest_status, conversationId: p.conversation_id };
   }
 
   const now = new Date().toISOString();
-  /* ★interested_at は一度入ったら消さない（会話を開く理由）。ただし 90日を過ぎて届けなかった行に押し直したときは今にする */
-  const interestedAt = p?.interested_at && p.interest_status !== "expired" ? p.interested_at : now;
+  /* ★interested_at は一度入ったら消さない（会話を開く理由） */
+  const interestedAt = p?.interested_at ?? now;
   const base = {
     reaction: "interested",
     reason: null,
@@ -141,7 +147,6 @@ export async function expressInterest(input: {
     ? db.from("ow_for_you_reactions").update({
         ...base,
         ...(input.rank != null ? { rank_at: input.rank, signals: input.signals ?? [] } : {}),
-        ...(p.interest_status === "expired" ? { interest_status: null, reask_notified_at: null } : {}),
       }).eq("user_id", input.owUserId).eq("company_id", input.companyId).select("user_id")
     : db.from("ow_for_you_reactions").insert({
         user_id: input.owUserId, company_id: input.companyId, ...base,
@@ -151,19 +156,6 @@ export async function expressInterest(input: {
   if (wErr || !saved || saved.length === 0) {
     console.error("[interest] 記録:", wErr?.message ?? "0行");
     return { ok: false, status: 500, error: "記録できませんでした" };
-  }
-
-  if (!elig.hasResponder) {
-    await setStatus(db, input.owUserId, input.companyId, { interest_status: "awaiting_contact" });
-    /* ⚠️ 取り消してから押し直したときに二重に知らせない */
-    if (!p?.ops_notified_at) {
-      const sent = await notifyOpsForYouInterest({
-        companyId: input.companyId, companyName: elig.companyName, candidateUserId: input.owUserId,
-        rank: input.rank ?? null, reasons: input.reasons ?? [], source: input.source,
-      });
-      if (sent) await setStatus(db, input.owUserId, input.companyId, { ops_notified_at: new Date().toISOString() });
-    }
-    return { ok: true, status: "awaiting_contact", conversationId: null };
   }
 
   const d = await deliverInterest(db, { owUserId: input.owUserId, companyId: input.companyId, note: note || null, source: input.source });
@@ -181,7 +173,7 @@ async function setStatus(db: Db, owUserId: string, companyId: string, patch: Rec
  * ⚠️ 開けないとき（判定が通らない）は null。理由は出さない。
  */
 export async function deliverInterest(db: Db, input: {
-  owUserId: string; companyId: string; note: string | null; source: InterestSource; markReadForCandidate?: boolean;
+  owUserId: string; companyId: string; note: string | null; source: InterestSource;
 }): Promise<{ conversationId: string } | null> {
   let created: { conversationId: string; created: boolean } | null;
   try {
@@ -197,7 +189,7 @@ export async function deliverInterest(db: Db, input: {
   const { data: claimed, error: cErr } = await db.from("ow_for_you_reactions")
     .update({ conversation_id: conversationId, interest_status: "delivered", delivered_at: now })
     .eq("user_id", input.owUserId).eq("company_id", input.companyId)
-    .or("interest_status.is.null,interest_status.eq.awaiting_contact")
+    .is("interest_status", null)
     .select("user_id");
   if (cErr) { console.error("[interest] 届けた記録:", cErr.message); return { conversationId }; }
   if (!claimed || claimed.length === 0) return { conversationId };
@@ -228,8 +220,8 @@ export async function deliverInterest(db: Db, input: {
       });
       if (nErr) console.error("[interest] ひとこと:", nErr.message);
     }
-    /* ★本人がその場で押したときは未読にしない（担当者の登録を待って後から届けたときは、知らせとして未読のまま） */
-    if (part?.id && input.markReadForCandidate !== false) {
+    /* ★本人がその場で押したので未読にしない */
+    if (part?.id) {
       const { error: rErr } = await db.from("ow_conversation_participants")
         .update({ last_read_at: new Date(t0 + 2).toISOString() }).eq("id", part.id as string);
       if (rErr) console.error("[interest] 既読:", rErr.message);
@@ -244,7 +236,7 @@ export async function deliverInterest(db: Db, input: {
 
 /**
  * ★提案（上段）から押して会話ができたあとに、同じ記録を残す（届け方は introduce.ts。案内の行も同じ）。
- * ⚠️ 提案は担当者がいる企業にしか作らないので、担当者の登録待ちは無い
+ * ⚠️ 提案は担当者がいる企業にしか作らない
  */
 export async function recordProposalInterest(input: {
   owUserId: string; companyId: string; note: string | null; conversationId: string | null; consentVersion: unknown;
@@ -269,7 +261,7 @@ export async function recordProposalInterest(input: {
 }
 
 /** 本人へのベル。⚠️ best-effort */
-async function notifyCandidate(db: Db, type: "interest_delivered" | "interest_no_reply" | "interest_reask", input: {
+async function notifyCandidate(db: Db, type: "interest_no_reply" | "interest_company_joined", input: {
   owUserId: string; companyId: string; conversationId?: string | null;
 }) {
   const { error } = await db.from("ow_notifications").insert({
@@ -280,43 +272,62 @@ async function notifyCandidate(db: Db, type: "interest_delivered" | "interest_no
 }
 
 /**
- * ★担当者の登録待ちの行を届ける（担当者が登録されたとき・日次の確認）。
- *   押してから 90日以内 → 届けて本人に「届きました」／過ぎた → 届けず、もう一度押すか本人に聞く（expired）
- * ⚠️ 届ける前に押せるかを確かめ直す（その間に在籍・ブロックが変わっていれば届けない。記録は待ちのまま）
- * @returns 届けた件数・期限切れにした件数
+ * ★保存した会社に担当者が付いたら、保存している人に知らせる（2026-10-27 / 柴さんの決定。担当者の承諾などの直後・日次の確認）。
+ *   ベルに「保存した〇〇に、『話を聞いてみたい』を送れるようになりました。」を出すだけ（interest_company_joined）。
+ * ⚠️★**名前は届けない。** 届くのは本人が改めて「話を聞いてみたい」を押したときだけ。
+ * ⚠️ 知らせるのは「最初の担当者が付く前から保存していた人」だけ。2人目以降の担当者が付いたときや、
+ *    担当者がいる会社を後から保存した人には知らせない（「送れるようになった」が嘘になる）。
+ * ⚠️★最初の担当者が付いたのが SAVED_READY_SINCE より前の会社は対象にしない（この仕組みを入れた日に、
+ *    昔から担当者のいる会社を保存していた実在の人へ一斉に知らせが飛ばないため）。
+ * ⚠️ 同じ人・同じ会社には1回だけ（既に同じ通知があれば送らない）。知らせる前に押せるかを確かめ直す（在籍・ブロック・検証用の不一致）。
  */
-export async function deliverPendingInterests(companyIds?: string[]): Promise<{ delivered: number; expired: number; checked: number }> {
+const SAVED_READY_SINCE = "2026-10-27T00:00:00+09:00";
+
+export async function notifySaversOnJoin(companyIds?: string[]): Promise<{ notified: number; checked: number }> {
   const db = createAdminClient();
-  let q = db.from("ow_for_you_reactions").select("user_id, company_id, interested_at, interest_note, interest_source")
-    .eq("interest_status", "awaiting_contact");
-  if (companyIds && companyIds.length > 0) q = q.in("company_id", companyIds);
+  let q = db.from("ow_bookmarks").select("user_id, target_id, created_at").eq("target_type", "company");
+  if (companyIds && companyIds.length > 0) q = q.in("target_id", companyIds);
   const { data: rows, error } = await q;
-  if (error) { console.error("[interest] 登録待ち 取得:", error.message); return { delivered: 0, expired: 0, checked: 0 }; }
-  const list = (rows ?? []) as { user_id: string; company_id: string; interested_at: string | null; interest_note: string | null; interest_source: InterestSource | null }[];
-  if (list.length === 0) return { delivered: 0, expired: 0, checked: 0 };
-  const responders = await filterCompaniesWithRespondingStaff(Array.from(new Set(list.map((r) => r.company_id))));
-  if (!responders) return { delivered: 0, expired: 0, checked: list.length };
-  const now = Date.now();
-  let delivered = 0, expired = 0;
-  for (const r of list) {
-    if (!responders.has(r.company_id) || !r.interested_at) continue;
-    const elig = await checkInterestEligibility(r.user_id, r.company_id, db);
-    if (!elig.ok || !elig.hasResponder) continue;
-    if (!isPendingStillValid(r.interested_at, now)) {
-      const { data: done, error: eErr } = await db.from("ow_for_you_reactions")
-        .update({ interest_status: "expired", reask_notified_at: new Date().toISOString() })
-        .eq("user_id", r.user_id).eq("company_id", r.company_id).eq("interest_status", "awaiting_contact").select("user_id");
-      if (eErr) { console.error("[interest] 期限切れ:", eErr.message); continue; }
-      if (done && done.length > 0) { await notifyCandidate(db, "interest_reask", { owUserId: r.user_id, companyId: r.company_id }); expired++; }
-      continue;
-    }
-    const d = await deliverInterest(db, {
-      owUserId: r.user_id, companyId: r.company_id, note: r.interest_note,
-      source: r.interest_source ?? "for_you", markReadForCandidate: false,
-    });
-    if (d) { await notifyCandidate(db, "interest_delivered", { owUserId: r.user_id, companyId: r.company_id, conversationId: d.conversationId }); delivered++; }
+  if (error) { console.error("[interest] 保存 取得:", error.message); return { notified: 0, checked: 0 }; }
+  const saves = (rows ?? []) as { user_id: string; target_id: string; created_at: string }[];
+  if (saves.length === 0) return { notified: 0, checked: 0 };
+  const ids = Array.from(new Set(saves.map((r) => r.target_id)));
+  const responders = await filterCompaniesWithRespondingStaff(ids);
+  if (!responders) return { notified: 0, checked: saves.length };
+  const ready = ids.filter((id) => responders.has(id));
+  if (ready.length === 0) return { notified: 0, checked: saves.length };
+
+  /* 会社ごとに「最初の担当者が付いた時刻」（会社と is_test が一致する有効な担当者のうち最も早いもの） */
+  const [{ data: admins, error: aErr }, { data: cos, error: cErr }, { data: sent, error: nErr }] = await Promise.all([
+    db.from("ow_company_admins").select("company_id, accepted_at, joined_at, created_at, ow_users!user_id!inner(is_test)").in("company_id", ready).eq("is_active", true),
+    db.from("ow_companies").select("id, is_test").in("id", ready),
+    db.from("ow_notifications").select("recipient_user_id, actor_company_id").eq("type", "interest_company_joined").in("actor_company_id", ready),
+  ]);
+  if (aErr || cErr || nErr) { console.error("[interest] 保存の知らせ 準備:", aErr?.message ?? cErr?.message ?? nErr?.message); return { notified: 0, checked: saves.length }; }
+  const coTest = new Map(((cos ?? []) as { id: string; is_test: boolean }[]).map((c) => [c.id, c.is_test === true]));
+  const firstAt = new Map<string, string>();
+  for (const a of (admins ?? []) as unknown as { company_id: string; accepted_at: string | null; joined_at: string | null; created_at: string; ow_users: { is_test: boolean } | { is_test: boolean }[] }[]) {
+    const u = Array.isArray(a.ow_users) ? a.ow_users[0] : a.ow_users;
+    if (!u || (u.is_test === true) !== coTest.get(a.company_id)) continue;
+    const t = a.accepted_at ?? a.joined_at ?? a.created_at;
+    const cur = firstAt.get(a.company_id);
+    if (!cur || t < cur) firstAt.set(a.company_id, t);
   }
-  return { delivered, expired, checked: list.length };
+  const already = new Set(((sent ?? []) as { recipient_user_id: string; actor_company_id: string }[]).map((n) => `${n.recipient_user_id}:${n.actor_company_id}`));
+
+  let notified = 0;
+  for (const r of saves) {
+    const first = firstAt.get(r.target_id);
+    if (!first || Date.parse(first) < Date.parse(SAVED_READY_SINCE)) continue;
+    if (Date.parse(r.created_at) >= Date.parse(first)) continue;
+    if (already.has(`${r.user_id}:${r.target_id}`)) continue;
+    const elig = await checkInterestEligibility(r.user_id, r.target_id, db);
+    if (!elig.ok || !elig.hasResponder) continue;
+    await notifyCandidate(db, "interest_company_joined", { owUserId: r.user_id, companyId: r.target_id });
+    already.add(`${r.user_id}:${r.target_id}`);
+    notified++;
+  }
+  return { notified, checked: saves.length };
 }
 
 /**

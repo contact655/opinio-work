@@ -33,8 +33,7 @@ export function toForYouViews(
       hasResponder: c.hasResponder,
       reaction: c.reaction?.reaction ?? null,
       conversationId: c.reaction?.conversationId ?? null,
-      /* ★90日を過ぎて届けなかった（expired）ものは、押していない扱い（もう一度押せる） */
-      interested: !!c.reaction?.interestedAt && c.reaction?.interestStatus !== "expired",
+      interested: !!c.reaction?.interestedAt,
       interestStatus: (c.reaction?.interestStatus as ForYouView["interestStatus"]) ?? null,
     }));
 }

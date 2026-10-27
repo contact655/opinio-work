@@ -203,11 +203,10 @@ export default function ProposalsClient({
         </div>
       )}
 
-      {/* ★提案は担当者がいる会社にだけ作るので、確認の文言は「届きます」の方 */}
+      {/* ★提案は担当者がいる会社にだけ作る */}
       <InterestConfirmDialog
         open={!!confirming}
         companyName={confirming?.companyName ?? ""}
-        hasResponder
         busy={pending}
         error={confirmErr}
         onCancel={() => { setConfirming(null); setConfirmErr(null); }}

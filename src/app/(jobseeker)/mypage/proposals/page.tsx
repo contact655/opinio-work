@@ -137,7 +137,7 @@ export default async function ProposalsPage() {
   return (
     <MypageLayout activeKey="proposals" proposalsBadge={unanswered}>
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 64px" }}>
-        <FitPageIntro showNoResponderNote={allCompanies.some((c) => !c.hasResponder)} />
+        <FitPageIntro />
         {/* ★相性のものさしへの入口（2026-10-15）。⚠️ 公開前は検証用アカウントだけ（axes.ts の FIT_AXES_PUBLIC） */}
         {fitAxesEnabledFor({ isTest: viewerIsTest }) && <AxesEntryCard values={fitAxes?.values ?? null} />}
         {/* ★提案が0件の人には上段を出さない（柴さんの指示）。⚠️ 取得に失敗したときは出して失敗を伝える（0件に見せない） */}
