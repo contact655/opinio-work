@@ -26,7 +26,9 @@ export default function HomeTurnCard({ experienceId, companyName }: { experience
         experienceId={experienceId}
         companyName={companyName}
         onNext={null}
-        onSaved={() => router.refresh()}
+        /* ⚠️ 保存では読み直さない。読み直すと状態が C/D に変わってこのカードごと消え、
+              モーダルの続き（任意の段・傾向）が出ないまま閉じる（2026-10-27 に踏んだ）。閉じたときに読み直す */
+        onSaved={() => {}}
         onClose={() => { setOpen(false); router.refresh(); }}
       />
     </section>
