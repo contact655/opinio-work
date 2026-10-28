@@ -183,11 +183,12 @@ function NotificationRecipients({
                   <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: isDefault ? "var(--ink-soft)" : "var(--ink)" }}>{m.name}</span>
                     {sub && <span style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>{sub}</span>}
-                    {!m.isAdminPermission && (
-                      <span style={{
+                    {/* ★管理者でない人には役割の名前（いまは「採用担当」）。⚠️ 閲覧のみ・面接官は notificationTeam.ts が候補から外している */}
+                    {!m.isAdminPermission && m.roleLabel && (
+                      <span data-state="recipient-role" style={{
                         fontSize: 10, fontWeight: 700, color: "var(--ink-mute)",
                         border: "1px solid var(--line)", borderRadius: 100, padding: "1px 6px",
-                      }}>閲覧のみ</span>
+                      }}>{m.roleLabel}</span>
                     )}
                   </span>
                   <span style={{

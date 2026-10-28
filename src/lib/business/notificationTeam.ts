@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { can, toCompanyRole } from "@/lib/auth/roles";
+import { can, toCompanyRole, ROLE_LABELS } from "@/lib/auth/roles";
 
 /**
  * 通知先の1人ぶん。⚠️ 出どころは `ow_company_admins`（その会社の有効な担当者）＋ `ow_users`。
@@ -13,6 +13,8 @@ export type NotificationTeamMember = {
   roleTitle: string | null;
   /** `permission === "admin"`。⚠️ 未設定のときのフォールバック先はこの人たちだけ（recipients.ts の②） */
   isAdminPermission: boolean;
+  /** 役割の名前（「管理者」「採用担当」）。管理者でない人の印に出す。⚠️ 「閲覧のみ」と決め打ちしない（2026-10-28 まで採用担当にも「閲覧のみ」と出ていた） */
+  roleLabel: string | null;
 };
 
 /**
@@ -60,6 +62,7 @@ export async function fetchNotificationSettings(companyId: string): Promise<{
         department: r.department,
         roleTitle: r.role_title,
         isAdminPermission: r.permission === "admin",
+        roleLabel: (() => { const role = toCompanyRole(r.permission); return role ? ROLE_LABELS[role] : null; })(),
       };
     })
     .filter((m): m is NotificationTeamMember => m !== null)

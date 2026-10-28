@@ -903,10 +903,19 @@ export function CompanyEditClient({
             <aside className="cpe-side">
               <SideCard state="requirements" first>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
-                  {blocking.length > 0 ? `公開まであと${blocking.length}つ` : "公開に必要な項目はそろっています"}
+                  {/* ★公開中は「公開まで」ではなく「変更を公開するまで」（2026-10-28。公開中なのに「公開まであと3つ」と出ていた）。
+                        ⚠️ 公開中に数えるのは always の項目（業種・事業・資本・ステージなど）。空のあいだ「変更を公開する」が押せない */}
+                  {blocking.length > 0
+                    ? (listed ? `変更を公開するまであと${blocking.length}つ` : `公開まであと${blocking.length}つ`)
+                    : "公開に必要な項目はそろっています"}
                 </div>
                 <div style={{ fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6, marginBottom: 10 }}>
-                  {listed ? "公開中です。従業員数・本社所在地が空でも公開は止まりませんが、入力してください。" : "すべてそろうと「公開する」を押せます。"}
+                  {/* ⚠️ 説明は上の数と同じ項目の話をする（以前は、数えていない従業員数・本社所在地の話をしていた） */}
+                  {listed
+                    ? (blocking.length > 0
+                      ? "公開中です。下の項目が空のあいだは「変更を公開する」を押せません。"
+                      : "公開中です。従業員数・本社所在地が空でも公開は止まりませんが、入力してください。")
+                    : "すべてそろうと「公開する」を押せます。"}
                 </div>
                 {/* ★2026-10-18（柴さんの指示）: 入力済みの項目は畳む（8行並ぶと右側が長く、下の箱が画面から外れていた）。
                       未入力の項目だけを出し、入力済みは「入力済み N項目」を押すと開く */}

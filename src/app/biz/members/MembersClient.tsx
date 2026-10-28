@@ -44,7 +44,8 @@ type Props = {
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" });
+  /* ⚠️ 日本時間を指定する。指定しないとサーバー（UTC）とブラウザ（JST）で日付が変わり、描き直しが食い違う（React #425） */
+  return d.toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Tokyo" });
 }
 
 // ── DropdownMenu ────────────────────────────────────────────────────
@@ -926,7 +927,7 @@ function PendingInvitesSection({
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--ink-mute)" }}>
-                    <span>{new Date(invite.invited_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })} に招待</span>
+                    <span>{formatDate(invite.invited_at)} に招待</span>
                     {isExpired ? (
                       <span style={{
                         fontSize: 10,
