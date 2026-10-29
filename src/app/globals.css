@@ -2730,6 +2730,14 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .cd-sticky-nav { top: 60px; }
 }
 
+/* ── ★求人詳細の上部（JobDetailView。2026-10-29）──────────────────────────
+   767px 以下はロゴを会社名の横（44px）へ移し、題名から下を全幅にする。768px 以上は左に 64px のロゴ。 */
+.jd-hero-logo-sm { display: none; flex-shrink: 0; }
+@media (max-width: 767px) {
+  .jd-hero-logo { display: none; }
+  .jd-hero-logo-sm { display: block; }
+}
+
 /* ── ★企業ページの募集カード（JobEmbedCard。2026-10-29）──────────────────────
    375px で年収の列と縦線・矢印に幅を取られ、タイトルが 99px（1行7〜8文字）まで痩せ、
    長いタイトルが7行に折り返していた。767px 以下は縦線と矢印を消し、年収をタイトルの下に回す。

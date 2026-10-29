@@ -529,19 +529,37 @@ export async function JobDetailView({
       {/* Hero */}
       <div style={{ background: "linear-gradient(160deg, #eef3fd 0%, #f4f7fe 40%, #fafbff 75%, #fff 100%)", borderBottom: "1px solid var(--line)", padding: "var(--space-6) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
+          {/* ★767px 以下はロゴを会社名の横（44px）へ移し、題名から下を全幅にする（2026-10-29 / 柴さんの指示）。
+                 それまでは 64px のロゴが左の列を占め、会社名・題名・年収・タグ・ボタンが右の細い列（375px で約255px）に
+                 押し込まれ、題名・勤務地が細かく折り返して文字が散らばって見えていた。
+              ⚠️ 出し分けは globals.css の .jd-hero-logo / .jd-hero-logo-sm。display をインラインに書かないこと。
+              ⚠️ 768px 以上は従来どおり（左に 64px のロゴ） */}
           <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "flex-start" }}>
-            <CompanyLogo
-              name={company.name}
-              logoUrl={company.logo_url}
-              logoLetter={company.logo_letter}
-              logoGradient={company.gradient}
-              size={64}
-              borderRadius={14}
-              style={{ boxShadow: "0 6px 20px rgba(0,0,0,0.12)" }}
-            />
+            <div className="jd-hero-logo">
+              <CompanyLogo
+                name={company.name}
+                logoUrl={company.logo_url}
+                logoLetter={company.logo_letter}
+                logoGradient={company.gradient}
+                size={64}
+                borderRadius={14}
+                style={{ boxShadow: "0 6px 20px rgba(0,0,0,0.12)" }}
+              />
+            </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <div className="jd-hero-logo-sm">
+                <CompanyLogo
+                  name={company.name}
+                  logoUrl={company.logo_url}
+                  logoLetter={company.logo_letter}
+                  logoGradient={company.gradient}
+                  size={44}
+                  borderRadius={10}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                 {companyHref ? (
                   <Link href={companyHref} style={{ fontSize: "var(--text-base)", color: "var(--royal)", fontWeight: 700 }}>
                     {company.name}
@@ -565,6 +583,7 @@ export async function JobDetailView({
                     ].filter(Boolean).join(" · ")}
                   </span>
                 )}
+              </div>
               </div>
               {/* ★運営会社の開示（2026-10-10）。会社名のすぐ下に1行 */}
               {isOwnCompany && <OwnCompanyNote style={{ marginTop: -6, marginBottom: "var(--space-2)" }} />}
