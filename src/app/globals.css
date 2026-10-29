@@ -2907,6 +2907,21 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-chip-row { padding-bottom: 0; flex: 0 1 auto; min-width: 0; }
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-result-row { padding: 0; border-top: none; margin-left: auto; flex-shrink: 0; gap: 14px; }
 }
+/* ★1行目を動かさない形（/companies だけ。.lt-compact--keep。2026-10-29 / 柴さんの指示）。
+   上の形はパネルや選択中の条件が出ると3行に戻すので、押した「絞り込み」ボタン自体が左へ飛び、検索欄の幅も変わっていた。
+   こちらは条件の列を display: contents にして1行目の並びを保ち、パネルと選択中の条件だけを下の行（全幅）へ折り返す。
+   ⚠️ /jobs・/people には付けていない（あちらの並びは確かめていない）。広げるときは画面ごとに測ること */
+@media (min-width: 1024px) {
+  .lt-compact.lt-compact--keep { display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; row-gap: 12px; }
+  .lt-compact--keep > .lt-search-row { padding: 0; flex: 0 1 340px; min-width: 0; }
+  .lt-compact--keep > .lt-chip-row { display: contents; }
+  .lt-compact--keep > .lt-result-row { order: 1; padding: 0; border-top: none; margin-left: auto; flex-shrink: 0; gap: 14px; }
+  .lt-compact--keep .csb-active-chips,
+  .lt-compact--keep .ds-panel { order: 2; flex-basis: 100%; }
+  /* 保存件数のリンクも右寄せ（marginLeft: auto）なので、あるときは件数の側の auto を外して2つで余白を割らない */
+  .lt-compact--keep .csb-bookmark-link { order: 1; }
+  .lt-compact--keep:has(.csb-bookmark-link) > .lt-result-row { margin-left: 0; }
+}
 .sort-select-btn.sort-select-btn--text { border: none; background: none; height: auto; min-height: 0; padding: 4px 0; gap: 3px; font-size: 13px; color: var(--ink); }
 .sort-select-btn.sort-select-btn--text:hover { background: none; color: var(--royal); }
 .sort-select-btn.sort-select-btn--text > svg:first-child,

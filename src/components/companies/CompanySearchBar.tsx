@@ -191,7 +191,10 @@ export function CompanySearchBar({
     <>
 
       {/* ★lt-compact: 1024px 以上では検索・条件・件数を1行にまとめる（2026-10-21。globals.css）。⚠️ sortBar をこの直下に置くこと */}
-      <div ref={wrapRef} className="lt-compact" style={{ marginBottom: 0 }}>
+      {/* ★lt-compact--keep（2026-10-29 / 柴さんの指示）: 1024px 以上で、絞り込みを開いても・条件を選んでも
+             1行目（検索・チップ・件数）を動かさない。パネルと選択中の条件は1行目の下に全幅で出す（globals.css）。
+             それまでは開いた瞬間に2段へ組み変わり、押した「絞り込み」ボタン自体が左へ飛んでいた。 */}
+      <div ref={wrapRef} className="lt-compact lt-compact--keep" style={{ marginBottom: 0 }}>
         {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar）。
                1行目 検索欄（常に開いている）／2行目 絞り込み＋条件のチップ／3行目 件数と並び替え（sortBar） */}
         <div className="lt-search-row">
@@ -396,7 +399,8 @@ export function CompanySearchBar({
             />
             <span style={{
               width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-              background: currentHiring ? "#fff" : "#ea580c",
+              /* ⚠️ オレンジにしない（2026-10-29）。オレンジはカジュアル面談だけの色（ui-conventions の色の役割） */
+              background: currentHiring ? "#fff" : "var(--royal)",
               animation: "pulseDot 1.8s ease-in-out infinite",
               display: "inline-block",
             }} />
@@ -422,6 +426,7 @@ export function CompanySearchBar({
           {bookmarkCount > 0 && (
             <a
               href="/mypage"
+              className="csb-bookmark-link"
               style={{
                 /* ⚠️★**並び替えがある行では `marginLeft: "auto"` を付けない**（2026-10-01）。
                       `.sort-bar-row` にも auto があり、**2つあると余白が等分されて
