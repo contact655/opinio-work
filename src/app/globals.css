@@ -2729,6 +2729,12 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 @media (max-width: 1023px) {
   .cd-sticky-nav { top: 60px; }
 }
+/* ★ページ内リンク（#jobs など）で飛んだとき、見出しがヘッダーと固定タブの下に隠れないようにする（2026-10-29）。
+   値は「タブの貼り付く位置 ＋ タブの高さ（約56px）＋ 8px」。見た目の配置には影響しない */
+.cd-body [id] { scroll-margin-top: 132px; }
+@media (max-width: 1023px) {
+  .cd-body [id] { scroll-margin-top: 124px; }
+}
 
 /* ── ★求人詳細の勤務条件・年収の補足・パンくず（2026-10-29 / 柴さんの指示）────────────
    767px 以下: 勤務条件はタイル2列をやめ「労働条件」と同じ1列の項目行（ラベルが上・値が下）、
@@ -2755,6 +2761,8 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   }
   .jd-note-toggle { display: inline-block; }
   .jd-crumb { flex-wrap: nowrap; }
+  /* ⚠️ 縮めてよいのは題名だけ。これが無いと「募集」のリンクまで縮んで「募／集」と縦に割れる（2026-10-29 に本番で踏んだ） */
+  .jd-crumb > :not(.jd-crumb-current) { flex-shrink: 0; white-space: nowrap; }
   .jd-crumb-current { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 }
 

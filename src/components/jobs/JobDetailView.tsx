@@ -1441,9 +1441,13 @@ export async function JobDetailView({
                             {rj.role}
                           </div>
                           <div style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 500 }}>
-                            {(rj.salary_min || rj.salary_max)
-                              ? `${rj.salary_min && rj.salary_max ? `${fmtMan(rj.salary_min)}〜${fmtMan(rj.salary_max)}万円` : rj.salary_min ? `${fmtMan(rj.salary_min)}万円〜` : `〜${fmtMan(rj.salary_max)}万円`} · `
-                              : ""}{rj.work_style}
+                            {/* ⚠️ 区切りを先に書かない（2026-10-29）。働き方が空の求人で「700〜1,500万円 ·」と点だけ残っていた */}
+                            {[
+                              (rj.salary_min || rj.salary_max)
+                                ? (rj.salary_min && rj.salary_max ? `${fmtMan(rj.salary_min)}〜${fmtMan(rj.salary_max)}万円` : rj.salary_min ? `${fmtMan(rj.salary_min)}万円〜` : `〜${fmtMan(rj.salary_max)}万円`)
+                                : null,
+                              rj.work_style,
+                            ].filter(Boolean).join(" · ")}
                           </div>
                         </div>
                       </Link>
