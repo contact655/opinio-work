@@ -8,7 +8,7 @@ import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
-import { PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
+import { PREFECTURE_FILTER_GROUPS, PREFECTURES } from "@/lib/utils/location";
 /* ⚠️ フェーズは**マスタ全件**を出す（該当0社の段も出す）。実データから絞らないこと
       —— 段階の梯子が歯抜けに見える。経緯は lib/constants/phase.ts のコメント。 */
 import { PHASE_OPTIONS } from "@/lib/constants/phase";
@@ -38,6 +38,9 @@ type Props = {
   /** ★会社規模の選択肢（2026-10-10）。⚠️ 掲載中の企業が1社以上あるまとまりだけ（0件の選択肢を出さない）。
    *  空ならチップごと出さない（ただし選択中なら外せるように出す） */
   sizeOptions?: { value: string; label: string; count: number }[];
+  /** ★都道府県ごとの掲載企業数（2026-10-29）。会社がある県を上に、0社の県は薄くして下に出す。
+   *  ⚠️ 47県すべて出す方針（CLAUDE.md ⑥）は変えない。取れなければ null（従来の並び）。 */
+  prefectureCounts?: Record<string, number> | null;
 };
 
 // ★FilterChip は 2026-09-18 に `components/common/FilterChip.tsx` へ切り出した。
@@ -49,6 +52,7 @@ export function CompanySearchBar({
   industryTreeOptions,
   companySuggestions = [],
   sizeOptions = [],
+  prefectureCounts = null,
   /**
    * ★並び替え・表示形式・件数（2026-09-17）。**同じ行に入れるために受け取る。**
    *
@@ -166,9 +170,18 @@ export function CompanySearchBar({
        ここで COMMON_PREFECTURES を展開し直さないこと（3箇所で並びが割れる）。
     ⚠️ 該当0件の県も出す（都道府県だけの例外。経緯は location.ts のコメント）。
   */
-  const locationOptions = PREFECTURE_FILTER_GROUPS.flatMap((g) =>
-    g.prefectures.map((l) => ({ value: l, label: l, group: g.group })),
-  );
+  const locationOptions = prefectureCounts
+    ? [
+        ...PREFECTURES.filter((p) => (prefectureCounts[p] ?? 0) > 0).map((p) => ({
+          value: p, label: p, group: "会社がある都道府県", count: prefectureCounts[p],
+        })),
+        ...PREFECTURES.filter((p) => !((prefectureCounts[p] ?? 0) > 0)).map((p) => ({
+          value: p, label: p, group: "そのほかの都道府県", muted: true,
+        })),
+      ]
+    : PREFECTURE_FILTER_GROUPS.flatMap((g) =>
+        g.prefectures.map((l) => ({ value: l, label: l, group: g.group })),
+      );
 
   /* ★いま効いている条件のチップ（2026-09-17）。**「絞り込む」を閉じていても外に出す。**
      ⚠️★**消さないこと。** 6つのチップを畳んだので、これが無いと

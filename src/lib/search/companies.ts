@@ -29,6 +29,7 @@ import { isCompanyStage } from "@/lib/companies/classification";
 import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { normalizeCompanyName } from "@/lib/companies/normalizeName";
 import { splitMulti } from "@/lib/search/companyListParams";
+import { PREFECTURES } from "@/lib/utils/location";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
@@ -709,6 +710,37 @@ export const fetchAvailableSizeGroups = unstable_cache(
       .map((g) => ({ value: g.value, label: g.label, count: counts.get(g.value) ?? 0 }));
   },
   ["available-size-groups"],
+  { revalidate: 300 }
+);
+
+/**
+ * ★都道府県ごとの掲載中の会社の数（2026-10-29 / 柴さんの指示）。都道府県のメニューで件数を出し、会社がある県を上に並べるため。
+ * ⚠️ 当て方は searchCompanies の都道府県と同じ（本社の所在地にその県名を含む、または支社の地名が PREF_TO_BRANCH_KEYS に当たる）。
+ *    片方だけ変えると、メニューの数と押したあとの件数が食い違う。
+ * ⚠️ 取れなかったら null（呼び出し側は件数なしの従来の並びに戻す。0 として扱わない）。
+ */
+export const fetchPrefectureCounts = unstable_cache(
+  async (): Promise<Record<string, number> | null> => {
+    const supabase = createPublicClient();
+    const { data, error } = await filterListedCompanies(
+      supabase.from("ow_companies").select("location, branch_locations"),
+    );
+    if (error) {
+      console.error("[fetchPrefectureCounts]", error.message);
+      return null;
+    }
+    const rows = (data ?? []) as { location: string | null; branch_locations: string[] | null }[];
+    const out: Record<string, number> = {};
+    for (const pref of PREFECTURES) {
+      const keys = PREF_TO_BRANCH_KEYS[pref] ?? [];
+      out[pref] = rows.filter((r) =>
+        (r.location ?? "").toLowerCase().includes(pref.toLowerCase()) ||
+        (r.branch_locations ?? []).some((b) => keys.includes(b)),
+      ).length;
+    }
+    return out;
+  },
+  ["prefecture-counts"],
   { revalidate: 300 }
 );
 

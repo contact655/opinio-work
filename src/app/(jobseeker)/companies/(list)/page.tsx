@@ -2,7 +2,7 @@ import { StickyListBar } from "@/components/common/StickyListBar";
 import type { Metadata } from "next";
 import { TestCompaniesSection } from "@/components/testView/TestCompaniesSection";
 import { Suspense } from "react";
-import { fetchAvailableSizeGroups, fetchIndustryFacets, searchCompanies } from "@/lib/search/companies";
+import { fetchAvailableSizeGroups, fetchIndustryFacets, fetchPrefectureCounts, searchCompanies } from "@/lib/search/companies";
 import { companyFilterParams, hasCompanyFilter } from "@/lib/search/companyListParams";
 import { fetchCompanySuggestions } from "@/lib/search/companies";
 import { CompanySearchBar } from "@/components/companies/CompanySearchBar";
@@ -234,7 +234,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
   /* ⚠️ 都道府県は**47件の固定リスト**になったので DB から引かない（2026-09-06）。
         該当0件の県も出す方針にしたため、実データを見る必要がなくなった。
         選択肢は lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS`。 */
-  const [industryFacets, industryTreeOptions, companySuggestions, allCompaniesResult, sizeOptions] = await Promise.all([
+  const [industryFacets, industryTreeOptions, companySuggestions, allCompaniesResult, sizeOptions, prefectureCounts] = await Promise.all([
     /* ★事業の選択肢（2026-10-12 に作り直した）。**掲載中の会社が1社以上ある事業だけ**（getBusinessDomainFacets）。
           ⚠️ それまでは「マスタ全件」（2026-09-14 の例外）だったが、新しい分類で事業が約190になり
              全部並べられなくなった。チップは main の事業を先に出し、search の事業は入力して探す形（柴さんの判断）。
@@ -259,6 +259,8 @@ export default async function CompaniesPage({ searchParams }: Props) {
       : searchCompanies(companyFilterParams(searchParams)),
     /* ★会社規模の選択肢（2026-10-10）。掲載中の企業が1社以上あるまとまりだけ */
     fetchAvailableSizeGroups(),
+    /* ★都道府県ごとの会社の数（2026-10-29）。メニューで件数を出し、会社がある県を上に並べる */
+    fetchPrefectureCounts(),
     // 口コミ平均スコア
   ]);
 
@@ -330,6 +332,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
               industryTreeOptions={industryTreeOptions}
               companySuggestions={companySuggestions}
               sizeOptions={sizeOptions}
+              prefectureCounts={prefectureCounts}
               sortBar={
                 /* ⚠️ 絞り込み中も出す（2026-10-09）。表示形式の切り替えだけ隠す
                       ——絞り込み結果は常にグリッドで、?view=list に切り替わらないため */

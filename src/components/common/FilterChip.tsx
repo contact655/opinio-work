@@ -48,7 +48,9 @@ export function FilterChip({
     /** ★検索欄に入力したときだけ出す（2026-10-12。事業の search 区分）。searchable のときだけ効く */
     searchOnly?: boolean;
     /** ★検索で当てる別名（空白区切り）。表示はしない */
-    keywords?: string }[];
+    keywords?: string;
+    /** ★薄く出す（2026-10-29。都道府県で該当0社のもの）。選べなくはしない */
+    muted?: boolean }[];
   onSelect: (v: string | null) => void;
   isOpen: boolean;
   onToggle: () => void;
@@ -154,7 +156,8 @@ export function FilterChip({
               ⚠️ `position` / `top` / `left` / `minWidth` / `maxHeight` をインラインに戻さないこと
                  （インラインは CSS に勝つので、シートにできなくなる。ui-debugging の「インラインstyle と CSS」）。 */
         <div className="fc-menu" style={{
-          ["--fc-min-w" as string]: `${phaseStyle ? 268 : listStyle ? 220 : 180}px`,
+          /* ⚠️ 縦リストは 260（2026-10-29。220 では「IT・インターネット（すべて）（22）」が折り返し、件数だけ次の行に落ちていた） */
+          ["--fc-min-w" as string]: `${phaseStyle ? 268 : listStyle ? 260 : 180}px`,
           ["--fc-max-h" as string]: phaseStyle ? "420px" : listStyle ? "320px" : "none",
           ["--fc-pad" as string]: phaseStyle ? "8px" : listStyle ? "8px 0" : "12px 16px",
           background: "#fff",
@@ -229,13 +232,26 @@ export function FilterChip({
           ) : listStyle ? (
             // 縦リスト形式（都道府県・業種など）
             <div>
+              {/* ★複数選択では、いくつ選んでいるかと「すべて外す」を一番上に出す（2026-10-29） */}
+              {multi && values!.length > 0 && (
+                <div data-state="fc-selected-count" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "2px 16px 8px", fontSize: 12, color: "var(--ink-soft)" }}>
+                  <span>{values!.length}件選択中</span>
+                  <button type="button" className="btn-fixed-size"
+                    onClick={() => { if (onClear) onClear(); else values!.forEach((v) => onToggleValue?.(v)); }}
+                    style={{ border: "none", background: "none", padding: 0, fontSize: 12, fontWeight: 600, color: "var(--royal)", cursor: "pointer", fontFamily: "inherit" }}>
+                    すべて外す
+                  </button>
+                </div>
+              )}
               {searchable && (
                 <div style={{ padding: "6px 8px 4px", borderBottom: "1px solid var(--line)" }}>
                   <input
                     type="text"
                     value={q}
                     onChange={e => setQ(e.target.value)}
-                    placeholder="絞り込む..."
+                    /* ★入力で出てくる項目があるときは、ここで伝える（2026-10-29）。
+                          それまでは一覧の一番下に「上の欄に入力すると探せます」と出しており、そこまでスクロールすると上の欄が見えなかった */
+                    placeholder={options.some((o) => o.searchOnly) ? "入力するとほかの項目も探せます" : "絞り込む..."}
                     autoFocus
                     style={{
                       width: "100%", padding: "5px 10px", borderRadius: 6,
@@ -265,25 +281,44 @@ export function FilterChip({
                     )}
                     <button
                       type="button"
+                      role={multi ? "menuitemcheckbox" : undefined}
+                      aria-checked={multi ? sel : undefined}
                       onClick={() => { if (multi) { onToggleValue?.(o.value); setQ(""); } else { onSelect(sel ? null : o.value); onToggle(); setQ(""); } }}
                       style={{
-                        display: "block", width: "100%", textAlign: "left",
+                        display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
                         padding: "9px 16px",
                         background: sel ? "var(--royal-50)" : "none",
-                        color: sel ? "var(--royal)" : "var(--ink)",
+                        color: sel ? "var(--royal)" : o.muted ? "var(--ink-mute)" : "var(--ink)",
                         fontSize: 13.5, fontWeight: sel ? 700 : 400,
                         cursor: "pointer", border: "none",
                         fontFamily: "inherit",
                         transition: "background 0.08s",
                       }}
-                      onMouseEnter={(e) => { if (!sel) (e.target as HTMLElement).style.background = "var(--bg-tint)"; }}
-                      onMouseLeave={(e) => { if (!sel) (e.target as HTMLElement).style.background = "none"; }}
+                      /* ⚠️ currentTarget で触る（target だと中の span に当たって背景が付かない） */
+                      onMouseEnter={(e) => { if (!sel) e.currentTarget.style.background = "var(--bg-tint)"; }}
+                      onMouseLeave={(e) => { if (!sel) e.currentTarget.style.background = "none"; }}
                     >
-                      {o.label}
+                      {/* ★複数選択ではチェック欄を出す（2026-10-29）。太字だけでは選んだかどうかが分かりにくかった */}
+                      {multi && (
+                        <span aria-hidden="true" data-state={sel ? "fc-check-on" : "fc-check-off"} style={{
+                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                          border: `1.5px solid ${sel ? "var(--royal)" : "var(--line)"}`,
+                          background: sel ? "var(--royal)" : "#fff",
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          {sel && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                        </span>
+                      )}
+                      {/* ⚠️ 項目名は1行。長いものは省略して title で全文（件数だけが次の行に落ちないように） */}
+                      <span title={o.label} style={{ minWidth: 0, flex: "0 1 auto", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
                       {o.count !== undefined && (
-                        /* ⚠️ 0 も出す（押す前に0件と分かるように。/jobs 2026-09-09） */
-                        <span style={{ marginLeft: 6, opacity: o.count ? 0.6 : 0.35, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                          ({o.count})
+                        /* ⚠️ 0 も出す（押す前に0件と分かるように。/jobs 2026-09-09）。右端にそろえる */
+                        <span style={{ marginLeft: "auto", paddingLeft: 8, flexShrink: 0, opacity: o.count ? 0.6 : 0.35, fontWeight: 400, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                          {o.count}
                         </span>
                       )}
                     </button>
@@ -291,11 +326,7 @@ export function FilterChip({
                   );
                 })
               }
-              {searchable && !q && options.some((o) => o.searchOnly) && (
-                <p style={{ margin: 0, padding: "8px 16px 6px", fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.6 }}>
-                  ほかの項目は上の欄に入力すると探せます
-                </p>
-              )}
+              {/* ⚠️ 一番下の「ほかの項目は上の欄に入力すると探せます」は 2026-10-29 に外した（入力欄の薄い文字で伝える） */}
             </div>
           ) : (
             // ピル形式（勤務形態など）
