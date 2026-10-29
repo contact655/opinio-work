@@ -2730,6 +2730,34 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .cd-sticky-nav { top: 60px; }
 }
 
+/* ── ★求人詳細の勤務条件・年収の補足・パンくず（2026-10-29 / 柴さんの指示）────────────
+   767px 以下: 勤務条件はタイル2列をやめ「労働条件」と同じ1列の項目行（ラベルが上・値が下）、
+   年収の補足は2行で省略（SalaryNote）、パンくずの題名は1行で省略。768px 以上は従来どおり。
+   ⚠️ .cond-row は分割表示のペイン（JobPane）も使う。スマホの書き換えは .jd-cond-grid の中だけに効かせる。 */
+.cond-row {
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--bg-tint); border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.jd-cond-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.jd-note-toggle { display: none; }
+.jd-crumb { flex-wrap: wrap; }
+@media (max-width: 767px) {
+  .jd-cond-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .jd-cond-grid .cond-row {
+    padding: 10px 0; border-radius: 0; background: none; border: none;
+    border-top: 1px solid var(--line-soft); gap: 2px;
+  }
+  /* 年収の箱のすぐ下の1行目は区切り線と箱がくっつくので、少し空ける */
+  .jd-cond-grid > div:first-child { margin-bottom: 8px; }
+  .jd-salary-note--clamped {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .jd-note-toggle { display: inline-block; }
+  .jd-crumb { flex-wrap: nowrap; }
+  .jd-crumb-current { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
+
 /* ── ★求人詳細の上部（JobDetailView。2026-10-29）──────────────────────────
    767px 以下はロゴを会社名の横（44px）へ移し、題名から下を全幅にする。768px 以上は左に 64px のロゴ。 */
 .jd-hero-logo-sm { display: none; flex-shrink: 0; }

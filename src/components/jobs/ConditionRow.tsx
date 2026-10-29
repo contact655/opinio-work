@@ -21,11 +21,9 @@ export function ConditionRow({
 }: { label: string; value?: string | null; icon: React.ReactNode }) {
   if (!value) return null;
   return (
-    <div style={{
-      padding: "14px 16px", borderRadius: 12,
-      background: "var(--bg-tint)", border: "1px solid var(--line)",
-      display: "flex", flexDirection: "column", gap: 6,
-    }}>
+    /* ⚠️ 枠・余白・背景は globals.css の .cond-row（求人詳細の 767px 以下で1列の項目行にするため。2026-10-29）。
+          分割表示のペイン（JobPane）は従来どおりのタイル。インラインに戻さないこと */
+    <div className="cond-row">
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)"
              strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

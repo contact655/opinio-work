@@ -21,6 +21,7 @@ import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
 import { ConditionRow } from "@/components/jobs/ConditionRow";
+import { SalaryNote } from "@/components/jobs/SalaryNote";
 import { getJobBySlugOrId, getJobForPreview, getJobPositionMembers, getJobEmployees, getCompanyEmployeesCached, getCompanyToolsCached, getCompanyRecruitersCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref, type JobPositionMember } from "@/lib/supabase/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -516,12 +517,13 @@ export async function JobDetailView({
       {/* Breadcrumb */}
       <nav aria-label="パンくずリスト" style={{ background: "#fff", borderBottom: "1px solid var(--line)", padding: "var(--space-2) 0" }}>
         <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-5 md:px-12">
-          <div style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+          {/* ★767px 以下は題名を1行で省略する（すぐ下に大きな題名がある。2026-10-29）。折り返しは globals.css の .jd-crumb */}
+          <div className="jd-crumb" style={{ fontSize: 12, color: "var(--ink-mute)", display: "flex", alignItems: "center", gap: 5 }}>
             <Link href="/" style={{ color: "var(--ink-mute)" }}>OPINIO</Link>
             <span>/</span>
             <Link href="/jobs" style={{ color: "var(--ink-mute)" }}>募集</Link>
             <span>/</span>
-            <span aria-current="page" style={{ color: "var(--ink-soft)" }}>{job.role}</span>
+            <span aria-current="page" className="jd-crumb-current" style={{ color: "var(--ink-soft)" }} title={job.role}>{job.role}</span>
           </div>
         </div>
       </nav>
@@ -862,7 +864,10 @@ export async function JobDetailView({
                 }>
                   勤務条件
                 </SecTitle>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+                {/* ★列と間隔は globals.css の .jd-cond-grid（767px 以下は1列の項目行。2026-10-29）。
+                       それまでは 375px でもタイル2列で、1枚が約130px しかなく住所が4行に折り返していた。
+                       ⚠️ インラインに戻さないこと（幅で変えられなくなる） */}
+                <div className="jd-cond-grid">
                   {/* 年収 / OTE */}
                   {(job.salary_min || job.salary_max || job.salary_negotiable) && (
                   <div style={{ gridColumn: "1 / -1" }}>
@@ -893,11 +898,8 @@ export async function JobDetailView({
                     {/* 給与の補足（「※年棒制」「業績連動ボーナスあり」など）。
                         ⚠️ 入力欄は前からあったのに `JOB_DETAIL_COLS` に無く、
                            公開2件とも埋まっているのに一度も出ていなかった（2026-09-02 に追加）。 */}
-                    {job.salary_note && (
-                      <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                        {job.salary_note}
-                      </p>
-                    )}
+                    {/* ★767px 以下は2行で省略して「続きを読む」（2026-10-29）。実体は SalaryNote */}
+                    {job.salary_note && <SalaryNote text={job.salary_note} />}
                   </div>
                     {/* OTE行（営業職かつ入力あり）。
                         ⚠️ 上の基本給行と同じ「ラベルが上・値が下」。両端寄せに戻さないこと。
@@ -1010,8 +1012,8 @@ export async function JobDetailView({
               </section>
               )}
 
-              {/* ★勤務条件を読み終えたところにも応募の入口を置く（2026-10-23）。スマホだけ（部品が lg:hidden） */}
-              <JobMobileHeroActions {...mobileCtaProps} />
+              {/* ⚠️ 勤務条件・選考フローの後ろに置いていた応募ボタン（2026-10-23）は 2026-10-29 に外した（柴さんの指示）。
+                     上部を過ぎると下の固定バーに同じボタンが出るので、同じボタンが画面に2つ並んでいた */}
 
               {/* ── 企業について ── */}
               {(company.about || company.why_join) && (
@@ -1293,8 +1295,6 @@ export async function JobDetailView({
               </section>
               )}
 
-              {/* ★選考フローを読み終えたところにも応募の入口を置く（2026-10-23）。スマホだけ */}
-              <JobMobileHeroActions {...mobileCtaProps} />
 
               {/* ⚠️★「企業について」の2つ目（Company summary）は削除した（2026-08-30）。
                      **同じ見出しがページ内に2つあり、下の方は中身がほぼ重複していた。**
@@ -1410,7 +1410,8 @@ export async function JobDetailView({
                       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
                     </svg>
                   }>
-                    {company.name}の他の募集
+                    {/* ★正式名が長い会社（「（旧：…）」付きなど）で見出しが3行になっていた（2026-10-29） */}
+                    この会社の他の募集
                   </SecTitle>
                   <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "var(--space-2)" }}>
                     {relatedJobs.map((rj) => (
