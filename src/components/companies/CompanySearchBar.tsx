@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterChip } from "@/components/common/FilterChip";
-import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel, type ActiveFilter } from "@/components/common/DetailSearch";
+import { ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
 import { companySortLabel } from "@/components/companies/GridSortBar";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useRef, useState } from "react";
@@ -71,7 +71,6 @@ export function CompanySearchBar({
   const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
   const [openChip, setOpenChip] = useState<string | null>(null);
   const [bookmarkCount, setBookmarkCount] = useState(0);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -195,19 +194,13 @@ export function CompanySearchBar({
   const labelOf = (opts: { value: string; label: string }[], v: string) =>
     opts.find((o) => o.value === v)?.label ?? v;
 
-  /* ★詳細検索の中にある条件だけを出す（2026-10-09 の軸の入れ替え）。
-        事業領域・都道府県は1段目に常に見えていて、選択状態をチップ自身が持つ。
-        ここに入れると同じ語が2回並ぶ。⚠️ 並びは詳細検索の中の並びと同じ順にしてある */
-  /* ⚠️ フェーズ（旧 ?phase=）と顧客の業界（旧 ?target=）はチップを外した（2026-10-12）。
-        被リンクで来たときに外せるよう、選択中なら効いている条件として出す */
+  /* ★2026-10-29 に「絞り込み」をやめ、条件をすべて1行のボタンに並べた（柴さんの指示）。
+        選んだ条件はボタン自身に出る（「都道府県: 大阪府 +1」）ので、ここに入れるのは
+        **画面にボタンが無い条件だけ**（被リンクで来た旧フェーズ・顧客の業界・勤務形態）。
+        ⚠️ ボタンがある条件をここに入れないこと（同じ語が2回並ぶ） */
   if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
-  /* ★複数選択（2026-10-29）: 選んだ値ごとにチップを出し、✕でその1つだけ外す */
-  for (const v of stageValues) activeChips.push({ key: `stage:${v}`, label: labelOf(COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label })), v), clear: () => toggleMultiParam("stage", v) });
-  for (const v of sizeValues) activeChips.push({ key: `size:${v}`, label: labelOf(sizeChipOptions, v), clear: () => toggleMultiParam("size", v) });
   if (currentTarget) activeChips.push({ key: "target", label: `顧客の業界: ${currentTarget}`, clear: () => updateParam("target", null) });
   if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
-  if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
-  if (currentHiring) activeChips.push({ key: "hiring", label: "募集あり", clear: () => updateParam("hiring", null) });
   /* ⚠️ 並び替えは 2026-10-20 から件数の右に常に出しているので、選択中の条件には入れない（同じ語が2回並ぶ） */
   void currentSortLabel;
 
@@ -247,16 +240,8 @@ export function CompanySearchBar({
 
           {/* ⚠️ 「一覧内を検索」のボタンは 2026-10-20 に上の行（常に開いた検索欄）へ移した */}
 
-          {/* ★絞り込みのトグル（2026-09-17 に**全幅**で出すようにした）。
-                 文言は `/jobs` と揃えて「詳細検索」。**片方だけ変えないこと。**
-              ⚠️ 選択中の数をバッジで出す（閉じていても効いている件数が分かる）。 */}
-          <DetailSearchToggle
-            label="絞り込み"
-            alwaysShowLabel
-            open={filtersExpanded}
-            count={activeChips.length}
-            onToggle={() => setFiltersExpanded(!filtersExpanded)}
-          />
+          {/* ★「絞り込み」のボタンとパネルは 2026-10-29 に外した（柴さんの指示）。外と中に分かれた条件が混在して
+                 わかりにくかったため。⚠️ 条件を「絞り込み」に戻して2か所に分けないこと。/jobs も同じ形 */}
 
           {/* ★1段目に常に見える軸（2026-10-09）: 事業領域 / 都道府県 / 話を聞ける人。
                  ⚠️ 詳細検索の中は フェーズ / 顧客の業界 / 外資系 / 募集あり / 並び替え。 */}
@@ -272,6 +257,7 @@ export function CompanySearchBar({
           {(industryTreeOptions.length > 0 || currentInd) && (
             <FilterChip
               label="業種"
+              labelPrefix
               value=""
               values={indValues}
               onToggleValue={(v) => toggleMultiParam("ind", v)}
@@ -291,6 +277,7 @@ export function CompanySearchBar({
                  ⚠️ 掲載中の会社がある事業だけ（getBusinessDomainFacets）。 */}
           <FilterChip
             label="事業"
+            labelPrefix
             value=""
             values={industryValues}
             onToggleValue={(v) => toggleMultiParam("industry", v)}
@@ -312,6 +299,7 @@ export function CompanySearchBar({
           {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
           <FilterChip
             label="都道府県"
+            labelPrefix
             value=""
             values={locationValues}
             onToggleValue={(v) => toggleMultiParam("location", v)}
@@ -327,24 +315,11 @@ export function CompanySearchBar({
           {/* ⚠️ 「話を聞ける人」（`?talk=1`）のトグルは 2026-10-16 に撤去した（面談OKの撤去） */}
 
 
-          {/* ★選択中の条件。⚠️★**閉じているときだけ出す。** 開いているときは
-                 ピル自身が選択状態を持っているので、同じ語が2回並ぶ
-                 （/jobs で 2026-09-09 に同じ判断をしている）。 */}
-          {!filtersExpanded && <ActiveFilterChips chips={activeChips} />}
-
-          {/* フィルターチップ群。★入れ物は共通（2026-10-09）。1024px 未満は右からのドロワーで、
-                 件数は /api/companies/count から少し待って取り直す（ページの本体と同じ関数で数える） */}
-          <DetailSearchPanel
-            open={filtersExpanded}
-            onClose={() => setFiltersExpanded(false)}
-            countUrl={`/api/companies/count?${searchParams.toString()}`}
-            unit="社"
-            title="絞り込み"
-          >
 
           {/* ★事業ステージ（2026-10-12。旧「フェーズ」を置き換えた）。7つとも出す（段階の梯子が歯抜けに見えないように。フェーズと同じ扱い） */}
           <FilterChip
             label="事業ステージ"
+            labelPrefix
             value=""
             values={stageValues}
             onToggleValue={(v) => toggleMultiParam("stage", v)}
@@ -361,6 +336,7 @@ export function CompanySearchBar({
           {sizeChipOptions.length > 0 && (
             <FilterChip
               label="会社規模"
+              labelPrefix
               value=""
               values={sizeValues}
               onToggleValue={(v) => toggleMultiParam("size", v)}
@@ -465,7 +441,8 @@ export function CompanySearchBar({
 
           {/* ⚠️ 並び替えは 2026-10-20 に詳細検索の中から件数の右（sortBar）へ移した */}
 
-          </DetailSearchPanel>
+          {/* ボタンが無い条件（旧フェーズ・顧客の業界・勤務形態）が URL で効いているときだけ出す */}
+          <ActiveFilterChips chips={activeChips} />
 
           {/* 保存件数 */}
           {bookmarkCount > 0 && (

@@ -3,7 +3,6 @@
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { FilterChip } from "@/components/common/FilterChip";
-import { DetailSearchToggle, ActiveFilterChips, DetailSearchPanel, type ActiveFilter } from "@/components/common/DetailSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -351,12 +350,6 @@ export default function JobsClient({
   const [openFilter, setOpenFilter] = useState<string | null>(null);
   const toggleFilter = (k: string) => setOpenFilter((cur) => (cur === k ? null : k));
 
-  /* ★「詳細検索」の開閉（2026-09-09。柴さんの要望）。
-     ⚠️★**既定は閉じている。** 条件が8つあり、常時出すと結果より条件のほうが高くなる。
-     ⚠️ 条件が1つでも効いていれば**選択中チップ**を外に出すので、閉じていても
-        「いま何で絞っているか」は分かる（`activeChips`）。ここを消さないこと
-        ——消すと、絞り込んだ結果を見ている最中に理由が画面から消える。 */
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const filterPillsRef = useRef<HTMLDivElement>(null);
 
   /* フィルターピルの外クリックで閉じる。
@@ -468,10 +461,6 @@ export default function JobsClient({
     [],
   );
   const phaseKeys = useMemo(() => phaseOptions.map((o) => o.value), [phaseOptions]);
-  const phaseLabels = useMemo(
-    () => Object.fromEntries(phaseOptions.map((o) => [o.value, o.label])),
-    [phaseOptions],
-  );
   /* companyStage には外資系（foreign）も入っている。フェーズの表示・判定からは外す */
   const phaseSet = useMemo(
     () => new Set(phaseKeys.filter((k) => companyStageSet.has(k))),
@@ -479,42 +468,9 @@ export default function JobsClient({
   );
 
 
-  /* ★いま効いている条件のチップ（2026-09-09）。「詳細検索」を閉じていても外に出す。
-     ⚠️★**これを消さないこと。** 8条件を1つのパネルに畳んだので、これが無いと
-        「なぜこの件数なのか」が画面から消える。`/companies` で「顧客の業界」を
-        結果側に出したのと同じ理由（絞り込みにしか無い軸を作らない）。
-     ⚠️ **解除の手段はチップの ✕ だけにしない。** パネルを開けば元のピルからも外せる。
-        ここは近道であって唯一の入口ではない。
-     ⚠️ 並びは詳細検索パネルのピルの並びと**同じ順**にしてある。片方だけ変えないこと。 */
-  const activeChips = useMemo(() => {
-    const chips: ActiveFilter[] = [];
-    categorySet.forEach((id) => {
-      const name = parentRoles.find((r) => r.id === id)?.name;
-      /* ⚠️ 名前が引けない id は出さない（生の uuid を画面に出さないため） */
-      if (name) chips.push({ key: `category:${id}`, label: name, clear: () => toggleParam("category", id, category) });
-    });
-    phaseSet.forEach((k) => chips.push({ key: `phase:${k}`, label: phaseLabels[k] ?? k, clear: () => toggleStage(k) }));
-    industrySet.forEach((slug) => {
-      const name = industryOptions.find((g) => g.slug === slug)?.name;
-      if (name) chips.push({ key: `industry:${slug}`, label: name, clear: () => toggleParam("industry", slug, industry) });
-    });
-    prefectureSet.forEach((p) => chips.push({ key: `prefecture:${p}`, label: p, clear: () => toggleParam("prefecture", p, prefecture) }));
-    workStyleSet.forEach((v) => chips.push({ key: `ws:${v}`, label: v, clear: () => toggleParam("work_style", v, work_style) }));
-    empTypeSet.forEach((v) => chips.push({ key: `et:${v}`, label: v, clear: () => toggleParam("emp_type", v, empType) }));
-    if (salary) {
-      const label = SALARY_PILL_TIERS.find((t) => t.value === salary)?.label;
-      if (label) chips.push({ key: "salary", label, clear: () => setParam("salary", "") });
-    }
-    if (companyStageSet.has("foreign")) chips.push({ key: "foreign", label: "外資系", clear: () => toggleStage("foreign") });
-    return chips;
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [categorySet, category, parentRoles, phaseSet, phaseLabels, industry, industrySet, industryOptions,
-      prefecture, prefectureSet, workStyleSet, work_style, empTypeSet, empType, salary, companyStageSet]);
-
-  /* ★「絞り込み」の中にある条件だけ（2026-10-20）。職種・勤務地・年収・働き方は外の行のチップ自身が選択状態を持つので、
-        ここ（選択中の条件・バッジの数）には入れない（同じ語が2回並ぶ）。/companies と同じ考え方 */
-  const OUTSIDE_KEYS = (key: string) => key.startsWith("category:") || key.startsWith("prefecture:") || key === "salary" || key.startsWith("ws:");
-  const panelChips = activeChips.filter((c) => !OUTSIDE_KEYS(c.key));
+  /* ★2026-10-29 に「絞り込み」のボタンとパネルを外した（柴さんの指示）。条件はすべて1行のボタンで、
+        選んだ条件はボタン自身に出る（「勤務地: 大阪府 +1」）ので、選択中の条件の行（activeChips）も消した。
+        ⚠️ 条件を「絞り込み」に戻して外と中に分けないこと（/companies も同じ形） */
 
   // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
   const suggestions = useMemo(() => {
@@ -1077,17 +1033,6 @@ export default function JobsClient({
                 ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}
           {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
           <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* ⚠️★ボタンだけを1つの flex item にする（2026-09-09。開閉でボタンが左右に動かないように） */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <DetailSearchToggle
-                label="絞り込み"
-                alwaysShowLabel
-                open={showAdvanced}
-                count={panelChips.length}
-                onToggle={() => setShowAdvanced((v) => !v)}
-              />
-            </div>
-
             {/* ★外に出す条件（2026-10-20）。⚠️ `labelPrefix` を外さないこと（値だけだと何の条件か分からない）。
                    ⚠️ 職種は親職種だけ（子まで出すと148件になり選べない）。件数は公開求人の数で 0 も出す */}
             <FilterChip label="職種" labelPrefix listStyle value="" values={Array.from(categorySet)}
@@ -1117,11 +1062,6 @@ export default function JobsClient({
               onToggleValue={(v) => toggleParam("work_style", v, work_style)}
               isOpen={openFilter === "work_style"} onToggle={() => toggleFilter("work_style")} />
 
-            {/* 選択中の条件（「絞り込み」の中のものだけ）。⚠️★開いているときは出さない（同じ語が2回並ぶ） */}
-            {!showAdvanced && <ActiveFilterChips chips={panelChips} />}
-
-            {/* ★中身の入れ物は共通（2026-10-09）。1024px 未満は右からのドロワー */}
-            <DetailSearchPanel open={showAdvanced} onClose={() => setShowAdvanced(false)} count={filteredForDisplay.length} title="絞り込み">
               {/* フェーズ（複数選択）。⚠️ ✕ は外資系を消さない（clearPhases） */}
               <FilterChip label="フェーズ" labelPrefix phaseStyle value="" values={Array.from(phaseSet)}
                 options={phaseOptions}
@@ -1147,7 +1087,6 @@ export default function JobsClient({
                 外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
               </button>
               {/* ⚠️ 「面談受付中」ピル（2026-08-06）と「✕ リセット」（2026-09-06）は廃止済み。戻さないこと */}
-            </DetailSearchPanel>
           </div>
 
           {/* ★3行目: 件数（左）と並び替え（右・文字だけ）。⚠️ 選択肢と既定値はここが持つ（部品は表示と開閉だけ） */}
