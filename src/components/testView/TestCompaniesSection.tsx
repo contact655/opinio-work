@@ -5,6 +5,7 @@ import { viewerIsTestUser } from "@/lib/users/testViewer";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { resolveDomainCompanyIds, resolveIndustryFilterIds } from "@/lib/search/companies";
 import { isCompanyStage } from "@/lib/companies/classification";
+import { splitMulti } from "@/lib/search/companyListParams";
 
 /**
  * ★検証用の会社と、その公開中の求人（検証用アカウントにだけ出す。2026-10-12 / 柴さんの指示）。
@@ -24,10 +25,11 @@ export async function TestCompaniesSection({ kind, filter }: { kind: "companies"
       /* ⚠️ 条件の解決は一覧と同じ関数（resolveIndustryFilterIds / resolveDomainCompanyIds）。書き写さない */
       let q = admin.from("ow_companies").select("id, slug, name, name_en").eq("is_published", true).eq("is_test", true);
       const none = "00000000-0000-0000-0000-000000000000";
-      if (filter?.ind) { const ids = await resolveIndustryFilterIds(admin, filter.ind); q = q.in("industry_id", ids.length > 0 ? ids : [none]); }
-      if (filter?.industry) { const ids = await resolveDomainCompanyIds(admin, filter.industry); q = q.in("id", ids.length > 0 ? ids : [none]); }
+      /* ★複数選択（2026-10-29）: カンマ区切りの値を一覧と同じく OR で当てる */
+      if (filter?.ind) { const ids = (await Promise.all(splitMulti(filter.ind).map((s) => resolveIndustryFilterIds(admin, s)))).flat(); q = q.in("industry_id", ids.length > 0 ? ids : [none]); }
+      if (filter?.industry) { const ids = (await Promise.all(splitMulti(filter.industry).map((s) => resolveDomainCompanyIds(admin, s)))).flat(); q = q.in("id", ids.length > 0 ? ids : [none]); }
       if (filter?.foreign) q = q.eq("capital_type", "foreign_subsidiary");
-      if (filter?.stage && isCompanyStage(filter.stage)) q = q.eq("company_stage", filter.stage);
+      if (filter?.stage) { const stages = splitMulti(filter.stage).filter(isCompanyStage); if (stages.length > 0) q = q.in("company_stage", stages); }
       return q.order("name");
     })(),
     admin.from("ow_jobs").select("id, slug, title, company_id")

@@ -28,6 +28,7 @@ import { PHASE_FILTER_MAP } from "@/lib/constants/phase";
 import { isCompanyStage } from "@/lib/companies/classification";
 import { filterListedCompanies, filterVisibleCompaniesStrict } from "@/lib/companies/visibility";
 import { normalizeCompanyName } from "@/lib/companies/normalizeName";
+import { splitMulti } from "@/lib/search/companyListParams";
 
 // ── 型定義 ─────────────────────────────────────────────────────────────────────
 
@@ -47,8 +48,9 @@ export type CompanySearchParams = {
   ind?: string;
   /** ★事業ステージ（2026-10-12 / `?stage=`）。値は COMPANY_STAGES の value */
   stage?: string;
-  /** ★会社規模（2026-10-10）。4つのまとまり（`COMPANY_SIZE_GROUPS`）。帯が空の企業は当たらない */
-  size?: CompanySizeGroup;
+  /** ★会社規模（2026-10-10）。4つのまとまり（`COMPANY_SIZE_GROUPS`）。帯が空の企業は当たらない。
+   *  ★2026-10-29 から複数選択（カンマ区切り）。業種・事業・都道府県・事業ステージも同じ */
+  size?: string;
   sort?: string;       // "newest" | "employees" | "disclosure"（"jobs" は 2026-08-18・"salary" は 2026-08-25 に廃止）
   // DB側ページネーション（hiring フィルターなしの場合のみ有効）
   limit?: number;
@@ -165,27 +167,26 @@ export async function searchCompanies(
       const dbValues = PHASE_FILTER_MAP[params.phase] ?? [params.phase];
       q = q.in("phase", dbValues);
     }
-    /* ★会社規模（2026-10-10）。⚠️ まとまり→帯は `COMPANY_SIZE_GROUPS` の1か所。ここに帯を書かない */
+    /* ★会社規模（2026-10-10）。⚠️ まとまり→帯は `COMPANY_SIZE_GROUPS` の1か所。ここに帯を書かない
+          ★複数選択（2026-10-29）: 選んだまとまりの帯をすべて当てる（OR） */
     if (params.size) {
-      const g = COMPANY_SIZE_GROUPS.find((x) => x.value === params.size);
-      if (g) q = q.in("employee_count_band", [...g.bands]);
+      const bands = splitMulti(params.size).flatMap((v) => [...(COMPANY_SIZE_GROUPS.find((x) => x.value === v)?.bands ?? [])]);
+      if (bands.length > 0) q = q.in("employee_count_band", bands);
     }
     if (params.workStyle)  q = q.eq("remote_work_status", params.workStyle);
     if (params.location) {
       // branch_locations 配列にも対応（大阪府 → 大阪, 愛知県 → 名古屋|愛知 等）
       // PostgREST injection 対策: メタ文字を除去してからフィルター文字列に埋め込む
-      const safeLocation = params.location.replace(/[(),"\\]/g, "");
-      if (safeLocation) {
-        const extraKeys = PREF_TO_BRANCH_KEYS[params.location];
-        if (extraKeys) {
-          // 既知の都道府県: PREF_TO_BRANCH_KEYS の値のみ使用（ユーザー入力を埋め込まない）
-          const branchConds = extraKeys.map((k) => `branch_locations.cs.{"${k}"}`).join(",");
-          q = q.or(`location.ilike.%${safeLocation}%,${branchConds}`);
-        } else {
-          // 未知の値: ilike のみ（branch_locations フィルターは使わない）
-          q = q.ilike("location", `%${safeLocation}%`);
-        }
+      /* ★複数選択（2026-10-29）: 選んだ都道府県のどれかに当たれば出す（OR）。条件を1本の .or() にまとめる */
+      const conds: string[] = [];
+      for (const loc of splitMulti(params.location)) {
+        const safeLocation = loc.replace(/[(),"\\]/g, "");
+        if (!safeLocation) continue;
+        conds.push(`location.ilike.%${safeLocation}%`);
+        // 既知の都道府県: PREF_TO_BRANCH_KEYS の値のみ使用（ユーザー入力を埋め込まない）
+        for (const k of PREF_TO_BRANCH_KEYS[loc] ?? []) conds.push(`branch_locations.cs.{"${k}"}`);
       }
+      if (conds.length > 0) q = q.or(conds.join(","));
     }
     /* ⚠️ 事業領域での絞り込みは `applyFilters` の外で company_id を解決し、
           `domainCompanyIds` として渡す（下）。ここで `industry`(text) を見ない。 */
@@ -195,7 +196,11 @@ export async function searchCompanies(
     /* ★業種（2026-10-12）。⚠️ 空配列を .in() に渡さない（全件になる）。解決できなければダミー */
     if (industryIds) q = q.in("industry_id", industryIds.length > 0 ? industryIds : ["00000000-0000-0000-0000-000000000000"]);
     /* ★事業ステージ（2026-10-12）。⚠️ 旧 `?phase=` はそのまま効く（被リンクのため） */
-    if (params.stage && isCompanyStage(params.stage)) q = q.eq("company_stage", params.stage);
+    /* ★複数選択（2026-10-29）: 知らない値は落とし、残りのどれかに当たれば出す */
+    if (params.stage) {
+      const stages = splitMulti(params.stage).filter(isCompanyStage);
+      if (stages.length > 0) q = q.in("company_stage", stages);
+    }
     return q;
   }
 
@@ -213,10 +218,14 @@ export async function searchCompanies(
   /* ── 業種（`?ind=`。2026-10-12）────────────────────────────────────────────
      ⚠️ 大分類を選んだら、その小分類の会社と**大分類だけの会社**（まだ小分類が付いていない会社）も出す（提案A）。
      ⚠️ 公開側なので有効な業種だけ（RLS でも anon には有効な行しか見えない）。 */
-  const industryIds: string[] | null = params.ind ? await resolveIndustryFilterIds(supabase, params.ind) : null;
+  /* ★複数選択（2026-10-29）: 選んだ業種それぞれの id をまとめる（OR） */
+  const industryIds: string[] | null = params.ind
+    ? Array.from(new Set((await Promise.all(splitMulti(params.ind).map((s) => resolveIndustryFilterIds(supabase, s)))).flat()))
+    : null;
 
   if (params.industry) {
-    const ids = await resolveDomainCompanyIds(supabase, params.industry);
+    /* ★複数選択（2026-10-29）: 選んだ事業のどれかを持つ会社（OR） */
+    const ids = Array.from(new Set((await Promise.all(splitMulti(params.industry).map((s) => resolveDomainCompanyIds(supabase, s)))).flat()));
     domainCompanyIds = ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"];
   }
 

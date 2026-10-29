@@ -42,7 +42,8 @@ import { CompanyPaneSkeleton } from "@/components/companies/CompanyPaneSkeleton"
  *    **中身の無いページを自分から知らせない**（sitemap の既存方針と同じ）。
  */
 async function facetForMetadata(searchParams: SearchParams) {
-  if (!searchParams.industry) return null;
+  /* ★事業を2つ以上選んだ URL（`?industry=a,b`。2026-10-29 から複数選択）は事業ごとのページとして扱わない */
+  if (!searchParams.industry || searchParams.industry.includes(",")) return null;
   const hasOtherFilter = Boolean(
     searchParams.q || searchParams.phase || searchParams.workStyle ||
     searchParams.hiring || searchParams.location || searchParams.target || searchParams.foreign ||

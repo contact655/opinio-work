@@ -24,6 +24,7 @@ import { COMPANY_STAGES } from "@/lib/companies/classification";
 const SHOW_WORK_STYLE_FILTER = false;
 import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 import { COMPANY_SIZE_GROUPS } from "@/lib/constants/employeeBand";
+import { splitMulti } from "@/lib/search/companyListParams";
 
 
 
@@ -121,6 +122,14 @@ export function CompanySearchBar({
     updateParam("q", null);
   }
 
+  /* ★複数選択（2026-10-29 / 柴さんの指示）。URL はカンマ区切り。同じ項目の中は OR（lib/search/companies.ts）。
+        ⚠️ 1つずつ外すときも、まとめて外すときも URL を1回だけ書き換える（FilterChip の onClear の注記） */
+  function toggleMultiParam(key: string, v: string) {
+    const cur = splitMulti(searchParams.get(key));
+    const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
+    updateParam(key, next.length > 0 ? next.join(",") : null);
+  }
+
   function toggleChip(name: string) {
     setOpenChip(openChip === name ? null : name);
   }
@@ -135,10 +144,17 @@ export function CompanySearchBar({
   const currentForeign    = searchParams.get("foreign") === "1";
   const currentWorkStyle  = searchParams.get("workStyle") ?? "";
   const currentSize       = searchParams.get("size") ?? "";
+  /* ★複数選択の値（2026-10-29） */
+  const indValues      = splitMulti(currentInd);
+  const industryValues = splitMulti(currentIndustry);
+  const locationValues = splitMulti(currentLocation);
+  const stageValues    = splitMulti(currentStage);
+  const sizeValues     = splitMulti(currentSize);
   /* ⚠️ 選択肢は「掲載中の企業がある」まとまりだけ。選択中のものが消えていたら外せるように足す */
   const sizeChipOptions = sizeOptions.map((o) => ({ value: o.value, label: o.label }));
-  if (currentSize && !sizeChipOptions.some((o) => o.value === currentSize)) {
-    const g = COMPANY_SIZE_GROUPS.find((x) => x.value === currentSize);
+  for (const sv of sizeValues) {
+    if (sizeChipOptions.some((o) => o.value === sv)) continue;
+    const g = COMPANY_SIZE_GROUPS.find((x) => x.value === sv);
     if (g) sizeChipOptions.push({ value: g.value, label: g.label });
   }
   const currentSortLabel  = companySortLabel(searchParams.get("sort"));
@@ -172,8 +188,9 @@ export function CompanySearchBar({
   /* ⚠️ フェーズ（旧 ?phase=）と顧客の業界（旧 ?target=）はチップを外した（2026-10-12）。
         被リンクで来たときに外せるよう、選択中なら効いている条件として出す */
   if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
-  if (currentStage) activeChips.push({ key: "stage", label: labelOf(COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label })), currentStage), clear: () => updateParam("stage", null) });
-  if (currentSize) activeChips.push({ key: "size", label: labelOf(sizeChipOptions, currentSize), clear: () => updateParam("size", null) });
+  /* ★複数選択（2026-10-29）: 選んだ値ごとにチップを出し、✕でその1つだけ外す */
+  for (const v of stageValues) activeChips.push({ key: `stage:${v}`, label: labelOf(COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label })), v), clear: () => toggleMultiParam("stage", v) });
+  for (const v of sizeValues) activeChips.push({ key: `size:${v}`, label: labelOf(sizeChipOptions, v), clear: () => toggleMultiParam("size", v) });
   if (currentTarget) activeChips.push({ key: "target", label: `顧客の業界: ${currentTarget}`, clear: () => updateParam("target", null) });
   if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
   if (currentForeign) activeChips.push({ key: "foreign", label: "外資系", clear: () => updateParam("foreign", null) });
@@ -242,9 +259,12 @@ export function CompanySearchBar({
           {(industryTreeOptions.length > 0 || currentInd) && (
             <FilterChip
               label="業種"
-              value={currentInd}
+              value=""
+              values={indValues}
+              onToggleValue={(v) => toggleMultiParam("ind", v)}
+              onClear={() => updateParam("ind", null)}
               options={industryTreeOptions}
-              onSelect={(v) => { updateParam("ind", v); setOpenChip(null); }}
+              onSelect={() => updateParam("ind", null)}
               isOpen={openChip === "ind"}
               onToggle={() => toggleChip("ind")}
               listStyle
@@ -258,14 +278,17 @@ export function CompanySearchBar({
                  ⚠️ 掲載中の会社がある事業だけ（getBusinessDomainFacets）。 */}
           <FilterChip
             label="事業"
-            value={currentIndustry}
+            value=""
+            values={industryValues}
+            onToggleValue={(v) => toggleMultiParam("industry", v)}
+            onClear={() => updateParam("industry", null)}
             options={industryOptions.map((d) => ({
               value: d.slug, label: d.name,
               searchOnly: d.display_kind === "search",
               keywords: (d.aliases ?? []).join(" "),
               count: "count" in d ? (d as { count: number }).count : undefined,
             }))}
-            onSelect={(v) => { updateParam("industry", v); setOpenChip(null); }}
+            onSelect={() => updateParam("industry", null)}
             isOpen={openChip === "industry"}
             onToggle={() => toggleChip("industry")}
             listStyle
@@ -276,9 +299,12 @@ export function CompanySearchBar({
           {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
           <FilterChip
             label="都道府県"
-            value={currentLocation}
+            value=""
+            values={locationValues}
+            onToggleValue={(v) => toggleMultiParam("location", v)}
+            onClear={() => updateParam("location", null)}
             options={locationOptions}
-            onSelect={(v) => { updateParam("location", v); setOpenChip(null); }}
+            onSelect={() => updateParam("location", null)}
             isOpen={openChip === "location"}
             onToggle={() => toggleChip("location")}
             listStyle
@@ -306,9 +332,12 @@ export function CompanySearchBar({
           {/* ★事業ステージ（2026-10-12。旧「フェーズ」を置き換えた）。7つとも出す（段階の梯子が歯抜けに見えないように。フェーズと同じ扱い） */}
           <FilterChip
             label="事業ステージ"
-            value={currentStage}
+            value=""
+            values={stageValues}
+            onToggleValue={(v) => toggleMultiParam("stage", v)}
+            onClear={() => updateParam("stage", null)}
             options={COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label, desc: x.desc }))}
-            onSelect={(v) => { updateParam("stage", v); setOpenChip(null); }}
+            onSelect={() => updateParam("stage", null)}
             isOpen={openChip === "stage"}
             onToggle={() => toggleChip("stage")}
             listStyle
@@ -319,9 +348,12 @@ export function CompanySearchBar({
           {sizeChipOptions.length > 0 && (
             <FilterChip
               label="会社規模"
-              value={currentSize}
+              value=""
+              values={sizeValues}
+              onToggleValue={(v) => toggleMultiParam("size", v)}
+              onClear={() => updateParam("size", null)}
               options={sizeChipOptions}
-              onSelect={(v) => { updateParam("size", v); setOpenChip(null); }}
+              onSelect={() => updateParam("size", null)}
               isOpen={openChip === "size"}
               onToggle={() => toggleChip("size")}
             />

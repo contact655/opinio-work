@@ -12,7 +12,9 @@ import { companyFilterParams, type CompanyListQuery } from "@/lib/search/company
  */
 export const dynamic = "force-dynamic";
 
-const KEYS = ["q", "phase", "workStyle", "hiring", "location", "industry", "target", "foreign", "size"] as const;
+/* ⚠️★業種（ind）と事業ステージ（stage）が抜けていて、ドロワーの「N社を表示」がこの2つを無視していた（2026-10-29 に足した）。
+      ページ側の条件（companyFilterParams）に項目を足したら、ここにも足すこと */
+const KEYS = ["q", "phase", "workStyle", "hiring", "location", "industry", "target", "foreign", "size", "ind", "stage"] as const;
 
 export async function GET(req: NextRequest) {
   const sp: CompanyListQuery = {};
