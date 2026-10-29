@@ -36,8 +36,11 @@ export function BookmarkButton({
   label: string;
   initialBookmarked?: boolean;
   isAuthenticated?: boolean;
-  /** "icon-only": 星アイコンのみ（40×40px）、"with-text": テキスト付きボタン */
-  variant?: "icon-only" | "with-text";
+  /** "icon-only": 星アイコンのみ（40×40px）、"with-text": テキスト付きボタン（横いっぱい）、
+   *  "inline": テキスト付きで**行の中に並べる**形（2026-10-29）。幅は中身に合わせ、左右に余白を取る。
+   *  ⚠️ with-text は左右の余白が 0 で横いっぱい前提。行の中に置くとアイコンと文字が端に詰まって潰れて見えた
+   *     （ホームの「あなたに合う会社」）。並べて置くときは inline を使うこと */
+  variant?: "icon-only" | "with-text" | "inline";
 }) {
   // props で渡されていないときだけ自分で取る
   const selfManaged = initialBookmarked === undefined || isAuthenticated === undefined;
@@ -98,15 +101,18 @@ export function BookmarkButton({
     }
   };
 
-  if (variant === "with-text") {
+  if (variant === "with-text" || variant === "inline") {
+    const inline = variant === "inline";
     return (
       <button
         type="button"
         onClick={toggle}
         disabled={loading}
         style={{
-          width: "100%",
-          padding: "11px 0",
+          /* ⚠️ inline は隣のボタン（ForYouSection の BTN: 余白 8px 14px・高さ 36px）とそろえる */
+          ...(inline
+            ? { padding: "8px 14px", minHeight: 36, whiteSpace: "nowrap" as const }
+            : { width: "100%", padding: "11px 0" }),
         /* ⚠️★保存済みの色は **royal に統一した**（2026-08-30）。琥珀・赤にしないこと。
               以前は4通りに割れていた（BookmarkButton と CompanyDetailClient が琥珀、
               CompanyCardList が赤の塗り、JobsClient が薄い赤）。**同じ操作に4つの見た目。**

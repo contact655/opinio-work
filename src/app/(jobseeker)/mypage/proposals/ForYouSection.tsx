@@ -507,7 +507,8 @@ function Actions(props: {
       ) : (
         /* ★担当者がいない会社は「保存」（2026-10-27 / 柴さんの決定）。名前は届けない。⚠️ いないことが分かる文言は出さない */
         <span data-state="for-you-save" style={{ marginRight: 4 }}>
-          <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="with-text" />
+          {/* ⚠️ 行の中なので inline（with-text は横いっぱい前提で、ここでは文字が潰れて見えた。2026-10-29） */}
+          <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
         </span>
       )}
       <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
