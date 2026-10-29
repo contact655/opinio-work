@@ -34,7 +34,13 @@ import { AV_GRADIENTS } from "@/app/(jobseeker)/companies/[id]/avatarGradients";
  *    担当者名だけを出すと「連絡できそうで、できない」状態になるため、
  *      - 中身を渡す … 「募集に応募すると、上記担当者に届きます」＋募集への導線（企業詳細で募集があるとき）
  *      - null       … カードごと出さない（企業詳細で募集が0件のとき）
- *      - 省略       … 担当者名だけ（求人詳細。求人そのものが応募の入口なので足さない）
+ *      - 省略       … 担当者名だけ
+ *    `mobileButton: false` … 1023px 以下のカード下のボタンを出さない（求人詳細。下の固定バーに同じ応募ボタンがあるため）
+ *
+ * ★1024px 以上は見出し「採用担当者」の右にボタンを置く（2026-10-29 / 柴さんの指示）。
+ *    ⚠️ **担当者1人ずつの横には置かない。** 面談の申込は企業宛てで、人の指名は 2026-10-16 に撤去した
+ *       （「この人が話してくれる」と読めるため）。カードの見出しに1つだけ置く。
+ *    ⚠️ 1023px 以下は従来どおりカードの下に全幅（見出しの右は狭い）。出し分けは Tailwind の lg:。
  */
 export function RecruitersSection({
   recruiters,
@@ -45,10 +51,17 @@ export function RecruitersSection({
   recruiters: CompanyRecruiter[];
   title: React.ReactNode;
   meetingHref: string | null;
-  closedCta?: { note: string; href: string; label: string } | null;
+  closedCta?: { note: string; href: string; label: string; mobileButton?: boolean } | null;
 }) {
   if (recruiters.length === 0) return null;
   if (!meetingHref && closedCta === null) return null;
+
+  /* 見出しの右に出すボタン（1024px 以上）。面談を受け付けるなら面談、受け付けないなら closedCta */
+  const headerCta = meetingHref
+    ? { href: meetingHref, label: "カジュアル面談を申し込む", meeting: true }
+    : closedCta
+      ? { href: closedCta.href, label: closedCta.label, meeting: false }
+      : null;
 
   return (
     <section
@@ -64,8 +77,28 @@ export function RecruitersSection({
       <div style={{
         padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
         borderBottom: "1px solid var(--line-soft)",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
       }}>
         {title}
+        {headerCta && (
+          /* ⚠️ display をインラインに書かない（hidden lg:block が効かなくなる） */
+          <div className="hidden lg:block" style={{ flexShrink: 0 }}>
+            <a
+              href={headerCta.href}
+              data-state="recruiter-header-cta"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 16px", borderRadius: 8,
+                fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap",
+                ...(headerCta.meeting
+                  ? { background: MEETING_CTA_BG, color: MEETING_CTA_FG, boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)` }
+                  : { background: "var(--royal)", color: "#fff" }),
+              }}
+            >
+              {headerCta.label}
+            </a>
+          </div>
+        )}
       </div>
 
       <div style={{ padding: "var(--space-6)" }}>
@@ -177,6 +210,7 @@ export function RecruitersSection({
         {/* ★面談を受け付けない企業では募集への導線（2026-10-29）。ボタンは 1023px 以下だけ */}
         {!meetingHref && closedCta && (
         <>
+        {closedCta.mobileButton !== false && (
         <div className="lg:hidden" style={{ marginTop: "var(--space-4)" }}>
           <a
             href={closedCta.href}
@@ -191,6 +225,7 @@ export function RecruitersSection({
             {closedCta.label}
           </a>
         </div>
+        )}
         <div
           style={{
             marginTop: "var(--space-4)",
