@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidateTag } from "next/cache";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { createAdminClient } from '@/lib/supabase/admin';
+import { draftWithPatch } from '@/lib/companies/syncDraft';
 import { publishedAtPatch } from '@/lib/companies/publishedAt';
 import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
@@ -211,6 +212,16 @@ export async function PUT(
   if ('logo_url' in updates) {
     const { data: prev } = await supabase.from('ow_companies').select('logo_url').eq('id', params.id).maybeSingle();
     logoBefore = (prev?.logo_url as string | null | undefined) ?? null;
+  }
+
+  /* ★面談の受付を変えるときは企業の下書きの同じキーもそろえる（2026-10-29。lib/companies/syncDraft.ts）。
+        ⚠️ ほかの列は今はそろえていない（範囲を広げる判断はまだ） */
+  if ('accepting_casual_meetings' in updates) {
+    const { data: curDraft, error: draftErr } = await supabase
+      .from('ow_companies').select('draft_data').eq('id', params.id).maybeSingle();
+    if (draftErr) console.error('[PUT /api/admin/companies/[id]] draft_data', draftErr.message);
+    const draft = draftWithPatch(curDraft?.draft_data, { accepting_casual_meetings: updates.accepting_casual_meetings });
+    if (draft) updates.draft_data = draft;
   }
 
   const { data, error } = await supabase

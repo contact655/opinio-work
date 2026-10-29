@@ -10,6 +10,7 @@ import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publish
 import { applyCompanyDraft } from "@/lib/companies/applyDraft";
 import { notifyCompanyStatus } from "@/lib/notify/companyStatus";
 import { insertCompanyJoined } from "@/lib/companies/listing";
+import { draftWithPatch } from "@/lib/companies/syncDraft";
 import { suspendCompany, unsuspendCompany } from "@/lib/companies/suspension";
 
 async function assertAdmin(): Promise<void> {
@@ -98,9 +99,22 @@ export async function updateAcceptingMeetings(companyId: string, newValue: boole
   if (!UUID_RE.test(companyId)) return { ok: false, error: "Invalid companyId" };
   await assertAdmin();
   const admin = createAdminClient();
+  /* ★企業の下書きの同じキーもそろえる（2026-10-29）。そろえないと、企業が次に「公開する」を押したとき
+        古い下書きの値で戻る（lib/companies/syncDraft.ts）。 */
+  const { data: cur, error: readErr } = await admin
+    .from("ow_companies").select("draft_data").eq("id", companyId).maybeSingle();
+  if (readErr) {
+    console.error("[updateAcceptingMeetings] draft_data", readErr.message);
+    return { ok: false, error: toMessage(readErr) };
+  }
+  const draft = draftWithPatch(cur?.draft_data, { accepting_casual_meetings: newValue });
   const { error } = await admin
     .from("ow_companies")
-    .update({ accepting_casual_meetings: newValue, updated_at: new Date().toISOString() })
+    .update({
+      accepting_casual_meetings: newValue,
+      ...(draft ? { draft_data: draft } : {}),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", companyId);
   if (error) {
     console.error("[updateAcceptingMeetings]", error.message);
