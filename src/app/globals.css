@@ -2781,9 +2781,13 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 /* ── ★求人詳細の上部（JobDetailView。2026-10-29）──────────────────────────
    767px 以下はロゴを会社名の横（44px）へ移し、題名から下を全幅にする。768px 以上は左に 64px のロゴ。 */
 .jd-hero-logo-sm { display: none; flex-shrink: 0; }
+/* ★767px 以下の上部はラベル付きの行（.jd-hero-facts）。768px 以上は年収ピルとタグ（.jd-hero-desktop-only）。2026-10-29 */
+.jd-hero-facts { display: none; }
 @media (max-width: 767px) {
   .jd-hero-logo { display: none; }
   .jd-hero-logo-sm { display: block; }
+  .jd-hero-facts { display: block; margin: 4px 0 4px; }
+  .jd-hero-desktop-only { display: none; }
 }
 
 /* ── ★企業ページの募集カード（JobEmbedCard。2026-10-29）──────────────────────

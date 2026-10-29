@@ -52,6 +52,7 @@ import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingC
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
+import { shortAddress, annualHolidays, postedAgo } from "@/lib/jobs/heroFacts";
 
 // 5分間ページキャッシュ（ISR）
 type RelatedJob = {
@@ -590,8 +591,9 @@ export async function JobDetailView({
               {/* ★運営会社の開示（2026-10-10）。会社名のすぐ下に1行 */}
               {isOwnCompany && <OwnCompanyNote style={{ marginTop: -6, marginBottom: "var(--space-2)" }} />}
 
-              {/* HOT badge */}
+              {/* HOT badge。⚠️ 767px 以下は題名の下の行（.jd-hero-facts）に移す（2026-10-29） */}
               {job.urgency === "hot" && (
+                <div className="jd-hero-desktop-only">
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "4px 10px", borderRadius: 6, marginBottom: "var(--space-2)",
@@ -600,6 +602,7 @@ export async function JobDetailView({
                   fontFamily: "var(--font-inter), var(--font-noto)", border: "1px solid #FECACA",
                 }}>
                   🔥 積極採用中
+                </div>
                 </div>
               )}
 
@@ -612,6 +615,83 @@ export async function JobDetailView({
                 {job.role}
               </h1>
 
+              {/* ★767px 以下の上部は「ラベル付きの行」にする（2026-10-29 / 柴さんの指示）。
+                     それまでは年収のピルと、雇用形態・働き方・住所の全文が同じ見た目のタグで並び、
+                     住所（番地・ビル名まで）が上部でいちばん長い要素になっていた。
+                  ⚠️ 住所は都道府県＋市区町村まで（shortAddress）。全文は下の勤務条件の「勤務地」に出る。
+                  ⚠️ 休日は「年間休日 N日」と書かれている求人だけ。掲載日は published_at があるときだけ。
+                  ⚠️ 職種は出さない（企業の登録が内容と合っていない求人があるため。2026-10-29）。
+                  ⚠️ 768px 以上は従来どおり（下の年収ピルとタグ。出し分けは globals.css の .jd-hero-facts / .jd-hero-desktop-only） */}
+              {(() => {
+                const salaryText = (job.salary_min || job.salary_max)
+                  ? (job.salary_min && job.salary_max
+                    ? `${fmtMan(job.salary_min)}〜${fmtMan(job.salary_max)}万円`
+                    : job.salary_min ? `${fmtMan(job.salary_min)}万円〜` : `〜${fmtMan(job.salary_max)}万円`)
+                  : null;
+                const holidays = annualHolidays(job.holidays);
+                const rows: { key: string; label: string; value: string; money?: boolean; icon: React.ReactNode }[] = [
+                  {
+                    key: "pay", label: payLabel(job.employment_type) === "報酬" ? "報酬" : "年収",
+                    value: salaryText ?? (job.salary_negotiable ? payNegotiableText(job.employment_type) : "給与非公開"),
+                    money: !!salaryText,
+                    icon: <><circle cx="12" cy="12" r="9"/><path d="M8 7l4 5 4-5M12 12v6M9 13h6M9 16h6"/></>,
+                  },
+                  ...(isBusinessJob && (job.ote_min || job.ote_max) ? [{
+                    key: "ote", label: "OTE",
+                    value: job.ote_min && job.ote_max ? `${fmtMan(job.ote_min)}〜${fmtMan(job.ote_max)}万円`
+                      : job.ote_min ? `${fmtMan(job.ote_min)}万円〜` : `〜${fmtMan(job.ote_max)}万円`,
+                    icon: <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
+                  }] : []),
+                  ...(shortAddress(job.location) ? [{
+                    key: "loc", label: "勤務地", value: shortAddress(job.location) as string,
+                    icon: <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
+                  }] : []),
+                  ...([job.work_style, job.employment_type].filter(Boolean).length > 0 ? [{
+                    key: "style", label: "働き方", value: [job.work_style, job.employment_type].filter(Boolean).join("・"),
+                    icon: <><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></>,
+                  }] : []),
+                  ...(holidays ? [{
+                    key: "hol", label: "休日", value: `年間${holidays}日`,
+                    icon: <><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></>,
+                  }] : []),
+                  ...(job.experience ? [{
+                    key: "exp", label: "経験", value: job.experience,
+                    icon: <><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 12 0v1"/></>,
+                  }] : []),
+                ];
+                const posted = postedAgo(job.published_at);
+                return (
+                  <div className="jd-hero-facts">
+                    {(job.urgency === "hot" || posted) && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 10 }}>
+                        {/* ⚠️ 赤（エラーの色）を宣伝に使わない（ui-conventions の色の役割）。目立たない色にする */}
+                        {job.urgency === "hot" && (
+                          <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: "var(--bg-tint)", border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
+                            積極採用中
+                          </span>
+                        )}
+                        {posted && <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>{posted}に掲載</span>}
+                      </div>
+                    )}
+                    <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                      {rows.map((r) => (
+                        <div key={r.key} style={{ display: "grid", gridTemplateColumns: "18px 52px minmax(0,1fr)", alignItems: "baseline", gap: 6 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ alignSelf: "center" }}>{r.icon}</svg>
+                          <dt style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)" }}>{r.label}</dt>
+                          <dd style={{
+                            margin: 0, minWidth: 0, fontSize: r.money ? 16 : 14, lineHeight: 1.5,
+                            fontWeight: r.money ? 700 : 500,
+                            color: r.money ? "var(--success-ink)" : "var(--ink)",
+                            fontFamily: r.money ? "var(--font-inter), var(--font-noto)" : undefined,
+                          }}>{r.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                );
+              })()}
+
+              <div className="jd-hero-desktop-only">
               {/* ② Salary — always shown; 給与非公開の場合はその旨を明示 */}
               <div style={{ marginBottom: "var(--space-2)" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -672,6 +752,7 @@ export async function JobDetailView({
                     {b}
                   </span>
                 ))}
+              </div>
               </div>
 
               {/* ★スマホの最初の画面にも押せるものを（2026-10-17）。lg 以上はサイドバー */}
