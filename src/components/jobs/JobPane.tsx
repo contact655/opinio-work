@@ -194,8 +194,8 @@ export function JobPane({
               ⚠️ 制限するのは**散文だけ**。ピル・カード・条件の並びは全幅のままにする
                  （横に並ぶものを狭めると、逆に折り返しが増える）。 */}
           <div style={{ maxWidth: "44em" }}>
-            {/* ★求人詳細と同じく改行1つも行替えに（2026-10-29） */}
-            <Markdown softBreaks>{job.overview}</Markdown>
+            {/* ★求人詳細と同じく求人の本文として整える（2026-10-29。lib/jobs/jobBody.ts） */}
+            <Markdown jobBody>{job.overview}</Markdown>
           </div>
         </PaneBlock>
       )}

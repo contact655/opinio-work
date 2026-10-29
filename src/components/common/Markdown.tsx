@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { formatJobBody } from "@/lib/jobs/jobBody";
 
 /**
  * 企業説明・求人本文を markdown として描画する。
@@ -17,15 +18,14 @@ import remarkGfm from "remark-gfm";
  * ⚠️ 見出しは h3 相当から始める。ページ側に h1/h2 があるので、
  *    本文がそれより大きく見えないようにする。
  *
- * ★`softBreaks`（2026-10-29 / 柴さんの指示）: 改行1つを**行替え**（段落ではない）として出す。
- *    **求人の本文だけ**に使う。求人の入力欄（JobEditForm の「仕事内容」）は書式ボタンの無い素のテキスト欄で
- *    （2026-10-11 に外した）、企業は「入力欄で見えている改行がそのまま出る」と思って書く。
- *    実際 COIN の2件は改行で区切って書かれているのに、1段落につながって表示されていた。
+ * ★`jobBody`（2026-10-29 / 柴さんの指示）: **求人の本文だけ**に使う。求人の入力欄（JobEditForm の「仕事内容」）は
+ *    書式ボタンの無い素のテキスト欄で（2026-10-11 に外した）、企業は「入力欄で見えているとおりに出る」と思って書く。
+ *    整え方は lib/jobs/jobBody.ts の formatJobBody の1か所（短い「■」の行を見出し・「・」の行を箇条書き・改行1つを行替え）。
+ *    箇条書きの印は「・」にする（企業が書いた印のまま見せ、折り返した行の字下げをそろえる）。
  *    ⚠️ 企業説明・企業記事には使わない（上の決めごとどおり素の markdown。あちらは markdown エディタ）。
- *    ⚠️ 中身は行末に markdown の強制改行（半角スペース2つ）を足すだけ。見出し・箇条書きの行は崩れない。
  */
-export function Markdown({ children, softBreaks = false }: { children: string; softBreaks?: boolean }) {
-  const text = softBreaks ? children.replace(/([^\n])\n(?!\n)/g, "$1  \n") : children;
+export function Markdown({ children, jobBody = false }: { children: string; jobBody?: boolean }) {
+  const text = jobBody ? formatJobBody(children) : children;
   return (
     <div className="opinio-md">
       <ReactMarkdown
@@ -37,7 +37,7 @@ export function Markdown({ children, softBreaks = false }: { children: string; s
           h1: ({ children }) => <h3 style={H}>{children}</h3>,
           h2: ({ children }) => <h3 style={H}>{children}</h3>,
           h3: ({ children }) => <h4 style={{ ...H, fontSize: 15 }}>{children}</h4>,
-          ul: ({ children }) => <ul style={LIST}>{children}</ul>,
+          ul: ({ children }) => <ul style={jobBody ? DOT_LIST : LIST}>{children}</ul>,
           ol: ({ children }) => <ol style={LIST}>{children}</ol>,
           li: ({ children }) => (
             <li style={{ fontSize: 15, color: "var(--ink)", lineHeight: 1.85, marginBottom: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>{children}</li>
@@ -64,3 +64,5 @@ const H = {
 } as const;
 
 const LIST = { margin: "0 0 14px", paddingLeft: "1.4em" } as const;
+/* 求人の本文の箇条書き。印を「・」にし、折り返した行を印の後ろにそろえる（2026-10-29） */
+const DOT_LIST = { margin: "0 0 14px", paddingLeft: "1em", listStyleType: '"・"' } as const;

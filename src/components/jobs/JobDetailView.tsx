@@ -832,9 +832,9 @@ export async function JobDetailView({
                   仕事内容
                 </SecTitle>
                 {/* ⚠️ markdown として描画する（2026-08-26）。入力欄が markdown なので合わせる。
-                    ★改行1つも行替えとして出す（softBreaks。2026-10-29）。入力欄は素のテキスト欄で、
-                       企業が入れた改行が1段落につながって消えていた */}
-                <Markdown softBreaks>{job.overview}</Markdown>
+                    ★求人の本文として整える（jobBody。2026-10-29）: 改行を行替えに・短い「■」の行を見出しに・
+                       「・」の行を字下げのそろった箇条書きに。規則は lib/jobs/jobBody.ts */}
+                <Markdown jobBody>{job.overview}</Markdown>
               </section>
               )}
 
