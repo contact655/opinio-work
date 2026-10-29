@@ -19,9 +19,11 @@ export type CompanyViewerState = {
   authenticated: boolean;
   bookmarked: boolean;
   following: boolean;
+  /** この会社の担当者で、企業記事を書ける役割か（2026-10-29） */
+  canWriteStories: boolean;
 };
 
-const FALLBACK: CompanyViewerState = { authenticated: false, bookmarked: false, following: false };
+const FALLBACK: CompanyViewerState = { authenticated: false, bookmarked: false, following: false, canWriteStories: false };
 
 /** companyId → 取得中/取得済みの Promise。TTL は張らない（1ページ表示の間だけ持てばよい） */
 const inflight = new Map<string, Promise<CompanyViewerState>>();
@@ -36,6 +38,7 @@ function load(companyId: string): Promise<CompanyViewerState> {
       authenticated: !!d.authenticated,
       bookmarked: !!d.bookmarked,
       following: !!d.following,
+      canWriteStories: !!d.canWriteStories,
     }))
     /* ⚠️ 失敗しても throw しない。ブックマークとフォローは付加機能で、
           取れなければ「押していない状態」で画面が成立する。 */

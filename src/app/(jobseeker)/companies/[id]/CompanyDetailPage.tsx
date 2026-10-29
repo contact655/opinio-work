@@ -35,6 +35,7 @@ import { companyStageLabel } from "@/lib/companies/classification";
 import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
+import { CompanyStoriesStaffCta } from "@/components/companies/CompanyStoriesStaffCta";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import type { Article } from "@/app/articles/mockArticleData";
 import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
@@ -900,27 +901,29 @@ function JobEmbedCard({
       style={{ textDecoration: "none", display: "block" }}
       className="job-embed-card"
     >
-      <div style={{
+      {/* ★375px でタイトルが1行7〜8文字に痩せていた（2026-10-29）。767px 以下は
+             縦線と矢印を消し、年収をタイトルの下へ回して全幅にする。
+          ⚠️ 余白・縦線・見出し行の並びは globals.css の .jec-* が持つ。インラインに戻さないこと
+             （幅で変えられなくなる。1024px 以上の見た目は 2026-10-29 以前と同じ） */}
+      <div className="jec-card" style={{
         border: "1px solid var(--line)",
         borderRadius: 12,
         background: "#fff",
-        padding: "14px 16px",
         transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-        display: "flex",
         gap: 12,
         alignItems: "flex-start",
       }}>
         {/* Left accent bar by category */}
-        <div style={{ width: 3, borderRadius: 2, background: "var(--royal)", flexShrink: 0, alignSelf: "stretch", opacity: 0.5 }} />
+        <div className="jec-bar" style={{ width: 3, borderRadius: 2, background: "var(--royal)", flexShrink: 0, alignSelf: "stretch", opacity: 0.5 }} />
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Title row */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, flex: 1, minWidth: 0 }}>
+          <div className="jec-head" style={{ marginBottom: 5 }}>
+            <div className="jec-title" style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, flex: 1, minWidth: 0 }}>
               {job.title}
             </div>
             {/* Salary */}
-            <div style={{ flexShrink: 0, textAlign: "right" }}>
+            <div className="jec-salary" style={{ flexShrink: 0 }}>
               {hasSalary ? (
                 <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success-ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
                   {salaryDisplay}
@@ -991,7 +994,7 @@ function JobEmbedCard({
           </div>
         </div>
         {/* Arrow */}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0, marginTop: 3 }}>
+        <svg className="jec-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0, marginTop: 3 }}>
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </div>
@@ -1146,7 +1149,8 @@ function JobsSection({
         </SecTitle>
       </div>
 
-      <div style={{ padding: "20px 24px 28px", background: "var(--bg-tint)" }}>
+      {/* ⚠️ 余白は globals.css の .jec-list（767px 以下で左右を詰める）。インラインに戻さないこと */}
+      <div className="jec-list" style={{ background: "var(--bg-tint)" }}>
         {/* ⚠️ **その場で開くボタンは出さない。残すのは「N件すべての求人を見る」の方**
                （2026-08-23 に柴さんが確認。ボタンが2つ縦に並んで読みにくいので1つにする、
                 という判断で、**残す側は遷移**）。
@@ -1248,8 +1252,16 @@ function CompanyPostsSection({ posts, countViews }: { posts: CompanyPost[]; coun
 
 // ─── Company Articles Section ─────────────────────────────────────────────────
 
-function CompanyArticlesSection({ articles, company }: { articles: Article[]; company: Company }) {
+function CompanyArticlesSection({ articles, company, hasPosts }: { articles: Article[]; company: Company; hasPosts: boolean }) {
   const displayed = articles.slice(0, 3);
+
+  /* ★0件のときは求職者・未ログインには何も出さない（2026-10-29 / 柴さんの指示）。
+        それまでは「まだ取材記事がありません／OPINIO編集部による取材記事が順次公開されます」を全員に出し、
+        「OPINIO が書くのを待つ場所」に読めていた（公開中の取材記事は全体で0件＝掲載中の全社に出ていた）。
+        ⚠️ 企業の投稿も0件のときだけ、その会社の担当者に「記事を書く」を出す（CompanyStoriesStaffCta）。 */
+  if (articles.length === 0) {
+    return hasPosts ? null : <CompanyStoriesStaffCta companyId={company.id} />;
+  }
 
   return (
     <section
@@ -1281,7 +1293,9 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
             </svg>
           }
         >
-          OPINIO 取材記事
+          {/* ★見出し（2026-10-29 / 柴さんの選択）。このセクションは各企業が自分のことを発信する場所で、
+                 OPINIO 編集部の記事は例外。それまでの「OPINIO 取材記事」は OPINIO が書く場所に読めていた */}
+          この会社からの発信
         </SecTitle>
         {articles.length > 0 && (
           <span style={{
@@ -1295,16 +1309,7 @@ function CompanyArticlesSection({ articles, company }: { articles: Article[]; co
         )}
       </div>
       <div style={{ padding: "var(--space-6)" }}>
-        {articles.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "32px 0", color: "var(--ink-mute)" }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" style={{ margin: "0 auto 10px", display: "block", opacity: 0.4 }}>
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink-soft)", marginBottom: 4 }}>まだ取材記事がありません</div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>OPINIO編集部による取材記事が順次公開されます</div>
-          </div>
-        ) : (
+        {(
           <>
             {articles.length === 1 ? (
               /* ── 1件の時: 左60%記事 + 右40% CTAパネル ── */
@@ -1961,7 +1966,11 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
           ...(company.job_count > 0 ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
           ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
-          ...(companyPosts.length > 0 || companyArticles.length > 0 || activityPosts.length > 0 ? [{ id: "articles", label: "記事・更新情報" }] : []),
+          /* ⚠️ 行き先は実際に描かれる最初のセクション（2026-10-29）。取材記事が0件のときは #articles を描かないので、
+                固定で "articles" を指すと押しても何も起きない */
+          ...(companyPosts.length > 0 || companyArticles.length > 0 || activityGroups.length > 0
+            ? [{ id: companyPosts.length > 0 ? "posts" : companyArticles.length > 0 ? "articles" : "activity", label: "記事・更新情報" }]
+            : []),
         ]} />
         <div
           style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
@@ -2114,7 +2123,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
             {/* 6. 記事・更新情報（posts → articles → activity） */}
             <CompanyPostsSection posts={companyPosts} countViews={!testMode && !preview} />
-            <CompanyArticlesSection articles={companyArticles} company={company} />
+            <CompanyArticlesSection articles={companyArticles} company={company} hasPosts={companyPosts.length > 0} />
 
             {/* ── 更新情報 ── */}
             {activityGroups.length > 0 && (
@@ -2270,6 +2279,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             {recruiters.length > 0 && (
               <RecruitersSection
                 recruiters={recruiters}
+                /* ★申し込めない企業では null（ボタンも「連絡が届きます」も出さない。2026-10-29） */
+                meetingHref={company.accepting_casual_meetings ? `/companies/${company.id}/casual-meeting` : null}
                 /* ⚠️ 見出しはこのページの SecTitle。切り出し前と同じアイコン・文言。 */
                 title={
                   <SecTitle

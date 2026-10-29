@@ -2720,6 +2720,33 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .cd-body { --cd-pad-x: 24px; }
 }
 
+/* ── ★企業ページの固定タブの貼り付く位置（2026-10-29）──────────────────────
+   ヘッダーの実高は全幅で 61px（中身 60 ＋ 下線 1）。68px だと7pxの隙間ができ、
+   スクロールすると本文の文字が隙間から透けて見えていた。
+   1023px 以下は他の固定帯（/jobs など）と同じ 60 にしてヘッダーの下線に重ねる。
+   ⚠️ 1024px 以上は 68 のまま（デスクトップの見た目を変えない指示。同じ7pxの隙間がある）。 */
+.cd-sticky-nav { top: 68px; }
+@media (max-width: 1023px) {
+  .cd-sticky-nav { top: 60px; }
+}
+
+/* ── ★企業ページの募集カード（JobEmbedCard。2026-10-29）──────────────────────
+   375px で年収の列と縦線・矢印に幅を取られ、タイトルが 99px（1行7〜8文字）まで痩せ、
+   長いタイトルが7行に折り返していた。767px 以下は縦線と矢印を消し、年収をタイトルの下に回す。
+   ⚠️ 768px 以上は 2026-10-29 以前の値そのまま（デスクトップの見た目を変えない）。
+   ⚠️ 矢印を消してもカード全体がリンクなので押せる。 */
+.jec-list { padding: 20px 24px 28px; }
+.jec-card { display: flex; padding: 14px 16px; }
+.jec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.jec-salary { text-align: right; }
+@media (max-width: 767px) {
+  .jec-list { padding: 16px 12px 24px; }
+  .jec-card { display: block; padding: 12px 14px; }
+  .jec-bar, .jec-arrow { display: none; }
+  .jec-head { flex-direction: column; gap: 2px; }
+  .jec-salary { text-align: left; }
+}
+
 /* ── ★一覧の上部の行（/companies・/jobs・/people）と、チップのメニュー（2026-10-17 / LinkedIn型）──
    スマホ（767px 以下）では、検索・詳細検索・チップ・並び替え・件数を**1行に並べて横にスクロール**する。
    それまでは2〜3行に折り返し、一覧が始まるまでに画面の上4分の1を使っていた。

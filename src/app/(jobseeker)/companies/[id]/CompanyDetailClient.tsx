@@ -221,15 +221,22 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    const top = el.getBoundingClientRect().top + window.scrollY - 100;
+    /* ★見出しがタブの下に隠れないよう、タブの貼り付く位置＋高さから決める（2026-10-29）。
+          それまでは 100 の即値で、タブ（約56px）と合わせると16px ほど足りなかった */
+    const nav = navRef.current;
+    const offset = nav ? (parseFloat(getComputedStyle(nav).top) || 0) + nav.offsetHeight + 8 : 100;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top, behavior: "smooth" });
   };
 
   return (
+    /* ★貼り付く位置（top）は globals.css の .cd-sticky-nav が持つ（2026-10-29）。
+          ⚠️ インラインに戻さないこと（幅で変えられなくなる） */
     <nav
       ref={navRef}
+      className="cd-sticky-nav"
       style={{
-        position: "sticky", top: 68, zIndex: 40,
+        position: "sticky", zIndex: 40,
         background: "rgba(255,255,255,0.97)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--line)",

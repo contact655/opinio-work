@@ -1366,6 +1366,8 @@ export async function JobDetailView({
                      ⚠️ 位置は「拠点・資本関係」の下（柴さんの指定）。 */}
               <RecruitersSection
                 recruiters={recruiters}
+                /* ★申し込めない企業では null（2026-10-29）。行き先は右の列の面談ボタンと同じ */
+                meetingHref={company.accepting_casual_meetings && companyHref ? `${casualBase}/casual-meeting?job_id=${job.id}` : null}
                 title={
                   <SecTitle color="var(--royal)" icon={
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">

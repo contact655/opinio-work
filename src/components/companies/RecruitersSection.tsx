@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { CompanyRecruiter } from "@/lib/supabase/queries";
+import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import { AV_GRADIENTS } from "@/app/(jobseeker)/companies/[id]/avatarGradients";
 
 /**
@@ -20,13 +22,22 @@ import { AV_GRADIENTS } from "@/app/(jobseeker)/companies/[id]/avatarGradients";
  *
  * ⚠️ このスタイルタグの中に山括弧と二重引用符を書かないこと
  *    （サーバーだけが実体参照へ変換し hydration error になる）。
+ *
+ * ★`meetingHref`（2026-10-29）: カジュアル面談の申込先。**申し込めない企業では null を渡す。**
+ *    ⚠️ 判定は呼び出し側の `accepting_casual_meetings`（`isCasualMeetingOpen` で宛先・担当者まで見た値）。
+ *       ここで判定しない。
+ *    ⚠️ null のときは「申し込むと連絡が届きます」の一文も出さない。それまでは条件なしで出ており、
+ *       面談を受け付けていない企業（COIN など）にも「申し込める」と読める文だけが出ていた。
+ *    ⚠️ ボタンは 1023px 以下だけ（`lg:hidden`）。1024px 以上は右の列に同じ入口がある。
  */
 export function RecruitersSection({
   recruiters,
   title,
+  meetingHref,
 }: {
   recruiters: CompanyRecruiter[];
   title: React.ReactNode;
+  meetingHref: string | null;
 }) {
   if (recruiters.length === 0) return null;
 
@@ -113,6 +124,8 @@ export function RecruitersSection({
           ))}
         </div>
 
+        {meetingHref && (
+        <>
         <div
           style={{
             marginTop: "var(--space-4)",
@@ -132,6 +145,24 @@ export function RecruitersSection({
           </svg>
           カジュアル面談を申し込むと、上記担当者から連絡が届きます。
         </div>
+        {/* ⚠️ display をインラインに書かない（lg:hidden が効かなくなる） */}
+        <div className="lg:hidden" style={{ marginTop: "var(--space-3)" }}>
+          <Link
+            href={meetingHref}
+            data-state="recruiter-meeting-cta"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "12px 16px", borderRadius: 10,
+              fontSize: 14, fontWeight: 700, textDecoration: "none",
+              background: MEETING_CTA_BG, color: MEETING_CTA_FG,
+              boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
+            }}
+          >
+            カジュアル面談を申し込む
+          </Link>
+        </div>
+        </>
+        )}
       </div>
     </section>
   );

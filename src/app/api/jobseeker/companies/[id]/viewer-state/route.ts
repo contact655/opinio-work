@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { can, toCompanyRole } from "@/lib/auth/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,10 @@ export const dynamic = "force-dynamic";
  *    401 にすると呼び出し側が毎回エラー処理を書くことになる。
  *
  * ⚠️ 返すのは**閲覧者自身の状態だけ**。他人の情報は1つも含めないこと。
+ *
+ * ★`canWriteStories`（2026-10-29）: 閲覧者がこの会社の有効な担当者で、企業記事（/biz/posts）を
+ *    書ける役割か。記事が0件の企業ページで、担当者にだけ「記事を書く」を出すために使う。
+ *    ⚠️ 役割の判定は `can(…, "stories.edit")`。条件を書き写さないこと。
  */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -29,7 +34,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ authenticated: false, bookmarked: false, following: false });
+    return NextResponse.json({ authenticated: false, bookmarked: false, following: false, canWriteStories: false });
   }
 
   // 閲覧者自身の ow_users.id（本人の行なので admin で引いても見える範囲は広がらない）
@@ -46,13 +51,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
   if (!me?.id) {
     // auth はあるが ow_users が無い（招待直後など）。ログイン済みとしては扱う
-    return NextResponse.json({ authenticated: true, bookmarked: false, following: false });
+    return NextResponse.json({ authenticated: true, bookmarked: false, following: false, canWriteStories: false });
   }
 
   const owUserId = me.id as string;
 
   // 互いに独立なので1往復にまとめる
-  const [bmarkRes, followRes] = await Promise.all([
+  const [bmarkRes, followRes, staffRes] = await Promise.all([
     admin
       .from("ow_bookmarks")
       .select("id")
@@ -66,14 +71,23 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       .eq("follower_user_id", owUserId)
       .eq("company_id", params.id)
       .maybeSingle(),
+    admin
+      .from("ow_company_admins")
+      .select("permission")
+      .eq("user_id", owUserId)
+      .eq("company_id", params.id)
+      .eq("is_active", true)
+      .maybeSingle(),
   ]);
 
   if (bmarkRes.error) console.error("[viewer-state] bookmark", bmarkRes.error.message);
   if (followRes.error) console.error("[viewer-state] follow", followRes.error.message);
+  if (staffRes.error) console.error("[viewer-state] staff", staffRes.error.message);
 
   return NextResponse.json({
     authenticated: true,
     bookmarked: !!bmarkRes.data,
     following: !!followRes.data,
+    canWriteStories: can(toCompanyRole(staffRes.data?.permission), "stories.edit"),
   });
 }
