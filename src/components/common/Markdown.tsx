@@ -16,8 +16,16 @@ import remarkGfm from "remark-gfm";
  *
  * ⚠️ 見出しは h3 相当から始める。ページ側に h1/h2 があるので、
  *    本文がそれより大きく見えないようにする。
+ *
+ * ★`softBreaks`（2026-10-29 / 柴さんの指示）: 改行1つを**行替え**（段落ではない）として出す。
+ *    **求人の本文だけ**に使う。求人の入力欄（JobEditForm の「仕事内容」）は書式ボタンの無い素のテキスト欄で
+ *    （2026-10-11 に外した）、企業は「入力欄で見えている改行がそのまま出る」と思って書く。
+ *    実際 COIN の2件は改行で区切って書かれているのに、1段落につながって表示されていた。
+ *    ⚠️ 企業説明・企業記事には使わない（上の決めごとどおり素の markdown。あちらは markdown エディタ）。
+ *    ⚠️ 中身は行末に markdown の強制改行（半角スペース2つ）を足すだけ。見出し・箇条書きの行は崩れない。
  */
-export function Markdown({ children }: { children: string }) {
+export function Markdown({ children, softBreaks = false }: { children: string; softBreaks?: boolean }) {
+  const text = softBreaks ? children.replace(/([^\n])\n(?!\n)/g, "$1  \n") : children;
   return (
     <div className="opinio-md">
       <ReactMarkdown
@@ -44,7 +52,7 @@ export function Markdown({ children }: { children: string }) {
           img: ({ alt }) => <span style={{ color: "var(--ink-mute)", fontSize: 13 }}>{alt ?? ""}</span>,
         }}
       >
-        {children}
+        {text}
       </ReactMarkdown>
     </div>
   );

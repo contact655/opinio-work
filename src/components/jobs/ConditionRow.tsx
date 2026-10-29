@@ -29,9 +29,10 @@ export function ConditionRow({
              strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           {icon}
         </svg>
-        <span style={{ fontSize: 12, color: "var(--ink-mute)", fontWeight: 600 }}>{label}</span>
+        {/* ⚠️ 文字の大きさ・太さは globals.css の .cond-row-label / .cond-row-value（スマホで変えるため。2026-10-29） */}
+        <span className="cond-row-label">{label}</span>
       </div>
-      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.6 }}>{value}</span>
+      <span className="cond-row-value">{value}</span>
     </div>
   );
 }

@@ -751,8 +751,9 @@ export async function JobDetailView({
                   仕事内容
                 </SecTitle>
                 {/* ⚠️ markdown として描画する（2026-08-26）。入力欄が markdown なので合わせる。
-                       ⚠️ 本番5件は改行を含まないので、この変更で見た目は変わらない。 */}
-                <Markdown>{job.overview}</Markdown>
+                    ★改行1つも行替えとして出す（softBreaks。2026-10-29）。入力欄は素のテキスト欄で、
+                       企業が入れた改行が1段落につながって消えていた */}
+                <Markdown softBreaks>{job.overview}</Markdown>
               </section>
               )}
 
@@ -983,13 +984,32 @@ export async function JobDetailView({
                     <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></>
                   } />
                 </div>
+                {/* ★労働条件を勤務条件の下にまとめる（767px 以下だけ。2026-10-29 / 柴さんの指示）。
+                       それまでは別セクションに分かれ、似た見出しのカードが2枚続いていた。
+                    ⚠️ 中身は下の「労働条件」セクションと同じ laborLines。768px 以上はあちらを出し、こちらは隠す
+                       （出し分けは globals.css の .jd-cond-labor / .jd-labor-section）。 */}
+                {job.labor && laborLines(job.labor).length > 0 && (
+                  <div className="jd-cond-labor">
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
+                      労働条件
+                    </div>
+                    <dl style={{ margin: 0 }}>
+                      {laborLines(job.labor).map((l) => (
+                        <div key={l.label} style={{ paddingTop: 10 }}>
+                          <dt style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)", borderLeft: "3px solid var(--royal)", paddingLeft: 6, lineHeight: 1.4 }}>{l.label}</dt>
+                          <dd style={{ margin: "4px 0 0", fontSize: 14, color: "var(--ink)", lineHeight: 1.7, overflowWrap: "anywhere", whiteSpace: "pre-line" }}>{l.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
               </section>
               )}
 
               {/* ── ★労働条件（2026-10-11）。法律で明示が必要な項目（lib/jobs/laborTerms.ts）。
                      ⚠️ 入っている行だけ出す。1行も無ければ節ごと出さない */}
               {job.labor && laborLines(job.labor).length > 0 && (
-              <section data-section="labor-terms" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+              <section data-section="labor-terms" className="jd-labor-section" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
                 <SecTitle color="var(--royal)" icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>

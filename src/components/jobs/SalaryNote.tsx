@@ -20,6 +20,7 @@ export function SalaryNote({ text }: { text: string }) {
     <>
       <p
         className={long && !open ? "jd-salary-note jd-salary-note--clamped" : "jd-salary-note"}
+        /* ★入力された改行どおりに出す（white-space は globals.css の .jd-salary-note。2026-10-29） */
         style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.7 }}
       >
         {text}
