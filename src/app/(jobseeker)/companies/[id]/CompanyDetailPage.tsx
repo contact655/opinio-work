@@ -65,7 +65,6 @@ const JOBS_LIMIT = 3;
 /* ⚠️ 実体は共通部品に移した（2026-08-30）。求人詳細と同じ値を見るため。
       ⚠️ ここで再定義しないこと。二重管理になる。 */
 // BENEFIT_CATEGORY_LIMIT は @/components/companies/BenefitsList にある
-import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { employeeBandRange, formatEmployeeSize } from "@/lib/constants/employeeBand";
@@ -1509,7 +1508,8 @@ function MobileBottomCTA({ company }: { company: Company }) {
 
   /* ★横1列にした（2026-10-03 / 柴さんの指示）。それまでは全幅で縦2段で、
         バーだけで 122px、下部ナビと合わせて約186px が常に画面を塞いでいた。
-     ⚠️ 並びは「左：募集を見る（白・枠）／右：話を聞く（オレンジ）」、幅はおよそ 1:2。
+     ⚠️ 並びは「左：募集を見る（白・枠）／右：カジュアル面談（オレンジ）」、幅はおよそ 1:2。
+     ★右の文言は「話を聞く」から「カジュアル面談」に変えた（2026-10-29 / 柴さんの指示。採用担当者カードのボタンと揃える）。
      ⚠️ 片方しか無いときは**その1つを全幅**で出す（空いた列を残さない）。
      ⚠️★高さ・余白・safe-area は globals.css の .company-mobile-cta に置いてある。
         バーの高さを変えたら、そこにある main の下余白と ↑ボタンの位置も一緒に直すこと。 */
@@ -1556,7 +1556,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
                 animation: "cta-pulse 1.8s ease-in-out infinite",
               }}
             />
-            話を聞く
+            カジュアル面談
           </Link>
         )}
       </div>
@@ -1913,7 +1913,6 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
   return (
     <>
-      <ReadingProgress />
       {/* ★検証用アカウントにだけ（2026-10-12）。⚠️ 検証用の会社の閲覧は数えない */}
       {testMode && (
         <p data-state="test-company-notice" style={{ margin: 0, padding: "8px 16px", textAlign: "center", fontSize: 12.5, color: "var(--ink-mute)", background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>
@@ -2281,6 +2280,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                 recruiters={recruiters}
                 /* ★申し込めない企業では null（ボタンも「連絡が届きます」も出さない。2026-10-29） */
                 meetingHref={company.accepting_casual_meetings ? `/companies/${company.id}/casual-meeting` : null}
+                /* ★面談を受け付けない企業: 募集があれば募集への導線、0件ならカードごと出さない（2026-10-29） */
+                closedCta={company.job_count > 0
+                  ? { note: "募集に応募すると、上記担当者に届きます。", href: "#jobs", label: "募集を見る" }
+                  : null}
                 /* ⚠️ 見出しはこのページの SecTitle。切り出し前と同じアイコン・文言。 */
                 title={
                   <SecTitle

@@ -20,7 +20,7 @@ import { formatSalary, hasSalaryData } from "@/components/jobs/JobListItem";
  * **スクロールの不具合ではなく、出している情報が足りなかった。**
  *
  * ⚠️★**それでも詳細ページ（`JobDetailView`・1,486行）は流用しない。** 流用できない理由が3つある:
- *   ① `ReadingProgress` が `window.scrollY` を見る（ペインの中では永久に 0%）
+ *   ① `ReadingProgress` が `window.scrollY` を見る（ペインの中では永久に 0%。⚠️ 部品は 2026-10-29 に削除済み）
  *   ② サイドバーが `hidden lg:flex` ＝ **ビューポート基準**なので、700〜900px の
  *      ペインでも「デスクトップ」として出てしまう
  *   ③ `JobMobileStickyBar` が `position: fixed` ＝ ペインの外に出る

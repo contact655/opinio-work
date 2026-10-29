@@ -25,7 +25,7 @@ import { splitParenSuffix } from "@/lib/utils/parenSuffix";
  *   ・**製品グリッドが5列を維持して各 115px になる**
  *     （`@media (min-width: 900px)` も同じくビューポート基準。設計は 183px 前提）
  *   ・はみ出し／内部クリップが **49件**（サイドバーを消して1列にしても14件残る）
- *   ・`ReadingProgress`（`position:fixed` 幅1440px）と `BackToTop` が**ペインの外**に出る
+ *   ・`ReadingProgress`（`position:fixed` 幅1440px。⚠️ 2026-10-29 に削除済み）と `BackToTop` が**ペインの外**に出る
  *
  * ⚠️ **これは「詳細ページが雑だから」ではない。** ビューポートで見ている限り正しく動く。
  *    実測（本番 2026-09-08）: **375 / 768 / 1023px のいずれもはみ出し 0件**。

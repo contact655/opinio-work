@@ -29,17 +29,26 @@ import { AV_GRADIENTS } from "@/app/(jobseeker)/companies/[id]/avatarGradients";
  *    ⚠️ null のときは「申し込むと連絡が届きます」の一文も出さない。それまでは条件なしで出ており、
  *       面談を受け付けていない企業（COIN など）にも「申し込める」と読める文だけが出ていた。
  *    ⚠️ ボタンは 1023px 以下だけ（`lg:hidden`）。1024px 以上は右の列に同じ入口がある。
+ *
+ * ★`closedCta`（2026-10-29 / 柴さんの判断）: 面談を受け付けない企業での出し方。
+ *    担当者名だけを出すと「連絡できそうで、できない」状態になるため、
+ *      - 中身を渡す … 「募集に応募すると、上記担当者に届きます」＋募集への導線（企業詳細で募集があるとき）
+ *      - null       … カードごと出さない（企業詳細で募集が0件のとき）
+ *      - 省略       … 担当者名だけ（求人詳細。求人そのものが応募の入口なので足さない）
  */
 export function RecruitersSection({
   recruiters,
   title,
   meetingHref,
+  closedCta,
 }: {
   recruiters: CompanyRecruiter[];
   title: React.ReactNode;
   meetingHref: string | null;
+  closedCta?: { note: string; href: string; label: string } | null;
 }) {
   if (recruiters.length === 0) return null;
+  if (!meetingHref && closedCta === null) return null;
 
   return (
     <section
@@ -126,6 +135,23 @@ export function RecruitersSection({
 
         {meetingHref && (
         <>
+        {/* ★担当者名のすぐ下・カード幅いっぱい（2026-10-29 / 柴さんの指示）。
+               ⚠️ display をインラインに書かない（lg:hidden が効かなくなる） */}
+        <div className="lg:hidden" style={{ marginTop: "var(--space-4)" }}>
+          <Link
+            href={meetingHref}
+            data-state="recruiter-meeting-cta"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "12px 16px", borderRadius: 10,
+              fontSize: 14, fontWeight: 700, textDecoration: "none",
+              background: MEETING_CTA_BG, color: MEETING_CTA_FG,
+              boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
+            }}
+          >
+            カジュアル面談を申し込む
+          </Link>
+        </div>
         <div
           style={{
             marginTop: "var(--space-4)",
@@ -145,21 +171,38 @@ export function RecruitersSection({
           </svg>
           カジュアル面談を申し込むと、上記担当者から連絡が届きます。
         </div>
-        {/* ⚠️ display をインラインに書かない（lg:hidden が効かなくなる） */}
-        <div className="lg:hidden" style={{ marginTop: "var(--space-3)" }}>
-          <Link
-            href={meetingHref}
-            data-state="recruiter-meeting-cta"
+        </>
+        )}
+
+        {/* ★面談を受け付けない企業では募集への導線（2026-10-29）。ボタンは 1023px 以下だけ */}
+        {!meetingHref && closedCta && (
+        <>
+        <div className="lg:hidden" style={{ marginTop: "var(--space-4)" }}>
+          <a
+            href={closedCta.href}
+            data-state="recruiter-jobs-cta"
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               padding: "12px 16px", borderRadius: 10,
               fontSize: 14, fontWeight: 700, textDecoration: "none",
-              background: MEETING_CTA_BG, color: MEETING_CTA_FG,
-              boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
+              background: "var(--royal)", color: "#fff",
             }}
           >
-            カジュアル面談を申し込む
-          </Link>
+            {closedCta.label}
+          </a>
+        </div>
+        <div
+          style={{
+            marginTop: "var(--space-4)",
+            padding: "var(--space-3) var(--space-4)",
+            background: "var(--bg-tint)",
+            borderRadius: 8,
+            fontSize: "var(--text-xs)",
+            color: "var(--ink-soft)",
+            lineHeight: 1.7,
+          }}
+        >
+          {closedCta.note}
         </div>
         </>
         )}

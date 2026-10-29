@@ -29,7 +29,6 @@ const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
       `cache()` で包むのは、metadata と本体で2回呼んでも1回で済ませるため。 */
 const getCompanyForJobCached = cache(getCompanyBySlugOrId);
 import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
-import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { JobMobileStickyBar, JobMobileHeroActions } from "@/components/jobs/JobMobileStickyBar";
 import { JobToc } from "@/components/jobs/JobToc";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
@@ -434,7 +433,6 @@ export async function JobDetailView({
 
   return (
     <>
-      <ReadingProgress />
       {/* ★閲覧を数える（2026-10-09 / 段階D）。⚠️ プレビュー（/biz）では数えない */}
       {testMode && (
         <p data-state="test-company-notice" style={{ margin: 0, padding: "8px 16px", textAlign: "center", fontSize: 12.5, color: "var(--ink-mute)", background: "var(--bg-tint)", borderBottom: "1px solid var(--line)" }}>

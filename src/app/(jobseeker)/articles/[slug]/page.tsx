@@ -16,7 +16,6 @@ import {
   getArticlesBySlugs,
   resolvePublishedCompanyHref,
 } from "@/lib/supabase/queries";
-import { ReadingProgress } from "@/components/jobseeker/ReadingProgress";
 import { BackToTop } from "@/components/jobseeker/BackToTop";
 
 // 5分間ページキャッシュ（ISR）
@@ -525,7 +524,6 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   return (
     <>
-      <ReadingProgress />
       <BackToTop />
 
       {/* Breadcrumb */}
