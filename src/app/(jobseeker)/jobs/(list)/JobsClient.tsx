@@ -38,7 +38,7 @@ const SALARY_PILL_TIERS = [
   { value: "1500", label: "1500万〜" },
 ] as const;
 import type { JobsListCompany } from "@/lib/jobs/listCompany";
-import { extractPrefecture, PREFECTURE_FILTER_GROUPS } from "@/lib/utils/location";
+import { extractPrefecture, PREFECTURES } from "@/lib/utils/location";
 import { employeeBandRank } from "@/lib/constants/employeeBand";
 import { JobsForYouPanel, type JobsForYouState } from "@/components/jobs/JobsForYouPanel";
 import { JobListItem, hasSalaryData } from "@/components/jobs/JobListItem";
@@ -129,7 +129,7 @@ function computeMatchReason(
   }
   // 年収フィルター — ラベル非表示
   // 勤務地フィルター
-  if (prefecture && job.location?.includes(prefecture)) {
+  if (prefecture && !prefecture.includes(",") && job.location?.includes(prefecture)) {
     return `${prefecture}勤務の募集`;
   }
   // キーワード検索
@@ -318,6 +318,10 @@ export default function JobsClient({
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
   const workStyleSet = useMemo(() => new Set(work_style ? work_style.split(",") : []), [work_style]);
   const empTypeSet = useMemo(() => new Set(empType ? empType.split(",") : []), [empType]);
+  /* ★勤務地と事業領域も複数選択（2026-10-29 / 柴さんの指示）。同じ項目の中は OR。
+     ⚠️ 年収は下限（「◯◯万円以上」）なので1つだけ（複数選んでも一番低いものと同じになる） */
+  const prefectureSet = useMemo(() => new Set(prefecture ? prefecture.split(",") : []), [prefecture]);
+  const industrySet = useMemo(() => new Set(industry ? industry.split(",") : []), [industry]);
   const [sort, setSort] = useState(searchParams.get("sort") ?? "updated");
   /* ★一覧（グリッド）／詳細（1列＋分割）の切り替え（2026-10-01 / 柴さんの指示）。
         ⚠️★**`?view=` の読み方も既定も `/companies` と完全に同じ**にしてある
@@ -490,11 +494,11 @@ export default function JobsClient({
       if (name) chips.push({ key: `category:${id}`, label: name, clear: () => toggleParam("category", id, category) });
     });
     phaseSet.forEach((k) => chips.push({ key: `phase:${k}`, label: phaseLabels[k] ?? k, clear: () => toggleStage(k) }));
-    if (industry) {
-      const name = industryOptions.find((g) => g.slug === industry)?.name;
-      if (name) chips.push({ key: "industry", label: name, clear: () => setParam("industry", "") });
-    }
-    if (prefecture) chips.push({ key: "prefecture", label: prefecture, clear: () => setParam("prefecture", "") });
+    industrySet.forEach((slug) => {
+      const name = industryOptions.find((g) => g.slug === slug)?.name;
+      if (name) chips.push({ key: `industry:${slug}`, label: name, clear: () => toggleParam("industry", slug, industry) });
+    });
+    prefectureSet.forEach((p) => chips.push({ key: `prefecture:${p}`, label: p, clear: () => toggleParam("prefecture", p, prefecture) }));
     workStyleSet.forEach((v) => chips.push({ key: `ws:${v}`, label: v, clear: () => toggleParam("work_style", v, work_style) }));
     empTypeSet.forEach((v) => chips.push({ key: `et:${v}`, label: v, clear: () => toggleParam("emp_type", v, empType) }));
     if (salary) {
@@ -504,12 +508,12 @@ export default function JobsClient({
     if (companyStageSet.has("foreign")) chips.push({ key: "foreign", label: "外資系", clear: () => toggleStage("foreign") });
     return chips;
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [categorySet, category, parentRoles, phaseSet, phaseLabels, industry, industryOptions,
-      prefecture, workStyleSet, work_style, empTypeSet, empType, salary, companyStageSet]);
+  }, [categorySet, category, parentRoles, phaseSet, phaseLabels, industry, industrySet, industryOptions,
+      prefecture, prefectureSet, workStyleSet, work_style, empTypeSet, empType, salary, companyStageSet]);
 
   /* ★「絞り込み」の中にある条件だけ（2026-10-20）。職種・勤務地・年収・働き方は外の行のチップ自身が選択状態を持つので、
         ここ（選択中の条件・バッジの数）には入れない（同じ語が2回並ぶ）。/companies と同じ考え方 */
-  const OUTSIDE_KEYS = (key: string) => key.startsWith("category:") || key === "prefecture" || key === "salary" || key.startsWith("ws:");
+  const OUTSIDE_KEYS = (key: string) => key.startsWith("category:") || key.startsWith("prefecture:") || key === "salary" || key.startsWith("ws:");
   const panelChips = activeChips.filter((c) => !OUTSIDE_KEYS(c.key));
 
   // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
@@ -551,7 +555,7 @@ export default function JobsClient({
      ⚠️★**実データから作らないこと。** 以前は求人にある都道府県だけを出しており、
         公開求人が東京都の2件しか無いため**選択肢が「東京都」1つ**になっていた。
         入力欄（職歴・オンボーディング）と同じ見た目に揃えるほうを優先する。
-     ⚠️ 分け方も見出しも lib/utils/location.ts の `PREFECTURE_FILTER_GROUPS` が唯一の出どころ。
+     ⚠️ 2026-10-29 から並びは「募集がある都道府県（件数つき）→ そのほかの都道府県（薄く）」。47県はそのまま。県の一覧は lib/utils/location.ts の `PREFECTURES`。
      ⚠️ この例外は**都道府県だけ**。フェーズ・事業領域には広げないこと。 */
 
   const searchResult = useMemo(() => {
@@ -676,7 +680,7 @@ export default function JobsClient({
             新規企業には書かれないため、新しい企業が全業種で出なくなる。
          ⚠️ **主だけでなく全部の事業領域に当てる。** 主だけで絞ると複数持てる意味が無い。 */
       const companyIds = companies
-        .filter((c) => (c.business_domains ?? []).some((d) => d.slug === industry))
+        .filter((c) => (c.business_domains ?? []).some((d) => industrySet.has(d.slug)))
         .map((c) => c.id);
       list = list.filter((j) => companyIds.includes(j.company_id));
     }
@@ -692,7 +696,7 @@ export default function JobsClient({
 
     // 都道府県フィルタ (job.location から抽出した都道府県と完全一致)
     if (prefecture) {
-      list = list.filter((j) => extractPrefecture(j.location) === prefecture);
+      list = list.filter((j) => prefectureSet.has(extractPrefecture(j.location) ?? ""));
     }
 
     // 雇用形態フィルタ（複数選択対応）
@@ -763,7 +767,7 @@ export default function JobsClient({
     }
 
     return { list, ignoredTerms };
-  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, industry, prefecture, empType, empTypeSet, companyStage, companyStageSet, companyFilter, sort, companies, companyMap, roleAliases]);
+  }, [allJobs, q, category, categorySet, dept, work_style, workStyleSet, salary, industry, industrySet, prefecture, prefectureSet, empType, empTypeSet, companyStage, companyStageSet, companyFilter, sort, companies, companyMap, roleAliases]);
 
   const filtered = searchResult.list;
   const ignoredTerms = searchResult.ignoredTerms;
@@ -920,6 +924,25 @@ export default function JobsClient({
     return map;
   }, [allJobs]);
 
+  /* ★都道府県・事業領域ごとの公開求人の数（2026-10-29）。選択肢の右に出し、
+        都道府県は募集がある県を上にまとめる（47県は残す。CLAUDE.md ⑥） */
+  const prefectureCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const j of allJobs) {
+      const p = extractPrefecture(j.location);
+      if (p) map.set(p, (map.get(p) ?? 0) + 1);
+    }
+    return map;
+  }, [allJobs]);
+  const industryCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const j of allJobs) {
+      const c = companyMap.get(j.company_id);
+      for (const d of c?.business_domains ?? []) map.set(d.slug, (map.get(d.slug) ?? 0) + 1);
+    }
+    return map;
+  }, [allJobs, companyMap]);
+
 
 
   /* ★進捗バー・もっと見る・センチネル。**一覧（グリッド）と詳細（分割）で共有する**
@@ -1072,10 +1095,16 @@ export default function JobsClient({
               onSelect={() => setParam("category", "")} onClear={() => setParam("category", "")}
               onToggleValue={(v) => toggleParam("category", v, category)}
               isOpen={openFilter === "category"} onToggle={() => toggleFilter("category")} />
-            {/* 勤務地（中身は都道府県。⚠️ 選択肢は PREFECTURE_FILTER_GROUPS の1か所） */}
-            <FilterChip label="勤務地" labelPrefix listStyle searchable value={prefecture}
-              options={PREFECTURE_FILTER_GROUPS.flatMap((g) => g.prefectures.map((p) => ({ value: p, label: p, group: g.group })))}
-              onSelect={(v) => setParam("prefecture", v ?? "")}
+            {/* 勤務地（中身は都道府県。複数選択。募集がある県を上に件数つきで、0件の県は薄く下に） */}
+            <FilterChip label="勤務地" labelPrefix listStyle searchable value="" values={Array.from(prefectureSet)}
+              options={[
+                ...PREFECTURES.filter((p) => (prefectureCounts.get(p) ?? 0) > 0)
+                  .map((p) => ({ value: p, label: p, group: "募集がある都道府県", count: prefectureCounts.get(p) })),
+                ...PREFECTURES.filter((p) => !((prefectureCounts.get(p) ?? 0) > 0))
+                  .map((p) => ({ value: p, label: p, group: "そのほかの都道府県", muted: true })),
+              ]}
+              onSelect={() => setParam("prefecture", "")} onClear={() => setParam("prefecture", "")}
+              onToggleValue={(v) => toggleParam("prefecture", v, prefecture)}
               isOpen={openFilter === "prefecture"} onToggle={() => toggleFilter("prefecture")} />
             <FilterChip label="年収" labelPrefix listStyle value={salary}
               options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
@@ -1098,9 +1127,10 @@ export default function JobsClient({
                 options={phaseOptions}
                 onSelect={clearPhases} onClear={clearPhases} onToggleValue={toggleStage}
                 isOpen={openFilter === "phase"} onToggle={() => toggleFilter("phase")} />
-              <FilterChip label="事業領域" labelPrefix listStyle value={industry}
-                options={industryOptions.map((g) => ({ value: g.slug, label: g.name }))}
-                onSelect={(v) => setParam("industry", v ?? "")}
+              <FilterChip label="事業領域" labelPrefix listStyle value="" values={Array.from(industrySet)}
+                options={industryOptions.map((g) => ({ value: g.slug, label: g.name, count: industryCounts.get(g.slug) ?? 0 }))}
+                onSelect={() => setParam("industry", "")} onClear={() => setParam("industry", "")}
+                onToggleValue={(v) => toggleParam("industry", v, industry)}
                 isOpen={openFilter === "industry"} onToggle={() => toggleFilter("industry")} />
               {/* 雇用形態（複数選択）。⚠️ 選択肢は careerOptions.ts の JOB_EMPLOYMENT_TYPES */}
               <FilterChip label="雇用形態" labelPrefix value="" values={Array.from(empTypeSet)}
