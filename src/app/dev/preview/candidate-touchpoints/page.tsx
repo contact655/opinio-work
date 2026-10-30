@@ -1,6 +1,6 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { PreviewHeaderLines, CompanyContactsSection } from "@/app/biz/candidates/CandidatePreview";
+import { PreviewHeaderLines, CompanyContactsSection } from "@/app/biz/(app)/candidates/CandidatePreview";
 import type { Candidate, CompanyContactItem } from "@/lib/business/candidates/model";
 
 /**

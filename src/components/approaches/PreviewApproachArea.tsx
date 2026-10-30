@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ApproachBubble } from "@/components/approaches/ApproachBubble";
 import { PaneThread, type PaneThreadPage } from "@/components/approaches/PaneThread";
-import { ThreadReplyArea } from "@/app/biz/messages/[id]/ThreadReplyArea";
+import { ThreadReplyArea } from "@/app/biz/(app)/messages/[id]/ThreadReplyArea";
 import type { Candidate } from "@/lib/business/candidates/model";
 import {
   APPROACH_BODY_MAX, APPROACH_REASON_MAX, APPROACH_REASON_MIN, APPROACH_NOT_LOOKING_MESSAGE, APPROACH_TEST_COMPANY_MESSAGE,

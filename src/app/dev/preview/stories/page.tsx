@@ -1,8 +1,8 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { PostsClient } from "@/app/biz/posts/PostsClient";
+import { PostsClient } from "@/app/biz/(app)/posts/PostsClient";
 import { BizShellProvider } from "@/components/business/BizShellContext";
-import { StoryEditor } from "@/app/biz/posts/StoryEditor";
+import { StoryEditor } from "@/app/biz/(app)/posts/StoryEditor";
 import { CompanyStoryCard } from "@/components/companies/CompanyStoryCard";
 import type { StoryWithDraft } from "@/lib/companyStories/server";
 import { storyTemplate } from "@/lib/companyStories/shared";

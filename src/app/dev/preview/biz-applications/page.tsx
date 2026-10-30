@@ -1,6 +1,6 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { ApplicationsClient } from "@/app/biz/applications/ApplicationsClient";
+import { ApplicationsClient } from "@/app/biz/(app)/applications/ApplicationsClient";
 import type { BizApplication } from "@/lib/business/applications";
 
 /**

@@ -1,7 +1,7 @@
 import { PanelProfileView, type PanelProfileData } from "@/components/profile/view/PanelProfileView";
 import { Variant, PreviewHeader } from "../Variant";
 import { PanelExtraSectionsProvider } from "@/components/profile/view/PanelProfileScroll";
-import { CompanyContactsSection } from "@/app/biz/candidates/CandidatePreview";
+import { CompanyContactsSection } from "@/app/biz/(app)/candidates/CandidatePreview";
 import { devOnly } from "../guard";
 import { CAREERS_RICH, CAREERS_SAME_COMPANY, CAREERS_RANK, EDUCATIONS_2 } from "../fixtures";
 

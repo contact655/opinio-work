@@ -1,6 +1,6 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { SelectionView } from "@/app/biz/meetings/SelectionView";
+import { SelectionView } from "@/app/biz/(app)/meetings/SelectionView";
 import type { MeetingApplication } from "@/lib/business/mockMeetings";
 import type { BizApplication } from "@/lib/business/applications";
 import type { HistoryItem } from "@/lib/business/selectionHistory";

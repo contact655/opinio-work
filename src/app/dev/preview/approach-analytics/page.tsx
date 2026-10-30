@@ -1,6 +1,6 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { ApproachTab } from "@/app/biz/analytics/ApproachTab";
+import { ApproachTab } from "@/app/biz/(app)/analytics/ApproachTab";
 import type { AnalyticsRow, ApproachAnalytics } from "@/lib/approaches/analytics";
 
 /**

@@ -1,6 +1,6 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import ApproachComposeClient from "@/app/biz/messages/new/ApproachComposeClient";
+import ApproachComposeClient from "@/app/biz/(app)/messages/new/ApproachComposeClient";
 
 /**
  * ★声かけを書く画面（/biz/messages/new）の見え方（2026-10-11）。

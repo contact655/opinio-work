@@ -1,5 +1,5 @@
-import { EmployeesClient } from "@/app/biz/employees/EmployeesClient";
-import type { BizEmployee } from "@/app/biz/employees/page";
+import { EmployeesClient } from "@/app/biz/(app)/employees/EmployeesClient";
+import type { BizEmployee } from "@/app/biz/(app)/employees/page";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 

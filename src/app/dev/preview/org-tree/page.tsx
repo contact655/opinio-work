@@ -2,9 +2,9 @@
 
 import { Variant, PreviewHeader } from "../Variant";
 import { MAX_ORG_DEPTH } from "@/lib/business/orgTree";
-import { JobRolesEditor, type CompanyJobRole } from "@/app/biz/organization/JobRolesEditor";
-import { DepartmentsWorkspace, type Department } from "@/app/biz/organization/DepartmentsWorkspace";
-import type { StandardRole } from "@/app/biz/organization/StandardRoleCombobox";
+import { JobRolesEditor, type CompanyJobRole } from "@/app/biz/(app)/organization/JobRolesEditor";
+import { DepartmentsWorkspace, type Department } from "@/app/biz/(app)/organization/DepartmentsWorkspace";
+import type { StandardRole } from "@/app/biz/(app)/organization/StandardRoleCombobox";
 
 /**
  * 部門・職種（/biz/organization）のプレビュー（2026-09-20 / 2026-10-12 に部門タブを一覧＋編集パネルへ作り直した）。

@@ -1,7 +1,7 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { MessagesView } from "@/app/biz/messages/MessagesView";
-import type { ConversationRow } from "@/app/biz/messages/page";
+import { MessagesView } from "@/app/biz/(app)/messages/MessagesView";
+import type { ConversationRow } from "@/app/biz/(app)/messages/page";
 import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 
 /**

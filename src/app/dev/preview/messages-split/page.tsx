@@ -1,8 +1,8 @@
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
-import { MessagesView } from "@/app/biz/messages/MessagesView";
-import { EmptyPane, PendingPane, ThreadPane } from "@/app/biz/messages/MessagePane";
-import type { ConversationRow } from "@/app/biz/messages/page";
+import { MessagesView } from "@/app/biz/(app)/messages/MessagesView";
+import { EmptyPane, PendingPane, ThreadPane } from "@/app/biz/(app)/messages/MessagePane";
+import type { ConversationRow } from "@/app/biz/(app)/messages/page";
 import type { ApproachQuota, SentApproach } from "@/lib/approaches/server";
 import type { CompanyThread, ThreadMessage } from "@/lib/conversations/companyThread";
 import { proposalIntroLine } from "@/lib/constants/proposalResponses";

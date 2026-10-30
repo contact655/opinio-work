@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PaneThread, type PaneThreadPage } from "@/components/approaches/PaneThread";
-import { ThreadReplyArea } from "@/app/biz/messages/[id]/ThreadReplyArea";
+import { ThreadReplyArea } from "@/app/biz/(app)/messages/[id]/ThreadReplyArea";
 
 /**
  * ★自社の会話1本を、その場で読んで返信できる欄（2026-10-18 / 柴さんの指示。選考管理の右側）。

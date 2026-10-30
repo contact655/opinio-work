@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { ThreadMessages, type ThreadMessagesData } from "@/app/biz/messages/ThreadMessages";
+import { ThreadMessages, type ThreadMessagesData } from "@/app/biz/(app)/messages/ThreadMessages";
 import { ChatNotice, chatDay } from "@/components/messages/ChatBubble";
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import CandidatesClient, { type Candidate } from "@/app/biz/candidates/CandidatesClient";
+import CandidatesClient, { type Candidate } from "@/app/biz/(app)/candidates/CandidatesClient";
 import { PreviewApproachArea } from "@/components/approaches/PreviewApproachArea";
 import { Variant, PreviewHeader } from "../Variant";
 
