@@ -11,7 +11,9 @@ import type { HomeSide } from "@/lib/business/homeTypes";
 import { fetchJobsForCompany } from "@/lib/business/jobs";
 import { getApproachQuota } from "@/lib/approaches/server";
 import { canUse } from "@/lib/constants/plans";
-import { hasScoutAccess } from "@/lib/business/scoutGate";
+import { hasScoutAccess, canUseCandidateSearch } from "@/lib/business/scoutGate";
+import { loadCompanyCandidates } from "@/lib/business/candidates/load";
+import { isNewSince } from "@/lib/business/candidates/model";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPublishable } from "@/lib/companies/publishable";
@@ -152,7 +154,27 @@ export default async function BizDashboardPage({
     scout: { state: ctx.scoutAccess, suspended: ctx.isSuspended, everSent: everSentApproach },
   });
 
+  /* ★右の列の「候補者」（2026-10-30 / 柴さんの指示）。候補者を探す画面と同じ関数で数える（ここで条件を書き写さない）。
+        ⚠️ 使えない会社・役割では欄ごと出さない（undefined）。取れなければ null（「0名」と言わない） */
+  let candidates: HomeSide["candidates"] = undefined;
+  if (canUseCandidateSearch(ctx) && can(ctx.currentPermission, "candidates.search")) {
+    try {
+      const list = (await loadCompanyCandidates({ companyId: ctx.tenantId, viewerOwUserId: ctx.currentOwnId, planType: ctx.planType })).candidates;
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      candidates = {
+        total: list.length,
+        approachable: list.filter((c) => c.approach?.eligible === true).length,
+        recent: list.filter((c) => isNewSince(c, since)).length,
+      };
+    } catch (e) {
+      console.error("[dashboard] candidates:", e);
+      candidates = null;
+    }
+  }
+
   const side: HomeSide = {
+    candidates,
+    canCreateJob: can(ctx.currentPermission, "jobs.edit"),
     show: { jobs: can(ctx.currentPermission, "jobs.view"), company: can(ctx.currentPermission, "company.page") },
     quota: !quotaAllowed || !can(ctx.currentPermission, "messages.use") ? undefined : quota ? {
       /* ⚠️ 送った数は上限ではない（月の上限は 2026-10-17 に外した）。分母・バー・補足を出さない（見出しが「今月のメッセージ」） */

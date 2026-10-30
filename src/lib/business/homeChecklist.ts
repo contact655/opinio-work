@@ -84,7 +84,8 @@ export function buildHomeChecklist(i: HomeChecklistInput): HomeChecklistItem[] {
     { key: "jobCreate", label: "求人を作成する", href: "/biz/jobs/new", done: (i.totalJobs ?? 0) > 0, hint: "ポジション・給与・業務内容を登録します" },
     {
       key: "jobPublish", label: "求人を公開する", href: i.nearestDraft ? `/biz/jobs/${i.nearestDraft.id}/edit` : "/biz/jobs",
-      done: (i.publishedJobs ?? 0) > 0, hint: draftHint,
+      /* ★下書きが無いときも説明を出す（2026-10-30。この項目だけ説明が無かった） */
+      done: (i.publishedJobs ?? 0) > 0, hint: draftHint ?? "作成した求人を公開すると、求職者に表示されます",
     },
     { key: "roles", label: "部門・職種を登録する", href: "/biz/organization?tab=roles", done: (i.roles ?? 0) > 0, hint: "登録した職種の経験者に、貴社がおすすめされやすくなります" },
     { key: "employees", label: "社員に登録を呼びかける", href: "/biz/employees", done: (i.employees ?? 0) > 0, hint: "社員・OB/OG の画面に、社員へ送る案内文があります" },

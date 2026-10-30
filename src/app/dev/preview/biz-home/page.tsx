@@ -37,6 +37,8 @@ const SIDE: HomeSide = {
   quota: { sentText: "3通", openText: "2件" },
   jobs: { published: 2, draft: 1, stopped: 1 },
   companyStatus: "公開中",
+  candidates: { total: 24, approachable: 19, recent: 3 },
+  canCreateJob: true,
 };
 
 const START: HomeChecklistInput = {
@@ -86,7 +88,10 @@ export default function BizHomePreview() {
         <Home actions={{ items: [], failed: [], meetings: [] }} checklist={ALL_DONE} side={SIDE} />
       </Variant>
       <Variant label="一部を取得できなかった" note="⚠️ 0件を装わず、確認できなかった種類を一言添える。求人の数は「—」">
-        <Home actions={{ items: ACTIONS.items.slice(0, 1), failed: ["保存した条件"], meetings: null }} checklist={START} side={{ ...SIDE, quota: null, jobs: null }} />
+        <Home actions={{ items: ACTIONS.items.slice(0, 1), failed: ["保存した条件"], meetings: null }} checklist={START} side={{ ...SIDE, quota: null, jobs: null, candidates: null }} />
+      </Variant>
+      <Variant label="求人がまだ0件・候補者を探す画面が使えない" note="★求人は「まだ求人はありません」の1行（2026-10-30）。候補者の欄は出ない">
+        <Home actions={{ items: [], failed: [], meetings: [] }} checklist={START} side={{ ...SIDE, jobs: { published: 0, draft: 0, stopped: 0 }, candidates: undefined }} />
       </Variant>
     </>
   );

@@ -50,9 +50,36 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
           ) : <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>件数を確認できませんでした</p>}
         </section>
       )}
+      {/* ★候補者（2026-10-30 / 柴さんの指示）。ホームに候補者の動きが1つも無かったため。
+             ⚠️ 新しく登録・更新した人は保存した条件の「新着」と同じ数え方（isNewSince）。転職を考え始めた時期などは数えない */}
+      {side.candidates !== undefined && (
+        <section data-state="home-candidates" style={CARD}>
+          <h2 style={H}>候補者</h2>
+          {side.candidates ? (
+            <div style={{ display: "flex", flexDirection: "column", fontSize: 13 }}>
+              <RowLink href="/biz/candidates" state="home-cand-total">
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>探せる候補者</span><strong data-state="home-cand-total-n">{side.candidates.total}名</strong></div>
+                {side.candidates.total > 0 && <div style={{ fontSize: 11.5, color: "var(--ink-mute)", marginTop: 2 }}>うちメッセージを送れる方 {side.candidates.approachable}名</div>}
+              </RowLink>
+              <RowLink href={`/biz/candidates?f=${encodeURIComponent(JSON.stringify({ sort: "updated" }))}`} state="home-cand-recent">
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>この7日に登録・更新した人</span><strong data-state="home-cand-recent-n" style={{ color: side.candidates.recent ? "var(--ink)" : "var(--ink-mute)" }}>{side.candidates.recent}名</strong></div>
+              </RowLink>
+            </div>
+          ) : <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-mute)" }}>人数を確認できませんでした</p>}
+        </section>
+      )}
       {side.show?.jobs !== false && (
       <section data-state="home-jobs" style={CARD}>
         <h2 style={H}>求人</h2>
+        {/* ★まだ1件も無いときは 0件 を3行並べず、1行にまとめる（2026-10-30 / 柴さんの指示） */}
+        {j && j.published + j.draft + j.stopped === 0 ? (
+          <div data-state="home-jobs-empty" style={{ fontSize: 13, color: "var(--ink)" }}>
+            <p style={{ margin: "0 0 6px", color: "var(--ink-mute)" }}>まだ求人はありません</p>
+            {side.canCreateJob
+              ? <Link href="/biz/jobs/new" style={LINK}>求人を作成する →</Link>
+              : <Link href="/biz/jobs" style={LINK}>求人管理を開く →</Link>}
+          </div>
+        ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
           {jobRows.map((r) => (
             <RowLink key={r.label} href={r.href} state={`home-job-${r.label}`}>
@@ -63,6 +90,7 @@ export function HomeSideColumn({ side }: { side: HomeSide }) {
             </RowLink>
           ))}
         </div>
+        )}
       </section>
       )}
       {side.show?.company !== false && (

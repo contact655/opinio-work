@@ -49,4 +49,12 @@ export type HomeSide = {
   companyStatus: string;
   /** ★役割で出す欄（2026-10-12）。false の欄は出さない（押した先を開けないため）。省略はすべて出す */
   show?: { jobs: boolean; company: boolean };
+  /** ★求人を作れるか（2026-10-30）。求人が0件のときの「求人を作成する →」を出すかに使う */
+  canCreateJob?: boolean;
+  /**
+   * ★候補者の欄（2026-10-30 / 柴さんの指示）。候補者を探す画面を使えない会社・役割では undefined（欄ごと出さない）。取れなければ null
+   *   total … 候補者を探す画面に出る人数 ／ approachable … そのうちメッセージを送れる方
+   *   recent … この7日に新しく登録した人・プロフィールを更新した人（保存した条件の「新着」と同じ `isNewSince`）
+   */
+  candidates?: { total: number; approachable: number; recent: number } | null;
 };
