@@ -451,7 +451,7 @@ export default function CandidatesClient({
   }, []);
   /* ★経歴がまだ少ない人は一覧の最後にまとめる（2026-10-28 / 柴さんの指示）。初期は閉じる。
         ⚠️ 判定は candidateGroups.ts の isThinProfile（THIN_PROFILE_RULE）。ここに条件を書かない
-        ⚠️ `sorted` は「いま一覧に見えている人」（J/K・‹ › の移動とまとめて選ぶの対象）。閉じているあいだは少ない人を含めない */
+        ⚠️ `sorted` は「いま一覧に見えている人」（まとめて選ぶの対象）。閉じているあいだは少ない人を含めない。J/K・‹ › の移動は下の navList（全員） */
   const { main: mainSorted, thin: thinSorted } = useMemo(() => {
     const base = sortCandidates(filtered, effectiveSort);
     return splitThinProfiles(positionFit ? sortByPositionFit(base, positionFit) : base);
@@ -468,16 +468,25 @@ export default function CandidatesClient({
      ⚠️ 選んだカードが見えるように一覧をスクロールする（`block: "nearest"`。ヘッダーの下に隠れないよう scroll-margin を CSS で持つ）。
         ⚠️ `behavior: "instant"`。html が scroll-behavior: smooth なので、既定だとキーを続けて押したときに前のスクロールが途中で止まり、選んだカードが画面外に残る */
   /* ★前後の候補者へ移る（J/K・↑↓ と、右欄の ‹ › が同じ関数。2026-10-13 に1つにまとめた） */
-  const shownIndex = shownId ? sorted.findIndex((c) => c.id === shownId) : -1;
+  /* ★移動の対象は「経歴がまだ少ない人」も含めた全員（2026-10-30 / 柴さんの指示）。
+        それまでは閉じているあいだ少ない人を数えず、右欄が「1 / 19」・上の件数が「24名」と食い違って見えた。
+        少ない人のところまで進んだら、まとまりを自動で開く */
+  const navList = useMemo(() => [...mainSorted, ...thinSorted], [mainSorted, thinSorted]);
+  const shownIndex = shownId ? navList.findIndex((c) => c.id === shownId) : -1;
   const moveSelection = useCallback((dir: 1 | -1) => {
-    if (sorted.length === 0) return;
-    const nextIdx = shownIndex < 0 ? 0 : Math.min(sorted.length - 1, Math.max(0, shownIndex + dir));
-    const next = sorted[nextIdx];
+    if (navList.length === 0) return;
+    const nextIdx = shownIndex < 0 ? 0 : Math.min(navList.length - 1, Math.max(0, shownIndex + dir));
+    const next = navList[nextIdx];
     if (!next || next.id === shownId) return;
     setAutoPick(true);
     updateSelected(next.id);
-    document.querySelector(`[data-candidate-card="${next.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "instant" });
-  }, [sorted, shownIndex, shownId, updateSelected]);
+    const isThin = nextIdx >= mainSorted.length;
+    if (isThin && !showThin) setShowThin(true);
+    /* ⚠️ 開いた直後はカードがまだ描かれていないので少し待つ（rAF にしない。ui-debugging ⑪） */
+    setTimeout(() => {
+      document.querySelector(`[data-candidate-card="${next.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    }, isThin && !showThin ? 60 : 0);
+  }, [navList, shownIndex, shownId, updateSelected, mainSorted.length, showThin]);
   useEffect(() => {
     /* ⚠️ ドロワーが開いている間は一覧を動かさない（背景の候補者が切り替わるのを防ぐ） */
     if (!isWide || drawerOpen) return;
@@ -487,13 +496,13 @@ export default function CandidatesClient({
       if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
       const k = e.key;
       const dir = k === "ArrowDown" || k === "j" || k === "J" ? 1 : k === "ArrowUp" || k === "k" || k === "K" ? -1 : 0;
-      if (!dir || sorted.length === 0) return;
+      if (!dir || navList.length === 0) return;
       e.preventDefault();
       moveSelection(dir);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isWide, drawerOpen, sorted.length, moveSelection]);
+  }, [isWide, drawerOpen, navList.length, moveSelection]);
 
   /* ── ★まとめて☆（2026-10-18 / 柴さんの指示。見送りは 2026-10-28 に外した）────────────────────────
      チェックした人に、まとめて☆（気になる）を付ける。1人ずつの操作と同じ API を1人ずつ呼ぶ（同時に4件まで）。
@@ -1177,7 +1186,7 @@ export default function CandidatesClient({
               )}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div className={`cand-list${checkedVisible.length > 0 ? " cand-list--checked" : ""}`} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {/* ★まとめて操作の帯（2026-10-18）。⚠️ 操作できる人（canAct）だけ */}
               {canAct && (
                 <div className="cand-bulk" data-state={checkedVisible.length > 0 ? "bulk-active" : "bulk-idle"}>
@@ -1236,7 +1245,7 @@ export default function CandidatesClient({
               actions={{
                 starred: !!shownCandidate.starred,
                 onToggleStar: () => void toggleStar(shownCandidate.id, !shownCandidate.starred),
-                index: shownIndex, total: sorted.length,
+                index: shownIndex, total: navList.length,
                 onPrev: () => moveSelection(-1), onNext: () => moveSelection(1),
               }} />
           ) : shownId ? (
@@ -1277,6 +1286,16 @@ export default function CandidatesClient({
         .cand-card-link { position: absolute; inset: 0; border-radius: 12px; z-index: 0; }
         /* ★まとめて操作（2026-10-18）。チェックはリンクより上（押しても詳細を開かない） */
         .cand-card-check { position: relative; z-index: 1; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 20px; height: 32px; margin-right: -2px; cursor: pointer; }
+        /* ★カードのチェックは、マウスを乗せたとき・1人でも選んだとき・キーボードで触れたときだけ見せる（2026-10-30 / 柴さんの指示）。
+              ⚠️ 消すのは見た目だけ（opacity）。幅は残すので出し入れで一覧が横に動かない。
+              ⚠️ マウスの無い端末（タッチ）では常に見せる（乗せる操作が無いため）
+              ⚠️ この style の中に引用符を書かない（選んだ状態はクラスで持つ。ui-conventions） */
+        @media (hover: hover) {
+          .cand-card-check { opacity: 0; transition: opacity 0.12s; }
+          [data-candidate-card]:hover .cand-card-check,
+          .cand-card-check:focus-within,
+          .cand-list--checked .cand-card-check { opacity: 1; }
+        }
         .cand-card-check input, .cand-bulk-all input { width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--royal); }
         .cand-bulk { position: sticky; top: calc(var(--biz-header-h) + 4px); z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 40px; padding: 4px 12px 4px 14px; margin-bottom: 2px; background: var(--bg-tint); border-radius: 10px; }
         .cand-bulk[data-state=bulk-active] { background: var(--royal-50); box-shadow: inset 0 0 0 1px var(--royal-100); }
@@ -1366,7 +1385,7 @@ export default function CandidatesClient({
         }
         /* 右欄が狭いときは、操作の帯のボタンをアイコンだけにする（1行に収める） */
         .cand-pane { container-type: inline-size; container-name: candpane; }
-        .cand-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .cand-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         @container candpane (max-width: 560px) {
           .cand-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }

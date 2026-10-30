@@ -110,6 +110,12 @@ export function PreviewApproachArea({ candidate, jobs, profileLink, openNonce, o
 
   return (
     <div data-state={open ? "dock-open" : "dock-closed"} style={{ ...DOCK, overflowY: open ? "auto" : undefined }}>
+      {/* ★やり取りが無い人の空の状態（2026-10-30 / 柴さんの指示）。ボタンだけだと欄が空いて見えるので一言添える */}
+      {!open && (
+        <p data-state="approach-empty" style={{ margin: "0 0 10px", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+          まだやり取りはありません。
+        </p>
+      )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {!open && (
           <button type="button" onClick={() => setOpen(true)} data-state="approach-button" className="tap-min-h"

@@ -8,7 +8,7 @@ import { StarButton } from "@/components/candidates/StarButton";
 import type { PositionFitItem } from "@/lib/business/candidates/positionFitModel";
 import { CandidateProfilePanel, type PanelTab } from "@/components/candidates/CandidateProfilePanel";
 import { CandidateNotesPreview } from "@/components/candidateNotes/CandidateNotesPreview";
-import { formatJstMonthDay, type Candidate, type CompanyContactItem } from "@/lib/business/candidates/model";
+import { type Candidate, type CompanyContactItem } from "@/lib/business/candidates/model";
 import { ACTIVITY_LABELS } from "@/lib/business/candidates/model";
 import { tenureMonths } from "@/lib/profile/tenure";
 
@@ -102,7 +102,8 @@ export function TransferPrefsBox({ candidate }: { candidate: Candidate }) {
   if (rows.length === 0) return null;
   return (
     <section data-state="transfer-prefs" style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: "var(--bg-tint)", border: "1px solid var(--line)" }}>
-      <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>転職意欲</h3>
+      {/* ★2026-10-30: 見出しを「転職意欲」から変えた。中身は関心のある職種・希望勤務地で、転職への意向は名前の横の札に出ている */}
+      <h3 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>転職の希望</h3>
       <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", columnGap: 14, rowGap: 4, fontSize: 13, lineHeight: 1.6 }}>
         {rows.map((r) => (
           <div key={r.label} style={{ display: "contents" }}>
@@ -188,7 +189,6 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
 
 
   const tenure = formatTenure(c.tenureMonths);
-  const edited = formatJstMonthDay(c.profileEditedAt);
   /* ★メッセージのタブは送れる人（`approach` がある）にだけ。閲覧のみ・判定が取れない人はプロフィールだけ */
   const showMessages = canAct && !!c.approach;
   /* ★未読（2026-10-13）。あるときだけタブのラベル右に小さな丸（数字は出さない。ui-conventions「タブ」）。
@@ -198,7 +198,8 @@ export function CandidatePreview({ candidate: c, onClose, onNoteCountChange, can
   /* ★最近の利用（2026-10-12）は 2026-10-13 にこの行の末尾へ移した（意向バッジを名前の行へ移し、バッジと並べていた行が無くなったため）。
         ⚠️ スイッチが無効なら undefined で何も出さない。記録が無い（null）も出さない */
   const activityText = c.activity ? ACTIVITY_LABELS[c.activity] : null;
-  const metaItems = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, c.location, edited ? `プロフィール更新 ${edited}` : null, activityText].filter((x): x is string => !!x);
+  /* ★2026-10-30（柴さんの指示）: 居住地とプロフィールの更新は下の要約のマスにだけ出す（同じ値を2回並べない） */
+  const metaItems = [c.age != null ? `${c.age}歳` : null, c.genderLabel ?? null, tenure, [c.currentRole, c.currentCompany].filter(Boolean).join(" · ") || null, activityText].filter((x): x is string => !!x);
   const meta = metaItems.length ? (
     <span data-state="preview-meta" style={{ display: "flex", flexWrap: "wrap", columnGap: 12, rowGap: 2, minWidth: 0 }}>
       {/* ⚠️ 1項目が行より長いとき（長い役職・社名）は省略記号で切る（全文は title）。2026-10-13 に枠からはみ出していたのを直した */}
@@ -307,6 +308,8 @@ export function PreviewHeaderLines({ candidate }: {
     { label: "現職の在籍期間", value: tenureSince(candidate.startedAt) ?? "—", state: "summary-current-tenure" },
     { label: "居住地", value: candidate.location || "—", state: "summary-location" },
     { label: "意向の更新", value: relativeJa(candidate.careerStanceUpdatedAt) ?? "—", state: "summary-stance-updated" },
+    /* ★2026-10-30: 名前の下の行から移した（「プロフィール更新 10月23日」が上の行と重なっていたため） */
+    { label: "プロフィールの更新", value: relativeJa(candidate.profileEditedAt) ?? "—", state: "summary-profile-updated" },
   ];
   return (
     <div data-state="preview-header-lines" style={{ marginTop: 6 }}>
