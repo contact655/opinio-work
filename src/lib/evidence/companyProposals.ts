@@ -53,7 +53,11 @@ function toRow(r: Record<string, unknown>, visible: boolean): CompanyProposalRow
     candidateUserId: r.candidate_user_id as string,
     jobId: (r.job_id as string | null) ?? null,
     jobTitle,
-    evidence: Array.isArray(r.evidence) ? (r.evidence as unknown[]) : [],
+    /* ★★入社の決め手の根拠（shared_motive）は企業に返さない（2026-11-02）。
+          候補者の決め手から作った根拠なので、企業から見ると「この人が何を選んだか」が読めうる */
+    evidence: Array.isArray(r.evidence)
+      ? (r.evidence as unknown[]).filter((e) => (e as { kind?: unknown } | null)?.kind !== "shared_motive")
+      : [],
     counter: Array.isArray(r.counter_evidence) ? (r.counter_evidence as unknown[]) : [],
     note: (r.candidate_note as string | null) ?? null,
     phase,

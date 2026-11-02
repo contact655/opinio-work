@@ -18,10 +18,9 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
-import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
+import { MIN_AGGREGATE_COUNT, MIN_REASON_COUNT } from "@/lib/constants/aggregate";
 import { isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { companyDisplayName } from "@/lib/companies/displayName";
-import { JOIN_REASON_LABELS } from "@/lib/constants/careerReasons";
 import { matchCompanyPreference } from "@/lib/matching/scoreJob";
 import { getRoleNameMap } from "@/lib/supabase/queries";
 import { buildMoves, countMovesInto, type Move } from "./transitions";
@@ -59,7 +58,7 @@ export type CompanyFacts = {
  *    （`engine.ts` の `Audience` の注記）。誰の話かは画面側が示す。
  */
 export function evidenceOptions(): EvidenceOptions {
-  return { minAggregate: MIN_AGGREGATE_COUNT };
+  return { minAggregate: MIN_AGGREGATE_COUNT, minReason: MIN_REASON_COUNT };
 }
 
 /* ── 集計に数えてよいユーザーか ──────────────────────────────────────────
@@ -247,29 +246,26 @@ export async function gatherCompanyFacts(
       fromIndustryName: (hit?.fromCompanyId ? industryByCompany.get(hit.fromCompanyId) : null) ?? null,
     };
 
-    /* ② shared_motive … 在籍者が挙げた決め手と、候補者が挙げた決め手の一致 */
-    const withReasons = visibleExps.filter(
-      (e) => e.company_id === cid && ((e.join_reasons as string[] | null) ?? []).length > 0,
-    );
+    /* ② shared_motive … ★その会社の決め手の上位3つに、候補者の決め手が入っているか（2026-11-02）。
+       ⚠️ 人数・選択肢は根拠に書き出さない（engine.ts）。数えるのは1人1回 */
+    const reasonsByUser = new Map<string, Set<string>>();
+    for (const e of visibleExps) {
+      if (e.company_id !== cid) continue;
+      const rs = (e.join_reasons as string[] | null) ?? [];
+      if (rs.length === 0) continue;
+      const set = reasonsByUser.get(e.user_id as string) ?? new Set<string>();
+      rs.forEach((r) => set.add(r));
+      reasonsByUser.set(e.user_id as string, set);
+    }
     let sharedMotive: EvidenceFacts["sharedMotive"] = null;
-    if (withReasons.length > 0) {
-      const hits = withReasons.filter((e) =>
-        ((e.join_reasons as string[]) ?? []).some((r) => myReasons.has(r)),
-      );
-      /* 一致した決め手のうち、最も多く挙がっているものを1つ選ぶ */
+    if (reasonsByUser.size > 0) {
       const tally = new Map<string, number>();
-      for (const e of hits) {
-        for (const r of (e.join_reasons as string[]) ?? []) {
-          if (myReasons.has(r)) tally.set(r, (tally.get(r) ?? 0) + 1);
-        }
-      }
-      const top = Array.from(tally.entries()).sort((a, b) => b[1] - a[1])[0];
-      sharedMotive = {
-        n: withReasons.length,
-        k: hits.length,
-        /* ⚠️ ラベルは `JOIN_REASON_LABELS` を通す。生のスラッグを画面に出さない */
-        reasonLabel: top ? (JOIN_REASON_LABELS[top[0]] ?? top[0]) : "",
-      };
+      reasonsByUser.forEach((set) => set.forEach((r) => tally.set(r, (tally.get(r) ?? 0) + 1)));
+      const top3 = Array.from(tally.entries())
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 3)
+        .map(([r]) => r);
+      sharedMotive = { n: reasonsByUser.size, matched: top3.some((r) => myReasons.has(r)) };
     }
 
     /* ④ preference_match … 求人があれば求人の勤務形態、無ければ企業の値 */

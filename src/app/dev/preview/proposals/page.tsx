@@ -9,7 +9,7 @@ import {
   type CounterFacts,
   type EvidenceFacts,
 } from "@/lib/evidence/engine";
-import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
+import { MIN_AGGREGATE_COUNT, MIN_REASON_COUNT } from "@/lib/constants/aggregate";
 
 /**
  * 根拠つき提案（②⑨）の見え方。2026-09-18 追加。
@@ -31,14 +31,15 @@ import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
  * ⚠️ 根拠が4件以上のとき「ほかに根拠が N 件あります」が出ること（黙って切らない）。
  * ⚠️ 375px で横にはみ出さないこと。
  */
-const OPTS = { minAggregate: MIN_AGGREGATE_COUNT };
+const OPTS = { minAggregate: MIN_AGGREGATE_COUNT, minReason: MIN_REASON_COUNT };
 
 /** n を変えるだけの素材。★しきい値の前後（2 と 3）を必ず含める */
 function facts(n: number, opts?: Partial<EvidenceFacts>): EvidenceFacts {
   return {
     companyName: "サンプルワークス",
     samePath: n > 0 ? { n, fromRoleName: "アカウントエグゼクティブ", fromIndustryName: "IT・ソフトウェア" } : null,
-    sharedMotive: n > 0 ? { n, k: Math.max(1, n - 1), reasonLabel: "裁量の大きさ" } : null,
+    /* ★決め手は10人以上・上位3つに入っているときだけ（人数は根拠に出ない） */
+    sharedMotive: n > 0 ? { n: MIN_REASON_COUNT, matched: true } : null,
     preference: { matchedLabels: ["希望フェーズ（上場企業）にマッチ"] },
     fit: null,
     ...opts,
