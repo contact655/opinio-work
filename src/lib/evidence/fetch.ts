@@ -19,6 +19,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { MIN_AGGREGATE_COUNT, MIN_REASON_COUNT } from "@/lib/constants/aggregate";
+import { companyReasonTop3, joinDecisionReasonsOfUser } from "@/lib/joinDecision/server";
 import { isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { matchCompanyPreference } from "@/lib/matching/scoreJob";
@@ -87,7 +88,7 @@ export async function gatherCompanyFacts(
   // ── 0. 候補者自身 ─────────────────────────────────────────────────────────
   const [{ data: myExp, error: myExpErr }, { data: me, error: meErr }, roleMap] = await Promise.all([
     db.from("ow_experiences")
-      .select("company_id, role_category_id, join_reasons")
+      .select("company_id, role_category_id")
       .eq("user_id", candidateOwUserId),
     db.from("ow_users").select("auth_id, is_test, location").eq("id", candidateOwUserId).maybeSingle(),
     /* 職種名の解決。★企業ごとに引かない（中身は企業に依存しないので共通キャッシュ） */
@@ -99,11 +100,14 @@ export async function gatherCompanyFacts(
   const myRoleIds = new Set(
     (myExp ?? []).map((r) => r.role_category_id as string | null).filter(Boolean) as string[],
   );
-  /* ★候補者の「重視するもの」＝ 自分が過去に挙げた入社の決め手。
-     ⚠️ 希望条件（`ow_profiles.desired_*`）とは別物。混ぜないこと。 */
-  const myReasons = new Set(
-    (myExp ?? []).flatMap((r) => (r.join_reasons as string[] | null) ?? []),
-  );
+  /* ★候補者の「重視するもの」＝ 自分が挙げた入社の決め手（1問・2026-11-02〜の回答だけ）と、
+        会社ごとの決め手の上位3つ（月1回の集計）。
+     ⚠️ 希望条件（`ow_profiles.desired_*`）とは別物。混ぜないこと。
+     ⚠️ 旧の決め手（ow_experiences.join_reasons）は使わない（選択肢が違い、回答日も無いため） */
+  const [myReasons, reasonTop3] = await Promise.all([
+    joinDecisionReasonsOfUser(candidateOwUserId),
+    companyReasonTop3(ids),
+  ]);
   // ── 1. 企業の基本情報 ─────────────────────────────────────────────────────
   const { data: companies, error: coErr } = await db
     .from("ow_companies")
@@ -158,10 +162,10 @@ export async function gatherCompanyFacts(
     }
   }
 
-  // ── 3. 在籍者の職歴（shared_motive / short_tenure）─────────────
+  // ── 3. 在籍者の職歴（short_tenure）─────────────
   const { data: exps, error: expErr } = await db
     .from("ow_experiences")
-    .select("id, user_id, company_id, is_current, started_at, ended_at, join_reasons, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility, statistics_opt_out)")
+    .select("id, user_id, company_id, is_current, started_at, ended_at, visibility_company, ow_users!user_id(id, auth_id, is_test, is_system, visibility, statistics_opt_out)")
     .in("company_id", ids);
   if (expErr) console.error("[evidence/fetch] 在籍者の職歴:", expErr.message);
 
@@ -247,26 +251,13 @@ export async function gatherCompanyFacts(
     };
 
     /* ② shared_motive … ★その会社の決め手の上位3つに、候補者の決め手が入っているか（2026-11-02）。
-       ⚠️ 人数・選択肢は根拠に書き出さない（engine.ts）。数えるのは1人1回 */
-    const reasonsByUser = new Map<string, Set<string>>();
-    for (const e of visibleExps) {
-      if (e.company_id !== cid) continue;
-      const rs = (e.join_reasons as string[] | null) ?? [];
-      if (rs.length === 0) continue;
-      const set = reasonsByUser.get(e.user_id as string) ?? new Set<string>();
-      rs.forEach((r) => set.add(r));
-      reasonsByUser.set(e.user_id as string, set);
-    }
-    let sharedMotive: EvidenceFacts["sharedMotive"] = null;
-    if (reasonsByUser.size > 0) {
-      const tally = new Map<string, number>();
-      reasonsByUser.forEach((set) => set.forEach((r) => tally.set(r, (tally.get(r) ?? 0) + 1)));
-      const top3 = Array.from(tally.entries())
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 3)
-        .map(([r]) => r);
-      sharedMotive = { n: reasonsByUser.size, matched: top3.some((r) => myReasons.has(r)) };
-    }
+       ⚠️ 上位3つは毎月1日のバッチ（ow_company_reason_rankings）。回答が MIN_REASON_COUNT（10人）以上の会社にだけ行がある。
+          ＝ 行がある会社は下限を満たしている（n は下限の値を渡し、engine 側でも同じ定数で確かめる）
+       ⚠️ 人数・選択肢は根拠に書き出さない（engine.ts） */
+    const top3 = reasonTop3.get(cid);
+    const sharedMotive: EvidenceFacts["sharedMotive"] = top3 && top3.length > 0
+      ? { n: MIN_REASON_COUNT, matched: top3.some((r) => myReasons.has(r)) }
+      : null;
 
     /* ④ preference_match … 求人があれば求人の勤務形態、無ければ企業の値 */
     const fit = fitByCompany.get(cid) ?? null;

@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/weekly-saved-companies",
       "schedule": "0 0 * * 1"
+    },
+    {
+      "path": "/api/cron/rebuild-reason-rankings",
+      "schedule": "0 0 1 * *"
     }
   ]
 }

@@ -15,7 +15,7 @@ function person(u, { prevInd = "maker", nextInd = "it", alumni = true, roles = [
   return rows;
 }
 
-const ALLOWED_KEYS = new Set(["people", "previous", "next", "tenure", "roleChanges", "decisiveTop", "fitAfterYear",
+const ALLOWED_KEYS = new Set(["people", "previous", "next", "tenure", "roleChanges", "fitAfterYear",
   "known", "byIndustry", "label", "count", "alumni", "avgMonths", "paths", "respondents", "top", "goodShare"]);
 
 function keysDeep(v, out = new Set()) {
@@ -60,15 +60,13 @@ test("社内の職種の変化は細かい職種で数える", () => {
 test("回答の項目は5人以上で出る（4人なら出ない）", () => {
   const T = (r, fit) => ({ decisiveReasons: r, fitAfterYear: fit });
   const four = [T(["skills"], 5), T(["skills", "salary"], 4), T(["people"], 2), T(["skills"], 1)];
-  assert.equal(computeCompanyFlow(C, person("a"), four, L, OPT).decisiveTop, null);
   assert.equal(computeCompanyFlow(C, person("a"), four, L, OPT).fitAfterYear, null);
   const five = [...four, T(["salary"], 4)];
   const f = computeCompanyFlow(C, person("a"), five, L, OPT);
-  /* ★行ごとにも5人の下限。5人答えても、5人に届く決め手が無ければ項目ごと出さない */
-  assert.equal(f.decisiveTop, null);
   assert.deepEqual(f.fitAfterYear, { respondents: 5, goodShare: 60 });
+  /* ★2026-11-02: 入社の決め手は「人の流れ」から外した（毎月1日の上位3つに移した）。回答が何人あっても出さない */
   const six = [T(["skills", "salary"], 5), T(["skills"], 4), T(["skills", "people"], 4), T(["skills"], 2), T(["skills", "salary"], 4), T(["salary"], 1)];
-  assert.deepEqual(computeCompanyFlow(C, person("a"), six, L, OPT).decisiveTop, { respondents: 6, top: [{ label: "skills", count: 5 }] });
+  assert.equal("decisiveTop" in computeCompanyFlow(C, person("a"), six, L, OPT), false);
 });
 
 test("★返す形に、個人を特定できる値（user_id・会社 id・個別の期間）が入らない", () => {
@@ -90,7 +88,7 @@ test("★ログインしていない人向けの形は件数だけ（内訳・�
   const s = toFlowSummary(computeCompanyFlow(C, exps, turns, L, OPT));
   const keys = keysDeep(s);
   for (const k of ["byIndustry", "paths", "top", "avgMonths", "goodShare", "label"]) assert.ok(!keys.has(k), `件数だけの形に ${k} がある`);
-  assert.deepEqual(s, { people: 3, previous: { known: 3 }, next: { known: 3 }, tenure: { alumni: 3 }, roleChanges: { people: 3 }, decisiveTop: { respondents: 5 }, fitAfterYear: { respondents: 5 } });
+  assert.deepEqual(s, { people: 3, previous: { known: 3 }, next: { known: 3 }, tenure: { alumni: 3 }, roleChanges: { people: 3 }, fitAfterYear: { respondents: 5 } });
 });
 
 test("★検索の「出た人」の集計：OB が3人以上で出る。行き先は業界・職種の大分類。個人を特定できる値が入らない", async () => {

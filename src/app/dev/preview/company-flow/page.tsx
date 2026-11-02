@@ -15,10 +15,9 @@ const FULL: CompanyFlow = {
   tenure: { alumni: 5, avgMonths: 52 },
   roleChanges: { people: 3, paths: [{ label: "インサイドセールス → アカウントエグゼクティブ", count: 2 }, { label: "インサイドセールス → エンタープライズセールス", count: 1 }] },
   /* ⚠️ 回答由来は行ごとにも5人の下限（5人未満の行は compute.ts が落とす）ので、5人以上の行だけを置く */
-  decisiveTop: { respondents: 9, top: [{ label: "身につくスキル", count: 6 }, { label: "年収・待遇", count: 5 }] },
   fitAfterYear: { respondents: 5, goodShare: 80 },
 };
-const PARTIAL: CompanyFlow = { ...FULL, people: 4, previous: null, roleChanges: null, decisiveTop: null, fitAfterYear: null, next: null };
+const PARTIAL: CompanyFlow = { ...FULL, people: 4, previous: null, roleChanges: null, fitAfterYear: null, next: null };
 
 export default function CompanyFlowPreview() {
   devOnly();
