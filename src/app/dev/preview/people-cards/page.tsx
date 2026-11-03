@@ -108,6 +108,24 @@ export default function PeopleCardsPreview() {
       </Variant>
 
       <Variant
+        label="フォロー（文字つき）と「話を聞けます」（2026-11-03）"
+        note="1人目と3人目に「話を聞けます」。2人目はフォロー中（グレー）。最後のカードは自分（ボタンが出ない）。⚠️ ボタンを押すと実際の API を呼ぶので押さないこと"
+      >
+        <div className="ppl-grid" style={{ maxWidth: 988 }}>
+          {PEOPLE.map((c, i) => (
+            <GridCard key={c.userId} card={c} myUserId={i === PEOPLE.length - 1 ? c.userId : "preview-viewer"}
+              followedUserIds={i === 1 ? [c.userId] : []} talkOpen={i === 0 || i === 2} />
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          {PEOPLE.map((c, i) => (
+            <ListRow key={c.userId} card={c} myUserId={i === PEOPLE.length - 1 ? c.userId : "preview-viewer"}
+              followedUserIds={i === 1 ? [c.userId] : []} talkOpen={i === 0 || i === 2} />
+          ))}
+        </div>
+      </Variant>
+
+      <Variant
         label="一覧（4名）"
         note="⚠️ 会社・職種・業種が1行に畳まれること（肩書きは 2026-09-30 に外した）"
       >

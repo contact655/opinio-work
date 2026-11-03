@@ -11,6 +11,7 @@ import { PeopleListClient, type PrevCareerProps } from "./PeopleListClient";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import { prevCareerText, prevSelectionOf } from "@/lib/people/prevCareer";
+import { talkProfiles } from "@/lib/talk/server";
 
 /**
  * 登録ユーザーの一覧。
@@ -56,13 +57,15 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
   let followerUserIds: string[] = [];
   let sidebar: Awaited<ReturnType<typeof getPeopleSidebarData>> = null;
   let prevCareer: PrevCareerProps | null = null;
+  /* ★「話を聞ける」設定の人（2026-11-03）。カードの小さな印だけに使う（lib/talk/server.ts の open） */
+  let talkOpenUserIds: string[] = [];
   if (user) {
     const admin = createAdminClient();
     const { data: me, error: meErr } = await admin.from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
     if (meErr) console.error("[people] me:", meErr.message);
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const [outRes, inRes, sidebarData, pathsView] = await Promise.all([
+      const [outRes, inRes, sidebarData, pathsView, talk] = await Promise.all([
         admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
         admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
         getPeopleSidebarData(myUserId),
@@ -72,7 +75,10 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
           { owUserId: myUserId, isTest: me?.is_test === true },
           { autoStart: false },
         ),
+        talkProfiles(people.map((p) => p.userId)),
       ]);
+      /* ⚠️ 取得に失敗したら印を出さない（null）。出さない向きに倒す */
+      if (talk) talkOpenUserIds = Array.from(talk.entries()).filter(([, t]) => t.open).map(([id]) => id);
       if (pathsView) {
         const start = pathsView.start;
         prevCareer = {
@@ -111,6 +117,7 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
         followerUserIds={followerUserIds}
         sidebar={sidebar}
         prevCareer={prevCareer}
+        talkOpenUserIds={talkOpenUserIds}
       />
     </div>
   );
