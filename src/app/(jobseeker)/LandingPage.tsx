@@ -316,7 +316,11 @@ export default function LandingPage({
            ⚠️★この style タグの中にバッククォートを書かないこと。テンプレートリテラルが
               その場で閉じる（.claude/rules/ui-debugging.md ⑲①。2026-09-17 に実際に踏んだ）。 */
         .lp-hero-h1 span { display: inline-block; }
-        .lp-hero-h1 .lp-hero-en { display: block; font-family: var(--font-inter), var(--font-noto); }
+        .lp-hero-h1 .lp-hero-en { display: block; font-family: var(--font-inter), var(--font-noto); font-size: min(1em, 6.9vw); }
+        /* ★2026-11-03: 英語の見出し（See why others chose it. ／ Then choose by your own.）は、
+              狭い幅で句がまるごと1行に収まるよう 6.9vw までに抑える（375px で約26px）。
+              抑えないと 30px で句の幅（約377px）が枠（約339px）を超え、it. や own. だけが次の行に落ちる。
+              広い画面では 1em（h1 の大きさ）のまま。 */
         .lp-hero-h1 .lp-hero-ja { display: block; margin-top: 10px; font-size: clamp(15px, 1.4vw, 18px); font-weight: 600; letter-spacing: 0.02em; color: var(--ink-soft); }
 
         /* 検索窓の下のボタン。⚠️ 窓（1000px）の中で中央に置く。
@@ -461,10 +465,14 @@ export default function LandingPage({
                  ⚠️ span は inline-block（`.lp-hero-h1 span`）。**折り返しを句の境目に固定するため。**
                     狭い幅では1行に収まらないので「募集要項の向こうにいる／現役社員」で折る。
                     ⚠️ 塊にしないと「現役社／員」のように語の途中で割れる。 */}
+          {/* ★★2026-11-03 に「Every Company Is Its People.／会社は、働く人でできている。」から差し替えた（柴さんの指示）。
+                 作り（英語の大きな行＋日本語の1行。どちらも h1 の中）は変えていない。
+                 ⚠️ 句の境目で折る（英語は「…chose it.／Then …」、日本語は「…知って、／自分の軸で選ぶ。」）。
+                 ⚠️★「選んだ人の理由」は入社の決め手の上位3つ（企業ページ「この会社に決めた理由」）を指す。
+                    回答が10人以上たまった会社にしか出ないので、人数や「どの会社でも見られる」を約束する言い方に広げないこと。 */}
           <h1 className="lp-hero-h1" style={{ fontSize: "clamp(30px, 3.0vw, 42px)", fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.02em", color: C.navy, marginBottom: 20 }}>
-            {/* ⚠️ 狭い幅では「Every Company／Is Its People.」で折る（「People.」だけが2行目に落ちないように） */}
-            <span className="lp-hero-en"><span>Every Company</span> <span>Is Its People.</span></span>
-            <span className="lp-hero-ja">会社は、働く人でできている。</span>
+            <span className="lp-hero-en"><span>See why others chose it.</span> <span>Then choose by your own.</span></span>
+            <span className="lp-hero-ja"><span>選んだ人の理由を知って、</span><span>自分の軸で選ぶ。</span></span>
           </h1>
 
           {/*
