@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   JOIN_DECISION_GROUPS, JOIN_DECISION_OPTIONS, JOIN_DECISION_MAX, JOIN_DECISION_VERSION,
   parseJoinDecision, isCountableAnswer, promptKind, shuffledGroups, topReasons,
+  homeDecisionCardVisible,
 } from "./constants.ts";
 import { MIN_REASON_COUNT } from "../constants/aggregate.ts";
 
@@ -70,4 +71,14 @@ test("★上位3つは10人未満なら出さない・人数を返さない", ()
 test("同数は選択肢の並びで決まる（毎回同じ）", () => {
   const rs = Array.from({ length: 10 }, (_, k) => (k % 2 ? ["work_hours", "referral"] : ["referral", "position"]));
   assert.deepEqual(topReasons(rs, 10), ["referral", "position", "work_hours"]);
+});
+
+test("ホームのカードは、保存したら閉じた時点で消える（再読み込みを待たない）", () => {
+  // 答える前: 出ている
+  assert.equal(homeDecisionCardVisible({ answered: false, modalOpen: false }), true);
+  assert.equal(homeDecisionCardVisible({ answered: false, modalOpen: true }), true);
+  // 保存した直後: モーダル（「保存しました」）が開いている間は消さない
+  assert.equal(homeDecisionCardVisible({ answered: true, modalOpen: true }), true);
+  // 保存してモーダルを閉じた: 消える
+  assert.equal(homeDecisionCardVisible({ answered: true, modalOpen: false }), false);
 });

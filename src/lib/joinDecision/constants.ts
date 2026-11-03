@@ -115,6 +115,15 @@ export function promptKind(
   return now.getTime() - skipped >= JOIN_DECISION_RESHOW_DAYS * 24 * 60 * 60 * 1000 ? "reshow" : null;
 }
 
+/**
+ * ★ホームのカードを出し続けるか（2026-11-03）。答えて保存した（answered）あとは、モーダルを閉じた時点で消す。
+ *   ⚠️ 再読み込みを待たない（router.refresh だけでは閉じた直後にカードが残っていた）。
+ *   ⚠️ モーダルを開いている間は消さない（カードの中にモーダルがあるので、消すと「保存しました」も一緒に消える）。
+ */
+export function homeDecisionCardVisible(s: { answered: boolean; modalOpen: boolean }): boolean {
+  return s.modalOpen || !s.answered;
+}
+
 /** まとまりの並びを入れ替える（中の並びは固定）。⚠️ クライアントでマウント後に呼ぶ（サーバーと食い違わないように） */
 export function shuffledGroups(random: () => number = Math.random): JoinDecisionGroup[] {
   const a = JOIN_DECISION_GROUPS.slice();
