@@ -173,6 +173,12 @@ type Props = {
   /** ★タイムラインの上に置くもの（2026-11-03。/home の「職歴の案内・合う会社・行き先」）。
    *  ⚠️ /feed は /home に統合した。左右の列はこの部品のまま使う（HomeSideShell に別に組まない） */
   top?: React.ReactNode;
+  /** ★右の列のいちばん上（2026-11-04。/home の「あなたに合う会社」）。PC（768px 以上）だけ */
+  railTop?: React.ReactNode;
+  /** ★右の列の「フォロー中のユーザー」のすぐ下（2026-11-04。/home の「同じ経歴の人の行き先」）。PC だけ */
+  railAfterUsers?: React.ReactNode;
+  /** ★スマホ（768px 未満）でタイムラインに挟むもの（2026-11-04）。after は「何件目の投稿の後ろか」（0 始まりの添字） */
+  mobileInserts?: { key: string; after: number; node: React.ReactNode }[];
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1409,7 +1415,13 @@ function FeedSidebar({
   myUserId,
   rail,
   hasNewCompanies,
+  top,
+  afterUsers,
 }: {
+  /** ★いちばん上（2026-11-04。/home の「あなたに合う会社」）。渡されたときは、その下に「フォロー中のユーザー」→ afterUsers → いつもの枠の順にする */
+  top?: React.ReactNode;
+  /** ★「フォロー中のユーザー」のすぐ下（2026-11-04。/home の「同じ経歴の人の行き先」） */
+  afterUsers?: React.ReactNode;
   /** ★企業・募集・人・記事の枠（2026-10-20）。一番上に出す */
   rail?: React.ReactNode;
   /** 「新しく掲載された企業」を出しているなら、下の「掲載中の企業」は出さない（中身が重なる） */
@@ -1421,8 +1433,61 @@ function FeedSidebar({
   /** ow_users.id。未ログインは null */
   myUserId: string | null;
 }) {
+  /* ユーザー。⚠️ 企業と同じパネルに同居させるのをやめた（2026-08-13）。
+        片方が0件でもう片方に中身がある、という組み合わせがあるため、
+        独立したパネルにしないと「0件の側だけ隠す」ができない。
+     ★2026-11-04: 変数にした（/home では「あなたに合う会社」のすぐ下に出すため）。⚠️ 未ログインには出さない（下の分岐と同じ） */
+  const userFollowsPanel = myUserId !== null && userFollows.length > 0 ? (
+      <div style={PANEL_STYLE}>
+        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中のユーザー</p>
+        {(
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {userFollows.map((u) => (
+              <Link
+                key={u.id}
+                href={`/u/${u.id}`}
+                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-inter), var(--font-noto)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {u.avatar_url
+                    ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : u.name.charAt(0)}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {u.name}
+                  </div>
+                  {(u.role_title || u.company_name) && (
+                    <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
+      </div>
+  ) : null;
   return (
     <div style={{ width: 340, flexShrink: 0 }}>
+      {/* ★/home（2026-11-04）: あなたに合う会社 → フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠 */}
+      {top && (
+        <>
+          {top}
+          {userFollowsPanel}
+          {afterUsers}
+        </>
+      )}
       {/*
         未ログイン時は「フォロー中の企業」「フォロー中のユーザー」「気になる募集」を出さない（2026-08-05）。
         ⚠️ 「まだ空」ではなく構造上必ず空。3枚とも ow_company_follows / ow_user_follows /
@@ -1512,51 +1577,8 @@ function FeedSidebar({
       </div>
       )}
 
-      {/* ユーザー。⚠️ 企業と同じパネルに同居させるのをやめた（2026-08-13）。
-             片方が0件でもう片方に中身がある、という組み合わせがあるため、
-             独立したパネルにしないと「0件の側だけ隠す」ができない。 */}
-      {userFollows.length > 0 && (
-      <div style={PANEL_STYLE}>
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中のユーザー</p>
-        {(
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {userFollows.map((u) => (
-              <Link
-                key={u.id}
-                href={`/u/${u.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-              >
-                <div
-                  style={{
-                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                    background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-inter), var(--font-noto)",
-                    overflow: "hidden",
-                  }}
-                >
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : u.name.charAt(0)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {u.name}
-                  </div>
-                  {(u.role_title || u.company_name) && (
-                    <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
-      </div>
-      )}
-
+      {/* ★ユーザーのパネルは上の userFollowsPanel（2026-11-04 に変数へ。/home では上に移すため） */}
+      {!top && userFollowsPanel}
       {/* (b) 気になる求人。⚠️ 0件ならパネルごと出さない */}
       {savedJobs.length > 0 && (
       <div style={PANEL_STYLE}>
@@ -2434,6 +2456,9 @@ export default function FeedClient({
   careerMoveBlocks,
   listedCompanyCount,
   top,
+  railTop,
+  railAfterUsers,
+  mobileInserts,
 }: Props) {
   /* ★「すべて／フォロー中」のタブは 2026-10-20 になくした（柴さんの指示）。1本の流れにし、フォローしている人・企業の投稿を先に出す。
         ⚠️ `tab` は "all" 固定の名残。API の tab=followed は残してある（使い手は無い） */
@@ -2514,6 +2539,10 @@ export default function FeedClient({
       {showAnnouncementBoxes && <RailArticles items={newArticles} />}
     </>
   ) : null;
+  /* ★呼び出し側（/home）から挟むもの。⚠️ 同じ位置のものより先に出す（unshift してから安定ソート） */
+  if (!isDesktop && mobileInserts) {
+    for (const m of [...mobileInserts].reverse()) inserts.unshift({ after: m.after, node: <div key={m.key}>{m.node}</div> });
+  }
   /* ⚠️ 投稿が足りないときに後ろへまとめる分は、after の小さい順（＝上の並び）に出す */
   inserts.sort((a, b) => a.after - b.after);
   const insertsAfter = (i: number) => inserts.filter((x) => x.after === i).map((x) => x.node);
@@ -2604,11 +2633,9 @@ export default function FeedClient({
 
       {/* 中央フィードカラム */}
       <div style={{ flex: 1, minWidth: 0 }}>
+      {/* ★2026-11-04: 「タイムライン」の見出しは外した（最初の画面でタイムラインを見せるため）。上に置くものは職歴の帯と決め手の設問だけ */}
       {top && (
-        <>
-          <div data-state="home-top" style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", marginBottom: 24 }}>{top}</div>
-          <h2 data-state="home-timeline" style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: "0 0 10px" }}>タイムライン</h2>
-        </>
+        <div data-state="home-top" style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", marginBottom: 12 }}>{top}</div>
       )}
       {/* 投稿コンポーザー。
           ⚠️ 投稿できない人には入力欄を出さない（2026-08-05）。
@@ -2803,6 +2830,8 @@ export default function FeedClient({
             savedJobs={sidebarSavedJobs}
             companies={sidebarCompanies}
             myUserId={myUserId}
+            top={railTop}
+            afterUsers={railAfterUsers}
           />
         </div>
       )}

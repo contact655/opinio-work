@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,7 +9,8 @@ import ForYouSection from "../mypage/proposals/ForYouSection";
 import { toForYouViews } from "../mypage/proposals/forYouViews";
 import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
-import { HOME_FOR_YOU_LIMIT } from "@/lib/home/homeState";
+import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER } from "@/lib/home/homeState";
+import HomeCareerBanner from "./HomeCareerBanner";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import FeedClient from "../feed/(list)/FeedClient";
@@ -19,13 +19,14 @@ import { loadFeedProps } from "../feed/(list)/loadFeedProps";
 /**
  * ★ホーム（2026-11-03 に /feed をまとめた / 柴さんの指示）。ログイン後の着地。
  *
- *   左＝プロフィール欄・右＝フォロー中などの列は、旧 /feed の部品（FeedClient）のまま。
+ *   左＝プロフィール欄・右の列は、旧 /feed の部品（FeedClient）のまま。
+ *   ★2026-11-04 に並びを変えた（柴さんの指示。PC 1440×900 の最初の画面でタイムラインが見えるように）:
  *   中央の上から:
- *     ① 直近の職歴を入れる案内（職歴が0件の人だけ）
+ *     ① 直近の職歴の1行の帯（職歴が0件の人だけ。×で7日間出さない。HomeCareerBanner）
  *     ② 入社の決め手（聞いてよいときだけ。lib/joinDecision）
- *     ③ あなたに合う会社（3社）
- *     ④ あなたと同じ経歴の人の行き先（旧 /paths の集計。5人以上の行だけ。行が無ければ箱ごと出さない）
- *     ⑤ タイムライン（旧 /feed）
+ *     ③ 投稿欄 → ④ タイムライン（旧 /feed）
+ *   右の列（PC）の上から: あなたに合う会社（3社・「…」に 保存／あとで／興味なし）→ フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠
+ *   スマホ: 合う会社はタイムラインの2件目と3件目の間（横スクロール）、行き先は5件目のあと（lib/home/homeState.ts）
  * ⚠️★どのブロックも中身が無ければ描かない（空の箱を出さない）
  * ⚠️ 2026-11-03 に「あなたの転機の傾向」と「提案の精度を上げる（転機の回答数）」は外した（柴さんの判断）。
  *    似た経歴の要約（lib/companyFlow の getSimilarPaths・下限3人・在籍平均と1年後の割合）も ④ に置き換えた
@@ -71,46 +72,43 @@ export default async function HomePage() {
   const proposed = new Set(((proposedRes.data ?? []) as { company_id: string }[]).map((p) => p.company_id));
   const forYouViews = toForYouViews(forYou, isTest, proposed);
 
+  /* ⚠️ この style タグの中に不等号や山かっこを書かないこと（ハイドレーションが壊れる） */
+  const homeBoxCss = (
+    <style>{`
+      .home-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; min-width: 0; }
+      .home-h2 { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0; line-height: 1.5; }
+      .home-lead { font-size: 12.5px; color: var(--ink-mute); line-height: 1.8; margin: 6px 0 0; }
+      @media (max-width: 767px) { .home-box { padding: 16px 14px 14px; } .home-h2 { font-size: 16px; } }
+    `}</style>
+  );
+
   const top = (
     <>
-      {/* ⚠️ この style タグの中に不等号や山かっこを書かないこと（ハイドレーションが壊れる） */}
-      <style>{`
-        .home-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; min-width: 0; }
-        .home-h2 { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0; line-height: 1.5; }
-        .home-lead { font-size: 12.5px; color: var(--ink-mute); line-height: 1.8; margin: 6px 0 0; }
-        @media (max-width: 767px) { .home-box { padding: 16px 14px 14px; } .home-h2 { font-size: 16px; } }
-      `}</style>
-
-      {noExperience && (
-        <section data-state="home-first-experience" className="home-box">
-          <h2 className="home-h2">直近の職歴を1件入れましょう</h2>
-          <p className="home-lead">
-            会社と職種と入社年月だけで入れられます。入れると、あなたと同じ経歴の人の行き先と、あなたに合う会社の理由が出ます。
-          </p>
-          <Link href="/mypage?add=career" data-action="home-add-experience"
-            style={{ display: "inline-block", marginTop: 12, padding: "9px 18px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none" }}>
-            職歴を入れる
-          </Link>
-        </section>
-      )}
-
+      {homeBoxCss}
+      {noExperience && <HomeCareerBanner />}
       {decisionPrompt && (() => {
         const e = exps.find((x) => x.id === decisionPrompt.experienceId);
         const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
         return <HomeDecisionCard experienceId={decisionPrompt.experienceId} companyName={name} />;
       })()}
-
-      <ForYouSection
-        companies={forYouViews}
-        loadFailed={!forYou.ok}
-        noReasons={false}
-        declineReasons={CANDIDATE_DECLINE_REASONS.map((o) => ({ value: o.value, label: o.label }))}
-        compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社" }}
-      />
-
-      {paths && <PrevCareerSummary view={paths} variant="home" />}
     </>
   );
 
-  return <FeedClient {...feed} top={top} />;
+  const forYouProps = {
+    companies: forYouViews,
+    loadFailed: !forYou.ok,
+    noReasons: false,
+    declineReasons: CANDIDATE_DECLINE_REASONS.map((o) => ({ value: o.value, label: o.label })),
+  };
+  /* ⚠️ PC の右の列とスマホの差し込みは、どちらか一方しか描かれない（FeedClient が幅で出し分ける） */
+  const railTop = <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />;
+  /* ★行き先は5人以上の行が1つも無ければ出さない（PrevCareerSummary も null を返すが、スマホの差し込みの枠ごと作らないためここでも見る） */
+  const pathsHasRows = !!paths?.start && !!paths.summary && paths.summary.company.length + paths.summary.role.length + paths.summary.industry.length > 0;
+  const railAfterUsers = paths && pathsHasRows ? <PrevCareerSummary view={paths} variant="rail" /> : null;
+  const mobileInserts = [
+    { key: "home-for-you", after: HOME_MOBILE_FOR_YOU_AFTER, node: <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "scroll" }} /> },
+    ...(paths && pathsHasRows ? [{ key: "home-paths", after: HOME_MOBILE_PATHS_AFTER, node: <div style={{ marginBottom: 16 }}><PrevCareerSummary view={paths} variant="home" /></div> }] : []),
+  ];
+
+  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} mobileInserts={mobileInserts} />;
 }
