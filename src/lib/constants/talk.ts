@@ -27,6 +27,15 @@ export const TALK_CAPACITIES: readonly { value: TalkCapacity; label: string; hin
 
 export const DEFAULT_TALK_CAPACITY: TalkCapacity = "none";
 
+/**
+ * ★ホームの左のカードに出す短い言い方（2026-11-04）。「話を聞ける：オフ／月1件まで／積極的に」。
+ * ⚠️ 設定画面の選択肢の名前（今は話せない）とは違う。短い1行に収めるため none だけ「オフ」にした
+ */
+export function talkCapacityShortLabel(c: TalkCapacity): string {
+  if (c === "none") return "オフ";
+  return TALK_CAPACITIES.find((x) => x.value === c)?.label ?? "オフ";
+}
+
 /** ★依頼に返事が無いまま、この日数たったら自動で辞退扱い */
 export const TALK_REQUEST_EXPIRE_DAYS = 14;
 /** ★自動で辞退になったとき、送った側にだけ出す文（理由は伝えない） */

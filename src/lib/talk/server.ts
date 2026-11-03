@@ -81,6 +81,21 @@ export async function getMyTalkSettings(owUserId: string): Promise<TalkSettingsV
   };
 }
 
+/**
+ * ★本人の「話せる量」だけ（2026-11-04。ホームの左のカードの「話を聞ける：◯◯」に出す）。
+ * ⚠️ 保存している値をそのまま返す（月の上限に届いたかは見ない）。行が無い人は none。取得に失敗したら null（行ごと出さない）
+ */
+export async function getMyTalkCapacity(owUserId: string): Promise<TalkCapacity | null> {
+  const { data, error } = await createAdminClient()
+    .from("ow_talk_settings").select("capacity").eq("user_id", owUserId).maybeSingle();
+  if (error) {
+    console.error("[talk] my capacity:", error.message);
+    return null;
+  }
+  const c = (data as { capacity: string } | null)?.capacity;
+  return isTalkCapacity(c) ? c : DEFAULT_TALK_CAPACITY;
+}
+
 export async function saveTalkSettings(
   owUserId: string,
   v: { stance: TalkStance | null; stanceCompanyId: string | null; capacity: TalkCapacity },

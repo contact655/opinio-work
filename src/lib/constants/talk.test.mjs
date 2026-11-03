@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import {
   TALK_STANCES, TALK_CAPACITIES, DEFAULT_TALK_CAPACITY, TALK_REQUEST_EXPIRE_DAYS,
   parseTalkSettings, talkAcceptsRequest, startOfMonthJst, isTalkRequestExpired, talkStanceLabel,
-  isInCurrentMonthJst, talkButtonVisible, talkRequestExpiryCutoff,
+  isInCurrentMonthJst, talkButtonVisible, talkRequestExpiryCutoff, talkCapacityShortLabel,
 } from "./talk.ts";
 import { recruiterCompanyIds } from "../talk/recruiter.ts";
 import { can, toCompanyRole } from "../auth/roles.ts";
@@ -132,4 +132,10 @@ test("★定期実行（server.ts）は締め切りを talkRequestExpiryCutoff �
   assert.match(body, /const cutoff = talkRequestExpiryCutoff\(now\)\.toISOString\(\);/);
   assert.match(body, /\.eq\("status", "pending"\)\.lte\("created_at", cutoff\)/);
   assert.doesNotMatch(src, /24 \* 60 \* 60|86400|TALK_REQUEST_EXPIRE_DAYS/, "server.ts に日数の計算が残っていない");
+});
+
+test("★ホームの左のカードの短い言い方: 今は話せない＝オフ、ほかは設定画面と同じ名前", () => {
+  assert.equal(talkCapacityShortLabel("none"), "オフ");
+  assert.equal(talkCapacityShortLabel("monthly_one"), "月1件まで");
+  assert.equal(talkCapacityShortLabel("active"), "積極的に");
 });

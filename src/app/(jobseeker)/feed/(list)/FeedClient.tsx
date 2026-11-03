@@ -5,11 +5,10 @@ import { Fragment, useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ProfileCard, type ProfileCardProps } from "@/components/common/ProfileCard";
+import { HomeProfileCard, type HomeProfileCardData } from "@/components/feed/HomeProfileCard";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { CareerPromptBox, useCareerPrompt } from "@/components/feed/CareerPromptBox";
-import { leftNextStepWhileCareerPrompt } from "@/lib/home/homeState";
 import { RailBox, RailRow, RAIL_BOX_STYLE, RAIL_TITLE_STYLE, RAIL_LIST_STYLE, RAIL_SUB_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarCompany } from "./page";
@@ -161,7 +160,7 @@ type Props = {
   myAvatarUrl: string | null;
   /** ★ミニプロフィールカードの中身（2026-09-18）。**`/people` と同じ `getPeopleSidebarData`**。
    *  ⚠️ `myRoleTitle` / `myCompany` に戻さないこと。`/people` と表示が食い違う。 */
-  profileCard?: ProfileCardProps | null;
+  profileCard?: HomeProfileCardData | null;
   myLikedPostIds: string[];
   sidebarFollows: SidebarFollow[];
   sidebarUserFollows: SidebarUserFollow[];
@@ -1179,100 +1178,14 @@ function formatSalary(min: number | null, max: number | null, negotiable = false
   return `〜${fmt(max!)}万円`;
 }
 
-// ─── 左カラム: ミニプロフィール + ナビ ────────────────────────────────────────
+// ─── 左カラム: 1枚のカード ─────────────────────────────────────────────────────
 
-function FeedLeftPanel({
-  profileCard,
-}: {
-  /** ★ミニプロフィールカードの中身（2026-09-18）。**`/people` と同じ `getPeopleSidebarData`**。
-   *  ⚠️ `myRoleTitle` / `myCompany` に戻さないこと。`/people` と表示が食い違う。
-   *  ⚠️ 氏名・アバターもこの中に入っている。**別々に渡さないこと**（出どころが2つに割れる）。 */
-  profileCard?: ProfileCardProps | null;
-}) {
-  const NAV_ITEMS = [
-    {
-      href: "/mypage",
-      label: "マイページ",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-      ),
-    },
-    {
-      href: "/mypage/bookmarks",
-      /* ⚠️ 遷移先の h1 に合わせる（2026-08-13）。
-            以前は「保存した投稿」だったが、`/mypage/bookmarks` が出すのは
-            **企業と求人**（`target_type in (company, job)`）で、投稿ではない。
-            投稿を保存する機能は存在しない。
-         ⚠️ 名前を増やさない。「気になる企業・求人」等にすると、
-            ページの見出し（ブックマーク）とどちらが正か分からなくなる。 */
-      label: "ブックマーク",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-        </svg>
-      ),
-    },
-    /* ★「フォロー中」は 2026-09-18 に外した（柴さんの指示）。
-          ⚠️ 上のプロフィールカードの「フォロー中 0人 / フォロワー 0人」と**役割が重なる**ため。
-             戻すなら、あちらの数字を消すかどうかを先に決めること（入口が2つに戻る）。
-          ⚠️ 行き先（`/mypage/follows`）は消えていない。プロフィールカードの
-             「フォロー中の企業」がそこへ送る。 */
-  ];
-
-  return (
-    <div style={{ width: 320, flexShrink: 0 }}>
-      {/* ★ミニプロフィール＋つながりの数。**`/people` の左サイドバーと同じ部品**（2026-09-18）。
-             ⚠️ ここに描き直さないこと。`components/common/ProfileCard` が唯一の実体。
-             ⚠️★肩書きの出どころも `lib/people/sidebarData.ts` に揃えた。それまで
-                **フィードだけ `ow_experiences.role_title`（本人の自由入力）**を出していて、
-                同じ人が `/people` では「Salesforce／新規事業開発」、ここでは「AE」に
-                分かれて見えていた（2026-09-18 実測。同じ行の別々の列を読んでいた）。
-             ⚠️ 未ログイン（profileCard が null）のときは出さない。
-                以前あった「ログイン」ボタンはヘッダーが持っている。 */}
-      {profileCard && <ProfileCard {...profileCard} />}
-
-      {/* ナビカード */}
-      <div style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 14,
-        overflow: "hidden",
-        boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-      }}>
-        {NAV_ITEMS.map((item, i) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              padding: "10px 14px",
-              textDecoration: "none",
-              fontFamily: "var(--font-inter), var(--font-noto)",
-              fontSize: 13,
-              color: "var(--ink-soft)",
-              borderBottom: i < NAV_ITEMS.length - 1 ? "1px solid var(--line)" : "none",
-              transition: "background 0.12s, color 0.12s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-tint)";
-              (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.background = "";
-              (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-soft)";
-            }}
-          >
-            <span style={{ color: "var(--ink-mute)", flexShrink: 0 }}>{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
+/* ★2026-11-04 に3つの箱（プロフィール／数字／マイページ・ブックマーク）を1枚のカードにまとめた（柴さんの指示）。
+     実体は components/feed/HomeProfileCard。⚠️ ここに描き直さないこと。
+   ⚠️ 未ログイン（profileCard が null）のときは出さない */
+function FeedLeftPanel({ profileCard }: { profileCard?: HomeProfileCardData | null }) {
+  if (!profileCard) return null;
+  return <HomeProfileCard {...profileCard} />;
 }
 
 // ─── 右の列の枠（2026-10-20 / 柴さんの指示）────────────────────────────────────
@@ -2343,7 +2256,6 @@ export default function FeedClient({
   /* ★職歴の案内（×で7日間出さない）。出している間は左の列の「職歴を追加する」を隠す（2026-11-04） */
   const [careerVisible, closeCareer] = useCareerPrompt(careerPrompt);
   const careerBox = careerVisible ? <CareerPromptBox onClose={closeCareer} /> : null;
-  const leftProfileCard = profileCard ? { ...profileCard, nextStep: leftNextStepWhileCareerPrompt(profileCard.nextStep, careerVisible) } : profileCard;
   /* ★「すべて／フォロー中」のタブは 2026-10-20 になくした（柴さんの指示）。1本の流れにし、フォローしている人・企業の投稿を先に出す。
         ⚠️ `tab` は "all" 固定の名残。API の tab=followed は残してある（使い手は無い） */
   const tab = "all" as "all" | "followed";
@@ -2508,10 +2420,10 @@ export default function FeedClient({
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
 
-      {/* 左カラム: ミニプロフィール + ナビ (≥1024px) */}
+      {/* 左カラム: プロフィールと数字のカード（1024px 以上。1023px 以下は出さない） */}
       {isWide && (
         <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
-          <FeedLeftPanel profileCard={leftProfileCard} />
+          <FeedLeftPanel profileCard={profileCard} />
         </div>
       )}
 

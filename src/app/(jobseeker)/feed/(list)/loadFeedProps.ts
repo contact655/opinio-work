@@ -14,7 +14,8 @@ import { getFeedSidebarCompanies } from "@/lib/supabase/queries";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
-import type { ProfileCardProps } from "@/components/common/ProfileCard";
+import type { HomeProfileCardData } from "@/components/feed/HomeProfileCard";
+import { getMyTalkCapacity } from "@/lib/talk/server";
 import { getCareerMoveBlocks, type CareerMoveBlock } from "@/lib/feed/careerMoves";
 
 
@@ -106,7 +107,7 @@ export async function loadFeedProps() {
   /* ★ミニプロフィールカードの中身。**`/people` の左サイドバーと同じ `getPeopleSidebarData`**（2026-09-18）。
         ⚠️★`ow_experiences.role_title`（自由入力）を直に読む形に戻さないこと。
            それが `/people`（会社 ／ ow_roles名）と食い違っていた原因。 */
-  let profileCard: ProfileCardProps | null = null;
+  let profileCard: HomeProfileCardData | null = null;
 
   // 初期投稿を SSR でフェッチ（adminClient でコメント数・いいね数を確実に取得）
   // ⚠️ 読みは ow_posts_visible。参照先が消えた投稿（ref_* が NULL）を落とすビュー。
@@ -125,7 +126,7 @@ export async function loadFeedProps() {
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
     `;
-  const [sidebarResult, viewerIsTest, rawPostsResult, rawBlockResult, humanPostsResult] = await Promise.all([
+  const [sidebarResult, viewerIsTest, rawPostsResult, rawBlockResult, humanPostsResult, talkCapacity] = await Promise.all([
     myOwUserId ? getPeopleSidebarData(myOwUserId) : Promise.resolve(null),
     viewerIsTestByAuthId(user?.id),
     adminSupabase
@@ -149,6 +150,8 @@ export async function loadFeedProps() {
       .eq("post_type", "user_post")
       .order("created_at", { ascending: false }).order("id", { ascending: false })
       .limit(500),
+    /* ★左のカードの「話を聞ける：◯◯」（2026-11-04） */
+    myOwUserId ? getMyTalkCapacity(myOwUserId) : Promise.resolve(null),
   ]);
   if (rawBlockResult.error) console.error("[feed] block posts:", rawBlockResult.error.message);
   if (humanPostsResult.error) console.error("[feed] human posts:", humanPostsResult.error.message);
@@ -160,7 +163,7 @@ export async function loadFeedProps() {
   /* ⚠️ 取得に失敗したら null のまま（カードごと出さない）。
         `getPeopleSidebarData` の中で列ごとに console.error を出している。 */
   if (sidebarResult) {
-    profileCard = { me: sidebarResult.me, counts: sidebarResult.counts, nextStep: sidebarResult.nextStep };
+    profileCard = { me: sidebarResult.me, counts: sidebarResult.counts, experienceCount: sidebarResult.experienceCount, talkCapacity };
   }
 
   const posts = (rawPostsResult.data ?? []) as unknown as RawPost[];
