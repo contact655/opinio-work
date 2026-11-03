@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ★フォントの読み込みを待つあいだに使う予備の書体（2026-11-04。フォントをリポジトリに置いたときに layout.tsx から移した）。
+     値は next/font/google が自動で作っていたものと同じ（大きさ・行の高さを本物に寄せて、読み込み後のずれを小さくする）。
+   ⚠️ 名前は layout.tsx の --font-inter / --font-noto-serif の末尾と同じ。片方だけ変えないこと */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local("Arial");
+  ascent-override: 90.49%;
+  descent-override: 22.56%;
+  line-gap-override: 0.00%;
+  size-adjust: 107.06%;
+}
+@font-face {
+  font-family: 'Noto Serif JP Fallback';
+  src: local("Times New Roman");
+  ascent-override: 95.82%;
+  descent-override: 23.81%;
+  line-gap-override: 0.00%;
+  size-adjust: 120.12%;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Design tokens
    スタイリング方針: インライン style + CSS 変数を正式採用。
