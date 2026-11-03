@@ -5,6 +5,8 @@ import { parseSecondment } from "@/lib/experiences/secondment";
 import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
+import { isSameCompany } from "@/lib/experiences/companyKey";
+import { clearJoinDecisionForExperience } from "@/lib/joinDecision/server";
 
 export const dynamic = "force-dynamic";
 
@@ -133,15 +135,19 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         **前の会社と後の会社の両方**の企業ページから社員一覧が変わる。
         後だけ落とすと、前の会社のページにその人が残り続ける（最大300秒）。 */
   const beforeRow = await supabase
-    .from("ow_experiences").select("company_id").eq("id", params.id).eq("user_id", owUser.id).maybeSingle();
+    .from("ow_experiences").select("company_id, company_text, company_anonymized").eq("id", params.id).eq("user_id", owUser.id).maybeSingle();
   const beforeCompanyId = (beforeRow.data?.company_id as string | null) ?? null;
+
+  const afterCompany = {
+    company_id: hasCompanyId ? (body.company_id as string) : null,
+    company_text: hasCompanyText ? s(body.company_text, 200) : null,
+    company_anonymized: hasCompanyAnon ? s(body.company_anonymized, 200) : null,
+  };
 
   const { data: updated, error } = await supabase
     .from("ow_experiences")
     .update({
-      company_id: hasCompanyId ? (body.company_id as string) : null,
-      company_text: hasCompanyText ? s(body.company_text, 200) : null,
-      company_anonymized: hasCompanyAnon ? s(body.company_anonymized, 200) : null,
+      ...afterCompany,
       role_category_id: roleId,
       role_title: s(body.role_title, 100),
       department: s(body.department, 100),
@@ -183,6 +189,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "更新に失敗しました" }, { status: 500 });
   }
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  /* ★会社が変わったら、この職歴に付いた入社の決め手を消す（2026-11-04 / 柴さんの判断 ①）。
+        消さないと元の会社への回答が新しい会社の回答として残り、設問も出ない。
+        ⚠️ 職歴の保存は済んでいるので、消すのに失敗しても 500 にしない（ログだけ出す） */
+  if (beforeRow.data && !isSameCompany(beforeRow.data, afterCompany)) {
+    const cleared = await clearJoinDecisionForExperience(owUser.id as string, params.id);
+    if (!cleared) console.error("[PUT /api/jobseeker/experiences/:id] 会社の変更で決め手を消せなかった", params.id);
+  }
 
   /* 入社前後のギャップ（別テーブル）。
      ⚠️ gaps キーが無いリクエストでは**触らない**。空配列が来たときだけ全消し。

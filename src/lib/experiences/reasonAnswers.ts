@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateAllowNone, mutateMany, mutateOne } from "@/lib/supabase/mutate";
+import { companyKey } from "@/lib/experiences/companyKey";
 import {
   EMPTY_REASON_ANSWERS_V2,
   EXPECTATION_UNRATED,
@@ -79,12 +80,8 @@ export async function requireOwnExperience(experienceId: string): Promise<OwnExp
   return { ok: true, owUserId: owUser.id as string, row: row as ExpRow };
 }
 
-/** 同じ会社かを決めるキー。⚠️ 匿名企業は名前で束ねる（入力欄は 2026-09-12 に削除済み・本番0件） */
-export function companyKey(r: Pick<ExpRow, "company_id" | "company_text" | "company_anonymized">): string {
-  if (r.company_id) return `id:${r.company_id}`;
-  if (r.company_text) return `text:${r.company_text.trim()}`;
-  return `anon:${(r.company_anonymized ?? "").trim()}`;
-}
+/** 同じ会社かを決めるキー。⚠️ 規則は companyKey.ts（2026-11-04 に切り出した。テストから読むため） */
+export { companyKey };
 
 /** 本人の、同じ会社の行（役割）をすべて */
 export async function companyRows(owUserId: string, base: ExpRow): Promise<ExpRow[] | null> {
