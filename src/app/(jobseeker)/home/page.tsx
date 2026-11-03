@@ -177,6 +177,10 @@ function SimilarBlock({ s, k }: { s: SimilarPaths; k: { roleLabel: string; indus
           </Item>
         )}
       </div>
+      {/* ★行き先の画面へ（2026-11-04）。起点は /paths が本人の直近の職歴から同じ規則（pickLatestExperience）で入れる */}
+      <p style={{ margin: "14px 0 0", fontSize: 13 }}>
+        <Link href="/paths" data-state="home-similar-paths" style={{ color: "var(--royal)", fontWeight: 600 }}>同じ経歴の人の行き先をもっと見る →</Link>
+      </p>
     </section>
   );
 }

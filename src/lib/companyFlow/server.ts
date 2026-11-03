@@ -1,4 +1,5 @@
 import "server-only";
+import { pickLatestExperience } from "@/lib/experiences/latest";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
@@ -231,9 +232,7 @@ export async function getSimilarPaths(viewerOwUserId: string): Promise<SimilarPa
   if (mine.error) console.error("[companyFlow] similar mine:", mine.error.message);
   if (!pop || mine.error) return { key: null, summary: null };
   type Mine = { started_at: string | null; is_current: boolean | null; role_category_id: string | null; ow_companies: { industry_id: string | null } | null };
-  const latest = ((mine.data ?? []) as unknown as Mine[])
-    .filter((e) => e.started_at)
-    .sort((a, b) => Number(b.is_current === true) - Number(a.is_current === true) || (b.started_at as string).localeCompare(a.started_at as string))[0];
+  const latest = pickLatestExperience((mine.data ?? []) as unknown as Mine[]);
   if (!latest) return { key: null, summary: null };
   const indById = new Map(pop.industries.map((i) => [i.id, i]));
   const roleById = new Map(pop.roles.map((r) => [r.id, r]));

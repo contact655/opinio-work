@@ -53,6 +53,8 @@ const NAV_LINKS = [
   { href: "/companies", label: "企業" },
   { href: "/jobs", label: "募集" },
   { href: "/people", label: "ユーザー" },
+  /* ★2026-11-04: 同じ経歴の人の行き先（/paths）。未ログインにも出す（集計だけの画面） */
+  { href: "/paths", label: "行き先" },
   { href: "/articles", label: "記事" },
 ];
 
@@ -1130,7 +1132,7 @@ export function JobseekerHeader() {
               ここに並べない（2026-10-17）。同じ行き先が画面の上と下に2つずつ並んでいた。
               ⚠️ タブバーに無い「記事」だけ残す。⚠️ 未ログインは従来どおり全部出す。 */}
           {/* ⚠️ 2026-10-27: タブバーに無い「フィード」（/feed）もここに置く。未ログインには「ホーム」（/home）を出さない */}
-          {NAV_LINKS.filter(({ href }) => (mobileSignedIn ? href === "/articles" || href === "/feed" : href !== "/home" || !!user)).map(({ href, label }) => {
+          {NAV_LINKS.filter(({ href }) => (mobileSignedIn ? href === "/articles" || href === "/feed" || href === "/paths" : href !== "/home" || !!user)).map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab
