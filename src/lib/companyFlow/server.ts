@@ -24,7 +24,9 @@ export async function getCompanyFlow(companyId: string): Promise<CompanyFlow | n
     industry: input.industryName,
     role: input.roleName,
     reason: (k) => DECISIVE_REASON_LABELS[k] ?? k,
-  }, { minCareerFact: MIN_CAREER_FACT_COUNT, minAnswer: MIN_AGGREGATE_COUNT, fitGoodMin: FIT_GOOD_MIN });
+  /* ★★2026-11-04: 企業ページ「人の流れ」の経歴の項目も 5人（MIN_AGGREGATE_COUNT）にそろえた（柴さんの指示）。
+        検索の「出た人」とホームの「似た経歴」は MIN_CAREER_FACT_COUNT（3人）のまま。 */
+  }, { minCareerFact: MIN_AGGREGATE_COUNT, minAnswer: MIN_AGGREGATE_COUNT, fitGoodMin: FIT_GOOD_MIN });
 }
 
 /**
@@ -139,7 +141,7 @@ async function loadFlowInput(companyId: string, opts: { withTurns: boolean }): P
  * ⚠️ 返す形を変えたらキーの版を上げること（古い形のキャッシュが残ると項目が黙って欠ける）。
  */
 export const getCompanyFlowCached = (companyId: string) =>
-  unstable_cache(() => getCompanyFlow(companyId), ["company-flow-v1", companyId], { revalidate: 300 })();
+  unstable_cache(() => getCompanyFlow(companyId), ["company-flow-v2", companyId], { revalidate: 300 })();
 
 /* ── ★ホーム「あなたと似た経歴の人は、こう動いています」（2026-10-27）──────────────────────── */
 

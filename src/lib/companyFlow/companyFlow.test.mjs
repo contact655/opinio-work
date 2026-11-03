@@ -165,3 +165,29 @@ test("★ホームの「似た経歴」：本人を除き、似た職歴の会�
   const fits5 = new Map([...fits4, ["e-user-d-2", 4], ["e-user-e-2", 1]]);
   assert.deepEqual(computeSimilarPaths("me", KEY, five, fits5, L2, OPT).fitAfterYear, { respondents: 5, goodShare: 60 });
 });
+
+test("★企業ページの「人の流れ」は経歴の項目も5人から（MIN_AGGREGATE_COUNT）。4人なら出さない", async () => {
+  const { MIN_AGGREGATE_COUNT } = await import("../constants/aggregate.ts");
+  assert.equal(MIN_AGGREGATE_COUNT, 5);
+  const opt = { ...OPT, minCareerFact: MIN_AGGREGATE_COUNT };
+  const four = computeCompanyFlow(C, ["a", "b", "c", "d"].flatMap((u) => person(u)), [], L, opt);
+  assert.equal(four.previous, null);
+  assert.equal(four.next, null);
+  assert.equal(four.tenure, null);
+  assert.equal(hasAnyFlowItem(four), false, "4人では見出しごと出さない");
+  const five = computeCompanyFlow(C, ["a", "b", "c", "d", "e"].flatMap((u) => person(u)), [], L, opt);
+  assert.equal(five.previous.known, 5);
+  assert.equal(five.next.known, 5);
+  assert.equal(five.tenure.alumni, 5);
+  assert.ok(hasAnyFlowItem(five));
+});
+
+test("★getCompanyFlow（企業ページ）は経歴の下限に MIN_AGGREGATE_COUNT を渡している", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./server.ts", import.meta.url), "utf8");
+  /* ⚠️ コメントを落としてから見る（注記に定数名を書いてある） */
+  const body = src.slice(src.indexOf("export async function getCompanyFlow("), src.indexOf("export async function getCompanyLeaverSummary("))
+    .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.match(body, /minCareerFact: MIN_AGGREGATE_COUNT/);
+  assert.doesNotMatch(body, /MIN_CAREER_FACT_COUNT/);
+});
