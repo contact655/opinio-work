@@ -15,6 +15,8 @@ import {
 } from "@/lib/conversations/messageRequest";
 import { dmTopicSections } from "@/lib/conversations/dmTopics";
 import { GENERAL_FIRST_MESSAGE_MAX } from "@/lib/constants/messages";
+import { talkProfileOf } from "@/lib/talk/server";
+import { TALK_UNAVAILABLE_TEXT } from "@/lib/constants/talk";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -99,9 +101,14 @@ export async function GET(request: NextRequest) {
   }
   /* ★つながっている（相互フォロー）なら、返事待ちを挟まずにすぐ始められる（2026-10-20）。
        テーマは聞かず、ふつうのメッセージ欄を出す（`connected`）。返事待ちの枠も見ない */
+  /* ★相手の立場（2026-11-03）。書く画面に「採用担当（◯◯）」などを出す */
+  const talk = await talkProfileOf(targetUserId);
+  if (!talk) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
   if ((await isMutualFollow(meId, targetUserId)) === true) {
-    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX });
+    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX, stanceLabel: talk.stanceLabel });
   }
+  /* ★つながっていない人への最初の1通＝「話を聞く」依頼。相手が受け付けていなければ書かせない（送信の検証と同じ関数） */
+  if (!talk.accepts) return NextResponse.json({ action: "blocked", message: TALK_UNAVAILABLE_TEXT });
   const quota = await getRequestQuota(meId);
   if (!quota) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
   const quotaMsg = quotaBlockMessage(quota);
@@ -112,7 +119,7 @@ export async function GET(request: NextRequest) {
   const aboutRaw = request.nextUrl.searchParams.get("aboutCompanyId");
   const topicSections = await dmTopicSections(targetUserId, aboutRaw && UUID_RE.test(aboutRaw) ? aboutRaw : null);
   if (!topicSections) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-  return NextResponse.json({ action: "compose", quota, topicSections, messageMaxLength: GENERAL_FIRST_MESSAGE_MAX });
+  return NextResponse.json({ action: "compose", quota, topicSections, messageMaxLength: GENERAL_FIRST_MESSAGE_MAX, stanceLabel: talk.stanceLabel });
 }
 
 export async function POST(request: NextRequest) {

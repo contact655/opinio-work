@@ -77,6 +77,8 @@ export const PERMISSIONS = {
   "employees.manage": AR,
   "materials.view": AR,
   "materials.edit": AR,
+  /* ★「採用担当」の立場で話せる（2026-11-03）。⚠️ DB の auth_company_can の 'talk_recruiter' と同じ集合（DB_LEVEL_ROLES） */
+  "talk.asRecruiter": AR,
   // 閲覧のみ以上（見るだけ）
   "selection.view": ARV,
   "candidates.viewProfile": ARV,
@@ -103,6 +105,8 @@ export const DB_LEVEL_ROLES = {
   view: ARV,
   work: AR,
   admin: A,
+  /* ★2026-11-03。「採用担当」の立場を選べる担当者（PERMISSIONS の talk.asRecruiter と同じ） */
+  talk_recruiter: AR,
 } as const;
 
 /** 「ひとまず管理者だけ」にした操作（報告用・メンバーの画面の注記用） */

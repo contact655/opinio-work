@@ -18,6 +18,7 @@ import type { IncomingRequest } from "@/lib/conversations/messageRequest";
 import { askCompanyName, formatLabel, isMessageFormat, isMessageTopic, requestHeadline } from "@/lib/constants/messageTopics";
 import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
 import { PendingFollowUp } from "@/components/messages/PendingFollowUp";
+import { TALK_AUTO_DECLINED_TEXT } from "@/lib/constants/talk";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
 const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
@@ -34,6 +35,8 @@ export type Conversation = {
   /** ★DM の「メッセージのお願い」の段（段階3）。この一覧に出るのは自分が参加者の会話だけなので、
    *  pending ＝ 自分が送って承認待ち（断られていても pending のまま見える） */
   request_status?: string | null;
+  /** ★自分が送った「話を聞く」依頼が、返事の無いまま14日で自動の辞退になった（2026-11-03。送った本人にだけ true） */
+  talk_auto_declined?: boolean;
   /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
   request_topic?: string | null;
   request_format?: string | null;
@@ -707,9 +710,12 @@ export default function ConversationsClient({
                       </span>
                     </div>
                     {/* ★自分が送った最初のメッセージに返信がまだ無い（段階3）。⚠️ 見送られていても同じ表示 */}
-                    {isPendingRequest(conv) && (
+                    {isPendingRequest(conv) && (conv.talk_auto_declined ? (
+                      /* ★14日たって自動で辞退になった（2026-11-03）。⚠️ 理由は出さない */
+                      <div data-state="talk-auto-declined" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>{TALK_AUTO_DECLINED_TEXT}</div>
+                    ) : (
                       <div data-state="request-pending" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>返信を待っています</div>
-                    )}
+                    ))}
                     <div style={{ fontSize: 12.5, fontWeight: hasUnread ? 600 : 400, color: hasUnread ? "var(--ink)" : "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                       {conv.lastMessage ?? "これから対話"}
                     </div>
@@ -868,8 +874,13 @@ export default function ConversationsClient({
               {isPendingRequest(selectedConv) ? (
                 /* ★返信が無くても、1通目から3日たてばもう1通だけ送れる（2026-10-22 / A案）。判定は API の1か所 */
                 <div style={{ borderTop: "1px solid var(--line)", padding: "12px 16px", flexShrink: 0, background: "var(--line-soft)" }}>
-                  <PendingFollowUp key={selectedConvId ?? ""} conversationId={selectedConvId ?? ""} fallbackText={NOT_ACCEPTED_TEXT}
-                    onSent={() => (selectedConvId ? fetchMessages(selectedConvId) : undefined)} />
+                  {selectedConv?.talk_auto_declined ? (
+                    /* ★14日たって自動で辞退になった（2026-11-03）。⚠️ 理由は出さない。続きも送らせない */
+                    <p data-state="talk-auto-declined" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>{TALK_AUTO_DECLINED_TEXT}</p>
+                  ) : (
+                    <PendingFollowUp key={selectedConvId ?? ""} conversationId={selectedConvId ?? ""} fallbackText={NOT_ACCEPTED_TEXT}
+                      onSent={() => (selectedConvId ? fetchMessages(selectedConvId) : undefined)} />
+                  )}
                 </div>
               ) : (
               /* 入力エリア */

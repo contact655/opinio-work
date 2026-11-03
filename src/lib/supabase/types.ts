@@ -3210,6 +3210,41 @@ export type Database = {
           },
         ]
       }
+      ow_company_reason_rankings: {
+        Row: {
+          choice_version: number
+          company_id: string
+          computed_at: string
+          period: string
+          rank: number
+          reason: string
+        }
+        Insert: {
+          choice_version: number
+          company_id: string
+          computed_at?: string
+          period: string
+          rank: number
+          reason: string
+        }
+        Update: {
+          choice_version?: number
+          company_id?: string
+          computed_at?: string
+          period?: string
+          rank?: number
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_reason_rankings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_company_scout_access: {
         Row: {
           company_id: string
@@ -5150,6 +5185,57 @@ export type Database = {
           {
             foreignKeyName: "ow_jobs_stopped_by_fkey"
             columns: ["stopped_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_join_decisions: {
+        Row: {
+          answered_at: string | null
+          choice_version: number
+          created_at: string
+          experience_id: string
+          reasons: string[] | null
+          reshown_at: string | null
+          skipped_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          choice_version?: number
+          created_at?: string
+          experience_id: string
+          reasons?: string[] | null
+          reshown_at?: string | null
+          skipped_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          choice_version?: number
+          created_at?: string
+          experience_id?: string
+          reasons?: string[] | null
+          reshown_at?: string | null
+          skipped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_join_decisions_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: true
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_join_decisions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
             referencedColumns: ["id"]
@@ -7129,6 +7215,97 @@ export type Database = {
             columns: ["experience_id"]
             isOneToOne: false
             referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_talk_requests: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          requester_user_id: string
+          resolved_at: string | null
+          status: string
+          target_user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          requester_user_id: string
+          resolved_at?: string | null
+          status?: string
+          target_user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          requester_user_id?: string
+          resolved_at?: string | null
+          status?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_talk_requests_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_talk_requests_requester_user_id_fkey"
+            columns: ["requester_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_talk_requests_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_talk_settings: {
+        Row: {
+          capacity: string
+          stance: string | null
+          stance_company_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capacity?: string
+          stance?: string | null
+          stance_company_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          capacity?: string
+          stance?: string | null
+          stance_company_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_talk_settings_stance_company_id_fkey"
+            columns: ["stance_company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_talk_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]

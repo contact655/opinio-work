@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FirstMessageComposer } from "@/components/messages/FirstMessage";
 import type { MessageFormat, MessageTopic, TopicSection } from "@/lib/constants/messageTopics";
+import { loadTalkAvailability, type TalkAvailability } from "@/lib/talk/availabilityClient";
 
 type Props = {
   targetUserId: string;
@@ -51,7 +52,20 @@ const ICON = (
  * ★2026-10-17: 書く画面は「聞きたいテーマ＋ひとこと（100字）」（FirstMessageComposer）。
  *   テーマは GET /api/dm/start が相手ごとに返すもの（送信の検証と同じ関数 dmTopicSections）。
  */
-export function DMButton({ targetUserId, targetName, label, variant = "button", aboutCompanyId = null }: Props) {
+export function DMButton({ targetUserId, targetName, label: labelProp, variant = "button", aboutCompanyId = null }: Props) {
+  /* ★「話を聞く」の出し分け（2026-11-03 / 柴さんの決定）。つながっていない人への最初の1通＝「話を聞く」依頼。
+       相手が受け付けていない（今は話せない・月1件の上限に届いた）ならボタンごと出さない。相互フォローの相手にはこれまでどおり「メッセージ」。
+       判定はサーバー（GET /api/talk/availability。最初の1通の送信の検証と同じ関数） */
+  const [avail, setAvail] = useState<TalkAvailability | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void loadTalkAvailability(targetUserId).then((a) => { if (alive) setAvail(a); });
+    return () => { alive = false; };
+  }, [targetUserId]);
+  /* つながっていない相手には「話を聞く」。⚠️ 企業の担当者向けの「…」メニュー（個人としてメッセージを送る）は文言を変えない */
+  const label = avail && !avail.connected && variant !== "menuItem" ? "話を聞く" : labelProp;
+  /* ★相手の立場（書く画面に出す。GET /api/dm/start が返す） */
+  const [stanceLabel, setStanceLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ text: string; requestsLink?: boolean } | null>(null);
   const [composing, setComposing] = useState(false);
@@ -84,6 +98,7 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
         router.push(`/mypage/conversations?open=${data.conversationId}`);
         return;
       }
+      setStanceLabel(typeof data.stanceLabel === "string" ? data.stanceLabel : null);
       if (data.action === "compose" && data.connected === true) {
         setMode("connected");
         setMaxLength(typeof data.maxLength === "number" ? data.maxLength : 2000);
@@ -162,6 +177,10 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
   }, [notice, floatingNotice]);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  /* ★確かめ終わるまで・送れない相手には出さない（押しても送れないボタンを出さない） */
+  if (!avail || !avail.show) return null;
+  const stanceLine = stanceLabel ? `立場：${stanceLabel}` : null;
 
   return (
     <>
@@ -244,18 +263,18 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
         >
           <div style={{ width: "100%", maxWidth: 560, maxHeight: "100%", overflowY: "auto", borderRadius: 12, boxShadow: "0 20px 50px rgba(0,0,0,0.2)" }}>
             {mode === "connected" ? (
-              <PlainComposer titleId="dm-request-title" recipientName={targetName} maxLength={maxLength} state="connection-composer"
+              <PlainComposer titleId="dm-request-title" recipientName={targetName} stanceLine={stanceLine} maxLength={maxLength} state="connection-composer"
                 note="つながっている方なので、送るとすぐにやり取りを始められます。"
                 onSend={handleSendConnected} onCancel={() => { if (!sending) setComposing(false); }} />
             ) : mode === "choose" ? (
-              <ChooseKind titleId="dm-request-title" recipientName={targetName} onChoose={setMode} onCancel={() => setComposing(false)} />
+              <ChooseKind titleId="dm-request-title" recipientName={targetName} stanceLine={stanceLine} onChoose={setMode} onCancel={() => setComposing(false)} />
             ) : mode === "message" ? (
-              <PlainComposer titleId="dm-request-title" recipientName={targetName} maxLength={maxLength} state="message-composer"
+              <PlainComposer titleId="dm-request-title" recipientName={targetName} stanceLine={stanceLine} maxLength={maxLength} state="message-composer"
                 note="あいさつ・お礼・連絡など。返信が無くても、続けて送れます。"
                 onBack={() => { if (!sending) setMode("choose"); }}
                 onSend={handleSendMessage} onCancel={() => { if (!sending) setComposing(false); }} />
             ) : (
-              <FirstMessageComposer titleId="dm-request-title" recipientName={targetName} recipientLine={null}
+              <FirstMessageComposer titleId="dm-request-title" recipientName={targetName} recipientLine={stanceLine}
                 sections={topicSections} onSend={handleSend} onCancel={() => { if (!sending) setComposing(false); }}
                 onBack={() => { if (!sending) setMode("choose"); }} />
             )}
@@ -273,8 +292,10 @@ export function DMButton({ targetUserId, targetName, label, variant = "button", 
  *   それ以外（あいさつ・お礼・連絡）はテーマを選ばずに書ける。
  * ⚠️ どちらも返信までは1通だけ。種類で決まりを変えない（決まりは lib/conversations/messageRequest.ts）
  */
-function ChooseKind({ recipientName, onChoose, onCancel, titleId }: {
+function ChooseKind({ recipientName, stanceLine, onChoose, onCancel, titleId }: {
   recipientName: string;
+  /** ★相手の立場（「立場：採用担当（◯◯）」など。2026-11-03） */
+  stanceLine: string | null;
   onChoose: (m: "consult" | "message") => void;
   onCancel: () => void;
   titleId: string;
@@ -288,7 +309,10 @@ function ChooseKind({ recipientName, onChoose, onCancel, titleId }: {
   );
   return (
     <div data-state="dm-choose-kind" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "16px 18px", background: "#fff", display: "grid", gap: 10, minWidth: 0 }}>
-      <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
+      <div>
+        <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
+        {stanceLine && <div data-state="dm-stance" style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>{stanceLine}</div>}
+      </div>
       {option("consult", "キャリアの相談をする", "聞きたいことを選んで、ひとこと添えて送ります。")}
       {option("message", "メッセージを送る", "あいさつ・お礼・連絡など、相談以外の用件です。")}
       <div style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6 }}>どちらも、返信があるとやり取りが始まります。</div>
@@ -306,8 +330,10 @@ function ChooseKind({ recipientName, onChoose, onCancel, titleId }: {
  * ★テーマを選ばずに書く画面（2026-10-20）。つながっている相手へ／「メッセージを送る」を選んだときに使う。
  * ⚠️ `note` で、送ったあとどうなるか（すぐ会話になる／返信までは1通だけ）を一言で伝える。
  */
-function PlainComposer({ recipientName, maxLength, note, state, onSend, onCancel, onBack, titleId }: {
+function PlainComposer({ recipientName, stanceLine, maxLength, note, state, onSend, onCancel, onBack, titleId }: {
   recipientName: string;
+  /** ★相手の立場（2026-11-03） */
+  stanceLine: string | null;
   maxLength: number;
   note: string;
   state: string;
@@ -336,6 +362,7 @@ function PlainComposer({ recipientName, maxLength, note, state, onSend, onCancel
       )}
       <div style={{ minWidth: 0 }}>
         <div id={titleId} style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{recipientName}さんにメッセージを送る</div>
+        {stanceLine && <div data-state="dm-stance" style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 2 }}>{stanceLine}</div>}
         <div style={{ fontSize: 12.5, color: "var(--ink-mute)", marginTop: 4, lineHeight: 1.6 }}>{note}</div>
       </div>
       <textarea

@@ -45,6 +45,8 @@ test("DB の段（auth_company_can）は、アプリの操作と同じ役割の�
   same(DB_LEVEL_ROLES.work, PERMISSIONS["jobs.edit"]);
   same(DB_LEVEL_ROLES.admin, PERMISSIONS["members.manage"]);
   same(DB_LEVEL_ROLES.member, COMPANY_ROLES);
+  /* ★2026-11-03: 「採用担当」の立場で話せる人。SQL の when 'talk_recruiter' と同じ集合 */
+  same(DB_LEVEL_ROLES.talk_recruiter, PERMISSIONS["talk.asRecruiter"]);
 });
 
 test("開ける画面（ホームのリンクの出し分け）", async () => {
