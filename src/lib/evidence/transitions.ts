@@ -67,6 +67,36 @@ export function companyKey(e: TransitionExperience): string {
   return `anon:${e.id}`;
 }
 
+/** 「AからBへ移った」1件の、前後の職歴そのもの（呼び出し側の列をそのまま持つ） */
+export type MovePair<T extends TransitionExperience> = { userId: string; from: T; to: T };
+
+/**
+ * ★職歴を「移った」の前後の組に畳む（2026-11-04）。並べ替えと会社の同一性は buildMoves と同じ（buildMoves はこれを使う）。
+ *   前後の職歴の列（会社の業界・公開範囲など）が要る呼び出し側（/paths）のために、行をそのまま返す。
+ * ⚠️ 除外は呼び出し側が**組の単位で**行うこと。職歴を先に取り除くと、隣り合わなかった2つが「移動」に化ける。
+ */
+export function buildMovePairs<T extends TransitionExperience>(rows: readonly T[]): MovePair<T>[] {
+  const byUser = new Map<string, T[]>();
+  for (const r of rows) {
+    if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
+    byUser.get(r.user_id)!.push(r);
+  }
+  const out: MovePair<T>[] = [];
+  /* ⚠️ `for (const x of map)` にしないこと。tsconfig の target では TS2802 */
+  for (const [userId, list] of Array.from(byUser.entries())) {
+    const sorted = [...list].sort((a, b) =>
+      a.started_at === b.started_at
+        ? (a.ended_at ?? "9999-12-31").localeCompare(b.ended_at ?? "9999-12-31")
+        : a.started_at.localeCompare(b.started_at),
+    );
+    for (let i = 1; i < sorted.length; i++) {
+      if (companyKey(sorted[i - 1]) === companyKey(sorted[i])) continue;
+      out.push({ userId, from: sorted[i - 1], to: sorted[i] });
+    }
+  }
+  return out;
+}
+
 /**
  * 職歴を「移った」の列に畳む。
  *
@@ -77,35 +107,14 @@ export function companyKey(e: TransitionExperience): string {
  * @param rows 除外（is_test / 非公開など）を**済ませた**職歴。ここでは絞らない
  */
 export function buildMoves(rows: readonly TransitionExperience[]): Move[] {
-  const byUser = new Map<string, TransitionExperience[]>();
-  for (const r of rows) {
-    if (!byUser.has(r.user_id)) byUser.set(r.user_id, []);
-    byUser.get(r.user_id)!.push(r);
-  }
-
-  const out: Move[] = [];
-  /* ⚠️ `for (const x of map)` にしないこと。tsconfig の target では TS2802 */
-  for (const [userId, list] of Array.from(byUser.entries())) {
-    const sorted = [...list].sort((a, b) =>
-      a.started_at === b.started_at
-        ? (a.ended_at ?? "9999-12-31").localeCompare(b.ended_at ?? "9999-12-31")
-        : a.started_at.localeCompare(b.started_at),
-    );
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1];
-      const cur = sorted[i];
-      if (companyKey(prev) === companyKey(cur)) continue;
-      out.push({
-        userId,
-        fromCompanyId: prev.company_id,
-        fromCompanyText: prev.company_text,
-        fromRoleCategoryId: prev.role_category_id,
-        toCompanyId: cur.company_id,
-        toIsCurrent: cur.is_current,
-      });
-    }
-  }
-  return out;
+  return buildMovePairs(rows).map(({ userId, from, to }) => ({
+    userId,
+    fromCompanyId: from.company_id,
+    fromCompanyText: from.company_text,
+    fromRoleCategoryId: from.role_category_id,
+    toCompanyId: to.company_id,
+    toIsCurrent: to.is_current,
+  }));
 }
 
 /**

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSimilarPaths } from "@/lib/companyFlow/server";
+import { pickLatestExperience } from "@/lib/experiences/latest";
 import type { SimilarPaths } from "@/lib/companyFlow/compute";
 import { reasonStatusForUser, companyKey } from "@/lib/experiences/reasonAnswers";
 import { EXPERIENCE_COMPANY_COLS, resolveExperienceCompanyLabel } from "@/lib/experiences/companyName";
@@ -60,8 +61,7 @@ export default async function HomePage() {
   /* ★振り返りの進み具合。/mypage の帯（「N つの転機のうち M つ回答済み」）と同じ数え方（会社ごと・答えた＝2） */
   const companies = new Set(exps.map((e) => companyKey(e)));
   const done = new Set(exps.filter((e) => status?.[e.id] === 2).map((e) => companyKey(e)));
-  const latest = [...exps].filter((e) => e.started_at)
-    .sort((a, b) => Number(b.is_current === true) - Number(a.is_current === true) || (b.started_at as string).localeCompare(a.started_at as string))[0] ?? null;
+  const latest = pickLatestExperience(exps);
 
   const similar = exps.length > 0 ? await getSimilarPaths(owId) : { key: null, summary: null };
   const state = homeStateOf({ hasExperience: exps.length > 0, answeredTurns: done.size, hasSimilar: !!similar.summary });
@@ -172,6 +172,10 @@ function SimilarBlock({ s, k }: { s: SimilarPaths; k: { roleLabel: string; indus
           </Item>
         )}
       </div>
+      {/* ★行き先の画面へ（2026-11-04）。起点は /paths が本人の直近の職歴から同じ規則（pickLatestExperience）で入れる */}
+      <p style={{ margin: "14px 0 0", fontSize: 13 }}>
+        <Link href="/paths" data-state="home-similar-paths" style={{ color: "var(--royal)", fontWeight: 600 }}>同じ経歴の人の行き先をもっと見る →</Link>
+      </p>
     </section>
   );
 }
