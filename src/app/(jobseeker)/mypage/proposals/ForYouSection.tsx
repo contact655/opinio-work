@@ -64,7 +64,7 @@ export default function ForYouSection({
     limit: number; moreHref: string; title: string;
     /**
      * ★並べ方（2026-11-04 / 柴さんの指示。ホームの並びを変えた）。
-     *   list … 1社1行（従来）／ rail … PC の右の列（340px。縦に並べる）／ scroll … スマホのタイムラインに挟む横スクロールのカード
+     *   list … 1社1行（従来）／ rail … PC の右の列（1024px 以上は 300px・768〜1023px は 340px。縦に並べる）／ scroll … スマホのタイムラインに挟む横スクロールのカード
      *   rail と scroll は1社ごとに ロゴ・会社名・理由1行・主の操作1つ と「…」。「保存」「あとで」「興味なし」は「…」の中
      *   ⚠️ 記録は従来と同じ（post / react / deliver / toggleLater / BookmarkButton）。新しい経路を作らない
      */

@@ -35,7 +35,7 @@ export function PrevCareerSummary({ view, variant = "people" }: {
   view: Pick<PathsView, "start" | "summary" | "wider">;
   variant?: "people" | "home" | "guest" | "rail";
 }) {
-  /* ★rail は PC のホームの右の列（340px。2026-11-04）。中身は home と同じで、項目を縦に1列で並べる */
+  /* ★rail は PC のホームの右の列（1024px 以上は 300px・768〜1023px は 340px。2026-11-04）。中身は home と同じで、項目を縦に1列で並べる */
   const homeLike = variant === "home" || variant === "rail";
   const hrefOf = variant === "guest" ? pathsHref : prevCareerHref;
   const start: PathsStartView | null = view.start;
