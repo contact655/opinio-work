@@ -59,7 +59,16 @@ export default function ForYouSection({
    * ★ホーム（/home）用の短い形（2026-10-27 / 柴さんの決定 8）。上から limit 社だけ1社1行で出し、下に「すべて見る →」。
    * ⚠️ 表示の切り替え・見出しでのまとめ・「興味なし」にした会社の一覧は出さない（それはマイページの役目）
    */
-  compact?: { limit: number; moreHref: string; title: string };
+  compact?: {
+    limit: number; moreHref: string; title: string;
+    /**
+     * ★並べ方（2026-11-04 / 柴さんの指示。ホームの並びを変えた）。
+     *   list … 1社1行（従来）／ rail … PC の右の列（340px。縦に並べる）／ scroll … スマホのタイムラインに挟む横スクロールのカード
+     *   rail と scroll は1社ごとに ロゴ・会社名・理由1行・主の操作1つ と「…」。「保存」「あとで」「興味なし」は「…」の中
+     *   ⚠️ 記録は従来と同じ（post / react / deliver / toggleLater / BookmarkButton）。新しい経路を作らない
+     */
+    layout?: "list" | "rail" | "scroll";
+  };
 }) {
   const [items, setItems] = useState(companies);
   const [busy, setBusy] = useState<string | null>(null);
@@ -70,6 +79,8 @@ export default function ForYouSection({
   const [confirming, setConfirming] = useState<ForYouView | null>(null);
   const [confirmErr, setConfirmErr] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  /* ★「…」のメニューを開いている会社（rail / scroll。2026-11-04） */
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   /* ★表示の形（2026-10-23 / 柴さんの指示）。リスト（1社1行）とタイル（ロゴと社名。押すと開く）。
         ⚠️ 選んだ形はこの端末にだけ覚える（localStorage。読めなければリスト） */
   const [view, setView] = useState<"list" | "tiles">("list");
@@ -306,6 +317,32 @@ export default function ForYouSection({
     />
   );
 
+  if (compact && (compact.layout === "rail" || compact.layout === "scroll")) {
+    const top = visible.slice(0, compact.limit);
+    if (loadFailed || top.length === 0) return null; // ★空の箱を出さない（ホームの約束）
+    const scroll = compact.layout === "scroll";
+    return (
+      <section aria-labelledby={`for-you-heading-${compact.layout}`} data-state={`home-for-you-${compact.layout}`}
+        className={scroll ? "fy-scroll-wrap" : "fy-rail-wrap"}>
+        <style>{FY_COMPACT_CSS}</style>
+        <h2 id={`for-you-heading-${compact.layout}`} className="fy-c-title">{compact.title}</h2>
+        <ol className={scroll ? "fy-scroll" : "fy-rail"} data-state="for-you-list">
+          {top.map((c) => (
+            <CompactItem key={c.id} c={c} busy={busy === c.id} menuOpen={menuFor === c.id} declining={declining === c.id}
+              onToggleMenu={() => { setMenuFor(menuFor === c.id ? null : c.id); setDeclining(null); }}
+              onInterested={() => { setConfirmErr(null); setConfirming(c); }}
+              onLater={() => { setMenuFor(null); void toggleLater(c); }}
+              onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
+              declineUi={actionsFor(c)}
+              error={errFor(c)} />
+          ))}
+        </ol>
+        {confirmDialog}
+        <Link href={compact.moreHref} data-state="home-for-you-more" className="fy-c-more">すべて見る →</Link>
+      </section>
+    );
+  }
+
   if (compact) {
     const top = visible.slice(0, compact.limit);
     if (loadFailed || top.length === 0) return null; // ★空の箱を出さない（ホームの約束）
@@ -429,6 +466,114 @@ const FY_ROW_CSS = `
   .fy-row-actions { flex: 0 0 auto; margin-left: auto; }
   .fy-row-actions.is-open { flex-basis: 100%; margin-left: 0; }
   @media (max-width: 760px) { .fy-row-actions { flex-basis: 100%; margin-left: 0; } }
+`;
+
+/**
+ * ★ホームの右の列・スマホの横スクロールの1社（2026-11-04）。ロゴ・会社名・理由1行・主の操作1つ・「…」。
+ *   主の操作: 担当者あり＝「話を聞いてみたい」（確認の画面へ）／担当者未登録＝「保存」（従来どおり。いないことが分かる文言は出さない）
+ *   「…」: 保存（担当者ありのときだけ。未登録の会社は主の操作が保存）・あとで（もう一度で外す）・興味なし（理由を選ぶ）
+ * ⚠️ メニューは絶対配置にしない（横スクロールの中で切れるため）。カードの中に開く
+ */
+function CompactItem(props: {
+  c: ForYouView;
+  busy: boolean;
+  menuOpen: boolean;
+  declining: boolean;
+  onToggleMenu: () => void;
+  onInterested: () => void;
+  onLater: () => void;
+  onStartDecline: () => void;
+  /** 「興味なし」の理由を選ぶ画面（Actions の declining 表示をそのまま使う） */
+  declineUi: React.ReactNode;
+  error: React.ReactNode;
+}) {
+  const { c } = props;
+  const reason = c.reasons[0] ?? null;
+  const text = reason ? `✓ ${reason}` : c.tagline;
+  const menuBtn: React.CSSProperties = { display: "block", width: "100%", textAlign: "left", padding: "8px 10px", border: "none", background: "none", fontSize: 13, color: "var(--ink)", cursor: "pointer", fontFamily: "inherit", borderRadius: 6 };
+  return (
+    <li data-company-id={c.id} data-rank={c.rank} className="fy-c-item">
+      <div className="fy-c-head">
+        <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="fy-name fy-c-name" title={c.name}>
+            {c.href ? <Link href={c.href} className="fit-company-link">{c.name}</Link> : c.name}
+          </div>
+          {text && <div className="fy-c-text" title={text} style={reason ? { color: "#14532D" } : undefined}>{text}</div>}
+        </div>
+      </div>
+      {props.declining ? (
+        <div className="fy-c-decline">{props.declineUi}</div>
+      ) : (
+        <div className="fy-c-actions">
+          {c.interested ? (
+            c.conversationId ? (
+              <Link href={`/mypage/conversations/${c.conversationId}`} data-state="for-you-interested" className="fy-c-primary fy-c-done">
+                メッセージを開く
+              </Link>
+            ) : (
+              <span data-state="for-you-interested" className="fy-c-primary fy-c-done">答えました</span>
+            )
+          ) : c.hasResponder ? (
+            <button type="button" disabled={props.busy} onClick={props.onInterested} data-action="for-you-interested" className="fy-c-primary"
+              style={{ opacity: props.busy ? 0.6 : 1 }}>
+              話を聞いてみたい
+            </button>
+          ) : (
+            <span data-state="for-you-save" className="fy-c-save">
+              <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
+            </span>
+          )}
+          <button type="button" onClick={props.onToggleMenu} aria-expanded={props.menuOpen} aria-label={`${c.name}のその他の操作`}
+            data-action="for-you-menu" className="fy-c-more-btn btn-fixed-size">…</button>
+        </div>
+      )}
+      {props.menuOpen && !props.declining && (
+        <div role="group" aria-label="その他の操作" data-state="for-you-menu" className="fy-c-menu">
+          {c.hasResponder && !c.interested && (
+            <span data-state="for-you-menu-save" style={{ display: "block", padding: "4px 10px" }}>
+              <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
+            </span>
+          )}
+          {!c.interested && (
+            <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"} data-action="for-you-later" style={menuBtn}>
+              {c.reaction === "later" ? "あとでから外す" : "あとで"}
+            </button>
+          )}
+          <button type="button" disabled={props.busy} onClick={props.onStartDecline} data-action="for-you-decline" style={menuBtn}>興味なし</button>
+        </div>
+      )}
+      {props.error}
+    </li>
+  );
+}
+
+/* ★ホームの右の列（rail）とスマホの横スクロール（scroll）の見た目（2026-11-04）。
+   ⚠️ このテンプレートのコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */
+const FY_COMPACT_CSS = `
+  .fy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-c-title { font-size: 14px; font-weight: 800; color: var(--ink); margin: 0 0 10px; }
+  .fy-rail-wrap { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; min-width: 0; }
+  .fy-rail { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+  .fy-rail .fy-c-item { padding-top: 12px; border-top: 1px solid var(--line-soft); }
+  .fy-rail .fy-c-item:first-child { padding-top: 0; border-top: none; }
+  .fy-scroll-wrap { margin: 4px 0 20px; min-width: 0; }
+  .fy-scroll { list-style: none; margin: 0; padding: 2px 2px 8px; display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .fy-scroll::-webkit-scrollbar { display: none; }
+  .fy-scroll .fy-c-item { flex: 0 0 240px; scroll-snap-align: start; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .fy-c-item { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .fy-c-head { display: flex; gap: 10px; align-items: center; min-width: 0; }
+  .fy-c-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+  .fy-c-text { font-size: 12px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-c-actions { display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .fy-c-primary { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--royal); background: #fff; color: var(--royal); font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; font-family: inherit; text-decoration: none; }
+  .fy-c-done { border-color: var(--line); color: var(--ink-soft); background: var(--line-soft); cursor: default; }
+  a.fy-c-done { cursor: pointer; color: var(--royal); }
+  .fy-c-save { flex: 1 1 auto; min-width: 0; }
+  .fy-c-more-btn { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); font-size: 16px; line-height: 1; cursor: pointer; font-family: inherit; }
+  .fy-c-menu { border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
+  .fy-c-decline { min-width: 0; }
+  .fy-c-more { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--royal); text-decoration: none; }
 `;
 
 function Actions(props: {

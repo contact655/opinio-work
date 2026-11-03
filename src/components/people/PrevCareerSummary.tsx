@@ -31,23 +31,27 @@ function Rows({ title, rows }: { title: string; rows: PathsRowView[] }) {
 
 export function PrevCareerSummary({ view, variant = "people" }: {
   view: Pick<PathsView, "start" | "summary" | "wider">;
-  variant?: "people" | "home" | "guest";
+  variant?: "people" | "home" | "guest" | "rail";
 }) {
+  /* ★rail は PC のホームの右の列（340px。2026-11-04）。中身は home と同じで、項目を縦に1列で並べる */
+  const homeLike = variant === "home" || variant === "rail";
   const hrefOf = variant === "guest" ? pathsHref : prevCareerHref;
   const start: PathsStartView | null = view.start;
   if (!start) return null;
   const s = view.summary;
   const hasRows = !!s && s.company.length + s.role.length + s.industry.length > 0;
-  if (variant === "home" && !hasRows) return null;
+  if (homeLike && !hasRows) return null;
 
   return (
-    <section data-state={variant === "home" ? "home-paths" : "paths-summary"}
+    <section data-state={variant === "rail" ? "home-paths-rail" : variant === "home" ? "home-paths" : "paths-summary"}
       className={variant === "home" ? "home-box" : undefined}
-      style={variant === "home" ? undefined : { marginBottom: 20, padding: 20, border: "1px solid var(--line)", borderRadius: 12, background: "#fff", minWidth: 0 }}>
-      <h2 style={{ fontSize: variant === "home" ? 17 : 16, fontWeight: 800, margin: "0 0 4px", color: "var(--ink)", lineHeight: 1.5 }}>
-        {variant === "home" ? "あなたと同じ経歴の人の行き先" : `「${prevCareerText(start)}」から次に進んだ人`}
+      style={variant === "home" ? undefined
+        : variant === "rail" ? { marginBottom: 16, padding: 16, border: "1px solid var(--line)", borderRadius: 14, background: "#fff", minWidth: 0 }
+        : { marginBottom: 20, padding: 20, border: "1px solid var(--line)", borderRadius: 12, background: "#fff", minWidth: 0 }}>
+      <h2 style={{ fontSize: variant === "home" ? 17 : variant === "rail" ? 14 : 16, fontWeight: 800, margin: "0 0 4px", color: "var(--ink)", lineHeight: 1.5 }}>
+        {homeLike ? "あなたと同じ経歴の人の行き先" : `「${prevCareerText(start)}」から次に進んだ人`}
       </h2>
-      {variant === "home" && (
+      {homeLike && (
         <p style={{ margin: "0 0 4px", fontSize: 12.5, color: "var(--ink-mute)", lineHeight: 1.7 }}>
           直近の職歴が「{prevCareerText(start)}」の人が、次にどこへ進んだか。
         </p>
@@ -56,7 +60,7 @@ export function PrevCareerSummary({ view, variant = "people" }: {
         <p data-state="paths-basis" style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-mute)" }}>{s.moverCount}人の動きから（5人以上の項目だけ）</p>
       )}
       {hasRows && s ? (
-        <div className="prev-career-dims">
+        <div className={variant === "rail" ? "prev-career-dims prev-career-dims--rail" : "prev-career-dims"}>
           <Rows title="次の会社" rows={s.company} />
           <Rows title="次の職種" rows={s.role} />
           <Rows title="次の業界" rows={s.industry} />
@@ -79,7 +83,7 @@ export function PrevCareerSummary({ view, variant = "people" }: {
           )}
         </div>
       )}
-      {variant === "home" && (
+      {homeLike && (
         <p style={{ margin: "14px 0 0", fontSize: 13 }}>
           <Link href={prevCareerHref(start)} data-state="home-paths-more" style={{ color: "var(--royal)", fontWeight: 600 }}>この経歴から進んだ人を見る →</Link>
         </p>
@@ -87,6 +91,7 @@ export function PrevCareerSummary({ view, variant = "people" }: {
       <style>{`
         .prev-career-dims { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
         @media (min-width: 768px) { .prev-career-dims { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .prev-career-dims.prev-career-dims--rail { gap: 14px; grid-template-columns: minmax(0, 1fr); }
       `}</style>
     </section>
   );
