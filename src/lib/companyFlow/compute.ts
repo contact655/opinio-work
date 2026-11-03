@@ -57,7 +57,8 @@ export type CompanyFlow = {
   next: { known: number; byIndustry: FlowBreakdown } | null;
   tenure: { alumni: number; avgMonths: number } | null;
   roleChanges: { people: number; paths: FlowBreakdown } | null;
-  decisiveTop: { respondents: number; top: FlowBreakdown } | null;
+  /* ⚠️★入社の決め手（decisiveTop）は 2026-11-02 に外した。いまは毎月1日のバッチで作る上位3つ
+        （lib/joinDecision/server.ts・ow_company_reason_rankings）で、人数を持たない。ここに戻さないこと */
   fitAfterYear: { respondents: number; goodShare: number } | null;
 };
 
@@ -159,20 +160,16 @@ export function computeCompanyFlow(
 
   /* ★回答由来は項目にも行にも minAnswer（5人）の下限（2026-10-27 / 柴さんの決定）。
         経歴由来の内訳と違い、行ごとの人数が少ないと「誰が何を選んだか」が推測できるため。5人に届く決め手が無ければ項目ごと出さない */
-  const q1 = turns.filter((t) => t.decisiveReasons.length > 0);
-  const decisiveRows = q1.length >= opt.minAnswer
-    ? tally(q1.flatMap((t) => t.decisiveReasons), L.reason).filter((r) => r.count >= opt.minAnswer).slice(0, 3) : [];
-  const decisiveTop = decisiveRows.length > 0 ? { respondents: q1.length, top: decisiveRows } : null;
   const q3 = turns.filter((t) => t.fitAfterYear !== null);
   const fitAfterYear = q3.length >= opt.minAnswer
     ? { respondents: q3.length, goodShare: Math.round((q3.filter((t) => (t.fitAfterYear ?? 0) >= opt.fitGoodMin).length / q3.length) * 100) } : null;
 
-  return { people, previous, next, tenure, roleChanges, decisiveTop, fitAfterYear };
+  return { people, previous, next, tenure, roleChanges, fitAfterYear };
 }
 
 /** 出せる項目が1つでもあるか（無ければ見出しごと出さない） */
 export function hasAnyFlowItem(f: CompanyFlow | null): boolean {
-  return !!f && !!(f.previous || f.next || f.tenure || f.roleChanges || f.decisiveTop || f.fitAfterYear);
+  return !!f && !!(f.previous || f.next || f.tenure || f.roleChanges || f.fitAfterYear);
 }
 
 /**
@@ -185,7 +182,6 @@ export type CompanyFlowSummary = {
   next: { known: number } | null;
   tenure: { alumni: number } | null;
   roleChanges: { people: number } | null;
-  decisiveTop: { respondents: number } | null;
   fitAfterYear: { respondents: number } | null;
 };
 
@@ -196,7 +192,6 @@ export function toFlowSummary(f: CompanyFlow): CompanyFlowSummary {
     next: f.next ? { known: f.next.known } : null,
     tenure: f.tenure ? { alumni: f.tenure.alumni } : null,
     roleChanges: f.roleChanges ? { people: f.roleChanges.people } : null,
-    decisiveTop: f.decisiveTop ? { respondents: f.decisiveTop.respondents } : null,
     fitAfterYear: f.fitAfterYear ? { respondents: f.fitAfterYear.respondents } : null,
   };
 }

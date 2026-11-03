@@ -47,6 +47,11 @@ export type EvidenceOptions = {
    * ⚠️ 呼び出し側が `MIN_AGGREGATE_COUNT` を渡す。**既定値を置かない。**
    */
   minAggregate: number;
+  /**
+   * ★入社の決め手を根拠に使ってよい下限（`MIN_REASON_COUNT`。2026-11-02 / 10人）。
+   * ⚠️ 呼び出し側が渡す。**既定値を置かない。** `minAggregate` と混ぜないこと
+   */
+  minReason: number;
 };
 
 /**
@@ -129,13 +134,15 @@ export type EvidenceFacts = {
     /** 移る前の業種名。null なら同上 */
     fromIndustryName: string | null;
   } | null;
+  /**
+   * ★★入社の決め手（2026-11-02 に作り直した）。**人数・割合・どの選択肢かを持たない。**
+   *   根拠にするのは「その会社の決め手の回答が `minReason` 人以上あり、上位3つに候補者の決め手が入っている」ときだけ。
+   */
   sharedMotive: {
-    /** 決め手を答えた在籍者の数 */
+    /** 決め手を答えた在籍者の数（下限の判定にだけ使う。★根拠には書き出さない） */
     n: number;
-    /** うち、候補者の希望と同じ軸を挙げた数 */
-    k: number;
-    /** 一致した決め手のラベル（例「裁量の大きさ」） */
-    reasonLabel: string;
+    /** 候補者の決め手が、その会社の決め手の上位3つに入っているか */
+    matched: boolean;
   } | null;
   preference: {
     /** 一致した条件のラベル（scoreJob の reasonParts をそのまま渡す） */
@@ -207,18 +214,20 @@ export function buildEvidence(facts: EvidenceFacts, opts: EvidenceOptions): Evid
   }
 
   // ── ② shared_motive ───────────────────────────────────────────────────────
-  /* ★★n（決め手を答えた人）が下限に届かなければ**根拠ごと出さない**（2026-10-26 / フェーズ1a-3）。
-     ⚠️ それまでは下限未満でも割合だけ伏せて「「X」を挙げた人がいます」と出していた。
-        n=1 ならその1人が何を選んだかがそのまま読める（決め手は本人と集計にしか出さない約束。
-        careerReasons.ts「理由データ3種は非公開。本人と集計のみ」）。断りの文も出さない。 */
-  if (facts.sharedMotive && facts.sharedMotive.n >= opts.minAggregate && facts.sharedMotive.k > 0) {
-    const { n, k, reasonLabel } = facts.sharedMotive;
+  /* ★★2026-11-02 に作り直した（回答が企業に伝わる経路を止める）。
+     ⚠️ それまでは「入社の決め手を答えた n人のうち k人が『X』を挙げています」と書いており、
+        X は候補者本人の決め手と重なった選択肢だった。k は1人でも出たので、
+        読む人によっては「誰が何を選んだか」「この候補者が何を選んだか」が分かった。
+     → 決め手の回答が `minReason`（10人）以上ある会社だけ。**人数（n・k）も文も保存しない。**
+        画面に出す文は候補者の画面だけが組む（`fit.ts` の `SHARED_MOTIVE_TEXT`。「あなた」を含むので
+        スナップショットに入れられない＝企業側と共有している）。企業側は shared_motive を読まない
+        （`companyProposals.ts`）。 */
+  if (facts.sharedMotive && facts.sharedMotive.n >= opts.minReason && facts.sharedMotive.matched) {
     out.push({
       kind: "shared_motive",
-      n,
-      k,
-      label: `入社の決め手を答えた ${n}人のうち ${k}人が「${reasonLabel}」を挙げています`,
-      sourceQuery: "ow_experiences.join_reasons",
+      /* ⚠️★人数を書かない。0 は「数を持っていない」の印（並び替えは kind の順で n を見ない） */
+      n: 0,
+      sourceQuery: "company_reason_top3",
     });
   }
 

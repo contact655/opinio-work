@@ -25,6 +25,10 @@
       "schedule": "0 0 * * 1"
     },
     {
+      "path": "/api/cron/rebuild-reason-rankings",
+      "schedule": "0 0 1 * *"
+    },
+    {
       "path": "/api/cron/expire-talk-requests",
       "schedule": "15 19 * * *"
     }

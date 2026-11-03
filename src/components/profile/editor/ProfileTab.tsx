@@ -946,7 +946,11 @@ export default function ProfileTab({
     setReasonTopDismissed(true);
     try { localStorage.setItem(REASON_TOP_DISMISS_KEY, String(Date.now())); } catch { /* 保存できなくても今回は閉じる */ }
   };
-  const showReasonTop = !reasonTopDismissed && !showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0;
+  /* ★★2026-11-02: 転機の3問の画面は表示を止めた（柴さんの指示。入社の決め手1問に置き換え）。
+        上部のカード・職歴欄の帯・行の印の3つとも、この1つで止めている。⚠️ コードと表は残してある。
+        入社の決め手は、現職の会社を登録・更新したとき（CareerHistoryEditor）とホームのカードで聞く */
+  const TURN_SCREENS_ENABLED = false;
+  const showReasonTop = TURN_SCREENS_ENABLED && !reasonTopDismissed && !showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0;
   /* ★★/mypage 上部の「前の会社も入れてください」（2026-10-17 / 柴さんの判断）。
         職歴欄の促しカード（showCareerPrompt）と同じ条件のときだけ、ページの最初の画面にも出す。
         職歴欄はスクロールしないと見えず、オンボーディング直後の人が気づかないため。
@@ -1968,7 +1972,7 @@ export default function ProfileTab({
                      それまでは帯の下に別の一文（「質問が新しくなりました…2分で答え直せます」）があり、
                      「まとめて答える」は答え直しの会社を開かなかった。入口を1つにした（ui-debugging ⑧）。
                      ⚠️ 開く順は CareerHistoryEditor の unansweredIds（未回答 → 答え直し、それぞれ古い順） */}
-              {!showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0 && (
+              {TURN_SCREENS_ENABLED && !showCareerPrompt && unansweredReasonCount + legacyReasonCount > 0 && (
                 <div
                   data-state="reason-batch-band"
                   style={{
@@ -2045,6 +2049,7 @@ export default function ProfileTab({
                   size: "md",
                 }}
                 renderCareerAside={(careerId) => {
+                  if (!TURN_SCREENS_ENABLED) return null;
                   const st = careerStints.find((x) => x.id === careerId);
                   if (!st) return null;
                   return (

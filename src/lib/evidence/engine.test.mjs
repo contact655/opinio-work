@@ -35,10 +35,11 @@ import {
   sortByEvidenceCount,
   MIN_EVIDENCE_FOR_PROPOSAL,
 } from "./engine.ts";
-import { MIN_AGGREGATE_COUNT } from "../constants/aggregate.ts";
+import { MIN_AGGREGATE_COUNT, MIN_REASON_COUNT } from "../constants/aggregate.ts";
+import { SHARED_MOTIVE_TEXT } from "./fit.ts";
 
 /** ★本番と同じしきい値（`MIN_AGGREGATE_COUNT`。2026-10-26 に 3 → 5）。定数をそのまま使う */
-const OPTS = { minAggregate: MIN_AGGREGATE_COUNT };
+const OPTS = { minAggregate: MIN_AGGREGATE_COUNT, minReason: MIN_REASON_COUNT };
 test("★下限は5人（2026-10-26 / フェーズ1a-3）", () => {
   assert.equal(MIN_AGGREGATE_COUNT, 5);
 });
@@ -100,43 +101,41 @@ test("same_path … 職種も業種も解決できなくても件数は出す（
   assert.doesNotMatch(ev[0].label, /不明|他社|未設定/);
 });
 
-// ── shared_motive: ★n < minAggregate では比率を出さない ─────────────────────
+// ── shared_motive: ★2026-11-02 から「10人以上・上位3つに入る」だけ。人数も文も保存しない ─────
 
-test("shared_motive n=0 … 根拠にしない", () => {
-  const ev = buildEvidence(
-    { ...EMPTY_FACTS, sharedMotive: { n: 0, k: 0, reasonLabel: "裁量の大きさ" } },
-    OPTS,
-  );
-  assert.equal(ev.length, 0);
+test("★決め手の下限は10人（MIN_REASON_COUNT）", () => {
+  assert.equal(MIN_REASON_COUNT, 10);
 });
 
-for (const n of [1, 2, 3, 4]) {
-  test(`shared_motive n=${n} … ★下限未満は根拠ごと出さない（「挙げた人がいます」も出さない）`, () => {
-    const ev = buildEvidence(
-      { ...EMPTY_FACTS, sharedMotive: { n, k: n, reasonLabel: "裁量の大きさ" } },
-      OPTS,
-    );
+for (const n of [0, 1, 5, 9]) {
+  test(`shared_motive n=${n} … ★下限（10人）未満は根拠ごと出さない`, () => {
+    const ev = buildEvidence({ ...EMPTY_FACTS, sharedMotive: { n, matched: true } }, OPTS);
     assert.equal(ev.length, 0);
   });
 }
 
-for (const [n, k] of [[5, 2], [8, 4]]) {
-  test(`shared_motive n=${n} … 比率を返す`, () => {
-    const ev = buildEvidence(
-      { ...EMPTY_FACTS, sharedMotive: { n, k, reasonLabel: "裁量の大きさ" } },
-      OPTS,
-    );
-    assert.equal(ev[0].k, k);
-    assert.match(ev[0].label, new RegExp(`${n}人のうち ${k}人`));
+for (const n of [10, 30]) {
+  test(`shared_motive n=${n} … ★人数・割合・文を持たない`, () => {
+    const ev = buildEvidence({ ...EMPTY_FACTS, sharedMotive: { n, matched: true } }, OPTS);
+    assert.equal(ev.length, 1);
+    assert.equal(ev[0].kind, "shared_motive");
+    assert.equal(ev[0].n, 0);
+    assert.equal(ev[0].k, undefined);
+    assert.equal(ev[0].label, undefined);
+    assert.doesNotMatch(JSON.stringify(ev[0]), new RegExp(`${n}`));
   });
 }
 
-test("shared_motive … k=0 なら根拠にしない（一致が無い）", () => {
-  const ev = buildEvidence(
-    { ...EMPTY_FACTS, sharedMotive: { n: 5, k: 0, reasonLabel: "裁量の大きさ" } },
-    OPTS,
-  );
+test("shared_motive … 上位3つに入っていなければ根拠にしない", () => {
+  const ev = buildEvidence({ ...EMPTY_FACTS, sharedMotive: { n: 20, matched: false } }, OPTS);
   assert.equal(ev.length, 0);
+});
+
+test("shared_motive の表示は固定の文だけ（保存済みの古い文があっても置き換える）", () => {
+  const old = { kind: "shared_motive", n: 5, k: 2, label: "入社の決め手を答えた 5人のうち 2人が「裁量の大きさ」を挙げています" };
+  assert.equal(evidenceText(old, "candidate"), SHARED_MOTIVE_TEXT);
+  assert.equal(evidenceText(old, "company"), "");
+  assert.doesNotMatch(SHARED_MOTIVE_TEXT, /[0-9０-９]|人のうち|割|%|％|「/);
 });
 
 /* ⚠️ talkable（話を聞ける人の数）は 2026-10-16 に撤去した（面談OKの撤去） */
@@ -170,11 +169,11 @@ test("★★ラベルに人称を入れない（②と⑨で同じスナップ�
   const facts = {
     companyName: "テスト株式会社",
     samePath: { n: 5, fromRoleName: "営業", fromIndustryName: "IT・ソフトウェア" },
-    sharedMotive: { n: 5, k: 3, reasonLabel: "裁量の大きさ" },
+    sharedMotive: { n: 10, matched: true },
     preference: { matchedLabels: ["年収"] },
   };
   for (const e of buildEvidence(facts, OPTS)) {
-    assert.doesNotMatch(e.label, /あなた|この方|御社|貴社/, `人称が入っている: ${e.label}`);
+    assert.doesNotMatch(e.label ?? "", /あなた|この方|御社|貴社/, `人称が入っている: ${e.label}`);
   }
 });
 
@@ -194,7 +193,7 @@ test("根拠は kind の優先順（same_path → shared_motive → preference�
     {
       ...EMPTY_FACTS,
       preference: { matchedLabels: ["年収"] },
-      sharedMotive: { n: 5, k: 3, reasonLabel: "裁量の大きさ" },
+      sharedMotive: { n: 10, matched: true },
       samePath: { n: 5, fromRoleName: "営業", fromIndustryName: null },
     },
     OPTS,

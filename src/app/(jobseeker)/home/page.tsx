@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSimilarPaths } from "@/lib/companyFlow/server";
-import { pickLatestExperience } from "@/lib/experiences/latest";
 import type { SimilarPaths } from "@/lib/companyFlow/compute";
 import { reasonStatusForUser, companyKey } from "@/lib/experiences/reasonAnswers";
 import { EXPERIENCE_COMPANY_COLS, resolveExperienceCompanyLabel } from "@/lib/experiences/companyName";
@@ -15,14 +14,15 @@ import { formatMonths } from "@/lib/profile/tenure";
 import { chipStyle } from "@/lib/utils/chipVariant";
 import ForYouSection from "../mypage/proposals/ForYouSection";
 import { toForYouViews } from "../mypage/proposals/forYouViews";
-import HomeTurnCard from "./HomeTurnCard";
+import HomeDecisionCard from "./HomeDecisionCard";
+import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
 import { homeStateOf, homeHeadline, HOME_FOR_YOU_LIMIT } from "@/lib/home/homeState";
 
 /**
  * ★ホーム「あなたの次の一手」（2026-10-27 / 柴さんの決定）。ログイン後の着地。
  *
  *   状態 A 職歴なし         … 職歴1件の入力 → 合う会社
- *   状態 B 振り返り0件       … 振り返りの1問目 → 似た経歴の集計（出せる人だけ）→ 合う会社
+ *   状態 B 振り返り0件       … 似た経歴の集計（出せる人だけ）→ 合う会社（★2026-11-02 から振り返りの1問目は出さない。入社の決め手のカードは状態に関係なく、聞いてよいときだけ上に出す）
  *   状態 C 集計が下限未満    … 本人の傾向 → 合う会社
  *   状態 D 集計が出せる      … 似た経歴の集計 → 合う会社 → 本人の傾向 → 振り返りの進み具合
  * ⚠️★どの状態でも空の箱を出さない（中身が無いブロックは描かない）
@@ -47,11 +47,13 @@ export default async function HomePage() {
   if (!me) redirect("/auth?next=%2Fhome");
   const owId = me.id as string;
 
-  const [expRes, status, forYou, proposedRes] = await Promise.all([
+  const [expRes, status, forYou, proposedRes, decisionPrompt] = await Promise.all([
     db.from("ow_experiences").select(`id, started_at, is_current, ${EXPERIENCE_COMPANY_COLS}`).eq("user_id", owId),
     reasonStatusForUser(owId),
     buildForYou(owId),
     db.from("ow_proposals").select("company_id").eq("candidate_user_id", owId),
+    /* ★入社の決め手（1問・2026-11-02）。現職の会社について、いま聞いてよいときだけ */
+    currentJoinDecisionPrompt(owId),
   ]);
   if (expRes.error) console.error("[home] experiences:", expRes.error.message);
   if (proposedRes.error) console.error("[home] proposals:", proposedRes.error.message);
@@ -61,7 +63,6 @@ export default async function HomePage() {
   /* ★振り返りの進み具合。/mypage の帯（「N つの転機のうち M つ回答済み」）と同じ数え方（会社ごと・答えた＝2） */
   const companies = new Set(exps.map((e) => companyKey(e)));
   const done = new Set(exps.filter((e) => status?.[e.id] === 2).map((e) => companyKey(e)));
-  const latest = pickLatestExperience(exps);
 
   const similar = exps.length > 0 ? await getSimilarPaths(owId) : { key: null, summary: null };
   const state = homeStateOf({ hasExperience: exps.length > 0, answeredTurns: done.size, hasSimilar: !!similar.summary });
@@ -69,7 +70,6 @@ export default async function HomePage() {
 
   const proposed = new Set(((proposedRes.data ?? []) as { company_id: string }[]).map((p) => p.company_id));
   const forYouViews = toForYouViews(forYou, me.is_test === true, proposed);
-  const latestName = latest ? resolveExperienceCompanyLabel({ ...latest, visibility_company: "real" }) ?? "直近の会社" : null;
 
   const forYouBlock = (
     <ForYouSection
@@ -104,7 +104,12 @@ export default async function HomePage() {
         </section>
       )}
 
-      {state === "B" && latest && latestName && <HomeTurnCard experienceId={latest.id} companyName={latestName} />}
+      {/* ★★2026-11-02: 転機の3問のカード（HomeTurnCard）は出さない（表示を止めた）。入社の決め手1問に置き換え */}
+      {decisionPrompt && (() => {
+        const e = exps.find((x) => x.id === decisionPrompt.experienceId);
+        const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
+        return <HomeDecisionCard experienceId={decisionPrompt.experienceId} companyName={name} />;
+      })()}
 
       {(state === "B" || state === "D") && similar.summary && similar.key && (
         <SimilarBlock s={similar.summary} k={similar.key} />

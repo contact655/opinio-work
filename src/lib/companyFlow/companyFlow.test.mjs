@@ -15,7 +15,7 @@ function person(u, { prevInd = "maker", nextInd = "it", alumni = true, roles = [
   return rows;
 }
 
-const ALLOWED_KEYS = new Set(["people", "previous", "next", "tenure", "roleChanges", "decisiveTop", "fitAfterYear",
+const ALLOWED_KEYS = new Set(["people", "previous", "next", "tenure", "roleChanges", "fitAfterYear",
   "known", "byIndustry", "label", "count", "alumni", "avgMonths", "paths", "respondents", "top", "goodShare"]);
 
 function keysDeep(v, out = new Set()) {
@@ -60,15 +60,13 @@ test("社内の職種の変化は細かい職種で数える", () => {
 test("回答の項目は5人以上で出る（4人なら出ない）", () => {
   const T = (r, fit) => ({ decisiveReasons: r, fitAfterYear: fit });
   const four = [T(["skills"], 5), T(["skills", "salary"], 4), T(["people"], 2), T(["skills"], 1)];
-  assert.equal(computeCompanyFlow(C, person("a"), four, L, OPT).decisiveTop, null);
   assert.equal(computeCompanyFlow(C, person("a"), four, L, OPT).fitAfterYear, null);
   const five = [...four, T(["salary"], 4)];
   const f = computeCompanyFlow(C, person("a"), five, L, OPT);
-  /* ★行ごとにも5人の下限。5人答えても、5人に届く決め手が無ければ項目ごと出さない */
-  assert.equal(f.decisiveTop, null);
   assert.deepEqual(f.fitAfterYear, { respondents: 5, goodShare: 60 });
+  /* ★2026-11-02: 入社の決め手は「人の流れ」から外した（毎月1日の上位3つに移した）。回答が何人あっても出さない */
   const six = [T(["skills", "salary"], 5), T(["skills"], 4), T(["skills", "people"], 4), T(["skills"], 2), T(["skills", "salary"], 4), T(["salary"], 1)];
-  assert.deepEqual(computeCompanyFlow(C, person("a"), six, L, OPT).decisiveTop, { respondents: 6, top: [{ label: "skills", count: 5 }] });
+  assert.equal("decisiveTop" in computeCompanyFlow(C, person("a"), six, L, OPT), false);
 });
 
 test("★返す形に、個人を特定できる値（user_id・会社 id・個別の期間）が入らない", () => {
@@ -90,7 +88,7 @@ test("★ログインしていない人向けの形は件数だけ（内訳・�
   const s = toFlowSummary(computeCompanyFlow(C, exps, turns, L, OPT));
   const keys = keysDeep(s);
   for (const k of ["byIndustry", "paths", "top", "avgMonths", "goodShare", "label"]) assert.ok(!keys.has(k), `件数だけの形に ${k} がある`);
-  assert.deepEqual(s, { people: 3, previous: { known: 3 }, next: { known: 3 }, tenure: { alumni: 3 }, roleChanges: { people: 3 }, decisiveTop: { respondents: 5 }, fitAfterYear: { respondents: 5 } });
+  assert.deepEqual(s, { people: 3, previous: { known: 3 }, next: { known: 3 }, tenure: { alumni: 3 }, roleChanges: { people: 3 }, fitAfterYear: { respondents: 5 } });
 });
 
 test("★検索の「出た人」の集計：OB が3人以上で出る。行き先は業界・職種の大分類。個人を特定できる値が入らない", async () => {
@@ -166,4 +164,30 @@ test("★ホームの「似た経歴」：本人を除き、似た職歴の会�
   const five = [...three, ...mover("user-d", "it", "ae"), ...mover("user-e", "it", "ae")];
   const fits5 = new Map([...fits4, ["e-user-d-2", 4], ["e-user-e-2", 1]]);
   assert.deepEqual(computeSimilarPaths("me", KEY, five, fits5, L2, OPT).fitAfterYear, { respondents: 5, goodShare: 60 });
+});
+
+test("★企業ページの「人の流れ」は経歴の項目も5人から（MIN_AGGREGATE_COUNT）。4人なら出さない", async () => {
+  const { MIN_AGGREGATE_COUNT } = await import("../constants/aggregate.ts");
+  assert.equal(MIN_AGGREGATE_COUNT, 5);
+  const opt = { ...OPT, minCareerFact: MIN_AGGREGATE_COUNT };
+  const four = computeCompanyFlow(C, ["a", "b", "c", "d"].flatMap((u) => person(u)), [], L, opt);
+  assert.equal(four.previous, null);
+  assert.equal(four.next, null);
+  assert.equal(four.tenure, null);
+  assert.equal(hasAnyFlowItem(four), false, "4人では見出しごと出さない");
+  const five = computeCompanyFlow(C, ["a", "b", "c", "d", "e"].flatMap((u) => person(u)), [], L, opt);
+  assert.equal(five.previous.known, 5);
+  assert.equal(five.next.known, 5);
+  assert.equal(five.tenure.alumni, 5);
+  assert.ok(hasAnyFlowItem(five));
+});
+
+test("★getCompanyFlow（企業ページ）は経歴の下限に MIN_AGGREGATE_COUNT を渡している", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./server.ts", import.meta.url), "utf8");
+  /* ⚠️ コメントを落としてから見る（注記に定数名を書いてある） */
+  const body = src.slice(src.indexOf("export async function getCompanyFlow("), src.indexOf("export async function getCompanyLeaverSummary("))
+    .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.match(body, /minCareerFact: MIN_AGGREGATE_COUNT/);
+  assert.doesNotMatch(body, /MIN_CAREER_FACT_COUNT/);
 });

@@ -7818,15 +7818,31 @@ npm run dev → http://localhost:3000/dev/preview
 | | 実体 |
 |---|---|
 | 集計 | `src/lib/companyFlow/compute.ts`（純粋な関数・テスト `companyFlow.test.mjs`）と `server.ts`（admin で読む・`getCompanyFlowCached` 300秒） |
-| 下限 | 経歴（前職・行き先・OB の平均在籍・社内の職種の変化）は **3人**（`MIN_CAREER_FACT_COUNT`）／回答（決め手の上位・1年後に合っていた割合）は **5人**（`MIN_AGGREGATE_COUNT`）。下限未満は項目ごと null（文言も出さない） |
+| 下限 | 経歴（前職・行き先・OB の平均在籍・社内の職種の変化）は **5人**（`MIN_AGGREGATE_COUNT`。★2026-11-04 に3人から上げた / 柴さんの指示。検索の「出た人」・ホームの「似た経歴」は3人のまま）／回答（決め手の上位・1年後に合っていた割合）は **5人**（`MIN_AGGREGATE_COUNT`）。下限未満は項目ごと null（文言も出さない） |
 | 画面 | `CompanyFlowSection.tsx`（ページの一番上・ナビの先頭）。出せる項目が1つも無い会社では見出しごと出さない。見た目は `/dev/preview/company-flow` |
 | 未ログイン | ページの HTML（ISR）は件数だけ（`toFlowSummary`）。内訳・平均・割合はログインしている人にだけ `/api/jobseeker/companies/[id]/flow` から |
 
-- ★★下限の線引き（柴さんの決定）: 経歴由来の内訳は**項目全体が3人**に届けば1人の行も出す（ログイン中は「社員・OB/OG」で個人単位で見えている情報で、未ログインには内訳が届かないため）／回答由来（決め手・1年後）は**項目にも行にも5人**。
+- ★★下限の線引き（柴さんの決定）: 経歴由来の内訳は**項目全体が下限（2026-11-04 から5人）**に届けば1人の行も出す（ログイン中は「社員・OB/OG」で個人単位で見えている情報で、未ログインには内訳が届かないため）／回答由来（決め手・1年後）は**項目にも行にも5人**。
 - ⚠️★返す形に user_id・会社 id・個別の期間を入れない（テストで許可したキーだけ）。前職・行き先は**業界の大分類**で、辿れない人は「不明」にまとめず母数から外す。
 - ⚠️ 母数は `isAggregatableUser` を通し、`visibility_company = 'real'` の職歴だけ。前後の職歴が real でなければ辿れない扱い（古い職歴に飛ばさない）。
 - ⚠️ OB の在籍月数と「現在：」は「社員・OB/OG」に残す（重ねて出さない）。「話を聞ける社員・OB」は入れない。
 - ⚠️ 2026-10-27 時点で出るのは **Salesforce だけ**（前職・在籍・行き先）。ほかの21社は見出しが出ない（それが正しい状態）。
+
+### ★★入社の決め手は1問（`ow_join_decisions`）。2026-11-02 に転機の3問から置き換えた（柴さんの指示）
+
+| | 実体 |
+|---|---|
+| 設問・選択肢（14個・4まとまり・v1）・3か月と30日の規則 | `src/lib/joinDecision/constants.ts`（何も import しない・テスト `joinDecision.test.mjs`）。⚠️ 選択肢は migration の CHECK と同じ（テストが突き合わせる） |
+| 読み書き | `src/lib/joinDecision/server.ts`。API は `/api/jobseeker/experiences/[id]/decision`（本人確認は `requireOwnExperience`） |
+| 聞く時機 | 現職の会社を登録・更新したとき（`CareerHistoryEditor`）／ホームのカード（まだ聞いていない人と、スキップから30日後の1回だけ） |
+| 企業ページ | 「この会社に決めた理由」上位3つを**順位だけ**（`CompanyReasonRanking`）。中身は毎月1日の cron（`/api/cron/rebuild-reason-rankings` → `ow_company_reason_rankings`） |
+| 下限 | **`MIN_REASON_COUNT = 10`**（`lib/constants/aggregate.ts`）。⚠️ `MIN_AGGREGATE_COUNT`（5人）は決め手以外の統計用。混ぜない |
+
+- ⚠️★**人数（「N人の回答から」・各行の N・割合）を画面にも API にも出さない。** ランキングの表にも人数を保存していない。
+- ⚠️★集計に数えるのは「今の版・入社日から3か月以内に答えた・集計の母数に入る人・会社名を出してよい職歴・検証用でない会社」だけ。旧の決め手の写し（`ow_career_turns` の19件・`answered_at` なし）は数えない（データは残す）。
+- ⚠️★提案の根拠 `shared_motive` は「その会社の上位3つに候補者の決め手が入っている」ときだけ作り、**人数も文も保存しない**。候補者の画面だけが固定の文「あなたと同じ理由で選んだ人が多い会社です」を出す（`fit.ts` の `SHARED_MOTIVE_TEXT`）。企業側（`companyProposals.ts`）には shared_motive を返さない。
+- ⚠️ 転機の3問の画面は止めた（`ProfileTab` の `TURN_SCREENS_ENABLED = false`・ホームの `HomeTurnCard` を出さない）。コードと表は残してある。「人の流れ」から決め手（`decisiveTop`）は外した。
+- ⚠️ 表は anon / authenticated に権限なし・ポリシー0本（`ow_career_turns` と同じ形）。
 
 ### ★★「株式会社◯◯について」は転機の3問（`ow_career_turns`）。2026-10-27 に入社後レビューから入れ替えた（フェーズ1c）
 

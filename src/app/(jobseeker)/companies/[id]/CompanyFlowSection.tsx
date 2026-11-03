@@ -83,18 +83,14 @@ export function CompanyFlowSection({ companyId, summary, preview }: {
         )}
       </div>
 
-      {(s.roleChanges || s.decisiveTop || s.fitAfterYear) && (
+      {(s.roleChanges || s.fitAfterYear) && (
         <div className="cf-more">
           {s.roleChanges && (
             <Card title="社内での職種の変化" state="cf-role-changes" lead={`職種が変わった人 ${s.roleChanges.people}人`}>
               {locked ? lockedNote : <Bars rows={full?.roleChanges?.paths ?? []} />}
             </Card>
           )}
-          {s.decisiveTop && (
-            <Card title="入社の決め手" state="cf-decisive" lead={`${s.decisiveTop.respondents}人の回答から`}>
-              {locked ? lockedNote : <Bars rows={full?.decisiveTop?.top ?? []} />}
-            </Card>
-          )}
+          {/* ★2026-11-02: 入社の決め手はここから外した（人数を出していたため）。順位だけの CompanyReasonRanking に移した */}
           {s.fitAfterYear && (
             <Card title="入って1年たったころ" state="cf-fit" lead={`${s.fitAfterYear.respondents}人の回答から`}>
               {locked ? lockedNote : full?.fitAfterYear && (

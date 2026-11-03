@@ -286,6 +286,8 @@ async function hasStoredAnswers(rows: ExpRow[], hasReview: boolean): Promise<boo
 const ANSWER_TABLES = [
   /* ★転機の3問（2026-10-27 / フェーズ1c）。⚠️ 消すと次回以降の集計・合う会社の並びから外れる */
   "ow_career_turns",
+  /* ★入社の決め手（1問・2026-11-02）。⚠️ 企業ページの上位3つ（月1回の集計）からは、次の月の集計で外れる */
+  "ow_join_decisions",
   "ow_experience_leave_reasons",
   "ow_experience_gaps",
   "ow_experience_reviews",
@@ -305,6 +307,7 @@ const ANSWER_TABLES = [
  *   - 職歴の行の列（join_reasons / join_reason_primary / join_reason / leave_reasons）を null に
  *
  * ⚠️ 消したものは集計（提案の根拠など）から次回以降外れる。集計は保存しておらず、毎回 ow_experiences から作るため。
+ *    ⚠️ 例外: 入社の決め手の上位3つ（ow_company_reason_rankings）は月1回の集計なので、次の月の集計で外れる。
  *    ow_transitions（遷移）は職歴の会社と期間だけで作り、回答は使っていない。
  * ⚠️ 職歴そのもの（会社・期間・職種）は消さない。
  * ⚠️ 本人確認は呼び出し側（requireOwnExperience）。ここでも user_id で絞る。
