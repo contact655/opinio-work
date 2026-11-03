@@ -1178,6 +1178,14 @@ function formatSalary(min: number | null, max: number | null, negotiable = false
   return `〜${fmt(max!)}万円`;
 }
 
+// ─── 3列の幅（2026-11-04 / 柴さんの指示）────────────────────────────────────────
+/* ★PC（1024px 以上）は 左 225px ／ 中央 残りすべて ／ 右 300px。列の間の余白（gap 24）は変えていない。
+   ⚠️ /home（FeedClient）と /search（HomeSideShell）が同じ値を使う。片方だけ変えないこと
+   ⚠️ 768〜1023px（右の列だけ出る2列）は右を 340px のまま（中央が狭くなりすぎないよう、この幅では変えていない） */
+const HOME_LEFT_WIDTH = 225;
+const HOME_RIGHT_WIDTH = 300;
+const HOME_RIGHT_WIDTH_TWO_COLUMNS = 340;
+
 // ─── 左カラム: 1枚のカード ─────────────────────────────────────────────────────
 
 /* ★2026-11-04 に3つの箱（プロフィール／数字／マイページ・ブックマーク）を1枚のカードにまとめた（柴さんの指示）。
@@ -1185,7 +1193,7 @@ function formatSalary(min: number | null, max: number | null, negotiable = false
    ⚠️ 未ログイン（profileCard が null）のときは出さない */
 function FeedLeftPanel({ profileCard }: { profileCard?: HomeProfileCardData | null }) {
   if (!profileCard) return null;
-  return <HomeProfileCard {...profileCard} />;
+  return <div style={{ width: HOME_LEFT_WIDTH }}><HomeProfileCard {...profileCard} /></div>;
 }
 
 // ─── 右の列の枠（2026-10-20 / 柴さんの指示）────────────────────────────────────
@@ -1284,7 +1292,10 @@ function FeedSidebar({
   hasNewCompanies,
   top,
   afterUsers,
+  width,
 }: {
+  /** ★列の幅（2026-11-04）。3列のとき HOME_RIGHT_WIDTH、右だけの2列のとき HOME_RIGHT_WIDTH_TWO_COLUMNS */
+  width: number;
   /** ★いちばん上（2026-11-04。/home の「あなたに合う会社」）。渡されたときは、その下に「フォロー中のユーザー」→ afterUsers → いつもの枠の順にする */
   top?: React.ReactNode;
   /** ★「フォロー中のユーザー」のすぐ下（2026-11-04。/home の「同じ経歴の人の行き先」） */
@@ -1324,7 +1335,7 @@ function FeedSidebar({
     </RailBox>
   ) : null;
   return (
-    <div style={{ width: 340, flexShrink: 0 }}>
+    <div style={{ width, flexShrink: 0, minWidth: 0 }}>
       {/* ★/home（2026-11-04）: あなたに合う会社 → フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠 */}
       {top && (
         <>
@@ -2620,6 +2631,7 @@ export default function FeedClient({
       {isDesktop && (
         <div style={{ flexShrink: 0 }}>
           <FeedSidebar
+            width={isWide ? HOME_RIGHT_WIDTH : HOME_RIGHT_WIDTH_TWO_COLUMNS}
             rail={railNode}
             /* ⚠️ お知らせを真ん中に出しているあいだも元の値を渡す（false にすると代わりの企業一覧の箱が出て、箱が増える） */
             hasNewCompanies={newCompanies.length > 0}
@@ -2705,6 +2717,7 @@ export function HomeSideShell({ feed, children }: { feed: Props; children: React
       {isDesktop && (
         <div style={{ flexShrink: 0 }}>
           <FeedSidebar
+            width={isWide ? HOME_RIGHT_WIDTH : HOME_RIGHT_WIDTH_TWO_COLUMNS}
             rail={rail}
             hasNewCompanies={newCompanies.length > 0}
             follows={feed.sidebarFollows}

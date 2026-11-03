@@ -1,3 +1,4 @@
+import type React from "react";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 import { HomeProfileCard, type HomeProfileCardData } from "@/components/feed/HomeProfileCard";
@@ -18,22 +19,27 @@ const base: HomeProfileCardData = {
   talkCapacity: "monthly_one",
 };
 
+/** ★ホームの左の列と同じ幅（2026-11-04 から 225px。FeedClient の HOME_LEFT_WIDTH） */
+function Col({ children }: { children: React.ReactNode }) {
+  return <div style={{ width: 225 }}>{children}</div>;
+}
+
 export default function HomeLeftCardPreview() {
   devOnly();
   return (
     <div>
       <PreviewHeader title="ホームの左の列のカード（/home・/search）">
-        PC（1024px 以上）の左の列。1023px 以下では出さない。
+        PC（1024px 以上）の左の列（幅 225px）。1023px 以下では出さない。
       </PreviewHeader>
-      <Variant label="ふつう（月1件まで）"><HomeProfileCard {...base} /></Variant>
+      <Variant label="ふつう（月1件まで）"><Col><HomeProfileCard {...base} /></Col></Variant>
       <Variant label="職歴0件（「職歴を入れる」）・話を聞けるはオフ">
-        <HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} experienceCount={0} talkCapacity="none" />
+        <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} experienceCount={0} talkCapacity="none" /></Col>
       </Variant>
-      <Variant label="長い職種と社名（1行で切れる）・積極的に">
-        <HomeProfileCard {...base} me={{ ...base.me, name: "とても長い名前のユーザー 太郎", roleName: "カスタマーサクセスマネージャー", companyLabel: "とても長い会社名の株式会社エンタープライズソリューションズジャパン" }} talkCapacity="active" />
+      <Variant label="長い名前・長い職種と社名（1行で切れる）・積極的に">
+        <Col><HomeProfileCard {...base} me={{ ...base.me, name: "とても長い名前のユーザー 太郎", roleName: "カスタマーサクセスマネージャー", companyLabel: "とても長い会社名の株式会社エンタープライズソリューションズジャパン" }} talkCapacity="active" /></Col>
       </Variant>
       <Variant label="職歴はあるが現職が無い（肩書きの行を出さない）・話せる量が取れない（行ごと出さない）">
-        <HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} talkCapacity={null} />
+        <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} talkCapacity={null} /></Col>
       </Variant>
     </div>
   );

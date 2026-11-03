@@ -9,7 +9,7 @@ import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 /**
  * ホームの右の列とスマホの差し込み（2026-11-04）。実データではこの形がそろう利用者がいないので、ここで見る。
  * ⚠️ DB を読まない。固定データだけ。⚠️ ボタンを押すと本物の API を叩く（存在しない id なので 404 になる）。押さない
- * 何を見るか: 右の列（340px）で社名・理由・ボタンがはみ出さない／折り返さないこと。「…」の中に 保存・あとで・興味なし
+ * 何を見るか: 右の列（1024px 以上は 300px・768〜1023px は 340px）で社名・理由・ボタンがはみ出さない／折り返さないこと。「…」の中に 保存・あとで・興味なし
  */
 const base: Omit<ForYouView, "id" | "rank" | "name"> = {
   href: null, logoUrl: null, tagline: "チームの作業を割り当て、進捗を追う", reasons: [], groupLabel: null, hasOpenJobs: false,
@@ -37,10 +37,10 @@ export default function HomeRailPreview() {
   return (
     <div>
       <PreviewHeader title="ホームの右の列とスマホの差し込み（/home）">
-        PC は右の列（340px）、スマホはタイムラインの2件目と3件目の間（横スクロール）・5件目のあと。
+        PC は右の列（1024px 以上は 300px）、スマホはタイムラインの2件目と3件目の間（横スクロール）・5件目のあと。
       </PreviewHeader>
-      <Variant label="右の列（340px）: あなたに合う会社 → 行き先" note="社名・理由は1行で切れ、ボタンは折り返さないこと。2社目は担当者未登録（主の操作が保存）、3社目は答えた後">
-        <div style={{ width: 340, maxWidth: "100%" }}>
+      <Variant label="右の列（300px）: あなたに合う会社 → 行き先" note="社名・理由は1行で切れ、ボタンは折り返さないこと。2社目は担当者未登録（主の操作が保存）、3社目は答えた後">
+        <div style={{ width: 300, maxWidth: "100%" }}>
           <ForYouSection companies={COMPANIES} loadFailed={false} noReasons={false} declineReasons={decline}
             compact={{ limit: 3, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />
           <PrevCareerSummary view={PATHS} variant="rail" />
@@ -53,7 +53,7 @@ export default function HomeRailPreview() {
         </div>
       </Variant>
       <Variant label="職歴が0件の人の案内（右の列の一番上・スマホはページの一番上）" note="×で閉じると7日間出ない（この端末だけ。見本では閉じても記録しない）">
-        <div style={{ width: 340, maxWidth: "100%" }}><CareerPromptDemo /></div>
+        <div style={{ width: 300, maxWidth: "100%" }}><CareerPromptDemo /></div>
       </Variant>
     </div>
   );
