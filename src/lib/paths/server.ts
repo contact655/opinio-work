@@ -16,7 +16,7 @@ import {
 } from "@/lib/paths/compute";
 
 /**
- * ★「行き先」（/paths）の読み込み（2026-11-04）。計画は docs/plan-career-paths-20261103.md。
+ * ★「行き先」の読み込み（2026-11-04。2026-11-03 に /paths を /people の「前の経歴」と /home の要約へまとめた）。計画は docs/plan-career-paths-20261103.md。
  *
  * ⚠️★決め手の回答は読まない（回答の表も読む lib/companyFlow の母数の読み込みも使わない）。職歴・人・会社・職種・業界だけ。
  * ⚠️★集計の母数は isAggregatableUser。個人カードは「本人が登録済み・システムでない・非公開でない」で、
@@ -139,6 +139,9 @@ export type PathsView = {
   start: PathsStartView | null;
   /** 起点を本人の直近の職歴から入れたか */
   autoStart: boolean;
+  /** ★本人の直近の職歴から作った起点（職種の大分類 × 業界の大分類。作れなければ null）。
+   *  /people の「自分の直近の経歴を入れる」と /home の要約が使う（2026-11-03） */
+  selfStart: PathsStartView | null;
   summary: { moverCount: number | null; company: PathsRowView[]; role: PathsRowView[]; industry: PathsRowView[] } | null;
   /** 一段広げると集計が出る起点（集計が出ないときだけ） */
   wider: PathsStartView[];
@@ -157,7 +160,13 @@ function slugToId(rows: { id: string; slug: string | null }[], slug: string | nu
  * ★画面に出すものをまとめて作る。viewer は見ている人（未ログインは null）。
  * ⚠️ 未ログインには cards を返さない（null）。集計には user_id を入れない（compute.ts）。
  */
-export async function getPathsView(query: PathsQuery, viewer: { owUserId: string; isTest: boolean } | null): Promise<PathsView | null> {
+export async function getPathsView(
+  query: PathsQuery,
+  viewer: { owUserId: string; isTest: boolean } | null,
+  opts: { autoStart?: boolean } = {},
+): Promise<PathsView | null> {
+  /* ★起点が URL に無いとき本人の直近の職歴から入れるか。/home は入れる（既定）、/people は入れない（一覧を勝手に絞らない） */
+  const allowAutoStart = opts.autoStart !== false;
   const pop = await loadPathsPopulationCached();
   if (!pop) return null;
 
@@ -181,17 +190,19 @@ export async function getPathsView(query: PathsQuery, viewer: { owUserId: string
   const companyRow = query.company ? pop.companies.find((c) => c.slug === query.company && startable(c)) ?? null : null;
   let companyId = companyRow?.id ?? null;
   let autoStart = false;
-  if (!query.role && !query.industry && !query.company && viewer) {
-    /* ⚠️ 本人の職歴は本人のものなので、会社名を伏せた職歴でも業界を使う（本人にだけ出す画面） */
+  /* ⚠️ 本人の職歴は本人のものなので、会社名を伏せた職歴でも業界を使う（本人にだけ出す画面） */
+  let self: { roleId: string; industryId: string } | null = null;
+  if (viewer) {
     const latest = pickLatestExperience(pop.experiences.filter((e) => e.user_id === viewer.owUserId));
     const r = latest?.role_category_id ? roleTopOf.get(latest.role_category_id) ?? null : null;
     const i = latest?.company_id ? companyById.get(latest.company_id)?.industryTopId ?? null : null;
-    if (r && i) {
-      roleId = r;
-      industryId = i;
-      companyId = null;
-      autoStart = true;
-    }
+    if (r && i) self = { roleId: r, industryId: i };
+  }
+  if (allowAutoStart && !query.role && !query.industry && !query.company && self) {
+    roleId = self.roleId;
+    industryId = self.industryId;
+    companyId = null;
+    autoStart = true;
   }
   if (companyId) industryId = null;
   const start: PathStart | null = roleId || industryId || companyId ? { roleId, industryId, companyId } : null;
@@ -206,7 +217,9 @@ export async function getPathsView(query: PathsQuery, viewer: { owUserId: string
     company: s.companyId ? (() => { const c = companyById.get(s.companyId); return c?.slug ? { slug: c.slug, name: c.name } : null; })() : null,
   });
 
-  if (!start) return { options, start: null, autoStart: false, summary: null, wider: [], cards: viewer ? [] : null };
+  const selfStart = self ? startView({ roleId: self.roleId, industryId: self.industryId, companyId: null }) : null;
+
+  if (!start) return { options, start: null, autoStart: false, selfStart, summary: null, wider: [], cards: viewer ? [] : null };
 
   /* 移動の組 → 片側 */
   const side = (e: ExpRow): PathSide => {
@@ -270,5 +283,5 @@ export async function getPathsView(query: PathsQuery, viewer: { owUserId: string
     })
     : null;
 
-  return { options, start: startView(start), autoStart, summary, wider, cards };
+  return { options, start: startView(start), autoStart, selfStart, summary, wider, cards };
 }

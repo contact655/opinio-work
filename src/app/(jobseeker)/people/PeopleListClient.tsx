@@ -16,6 +16,9 @@ import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
+import { PrevCareerChip } from "@/components/people/PrevCareerChip";
+import { prevParams, type PrevSelection } from "@/lib/people/prevCareer";
+import type { PathsOption, PathsStartView } from "@/lib/paths/server";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -42,6 +45,24 @@ type Props = {
   followerUserIds: string[];
   /** ★左サイドバーの中身（2026-09-18）。未ログイン・自分の行が無いときは null */
   sidebar: PeopleSidebarData | null;
+  /** ★前の経歴（2026-11-03。旧 /paths）。読み込めなかったときは null（チップを出さない） */
+  prevCareer?: PrevCareerProps | null;
+};
+
+/**
+ * ★前の経歴（2026-11-03。旧 /paths をまとめた）。page.tsx が lib/paths/server の getPathsView から作る。
+ * ⚠️★notes が null でないとき（前の経歴を選んでいるとき）は、一覧を notes のキーの人だけに絞り、
+ *    **人数（N名・残りN名）を出さない**（旧 /paths の「個人カードの人数は出さない」。出すと5人未満の人数が分かる）。
+ */
+export type PrevCareerProps = {
+  options: { roles: PathsOption[]; industries: PathsOption[]; companies: PathsOption[] };
+  selfStart: PathsStartView | null;
+  selected: PrevSelection;
+  activeLabel: string | null;
+  /** その経歴から次へ進んだ人（ow_users.id → 「以前: A → 次: B」）。選んでいなければ null */
+  notes: Record<string, string> | null;
+  /** 一覧の上に出す集計（PrevCareerSummary） */
+  summary: React.ReactNode;
 };
 
 // ── フィルタ・ソート定数 ────────────────────────────────────────────
@@ -408,8 +429,10 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
       （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
 // ── グリッドカード ────────────────────────────────────────────────────
-export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false }: {
+export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false, pathNote }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+  /** ★前の経歴で絞っているときの「以前: A → 次: B」（2026-11-03） */
+  pathNote?: string;
   /** ★自分をフォローしている人（ボタンが「つながり」になる。2026-10-21） */
   followerUserIds?: string[];
   /** ★スマホの2列（2026-10-19）。顔を小さくする */
@@ -446,6 +469,9 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
                2026-08-20 に「年齢」フィルタも外し、型からも落とした。 */}
         <AffiliationBlock card={card} />
         <div className="ppl-role">{role}</div>
+        {pathNote && (
+          <div data-state="ppl-path-note" title={pathNote} style={{ marginTop: 6, fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.5, overflowWrap: "anywhere" }}>{pathNote}</div>
+        )}
         {/* ★★本人が書いた1行（`headline`）は 2026-09-30 に一覧から外した（柴さんの判断）。
                理由は**長いから** —— 自由記述で最大40字あり、2行に折り返すと
                カードの縦が伸びて、短い人と並んだときの見た目が揃わない
@@ -564,11 +590,13 @@ export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = 
  *
  * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
  */
-export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [] }: {
+export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [], pathNote }: {
   card: AmbassadorCard;
   myUserId: string | null;
   followedUserIds: string[];
   followerUserIds?: string[];
+  /** ★前の経歴で絞っているときの「以前: A → 次: B」（2026-11-03） */
+  pathNote?: string;
 }) {
   const router = useRouter();
   /* ★新卒入社（職歴のいちばん古い行）の業種 → 現在（いちばん新しい行）の業種
@@ -629,6 +657,9 @@ export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [] 
             </span>
           )}
         </div>
+        {pathNote && (
+          <div data-state="ppl-path-note" style={{ marginTop: 4, fontSize: 12.5, color: "var(--ink-mute)", overflowWrap: "anywhere" }}>{pathNote}</div>
+        )}
 
         {/* ★★本人が書いた1行（`headline`）は 2026-09-30 にここからも外した。
                ⚠️★**グリッド側（`ppl-headline`）とセット。** 理由と戻し方はあちらの注記に
@@ -704,7 +735,9 @@ function matchRole(card: AmbassadorCard, slugs: string[], roleSlugToId: Record<s
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null }: Props) {
+  /* ★前の経歴で絞っているとき（2026-11-03）。⚠️ 人数を出さない（PrevCareerProps の注記） */
+  const prevNotes = prevCareer?.notes ?? null;
   /* ★絞り込みは URL に持つ（2026-09-18）。共有リンク・リロード・戻るで同じ結果になる。
      ⚠️★**`?view=` は使えない。** `/companies?view=list` は**表示形式**の意味で、
         同じ語を `/people` で「関係の絞り込み」に使うと、隣り合うページで1語が2つの意味を持つ。
@@ -840,6 +873,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
          ⚠️ マスタに紐付いていない職歴（自由入力の社名）の人は false になり、
             **外資で絞り込んだときだけ**落ちる。 */
       if (foreignOnly && !a.hasForeignExperience) return false;
+      /* ★前の経歴（2026-11-03）。その経歴から次へ進んだ人だけ */
+      if (prevNotes && !(a.userId in prevNotes)) return false;
       /* ★年代。⚠️ 生年月日が無い人（ageBand === null）は**ここで絞ったときだけ**落ちる。
             ⚠️ 帯は `directory.ts` が10年刻みに畳んだもの。ここで実年齢を計算しないこと
                （2つ目の計算を作らない。`lib/age.ts` の `getUserAge()` が唯一） */
@@ -874,7 +909,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     });
   }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
       rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet,
-      foreignOnly, ages]);
+      foreignOnly, ages, prevNotes]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -901,7 +936,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
       <button type="button" data-state="people-more" onClick={() => setShownCount((n) => n + PAGE_SIZE)}
         style={{ padding: "10px 24px", borderRadius: 999, border: "1.5px solid var(--royal-100)", background: "#fff", color: "var(--royal)", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>
-        もっと見る（残り{sorted.length - shownCount}名）
+        {prevNotes ? "もっと見る" : `もっと見る（残り${sorted.length - shownCount}名）`}
       </button>
     </div>
   ) : null;
@@ -988,15 +1023,35 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
               外資{foreignOnly && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
             </button>
+            {/* ★前の経歴（2026-11-03。旧 /paths）。⚠️ 値は URL の prev_*（?role= はいまの職種なので使わない） */}
+            {prevCareer && (
+              <PrevCareerChip
+                options={prevCareer.options}
+                selected={prevCareer.selected}
+                activeLabel={prevCareer.activeLabel}
+                selfStart={prevCareer.selfStart}
+                isOpen={openChip === "prev"}
+                onToggle={() => toggleChip("prev")}
+                onChange={(next) => {
+                  setParam(prevParams(next));
+                  if (!next.role && !next.industry && !next.company) setOpenChip(null);
+                }}
+              />
+            )}
           </div>
 
           {/* ★3行目: 件数（左）と、表示切替・並び替え（文字だけ）（右） */}
           <div className="lt-result-row" data-state="people-result-row">
+            {/* ⚠️ 前の経歴で絞っているときは人数を出さない（集計の下限を回り込まれる） */}
+            {prevNotes ? (
+              <span data-state="people-count-hidden" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>前の経歴で絞り込み中</span>
+            ) : (
             <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
               <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 15 }}>
                 {sorted.length}
               </strong> 名
             </span>
+            )}
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               {/* 表示モード。★意匠は `/companies` のビュートグルと揃えてある（2026-08-27）。⚠️ 片方だけ変えないこと。
                   ⚠️ 情報が減る切り替えを作らないこと。⚠️ 560px 以下では出さない（isNarrow） */}
@@ -1063,7 +1118,15 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           />
         )}
         <div className="ppl-main">
-        {sorted.length === 0 ? (
+        {prevNotes && prevCareer?.summary}
+        {prevNotes && sorted.length > 0 && (
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: "0 0 10px" }}>この経歴から進んだ人</h2>
+        )}
+        {prevNotes && sorted.length === 0 ? (
+          <div data-state="people-prev-none" style={{ textAlign: "center", padding: "32px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
+            この経歴から次へ進んだ人は、まだいません。
+          </div>
+        ) : sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
             該当する方が見つかりません
             {/* ★この窓は名前・会社・職種の絞り込みで、業種は対象外。
@@ -1075,19 +1138,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
             <><div className="ppl-grid">
               {shown.map((card) => (
-                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow />
+                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} />
               ))}
             </div>{moreButton}</>
           ) : view === "list" ? (
             <><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {shown.map((card) => (
-                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} />
+                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} />
               ))}
             </div>{moreButton}</>
           ) : (
           <><div className="ppl-grid">
             {shown.map((card) => (
-              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} />
+              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} />
             ))}
           </div>{moreButton}</>
           )

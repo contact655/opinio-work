@@ -180,7 +180,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
     <div style={{ maxWidth: 680, margin: "0 auto", padding: "32px 16px 64px" }}>
       {/* 戻るリンク */}
       <Link
-        href="/feed"
+        href="/home"
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -316,7 +316,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
           <LikersCountButton postId={p.id} count={likeCount}>❤️ {likeCount}</LikersCountButton>
           <span>💬 {commentCount}</span>
           <Link
-            href="/feed"
+            href="/home"
             style={{ marginLeft: "auto", color: "var(--royal)", textDecoration: "none", fontSize: 14 }}
           >
             ホームで返信する →

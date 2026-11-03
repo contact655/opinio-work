@@ -7,6 +7,7 @@ import {
   SIGNUP_REF_QUERY_KEY,
   parseSignupRef,
 } from "@/lib/constants/signupRef";
+import { PREV_PARAM } from "@/lib/people/prevCareer";
 
 /**
  * /biz/ 配下のアクセス制御
@@ -143,6 +144,31 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/mypage";
     url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  /* ★★求職者のナビを5つにした（2026-11-03 / 柴さんの指示）。
+        /feed は /home に統合した。⚠️ 完全一致だけ。投稿の個別ページ /feed/[postId] は通知・検索がリンクしているので残す。
+        未ログイン（セッションのクッキーが無い）は / へ（/home はログイン必須）。
+        /paths は /people の「前の経歴」に統合した。共有リンクを切らないよう、起点を prev_* に付け替える
+        （⚠️ /people の ?role= は「いまの職種」なので、そのまま渡さない。キーは lib/people/prevCareer.ts の PREV_PARAM）。
+        ⚠️ ページ側の redirect() にしない（loading.tsx の内側だと 200 のままになる） */
+  if (pathname === "/feed") {
+    const hasCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && /-auth-token(\.\d+)?$/.test(c.name));
+    const url = request.nextUrl.clone();
+    url.pathname = hasCookie ? "/home" : "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (pathname === "/paths") {
+    const url = request.nextUrl.clone();
+    const src = request.nextUrl.searchParams;
+    const next = new URLSearchParams();
+    if (src.get("role")) next.set(PREV_PARAM.role, src.get("role") as string);
+    if (src.get("company")) next.set(PREV_PARAM.company, src.get("company") as string);
+    else if (src.get("industry")) next.set(PREV_PARAM.industry, src.get("industry") as string);
+    url.pathname = "/people";
+    url.search = next.toString() ? `?${next.toString()}` : "";
     return NextResponse.redirect(url);
   }
 

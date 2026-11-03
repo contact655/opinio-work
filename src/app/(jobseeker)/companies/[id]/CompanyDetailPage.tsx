@@ -2209,8 +2209,9 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                 </div>
                 {hasMoreActivity && (
                   <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-soft)", textAlign: "center" }}>
-                    <Link href="/feed" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-                      フィードをすべて見る →
+                    {/* ★/feed は /home にまとめた（2026-11-03）。⚠️ /home はログイン必須（未ログインはログイン画面へ） */}
+                    <Link href="/home" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
+                      ホームのタイムラインで見る →
                     </Link>
                   </div>
                 )}

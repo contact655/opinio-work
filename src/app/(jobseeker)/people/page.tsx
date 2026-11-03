@@ -7,7 +7,10 @@ import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
-import { PeopleListClient } from "./PeopleListClient";
+import { PeopleListClient, type PrevCareerProps } from "./PeopleListClient";
+import { getPathsView } from "@/lib/paths/server";
+import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
+import { prevCareerText, prevSelectionOf } from "@/lib/people/prevCareer";
 
 /**
  * 登録ユーザーの一覧。
@@ -27,7 +30,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function PeoplePage() {
+/* ★前の経歴（2026-11-03。旧 /paths をまとめた）。キーは lib/people/prevCareer.ts の PREV_PARAM */
+type PeopleSearchParams = { prev_role?: string; prev_industry?: string; prev_company?: string };
+
+export default async function PeoplePage({ searchParams }: { searchParams?: PeopleSearchParams }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   /* ⚠️ `roleAliases` は `getRoleAliases()`（**`/jobs` の検索と同じ辞書**）。
@@ -49,16 +55,38 @@ export default async function PeoplePage() {
      ⚠️ 件数は `getFollowCounts` が別に数えている。**ここは id の一覧**で、用途が違う。 */
   let followerUserIds: string[] = [];
   let sidebar: Awaited<ReturnType<typeof getPeopleSidebarData>> = null;
+  let prevCareer: PrevCareerProps | null = null;
   if (user) {
     const admin = createAdminClient();
-    const { data: me } = await admin.from("ow_users").select("id").eq("auth_id", user.id).maybeSingle();
+    const { data: me, error: meErr } = await admin.from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
+    if (meErr) console.error("[people] me:", meErr.message);
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const [outRes, inRes, sidebarData] = await Promise.all([
+      const [outRes, inRes, sidebarData, pathsView] = await Promise.all([
         admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
         admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
         getPeopleSidebarData(myUserId),
+        /* ⚠️ autoStart: false。前の経歴を選んでいない /people を本人の経歴で勝手に絞らない */
+        getPathsView(
+          { role: searchParams?.prev_role, industry: searchParams?.prev_industry, company: searchParams?.prev_company },
+          { owUserId: myUserId, isTest: me?.is_test === true },
+          { autoStart: false },
+        ),
       ]);
+      if (pathsView) {
+        const start = pathsView.start;
+        prevCareer = {
+          options: pathsView.options,
+          selfStart: pathsView.selfStart,
+          selected: start ? prevSelectionOf(start) : { role: null, industry: null, company: null },
+          activeLabel: start ? prevCareerText(start) : null,
+          /* ★その経歴から次へ進んだ人（旧 /paths の個人カード）。一覧はこの人たちだけに絞る。⚠️ 人数は画面に出さない */
+          notes: start
+            ? Object.fromEntries((pathsView.cards ?? []).map((c) => [c.userId, `以前: ${c.fromLabel} → ${c.toIsCurrent ? "現在" : "次"}: ${c.toLabel}`]))
+            : null,
+          summary: start ? <PrevCareerSummary view={pathsView} /> : null,
+        };
+      }
       if (outRes.error) console.error("[people followedUserIds]", outRes.error.message);
       if (inRes.error) console.error("[people followerUserIds]", inRes.error.message);
       followedUserIds = (outRes.data ?? []).map((r: { target_user_id: string }) => r.target_user_id);
@@ -82,6 +110,7 @@ export default async function PeoplePage() {
         followedUserIds={followedUserIds}
         followerUserIds={followerUserIds}
         sidebar={sidebar}
+        prevCareer={prevCareer}
       />
     </div>
   );

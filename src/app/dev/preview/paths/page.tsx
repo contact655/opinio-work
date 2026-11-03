@@ -1,12 +1,12 @@
-import PathsResult from "@/app/(jobseeker)/paths/PathsResult";
+import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import type { PathsView, PathsCardView } from "@/lib/paths/server";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 
 /**
- * 「行き先」（/paths）のプレビュー（2026-11-04）。
+ * 「前の経歴」の集計のプレビュー（2026-11-04。2026-11-03 に /paths を /people の「前の経歴」と /home の「同じ経歴の人の行き先」へまとめた）。
  * ⚠️ 実データで集計が出るのは「職種：営業」だけ（2026-11-03 実測）。下限ちょうど・届かない・広げる提案はここで見る。
- * ⚠️ DB を読まない。固定データだけ。個人カードの「話を聞く」ボタンは DMButton が API で判定するので、ここの架空の人には出ない。
+ * ⚠️ DB を読まない。固定データだけ。カードは /people の一覧（GridCard）がそのまま出すのでここには並べない。
  */
 const options = {
   roles: [{ slug: "sales", name: "営業" }, { slug: "engineer", name: "エンジニア" }],
@@ -24,7 +24,7 @@ const CARDS = [
   card(2, "佐藤 花子", "みずほ証券株式会社 - 法人営業", "Salesforce - カスタマーサクセス", false),
   card(3, "寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末", "とても長い会社名の株式会社エンタープライズソリューションズジャパン - インサイドセールス", "もうひとつのとても長い会社名合同会社 - フィールドセールス"),
 ];
-const base = (o: Partial<PathsView>): PathsView => ({ options, start: SALES, autoStart: false, summary: null, wider: [], cards: [], ...o });
+const base = (o: Partial<PathsView>): PathsView => ({ options, start: SALES, autoStart: false, selfStart: SALES_IT, summary: null, wider: [], cards: [], ...o });
 
 const FIVE: PathsView = base({
   summary: {
@@ -53,16 +53,15 @@ export default function PathsPreview() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="行き先（/paths）">
-        <code>PathsResult</code> です。集計の各行は5人以上・人数も5人以上のときだけ。未ログインには個人カードを出しません。
+      <PreviewHeader title="前の経歴の集計（/people・/home）">
+        <code>PrevCareerSummary</code> です。集計の各行は5人以上。/people（一覧の上）と /home（あなたと同じ経歴の人の行き先）が同じ部品を使います。
       </PreviewHeader>
-      <Variant label="5人ちょうど（ログイン中）"><PathsResult view={FIVE} /></Variant>
-      <Variant label="多い・自動の起点（直近の職歴から）・長い社名"><PathsResult view={MANY} /></Variant>
-      <Variant label="5人に届かない → 広げる提案" note="⚠️ 人数が出ないこと。広げた先のリンクが出ること"><PathsResult view={FEW_WIDER} /></Variant>
-      <Variant label="5人に届かず、広げても出ない・カード0人" note="⚠️ 広げる提案が出ないこと"><PathsResult view={FEW_NONE} /></Variant>
-      <Variant label="未ログイン" note="⚠️ 個人カードの代わりにログインの案内"><PathsResult view={{ ...FIVE, cards: null }} /></Variant>
-      <Variant label="起点なし"><PathsResult view={base({ start: null })} /></Variant>
-      <Variant label="読み込みに失敗"><PathsResult view={null} /></Variant>
+      <Variant label="/people: 5人ちょうど"><PrevCareerSummary view={FIVE} /></Variant>
+      <Variant label="/people: 多い・長い社名"><PrevCareerSummary view={MANY} /></Variant>
+      <Variant label="/people: 5人に届かない → 広げる提案" note="⚠️ 人数が出ないこと。広げた先のリンク（/people?prev_…）が出ること"><PrevCareerSummary view={FEW_WIDER} /></Variant>
+      <Variant label="/people: 届かず、広げても出ない" note="⚠️ 広げる提案が出ないこと"><PrevCareerSummary view={FEW_NONE} /></Variant>
+      <Variant label="/home: 出せる行がある" note="⚠️ 下に「この経歴から進んだ人を見る →」"><div><style>{`.home-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }`}</style><PrevCareerSummary view={MANY} variant="home" /></div></Variant>
+      <Variant label="/home: 出せる行が無い" note="⚠️ 何も出ないこと（空の箱を出さない）"><PrevCareerSummary view={FEW_WIDER} variant="home" /></Variant>
     </div>
   );
 }

@@ -35,7 +35,7 @@ const TABS = [
   /* ★「ホーム」を先頭に（2026-10-01 / 柴さんの指示。旧「フィード」）。
      ⚠️ ヘッダーのナビと同じ並び・同じ語にすること。片方だけ変えない。 */
   {
-    /* ★★2026-10-27: `/home`（あなたの次の一手）。`/feed` は「フィード」として引き出しに置く */
+    /* ★★2026-10-27: `/home`。2026-11-03 に `/feed`（タイムライン）もここにまとめた */
     href: "/home",
     label: "ホーム",
     icon: (active: boolean) => (
@@ -132,9 +132,9 @@ export function MobileBottomNav() {
   }, []);
 
   /* ⚠️★**タブ数を変えない。** 5つ目を差し替えるだけ（冒頭の注記）。 */
-  /* ★未ログインの「ホーム」は /feed（/home はログイン必須。2026-10-27） */
+  /* ★未ログインの「ホーム」はトップ（/）。/home はログイン必須（2026-11-03。/feed は /home にまとめた） */
   const tabs = loggedIn === false
-    ? [{ ...TABS[0], href: "/feed" }, ...TABS.slice(1, 4), SIGNUP_TAB]
+    ? [{ ...TABS[0], href: "/" }, ...TABS.slice(1, 4), SIGNUP_TAB]
     : TABS;
 
   // biz・admin・profile・onboarding ページでは非表示

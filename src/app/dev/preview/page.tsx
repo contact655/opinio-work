@@ -25,8 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
-  { href: "/dev/preview/paths", label: "行き先（/paths）",
-    desc: "★5人ちょうど・届かない（広げる提案）・未ログイン・長い社名。実データでは「職種：営業」しか集計が出ない" },
+  { href: "/dev/preview/paths", label: "前の経歴の集計（/people・/home。旧 /paths）",
+    desc: "★5人ちょうど・届かない（広げる提案）・長い社名・ホームで出せる行が無いとき。実データでは「職種：営業」しか集計が出ない" },
   { href: "/dev/preview/feed-redesign", label: "ホームの見直し（見本）",
     desc: "★新しく掲載された企業（横に送る）と「◯◯から次に進んだ人」（キャリアの移り変わり）。まだ本物のホームには入れていない" },
   { href: "/dev/preview/resume", label: "職務経歴書（/mypage/resume）",

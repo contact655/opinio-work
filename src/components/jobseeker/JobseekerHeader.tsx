@@ -48,13 +48,12 @@ const NAV_LINKS = [
         先頭に置いても、ログインしていない訪問者が行き止まりに当たることはない。 */
   /* ★★2026-10-27: 「ホーム」は `/home`（あなたの次の一手）。`/feed` は「フィード」として2番目に残す（柴さんの決定4）。
         ⚠️ `/home` はログイン必須（middleware）。未ログインには出さない（下の `navLinks`）。 */
+  /* ★★2026-11-03: 5つにした（柴さんの指示）。「フィード」（/feed）は「ホーム」に、「行き先」（/paths）は「ユーザー」の「前の経歴」にまとめた。
+        ⚠️ /feed と /paths は middleware が転送する。ナビに戻さないこと */
   { href: "/home", label: "ホーム" },
-  { href: "/feed", label: "フィード" },
   { href: "/companies", label: "企業" },
   { href: "/jobs", label: "募集" },
   { href: "/people", label: "ユーザー" },
-  /* ★2026-11-04: 同じ経歴の人の行き先（/paths）。未ログインにも出す（集計だけの画面） */
-  { href: "/paths", label: "行き先" },
   { href: "/articles", label: "記事" },
 ];
 
@@ -1131,8 +1130,8 @@ export function JobseekerHeader() {
           {/* ★ログイン中のスマホは、下のタブバーにある5つ（ホーム・企業・募集・ユーザー・マイページ）を
               ここに並べない（2026-10-17）。同じ行き先が画面の上と下に2つずつ並んでいた。
               ⚠️ タブバーに無い「記事」だけ残す。⚠️ 未ログインは従来どおり全部出す。 */}
-          {/* ⚠️ 2026-10-27: タブバーに無い「フィード」（/feed）もここに置く。未ログインには「ホーム」（/home）を出さない */}
-          {NAV_LINKS.filter(({ href }) => (mobileSignedIn ? href === "/articles" || href === "/feed" || href === "/paths" : href !== "/home" || !!user)).map(({ href, label }) => {
+          {/* ⚠️ 2026-11-03: 「フィード」「行き先」はナビから外した（ホーム・ユーザーにまとめた）。未ログインには「ホーム」（/home）を出さない */}
+          {NAV_LINKS.filter(({ href }) => (mobileSignedIn ? href === "/articles" : href !== "/home" || !!user)).map(({ href, label }) => {
             const [hrefPath, hrefQuery] = href.split("?");
             const hrefTab = hrefQuery ? new URLSearchParams(hrefQuery).get("tab") : null;
             const active = hrefTab

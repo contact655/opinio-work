@@ -170,6 +170,9 @@ type Props = {
   careerMoveBlocks: CareerMoveBlock[];
   /** 掲載中の企業の数（「新しく掲載された企業」の「N社すべて見る」） */
   listedCompanyCount: number;
+  /** ★タイムラインの上に置くもの（2026-11-03。/home の「職歴の案内・合う会社・行き先」）。
+   *  ⚠️ /feed は /home に統合した。左右の列はこの部品のまま使う（HomeSideShell に別に組まない） */
+  top?: React.ReactNode;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -2430,6 +2433,7 @@ export default function FeedClient({
   canPost,
   careerMoveBlocks,
   listedCompanyCount,
+  top,
 }: Props) {
   /* ★「すべて／フォロー中」のタブは 2026-10-20 になくした（柴さんの指示）。1本の流れにし、フォローしている人・企業の投稿を先に出す。
         ⚠️ `tab` は "all" 固定の名残。API の tab=followed は残してある（使い手は無い） */
@@ -2600,6 +2604,12 @@ export default function FeedClient({
 
       {/* 中央フィードカラム */}
       <div style={{ flex: 1, minWidth: 0 }}>
+      {top && (
+        <>
+          <div data-state="home-top" style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)", marginBottom: 24 }}>{top}</div>
+          <h2 data-state="home-timeline" style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: "0 0 10px" }}>タイムライン</h2>
+        </>
+      )}
       {/* 投稿コンポーザー。
           ⚠️ 投稿できない人には入力欄を出さない（2026-08-05）。
              「投稿できません」等の表示は出さず、静かに出さないだけにする。 */}
