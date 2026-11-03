@@ -86,6 +86,35 @@ export function talkAcceptsRequest(s: { capacity: TalkCapacity; receivedThisMont
   return false;
 }
 
+/** その依頼が、now と同じ月（日本時間）に届いたものか。⚠️ talkProfiles の DB の絞り込み（gte startOfMonthJst）と同じ境目 */
+export function isInCurrentMonthJst(createdAt: string, now: Date): boolean {
+  const t = new Date(createdAt).getTime();
+  if (Number.isNaN(t)) return false;
+  return t >= startOfMonthJst(now).getTime() && t <= now.getTime();
+}
+
+/**
+ * ★「話を聞く」（メッセージ）ボタンを出すか（2026-11-04）。/api/talk/availability と未ログインのプロフィールが同じ関数を見る。
+ *   ・自分自身・見られない人には出さない
+ *   ・★検証用と実在のアカウントの組み合わせには出さない。送る段で lib/conversations/contactGate.ts が必ず止めるので、
+ *     押せるのに送れないボタンになる（2026-11-03 に実在のアカウントから検証用の人を開いて踏んだ）
+ *   ・あとは、相互フォローでつながっているか、相手がいま受け付けているか
+ *   viewerIsTest = 見ている人が検証用か。未ログインは null（実在の人として扱う。ログインして押すのはふつう実在の人）
+ * ⚠️ ブロック・企業の担当者の規則はここに入れない。ボタンの有無で相手がブロックしたことが分かってしまうため（送る段で止める）
+ */
+export function talkButtonVisible(p: {
+  isSelf: boolean;
+  targetVisible: boolean;
+  viewerIsTest: boolean | null;
+  targetIsTest: boolean;
+  connected: boolean;
+  accepts: boolean;
+}): boolean {
+  if (p.isSelf || !p.targetVisible) return false;
+  if ((p.viewerIsTest === true) !== (p.targetIsTest === true)) return false;
+  return p.connected || p.accepts;
+}
+
 /** 返事の無い依頼が、自動で辞退になる時刻を過ぎているか */
 export function isTalkRequestExpired(createdAt: string, now: Date): boolean {
   const t = new Date(createdAt).getTime();

@@ -54,6 +54,7 @@ import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import { ProfileSchoolmatesSection } from "@/components/profile/view/ProfileSchoolmatesSection";
 import { getSchoolmates } from "@/lib/schools/schoolmates";
 import { talkProfileOf } from "@/lib/talk/server";
+import { talkButtonVisible } from "@/lib/constants/talk";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -667,7 +668,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                        ⚠️ 会社として送れない相手には「…」の中に何も出さない（理由を区別しない。送れない一文も出さない） */}
                 {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
-                ) : !viewerIsOwner && !authUser && talk?.accepts ? (
+                ) : !viewerIsOwner && !authUser && talk && talkButtonVisible({
+                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: talk.isTest, connected: false, accepts: talk.accepts,
+                }) ? (
                   /* ★未ログインの案内も、相手がいま話を受け付けているときだけ（2026-11-03）。ログイン後に押せないボタンへ誘わない */
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 7,

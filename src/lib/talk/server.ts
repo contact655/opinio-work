@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { can, toCompanyRole } from "@/lib/auth/roles";
 import { companyDisplayName } from "@/lib/companies/displayName";
+import { recruiterCompanyIds } from "@/lib/talk/recruiter";
 import {
   DEFAULT_TALK_CAPACITY,
   TALK_REQUEST_EXPIRE_DAYS,
@@ -35,22 +36,27 @@ export type TalkSettingsView = {
   recruiterCompanies: { id: string; name: string }[];
 };
 
+/** talk.asRecruiter（lib/auth/roles.ts）。採用担当の判定は recruiterCompanyIds にこれを渡す */
+const canRecruit = (permission: string | null) => can(toCompanyRole(permission), "talk.asRecruiter");
+
 type SettingsRow = { user_id: string; stance: string | null; stance_company_id: string | null; capacity: string };
 
 /** 「採用担当」として選べる会社 */
 async function recruiterCompaniesOf(db: SupabaseClient, owUserId: string): Promise<{ id: string; name: string }[] | null> {
   const { data, error } = await db
     .from("ow_company_admins")
-    .select("company_id, permission, ow_companies!company_id(id, name, name_en)")
-    .eq("user_id", owUserId).eq("is_active", true);
+    .select("company_id, permission, is_active, ow_companies!company_id(id, name, name_en)")
+    .eq("user_id", owUserId);
   if (error) {
     console.error("[talk] recruiter companies:", error.message);
     return null;
   }
+  const rows = (data ?? []) as unknown as { company_id: string; permission: string | null; is_active: boolean | null; ow_companies: { id: string; name: string; name_en: string | null } | null }[];
+  const allowed = recruiterCompanyIds(rows, canRecruit);
   const out: { id: string; name: string }[] = [];
-  for (const r of (data ?? []) as unknown as { company_id: string; permission: string; ow_companies: { id: string; name: string; name_en: string | null } | null }[]) {
-    if (!r.ow_companies || !can(toCompanyRole(r.permission), "talk.asRecruiter")) continue;
-    out.push({ id: r.company_id, name: companyDisplayName(r.ow_companies.name, r.ow_companies.name_en).displayName });
+  for (const id of allowed) {
+    const c = rows.find((r) => r.company_id === id)?.ow_companies;
+    if (c) out.push({ id, name: companyDisplayName(c.name, c.name_en).displayName });
   }
   return out;
 }
@@ -108,6 +114,8 @@ export type TalkProfile = {
   stanceLabel: string | null;
   /** 話せる設定にしているか（今は話せない以外）。プロフィールに立場を出すかの判定に使う。⚠️ 月の上限に届いていても true */
   open: boolean;
+  /** 検証用アカウントか（ボタンの出し分け talkButtonVisible に渡す） */
+  isTest: boolean;
 };
 
 /**
@@ -121,14 +129,16 @@ export async function talkProfiles(owUserIds: readonly string[], now: Date = new
   if (ids.length === 0) return out;
   const db = createAdminClient();
   const monthStart = startOfMonthJst(now).toISOString();
-  const [{ data: rows, error }, { data: reqs, error: rErr }] = await Promise.all([
+  const [{ data: rows, error }, { data: reqs, error: rErr }, { data: users, error: uErr }] = await Promise.all([
     db.from("ow_talk_settings").select("user_id, stance, stance_company_id, capacity").in("user_id", ids),
     db.from("ow_talk_requests").select("target_user_id").in("target_user_id", ids).gte("created_at", monthStart),
+    db.from("ow_users").select("id, is_test").in("id", ids),
   ]);
-  if (error || rErr) {
-    console.error("[talk] profiles:", error?.message ?? rErr?.message);
+  if (error || rErr || uErr) {
+    console.error("[talk] profiles:", error?.message ?? rErr?.message ?? uErr?.message);
     return null;
   }
+  const testIds = new Set(((users ?? []) as { id: string; is_test: boolean | null }[]).filter((u) => u.is_test === true).map((u) => u.id));
   const received = new Map<string, number>();
   for (const r of (reqs ?? []) as { target_user_id: string }[]) received.set(r.target_user_id, (received.get(r.target_user_id) ?? 0) + 1);
 
@@ -139,15 +149,15 @@ export async function talkProfiles(owUserIds: readonly string[], now: Date = new
   if (recruiterRows.length > 0) {
     const { data: admins, error: aErr } = await db
       .from("ow_company_admins")
-      .select("user_id, company_id, permission, ow_companies!company_id(name, name_en)")
-      .in("user_id", recruiterRows.map((r) => r.user_id)).eq("is_active", true);
+      .select("user_id, company_id, permission, is_active, ow_companies!company_id(name, name_en)")
+      .in("user_id", recruiterRows.map((r) => r.user_id));
     if (aErr) {
       console.error("[talk] profiles admins:", aErr.message);
       return null;
     }
-    for (const a of (admins ?? []) as unknown as { user_id: string; company_id: string; permission: string; ow_companies: { name: string; name_en: string | null } | null }[]) {
+    for (const a of (admins ?? []) as unknown as { user_id: string; company_id: string; permission: string | null; is_active: boolean | null; ow_companies: { name: string; name_en: string | null } | null }[]) {
       const want = recruiterRows.find((r) => r.user_id === a.user_id)?.stance_company_id;
-      if (a.company_id !== want || !a.ow_companies || !can(toCompanyRole(a.permission), "talk.asRecruiter")) continue;
+      if (a.company_id !== want || !a.ow_companies || recruiterCompanyIds([a], canRecruit).length === 0) continue;
       allowedRecruiter.set(a.user_id, companyDisplayName(a.ow_companies.name, a.ow_companies.name_en).displayName);
     }
   }
@@ -161,6 +171,7 @@ export async function talkProfiles(owUserIds: readonly string[], now: Date = new
       accepts: recruiterOk && stance !== null && talkAcceptsRequest({ capacity, receivedThisMonth: received.get(id) ?? 0 }),
       stanceLabel: recruiterOk ? talkStanceLabel(stance, allowedRecruiter.get(id) ?? null) : null,
       open: recruiterOk && stance !== null && capacity !== "none",
+      isTest: testIds.has(id),
     });
   }
   return out;

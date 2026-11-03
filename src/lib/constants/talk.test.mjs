@@ -7,7 +7,10 @@ import { readFileSync } from "node:fs";
 import {
   TALK_STANCES, TALK_CAPACITIES, DEFAULT_TALK_CAPACITY, TALK_REQUEST_EXPIRE_DAYS,
   parseTalkSettings, talkAcceptsRequest, startOfMonthJst, isTalkRequestExpired, talkStanceLabel,
+  isInCurrentMonthJst, talkButtonVisible,
 } from "./talk.ts";
+import { recruiterCompanyIds } from "../talk/recruiter.ts";
+import { can, toCompanyRole } from "../auth/roles.ts";
 
 test("選択肢は立場3つ・量3つで、初期値は「今は話せない」", () => {
   assert.deepEqual(TALK_STANCES.map((s) => s.value), ["recruiter", "referral", "personal"]);
@@ -56,4 +59,57 @@ test("立場の名前: 採用担当は会社名を添える", () => {
   assert.equal(talkStanceLabel("recruiter", "Salesforce"), "採用担当（Salesforce）");
   assert.equal(talkStanceLabel("referral", "Salesforce"), "紹介制度のある社員");
   assert.equal(talkStanceLabel(null), null);
+});
+
+test("★月1件まで: その月に1件受けたら月末までボタンを出さず、翌月1日（日本時間0時）に戻る", () => {
+  const received = "2026-11-03T03:00:00Z"; // 日本時間 11/3 12:00 に1件
+  const count = (now) => [received].filter((c) => isInCurrentMonthJst(c, now)).length;
+  const show = (now) => talkButtonVisible({
+    isSelf: false, targetVisible: true, viewerIsTest: false, targetIsTest: false, connected: false,
+    accepts: talkAcceptsRequest({ capacity: "monthly_one", receivedThisMonth: count(now) }),
+  });
+  assert.equal(show(new Date("2026-11-03T02:59:00Z")), true, "受ける前は出る");
+  assert.equal(show(new Date("2026-11-03T03:00:00Z")), false, "受けた直後は出ない");
+  assert.equal(show(new Date("2026-11-30T14:59:00Z")), false, "月末（日本時間 11/30 23:59）も出ない");
+  assert.equal(show(new Date("2026-11-30T15:00:00Z")), true, "翌月1日（日本時間 12/1 0:00）に戻る");
+});
+
+test("★14日返事がなければ自動で辞退。13日目（13日と23時間59分）ではまだ辞退にならない", () => {
+  const created = "2026-11-01T00:00:00Z";
+  assert.equal(isTalkRequestExpired(created, new Date("2026-11-14T00:00:00Z")), false, "13日目");
+  assert.equal(isTalkRequestExpired(created, new Date("2026-11-14T23:59:00Z")), false, "13日と23時間59分");
+  assert.equal(isTalkRequestExpired(created, new Date("2026-11-15T00:00:00Z")), true, "14日");
+});
+
+test("★採用担当を選べるのは、有効な担当者で管理者か採用担当の会社だけ", () => {
+  const canRecruit = (p) => can(toCompanyRole(p), "talk.asRecruiter");
+  const rows = [
+    { company_id: "a", permission: "admin", is_active: true },
+    { company_id: "b", permission: "recruiter", is_active: true },
+    { company_id: "c", permission: "viewer", is_active: true },
+    { company_id: "d", permission: "admin", is_active: false },
+    { company_id: "e", permission: "member", is_active: true }, // 旧値は採用担当として読む
+    { company_id: "f", permission: "owner", is_active: true },  // 知らない値は何もできない
+  ];
+  assert.deepEqual(recruiterCompanyIds(rows, canRecruit), ["a", "b", "e"]);
+  assert.deepEqual(recruiterCompanyIds([], canRecruit), [], "担当者でない人は0件（保存は 403）");
+});
+
+test("★ボタン: 検証用と実在のアカウントの組み合わせには出さない", () => {
+  const base = { isSelf: false, targetVisible: true, connected: false, accepts: true };
+  assert.equal(talkButtonVisible({ ...base, viewerIsTest: false, targetIsTest: false }), true, "実在→実在");
+  assert.equal(talkButtonVisible({ ...base, viewerIsTest: true, targetIsTest: true }), true, "検証用→検証用");
+  assert.equal(talkButtonVisible({ ...base, viewerIsTest: false, targetIsTest: true }), false, "実在→検証用");
+  assert.equal(talkButtonVisible({ ...base, viewerIsTest: true, targetIsTest: false }), false, "検証用→実在");
+  assert.equal(talkButtonVisible({ ...base, viewerIsTest: null, targetIsTest: true }), false, "未ログイン→検証用");
+  assert.equal(talkButtonVisible({ ...base, viewerIsTest: null, targetIsTest: false }), true, "未ログイン→実在");
+  assert.equal(talkButtonVisible({ ...base, connected: true, accepts: false, viewerIsTest: false, targetIsTest: true }), false, "つながっていても組み合わせが違えば出さない");
+});
+
+test("ボタン: 自分自身・見られない人には出さない。つながっていれば受け付けていなくても出す", () => {
+  const base = { viewerIsTest: false, targetIsTest: false };
+  assert.equal(talkButtonVisible({ ...base, isSelf: true, targetVisible: true, connected: true, accepts: true }), false);
+  assert.equal(talkButtonVisible({ ...base, isSelf: false, targetVisible: false, connected: true, accepts: true }), false);
+  assert.equal(talkButtonVisible({ ...base, isSelf: false, targetVisible: true, connected: true, accepts: false }), true);
+  assert.equal(talkButtonVisible({ ...base, isSelf: false, targetVisible: true, connected: false, accepts: false }), false);
 });
