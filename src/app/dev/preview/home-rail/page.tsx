@@ -16,9 +16,11 @@ const base: Omit<ForYouView, "id" | "rank" | "name"> = {
   phaseLabel: null, cautions: [], hasResponder: true, interestStatus: null, reaction: null, conversationId: null, interested: false,
 };
 const COMPANIES: ForYouView[] = [
-  { ...base, id: "00000000-0000-0000-0000-000000000101", rank: 1, name: "サンプルワークス", reasons: ["前職と同じAI・データ領域の会社です"] },
+  { ...base, id: "00000000-0000-0000-0000-000000000101", rank: 1, name: "サンプルワークス", href: "/companies/salesforce", reasons: ["前職と同じAI・データ領域の会社です"] },
   { ...base, id: "00000000-0000-0000-0000-000000000102", rank: 2, name: "とても長い会社名の株式会社エンタープライズソリューションズジャパン", reasons: ["あなたと同じ職種から、この会社へ 5人が移っています（理由が長いときは1行で切れること）"], hasResponder: false },
   { ...base, id: "00000000-0000-0000-0000-000000000103", rank: 3, name: "サンプル商事", reasons: [], interested: true, conversationId: "x" },
+  { ...base, id: "00000000-0000-0000-0000-000000000104", rank: 4, name: "理由なしの株式会社サンプルテクノロジーズ", reasons: [] },
+  { ...base, id: "00000000-0000-0000-0000-000000000105", rank: 5, name: "サンプルクラウド", reasons: ["同じ経歴から移った人が多く、前職と同じ事業領域で、職種も希望と合っている会社です（理由がとても長い）"] },
 ];
 const PATHS: Pick<PathsView, "start" | "summary" | "wider"> = {
   start: { role: { slug: "sales", name: "営業" }, industry: { slug: "it", name: "IT・インターネット" }, company: null },
@@ -39,10 +41,10 @@ export default function HomeRailPreview() {
       <PreviewHeader title="ホームの右の列とスマホの差し込み（/home）">
         PC は右の列（1024px 以上は 300px）、スマホはタイムラインの2件目と3件目の間（横スクロール）・5件目のあと。
       </PreviewHeader>
-      <Variant label="右の列（300px）: あなたに合う会社 → 行き先" note="社名・理由は1行で切れ、ボタンは折り返さないこと。2社目は担当者未登録（主の操作が保存）、3社目は答えた後">
+      <Variant label="右の列（300px）: あなたに合う会社 → 行き先" note="社名・理由は列の幅いっぱいで1行で切れ、ボタンは3行目に並ぶこと。1社目ふつう・2社目は長い社名と理由で担当者未登録（保存）・3社目は答えた後・4社目は理由なし・5社目は長い理由">
         <div style={{ width: 300, maxWidth: "100%" }}>
           <ForYouSection companies={COMPANIES} loadFailed={false} noReasons={false} declineReasons={decline}
-            compact={{ limit: 3, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />
+            compact={{ limit: 5, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />
           <PrevCareerSummary view={PATHS} variant="rail" />
         </div>
       </Variant>

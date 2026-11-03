@@ -8,7 +8,7 @@ import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
 import InterestConfirmDialog from "@/components/interest/InterestConfirmDialog";
 import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
 import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./FitCardParts";
-import { RailBox, RailRow, RAIL_THUMB } from "@/components/feed/railKit";
+import { RailBox, RAIL_THUMB } from "@/components/feed/railKit";
 
 /**
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
@@ -572,10 +572,13 @@ function CompactItem(props: {
 }
 
 /**
- * ★ホームの右の列の1社（2026-11-04 に右の列の行の形へそろえた）。左にロゴ 40px／名前と提案の理由1行／右に「話を聞く」（担当者がいない会社は「保存」）と「…」。
- *   行（ボタンと「…」を除く）を押すと会社ページへ。開けない会社（検証用など href が null）は押しても移らない。
- *   提案の理由が無い会社は補足の行を出さない（会社の説明文で埋めない）。
- * ⚠️ 「…」の中身と記録（あとで・興味なし・保存）は CompactItem と同じ。新しい経路を作らない
+ * ★ホームの右の列の1社（2026-11-04）。左にロゴ 40px、その右の文字の欄を列の幅いっぱいまで使う3行:
+ *     1行目 社名（1行で切る）／2行目 提案の理由（1行で切る）／3行目 小さな「話を聞く」（担当者がいない会社は「保存」）と「…」を文字の欄の左端にそろえる
+ *   右の列が 300px になり、ボタンを右に並べる形（RailRow）だと社名と理由に約100px しか残らなかったため、この行だけ形を変えた
+ *   （柴さんの指示）。⚠️ 他の箱の行（RailRow）は変えていない。
+ *   ロゴと文字（ボタンと「…」を除く）を押すと会社ページへ。開けない会社（検証用など href が null）は押しても移らない。
+ *   提案の理由が無い会社は2行目を出さない（会社の説明文で埋めない）。
+ * ⚠️ 「…」の中身と記録（話を聞いてみたい・あとで・興味なし・保存）は変えていない。新しい経路を作らない
  */
 function RailCompanyRow(props: {
   c: ForYouView;
@@ -608,11 +611,26 @@ function RailCompanyRow(props: {
         data-action="for-you-menu" className="fy-r-more">…</button>
     </>
   );
+  const title = reason ? `${c.name}：${reason}` : c.name;
+  const logo = <CompanyLogo name={c.name} logoUrl={c.logoUrl} size={RAIL_THUMB} />;
+  const text = (
+    <>
+      <span className="fy-r-name" data-state="for-you-rail-name">{c.name}</span>
+      {reason && <span className="fy-r-reason" data-state="for-you-rail-reason">{reason}</span>}
+    </>
+  );
   return (
     <li data-company-id={c.id} data-rank={c.rank} className="fy-r-item">
-      <RailRow href={c.href} title={reason ? `${c.name}：${reason}` : c.name}
-        thumb={<CompanyLogo name={c.name} logoUrl={c.logoUrl} size={RAIL_THUMB} />}
-        name={c.name} sub={reason} action={action} />
+      <div className="fy-r-row" data-rail-row="" title={title}>
+        {/* ⚠️ ロゴのリンクは文字のリンクと同じ行き先。読み上げとタブ移動は文字の側だけにする */}
+        {c.href
+          ? <Link href={c.href} className="fy-r-logo" tabIndex={-1} aria-hidden>{logo}</Link>
+          : <span className="fy-r-logo">{logo}</span>}
+        <div className="fy-r-body">
+          {c.href ? <Link href={c.href} className="fy-r-text">{text}</Link> : <div className="fy-r-text">{text}</div>}
+          {action && <div className="fy-r-actions" data-state="for-you-rail-actions">{action}</div>}
+        </div>
+      </div>
       {props.declining && <div className="fy-r-below">{props.declineUi}</div>}
       {props.menuOpen && !props.declining && (
         <div role="group" aria-label="その他の操作" data-state="for-you-menu" className="fy-r-below fy-r-menu">
@@ -638,6 +656,13 @@ function RailCompanyRow(props: {
 const FY_RAIL_CSS = `
   .fy-rail2 { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .fy-r-item { min-width: 0; }
+  .fy-r-row { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+  .fy-r-logo { flex-shrink: 0; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+  .fy-r-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .fy-r-text { display: flex; flex-direction: column; min-width: 0; text-decoration: none; color: var(--ink); font-family: var(--font-inter), var(--font-noto); }
+  .fy-r-name { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-r-reason { font-size: 12px; font-weight: 500; color: var(--ink-mute); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fy-r-actions { display: flex; align-items: center; gap: 6px; min-width: 0; }
   .fy-r-btn { display: inline-flex; align-items: center; justify-content: center; height: 30px; min-height: 0; padding: 0 10px; border-radius: 8px; border: 1px solid var(--royal); background: #fff; color: var(--royal); font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; font-family: inherit; text-decoration: none; }
   .fy-r-done { border-color: var(--line); color: var(--ink-soft); background: var(--line-soft); cursor: default; }
   a.fy-r-done { cursor: pointer; color: var(--royal); }
