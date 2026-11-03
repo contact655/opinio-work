@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAREER_NEXT_STEP_LABEL, CAREER_NEXT_STEP_HREF, careerBannerHiddenUntil, isCareerBannerHidden, CAREER_BANNER_HIDE_DAYS, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER } from "./homeState.ts";
+import { CAREER_NEXT_STEP_LABEL, CAREER_NEXT_STEP_HREF, careerBannerHiddenUntil, isCareerBannerHidden, CAREER_BANNER_HIDE_DAYS, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER } from "./homeState.ts";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -22,6 +22,11 @@ test("記録が無い・壊れているときは出す", () => {
 test("スマホで挟む位置: 合う会社は2件目と3件目の間、行き先は5件目のあと", () => {
   assert.equal(HOME_MOBILE_FOR_YOU_AFTER, 1);
   assert.equal(HOME_MOBILE_PATHS_AFTER, 4);
+});
+
+test("スマホのおすすめのユーザーは、合う会社より後・行き先より前（4件目のあと）", () => {
+  assert.equal(HOME_MOBILE_SUGGEST_AFTER, 3);
+  assert.ok(HOME_MOBILE_SUGGEST_AFTER > HOME_MOBILE_FOR_YOU_AFTER && HOME_MOBILE_SUGGEST_AFTER < HOME_MOBILE_PATHS_AFTER);
 });
 
 test("職歴を入れる画面の行き先は1つ（ホームの左のカードと次の1件で同じ）", () => {

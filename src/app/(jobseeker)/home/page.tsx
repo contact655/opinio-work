@@ -9,7 +9,9 @@ import ForYouSection from "../mypage/proposals/ForYouSection";
 import { toForYouViews } from "../mypage/proposals/forYouViews";
 import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
-import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER } from "@/lib/home/homeState";
+import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER } from "@/lib/home/homeState";
+import { getUserSuggestions } from "@/lib/people/suggestServer";
+import { SuggestedUsers } from "@/components/feed/SuggestedUsers";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import FeedClient from "../feed/(list)/FeedClient";
@@ -53,7 +55,7 @@ export default async function HomePage() {
   const isTest = me.is_test === true;
 
   /* ★タイムライン（loadFeedProps）と上のブロックは互いに依存しないので並列に引く */
-  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed] = await Promise.all([
+  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions] = await Promise.all([
     db.from("ow_experiences").select(`id, ${EXPERIENCE_COMPANY_COLS}`).eq("user_id", owId),
     buildForYou(owId),
     db.from("ow_proposals").select("company_id").eq("candidate_user_id", owId),
@@ -62,6 +64,8 @@ export default async function HomePage() {
     /* ★同じ経歴の人の行き先。起点は本人の直近の職歴（職種の大分類 × 業界の大分類） */
     getPathsView({}, { owUserId: owId, isTest }),
     loadFeedProps(),
+    /* ★おすすめのユーザー（2026-11-04）。0人なら箱ごと出さない */
+    getUserSuggestions({ owUserId: owId, isTest }),
   ]);
   if (expRes.error) console.error("[home] experiences:", expRes.error.message);
   if (proposedRes.error) console.error("[home] proposals:", proposedRes.error.message);
@@ -105,10 +109,12 @@ export default async function HomePage() {
   /* ★行き先は5人以上の行が1つも無ければ出さない（PrevCareerSummary も null を返すが、スマホの差し込みの枠ごと作らないためここでも見る） */
   const pathsHasRows = !!paths?.start && !!paths.summary && paths.summary.company.length + paths.summary.role.length + paths.summary.industry.length > 0;
   const railAfterUsers = paths && pathsHasRows ? <PrevCareerSummary view={paths} variant="rail" /> : null;
+  const railSuggestions = suggestions.length > 0 ? <SuggestedUsers users={suggestions} layout="rail" /> : null;
   const mobileInserts = [
     { key: "home-for-you", after: HOME_MOBILE_FOR_YOU_AFTER, node: <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "scroll" }} /> },
+    ...(suggestions.length > 0 ? [{ key: "home-user-suggest", after: HOME_MOBILE_SUGGEST_AFTER, node: <SuggestedUsers users={suggestions} layout="scroll" /> }] : []),
     ...(paths && pathsHasRows ? [{ key: "home-paths", after: HOME_MOBILE_PATHS_AFTER, node: <div style={{ marginBottom: 16 }}><PrevCareerSummary view={paths} variant="home" /></div> }] : []),
   ];
 
-  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} mobileInserts={mobileInserts} careerPrompt={noExperience} />;
+  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} railSuggestions={railSuggestions} mobileInserts={mobileInserts} careerPrompt={noExperience} />;
 }

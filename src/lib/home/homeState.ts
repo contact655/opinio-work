@@ -10,6 +10,8 @@ export const HOME_FOR_YOU_LIMIT = 3;
 /** ★スマホでタイムラインに挟む位置（2026-11-04）。添字は0始まり＝「何件目の投稿の後ろか」から1を引いた値 */
 export const HOME_MOBILE_FOR_YOU_AFTER = 1; // 2件目と3件目の間
 export const HOME_MOBILE_PATHS_AFTER = 4;   // 5件目のあと
+/** ★おすすめのユーザー（2026-11-04）。「あなたに合う会社」より後・行き先より前 */
+export const HOME_MOBILE_SUGGEST_AFTER = 3; // 4件目のあと
 
 /** ★職歴が0件の人の案内（2026-11-04 に1行の帯から右の列の箱へ） */
 export const CAREER_BOX_TITLE = "職歴を1件入れましょう";
