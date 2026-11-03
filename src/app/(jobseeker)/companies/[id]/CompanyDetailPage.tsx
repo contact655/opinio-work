@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { getCompanyFlowCached } from "@/lib/companyFlow/server";
 import { hasAnyFlowItem, toFlowSummary } from "@/lib/companyFlow/compute";
 import { CompanyFlowSection } from "./CompanyFlowSection";
+import { CompanyReasonRanking } from "./CompanyReasonRanking";
+import { getCompanyReasonRanking } from "@/lib/joinDecision/server";
 import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/lib/jobs/testViewMode";
 import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
@@ -1803,7 +1805,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, recruiters, companyArticles, employees, companyPosts, companyTools,
-         articleIdRowsResult, materialItems, companyFlow] = await Promise.all([
+         articleIdRowsResult, materialItems, companyFlow, reasonRanking] = await Promise.all([
     getCompanyPhotosCached(companyId),
     getCompanyRecruitersCached(companyId),
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
@@ -1827,6 +1829,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     getPublicMaterialItemsCached(companyId),
     /* ★人の流れ（2026-10-27）。⚠️ 集計（数と業界・職種の名前）だけ。下限未満は null。ページには件数だけを渡す（下の toFlowSummary） */
     getCompanyFlowCached(companyId),
+    /* ★入社の決め手の上位3つ（2026-11-02）。毎月1日のバッチの結果を読むだけ。順位だけで人数は持たない。10人未満の会社は null */
+    getCompanyReasonRanking(companyId),
   ]);
   /* ★人の流れの件数だけの形（2026-10-27）。出せる項目が無ければ null（見出しごと出さない） */
   const flowSummary = hasAnyFlowItem(companyFlow) ? toFlowSummary(companyFlow!) : null;
@@ -1985,6 +1989,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                    ⚠️ ページ（ISR）には件数だけを渡す。内訳はログインしている人にだけ部品が API から取る。
                    ⚠️ 出せる項目が1つも無い会社では描かない（見出しごと出さない） */}
             {flowSummary && <CompanyFlowSection companyId={companyId} summary={flowSummary} />}
+            {reasonRanking && <CompanyReasonRanking labels={reasonRanking} />}
 
             {/* ★企業情報（モバイルのみ）。⚠️ **サイドバーと同じ部品**を使う（2026-09-07）。
                    サイドバーは `hidden lg:flex` で 1023px 以下では消えるため、ここが無いと

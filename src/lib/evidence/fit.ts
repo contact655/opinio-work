@@ -87,7 +87,18 @@ export function fitText(fact: FitFact, audience: FitAudience): string {
  * 提案の根拠1件 → 画面に出す1文。
  * ⚠️ 事実（`fact`）を持つものは見る人に合わせて作り、持たないもの（既存の4種類）は保存された文をそのまま出す。
  */
-export function evidenceText(e: Pick<Evidence, "label" | "fact">, audience: FitAudience): string {
+/**
+ * ★入社の決め手の根拠の文（2026-11-02 / 柴さんの指示で固定）。
+ * ⚠️ 人数・割合・どの選択肢か・本人の回答との一致が読み取れる言葉を足さないこと。
+ * ⚠️★スナップショット（`ow_proposals.evidence`）には入れない。「あなた」を含むため、
+ *    候補者の画面で表示するときにだけ使う。企業側には shared_motive 自体を返さない。
+ */
+export const SHARED_MOTIVE_TEXT = "あなたと同じ理由で選んだ人が多い会社です";
+
+export function evidenceText(e: Pick<Evidence, "label" | "fact"> & { kind?: string }, audience: FitAudience): string {
+  /* ★保存済みの文（2026-11-02 より前の「n人のうちk人が…」）があっても、固定の文に置き換える。
+        ⚠️ 企業向けには何も返さない（そもそも企業側には shared_motive を渡さないが、念のため） */
+  if (e.kind === "shared_motive") return audience === "candidate" ? SHARED_MOTIVE_TEXT : "";
   if (e.fact) return fitText(e.fact, audience);
   return e.label ?? "";
 }

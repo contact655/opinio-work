@@ -22,6 +22,7 @@ import {
   reasonState,
 } from "@/components/profile/editor/ExperienceReasonModal";
 import { CareerTurnModal } from "@/components/profile/editor/CareerTurnModal";
+import { JoinDecisionModal } from "@/components/profile/editor/JoinDecisionModal";
 import {
   postExperience,
   type ExperienceCompanyBody,
@@ -1487,6 +1488,9 @@ export default function CareerHistoryEditor({
      ⚠️ **編集の保存後には開かない。** 既存の職歴を直すたびに設問が出ると、
         2026-08-19 に編集モーダルへ置いていたときと同じ形に戻る。 */
   const [reasonId, setReasonId] = useState<string | null>(null);
+  /* ★入社の決め手（1問・2026-11-02）。現職の会社を登録・更新したときに開く。
+        ⚠️ まだ答えていない・スキップしていない会社だけ出る（モーダルが `onlyWhenPrompted` で判定する） */
+  const [decisionId, setDecisionId] = useState<string | null>(null);
 
   /* ★回答の状態を会社単位で読む（2026-10-16）。⚠️ 保存も読み込みもモーダルと API が持つ。
         ここは「回答済みか」の印（行のドット・まとめて答える・件数）だけ。
@@ -1779,6 +1783,8 @@ export default function CareerHistoryEditor({
       await new Promise((r) => setTimeout(r, 800));
       cancelEdit();
       setEditJustSaved(false);
+      /* ★現職の会社を更新したとき、入社の決め手をまだ聞いていなければ聞く（2026-11-02） */
+      if (editDraft.isCurrent) setDecisionId(editingId);
     } catch (e) {
       /* ⚠️★**API が返した理由をそのまま出す**（2026-09-12）。「保存に失敗しました」だけだと、
             出向先に自社を選んだ人が**何を直せばよいか分からない**。 */
@@ -1884,8 +1890,9 @@ export default function CareerHistoryEditor({
          ⚠️ **編集では出さない。** ⚠️ 失敗したときも出さない（この行は try の中）。
          ⚠️★**既にある会社に役割を足したときは出さない**（2026-10-16 / 回答の単位は会社）。
             同じ会社の役割が既にあれば、その会社は行のアイコンから答える。 */
-      const isNewCompany = !stints.some((x) => groupKey(x) === groupKey(newStint));
-      if (isNewCompany) setReasonId(id);
+      /* ★★2026-11-02: 転機の3問は出さない（表示を止めた）。現職の会社を登録したときだけ、入社の決め手（1問）を聞く。
+            ⚠️ 同じ会社に役割を足したときも開くが、答え済み・スキップ済みならモーダルが何も出さずに閉じる */
+      if (addDraft.isCurrent) setDecisionId(id);
     } catch (e) {
       showToast((e as Error).message || "追加に失敗しました。もう一度お試しください。", "error");
     } finally {
@@ -2151,6 +2158,22 @@ export default function CareerHistoryEditor({
              `key` で作り直すのは、開くたびにステップ1から・その会社の保存済みの回答で始めるため。
              ⚠️ 読み込み・保存はモーダルと API（`/api/jobseeker/experiences/[id]/reasons`）が持つ。
                 ここは開く・閉じる・次の会社・回答済みの印の更新だけ。 */}
+      {decisionId && (() => {
+        const st = stints.find((x) => x.id === decisionId);
+        if (!st) return null;
+        return (
+          <JoinDecisionModal
+            key={decisionId}
+            open
+            onlyWhenPrompted
+            experienceId={decisionId}
+            companyName={st.displayCompanyName}
+            onSaved={() => showToast("保存しました")}
+            onClose={() => setDecisionId(null)}
+          />
+        );
+      })()}
+
       {reasonStint && (() => {
         /* 残り = この会社を除いた未回答の会社 */
         const rest = unansweredIds.filter((id) => {

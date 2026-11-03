@@ -54,6 +54,13 @@ export function meetsAggregateMin(n: number): boolean {
  */
 export const MIN_CAREER_FACT_COUNT = 3;
 
+/**
+ * ★★入社の決め手の集計の下限（2026-11-02 / 柴さんの決定）。**この人数以上の回答がある会社だけ**、
+ *   決め手を使う（企業ページの上位3つ・提案の根拠）。下限に届かなければ項目ごと出さない。
+ * ⚠️ `MIN_AGGREGATE_COUNT`（5人）は検索の人数など決め手以外の統計に効いている。決め手だけをこちらで縛る。混ぜないこと
+ */
+export const MIN_REASON_COUNT = 10;
+
 export function meetsCareerFactMin(n: number): boolean {
   return n >= MIN_CAREER_FACT_COUNT;
 }
