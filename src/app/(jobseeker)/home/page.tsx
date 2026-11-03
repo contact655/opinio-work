@@ -10,7 +10,6 @@ import { toForYouViews } from "../mypage/proposals/forYouViews";
 import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
 import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER } from "@/lib/home/homeState";
-import HomeCareerBanner from "./HomeCareerBanner";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import FeedClient from "../feed/(list)/FeedClient";
@@ -22,10 +21,12 @@ import { loadFeedProps } from "../feed/(list)/loadFeedProps";
  *   左＝プロフィール欄・右の列は、旧 /feed の部品（FeedClient）のまま。
  *   ★2026-11-04 に並びを変えた（柴さんの指示。PC 1440×900 の最初の画面でタイムラインが見えるように）:
  *   中央の上から:
- *     ① 直近の職歴の1行の帯（職歴が0件の人だけ。×で7日間出さない。HomeCareerBanner）
- *     ② 入社の決め手（聞いてよいときだけ。lib/joinDecision）
- *     ③ 投稿欄 → ④ タイムライン（旧 /feed）
- *   右の列（PC）の上から: あなたに合う会社（3社・「…」に 保存／あとで／興味なし）→ フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠
+ *     ① 入社の決め手（聞いてよいときだけ。lib/joinDecision）
+ *     ② 投稿欄 → ③ タイムライン（旧 /feed）
+ *   右の列（PC）の上から: 職歴の案内（職歴が0件の人だけ。×で7日間出さない。2026-11-04 に中央の帯から移した）
+ *     → あなたに合う会社（3社・「…」に 保存／あとで／興味なし）→ フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠
+ *   ★右の列の箱と行の見た目は components/feed/railKit.tsx の1か所
+ *   スマホ: 職歴の案内はページの一番上に同じ箱で出す
  *   スマホ: 合う会社はタイムラインの2件目と3件目の間（横スクロール）、行き先は5件目のあと（lib/home/homeState.ts）
  * ⚠️★どのブロックも中身が無ければ描かない（空の箱を出さない）
  * ⚠️ 2026-11-03 に「あなたの転機の傾向」と「提案の精度を上げる（転機の回答数）」は外した（柴さんの判断）。
@@ -85,7 +86,6 @@ export default async function HomePage() {
   const top = (
     <>
       {homeBoxCss}
-      {noExperience && <HomeCareerBanner />}
       {decisionPrompt && (() => {
         const e = exps.find((x) => x.id === decisionPrompt.experienceId);
         const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
@@ -110,5 +110,5 @@ export default async function HomePage() {
     ...(paths && pathsHasRows ? [{ key: "home-paths", after: HOME_MOBILE_PATHS_AFTER, node: <div style={{ marginBottom: 16 }}><PrevCareerSummary view={paths} variant="home" /></div> }] : []),
   ];
 
-  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} mobileInserts={mobileInserts} />;
+  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} mobileInserts={mobileInserts} careerPrompt={noExperience} />;
 }

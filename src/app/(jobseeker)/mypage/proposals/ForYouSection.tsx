@@ -8,6 +8,7 @@ import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
 import InterestConfirmDialog from "@/components/interest/InterestConfirmDialog";
 import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
 import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./FitCardParts";
+import { RailBox, RailRow, RAIL_THUMB } from "@/components/feed/railKit";
 
 /**
  * ★「あなたに合う会社」の下段「すべての会社を合う順に」（2026-10-15 に /mypage/for-you から移した）。
@@ -317,16 +318,38 @@ export default function ForYouSection({
     />
   );
 
-  if (compact && (compact.layout === "rail" || compact.layout === "scroll")) {
+  /* ★PC の右の列（2026-11-04 に右の列の箱と行の形へそろえた。components/feed/railKit.tsx） */
+  if (compact && compact.layout === "rail") {
     const top = visible.slice(0, compact.limit);
     if (loadFailed || top.length === 0) return null; // ★空の箱を出さない（ホームの約束）
-    const scroll = compact.layout === "scroll";
+    return (
+      <RailBox title={compact.title} moreHref={compact.moreHref} state="home-for-you-rail">
+        <style>{FY_RAIL_CSS}</style>
+        <ol className="fy-rail2" data-state="for-you-list">
+          {top.map((c) => (
+            <RailCompanyRow key={c.id} c={c} busy={busy === c.id} menuOpen={menuFor === c.id} declining={declining === c.id}
+              onToggleMenu={() => { setMenuFor(menuFor === c.id ? null : c.id); setDeclining(null); }}
+              onInterested={() => { setConfirmErr(null); setConfirming(c); }}
+              onLater={() => { setMenuFor(null); void toggleLater(c); }}
+              onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
+              declineUi={actionsFor(c)}
+              error={errFor(c)} />
+          ))}
+        </ol>
+        {confirmDialog}
+      </RailBox>
+    );
+  }
+
+  if (compact && compact.layout === "scroll") {
+    const top = visible.slice(0, compact.limit);
+    if (loadFailed || top.length === 0) return null; // ★空の箱を出さない（ホームの約束）
     return (
       <section aria-labelledby={`for-you-heading-${compact.layout}`} data-state={`home-for-you-${compact.layout}`}
-        className={scroll ? "fy-scroll-wrap" : "fy-rail-wrap"}>
+        className="fy-scroll-wrap">
         <style>{FY_COMPACT_CSS}</style>
         <h2 id={`for-you-heading-${compact.layout}`} className="fy-c-title">{compact.title}</h2>
-        <ol className={scroll ? "fy-scroll" : "fy-rail"} data-state="for-you-list">
+        <ol className="fy-scroll" data-state="for-you-list">
           {top.map((c) => (
             <CompactItem key={c.id} c={c} busy={busy === c.id} menuOpen={menuFor === c.id} declining={declining === c.id}
               onToggleMenu={() => { setMenuFor(menuFor === c.id ? null : c.id); setDeclining(null); }}
@@ -469,7 +492,7 @@ const FY_ROW_CSS = `
 `;
 
 /**
- * ★ホームの右の列・スマホの横スクロールの1社（2026-11-04）。ロゴ・会社名・理由1行・主の操作1つ・「…」。
+ * ★スマホの横スクロールの1社（2026-11-04。PC の右の列は RailCompanyRow）。ロゴ・会社名・理由1行・主の操作1つ・「…」。
  *   主の操作: 担当者あり＝「話を聞いてみたい」（確認の画面へ）／担当者未登録＝「保存」（従来どおり。いないことが分かる文言は出さない）
  *   「…」: 保存（担当者ありのときだけ。未登録の会社は主の操作が保存）・あとで（もう一度で外す）・興味なし（理由を選ぶ）
  * ⚠️ メニューは絶対配置にしない（横スクロールの中で切れるため）。カードの中に開く
@@ -548,15 +571,86 @@ function CompactItem(props: {
   );
 }
 
-/* ★ホームの右の列（rail）とスマホの横スクロール（scroll）の見た目（2026-11-04）。
+/**
+ * ★ホームの右の列の1社（2026-11-04 に右の列の行の形へそろえた）。左にロゴ 40px／名前と提案の理由1行／右に「話を聞く」（担当者がいない会社は「保存」）と「…」。
+ *   行（ボタンと「…」を除く）を押すと会社ページへ。開けない会社（検証用など href が null）は押しても移らない。
+ *   提案の理由が無い会社は補足の行を出さない（会社の説明文で埋めない）。
+ * ⚠️ 「…」の中身と記録（あとで・興味なし・保存）は CompactItem と同じ。新しい経路を作らない
+ */
+function RailCompanyRow(props: {
+  c: ForYouView;
+  busy: boolean;
+  menuOpen: boolean;
+  declining: boolean;
+  onToggleMenu: () => void;
+  onInterested: () => void;
+  onLater: () => void;
+  onStartDecline: () => void;
+  declineUi: React.ReactNode;
+  error: React.ReactNode;
+}) {
+  const { c } = props;
+  const reason = c.reasons[0] ?? null;
+  const menuBtn: React.CSSProperties = { display: "block", width: "100%", textAlign: "left", padding: "8px 10px", border: "none", background: "none", fontSize: 13, color: "var(--ink)", cursor: "pointer", fontFamily: "inherit", borderRadius: 6 };
+  const action = props.declining ? null : (
+    <>
+      {c.interested ? (
+        c.conversationId
+          ? <Link href={`/mypage/conversations/${c.conversationId}`} data-state="for-you-interested" className="fy-r-btn fy-r-done">メッセージ</Link>
+          : <span data-state="for-you-interested" className="fy-r-btn fy-r-done">答えました</span>
+      ) : c.hasResponder ? (
+        <button type="button" disabled={props.busy} onClick={props.onInterested} data-action="for-you-interested" className="fy-r-btn"
+          title="話を聞いてみたい" style={{ opacity: props.busy ? 0.6 : 1 }}>話を聞く</button>
+      ) : (
+        <span data-state="for-you-save"><BookmarkButton targetType="company" targetId={c.id} label="保存" variant="small" /></span>
+      )}
+      <button type="button" onClick={props.onToggleMenu} aria-expanded={props.menuOpen} aria-label={`${c.name}のその他の操作`}
+        data-action="for-you-menu" className="fy-r-more">…</button>
+    </>
+  );
+  return (
+    <li data-company-id={c.id} data-rank={c.rank} className="fy-r-item">
+      <RailRow href={c.href} title={reason ? `${c.name}：${reason}` : c.name}
+        thumb={<CompanyLogo name={c.name} logoUrl={c.logoUrl} size={RAIL_THUMB} />}
+        name={c.name} sub={reason} action={action} />
+      {props.declining && <div className="fy-r-below">{props.declineUi}</div>}
+      {props.menuOpen && !props.declining && (
+        <div role="group" aria-label="その他の操作" data-state="for-you-menu" className="fy-r-below fy-r-menu">
+          {c.hasResponder && !c.interested && (
+            <span data-state="for-you-menu-save" style={{ display: "block", padding: "4px 10px" }}>
+              <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
+            </span>
+          )}
+          {!c.interested && (
+            <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"} data-action="for-you-later" style={menuBtn}>
+              {c.reaction === "later" ? "あとでから外す" : "あとで"}
+            </button>
+          )}
+          <button type="button" disabled={props.busy} onClick={props.onStartDecline} data-action="for-you-decline" style={menuBtn}>興味なし</button>
+        </div>
+      )}
+      {props.error}
+    </li>
+  );
+}
+
+/* ★右の列の行の右端（2026-11-04）。⚠️ このテンプレートのコメントにバッククォートと不等号を書かない */
+const FY_RAIL_CSS = `
+  .fy-rail2 { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .fy-r-item { min-width: 0; }
+  .fy-r-btn { display: inline-flex; align-items: center; justify-content: center; height: 30px; min-height: 0; padding: 0 10px; border-radius: 8px; border: 1px solid var(--royal); background: #fff; color: var(--royal); font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; font-family: inherit; text-decoration: none; }
+  .fy-r-done { border-color: var(--line); color: var(--ink-soft); background: var(--line-soft); cursor: default; }
+  a.fy-r-done { cursor: pointer; color: var(--royal); }
+  .fy-r-more { width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); font-size: 14px; line-height: 1; cursor: pointer; font-family: inherit; }
+  .fy-r-below { margin: 8px 0 0 50px; min-width: 0; }
+  .fy-r-menu { border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
+`;
+
+/* ★スマホの横スクロール（scroll）の見た目（2026-11-04。右の列は FY_RAIL_CSS）。
    ⚠️ このテンプレートのコメントにバッククォートと不等号を書かない（ハイドレーションが壊れる） */
 const FY_COMPACT_CSS = `
   .fy-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fy-c-title { font-size: 14px; font-weight: 800; color: var(--ink); margin: 0 0 10px; }
-  .fy-rail-wrap { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; min-width: 0; }
-  .fy-rail { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
-  .fy-rail .fy-c-item { padding-top: 12px; border-top: 1px solid var(--line-soft); }
-  .fy-rail .fy-c-item:first-child { padding-top: 0; border-top: none; }
   .fy-scroll-wrap { margin: 4px 0 20px; min-width: 0; }
   .fy-scroll { list-style: none; margin: 0; padding: 2px 2px 8px; display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .fy-scroll::-webkit-scrollbar { display: none; }

@@ -35,7 +35,7 @@ type PersonRow = {
   cardBase: boolean;
   isTest: boolean;
 };
-type CompanyRow = { id: string; slug: string | null; name: string; industryTopId: string | null; isTest: boolean; pageVisible: boolean; listed: boolean };
+type CompanyRow = { id: string; slug: string | null; name: string; industryTopId: string | null; isTest: boolean; pageVisible: boolean; listed: boolean; logoUrl: string | null };
 type NamedRow = { id: string; slug: string | null; name: string; parentId: string | null; order: number };
 type ExpRow = TransitionExperience & { visibility_company: string | null; role_name: string | null };
 
@@ -60,7 +60,7 @@ const loadPathsPopulationCached = unstable_cache(async (): Promise<Population | 
       .select(`id, name, avatar_url, avatar_color, email, ${AGGREGATE_USER_COLUMNS}`)
       .order("id").range(from, to), "paths users"),
     fetchAllRows<Record<string, unknown>>((from, to) => db.from("ow_companies")
-      .select("id, slug, name, name_en, is_test, industry_id, is_published, listing_status, suspended_at")
+      .select("id, slug, name, name_en, is_test, industry_id, is_published, listing_status, suspended_at, logo_url")
       .order("id").range(from, to), "paths companies"),
     fetchAllRows<Record<string, unknown>>((from, to) => db.from("ow_roles")
       .select("id, slug, name, parent_id, is_active, display_order").order("id").range(from, to), "paths roles"),
@@ -101,6 +101,7 @@ const loadPathsPopulationCached = unstable_cache(async (): Promise<Population | 
       isTest: c.is_test === true,
       pageVisible: c.is_published === true && c.is_test !== true && c.suspended_at == null,
       listed: c.is_published === true && c.listing_status === "listed" && c.is_test !== true && c.suspended_at == null,
+      logoUrl: (c.logo_url as string | null) ?? null,
     })),
     roles: roleRows,
     industries: industryRows,
@@ -119,10 +120,15 @@ const loadPathsPopulationCached = unstable_cache(async (): Promise<Population | 
         role_name: e.role_category_id ? roleName.get(e.role_category_id as string) ?? null : null,
       })),
   };
-}, ["paths-population-v1"], { revalidate: 300 });
+}, ["paths-population-v2"], { revalidate: 300 });
 
 export type PathsOption = { slug: string; name: string };
-export type PathsRowView = { label: string; count: number; href: string | null };
+export type PathsRowView = {
+  label: string; count: number; href: string | null;
+  /** ★会社の行だけ（2026-11-04。ホームの右の列）。ロゴと、その会社の業界（会社の属性。人から作った値ではない） */
+  logoUrl?: string | null;
+  industryLabel?: string | null;
+};
 export type PathsCardView = {
   userId: string;
   name: string;
@@ -254,7 +260,11 @@ export async function getPathsView(
     moverCount: s.moverCount,
     company: s.company.map((r) => {
       const c = companyById.get(r.id);
-      return { label: c?.name ?? "", count: r.count, href: c?.pageVisible && c.slug ? `/companies/${c.slug}` : null };
+      return {
+        label: c?.name ?? "", count: r.count, href: c?.pageVisible && c.slug ? `/companies/${c.slug}` : null,
+        logoUrl: c?.logoUrl ?? null,
+        industryLabel: c?.industryTopId ? industryName.get(c.industryTopId) ?? null : null,
+      };
     }).filter((r) => r.label),
     role: s.role.map((r) => ({ label: roleName.get(r.id) ?? "", count: r.count, href: null })).filter((r) => r.label),
     industry: s.industry.map((r) => ({ label: industryName.get(r.id) ?? "", count: r.count, href: null })).filter((r) => r.label),

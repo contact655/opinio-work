@@ -11,8 +11,11 @@ export const HOME_FOR_YOU_LIMIT = 3;
 export const HOME_MOBILE_FOR_YOU_AFTER = 1; // 2件目と3件目の間
 export const HOME_MOBILE_PATHS_AFTER = 4;   // 5件目のあと
 
-/** ★職歴が0件の人の1行の帯（2026-11-04） */
-export const CAREER_BANNER_TEXT = "直近の職歴を1件入れると、あなたに合う会社と、同じ経歴の人の行き先が出ます";
+/** ★職歴が0件の人の案内（2026-11-04 に1行の帯から右の列の箱へ） */
+export const CAREER_BOX_TITLE = "職歴を1件入れましょう";
+export const CAREER_BOX_BODY = "入れると、あなたに合う会社と、同じ経歴の人の行き先が出ます";
+/** ★左の列の「次の1件」の職歴の文言（lib/people/sidebarData.ts の pickNextStep）。案内を出している間はこれを隠す */
+export const CAREER_NEXT_STEP_LABEL = "職歴を追加する";
 /** ×で閉じたら出さない日数 */
 export const CAREER_BANNER_HIDE_DAYS = 7;
 
@@ -27,4 +30,10 @@ export function isCareerBannerHidden(stored: string | null, nowMs: number): bool
   const until = Number(stored);
   if (!Number.isFinite(until)) return false;
   return nowMs < until;
+}
+
+/** ★職歴の案内を出している間は、左の列の「次の1件」が職歴なら隠す（同じ案内が2つ並ぶため。2026-11-04） */
+export function leftNextStepWhileCareerPrompt<T extends { label: string }>(nextStep: T | null, careerPromptVisible: boolean): T | null {
+  if (!nextStep) return null;
+  return careerPromptVisible && nextStep.label === CAREER_NEXT_STEP_LABEL ? null : nextStep;
 }
