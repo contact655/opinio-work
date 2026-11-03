@@ -8,6 +8,9 @@ import { useRouter } from "next/navigation";
 import { ProfileCard, type ProfileCardProps } from "@/components/common/ProfileCard";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
+import { CareerPromptBox, useCareerPrompt } from "@/components/feed/CareerPromptBox";
+import { leftNextStepWhileCareerPrompt } from "@/lib/home/homeState";
+import { RailBox, RailRow, RAIL_BOX_STYLE, RAIL_TITLE_STYLE, RAIL_LIST_STYLE, RAIL_SUB_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarCompany } from "./page";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
@@ -179,6 +182,8 @@ type Props = {
   railAfterUsers?: React.ReactNode;
   /** ★スマホ（768px 未満）でタイムラインに挟むもの（2026-11-04）。after は「何件目の投稿の後ろか」（0 始まりの添字） */
   mobileInserts?: { key: string; after: number; node: React.ReactNode }[];
+  /** ★職歴が0件の人か（2026-11-04。/home）。true なら職歴の案内の箱を、PC は右の列の一番上・スマホはページの一番上に出す */
+  careerPrompt?: boolean;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -1074,34 +1079,9 @@ export function CommentSection({
 
 // ─── FeedSidebar ──────────────────────────────────────────────────────────────
 
-const PANEL_STYLE: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid var(--line)",
-  borderRadius: 14,
-  padding: "16px 18px",
-  marginBottom: 12,
-  boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
-};
-
-const PANEL_TITLE_STYLE: React.CSSProperties = {
-  fontFamily: "var(--font-inter), var(--font-noto)",
-  fontSize: 13,
-  fontWeight: 700,
-  color: "var(--ink-soft)",
-  marginBottom: 12,
-  paddingBottom: 8,
-  borderBottom: "1px solid var(--line-soft, #f1f5f9)",
-};
-
-const MORE_LINK_STYLE: React.CSSProperties = {
-  display: "block",
-  marginTop: 10,
-  fontSize: 12,
-  color: "var(--ink-soft)",
-  fontFamily: "var(--font-inter), var(--font-noto)",
-  fontWeight: 500,
-  textDecoration: "none",
-};
+/* ★右の列の箱の見た目は components/feed/railKit.tsx の1か所（2026-11-04 に統一）。ここで値を書かない */
+const PANEL_STYLE: React.CSSProperties = RAIL_BOX_STYLE;
+const PANEL_TITLE_STYLE: React.CSSProperties = RAIL_TITLE_STYLE;
 
 /**
  * 未ログインの人に出す登録パネル。
@@ -1299,97 +1279,71 @@ function FeedLeftPanel({
 /* ★PC（768px 以上）では、企業・募集・人・記事の枠を投稿の間ではなく右の列に置く。
      投稿の間に横スクロールの大きな枠が挟まると読みづらかったため。スマホは投稿の5件おきに挟む（FeedClient）。
    ⚠️ 見た目は右の列のほかの枠（PANEL_STYLE）にそろえる。横スクロールにしない（縦に3件ほど） */
-const RAIL_ROW: React.CSSProperties = { display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0, color: "var(--ink)" };
-const RAIL_NAME: React.CSSProperties = { fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
-const RAIL_SUB: React.CSSProperties = { fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 const RAIL_LIMIT = 3;
 
-function RailCompanies({ items, totalCount }: { items: NewCompanyItem[]; totalCount: number }) {
+/* ★2026-11-04: どの枠も RailBox（箱）と RailRow（1行）で描く（components/feed/railKit.tsx）。画像は 40px、名前と補足は1行で省略、下のリンクは「すべて見る →」 */
+function RailCompanies({ items }: { items: NewCompanyItem[]; totalCount: number }) {
   if (items.length === 0) return null;
   return (
-    <div style={PANEL_STYLE} data-state="rail-new-companies">
-      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>新しく掲載された企業</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <RailBox title="新しく掲載された企業" moreHref="/companies" state="rail-new-companies">
+      <div style={RAIL_LIST_STYLE}>
         {items.slice(0, RAIL_LIMIT + 2).map((c) => (
-          <Link key={c.id} href={c.href} style={RAIL_ROW} title={c.tagline ?? c.name}>
-            <CompanyLogoImg logoUrl={c.logoUrl} logoLetter={c.logoLetter} logoGradient={null} name={c.name} size={32} borderRadius={7} />
-            <div style={{ minWidth: 0 }}>
-              <div style={RAIL_NAME}>{c.name}</div>
-              {c.domain && <div style={RAIL_SUB}>{c.domain}</div>}
-            </div>
-          </Link>
+          <RailRow key={c.id} href={c.href} title={c.tagline ?? c.name}
+            thumb={<CompanyLogoImg logoUrl={c.logoUrl} logoLetter={c.logoLetter} logoGradient={null} name={c.name} size={RAIL_THUMB} borderRadius={8} />}
+            name={c.name} sub={c.domain} />
         ))}
       </div>
-      <Link href="/companies" style={MORE_LINK_STYLE}>{totalCount}社すべて見る →</Link>
-    </div>
+    </RailBox>
   );
 }
 
 function RailJobs({ items }: { items: FeedJobItem[] }) {
   if (items.length === 0) return null;
   return (
-    <div style={PANEL_STYLE} data-state="rail-new-jobs">
-      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>新着の募集</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <RailBox title="新着の募集" moreHref="/jobs" state="rail-new-jobs">
+      <div style={RAIL_LIST_STYLE}>
         {items.slice(0, RAIL_LIMIT).map((j) => (
-          <Link key={j.id} href={j.href} style={{ ...RAIL_ROW, alignItems: "flex-start" }} title={j.title}>
-            <CompanyLogoImg logoUrl={j.logoUrl} logoLetter={j.logoLetter} logoGradient={null} name={j.companyName} size={32} borderRadius={7} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ ...RAIL_NAME, whiteSpace: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.45 }}>{j.title}</div>
-              <div style={RAIL_SUB}>{j.companyName}</div>
-              {j.salary && <div style={{ ...RAIL_SUB, color: "var(--success-ink)", fontWeight: 700 }}>{j.salary}</div>}
-            </div>
-          </Link>
+          <RailRow key={j.id} href={j.href} title={j.title}
+            thumb={<CompanyLogoImg logoUrl={j.logoUrl} logoLetter={j.logoLetter} logoGradient={null} name={j.companyName} size={RAIL_THUMB} borderRadius={8} />}
+            name={j.title} sub={[j.companyName, j.salary].filter(Boolean).join(" · ")} />
         ))}
       </div>
-      <Link href="/jobs" style={MORE_LINK_STYLE}>{items.length}件すべて見る →</Link>
-    </div>
+    </RailBox>
   );
 }
 
 function RailMoves({ block }: { block: CareerMoveBlock }) {
   if (block.people.length === 0) return null;
   return (
-    <div style={PANEL_STYLE} data-state={`rail-moves-${block.key}`}>
-      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0, marginBottom: 4 }}>{block.title}</p>
-      {block.sub && <p style={{ ...RAIL_SUB, whiteSpace: "normal", margin: "0 0 12px" }}>{block.sub}</p>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {block.people.slice(0, RAIL_LIMIT).map((p) => (
-          <Link key={p.id} href={p.href} style={RAIL_ROW}>
-            <Avatar user={{ name: p.name, avatar_color: null, avatar_url: p.avatarUrl }} size={32} />
-            <div style={{ minWidth: 0 }}>
-              <div style={RAIL_NAME}>{p.name}</div>
-              <div style={RAIL_SUB}>
-                {/* ⚠️ hideFrom（いまの勤務先の枠）では移る前の社名を出さない（CareerMovesSection と同じ） */}
-                {block.hideFrom ? `次は ${p.to.name}` : `${p.from.name} → ${p.to.name}`}{p.movedYear ? `（${p.movedYear}年）` : ""}
-              </div>
-            </div>
-          </Link>
-        ))}
+    <RailBox title={block.title} moreHref="/people" state={`rail-moves-${block.key}`}>
+      {block.sub && <p style={{ ...RAIL_SUB_STYLE, whiteSpace: "normal", margin: "-4px 0 12px" }}>{block.sub}</p>}
+      <div style={RAIL_LIST_STYLE}>
+        {block.people.slice(0, RAIL_LIMIT).map((p) => {
+          /* ⚠️ hideFrom（いまの勤務先の枠）では移る前の社名を出さない（CareerMovesSection と同じ） */
+          const sub = `${block.hideFrom ? `次は ${p.to.name}` : `${p.from.name} → ${p.to.name}`}${p.movedYear ? `（${p.movedYear}年）` : ""}`;
+          return (
+            <RailRow key={p.id} href={p.href} title={sub}
+              thumb={<Avatar user={{ name: p.name, avatar_color: null, avatar_url: p.avatarUrl }} size={RAIL_THUMB} />}
+              name={p.name} sub={sub} />
+          );
+        })}
       </div>
-      <Link href="/people" style={MORE_LINK_STYLE}>ユーザーを探す →</Link>
-    </div>
+    </RailBox>
   );
 }
 
 function RailArticles({ items }: { items: FeedArticleItem[] }) {
   if (items.length === 0) return null;
   return (
-    <div style={PANEL_STYLE} data-state="rail-articles">
-      <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>記事</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <RailBox title="記事" moreHref="/articles" state="rail-articles">
+      <div style={RAIL_LIST_STYLE}>
         {items.slice(0, RAIL_LIMIT).map((a) => (
-          <Link key={a.id} href={a.href} style={{ ...RAIL_ROW, alignItems: "flex-start" }} title={a.title}>
-            <span style={{ width: 48, height: 36, borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.9)", fontWeight: 800, fontSize: 14, background: a.gradient ?? "linear-gradient(135deg,#001233,#002366)" }}>{a.initial}</span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ ...RAIL_NAME, whiteSpace: "normal", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.45 }}>{a.title}</div>
-              {a.meta && <div style={RAIL_SUB}>{a.meta}</div>}
-            </div>
-          </Link>
+          <RailRow key={a.id} href={a.href} title={a.title}
+            thumb={<span style={{ width: RAIL_THUMB, height: RAIL_THUMB, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.9)", fontWeight: 800, fontSize: 14, background: a.gradient ?? "linear-gradient(135deg,#001233,#002366)" }}>{a.initial}</span>}
+            name={a.title} sub={a.meta} />
         ))}
       </div>
-      <Link href="/articles" style={MORE_LINK_STYLE}>記事一覧を見る →</Link>
-    </div>
+    </RailBox>
   );
 }
 
@@ -1438,45 +1392,23 @@ function FeedSidebar({
         独立したパネルにしないと「0件の側だけ隠す」ができない。
      ★2026-11-04: 変数にした（/home では「あなたに合う会社」のすぐ下に出すため）。⚠️ 未ログインには出さない（下の分岐と同じ） */
   const userFollowsPanel = myUserId !== null && userFollows.length > 0 ? (
-      <div style={PANEL_STYLE}>
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中のユーザー</p>
-        {(
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {userFollows.map((u) => (
-              <Link
-                key={u.id}
-                href={`/u/${u.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-              >
-                <div
-                  style={{
-                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                    background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "var(--font-inter), var(--font-noto)",
-                    overflow: "hidden",
-                  }}
-                >
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : u.name.charAt(0)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {u.name}
-                  </div>
-                  {(u.role_title || u.company_name) && (
-                    <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {[u.role_title, u.company_name].filter(Boolean).join(" · ")}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/people" style={MORE_LINK_STYLE}>ユーザー一覧を見る →</Link>
+    <RailBox title="フォロー中のユーザー" moreHref="/people?rel=following" state="rail-user-follows">
+      <div style={RAIL_LIST_STYLE}>
+        {userFollows.map((u) => {
+          /* ★補足は「会社名・職種」の1行（2026-11-04） */
+          const sub = [u.company_name, u.role_title].filter(Boolean).join("・");
+          return (
+            <RailRow key={u.id} href={`/u/${u.id}`} title={sub || u.name}
+              thumb={
+                <span style={{ width: RAIL_THUMB, height: RAIL_THUMB, borderRadius: "50%", background: u.avatar_color ?? "linear-gradient(135deg, #001233, #002366)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 15, overflow: "hidden" }}>
+                  {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : u.name.charAt(0)}
+                </span>
+              }
+              name={u.name} sub={sub || null} />
+          );
+        })}
       </div>
+    </RailBox>
   ) : null;
   return (
     <div style={{ width: 340, flexShrink: 0 }}>
@@ -1508,34 +1440,15 @@ function FeedSidebar({
       {rail}
       {/* ⚠️ 2026-10-20: 「新しく掲載された企業」を出しているときは出さない（中身が重なる）。無いときだけの控え */}
       {!hasNewCompanies && companies.length > 0 && (
-        <div style={PANEL_STYLE}>
-          <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>掲載中の企業</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <RailBox title="掲載中の企業" moreHref="/companies" state="rail-listed-companies">
+          <div style={RAIL_LIST_STYLE}>
             {companies.map((co) => (
-              <Link
-                key={co.id}
-                href={`/companies/${co.slug ?? co.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0 }}
-              >
-                <CompanyLogoImg
-                  logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient}
-                  name={co.brand_name ?? co.name} size={32} borderRadius={7}
-                />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {co.brand_name ?? co.name}
-                  </div>
-                  {co.industry && (
-                    <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {co.industry}
-                    </div>
-                  )}
-                </div>
-              </Link>
+              <RailRow key={co.id} href={`/companies/${co.slug ?? co.id}`}
+                thumb={<CompanyLogoImg logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient} name={co.brand_name ?? co.name} size={RAIL_THUMB} borderRadius={8} />}
+                name={co.brand_name ?? co.name} sub={co.industry} />
             ))}
           </div>
-          <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
-        </div>
+        </RailBox>
       )}
 
       {myUserId === null ? (
@@ -1552,64 +1465,30 @@ function FeedSidebar({
                 導線は各パネル末尾の「企業一覧を見る →」ではなく、
                 常に中身がある「掲載中の企業」パネルが担う。 */}
       {follows.length > 0 && (
-      <div style={PANEL_STYLE}>
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>フォロー中の企業</p>
-        {(
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {follows.map((co) => (
-              <Link
-                key={co.id}
-                href={`/companies/${co.slug ?? co.id}`}
-                style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-              >
-                <CompanyLogoImg
-                  logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient}
-                  name={co.brand_name ?? co.name} size={32} borderRadius={7}
-                />
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {co.brand_name ?? co.name}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/companies" style={MORE_LINK_STYLE}>企業一覧を見る →</Link>
-      </div>
+      <RailBox title="フォロー中の企業" moreHref="/mypage/follows" state="rail-company-follows">
+        <div style={RAIL_LIST_STYLE}>
+          {follows.map((co) => (
+            <RailRow key={co.id} href={`/companies/${co.slug ?? co.id}`}
+              thumb={<CompanyLogoImg logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient} name={co.brand_name ?? co.name} size={RAIL_THUMB} borderRadius={8} />}
+              name={co.brand_name ?? co.name} />
+          ))}
+        </div>
+      </RailBox>
       )}
 
       {/* ★ユーザーのパネルは上の userFollowsPanel（2026-11-04 に変数へ。/home では上に移すため） */}
       {!top && userFollowsPanel}
       {/* (b) 気になる求人。⚠️ 0件ならパネルごと出さない */}
       {savedJobs.length > 0 && (
-      <div style={PANEL_STYLE}>
-        <p style={{ ...PANEL_TITLE_STYLE, marginTop: 0 }}>気になる募集</p>
-        {(
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {savedJobs.map((job) => (
-              <Link
-                key={job.id}
-                href={`/jobs/${job.slug ?? job.id}`}
-                style={{ display: "flex", flexDirection: "column", gap: 2, textDecoration: "none" }}
-              >
-                <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {job.title}
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {job.companyName && (
-                    <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                      {job.companyName}
-                    </span>
-                  )}
-                  <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: (job.salary_min || job.salary_max) ? "var(--success-ink)" : "var(--ink-mute)", fontWeight: 600, flexShrink: 0 }}>
-                    {formatSalary(job.salary_min, job.salary_max, job.salary_negotiable, job.employment_type)}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-        <Link href="/jobs" style={MORE_LINK_STYLE}>募集一覧を見る →</Link>
-      </div>
+      <RailBox title="気になる募集" moreHref="/mypage/bookmarks" state="rail-saved-jobs">
+        <div style={RAIL_LIST_STYLE}>
+          {savedJobs.map((job) => (
+            <RailRow key={job.id} href={`/jobs/${job.slug ?? job.id}`} title={job.title}
+              thumb={<span style={{ width: RAIL_THUMB, height: RAIL_THUMB, borderRadius: 8, background: "var(--bg-tint)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-mute)", fontSize: 15, fontWeight: 700 }}>{(job.companyName ?? job.title).charAt(0)}</span>}
+              name={job.title} sub={[job.companyName, formatSalary(job.salary_min, job.salary_max, job.salary_negotiable, job.employment_type)].filter(Boolean).join(" · ")} />
+          ))}
+        </div>
+      </RailBox>
       )}
 
       </>
@@ -2459,7 +2338,12 @@ export default function FeedClient({
   railTop,
   railAfterUsers,
   mobileInserts,
+  careerPrompt = false,
 }: Props) {
+  /* ★職歴の案内（×で7日間出さない）。出している間は左の列の「職歴を追加する」を隠す（2026-11-04） */
+  const [careerVisible, closeCareer] = useCareerPrompt(careerPrompt);
+  const careerBox = careerVisible ? <CareerPromptBox onClose={closeCareer} /> : null;
+  const leftProfileCard = profileCard ? { ...profileCard, nextStep: leftNextStepWhileCareerPrompt(profileCard.nextStep, careerVisible) } : profileCard;
   /* ★「すべて／フォロー中」のタブは 2026-10-20 になくした（柴さんの指示）。1本の流れにし、フォローしている人・企業の投稿を先に出す。
         ⚠️ `tab` は "all" 固定の名残。API の tab=followed は残してある（使い手は無い） */
   const tab = "all" as "all" | "followed";
@@ -2627,13 +2511,15 @@ export default function FeedClient({
       {/* 左カラム: ミニプロフィール + ナビ (≥1024px) */}
       {isWide && (
         <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
-          <FeedLeftPanel profileCard={profileCard} />
+          <FeedLeftPanel profileCard={leftProfileCard} />
         </div>
       )}
 
       {/* 中央フィードカラム */}
       <div style={{ flex: 1, minWidth: 0 }}>
       {/* ★2026-11-04: 「タイムライン」の見出しは外した（最初の画面でタイムラインを見せるため）。上に置くものは職歴の帯と決め手の設問だけ */}
+      {/* ★スマホ（768px 未満）は右の列が無いので、職歴の案内はページの一番上に同じ箱で出す（2026-11-04） */}
+      {!isDesktop && careerBox}
       {top && (
         <div data-state="home-top" style={{ display: "grid", gap: 12, gridTemplateColumns: "minmax(0, 1fr)", marginBottom: 12 }}>{top}</div>
       )}
@@ -2830,7 +2716,7 @@ export default function FeedClient({
             savedJobs={sidebarSavedJobs}
             companies={sidebarCompanies}
             myUserId={myUserId}
-            top={railTop}
+            top={careerBox || railTop ? <>{careerBox}{railTop}</> : undefined}
             afterUsers={railAfterUsers}
           />
         </div>

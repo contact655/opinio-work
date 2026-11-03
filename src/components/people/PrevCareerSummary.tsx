@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { PathsRowView, PathsStartView, PathsView } from "@/lib/paths/server";
 import { pathsHref, prevCareerHref, prevCareerText } from "@/lib/people/prevCareer";
+import { RailBox, RailRow, RAIL_LIST_STYLE, RAIL_SUB_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
+import { CompanyLogo } from "@/components/common/CompanyLogo";
 
 /**
  * ★「その経歴から次に進んだ人」の集計（2026-11-03。旧 /paths の PathsResult の集計部分）。
@@ -41,6 +43,39 @@ export function PrevCareerSummary({ view, variant = "people" }: {
   const s = view.summary;
   const hasRows = !!s && s.company.length + s.role.length + s.industry.length > 0;
   if (homeLike && !hasRows) return null;
+
+  /* ★PC のホームの右の列（2026-11-04 に右の列の箱と行の形へそろえた）。
+        会社は1行の形（ロゴ・会社名・補足＝その会社の業界と人数）。職種・業界は下に1行ずつ。
+        ⚠️ 補足の業界は会社の属性（人から作った値ではない）。会社ごとの職種の内訳は出さない（5人未満の内訳になりうる） */
+  if (variant === "rail" && s) {
+    const line = (label: string, rows: PathsRowView[]) => rows.length === 0 ? null : (
+      <p style={{ ...RAIL_SUB_STYLE, whiteSpace: "normal", margin: "10px 0 0" }} data-state="paths-dim">
+        <span style={{ fontWeight: 700, color: "var(--ink-soft)" }}>{label}：</span>
+        {rows.map((r) => `${r.label} ${r.count}人`).join("・")}
+      </p>
+    );
+    return (
+      <RailBox title="あなたと同じ経歴の人の行き先" moreHref={prevCareerHref(start)} state="home-paths-rail">
+        <p style={{ ...RAIL_SUB_STYLE, whiteSpace: "normal", margin: "-4px 0 12px" }}>
+          直近の職歴が「{prevCareerText(start)}」の人{s.moverCount !== null ? `・${s.moverCount}人の動きから` : ""}
+        </p>
+        {s.company.length > 0 && (
+          <div style={RAIL_LIST_STYLE}>
+            {s.company.map((r) => {
+              const sub = [r.industryLabel, `${r.count}人`].filter(Boolean).join(" · ");
+              return (
+                <RailRow key={r.label} href={r.href} title={`${r.label}（${sub}）`} state="paths-row"
+                  thumb={<CompanyLogo name={r.label} logoUrl={r.logoUrl ?? null} size={RAIL_THUMB} />}
+                  name={r.label} sub={sub} />
+              );
+            })}
+          </div>
+        )}
+        {line("次の職種", s.role)}
+        {line("次の業界", s.industry)}
+      </RailBox>
+    );
+  }
 
   return (
     <section data-state={variant === "rail" ? "home-paths-rail" : variant === "home" ? "home-paths" : "paths-summary"}

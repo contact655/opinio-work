@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CAREER_NEXT_STEP_LABEL } from "@/lib/home/homeState";
 import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -61,7 +62,7 @@ function pickNextStep(d: {
   /** 学校名を手で打った（学校の一覧につながっていない）学歴の件数 */
   freeTextEducationCount: number;
 }): { label: string; href: string } | null {
-  if (d.experienceCount === 0) return { label: "職歴を追加する", href: "/mypage" };
+  if (d.experienceCount === 0) return { label: CAREER_NEXT_STEP_LABEL, href: "/mypage" };
   if (!d.hasAvatar) return { label: "プロフィール写真を追加する", href: "/mypage" };
   /* ★学歴は写真の次（2026-10-21。それまでは最後）。同じ学校の人が見つかるようになったので、埋める理由を一言添える */
   if (d.educationCount === 0) return { label: "学歴を追加して、同じ学校の人を見つける", href: "/mypage" };

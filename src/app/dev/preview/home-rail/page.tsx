@@ -2,7 +2,7 @@ import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 import ForYouSection, { type ForYouView } from "@/app/(jobseeker)/mypage/proposals/ForYouSection";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
-import HomeCareerBanner from "@/app/(jobseeker)/home/HomeCareerBanner";
+import CareerPromptDemo from "./CareerPromptDemo";
 import type { PathsView } from "@/lib/paths/server";
 import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 
@@ -24,7 +24,7 @@ const PATHS: Pick<PathsView, "start" | "summary" | "wider"> = {
   start: { role: { slug: "sales", name: "営業" }, industry: { slug: "it", name: "IT・インターネット" }, company: null },
   summary: {
     moverCount: 23,
-    company: [{ label: "Salesforce", count: 9, href: "/companies/salesforce" }, { label: "とても長い会社名の株式会社エンタープライズソリューションズジャパン", count: 6, href: null }],
+    company: [{ label: "Salesforce", count: 9, href: "/companies/salesforce", industryLabel: "IT・インターネット" }, { label: "とても長い会社名の株式会社エンタープライズソリューションズジャパン", count: 6, href: null, industryLabel: "コンサルティング" }],
     role: [{ label: "営業", count: 14, href: null }, { label: "カスタマーサクセス", count: 5, href: null }],
     industry: [{ label: "IT・インターネット", count: 18, href: null }],
   },
@@ -40,7 +40,7 @@ export default function HomeRailPreview() {
         PC は右の列（340px）、スマホはタイムラインの2件目と3件目の間（横スクロール）・5件目のあと。
       </PreviewHeader>
       <Variant label="右の列（340px）: あなたに合う会社 → 行き先" note="社名・理由は1行で切れ、ボタンは折り返さないこと。2社目は担当者未登録（主の操作が保存）、3社目は答えた後">
-        <div style={{ width: 340 }}>
+        <div style={{ width: 340, maxWidth: "100%" }}>
           <ForYouSection companies={COMPANIES} loadFailed={false} noReasons={false} declineReasons={decline}
             compact={{ limit: 3, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />
           <PrevCareerSummary view={PATHS} variant="rail" />
@@ -52,8 +52,8 @@ export default function HomeRailPreview() {
             compact={{ limit: 3, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "scroll" }} />
         </div>
       </Variant>
-      <Variant label="職歴が0件の人の1行の帯" note="×で閉じると7日間出ない（この端末だけ）">
-        <HomeCareerBanner />
+      <Variant label="職歴が0件の人の案内（右の列の一番上・スマホはページの一番上）" note="×で閉じると7日間出ない（この端末だけ。見本では閉じても記録しない）">
+        <div style={{ width: 340, maxWidth: "100%" }}><CareerPromptDemo /></div>
       </Variant>
     </div>
   );
