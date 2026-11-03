@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { followCardView, FOLLOW_SAVE_ERROR } from "@/lib/people/followButton";
 
 /**
  * ユーザーのフォローボタン。
@@ -21,13 +22,16 @@ export function FollowUserButton({
   compact = false,
   refreshOnChange = false,
   followsMe = false,
-  iconOnly = false,
+  card = false,
 }: {
   /**
-   * ★アイコンだけの丸いボタン（2026-10-23 / 柴さんの指示。ユーザー一覧のカード）。
-   *   フォロー前 … 人＋ ／ フォロー中 … 人✓（濃紺の地） ／ つながり … 2人（濃紺の地）。状態はマウスを重ねたときの文字と読み上げで伝える
+   * ★ユーザー一覧（/people）のカード用。アイコン＋文字（2026-11-03 / 柴さんの指示。それまでは iconOnly）。
+   *   フォロー前 … 枠線「フォローする」 ／ フォロー後 … グレー「フォロー中」（押すと確認なしで外す）。
+   *   保存に失敗したら元に戻し、ボタンの下にエラーを出す。文言は lib/people/followButton.ts
+   * ⚠️ 幅は親に合わせて伸びる（width: 100%）。カードの幅（スマホで 117px）で折り返さないよう 12px・余白は小さめ
    */
-  iconOnly?: boolean;
+  card?: boolean;
+  /* ⚠️ アイコンだけの丸いボタン（iconOnly。2026-10-23）は 2026-11-03 に外した。つながり申請と見分けがつかなかったため。card を使う */
   /**
    * ★相手が自分をフォローしているか（2026-10-21）。
    *   自分もフォロー済み → 「つながり」（相互フォロー。返事待ちなしでメッセージを始められる関係）
@@ -59,6 +63,7 @@ export function FollowUserButton({
 }) {
   const [followed, setFollowed] = useState(initialFollowed);
   const [loading, setLoading] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const router = useRouter();
 
   const toggle = async () => {
@@ -69,43 +74,54 @@ export function FollowUserButton({
     // 楽観更新 → 失敗したら戻す
     const next = !followed;
     setFollowed(next);
+    setSaveError(false);
     setLoading(true);
     try {
       const res = await fetch(`/api/jobseeker/users/${targetUserId}/follow`, {
         method: next ? "POST" : "DELETE",
       });
-      if (!res.ok) setFollowed(!next);
+      if (!res.ok) {
+        setFollowed(!next);
+        setSaveError(true);
+      }
       /* ⚠️ 楽観更新した `followed` は消えない（再マウントではなく再描画なので
             `useState` の初期値は読み直されない）。取り直すのはサーバー側の
             数字と一覧だけ。 */
       else if (refreshOnChange) router.refresh();
     } catch {
       setFollowed(!next);
+      setSaveError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const stateLabel = followed && followsMe ? "つながり（お互いにフォローしています。押すとフォローを外します）"
-    : followed ? "フォロー中（押すとフォローを外します）"
-    : followsMe ? "フォロー（あなたをフォローしています）" : "フォロー";
-  if (iconOnly) {
+  if (card) {
+    const v = followCardView(followed, followsMe);
     return (
-      <button type="button" onClick={toggle} disabled={loading} aria-pressed={followed} aria-label={stateLabel} title={stateLabel}
-        data-state={followed && followsMe ? "connected" : followed ? "following" : followsMe ? "follow-back" : "not-following"}
-        className="btn-fixed-size"
-        style={{ width: 34, height: 34, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", padding: 0,
-          border: `1.5px solid ${followed ? "var(--royal)" : "var(--royal-100)"}`, background: followed ? "var(--royal)" : "#fff",
-          color: followed ? "#fff" : "var(--royal)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.2s" }}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          {followed && followsMe ? (
-            <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><circle cx="17" cy="9" r="2.8" /><path d="M16 13.6c3.1.3 5.5 2.9 5.5 6.4" /></>
-          ) : (
-            <><circle cx="10" cy="8" r="3.8" /><path d="M3 20c0-3.9 3.1-7 7-7 1.4 0 2.7.4 3.8 1.1" />
-              {followed ? <polyline points="15.5 18 17.8 20.3 22 16" /> : <><line x1="19" y1="14.5" x2="19" y2="21.5" /><line x1="15.5" y1="18" x2="22.5" y2="18" /></>}</>
-          )}
-        </svg>
-      </button>
+      <span style={{ display: "flex", flexDirection: "column", alignItems: "stretch", width: "100%", minWidth: 0 }}>
+        <button type="button" onClick={toggle} disabled={loading} aria-pressed={followed} title={v.title} aria-label={v.title}
+          data-state={followed ? "card-following" : "card-not-following"}
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+            width: "100%", minWidth: 0, boxSizing: "border-box", height: 34, padding: "0 8px", borderRadius: 100,
+            fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", fontFamily: "inherit",
+            border: `1.5px solid ${v.tone === "outline" ? "var(--royal)" : "var(--line)"}`,
+            background: v.tone === "outline" ? "#fff" : "var(--line-soft)",
+            color: v.tone === "outline" ? "var(--royal)" : "var(--ink-soft)",
+            cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.15s",
+          }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+            {followed ? <polyline points="20 6 9 17 4 12" /> : <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>}
+          </svg>
+          {v.label}
+        </button>
+        {saveError && (
+          <span role="alert" data-state="follow-save-error" style={{ marginTop: 4, fontSize: 11.5, lineHeight: 1.4, color: "var(--error, #b91c1c)", textAlign: "center" }}>
+            {FOLLOW_SAVE_ERROR}
+          </span>
+        )}
+      </span>
     );
   }
 
