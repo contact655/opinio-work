@@ -6,7 +6,8 @@ import { normalizeYm, isBlankYm as isBlank } from "@/lib/utils/ym";
 import { NextResponse } from "next/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { isSameCompany } from "@/lib/experiences/companyKey";
-import { clearJoinDecisionForExperience } from "@/lib/joinDecision/server";
+import { COMPANY_CORRECTION } from "@/lib/experiences/jobChange";
+import { clearJoinDecisionForExperiences } from "@/lib/joinDecision/server";
 
 export const dynamic = "force-dynamic";
 
@@ -135,7 +136,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         **前の会社と後の会社の両方**の企業ページから社員一覧が変わる。
         後だけ落とすと、前の会社のページにその人が残り続ける（最大300秒）。 */
   const beforeRow = await supabase
-    .from("ow_experiences").select("company_id, company_text, company_anonymized").eq("id", params.id).eq("user_id", owUser.id).maybeSingle();
+    .from("ow_experiences").select("company_id, company_text, company_anonymized, is_current").eq("id", params.id).eq("user_id", owUser.id).maybeSingle();
   const beforeCompanyId = (beforeRow.data?.company_id as string | null) ?? null;
 
   const afterCompany = {
@@ -192,9 +193,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
   /* ★会社が変わったら、この職歴に付いた入社の決め手を消す（2026-11-04 / 柴さんの判断 ①）。
         消さないと元の会社への回答が新しい会社の回答として残り、設問も出ない。
+        ★★同日: 画面が「転職しましたか？／会社名の修正ですか？」を聞くようになった（lib/experiences/jobChange.ts）。
+          「修正です」（company_change: "correction"）なら消さない。過去の職歴の会社名を変えたときも消さない
+          （修正として扱う）。ここで消すのは、印の無い要求（古い画面）で現職の会社が変わったときだけ。
         ⚠️ 職歴の保存は済んでいるので、消すのに失敗しても 500 にしない（ログだけ出す） */
-  if (beforeRow.data && !isSameCompany(beforeRow.data, afterCompany)) {
-    const cleared = await clearJoinDecisionForExperience(owUser.id as string, params.id);
+  const isCorrection = body.company_change === COMPANY_CORRECTION;
+  if (beforeRow.data && beforeRow.data.is_current && !isCorrection && !isSameCompany(beforeRow.data, afterCompany)) {
+    const cleared = await clearJoinDecisionForExperiences(owUser.id as string, [params.id]);
     if (!cleared) console.error("[PUT /api/jobseeker/experiences/:id] 会社の変更で決め手を消せなかった", params.id);
   }
 

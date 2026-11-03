@@ -119,11 +119,15 @@ export async function skipJoinDecision(owUserId: string, base: ExpRow): Promise<
  *   元の会社への回答が新しい会社の回答として扱われていた（設問も出ず、毎月の集計にも入る）。
  *   消すと、新しい会社について次に聞ける（答えていない状態に戻る）。
  *   ⚠️ 元の会社への回答は残さない（会社を記録して残す案 ② は採らなかった）。
- *   ⚠️ 呼ぶのは職歴の更新（PUT /api/jobseeker/experiences/[id]）だけ。会社が変わったかは isSameCompany で見る
+ *   ⚠️ 呼ぶのは2つの更新（PUT /api/jobseeker/experiences/[id] と PATCH …/company）だけ。会社が変わったかは isSameCompany で見る
+ *   ★★2026-11-04: 画面が「転職しましたか？／会社名の修正ですか？」を聞くようになったので、
+ *     ここに来るのは「修正です」の印が無い要求（古い画面のまま保存した人）で、現職の会社が変わったときだけ。
+ *     「修正です」なら消さない（lib/experiences/jobChange.ts）
  */
-export async function clearJoinDecisionForExperience(owUserId: string, experienceId: string): Promise<boolean> {
+export async function clearJoinDecisionForExperiences(owUserId: string, experienceIds: readonly string[]): Promise<boolean> {
+  if (experienceIds.length === 0) return true;
   const r = await mutateAllowNone(
-    createAdminClient().from("ow_join_decisions").delete().eq("experience_id", experienceId).eq("user_id", owUserId),
+    createAdminClient().from("ow_join_decisions").delete().in("experience_id", [...experienceIds]).eq("user_id", owUserId),
     "join decision 会社の変更で消す",
     { returning: "experience_id" },
   );

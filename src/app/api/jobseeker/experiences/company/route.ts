@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { revalidateCompanyPages } from "@/lib/companies/revalidate";
 import { mutateMany } from "@/lib/supabase/mutate";
+import { isSameCompany } from "@/lib/experiences/companyKey";
+import { COMPANY_CORRECTION } from "@/lib/experiences/jobChange";
+import { clearJoinDecisionForExperiences } from "@/lib/joinDecision/server";
 
 export const dynamic = "force-dynamic";
 
@@ -61,21 +64,26 @@ export async function PATCH(req: Request) {
         前の会社と後の会社の**両方**のキャッシュを落とす。 */
   const { data: beforeRows } = await supabase
     .from("ow_experiences")
-    .select("company_id")
+    .select("id, company_id, company_text, company_anonymized, is_current")
     .in("id", ids as string[])
     .eq("user_id", owUser.id as string);
+  type BeforeRow = { id: string; company_id: string | null; company_text: string | null; company_anonymized: string | null; is_current: boolean | null };
+  const before = (beforeRows ?? []) as BeforeRow[];
   const beforeCompanyIds = Array.from(
-    new Set(((beforeRows ?? []) as { company_id: string | null }[]).map((r) => r.company_id).filter((v): v is string => !!v)),
+    new Set(before.map((r) => r.company_id).filter((v): v is string => !!v)),
   );
+  const afterCompany = {
+    company_id: hasId ? (body.company_id as string) : null,
+    company_text: hasText ? (body.company_text as string).trim().slice(0, 200) : null,
+    company_anonymized: null,
+  };
 
   /* ⚠️ 1文。部分適用が起きない。⚠️ 0行なら他人の id が混ざっている＝エラーにする */
   const r = await mutateMany(
     supabase
       .from("ow_experiences")
       .update({
-        company_id: hasId ? (body.company_id as string) : null,
-        company_text: hasText ? (body.company_text as string).trim().slice(0, 200) : null,
-        company_anonymized: null,
+        ...afterCompany,
         updated_at: new Date().toISOString(),
       })
       .in("id", ids as string[])
@@ -83,6 +91,18 @@ export async function PATCH(req: Request) {
     "experiences company PATCH",
   );
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+
+  /* ★入社の決め手（2026-11-04）。職歴の更新（PUT …/[id]）と同じ扱い:
+        「修正です」（company_change: "correction"）なら消さない。印が無く、現職を含む会社の名前が
+        変わったときだけ、このまとまりの職歴に付いた決め手を消す（古い画面のまま保存した人のため）。
+        ⚠️ 決め手は「その会社のいちばん古い職歴」に付くので、現職の行だけでなくまとまり全体を対象にする。
+        ⚠️ 保存は済んでいるので、消すのに失敗しても 500 にしない（ログだけ出す） */
+  const isCorrection = body.company_change === COMPANY_CORRECTION;
+  const changed = before.some((row) => !isSameCompany(row, afterCompany));
+  if (!isCorrection && changed && before.some((row) => row.is_current)) {
+    const cleared = await clearJoinDecisionForExperiences(owUser.id as string, before.map((row) => row.id));
+    if (!cleared) console.error("[PATCH /api/jobseeker/experiences/company] 会社の変更で決め手を消せなかった", ids);
+  }
 
   const afterCompanyId = hasId ? (body.company_id as string) : null;
   const targets = Array.from(new Set([...beforeCompanyIds, ...(afterCompanyId ? [afterCompanyId] : [])]));
