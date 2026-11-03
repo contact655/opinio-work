@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormSection } from "@/components/profile/editor/formKit";
 import { TALK_CAPACITIES, TALK_REQUEST_EXPIRE_DAYS, TALK_STANCES, type TalkCapacity, type TalkStance } from "@/lib/constants/talk";
 
@@ -35,6 +35,21 @@ export default function TalkSettingsSection() {
       .catch(() => { if (alive) setLoadError(true); });
     return () => { alive = false; };
   }, []);
+
+  /* ★ホームの左のカードの「設定する」（/mypage/settings#talk-settings）から来たら、読み込みが済んだところで1回だけこの欄へ寄せる
+        （2026-11-04）。ページの中身が後から伸びるので、ブラウザ任せのハッシュの移動では届かない。
+     ⚠️ requestAnimationFrame に載せない（描画されていないと動かない。ui-debugging ⑪） */
+  const scrolledToHash = useRef(false);
+  const ready = !!saved || loadError;
+  useEffect(() => {
+    if (!ready || scrolledToHash.current || window.location.hash !== "#talk-settings") return;
+    /* ⚠️ 印は寄せたときに付ける（effect の先頭で付けると、開発時の二重実行で片付けられて一度も動かない） */
+    const t = setTimeout(() => {
+      scrolledToHash.current = true;
+      document.getElementById("talk-settings")?.scrollIntoView({ block: "start" });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [ready]);
 
   const canRecruit = (saved?.recruiterCompanies.length ?? 0) > 0;
   const dirty = !!saved && !!draft && (draft.stance !== saved.stance || draft.stanceCompanyId !== saved.stanceCompanyId || draft.capacity !== saved.capacity);

@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CAREER_NEXT_STEP_LABEL } from "@/lib/home/homeState";
+import { CAREER_NEXT_STEP_LABEL, CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
 import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -28,7 +28,12 @@ export type PeopleSidebarData = {
     gradient: string;
     initial: string;
     affiliation: string | null;
+    /** ★現職の職種名（ow_roles）と会社名（2026-11-04。ホームの左のカードが「職種・会社名」の順で出す）。無ければ null */
+    roleName: string | null;
+    companyLabel: string | null;
   };
+  /** ★職歴の件数（2026-11-04。0件ならホームの左のカードが「職歴を入れる」を出す） */
+  experienceCount: number;
   /** ⚠️★型は `ProfileCard` に集約している。ここで作り直さないこと（割れると片方だけ直る） */
   counts: ProfileCardData["counts"];
   nextStep: { label: string; href: string } | null;
@@ -62,7 +67,7 @@ function pickNextStep(d: {
   /** 学校名を手で打った（学校の一覧につながっていない）学歴の件数 */
   freeTextEducationCount: number;
 }): { label: string; href: string } | null {
-  if (d.experienceCount === 0) return { label: CAREER_NEXT_STEP_LABEL, href: "/mypage" };
+  if (d.experienceCount === 0) return { label: CAREER_NEXT_STEP_LABEL, href: CAREER_NEXT_STEP_HREF };
   if (!d.hasAvatar) return { label: "プロフィール写真を追加する", href: "/mypage" };
   /* ★学歴は写真の次（2026-10-21。それまでは最後）。同じ学校の人が見つかるようになったので、埋める理由を一言添える */
   if (d.educationCount === 0) return { label: "学歴を追加して、同じ学校の人を見つける", href: "/mypage" };
@@ -145,7 +150,10 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
         ? u.avatar_color : FALLBACK_GRADIENT,
       initial: u.name.charAt(0),
       affiliation,
+      roleName: roleNode?.name ?? null,
+      companyLabel: companyLabel || null,
     },
+    experienceCount: exps.length,
     counts: {
       following: counts.following,
       followers: counts.followers,

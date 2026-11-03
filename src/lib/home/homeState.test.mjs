@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { leftNextStepWhileCareerPrompt, CAREER_NEXT_STEP_LABEL, careerBannerHiddenUntil, isCareerBannerHidden, CAREER_BANNER_HIDE_DAYS, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER } from "./homeState.ts";
+import { CAREER_NEXT_STEP_LABEL, CAREER_NEXT_STEP_HREF, careerBannerHiddenUntil, isCareerBannerHidden, CAREER_BANNER_HIDE_DAYS, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER } from "./homeState.ts";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -24,11 +24,7 @@ test("スマホで挟む位置: 合う会社は2件目と3件目の間、行き�
   assert.equal(HOME_MOBILE_PATHS_AFTER, 4);
 });
 
-test("職歴の案内を出している間は、左の列の「職歴を追加する」を隠す（ほかの次の1件は隠さない）", () => {
-  const career = { label: CAREER_NEXT_STEP_LABEL, href: "/mypage" };
-  const photo = { label: "プロフィール写真を追加する", href: "/mypage" };
-  assert.equal(leftNextStepWhileCareerPrompt(career, true), null);
-  assert.deepEqual(leftNextStepWhileCareerPrompt(career, false), career);
-  assert.deepEqual(leftNextStepWhileCareerPrompt(photo, true), photo);
-  assert.equal(leftNextStepWhileCareerPrompt(null, true), null);
+test("職歴を入れる画面の行き先は1つ（ホームの左のカードと次の1件で同じ）", () => {
+  assert.equal(CAREER_NEXT_STEP_HREF, "/mypage");
+  assert.equal(CAREER_NEXT_STEP_LABEL, "職歴を追加する");
 });

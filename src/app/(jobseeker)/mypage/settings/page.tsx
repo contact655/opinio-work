@@ -94,7 +94,10 @@ export default async function MypageSettingsPage() {
         showActivity={isCandidateActivityEnabled()}
       />
       {/* ★話を聞かれることについて（立場と話せる量。2026-11-03）。初期値は「今は話せない」 */}
-      <TalkSettingsSection />
+      {/* ⚠️ id はホームの左のカードの「設定する」（/mypage/settings#talk-settings）の飛び先。変えるときは一緒に変える */}
+      <div id="talk-settings" style={{ scrollMarginTop: 80 }}>
+        <TalkSettingsSection />
+      </div>
       {/* ★つながりとしての表示（2026-10-16 / フェーズ3）。初期値はオフ */}
       <ConnectionSettingSection />
       {/* ★企業からのメッセージ（2026-10-11 に説明だけにした）。⚠️ スイッチを戻さないこと */}

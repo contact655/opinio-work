@@ -1,0 +1,40 @@
+import { devOnly } from "../guard";
+import { Variant, PreviewHeader } from "../Variant";
+import { HomeProfileCard, type HomeProfileCardData } from "@/components/feed/HomeProfileCard";
+
+/**
+ * ホームの左の列のカード（2026-11-04）。実データでは職歴0件・長い社名・話せる量の各値がそろわないので、ここで見る。
+ * ⚠️ DB を読まない。固定データだけ。
+ * 何を見るか: 顔写真が帯にかかる／肩書きが1行で切れる／職歴0件で「職歴を入れる」／話を聞けるの3つの値／取れないとき行ごと出ない
+ */
+const base: HomeProfileCardData = {
+  me: {
+    userId: "00000000-0000-0000-0000-000000000001", name: "木村 翼", avatarUrl: null,
+    gradient: "linear-gradient(135deg, #002366, #3B5FD9)", initial: "木",
+    affiliation: null, roleName: "インサイドセールス", companyLabel: "関西の SaaS 企業",
+  },
+  counts: { following: 3, followers: 0, companies: 12, savedJobs: 1 },
+  experienceCount: 2,
+  talkCapacity: "monthly_one",
+};
+
+export default function HomeLeftCardPreview() {
+  devOnly();
+  return (
+    <div>
+      <PreviewHeader title="ホームの左の列のカード（/home・/search）">
+        PC（1024px 以上）の左の列。1023px 以下では出さない。
+      </PreviewHeader>
+      <Variant label="ふつう（月1件まで）"><HomeProfileCard {...base} /></Variant>
+      <Variant label="職歴0件（「職歴を入れる」）・話を聞けるはオフ">
+        <HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} experienceCount={0} talkCapacity="none" />
+      </Variant>
+      <Variant label="長い職種と社名（1行で切れる）・積極的に">
+        <HomeProfileCard {...base} me={{ ...base.me, name: "とても長い名前のユーザー 太郎", roleName: "カスタマーサクセスマネージャー", companyLabel: "とても長い会社名の株式会社エンタープライズソリューションズジャパン" }} talkCapacity="active" />
+      </Variant>
+      <Variant label="職歴はあるが現職が無い（肩書きの行を出さない）・話せる量が取れない（行ごと出さない）">
+        <HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} talkCapacity={null} />
+      </Variant>
+    </div>
+  );
+}
