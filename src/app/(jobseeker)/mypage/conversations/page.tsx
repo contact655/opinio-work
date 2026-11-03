@@ -8,6 +8,7 @@ import { isUnreadMessage, type MessageLike } from "@/lib/conversations/unread";
 import { listIncomingRequests } from "@/lib/conversations/messageRequest";
 import { messagePreviewLine } from "@/lib/conversations/previewLine";
 import { loadIncomingApproachViews } from "@/lib/approaches/incomingView";
+import { autoDeclinedForRequester } from "@/lib/talk/server";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
       「IT業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
@@ -139,7 +140,11 @@ export default async function ConversationsPage({
         : c,
   );
 
-  const conversationsWithUnread = conversations.map((conv) => {
+  /* ★自分が送った「話を聞く」依頼のうち、14日で自動の辞退になったもの（2026-11-03）。⚠️ 送った本人の分だけ（lib/talk/server.ts） */
+  const autoDeclined = await autoDeclinedForRequester(owUser.id as string, conversations.map((c) => c.id));
+
+  const conversationsWithUnread = conversations.map((c) => {
+    const conv = { ...c, talk_auto_declined: autoDeclined.has(c.id) };
     const myPart = participantMap.get(conv.id);
     /* ★最後のメッセージの冒頭（2026-10-11 / 一覧を LinkedIn の受信箱と同じ形にした）。⚠️ 自分が参加している会話だけ（上で絞ってある） */
     const last = (messages ?? [])

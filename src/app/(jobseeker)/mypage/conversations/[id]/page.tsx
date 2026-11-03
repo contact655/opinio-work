@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { candidateApproachFirst } from "@/lib/approaches/server";
+import { autoDeclinedForRequester } from "@/lib/talk/server";
 import ConversationDetailClient, {
   type ConversationDetail,
   type MessageRow,
@@ -105,6 +106,8 @@ export default async function ConversationDetailPage({
 
   // Conversation not found or user is not a participant
   if (!conversation || !myParticipant) notFound();
+  /* ★自分が送った「話を聞く」依頼が14日で自動の辞退になったか（2026-11-03。送った本人の分だけ） */
+  conversation.talk_auto_declined = (await autoDeclinedForRequester(owUser.id as string, [conversationId])).has(conversationId);
 
   // Fetch initial messages + mark as read in parallel
   const [msgsResult] = await Promise.all([

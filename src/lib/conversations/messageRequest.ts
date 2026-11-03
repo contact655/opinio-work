@@ -14,6 +14,8 @@ import {
   PENDING_FOLLOW_UP_MAX_LENGTH,
 } from "@/lib/constants/messages";
 import type { AskColumns } from "@/lib/conversations/askTopic";
+import { isTalkRequestAutoDeclined, markTalkRequestAnswered, recordTalkRequest, talkProfileOf } from "@/lib/talk/server";
+import { TALK_UNAVAILABLE_TEXT } from "@/lib/constants/talk";
 
 /**
  * ★DM の「メッセージのお願い」（2026-10-09 / 段階3）。**判定と書き込みはここの1か所。**
@@ -300,6 +302,11 @@ export async function sendMessageRequest(params: {
   if (!quota) return { ok: false, status: 500, error: MSG.failed };
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return { ok: false, status: 429, error: quotaMsg };
+  /* ★③-2 相手がいま「話を聞く」を受け付けているか（2026-11-03 / 柴さんの決定。つながっていない人への最初の1通＝依頼）。
+        ボタンの出し分けと同じ関数（lib/talk/server.ts の talkProfiles）。⚠️ 理由（量・月の上限）は返さない */
+  const talk = await talkProfileOf(recipientId);
+  if (!talk) return { ok: false, status: 500, error: MSG.failed };
+  if (!talk.accepts) return { ok: false, status: 403, error: TALK_UNAVAILABLE_TEXT };
   /* ④ テーマ（この相手に選べるものか）。⚠️ メッセージ（kind=message）はテーマを持たない */
   let topic: MessageTopic | null = null;
   let requestCompanyId: string | null = null;
@@ -364,6 +371,13 @@ export async function sendMessageRequest(params: {
   if (msgErr) {
     console.error("[messageRequest] message insert:", msgErr.message);
     /* ⚠️ 本文の無いお願いを残さない（枠だけ減って、相手には何も届かない形になる） */
+    await db.from("ow_conversations").delete().eq("id", conversationId);
+    return { ok: false, status: 500, error: MSG.failed };
+  }
+
+  /* ★依頼として記録する（2026-11-03）。月1件の数え方と14日の自動辞退がこれを見る。
+        ⚠️ 記録できなければ送らなかったことにする（数えられない依頼を残すと、月1件の上限が効かない） */
+  if (!(await recordTalkRequest({ conversationId, requesterId: senderId, targetId: recipientId }))) {
     await db.from("ow_conversations").delete().eq("id", conversationId);
     return { ok: false, status: 500, error: MSG.failed };
   }
@@ -485,6 +499,10 @@ export async function replyToMessageRequest(params: {
   if (await isMessagingBlocked(params.recipientId, conv.candidate_user_id as string)) {
     return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
   }
+  /* ★14日たって自動で辞退になった依頼には返信しない（送った側には「今回はお話しできないようです」と出ている。2026-11-03） */
+  const autoDeclined = await isTalkRequestAutoDeclined(params.conversationId);
+  if (autoDeclined === null) return { ok: false, status: 500, error: MSG.failed };
+  if (autoDeclined) return { ok: false, status: 404, error: "このメッセージは見つかりません" };
 
   const { data, error } = await db.rpc("reply_to_message_request", {
     p_conversation_id: params.conversationId,
@@ -499,6 +517,7 @@ export async function replyToMessageRequest(params: {
     console.error("[messageRequest] reply:", error.message);
     return { ok: false, status: 500, error: MSG.failed };
   }
+  await markTalkRequestAnswered(params.conversationId);
   await notifyNewMessage({ conversationId: params.conversationId, senderOwUserId: params.recipientId, source: "dm/request-reply" });
   return { ok: true, conversationId: data as string };
 }
@@ -639,6 +658,10 @@ export async function pendingFollowUpState(conversationId: string, meId: string)
     return null;
   }
   if (!conv || conv.kind !== "direct_message" || conv.request_status !== "pending" || conv.candidate_user_id !== meId) return { kind: "none" };
+  /* ★14日で自動の辞退になった依頼には、続きも送れない（2026-11-03） */
+  const autoDeclined = await isTalkRequestAutoDeclined(conversationId);
+  if (autoDeclined === null) return null;
+  if (autoDeclined) return { kind: "none" };
   return { kind: "allowed" };
 }
 

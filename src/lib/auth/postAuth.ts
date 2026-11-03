@@ -255,7 +255,8 @@ function buildWelcomeHtml(name: string | null): string {
               ${[
                 ["🏢", "IT企業の情報閲覧・カジュアル面談申込"],
                 ["💼", "IT業界の求人に直接応募"],
-                ["🌟", "先輩メンターに30分の無料キャリア相談"],
+                /* ★2026-11-03: 「先輩メンターに30分の無料キャリア相談」を外した。メンター機能は 2026-09-27 に無くなっていて、事実と違っていた */
+                ["🧭", "在籍している方・していた方の経歴の閲覧"],
               ].map(([icon, text]) => `
               <tr>
                 <td style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#334155">
