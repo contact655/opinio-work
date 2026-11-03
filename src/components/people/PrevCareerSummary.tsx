@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { PathsRowView, PathsStartView, PathsView } from "@/lib/paths/server";
-import { prevCareerHref, prevCareerText } from "@/lib/people/prevCareer";
+import { pathsHref, prevCareerHref, prevCareerText } from "@/lib/people/prevCareer";
 
 /**
  * ★「その経歴から次に進んだ人」の集計（2026-11-03。旧 /paths の PathsResult の集計部分）。
@@ -8,6 +8,7 @@ import { prevCareerHref, prevCareerText } from "@/lib/people/prevCareer";
  *
  * ⚠️ 各行は5人以上（MIN_AGGREGATE_COUNT。lib/paths/server.ts が切る）。ここで人数を足したり作ったりしない。
  * ⚠️ variant="home" は、出せる行が1つも無いとき null を返す（ホームに空の箱を出さない）。
+ * ⚠️ variant="guest" は未ログインの /paths（2026-11-03）。「広げて見る」のリンク先を /paths にする（/people はログインが要る）。
  */
 function Rows({ title, rows }: { title: string; rows: PathsRowView[] }) {
   if (rows.length === 0) return null;
@@ -30,8 +31,9 @@ function Rows({ title, rows }: { title: string; rows: PathsRowView[] }) {
 
 export function PrevCareerSummary({ view, variant = "people" }: {
   view: Pick<PathsView, "start" | "summary" | "wider">;
-  variant?: "people" | "home";
+  variant?: "people" | "home" | "guest";
 }) {
+  const hrefOf = variant === "guest" ? pathsHref : prevCareerHref;
   const start: PathsStartView | null = view.start;
   if (!start) return null;
   const s = view.summary;
@@ -68,9 +70,9 @@ export function PrevCareerSummary({ view, variant = "people" }: {
             <p data-state="paths-wider" style={{ margin: "12px 0 0", fontSize: 14 }}>
               広げて見る：{" "}
               {view.wider.map((w, i) => (
-                <span key={prevCareerHref(w)}>
+                <span key={hrefOf(w)}>
                   {i > 0 && "／"}
-                  <Link href={prevCareerHref(w)} scroll={false} style={{ color: "var(--royal)" }}>{prevCareerText(w)}</Link>
+                  <Link href={hrefOf(w)} scroll={false} style={{ color: "var(--royal)" }}>{prevCareerText(w)}</Link>
                 </span>
               ))}
             </p>
