@@ -6842,7 +6842,7 @@ DB の CHECK・`VALID_STATUSES`・`SETTABLE_JOB_STATUSES` の**3つとも同じ5
 | # | 場所 | 状態 |
 |---|---|---|
 | 1 | `vercel.json` の `crons` | **空**（`{}`）。JSON にコメントが書けないので理由はここと各ルートに書いた |
-| 2 | 各ルート冒頭の `isDisabled()` | `WEEKLY_EMAIL_ENABLED !== "true"` なら**認証より前に** return |
+| 2 | 各ルートの `isDisabled()` | `WEEKLY_EMAIL_ENABLED !== "true"` なら**認証のすぐ後・送信経路より前に** return（2026-11-04 に認証の後ろへ移した。それまでは鍵なしの呼び出しにも 200 と停止理由を返していた） |
 
 ### なぜ止めたか
 

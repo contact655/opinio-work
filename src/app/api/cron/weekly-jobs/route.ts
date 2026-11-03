@@ -55,15 +55,6 @@ function isDisabled(): boolean {
 }
 
 export async function GET(request: Request) {
-  // ⚠️ 認証より前に置く。認証が通っても送信経路に入らないための保険
-  if (isDisabled()) {
-    return NextResponse.json({
-      success: true,
-      sent: 0,
-      reason: "disabled: weekly-jobs は停止中（配信停止が未実装 / 宛先に is_test と example.com が混ざる）。再開は WEEKLY_EMAIL_ENABLED=true と vercel.json の crons の両方",
-    });
-  }
-
   // Fail fast if CRON_SECRET is not configured
   if (!process.env.CRON_SECRET) {
     return new Response("CRON_SECRET not configured", { status: 500 });
@@ -74,6 +65,16 @@ export async function GET(request: Request) {
   const actual = Buffer.from(authHeader ?? "");
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // ⚠️ 停止中なら、認証のすぐ後・送信経路より前に返す（認証が通っても送らないための保険）。
+  //    2026-11-04 に認証の後ろへ移した。それまでは鍵のない呼び出しにも 200 と停止理由の内部メモを返していた
+  if (isDisabled()) {
+    return NextResponse.json({
+      success: true,
+      sent: 0,
+      reason: "disabled: weekly-jobs は停止中（配信停止が未実装 / 宛先に is_test と example.com が混ざる）。再開は WEEKLY_EMAIL_ENABLED=true と vercel.json の crons の両方",
+    });
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

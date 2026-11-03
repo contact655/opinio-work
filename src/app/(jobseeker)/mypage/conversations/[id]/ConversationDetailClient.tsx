@@ -9,6 +9,7 @@ import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubb
 import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
 import { PendingFollowUp } from "@/components/messages/PendingFollowUp";
 import { askCompanyName, isMessageFormat, isMessageTopic } from "@/lib/constants/messageTopics";
+import { TALK_AUTO_DECLINED_TEXT } from "@/lib/constants/talk";
 
 export type MessageRow = {
   id: string;
@@ -43,6 +44,8 @@ export type ConversationDetail = {
   /** ★DM の「メッセージのお願い」の段（段階3）。ここを開けるのは参加者だけなので、
    *  DM で accepted でなければ「自分が送って承認待ち」（断られていても同じ） */
   request_status?: string | null;
+  /** ★自分が送った「話を聞く」依頼が、返事の無いまま14日で自動の辞退になった（2026-11-03。送った本人にだけ true） */
+  talk_auto_declined?: boolean;
   /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
   request_topic?: string | null;
   request_format?: string | null;
@@ -267,7 +270,10 @@ export default function ConversationDetailClient({
 
         {/* Input */}
         <div className="bg-white rounded-b-card border border-t-0 border-card-border px-4 py-3 flex-shrink-0">
-          {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
+          {conversation.kind === "direct_message" && conversation.request_status !== "accepted" && conversation.talk_auto_declined ? (
+            /* ★14日たって自動で辞退になった（2026-11-03）。⚠️ 理由は出さない。続きも送らせない */
+            <p data-state="talk-auto-declined" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>{TALK_AUTO_DECLINED_TEXT}</p>
+          ) : conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
             /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
             /* ★返信が無くても、1通目から3日たてばもう1通だけ送れる（2026-10-22 / A案）。判定は API の1か所 */
             <PendingFollowUp conversationId={conversationId} fallbackText="まだ返信がありません。返信があると続きを送れます" onSent={() => refreshMessages()} />

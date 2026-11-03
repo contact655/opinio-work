@@ -4,6 +4,7 @@ import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
 import ConnectionSettingSection from "./ConnectionSettingSection";
+import TalkSettingsSection from "./TalkSettingsSection";
 import LogoutSection from "./LogoutSection";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
@@ -92,6 +93,8 @@ export default async function MypageSettingsPage() {
         /* ★最近の利用（本番は無効。CANDIDATE_ACTIVITY_ENABLED） */
         showActivity={isCandidateActivityEnabled()}
       />
+      {/* ★話を聞かれることについて（立場と話せる量。2026-11-03）。初期値は「今は話せない」 */}
+      <TalkSettingsSection />
       {/* ★つながりとしての表示（2026-10-16 / フェーズ3）。初期値はオフ */}
       <ConnectionSettingSection />
       {/* ★企業からのメッセージ（2026-10-11 に説明だけにした）。⚠️ スイッチを戻さないこと */}
