@@ -35,8 +35,9 @@ test("職歴の更新は、会社が変わったときだけ決め手を消す",
   const route = fileURLToPath(new URL("../../app/api/jobseeker/experiences/[id]/route.ts", import.meta.url));
   /* ⚠️ コメントを落としてから見る（注意書きの文言に当たらないように） */
   const src = readFileSync(route, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-  assert.match(src, /select\("company_id, company_text, company_anonymized"\)/, "更新前の会社を3列とも読む");
-  assert.match(src, /if \(beforeRow\.data && !isSameCompany\(beforeRow\.data, afterCompany\)\)\s*\{\s*const cleared = await clearJoinDecisionForExperience\(/,
+  assert.match(src, /select\("company_id, company_text, company_anonymized, is_current"\)/, "更新前の会社を3列とも読む");
+  /* ★2026-11-04: 「修正です」の印があれば消さない・現職のときだけ（jobChange.test.mjs でも見ている） */
+  assert.match(src, /!isSameCompany\(beforeRow\.data, afterCompany\)\)\s*\{\s*const cleared = await clearJoinDecisionForExperiences\(/,
     "会社が変わったときだけ消す");
-  assert.ok(src.indexOf("clearJoinDecisionForExperience(") > src.indexOf('if (!updated) return'), "保存に成功したあとで消す");
+  assert.ok(src.indexOf("clearJoinDecisionForExperiences(") > src.indexOf('if (!updated) return'), "保存に成功したあとで消す");
 });

@@ -7843,6 +7843,8 @@ npm run dev → http://localhost:3000/dev/preview
 - ⚠️★提案の根拠 `shared_motive` は「その会社の上位3つに候補者の決め手が入っている」ときだけ作り、**人数も文も保存しない**。候補者の画面だけが固定の文「あなたと同じ理由で選んだ人が多い会社です」を出す（`fit.ts` の `SHARED_MOTIVE_TEXT`）。企業側（`companyProposals.ts`）には shared_motive を返さない。
 - ⚠️ 転機の3問の画面は止めた（`ProfileTab` の `TURN_SCREENS_ENABLED = false`・ホームの `HomeTurnCard` を出さない）。コードと表は残してある。「人の流れ」から決め手（`decisiveTop`）は外した。
 - ⚠️ 表は anon / authenticated に権限なし・ポリシー0本（`ow_career_turns` と同じ形）。
+- ★★**現職の会社名を変えて保存すると「転職しましたか？／会社名の修正ですか？」を聞く**（2026-11-04 / 柴さんの判断）。入口は役割の行の鉛筆と会社の行の鉛筆の2つ（`JobChangeDialog`・判定は `lib/experiences/jobChange.ts`）。転職＝辞めた月を聞き、新しい会社の「職歴を追加」を開く（入社月は翌月）。その保存が成功してから前の現職を終わらせる。修正＝上書きし、更新に `company_change: "correction"` を付けて決め手を消さない。
+  - ⚠️ 2つの更新の処理（`PUT …/experiences/[id]`・`PATCH …/experiences/company`）が決め手を消すのは、印が無く現職の会社が変わったとき（古い画面のまま保存した人）だけ。過去の職歴の会社名を変えても消さない。
 
 ### ★★「株式会社◯◯について」は転機の3問（`ow_career_turns`）。2026-10-27 に入社後レビューから入れ替えた（フェーズ1c）
 

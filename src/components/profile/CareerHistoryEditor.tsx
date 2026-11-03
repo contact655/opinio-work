@@ -23,6 +23,9 @@ import {
 } from "@/components/profile/editor/ExperienceReasonModal";
 import { CareerTurnModal } from "@/components/profile/editor/CareerTurnModal";
 import { JoinDecisionModal } from "@/components/profile/editor/JoinDecisionModal";
+import JobChangeDialog from "@/components/profile/editor/JobChangeDialog";
+import { isSameCompany, type CompanyIdentity } from "@/lib/experiences/companyKey";
+import { COMPANY_CORRECTION, nextMonthOf, shouldAskJobChange } from "@/lib/experiences/jobChange";
 import {
   postExperience,
   type ExperienceCompanyBody,
@@ -134,16 +137,8 @@ function latestEndedAtOf(group: StintGroup): string | null {
   }, null);
 }
 
-/**
- * ★`YYYY-MM` の翌月（2026-09-12）。⚠️ 12月は翌年の1月へ。
- * 引数が null なら空文字（＝初期値を入れない）。
- */
-function nextMonthOf(ym: string | null): string {
-  if (!ym) return "";
-  const [y, m] = ym.split("-").map(Number);
-  if (!y || !m) return "";
-  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
-}
+/* ★`YYYY-MM` の翌月（2026-09-12。⚠️ 12月は翌年の1月へ。null なら空文字）は
+      lib/experiences/jobChange.ts の nextMonthOf（2026-11-04 に移した。中身は同じ） */
 
 function groupStints(stints: Stint[]): StintGroup[] {
   if (stints.length === 0) return [];
@@ -456,6 +451,20 @@ function optimisticCompanyFields(
       companyAnonymized: undefined,
     };
   }
+}
+
+/* ★会社が変わったかを見るための形（2026-11-04）。比べ方は companyKey.ts の isSameCompany。
+      ⚠️ 下書きは保存のときと同じ形（buildCompanyBody）で作る。画面の値と送る値をずらさない */
+function stintCompanyIdentity(s: Pick<Stint, "companyId" | "companyText" | "companyAnonymized" | "companyType">): CompanyIdentity {
+  return {
+    company_id: s.companyType === "master" ? s.companyId ?? null : null,
+    company_text: s.companyType === "custom" ? s.companyText ?? null : null,
+    company_anonymized: s.companyType === "anon" ? s.companyAnonymized ?? null : null,
+  };
+}
+function draftCompanyIdentity(d: Pick<StintDraft, "companyId" | "companyName">): CompanyIdentity {
+  const b = buildCompanyBody(d) as { company_id?: string; company_text?: string };
+  return { company_id: b.company_id ?? null, company_text: b.company_text ?? null, company_anonymized: null };
 }
 
 // ── Sort helper: isCurrent first, then startedAt DESC ────────────────────────
@@ -1468,6 +1477,27 @@ export default function CareerHistoryEditor({
   const [addSaving,    setAddSaving]    = useState(false);
   const [addJustSaved, setAddJustSaved] = useState(false);
 
+  /* ★★現職の会社名を変えたとき「転職しましたか？／会社名の修正ですか？」（2026-11-04 / 柴さんの判断）。
+        入口は2つ（役割の行の鉛筆＝職歴の編集 ／ 会社の行の鉛筆＝会社名の変更）。判定は lib/experiences/jobChange.ts。
+        ⚠️ 転職のときは、新しい会社の職歴を「職歴を追加」で先に作り、それが保存できてから前の職歴を終わらせる
+           （pendingJobChange）。追加をやめたら前の職歴は変えない。 */
+  const [jobChange, setJobChange] = useState<null | {
+    source: "edit" | "company";
+    fromCompany: string;
+    toCompany: string;
+    latestStartedAt: string;
+    /** 終わらせる前の会社の職歴（現職の役割） */
+    oldIds: string[];
+    /** 「職歴を追加」に入れておく値（入社月はあとで辞めた月の翌月にする） */
+    nextDraft: StintDraft;
+  }>(null);
+  const pendingJobChangeRef = useRef<null | { oldIds: string[]; endedAt: string; fromCompany: string }>(null);
+  const [pendingJobChange, setPendingJobChangeState] = useState<null | { oldIds: string[]; endedAt: string; fromCompany: string }>(null);
+  const setPendingJobChange = useCallback((v: null | { oldIds: string[]; endedAt: string; fromCompany: string }) => {
+    pendingJobChangeRef.current = v;
+    setPendingJobChangeState(v);
+  }, []);
+
   /* ★★会社名の変更（2026-09-12）。**会社に属する情報は会社名だけ**（柴さんの判断・案B）。
         ⚠️★`ow_experiences` に「会社の行」は無い。会社名は職歴1行ごとの列なので、
            **そのまとまりのN行すべてを更新する**ことになる。
@@ -1730,11 +1760,13 @@ export default function CareerHistoryEditor({
     return body;
   }, []);
 
-  const saveEdit = useCallback(async () => {
+  const saveEdit = useCallback(async (opts?: { correction?: boolean }) => {
     if (!editingId) return;
     setEditSaving(true);
     try {
       const body = buildPutCoreBody(editDraft);
+      /* ★「会社名の修正です」を選んだとき（2026-11-04）。サーバーは決め手の回答を消さない */
+      if (opts?.correction) body.company_change = COMPANY_CORRECTION;
 
       const res = await fetch(`/api/jobseeker/experiences/${editingId}`, {
         method: "PUT",
@@ -1798,8 +1830,10 @@ export default function CareerHistoryEditor({
   const cancelAdd = useCallback(() => {
     setAddingForCompanyKey(null);
     setAddDraft(EMPTY_DRAFT);
+    /* ★転職の途中で追加をやめたら、前の職歴は変えない（2026-11-04） */
+    setPendingJobChange(null);
     onClosedRef.current?.();
-  }, []);
+  }, [setPendingJobChange]);
 
   /* ★★現職が2つ並ぶのを防ぐ（2026-09-12 / 柴さんの指示）。
         同じ会社に**すでに現職の役割**があり、**新しい役割も現職**のときだけ確認を出す。
@@ -1879,13 +1913,58 @@ export default function CareerHistoryEditor({
       };
 
       setStints((prev) => sortStints([...prev, newStint]));
+
+      /* ★★転職（2026-11-04）。新しい会社の職歴が保存できたので、前の会社の現職の職歴を辞めた月で終わらせる。
+            ⚠️ 前の職歴は保存されている値のまま（会社名・役割は変えない）。現職を外して終了月を入れるだけ。
+            ⚠️ 失敗したら「前の会社の終了月を保存できませんでした」と出し、その職歴の編集を開く。
+               新しい職歴は消さない（もう一度追加すると2件になる） */
+      const pending = pendingJobChangeRef.current;
+      let jobChangeFailedId: string | null = null;
+      if (pending) {
+        const [ey, em] = pending.endedAt.split("-");
+        const endedOk: string[] = [];
+        for (const oldId of pending.oldIds) {
+          const old = stints.find((x) => x.id === oldId);
+          if (!old) continue;
+          const d = { ...draftFromStint(old), isCurrent: false, endedYear: ey, endedMonth: String(Number(em)) };
+          const r = await fetch(`/api/jobseeker/experiences/${oldId}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildPutCoreBody(d)),
+          }).catch(() => null);
+          if (r?.ok) endedOk.push(oldId);
+          else if (!jobChangeFailedId) jobChangeFailedId = oldId;
+        }
+        const okSet = new Set(endedOk);
+        setStints((prev) => sortStints(prev.map((x) => okSet.has(x.id) ? { ...x, isCurrent: false, endedAt: pending.endedAt } : x)));
+        setPendingJobChange(null);
+      }
+
       /* ⚠️ 年収だけ失敗しても職歴はできているので閉じる（もう一度押すと職歴が2件になる）。
             年収は鉛筆から入れ直してもらう。 */
-      showToast(salaryErr ? "職歴は追加しましたが、年収の保存に失敗しました。編集から入れ直してください。" : "職歴を追加しました", salaryErr ? "error" : undefined);
+      if (jobChangeFailedId) {
+        showToast("新しい職歴は追加しましたが、前の会社の終了月を保存できませんでした。もう一度保存してください。", "error");
+      } else if (pending) {
+        const [ey, em] = pending.endedAt.split("-");
+        showToast(salaryErr
+          ? "職歴は追加しましたが、年収の保存に失敗しました。編集から入れ直してください。"
+          : `職歴を追加し、${pending.fromCompany}を${ey}年${Number(em)}月までにしました`, salaryErr ? "error" : undefined);
+      } else {
+        showToast(salaryErr ? "職歴は追加しましたが、年収の保存に失敗しました。編集から入れ直してください。" : "職歴を追加しました", salaryErr ? "error" : undefined);
+      }
       setAddJustSaved(true);
       await new Promise((r) => setTimeout(r, 800));
       cancelAdd();
       setAddJustSaved(false);
+      /* ★前の職歴を終わらせられなかったときは、その職歴の編集を開く（終了月を入れた状態で）。決め手はあとで聞く */
+      if (jobChangeFailedId && pending) {
+        const old = stints.find((x) => x.id === jobChangeFailedId);
+        if (old) {
+          const [ey, em] = pending.endedAt.split("-");
+          setEditDraft({ ...draftFromStint(old), isCurrent: false, endedYear: ey, endedMonth: String(Number(em)) });
+          setEditingId(old.id);
+        }
+        return;
+      }
       /* ★保存できた**新規追加のときだけ**、「この会社について」を出す（2026-09-12）。
          ⚠️ **編集では出さない。** ⚠️ 失敗したときも出さない（この行は try の中）。
          ⚠️★**既にある会社に役割を足したときは出さない**（2026-10-16 / 回答の単位は会社）。
@@ -1898,7 +1977,7 @@ export default function CareerHistoryEditor({
     } finally {
       setAddSaving(false);
     }
-  }, [addDraft, stints, cancelAdd, showToast, salaryState, saveSalaryIfChanged]);
+  }, [addDraft, stints, cancelAdd, showToast, salaryState, saveSalaryIfChanged, draftFromStint, buildPutCoreBody, setPendingJobChange]);
 
   /**
    * ★前の役割に終了年月を入れてから、新しい役割を足す（2026-09-12）。
@@ -2028,16 +2107,18 @@ export default function CareerHistoryEditor({
    *    **同じ会社のはずの役割が2社に割れる**（サーバー側は `.in("id", ids)` の1文）。
    * ⚠️ 楽観更新もまとめて当てる。片方だけ変えると、保存できたのに画面が割れて見える。
    */
-  const saveCompany = useCallback(async () => {
+  const saveCompany = useCallback(async (opts?: { correction?: boolean }) => {
     const g = editCompanyGroup;
     if (!g) return;
     setCompanySaving(true);
     setCompanyError(null);
     try {
       const ids = g.positions.map((p) => p.id);
+      /* ★「会社名の修正です」を選んだとき（2026-11-04）。サーバーは決め手の回答を消さない */
+      const correction = opts?.correction ? { company_change: COMPANY_CORRECTION } : {};
       const body = companyDraft.companyId
-        ? { experience_ids: ids, company_id: companyDraft.companyId }
-        : { experience_ids: ids, company_text: companyDraft.companyName };
+        ? { experience_ids: ids, company_id: companyDraft.companyId, ...correction }
+        : { experience_ids: ids, company_text: companyDraft.companyName, ...correction };
       const res = await fetch("/api/jobseeker/experiences/company", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -2080,6 +2161,89 @@ export default function CareerHistoryEditor({
            「この会社に役割を追加」は会社名だけ埋まった状態で開くので、
            その状態を基準にする（開いた瞬間に保存が押せないように）。
         ⚠️ 保存できるかの判定（必須・期間の前後・文字数）は `canSaveStint` に集約した。 */
+  /* ★★「転職しましたか？／会社名の修正ですか？」（2026-11-04 / 柴さんの判断）。
+        聞くかどうかは shouldAskJobChange（lib/experiences/jobChange.ts）。匿名企業は聞かない（入力欄は削除済み・本番0件）。 */
+  /** 役割の行の鉛筆（職歴の編集）の保存 */
+  const saveEditOrAsk = () => {
+    const saved = stints.find((x) => x.id === editingId);
+    if (saved && saved.companyType !== "anon" && shouldAskJobChange({
+      savedIsCurrent: saved.isCurrent,
+      draftIsCurrent: editDraft.isCurrent,
+      companyChanged: !isSameCompany(stintCompanyIdentity(saved), draftCompanyIdentity(editDraft)),
+    })) {
+      setJobChange({
+        source: "edit",
+        fromCompany: saved.displayCompanyName,
+        toCompany: editDraft.companyName,
+        latestStartedAt: saved.startedAt,
+        oldIds: [saved.id],
+        /* ★編集画面で変えていた職種などは新しい職歴に引き継ぐ（判断点2）。
+              ⚠️ 年収・出向先・理由は前の会社のものなので引き継がない */
+        nextDraft: {
+          ...editDraft, isCurrent: true, endedYear: "", endedMonth: "",
+          salaryBase: "", salaryBonus: "", salaryStock: "", salaryMan: "",
+          secondmentCompanyId: null, secondmentCompanyName: "",
+          joinReason: "", joinReasons: [], joinReasonPrimary: "", leaveReasons: [], gaps: {},
+        },
+      });
+      return;
+    }
+    void saveEdit();
+  };
+  /** 会社の行の鉛筆（会社名の変更）の保存 */
+  const saveCompanyOrAsk = () => {
+    const g = editCompanyGroup;
+    if (!g) return;
+    const currents = g.positions.filter((p) => p.isCurrent).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+    if (g.companyType !== "anon" && shouldAskJobChange({
+      savedIsCurrent: currents.length > 0,
+      draftIsCurrent: currents.length > 0,
+      companyChanged: !isSameCompany(stintCompanyIdentity(g.positions[0]), draftCompanyIdentity(companyDraft)),
+    })) {
+      const latest = currents[0];
+      setJobChange({
+        source: "company",
+        fromCompany: g.displayCompanyName,
+        toCompany: companyDraft.companyName,
+        latestStartedAt: latest.startedAt,
+        /* ★その会社で現職になっている役割をまとめて終わらせる（判断点6） */
+        oldIds: currents.map((p) => p.id),
+        /* ★職種などは直近の現職の役割から引き継ぐ（判断点6） */
+        nextDraft: {
+          ...EMPTY_DRAFT,
+          companyName: companyDraft.companyName, companyId: companyDraft.companyId,
+          isCurrent: true,
+          roleCategoryId: latest.roleCategoryId, roleTitle: latest.roleTitle ?? "",
+          department: latest.department ?? "", rank: latest.rank ?? "", rankTitle: latest.rankTitle ?? "",
+          employmentType: latest.employmentType ?? "",
+          visibilityCompany: latest.visibilityCompany, visibilityReason: latest.visibilityReason,
+        },
+      });
+      return;
+    }
+    void saveCompany();
+  };
+  const onJobChangeCorrection = () => {
+    const src = jobChange?.source;
+    setJobChange(null);
+    if (src === "edit") void saveEdit({ correction: true });
+    else if (src === "company") void saveCompany({ correction: true });
+  };
+  /** 「転職しました」で辞めた月が決まったら、新しい会社の「職歴を追加」を開く（入社月は翌月・判断点1） */
+  const onJobChangeConfirm = (endedAt: string) => {
+    const jc = jobChange;
+    if (!jc) return;
+    setJobChange(null);
+    if (jc.source === "edit") cancelEdit(); else cancelEditCompany();
+    const start = nextMonthOf(endedAt);
+    const [sy, sm] = start.split("-");
+    setPendingJobChange({ oldIds: jc.oldIds, endedAt, fromCompany: jc.fromCompany });
+    setAddDraft({ ...jc.nextDraft, startedYear: sy ?? "", startedMonth: sm ? String(Number(sm)) : "" });
+    setAddShort(null);
+    setAddFormKey((k) => k + 1);
+    setAddingForCompanyKey("__new__");
+  };
+
   const careerIsEditing = editingId !== null;
   const careerDraft = careerIsEditing ? editDraft : addDraft;
   const careerBase = careerIsEditing
@@ -2126,7 +2290,8 @@ export default function CareerHistoryEditor({
         } : undefined}
         /* ★現職が2つ並ぶときは、保存の前に確認を挟む（2026-09-12） */
         onSave={() => {
-          if (careerIsEditing) { void saveEdit(); return; }
+          /* ★現職の会社名を変えたときは、保存の前に「転職／修正」を聞く（2026-11-04） */
+          if (careerIsEditing) { saveEditOrAsk(); return; }
           if (conflictingCurrent) {
             setPrevEndYear(""); setPrevEndMonth("");
             setCurrentConflict({
@@ -2139,6 +2304,12 @@ export default function CareerHistoryEditor({
         }}
         onClose={() => { if (careerIsEditing) cancelEdit(); else cancelAdd(); }}
       >
+        {/* ★転職の途中（2026-11-04）。この職歴を保存したときに、前の会社を辞めた月までにする */}
+        {!careerIsEditing && pendingJobChange && (
+          <p data-state="job-change-pending" style={{ margin: "0 0 14px", padding: "10px 12px", borderRadius: 8, background: "var(--royal-50)", fontSize: 13, lineHeight: 1.7, color: "var(--ink-soft)", overflowWrap: "anywhere" }}>
+            この職歴を保存すると、{pendingJobChange.fromCompany}の職歴を{pendingJobChange.endedAt.slice(0, 4)}年{Number(pendingJobChange.endedAt.slice(5, 7))}月までにします。
+          </p>
+        )}
         <StintForm
           key={careerIsEditing ? "edit" : `add-${addFormKey}`}
           compact={!careerIsEditing && addShort !== null && addingForCompanyKey === "__new__"}
@@ -2218,7 +2389,8 @@ export default function CareerHistoryEditor({
                 確認ダイアログで件数と何が消えるかを明記する。 */
           dangerLabel="この会社の職歴を削除"
           onDanger={() => setDeleteCompanyGroupKey(editCompanyGroup.key)}
-          onSave={() => { void saveCompany(); }}
+          /* ★現職を含む会社の名前を変えたときは、保存の前に「転職／修正」を聞く（2026-11-04） */
+          onSave={saveCompanyOrAsk}
           onClose={cancelEditCompany}
         >
           <div>
@@ -2263,6 +2435,20 @@ export default function CareerHistoryEditor({
         onConfirm={() => { void confirmDeleteCompany(); }}
         onCancel={() => setDeleteCompanyGroupKey(null)}
       />
+
+      {/* ★★現職の会社名を変えたときの「転職／修正」（2026-11-04 / 柴さんの判断） */}
+      {jobChange && (
+        <JobChangeDialog
+          key={`${jobChange.source}-${jobChange.oldIds.join(",")}`}
+          fromCompany={jobChange.fromCompany}
+          toCompany={jobChange.toCompany}
+          latestStartedAt={jobChange.latestStartedAt}
+          saving={editSaving || companySaving}
+          onCorrection={onJobChangeCorrection}
+          onJobChange={onJobChangeConfirm}
+          onCancel={() => setJobChange(null)}
+        />
+      )}
 
       {/* ★★現職が2つ並ぶときの確認（2026-09-12）。
              ⚠️★**止めない。**「並行している」を選べば両方現職のまま保存できる
