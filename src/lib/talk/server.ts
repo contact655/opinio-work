@@ -7,12 +7,12 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 import { recruiterCompanyIds } from "@/lib/talk/recruiter";
 import {
   DEFAULT_TALK_CAPACITY,
-  TALK_REQUEST_EXPIRE_DAYS,
   isTalkCapacity,
   isTalkStance,
   startOfMonthJst,
   talkAcceptsRequest,
   talkStanceLabel,
+  talkRequestExpiryCutoff,
   type TalkCapacity,
   type TalkStance,
 } from "@/lib/constants/talk";
@@ -237,7 +237,8 @@ export async function autoDeclinedForRequester(requesterId: string, conversation
  * ⚠️ cron から呼ぶので、キャッシュしないクライアントを渡すこと（noStore）。
  */
 export async function expireTalkRequests(db: SupabaseClient, now: Date = new Date()): Promise<{ expired: number; answered: number } | { error: string }> {
-  const cutoff = new Date(now.getTime() - TALK_REQUEST_EXPIRE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  /* ⚠️ 締め切りは talkRequestExpiryCutoff（isTalkRequestExpired と同じ関数）。ここで日数の計算を書かない */
+  const cutoff = talkRequestExpiryCutoff(now).toISOString();
   const { data, error } = await db.from("ow_talk_requests")
     .select("id, conversation_id, ow_conversations!conversation_id(request_status)")
     .eq("status", "pending").lte("created_at", cutoff);

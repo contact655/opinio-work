@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import {
   TALK_STANCES, TALK_CAPACITIES, DEFAULT_TALK_CAPACITY, TALK_REQUEST_EXPIRE_DAYS,
   parseTalkSettings, talkAcceptsRequest, startOfMonthJst, isTalkRequestExpired, talkStanceLabel,
-  isInCurrentMonthJst, talkButtonVisible,
+  isInCurrentMonthJst, talkButtonVisible, talkRequestExpiryCutoff,
 } from "./talk.ts";
 import { recruiterCompanyIds } from "../talk/recruiter.ts";
 import { can, toCompanyRole } from "../auth/roles.ts";
@@ -112,4 +112,24 @@ test("ボタン: 自分自身・見られない人には出さない。つなが
   assert.equal(talkButtonVisible({ ...base, isSelf: false, targetVisible: false, connected: true, accepts: true }), false);
   assert.equal(talkButtonVisible({ ...base, isSelf: false, targetVisible: true, connected: true, accepts: false }), true);
   assert.equal(talkButtonVisible({ ...base, isSelf: false, targetVisible: true, connected: false, accepts: false }), false);
+});
+
+test("★定期実行の締め切りと isTalkRequestExpired は同じ計算（created_at <= 締め切り なら辞退）", () => {
+  const now = new Date("2026-11-15T03:21:00Z");
+  const cutoff = talkRequestExpiryCutoff(now);
+  assert.equal(cutoff.toISOString(), new Date(now.getTime() - TALK_REQUEST_EXPIRE_DAYS * 86400000).toISOString());
+  // 締め切りの前後1秒・1分・1時間・1日で、両者の判定が一致する
+  for (const ms of [-86400000, -3600000, -60000, -1000, 0, 1000, 60000, 3600000, 86400000]) {
+    const created = new Date(cutoff.getTime() + ms).toISOString();
+    const byCron = new Date(created).getTime() <= cutoff.getTime(); // server.ts の .lte("created_at", cutoff) と同じ
+    assert.equal(isTalkRequestExpired(created, now), byCron, `締め切り${ms >= 0 ? "+" : ""}${ms}ms`);
+  }
+});
+
+test("★定期実行（server.ts）は締め切りを talkRequestExpiryCutoff で出し、日数の計算を書いていない", () => {
+  const src = readFileSync(new URL("../talk/server.ts", import.meta.url), "utf8");
+  const body = src.slice(src.indexOf("export async function expireTalkRequests"));
+  assert.match(body, /const cutoff = talkRequestExpiryCutoff\(now\)\.toISOString\(\);/);
+  assert.match(body, /\.eq\("status", "pending"\)\.lte\("created_at", cutoff\)/);
+  assert.doesNotMatch(src, /24 \* 60 \* 60|86400|TALK_REQUEST_EXPIRE_DAYS/, "server.ts に日数の計算が残っていない");
 });

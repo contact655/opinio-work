@@ -115,9 +115,18 @@ export function talkButtonVisible(p: {
   return p.connected || p.accepts;
 }
 
-/** 返事の無い依頼が、自動で辞退になる時刻を過ぎているか */
+/**
+ * ★自動で辞退にする締め切りの時刻（2026-11-04）。この時刻より前（同時刻を含む）に届いた、返事の無い依頼が辞退になる。
+ * ⚠️★14日の計算はこの関数だけ。定期実行（lib/talk/server.ts の expireTalkRequests）と isTalkRequestExpired が同じ関数を見る。
+ *    計算を書き写さないこと（割れると「画面では期限切れなのに辞退されない」が起きる）。
+ */
+export function talkRequestExpiryCutoff(now: Date): Date {
+  return new Date(now.getTime() - TALK_REQUEST_EXPIRE_DAYS * 24 * 60 * 60 * 1000);
+}
+
+/** 返事の無い依頼が、自動で辞退になる時刻を過ぎているか（定期実行の「created_at <= 締め切り」と同じ） */
 export function isTalkRequestExpired(createdAt: string, now: Date): boolean {
   const t = new Date(createdAt).getTime();
   if (Number.isNaN(t)) return false;
-  return now.getTime() - t >= TALK_REQUEST_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
+  return t <= talkRequestExpiryCutoff(now).getTime();
 }
