@@ -1,7 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { mutateOne } from "@/lib/supabase/mutate";
+import { mutateAllowNone, mutateOne } from "@/lib/supabase/mutate";
 import { companyKey, oldest, type ExpRow } from "@/lib/experiences/reasonAnswers";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { MIN_REASON_COUNT } from "@/lib/constants/aggregate";
@@ -111,6 +111,23 @@ export async function skipJoinDecision(owUserId: string, base: ExpRow): Promise<
   if (!cur) return { ok: false, status: 500, error: "取得に失敗しました" };
   if (cur.status === "answered") return { ok: true, anchorId: cur.anchorId };
   return upsert(owUserId, base, { skipped_at: new Date().toISOString() }, "join decision スキップ");
+}
+
+/**
+ * ★職歴の会社が変わったとき、その職歴に付いた決め手を消す（2026-11-04 / 柴さんの判断 ①）。
+ *   決め手は「その会社のいちばん古い職歴の行」に付くので、会社名を変えても行は同じまま残り、
+ *   元の会社への回答が新しい会社の回答として扱われていた（設問も出ず、毎月の集計にも入る）。
+ *   消すと、新しい会社について次に聞ける（答えていない状態に戻る）。
+ *   ⚠️ 元の会社への回答は残さない（会社を記録して残す案 ② は採らなかった）。
+ *   ⚠️ 呼ぶのは職歴の更新（PUT /api/jobseeker/experiences/[id]）だけ。会社が変わったかは isSameCompany で見る
+ */
+export async function clearJoinDecisionForExperience(owUserId: string, experienceId: string): Promise<boolean> {
+  const r = await mutateAllowNone(
+    createAdminClient().from("ow_join_decisions").delete().eq("experience_id", experienceId).eq("user_id", owUserId),
+    "join decision 会社の変更で消す",
+    { returning: "experience_id" },
+  );
+  return r.ok;
 }
 
 /** ★スキップから30日後の再表示を出した印。⚠️ 出すのは1回だけ（この印があれば二度と出さない） */
