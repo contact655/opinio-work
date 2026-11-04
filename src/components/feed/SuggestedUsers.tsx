@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RailBox, RailRow, RAIL_LIST_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
+import { RailBox, RailStackRow, RAIL_LIST_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import type { UserSuggestionView } from "@/lib/people/suggestServer";
 
 /**
  * ★ホームの「おすすめのユーザー」（2026-11-04 / 柴さんの指示）。選び方は lib/people/suggest.ts、材料は suggestServer.ts。
- *   rail   … PC の右の列（「フォロー中のユーザー」の下）。右の列の共通の箱と行（40px の画像・名前・補足＝おすすめの理由・右に操作）
+ *   rail   … PC の右の列（「フォロー中のユーザー」の下）。右の列の共通の箱と3行の形（RailStackRow。名前／おすすめの理由／操作）
  *   scroll … スマホのタイムラインに挟む横スクロールのカード
  *   右に「フォローする」（押すと「フォロー中」。その場では行を消さない）と「×」（押すと30日間その人を出さない）。
  * ⚠️ ×はすぐ隠し、保存に失敗したら元に戻してエラーを出す
@@ -27,10 +27,10 @@ function Avatar({ u, size }: { u: UserSuggestionView; size: number }) {
   );
 }
 
-function DismissButton({ name, onClick }: { name: string; onClick: () => void }) {
+function DismissButton({ name, onClick, rail = false }: { name: string; onClick: () => void; rail?: boolean }) {
   return (
     <button type="button" onClick={onClick} aria-label={`${name}さんをおすすめに出さない（30日間）`} title="30日間出さない"
-      data-action="user-suggest-dismiss" className="sgu-x">×</button>
+      data-action="user-suggest-dismiss" className={rail ? "sgu-x sgu-x-rail" : "sgu-x"}>×</button>
   );
 }
 
@@ -59,6 +59,7 @@ export function SuggestedUsers({ users, layout }: { users: UserSuggestionView[];
   const css = (
     <style>{`
       .sgu-x { width: 18px; height: 22px; min-height: 0; padding: 0; border: none; background: none; color: var(--ink-mute); font-size: 16px; line-height: 1; cursor: pointer; border-radius: 6px; flex-shrink: 0; font-family: inherit; }
+      .sgu-x-rail { width: 28px; height: 28px; font-size: 17px; }
       .sgu-x:hover { background: var(--bg-tint); color: var(--ink); }
       .sgu-scroll { list-style: none; margin: 0; padding: 2px 2px 8px; display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
       .sgu-scroll::-webkit-scrollbar { display: none; }
@@ -102,12 +103,12 @@ export function SuggestedUsers({ users, layout }: { users: UserSuggestionView[];
       <div style={RAIL_LIST_STYLE}>
         {visible.map((u) => (
           <div key={u.userId} data-user-id={u.userId}>
-            <RailRow href={`/u/${u.userId}`} title={`${u.name}：${u.reason}`}
+            <RailStackRow href={`/u/${u.userId}`} title={`${u.name}：${u.reason}`}
               thumb={<Avatar u={u} size={RAIL_THUMB} />}
               name={u.name} sub={u.reason}
               action={<>
                 <FollowUserButton targetUserId={u.userId} initialFollowed={false} isAuthenticated rail />
-                <DismissButton name={u.name} onClick={() => dismiss(u.userId)} />
+                <DismissButton name={u.name} onClick={() => dismiss(u.userId)} rail />
               </>} />
             {errorOf(u.userId)}
           </div>
