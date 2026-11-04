@@ -17,6 +17,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
+import type { ProfileFocusKey } from "@/lib/profile/nextStep";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 import type { Json } from "@/lib/supabase/types";
 import ProfileTab, { type ProfileSavedSnapshot, type SettingsState } from "./ProfileTab";
@@ -125,6 +126,7 @@ export default function ProfileEditor({
   initialContentLinks,
   initialAddCompany = null,
   initialAddFirst = false,
+  initialFocus = null,
   initialCareerHistoryCompleteAt = null,
   roles,
   /* ⚠️ `initialScoutEnabled` は受け取るが ProfileTab へは渡さない（2026-08-20）。
@@ -168,6 +170,8 @@ export default function ProfileEditor({
   initialAddCompany?: { id: string; name: string } | null;
   /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
   initialAddFirst?: boolean;
+  /** ★ホームの左のカードの「次の1件」から来たとき（`/mypage?focus=`。2026-11-04）。その欄へ寄せる */
+  initialFocus?: ProfileFocusKey | null;
   /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。職歴の促しカードの表示条件 */
   initialCareerHistoryCompleteAt?: string | null;
   roles: RoleItem[];
@@ -399,6 +403,7 @@ export default function ProfileEditor({
             initialContentLinks={initialContentLinks}
             initialAddCompany={initialAddCompany}
             initialAddFirst={initialAddFirst}
+            initialFocus={initialFocus}
             initialCareerHistoryCompleteAt={initialCareerHistoryCompleteAt}
             onSavedChange={setProfileSaved}
             onDirtyChange={setProfileDirty}

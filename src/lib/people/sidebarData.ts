@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CAREER_NEXT_STEP_LABEL, CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
+import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
+import { pickProfileNextStep, PROFILE_NEXT_STEP_SIDEBAR_LABEL, type ProfileNextStepInput, type ProfileNextStepKey } from "@/lib/profile/nextStep";
 import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -37,6 +38,8 @@ export type PeopleSidebarData = {
   /** ⚠️★型は `ProfileCard` に集約している。ここで作り直さないこと（割れると片方だけ直る） */
   counts: ProfileCardData["counts"];
   nextStep: { label: string; href: string } | null;
+  /** ★次の1件の種類（2026-11-04。ホームの左のカードが短い文言と行き先を作る）。全部埋まっていれば null */
+  nextStepKey: ProfileNextStepKey | null;
   myRole: { slug: string; label: string } | null;
   /** 在籍した企業の id（現職・過去）。⚠️ 画面に出さない。突き合わせにだけ使う */
   myCompanyIds: string[];
@@ -45,39 +48,14 @@ export type PeopleSidebarData = {
 const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 
 /**
- * 次に埋めるとよい項目を**1つだけ**返す。
- *
- * ⚠️★**割合（%）も件数（あと N 項目）も出さないこと。**
- *    完成度バーは 2026-08-16 に廃止、2026-09-10 に「%も『あと N 項目』も出さない」と
- *    決めてある（docs/profile-progress-20260910.md）。ここは**次の1件**だけ。
- *
- * ⚠️★**生年月日を入れないこと。** ここが勧めるのは「埋めると**他のユーザーに伝わる**項目」で、
- *    **他のユーザーに出ない項目**を混ぜると嘘になる。
- *    ⚠️ 2026-09-20 まで、この理由を画面の説明文が担っていたが、
- *       **その一文は同日に削除した**（柴さんの指示）。**規則は変えていない。**
- *    ⚠️ 同じ理由で希望条件（スカウト用の非公開情報）も入れない。
- *    ⚠️ これは `calcPublicScore` が `PUBLIC_KEYS` から prefs / birth を外しているのと同じ線。
+ * 次に埋めるとよい項目を**1つだけ**返す（/people の左サイドバーの箱）。
+ * ★判定は lib/profile/nextStep.ts の pickProfileNextStep（2026-11-04 に切り出した。ホームの左のカードも同じ判定を使う）。
+ * ⚠️ 文言と行き先は /people では従来どおり（長い文言・/mypage）。ホームは短い文言と ?focus= を使う。
  */
-function pickNextStep(d: {
-  experienceCount: number;
-  hasAvatar: boolean;
-  hasAboutMe: boolean;
-  hasHeadline: boolean;
-  educationCount: number;
-  /** 学校名を手で打った（学校の一覧につながっていない）学歴の件数 */
-  freeTextEducationCount: number;
-}): { label: string; href: string } | null {
-  if (d.experienceCount === 0) return { label: CAREER_NEXT_STEP_LABEL, href: CAREER_NEXT_STEP_HREF };
-  if (!d.hasAvatar) return { label: "プロフィール写真を追加する", href: "/mypage" };
-  /* ★学歴は写真の次（2026-10-21。それまでは最後）。同じ学校の人が見つかるようになったので、埋める理由を一言添える */
-  if (d.educationCount === 0) return { label: "学歴を追加して、同じ学校の人を見つける", href: "/mypage" };
-  /* ★学校名を手で打った学歴は、学校のページにも「同じ学校の人」にもつながらない（2026-10-21。大学826校を一覧に入れた日に足した）。
-     ⚠️ 運営がつなぎ直さない。本人に一覧から選び直してもらう（本人の学歴を書き換えないため / 柴さんの判断） */
-  if (d.freeTextEducationCount > 0) return { label: "学歴の学校を一覧から選んで、同じ学校の人を見つける", href: "/mypage" };
-  if (!d.hasHeadline) return { label: "肩書きを1行で書く", href: "/mypage" };
-  if (!d.hasAboutMe) return { label: "自己紹介を書く", href: "/mypage" };
-  /* ⚠️ 全部埋まっていたら **null**。「完了！」を出さない（達成の演出は情報を増やさない） */
-  return null;
+function pickNextStep(d: ProfileNextStepInput): { label: string; href: string } | null {
+  const key = pickProfileNextStep(d);
+  if (!key) return null;
+  return { label: PROFILE_NEXT_STEP_SIDEBAR_LABEL[key], href: key === "career" ? CAREER_NEXT_STEP_HREF : "/mypage" };
 }
 
 export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSidebarData | null> {
@@ -141,6 +119,15 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
     : null;
 
 
+  const nextStepInput: ProfileNextStepInput = {
+    experienceCount: exps.length,
+    hasAvatar: !!u.avatar_url,
+    hasAboutMe: !!(u.about_me as string | null)?.trim(),
+    hasHeadline: !!(u.headline as string | null)?.trim(),
+    educationCount: eduRes.count ?? 0,
+    freeTextEducationCount: freeEduRes.count ?? 0,
+  };
+
   return {
     me: {
       userId: u.id,
@@ -160,14 +147,8 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       companies: companyFollowRes.count ?? 0,
       savedJobs: savedJobRes.count ?? 0,
     },
-    nextStep: pickNextStep({
-      experienceCount: exps.length,
-      hasAvatar: !!u.avatar_url,
-      hasAboutMe: !!(u.about_me as string | null)?.trim(),
-      hasHeadline: !!(u.headline as string | null)?.trim(),
-      educationCount: eduRes.count ?? 0,
-      freeTextEducationCount: freeEduRes.count ?? 0,
-    }),
+    nextStep: pickNextStep(nextStepInput),
+    nextStepKey: pickProfileNextStep(nextStepInput),
     myRole: topRole?.slug ? { slug: topRole.slug, label: topRole.name } : null,
     myCompanyIds: Array.from(new Set(exps.flatMap((e) => (e.company_id ? [e.company_id as string] : [])))),
   };

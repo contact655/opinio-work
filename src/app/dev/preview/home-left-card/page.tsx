@@ -2,11 +2,13 @@ import type React from "react";
 import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 import { HomeProfileCard, type HomeProfileCardData } from "@/components/feed/HomeProfileCard";
+import type { ProfileNextStepKey } from "@/lib/profile/nextStep";
 
 /**
  * ホームの左の列のカード（2026-11-04）。実データでは職歴0件・長い社名・話せる量の各値がそろわないので、ここで見る。
  * ⚠️ DB を読まない。固定データだけ。
  * 何を見るか: 顔写真が帯にかかる／肩書きが1行で切れる／職歴0件で「職歴を入れる」／話を聞けるの3つの値／取れないとき行ごと出ない
+ *   ／次の1件（2026-11-04）: 5つの文言・職歴0件と全部埋まったときに出ない
  */
 const base: HomeProfileCardData = {
   me: {
@@ -16,8 +18,11 @@ const base: HomeProfileCardData = {
   },
   counts: { following: 3, followers: 0, companies: 12, savedJobs: 1 },
   experienceCount: 2,
+  nextStepKey: "photo",
   talkCapacity: "monthly_one",
 };
+
+const NEXT_KEYS: ProfileNextStepKey[] = ["photo", "education", "school", "headline", "about"];
 
 /** ★ホームの左の列と同じ幅（2026-11-04 から 225px。FeedClient の HOME_LEFT_WIDTH） */
 function Col({ children }: { children: React.ReactNode }) {
@@ -40,6 +45,17 @@ export default function HomeLeftCardPreview() {
       </Variant>
       <Variant label="職歴はあるが現職が無い（肩書きの行を出さない）・話せる量が取れない（行ごと出さない）">
         <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} talkCapacity={null} /></Col>
+      </Variant>
+      <Variant label="次の1件: 写真 → 学歴 → 学歴の学校を一覧から選ぶ → 肩書き → 自己紹介（5枚）">
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {NEXT_KEYS.map((k) => <Col key={k}><HomeProfileCard {...base} nextStepKey={k} /></Col>)}
+        </div>
+      </Variant>
+      <Variant label="次の1件: 全部埋まっている（行ごと出さない）／職歴0件（「職歴を入れる」だけ。次の1件は出さない）">
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <Col><HomeProfileCard {...base} nextStepKey={null} /></Col>
+          <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} experienceCount={0} nextStepKey="career" /></Col>
+        </div>
       </Variant>
     </div>
   );

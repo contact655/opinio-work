@@ -5,6 +5,7 @@
 import { AVATAR_CHANGED_EVENT } from "@/lib/constants/events";
 import { PROFILE_CONTENT_MAX } from "@/lib/constants/layout";
 import { ONBOARDING_LANDING_PARAM, ONBOARDING_LANDING_VALUE } from "@/lib/auth/redirects";
+import { PROFILE_FOCUS_PARAM, type ProfileFocusKey } from "@/lib/profile/nextStep";
 import CareerPromptCard from "@/components/profile/editor/CareerPromptCard";
 import { PrivateNote } from "@/components/mypage/PrivateNote";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
@@ -592,6 +593,26 @@ function SocialLinksEditor({
       年齢の計算式をアプリ内に複数持たない（年を引くだけの実装が過去に3つあった）。 */
 
 
+/**
+ * ★/mypage の欄（id）の見出しが、上に貼り付いたヘッダーとタブの直下に来るところまで寄せる（2026-10-16 / 2026-11-04 に関数にした）。
+ * ⚠️ 貼り付いた要素の高さは実測する（固定値にしない）。
+ */
+function scrollSectionIntoView(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let stickyBottom = 0;
+  document.querySelectorAll<HTMLElement>("body *").forEach((n) => {
+    const pos = getComputedStyle(n).position;
+    if (pos !== "sticky" && pos !== "fixed") return;
+    const r = n.getBoundingClientRect();
+    if (r.top <= 1 && r.height > 0 && r.height < 200 && r.bottom < window.innerHeight / 2) {
+      stickyBottom = Math.max(stickyBottom, r.bottom);
+    }
+  });
+  const y = window.scrollY + el.getBoundingClientRect().top - stickyBottom - 12;
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+}
+
 export default function ProfileTab({
   owUser,
   settings,
@@ -609,6 +630,7 @@ export default function ProfileTab({
   initialContentLinks,
   initialAddCompany = null,
   initialAddFirst = false,
+  initialFocus = null,
   initialCareerHistoryCompleteAt = null,
   onSavedChange,
   onDirtyChange,
@@ -669,6 +691,8 @@ export default function ProfileTab({
   initialAddCompany?: { id: string; name: string } | null;
   /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
   initialAddFirst?: boolean;
+  /** ★ホームの左のカードの「次の1件」から来たとき（`/mypage?focus=`。2026-11-04）。その欄へ寄せる */
+  initialFocus?: ProfileFocusKey | null;
   /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。null＝まだ答えていない */
   initialCareerHistoryCompleteAt?: string | null;
   onSavedChange: (snapshot: ProfileSavedSnapshot) => void;
@@ -875,23 +899,28 @@ export default function ProfileTab({
     url.searchParams.delete(ONBOARDING_LANDING_PARAM);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
     if (window.innerWidth >= 768) return;
-    const t = window.setTimeout(() => {
-      const el = document.getElementById("career");
-      if (!el) return;
-      let stickyBottom = 0;
-      document.querySelectorAll<HTMLElement>("body *").forEach((n) => {
-        const pos = getComputedStyle(n).position;
-        if (pos !== "sticky" && pos !== "fixed") return;
-        const r = n.getBoundingClientRect();
-        if (r.top <= 1 && r.height > 0 && r.height < 200 && r.bottom < window.innerHeight / 2) {
-          stickyBottom = Math.max(stickyBottom, r.bottom);
-        }
-      });
-      const y = window.scrollY + el.getBoundingClientRect().top - stickyBottom - 12;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-    }, 400);
+    const t = window.setTimeout(() => scrollSectionIntoView("career"), 400);
     return () => window.clearTimeout(t);
   }, []);
+  /* ★★ホームの左のカードの「次の1件」から来たとき（`/mypage?focus=`。2026-11-04 / 柴さんの指示）。その欄へ寄せる。
+        写真・肩書き … ヘッダーの編集を、その欄を開いた状態で出す（ヘッダーの促しと同じ。欄はページの先頭にあるので寄せる先が無い）
+        学歴・学校を一覧から選ぶ … 学歴の欄へ寄せる ／ 自己紹介 … 自己紹介の欄へ寄せる
+     ⚠️ 印は読んだらすぐ URL から消す（リロード・戻るで二度動かさない。オンボーディングの着地と同じ）
+     ⚠️ 寄せる処理は onboarding と同じ（scrollSectionIntoView。貼り付いたヘッダーの高さを実測する）。rAF は使わない（ui-debugging ⑪） */
+  useEffect(() => {
+    if (!initialFocus) return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete(PROFILE_FOCUS_PARAM);
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    } catch { /* URL が読めなくても寄せるのは変わらない */ }
+    if (initialFocus === "photo") { openPhotoEditor(); return; }
+    if (initialFocus === "headline") { openHeadlineEditor(); return; }
+    const id = initialFocus === "about" ? "about" : "education";
+    const t = window.setTimeout(() => scrollSectionIntoView(id), 400);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 開いたときに1回だけ
+  }, [initialFocus]);
   const [editingCareerId, setEditingCareerId] = useState<string | null>(null);
   const [deleteCareerId,  setDeleteCareerId]  = useState<string | null>(null);
   const [addRoleForId,    setAddRoleForId]    = useState<string | null>(null);

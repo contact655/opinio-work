@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { canUserPost } from "@/lib/feed/canPost";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseProfileFocus } from "@/lib/profile/nextStep";
 import MypageClient from "./MypageClient";
 import { fetchIndustryMatchBlocks } from "@/lib/companies/industryMatch";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
@@ -30,7 +31,7 @@ export default async function MypagePage({
   /* ⚠️ `setup` は 2026-08-10 に削除した。`?setup=done` を付ける経路が
         どこにも無く（/profile/start が存在しないため）、到達不能だった。 */
   /** join … 会社の招待リンク（/join/<slug>）から来たとき、その会社の id（職歴の追加をその会社が入った状態で開く。2026-10-12） */
-  searchParams?: { welcome?: string; tab?: string; join?: string; add?: string };
+  searchParams?: { welcome?: string; tab?: string; join?: string; add?: string; focus?: string };
 }) {
   /* ⚠️ 旧 `?tab=` の転送は **`src/middleware.ts`** で返す（サーバーが 307 を返すため）。
         ここに書くと `/mypage/loading.tsx` の Suspense 境界の内側になり、
@@ -547,6 +548,7 @@ export default async function MypagePage({
       isNewUser={isNewUser}
       initialAddCompany={initialAddCompany}
       initialAddFirst={searchParams?.add === "career"}
+      initialFocus={parseProfileFocus(searchParams?.focus)}
       initialCareerHistoryCompleteAt={careerHistoryCompleteAt}
       schoolPeerCounts={schoolPeerCounts}
       /* ── プロフィール編集フォーム（2026-08-16 に /profile/edit から移設）── */

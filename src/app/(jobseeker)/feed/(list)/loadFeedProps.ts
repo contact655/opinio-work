@@ -163,7 +163,7 @@ export async function loadFeedProps() {
   /* ⚠️ 取得に失敗したら null のまま（カードごと出さない）。
         `getPeopleSidebarData` の中で列ごとに console.error を出している。 */
   if (sidebarResult) {
-    profileCard = { me: sidebarResult.me, counts: sidebarResult.counts, experienceCount: sidebarResult.experienceCount, talkCapacity };
+    profileCard = { me: sidebarResult.me, counts: sidebarResult.counts, experienceCount: sidebarResult.experienceCount, nextStepKey: sidebarResult.nextStepKey, talkCapacity };
   }
 
   const posts = (rawPostsResult.data ?? []) as unknown as RawPost[];
