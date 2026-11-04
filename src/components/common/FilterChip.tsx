@@ -111,7 +111,8 @@ export function FilterChip({
         onClick={onToggle}
         style={{
           display: "inline-flex", alignItems: "center", gap: 5,
-          padding: "7px 14px",
+          /* ★左右は --chip-pad-x（2026-11-04）。一覧の上部（1024px 以上）だけ 12px に詰める（globals.css の .lt-compact） */
+          padding: "7px var(--chip-pad-x, 14px)",
           borderRadius: 999,
           border: `1.5px solid ${isActive && !phaseStyle ? "var(--royal)" : isActive && phaseStyle ? activeOpt?.color ?? "var(--royal)" : "#e2e8f0"}`,
           background: isActive && phaseStyle ? (activeOpt?.bg ?? "var(--royal-50)") : isActive ? "var(--royal)" : "#fff",
