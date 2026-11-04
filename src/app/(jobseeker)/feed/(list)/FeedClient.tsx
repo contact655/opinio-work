@@ -16,6 +16,7 @@ import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import CompanyBookmarkButton, { FollowButton as CompanyFollowButton } from "@/app/(jobseeker)/companies/[id]/CompanyDetailClient";
 import { DMButton } from "@/components/profile/DMButton";
+import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { LikersDialog } from "@/components/feed/LikersDialog";
 import { NewCompaniesCarousel, NEW_COMPANIES_CSS, type NewCompanyItem } from "@/components/feed/NewCompaniesCarousel";
 import { CareerMovesSection, CAREER_MOVES_CSS } from "@/components/people/CareerMovesSection";
@@ -179,6 +180,8 @@ type Props = {
   railTop?: React.ReactNode;
   /** ★右の列の「フォロー中のユーザー」のすぐ下（2026-11-04。/home の「同じ経歴の人の行き先」）。PC だけ */
   railAfterUsers?: React.ReactNode;
+  /** ★右の列の「フォロー中のユーザー」のすぐ下・「同じ経歴の人の行き先」の上（2026-11-04。/home の「おすすめのユーザー」）。PC だけ */
+  railSuggestions?: React.ReactNode;
   /** ★スマホ（768px 未満）でタイムラインに挟むもの（2026-11-04）。after は「何件目の投稿の後ろか」（0 始まりの添字） */
   mobileInserts?: { key: string; after: number; node: React.ReactNode }[];
   /** ★職歴が0件の人か（2026-11-04。/home）。true なら職歴の案内の箱を、PC は右の列の一番上・スマホはページの一番上に出す */
@@ -1293,7 +1296,10 @@ function FeedSidebar({
   top,
   afterUsers,
   width,
+  suggestions,
 }: {
+  /** ★「フォロー中のユーザー」のすぐ下（2026-11-04。/home の「おすすめのユーザー」） */
+  suggestions?: React.ReactNode;
   /** ★列の幅（2026-11-04）。3列のとき HOME_RIGHT_WIDTH、右だけの2列のとき HOME_RIGHT_WIDTH_TWO_COLUMNS */
   width: number;
   /** ★いちばん上（2026-11-04。/home の「あなたに合う会社」）。渡されたときは、その下に「フォロー中のユーザー」→ afterUsers → いつもの枠の順にする */
@@ -1328,7 +1334,9 @@ function FeedSidebar({
                   {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : u.name.charAt(0)}
                 </span>
               }
-              name={u.name} sub={sub || null} />
+              name={u.name} sub={sub || null}
+              /* ★右に「フォロー中」（2026-11-04）。押すと確認なしで外し「フォローする」に変わる。行はその場では消さない（次に読み込んだときに外れる） */
+              action={<FollowUserButton targetUserId={u.id} initialFollowed isAuthenticated rail />} />
           );
         })}
       </div>
@@ -1341,6 +1349,7 @@ function FeedSidebar({
         <>
           {top}
           {userFollowsPanel}
+          {suggestions}
           {afterUsers}
         </>
       )}
@@ -2261,6 +2270,7 @@ export default function FeedClient({
   top,
   railTop,
   railAfterUsers,
+  railSuggestions,
   mobileInserts,
   careerPrompt = false,
 }: Props) {
@@ -2642,6 +2652,7 @@ export default function FeedClient({
             myUserId={myUserId}
             top={careerBox || railTop ? <>{careerBox}{railTop}</> : undefined}
             afterUsers={railAfterUsers}
+            suggestions={railSuggestions}
           />
         </div>
       )}

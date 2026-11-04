@@ -14,6 +14,9 @@ import { followCardView, FOLLOW_SAVE_ERROR } from "@/lib/people/followButton";
 /** いちばん長い「フォロー中」が収まる幅（実測で決めた。2026-10-21） */
 const FOLLOW_BTN_MIN_WIDTH_COMPACT = 96;
 const FOLLOW_BTN_MIN_WIDTH = 116;
+/** ★右の列の行の操作（rail）。「フォローする」（12px・アイコン付き・左右の余白4px）が収まる固定幅（2026-11-04 に実測。中身は93px）。
+ *   押して「フォロー中」に変わっても幅が変わらず、隣の「×」がずれない */
+const FOLLOW_BTN_WIDTH_RAIL = 94;
 
 export function FollowUserButton({
   targetUserId,
@@ -23,7 +26,15 @@ export function FollowUserButton({
   refreshOnChange = false,
   followsMe = false,
   card = false,
+  rail = false,
 }: {
+  /**
+   * ★ホームの右の列の行の操作（2026-11-04 / 柴さんの指示。フォロー中のユーザーは行の右端、おすすめのユーザーは3行目）。見た目は card と同じ（枠線「フォローする」／グレー「フォロー中」・アイコン付き）で、
+   *   高さ 28px・幅は「フォローする」が収まる固定幅（押して文言が変わっても行がずれない）。
+   *   押すと確認なしで切り替え、保存に失敗したら元に戻して下にエラーを出す（card と同じ）。
+   * ⚠️ 行はその場では消さない。次に読み込んだときに一覧の中身が変わる
+   */
+  rail?: boolean;
   /**
    * ★ユーザー一覧（/people）のカード用。アイコン＋文字（2026-11-03 / 柴さんの指示。それまでは iconOnly）。
    *   フォロー前 … 枠線「フォローする」 ／ フォロー後 … グレー「フォロー中」（押すと確認なしで外す）。
@@ -96,22 +107,22 @@ export function FollowUserButton({
     }
   };
 
-  if (card) {
+  if (card || rail) {
     const v = followCardView(followed, followsMe);
     return (
-      <span style={{ display: "flex", flexDirection: "column", alignItems: "stretch", width: "100%", minWidth: 0 }}>
+      <span style={{ display: "flex", flexDirection: "column", alignItems: "stretch", width: rail ? FOLLOW_BTN_WIDTH_RAIL : "100%", minWidth: 0, flexShrink: rail ? 0 : undefined }}>
         <button type="button" onClick={toggle} disabled={loading} aria-pressed={followed} title={v.title} aria-label={v.title}
           data-state={followed ? "card-following" : "card-not-following"}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
-            width: "100%", minWidth: 0, boxSizing: "border-box", height: 34, padding: "0 8px", borderRadius: 100,
+            width: "100%", minWidth: 0, boxSizing: "border-box", height: rail ? 28 : 34, ...(rail ? { minHeight: 0 } : {}), padding: rail ? "0 4px" : "0 8px", borderRadius: 100,
             fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", fontFamily: "inherit",
             border: `1.5px solid ${v.tone === "outline" ? "var(--royal)" : "var(--line)"}`,
             background: v.tone === "outline" ? "#fff" : "var(--line-soft)",
             color: v.tone === "outline" ? "var(--royal)" : "var(--ink-soft)",
             cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1, transition: "all 0.15s",
           }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+          <svg width={rail ? 11 : 12} height={rail ? 11 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
             {followed ? <polyline points="20 6 9 17 4 12" /> : <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>}
           </svg>
           {v.label}
