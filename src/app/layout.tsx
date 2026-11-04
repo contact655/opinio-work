@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Serif_JP } from "next/font/google";
+import { interFontFamily, notoSerifJpFontFamily } from "@/fonts";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-inter",
-});
+/*
+ * ★フォントはリポジトリに置いた（2026-11-04）。それまでの next/font/google はビルドのたびに Google Fonts へ取りに行き、
+ *   その通信の失敗でビルドが止まっていた（PR #11・#13）。
+ *   ファイル・太さ・文字の範囲（unicode-range）は Google が配っていたものと同じ（scripts/gen-local-fonts.mjs が取り込み、
+ *   src/fonts/index.ts を書く）。予備の書体（Inter Fallback ／ Noto Serif JP Fallback）は globals.css。
+ * ⚠️ 書体を増やす・太さを変えるときは scripts/gen-local-fonts.mjs を変えて流し直す。src/fonts/index.ts を手で書き換えない
+ * ⚠️ CSS 変数の名前（--font-inter / --font-noto-serif）は変えていない。画面はこれまでどおり var() で参照する
+ */
+const FONT_VARIABLES = {
+  "--font-inter": `${interFontFamily}, 'Inter Fallback'`,
+  "--font-noto-serif": `${notoSerifJpFontFamily}, 'Noto Serif JP Fallback'`,
+} as React.CSSProperties;
 
 /*
  * ⚠️ 本文の和文（Noto Sans JP）は Webフォントを**やめた**（2026-08-09）。
@@ -28,13 +35,6 @@ const inter = Inter({
  *    サブセット1個・33KB しか落ちず、ブランドの印象を担っている割に安い。
  *    数字・欧文の Inter も同じ理由で残す（1ファイル・48KB）。
  */
-
-const notoSerifJP = Noto_Serif_JP({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-noto-serif",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://opinio.jp"),
@@ -170,7 +170,7 @@ export default function RootLayout({
   return (
     /* ⚠️ suppressHydrationWarning は <html> 自身の属性だけに効く（子には効かない）。/biz のサイドバーの開閉
           （data-biz-sidebar）を描画の前にスクリプトで付けるので、その1つの属性の食い違いを許すため（2026-10-12） */
-    <html lang="ja" className={`${inter.variable} ${notoSerifJP.variable}`} suppressHydrationWarning>
+    <html lang="ja" style={FONT_VARIABLES} suppressHydrationWarning>
       <head>
         {/* PWA */}
         {/* ⚠️ content / color は CSS ではないので var(--royal) は解決されない。16進で書く（--royal と同値） */}
