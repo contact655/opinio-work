@@ -53,8 +53,7 @@ import {
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import { ProfileSchoolmatesSection } from "@/components/profile/view/ProfileSchoolmatesSection";
 import { getSchoolmates } from "@/lib/schools/schoolmates";
-import { talkProfileOf } from "@/lib/talk/server";
-import { talkButtonVisible } from "@/lib/constants/talk";
+import { messageButtonVisible } from "@/lib/constants/messageButton";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -175,15 +174,15 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         違うだけで、取っている行は同一）。 */
   /* ⚠️ `canUserPost` はここでは引かない（2026-08-17）。投稿フォームを
         `/mypage` だけにしたので、このページに投稿できるかの判定は要らなくなった。 */
-  const [followCounts, viewerRowRes, talk] = await Promise.all([
+  const [followCounts, viewerRowRes, ownerTestRes] = await Promise.all([
     // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
     getFollowCounts(owUser.id),
     // 閲覧者自身の ow_users.id（本人の行なので admin で引いても見える範囲は広がらない）
     authUser
       ? adminSupabase.from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null }),
-    /* ★話す立場と、いま話を受け付けているか（2026-11-03。lib/talk/server.ts）。取れなければ null（立場を出さない・未ログインの案内も出さない） */
-    talkProfileOf(owUser.id),
+    /* ★持ち主が検証用か（未ログインに「メッセージ（無料登録）」を出すかの判定。2026-11-05） */
+    adminSupabase.from("ow_users").select("is_test").eq("id", owUser.id).maybeSingle(),
     /* ★`birth_date` の取得は 2026-08-29 に外した（年齢を画面から消したため）。
           ⚠️ 年齢を戻すなら、ここも戻すこと。`birth_date` は authenticated から
              SELECT 権限を剥がしてあるので、**admin クライアントで取り直す必要がある。** */
@@ -654,12 +653,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                      ・DM の文言を「〇〇 にDMを送る」→「メッセージ」に短縮
                 ⚠️ minWidth: 0 は残す。可変長のボタンが並ぶ行なので、狭い画面で親を押し広げる。 */
           metaActions={embed ? undefined : <>
-              {/* ★話すときの立場（2026-11-03）。話せる設定（月1件・積極的に）の人だけ。⚠️ 今は話せない人には出さない */}
-              {!viewerIsOwner && talk?.open && talk.stanceLabel && (
-                <p data-state="talk-stance" style={{ margin: "12px 0 0", fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>
-                  話を聞ける立場：<span style={{ fontWeight: 700, color: "var(--ink)" }}>{talk.stanceLabel}</span>
-                </p>
-              )}
+              {/* ⚠️ 2026-11-03〜11-05 はここに「話を聞ける立場」が出ていた。「話を聞ける」設定ごと外した（柴さんの指示）。戻さないこと */}
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
                 {/* ★2026-10-22 に LinkedIn の並びにした（柴さんの指示）。プロフィールの「メッセージ」は
                        **誰が見ても個人として送るもの**。企業の担当者が会社として送るのは「…」の中か、
@@ -668,10 +662,10 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                        ⚠️ 会社として送れない相手には「…」の中に何も出さない（理由を区別しない。送れない一文も出さない） */}
                 {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
-                ) : !viewerIsOwner && !authUser && talk && talkButtonVisible({
-                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: talk.isTest, connected: false, accepts: talk.accepts,
+                ) : !viewerIsOwner && !authUser && !ownerTestRes.error && messageButtonVisible({
+                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: ownerTestRes.data?.is_test === true, blockedByViewer: false,
                 }) ? (
-                  /* ★未ログインの案内も、相手がいま話を受け付けているときだけ（2026-11-03）。ログイン後に押せないボタンへ誘わない */
+                  /* ★未ログインの案内（検証用の人には出さない。ログイン後に押せないボタンへ誘わない） */
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 7,
                     padding: "9px 18px", borderRadius: 8,
@@ -789,6 +783,11 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   careers={timelineCareers}
                   educations={[]}
                   collapseAfter={4}
+                  /* ★「この経験について聞く」（2026-11-05 / 柴さんの指示）。押すと、その職歴を選んだ状態で相談の画面が開く。
+                        ⚠️ ログイン中で、本人以外が見ているときだけ。企業向けの右欄（embed）には出さない */
+                  renderCareerAside={authUser && !viewerIsOwner && !embed
+                    ? (careerId) => <DMButton targetUserId={owUser.id} targetName={owUser.name} variant="link" aboutExperienceId={careerId} />
+                    : undefined}
                 />
               </ProfileTimelineSection>
             )}

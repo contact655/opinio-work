@@ -30,6 +30,8 @@ export async function notifyNewMessage(params: {
   senderOwUserId: string;
   /** ログにどの経路から来たか出す。例: "dm/message" */
   source: string;
+  /** ★キャリア相談なら true（2026-11-05）。ベルに「キャリア相談が届きました」と出す（type = career_consult） */
+  consult?: boolean;
 }): Promise<void> {
   const { conversationId, senderOwUserId, source } = params;
   const admin = createAdminClient();
@@ -63,7 +65,7 @@ export async function notifyNewMessage(params: {
     recipients.map((rid) => ({
       recipient_user_id: rid,
       actor_user_id: senderOwUserId,
-      type: "message" as const,
+      type: params.consult ? ("career_consult" as const) : ("message" as const),
       conversation_id: conversationId,
     })),
   );

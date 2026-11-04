@@ -6,10 +6,11 @@ import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
 import { ChatBubble, ChatNotice, chatTime } from "@/components/messages/ChatBubble";
-import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
+import { AskTag } from "@/components/messages/FirstMessage";
 import { PendingFollowUp } from "@/components/messages/PendingFollowUp";
+import { ConsultCard, ConsultLauncher } from "@/components/messages/Consult";
 import { askCompanyName, isMessageFormat, isMessageTopic } from "@/lib/constants/messageTopics";
-import { TALK_AUTO_DECLINED_TEXT } from "@/lib/constants/talk";
+import { CONSULT_DECLINE_REPLY, readConsultPayload } from "@/lib/constants/careerConsult";
 
 export type MessageRow = {
   id: string;
@@ -44,8 +45,6 @@ export type ConversationDetail = {
   /** ★DM の「メッセージのお願い」の段（段階3）。ここを開けるのは参加者だけなので、
    *  DM で accepted でなければ「自分が送って承認待ち」（断られていても同じ） */
   request_status?: string | null;
-  /** ★自分が送った「話を聞く」依頼が、返事の無いまま14日で自動の辞退になった（2026-11-03。送った本人にだけ true） */
-  talk_auto_declined?: boolean;
   /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
   request_topic?: string | null;
   request_format?: string | null;
@@ -67,6 +66,8 @@ export default function ConversationDetailClient({
   initialMyParticipantId,
   myUserName,
   approachFirst = null,
+  initialCommonPoints = [],
+  consultExperienceId = null,
 }: {
   conversationId: string;
   initialConversation: ConversationDetail | null;
@@ -75,15 +76,17 @@ export default function ConversationDetailClient({
   myUserName: string | null;
   /** ★企業から届いたメッセージの1通目（見出しなしで出す本文）。page.tsx が送ったメッセージの行と照合して渡す */
   approachFirst?: { messageId: string; text: string } | null;
+  /** ★相手から届いた相談があるとき、相手との共通点（受け取った側だけ。2026-11-05） */
+  initialCommonPoints?: string[];
+  /** ★「この経験について聞く」から来たとき、その職歴（相談の画面をその会社で1回だけ開く） */
+  consultExperienceId?: string | null;
 }) {
   const [conversation] = useState<ConversationDetail | null>(initialConversation);
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [myParticipantId] = useState<string | null>(initialMyParticipantId);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
-  /* ★この1通に添える「聞きたいこと」（2026-10-22）。askKey は送ったあとに選択欄を閉じ直すため */
-  const [ask, setAsk] = useState<AskValue>(null);
-  const [askKey, setAskKey] = useState(0);
+  const [commonPoints, setCommonPoints] = useState<string[]>(initialCommonPoints);
   const [sending, setSending] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +103,7 @@ export default function ConversationDetailClient({
     if (!r.ok) return;
     const data = await r.json();
     if (data.messages) setMessages(data.messages as MessageRow[]);
+    if (Array.isArray(data.commonPoints)) setCommonPoints(data.commonPoints);
   }, [conversationId]);
 
   // 10秒ポーリングで新着メッセージを自動取得
@@ -108,6 +112,21 @@ export default function ConversationDetailClient({
     return () => clearInterval(timer);
   }, [refreshMessages]);
 
+  /** 1通送る（エラーの文言を返す）。入力欄の送信と「今回は難しいです」のワンタップ返信が同じ経路を通る */
+  const sendText = async (text: string): Promise<string | null> => {
+    const res = await fetch("/api/dm/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, message: text.trim() }),
+    }).catch(() => null);
+    if (!res) return "メッセージの送信に失敗しました";
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      return d.error ?? "メッセージの送信に失敗しました";
+    }
+    await refreshMessages();
+    return null;
+  };
   const handleSend = async () => {
     if (!inputText.trim() || sending) return;
     if (inputText.trim().length > 5000) {
@@ -115,20 +134,9 @@ export default function ConversationDetailClient({
       return;
     }
     setSending(true);
-    const res = await fetch("/api/dm/message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null, askCompanyId: ask?.companyId ?? null }),
-    });
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      setError(d.error ?? "メッセージの送信に失敗しました");
-    } else {
-      setInputText("");
-      setAsk(null);
-      setAskKey((k) => k + 1);
-      await refreshMessages();
-    }
+    const err = await sendText(inputText);
+    if (err) setError(err);
+    else setInputText("");
     setSending(false);
   };
 
@@ -242,6 +250,17 @@ export default function ConversationDetailClient({
                 const isMe = msg.sender_participant_id === myParticipantId;
                 const sender = isMe ? (myUserName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "運営");
                 const isCard = (msg.kind === "meeting_slots" || msg.kind === "scheduling_link") && conversation.kind === "company";
+                /* ★キャリア相談はカードで出す（2026-11-05）。受け取った側には共通点と「今回は難しいです」 */
+                const consult = msg.kind === "consult" ? readConsultPayload(msg.payload) : null;
+                if (consult) {
+                  const canDecline = !isMe && conversation.request_status === "accepted";
+                  return (
+                    <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at} plain>
+                      <ConsultCard payload={consult} commonPoints={isMe ? [] : commonPoints}
+                        onDecline={canDecline ? () => sendText(CONSULT_DECLINE_REPLY) : undefined} />
+                    </ChatBubble>
+                  );
+                }
                 return (
                   <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at} plain={isCard}>
                     {isCard ? (
@@ -270,19 +289,13 @@ export default function ConversationDetailClient({
 
         {/* Input */}
         <div className="bg-white rounded-b-card border border-t-0 border-card-border px-4 py-3 flex-shrink-0">
-          {conversation.kind === "direct_message" && conversation.request_status !== "accepted" && conversation.talk_auto_declined ? (
-            /* ★14日たって自動で辞退になった（2026-11-03）。⚠️ 理由は出さない。続きも送らせない */
-            <p data-state="talk-auto-declined" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>{TALK_AUTO_DECLINED_TEXT}</p>
-          ) : conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
+          {conversation.kind === "direct_message" && conversation.request_status !== "accepted" ? (
             /* ★承認前（段階3）。⚠️ 入力欄は閉じる（API も 409 で止める）。断られていても同じ文言 */
             /* ★返信が無くても、1通目から3日たてばもう1通だけ送れる（2026-10-22 / A案）。判定は API の1か所 */
-            <PendingFollowUp conversationId={conversationId} fallbackText="まだ返信がありません。返信があると続きを送れます" onSent={() => refreshMessages()} />
+            <PendingFollowUp conversationId={conversationId} recipientName={displayName} fallbackText="まだ返信がありません。返信があると続きを送れます" onSent={() => refreshMessages()} />
           ) : myParticipantId ? (
             <div className="flex flex-col gap-2">
-            {conversation.kind === "direct_message" && (
-              <AskPicker key={askKey} conversationId={conversationId} value={ask} onChange={setAsk} disabled={sending} />
-            )}
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-end" style={{ minWidth: 0 }}>
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
@@ -292,8 +305,14 @@ export default function ConversationDetailClient({
                 aria-label="メッセージを入力"
                 rows={2}
                 className="flex-1 resize-none border border-card-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                style={{ minWidth: 0 }}
                 disabled={sending}
               />
+              {/* ★「相談する」は入力欄の横に常に出す（2026-11-05 / 個人どうしの会話だけ） */}
+              {conversation.kind === "direct_message" && (
+                <ConsultLauncher conversationId={conversationId} recipientName={displayName} disabled={sending}
+                  autoOpenExperienceId={consultExperienceId} onSent={() => refreshMessages()} />
+              )}
               <button
                 type="button"
                 onClick={handleSend}

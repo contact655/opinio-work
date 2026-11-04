@@ -25,13 +25,22 @@ import { getMypageNavBadges } from "@/lib/mypage/navBadges";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
+/**
+ * ★職歴の登録のあとに戻る画面（2026-11-05）。同じサイトのパスだけ受け付ける。
+ * ⚠️ `//` で始まるもの・制御文字（タブ・改行。ブラウザが取り除くと `//外のサイト` になる）・`\` を含むものは捨てる
+ */
+function safeReturnPath(raw: string | undefined): string | null {
+  if (!raw || raw.length > 500) return null;
+  return /^\/(?![\/\\])[^\x00-\x1f\x7f\\]*$/.test(raw) ? raw : null;
+}
+
 export default async function MypagePage({
   searchParams,
 }: {
   /* ⚠️ `setup` は 2026-08-10 に削除した。`?setup=done` を付ける経路が
         どこにも無く（/profile/start が存在しないため）、到達不能だった。 */
   /** join … 会社の招待リンク（/join/<slug>）から来たとき、その会社の id（職歴の追加をその会社が入った状態で開く。2026-10-12） */
-  searchParams?: { welcome?: string; tab?: string; join?: string; add?: string; focus?: string };
+  searchParams?: { welcome?: string; tab?: string; join?: string; add?: string; focus?: string; return?: string };
 }) {
   /* ⚠️ 旧 `?tab=` の転送は **`src/middleware.ts`** で返す（サーバーが 307 を返すため）。
         ここに書くと `/mypage/loading.tsx` の Suspense 境界の内側になり、
@@ -548,6 +557,8 @@ export default async function MypagePage({
       isNewUser={isNewUser}
       initialAddCompany={initialAddCompany}
       initialAddFirst={searchParams?.add === "career"}
+      /* ★メッセージの前に職歴の登録を案内された人の戻り先（2026-11-05）。⚠️ 同じサイトのパスだけ（safeNext。外のサイトへ飛ばさない） */
+      returnAfterCareer={safeReturnPath(searchParams?.return)}
       initialFocus={parseProfileFocus(searchParams?.focus)}
       initialCareerHistoryCompleteAt={careerHistoryCompleteAt}
       schoolPeerCounts={schoolPeerCounts}

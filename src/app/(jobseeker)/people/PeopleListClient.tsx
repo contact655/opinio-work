@@ -48,8 +48,6 @@ type Props = {
   sidebar: PeopleSidebarData | null;
   /** ★前の経歴（2026-11-03。旧 /paths）。読み込めなかったときは null（チップを出さない） */
   prevCareer?: PrevCareerProps | null;
-  /** ★「話を聞ける」設定の人（ow_users.id。2026-11-03）。カードに小さく印を出す */
-  talkOpenUserIds?: string[];
 };
 
 /**
@@ -171,6 +169,7 @@ export function PeopleCardStyles() {
                幅が足りないとき（スマホの2列）は折り返し、フォローが1行目いっぱい・メッセージが2行目の中央になる */
             .ppl-grid-icons { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; width: 100%; }
             .ppl-grid-follow { display: flex; flex: 1 1 96px; min-width: 0; }
+            .ppl-grid-msg { display: flex; flex: 1 1 96px; min-width: 0; }
             /* ★左サイドバー（240px）が入ったぶん、列を1つ減らした（2026-09-18）。
                ⚠️★**実測して決めた値。** 1440px では wrap 1300 − 左右padding 48 − サイドバー 240
                   − gap 24 = 988px を4列で割って **1枚 235px**。
@@ -435,24 +434,11 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
       `age` は型からも消してある
       （`matchesAge`）。カードに戻すときは、値が無い人には行ごと出さないこと。 */
 
-/**
- * ★「話を聞けます」の印（2026-11-03 / 柴さんの指示）。話せる量が「今は話せない」以外の人（lib/talk/server.ts の open）。
- * ⚠️ 印だけ。ボタンは増やさない（「話を聞く」はメッセージのボタンが相手の設定で出し分ける）。
- * ⚠️ 色で目立たせない（neutral）。月の上限に届いていても出す（設定としては話せる人のため）。
- */
-function TalkOpenMark() {
-  return (
-    <span data-state="ppl-talk-open" style={{ display: "inline-block", fontSize: 11, fontWeight: 600, lineHeight: 1.4, color: "var(--ink-soft)", background: "var(--line-soft)", border: "1px solid var(--line)", borderRadius: 100, padding: "1px 8px", margin: "2px 0 4px", whiteSpace: "nowrap" }}>
-      話を聞けます
-    </span>
-  );
-}
+/* ⚠️ 2026-11-03〜11-05 はここに「話を聞けます」の印（TalkOpenMark）があった。「話を聞ける」設定ごと外した（柴さんの指示）。戻さないこと */
 
 // ── グリッドカード ────────────────────────────────────────────────────
-export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false, pathNote, talkOpen = false }: {
+export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false, pathNote }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
-  /** ★「話を聞ける」設定（話せる量が「今は話せない」以外）か（2026-11-03）。名前の下に小さく印を出す。ボタンは増やさない */
-  talkOpen?: boolean;
   /** ★前の経歴で絞っているときの「以前: A → 次: B」（2026-11-03） */
   pathNote?: string;
   /** ★自分をフォローしている人（ボタンが「つながり」になる。2026-10-21） */
@@ -483,7 +469,6 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
         <div className="ppl-grid-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3, overflowWrap: "anywhere" }}>
           {card.name}
         </div>
-        {talkOpen && <TalkOpenMark />}
         {/* ★並びは **名前 → 会社 → 職種**（2026-08-18）。
                どこの人かが先に読めるほうが、一覧をなぞるときに探しやすい。
             ⚠️ 役職が無いときに「—」を出さない。値が無いことを、ある値に置き換えない。
@@ -529,14 +514,18 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
                それまでの人型アイコンだけのフォロー（2026-10-23）は、つながり申請と見分けがつかなかった。
             ⚠️ 幅が足りないとき（スマホの2列・1枚の中身 117px）は折り返して、フォローが1行目・メッセージが2行目になる（.ppl-grid-icons）。
             ⚠️ 自分のカード・未ログインにはフォローを出さない（showFollowOnCard） */}
+        {/* ★2026-11-05 / 柴さんの指示: 「メッセージ」を主ボタン（塗り）、「フォロー」を副ボタンにして並べる。
+               幅が足りないとき（スマホの2列）は折り返して、メッセージが1行目・フォローが2行目になる（.ppl-grid-icons）。 */}
         {showFollowOnCard(myUserId, card.userId) ? (
           <div className="ppl-grid-icons">
+            <div className="ppl-grid-msg" onClick={(e) => e.stopPropagation()}>
+              <DMButton targetUserId={card.userId} targetName={card.name} variant="primary" label="メッセージ" />
+            </div>
             <div className="ppl-grid-follow" onClick={(e) => e.stopPropagation()}>
               {/* ⚠️★`refreshOnChange` を外さないこと（サイドバーのフォロー数と ?rel=following の絞り込みが取り残される） */}
               <FollowUserButton targetUserId={card.userId} initialFollowed={followedUserIds.includes(card.userId)}
                 followsMe={followerUserIds.includes(card.userId)} isAuthenticated card refreshOnChange />
             </div>
-            <DMButton targetUserId={card.userId} targetName={card.name} variant="icon" />
           </div>
         ) : (
         <Link
@@ -570,9 +559,8 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
  *    情報を足し引きしないこと（ビュートグルで情報が増減する形にしない、と同じ理由）。
  * ⚠️ スマホではビュートグルを出さず、常にこの行で出す（1列なので「一覧／詳細」の差が無い）。
  */
-export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = [], talkOpen = false }: {
+export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = [] }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[]; followerUserIds?: string[];
-  talkOpen?: boolean;
 }) {
   const router = useRouter();
   return (
@@ -582,14 +570,13 @@ export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = 
         <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {card.name}
         </div>
-        {talkOpen && <TalkOpenMark />}
         <div className="ppl-compact-aff"><AffiliationBlock card={card} /></div>
         {card.roleName && <div className="ppl-compact-role">{card.roleName}</div>}
       </div>
       {showFollowOnCard(myUserId, card.userId) && (
         <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexShrink: 0, gap: 6, alignItems: "center" }}>
-          {/* ★メッセージ（2026-10-17）。⚠️ GridCard と情報をそろえる（ビュートグルで操作が増減しないように） */}
-          <DMButton targetUserId={card.userId} targetName={card.name} variant="icon" />
+          {/* ★メッセージ（2026-10-17）。2026-11-05 から塗りの主ボタン（狭いので丸いアイコン）。⚠️ GridCard と情報をそろえる */}
+          <DMButton targetUserId={card.userId} targetName={card.name} variant="iconPrimary" />
           {/* ⚠️★`refreshOnChange` を外さないこと（GridCard と同じ理由）。見た目は GridCard と同じ（2026-11-03） */}
           <div style={{ width: 112, display: "flex" }}>
             <FollowUserButton
@@ -619,8 +606,7 @@ export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = 
  *
  * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
  */
-export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [], pathNote, talkOpen = false }: {
-  talkOpen?: boolean;
+export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [], pathNote }: {
   card: AmbassadorCard;
   myUserId: string | null;
   followedUserIds: string[];
@@ -661,7 +647,6 @@ export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [],
       <div style={{ flex: "0 1 auto", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span className="ppl-row-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", transition: "color 0.15s" }}>{card.name}</span>
-          {talkOpen && <TalkOpenMark />}
           {/* ⚠️ 名前の右の「面談OK」バッジは 2026-10-16 に撤去した */}
         </div>
 
@@ -707,7 +692,8 @@ export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [],
         {/* ★GridCard と同じく、他の人には「プロフィール」の代わりに「メッセージ」（2026-10-17） */}
         {myUserId !== null && card.userId !== myUserId ? (
           <div className="ppl-row-follow" style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-            <DMButton targetUserId={card.userId} targetName={card.name} variant="card" />
+            {/* ★2026-11-05 から塗りの主ボタン（その下のフォローが副） */}
+            <DMButton targetUserId={card.userId} targetName={card.name} variant="primary" label="メッセージ" />
           </div>
         ) : (
         <Link
@@ -767,8 +753,7 @@ function matchRole(card: AmbassadorCard, slugs: string[], roleSlugToId: Record<s
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null, talkOpenUserIds = [] }: Props) {
-  const talkOpenSet = useMemo(() => new Set(talkOpenUserIds), [talkOpenUserIds]);
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null }: Props) {
   /* ★前の経歴で絞っているとき（2026-11-03）。⚠️ 人数を出さない（PrevCareerProps の注記） */
   const prevNotes = prevCareer?.notes ?? null;
   /* ★絞り込みは URL に持つ（2026-09-18）。共有リンク・リロード・戻るで同じ結果になる。
@@ -1170,19 +1155,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
             <><div className="ppl-grid">
               {shown.map((card) => (
-                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} talkOpen={talkOpenSet.has(card.userId)} />
+                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} />
               ))}
             </div>{moreButton}</>
           ) : view === "list" ? (
             <><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {shown.map((card) => (
-                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} talkOpen={talkOpenSet.has(card.userId)} />
+                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} />
               ))}
             </div>{moreButton}</>
           ) : (
           <><div className="ppl-grid">
             {shown.map((card) => (
-              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} talkOpen={talkOpenSet.has(card.userId)} />
+              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} />
             ))}
           </div>{moreButton}</>
           )

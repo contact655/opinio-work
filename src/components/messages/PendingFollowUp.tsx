@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AskPicker, type AskValue } from "@/components/messages/FirstMessage";
+import { ConsultLauncher } from "@/components/messages/Consult";
 import { PENDING_FOLLOW_UP_MAX_LENGTH } from "@/lib/constants/messages";
 
 type State = { kind: "none" } | { kind: "allowed" };
@@ -12,8 +12,10 @@ type State = { kind: "none" } | { kind: "allowed" };
  *   判定は GET /api/dm/follow-up（送る API と同じ pendingFollowUpState）
  *   ⚠️ 一覧と並んだ画面（ConversationsClient）と会話だけの画面（ConversationDetailClient）の両方で使う。片方だけ変えないこと
  */
-export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
+export function PendingFollowUp({ conversationId, fallbackText, onSent, recipientName = null }: {
   conversationId: string;
+  /** 相談の画面の見出しに出す相手の名前 */
+  recipientName?: string | null;
   /** 読み込み前・取得に失敗したときの1行 */
   fallbackText: string;
   onSent: () => void | Promise<void>;
@@ -21,7 +23,6 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
   const [state, setState] = useState<State | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [text, setText] = useState("");
-  const [ask, setAsk] = useState<AskValue>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +35,7 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
       setMessage((d.message as string | null) ?? null);
     } catch { setState(null); setMessage(null); }
   }, [conversationId]);
-  useEffect(() => { setText(""); setAsk(null); setError(null); void load(); }, [load]);
+  useEffect(() => { setText(""); setError(null); void load(); }, [load]);
 
   const tooLong = text.trim().length > PENDING_FOLLOW_UP_MAX_LENGTH;
   const send = async () => {
@@ -43,11 +44,11 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
     try {
       const r = await fetch("/api/dm/message", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, message: text.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null, askCompanyId: ask?.companyId ?? null }),
+        body: JSON.stringify({ conversationId, message: text.trim() }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d.error ?? "送信に失敗しました"); return; }
-      setText(""); setAsk(null);
+      setText("");
       await onSent();
       await load();
     } finally { setSending(false); }
@@ -65,11 +66,13 @@ export function PendingFollowUp({ conversationId, fallbackText, onSent }: {
       <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)", lineHeight: 1.6 }}>
         まだ返信がありません。返信が無くても、続けて送れます。
       </p>
-      <AskPicker conversationId={conversationId} value={ask} onChange={setAsk} disabled={sending} />
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-end", minWidth: 0 }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} disabled={sending}
           aria-label="メッセージを入力" placeholder="メッセージを入力…"
           style={{ flex: 1, minWidth: 0, boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${tooLong ? "var(--error)" : "var(--line)"}`, fontSize: 13, lineHeight: 1.5, resize: "none", fontFamily: "inherit", color: "var(--ink)" }} />
+        {/* ★「相談する」は入力欄の横に常に出す（2026-11-05） */}
+        <ConsultLauncher conversationId={conversationId} recipientName={recipientName} disabled={sending}
+          onSent={async () => { await onSent(); await load(); }} />
         <button type="button" onClick={() => void send()} disabled={sending || !text.trim() || tooLong} data-action="send-follow-up"
           style={{ padding: "9px 18px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, flexShrink: 0, fontFamily: "inherit",
             cursor: sending || !text.trim() || tooLong ? "not-allowed" : "pointer",

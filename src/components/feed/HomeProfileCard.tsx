@@ -2,7 +2,6 @@ import type React from "react";
 import Link from "next/link";
 import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { RAIL_BOX_STYLE } from "@/components/feed/railKit";
-import { talkCapacityShortLabel, type TalkCapacity } from "@/lib/constants/talk";
 import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
 import { homeProfileNextStep, type ProfileNextStepKey } from "@/lib/profile/nextStep";
 
@@ -31,7 +30,6 @@ export type HomeProfileCardData = Pick<ProfileCardData, "counts"> & {
   /** ★次の1件の種類（getPeopleSidebarData の nextStepKey）。全部埋まっていれば null */
   nextStepKey: ProfileNextStepKey | null;
   /** 話せる量。取得できなければ null（その行ごと出さない） */
-  talkCapacity: TalkCapacity | null;
 };
 
 /* ★2026-11-04 に左の列を 225px にしたので、顔写真 64→56px・帯 56→40px に詰めた */
@@ -45,7 +43,7 @@ export function homeProfileTitle(roleName: string | null, companyLabel: string |
   return [roleName, companyLabel].filter(Boolean).join("・") || null;
 }
 
-export function HomeProfileCard({ me, counts, experienceCount, nextStepKey, talkCapacity }: HomeProfileCardData) {
+export function HomeProfileCard({ me, counts, experienceCount, nextStepKey }: HomeProfileCardData) {
   const title = homeProfileTitle(me.roleName, me.companyLabel);
   /* ⚠️ 職歴0件は experienceCount でも見る（nextStepKey が "career" のときと同じ。肩書きの欄の「職歴を入れる」と2つ並べない） */
   const nextStep = experienceCount === 0 ? null : homeProfileNextStep(nextStepKey);
@@ -111,16 +109,6 @@ export function HomeProfileCard({ me, counts, experienceCount, nextStepKey, talk
         ))}
       </div>
 
-      {/* ★「話を聞ける」は2行（2026-11-04。225px に1行で収まらないため）: 1行目に見出し、2行目に値と右端に「設定する」 */}
-      {talkCapacity && (
-        <div data-state="home-profile-talk" style={{ borderTop: "1px solid var(--line)", padding: "10px 14px 12px" }}>
-          <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>話を聞ける</div>
-          <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, whiteSpace: "nowrap" }}>
-            <span data-state="home-profile-talk-value" style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", ...ONE_LINE }}>{talkCapacityShortLabel(talkCapacity)}</span>
-            <Link href="/mypage/settings#talk-settings" className="hpc-link" style={{ flexShrink: 0 }}>設定する</Link>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

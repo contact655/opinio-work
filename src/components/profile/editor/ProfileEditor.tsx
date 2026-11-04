@@ -126,6 +126,7 @@ export default function ProfileEditor({
   initialContentLinks,
   initialAddCompany = null,
   initialAddFirst = false,
+  returnAfterCareer = null,
   initialFocus = null,
   initialCareerHistoryCompleteAt = null,
   roles,
@@ -170,6 +171,8 @@ export default function ProfileEditor({
   initialAddCompany?: { id: string; name: string } | null;
   /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
   initialAddFirst?: boolean;
+  /** ★職歴を登録したあとに戻る画面（`/mypage?add=career&return=…`。2026-11-05 / メッセージの前の職歴の案内）。確かめ済みの同じサイトのパス */
+  returnAfterCareer?: string | null;
   /** ★ホームの左のカードの「次の1件」から来たとき（`/mypage?focus=`。2026-11-04）。その欄へ寄せる */
   initialFocus?: ProfileFocusKey | null;
   /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。職歴の促しカードの表示条件 */
@@ -403,6 +406,7 @@ export default function ProfileEditor({
             initialContentLinks={initialContentLinks}
             initialAddCompany={initialAddCompany}
             initialAddFirst={initialAddFirst}
+            returnAfterCareer={returnAfterCareer}
             initialFocus={initialFocus}
             initialCareerHistoryCompleteAt={initialCareerHistoryCompleteAt}
             onSavedChange={setProfileSaved}
