@@ -4,6 +4,7 @@ import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { RAIL_BOX_STYLE } from "@/components/feed/railKit";
 import { talkCapacityShortLabel, type TalkCapacity } from "@/lib/constants/talk";
 import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
+import { homeProfileNextStep, type ProfileNextStepKey } from "@/lib/profile/nextStep";
 
 /**
  * ★ホームの左の列のカード（2026-11-04 / 柴さんの指示）。
@@ -12,7 +13,11 @@ import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
  *
  * ★幅は親（左の列 225px）に合わせる（2026-11-04）。名前・肩書き・「職歴を入れる」は1行で切る
  * 上から: 薄い色の帯（顔写真が帯にかかる）→ 名前 → 肩書き1行（現職の「職種・会社名」。職歴0件なら「職歴を入れる」）
- *        → プロフィールを見る → 数字の行（行全体を押すとその一覧へ）→ 話を聞ける：◯◯・設定する
+ *        → プロフィールを見る → 次の1件（1行）→ 数字の行（行全体を押すとその一覧へ）→ 話を聞ける：◯◯・設定する
+ *
+ * ★次の1件（2026-11-04 / 柴さんの指示。PR #13 で外した「次の1件」の箱を、別の箱にせずこのカードの1行に戻した）。
+ *   判定は lib/profile/nextStep.ts（/people の箱と同じ順番）。文言は短い版、押すと /mypage の該当の欄へ（?focus=）。
+ *   ⚠️ 職歴0件のときは出さない（肩書きの欄に「職歴を入れる」が出ているので2つ並べない）。全部埋まっていれば行ごと出さない
  *
  * ⚠️ 数字は 0 でも出す（ProfileCard と同じ判断）。行き先も ProfileCard と同じにそろえてある。片方だけ変えないこと
  * ⚠️ フォロワーの一覧（/people?rel=followers）は閲覧者自身のフォロワーしか出さない作り（/people/page.tsx が自分の id で引く）
@@ -23,6 +28,8 @@ import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
 export type HomeProfileCardData = Pick<ProfileCardData, "counts"> & {
   me: ProfileCardData["me"] & { roleName: string | null; companyLabel: string | null };
   experienceCount: number;
+  /** ★次の1件の種類（getPeopleSidebarData の nextStepKey）。全部埋まっていれば null */
+  nextStepKey: ProfileNextStepKey | null;
   /** 話せる量。取得できなければ null（その行ごと出さない） */
   talkCapacity: TalkCapacity | null;
 };
@@ -38,8 +45,10 @@ export function homeProfileTitle(roleName: string | null, companyLabel: string |
   return [roleName, companyLabel].filter(Boolean).join("・") || null;
 }
 
-export function HomeProfileCard({ me, counts, experienceCount, talkCapacity }: HomeProfileCardData) {
+export function HomeProfileCard({ me, counts, experienceCount, nextStepKey, talkCapacity }: HomeProfileCardData) {
   const title = homeProfileTitle(me.roleName, me.companyLabel);
+  /* ⚠️ 職歴0件は experienceCount でも見る（nextStepKey が "career" のときと同じ。肩書きの欄の「職歴を入れる」と2つ並べない） */
+  const nextStep = experienceCount === 0 ? null : homeProfileNextStep(nextStepKey);
   const rows: { href: string; label: string; value: string; state: string }[] = [
     { href: "/people?rel=following", label: "フォロー中", value: `${counts.following}人`, state: "home-count-following" },
     { href: "/people?rel=followers", label: "フォロワー", value: `${counts.followers}人`, state: "home-count-followers" },
@@ -87,6 +96,10 @@ export function HomeProfileCard({ me, counts, experienceCount, talkCapacity }: H
         <div style={{ marginTop: 10 }}>
           <Link href={`/u/${me.userId}`} className="hpc-link">プロフィールを見る</Link>
         </div>
+        {nextStep && (
+          <Link href={nextStep.href} className="hpc-link" data-state="home-profile-next-step" title={nextStep.label}
+            style={{ display: "block", marginTop: 6, ...ONE_LINE }}>{nextStep.label} →</Link>
+        )}
       </div>
 
       {/* 数字の行。⚠️ 0 でも出す */}
