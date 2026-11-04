@@ -106,11 +106,9 @@ export function GridSortBar({ totalCount, showViewToggle = true, showSort = true
   if (layout === "result") {
     return (
       <div className="lt-result-row" data-state="companies-result-row">
-        <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-          <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 15 }}>{totalCount}</strong>
-          <span style={{ marginLeft: 3 }}>社</span>
-        </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        {/* ★件数は画面に出さない（2026-11-04 / 柴さんの指示。/jobs・/people も同じ）。読み上げにだけ残す */}
+        <span className="sr-only" aria-live="polite">{totalCount}社</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, marginLeft: "auto" }}>
           {/* ⚠️ 767px 以下は .companies-view-toggle ごと隠れる（従来どおり） */}
           {showViewToggle && (
             <div className="companies-view-toggle">

@@ -1012,7 +1012,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         }}
       >
         {/* ★lt-compact: 1024px 以上では検索・チップ・件数を1行にまとめる（2026-10-21。globals.css） */}
-        <div className="ppl-wrap lt-compact" style={{ margin: "0 auto", padding: "0 24px 14px" }}>
+        {/* ★下の余白は globals.css の .lt-compact が持つ（2026-11-04。/companies・/jobs とそろえた。それまでここに 14px）。
+              ⚠️ padding をまとめて書かないこと（下の余白まで 0 で上書きしてしまう） */}
+        <div className="ppl-wrap lt-compact" style={{ margin: "0 auto", paddingLeft: 24, paddingRight: 24 }}>
           {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar。/companies・/jobs と同じ形）。
                  1行目 検索欄（常に開いている）／2行目 条件のチップ（職種・年代・外資）／3行目 件数と並び替え
               ⚠️★**「絞り込み」ボタンは置かない。** 条件が3つしか無く、3つとも外に出したので中身が空になる
@@ -1073,19 +1075,16 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             )}
           </div>
 
-          {/* ★3行目: 件数（左）と、表示切替・並び替え（文字だけ）（右） */}
+          {/* ★3行目: 「前の経歴で絞り込み中」（左）と、表示切替・並び替え（文字だけ）（右）
+                ★人数は画面に出さない（2026-11-04 / 柴さんの指示。/companies・/jobs も同じ）。読み上げにだけ残す */}
           <div className="lt-result-row" data-state="people-result-row">
-            {/* ⚠️ 前の経歴で絞っているときは人数を出さない（集計の下限を回り込まれる） */}
+            {/* ⚠️ 前の経歴で絞っているときは人数を読み上げにも出さない（集計の下限を回り込まれる） */}
             {prevNotes ? (
               <span data-state="people-count-hidden" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>前の経歴で絞り込み中</span>
             ) : (
-            <span style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), sans-serif", fontSize: 15 }}>
-                {sorted.length}
-              </strong> 名
-            </span>
+              <span className="sr-only" aria-live="polite">{sorted.length}名</span>
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, marginLeft: "auto" }}>
               {/* 表示モード。★意匠は `/companies` のビュートグルと揃えてある（2026-08-27）。⚠️ 片方だけ変えないこと。
                   ⚠️ 情報が減る切り替えを作らないこと。⚠️ 560px 以下では出さない（isNarrow） */}
               {!isNarrow && (

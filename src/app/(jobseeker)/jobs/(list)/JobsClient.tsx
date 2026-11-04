@@ -1089,14 +1089,12 @@ export default function JobsClient({
               {/* ⚠️ 「面談受付中」ピル（2026-08-06）と「✕ リセット」（2026-09-06）は廃止済み。戻さないこと */}
           </div>
 
-          {/* ★3行目: 件数（左）と並び替え（右・文字だけ）。⚠️ 選択肢と既定値はここが持つ（部品は表示と開閉だけ） */}
+          {/* ★3行目: 「絞込中」（左）と並び替え（右・文字だけ）。⚠️ 選択肢と既定値はここが持つ（部品は表示と開閉だけ）
+                ★件数は画面に出さない（2026-11-04 / 柴さんの指示。/companies・/people も同じ）。読み上げにだけ残す */}
           <div className="lt-result-row" data-state="jobs-result-row">
-            <span aria-live="polite" style={{ fontSize: 13, color: "var(--ink-mute)", fontWeight: 500 }}>
-              <strong style={{ color: "var(--ink)", fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 15 }}>{filteredForDisplay.length}</strong>
-              <span style={{ marginLeft: 3 }}>件</span>
-              {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", marginLeft: 6, fontWeight: 600 }}>絞込中</span>}
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <span className="sr-only" aria-live="polite">{filteredForDisplay.length}件</span>
+            {(hasFilter || q) && <span style={{ fontSize: 12, color: "var(--success-ink)", fontWeight: 600 }}>絞込中</span>}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, marginLeft: "auto" }}>
               {maxPerCompany > 3 && (
                 <>
                   <button

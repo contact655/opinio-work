@@ -2921,6 +2921,14 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
    ⚠️★絞り込みのパネル（.ds-panel。1024px 以上はページ内に開く）か、選択中の条件（.csb-active-chips）が出ているあいだは
       従来の3行に戻す。1行のままだとパネルが条件の列の幅に押し込まれる（/companies・/jobs）
    ⚠️ 対象は .lt-compact を付けた画面（/people・/companies・/jobs）。スマホ・タブレットは従来の3行のまま */
+/* ★上部の下の余白（2026-11-04 / 柴さんの指摘）。1行にまとめると各行の余白が 0 になり、/companies・/jobs はチップの下が 1px しかなかった
+     （/people だけ 14px あった）。3画面とも下に 10px を足し、チップの上下の白が 12〜13px でそろう形にした。
+   ⚠️ 上の 12px は貼り付く入れ物（.lt-sticky の inline padding）が持つ。12 が下限（詰めると検索窓がヘッダーに貼り付いて見える）
+   ⚠️ 1行の形のときだけ。3行に戻ったとき（パネル・選択中の条件）は各行が自分の余白を持つ */
+@media (min-width: 1024px) {
+  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)),
+  .lt-compact.lt-compact--keep { padding-bottom: 10px; }
+}
 @media (min-width: 1024px) {
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) { display: flex; align-items: center; gap: 12px; }
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-search-row { padding: 0; flex: 0 1 340px; min-width: 0; }
