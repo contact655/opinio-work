@@ -322,7 +322,7 @@ export function PeopleCardStyles() {
             /* FilterChip */
             .ppl-chip {
               display: inline-flex; align-items: center; gap: 5px;
-              padding: 7px 14px; border-radius: 999px;
+              padding: 7px var(--chip-pad-x, 14px); border-radius: 999px;
               border: 1.5px solid #e2e8f0; background: #fff;
               color: var(--ink); font-size: 13px; font-weight: 500;
               cursor: pointer; white-space: nowrap;

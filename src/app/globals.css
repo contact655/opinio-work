@@ -1910,7 +1910,7 @@ body {
           white-space: nowrap;
           border: 1.5px solid #e2e8f0;
           border-radius: 999px;
-          padding: 7px 14px;
+          padding: 7px var(--chip-pad-x, 14px);
           transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
           user-select: none;
           font-family: inherit;
@@ -1991,7 +1991,7 @@ body {
           white-space: nowrap;
           border: 1.5px solid #e2e8f0;
           border-radius: 999px;
-          padding: 7px 14px;
+          padding: 7px var(--chip-pad-x, 14px);
           transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
           user-select: none;
           font-family: inherit;
@@ -2929,9 +2929,16 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)),
   .lt-compact.lt-compact--keep { padding-bottom: 10px; }
 }
+/* ★1280px で1行に収める（2026-11-04 / 柴さんの判断）。条件は「絞り込み」に畳まず全部並べたまま（2026-10-29 の決めごと）、
+     検索欄を 340 から 280px、チップの左右の余白を 14 から 12px に詰めた。/companies（7つ）・/jobs（8つ）が 1280px で1行に入る。
+   ⚠️ チップの左右は --chip-pad-x（FilterChip・.foreign-toggle・.csb-hiring・.ppl-chip が読む）。片方だけ戻すと同じ行で幅が割れる
+   ⚠️ 1024px 前後は詰めても入らないので、これまでどおり2行に折り返す */
+@media (min-width: 1024px) {
+  .lt-compact { --chip-pad-x: 12px; }
+}
 @media (min-width: 1024px) {
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) { display: flex; align-items: center; gap: 12px; }
-  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-search-row { padding: 0; flex: 0 1 340px; min-width: 0; }
+  .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-search-row { padding: 0; flex: 0 1 280px; min-width: 0; }
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-chip-row { padding-bottom: 0; flex: 0 1 auto; min-width: 0; }
   .lt-compact:not(:has(.ds-panel)):not(:has(.csb-active-chips)) > .lt-result-row { padding: 0; border-top: none; margin-left: auto; flex-shrink: 0; gap: 14px; }
 }
@@ -2941,7 +2948,7 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
    ⚠️ /jobs・/people には付けていない（あちらの並びは確かめていない）。広げるときは画面ごとに測ること */
 @media (min-width: 1024px) {
   .lt-compact.lt-compact--keep { display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; row-gap: 12px; }
-  .lt-compact--keep > .lt-search-row { padding: 0; flex: 0 1 340px; min-width: 0; }
+  .lt-compact--keep > .lt-search-row { padding: 0; flex: 0 1 280px; min-width: 0; }
   .lt-compact--keep > .lt-chip-row { display: contents; }
   .lt-compact--keep > .lt-result-row { order: 1; padding: 0; border-top: none; margin-left: auto; flex-shrink: 0; gap: 14px; }
   .lt-compact--keep .csb-active-chips,
