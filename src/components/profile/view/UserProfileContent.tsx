@@ -28,12 +28,7 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
-import { approachResendNotice } from "@/lib/constants/companyApproaches";
-import { ProfileMoreMenu } from "@/components/profile/ProfileMoreMenu";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { canUse } from "@/lib/constants/plans";
-import { hasScoutAccess } from "@/lib/business/scoutGate";
-import { getRecentlyApproached, isApproachTarget, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -194,11 +189,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   const schoolmatesPromise = authUser && !embed ? getSchoolmates(owUser.id, viewerOwUserId) : Promise.resolve([]);
   schoolmatesPromise.catch(() => {});
 
-  /* ★企業からの「声かけ」（2026-10-09）。閲覧者が企業の有効な担当者のときだけ判定する。
-        ⚠️★送れない相手にはボタンを出さない（理由も出さない）。判定は送信の API と同じ
-           `isApproachTarget`（候補者検索に出る人と同じ範囲なので、出ること自体で新しく漏れる情報は無い）。
-        ⚠️ この企業が180日以内に声をかけていれば「声かけ済み」（企業自身の事実）。 */
-  let approach: { eligible: boolean; sent: RecentApproach | null; jobs: { id: string; title: string }[]; companyName: string } | null = null;
   /* ★社内メモ（2026-10-10 / 段5）。企業の担当者が見たとき・フラグがオンのときだけ。担当の候補は自社の有効な担当者 */
   let notesAdmins: { id: string; name: string }[] | null = null;
   if (viewerOwUserId && !viewerIsOwner) {
@@ -208,14 +198,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         .select("user_id, ow_users!user_id(name)").eq("company_id", tenant.tenantId).eq("is_active", true).not("user_id", "is", null);
       if (aErr) console.error("[u/[id]] notes admins:", aErr.message);
       else notesAdmins = (adminRows ?? []).map((r) => ({ id: r.user_id as string, name: (((r.ow_users as unknown as { name: string | null } | null)?.name) ?? "").trim() || "担当者" }));
-    }
-    if (tenant && hasScoutAccess(tenant) && canUse(tenant.planType, "companyApproach")) {
-      const [recent, eligible, approachJobs] = await Promise.all([
-        getRecentlyApproached(tenant.tenantId, [owUser.id]),
-        isApproachTarget({ companyId: tenant.tenantId, candidateOwUserId: owUser.id, senderOwUserId: tenant.currentOwnId }),
-        listApproachableJobs(tenant.tenantId),
-      ]);
-      if (recent) approach = { eligible, sent: recent.get(owUser.id) ?? null, jobs: approachJobs, companyName: tenant.tenantName };
     }
   }
 
@@ -655,11 +637,8 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
           metaActions={embed ? undefined : <>
               {/* ⚠️ 2026-11-03〜11-05 はここに「話を聞ける立場」が出ていた。「話を聞ける」設定ごと外した（柴さんの指示）。戻さないこと */}
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
-                {/* ★2026-10-22 に LinkedIn の並びにした（柴さんの指示）。プロフィールの「メッセージ」は
-                       **誰が見ても個人として送るもの**。企業の担当者が会社として送るのは「…」の中か、
-                       企業の管理画面の「候補者を探す」から（LinkedIn の Recruiter と同じ置き方）。
-                       ⚠️ 2026-10-11〜10-22 は会社として送るボタンが一番目立つ位置にあり、個人は「…」の中だった。
-                       ⚠️ 会社として送れない相手には「…」の中に何も出さない（理由を区別しない。送れない一文も出さない） */}
+                {/* ★プロフィールの「メッセージ」は**誰が見ても個人として送るもの**（2026-10-22 / 2026-11-05 に塗りの主ボタン）。
+                       企業の担当者が会社として送るのは、企業の管理画面の「候補者を探す」からだけ（LinkedIn の Recruiter と同じ置き方）。 */}
                 {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
                 ) : !viewerIsOwner && !authUser && !ownerTestRes.error && messageButtonVisible({
@@ -698,21 +677,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   />
                 )}
 
-                {/* ★会社として送る入口（企業の担当者だけ・「…」の中）。送れる → 「◯◯としてメッセージを送る」、
-                       送り済み → 「送った内容を見る」「メッセージを開く」（approachResendNotice）。送れない → 出さない */}
-                {approach && !viewerIsOwner && (approach.sent || approach.eligible) && (
-                  <ProfileMoreMenu>
-                    <Link role="menuitem" data-state="company-message-menu"
-                      href={approach.sent
-                        ? (approachResendNotice(approach.sent).action?.href ?? "/biz/messages")
-                        : `/biz/messages/new?candidate=${encodeURIComponent(owUser.id)}`}
-                      style={{ display: "block", padding: "10px 14px", fontSize: 13.5, fontWeight: 600, color: "var(--ink)", textDecoration: "none", whiteSpace: "nowrap" }}>
-                      {approach.sent
-                        ? `${approach.companyName}から送った${approach.sent.state === "accepted" ? "メッセージを開く" : "内容を見る"}`
-                        : `${approach.companyName}としてメッセージを送る`}
-                    </Link>
-                  </ProfileMoreMenu>
-                )}
+                {/* ⚠️★2026-11-05 にここの「…」（「◯◯としてメッセージを送る」）を外した（柴さんの指示）。
+                       プロフィールの操作は「メッセージ」「フォロー」だけ（LinkedIn と同じ）。会社として送るのは
+                       企業の管理画面の「候補者を探す」から。プロフィールに戻さないこと */}
 
                 {/* ⚠️ ここにあった「〇〇 の企業ページ」と「IT 求人を見る」は 2026-08-23 に外した。
                        前者は右の会社ブロック（ロゴ＋社名がリンク）と同じ行き先で二重。

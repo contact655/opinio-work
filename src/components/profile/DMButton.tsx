@@ -26,11 +26,11 @@ type Props = {
    */
   label?: string;
   /**
-   * button   … 既定（薄い青）
+   * button   … 既定（塗りの主ボタン。/u/[id] のヘッダー）
    * primary  … ★塗りの主ボタン「メッセージ」（2026-11-05 / /people のカード・行）
    * iconPrimary … ★塗りの丸いアイコンだけ（/people のスマホの行）
    * link     … ★文字だけ（職歴の「この経験について聞く」。2026-11-05）
-   * menuItem … 「…」メニューの中（企業の担当者が /u/[id] を見たとき。「個人としてメッセージを送る」）
+   * menuItem … 「…」メニューの中（2026-11-05 時点で使っている画面なし）
    * card / icon / action … 白い枠のボタン・白い丸・フィードの操作行
    */
   variant?: "button" | "primary" | "iconPrimary" | "link" | "menuItem" | "card" | "icon" | "action";
@@ -203,11 +203,12 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
           {loading ? "準備中..." : (label ?? "個人としてメッセージを送る")}
         </button>
       ) : (
-        <button type="button" onClick={handleClick} disabled={loading}
+        /* ★プロフィール（/u/[id]）の「メッセージ」。2026-11-05 に塗りの主ボタンにした（隣の「フォロー」が副） */
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-profile"
           style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8,
-            border: "1.5px solid var(--royal-100)", background: loading ? "var(--line)" : "var(--royal-50)",
-            color: loading ? "var(--ink-mute)" : "var(--royal)", fontSize: 13, fontWeight: 700,
+            border: "1.5px solid var(--royal)", background: loading ? "var(--line)" : "var(--royal)",
+            color: loading ? "var(--ink-mute)" : "#fff", fontSize: 13, fontWeight: 700,
             cursor: loading ? "not-allowed" : "pointer", flexShrink: 0, whiteSpace: "nowrap",
           }}>
           {ICON}
